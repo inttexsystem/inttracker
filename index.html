@@ -265,6 +265,7 @@ const routes = {
   '#/cadastros/parametros': { render: screenCadastrosParametros, roles: ['admin'] },
   '#/cadastros/fornecedores': { render: screenCadastrosFornecedores, roles: ['admin'] },
   '#/cadastros/precos': { render: screenCadastrosPrecos, roles: ['admin'] },
+  '#/cadastros/usuarios': { render: screenCadastrosUsuarios, roles: ['admin'] },
   '#/fornecedor/home': { render: screenFornecedorHome, roles: ['fornecedor'] },
 };
 
@@ -767,6 +768,112 @@ async function screenCadastrosPrecos() {
         const { error } = await supa.from('precos_terceirizada').delete().eq('id', preco.id);
         if (error) { toast('Erro ao excluir', 'error'); console.error(error); return; }
         toast('Preço excluído', 'success');
+        reload();
+      }
+    });
+  }
+
+  await reload();
+  return shellLayout(ADMIN_MENU, container);
+}
+
+async function screenCadastrosUsuarios() {
+  const container = el('div', {});
+
+  async function reload() {
+    const [usersRes, fornsRes] = await Promise.all([
+      supa.from('usuarios').select('id, email, nome, tipo, fornecedor:fornecedor_id(id, nome, tipo)').order('email'),
+      supa.from('fornecedores').select('id, nome, tipo').order('nome')
+    ]);
+    if (usersRes.error || fornsRes.error) { toast('Erro ao carregar', 'error'); console.error(usersRes.error || fornsRes.error); return; }
+    render(usersRes.data || [], fornsRes.data || []);
+  }
+
+  function render(users, forns) {
+    container.replaceChildren(
+      pageHeader('Usuários', [{ label: '+ Vincular usuário', onclick: () => openModal(null, forns) }]),
+      el('div', { class: 'bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 text-sm text-yellow-900' },
+        el('p', { class: 'font-semibold mb-1' }, 'Como criar um usuário novo:'),
+        el('ol', { class: 'list-decimal pl-5 space-y-1' },
+          el('li', {}, 'Abra o Supabase Studio → Authentication → Users → Add user → Create new user (marque Auto Confirm User).'),
+          el('li', {}, 'Copie o UID gerado.'),
+          el('li', {}, 'Volte aqui, clique "+ Vincular usuário" e cole o UID + dados.')
+        )
+      ),
+      dataTable({
+        columns: [
+          { key: 'email', label: 'E-mail' },
+          { key: 'nome', label: 'Nome' },
+          { key: 'tipo', label: 'Tipo' },
+          { key: 'fornecedor', label: 'Fornecedor', render: (r) => r.fornecedor?.nome || '—' },
+        ],
+        rows: users,
+        actions: [
+          { label: 'Editar', onclick: (r) => openModal(r, forns) },
+          { label: 'Excluir vínculo', class: 'text-red-600 hover:underline', onclick: (r) => confirmExcluir(r) },
+        ]
+      })
+    );
+  }
+
+  function openModal(usr, forns) {
+    const isEdit = !!usr;
+    const fornOptions = forns.map(f => ({ value: f.id, label: `${f.nome} (${labelFornecedorTipo(f.tipo)})` }));
+    const tipoOptions = [{ value: 'admin', label: 'Admin' }, { value: 'fornecedor', label: 'Fornecedor' }];
+
+    const idInput = textInput({ value: usr?.id || '', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' });
+    idInput.disabled = isEdit;
+    if (isEdit) idInput.classList.add('bg-gray-100');
+
+    const emailInput = textInput({ type: 'email', value: usr?.email || '', placeholder: 'usuario@exemplo.com' });
+    const nomeInput = textInput({ value: usr?.nome || '', placeholder: 'Ex: Fornecedor X' });
+    const tipoSel = selectInput({ options: tipoOptions, value: usr?.tipo });
+    const fornSel = selectInput({ options: fornOptions, value: usr?.fornecedor?.id, placeholder: '(nenhum)' });
+
+    const body = el('div', {},
+      formField({ label: 'UID do Auth', input: idInput, hint: isEdit ? 'Não pode ser alterado' : 'Cole o UID copiado do Supabase Studio' }),
+      formField({ label: 'E-mail', input: emailInput, hint: 'Deve bater com o e-mail criado no Supabase Auth' }),
+      formField({ label: 'Nome', input: nomeInput }),
+      formField({ label: 'Tipo', input: tipoSel }),
+      formField({ label: 'Fornecedor (se tipo for "fornecedor")', input: fornSel, hint: 'Deixe vazio se for admin' })
+    );
+
+    modal({
+      title: isEdit ? 'Editar usuário' : 'Vincular usuário',
+      body,
+      onSave: async () => {
+        const id = idInput.value.trim();
+        const email = emailInput.value.trim();
+        const nome = nomeInput.value.trim();
+        const tipo = tipoSel.value;
+        const fornecedor_id = fornSel.value || null;
+        if (!id || !email || !nome || !tipo) { toast('Preencha UID, email, nome e tipo', 'error'); return false; }
+        if (tipo === 'fornecedor' && !fornecedor_id) { toast('Usuário tipo "fornecedor" precisa de fornecedor vinculado', 'error'); return false; }
+        const payload = { id, email, nome, tipo, fornecedor_id };
+        const { error } = isEdit
+          ? await supa.from('usuarios').update({ email, nome, tipo, fornecedor_id }).eq('id', usr.id)
+          : await supa.from('usuarios').insert(payload);
+        if (error) {
+          let msg = 'Erro ao salvar';
+          if (error.message.includes('duplicate')) msg = 'UID ou e-mail já cadastrado';
+          if (error.message.includes('foreign key')) msg = 'UID não existe no Supabase Auth — crie lá primeiro';
+          toast(msg, 'error'); console.error(error); return false;
+        }
+        toast(isEdit ? 'Usuário atualizado' : 'Usuário vinculado', 'success');
+        reload();
+      }
+    });
+  }
+
+  function confirmExcluir(usr) {
+    confirmDialog({
+      title: 'Excluir vínculo',
+      message: `Remover "${usr.email}" da tabela de usuários? O cadastro no Supabase Auth NÃO será removido (precisa fazer manual no Studio).`,
+      confirmLabel: 'Remover',
+      onConfirm: async () => {
+        const { error } = await supa.from('usuarios').delete().eq('id', usr.id);
+        if (error) { toast('Erro ao remover', 'error'); console.error(error); return; }
+        toast('Vínculo removido', 'success');
         reload();
       }
     });
