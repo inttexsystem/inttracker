@@ -1,6 +1,20 @@
 # Status do projeto
 
-## Fase atual: 2 — Admin: Cadastros (próxima)
+## Fase atual: 2 — Admin Cadastros (implementada, aguardando QA do Vinícius)
+
+### Fase 2 — Admin Cadastros 🟡 (implementada 2026-05-18, aguardando validação)
+
+Tudo no ar em https://viniciuscgiansante.github.io/controle-tapetes/. Falta o Vinícius rodar o checklist QA em `docs/qa/fase2-checklist.md` (9 cenários).
+
+**Implementado:**
+- Helpers compartilhados: `modal`, `confirmDialog`, `formField`, `textInput`, `selectInput`, `dataTable`, `pageHeader`
+- Menu lateral admin com 7 itens (`ADMIN_MENU`)
+- `handleRoute()` agora suporta telas async
+- 6 telas de cadastro: Cores, Modelos, Parâmetros, Fornecedores, Preços, Usuários
+- Tela de Usuários em modo "vincular UID" (criação no Supabase Auth continua manual)
+- Checklist QA com 9 cenários
+
+**Próximo passo:** Vinícius roda QA. Se passar → atualizar este STATUS.md mudando 🟡 pra ✅ e mover "Fase atual" pra 3. Se falhar → corrigir e reiterar.
 
 ## Fases concluídas
 
