@@ -264,6 +264,7 @@ const routes = {
   '#/cadastros/modelos': { render: screenCadastrosModelos, roles: ['admin'] },
   '#/cadastros/parametros': { render: screenCadastrosParametros, roles: ['admin'] },
   '#/cadastros/fornecedores': { render: screenCadastrosFornecedores, roles: ['admin'] },
+  '#/cadastros/precos': { render: screenCadastrosPrecos, roles: ['admin'] },
   '#/fornecedor/home': { render: screenFornecedorHome, roles: ['fornecedor'] },
 };
 
@@ -676,6 +677,96 @@ async function screenCadastrosFornecedores() {
         const { error } = await supa.from('fornecedores').delete().eq('id', forn.id);
         if (error) { toast('Fornecedor em uso (não dá pra excluir)', 'error'); console.error(error); return; }
         toast('Fornecedor excluído', 'success');
+        reload();
+      }
+    });
+  }
+
+  await reload();
+  return shellLayout(ADMIN_MENU, container);
+}
+
+async function screenCadastrosPrecos() {
+  const container = el('div', {});
+
+  async function reload() {
+    const [precosRes, fornsRes] = await Promise.all([
+      supa.from('precos_terceirizada').select('id, etapa, largura, preco_por_metro, fornecedor:fornecedor_id(id, nome, tipo)').order('etapa').order('largura'),
+      supa.from('fornecedores').select('id, nome, tipo').in('tipo', ['tecelagem', 'latex']).order('nome')
+    ]);
+    if (precosRes.error || fornsRes.error) { toast('Erro ao carregar', 'error'); console.error(precosRes.error || fornsRes.error); return; }
+    render(precosRes.data || [], fornsRes.data || []);
+  }
+
+  function render(precos, forns) {
+    container.replaceChildren(
+      pageHeader('Preços de terceirizadas', [{ label: '+ Novo preço', onclick: () => openModal(null, forns) }]),
+      el('p', { class: 'text-gray-600 mb-4 text-sm' }, 'Preço cobrado por metro produzido, por etapa (parte de cima ou látex) e largura.'),
+      dataTable({
+        columns: [
+          { key: 'fornecedor', label: 'Fornecedor', render: (r) => r.fornecedor?.nome || '' },
+          { key: 'etapa', label: 'Etapa', render: (r) => r.etapa === 'cima' ? 'Parte de cima' : 'Látex' },
+          { key: 'largura', label: 'Largura', render: (r) => Number(r.largura).toFixed(2).replace('.', ',') + ' m' },
+          { key: 'preco_por_metro', label: 'R$ / metro', render: (r) => 'R$ ' + Number(r.preco_por_metro).toFixed(2).replace('.', ',') },
+        ],
+        rows: precos,
+        actions: [
+          { label: 'Editar', onclick: (r) => openModal(r, forns) },
+          { label: 'Excluir', class: 'text-red-600 hover:underline', onclick: (r) => confirmExcluir(r) },
+        ]
+      })
+    );
+  }
+
+  function openModal(preco, forns) {
+    const isEdit = !!preco;
+    const fornOptions = forns.map(f => ({ value: f.id, label: `${f.nome} (${f.tipo === 'tecelagem' ? 'tecelagem' : 'látex'})` }));
+    const etapaOptions = [{ value: 'cima', label: 'Parte de cima' }, { value: 'latex', label: 'Látex' }];
+    const largOptions = [{ value: '1.40', label: '1,40 m' }, { value: '2.10', label: '2,10 m' }];
+
+    const fornSel = selectInput({ options: fornOptions, value: preco?.fornecedor?.id });
+    const etapaSel = selectInput({ options: etapaOptions, value: preco?.etapa });
+    const largSel = selectInput({ options: largOptions, value: preco?.largura });
+    const precoInput = textInput({ type: 'number', step: '0.01', value: preco?.preco_por_metro || '', placeholder: '0,00' });
+
+    const body = el('div', {},
+      formField({ label: 'Fornecedor', input: fornSel }),
+      formField({ label: 'Etapa', input: etapaSel }),
+      formField({ label: 'Largura', input: largSel }),
+      formField({ label: 'Preço por metro (R$)', input: precoInput })
+    );
+
+    modal({
+      title: isEdit ? 'Editar preço' : 'Novo preço',
+      body,
+      onSave: async () => {
+        const fornecedor_id = fornSel.value;
+        const etapa = etapaSel.value;
+        const largura = largSel.value;
+        const preco_por_metro = parseFloat(precoInput.value);
+        if (!fornecedor_id || !etapa || !largura || isNaN(preco_por_metro) || preco_por_metro < 0) {
+          toast('Preencha todos os campos com valores válidos', 'error'); return false;
+        }
+        const payload = { fornecedor_id, etapa, largura, preco_por_metro, atualizado_em: new Date().toISOString() };
+        const { error } = isEdit
+          ? await supa.from('precos_terceirizada').update(payload).eq('id', preco.id)
+          : await supa.from('precos_terceirizada').insert(payload);
+        if (error) { toast(error.message.includes('duplicate') ? 'Já existe preço pra esse fornecedor + etapa + largura' : 'Erro ao salvar', 'error'); console.error(error); return false; }
+        toast(isEdit ? 'Preço atualizado' : 'Preço criado', 'success');
+        reload();
+      }
+    });
+  }
+
+  function confirmExcluir(preco) {
+    confirmDialog({
+      title: 'Excluir preço',
+      message: `Excluir esse preço (${preco.fornecedor?.nome}, ${preco.etapa}, ${preco.largura}m)?`,
+      confirmLabel: 'Excluir',
+      onConfirm: async () => {
+        const { error } = await supa.from('precos_terceirizada').delete().eq('id', preco.id);
+        if (error) { toast('Erro ao excluir', 'error'); console.error(error); return; }
+        toast('Preço excluído', 'success');
         reload();
       }
     });
