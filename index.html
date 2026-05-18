@@ -261,6 +261,7 @@ const routes = {
   '#/login':    { render: screenLogin, public: true },
   '#/painel':   { render: screenPainel, roles: ['admin'] },
   '#/cadastros/cores': { render: screenCadastrosCores, roles: ['admin'] },
+  '#/cadastros/modelos': { render: screenCadastrosModelos, roles: ['admin'] },
   '#/fornecedor/home': { render: screenFornecedorHome, roles: ['fornecedor'] },
 };
 
@@ -450,6 +451,92 @@ async function screenCadastrosCores() {
         const { error } = await supa.from('cores').delete().eq('id', cor.id);
         if (error) { toast('Cor está em uso (não dá pra excluir)', 'error'); console.error(error); return; }
         toast('Cor excluída', 'success');
+        reload();
+      }
+    });
+  }
+
+  await reload();
+  return shellLayout(ADMIN_MENU, container);
+}
+
+async function screenCadastrosModelos() {
+  const container = el('div', {});
+
+  async function reload() {
+    const [modelosRes, coresRes] = await Promise.all([
+      supa.from('modelos').select('id, nome, largura, cor_1:cor_1_id(id, nome), cor_2:cor_2_id(id, nome)').order('nome'),
+      supa.from('cores').select('id, nome').order('nome')
+    ]);
+    if (modelosRes.error || coresRes.error) { toast('Erro ao carregar', 'error'); console.error(modelosRes.error || coresRes.error); return; }
+    render(modelosRes.data || [], coresRes.data || []);
+  }
+
+  function render(modelos, cores) {
+    container.replaceChildren(
+      pageHeader('Modelos', [{ label: '+ Novo modelo', onclick: () => openModal(null, cores) }]),
+      dataTable({
+        columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'nome', label: 'Nome' },
+          { key: 'cor_1', label: 'Cor 1 (predominante)', render: (r) => r.cor_1?.nome || '' },
+          { key: 'cor_2', label: 'Cor 2', render: (r) => r.cor_2?.nome || '' },
+          { key: 'largura', label: 'Largura', render: (r) => Number(r.largura).toFixed(2).replace('.', ',') + ' m' },
+        ],
+        rows: modelos,
+        actions: [
+          { label: 'Editar', onclick: (r) => openModal(r, cores) },
+          { label: 'Excluir', class: 'text-red-600 hover:underline', onclick: (r) => confirmExcluir(r) },
+        ]
+      })
+    );
+  }
+
+  function openModal(modelo, cores) {
+    const isEdit = !!modelo;
+    const corOptions = cores.map(c => ({ value: c.id, label: c.nome }));
+    const nomeInput = textInput({ value: modelo?.nome || '', placeholder: 'Ex: Conforto', required: true });
+    const cor1Sel = selectInput({ options: corOptions, value: modelo?.cor_1?.id });
+    const cor2Sel = selectInput({ options: corOptions, value: modelo?.cor_2?.id });
+    const largSel = selectInput({
+      options: [{ value: '1.40', label: '1,40 m' }, { value: '2.10', label: '2,10 m' }],
+      value: modelo?.largura
+    });
+    const body = el('div', {},
+      formField({ label: 'Nome do modelo', input: nomeInput }),
+      formField({ label: 'Cor 1 (predominante)', input: cor1Sel, hint: 'A ordem importa: "BRANCO/PRETO" é diferente de "PRETO/BRANCO".' }),
+      formField({ label: 'Cor 2', input: cor2Sel }),
+      formField({ label: 'Largura', input: largSel })
+    );
+    modal({
+      title: isEdit ? 'Editar modelo' : 'Novo modelo',
+      body,
+      onSave: async () => {
+        const nome = nomeInput.value.trim();
+        const cor_1_id = cor1Sel.value;
+        const cor_2_id = cor2Sel.value;
+        const largura = largSel.value;
+        if (!nome || !cor_1_id || !cor_2_id || !largura) { toast('Preencha todos os campos', 'error'); return false; }
+        const payload = { nome, cor_1_id, cor_2_id, largura };
+        const { error } = isEdit
+          ? await supa.from('modelos').update(payload).eq('id', modelo.id)
+          : await supa.from('modelos').insert(payload);
+        if (error) { toast(error.message.includes('duplicate') ? 'Modelo já cadastrado com essa combinação' : 'Erro ao salvar', 'error'); console.error(error); return false; }
+        toast(isEdit ? 'Modelo atualizado' : 'Modelo criado', 'success');
+        reload();
+      }
+    });
+  }
+
+  function confirmExcluir(modelo) {
+    confirmDialog({
+      title: 'Excluir modelo',
+      message: `Excluir "${modelo.nome}"? Se algum item de OP usar esse modelo, a exclusão vai falhar.`,
+      confirmLabel: 'Excluir',
+      onConfirm: async () => {
+        const { error } = await supa.from('modelos').delete().eq('id', modelo.id);
+        if (error) { toast('Modelo está em uso (não dá pra excluir)', 'error'); console.error(error); return; }
+        toast('Modelo excluído', 'success');
         reload();
       }
     });
