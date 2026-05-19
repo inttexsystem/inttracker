@@ -150,9 +150,16 @@ function selectInput({ options, value, placeholder = 'Selecione...' }) {
     class: 'w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
   });
   sel.appendChild(el('option', { value: '' }, placeholder));
+  // Comparação tolerante: o banco devolve numeric como 1.4, options podem ter '1.40' como string.
+  const valStr = value == null ? '' : String(value);
+  const valNum = valStr === '' ? null : Number(valStr);
   for (const opt of options) {
     const o = el('option', { value: opt.value }, opt.label);
-    if (String(opt.value) === String(value)) o.selected = true;
+    const optStr = String(opt.value);
+    const optNum = optStr === '' ? null : Number(optStr);
+    const matches = optStr === valStr
+      || (valNum !== null && optNum !== null && !Number.isNaN(valNum) && !Number.isNaN(optNum) && valNum === optNum);
+    if (matches) o.selected = true;
     sel.appendChild(o);
   }
   return sel;
