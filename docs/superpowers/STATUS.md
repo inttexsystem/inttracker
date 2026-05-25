@@ -1,10 +1,21 @@
 # Status do projeto
 
-## Fase atual: 3 — Admin: Nova OP com cálculo ao vivo
+## Fase atual: 4 — Fornecedor de fios + recálculo automático
 
-Fase 2 fechada em 2026-05-19. Próxima: tela de criação de OP (Ordem de Produção) com cálculo automático de consumo de fios, custos e preço por etapa.
+Fase 3 implementada em 2026-05-25, aguardando QA do Vinícius. Próxima: tela do fornecedor de fios com recálculo automático.
 
 ## Fases concluídas
+
+### Fase 3 — Admin: Nova OP com cálculo ao vivo ⏳ (implementada 2026-05-25, aguardando QA)
+
+**Implementado:**
+- Tela Lista de OPs (`#/ops`): tabela com status, modelo, largura, datas e ações
+- Tela Nova OP (`#/ops/nova`, `#/ops/:id`): layout página-única com painel lateral de cálculo de fio (kg por cor) ao vivo
+- Salvar como simulação (`simulada`, sem ordens de compra) ou Abrir OP (`aberta`, gera registros em `ordens_compra_fio`)
+- Modo leitura para OPs não-simuladas (campos travados, botões ocultos)
+- Lógica de cálculo extraída para `js/calculo-op.js` (funções puras `calcularFiosOP` + `montarOrdensCompraFio`)
+- Testes automatizados com `node --test`: **9/9 passando** (`tests/calculo-op.test.js`)
+- Checklist QA: `docs/qa/fase3-checklist.md` (itens 1–4 automatizados ✅; itens 5–14 manuais pendentes)
 
 ### Fase 2 — Admin Cadastros ✅ (concluída 2026-05-19)
 
@@ -38,8 +49,7 @@ QA rodado em 2026-05-19: **9/9 cenários** do `docs/qa/fase2-checklist.md` passa
 
 ## Próximas fases
 
-- **Fase 3 — Admin: Nova OP com cálculo ao vivo** ← atual
-- Fase 4 — Fornecedor de fios + recálculo automático
+- **Fase 4 — Fornecedor de fios + recálculo automático** ← próxima
 - Fase 5 — Tecelagem e látex (entregas parciais, defeitos)
 - Fase 6 — Fechamento de OP, painel inicial, estoque
 - Fase 7 — Polimento visual (após screenshots do Max Home)
