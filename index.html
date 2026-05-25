@@ -194,7 +194,8 @@ function dataTable({ columns, rows, actions = [] }) {
       const td = el('td', { class: 'px-4 py-3 text-right' });
       for (const a of actions) {
         const cls = a.class || 'text-blue-700 hover:underline';
-        td.appendChild(el('button', { class: 'text-sm ml-3 ' + cls, onclick: () => a.onclick(row) }, a.label));
+        const lbl = typeof a.label === 'function' ? a.label(row) : a.label;
+        td.appendChild(el('button', { class: 'text-sm ml-3 ' + cls, onclick: () => a.onclick(row) }, lbl));
       }
       tr.appendChild(td);
     }
@@ -446,21 +447,22 @@ async function screenListaOPs() {
   }
 
   function render(rows) {
-    container.replaceChildren(
-      pageHeader('Ordens de Produção', [{ label: '+ Nova OP', onclick: () => navigate('#/ops/nova') }]),
-      dataTable({
-        columns: [
-          { key: 'lote', label: 'Lote', render: (r) => `Nº ${r.numero}/${r.ano}` },
-          { key: 'status', label: 'Status', render: (r) => badgeStatus(r.status) },
-          { key: 'itens', label: 'Itens', render: (r) => String((r.op_itens || []).length) },
-          { key: 'criado_em', label: 'Criada em', render: (r) => new Date(r.criado_em).toLocaleDateString('pt-BR') },
-        ],
-        rows,
-        actions: [
-          { label: 'Abrir', onclick: (r) => navigate('#/ops/' + r.id) },
-        ]
-      })
-    );
+    const header = pageHeader('Ordens de Produção', [{ label: '+ Nova OP', onclick: () => navigate('#/ops/nova') }]);
+    const body = rows.length === 0
+      ? el('div', { class: 'bg-white rounded-xl shadow p-8 text-center text-gray-500' }, 'Nenhuma OP ainda. Crie a primeira.')
+      : dataTable({
+          columns: [
+            { key: 'lote', label: 'Lote', render: (r) => `Nº ${r.numero}/${r.ano}` },
+            { key: 'status', label: 'Status', render: (r) => badgeStatus(r.status) },
+            { key: 'itens', label: 'Itens', render: (r) => String((r.op_itens || []).length) },
+            { key: 'criado_em', label: 'Criada em', render: (r) => new Date(r.criado_em).toLocaleDateString('pt-BR') },
+          ],
+          rows,
+          actions: [
+            { label: (r) => r.status === 'simulada' ? 'Editar' : 'Ver', onclick: (r) => navigate('#/ops/' + r.id) },
+          ]
+        });
+    container.replaceChildren(header, body);
   }
 
   await reload();
@@ -498,7 +500,11 @@ async function screenNovaOP(opId) {
     const { data, error } = await supa.from('ops')
       .select('id, numero, ano, status, op_itens(modelo_id, metros_pedidos), op_fornecedores(fornecedor_id, etapa)')
       .eq('id', opId).single();
-    if (error || !data) { toast('OP não encontrada', 'error'); console.error(error); navigate('#/ops'); return container; }
+    if (error || !data) {
+      toast('OP não encontrada', 'error'); console.error(error);
+      container.replaceChildren(pageHeader('OP não encontrada', [{ label: '← Voltar', onclick: () => navigate('#/ops') }]));
+      return shellLayout(ADMIN_MENU, container);
+    }
     op = data;
     numero = data.numero; ano = data.ano;
     itens = (data.op_itens || []).map(i => ({ modeloId: i.modelo_id, metros: i.metros_pedidos }));
@@ -543,7 +549,10 @@ async function screenNovaOP(opId) {
     await supa.from('op_itens').delete().eq('op_id', opIdSalvo);
     const itensPayload = validos.map(i => ({ op_id: opIdSalvo, modelo_id: i.modeloId, metros_pedidos: Number(i.metros) }));
     const itensRes = await supa.from('op_itens').insert(itensPayload);
-    if (itensRes.error) { toast('Erro ao salvar itens', 'error'); console.error(itensRes.error); return null; }
+    if (itensRes.error) {
+      if (status === 'aberta') await supa.from('ops').update({ status: 'simulada' }).eq('id', opIdSalvo);
+      toast('Erro ao salvar itens', 'error'); console.error(itensRes.error); return null;
+    }
 
     // 3) substitui op_fornecedores (apenas etapas escolhidas)
     await supa.from('op_fornecedores').delete().eq('op_id', opIdSalvo);
@@ -552,7 +561,10 @@ async function screenNovaOP(opId) {
       .map(e => ({ op_id: opIdSalvo, fornecedor_id: fornSel[e], etapa: e }));
     if (fornPayload.length) {
       const fornRes = await supa.from('op_fornecedores').insert(fornPayload);
-      if (fornRes.error) { toast('Erro ao salvar fornecedores', 'error'); console.error(fornRes.error); return null; }
+      if (fornRes.error) {
+        if (status === 'aberta') await supa.from('ops').update({ status: 'simulada' }).eq('id', opIdSalvo);
+        toast('Erro ao salvar fornecedores', 'error'); console.error(fornRes.error); return null;
+      }
     }
 
     // 4) se abrir: gera ordens_compra_fio (com rollback de status em caso de falha)
