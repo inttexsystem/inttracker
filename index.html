@@ -492,6 +492,7 @@ async function screenNovaOP(opId) {
   let fornSel = { fio_algodao: '', fio_poliester: '', cima: '', latex: '' };
   let numero = '', ano = new Date().getFullYear();
   let readOnly = false;
+  let saving = false;
 
   if (opId) {
     const { data, error } = await supa.from('ops')
@@ -577,18 +578,26 @@ async function screenNovaOP(opId) {
   }
 
   function erroSalvar(error) {
-    if (error.message && error.message.includes('duplicate')) toast(`Já existe OP nº ${numero} em ${ano}`, 'error');
+    if (error.code === '23505' || (error.message && error.message.includes('duplicate'))) toast(`Já existe OP nº ${numero} em ${ano}`, 'error');
     else toast('Erro ao salvar OP', 'error');
     console.error(error);
   }
 
   async function salvarSimulacao() {
-    const id = await persistir('simulada');
-    if (id) { toast('Simulação salva', 'success'); navigate('#/ops'); }
+    if (saving) return;
+    saving = true;
+    try {
+      const id = await persistir('simulada');
+      if (id) { toast('Simulação salva', 'success'); navigate('#/ops'); }
+    } finally { saving = false; }
   }
   async function abrirOP() {
-    const id = await persistir('aberta');
-    if (id) { toast('OP aberta — ordens de compra geradas', 'success'); navigate('#/ops'); }
+    if (saving) return;
+    saving = true;
+    try {
+      const id = await persistir('aberta');
+      if (id) { toast('OP aberta — ordens de compra geradas', 'success'); navigate('#/ops'); }
+    } finally { saving = false; }
   }
 
   // 4) Render
