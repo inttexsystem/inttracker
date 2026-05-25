@@ -41,8 +41,24 @@ function calcularFiosOP(itens, modelosById, parametrosByLargura) {
   return { algodaoPorCor, poliester };
 }
 
-// (montarOrdensCompraFio é adicionada na Task 2)
+// Transforma o resultado de calcularFiosOP em payloads de ordens_compra_fio.
+// kg_pedido > 0 (schema CHECK) e arredondado a 3 casas (NUMERIC(10,3)).
+// op_id e fornecedor_id são preenchidos na hora de salvar (não aqui).
+function montarOrdensCompraFio(calculo) {
+  const round3 = (n) => Math.round(n * 1000) / 1000;
+  const ordens = [];
+
+  for (const { corId, kg } of Object.values(calculo.algodaoPorCor)) {
+    const kgPedido = round3(kg);
+    if (kgPedido > 0) ordens.push({ tipo: 'algodao', cor_id: corId, cor_poliester: null, kg_pedido: kgPedido });
+  }
+  for (const cor of ['PRETO', 'BRANCO']) {
+    const kgPedido = round3(calculo.poliester[cor]);
+    if (kgPedido > 0) ordens.push({ tipo: 'poliester', cor_id: null, cor_poliester: cor, kg_pedido: kgPedido });
+  }
+  return ordens;
+}
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { larguraKey, calcularFiosOP };
+  module.exports = { larguraKey, calcularFiosOP, montarOrdensCompraFio };
 }
