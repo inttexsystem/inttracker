@@ -9,7 +9,7 @@ Fase 3 implementada em 2026-05-25, aguardando QA do Vinícius. Próxima: tela do
 ### Fase 3 — Admin: Nova OP com cálculo ao vivo ⏳ (implementada 2026-05-25, aguardando QA)
 
 **Implementado:**
-- Tela Lista de OPs (`#/ops`): tabela com status, modelo, largura, datas e ações
+- Tela Lista de OPs (`#/ops`): tabela com Lote (nº/ano), status (badge), nº de itens, data de criação e ação "Abrir"
 - Tela Nova OP (`#/ops/nova`, `#/ops/:id`): layout página-única com painel lateral de cálculo de fio (kg por cor) ao vivo
 - Salvar como simulação (`simulada`, sem ordens de compra) ou Abrir OP (`aberta`, gera registros em `ordens_compra_fio`)
 - Modo leitura para OPs não-simuladas (campos travados, botões ocultos)
