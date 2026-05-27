@@ -278,6 +278,7 @@ const routes = {
   '#/cadastros/precos': { render: screenCadastrosPrecos, roles: ['admin'] },
   '#/cadastros/usuarios': { render: screenCadastrosUsuarios, roles: ['admin'] },
   '#/fornecedor/home': { render: screenFornecedorHome, roles: ['fornecedor'] },
+  '#/fornecedor/ordens': { render: screenFornecedorOrdens, roles: ['fornecedor'] },
 };
 
 function navigate(hash) {
@@ -357,7 +358,7 @@ async function routeAfterLogin() {
   await loadCurrentUser();
   if (!CURRENT_USER) { navigate('#/login'); return; }
   if (CURRENT_USER.tipo === 'admin') navigate('#/painel');
-  else navigate('#/fornecedor/home');
+  else navigate('#/fornecedor/ordens');
 }
 
 function shellLayout(menuItems, contentNode) {
@@ -417,6 +418,107 @@ function screenFornecedorHome() {
   return shellLayout([
     { href: '#/fornecedor/home', label: 'Minhas OPs' },
   ], content);
+}
+
+// Rótulo do fio de uma ordem de compra.
+function rotuloFio(ordem) {
+  if (ordem.tipo === 'algodao') return 'Algodão — ' + (ordem.cores?.nome || '?');
+  return 'Poliéster — ' + (ordem.cor_poliester || '?');
+}
+
+const OCF_STATUS_LABEL = {
+  pendente: 'Pendente', recebido_parcial: 'Recebido (parcial)', recebido_total: 'Recebido',
+};
+
+async function screenFornecedorOrdens() {
+  const container = el('div', {});
+
+  async function reload() {
+    if (!CURRENT_USER.fornecedor_id) {
+      container.replaceChildren(
+        pageHeader('Minhas ordens'),
+        el('div', { class: 'bg-white rounded-xl shadow p-8 text-center text-gray-500' },
+          'Seu usuário não está vinculado a um fornecedor. Fale com o administrador.')
+      );
+      return;
+    }
+    const { data, error } = await supa.from('ordens_compra_fio')
+      .select('id, tipo, cor_poliester, kg_pedido, kg_recebido, data_recebimento, status, ops(numero, ano), cores:cor_id(id, nome)')
+      .order('id', { ascending: true });
+    if (error) { toast('Erro ao carregar ordens', 'error'); console.error(error); return; }
+    render(data || []);
+  }
+
+  function lote(ordem) { return ordem.ops ? `Nº ${ordem.ops.numero}/${ordem.ops.ano}` : '—'; }
+  const fmtKg = (n) => (n == null ? '—' : Number(n).toFixed(3).replace('.', ',') + ' kg');
+
+  function linhaPendente(ordem) {
+    const kgInput = textInput({ type: 'number', step: '0.001', value: String(ordem.kg_pedido) });
+    const dataInput = textInput({ type: 'date', value: new Date().toISOString().slice(0, 10) });
+    const btn = el('button', {
+      class: 'bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold rounded-lg px-3 py-2',
+      onclick: async () => {
+        const kg = Number(kgInput.value);
+        if (!(kg > 0)) { toast('Informe o kg recebido', 'error'); return; }
+        const dataRec = dataInput.value || new Date().toISOString().slice(0, 10);
+        const status = kg < Number(ordem.kg_pedido) ? 'recebido_parcial' : 'recebido_total';
+        btn.disabled = true;
+        const { error } = await supa.from('ordens_compra_fio')
+          .update({ kg_recebido: kg, data_recebimento: dataRec, status })
+          .eq('id', ordem.id);
+        if (error) { toast('Erro ao registrar recebimento', 'error'); console.error(error); btn.disabled = false; return; }
+        toast('Recebimento registrado', 'success');
+        reload();
+      }
+    }, 'Registrar');
+
+    return el('div', { class: 'flex flex-wrap items-end gap-3 border-b py-3' },
+      el('div', { class: 'flex-1 min-w-[160px]' },
+        el('div', { class: 'text-xs text-gray-500' }, lote(ordem)),
+        el('div', { class: 'font-medium text-gray-800' }, rotuloFio(ordem)),
+        el('div', { class: 'text-xs text-gray-500' }, 'Pedido: ' + fmtKg(ordem.kg_pedido)),
+      ),
+      el('div', { class: 'w-32' }, formField({ label: 'Kg recebido', input: kgInput })),
+      el('div', { class: 'w-40' }, formField({ label: 'Data', input: dataInput })),
+      btn,
+    );
+  }
+
+  function render(rows) {
+    const pendentes = rows.filter(r => r.data_recebimento == null);
+    const recebidas = rows.filter(r => r.data_recebimento != null);
+
+    const blocos = [pageHeader('Minhas ordens')];
+
+    blocos.push(el('div', { class: 'bg-white rounded-xl shadow p-5 mb-6' },
+      el('div', { class: 'font-semibold text-gray-700 mb-2' }, 'Pendentes'),
+      pendentes.length === 0
+        ? el('p', { class: 'text-sm text-gray-400' }, 'Nenhuma ordem pendente.')
+        : el('div', {}, pendentes.map(linhaPendente)),
+    ));
+
+    blocos.push(el('div', { class: 'bg-white rounded-xl shadow p-5' },
+      el('div', { class: 'font-semibold text-gray-700 mb-2' }, 'Recebidas'),
+      recebidas.length === 0
+        ? el('p', { class: 'text-sm text-gray-400' }, 'Nenhuma ordem recebida ainda.')
+        : dataTable({
+            columns: [
+              { key: 'lote', label: 'Lote', render: lote },
+              { key: 'fio', label: 'Fio', render: rotuloFio },
+              { key: 'kg_pedido', label: 'Pedido', render: (r) => fmtKg(r.kg_pedido) },
+              { key: 'kg_recebido', label: 'Recebido', render: (r) => fmtKg(r.kg_recebido) },
+              { key: 'data', label: 'Data', render: (r) => new Date(r.data_recebimento + 'T00:00:00').toLocaleDateString('pt-BR') },
+              { key: 'status', label: 'Status', render: (r) => OCF_STATUS_LABEL[r.status] || r.status },
+            ],
+            rows: recebidas,
+          }),
+    ));
+
+    container.replaceChildren(...blocos);
+  }
+
+  await reload();
+  return shellLayout([{ href: '#/fornecedor/ordens', label: 'Minhas ordens' }], container);
 }
 
 const OP_STATUS_BADGE = {
