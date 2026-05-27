@@ -485,8 +485,8 @@ async function screenFornecedorOrdens() {
   }
 
   function render(rows) {
-    const pendentes = rows.filter(r => r.data_recebimento == null);
-    const recebidas = rows.filter(r => r.data_recebimento != null);
+    const pendentes = rows.filter(r => r.status === 'pendente');
+    const recebidas = rows.filter(r => r.status !== 'pendente');
 
     const blocos = [pageHeader('Minhas ordens')];
 
