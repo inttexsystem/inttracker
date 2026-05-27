@@ -2,11 +2,11 @@
 
 ## Fase atual: 4 — Fornecedor de fios + recálculo automático
 
-Fase 3 implementada em 2026-05-25, aguardando QA do Vinícius. Próxima: tela do fornecedor de fios com recálculo automático.
+Fase 3 concluída (QA 14/14 em 2026-05-27). Próxima: tela do fornecedor de fios com recálculo automático.
 
 ## Fases concluídas
 
-### Fase 3 — Admin: Nova OP com cálculo ao vivo ⏳ (implementada 2026-05-25, aguardando QA)
+### Fase 3 — Admin: Nova OP com cálculo ao vivo ✅ (concluída 2026-05-27, QA 14/14)
 
 **Implementado:**
 - Tela Lista de OPs (`#/ops`): tabela com Lote (nº/ano), status (badge), nº de itens, data de criação e ação "Abrir"
@@ -15,7 +15,8 @@ Fase 3 implementada em 2026-05-25, aguardando QA do Vinícius. Próxima: tela do
 - Modo leitura para OPs não-simuladas (campos travados, botões ocultos)
 - Lógica de cálculo extraída para `js/calculo-op.js` (funções puras `calcularFiosOP` + `montarOrdensCompraFio`)
 - Testes automatizados com `node --test`: **9/9 passando** (`tests/calculo-op.test.js`)
-- Checklist QA: `docs/qa/fase3-checklist.md` (itens 1–4 automatizados ✅; itens 5–14 manuais pendentes)
+- Checklist QA: `docs/qa/fase3-checklist.md` — **14/14 aprovado** (1–4 automatizados, 5–14 manuais)
+- Correção no QA: látex removido da criação da OP (abrir exige só 3 fornecedores: algodão, poliéster, tecelagem). Látex é decidido após a parte de cima e pode ter vários destinos por OP → Fase 5.
 
 ### Fase 2 — Admin Cadastros ✅ (concluída 2026-05-19)
 
