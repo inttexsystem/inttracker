@@ -251,7 +251,7 @@ async function loadCurrentUser() {
   const { data: { session } } = await supa.auth.getSession();
   if (!session) { CURRENT_USER = null; return null; }
   const { data, error } = await supa.from('usuarios')
-    .select('id, email, nome, tipo, fornecedor_id')
+    .select('id, email, nome, tipo, fornecedor_id, fornecedores:fornecedor_id(tipo)')
     .eq('id', session.user.id)
     .single();
   if (error) {
@@ -260,6 +260,7 @@ async function loadCurrentUser() {
     return null;
   }
   CURRENT_USER = data;
+  CURRENT_USER.fornecedor_tipo = data.fornecedores?.tipo || null;
   return data;
 }
 
@@ -357,8 +358,12 @@ function screenLogin() {
 async function routeAfterLogin() {
   await loadCurrentUser();
   if (!CURRENT_USER) { navigate('#/login'); return; }
-  if (CURRENT_USER.tipo === 'admin') navigate('#/painel');
-  else navigate('#/fornecedor/ordens');
+  if (CURRENT_USER.tipo === 'admin') { navigate('#/painel'); return; }
+  const t = CURRENT_USER.fornecedor_tipo;
+  if (t === 'fio_algodao' || t === 'fio_poliester') navigate('#/fornecedor/ordens');
+  else if (t === 'tecelagem') navigate('#/fornecedor/entregas');
+  else if (t === 'latex') navigate('#/fornecedor/entregas');  // fallback temporário até a Fase 5b
+  else navigate('#/fornecedor/ordens');                       // fallback genérico
 }
 
 function shellLayout(menuItems, contentNode) {
