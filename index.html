@@ -686,7 +686,10 @@ async function screenFornecedorEntregas() {
         el('button', { class: 'text-sm text-blue-700 hover:underline mr-3',
           onclick: () => abrirEdicao(entrega, opRef, modelosById) }, 'Editar'),
         el('button', { class: 'text-sm text-red-600 hover:underline',
-          onclick: () => excluirEntrega(entrega.id, reload) }, 'Excluir'),
+          onclick: () => {
+            if (!opRef) { toast('OP da entrega não está mais em produção', 'error'); return; }
+            excluirEntrega(entrega.id, reload);
+          } }, 'Excluir'),
       ),
     ));
     if (entrega.observacao) wrap.appendChild(el('div', { class: 'text-xs text-gray-500 mb-1' }, entrega.observacao));
