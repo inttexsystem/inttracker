@@ -1,10 +1,19 @@
 # Status do projeto
 
-## Fase atual: 4 — Fornecedor de fios + recálculo automático
+## Fase atual: 5 — Tecelagem e látex
 
-Fase 3 concluída (QA 14/14 em 2026-05-27). Próxima: tela do fornecedor de fios com recálculo automático.
+Fase 4 implementada em 2026-05-28, aguardando QA do Vinícius. Próxima: telas das terceirizadas (tecelagem e látex) com entregas parciais e suporte a múltiplos destinos de látex por OP (ver [[project_regra_latex]]).
 
 ## Fases concluídas
+
+### Fase 4 — Recebimento de fios + recálculo automático ⏳ (implementada 2026-05-28, aguardando QA)
+
+**Implementado:**
+- Função pura `recalcularOP` em `js/calculo-op.js` (fator-gargalo: a cor de fio com menor kg_recebido/kg_pedido define o quanto a OP escala); 6 testes `node --test` passando (15/15 totais)
+- Tela do fornecedor `#/fornecedor/ordens` (`screenFornecedorOrdens`) — lista Pendentes e Recebidas, registra `kg_recebido`/`data_recebimento`/`status` por ordem; redirect de login do fornecedor repontado para essa rota
+- Bloco "Recebimento de fios" no detalhe da OP (admin): tabela das ordens; aviso "aguardando" enquanto faltam recebimentos; quando todas recebidas, mostra fator + tabela pedido→proposto + sobras + botões **Aceitar proposta** / **Manter pedido**; em `em_producao`/`finalizada` mostra "Metros de produção" em leitura
+- `aplicarRecalculo` grava `metros_ajustados` em `op_itens`, insere sobras em `saldo_fios_op`, incrementa `saldo_fios` (read-then-update-or-insert por causa do unique key com colunas nulláveis) e move a OP para `em_producao`
+- Checklist QA: `docs/qa/fase4-checklist.md` (itens 1–4 automatizados ✅; itens 5–13 manuais pendentes)
 
 ### Fase 3 — Admin: Nova OP com cálculo ao vivo ✅ (concluída 2026-05-27, QA 14/14)
 
@@ -50,7 +59,7 @@ QA rodado em 2026-05-19: **9/9 cenários** do `docs/qa/fase2-checklist.md` passa
 
 ## Próximas fases
 
-- **Fase 4 — Fornecedor de fios + recálculo automático** ← próxima
-- Fase 5 — Tecelagem e látex (entregas parciais, defeitos)
+- **Fase 4 — Fornecedor de fios + recálculo automático** ✅
+- **Fase 5 — Tecelagem e látex** (entregas parciais, defeitos, múltiplos destinos de látex) ← próxima
 - Fase 6 — Fechamento de OP, painel inicial, estoque
 - Fase 7 — Polimento visual (após screenshots do Max Home)
