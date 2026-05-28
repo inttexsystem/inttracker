@@ -890,6 +890,8 @@ async function screenNovaOP(opId) {
   let fornSel = { fio_algodao: '', fio_poliester: '', cima: '' };
   let opItensRaw = [];
   let ordens = [];
+  let entregasCima = [];
+  let cimaFornecedorId = null;
   let numero = '', ano = new Date().getFullYear();
   let readOnly = false;
   let saving = false;
@@ -915,6 +917,15 @@ async function screenNovaOP(opId) {
         .eq('op_id', op.id);
       if (ordRes.error) { toast('Erro ao carregar ordens de fio', 'error'); console.error(ordRes.error); }
       ordens = ordRes.data || [];
+      const cimaForn = (data.op_fornecedores || []).find(f => f.etapa === 'cima');
+      cimaFornecedorId = cimaForn ? cimaForn.fornecedor_id : null;
+      const entRes = await supa.from('entregas')
+        .select('id, fornecedor_id, data, observacao, fornecedores:fornecedor_id(nome), entrega_itens(id, op_id, op_item_id, metros_entregues, defeito, observacao)')
+        .eq('etapa', 'cima')
+        .order('data', { ascending: false })
+        .order('id', { ascending: false });
+      if (entRes.error) { toast('Erro ao carregar entregas de tecelagem', 'error'); console.error(entRes.error); }
+      entregasCima = (entRes.data || []).filter(e => (e.entrega_itens || []).some(ei => ei.op_id === op.id));
     }
   } else {
     const { data } = await supa.from('ops').select('numero').eq('ano', ano).order('numero', { ascending: false }).limit(1);
@@ -1033,6 +1044,7 @@ async function screenNovaOP(opId) {
     grid.appendChild(buildRight());
     wrap.appendChild(grid);
     if (op && op.status !== 'simulada') wrap.appendChild(buildBlocoFios());
+    if (op && op.status !== 'simulada' && cimaFornecedorId) wrap.appendChild(buildBlocoTecelagem());
     return wrap;
   }
 
@@ -1206,6 +1218,115 @@ async function screenNovaOP(opId) {
       }));
     }
     return box;
+  }
+
+  function buildBlocoTecelagem() {
+    const box = el('div', { class: 'bg-white rounded-xl shadow p-5 mt-6' });
+    box.appendChild(el('div', { class: 'font-semibold text-gray-700 mb-3' }, 'Entregas tecelagem'));
+
+    const todosItens = entregasCima.flatMap(e => (e.entrega_itens || []).filter(ei => ei.op_id === op.id));
+    const totalPorItem = totalEntregueCimaPorItem(todosItens);
+
+    box.appendChild(dataTable({
+      columns: [
+        { key: 'modelo', label: 'Modelo', render: (i) => rotuloModelo(modelosById[i.modelo_id]) },
+        { key: 'metros_pedidos', label: 'Pedido', render: (i) => fmtMetros(i.metros_pedidos) },
+        { key: 'metros_ajustados', label: 'Ajustado', render: (i) => i.metros_ajustados == null ? fmtMetros(i.metros_pedidos) : fmtMetros(i.metros_ajustados) },
+        { key: 'entregue', label: 'Entregue', render: (i) => fmtMetros(totalPorItem[i.id] || 0) },
+        { key: 'falta', label: 'Falta', render: (i) => {
+            const ajustado = i.metros_ajustados == null ? Number(i.metros_pedidos) : Number(i.metros_ajustados);
+            const falta = Math.round((ajustado - (totalPorItem[i.id] || 0)) * 100) / 100;
+            const cor = falta <= 0 ? 'text-green-700' : 'text-gray-800';
+            return el('span', { class: cor }, falta <= 0 ? '✅ completo' : fmtMetros(falta));
+          } },
+      ],
+      rows: opItensRaw,
+    }));
+
+    if (op.status === 'em_producao') {
+      const formHolder = el('div', {});
+      const btnNova = el('button', {
+        class: 'mt-3 text-sm text-blue-700 hover:underline',
+        onclick: () => {
+          const form = buildEntregaInlineForm({ opItens: opItensRaw, modelosById });
+          const btnSalvar = el('button', {
+            class: 'bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold rounded-lg px-3 py-2 mr-2',
+            onclick: async () => {
+              btnSalvar.disabled = true;
+              const ok = await salvarEntregaCima({ fornecedorId: cimaFornecedorId, opId: op.id, payload: form.getPayload() });
+              btnSalvar.disabled = false;
+              if (ok) reloadEntregasCima();
+            },
+          }, 'Salvar entrega');
+          const btnCancelar = el('button', {
+            class: 'bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-semibold rounded-lg px-3 py-2',
+            onclick: () => { formHolder.replaceChildren(); btnNova.style.display = ''; },
+          }, 'Cancelar');
+          formHolder.replaceChildren(el('div', {}, form.node, el('div', { class: 'mt-2' }, btnSalvar, btnCancelar)));
+          btnNova.style.display = 'none';
+        },
+      }, '+ Nova entrega');
+      box.appendChild(btnNova);
+      box.appendChild(formHolder);
+    }
+
+    box.appendChild(el('div', { class: 'font-semibold text-gray-700 mt-5 mb-2' }, 'Histórico'));
+    if (entregasCima.length === 0) {
+      box.appendChild(el('p', { class: 'text-sm text-gray-400' }, 'Nenhuma entrega registrada ainda.'));
+    } else {
+      for (const ent of entregasCima) {
+        const subcard = el('div', { class: 'border-b py-3' });
+        subcard.appendChild(el('div', { class: 'flex items-center justify-between' },
+          el('div', { class: 'text-sm' },
+            el('b', {}, new Date(ent.data + 'T00:00:00').toLocaleDateString('pt-BR')),
+            ' · ' + (ent.fornecedores?.nome || '?'),
+          ),
+          op.status === 'em_producao' ? el('div', {},
+            el('button', { class: 'text-sm text-blue-700 hover:underline mr-3',
+              onclick: () => abrirEdicaoAdmin(ent) }, 'Editar'),
+            el('button', { class: 'text-sm text-red-600 hover:underline',
+              onclick: () => excluirEntrega(ent.id, reloadEntregasCima) }, 'Excluir'),
+          ) : '',
+        ));
+        if (ent.observacao) subcard.appendChild(el('div', { class: 'text-xs text-gray-500' }, ent.observacao));
+        for (const ei of (ent.entrega_itens || []).filter(x => x.op_id === op.id)) {
+          const it = opItensRaw.find(i => i.id === ei.op_item_id);
+          const nome = it ? rotuloModelo(modelosById[it.modelo_id]) : '?';
+          subcard.appendChild(el('div', { class: 'text-sm text-gray-700' },
+            nome + ': ' + fmtMetros(ei.metros_entregues),
+            ei.defeito ? el('span', { class: 'ml-2 text-red-600 font-semibold' }, '⚠ DEFEITO') : '',
+            ei.observacao ? el('span', { class: 'ml-2 text-xs text-gray-500' }, '(' + ei.observacao + ')') : '',
+          ));
+        }
+        box.appendChild(subcard);
+      }
+    }
+    return box;
+  }
+
+  function abrirEdicaoAdmin(entrega) {
+    const form = buildEntregaInlineForm({ opItens: opItensRaw, modelosById, entrega });
+    modal({
+      title: `Editar entrega — ${new Date(entrega.data + 'T00:00:00').toLocaleDateString('pt-BR')}`,
+      body: form.node,
+      saveLabel: 'Salvar alterações',
+      onSave: async () => {
+        const ok = await atualizarEntregaCima({ entregaId: entrega.id, opId: op.id, payload: form.getPayload() });
+        if (ok) reloadEntregasCima();
+        return ok;
+      },
+    });
+  }
+
+  async function reloadEntregasCima() {
+    const entRes = await supa.from('entregas')
+      .select('id, fornecedor_id, data, observacao, fornecedores:fornecedor_id(nome), entrega_itens(id, op_id, op_item_id, metros_entregues, defeito, observacao)')
+      .eq('etapa', 'cima')
+      .order('data', { ascending: false })
+      .order('id', { ascending: false });
+    if (entRes.error) { toast('Erro ao recarregar entregas', 'error'); console.error(entRes.error); return; }
+    entregasCima = (entRes.data || []).filter(e => (e.entrega_itens || []).some(ei => ei.op_id === op.id));
+    render();
   }
 
   // Limite individual de metros de um item assumindo os demais em zero
