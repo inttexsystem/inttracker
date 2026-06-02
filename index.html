@@ -562,6 +562,7 @@ function excluirEntrega(entregaId, onSuccess) {
 
 async function screenFornecedorEntregas() {
   const container = el('div', {});
+  let latexOptions = [];
 
   async function reload() {
     if (!CURRENT_USER.fornecedor_id) {
@@ -583,7 +584,7 @@ async function screenFornecedorEntregas() {
       .filter(o => o && o.status === 'em_producao');
 
     const entRes = await supa.from('entregas')
-      .select('id, data, observacao, criado_em, entrega_itens(id, op_id, op_item_id, metros_entregues, defeito, observacao)')
+      .select('id, data, observacao, criado_em, destino_fornecedor_id, destino:destino_fornecedor_id(nome), entrega_itens(id, op_id, op_item_id, metros_entregues, defeito, observacao)')
       .eq('fornecedor_id', CURRENT_USER.fornecedor_id)
       .eq('etapa', 'cima')
       .order('data', { ascending: false })
@@ -597,6 +598,10 @@ async function screenFornecedorEntregas() {
       : { data: [] };
     const modelosById = {};
     for (const m of (modelosRes.data || [])) modelosById[m.id] = m;
+
+    const latexRes = await supa.from('fornecedores').select('id, nome').eq('tipo', 'latex').order('nome');
+    if (latexRes.error) { toast('Erro ao carregar empresas de látex', 'error'); console.error(latexRes.error); return; }
+    latexOptions = (latexRes.data || []).map(f => ({ value: f.id, label: f.nome }));
 
     render(ops, entregas, modelosById);
   }
@@ -645,7 +650,7 @@ async function screenFornecedorEntregas() {
         const btnNova = el('button', {
           class: 'mt-3 text-sm text-blue-700 hover:underline',
           onclick: () => {
-            const form = buildEntregaInlineForm({ opItens: op.op_itens || [], modelosById });
+            const form = buildEntregaInlineForm({ opItens: op.op_itens || [], modelosById, latexOptions });
             const btnSalvar = el('button', {
               class: 'bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold rounded-lg px-3 py-2 mr-2',
               onclick: async () => {
@@ -692,6 +697,7 @@ async function screenFornecedorEntregas() {
       el('div', {},
         el('span', { class: 'text-sm font-medium text-gray-800' }, opLabel + ' · '),
         el('span', { class: 'text-sm text-gray-500' }, new Date(entrega.data + 'T00:00:00').toLocaleDateString('pt-BR')),
+        el('span', { class: 'text-sm text-gray-500' }, ' · látex: ' + (entrega.destino?.nome || '?')),
       ),
       el('div', {},
         el('button', { class: 'text-sm text-blue-700 hover:underline mr-3',
@@ -721,7 +727,7 @@ async function screenFornecedorEntregas() {
 
   function abrirEdicao(entrega, opRef, modelosById) {
     if (!opRef) { toast('OP da entrega não está mais em produção', 'error'); return; }
-    const form = buildEntregaInlineForm({ opItens: opRef.op_itens || [], modelosById, entrega });
+    const form = buildEntregaInlineForm({ opItens: opRef.op_itens || [], modelosById, entrega, latexOptions });
     modal({
       title: `Editar entrega — Lote Nº ${opRef.numero}/${opRef.ano}`,
       body: form.node,
