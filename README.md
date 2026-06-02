@@ -10,6 +10,8 @@ Sistema para controlar a produção de tapetes do Murilo, do pedido de fios até
 
 ## Documentação
 
+- **Assumindo o projeto? Comece aqui:** [`docs/HANDOFF.md`](docs/HANDOFF.md)
+- Estado de cada fase: [`docs/superpowers/STATUS.md`](docs/superpowers/STATUS.md)
 - Design completo: [`docs/superpowers/specs/2026-05-16-controle-tapetes-design.md`](docs/superpowers/specs/2026-05-16-controle-tapetes-design.md)
 - Plano da Fase 1: [`docs/superpowers/plans/2026-05-16-fase1-fundacao.md`](docs/superpowers/plans/2026-05-16-fase1-fundacao.md)
 

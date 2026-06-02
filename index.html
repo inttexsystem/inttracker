@@ -2015,8 +2015,11 @@ async function renderOPLatexAdmin(opId) {
       saveLabel: 'Salvar',
       onSave: async () => {
         for (const l of linhas) {
-          const val = l.input.value === '' ? 0 : Number(l.input.value);
-          const r = await supa.from('op_itens').update({ metros_pedidos: val }).eq('id', l.id);
+          const val = Number(l.input.value);
+          if (!Number.isFinite(val) || val <= 0) { toast('Informe um valor maior que zero em todos os modelos', 'error'); return false; }
+        }
+        for (const l of linhas) {
+          const r = await supa.from('op_itens').update({ metros_pedidos: Number(l.input.value) }).eq('id', l.id);
           if (r.error) { toast('Erro ao salvar enviado', 'error'); console.error(r.error); return false; }
         }
         toast('Enviado atualizado', 'success'); reload(); return true;
@@ -2027,7 +2030,7 @@ async function renderOPLatexAdmin(opId) {
   function excluirOpLatex(id) {
     confirmDialog({
       title: 'Excluir OP de látex',
-      message: 'Isto remove a OP de látex e seus itens (recebimentos lançados também serão afetados). Continuar?',
+      message: 'Isto remove a OP de látex e seus itens. Se já houver recebimentos lançados, a exclusão será bloqueada — exclua os recebimentos primeiro. Continuar?',
       confirmLabel: 'Excluir',
       onConfirm: async () => {
         const r = await supa.from('ops').delete().eq('id', id);
