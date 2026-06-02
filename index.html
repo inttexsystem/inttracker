@@ -912,6 +912,7 @@ async function screenNovaOP(opId) {
   let ordens = [];
   let entregasCima = [];
   let cimaFornecedorId = null;
+  let latexOptions = [];
   let numero = '', ano = new Date().getFullYear();
   let readOnly = false;
   let saving = false;
@@ -939,8 +940,11 @@ async function screenNovaOP(opId) {
       ordens = ordRes.data || [];
       const cimaForn = (data.op_fornecedores || []).find(f => f.etapa === 'cima');
       cimaFornecedorId = cimaForn ? cimaForn.fornecedor_id : null;
+      const latexResIni = await supa.from('fornecedores').select('id, nome').eq('tipo', 'latex').order('nome');
+      if (latexResIni.error) { toast('Erro ao carregar empresas de látex', 'error'); console.error(latexResIni.error); }
+      latexOptions = (latexResIni.data || []).map(f => ({ value: f.id, label: f.nome }));
       const entRes = await supa.from('entregas')
-        .select('id, fornecedor_id, data, observacao, fornecedores:fornecedor_id(nome), entrega_itens(id, op_id, op_item_id, metros_entregues, defeito, observacao)')
+        .select('id, fornecedor_id, data, observacao, destino_fornecedor_id, destino:destino_fornecedor_id(nome), fornecedores:fornecedor_id(nome), entrega_itens(id, op_id, op_item_id, metros_entregues, defeito, observacao)')
         .eq('etapa', 'cima')
         .eq('fornecedor_id', cimaFornecedorId)
         .order('data', { ascending: false })
@@ -1269,7 +1273,7 @@ async function screenNovaOP(opId) {
       const btnNova = el('button', {
         class: 'mt-3 text-sm text-blue-700 hover:underline',
         onclick: () => {
-          const form = buildEntregaInlineForm({ opItens: opItensRaw, modelosById });
+          const form = buildEntregaInlineForm({ opItens: opItensRaw, modelosById, latexOptions });
           const btnSalvar = el('button', {
             class: 'bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold rounded-lg px-3 py-2 mr-2',
             onclick: async () => {
@@ -1301,6 +1305,7 @@ async function screenNovaOP(opId) {
           el('div', { class: 'text-sm' },
             el('b', {}, new Date(ent.data + 'T00:00:00').toLocaleDateString('pt-BR')),
             ' · ' + (ent.fornecedores?.nome || '?'),
+            ' → látex: ' + (ent.destino?.nome || '?'),
           ),
           op.status === 'em_producao' ? el('div', {},
             el('button', { class: 'text-sm text-blue-700 hover:underline mr-3',
@@ -1326,7 +1331,7 @@ async function screenNovaOP(opId) {
   }
 
   function abrirEdicaoAdmin(entrega) {
-    const form = buildEntregaInlineForm({ opItens: opItensRaw, modelosById, entrega });
+    const form = buildEntregaInlineForm({ opItens: opItensRaw, modelosById, entrega, latexOptions });
     modal({
       title: `Editar entrega — ${new Date(entrega.data + 'T00:00:00').toLocaleDateString('pt-BR')}`,
       body: form.node,
@@ -1341,7 +1346,7 @@ async function screenNovaOP(opId) {
 
   async function reloadEntregasCima() {
     const entRes = await supa.from('entregas')
-      .select('id, fornecedor_id, data, observacao, fornecedores:fornecedor_id(nome), entrega_itens(id, op_id, op_item_id, metros_entregues, defeito, observacao)')
+      .select('id, fornecedor_id, data, observacao, destino_fornecedor_id, destino:destino_fornecedor_id(nome), fornecedores:fornecedor_id(nome), entrega_itens(id, op_id, op_item_id, metros_entregues, defeito, observacao)')
       .eq('etapa', 'cima')
       .eq('fornecedor_id', cimaFornecedorId)
       .order('data', { ascending: false })
