@@ -1135,6 +1135,7 @@ async function screenNovaOP(opId) {
   let opItensRaw = [];
   let ordens = [];
   let entregasCima = [];
+  let latexOpPorEntrega = {};
   let cimaFornecedorId = null;
   let latexOptions = [];
   let numero = '', ano = new Date().getFullYear();
@@ -1143,7 +1144,7 @@ async function screenNovaOP(opId) {
 
   if (opId) {
     const { data, error } = await supa.from('ops')
-      .select('id, numero, ano, status, op_itens(id, modelo_id, metros_pedidos, metros_ajustados), op_fornecedores(fornecedor_id, etapa)')
+      .select('id, numero, ano, status, tipo, observacao, origem_op_id, op_itens(id, modelo_id, metros_pedidos, metros_ajustados), op_fornecedores(fornecedor_id, etapa)')
       .eq('id', opId).single();
     if (error || !data) {
       toast('OP não encontrada', 'error'); console.error(error);
@@ -1151,6 +1152,7 @@ async function screenNovaOP(opId) {
       return shellLayout(ADMIN_MENU, container);
     }
     op = data;
+    if (op.tipo === 'latex') return await renderOPLatexAdmin(op.id);
     numero = data.numero; ano = data.ano;
     itens = (data.op_itens || []).map(i => ({ modeloId: i.modelo_id, metros: i.metros_pedidos }));
     for (const f of (data.op_fornecedores || [])) fornSel[f.etapa] = f.fornecedor_id;
@@ -1175,6 +1177,9 @@ async function screenNovaOP(opId) {
         .order('id', { ascending: false });
       if (entRes.error) { toast('Erro ao carregar entregas de tecelagem', 'error'); console.error(entRes.error); }
       entregasCima = (entRes.data || []).filter(e => (e.entrega_itens || []).some(ei => ei.op_id === op.id));
+      const latexOpsRes = await supa.from('ops').select('id, origem_entrega_id').eq('tipo', 'latex').eq('origem_op_id', op.id);
+      latexOpPorEntrega = {};
+      for (const lo of (latexOpsRes.data || [])) if (lo.origem_entrega_id) latexOpPorEntrega[lo.origem_entrega_id] = lo.id;
     }
   } else {
     const { data } = await supa.from('ops').select('numero').eq('ano', ano).order('numero', { ascending: false }).limit(1);
@@ -1536,6 +1541,8 @@ async function screenNovaOP(opId) {
               onclick: () => abrirEdicaoAdmin(ent) }, 'Editar'),
             el('button', { class: 'text-sm text-red-600 hover:underline',
               onclick: () => excluirEntrega(ent.id, reloadEntregasCima) }, 'Excluir'),
+            latexOpPorEntrega[ent.id] ? el('button', { class: 'text-sm text-amber-700 hover:underline ml-3',
+              onclick: () => navigate('#/ops/' + latexOpPorEntrega[ent.id]) }, 'Ver OP de látex') : '',
           ) : '',
         ));
         if (ent.observacao) subcard.appendChild(el('div', { class: 'text-xs text-gray-500' }, ent.observacao));
@@ -1577,6 +1584,9 @@ async function screenNovaOP(opId) {
       .order('id', { ascending: false });
     if (entRes.error) { toast('Erro ao recarregar entregas', 'error'); console.error(entRes.error); return; }
     entregasCima = (entRes.data || []).filter(e => (e.entrega_itens || []).some(ei => ei.op_id === op.id));
+    const latexOpsRes = await supa.from('ops').select('id, origem_entrega_id').eq('tipo', 'latex').eq('origem_op_id', op.id);
+    latexOpPorEntrega = {};
+    for (const lo of (latexOpsRes.data || [])) if (lo.origem_entrega_id) latexOpPorEntrega[lo.origem_entrega_id] = lo.id;
     render();
   }
 
@@ -1850,6 +1860,144 @@ async function screenNovaOP(opId) {
   }
 
   render();
+  return shellLayout(ADMIN_MENU, container);
+}
+
+async function renderOPLatexAdmin(opId) {
+  const container = el('div', {});
+  const fmtMetros = (n) => Number(n).toFixed(2).replace('.', ',') + ' m';
+
+  async function reload() {
+    const opRes = await supa.from('ops')
+      .select('id, numero, ano, status, tipo, observacao, origem_op_id, op_itens(id, modelo_id, metros_pedidos), op_fornecedores(fornecedor_id, etapa, fornecedores:fornecedor_id(nome))')
+      .eq('id', opId).single();
+    if (opRes.error) { toast('Erro ao carregar OP de látex', 'error'); console.error(opRes.error); return; }
+    const op = opRes.data;
+    const latexForn = (op.op_fornecedores || []).find(f => f.etapa === 'latex');
+    const latexFornecedorId = latexForn ? latexForn.fornecedor_id : null;
+
+    const entRes = await supa.from('entregas')
+      .select('id, fornecedor_id, data, observacao, entrega_itens(id, op_id, op_item_id, metros_entregues, defeito, observacao)')
+      .eq('etapa', 'latex').eq('fornecedor_id', latexFornecedorId)
+      .order('data', { ascending: false }).order('id', { ascending: false });
+    const recebimentos = (entRes.data || []).filter(e => (e.entrega_itens || []).some(ei => ei.op_id === op.id));
+
+    const modeloIds = [...new Set((op.op_itens || []).map(i => i.modelo_id))];
+    const modelosRes = modeloIds.length
+      ? await supa.from('modelos').select('id, nome, largura, cor_1:cor_1_id(id,nome), cor_2:cor_2_id(id,nome)').in('id', modeloIds)
+      : { data: [] };
+    const modelosById = {};
+    for (const m of (modelosRes.data || [])) modelosById[m.id] = m;
+
+    render(op, recebimentos, modelosById, latexFornecedorId);
+  }
+
+  function render(op, recebimentos, modelosById, latexFornecedorId) {
+    const recItens = recebimentos.flatMap(e => (e.entrega_itens || []).filter(ei => ei.op_id === op.id));
+    const totalPorItem = totalEntregueCimaPorItem(recItens);
+
+    const acoes = [{ label: '← Voltar', onclick: () => navigate('#/ops') }];
+    if (op.origem_op_id) acoes.push({ label: 'Ir para OP de tecelagem', onclick: () => navigate('#/ops/' + op.origem_op_id) });
+    if (op.status === 'em_producao') acoes.push({ label: 'Finalizar OP de látex', onclick: () => finalizar(op.id) });
+    const header = pageHeader(`OP de látex Nº ${op.numero}/${op.ano}`, acoes);
+
+    const info = el('div', { class: 'bg-white rounded-xl shadow p-5 mb-4' },
+      el('div', { class: 'flex items-center gap-3 mb-2' }, badgeTipo('latex'), badgeStatus(op.status)),
+      op.observacao ? el('div', { class: 'text-sm text-gray-600' }, op.observacao) : el('span', {}),
+    );
+
+    const tabela = dataTable({
+      columns: [
+        { key: 'modelo', label: 'Modelo', render: (i) => {
+            const m = modelosById[i.modelo_id];
+            return m ? `${m.nome} ${larguraKey(m.largura)}m · ${m.cor_1?.nome || '?'}/${m.cor_2?.nome || '?'}` : ('#' + i.modelo_id);
+          } },
+        { key: 'enviado', label: 'Enviado', render: (i) => fmtMetros(i.metros_pedidos) },
+        { key: 'recebido', label: 'Recebido', render: (i) => fmtMetros(totalPorItem[i.id] || 0) },
+        { key: 'falta', label: 'Falta', render: (i) => {
+            const falta = Math.round((Number(i.metros_pedidos) - (totalPorItem[i.id] || 0)) * 100) / 100;
+            return el('span', { class: falta <= 0 ? 'text-green-700' : 'text-gray-800' }, falta <= 0 ? '✅ completo' : fmtMetros(falta));
+          } },
+      ],
+      rows: op.op_itens || [],
+    });
+
+    const box = el('div', { class: 'bg-white rounded-xl shadow p-5' });
+    box.appendChild(el('div', { class: 'font-semibold text-gray-700 mb-3' }, 'Recebimentos'));
+
+    if (op.status === 'em_producao' && latexFornecedorId) {
+      const formHolder = el('div', {});
+      const btnNova = el('button', { class: 'text-sm text-blue-700 hover:underline mb-2',
+        onclick: () => {
+          const form = buildEntregaInlineForm({ opItens: op.op_itens || [], modelosById, comDestino: false });
+          const btnSalvar = el('button', { class: 'bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold rounded-lg px-3 py-2 mr-2',
+            onclick: async () => { btnSalvar.disabled = true;
+              const ok = await salvarEntregaLatex({ fornecedorId: latexFornecedorId, opId: op.id, payload: form.getPayload() });
+              btnSalvar.disabled = false; if (ok) reload(); } }, 'Salvar recebimento');
+          const btnCancelar = el('button', { class: 'bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-semibold rounded-lg px-3 py-2',
+            onclick: () => { formHolder.replaceChildren(); btnNova.style.display = ''; } }, 'Cancelar');
+          formHolder.replaceChildren(el('div', {}, form.node, el('div', { class: 'mt-2' }, btnSalvar, btnCancelar)));
+          btnNova.style.display = 'none';
+        } }, '+ Novo recebimento');
+      box.appendChild(btnNova);
+      box.appendChild(formHolder);
+    }
+
+    if (recebimentos.length === 0) {
+      box.appendChild(el('p', { class: 'text-sm text-gray-400 mt-2' }, 'Nenhum recebimento registrado ainda.'));
+    } else {
+      for (const ent of recebimentos) {
+        const sub = el('div', { class: 'border-b py-3' });
+        sub.appendChild(el('div', { class: 'flex items-center justify-between' },
+          el('div', { class: 'text-sm' }, el('b', {}, new Date(ent.data + 'T00:00:00').toLocaleDateString('pt-BR'))),
+          op.status === 'em_producao' ? el('div', {},
+            el('button', { class: 'text-sm text-blue-700 hover:underline mr-3',
+              onclick: () => abrirEdicaoAdmin(ent, op, modelosById) }, 'Editar'),
+            el('button', { class: 'text-sm text-red-600 hover:underline',
+              onclick: () => excluirEntrega(ent.id, reload) }, 'Excluir'),
+          ) : '',
+        ));
+        if (ent.observacao) sub.appendChild(el('div', { class: 'text-xs text-gray-500' }, ent.observacao));
+        for (const ei of (ent.entrega_itens || []).filter(x => x.op_id === op.id)) {
+          const it = (op.op_itens || []).find(i => i.id === ei.op_item_id);
+          const m = it ? modelosById[it.modelo_id] : null;
+          const nome = m ? `${m.nome} ${larguraKey(m.largura)}m · ${m.cor_1?.nome || '?'}/${m.cor_2?.nome || '?'}` : '?';
+          sub.appendChild(el('div', { class: 'text-sm text-gray-700' },
+            nome + ': ' + fmtMetros(ei.metros_entregues),
+            ei.defeito ? el('span', { class: 'ml-2 text-red-600 font-semibold' }, '⚠ DEFEITO') : '',
+            ei.observacao ? el('span', { class: 'ml-2 text-xs text-gray-500' }, '(' + ei.observacao + ')') : '',
+          ));
+        }
+        box.appendChild(sub);
+      }
+    }
+
+    function abrirEdicaoAdmin(ent, op, modelosById) {
+      const form = buildEntregaInlineForm({ opItens: op.op_itens || [], modelosById, entrega: ent, comDestino: false });
+      modal({
+        title: `Editar recebimento — ${new Date(ent.data + 'T00:00:00').toLocaleDateString('pt-BR')}`,
+        body: form.node, saveLabel: 'Salvar alterações',
+        onSave: async () => { const ok = await atualizarEntregaLatex({ entregaId: ent.id, opId: op.id, payload: form.getPayload() }); if (ok) reload(); return ok; },
+      });
+    }
+
+    container.replaceChildren(header, info, tabela, el('div', { class: 'h-4' }), box);
+  }
+
+  async function finalizar(id) {
+    confirmDialog({
+      title: 'Finalizar OP de látex',
+      message: 'Marcar esta OP de látex como finalizada?',
+      confirmLabel: 'Finalizar',
+      onConfirm: async () => {
+        const r = await supa.from('ops').update({ status: 'finalizada', finalizada_em: new Date().toISOString() }).eq('id', id);
+        if (r.error) { toast('Erro ao finalizar', 'error'); console.error(r.error); return; }
+        toast('OP de látex finalizada', 'success'); reload();
+      },
+    });
+  }
+
+  await reload();
   return shellLayout(ADMIN_MENU, container);
 }
 
