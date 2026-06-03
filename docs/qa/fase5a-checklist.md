@@ -32,12 +32,12 @@ Pré-requisitos: OP `em_producao` com fornecedor de tecelagem atribuído (`op_fo
 - [ ] 21. Em OP `finalizada` (quando existir, Fase 5b), o bloco é só leitura (sem botões).
 
 ## Destino de látex (manual)
-- [ ] 22. Form de entrega da tecelagem mostra o select "Destino (látex)" com as empresas de látex cadastradas.
-- [ ] 23. Salvar sem escolher destino → toast de erro e não grava.
-- [ ] 24. Salvar com destino → grava `entregas.destino_fornecedor_id`; histórico mostra "látex: <empresa>".
-- [ ] 25. Editar entrega carrega o destino atual; trocar o destino e salvar persiste o novo.
-- [ ] 26. Admin: bloco da tecelagem mostra o select de destino ao lançar; histórico mostra "→ látex: <empresa>".
-- [ ] 27. Tecelagem (logado) consegue listar as empresas de látex no select (policy `fornecedores_latex_read` ativa).
+- [x] 22. Form de entrega da tecelagem mostra o select "Destino (látex)" com as empresas de látex cadastradas.
+- [x] 23. Salvar sem escolher destino → toast de erro e não grava.
+- [x] 24. Salvar com destino → grava `entregas.destino_fornecedor_id`; histórico mostra "látex: <empresa>".
+- [x] 25. Editar entrega carrega o destino atual; trocar o destino e salvar persiste o novo.
+- [x] 26. Admin: bloco da tecelagem mostra o select de destino ao lançar; histórico mostra "→ látex: <empresa>".
+- [x] 27. Tecelagem (logado) consegue listar as empresas de látex no select (policy `fornecedores_latex_read` ativa).
 
 ## Resultado
 (preencher após execução: X/27)

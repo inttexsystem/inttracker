@@ -1,10 +1,25 @@
 # Status do projeto
 
-## Fase atual: 5a — Tecelagem (parte de cima)
+## Fase atual: 5b — Látex (OP de Látex) ✅ concluída e publicada (2026-06-02)
 
-Fase 5a implementada em 2026-05-28, aguardando QA do Vinícius. Próxima: Fase 5b — Látex (com múltiplos destinos por OP, ver [[project_regra_latex]]).
+Fase 5b implementada, mergeada em `main` e publicada em 2026-06-02; QA manual **22/22 validado** pelo Vinícius. Junto dela foi publicado o complemento da Fase 5a (destino de látex na entrega, QA 22–27 validado). Amanhã (a partir de 2026-06-03) o Vinícius vai adicionar coisas e fazer alterações — sessão pausada com repo limpo.
 
 ## Fases concluídas
+
+### Fase 5b — OP de Látex (recebimento do produto final) ✅ (concluída 2026-06-02, QA 22/22)
+
+**Regra:** salvar uma entrega de tecelagem (`etapa='cima'`) gera automaticamente uma **OP de látex** (`ops.tipo='latex'`), independente após criada (snapshot do enviado).
+
+**Implementado:**
+- `db/08_fase5b_latex.sql` (rodado no Supabase): `ops` ganhou `tipo`/`origem_op_id`/`origem_entrega_id`/`observacao`; UNIQUE virou `(numero,ano,tipo)`; índice único parcial em `origem_entrega_id` (tipo='latex'); função `gerar_op_latex(p_entrega_id)` `SECURITY DEFINER` (idempotente, valida admin/dono, cria OP+itens+op_fornecedores). RLS genérica já cobre a empresa de látex.
+- Front: `salvarEntregaCima` chama a RPC; `buildEntregaInlineForm` ganhou flag `comDestino`; `salvarEntregaLatex`/`atualizarEntregaLatex`; `screenListaOPs` com badge de tipo + filtro; `renderOPLatexAdmin` (detalhe admin com Enviado×Recebido×Falta, navegação ida-e-volta, recebimentos, editar enviado, finalizar, excluir); `screenFornecedorLatex` (`#/fornecedor/latex`). Recebido reusa `totalEntregueCimaPorItem`; testes 25/25.
+- Checklist QA: `docs/qa/fase5b-checklist.md` — **22/22 validado**.
+
+### Fase 5a — Tecelagem (parte de cima) ✅ (concluída 2026-05-28; complemento destino-de-látex 2026-06-02)
+
+**Implementado:** função pura `totalEntregueCimaPorItem`; roteamento por tipo de fornecedor; tela `#/fornecedor/entregas` (tecelagem) e bloco admin com Pedido/Ajustado/Entregue/Falta; CRUD de entregas. Complemento (2026-06-02): coluna `entregas.destino_fornecedor_id` + CHECK + policy `fornecedores_latex_read` (`db/07_fase5a_destino_latex.sql`); select "Destino (látex)" no form. Checklist `docs/qa/fase5a-checklist.md` — itens de cálculo (1–5) e destino (22–27) validados.
+
+> ⚠️ Itens 6–21 do `fase5a-checklist.md` (QA manual da tecelagem) não foram formalmente marcados, mas as telas estão em uso em produção desde 2026-05-28.
 
 ### Fase 4 — Recebimento de fios + recálculo automático ✅ (concluída 2026-05-28, QA 15/15)
 
@@ -61,7 +76,8 @@ QA rodado em 2026-05-19: **9/9 cenários** do `docs/qa/fase2-checklist.md` passa
 ## Próximas fases
 
 - **Fase 4 — Fornecedor de fios + recálculo automático** ✅
-- **Fase 5a — Tecelagem (parte de cima)** ⏳ implementada (aguardando QA)
-- **Fase 5b — Látex** (com múltiplos destinos por OP) ← próxima
+- **Fase 5a — Tecelagem (parte de cima)** ✅ (+ complemento destino de látex)
+- **Fase 5b — Látex (OP de Látex)** ✅
 - Fase 6 — Fechamento de OP, painel inicial, estoque
 - Fase 7 — Polimento visual (após screenshots do Max Home)
+- **Backlog 2026-06-03:** Vinícius vai adicionar coisas e fazer alterações (a definir na próxima sessão).
