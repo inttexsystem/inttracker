@@ -1,10 +1,21 @@
 # Status do projeto
 
-## Fase atual: 5b — Látex (OP de Látex) ✅ concluída e publicada (2026-06-02)
+## Fase atual: 6 — Cliente, Lote, fios sob demanda, % e PDF ✅ concluída e publicada (2026-06-05)
 
-Fase 5b implementada, mergeada em `main` e publicada em 2026-06-02; QA manual **22/22 validado** pelo Vinícius. Junto dela foi publicado o complemento da Fase 5a (destino de látex na entrega, QA 22–27 validado). Amanhã (a partir de 2026-06-03) o Vinícius vai adicionar coisas e fazer alterações — sessão pausada com repo limpo.
+Fase 6 implementada, mergeada em `main` e publicada em 2026-06-05 (commit `12f881c`); testes 31/31. **SQL `db/09_fase6_cliente_lote.sql` já rodado no Supabase.** Aguarda QA manual do Vinícius — roteiro guiado em `docs/qa/roteiro-teste-fase6.md` (checklist resumido em `docs/qa/fase6-checklist.md`). Sessão pausada com repo limpo; o Vinícius testa na próxima sessão.
 
 ## Fases concluídas
+
+### Fase 6 — Cliente, Lote, fios sob demanda, % entregue e PDF ✅ (concluída 2026-06-05)
+
+**5 mudanças na OP:**
+- **Fornecedores de fio opcionais** ao abrir (abrir exige só cliente + tecelagem); o admin atribui o fornecedor de fio por tipo depois, no bloco "Recebimento de fios" — grava `fornecedor_id` nas ordens + upsert `op_fornecedores`, e aí o fornecedor logado vê e registra o kg.
+- **Cliente** na OP (novo cadastro `#/cadastros/clientes`).
+- **Lote** automático sequencial (tabela `lotes`), criado no 1º salvamento de cada OP manual; OPs de látex herdam o lote/cliente (via `gerar_op_latex`).
+- **Barra de % entregue** na lista de OPs.
+- **PDF de compra de fios** (jsPDF + SRI), separado por Algodão/Poliéster.
+
+**Banco:** `db/09_fase6_cliente_lote.sql` — `clientes`, `lotes`, `ops.lote_id` (nullable), `ordens_compra_fio.fornecedor_id` nullable, RLS admin-only, `gerar_op_latex` herda lote. **Funções puras:** `percentualEntregueOP`, `agruparOrdensCompraFio` (6 testes; 31 total). Checklist: `docs/qa/fase6-checklist.md`.
 
 ### Fase 5b — OP de Látex (recebimento do produto final) ✅ (concluída 2026-06-02, QA 22/22)
 
@@ -78,6 +89,7 @@ QA rodado em 2026-05-19: **9/9 cenários** do `docs/qa/fase2-checklist.md` passa
 - **Fase 4 — Fornecedor de fios + recálculo automático** ✅
 - **Fase 5a — Tecelagem (parte de cima)** ✅ (+ complemento destino de látex)
 - **Fase 5b — Látex (OP de Látex)** ✅
-- Fase 6 — Fechamento de OP, painel inicial, estoque
-- Fase 7 — Polimento visual (após screenshots do Max Home)
-- **Backlog 2026-06-03:** Vinícius vai adicionar coisas e fazer alterações (a definir na próxima sessão).
+- **Fase 6 — Cliente, Lote, fios sob demanda, % e PDF** ✅ (aguarda QA manual do Vinícius)
+- Fechamento de OP, painel inicial, estoque — futuro
+- Polimento visual (após screenshots do Max Home) — futuro
+- **Próxima sessão (2026-06-05+):** Vinícius testa a Fase 6 (`docs/qa/roteiro-teste-fase6.md`); depois, mais ajustes a definir.
