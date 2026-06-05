@@ -1315,7 +1315,8 @@ async function screenNovaOP(opId) {
   }
 
   function buildScreen() {
-    const titulo = op ? `OP Nº ${op.numero}/${op.ano}` + (readOnly ? ' (leitura)' : ' (editar)') : 'Nova OP';
+    const loteTxt = op && op.lote ? ` · Lote Nº ${op.lote.numero} · ${op.lote.cliente?.nome || '—'}` : '';
+    const titulo = op ? `OP Nº ${op.numero}/${op.ano}${loteTxt}` + (readOnly ? ' (leitura)' : ' (editar)') : 'Nova OP';
     const wrap = el('div', {});
     wrap.appendChild(pageHeader(titulo, [{ label: '← Voltar', onclick: () => navigate('#/ops') }]));
 
@@ -1933,7 +1934,7 @@ async function renderOPLatexAdmin(opId) {
 
   async function reload() {
     const opRes = await supa.from('ops')
-      .select('id, numero, ano, status, tipo, observacao, origem_op_id, op_itens(id, modelo_id, metros_pedidos), op_fornecedores(fornecedor_id, etapa, fornecedores:fornecedor_id(nome))')
+      .select('id, numero, ano, status, tipo, observacao, origem_op_id, lote:lote_id(numero, cliente:cliente_id(nome)), op_itens(id, modelo_id, metros_pedidos), op_fornecedores(fornecedor_id, etapa, fornecedores:fornecedor_id(nome))')
       .eq('id', opId).single();
     if (opRes.error) { toast('Erro ao carregar OP de látex', 'error'); console.error(opRes.error); return; }
     const op = opRes.data;
@@ -1969,6 +1970,7 @@ async function renderOPLatexAdmin(opId) {
 
     const info = el('div', { class: 'bg-white rounded-xl shadow p-5 mb-4' },
       el('div', { class: 'flex items-center gap-3 mb-2' }, badgeTipo('latex'), badgeStatus(op.status)),
+      op.lote ? el('div', { class: 'text-sm text-gray-700 mb-1' }, `Lote Nº ${op.lote.numero} · ${op.lote.cliente?.nome || '—'}`) : el('span', {}),
       op.observacao ? el('div', { class: 'text-sm text-gray-600' }, op.observacao) : el('span', {}),
     );
 
