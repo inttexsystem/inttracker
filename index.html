@@ -10,6 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/calculo-op.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/badges.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
@@ -862,17 +863,6 @@ const OP_STATUS_BADGE = {
 const OP_STATUS_LABEL = {
   simulada: 'Simulada', aberta: 'Aberta', em_producao: 'Em produção', finalizada: 'Finalizada',
 };
-
-const OP_TIPO_LABEL = { tecelagem: 'Tecelagem', latex: 'Látex' };
-const OP_TIPO_BADGE = { tecelagem: 'bg-indigo-100 text-indigo-700', latex: 'bg-amber-100 text-amber-700' };
-function badgeTipo(tipo) {
-  return el('span', { class: 'px-2 py-1 rounded text-xs font-semibold ' + (OP_TIPO_BADGE[tipo] || 'bg-gray-100 text-gray-700') },
-    OP_TIPO_LABEL[tipo] || tipo);
-}
-function badgeStatus(status) {
-  return el('span', { class: 'px-2 py-1 rounded text-xs font-semibold ' + (OP_STATUS_BADGE[status] || 'bg-gray-100 text-gray-700') },
-    OP_STATUS_LABEL[status] || status);
-}
 
 async function screenListaOPs() {
   const container = el('div', {});
