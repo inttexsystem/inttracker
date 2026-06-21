@@ -854,16 +854,6 @@ async function screenFornecedorOrdens() {
   return shellLayout([{ href: '#/fornecedor/ordens', label: 'Minhas ordens' }], container);
 }
 
-const OP_STATUS_BADGE = {
-  simulada:    'bg-gray-100 text-gray-700',
-  aberta:      'bg-blue-100 text-blue-700',
-  em_producao: 'bg-amber-100 text-amber-700',
-  finalizada:  'bg-green-100 text-green-700',
-};
-const OP_STATUS_LABEL = {
-  simulada: 'Simulada', aberta: 'Aberta', em_producao: 'Em produção', finalizada: 'Finalizada',
-};
-
 async function screenListaOPs() {
   const container = el('div', {});
 
