@@ -157,22 +157,23 @@ test('http.server responde em :8765 e index.html contém o esperado', async () =
   const { body } = await fetchIndexHtml();
   assert.equal(typeof body, 'string');
   assert.ok(body.length > 1000, 'index.html muito curto');
-  // A partir da ENV-BANNER-MODULE-A, todo o bootstrap (config, client,
-  // write-guard, env-banner) vive em js/*.js. O script inline começa
-  // agora no bloco AUTH.
+  // A partir da AUTH-MODULE-A, todo o bootstrap (config, client,
+  // write-guard, env-banner, auth) vive em js/*.js. O script inline
+  // começa agora no bloco ROUTER.
   assert.match(body, /js\/config\.js/);
   assert.match(body, /js\/supabase-client\.js/);
   assert.match(body, /js\/environment-banner\.js/);
-  assert.match(body, /=== AUTH/);
+  assert.match(body, /js\/auth\.js/);
+  assert.match(body, /=== ROUTER/);
 });
 
-test('script inline NÃO contém mais o client Supabase nem o write-guard nem o env-banner', async () => {
+test('script inline NÃO contém mais o client Supabase nem o write-guard nem o env-banner nem o auth', async () => {
   const { body } = await fetchIndexHtml();
   const inlineMatch = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g.exec(body);
   const inline = inlineMatch[1];
-  // O client e o write-guard foram extraídos para js/supabase-client.js.
-  // O env-banner foi extraído para js/environment-banner.js.
-  // O script inline agora começa em === AUTH ===.
+  // O client/write-guard foram extraídos para js/supabase-client.js.
+  // O env-banner para js/environment-banner.js. O auth para js/auth.js.
+  // O script inline agora começa em === ROUTER ===.
   assert.equal(/supabase\.createClient\s*\(/.test(inline), false,
     'script inline ainda chama supabase.createClient — client não foi extraído');
   assert.equal(/\b_supaRaw\b/.test(inline), false,
@@ -196,8 +197,19 @@ test('script inline NÃO contém mais o client Supabase nem o write-guard nem o 
     'script inline ainda tem marcador === ENV-BANNER — env-banner não foi extraído');
   assert.equal(/_envBanner/.test(inline), false,
     'script inline ainda referencia _envBanner — env-banner não foi extraído');
-  // O inline deve começar com AUTH.
-  assert.match(inline, /=== AUTH/);
+  // Auth também não está mais no inline.
+  assert.equal(/=== AUTH/.test(inline), false,
+    'script inline ainda tem marcador === AUTH — auth não foi extraído');
+  assert.equal(/let\s+CURRENT_USER\s*=/.test(inline), false,
+    'script inline ainda tem `let CURRENT_USER =`');
+  assert.equal(/async\s+function\s+login\s*\(/.test(inline), false,
+    'script inline ainda define `async function login`');
+  assert.equal(/async\s+function\s+logout\s*\(/.test(inline), false,
+    'script inline ainda define `async function logout`');
+  assert.equal(/async\s+function\s+loadCurrentUser\s*\(/.test(inline), false,
+    'script inline ainda define `async function loadCurrentUser`');
+  // O inline deve começar com ROUTER.
+  assert.match(inline, /=== ROUTER/);
 });
 
 test('hostname grupoterrabranca.github.io → production (ref bhgifjrfagkzubpyqpew)', async () => {

@@ -236,19 +236,15 @@ test('index.html: ordem dos scripts: config → supabase-client → environment-
 
 test('script inline NÃO contém mais o env-banner (extraído para js/environment-banner.js)', () => {
   const inline = extractInlineScript(indexSrc);
-  // Comentários `// === AUTH ===` etc. marcam seções; não devem ser
-  // removidos por stripComments. Aqui procuramos no source bruto e
-  // também (via stripComments) para garantir que não há USO de vars
-  // do env-banner fora de comentário.
   assert.equal(/=== ENV-BANNER/.test(inline), false,
     'script inline ainda tem marcador === ENV-BANNER');
   assert.equal(/_envBanner/.test(inline), false,
     'script inline ainda referencia _envBanner');
   assert.equal(/AMBIENTE STAGING — DADOS DE TESTE/.test(inline), false,
     'script inline ainda tem texto do env-banner');
-  // O inline deve começar com AUTH (última fronteira de bootstrap
-  // extraída nesta fase).
-  assert.match(inline, /=== AUTH/);
+  // O inline agora começa em === ROUTER === (auth e env-banner foram
+  // extraídos em fases anteriores).
+  assert.match(inline, /=== ROUTER/);
   // Garantia adicional via stripComments: nenhum identificador do
   // env-banner sobrevive à remoção de comentários.
   const noComments = stripComments(inline);

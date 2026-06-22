@@ -14,6 +14,7 @@
   <script src="js/config.js"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/environment-banner.js"></script>
+  <script src="js/auth.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
@@ -28,42 +29,11 @@
 
 <script>
 // =====================================================================
-// === AUTH ============================================================
-// =====================================================================
-let CURRENT_USER = null;  // { id, email, nome, tipo, fornecedor_id }
-
-async function login(email, senha) {
-  const { data, error } = await supa.auth.signInWithPassword({ email, password: senha });
-  if (error) throw error;
-  await loadCurrentUser();
-  return data.user;
-}
-
-async function logout() {
-  await supa.auth.signOut();
-  CURRENT_USER = null;
-  navigate('#/login');
-}
-
-async function loadCurrentUser() {
-  const { data: { session } } = await supa.auth.getSession();
-  if (!session) { CURRENT_USER = null; return null; }
-  const { data, error } = await supa.from('usuarios')
-    .select('id, email, nome, tipo, fornecedor_id, fornecedores:fornecedor_id(tipo)')
-    .eq('id', session.user.id)
-    .single();
-  if (error) {
-    console.error('Erro carregando perfil:', error);
-    CURRENT_USER = null;
-    return null;
-  }
-  CURRENT_USER = data;
-  CURRENT_USER.fornecedor_tipo = data.fornecedores?.tipo || null;
-  return data;
-}
-
-// =====================================================================
 // === ROUTER ==========================================================
+// CURRENT_USER, login, logout e loadCurrentUser vêm de js/auth.js
+// (carregado no <head> antes deste <script> inline). Não redeclará-los
+// aqui — o getter/setter em js/auth.js preserva a semântica de "let"
+// global e os call-sites do inline continuam funcionando.
 // =====================================================================
 const routes = {
   '#/login':    { render: screenLogin, public: true },
