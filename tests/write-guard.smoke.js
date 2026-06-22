@@ -32,6 +32,8 @@ const path   = require('node:path');
 const vm     = require('node:vm');
 const http   = require('node:http');
 
+const ROOT = path.resolve(__dirname, '..');
+
 const PORT = 8765;
 const HOST = '127.0.0.1';
 
@@ -51,14 +53,18 @@ function fetchIndexHtml() {
   });
 }
 
-// Extrai o bloco CONFIG + SUPA + WRITE-GUARD do script inline.
-// A partir da CONFIG-STAGING-A, o write-guard depende de
-// APP_ENVIRONMENTS/APP_ENV/APP_CONFIG (declarados no bloco CONFIG)
-// E de _supaRaw (declarado no bloco SUPA).
-// Por isso extraímos desde `=== CONFIG` até o separador `=== AUTH`.
+// Extrai o bloco SUPA + WRITE-GUARD do script inline.
+//
+// A partir da fase CONFIG-MODULE-A, a config de ambiente (APP_ENVIRONMENTS,
+// detectAppEnvironment, APP_ENV, APP_CONFIG, SUPABASE_URL, SUPABASE_ANON_KEY)
+// vive em js/config.js (carregado separadamente). O script inline agora
+// declara APENAS o que depende de Supabase: o client (_supaRaw) e a
+// guarda de writes (_GUARD_BLOCK_WRITES, _wrapQueryBuilder, etc).
+//
+// Por isso extraímos desde `=== SUPA` até o separador `=== AUTH`.
 function extractConfigAndGuardBlock(inline) {
-  const start = inline.indexOf('=== CONFIG');
-  if (start < 0) throw new Error('marcador === CONFIG não encontrado no script inline');
+  const start = inline.indexOf('=== SUPA');
+  if (start < 0) throw new Error('marcador === SUPA não encontrado no script inline');
   const blockStart = inline.lastIndexOf('// ====', start);
   const idx = inline.indexOf('// === AUTH', start + 20);
   if (idx < 0) throw new Error('fim do bloco WRITE-GUARD não encontrado');
@@ -96,9 +102,9 @@ function makeFakeSupabaseClient() {
   };
 }
 
-// Roda o bloco CONFIG+WRITE-GUARD num sandbox com hostname controlado.
-// Retorna { sandbox, fakeSupa, inline, env } onde env é uma referência
-// para APP_ENV (string) e APP_CONFIG (objeto) do sandbox.
+// Roda o js/config.js + bloco SUPA+WRITE-GUARD num sandbox com hostname
+// controlado. Retorna { sandbox, fakeSupa, inline, env } onde env é uma
+// referência para APP_ENV (string) e APP_CONFIG (objeto) do sandbox.
 function runGuardInSandbox({ hostname, forceLocal = true }) {
   const fakeSupa = makeFakeSupabaseClient();
   const fakeSupabase = {
@@ -124,15 +130,27 @@ function runGuardInSandbox({ hostname, forceLocal = true }) {
   vm.createContext(sandbox);
 
   return new Promise((resolve, reject) => {
+    // Carrega js/config.js PRIMEIRO. Em produção, esse módulo é carregado
+    // via <script src="js/config.js"> antes do inline. Aqui simulamos a
+    // mesma ordem para que APP_ENV, SUPABASE_URL etc fiquem disponíveis
+    // quando o bloco extraído (SUPA + WRITE-GUARD) for executado.
+    try {
+      const cfgSrc = fs.readFileSync(path.join(ROOT, 'js', 'config.js'), 'utf8');
+      vm.runInContext(cfgSrc, sandbox, { filename: 'js/config.js' });
+    } catch (e) {
+      return reject(new Error('Falha ao carregar js/config.js: ' + e.message));
+    }
+
     fetchIndexHtml().then(({ body }) => {
       const inlineMatch = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g.exec(body);
       if (!inlineMatch) return reject(new Error('nenhum <script> inline encontrado'));
       const inline = inlineMatch[1];
       const block = extractConfigAndGuardBlock(inline);
-      // O bloco extraído inclui CONFIG + SUPA + WRITE-GUARD, então
-      // _supaRaw é declarado pelo próprio bloco (não injetar).
+      // O bloco extraído inclui SUPA + WRITE-GUARD. _supaRaw é declarado
+      // pelo próprio bloco (não injetar). APP_ENV/SUPABASE_URL/APP_ENVIRONMENTS
+      // vêm do js/config.js carregado antes.
       try {
-        vm.runInContext(block, sandbox, { filename: 'config-and-guard.js' });
+        vm.runInContext(block, sandbox, { filename: 'supa-and-guard.js' });
       } catch (e) {
         return reject(new Error('Bloco lançou erro ao inicializar: ' + e.message));
       }
@@ -156,20 +174,30 @@ test('http.server responde em :8765 e index.html contém o esperado', async () =
   const { body } = await fetchIndexHtml();
   assert.equal(typeof body, 'string');
   assert.ok(body.length > 1000, 'index.html muito curto');
-  assert.match(body, /=== CONFIG/);
+  // A partir da CONFIG-MODULE-A, a config foi extraída para js/config.js.
+  // O script inline começa agora no bloco SUPA e contém WRITE-GUARD.
+  assert.match(body, /js\/config\.js/);
+  assert.match(body, /=== SUPA/);
   assert.match(body, /=== WRITE-GUARD/);
-  assert.match(body, /APP_ENVIRONMENTS/);
-  assert.match(body, /detectAppEnvironment/);
+  assert.match(body, /=== AUTH/);
   assert.match(body, /_GUARD_BLOCK_WRITES/);
 });
 
-test('extrai o bloco CONFIG + WRITE-GUARD do script inline', async () => {
+test('extrai o bloco SUPA + WRITE-GUARD do script inline', async () => {
   const { body } = await fetchIndexHtml();
   const inlineMatch = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g.exec(body);
   const inline = inlineMatch[1];
   const block = extractConfigAndGuardBlock(inline);
-  assert.ok(block.includes('APP_ENVIRONMENTS'), 'bloco não contém APP_ENVIRONMENTS');
-  assert.ok(block.includes('detectAppEnvironment'), 'bloco não contém detectAppEnvironment');
+  // O bloco extraído é SUPA + WRITE-GUARD. Não deve mais conter as
+  // definições de config (que vivem em js/config.js agora).
+  assert.equal(block.includes('APP_ENVIRONMENTS ='), false,
+    'bloco ainda contém declaração de APP_ENVIRONMENTS — config não foi extraída');
+  assert.equal(block.includes('function detectAppEnvironment'), false,
+    'bloco ainda define detectAppEnvironment — config não foi extraída');
+  assert.equal(block.includes('const SUPABASE_URL ='), false,
+    'bloco ainda contém declaração de SUPABASE_URL — config não foi extraída');
+  // Deve ainda conter a guarda e a infra do supa.
+  assert.ok(block.includes('_supaRaw'), 'bloco não contém _supaRaw');
   assert.ok(block.includes('_GUARD_BLOCK_WRITES'), 'bloco não contém _GUARD_BLOCK_WRITES');
   assert.ok(block.includes('Promise.reject'), 'bloco não usa Promise.reject');
   assert.ok(block.includes('new Proxy'), 'bloco não usa Proxy');
@@ -282,15 +310,25 @@ test('defesa em profundidade: IS_LOCAL e IS_PROD_URL nunca são ambos true', asy
   }
 });
 
-test('index.html: produção ref bhgifjrfagkzubpyqpew aparece APENAS em config production', async () => {
+test('produção ref bhgifjrfagkzubpyqpew aparece em js/config.js (production)', async () => {
+  // A partir da CONFIG-MODULE-A, o ref vive em js/config.js, não mais
+  // no script inline de index.html. Aqui validamos que o ref está em
+  // config.js E sumiu do body do index.html.
   const { body } = await fetchIndexHtml();
-  // O ref deve aparecer no URL de produção no APP_ENVIRONMENTS
-  assert.match(body, /supabaseUrl:\s*'https:\/\/bhgifjrfagkzubpyqpew\.supabase\.co'/);
+  const cfgSrc = fs.readFileSync(path.join(ROOT, 'js', 'config.js'), 'utf8');
+  assert.match(cfgSrc, /supabaseUrl:\s*'https:\/\/bhgifjrfagkzubpyqpew\.supabase\.co'/);
+  // O ref NÃO deve mais aparecer no body do index.html (que agora só
+  // carrega config via <script src> e referencia SUPABASE_URL como global).
+  assert.equal(body.includes('bhgifjrfagkzubpyqpew'), false,
+    'ref de produção ainda aparece no body de index.html — config não foi totalmente extraída');
 });
 
-test('index.html: staging ref ucrjtfswnfdlxwtmxnoo aparece em config staging', async () => {
+test('staging ref ucrjtfswnfdlxwtmxnoo aparece em js/config.js (staging)', async () => {
   const { body } = await fetchIndexHtml();
-  assert.match(body, /supabaseUrl:\s*'https:\/\/ucrjtfswnfdlxwtmxnoo\.supabase\.co'/);
+  const cfgSrc = fs.readFileSync(path.join(ROOT, 'js', 'config.js'), 'utf8');
+  assert.match(cfgSrc, /supabaseUrl:\s*'https:\/\/ucrjtfswnfdlxwtmxnoo\.supabase\.co'/);
+  assert.equal(body.includes('ucrjtfswnfdlxwtmxnoo'), false,
+    'ref de staging ainda aparece no body de index.html — config não foi totalmente extraída');
 });
 
 test('index.html: nenhum service_role presente', async () => {
