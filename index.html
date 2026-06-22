@@ -15,6 +15,7 @@
   <script src="js/supabase-client.js"></script>
   <script src="js/environment-banner.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/router.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
@@ -29,60 +30,20 @@
 
 <script>
 // =====================================================================
-// === ROUTER ==========================================================
+// === BOOT NOTES ======================================================
 // CURRENT_USER, login, logout e loadCurrentUser vêm de js/auth.js
 // (carregado no <head> antes deste <script> inline). Não redeclará-los
 // aqui — o getter/setter em js/auth.js preserva a semântica de "let"
 // global e os call-sites do inline continuam funcionando.
+//
+// O roteamento (routes, navigate, matchRoute, handleRoute,
+// routeAfterLogin) foi extraído para js/router.js, carregado no <head>
+// antes deste inline. As rotas são registradas mais abaixo, após as
+// telas e antes de main(), via window.RAVATEX_ROUTER.setRoutes(...).
+// Os globais legados window.navigate, window.matchRoute,
+// window.handleRoute, window.routeAfterLogin e window.routes seguem
+// disponíveis (definidos por js/router.js).
 // =====================================================================
-const routes = {
-  '#/login':    { render: screenLogin, public: true },
-  '#/painel':   { render: screenPainel, roles: ['admin'] },
-  '#/ops':      { render: screenListaOPs, roles: ['admin'] },
-  '#/ops/nova': { render: () => screenNovaOP(null), roles: ['admin'] },
-  '#/cadastros/cores': { render: screenCadastrosCores, roles: ['admin'] },
-  '#/cadastros/modelos': { render: screenCadastrosModelos, roles: ['admin'] },
-  '#/cadastros/parametros': { render: screenCadastrosParametros, roles: ['admin'] },
-  '#/cadastros/fornecedores': { render: screenCadastrosFornecedores, roles: ['admin'] },
-  '#/cadastros/clientes':    { render: screenCadastrosClientes,    roles: ['admin'] },
-  '#/cadastros/precos': { render: screenCadastrosPrecos, roles: ['admin'] },
-  '#/cadastros/usuarios': { render: screenCadastrosUsuarios, roles: ['admin'] },
-  '#/fornecedor/home': { render: screenFornecedorHome, roles: ['fornecedor'] },
-  '#/fornecedor/ordens': { render: screenFornecedorOrdens, roles: ['fornecedor'] },
-  '#/fornecedor/entregas': { render: screenFornecedorEntregas, roles: ['fornecedor'] },
-  '#/fornecedor/latex': { render: screenFornecedorLatex, roles: ['fornecedor'] },
-};
-
-function navigate(hash) {
-  if (location.hash !== hash) location.hash = hash;
-  else handleRoute();
-}
-
-// Resolve rota: primeiro match exato, depois dinâmica #/ops/:id (id numérico).
-function matchRoute(hash) {
-  if (routes[hash]) return routes[hash];
-  const m = hash.match(/^#\/ops\/(\d+)$/);
-  if (m) return { render: () => screenNovaOP(Number(m[1])), roles: ['admin'] };
-  return null;
-}
-
-async function handleRoute() {
-  const hash = location.hash || '#/login';
-  const route = matchRoute(hash);
-
-  if (!route) { setApp(screenNotFound()); return; }
-  if (route.public) { setApp(await route.render()); return; }
-
-  if (!CURRENT_USER) await loadCurrentUser();
-  if (!CURRENT_USER) { navigate('#/login'); return; }
-
-  if (route.roles && !route.roles.includes(CURRENT_USER.tipo)) {
-    setApp(screenForbidden());
-    return;
-  }
-
-  setApp(await route.render());
-}
 
 // =====================================================================
 // === SCREENS =========================================================
@@ -124,17 +85,6 @@ function screenLogin() {
   card.appendChild(form);
   root.appendChild(card);
   return root;
-}
-
-async function routeAfterLogin() {
-  await loadCurrentUser();
-  if (!CURRENT_USER) { navigate('#/login'); return; }
-  if (CURRENT_USER.tipo === 'admin') { navigate('#/painel'); return; }
-  const t = CURRENT_USER.fornecedor_tipo;
-  if (t === 'fio_algodao' || t === 'fio_poliester') navigate('#/fornecedor/ordens');
-  else if (t === 'tecelagem') navigate('#/fornecedor/entregas');
-  else if (t === 'latex') navigate('#/fornecedor/latex');
-  else navigate('#/fornecedor/ordens');                       // fallback genérico
 }
 
 function shellLayout(menuItems, contentNode) {
@@ -2474,6 +2424,29 @@ function screenNotFound() {
     el('button', { class: 'bg-blue-700 text-white px-4 py-2 rounded-lg', onclick: () => navigate('#/login') }, 'Ir pro login')
   );
 }
+
+// =====================================================================
+// === ROUTES ==========================================================
+// Registro das rotas no router (js/router.js). Roda DEPOIS das telas
+// (que são as funções render) e ANTES de main(). Define window.routes.
+// =====================================================================
+window.RAVATEX_ROUTER.setRoutes({
+  '#/login':    { render: screenLogin, public: true },
+  '#/painel':   { render: screenPainel, roles: ['admin'] },
+  '#/ops':      { render: screenListaOPs, roles: ['admin'] },
+  '#/ops/nova': { render: () => screenNovaOP(null), roles: ['admin'] },
+  '#/cadastros/cores': { render: screenCadastrosCores, roles: ['admin'] },
+  '#/cadastros/modelos': { render: screenCadastrosModelos, roles: ['admin'] },
+  '#/cadastros/parametros': { render: screenCadastrosParametros, roles: ['admin'] },
+  '#/cadastros/fornecedores': { render: screenCadastrosFornecedores, roles: ['admin'] },
+  '#/cadastros/clientes':    { render: screenCadastrosClientes,    roles: ['admin'] },
+  '#/cadastros/precos': { render: screenCadastrosPrecos, roles: ['admin'] },
+  '#/cadastros/usuarios': { render: screenCadastrosUsuarios, roles: ['admin'] },
+  '#/fornecedor/home': { render: screenFornecedorHome, roles: ['fornecedor'] },
+  '#/fornecedor/ordens': { render: screenFornecedorOrdens, roles: ['fornecedor'] },
+  '#/fornecedor/entregas': { render: screenFornecedorEntregas, roles: ['fornecedor'] },
+  '#/fornecedor/latex': { render: screenFornecedorLatex, roles: ['fornecedor'] },
+});
 
 // =====================================================================
 // === MAIN ============================================================

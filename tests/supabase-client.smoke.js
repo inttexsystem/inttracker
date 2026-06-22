@@ -215,15 +215,15 @@ test('script inline NÃO contém mais createClient, _supaRaw, _GUARD_BLOCK_WRITE
 
 test('script inline NÃO contém mais o env-banner laranja (extraído para js/environment-banner.js)', () => {
   const inline = extractInlineScript(indexSrc);
-  // A partir da AUTH-MODULE-A, o inline começa em === ROUTER ===.
-  // config/client/write-guard/banner/auth foram todos extraídos.
+  // Após ROUTER-MODULE-A, o inline começa em === BOOT NOTES ===.
+  // config/client/write-guard/banner/auth/router foram todos extraídos.
   assert.equal(/=== ENV-BANNER/.test(inline), false,
     'script inline ainda tem marcador === ENV-BANNER — env-banner não foi extraído');
   assert.equal(/_envBanner/.test(inline), false,
     'script inline ainda referencia _envBanner — env-banner não foi extraído');
   assert.equal(/AMBIENTE STAGING — DADOS DE TESTE/.test(inline), false,
     'script inline ainda tem texto do env-banner — env-banner não foi extraído');
-  assert.match(inline, /=== ROUTER/);
+  assert.match(inline, /=== BOOT NOTES/);
 });
 
 test('js/supabase-client.js: produção ref aparece em production config (via config.js)', () => {

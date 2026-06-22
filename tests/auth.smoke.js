@@ -257,12 +257,25 @@ test('script inline NÃO contém mais as declarações de CURRENT_USER, login, l
     'script inline ainda tem a query `from("usuarios")` do loadCurrentUser');
 });
 
-test('script inline ainda contém routeAfterLogin, handleRoute, screenLogin, marcador === ROUTER ===', () => {
+test('script inline ainda contém screenLogin (tela permanece no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+routeAfterLogin/);
-  assert.match(inline, /function\s+handleRoute/);
   assert.match(inline, /function\s+screenLogin/);
-  assert.match(inline, /=== ROUTER ===/);
+});
+
+// ROUTER-MODULE-A: routeAfterLogin, handleRoute e o marcador === ROUTER ===
+// foram extraídos do inline para js/router.js. O inline NÃO pode mais
+// declará-los nem conter o marcador antigo (senão duplica os globais que
+// js/router.js define). O inline apenas registra as rotas via setRoutes.
+test('script inline NÃO declara mais routeAfterLogin/handleRoute nem o marcador === ROUTER === (extraídos p/ js/router.js)', () => {
+  const inline = extractInlineScript(indexSrc);
+  assert.equal(/function\s+routeAfterLogin/.test(inline), false,
+    'script inline ainda declara routeAfterLogin — deveria vir de js/router.js');
+  assert.equal(/function\s+handleRoute/.test(inline), false,
+    'script inline ainda declara handleRoute — deveria vir de js/router.js');
+  assert.equal(/=== ROUTER ===/.test(inline), false,
+    'script inline ainda contém o marcador === ROUTER ===');
+  // E passou a registrar as rotas no módulo extraído.
+  assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/);
 });
 
 test('js/auth.js: nenhum service_role presente', () => {

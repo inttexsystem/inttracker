@@ -157,14 +157,15 @@ test('http.server responde em :8765 e index.html contém o esperado', async () =
   const { body } = await fetchIndexHtml();
   assert.equal(typeof body, 'string');
   assert.ok(body.length > 1000, 'index.html muito curto');
-  // A partir da AUTH-MODULE-A, todo o bootstrap (config, client,
-  // write-guard, env-banner, auth) vive em js/*.js. O script inline
-  // começa agora no bloco ROUTER.
+  // Após ROUTER-MODULE-A, todo o bootstrap (config, client, write-guard,
+  // env-banner, auth, router) vive em js/*.js. O script inline começa
+  // agora no bloco === BOOT NOTES ===.
   assert.match(body, /js\/config\.js/);
   assert.match(body, /js\/supabase-client\.js/);
   assert.match(body, /js\/environment-banner\.js/);
   assert.match(body, /js\/auth\.js/);
-  assert.match(body, /=== ROUTER/);
+  assert.match(body, /js\/router\.js/);
+  assert.match(body, /=== BOOT NOTES/);
 });
 
 test('script inline NÃO contém mais o client Supabase nem o write-guard nem o env-banner nem o auth', async () => {
@@ -173,7 +174,7 @@ test('script inline NÃO contém mais o client Supabase nem o write-guard nem o 
   const inline = inlineMatch[1];
   // O client/write-guard foram extraídos para js/supabase-client.js.
   // O env-banner para js/environment-banner.js. O auth para js/auth.js.
-  // O script inline agora começa em === ROUTER ===.
+  // O router para js/router.js. O inline agora começa em === BOOT NOTES ===.
   assert.equal(/supabase\.createClient\s*\(/.test(inline), false,
     'script inline ainda chama supabase.createClient — client não foi extraído');
   assert.equal(/\b_supaRaw\b/.test(inline), false,
@@ -208,8 +209,8 @@ test('script inline NÃO contém mais o client Supabase nem o write-guard nem o 
     'script inline ainda define `async function logout`');
   assert.equal(/async\s+function\s+loadCurrentUser\s*\(/.test(inline), false,
     'script inline ainda define `async function loadCurrentUser`');
-  // O inline deve começar com ROUTER.
-  assert.match(inline, /=== ROUTER/);
+  // O inline deve começar com === BOOT NOTES === (router extraído).
+  assert.match(inline, /=== BOOT NOTES/);
 });
 
 test('hostname grupoterrabranca.github.io → production (ref bhgifjrfagkzubpyqpew)', async () => {

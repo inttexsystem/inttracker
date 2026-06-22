@@ -242,9 +242,9 @@ test('script inline NÃO contém mais o env-banner (extraído para js/environmen
     'script inline ainda referencia _envBanner');
   assert.equal(/AMBIENTE STAGING — DADOS DE TESTE/.test(inline), false,
     'script inline ainda tem texto do env-banner');
-  // O inline agora começa em === ROUTER === (auth e env-banner foram
-  // extraídos em fases anteriores).
-  assert.match(inline, /=== ROUTER/);
+  // Após ROUTER-MODULE-A, o inline começa em === BOOT NOTES === (router,
+  // auth e env-banner foram extraídos em fases anteriores).
+  assert.match(inline, /=== BOOT NOTES/);
   // Garantia adicional via stripComments: nenhum identificador do
   // env-banner sobrevive à remoção de comentários.
   const noComments = stripComments(inline);
