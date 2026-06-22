@@ -12,6 +12,7 @@
   <script src="js/ui.js"></script>
   <script src="js/badges.js"></script>
   <script src="js/config.js"></script>
+  <script src="js/supabase-client.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
@@ -26,56 +27,14 @@
 
 <script>
 // =====================================================================
-// === SUPA ============================================================
-// APP_ENVIRONMENTS, detectAppEnvironment, APP_ENV, APP_CONFIG,
-// SUPABASE_URL e SUPABASE_ANON_KEY vêm de js/config.js (carregado
-// no <head> antes deste <script> inline). Não redeclará-los aqui.
+// === ENV-BANNER =====================================================
+// Banner visual para ambientes que NÃO são produção.
+// Laranja/amarelo, fixo no RODAPÉ da janela, não impede login.
+// (Movido para a fase ENV-BANNER-MODULE-A em outra iteração.
+//  Por ora, ainda vive aqui no script inline.)
+// O banner vermelho do write-guard vive em js/supabase-client.js;
+// o client Supabase, o write-guard e o Proxy `supa` também.
 // =====================================================================
-const _supaRaw = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true }
-});
-
-// =====================================================================
-// === WRITE-GUARD ====================================================
-// Bloqueia insert/update/delete/upsert/rpc quando o app roda em
-// localhost/127.0.0.1 e a URL do Supabase selecionada é a de produção.
-// Preserva select, auth, navegação e leitura.
-// Em produção real (grupoterrabranca.github.io) a guarda NÃO ativa.
-// Em staging a guarda também NÃO ativa (staging é para testar writes).
-// =====================================================================
-const _LOCAL_HOSTS = new Set(['localhost', '127.0.0.1']);
-const _IS_LOCAL = (typeof location !== 'undefined') && _LOCAL_HOSTS.has(location.hostname);
-const _IS_PROD_URL = SUPABASE_URL === APP_ENVIRONMENTS.production.supabaseUrl;
-const _GUARD_BLOCK_WRITES = _IS_LOCAL && _IS_PROD_URL;
-
-const _WG_ERROR = () => new Error(
-  'WRITE-GUARD: gravação bloqueada. App local apontando para Supabase produção. ' +
-  'Use a branch work/app-next com URL de staging para testar writes.'
-);
-
-if (_GUARD_BLOCK_WRITES) {
-  console.warn(
-    '%c[WRITE-GUARD] LOCAL + PRODUÇÃO — writes bloqueados (insert/update/delete/upsert/rpc).',
-    'background:#dc2626;color:#fff;padding:2px 6px;border-radius:3px;font-weight:bold;'
-  );
-  // Banner DOM (adicionado se o body existir; sem throw se não)
-  try {
-    if (typeof document !== 'undefined' && document.body) {
-      const _banner = document.createElement('div');
-      _banner.id = 'write-guard-banner';
-      _banner.setAttribute('role', 'alert');
-      _banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;' +
-        'background:#dc2626;color:#fff;text-align:center;padding:6px 12px;' +
-        'font-family:Inter,system-ui,sans-serif;font-size:13px;font-weight:600;' +
-        'box-shadow:0 1px 4px rgba(0,0,0,.2);';
-      _banner.textContent =
-        'LOCAL APONTANDO PARA PRODUÇÃO — WRITES BLOQUEADOS (insert/update/delete/upsert/rpc). ' +
-        'Reads e login funcionam normalmente.';
-      document.body.prepend(_banner);
-    }
-  } catch (_) { /* DOM pode não estar pronto; banner é best-effort */ }
-}
-
 // Banner visual para ambientes que NÃO são produção.
 // Laranja/amarelo, fixo no RODAPÉ da janela, não impede login.
 if (APP_ENV !== 'production') {
@@ -94,9 +53,10 @@ if (APP_ENV !== 'production') {
         'box-shadow:0 -1px 4px rgba(0,0,0,.2);';
       _envBanner.textContent =
         'AMBIENTE STAGING — DADOS DE TESTE. Não usar para operações reais.';
-      // Banner é independente do write-guard banner (que fica no topo).
-      // Insere no body (append) — fica no final do DOM, mas com position:fixed
-      // o ponto de inserção não afeta o posicionamento visual.
+      // Banner é independente do write-guard banner (que fica no topo e
+      // é criado por js/supabase-client.js). Insere no body (append) —
+      // fica no final do DOM, mas com position:fixed o ponto de inserção
+      // não afeta o posicionamento visual.
       const _wg = document.getElementById('write-guard-banner');
       if (_wg && _wg.parentNode) {
         _wg.parentNode.insertBefore(_envBanner, _wg.nextSibling);
@@ -106,46 +66,6 @@ if (APP_ENV !== 'production') {
     }
   } catch (_) { /* DOM pode não estar pronto; banner é best-effort */ }
 }
-
-function _wrapQueryBuilder(qb) {
-  if (!_GUARD_BLOCK_WRITES) return qb;
-  // Quando o guard está ativo, substitui os métodos de escrita por stubs
-  // que rejeitam imediatamente. Métodos terminais (.select, .single, .eq,
-  // .order etc) e encadeamento (then/catch) permanecem intactos.
-  const _block = (op) => function () {
-    return Promise.reject(_WG_ERROR()).then(
-      (v) => v,
-      (e) => { throw e; }
-    );
-  };
-  qb.insert = _block('insert');
-  qb.update = _block('update');
-  qb.delete = _block('delete');
-  qb.upsert = _block('upsert');
-  return qb;
-}
-
-const supa = (() => {
-  if (!_GUARD_BLOCK_WRITES) return _supaRaw;
-  // Wrap .from() e .rpc() apenas; .auth, .storage etc passam direto.
-  return new Proxy(_supaRaw, {
-    get(target, prop, receiver) {
-      if (prop === 'from') {
-        return (table) => _wrapQueryBuilder(target.from(table));
-      }
-      if (prop === 'rpc') {
-        return (fn, params) => {
-          void fn; void params;
-          return Promise.reject(_WG_ERROR()).then(
-            (v) => v,
-            (e) => { throw e; }
-          );
-        };
-      }
-      return Reflect.get(target, prop, receiver);
-    }
-  });
-})();
 
 // =====================================================================
 // === AUTH ============================================================

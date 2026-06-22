@@ -53,24 +53,13 @@ function fetchIndexHtml() {
   });
 }
 
-// Extrai o bloco SUPA + WRITE-GUARD do script inline.
-//
-// A partir da fase CONFIG-MODULE-A, a config de ambiente (APP_ENVIRONMENTS,
-// detectAppEnvironment, APP_ENV, APP_CONFIG, SUPABASE_URL, SUPABASE_ANON_KEY)
-// vive em js/config.js (carregado separadamente). O script inline agora
-// declara APENAS o que depende de Supabase: o client (_supaRaw) e a
-// guarda de writes (_GUARD_BLOCK_WRITES, _wrapQueryBuilder, etc).
-//
-// Por isso extraímos desde `=== SUPA` até o separador `=== AUTH`.
-function extractConfigAndGuardBlock(inline) {
-  const start = inline.indexOf('=== SUPA');
-  if (start < 0) throw new Error('marcador === SUPA não encontrado no script inline');
-  const blockStart = inline.lastIndexOf('// ====', start);
-  const idx = inline.indexOf('// === AUTH', start + 20);
-  if (idx < 0) throw new Error('fim do bloco WRITE-GUARD não encontrado');
-  const sepStart = inline.lastIndexOf('// ====', idx);
-  if (sepStart < 0) throw new Error('separador de seção não encontrado');
-  return inline.slice(blockStart, sepStart);
+// A partir da fase SUPABASE-CLIENT-MODULE-A, o client Supabase e o
+// write-guard inteiro foram extraídos do script inline para
+// js/supabase-client.js. Este teste agora carrega os módulos js/ do
+// projeto no mesmo vm.Context (na ordem do <head>) e valida o
+// comportamento da guarda. Nada mais é extraído do script inline.
+function extractConfigAndGuardBlock(_inline) {
+  return '';
 }
 
 // Cria um cliente Supabase FAKE (não toca rede) que devolve Promises
@@ -102,9 +91,10 @@ function makeFakeSupabaseClient() {
   };
 }
 
-// Roda o js/config.js + bloco SUPA+WRITE-GUARD num sandbox com hostname
-// controlado. Retorna { sandbox, fakeSupa, inline, env } onde env é uma
-// referência para APP_ENV (string) e APP_CONFIG (objeto) do sandbox.
+// Roda o js/config.js + js/supabase-client.js num sandbox com hostname
+// controlado, simulando a ordem dos <script src> do <head> de index.html.
+// Retorna { sandbox, fakeSupa, env } onde env referencia APP_ENV,
+// SUPABASE_URL, _IS_PROD_URL, _IS_LOCAL e _GUARD_BLOCK_WRITES.
 function runGuardInSandbox({ hostname, forceLocal = true }) {
   const fakeSupa = makeFakeSupabaseClient();
   const fakeSupabase = {
@@ -130,30 +120,23 @@ function runGuardInSandbox({ hostname, forceLocal = true }) {
   vm.createContext(sandbox);
 
   return new Promise((resolve, reject) => {
-    // Carrega js/config.js PRIMEIRO. Em produção, esse módulo é carregado
-    // via <script src="js/config.js"> antes do inline. Aqui simulamos a
-    // mesma ordem para que APP_ENV, SUPABASE_URL etc fiquem disponíveis
-    // quando o bloco extraído (SUPA + WRITE-GUARD) for executado.
+    // Carrega os 2 módulos na ordem do <head> de index.html. Em produção,
+    // <script src="js/config.js"></script> vem antes de
+    // <script src="js/supabase-client.js"></script>, que vem antes do
+    // inline. Aqui simulamos a mesma ordem.
     try {
-      const cfgSrc = fs.readFileSync(path.join(ROOT, 'js', 'config.js'), 'utf8');
+      const cfgSrc = fs.readFileSync(path.join(ROOT, 'js', 'config.js'),         'utf8');
+      const supaSrc = fs.readFileSync(path.join(ROOT, 'js', 'supabase-client.js'), 'utf8');
       vm.runInContext(cfgSrc, sandbox, { filename: 'js/config.js' });
+      vm.runInContext(supaSrc, sandbox, { filename: 'js/supabase-client.js' });
     } catch (e) {
-      return reject(new Error('Falha ao carregar js/config.js: ' + e.message));
+      return reject(new Error('Falha ao carregar js/config.js ou js/supabase-client.js: ' + e.message));
     }
 
     fetchIndexHtml().then(({ body }) => {
       const inlineMatch = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g.exec(body);
       if (!inlineMatch) return reject(new Error('nenhum <script> inline encontrado'));
       const inline = inlineMatch[1];
-      const block = extractConfigAndGuardBlock(inline);
-      // O bloco extraído inclui SUPA + WRITE-GUARD. _supaRaw é declarado
-      // pelo próprio bloco (não injetar). APP_ENV/SUPABASE_URL/APP_ENVIRONMENTS
-      // vêm do js/config.js carregado antes.
-      try {
-        vm.runInContext(block, sandbox, { filename: 'supa-and-guard.js' });
-      } catch (e) {
-        return reject(new Error('Bloco lançou erro ao inicializar: ' + e.message));
-      }
       const env = {
         APP_ENV: vm.runInContext('APP_ENV', sandbox),
         SUPABASE_URL: vm.runInContext('SUPABASE_URL', sandbox),
@@ -174,34 +157,42 @@ test('http.server responde em :8765 e index.html contém o esperado', async () =
   const { body } = await fetchIndexHtml();
   assert.equal(typeof body, 'string');
   assert.ok(body.length > 1000, 'index.html muito curto');
-  // A partir da CONFIG-MODULE-A, a config foi extraída para js/config.js.
-  // O script inline começa agora no bloco SUPA e contém WRITE-GUARD.
+  // A partir da SUPABASE-CLIENT-MODULE-A, a config vive em js/config.js
+  // e o client+write-guard vivem em js/supabase-client.js. O script
+  // inline começa agora no bloco ENV-BANNER.
   assert.match(body, /js\/config\.js/);
-  assert.match(body, /=== SUPA/);
-  assert.match(body, /=== WRITE-GUARD/);
+  assert.match(body, /js\/supabase-client\.js/);
+  assert.match(body, /=== ENV-BANNER/);
   assert.match(body, /=== AUTH/);
-  assert.match(body, /_GUARD_BLOCK_WRITES/);
 });
 
-test('extrai o bloco SUPA + WRITE-GUARD do script inline', async () => {
+test('script inline NÃO contém mais o client Supabase nem o write-guard', async () => {
   const { body } = await fetchIndexHtml();
   const inlineMatch = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g.exec(body);
   const inline = inlineMatch[1];
-  const block = extractConfigAndGuardBlock(inline);
-  // O bloco extraído é SUPA + WRITE-GUARD. Não deve mais conter as
-  // definições de config (que vivem em js/config.js agora).
-  assert.equal(block.includes('APP_ENVIRONMENTS ='), false,
-    'bloco ainda contém declaração de APP_ENVIRONMENTS — config não foi extraída');
-  assert.equal(block.includes('function detectAppEnvironment'), false,
-    'bloco ainda define detectAppEnvironment — config não foi extraída');
-  assert.equal(block.includes('const SUPABASE_URL ='), false,
-    'bloco ainda contém declaração de SUPABASE_URL — config não foi extraída');
-  // Deve ainda conter a guarda e a infra do supa.
-  assert.ok(block.includes('_supaRaw'), 'bloco não contém _supaRaw');
-  assert.ok(block.includes('_GUARD_BLOCK_WRITES'), 'bloco não contém _GUARD_BLOCK_WRITES');
-  assert.ok(block.includes('Promise.reject'), 'bloco não usa Promise.reject');
-  assert.ok(block.includes('new Proxy'), 'bloco não usa Proxy');
-  assert.equal(block.includes('=== AUTH'), false, 'bloco vazou para AUTH');
+  // O client e o write-guard foram extraídos para js/supabase-client.js.
+  // O script inline agora começa no bloco ENV-BANNER (banner laranja).
+  assert.equal(/supabase\.createClient\s*\(/.test(inline), false,
+    'script inline ainda chama supabase.createClient — client não foi extraído');
+  assert.equal(/\b_supaRaw\b/.test(inline), false,
+    'script inline ainda referencia _supaRaw — client não foi extraído');
+  assert.equal(/\b_LOCAL_HOSTS\b/.test(inline), false,
+    'script inline ainda referencia _LOCAL_HOSTS — write-guard não foi extraído');
+  assert.equal(/\b_IS_LOCAL\b/.test(inline), false,
+    'script inline ainda referencia _IS_LOCAL — write-guard não foi extraído');
+  assert.equal(/\b_IS_PROD_URL\b/.test(inline), false,
+    'script inline ainda referencia _IS_PROD_URL — write-guard não foi extraído');
+  assert.equal(/\b_GUARD_BLOCK_WRITES\b/.test(inline), false,
+    'script inline ainda referencia _GUARD_BLOCK_WRITES — write-guard não foi extraído');
+  assert.equal(/\b_WG_ERROR\b/.test(inline), false,
+    'script inline ainda referencia _WG_ERROR — write-guard não foi extraído');
+  assert.equal(/function\s+_wrapQueryBuilder/.test(inline), false,
+    'script inline ainda define _wrapQueryBuilder — write-guard não foi extraído');
+  assert.equal(/\bconst\s+supa\s*=/.test(inline), false,
+    'script inline ainda define const supa — Proxy não foi extraído');
+  // O env-banner laranja permanece no inline (próxima fase: ENV-BANNER).
+  assert.match(inline, /=== ENV-BANNER/);
+  assert.match(inline, /_envBanner/);
 });
 
 test('hostname grupoterrabranca.github.io → production (ref bhgifjrfagkzubpyqpew)', async () => {
@@ -378,12 +369,18 @@ test('STAGING-BANNER-BOTTOM: env-banner mantém z-index alto', async () => {
   assert.match(css, /z-index\s*:\s*99998/, 'env-banner perdeu o z-index 99998');
 });
 
-test('STAGING-BANNER-BOTTOM: write-guard banner continua no topo', async () => {
-  const { body } = await fetchIndexHtml();
+test('STAGING-BANNER-BOTTOM: write-guard banner continua no topo (agora em js/supabase-client.js)', async () => {
+  // A partir da SUPABASE-CLIENT-MODULE-A, o banner vermelho do
+  // write-guard vive em js/supabase-client.js, não mais no inline.
+  const supaClientSrc = fs.readFileSync(path.join(ROOT, 'js', 'supabase-client.js'), 'utf8');
   // write-guard banner (vermelho) deve continuar com top:0
-  const match = body.match(/_banner\.style\.cssText\s*=\s*'([^']+)'/);
-  assert.ok(match, 'cssText do write-guard banner não encontrado');
+  const match = supaClientSrc.match(/_banner\.style\.cssText\s*=\s*'([^']+)'/);
+  assert.ok(match, 'cssText do write-guard banner não encontrado em js/supabase-client.js');
   const css = match[1];
   assert.match(css, /\btop\s*:\s*0\b/, 'write-guard banner perdeu top:0');
   assert.match(css, /position\s*:\s*fixed/, 'write-guard banner perdeu position:fixed');
+  // O body do index.html NÃO deve mais conter a definição do banner vermelho.
+  const { body } = await fetchIndexHtml();
+  assert.equal(/_banner\.id\s*=\s*'write-guard-banner'/.test(body), false,
+    'banner vermelho ainda é criado no script inline — não foi extraído para js/supabase-client.js');
 });
