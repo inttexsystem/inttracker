@@ -304,3 +304,48 @@ test('index.html: nenhum password/senha em texto puro (password literal)', async
   // não haja strings tipo "password=..." ou campos de senha.
   assert.equal(/password\s*[:=]\s*['"][^'"]+['"]/i.test(body), false, 'password literal encontrado');
 });
+
+// ============================================================
+// Banner staging posicionado no RODAPÉ (fase STAGING-BANNER-BOTTOM-A)
+// ============================================================
+
+test('STAGING-BANNER-BOTTOM: env-banner existe e tem o texto esperado', async () => {
+  const { body } = await fetchIndexHtml();
+  // Extrai o bloco que cria o env-banner
+  const match = body.match(/const _envBanner[\s\S]*?_envBanner\.textContent\s*=\s*'([^']+)'/);
+  assert.ok(match, 'bloco de criação do env-banner não encontrado');
+  const text = match[1];
+  assert.equal(text, 'AMBIENTE STAGING — DADOS DE TESTE. Não usar para operações reais.',
+    `texto do banner divergente: ${text}`);
+});
+
+test('STAGING-BANNER-BOTTOM: env-banner usa bottom:0 (não top:0)', async () => {
+  const { body } = await fetchIndexHtml();
+  // Extrai o style.cssText do env-banner
+  const match = body.match(/_envBanner\.style\.cssText\s*=\s*'([^']+)'/);
+  assert.ok(match, 'cssText do env-banner não encontrado');
+  const css = match[1];
+  // Deve ter bottom:0
+  assert.match(css, /bottom:0/, 'env-banner não tem bottom:0');
+  // NÃO deve ter top:0 (exceto o comentário que mencionava "topo" no passado)
+  // O style em si não deve usar top:0
+  assert.equal(/\btop\s*:\s*0\b/.test(css), false, 'env-banner ainda tem top:0 no cssText');
+});
+
+test('STAGING-BANNER-BOTTOM: env-banner mantém z-index alto', async () => {
+  const { body } = await fetchIndexHtml();
+  const match = body.match(/_envBanner\.style\.cssText\s*=\s*'([^']+)'/);
+  assert.ok(match, 'cssText do env-banner não encontrado');
+  const css = match[1];
+  assert.match(css, /z-index\s*:\s*99998/, 'env-banner perdeu o z-index 99998');
+});
+
+test('STAGING-BANNER-BOTTOM: write-guard banner continua no topo', async () => {
+  const { body } = await fetchIndexHtml();
+  // write-guard banner (vermelho) deve continuar com top:0
+  const match = body.match(/_banner\.style\.cssText\s*=\s*'([^']+)'/);
+  assert.ok(match, 'cssText do write-guard banner não encontrado');
+  const css = match[1];
+  assert.match(css, /\btop\s*:\s*0\b/, 'write-guard banner perdeu top:0');
+  assert.match(css, /position\s*:\s*fixed/, 'write-guard banner perdeu position:fixed');
+});

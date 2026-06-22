@@ -112,7 +112,7 @@ if (_GUARD_BLOCK_WRITES) {
 }
 
 // Banner visual para ambientes que NÃO são produção.
-// Laranja/amarelo, fixo no topo, não impede login.
+// Laranja/amarelo, fixo no RODAPÉ da janela, não impede login.
 if (APP_ENV !== 'production') {
   console.info(
     '%c[APP-ENV] ' + APP_CONFIG.label + ' — host: ' + (typeof location !== 'undefined' ? location.hostname : '(no location)'),
@@ -123,18 +123,20 @@ if (APP_ENV !== 'production') {
       const _envBanner = document.createElement('div');
       _envBanner.id = 'env-banner';
       _envBanner.setAttribute('role', 'status');
-      _envBanner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99998;' +
+      _envBanner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99998;' +
         'background:#f59e0b;color:#000;text-align:center;padding:6px 12px;' +
         'font-family:Inter,system-ui,sans-serif;font-size:13px;font-weight:600;' +
-        'box-shadow:0 1px 4px rgba(0,0,0,.2);';
+        'box-shadow:0 -1px 4px rgba(0,0,0,.2);';
       _envBanner.textContent =
         'AMBIENTE STAGING — DADOS DE TESTE. Não usar para operações reais.';
-      // Insere DEPOIS do write-guard banner se existir, ou no topo se não existir
+      // Banner é independente do write-guard banner (que fica no topo).
+      // Insere no body (append) — fica no final do DOM, mas com position:fixed
+      // o ponto de inserção não afeta o posicionamento visual.
       const _wg = document.getElementById('write-guard-banner');
       if (_wg && _wg.parentNode) {
         _wg.parentNode.insertBefore(_envBanner, _wg.nextSibling);
       } else {
-        document.body.prepend(_envBanner);
+        document.body.appendChild(_envBanner);
       }
     }
   } catch (_) { /* DOM pode não estar pronto; banner é best-effort */ }
