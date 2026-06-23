@@ -46,6 +46,7 @@ const SYS    = path.join(ROOT, 'js', 'screens', 'system-screens.js');
 const COMMON = path.join(ROOT, 'js', 'screens', 'common.js');
 const CAD    = path.join(ROOT, 'js', 'screens', 'cadastros.js');
 const OPS    = path.join(ROOT, 'js', 'screens', 'ops-list.js');
+const EF     = path.join(ROOT, 'js', 'screens', 'entrega-form.js');
 const UI     = path.join(ROOT, 'js', 'ui.js');
 const BADGES = path.join(ROOT, 'js', 'badges.js');
 const ROUTER = path.join(ROOT, 'js', 'router.js');
@@ -55,6 +56,7 @@ const sysSrc    = fs.readFileSync(SYS,    'utf8');
 const commonSrc = fs.readFileSync(COMMON, 'utf8');
 const cadSrc    = fs.readFileSync(CAD,    'utf8');
 const opsSrc    = fs.readFileSync(OPS,    'utf8');
+const efSrc     = fs.readFileSync(EF,     'utf8');
 const uiSrc     = fs.readFileSync(UI,     'utf8');
 const badgesSrc = fs.readFileSync(BADGES, 'utf8');
 const routerSrc = fs.readFileSync(ROUTER, 'utf8');
@@ -366,6 +368,7 @@ test('boot: ui.js + badges.js + router.js + system-screens.js + inline coexistem
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
+  vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
 
   let threwSyntax = false;
   let otherErr = null;

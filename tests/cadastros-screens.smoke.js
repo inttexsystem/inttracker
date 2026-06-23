@@ -73,6 +73,7 @@ const ROOT   = path.resolve(__dirname, '..');
 const INDEX  = path.join(ROOT, 'index.html');
 const CAD    = path.join(ROOT, 'js', 'screens', 'cadastros.js');
 const OPS    = path.join(ROOT, 'js', 'screens', 'ops-list.js');
+const EF     = path.join(ROOT, 'js', 'screens', 'entrega-form.js');
 const UI     = path.join(ROOT, 'js', 'ui.js');
 const BADGES = path.join(ROOT, 'js', 'badges.js');
 const ROUTER = path.join(ROOT, 'js', 'router.js');
@@ -82,6 +83,7 @@ const COMMON = path.join(ROOT, 'js', 'screens', 'common.js');
 const indexSrc  = fs.readFileSync(INDEX,  'utf8');
 const cadSrc    = fs.readFileSync(CAD,    'utf8');
 const opsSrc    = fs.readFileSync(OPS,    'utf8');
+const efSrc     = fs.readFileSync(EF,     'utf8');
 const uiSrc     = fs.readFileSync(UI,     'utf8');
 const badgesSrc = fs.readFileSync(BADGES, 'utf8');
 const routerSrc = fs.readFileSync(ROUTER, 'utf8');
@@ -244,6 +246,7 @@ function makeCadastrosSandbox({ tableData = {} } = {}) {
   sandbox.logout = () => {};
   vm.runInContext(cadSrc, sandbox, { filename: 'js/screens/cadastros.js' });
   vm.runInContext(opsSrc, sandbox, { filename: 'js/screens/ops-list.js' });
+  vm.runInContext(efSrc,  sandbox, { filename: 'js/screens/entrega-form.js' });
   // supa injetado DEPOIS do load do cadastros.js (o módulo só usa em
   // tempo de chamada, não no load).
   sandbox.supa = fakeSupa;
@@ -316,13 +319,11 @@ test('6. script inline AINDA contém telas não-cadastro, helpers e setRoutes/ma
     assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `inline perdeu a função ${fn}`);
   }
-  // Helpers
-  for (const fn of ['rotuloFio', 'buildEntregaInlineForm']) {
+  // Helpers de write continuam inline
+  for (const fn of ['salvarEntregaCima', 'atualizarEntregaCima', 'salvarEntregaLatex', 'atualizarEntregaLatex', 'excluirEntrega']) {
     assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `inline perdeu helper ${fn}`);
   }
-  // Constante
-  assert.match(inline, /const\s+OCF_STATUS_LABEL\s*=/);
   // setRoutes + main
   assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/);
   assert.match(inline, /async\s+function\s+main\s*\(/);
