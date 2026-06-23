@@ -90,7 +90,7 @@ const ewSrc      = fs.readFileSync(EW,     'utf8');
 const fornSrc    = fs.readFileSync(FORN,   'utf8');
 
 function findScriptIdx(html, src) {
-  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}"\\s*></script>`);
+  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}(?:\\?[^"]*)?"\\s*></script>`);
   const m = re.exec(html);
   return m ? m.index : -1;
 }
@@ -142,11 +142,11 @@ test('3. boot.js é script clássico, sem import/export', () => {
 });
 
 test('4. index.html carrega boot.js EXATAMENTE UMA VEZ, sem type=module', () => {
-  const re = /<script\s+src="js\/boot\.js"\s*><\/script>/g;
+  const re = /<script\s+src="js\/boot\.js(?:\?[^"]*)?"\s*><\/script>/g;
   const matches = indexSrc.match(re) || [];
   assert.equal(matches.length, 1,
     `esperado 1 <script src="js/boot.js">, encontrado ${matches.length}`);
-  assert.equal(/<script[^>]*src="js\/boot\.js"[^>]*type=/.test(indexSrc), false,
+  assert.equal(/<script[^>]*src="js\/boot\.js[^"]*"[^>]*type=/.test(indexSrc), false,
     'boot.js está sendo carregado com type=module');
 });
 
@@ -167,8 +167,8 @@ test('5. boot.js é o ÚLTIMO script local (depois do jsPDF CDN e antes de </hea
   // Encontrar todos os <script src="..."> e checar o último
   const allScripts = [...indexSrc.matchAll(/<script\s+src="([^"]+)"\s*><\/script>/g)];
   const lastLocalScript = allScripts[allScripts.length - 1];
-  assert.equal(lastLocalScript[1], 'js/boot.js',
-    `último script local deveria ser js/boot.js, encontrado ${lastLocalScript[1]}`);
+  assert.equal(lastLocalScript[1], 'js/boot.js?v=20260623-asset1',
+    `último script local deveria ser js/boot.js?v=20260623-asset1, encontrado ${lastLocalScript[1]}`);
 });
 
 test('6. index.html NÃO contém mais bloco <script> inline final', () => {

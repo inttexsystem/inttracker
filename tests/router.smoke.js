@@ -103,7 +103,7 @@ function extractInlineScript(html) {
 }
 
 function findScriptIdx(html, src) {
-  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}"\\s*></script>`);
+  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}(?:\\?[^"]*)?"\\s*></script>`);
   const m = re.exec(html);
   return m ? m.index : -1;
 }
@@ -163,11 +163,11 @@ test('js/router.js: sintaxe JS válida (node --check)', () => {
 });
 
 test('index.html carrega js/router.js EXATAMENTE UMA VEZ, sem type=module', () => {
-  const re = /<script\s+src="js\/router\.js"\s*><\/script>/g;
+  const re = /<script\s+src="js\/router\.js(?:\?[^"]*)?"\s*><\/script>/g;
   const matches = indexSrc.match(re) || [];
   assert.equal(matches.length, 1,
     `esperado 1 <script src="js/router.js">, encontrado ${matches.length}`);
-  assert.equal(/<script[^>]*src="js\/router\.js"[^>]*type=/.test(indexSrc), false,
+  assert.equal(/<script[^>]*src="js\/router\.js[^"]*"[^>]*type=/.test(indexSrc), false,
     'js/router.js está sendo carregado com type=module — deve ser script clássico');
 });
 
