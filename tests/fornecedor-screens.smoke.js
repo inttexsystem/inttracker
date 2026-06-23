@@ -425,14 +425,17 @@ test('5. script inline NÃO contém mais as 4 funções de fornecedor', () => {
   }
 });
 
-test('6. script inline AINDA contém telas, helpers, setRoutes, main', () => {
+test('6. script inline AINDA contém telas, helpers, setRoutes, main (renderOPLatexAdmin extraído para op-latex-admin.js)', () => {
   const inline = extractInlineScript(indexSrc);
   for (const fn of [
-    'screenPainel', 'screenNovaOP', 'renderOPLatexAdmin',
+    'screenPainel', 'screenNovaOP',
   ]) {
     assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `inline perdeu a função ${fn}`);
   }
+  // renderOPLatexAdmin foi extraído para op-latex-admin.js
+  assert.equal(/function\s+renderOPLatexAdmin\s*\(/.test(inline), false,
+    'inline não deve mais declarar renderOPLatexAdmin (extraído para op-latex-admin.js)');
   // rotuloFioOrdem (clone local) foi unificado com rotuloFio
   // em OP-FORM-HELPERS-MODULE-A
   assert.equal(/function\s+rotuloFioOrdem\s*\(/.test(inline), false,

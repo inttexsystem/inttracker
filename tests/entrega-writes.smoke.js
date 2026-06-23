@@ -363,13 +363,19 @@ test('6. script inline AINDA contém as telas, helpers, setRoutes, main', () => 
   // atualizarEntregaLatex, salvarEntregaCima, atualizarEntregaCima.
   // As 4 telas de fornecedor foram extraídas para
   // js/screens/fornecedor.js (FORNECEDOR-SCREENS-MODULE-A).
+  // A tela de admin de OP de látex foi extraída para
+  // js/screens/op-latex-admin.js (OP-LATEX-ADMIN-MODULE-A).
   // Telas que permanecem inline
   for (const fn of [
-    'screenPainel', 'screenNovaOP', 'renderOPLatexAdmin',
+    'screenPainel', 'screenNovaOP',
   ]) {
     assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `inline perdeu a função ${fn}`);
   }
+  // renderOPLatexAdmin (clone local) foi extraído para
+  // op-latex-admin.js em OP-LATEX-ADMIN-MODULE-A
+  assert.equal(/function\s+renderOPLatexAdmin\s*\(/.test(inline), false,
+    'inline não deve mais declarar renderOPLatexAdmin (extraído para op-latex-admin.js)');
   // rotuloFioOrdem (clone local) foi unificado com rotuloFio
   // em OP-FORM-HELPERS-MODULE-A
   assert.equal(/function\s+rotuloFioOrdem\s*\(/.test(inline), false,

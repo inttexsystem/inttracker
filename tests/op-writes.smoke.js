@@ -249,12 +249,12 @@ test('11. inline AINDA contém aplicarRecalculo (NÃO extraído nesta fase)', ()
     'inline perdeu aplicarRecalculo — função deveria continuar inline');
 });
 
-test('12. inline AINDA contém screenNovaOP e renderOPLatexAdmin', () => {
+test('12. inline AINDA contém screenNovaOP (renderOPLatexAdmin foi extraído para op-latex-admin.js)', () => {
   const inline = extractInlineScript(indexSrc);
-  for (const fn of ['screenNovaOP', 'renderOPLatexAdmin']) {
-    assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
-      `inline perdeu a função ${fn}`);
-  }
+  assert.match(inline, /async\s+function\s+screenNovaOP\s*\(/,
+    'inline perdeu a função screenNovaOP');
+  assert.equal(/function\s+renderOPLatexAdmin\s*\(/.test(inline), false,
+    'inline não deve mais declarar renderOPLatexAdmin (extraído para op-latex-admin.js)');
 });
 
 test('13. op-writes.js NÃO contém service_role nem password literal longo', () => {
@@ -916,9 +916,12 @@ test('47. buildOrdemPendenteRow continua inline', () => {
   assert.match(inline, /function\s+buildOrdemPendenteRow\s*\(/);
 });
 
-test('48. renderOPLatexAdmin continua inline', () => {
+test('48. renderOPLatexAdmin NÃO está mais inline (extraído para op-latex-admin.js)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+renderOPLatexAdmin\s*\(/);
+  assert.equal(/function\s+renderOPLatexAdmin\s*\(/.test(inline), false,
+    'inline não deve mais declarar renderOPLatexAdmin — foi extraído para op-latex-admin.js');
+  assert.match(inline, /window\.renderOPLatexAdmin\(/,
+    'inline deve referenciar window.renderOPLatexAdmin no call-site de screenNovaOP');
 });
 
 test('49. boot chain com todos os helpers não lança SyntaxError', () => {

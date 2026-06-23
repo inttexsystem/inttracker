@@ -213,14 +213,16 @@ test('9. script inline NÃO contém mais function disabledAttr', () => {
     'inline ainda declara function disabledAttr');
 });
 
-test('10. script inline AINDA contém screenNovaOP, renderOPLatexAdmin, persistir, aplicarRecalculo, buildOrdemPendenteRow', () => {
+test('10. script inline AINDA contém screenNovaOP, persistir, aplicarRecalculo, buildOrdemPendenteRow (renderOPLatexAdmin extraído para op-latex-admin.js)', () => {
   const inline = extractInlineScript(indexSrc);
   for (const fn of [
-    'screenNovaOP', 'renderOPLatexAdmin',
+    'screenNovaOP',
   ]) {
     assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `inline perdeu a função ${fn}`);
   }
+  assert.equal(/function\s+renderOPLatexAdmin\s*\(/.test(inline), false,
+    'inline não deve mais declarar renderOPLatexAdmin (extraído para op-latex-admin.js)');
   for (const fn of [
     'persistir', 'aplicarRecalculo', 'buildOrdemPendenteRow',
   ]) {
