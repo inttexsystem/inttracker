@@ -17,6 +17,7 @@
   <script src="js/auth.js"></script>
   <script src="js/router.js"></script>
   <script src="js/screens/system-screens.js"></script>
+  <script src="js/screens/common.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
@@ -50,49 +51,16 @@
 // <head> depois de js/router.js e antes deste inline. Os globais
 // legados window.screenLogin, window.screenNotFound e
 // window.screenForbidden seguem disponíveis.
+//
+// shellLayout e ADMIN_MENU foram extraídos para js/screens/common.js,
+// carregado no <head> depois de js/screens/system-screens.js e antes
+// deste inline. Os globais legados window.shellLayout e
+// window.ADMIN_MENU seguem disponíveis para as telas abaixo.
 // =====================================================================
 
 // =====================================================================
 // === SCREENS =========================================================
 // =====================================================================
-
-function shellLayout(menuItems, contentNode) {
-  const root = el('div', { class: 'min-h-screen flex flex-col' });
-
-  const header = el('header', { class: 'bg-white border-b px-4 py-3 flex justify-between items-center' },
-    el('div', { class: 'font-bold text-lg' }, 'Controle de Tapetes'),
-    el('div', { class: 'flex items-center gap-3' },
-      el('span', { class: 'text-sm text-gray-600' }, CURRENT_USER ? (CURRENT_USER.nome + ' (' + CURRENT_USER.tipo + ')') : ''),
-      el('button', { class: 'text-sm text-red-600 hover:underline', onclick: logout }, 'Sair')
-    )
-  );
-
-  const aside = el('aside', { class: 'w-56 bg-white border-r p-4 hidden md:block' });
-  for (const item of menuItems) {
-    aside.appendChild(el('a', {
-      href: item.href,
-      class: 'block py-2 px-3 rounded hover:bg-gray-100 text-gray-700'
-    }, item.label));
-  }
-
-  const main = el('main', { class: 'flex-1 p-6 bg-gray-100' }, contentNode);
-
-  root.appendChild(header);
-  root.appendChild(el('div', { class: 'flex flex-1' }, aside, main));
-  return root;
-}
-
-const ADMIN_MENU = [
-  { href: '#/painel',                  label: 'Painel' },
-  { href: '#/ops',                     label: 'OPs' },
-  { href: '#/cadastros/cores',         label: 'Cores' },
-  { href: '#/cadastros/modelos',       label: 'Modelos' },
-  { href: '#/cadastros/parametros',    label: 'Parâmetros' },
-  { href: '#/cadastros/fornecedores',  label: 'Fornecedores' },
-  { href: '#/cadastros/clientes',      label: 'Clientes' },
-  { href: '#/cadastros/precos',        label: 'Preços' },
-  { href: '#/cadastros/usuarios',      label: 'Usuários' },
-];
 
 function screenPainel() {
   const content = el('div', {},
