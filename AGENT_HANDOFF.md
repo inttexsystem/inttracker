@@ -5,9 +5,8 @@
 > Convenção: **tudo em português brasileiro**.
 
 ## Estado atual aceito
-- **Branch:** `work/app-next`.
-- **HEAD:** `69c0036` — "Extract OP latex admin screen module".
-- **staging/main:** `69c0036` (sincronizado).
+- **Estado atual aceito:** `work/app-next @ cac20f9`.
+- **staging/main:** `cac20f9` (sincronizado).
 - **Working tree esperado:** **limpo**.
 - **origin/main oficial:** **intocado** durante todo o refactor.
 - **PR #2:** **intocado** durante todo o refactor.
@@ -16,14 +15,13 @@
 - **Supabase real:** **não acessado** em nenhuma fase de refactor
   (todos os testes rodam com `vm.runInContext` + `fakeSupa` mockado).
 
-### Últimos commits técnicos aceitos
-
-| Commit | Mensagem |
-|---|---|
-| `c480324` | Extract OP form pure helpers |
-| `ab79f1c` | Extract ordem fio recebimento write helper |
-| `1429950` | Extract fornecedor fio write helper |
-| `69c0036` | Extract OP latex admin screen module |
+## Último marco
+**Marco fechado:** writes críticos de `screenNovaOP` extraídos.
+`aplicarRecalculo` e `persistir` agora delegam para
+`aplicarRecalculoOP` (em `op-recalculo.js`) e `persistirOP` (em
+`op-persistir.js`). `screenNovaOP` continua **inline**, mas
+concentra majoritariamente UI/estado com writes delegados. Próxima
+frente deve ser diagnóstico de UI de `screenNovaOP`.
 
 ## Comandos de verificação (rodar antes de qualquer patch)
 
@@ -39,9 +37,9 @@ git ls-remote --heads staging main
 
 Abortar e revisar o escopo se:
 - branch != `work/app-next`;
-- HEAD != `69c0036`;
+- HEAD != `cac20f9`;
 - working tree não estiver limpo;
-- `staging/main` != `69c0036`.
+- `staging/main` != `cac20f9`.
 
 ## Regras (NÃO renegocia)
 
@@ -58,11 +56,67 @@ Abortar e revisar o escopo se:
 7. **Fase docs-only** desta entrega: só `PROJECT_STATE.md`,
    `AGENT_HANDOFF.md` e `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`
    podem ser alterados. Qualquer diff fora desses 3 arquivos reprova.
-8. **Não extrair** `screenNovaOP` ou `renderOPLatexAdmin` sem
-   diagnóstico específico prévio (acoplamento mútuo, 12+ tabelas
-   Supabase, 13+ writes).
+8. **Não extrair** `screenNovaOP` sem diagnóstico UI específico
+   prévio (UI acoplada a estado local, várias sub-funções).
+9. **Não mexer** em `aplicarRecalculoOP` ou `persistirOP` sem
+   nova fase explícita.
 
-## Resumo do refactor (15 módulos extraídos)
+## Módulos e responsabilidades
+
+### `op-recalculo.js` (`4ce5080`)
+- Helpers puros de recalculo: `maxMetrosItem`,
+  `normalizarChaveSaldo`.
+- Write helper: `aplicarRecalculoOP` — executa os 4 writes do
+  recalculo (`op_itens.update`, `saldo_fios_op.insert`,
+  `saldo_fios` select/update/insert, `ops.update
+  status='em_producao'`).
+
+### `op-persistir.js` (`cac20f9`)
+- Helpers puros de persistência: `itensValidosOP`,
+  `montarPayloadItensOP`, `montarPayloadFornecedoresOP`,
+  `montarPayloadOP`, `montarPayloadLote`.
+- Write helper: `persistirOP` — executa os 8 writes da persistência
+  (ops insert/update, lotes select/insert/update, ops.update
+  lote_id, op_itens delete/insert, op_fornecedores delete/insert,
+  ordens_compra_fio delete/insert).
+
+### `op-writes.js` (`1429950`)
+- `registrarRecebimentoOrdemFio` — atualiza `ordens_compra_fio`
+  com kg_recebido.
+- `atribuirFornecedorFioOp` — atribui fornecedor de fio a etapa de
+  uma OP.
+
+### `op-latex-admin.js` (`69c0036`)
+- `renderOPLatexAdmin` — tela de admin de OP de látex (chamada
+  quando `op.tipo === 'latex'`).
+
+### `painel.js` (`065a796`)
+- `screenPainel` — placeholder de 9 linhas (tela inicial do admin).
+
+## Próxima fase recomendada
+
+**`RAVATEX-TAPETES-SCREENNOVAOP-UI-DIAG-A`**
+
+Foco:
+- Avaliar `screenNovaOP` como UI/estado isolada.
+- Mapear `buildRight` / `renderRightInto` (montagem do painel
+  lateral).
+- Mapear `buildProposta` / `recompute` / `onAceitar` (UI de
+  proposta + interação com recalculo).
+- Mapear `buildOrdemPendenteRow` (UI do input; write já delegado
+  para `window.registrarRecebimentoOrdemFio`).
+- Mapear `gerarPdfCompraFios` (geração de PDF via jsPDF).
+- Avaliar possibilidade de extrair `screenNovaOP` inteira como
+  módulo único (`js/screens/screen-nova-op.js`) ou se deve ser
+  fatiada em sub-componentes.
+
+## Proibições para próxima fase
+- **Não mover** `screenNovaOP` inteira sem diagnóstico UI.
+- **Não mexer** em `persistirOP` ou `aplicarRecalculoOP` sem nova
+  fase explícita.
+- **Não fazer docs + código na mesma fase.**
+
+## Resumo do refactor (18 módulos extraídos)
 
 | # | Módulo | Commit | Fase |
 |---|---|---|---|
@@ -79,55 +133,43 @@ Abortar e revisar o escopo se:
 | 11 | `js/screens/entrega-writes.js` | `7ec1721` | ENTREGA-WRITES-MODULE-A |
 | 12 | `js/screens/fornecedor.js` | `4b9ca12` | FORNECEDOR-SCREENS-MODULE-A |
 | 13 | `js/screens/op-form-helpers.js` | `c480324` | OP-FORM-HELPERS-MODULE-A |
-| 14 | `js/screens/op-writes.js` | `ab79f1c` | OP-ORDER-WRITE-MODULE-A (+ `1429950` OP-FORNECEDOR-WRITE-MODULE-A) |
+| 14 | `js/screens/op-writes.js` | `ab79f1c` (+ `1429950`) | OP-ORDER-WRITE-MODULE-A (+ OP-FORNECEDOR-WRITE-MODULE-A) |
 | 15 | `js/screens/op-latex-admin.js` | `69c0036` | OP-LATEX-ADMIN-MODULE-A |
+| 16 | `js/screens/painel.js` | `065a796` | SCREENPAINEL-MODULE-A |
+| 17 | `js/screens/op-recalculo.js` | `c599c21` + `4ce5080` | OP-RECALCULO-HELPERS-MODULE-A + OP-RECALCULO-WRITES-MODULE-A |
+| 18 | `js/screens/op-persistir.js` | `8fd4dd2` + `cac20f9` | OP-PERSISTIR-HELPERS-MODULE-A + OP-PERSISTIR-WRITES-MODULE-A |
 
 ## Inline remanescente em `index.html`
 
-`screenPainel` (placeholder), `screenNovaOP` (854 linhas),
-`setRoutes` (registro de rotas), `main` (boot).
+`screenPainel` foi extraído. `renderOPLatexAdmin` foi extraído.
+`screenNovaOP` continua **inline** mas com writes delegados:
 
-`renderOPLatexAdmin` foi extraída para `js/screens/op-latex-admin.js`
-e é acessada via `window.renderOPLatexAdmin` no call-site de
-`screenNovaOP`.
-
-`rotuloFioOrdem` (clone local) foi unificado com `rotuloFio` em
-`OP-FORM-HELPERS-MODULE-A`. `rotuloModelo` foi movido para
-`js/screens/op-form-helpers.js` como `window.rotuloModelo`.
-
-`screenNovaOP` ainda concentra as funções pesadas de write:
-`persistir`, `atribuirFornecedorFio` (que chama
-`window.atribuirFornecedorFioOp`), `buildOrdemPendenteRow` (que
-chama `window.registrarRecebimentoOrdemFio`), `aplicarRecalculo`,
-mais helpers de render.
-
-## Próximo fluxo recomendado
-
-1. **Fechar esta fase docs-only** (commit + push para `staging`).
-2. **Depois**, escolher entre:
-   - **`RAVATEX-TAPETES-SCREENPAINEL-MODULE-A`** se o objetivo for
-     fechar o inline trivial — corte pequeno e de risco baixo.
-   - **`RAVATEX-TAPETES-OP-RECALCULO-DIAG-B`** se o objetivo for
-     reduzir risco de negócio dos writes não transacionais de
-     `aplicarRecalculo` (e opcionalmente `persistir`) antes de
-     qualquer extração.
-3. **Não iniciar** extração direta de `persistir` ou
-   `aplicarRecalculo` sem diagnóstico específico — os writes tocam
-   múltiplas tabelas e exigem plano de rollback/compensação antes
-   de qualquer movimentação.
-4. `screenNovaOP` é o último grande corte do refactor arquitetural
-   e deve ficar para depois de qualquer diagnóstico específico.
+- `screenNovaOP` (UI/estado principal, delega writes para
+  `aplicarRecalculoOP`, `persistirOP`, `registrarRecebimentoOrdemFio`,
+  `atribuirFornecedorFioOp` e `renderOPLatexAdmin`).
+- `buildRight` / `renderRightInto` (montagem do painel lateral).
+- `buildProposta` / `recompute` / `onAceitar` (UI de proposta).
+- `buildOrdemPendenteRow` (UI do input; write delegado para
+  `window.registrarRecebimentoOrdemFio`).
+- `gerarPdfCompraFios` (geração de PDF).
+- `salvarSimulacao` / `abrirOP` (callers de `persistirOP` com
+  saving, toast, navigate).
+- `setRoutes` (registro de rotas).
+- `main` (boot).
 
 ## Testes
 
-- **Focados passando (HEAD `69c0036`):**
-  - `op-writes.smoke.js` — 49/49
-  - `op-form-helpers.smoke.js` — 36/36
-  - `entrega-form.smoke.js` — 33/33
-  - `entrega-writes.smoke.js` — 58/58
-  - `fornecedor-screens.smoke.js` — 36/36
-  - `op-latex-admin.smoke.js` — 30/30
-  - **Total focados:** 242/242
+- **Focados passando (HEAD `cac20f9`):**
+  - `painel-screen.smoke.js` — 16/16
+  - `op-recalculo.smoke.js` — 59/59
+  - `op-persistir.smoke.js` — 65/65
+  - `op-writes.smoke.js` — pass
+  - `op-latex-admin.smoke.js` — pass
+  - `op-form-helpers.smoke.js` — pass
+  - `entrega-form.smoke.js` — pass
+  - `entrega-writes.smoke.js` — pass
+  - `fornecedor-screens.smoke.js` — pass
+  - **Total focados:** 255/255
 - **Pré-existentes dependentes de `http.server :8765`:** 6 falhas em
   `tests/index-inline.smoke.js` e 17 em `tests/write-guard.smoke.js`
   — não relacionadas ao refactor; exigem servidor local.
@@ -145,12 +187,15 @@ node "C:\Users\klebe\AppData\Local\Temp\opencode\extract-inline.js" \
      "C:\Users\klebe\AppData\Local\Temp\opencode\index-inline-check.js"
 
 # Validação focada em boot completo:
-node --test tests/op-writes.smoke.js \
+node --test tests/op-persistir.smoke.js \
+              tests/op-recalculo.smoke.js \
+              tests/op-writes.smoke.js \
+              tests/op-latex-admin.smoke.js \
+              tests/painel-screen.smoke.js \
               tests/op-form-helpers.smoke.js \
               tests/entrega-form.smoke.js \
               tests/entrega-writes.smoke.js \
-              tests/fornecedor-screens.smoke.js \
-              tests/op-latex-admin.smoke.js
+              tests/fornecedor-screens.smoke.js
 ```
 
 ## O que um agente NÃO deve fazer
@@ -161,9 +206,11 @@ node --test tests/op-writes.smoke.js \
 - Acessar Supabase real em testes/refactors.
 - Registrar `service_role`, senha, `JWT secret`, connection string
   com senha ou anon key completa em qualquer doc/relatório.
-- Extrair `screenNovaOP`, `persistir` ou `aplicarRecalculo` sem
-  diagnóstico específico prévio.
+- Extrair `screenNovaOP` sem diagnóstico UI específico prévio.
+- Mexer em `persistirOP` ou `aplicarRecalculoOP` sem nova fase
+  explícita.
 - Tentar mover `renderOPLatexAdmin` para outro módulo
-  (`renderOPLatexAdmin` já está isolada em `op-latex-admin.js`).
+  (já está isolada em `op-latex-admin.js`).
+- Tentar mover `screenPainel` (já está isolada em `painel.js`).
 - Rodar `git add .` (sempre stage seletivo por arquivo).
 - Mexer no PR #2.

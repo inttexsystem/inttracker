@@ -2,8 +2,8 @@
 
 > Ledger de fases do refactor arquitetural de
 > `D:\OneDrive\Programação\Ravatex\controle-tapetes`.
-> Última atualização: 2026-06-23 (HEAD `69c0036`,
-> fase `RAVATEX-TAPETES-REFACTOR-STATE-DOCS-B`).
+> Última atualização: 2026-06-23 (HEAD `cac20f9`,
+> fase `RAVATEX-TAPETES-REFACTOR-STATE-DOCS-C`).
 
 ## 1. Premissas corrigidas
 - **App estático**, não Next/Vercel.
@@ -65,7 +65,17 @@
 | OP-FORNECEDOR-WRITE-MODULE-A | `1429950` | `js/screens/op-writes.js` | 49/49 + regressão focada | aceito com ressalva leve (contagem de testes reportada inconsistente) |
 | OP-LATEX-ADMIN-WRITES-DIAG-A | (read-only) | `index.html` (análise) | n/a | aceito |
 | OP-LATEX-ADMIN-MODULE-A | `69c0036` | `js/screens/op-latex-admin.js` | 30/30 + regressão focada (172/172) | aceito com ressalva leve (push teve timeout, concluído com retry) |
-| REFACTOR-STATE-DOCS-B | (a criar) | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | esta fase |
+| REFACTOR-STATE-DOCS-B | `29c260b` | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | aceito |
+| SCREENPAINEL-MODULE-A | `065a796` | `js/screens/painel.js` | 167/167 | aceito |
+| OP-RECALCULO-DIAG-B | (read-only) | `index.html` (análise) | n/a | aceito |
+| OP-RECALCULO-HELPERS-MODULE-A | `c599c21` | `js/screens/op-recalculo.js` | 186/186 | aceito |
+| OP-RECALCULO-WRITES-DIAG-C | (read-only) | `index.html` (análise) | n/a | aceito |
+| OP-RECALCULO-WRITES-MODULE-A | `4ce5080` | `js/screens/op-recalculo.js` | 190/190 | aceito com ressalva transacional |
+| OP-PERSISTIR-DIAG-B | (read-only) | `index.html` (análise) | n/a | aceito |
+| OP-PERSISTIR-HELPERS-MODULE-A | `8fd4dd2` | `js/screens/op-persistir.js` | 220/220 | aceito |
+| OP-PERSISTIR-WRITES-DIAG-C | (read-only) | `index.html` (análise) | n/a | aceito |
+| OP-PERSISTIR-WRITES-MODULE-A | `cac20f9` | `js/screens/op-persistir.js` | 255/255 | aceito com ressalva transacional |
+| REFACTOR-STATE-DOCS-C | (a criar) | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | esta fase |
 
 ## 5. Ressalvas processuais aceitas em `FORNECEDOR-SCREENS-MODULE-A` (commit `4b9ca12`)
 
@@ -122,6 +132,24 @@
   precisaram ser adaptados para refletir a extração de
   `renderOPLatexAdmin` do inline (esperado, mudança no escopo
   permitido).
+- **`OP-RECALCULO-WRITES-MODULE-A` (commit `4ce5080`)**: isolou os
+  writes de recalculo (`op_itens.update`, `saldo_fios_op.insert`,
+  `saldo_fios` select/update/insert, `ops.update status='em_producao'`)
+  em `aplicarRecalculoOP` no módulo `op-recalculo.js`. **Não
+  resolveu** a ausência de transação cross-table. O envelope de
+  retorno (`{ error, step, partial }`) documenta o step de falha
+  mas não compensa. Toasts no caller inline continuam dizendo
+  "verifique no Supabase" em caso de falha intermediária.
+- **`OP-PERSISTIR-WRITES-MODULE-A` (commit `cac20f9`)**: isolou os
+  writes de persistência (ops insert/update, lotes
+  select/insert/update, op_itens delete/insert, op_fornecedores
+  delete/insert, ordens_compra_fio delete/insert) em `persistirOP`
+  no módulo `op-persistir.js`. Mudança controlada: **deletes
+  passaram a ser tratados como steps de erro** (anteriormente eram
+  `await` sem tratamento). Rollback parcial existente (reverter
+  status para `'simulada'` em falhas de 'aberta', deletar OP recém-
+  criada se lote falhar) foi preservado dentro do helper. Risco
+  transacional residual permanece.
 
 ## 6. Módulos extraídos (lista canônica)
 
@@ -142,77 +170,55 @@
 | `js/screens/op-form-helpers.js` | `c480324` | OP-FORM-HELPERS-MODULE-A |
 | `js/screens/op-writes.js` | `ab79f1c` (+ `1429950`) | OP-ORDER-WRITE-MODULE-A (+ OP-FORNECEDOR-WRITE-MODULE-A) |
 | `js/screens/op-latex-admin.js` | `69c0036` | OP-LATEX-ADMIN-MODULE-A |
+| `js/screens/painel.js` | `065a796` | SCREENPAINEL-MODULE-A |
+| `js/screens/op-recalculo.js` | `c599c21` (+ `4ce5080`) | OP-RECALCULO-HELPERS-MODULE-A (+ OP-RECALCULO-WRITES-MODULE-A) |
+| `js/screens/op-persistir.js` | `8fd4dd2` (+ `cac20f9`) | OP-PERSISTIR-HELPERS-MODULE-A (+ OP-PERSISTIR-WRITES-MODULE-A) |
 
-### Estado atual de `js/screens/op-writes.js`
+## 7. Inline remanescente em `index.html` (após `cac20f9`)
 
-Concentra os dois helpers de write de OP extraídos:
-
-- `registrarRecebimentoOrdemFio` (`ab79f1c`,
-  OP-ORDER-WRITE-MODULE-A)
-- `atribuirFornecedorFioOp` (`1429950`,
-  OP-FORNECEDOR-WRITE-MODULE-A)
-
-## 7. Inline remanescente em `index.html` (após `69c0036`)
-
-- `screenPainel` (placeholder, 9 linhas).
-- `screenNovaOP` (854 linhas, 12 tabelas Supabase, 4 `.single()`,
-  13+ writes). Internals: `persistir`, `salvarSimulacao`,
-  `abrirOP`, `render`, `buildScreen`, `disabledAttr` (closure),
-  `buildLeft`, `buildItemRow`, `buildFornField`,
-  `atribuirFornecedorFio` (que chama
-  `window.atribuirFornecedorFioOp` para o write), `reloadOrdens`,
-  `buildOrdemPendenteRow` (que chama
-  `window.registrarRecebimentoOrdemFio` para o write),
-  `gerarPdfCompraFios`, `buildBlocoFios`, `buildBlocoTecelagem`,
-  `abrirEdicaoAdmin`, `reloadEntregasCima`, `maxMetrosItem`,
-  `buildProposta`, `aplicarRecalculo`, `buildRight`,
-  `renderRight`, `renderRightInto`.
-- `setRoutes` (registro de rotas).
+- `screenNovaOP` (UI/estado principal, delega writes para
+  `aplicarRecalculoOP`, `persistirOP`, `registrarRecebimentoOrdemFio`,
+  `atribuirFornecedorFioOp` e `renderOPLatexAdmin`).
+- `buildRight` / `renderRightInto` (montagem do painel lateral).
+- `buildProposta` / `recompute` / `onAceitar` (UI de proposta + recalculo).
+- `buildOrdemPendenteRow` (UI do input; write delegado).
+- `gerarPdfCompraFios` (geração de PDF via jsPDF).
+- `salvarSimulacao` / `abrirOP` (callers de `persistirOP` com saving,
+  toast, navigate, validações de formulário).
+- `setRoutes` (registro de rotas no router).
 - `main` (boot).
 
-`renderOPLatexAdmin` foi extraída para
-`js/screens/op-latex-admin.js` e é acessada via
-`window.renderOPLatexAdmin` no call-site de `screenNovaOP`.
-
-`rotuloFioOrdem` (clone local) foi unificado com `rotuloFio` em
-`OP-FORM-HELPERS-MODULE-A`. `rotuloModelo` foi movido para
-`js/screens/op-form-helpers.js` como `window.rotuloModelo`.
+`screenPainel` foi extraída para `js/screens/painel.js`.
+`renderOPLatexAdmin` foi extraída para `js/screens/op-latex-admin.js`.
+`aplicarRecalculo` e `persistir` foram **removidos** do inline; seus
+writes agora são executados por `aplicarRecalculoOP` e `persistirOP`
+respectivamente.
 
 ## 8. Próximos cortes recomendados
 
-1. **`SCREENPAINEL-MODULE-A`** — extração pequena e segura de
-   `screenPainel` (placeholder de 9 linhas). Risco estrutural
-   mínimo; reduz a pegada do inline.
-2. **`OP-RECALCULO-DIAG-B`** — diagnóstico específico de
-   `aplicarRecalculo` (e opcionalmente `persistir`) antes de
-   qualquer extração. Objetivo: reduzir risco de negócio dos
-   writes não transacionais antes de movê-los.
-3. **`OP-PERSISTIR-DIAG-B`** — diagnóstico específico de
-   `persistir` para mapear o rollback parcial manual existente e
-   definir estratégia de compensação antes de qualquer extração.
-4. **Só depois** considerar extração final de `screenNovaOP`
-   (último grande corte do refactor arquitetural).
+1. **`SCREENNOVAOP-UI-DIAG-A`** — diagnosticar extração da UI
+   grande de `screenNovaOP`.
+2. **`SCREENNOVAOP-MODULE-A`** ou **`SCREENNOVAOP-UI-MODULE-A`**
+   — apenas após diagnóstico UI.
+3. **`ROUTES-MAIN-CLOSEOUT-A`** — fechamento de `setRoutes`/`main`
+   (último pedaço de bootstrap inline).
+4. **`REFACTOR-STATE-DOCS-D`** — docs final após fechamento do
+   inline.
 
-## 9. Riscos residuais do refactor (após `69c0036`)
+## 9. Riscos residuais do refactor (após `cac20f9`)
 
-- 🔴 **`screenNovaOP` é o maior bloco inline remanescente** (854
-  linhas) e o mais sensível. Concentra 12 tabelas Supabase, 4
-  `.single()`, 13+ writes não transacionais.
-- 🔴 **`persistir` segue com writes não transacionais** em
-  `ops` (insert/update), `lotes` (insert/update), `op_itens`
-  (delete+insert), `op_fornecedores` (delete+insert),
-  `ordens_compra_fio` (delete+insert). Rollback parcial manual
-  já cobre alguns cenários (reverter status para `'simulada'`,
-  deletar OP recém-criada se lote falhar), mas não cobre todos.
-- 🔴 **`aplicarRecalculo` segue com writes em 4 tabelas** —
-  `op_itens` (update), `saldo_fios_op` (insert), `saldo_fios`
-  (select+update+insert), `ops` (update de status para
-  `'em_producao'`). Toasts explicitamente dizem
-  "verifique no Supabase" se uma operação intermediária falha.
-- 🟢 **`renderOPLatexAdmin` está isolado** em
-  `js/screens/op-latex-admin.js`. Os writes internos
-  (`finalizar`, `editarEnviado`, `excluirOpLatex`) ficaram
-  encapsulados na closure do módulo.
+- 🔴 **`persistirOP` e `aplicarRecalculoOP` seguem sem transação
+  cross-table.** Falha parcial ainda pode deixar `op_itens`,
+  `saldo_fios_op`, `saldo_fios` e `ops.status` em estado
+  intermediário. Rollback parcial manual existe (reverter status
+  para `'simulada'`, deletar OP recém-criada se lote falhar) mas
+  não cobre todos os cenários.
+- 🔴 **`screenNovaOP` ainda é bloco grande de UI/estado**, mesmo
+  com todos os writes delegados. Contém várias sub-funções de UI
+  acopladas ao estado local.
+- 🟡 **`persistirOP` trata deletes como erro** (mudança controlada
+  em relação ao inline antigo, que ignorava erros de delete).
+  Testes de regressão cobrem este comportamento.
 - 🟡 Falhas de smoke dependentes de `http.server :8765`
   (`tests/index-inline.smoke.js`, parte de
   `tests/write-guard.smoke.js`) são **pré-existentes** e não
