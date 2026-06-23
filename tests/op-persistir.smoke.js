@@ -38,6 +38,7 @@ const ROOT  = path.resolve(__dirname, '..');
 const INDEX = path.join(ROOT, 'index.html');
 const OPP   = path.join(ROOT, 'js', 'screens', 'op-persistir.js');
 const OPN   = path.join(ROOT, 'js', 'screens', 'op-nova.js');
+const OPPDF = path.join(ROOT, 'js', 'screens', 'op-pdf.js');
 const OPR   = path.join(ROOT, 'js', 'screens', 'op-recalculo.js');
 const PAINEL= path.join(ROOT, 'js', 'screens', 'painel.js');
 const OLA   = path.join(ROOT, 'js', 'screens', 'op-latex-admin.js');
@@ -58,6 +59,7 @@ const OPSLIST = path.join(ROOT, 'js', 'screens', 'ops-list.js');
 const indexSrc  = fs.readFileSync(INDEX, 'utf8');
 const oppSrc    = fs.readFileSync(OPP,   'utf8');
 const opnSrc    = fs.readFileSync(OPN,   'utf8');
+const opPdfSrc  = fs.readFileSync(OPPDF, 'utf8');
 const oprSrc    = fs.readFileSync(OPR,   'utf8');
 const painelSrc = fs.readFileSync(PAINEL,'utf8');
 const olaSrc    = fs.readFileSync(OLA,   'utf8');
@@ -91,7 +93,8 @@ function extractInlineScript(html) {
 }
 
 function findScriptIdx(html, src) {
-  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}"\\s*></script>`);
+  // Aceita src com ou sem query string (cache-busting ?v=...).
+  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/').replace(/\./g, '\\.')}(?:\\?[^"]*)?"\\s*></script>`);
   const m = re.exec(html);
   return m ? m.index : -1;
 }
@@ -149,10 +152,12 @@ test('3. op-persistir.js é script clássico, sem import/export', () => {
 });
 
 test('4. index.html carrega op-persistir.js EXATAMENTE UMA VEZ, sem type=module', () => {
-  const re = /<script\s+src="js\/screens\/op-persistir\.js"\s*><\/script>/g;
-  const matches = indexSrc.match(re) || [];
-  assert.equal(matches.length, 1,
-    `esperado 1 <script src="js/screens/op-persistir.js">, encontrado ${matches.length}`);
+  // Aceita com ou sem query string (cache-busting ?v=...).
+  const reWithQs = /<script\s+src="js\/screens\/op-persistir\.js\?v=20260623-asset1"\s*><\/script>/g;
+  const reNoQs   = /<script\s+src="js\/screens\/op-persistir\.js"\s*><\/script>/g;
+  const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
+  assert.equal(total, 1,
+    `esperado 1 <script src="js/screens/op-persistir.js">, encontrado ${total}`);
   assert.equal(/<script[^>]*src="js\/screens\/op-persistir\.js"[^>]*type=/.test(indexSrc), false,
     'op-persistir.js está sendo carregado com type=module');
 });
@@ -227,6 +232,7 @@ function makePersistirBootSandbox() {
   vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
   vm.runInContext(oprSrc,    sandbox, { filename: 'js/screens/op-recalculo.js' });
   vm.runInContext(oppSrc,    sandbox, { filename: 'js/screens/op-persistir.js' });
+  vm.runInContext(opPdfSrc,  sandbox, { filename: 'js/screens/op-pdf.js' });
   vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
@@ -687,6 +693,7 @@ function makePersistirOPSandbox({
   vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
   vm.runInContext(oprSrc,    sandbox, { filename: 'js/screens/op-recalculo.js' });
   vm.runInContext(oppSrc,    sandbox, { filename: 'js/screens/op-persistir.js' });
+  vm.runInContext(opPdfSrc,  sandbox, { filename: 'js/screens/op-pdf.js' });
   vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
 
   // Mocks de calcularFiosOP e montarOrdensCompraFio devem ser definidos

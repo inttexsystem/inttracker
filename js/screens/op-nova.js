@@ -22,10 +22,11 @@
 //     (larguraKey, calcularFiosOP, recalcularOP, consumoPorOrdem,
 //      totalEntregueCimaPorItem, agruparOrdensCompraFio);
 //   - o cliente Supabase via window.supa (apenas reads);
-//   - a geração de PDF via window.jspdf.jsPDF (CDN).
+//   - a geração de PDF delegada para window.gerarPdfCompraFios
+//     (extraído para js/screens/op-pdf.js em OP-NOVA-PDF-MODULE-A).
 //
 // Carregar via <script src="js/screens/op-nova.js"></script> no
-// <head>, DEPOIS de js/screens/op-persistir.js e ANTES de jspdf +
+// <head>, DEPOIS de js/screens/op-pdf.js + jspdf e ANTES de
 // script inline principal. O call-site do inline em setRoutes
 // (rota #/ops/nova) foi atualizado para window.screenNovaOP.
 //
@@ -342,38 +343,6 @@
     );
   }
 
-  function gerarPdfCompraFios() {
-    const jsPDFCtor = window.jspdf && window.jspdf.jsPDF;
-    if (!jsPDFCtor) { toast('Biblioteca de PDF não carregou', 'error'); return; }
-    const g = agruparOrdensCompraFio(ordens);
-    const doc = new jsPDFCtor();
-    const loteTxt = op.lote ? `Lote Nº ${op.lote.numero} · ${op.lote.cliente?.nome || '—'}` : 'Lote —';
-    let y = 15;
-    doc.setFontSize(14); doc.text('Compra de fios', 14, y); y += 8;
-    doc.setFontSize(10);
-    doc.text(`${loteTxt}`, 14, y); y += 6;
-    doc.text(`OP Nº ${op.numero}/${op.ano} · ${new Date().toLocaleDateString('pt-BR')}`, 14, y); y += 10;
-
-    const secao = (titulo, lista, total) => {
-      doc.setFontSize(12); doc.text(titulo, 14, y); y += 6;
-      doc.setFontSize(10);
-      if (lista.length === 0) { doc.text('—', 18, y); y += 6; }
-      for (const it of lista) {
-        doc.text(`${it.rotulo}`, 18, y);
-        doc.text(`${it.kg.toFixed(3).replace('.', ',')} kg`, 120, y);
-        y += 6;
-      }
-      doc.setFont(undefined, 'bold');
-      doc.text(`Total ${titulo}: ${total.toFixed(3).replace('.', ',')} kg`, 18, y);
-      doc.setFont(undefined, 'normal');
-      y += 10;
-    };
-    secao('Algodão', g.algodao, g.totalAlgodao);
-    secao('Poliéster', g.poliester, g.totalPoliester);
-
-    doc.save(`compra-fios-OP-${op.numero}-${op.ano}.pdf`);
-  }
-
   function buildBlocoFios() {
     const box = el('div', { class: 'bg-white rounded-xl shadow p-5 mt-6' });
     box.appendChild(el('div', { class: 'font-semibold text-gray-700 mb-3' }, 'Recebimento de fios'));
@@ -381,7 +350,7 @@
     if (ordens.length) {
       box.appendChild(el('button', {
         class: 'mb-3 text-sm text-blue-700 hover:underline',
-        onclick: () => gerarPdfCompraFios(),
+        onclick: () => window.gerarPdfCompraFios({ op, ordens }),
       }, '📄 PDF de compra de fios'));
     }
 

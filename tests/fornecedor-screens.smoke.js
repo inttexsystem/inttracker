@@ -147,7 +147,8 @@ function extractInlineScript(html) {
 }
 
 function findScriptIdx(html, src) {
-  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}"\\s*></script>`);
+  // Aceita src com ou sem query string (cache-busting ?v=...).
+  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/').replace(/\./g, '\\.')}(?:\\?[^"]*)?"\\s*></script>`);
   const m = re.exec(html);
   return m ? m.index : -1;
 }
@@ -400,10 +401,12 @@ test('2. fornecedor.js: sintaxe JS válida (node --check)', () => {
 });
 
 test('3. index.html carrega js/screens/fornecedor.js EXATAMENTE UMA VEZ, sem type=module', () => {
-  const re = /<script\s+src="js\/screens\/fornecedor\.js"\s*><\/script>/g;
-  const matches = indexSrc.match(re) || [];
-  assert.equal(matches.length, 1,
-    `esperado 1 <script src="js/screens/fornecedor.js">, encontrado ${matches.length}`);
+  // Aceita com ou sem query string (cache-busting ?v=...).
+  const reWithQs = /<script\s+src="js\/screens\/fornecedor\.js\?v=20260623-asset1"\s*><\/script>/g;
+  const reNoQs   = /<script\s+src="js\/screens\/fornecedor\.js"\s*><\/script>/g;
+  const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
+  assert.equal(total, 1,
+    `esperado 1 <script src="js/screens/fornecedor.js">, encontrado ${total}`);
   assert.equal(/<script[^>]*src="js\/screens\/fornecedor\.js"[^>]*type=/.test(indexSrc), false,
     'fornecedor.js está sendo carregado com type=module — deve ser script clássico');
 });

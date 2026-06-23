@@ -123,7 +123,8 @@ function extractInlineScript(html) {
 }
 
 function findScriptIdx(html, src) {
-  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}"\\s*></script>`);
+  // Aceita src com ou sem query string (cache-busting ?v=...).
+  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/').replace(/\./g, '\\.')}(?:\\?[^"]*)?"\\s*></script>`);
   const m = re.exec(html);
   return m ? m.index : -1;
 }
@@ -182,10 +183,12 @@ test('2. op-latex-admin.js: sintaxe JS válida (node --check)', () => {
 });
 
 test('3. index.html carrega op-latex-admin.js EXATAMENTE UMA VEZ, sem type=module', () => {
-  const re = /<script\s+src="js\/screens\/op-latex-admin\.js"\s*><\/script>/g;
-  const matches = indexSrc.match(re) || [];
-  assert.equal(matches.length, 1,
-    `esperado 1 <script src="js/screens/op-latex-admin.js">, encontrado ${matches.length}`);
+  // Aceita com ou sem query string (cache-busting ?v=...).
+  const reWithQs = /<script\s+src="js\/screens\/op-latex-admin\.js\?v=20260623-asset1"\s*><\/script>/g;
+  const reNoQs   = /<script\s+src="js\/screens\/op-latex-admin\.js"\s*><\/script>/g;
+  const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
+  assert.equal(total, 1,
+    `esperado 1 <script src="js/screens/op-latex-admin.js">, encontrado ${total}`);
   assert.equal(/<script[^>]*src="js\/screens\/op-latex-admin\.js"[^>]*type=/.test(indexSrc), false,
     'op-latex-admin.js está sendo carregado com type=module');
 });

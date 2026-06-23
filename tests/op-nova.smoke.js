@@ -11,8 +11,9 @@
 //     window.atribuirFornecedorFioOp, window.renderOPLatexAdmin,
 //     window.rotuloModelo, window.fmtKg, window.fmtMetros,
 //     window.disabledAttr, etc.);
-//   - gerarPdfCompraFios dentro do módulo (NÃO extraído para
-//     op-pdf.js nesta fase).
+//   - gerarPdfCompraFios extraído para js/screens/op-pdf.js
+//     (OP-NOVA-PDF-MODULE-A); op-nova.js chama
+//     window.gerarPdfCompraFios({ op, ordens }).
 //
 // Estáticos (1-10):
 //   1. js/screens/op-nova.js existe.
@@ -30,7 +31,9 @@
 // Runtime (11-15):
 //  11. window.screenNovaOP é função.
 //  12. window.RAVATEX_SCREENS.opNova.screenNovaOP existe.
-//  13. op-nova.js contém gerarPdfCompraFios (não extraído).
+//  13. op-nova.js NÃO contém gerarPdfCompraFios (extraída para
+//      op-pdf.js em OP-NOVA-PDF-MODULE-A); chama
+//      window.gerarPdfCompraFios no call-site.
 //  14. op-nova.js contém buildProposta / recompute / onAceitar.
 //  15. op-nova.js contém buildBlocoFios / buildBlocoTecelagem /
 //      buildOrdemPendenteRow.
@@ -77,6 +80,7 @@ const cp     = require('node:child_process');
 const ROOT  = path.resolve(__dirname, '..');
 const INDEX = path.join(ROOT, 'index.html');
 const OPN   = path.join(ROOT, 'js', 'screens', 'op-nova.js');
+const OPPDF = path.join(ROOT, 'js', 'screens', 'op-pdf.js');
 const OPP   = path.join(ROOT, 'js', 'screens', 'op-persistir.js');
 const OPR   = path.join(ROOT, 'js', 'screens', 'op-recalculo.js');
 const PAINEL= path.join(ROOT, 'js', 'screens', 'painel.js');
@@ -97,6 +101,7 @@ const OPSLIST = path.join(ROOT, 'js', 'screens', 'ops-list.js');
 
 const indexSrc  = fs.readFileSync(INDEX, 'utf8');
 const opnSrc    = fs.readFileSync(OPN,   'utf8');
+const opPdfSrc  = fs.readFileSync(OPPDF, 'utf8');
 const oppSrc    = fs.readFileSync(OPP,   'utf8');
 const oprSrc    = fs.readFileSync(OPR,   'utf8');
 const painelSrc = fs.readFileSync(PAINEL,'utf8');
@@ -131,7 +136,8 @@ function extractInlineScript(html) {
 }
 
 function findScriptIdx(html, src) {
-  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}"\\s*></script>`);
+  // Aceita src com ou sem query string (cache-busting ?v=...).
+  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/').replace(/\./g, '\\.')}(?:\\?[^"]*)?"\\s*></script>`);
   const m = re.exec(html);
   return m ? m.index : -1;
 }
@@ -189,24 +195,29 @@ test('3. op-nova.js é script clássico, sem import/export', () => {
 });
 
 test('4. index.html carrega op-nova.js EXATAMENTE UMA VEZ, sem type=module', () => {
-  const re = /<script\s+src="js\/screens\/op-nova\.js"\s*><\/script>/g;
-  const matches = indexSrc.match(re) || [];
-  assert.equal(matches.length, 1,
-    `esperado 1 <script src="js/screens/op-nova.js">, encontrado ${matches.length}`);
+  // Aceita com ou sem query string (cache-busting ?v=...).
+  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260623-asset1"\s*><\/script>/g;
+  const reNoQs   = /<script\s+src="js\/screens\/op-nova\.js"\s*><\/script>/g;
+  const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
+  assert.equal(total, 1,
+    `esperado 1 <script src="js/screens/op-nova.js">, encontrado ${total}`);
   assert.equal(/<script[^>]*src="js\/screens\/op-nova\.js"[^>]*type=/.test(indexSrc), false,
     'op-nova.js está sendo carregado com type=module');
 });
 
-test('5. index.html: ordem op-persistir.js → op-nova.js → jspdf → boot.js (último local antes de </head>)', () => {
+test('5. index.html: ordem op-persistir.js → op-pdf.js → op-nova.js → jspdf → boot.js (último local antes de </head>)', () => {
   const oppIdx    = findScriptIdx(indexSrc, 'js/screens/op-persistir.js');
+  const opPdfIdx  = findScriptIdx(indexSrc, 'js/screens/op-pdf.js');
   const opnIdx    = findScriptIdx(indexSrc, 'js/screens/op-nova.js');
   const jspdfIdx  = indexSrc.indexOf('cdnjs.cloudflare.com/ajax/libs/jspdf');
   const bootIdx   = findScriptIdx(indexSrc, 'js/boot.js');
   assert.ok(oppIdx > 0, 'op-persistir.js não encontrado');
+  assert.ok(opPdfIdx > 0, 'op-pdf.js não encontrado (extraído de op-nova.js)');
   assert.ok(opnIdx > 0, 'op-nova.js não encontrado');
   assert.ok(jspdfIdx > 0, 'jspdf não encontrado');
   assert.ok(bootIdx > 0, 'js/boot.js não encontrado como último script local');
-  assert.ok(oppIdx < opnIdx, 'op-persistir.js deve vir antes de op-nova.js');
+  assert.ok(oppIdx < opPdfIdx, 'op-persistir.js deve vir antes de op-pdf.js');
+  assert.ok(opPdfIdx < opnIdx, 'op-pdf.js deve vir antes de op-nova.js');
   assert.ok(opnIdx < jspdfIdx, 'op-nova.js deve vir antes de jspdf');
   assert.ok(jspdfIdx < bootIdx, 'jspdf CDN deve vir antes de boot.js');
   assert.ok(bootIdx > jspdfIdx, 'boot.js deve ser o último script local');
@@ -300,6 +311,7 @@ function makeOpNovaBootSandbox() {
   vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
   vm.runInContext(oprSrc,    sandbox, { filename: 'js/screens/op-recalculo.js' });
   vm.runInContext(oppSrc,    sandbox, { filename: 'js/screens/op-persistir.js' });
+  vm.runInContext(opPdfSrc,  sandbox, { filename: 'js/screens/op-pdf.js' });
   vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
@@ -320,9 +332,14 @@ test('12. runtime: window.RAVATEX_SCREENS.opNova.screenNovaOP existe', () => {
     'window.RAVATEX_SCREENS.opNova.screenNovaOP não existe');
 });
 
-test('13. op-nova.js contém gerarPdfCompraFios (NÃO extraído para op-pdf.js nesta fase)', () => {
-  assert.match(opnSrc, /function\s+gerarPdfCompraFios\s*\(/,
-    'op-nova.js perdeu gerarPdfCompraFios — função deveria estar dentro de op-nova.js');
+test('13. op-nova.js NÃO contém mais function gerarPdfCompraFios (extraída para op-pdf.js em OP-NOVA-PDF-MODULE-A)', () => {
+  // Após OP-NOVA-PDF-MODULE-A, gerarPdfCompraFios foi movida para
+  // js/screens/op-pdf.js. op-nova.js agora chama
+  // window.gerarPdfCompraFios({ op, ordens }) em buildBlocoFios.
+  assert.equal(/function\s+gerarPdfCompraFios\s*\(/.test(opnSrc), false,
+    'op-nova.js ainda define gerarPdfCompraFios — extração para op-pdf.js incompleta');
+  assert.match(opnSrc, /window\.gerarPdfCompraFios\s*\(/,
+    'op-nova.js não chama window.gerarPdfCompraFios — call-site não foi atualizado');
 });
 
 test('14. op-nova.js contém buildProposta / recompute / onAceitar', () => {
