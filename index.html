@@ -27,6 +27,7 @@
   <script src="js/screens/op-writes.js"></script>
   <script src="js/screens/op-latex-admin.js"></script>
   <script src="js/screens/painel.js"></script>
+  <script src="js/screens/op-recalculo.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
@@ -681,22 +682,7 @@ async function screenNovaOP(opId) {
 
   // Limite individual de metros de um item assumindo os demais em zero
   // (cada cor consumida pelo item × kg_recebido daquela cor). Usado pra capar o slider.
-  function maxMetrosItem(item) {
-    const modelo = modelosById[item.modelo_id];
-    const p = parametrosByLargura[larguraKey(modelo.largura)];
-    const rAlg = p.algodao_por_ml * p.valor_x;
-    const rPol = p.poliester_por_ml * p.valor_x;
-    let cap = Infinity;
-    for (const cor of [modelo.cor_1, modelo.cor_2]) {
-      const ord = ordens.find(o => o.tipo === 'algodao' && o.cor_id === cor.id);
-      if (ord && rAlg > 0) cap = Math.min(cap, Number(ord.kg_recebido) / rAlg);
-    }
-    for (const corP of ['PRETO', 'BRANCO']) {
-      const ord = ordens.find(o => o.tipo === 'poliester' && o.cor_poliester === corP);
-      if (ord && rPol > 0) cap = Math.min(cap, Number(ord.kg_recebido) / rPol);
-    }
-    return Number.isFinite(cap) ? Math.floor(cap) : 0;
-  }
+  // Extraído para js/screens/op-recalculo.js como window.maxMetrosItem.
 
   function buildProposta() {
     const itensCalc = opItensRaw.map(i => ({ op_item_id: i.id, modelo_id: i.modelo_id, metros_pedidos: Number(i.metros_pedidos) }));
@@ -722,7 +708,7 @@ async function screenNovaOP(opId) {
     const itemRowState = {};  // { [op_item_id]: { slider, valorLabel } }
 
     for (const c of itensCalc) {
-      const max = Math.max(maxMetrosItem(c), c.metros_pedidos);
+      const max = Math.max(window.maxMetrosItem(c, modelosById, parametrosByLargura, ordens), c.metros_pedidos);
       const slider = el('input', {
         type: 'range', min: '0', max: String(max), step: '1',
         class: 'w-full',
