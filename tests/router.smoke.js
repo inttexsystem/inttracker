@@ -47,6 +47,8 @@ const AUTH    = path.join(ROOT, 'js', 'auth.js');
 const UI      = path.join(ROOT, 'js', 'ui.js');
 const BADGES  = path.join(ROOT, 'js', 'badges.js');
 const SYSTEM_SCREENS = path.join(ROOT, 'js', 'screens', 'system-screens.js');
+const COMMON = path.join(ROOT, 'js', 'screens', 'common.js');
+const CAD    = path.join(ROOT, 'js', 'screens', 'cadastros.js');
 
 const routerSrc  = fs.readFileSync(ROUTER, 'utf8');
 const indexSrc   = fs.readFileSync(INDEX,  'utf8');
@@ -54,6 +56,8 @@ const authSrc    = fs.readFileSync(AUTH,   'utf8');
 const uiSrc      = fs.readFileSync(UI,     'utf8');
 const badgesSrc  = fs.readFileSync(BADGES, 'utf8');
 const systemScreensSrc = fs.readFileSync(SYSTEM_SCREENS, 'utf8');
+const commonSrc  = fs.readFileSync(COMMON, 'utf8');
+const cadSrc     = fs.readFileSync(CAD,    'utf8');
 
 // -----------------------------------------------------------------------------
 // Helpers de validação estática
@@ -473,6 +477,11 @@ test('boot: ui.js + badges.js + router.js + inline coexistem sem SyntaxError de 
   // system-screens.js define window.screenLogin, consumido pelo inline
   // (setRoutes referencia o identificador bare `screenLogin`).
   vm.runInContext(systemScreensSrc, sandbox, { filename: 'js/screens/system-screens.js' });
+  // common.js define shellLayout/ADMIN_MENU (consumidos por screenPainel
+  // e demais telas do inline) e cadastros.js define as 7 telas de
+  // cadastro (consumidas pelo setRoutes do inline).
+  vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
+  vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
 
   let threwSyntax = false;
   let otherErr = null;
