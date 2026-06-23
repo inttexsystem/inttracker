@@ -8,8 +8,9 @@
 //      e antes do script inline principal;
 //   3. script inline NÃO contém mais as declarações de CURRENT_USER,
 //      login, logout, loadCurrentUser, nem as chamadas a supa.auth.*;
-//   4. script inline ainda contém routeAfterLogin, handleRoute,
-//      screenLogin, marcador === ROUTER ===;
+//   4. script inline NÃO contém mais routeAfterLogin, handleRoute,
+//      screenLogin, marcador === ROUTER === (extraídos p/ js/router.js
+//      e js/screens/system-screens.js);
 //   5. window.RAVATEX_AUTH é criado no runtime;
 //   6. window.login, window.logout, window.loadCurrentUser são funções;
 //   7. window.CURRENT_USER é definido via getter/setter (Object.defineProperty);
@@ -257,9 +258,10 @@ test('script inline NÃO contém mais as declarações de CURRENT_USER, login, l
     'script inline ainda tem a query `from("usuarios")` do loadCurrentUser');
 });
 
-test('script inline ainda contém screenLogin (tela permanece no inline)', () => {
+test('script inline NÃO contém mais screenLogin (extraído p/ js/screens/system-screens.js)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+screenLogin/);
+  assert.equal(/function\s+screenLogin/.test(inline), false,
+    'inline ainda declara function screenLogin');
 });
 
 // ROUTER-MODULE-A: routeAfterLogin, handleRoute e o marcador === ROUTER ===

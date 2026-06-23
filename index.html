@@ -16,6 +16,7 @@
   <script src="js/environment-banner.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/router.js"></script>
+  <script src="js/screens/system-screens.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
@@ -43,49 +44,17 @@
 // Os globais legados window.navigate, window.matchRoute,
 // window.handleRoute, window.routeAfterLogin e window.routes seguem
 // disponíveis (definidos por js/router.js).
+//
+// As telas sistêmicas screenLogin, screenNotFound e screenForbidden
+// foram extraídas para js/screens/system-screens.js, carregado no
+// <head> depois de js/router.js e antes deste inline. Os globais
+// legados window.screenLogin, window.screenNotFound e
+// window.screenForbidden seguem disponíveis.
 // =====================================================================
 
 // =====================================================================
 // === SCREENS =========================================================
 // =====================================================================
-
-function screenLogin() {
-  const root = el('div', { class: 'min-h-screen flex items-center justify-center p-4' });
-  const card = el('div', { class: 'bg-white rounded-2xl shadow-lg p-8 w-full max-w-md' });
-
-  card.appendChild(el('h1', { class: 'text-2xl font-bold mb-1' }, 'Controle de Tapetes'));
-  card.appendChild(el('p', { class: 'text-gray-500 mb-6' }, 'Entre com seu e-mail e senha'));
-
-  const emailInput = el('input', { type: 'email', placeholder: 'seu@email.com', required: 'required',
-    class: 'w-full border rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500' });
-  const senhaInput = el('input', { type: 'password', placeholder: 'senha', required: 'required',
-    class: 'w-full border rounded-lg px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500' });
-  const btn = el('button', { type: 'submit',
-    class: 'w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg py-2 transition' }, 'Entrar');
-
-  const form = el('form', {
-    onsubmit: async (e) => {
-      e.preventDefault();
-      btn.disabled = true;
-      btn.textContent = 'Entrando...';
-      try {
-        await login(emailInput.value.trim(), senhaInput.value);
-        toast('Login OK', 'success');
-        await routeAfterLogin();
-      } catch (err) {
-        toast('E-mail ou senha incorretos', 'error');
-        console.error(err);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Entrar';
-      }
-    }
-  }, emailInput, senhaInput, btn);
-
-  card.appendChild(form);
-  root.appendChild(card);
-  return root;
-}
 
 function shellLayout(menuItems, contentNode) {
   const root = el('div', { class: 'min-h-screen flex flex-col' });
@@ -2407,22 +2376,6 @@ async function screenCadastrosUsuarios() {
 
   await reload();
   return shellLayout(ADMIN_MENU, container);
-}
-
-function screenForbidden() {
-  return el('div', { class: 'min-h-screen flex flex-col items-center justify-center p-4 text-center' },
-    el('h1', { class: 'text-3xl font-bold text-red-600 mb-2' }, 'Acesso negado'),
-    el('p', { class: 'text-gray-600 mb-4' }, 'Você não tem permissão pra essa tela.'),
-    el('button', { class: 'bg-blue-700 text-white px-4 py-2 rounded-lg', onclick: () => routeAfterLogin() }, 'Voltar pro início')
-  );
-}
-
-function screenNotFound() {
-  return el('div', { class: 'min-h-screen flex flex-col items-center justify-center p-4 text-center' },
-    el('h1', { class: 'text-3xl font-bold mb-2' }, '404'),
-    el('p', { class: 'text-gray-600 mb-4' }, 'Tela não encontrada.'),
-    el('button', { class: 'bg-blue-700 text-white px-4 py-2 rounded-lg', onclick: () => navigate('#/login') }, 'Ir pro login')
-  );
 }
 
 // =====================================================================

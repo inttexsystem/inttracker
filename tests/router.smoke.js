@@ -13,8 +13,8 @@
 //   5. inline NÃO contém mais: const routes, function navigate,
 //      function matchRoute, async function handleRoute,
 //      async function routeAfterLogin, marcador === ROUTER ===;
-//   6. inline ainda contém screenLogin, screenPainel, main, screenNotFound,
-//      screenForbidden;
+//   6. inline ainda contém screenPainel e main (screenLogin, screenNotFound
+//      e screenForbidden foram extraídos para js/screens/system-screens.js);
 //   7. window.RAVATEX_ROUTER.setRoutes é chamado ANTES de main;
 //   8. js/router.js NÃO registra hashchange (nem addEventListener);
 //   9. js/router.js não contém service_role nem password literal;
@@ -42,16 +42,18 @@ const vm     = require('node:vm');
 
 const ROOT   = path.resolve(__dirname, '..');
 const INDEX  = path.join(ROOT, 'index.html');
-const ROUTER = path.join(ROOT, 'js', 'router.js');
-const AUTH   = path.join(ROOT, 'js', 'auth.js');
-const UI     = path.join(ROOT, 'js', 'ui.js');
-const BADGES = path.join(ROOT, 'js', 'badges.js');
+const ROUTER  = path.join(ROOT, 'js', 'router.js');
+const AUTH    = path.join(ROOT, 'js', 'auth.js');
+const UI      = path.join(ROOT, 'js', 'ui.js');
+const BADGES  = path.join(ROOT, 'js', 'badges.js');
+const SYSTEM_SCREENS = path.join(ROOT, 'js', 'screens', 'system-screens.js');
 
-const routerSrc = fs.readFileSync(ROUTER, 'utf8');
-const indexSrc  = fs.readFileSync(INDEX,  'utf8');
-const authSrc   = fs.readFileSync(AUTH,   'utf8');
-const uiSrc     = fs.readFileSync(UI,     'utf8');
-const badgesSrc = fs.readFileSync(BADGES, 'utf8');
+const routerSrc  = fs.readFileSync(ROUTER, 'utf8');
+const indexSrc   = fs.readFileSync(INDEX,  'utf8');
+const authSrc    = fs.readFileSync(AUTH,   'utf8');
+const uiSrc      = fs.readFileSync(UI,     'utf8');
+const badgesSrc  = fs.readFileSync(BADGES, 'utf8');
+const systemScreensSrc = fs.readFileSync(SYSTEM_SCREENS, 'utf8');
 
 // -----------------------------------------------------------------------------
 // Helpers de validação estática
@@ -171,13 +173,20 @@ test('script inline NÃO contém mais o bloco ROUTER extraído', () => {
     'inline ainda declara async function routeAfterLogin');
 });
 
-test('script inline ainda contém screenLogin, screenPainel, main, screenNotFound, screenForbidden', () => {
+test('script inline ainda contém screenPainel e main', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+screenLogin\s*\(/);
   assert.match(inline, /function\s+screenPainel\s*\(/);
   assert.match(inline, /function\s+main\s*\(/);
-  assert.match(inline, /function\s+screenNotFound\s*\(/);
-  assert.match(inline, /function\s+screenForbidden\s*\(/);
+});
+
+test('script inline NÃO contém mais screenLogin, screenNotFound, screenForbidden (extraídos p/ js/screens/system-screens.js)', () => {
+  const inline = extractInlineScript(indexSrc);
+  assert.equal(/function\s+screenLogin\s*\(/.test(inline), false,
+    'inline ainda declara function screenLogin');
+  assert.equal(/function\s+screenNotFound\s*\(/.test(inline), false,
+    'inline ainda declara function screenNotFound');
+  assert.equal(/function\s+screenForbidden\s*\(/.test(inline), false,
+    'inline ainda declara function screenForbidden');
 });
 
 test('window.RAVATEX_ROUTER.setRoutes é chamado ANTES de main', () => {
@@ -461,6 +470,9 @@ test('boot: ui.js + badges.js + router.js + inline coexistem sem SyntaxError de 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
+  // system-screens.js define window.screenLogin, consumido pelo inline
+  // (setRoutes referencia o identificador bare `screenLogin`).
+  vm.runInContext(systemScreensSrc, sandbox, { filename: 'js/screens/system-screens.js' });
 
   let threwSyntax = false;
   let otherErr = null;
