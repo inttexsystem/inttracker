@@ -70,6 +70,7 @@ const ROOT   = path.resolve(__dirname, '..');
 const INDEX  = path.join(ROOT, 'index.html');
 const OPS    = path.join(ROOT, 'js', 'screens', 'ops-list.js');
 const EF     = path.join(ROOT, 'js', 'screens', 'entrega-form.js');
+const EW     = path.join(ROOT, 'js', 'screens', 'entrega-writes.js');
 const UI     = path.join(ROOT, 'js', 'ui.js');
 const BADGES = path.join(ROOT, 'js', 'badges.js');
 const ROUTER = path.join(ROOT, 'js', 'router.js');
@@ -81,6 +82,7 @@ const CAD    = path.join(ROOT, 'js', 'screens', 'cadastros.js');
 const indexSrc  = fs.readFileSync(INDEX,  'utf8');
 const opsSrc    = fs.readFileSync(OPS,    'utf8');
 const efSrc     = fs.readFileSync(EF,     'utf8');
+const ewSrc     = fs.readFileSync(EW,     'utf8');
 const uiSrc     = fs.readFileSync(UI,     'utf8');
 const badgesSrc = fs.readFileSync(BADGES, 'utf8');
 const routerSrc = fs.readFileSync(ROUTER, 'utf8');
@@ -226,6 +228,7 @@ function makeOpsSandbox({ tableData = {}, withRouter = false } = {}) {
   }
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   // Stubs
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
@@ -292,8 +295,9 @@ test('6. script inline AINDA contém telas não relacionadas, helpers, setRoutes
     assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `inline perdeu a função ${fn}`);
   }
-  // Helpers de write continuam inline
-  for (const fn of ['salvarEntregaCima', 'atualizarEntregaCima', 'salvarEntregaLatex', 'atualizarEntregaLatex', 'excluirEntrega']) {
+  // Helpers de write continuam inline (excluirEntrega foi extraído
+  // para js/screens/entrega-writes.js na Fase 2.1)
+  for (const fn of ['salvarEntregaCima', 'atualizarEntregaCima', 'salvarEntregaLatex', 'atualizarEntregaLatex']) {
     assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `inline perdeu helper ${fn}`);
   }
@@ -604,6 +608,7 @@ test('25. boot: ui + badges + router + system-screens + common + cadastros + ops
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
@@ -663,6 +668,7 @@ test('26. setRoutes do inline: #/ops aponta para window.screenListaOPs', () => {
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
   vm.runInContext(inline, sandbox, { filename: 'index-inline.js' });
@@ -708,6 +714,7 @@ test('27. rota dinâmica #/ops/:id continua resolvendo para screenNovaOP(:id) (s
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
   vm.runInContext(inline, sandbox, { filename: 'index-inline.js' });
@@ -776,6 +783,7 @@ test('29. screenPainel (inline) ainda renderiza via shellLayout (regressão comm
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
 

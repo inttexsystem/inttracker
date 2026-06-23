@@ -74,6 +74,7 @@ const INDEX  = path.join(ROOT, 'index.html');
 const CAD    = path.join(ROOT, 'js', 'screens', 'cadastros.js');
 const OPS    = path.join(ROOT, 'js', 'screens', 'ops-list.js');
 const EF     = path.join(ROOT, 'js', 'screens', 'entrega-form.js');
+const EW     = path.join(ROOT, 'js', 'screens', 'entrega-writes.js');
 const UI     = path.join(ROOT, 'js', 'ui.js');
 const BADGES = path.join(ROOT, 'js', 'badges.js');
 const ROUTER = path.join(ROOT, 'js', 'router.js');
@@ -84,6 +85,7 @@ const indexSrc  = fs.readFileSync(INDEX,  'utf8');
 const cadSrc    = fs.readFileSync(CAD,    'utf8');
 const opsSrc    = fs.readFileSync(OPS,    'utf8');
 const efSrc     = fs.readFileSync(EF,     'utf8');
+const ewSrc     = fs.readFileSync(EW,     'utf8');
 const uiSrc     = fs.readFileSync(UI,     'utf8');
 const badgesSrc = fs.readFileSync(BADGES, 'utf8');
 const routerSrc = fs.readFileSync(ROUTER, 'utf8');
@@ -247,6 +249,10 @@ function makeCadastrosSandbox({ tableData = {} } = {}) {
   vm.runInContext(cadSrc, sandbox, { filename: 'js/screens/cadastros.js' });
   vm.runInContext(opsSrc, sandbox, { filename: 'js/screens/ops-list.js' });
   vm.runInContext(efSrc,  sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ewSrc,  sandbox, { filename: 'js/screens/entrega-writes.js' });
+  vm.runInContext(opsSrc, sandbox, { filename: 'js/screens/ops-list.js' });
+  vm.runInContext(efSrc,  sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ewSrc,  sandbox, { filename: 'js/screens/entrega-writes.js' });
   // supa injetado DEPOIS do load do cadastros.js (o módulo só usa em
   // tempo de chamada, não no load).
   sandbox.supa = fakeSupa;
@@ -319,8 +325,9 @@ test('6. script inline AINDA contém telas não-cadastro, helpers e setRoutes/ma
     assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `inline perdeu a função ${fn}`);
   }
-  // Helpers de write continuam inline
-  for (const fn of ['salvarEntregaCima', 'atualizarEntregaCima', 'salvarEntregaLatex', 'atualizarEntregaLatex', 'excluirEntrega']) {
+  // Helpers de write continuam inline (excluirEntrega foi extraído
+  // para js/screens/entrega-writes.js na Fase 2.1)
+  for (const fn of ['salvarEntregaCima', 'atualizarEntregaCima', 'salvarEntregaLatex', 'atualizarEntregaLatex']) {
     assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `inline perdeu helper ${fn}`);
   }

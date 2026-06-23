@@ -86,6 +86,7 @@ const cp     = require('node:child_process');
 const ROOT   = path.resolve(__dirname, '..');
 const INDEX  = path.join(ROOT, 'index.html');
 const EF     = path.join(ROOT, 'js', 'screens', 'entrega-form.js');
+const EW     = path.join(ROOT, 'js', 'screens', 'entrega-writes.js');
 const UI     = path.join(ROOT, 'js', 'ui.js');
 const BADGES = path.join(ROOT, 'js', 'badges.js');
 const ROUTER = path.join(ROOT, 'js', 'router.js');
@@ -97,6 +98,7 @@ const OPS    = path.join(ROOT, 'js', 'screens', 'ops-list.js');
 
 const indexSrc  = fs.readFileSync(INDEX,  'utf8');
 const efSrc     = fs.readFileSync(EF,     'utf8');
+const ewSrc     = fs.readFileSync(EW,     'utf8');
 const uiSrc     = fs.readFileSync(UI,     'utf8');
 const badgesSrc = fs.readFileSync(BADGES, 'utf8');
 const routerSrc = fs.readFileSync(ROUTER, 'utf8');
@@ -200,6 +202,8 @@ function makeEFSandbox() {
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
+  vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   return { sandbox };
 }
 
@@ -254,10 +258,11 @@ test('5. script inline NÃO contém mais function rotuloFio, const OCF_STATUS_LA
 
 test('6. script inline AINDA contém writes, telas, helpers, setRoutes, main e rotuloFioOrdem', () => {
   const inline = extractInlineScript(indexSrc);
-  // writes
+  // writes (excluirEntrega foi extraído para js/screens/entrega-writes.js
+  // na Fase 2.1 do DIAG)
   for (const fn of [
     'salvarEntregaCima', 'atualizarEntregaCima',
-    'salvarEntregaLatex', 'atualizarEntregaLatex', 'excluirEntrega',
+    'salvarEntregaLatex', 'atualizarEntregaLatex',
   ]) {
     assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `inline perdeu a função ${fn}`);
@@ -568,6 +573,7 @@ test('30. boot: ui + router + system-screens + common + cadastros + ops-list + e
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
 
   // Stubs mínimos para o inline carregar
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
@@ -625,6 +631,7 @@ test('31. screenPainel (inline) ainda renderiza via shellLayout (regressão comm
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
 
@@ -679,6 +686,7 @@ test('32. screenCadastrosCores (cadastros) ainda renderiza (regressão cadastros
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
 
@@ -723,6 +731,7 @@ test('33. screenListaOPs (ops-list) ainda renderiza (regressão ops-list)', asyn
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
   sandbox.navigate = (h) => { sandbox._lastNavigate = h; };

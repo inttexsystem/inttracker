@@ -21,6 +21,7 @@
   <script src="js/screens/cadastros.js"></script>
   <script src="js/screens/ops-list.js"></script>
   <script src="js/screens/entrega-form.js"></script>
+  <script src="js/screens/entrega-writes.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
@@ -77,6 +78,13 @@
 // js/screens/entrega-form.js, carregado no <head> depois de
 // js/screens/ops-list.js e antes deste inline. As globais legadas
 // seguem disponíveis para as telas abaixo.
+//
+// O helper de write `excluirEntrega` foi extraído para
+// js/screens/entrega-writes.js (Fase 2.1 do DIAG), carregado
+// no <head> depois de js/screens/entrega-form.js e antes deste
+// inline. A global legada window.excluirEntrega segue disponível
+// para as 4 telas abaixo. Os demais writes (salvar*/atualizar*
+// Cima e Latex) permanecem inline por decisão arquitetural.
 // =====================================================================
 
 // =====================================================================
@@ -183,21 +191,9 @@ async function atualizarEntregaLatex({ entregaId, opId, payload }) {
   return true;
 }
 
-// Excluir entrega: usa o padrao de callback do confirmDialog (que so dispara
-// onConfirm em caso afirmativo). onSuccess() roda apos delete bem-sucedido.
-function excluirEntrega(entregaId, onSuccess) {
-  confirmDialog({
-    title: 'Excluir entrega',
-    message: 'Esta ação remove a entrega e todos os seus itens. Continuar?',
-    confirmLabel: 'Excluir',
-    onConfirm: async () => {
-      const r = await supa.from('entregas').delete().eq('id', entregaId);
-      if (r.error) { toast('Erro ao excluir entrega', 'error'); console.error(r.error); return; }
-      toast('Entrega excluída', 'success');
-      if (onSuccess) onSuccess();
-    },
-  });
-}
+// Excluir entrega foi extraído para js/screens/entrega-writes.js
+// (Fase 2.1 do DIAG). A global legada window.excluirEntrega
+// continua disponível para as 4 telas abaixo.
 
 async function screenFornecedorEntregas() {
   const container = el('div', {});
