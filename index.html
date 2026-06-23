@@ -23,6 +23,7 @@
   <script src="js/screens/entrega-form.js"></script>
   <script src="js/screens/entrega-writes.js"></script>
   <script src="js/screens/fornecedor.js"></script>
+  <script src="js/screens/op-form-helpers.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
@@ -328,13 +329,13 @@ async function screenNovaOP(opId) {
     return wrap;
   }
 
-  function disabledAttr(node) { if (readOnly) node.setAttribute('disabled', 'disabled'); return node; }
+
 
   function buildLeft() {
     const left = el('div', { class: 'flex-1 bg-white rounded-xl shadow p-5' });
 
-    const numInput = disabledAttr(textInput({ type: 'number', value: String(numero) }));
-    const anoInput = disabledAttr(textInput({ type: 'number', value: String(ano) }));
+    const numInput = disabledAttr(readOnly, textInput({ type: 'number', value: String(numero) }));
+    const anoInput = disabledAttr(readOnly, textInput({ type: 'number', value: String(ano) }));
     numInput.addEventListener('input', () => { numero = numInput.value; });
     anoInput.addEventListener('input', () => { ano = anoInput.value; });
     const lote = el('div', { class: 'flex gap-3' },
@@ -360,7 +361,7 @@ async function screenNovaOP(opId) {
     }
 
     left.appendChild(el('div', { class: 'font-semibold text-gray-700 mt-5 mb-2' }, 'Cliente'));
-    const clienteSelEl = disabledAttr(selectInput({ options: clientesOptions, value: clienteSel, placeholder: 'Selecione o cliente...' }));
+    const clienteSelEl = disabledAttr(readOnly, selectInput({ options: clientesOptions, value: clienteSel, placeholder: 'Selecione o cliente...' }));
     clienteSelEl.addEventListener('change', () => { clienteSel = clienteSelEl.value ? Number(clienteSelEl.value) : ''; renderRight(); });
     left.appendChild(formField({ label: 'Cliente', input: clienteSelEl }));
 
@@ -371,8 +372,8 @@ async function screenNovaOP(opId) {
   }
 
   function buildItemRow(item, idx, modeloOptions) {
-    const modeloSel = disabledAttr(selectInput({ options: modeloOptions, value: item.modeloId, placeholder: 'Modelo...' }));
-    const metrosInput = disabledAttr(textInput({ type: 'number', value: item.metros === '' ? '' : String(item.metros), placeholder: 'metros' }));
+    const modeloSel = disabledAttr(readOnly, selectInput({ options: modeloOptions, value: item.modeloId, placeholder: 'Modelo...' }));
+    const metrosInput = disabledAttr(readOnly, textInput({ type: 'number', value: item.metros === '' ? '' : String(item.metros), placeholder: 'metros' }));
     modeloSel.addEventListener('change', () => { item.modeloId = modeloSel.value ? Number(modeloSel.value) : ''; renderRight(); });
     metrosInput.addEventListener('input', () => { item.metros = metrosInput.value === '' ? '' : Number(metrosInput.value); renderRight(); });
 
@@ -388,20 +389,14 @@ async function screenNovaOP(opId) {
 
   function buildFornField(label, etapa) {
     const fornsTipo = etapa === 'cima' ? fornsPorTipo('tecelagem') : fornsPorTipo(etapa);
-    const sel = disabledAttr(selectInput({ options: fornsTipo, value: fornSel[etapa], placeholder: 'Selecione...' }));
+    const sel = disabledAttr(readOnly, selectInput({ options: fornsTipo, value: fornSel[etapa], placeholder: 'Selecione...' }));
     sel.addEventListener('change', () => { fornSel[etapa] = sel.value ? Number(sel.value) : ''; renderRight(); });
     return formField({ label, input: sel });
   }
 
-  function fmtKg(n) { return (n == null ? '—' : Number(n).toFixed(3).replace('.', ',') + ' kg'); }
-  function fmtMetros(n) { return Number(n).toFixed(2).replace('.', ',') + ' m'; }
-  function rotuloFioOrdem(o) {
-    return o.tipo === 'algodao' ? 'Algodão — ' + (o.cores?.nome || '?') : 'Poliéster — ' + (o.cor_poliester || '?');
-  }
-  function rotuloModelo(modelo) {
-    if (!modelo) return '?';
-    return `${modelo.nome} ${larguraKey(modelo.largura)}m · ${modelo.cor_1?.nome || '?'}/${modelo.cor_2?.nome || '?'}`;
-  }
+
+
+
 
   async function atribuirFornecedorFio(etapa, tipo, fornecedorId) {
     // etapa: 'fio_algodao'|'fio_poliester'; tipo: 'algodao'|'poliester'
@@ -451,8 +446,8 @@ async function screenNovaOP(opId) {
 
     return el('div', { class: 'flex flex-wrap items-end gap-3 border-b py-3' },
       el('div', { class: 'flex-1 min-w-[200px]' },
-        el('div', { class: 'font-medium text-gray-800' }, rotuloFioOrdem(ordem)),
-        el('div', { class: 'text-xs text-gray-500' }, 'Pedido: ' + fmtKg(ordem.kg_pedido)),
+        el('div', { class: 'font-medium text-gray-800' }, window.rotuloFio(ordem)),
+        el('div', { class: 'text-xs text-gray-500' }, 'Pedido: ' + window.fmtKg(ordem.kg_pedido)),
       ),
       el('div', { class: 'w-32' }, formField({ label: 'Kg recebido', input: kgInput })),
       el('div', { class: 'w-40' }, formField({ label: 'Data', input: dataInput })),
@@ -535,9 +530,9 @@ async function screenNovaOP(opId) {
         box.appendChild(el('div', { class: 'text-xs uppercase text-gray-500 mt-2 mb-1' }, 'Recebidas'));
         box.appendChild(dataTable({
           columns: [
-            { key: 'fio', label: 'Fio', render: rotuloFioOrdem },
-            { key: 'kg_pedido', label: 'Pedido', render: (o) => fmtKg(o.kg_pedido) },
-            { key: 'kg_recebido', label: 'Recebido', render: (o) => fmtKg(o.kg_recebido) },
+            { key: 'fio', label: 'Fio', render: window.rotuloFio },
+            { key: 'kg_pedido', label: 'Pedido', render: (o) => window.fmtKg(o.kg_pedido) },
+            { key: 'kg_recebido', label: 'Recebido', render: (o) => window.fmtKg(o.kg_recebido) },
             { key: 'status', label: 'Status', render: (o) => OCF_STATUS_LABEL[o.status] || o.status },
           ],
           rows: recebidas,
@@ -554,9 +549,9 @@ async function screenNovaOP(opId) {
     } else {
       box.appendChild(dataTable({
         columns: [
-          { key: 'fio', label: 'Fio', render: rotuloFioOrdem },
-          { key: 'kg_pedido', label: 'Pedido', render: (o) => fmtKg(o.kg_pedido) },
-          { key: 'kg_recebido', label: 'Recebido', render: (o) => o.kg_recebido == null ? '—' : fmtKg(o.kg_recebido) },
+          { key: 'fio', label: 'Fio', render: window.rotuloFio },
+          { key: 'kg_pedido', label: 'Pedido', render: (o) => window.fmtKg(o.kg_pedido) },
+          { key: 'kg_recebido', label: 'Recebido', render: (o) => o.kg_recebido == null ? '—' : window.fmtKg(o.kg_recebido) },
           { key: 'status', label: 'Status', render: (o) => OCF_STATUS_LABEL[o.status] || o.status },
         ],
         rows: ordens,
@@ -565,9 +560,9 @@ async function screenNovaOP(opId) {
       box.appendChild(el('div', { class: 'font-semibold text-gray-700 mt-4 mb-2' }, 'Metros de produção'));
       box.appendChild(dataTable({
         columns: [
-          { key: 'modelo', label: 'Modelo', render: (i) => rotuloModelo(modelosById[i.modelo_id]) },
-          { key: 'metros_pedidos', label: 'Pedido', render: (i) => fmtMetros(i.metros_pedidos) },
-          { key: 'metros_ajustados', label: 'Produção', render: (i) => i.metros_ajustados == null ? fmtMetros(i.metros_pedidos) : fmtMetros(i.metros_ajustados) },
+          { key: 'modelo', label: 'Modelo', render: (i) => window.rotuloModelo(modelosById[i.modelo_id]) },
+          { key: 'metros_pedidos', label: 'Pedido', render: (i) => window.fmtMetros(i.metros_pedidos) },
+          { key: 'metros_ajustados', label: 'Produção', render: (i) => i.metros_ajustados == null ? window.fmtMetros(i.metros_pedidos) : window.fmtMetros(i.metros_ajustados) },
         ],
         rows: opItensRaw,
       }));
@@ -584,15 +579,15 @@ async function screenNovaOP(opId) {
 
     box.appendChild(dataTable({
       columns: [
-        { key: 'modelo', label: 'Modelo', render: (i) => rotuloModelo(modelosById[i.modelo_id]) },
-        { key: 'metros_pedidos', label: 'Pedido', render: (i) => fmtMetros(i.metros_pedidos) },
-        { key: 'metros_ajustados', label: 'Ajustado', render: (i) => i.metros_ajustados == null ? fmtMetros(i.metros_pedidos) : fmtMetros(i.metros_ajustados) },
-        { key: 'entregue', label: 'Entregue', render: (i) => fmtMetros(totalPorItem[i.id] || 0) },
+        { key: 'modelo', label: 'Modelo', render: (i) => window.rotuloModelo(modelosById[i.modelo_id]) },
+        { key: 'metros_pedidos', label: 'Pedido', render: (i) => window.fmtMetros(i.metros_pedidos) },
+        { key: 'metros_ajustados', label: 'Ajustado', render: (i) => i.metros_ajustados == null ? window.fmtMetros(i.metros_pedidos) : window.fmtMetros(i.metros_ajustados) },
+        { key: 'entregue', label: 'Entregue', render: (i) => window.fmtMetros(totalPorItem[i.id] || 0) },
         { key: 'falta', label: 'Falta', render: (i) => {
             const ajustado = i.metros_ajustados == null ? Number(i.metros_pedidos) : Number(i.metros_ajustados);
             const falta = Math.round((ajustado - (totalPorItem[i.id] || 0)) * 100) / 100;
             const cor = falta <= 0 ? 'text-green-700' : 'text-gray-800';
-            return el('span', { class: cor }, falta <= 0 ? '✅ completo' : fmtMetros(falta));
+            return el('span', { class: cor }, falta <= 0 ? '✅ completo' : window.fmtMetros(falta));
           } },
       ],
       rows: opItensRaw,
@@ -649,9 +644,9 @@ async function screenNovaOP(opId) {
         if (ent.observacao) subcard.appendChild(el('div', { class: 'text-xs text-gray-500' }, ent.observacao));
         for (const ei of (ent.entrega_itens || []).filter(x => x.op_id === op.id)) {
           const it = opItensRaw.find(i => i.id === ei.op_item_id);
-          const nome = it ? rotuloModelo(modelosById[it.modelo_id]) : '?';
+          const nome = it ? window.rotuloModelo(modelosById[it.modelo_id]) : '?';
           subcard.appendChild(el('div', { class: 'text-sm text-gray-700' },
-            nome + ': ' + fmtMetros(ei.metros_entregues),
+            nome + ': ' + window.fmtMetros(ei.metros_entregues),
             ei.defeito ? el('span', { class: 'ml-2 text-red-600 font-semibold' }, '⚠ DEFEITO') : '',
             ei.observacao ? el('span', { class: 'ml-2 text-xs text-gray-500' }, '(' + ei.observacao + ')') : '',
           ));
@@ -740,23 +735,23 @@ async function screenNovaOP(opId) {
         class: 'w-full',
       });
       slider.value = String(Math.round(metrosOverride[c.op_item_id]));
-      const valorLabel = el('span', { class: 'text-sm font-semibold text-gray-800 w-20 text-right' }, fmtMetros(Number(slider.value)));
+      const valorLabel = el('span', { class: 'text-sm font-semibold text-gray-800 w-20 text-right' }, window.fmtMetros(Number(slider.value)));
       slider.addEventListener('input', () => {
         metrosOverride[c.op_item_id] = Number(slider.value);
-        valorLabel.textContent = fmtMetros(Number(slider.value));
+        valorLabel.textContent = window.fmtMetros(Number(slider.value));
         recompute();
       });
 
       const modelo = modelosById[c.modelo_id];
       const linha = el('div', { class: 'border rounded-lg p-3' },
         el('div', { class: 'flex items-center justify-between mb-1' },
-          el('div', { class: 'text-sm font-medium text-gray-800' }, rotuloModelo(modelo) + '  ·  pedido ' + fmtMetros(c.metros_pedidos)),
+          el('div', { class: 'text-sm font-medium text-gray-800' }, window.rotuloModelo(modelo) + '  ·  pedido ' + window.fmtMetros(c.metros_pedidos)),
           valorLabel,
         ),
         slider,
         el('div', { class: 'flex justify-between text-xs text-gray-400 mt-1' },
           el('span', {}, '0 m'),
-          el('span', {}, 'máx individual: ' + fmtMetros(max)),
+          el('span', {}, 'máx individual: ' + window.fmtMetros(max)),
         ),
       );
       sliders.appendChild(linha);
@@ -775,7 +770,7 @@ async function screenNovaOP(opId) {
           const v = Math.round(it.metros_ajustados);
           metrosOverride[it.op_item_id] = v;
           const row = itemRowState[it.op_item_id];
-          if (row) { row.slider.value = String(v); row.valorLabel.textContent = fmtMetros(v); }
+          if (row) { row.slider.value = String(v); row.valorLabel.textContent = window.fmtMetros(v); }
         }
         recompute();
       },
@@ -807,10 +802,10 @@ async function screenNovaOP(opId) {
           ? 'Algodão — ' + (o.cores?.nome || '?')
           : 'Poliéster — ' + o.cor_poliester;
         const sobraTxt = c.sobra >= 0
-          ? `sobra ${fmtKg(c.sobra)}`
-          : `EXCEDE em ${fmtKg(-c.sobra)}`;
+          ? `sobra ${window.fmtKg(c.sobra)}`
+          : `EXCEDE em ${window.fmtKg(-c.sobra)}`;
         linhas.push(el('div', { class: 'flex justify-between text-sm py-1 ' + (c.sobra < 0 ? 'text-red-600' : 'text-gray-700') },
-          el('span', {}, nome + ': ' + fmtKg(c.kg_consumido) + ' / ' + fmtKg(c.kg_recebido)),
+          el('span', {}, nome + ': ' + window.fmtKg(c.kg_consumido) + ' / ' + window.fmtKg(c.kg_recebido)),
           el('span', { class: 'font-medium' }, sobraTxt),
         ));
       }
@@ -968,7 +963,7 @@ async function screenNovaOP(opId) {
 
 async function renderOPLatexAdmin(opId) {
   const container = el('div', {});
-  const fmtMetros = (n) => Number(n).toFixed(2).replace('.', ',') + ' m';
+
 
   async function reload() {
     const opRes = await supa.from('ops')
@@ -1016,13 +1011,13 @@ async function renderOPLatexAdmin(opId) {
       columns: [
         { key: 'modelo', label: 'Modelo', render: (i) => {
             const m = modelosById[i.modelo_id];
-            return m ? `${m.nome} ${larguraKey(m.largura)}m · ${m.cor_1?.nome || '?'}/${m.cor_2?.nome || '?'}` : ('#' + i.modelo_id);
+            return m ? window.rotuloModelo(m) : ('#' + i.modelo_id);
           } },
-        { key: 'enviado', label: 'Enviado', render: (i) => fmtMetros(i.metros_pedidos) },
-        { key: 'recebido', label: 'Recebido', render: (i) => fmtMetros(totalPorItem[i.id] || 0) },
+        { key: 'enviado', label: 'Enviado', render: (i) => window.fmtMetros(i.metros_pedidos) },
+        { key: 'recebido', label: 'Recebido', render: (i) => window.fmtMetros(totalPorItem[i.id] || 0) },
         { key: 'falta', label: 'Falta', render: (i) => {
             const falta = Math.round((Number(i.metros_pedidos) - (totalPorItem[i.id] || 0)) * 100) / 100;
-            return el('span', { class: falta <= 0 ? 'text-green-700' : 'text-gray-800' }, falta <= 0 ? '✅ completo' : fmtMetros(falta));
+            return el('span', { class: falta <= 0 ? 'text-green-700' : 'text-gray-800' }, falta <= 0 ? '✅ completo' : window.fmtMetros(falta));
           } },
       ],
       rows: op.op_itens || [],
@@ -1067,9 +1062,9 @@ async function renderOPLatexAdmin(opId) {
         for (const ei of (ent.entrega_itens || []).filter(x => x.op_id === op.id)) {
           const it = (op.op_itens || []).find(i => i.id === ei.op_item_id);
           const m = it ? modelosById[it.modelo_id] : null;
-          const nome = m ? `${m.nome} ${larguraKey(m.largura)}m · ${m.cor_1?.nome || '?'}/${m.cor_2?.nome || '?'}` : '?';
+          const nome = window.rotuloModelo(m);
           sub.appendChild(el('div', { class: 'text-sm text-gray-700' },
-            nome + ': ' + fmtMetros(ei.metros_entregues),
+            nome + ': ' + window.fmtMetros(ei.metros_entregues),
             ei.defeito ? el('span', { class: 'ml-2 text-red-600 font-semibold' }, '⚠ DEFEITO') : '',
             ei.observacao ? el('span', { class: 'ml-2 text-xs text-gray-500' }, '(' + ei.observacao + ')') : '',
           ));

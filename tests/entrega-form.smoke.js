@@ -255,7 +255,7 @@ test('5. script inline NÃO contém mais function rotuloFio, const OCF_STATUS_LA
     'inline ainda declara function buildEntregaInlineForm');
 });
 
-test('6. script inline AINDA contém telas, helpers, setRoutes, main e rotuloFioOrdem', () => {
+test('6. script inline AINDA contém telas, helpers, setRoutes, main', () => {
   const inline = extractInlineScript(indexSrc);
   // Todos os writes foram extraídos para js/screens/entrega-writes.js
   // (Fases 2.1, 2.2 e 2.3 do DIAG). As 4 telas de fornecedor foram
@@ -270,8 +270,10 @@ test('6. script inline AINDA contém telas, helpers, setRoutes, main e rotuloFio
     assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `inline perdeu a função ${fn}`);
   }
-  // clone local em screenNovaOP
-  assert.match(inline, /function\s+rotuloFioOrdem\s*\(/);
+  // rotuloFioOrdem (clone local) foi unificado com rotuloFio
+  // em OP-FORM-HELPERS-MODULE-A
+  assert.equal(/function\s+rotuloFioOrdem\s*\(/.test(inline), false,
+    'inline não deve mais declarar rotuloFioOrdem (unificado com rotuloFio)');
   // setRoutes e main
   assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/);
   assert.match(inline, /async\s+function\s+main\s*\(/);
@@ -313,7 +315,7 @@ test('11. index.html NÃO contém service_role nem password literal longo', () =
     'password literal longo em index.html');
 });
 
-test('12. rotuloFio declarado UMA única vez no projeto (apenas em entrega-form.js; clone local rotuloFioOrdem tem nome diferente)', () => {
+test('12. rotuloFio declarado UMA única vez no projeto (apenas em entrega-form.js; clone local rotuloFioOrdem removido via OP-FORM-HELPERS)', () => {
   const inline = extractInlineScript(indexSrc);
   const total = (efSrc.match(/function\s+rotuloFio\s*\(/g) || []).length
     + (inline.match(/function\s+rotuloFio\s*\(/g) || []).length;

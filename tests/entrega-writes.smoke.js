@@ -355,7 +355,7 @@ test('5. script inline NÃO contém mais function excluirEntrega', () => {
     'inline ainda declara function excluirEntrega');
 });
 
-test('6. script inline AINDA contém as telas, helpers, setRoutes, main, rotuloFioOrdem', () => {
+test('6. script inline AINDA contém as telas, helpers, setRoutes, main', () => {
   const inline = extractInlineScript(indexSrc);
   // Todos os writes foram extraídos para js/screens/entrega-writes.js
   // (Fases 2.1, 2.2 e 2.3 do DIAG). O inline NÃO deve mais
@@ -370,8 +370,10 @@ test('6. script inline AINDA contém as telas, helpers, setRoutes, main, rotuloF
     assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `inline perdeu a função ${fn}`);
   }
-  // Clone local em screenNovaOP
-  assert.match(inline, /function\s+rotuloFioOrdem\s*\(/);
+  // rotuloFioOrdem (clone local) foi unificado com rotuloFio
+  // em OP-FORM-HELPERS-MODULE-A
+  assert.equal(/function\s+rotuloFioOrdem\s*\(/.test(inline), false,
+    'inline não deve mais declarar rotuloFioOrdem (unificado com rotuloFio)');
   // setRoutes e main
   assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/);
   assert.match(inline, /async\s+function\s+main\s*\(/);
