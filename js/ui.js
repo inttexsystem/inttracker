@@ -30,8 +30,16 @@ function toast(message, type = 'info') {
   setTimeout(() => node.remove(), 4000);
 }
 
+function getAppRoot() {
+  const root = document.getElementById('app');
+  if (!root) {
+    throw new Error('App root #app not found');
+  }
+  return root;
+}
+
 function setApp(node) {
-  const app = $('#app');
+  const app = getAppRoot();
   app.replaceChildren(node);
 }
 
