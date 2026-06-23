@@ -13,10 +13,9 @@
 //   4. ordem ops-list → entrega-form → jspdf → inline;
 //   5. inline NÃO contém mais: function rotuloFio, const
 //      OCF_STATUS_LABEL, function buildEntregaInlineForm;
-//   6. inline AINDA contém: salvarEntregaCima, atualizarEntregaCima,
-//      salvarEntregaLatex, atualizarEntregaLatex, excluirEntrega,
-//      screenFornecedorEntregas, screenFornecedorLatex,
-//      screenFornecedorOrdens, screenNovaOP, renderOPLatexAdmin,
+//   6. inline AINDA contém: screenFornecedorEntregas,
+//      screenFornecedorLatex, screenFornecedorOrdens,
+//      screenNovaOP, renderOPLatexAdmin,
 //      setRoutes, main, rotuloFioOrdem (clone local em screenNovaOP);
 //   7. js/screens/entrega-form.js contém as 3 entradas;
 //   8. js/screens/entrega-form.js NÃO contém: salvarEntregaCima,
@@ -256,18 +255,12 @@ test('5. script inline NÃO contém mais function rotuloFio, const OCF_STATUS_LA
     'inline ainda declara function buildEntregaInlineForm');
 });
 
-test('6. script inline AINDA contém writes, telas, helpers, setRoutes, main e rotuloFioOrdem', () => {
+test('6. script inline AINDA contém telas, helpers, setRoutes, main e rotuloFioOrdem', () => {
   const inline = extractInlineScript(indexSrc);
-  // Writes remanescentes: apenas Cima (Fase 2.3 do DIAG).
-  // excluirEntrega, salvarEntregaLatex e atualizarEntregaLatex
-  // foram extraídos para js/screens/entrega-writes.js (Fases 2.1
-  // e 2.2).
-  for (const fn of [
-    'salvarEntregaCima', 'atualizarEntregaCima',
-  ]) {
-    assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
-      `inline perdeu a função ${fn}`);
-  }
+  // Todos os writes foram extraídos para js/screens/entrega-writes.js
+  // (Fases 2.1, 2.2 e 2.3 do DIAG): excluirEntrega,
+  // salvarEntregaLatex, atualizarEntregaLatex, salvarEntregaCima,
+  // atualizarEntregaCima.
   // telas
   for (const fn of [
     'screenPainel', 'screenFornecedorHome', 'screenFornecedorEntregas',

@@ -325,14 +325,10 @@ test('6. script inline AINDA contém telas não-cadastro, helpers e setRoutes/ma
     assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `inline perdeu a função ${fn}`);
   }
-  // Writes remanescentes: apenas Cima (Fase 2.3 do DIAG).
-  // excluirEntrega, salvarEntregaLatex e atualizarEntregaLatex
-  // foram extraídos para js/screens/entrega-writes.js (Fases 2.1
-  // e 2.2).
-  for (const fn of ['salvarEntregaCima', 'atualizarEntregaCima']) {
-    assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
-      `inline perdeu helper ${fn}`);
-  }
+  // Todos os writes foram extraídos para js/screens/entrega-writes.js
+  // (Fases 2.1, 2.2 e 2.3 do DIAG): excluirEntrega,
+  // salvarEntregaLatex, atualizarEntregaLatex, salvarEntregaCima,
+  // atualizarEntregaCima. O inline não deve mais declará-los.
   // setRoutes + main
   assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/);
   assert.match(inline, /async\s+function\s+main\s*\(/);

@@ -113,59 +113,13 @@ function screenFornecedorHome() {
   ], content);
 }
 
-// Persistência das entregas de tecelagem (Fase 5a).
-async function salvarEntregaCima({ fornecedorId, opId, payload }) {
-  if (payload.linhas.length === 0) { toast('Adicione ao menos 1 item com metros entregues', 'error'); return false; }
-  if (!payload.destino_fornecedor_id) { toast('Escolha a empresa de látex de destino', 'error'); return false; }
-  const ins = await supa.from('entregas').insert({
-    fornecedor_id: fornecedorId, etapa: 'cima', data: payload.data, observacao: payload.observacao,
-    destino_fornecedor_id: payload.destino_fornecedor_id,
-  }).select().single();
-  if (ins.error) { toast('Erro ao gravar entrega', 'error'); console.error(ins.error); return false; }
-  const entregaId = ins.data.id;
-  const itens = payload.linhas.map(l => ({ entrega_id: entregaId, op_id: opId, ...l }));
-  const insItens = await supa.from('entrega_itens').insert(itens);
-  if (insItens.error) {
-    await supa.from('entregas').delete().eq('id', entregaId);
-    toast('Erro ao gravar itens da entrega', 'error'); console.error(insItens.error); return false;
-  }
-  // Fase 5b: a entrega de tecelagem gera automaticamente a OP de látex.
-  const rpc = await supa.rpc('gerar_op_latex', { p_entrega_id: entregaId });
-  if (rpc.error) {
-    toast('Entrega salva, mas falhou ao gerar a OP de látex. Gere manualmente.', 'error');
-    console.error(rpc.error);
-    return true;
-  }
-  toast('Entrega registrada' + (rpc.data ? ' · OP de látex gerada' : ''), 'success');
-  return true;
-}
-
-async function atualizarEntregaCima({ entregaId, opId, payload }) {
-  if (payload.linhas.length === 0) { toast('Adicione ao menos 1 item com metros entregues', 'error'); return false; }
-  if (!payload.destino_fornecedor_id) { toast('Escolha a empresa de látex de destino', 'error'); return false; }
-  const upd = await supa.from('entregas').update({
-    data: payload.data, observacao: payload.observacao,
-    destino_fornecedor_id: payload.destino_fornecedor_id,
-  }).eq('id', entregaId);
-  if (upd.error) { toast('Erro ao atualizar entrega', 'error'); console.error(upd.error); return false; }
-  await supa.from('entrega_itens').delete().eq('entrega_id', entregaId);
-  const itens = payload.linhas.map(l => ({ entrega_id: entregaId, op_id: opId, ...l }));
-  const insItens = await supa.from('entrega_itens').insert(itens);
-  // MVP: se a reinsercao falhar aqui, a entrega fica sem itens. Como o app eh
-  // single-admin e baixo volume, aceitamos o risco e a correcao manual via Supabase.
-  if (insItens.error) { toast('Erro ao regravar itens da entrega', 'error'); console.error(insItens.error); return false; }
-  toast('Entrega atualizada', 'success');
-  return true;
-}
-
-// Persistência dos recebimentos de látex (Fase 5b) e `excluirEntrega`
-// foram extraídos para js/screens/entrega-writes.js (Fases 2.1
-// e 2.2 do DIAG). As globais legadas window.salvarEntregaLatex,
-// window.atualizarEntregaLatex e window.excluirEntrega seguem
-// disponíveis para as 4 telas abaixo. Os helpers de Cima
-// (salvarEntregaCima, atualizarEntregaCima) permanecem inline
-// por decisão arquitetural (Fase 2.3 do DIAG, risco alto por
-// causa do rpc gerar_op_latex).
+// Persistência dos recebimentos de látex (Fase 5b), persistência
+// das entregas de tecelagem (Fase 5a) e `excluirEntrega` foram
+// extraídos para js/screens/entrega-writes.js (Fases 2.1, 2.2
+// e 2.3 do DIAG). As globais legadas window.salvarEntregaLatex,
+// window.atualizarEntregaLatex, window.salvarEntregaCima,
+// window.atualizarEntregaCima e window.excluirEntrega seguem
+// disponíveis para as 4 telas abaixo.
 
 async function screenFornecedorEntregas() {
   const container = el('div', {});
