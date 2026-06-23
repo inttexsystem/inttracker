@@ -2,6 +2,7 @@
 
 > Para uma nova sessão de IA continuar com segurança. Leia junto:
 > `PROJECT_STATE.md` e `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
+> Regras vinculantes em `docs/architecture/CODE_HEALTH_RULES.md`.
 > Convenção: **tudo em português brasileiro**.
 
 ## Estado atual aceito
@@ -78,9 +79,10 @@ Abortar e revisar o escopo se:
    `JWT secret`, connection string com senha, anon key completa.
 6. **Testes focados** por fase (`node --test <arquivo>.smoke.js`).
    Não rodar suíte completa por padrão.
-7. **Fase docs-only**: só `PROJECT_STATE.md`, `AGENT_HANDOFF.md` e
-   `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` podem ser
-   alterados. Qualquer diff fora desses 3 arquivos reprova.
+7. **Fase docs-only**: só `PROJECT_STATE.md`, `AGENT_HANDOFF.md`,
+   `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` e
+   `docs/architecture/CODE_HEALTH_RULES.md` podem ser alterados.
+   Qualquer diff fora desses 4 arquivos reprova.
 8. **Não mexer** em `aplicarRecalculoOP` ou `persistirOP` sem
    nova fase explícita.
 9. **Não fazer docs + código na mesma fase.**

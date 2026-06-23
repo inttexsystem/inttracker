@@ -3,9 +3,8 @@
 > Ledger de fases do refactor arquitetural de
 > `D:\OneDrive\Programação\Ravatex\controle-tapetes`.
 > Última atualização: 2026-06-23 (HEAD `7f3c6da`,
-> fase `RAVATEX-TAPETES-REFACTOR-FINAL-DOCS-B` — fechamento
-> consolidado do ciclo de refactor + hardening + diagnóstico +
-> extração final do `op-pdf.js`).
+> fase `RAVATEX-TAPETES-CODE-HEALTH-RULES` — criação do documento
+> de regras de saúde arquitetural).
 
 ## 1. Premissas corrigidas
 - **App estático**, não Next/Vercel.
@@ -87,7 +86,8 @@
 | CACHE-BUSTING-LOCAL-ASSETS | `5d5b395` | `index.html` (?v=20260623-asset1) + smokes | 368/368 | aceito |
 | OP-NOVA-SEAMS-DIAG-A | (read-only) | `js/screens/op-nova.js` (análise) | n/a | aceito |
 | OP-NOVA-PDF-MODULE-A | `7f3c6da` | `js/screens/op-pdf.js` | 388/388 | aceito |
-| REFACTOR-FINAL-DOCS-B | (a criar) | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | esta fase |
+| REFACTOR-FINAL-DOCS-B | `e64d1cc` | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | aceito |
+| CODE-HEALTH-RULES | (a criar) | `docs/architecture/CODE_HEALTH_RULES.md` | docs-only | esta fase |
 
 ## 5. Ressalvas processuais aceitas em `FORNECEDOR-SCREENS-MODULE-A` (commit `4b9ca12`)
 
@@ -248,6 +248,30 @@ Justificativa:
 
 Próxima fase esperada: **homologação / release**, não nova
 extração.
+
+## 5e. Regras de saúde arquitetural (`CODE-HEALTH-RULES`)
+
+Fase docs-only para criação de `docs/architecture/CODE_HEALTH_RULES.md`,
+documento vinculante com 18 regras de saúde arquitetural que toda nova
+fase deve respeitar.
+
+Regras cobrem:
+
+- Princípio central (app simples, estático, modular).
+- `index.html` declarativo e `js/boot.js` como entrypoint.
+- Separação de responsabilidades (`router.js`, `ui.js`, screens).
+- Limites de tamanho para arquivos e funções.
+- Helpers puros, writes Supabase, reads Supabase.
+- Autenticação e perfil (`auth.users.id = public.usuarios.id`).
+- Cache-busting obrigatório em assets locais.
+- Testes proporcionais ao risco.
+- Fases com escopo único (não misturar diagnóstico, refactor, feature, docs).
+- Regras de Git (push seletivo, sem `git add .`, sem `origin` sem autorização).
+- Critérios de bloqueio arquitetural.
+- Auditoria periódica read-only.
+
+Documentos principais atualizados para referenciar `CODE_HEALTH_RULES.md`:
+`PROJECT_STATE.md`, `AGENT_HANDOFF.md` e este LEDGER.
 
 ## 6. Módulos extraídos (lista canônica)
 

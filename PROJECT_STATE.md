@@ -6,6 +6,8 @@
 > `op-pdf.js`).
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
+> Regras de saúde arquitetural em
+> `docs/architecture/CODE_HEALTH_RULES.md`.
 
 ## Produto
 SPA web para controlar a produção de tapetes, do pedido de fio até o
