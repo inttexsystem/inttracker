@@ -111,6 +111,7 @@ const SYSTEM_SCREENS = path.join(ROOT, 'js', 'screens', 'system-screens.js');
 const COMMON = path.join(ROOT, 'js', 'screens', 'common.js');
 const CAD    = path.join(ROOT, 'js', 'screens', 'cadastros.js');
 const OPS    = path.join(ROOT, 'js', 'screens', 'ops-list.js');
+const PAINEL = path.join(ROOT, 'js', 'screens', 'painel.js');
 
 const indexSrc  = fs.readFileSync(INDEX,  'utf8');
 const fornSrc   = fs.readFileSync(FORN,   'utf8');
@@ -124,6 +125,7 @@ const sysSrc    = fs.readFileSync(SYSTEM_SCREENS, 'utf8');
 const commonSrc = fs.readFileSync(COMMON, 'utf8');
 const cadSrc    = fs.readFileSync(CAD,    'utf8');
 const opsSrc    = fs.readFileSync(OPS,    'utf8');
+const painelSrc = fs.readFileSync(PAINEL, 'utf8');
 
 // -----------------------------------------------------------------------------
 // Helpers estáticos
@@ -428,7 +430,7 @@ test('5. script inline NÃO contém mais as 4 funções de fornecedor', () => {
 test('6. script inline AINDA contém telas, helpers, setRoutes, main (renderOPLatexAdmin extraído para op-latex-admin.js)', () => {
   const inline = extractInlineScript(indexSrc);
   for (const fn of [
-    'screenPainel', 'screenNovaOP',
+    'screenNovaOP',
   ]) {
     assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `inline perdeu a função ${fn}`);
@@ -785,6 +787,7 @@ test('33. boot: ui + badges + calculo-op + common + cadastros + ops-list + entre
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   vm.runInContext(fornSrc,   sandbox, { filename: 'js/screens/fornecedor.js' });
+  vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
@@ -856,6 +859,7 @@ test('34. screenPainel (inline) ainda renderiza via shellLayout com 9 itens do A
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   vm.runInContext(fornSrc,   sandbox, { filename: 'js/screens/fornecedor.js' });
+  vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
 

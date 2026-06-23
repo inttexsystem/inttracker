@@ -80,6 +80,7 @@ const SYSTEM_SCREENS = path.join(ROOT, 'js', 'screens', 'system-screens.js');
 const COMMON = path.join(ROOT, 'js', 'screens', 'common.js');
 const CAD    = path.join(ROOT, 'js', 'screens', 'cadastros.js');
 const OPS    = path.join(ROOT, 'js', 'screens', 'ops-list.js');
+const PAINEL = path.join(ROOT, 'js', 'screens', 'painel.js');
 
 const indexSrc  = fs.readFileSync(INDEX, 'utf8');
 const olaSrc    = fs.readFileSync(OLA,   'utf8');
@@ -96,6 +97,7 @@ const cadSrc    = fs.readFileSync(CAD,   'utf8');
 const opsSrc    = fs.readFileSync(OPS,   'utf8');
 const ewSrc     = fs.readFileSync(EW,    'utf8');
 const fornSrc   = fs.readFileSync(FORN,  'utf8');
+const painelSrc = fs.readFileSync(PAINEL, 'utf8');
 
 // -----------------------------------------------------------------------------
 // Helpers estáticos
@@ -523,6 +525,7 @@ test('27. boot chain: ui + router + system-screens + common + cadastros + ops-li
   vm.runInContext(ofhSrc,    sandbox, { filename: 'js/screens/op-form-helpers.js' });
   vm.runInContext(opwSrc,    sandbox, { filename: 'js/screens/op-writes.js' });
   vm.runInContext(olaSrc,    sandbox, { filename: 'js/screens/op-latex-admin.js' });
+  vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
