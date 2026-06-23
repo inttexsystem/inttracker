@@ -37,6 +37,7 @@ const cp     = require('node:child_process');
 const ROOT  = path.resolve(__dirname, '..');
 const INDEX = path.join(ROOT, 'index.html');
 const PAINEL= path.join(ROOT, 'js', 'screens', 'painel.js');
+const OPN   = path.join(ROOT, 'js', 'screens', 'op-nova.js');
 const OLA   = path.join(ROOT, 'js', 'screens', 'op-latex-admin.js');
 const OPW   = path.join(ROOT, 'js', 'screens', 'op-writes.js');
 const OFH   = path.join(ROOT, 'js', 'screens', 'op-form-helpers.js');
@@ -54,6 +55,7 @@ const OPS   = path.join(ROOT, 'js', 'screens', 'ops-list.js');
 
 const indexSrc  = fs.readFileSync(INDEX, 'utf8');
 const painelSrc = fs.readFileSync(PAINEL, 'utf8');
+const opnSrc    = fs.readFileSync(OPN,   'utf8');
 const olaSrc    = fs.readFileSync(OLA,   'utf8');
 const opwSrc    = fs.readFileSync(OPW,   'utf8');
 const ofhSrc    = fs.readFileSync(OFH,   'utf8');
@@ -173,10 +175,10 @@ test('6. inline NÃO contém mais function screenPainel', () => {
     'inline ainda declara function screenPainel — função deveria ter sido extraída');
 });
 
-test('7. inline AINDA contém async function screenNovaOP', () => {
+test('7. screenNovaOP foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+screenNovaOP\s*\(/,
-    'inline perdeu screenNovaOP — função deveria continuar inline');
+  assert.equal(/async\s+function\s+screenNovaOP\s*\(/.test(inline), false,
+    'inline ainda tem screenNovaOP — extração incompleta');
 });
 
 test('8. inline AINDA contém setRoutes', () => {
@@ -249,6 +251,7 @@ function makeFullBootSandbox() {
   vm.runInContext(opwSrc,    sandbox, { filename: 'js/screens/op-writes.js' });
   vm.runInContext(olaSrc,    sandbox, { filename: 'js/screens/op-latex-admin.js' });
   vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
+  vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};

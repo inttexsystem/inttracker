@@ -63,6 +63,7 @@ const cp     = require('node:child_process');
 const ROOT   = path.resolve(__dirname, '..');
 const INDEX  = path.join(ROOT, 'index.html');
 const OPW    = path.join(ROOT, 'js', 'screens', 'op-writes.js');
+const OPN    = path.join(ROOT, 'js', 'screens', 'op-nova.js');
 const EF     = path.join(ROOT, 'js', 'screens', 'entrega-form.js');
 const EW     = path.join(ROOT, 'js', 'screens', 'entrega-writes.js');
 const OFH    = path.join(ROOT, 'js', 'screens', 'op-form-helpers.js');
@@ -79,6 +80,7 @@ const PAINEL = path.join(ROOT, 'js', 'screens', 'painel.js');
 
 const indexSrc  = fs.readFileSync(INDEX, 'utf8');
 const opwSrc    = fs.readFileSync(OPW,   'utf8');
+const opnSrc    = fs.readFileSync(OPN,   'utf8');
 const efSrc     = fs.readFileSync(EF,    'utf8');
 const uiSrc     = fs.readFileSync(UI,    'utf8');
 const badgesSrc = fs.readFileSync(BADGES, 'utf8');
@@ -188,55 +190,55 @@ test('4. index.html: ordem op-form-helpers.js → op-writes.js → jspdf → inl
   assert.ok(opwIdx < inlineIdx, 'op-writes deve vir antes do inline');
 });
 
-test('5. inline AINDA contém buildOrdemPendenteRow (a função não foi extraída)', () => {
+test('5. buildOrdemPendenteRow foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+buildOrdemPendenteRow\s*\(/,
-    'inline perdeu buildOrdemPendenteRow — função deveria continuar inline');
+  assert.equal(/function\s+buildOrdemPendenteRow\s*\(/.test(inline), false,
+    'inline ainda tem function buildOrdemPendenteRow — extração incompleta');
+  // A função foi movida para op-nova.js
+  assert.match(opnSrc, /function\s+buildOrdemPendenteRow\s*\(/,
+    'op-nova.js não contém buildOrdemPendenteRow');
 });
 
-test('6. inline AINDA contém validação kg > 0 em buildOrdemPendenteRow', () => {
-  const inline = extractInlineScript(indexSrc);
+test('6. op-nova.js contém validação kg > 0 em buildOrdemPendenteRow', () => {
   // A regra "Informe o kg recebido" + "kg > 0" é da UI, não do write.
-  assert.match(inline, /Informe o kg recebido/,
-    'inline perdeu a mensagem de validação de kg');
+  assert.match(opnSrc, /Informe o kg recebido/,
+    'op-nova.js perdeu a mensagem de validação de kg');
   // Garantia da regra: a expressão "kg > 0" ou "!(kg > 0)" deve estar presente
-  assert.match(inline, /!.*kg\s*>\s*0/,
-    'inline perdeu a validação "kg > 0"');
+  assert.match(opnSrc, /!.*kg\s*>\s*0/,
+    'op-nova.js perdeu a validação "kg > 0"');
 });
 
-test('7. inline AINDA contém cálculo de status parcial/total', () => {
-  const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /recebido_parcial/,
-    'inline perdeu literal "recebido_parcial"');
-  assert.match(inline, /recebido_total/,
-    'inline perdeu literal "recebido_total"');
+test('7. op-nova.js contém cálculo de status parcial/total', () => {
+  assert.match(opnSrc, /recebido_parcial/,
+    'op-nova.js perdeu literal "recebido_parcial"');
+  assert.match(opnSrc, /recebido_total/,
+    'op-nova.js perdeu literal "recebido_total"');
 });
 
 test('8. inline NÃO contém mais o write inline específico de recebimento', () => {
   // A tripla (supa.from('ordens_compra_fio').update({ kg_recebido, ...
   // data_recebimento, status }) + .eq('id', ordem.id)) era o write
   // movido. Após a extração, o call-site em buildOrdemPendenteRow
-  // deve usar window.registrarRecebimentoOrdemFio.
+  // (agora em op-nova.js) deve usar window.registrarRecebimentoOrdemFio.
   const inline = extractInlineScript(indexSrc);
   // Buscamos especificamente a forma inline que existia:
   //   supa.from('ordens_compra_fio').update({ kg_recebido: kg, data_recebimento: dataRec, status }).eq('id', ordem.id)
-  // Como as variáveis 'kg' e 'dataRec' e 'ordem' são do escopo do
-  // onclick, o write inline tinha uma assinatura bem específica.
   const oldInlineWriteRe = /supa\.from\(['"`]ordens_compra_fio['"`]\)\s*\.update\(\s*\{\s*kg_recebido\s*:\s*kg\s*,\s*data_recebimento\s*:\s*dataRec\s*,\s*status\s*\}\s*\)\s*\.eq\(['"`]id['"`]\s*,\s*ordem\.id\s*\)/;
   assert.equal(oldInlineWriteRe.test(inline), false,
-    'inline ainda tem o write inline de recebimento que deveria ter sido movido para window.registrarRecebimentoOrdemFio');
-  // E deve usar o novo helper:
-  assert.match(inline, /window\.registrarRecebimentoOrdemFio\(/,
-    'inline não usa window.registrarRecebimentoOrdemFio — call-site não foi atualizado');
+    'inline ainda tem o write inline de recebimento');
+  // E deve usar o novo helper: agora em op-nova.js (não no inline)
+  assert.match(opnSrc, /window\.registrarRecebimentoOrdemFio\(/,
+    'op-nova.js não usa window.registrarRecebimentoOrdemFio — call-site não foi atualizado');
 });
 
 test('9. inline NÃO contém mais function atribuirFornecedorFio (extraído para op-writes.js)', () => {
   const inline = extractInlineScript(indexSrc);
   assert.equal(/function\s+atribuirFornecedorFio\s*\(/.test(inline), false,
     'inline ainda declara atribuirFornecedorFio — função deveria ter sido extraída');
-  // O novo helper window.atribuirFornecedorFioOp deve ser referenciado
-  assert.match(inline, /window\.atribuirFornecedorFioOp\(/,
-    'inline não referencia window.atribuirFornecedorFioOp — call-site não atualizado');
+  // O novo helper window.atribuirFornecedorFioOp é referenciado
+  // por op-nova.js (não pelo inline)
+  assert.match(opnSrc, /window\.atribuirFornecedorFioOp\(/,
+    'op-nova.js não referencia window.atribuirFornecedorFioOp — call-site não atualizado');
 });
 
 test('10. inline NÃO contém mais persistir (extraído para op-persistir.js)', () => {
@@ -245,18 +247,25 @@ test('10. inline NÃO contém mais persistir (extraído para op-persistir.js)', 
     'inline ainda tem persistir - função deveria ter sido extraída');
 });
 
-test('11. inline AINDA contém aplicarRecalculo (NÃO extraído nesta fase)', () => {
+test('11. aplicarRecalculo foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+aplicarRecalculo\s*\(/,
-    'inline perdeu aplicarRecalculo — função deveria continuar inline');
+  assert.equal(/function\s+aplicarRecalculo\s*\(/.test(inline), false,
+    'inline ainda tem aplicarRecalculo — extração incompleta');
+  // A função foi movida para op-nova.js
+  assert.match(opnSrc, /async\s+function\s+aplicarRecalculo\s*\(/,
+    'op-nova.js não contém aplicarRecalculo');
 });
 
-test('12. inline AINDA contém screenNovaOP (renderOPLatexAdmin foi extraído para op-latex-admin.js)', () => {
+test('12. screenNovaOP foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+screenNovaOP\s*\(/,
-    'inline perdeu a função screenNovaOP');
+  assert.equal(/async\s+function\s+screenNovaOP\s*\(/.test(inline), false,
+    'inline ainda tem async function screenNovaOP — extração incompleta');
+  // renderOPLatexAdmin continua extraído em op-latex-admin.js
   assert.equal(/function\s+renderOPLatexAdmin\s*\(/.test(inline), false,
     'inline não deve mais declarar renderOPLatexAdmin (extraído para op-latex-admin.js)');
+  // A função foi movida para op-nova.js
+  assert.match(opnSrc, /async\s+function\s+screenNovaOP\s*\(/,
+    'op-nova.js não contém screenNovaOP');
 });
 
 test('13. op-writes.js NÃO contém service_role nem password literal longo', () => {
@@ -480,6 +489,7 @@ test('23. boot: ui + calculo-op + entrega-form + entrega-writes + fornecedor + o
   vm.runInContext(ofhSrc,    sandbox, { filename: 'js/screens/op-form-helpers.js' });
   vm.runInContext(opwSrc,    sandbox, { filename: 'js/screens/op-writes.js' });
   vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
+  vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
@@ -612,6 +622,7 @@ function makeFullBootSandbox() {
   vm.runInContext(fornSrc,   sandbox, { filename: 'js/screens/fornecedor.js' });
   vm.runInContext(ofhSrc,    sandbox, { filename: 'js/screens/op-form-helpers.js' });
   vm.runInContext(opwSrc,    sandbox, { filename: 'js/screens/op-writes.js' });
+  vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
   return sandbox;
@@ -901,9 +912,12 @@ test('43. sucesso retorna { error: null, step: 0 }', async () => {
   assert.equal(result.step, 0);
 });
 
-test('44. screenNovaOP continua inline após extração', () => {
+test('44. screenNovaOP foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+screenNovaOP\s*\(/);
+  assert.equal(/function\s+screenNovaOP\s*\(/.test(inline), false,
+    'inline ainda tem screenNovaOP — extração incompleta');
+  assert.match(opnSrc, /function\s+screenNovaOP\s*\(/,
+    'op-nova.js não contém screenNovaOP');
 });
 
 test('45. persistir NÃO está mais inline (extraído para op-persistir.js)', () => {
@@ -912,22 +926,29 @@ test('45. persistir NÃO está mais inline (extraído para op-persistir.js)', ()
     'inline ainda tem persistir - função deveria ter sido extraída');
 });
 
-test('46. aplicarRecalculo continua inline', () => {
+test('46. aplicarRecalculo foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+aplicarRecalculo\s*\(/);
+  assert.equal(/function\s+aplicarRecalculo\s*\(/.test(inline), false,
+    'inline ainda tem aplicarRecalculo — extração incompleta');
+  assert.match(opnSrc, /async\s+function\s+aplicarRecalculo\s*\(/,
+    'op-nova.js não contém aplicarRecalculo');
 });
 
-test('47. buildOrdemPendenteRow continua inline', () => {
+test('47. buildOrdemPendenteRow foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+buildOrdemPendenteRow\s*\(/);
+  assert.equal(/function\s+buildOrdemPendenteRow\s*\(/.test(inline), false,
+    'inline ainda tem buildOrdemPendenteRow — extração incompleta');
+  assert.match(opnSrc, /function\s+buildOrdemPendenteRow\s*\(/,
+    'op-nova.js não contém buildOrdemPendenteRow');
 });
 
 test('48. renderOPLatexAdmin NÃO está mais inline (extraído para op-latex-admin.js)', () => {
   const inline = extractInlineScript(indexSrc);
   assert.equal(/function\s+renderOPLatexAdmin\s*\(/.test(inline), false,
     'inline não deve mais declarar renderOPLatexAdmin — foi extraído para op-latex-admin.js');
-  assert.match(inline, /window\.renderOPLatexAdmin\(/,
-    'inline deve referenciar window.renderOPLatexAdmin no call-site de screenNovaOP');
+  // O call-site agora está em op-nova.js
+  assert.match(opnSrc, /window\.renderOPLatexAdmin\(/,
+    'op-nova.js deve referenciar window.renderOPLatexAdmin (call-site de screenNovaOP)');
 });
 
 test('49. boot chain com todos os helpers não lança SyntaxError', () => {

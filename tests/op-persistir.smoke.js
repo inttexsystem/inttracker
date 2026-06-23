@@ -37,6 +37,7 @@ const cp     = require('node:child_process');
 const ROOT  = path.resolve(__dirname, '..');
 const INDEX = path.join(ROOT, 'index.html');
 const OPP   = path.join(ROOT, 'js', 'screens', 'op-persistir.js');
+const OPN   = path.join(ROOT, 'js', 'screens', 'op-nova.js');
 const OPR   = path.join(ROOT, 'js', 'screens', 'op-recalculo.js');
 const PAINEL= path.join(ROOT, 'js', 'screens', 'painel.js');
 const OLA   = path.join(ROOT, 'js', 'screens', 'op-latex-admin.js');
@@ -56,6 +57,7 @@ const OPSLIST = path.join(ROOT, 'js', 'screens', 'ops-list.js');
 
 const indexSrc  = fs.readFileSync(INDEX, 'utf8');
 const oppSrc    = fs.readFileSync(OPP,   'utf8');
+const opnSrc    = fs.readFileSync(OPN,   'utf8');
 const oprSrc    = fs.readFileSync(OPR,   'utf8');
 const painelSrc = fs.readFileSync(PAINEL,'utf8');
 const olaSrc    = fs.readFileSync(OLA,   'utf8');
@@ -218,6 +220,7 @@ function makePersistirBootSandbox() {
   vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
   vm.runInContext(oprSrc,    sandbox, { filename: 'js/screens/op-recalculo.js' });
   vm.runInContext(oppSrc,    sandbox, { filename: 'js/screens/op-persistir.js' });
+  vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
@@ -404,16 +407,23 @@ test('26. inline NÃO contém mais writes em ordens_compra_fio (insert/update/de
     'inline ainda tem from("ordens_compra_fio").delete — write deveria ter sido extraído');
 });
 
-test('27. salvarSimulacao e abrirOP continuam inline', () => {
+test('27. salvarSimulacao e abrirOP foram extraídas para op-nova.js (NÃO estão mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+salvarSimulacao\s*\(/);
-  assert.match(inline, /async\s+function\s+abrirOP\s*\(/);
+  assert.equal(/async\s+function\s+salvarSimulacao\s*\(/.test(inline), false,
+    'inline ainda tem salvarSimulacao — extração incompleta');
+  assert.equal(/async\s+function\s+abrirOP\s*\(/.test(inline), false,
+    'inline ainda tem abrirOP — extração incompleta');
+  // Foram movidas para op-nova.js
+  assert.match(opnSrc, /async\s+function\s+salvarSimulacao\s*\(/);
+  assert.match(opnSrc, /async\s+function\s+abrirOP\s*\(/);
 });
 
-test('28. screenNovaOP continua inline', () => {
+test('28. screenNovaOP foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+screenNovaOP\s*\(/,
-    'screenNovaOP não está mais inline');
+  assert.equal(/async\s+function\s+screenNovaOP\s*\(/.test(inline), false,
+    'inline ainda tem async function screenNovaOP — extração incompleta');
+  // Foi movida para op-nova.js
+  assert.match(opnSrc, /async\s+function\s+screenNovaOP\s*\(/);
 });
 
 test('29. setRoutes e main continuam inline', () => {
@@ -667,6 +677,7 @@ function makePersistirOPSandbox({
   vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
   vm.runInContext(oprSrc,    sandbox, { filename: 'js/screens/op-recalculo.js' });
   vm.runInContext(oppSrc,    sandbox, { filename: 'js/screens/op-persistir.js' });
+  vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
 
   // Mocks de calcularFiosOP e montarOrdensCompraFio devem ser definidos
   // DEPOIS de carregar calculo-op.js, pois este define as funções reais
@@ -1025,46 +1036,63 @@ test('56. inline NÃO contém mais async function persistir', () => {
     'inline ainda tem async function persistir — write deveria ter sido extraído');
 });
 
-test('57. salvarSimulacao continua inline', () => {
+test('57. salvarSimulacao foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+salvarSimulacao\s*\(/);
+  assert.equal(/async\s+function\s+salvarSimulacao\s*\(/.test(inline), false,
+    'inline ainda tem salvarSimulacao — extração incompleta');
+  assert.match(opnSrc, /async\s+function\s+salvarSimulacao\s*\(/,
+    'op-nova.js não contém salvarSimulacao');
 });
 
-test('58. abrirOP continua inline', () => {
+test('58. abrirOP foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+abrirOP\s*\(/);
+  assert.equal(/async\s+function\s+abrirOP\s*\(/.test(inline), false,
+    'inline ainda tem abrirOP — extração incompleta');
+  assert.match(opnSrc, /async\s+function\s+abrirOP\s*\(/,
+    'op-nova.js não contém abrirOP');
 });
 
-test('59. salvarSimulacao chama window.persistirOP', () => {
-  const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /salvarSimulacao[\s\S]*?window\.persistirOP/,
-    'salvarSimulacao não chama window.persistirOP');
+test('59. salvarSimulacao chama window.persistirOP (em op-nova.js)', () => {
+  // Função foi movida para op-nova.js
+  assert.match(opnSrc, /salvarSimulacao[\s\S]*?window\.persistirOP/,
+    'salvarSimulacao em op-nova.js não chama window.persistirOP');
 });
 
-test('60. abrirOP chama window.persistirOP', () => {
-  const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /abrirOP[\s\S]*?window\.persistirOP/,
-    'abrirOP não chama window.persistirOP');
+test('60. abrirOP chama window.persistirOP (em op-nova.js)', () => {
+  // Função foi movida para op-nova.js
+  assert.match(opnSrc, /abrirOP[\s\S]*?window\.persistirOP/,
+    'abrirOP em op-nova.js não chama window.persistirOP');
 });
 
 // ---- 31-33: outras funções inline ----------------------------------
 
-test('61. screenNovaOP continua inline', () => {
+test('61. screenNovaOP foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+screenNovaOP\s*\(/);
+  assert.equal(/async\s+function\s+screenNovaOP\s*\(/.test(inline), false,
+    'inline ainda tem screenNovaOP — extração incompleta');
+  assert.match(opnSrc, /async\s+function\s+screenNovaOP\s*\(/,
+    'op-nova.js não contém screenNovaOP');
 });
 
-test('62. buildRight e renderRightInto continuam inline', () => {
+test('62. buildRight e renderRightInto foram extraídos para op-nova.js (NÃO estão mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+buildRight\s*\(/);
-  assert.match(inline, /function\s+renderRightInto\s*\(/);
+  assert.equal(/function\s+buildRight\s*\(/.test(inline), false,
+    'inline ainda tem buildRight — extração incompleta');
+  assert.equal(/function\s+renderRightInto\s*\(/.test(inline), false,
+    'inline ainda tem renderRightInto — extração incompleta');
+  // Foram movidos para op-nova.js
+  assert.match(opnSrc, /function\s+buildRight\s*\(/);
+  assert.match(opnSrc, /function\s+renderRightInto\s*\(/);
 });
 
-test('63. aplicarRecalculo continua inline chamando window.aplicarRecalculoOP', () => {
+test('63. aplicarRecalculo foi extraída para op-nova.js chamando window.aplicarRecalculoOP', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+aplicarRecalculo\s*\(/);
-  assert.match(inline, /aplicarRecalculo[\s\S]*?window\.aplicarRecalculoOP/,
-    'aplicarRecalculo não chama window.aplicarRecalculoOP');
+  assert.equal(/async\s+function\s+aplicarRecalculo\s*\(/.test(inline), false,
+    'inline ainda tem aplicarRecalculo — extração incompleta');
+  // Foi movida para op-nova.js
+  assert.match(opnSrc, /async\s+function\s+aplicarRecalculo\s*\(/);
+  assert.match(opnSrc, /aplicarRecalculo[\s\S]*?window\.aplicarRecalculoOP/,
+    'aplicarRecalculo em op-nova.js não chama window.aplicarRecalculoOP');
 });
 
 // ---- 34: setRoutes/main inline -------------------------------------

@@ -48,6 +48,7 @@ const cp     = require('node:child_process');
 const ROOT  = path.resolve(__dirname, '..');
 const INDEX = path.join(ROOT, 'index.html');
 const OPR   = path.join(ROOT, 'js', 'screens', 'op-recalculo.js');
+const OPN   = path.join(ROOT, 'js', 'screens', 'op-nova.js');
 const PAINEL= path.join(ROOT, 'js', 'screens', 'painel.js');
 const OLA   = path.join(ROOT, 'js', 'screens', 'op-latex-admin.js');
 const OPW   = path.join(ROOT, 'js', 'screens', 'op-writes.js');
@@ -66,6 +67,7 @@ const OPSLIST = path.join(ROOT, 'js', 'screens', 'ops-list.js');
 
 const indexSrc  = fs.readFileSync(INDEX, 'utf8');
 const oprSrc    = fs.readFileSync(OPR,   'utf8');
+const opnSrc    = fs.readFileSync(OPN,   'utf8');
 const painelSrc = fs.readFileSync(PAINEL,'utf8');
 const olaSrc    = fs.readFileSync(OLA,   'utf8');
 const opwSrc    = fs.readFileSync(OPW,   'utf8');
@@ -186,40 +188,52 @@ test('6. inline NÃO contém mais function maxMetrosItem', () => {
     'inline ainda declara function maxMetrosItem — função deveria ter sido extraída');
 });
 
-test('7. inline contém window.maxMetrosItem', () => {
-  const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /window\.maxMetrosItem\(/,
-    'inline não referencia window.maxMetrosItem — call-site não foi atualizado');
+test('7. op-nova.js chama window.maxMetrosItem (call-site em screenNovaOP)', () => {
+  // Após a extração de screenNovaOP para op-nova.js, o call-site
+  // window.maxMetrosItem() está em op-nova.js, não mais no inline.
+  assert.match(opnSrc, /window\.maxMetrosItem\(/,
+    'op-nova.js não referencia window.maxMetrosItem — call-site não foi atualizado');
 });
 
-test('8. inline AINDA contém function buildProposta', () => {
+test('8. op-nova.js contém buildProposta (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+buildProposta\s*\(/,
-    'inline perdeu buildProposta — função deveria continuar inline');
+  assert.equal(/function\s+buildProposta\s*\(/.test(inline), false,
+    'inline ainda tem buildProposta — extração incompleta');
+  assert.match(opnSrc, /function\s+buildProposta\s*\(/,
+    'op-nova.js não contém buildProposta');
 });
 
-test('9. inline AINDA contém recompute', () => {
+test('9. op-nova.js contém recompute (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+recompute\s*\(/,
-    'inline perdeu recompute — função deveria continuar inline');
+  assert.equal(/function\s+recompute\s*\(/.test(inline), false,
+    'inline ainda tem recompute — extração incompleta');
+  assert.match(opnSrc, /function\s+recompute\s*\(/,
+    'op-nova.js não contém recompute');
 });
 
-test('10. inline AINDA contém onAceitar', () => {
+test('10. op-nova.js contém onAceitar (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+onAceitar\s*\(/,
-    'inline perdeu onAceitar — função deveria continuar inline');
+  assert.equal(/function\s+onAceitar\s*\(/.test(inline), false,
+    'inline ainda tem onAceitar — extração incompleta');
+  assert.match(opnSrc, /function\s+onAceitar\s*\(/,
+    'op-nova.js não contém onAceitar');
 });
 
-test('11. inline AINDA contém async function aplicarRecalculo', () => {
+test('11. op-nova.js contém aplicarRecalculo wrapper (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+aplicarRecalculo\s*\(/,
-    'inline perdeu aplicarRecalculo — função deveria continuar inline');
+  assert.equal(/async\s+function\s+aplicarRecalculo\s*\(/.test(inline), false,
+    'inline ainda tem aplicarRecalculo — extração incompleta');
+  assert.match(opnSrc, /async\s+function\s+aplicarRecalculo\s*\(/,
+    'op-nova.js não contém aplicarRecalculo');
 });
 
-test('12. inline AINDA contém saldo_fios_op.insert', () => {
-  const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /saldo_fios_op/,
-    'inline perdeu saldo_fios_op — write deveria continuar inline');
+test('12. op-nova.js NÃO contém writes de saldo_fios_op (write extraído para op-recalculo.js)', () => {
+  // O wrapper aplicarRecalculo em op-nova.js apenas chama window.aplicarRecalculoOP
+  // que executa os writes. Não há writes diretos em op-nova.js.
+  assert.equal(/supa\.from\(['"`]saldo_fios_op['"`]\)/.test(opnSrc), false,
+    'op-nova.js ainda tem supa.from("saldo_fios_op") — write deveria ter sido extraído');
+  // O literal 'saldo_fios_op' PODE aparecer como string de mensagem
+  // em mensagens de erro do aplicarRecalculo wrapper, mas não como chamada.
 });
 
 test('13. inline NÃO contém mais from("saldo_fios") como Supabase call', () => {
@@ -231,10 +245,15 @@ test('13. inline NÃO contém mais from("saldo_fios") como Supabase call', () =>
     'inline ainda tem from("saldo_fios") como chamada Supabase — write deveria ter sido extraído');
 });
 
-test('14. inline AINDA contém ops.update status em_producao', () => {
-  const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /em_producao/,
-    'inline perdeu em_producao — status da OP deveria continuar inline');
+test('14. op-nova.js contém "em_producao" como string (status em mensagens, NÃO como write direto)', () => {
+  // Após a extração, o status 'em_producao' aparece apenas em strings
+  // de mensagem em op-nova.js, NÃO como update direto em ops.
+  // O write de status foi para op-recalculo.js.
+  assert.match(opnSrc, /em_producao/,
+    'op-nova.js perdeu literal em_producao — usado em mensagens do wrapper aplicarRecalculo');
+  // Verifica que NÃO há write direto de ops.update com em_producao
+  assert.equal(/from\s*\(\s*['"]ops['"]\s*\)[\s\S]*?update\s*\(\s*\{[\s\S]*?em_producao/.test(opnSrc), false,
+    'op-nova.js ainda tem update em ops com em_producao — write deveria ter sido extraído');
 });
 
 // -------------------------------------------------------------------------
@@ -291,6 +310,7 @@ function makeFullBootSandbox() {
   vm.runInContext(olaSrc,    sandbox, { filename: 'js/screens/op-latex-admin.js' });
   vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
   vm.runInContext(oprSrc,    sandbox, { filename: 'js/screens/op-recalculo.js' });
+  vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
@@ -481,10 +501,12 @@ test('24. boot chain: ui + router + system-screens + common + cadastros + ops-li
   }
 });
 
-test('25. screenNovaOP continua inline', () => {
+test('25. screenNovaOP foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+screenNovaOP\s*\(/,
-    'screenNovaOP não está mais inline');
+  assert.equal(/async\s+function\s+screenNovaOP\s*\(/.test(inline), false,
+    'inline ainda tem screenNovaOP — extração incompleta');
+  assert.match(opnSrc, /async\s+function\s+screenNovaOP\s*\(/,
+    'op-nova.js não contém screenNovaOP');
 });
 
 test('26. setRoutes e main continuam inline', () => {
@@ -633,6 +655,7 @@ function makeRecalculoSandbox({
   vm.runInContext(olaSrc,    sandbox, { filename: 'js/screens/op-latex-admin.js' });
   vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
   vm.runInContext(oprSrc,    sandbox, { filename: 'js/screens/op-recalculo.js' });
+  vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
@@ -920,82 +943,79 @@ test('46. helper não acessa document.* (DOM)', () => {
 
 // ---- 21-28: inline aplicarRecalculo (estrutura preservada) -----------
 
-// Extrai o corpo de aplicarRecalculo do inline script via balanced-brace walk
-function extractAplicarRecalculoBlock(inline) {
-  const start = inline.search(/async\s+function\s+aplicarRecalculo\s*\(/);
+// Extrai o corpo de aplicarRecalculo do source via balanced-brace walk.
+// Após SCREENNOVAOP-MODULE-A, a função está em op-nova.js (NÃO no inline).
+function extractAplicarRecalculoBlock(src) {
+  const start = src.search(/async\s+function\s+aplicarRecalculo\s*\(/);
   if (start < 0) return null;
   // Encontra a primeira `{` (corpo da função)
-  let i = inline.indexOf('{', start);
+  let i = src.indexOf('{', start);
   if (i < 0) return null;
   let depth = 1;
   i++;
-  while (i < inline.length && depth > 0) {
-    const c = inline[i];
+  while (i < src.length && depth > 0) {
+    const c = src[i];
     if (c === '{') depth++;
     else if (c === '}') depth--;
     i++;
   }
-  return inline.slice(start, i);
+  return src.slice(start, i);
 }
 
-test('47. inline AINDA contém async function aplicarRecalculo', () => {
+test('47. aplicarRecalculo foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+aplicarRecalculo\s*\(/,
-    'aplicarRecalculo não está mais inline');
+  assert.equal(/async\s+function\s+aplicarRecalculo\s*\(/.test(inline), false,
+    'inline ainda tem aplicarRecalculo — extração incompleta');
+  // Função foi movida para op-nova.js
+  assert.match(opnSrc, /async\s+function\s+aplicarRecalculo\s*\(/,
+    'op-nova.js não contém aplicarRecalculo');
 });
 
-test('48. bloco inline de aplicarRecalculo chama window.aplicarRecalculoOP', () => {
-  const inline = extractInlineScript(indexSrc);
-  const block = extractAplicarRecalculoBlock(inline);
-  assert.ok(block, 'bloco de aplicarRecalculo não encontrado');
+test('48. bloco de aplicarRecalculo (em op-nova.js) chama window.aplicarRecalculoOP', () => {
+  const block = extractAplicarRecalculoBlock(opnSrc);
+  assert.ok(block, 'bloco de aplicarRecalculo não encontrado em op-nova.js');
   assert.match(block, /window\.aplicarRecalculoOP\s*\(/,
-    'bloco de aplicarRecalculo não chama window.aplicarRecalculoOP');
+    'bloco de aplicarRecalculo em op-nova.js não chama window.aplicarRecalculoOP');
 });
 
-test('49. bloco inline de aplicarRecalculo mantém saving', () => {
-  const inline = extractInlineScript(indexSrc);
-  const block = extractAplicarRecalculoBlock(inline);
-  assert.ok(block, 'bloco de aplicarRecalculo não encontrado');
+test('49. bloco de aplicarRecalculo (em op-nova.js) mantém saving', () => {
+  const block = extractAplicarRecalculoBlock(opnSrc);
+  assert.ok(block, 'bloco de aplicarRecalculo não encontrado em op-nova.js');
   assert.match(block, /if\s*\(\s*saving\s*\)\s*return/, 'saving check não encontrado');
   assert.match(block, /saving\s*=\s*true/, 'saving = true não encontrado');
   assert.match(block, /saving\s*=\s*false/, 'saving = false (no finally) não encontrado');
 });
 
-test('50. bloco inline de aplicarRecalculo mantém toast', () => {
-  const inline = extractInlineScript(indexSrc);
-  const block = extractAplicarRecalculoBlock(inline);
-  assert.ok(block, 'bloco de aplicarRecalculo não encontrado');
+test('50. bloco de aplicarRecalculo (em op-nova.js) mantém toast', () => {
+  const block = extractAplicarRecalculoBlock(opnSrc);
+  assert.ok(block, 'bloco de aplicarRecalculo não encontrado em op-nova.js');
   assert.match(block, /toast\s*\(/, 'chamada toast não encontrada no bloco');
 });
 
-test('51. bloco inline de aplicarRecalculo mantém navigate("#/ops")', () => {
-  const inline = extractInlineScript(indexSrc);
-  const block = extractAplicarRecalculoBlock(inline);
-  assert.ok(block, 'bloco de aplicarRecalculo não encontrado');
+test('51. bloco de aplicarRecalculo (em op-nova.js) mantém navigate("#/ops")', () => {
+  const block = extractAplicarRecalculoBlock(opnSrc);
+  assert.ok(block, 'bloco de aplicarRecalculo não encontrado em op-nova.js');
   assert.match(block, /navigate\s*\(\s*['"]#\/ops['"]\s*\)/,
     'navigate("#/ops") não encontrado no bloco');
 });
 
-test('52. bloco inline de aplicarRecalculo NÃO contém mais saldo_fios_op.insert', () => {
-  const inline = extractInlineScript(indexSrc);
-  const block = extractAplicarRecalculoBlock(inline);
-  assert.ok(block, 'bloco de aplicarRecalculo não encontrado');
+test('52. bloco de aplicarRecalculo (em op-nova.js) NÃO contém mais saldo_fios_op.insert', () => {
+  const block = extractAplicarRecalculoBlock(opnSrc);
+  assert.ok(block, 'bloco de aplicarRecalculo não encontrado em op-nova.js');
   assert.equal(/from\s*\(\s*['"]saldo_fios_op['"]\s*\)/.test(block), false,
     'bloco de aplicarRecalculo ainda tem from("saldo_fios_op")');
 });
 
-test('53. bloco inline de aplicarRecalculo NÃO contém mais saldo_fios select/update/insert', () => {
-  const inline = extractInlineScript(indexSrc);
-  const block = extractAplicarRecalculoBlock(inline);
-  assert.ok(block, 'bloco de aplicarRecalculo não encontrado');
+test('53. bloco de aplicarRecalculo (em op-nova.js) NÃO contém mais saldo_fios select/update/insert', () => {
+  const block = extractAplicarRecalculoBlock(opnSrc);
+  assert.ok(block, 'bloco de aplicarRecalculo não encontrado em op-nova.js');
   assert.equal(/from\s*\(\s*['"]saldo_fios['"]\s*\)/.test(block), false,
     'bloco de aplicarRecalculo ainda tem from("saldo_fios")');
 });
 
-test('54. bloco inline de aplicarRecalculo NÃO contém mais ops.update status em_producao', () => {
-  const inline = extractInlineScript(indexSrc);
-  const block = extractAplicarRecalculoBlock(inline);
-  assert.ok(block, 'bloco de aplicarRecalculo não encontrado');
+test('54. bloco de aplicarRecalculo (em op-nova.js) NÃO contém mais ops.update status em_producao', () => {
+  const block = extractAplicarRecalculoBlock(opnSrc);
+  assert.ok(block, 'bloco de aplicarRecalculo não encontrado em op-nova.js');
   // Procura from('ops') seguido de update com status em_producao
   const re = /from\s*\(\s*['"]ops['"]\s*\)[\s\S]*?update\s*\(\s*\{[\s\S]*?status\s*:\s*['"]em_producao['"]/;
   assert.equal(re.test(block), false,
@@ -1010,17 +1030,26 @@ test('55. persistir NÃO está mais inline (extraído para op-persistir.js)', ()
     'inline ainda tem persistir - função deveria ter sido extraída');
 });
 
-test('56. buildProposta/recompute/onAceitar continuam inline', () => {
+test('56. buildProposta/recompute/onAceitar foram extraídos para op-nova.js (NÃO estão mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+buildProposta\s*\(/);
-  assert.match(inline, /function\s+recompute\s*\(/);
-  assert.match(inline, /function\s+onAceitar\s*\(/);
+  assert.equal(/function\s+buildProposta\s*\(/.test(inline), false,
+    'inline ainda tem buildProposta — extração incompleta');
+  assert.equal(/function\s+recompute\s*\(/.test(inline), false,
+    'inline ainda tem recompute — extração incompleta');
+  assert.equal(/function\s+onAceitar\s*\(/.test(inline), false,
+    'inline ainda tem onAceitar — extração incompleta');
+  // Funções foram movidas para op-nova.js
+  assert.match(opnSrc, /function\s+buildProposta\s*\(/);
+  assert.match(opnSrc, /function\s+recompute\s*\(/);
+  assert.match(opnSrc, /function\s+onAceitar\s*\(/);
 });
 
-test('57. screenNovaOP continua inline', () => {
+test('57. screenNovaOP foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+screenNovaOP\s*\(/,
-    'screenNovaOP não está mais inline');
+  assert.equal(/async\s+function\s+screenNovaOP\s*\(/.test(inline), false,
+    'inline ainda tem screenNovaOP — extração incompleta');
+  assert.match(opnSrc, /async\s+function\s+screenNovaOP\s*\(/,
+    'op-nova.js não contém screenNovaOP');
 });
 
 test('58. setRoutes e main continuam inline', () => {

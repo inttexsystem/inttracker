@@ -427,14 +427,11 @@ test('5. script inline NÃO contém mais as 4 funções de fornecedor', () => {
   }
 });
 
-test('6. script inline AINDA contém telas, helpers, setRoutes, main (renderOPLatexAdmin extraído para op-latex-admin.js)', () => {
+test('6. screenNovaOP foi extraída para op-nova.js; setRoutes e main continuam inline', () => {
   const inline = extractInlineScript(indexSrc);
-  for (const fn of [
-    'screenNovaOP',
-  ]) {
-    assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
-      `inline perdeu a função ${fn}`);
-  }
+  // screenNovaOP foi extraída para op-nova.js (SCREENNOVAOP-MODULE-A)
+  assert.equal(/async\s+function\s+screenNovaOP\s*\(/.test(inline), false,
+    'inline ainda tem async function screenNovaOP — extração incompleta');
   // renderOPLatexAdmin foi extraído para op-latex-admin.js
   assert.equal(/function\s+renderOPLatexAdmin\s*\(/.test(inline), false,
     'inline não deve mais declarar renderOPLatexAdmin (extraído para op-latex-admin.js)');
@@ -442,7 +439,7 @@ test('6. script inline AINDA contém telas, helpers, setRoutes, main (renderOPLa
   // em OP-FORM-HELPERS-MODULE-A
   assert.equal(/function\s+rotuloFioOrdem\s*\(/.test(inline), false,
     'inline não deve mais declarar rotuloFioOrdem (unificado com rotuloFio)');
-  // setRoutes e main
+  // setRoutes e main permanecem inline
   assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/);
   assert.match(inline, /async\s+function\s+main\s*\(/);
 });

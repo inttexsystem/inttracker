@@ -62,6 +62,7 @@ const cp     = require('node:child_process');
 const ROOT   = path.resolve(__dirname, '..');
 const INDEX  = path.join(ROOT, 'index.html');
 const OFH    = path.join(ROOT, 'js', 'screens', 'op-form-helpers.js');
+const OPN    = path.join(ROOT, 'js', 'screens', 'op-nova.js');
 const EF     = path.join(ROOT, 'js', 'screens', 'entrega-form.js');
 const EW     = path.join(ROOT, 'js', 'screens', 'entrega-writes.js');
 const FORN   = path.join(ROOT, 'js', 'screens', 'fornecedor.js');
@@ -77,6 +78,7 @@ const PAINEL = path.join(ROOT, 'js', 'screens', 'painel.js');
 
 const indexSrc  = fs.readFileSync(INDEX, 'utf8');
 const ofhSrc    = fs.readFileSync(OFH,   'utf8');
+const opnSrc    = fs.readFileSync(OPN,   'utf8');
 const efSrc     = fs.readFileSync(EF,    'utf8');
 const uiSrc     = fs.readFileSync(UI,    'utf8');
 const badgesSrc = fs.readFileSync(BADGES, 'utf8');
@@ -215,62 +217,61 @@ test('9. script inline NÃO contém mais function disabledAttr', () => {
     'inline ainda declara function disabledAttr');
 });
 
-test('10. script inline AINDA contém screenNovaOP, aplicarRecalculo, buildOrdemPendenteRow (renderOPLatexAdmin, persistir extraídos)', () => {
+test('10. screenNovaOP foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  for (const fn of [
-    'screenNovaOP',
-  ]) {
-    assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
-      `inline perdeu a função ${fn}`);
-  }
+  // screenNovaOP inteira foi extraída para op-nova.js (SCREENNOVAOP-MODULE-A)
+  assert.equal(/async\s+function\s+screenNovaOP\s*\(/.test(inline), false,
+    'inline ainda tem async function screenNovaOP — extração incompleta');
+  // O módulo op-nova.js deve definir screenNovaOP
+  assert.match(opnSrc, /async\s+function\s+screenNovaOP\s*\(/,
+    'op-nova.js não define screenNovaOP');
+  // renderOPLatexAdmin continua extraído em op-latex-admin.js
   assert.equal(/function\s+renderOPLatexAdmin\s*\(/.test(inline), false,
     'inline não deve mais declarar renderOPLatexAdmin (extraído para op-latex-admin.js)');
+  // persistir continua extraído em op-persistir.js
   assert.equal(/function\s+persistir\s*\(/.test(inline), false,
     'inline não deve mais declarar persistir (extraído para op-persistir.js)');
-  for (const fn of [
-    'aplicarRecalculo', 'buildOrdemPendenteRow',
-  ]) {
-    assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
-      `inline perdeu a função ${fn}`);
+  // aplicarRecalculo, buildOrdemPendenteRow, buildProposta, etc. foram todos
+  // movidos para op-nova.js junto com screenNovaOP
+  for (const fn of ['aplicarRecalculo', 'buildOrdemPendenteRow', 'buildProposta', 'buildBlocoFios', 'buildBlocoTecelagem']) {
+    assert.match(opnSrc, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
+      `op-nova.js perdeu a função ${fn}`);
   }
 });
 
-test('11. inline usa window.rotuloFio (não mais rotuloFioOrdem local)', () => {
-  const inline = extractInlineScript(indexSrc);
-  assert.ok(inline.includes('window.rotuloFio(') || inline.includes('window.rotuloFio'),
-    'inline não referencia window.rotuloFio');
-  assert.equal(/rotuloFioOrdem/.test(inline), false,
-    'inline ainda referencia rotuloFioOrdem (não window.rotuloFio)');
+test('11. op-nova.js usa window.rotuloFio (não rotuloFioOrdem local)', () => {
+  assert.match(opnSrc, /window\.rotuloFio\(/,
+    'op-nova.js não referencia window.rotuloFio');
+  assert.equal(/rotuloFioOrdem/.test(opnSrc), false,
+    'op-nova.js ainda referencia rotuloFioOrdem (não window.rotuloFio)');
 });
 
-test('12. inline usa window.rotuloModelo nos call-sites de screenNovaOP e renderOPLatexAdmin', () => {
-  const inline = extractInlineScript(indexSrc);
-  const count = (inline.match(/window\.rotuloModelo\(/g) || []).length;
+test('12. op-nova.js usa window.rotuloModelo nos call-sites (>= 4)', () => {
+  const count = (opnSrc.match(/window\.rotuloModelo\(/g) || []).length;
   assert.ok(count >= 4, `esperado >= 4 chamadas a window.rotuloModelo, encontrado ${count}`);
 });
 
-test('13. inline usa window.fmtKg e window.fmtMetros e disabledAttr(readOnly, ...)', () => {
-  const inline = extractInlineScript(indexSrc);
-  assert.ok((inline.match(/window\.fmtKg\(/g) || []).length >= 1,
-    'inline não referencia window.fmtKg');
-  assert.ok((inline.match(/window\.fmtMetros\(/g) || []).length >= 1,
-    'inline não referencia window.fmtMetros');
-  assert.ok((inline.match(/disabledAttr\(readOnly,\s*/g) || []).length >= 1,
-    'inline não referencia disabledAttr(readOnly, ...');
+test('13. op-nova.js usa window.fmtKg e window.fmtMetros e disabledAttr(readOnly, ...)', () => {
+  assert.ok((opnSrc.match(/window\.fmtKg\(/g) || []).length >= 1,
+    'op-nova.js não referencia window.fmtKg');
+  assert.ok((opnSrc.match(/window\.fmtMetros\(/g) || []).length >= 1,
+    'op-nova.js não referencia window.fmtMetros');
+  assert.ok((opnSrc.match(/disabledAttr\(readOnly,\s*/g) || []).length >= 1,
+    'op-nova.js não referencia disabledAttr(readOnly, ...');
 });
 
-test('14. ordens_compra_fio read inline permanece (writes foram extraídos para op-persistir.js)', () => {
-  const inline = extractInlineScript(indexSrc);
-  // Reads de ordens_compra_fio (em screenNovaOP, reloadOrdens, buildBlocoFios) permanecem inline
-  assert.match(inline, /supa\.from\(['"`]ordens_compra_fio['"`]\)/,
-    'inline perdeu supa.from("ordens_compra_fio") — reads deveriam continuar inline');
-  // Writes (.update/.insert/.delete) de ordens_compra_fio foram extraídos para op-persistir.js
-  assert.equal(/from\s*\(\s*['"]ordens_compra_fio['"]\s*\)\s*\.\s*update\s*\(/.test(inline), false,
-    'inline ainda tem from("ordens_compra_fio").update — write deveria ter sido extraído');
-  assert.equal(/from\s*\(\s*['"]ordens_compra_fio['"]\s*\)\s*\.\s*insert\s*\(/.test(inline), false,
-    'inline ainda tem from("ordens_compra_fio").insert — write deveria ter sido extraído');
-  assert.equal(/from\s*\(\s*['"]ordens_compra_fio['"]\s*\)\s*\.\s*delete\s*\(/.test(inline), false,
-    'inline ainda tem from("ordens_compra_fio").delete — write deveria ter sido extraído');
+test('14. ordens_compra_fio read em op-nova.js permanece (writes foram extraídos para op-persistir.js)', () => {
+  // Reads de ordens_compra_fio (em screenNovaOP, reloadOrdens, buildBlocoFios) permanecem
+  // em op-nova.js (apenas .select). Writes foram para op-persistir.js.
+  assert.match(opnSrc, /supa\.from\(['"`]ordens_compra_fio['"`]\)/,
+    'op-nova.js perdeu supa.from("ordens_compra_fio") — reads deveriam continuar no módulo');
+  // Writes (.update/.insert/.delete) de ordens_compra_fio NÃO devem estar em op-nova.js
+  assert.equal(/from\s*\(\s*['"]ordens_compra_fio['"]\s*\)\s*\.\s*update\s*\(/.test(opnSrc), false,
+    'op-nova.js ainda tem from("ordens_compra_fio").update — write deveria ter sido extraído');
+  assert.equal(/from\s*\(\s*['"]ordens_compra_fio['"]\s*\)\s*\.\s*insert\s*\(/.test(opnSrc), false,
+    'op-nova.js ainda tem from("ordens_compra_fio").insert — write deveria ter sido extraído');
+  assert.equal(/from\s*\(\s*['"]ordens_compra_fio['"]\s*\)\s*\.\s*delete\s*\(/.test(opnSrc), false,
+    'op-nova.js ainda tem from("ordens_compra_fio").delete — write deveria ter sido extraído');
 });
 
 // -----------------------------------------------------------------------------
@@ -551,6 +552,7 @@ test('33. runtime: screenNovaOP ainda é função e acessível via window', () =
   vm.runInContext(fornSrc,   sandbox, { filename: 'js/screens/fornecedor.js' });
   vm.runInContext(ofhSrc,    sandbox, { filename: 'js/screens/op-form-helpers.js' });
   vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
+  vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
   try {

@@ -67,6 +67,7 @@ const cp     = require('node:child_process');
 const ROOT   = path.resolve(__dirname, '..');
 const INDEX  = path.join(ROOT, 'index.html');
 const OLA    = path.join(ROOT, 'js', 'screens', 'op-latex-admin.js');
+const OPN    = path.join(ROOT, 'js', 'screens', 'op-nova.js');
 const OPW    = path.join(ROOT, 'js', 'screens', 'op-writes.js');
 const OFH    = path.join(ROOT, 'js', 'screens', 'op-form-helpers.js');
 const EF     = path.join(ROOT, 'js', 'screens', 'entrega-form.js');
@@ -84,6 +85,7 @@ const PAINEL = path.join(ROOT, 'js', 'screens', 'painel.js');
 
 const indexSrc  = fs.readFileSync(INDEX, 'utf8');
 const olaSrc    = fs.readFileSync(OLA,   'utf8');
+const opnSrc    = fs.readFileSync(OPN,   'utf8');
 const opwSrc    = fs.readFileSync(OPW,   'utf8');
 const ofhSrc    = fs.readFileSync(OFH,   'utf8');
 const efSrc     = fs.readFileSync(EF,    'utf8');
@@ -200,16 +202,19 @@ test('5. inline NÃO contém mais async function renderOPLatexAdmin', () => {
     'inline ainda declara async function renderOPLatexAdmin — função deveria ter sido extraída');
 });
 
-test('6. inline contém window.renderOPLatexAdmin(op.id) no call-site de screenNovaOP', () => {
-  const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /window\.renderOPLatexAdmin\(/,
-    'inline não referencia window.renderOPLatexAdmin — call-site não foi atualizado');
+test('6. op-nova.js contém window.renderOPLatexAdmin(op.id) no call-site de screenNovaOP', () => {
+  // Após SCREENNOVAOP-MODULE-A, o call-site foi movido para op-nova.js
+  assert.match(opnSrc, /window\.renderOPLatexAdmin\(/,
+    'op-nova.js não referencia window.renderOPLatexAdmin — call-site não foi atualizado');
 });
 
-test('7. inline AINDA contém async function screenNovaOP', () => {
+test('7. screenNovaOP foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+screenNovaOP\s*\(/,
-    'inline perdeu screenNovaOP — função deveria continuar inline');
+  assert.equal(/async\s+function\s+screenNovaOP\s*\(/.test(inline), false,
+    'inline ainda tem screenNovaOP — extração incompleta');
+  // Foi movida para op-nova.js
+  assert.match(opnSrc, /async\s+function\s+screenNovaOP\s*\(/,
+    'op-nova.js não contém screenNovaOP');
 });
 
 test('8. inline NÃO contém mais persistir (extraído para op-persistir.js)', () => {
@@ -218,15 +223,19 @@ test('8. inline NÃO contém mais persistir (extraído para op-persistir.js)', (
     'inline ainda tem persistir - função deveria ter sido extraída');
 });
 
-test('9. inline AINDA contém aplicarRecalculo', () => {
+test('9. aplicarRecalculo foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+aplicarRecalculo\s*\(/,
-    'inline perdeu aplicarRecalculo — função deveria continuar inline');
+  assert.equal(/function\s+aplicarRecalculo\s*\(/.test(inline), false,
+    'inline ainda tem aplicarRecalculo — extração incompleta');
+  assert.match(opnSrc, /async\s+function\s+aplicarRecalculo\s*\(/,
+    'op-nova.js não contém aplicarRecalculo');
 });
 
-test('10. inline AINDA contém buildOrdemPendenteRow', () => {
+test('10. buildOrdemPendenteRow foi extraída para op-nova.js (NÃO está mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+buildOrdemPendenteRow\s*\(/,
+  assert.equal(/function\s+buildOrdemPendenteRow\s*\(/.test(inline), false,
+    'inline ainda tem buildOrdemPendenteRow — extração incompleta');
+  assert.match(opnSrc, /function\s+buildOrdemPendenteRow\s*\(/,
     'inline perdeu buildOrdemPendenteRow — função deveria continuar inline');
 });
 
@@ -372,6 +381,7 @@ function makeFullBootSandbox({
   vm.runInContext(ofhSrc,    sandbox, { filename: 'js/screens/op-form-helpers.js' });
   vm.runInContext(opwSrc,    sandbox, { filename: 'js/screens/op-writes.js' });
   vm.runInContext(olaSrc,    sandbox, { filename: 'js/screens/op-latex-admin.js' });
+  vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
@@ -526,6 +536,7 @@ test('27. boot chain: ui + router + system-screens + common + cadastros + ops-li
   vm.runInContext(opwSrc,    sandbox, { filename: 'js/screens/op-writes.js' });
   vm.runInContext(olaSrc,    sandbox, { filename: 'js/screens/op-latex-admin.js' });
   vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
+  vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
