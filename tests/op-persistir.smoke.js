@@ -80,7 +80,13 @@ function extractInlineScript(html) {
   const matches = [];
   let m;
   while ((m = re.exec(html)) !== null) matches.push(m[1]);
-  if (matches.length === 0) throw new Error('nenhum <script> inline encontrado');
+  if (matches.length === 0) {
+    // Após ROUTES-BOOT-MODULE-A o <script> inline foi removido.
+    // Tests que verificam AUSÊNCIA de coisas no inline passam
+    // trivialmente; tests que esperavam PRESENÇA foram
+    // atualizados para olhar em js/boot.js.
+    return '';
+  }
   return matches.reduce((a, b) => (a.length >= b.length ? a : b));
 }
 
@@ -151,18 +157,19 @@ test('4. index.html carrega op-persistir.js EXATAMENTE UMA VEZ, sem type=module'
     'op-persistir.js está sendo carregado com type=module');
 });
 
-test('5. index.html: ordem op-recalculo.js → op-persistir.js → jspdf → inline', () => {
+test('5. index.html: ordem op-recalculo.js → op-persistir.js → jspdf → boot.js (último local antes de </head>)', () => {
   const oprIdx    = findScriptIdx(indexSrc, 'js/screens/op-recalculo.js');
   const oppIdx    = findScriptIdx(indexSrc, 'js/screens/op-persistir.js');
   const jspdfIdx  = indexSrc.indexOf('cdnjs.cloudflare.com/ajax/libs/jspdf');
-  const inlineIdx = firstInlineScriptIndex(indexSrc);
+  const bootIdx   = findScriptIdx(indexSrc, 'js/boot.js');
   assert.ok(oprIdx > 0, 'op-recalculo.js não encontrado');
   assert.ok(oppIdx > 0, 'op-persistir.js não encontrado');
   assert.ok(jspdfIdx > 0, 'jspdf não encontrado');
-  assert.ok(inlineIdx > 0, 'inline não encontrado');
+  assert.ok(bootIdx > 0, 'js/boot.js não encontrado como último script local');
   assert.ok(oprIdx < oppIdx, 'op-recalculo.js deve vir antes de op-persistir.js');
   assert.ok(oppIdx < jspdfIdx, 'op-persistir.js deve vir antes de jspdf');
-  assert.ok(oppIdx < inlineIdx, 'op-persistir.js deve vir antes do inline');
+  assert.ok(jspdfIdx < bootIdx, 'jspdf CDN deve vir antes de boot.js');
+  assert.ok(bootIdx > jspdfIdx, 'boot.js deve ser o último script local');
 });
 
 // -------------------------------------------------------------------------
@@ -426,10 +433,13 @@ test('28. screenNovaOP foi extraída para op-nova.js (NÃO está mais no inline)
   assert.match(opnSrc, /async\s+function\s+screenNovaOP\s*\(/);
 });
 
-test('29. setRoutes e main continuam inline', () => {
+test('29. setRoutes e main foram extraídos para js/boot.js (NÃO estão mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/);
-  assert.match(inline, /async\s+function\s+main\s*\(/);
+  // Após ROUTES-BOOT-MODULE-A, setRoutes e main saíram do inline
+  assert.equal(/window\.RAVATEX_ROUTER\.setRoutes\s*\(/.test(inline), false,
+    'inline ainda tem setRoutes — extração incompleta');
+  assert.equal(/async\s+function\s+main\s*\(/.test(inline), false,
+    'inline ainda tem main — extração incompleta');
 });
 
 // -------------------------------------------------------------------------
@@ -1097,10 +1107,13 @@ test('63. aplicarRecalculo foi extraída para op-nova.js chamando window.aplicar
 
 // ---- 34: setRoutes/main inline -------------------------------------
 
-test('64. setRoutes e main continuam inline', () => {
+test('64. setRoutes e main foram extraídos para js/boot.js (NÃO estão mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/);
-  assert.match(inline, /async\s+function\s+main\s*\(/);
+  // Após ROUTES-BOOT-MODULE-A, setRoutes e main saíram do inline
+  assert.equal(/window\.RAVATEX_ROUTER\.setRoutes\s*\(/.test(inline), false,
+    'inline ainda tem setRoutes — extração incompleta');
+  assert.equal(/async\s+function\s+main\s*\(/.test(inline), false,
+    'inline ainda tem main — extração incompleta');
 });
 
 // ---- 35: boot chain sem SyntaxError --------------------------------

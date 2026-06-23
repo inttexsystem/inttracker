@@ -64,6 +64,7 @@ const ROOT   = path.resolve(__dirname, '..');
 const INDEX  = path.join(ROOT, 'index.html');
 const OPW    = path.join(ROOT, 'js', 'screens', 'op-writes.js');
 const OPN    = path.join(ROOT, 'js', 'screens', 'op-nova.js');
+const BOOT   = path.join(ROOT, 'js', 'boot.js');
 const EF     = path.join(ROOT, 'js', 'screens', 'entrega-form.js');
 const EW     = path.join(ROOT, 'js', 'screens', 'entrega-writes.js');
 const OFH    = path.join(ROOT, 'js', 'screens', 'op-form-helpers.js');
@@ -81,6 +82,7 @@ const PAINEL = path.join(ROOT, 'js', 'screens', 'painel.js');
 const indexSrc  = fs.readFileSync(INDEX, 'utf8');
 const opwSrc    = fs.readFileSync(OPW,   'utf8');
 const opnSrc    = fs.readFileSync(OPN,   'utf8');
+const bootSrc   = fs.readFileSync(BOOT,  'utf8');
 const efSrc     = fs.readFileSync(EF,    'utf8');
 const uiSrc     = fs.readFileSync(UI,    'utf8');
 const badgesSrc = fs.readFileSync(BADGES, 'utf8');
@@ -104,7 +106,13 @@ function extractInlineScript(html) {
   const matches = [];
   let m;
   while ((m = re.exec(html)) !== null) matches.push(m[1]);
-  if (matches.length === 0) throw new Error('nenhum <script> inline encontrado');
+  if (matches.length === 0) {
+    // Após ROUTES-BOOT-MODULE-A o <script> inline foi removido.
+    // Tests que verificam AUSÊNCIA de coisas no inline passam
+    // trivialmente; tests que esperavam PRESENÇA foram
+    // atualizados para olhar em js/boot.js.
+    return '';
+  }
   return matches.reduce((a, b) => (a.length >= b.length ? a : b));
 }
 
@@ -176,18 +184,19 @@ test('3. index.html carrega op-writes.js EXATAMENTE UMA VEZ, sem type=module', (
     'op-writes.js está sendo carregado com type=module');
 });
 
-test('4. index.html: ordem op-form-helpers.js → op-writes.js → jspdf → inline', () => {
+test('4. index.html: ordem op-form-helpers.js → op-writes.js → jspdf → boot.js (último local antes de </head>)', () => {
   const ofhIdx   = findScriptIdx(indexSrc, 'js/screens/op-form-helpers.js');
   const opwIdx   = findScriptIdx(indexSrc, 'js/screens/op-writes.js');
   const jspdfIdx = indexSrc.indexOf('cdnjs.cloudflare.com/ajax/libs/jspdf');
-  const inlineIdx = firstInlineScriptIndex(indexSrc);
+  const bootIdx  = findScriptIdx(indexSrc, 'js/boot.js');
   assert.ok(ofhIdx > 0, 'op-form-helpers.js não encontrado');
   assert.ok(opwIdx > 0, 'op-writes.js não encontrado');
   assert.ok(jspdfIdx > 0, 'jspdf não encontrado');
-  assert.ok(inlineIdx > 0, 'inline não encontrado');
+  assert.ok(bootIdx > 0, 'js/boot.js não encontrado como último script local');
   assert.ok(ofhIdx < opwIdx, 'op-form-helpers deve vir antes de op-writes');
   assert.ok(opwIdx < jspdfIdx, 'op-writes deve vir antes de jspdf');
-  assert.ok(opwIdx < inlineIdx, 'op-writes deve vir antes do inline');
+  assert.ok(jspdfIdx < bootIdx, 'jspdf CDN deve vir antes de boot.js');
+  assert.ok(bootIdx > jspdfIdx, 'boot.js deve ser o último script local');
 });
 
 test('5. buildOrdemPendenteRow foi extraída para op-nova.js (NÃO está mais no inline)', () => {
@@ -490,6 +499,7 @@ test('23. boot: ui + calculo-op + entrega-form + entrega-writes + fornecedor + o
   vm.runInContext(opwSrc,    sandbox, { filename: 'js/screens/op-writes.js' });
   vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
   vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
+  vm.runInContext(bootSrc,   sandbox, { filename: 'js/boot.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};

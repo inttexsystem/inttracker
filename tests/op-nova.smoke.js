@@ -120,7 +120,13 @@ function extractInlineScript(html) {
   const matches = [];
   let m;
   while ((m = re.exec(html)) !== null) matches.push(m[1]);
-  if (matches.length === 0) throw new Error('nenhum <script> inline encontrado');
+  if (matches.length === 0) {
+    // Após ROUTES-BOOT-MODULE-A o <script> inline foi removido.
+    // Tests que verificam AUSÊNCIA de coisas no inline passam
+    // trivialmente; tests que esperavam PRESENÇA foram
+    // atualizados para olhar em js/boot.js.
+    return '';
+  }
   return matches.reduce((a, b) => (a.length >= b.length ? a : b));
 }
 
@@ -191,18 +197,19 @@ test('4. index.html carrega op-nova.js EXATAMENTE UMA VEZ, sem type=module', () 
     'op-nova.js está sendo carregado com type=module');
 });
 
-test('5. index.html: ordem op-persistir.js → op-nova.js → jspdf → inline', () => {
+test('5. index.html: ordem op-persistir.js → op-nova.js → jspdf → boot.js (último local antes de </head>)', () => {
   const oppIdx    = findScriptIdx(indexSrc, 'js/screens/op-persistir.js');
   const opnIdx    = findScriptIdx(indexSrc, 'js/screens/op-nova.js');
   const jspdfIdx  = indexSrc.indexOf('cdnjs.cloudflare.com/ajax/libs/jspdf');
-  const inlineIdx = firstInlineScriptIndex(indexSrc);
+  const bootIdx   = findScriptIdx(indexSrc, 'js/boot.js');
   assert.ok(oppIdx > 0, 'op-persistir.js não encontrado');
   assert.ok(opnIdx > 0, 'op-nova.js não encontrado');
   assert.ok(jspdfIdx > 0, 'jspdf não encontrado');
-  assert.ok(inlineIdx > 0, 'inline não encontrado');
+  assert.ok(bootIdx > 0, 'js/boot.js não encontrado como último script local');
   assert.ok(oppIdx < opnIdx, 'op-persistir.js deve vir antes de op-nova.js');
   assert.ok(opnIdx < jspdfIdx, 'op-nova.js deve vir antes de jspdf');
-  assert.ok(opnIdx < inlineIdx, 'op-nova.js deve vir antes do inline');
+  assert.ok(jspdfIdx < bootIdx, 'jspdf CDN deve vir antes de boot.js');
+  assert.ok(bootIdx > jspdfIdx, 'boot.js deve ser o último script local');
 });
 
 test('6. index.html NÃO contém mais async function screenNovaOP (extraído)', () => {
@@ -211,22 +218,26 @@ test('6. index.html NÃO contém mais async function screenNovaOP (extraído)', 
     'inline ainda tem async function screenNovaOP — extração incompleta');
 });
 
-test('7. index.html contém window.screenNovaOP(null) no call-site de #/ops/nova', () => {
-  const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /'#\/ops\/nova':\s*\{\s*render:\s*\(\)\s*=>\s*window\.screenNovaOP\(null\)/,
-    'call-site de #/ops/nova deve usar window.screenNovaOP(null)');
+test('7. boot.js contém window.screenNovaOP(null) no call-site de #/ops/nova', () => {
+  // Após ROUTES-BOOT-MODULE-A, o inline foi removido e o call-site
+  // de #/ops/nova está em js/boot.js.
+  const bootSrc = fs.readFileSync(path.join(ROOT, 'js', 'boot.js'), 'utf8');
+  assert.match(bootSrc, /'#\/ops\/nova':\s*\{\s*render:\s*\(\)\s*=>\s*window\.screenNovaOP\(null\)/,
+    'boot.js deve ter call-site de #/ops/nova com window.screenNovaOP(null)');
 });
 
-test('8. index.html AINDA contém setRoutes (NÃO foi extraído nesta fase)', () => {
+test('8. index.html NÃO contém mais setRoutes (extraído para js/boot.js)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/,
-    'inline perdeu setRoutes — não deveria ter sido extraído nesta fase');
+  // Após ROUTES-BOOT-MODULE-A, setRoutes foi extraído para boot.js
+  assert.equal(/window\.RAVATEX_ROUTER\.setRoutes\s*\(/.test(inline), false,
+    'inline ainda tem setRoutes — extração incompleta');
 });
 
-test('9. index.html AINDA contém main (NÃO foi extraído nesta fase)', () => {
+test('9. index.html NÃO contém mais main (extraído para js/boot.js)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+main\s*\(/,
-    'inline perdeu main — não deveria ter sido extraído nesta fase');
+  // Após ROUTES-BOOT-MODULE-A, main foi extraído para boot.js
+  assert.equal(/async\s+function\s+main\s*\(/.test(inline), false,
+    'inline ainda tem main — extração incompleta');
 });
 
 test('10. js/screens/op-nova.js contém async function screenNovaOP', () => {
@@ -414,16 +425,19 @@ test('26. index.html NÃO contém mais implementação de aplicarRecalculoOP (he
 // 5. setRoutes/main inline
 // -------------------------------------------------------------------------
 
-test('27. setRoutes e main continuam inline em index.html', () => {
+test('27. setRoutes e main foram extraídos para js/boot.js (NÃO estão mais no inline)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/);
-  assert.match(inline, /async\s+function\s+main\s*\(/);
+  // Após ROUTES-BOOT-MODULE-A, setRoutes e main saíram do inline
+  assert.equal(/window\.RAVATEX_ROUTER\.setRoutes\s*\(/.test(inline), false,
+    'inline ainda tem setRoutes — extração incompleta');
+  assert.equal(/async\s+function\s+main\s*\(/.test(inline), false,
+    'inline ainda tem main — extração incompleta');
 });
 
-test('28. setRoutes referencia window.screenNovaOP(null) para #/ops/nova', () => {
-  const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /'#\/ops\/nova':\s*\{\s*render:\s*\(\)\s*=>\s*window\.screenNovaOP\(null\)/,
-    'call-site de #/ops/nova deve usar window.screenNovaOP(null)');
+test('28. setRoutes referencia window.screenNovaOP(null) para #/ops/nova (em boot.js)', () => {
+  const bootSrc = fs.readFileSync(path.join(ROOT, 'js', 'boot.js'), 'utf8');
+  assert.match(bootSrc, /'#\/ops\/nova':\s*\{\s*render:\s*\(\)\s*=>\s*window\.screenNovaOP\(null\)/,
+    'call-site de #/ops/nova em boot.js deve usar window.screenNovaOP(null)');
 });
 
 // -------------------------------------------------------------------------

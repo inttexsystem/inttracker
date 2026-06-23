@@ -31,6 +31,7 @@
   <script src="js/screens/op-persistir.js"></script>
   <script src="js/screens/op-nova.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="js/boot.js"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
     .toast { animation: slidein .25s ease-out; }
@@ -41,129 +42,6 @@
 
 <div id="app"></div>
 <div id="toasts" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
-
-<script>
-// =====================================================================
-// === BOOT NOTES ======================================================
-// CURRENT_USER, login, logout e loadCurrentUser vêm de js/auth.js
-// (carregado no <head> antes deste <script> inline). Não redeclará-los
-// aqui — o getter/setter em js/auth.js preserva a semântica de "let"
-// global e os call-sites do inline continuam funcionando.
-//
-// O roteamento (routes, navigate, matchRoute, handleRoute,
-// routeAfterLogin) foi extraído para js/router.js, carregado no <head>
-// antes deste inline. As rotas são registradas mais abaixo, após as
-// telas e antes de main(), via window.RAVATEX_ROUTER.setRoutes(...).
-// Os globais legados window.navigate, window.matchRoute,
-// window.handleRoute, window.routeAfterLogin e window.routes seguem
-// disponíveis (definidos por js/router.js).
-//
-// As telas sistêmicas screenLogin, screenNotFound e screenForbidden
-// foram extraídas para js/screens/system-screens.js, carregado no
-// <head> depois de js/router.js e antes deste inline. Os globais
-// legados window.screenLogin, window.screenNotFound e
-// window.screenForbidden seguem disponíveis.
-//
-// shellLayout e ADMIN_MENU foram extraídos para js/screens/common.js,
-// carregado no <head> depois de js/screens/system-screens.js e antes
-// deste inline. Os globais legados window.shellLayout e
-// window.ADMIN_MENU seguem disponíveis para as telas abaixo.
-//
-// As telas de cadastros (screenCadastros{Cores,Clientes,Modelos,
-// Parametros,Fornecedores,Precos,Usuarios}) e as constantes
-// relacionadas (FORNECEDOR_TIPOS, labelFornecedorTipo) foram
-// extraídas para js/screens/cadastros.js, carregado no <head> depois
-// de js/screens/common.js e antes deste inline. As globais legadas
-// seguem disponíveis para o setRoutes abaixo.
-//
-// A tela de listagem de OPs (screenListaOPs) foi extraída para
-// js/screens/ops-list.js, carregada no <head> depois de
-// js/screens/cadastros.js e antes deste inline. A global legada
-// window.screenListaOPs segue disponível para o setRoutes abaixo.
-//
-// Os helpers de UI/read do formulário de entrega (rotuloFio,
-// OCF_STATUS_LABEL, buildEntregaInlineForm) foram extraídos para
-// js/screens/entrega-form.js, carregado no <head> depois de
-// js/screens/ops-list.js e antes deste inline. As globais legadas
-// seguem disponíveis para as telas abaixo.
-//
-// O helper de write `excluirEntrega` foi extraído para
-// js/screens/entrega-writes.js (Fase 2.1 do DIAG), carregado
-// no <head> depois de js/screens/entrega-form.js e antes deste
-// inline. A global legada window.excluirEntrega segue disponível
-// para as 4 telas abaixo. Os demais writes (salvar*/atualizar*
-// Cima e Latex) permanecem inline por decisão arquitetural.
-// =====================================================================
-
-// =====================================================================
-// === SCREENS =========================================================
-// =====================================================================
-
-// As 4 telas de fornecedor (screenFornecedorHome,
-// screenFornecedorEntregas, screenFornecedorLatex e
-// screenFornecedorOrdens) foram extraídas para
-// js/screens/fornecedor.js (carregado no <head> depois de
-// entrega-writes.js e antes do inline). Os globais legados
-// window.screenFornecedor* seguem disponíveis para o setRoutes.
-
-
-// A tela principal screenNovaOP foi extraída para
-// js/screens/op-nova.js (carregado no <head> depois de
-// op-persistir.js e antes do inline). O global legado
-// window.screenNovaOP segue disponível para o setRoutes
-// deste inline e para a rota dinâmica #/ops/:id em
-// js/router.js.
-
-
-
-// =====================================================================
-// === ROUTES ==========================================================
-// Registro das rotas no router (js/router.js). Roda DEPOIS das telas
-// (que são as funções render) e ANTES de main(). Define window.routes.
-// =====================================================================
-// === ROUTES ==========================================================
-// Registro das rotas no router (js/router.js). Roda DEPOIS das telas
-// (que são as funções render) e ANTES de main(). Define window.routes.
-// =====================================================================
-window.RAVATEX_ROUTER.setRoutes({
-  '#/login':    { render: screenLogin, public: true },
-  '#/painel':   { render: screenPainel, roles: ['admin'] },
-  '#/ops':      { render: screenListaOPs, roles: ['admin'] },
-  '#/ops/nova': { render: () => window.screenNovaOP(null), roles: ['admin'] },
-  '#/cadastros/cores': { render: screenCadastrosCores, roles: ['admin'] },
-  '#/cadastros/modelos': { render: screenCadastrosModelos, roles: ['admin'] },
-  '#/cadastros/parametros': { render: screenCadastrosParametros, roles: ['admin'] },
-  '#/cadastros/fornecedores': { render: screenCadastrosFornecedores, roles: ['admin'] },
-  '#/cadastros/clientes':    { render: screenCadastrosClientes,    roles: ['admin'] },
-  '#/cadastros/precos': { render: screenCadastrosPrecos, roles: ['admin'] },
-  '#/cadastros/usuarios': { render: screenCadastrosUsuarios, roles: ['admin'] },
-  '#/fornecedor/home': { render: screenFornecedorHome, roles: ['fornecedor'] },
-  '#/fornecedor/ordens': { render: screenFornecedorOrdens, roles: ['fornecedor'] },
-  '#/fornecedor/entregas': { render: screenFornecedorEntregas, roles: ['fornecedor'] },
-  '#/fornecedor/latex': { render: screenFornecedorLatex, roles: ['fornecedor'] },
-});
-
-// =====================================================================
-// === MAIN ============================================================
-// =====================================================================
-async function main() {
-  window.addEventListener('hashchange', handleRoute);
-
-  await loadCurrentUser();
-  if (!CURRENT_USER) {
-    navigate('#/login');
-  } else {
-    if (location.hash && location.hash !== '#/login') handleRoute();
-    else routeAfterLogin();
-  }
-}
-
-main().catch(err => {
-  console.error(err);
-  toast('Erro ao iniciar o app', 'error');
-});
-</script>
-
 </body>
 </html>
 

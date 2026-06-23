@@ -41,6 +41,7 @@ const OPN   = path.join(ROOT, 'js', 'screens', 'op-nova.js');
 const OLA   = path.join(ROOT, 'js', 'screens', 'op-latex-admin.js');
 const OPW   = path.join(ROOT, 'js', 'screens', 'op-writes.js');
 const OFH   = path.join(ROOT, 'js', 'screens', 'op-form-helpers.js');
+const BOOT  = path.join(ROOT, 'js', 'boot.js');
 const EF    = path.join(ROOT, 'js', 'screens', 'entrega-form.js');
 const EW    = path.join(ROOT, 'js', 'screens', 'entrega-writes.js');
 const FORN  = path.join(ROOT, 'js', 'screens', 'fornecedor.js');
@@ -59,6 +60,7 @@ const opnSrc    = fs.readFileSync(OPN,   'utf8');
 const olaSrc    = fs.readFileSync(OLA,   'utf8');
 const opwSrc    = fs.readFileSync(OPW,   'utf8');
 const ofhSrc    = fs.readFileSync(OFH,   'utf8');
+const bootSrc   = fs.readFileSync(BOOT,  'utf8');
 const efSrc     = fs.readFileSync(EF,    'utf8');
 const uiSrc     = fs.readFileSync(UI,    'utf8');
 const badgesSrc = fs.readFileSync(BADGES,'utf8');
@@ -80,7 +82,13 @@ function extractInlineScript(html) {
   const matches = [];
   let m;
   while ((m = re.exec(html)) !== null) matches.push(m[1]);
-  if (matches.length === 0) throw new Error('nenhum <script> inline encontrado');
+  if (matches.length === 0) {
+    // Após ROUTES-BOOT-MODULE-A o <script> inline foi removido.
+    // Tests que verificam AUSÊNCIA de coisas no inline passam
+    // trivialmente; tests que esperavam PRESENÇA foram
+    // atualizados para olhar em js/boot.js.
+    return '';
+  }
   return matches.reduce((a, b) => (a.length >= b.length ? a : b));
 }
 
@@ -155,18 +163,19 @@ test('4. index.html carrega painel.js EXATAMENTE UMA VEZ, sem type=module', () =
     'painel.js está sendo carregado com type=module');
 });
 
-test('5. index.html: ordem op-latex-admin.js → painel.js → jspdf → inline', () => {
+test('5. index.html: ordem op-latex-admin.js → painel.js → jspdf → boot.js (último local antes de </head>)', () => {
   const olaIdx    = findScriptIdx(indexSrc, 'js/screens/op-latex-admin.js');
   const painelIdx = findScriptIdx(indexSrc, 'js/screens/painel.js');
   const jspdfIdx  = indexSrc.indexOf('cdnjs.cloudflare.com/ajax/libs/jspdf');
-  const inlineIdx = firstInlineScriptIndex(indexSrc);
+  const bootIdx   = findScriptIdx(indexSrc, 'js/boot.js');
   assert.ok(olaIdx > 0, 'op-latex-admin.js não encontrado');
   assert.ok(painelIdx > 0, 'painel.js não encontrado');
   assert.ok(jspdfIdx > 0, 'jspdf não encontrado');
-  assert.ok(inlineIdx > 0, 'inline não encontrado');
+  assert.ok(bootIdx > 0, 'js/boot.js não encontrado como último script local');
   assert.ok(olaIdx < painelIdx, 'op-latex-admin deve vir antes de painel.js');
   assert.ok(painelIdx < jspdfIdx, 'painel.js deve vir antes de jspdf');
-  assert.ok(painelIdx < inlineIdx, 'painel.js deve vir antes do inline');
+  assert.ok(jspdfIdx < bootIdx, 'jspdf CDN deve vir antes de boot.js');
+  assert.ok(bootIdx > jspdfIdx, 'boot.js deve ser o último script local');
 });
 
 test('6. inline NÃO contém mais function screenPainel', () => {
@@ -181,16 +190,18 @@ test('7. screenNovaOP foi extraída para op-nova.js (NÃO está mais no inline)'
     'inline ainda tem screenNovaOP — extração incompleta');
 });
 
-test('8. inline AINDA contém setRoutes', () => {
+test('8. index.html NÃO contém mais setRoutes (extraído para js/boot.js)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/,
-    'inline perdeu window.RAVATEX_ROUTER.setRoutes — boot chain quebrou');
+  // Após ROUTES-BOOT-MODULE-A, setRoutes foi extraído para boot.js
+  assert.equal(/window\.RAVATEX_ROUTER\.setRoutes\s*\(/.test(inline), false,
+    'inline ainda tem setRoutes — extração incompleta');
 });
 
-test('9. inline AINDA contém main', () => {
+test('9. index.html NÃO contém mais main (extraído para js/boot.js)', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /async\s+function\s+main\s*\(/,
-    'inline perdeu main — boot quebrou');
+  // Após ROUTES-BOOT-MODULE-A, main foi extraído para boot.js
+  assert.equal(/async\s+function\s+main\s*\(/.test(inline), false,
+    'inline ainda tem main — extração incompleta');
 });
 
 test('10. painel.js contém function screenPainel', () => {
@@ -252,6 +263,7 @@ function makeFullBootSandbox() {
   vm.runInContext(olaSrc,    sandbox, { filename: 'js/screens/op-latex-admin.js' });
   vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
   vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
+  vm.runInContext(bootSrc,   sandbox, { filename: 'js/boot.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};

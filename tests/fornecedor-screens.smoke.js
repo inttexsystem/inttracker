@@ -136,7 +136,13 @@ function extractInlineScript(html) {
   const matches = [];
   let m;
   while ((m = re.exec(html)) !== null) matches.push(m[1]);
-  if (matches.length === 0) throw new Error('nenhum <script> inline encontrado');
+  if (matches.length === 0) {
+    // Após ROUTES-BOOT-MODULE-A o <script> inline foi removido.
+    // Tests que verificam AUSÊNCIA de coisas no inline passam
+    // trivialmente; tests que esperavam PRESENÇA foram
+    // atualizados para olhar em js/boot.js.
+    return '';
+  }
   return matches.reduce((a, b) => (a.length >= b.length ? a : b));
 }
 
@@ -402,18 +408,19 @@ test('3. index.html carrega js/screens/fornecedor.js EXATAMENTE UMA VEZ, sem typ
     'fornecedor.js está sendo carregado com type=module — deve ser script clássico');
 });
 
-test('4. index.html: ordem entrega-writes → fornecedor → jspdf → inline', () => {
+test('4. index.html: ordem entrega-writes → fornecedor → jspdf → boot.js (último local antes de </head>)', () => {
   const ewIdx     = findScriptIdx(indexSrc, 'js/screens/entrega-writes.js');
   const fornIdx   = findScriptIdx(indexSrc, 'js/screens/fornecedor.js');
   const jspdfIdx  = indexSrc.indexOf('cdnjs.cloudflare.com/ajax/libs/jspdf');
-  const inlineIdx = firstInlineScriptIndex(indexSrc);
+  const bootIdx   = findScriptIdx(indexSrc, 'js/boot.js');
   assert.ok(ewIdx > 0, 'js/screens/entrega-writes.js não encontrado');
   assert.ok(fornIdx > 0, 'js/screens/fornecedor.js não encontrado');
   assert.ok(jspdfIdx > 0, 'jspdf CDN não encontrado');
-  assert.ok(inlineIdx > 0, 'inline não encontrado');
+  assert.ok(bootIdx > 0, 'js/boot.js não encontrado como último script local');
   assert.ok(ewIdx < fornIdx, 'entrega-writes deve vir antes de fornecedor');
   assert.ok(fornIdx < jspdfIdx, 'fornecedor deve vir antes de jspdf');
-  assert.ok(fornIdx < inlineIdx, 'fornecedor deve vir antes do inline');
+  assert.ok(jspdfIdx < bootIdx, 'jspdf CDN deve vir antes de boot.js');
+  assert.ok(bootIdx > jspdfIdx, 'boot.js deve ser o último script local');
 });
 
 test('5. script inline NÃO contém mais as 4 funções de fornecedor', () => {
@@ -439,9 +446,17 @@ test('6. screenNovaOP foi extraída para op-nova.js; setRoutes e main continuam 
   // em OP-FORM-HELPERS-MODULE-A
   assert.equal(/function\s+rotuloFioOrdem\s*\(/.test(inline), false,
     'inline não deve mais declarar rotuloFioOrdem (unificado com rotuloFio)');
-  // setRoutes e main permanecem inline
-  assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/);
-  assert.match(inline, /async\s+function\s+main\s*\(/);
+  // setRoutes e main foram extraídos para js/boot.js (ROUTES-BOOT-MODULE-A)
+  assert.equal(/window\.RAVATEX_ROUTER\.setRoutes\s*\(/.test(inline), false,
+    'inline ainda tem setRoutes — extração incompleta');
+  assert.equal(/async\s+function\s+main\s*\(/.test(inline), false,
+    'inline ainda tem main — extração incompleta');
+  // Verifica que estão em boot.js
+  const bootSrc = fs.readFileSync(path.join(ROOT, 'js', 'boot.js'), 'utf8');
+  assert.match(bootSrc, /window\.RAVATEX_ROUTER\.setRoutes\(/,
+    'boot.js não tem setRoutes');
+  assert.match(bootSrc, /async\s+function\s+main\s*\(/,
+    'boot.js não tem main');
 });
 
 test('7. js/screens/fornecedor.js contém as 4 telas', () => {
@@ -785,6 +800,9 @@ test('33. boot: ui + badges + calculo-op + common + cadastros + ops-list + entre
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   vm.runInContext(fornSrc,   sandbox, { filename: 'js/screens/fornecedor.js' });
   vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
+  // bootSrc foi lido em test 6; recarregamos para garantir acesso aqui
+  const bootSrcLocal = fs.readFileSync(path.join(ROOT, 'js', 'boot.js'), 'utf8');
+  vm.runInContext(bootSrcLocal, sandbox, { filename: 'js/boot.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
@@ -805,7 +823,7 @@ test('33. boot: ui + badges + calculo-op + common + cadastros + ops-list + entre
 
   const routes = vm.runInContext('window.routes', sandbox);
   assert.ok(routes && routes['#/login'], 'rota #/login não registrada');
-  // Rotas de fornecedor devem estar registradas pelo setRoutes inline
+  // Rotas de fornecedor devem estar registradas pelo setRoutes em boot.js
   assert.ok(routes && routes['#/fornecedor/home'], 'rota #/fornecedor/home não registrada');
   assert.ok(routes && routes['#/fornecedor/entregas'], 'rota #/fornecedor/entregas não registrada');
   assert.ok(routes && routes['#/fornecedor/latex'], 'rota #/fornecedor/latex não registrada');
