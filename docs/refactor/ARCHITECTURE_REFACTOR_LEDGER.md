@@ -2,8 +2,8 @@
 
 > Ledger de fases do refactor arquitetural de
 > `D:\OneDrive\Programação\Ravatex\controle-tapetes`.
-> Última atualização: 2026-06-23 (HEAD `cac20f9`,
-> fase `RAVATEX-TAPETES-REFACTOR-STATE-DOCS-C`).
+> Última atualização: 2026-06-23 (HEAD `4c18fe7`,
+> fase `RAVATEX-TAPETES-REFACTOR-FINAL-DOCS-A`).
 
 ## 1. Premissas corrigidas
 - **App estático**, não Next/Vercel.
@@ -21,7 +21,7 @@
 - **Push só para `staging`** (`git push staging work/app-next:main`).
 - **`origin/main` e PR #2 intocados** durante todo o refactor.
 - **Sem segredo em relatório/doc** (`service_role`, senha, JWT
-  secret, connection string com senha, anon key completa são
+  secret, connection string com senha ou anon key completa são
   proibidos de aparecer em qualquer artefato versionado).
 - **Testes focados por fase** (não rodar suíte completa por padrão).
 - **Stage seletivo** em commits (proibido `git add .`).
@@ -75,7 +75,10 @@
 | OP-PERSISTIR-HELPERS-MODULE-A | `8fd4dd2` | `js/screens/op-persistir.js` | 220/220 | aceito |
 | OP-PERSISTIR-WRITES-DIAG-C | (read-only) | `index.html` (análise) | n/a | aceito |
 | OP-PERSISTIR-WRITES-MODULE-A | `cac20f9` | `js/screens/op-persistir.js` | 255/255 | aceito com ressalva transacional |
-| REFACTOR-STATE-DOCS-C | (a criar) | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | esta fase |
+| REFACTOR-STATE-DOCS-C | `78cd93d` | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | aceito |
+| SCREENNOVAOP-MODULE-A | `ce3dd14` | `js/screens/op-nova.js` | 314/314 | aceito |
+| ROUTES-BOOT-MODULE-A | `4c18fe7` | `js/boot.js` | 368/368 | aceito |
+| REFACTOR-FINAL-DOCS-A | (a criar) | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | esta fase |
 
 ## 5. Ressalvas processuais aceitas em `FORNECEDOR-SCREENS-MODULE-A` (commit `4b9ca12`)
 
@@ -150,6 +153,22 @@
   status para `'simulada'` em falhas de 'aberta', deletar OP recém-
   criada se lote falhar) foi preservado dentro do helper. Risco
   transacional residual permanece.
+- **`SCREENNOVAOP-MODULE-A` (commit `ce3dd14`)**: extraiu
+  `screenNovaOP` inteira como módulo clássico IIFE, preservando a
+  closure inteira (estado local + `~20` subfunções aninhadas). O
+  call-site `#/ops/nova` em `setRoutes` foi atualizado de bare
+  `screenNovaOP(null)` para `window.screenNovaOP(null)`.
+  314/314 testes focados passaram.
+- **`ROUTES-BOOT-MODULE-A` (commit `4c18fe7`)**: extraiu
+  `setRoutes` + `main` + `main().catch` do inline para
+  `js/boot.js`. Removido o último `<script>` inline final de
+  `index.html` (47 linhas declarativas após a extração). O call-site
+  em `setRoutes` foi atualizado para todas as referências
+  `window.screen*`. O `js/router.js` (engine genérica) não foi
+  alterado. 2 falhas pré-existentes em `tests/router.smoke.js` foram
+  corrigidas (teste 6 sobre `screenPainel` inline e teste 34 sobre
+  boot chain com `screenPainel` carregado). 368/368 testes focados
+  passaram.
 
 ## 6. Módulos extraídos (lista canônica)
 
@@ -173,58 +192,78 @@
 | `js/screens/painel.js` | `065a796` | SCREENPAINEL-MODULE-A |
 | `js/screens/op-recalculo.js` | `c599c21` (+ `4ce5080`) | OP-RECALCULO-HELPERS-MODULE-A (+ OP-RECALCULO-WRITES-MODULE-A) |
 | `js/screens/op-persistir.js` | `8fd4dd2` (+ `cac20f9`) | OP-PERSISTIR-HELPERS-MODULE-A (+ OP-PERSISTIR-WRITES-MODULE-A) |
+| `js/screens/op-nova.js` | `ce3dd14` | SCREENNOVAOP-MODULE-A |
+| `js/boot.js` | `4c18fe7` | ROUTES-BOOT-MODULE-A |
 
-## 7. Inline remanescente em `index.html` (após `cac20f9`)
+## 7. Inline remanescente em `index.html` (após `4c18fe7`)
 
-- `screenNovaOP` (UI/estado principal, delega writes para
-  `aplicarRecalculoOP`, `persistirOP`, `registrarRecebimentoOrdemFio`,
-  `atribuirFornecedorFioOp` e `renderOPLatexAdmin`).
-- `buildRight` / `renderRightInto` (montagem do painel lateral).
-- `buildProposta` / `recompute` / `onAceitar` (UI de proposta + recalculo).
-- `buildOrdemPendenteRow` (UI do input; write delegado).
-- `gerarPdfCompraFios` (geração de PDF via jsPDF).
-- `salvarSimulacao` / `abrirOP` (callers de `persistirOP` com saving,
-  toast, navigate, validações de formulário).
-- `setRoutes` (registro de rotas no router).
-- `main` (boot).
+**NENHUM.** `index.html` agora é puramente declarativo: HTML +
+ordem de scripts. Não há `<script>` inline final.
 
 `screenPainel` foi extraída para `js/screens/painel.js`.
 `renderOPLatexAdmin` foi extraída para `js/screens/op-latex-admin.js`.
+`screenNovaOP` foi extraída para `js/screens/op-nova.js`.
 `aplicarRecalculo` e `persistir` foram **removidos** do inline; seus
 writes agora são executados por `aplicarRecalculoOP` e `persistirOP`
 respectivamente.
+`setRoutes` e `main` foram extraídos para `js/boot.js`.
 
-## 8. Próximos cortes recomendados
+## 8. Fechamento do refactor arquitetural
 
-1. **`SCREENNOVAOP-UI-DIAG-A`** — diagnosticar extração da UI
-   grande de `screenNovaOP`.
-2. **`SCREENNOVAOP-MODULE-A`** ou **`SCREENNOVAOP-UI-MODULE-A`**
-   — apenas após diagnóstico UI.
-3. **`ROUTES-MAIN-CLOSEOUT-A`** — fechamento de `setRoutes`/`main`
-   (último pedaço de bootstrap inline).
-4. **`REFACTOR-STATE-DOCS-D`** — docs final após fechamento do
-   inline.
+### Marcos
+- **Marco:** `index.html` sem inline final (47 linhas declarativas).
+- **Marco:** rotas e bootstrap extraídos para `js/boot.js`.
+- **Marco:** `tests/router.smoke.js` corrigido para nova arquitetura,
+  34/34 pass.
+- **Marco:** app estático agora tem separação clara entre HTML, boot,
+  router, screens, writes e cálculo.
 
-## 9. Riscos residuais do refactor (após `cac20f9`)
+### Estrutura final
+- **`index.html`** — HTML declarativo + ordem de scripts.
+- **`js/boot.js`** — setRoutes + main + main().catch (entrypoint).
+- **`js/router.js`** — engine genérica de roteamento.
+- **`js/screens/`** — telas e writes auxiliares.
+- **`js/calculo-op.js`** — cálculo de domínio.
+- **`js/auth.js`, `js/config.js`, `js/supabase-client.js`,
+  `js/environment-banner.js`, `js/ui.js`, `js/badges.js`** —
+  infraestrutura de suporte.
 
-- 🔴 **`persistirOP` e `aplicarRecalculoOP` seguem sem transação
-  cross-table.** Falha parcial ainda pode deixar `op_itens`,
-  `saldo_fios_op`, `saldo_fios` e `ops.status` em estado
-  intermediário. Rollback parcial manual existe (reverter status
-  para `'simulada'`, deletar OP recém-criada se lote falhar) mas
-  não cobre todos os cenários.
-- 🔴 **`screenNovaOP` ainda é bloco grande de UI/estado**, mesmo
-  com todos os writes delegados. Contém várias sub-funções de UI
-  acopladas ao estado local.
-- 🟡 **`persistirOP` trata deletes como erro** (mudança controlada
-  em relação ao inline antigo, que ignorava erros de delete).
-  Testes de regressão cobrem este comportamento.
-- 🟡 Falhas de smoke dependentes de `http.server :8765`
+### Ressalvas
+- `op-nova.js` permanece grande (`~831` linhas) e com closure
+  complexa, mas agora isolado em módulo próprio. Continua
+  funcional.
+- `persistirOP` e `aplicarRecalculoOP` continuam sem transação
+  cross-table. A ausência de transação é **risco de
+  produto/dados**, **não** regressão do refactor.
+- `persistirOP` trata deletes como erro (mudança controlada em
+  relação ao inline antigo). Testes de regressão cobrem este
+  comportamento.
+- Falhas de smoke dependentes de `http.server :8765`
   (`tests/index-inline.smoke.js`, parte de
-  `tests/write-guard.smoke.js`) são **pré-existentes** e não
-  atribuídas ao refactor.
-- 🟡 O backdoor `*@tapetes.test` (ver histórico de D1 em
-  `PROJECT_STATE.md`) ainda depende de ação do dono para remoção.
+  `tests/write-guard.smoke.js`) são **pré-existentes** e **não
+  atribuídas** ao refactor. Verificadas com `git stash` em commits
+  anteriores.
+- O backdoor `*@tapetes.test` (ver histórico de D1) ainda depende
+  de ação do dono para remoção.
+
+## 9. Próximos passos recomendados
+
+1. **Validação/homologação staging** — validar a tela Nova OP e
+   fluxos críticos em homologação.
+2. **Docs/closeout final de publicação** — se necessário, preparar
+   commit de merge para `origin/main` (produção) com aprovação
+   explícita.
+3. **Futuro opcional:** `RAVATEX-TAPETES-OP-PDF-MODULE-A` — extrair
+   `gerarPdfCompraFios` para `js/screens/op-pdf.js`.
+4. **Futuro opcional:** `RAVATEX-TAPETES-OP-BLOCO-FIOS-DIAG-A` —
+   diagnosticar `buildBlocoFios`.
+5. **Futuro opcional:** `RAVATEX-TAPETES-TRANSACTION-RISK-DIAG-A` —
+   avaliar RPC/transações Supabase para `persistirOP` e
+   `aplicarRecalculoOP`.
+
+**Nota:** os itens 3-5 são **opcionais** e **não** devem ser tratados
+como continuação obrigatória do refactor. O fechamento arquitetural
+principal está concluído em `4c18fe7`.
 
 ## 10. Política de updates deste ledger
 

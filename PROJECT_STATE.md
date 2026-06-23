@@ -1,9 +1,8 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-23** (fase
-> RAVATEX-TAPETES-REFACTOR-STATE-DOCS-C — após extração dos writes
-> críticos de `screenNovaOP`: `screenPainel`, `op-recalculo`
-> (helpers + write) e `op-persistir` (helpers + write)).
+> RAVATEX-TAPETES-REFACTOR-FINAL-DOCS-A — fechamento do refactor
+> arquitetural principal do app estático).
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 
@@ -28,8 +27,8 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
-- **HEAD atual aceito:** `cac20f9` — "Extract OP persistir write helper".
-- **staging/main atual:** `cac20f9` (sincronizado com `work/app-next`).
+- **HEAD atual aceito:** `4c18fe7` — "Extract app boot entrypoint".
+- **staging/main atual:** `4c18fe7` (sincronizado com `work/app-next`).
 - **origin/main oficial:** **intocado** durante todo o refactor.
 - **PR #2:** **intocado** durante todo o refactor.
 - **Working tree esperado:** **limpo**.
@@ -38,14 +37,97 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 - **Supabase real:** **não acessado** em nenhuma fase de refactor ou
   teste mockado.
 
+### Marco fechado
+**Marco fechada: refactor arquitetural principal do app estático.**
+- `index.html` agora é declarativo, sem script inline final.
+- `js/boot.js` é o entrypoint oficial do app.
+- `js/router.js` permanece engine genérica de roteamento.
+
 ### Commits técnicos desde a última docs-only (REFACTOR-STATE-DOCS-B)
 1. `065a796` — Extract painel screen module (SCREENPAINEL-MODULE-A).
 2. `c599c21` — Extract OP recalculo pure helpers (OP-RECALCULO-HELPERS-MODULE-A).
 3. `4ce5080` — Extract OP recalculo write helper (OP-RECALCULO-WRITES-MODULE-A).
 4. `8fd4dd2` — Extract OP persistir pure helpers (OP-PERSISTIR-HELPERS-MODULE-A).
 5. `cac20f9` — Extract OP persistir write helper (OP-PERSISTIR-WRITES-MODULE-A).
+6. `78cd93d` — Document screenNovaOP write extraction milestone.
+7. `ce3dd14` — Extract screenNovaOP module (SCREENNOVAOP-MODULE-A).
+8. `4c18fe7` — Extract app boot entrypoint (ROUTES-BOOT-MODULE-A).
 
-## Módulos extraídos (ordem cronológica)
+## Estrutura final de responsabilidades
+
+### `index.html` — HTML declarativo + ordem de scripts
+- Apenas HTML + script tags.
+- Não contém mais `<script>` inline final.
+- Carrega módulos clássicos e jsPDF via CDN.
+
+### `js/boot.js` — setRoutes + main + main().catch
+- Entrypoint do app.
+- Registra rotas via `window.RAVATEX_ROUTER.setRoutes`.
+- Executa `main()` (hashchange, loadCurrentUser, direcionamento).
+- Captura erro de boot via `main().catch()`.
+
+### `js/router.js` — engine de roteamento
+- `setRoutes`, `getRoutes`, `navigate`, `matchRoute`, `handleRoute`,
+  `routeAfterLogin`.
+- Engine genérica; não conhece as telas nem o estado da app.
+
+### `js/screens/op-nova.js` — screenNovaOP e UI/estado da Nova OP
+- Closure inteira de `screenNovaOP` (com `~20` subfunções aninhadas).
+- Proposta, blocos de fios, tecelagem, PDF, wrappers de persistência
+  e recálculo.
+- Mantém read-only em Supabase (apenas `.select()`).
+
+### `js/screens/op-persistir.js` — helpers de persistência + persistirOP
+- Helpers puros: `itensValidosOP`, `montarPayloadItensOP`,
+  `montarPayloadFornecedoresOP`, `montarPayloadOP`, `montarPayloadLote`.
+- Write helper: `persistirOP` (8 writes da persistência).
+
+### `js/screens/op-recalculo.js` — helpers de recálculo + aplicarRecalculoOP
+- Helpers puros: `maxMetrosItem`, `normalizarChaveSaldo`.
+- Write helper: `aplicarRecalculoOP` (4 writes do recálculo).
+
+### `js/screens/op-writes.js` — writes auxiliares de OP/fio/fornecedor
+- `registrarRecebimentoOrdemFio` — atualiza `ordens_compra_fio`.
+- `atribuirFornecedorFioOp` — atribui fornecedor de fio a etapa de OP.
+
+### `js/screens/op-latex-admin.js` — tela admin de OP látex
+- `renderOPLatexAdmin` — chamada quando `op.tipo === 'latex'`.
+
+### `js/screens/painel.js` — tela painel
+- `screenPainel` (placeholder inicial do admin).
+
+### `js/screens/fornecedor.js` — telas de fornecedor
+- `screenFornecedorHome`, `screenFornecedorEntregas`,
+  `screenFornecedorLatex`, `screenFornecedorOrdens`.
+
+### `js/screens/ops-list.js` — listagem de OPs
+- `screenListaOPs` (read-only).
+
+### `js/screens/cadastros.js` — cadastros
+- 7 telas de cadastro + constantes `FORNECEDOR_TIPOS`,
+  `labelFornecedorTipo`.
+
+### `js/screens/system-screens.js` — telas sistêmicas/login
+- `screenLogin`, `screenNotFound`, `screenForbidden`.
+
+### `js/screens/common.js` — componentes comuns de tela
+- `shellLayout`, `ADMIN_MENU`.
+
+### `js/calculo-op.js` — cálculo de domínio
+- `larguraKey`, `calcularFiosOP`, `montarOrdensCompraFio`, `recalcularOP`,
+  `consumoPorOrdem`, `totalEntregueCimaPorItem`, `percentualEntregueOP`,
+  `agruparOrdensCompraFio`.
+
+### Demais módulos de suporte
+- `js/config.js` — configuração Supabase refs.
+- `js/supabase-client.js` — client Supabase + write-guard.
+- `js/environment-banner.js` — banner de ambiente.
+- `js/auth.js` — `login`, `logout`, `loadCurrentUser`,
+  `CURRENT_USER`.
+- `js/ui.js` — helpers de UI (`el`, `toast`, `pageHeader`, etc.).
+- `js/badges.js` — `badgeTipo`, `badgeStatus`.
+
+## Módulos extraídos (ordem cronológica completa)
 1. `js/config.js` (commit `5547e27`, CONFIG-MODULE-A).
 2. `js/supabase-client.js` (commit `6d50d08`, SUPABASE-CLIENT-MODULE-A).
 3. `js/environment-banner.js` (commit `1f3238d`, ENV-BANNER-MODULE-A).
@@ -55,129 +137,98 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 7. `js/screens/common.js` (commit `ed8e75c`, SCREENS-COMMON-MODULE-A).
 8. `js/screens/cadastros.js` (commit `dd24365`, CADASTROS-SCREENS-MODULE-A).
 9. `js/screens/ops-list.js` (commit `d7a8d25`, OPS-LIST-SCREEN-MODULE-A).
-10. `js/screens/entrega-form.js` (commit `958f244`, ENTREGA-FORM-HELPER-MODULE-A).
+10. `js/screens/entrega-form.js` (commit `958f244`,
+    ENTREGA-FORM-HELPER-MODULE-A).
 11. `js/screens/entrega-writes.js` (commit `7ec1721`,
     ENTREGA-WRITES-MODULE-A; expandido em `e190022` Latex e
     `70635aa` Cima).
 12. `js/screens/fornecedor.js` (commit `4b9ca12`,
     FORNECEDOR-SCREENS-MODULE-A).
 13. `js/screens/op-form-helpers.js` (commit `c480324`,
-    OP-FORM-HELPERS-MODULE-A) — `rotuloModelo`, `fmtKg`,
-    `fmtMetros`, `disabledAttr`. Inclui unificação de
-    `rotuloFioOrdem` (clone local) com `rotuloFio` de
-    `entrega-form.js`.
+    OP-FORM-HELPERS-MODULE-A).
 14. `js/screens/op-writes.js` (commit `ab79f1c`,
-    OP-ORDER-WRITE-MODULE-A — `registrarRecebimentoOrdemFio`;
-    expandido em `1429950` com `atribuirFornecedorFioOp` na fase
-    OP-FORNECEDOR-WRITE-MODULE-A).
+    OP-ORDER-WRITE-MODULE-A; expandido em `1429950` com
+    `atribuirFornecedorFioOp`).
 15. `js/screens/op-latex-admin.js` (commit `69c0036`,
-    OP-LATEX-ADMIN-MODULE-A) — `renderOPLatexAdmin` saiu do inline.
+    OP-LATEX-ADMIN-MODULE-A).
 16. `js/screens/painel.js` (commit `065a796`,
-    SCREENPAINEL-MODULE-A) — `screenPainel` saiu do inline.
-17. `js/screens/op-recalculo.js` (commit `c599c21` + `4ce5080`,
+    SCREENPAINEL-MODULE-A).
+17. `js/screens/op-recalculo.js` (commits `c599c21` + `4ce5080`,
     OP-RECALCULO-HELPERS-MODULE-A + OP-RECALCULO-WRITES-MODULE-A).
-18. `js/screens/op-persistir.js` (commit `8fd4dd2` + `cac20f9`,
+18. `js/screens/op-persistir.js` (commits `8fd4dd2` + `cac20f9`,
     OP-PERSISTIR-HELPERS-MODULE-A + OP-PERSISTIR-WRITES-MODULE-A).
+19. `js/screens/op-nova.js` (commit `ce3dd14`,
+    SCREENNOVAOP-MODULE-A).
+20. `js/boot.js` (commit `4c18fe7`, ROUTES-BOOT-MODULE-A).
 
-## Estado atual dos novos módulos
+## Estado dos módulos críticos (após `4c18fe7`)
 
-### `js/screens/painel.js`
-- `screenPainel` (placeholder de 9 linhas, extraído em `065a796`).
-
-### `js/screens/op-recalculo.js`
-Helpers puros e write helper do fluxo de recalculo de OP, extraídos em
-duas fases. Concentra:
-- `maxMetrosItem(item, modelosById, parametrosByLargura, ordens)` — cap de
-  metros por item para o slider da proposta (adicionado em `c599c21`).
-- `normalizarChaveSaldo(tipo, corId, corPoliester)` — forma o objeto
-  `{ is, eq }` para query Supabase de `saldo_fios` (adicionado em
-  `c599c21`).
-- `aplicarRecalculoOP({ opId, resultado, modo, ordens })` — write helper
-  que executa os 4 writes do recalculo (`op_itens.update`,
-  `saldo_fios_op.insert`, `saldo_fios` select/update/insert,
-  `ops.update status='em_producao'`), retornando envelope
-  `{ error, step, partial }` (adicionado em `4ce5080`).
+### `js/screens/op-nova.js`
+- `screenNovaOP` (com closure inteira: `~20` subfunções).
+- `gerarPdfCompraFios` (geração de PDF via jsPDF).
+- `buildBlocoFios`, `buildBlocoTecelagem`, `buildProposta`/`recompute`/`onAceitar`.
+- `salvarSimulacao` / `abrirOP` (callers de `window.persistirOP`).
+- `aplicarRecalculo` (caller de `window.aplicarRecalculoOP`).
+- `buildOrdemPendenteRow` (caller de `window.registrarRecebimentoOrdemFio`).
+- Mantém read-only em Supabase (apenas `.select()`).
+- Writes delegados para `op-persistir.js`, `op-recalculo.js`,
+  `op-writes.js` e `op-latex-admin.js`.
 
 ### `js/screens/op-persistir.js`
-Helpers puros de payload e write helper do fluxo de persistência de
-OP, extraídos em duas fases. Concentra:
-- `itensValidosOP(itens)` — filtra itens válidos (adicionado em
-  `8fd4dd2`).
-- `montarPayloadItensOP(itensValidos, opId)` — gera payload de
-  `op_itens.insert` (adicionado em `8fd4dd2`).
-- `montarPayloadFornecedoresOP(fornSel, opId)` — gera payload de
-  `op_fornecedores.insert` (adicionado em `8fd4dd2`).
-- `montarPayloadOP({ numero, ano, status })` — gera payload de
-  `ops.insert`/`ops.update` (adicionado em `8fd4dd2`).
-- `montarPayloadLote({ numero, clienteSel })` — gera payload de
-  `lotes.insert` (adicionado em `8fd4dd2`).
 - `persistirOP({ status, op, numero, ano, clienteSel, itens, fornSel,
-  modelosById, parametrosByLargura })` — write helper que executa os 8
-  writes da persistência (ops, lotes, op_itens, op_fornecedores,
-  ordens_compra_fio), retornando envelope
-  `{ error, step, partial, opId }` (adicionado em `cac20f9`).
+  modelosById, parametrosByLargura })` — executa 8 writes da
+  persistência (ops, lotes, op_itens, op_fornecedores,
+  ordens_compra_fio). Retorna envelope
+  `{ error, step, partial, opId }`.
 
-## Estado de `screenNovaOP`
+### `js/screens/op-recalculo.js`
+- `aplicarRecalculoOP({ opId, resultado, modo, ordens })` — executa 4
+  writes do recálculo (`op_itens.update`, `saldo_fios_op.insert`,
+  `saldo_fios` select/update/insert, `ops.update status='em_producao'`).
+  Retorna envelope `{ error, step, partial }`.
 
-`screenNovaOP` continua **inline**. Os writes críticos foram
-**extraídos** para módulos dedicados:
+### `js/boot.js`
+- `window.RAVATEX_ROUTER.setRoutes({...})` — registra 15 rotas do app.
+- `main()` — registra `hashchange`, carrega `CURRENT_USER`, direciona
+  para `navigate('#/login')`, `handleRoute()` ou `routeAfterLogin()`.
+- `main().catch()` — toast de erro se o boot falhar.
 
-- `aplicarRecalculo` no inline agora chama
-  `window.aplicarRecalculoOP(...)` em `js/screens/op-recalculo.js`
-  (`4ce5080`).
-- `persistir` foi **removido** do inline; os callers
-  (`salvarSimulacao`, `abrirOP`) agora chamam
-  `window.persistirOP(...)` em `js/screens/op-persistir.js` (`cac20f9`).
-  Validacoes de formulario (numero, ano, clienteSel, fornSel.cima,
-  itens) e UI (saving, toast, navigate) permanecem nos callers inline.
-- `renderOPLatexAdmin` em `js/screens/op-latex-admin.js` (`69c0036`).
-- `registrarRecebimentoOrdemFio` e `atribuirFornecedorFioOp` em
-  `js/screens/op-writes.js` (`ab79f1c` + `1429950`).
-
-O inline agora concentra **principalmente UI**: estado local de
-`screenNovaOP`, montagem de tela (`buildLeft`, `buildRight`,
-`renderRightInto`), cálculo visual (`buildProposta`, `recompute`,
-`onAceitar`), handlers de UI, validações de formulário e roteamento
-local.
-
-## Inline remanescente principal em `index.html`
-
-- `screenNovaOP` (UI/estado, delega writes para `op-recalculo.js`,
-  `op-persistir.js`, `op-writes.js` e `op-latex-admin.js`).
-- `buildRight` / `renderRightInto` (montagem do painel lateral).
-- `buildProposta` (sliders + painel de consumo).
-- `recompute` (recalculo ao vivo do consumo).
-- `onAceitar` (validação + delegação para `aplicarRecalculoOP`).
-- `buildOrdemPendenteRow` (UI do input; write delegado para
-  `window.registrarRecebimentoOrdemFio`).
-- `gerarPdfCompraFios` (geração de PDF).
-- `setRoutes` (registro de rotas no router).
-- `main` (boot).
-
-`screenPainel` e `renderOPLatexAdmin` foram **extraídos**.
-
-## Riscos principais
-- 🔴 **`persistirOP` e `aplicarRecalculoOP` seguem sem transação
-  cross-table.** Falha parcial ainda pode deixar `op_itens`,
+## Riscos residuais
+- 🔴 **`persistirOP` e `aplicarRecalculoOP` continuam sem transação
+  cross-table.** Falhas parciais ainda podem deixar `op_itens`,
   `saldo_fios_op`, `saldo_fios` e `ops.status` em estado intermediário.
   Rollback parcial manual existe (reverter status para `'simulada'`,
   deletar OP recém-criada se lote falhar) mas não cobre todos os
   cenários.
-- 🔴 **`screenNovaOP` ainda é bloco grande de UI/estado**, mesmo com
-  todos os writes delegados. Contém várias sub-funções de UI
-  acopladas ao estado local.
-- 🟡 **`persistirOP` trata deletes como erro** (mudança controlada
-  em relação ao inline antigo, que ignorava erros de delete).
-  Testes de regressão cobrem este comportamento.
+- 🔴 **`op-nova.js` é um módulo grande (~831 linhas) com closure
+  complexa** (`screenNovaOP` + `~20` subfunções aninhadas). Continua
+  funcional e isolado em módulo próprio, mas é candidato a
+  fatiamento futuro.
+- 🟡 **Futuros cortes opcionais** podem extrair `gerarPdfCompraFios`,
+  `buildBlocoFios`, `buildBlocoTecelagem` e `buildProposta`, mas
+  **não são bloqueantes** para o fechamento do refactor.
 - 🟡 Falhas de smoke dependentes de `http.server :8765`
   (`tests/index-inline.smoke.js`, parte de
   `tests/write-guard.smoke.js`) são **pré-existentes** e **não
   atribuídas** ao refactor. Verificadas com `git stash` em commits
   anteriores.
+- 🟡 O backdoor `*@tapetes.test` (ver histórico de D1) ainda depende
+  de ação do dono para remoção.
+
+## Testes recentes
+- **SCREENNOVAOP-MODULE-A (`ce3dd14`):** 314/314 pass.
+- **ROUTES-BOOT-MODULE-A (`4c18fe7`):** 368/368 pass.
+- **`tests/router.smoke.js` corrigido:** 34/34 pass (2 falhas
+  pré-existentes foram resolvidas na ROUTES-BOOT-MODULE-A).
 
 ## Comandos seguros
-- `node --test tests/calculo-op.test.js` — cálculos puros.
 - `node --test tests/<arquivo>.smoke.js` — testes focados por fase.
+- `node --test tests/boot.smoke.js tests/router.smoke.js
+  tests/op-nova.smoke.js tests/op-persistir.smoke.js
+  tests/op-recalculo.smoke.js tests/op-writes.smoke.js
+  tests/op-form-helpers.smoke.js tests/op-latex-admin.smoke.js
+  tests/painel-screen.smoke.js tests/fornecedor-screens.smoke.js`
+  — regressão completa do refactor.
 - Servir local: `python -m http.server 8765` (apenas para
   `index-inline.smoke.js` e parte de `write-guard.smoke.js`).
 
@@ -188,20 +239,6 @@ local.
 - Push em `origin/main` (= produção).
 - Editar `index.html`, `js/**`, `tests/**` durante fase docs-only.
 - Tocar `origin/main` ou PR #2.
-
-## Próxima fase recomendada
-Após esta docs-only, o próximo alvo deve ser:
-
-**`RAVATEX-TAPETES-SCREENNOVAOP-UI-DIAG-A`** — diagnóstico de UI de
-`screenNovaOP`. Com todos os writes críticos já extraídos, a próxima
-fronteira a investigar é a extração da UI/estado pura:
-`buildRight`, `renderRightInto`, `buildProposta`, `recompute`,
-`onAceitar`, `buildOrdemPendenteRow`, `gerarPdfCompraFios`. Avaliar
-se `screenNovaOP` pode ser extraída como módulo completo ou se
-componentes internos podem ser isolados.
-
-**Não** recomendar extração direta de `screenNovaOP` sem
-diagnóstico prévio.
 
 ## Pendências de informação
 - Quem tem write no GitHub `grupoterrabranca` e acesso ao Supabase?
