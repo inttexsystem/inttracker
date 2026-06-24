@@ -1,10 +1,9 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-23** (fase
-> `RAVATEX-TAPETES-REFACTOR-FINAL-DOCS-B` — fechamento consolidado do
-> ciclo de refactor + hardening + diagnóstico + extração final do
-> `op-pdf.js`; atualizado em `RAVATEX-TAPETES-DOCS-SANITIZE-A` para
-> registrar saneamento documental e prevalência de fontes).
+> `RAVATEX-TAPETES-AUTH-EDGE-DESIGN-A` — design da Edge Function de
+> provisionamento de usuários Auth + `public.usuarios`; mantém refactor
+> congelado e não altera código).
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
@@ -32,8 +31,8 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
-- **HEAD atual aceito:** `7f3c6da` — "Extract OP PDF helper".
-- **staging/main atual:** `7f3c6da01013d372bbef19b4e03db5076251c564`
+- **HEAD atual aceito:** `88aa4fb` — "Design Supabase auth user provisioning".
+- **staging/main atual:** `88aa4fbbf9790739d923fd2bc6c0b114e06fb789`
   (sincronizado com `work/app-next`).
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
   — **intocado** durante todo o ciclo de refactor/hardening.
@@ -133,7 +132,10 @@ A próxima etapa é **homologação / release**, não nova extração.
   entre múltiplas tabelas (risco de produto/dados, não regressão do
   refactor).
 - 🟡 Criação de usuário Supabase Auth ainda exige perfil
-  correspondente em `public.usuarios` (fase própria, não de refactor).
+  correspondente em `public.usuarios`. Design da Edge Function
+  `admin-create-user` concluído em
+  `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`; implementação
+  em fases futuras (`RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A` etc.).
 - 🟡 Staging mostra log `relation "supabase_migrations.schema_migrations"
   does not exist` (ruído do dashboard, não do app).
 - 🟡 Tailwind CDN ainda gera warning de produção (não bloqueante;
@@ -142,13 +144,16 @@ A próxima etapa é **homologação / release**, não nova extração.
   para homologação pública.
 
 ## Próximo passo recomendado
-1. Homologação funcional local/staging (manual).
-2. Decisão separada sobre publicar/habilitar staging via
-   GitHub Pages, se necessário.
-3. Decisão separada sobre merge/release para `origin/main`
+1. Revisar e aprovar `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`.
+2. Executar `RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A` (criar/implementar a
+   Edge Function `admin-create-user` sem UI ainda).
+3. Executar `RAVATEX-TAPETES-AUTH-EDGE-STAGING-DEPLOY-A` (deploy em
+   staging + validação de admin/fornecedor).
+4. Executar `RAVATEX-TAPETES-AUTH-ADMIN-UI-A` (adaptar
+   `screenCadastrosUsuarios`).
+5. Homologação funcional local/staging.
+6. Decisão separada sobre merge/release para `origin/main`
    (somente com autorização explícita).
-4. Tratar pendências Supabase / cadastro de usuário em fase própria,
-   **não dentro do ciclo de refactor**.
 
 ## Estrutura final de responsabilidades
 

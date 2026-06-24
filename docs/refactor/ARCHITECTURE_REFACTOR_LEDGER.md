@@ -2,11 +2,11 @@
 
 > Ledger de fases do refactor arquitetural de
 > `D:\OneDrive\Programação\Ravatex\controle-tapetes`.
-> Última atualização: 2026-06-23 (HEAD `0d5ef7b`,
-> fase `RAVATEX-TAPETES-DOCS-SANITIZE-A` — saneamento documental:
-> `docs/DOCUMENTATION_INDEX.md`, READMEs e banners em docs legados,
-> anonimização de credenciais em `docs/qa/fase1-checklist.md` e
-> `fase2-checklist.md`).
+> Última atualização: 2026-06-23 (HEAD `88aa4fb`,
+> fase `RAVATEX-TAPETES-AUTH-EDGE-DESIGN-A` — design da Edge Function
+> `admin-create-user` para provisionamento atômico de
+> `auth.users` + `public.usuarios`; sem implementação de código,
+> SQL ou deploy).
 
 ## 1. Premissas corrigidas
 - **App estático**, não Next/Vercel.
@@ -89,7 +89,8 @@
 | OP-NOVA-SEAMS-DIAG-A | (read-only) | `js/screens/op-nova.js` (análise) | n/a | aceito |
 | OP-NOVA-PDF-MODULE-A | `7f3c6da` | `js/screens/op-pdf.js` | 388/388 | aceito |
 | REFACTOR-FINAL-DOCS-B | `e64d1cc` | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | aceito |
-| CODE-HEALTH-RULES | (a criar) | `docs/architecture/CODE_HEALTH_RULES.md` | docs-only | esta fase |
+| CODE-HEALTH-RULES | (a criar) | `docs/architecture/CODE_HEALTH_RULES.md` | docs-only | aceito |
+| AUTH-EDGE-DESIGN-A | (a criar) | `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | aceito |
 
 ## 5. Ressalvas processuais aceitas em `FORNECEDOR-SCREENS-MODULE-A` (commit `4b9ca12`)
 
@@ -419,15 +420,21 @@ Ordem de scripts (relevante): `op-persistir.js` → `op-pdf.js` →
    se necessário para homologação pública, em fase própria.
 3. **Merge/release para `origin/main`** — somente com aprovação
    explícita do dono do projeto. Em fase própria, **não** automática.
-4. **Pendências Supabase / cadastro usuário** — em fase própria,
-   **não** dentro do ciclo de refactor.
-5. **Futuro opcional:** `RAVATEX-TAPETES-OP-BLOCO-FIOS-DIAG-A` —
+4. **Design Auth concluído:** executar
+   `RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A` →
+   `RAVATEX-TAPETES-AUTH-EDGE-STAGING-DEPLOY-A` →
+   `RAVATEX-TAPETES-AUTH-ADMIN-UI-A` →
+   `RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A`.
+5. **Futuro opcional:** `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A` —
+   decidir se exclusão remove só `public.usuarios` ou também
+   `auth.users`.
+6. **Futuro opcional:** `RAVATEX-TAPETES-OP-BLOCO-FIOS-DIAG-A` —
    diagnosticar `buildBlocoFios` (somente se houver benefício
    prático e autorização explícita).
-6. **Futuro opcional:** `RAVATEX-TAPETES-OP-PROPOSTA-DIAG-A` —
+7. **Futuro opcional:** `RAVATEX-TAPETES-OP-PROPOSTA-DIAG-A` —
    diagnosticar `buildProposta` / `recompute` / `onAceitar`
    (idem).
-7. **Futuro opcional:** `RAVATEX-TAPETES-TRANSACTION-RISK-DIAG-A` —
+8. **Futuro opcional:** `RAVATEX-TAPETES-TRANSACTION-RISK-DIAG-A` —
    avaliar RPC/transações Supabase para `persistirOP` e
    `aplicarRecalculoOP` (idem).
 

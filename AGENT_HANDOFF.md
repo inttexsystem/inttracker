@@ -8,8 +8,8 @@
 > Convenção: **tudo em português brasileiro**.
 
 ## Estado atual aceito
-- **Estado atual aceito:** `work/app-next @ 7f3c6da`.
-- **staging/main:** `7f3c6da01013d372bbef19b4e03db5076251c564`
+- **Estado atual aceito:** `work/app-next @ 88aa4fb`.
+- **staging/main:** `88aa4fbbf9790739d923fd2bc6c0b114e06fb789`
   (sincronizado).
 - **Working tree esperado:** **limpo**.
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
@@ -63,9 +63,9 @@ git ls-remote --heads origin main
 
 Abortar e revisar o escopo se:
 - branch != `work/app-next`;
-- HEAD != `7f3c6da`;
+- HEAD != `88aa4fb`;
 - working tree não estiver limpo;
-- `staging/main` != `7f3c6da01013d372bbef19b4e03db5076251c564`;
+- `staging/main` != `88aa4fbbf9790739d923fd2bc6c0b114e06fb789`;
 - `origin/main` != `1047181eba888242c6428de366cbd9fda2f1c72c`
   (qualquer mudança em `origin/main` é regressão grave).
 
@@ -149,8 +149,10 @@ Abortar e revisar o escopo se:
 
 ## Próxima recomendação operacional
 
-**Não iniciar novo refactor funcional imediatamente.**
-**Próxima fase recomendada: homologação / decisão de release.**
+**Refactor arquitetural continua congelado.**
+**Próxima frente recomendada:** implementação do design de provisionamento
+Auth (`RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A`), seguido de deploy em
+staging e, só depois, adaptação da UI de usuários.
 
 O ciclo de refactor arquitetural + hardening + extração final do
 `op-pdf.js` está **congelado**. Antes de iniciar qualquer novo
@@ -163,11 +165,26 @@ trabalho:
 - Tratar pendências Supabase / cadastro de usuário em fase própria,
   não dentro do refactor.
 
+## Fases de implementação do design Auth (aprovadas para execução)
+
+Design concluído em `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`.
+Próximas fases, em ordem:
+
+1. **`RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A`** — criar/implementar a
+   Edge Function `admin-create-user` (sem UI ainda).
+2. **`RAVATEX-TAPETES-AUTH-EDGE-STAGING-DEPLOY-A`** — deploy controlado
+   em staging e validação de permissões.
+3. **`RAVATEX-TAPETES-AUTH-ADMIN-UI-A`** — adaptar
+   `screenCadastrosUsuarios` para chamar a Edge Function.
+4. **`RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A`** — documentar operação
+   final.
+
 ## Possíveis fases futuras opcionais (NÃO obrigatórias)
 
-Estas fases **não** fazem parte do fechamento do refactor. São
-apenas sugestões para trabalho futuro, se houver benefício prático
-**e** autorização explícita do dono do projeto:
+Estas fases **não** fazem parte do fechamento do refactor e **não**
+são bloqueadas pelo design Auth. São sugestões para trabalho futuro,
+se houver benefício prático **e** autorização explícita do dono do
+projeto:
 
 - **`RAVATEX-TAPETES-OP-BLOCO-FIOS-DIAG-A`** — diagnosticar
   `buildBlocoFios` (montagem do bloco de recebimento de fios).
