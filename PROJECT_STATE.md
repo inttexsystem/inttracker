@@ -1,21 +1,24 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C1` — adicionar novo item
-> ao Pedido pela tela de edição de itens).
-> **Frontend adicionar item.** Tela `#/pedidos/<uuid>/itens` agora
-> também permite ADICIONAR novos itens ao Pedido (além de editar
-> itens existentes da C3C2B). Itens novos são criados no estado
-> local com flag `isNew: true`; botão "+ Adicionar item" (visível
-> apenas para status editáveis); botão "Descartar novo item" para
-> cada item novo (descarta apenas local, antes de salvar); insert
-> em `pedido_itens` com 5 chaves: `pedido_id`, `modelo_id`,
-> `metros`, `observacao`, `ordem` (ordem calculada como
-> `existingItems.length + i`, novos vão para o fim). Sem
-> remover, sem reordenar manualmente, sem editar
-> `largura`/`cor_1_id`/`cor_2_id` (overrides opcionais ficam
-> para C3C2D). Schema `db/13_*` permanece aplicado em
-> `ucrjtfswnfdlxwtmxnoo`.
+> `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C2` — remover item existente
+> do Pedido pela tela de edição de itens).
+> **Frontend remover item.** Tela `#/pedidos/<uuid>/itens` agora
+> também permite REMOVER itens existentes do Pedido (além de
+> editar itens existentes da C3C2B e adicionar novos itens da
+> C3C2C1). Itens existentes têm botão "Remover item" (visível
+> apenas para status editáveis) que abre `window.confirmDialog`
+> com confirmação visual; após confirmar, o item é marcado
+> localmente com `markedForDeletion: true` (visual distinto:
+> borda tracejada vermelha, opacidade, label "Será removido ao
+> salvar") e tem botão "Desfazer remoção" para reverter. Mínimo
+> de 1 item no Pedido é garantido: `marcarParaRemocao` bloqueia
+> se a remoção deixaria 0 itens. A remoção é aplicada APENAS no
+> `salvar()` via DELETE em `pedido_itens` com
+> `.eq('id', dbId).eq('pedido_id', pedidoId)` (dupla condição).
+> Sem reordenar manualmente, sem editar `largura`/`cor_1_id`/
+> `cor_2_id` (overrides opcionais ficam para C3C2D). Schema
+> `db/13_*` permanece aplicado em `ucrjtfswnfdlxwtmxnoo`.
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
@@ -49,10 +52,10 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
 - **HEAD atual aceito:** commit desta fase — "Add pedido admin
-  item append" (fase `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C1`).
-  Antes desta fase: `acc96c3` (fase
-  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2B`).
-- **staging/main:** `acc96c3` (será atualizado com o push desta fase).
+  item removal" (fase `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C2`).
+  Antes desta fase: `fd1a9a3` (fase
+  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C1`).
+- **staging/main:** `fd1a9a3` (será atualizado com o push desta fase).
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — **intocado.**
 - **PR #2:** **intocado.**
 - **Working tree:** **limpo.**
@@ -566,43 +569,114 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
   itens + recálculo de ordem + mínimo de 1 item), **somente
   com autorização explícita** do HMNlead.
 - 🟢 **Adicionar novo item ao Pedido pela tela de edição** (fase
-  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C1`, esta).
-  `js/screens/pedido-itens-edit.js` (já existente) foi estendido
-  para permitir ADICIONAR novos itens além de editar os
-  existentes (C3C2B). Comportamento: botão "+ Adicionar item"
-  visível apenas para status editáveis; ao clicar, novo item
-  é criado no estado local com flag `isNew: true` (campos
-  vazios para preenchimento: `modelo_id` obrigatório, `metros`
-  > 0, `observacao` opcional); botão "Descartar novo item" em
-  cada item novo para descarte apenas local (não remove
-  item existente). Itens novos têm visual distinto (borda
-  tracejada + label "Novo (não salvo)"). `salvar()` separa
-  `existingItems` (update sequencial, 3 chaves no payload)
-  de `newItems` (insert em batch com 5 chaves:
-  `pedido_id`, `modelo_id`, `metros`, `observacao`, `ordem`,
-  onde `ordem = existingItems.length + i` — novos vão para o
-  fim). Ordem recomendada: updates primeiro, depois insert.
-  Sem delete/upsert em `pedido_itens`, sem remover item
-  existente (C3C2C2), sem drag-and-drop, sem reordenar
-  manualmente, sem editar `largura`/`cor_1_id`/`cor_2_id`
-  (C3C2D), sem update em `pedidos`, sem `pedido_eventos`/
-  `lotes`, sem OP, sem Edge Function, sem RPC, sem schema, sem
-  token público, sem `service_role`, sem rota pública.
-  `tests/pedido-itens-edit.smoke.js` atualizado (46/46
-  verde) — 5 testes novos (botão "+ Adicionar item" existe,
-  insert de novos itens com 5 chaves permitidas, insert NÃO
-  contém campos proibidos, ordem calculada automaticamente,
-  botão "Descartar novo item" apenas para isNew) + 1 teste
-  atualizado (insert permitido, delete/upsert proibidos) +
-  1 teste invertido ("TEM botão Adicionar item" em vez de
-  "NÃO tem"). `tests/pedido-detail.smoke.js` preservado
-  (43/43). `tests/boot.smoke.js` e `tests/router.smoke.js`
-  preservados (28/28 e 41/41). **Total: 316/316 verdes**
-  (focados). **Sem deploy, sem Supabase real, sem SQL, sem
-  produção, sem origin/main, sem PR #2 nesta fase.** Próxima
-  fase recomendada: `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C2`
-  (remover item existente do Pedido), **somente com
-  autorização explícita** do HMNlead.
+   `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C1`, esta).
+   `js/screens/pedido-itens-edit.js` (já existente) foi estendido
+   para permitir ADICIONAR novos itens além de editar os
+   existentes (C3C2B). Comportamento: botão "+ Adicionar item"
+   visível apenas para status editáveis; ao clicar, novo item
+   é criado no estado local com flag `isNew: true` (campos
+   vazios para preenchimento: `modelo_id` obrigatório, `metros`
+   > 0, `observacao` opcional); botão "Descartar novo item" em
+   cada item novo para descarte apenas local (não remove
+   item existente). Itens novos têm visual distinto (borda
+   tracejada + label "Novo (não salvo)"). `salvar()` separa
+   `existingItems` (update sequencial, 3 chaves no payload)
+   de `newItems` (insert em batch com 5 chaves:
+   `pedido_id`, `modelo_id`, `metros`, `observacao`, `ordem`,
+   onde `ordem = existingItems.length + i` — novos vão para o
+   fim). Ordem recomendada: updates primeiro, depois insert.
+   Sem delete/upsert em `pedido_itens`, sem remover item
+   existente (C3C2C2), sem drag-and-drop, sem reordenar
+   manualmente, sem editar `largura`/`cor_1_id`/`cor_2_id`
+   (C3C2D), sem update em `pedidos`, sem `pedido_eventos`/
+   `lotes`, sem OP, sem Edge Function, sem RPC, sem schema, sem
+   token público, sem `service_role`, sem rota pública.
+   `tests/pedido-itens-edit.smoke.js` atualizado (46/46
+   verde) — 5 testes novos (botão "+ Adicionar item" existe,
+   insert de novos itens com 5 chaves permitidas, insert NÃO
+   contém campos proibidos, ordem calculada automaticamente,
+   botão "Descartar novo item" apenas para isNew) + 1 teste
+   atualizado (insert permitido, delete/upsert proibidos) +
+   1 teste invertido ("TEM botão Adicionar item" em vez de
+   "NÃO tem"). `tests/pedido-detail.smoke.js` preservado
+   (43/43). `tests/boot.smoke.js` e `tests/router.smoke.js`
+   preservados (28/28 e 41/41). **Total: 316/316 verdes**
+   (focados). **Sem deploy, sem Supabase real, sem SQL, sem
+   produção, sem origin/main, sem PR #2 nesta fase.** Próxima
+   fase recomendada: `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C2`
+   (remover item existente do Pedido), **somente com
+   autorização explícita** do HMNlead.
+ - 🟢 **Remover item existente do Pedido pela tela de edição**
+   (fase `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C2`, esta).
+   `js/screens/pedido-itens-edit.js` (já existente) foi estendido
+   para também permitir REMOVER itens existentes do Pedido
+   (além de editar da C3C2B e adicionar novos da C3C2C1).
+   Comportamento: cada item EXISTENTE (!isNew, !markedForDeletion)
+   tem botão "Remover item" (visível apenas para status
+   editáveis) que abre `window.confirmDialog` com confirmação
+   visual (`title: "Remover item do pedido?"`, `confirmLabel:
+   "Remover item"`, `danger: true`). Após confirmar, o item é
+   marcado localmente com `markedForDeletion: true` (visual
+   distinto: borda tracejada vermelha, opacidade 70, label
+   "Será removido ao salvar") e o botão vira "Desfazer remoção"
+   (limpa a flag e re-renderiza). Itens NOVOS (isNew=true)
+   continuam usando "Descartar novo item" (apenas local, sem
+   tocar no banco) — "Remover item" é exclusivo de existentes.
+   Mínimo de 1 item no Pedido é garantido: `marcarParaRemocao`
+   pré-checa `naoMarcados <= 1` e bloqueia com toast
+   `"Pedido precisa ter pelo menos 1 item."` se a remoção
+   deixaria 0 itens. Também bloqueia se `state.blockedStatus`.
+   A remoção é aplicada APENAS no `salvar()` (não há operação
+   de banco até lá). `salvar()` foi reestruturado para filtrar
+   `state.itens` em 4 grupos: `activeItems` (não marcados;
+   validados e processados), `existingItems` (subset de
+   active, !isNew — UPDATE sequencial com 3 chaves:
+   `modelo_id`/`metros`/`observacao` + dupla `.eq('id')` +
+   `.eq('pedido_id')`), `newItems` (subset de active, isNew —
+   INSERT em batch com 5 chaves: `pedido_id`/`modelo_id`/
+   `metros`/`observacao`/`ordem` onde `ordem =
+   existingItems.length + i`), `removedItems` (marcados E
+   !isNew — DELETE sequencial com `.eq('id', dbId).eq('pedido_id',
+   pedidoId)`). Sequência: 1) UPDATE existentes, 2) INSERT novos,
+   3) DELETE removidos. Cada etapa aborta em erro; sem
+   compensação automática (limitação documentada: se uma etapa
+   falhar, etapas anteriores podem ter sido aplicadas; usuário
+   re-edita e tenta novamente). Toast de sucesso conta
+   `N novo(s) inserido(s)` e `M removido(s)`. Sem drag-and-drop
+   / reordenação manual (C3C2C2+), sem editar
+   `largura`/`cor_1_id`/`cor_2_id` (C3C2D), sem update em
+   `pedidos`, sem `pedido_eventos`/`lotes`, sem OP, sem Edge
+   Function, sem RPC, sem schema, sem token público, sem
+   `service_role`, sem rota pública, sem `functions.invoke`.
+   `tests/pedido-itens-edit.smoke.js` atualizado (59/59
+   verde) — 13 testes novos (TEM botão "Remover item" para
+   existente com `marcarParaRemocao`/`desfazerRemocao`; item
+   NOVO NÃO tem "Remover item" (continua com "Descartar novo
+   item"); uso de `window.confirmDialog` com `confirmLabel:
+   "Remover item"` e `danger: true`; flag `markedForDeletion`
+   inicializada como `false` em itens existentes e novos;
+   `marcarParaRemocao` seta `true` e `desfazerRemocao` seta
+   `false`; `onConfirm` apenas marca e re-renderiza sem
+   operação de banco; TEM botão "Desfazer remoção" para item
+   marcado com visual vermelho; `marcarParaRemocao` valida
+   mínimo de 1 item E bloqueia em status não editável;
+   `salvar()` faz `.delete().eq('id', it.dbId).eq('pedido_id',
+   pedidoId)` em `pedido_itens`; delete só dentro de `salvar()`;
+   `salvar()` separa `activeItems`/`existingItems`/`newItems`/
+   `removedItems`; update/insert/delete todos dentro de
+   `salvar()`; delete em `pedido_itens` NÃO toca outras
+   tabelas) + 1 teste invertido (TEM botão Remover existente
+   em vez de NÃO tem) + 1 teste atualizado (NÃO faz upsert;
+   delete agora permitido). `tests/pedido-detail.smoke.js`
+   preservado (43/43). `tests/boot.smoke.js` e
+   `tests/router.smoke.js` preservados (28/28 e 41/41).
+   **Total: 329/329 verdes** (focados: 59 + 43 + 28 + 41 +
+   35 + 18 + 29 + 41 + 32 + 3 [pedido-form] = 329). **Sem
+   deploy, sem Supabase real, sem SQL, sem produção, sem
+   origin/main, sem PR #2 nesta fase.** Próxima fase
+   recomendada: `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C3`
+   (reordenação manual de itens com drag-and-drop / setas),
+   **somente com autorização explícita** do HMNlead.
 
 ## Próximo passo recomendado
 1. **Auth provisioning fechado em staging:** Edge Function
@@ -942,11 +1016,18 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
 26. `js/screens/pedido-itens-edit.js` (`acc96c3` C3C2B: edição
     admin de itens existentes com `screenPedidoItensEditar`,
     payload restrito a 3 chaves em `pedido_itens`, sem
-    add/remove/reordenar + commit desta fase C3C2C1: também
+    add/remove/reordenar + commit `fd1a9a3` C3C2C1: também
     permite ADICIONAR novos itens com flag `isNew: true`,
     insert em batch com 5 chaves `pedido_id`/`modelo_id`/
     `metros`/`observacao`/`ordem`; sem delete/upsert, sem
-    remover existente, sem drag-and-drop).
+    remover existente, sem drag-and-drop + commit desta fase
+    C3C2C2: também permite REMOVER itens existentes com
+    `markedForDeletion: true` (local) e `window.confirmDialog`
+    para confirmação visual, DELETE em `pedido_itens` com
+    dupla `.eq('id')` + `.eq('pedido_id')` aplicado apenas
+    no `salvar()`, mínimo de 1 item, botão "Desfazer remoção"
+    para reverter; sem drag-and-drop, sem reordenar
+    manualmente, sem editar `largura`/`cor_1_id`/`cor_2_id`).
 
 ## Estado dos módulos críticos (após `7f3c6da`)
 

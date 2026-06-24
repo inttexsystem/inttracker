@@ -3,12 +3,13 @@
 // Smoke estático para a tela admin de edição de itens do Pedido
 // `js/screens/pedido-itens-edit.js` (`screenPedidoItensEditar`).
 //
-// Fase: RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C1
+// Fase: RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C2
 // Escopo: edição de `modelo_id`, `metros`, `observacao` em
-//   itens JÁ EXISTENTES (C3C2B) + ADICIONAR novos itens (C3C2C1).
-//   SEM remover (C3C2C2), SEM reordenar manualmente, SEM
-//   editar `largura`/`cor_1_id`/`cor_2_id` (overrides opcionais
-//   ficam para C3C2D). Garante:
+//   itens JÁ EXISTENTES (C3C2B) + ADICIONAR novos itens
+//   (C3C2C1) + REMOVER itens existentes (C3C2C2).
+//   SEM reordenar manualmente, SEM editar `largura`/`cor_1_id`/
+//   `cor_2_id` (overrides opcionais ficam para C3C2D).
+//   Garante:
 //   - arquivo existe e sintaxe JS válida;
 //   - expõe window.screenPedidoItensEditar e
 //     RAVATEX_SCREENS.pedidoItensEdit;
@@ -17,18 +18,22 @@
 //     → pedido-edit → pedido-itens-edit → boot;
 //   - faz SELECT em `pedidos` (status), `pedido_itens`,
 //     `modelos` e `cores` (para label/preview);
-//   - faz `update` em `pedido_itens` (apenas itens existentes) com
+//   - faz `update` em `pedido_itens` (apenas itens existentes
+//     NÃO marcados para remoção) com
 //     `.eq('id', item.dbId).eq('pedido_id', pedidoId)`;
 //   - payload de update contém EXATAMENTE 3 chaves:
 //     `modelo_id`, `metros`, `observacao`;
 //   - faz `insert` em `pedido_itens` (apenas itens novos) com
 //     5 chaves: `pedido_id`, `modelo_id`, `metros`, `observacao`,
 //     `ordem`;
+//   - faz `delete` em `pedido_itens` (apenas itens existentes
+//     marcados para remoção) com
+//     `.eq('id', dbId).eq('pedido_id', pedidoId)`;
 //   - NÃO atualiza `id`, `pedido_id`, `ordem`, `largura`,
 //     `cor_1_id`, `cor_2_id`, `criado_em` em updates;
 //   - NÃO seta `id`, `largura`, `cor_1_id`, `cor_2_id`,
 //     `criado_em` em inserts;
-//   - NÃO faz delete/upsert em `pedido_itens`;
+//   - NÃO faz upsert em `pedido_itens`;
 //   - NÃO faz update em `pedidos`;
 //   - NÃO toca `pedido_eventos`;
 //   - NÃO toca `lotes`;
@@ -42,8 +47,15 @@
 //   - navega de volta para `#/pedidos/<uuid>` após sucesso;
 //   - TEM botão "+ Adicionar item" (C3C2C1);
 //   - TEM botão "Descartar novo item" apenas para itens com isNew;
-//   - SEM botão "Remover item" de item existente (C3C2C2);
-//   - SEM drag-and-drop / reordenação manual (C3C2C2);
+//   - TEM botão "Remover item" para item existente NÃO marcado
+//     (C3C2C2), com confirmação via `window.confirmDialog`;
+//   - TEM botão "Desfazer remoção" para item existente marcado
+//     (C3C2C2);
+//   - remove item existente APENAS no `salvar()` (DELETE em
+//     `pedido_itens` com dupla condição `.eq('id')` +
+//     `.eq('pedido_id')`);
+//   - valida mínimo de 1 item (não marca o último);
+//   - SEM drag-and-drop / reordenação manual (C3C2C2+);
 //   - rota dinâmica `#/pedidos/<uuid>/itens` é admin-only.
 //
 // Não executa o app nem acessa Supabase real.
@@ -259,11 +271,10 @@ test('pedido-itens-edit.js: NÃO atualiza campos proibidos (id, pedido_id, ordem
   }
 });
 
-test('pedido-itens-edit.js: NÃO faz .delete() / .upsert() em pedido_itens', () => {
-  // C3C2C1: insert permitido (para novos itens), mas delete e
-  // upsert permanecem proibidos. Remoção fica para C3C2C2.
-  assert.doesNotMatch(screen, /\.from\(\s*['"]pedido_itens['"][\s\S]{0,200}\.delete\s*\(/,
-    'pedido-itens-edit.js NÃO deve fazer .delete() em pedido_itens (C3C2C2)');
+test('pedido-itens-edit.js: NÃO faz .upsert() em pedido_itens (C3C2C2: .delete() agora permitido)', () => {
+  // C3C2C2: delete é permitido APENAS para itens existentes
+  // marcados para remoção, com `.eq('id', dbId).eq('pedido_id',
+  // pedidoId)`. Upsert permanece proibido.
   assert.doesNotMatch(screen, /\.from\(\s*['"]pedido_itens['"][\s\S]{0,200}\.upsert\s*\(/,
     'pedido-itens-edit.js NÃO deve fazer .upsert() em pedido_itens');
 });
@@ -441,21 +452,28 @@ test('pedido-itens-edit.js: TEM botão "+ Adicionar item" (C3C2C1)', () => {
     'item novo deve ter flag isNew: true');
 });
 
-test('pedido-itens-edit.js: NÃO tem botão "Remover item" de item existente (C3C2C2)', () => {
-  // C3C2C1 NÃO remove itens existentes. Remoção fica para C3C2C2.
-  // O único botão de descarte é "Descartar novo item", que só
-  // aparece em itens com isNew=true.
-  // Defesa: o handler de descarte (descartarItemNovo) deve checar
-  // isNew antes de remover.
+test('pedido-itens-edit.js: TEM botão "Remover item" para item existente (C3C2C2)', () => {
+  // C3C2C2: itens EXISTENTES (!isNew, !markedForDeletion) têm
+  // botão "Remover item" que chama `marcarParaRemocao(uid)`.
+  // Itens NOVOS (isNew=true) continuam usando "Descartar novo item"
+  // (descartarItemNovo, sem tocar no banco).
   const co = codeOnly(screen);
-  assert.match(co, /function\s+descartarItemNovo/,
-    'deve existir função descartarItemNovo()');
-  // A função deve checar isNew antes de remover.
-  assert.match(co, /descartarItemNovo[\s\S]{0,300}?isNew/,
-    'descartarItemNovo deve checar isNew antes de remover');
-  // Defesa: não deve haver lógica genérica de "remover item existente".
-  assert.doesNotMatch(co, /removeBtn/,
-    'pedido-itens-edit.js NÃO deve ter "removeBtn" (apenas C3C2C2)');
+  // Função marcarParaRemocao deve existir.
+  assert.match(co, /function\s+marcarParaRemocao/,
+    'deve existir função marcarParaRemocao()');
+  // Função desfazerRemocao deve existir.
+  assert.match(co, /function\s+desfazerRemocao/,
+    'deve existir função desfazerRemocao()');
+  // Label "Remover item" deve existir como texto do botão.
+  assert.match(co, /'Remover item'/,
+    'deve existir label "Remover item" para item existente');
+  // Handler remove-existing deve estar ligado a marcarParaRemocao.
+  assert.match(co, /data-action['"]?\s*:\s*['"]remove-existing['"][\s\S]{0,200}?marcarParaRemocao/,
+    'botão "Remover item" deve chamar marcarParaRemocao(item.uid)');
+  // Item NOVO NÃO deve ter "Remover item": apenas "Descartar novo item".
+  // Verifica que "Descartar novo item" continua distinto de "Remover item".
+  assert.match(co, /'Descartar novo item'/,
+    'item novo continua usando "Descartar novo item" (C3C2C1)');
 });
 
 test('pedido-itens-edit.js: NÃO tem drag-and-drop / reordenação manual (C3C2C2)', () => {
@@ -511,6 +529,217 @@ test('pedido-itens-edit.js: tem botão "Descartar novo item" para itens com isNe
   const co = codeOnly(screen);
   assert.match(co, /isNew[\s\S]{0,300}?Descartar novo item/,
     'label "Descartar novo item" deve aparecer apenas em itens com isNew');
+});
+
+// ---------------------------------------------------------------------
+// 15c. C3C2C2: remover item existente (não-isNew, não marcado)
+// ---------------------------------------------------------------------
+
+test('pedido-itens-edit.js: item NOVO NÃO tem botão "Remover item" (C3C2C2)', () => {
+  // Defesa: o botão "Remover item" só é mostrado para itens
+  // EXISTENTES (não isNew). Itens novos continuam com
+  // "Descartar novo item" (apenas local, sem tocar no banco).
+  const co = codeOnly(screen);
+  // A lógica de render deve condicionar o botão "Remover item"
+  // por !isNew. Verifica que o discard-new está numa branch de isNew.
+  assert.match(co,
+    /isNew[\s\S]{0,400}?discard-new/,
+    'botão "Descartar novo item" (discard-new) deve estar na branch de isNew');
+  // E o remove-existing está num branch de !isNew (implícito,
+  // após `else if (isNew) { ... } else { ... remove-existing ... }`).
+  // Verifica que discard-new vem antes de remove-existing.
+  const idxDiscard = co.indexOf("'discard-new'");
+  const idxRemove = co.indexOf("'remove-existing'");
+  const idxUndo = co.indexOf("'undo-delete'");
+  assert.ok(idxDiscard > 0, "data-action 'discard-new' deve existir");
+  assert.ok(idxRemove > 0, "data-action 'remove-existing' deve existir");
+  assert.ok(idxUndo > 0, "data-action 'undo-delete' deve existir");
+  // discard-new vem antes de remove-existing (branch isNew vem
+  // antes do else que renderiza remove-existing).
+  assert.ok(idxDiscard < idxRemove,
+    "discard-new (isNew) deve vir antes de remove-existing (!isNew)");
+});
+
+test('pedido-itens-edit.js: usa window.confirmDialog para confirmar remoção (C3C2C2)', () => {
+  // A confirmação de remoção deve usar o helper `window.confirmDialog`
+  // (padrão C3B / js/ui.js), NÃO `window.confirm` direto.
+  const co = codeOnly(screen);
+  assert.match(co, /window\.confirmDialog/,
+    'marcarParaRemocao deve usar window.confirmDialog para confirmar');
+  // O botão "Remover item" deve ser o confirmLabel.
+  assert.match(co,
+    /confirmDialog\s*\(\s*\{[\s\S]{0,400}?confirmLabel\s*:\s*['"]Remover item['"]/,
+    'window.confirmDialog deve ter confirmLabel "Remover item"');
+  // Deve ter `danger: true` para estilo destrutivo.
+  assert.match(co,
+    /confirmDialog\s*\(\s*\{[\s\S]{0,400}?danger\s*:\s*true/,
+    'window.confirmDialog deve ter danger: true');
+});
+
+test('pedido-itens-edit.js: flag markedForDeletion é setada no state.itens (C3C2C2)', () => {
+  // Cada item do state.itens deve ter uma flag `markedForDeletion`
+  // (default false). A função marcarParaRemocao seta `true`;
+  // desfazerRemocao seta `false`. Nenhuma escrita no banco
+  // acontece até `salvar()`.
+  const co = codeOnly(screen);
+  // Flag deve aparecer inicializada.
+  assert.match(co, /markedForDeletion\s*:\s*false/,
+    'itens do state.itens devem ter flag markedForDeletion: false por padrão');
+  // marcarParaRemocao contém assignment `markedForDeletion = true`.
+  const m1 = co.match(/function\s+marcarParaRemocao\s*\([\s\S]*?\n\s{4}\}/);
+  assert.ok(m1, 'função marcarParaRemocao deve existir');
+  assert.match(m1[0], /markedForDeletion\s*=\s*true/,
+    'marcarParaRemocao deve setar markedForDeletion = true');
+  // desfazerRemocao seta false.
+  const m2 = co.match(/function\s+desfazerRemocao\s*\([\s\S]*?\n\s{4}\}/);
+  assert.ok(m2, 'função desfazerRemocao deve existir');
+  assert.match(m2[0], /markedForDeletion\s*=\s*false/,
+    'desfazerRemocao deve setar markedForDeletion = false');
+  // Defesa: o handler onConfirm de confirmDialog chama render(), não
+  // uma operação de banco. (Banco só no salvar.)
+  assert.match(co,
+    /onConfirm[\s\S]{0,300}?markedForDeletion\s*=\s*true[\s\S]{0,200}?render\(\)/,
+    'onConfirm do confirmDialog deve apenas marcar e re-renderizar (sem banco)');
+});
+
+test('pedido-itens-edit.js: tem botão "Desfazer remoção" para item marcado (C3C2C2)', () => {
+  // Itens existentes com markedForDeletion=true mostram botão
+  // "Desfazer remoção" que chama desfazerRemocao(uid).
+  const co = codeOnly(screen);
+  assert.match(co, /'Desfazer remoção'/,
+    'deve existir label "Desfazer remoção" para item marcado');
+  assert.match(co, /data-action['"]?\s*:\s*['"]undo-delete['"][\s\S]{0,200}?desfazerRemocao/,
+    'botão "Desfazer remoção" deve chamar desfazerRemocao(item.uid)');
+  // Visual: items marcados têm classe vermelha (border-red-300 ou bg-red-50).
+  assert.match(co, /bg-red-50|border-red-300|Será removido ao salvar/,
+    'item marcado deve ter visual distinto (vermelho, opacity, label "Será removido ao salvar")');
+});
+
+test('pedido-itens-edit.js: marcarParaRemocao valida mínimo de 1 item (C3C2C2)', () => {
+  // Se o usuário tentar marcar o ÚNICO item restante, bloquear.
+  const co = codeOnly(screen);
+  // Deve haver uma checagem explícita de "naoMarcados <= 1" (ou similar)
+  // antes de abrir o confirmDialog.
+  assert.match(co,
+    /marcarParaRemocao[\s\S]{0,800}?(naoMarcados|activeItems|itens\.filter)[\s\S]{0,300}?<=\s*1|<\s*1/,
+    'marcarParaRemocao deve bloquear se restaria 0 itens (mínimo 1)');
+  // E mostrar toast de aviso.
+  assert.match(co,
+    /marcarParaRemocao[\s\S]{0,1000}?(?:ao menos 1|pelo menos 1|mínimo)/,
+    'marcarParaRemocao deve exibir toast avisando sobre mínimo de 1 item');
+});
+
+test('pedido-itens-edit.js: marcarParaRemocao bloqueia se status não editável (C3C2C2)', () => {
+  // Defesa: marcarParaRemocao deve checar blockedStatus antes
+  // de abrir confirmDialog.
+  const co = codeOnly(screen);
+  assert.match(co,
+    /marcarParaRemocao[\s\S]{0,400}?blockedStatus/,
+    'marcarParaRemocao deve checar state.blockedStatus');
+});
+
+test('pedido-itens-edit.js: salvar() faz .delete() em pedido_itens com dupla condição (C3C2C2)', () => {
+  // Delete: `.from('pedido_itens').delete().eq('id', dbId).eq('pedido_id', pedidoId)`
+  // Apenas para itens existentes (não isNew) marcados para remoção.
+  const m = screen.match(
+    /\.from\(\s*['"]pedido_itens['"][\s\S]{0,400}?\.delete\s*\(\)[\s\S]{0,200}?\.eq\s*\(\s*['"]id['"]\s*,\s*it\.dbId\s*\)[\s\S]{0,100}?\.eq\s*\(\s*['"]pedido_id['"]\s*,\s*pedidoId\s*\)/
+  );
+  assert.ok(m,
+    'salvar() deve fazer .delete().eq("id", it.dbId).eq("pedido_id", pedidoId) em pedido_itens');
+});
+
+test('pedido-itens-edit.js: delete só é chamado dentro de salvar() (C3C2C2)', () => {
+  // Defesa: .delete() em pedido_itens deve aparecer APENAS dentro
+  // do corpo de `salvar()`. Nenhuma outra função deve chamar
+  // delete no banco — a remoção é estritamente local até o save.
+  const co = codeOnly(screen);
+  // Localiza todas as ocorrências de .delete() em pedido_itens.
+  const matches = co.match(/\.from\(\s*['"]pedido_itens['"][\s\S]{0,200}?\.delete\s*\(/g) || [];
+  assert.ok(matches.length >= 1, 'deve haver pelo menos um .delete() em pedido_itens');
+  // E devem estar dentro do bloco de `salvar()`. Verifica que
+  // existe um `async function salvar` e que dentro dele há um
+  // `.delete()` em pedido_itens.
+  const salvarMatch = co.match(/async function salvar\s*\([\s\S]*?\n\s{4}\}/);
+  assert.ok(salvarMatch, 'async function salvar deve existir');
+  assert.match(salvarMatch[0], /\.from\(\s*['"]pedido_itens['"][\s\S]{0,200}?\.delete\s*\(/,
+    'delete em pedido_itens deve estar dentro de salvar()');
+});
+
+test('pedido-itens-edit.js: salvar() separa activeItems / existingItems / newItems / removedItems (C3C2C2)', () => {
+  // salvar() deve filtrar state.itens em 4 grupos:
+  //   activeItems = !markedForDeletion
+  //   existingItems = !isNew (subset de active)
+  //   newItems = isNew (subset de active)
+  //   removedItems = markedForDeletion && !isNew
+  const co = codeOnly(screen);
+  assert.match(co, /activeItems\s*=/,
+    'salvar() deve ter variável activeItems (= state.itens sem marcados)');
+  assert.match(co, /removedItems\s*=/,
+    'salvar() deve ter variável removedItems (marcados e não-isNew)');
+  // existingItems e newItems continuam do C3C2C1.
+  assert.match(co, /existingItems\s*=/,
+    'salvar() deve ter variável existingItems (C3C2C1)');
+  assert.match(co, /newItems\s*=/,
+    'salvar() deve ter variável newItems (C3C2C1)');
+});
+
+test('pedido-itens-edit.js: salvar() NÃO faz update/insert/delete fora do bloco (C3C2C2)', () => {
+  // Defesa: as operações de update/insert/delete em pedido_itens
+  // devem estar todas dentro de salvar(). Verifica que não há
+  // outras funções chamando essas operações em pedido_itens.
+  const co = codeOnly(screen);
+  // Funções definidas (exceto salvar) não devem conter
+  // .from('pedido_itens').update ou .insert ou .delete.
+  // (Heurística: conta funções declaradas.)
+  // Aqui testamos que as 3 operações aparecem em salvar.
+  const salvarMatch = co.match(/async function salvar\s*\([\s\S]*?\n\s{4}\}/);
+  assert.ok(salvarMatch, 'async function salvar deve existir');
+  assert.match(salvarMatch[0], /\.from\(\s*['"]pedido_itens['"][\s\S]{0,200}?\.update\s*\(/,
+    'update em pedido_itens deve estar dentro de salvar()');
+  assert.match(salvarMatch[0], /\.from\(\s*['"]pedido_itens['"][\s\S]{0,200}?\.insert\s*\(/,
+    'insert em pedido_itens deve estar dentro de salvar()');
+  assert.match(salvarMatch[0], /\.from\(\s*['"]pedido_itens['"][\s\S]{0,200}?\.delete\s*\(/,
+    'delete em pedido_itens deve estar dentro de salvar()');
+});
+
+test('pedido-itens-edit.js: delete em pedido_itens NÃO toca outras tabelas (C3C2C2)', () => {
+  // Defesa: o delete da remoção é APENAS em `pedido_itens`. Não
+  // deve deletar `pedidos`, `pedido_eventos`, `lotes`, `ops`, etc.
+  // Verifica que a única `.from(...)` seguida de `.delete()` é
+  // em `pedido_itens`.
+  const co = codeOnly(screen);
+  // Procura todas as combinações `.from('tabela').delete()`.
+  const matches = co.match(/\.from\(\s*['"][a-z_]+['"][\s\S]{0,200}?\.delete\s*\(/g) || [];
+  for (const m of matches) {
+    assert.match(m, /pedido_itens/,
+      'delete só é permitido em pedido_itens; encontrado: ' + m.slice(0, 80));
+  }
+});
+
+test('pedido-itens-edit.js: payload de update pode incluir "ordem" como normalização (C3C2C2)', () => {
+  // C3C2C2 documenta que o payload de update pode incluir `ordem`
+  // para normalização automática quando há remoções. Mas, nesta
+  // implementação, mantemos a regra do C3C2C1: payload continua
+  // com EXATAMENTE 3 chaves (modelo_id, metros, observacao) para
+  // updates de itens remanescentes — não normalizamos `ordem` para
+  // evitar complexidade extra. Verificamos a consistência com C3C2C1.
+  const m = screen.match(/const\s+payload\s*=\s*\{([\s\S]*?)\}/);
+  assert.ok(m, 'objeto payload deve existir');
+  const chaves = m[1].split(',').map(s => s.trim()).filter(Boolean);
+  assert.equal(chaves.length, 3,
+    'payload de update continua com EXATAMENTE 3 chaves (modelo_id, metros, observacao) — sem normalização de ordem nesta fase');
+});
+
+test('pedido-itens-edit.js: NÃO atualiza campos proibidos incluindo "ordem" (C3C2C2)', () => {
+  // Defesa: payload NÃO contém `ordem` (não normalizamos na
+  // implementação atual) e NÃO contém outros campos proibidos.
+  const m = screen.match(/const\s+payload\s*=\s*\{([\s\S]*?)\}/);
+  assert.ok(m, 'objeto payload deve existir');
+  const chavesStr = m[1];
+  for (const proibido of ['id', 'pedido_id', 'ordem', 'largura', 'cor_1_id', 'cor_2_id', 'criado_em']) {
+    assert.doesNotMatch(chavesStr, new RegExp('\\b' + proibido + '\\s*:'),
+      'payload NÃO deve conter campo "' + proibido + '" (C3C2C2 mantém restrição do C3C2C1)');
+  }
 });
 
 // ---------------------------------------------------------------------

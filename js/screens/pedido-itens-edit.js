@@ -1,24 +1,33 @@
 // =====================================================================
 // === SCREENS: PEDIDO ITENS EDIT ======================================
-// Tela admin de edição dos itens de um Pedido (C3C2B + C3C2C1).
+// Tela admin de edição dos itens de um Pedido
+// (C3C2B + C3C2C1 + C3C2C2).
 // Rota: `#/pedidos/<uuid>/itens` (parseada por js/router.js via
 // matchRoute dinâmico). Botão "Editar itens" da tela de detalhe
 // `#/pedidos/<uuid>` (C3A/C3B/C3C1) navega para esta tela quando
 // o status é editável.
 //
-// Fase: RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C1
+// Fase: RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C2
 // Escopo: edição de `modelo_id`, `metros`, `observacao` em
-//   itens JÁ EXISTENTES (C3C2B) + ADICIONAR novos itens (C3C2C1).
-//   SEM remover (C3C2C2), SEM reordenar manualmente, SEM editar
-//   `largura`/`cor_1_id`/`cor_2_id` (overrides opcionais ficam
-//   para C3C2D), SEM alterar status (fica para C3B já entregue),
-//   SEM mexer em dados gerais (fica para C3C1 já entregue),
-//   SEM geração de OP, SEM lote, SEM cliente público, SEM token,
-//   SEM Edge Function, SEM RPC, SEM schema.
+//   itens JÁ EXISTENTES (C3C2B) + ADICIONAR novos itens
+//   (C3C2C1) + REMOVER itens existentes (C3C2C2).
+//   SEM reordenar manualmente, SEM editar `largura`/`cor_1_id`/
+//   `cor_2_id` (overrides opcionais ficam para C3C2D), SEM
+//   alterar status (fica para C3B já entregue), SEM mexer em
+//   dados gerais (fica para C3C1 já entregue), SEM geração de
+//   OP, SEM lote, SEM cliente público, SEM token, SEM Edge
+//   Function, SEM RPC, SEM schema.
 //
-//   Itens novos são criados no estado local com flag `isNew: true`,
-//   exibem botão "Descartar novo item" (apenas local, antes de
-//   salvar) e recebem `ordem` no fim ao serem inseridos.
+//   Itens novos: criados no estado local com flag `isNew: true`,
+//   botão "Descartar novo item" (apenas local, antes de salvar).
+//
+//   Itens existentes removidos: clique em "Remover item" abre
+//   `window.confirmDialog`; após confirmar, item é removido do
+//   `state.itens` e seu `dbId` vai para `state.deletedDbIds`
+//   (remoção aplicada apenas no `salvar()` via DELETE em
+//   `pedido_itens` com `.eq('id', dbId).eq('pedido_id', pedidoId)`).
+//   Mínimo de 1 item no Pedido é garantido: `marcarParaRemocao`
+//   bloqueia se a remoção deixaria 0 itens.
 //
 // Regras de edição por status (via window.isPedidoEditavel):
 //   - rascunho:  editável
@@ -35,7 +44,7 @@
 // Dependências resolvidas em tempo de chamada:
 //   - window.el / window.toast / window.pageHeader / window.selectInput
 //     / window.textInput / window.formField / window.shellLayout
-//     / window.ADMIN_MENU  (js/ui.js, common.js)
+//     / window.ADMIN_MENU / window.confirmDialog  (js/ui.js, common.js)
 //   - window.RAVATEX_PEDIDO_UI / window.isPedidoEditavel
 //     / window.pedidoStatusBadge / window.pedidoStatusLabel
 //     / window.corPreviewElement / window.fmtDataCurta
@@ -45,13 +54,20 @@
 //
 // Writes permitidos nesta fase:
 //   - `update` em `pedido_itens` (campos `modelo_id`, `metros`,
-//     `observacao`) para itens existentes.
+//     `observacao`) para itens existentes NÃO marcados para
+//     remoção.
 //   - `insert` em `pedido_itens` (campos `pedido_id`, `modelo_id`,
 //     `metros`, `observacao`, `ordem`) para itens novos.
-//   Sem update em `pedidos`, sem delete em `pedido_itens`,
-//   sem insert em `pedido_eventos`, sem mexer em `lotes`. Sem
-//   Edge Function, sem service_role, sem token_acesso, sem
-//   rota pública.
+//   - `delete` em `pedido_itens` (`.eq('id', dbId).eq('pedido_id',
+//     pedidoId)`) para itens marcados para remoção.
+//   Sem update em `pedidos`, sem `pedido_eventos`, sem mexer em
+//   `lotes`. Sem Edge Function, sem service_role, sem token_acesso,
+//   sem rota pública.
+//
+// Limitação documentada: sem transação/RPC. Se uma etapa falhar
+//   (update/insert/delete), etapas anteriores podem ter sido
+//   aplicadas. Sem compensação automática nesta fase. Usuário
+//   re-edita e tenta novamente.
 //
 // Compatibilidade: window.screenPedidoItensEditar e
 // window.RAVATEX_SCREENS.pedidoItensEdit ficam disponíveis para o
@@ -124,9 +140,15 @@
 
     // Estado da tela
     // - pedido: { id, numero, status }
-    // - itens: [{ dbId, uid, modeloId, metros, observacao, isNew }]
+    // - itens: [{ dbId, uid, modeloId, metros, observacao, isNew, markedForDeletion }]
     //   * dbId é o UUID real do banco (null para itens novos)
     //   * isNew é true para itens adicionados nesta sessão
+    //   * markedForDeletion é true para itens EXISTENTES marcados
+    //     para remoção nesta sessão (C3C2C2). A remoção só é
+    //     aplicada no `salvar()` via DELETE em `pedido_itens`
+    //     com `.eq('id', dbId).eq('pedido_id', pedidoId)`. Até
+    //     salvar, o item permanece no array e pode ser restaurado
+    //     via `desfazerRemocao()`.
     //   * uid é o identificador local de UI
     // - modelos: [{ id, nome, largura, cor_1_id, cor_2_id }]
     // - cores: { [id]: { id, nome } }
@@ -180,6 +202,7 @@
           metros: it.metros != null ? String(it.metros) : '',
           observacao: it.observacao || '',
           isNew: false,                               // item existente
+          markedForDeletion: false,                   // C3C2C2: removido pelo usuário?
         };
       });
       if (state.itens.length === 0) {
@@ -272,19 +295,35 @@
     function buildItemRow(item) {
       // Itens novos têm visual distinto (borda tracejada + label "Novo")
       // para deixar claro que ainda não foram salvos.
+      // Itens existentes marcados para remoção (C3C2C2) têm
+      // visual "riscado" (borda tracejada vermelha + opacidade) e
+      // mostram label "Será removido ao salvar".
       const isNew = !!item.isNew;
+      const isMarked = !!item.markedForDeletion;
       const row = window.el('div', {
         class: 'flex flex-wrap items-end gap-2 mb-3 p-3 rounded-lg '
-          + (isNew
-            ? 'bg-blue-50 border border-dashed border-blue-300'
-            : 'bg-gray-50'),
+          + (isMarked
+            ? 'bg-red-50 border border-dashed border-red-300 opacity-70'
+            : (isNew
+              ? 'bg-blue-50 border border-dashed border-blue-300'
+              : 'bg-gray-50')),
         'data-uid': item.uid,
         'data-db-id': item.dbId,
         'data-is-new': isNew ? '1' : '0',
+        'data-marked-deletion': isMarked ? '1' : '0',
       });
 
-      // Label "Novo" para itens ainda não salvos.
-      if (isNew) {
+      // Label "Será removido ao salvar" para itens existentes
+      // marcados (C3C2C2).
+      if (isMarked) {
+        row.appendChild(window.el('div', { class: 'w-full mb-1' },
+          window.el('span',
+            { class: 'inline-block px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700' },
+            'Será removido ao salvar'
+          )
+        ));
+      } else if (isNew) {
+        // Label "Novo" para itens ainda não salvos.
         row.appendChild(window.el('div', { class: 'w-full mb-1' },
           window.el('span',
             { class: 'inline-block px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700' },
@@ -334,10 +373,22 @@
         window.el('label', { class: 'block text-xs text-gray-500 mb-1' }, 'Observação'),
         obsInput));
 
-      // Botão "Descartar novo item" — APENAS para itens novos
-      // (ainda não salvos). Itens existentes NÃO têm botão de
-      // descarte nesta fase (remoção fica para C3C2C2).
-      if (isNew) {
+      // Botões de descarte/remoção/desfazer — distinguem 3 casos:
+      //  1. isNew=true: "Descartar novo item" (remove do estado
+      //     local apenas; não toca no banco).
+      //  2. !isNew && !markedForDeletion: "Remover item" (marca
+      //     para remoção local; DELETE só no `salvar()`).
+      //  3. !isNew && markedForDeletion: "Desfazer remoção"
+      //     (limpa a flag local; item volta a ser normal).
+      if (isMarked) {
+        const undoBtn = window.el('button', {
+          type: 'button',
+          class: 'text-blue-600 hover:underline text-sm px-2 py-1',
+          'data-action': 'undo-delete',
+          onclick: function () { desfazerRemocao(item.uid); },
+        }, 'Desfazer remoção');
+        row.appendChild(undoBtn);
+      } else if (isNew) {
         const discardBtn = window.el('button', {
           type: 'button',
           class: 'text-red-600 hover:underline text-sm px-2 py-1',
@@ -345,6 +396,14 @@
           onclick: function () { descartarItemNovo(item.uid); },
         }, 'Descartar novo item');
         row.appendChild(discardBtn);
+      } else {
+        const removeBtn = window.el('button', {
+          type: 'button',
+          class: 'text-red-600 hover:underline text-sm px-2 py-1',
+          'data-action': 'remove-existing',
+          onclick: function () { marcarParaRemocao(item.uid); },
+        }, 'Remover item');
+        row.appendChild(removeBtn);
       }
 
       // Se bloqueado por status, desabilita campos (read-only).
@@ -379,6 +438,7 @@
         metros: '',
         observacao: '',
         isNew: true,
+        markedForDeletion: false,
       });
       render();
     }
@@ -400,6 +460,76 @@
       if (state.itens.length === 0) {
         state.noItems = true;
       }
+      render();
+    }
+
+    // -----------------------------------------------------------------
+    // marcarParaRemocao: marca um item EXISTENTE (isNew=false) para
+    // remoção local (C3C2C2). A remoção só é aplicada no `salvar()`
+    // via DELETE em `pedido_itens` com `.eq('id', dbId).eq('pedido_id',
+    // pedidoId)`. Bloqueia se a remoção deixaria 0 itens (mínimo 1).
+    // Bloqueia se status não for editável. Abre `window.confirmDialog`
+    // antes de marcar.
+    // -----------------------------------------------------------------
+    function marcarParaRemocao(uid) {
+      const idx = state.itens.findIndex(function (it) { return it.uid === uid; });
+      if (idx === -1) return;
+      const it = state.itens[idx];
+      // Defesa: apenas itens existentes podem ser marcados.
+      if (it.isNew) return;
+      // Já marcado: no-op.
+      if (it.markedForDeletion) return;
+      // Bloqueio por status.
+      if (state.blockedStatus) {
+        window.toast('Remoção bloqueada para este status.', 'error');
+        return;
+      }
+      // Bloqueio por mínimo: conta itens NÃO marcados. Se a remoção
+      // deixaria 0, bloqueia.
+      const naoMarcados = state.itens.filter(function (x) {
+        return !x.markedForDeletion;
+      }).length;
+      if (naoMarcados <= 1) {
+        window.toast('Pedido precisa ter pelo menos 1 item.', 'error');
+        return;
+      }
+      // Confirmação visual via `window.confirmDialog` (C3B padrão).
+      if (typeof window.confirmDialog === 'function') {
+        window.confirmDialog({
+          title: 'Remover item do pedido?',
+          message: 'O item será excluído apenas ao salvar as alterações. '
+            + 'Para reverter, clique em "Desfazer remoção" antes de salvar.',
+          confirmLabel: 'Remover item',
+          danger: true,
+          onConfirm: function () {
+            it.markedForDeletion = true;
+            render();
+          },
+        });
+      } else {
+        // Fallback: confirma via `window.confirm` se `confirmDialog`
+        // não estiver disponível (defesa). Em produção `confirmDialog`
+        // é provido por `js/ui.js` e está sempre presente.
+        if (window.confirm('Remover item do pedido? Esta ação só será '
+            + 'aplicada ao salvar.')) {
+          it.markedForDeletion = true;
+          render();
+        }
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // desfazerRemocao: limpa a flag `markedForDeletion` de um item
+    // existente (C3C2C2). Reverte uma marcação de remoção feita nesta
+    // sessão, sem efeitos no banco. Só faz sentido para itens
+    // existentes (!isNew).
+    // -----------------------------------------------------------------
+    function desfazerRemocao(uid) {
+      const it = state.itens.find(function (x) { return x.uid === uid; });
+      if (!it) return;
+      if (it.isNew) return;     // defesa
+      if (!it.markedForDeletion) return; // no-op
+      it.markedForDeletion = false;
       render();
     }
 
@@ -460,22 +590,21 @@
         banner.appendChild(window.el('div',
           { class: 'text-sm text-gray-500 ml-auto' },
           'Edição permitida neste status. Você pode alterar modelo, '
-            + 'metros e observação dos itens existentes, e também '
-            + 'adicionar novos itens.'
+            + 'metros e observação dos itens existentes, adicionar '
+            + 'novos itens e remover itens existentes.'
         ));
       }
       return banner;
     }
 
     function buildItensAviso() {
-      // Aviso simples: escopo desta fase (com add, sem remove, sem
-      // overrides de largura/cor).
+      // Aviso simples: escopo desta fase (C3C2C2).
       return window.el('div',
         { class: 'bg-white rounded-xl shadow p-4 mb-4 text-sm text-gray-600' },
-        'Nesta fase (C3C2C1) você pode editar modelo, metros e '
-          + 'observação dos itens existentes, e também adicionar novos '
-          + 'itens. Remover itens fica para C3C2C2. Overrides de '
-          + 'largura/cor ficam para C3C2D.'
+        'Nesta fase (C3C2C2) você pode editar modelo, metros e '
+          + 'observação dos itens existentes, adicionar novos itens '
+          + 'e remover itens existentes. Reordenação manual e '
+          + 'overrides de largura/cor ficam para fases seguintes.'
       );
     }
 
@@ -488,21 +617,31 @@
     // -----------------------------------------------------------------
     // salvar: valida + aplica writes em `pedido_itens`.
     //   - Bloqueado se status não for editável.
-    //   - Bloqueado se não houver itens (mínimo 1).
-    //   - Para cada item, valida modelo_id e metros > 0.
-    //   - Para itens existentes (isNew=false): update individual
-    //     com `.eq('id', item.dbId).eq('pedido_id', pedidoId)`.
-    //     Payload: { modelo_id, metros, observacao } (3 chaves).
-    //   - Para itens novos (isNew=true): insert em batch com
-    //     `.insert([{ pedido_id, modelo_id, metros, observacao, ordem }])`.
-    //     Campos proibidos (id, largura, cor_1_id, cor_2_id, criado_em)
-    //     NÃO são setados.
-    //   - Sem update em pedidos, sem delete em pedido_itens,
-    //     sem mexer em pedido_eventos, sem mexer em lotes.
-    //   - Limitação documentada: se um update falhar, os updates
-    //     anteriores podem já ter sido aplicados. Se o insert
-    //     falhar, os updates anteriores já foram aplicados.
-    //     Sem compensação automática nesta fase. Usuário re-edita.
+    //   - Bloqueado se não houver itens ativos (não marcados para
+    //     remoção) — mínimo 1 (defesa; `marcarParaRemocao` também
+    //     pré-checa).
+    //   - Para cada item ativo, valida modelo_id e metros > 0.
+    //   - Separa:
+    //     * existingItems: itens com isNew=false (atualizar no banco)
+    //     * newItems:      itens com isNew=true (inserir no banco)
+    //     * removedItems:  itens com markedForDeletion=true (deletar
+    //                       do banco; existem no banco, isNew=false)
+    //   - Sequência:
+    //     1) UPDATE de `existingItems` (sequencial, mesmo padrão C3C2B):
+    //        `.update({ modelo_id, metros, observacao })
+    //         .eq('id', dbId).eq('pedido_id', pedidoId)`.
+    //     2) INSERT em batch de `newItems` com 5 chaves
+    //        (pedido_id, modelo_id, metros, observacao, ordem).
+    //        Ordem atribuída como `existingItems.length + i`.
+    //     3) DELETE de `removedItems` (sequencial) com
+    //        `.delete().eq('id', dbId).eq('pedido_id', pedidoId)`.
+    //   - Sem update em `pedidos`, sem insert em `pedido_eventos`,
+    //     sem mexer em `lotes`. Sem Edge Function, sem service_role,
+    //     sem token_acesso.
+    //   - Limitação documentada: sem transação/RPC. Se uma etapa
+    //     falhar, etapas anteriores podem ter sido aplicadas. Sem
+    //     compensação automática nesta fase. Usuário re-edita e
+    //     tenta novamente.
     //   - Após sucesso, navega de volta para o detalhe.
     // -----------------------------------------------------------------
     async function salvar(btn) {
@@ -514,14 +653,25 @@
         window.toast('Pedido não carregado.', 'error');
         return;
       }
-      if (state.itens.length === 0) {
+
+      // Separa: ativos (sobreviverão), removidos (marcados para delete).
+      // Itens ativos: !markedForDeletion. Itens removidos: marcados
+      // (só faz sentido para isNew=false; defesa explícita).
+      const activeItems = state.itens.filter(function (it) {
+        return !it.markedForDeletion;
+      });
+      const removedItems = state.itens.filter(function (it) {
+        return it.markedForDeletion && !it.isNew;
+      });
+
+      if (activeItems.length === 0) {
         window.toast('Pedido sem itens. Nada para salvar.', 'error');
         return;
       }
 
-      // Validação cliente-side por item.
-      for (let i = 0; i < state.itens.length; i++) {
-        const it = state.itens[i];
+      // Validação cliente-side por item ATIVO.
+      for (let i = 0; i < activeItems.length; i++) {
+        const it = activeItems[i];
         if (!it.modeloId) {
           window.toast('Item ' + (i + 1) + ': selecione um modelo.', 'error');
           return;
@@ -533,15 +683,16 @@
         }
       }
 
-      // Separa itens existentes e novos.
-      const existingItems = state.itens.filter(function (it) { return !it.isNew; });
-      const newItems = state.itens.filter(function (it) { return it.isNew; });
+      // Separa ativos em existentes (atualizar) e novos (inserir).
+      const existingItems = activeItems.filter(function (it) { return !it.isNew; });
+      const newItems = activeItems.filter(function (it) { return it.isNew; });
 
       btn.disabled = true;
       const oldLabel = btn.textContent;
       btn.textContent = 'Salvando...';
 
       let algumFalhou = false;
+      let failedStep = null;
 
       // 1) Updates de itens existentes (sequencial, mesmo padrão C3C2B).
       for (let i = 0; i < existingItems.length; i++) {
@@ -559,6 +710,7 @@
             .eq('pedido_id', pedidoId);
           if (r.error) {
             algumFalhou = true;
+            failedStep = 'update';
             window.toast(
               'Erro ao atualizar item ' + (i + 1) + ': ' + (r.error.message || 'desconhecido'),
               'error'
@@ -568,16 +720,17 @@
           }
         } catch (e) {
           algumFalhou = true;
+          failedStep = 'update';
           window.toast('Erro inesperado ao atualizar item ' + (i + 1) + '.', 'error');
           console.error(e);
           break;
         }
       }
 
-      // Se algum update falhou, não tenta inserir (consistência).
+      // 2) Insert em batch dos itens novos. Ordem é atribuída
+      // como: existingItems.length + i (novos vão para o fim).
+      // Só tenta se updates não falharam.
       if (!algumFalhou && newItems.length > 0) {
-        // 2) Insert em batch dos itens novos. Ordem é atribuída
-        // como: existingItems.length + i (novos vão para o fim).
         const insertPayload = newItems.map(function (it, i) {
           return {
             pedido_id: pedidoId,
@@ -593,6 +746,7 @@
             .insert(insertPayload);
           if (r.error) {
             algumFalhou = true;
+            failedStep = 'insert';
             window.toast(
               'Erro ao inserir novos itens: ' + (r.error.message || 'desconhecido'),
               'error'
@@ -601,23 +755,64 @@
           }
         } catch (e) {
           algumFalhou = true;
+          failedStep = 'insert';
           window.toast('Erro inesperado ao inserir novos itens.', 'error');
           console.error(e);
         }
       }
 
+      // 3) Delete de itens marcados para remoção (sequencial,
+      // dupla condição: id do item E pedido_id do pedido). Só
+      // tenta se updates/inserts não falharam.
+      if (!algumFalhou && removedItems.length > 0) {
+        for (let i = 0; i < removedItems.length; i++) {
+          const it = removedItems[i];
+          try {
+            const r = await window.supa
+              .from('pedido_itens')
+              .delete()
+              .eq('id', it.dbId)
+              .eq('pedido_id', pedidoId);
+            if (r.error) {
+              algumFalhou = true;
+              failedStep = 'delete';
+              window.toast(
+                'Erro ao remover item: ' + (r.error.message || 'desconhecido'),
+                'error'
+              );
+              console.error('pedido-itens-edit: erro ao remover item', r.error);
+              break;
+            }
+          } catch (e) {
+            algumFalhou = true;
+            failedStep = 'delete';
+            window.toast('Erro inesperado ao remover item.', 'error');
+            console.error(e);
+            break;
+          }
+        }
+      }
+
       if (algumFalhou) {
+        console.warn('pedido-itens-edit: salvar falhou na etapa ' + failedStep
+          + '. Etapas anteriores podem ter sido aplicadas. Sem compensação automática.');
         btn.disabled = false;
         btn.textContent = oldLabel;
         return;
       }
 
-      window.toast(
-        newItems.length > 0
-          ? 'Itens atualizados e ' + newItems.length + ' novo(s) inserido(s).'
-          : 'Itens atualizados.',
-        'success'
-      );
+      // Toast com contadores (update/insert/delete).
+      const parts = [];
+      if (newItems.length > 0) {
+        parts.push(newItems.length + ' novo(s) inserido(s)');
+      }
+      if (removedItems.length > 0) {
+        parts.push(removedItems.length + ' removido(s)');
+      }
+      const msg = parts.length > 0
+        ? 'Itens atualizados e ' + parts.join(' e ') + '.'
+        : 'Itens atualizados.';
+      window.toast(msg, 'success');
       window.navigate('#/pedidos/' + pedidoId);
     }
 

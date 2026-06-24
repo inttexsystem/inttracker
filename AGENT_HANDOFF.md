@@ -9,11 +9,13 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C1` (adicionar novo item
-  ao Pedido pela tela de edição entregue).
-- **HEAD aceito atual:** `acc96c3` (após push desta fase, o HEAD
-  da fase C3C2C1 — "Add pedido admin item append").
-- **staging/main:** `acc96c3` (será atualizado com o push desta fase).
+  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C2` (remover item
+  existente do Pedido pela tela de edição entregue).
+- **HEAD aceito atual:** `fd1a9a3` (após push desta fase, o HEAD
+  da fase C3C2C1 — "Add pedido admin item append"). Após o
+  push de C3C2C2, o HEAD passa a ser o commit desta fase —
+  "Add pedido admin item removal".
+- **staging/main:** `fd1a9a3` (será atualizado com o push desta fase).
 - **Working tree:** limpo após commit.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -27,38 +29,45 @@
   `pedido_eventos` e `lotes.pedido_id` (nullable). RLS admin-only.
   Sem policy pública. Sem `pedidos.op_id`.
 - **Frontend Pedidos entregue (C1 + C2 + C2-R1 + C3A + C3B +
-  C3C1 + C3C2B + C3C2C1):** listagem `#/pedidos`, formulário
-  `#/pedidos/novo` (cria pedido + itens como `rascunho`),
-  correção de bug do preview de cor (slot fixo +
+  C3C1 + C3C2B + C3C2C1 + C3C2C2):** listagem `#/pedidos`,
+  formulário `#/pedidos/novo` (cria pedido + itens como
+  `rascunho`), correção de bug do preview de cor (slot fixo +
   `updatePreview()`), detalhe read-only `#/pedidos/<uuid>`,
   ações reais RESTRITAS de status (C3B), **edição admin
   RESTRITA dos dados gerais** (C3C1, `#/pedidos/<uuid>/editar`),
   **edição admin RESTRITA de itens existentes** (C3C2B,
   `#/pedidos/<uuid>/itens`, update de `modelo_id`/`metros`/
-  `observacao` em itens existentes) e **adição de novos
+  `observacao` em itens existentes), **adição de novos
   itens** (C3C2C1, mesmo rota `#/pedidos/<uuid>/itens`, insert
-  de `pedido_id`/`modelo_id`/`metros`/`observacao`/`ordem`).
-  Helper `pedido-ui.js` com status, badges, preview de cor,
-  e `isPedidoEditavel()` (`PEDIDO_STATUS_EDITAVEL = ['rascunho',
-  'recebido']`). Na C3B, o detalhe aceita APENAS as
-  transições: `rascunho→recebido`, `recebido→confirmado`,
-  `rascunho/recebido/confirmado→cancelado` (este último via
-  `window.confirmDialog`). Na C3C1, o botão "Editar dados"
-  do detalhe é funcional APENAS para status editáveis e
-  navega para a tela de edição de dados gerais. Na C3C2B/
-  C3C2C1, o botão "Editar itens" do detalhe é funcional
-  APENAS para status editáveis e navega para a tela de
-  edição de itens; a tela permite editar itens existentes
-  (C3C2B) e adicionar novos (C3C2C1, com flag `isNew: true`
-  e botão "Descartar novo item" para descarte local). Update
-  é APENAS em `pedidos` (C3C1) ou em `pedido_itens`
-  (C3C2B: update; C3C2C1: update + insert). Sem
-  insert/update/delete em `pedido_itens` (exceto pelo update
-  + insert restritos da C3C2B/C3C2C1), sem insert em
-  `pedido_eventos` (best-effort fica para fase futura),
-  sem `functions.invoke`, sem `token_acesso`, sem
-  `service_role`, sem rota pública, sem schema, sem OP, sem
-  Edge Function, sem fornecedor.
+  de `pedido_id`/`modelo_id`/`metros`/`observacao`/`ordem`)
+  e **remoção de itens existentes** (C3C2C2, mesma rota,
+  delete de `pedido_itens` com `.eq('id', dbId).eq('pedido_id',
+  pedidoId)` aplicado APENAS no `salvar()`, com flag local
+  `markedForDeletion: true`, confirmação visual via
+  `window.confirmDialog`, botão "Desfazer remoção" para
+  reverter, mínimo de 1 item no Pedido). Helper `pedido-ui.js`
+  com status, badges, preview de cor, e `isPedidoEditavel()`
+  (`PEDIDO_STATUS_EDITAVEL = ['rascunho', 'recebido']`). Na
+  C3B, o detalhe aceita APENAS as transições: `rascunho→recebido`,
+  `recebido→confirmado`, `rascunho/recebido/confirmado→cancelado`
+  (este último via `window.confirmDialog`). Na C3C1, o botão
+  "Editar dados" do detalhe é funcional APENAS para status
+  editáveis e navega para a tela de edição de dados gerais.
+  Na C3C2B/C3C2C1/C3C2C2, o botão "Editar itens" do detalhe
+  é funcional APENAS para status editáveis e navega para a
+  tela de edição de itens; a tela permite editar itens
+  existentes (C3C2B), adicionar novos (C3C2C1, com flag
+  `isNew: true` e botão "Descartar novo item" para descarte
+  local) e remover existentes (C3C2C2, com flag
+  `markedForDeletion: true`, `window.confirmDialog` na marcação,
+  e botão "Desfazer remoção" para reverter; delete só no
+  `salvar()`). Update/insert/delete APENAS em `pedido_itens`
+  (C3C2B: update; C3C2C1: update + insert; C3C2C2: update +
+  insert + delete — delete APENAS de itens marcados, com
+  dupla `.eq` de defesa). Sem insert/update/delete em
+  `pedido_eventos`, sem `functions.invoke`, sem `token_acesso`,
+  sem `service_role`, sem rota pública, sem schema, sem OP,
+  sem Edge Function, sem fornecedor.
 
 ## Estado operacional atual
 - `index.html` está declarativo, sem script inline final, com
@@ -103,13 +112,12 @@ git ls-remote --heads origin main
 Abortar e revisar o escopo se:
 - branch != `work/app-next`;
 - HEAD não estiver em um commit da fase
-  `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-VALIDATION-CLOSEOUT-A`
-  (commit "Record auth disable UI validation" no topo, ou
-  commit imediatamente posterior a `2d750a5`);
+  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C2` (commit
+  "Add pedido admin item removal" no topo, ou commit
+  imediatamente posterior a `fd1a9a3`);
 - working tree não estiver limpo;
 - `staging/main` não tiver sido atualizado para o commit
-  desta fase closeout (antes do push era
-  `2d750a5960236d5c28ff750126a69b3bba48a983`);
+  desta fase (antes do push era `fd1a9a3`);
 - `origin/main` != `1047181eba888242c6428de366cbd9fda2f1c72c`
   (qualquer mudança em `origin/main` é regressão grave).
 
@@ -196,12 +204,12 @@ Abortar e revisar o escopo se:
 
 **Refactor arquitetural continua congelado.**
 **Pedidos C1 + C2 + C2-R1 + C3A + C3B + C3C1 + C3C2B +
-C3C2C1 entregues:** listagem `#/pedidos`, formulário
-`#/pedidos/novo` (cria pedido + itens como `rascunho`),
-correção de bug no preview de cor do item (slot fixo +
-`updatePreview()` com `replaceChildren`), **detalhe
-read-only** `#/pedidos/<uuid>` (`pedido-detail.js` com
-`screenPedidoDetalhe`, `js/router.js` estendido com match
+C3C2C1 + C3C2C2 entregues:** listagem `#/pedidos`,
+formulário `#/pedidos/novo` (cria pedido + itens como
+`rascunho`), correção de bug no preview de cor do item
+(slot fixo + `updatePreview()` com `replaceChildren`),
+**detalhe read-only** `#/pedidos/<uuid>` (`pedido-detail.js`
+com `screenPedidoDetalhe`, `js/router.js` estendido com match
 dinâmico `^#/pedidos/<uuid>$` admin-only, botão "Visualizar"
 da listagem navegando para o detalhe), **ações reais
 RESTRITAS de status** (C3B: `rascunho→recebido`,
@@ -217,26 +225,41 @@ Salvar), **edição admin RESTRITA de itens existentes**
 `pedido-itens-edit.js`; restringe `modelo_id`/`metros`/
 `observacao` de itens JÁ EXISTENTES; sem add/remove/reordenar,
 sem overrides de largura/cor; demais status desabilitam
-campos + Salvar) e **adição de novos itens** (C3C2C1,
+campos + Salvar), **adição de novos itens** (C3C2C1,
 mesma tela `#/pedidos/<uuid>/itens`; flag `isNew: true`
 no estado local; insert em `pedido_itens` com 5 chaves
 `pedido_id`/`modelo_id`/`metros`/`observacao`/`ordem`;
 ordem calculada como `existingItems.length + i`; botão
 "Descartar novo item" para descarte local; sem remover
-existente, sem overrides). Update é APENAS em `pedidos`
-(C3C1) ou em `pedido_itens` (C3C2B: update; C3C2C1:
-update + insert), admin-only via RLS. Sem delete/upsert em
-`pedido_itens`, sem insert em `pedido_eventos` (best-effort
+existente, sem overrides) e **remoção de itens
+existentes** (C3C2C2, mesma tela `#/pedidos/<uuid>/itens`;
+flag `markedForDeletion: true` no estado local; cada item
+existente tem botão "Remover item" que abre
+`window.confirmDialog` para confirmação visual; após
+confirmar, item ganha visual "riscado" (borda vermelha,
+opacidade 70, label "Será removido ao salvar") e botão
+"Desfazer remoção" para reverter; remoção é aplicada
+APENAS no `salvar()` via DELETE em `pedido_itens` com
+dupla `.eq('id', dbId).eq('pedido_id', pedidoId)`; mínimo
+de 1 item no Pedido é garantido: `marcarParaRemocao` bloqueia
+se a remoção deixaria 0 itens; sequência `salvar()`:
+1) UPDATE existentes, 2) INSERT novos, 3) DELETE removidos;
+sem compensação automática entre etapas — limitação
+documentada). Update/insert/delete APENAS em `pedido_itens`
+(C3C2B: update; C3C2C1: update + insert; C3C2C2: update +
+insert + delete de itens marcados), admin-only via RLS.
+Sem delete/upsert em `pedido_itens` fora do escopo da
+remoção marcada, sem insert em `pedido_eventos` (best-effort
 fica para fase futura), sem `functions.invoke`, sem
 `token_acesso`, sem `service_role`, sem rota pública, sem
 mutação em `lotes`/`pedido_eventos`, sem schema, sem OP, sem
 Edge Function, sem fornecedor. Limitação conhecida do
 formulário: sem RPC/transação atômica (compensação manual
-documentada no código). Remover itens existentes fica
-para C3C2C2.
-**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C2`
-(remover item existente do Pedido), **somente com
-autorização explícita** do HMNlead.
+documentada no código). Reordenação manual de itens e
+overrides de largura/cor ficam para fases seguintes.
+**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C3`
+(reordenação manual de itens com drag-and-drop / setas),
+**somente com autorização explícita** do HMNlead.
 **Não iniciar execução sem autorização explícita.**
 **NÃO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**
 
@@ -489,10 +512,10 @@ projeto:
 | 23 | `js/screens/pedido-form.js` | `62a9f9a` (+ `2de595c`) | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2 (+ C2-R1) |
 | 24 | `js/screens/pedido-detail.js` | `7184388` + `d2b5a6a` + (commit desta fase) | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A (+ C3B: ações reais de status + C3C1: Editar funcional por status) |
 | 25 | `js/screens/pedido-edit.js` | `2d36077` C3C1: edição admin dos dados gerais do Pedido |
-| 26 | `js/screens/pedido-itens-edit.js` | `acc96c3` C3C2B: edição admin de itens existentes (update 3 chaves) + (commit desta fase) C3C2C1: também ADICIONAR novos itens (insert 5 chaves, `isNew`, `Descartar novo item`) |
+| 26 | `js/screens/pedido-itens-edit.js` | `acc96c3` C3C2B: edição admin de itens existentes (update 3 chaves) + `fd1a9a3` C3C2C1: também ADICIONAR novos itens (insert 5 chaves, `isNew`, `Descartar novo item`) + (commit desta fase) C3C2C2: também REMOVER itens existentes (delete em `pedido_itens` com `.eq('id').eq('pedido_id')`, `markedForDeletion`, `window.confirmDialog`, "Desfazer remoção", mínimo 1) |
 
 ## Testes recentes (focados passando)
-- `pedido-itens-edit.smoke.js` — 46/46
+- `pedido-itens-edit.smoke.js` — 59/59
 - `pedido-edit.smoke.js` — 35/35
 - `pedido-detail.smoke.js` — 43/43
 - `pedido-form.smoke.js` — 35/35
@@ -501,7 +524,7 @@ projeto:
 - `pedidos-schema.smoke.js` — 41/41
 - `boot.smoke.js` — 28/28
 - `router.smoke.js` — 41/41
-- **Total Pedidos (C1+C2+C2-R1+C3A+C3B+C3C1+C3C2B+C3C2C1): 316/316** (todos os focados
+- **Total Pedidos (C1+C2+C2-R1+C3A+C3B+C3C1+C3C2B+C3C2C1+C3C2C2): 329/329** (todos os focados
   passam).
 
 Focados do refactor (mantidos verdes):
