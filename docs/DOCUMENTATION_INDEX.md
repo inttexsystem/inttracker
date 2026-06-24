@@ -99,10 +99,14 @@ isso é registrado explicitamente no header do arquivo e em
 > commit `8fa924a`) e `...-SCHEMA-APPLY-EVIDENCE-A` (registro da
 > aplicação real, commit `1a35e1d`) no LEDGER. A Edge Function
 > `admin-disable-user` foi criada localmente no repo na fase
-> `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` (ver
-> `supabase/functions/admin-disable-user/README.md`); **sem
+> `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`, commit `eb5d2e0`
+> (ver `supabase/functions/admin-disable-user/README.md`); **sem
 > deploy** nesta fase; deploy controlado em fase futura
-> (`...-EDGE-STAGING-DEPLOY-A`).
+> (`...-EDGE-STAGING-DEPLOY-A`). Um **runner local automatizado**
+> de E2E foi criado em
+> `scripts/staging/admin-disable-user-e2e.mjs` (fase
+> `...-E2E-AUTO-RUNNER-A`); **E2E real ainda não foi executado**
+> (depende de autorização do HMNlead para rodar o `run`).
 
 ## 4. Docs legadas (NÃO GUIAM EXECUÇÃO)
 

@@ -8,11 +8,11 @@
 > Convenção: **tudo em português brasileiro**.
 
 ## Estado atual aceito
-- **Estado atual aceito:** `work/app-next @ 1a35e1d` — "Record auth
-  disable schema apply evidence" (fase
-  `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`,
-  docs-only).
-- **staging/main:** `1a35e1d35745212003daa5d196195b4ea20b216c`
+- **Estado atual aceito:** `work/app-next @ eb5d2e0` — "Add auth user
+  disable edge function" (fase
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`, Edge Function
+  `admin-disable-user` criada localmente, **sem deploy**).
+- **staging/main:** `eb5d2e05680a05fb41a52a3c0af3112eaf294ee5`
   (sincronizado com `work/app-next`).
 - **Working tree esperado:** **limpo**.
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
@@ -71,12 +71,12 @@ git ls-remote --heads origin main
 
 Abortar e revisar o escopo se:
 - branch != `work/app-next`;
-- HEAD != `1a35e1d` (ou, no meio da fase EDGE-A, antes do push,
-  o hash do commit que será gerado);
+- HEAD != `eb5d2e0` (ou, no meio da fase E2E-AUTO-RUNNER-A, antes
+  do push, o hash do commit que será gerado);
 - working tree não estiver limpo;
-- `staging/main` != `1a35e1d35745212003daa5d196195b4ea20b216c`
-  (antes do push da fase EDGE-A) ou um commit `EDGE-A` que
-  ainda não foi propagado;
+- `staging/main` != `eb5d2e05680a05fb41a52a3c0af3112eaf294ee5`
+  (antes do push da fase E2E-AUTO-RUNNER-A) ou um commit
+  `E2E-AUTO-RUNNER-A` que ainda não foi propagado;
 - `origin/main` != `1047181eba888242c6428de366cbd9fda2f1c72c`
   (qualquer mudança em `origin/main` é regressão grave).
 
@@ -223,6 +223,28 @@ com validação de admin ativo, bloqueio de auto-desativação
 o ban falhar. **Sem deploy nesta fase.** Deploy e validação E2E em
 staging ficam para
 `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A` (futura).
+**Runner local de E2E staging criado** (fase
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A`):
+`scripts/staging/admin-disable-user-e2e.mjs` (ESM, sem dependências
+externas) com comandos `setup` e `run`. `setup` detecta staging
+de `js/config.js` (URL + anon key já públicas) e pede admin
+email/senha uma vez, salvando em
+`.ravatex-local/admin-disable-user-e2e.config.json` (gitignored).
+`run` carrega config, aborta se URL != `ucrjtfswnfdlxwtmxnoo` ou
+se for `bhgifjrfagkzubpyqpew`, executa E2E completo (login
+admin, valida `tipo=admin AND ativo=true`, resolve
+`fornecedor_id` config ou autodetect, cria descartável via
+`admin-create-user`, tenta desativar admin como fornecedor
+esperando `FORBIDDEN`, revalida admin, desativa descartável
+esperando `auth_banned=true`, valida
+`desativado_em`/`desativado_por`/`motivo_desativacao`, tenta
+login do desativado esperando falha, re-desativa esperando
+`already_disabled=true`, tenta self-disable esperando
+`SELF_DISABLE_FORBIDDEN`, imprime resumo sanitizado). Sem
+variáveis de ambiente manuais; sem secrets versionados.
+Smoke estático
+`tests/admin-disable-user-e2e-runner.smoke.js` 28/28 verde.
+**E2E real ainda não foi executado nesta fase.**
 
 O ciclo de refactor arquitetural + hardening + extração final do
 `op-pdf.js` está **congelado**. Antes de iniciar qualquer novo
@@ -314,13 +336,33 @@ Fases, em ordem:
    `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A`
    (próxima fase).
 10. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A`**
-    *(próxima)* — deploy controlado de `admin-disable-user` em
-    staging e validação E2E: admin ativo desativa fornecedor
-    descartável; `public.usuarios.ativo = false`; `auth.users.
-    banned_until` aplicado; login do alvo bloqueado;
-    `loadCurrentUser` retorna `null` no app. Reativação reversível
-    por SQL read-only.
-11. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`** *(futura)* — restaurar
+    *(próxima — separada da fase atual)* — deploy controlado de
+    `admin-disable-user` em staging e validação manual. A fase
+    E2E-AUTO-RUNNER-A abaixo já cria o runner que automatiza a
+    validação E2E.
+11. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A`**
+    *(em andamento, fase atual, repo-only)* — runner local
+    automatizado em `scripts/staging/admin-disable-user-e2e.mjs`
+    com comandos `setup` (coleta admin_email/admin_password uma
+    única vez; detecta staging de `js/config.js`; salva em
+    `.ravatex-local/admin-disable-user-e2e.config.json`,
+    gitignored) e `run` (carrega config; aborta se URL não for
+    `ucrjtfswnfdlxwtmxnoo` ou se for `bhgifjrfagkzubpyqpew`;
+    login admin; valida `tipo=admin AND ativo=true`; resolve
+    `fornecedor_id` config/autodetect; cria fornecedor descartável
+    via `admin-create-user`; tenta desativar admin como fornecedor
+    esperando `FORBIDDEN`; revalida admin; desativa descartável
+    esperando `auth_banned=true`; valida `desativado_em`/
+    `desativado_por`/`motivo_desativacao`; tenta login do
+    desativado esperando falha; re-desativa esperando
+    `already_disabled=true`; tenta self-disable esperando
+    `SELF_DISABLE_FORBIDDEN`; imprime resumo sanitizado).
+    Smoke estático
+    `tests/admin-disable-user-e2e-runner.smoke.js` 28/28 verde.
+    `.gitignore` agora ignora `.ravatex-local/`. **E2E real
+    ainda não foi executado nesta fase** — fica para a próxima
+    (`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-A` ou similar).
+12. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`** *(futura)* — restaurar
     botão "Desativar" na UI quando Edge Function estiver
     deployada e validada em staging.
 

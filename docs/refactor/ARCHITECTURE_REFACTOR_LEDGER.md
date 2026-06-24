@@ -2,12 +2,13 @@
 
 > Ledger de fases do refactor arquitetural de
 > `D:\OneDrive\Programação\Ravatex\controle-tapetes`.
-> Última atualização: 2026-06-24 (HEAD `1a35e1d`,
-> fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` — criação local,
-> no repo, da Edge Function server-side `admin-disable-user`
-> (soft delete no perfil + ban Auth); **sem deploy, sem Supabase
-> real, sem SQL, sem alteração de UI** nesta fase; `js/**`,
-> `index.html`, `db/**` e `admin-create-user` intocados).
+> Última atualização: 2026-06-24 (HEAD `eb5d2e0`,
+> fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A` —
+> runner local automatizado para E2E de `admin-disable-user` em
+> staging `ucrjtfswnfdlxwtmxnoo`; **sem deploy, sem Supabase real,
+> sem SQL, sem UI, sem produção, sem origin/main** nesta fase;
+> `js/**`, `index.html`, `db/**` e Edge Functions intocados).
+> E2E real ainda não foi executado.
 
 ## 1. Premissas corrigidas
 - **App estático**, não Next/Vercel.
@@ -100,7 +101,8 @@
 | AUTH-DISABLE-USER-SCHEMA-A | `77bcc6b` | `db/12_auth_user_disable_schema.sql`, `tests/auth-disable-user-schema.smoke.js`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` | 20/20 + 17/17 + 16/16 + 32/32 | aceito (schema/RLS versionado; aplicado em staging em EVIDENCE-A) |
 | AUTH-DISABLE-USER-SCHEMA-APPLY-A | `8fa924a` | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` (registro da fase; SQL real executado por HMNlead no Supabase Dashboard staging e confirmado em EVIDENCE-A) | 20/20 + 65/65 (regressão leve) | aceito (docs-only; aplicação real confirmada em EVIDENCE-A) |
 | AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A | `1a35e1d` | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` (registro da aplicação real de `db/12_auth_user_disable_schema.sql` no Supabase staging `ucrjtfswnfdlxwtmxnoo`; execução manual pelo HMNlead; nenhuma execução de SQL por IAexec) | n/a (docs-only) | aceito (docs-only; aplicação real confirmada) |
-| AUTH-DISABLE-USER-EDGE-A | (HEAD da fase EDGE-A) | `supabase/functions/admin-disable-user/index.ts` (criado), `supabase/functions/admin-disable-user/README.md` (criado), `tests/admin-disable-user.smoke.js` (criado), `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` (Edge Function `admin-disable-user` — soft delete no perfil + ban Auth; **sem deploy**; sem Supabase real; sem alteração de UI; `js/**`, `index.html`, `db/**` e `admin-create-user` intocados) | 39/39 smoke + 17/17 + 20/20 + 16/16 + 32/32 (regressões focais) | aceito (local-only; deploy/validação staging em `...-EDGE-STAGING-DEPLOY-A`) |
+| AUTH-DISABLE-USER-EDGE-A | `eb5d2e0` | `supabase/functions/admin-disable-user/index.ts` (criado), `supabase/functions/admin-disable-user/README.md` (criado), `tests/admin-disable-user.smoke.js` (criado), `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` (Edge Function `admin-disable-user` — soft delete no perfil + ban Auth; **sem deploy**; sem Supabase real; sem alteração de UI; `js/**`, `index.html`, `db/**` e `admin-create-user` intocados) | 39/39 smoke + 17/17 + 20/20 + 16/16 + 32/32 (regressões focais) | aceito (local-only; deploy/validação staging em `...-EDGE-STAGING-DEPLOY-A`) |
+| AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A | (HEAD da fase) | `scripts/staging/admin-disable-user-e2e.mjs` (criado), `tests/admin-disable-user-e2e-runner.smoke.js` (criado), `.gitignore` (atualizado: `.ravatex-local/`), `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` (runner local automatizado para E2E staging; **sem Supabase real, sem SQL, sem deploy, sem UI, sem produção, sem origin/main**; `admin-disable-user` intocado; **E2E real ainda não executado**) | 28/28 smoke + 39/39 + 17/17 (regressões focais) | aceito (local-only; E2E real em fase futura) |
 | AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A | (futura) | Deploy controlado de `admin-disable-user` em staging + validação E2E | — | pendente (depende de EDGE-A local aceito) |
 | AUTH-DISABLE-USER-UI-A | (futura) | `js/screens/cadastros.js` (botão "Desativar" via Edge Function deployada) | — | pendente (depende de EDGE-STAGING-DEPLOY-A) |
 
@@ -448,6 +450,88 @@ para produção `bhgifjrfagkzubpyqpew` sem autorização explícita do
 HMNlead. Próxima fase:
 `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A`.
 
+## 5i. Ressalva processual — `AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A`
+
+A fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A` (esta
+fase) criou **localmente no repo** o runner automatizado para E2E
+de `admin-disable-user` em staging. **Sem deploy, sem Supabase real,
+sem SQL, sem alteração de UI, sem produção.**
+
+Arquivos criados:
+
+* `scripts/staging/admin-disable-user-e2e.mjs` (ESM, sem deps
+  externas; usa `fetch` nativo do Node 18+).
+* `tests/admin-disable-user-e2e-runner.smoke.js` (smoke estático
+  28/28 verde).
+
+Arquivo alterado:
+
+* `.gitignore` — adicionado `.ravatex-local/` para isolar a config
+  do runner.
+
+Arquivos docs-only atualizados: `PROJECT_STATE.md`,
+`AGENT_HANDOFF.md`, este LEDGER, `docs/DOCUMENTATION_INDEX.md`.
+
+Comandos:
+
+* `node scripts/staging/admin-disable-user-e2e.mjs setup` — detecta
+  staging automaticamente de `js/config.js` (URL + anon key já
+  públicas); aborta se URL contiver `bhgifjrfagkzubpyqpew` (ref
+  de produção); pede admin email + admin password uma única vez;
+  opcionalmente `fornecedor_id` ou autodetect; salva em
+  `.ravatex-local/admin-disable-user-e2e.config.json` (gitignored);
+  nunca imprime a senha em cleartext.
+* `node scripts/staging/admin-disable-user-e2e.mjs run` — carrega
+  config; aborta se URL não for staging; login admin via
+  `/auth/v1/token?grant_type=password`; valida `tipo=admin AND
+  ativo=true` em `public.usuarios`; resolve `fornecedor_id` (config
+  ou autodetect via `GET /rest/v1/fornecedores?order=id&limit=1`);
+  gera email descartável `disable-edge-e2e-<ts>@tapetes.test` e
+  senha em memória; cria descartável via
+  `POST /functions/v1/admin-create-user`; valida perfil criado;
+  login como descartável; tenta desativar admin esperando
+  `FORBIDDEN`; revalida admin ativo; re-login admin; desativa
+  descartável esperando `ativo=false`, `auth_banned=true`,
+  `already_disabled=false`; valida `desativado_em`/`desativado_por`/
+  `motivo_desativacao` em `public.usuarios`; tenta login do
+  desativado esperando falha; re-desativa esperando
+  `already_disabled=true`; tenta self-disable esperando
+  `SELF_DISABLE_FORBIDDEN`; imprime resumo sanitizado.
+
+Garantias:
+
+* **Anti-produção:** guard explícito aborta se URL contiver
+  `bhgifjrfagkzubpyqpew`. URL deve conter `ucrjtfswnfdlxwtmxnoo`
+  senão aborta.
+* **Anti-secret:** nunca imprime password, anon key, JWT, refresh
+  token, access token, cookie ou `service_role`. Helper
+  `sanitize()` mascara tokens/JWTs/passwords em mensagens de erro.
+  Senha de teste só existe em memória.
+* **Sem SQL manual:** runner usa apenas HTTP (`/rest/v1`,
+  `/functions/v1`, `/auth/v1`).
+* **Sem `.delete()`:** runner não chama
+  `.from('usuarios').delete()` nem `auth.admin.deleteUser`.
+* **Sem `.env`:** runner não cria nem lê `.env`; usa diretório
+  gitignored `.ravatex-local/`.
+
+Validação estática: `node --test
+tests/admin-disable-user-e2e-runner.smoke.js` 28/28 verde.
+Regressões focais preservadas: `admin-create-user.smoke.js` 17/17,
+`admin-disable-user.smoke.js` 39/39.
+
+Limitação: Deno não está disponível localmente; `deno check` não
+foi executado. A validação TypeScript do `.ts` da Edge Function
+fica para a fase de deploy. O runner é JS puro e foi validado com
+`node --check` + `node --test` no smoke.
+
+Regra de continuidade: **não rodar o E2E real** (`run`) sem
+revisão do runner e sem autorização; **não versionar** o arquivo
+`.ravatex-local/admin-disable-user-e2e.config.json`; **não
+avançar** para produção `bhgifjrfagkzubpyqpew` sem autorização
+explícita do HMNlead. Próxima fase:
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-A` (rodar o `run` real
+após revisão).
+
 ## 6. Módulos extraídos (lista canônica)
 
 | Módulo | Commit de extração | Fase |
@@ -595,10 +679,12 @@ hardening + extração final está **congelado** em `7f3c6da`
 versionado), `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A`
 (orientação para apply, commit `8fa924a`),
 `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`
-(registro da aplicação real, commit `1a35e1d`) e
+(registro da aplicação real, commit `1a35e1d`),
 `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` (Edge Function
-`admin-disable-user` criada localmente, **sem deploy**) estão
-**concluídos (local)**.
+`admin-disable-user` criada localmente, **sem deploy**, commit
+`eb5d2e0`) e
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A` (runner
+local de E2E, **sem E2E real ainda**) estão **concluídos (local)**.
 Teste fornecedor 403 confirmado em staging. UI guard removeu
 `.from('usuarios').delete()` do front-end; schema de desativação
 **aplicado e validado em staging** (fase `EVIDENCE-A`): 4 colunas
@@ -615,18 +701,27 @@ ativo server-side; bloqueia auto-desativação e último admin;
 soft delete + ban Auth via `auth.admin.updateUserById(target_id,
 { ban_duration: '876000h' })`; compensa (reativa perfil) se ban
 falhar; **sem `auth.admin.deleteUser` e sem `.delete()`**; UI
-continua com placeholder `Em breve`. Próximas fases:
+continua com placeholder `Em breve`. Runner local de E2E (fase
+`E2E-AUTO-RUNNER-A`) em `scripts/staging/admin-disable-user-e2e.mjs`
++ `tests/admin-disable-user-e2e-runner.smoke.js` (28/28 verde);
+detecta staging de `js/config.js`; aborta se URL não for
+`ucrjtfswnfdlxwtmxnoo` ou se for `bhgifjrfagkzubpyqpew`; sem
+variáveis de ambiente manuais; sem secrets versionados; config
+em `.ravatex-local/admin-disable-user-e2e.config.json` (gitignored).
+**E2E real ainda não foi executado.** Próximas fases:
 `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A` (deploy
-controlado em staging e validação E2E) →
-`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A` (restaurar botão
-"Desativar" na UI).
+controlado em staging e validação manual) →
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-A` (rodar o `run` real
+contra staging) → `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`
+(restaurar botão "Desativar" na UI).
 **Pendência de decisão do HMNlead:** 7 perguntas listadas na seção 9
 do design (`docs/architecture/AUTH_DELETE_USER_DESIGN.md`) ainda
 abertas. **Não avançar** para produção sem autorização explícita.
 **Não reaplicar** `db/12_auth_user_disable_schema.sql` em staging
 sem necessidade: a migration é idempotente, mas o estado esperado
 já está aplicado. **Não deployar** `admin-disable-user` sem
-fase dedicada de staging deploy.
+fase dedicada de staging deploy. **Não versionar** o config do
+runner (`.ravatex-local/`).
 
 ## 10. Política de updates deste ledger
 

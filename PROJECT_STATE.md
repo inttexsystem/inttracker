@@ -1,11 +1,15 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` — criação local, no
-> repo, da Edge Function server-side `admin-disable-user` para
-> desativar usuários via soft delete no perfil + ban Auth. **Sem
-> deploy** nesta fase; sem Supabase real; sem alteração de UI;
-> `js/**`, `index.html`, `db/**` e `admin-create-user` intocados).
+> `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A` — runner
+> local automatizado para E2E de `admin-disable-user` em staging
+> `ucrjtfswnfdlxwtmxnoo`. **Sem deploy, sem Supabase real, sem
+> SQL, sem UI, sem produção, sem origin/main** nesta fase.
+> Runner criado em
+> `scripts/staging/admin-disable-user-e2e.mjs` com smoke estático
+> `tests/admin-disable-user-e2e-runner.smoke.js` 28/28 verde;
+> `.gitignore` passou a ignorar `.ravatex-local/`. E2E real ainda
+> não foi executado nesta fase — fica para a próxima).
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
@@ -33,11 +37,10 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
-- **HEAD atual aceito:** `1a35e1d` — "Record auth disable schema
-  apply evidence" (fase
-  `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`,
-  docs-only).
-- **staging/main atual:** `1a35e1d35745212003daa5d196195b4ea20b216c`
+- **HEAD atual aceito:** `eb5d2e0` — "Add auth user disable edge
+  function" (fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`,
+  Edge Function `admin-disable-user` criada localmente).
+- **staging/main atual:** `eb5d2e05680a05fb41a52a3c0af3112eaf294ee5`
   (sincronizado com `work/app-next`).
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
   — **intocado** durante todo o ciclo de refactor/hardening.
@@ -283,6 +286,32 @@ pelo HMNlead no Supabase Dashboard.)*
   continua com placeholder `Em breve` para exclusão. Deploy e
   validação E2E em staging ficam para
   `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A`.
+- 🟡 **Runner local de E2E staging criado (sem E2E real).** Fase
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A`.
+  Implementação em
+  `scripts/staging/admin-disable-user-e2e.mjs` (ESM, sem
+  dependências externas) com comandos `setup` e `run`. `setup`
+  detecta staging automaticamente de `js/config.js` (URL + anon
+  key já públicas) e pede admin email/senha uma vez, salvando
+  em `.ravatex-local/admin-disable-user-e2e.config.json`
+  (gitignored). `run` carrega o config, aborta se URL !=
+  `ucrjtfswnfdlxwtmxnoo` ou se for `bhgifjrfagkzubpyqpew`,
+  faz login admin, valida `tipo=admin AND ativo=true`, resolve
+  `fornecedor_id` (config ou autodetect), cria fornecedor
+  descartável via `admin-create-user`, valida perfil criado,
+  tenta `admin-disable-user` como fornecedor (espera
+  `FORBIDDEN`), revalida admin ativo, re-login admin, desativa
+  o descartável (espera `ativo=false`, `auth_banned=true`),
+  valida `desativado_em`/`desativado_por`/`motivo_desativacao`
+  em `public.usuarios`, tenta login do desativado (espera
+  falha), re-desativa (espera `already_disabled=true`), tenta
+  self-disable (espera `SELF_DISABLE_FORBIDDEN`), imprime
+  resumo sanitizado. Smoke estático
+  `tests/admin-disable-user-e2e-runner.smoke.js` 28/28 verde;
+  regressões focais preservadas (`admin-create-user` 17/17,
+  `admin-disable-user` 39/39). **E2E real ainda não foi
+  executado** nesta fase — fica para a próxima
+  (`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-A` ou similar).
 - 🟡 Staging mostra log `relation "supabase_migrations.schema_migrations"
   does not exist` (ruído do dashboard, não do app).
 - 🟡 Tailwind CDN ainda gera warning de produção (não bloqueante;
@@ -330,10 +359,29 @@ pelo HMNlead no Supabase Dashboard.)*
    16/16, `cadastros-screens` 32/32. **Sem deploy nesta fase**;
    `js/**`, `index.html`, `db/**` e `admin-create-user` intocados;
    UI permanece com placeholder `Em breve`.
-6. **Não avançar para produção** (`bhgifjrfagkzubpyqpew`) sem
+6. **Runner local de E2E staging criado** (fase
+   `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A`):
+   `scripts/staging/admin-disable-user-e2e.mjs` com comandos
+   `setup` e `run`. `setup` detecta staging de `js/config.js`
+   e salva config em `.ravatex-local/admin-disable-user-e2e.config.json`
+   (gitignored). `run` executa E2E completo: login admin,
+   `tipo=admin AND ativo=true`, resolve `fornecedor_id`
+   (config ou autodetect), cria descartável via
+   `admin-create-user`, tenta desativar admin como fornecedor
+   (`FORBIDDEN`), desativa descartável (`auth_banned=true`),
+   valida `desativado_em`/`desativado_por`/`motivo_desativacao`,
+   tenta login do desativado (falha esperada), re-desativa
+   (`already_disabled=true`), tenta self-disable
+   (`SELF_DISABLE_FORBIDDEN`), imprime resumo sanitizado. Sem
+   variáveis de ambiente manuais; sem secrets versionados;
+   aborta se URL não for `ucrjtfswnfdlxwtmxnoo` ou se for
+   `bhgifjrfagkzubpyqpew`. Smoke estático
+   `tests/admin-disable-user-e2e-runner.smoke.js` 28/28 verde.
+   **E2E real ainda não foi executado nesta fase.**
+7. **Não avançar para produção** (`bhgifjrfagkzubpyqpew`) sem
    autorização explícita do HMNlead. Decisão de merge/release
    para `origin/main` é fase separada.
-7. Pendências técnicas remanescentes: log de migrations do dashboard
+8. Pendências técnicas remanescentes: log de migrations do dashboard
    staging, warning de Tailwind CDN, favicon 404 — não bloqueantes.
 
 ## Estrutura final de responsabilidades
