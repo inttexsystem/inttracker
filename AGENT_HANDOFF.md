@@ -8,8 +8,8 @@
 > Convenção: **tudo em português brasileiro**.
 
 ## Estado atual aceito
-- **Estado atual aceito:** `work/app-next @ 42ffc91`.
-- **staging/main:** `42ffc91affa195ad7afbf2645518647c3b7509bf`
+- **Estado atual aceito:** `work/app-next @ d99bcda`.
+- **staging/main:** `d99bcda7bc53e34d576140ce3bd212408c7e1f7d`
   (sincronizado).
 - **Working tree esperado:** **limpo**.
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
@@ -63,9 +63,9 @@ git ls-remote --heads origin main
 
 Abortar e revisar o escopo se:
 - branch != `work/app-next`;
-- HEAD != `42ffc91`;
+- HEAD != `d99bcda`;
 - working tree não estiver limpo;
-- `staging/main` != `42ffc91affa195ad7afbf2645518647c3b7509bf`;
+- `staging/main` != `d99bcda7bc53e34d576140ce3bd212408c7e1f7d`;
 - `origin/main` != `1047181eba888242c6428de366cbd9fda2f1c72c`
   (qualquer mudança em `origin/main` é regressão grave).
 
@@ -168,9 +168,17 @@ caminho `.from('usuarios').delete()` foi removido do front-end; o
 botão foi substituído por placeholder "Em breve" com toast
 informativo. Delete/disable seguro via Edge Function ainda não
 implementado.
-**Próxima fase recomendada:** `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`
-(schema `ativo` + RLS) → `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`
-(Edge Function `admin-disable-user`) → `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`
+**Schema de desativação:** `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`
+concluída. `db/12_auth_user_disable_schema.sql` foi versionado e
+validado por `tests/auth-disable-user-schema.smoke.js` (20/20).
+**NÃO foi aplicado** no Supabase staging/produção nesta fase. Próxima
+fase recomendada: aplicar a migration em staging (com backup e
+plano de rollback) OU implementar a Edge Function
+`admin-disable-user` que usa o schema preparado.
+**Próxima fase recomendada:** `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A`
+(rodar `db/12_auth_user_disable_schema.sql` em staging e validar)
+→ `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` (Edge Function
+`admin-disable-user`) → `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`
 (restaurar botão "Desativar" na UI).
 
 O ciclo de refactor arquitetural + hardening + extração final do
@@ -207,13 +215,19 @@ Fases, em ordem:
    substituir botão "Excluir vínculo" por placeholder "Em breve".
    **Concluída.** Nenhum write Supabase exposto; nenhum `auth.admin`
    no front; smoke tests 48/48 verdes.
-7. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`** *(futura)* —
-   schema para coluna `ativo`, `desativado_em`, `desativado_por` e
-   políticas RLS.
-8. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`** *(futura)* — Edge
+7. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`** — schema
+   versionado para desativação (colunas + recriação de funções e
+   policies RLS em `public.usuarios`). **Concluída.** Migration em
+   `db/12_auth_user_disable_schema.sql`; testes 20/20 em
+   `tests/auth-disable-user-schema.smoke.js`. **NÃO aplicada** no
+   Supabase.
+8. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A`** *(futura)* —
+   aplicar a migration em staging com backup e validação. Pode incluir
+   adaptar `loadCurrentUser` para tratar `ativo = false`.
+9. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`** *(futura)* — Edge
    Function `admin-disable-user` (soft delete no perfil + ban Auth).
-9. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`** *(futura)* — restaurar
-   botão "Desativar" na UI quando Edge Function estiver disponível.
+10. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`** *(futura)* — restaurar
+    botão "Desativar" na UI quando Edge Function estiver disponível.
 
 ## Possíveis fases futuras opcionais (NÃO obrigatórias)
 

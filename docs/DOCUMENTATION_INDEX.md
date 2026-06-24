@@ -57,11 +57,44 @@ aprovados pelas fontes canônicas. Quando houver divergência entre
 um runbook e uma fonte canônica, as fontes canônicas prevalecem.
 
 | Arquivo | Procedimento | Fase |
+
+| Arquivo | Procedimento | Fase |
 |---|---|---|
 | `AUTH_USER_PROVISIONING_RUNBOOK.md` | Criação de usuários (admin/fornecedor) via Edge Function `admin-create-user` + UI `#/cadastros/usuarios`. Substitui o fluxo manual de criar Auth user no Studio e copiar UID. | `RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A` |
 
 Convenção: estes runbooks são **docs-only** e **operacionais**.
 Atualizações devem ser feitas em fases docs-only dedicadas.
+
+## 4. Schema / migrations versionadas (Supabase)
+
+A pasta `db/` contém o schema canônico e as migrations aplicadas
+(parcialmente) em staging e produção. As migrations
+**schema-only** (sem deletes destrutivos) são criadas em fases
+próprias e validadas por smoke tests antes de qualquer aplicação
+no Supabase. Quando uma migration ainda **não foi aplicada**,
+isso é registrado explicitamente no header do arquivo e em
+`PROJECT_STATE.md`.
+
+| Arquivo | Propósito | Fase | Status |
+|---|---|---|---|
+| `db/01_schema.sql` | Schema base das tabelas do app. | `RAVATEX-TAPETES-FASE-1` | aplicado em staging/produção |
+| `db/02_functions.sql` | Funções RLS auxiliares originais (`is_admin`, `meu_fornecedor_id`). | `RAVATEX-TAPETES-FASE-1` | aplicado (substituído em produção por `db/05_fix_pgrst.sql`) |
+| `db/03_policies.sql` | Policies RLS de todas as tabelas. | `RAVATEX-TAPETES-FASE-1` | aplicado em staging/produção |
+| `db/04_seed.sql` | Seeds de cadastro. | `RAVATEX-TAPETES-FASE-1` | aplicado em staging |
+| `db/05_fix_pgrst.sql` | Fix PGRST + recriação de `is_admin`/`meu_fornecedor_id` com `EXCEPTION`. | `RAVATEX-TAPETES-FASE-5A` | aplicado em staging/produção |
+| `db/06_fase5a_policies.sql` | Policies adicionais para entregas de fornecedor. | `RAVATEX-TAPETES-FASE-5A` | aplicado em staging/produção |
+| `db/07_fase5a_destino_latex.sql` | Colunas de destino de látex em entregas. | `RAVATEX-TAPETES-FASE-5A` | aplicado em staging |
+| `db/08_fase5b_latex.sql` | Suporte a OP de látex (tipo, origem, fornecedor de látex). | `RAVATEX-TAPETES-FASE-5B` | aplicado em staging |
+| `db/09_fase6_cliente_lote.sql` | Tabelas `clientes` e `lotes`, função `gerar_op_latex`. | `RAVATEX-TAPETES-FASE-6` | aplicado em staging |
+| `db/10_reset_producao.sql` | Reset destrutivo de produção (DELETE em massa). | — | **NÃO executar** sem autorização. |
+| `db/11_reset_ops.sql` | Reset destrutivo de OPs (DELETE em massa). | — | **NÃO executar** sem autorização. |
+| `db/12_auth_user_disable_schema.sql` | Suporte a desativação de usuários: colunas `ativo`, `desativado_em`, `desativado_por`, `motivo_desativacao`; recriação de `is_admin` e `meu_fornecedor_id` para exigir `ativo is true`; recriação de policies `usuarios_select`, `usuarios_admin_all`, `usuarios_self_update`. | `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A` | **versionado, NÃO aplicado** no Supabase. Validado por `tests/auth-disable-user-schema.smoke.js` (20/20). |
+
+> O design que justifica a migration de schema está em
+> `docs/architecture/AUTH_DELETE_USER_DESIGN.md` (fase
+> `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`). A migration é o
+> passo seguinte ao design; a Edge Function `admin-disable-user`
+> virá em fase posterior, usando o schema aqui preparado.
 
 ## 4. Docs legadas (NÃO GUIAM EXECUÇÃO)
 

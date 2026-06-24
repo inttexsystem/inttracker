@@ -1,10 +1,9 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A` — contenção imediata na UI
-> da exclusão insegura de usuário; removeu caminho
-> `.from('usuarios').delete()` do front-end e adicionou placeholder
-> "Em breve").
+> `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A` — schema versionado
+> para futura desativação segura; `db/12_auth_user_disable_schema.sql`
+> criado, ainda não aplicado no Supabase).
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
@@ -32,8 +31,8 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
-- **HEAD atual aceito:** `42ffc91` — "Design auth user deletion semantics".
-- **staging/main atual:** `42ffc91affa195ad7afbf2645518647c3b7509bf`
+- **HEAD atual aceito:** `d99bcda` — "Guard unsafe auth user deletion UI".
+- **staging/main atual:** `d99bcda7bc53e34d576140ce3bd212408c7e1f7d`
   (sincronizado com `work/app-next`).
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
   — **intocado** durante todo o ciclo de refactor/hardening.
@@ -159,6 +158,18 @@ A próxima etapa é **homologação / release**, não nova extração.
   informativo orientando a usar o Supabase Auth Dashboard para limpeza
   de testes. Delete/disable seguro via Edge Function ainda não
   implementado.
+- 🟡 **Auth disable schema versionado.** Migration
+  `db/12_auth_user_disable_schema.sql` criada (fase
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`). Adiciona colunas
+  `ativo`, `desativado_em`, `desativado_por`, `motivo_desativacao`
+  em `public.usuarios`; recria `is_admin()` e `meu_fornecedor_id()`
+  para exigir `ativo is true`; recria policies
+  `usuarios_select`, `usuarios_admin_all`, `usuarios_self_update`.
+  **Não aplicado** no Supabase staging/produção. Compatibilidade
+  preservada: `ativo` tem `DEFAULT TRUE`, então
+  `admin-create-user` continua funcionando sem alteração (a Edge
+  Function insere apenas id/email/nome/tipo/fornecedor_id e o
+  default preenche `ativo`).
 - 🟡 Staging mostra log `relation "supabase_migrations.schema_migrations"
   does not exist` (ruído do dashboard, não do app).
 - 🟡 Tailwind CDN ainda gera warning de produção (não bloqueante;
@@ -180,7 +191,14 @@ A próxima etapa é **homologação / release**, não nova extração.
    `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A`): botão "Excluir vínculo"
    substituído por placeholder "Em breve" que exibe toast informativo.
    Caminho `.from('usuarios').delete()` removido do front-end.
-4. Decisão separada sobre merge/release para `origin/main`
+4. **Schema de desativação versionado** (fase
+   `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`):
+   `db/12_auth_user_disable_schema.sql` criado e validado por
+   `tests/auth-disable-user-schema.smoke.js` (20/20). **Não aplicado
+   no Supabase.** Próxima fase: aplicar a migration em staging
+   (com cópia do banco) ou implementar a Edge Function
+   `admin-disable-user` e validar o contrato.
+5. Decisão separada sobre merge/release para `origin/main`
    (somente com autorização explícita).
 4. Pendências técnicas remanescentes: log de migrations do dashboard
    staging, warning de Tailwind CDN, favicon 404 — não bloqueantes.
