@@ -1,19 +1,16 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-VALIDATION-CLOSEOUT-A` —
-> registro da validação manual da UI `#/cadastros/usuarios` em
-> staging `ucrjtfswnfdlxwtmxnoo` e limpeza de documentação
-> operacional indevida no refactor ledger). **Docs-only.** Sem
-> deploy, sem Supabase real, sem SQL, sem produção, sem
-> origin/main, sem PR #2, sem E2E real. UI de desativação
-> validada manualmente em staging pelo HMNlead: tela
-> `#/cadastros/usuarios`, botão `Desativar`, guarda de usuário
-> já inativo, criação de fornecedor descartável ativo,
-> desativação via UI — fluxo real passou. Warnings não
-> bloqueantes continuam: Tailwind CDN, `favicon.ico` 404.
-> Próxima etapa: **decisão de release** para
-> origin/main/produção, **somente com autorização explícita** do
+> `RAVATEX-TAPETES-AUTH-DISABLE-USER-PROD-RELEASE-PLAN-A` —
+> auditoria de release e plano operacional de produção).
+> **Docs-only/planejamento.** Sem execução em produção, sem SQL,
+> sem deploy, sem push origin, sem alteração de código.
+> **Decisão: NO-GO para release imediato.** Produção
+> (`bhgifjrfagkzubpyqpew`) não possui schema `db/12_*`, Edge
+> Functions nem secrets necessários. Plano de release criado em
+> `docs/operations/AUTH_DISABLE_USER_PROD_RELEASE_PLAN.md`.
+> Próxima etapa: `RAVATEX-TAPETES-AUTH-DISABLE-USER-PROD-BACKEND-RELEASE-A`
+> (backend produção), **somente com autorização explícita** do
 > HMNlead.
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.

@@ -9,76 +9,38 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-VALIDATION-CLOSEOUT-A`
-  (docs-only). **UI Auth Disable validada manualmente em
-  staging** pelo HMNlead. **Não há necessidade de continuar
-  Playwright/browser runner agora**; o runner
-  `scripts/staging/admin-disable-user-ui-browser-e2e.mjs`
-  permanece no repo, mas a validação operacional da UI foi
-  concluída via inspeção manual.
-- **HEAD aceito atual:** commit desta fase — "Record auth
-  disable UI validation" (docs-only). Antes desta fase:
-  `2d750a5` (fase
-  `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-BROWSER-E2E-A`).
-- **staging/main:** a ser atualizado após push desta fase.
-  Antes desta fase:
-  `2d750a5960236d5c28ff750126a69b3bba48a983`.
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-PROD-RELEASE-PLAN-A`
+  (docs-only/planejamento). **Auditoria de release concluída:
+  decisão NO-GO para release imediato.** Produção
+  (`bhgifjrfagkzubpyqpew`) não possui schema `db/12_*`,
+  Edge Functions nem secrets necessários. **Plano de release
+  criado** em `docs/operations/AUTH_DISABLE_USER_PROD_RELEASE_PLAN.md`.
+  Próxima etapa: `RAVATEX-TAPETES-AUTH-DISABLE-USER-PROD-BACKEND-RELEASE-A`
+  (backend produção), **somente com autorização explícita** do
+  HMNlead. **Não iniciar execução sem autorização.**
+- **HEAD aceito atual:** `b02a524` — "Record auth disable UI
+  validation".
+- **staging/main:** `b02a524b451986a7b952209878e797af5f8352f8`
+  (atualizado após push desta fase).
 - **Working tree esperado:** **limpo**.
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
   — **intocado** durante todo o ciclo de refactor/hardening.
 - **PR #2:** **intocado** durante todo o ciclo.
 - **Produção (grupoterrabranca.github.io):** **preservada** — não
   recebeu nenhum push de refactor/hardening.
-- **Supabase real (staging `ucrjtfswnfdlxwtmxnoo`):** foi acessado
-  **apenas pelo HMNlead** no SQL Editor do Dashboard na fase
-  `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`, para
-  aplicar manualmente `db/12_auth_user_disable_schema.sql` e validar
-  o resultado. IAexec **não** rodou nenhum SQL em Supabase em
-  nenhuma fase. Continua valendo: todos os testes de refactor
-  rodam com `vm.runInContext` + `fakeSupa` mockado. A única
-  leitura real feita pelo HMNlead fora do apply foi uma contagem
-  `select count(*) from public.ops` manual em staging (4 OPs).
-- **E2E real do runner backend em staging** (não-IAexec, manual
-  após autorização do HMNlead) executado após o fix da fase
-  `E2E-RUNNER-FIX-A` e passou com **`result: PASS`** em staging
-  (`ucrjtfswnfdlxwtmxnoo`). Evidência sanitizada: descartável
-  `disable-edge-e2e-20260624-115027@tapetes.test` /
-  user_id `d12b005e-d455-4f78-b401-59ebd9f971c5` desativado;
-  login bloqueado confirmado; `fornecedor_forbidden`,
-  `admin_disable`, `profile_inactive`, `login_blocked`,
-  `idempotency` e `self_disable_blocked` todos OK. Execução
-  parcial anterior (anterior ao fix) também desativou
-  `11c48a08-a8a6-48fb-8ddb-a6af1dba1667` em run interrompido
-  em `login_blocked` — fica apenas como referência histórica;
-  **nenhum** dos dois IDs é admin real. Ver LEDGER §5k.
-- **Validação manual da UI em staging** (HMNlead, esta fase
-  closeout): tela `#/cadastros/usuarios`, botão `Desativar`,
-  guarda de usuário já inativo (mensagem `"Usuário já está
-  inativo."`), criação de fornecedor descartável ativo e
-  desativação via botão `Desativar` — **fluxo real passou**.
-  Console sem erros críticos. Warnings não bloqueantes
-  continuam: Tailwind CDN, `favicon.ico` 404. Detalhes em
-  `PROJECT_STATE.md` §"Evidência da validação manual da UI
-  em staging".
-- **Próxima fase é release decision, não nova implementação.**
-  Decisão de merge/release para `origin/main`/produção
-  depende de autorização explícita do HMNlead, em fase
-  separada.
+- **Produção Supabase (`bhgifjrfagkzubpyqpew`):** **intocada**
+  pela cadeia Auth. Schema `db/12_*` não aplicado, Edge Functions
+  não deployadas, secrets não configurados.
+- **Staging Supabase (`ucrjtfswnfdlxwtmxnoo`):** continua no
+  estado validado: schema aplicado, Edge Functions deployadas e
+  validadas, UI manual validada pelo HMNlead. E2E real passou
+  com `result: PASS`.
 - **Não mexer no ledger de refactor para fases operacionais.**
   O ledger
   (`docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`) é apenas
   para refactor/modularização/decisões arquiteturais reais;
-  runners operacionais (browser, E2E backend) e validação
-  manual de UI não pertencem a ele. Validação operacional é
-  registrada em `PROJECT_STATE.md` e neste `AGENT_HANDOFF.md`.
-- **UI `#/cadastros/usuarios` integrada** com
-  `admin-disable-user` (fase
-  `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`, commit `83344f5`).
-  Botão `Desativar` substitui placeholder `Em breve`; modal de
-  confirmação com motivo opcional (≤ 500 chars); mapeia 8
-  códigos de erro para mensagens PT-BR; guarda de UX para
-  self/inativos (proteção visual, server-side é a barreira
-  real).
+  o plano de release é operacional e está em
+  `docs/operations/AUTH_DISABLE_USER_PROD_RELEASE_PLAN.md`.
 
 ## Estado operacional atual
 - `index.html` está declarativo, sem script inline final, com
@@ -214,130 +176,16 @@ Abortar e revisar o escopo se:
 ## Próxima recomendação operacional
 
 **Refactor arquitetural continua congelado.**
-**Estado Auth:** design, Edge Function `admin-create-user`, UI
-`#/cadastros/usuarios` e runbook operacional
-(`docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md`) concluídos e
-validados em staging (`ucrjtfswnfdlxwtmxnoo`). Bloqueio de
-fornecedor (403) confirmado.
-**Não voltar ao fluxo manual de UID** — o procedimento atual é o do
-runbook.
-**Delete/disable design:** `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`
-concluído. Recomendação: **desativar** usuários (soft delete no perfil
-+ ban no Auth) em vez de deletar fisicamente. Exclusão atual do app
-("Excluir vínculo") só remove `public.usuarios` e deixa `auth.users`
-ativo — risco de Auth órfão.
-**UI guard:** `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A` concluída. O
-caminho `.from('usuarios').delete()` foi removido do front-end; o
-botão foi substituído por placeholder "Em breve" com toast
-informativo. Delete/disable seguro via Edge Function ainda não
-implementado.
-**Schema de desativação:** `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`
-concluída. `db/12_auth_user_disable_schema.sql` foi versionado e
-validado por `tests/auth-disable-user-schema.smoke.js` (20/20).
-**Aplicado em staging:** `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A`
-(commit `8fa924a`, docs-only) preparou a orientação;
-`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A` (esta
-fase) registra a **aplicação real** feita manualmente pelo HMNlead
-no SQL Editor do Supabase **staging** `ucrjtfswnfdlxwtmxnoo` em
-`2026-06-24`. Validação pós-aplicação confirmada: 4 colunas novas
-em `public.usuarios` (`ativo`, `desativado_em`, `desativado_por`,
-`motivo_desativacao`); funções `is_admin()` e `meu_fornecedor_id()`
-recriadas; policies `usuarios_select`, `usuarios_admin_all` e
-`usuarios_self_update` recriadas; contagem `ativo = true, total =
-3` com `auth_users_total = 3`, `public_usuarios_total = 3`,
-`auth_sem_perfil = 0`, `perfil_sem_auth = 0`. Nenhum usuário foi
-criado, excluído ou desativado durante a aplicação. **Nenhum SQL
-destrutivo foi rodado.** `db/10_reset_producao.sql` e
-`db/11_reset_ops.sql` **não** foram executados. **Produção
-`bhgifjrfagkzubpyqpew` não foi tocada.**
-**Validação manual do app pós-schema** (feita pelo HMNlead em
-staging): login/admin OK; `#/cadastros/usuarios` carrega; botão
-`+ Novo usuário` visível; exclusão insegura continua bloqueada
-como `Em breve`; console sem erros críticos de Auth/RLS/listagem;
-warnings não bloqueantes: Tailwind CDN, `favicon.ico` 404.
-**Próxima fase liberada:** `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`
-(Edge Function `admin-disable-user`) →
-`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A` (restaurar botão
-"Desativar" na UI). **NÃO reaplicar** `db/12_auth_user_disable_schema.sql`
-sem necessidade: a migration é idempotente, mas o estado esperado
-já está aplicado em staging. **NÃO avançar** para produção
-(`bhgifjrfagkzubpyqpew`) sem autorização explícita do HMNlead.
-**Edge Function `admin-disable-user` (criada localmente nesta
-fase):** `supabase/functions/admin-disable-user/index.ts` +
-`README.md`; smoke estático
-`tests/admin-disable-user.smoke.js` (39/39). Implementa soft delete
-no perfil + ban Auth server-side via
-`auth.admin.updateUserById(target_id, { ban_duration: '876000h' })`,
-com validação de admin ativo, bloqueio de auto-desativação
-(`SELF_DISABLE_FORBIDDEN`), bloqueio do último admin ativo
-(`LAST_ADMIN_FORBIDDEN`), idempotência para alvo já inativo
-(`already_disabled: true`), e compensação (reativar perfil) se
-o ban falhar. **Sem deploy nesta fase.** Deploy e validação E2E em
-staging ficam para
-`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A` (futura).
-**Runner local de E2E staging criado** (fase
-`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A`):
-`scripts/staging/admin-disable-user-e2e.mjs` (ESM, sem dependências
-externas) com comandos `setup` e `run`. `setup` detecta staging
-de `js/config.js` (URL + anon key já públicas) e pede admin
-email/senha uma vez, salvando em
-`.ravatex-local/admin-disable-user-e2e.config.json` (gitignored).
-`run` carrega config, aborta se URL != `ucrjtfswnfdlxwtmxnoo` ou
-se for `bhgifjrfagkzubpyqpew`, executa E2E completo (login
-admin, valida `tipo=admin AND ativo=true`, resolve
-`fornecedor_id` config ou autodetect, cria descartável via
-`admin-create-user`, tenta desativar admin como fornecedor
-esperando `FORBIDDEN`, revalida admin, desativa descartável
-esperando `auth_banned=true`, valida
-`desativado_em`/`desativado_por`/`motivo_desativacao`, tenta
-login do desativado esperando falha, re-desativa esperando
-`already_disabled=true`, tenta self-disable esperando
-`SELF_DISABLE_FORBIDDEN`, imprime resumo sanitizado). Sem
-variáveis de ambiente manuais; sem secrets versionados.
-Smoke estático
-`tests/admin-disable-user-e2e-runner.smoke.js` 32/32 verde
-(após `E2E-RUNNER-FIX-A`). **E2E real não foi rerodado após
-o fix.**
-**Bug do runner no login bloqueado corrigido** (fase
-`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-RUNNER-FIX-A`, esta).
-Execução real do runner em staging avançou até
-`profile_inactive` e falhou em `login_blocked` com
-`HTTP 400 User is banned` tratado como erro fatal.
-Causa: `supabaseLogin` chamava `die()`/`process.exit` em
-qualquer HTTP 4xx e usava mensagem hardcoded "Login admin
-falhou" (rótulo incorreto para usuário descartável).
-Correção: helpers separados `loginExpectSuccess(...)` (fatal,
-rótulo parametrizado: `admin_login failed`,
-`test_user_login failed`, `admin_relogin failed`) e
-`loginExpectFailure(...)` (não-fatal; aceita HTTP 4xx com
-`User is banned`/`banned`/`Banned user`/`User is already
-registered` como falha esperada; retorna
-`{ ok, unexpected, status, detail }` para o caller decidir).
-Camada HTTP crua em `postSupabaseLogin(...)` (sem
-`die()`). Passo `login_blocked` agora imprime
-`login_blocked: OK` e continua para `idempotency` e
-`self_disable_blocked`. Smoke 32/32; regressão
-`admin-disable-user.smoke.js` 39/39. **E2E real não foi
-rerodado nesta fase** — só após autorização do HMNlead.
-**Validação manual da UI em staging registrada** (fase
-`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-VALIDATION-CLOSEOUT-A`,
-esta fase, docs-only). HMNlead validou manualmente no
-app/staging `ucrjtfswnfdlxwtmxnoo`: tela
-`#/cadastros/usuarios`, botão `Desativar`, guarda de
-usuário já inativo (mensagem `"Usuário já está inativo."`),
-criação de fornecedor descartável ativo e desativação via
-botão `Desativar` — **fluxo real passou**. Console sem erros
-críticos. Warnings não bloqueantes continuam: Tailwind CDN,
-`favicon.ico` 404. **Produção `bhgifjrfagkzubpyqpew` e
-`origin/main` intocados.** Detalhes em `PROJECT_STATE.md`
-§"Evidência da validação manual da UI em staging". Runner
-de browser
-`scripts/staging/admin-disable-user-ui-browser-e2e.mjs` (fase
-anterior) permanece no repo, mas a validação operacional da
-UI foi concluída via inspeção manual. **Não há
-necessidade de continuar Playwright/browser runner
-agora.** Próxima fase: **decisão de release**, não nova
-implementação; produção ainda não recebeu essas mudanças.
+**Release imediato bloqueado.** Decisão de release foi **NO-GO**
+após auditoria: produção `bhgifjrfagkzubpyqpew` não possui
+schema, Edge Functions nem secrets necessários. Plano de release
+criado em `docs/operations/AUTH_DISABLE_USER_PROD_RELEASE_PLAN.md`.
+**Próxima fase:** `RAVATEX-TAPETES-AUTH-DISABLE-USER-PROD-BACKEND-RELEASE-A`
+(backend produção: schema + secrets + Edge Functions), **somente
+com autorização explícita** do HMNlead.
+**Não iniciar execução do release sem autorização explícita.**
+**O ledger de refactor** (`docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`)
+não deve ser alterado para fases operacionais de release.
 
 O ciclo de refactor arquitetural + hardening + extração final do
 `op-pdf.js` está **congelado**. Antes de iniciar qualquer novo
