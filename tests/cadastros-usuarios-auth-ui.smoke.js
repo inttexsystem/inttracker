@@ -370,3 +370,78 @@ test("cadastros.js: preserva botão '+ Novo usuário' e chamada admin-create-use
   assert.match(src, /\+ Novo usu[áa]rio/);
   assert.match(src, /functions\.invoke\(\s*['"]admin-create-user['"]/);
 });
+
+// ---------------------------------------------------------------------
+// RAVATEX-TAPETES-PEDIDOS-CLIENTE-PROV-A — suporte a tipo 'cliente'
+// ---------------------------------------------------------------------
+
+test("cadastros.js: tipoOptions contém 'cliente'", () => {
+  assert.match(src, /value:\s*'cliente'/);
+});
+
+test("cadastros.js: tipo cliente mostra select de cliente e exige cliente_id", () => {
+  const idx = src.indexOf("function screenCadastrosUsuarios()");
+  assert.ok(idx > 0);
+  const nextFn = src.indexOf("async function screenCadastros", idx + 1);
+  const bloco = src.slice(idx, nextFn > 0 ? nextFn : src.length);
+
+  assert.match(bloco, /clienteSel/, "deve ter clienteSel para o select de cliente");
+  assert.match(bloco, /wrapperCli/, "deve ter wrapperCli para controle de visibilidade");
+  assert.match(bloco, /cliente.*vinculado/i, "deve exigir cliente vinculado");
+});
+
+test("cadastros.js: onSave valida tipo cliente — exige cliente_id", () => {
+  assert.match(src, /Usuário tipo "cliente" precisa de cliente vinculado/);
+});
+
+test("cadastros.js: onSave valida tipo cliente — rejeita fornecedor_id", () => {
+  assert.match(src, /Usuário cliente não pode ter fornecedor vinculado/);
+});
+
+test("cadastros.js: onSave valida tipo admin — rejeita cliente_id", () => {
+  assert.match(src, /Usuário admin não pode ter cliente vinculado/);
+});
+
+test("cadastros.js: onSave valida tipo fornecedor — rejeita cliente_id", () => {
+  assert.match(src, /Usuário fornecedor não pode ter cliente vinculado/);
+});
+
+test("cadastros.js: carrega lista de clientes para popular select", () => {
+  const idx = src.indexOf("function screenCadastrosUsuarios()");
+  assert.ok(idx > 0);
+  const nextFn = src.indexOf("async function screenCadastros", idx + 1);
+  const bloco = src.slice(idx, nextFn > 0 ? nextFn : src.length);
+
+  assert.match(bloco, /\.from\(['"]clientes['"]\)/, "deve consultar tabela clientes");
+  assert.match(bloco, /allClients/, "deve armazenar clientes em allClients");
+});
+
+test("cadastros.js: payload de criação inclui cliente_id", () => {
+  // Localiza a chamada functions.invoke('admin-create-user') com cliente_id
+  const idx = src.indexOf("functions.invoke('admin-create-user'");
+  assert.ok(idx > 0, "chamada admin-create-user não encontrada");
+  const bloco = src.slice(idx, idx + 400);
+  assert.match(bloco, /cliente_id/, "payload deve incluir cliente_id");
+});
+
+test("cadastros.js: coluna Cliente aparece na listagem de usuários", () => {
+  const idx = src.indexOf("function screenCadastrosUsuarios()");
+  assert.ok(idx > 0);
+  const nextFn = src.indexOf("async function screenCadastros", idx + 1);
+  const bloco = src.slice(idx, nextFn > 0 ? nextFn : src.length);
+
+  assert.match(bloco, /key:\s*'cliente'\s*,\s*label:\s*'Cliente'/,
+    "deve ter coluna Cliente na tabela de usuários");
+  assert.match(bloco, /r\.cliente\?\.nome/,
+    "deve renderizar r.cliente?.nome na coluna Cliente");
+});
+
+test("cadastros.js: select de usuarios inclui cliente:cliente_id(id, nome)", () => {
+  const idx = src.indexOf("function screenCadastrosUsuarios()");
+  assert.ok(idx > 0);
+  const nextFn = src.indexOf("async function screenCadastros", idx + 1);
+  const bloco = src.slice(idx, nextFn > 0 ? nextFn : src.length);
+
+  assert.match(bloco, /cliente:cliente_id\(id,\s*nome\)/,
+    "select de usuarios deve incluir join cliente:cliente_id(id, nome)");
+});

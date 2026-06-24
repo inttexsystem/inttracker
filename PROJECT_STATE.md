@@ -1,17 +1,14 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B2-RECORD-A` — registro
-> da aplicação do schema cliente em staging).
-> **Perfil cliente aplicado em staging.** `db/14_cliente_perfil_schema.sql`
-> aplicado em `ucrjtfswnfdlxwtmxnoo` via Management API (status 201,
-> 33 statements). Role `cliente` ativa no CHECK. `usuarios.cliente_id`
-> criada com FK. `meu_cliente_id()` operacional. Policies cliente
-> SELECT/INSERT em `clientes`, `pedidos` e `pedido_itens` ativas.
-> Sem UPDATE/DELETE cliente. Sem token público. Sem policy anon.
-> `pedido_eventos` admin-only. 23/23 validações pós-aplicação verdes.
-> **Próxima lacuna:** `admin-create-user` e UI ainda aceitam apenas
-> `admin`/`fornecedor` — provisionamento de usuário cliente pendente.
+> `RAVATEX-TAPETES-PEDIDOS-CLIENTE-PROV-A` — provisionamento de
+> usuário cliente: Edge Function + UI admin de usuários).
+> **Provisionamento de cliente.** `admin-create-user` aceita tipo
+> `cliente` com validação server-side de `cliente_id` em
+> `public.clientes`. UI de `#/cadastros/usuarios` permite criar
+> usuário tipo Cliente com select de cliente vinculado. `loadCurrentUser`
+> carrega `cliente_id` e `cliente_nome`. **Não** altera schema.
+> **Não** cria UI de Pedido cliente. **Não** deploya Edge Function.
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
@@ -915,20 +912,32 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
      (em fase separada). Pendências técnicas remanescentes:
      log de migrations do dashboard staging, warning de
      Tailwind CDN, favicon 404 — não bloqueantes.
- 11. **Perfil cliente schema/RLS aplicado em staging** (fases
-     `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1` + `B2` +
-     `B2-RECORD-A`, esta). `db/14_cliente_perfil_schema.sql`
-     versionado e aplicado em `ucrjtfswnfdlxwtmxnoo` via Management
-     API. Role `cliente`, `usuarios.cliente_id`, `meu_cliente_id()`
-     e 5 policies cliente SELECT/INSERT operacionais. 23/23
-     validações pós-aplicação verdes. **Próxima lacuna:**
-     `admin-create-user` e a UI de `#/cadastros/usuarios` aceitam
-     apenas `admin`/`fornecedor` — provisionamento de usuário
-     cliente pendente (requer estender Edge Function + UI + RLS de
-     `admin-create-user` para aceitar `cliente`).
-     Próxima fase: `RAVATEX-TAPETES-PEDIDOS-CLIENTE-PROV-A`
-     (provisionamento de usuário cliente), **somente com
-     autorização explícita** do HMNlead.
+ 11. **Provisionamento de usuário cliente** (fase
+     `RAVATEX-TAPETES-PEDIDOS-CLIENTE-PROV-A`, esta). `admin-create-user`
+     agora aceita tipo `cliente` com validação server-side de
+     `cliente_id` (existe em `public.clientes`, rejeita
+     `fornecedor_id` simultâneo). `admin` e `fornecedor` rejeitam
+     `cliente_id`. Insert em `usuarios` inclui `cliente_id`.
+     UI `#/cadastros/usuarios`: tipo inclui `Cliente`, select de
+     cliente carregado de `public.clientes`, mostra/esconde vínculo
+     conforme tipo. `loadCurrentUser()` seleciona `cliente_id` e
+     `clientes:cliente_id(nome)`, cacheia `cliente_nome` no
+     `CURRENT_USER`. `USER_ROLES.CLIENTE = 'cliente'`.
+     `isCliente()` disponível. **Não** altera schema. **Não** cria
+     UI de Pedido cliente. **Não** deploya Edge Function. **Não**
+     altera `index.html`, router ou `common.js`. Smoke
+     `admin-create-user.smoke.js` 28/28 (+11 testes cliente),
+     `cadastros-usuarios-auth-ui.smoke.js` 38/38 (+10),
+     `auth.smoke.js` 33/39 (+6 cliente; 6 falhas pré-existentes
+     de index.html intocadas), `auth-disable-user-schema.smoke.js`
+     20/20, `cliente-perfil-schema.smoke.js` 49/49 — todas verdes
+     nos testes focados. Próxima fase recomendada:
+     `RAVATEX-TAPETES-PEDIDOS-CLIENTE-UI-A` (tela inicial do
+     cliente com listagem de pedidos próprios) ou
+     `RAVATEX-TAPETES-PEDIDOS-CLIENTE-PROV-STAGING-A` (deploy da
+     Edge Function atualizada em staging + criação de usuário
+     cliente de teste), **somente com autorização explícita** do
+     HMNlead.
 
 ## Estrutura final de responsabilidades
 

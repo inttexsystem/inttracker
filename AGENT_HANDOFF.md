@@ -9,11 +9,11 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B2-RECORD-A`
-  (docs-only — registro da aplicação do schema cliente em staging).
-- **HEAD aceito atual:** `16079b2` — "Add cliente perfil schema
-  and RLS" (fase B1).
-- **staging/main:** `16079b2`.
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-PROV-A` (provisionamento de
+  usuário cliente — Edge Function + UI admin de usuários).
+- **HEAD aceito atual:** `aeeb998` (antes do push desta fase).
+  Após o push de PROV-A, o HEAD passa a ser o commit desta fase —
+  "Add cliente user provisioning".
 - **Working tree:** limpo após commit.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -31,7 +31,12 @@
   (fase B2). Role `cliente`, `usuarios.cliente_id`, `meu_cliente_id()`
   e 5 policies cliente SELECT/INSERT operacionais. Sem UPDATE/DELETE
   cliente. Sem token público. `pedido_eventos` admin-only.
-  **Lacuna:** `admin-create-user` e UI aceitam apenas `admin`/`fornecedor`.
+- **Provisionamento cliente** (fase PROV-A, esta): `admin-create-user`
+  aceita `cliente` (valida `cliente_id` em `public.clientes`, rejeita
+  `fornecedor_id` simultâneo). UI `#/cadastros/usuarios` com tipo
+  Cliente + select de cliente. `loadCurrentUser()` carrega
+  `cliente_id` e `cliente_nome`. `isCliente()` disponível.
+  **Não** deployado em staging ainda.
 - **Frontend Pedidos entregue (C1 + C2 + C2-R1 + C3A + C3B +
   C3C1 + C3C2B + C3C2C1 + C3C2C2 + C3C2C3):** listagem
   `#/pedidos`, formulário `#/pedidos/novo` (cria pedido + itens

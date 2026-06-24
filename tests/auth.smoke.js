@@ -431,7 +431,7 @@ test('runtime: loadCurrentUser com session consulta from("usuarios") com select 
 
   await vm.runInContext('window.loadCurrentUser()', sandbox);
   assert.match(captured.selectArg,
-    /id, email, nome, tipo, fornecedor_id, fornecedores:fornecedor_id\(tipo\)/,
+    /id, email, nome, tipo, fornecedor_id, cliente_id, fornecedores:fornecedor_id\(tipo\), clientes:cliente_id\(nome\)/,
     `select arg não tem o formato esperado: ${captured.selectArg}`);
 });
 
@@ -569,6 +569,101 @@ test('runtime: isFornecedor() retorna true só quando CURRENT_USER.tipo === "for
   assert.equal(vm.runInContext('window.RAVATEX_AUTH.isFornecedor()', sandbox), false);
   vm.runInContext('window.CURRENT_USER = null;', sandbox);
   assert.equal(vm.runInContext('window.RAVATEX_AUTH.isFornecedor()', sandbox), false);
+});
+
+// ---------------------------------------------------------------------
+// RAVATEX-TAPETES-PEDIDOS-CLIENTE-PROV-A — suporte a cliente
+// ---------------------------------------------------------------------
+
+test('runtime: USER_ROLES.CLIENTE === "cliente"', () => {
+  const { sandbox } = runSandbox();
+  assert.equal(vm.runInContext('window.RAVATEX_AUTH.USER_ROLES.CLIENTE', sandbox), 'cliente');
+});
+
+test('runtime: isCliente() retorna true só quando CURRENT_USER.tipo === "cliente"', () => {
+  const { sandbox } = runSandbox();
+  assert.equal(vm.runInContext('window.RAVATEX_AUTH.isCliente()', sandbox), false);
+  vm.runInContext('window.CURRENT_USER = { tipo: "cliente" };', sandbox);
+  assert.equal(vm.runInContext('window.RAVATEX_AUTH.isCliente()', sandbox), true);
+  vm.runInContext('window.CURRENT_USER = { tipo: "admin" };', sandbox);
+  assert.equal(vm.runInContext('window.RAVATEX_AUTH.isCliente()', sandbox), false);
+  vm.runInContext('window.CURRENT_USER = null;', sandbox);
+  assert.equal(vm.runInContext('window.RAVATEX_AUTH.isCliente()', sandbox), false);
+});
+
+test('runtime: loadCurrentUser select inclui cliente_id e clientes join', () => {
+  const calls = [];
+  const captured = { selectArg: null };
+  const qb = () => {
+    const b = {};
+    b.select = (arg) => { captured.selectArg = arg; calls.push({ op: 'select', args: [arg] }); return b; };
+    b.eq = () => b;
+    b.single = () => Promise.resolve({ data: {
+      id: 'u1', email: 'a@b.c', nome: 'Test', tipo: 'admin',
+      fornecedor_id: null, cliente_id: null, fornecedores: null, clientes: null,
+    }, error: null });
+    return b;
+  };
+  const fakeSupa = {
+    from: (table) => { calls.push({ op: 'from', args: [table] }); return qb(); },
+    auth: {
+      getSession: () => Promise.resolve({ data: { session: { user: { id: 'u1' } } }, error: null }),
+    },
+    _calls: calls,
+  };
+  const fakeSupabase = { createClient: () => fakeSupa };
+  const documentMock = {
+    body: null,
+    createElement: (t) => ({ tagName: t.toUpperCase(), setAttribute(){}, style:{}, textContent:'', prepend(){}, appendChild(){} }),
+    getElementById: () => null,
+  };
+  const sandbox = {
+    console, URL, URLSearchParams, setTimeout, clearTimeout,
+    location: { hostname: 'localhost', href: 'http://localhost/index.html' },
+    document: documentMock, supabase: fakeSupabase,
+    Promise, Reflect, Proxy, Set,
+  };
+  sandbox.window = sandbox; sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(cfgSrc,  sandbox, { filename: 'js/config.js' });
+  vm.runInContext(supaSrc, sandbox, { filename: 'js/supabase-client.js' });
+  vm.runInContext(envSrc,  sandbox, { filename: 'js/environment-banner.js' });
+  vm.runInContext(authSrc, sandbox, { filename: 'js/auth.js' });
+
+  Promise.resolve().then(async () => {
+    await vm.runInContext('window.loadCurrentUser()', sandbox);
+    assert.match(captured.selectArg, /cliente_id/);
+    assert.match(captured.selectArg, /clientes:cliente_id\(nome\)/);
+  });
+});
+
+test('runtime: loadCurrentUser cacheia cliente_nome em CURRENT_USER', async () => {
+  const { sandbox } = runSandbox({
+    session: { user: { id: 'u1' } },
+    userData: {
+      id: 'u1', email: 'a@b.c', nome: 'Test', tipo: 'cliente',
+      fornecedor_id: null, cliente_id: 1,
+      fornecedores: null,
+      clientes: { nome: 'Cliente Teste' },
+    },
+  });
+  await vm.runInContext('window.loadCurrentUser()', sandbox);
+  const cn = vm.runInContext('window.CURRENT_USER.cliente_nome', sandbox);
+  assert.equal(cn, 'Cliente Teste');
+});
+
+test('runtime: RAVATEX_AUTH tem isCliente como função', () => {
+  const { sandbox } = runSandbox();
+  assert.equal(typeof vm.runInContext('window.RAVATEX_AUTH.isCliente', sandbox), 'function');
+});
+
+test('js/auth.js: select de loadCurrentUser contém cliente_id e clientes join (estático)', () => {
+  assert.match(authSrc, /cliente_id/);
+  assert.match(authSrc, /clientes:cliente_id\(nome\)/);
+});
+
+test('js/auth.js: USER_ROLES contém CLIENTE', () => {
+  assert.match(authSrc, /CLIENTE:\s*'cliente'/);
 });
 
 // -----------------------------------------------------------------------------

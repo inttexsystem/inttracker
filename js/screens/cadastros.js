@@ -553,18 +553,21 @@
     let mostrarInativos = false;
     let allUsers = [];
     let allForns = [];
+    let allClients = [];
 
     async function reload() {
-      const [usersRes, fornsRes] = await Promise.all([
+      const [usersRes, fornsRes, clientsRes] = await Promise.all([
         window.supa
           .from('usuarios')
-          .select('id, email, nome, tipo, ativo, desativado_em, fornecedor:fornecedor_id(id, nome, tipo)')
+          .select('id, email, nome, tipo, ativo, desativado_em, fornecedor:fornecedor_id(id, nome, tipo), cliente:cliente_id(id, nome)')
           .order('email'),
-        window.supa.from('fornecedores').select('id, nome, tipo').order('nome')
+        window.supa.from('fornecedores').select('id, nome, tipo').order('nome'),
+        window.supa.from('clientes').select('id, nome').order('nome')
       ]);
-      if (usersRes.error || fornsRes.error) { window.toast('Erro ao carregar', 'error'); console.error(usersRes.error || fornsRes.error); return; }
+      if (usersRes.error || fornsRes.error || clientsRes.error) { window.toast('Erro ao carregar', 'error'); console.error(usersRes.error || fornsRes.error || clientsRes.error); return; }
       allUsers = usersRes.data || [];
       allForns = fornsRes.data || [];
+      allClients = clientsRes.data || [];
       render();
     }
 
@@ -595,11 +598,12 @@
               { key: 'nome', label: 'Nome' },
               { key: 'tipo', label: 'Tipo' },
               { key: 'fornecedor', label: 'Fornecedor', render: (r) => r.fornecedor?.nome || '—' },
+              { key: 'cliente', label: 'Cliente', render: (r) => r.cliente?.nome || '—' },
               { key: 'status', label: 'Status', render: (r) => r.ativo === false ? 'Inativo' : 'Ativo' },
             ],
             rows: visibleUsers,
             actions: [
-              { label: 'Editar', onclick: (r) => openModal(r, allForns) },
+              { label: 'Editar', onclick: (r) => openModal(r, allForns, allClients) },
               {
                 label: (r) => (r && r.ativo === false) ? 'Inativo' : 'Desativar',
                 class: 'text-red-600 hover:underline',
@@ -614,7 +618,7 @@
           });
 
       container.replaceChildren(
-        window.pageHeader('Usuários', [{ label: '+ Novo usuário', onclick: () => openModal(null, allForns) }]),
+        window.pageHeader('Usuários', [{ label: '+ Novo usuário', onclick: () => openModal(null, allForns, allClients) }]),
         window.el('div', { class: 'mb-3' }, toggle),
         tableNode
       );
@@ -754,15 +758,17 @@
       reload();
     }
 
-    function openModal(usr, forns) {
+    function openModal(usr, forns, clients) {
       const isEdit = !!usr;
       const fornOptions = forns.map(f => ({ value: f.id, label: `${f.nome} (${labelFornecedorTipo(f.tipo)})` }));
-      const tipoOptions = [{ value: 'admin', label: 'Admin' }, { value: 'fornecedor', label: 'Fornecedor' }];
+      const tipoOptions = [{ value: 'admin', label: 'Admin' }, { value: 'fornecedor', label: 'Fornecedor' }, { value: 'cliente', label: 'Cliente' }];
 
       const emailInput = window.textInput({ type: 'email', value: usr?.email || '', placeholder: 'usuario@exemplo.com' });
       const nomeInput = window.textInput({ value: usr?.nome || '', placeholder: 'Ex: Fornecedor X' });
       const tipoSel = window.selectInput({ options: tipoOptions, value: usr?.tipo });
+      const clienteOptions = clients.map(function(c) { return { value: c.id, label: c.nome }; });
       const fornSel = window.selectInput({ options: fornOptions, value: usr?.fornecedor?.id, placeholder: '(nenhum)' });
+      const clienteSel = window.selectInput({ options: clienteOptions, value: usr?.cliente?.id, placeholder: '(nenhum)' });
 
       const fields = [];
 
@@ -780,11 +786,26 @@
       }));
       fields.push(window.formField({ label: 'Nome', input: nomeInput }));
       fields.push(window.formField({ label: 'Tipo', input: tipoSel }));
-      fields.push(window.formField({
-        label: 'Fornecedor (se tipo for "fornecedor")',
+
+      const wrapperForn = window.el('div', {}, window.formField({
+        label: 'Fornecedor vinculado',
         input: fornSel,
-        hint: 'Deixe vazio se for admin',
+        hint: 'Obrigatório se tipo = Fornecedor',
       }));
+      const wrapperCli = window.el('div', {}, window.formField({
+        label: 'Cliente vinculado',
+        input: clienteSel,
+        hint: 'Obrigatório se tipo = Cliente',
+      }));
+      fields.push(wrapperForn, wrapperCli);
+
+      function updateVinculoVisibility() {
+        var t = tipoSel.value;
+        wrapperForn.style.display = (t === 'fornecedor') ? '' : 'none';
+        wrapperCli.style.display = (t === 'cliente') ? '' : 'none';
+      }
+      tipoSel.addEventListener('change', updateVinculoVisibility);
+      updateVinculoVisibility();
 
       let passwordInput = null;
       if (!isEdit) {
@@ -806,6 +827,7 @@
           const nome = nomeInput.value.trim();
           const tipo = tipoSel.value;
           const fornecedor_id_raw = fornSel.value || null;
+          const cliente_id_raw = clienteSel.value || null;
 
           if (!email || !nome || !tipo) {
             window.toast('Preencha e-mail, nome e tipo', 'error');
@@ -815,15 +837,31 @@
             window.toast('Usuário tipo "fornecedor" precisa de fornecedor vinculado', 'error');
             return false;
           }
+          if (tipo === 'fornecedor' && cliente_id_raw) {
+            window.toast('Usuário fornecedor não pode ter cliente vinculado', 'error');
+            return false;
+          }
+          if (tipo === 'cliente' && !cliente_id_raw) {
+            window.toast('Usuário tipo "cliente" precisa de cliente vinculado', 'error');
+            return false;
+          }
+          if (tipo === 'cliente' && fornecedor_id_raw) {
+            window.toast('Usuário cliente não pode ter fornecedor vinculado', 'error');
+            return false;
+          }
           if (tipo === 'admin' && fornecedor_id_raw) {
             window.toast('Usuário admin não pode ter fornecedor vinculado', 'error');
+            return false;
+          }
+          if (tipo === 'admin' && cliente_id_raw) {
+            window.toast('Usuário admin não pode ter cliente vinculado', 'error');
             return false;
           }
 
           if (isEdit) {
             const { error } = await window.supa
               .from('usuarios')
-              .update({ email, nome, tipo, fornecedor_id: fornecedor_id_raw })
+              .update({ email, nome, tipo, fornecedor_id: fornecedor_id_raw, cliente_id: cliente_id_raw })
               .eq('id', usr.id);
             if (error) {
               let msg = 'Erro ao salvar';
@@ -844,9 +882,10 @@
             return false;
           }
           const fornecedor_id = fornecedor_id_raw ? Number(fornecedor_id_raw) : null;
+          const cliente_id = cliente_id_raw ? Number(cliente_id_raw) : null;
 
           const { error } = await window.supa.functions.invoke('admin-create-user', {
-            body: { email, password, nome, tipo, fornecedor_id },
+            body: { email, password, nome, tipo, fornecedor_id, cliente_id },
           });
 
           if (error) {

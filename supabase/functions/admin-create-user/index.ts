@@ -31,7 +31,7 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
   );
 }
 
-const ALLOWED_TIPOS = new Set(["admin", "fornecedor"]);
+const ALLOWED_TIPOS = new Set(["admin", "fornecedor", "cliente"]);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN_LENGTH = 6;
 
@@ -141,32 +141,50 @@ serve(async (req: Request) => {
   if (!ALLOWED_TIPOS.has(tipo)) {
     return errorResponse(
       "VALIDATION_ERROR",
-      "Tipo deve ser 'admin' ou 'fornecedor'.",
+      "Tipo deve ser 'admin', 'fornecedor' ou 'cliente'.",
       400,
     );
   }
 
   let fornecedorId: number | null = null;
+  let clienteId: number | null = null;
+
   if (tipo === "admin") {
-    const raw = payload.fornecedor_id;
-    if (raw !== null && raw !== undefined && raw !== "") {
+    const rawForn = payload.fornecedor_id;
+    if (rawForn !== null && rawForn !== undefined && rawForn !== "") {
       return errorResponse(
         "VALIDATION_ERROR",
         "Usuário admin não pode ter fornecedor_id.",
         400,
       );
     }
-  } else {
-    const raw = payload.fornecedor_id;
-    if (raw === null || raw === undefined || raw === "") {
+    const rawCli = payload.cliente_id;
+    if (rawCli !== null && rawCli !== undefined && rawCli !== "") {
+      return errorResponse(
+        "VALIDATION_ERROR",
+        "Usuário admin não pode ter cliente_id.",
+        400,
+      );
+    }
+  } else if (tipo === "fornecedor") {
+    const rawCli = payload.cliente_id;
+    if (rawCli !== null && rawCli !== undefined && rawCli !== "") {
+      return errorResponse(
+        "VALIDATION_ERROR",
+        "Usuário fornecedor não pode ter cliente_id.",
+        400,
+      );
+    }
+    const rawForn = payload.fornecedor_id;
+    if (rawForn === null || rawForn === undefined || rawForn === "") {
       return errorResponse(
         "VALIDATION_ERROR",
         "Usuário fornecedor precisa de fornecedor_id.",
         400,
       );
     }
-    const n = Number(raw);
-    if (!Number.isInteger(n) || n <= 0) {
+    const nForn = Number(rawForn);
+    if (!Number.isInteger(nForn) || nForn <= 0) {
       return errorResponse(
         "VALIDATION_ERROR",
         "fornecedor_id inválido.",
@@ -176,7 +194,7 @@ serve(async (req: Request) => {
     const { data: forn, error: fornErr } = await adminClient
       .from("fornecedores")
       .select("id")
-      .eq("id", n)
+      .eq("id", nForn)
       .maybeSingle();
     if (fornErr) {
       return errorResponse("UNKNOWN", "Erro ao validar fornecedor.", 500);
@@ -188,7 +206,49 @@ serve(async (req: Request) => {
         400,
       );
     }
-    fornecedorId = n;
+    fornecedorId = nForn;
+  } else {
+    // tipo === "cliente"
+    const rawForn = payload.fornecedor_id;
+    if (rawForn !== null && rawForn !== undefined && rawForn !== "") {
+      return errorResponse(
+        "VALIDATION_ERROR",
+        "Usuário cliente não pode ter fornecedor_id.",
+        400,
+      );
+    }
+    const rawCli = payload.cliente_id;
+    if (rawCli === null || rawCli === undefined || rawCli === "") {
+      return errorResponse(
+        "VALIDATION_ERROR",
+        "Usuário cliente precisa de cliente_id.",
+        400,
+      );
+    }
+    const nCli = Number(rawCli);
+    if (!Number.isInteger(nCli) || nCli <= 0) {
+      return errorResponse(
+        "VALIDATION_ERROR",
+        "cliente_id inválido.",
+        400,
+      );
+    }
+    const { data: cli, error: cliErr } = await adminClient
+      .from("clientes")
+      .select("id")
+      .eq("id", nCli)
+      .maybeSingle();
+    if (cliErr) {
+      return errorResponse("UNKNOWN", "Erro ao validar cliente.", 500);
+    }
+    if (!cli) {
+      return errorResponse(
+        "VALIDATION_ERROR",
+        "cliente_id não existe em public.clientes.",
+        400,
+      );
+    }
+    clienteId = nCli;
   }
 
   // -----------------------------------------------------------------
@@ -199,7 +259,7 @@ serve(async (req: Request) => {
       email,
       password,
       email_confirm: true,
-      user_metadata: { nome, tipo, fornecedor_id: fornecedorId },
+      user_metadata: { nome, tipo, fornecedor_id: fornecedorId, cliente_id: clienteId },
     });
 
   if (createErr || !created?.user) {
@@ -229,6 +289,7 @@ serve(async (req: Request) => {
     nome,
     tipo,
     fornecedor_id: fornecedorId,
+    cliente_id: clienteId,
   });
 
   if (insertErr) {
@@ -260,6 +321,7 @@ serve(async (req: Request) => {
       email,
       tipo,
       fornecedor_id: fornecedorId,
+      cliente_id: clienteId,
     },
     201,
   );

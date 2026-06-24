@@ -30,6 +30,7 @@
   const USER_ROLES = {
     ADMIN: 'admin',
     FORNECEDOR: 'fornecedor',
+    CLIENTE: 'cliente',
   };
   const FORNECEDOR_SUBTIPOS = {
     FIO_ALGODAO: 'fio_algodao',
@@ -86,7 +87,7 @@
       return null;
     }
     const { data, error } = await window.supa.from('usuarios')
-      .select('id, email, nome, tipo, fornecedor_id, fornecedores:fornecedor_id(tipo)')
+      .select('id, email, nome, tipo, fornecedor_id, cliente_id, fornecedores:fornecedor_id(tipo), clientes:cliente_id(nome)')
       .eq('id', session.user.id)
       .single();
     if (error) {
@@ -95,8 +96,9 @@
       return null;
     }
     window.CURRENT_USER = data;
-    // Cacheia fornecedor_tipo no próprio CURRENT_USER (mutação in-place).
+    // Cacheia fornecedor_tipo e cliente_nome no próprio CURRENT_USER (mutação in-place).
     window.CURRENT_USER.fornecedor_tipo = data.fornecedores?.tipo || null;
+    window.CURRENT_USER.cliente_nome = data.clientes?.nome || null;
     return data;
   }
 
@@ -120,6 +122,10 @@
     return _currentUser != null && _currentUser.tipo === USER_ROLES.FORNECEDOR;
   }
 
+  function isCliente() {
+    return _currentUser != null && _currentUser.tipo === USER_ROLES.CLIENTE;
+  }
+
   // -------------------------------------------------------------------
   // Namespace principal
   // -------------------------------------------------------------------
@@ -131,6 +137,7 @@
     setCurrentUser,
     isAdmin,
     isFornecedor,
+    isCliente,
     login,
     logout,
     loadCurrentUser,

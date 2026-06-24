@@ -153,3 +153,69 @@ test("README: documenta env vars e proíbe service_role no front", () => {
   assert.match(readmeSrc, /nunca/i);
   assert.match(readmeSrc, /supabase\.functions\.invoke/);
 });
+
+// ---------------------------------------------------------------------
+// RAVATEX-TAPETES-PEDIDOS-CLIENTE-PROV-A — suporte a tipo 'cliente'
+// ---------------------------------------------------------------------
+
+test("index.ts: ALLOWED_TIPOS contém 'cliente'", () => {
+  // The set uses double quotes in TypeScript: Set(["admin", "fornecedor", "cliente"])
+  assert.match(indexSrc, /["']cliente["']/);
+  const setMatch = indexSrc.match(/ALLOWED_TIPOS\s*=\s*new\s+Set\(\[([^\]]+)\]\)/);
+  assert.ok(setMatch, "ALLOWED_TIPOS não encontrado como Set literal");
+  assert.match(setMatch[1], /cliente/);
+});
+
+test("index.ts: payload aceita cliente_id", () => {
+  assert.match(indexSrc, /payload\.cliente_id/);
+});
+
+test("index.ts: cliente exige cliente_id (rejeita ausente/vazio)", () => {
+  assert.match(indexSrc, /Usuário cliente precisa de cliente_id/);
+});
+
+test("index.ts: cliente rejeita fornecedor_id", () => {
+  assert.match(indexSrc, /Usuário cliente não pode ter fornecedor_id/);
+});
+
+test("index.ts: admin rejeita cliente_id", () => {
+  assert.match(indexSrc, /Usuário admin não pode ter cliente_id/);
+});
+
+test("index.ts: fornecedor rejeita cliente_id", () => {
+  assert.match(indexSrc, /Usuário fornecedor não pode ter cliente_id/);
+});
+
+test("index.ts: valida existência de cliente em public.clientes", () => {
+  assert.match(indexSrc, /\.from\(["']clientes["']\)/);
+  assert.match(indexSrc, /cliente_id não existe em public\.clientes/);
+});
+
+test("index.ts: insert em usuarios inclui cliente_id", () => {
+  // O insert deve ter cliente_id como campo
+  const idx = indexSrc.indexOf('.from("usuarios").insert');
+  assert.ok(idx > 0, "insert em usuarios não encontrado");
+  const bloco = indexSrc.slice(idx, idx + 200);
+  assert.match(bloco, /cliente_id/);
+});
+
+test("index.ts: response inclui cliente_id", () => {
+  // The first jsonResponse is in the import. Find the one in the return statement.
+  const returnIdx = indexSrc.lastIndexOf("return jsonResponse");
+  assert.ok(returnIdx > 0, "return jsonResponse não encontrado");
+  const bloco = indexSrc.slice(returnIdx, returnIdx + 400);
+  assert.match(bloco, /cliente_id/);
+});
+
+test("index.ts: user_metadata inclui cliente_id", () => {
+  assert.match(indexSrc, /user_metadata:\s*\{[^}]*cliente_id/);
+});
+
+test("index.ts: mensagem de erro de tipo menciona 'cliente'", () => {
+  // Check both the english/portuguese variants. The message is in the VALIDATION_ERROR block.
+  const tipoErrPattern = indexSrc.match(
+    /Tipo deve ser[^"]*['"][^'"]+['"]\s*[^)]*\)/
+  );
+  assert.ok(tipoErrPattern, "mensagem de erro de tipo não encontrada");
+  assert.match(tipoErrPattern[0], /cliente/);
+});
