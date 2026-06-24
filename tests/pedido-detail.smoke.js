@@ -147,18 +147,22 @@ test('router.js: tem match dinâmico para #/pedidos/<uuid> chamando screenPedido
     'router.js deve validar formato UUID do id do pedido');
   assert.match(router, /screenPedidoDetalhe/,
     'router.js deve chamar screenPedidoDetalhe no matchRoute');
-  // O regex de UUID do detalhe aparece duas vezes (uma para o match
-  // de detalhe, outra para o match de edição). Pega a primeira
-  // ocorrência (do match de edição) e a segunda (do match de detalhe).
-  const idxRegex1 = router.indexOf('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
-  const idxRegex2 = router.indexOf('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', idxRegex1 + 1);
+  // O regex de UUID aparece em vários matches dinâmicos (C3A detalhe,
+  // C3C1 editar, C3C2B itens). Pega a ÚLTIMA ocorrência (que é a
+  // do match de detalhe) e mede a distância até screenPedidoDetalhe.
+  const uuidRegex = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+  let idxRegex = -1;
+  let last = -1;
+  while (true) {
+    const next = router.indexOf(uuidRegex, last + 1);
+    if (next === -1) break;
+    idxRegex = next;
+    last = next;
+  }
   const idxRender = router.indexOf('screenPedidoDetalhe');
-  assert.ok(idxRegex1 > 0, 'regex de UUID deve existir em router.js (1ª ocorrência)');
-  assert.ok(idxRegex2 > 0, 'regex de UUID deve existir em router.js (2ª ocorrência — detalhe)');
+  assert.ok(idxRegex > 0, 'regex de UUID deve existir em router.js (última ocorrência — detalhe)');
   assert.ok(idxRender > 0, 'chamada screenPedidoDetalhe deve existir em router.js');
-  // Distância entre a SEGUNDA ocorrência (do match de detalhe) e a
-  // chamada screenPedidoDetalhe.
-  const distancia = Math.abs(idxRender - idxRegex2);
+  const distancia = Math.abs(idxRender - idxRegex);
   assert.ok(distancia <= 400,
     'regex de UUID (match de detalhe) e screenPedidoDetalhe devem estar próximos (distância ' + distancia + ' > 400)');
 });
@@ -474,6 +478,21 @@ test('pedido-detail.js: botão Editar é controlado por status editável (C3C1)'
   // (status não editáveis) e deve gerar `disabled`.
   assert.match(screen, /function\s+placeholderButton[\s\S]{0,400}?disabled\s*:\s*['"]disabled['"]/,
     'placeholderButton deve criar botão com disabled="disabled"');
+});
+
+test('pedido-detail.js: botão Editar itens é controlado por status editável (C3C2B)', () => {
+  // C3C2B: o botão "Editar itens" é FUNCIONAL para status
+  // editáveis (rascunho / recebido) e PLACEHOLDER para os demais.
+  // Deve navegar para "#/pedidos/<id>/itens".
+  assert.match(screen, /Editar itens/,
+    'botão "Editar itens" deve existir como label');
+  // O botão Editar itens funcional deve navegar para /itens.
+  assert.match(screen, /navigate\(\s*['"]#\/pedidos\/['"]?\s*\+\s*pedidoId\s*\+\s*['"]\/itens['"]/,
+    'botão Editar itens funcional deve navegar para "#/pedidos/<id>/itens"');
+  // O botão Editar itens é criado em buildEditItensButton()
+  // (helper separado, mesmo padrão de buildEditButton).
+  assert.match(screen, /function\s+buildEditItensButton/,
+    'deve existir função buildEditItensButton()');
 });
 
 test('pedido-detail.js: NÃO usa mais "Confirmar / Receber" como placeholder (substituído)', () => {

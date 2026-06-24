@@ -487,6 +487,26 @@
       return placeholderButton('Editar', motivo);
     }
 
+    // Botão Editar itens (C3C2B):
+    //   - Funcional (navega para `#/pedidos/<uuid>/itens`) quando o
+    //     status é editável (rascunho / recebido).
+    //   - Desabilitado (placeholder) para os demais status.
+    function buildEditItensButton() {
+      const statusAtual = state.pedido ? state.pedido.status : null;
+      const editavel = window.isPedidoEditavel
+        ? window.isPedidoEditavel(statusAtual)
+        : (statusAtual === 'rascunho' || statusAtual === 'recebido');
+      if (editavel) {
+        return window.el('button', {
+          type: 'button',
+          class: 'px-4 py-2 rounded-lg border border-blue-300 text-blue-700 hover:bg-blue-50 font-semibold',
+          onclick: function () { window.navigate('#/pedidos/' + pedidoId + '/itens'); },
+        }, 'Editar itens');
+      }
+      const motivo = 'Edição de itens permitida apenas em status "Rascunho" ou "Recebido"';
+      return placeholderButton('Editar itens', motivo);
+    }
+
     function buildActions() {
       // Status terminal ou bloqueado nesta fase: sem ações reais de status.
       const statusAtual = state.pedido ? state.pedido.status : null;
@@ -525,9 +545,12 @@
         }
       }
 
-      // Editar: funcional para rascunho/recebido (C3C1); placeholder
-      // para os demais status. Edição de itens fica para C3C2.
+      // Editar (dados gerais, C3C1): funcional para rascunho/recebido;
+      // placeholder para os demais status.
       actions.appendChild(buildEditButton());
+      // Editar itens (C3C2B): funcional para rascunho/recebido;
+      // placeholder para os demais status.
+      actions.appendChild(buildEditItensButton());
       return actions;
     }
 

@@ -1,17 +1,19 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C1` — edição admin dos dados
-> gerais do Pedido).
-> **Frontend edição restrita.** Tela `#/pedidos/<uuid>/editar` permite
-> editar apenas `cliente_id`, `prazo_entrega` e `observacao` do Pedido
-> para status editáveis (`rascunho` / `recebido`). Para os demais
-> status, o botão Editar do detalhe fica desabilitado e a tela de
-> edição exibe aviso + bloqueia salvamento. Update APENAS em
-> `pedidos` (3 chaves no payload), sem `status`/`numero`, sem
-> `pedido_itens`/`pedido_eventos`/`lotes`, sem OP, sem Edge
-> Function, sem RPC, sem schema, sem token público. Schema
-> `db/13_*` permanece aplicado em `ucrjtfswnfdlxwtmxnoo`.
+> `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2B` — edição admin de itens
+> existentes do Pedido).
+> **Frontend edição de itens.** Tela `#/pedidos/<uuid>/itens` permite
+> editar apenas `modelo_id`, `metros` e `observacao` de itens JÁ
+> EXISTENTES para status editáveis (`rascunho` / `recebido`). Sem
+> adicionar, sem remover, sem reordenar, sem editar
+> `largura`/`cor_1_id`/`cor_2_id` (overrides opcionais ficam para
+> C3C2D). Update APENAS em `pedido_itens` (3 chaves no payload:
+> `modelo_id`, `metros`, `observacao`), sem update em `pedidos`,
+> sem insert/delete em `pedido_itens`, sem `pedido_eventos`/`lotes`,
+> sem OP, sem Edge Function, sem RPC, sem schema, sem token
+> público. Schema `db/13_*` permanece aplicado em
+> `ucrjtfswnfdlxwtmxnoo`.
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
@@ -45,10 +47,10 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
 - **HEAD atual aceito:** commit desta fase — "Add pedido admin
-  general edit" (fase `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C1`).
-  Antes desta fase: `d2b5a6a` (fase
-  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3B`).
-- **staging/main:** `d2b5a6a` (será atualizado com o push desta fase).
+  existing items edit" (fase `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2B`).
+  Antes desta fase: `2d36077` (fase
+  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C1`).
+- **staging/main:** `2d36077` (será atualizado com o push desta fase).
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — **intocado.**
 - **PR #2:** **intocado.**
 - **Working tree:** **limpo.**
@@ -66,7 +68,7 @@ final do `op-pdf.js` está CONGELADO.**
 
 Componentes estáveis:
 - `index.html` declarativo, sem script inline final, com cache-busting
-  `?v=20260623-asset1` em todos os 25 assets locais; CDNs externos
+  `?v=20260623-asset1` em todos os 26 assets locais; CDNs externos
   permanecem sem `?v=`.
 - `js/boot.js` é o entrypoint oficial e respeita `DOM ready`
   (aguarda `DOMContentLoaded` quando `document.readyState === 'loading'`,
@@ -92,7 +94,7 @@ Componentes estáveis:
 3. `e0dbfcd` — Resolve app root lookup after DOM ready
    (`js/ui.js` introduz `getAppRoot()` para lookup lazy do `#app`).
 4. `5d5b395` — Add cache busting to local app assets
-   (`index.html` com `?v=20260623-asset1` em 25 assets locais;
+   (`index.html` com `?v=20260623-asset1` em 26 assets locais;
    CDNs externos preservados sem `?v=`).
 5. `RAVATEX-TAPETES-OP-NOVA-SEAMS-DIAG-A` (read-only, sem commit) —
    diagnóstico das seams de `op-nova.js`. Concluiu que
@@ -513,6 +515,54 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
   fase.** Próxima fase recomendada:
   `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2` (edição de itens
   do Pedido), **somente com autorização explícita** do HMNlead.
+- 🟢 **Edição admin RESTRITA de itens existentes do Pedido**
+  (fase `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2B`, esta).
+  Nova tela `js/screens/pedido-itens-edit.js` com
+  `screenPedidoItensEditar(pedidoId)`; resolve via match
+  dinâmico em `js/router.js`
+  (`^#/pedidos/<uuid>/itens$`, admin-only, sem `public: true`).
+  Carregado em `index.html` após `pedido-edit.js` e antes de
+  `boot.js`. Botão "Editar itens" de `js/screens/pedido-detail.js`
+  (helper `buildEditItensButton()`) navega para
+  `#/pedidos/<id>/itens` APENAS para status editáveis
+  (`rascunho` / `recebido`, via `window.isPedidoEditavel`);
+  para os demais status, fica como placeholder desabilitado.
+  Conteúdo: cabeçalho com número do pedido, banner de status
+  com nota de editabilidade, lista de itens existentes com
+  select de modelo (`modelos`), input number de metros e
+  input de observação; sem controles de add/remove/reordenar
+  (C3C2C) e sem overrides de largura/cor (C3C2D). Write
+  APENAS em `pedido_itens` com payload restrito a 3 chaves
+  (`modelo_id`, `metros`, `observacao`); sem update em
+  `pedidos`, sem update/insert/delete em `pedido_itens`, sem
+  insert em `pedido_eventos`, sem mexer em `lotes`, sem OP,
+  sem Edge Function, sem RPC, sem schema, sem token público,
+  sem service_role, sem rota pública. Sem compensação
+  automática nesta fase (limitação documentada: se um update
+  falhar, os anteriores permanecem; usuário re-edita).
+  Após sucesso, navega de volta para o detalhe.
+  Smoke estático `tests/pedido-itens-edit.smoke.js` 41/41
+  verde (17 seções de cobertura: existência, sintaxe,
+  namespace, ordem de scripts, router dinâmico, SELECTs,
+  write restrito, payload de 3 chaves, ausência de campos
+  proibidos, ausência de insert/delete, ausência de update
+  em `pedidos`, ausência de `pedido_eventos`/`lotes`,
+  ausência de Edge Function, ausência de OP, ausência de
+  token_acesso/service_role, ausência de rota pública,
+  ausência de controles de add/remove/reordenar, mensagem
+  "Pedido sem itens", botão "Editar itens" no detalhe).
+  `tests/pedido-detail.smoke.js` atualizado (43/43) — botão
+  "Editar itens" controlado por `isPedidoEditavel`
+  (C3C2B); C3B status actions e C3C1 edição de dados gerais
+  preservadas. `tests/router.smoke.js` atualizado (41/41) —
+  3 testes novos para a nova rota. `tests/boot.smoke.js`
+  atualizado (28/28) — 3 testes novos para a nova rota.
+  **Total: 311/311 verdes** (focados). **Sem deploy, sem
+  Supabase real, sem SQL, sem produção, sem origin/main, sem
+  PR #2 nesta fase.** Próxima fase recomendada:
+  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C` (adicionar/remover
+  itens + recálculo de ordem + mínimo de 1 item), **somente
+  com autorização explícita** do HMNlead.
 
 ## Próximo passo recomendado
 1. **Auth provisioning fechado em staging:** Edge Function
@@ -846,10 +896,13 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
     e função interna `alterarStatus` + commit desta fase
     RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C1 com botão Editar
     controlado por `isPedidoEditavel`).
-25. `js/screens/pedido-edit.js` (commit desta fase,
-    RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C1: edição admin dos
+25. `js/screens/pedido-edit.js` (`2d36077` C3C1: edição admin dos
     dados gerais do Pedido com `screenPedidoEditar`,
     `isPedidoEditavel`, payload restrito a 3 chaves).
+26. `js/screens/pedido-itens-edit.js` (commit desta fase C3C2B:
+    edição admin de itens existentes com `screenPedidoItensEditar`,
+    payload restrito a 3 chaves em `pedido_itens`, sem
+    add/remove/reordenar).
 
 ## Estado dos módulos críticos (após `7f3c6da`)
 
@@ -974,6 +1027,35 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
   após mudança em `pedido-ui.js`. Falhas pré-existentes em
   `tests/ops-list-screen.smoke.js` (10/30) continuam **fora
   do escopo**.
+- **RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2B (commit desta fase):**
+  311/311 pass nos testes focados (`pedido-itens-edit` 41/41,
+  `pedido-edit` 35/35, `pedido-detail` 43/43, `pedido-form`
+  35/35, `pedido-ui` 18/18, `pedidos-list` 29/29, `pedidos-schema`
+  41/41, `boot` 28/28, `router` 41/41). 41 testes novos no
+  `pedido-itens-edit.smoke.js` cobrem: existência/sintaxe/
+  namespace, ordem de scripts, match dinâmico admin-only
+  `#/pedidos/<uuid>/itens` no router (admin-only, sem
+  public true, rejeita IDs não-UUID), SELECTs em
+  `pedidos`/`pedido_itens`/`modelos`/`cores`, UPDATE restrito
+  a `pedido_itens` com dupla condição `.eq('id', item.dbId)
+  .eq('pedido_id', pedidoId)`, payload de EXATAMENTE 3 chaves
+  (`modelo_id`, `metros`, `observacao`), ausência de campos
+  proibidos (`id`/`pedido_id`/`ordem`/`largura`/`cor_1_id`/
+  `cor_2_id`/`criado_em`), ausência de insert/delete/upsert em
+  `pedido_itens`, ausência de update em `pedidos`, ausência
+  de `pedido_eventos`/`lotes`, ausência de Edge Function/
+  token_acesso/service_role, ausência de OP, ausência de rota
+  pública, ausência de controles de add/remove/reordenar
+  (C3C2C), mensagem "Pedido sem itens", botão "Editar itens"
+  no detalhe controlado por `isPedidoEditavel`. 1 teste novo
+  no `pedido-detail.smoke.js` valida o botão "Editar itens"
+  (navega para `/itens`, controlado por `isPedidoEditavel`).
+  3 testes novos no `router.smoke.js` validam a nova rota
+  (admin-only, distinção vs detalhe/editar, rejeição de IDs
+  não-UUID, mock `screenPedidoItensEditar`). 3 testes novos
+  no `boot.smoke.js` validam a nova rota no boot chain.
+  Falhas pré-existentes em `tests/ops-list-screen.smoke.js`
+  (10/30) continuam **fora do escopo**.
 
 ## Comandos seguros
 - `node --test tests/<arquivo>.smoke.js` — testes focados por fase.

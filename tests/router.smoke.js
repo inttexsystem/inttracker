@@ -123,6 +123,7 @@ function makeRouterSandbox({ hash = '' } = {}) {
   const calls = {
     setApp: [], screenNotFound: 0, screenForbidden: 0,
     screenNovaOP: [], screenPedidoDetalhe: [], screenPedidoEditar: [],
+    screenPedidoItensEditar: [],
     loadCurrentUser: 0,
   };
   const sandbox = {
@@ -140,6 +141,7 @@ function makeRouterSandbox({ hash = '' } = {}) {
   sandbox.screenNovaOP = (id) => { calls.screenNovaOP.push(id); return { __screen: 'novaOP', id }; };
   sandbox.screenPedidoDetalhe = (id) => { calls.screenPedidoDetalhe.push(id); return { __screen: 'pedidoDetalhe', id }; };
   sandbox.screenPedidoEditar = (id) => { calls.screenPedidoEditar.push(id); return { __screen: 'pedidoEditar', id }; };
+  sandbox.screenPedidoItensEditar = (id) => { calls.screenPedidoItensEditar.push(id); return { __screen: 'pedidoItensEditar', id }; };
   sandbox.CURRENT_USER = null;
   sandbox.loadCurrentUser = async () => { calls.loadCurrentUser++; return sandbox.CURRENT_USER; };
 
@@ -660,4 +662,53 @@ test('runtime: matchRoute distingue #/pedidos/<uuid> vs #/pedidos/<uuid>/editar'
   vm.runInContext(`window.matchRoute('#/pedidos/${uuid}/editar').render();`, sandbox);
   assert.deepEqual(calls.screenPedidoDetalhe, [uuid]);
   assert.deepEqual(calls.screenPedidoEditar, [uuid]);
+});
+
+test('runtime: matchRoute parseia #/pedidos/<uuid>/itens e route.render() chama window.screenPedidoItensEditar(uuid) (admin-only, C3C2B)', () => {
+  const { sandbox, calls } = makeRouterSandbox();
+  vm.runInContext("window.RAVATEX_ROUTER.setRoutes({});", sandbox);
+  const uuid = '11111111-2222-3333-4444-555555555555';
+  const match = vm.runInContext(`window.matchRoute('#/pedidos/${uuid}/itens')`, sandbox);
+  assert.ok(match, 'matchRoute não resolveu #/pedidos/<uuid>/itens');
+  assert.equal(typeof match.render, 'function', 'render de #/pedidos/<uuid>/itens não é função');
+  // roles admin-only via JSON.
+  assert.equal(vm.runInContext(`JSON.stringify(window.matchRoute('#/pedidos/${uuid}/itens').roles)`, sandbox), '["admin"]',
+    'roles de #/pedidos/<uuid>/itens deve ser ["admin"]');
+  // Executa render e verifica que screenPedidoItensEditar foi chamado.
+  vm.runInContext(`window.matchRoute('#/pedidos/${uuid}/itens').render();`, sandbox);
+  assert.deepEqual(calls.screenPedidoItensEditar, [uuid],
+    'render de #/pedidos/<uuid>/itens deve chamar screenPedidoItensEditar com o UUID');
+  // E NÃO deve chamar screenPedidoDetalhe nem screenPedidoEditar.
+  assert.equal(calls.screenPedidoDetalhe.length, 0,
+    'render de #/pedidos/<uuid>/itens NÃO deve chamar screenPedidoDetalhe');
+  assert.equal(calls.screenPedidoEditar.length, 0,
+    'render de #/pedidos/<uuid>/itens NÃO deve chamar screenPedidoEditar');
+});
+
+test('runtime: matchRoute rejeita IDs não-UUID para #/pedidos/<uuid>/itens', () => {
+  const { sandbox } = makeRouterSandbox();
+  vm.runInContext("window.RAVATEX_ROUTER.setRoutes({});", sandbox);
+  // IDs não-UUID não devem casar o match dinâmico de itens.
+  for (const badId of ['42', 'abc', '12345', 'not-a-uuid', '11111111-2222-3333-4444']) {
+    const m = vm.runInContext(`window.matchRoute('#/pedidos/${badId}/itens')`, sandbox);
+    assert.equal(m, null, `#/pedidos/${badId}/itens não deve casar rota dinâmica`);
+  }
+  // `/itens` sem UUID (ex.: `#/pedidos//itens`) não casa.
+  const empty = vm.runInContext("window.matchRoute('#/pedidos//itens')", sandbox);
+  assert.equal(empty, null, '#/pedidos//itens não deve casar');
+});
+
+test('runtime: matchRoute distingue #/pedidos/<uuid>, /editar e /itens', () => {
+  const { sandbox, calls } = makeRouterSandbox();
+  vm.runInContext("window.RAVATEX_ROUTER.setRoutes({});", sandbox);
+  const uuid = '11111111-2222-3333-4444-555555555555';
+  // Render detalhe
+  vm.runInContext(`window.matchRoute('#/pedidos/${uuid}').render();`, sandbox);
+  // Render edição
+  vm.runInContext(`window.matchRoute('#/pedidos/${uuid}/editar').render();`, sandbox);
+  // Render edição de itens
+  vm.runInContext(`window.matchRoute('#/pedidos/${uuid}/itens').render();`, sandbox);
+  assert.deepEqual(calls.screenPedidoDetalhe, [uuid]);
+  assert.deepEqual(calls.screenPedidoEditar, [uuid]);
+  assert.deepEqual(calls.screenPedidoItensEditar, [uuid]);
 });
