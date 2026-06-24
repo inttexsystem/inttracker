@@ -12,8 +12,8 @@
   `RAVATEX-TAPETES-PEDIDOS-SCHEMA-APPLY-RECORD-A` (registro de
   aplicação). Schema `db/13_pedidos_schema.sql` já aplicado em
   `ucrjtfswnfdlxwtmxnoo`. Frontend não implementado (próxima fase).
-- **HEAD aceito atual:** `2e22a86` ("Record pedidos schema application").
-- **staging/main:** `2e22a86`
+- **HEAD aceito atual:** `d1020eb` ("Fix pedidos schema application handoff head").
+- **staging/main:** `d1020eb`
 - **Working tree:** limpo.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -161,15 +161,14 @@ Abortar e revisar o escopo se:
 ## Próxima recomendação operacional
 
 **Refactor arquitetural continua congelado.**
-**Hard delete implementado:** Edge Function `admin-delete-user`
-deployada em `ucrjtfswnfdlxwtmxnoo`. UI com botões
-separados `Desativar` e `Excluir`.
-**Próxima fase:** `RAVATEX-TAPETES-PARALLEL-FRONTEND-PUBLISH-PLAN-A`
-(planejar onde publicar o frontend paralelo), **somente com
-autorização explícita** do HMNlead.
+**Pedidos C1 entregue:** UI admin de listagem de Pedidos em
+`#/pedidos` (read-only). Helper `pedido-ui.js` com status e
+preview de cor. Sem CRUD, sem geração de OP, sem token público.
+**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2` (formulário
+admin de criação + detalhe de Pedido), **somente com autorização
+explícita** do HMNlead.
 **Não iniciar execução sem autorização explícita.**
 **NÃO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**
-**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C` (frontend admin de Pedidos).
 
 O ciclo de refactor arquitetural + hardening + extração final do
 `op-pdf.js` está **congelado**. Antes de iniciar qualquer novo

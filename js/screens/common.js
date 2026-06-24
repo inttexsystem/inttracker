@@ -26,6 +26,7 @@
   const ADMIN_MENU = [
     { href: '#/painel',                  label: 'Painel' },
     { href: '#/ops',                     label: 'OPs' },
+    { href: '#/pedidos',                 label: 'Pedidos' },
     { href: '#/cadastros/cores',         label: 'Cores' },
     { href: '#/cadastros/modelos',       label: 'Modelos' },
     { href: '#/cadastros/parametros',    label: 'Parâmetros' },

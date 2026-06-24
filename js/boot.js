@@ -24,6 +24,7 @@
 //   - window.screenPainel                      (js/screens/painel.js)
 //   - window.screenListaOPs                    (js/screens/ops-list.js)
 //   - window.screenNovaOP                      (js/screens/op-nova.js)
+//   - window.screenPedidosLista                (js/screens/pedidos-list.js)
 //   - window.screenCadastros{Cores,Clientes,Modelos,
 //     Parametros,Fornecedores,Precos,Usuarios} (js/screens/cadastros.js)
 //   - window.screenFornecedorHome,
@@ -48,6 +49,7 @@
     '#/painel':   { render: window.screenPainel,   roles: ['admin'] },
     '#/ops':      { render: window.screenListaOPs, roles: ['admin'] },
     '#/ops/nova': { render: () => window.screenNovaOP(null), roles: ['admin'] },
+    '#/pedidos':  { render: window.screenPedidosLista, roles: ['admin'] },
 
     '#/cadastros/cores':       { render: window.screenCadastrosCores,       roles: ['admin'] },
     '#/cadastros/modelos':     { render: window.screenCadastrosModelos,     roles: ['admin'] },

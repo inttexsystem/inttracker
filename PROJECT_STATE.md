@@ -1,13 +1,14 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-PEDIDOS-SCHEMA-APPLY-RECORD-A` — registro de
-> aplicação de schema de Pedidos em ucr).
-> **Docs-only.** Schema `db/13_pedidos_schema.sql` aplicado em
-> `ucrjtfswnfdlxwtmxnoo` via Management API. Validações pós-aplicação
-> confirmam: `pedidos`, `pedido_itens`, `pedido_eventos` criadas;
-> `lotes.pedido_id` adicionado; RLS admin-only; sem policy pública;
-> sem `pedidos.op_id`. Frontend ainda não implementado.
+> `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C1` — UI admin mínima de
+> listagem de Pedidos).
+> **Frontend modular.** Novos arquivos `js/pedido-ui.js` (helper
+> status/cor/preview) e `js/screens/pedidos-list.js` (listagem admin
+> read-only). Rota `#/pedidos` registrada em `boot.js` com role
+> admin. Entrada "Pedidos" adicionada ao `ADMIN_MENU`. Sem CRUD,
+> sem geração de OP, sem cliente público, sem token. Schema
+> `db/13_*` permanece aplicado em `ucrjtfswnfdlxwtmxnoo`.
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em

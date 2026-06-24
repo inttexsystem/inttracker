@@ -197,9 +197,9 @@ test('8. boot.js contém window.RAVATEX_ROUTER.setRoutes', () => {
     'boot.js não chama window.RAVATEX_ROUTER.setRoutes');
 });
 
-test('9. boot.js registra as 14 rotas esperadas', () => {
+test('9. boot.js registra as 16 rotas esperadas (15 originais + #/pedidos)', () => {
   const esperadas = [
-    '#/login', '#/painel', '#/ops', '#/ops/nova',
+    '#/login', '#/painel', '#/ops', '#/ops/nova', '#/pedidos',
     '#/cadastros/cores', '#/cadastros/modelos', '#/cadastros/parametros',
     '#/cadastros/fornecedores', '#/cadastros/clientes', '#/cadastros/precos',
     '#/cadastros/usuarios',
@@ -376,16 +376,17 @@ test('19. boot chain completo não lança ReferenceError de globals', () => {
   const { sandbox } = makeBootChainSandbox();
   // setRoutes deve ter rodado sem ReferenceError (todos os
   // window.screen* foram carregados via vm.runInContext antes).
-  // Vamos verificar que window.routes existe e tem 15 rotas.
-  const routesOk = vm.runInContext('window.routes && Object.keys(window.routes).length === 15', sandbox);
+  // Vamos verificar que window.routes existe e tem 16 rotas
+  // (15 originais + #/pedidos adicionada em C1).
+  const routesOk = vm.runInContext('window.routes && Object.keys(window.routes).length === 16', sandbox);
   assert.equal(routesOk, true,
-    'window.routes não foi populado com 15 rotas (algum window.screen* não foi resolvido)');
+    'window.routes não foi populado com 16 rotas (algum window.screen* não foi resolvido)');
 });
 
 test('20. window.routes populado corretamente após o boot completo', () => {
   const { sandbox } = makeBootChainSandbox();
   const rotasEsperadas = [
-    '#/login', '#/painel', '#/ops', '#/ops/nova',
+    '#/login', '#/painel', '#/ops', '#/ops/nova', '#/pedidos',
     '#/cadastros/cores', '#/cadastros/modelos', '#/cadastros/parametros',
     '#/cadastros/fornecedores', '#/cadastros/clientes', '#/cadastros/precos',
     '#/cadastros/usuarios',
