@@ -9,12 +9,11 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1` (perfil
-  autenticado de cliente — schema/RLS versionado).
-- **HEAD aceito atual:** `247b8ca` (antes do push desta fase).
-  Após o push de B1, o HEAD passa a ser o commit desta fase —
-  "Add cliente perfil schema and RLS".
-- **staging/main:** `247b8ca` (será atualizado com o push desta fase).
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B2-RECORD-A`
+  (docs-only — registro da aplicação do schema cliente em staging).
+- **HEAD aceito atual:** `16079b2` — "Add cliente perfil schema
+  and RLS" (fase B1).
+- **staging/main:** `16079b2`.
 - **Working tree:** limpo após commit.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -28,12 +27,11 @@
   `pedido_eventos` e `lotes.pedido_id` (nullable). RLS admin-only.
   Sem policy pública. Sem `pedidos.op_id`.
 - **Schema Cliente Perfil** `db/14_cliente_perfil_schema.sql`
-  versionado (não aplicado): role `cliente` em `usuarios.tipo`,
-  coluna `usuarios.cliente_id` (FK → `public.clientes`),
-  constraint de vínculo exclusivo, função `meu_cliente_id()`,
-  policies cliente SELECT/INSERT em `clientes`, `pedidos`,
-  `pedido_itens`. Sem UPDATE/DELETE cliente. Sem token público.
-  `pedido_eventos` admin-only.
+  **aplicado em staging** `ucrjtfswnfdlxwtmxnoo` via Management API
+  (fase B2). Role `cliente`, `usuarios.cliente_id`, `meu_cliente_id()`
+  e 5 policies cliente SELECT/INSERT operacionais. Sem UPDATE/DELETE
+  cliente. Sem token público. `pedido_eventos` admin-only.
+  **Lacuna:** `admin-create-user` e UI aceitam apenas `admin`/`fornecedor`.
 - **Frontend Pedidos entregue (C1 + C2 + C2-R1 + C3A + C3B +
   C3C1 + C3C2B + C3C2C1 + C3C2C2 + C3C2C3):** listagem
   `#/pedidos`, formulário `#/pedidos/novo` (cria pedido + itens
@@ -289,22 +287,18 @@ Edge Function, sem fornecedor. Limitação conhecida do
 formulário: sem RPC/transação atômica (compensação manual
 documentada no código). Overrides de largura/cor e
 reordenação manual de itens ficam para fases seguintes.
-**Perfil cliente schema/RLS versionado** (fase
-`RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1`, esta):
-`db/14_cliente_perfil_schema.sql` versionado com role `cliente`,
-`usuarios.cliente_id` (FK → `public.clientes`), constraint de
-vínculo exclusivo, função `meu_cliente_id()` (SECURITY DEFINER,
-STABLE; exige `tipo='cliente' AND ativo=true AND cliente_id NOT NULL`;
-retorna NULL em falhas), policies cliente SELECT/INSERT em `clientes`,
-`pedidos` e `pedido_itens`. **NÃO** há UPDATE/DELETE de cliente.
-**NÃO** há token público. **NÃO** há policy anon. **NÃO** aplicado
-no Supabase. `pedido_eventos` admin-only. Smoke 49/49 verde.
-**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B2`
-(aplicação do schema em staging) ou
-`RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2D`
-(overrides opcionais de `largura`/`cor_1_id`/`cor_2_id` por
-item) ou `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C4`
-(reordenação manual com drag-and-drop / setas),
+**Perfil cliente schema/RLS aplicado em staging** (fases
+`RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1` + `B2` +
+`B2-RECORD-A`, esta docs-only): `db/14_cliente_perfil_schema.sql`
+aplicado em `ucrjtfswnfdlxwtmxnoo` via Management API (status 201).
+Role `cliente`, `usuarios.cliente_id`, `meu_cliente_id()` e 5
+policies cliente SELECT/INSERT operacionais. 23/23 validações
+pós-aplicação verdes. **NÃO** há UPDATE/DELETE de cliente.
+**NÃO** há token público. `pedido_eventos` admin-only.
+**Próxima lacuna:** `admin-create-user` e UI aceitam apenas
+`admin`/`fornecedor` — provisionamento de usuário cliente pendente.
+**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-CLIENTE-PROV-A`
+(provisionamento de usuário cliente: Edge Function + UI),
 **somente com autorização explícita** do HMNlead.
 **Não iniciar execução sem autorização explícita.**
 **NÃO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**
