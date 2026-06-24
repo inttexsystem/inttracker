@@ -9,15 +9,12 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-AUTH-HARD-DELETE-USER-A` (hard delete via
-  Edge Function `admin-delete-user`). UI de
-  `#/cadastros/usuarios` agora tem ações separadas:
-  - `Desativar` (soft delete via `admin-disable-user`).
-  - `Excluir` (hard delete via `admin-delete-user`, com
-    confirmação por e-mail).
+  `RAVATEX-TAPETES-PEDIDOS-SCHEMA-RLS-A` (schema/RLS de Pedidos).
+  **Backend/database only.** Sem frontend, sem rotas JS, sem Edge
+  Function.
 - **HEAD aceito atual:** commit desta fase
-  (`RAVATEX-TAPETES-AUTH-HARD-DELETE-USER-A`,
-  "Add admin hard delete user flow").
+  (`RAVATEX-TAPETES-PEDIDOS-SCHEMA-RLS-A`,
+  "Add pedidos schema and RLS").
 - **staging/main:** atualizado após push desta fase.
 - **Working tree:** limpo.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
@@ -27,10 +24,10 @@
   `bhgifjrfagkzubpyqpew` + Vercel e **não deve ser tocado**.
 - **⚠️ NÃO TOCAR `bhgifjrfagkzubpyqpew`.**
 - **⚠️ NÃO TOCAR Vercel original.**
-- **Ambiente paralelo (`ucrjtfswnfdlxwtmxnoo`):** schema aplicado,
-  `admin-create-user` deployado, `admin-disable-user` deployado,
-  `admin-delete-user` deployado nesta fase, secrets
-  configurados, UI validada.
+- **Schema Pedidos versionado** (não aplicado): `db/13_pedidos_schema.sql`
+  com tabelas `pedidos`, `pedido_itens`, `pedido_eventos` e
+  `lotes.pedido_id` (nullable). RLS admin-only. Sem policy pública.
+  Sem `pedidos.op_id`.
 
 ## Estado operacional atual
 - `index.html` está declarativo, sem script inline final, com

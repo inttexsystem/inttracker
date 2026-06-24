@@ -1,14 +1,14 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-AUTH-HARD-DELETE-USER-A` — hard delete de
-> usuário via `admin-delete-user`).
-> **Frontend + Edge Function + deploy em ucr.** Sem SQL, sem push
-> origin, sem alteração de schema. Nova Edge Function
-> `admin-delete-user` deployada e validada em
-> `ucrjtfswnfdlxwtmxnoo`. UI de `#/cadastros/usuarios` agora tem
-> ações separadas: `Desativar` (soft delete) e `Excluir` (hard
-> delete com confirmação por e-mail).
+> `RAVATEX-TAPETES-PEDIDOS-SCHEMA-RLS-A` — schema/RLS de Pedidos).
+> **Backend/database only.** Sem frontend, sem rotas JS, sem Edge
+> Function, sem alteração de fluxo de OP. Nova migration
+> `db/13_pedidos_schema.sql` versionada com tabelas `pedidos`,
+> `pedido_itens`, `pedido_eventos` e vínculo `lotes.pedido_id`
+> (nullable). RLS admin-only em todas as 3 novas tabelas. Sem
+> policy pública. Não cria `pedidos.op_id`. Não toca `db/01-12`,
+> `js/`, `supabase/functions/`.
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
