@@ -491,18 +491,34 @@ test("admin-create-user/index.ts: não foi alterado por esta fase", () => {
   );
 });
 
-test("cadastros.js: não foi alterado por esta fase (UI guard intacto)", () => {
-  // A UI continua com placeholder "Em breve" para exclusão; esta
-  // fase NÃO toca UI.
-  assert.match(cadastrosSrc, /'Em breve'/);
+test("cadastros.js: UI agora integra admin-disable-user (fase AUTH-DISABLE-USER-UI-A)", () => {
+  // A fase RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A substitui o
+  // placeholder "Em breve" pelo botão "Desativar" que chama a
+  // Edge Function admin-disable-user. Esta fase (EDGE-A) não
+  // tocava UI; este teste foi atualizado para refletir o estado
+  // pós-UI-A.
+  assert.match(cadastrosSrc, /'Desativar'/, "botão Desativar deve existir");
   assert.match(
     cadastrosSrc,
-    /Exclus[ãa]o\/desativa[çc][ãa]o de usu[áa]rios est[áa] temporariamente bloqueada/,
+    /functions\.invoke\(\s*['"]admin-disable-user['"]/,
+    "cadastros.js deve chamar admin-disable-user",
   );
   assert.doesNotMatch(
     cadastrosSrc,
-    /functions\.invoke\(\s*['"]admin-disable-user['"]/,
-    "cadastros.js não deve chamar admin-disable-user nesta fase",
+    /'Em breve'/,
+    "placeholder 'Em breve' deve ter sido removido da ação principal",
+  );
+  assert.doesNotMatch(
+    cadastrosSrc,
+    /Exclus[ãa]o\/desativa[çc][ãa]o de usu[áa]rios est[áa] temporariamente bloqueada/,
+    "mensagem de bloqueio do placeholder deve ter sido removida",
+  );
+  // Continua validações críticas: nada de .delete() em public.usuarios
+  // nem de credenciais privilegiadas.
+  assert.doesNotMatch(
+    cadastrosSrc,
+    /from\(\s*['"]usuarios['"]\s*\)\s*\.\s*delete\s*\(/,
+    "cadastros.js não deve fazer .from('usuarios').delete() (soft delete only)",
   );
 });
 

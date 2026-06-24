@@ -2,17 +2,19 @@
 
 > Ledger de fases do refactor arquitetural de
 > `D:\OneDrive\Programação\Ravatex\controle-tapetes`.
-> Última atualização: 2026-06-24 (HEAD `476cc70`,
-> fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A` —
-> runner local automatizado para E2E de `admin-disable-user` em
-> staging `ucrjtfswnfdlxwtmxnoo`; **sem deploy, sem Supabase real,
-> sem SQL, sem UI, sem produção, sem origin/main** nesta fase;
-> `js/**`, `index.html`, `db/**` e Edge Functions intocados).
-> Fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-RUNNER-FIX-A`
-> (commit pendente de push) corrigiu o tratamento do login
-> bloqueado esperado (`User is banned`) no runner — agora
-> classificado como PASS via helper `loginExpectFailure`.
-> E2E real não foi rerodado nesta fase.
+> Última atualização: 2026-06-24 (HEAD `b25b67e`,
+> fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-RUNNER-FIX-A` —
+> correção do tratamento do login bloqueado esperado
+> `User is banned` no runner; `js/**`, `index.html`, `db/**` e
+> Edge Functions intocados nesta fase; **sem deploy, sem
+> Supabase real, sem SQL, sem produção, sem origin/main**).
+> Fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A` (commit
+> pendente de push) integrou a tela `#/cadastros/usuarios` com
+> a Edge Function `admin-disable-user` (botão `Desativar`
+> substitui o placeholder `Em breve`). E2E real do runner já
+> havia passado em `result: PASS` em staging ANTES desta
+> fase (ver §5k). UI ainda não foi exercitada manualmente em
+> staging nesta fase.
 
 ## 1. Premissas corrigidas
 - **App estático**, não Next/Vercel.
@@ -107,9 +109,9 @@
 | AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A | `1a35e1d` | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` (registro da aplicação real de `db/12_auth_user_disable_schema.sql` no Supabase staging `ucrjtfswnfdlxwtmxnoo`; execução manual pelo HMNlead; nenhuma execução de SQL por IAexec) | n/a (docs-only) | aceito (docs-only; aplicação real confirmada) |
 | AUTH-DISABLE-USER-EDGE-A | `eb5d2e0` | `supabase/functions/admin-disable-user/index.ts` (criado), `supabase/functions/admin-disable-user/README.md` (criado), `tests/admin-disable-user.smoke.js` (criado), `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` (Edge Function `admin-disable-user` — soft delete no perfil + ban Auth; **sem deploy**; sem Supabase real; sem alteração de UI; `js/**`, `index.html`, `db/**` e `admin-create-user` intocados) | 39/39 smoke + 17/17 + 20/20 + 16/16 + 32/32 (regressões focais) | aceito (local-only; deploy/validação staging em `...-EDGE-STAGING-DEPLOY-A`) |
 | AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A | (HEAD da fase) | `scripts/staging/admin-disable-user-e2e.mjs` (criado), `tests/admin-disable-user-e2e-runner.smoke.js` (criado), `.gitignore` (atualizado: `.ravatex-local/`), `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` (runner local automatizado para E2E staging; **sem Supabase real, sem SQL, sem deploy, sem UI, sem produção, sem origin/main**; `admin-disable-user` intocado; **E2E real ainda não executado**) | 28/28 smoke + 39/39 + 17/17 (regressões focais) | aceito (local-only; E2E real em fase futura) |
+| AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A | (realizado antes da fase UI-A) | Deploy controlado de `admin-disable-user` em staging `ucrjtfswnfdlxwtmxnoo` via `supabase functions deploy`; status **ACTIVE**; validação manual via Edge Function URL confirmada. O E2E real do runner (fase `...-E2E-RUNNER-FIX-A` aplicada em staging) passou com `result: PASS` em staging (ver §5k). Não versionado em commit desta fase; a entrada de fase foi inserida retroativamente para refletir o estado real pós-deploy. | — | aceito (deploy ACTIVE em staging) |
 | AUTH-DISABLE-USER-E2E-RUNNER-FIX-A | (pendente push) | `scripts/staging/admin-disable-user-e2e.mjs` (helpers `loginExpectSuccess`/`loginExpectFailure`/`postSupabaseLogin`; mensagem hardcoded "Login admin falhou" removida), `tests/admin-disable-user-e2e-runner.smoke.js` (4 testes novos: login bloqueado esperado, fluxo continua, loginExpectSuccess nos 3 logins, loginExpectFailure aceita variações de banned, loginExpectFailure retorna controle), `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` (correção do bug do runner no passo `login_blocked`: `HTTP 400 User is banned` agora tratado como SUCESSO esperado do teste via `loginExpectFailure`; runner continua para `idempotency` e `self_disable_blocked`; **sem Supabase real, sem SQL, sem deploy, sem UI, sem produção, sem origin/main, sem PR #2**; **E2E real não rerodado nesta fase**) | 32/32 smoke + 39/39 regressão | aceito (local-only; E2E real rerun em fase futura) |
-| AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A | (futura) | Deploy controlado de `admin-disable-user` em staging + validação E2E | — | pendente (depende de EDGE-A local aceito) |
-| AUTH-DISABLE-USER-UI-A | (futura) | `js/screens/cadastros.js` (botão "Desativar" via Edge Function deployada) | — | pendente (depende de EDGE-STAGING-DEPLOY-A) |
+| AUTH-DISABLE-USER-UI-A | (pendente push) | `js/screens/cadastros.js` (botão `Desativar` substitui placeholder `Em breve`; modal com motivo opcional; chamada `window.supa.functions.invoke('admin-disable-user', { body: { user_id, reason } })`; helper `friendlyDisableMessage`; guarda de UX para self/inativos; coluna `Status` na listagem), `tests/cadastros-usuarios-auth-ui.smoke.js` (7 testes novos para a fase), `tests/cadastros-screens.smoke.js` (test 20a atualizado: `Desativar` em vez de `Em breve`), `tests/admin-disable-user.smoke.js` (test 37 atualizado: UI agora chama `admin-disable-user`), `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` (integração da tela `#/cadastros/usuarios` com a Edge Function `admin-disable-user` deployada em staging `ucrjtfswnfdlxwtmxnoo`; **sem Supabase real, sem SQL, sem deploy, sem produção, sem origin/main, sem PR #2, sem E2E real nesta fase**; E2E real do runner já havia passado em `result: PASS` em staging ANTES desta fase — ver §5k para evidência sanitizada) | 23/23 + 32/32 + 39/39 + 17/17 (regressões focais) | aceito (local-only; validação manual/automatizada da UI em staging em fase futura) |
 
 ## 5. Ressalvas processuais aceitas em `FORNECEDOR-SCREENS-MODULE-A` (commit `4b9ca12`)
 
@@ -679,6 +681,169 @@ No `cmdRun`:
   `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-A` (rodar o `run`
   real contra staging após autorização).
 
+## 5k. Ressalva processual — `AUTH-DISABLE-USER-UI-A`
+
+A fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A` (esta fase,
+commit pendente de push em staging) integra a tela
+`#/cadastros/usuarios` com a Edge Function `admin-disable-user`
+já deployada em staging `ucrjtfswnfdlxwtmxnoo`. **Sem deploy,
+sem Supabase real, sem SQL, sem produção, sem origin/main, sem
+PR #2, sem E2E real nesta fase.**
+
+### E2E real do runner passou em staging (antes desta fase)
+
+Após o push da fase `E2E-RUNNER-FIX-A`, o runner real foi
+executado manualmente em staging (com autorização do HMNlead) e
+passou com **`result: PASS`**. Evidência sanitizada:
+
+* **descartável** (E2E principal do run que passou):
+  `disable-edge-e2e-20260624-115027@tapetes.test`
+  (`user_id = d12b005e-d455-4f78-b401-59ebd9f971c5`) —
+  desativado em staging pelo run; `auth.users` banido; login
+  bloqueado (HTTP 400 `User is banned`) confirmado pelo
+  próprio runner no passo `login_blocked`. **Nenhum admin
+  real foi tocado.**
+* **descartável** (execução parcial anterior ao fix, que
+  falhou em `login_blocked`):
+  `user_id = 11c48a08-a8a6-48fb-8ddb-a6af1dba1667` (e-mail
+  `disable-edge-e2e-20260624-...@tapetes.test`) — desativado
+  na execução anterior antes do fix do runner. Foi
+  desativado pelo `admin_disable` com sucesso mas o
+  `login_blocked` falhou por bug do runner. **Nenhum admin
+  real foi tocado.**
+
+Os dois IDs são exclusivamente usuários descartáveis do
+runner (`*@tapetes.test`); nenhum é admin real. Senhas
+geradas em memória e nunca logadas. A senha do descartável
+**NÃO** é registrada em lugar nenhum.
+
+O run cobriu: `admin_login` → `admin_active` →
+`fornecedor_resolved` → `create_user` → `profile_created`
+→ `test_user_login` → `fornecedor_forbidden` (403) →
+`admin_still_active` → `admin_relogin` → `admin_disable`
+(200, `auth_banned: true`, `already_disabled: false`) →
+`profile_inactive` (`ativo=false`, `desativado_em`,
+`desativado_por`, `motivo_desativacao`) → `login_blocked`
+(HTTP 400 `User is banned` classificado como PASS via
+`loginExpectFailure`) → `idempotency` (200,
+`already_disabled: true`) → `self_disable_blocked` (403
+`SELF_DISABLE_FORBIDDEN`) → `result: PASS`.
+
+### Mudança na UI
+
+`js/screens/cadastrosUsuarios` (no módulo
+`js/screens/cadastros.js`):
+
+* Substitui o placeholder `Em breve` pelo botão `Desativar`.
+* Modal de confirmação com campo de motivo opcional
+  (≤ 500 chars, default `"Desativação via UI"`).
+* Select de `public.usuarios` agora inclui `ativo` e
+  `desativado_em` para mostrar status na listagem.
+* Coluna `Status` renderiza `Ativo` (default) ou `Inativo`
+  quando `ativo === false`.
+* Helper top-level `friendlyDisableMessage(code, fallback)`
+  mapeia os 8 códigos de erro da Edge Function
+  (`FORBIDDEN`, `SELF_DISABLE_FORBIDDEN`,
+  `LAST_ADMIN_FORBIDDEN`, `NOT_FOUND`, `AUTH_BAN_FAILED`,
+  `COMPENSATION_FAILED`, `VALIDATION_ERROR`, `UNAUTHORIZED`)
+  para mensagens PT-BR.
+* Guarda de UX no `handleDesativarClick(r, meId)`:
+  - se `r.ativo === false` → toast `"Usuário já está
+    inativo."` e não chama a Edge Function;
+  - se `meId === r.id` (usuário logado é o mesmo da linha)
+    → toast `"Você não pode desativar seu próprio
+    usuário."` e não chama a Edge Function.
+* Server-side continua sendo a barreira real
+  (`SELF_DISABLE_FORBIDDEN`/`LAST_ADMIN_FORBIDDEN`/
+  `FORBIDDEN` da Edge Function).
+
+### Como a UI chama `admin-disable-user`
+
+```js
+const { error } = await window.supa.functions.invoke(
+  'admin-disable-user',
+  { body: { user_id: usr.id, reason } },
+);
+if (error) {
+  // lê body.error.code via error.context.json() e mapeia
+  // via friendlyDisableMessage
+}
+```
+
+### Garantias preservadas
+
+* **Nenhum** `.from('usuarios').delete()` (soft delete only).
+* **Nenhum** uso de `auth.admin` no front.
+* **Nenhum** `service_role` / `SUPABASE_SERVICE_ROLE_KEY`
+  hardcoded.
+* **Nenhum** acesso a `js/config.js` ou `supabase/functions`
+  paths.
+* **Preserva** o botão `+ Novo usuário` e a chamada
+  `admin-create-user` (sem alteração no fluxo de criação).
+* **Não** altera `admin-create-user`/`admin-disable-user`/
+  `db/**`/`index.html`/Edge Functions.
+
+### Validação estática
+
+* `node --check js/screens/cadastros.js` → exit 0.
+* `node --test tests/cadastros-usuarios-auth-ui.smoke.js` →
+  **23/23 verde** (era 16/16; +7 testes novos para a fase
+  UI-A):
+  - `tem botão 'Desativar' no fluxo de usuários (substitui
+    'Em breve')`;
+  - `chama functions.invoke('admin-disable-user')`;
+  - `payload de admin-disable-user contém user_id e reason`
+    (ancora em `user_id: usr.id` para evitar falso match do
+    comentário);
+  - `trata erro de admin-disable-user lendo error.context.json()`;
+  - `trata SELF_DISABLE_FORBIDDEN, LAST_ADMIN_FORBIDDEN,
+    FORBIDDEN, NOT_FOUND, AUTH_BAN_FAILED,
+    COMPENSATION_FAILED, VALIDATION_ERROR, UNAUTHORIZED`;
+  - `guarda de UX bloqueia desativação do próprio usuário
+    logado`;
+  - `guarda de UX bloqueia desativação de usuário já
+    inativo`;
+  - `listagem carrega coluna ativo (Status Ativo/Inativo)`;
+  - `preserva botão '+ Novo usuário' e chamada
+    admin-create-user`.
+* `node --test tests/cadastros-screens.smoke.js` →
+  **32/32 verde** (regressão preservada; test 20a atualizado
+  para esperar `Desativar` e `Status` em vez de `Em breve`).
+* `node --test tests/admin-disable-user.smoke.js` →
+  **39/39 verde** (regressão preservada; test 37 atualizado
+  para refletir o estado pós-UI-A em vez do estado
+  EDGE-A).
+* `node --test tests/admin-create-user.smoke.js` →
+  **17/17 verde** (regressão preservada).
+* `node --test tests/admin-disable-user-e2e-runner.smoke.js`
+  → **32/32 verde** (regressão preservada).
+
+### O que NÃO foi feito nesta fase
+
+* **E2E real não foi rerodado.** A UI foi validada
+  estaticamente. A execução manual do `Desativar` na
+  `#/cadastros/usuarios` em staging continua pendente de
+  autorização do HMNlead.
+* Nenhum deploy, nenhum SQL, nenhuma alteração em
+  `index.html`, `db/**`, Edge Functions.
+* Nenhum push em `origin/main` (intocado: `1047181`).
+* PR #2 intocado.
+* Nenhum commit em produção (`bhgifjrfagkzubpyqpew`).
+
+### Regra de continuidade
+
+* **Não deployar** sem autorização do HMNlead.
+* **Não exercitar a UI** em staging sem autorização.
+* **Não avançar** para produção `bhgifjrfagkzubpyqpew` sem
+  autorização explícita do HMNlead.
+* **Próxima fase:** validação manual/automatizada da UI
+  `#/cadastros/usuarios` em staging — confirmar que o
+  clique em `Desativar` chama `admin-disable-user` com o
+  payload correto e trata cada código de erro esperado.
+  Após essa validação, a tela pode ser marcada como
+  pronta para produção (em fase separada, com autorização
+  explícita do HMNlead).
+
 ## 6. Módulos extraídos (lista canônica)
 
 | Módulo | Commit de extração | Fase |
@@ -870,20 +1035,24 @@ already registered` como falha esperada; retorna
 "Login admin falhou" removida. Fluxo continua para
 `idempotency` e `self_disable_blocked`. Smoke 32/32;
 regressão `admin-disable-user.smoke.js` 39/39. **E2E real
-não foi rerodado nesta fase.** Próximas fases:
-`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A` (deploy
-controlado em staging e validação manual) →
-`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-A` (rodar o `run` real
-contra staging) → `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`
-(restaurar botão "Desativar" na UI).
+não foi rerodado nesta fase.** Runner real executado em
+staging após o fix passou com `result: PASS` (ver §5k).
+Fase `UI-A` (esta) integrou a tela `#/cadastros/usuarios`
+com `admin-disable-user` (botão `Desativar`, modal com
+motivo opcional, mapeamento de 8 códigos de erro, guarda
+de UX para self/inativos, coluna Status). Próximas fases:
+validação manual/automatizada da UI em staging (com
+autorização do HMNlead) → decisão de produção em fase
+separada. **Não avançar** para produção
+`bhgifjrfagkzubpyqpew` sem autorização explícita.
 **Pendência de decisão do HMNlead:** 7 perguntas listadas na seção 9
 do design (`docs/architecture/AUTH_DELETE_USER_DESIGN.md`) ainda
-abertas. **Não avançar** para produção sem autorização explícita.
-**Não reaplicar** `db/12_auth_user_disable_schema.sql` em staging
+abertas. **Não reaplicar** `db/12_auth_user_disable_schema.sql` em staging
 sem necessidade: a migration é idempotente, mas o estado esperado
 já está aplicado. **Não deployar** `admin-disable-user` sem
 fase dedicada de staging deploy. **Não versionar** o config do
-runner (`.ravatex-local/`).
+runner (`.ravatex-local/`). **Não exercitar a UI em staging
+sem autorização do HMNlead.**
 
 ## 10. Política de updates deste ledger
 

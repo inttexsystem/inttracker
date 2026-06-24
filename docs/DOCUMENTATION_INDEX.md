@@ -100,13 +100,29 @@ isso é registrado explicitamente no header do arquivo e em
 > aplicação real, commit `1a35e1d`) no LEDGER. A Edge Function
 > `admin-disable-user` foi criada localmente no repo na fase
 > `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`, commit `eb5d2e0`
-> (ver `supabase/functions/admin-disable-user/README.md`); **sem
-> deploy** nesta fase; deploy controlado em fase futura
-> (`...-EDGE-STAGING-DEPLOY-A`). Um **runner local automatizado**
-> de E2E foi criado em
+> (ver `supabase/functions/admin-disable-user/README.md`);
+> deployada em staging `ucrjtfswnfdlxwtmxnoo` (fase
+> `...-EDGE-STAGING-DEPLOY-A`, ver LEDGER). Um **runner local
+> automatizado** de E2E foi criado em
 > `scripts/staging/admin-disable-user-e2e.mjs` (fase
-> `...-E2E-AUTO-RUNNER-A`); **E2E real ainda não foi executado**
-> (depende de autorização do HMNlead para rodar o `run`).
+> `...-E2E-AUTO-RUNNER-A`) e o tratamento do login bloqueado
+> esperado foi corrigido em `...-E2E-RUNNER-FIX-A`. **E2E real
+> em staging já passou com `result: PASS`** (ver LEDGER §5k
+> para evidência sanitizada do descartável
+> `disable-edge-e2e-20260624-115027@tapetes.test`,
+> user_id `d12b005e-d455-4f78-b401-59ebd9f971c5`,
+> desativado em staging, login bloqueado confirmado). A
+> **tela `#/cadastros/usuarios` foi integrada** com
+> `admin-disable-user` na fase `...-UI-A` (botão `Desativar`
+> substitui o placeholder `Em breve`; chama
+> `window.supa.functions.invoke('admin-disable-user', { body:
+> { user_id, reason } })`; modal com motivo opcional; mapeia
+> `FORBIDDEN`/`SELF_DISABLE_FORBIDDEN`/`LAST_ADMIN_FORBIDDEN`/
+> `NOT_FOUND`/`AUTH_BAN_FAILED`/`COMPENSATION_FAILED`/
+> `VALIDATION_ERROR`/`UNAUTHORIZED` para mensagens PT-BR;
+> guarda de UX para self/inativos). **UI ainda não foi
+> exercitada manualmente em staging** — depende de
+> autorização do HMNlead.
 
 ## 4. Docs legadas (NÃO GUIAM EXECUÇÃO)
 

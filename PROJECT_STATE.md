@@ -1,19 +1,28 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-RUNNER-FIX-A` — correções
-> pontuais no runner `scripts/staging/admin-disable-user-e2e.mjs`
-> para tratar o login bloqueado do usuário desativado como SUCESSO
-> esperado do teste, separando os helpers `loginExpectSuccess` /
-> `loginExpectFailure`. **Sem deploy, sem Supabase real, sem SQL,
-> sem UI, sem produção, sem origin/main** nesta fase.
-> Execução real do runner (após revisão do HMNlead) avançou até
-> `profile_inactive` em staging e falhou em `login_blocked` com
-> `HTTP 400 User is banned` tratado como erro fatal — classificado
-> como bug do runner, corrigido nesta fase. Smoke estático
-> `tests/admin-disable-user-e2e-runner.smoke.js` 32/32 verde;
-> regressão `admin-disable-user.smoke.js` 39/39 verde. E2E real
-> não foi rerodado nesta fase — fica para a próxima).
+> `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A` — integração da tela
+> `#/cadastros/usuarios` com a Edge Function `admin-disable-user`
+> (já deployada em staging `ucrjtfswnfdlxwtmxnoo`). Botão
+> `Desativar` substitui o placeholder `Em breve`; chama
+> `window.supa.functions.invoke('admin-disable-user', { body:
+> { user_id, reason } })`; mapeia códigos de erro
+> (`FORBIDDEN`/`SELF_DISABLE_FORBIDDEN`/`LAST_ADMIN_FORBIDDEN`/
+> `NOT_FOUND`/`AUTH_BAN_FAILED`/`COMPENSATION_FAILED`/
+> `VALIDATION_ERROR`/`UNAUTHORIZED`) para mensagens PT-BR; guarda
+> de UX para o próprio usuário logado e inativos (proteção
+> visual, não substitui server-side). **Sem deploy, sem
+> Supabase real, sem SQL, sem produção, sem origin/main, sem
+> PR #2, sem E2E real nesta fase**. Smoke estático
+> `tests/cadastros-usuarios-auth-ui.smoke.js` 23/23 verde;
+> regressões focais `tests/cadastros-screens.smoke.js` 32/32,
+> `tests/admin-disable-user.smoke.js` 39/39,
+> `tests/admin-create-user.smoke.js` 17/17,
+> `tests/admin-disable-user-e2e-runner.smoke.js` 32/32 — todas
+> verdes. E2E real do runner já havia passado em
+> `result: PASS` em staging (antes desta fase; ver
+> evidência em LEDGER §5k). Próxima fase recomendada:
+> validação manual/automatizada da UI em staging.
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
@@ -41,14 +50,14 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
-- **HEAD atual aceito:** `476cc70` — "Add auth disable staging e2e
-  runner" (fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A`,
-  runner local automatizado de E2E staging). Commit adicional
-  da fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-RUNNER-FIX-A`
-  pendente de push em staging.
-- **staging/main atual:** `476cc7064d3b330e23410a9d48afbece2a89f2cb`
+- **HEAD atual aceito:** `b25b67e` — "Fix auth disable e2e banned
+  login handling" (fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-RUNNER-FIX-A`).
+  Commit adicional da fase
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A` pendente de push em
+  staging.
+- **staging/main atual:** `b25b67eef6f5463b5e4378134a968574479e8fcf`
   (sincronizado com `work/app-next` antes do commit da fase
-  `E2E-RUNNER-FIX-A`).
+  `UI-A`).
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
   — **intocado** durante todo o ciclo de refactor/hardening.
 - **PR #2:** **intocado** durante todo o ciclo.
@@ -342,9 +351,44 @@ pelo HMNlead no Supabase Dashboard.)*
   para 32/32 verde (4 testes novos: login bloqueado esperado,
   fluxo continua, loginExpectSuccess em 3 logins,
   loginExpectFailure com substrings banned, loginExpectFailure
-  retorna controle). `admin-disable-user.smoke.js` 39/39
+  retorna controle).   `admin-disable-user.smoke.js` 39/39
   verde. **E2E real não foi rerodado nesta fase** — só após
   autorização do HMNlead.
+- 🟡 **UI `#/cadastros/usuarios` integrada com `admin-disable-user`.**
+  Fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A` (esta fase). Botão
+  `Desativar` substitui o placeholder `Em breve`; chama
+  `window.supa.functions.invoke('admin-disable-user', { body: {
+  user_id, reason } })`; modal de confirmação com campo de
+  motivo opcional (até 500 chars); mapeia códigos de erro
+  (`FORBIDDEN`/`SELF_DISABLE_FORBIDDEN`/`LAST_ADMIN_FORBIDDEN`/
+  `NOT_FOUND`/`AUTH_BAN_FAILED`/`COMPENSATION_FAILED`/
+  `VALIDATION_ERROR`/`UNAUTHORIZED`) para mensagens PT-BR; guarda
+  de UX para o próprio usuário logado e para usuários já
+  inativos (proteção visual, não substitui server-side); coluna
+  `Status` na listagem mostra `Ativo`/`Inativo`. **E2E real do
+  runner já havia passado em `result: PASS` em staging
+  (`ucrjtfswnfdlxwtmxnoo`) ANTES desta fase — ver LEDGER §5k
+  para evidência sanitizada (descartável
+  `disable-edge-e2e-20260624-115027@tapetes.test` / user_id
+  `d12b005e-d455-4f78-b401-59ebd9f971c5` desativado, login
+  bloqueado confirmado; execução parcial anterior
+  `11c48a08-a8a6-48fb-8ddb-a6af1dba1667` desativado em run
+  anterior sem bloquear esta fase).** Smoke estático
+  `tests/cadastros-usuarios-auth-ui.smoke.js` 23/23 verde (era
+  16/16; +7 testes novos para a fase UI-A: botão `Desativar`
+  substitui `Em breve`, chamada `admin-disable-user` com payload
+  `user_id`+`reason`, leitura de `error.context.json`,
+  tratamento dos 8 códigos, guarda de UX para self e inativo,
+  coluna Status preservando `+ Novo usuário` e
+  `admin-create-user`); regressões focais
+  `tests/cadastros-screens.smoke.js` 32/32,
+  `tests/admin-disable-user.smoke.js` 39/39,
+  `tests/admin-create-user.smoke.js` 17/17,
+  `tests/admin-disable-user-e2e-runner.smoke.js` 32/32 — todas
+  verdes. **Sem deploy, sem Supabase real, sem SQL, sem
+  produção, sem origin/main, sem PR #2 nesta fase.**
+  Próxima fase: validação manual/automatizada da UI em
+  staging.
 - 🟡 Staging mostra log `relation "supabase_migrations.schema_migrations"
   does not exist` (ruído do dashboard, não do app).
 - 🟡 Tailwind CDN ainda gera warning de produção (não bloqueante;
@@ -427,11 +471,36 @@ pelo HMNlead no Supabase Dashboard.)*
    registered`). Fluxo continua para `idempotency` e
    `self_disable_blocked`. Smoke 32/32; regressão
    `admin-disable-user.smoke.js` 39/39.
-8. **Não avançar para produção** (`bhgifjrfagkzubpyqpew`) sem
+8. **UI `#/cadastros/usuarios` integrada com `admin-disable-user`**
+   (fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`, esta). Botão
+   `Desativar` substitui placeholder `Em breve`; chama
+   `admin-disable-user` via `window.supa.functions.invoke`;
+   modal de confirmação com motivo opcional (≤ 500 chars);
+   mapeia `FORBIDDEN`/`SELF_DISABLE_FORBIDDEN`/
+   `LAST_ADMIN_FORBIDDEN`/`NOT_FOUND`/`AUTH_BAN_FAILED`/
+   `COMPENSATION_FAILED`/`VALIDATION_ERROR`/`UNAUTHORIZED`
+   para mensagens PT-BR; guarda de UX para self e inativos
+   (proteção visual). Coluna `Status` na listagem. **E2E real
+   do runner já havia passado em `result: PASS` em staging
+   ANTES desta fase** (evidência sanitizada em LEDGER §5k;
+   descartável `disable-edge-e2e-20260624-115027@tapetes.test`
+   / `d12b005e-d455-4f78-b401-59ebd9f971c5` desativado, login
+   bloqueado confirmado; execução parcial anterior
+   `11c48a08-a8a6-48fb-8ddb-a6af1dba1667`). Smoke
+   `cadastros-usuarios-auth-ui.smoke.js` 23/23 verde;
+   regressões `cadastros-screens.smoke.js` 32/32,
+   `admin-disable-user.smoke.js` 39/39,
+   `admin-create-user.smoke.js` 17/17,
+   `admin-disable-user-e2e-runner.smoke.js` 32/32 — todas
+   verdes. **Sem deploy, sem Supabase real, sem SQL, sem
+   produção, sem origin/main, sem PR #2 nesta fase.**
+   Próxima fase: validação manual/automatizada da UI em
+   staging.
+9. **Não avançar para produção** (`bhgifjrfagkzubpyqpew`) sem
    autorização explícita do HMNlead. Decisão de merge/release
    para `origin/main` é fase separada.
-9. Pendências técnicas remanescentes: log de migrations do dashboard
-   staging, warning de Tailwind CDN, favicon 404 — não bloqueantes.
+10. Pendências técnicas remanescentes: log de migrations do dashboard
+    staging, warning de Tailwind CDN, favicon 404 — não bloqueantes.
 
 ## Estrutura final de responsabilidades
 

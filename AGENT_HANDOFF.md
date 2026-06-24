@@ -8,18 +8,18 @@
 > Convenção: **tudo em português brasileiro**.
 
 ## Estado atual aceito
-- **Estado atual aceito:** `work/app-next @ 476cc70` — "Add auth
-  disable staging e2e runner" (fase
-  `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A`, runner
-  local automatizado de E2E staging). Commit da fase
-  `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-RUNNER-FIX-A` (correção
-  do tratamento do login bloqueado esperado) pendente de push em
-  staging.
-- **staging/main:** `476cc7064d3b330e23410a9d48afbece2a89f2cb`
+- **Estado atual aceito:** `work/app-next @ b25b67e` — "Fix auth
+  disable e2e banned login handling" (fase
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-RUNNER-FIX-A`, fix do
+  tratamento do login bloqueado esperado no runner). Commit da
+  fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A` (integração da
+  tela `#/cadastros/usuarios` com `admin-disable-user`) pendente
+  de push em staging.
+- **staging/main:** `b25b67eef6f5463b5e4378134a968574479e8fcf`
   (sincronizado com `work/app-next` antes do commit da fase
-  `E2E-RUNNER-FIX-A`).
+  `UI-A`).
 - **Working tree esperado:** **limpo** (após commit da fase
-  `E2E-RUNNER-FIX-A`).
+  `UI-A`).
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
   — **intocado** durante todo o ciclo de refactor/hardening.
 - **PR #2:** **intocado** durante todo o ciclo.
@@ -34,11 +34,27 @@
   rodam com `vm.runInContext` + `fakeSupa` mockado. A única
   leitura real feita pelo HMNlead fora do apply foi uma contagem
   `select count(*) from public.ops` manual em staging (4 OPs).
-- **Execução real do runner E2E em staging** (não-IAexec, manual
-  após autorização do HMNlead) avançou até `profile_inactive` na
-  fase `E2E-AUTO-RUNNER-A` e falhou em `login_blocked` com
-  `HTTP 400 User is banned` tratado como erro fatal. Classificado
-  como bug do runner e corrigido na fase `E2E-RUNNER-FIX-A`.
+- **E2E real do runner em staging** (não-IAexec, manual após
+  autorização do HMNlead) executado após o fix da fase
+  `E2E-RUNNER-FIX-A` e passou com **`result: PASS`** em staging
+  (`ucrjtfswnfdlxwtmxnoo`). Evidência sanitizada: descartável
+  `disable-edge-e2e-20260624-115027@tapetes.test` /
+  user_id `d12b005e-d455-4f78-b401-59ebd9f971c5` desativado;
+  login bloqueado confirmado; `fornecedor_forbidden`,
+  `admin_disable`, `profile_inactive`, `login_blocked`,
+  `idempotency` e `self_disable_blocked` todos OK. Execução
+  parcial anterior (anterior ao fix) também desativou
+  `11c48a08-a8a6-48fb-8ddb-a6af1dba1667` em run interrompido
+  em `login_blocked` — fica apenas como referência histórica;
+  **nenhum** dos dois IDs é admin real. Ver LEDGER §5k.
+- **UI `#/cadastros/usuarios` agora integrada** com
+  `admin-disable-user` (fase
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`, esta). Botão
+  `Desativar` substitui placeholder `Em breve`; modal de
+  confirmação com motivo opcional (≤ 500 chars); mapeia 8
+  códigos de erro para mensagens PT-BR; guarda de UX para
+  self/inativos (proteção visual, server-side é a barreira
+  real).
 
 ## Estado operacional atual
 - `index.html` está declarativo, sem script inline final, com
@@ -81,12 +97,12 @@ git ls-remote --heads origin main
 
 Abortar e revisar o escopo se:
 - branch != `work/app-next`;
-- HEAD != `476cc70` (ou, no meio da fase E2E-RUNNER-FIX-A, antes
+- HEAD != `b25b67e` (ou, no meio da fase UI-A, antes
   do push, o hash do commit que será gerado);
 - working tree não estiver limpo;
-- `staging/main` != `476cc7064d3b330e23410a9d48afbece2a89f2cb`
-  (antes do push da fase E2E-RUNNER-FIX-A) ou um commit
-  `E2E-RUNNER-FIX-A` que ainda não foi propagado;
+- `staging/main` != `b25b67eef6f5463b5e4378134a968574479e8fcf`
+  (antes do push da fase UI-A) ou um commit `UI-A` que ainda
+  não foi propagado;
 - `origin/main` != `1047181eba888242c6428de366cbd9fda2f1c72c`
   (qualquer mudança em `origin/main` é regressão grave).
 
@@ -395,7 +411,7 @@ Fases, em ordem:
      `.gitignore` agora ignora `.ravatex-local/`. **E2E real
      não foi rerodado após o fix** — fica para a próxima
      (`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-A` ou similar).
-11b. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-RUNNER-FIX-A`**
+ 11b. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-RUNNER-FIX-A`**
      *(esta fase, repo-only)* — correção do bug do runner no
      passo `login_blocked`. Execução real do runner em staging
      avançou até `profile_inactive` e falhou com
@@ -423,6 +439,42 @@ Fases, em ordem:
      HMNlead. **Sem deploy, sem Supabase real, sem SQL, sem
      alteração de UI, sem produção, sem origin/main, sem PR
      #2.**
+ 11c. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`** *(esta
+     fase, repo-only)* — integração da tela
+     `#/cadastros/usuarios` com a Edge Function
+     `admin-disable-user` (já deployada em staging
+     `ucrjtfswnfdlxwtmxnoo`). Botão `Desativar` substitui o
+     placeholder `Em breve`; chama
+     `window.supa.functions.invoke('admin-disable-user', {
+     body: { user_id: usr.id, reason } })`; modal de
+     confirmação com campo de motivo opcional (≤ 500 chars,
+     default `"Desativação via UI"`); mapeia 8 códigos de erro
+     (`FORBIDDEN`/`SELF_DISABLE_FORBIDDEN`/
+     `LAST_ADMIN_FORBIDDEN`/`NOT_FOUND`/`AUTH_BAN_FAILED`/
+     `COMPENSATION_FAILED`/`VALIDATION_ERROR`/`UNAUTHORIZED`)
+     para mensagens PT-BR; guarda de UX para o próprio usuário
+     logado e para usuários já inativos (proteção visual, não
+     substitui server-side); coluna `Status` na listagem
+     (`Ativo`/`Inativo`). Helper top-level
+     `friendlyDisableMessage(code, fallback)` no
+     `js/screens/cadastros.js`. Preserva `+ Novo usuário` e a
+     chamada `admin-create-user`. **Sem deploy, sem Supabase
+     real, sem SQL, sem produção, sem origin/main, sem PR
+     #2, sem E2E real nesta fase.** E2E real do runner já
+     havia passado em `result: PASS` em staging ANTES desta
+     fase (evidência sanitizada em LEDGER §5k). Smoke
+     `tests/cadastros-usuarios-auth-ui.smoke.js` 23/23 verde
+     (+7 testes novos para a fase UI-A: botão `Desativar`
+     substitui `Em breve`, chamada `admin-disable-user` com
+     payload `user_id`+`reason`, leitura de
+     `error.context.json`, tratamento dos 8 códigos, guarda
+     de UX para self e inativo, coluna Status, preservação
+     de `+ Novo usuário` e `admin-create-user`); regressões
+     focais `tests/cadastros-screens.smoke.js` 32/32,
+     `tests/admin-disable-user.smoke.js` 39/39,
+     `tests/admin-create-user.smoke.js` 17/17,
+     `tests/admin-disable-user-e2e-runner.smoke.js` 32/32 —
+     todas verdes.
 12. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`** *(futura)* — restaurar
     botão "Desativar" na UI quando Edge Function estiver
     deployada e validada em staging.

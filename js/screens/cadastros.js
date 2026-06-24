@@ -6,6 +6,20 @@
 // <script> inline de index.html sem alterar comportamento, tabelas
 // Supabase, CRUD ou regras de negocio.
 //
+// A tela #/cadastros/usuarios integra a Edge Function
+// `admin-disable-user` (fase RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A):
+//   - botão "Desativar" substitui o placeholder "Em breve";
+//   - chama a Edge Function de desativação via functions.invoke,
+//     enviando user_id e reason no body;
+//   - mapeia códigos de erro (FORBIDDEN, SELF_DISABLE_FORBIDDEN,
+//     LAST_ADMIN_FORBIDDEN, NOT_FOUND, AUTH_BAN_FAILED,
+//     COMPENSATION_FAILED, etc.) para mensagens PT-BR;
+//   - guarda de UX para o próprio usuário logado e usuários já
+//     inativos (proteção visual, não substitui a checagem
+//     server-side);
+//   - nunca usa .delete() em public.usuarios, nunca expõe a chave
+//     de privilégio admin nem usa APIs de admin no front.
+//
 // Carregar via <script src="js/screens/cadastros.js"></script> no
 // <head>, DEPOIS de js/screens/common.js e ANTES do script inline
 // principal (o setRoutes do inline referencia as globais legadas
@@ -40,6 +54,32 @@
 
   function labelFornecedorTipo(tipo) {
     return FORNECEDOR_TIPOS.find(t => t.value === tipo)?.label || tipo;
+  }
+
+  // Mapeia códigos de erro da Edge Function `admin-disable-user` para
+  // mensagens amigáveis em PT-BR usadas pelo toast da UI. Mantém
+  // fallback para a mensagem original ou um genérico.
+  function friendlyDisableMessage(code, fallback) {
+    switch (code) {
+      case 'FORBIDDEN':
+        return 'Usuário atual não tem permissão para desativar usuários.';
+      case 'SELF_DISABLE_FORBIDDEN':
+        return 'Você não pode desativar seu próprio usuário.';
+      case 'LAST_ADMIN_FORBIDDEN':
+        return 'Não é possível desativar o último admin ativo.';
+      case 'NOT_FOUND':
+        return 'Usuário não encontrado.';
+      case 'AUTH_BAN_FAILED':
+        return 'Falha operacional ao banir o usuário. O perfil foi revertido.';
+      case 'COMPENSATION_FAILED':
+        return 'Falha operacional grave. A reversão do perfil também falhou — reporte ao suporte.';
+      case 'VALIDATION_ERROR':
+        return 'Dados inválidos para desativação.';
+      case 'UNAUTHORIZED':
+        return 'Sessão expirada. Faça login novamente.';
+      default:
+        return fallback || 'Erro ao desativar usuário';
+    }
   }
 
   // -------------------------------------------------------------------
@@ -483,7 +523,10 @@
 
     async function reload() {
       const [usersRes, fornsRes] = await Promise.all([
-        window.supa.from('usuarios').select('id, email, nome, tipo, fornecedor:fornecedor_id(id, nome, tipo)').order('email'),
+        window.supa
+          .from('usuarios')
+          .select('id, email, nome, tipo, ativo, desativado_em, fornecedor:fornecedor_id(id, nome, tipo)')
+          .order('email'),
         window.supa.from('fornecedores').select('id, nome, tipo').order('nome')
       ]);
       if (usersRes.error || fornsRes.error) { window.toast('Erro ao carregar', 'error'); console.error(usersRes.error || fornsRes.error); return; }
@@ -491,6 +534,7 @@
     }
 
     function render(users, forns) {
+      const meId = (window.CURRENT_USER && window.CURRENT_USER.id) || null;
       container.replaceChildren(
         window.pageHeader('Usuários', [{ label: '+ Novo usuário', onclick: () => openModal(null, forns) }]),
         window.dataTable({
@@ -499,14 +543,83 @@
             { key: 'nome', label: 'Nome' },
             { key: 'tipo', label: 'Tipo' },
             { key: 'fornecedor', label: 'Fornecedor', render: (r) => r.fornecedor?.nome || '—' },
+            { key: 'status', label: 'Status', render: (r) => r.ativo === false ? 'Inativo' : 'Ativo' },
           ],
           rows: users,
           actions: [
             { label: 'Editar', onclick: (r) => openModal(r, forns) },
-            { label: 'Em breve', class: 'text-gray-400 cursor-not-allowed', onclick: () => showDeleteBlocked() },
+            {
+              label: 'Desativar',
+              class: 'text-red-600 hover:underline',
+              onclick: (r) => handleDesativarClick(r, meId),
+            },
           ]
         })
       );
+    }
+
+    function handleDesativarClick(r, meId) {
+      // Guarda de UX (não substitui a checagem server-side).
+      if (r.ativo === false) {
+        window.toast('Usuário já está inativo.', 'info');
+        return;
+      }
+      if (meId && r.id === meId) {
+        window.toast('Você não pode desativar seu próprio usuário.', 'info');
+        return;
+      }
+      confirmDesativar(r);
+    }
+
+    function confirmDesativar(usr) {
+      const motivoInput = window.textInput({
+        type: 'text',
+        value: '',
+        placeholder: 'Opcional — ex.: fornecedor descartável de teste',
+      });
+      const body = window.el('div', {},
+        window.el('p', { class: 'text-sm text-gray-700 mb-3' },
+          'Desativar "' + usr.email + '"? O perfil será marcado como inativo e o login no Auth será bloqueado. Esta ação pode ser revertida por outro admin.'),
+        window.formField({
+          label: 'Motivo (opcional)',
+          input: motivoInput,
+          hint: 'Será registrado em public.usuarios.motivo_desativacao (até 500 caracteres).',
+        })
+      );
+      window.modal({
+        title: 'Desativar usuário',
+        body,
+        saveLabel: 'Desativar',
+        onSave: async () => {
+          const reason = (motivoInput.value || '').trim().slice(0, 500);
+          await desativarUsuario(usr, reason || 'Desativação via UI');
+        },
+      });
+    }
+
+    async function desativarUsuario(usr, reason) {
+      const { error } = await window.supa.functions.invoke('admin-disable-user', {
+        body: { user_id: usr.id, reason },
+      });
+      if (error) {
+        let code = null;
+        let msg = (error && error.message) ? error.message : 'Erro ao desativar usuário';
+        try {
+          if (error && error.context && typeof error.context.json === 'function') {
+            const body = await error.context.json();
+            if (body && body.error) {
+              code = body.error.code || null;
+              if (body.error.message) msg = body.error.message;
+            }
+          }
+        } catch (_) { /* ignore body parse errors */ }
+        const friendly = friendlyDisableMessage(code, msg);
+        window.toast(friendly, 'error');
+        console.error('admin-disable-user error', code, error);
+        return;
+      }
+      window.toast('Usuário desativado', 'success');
+      reload();
     }
 
     function openModal(usr, forns) {
@@ -628,10 +741,6 @@
           reload();
         },
       });
-    }
-
-    function showDeleteBlocked() {
-      window.toast('Exclusão/desativação de usuários está temporariamente bloqueada. Use o Supabase Auth Dashboard para limpeza de testes em staging até a implementação do fluxo seguro.', 'info');
     }
 
     await reload();

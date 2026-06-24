@@ -566,11 +566,11 @@ test('20. screenCadastrosUsuarios preserva uso de labelFornecedorTipo', async ()
 // inconsistência que a Edge Function admin-create-user resolveu).
 // =====================================================================
 
-test('20a. screenCadastrosUsuarios: contém placeholder "Em breve" e mensagem de bloqueio', async () => {
+test('20a. screenCadastrosUsuarios: tem botão "Desativar" (não mais placeholder "Em breve")', async () => {
   const { sandbox } = makeCadastrosSandbox({
     tableData: {
       usuarios: [
-        { id: 'u-1', email: 'a@b.c', nome: 'Ana', tipo: 'admin', fornecedor: null },
+        { id: 'u-1', email: 'a@b.c', nome: 'Ana', tipo: 'admin', ativo: true, fornecedor: null },
       ],
       fornecedores: [],
     },
@@ -580,8 +580,13 @@ test('20a. screenCadastrosUsuarios: contém placeholder "Em breve" e mensagem de
   const flex = node.children.find((c) => c.tagName === 'DIV');
   const main  = flex && flex.children.find((c) => c.tagName === 'MAIN');
   const rendered = textOf(main);
-  assert.match(rendered, /Em breve/);
+  // Botão Desativar deve aparecer como ação da linha.
+  assert.match(rendered, /Desativar/);
+  // Placeholder antigo não deve mais aparecer como ação primária.
+  assert.doesNotMatch(rendered, /Em breve/);
   assert.doesNotMatch(rendered, /Excluir v[íi]nculo/);
+  // Coluna Status deve aparecer (Ativo/Inativo).
+  assert.match(rendered, /Ativo/);
 });
 
 test('20b. cadastros.js: fluxo de usuários não tem .from("usuarios").delete()', () => {
