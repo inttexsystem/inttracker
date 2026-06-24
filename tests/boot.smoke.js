@@ -398,3 +398,39 @@ test('20. window.routes populado corretamente após o boot completo', () => {
       `rota ${rota} não está em window.routes após boot`);
   }
 });
+
+// -------------------------------------------------------------------------
+// 6. Rota dinâmica #/pedidos/<uuid> (RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A)
+// -------------------------------------------------------------------------
+
+test('21. matchRoute dinâmico #/pedidos/<uuid> resolve para screenPedidoDetalhe (admin-only)', () => {
+  const { sandbox } = makeBootChainSandbox();
+  // mocka screenPedidoDetalhe no sandbox (a chain não carrega o módulo)
+  vm.runInContext('window.screenPedidoDetalhe = function(id) { return Promise.resolve(id); };', sandbox);
+  const uuid = '11111111-2222-3333-4444-555555555555';
+  const match = vm.runInContext(`window.matchRoute('#/pedidos/${uuid}')`, sandbox);
+  assert.ok(match, 'matchRoute não resolveu rota dinâmica #/pedidos/<uuid>');
+  assert.equal(typeof match.render, 'function', 'render de #/pedidos/<uuid> não é função');
+  // Compara via JSON para atravessar o vm context boundary.
+  const rolesJson = vm.runInContext(`JSON.stringify(window.matchRoute('#/pedidos/${uuid}').roles)`, sandbox);
+  assert.equal(rolesJson, '["admin"]', 'roles de #/pedidos/<uuid> deve ser ["admin"]');
+  // Executa o render e verifica que screenPedidoDetalhe foi chamado com o UUID.
+  const returned = vm.runInContext(`window.matchRoute('#/pedidos/${uuid}').render()`, sandbox);
+  // O mock resolve com o id; o resultado é uma Promise resolvida.
+  return returned.then((val) => {
+    assert.equal(val, uuid, 'render de #/pedidos/<uuid> deve chamar screenPedidoDetalhe com o UUID');
+  });
+});
+
+test('22. matchRoute dinâmico #/pedidos/<uuid> rejeita IDs não-UUID', () => {
+  const { sandbox } = makeBootChainSandbox();
+  vm.runInContext('window.screenPedidoDetalhe = function() {};', sandbox);
+  // IDs não-UUID não devem casar.
+  for (const badId of ['42', 'abc', '12345', 'not-a-uuid', '11111111-2222-3333-4444']) {
+    const m = vm.runInContext(`window.matchRoute('#/pedidos/${badId}')`, sandbox);
+    assert.equal(m, null, `#/pedidos/${badId} não deve casar rota dinâmica`);
+  }
+  // Garante que a rota estática `#/pedidos/novo` ainda resolve exato.
+  const novo = vm.runInContext(`window.matchRoute('#/pedidos/novo')`, sandbox);
+  assert.ok(novo, '#/pedidos/novo deve continuar resolvendo pela rota estática');
+});

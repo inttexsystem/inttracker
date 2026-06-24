@@ -9,12 +9,12 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PEDIDOS-SCHEMA-APPLY-RECORD-A` (registro de
-  aplicação). Schema `db/13_pedidos_schema.sql` já aplicado em
-  `ucrjtfswnfdlxwtmxnoo`. Frontend não implementado (próxima fase).
-- **HEAD aceito atual:** `62a9f9a` ("Add pedidos admin form").
-- **staging/main:** `62a9f9a`
-- **Working tree:** limpo.
+  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A` (detalhe admin read-only
+  do Pedido entregue).
+- **HEAD aceito atual:** `2de595c` (após push desta fase, o HEAD
+  da fase C3A — "Add pedido admin detail view").
+- **staging/main:** `2de595c` (será atualizado com o push desta fase).
+- **Working tree:** limpo após commit.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
 - **⚠️ NÃO CHAMAR `ucrjtfswnfdlxwtmxnoo` DE "PRODUÇÃO ORIGINAL".**
@@ -25,11 +25,24 @@
 - **Schema Pedidos** `db/13_pedidos_schema.sql` aplicado em
   `ucrjtfswnfdlxwtmxnoo`: tabelas `pedidos`, `pedido_itens`,
   `pedido_eventos` e `lotes.pedido_id` (nullable). RLS admin-only.
-  Sem policy pública. Sem `pedidos.op_id`. Frontend não implementado.
+  Sem policy pública. Sem `pedidos.op_id`.
+- **Frontend Pedidos entregue (C1 + C2 + C2-R1 + C3A):**
+  listagem `#/pedidos`, formulário `#/pedidos/novo` (cria pedido
+  + itens como `rascunho`), correção de bug do preview de cor
+  (slot fixo + `updatePreview()`) e **detalhe read-only**
+  `#/pedidos/<uuid>`. Helper `pedido-ui.js` com status, badges
+  e preview de cor. Sem geração de OP, sem lote, sem token
+  público. Detalhe read-only estrito: SELECT-only em `pedidos`
+  (com join aninhado `cliente:cliente_id(...)`), `pedido_itens`,
+  `modelos`, `cores`; sem insert/update/delete/rpc, sem
+  `functions.invoke`, sem `token_acesso`, sem `service_role`,
+  sem rota pública, sem mutação em `lotes`/`pedido_eventos`,
+  sem schema, sem OP, sem Edge Function, sem fornecedor.
 
 ## Estado operacional atual
 - `index.html` está declarativo, sem script inline final, com
-  cache-busting `?v=20260623-asset1` em 23 assets locais.
+  cache-busting `?v=20260623-asset1` em 24 assets locais
+  (23 originais + `js/screens/pedido-detail.js` adicionado em C3A).
 - `js/boot.js` é o entrypoint oficial; respeita DOM ready
   (`startApp` aguarda `DOMContentLoaded` se
   `document.readyState === 'loading'`).
@@ -161,16 +174,26 @@ Abortar e revisar o escopo se:
 ## Próxima recomendação operacional
 
 **Refactor arquitetural continua congelado.**
-**Pedidos C1 + C2 + C2-R1 entregues:** listagem `#/pedidos`,
-formulário `#/pedidos/novo` (cria pedido + itens como `rascunho`),
-e correção de bug no preview de cor do item (slot fixo +
-`updatePreview()` com `replaceChildren`). Helper `pedido-ui.js`
-com status e preview de cor. Sem geração de OP, sem lote, sem
-token público. Limitação: sem RPC/transação atômica (documentada
-no código).
-**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3` (detalhe
-admin do Pedido + edição/cancelamento), **somente com autorização
-explícita** do HMNlead.
+**Pedidos C1 + C2 + C2-R1 + C3A entregues:** listagem
+`#/pedidos`, formulário `#/pedidos/novo` (cria pedido + itens
+como `rascunho`), correção de bug no preview de cor do item
+(slot fixo + `updatePreview()` com `replaceChildren`) e
+**detalhe read-only** `#/pedidos/<uuid>` (`pedido-detail.js`
+com `screenPedidoDetalhe`, `js/router.js` estendido com
+match dinâmico `^#/pedidos/<uuid>$` admin-only, botão
+"Visualizar" da listagem navegando para o detalhe). Helper
+`pedido-ui.js` com status, badges e preview de cor. Sem
+geração de OP, sem lote, sem token público. Detalhe read-only
+estrito: SELECT-only em `pedidos`/`pedido_itens`/`modelos`/
+`cores`; sem insert/update/delete/rpc, sem `functions.invoke`,
+sem `token_acesso`, sem `service_role`, sem rota pública, sem
+mutação em `lotes`/`pedido_eventos`, sem schema, sem OP, sem
+Edge Function, sem fornecedor. Limitação conhecida do
+formulário: sem RPC/transação atômica (compensação manual
+documentada no código).
+**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3B`
+(adição de ações reais: editar/cancelar/confirmar/receber do
+Pedido), **somente com autorização explícita** do HMNlead.
 **Não iniciar execução sem autorização explícita.**
 **NÃO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**
 
@@ -394,7 +417,7 @@ projeto:
 - **Não remover `getAppRoot()`** de `js/ui.js` (proteção contra
   `replaceChildren null` no boot).
 
-## Resumo do refactor (21 módulos extraídos)
+## Resumo do refactor (24 módulos extraídos)
 
 | # | Módulo | Commit | Fase |
 |---|---|---|---|
@@ -412,15 +435,29 @@ projeto:
 | 12 | `js/screens/fornecedor.js` | `4b9ca12` | FORNECEDOR-SCREENS-MODULE-A |
 | 13 | `js/screens/op-form-helpers.js` | `c480324` | OP-FORM-HELPERS-MODULE-A |
 | 14 | `js/screens/op-writes.js` | `ab79f1c` (+ `1429950`) | OP-ORDER-WRITE-MODULE-A (+ OP-FORNECEDOR-WRITE-MODULE-A) |
-| 15 | `js/screens/op-latex-admin.js` | `69c0036` | OP-LATEX-ADMIN-MODULE-A |
+| 15 | `js/screens/op-latex-admin.js` | `69c0036` | OP-LATEX-ADMIN-SCREEN-MODULE-A |
 | 16 | `js/screens/painel.js` | `065a796` | SCREENPAINEL-MODULE-A |
 | 17 | `js/screens/op-recalculo.js` | `c599c21` (+ `4ce5080`) | OP-RECALCULO-HELPERS-MODULE-A (+ OP-RECALCULO-WRITES-MODULE-A) |
 | 18 | `js/screens/op-persistir.js` | `8fd4dd2` (+ `cac20f9`) | OP-PERSISTIR-HELPERS-MODULE-A (+ OP-PERSISTIR-WRITES-MODULE-A) |
 | 19 | `js/screens/op-nova.js` | `ce3dd14` | SCREENNOVAOP-MODULE-A |
 | 20 | `js/boot.js` | `4c18fe7` | ROUTES-BOOT-MODULE-A |
 | 21 | `js/screens/op-pdf.js` | `7f3c6da` | RAVATEX-TAPETES-OP-NOVA-PDF-MODULE-A |
+| 22 | `js/screens/pedidos-list.js` | `bf960f8` | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C1 |
+| 23 | `js/screens/pedido-form.js` | `62a9f9a` (+ `2de595c`) | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2 (+ C2-R1) |
+| 24 | `js/screens/pedido-detail.js` | (commit desta fase) | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A |
 
 ## Testes recentes (focados passando)
+- `pedido-detail.smoke.js` — 30/30
+- `pedido-form.smoke.js` — 35/35
+- `pedido-ui.test.js` — 18/18
+- `pedidos-list.smoke.js` — 29/29
+- `pedidos-schema.smoke.js` — 41/41
+- `boot.smoke.js` — 22/22
+- `router.smoke.js` — 34/34
+- **Total Pedidos (C1+C2+C2-R1+C3A): 209/209** (todos os focados
+  passam).
+
+Focados do refactor (mantidos verdes):
 - `op-pdf.smoke.js` — 20/20
 - `op-nova.smoke.js` — 30/30
 - `op-recalculo.smoke.js` — 59/59
@@ -428,16 +465,16 @@ projeto:
 - `op-writes.smoke.js` — 49/49
 - `op-latex-admin.smoke.js` — 30/30
 - `op-form-helpers.smoke.js` — 36/36
-- `boot.smoke.js` — 54/54
-- `router.smoke.js` — 34/34
 - `painel-screen.smoke.js` — 16/16
 - `fornecedor-screens.smoke.js` — 35/35
-- **Total:** 388/388
 
 Pré-existentes dependentes de `http.server :8765`: 6 falhas em
 `tests/index-inline.smoke.js` e 17 em `tests/write-guard.smoke.js`
 — não relacionadas ao refactor; exigem servidor local
 (`.\run-local.bat` ou `python -m http.server 8765`).
+Falhas pré-existentes em `tests/ops-list-screen.smoke.js` (10/30)
+são de testes do refactor monolítico antigo, **fora do escopo**
+da fase `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A`.
 
 ## Comandos seguros por fase
 

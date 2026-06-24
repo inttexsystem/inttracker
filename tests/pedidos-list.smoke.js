@@ -234,22 +234,34 @@ test('pedidos-list.js: NÃO contém service_role / SUPERUSER', () => {
 // ---------------------------------------------------------------------
 
 test('pedidos-list.js: tem placeholder "Novo pedido" e "Visualizar"', () => {
-  // Botão "Novo pedido" no pageHeader com toast "em breve"/"próxima fase"
+  // Botão "Novo pedido" no pageHeader
   assert.match(
     screen,
     /\+\s*Novo pedido|"Novo pedido"|'Novo pedido'/,
     'botão Novo pedido deve existir'
-  );
-  assert.match(
-    screen,
-    /(pr[óo]xima fase|em breve)/i,
-    'placeholder de "próxima fase" ou "em breve" deve existir para ações desabilitadas'
   );
   // Ação "Visualizar" por linha
   assert.match(
     screen,
     /'Visualizar'|"Visualizar"/,
     'ação Visualizar deve existir por linha'
+  );
+});
+
+test('pedidos-list.js: ação "Visualizar" navega para "#/pedidos/<id>" (C3A)', () => {
+  // Após C3A, o botão "Visualizar" navega para o detalhe do pedido
+  // (não exibe mais toast placeholder). O id vem do row.id.
+  assert.match(
+    screen,
+    /'Visualizar'[\s\S]{0,300}?navigate\(\s*['"]#\/pedidos\/['"]?\s*\+\s*row\.id/,
+    'ação Visualizar deve navegar para "#/pedidos/" + row.id'
+  );
+  // Defesa: o toast placeholder "Detalhe do pedido será implementado"
+  // não pode mais existir (foi substituído pela navegação real).
+  assert.doesNotMatch(
+    screen,
+    /Detalhe do pedido ser[áa] implementado/i,
+    'toast placeholder "Detalhe do pedido será implementado" deve ter sido removido'
   );
 });
 

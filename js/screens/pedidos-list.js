@@ -143,7 +143,7 @@
             actions: [
               {
                 label: 'Visualizar',
-                onclick: () => window.toast('Detalhe do pedido será implementado em fase futura.', 'info'),
+                onclick: (row) => window.navigate('#/pedidos/' + row.id),
               },
             ],
           });

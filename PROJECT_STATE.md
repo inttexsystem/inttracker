@@ -1,13 +1,15 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2-R1` — correção de bug
-> no preview de cor do formulário de Pedido).
-> **Frontend correção pequena.** Bug corrigido: `row.insertBefore(
-> previewSlot, metrosInput)` substituído por slot fixo + função
-> `updatePreview()` que usa `replaceChildren()`. Sem schema, sem
-> SQL, sem Edge Function, sem OP. Schema `db/13_*` permanece
-> aplicado em `ucrjtfswnfdlxwtmxnoo`.
+> `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A` — detalhe admin read-only
+> do Pedido).
+> **Frontend read-only.** Tela `#/pedidos/<uuid>` exibe pedido,
+> cliente, itens, modelos e cores em modo somente leitura. Botões
+> Editar/Cancelar/Receber são placeholders desabilitados. Join
+> Supabase via select aninhado (`cliente:cliente_id(...)`) +
+> consultas separadas para modelos/cores (sem RPC, sem Edge
+> Function, sem token público, sem schema, sem OP, sem lote).
+> Schema `db/13_*` permanece aplicado em `ucrjtfswnfdlxwtmxnoo`.
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
@@ -40,14 +42,11 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
-- **HEAD atual aceito:** commit desta fase — "Record auth disable
-  UI validation" (fase
-  `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-VALIDATION-CLOSEOUT-A`,
-  docs-only: registro da validação manual da UI em staging e
-  limpeza de documentação operacional no refactor ledger).
-  Antes desta fase: `2d750a5` (fase
-  `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-BROWSER-E2E-A`).
-- **staging/main:** `0be1745` (atualizado nesta fase).
+- **HEAD atual aceito:** commit desta fase — "Add pedido admin detail
+  view" (fase `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A`).
+  Antes desta fase: `2de595c` (fase
+  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2-R1`).
+- **staging/main:** `2de595c` (será atualizado com o push desta fase).
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — **intocado.**
 - **PR #2:** **intocado.**
 - **Working tree:** **limpo.**
@@ -65,7 +64,7 @@ final do `op-pdf.js` está CONGELADO.**
 
 Componentes estáveis:
 - `index.html` declarativo, sem script inline final, com cache-busting
-  `?v=20260623-asset1` em todos os 23 assets locais; CDNs externos
+  `?v=20260623-asset1` em todos os 24 assets locais; CDNs externos
   permanecem sem `?v=`.
 - `js/boot.js` é o entrypoint oficial e respeita `DOM ready`
   (aguarda `DOMContentLoaded` quando `document.readyState === 'loading'`,
@@ -91,7 +90,7 @@ Componentes estáveis:
 3. `e0dbfcd` — Resolve app root lookup after DOM ready
    (`js/ui.js` introduz `getAppRoot()` para lookup lazy do `#app`).
 4. `5d5b395` — Add cache busting to local app assets
-   (`index.html` com `?v=20260623-asset1` em 23 assets locais;
+   (`index.html` com `?v=20260623-asset1` em 24 assets locais;
    CDNs externos preservados sem `?v=`).
 5. `RAVATEX-TAPETES-OP-NOVA-SEAMS-DIAG-A` (read-only, sem commit) —
    diagnóstico das seams de `op-nova.js`. Concluiu que
@@ -408,6 +407,37 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
   requer mudança de stack se for endereçar).
 - 🟡 GitHub Pages staging ainda pode ser tratado depois, se necessário
   para homologação pública.
+- 🟢 **Detalhe admin read-only do Pedido (`#/pedidos/<uuid>`)**
+  (fase `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A`): nova tela
+  `js/screens/pedido-detail.js` com `screenPedidoDetalhe(pedidoId)`;
+  resolve via match dinâmico estendido em `js/router.js`
+  (`^#/pedidos/<uuid>$`, admin-only, sem `public: true`);
+  carregado em `index.html` após `pedido-form.js` e antes de
+  `boot.js`; botão "Visualizar" de `js/screens/pedidos-list.js`
+  navega para `#/pedidos/<id>`. Conteúdo: cabeçalho com
+  número/status badge/cliente/prazo/criado em, dados gerais
+  (observação + atualizado em), tabela de itens com modelo, cor_1
+  /cor_2, largura, preview 48x48, metros e observação do item.
+  Ações: Voltar (funcional), Editar/Cancelar/Receber (placeholders
+  `disabled` com `title="Em breve"`). SELECT-only em `pedidos`
+  (com join aninhado `cliente:cliente_id(id, nome)`), `pedido_itens`,
+  `modelos`, `cores`. Sem insert/update/delete/rpc, sem
+  `functions.invoke`, sem `token_acesso`, sem `service_role`, sem
+  rota pública, sem mutação em `lotes`/`pedido_eventos`, sem
+  schema/SQL, sem OP, sem Edge Function, sem fornecedor.
+  Smoke estático `tests/pedido-detail.smoke.js` 30/30 verde.
+  Regressões focadas: `pedido-form` 35/35, `pedido-ui` 18/18,
+  `pedidos-list` 29/29, `pedidos-schema` 41/41, `boot` 22/22
+  (com 2 testes novos: `matchRoute('#/pedidos/<uuid>')` resolve
+  para `screenPedidoDetalhe` admin-only; IDs não-UUID não casam),
+  `router` 34/34. **Total: 209/209 verdes** (focados).
+  Falhas pré-existentes em `tests/ops-list-screen.smoke.js` (10/30)
+  são de testes do refactor monolítico antigo, **fora do escopo**
+  desta fase. **Sem deploy, sem Supabase real, sem SQL, sem
+  produção, sem origin/main, sem PR #2 nesta fase.** Próxima fase
+  recomendada: `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3B` (adição de
+  ações reais de status/edição/cancelamento), **somente com
+  autorização explícita** do HMNlead.
 
 ## Próximo passo recomendado
 1. **Auth provisioning fechado em staging:** Edge Function
@@ -519,11 +549,30 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
    real passou. Produção `bhgifjrfagkzubpyqpew` e
    `origin/main` intocados. Detalhes em "Evidência da
    validação manual da UI em staging" acima.
-10. **Próxima etapa: decisão de release** para `origin/main` /
-    produção, **somente com autorização explícita** do HMNlead
-    (em fase separada). Pendências técnicas remanescentes:
-    log de migrations do dashboard staging, warning de
-    Tailwind CDN, favicon 404 — não bloqueantes.
+ 10. **Próxima etapa: decisão de release** para `origin/main` /
+     produção, **somente com autorização explícita** do HMNlead
+     (em fase separada). Pendências técnicas remanescentes:
+     log de migrations do dashboard staging, warning de
+     Tailwind CDN, favicon 404 — não bloqueantes.
+ 11. **Detalhe admin read-only do Pedido entregue** (fase
+     `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A`, esta). Nova tela
+     `js/screens/pedido-detail.js` com `screenPedidoDetalhe(pedidoId)`;
+     `js/router.js` estendido com match dinâmico `^#/pedidos/<uuid>$`
+     admin-only; `index.html` carrega o módulo após `pedido-form.js`
+     e antes de `boot.js`; botão "Visualizar" da listagem
+     `#/pedidos` navega para o detalhe. Conteúdo: cabeçalho
+     (número/status/cliente/prazo/criado em), dados gerais
+     (observação/atualizado em) e tabela de itens (modelo, cor_1
+     /cor_2, largura, preview 48x48, metros, observação do item).
+     Ações Voltar (real) e Editar/Cancelar/Receber (placeholders
+     `disabled` com `title="Em breve"`). Estritamente read-only:
+     sem insert/update/delete/rpc, sem `functions.invoke`, sem
+     `token_acesso`, sem `service_role`, sem rota pública, sem
+     mutação em `lotes`/`pedido_eventos`, sem schema, sem OP, sem
+     Edge Function, sem fornecedor. **Próxima fase recomendada**:
+     `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3B` (adição de ações
+     reais: editar/cancelar/confirmar/receber), **somente com
+     autorização explícita** do HMNlead.
 
 ## Estrutura final de responsabilidades
 
@@ -599,6 +648,30 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
 - 7 telas de cadastro + constantes `FORNECEDOR_TIPOS`,
   `labelFornecedorTipo`.
 
+### `js/screens/pedidos-list.js` — listagem de Pedidos (admin)
+- `screenPedidosLista` (read-only, com filtro por status).
+- Botão "Visualizar" navega para `#/pedidos/<id>` (C3A).
+
+### `js/screens/pedido-form.js` — formulário de criação de Pedido
+- `screenPedidoNovo` (criação admin de rascunho).
+- Composição: `pedidos.insert` + `pedido_itens.insert` (sem
+  transação atômica, compensação manual em caso de falha).
+- Preview de cor do item via slot fixo + `updatePreview()` (C2-R1).
+
+### `js/screens/pedido-detail.js` — detalhe admin read-only do Pedido
+- `screenPedidoDetalhe(pedidoId)` (C3A).
+- Resolve via match dinâmico em `js/router.js`:
+  `^#/pedidos/<uuid>$, admin-only, sem public: true`.
+- Carrega `pedidos` (com join aninhado `cliente:cliente_id(id, nome)`),
+  `pedido_itens`, `modelos` e `cores` (consultas separadas para
+  evitar joins frágeis no PostgREST).
+- Ações: Voltar (funcional), Editar/Cancelar/Receber
+  (placeholders `disabled` com `title="Em breve"`).
+- Estritamente read-only: sem insert/update/delete/rpc, sem
+  `functions.invoke`, sem `token_acesso`, sem `service_role`, sem
+  rota pública, sem mutação em `lotes`/`pedido_eventos`, sem
+  schema, sem OP, sem Edge Function, sem fornecedor.
+
 ### `js/screens/system-screens.js` — telas sistêmicas/login
 - `screenLogin`, `screenNotFound`, `screenForbidden`.
 
@@ -653,6 +726,13 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
 20. `js/boot.js` (commit `4c18fe7`, ROUTES-BOOT-MODULE-A).
 21. `js/screens/op-pdf.js` (commit `7f3c6da`,
     RAVATEX-TAPETES-OP-NOVA-PDF-MODULE-A).
+22. `js/screens/pedidos-list.js` (commit `bf960f8`,
+    RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C1).
+23. `js/screens/pedido-form.js` (commit `62a9f9a`,
+    RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2; corrigido em `2de595c`
+    RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2-R1).
+24. `js/screens/pedido-detail.js` (commit desta fase,
+    RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A).
 
 ## Estado dos módulos críticos (após `7f3c6da`)
 
@@ -726,6 +806,19 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
 - **ROUTES-BOOT-MODULE-A (`4c18fe7`):** 368/368 pass.
 - **RAVATEX-TAPETES-OP-NOVA-PDF-MODULE-A (`7f3c6da`):** 388/388 pass
   (regressão completa do refactor + novo `tests/op-pdf.smoke.js`).
+- **RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C1 (`bf960f8`):** testes focados
+  passando (listagem admin de Pedidos + helper `pedido-ui.js`).
+- **RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2 (`62a9f9a`):** testes focados
+  passando (formulário admin de criação de Pedido, sem RPC).
+- **RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2-R1 (`2de595c`):** testes focados
+  passando (correção do bug do preview de cor: slot fixo +
+  `updatePreview()` com `replaceChildren`).
+- **RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A (commit desta fase):** 209/209
+  pass nos testes focados (`pedido-detail` 30/30, `pedido-form` 35/35,
+  `pedido-ui` 18/18, `pedidos-list` 29/29, `pedidos-schema` 41/41,
+  `boot` 22/22, `router` 34/34). Falhas pré-existentes em
+  `ops-list-screen.smoke.js` (10/30) são do refactor monolítico
+  antigo, fora do escopo.
 
 ## Comandos seguros
 - `node --test tests/<arquivo>.smoke.js` — testes focados por fase.

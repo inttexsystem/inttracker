@@ -46,14 +46,26 @@
     else handleRoute();
   }
 
-  // Resolve rota: primeiro match exato, depois dinâmica #/ops/:id (id numérico).
+  // Resolve rota: primeiro match exato, depois dinâmica #/ops/:id (id numérico)
+  // e #/pedidos/:id (UUID).
   function matchRoute(hash) {
     if (_routes[hash]) return _routes[hash];
 
-    const m = String(hash || '').match(/^#\/ops\/(\d+)$/);
-    if (m) {
+    const mOps = String(hash || '').match(/^#\/ops\/(\d+)$/);
+    if (mOps) {
       return {
-        render: () => window.screenNovaOP(Number(m[1])),
+        render: () => window.screenNovaOP(Number(mOps[1])),
+        roles: ['admin'],
+      };
+    }
+
+    // Match dinâmico para detalhe de Pedido (read-only, UUID).
+    // Aceita UUIDs case-insensitive. Não conflita com `#/pedidos` ou
+    // `#/pedidos/novo` (que já são resolvidos pelo match exato acima).
+    const mPed = String(hash || '').match(/^#\/pedidos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
+    if (mPed) {
+      return {
+        render: () => window.screenPedidoDetalhe(mPed[1]),
         roles: ['admin'],
       };
     }
