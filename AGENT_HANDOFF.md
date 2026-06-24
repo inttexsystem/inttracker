@@ -8,8 +8,8 @@
 > Convenção: **tudo em português brasileiro**.
 
 ## Estado atual aceito
-- **Estado atual aceito:** `work/app-next @ 88aa4fb`.
-- **staging/main:** `88aa4fbbf9790739d923fd2bc6c0b114e06fb789`
+- **Estado atual aceito:** `work/app-next @ 3c9c424`.
+- **staging/main:** `3c9c4247ffd9d8f1a710ff17f03340b6d2508f3b`
   (sincronizado).
 - **Working tree esperado:** **limpo**.
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
@@ -63,9 +63,9 @@ git ls-remote --heads origin main
 
 Abortar e revisar o escopo se:
 - branch != `work/app-next`;
-- HEAD != `88aa4fb`;
+- HEAD != `3c9c424`;
 - working tree não estiver limpo;
-- `staging/main` != `88aa4fbbf9790739d923fd2bc6c0b114e06fb789`;
+- `staging/main` != `3c9c4247ffd9d8f1a710ff17f03340b6d2508f3b`;
 - `origin/main` != `1047181eba888242c6428de366cbd9fda2f1c72c`
   (qualquer mudança em `origin/main` é regressão grave).
 
@@ -83,9 +83,10 @@ Abortar e revisar o escopo se:
    Não rodar suíte completa por padrão.
 7. **Fase docs-only**: só `PROJECT_STATE.md`, `AGENT_HANDOFF.md`,
    `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`,
-   `docs/architecture/CODE_HEALTH_RULES.md` e
-   `docs/DOCUMENTATION_INDEX.md` podem ser alterados. Qualquer
-   diff fora desses 5 arquivos reprova.
+   `docs/architecture/CODE_HEALTH_RULES.md`,
+   `docs/DOCUMENTATION_INDEX.md` e
+   `docs/architecture/AUTH_DELETE_USER_DESIGN.md` podem ser
+   criados/alterados. Qualquer diff fora desses 6 arquivos reprova.
 8. **Não mexer** em `aplicarRecalculoOP` ou `persistirOP` sem
    nova fase explícita.
 9. **Não fazer docs + código na mesma fase.**
@@ -157,10 +158,15 @@ validados em staging (`ucrjtfswnfdlxwtmxnoo`). Bloqueio de
 fornecedor (403) confirmado.
 **Não voltar ao fluxo manual de UID** — o procedimento atual é o do
 runbook.
-**Próxima frente recomendada:** `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`
-(desenho de exclusão/desativação de usuários pelo app) ou decisão
-de release/merge para `origin/main` (somente com autorização
-explícita).
+**Delete/disable design:** `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`
+concluído. Recomendação: **desativar** usuários (soft delete no perfil
++ ban no Auth) em vez de deletar fisicamente. Exclusão atual do app
+("Excluir vínculo") só remove `public.usuarios` e deixa `auth.users`
+ativo — risco de Auth órfão. Botão deve ser restrito até fase de
+desativação.
+**Próxima fase recomendada:** `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`
+(schema para soft delete) ou `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A`
+(contenção imediata na UI).
 
 O ciclo de refactor arquitetural + hardening + extração final do
 `op-pdf.js` está **congelado**. Antes de iniciar qualquer novo
@@ -187,8 +193,14 @@ Fases, em ordem:
    `screenCadastrosUsuarios` para chamar a Edge Function. **Concluída.**
 4. **`RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A`** — documentar operação
    final (runbook). **Concluída.**
-5. **`RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`** *(futura)* —
-   decidir exclusão/desativação de usuários pelo app.
+5. **`RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`** — decidir
+   exclusão/desativação de usuários pelo app. **Concluída.**
+   Recomendação: desativar (soft delete + ban Auth), não deletar.
+   Design em `docs/architecture/AUTH_DELETE_USER_DESIGN.md`.
+6. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`** *(futura)* —
+   schema para coluna `ativo` e políticas RLS.
+7. **`RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A`** *(futura, opcional)* —
+   contenção imediata: remover botão "Excluir vínculo" da UI.
 
 ## Possíveis fases futuras opcionais (NÃO obrigatórias)
 

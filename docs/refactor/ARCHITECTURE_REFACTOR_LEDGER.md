@@ -2,11 +2,11 @@
 
 > Ledger de fases do refactor arquitetural de
 > `D:\OneDrive\Programação\Ravatex\controle-tapetes`.
-> Última atualização: 2026-06-24 (HEAD `d9d08be`,
-> fase `RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A` — runbook
-> operacional de criação de usuários publicado em
-> `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md`;
-> índice documental atualizado; docs canônicos sincronizados).
+> Última atualização: 2026-06-24 (HEAD `3c9c424`,
+> fase `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A` — design de
+> semântica de exclusão/desativação de usuários publicado em
+> `docs/architecture/AUTH_DELETE_USER_DESIGN.md`;
+> docs canônicos sincronizados).
 
 ## 1. Premissas corrigidas
 - **App estático**, não Next/Vercel.
@@ -93,7 +93,10 @@
 | AUTH-EDGE-DESIGN-A | `88aa4fb` | `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | aceito |
 | AUTH-EDGE-FUNCTION-A | `f6ac19b` | `supabase/functions/admin-create-user/index.ts`, `supabase/functions/admin-create-user/README.md`, `supabase/functions/_shared/cors.ts`, `supabase/functions/_shared/response.ts`, `supabase/README.md`, `tests/admin-create-user.smoke.js` | 17/17 smoke | aceito (sem deploy) |
 | AUTH-ADMIN-UI-A | (a criar) | `js/screens/cadastros.js`, `tests/cadastros-usuarios-auth-ui.smoke.js`, `tests/cadastros-screens.smoke.js` (assert de banner) | 12/12 + 17/17 | aceito |
-| AUTH-PROVISIONING-DOCS-A | (a criar) | `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md`, `docs/DOCUMENTATION_INDEX.md`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md` | docs-only | aceito |
+| AUTH-PROVISIONING-DOCS-A | `d9d08be` | `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md`, `docs/DOCUMENTATION_INDEX.md`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md` | docs-only | aceito |
+| AUTH-DELETE-USER-DESIGN-A | `3c9c424` | `docs/architecture/AUTH_DELETE_USER_DESIGN.md`, `docs/DOCUMENTATION_INDEX.md`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | aceito |
+| AUTH-DISABLE-USER-SCHEMA-A | (futura) | schema `ativo`, RLS, `loadCurrentUser` | — | pendente |
+| AUTH-DELETE-UI-GUARD-A | (futura, opcional) | `js/screens/cadastros.js` (remoção de botão) | — | pendente |
 
 ## 5. Ressalvas processuais aceitas em `FORNECEDOR-SCREENS-MODULE-A` (commit `4b9ca12`)
 
@@ -450,11 +453,16 @@ hardening + extração final está **congelado** em `7f3c6da`
 **Auth:** `RAVATEX-TAPETES-AUTH-EDGE-DESIGN-A`,
 `RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A`,
 `RAVATEX-TAPETES-AUTH-EDGE-STAGING-DEPLOY-A`,
-`RAVATEX-TAPETES-AUTH-ADMIN-UI-A` e
-`RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A` (runbook) estão
-**concluídos**. Teste fornecedor 403 confirmado em staging.
-Próxima fase: `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A` ou
-decisão de release.
+`RAVATEX-TAPETES-AUTH-ADMIN-UI-A`,
+`RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A` (runbook) e
+`RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A` (design de exclusão)
+estão **concluídos**. Teste fornecedor 403 confirmado em staging.
+Recomendação do design: desativar usuários (soft delete + ban Auth),
+não deletar fisicamente. Próxima fase:
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A` (schema) ou
+`RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A` (contenção de UI).
+**Pendência de decisão do HMNlead:** 7 perguntas listadas na seção 9
+do design (`docs/architecture/AUTH_DELETE_USER_DESIGN.md`).
 
 ## 10. Política de updates deste ledger
 

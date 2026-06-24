@@ -18,6 +18,7 @@ arquiteturais e de governança:
 | `PROJECT_STATE.md` (raiz) | Snapshot canônico curto. HEAD, staging, remotes, arquitetura atual, refactor congelado, pendências. |
 | `AGENT_HANDOFF.md` (raiz) | Resumo para próxima sessão de IA. Estado aceito, comandos de verificação, regras, proibições. |
 | `docs/architecture/CODE_HEALTH_RULES.md` | 18 regras vinculantes de saúde arquitetural. Toda nova fase deve respeitar. |
+| `docs/architecture/AUTH_DELETE_USER_DESIGN.md` | Design de semântica de exclusão/desativação de usuários. Recomendação: desativar (soft delete + ban Auth) em vez de deletar fisicamente. Fase `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`. |
 | `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | Histórico cronológico de fases do refactor. Lista de módulos extraídos, ressalvas, decisão de congelamento. |
 | `Guide-and-governance-rules.stxt` (raiz) | Governança geral do projeto para futuras sessões de ChatGPT. |
 

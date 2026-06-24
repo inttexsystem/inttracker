@@ -1,9 +1,9 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
-> Snapshot de estado canônico curto. Atualizado em **2026-06-23** (fase
-> `RAVATEX-TAPETES-AUTH-EDGE-DESIGN-A` — design da Edge Function de
-> provisionamento de usuários Auth + `public.usuarios`; mantém refactor
-> congelado e não altera código).
+> Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
+> `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A` — design de semântica de
+> exclusão/desativação de usuários; mantém refactor congelado e não
+> altera código).
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
@@ -31,8 +31,8 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
-- **HEAD atual aceito:** `88aa4fb` — "Design Supabase auth user provisioning".
-- **staging/main atual:** `88aa4fbbf9790739d923fd2bc6c0b114e06fb789`
+- **HEAD atual aceito:** `3c9c424` — "Design auth user deletion semantics".
+- **staging/main atual:** `3c9c4247ffd9d8f1a710ff17f03340b6d2508f3b`
   (sincronizado com `work/app-next`).
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
   — **intocado** durante todo o ciclo de refactor/hardening.
@@ -141,9 +141,15 @@ A próxima etapa é **homologação / release**, não nova extração.
   removido); bloqueio de fornecedor (403) confirmado em staging;
   runbook operacional publicado em
   `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md` (fase
-  `RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A`). Pendência aberta:
-  desenho de exclusão/desativação de usuários pelo app
-  (`RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`).
+  `RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A`).
+- 🟡 **Auth delete/disable design concluído.** Design de semântica de
+  exclusão/desativação documentado em
+  `docs/architecture/AUTH_DELETE_USER_DESIGN.md` (fase
+  `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`). Recomendação:
+  **desativar** (soft delete no perfil + ban no Auth) em vez de
+  deletar fisicamente. Próxima fase:
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A` (schema) ou
+  `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A` (contenção imediata).
 - 🟡 Staging mostra log `relation "supabase_migrations.schema_migrations"
   does not exist` (ruído do dashboard, não do app).
 - 🟡 Tailwind CDN ainda gera warning de produção (não bloqueante;
@@ -156,8 +162,11 @@ A próxima etapa é **homologação / release**, não nova extração.
    `admin-create-user`, UI `#/cadastros/usuarios` e runbook
    operacional publicados e validados. Bloqueio de fornecedor (403)
    confirmado.
-2. Decisão futura: `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`
-   (desenho de exclusão/desativação de usuários pelo app).
+2. **Auth delete/disable design concluído:**
+   `docs/architecture/AUTH_DELETE_USER_DESIGN.md`. Recomendação:
+   desativar usuários (soft delete + ban Auth) em vez de deletar
+   fisicamente. Botão "Excluir vínculo" atual deve ser restrito
+   (Alternativa E) até Edge Function de desativação ser implementada.
 3. Decisão separada sobre merge/release para `origin/main`
    (somente com autorização explícita).
 4. Pendências técnicas remanescentes: log de migrations do dashboard
