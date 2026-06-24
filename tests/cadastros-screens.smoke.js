@@ -558,6 +558,43 @@ test('20. screenCadastrosUsuarios preserva uso de labelFornecedorTipo', async ()
   assert.ok(rendered.includes('a@b.c'));
 });
 
+// =====================================================================
+// === RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A ==========================
+// Fase: RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A
+// Garante que a tela de usuários não oferece mais exclusão insegura
+// de perfil (que deixaria auth.users ativo e reintroduziria a
+// inconsistência que a Edge Function admin-create-user resolveu).
+// =====================================================================
+
+test('20a. screenCadastrosUsuarios: contém placeholder "Em breve" e mensagem de bloqueio', async () => {
+  const { sandbox } = makeCadastrosSandbox({
+    tableData: {
+      usuarios: [
+        { id: 'u-1', email: 'a@b.c', nome: 'Ana', tipo: 'admin', fornecedor: null },
+      ],
+      fornecedores: [],
+    },
+  });
+  const node = await vm.runInContext('window.screenCadastrosUsuarios()', sandbox);
+  assert.ok(node, 'render falhou');
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main  = flex && flex.children.find((c) => c.tagName === 'MAIN');
+  const rendered = textOf(main);
+  assert.match(rendered, /Em breve/);
+  assert.doesNotMatch(rendered, /Excluir v[íi]nculo/);
+});
+
+test('20b. cadastros.js: fluxo de usuários não tem .from("usuarios").delete()', () => {
+  // Garante que nenhuma parte do source executa delete em public.usuarios
+  // (o caminho inseguro de exclusão foi removido na fase
+  // RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A).
+  assert.equal(
+    /from\(\s*['"]usuarios['"]\s*\)\s*\.\s*delete\s*\(/.test(cadSrc),
+    false,
+    'cadastros.js ainda executa .from("usuarios").delete() — caminho inseguro de exclusão',
+  );
+});
+
 test('21. CRUD methods (insert/update/delete) chamados apenas no mock', async () => {
   // reload() é read-only (apenas select). Aqui exercitamos a tela
   // Cores (a mais simples) e validamos que as únicas chamadas

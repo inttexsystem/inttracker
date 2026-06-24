@@ -2,11 +2,11 @@
 
 > Ledger de fases do refactor arquitetural de
 > `D:\OneDrive\Programação\Ravatex\controle-tapetes`.
-> Última atualização: 2026-06-24 (HEAD `3c9c424`,
-> fase `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A` — design de
-> semântica de exclusão/desativação de usuários publicado em
-> `docs/architecture/AUTH_DELETE_USER_DESIGN.md`;
-> docs canônicos sincronizados).
+> Última atualização: 2026-06-24 (HEAD `42ffc91`,
+> fase `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A` — contenção imediata
+> na UI: `.from('usuarios').delete()` removido do front-end em
+> `js/screens/cadastros.js`; botão "Excluir vínculo" substituído por
+> placeholder "Em breve" com toast informativo.
 
 ## 1. Premissas corrigidas
 - **App estático**, não Next/Vercel.
@@ -95,8 +95,10 @@
 | AUTH-ADMIN-UI-A | (a criar) | `js/screens/cadastros.js`, `tests/cadastros-usuarios-auth-ui.smoke.js`, `tests/cadastros-screens.smoke.js` (assert de banner) | 12/12 + 17/17 | aceito |
 | AUTH-PROVISIONING-DOCS-A | `d9d08be` | `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md`, `docs/DOCUMENTATION_INDEX.md`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md` | docs-only | aceito |
 | AUTH-DELETE-USER-DESIGN-A | `3c9c424` | `docs/architecture/AUTH_DELETE_USER_DESIGN.md`, `docs/DOCUMENTATION_INDEX.md`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | aceito |
+| AUTH-DELETE-UI-GUARD-A | `42ffc91` | `js/screens/cadastros.js` (remove `.from('usuarios').delete()` + placeholder "Em breve"), `tests/cadastros-usuarios-auth-ui.smoke.js`, `tests/cadastros-screens.smoke.js`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | 16/16 + 32/32 | aceito |
 | AUTH-DISABLE-USER-SCHEMA-A | (futura) | schema `ativo`, RLS, `loadCurrentUser` | — | pendente |
-| AUTH-DELETE-UI-GUARD-A | (futura, opcional) | `js/screens/cadastros.js` (remoção de botão) | — | pendente |
+| AUTH-DISABLE-USER-EDGE-A | (futura) | `supabase/functions/admin-disable-user/index.ts` | — | pendente |
+| AUTH-DISABLE-USER-UI-A | (futura) | `js/screens/cadastros.js` (botão "Desativar" via Edge Function) | — | pendente |
 
 ## 5. Ressalvas processuais aceitas em `FORNECEDOR-SCREENS-MODULE-A` (commit `4b9ca12`)
 
@@ -454,13 +456,18 @@ hardening + extração final está **congelado** em `7f3c6da`
 `RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A`,
 `RAVATEX-TAPETES-AUTH-EDGE-STAGING-DEPLOY-A`,
 `RAVATEX-TAPETES-AUTH-ADMIN-UI-A`,
-`RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A` (runbook) e
-`RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A` (design de exclusão)
-estão **concluídos**. Teste fornecedor 403 confirmado em staging.
-Recomendação do design: desativar usuários (soft delete + ban Auth),
-não deletar fisicamente. Próxima fase:
-`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A` (schema) ou
-`RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A` (contenção de UI).
+`RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A` (runbook),
+`RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A` (design de exclusão) e
+`RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A` (contenção de UI) estão
+**concluídos**. Teste fornecedor 403 confirmado em staging.
+UI guard removeu o caminho inseguro `.from('usuarios').delete()` do
+front-end; botão "Excluir vínculo" substituído por placeholder
+"Em breve". Delete/disable seguro via Edge Function ainda não
+implementado. Próximas fases:
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A` (schema `ativo`) →
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` (Edge Function
+`admin-disable-user`) →
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A` (botão "Desativar").
 **Pendência de decisão do HMNlead:** 7 perguntas listadas na seção 9
 do design (`docs/architecture/AUTH_DELETE_USER_DESIGN.md`).
 

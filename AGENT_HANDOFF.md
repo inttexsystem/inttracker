@@ -8,8 +8,8 @@
 > Convenção: **tudo em português brasileiro**.
 
 ## Estado atual aceito
-- **Estado atual aceito:** `work/app-next @ 3c9c424`.
-- **staging/main:** `3c9c4247ffd9d8f1a710ff17f03340b6d2508f3b`
+- **Estado atual aceito:** `work/app-next @ 42ffc91`.
+- **staging/main:** `42ffc91affa195ad7afbf2645518647c3b7509bf`
   (sincronizado).
 - **Working tree esperado:** **limpo**.
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
@@ -63,9 +63,9 @@ git ls-remote --heads origin main
 
 Abortar e revisar o escopo se:
 - branch != `work/app-next`;
-- HEAD != `3c9c424`;
+- HEAD != `42ffc91`;
 - working tree não estiver limpo;
-- `staging/main` != `3c9c4247ffd9d8f1a710ff17f03340b6d2508f3b`;
+- `staging/main` != `42ffc91affa195ad7afbf2645518647c3b7509bf`;
 - `origin/main` != `1047181eba888242c6428de366cbd9fda2f1c72c`
   (qualquer mudança em `origin/main` é regressão grave).
 
@@ -162,11 +162,16 @@ runbook.
 concluído. Recomendação: **desativar** usuários (soft delete no perfil
 + ban no Auth) em vez de deletar fisicamente. Exclusão atual do app
 ("Excluir vínculo") só remove `public.usuarios` e deixa `auth.users`
-ativo — risco de Auth órfão. Botão deve ser restrito até fase de
-desativação.
+ativo — risco de Auth órfão.
+**UI guard:** `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A` concluída. O
+caminho `.from('usuarios').delete()` foi removido do front-end; o
+botão foi substituído por placeholder "Em breve" com toast
+informativo. Delete/disable seguro via Edge Function ainda não
+implementado.
 **Próxima fase recomendada:** `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`
-(schema para soft delete) ou `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A`
-(contenção imediata na UI).
+(schema `ativo` + RLS) → `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`
+(Edge Function `admin-disable-user`) → `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`
+(restaurar botão "Desativar" na UI).
 
 O ciclo de refactor arquitetural + hardening + extração final do
 `op-pdf.js` está **congelado**. Antes de iniciar qualquer novo
@@ -197,10 +202,18 @@ Fases, em ordem:
    exclusão/desativação de usuários pelo app. **Concluída.**
    Recomendação: desativar (soft delete + ban Auth), não deletar.
    Design em `docs/architecture/AUTH_DELETE_USER_DESIGN.md`.
-6. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`** *(futura)* —
-   schema para coluna `ativo` e políticas RLS.
-7. **`RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A`** *(futura, opcional)* —
-   contenção imediata: remover botão "Excluir vínculo" da UI.
+6. **`RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A`** — contenção
+   imediata: remover `.from('usuarios').delete()` do front-end e
+   substituir botão "Excluir vínculo" por placeholder "Em breve".
+   **Concluída.** Nenhum write Supabase exposto; nenhum `auth.admin`
+   no front; smoke tests 48/48 verdes.
+7. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`** *(futura)* —
+   schema para coluna `ativo`, `desativado_em`, `desativado_por` e
+   políticas RLS.
+8. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`** *(futura)* — Edge
+   Function `admin-disable-user` (soft delete no perfil + ban Auth).
+9. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`** *(futura)* — restaurar
+   botão "Desativar" na UI quando Edge Function estiver disponível.
 
 ## Possíveis fases futuras opcionais (NÃO obrigatórias)
 

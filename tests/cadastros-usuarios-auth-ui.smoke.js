@@ -85,3 +85,57 @@ test("cadastros.js: não referencia js/config.js", () => {
 test("cadastros.js: não referencia supabase/functions", () => {
   assert.doesNotMatch(src, /supabase\/functions/);
 });
+
+// =====================================================================
+// === RA VATEX-TAPETES-AUTH-DELETE-UI-GUARD-A =========================
+// FASE: RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A
+// Valida que o caminho inseguro de exclusão de usuário foi removido da
+// UI. A exclusão atual (apenas .from('usuarios').delete()) deixava
+// auth.users ativo e reintroduzia inconsistência operacional.
+// =====================================================================
+
+test("cadastros.js: não chama .from('usuarios').delete() no fluxo de exclusão de usuário", () => {
+  assert.doesNotMatch(
+    src,
+    /from\(\s*['"]usuarios['"]\s*\)\s*\.\s*delete\s*\(/,
+    "cadastros.js ainda executa .from('usuarios').delete() — caminho inseguro de exclusão deve estar removido",
+  );
+});
+
+test("cadastros.js: removeu confirmExcluir do fluxo de usuários", () => {
+  // confirmExcluir ainda é usado por outras telas de cadastro
+  // (Cores, Clientes, Modelos, Fornecedores, Preços), o que é
+  // intencional. Esta fase remove apenas o confirmExcluir do fluxo
+  // de USUÁRIOS. Validamos que dentro de screenCadastrosUsuarios não
+  // há nenhuma chamada a confirmExcluir, e que showDeleteBlocked
+  // substituiu o caminho.
+  const idx = src.indexOf("function screenCadastrosUsuarios()");
+  assert.ok(idx > 0, "screenCadastrosUsuarios não encontrada em cadastros.js");
+  const end = src.indexOf("}\n", src.indexOf("async function screenCadastrosUsuarios", idx));
+  // Pega o bloco até o próximo `async function` ou fim de arquivo.
+  const nextFn = src.indexOf("async function screenCadastros", idx + 1);
+  const bloco = src.slice(idx, nextFn > 0 ? nextFn : src.length);
+  assert.doesNotMatch(
+    bloco,
+    /confirmExcluir\s*\(/,
+    "confirmExcluir ainda é referenciada dentro de screenCadastrosUsuarios",
+  );
+  assert.match(
+    bloco,
+    /function\s+showDeleteBlocked\s*\(/,
+    "showDeleteBlocked não foi definida em screenCadastrosUsuarios",
+  );
+});
+
+test("cadastros.js: removeu botão 'Excluir vínculo' e adicionou placeholder informativo", () => {
+  assert.doesNotMatch(src, /Excluir v[íi]nculo/);
+  assert.match(src, /'Em breve'/);
+});
+
+test("cadastros.js: mensagem de bloqueio de exclusão está presente", () => {
+  assert.match(
+    src,
+    /Exclus[ãa]o\/desativa[çc][ãa]o de usu[áa]rios est[áa] temporariamente bloqueada/,
+  );
+  assert.match(src, /Supabase Auth Dashboard/);
+});

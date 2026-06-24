@@ -1,9 +1,10 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A` — design de semântica de
-> exclusão/desativação de usuários; mantém refactor congelado e não
-> altera código).
+> `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A` — contenção imediata na UI
+> da exclusão insegura de usuário; removeu caminho
+> `.from('usuarios').delete()` do front-end e adicionou placeholder
+> "Em breve").
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
@@ -31,8 +32,8 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
-- **HEAD atual aceito:** `3c9c424` — "Design auth user deletion semantics".
-- **staging/main atual:** `3c9c4247ffd9d8f1a710ff17f03340b6d2508f3b`
+- **HEAD atual aceito:** `42ffc91` — "Design auth user deletion semantics".
+- **staging/main atual:** `42ffc91affa195ad7afbf2645518647c3b7509bf`
   (sincronizado com `work/app-next`).
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
   — **intocado** durante todo o ciclo de refactor/hardening.
@@ -150,6 +151,14 @@ A próxima etapa é **homologação / release**, não nova extração.
   deletar fisicamente. Próxima fase:
   `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A` (schema) ou
   `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A` (contenção imediata).
+- 🟡 **UI guard aplicada.** Exclusão insegura de usuário
+  (`.from('usuarios').delete()`) foi removida do front-end em
+  `js/screens/cadastros.js` (fase
+  `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A`). O botão "Excluir vínculo"
+  foi substituído por placeholder "Em breve" que exibe toast
+  informativo orientando a usar o Supabase Auth Dashboard para limpeza
+  de testes. Delete/disable seguro via Edge Function ainda não
+  implementado.
 - 🟡 Staging mostra log `relation "supabase_migrations.schema_migrations"
   does not exist` (ruído do dashboard, não do app).
 - 🟡 Tailwind CDN ainda gera warning de produção (não bloqueante;
@@ -167,7 +176,11 @@ A próxima etapa é **homologação / release**, não nova extração.
    desativar usuários (soft delete + ban Auth) em vez de deletar
    fisicamente. Botão "Excluir vínculo" atual deve ser restrito
    (Alternativa E) até Edge Function de desativação ser implementada.
-3. Decisão separada sobre merge/release para `origin/main`
+3. **UI guard aplicada** (fase
+   `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A`): botão "Excluir vínculo"
+   substituído por placeholder "Em breve" que exibe toast informativo.
+   Caminho `.from('usuarios').delete()` removido do front-end.
+4. Decisão separada sobre merge/release para `origin/main`
    (somente com autorização explícita).
 4. Pendências técnicas remanescentes: log de migrations do dashboard
    staging, warning de Tailwind CDN, favicon 404 — não bloqueantes.

@@ -503,7 +503,7 @@
           rows: users,
           actions: [
             { label: 'Editar', onclick: (r) => openModal(r, forns) },
-            { label: 'Excluir vínculo', class: 'text-red-600 hover:underline', onclick: (r) => confirmExcluir(r) },
+            { label: 'Em breve', class: 'text-gray-400 cursor-not-allowed', onclick: () => showDeleteBlocked() },
           ]
         })
       );
@@ -630,18 +630,8 @@
       });
     }
 
-    function confirmExcluir(usr) {
-      window.confirmDialog({
-        title: 'Excluir vínculo',
-        message: `Remover "${usr.email}" da tabela de usuários? O cadastro no Supabase Auth NÃO será removido (precisa fazer manual no Studio).`,
-        confirmLabel: 'Remover',
-        onConfirm: async () => {
-          const { error } = await window.supa.from('usuarios').delete().eq('id', usr.id);
-          if (error) { window.toast('Erro ao remover', 'error'); console.error(error); return; }
-          window.toast('Vínculo removido', 'success');
-          reload();
-        }
-      });
+    function showDeleteBlocked() {
+      window.toast('Exclusão/desativação de usuários está temporariamente bloqueada. Use o Supabase Auth Dashboard para limpeza de testes em staging até a implementação do fluxo seguro.', 'info');
     }
 
     await reload();
