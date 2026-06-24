@@ -108,26 +108,27 @@
         placeholder: 'Modelo...',
       });
       modeloSel.classList.add('flex-1', 'min-w-64');
+
+      // Slot fixo de preview (filho direto de row) — não é removido
+      // nem reinserido em posição variável. Atualizado via updatePreview().
+      const previewSlot = window.el('div', { 'data-preview-slot': '1' });
+      function updatePreview() {
+        previewSlot.replaceChildren();
+        const m = modeloById(item.modeloId);
+        if (m && m.cor_1 && window.corPreviewElement) {
+          previewSlot.appendChild(window.corPreviewElement(m.cor_1.nome));
+        }
+      }
+
       modeloSel.addEventListener('change', () => {
         item.modeloId = modeloSel.value;
-        const m = modeloById(item.modeloId);
-        // Atualiza preview ao lado
-        const old = row.querySelector('[data-preview-slot]');
-        if (old) old.remove();
-        if (m && m.cor_1 && window.corPreviewElement) {
-          const previewSlot = window.el('div', { 'data-preview-slot': '1' },
-            window.corPreviewElement(m.cor_1.nome));
-          row.insertBefore(previewSlot, metrosInput);
-        }
+        updatePreview();
       });
       row.appendChild(window.el('div', { class: 'flex-1 min-w-64' }, modeloSel));
 
-      // Preview slot (preenchido quando modelo selecionado)
-      const m0 = modeloById(item.modeloId);
-      if (m0 && m0.cor_1 && window.corPreviewElement) {
-        row.appendChild(window.el('div', { 'data-preview-slot': '1' },
-          window.corPreviewElement(m0.cor_1.nome)));
-      }
+      // Inicializa preview com o modelo atual (se houver)
+      updatePreview();
+      row.appendChild(previewSlot);
 
       // Input de metros
       const metrosInput = window.textInput({

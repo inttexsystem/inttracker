@@ -12,8 +12,8 @@
   `RAVATEX-TAPETES-PEDIDOS-SCHEMA-APPLY-RECORD-A` (registro de
   aplicação). Schema `db/13_pedidos_schema.sql` já aplicado em
   `ucrjtfswnfdlxwtmxnoo`. Frontend não implementado (próxima fase).
-- **HEAD aceito atual:** `bf960f8` ("Add pedidos admin list UI").
-- **staging/main:** `bf960f8`
+- **HEAD aceito atual:** `62a9f9a` ("Add pedidos admin form").
+- **staging/main:** `62a9f9a`
 - **Working tree:** limpo.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -161,12 +161,13 @@ Abortar e revisar o escopo se:
 ## Próxima recomendação operacional
 
 **Refactor arquitetural continua congelado.**
-**Pedidos C1 + C2 entregues:** listagem `#/pedidos` (read-only)
-+ formulário `#/pedidos/novo` (cria pedido + itens como `rascunho`).
-Helper `pedido-ui.js` com status e preview de cor. Sem geração de
-OP, sem lote, sem token público. Limitação: sem RPC/transação
-atômica (documentada no código; compensação manual se itens
-falharem).
+**Pedidos C1 + C2 + C2-R1 entregues:** listagem `#/pedidos`,
+formulário `#/pedidos/novo` (cria pedido + itens como `rascunho`),
+e correção de bug no preview de cor do item (slot fixo +
+`updatePreview()` com `replaceChildren`). Helper `pedido-ui.js`
+com status e preview de cor. Sem geração de OP, sem lote, sem
+token público. Limitação: sem RPC/transação atômica (documentada
+no código).
 **Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3` (detalhe
 admin do Pedido + edição/cancelamento), **somente com autorização
 explícita** do HMNlead.

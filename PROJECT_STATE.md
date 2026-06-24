@@ -1,14 +1,12 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2` — formulário admin de
-> criação de Pedido).
-> **Frontend modular.** Novo arquivo `js/screens/pedido-form.js`
-> com formulário admin em `#/pedidos/novo`. Cria pedido como
-> `rascunho` + itens em `pedido_itens`, com compensação se itens
-> falharem. Sem geração de OP, sem lote, sem cliente público, sem
-> token, sem Edge Function. Sem RPC/transação atômica
-> (limitação documentada no código). Schema `db/13_*` permanece
+> `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2-R1` — correção de bug
+> no preview de cor do formulário de Pedido).
+> **Frontend correção pequena.** Bug corrigido: `row.insertBefore(
+> previewSlot, metrosInput)` substituído por slot fixo + função
+> `updatePreview()` que usa `replaceChildren()`. Sem schema, sem
+> SQL, sem Edge Function, sem OP. Schema `db/13_*` permanece
 > aplicado em `ucrjtfswnfdlxwtmxnoo`.
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.

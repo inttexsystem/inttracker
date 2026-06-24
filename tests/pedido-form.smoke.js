@@ -267,6 +267,71 @@ test('pedido-form: usa helpers de pedido-ui (status)', () => {
   assert.ok(usaHelper, 'form deve consumir helpers de js/pedido-ui.js');
 });
 
+// C2-R1: correção do preview — slot fixo + updatePreview(), sem insertBefore
+
+test('pedido-form: NÃO usa row.insertBefore(previewSlot, metrosInput) (bug C2 corrigido)', () => {
+  // O bug original usava row.insertBefore(previewSlot, metrosInput)
+  // mas metrosInput está em wrapper, não é filho direto de row.
+  assert.doesNotMatch(
+    screen,
+    /row\.insertBefore\s*\(\s*previewSlot\s*,\s*metrosInput\s*\)/,
+    "não deve usar row.insertBefore(previewSlot, metrosInput) — bug C2"
+  );
+});
+
+test('pedido-form: NÃO usa insertBefore genérico para o preview (slot fixo)', () => {
+  // Garantia mais ampla: nenhum insertBefore envolvendo o previewSlot
+  // e metrosInput (em qualquer ordem).
+  assert.doesNotMatch(
+    screen,
+    /insertBefore\s*\(\s*previewSlot/,
+    "previewSlot não deve ser alvo de insertBefore (deve ser slot fixo)"
+  );
+});
+
+test('pedido-form: usa slot fixo de preview (data-preview-slot)', () => {
+  // Slot fixo deve ser criado UMA vez e permanecer no row.
+  assert.match(
+    screen,
+    /window\.el\(\s*['"]div['"]\s*,\s*\{\s*['"]data-preview-slot['"]\s*:\s*['"]1['"]/,
+    "deve criar slot fixo com atributo data-preview-slot"
+  );
+});
+
+test('pedido-form: usa updatePreview() para atualizar o slot de preview', () => {
+  // Função updatePreview() deve ser definida e usada.
+  assert.match(
+    screen,
+    /function\s+updatePreview\s*\(\s*\)\s*\{/,
+    "deve definir função updatePreview()"
+  );
+  // updatePreview deve usar replaceChildren para limpar.
+  assert.match(
+    screen,
+    /updatePreview\s*\(\s*\)\s*\{[\s\S]*?replaceChildren\s*\(/,
+    "updatePreview deve usar replaceChildren para limpar o slot"
+  );
+  // updatePreview deve ser chamado no change do modelo.
+  assert.match(
+    screen,
+    /addEventListener\(\s*['"]change['"][\s\S]*?updatePreview\s*\(\s*\)/,
+    "updatePreview deve ser chamado no change do select de modelo"
+  );
+  // updatePreview deve ser chamado na inicialização (modelo pré-selecionado).
+  const updateCount = (screen.match(/updatePreview\s*\(\s*\)/g) || []).length;
+  assert.ok(updateCount >= 2,
+    'updatePreview deve ser chamado ao menos 2x (init + change); encontrado: ' + updateCount);
+});
+
+test('pedido-form: previewSlot é filho direto de row (appendChild, não insertBefore)', () => {
+  // Slot fixo deve ser anexado com appendChild (não insertBefore).
+  assert.match(
+    screen,
+    /row\.appendChild\s*\(\s*previewSlot\s*\)/,
+    "previewSlot deve ser filho direto de row via appendChild"
+  );
+});
+
 // ---------------------------------------------------------------------
 // 13. pedido-form.js status inicial
 // ---------------------------------------------------------------------
