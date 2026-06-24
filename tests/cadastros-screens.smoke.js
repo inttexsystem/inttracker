@@ -81,6 +81,10 @@ const BADGES = path.join(ROOT, 'js', 'badges.js');
 const ROUTER = path.join(ROOT, 'js', 'router.js');
 const SYSTEM_SCREENS = path.join(ROOT, 'js', 'screens', 'system-screens.js');
 const COMMON = path.join(ROOT, 'js', 'screens', 'common.js');
+const BOOT   = path.join(ROOT, 'js', 'boot.js');
+const PAINEL = path.join(ROOT, 'js', 'screens', 'painel.js');
+const OP_NOVA = path.join(ROOT, 'js', 'screens', 'op-nova.js');
+const OP_LATEX_ADMIN = path.join(ROOT, 'js', 'screens', 'op-latex-admin.js');
 
 const indexSrc  = fs.readFileSync(INDEX,  'utf8');
 const cadSrc    = fs.readFileSync(CAD,    'utf8');
@@ -93,6 +97,10 @@ const badgesSrc = fs.readFileSync(BADGES, 'utf8');
 const routerSrc = fs.readFileSync(ROUTER, 'utf8');
 const sysSrc    = fs.readFileSync(SYSTEM_SCREENS, 'utf8');
 const commonSrc = fs.readFileSync(COMMON, 'utf8');
+const bootSrc   = fs.readFileSync(BOOT,   'utf8');
+const painelSrc = fs.readFileSync(PAINEL, 'utf8');
+const opNovaSrc = fs.readFileSync(OP_NOVA, 'utf8');
+const opLatexAdminSrc = fs.readFileSync(OP_LATEX_ADMIN, 'utf8');
 
 // -----------------------------------------------------------------------------
 // Helpers de validação estática
@@ -108,7 +116,9 @@ function extractInlineScript(html) {
 }
 
 function findScriptIdx(html, src) {
-  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}"\\s*></script>`);
+  // Aceita query string de cache-busting (?v=...) presente nos assets
+  // locais de index.html.
+  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}(?:\\?[^"]*)?"\\s*></script>`);
   const m = re.exec(html);
   return m ? m.index : -1;
 }
@@ -278,74 +288,76 @@ test('2. cadastros.js: sintaxe JS válida (node --check)', () => {
 });
 
 test('3. index.html carrega js/screens/cadastros.js EXATAMENTE UMA VEZ, sem type=module', () => {
-  const re = /<script\s+src="js\/screens\/cadastros\.js"\s*><\/script>/g;
+  // Aceita a query string de cache-busting (?v=...) presente nos assets locais.
+  const re = /<script\s+src="js\/screens\/cadastros\.js(?:\?[^"]*)?"\s*><\/script>/g;
   const matches = indexSrc.match(re) || [];
   assert.equal(matches.length, 1,
     `esperado 1 <script src="js/screens/cadastros.js">, encontrado ${matches.length}`);
-  assert.equal(/<script[^>]*src="js\/screens\/cadastros\.js"[^>]*type=/.test(indexSrc), false,
+  assert.equal(/<script[^>]*src="js\/screens\/cadastros\.js[^"]*"[^>]*type=/.test(indexSrc), false,
     'cadastros.js está sendo carregado com type=module — deve ser script clássico');
 });
 
-test('4. index.html: ordem common → cadastros → jspdf → inline', () => {
-  const commonIdx   = findScriptIdx(indexSrc, 'js/screens/common.js');
-  const cadIdx      = findScriptIdx(indexSrc, 'js/screens/cadastros.js');
-  const jspdfIdx    = indexSrc.indexOf('cdnjs.cloudflare.com/ajax/libs/jspdf');
-  const inlineIdx   = firstInlineScriptIndex(indexSrc);
+test('4. index.html: ordem sane de scripts (common antes de cadastros; boot.js é o entrypoint após jspdf)', () => {
+  const commonIdx = findScriptIdx(indexSrc, 'js/screens/common.js');
+  const cadIdx    = findScriptIdx(indexSrc, 'js/screens/cadastros.js');
+  const jspdfIdx  = indexSrc.indexOf('cdnjs.cloudflare.com/ajax/libs/jspdf');
+  const bootIdx   = findScriptIdx(indexSrc, 'js/boot.js');
   assert.ok(commonIdx > 0, 'js/screens/common.js não encontrado');
   assert.ok(cadIdx > 0, 'js/screens/cadastros.js não encontrado');
   assert.ok(jspdfIdx > 0, 'jspdf CDN não encontrado');
-  assert.ok(inlineIdx > 0, 'inline não encontrado');
+  assert.ok(bootIdx > 0, 'js/boot.js (entrypoint) não encontrado');
   assert.ok(commonIdx < cadIdx, 'common deve vir antes de cadastros');
   assert.ok(cadIdx < jspdfIdx, 'cadastros deve vir antes de jspdf');
-  assert.ok(cadIdx < inlineIdx, 'cadastros deve vir antes do inline');
+  assert.ok(jspdfIdx < bootIdx, 'jspdf deve vir antes de boot.js (entrypoint)');
+  // Não deve haver bloco <script> inline grande (refactor moveu tudo
+  // para módulos; index.html é puramente declarativo).
+  const inline = firstInlineScriptIndex(indexSrc);
+  assert.equal(inline, -1, 'index.html contém <script> inline inesperado');
 });
 
-test('5. script inline NÃO contém mais as 7 telas nem FORNECEDOR_TIPOS nem labelFornecedorTipo', () => {
-  const inline = extractInlineScript(indexSrc);
+test('5. index.html NÃO declara as 7 telas, FORNECEDOR_TIPOS nem labelFornecedorTipo', () => {
+  // O refactor moveu as telas de cadastro e constantes para
+  // js/screens/cadastros.js. index.html deve permanecer declarativo,
+  // sem definições de função dessas telas nem das constantes.
   for (const fn of [
     'screenCadastrosCores', 'screenCadastrosClientes', 'screenCadastrosModelos',
     'screenCadastrosParametros', 'screenCadastrosFornecedores', 'screenCadastrosPrecos',
     'screenCadastrosUsuarios',
   ]) {
-    assert.equal(new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`).test(inline), false,
-      `inline ainda declara function ${fn}`);
+    assert.equal(new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`).test(indexSrc), false,
+      `index.html ainda declara function ${fn}`);
   }
-  assert.equal(/const\s+FORNECEDOR_TIPOS\s*=/.test(inline), false,
-    'inline ainda declara const FORNECEDOR_TIPOS');
-  assert.equal(/function\s+labelFornecedorTipo\s*\(/.test(inline), false,
-    'inline ainda declara function labelFornecedorTipo');
+  assert.equal(/const\s+FORNECEDOR_TIPOS\s*=/.test(indexSrc), false,
+    'index.html ainda declara const FORNECEDOR_TIPOS');
+  assert.equal(/function\s+labelFornecedorTipo\s*\(/.test(indexSrc), false,
+    'index.html ainda declara function labelFornecedorTipo');
 });
 
-test('6. script inline AINDA contém telas não-cadastro, helpers e setRoutes/main', () => {
-  const inline = extractInlineScript(indexSrc);
-  // Telas não relacionadas
-  for (const fn of [
-    'screenPainel',
-    'screenNovaOP', 'renderOPLatexAdmin',
-  ]) {
-    assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
-      `inline perdeu a função ${fn}`);
-  }
-  // Todos os writes foram extraídos para js/screens/entrega-writes.js
-  // (Fases 2.1, 2.2 e 2.3 do DIAG). As 4 telas de fornecedor foram
-  // extraídas para js/screens/fornecedor.js
-  // (FORNECEDOR-SCREENS-MODULE-A). O inline não deve mais
-  // declará-las.
-  // setRoutes + main
-  assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/);
-  assert.match(inline, /async\s+function\s+main\s*\(/);
+test('6. telas e helpers extraídos vivem em seus módulos (setRoutes/main em boot.js)', () => {
+  // O refactor moveu setRoutes e main para js/boot.js, screenPainel
+  // para js/screens/painel.js, screenNovaOP para js/screens/op-nova.js
+  // e renderOPLatexAdmin para js/screens/op-latex-admin.js.
+  assert.match(painelSrc, /function\s+screenPainel\s*\(/,
+    'js/screens/painel.js deve definir screenPainel');
+  assert.match(opNovaSrc, /function\s+screenNovaOP\s*\(/,
+    'js/screens/op-nova.js deve definir screenNovaOP');
+  assert.match(opLatexAdminSrc, /function\s+renderOPLatexAdmin\s*\(/,
+    'js/screens/op-latex-admin.js deve definir renderOPLatexAdmin');
+  assert.match(bootSrc, /window\.RAVATEX_ROUTER\.setRoutes\(/,
+    'js/boot.js deve chamar window.RAVATEX_ROUTER.setRoutes');
+  assert.match(bootSrc, /async\s+function\s+main\s*\(/,
+    'js/boot.js deve definir a função main');
 });
 
-test('7. setRoutes ainda registra as 7 rotas #/cadastros/*', () => {
-  const inline = extractInlineScript(indexSrc);
+test('7. boot.js registra as 7 rotas #/cadastros/* via setRoutes', () => {
   const esperadas = [
     '#/cadastros/cores', '#/cadastros/modelos', '#/cadastros/parametros',
     '#/cadastros/fornecedores', '#/cadastros/clientes', '#/cadastros/precos',
     '#/cadastros/usuarios',
   ];
   for (const rota of esperadas) {
-    assert.ok(inline.includes(`'${rota}'`),
-      `rota ${rota} não encontrada no setRoutes do inline`);
+    assert.ok(bootSrc.includes(`'${rota}'`),
+      `rota ${rota} não encontrada no setRoutes de js/boot.js`);
   }
 });
 
@@ -389,18 +401,18 @@ test('11. index.html NÃO contém service_role nem password literal longo', () =
     'password literal longo em index.html');
 });
 
-test('12. FORNECEDOR_TIPOS é declarado UMA única vez no projeto (apenas em cadastros.js)', () => {
-  const inline = extractInlineScript(indexSrc);
-  const total = (cadSrc.match(/const\s+FORNECEDOR_TIPOS\s*=/g) || []).length
-    + (inline.match(/const\s+FORNECEDOR_TIPOS\s*=/g) || []).length;
-  assert.equal(total, 1, `esperado 1 declaração de FORNECEDOR_TIPOS, encontrado ${total}`);
+test('12. FORNECEDOR_TIPOS é declarado UMA única vez em cadastros.js e ausente em index.html', () => {
+  const cadCount = (cadSrc.match(/const\s+FORNECEDOR_TIPOS\s*=/g) || []).length;
+  assert.equal(cadCount, 1, `esperado 1 declaração de FORNECEDOR_TIPOS em cadastros.js, encontrado ${cadCount}`);
+  assert.equal(/const\s+FORNECEDOR_TIPOS\s*=/.test(indexSrc), false,
+    'index.html não deve declarar FORNECEDOR_TIPOS');
 });
 
-test('13. labelFornecedorTipo é declarado UMA única vez no projeto (apenas em cadastros.js)', () => {
-  const inline = extractInlineScript(indexSrc);
-  const total = (cadSrc.match(/function\s+labelFornecedorTipo\s*\(/g) || []).length
-    + (inline.match(/function\s+labelFornecedorTipo\s*\(/g) || []).length;
-  assert.equal(total, 1, `esperado 1 declaração de labelFornecedorTipo, encontrado ${total}`);
+test('13. labelFornecedorTipo é declarado UMA única vez em cadastros.js e ausente em index.html', () => {
+  const cadCount = (cadSrc.match(/function\s+labelFornecedorTipo\s*\(/g) || []).length;
+  assert.equal(cadCount, 1, `esperado 1 declaração de labelFornecedorTipo em cadastros.js, encontrado ${cadCount}`);
+  assert.equal(/function\s+labelFornecedorTipo\s*\(/.test(indexSrc), false,
+    'index.html não deve declarar labelFornecedorTipo');
 });
 
 // -----------------------------------------------------------------------------
@@ -570,9 +582,7 @@ test('21. CRUD methods (insert/update/delete) chamados apenas no mock', async ()
 // 3. Integração
 // -----------------------------------------------------------------------------
 
-test('22. boot: ui + badges + router + system-screens + common + cadastros + inline coexistem sem SyntaxError', () => {
-  const inline = extractInlineScript(indexSrc);
-
+test('22. boot: módulos coexistem sem SyntaxError e setRoutes registra as 7 rotas de cadastro', () => {
   const toastsNode = new FakeNode('div');
   const document = {
     createElement: (t) => new FakeNode(t),
@@ -602,15 +612,18 @@ test('22. boot: ui + badges + router + system-screens + common + cadastros + inl
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   vm.runInContext(fornSrc,   sandbox, { filename: 'js/screens/fornecedor.js' });
+  vm.runInContext(opNovaSrc, sandbox, { filename: 'js/screens/op-nova.js' });
+  vm.runInContext(opLatexAdminSrc, sandbox, { filename: 'js/screens/op-latex-admin.js' });
+  vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
 
-  // Stubs necessários para o inline carregar
+  // Stubs necessários para boot.js
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
 
   let threwSyntax = false;
   let otherErr = null;
   try {
-    vm.runInContext(inline, sandbox, { filename: 'index-inline.js' });
+    vm.runInContext(bootSrc, sandbox, { filename: 'js/boot.js' });
   } catch (e) {
     if (e instanceof SyntaxError && /already been declared|Identifier .* has already/.test(e.message)) {
       threwSyntax = true;
@@ -619,16 +632,16 @@ test('22. boot: ui + badges + router + system-screens + common + cadastros + inl
     }
   }
   assert.equal(threwSyntax, false,
-    'coexistência cadastros.js + inline lançou SyntaxError de duplicate identifier');
+    'coexistência dos módulos + boot.js lançou SyntaxError de duplicate identifier');
 
-  // setRoutes do inline deve ter registrado as 7 rotas de cadastro
+  // setRoutes de boot.js deve ter registrado as 7 rotas de cadastro
   const routes = vm.runInContext('window.routes', sandbox);
   for (const rota of [
     '#/cadastros/cores', '#/cadastros/modelos', '#/cadastros/parametros',
     '#/cadastros/fornecedores', '#/cadastros/clientes', '#/cadastros/precos',
     '#/cadastros/usuarios',
   ]) {
-    assert.ok(routes && routes[rota], `rota ${rota} não registrada pelo setRoutes do inline`);
+    assert.ok(routes && routes[rota], `rota ${rota} não registrada pelo setRoutes de boot.js`);
     assert.equal(typeof routes[rota].render, 'function',
       `routes[${rota}].render não é função`);
   }
@@ -636,15 +649,14 @@ test('22. boot: ui + badges + router + system-screens + common + cadastros + inl
   if (otherErr) {
     // Erros de runtime fora do duplicate-identifier são esperados
     // (Supabase mockado não tem auth.getSession cheio etc).
-    console.log('(esperado) inline falhou em runtime fora do duplicate-identifier:',
+    console.log('(esperado) boot.js falhou em runtime fora do duplicate-identifier:',
       String(otherErr.message).slice(0, 120));
   }
 });
 
 test('23. setRoutes: as globais legadas resolvem (não há ReferenceError em runtime)', () => {
-  // Re-executa o boot e tenta renderizar uma rota de cadastro via
-  // matchRoute + handleRoute-like dispatch.
-  const inline = extractInlineScript(indexSrc);
+  // Carrega todos os módulos incluindo boot.js e tenta resolver uma
+  // rota de cadastro via matchRoute.
   const toastsNode = new FakeNode('div');
   const document = {
     createElement: (t) => new FakeNode(t),
@@ -674,28 +686,26 @@ test('23. setRoutes: as globais legadas resolvem (não há ReferenceError em run
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   vm.runInContext(fornSrc,   sandbox, { filename: 'js/screens/fornecedor.js' });
+  vm.runInContext(opNovaSrc, sandbox, { filename: 'js/screens/op-nova.js' });
+  vm.runInContext(opLatexAdminSrc, sandbox, { filename: 'js/screens/op-latex-admin.js' });
+  vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
-  vm.runInContext(inline, sandbox, { filename: 'index-inline.js' });
+  vm.runInContext(bootSrc, sandbox, { filename: 'js/boot.js' });
 
   // matchRoute deve resolver a rota
   const match = vm.runInContext("matchRoute('#/cadastros/cores')", sandbox);
   assert.ok(match && match.render, 'matchRoute não resolveu #/cadastros/cores');
-  // O render é a função bare `screenCadastrosCores`, que dentro do
-  // escopo do inline foi resolvida como `window.screenCadastrosCores`
-  // no momento do setRoutes. Como o inline é um único Script Record,
-  // o identificador bare "screenCadastrosCores" é procurado primeiro
-  // no escopo do script (não acha) e depois no globalThis (acha, via
-  // window.screenCadastrosCores). Confirmamos:
+  // O render foi registrado por boot.js com `window.screenCadastrosCores`
+  // (referência explícita), portanto o nome da função é preservado.
   assert.equal(typeof match.render, 'function');
   assert.equal(match.render.name, 'screenCadastrosCores',
     'render.name deve ser screenCadastrosCores');
 });
 
-test('24. screenPainel (inline) ainda renderiza via shellLayout com 9 itens do ADMIN_MENU (regressão common)', () => {
-  // Regressão do screens-common.smoke.js — garante que a adição de
-  // cadastros.js não quebrou o boot do common.
-  const inline = extractInlineScript(indexSrc);
+test('24. screenPainel (módulo) renderiza via shellLayout com 9 itens do ADMIN_MENU (regressão common)', () => {
+  // Regressão: garante que a extração de cadastros.js não quebrou o
+  // boot de common.js / painel.js nem o ADMIN_MENU com 9 itens.
   const toastsNode = new FakeNode('div');
   const document = {
     createElement: (t) => new FakeNode(t),
@@ -716,24 +726,13 @@ test('24. screenPainel (inline) ainda renderiza via shellLayout com 9 itens do A
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
-  vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
-  vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
-  vm.runInContext(sysSrc,    sandbox, { filename: 'js/screens/system-screens.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
-  vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
 
-  try {
-    vm.runInContext(inline, sandbox, { filename: 'index-inline.js' });
-  } catch (e) {
-    // Erros de runtime esperados (Supabase mock sem auth cheia); só
-    // nos importa não ser SyntaxError de duplicate.
-    if (e instanceof SyntaxError && /already been declared|Identifier .* has already/.test(e.message)) {
-      throw new Error('duplicate-identifier SyntaxError no boot: ' + e.message);
-    }
-  }
+  // Carrega painel.js (depende de el/CURRENT_USER/shellLayout/ADMIN_MENU)
+  vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
 
   const root = vm.runInContext('window.screenPainel()', sandbox);
   assert.ok(root && root.tagName === 'DIV', 'screenPainel não devolveu <div>');
