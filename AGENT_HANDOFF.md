@@ -8,10 +8,11 @@
 > Convenção: **tudo em português brasileiro**.
 
 ## Estado atual aceito
-- **Estado atual aceito:** `work/app-next @ 8fa924a` — "Record auth
-  disable schema staging apply" (fase
-  `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A`, docs-only).
-- **staging/main:** `8fa924a75a1ac857572acdcb96ad4ceb0ef070c0`
+- **Estado atual aceito:** `work/app-next @ 1a35e1d` — "Record auth
+  disable schema apply evidence" (fase
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`,
+  docs-only).
+- **staging/main:** `1a35e1d35745212003daa5d196195b4ea20b216c`
   (sincronizado com `work/app-next`).
 - **Working tree esperado:** **limpo**.
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
@@ -70,12 +71,12 @@ git ls-remote --heads origin main
 
 Abortar e revisar o escopo se:
 - branch != `work/app-next`;
-- HEAD != `8fa924a` (ou, no meio da fase EVIDENCE-A, antes do
-  push, o hash do commit de docs-only que será gerado);
+- HEAD != `1a35e1d` (ou, no meio da fase EDGE-A, antes do push,
+  o hash do commit que será gerado);
 - working tree não estiver limpo;
-- `staging/main` != `8fa924a75a1ac857572acdcb96ad4ceb0ef070c0`
-  (antes do push da fase EVIDENCE-A) ou um commit `EVIDENCE-A`
-  que ainda não foi propagado;
+- `staging/main` != `1a35e1d35745212003daa5d196195b4ea20b216c`
+  (antes do push da fase EDGE-A) ou um commit `EDGE-A` que
+  ainda não foi propagado;
 - `origin/main` != `1047181eba888242c6428de366cbd9fda2f1c72c`
   (qualquer mudança em `origin/main` é regressão grave).
 
@@ -209,6 +210,19 @@ warnings não bloqueantes: Tailwind CDN, `favicon.ico` 404.
 sem necessidade: a migration é idempotente, mas o estado esperado
 já está aplicado em staging. **NÃO avançar** para produção
 (`bhgifjrfagkzubpyqpew`) sem autorização explícita do HMNlead.
+**Edge Function `admin-disable-user` (criada localmente nesta
+fase):** `supabase/functions/admin-disable-user/index.ts` +
+`README.md`; smoke estático
+`tests/admin-disable-user.smoke.js` (39/39). Implementa soft delete
+no perfil + ban Auth server-side via
+`auth.admin.updateUserById(target_id, { ban_duration: '876000h' })`,
+com validação de admin ativo, bloqueio de auto-desativação
+(`SELF_DISABLE_FORBIDDEN`), bloqueio do último admin ativo
+(`LAST_ADMIN_FORBIDDEN`), idempotência para alvo já inativo
+(`already_disabled: true`), e compensação (reativar perfil) se
+o ban falhar. **Sem deploy nesta fase.** Deploy e validação E2E em
+staging ficam para
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A` (futura).
 
 O ciclo de refactor arquitetural + hardening + extração final do
 `op-pdf.js` está **congelado**. Antes de iniciar qualquer novo
@@ -275,11 +289,40 @@ Fases, em ordem:
     bloqueada como `Em breve`, sem erros críticos de Auth/RLS
     no console. Warnings não bloqueantes: Tailwind CDN,
     `favicon.ico` 404.
-9. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`** *(futura, após*
-   *apply confirmado por EVIDENCE-A)* — Edge Function
+9. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`** — Edge Function
    `admin-disable-user` (soft delete no perfil + ban Auth).
-10. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`** *(futura)* — restaurar
-    botão "Desativar" na UI quando Edge Function estiver disponível.
+   **Concluída localmente (sem deploy).** Implementação em
+   `supabase/functions/admin-disable-user/index.ts` (mesmos
+   `_shared/cors.ts` e `_shared/response.ts` de `admin-create-user`).
+   Validações: JWT no header `Authorization` + `tipo = 'admin' AND
+   ativo IS TRUE` em `public.usuarios` server-side; UUID regex
+   para `user_id`; `reason` ≤ 500 chars (trim, opcional);
+   `SELF_DISABLE_FORBIDDEN` quando `target_id === caller_id`;
+   `LAST_ADMIN_FORBIDDEN` quando alvo é o único admin ativo;
+   idempotência (`already_disabled: true`) se alvo já está inativo;
+   soft delete via `.update({ ativo: false, desativado_em, desativado_por,
+   motivo_desativacao })`; ban Auth via
+   `auth.admin.updateUserById(target_id, { ban_duration: '876000h' })`;
+   compensação (reverte `ativo = true` e limpa campos) se ban
+   falhar; `COMPENSATION_FAILED` se a reversão também falhar.
+   **Sem `auth.admin.deleteUser` e sem `.delete()`** — apenas soft
+   delete. Smoke `tests/admin-disable-user.smoke.js` 39/39 verde.
+   Regressões preservadas: `admin-create-user` 17/17,
+   `auth-disable-user-schema` 20/20, `cadastros-usuarios-auth-ui`
+   16/16, `cadastros-screens` 32/32. **Sem deploy nesta fase.**
+   Deploy e validação E2E em staging:
+   `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A`
+   (próxima fase).
+10. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A`**
+    *(próxima)* — deploy controlado de `admin-disable-user` em
+    staging e validação E2E: admin ativo desativa fornecedor
+    descartável; `public.usuarios.ativo = false`; `auth.users.
+    banned_until` aplicado; login do alvo bloqueado;
+    `loadCurrentUser` retorna `null` no app. Reativação reversível
+    por SQL read-only.
+11. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`** *(futura)* — restaurar
+    botão "Desativar" na UI quando Edge Function estiver
+    deployada e validada em staging.
 
 ## Possíveis fases futuras opcionais (NÃO obrigatórias)
 

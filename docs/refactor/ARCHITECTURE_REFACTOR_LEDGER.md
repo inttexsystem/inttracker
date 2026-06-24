@@ -2,13 +2,12 @@
 
 > Ledger de fases do refactor arquitetural de
 > `D:\OneDrive\Programação\Ravatex\controle-tapetes`.
-> Última atualização: 2026-06-24 (HEAD `8fa924a`,
-> fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A` —
-> registro da **aplicação real** de
-> `db/12_auth_user_disable_schema.sql` no Supabase staging
-> `ucrjtfswnfdlxwtmxnoo`, feita manualmente pelo HMNlead no SQL
-> Editor do Dashboard; nenhuma execução de SQL foi feita por IAexec
-> nesta fase, que é **docs-only**).
+> Última atualização: 2026-06-24 (HEAD `1a35e1d`,
+> fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` — criação local,
+> no repo, da Edge Function server-side `admin-disable-user`
+> (soft delete no perfil + ban Auth); **sem deploy, sem Supabase
+> real, sem SQL, sem alteração de UI** nesta fase; `js/**`,
+> `index.html`, `db/**` e `admin-create-user` intocados).
 
 ## 1. Premissas corrigidas
 - **App estático**, não Next/Vercel.
@@ -100,9 +99,10 @@
 | AUTH-DELETE-UI-GUARD-A | `d99bcda` | `js/screens/cadastros.js` (remove `.from('usuarios').delete()` + placeholder "Em breve"), `tests/cadastros-usuarios-auth-ui.smoke.js`, `tests/cadastros-screens.smoke.js`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | 16/16 + 32/32 | aceito |
 | AUTH-DISABLE-USER-SCHEMA-A | `77bcc6b` | `db/12_auth_user_disable_schema.sql`, `tests/auth-disable-user-schema.smoke.js`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` | 20/20 + 17/17 + 16/16 + 32/32 | aceito (schema/RLS versionado; aplicado em staging em EVIDENCE-A) |
 | AUTH-DISABLE-USER-SCHEMA-APPLY-A | `8fa924a` | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` (registro da fase; SQL real executado por HMNlead no Supabase Dashboard staging e confirmado em EVIDENCE-A) | 20/20 + 65/65 (regressão leve) | aceito (docs-only; aplicação real confirmada em EVIDENCE-A) |
-| AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A | (HEAD da fase EVIDENCE-A) | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` (registro da aplicação real de `db/12_auth_user_disable_schema.sql` no Supabase staging `ucrjtfswnfdlxwtmxnoo`; execução manual pelo HMNlead; nenhuma execução de SQL por IAexec) | n/a (docs-only) | aceito (docs-only; aplicação real confirmada) |
-| AUTH-DISABLE-USER-EDGE-A | (futura) | `supabase/functions/admin-disable-user/index.ts` | — | pendente (depende de apply confirmado) |
-| AUTH-DISABLE-USER-UI-A | (futura) | `js/screens/cadastros.js` (botão "Desativar" via Edge Function) | — | pendente |
+| AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A | `1a35e1d` | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` (registro da aplicação real de `db/12_auth_user_disable_schema.sql` no Supabase staging `ucrjtfswnfdlxwtmxnoo`; execução manual pelo HMNlead; nenhuma execução de SQL por IAexec) | n/a (docs-only) | aceito (docs-only; aplicação real confirmada) |
+| AUTH-DISABLE-USER-EDGE-A | (HEAD da fase EDGE-A) | `supabase/functions/admin-disable-user/index.ts` (criado), `supabase/functions/admin-disable-user/README.md` (criado), `tests/admin-disable-user.smoke.js` (criado), `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` (Edge Function `admin-disable-user` — soft delete no perfil + ban Auth; **sem deploy**; sem Supabase real; sem alteração de UI; `js/**`, `index.html`, `db/**` e `admin-create-user` intocados) | 39/39 smoke + 17/17 + 20/20 + 16/16 + 32/32 (regressões focais) | aceito (local-only; deploy/validação staging em `...-EDGE-STAGING-DEPLOY-A`) |
+| AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A | (futura) | Deploy controlado de `admin-disable-user` em staging + validação E2E | — | pendente (depende de EDGE-A local aceito) |
+| AUTH-DISABLE-USER-UI-A | (futura) | `js/screens/cadastros.js` (botão "Desativar" via Edge Function deployada) | — | pendente (depende de EDGE-STAGING-DEPLOY-A) |
 
 ## 5. Ressalvas processuais aceitas em `FORNECEDOR-SCREENS-MODULE-A` (commit `4b9ca12`)
 
@@ -379,6 +379,75 @@ autorização explícita do HMNlead; próxima fase liberada é
 `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` (Edge Function
 `admin-disable-user`).
 
+## 5h. Ressalva processual — `AUTH-DISABLE-USER-EDGE-A`
+
+A fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` (esta fase) criou
+**localmente no repo** a Edge Function `admin-disable-user` em
+`supabase/functions/admin-disable-user/index.ts` + `README.md`,
+mais o smoke estático `tests/admin-disable-user.smoke.js`. **Sem
+deploy, sem Supabase real, sem SQL, sem alteração de UI.**
+
+Resumo da implementação:
+
+* **Método:** `POST` (aceita `OPTIONS` para preflight CORS).
+* **Validação do chamador:** JWT no header `Authorization` →
+  `callerClient.auth.getUser` → consulta `public.usuarios`
+  exigindo `tipo = 'admin' AND ativo IS TRUE`. Em falha:
+  `UNAUTHORIZED` (401) ou `FORBIDDEN` (403).
+* **Validação do payload:** `user_id` (obrigatório, regex UUID),
+  `reason` (opcional, trim, ≤ 500 chars). Em falha:
+  `VALIDATION_ERROR` (400).
+* **Bloqueio de auto-desativação:** `target_id === caller_id` →
+  `SELF_DISABLE_FORBIDDEN` (403).
+* **Bloqueio do último admin ativo:** se `target.tipo === 'admin'`,
+  conta `count(ativo = true AND tipo = 'admin')` em
+  `public.usuarios`; se `<= 1` → `LAST_ADMIN_FORBIDDEN` (403).
+* **Idempotência:** se `target.ativo === false`, retorna `200` com
+  `{ ..., already_disabled: true }` sem reexecutar.
+* **Soft delete no perfil:** `update({ ativo: false, desativado_em,
+  desativado_por, motivo_desativacao })` via `service_role` server-side.
+  Não usa `.delete()`. Em falha: `PROFILE_UPDATE_FAILED` (500).
+* **Ban Auth:** `auth.admin.updateUserById(target_id, { ban_duration:
+  '876000h' })` server-side via `service_role`. **Não usa
+  `auth.admin.deleteUser`** (sem hard delete).
+* **Compensação:** se o ban falhar, tenta `update({ ativo: true,
+  desativado_em: null, desativado_por: null, motivo_desativacao: null })`
+  para reverter o soft delete. Se a reversão também falhar:
+  `COMPENSATION_FAILED` (500, requer ação manual).
+* **Resposta de sucesso:** `200` com
+  `{ user_id, email, tipo, ativo: false, auth_banned: true }`.
+
+Validação estática: `tests/admin-disable-user.smoke.js` 39/39 verde.
+Regressões focais preservadas: `admin-create-user.smoke.js` 17/17,
+`auth-disable-user-schema.smoke.js` 20/20,
+`cadastros-usuarios-auth-ui.smoke.js` 16/16,
+`cadastros-screens.smoke.js` 32/32.
+
+Não-regras (verificadas por assert):
+
+* `js/**`, `index.html`, `db/**` e `admin-create-user` **intocados**.
+* `cadastros.js` continua chamando `functions.invoke('admin-create-user')`
+  apenas; `functions.invoke('admin-disable-user')` **não** foi
+  adicionado à UI (placeholder `Em breve` permanece).
+* `index.html` **não** referencia `admin-disable-user` (Edge
+  Function é invocada por `supabase.functions.invoke`, sem
+  `<script>`).
+* Sem hardcoded secrets: `service_role`, `SUPABASE_SERVICE_ROLE_KEY`,
+  JWTs (`eyJ...eyJ...`) — todos ausentes.
+* `_shared/cors.ts` e `_shared/response.ts` reusados sem
+  alteração; nenhum helper novo foi introduzido.
+
+Limitação de validação nesta fase: **Deno não está disponível
+localmente**, então `deno check` não foi executado (não instalar
+sem autorização). A validação TypeScript fica para fase de deploy
+em staging (`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A`).
+
+Regra de continuidade: **não deployar** sem fase dedicada; **não
+alterar UI** antes do deploy ser validado em staging; **não avançar**
+para produção `bhgifjrfagkzubpyqpew` sem autorização explícita do
+HMNlead. Próxima fase:
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A`.
+
 ## 6. Módulos extraídos (lista canônica)
 
 | Módulo | Commit de extração | Fase |
@@ -524,9 +593,12 @@ hardening + extração final está **congelado** em `7f3c6da`
 `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A` (contenção de UI),
 `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A` (schema de desativação
 versionado), `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A`
-(orientação para apply, commit `8fa924a`) e
+(orientação para apply, commit `8fa924a`),
 `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`
-(registro da aplicação real) estão **concluídos**.
+(registro da aplicação real, commit `1a35e1d`) e
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` (Edge Function
+`admin-disable-user` criada localmente, **sem deploy**) estão
+**concluídos (local)**.
 Teste fornecedor 403 confirmado em staging. UI guard removeu
 `.from('usuarios').delete()` do front-end; schema de desativação
 **aplicado e validado em staging** (fase `EVIDENCE-A`): 4 colunas
@@ -535,17 +607,26 @@ e policies `usuarios_select`/`usuarios_admin_all`/
 `usuarios_self_update` recriadas com checagem de `ativo`; todos os
 3 perfis existentes ficaram `ativo = true`; nenhum usuário foi
 criado, excluído ou desativado durante a aplicação; produção
-`bhgifjrfagkzubpyqpew` não foi tocada. Próximas fases:
-`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` (Edge Function
-`admin-disable-user`, liberada após EVIDENCE-A) →
-`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A` (restaurar botão "Desativar"
-na UI).
+`bhgifjrfagkzubpyqpew` não foi tocada. Edge Function
+`admin-disable-user` (fase `EDGE-A`) criada em
+`supabase/functions/admin-disable-user/index.ts` + `README.md` +
+`tests/admin-disable-user.smoke.js` (39/39 verde); valida admin
+ativo server-side; bloqueia auto-desativação e último admin;
+soft delete + ban Auth via `auth.admin.updateUserById(target_id,
+{ ban_duration: '876000h' })`; compensa (reativa perfil) se ban
+falhar; **sem `auth.admin.deleteUser` e sem `.delete()`**; UI
+continua com placeholder `Em breve`. Próximas fases:
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A` (deploy
+controlado em staging e validação E2E) →
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A` (restaurar botão
+"Desativar" na UI).
 **Pendência de decisão do HMNlead:** 7 perguntas listadas na seção 9
 do design (`docs/architecture/AUTH_DELETE_USER_DESIGN.md`) ainda
 abertas. **Não avançar** para produção sem autorização explícita.
 **Não reaplicar** `db/12_auth_user_disable_schema.sql` em staging
 sem necessidade: a migration é idempotente, mas o estado esperado
-já está aplicado.
+já está aplicado. **Não deployar** `admin-disable-user` sem
+fase dedicada de staging deploy.
 
 ## 10. Política de updates deste ledger
 

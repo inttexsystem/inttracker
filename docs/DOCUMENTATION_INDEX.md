@@ -97,10 +97,12 @@ isso é registrado explicitamente no header do arquivo e em
 > (`ucrjtfswnfdlxwtmxnoo`) em `2026-06-24` — vide fases
 > `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A` (orientação,
 > commit `8fa924a`) e `...-SCHEMA-APPLY-EVIDENCE-A` (registro da
-> aplicação real) no LEDGER. A Edge Function `admin-disable-user`
-> virá em fase posterior
-> (`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`), usando o schema
-> já aplicado.
+> aplicação real, commit `1a35e1d`) no LEDGER. A Edge Function
+> `admin-disable-user` foi criada localmente no repo na fase
+> `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` (ver
+> `supabase/functions/admin-disable-user/README.md`); **sem
+> deploy** nesta fase; deploy controlado em fase futura
+> (`...-EDGE-STAGING-DEPLOY-A`).
 
 ## 4. Docs legadas (NÃO GUIAM EXECUÇÃO)
 

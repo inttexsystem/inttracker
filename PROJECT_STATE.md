@@ -1,11 +1,11 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A` — registro
-> da **aplicação real** de `db/12_auth_user_disable_schema.sql` no
-> Supabase **staging** `ucrjtfswnfdlxwtmxnoo`, executada manualmente
-> pelo HMNlead no SQL Editor do Dashboard; nenhuma execução de SQL
-> foi feita pelo IAexec nesta fase, que é **docs-only**).
+> `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` — criação local, no
+> repo, da Edge Function server-side `admin-disable-user` para
+> desativar usuários via soft delete no perfil + ban Auth. **Sem
+> deploy** nesta fase; sem Supabase real; sem alteração de UI;
+> `js/**`, `index.html`, `db/**` e `admin-create-user` intocados).
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
@@ -33,10 +33,11 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
-- **HEAD atual aceito:** `8fa924a` — "Record auth disable schema
-  staging apply" (fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A`,
+- **HEAD atual aceito:** `1a35e1d` — "Record auth disable schema
+  apply evidence" (fase
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`,
   docs-only).
-- **staging/main atual:** `8fa924a75a1ac857572acdcb96ad4ceb0ef070c0`
+- **staging/main atual:** `1a35e1d35745212003daa5d196195b4ea20b216c`
   (sincronizado com `work/app-next`).
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
   — **intocado** durante todo o ciclo de refactor/hardening.
@@ -265,6 +266,23 @@ pelo HMNlead no Supabase Dashboard.)*
   do SQL no Supabase staging é e continua sendo responsabilidade
   exclusiva do HMNlead no Dashboard (project ref
   `ucrjtfswnfdlxwtmxnoo`).
+- 🟡 **Edge Function `admin-disable-user` criada localmente (sem
+  deploy).** Fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`.
+  Implementação em `supabase/functions/admin-disable-user/index.ts`
+  segue o padrão estrutural de `admin-create-user` (mesmos
+  `_shared/cors.ts` e `_shared/response.ts`); valida admin ativo
+  server-side; bloqueia auto-desativação e último admin ativo; faz
+  soft delete no perfil + ban Auth via
+  `auth.admin.updateUserById(target_id, { ban_duration: '876000h' })`;
+  compensa (reativa perfil) se o ban falhar; não usa `.delete()` nem
+  `auth.admin.deleteUser`. Smoke estático
+  `tests/admin-disable-user.smoke.js` 39/39 verde. Regressões
+  focais preservadas. **Sem deploy, sem Supabase real, sem
+  alteração de UI** — `js/**`, `index.html`, `db/**` e
+  `admin-create-user` intocados. UI de `#/cadastros/usuarios`
+  continua com placeholder `Em breve` para exclusão. Deploy e
+  validação E2E em staging ficam para
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A`.
 - 🟡 Staging mostra log `relation "supabase_migrations.schema_migrations"
   does not exist` (ruído do dashboard, não do app).
 - 🟡 Tailwind CDN ainda gera warning de produção (não bloqueante;
@@ -296,13 +314,22 @@ pelo HMNlead no Supabase Dashboard.)*
    `usuarios_self_update`) recriadas com sucesso. Todos os 3
    perfis existentes ficaram `ativo = true`. Nenhum usuário foi
    criado, excluído ou desativado durante a aplicação.
-5. **Próxima fase liberada**:
-   `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` (Edge Function
-   `admin-disable-user` — soft delete no perfil + ban Auth). Só
-   iniciar após esta fase EVIDENCE-A ser commitada e propagada
-   para staging. **Não** reaplicar `db/12_auth_user_disable_schema.sql`
-   sem necessidade: a migration é idempotente, mas o estado
-   esperado já está aplicado.
+5. **Edge Function de desativação criada localmente** (fase
+   `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`): `supabase/functions/
+   admin-disable-user/index.ts` implementa soft delete no perfil
+   (`ativo = false`, `desativado_em`, `desativado_por`,
+   `motivo_desativacao`) + ban Auth via
+   `auth.admin.updateUserById(target_id, { ban_duration: '876000h' })`,
+   com validação de admin ativo server-side, bloqueio de
+   auto-desativação (`SELF_DISABLE_FORBIDDEN`), bloqueio do último
+   admin ativo (`LAST_ADMIN_FORBIDDEN`), idempotência para alvo já
+   inativo, e compensação (reativar perfil) se o ban falhar.
+   Validação estática em `tests/admin-disable-user.smoke.js`
+   (39/39 verdes). Regressões preservadas: `admin-create-user` 17/17,
+   `auth-disable-user-schema` 20/20, `cadastros-usuarios-auth-ui`
+   16/16, `cadastros-screens` 32/32. **Sem deploy nesta fase**;
+   `js/**`, `index.html`, `db/**` e `admin-create-user` intocados;
+   UI permanece com placeholder `Em breve`.
 6. **Não avançar para produção** (`bhgifjrfagkzubpyqpew`) sem
    autorização explícita do HMNlead. Decisão de merge/release
    para `origin/main` é fase separada.
