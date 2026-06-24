@@ -82,6 +82,36 @@
     }
   }
 
+  // Mapeia códigos de erro da Edge Function `admin-delete-user`
+  // (hard delete) para mensagens amigáveis em PT-BR. Mantém fallback
+  // para a mensagem original ou um genérico.
+  function friendlyDeleteMessage(code, fallback) {
+    switch (code) {
+      case 'FORBIDDEN':
+        return 'Usuário atual não tem permissão para excluir usuários.';
+      case 'SELF_DELETE_FORBIDDEN':
+        return 'Você não pode excluir seu próprio usuário.';
+      case 'LAST_ADMIN_FORBIDDEN':
+        return 'Não é possível excluir o último admin ativo.';
+      case 'NOT_FOUND':
+        return 'Usuário não encontrado.';
+      case 'CONFIRM_EMAIL_MISMATCH':
+        return 'O e-mail digitado não confere com o e-mail do usuário.';
+      case 'USER_HAS_REFERENCES':
+        return 'Não foi possível remover o perfil: existem registros vinculados no banco. Remova os vínculos antes de excluir.';
+      case 'AUTH_DELETE_FAILED':
+        return 'Falha operacional ao remover do Auth. O perfil foi restaurado.';
+      case 'COMPENSATION_FAILED':
+        return 'Falha operacional grave. O perfil e o Auth estão inconsistentes — reporte ao suporte.';
+      case 'VALIDATION_ERROR':
+        return 'Dados inválidos para exclusão.';
+      case 'UNAUTHORIZED':
+        return 'Sessão expirada. Faça login novamente.';
+      default:
+        return fallback || 'Erro ao excluir usuário';
+    }
+  }
+
   // -------------------------------------------------------------------
   // Telas
   // -------------------------------------------------------------------
@@ -575,6 +605,11 @@
                 class: 'text-red-600 hover:underline',
                 onclick: (r) => handleDesativarClick(r, meId),
               },
+              {
+                label: (r) => (r && r.id === meId) ? '—' : 'Excluir',
+                class: 'text-red-700 hover:underline font-semibold ml-3',
+                onclick: (r) => handleExcluirClick(r, meId),
+              },
             ],
           });
 
@@ -646,6 +681,76 @@
         return;
       }
       window.toast('Usuário desativado', 'success');
+      reload();
+    }
+
+    // -----------------------------------------------------------------
+    // Excluir (hard delete) — admin-delete-user
+    // -----------------------------------------------------------------
+
+    function handleExcluirClick(r, meId) {
+      // Guarda de UX (não substitui a checagem server-side).
+      if (meId && r.id === meId) {
+        window.toast('Você não pode excluir seu próprio usuário.', 'info');
+        return;
+      }
+      confirmExcluirUsuario(r);
+    }
+
+    function confirmExcluirUsuario(usr) {
+      const emailInput = window.textInput({
+        type: 'email',
+        value: '',
+        placeholder: usr.email,
+      });
+      const body = window.el('div', {},
+        window.el('p', { class: 'text-sm text-red-700 font-semibold mb-2' },
+          'Exclusão permanente. Esta ação não pode ser desfeita.'),
+        window.el('p', { class: 'text-sm text-gray-700 mb-3' },
+          'Para confirmar, digite o e-mail do usuário (' + usr.email + '). O perfil e a conta de Auth serão removidos.'),
+        window.formField({
+          label: 'Confirmar e-mail',
+          input: emailInput,
+          hint: 'Deve ser exatamente igual ao e-mail do usuário.',
+        })
+      );
+      window.modal({
+        title: 'Excluir usuário',
+        body,
+        saveLabel: 'Excluir permanentemente',
+        onSave: async () => {
+          const confirmEmail = (emailInput.value || '').trim();
+          if (confirmEmail.toLowerCase() !== String(usr.email || '').toLowerCase()) {
+            window.toast('O e-mail digitado não confere com o e-mail do usuário.', 'error');
+            return;
+          }
+          await excluirUsuario(usr, confirmEmail);
+        },
+      });
+    }
+
+    async function excluirUsuario(usr, confirmEmail) {
+      const { error } = await window.supa.functions.invoke('admin-delete-user', {
+        body: { user_id: usr.id, confirm_email: confirmEmail },
+      });
+      if (error) {
+        let code = null;
+        let msg = (error && error.message) ? error.message : 'Erro ao excluir usuário';
+        try {
+          if (error && error.context && typeof error.context.json === 'function') {
+            const body = await error.context.json();
+            if (body && body.error) {
+              code = body.error.code || null;
+              if (body.error.message) msg = body.error.message;
+            }
+          }
+        } catch (_) { /* ignore body parse errors */ }
+        const friendly = friendlyDeleteMessage(code, msg);
+        window.toast(friendly, 'error');
+        console.error('admin-delete-user error', code, error);
+        return;
+      }
+      window.toast('Usuário excluído permanentemente.', 'success');
       reload();
     }
 

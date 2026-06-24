@@ -1,13 +1,14 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-USERS-INACTIVE-LIST-UX-A` — ajuste de UX
-> da listagem de usuários inativos em `#/cadastros/usuarios`).
-> **Frontend + smokes.** Sem SQL, sem deploy, sem push origin, sem
-> alteração de Edge Functions ou schema. Inativos agora ficam
-> ocultos por padrão com toggle `Mostrar inativos`; quando
-> visíveis, exibem label `Inativo` em vez de botão `Desativar`.
-> Hard delete continua fora do escopo.
+> `RAVATEX-TAPETES-AUTH-HARD-DELETE-USER-A` — hard delete de
+> usuário via `admin-delete-user`).
+> **Frontend + Edge Function + deploy em ucr.** Sem SQL, sem push
+> origin, sem alteração de schema. Nova Edge Function
+> `admin-delete-user` deployada e validada em
+> `ucrjtfswnfdlxwtmxnoo`. UI de `#/cadastros/usuarios` agora tem
+> ações separadas: `Desativar` (soft delete) e `Excluir` (hard
+> delete com confirmação por e-mail).
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em

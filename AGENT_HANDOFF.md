@@ -9,14 +9,15 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-USERS-INACTIVE-LIST-UX-A` (implementação
-  pequena: UX de listagem de usuários). Inativos ocultos por
-  padrão; toggle `Mostrar inativos`; botão `Desativar`
-  substituído por label `Inativo` para usuários desativados.
-  Hard delete continua fora do escopo.
+  `RAVATEX-TAPETES-AUTH-HARD-DELETE-USER-A` (hard delete via
+  Edge Function `admin-delete-user`). UI de
+  `#/cadastros/usuarios` agora tem ações separadas:
+  - `Desativar` (soft delete via `admin-disable-user`).
+  - `Excluir` (hard delete via `admin-delete-user`, com
+    confirmação por e-mail).
 - **HEAD aceito atual:** commit desta fase
-  (`RAVATEX-TAPETES-USERS-INACTIVE-LIST-UX-A`,
-  "Improve inactive users list UX").
+  (`RAVATEX-TAPETES-AUTH-HARD-DELETE-USER-A`,
+  "Add admin hard delete user flow").
 - **staging/main:** atualizado após push desta fase.
 - **Working tree:** limpo.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
@@ -27,8 +28,9 @@
 - **⚠️ NÃO TOCAR `bhgifjrfagkzubpyqpew`.**
 - **⚠️ NÃO TOCAR Vercel original.**
 - **Ambiente paralelo (`ucrjtfswnfdlxwtmxnoo`):** schema aplicado,
-  Edge Functions deployadas e validadas, secrets configurados,
-  UI manual validada, smokes 163/163, E2E PASS.
+  `admin-create-user` deployado, `admin-disable-user` deployado,
+  `admin-delete-user` deployado nesta fase, secrets
+  configurados, UI validada.
 
 ## Estado operacional atual
 - `index.html` está declarativo, sem script inline final, com
@@ -164,9 +166,9 @@ Abortar e revisar o escopo se:
 ## Próxima recomendação operacional
 
 **Refactor arquitetural continua congelado.**
-**UX ajustada:** inativos ocultos por padrão; toggle
-`Mostrar inativos`; label `Inativo` em vez de `Desativar`
-para inativos. Hard delete continua fora do escopo.
+**Hard delete implementado:** Edge Function `admin-delete-user`
+deployada em `ucrjtfswnfdlxwtmxnoo`. UI com botões
+separados `Desativar` e `Excluir`.
 **Próxima fase:** `RAVATEX-TAPETES-PARALLEL-FRONTEND-PUBLISH-PLAN-A`
 (planejar onde publicar o frontend paralelo), **somente com
 autorização explícita** do HMNlead.
