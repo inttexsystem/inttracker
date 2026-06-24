@@ -1,23 +1,24 @@
 // =====================================================================
 // === SCREENS: PEDIDO ITENS EDIT ======================================
-// Tela admin de edição APENAS dos itens JÁ EXISTENTES de um Pedido.
+// Tela admin de edição dos itens de um Pedido (C3C2B + C3C2C1).
 // Rota: `#/pedidos/<uuid>/itens` (parseada por js/router.js via
 // matchRoute dinâmico). Botão "Editar itens" da tela de detalhe
 // `#/pedidos/<uuid>` (C3A/C3B/C3C1) navega para esta tela quando
 // o status é editável.
 //
-// Fase: RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2B
-// Escopo: edição APENAS de `modelo_id`, `metros`, `observacao` em
-//   itens JÁ EXISTENTES do Pedido. SEM adicionar, SEM remover,
-//   SEM reordenar, SEM editar `largura`/`cor_1_id`/`cor_2_id`
-//   (overrides opcionais ficam para C3C2D), SEM alterar status
-//   (fica para C3B já entregue), SEM mexer em dados gerais
-//   (fica para C3C1 já entregue), SEM geração de OP, SEM lote,
-//   SEM cliente público, SEM token, SEM Edge Function, SEM RPC,
-//   SEM schema.
+// Fase: RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C1
+// Escopo: edição de `modelo_id`, `metros`, `observacao` em
+//   itens JÁ EXISTENTES (C3C2B) + ADICIONAR novos itens (C3C2C1).
+//   SEM remover (C3C2C2), SEM reordenar manualmente, SEM editar
+//   `largura`/`cor_1_id`/`cor_2_id` (overrides opcionais ficam
+//   para C3C2D), SEM alterar status (fica para C3B já entregue),
+//   SEM mexer em dados gerais (fica para C3C1 já entregue),
+//   SEM geração de OP, SEM lote, SEM cliente público, SEM token,
+//   SEM Edge Function, SEM RPC, SEM schema.
 //
-//   Adicionar/remover/reordenar itens fica para C3C2C.
-//   Overrides opcionais de largura/cor ficam para C3C2D.
+//   Itens novos são criados no estado local com flag `isNew: true`,
+//   exibem botão "Descartar novo item" (apenas local, antes de
+//   salvar) e recebem `ordem` no fim ao serem inseridos.
 //
 // Regras de edição por status (via window.isPedidoEditavel):
 //   - rascunho:  editável
@@ -42,9 +43,12 @@
 //   - window.navigate   (js/router.js)
 //   - window.supa       (js/supabase-client.js)
 //
-// Writes permitidos nesta fase: APENAS `update` em `pedido_itens`
-//   (campos `modelo_id`, `metros`, `observacao` apenas). Sem
-//   update em `pedidos`, sem insert/delete em `pedido_itens`,
+// Writes permitidos nesta fase:
+//   - `update` em `pedido_itens` (campos `modelo_id`, `metros`,
+//     `observacao`) para itens existentes.
+//   - `insert` em `pedido_itens` (campos `pedido_id`, `modelo_id`,
+//     `metros`, `observacao`, `ordem`) para itens novos.
+//   Sem update em `pedidos`, sem delete em `pedido_itens`,
 //   sem insert em `pedido_eventos`, sem mexer em `lotes`. Sem
 //   Edge Function, sem service_role, sem token_acesso, sem
 //   rota pública.
@@ -120,7 +124,10 @@
 
     // Estado da tela
     // - pedido: { id, numero, status }
-    // - itens: [{ dbId, uid, modeloId, metros, observacao }]
+    // - itens: [{ dbId, uid, modeloId, metros, observacao, isNew }]
+    //   * dbId é o UUID real do banco (null para itens novos)
+    //   * isNew é true para itens adicionados nesta sessão
+    //   * uid é o identificador local de UI
     // - modelos: [{ id, nome, largura, cor_1_id, cor_2_id }]
     // - cores: { [id]: { id, nome } }
     const state = {
@@ -172,6 +179,7 @@
           modeloId: it.modelo_id != null ? String(it.modelo_id) : '',
           metros: it.metros != null ? String(it.metros) : '',
           observacao: it.observacao || '',
+          isNew: false,                               // item existente
         };
       });
       if (state.itens.length === 0) {
@@ -262,11 +270,28 @@
     }
 
     function buildItemRow(item) {
+      // Itens novos têm visual distinto (borda tracejada + label "Novo")
+      // para deixar claro que ainda não foram salvos.
+      const isNew = !!item.isNew;
       const row = window.el('div', {
-        class: 'flex flex-wrap items-end gap-2 mb-3 p-3 bg-gray-50 rounded-lg',
+        class: 'flex flex-wrap items-end gap-2 mb-3 p-3 rounded-lg '
+          + (isNew
+            ? 'bg-blue-50 border border-dashed border-blue-300'
+            : 'bg-gray-50'),
         'data-uid': item.uid,
         'data-db-id': item.dbId,
+        'data-is-new': isNew ? '1' : '0',
       });
+
+      // Label "Novo" para itens ainda não salvos.
+      if (isNew) {
+        row.appendChild(window.el('div', { class: 'w-full mb-1' },
+          window.el('span',
+            { class: 'inline-block px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700' },
+            'Novo (não salvo)'
+          )
+        ));
+      }
 
       // Select de modelo.
       const modeloSel = window.selectInput({
@@ -279,10 +304,6 @@
       modeloSel.classList.add('flex-1', 'min-w-64');
       modeloSel.addEventListener('change', function () {
         item.modeloId = modeloSel.value;
-        // Atualiza o preview do modelo (largura) no label.
-        // Como modeloLabel é uma string, vamos apenas re-renderizar
-        // a option selected (mantém o label exibido).
-        // Para preview visual, mantemos o label do select.
       });
       row.appendChild(window.el('div', { class: 'flex-1 min-w-64' }, modeloSel));
 
@@ -313,7 +334,23 @@
         window.el('label', { class: 'block text-xs text-gray-500 mb-1' }, 'Observação'),
         obsInput));
 
+      // Botão "Descartar novo item" — APENAS para itens novos
+      // (ainda não salvos). Itens existentes NÃO têm botão de
+      // descarte nesta fase (remoção fica para C3C2C2).
+      if (isNew) {
+        const discardBtn = window.el('button', {
+          type: 'button',
+          class: 'text-red-600 hover:underline text-sm px-2 py-1',
+          'data-action': 'discard-new',
+          onclick: function () { descartarItemNovo(item.uid); },
+        }, 'Descartar novo item');
+        row.appendChild(discardBtn);
+      }
+
       // Se bloqueado por status, desabilita campos (read-only).
+      // Para itens novos, desabilitar é defensivo (não deveriam existir
+      // em status bloqueado porque o botão "+ Adicionar item" não
+      // aparece, mas cobre o caso de race condition).
       if (state.blockedStatus) {
         modeloSel.disabled = true;
         metrosInput.disabled = true;
@@ -322,13 +359,69 @@
       return row;
     }
 
+    // -----------------------------------------------------------------
+    // adicionarItem: cria novo item no estado local com isNew=true.
+    // Só funciona se status for editável. Re-renderiza a lista.
+    // -----------------------------------------------------------------
+    function adicionarItem() {
+      if (state.blockedStatus) {
+        window.toast('Adição de item bloqueada para este status.', 'error');
+        return;
+      }
+      if (!state.pedido) {
+        window.toast('Pedido não carregado.', 'error');
+        return;
+      }
+      state.itens.push({
+        dbId: null,
+        uid: novoUid(),
+        modeloId: '',
+        metros: '',
+        observacao: '',
+        isNew: true,
+      });
+      render();
+    }
+
+    // -----------------------------------------------------------------
+    // descartarItemNovo: remove um item novo (ainda não salvo) do
+    // estado local. Não afeta itens existentes no banco. Só permite
+    // descartar itens com isNew=true.
+    // -----------------------------------------------------------------
+    function descartarItemNovo(uid) {
+      const idx = state.itens.findIndex(function (it) { return it.uid === uid; });
+      if (idx === -1) return;
+      if (!state.itens[idx].isNew) {
+        // Defesa: não permite descartar item existente nesta fase.
+        return;
+      }
+      state.itens.splice(idx, 1);
+      // Se era o último item e não há mais nada, atualiza flag noItems.
+      if (state.itens.length === 0) {
+        state.noItems = true;
+      }
+      render();
+    }
+
     function buildItensList() {
       const wrap = window.el('div', { class: 'mb-4' });
       wrap.appendChild(window.el('h2',
         { class: 'text-sm font-semibold text-gray-700 mb-2' },
-        'Itens do pedido (' + state.itens.length + ') — somente edição de modelo, metros e observação.'));
+        'Itens do pedido (' + state.itens.length + ') — edite modelo, metros e observação; ou adicione um novo item.'));
       for (let i = 0; i < state.itens.length; i++) {
         wrap.appendChild(buildItemRow(state.itens[i]));
+      }
+      // Botão "+ Adicionar item" — visível apenas se status editável.
+      // Em status bloqueado, não permite criar novos itens nesta
+      // sessão (decisão defensiva de C3C2C1).
+      if (!state.blockedStatus) {
+        const addBtn = window.el('button', {
+          type: 'button',
+          class: 'text-blue-700 hover:underline text-sm font-semibold',
+          'data-action': 'add-item',
+          onclick: function () { adicionarItem(); },
+        }, '+ Adicionar item');
+        wrap.appendChild(addBtn);
       }
       return wrap;
     }
@@ -366,21 +459,23 @@
       } else {
         banner.appendChild(window.el('div',
           { class: 'text-sm text-gray-500 ml-auto' },
-          'Edição permitida neste status. Você pode alterar apenas modelo, '
-            + 'metros e observação dos itens existentes.'
+          'Edição permitida neste status. Você pode alterar modelo, '
+            + 'metros e observação dos itens existentes, e também '
+            + 'adicionar novos itens.'
         ));
       }
       return banner;
     }
 
     function buildItensAviso() {
-      // Aviso simples: escopo desta fase (sem add/remove, sem
+      // Aviso simples: escopo desta fase (com add, sem remove, sem
       // overrides de largura/cor).
       return window.el('div',
         { class: 'bg-white rounded-xl shadow p-4 mb-4 text-sm text-gray-600' },
-        'Nesta fase (C3C2B) você pode editar apenas modelo, metros e '
-          + 'observação dos itens já existentes. Adicionar/remover itens '
-          + 'fica para C3C2C. Overrides de largura/cor ficam para C3C2D.'
+        'Nesta fase (C3C2C1) você pode editar modelo, metros e '
+          + 'observação dos itens existentes, e também adicionar novos '
+          + 'itens. Remover itens fica para C3C2C2. Overrides de '
+          + 'largura/cor ficam para C3C2D.'
       );
     }
 
@@ -391,17 +486,23 @@
     }
 
     // -----------------------------------------------------------------
-    // salvar: valida + aplica update individual em `pedido_itens`.
+    // salvar: valida + aplica writes em `pedido_itens`.
     //   - Bloqueado se status não for editável.
-    //   - Bloqueado se não houver itens.
+    //   - Bloqueado se não houver itens (mínimo 1).
     //   - Para cada item, valida modelo_id e metros > 0.
-    //   - Update individual com `.eq('id', item.dbId).eq('pedido_id', pedidoId)`.
-    //   - Payload: { modelo_id, metros, observacao } (3 chaves).
-    //   - Sem update em pedidos, sem insert/delete em pedido_itens,
+    //   - Para itens existentes (isNew=false): update individual
+    //     com `.eq('id', item.dbId).eq('pedido_id', pedidoId)`.
+    //     Payload: { modelo_id, metros, observacao } (3 chaves).
+    //   - Para itens novos (isNew=true): insert em batch com
+    //     `.insert([{ pedido_id, modelo_id, metros, observacao, ordem }])`.
+    //     Campos proibidos (id, largura, cor_1_id, cor_2_id, criado_em)
+    //     NÃO são setados.
+    //   - Sem update em pedidos, sem delete em pedido_itens,
     //     sem mexer em pedido_eventos, sem mexer em lotes.
     //   - Limitação documentada: se um update falhar, os updates
-    //     anteriores podem já ter sido aplicados (sem compensação
-    //     automática nesta fase). Usuário re-edita.
+    //     anteriores podem já ter sido aplicados. Se o insert
+    //     falhar, os updates anteriores já foram aplicados.
+    //     Sem compensação automática nesta fase. Usuário re-edita.
     //   - Após sucesso, navega de volta para o detalhe.
     // -----------------------------------------------------------------
     async function salvar(btn) {
@@ -432,15 +533,19 @@
         }
       }
 
+      // Separa itens existentes e novos.
+      const existingItems = state.itens.filter(function (it) { return !it.isNew; });
+      const newItems = state.itens.filter(function (it) { return it.isNew; });
+
       btn.disabled = true;
       const oldLabel = btn.textContent;
       btn.textContent = 'Salvando...';
 
-      // Updates sequenciais (mesma semântica de C2/C3C1: nenhum
-      // update reverso automático em caso de falha parcial).
       let algumFalhou = false;
-      for (let i = 0; i < state.itens.length; i++) {
-        const it = state.itens[i];
+
+      // 1) Updates de itens existentes (sequencial, mesmo padrão C3C2B).
+      for (let i = 0; i < existingItems.length; i++) {
+        const it = existingItems[i];
         const payload = {
           modelo_id: Number(it.modeloId),
           metros: Number(it.metros),
@@ -459,7 +564,6 @@
               'error'
             );
             console.error('pedido-itens-edit: erro ao atualizar item', r.error);
-            // Para sequência. Updates anteriores permanecem.
             break;
           }
         } catch (e) {
@@ -470,13 +574,50 @@
         }
       }
 
+      // Se algum update falhou, não tenta inserir (consistência).
+      if (!algumFalhou && newItems.length > 0) {
+        // 2) Insert em batch dos itens novos. Ordem é atribuída
+        // como: existingItems.length + i (novos vão para o fim).
+        const insertPayload = newItems.map(function (it, i) {
+          return {
+            pedido_id: pedidoId,
+            modelo_id: Number(it.modeloId),
+            metros: Number(it.metros),
+            observacao: it.observacao ? it.observacao : null,
+            ordem: existingItems.length + i,
+          };
+        });
+        try {
+          const r = await window.supa
+            .from('pedido_itens')
+            .insert(insertPayload);
+          if (r.error) {
+            algumFalhou = true;
+            window.toast(
+              'Erro ao inserir novos itens: ' + (r.error.message || 'desconhecido'),
+              'error'
+            );
+            console.error('pedido-itens-edit: erro ao inserir novos itens', r.error);
+          }
+        } catch (e) {
+          algumFalhou = true;
+          window.toast('Erro inesperado ao inserir novos itens.', 'error');
+          console.error(e);
+        }
+      }
+
       if (algumFalhou) {
         btn.disabled = false;
         btn.textContent = oldLabel;
         return;
       }
 
-      window.toast('Itens atualizados.', 'success');
+      window.toast(
+        newItems.length > 0
+          ? 'Itens atualizados e ' + newItems.length + ' novo(s) inserido(s).'
+          : 'Itens atualizados.',
+        'success'
+      );
       window.navigate('#/pedidos/' + pedidoId);
     }
 

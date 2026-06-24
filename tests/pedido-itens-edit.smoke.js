@@ -1,12 +1,14 @@
 // =====================================================================
 // === tests/pedido-itens-edit.smoke.js ================================
-// Smoke estático para a tela admin de edição de itens existentes
+// Smoke estático para a tela admin de edição de itens do Pedido
 // `js/screens/pedido-itens-edit.js` (`screenPedidoItensEditar`).
 //
-// Fase: RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2B
-// Escopo: edição APENAS de `modelo_id`, `metros`, `observacao` em
-//   itens JÁ EXISTENTES do Pedido para status editáveis (rascunho /
-//   recebido). Garante:
+// Fase: RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C1
+// Escopo: edição de `modelo_id`, `metros`, `observacao` em
+//   itens JÁ EXISTENTES (C3C2B) + ADICIONAR novos itens (C3C2C1).
+//   SEM remover (C3C2C2), SEM reordenar manualmente, SEM
+//   editar `largura`/`cor_1_id`/`cor_2_id` (overrides opcionais
+//   ficam para C3C2D). Garante:
 //   - arquivo existe e sintaxe JS válida;
 //   - expõe window.screenPedidoItensEditar e
 //     RAVATEX_SCREENS.pedidoItensEdit;
@@ -15,13 +17,18 @@
 //     → pedido-edit → pedido-itens-edit → boot;
 //   - faz SELECT em `pedidos` (status), `pedido_itens`,
 //     `modelos` e `cores` (para label/preview);
-//   - faz APENAS `update` em `pedido_itens` com
+//   - faz `update` em `pedido_itens` (apenas itens existentes) com
 //     `.eq('id', item.dbId).eq('pedido_id', pedidoId)`;
 //   - payload de update contém EXATAMENTE 3 chaves:
 //     `modelo_id`, `metros`, `observacao`;
+//   - faz `insert` em `pedido_itens` (apenas itens novos) com
+//     5 chaves: `pedido_id`, `modelo_id`, `metros`, `observacao`,
+//     `ordem`;
 //   - NÃO atualiza `id`, `pedido_id`, `ordem`, `largura`,
-//     `cor_1_id`, `cor_2_id`, `criado_em`;
-//   - NÃO faz insert/delete em `pedido_itens`;
+//     `cor_1_id`, `cor_2_id`, `criado_em` em updates;
+//   - NÃO seta `id`, `largura`, `cor_1_id`, `cor_2_id`,
+//     `criado_em` em inserts;
+//   - NÃO faz delete/upsert em `pedido_itens`;
 //   - NÃO faz update em `pedidos`;
 //   - NÃO toca `pedido_eventos`;
 //   - NÃO toca `lotes`;
@@ -33,9 +40,10 @@
 //     editável, exibe aviso e bloqueia salvamento;
 //   - usa helper `window.isPedidoEditavel` (de `pedido-ui.js`);
 //   - navega de volta para `#/pedidos/<uuid>` após sucesso;
-//   - SEM botão "Adicionar item" (C3C2C);
-//   - SEM botão "Remover item" (C3C2C);
-//   - SEM drag-and-drop / reordenação (C3C2C);
+//   - TEM botão "+ Adicionar item" (C3C2C1);
+//   - TEM botão "Descartar novo item" apenas para itens com isNew;
+//   - SEM botão "Remover item" de item existente (C3C2C2);
+//   - SEM drag-and-drop / reordenação manual (C3C2C2);
 //   - rota dinâmica `#/pedidos/<uuid>/itens` é admin-only.
 //
 // Não executa o app nem acessa Supabase real.
@@ -247,24 +255,31 @@ test('pedido-itens-edit.js: NÃO atualiza campos proibidos (id, pedido_id, ordem
   const chavesStr = m[1];
   for (const proibido of ['id', 'pedido_id', 'ordem', 'largura', 'cor_1_id', 'cor_2_id', 'criado_em']) {
     assert.doesNotMatch(chavesStr, new RegExp('\\b' + proibido + '\\s*:'),
-      'payload NÃO deve conter campo "' + proibido + '" (C3C2B restrito a modelo_id/metros/observacao)');
+      'payload NÃO deve conter campo "' + proibido + '" (C3C2C1 restrito a modelo_id/metros/observacao)');
   }
 });
 
-test('pedido-itens-edit.js: NÃO faz .insert() / .delete() / .upsert() em pedido_itens', () => {
-  // C3C2B é APENAS update de itens existentes. Adicionar/remover
-  // fica para C3C2C.
-  assert.doesNotMatch(screen, /\.from\(\s*['"]pedido_itens['"][\s\S]{0,200}\.insert\s*\(/);
-  assert.doesNotMatch(screen, /\.from\(\s*['"]pedido_itens['"][\s\S]{0,200}\.delete\s*\(/);
-  assert.doesNotMatch(screen, /\.from\(\s*['"]pedido_itens['"][\s\S]{0,200}\.upsert\s*\(/);
+test('pedido-itens-edit.js: NÃO faz .delete() / .upsert() em pedido_itens', () => {
+  // C3C2C1: insert permitido (para novos itens), mas delete e
+  // upsert permanecem proibidos. Remoção fica para C3C2C2.
+  assert.doesNotMatch(screen, /\.from\(\s*['"]pedido_itens['"][\s\S]{0,200}\.delete\s*\(/,
+    'pedido-itens-edit.js NÃO deve fazer .delete() em pedido_itens (C3C2C2)');
+  assert.doesNotMatch(screen, /\.from\(\s*['"]pedido_itens['"][\s\S]{0,200}\.upsert\s*\(/,
+    'pedido-itens-edit.js NÃO deve fazer .upsert() em pedido_itens');
+});
+
+test('pedido-itens-edit.js: faz .insert() em pedido_itens (C3C2C1)', () => {
+  // C3C2C1: insert é permitido para adicionar novos itens.
+  assert.match(screen, /\.from\(\s*['"]pedido_itens['"][\s\S]{0,400}\.insert\s*\(/,
+    'deve fazer .insert() em pedido_itens (C3C2C1)');
 });
 
 test('pedido-itens-edit.js: NÃO faz .update() em pedidos', () => {
-  // Update de pedidos é feito em C3C1 e C3B. C3C2B só mexe em
+  // Update de pedidos é feito em C3C1 e C3B. C3C2C1 só mexe em
   // pedido_itens.
   const co = codeOnly(screen);
   assert.doesNotMatch(co, /\.from\(\s*['"]pedidos['"][\s\S]{0,200}\.update\s*\(/,
-    'C3C2B NÃO deve fazer .update() em pedidos');
+    'C3C2C1 NÃO deve fazer .update() em pedidos');
 });
 
 test('pedido-itens-edit.js: NÃO toca pedido_eventos / lotes', () => {
@@ -410,29 +425,92 @@ test('pedido-itens-edit.js: usa formField / selectInput / textInput do ui.js', (
 // 15. C3C2B não tem controles de add/remove/reordenar
 // ---------------------------------------------------------------------
 
-test('pedido-itens-edit.js: NÃO tem botão "Adicionar item" (C3C2C)', () => {
-  // C3C2B é APENAS edição de itens existentes. Adicionar item é
-  // escopo de C3C2C.
-  assert.doesNotMatch(screen, /\+ Adicionar item|Adicionar item/,
-    'pedido-itens-edit.js NÃO deve ter botão "Adicionar item" (C3C2C)');
+test('pedido-itens-edit.js: TEM botão "+ Adicionar item" (C3C2C1)', () => {
+  // C3C2C1: o botão "+ Adicionar item" existe e chama adicionarItem().
+  // Visível apenas se status editável (controlado em buildItensList).
+  assert.match(screen, /\+ Adicionar item/,
+    'botão "+ Adicionar item" deve existir como label');
+  // Deve existir função adicionarItem() que adiciona item com isNew.
+  assert.match(screen, /function\s+adicionarItem/,
+    'deve existir função adicionarItem()');
+  // Deve existir handler que adiciona item ao state.itens.
+  assert.match(screen, /state\.itens\.push/,
+    'deve haver state.itens.push para adicionar novo item ao estado');
+  // Deve existir marcador isNew em item novo.
+  assert.match(screen, /isNew\s*:\s*true/,
+    'item novo deve ter flag isNew: true');
 });
 
-test('pedido-itens-edit.js: NÃO tem botão "Remover item" (C3C2C)', () => {
-  // Remover item é escopo de C3C2C.
-  assert.doesNotMatch(screen, /Remover|removeBtn|state\.itens\s*=\s*state\.itens\.filter/,
-    'pedido-itens-edit.js NÃO deve ter lógica de remover item (C3C2C)');
+test('pedido-itens-edit.js: NÃO tem botão "Remover item" de item existente (C3C2C2)', () => {
+  // C3C2C1 NÃO remove itens existentes. Remoção fica para C3C2C2.
+  // O único botão de descarte é "Descartar novo item", que só
+  // aparece em itens com isNew=true.
+  // Defesa: o handler de descarte (descartarItemNovo) deve checar
+  // isNew antes de remover.
+  const co = codeOnly(screen);
+  assert.match(co, /function\s+descartarItemNovo/,
+    'deve existir função descartarItemNovo()');
+  // A função deve checar isNew antes de remover.
+  assert.match(co, /descartarItemNovo[\s\S]{0,300}?isNew/,
+    'descartarItemNovo deve checar isNew antes de remover');
+  // Defesa: não deve haver lógica genérica de "remover item existente".
+  assert.doesNotMatch(co, /removeBtn/,
+    'pedido-itens-edit.js NÃO deve ter "removeBtn" (apenas C3C2C2)');
 });
 
-test('pedido-itens-edit.js: NÃO tem drag-and-drop / reordenação (C3C2C)', () => {
-  // Reordenação é escopo de C3C2C.
+test('pedido-itens-edit.js: NÃO tem drag-and-drop / reordenação manual (C3C2C2)', () => {
+  // Reordenação manual é escopo de C3C2C2.
   const co = codeOnly(screen);
   assert.doesNotMatch(co, /drag/i,
-    'pedido-itens-edit.js NÃO deve ter drag-and-drop (C3C2C)');
+    'pedido-itens-edit.js NÃO deve ter drag-and-drop (C3C2C2)');
   assert.doesNotMatch(co, /reordenar|reorder|moveUp|moveDown/i,
-    'pedido-itens-edit.js NÃO deve ter reordenação (C3C2C)');
-  // Não deve atualizar o campo `ordem` (gerenciado pelo sistema).
-  assert.doesNotMatch(co, /\bordem\s*:/,
-    'pedido-itens-edit.js NÃO deve setar campo "ordem" (C3C2C)');
+    'pedido-itens-edit.js NÃO deve ter reordenação manual (C3C2C2)');
+});
+
+// ---------------------------------------------------------------------
+// 15b. C3C2C1: insert de novos itens + payload restrito
+// ---------------------------------------------------------------------
+
+test('pedido-itens-edit.js: insert de novos itens contém pedido_id, modelo_id, metros, observacao, ordem (C3C2C1)', () => {
+  // C3C2C1: o insert de novos itens deve ter 5 chaves permitidas.
+  // A variável é `insertPayload` (array de objetos com essas chaves).
+  // Procura o objeto literal dentro do map.
+  const m = screen.match(/insertPayload\s*=\s*newItems\.map[\s\S]*?return\s*\{([\s\S]*?)\}/);
+  assert.ok(m, 'insertPayload deve existir com newItems.map(... return {...})');
+  const chavesStr = m[1];
+  for (const esperada of ['pedido_id', 'modelo_id', 'metros', 'observacao', 'ordem']) {
+    assert.match(chavesStr, new RegExp('\\b' + esperada + '\\s*:'),
+      'insertPayload deve incluir campo "' + esperada + '"');
+  }
+});
+
+test('pedido-itens-edit.js: insert de novos itens NÃO contém campos proibidos (C3C2C1)', () => {
+  // NÃO deve setar id, largura, cor_1_id, cor_2_id, criado_em.
+  const m = screen.match(/insertPayload\s*=\s*newItems\.map[\s\S]*?return\s*\{([\s\S]*?)\}/);
+  assert.ok(m, 'insertPayload deve existir');
+  for (const proibido of ['id', 'largura', 'cor_1_id', 'cor_2_id', 'criado_em']) {
+    assert.doesNotMatch(m[1], new RegExp('\\b' + proibido + '\\s*:'),
+      'insertPayload NÃO deve conter campo "' + proibido + '"');
+  }
+});
+
+test('pedido-itens-edit.js: ordem de novos itens é calculada automaticamente (C3C2C1)', () => {
+  // Para novos itens, ordem = existingItems.length + i.
+  const m = screen.match(/insertPayload\s*=\s*newItems\.map[\s\S]*?return\s*\{([\s\S]*?)\}/);
+  assert.ok(m, 'insertPayload deve existir');
+  // A expressão de ordem deve usar existingItems.length.
+  assert.match(m[1], /ordem\s*:\s*existingItems\.length\s*\+\s*i/,
+    'ordem deve ser calculada como existingItems.length + i');
+});
+
+test('pedido-itens-edit.js: tem botão "Descartar novo item" para itens com isNew', () => {
+  // Itens novos têm botão "Descartar novo item" (NÃO "Remover item").
+  assert.match(screen, /Descartar novo item/,
+    'deve existir label "Descartar novo item"');
+  // Deve ser mostrado apenas em itens com isNew.
+  const co = codeOnly(screen);
+  assert.match(co, /isNew[\s\S]{0,300}?Descartar novo item/,
+    'label "Descartar novo item" deve aparecer apenas em itens com isNew');
 });
 
 // ---------------------------------------------------------------------
@@ -481,7 +559,7 @@ test('pedido-detail.js: buildEditItensButton usa isPedidoEditavel', () => {
 // 18. Schema 13_* não foi alterado por esta fase
 // ---------------------------------------------------------------------
 
-test('schema 13_*: não foi alterado pela fase C3C2B', () => {
+test('schema 13_*: não foi alterado pela fase C3C2C1', () => {
   assert.match(schema, /CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+public\.pedidos/i);
   assert.match(schema, /CHECK\s*\(status\s+IN/i);
   assert.match(schema, /ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);

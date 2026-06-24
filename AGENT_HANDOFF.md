@@ -9,11 +9,11 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2B` (edição admin de itens
-  existentes do Pedido entregue).
-- **HEAD aceito atual:** `2d36077` (após push desta fase, o HEAD
-  da fase C3C2B — "Add pedido admin existing items edit").
-- **staging/main:** `2d36077` (será atualizado com o push desta fase).
+  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C1` (adicionar novo item
+  ao Pedido pela tela de edição entregue).
+- **HEAD aceito atual:** `acc96c3` (após push desta fase, o HEAD
+  da fase C3C2C1 — "Add pedido admin item append").
+- **staging/main:** `acc96c3` (será atualizado com o push desta fase).
 - **Working tree:** limpo após commit.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -27,34 +27,36 @@
   `pedido_eventos` e `lotes.pedido_id` (nullable). RLS admin-only.
   Sem policy pública. Sem `pedidos.op_id`.
 - **Frontend Pedidos entregue (C1 + C2 + C2-R1 + C3A + C3B +
-  C3C1 + C3C2B):** listagem `#/pedidos`, formulário
+  C3C1 + C3C2B + C3C2C1):** listagem `#/pedidos`, formulário
   `#/pedidos/novo` (cria pedido + itens como `rascunho`),
   correção de bug do preview de cor (slot fixo +
   `updatePreview()`), detalhe read-only `#/pedidos/<uuid>`,
   ações reais RESTRITAS de status (C3B), **edição admin
-  RESTRITA dos dados gerais** (C3C1, `#/pedidos/<uuid>/editar`)
-  e **edição admin RESTRITA de itens existentes** (C3C2B,
-  `#/pedidos/<uuid>/itens`). Helper `pedido-ui.js` com
-  status, badges, preview de cor, e `isPedidoEditavel()`
-  (`PEDIDO_STATUS_EDITAVEL = ['rascunho', 'recebido']`).
-  Na C3B, o detalhe aceita APENAS as transições:
-  `rascunho→recebido`, `recebido→confirmado`,
+  RESTRITA dos dados gerais** (C3C1, `#/pedidos/<uuid>/editar`),
+  **edição admin RESTRITA de itens existentes** (C3C2B,
+  `#/pedidos/<uuid>/itens`, update de `modelo_id`/`metros`/
+  `observacao` em itens existentes) e **adição de novos
+  itens** (C3C2C1, mesmo rota `#/pedidos/<uuid>/itens`, insert
+  de `pedido_id`/`modelo_id`/`metros`/`observacao`/`ordem`).
+  Helper `pedido-ui.js` com status, badges, preview de cor,
+  e `isPedidoEditavel()` (`PEDIDO_STATUS_EDITAVEL = ['rascunho',
+  'recebido']`). Na C3B, o detalhe aceita APENAS as
+  transições: `rascunho→recebido`, `recebido→confirmado`,
   `rascunho/recebido/confirmado→cancelado` (este último via
   `window.confirmDialog`). Na C3C1, o botão "Editar dados"
   do detalhe é funcional APENAS para status editáveis e
-  navega para a tela de edição de dados gerais; a tela
-  atualiza APENAS `cliente_id`, `prazo_entrega` e
-  `observacao`. Na C3C2B, o botão "Editar itens" do
-  detalhe é funcional APENAS para status editáveis e
-  navega para a tela de edição de itens; a tela atualiza
-  APENAS `modelo_id`, `metros` e `observacao` de itens
-  JÁ EXISTENTES (sem add/remove/reordenar, sem overrides
-  de largura/cor). Update é APENAS em `pedidos` (C3C1) ou
-  em `pedido_itens` (C3C2B), admin-only via RLS. Sem
+  navega para a tela de edição de dados gerais. Na C3C2B/
+  C3C2C1, o botão "Editar itens" do detalhe é funcional
+  APENAS para status editáveis e navega para a tela de
+  edição de itens; a tela permite editar itens existentes
+  (C3C2B) e adicionar novos (C3C2C1, com flag `isNew: true`
+  e botão "Descartar novo item" para descarte local). Update
+  é APENAS em `pedidos` (C3C1) ou em `pedido_itens`
+  (C3C2B: update; C3C2C1: update + insert). Sem
   insert/update/delete em `pedido_itens` (exceto pelo update
-  restrito da C3C2B), sem insert em `pedido_eventos`
-  (best-effort fica para fase futura), sem
-  `functions.invoke`, sem `token_acesso`, sem
+  + insert restritos da C3C2B/C3C2C1), sem insert em
+  `pedido_eventos` (best-effort fica para fase futura),
+  sem `functions.invoke`, sem `token_acesso`, sem
   `service_role`, sem rota pública, sem schema, sem OP, sem
   Edge Function, sem fornecedor.
 
@@ -193,8 +195,8 @@ Abortar e revisar o escopo se:
 ## Próxima recomendação operacional
 
 **Refactor arquitetural continua congelado.**
-**Pedidos C1 + C2 + C2-R1 + C3A + C3B + C3C1 + C3C2B
-entregues:** listagem `#/pedidos`, formulário
+**Pedidos C1 + C2 + C2-R1 + C3A + C3B + C3C1 + C3C2B +
+C3C2C1 entregues:** listagem `#/pedidos`, formulário
 `#/pedidos/novo` (cria pedido + itens como `rascunho`),
 correção de bug no preview de cor do item (slot fixo +
 `updatePreview()` com `replaceChildren`), **detalhe
@@ -210,26 +212,31 @@ tela `#pedidos/<uuid>/editar` com `pedido-edit.js`;
 restringe `cliente_id`/`prazo_entrega`/`observacao`; status
 editáveis apenas `rascunho` e `recebido` via
 `isPedidoEditavel`; demais status desabilitam campos +
-Salvar) e **edição admin RESTRITA de itens existentes**
+Salvar), **edição admin RESTRITA de itens existentes**
 (C3C2B, nova tela `#/pedidos/<uuid>/itens` com
 `pedido-itens-edit.js`; restringe `modelo_id`/`metros`/
 `observacao` de itens JÁ EXISTENTES; sem add/remove/reordenar,
 sem overrides de largura/cor; demais status desabilitam
-campos + Salvar). Update é APENAS em `pedidos` (C3C1) ou
-em `pedido_itens` (C3C2B), admin-only via RLS. Sem
-insert/update/delete em `pedido_itens` (exceto update
-restrito da C3C2B), sem insert em `pedido_eventos`
-(best-effort fica para fase futura), sem `functions.invoke`,
-sem `token_acesso`, sem `service_role`, sem rota pública,
-sem mutação em `lotes`/`pedido_eventos`, sem schema, sem
-OP, sem Edge Function, sem fornecedor. Limitação
-conhecida do formulário: sem RPC/transação atômica
-(compensação manual documentada no código). Add/remove
-itens fica para C3C2C.
-**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C`
-(adicionar/remover itens + recálculo de `ordem` + mínimo
-de 1 item), **somente com autorização explícita** do
-HMNlead.
+campos + Salvar) e **adição de novos itens** (C3C2C1,
+mesma tela `#/pedidos/<uuid>/itens`; flag `isNew: true`
+no estado local; insert em `pedido_itens` com 5 chaves
+`pedido_id`/`modelo_id`/`metros`/`observacao`/`ordem`;
+ordem calculada como `existingItems.length + i`; botão
+"Descartar novo item" para descarte local; sem remover
+existente, sem overrides). Update é APENAS em `pedidos`
+(C3C1) ou em `pedido_itens` (C3C2B: update; C3C2C1:
+update + insert), admin-only via RLS. Sem delete/upsert em
+`pedido_itens`, sem insert em `pedido_eventos` (best-effort
+fica para fase futura), sem `functions.invoke`, sem
+`token_acesso`, sem `service_role`, sem rota pública, sem
+mutação em `lotes`/`pedido_eventos`, sem schema, sem OP, sem
+Edge Function, sem fornecedor. Limitação conhecida do
+formulário: sem RPC/transação atômica (compensação manual
+documentada no código). Remover itens existentes fica
+para C3C2C2.
+**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C2`
+(remover item existente do Pedido), **somente com
+autorização explícita** do HMNlead.
 **Não iniciar execução sem autorização explícita.**
 **NÃO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**
 
@@ -482,10 +489,10 @@ projeto:
 | 23 | `js/screens/pedido-form.js` | `62a9f9a` (+ `2de595c`) | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2 (+ C2-R1) |
 | 24 | `js/screens/pedido-detail.js` | `7184388` + `d2b5a6a` + (commit desta fase) | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A (+ C3B: ações reais de status + C3C1: Editar funcional por status) |
 | 25 | `js/screens/pedido-edit.js` | `2d36077` C3C1: edição admin dos dados gerais do Pedido |
-| 26 | `js/screens/pedido-itens-edit.js` | (commit desta fase) | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2B: edição admin de itens existentes do Pedido |
+| 26 | `js/screens/pedido-itens-edit.js` | `acc96c3` C3C2B: edição admin de itens existentes (update 3 chaves) + (commit desta fase) C3C2C1: também ADICIONAR novos itens (insert 5 chaves, `isNew`, `Descartar novo item`) |
 
 ## Testes recentes (focados passando)
-- `pedido-itens-edit.smoke.js` — 41/41
+- `pedido-itens-edit.smoke.js` — 46/46
 - `pedido-edit.smoke.js` — 35/35
 - `pedido-detail.smoke.js` — 43/43
 - `pedido-form.smoke.js` — 35/35
@@ -494,7 +501,7 @@ projeto:
 - `pedidos-schema.smoke.js` — 41/41
 - `boot.smoke.js` — 28/28
 - `router.smoke.js` — 41/41
-- **Total Pedidos (C1+C2+C2-R1+C3A+C3B+C3C1+C3C2B): 311/311** (todos os focados
+- **Total Pedidos (C1+C2+C2-R1+C3A+C3B+C3C1+C3C2B+C3C2C1): 316/316** (todos os focados
   passam).
 
 Focados do refactor (mantidos verdes):
