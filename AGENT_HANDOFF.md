@@ -12,8 +12,8 @@
   `RAVATEX-TAPETES-PEDIDOS-SCHEMA-APPLY-RECORD-A` (registro de
   aplicação). Schema `db/13_pedidos_schema.sql` já aplicado em
   `ucrjtfswnfdlxwtmxnoo`. Frontend não implementado (próxima fase).
-- **HEAD aceito atual:** `555db7c` ("Add pedidos schema and RLS").
-- **staging/main:** `555db7c`
+- **HEAD aceito atual:** `2e22a86` ("Record pedidos schema application").
+- **staging/main:** `2e22a86`
 - **Working tree:** limpo.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -22,10 +22,10 @@
   `bhgifjrfagkzubpyqpew` + Vercel e **não deve ser tocado**.
 - **⚠️ NÃO TOCAR `bhgifjrfagkzubpyqpew`.**
 - **⚠️ NÃO TOCAR Vercel original.**
-- **Schema Pedidos versionado** (não aplicado): `db/13_pedidos_schema.sql`
-  com tabelas `pedidos`, `pedido_itens`, `pedido_eventos` e
-  `lotes.pedido_id` (nullable). RLS admin-only. Sem policy pública.
-  Sem `pedidos.op_id`.
+- **Schema Pedidos** `db/13_pedidos_schema.sql` aplicado em
+  `ucrjtfswnfdlxwtmxnoo`: tabelas `pedidos`, `pedido_itens`,
+  `pedido_eventos` e `lotes.pedido_id` (nullable). RLS admin-only.
+  Sem policy pública. Sem `pedidos.op_id`. Frontend não implementado.
 
 ## Estado operacional atual
 - `index.html` está declarativo, sem script inline final, com
@@ -169,6 +169,7 @@ separados `Desativar` e `Excluir`.
 autorização explícita** do HMNlead.
 **Não iniciar execução sem autorização explícita.**
 **NÃO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**
+**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C` (frontend admin de Pedidos).
 
 O ciclo de refactor arquitetural + hardening + extração final do
 `op-pdf.js` está **congelado**. Antes de iniciar qualquer novo
