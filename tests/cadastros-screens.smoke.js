@@ -531,12 +531,13 @@ test('20. screenCadastrosUsuarios preserva uso de labelFornecedorTipo', async ()
   });
   const node = await vm.runInContext('window.screenCadastrosUsuarios()', sandbox);
   assert.ok(node, 'render falhou');
-  // O banner amarelo instrutivo deve estar presente
+  // Botão principal deve ser "+ Novo usuário" (fluxo via Edge Function)
   const flex = node.children.find((c) => c.tagName === 'DIV');
   const main  = flex && flex.children.find((c) => c.tagName === 'MAIN');
   const rendered = textOf(main);
-  assert.match(rendered, /Como criar um usu[áa]rio novo/);
-  assert.match(rendered, /Supabase Studio/);
+  assert.match(rendered, /\+ Novo usu[áa]rio/);
+  assert.doesNotMatch(rendered, /Como criar um usu[áa]rio novo/);
+  assert.doesNotMatch(rendered, /Supabase Studio/);
   // O label PT-BR via labelFornecedorTipo deve aparecer (coluna
   // "Fornecedor" do dataTable mostra "Tec X" para o usuário tipo
   // fornecedor, mas como o join já devolve fornecedor.nome, o label

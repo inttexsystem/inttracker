@@ -132,12 +132,13 @@ A próxima etapa é **homologação / release**, não nova extração.
   entre múltiplas tabelas (risco de produto/dados, não regressão do
   refactor).
 - 🟡 Criação de usuário Supabase Auth ainda exige perfil
-  correspondente em `public.usuarios`. Design da Edge Function
-  `admin-create-user` concluído em
-  `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`; código
-  inicial da função criado localmente em
-  `supabase/functions/admin-create-user/` (fase
-  `RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A`, **sem deploy**).
+  correspondente em `public.usuarios`. Edge Function
+  `admin-create-user` publicada e validada em staging
+  (`ucrjtfswnfdlxwtmxnoo`); UI `#/cadastros/usuarios` adaptada
+  em `js/screens/cadastros.js` para chamar a função via
+  `supabase.functions.invoke` (fase `RAVATEX-TAPETES-AUTH-ADMIN-UI-A`).
+  Teste fornecedor 403 permanece pendente por falta de credencial
+  de fornecedor; próxima fase é validação manual E2E da UI.
 - 🟡 Staging mostra log `relation "supabase_migrations.schema_migrations"
   does not exist` (ruído do dashboard, não do app).
 - 🟡 Tailwind CDN ainda gera warning de produção (não bloqueante;
@@ -146,15 +147,14 @@ A próxima etapa é **homologação / release**, não nova extração.
   para homologação pública.
 
 ## Próximo passo recomendado
-1. Revisar e aprovar `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`.
-2. Edge Function `admin-create-user` criada localmente em
-   `supabase/functions/admin-create-user/` (sem deploy).
-3. Executar `RAVATEX-TAPETES-AUTH-EDGE-STAGING-DEPLOY-A` (deploy em
-   staging + validação de admin/fornecedor).
-4. Executar `RAVATEX-TAPETES-AUTH-ADMIN-UI-A` (adaptar
-   `screenCadastrosUsuarios`).
-5. Homologação funcional local/staging.
-6. Decisão separada sobre merge/release para `origin/main`
+1. Edge Function `admin-create-user` deployada e validada em staging.
+2. UI `#/cadastros/usuarios` adaptada para chamar a Edge Function
+   (fase `RAVATEX-TAPETES-AUTH-ADMIN-UI-A`).
+3. Validação manual E2E da UI em staging (criar usuário descartável,
+   confirmar toast, confirmar listagem, limpar usuário).
+4. Teste do bloqueio de fornecedor (403) em staging, se houver
+   credencial de fornecedor disponível.
+5. Decisão separada sobre merge/release para `origin/main`
    (somente com autorização explícita).
 
 ## Estrutura final de responsabilidades

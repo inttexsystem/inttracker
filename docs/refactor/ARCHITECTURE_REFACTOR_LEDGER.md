@@ -2,10 +2,11 @@
 
 > Ledger de fases do refactor arquitetural de
 > `D:\OneDrive\Programação\Ravatex\controle-tapetes`.
-> Última atualização: 2026-06-23 (HEAD `f6ac19b`,
-> fase `RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A` — código inicial da
-> Edge Function `admin-create-user` criado localmente em
-> `supabase/functions/admin-create-user/`; sem deploy).
+> Última atualização: 2026-06-23 (HEAD `c365020`,
+> fase `RAVATEX-TAPETES-AUTH-ADMIN-UI-A` — UI
+> `screenCadastrosUsuarios` adaptada para chamar a Edge Function
+> `admin-create-user` via `supabase.functions.invoke`; remoção do
+> fluxo manual de cópia de UID; sem alteração de schema/RLS/DB).
 
 ## 1. Premissas corrigidas
 - **App estático**, não Next/Vercel.
@@ -91,6 +92,7 @@
 | CODE-HEALTH-RULES | (a criar) | `docs/architecture/CODE_HEALTH_RULES.md` | docs-only | aceito |
 | AUTH-EDGE-DESIGN-A | `88aa4fb` | `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | aceito |
 | AUTH-EDGE-FUNCTION-A | `f6ac19b` | `supabase/functions/admin-create-user/index.ts`, `supabase/functions/admin-create-user/README.md`, `supabase/functions/_shared/cors.ts`, `supabase/functions/_shared/response.ts`, `supabase/README.md`, `tests/admin-create-user.smoke.js` | 17/17 smoke | aceito (sem deploy) |
+| AUTH-ADMIN-UI-A | (a criar) | `js/screens/cadastros.js`, `tests/cadastros-usuarios-auth-ui.smoke.js`, `tests/cadastros-screens.smoke.js` (assert de banner) | 12/12 + 17/17 | aceito |
 
 ## 5. Ressalvas processuais aceitas em `FORNECEDOR-SCREENS-MODULE-A` (commit `4b9ca12`)
 
@@ -444,10 +446,13 @@ hardening + extração final está **congelado** em `7f3c6da`
 (vide seção 5d). O item `RAVATEX-TAPETES-OP-PDF-MODULE-A` foi
 **executado** em `7f3c6da`; não está mais em backlog.
 
-**Auth:** `RAVATEX-TAPETES-AUTH-EDGE-DESIGN-A` (item 4.1) e
-`RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A` (item 4.2 do design) estão
-**concluídos**; o deploy em staging (`AUTH-EDGE-STAGING-DEPLOY-A`)
-ainda depende de fase própria e autorização explícita.
+**Auth:** `RAVATEX-TAPETES-AUTH-EDGE-DESIGN-A`,
+`RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A`,
+`RAVATEX-TAPETES-AUTH-EDGE-STAGING-DEPLOY-A` e
+`RAVATEX-TAPETES-AUTH-ADMIN-UI-A` estão **concluídos**. Teste
+fornecedor 403 permanece pendente por falta de credencial de
+fornecedor. Próxima fase: `RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A`
+(documentação operacional) e validação manual E2E da UI em staging.
 
 ## 10. Política de updates deste ledger
 

@@ -150,13 +150,13 @@ Abortar e revisar o escopo se:
 ## Próxima recomendação operacional
 
 **Refactor arquitetural continua congelado.**
-**Estado Auth:** design concluído; código inicial da Edge Function
-`admin-create-user` criado localmente em
-`supabase/functions/admin-create-user/` (fase
-`RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A`, **sem deploy**).
-**Próxima frente recomendada:** deploy controlado em staging
-(`RAVATEX-TAPETES-AUTH-EDGE-STAGING-DEPLOY-A`) e, só depois, adaptação
-da UI de usuários.
+**Estado Auth:** design concluído; Edge Function `admin-create-user`
+publicada e validada em staging (`ucrjtfswnfdlxwtmxnoo`); UI
+`#/cadastros/usuarios` adaptada em `js/screens/cadastros.js` para
+chamar a função via `supabase.functions.invoke` (fase
+`RAVATEX-TAPETES-AUTH-ADMIN-UI-A`).
+**Próxima frente recomendada:** validação manual E2E da UI em
+staging (criar usuário descartável, confirmar toast, limpar).
 
 O ciclo de refactor arquitetural + hardening + extração final do
 `op-pdf.js` está **congelado**. Antes de iniciar qualquer novo
@@ -178,9 +178,9 @@ Fases, em ordem:
    Edge Function `admin-create-user` (sem UI ainda). **Concluída
    localmente (sem deploy).**
 2. **`RAVATEX-TAPETES-AUTH-EDGE-STAGING-DEPLOY-A`** — deploy controlado
-   em staging e validação de permissões.
+   em staging e validação de permissões. **Concluída em staging.**
 3. **`RAVATEX-TAPETES-AUTH-ADMIN-UI-A`** — adaptar
-   `screenCadastrosUsuarios` para chamar a Edge Function.
+   `screenCadastrosUsuarios` para chamar a Edge Function. **Concluída.**
 4. **`RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A`** — documentar operação
    final.
 

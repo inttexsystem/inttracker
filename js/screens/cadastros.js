@@ -492,15 +492,7 @@
 
     function render(users, forns) {
       container.replaceChildren(
-        window.pageHeader('Usuários', [{ label: '+ Vincular usuário', onclick: () => openModal(null, forns) }]),
-        window.el('div', { class: 'bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 text-sm text-yellow-900' },
-          window.el('p', { class: 'font-semibold mb-1' }, 'Como criar um usuário novo:'),
-          window.el('ol', { class: 'list-decimal pl-5 space-y-1' },
-            window.el('li', {}, 'Abra o Supabase Studio → Authentication → Users → Add user → Create new user (marque Auto Confirm User).'),
-            window.el('li', {}, 'Copie o UID gerado.'),
-            window.el('li', {}, 'Volte aqui, clique "+ Vincular usuário" e cole o UID + dados.')
-          )
-        ),
+        window.pageHeader('Usuários', [{ label: '+ Novo usuário', onclick: () => openModal(null, forns) }]),
         window.dataTable({
           columns: [
             { key: 'email', label: 'E-mail' },
@@ -522,47 +514,119 @@
       const fornOptions = forns.map(f => ({ value: f.id, label: `${f.nome} (${labelFornecedorTipo(f.tipo)})` }));
       const tipoOptions = [{ value: 'admin', label: 'Admin' }, { value: 'fornecedor', label: 'Fornecedor' }];
 
-      const idInput = window.textInput({ value: usr?.id || '', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' });
-      idInput.disabled = isEdit;
-      if (isEdit) idInput.classList.add('bg-gray-100');
-
       const emailInput = window.textInput({ type: 'email', value: usr?.email || '', placeholder: 'usuario@exemplo.com' });
       const nomeInput = window.textInput({ value: usr?.nome || '', placeholder: 'Ex: Fornecedor X' });
       const tipoSel = window.selectInput({ options: tipoOptions, value: usr?.tipo });
       const fornSel = window.selectInput({ options: fornOptions, value: usr?.fornecedor?.id, placeholder: '(nenhum)' });
 
-      const body = window.el('div', {},
-        window.formField({ label: 'UID do Auth', input: idInput, hint: isEdit ? 'Não pode ser alterado' : 'Cole o UID copiado do Supabase Studio' }),
-        window.formField({ label: 'E-mail', input: emailInput, hint: 'Deve bater com o e-mail criado no Supabase Auth' }),
-        window.formField({ label: 'Nome', input: nomeInput }),
-        window.formField({ label: 'Tipo', input: tipoSel }),
-        window.formField({ label: 'Fornecedor (se tipo for "fornecedor")', input: fornSel, hint: 'Deixe vazio se for admin' })
-      );
+      const fields = [];
+
+      if (isEdit) {
+        const idInput = window.textInput({ value: usr?.id || '', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' });
+        idInput.disabled = true;
+        idInput.classList.add('bg-gray-100');
+        fields.push(window.formField({ label: 'UID do Auth', input: idInput, hint: 'Não pode ser alterado' }));
+      }
+
+      fields.push(window.formField({
+        label: 'E-mail',
+        input: emailInput,
+        hint: isEdit ? '' : 'Será usado para login no Supabase Auth',
+      }));
+      fields.push(window.formField({ label: 'Nome', input: nomeInput }));
+      fields.push(window.formField({ label: 'Tipo', input: tipoSel }));
+      fields.push(window.formField({
+        label: 'Fornecedor (se tipo for "fornecedor")',
+        input: fornSel,
+        hint: 'Deixe vazio se for admin',
+      }));
+
+      let passwordInput = null;
+      if (!isEdit) {
+        passwordInput = window.textInput({ type: 'password', value: '', placeholder: 'Mínimo 6 caracteres' });
+        fields.push(window.formField({
+          label: 'Senha temporária',
+          input: passwordInput,
+          hint: 'Defina uma senha inicial e oriente a troca depois.',
+        }));
+      }
+
+      const body = window.el('div', {}, ...fields);
 
       window.modal({
-        title: isEdit ? 'Editar usuário' : 'Vincular usuário',
+        title: isEdit ? 'Editar usuário' : 'Novo usuário',
         body,
         onSave: async () => {
-          const id = idInput.value.trim();
           const email = emailInput.value.trim();
           const nome = nomeInput.value.trim();
           const tipo = tipoSel.value;
-          const fornecedor_id = fornSel.value || null;
-          if (!id || !email || !nome || !tipo) { window.toast('Preencha UID, email, nome e tipo', 'error'); return false; }
-          if (tipo === 'fornecedor' && !fornecedor_id) { window.toast('Usuário tipo "fornecedor" precisa de fornecedor vinculado', 'error'); return false; }
-          const payload = { id, email, nome, tipo, fornecedor_id };
-          const { error } = isEdit
-            ? await window.supa.from('usuarios').update({ email, nome, tipo, fornecedor_id }).eq('id', usr.id)
-            : await window.supa.from('usuarios').insert(payload);
-          if (error) {
-            let msg = 'Erro ao salvar';
-            if (error.message.includes('duplicate')) msg = 'UID ou e-mail já cadastrado';
-            if (error.message.includes('foreign key')) msg = 'UID não existe no Supabase Auth — crie lá primeiro';
-            window.toast(msg, 'error'); console.error(error); return false;
+          const fornecedor_id_raw = fornSel.value || null;
+
+          if (!email || !nome || !tipo) {
+            window.toast('Preencha e-mail, nome e tipo', 'error');
+            return false;
           }
-          window.toast(isEdit ? 'Usuário atualizado' : 'Usuário vinculado', 'success');
+          if (tipo === 'fornecedor' && !fornecedor_id_raw) {
+            window.toast('Usuário tipo "fornecedor" precisa de fornecedor vinculado', 'error');
+            return false;
+          }
+          if (tipo === 'admin' && fornecedor_id_raw) {
+            window.toast('Usuário admin não pode ter fornecedor vinculado', 'error');
+            return false;
+          }
+
+          if (isEdit) {
+            const { error } = await window.supa
+              .from('usuarios')
+              .update({ email, nome, tipo, fornecedor_id: fornecedor_id_raw })
+              .eq('id', usr.id);
+            if (error) {
+              let msg = 'Erro ao salvar';
+              if (error.message && error.message.includes('duplicate')) msg = 'E-mail já cadastrado';
+              window.toast(msg, 'error');
+              console.error(error);
+              return false;
+            }
+            window.toast('Usuário atualizado', 'success');
+            reload();
+            return;
+          }
+
+          // Criação via Edge Function admin-create-user
+          const password = passwordInput ? passwordInput.value : '';
+          if (!password || password.length < 6) {
+            window.toast('Senha temporária deve ter no mínimo 6 caracteres', 'error');
+            return false;
+          }
+          const fornecedor_id = fornecedor_id_raw ? Number(fornecedor_id_raw) : null;
+
+          const { error } = await window.supa.functions.invoke('admin-create-user', {
+            body: { email, password, nome, tipo, fornecedor_id },
+          });
+
+          if (error) {
+            let code = null;
+            let msg = (error && error.message) ? error.message : 'Erro ao criar usuário';
+            try {
+              if (error && error.context && typeof error.context.json === 'function') {
+                const body = await error.context.json();
+                if (body && body.error) {
+                  code = body.error.code || null;
+                  if (body.error.message) msg = body.error.message;
+                }
+              }
+            } catch (_) { /* ignore body parse errors */ }
+            if (code === 'CONFLICT') msg = 'E-mail já cadastrado.';
+            else if (code === 'FORBIDDEN') msg = 'Apenas admins podem criar usuários.';
+            else if (code === 'UNAUTHORIZED') msg = 'Sessão expirada. Faça login novamente.';
+            window.toast(msg, 'error');
+            console.error('admin-create-user error', code, error);
+            return false;
+          }
+
+          window.toast('Usuário criado', 'success');
           reload();
-        }
+        },
       });
     }
 
