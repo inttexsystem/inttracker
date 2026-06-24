@@ -9,14 +9,12 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C3` (normalizar
-  automaticamente `ordem` no `salvar()` da tela de edição
-  entregue).
-- **HEAD aceito atual:** `bd3aedc` (após push desta fase, o HEAD
-  da fase C3C2C2 — "Add pedido admin item removal"). Após o
-  push de C3C2C3, o HEAD passa a ser o commit desta fase —
-  "Normalize pedido item order on save".
-- **staging/main:** `bd3aedc` (será atualizado com o push desta fase).
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1` (perfil
+  autenticado de cliente — schema/RLS versionado).
+- **HEAD aceito atual:** `247b8ca` (antes do push desta fase).
+  Após o push de B1, o HEAD passa a ser o commit desta fase —
+  "Add cliente perfil schema and RLS".
+- **staging/main:** `247b8ca` (será atualizado com o push desta fase).
 - **Working tree:** limpo após commit.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -29,6 +27,13 @@
   `ucrjtfswnfdlxwtmxnoo`: tabelas `pedidos`, `pedido_itens`,
   `pedido_eventos` e `lotes.pedido_id` (nullable). RLS admin-only.
   Sem policy pública. Sem `pedidos.op_id`.
+- **Schema Cliente Perfil** `db/14_cliente_perfil_schema.sql`
+  versionado (não aplicado): role `cliente` em `usuarios.tipo`,
+  coluna `usuarios.cliente_id` (FK → `public.clientes`),
+  constraint de vínculo exclusivo, função `meu_cliente_id()`,
+  policies cliente SELECT/INSERT em `clientes`, `pedidos`,
+  `pedido_itens`. Sem UPDATE/DELETE cliente. Sem token público.
+  `pedido_eventos` admin-only.
 - **Frontend Pedidos entregue (C1 + C2 + C2-R1 + C3A + C3B +
   C3C1 + C3C2B + C3C2C1 + C3C2C2 + C3C2C3):** listagem
   `#/pedidos`, formulário `#/pedidos/novo` (cria pedido + itens
@@ -125,13 +130,12 @@ git ls-remote --heads origin main
 
 Abortar e revisar o escopo se:
 - branch != `work/app-next`;
-- HEAD não estiver em um commit da fase
-  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C3` (commit
-  "Normalize pedido item order on save" no topo, ou commit
-  imediatamente posterior a `bd3aedc`);
+- HEAD não estiver no commit `247b8ca` ou commit posterior
+  da fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1`
+  (commit "Add cliente perfil schema and RLS" no topo);
 - working tree não estiver limpo;
 - `staging/main` não tiver sido atualizado para o commit
-  desta fase (antes do push era `bd3aedc`);
+  desta fase (antes do push era `247b8ca`);
 - `origin/main` != `1047181eba888242c6428de366cbd9fda2f1c72c`
   (qualquer mudança em `origin/main` é regressão grave).
 
@@ -285,7 +289,19 @@ Edge Function, sem fornecedor. Limitação conhecida do
 formulário: sem RPC/transação atômica (compensação manual
 documentada no código). Overrides de largura/cor e
 reordenação manual de itens ficam para fases seguintes.
-**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2D`
+**Perfil cliente schema/RLS versionado** (fase
+`RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1`, esta):
+`db/14_cliente_perfil_schema.sql` versionado com role `cliente`,
+`usuarios.cliente_id` (FK → `public.clientes`), constraint de
+vínculo exclusivo, função `meu_cliente_id()` (SECURITY DEFINER,
+STABLE; exige `tipo='cliente' AND ativo=true AND cliente_id NOT NULL`;
+retorna NULL em falhas), policies cliente SELECT/INSERT em `clientes`,
+`pedidos` e `pedido_itens`. **NÃO** há UPDATE/DELETE de cliente.
+**NÃO** há token público. **NÃO** há policy anon. **NÃO** aplicado
+no Supabase. `pedido_eventos` admin-only. Smoke 49/49 verde.
+**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B2`
+(aplicação do schema em staging) ou
+`RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2D`
 (overrides opcionais de `largura`/`cor_1_id`/`cor_2_id` por
 item) ou `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C4`
 (reordenação manual com drag-and-drop / setas),
@@ -545,6 +561,7 @@ projeto:
 | 26 | `js/screens/pedido-itens-edit.js` | `acc96c3` C3C2B: edição admin de itens existentes (update 3 chaves) + `fd1a9a3` C3C2C1: também ADICIONAR novos itens (insert 5 chaves, `isNew`, `Descartar novo item`) + `bd3aedc` C3C2C2: também REMOVER itens existentes (delete em `pedido_itens` com `.eq('id').eq('pedido_id')`, `markedForDeletion`, `window.confirmDialog`, "Desfazer remoção", mínimo 1) + (commit desta fase) C3C2C3: também NORMALIZAR `ordem` automaticamente no `salvar()` (loop `activeItems[i].ordem = i` por posição final; update com 4 chaves incluindo `ordem`; insert com `ordem: it.ordem`; sem drag/setas/reordenar) |
 
 ## Testes recentes (focados passando)
+- `cliente-perfil-schema.smoke.js` — 49/49
 - `pedido-itens-edit.smoke.js` — 64/64
 - `pedido-edit.smoke.js` — 35/35
 - `pedido-detail.smoke.js` — 43/43

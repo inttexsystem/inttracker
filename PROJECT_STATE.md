@@ -1,25 +1,19 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C3` — normalização
-> automática de `ordem` no `salvar()` da tela de edição de
-> itens do Pedido).
-> **Frontend normalizar ordem.** Tela `#/pedidos/<uuid>/itens`
-> agora normaliza automaticamente `ordem` dos itens finais no
-> `salvar()` (além de editar da C3C2B, adicionar da C3C2C1 e
-> remover da C3C2C2). Para cada item ativo
-> (`activeItems = state.itens.filter(!markedForDeletion)`),
-> `ordem` é recalculada pela posição final no array
-> (0, 1, 2, ...). Lacunas após add/remove são eliminadas.
-> `salvar()` aplica update com 4 chaves
-> (`modelo_id`/`metros`/`observacao`/`ordem` — `ordem` é nova
-> no payload de update para aplicar a normalização) e insert
-> com 5 chaves (com `ordem = it.ordem`, posição final em
-> `activeItems`). Sem drag-and-drop, sem setas de subir/descer,
-> sem reordenação manual (fica para C3C2C4+), sem editar
-> `largura`/`cor_1_id`/`cor_2_id` (overrides opcionais ficam
-> para C3C2D). Schema `db/13_*` permanece aplicado em
-> `ucrjtfswnfdlxwtmxnoo`.
+> `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1` — perfil
+> autenticado de cliente: schema/RLS versionado).
+> **Perfil cliente versionado.** Schema `db/14_cliente_perfil_schema.sql`
+> criado com: role `cliente` em `usuarios.tipo`, coluna
+> `usuarios.cliente_id` (FK → `public.clientes`), constraint de
+> vínculo exclusivo admin/fornecedor/cliente, função
+> `meu_cliente_id()` (SECURITY DEFINER, STABLE), policies RLS mínimas
+> para cliente SELECT/INSERT em `clientes`, `pedidos` e `pedido_itens`.
+> **NÃO** libera UPDATE/DELETE de cliente nesta fase. **NÃO** expõe
+> token público. **NÃO** cria policy anon. `pedido_eventos` permanece
+> admin-only (auditoria interna). **NÃO** aplicado no Supabase.
+> **NÃO** deployado. **NÃO** alterado frontend. Smoke
+> `tests/cliente-perfil-schema.smoke.js` 49/49 verde.
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
@@ -52,19 +46,19 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
-- **HEAD atual aceito:** commit desta fase — "Normalize pedido
-  item order on save" (fase `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C3`).
-  Antes desta fase: `bd3aedc` (fase
-  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C2`).
-- **staging/main:** `bd3aedc` (será atualizado com o push desta fase).
+- **HEAD atual aceito:** commit desta fase — "Add cliente perfil
+  schema and RLS" (fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1`).
+  Antes desta fase: `247b8ca` (fase
+  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C3`).
+- **staging/main:** `247b8ca` (será atualizado com o push desta fase).
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — **intocado.**
 - **PR #2:** **intocado.**
 - **Working tree:** **limpo.**
 - **Ambiente paralelo (`ucrjtfswnfdlxwtmxnoo`):** backend completo:
-  schema `db/12_*` aplicado (HMNlead, 2026-06-24), Edge Functions
-  `admin-create-user` e `admin-disable-user` deployadas e validadas,
-  secrets configurados, UI validada manualmente, smokes 163/163,
-  E2E PASS.
+  schema `db/12_*` aplicado (HMNlead, 2026-06-24), `db/13_*` aplicado,
+  Edge Functions `admin-create-user` e `admin-disable-user` deployadas
+  e validadas, secrets configurados, UI validada manualmente, smokes
+  163/163, E2E PASS.
 - **App original (`bhgifjrfagkzubpyqpew`):** **intocado.** Apenas
   1 query read-only com anon key pública nesta frente, sem mutação.
 
@@ -738,8 +732,53 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
    recomendada: `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2D`
    (overrides opcionais de `largura`/`cor_1_id`/`cor_2_id` por
    item) ou `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C4`
-   (reordenação manual com drag-and-drop / setas), **somente
-   com autorização explícita** do HMNlead.
+    (reordenação manual com drag-and-drop / setas), **somente
+    com autorização explícita** do HMNlead.
+ - 🟢 **Perfil autenticado de cliente — schema/RLS versionado** (fase
+    `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1`, esta).
+    `db/14_cliente_perfil_schema.sql` idempotente criado com:
+    role `cliente` em `usuarios.tipo` (constraint
+    `usuarios_tipo_check`), coluna `usuarios.cliente_id BIGINT`
+    (FK → `public.clientes(id) ON DELETE SET NULL`), constraint
+    `usuarios_vinculo_exclusivo_check` (admin: ambos NULL,
+    fornecedor: só `fornecedor_id`, cliente: só `cliente_id`),
+    função `public.meu_cliente_id()` (SECURITY DEFINER, STABLE,
+    `search_path = public, auth`; exige `tipo = 'cliente' AND
+    ativo IS TRUE AND cliente_id IS NOT NULL`; retorna NULL em
+    falhas com `EXCEPTION WHEN OTHERS`), GRANT EXECUTE para
+    `anon, authenticated`. RLS em `clientes`: mantém admin full
+    existente; adiciona `clientes_cliente_select` (cliente vê
+    apenas o próprio cadastro via `id = meu_cliente_id()`).
+    RLS em `pedidos`: mantém `pedidos_admin_all` existente;
+    adiciona `pedidos_cliente_select` (SELECT via
+    `cliente_id = meu_cliente_id()`) e `pedidos_cliente_insert`
+    (INSERT via `cliente_id = meu_cliente_id() AND status IN
+    ('rascunho','recebido')`). RLS em `pedido_itens`: mantém
+    `pedido_itens_admin_all` existente; adiciona
+    `pedido_itens_cliente_select` (SELECT via subquery em
+    `pedidos` verificando `cliente_id = meu_cliente_id()`) e
+    `pedido_itens_cliente_insert` (INSERT via subquery em
+    `pedidos` verificando dono + `status IN
+    ('rascunho','recebido')`). **NÃO** há UPDATE/DELETE de
+    cliente em `pedidos` ou `pedido_itens` (fica para fase futura
+    — exige controle mais fino de colunas/transições).
+    `pedido_eventos` permanece admin-only (auditoria interna;
+    comentário explícito no SQL). **NÃO** há policy por
+    `token_acesso`, **NÃO** há acesso anon, **NÃO** há rota
+    pública, **NÃO** há `service_role`/secrets, **NÃO** há
+    DROP destrutivo, script é idempotente (IF NOT EXISTS /
+    DROP IF EXISTS / CREATE OR REPLACE). `js/**`,
+    `supabase/functions/**`, `index.html` e migrations antigas
+    **intocados**. Smoke estático
+    `tests/cliente-perfil-schema.smoke.js` 49/49 verde.
+    Regressões focadas: `pedidos-schema.smoke.js` 41/41,
+    `auth-disable-user-schema.smoke.js` 20/20 — todas verdes.
+    **NÃO aplicado no Supabase.** **NÃO deployado.** **NÃO
+    alterado frontend.** **NÃO criado usuário cliente.** Próxima
+    fase recomendada: `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B2`
+    (aplicação do schema em staging) ou
+    `RAVATEX-TAPETES-PEDIDOS-CLIENTE-UI-A` (tela de cliente),
+    **somente com autorização explícita** do HMNlead.
 
 ## Próximo passo recomendado
 1. **Auth provisioning fechado em staging:** Edge Function
@@ -856,25 +895,18 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
      (em fase separada). Pendências técnicas remanescentes:
      log de migrations do dashboard staging, warning de
      Tailwind CDN, favicon 404 — não bloqueantes.
- 11. **Detalhe admin read-only do Pedido entregue** (fase
-     `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A`, esta). Nova tela
-     `js/screens/pedido-detail.js` com `screenPedidoDetalhe(pedidoId)`;
-     `js/router.js` estendido com match dinâmico `^#/pedidos/<uuid>$`
-     admin-only; `index.html` carrega o módulo após `pedido-form.js`
-     e antes de `boot.js`; botão "Visualizar" da listagem
-     `#/pedidos` navega para o detalhe. Conteúdo: cabeçalho
-     (número/status/cliente/prazo/criado em), dados gerais
-     (observação/atualizado em) e tabela de itens (modelo, cor_1
-     /cor_2, largura, preview 48x48, metros, observação do item).
-     Ações Voltar (real) e Editar/Cancelar/Receber (placeholders
-     `disabled` com `title="Em breve"`). Estritamente read-only:
-     sem insert/update/delete/rpc, sem `functions.invoke`, sem
-     `token_acesso`, sem `service_role`, sem rota pública, sem
-     mutação em `lotes`/`pedido_eventos`, sem schema, sem OP, sem
-     Edge Function, sem fornecedor. **Próxima fase recomendada**:
-     `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3B` (adição de ações
-     reais: editar/cancelar/confirmar/receber), **somente com
-     autorização explícita** do HMNlead.
+ 11. **Perfil cliente schema/RLS versionado** (fase
+     `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1`, esta).
+     `db/14_cliente_perfil_schema.sql` versionado com role
+     `cliente`, `usuarios.cliente_id`, constraint de vínculo
+     exclusivo, `meu_cliente_id()` e policies RLS mínimas
+     para cliente criar e consultar seus próprios pedidos/itens.
+     **NÃO aplicado no Supabase.** **NÃO há UPDATE/DELETE de
+     cliente.** **NÃO há token público.** Smoke 49/49 verde.
+     Próxima fase: `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B2`
+     (aplicação do schema em staging) ou
+     `RAVATEX-TAPETES-PEDIDOS-CLIENTE-UI-A` (tela de cliente),
+     **somente com autorização explícita** do HMNlead.
 
 ## Estrutura final de responsabilidades
 
