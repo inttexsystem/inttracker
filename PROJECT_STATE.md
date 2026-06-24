@@ -134,8 +134,10 @@ A próxima etapa é **homologação / release**, não nova extração.
 - 🟡 Criação de usuário Supabase Auth ainda exige perfil
   correspondente em `public.usuarios`. Design da Edge Function
   `admin-create-user` concluído em
-  `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`; implementação
-  em fases futuras (`RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A` etc.).
+  `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`; código
+  inicial da função criado localmente em
+  `supabase/functions/admin-create-user/` (fase
+  `RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A`, **sem deploy**).
 - 🟡 Staging mostra log `relation "supabase_migrations.schema_migrations"
   does not exist` (ruído do dashboard, não do app).
 - 🟡 Tailwind CDN ainda gera warning de produção (não bloqueante;
@@ -145,8 +147,8 @@ A próxima etapa é **homologação / release**, não nova extração.
 
 ## Próximo passo recomendado
 1. Revisar e aprovar `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`.
-2. Executar `RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A` (criar/implementar a
-   Edge Function `admin-create-user` sem UI ainda).
+2. Edge Function `admin-create-user` criada localmente em
+   `supabase/functions/admin-create-user/` (sem deploy).
 3. Executar `RAVATEX-TAPETES-AUTH-EDGE-STAGING-DEPLOY-A` (deploy em
    staging + validação de admin/fornecedor).
 4. Executar `RAVATEX-TAPETES-AUTH-ADMIN-UI-A` (adaptar

@@ -2,11 +2,10 @@
 
 > Ledger de fases do refactor arquitetural de
 > `D:\OneDrive\Programação\Ravatex\controle-tapetes`.
-> Última atualização: 2026-06-23 (HEAD `88aa4fb`,
-> fase `RAVATEX-TAPETES-AUTH-EDGE-DESIGN-A` — design da Edge Function
-> `admin-create-user` para provisionamento atômico de
-> `auth.users` + `public.usuarios`; sem implementação de código,
-> SQL ou deploy).
+> Última atualização: 2026-06-23 (HEAD `f6ac19b`,
+> fase `RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A` — código inicial da
+> Edge Function `admin-create-user` criado localmente em
+> `supabase/functions/admin-create-user/`; sem deploy).
 
 ## 1. Premissas corrigidas
 - **App estático**, não Next/Vercel.
@@ -90,7 +89,8 @@
 | OP-NOVA-PDF-MODULE-A | `7f3c6da` | `js/screens/op-pdf.js` | 388/388 | aceito |
 | REFACTOR-FINAL-DOCS-B | `e64d1cc` | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | aceito |
 | CODE-HEALTH-RULES | (a criar) | `docs/architecture/CODE_HEALTH_RULES.md` | docs-only | aceito |
-| AUTH-EDGE-DESIGN-A | (a criar) | `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | aceito |
+| AUTH-EDGE-DESIGN-A | `88aa4fb` | `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | aceito |
+| AUTH-EDGE-FUNCTION-A | `f6ac19b` | `supabase/functions/admin-create-user/index.ts`, `supabase/functions/admin-create-user/README.md`, `supabase/functions/_shared/cors.ts`, `supabase/functions/_shared/response.ts`, `supabase/README.md`, `tests/admin-create-user.smoke.js` | 17/17 smoke | aceito (sem deploy) |
 
 ## 5. Ressalvas processuais aceitas em `FORNECEDOR-SCREENS-MODULE-A` (commit `4b9ca12`)
 
@@ -438,11 +438,16 @@ Ordem de scripts (relevante): `op-persistir.js` → `op-pdf.js` →
    avaliar RPC/transações Supabase para `persistirOP` e
    `aplicarRecalculoOP` (idem).
 
-**Nota:** os itens 5-7 são **opcionais** e **não** devem ser tratados
+**Nota:** os itens 6-8 são **opcionais** e **não** devem ser tratados
 como continuação obrigatória do refactor. O ciclo de refactor +
 hardening + extração final está **congelado** em `7f3c6da`
 (vide seção 5d). O item `RAVATEX-TAPETES-OP-PDF-MODULE-A` foi
 **executado** em `7f3c6da`; não está mais em backlog.
+
+**Auth:** `RAVATEX-TAPETES-AUTH-EDGE-DESIGN-A` (item 4.1) e
+`RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A` (item 4.2 do design) estão
+**concluídos**; o deploy em staging (`AUTH-EDGE-STAGING-DEPLOY-A`)
+ainda depende de fase própria e autorização explícita.
 
 ## 10. Política de updates deste ledger
 

@@ -150,9 +150,13 @@ Abortar e revisar o escopo se:
 ## Próxima recomendação operacional
 
 **Refactor arquitetural continua congelado.**
-**Próxima frente recomendada:** implementação do design de provisionamento
-Auth (`RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A`), seguido de deploy em
-staging e, só depois, adaptação da UI de usuários.
+**Estado Auth:** design concluído; código inicial da Edge Function
+`admin-create-user` criado localmente em
+`supabase/functions/admin-create-user/` (fase
+`RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A`, **sem deploy**).
+**Próxima frente recomendada:** deploy controlado em staging
+(`RAVATEX-TAPETES-AUTH-EDGE-STAGING-DEPLOY-A`) e, só depois, adaptação
+da UI de usuários.
 
 O ciclo de refactor arquitetural + hardening + extração final do
 `op-pdf.js` está **congelado**. Antes de iniciar qualquer novo
@@ -168,10 +172,11 @@ trabalho:
 ## Fases de implementação do design Auth (aprovadas para execução)
 
 Design concluído em `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`.
-Próximas fases, em ordem:
+Fases, em ordem:
 
 1. **`RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A`** — criar/implementar a
-   Edge Function `admin-create-user` (sem UI ainda).
+   Edge Function `admin-create-user` (sem UI ainda). **Concluída
+   localmente (sem deploy).**
 2. **`RAVATEX-TAPETES-AUTH-EDGE-STAGING-DEPLOY-A`** — deploy controlado
    em staging e validação de permissões.
 3. **`RAVATEX-TAPETES-AUTH-ADMIN-UI-A`** — adaptar
