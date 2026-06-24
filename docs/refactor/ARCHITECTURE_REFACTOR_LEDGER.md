@@ -2,11 +2,13 @@
 
 > Ledger de fases do refactor arquitetural de
 > `D:\OneDrive\Programação\Ravatex\controle-tapetes`.
-> Última atualização: 2026-06-24 (HEAD `77bcc6b`,
-> fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A` — orientação
-> e validação local para aplicação de
+> Última atualização: 2026-06-24 (HEAD `8fa924a`,
+> fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A` —
+> registro da **aplicação real** de
 > `db/12_auth_user_disable_schema.sql` no Supabase staging
-> `ucrjtfswnfdlxwtmxnoo`; SQL real depende de HMNlead no Dashboard).
+> `ucrjtfswnfdlxwtmxnoo`, feita manualmente pelo HMNlead no SQL
+> Editor do Dashboard; nenhuma execução de SQL foi feita por IAexec
+> nesta fase, que é **docs-only**).
 
 ## 1. Premissas corrigidas
 - **App estático**, não Next/Vercel.
@@ -95,9 +97,10 @@
 | AUTH-ADMIN-UI-A | (a criar) | `js/screens/cadastros.js`, `tests/cadastros-usuarios-auth-ui.smoke.js`, `tests/cadastros-screens.smoke.js` (assert de banner) | 12/12 + 17/17 | aceito |
 | AUTH-PROVISIONING-DOCS-A | `d9d08be` | `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md`, `docs/DOCUMENTATION_INDEX.md`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md` | docs-only | aceito |
 | AUTH-DELETE-USER-DESIGN-A | `3c9c424` | `docs/architecture/AUTH_DELETE_USER_DESIGN.md`, `docs/DOCUMENTATION_INDEX.md`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | docs-only | aceito |
-| AUTH-DELETE-UI-GUARD-A | `42ffc91` | `js/screens/cadastros.js` (remove `.from('usuarios').delete()` + placeholder "Em breve"), `tests/cadastros-usuarios-auth-ui.smoke.js`, `tests/cadastros-screens.smoke.js`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | 16/16 + 32/32 | aceito |
-| AUTH-DISABLE-USER-SCHEMA-A | `d99bcda` | `db/12_auth_user_disable_schema.sql`, `tests/auth-disable-user-schema.smoke.js`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` | 20/20 + 17/17 + 16/16 + 32/32 | aceito (schema/RLS versionado; NÃO aplicado no Supabase) |
-| AUTH-DISABLE-USER-SCHEMA-APPLY-A | `77bcc6b` | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` (registro da fase; SQL real deve ser executado por HMNlead no Supabase Dashboard staging) | 20/20 + 65/65 (regressão leve) | aceito (docs-only; aplicação real pendente de HMNlead) |
+| AUTH-DELETE-UI-GUARD-A | `d99bcda` | `js/screens/cadastros.js` (remove `.from('usuarios').delete()` + placeholder "Em breve"), `tests/cadastros-usuarios-auth-ui.smoke.js`, `tests/cadastros-screens.smoke.js`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | 16/16 + 32/32 | aceito |
+| AUTH-DISABLE-USER-SCHEMA-A | `77bcc6b` | `db/12_auth_user_disable_schema.sql`, `tests/auth-disable-user-schema.smoke.js`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` | 20/20 + 17/17 + 16/16 + 32/32 | aceito (schema/RLS versionado; aplicado em staging em EVIDENCE-A) |
+| AUTH-DISABLE-USER-SCHEMA-APPLY-A | `8fa924a` | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` (registro da fase; SQL real executado por HMNlead no Supabase Dashboard staging e confirmado em EVIDENCE-A) | 20/20 + 65/65 (regressão leve) | aceito (docs-only; aplicação real confirmada em EVIDENCE-A) |
+| AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A | (HEAD da fase EVIDENCE-A) | `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`, `docs/DOCUMENTATION_INDEX.md` (registro da aplicação real de `db/12_auth_user_disable_schema.sql` no Supabase staging `ucrjtfswnfdlxwtmxnoo`; execução manual pelo HMNlead; nenhuma execução de SQL por IAexec) | n/a (docs-only) | aceito (docs-only; aplicação real confirmada) |
 | AUTH-DISABLE-USER-EDGE-A | (futura) | `supabase/functions/admin-disable-user/index.ts` | — | pendente (depende de apply confirmado) |
 | AUTH-DISABLE-USER-UI-A | (futura) | `js/screens/cadastros.js` (botão "Desativar" via Edge Function) | — | pendente |
 
@@ -317,6 +320,65 @@ A regra de prevalência é: em caso de divergência,
 `docs/superpowers/`, `docs/qa/` e docs legados na raiz de
 `docs/`.
 
+## 5g. Ressalva processual — `AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`
+
+A fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A` (commit
+`8fa924a`) registrou a **orientação** e a validação local para
+aplicação de `db/12_auth_user_disable_schema.sql` no Supabase
+staging, mas marcou a execução real do SQL como pendente de HMNlead
+no Dashboard. A fase
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A` (esta
+fase) **não rodou SQL** e **não acessou o Supabase** — é
+exclusivamente **docs-only** e registra a **aplicação real** feita
+manualmente pelo HMNlead no SQL Editor do Supabase **staging**
+`ucrjtfswnfdlxwtmxnoo` em `2026-06-24`.
+
+Evidências registradas:
+
+- **Baseline pré-aplicação** (HMNlead, SQL read-only no staging):
+  colunas existentes em `public.usuarios` = `id`, `email`, `nome`,
+  `tipo`, `fornecedor_id`, `criado_em`;
+  `auth_users_total = 3`, `public_usuarios_total = 3`,
+  `auth_sem_perfil = 0`, `perfil_sem_auth = 0`;
+  policies `usuarios_admin_all` e `usuarios_select` no estado
+  original; `is_admin()` consultava apenas `tipo`; `meu_fornecedor_id()`
+  retornava `fornecedor_id` sem checar `ativo`.
+- **Aplicação real**: `db/12_auth_user_disable_schema.sql` aplicado
+  manualmente pelo HMNlead no SQL Editor do Dashboard. Nenhum SQL
+  destrutivo foi aplicado. `db/10_reset_producao.sql` e
+  `db/11_reset_ops.sql` **não** foram rodados. Produção
+  `bhgifjrfagkzubpyqpew` **não** foi tocada.
+- **Pós-aplicação** (HMNlead, SQL read-only): 4 colunas novas em
+  `public.usuarios` (`ativo boolean NOT NULL DEFAULT TRUE`,
+  `desativado_em timestamptz NULL`, `desativado_por uuid NULL`,
+  `motivo_desativacao text NULL`); funções `is_admin()` e
+  `meu_fornecedor_id()` recriadas com checagem de `ativo`;
+  policies `usuarios_select`, `usuarios_admin_all` e
+  `usuarios_self_update` recriadas; `ativo = true, total = 3`;
+  `auth_users_total = 3`; `public_usuarios_total = 3`;
+  `auth_sem_perfil = 0`; `perfil_sem_auth = 0`. **Nenhum usuário
+  foi criado, excluído ou desativado** durante a aplicação.
+- **Validação manual do app pós-schema** (HMNlead, em staging):
+  login/admin OK; `#/cadastros/usuarios` carrega; `+ Novo usuário`
+  visível; exclusão insegura continua bloqueada como `Em breve`;
+  console sem erros críticos de Auth/RLS/listagem. Avisos não
+  bloqueantes: warning de Tailwind CDN; `favicon.ico` 404.
+
+A correção do LEDGER §4 nesta fase ajustou três referências
+anteriormente desalinhadas: `AUTH-DELETE-UI-GUARD-A` agora aponta
+para `d99bcda`; `AUTH-DISABLE-USER-SCHEMA-A` agora aponta para
+`77bcc6b`; `AUTH-DISABLE-USER-SCHEMA-APPLY-A` agora aponta para
+`8fa924a`. A entrada `AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`
+foi adicionada.
+
+Regra de continuidade: **não reaplicar**
+`db/12_auth_user_disable_schema.sql` sem necessidade (a migration é
+idempotente, mas o estado esperado já está aplicado em staging);
+**não avançar** para produção `bhgifjrfagkzubpyqpew` sem
+autorização explícita do HMNlead; próxima fase liberada é
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` (Edge Function
+`admin-disable-user`).
+
 ## 6. Módulos extraídos (lista canônica)
 
 | Módulo | Commit de extração | Fase |
@@ -461,20 +523,29 @@ hardening + extração final está **congelado** em `7f3c6da`
 `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A` (design de exclusão),
 `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A` (contenção de UI),
 `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A` (schema de desativação
-versionado) e `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A`
-(orientação para apply) estão **concluídos ou em andamento**.
+versionado), `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A`
+(orientação para apply, commit `8fa924a`) e
+`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`
+(registro da aplicação real) estão **concluídos**.
 Teste fornecedor 403 confirmado em staging. UI guard removeu
-`.from('usuarios').delete()` do front-end; schema preparado para soft
-delete + ban Auth mas **não aplicado no Supabase** (apply depende de
-HMNlead no Dashboard). Próximas fases:
+`.from('usuarios').delete()` do front-end; schema de desativação
+**aplicado e validado em staging** (fase `EVIDENCE-A`): 4 colunas
+novas em `public.usuarios`; funções `is_admin`/`meu_fornecedor_id`
+e policies `usuarios_select`/`usuarios_admin_all`/
+`usuarios_self_update` recriadas com checagem de `ativo`; todos os
+3 perfis existentes ficaram `ativo = true`; nenhum usuário foi
+criado, excluído ou desativado durante a aplicação; produção
+`bhgifjrfagkzubpyqpew` não foi tocada. Próximas fases:
 `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` (Edge Function
-`admin-disable-user`, após apply confirmado) →
+`admin-disable-user`, liberada após EVIDENCE-A) →
 `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A` (restaurar botão "Desativar"
 na UI).
 **Pendência de decisão do HMNlead:** 7 perguntas listadas na seção 9
-do design (`docs/architecture/AUTH_DELETE_USER_DESIGN.md`) +
-**aplicar `db/12_auth_user_disable_schema.sql` em staging** com
-backup e plano de rollback (fase `SCHEMA-APPLY-A`).
+do design (`docs/architecture/AUTH_DELETE_USER_DESIGN.md`) ainda
+abertas. **Não avançar** para produção sem autorização explícita.
+**Não reaplicar** `db/12_auth_user_disable_schema.sql` em staging
+sem necessidade: a migration é idempotente, mas o estado esperado
+já está aplicado.
 
 ## 10. Política de updates deste ledger
 

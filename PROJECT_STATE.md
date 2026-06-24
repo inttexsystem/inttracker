@@ -1,11 +1,11 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A` — orientação e
-> validação local para aplicação de
-> `db/12_auth_user_disable_schema.sql` no Supabase **staging**
-> `ucrjtfswnfdlxwtmxnoo`; aplicação SQL real depende de HMNlead no
-> Dashboard).
+> `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A` — registro
+> da **aplicação real** de `db/12_auth_user_disable_schema.sql` no
+> Supabase **staging** `ucrjtfswnfdlxwtmxnoo`, executada manualmente
+> pelo HMNlead no SQL Editor do Dashboard; nenhuma execução de SQL
+> foi feita pelo IAexec nesta fase, que é **docs-only**).
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
@@ -33,8 +33,10 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
-- **HEAD atual aceito:** `77bcc6b` — "Add auth user disable schema".
-- **staging/main atual:** `77bcc6b7406d5f089e88a84169e2b8d842d9c422`
+- **HEAD atual aceito:** `8fa924a` — "Record auth disable schema
+  staging apply" (fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A`,
+  docs-only).
+- **staging/main atual:** `8fa924a75a1ac857572acdcb96ad4ceb0ef070c0`
   (sincronizado com `work/app-next`).
 - **origin/main oficial:** `1047181eba888242c6428de366cbd9fda2f1c72c`
   — **intocado** durante todo o ciclo de refactor/hardening.
@@ -42,11 +44,16 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 - **Working tree esperado:** **limpo**.
 - **Produção (grupoterrabranca.github.io):** **preservada** — não
   recebeu nenhum push de refactor/hardening.
-- **Supabase real:** **não acessado** em nenhuma fase de refactor
-  (todos os testes rodam com `vm.runInContext` + `fakeSupa` mockado).
-  A contagem `select count(*) from public.ops` foi feita
-  manualmente em homologação contra `ucrjtfswnfdlxwtmxnoo` (staging) e
-  confirmou 4 OPs.
+- **Supabase real:** **não acessado** por IAexec em nenhuma fase de
+  refactor (todos os testes rodam com `vm.runInContext` + `fakeSupa`
+  mockado). A única execução de SQL real no Supabase staging foi
+  feita manualmente pelo HMNlead no SQL Editor do Dashboard na
+  fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`
+  (esta fase): aplicação de `db/12_auth_user_disable_schema.sql` em
+  `ucrjtfswnfdlxwtmxnoo`, validada pós-aplicação pelo HMNlead. A
+  contagem `select count(*) from public.ops` foi feita manualmente em
+  homologação contra `ucrjtfswnfdlxwtmxnoo` (staging) e confirmou 4
+  OPs.
 
 ### Marco fechado
 **Marco fechada: ciclo de refactor arquitetural + hardening + extração
@@ -92,6 +99,21 @@ Componentes estáveis:
    `op-nova.js`; call-site atualizado para
    `window.gerarPdfCompraFios({ op, ordens })`; 388/388 testes
    focados passaram).
+7. Commits intermediários do ciclo de Auth (`e64d1cc`,
+   `4f7c16f`, `0d5ef7b`, `88aa4fb`, `f6ac19b`, `c365020`,
+   `0bc67f6`, `3c9c424`/`d9d08be`, `42ffc91`, `d99bcda`,
+   `77bcc6b`) — ver LEDGER §4. Fecham: refactor closeout docs,
+   `CODE_HEALTH_RULES`, governança, saneamento documental, design
+   e implementação da Edge Function `admin-create-user`, UI
+   `#/cadastros/usuarios`, runbook operacional, design de
+   desativação, UI guard, schema de desativação versionado.
+8. `8fa924a` — `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A`
+   (docs-only): registro da orientação e validação local para
+   aplicação de `db/12_auth_user_disable_schema.sql` no Supabase
+   **staging** `ucrjtfswnfdlxwtmxnoo`. A execução real do SQL
+   ficou pendente de HMNlead no Dashboard e foi registrada em
+   fase própria (`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`,
+   esta fase).
 
 ## Decisão arquitetural
 **REFATORAÇÃO ARQUITETURAL CONGELADA.**
@@ -125,6 +147,60 @@ A próxima etapa é **homologação / release**, não nova extração.
 - Pendência não bloqueante: log `relation
   "supabase_migrations.schema_migrations" does not exist` permanece
   em staging (não bloqueante; é ruído do dashboard, não do app).
+
+## Evidência da aplicação manual do schema em staging
+*(Fase `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A` —
+2026-06-24. Esta seção é **docs-only**; nenhum SQL foi rodado por
+IAexec nesta fase. Toda a execução e validação foi feita manualmente
+pelo HMNlead no Supabase Dashboard.)*
+
+### Aplicação
+- `db/12_auth_user_disable_schema.sql` foi aplicado manualmente pelo
+  HMNlead no SQL Editor do Supabase **staging** `ucrjtfswnfdlxwtmxnoo`.
+- Nenhum SQL destrutivo foi aplicado. Os arquivos
+  `db/10_reset_producao.sql` e `db/11_reset_ops.sql` **não** foram
+  executados. **Produção `bhgifjrfagkzubpyqpew` não foi tocada.**
+- **Nenhum usuário foi criado, excluído ou desativado** durante a
+  aplicação. Todas as mutações foram apenas de schema e de funções
+  `SECURITY DEFINER`.
+
+### Estado pós-aplicação
+- Novas colunas em `public.usuarios`:
+  `ativo boolean NOT NULL DEFAULT TRUE`,
+  `desativado_em timestamptz NULL`,
+  `desativado_por uuid NULL`,
+  `motivo_desativacao text NULL`.
+- Contagem pós-aplicação: `ativo = true, total = 3`;
+  `auth_users_total = 3`; `public_usuarios_total = 3`;
+  `auth_sem_perfil = 0`; `perfil_sem_auth = 0`.
+- `is_admin()` agora exige `tipo = 'admin' AND ativo IS TRUE`.
+- `meu_fornecedor_id()` agora consulta `fornecedor_id`, `tipo` e
+  `ativo`; retorna `NULL` se `ativo` não for `TRUE` ou se `tipo`
+  não for `'fornecedor'`.
+- `usuarios_admin_all` permanece com `USING/WITH CHECK is_admin()`
+  (a nova `is_admin()` já considera `ativo`).
+- `usuarios_select` agora usa
+  `((id = auth.uid()) AND (ativo IS TRUE)) OR is_admin()`.
+- `usuarios_self_update` exige `id = auth.uid()`, `ativo IS TRUE`
+  e preserva `tipo` no `WITH CHECK`.
+
+### Validação manual do app pós-schema (HMNlead)
+- Login/admin aparentou OK.
+- Tela `#/cadastros/usuarios` carregou.
+- Botão `+ Novo usuário` continuou visível.
+- Exclusão insegura continuou bloqueada como `Em breve` (placeholder
+  injetado na fase `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A`).
+- Console não mostrou erro crítico de Auth/RLS/listagem.
+- Avisos não bloqueantes observados: warning de Tailwind CDN;
+  `favicon.ico` 404.
+
+### Estado final
+- Schema de desativação **aplicado e validado** em staging.
+- Nenhum usuário foi criado, excluído ou desativado durante a
+  aplicação. Todos os usuários atuais ficaram `ativo = true`.
+- Próxima fase liberada:
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` (Edge Function
+  `admin-disable-user`).
 
 ## Pendências não bloqueantes
 - 🟡 `op-nova.js` ainda tem cerca de 800 linhas; `buildBlocoFios`,
@@ -160,26 +236,35 @@ A próxima etapa é **homologação / release**, não nova extração.
   informativo orientando a usar o Supabase Auth Dashboard para limpeza
   de testes. Delete/disable seguro via Edge Function ainda não
   implementado.
-- 🟡 **Auth disable schema versionado.** Migration
-  `db/12_auth_user_disable_schema.sql` criada (fase
-  `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`). Adiciona colunas
-  `ativo`, `desativado_em`, `desativado_por`, `motivo_desativacao`
-  em `public.usuarios`; recria `is_admin()` e `meu_fornecedor_id()`
-  para exigir `ativo is true`; recria policies
+- 🟢 **Auth disable schema aplicado em staging.** Migration
+  `db/12_auth_user_disable_schema.sql` foi aplicada manualmente pelo
+  HMNlead no SQL Editor do Supabase **staging**
+  `ucrjtfswnfdlxwtmxnoo` e validada pós-aplicação (fase
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`).
+  Adiciona colunas `ativo`, `desativado_em`, `desativado_por`,
+  `motivo_desativacao` em `public.usuarios`; recria `is_admin()` e
+  `meu_fornecedor_id()` para exigir `ativo is true`; recria policies
   `usuarios_select`, `usuarios_admin_all`, `usuarios_self_update`.
-  **Não aplicado** no Supabase staging/produção. Compatibilidade
-  preservada: `ativo` tem `DEFAULT TRUE`, então
-  `admin-create-user` continua funcionando sem alteração (a Edge
-  Function insere apenas id/email/nome/tipo/fornecedor_id e o
+  Validação pós-aplicação: `ativo = true` em todos os 3 perfis
+  (`auth_users_total = 3`, `public_usuarios_total = 3`,
+  `auth_sem_perfil = 0`, `perfil_sem_auth = 0`); nenhuma coluna
+  destrutiva foi rodada; `db/10_reset_producao.sql` e
+  `db/11_reset_ops.sql` não foram executados; produção não foi
+  tocada. Compatibilidade preservada: `ativo` tem `DEFAULT TRUE`,
+  então `admin-create-user` continua funcionando sem alteração (a
+  Edge Function insere apenas id/email/nome/tipo/fornecedor_id e o
   default preenche `ativo`).
-- 🟡 **Apply staging orientado (não executado por IAexec).** Fase
-  `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A` em
-  andamento. Validações locais (smoke 20/20 + regressões 65/65 +
-  ausência de DELETE/DROP/TRUNCATE/secrets) passaram. **A execução
-  do SQL no Supabase staging é responsabilidade do HMNlead no
-  Dashboard** (project ref `ucrjtfswnfdlxwtmxnoo`); IAexec não
-  tem acesso. Passos e checkpoints de evidência estão na seção
-  "Próximo passo recomendado" abaixo.
+- 🟡 **Apply staging confirmado (não executado por IAexec).** Fase
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A` (docs-only,
+  `8fa924a`) preparou a orientação; fase
+  `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`
+  (esta) registra a aplicação real feita por HMNlead no Dashboard.
+  Validações locais (smoke 20/20 + regressões 65/65 + ausência de
+  DELETE/DROP/TRUNCATE/secrets) passaram **antes** da aplicação.
+  **Nenhum SQL foi rodado por IAexec em qualquer fase.** A execução
+  do SQL no Supabase staging é e continua sendo responsabilidade
+  exclusiva do HMNlead no Dashboard (project ref
+  `ucrjtfswnfdlxwtmxnoo`).
 - 🟡 Staging mostra log `relation "supabase_migrations.schema_migrations"
   does not exist` (ruído do dashboard, não do app).
 - 🟡 Tailwind CDN ainda gera warning de produção (não bloqueante;
@@ -201,20 +286,27 @@ A próxima etapa é **homologação / release**, não nova extração.
    `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A`): botão "Excluir vínculo"
    substituído por placeholder "Em breve" que exibe toast informativo.
    Caminho `.from('usuarios').delete()` removido do front-end.
-4. **Schema de desativação versionado** (fase
-   `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`):
-   `db/12_auth_user_disable_schema.sql` criado e validado por
-   `tests/auth-disable-user-schema.smoke.js` (20/20). **Não aplicado
-   no Supabase.**
-5. **Aplicação em staging orientada** (fase
-   `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A`): HMNlead
-   deve executar o SQL no Supabase Dashboard staging
-   (`ucrjtfswnfdlxwtmxnoo`) e registrar evidências. Após sucesso,
-   próxima fase: `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`
-   (Edge Function `admin-disable-user`).
-6. Decisão separada sobre merge/release para `origin/main`
-   (somente com autorização explícita).
-4. Pendências técnicas remanescentes: log de migrations do dashboard
+4. **Schema de desativação aplicado em staging** (fases
+   `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A` +
+   `...-SCHEMA-APPLY-A` + `...-SCHEMA-APPLY-EVIDENCE-A`):
+   `db/12_auth_user_disable_schema.sql` aplicado manualmente por
+   HMNlead no SQL Editor do Supabase staging (`ucrjtfswnfdlxwtmxnoo`)
+   em `2026-06-24`. Colunas, funções (`is_admin`, `meu_fornecedor_id`)
+   e policies (`usuarios_select`, `usuarios_admin_all`,
+   `usuarios_self_update`) recriadas com sucesso. Todos os 3
+   perfis existentes ficaram `ativo = true`. Nenhum usuário foi
+   criado, excluído ou desativado durante a aplicação.
+5. **Próxima fase liberada**:
+   `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A` (Edge Function
+   `admin-disable-user` — soft delete no perfil + ban Auth). Só
+   iniciar após esta fase EVIDENCE-A ser commitada e propagada
+   para staging. **Não** reaplicar `db/12_auth_user_disable_schema.sql`
+   sem necessidade: a migration é idempotente, mas o estado
+   esperado já está aplicado.
+6. **Não avançar para produção** (`bhgifjrfagkzubpyqpew`) sem
+   autorização explícita do HMNlead. Decisão de merge/release
+   para `origin/main` é fase separada.
+7. Pendências técnicas remanescentes: log de migrations do dashboard
    staging, warning de Tailwind CDN, favicon 404 — não bloqueantes.
 
 ## Estrutura final de responsabilidades

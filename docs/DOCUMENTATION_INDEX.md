@@ -88,13 +88,19 @@ isso é registrado explicitamente no header do arquivo e em
 | `db/09_fase6_cliente_lote.sql` | Tabelas `clientes` e `lotes`, função `gerar_op_latex`. | `RAVATEX-TAPETES-FASE-6` | aplicado em staging |
 | `db/10_reset_producao.sql` | Reset destrutivo de produção (DELETE em massa). | — | **NÃO executar** sem autorização. |
 | `db/11_reset_ops.sql` | Reset destrutivo de OPs (DELETE em massa). | — | **NÃO executar** sem autorização. |
-| `db/12_auth_user_disable_schema.sql` | Suporte a desativação de usuários: colunas `ativo`, `desativado_em`, `desativado_por`, `motivo_desativacao`; recriação de `is_admin` e `meu_fornecedor_id` para exigir `ativo is true`; recriação de policies `usuarios_select`, `usuarios_admin_all`, `usuarios_self_update`. | `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A` | **versionado, NÃO aplicado** no Supabase. Validado por `tests/auth-disable-user-schema.smoke.js` (20/20). |
+| `db/12_auth_user_disable_schema.sql` | Suporte a desativação de usuários: colunas `ativo`, `desativado_em`, `desativado_por`, `motivo_desativacao`; recriação de `is_admin` e `meu_fornecedor_id` para exigir `ativo is true`; recriação de policies `usuarios_select`, `usuarios_admin_all`, `usuarios_self_update`. | `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A` (+ `...-SCHEMA-APPLY-A` + `...-SCHEMA-APPLY-EVIDENCE-A`) | **Aplicado em staging** (`ucrjtfswnfdlxwtmxnoo`) em `2026-06-24`, manualmente por HMNlead no SQL Editor. Validação pós-aplicação: `ativo = true, total = 3`; nenhuma coluna destrutiva rodada; `db/10_reset_producao.sql` e `db/11_reset_ops.sql` não foram executados; produção `bhgifjrfagkzubpyqpew` não foi tocada. Validado por `tests/auth-disable-user-schema.smoke.js` (20/20) **antes** da aplicação. |
 
 > O design que justifica a migration de schema está em
 > `docs/architecture/AUTH_DELETE_USER_DESIGN.md` (fase
-> `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`). A migration é o
-> passo seguinte ao design; a Edge Function `admin-disable-user`
-> virá em fase posterior, usando o schema aqui preparado.
+> `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`). A migration
+> `db/12_auth_user_disable_schema.sql` foi aplicada em staging
+> (`ucrjtfswnfdlxwtmxnoo`) em `2026-06-24` — vide fases
+> `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A` (orientação,
+> commit `8fa924a`) e `...-SCHEMA-APPLY-EVIDENCE-A` (registro da
+> aplicação real) no LEDGER. A Edge Function `admin-disable-user`
+> virá em fase posterior
+> (`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`), usando o schema
+> já aplicado.
 
 ## 4. Docs legadas (NÃO GUIAM EXECUÇÃO)
 
