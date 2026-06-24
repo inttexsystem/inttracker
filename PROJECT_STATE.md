@@ -1,15 +1,19 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A` — detalhe admin read-only
-> do Pedido).
-> **Frontend read-only.** Tela `#/pedidos/<uuid>` exibe pedido,
-> cliente, itens, modelos e cores em modo somente leitura. Botões
-> Editar/Cancelar/Receber são placeholders desabilitados. Join
-> Supabase via select aninhado (`cliente:cliente_id(...)`) +
-> consultas separadas para modelos/cores (sem RPC, sem Edge
-> Function, sem token público, sem schema, sem OP, sem lote).
-> Schema `db/13_*` permanece aplicado em `ucrjtfswnfdlxwtmxnoo`.
+> `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3B` — ações reais de status
+> no detalhe admin do Pedido).
+> **Frontend ações de status.** Tela `#/pedidos/<uuid>` agora
+> oferece ações reais RESTRITAS de status: `rascunho→recebido`,
+> `recebido→confirmado`, `rascunho/recebido/confirmado→cancelado`.
+> Cancelar exige confirmação visual (`window.confirmDialog`).
+> Update é APENAS em `pedidos.status` (RLS admin-only); sem
+> insert/update/delete em `pedido_itens`, sem insert em
+> `pedido_eventos` (fica para fase futura), sem mexer em
+> `lotes`/`pedido_eventos`, sem OP, sem Edge Function, sem
+> schema, sem token público. Botão Editar continua placeholder
+> (C3C). Schema `db/13_*` permanece aplicado em
+> `ucrjtfswnfdlxwtmxnoo`.
 > Fonte da verdade operacional. Detalhe por fase em
 > `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras de saúde arquitetural em
@@ -42,11 +46,11 @@ recebimento do látex. Perfis: **admin** (operação) e **fornecedor**
 
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
-- **HEAD atual aceito:** commit desta fase — "Add pedido admin detail
-  view" (fase `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A`).
-  Antes desta fase: `2de595c` (fase
-  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2-R1`).
-- **staging/main:** `2de595c` (será atualizado com o push desta fase).
+- **HEAD atual aceito:** commit desta fase — "Add pedido admin status
+  actions" (fase `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3B`).
+  Antes desta fase: `7184388` (fase
+  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A`).
+- **staging/main:** `7184388` (será atualizado com o push desta fase).
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — **intocado.**
 - **PR #2:** **intocado.**
 - **Working tree:** **limpo.**
@@ -438,6 +442,41 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
   recomendada: `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3B` (adição de
   ações reais de status/edição/cancelamento), **somente com
   autorização explícita** do HMNlead.
+- 🟢 **Ações reais RESTRITAS de status no detalhe do Pedido** (fase
+  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3B`, esta). `pedido-detail.js`
+  agora define `TRANSITIONS` (rascunho→recebido, recebido→
+  confirmado, rascunho/recebido/confirmado→cancelado; produzindo
+  /entregue/cancelado terminais), `ACTION_LABEL` e função interna
+  `alterarStatus(novoStatus, btn)`. Ações reais: "Marcar como
+  recebido" (rascunho), "Confirmar pedido" (recebido) e "Cancelar
+  pedido" (qualquer dos 3 estados iniciais — exige
+  `window.confirmDialog`). Update é APENAS em `pedidos.status`
+  com `.eq('id', pedidoId)` (admin-only via RLS). Após sucesso,
+  atualiza `state.pedido.status` e chama `render()`. Para
+  status terminais (cancelado/produzindo/entregue), exibe
+  mensagem informativa em vez de botões. Editar continua
+  placeholder (`disabled` com `title="Em breve"`) — fica para
+  C3C. Sem insert/update/delete em `pedido_itens`, sem insert em
+  `pedido_eventos` (decisão C3B: best-effort fica para fase
+  futura), sem mexer em `lotes`/`pedido_eventos`, sem OP, sem
+  Edge Function, sem RPC, sem schema, sem token público.
+  Smoke estático `tests/pedido-detail.smoke.js` 42/42 verde
+  (12 testes novos: 5 transições permitidas, 2 transições
+  proibidas para produzindo/entregue, terminal de cancelado,
+  `alterarStatus`, update restrito a `status` apenas, sem
+  insert em `pedido_eventos`, uso de `confirmDialog` apenas
+  para cancelar, botões reais vs placeholder Editar, re-render
+  após sucesso). Regressões focadas preservadas: `pedido-form`
+  35/35, `pedido-ui` 18/18, `pedidos-list` 29/29, `pedidos-schema`
+  41/41, `boot` 22/22, `router` 34/34. **Total: 221/221
+  verdes** (focados). Falhas pré-existentes em
+  `tests/ops-list-screen.smoke.js` (10/30) são do refactor
+  monolítico antigo, **fora do escopo**. **Sem deploy, sem
+  Supabase real, sem SQL, sem produção, sem origin/main, sem
+  PR #2 nesta fase.** Próxima fase recomendada:
+  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C` (edição de campos
+  editáveis do Pedido + itens), **somente com autorização
+  explícita** do HMNlead.
 
 ## Próximo passo recomendado
 1. **Auth provisioning fechado em staging:** Edge Function
@@ -658,19 +697,29 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
   transação atômica, compensação manual em caso de falha).
 - Preview de cor do item via slot fixo + `updatePreview()` (C2-R1).
 
-### `js/screens/pedido-detail.js` — detalhe admin read-only do Pedido
+### `js/screens/pedido-detail.js` — detalhe admin do Pedido
 - `screenPedidoDetalhe(pedidoId)` (C3A).
 - Resolve via match dinâmico em `js/router.js`:
   `^#/pedidos/<uuid>$, admin-only, sem public: true`.
 - Carrega `pedidos` (com join aninhado `cliente:cliente_id(id, nome)`),
   `pedido_itens`, `modelos` e `cores` (consultas separadas para
   evitar joins frágeis no PostgREST).
-- Ações: Voltar (funcional), Editar/Cancelar/Receber
-  (placeholders `disabled` com `title="Em breve"`).
-- Estritamente read-only: sem insert/update/delete/rpc, sem
-  `functions.invoke`, sem `token_acesso`, sem `service_role`, sem
-  rota pública, sem mutação em `lotes`/`pedido_eventos`, sem
-  schema, sem OP, sem Edge Function, sem fornecedor.
+- **Ações reais de status (C3B):** `TRANSITIONS` define a matriz
+  restrita (rascunho→recebido, recebido→confirmado, rascunho
+  /recebido/confirmado→cancelado; produzindo/entregue/cancelado
+  terminais). Função interna `alterarStatus(novoStatus, btn)`
+  valida via `canTransition`, executa `update` em `pedidos`
+  (apenas campo `status`, com `.eq('id', pedidoId)`), atualiza
+  `state.pedido.status` e chama `render()`. Cancelar usa
+  `window.confirmDialog`. Para status terminais, exibe mensagem
+  informativa. Editar continua como placeholder — fica para C3C.
+- **Write mínimo:** APENAS `update` em `pedidos.status` (admin-only
+  via RLS). Sem insert/update/delete em `pedido_itens`, sem
+  insert em `pedido_eventos` (decisão C3B: best-effort fica para
+  fase futura), sem mutação em `lotes`/`pedido_eventos`, sem
+  `functions.invoke`, sem `token_acesso`, sem `service_role`,
+  sem rota pública, sem schema, sem OP, sem Edge Function, sem
+  fornecedor, sem RPC.
 
 ### `js/screens/system-screens.js` — telas sistêmicas/login
 - `screenLogin`, `screenNotFound`, `screenForbidden`.
@@ -731,8 +780,10 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
 23. `js/screens/pedido-form.js` (commit `62a9f9a`,
     RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2; corrigido em `2de595c`
     RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2-R1).
-24. `js/screens/pedido-detail.js` (commit desta fase,
-    RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A).
+24. `js/screens/pedido-detail.js` (`7184388` RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A
+    + commit desta fase RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3B com
+    `TRANSITIONS`, `ACTION_LABEL`, `canTransition`/`nextActionsForStatus`
+    e função interna `alterarStatus`).
 
 ## Estado dos módulos críticos (após `7f3c6da`)
 
@@ -813,12 +864,25 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
 - **RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2-R1 (`2de595c`):** testes focados
   passando (correção do bug do preview de cor: slot fixo +
   `updatePreview()` com `replaceChildren`).
-- **RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A (commit desta fase):** 209/209
+- **RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A (`7184388`):** 209/209
   pass nos testes focados (`pedido-detail` 30/30, `pedido-form` 35/35,
   `pedido-ui` 18/18, `pedidos-list` 29/29, `pedidos-schema` 41/41,
   `boot` 22/22, `router` 34/34). Falhas pré-existentes em
   `ops-list-screen.smoke.js` (10/30) são do refactor monolítico
   antigo, fora do escopo.
+- **RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3B (commit desta fase):** 221/221
+  pass nos testes focados (`pedido-detail` 42/42, `pedido-form` 35/35,
+  `pedido-ui` 18/18, `pedidos-list` 29/29, `pedidos-schema` 41/41,
+  `boot` 22/22, `router` 34/34). 12 testes novos no
+  `pedido-detail.smoke.js` cobrem: 5 transições permitidas,
+  2 proibidas para produzindo/entregue, terminal de cancelado,
+  `alterarStatus` definido e usado, update restrito a `status`
+  (payload de 1 chave apenas), sem insert em `pedido_eventos`,
+  `confirmDialog` apenas para cancelar (case-insensitive),
+  botões reais com labels "Marcar como recebido"/"Confirmar
+  pedido"/"Cancelar pedido", placeholder Editar via
+  `placeholderButton(...)`, remoção do placeholder "Confirmar /
+  Receber", re-render via `render()` após sucesso.
 
 ## Comandos seguros
 - `node --test tests/<arquivo>.smoke.js` — testes focados por fase.

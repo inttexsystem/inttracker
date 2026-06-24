@@ -1,17 +1,26 @@
 // =====================================================================
 // === SCREENS: PEDIDO DETAIL ==========================================
-// Tela admin read-only do detalhe de um Pedido existente.
-// Rota: `#/pedidos/<uuid>` (parseada por js/router.js via matchRoute
-// dinâmico). Botão "Visualizar" da listagem `#/pedidos` navega para
-// esta tela.
+// Tela admin do detalhe de um Pedido existente, com ações reais de
+// status nesta fase. Rota: `#/pedidos/<uuid>` (parseada por
+// js/router.js via matchRoute dinâmico). Botão "Visualizar" da
+// listagem `#/pedidos` navega para esta tela.
 //
-// Fase: RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A
-// Escopo: APENAS leitura. Sem edição, sem cancelamento, sem transição
-//   de status, sem geração de OP, sem lote, sem cliente público, sem
-//   token, sem Edge Function. Ações da tela são placeholders
-//   "em breve" (botões desabilitados). Consultas: SELECT em `pedidos`,
-//   `pedido_itens`, `clientes`, `modelos` e `cores` (joins via select
-//   aninhado do Supabase; sem RPC).
+// Fase: RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3B
+// Escopo: leitura + ações reais restritas de status no Pedido.
+//   Transições permitidas nesta fase:
+//     - rascunho   → recebido
+//     - recebido   → confirmado
+//     - rascunho   → cancelado
+//     - recebido   → cancelado
+//     - confirmado → cancelado
+//   Transições proibidas nesta fase:
+//     - qualquer status → produzindo (fase futura)
+//     - qualquer status → entregue   (fase futura)
+//     - cancelado → qualquer outro  (terminal nesta fase)
+//     - confirmado → recebido
+//     - recebido → rascunho
+//   Edição de campos/itens fica para C3C. Sem geração de OP, sem lote,
+//   sem cliente público, sem token, sem Edge Function, sem RPC.
 //
 // Carregar via <script src="js/screens/pedido-detail.js?v=...></script>
 // no <head>, DEPOIS de js/screens/pedido-form.js, js/pedido-ui.js e
@@ -19,7 +28,8 @@
 //
 // Dependências resolvidas em tempo de chamada:
 //   - window.el / window.toast / window.pageHeader / window.dataTable
-//     / window.shellLayout / window.ADMIN_MENU  (js/ui.js, common.js)
+//     / window.shellLayout / window.ADMIN_MENU / window.confirmDialog
+//     (js/ui.js, common.js)
 //   - window.RAVATEX_PEDIDO_UI / window.pedidoStatusBadge
 //     / window.pedidoStatusLabel / window.corPreviewElement
 //     / window.corPreviewHex / window.fmtDataCurta
@@ -27,8 +37,10 @@
 //   - window.navigate                  (js/router.js)
 //   - window.supa                      (js/supabase-client.js)
 //
-// A tela é estritamente read-only: NÃO faz insert/update/delete/rpc/
-// functions.invoke. Apenas SELECT em tabelas admin-only via RLS.
+// Writes permitidos nesta fase: APENAS `update` em `pedidos` (campo
+// `status` apenas, via RLS admin-only). Sem insert/update/delete em
+// `pedido_itens`, sem insert em `pedido_eventos` (fica para fase
+// futura), sem mexer em `lotes`/`pedido_eventos`.
 //
 // Compatibilidade: window.screenPedidoDetalhe e
 // window.RAVATEX_SCREENS.pedidoDetail ficam disponíveis para o
@@ -42,6 +54,41 @@
   // antes de mandar para o Supabase. O router já valida o formato,
   // mas esta defesa evita queries inúteis com lixo na URL.
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  // -------------------------------------------------------------------
+  // Transições de status permitidas nesta fase.
+  // Origem: db/13_pedidos_schema.sql (CHECK status IN ...). Mantém
+  //   `pedido` separado de `op` (status `produzindo`/`entregue` ficam
+  //   para fases futuras, quando houver vínculo com OP).
+  // -------------------------------------------------------------------
+  const TRANSITIONS = Object.freeze({
+    rascunho:   Object.freeze(['recebido', 'cancelado']),
+    recebido:   Object.freeze(['confirmado', 'cancelado']),
+    confirmado: Object.freeze(['cancelado']),
+    // produzindo, entregue, cancelado: nenhuma transição nesta fase.
+    produzindo: Object.freeze([]),
+    entregue:   Object.freeze([]),
+    cancelado:  Object.freeze([]),
+  });
+
+  const ACTION_LABEL = Object.freeze({
+    recebido:  'Marcar como recebido',
+    confirmado:'Confirmar pedido',
+    cancelado: 'Cancelar pedido',
+  });
+
+  function canTransition(from, to) {
+    if (!from || !to) return false;
+    const destinos = TRANSITIONS[from];
+    return Array.isArray(destinos) && destinos.indexOf(to) !== -1;
+  }
+
+  function nextActionsForStatus(status) {
+    const destinos = TRANSITIONS[status] || [];
+    return destinos.map(function (t) {
+      return { status: t, label: ACTION_LABEL[t] || t };
+    });
+  }
 
   function fmtNumero(n) {
     if (n == null) return '—';
@@ -230,6 +277,86 @@
       }
     }
 
+    // -----------------------------------------------------------------
+    // alterarStatus: aplica uma transição de status permitida.
+    // - Valida origem e destino via canTransition().
+    // - Executa APENAS `update` em `pedidos` (campo `status`).
+    // - NÃO toca em `pedido_itens`, `pedido_eventos`, `lotes`, OP, etc.
+    // - Após sucesso: atualiza state.pedido.status e re-renderiza.
+    // - Cancelar pedido: pede confirmação visual antes de aplicar.
+    // -----------------------------------------------------------------
+    async function alterarStatus(novoStatus, btn) {
+      if (!state.pedido) {
+        window.toast('Pedido não carregado.', 'error');
+        return;
+      }
+      const statusAtual = state.pedido.status;
+      if (!canTransition(statusAtual, novoStatus)) {
+        window.toast(
+          'Transição não permitida: ' + statusAtual + ' → ' + novoStatus + '.',
+          'error'
+        );
+        return;
+      }
+
+      // Helper de "ocupado" para o botão que disparou a ação.
+      const oldLabel = btn ? btn.textContent : null;
+      const oldDisabled = btn ? btn.disabled : false;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Salvando...';
+      }
+
+      const apply = async function () {
+        const r = await window.supa
+          .from('pedidos')
+          .update({ status: novoStatus })
+          .eq('id', pedidoId);
+        if (r.error) {
+          window.toast(
+            'Erro ao atualizar status: ' + (r.error.message || 'desconhecido'),
+            'error'
+          );
+          console.error('pedido-detail: erro ao atualizar status', r.error);
+          if (btn) {
+            btn.disabled = oldDisabled;
+            btn.textContent = oldLabel;
+          }
+          return;
+        }
+        // Sucesso: atualiza estado local e re-renderiza.
+        state.pedido.status = novoStatus;
+        const labelAmigavel = window.pedidoStatusLabel
+          ? window.pedidoStatusLabel(novoStatus)
+          : novoStatus;
+        window.toast('Pedido marcado como ' + labelAmigavel + '.', 'success');
+        render();
+      };
+
+      // Cancelar exige confirmação visual. As outras transições
+      // (recebido, confirmado) são aplicadas direto.
+      if (novoStatus === 'cancelado') {
+        window.confirmDialog({
+          title: 'Cancelar pedido',
+          message: 'Tem certeza que deseja cancelar este pedido? '
+            + 'Esta ação altera o status para "Cancelado" '
+            + 'e não pode ser desfeita nesta fase.',
+          confirmLabel: 'Sim, cancelar',
+          danger: true,
+          onConfirm: apply,
+        });
+        // Reabilita o botão já — o confirmDialog é assíncrono e
+        // a confirmação, se vier, dispara apply() que re-renderiza.
+        if (btn) {
+          btn.disabled = oldDisabled;
+          btn.textContent = oldLabel;
+        }
+        return;
+      }
+
+      await apply();
+    }
+
     function buildHeader() {
       return window.pageHeader('Pedido', [
         {
@@ -336,11 +463,46 @@
     }
 
     function buildActions() {
-      const actions = window.el('div', { class: 'bg-white rounded-xl shadow p-4 mt-4 flex flex-wrap gap-2 justify-end' },
-        placeholderButton('Confirmar / Receber'),
-        placeholderButton('Cancelar pedido'),
-        placeholderButton('Editar'),
-      );
+      // Status terminal ou bloqueado nesta fase: sem ações reais.
+      // Mantém apenas Editar como placeholder (C3C).
+      const statusAtual = state.pedido ? state.pedido.status : null;
+      const proximas = nextActionsForStatus(statusAtual);
+
+      const actions = window.el('div', {
+        class: 'bg-white rounded-xl shadow p-4 mt-4 flex flex-wrap gap-2 justify-end',
+      });
+
+      // Sem ações reais disponíveis: mostra mensagem informativa.
+      if (proximas.length === 0) {
+        const info = window.el('div',
+          { class: 'text-sm text-gray-500 mr-auto self-center' },
+          statusAtual === 'cancelado'
+            ? 'Pedido cancelado. Nenhuma transição disponível nesta fase.'
+            : statusAtual === 'produzindo' || statusAtual === 'entregue'
+              ? 'Status "' + (window.pedidoStatusLabel
+                ? window.pedidoStatusLabel(statusAtual)
+                : statusAtual) + '" é gerenciado pela OP. Nenhuma ação aqui.'
+              : 'Nenhuma ação de status disponível para este pedido.');
+        actions.appendChild(info);
+      } else {
+        for (let i = 0; i < proximas.length; i++) {
+          const ac = proximas[i];
+          const isCancelar = ac.status === 'cancelado';
+          const btn = window.el('button', {
+            type: 'button',
+            class: 'px-4 py-2 rounded-lg font-semibold '
+              + (isCancelar
+                ? 'border border-red-300 text-red-700 hover:bg-red-50'
+                : 'bg-blue-700 hover:bg-blue-800 text-white'),
+            'data-action': ac.status,
+            onclick: function () { alterarStatus(ac.status, btn); },
+          }, ac.label);
+          actions.appendChild(btn);
+        }
+      }
+
+      // Editar continua como placeholder — fica para C3C.
+      actions.appendChild(placeholderButton('Editar'));
       return actions;
     }
 

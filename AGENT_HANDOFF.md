@@ -9,11 +9,11 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A` (detalhe admin read-only
-  do Pedido entregue).
-- **HEAD aceito atual:** `2de595c` (após push desta fase, o HEAD
-  da fase C3A — "Add pedido admin detail view").
-- **staging/main:** `2de595c` (será atualizado com o push desta fase).
+  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3B` (ações reais de status
+  no detalhe admin do Pedido entregues).
+- **HEAD aceito atual:** `7184388` (após push desta fase, o HEAD
+  da fase C3B — "Add pedido admin status actions").
+- **staging/main:** `7184388` (será atualizado com o push desta fase).
 - **Working tree:** limpo após commit.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -26,18 +26,23 @@
   `ucrjtfswnfdlxwtmxnoo`: tabelas `pedidos`, `pedido_itens`,
   `pedido_eventos` e `lotes.pedido_id` (nullable). RLS admin-only.
   Sem policy pública. Sem `pedidos.op_id`.
-- **Frontend Pedidos entregue (C1 + C2 + C2-R1 + C3A):**
+- **Frontend Pedidos entregue (C1 + C2 + C2-R1 + C3A + C3B):**
   listagem `#/pedidos`, formulário `#/pedidos/novo` (cria pedido
   + itens como `rascunho`), correção de bug do preview de cor
-  (slot fixo + `updatePreview()`) e **detalhe read-only**
-  `#/pedidos/<uuid>`. Helper `pedido-ui.js` com status, badges
-  e preview de cor. Sem geração de OP, sem lote, sem token
-  público. Detalhe read-only estrito: SELECT-only em `pedidos`
-  (com join aninhado `cliente:cliente_id(...)`), `pedido_itens`,
-  `modelos`, `cores`; sem insert/update/delete/rpc, sem
-  `functions.invoke`, sem `token_acesso`, sem `service_role`,
-  sem rota pública, sem mutação em `lotes`/`pedido_eventos`,
-  sem schema, sem OP, sem Edge Function, sem fornecedor.
+  (slot fixo + `updatePreview()`), **detalhe read-only**
+  `#/pedidos/<uuid>` e **ações reais RESTRITAS de status**
+  (C3B). Helper `pedido-ui.js` com status, badges e preview
+  de cor. Sem geração de OP, sem lote, sem token público. Na
+  C3B, o detalhe passou a aceitar APENAS as transições:
+  `rascunho→recebido`, `recebido→confirmado`, `rascunho/
+  recebido/confirmado→cancelado` (este último via
+  `window.confirmDialog`). Produzindo/entregue/cancelado são
+  terminais nesta fase. Update é APENAS em `pedidos.status`
+  (admin-only via RLS). Sem insert/update/delete em
+  `pedido_itens`, sem insert em `pedido_eventos` (best-effort
+  fica para fase futura), sem `functions.invoke`, sem
+  `token_acesso`, sem `service_role`, sem rota pública, sem
+  schema, sem OP, sem Edge Function, sem fornecedor.
 
 ## Estado operacional atual
 - `index.html` está declarativo, sem script inline final, com
@@ -174,26 +179,29 @@ Abortar e revisar o escopo se:
 ## Próxima recomendação operacional
 
 **Refactor arquitetural continua congelado.**
-**Pedidos C1 + C2 + C2-R1 + C3A entregues:** listagem
+**Pedidos C1 + C2 + C2-R1 + C3A + C3B entregues:** listagem
 `#/pedidos`, formulário `#/pedidos/novo` (cria pedido + itens
 como `rascunho`), correção de bug no preview de cor do item
-(slot fixo + `updatePreview()` com `replaceChildren`) e
+(slot fixo + `updatePreview()` com `replaceChildren`),
 **detalhe read-only** `#/pedidos/<uuid>` (`pedido-detail.js`
 com `screenPedidoDetalhe`, `js/router.js` estendido com
 match dinâmico `^#/pedidos/<uuid>$` admin-only, botão
-"Visualizar" da listagem navegando para o detalhe). Helper
-`pedido-ui.js` com status, badges e preview de cor. Sem
-geração de OP, sem lote, sem token público. Detalhe read-only
-estrito: SELECT-only em `pedidos`/`pedido_itens`/`modelos`/
-`cores`; sem insert/update/delete/rpc, sem `functions.invoke`,
-sem `token_acesso`, sem `service_role`, sem rota pública, sem
-mutação em `lotes`/`pedido_eventos`, sem schema, sem OP, sem
-Edge Function, sem fornecedor. Limitação conhecida do
-formulário: sem RPC/transação atômica (compensação manual
-documentada no código).
-**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3B`
-(adição de ações reais: editar/cancelar/confirmar/receber do
-Pedido), **somente com autorização explícita** do HMNlead.
+"Visualizar" da listagem navegando para o detalhe) e
+**ações reais RESTRITAS de status** (C3B: `rascunho→recebido`,
+`recebido→confirmado`, `rascunho/recebido/confirmado→cancelado`
+via `window.confirmDialog`; produzindo/entregue/cancelado
+terminais). Update é APENAS em `pedidos.status` (admin-only
+via RLS). Sem insert/update/delete em `pedido_itens`, sem
+insert em `pedido_eventos` (best-effort fica para fase
+futura), sem `functions.invoke`, sem `token_acesso`, sem
+`service_role`, sem rota pública, sem mutação em
+`lotes`/`pedido_eventos`, sem schema, sem OP, sem Edge
+Function, sem fornecedor. Limitação conhecida do formulário:
+sem RPC/transação atômica (compensação manual documentada
+no código). **Editar** continua como placeholder (C3C).
+**Próxima fase:** `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C`
+(edição de campos editáveis do Pedido + itens), **somente
+com autorização explícita** do HMNlead.
 **Não iniciar execução sem autorização explícita.**
 **NÃO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**
 
@@ -444,17 +452,17 @@ projeto:
 | 21 | `js/screens/op-pdf.js` | `7f3c6da` | RAVATEX-TAPETES-OP-NOVA-PDF-MODULE-A |
 | 22 | `js/screens/pedidos-list.js` | `bf960f8` | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C1 |
 | 23 | `js/screens/pedido-form.js` | `62a9f9a` (+ `2de595c`) | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2 (+ C2-R1) |
-| 24 | `js/screens/pedido-detail.js` | (commit desta fase) | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A |
+| 24 | `js/screens/pedido-detail.js` | `7184388` + (commit desta fase) | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A (+ C3B: ações reais de status) |
 
 ## Testes recentes (focados passando)
-- `pedido-detail.smoke.js` — 30/30
+- `pedido-detail.smoke.js` — 42/42
 - `pedido-form.smoke.js` — 35/35
 - `pedido-ui.test.js` — 18/18
 - `pedidos-list.smoke.js` — 29/29
 - `pedidos-schema.smoke.js` — 41/41
 - `boot.smoke.js` — 22/22
 - `router.smoke.js` — 34/34
-- **Total Pedidos (C1+C2+C2-R1+C3A): 209/209** (todos os focados
+- **Total Pedidos (C1+C2+C2-R1+C3A+C3B): 221/221** (todos os focados
   passam).
 
 Focados do refactor (mantidos verdes):
