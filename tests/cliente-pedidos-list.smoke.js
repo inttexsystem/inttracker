@@ -117,6 +117,17 @@ test('index.html: scripts cliente vêm antes de boot.js', () => {
 });
 
 // ---------------------------------------------------------------------
+// 4. RAVATEX-TAPETES-PEDIDOS-CLIENTE-CREATE-A — botão "Novo pedido"
+// ---------------------------------------------------------------------
+
+test('cliente-pedidos-list: header inclui botão "+ Novo pedido" que navega para #/cliente/pedidos/novo', () => {
+  // Garante que o botão foi adicionado e que ele chama navigate com a
+  // rota cliente de criação.
+  const re = /['"]\+ Novo pedido['"][\s\S]{0,200}navigate\(\s*['"]#\/cliente\/pedidos\/novo['"]\s*\)/;
+  assert.match(screen, re, "botão '+ Novo pedido' deve navegar para '#/cliente/pedidos/novo'");
+});
+
+// ---------------------------------------------------------------------
 // 4. Rotas no boot.js
 // ---------------------------------------------------------------------
 

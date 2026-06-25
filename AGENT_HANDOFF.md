@@ -9,11 +9,11 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-UI-A` (UI cliente read-only:
-  shell, roteamento, listagem e detalhe de pedidos próprios).
-- **HEAD aceito atual:** `e03241e` (antes do commit desta fase).
-  Após o commit de UI-A, o HEAD passa a ser o commit desta fase —
-  "Add cliente pedidos read-only UI".
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-CREATE-A` (criação de Pedido
+  pelo cliente autenticado).
+- **HEAD aceito atual:** `63e7b2b` (antes do commit desta fase).
+  Após o commit de CREATE-A, o HEAD passa a ser o commit desta
+  fase — "Add cliente pedido creation UI".
 - **Working tree:** limpo após commit.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -37,19 +37,26 @@
   Cliente + select de cliente. `loadCurrentUser()` carrega
   `cliente_id` e `cliente_nome`. `isCliente()` disponível.
   **Não** deployado em staging ainda.
-- **Frontend Pedidos cliente entregue (UI-A):** shell mínimo
-  (`js/screens/cliente-common.js` com `CLIENTE_MENU`: "Meus
-  pedidos" apenas), listagem read-only
-  (`js/screens/cliente-pedidos-list.js`,
+- **Frontend Pedidos cliente entregue (UI-A + CREATE-A):**
+  shell mínimo (`js/screens/cliente-common.js` com `CLIENTE_MENU`:
+  "Meus pedidos" apenas), listagem read-only com botão
+  "+ Novo pedido" (`js/screens/cliente-pedidos-list.js`,
   `#/cliente/pedidos`, `screenClientePedidosLista`, confia na
   RLS), detalhe sanitizado (`js/screens/cliente-pedido-detail.js`,
   `#/cliente/pedidos/<uuid>`, `screenClientePedidoDetalhe`,
-  sem editar/cancelar/criar, sem expor OP/lote/fornecedor/
-  token/eventos). Roteamento: `routeAfterLogin` direciona
-  cliente para `#/cliente/pedidos`, `matchRoute` resolve
-  `#/cliente/pedidos/<uuid>` com `roles: ['cliente']`,
-  `boot.js` registra `#/cliente/pedidos`. **Sem** criar/editar
-  /cancelar pedido nesta fase. **Sem** schema, SQL, Edge Function.
+  sem editar/cancelar, sem expor OP/lote/fornecedor/
+  token/eventos), formulário de criação
+  (`js/screens/cliente-pedido-form.js`,
+  `#/cliente/pedidos/novo`, `screenClientePedidoNovo`,
+  `cliente_id` de `CURRENT_USER.cliente_id`, status inicial
+  `recebido`, sem select de cliente, sem editar/cancelar,
+  sem expor OP/lote/fornecedor/token/eventos). Roteamento:
+  `routeAfterLogin` direciona cliente para `#/cliente/pedidos`,
+  `matchRoute` resolve `#/cliente/pedidos/<uuid>` com
+  `roles: ['cliente']`, `boot.js` registra `#/cliente/pedidos`
+  e `#/cliente/pedidos/novo`. **Sem** editar/cancelar pedido.
+  **Sem** schema, SQL, Edge Function, service_role,
+  functions.invoke.
 - **Admin Pedidos completo (C1-C3C3):** listagem, formulário,
   detalhe, ações de status, edição de dados gerais e itens.
 
@@ -186,15 +193,19 @@ Abortar e revisar o escopo se:
 ## Próxima recomendação operacional
 
 **Refactor arquitetural continua congelado.**
-**Cliente UI-A entregue:** shell mínimo, listagem e detalhe
-read-only. Cliente autenticado roteado para `#/cliente/pedidos`,
-vê apenas seus pedidos via RLS, sem exposição de dados internos.
-**Sem** criar/editar/cancelar pedido nesta fase. **Sem** schema,
-SQL, ou Edge Function.
+**Cliente UI-A e CREATE-A entregues:** shell mínimo, listagem
+read-only, detalhe read-only e criação de Pedido via formulário
+cliente. Cliente autenticado roteado para `#/cliente/pedidos`,
+vê apenas seus pedidos via RLS, sem exposição de dados
+internos, e pode criar novos pedidos (status `recebido`).
+**Sem** editar/cancelar pedido nesta fase. **Sem** schema, SQL,
+Edge Function, service_role, functions.invoke, OP/lote/
+fornecedor/token/eventos.
 
-**Próxima fase:** homologação do fluxo cliente em staging
-(`ucrjtfswnfdlxwtmxnoo`) ou criação de pedido pelo cliente
-(`RAVATEX-TAPETES-PEDIDOS-CLIENTE-CREATE-A`), **somente com
+**Próxima fase:** homologação manual do fluxo completo de
+cliente (listar, criar, visualizar) em staging
+(`ucrjtfswnfdlxwtmxnoo`) — fase
+`RAVATEX-TAPETES-PEDIDOS-CLIENTE-UI-HOMOLOG-A`, **somente com
 autorização explícita** do HMNlead.
 **Não iniciar execução sem autorização explícita.**
 **NÃO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**

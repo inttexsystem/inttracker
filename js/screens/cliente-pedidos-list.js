@@ -54,7 +54,12 @@
     }
 
     function render() {
-      var header = window.pageHeader('Meus pedidos', []);
+      var header = window.pageHeader('Meus pedidos', [
+        {
+          label: '+ Novo pedido',
+          onclick: function () { window.navigate('#/cliente/pedidos/novo'); },
+        },
+      ]);
 
       var statusFiltro = window.el('div', { class: 'flex flex-wrap gap-2 mb-3' });
       var statusOptions = ['todos'].concat(window.pedidoStatusTodos());

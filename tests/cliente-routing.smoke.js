@@ -123,6 +123,42 @@ test('matchRoute: #/cliente/pedidos estático registrado (via boot.js)', () => {
 });
 
 // ---------------------------------------------------------------------
+// 3a. RAVATEX-TAPETES-PEDIDOS-CLIENTE-CREATE-A — rota #/cliente/pedidos/novo
+// ---------------------------------------------------------------------
+
+test('boot.js: registra rota #/cliente/pedidos/novo com role cliente', () => {
+  assert.match(
+    bootSrc,
+    /'#\/cliente\/pedidos\/novo'\s*:\s*\{\s*render\s*:\s*window\.screenClientePedidoNovo[^}]*roles\s*:\s*\[\s*['"]cliente['"]\s*\]/i,
+    "rota #/cliente/pedidos/novo deve ser registrada com role cliente e render=screenClientePedidoNovo"
+  );
+});
+
+test('handleRoute: rota #/cliente/pedidos/novo exige role cliente (admin → forbidden)', async () => {
+  var r = makeRouterSandbox({ hash: '#/cliente/pedidos/novo' });
+  vm.runInContext(`
+    window.screenClientePedidoNovo = function() { return Promise.resolve({ __screen: 'clienteForm' }); };
+    window.RAVATEX_ROUTER.setRoutes({ '#/cliente/pedidos/novo': { render: window.screenClientePedidoNovo, roles: ['cliente'] } });
+    window.CURRENT_USER = { tipo: 'admin' };
+  `, r.sandbox);
+  await vm.runInContext('window.handleRoute()', r.sandbox);
+  assert.equal(r.calls.screenForbidden, 1, 'admin deve receber forbidden em rota cliente de criação');
+});
+
+test('handleRoute: rota #/cliente/pedidos/novo renderiza para cliente autenticado', async () => {
+  var r = makeRouterSandbox({ hash: '#/cliente/pedidos/novo' });
+  vm.runInContext(`
+    window.screenClientePedidoNovo = function() { return Promise.resolve({ __screen: 'clienteForm' }); };
+    window.RAVATEX_ROUTER.setRoutes({ '#/cliente/pedidos/novo': { render: window.screenClientePedidoNovo, roles: ['cliente'] } });
+    window.CURRENT_USER = { tipo: 'cliente' };
+  `, r.sandbox);
+  await vm.runInContext('window.handleRoute()', r.sandbox);
+  assert.equal(r.calls.setApp.length, 1, 'setApp não foi chamado');
+  assert.equal(r.calls.setApp[0].__screen, 'clienteForm');
+  assert.equal(r.calls.screenForbidden, 0, 'cliente não deve receber forbidden na própria rota de criação');
+});
+
+// ---------------------------------------------------------------------
 // 3. matchRoute dinâmico — #/cliente/pedidos/<uuid>
 // ---------------------------------------------------------------------
 

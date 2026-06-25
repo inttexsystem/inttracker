@@ -31,6 +31,9 @@
 //     screenFornecedorOrdens,
 //     screenFornecedorEntregas,
 //     screenFornecedorLatex                    (js/screens/fornecedor.js)
+//   - window.screenClientePedidosLista,
+//     screenClientePedidoNovo,
+//     screenClientePedidoDetalhe               (js/screens/cliente-*.js)
 //   - window.handleRoute, window.navigate,
 //     window.routeAfterLogin                   (js/router.js)
 //   - window.loadCurrentUser, window.CURRENT_USER  (js/auth.js)
@@ -65,7 +68,8 @@
     '#/fornecedor/entregas': { render: window.screenFornecedorEntregas, roles: ['fornecedor'] },
     '#/fornecedor/latex':    { render: window.screenFornecedorLatex,    roles: ['fornecedor'] },
 
-    '#/cliente/pedidos': { render: window.screenClientePedidosLista, roles: ['cliente'] },
+    '#/cliente/pedidos':      { render: window.screenClientePedidosLista, roles: ['cliente'] },
+    '#/cliente/pedidos/novo': { render: window.screenClientePedidoNovo,   roles: ['cliente'] },
   });
 
   async function main() {

@@ -1,13 +1,14 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-PEDIDOS-CLIENTE-UI-A` — UI cliente: shell,
-> roteamento, listagem e detalhe read-only de pedidos próprios).
-> **Cliente autenticado.** `routeAfterLogin` direciona cliente para
-> `#/cliente/pedidos`. Menu cliente mínimo (apenas "Meus pedidos").
-> Listagem e detalhe sanitizados, sem expor OP/lote/token/eventos.
-> **Sem** criar/editar/cancelar pedido. **Sem** schema, SQL, ou
-> Edge Function. Confia 100% na RLS existente.
+> `RAVATEX-TAPETES-PEDIDOS-CLIENTE-CREATE-A` — criação de Pedido pelo
+> cliente autenticado).
+> **Cliente cria Pedido.** Cliente autenticado acessa
+> `#/cliente/pedidos/novo` via botão "Novo pedido" na listagem.
+> Formulário com múltiplos itens, validação local, status inicial
+> `recebido`. `cliente_id` vem de `CURRENT_USER.cliente_id` (RLS
+> valida). Sem editar/cancelar. Sem schema, SQL, Edge Function,
+> service_role, functions.invoke, OP/lote/fornecedor/token/eventos.
 
 ## Produto
 SPA web para controlar a produção de tapetes, do pedido de fio até o
@@ -831,14 +832,71 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
   homologação do fluxo cliente em staging ou criação de pedido
   pelo cliente (`RAVATEX-TAPETES-PEDIDOS-CLIENTE-CREATE-A`),
   **somente com autorização explícita** do HMNlead.
+- 🟢 **Criação de Pedido pelo cliente** (fase
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-CREATE-A`, esta).
+  **Botão "Novo pedido"** adicionado ao header de
+  `js/screens/cliente-pedidos-list.js` (navega para
+  `#/cliente/pedidos/novo`).
+  **Formulário:** novo módulo `js/screens/cliente-pedido-form.js`
+  com `screenClientePedidoNovo`. **Sem** select de cliente —
+  `cliente_id` vem exclusivamente de
+  `CURRENT_USER.cliente_id` (validado server-side pela RLS
+  `pedidos_cliente_insert` que compara com `meu_cliente_id()`).
+  Bloqueia a tela com erro claro se `cliente_id` ausente.
+  Mostra badge com o nome do cliente vinculado
+  (`CURRENT_USER.cliente_nome`) e nota "vinculado à sua conta".
+  Campos: prazo desejado (opcional), observação geral
+  (opcional), lista de itens (modelo + metros + observação do
+  item, múltiplos itens via "+ Adicionar item", remover se
+  mais de 1). **Status inicial** sempre `recebido` (não
+  `rascunho` — pedido do cliente entra direto para triagem).
+  **Validações cliente-side:** 1+ item, modelo selecionado,
+  metros > 0.
+  **Payload `pedidos`:** `{ cliente_id, status: 'recebido',
+  prazo_entrega? , observacao? }`. Sem `numero` (gerado server),
+  sem `token_acesso`, sem OP/lote/fornecedor.
+  **Payload `pedido_itens`:** `{ pedido_id, modelo_id, metros,
+  ordem, observacao? }` em batch. Sem `largura`/`cor_1_id`/
+  `cor_2_id` (sem override nesta fase).
+  **Sem** `functions.invoke`, sem `service_role`, sem token
+  público, sem pedido_eventos, sem OP/lote/fornecedor.
+  **Compensação:** se INSERT de itens falhar após INSERT do
+  pedido, tenta DELETE em `pedidos` com `.eq('id', pedidoId)`.
+  Se compensação também falhar (RLS pode bloquear DELETE
+  cliente), exibe erro claro para contatar suporte. Sem criar
+  policy nova.
+  **Pós-criação:** toast "Pedido enviado" + navigate para
+  `#/cliente/pedidos/<pedidoId>`.
+  **Roteamento:** `boot.js` registra rota estática
+  `#/cliente/pedidos/novo` com `roles: ['cliente']`. Admin/
+  fornecedor continuam bloqueados com forbidden.
+  **Não** altera schema/SQL/Edge/RLS.
+  Smoke estático `cliente-pedido-form.smoke.js` 36/36,
+  `cliente-pedidos-list.smoke.js` 35/35 (+2: ordem de
+  scripts, botão Novo),
+  `cliente-routing.smoke.js` 19/19 (+3: rota estática, admin
+  forbidden, cliente render), `cliente-pedido-detail.smoke.js`
+  36/36 (preservado), `boot.smoke.js` 28/28 (atualizado para
+  19 rotas), `router.smoke.js` 41/41 (preservado),
+  `pedido-ui.test.js` 18/18, `pedido-form.smoke.js` 35/35
+  (preservado), `cliente-perfil-schema.smoke.js` 49/49.
+  **Total: 296/296 verdes** (focados).
+  **Sem deploy, sem Supabase real, sem SQL, sem produção, sem
+  origin/main, sem PR #2 nesta fase.** Próxima fase
+  recomendada: homologação manual do fluxo completo em staging
+  (`RAVATEX-TAPETES-PEDIDOS-CLIENTE-UI-HOMOLOG-A`), **somente
+  com autorização explícita** do HMNlead.
 
 ## Próximo passo recomendado
-1. **Cliente UI read-only entregue (esta fase).** Cliente autenticado
-   é roteado para área própria, lista e visualiza apenas seus pedidos
-   via RLS, sem exposição de admin/fornecedor/OP/lote/token/eventos.
-2. **Próxima fase:** homologação manual do fluxo cliente em staging
-   (`ucrjtfswnfdlxwtmxnoo`) ou criação de pedido pelo cliente
-   (`RAVATEX-TAPETES-PEDIDOS-CLIENTE-CREATE-A`), **somente com
+1. **Cliente UI read-only e criação entregues (fases UI-A e
+   CREATE-A).** Cliente autenticado é roteado para área própria,
+   lista e visualiza apenas seus pedidos via RLS, e pode criar
+   novos pedidos via `#/cliente/pedidos/novo` com status
+   `recebido` (sem editar/cancelar nesta fase).
+2. **Próxima fase recomendada:** homologação manual do fluxo
+   completo de cliente (listar, criar, visualizar) em staging
+   (`ucrjtfswnfdlxwtmxnoo`) — fase
+   `RAVATEX-TAPETES-PEDIDOS-CLIENTE-UI-HOMOLOG-A`, **somente com
    autorização explícita** do HMNlead.
 
 ## Estrutura final de responsabilidades
