@@ -9,11 +9,13 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-CREATE-A` (criação de Pedido
-  pelo cliente autenticado).
-- **HEAD aceito atual:** `63e7b2b` (antes do commit desta fase).
-  Após o commit de CREATE-A, o HEAD passa a ser o commit desta
-  fase — "Add cliente pedido creation UI".
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-HOMOLOG-RECORD-A`
+  (registro docs-only da homologação manual do fluxo cliente
+  em staging).
+- **HEAD aceito atual:** `b71ae22` (antes do commit desta
+  fase). Após o commit de HOMOLOG-RECORD-A, o HEAD passa a
+  ser o commit desta fase — "Record cliente flow
+  homologation".
 - **Working tree:** limpo após commit.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -202,11 +204,17 @@ internos, e pode criar novos pedidos (status `recebido`).
 Edge Function, service_role, functions.invoke, OP/lote/
 fornecedor/token/eventos.
 
-**Próxima fase:** homologação manual do fluxo completo de
-cliente (listar, criar, visualizar) em staging
-(`ucrjtfswnfdlxwtmxnoo`) — fase
-`RAVATEX-TAPETES-PEDIDOS-CLIENTE-UI-HOMOLOG-A`, **somente com
-autorização explícita** do HMNlead.
+**Homologação manual do fluxo cliente registrada**
+(fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-HOMOLOG-RECORD-A`,
+docs-only, esta). HMNlead validou login, menu, criação,
+listagem e detalhe em staging. Pedido entra como `recebido` e
+admin consegue visualizar. Segurança/RLS considerada
+funcional. **Ressalva visual:** há incongruências no
+layout-base que não foram corrigidas pontualmente porque o
+HMNlead pretende redesenhar a UI em fase futura
+(`RAVATEX-TAPETES-UI-REDESIGN-A`). Próxima fase funcional
+fica pendente de decisão do HMNlead.
+
 **Não iniciar execução sem autorização explícita.**
 **NÃO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**
 

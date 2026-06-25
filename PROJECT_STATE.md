@@ -1,14 +1,17 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canônico curto. Atualizado em **2026-06-24** (fase
-> `RAVATEX-TAPETES-PEDIDOS-CLIENTE-CREATE-A` — criação de Pedido pelo
-> cliente autenticado).
-> **Cliente cria Pedido.** Cliente autenticado acessa
-> `#/cliente/pedidos/novo` via botão "Novo pedido" na listagem.
-> Formulário com múltiplos itens, validação local, status inicial
-> `recebido`. `cliente_id` vem de `CURRENT_USER.cliente_id` (RLS
-> valida). Sem editar/cancelar. Sem schema, SQL, Edge Function,
-> service_role, functions.invoke, OP/lote/fornecedor/token/eventos.
+> `RAVATEX-TAPETES-PEDIDOS-CLIENTE-HOMOLOG-RECORD-A` — registro
+> docs-only da homologação manual do fluxo cliente em staging).
+> **Fluxo cliente homologado manualmente em staging.** HMNlead
+> validou: login cliente, perfil carrega, menu "Meus pedidos",
+> criação de pedido, listagem e detalhe. Pedido entra com
+> status `recebido` e admin consegue visualizar. Segurança/RLS
+> considerada funcional no fluxo testado. **Ressalva visual
+> conhecida:** há incongruências no layout-base; NÃO serão
+> corrigidas pontualmente porque o HMNlead pretende redesenhar
+> a UI em fase futura. Funcional fica homologado e pendente de
+> decisão do HMNlead para próximas etapas funcionais.
 
 ## Produto
 SPA web para controlar a produção de tapetes, do pedido de fio até o
@@ -886,6 +889,46 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
   recomendada: homologação manual do fluxo completo em staging
   (`RAVATEX-TAPETES-PEDIDOS-CLIENTE-UI-HOMOLOG-A`), **somente
   com autorização explícita** do HMNlead.
+- 🟢 **Homologação manual do fluxo cliente em staging**
+  (fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-HOMOLOG-RECORD-A`,
+  esta, docs-only). HMNlead validou manualmente o fluxo
+  funcional completo do cliente em staging
+  (`ucrjtfswnfdlxwtmxnoo`):
+  * **Login cliente:** e-mail `cliente.ok.2026-06-24T2256@ravatex.local`
+    autenticou; `loadCurrentUser()` carregou `cliente_id=1` e
+    `cliente_nome="Encanta Lar - Ivancil"`.
+  * **Redirect automático:** pós-login,
+    `routeAfterLogin()` enviou para `#/cliente/pedidos`.
+  * **Menu:** `CLIENTE_MENU` mostrou apenas "Meus pedidos"
+    (sem admin/fornecedor/cadastros).
+  * **Listagem:** `#/cliente/pedidos` carregou os pedidos do
+    cliente via RLS.
+  * **Criação:** `#/cliente/pedidos/novo` permitiu criar Pedido
+    novo via botão "+ Novo pedido"; entrou com `status='recebido'`.
+  * **Detalhe:** `#/cliente/pedidos/<uuid>` exibiu pedido
+    recém-criado com número, status badge, prazo, observação,
+    itens.
+  * **Admin:** logado como admin, o pedido criado pelo cliente
+    apareceu em `#/pedidos` com status `recebido` — visível
+    para triagem.
+  * **Segurança/RLS:** navegação entre perfis e tentativa de
+    acessar UUID de outro cliente retornou "não encontrado ou
+    sem permissão" — RLS funcionou conforme esperado.
+  * **Ressalva visual:** foram observadas incongruências
+    pontuais no layout-base/experiência visual (espaçamentos,
+    alinhamentos, hierarquia visual). Essas incongruências
+    **não bloquearam** a homologação funcional e **não
+    serão corrigidas pontualmente** nesta frente porque o
+    HMNlead pretende redesenhar a UI de forma mais ampla em
+    fase futura (`RAVATEX-TAPETES-UI-REDESIGN-A`).
+  * **Sem deploy adicional:** app em staging já estava
+    atualizado na fase CREATE-A (HEAD `b71ae22`).
+  * **Não** altera js/index.html/db/supabase/tests.
+  * **Não** cria nova feature. Funcional fica homologado e
+    pendente de decisão do HMNlead para próximas etapas
+    funcionais. **Não rodar testes** (fase docs-only;
+    regressões estão preservadas da fase CREATE-A: 296/296
+    focados).
 
 ## Próximo passo recomendado
 1. **Cliente UI read-only e criação entregues (fases UI-A e
@@ -893,11 +936,17 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
    lista e visualiza apenas seus pedidos via RLS, e pode criar
    novos pedidos via `#/cliente/pedidos/novo` com status
    `recebido` (sem editar/cancelar nesta fase).
-2. **Próxima fase recomendada:** homologação manual do fluxo
-   completo de cliente (listar, criar, visualizar) em staging
-   (`ucrjtfswnfdlxwtmxnoo`) — fase
-   `RAVATEX-TAPETES-PEDIDOS-CLIENTE-UI-HOMOLOG-A`, **somente com
-   autorização explícita** do HMNlead.
+2. **Homologação manual do fluxo cliente em staging registrada**
+   (fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-HOMOLOG-RECORD-A`, esta).
+   HMNlead validou o fluxo funcional completo: login, menu,
+   criação de pedido, listagem, detalhe. Status `recebido`
+   aplicado na criação. Admin consegue visualizar o pedido do
+   cliente. Segurança/RLS considerada funcional no fluxo
+   testado. Há ressalva visual conhecida no layout-base —
+   incongruências de UI não serão corrigidas pontualmente porque
+   o HMNlead pretende redesenhar a UI em fase futura
+   (`RAVATEX-TAPETES-UI-REDESIGN-A`). Próxima fase funcional
+   fica pendente de decisão do HMNlead.
 
 ## Estrutura final de responsabilidades
 
