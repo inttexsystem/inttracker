@@ -1,7 +1,8 @@
 # AGENT_HANDOFF.md — Controle de Tapetes
 
 > Para uma nova sessão de IA continuar com segurança. Leia junto:
-> `PROJECT_STATE.md` e `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
+> `PROJECT_STATE.md`, `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md`
+> e `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras vinculantes em `docs/architecture/CODE_HEALTH_RULES.md`.
 > Índice de fontes canônicas vs. legadas em
 > `docs/DOCUMENTATION_INDEX.md`.
@@ -9,12 +10,12 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-UI-A` (sketch
-  funcional do acompanhamento visual do pedido no detalhe
-  cliente).
-- **HEAD aceito atual:** `7a8d10e` (antes do commit desta
-  fase). Após o commit de TRACKING-UI-A, o HEAD passa a ser o
-  commit desta fase — "Add cliente pedido tracking visual".
+  `RAVATEX-TAPETES-PORTAL-B2B-GOVERNANCE-A` (docs-only de
+  governança arquitetural antes da retomada do schema de
+  tracking do cliente).
+- **HEAD aceito de entrada desta fase docs-only:** `d4412d0`
+  (tracking visual entregue; schema seguinte pausado para
+  governança).
 - **Working tree:** limpo após commit.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -60,6 +61,17 @@
   functions.invoke.
 - **Admin Pedidos completo (C1-C3C3):** listagem, formulário,
   detalhe, ações de status, edição de dados gerais e itens.
+- **Governança obrigatória antes da próxima implementação:**
+  `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md` fixa os
+  limites da frente Portal B2B/Pedidos. **Não iniciar**
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-SCHEMA-A` sem
+  respeitar esse documento. Em especial: separar cliente,
+  admin e fornecedor; separar status operacional de
+  `status_cliente_visual`; não colar HTML standalone no app;
+  reaproveitar componentes comuns; manter SPA estático + JS
+  clássico + `window.*`; quebrar próximas entregas em fases
+  pequenas (schema, staging SQL, admin UI, cliente UI,
+  dashboard, redesign shell, fornecedor, automação).
 - **Sketch de acompanhamento visual no detalhe cliente
   (fase TRACKING-UI-A, esta):** novo módulo
   `js/screens/cliente-pedido-tracking.js`
@@ -144,11 +156,9 @@ Abortar e revisar o escopo se:
 6. **Testes focados** por fase (`node --test <arquivo>.smoke.js`).
    Não rodar suíte completa por padrão.
 7. **Fase docs-only**: só `PROJECT_STATE.md`, `AGENT_HANDOFF.md`,
-   `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`,
-   `docs/architecture/CODE_HEALTH_RULES.md`,
    `docs/DOCUMENTATION_INDEX.md` e
-   `docs/architecture/AUTH_DELETE_USER_DESIGN.md` podem ser
-   criados/alterados. Qualquer diff fora desses 6 arquivos reprova.
+   `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md` podem ser
+   criados/alterados. Qualquer diff fora desses 4 arquivos reprova.
 8. **Não mexer** em `aplicarRecalculoOP` ou `persistirOP` sem
    nova fase explícita.
 9. **Não fazer docs + código na mesma fase.**
@@ -212,40 +222,20 @@ Abortar e revisar o escopo se:
 
 ## Próxima recomendação operacional
 
-**Sketch de acompanhamento entregue (fase TRACKING-UI-A, esta).**
-O detalhe cliente mostra o card de acompanhamento (stepper + situação
-atual) derivado de `pedido.status`. **Pendência observada, fora do
-escopo desta fase:** o sidebar/shell compartilhado (`shellLayout` em
-`js/screens/common.js`, reaproveitado por `clienteShellLayout`)
-continua com o estilo genérico — não foi redesenhado com a estética do
-sketch B2B (top bar/sidebar brancos, pílula azul ativa) porque
-`shellLayout` é compartilhado com admin/fornecedor e uma mudança ali
-teria blast radius maior que o escopo desta fase. Se o HMNlead quiser
-avançar nisso, recomenda-se uma fase própria que decida entre (a) um
-shell visual só para cliente (sem tocar `common.js`) ou (b) atualizar
-o `shellLayout` compartilhado com validação visual das telas
-admin/fornecedor também.
+**Governança Portal B2B/Pedidos registrada (fase GOV-A, esta).**
+Antes de retomar o schema de tracking do cliente, o projeto agora tem
+um documento curto e vinculante de limites arquiteturais em
+`docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md`.
 
-**Refactor arquitetural continua congelado.**
-**Cliente UI-A e CREATE-A entregues:** shell mínimo, listagem
-read-only, detalhe read-only e criação de Pedido via formulário
-cliente. Cliente autenticado roteado para `#/cliente/pedidos`,
-vê apenas seus pedidos via RLS, sem exposição de dados
-internos, e pode criar novos pedidos (status `recebido`).
-**Sem** editar/cancelar pedido nesta fase. **Sem** schema, SQL,
-Edge Function, service_role, functions.invoke, OP/lote/
-fornecedor/token/eventos.
+**Próxima fase recomendada:** `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-SCHEMA-A`.
+Ela deve nascer já desacoplada de `pedidos.status` para comunicação
+externa, prevendo um campo visual próprio como
+`status_cliente_visual`.
 
-**Homologação manual do fluxo cliente registrada**
-(fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-HOMOLOG-RECORD-A`,
-docs-only, esta). HMNlead validou login, menu, criação,
-listagem e detalhe em staging. Pedido entra como `recebido` e
-admin consegue visualizar. Segurança/RLS considerada
-funcional. **Ressalva visual:** há incongruências no
-layout-base que não foram corrigidas pontualmente porque o
-HMNlead pretende redesenhar a UI em fase futura
-(`RAVATEX-TAPETES-UI-REDESIGN-A`). Próxima fase funcional
-fica pendente de decisão do HMNlead.
+**Sequência recomendada depois do schema:** aplicação do SQL em
+staging, dropdown admin, cliente lendo status visual real, histórico
+visível, dashboard cliente, redesign de shell/componentes comuns e só
+depois fornecedor/automação.
 
 **Não iniciar execução sem autorização explícita.**
 **NÃO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**

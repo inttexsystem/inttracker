@@ -1,17 +1,15 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
-> Snapshot de estado canônico curto. Atualizado em **2026-06-25** (fase
-> `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-UI-A` — sketch funcional do
-> acompanhamento visual do pedido no detalhe cliente).
-> **Card de acompanhamento (stepper + situação atual) adicionado ao
-> topo do detalhe cliente (`#/cliente/pedidos/<uuid>`).** Etapa exibida
-> é DERIVADA de `pedido.status` nesta fase (sem `status_cliente_visual`,
-> sem dropdown admin, sem schema/SQL/Edge Function). **Ressalva visual
-> conhecida (herdada):** há incongruências no layout-base (sidebar/shell
-> compartilhado de `js/screens/common.js`); NÃO foram corrigidas nesta
-> fase porque o HMNlead pretende redesenhar a UI em fase futura — o
-> shell cliente (`js/screens/cliente-common.js`) continua reaproveitando
-> `window.shellLayout` sem estilo próprio.
+> Snapshot de estado canônico curto. Atualizado em **2026-06-26** (fase
+> `RAVATEX-TAPETES-PORTAL-B2B-GOVERNANCE-A` — docs-only de governança
+> arquitetural antes da retomada do schema de tracking do cliente).
+> **A próxima fase de schema foi pausada intencionalmente.** Antes de
+> `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-SCHEMA-A`, o projeto agora
+> fixa limites em `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md`
+> para separar cliente/admin/fornecedor, impedir colagem de HTML
+> standalone e preservar o padrão atual do app (SPA estático + JS
+> clássico + `window.*`). **Sem schema. Sem SQL. Sem frontend. Sem
+> Supabase. Sem Edge Function. Sem alteração funcional nesta fase.**
 
 ## Produto
 SPA web para controlar a produção de tapetes, do pedido de fio até o
@@ -40,11 +38,11 @@ aplicado, provisionamento pendente).
 
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
-- **HEAD atual aceito:** `16079b2` — "Add cliente perfil schema and
-  RLS" (fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1`).
-  Antes desta fase: `247b8ca` (fase
-  `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3C2C3`).
-- **staging/main:** `16079b2` (atualizado no push de B1).
+- **HEAD atual aceito:** `d4412d0` — commit de entrada desta fase
+  docs-only, com `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-UI-A`
+  já entregue e a retomada do schema explicitamente pausada para
+  governança.
+- **staging/main:** `d4412d0` (alinhado ao HEAD de entrada desta fase).
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — **intocado.**
 - **PR #2:** **intocado.**
 - **Working tree:** **limpo.**
@@ -976,36 +974,39 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
   afetar também as telas admin/fornecedor que compartilham o mesmo
   `shellLayout`.
 
+- 🟢 **Governança arquitetural do Portal B2B/Pedidos registrada**
+  (fase `RAVATEX-TAPETES-PORTAL-B2B-GOVERNANCE-A`, esta).
+  Documento novo:
+  `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md`.
+  A frente deixa de ser tratada como simples "tracking do cliente" e
+  passa a ser formalmente enquadrada como Portal B2B com múltiplos
+  papéis e superfícies futuras. Regras fixadas: separação estrita entre
+  cliente/admin/fornecedor; separação entre status operacional e status
+  visual do cliente; proibição de colar HTML standalone no app;
+  obrigação de componentes compartilháveis (`shell`, sidebar, topbar,
+  cards, KPIs, badges, tabelas, modais, formulários, steppers, empty
+  states); preservação do padrão técnico atual (SPA estático, JS
+  clássico, `window.*`, scripts ordenados em `index.html`, sem bundler,
+  sem framework, sem refactor oportunista); decomposição obrigatória das
+  próximas fases; regra de SELECT sanitizado para cliente; writes apenas
+  em módulos explícitos/auditáveis. **Nenhum arquivo de implementação
+  foi alterado nesta fase.** **Não** houve schema, SQL, frontend,
+  Supabase, Edge Function ou testes funcionais.
+
 ## Próximo passo recomendado
-1. **Cliente UI read-only e criação entregues (fases UI-A e
-   CREATE-A).** Cliente autenticado é roteado para área própria,
-   lista e visualiza apenas seus pedidos via RLS, e pode criar
-   novos pedidos via `#/cliente/pedidos/novo` com status
-   `recebido` (sem editar/cancelar nesta fase).
-2. **Homologação manual do fluxo cliente em staging registrada**
-   (fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-HOMOLOG-RECORD-A`, esta).
-   HMNlead validou o fluxo funcional completo: login, menu,
-   criação de pedido, listagem, detalhe. Status `recebido`
-   aplicado na criação. Admin consegue visualizar o pedido do
-   cliente. Segurança/RLS considerada funcional no fluxo
-   testado. Há ressalva visual conhecida no layout-base —
-   incongruências de UI não serão corrigidas pontualmente porque
-   o HMNlead pretende redesenhar a UI em fase futura
-   (`RAVATEX-TAPETES-UI-REDESIGN-A`). Próxima fase funcional
-   fica pendente de decisão do HMNlead.
-3. **Sketch de acompanhamento visual entregue** (fase
-   `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-UI-A`, esta). O
-   detalhe cliente agora mostra um card de acompanhamento
-   (stepper de 6 etapas + situação atual) derivado de
-   `pedido.status`, sem schema novo, sem dropdown admin, sem
-   dados internos. Próximas fases candidatas (**somente com
-   autorização explícita** do HMNlead): (a) redesign do
-   sidebar/shell compartilhado (`window.shellLayout`) com o
-   estilo do sketch B2B — avaliar se isso fica isolado a um
-   shell cliente próprio ou se afeta admin/fornecedor também;
-   (b) campo `status_cliente_visual` + dropdown admin (fase 2 do
-   handoff original) para desacoplar a etapa visível do status
-   operacional.
+1. **Governança Portal B2B/Pedidos concluída antes do schema.**
+   `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md` passa a
+   limitar explicitamente a evolução desta frente e deve ser lido
+   antes de qualquer nova implementação.
+2. **Retomar `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-SCHEMA-A`.**
+   O próximo passo funcional recomendado volta a ser o schema de
+   tracking, agora já obedecendo à separação entre status
+   operacional e `status_cliente_visual`.
+3. **Depois do schema, seguir em fases pequenas e separadas.**
+   Sequência recomendada: aplicação do SQL em staging; dropdown
+   admin; cliente lendo status visual real; histórico visível;
+   dashboard cliente; redesign do shell/componentes comuns; e
+   fornecedor/automação apenas depois.
 
 ## Estrutura final de responsabilidades
 
@@ -1395,6 +1396,8 @@ A hierarquia de fontes canônicas está em
 
 - **Fontes canônicas (prevalecem):** `PROJECT_STATE.md`,
   `AGENT_HANDOFF.md`, `docs/architecture/CODE_HEALTH_RULES.md`,
+  `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md`,
+  `docs/architecture/AUTH_DELETE_USER_DESIGN.md`,
   `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`,
   `Guide-and-governance-rules.stxt`.
 - **Docs legadas (NÃO prevalecem):** `docs/superpowers/`,

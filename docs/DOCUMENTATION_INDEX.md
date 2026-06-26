@@ -18,6 +18,7 @@ arquiteturais e de governança:
 | `PROJECT_STATE.md` (raiz) | Snapshot canônico curto. HEAD, staging, remotes, arquitetura atual, refactor congelado, pendências. |
 | `AGENT_HANDOFF.md` (raiz) | Resumo para próxima sessão de IA. Estado aceito, comandos de verificação, regras, proibições. |
 | `docs/architecture/CODE_HEALTH_RULES.md` | 18 regras vinculantes de saúde arquitetural. Toda nova fase deve respeitar. |
+| `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md` | Regras arquiteturais específicas da frente Portal B2B/Pedidos. Separa cliente/admin/fornecedor, status operacional vs. status visual, componentes comuns, decomposição de fases e limites de segurança para as próximas etapas. Fase `RAVATEX-TAPETES-PORTAL-B2B-GOVERNANCE-A`. |
 | `docs/architecture/AUTH_DELETE_USER_DESIGN.md` | Design de semântica de exclusão/desativação de usuários. Recomendação: desativar (soft delete + ban Auth) em vez de deletar fisicamente. Fase `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`. |
 | `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | Histórico cronológico de fases do refactor. Lista de módulos extraídos, ressalvas, decisão de congelamento. |
 | `Guide-and-governance-rules.stxt` (raiz) | Governança geral do projeto para futuras sessões de ChatGPT. |
@@ -34,8 +35,8 @@ fontes canônicas prevalecem.
 | `docs/operations/AUTH_DISABLE_USER_PROD_RELEASE_PLAN.md` | Plano operacional de release para levar a cadeia Auth do staging para produção. Ordem obrigatória, critérios GO/NO-GO, rollback, validações read-only. |
 | `docs/operations/PARALLEL_ENVIRONMENT_RECONCILIATION.md` | Taxonomia oficial dos ambientes: `bhgifjrfagkzubpyqpew` = Legacy (não tocar), `ucrjtfswnfdlxwtmxnoo` = paralelo de trabalho. Estado de cada ambiente, decisão arquitetural, próximas etapas. |
 
-> **Em caso de divergência entre qualquer doc e estas 5 fontes,
-> as 5 fontes prevalecem.** Isso inclui este índice.
+> **Em caso de divergência entre qualquer doc e estas 7 fontes,
+> as 7 fontes prevalecem.** Isso inclui este índice.
 
 ## 2. Regra de prevalência
 
@@ -44,12 +45,14 @@ a seguinte ordem de autoridade:
 
 1. `Guide-and-governance-rules.stxt`
 2. `docs/architecture/CODE_HEALTH_RULES.md`
-3. `PROJECT_STATE.md`
-4. `AGENT_HANDOFF.md`
-5. `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`
-6. `docs/DOCUMENTATION_INDEX.md` (este arquivo)
-7. `docs/STAGING_BASELINE.md` (atual; regra de ambiente)
-8. Docs legadas (`docs/superpowers`, `docs/qa`, docs antigos na raiz
+3. `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md`
+4. `PROJECT_STATE.md`
+5. `AGENT_HANDOFF.md`
+6. `docs/architecture/AUTH_DELETE_USER_DESIGN.md`
+7. `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`
+8. `docs/DOCUMENTATION_INDEX.md` (este arquivo)
+9. `docs/STAGING_BASELINE.md` (atual; regra de ambiente)
+10. Docs legadas (`docs/superpowers`, `docs/qa`, docs antigos na raiz
    de `docs/`) — **NÃO** devem guiar execução.
 
 ## 3. Runbooks operacionais atuais
@@ -224,6 +227,6 @@ A regra vigente está em `AGENT_HANDOFF.md` (regras 1, 2, 3, 15) e em
 - Atualizar este índice quando houver novo documento canônico
   (entrar em §1), novo runbook (entrar em §3) ou nova categoria de
   docs legadas (entrar em §4).
-- Manter as 5 fontes canônicas como âncora; este índice é referência
+- Manter as 7 fontes canônicas como âncora; este índice é referência
   cruzada, não fonte primária.
 - Fase: docs-only. Sem alteração funcional.
