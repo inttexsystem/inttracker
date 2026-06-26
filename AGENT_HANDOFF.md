@@ -10,13 +10,12 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-ADMIN-A`
-  (controle admin ja criado para publicar a situacao visual do
-  cliente usando o schema aplicado em staging; cliente ainda sem
-  leitura real dos campos visuais).
-- **HEAD aceito de entrada desta fase:** `4da4d05`
-  (fase TRACKING-STEPS-A tecnicamente aceita; base pronta para o
-  controle admin desta fase).
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-EVENTS-RLS-A`
+  (policy cliente SELECT de `pedido_cliente_eventos` versionada no repo,
+  ainda nao aplicada em staging; frontend cliente segue sem timeline).
+- **HEAD aceito de entrada desta fase:** `2e37658`
+  (fase TRACKING-ADMIN-A tecnicamente aceita; base pronta para a
+  policy cliente SELECT desta fase).
 - **Working tree:** limpo após commit.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -52,6 +51,17 @@
   `pedido_cliente_eventos = 0`. Validado tambem por
   `tests/cliente-tracking-schema.smoke.js`. **Sem frontend.**
   **Sem dropdown admin.** **Sem policy cliente na nova tabela.**
+- **Policy Cliente Eventos** `db/16_pedido_cliente_eventos_cliente_select.sql`
+  **versionada apenas no repo** em `2026-06-26`, sem aplicacao no
+  Supabase nesta fase. Cria de forma idempotente a policy
+  `pedido_cliente_eventos_cliente_select` em
+  `public.pedido_cliente_eventos`, limitada a `FOR SELECT`, exigindo
+  `visivel_cliente = true` e ownership via `public.pedidos`
+  (`p.id = pedido_cliente_eventos.pedido_id` e
+  `p.cliente_id = public.meu_cliente_id()`). Preserva
+  `pedido_cliente_eventos_admin_all`, nao cria INSERT/UPDATE/DELETE de
+  cliente, nao altera frontend e nao libera timeline ainda. Validado
+  por `tests/cliente-events-rls-schema.smoke.js`.
 - **Provisionamento cliente** (fase PROV-A, esta): `admin-create-user`
   aceita `cliente` (valida `cliente_id` em `public.clientes`, rejeita
   `fornecedor_id` simultâneo). UI `#/cadastros/usuarios` com tipo
@@ -321,11 +331,14 @@ visual sem reaproveitar `pedido_eventos` e sem depender de
 puros para admin/cliente/dashboard futuros, sem integrar ainda as
 telas ao `status_cliente_visual` real.
 
-**Proxima fase recomendada:** cliente ler `pedido_cliente_eventos`
-em uma timeline read-only propria.
+**Proxima fase recomendada:** aplicar
+`db/16_pedido_cliente_eventos_cliente_select.sql` no Supabase staging.
 
 **Atualizacao:** o detalhe cliente ja passou a ler
 `status_cliente_visual` real nesta fase.
+
+**Fase seguinte depois do apply:** cliente ler
+`pedido_cliente_eventos` em uma timeline read-only propria.
 
 **Sequencia recomendada depois desta fase:** historico visivel;
 dashboard cliente; redesign de shell/componentes comuns; e so depois

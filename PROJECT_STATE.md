@@ -14,6 +14,13 @@
 > Sem alteracao em producao/original.**
 
 ## Produto
+> Atualizacao da fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-EVENTS-RLS-A`:
+> `db/16_pedido_cliente_eventos_cliente_select.sql` e
+> `tests/cliente-events-rls-schema.smoke.js` foram versionados no repo
+> para liberar futuramente apenas SELECT cliente de eventos visiveis de
+> pedidos proprios em `public.pedido_cliente_eventos`, **mas o SQL ainda
+> nao foi aplicado em staging**. **Nao houve alteracao de frontend nesta
+> fase.**
 SPA web para controlar a produção de tapetes, do pedido de fio até o
 recebimento do látex. Perfis: **admin** (operação), **fornecedor**
 (fio / tecelagem / látex) e **cliente** (pedidos próprios — schema
@@ -40,10 +47,10 @@ aplicado, provisionamento pendente).
 
 ## Estado atual do refactor
 - **Branch operacional:** `work/app-next`.
-- **HEAD atual aceito:** `b2675a7` — "Add Portal B2B architecture
-  rules" (fase `RAVATEX-TAPETES-PORTAL-B2B-GOVERNANCE-A`), usado
-  como base de entrada desta migration versionada.
-- **staging/main:** `b2675a7` (alinhado ao HEAD de entrada desta fase).
+- **HEAD atual aceito:** `2e37658` — fase
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-ADMIN-A`, usada como base
+  de entrada desta migration versionada.
+- **staging/main:** `2e37658` (alinhado ao HEAD de entrada desta fase).
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — **intocado.**
 - **PR #2:** **intocado.**
 - **Working tree:** **limpo.**
@@ -1087,16 +1094,28 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
   segue separado do status visual.**
 
 ## Próximo passo recomendado
-1. **Fazer o cliente passar a ler `pedido_cliente_eventos` em uma
-   timeline read-only propria.** Esta e agora a proxima fase
-   recomendada.
-2. **Manter `pedido_cliente_eventos` separado do fluxo operacional
+1. **Aplicar `db/16_pedido_cliente_eventos_cliente_select.sql` no
+   Supabase staging** `ucrjtfswnfdlxwtmxnoo`. Esta e agora a proxima
+   fase recomendada.
+2. **Depois fazer o cliente passar a ler `pedido_cliente_eventos` em
+   uma timeline read-only propria.**
+3. **Manter `pedido_cliente_eventos` separado do fluxo operacional
    interno.** O historico visual deve continuar desacoplado de
    `pedido_eventos`.
-3. **Depois seguir em fases pequenas para consumo no portal do
+4. **Depois seguir em fases pequenas para consumo no portal do
    cliente.** Sequencia recomendada: historico visivel;
    dashboard cliente; redesign do shell/componentes comuns; e
    fornecedor/automacao apenas depois.
+
+> Atualizacao desta fase: a policy cliente SELECT para
+> `pedido_cliente_eventos` foi apenas versionada. A timeline do cliente
+> continua indisponivel e nenhum frontend foi alterado.
+>
+> Proxima fase recomendada:
+> 1. Aplicar `db/16_pedido_cliente_eventos_cliente_select.sql` no
+>    Supabase staging `ucrjtfswnfdlxwtmxnoo`.
+> 2. Depois ligar a timeline read-only do cliente usando
+>    `pedido_cliente_eventos`.
 
 ## Estrutura final de responsabilidades
 
