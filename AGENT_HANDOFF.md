@@ -10,13 +10,13 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-STEPS-A`
-  (camada compartilhada de taxonomia visual criada apos o apply do
-  schema em staging, ainda sem publish admin e sem leitura real no
-  cliente).
-- **HEAD aceito de entrada desta fase:** `aa228bd`
-  (schema visual ja aplicado em staging e documentado; base pronta
-  para a camada compartilhada desta fase).
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-ADMIN-A`
+  (controle admin ja criado para publicar a situacao visual do
+  cliente usando o schema aplicado em staging; cliente ainda sem
+  leitura real dos campos visuais).
+- **HEAD aceito de entrada desta fase:** `4da4d05`
+  (fase TRACKING-STEPS-A tecnicamente aceita; base pronta para o
+  controle admin desta fase).
 - **Working tree:** limpo após commit.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -131,6 +131,31 @@
   **Importante:** a camada foi criada sem acoplar admin/cliente/
   fornecedor, sem writes, sem Supabase, e sem substituir ainda o
   tracking funcional atual do cliente.
+- **Controle admin de publish do tracking visual** (fase
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-ADMIN-A`, esta):
+  novo modulo `js/screens/pedido-tracking-admin.js`, carregado em
+  `index.html` antes de `js/screens/pedido-detail.js`. Exposicoes:
+  `window.buildPedidoTrackingAdminCard` e
+  `window.RAVATEX_SCREENS.pedidoTrackingAdmin`.
+  `pedido-detail.js` agora integra o card "Situacao visivel ao
+  cliente" no detalhe admin, sem mexer no controle de
+  `pedidos.status` operacional. O card aparece apenas para
+  `CURRENT_USER.tipo === 'admin'`, usa a taxonomia compartilhada
+  (`CLIENTE_TRACKING_STEPS` e `CLIENTE_TRACKING_EXCECOES`), permite
+  selecionar `status_cliente_visual`, selecionar/limpar
+  `status_cliente_excecao`, editar `status_cliente_mensagem`, ver
+  preview read-only e salvar. Writes: `update` em `public.pedidos`
+  para `status_cliente_visual`, `status_cliente_excecao` e
+  `status_cliente_mensagem`; depois `insert` em
+  `public.pedido_cliente_eventos` com `pedido_id`, `status`,
+  `titulo`, `mensagem`, `origem = 'manual'`, `visivel_cliente = true`,
+  `criado_por = CURRENT_USER.id` e `metadata = null`. Regras de erro:
+  falha em `pedidos` aborta o historico; falha no historico apos o
+  update fica explicita ao admin. **O cliente ainda nao le
+  `status_cliente_visual`.** **O cliente ainda nao le
+  `pedido_cliente_eventos`.** **O tracking atual do cliente ainda nao
+  foi substituido.** **Status operacional continua separado.**
+  **Fornecedor nao participa.**
 
 ## Estado operacional atual
 - `index.html` está declarativo, sem script inline final, com
@@ -280,8 +305,12 @@ telas ao `status_cliente_visual` real.
 **Proxima fase recomendada:** criar o controle admin para publicar a
 situacao visual do cliente usando o schema ja aplicado.
 
-**Sequencia recomendada depois desta fase:** dropdown admin; cliente
-lendo `status_cliente_visual` real; historico visivel;
+**Atualizacao:** o controle admin de publish ja foi entregue nesta
+fase. A proxima fase recomendada passa a ser o detalhe cliente ler
+`status_cliente_visual` real.
+
+**Sequencia recomendada depois desta fase:** detalhe cliente lendo
+`status_cliente_visual` real; historico visivel;
 dashboard cliente; redesign de shell/componentes comuns; e so depois
 fornecedor/automacao.
 

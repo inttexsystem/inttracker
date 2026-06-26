@@ -1037,16 +1037,43 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
   O tracking atual continua sem substituicao, ainda baseado na logica
   anterior do componente cliente.
 
+- ðŸŸ¢ **Controle admin para publicar a situacao visual do cliente
+  entregue** (fase
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-ADMIN-A`, esta).
+  Novo modulo `js/screens/pedido-tracking-admin.js`, carregado em
+  `index.html` antes de `js/screens/pedido-detail.js`, exposto como
+  `window.buildPedidoTrackingAdminCard` e
+  `window.RAVATEX_SCREENS.pedidoTrackingAdmin`. O detalhe admin do
+  pedido agora mostra o card "Situacao visivel ao cliente" apenas para
+  `CURRENT_USER.tipo === 'admin'`, sem substituir o controle
+  operacional existente. O card usa a taxonomia compartilhada de
+  `js/pedido-tracking-ui.js`, oferece selects para
+  `status_cliente_visual` e `status_cliente_excecao`, textarea para
+  `status_cliente_mensagem`, preview read-only com
+  `getClienteTrackingStatusLabel`, `getClienteTrackingMensagem` e
+  `getClienteTrackingProgress`, e botao "Salvar situacao visivel".
+  Ao salvar, faz `update` explicito em `public.pedidos` com
+  `status_cliente_visual`, `status_cliente_excecao` e
+  `status_cliente_mensagem`; depois insere historico em
+  `public.pedido_cliente_eventos` com `pedido_id`, `status`,
+  `titulo`, `mensagem`, `origem = 'manual'`, `visivel_cliente = true`,
+  `criado_por = CURRENT_USER.id` e `metadata = null`. Se o update de
+  `pedidos` falhar, nenhum evento e inserido; se o evento falhar, o
+  erro fica explicito e o problema nao e escondido. **O cliente ainda
+  nao le `status_cliente_visual` real.** **O cliente ainda nao le
+  `pedido_cliente_eventos`.** **O tracking funcional atual do cliente
+  ainda nao foi substituido.** **Status operacional segue separado.**
+  **Fornecedor nao participa.**
+
 ## Próximo passo recomendado
-1. **Criar o controle admin para publicar a situacao visual do
-   cliente.** Proxima fase recomendada, usando o schema ja aplicado em
-   staging.
-2. **Manter o cliente ainda sem leitura direta de
-   `pedido_cliente_eventos` ate a fase de UI controlada.** O tracking
-   visual continua separado do fluxo operacional interno.
+1. **Fazer o cliente passar a ler `status_cliente_visual` no detalhe.**
+   Esta e agora a proxima fase recomendada.
+2. **Manter `pedido_cliente_eventos` separado do fluxo operacional
+   interno.** O historico visual deve entrar em fase propria e
+   controlada.
 3. **Depois seguir em fases pequenas para consumo no portal do
-   cliente.** Sequencia recomendada: dropdown/admin publish; cliente
-   lendo `status_cliente_visual` real; historico visivel;
+   cliente.** Sequencia recomendada: detalhe cliente lendo
+   `status_cliente_visual` real; historico visivel;
    dashboard cliente; redesign do shell/componentes comuns; e
    fornecedor/automacao apenas depois.
 

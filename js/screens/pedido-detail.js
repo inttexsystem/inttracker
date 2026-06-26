@@ -39,6 +39,8 @@
 //     / window.pedidoStatusLabel / window.corPreviewElement
 //     / window.corPreviewHex / window.fmtDataCurta
 //     (js/pedido-ui.js)
+//   - window.buildPedidoTrackingAdminCard / window.RavatexPedidoTracking
+//     (js/screens/pedido-tracking-admin.js, js/pedido-tracking-ui.js)
 //   - window.navigate                  (js/router.js)
 //   - window.supa                      (js/supabase-client.js)
 //
@@ -204,7 +206,7 @@
       // Joins via select aninhado do Supabase (admin-only via RLS).
       const pedidoRes = await window.supa
         .from('pedidos')
-        .select('id, numero, status, cliente_id, prazo_entrega, observacao, criado_em, atualizado_em, cliente:cliente_id(id, nome)')
+        .select('id, numero, status, cliente_id, prazo_entrega, observacao, criado_em, atualizado_em, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, cliente:cliente_id(id, nome)')
         .eq('id', pedidoId)
         .maybeSingle();
 
@@ -408,6 +410,20 @@
       );
     }
 
+    function buildTrackingAdmin() {
+      if (typeof window.buildPedidoTrackingAdminCard !== 'function') {
+        return window.el('div', {});
+      }
+      return window.buildPedidoTrackingAdminCard({
+        pedido: state.pedido,
+        onReload: async function () {
+          loadingError = null;
+          await carregar();
+          render();
+        },
+      });
+    }
+
     function buildItens() {
       const itens = state.itens;
       if (itens.length === 0) {
@@ -568,7 +584,14 @@
             'Erro ao carregar dados do pedido (' + loadingError + '). Tente recarregar a página.'));
         return;
       }
-      container.replaceChildren(header, buildResumo(), buildDadosGerais(), buildItens(), buildActions());
+      container.replaceChildren(
+        header,
+        buildResumo(),
+        buildTrackingAdmin(),
+        buildDadosGerais(),
+        buildItens(),
+        buildActions()
+      );
     }
 
     await carregar();

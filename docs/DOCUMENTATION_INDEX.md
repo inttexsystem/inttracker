@@ -106,6 +106,14 @@ isso é registrado explicitamente no header do arquivo e em
 |---|---|---|
 | `tests/cliente-tracking-schema.smoke.js` | Validação estática de `db/15_status_cliente_visual.sql`: colunas novas, taxonomia visual, exceções, `pedido_cliente_eventos`, RLS admin-only, trigger guard de INSERT, trigger de touch em UPDATE e ausência de comandos destrutivos/secrets. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-SCHEMA-A` |
 | `tests/cliente-tracking-steps.smoke.js` | Validação estática e em sandbox de `js/pedido-tracking-ui.js`: namespace global, 8 etapas principais, 4 exceções, helpers puros, fallback para `recebido`, ausência de termos internos proibidos e ausência de query/write. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-STEPS-A` |
+| `tests/admin-pedido-tracking-control.smoke.js` | Validação estática do controle admin de publish do tracking visual: novo módulo `js/screens/pedido-tracking-admin.js`, integração com `pedido-detail.js`, uso da taxonomia compartilhada, writes em `pedidos.status_cliente_*` e `pedido_cliente_eventos`, separação do status operacional e ausência de mudanças funcionais nas telas cliente/fornecedor. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-ADMIN-A` |
+
+### Módulos frontend de tracking visual
+
+| Arquivo | Papel | Fase |
+|---|---|---|
+| `js/pedido-tracking-ui.js` | Camada compartilhada de taxonomia visual e helpers puros para status, mensagem e progresso do tracking cliente. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-STEPS-A` |
+| `js/screens/pedido-tracking-admin.js` | Card admin para publicar a situação visível ao cliente, com preview e writes auditáveis em `pedidos.status_cliente_*` e `pedido_cliente_eventos`. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-ADMIN-A` |
 
 > O design que justifica a migration de schema está em
 > `docs/architecture/AUTH_DELETE_USER_DESIGN.md` (fase
