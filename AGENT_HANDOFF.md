@@ -10,12 +10,12 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PORTAL-B2B-GOVERNANCE-A` (docs-only de
-  governança arquitetural antes da retomada do schema de
-  tracking do cliente).
-- **HEAD aceito de entrada desta fase docs-only:** `d4412d0`
-  (tracking visual entregue; schema seguinte pausado para
-  governança).
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-SCHEMA-A`
+  (schema versionado do tracking visual do cliente, ainda não
+  aplicado no Supabase).
+- **HEAD aceito de entrada desta fase schema-only:** `b2675a7`
+  (governança Portal B2B já registrada; schema visual criado
+  nesta fase sobre essa base).
 - **Working tree:** limpo após commit.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -33,6 +33,18 @@
   (fase B2). Role `cliente`, `usuarios.cliente_id`, `meu_cliente_id()`
   e 5 policies cliente SELECT/INSERT operacionais. Sem UPDATE/DELETE
   cliente. Sem token público. `pedido_eventos` admin-only.
+- **Schema Tracking Visual** `db/15_status_cliente_visual.sql`
+  **versionado no repo, mas AINDA NÃO aplicado**. Adiciona em
+  `public.pedidos`: `status_cliente_visual`,
+  `status_cliente_excecao`, `status_cliente_mensagem`,
+  `status_cliente_atualizado_em`, `referencia_cliente`,
+  `prazo_desejado`, `tipo_recebimento`; cria a tabela
+  `public.pedido_cliente_eventos`; cria RLS admin-only nessa
+  tabela; cria trigger guard de INSERT para zerar campos visuais
+  quando o autor não for admin; cria trigger de touch para
+  `status_cliente_atualizado_em` em UPDATE visual. Validado por
+  `tests/cliente-tracking-schema.smoke.js`. **Sem apply SQL nesta
+  fase.** **Sem frontend.** **Sem dropdown admin.**
 - **Provisionamento cliente** (fase PROV-A, esta): `admin-create-user`
   aceita `cliente` (valida `cliente_id` em `public.clientes`, rejeita
   `fornecedor_id` simultâneo). UI `#/cadastros/usuarios` com tipo
@@ -87,8 +99,9 @@
   marcada) por não terem transição alcançável nesta fase nem
   correspondência 1:1 com um único nó do stepper. `cancelado`
   substitui o stepper por um aviso calmo. **Sem** campo
-  `status_cliente_visual`, **sem** tabela de eventos, **sem**
-  dropdown admin, **sem** schema/SQL/Edge Function, **sem**
+  `status_cliente_visual` real ainda no frontend, **sem** tabela de
+  eventos visivel ainda, **sem** dropdown admin, **sem**
+  schema/SQL/Edge Function na fase TRACKING-UI-A, **sem**
   dados internos sensíveis. Script carregado em `index.html`
   entre `cliente-pedidos-list.js` e `cliente-pedido-detail.js`.
 
@@ -155,10 +168,10 @@ Abortar e revisar o escopo se:
    `JWT secret`, connection string com senha, anon key completa.
 6. **Testes focados** por fase (`node --test <arquivo>.smoke.js`).
    Não rodar suíte completa por padrão.
-7. **Fase docs-only**: só `PROJECT_STATE.md`, `AGENT_HANDOFF.md`,
-   `docs/DOCUMENTATION_INDEX.md` e
-   `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md` podem ser
-   criados/alterados. Qualquer diff fora desses 4 arquivos reprova.
+7. **Fase schema-only atual**: só `db/15_status_cliente_visual.sql`,
+   `tests/cliente-tracking-schema.smoke.js`, `PROJECT_STATE.md`,
+   `AGENT_HANDOFF.md` e `docs/DOCUMENTATION_INDEX.md` podem ser
+   criados/alterados. Qualquer diff fora desses 5 arquivos reprova.
 8. **Não mexer** em `aplicarRecalculoOP` ou `persistirOP` sem
    nova fase explícita.
 9. **Não fazer docs + código na mesma fase.**
@@ -227,15 +240,18 @@ Antes de retomar o schema de tracking do cliente, o projeto agora tem
 um documento curto e vinculante de limites arquiteturais em
 `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md`.
 
-**Próxima fase recomendada:** `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-SCHEMA-A`.
-Ela deve nascer já desacoplada de `pedidos.status` para comunicação
-externa, prevendo um campo visual próprio como
-`status_cliente_visual`.
+**Schema visual do cliente já versionado (fase atual).**
+`db/15_status_cliente_visual.sql` registra a base futura do tracking
+visual sem reaproveitar `pedido_eventos` e sem depender de
+`pedidos.status` como fonte definitiva da comunicação externa.
 
-**Sequência recomendada depois do schema:** aplicação do SQL em
-staging, dropdown admin, cliente lendo status visual real, histórico
-visível, dashboard cliente, redesign de shell/componentes comuns e só
-depois fornecedor/automação.
+**Próxima fase recomendada:** aplicar `db/15_status_cliente_visual.sql`
+em staging, em fase separada e controlada.
+
+**Sequência recomendada depois do apply:** validação da migration em
+staging, dropdown admin, cliente lendo `status_cliente_visual` real,
+histórico visível, dashboard cliente, redesign de shell/componentes
+comuns e só depois fornecedor/automação.
 
 **Não iniciar execução sem autorização explícita.**
 **NÃO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**
