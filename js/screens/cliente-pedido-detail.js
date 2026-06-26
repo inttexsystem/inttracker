@@ -140,7 +140,7 @@
     async function carregar() {
       var pedidoRes = await window.supa
         .from('pedidos')
-        .select('id, numero, status, prazo_entrega, observacao, criado_em, atualizado_em')
+        .select('id, numero, status, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, prazo_entrega, observacao, criado_em, atualizado_em')
         .eq('id', pedidoId)
         .maybeSingle();
 

@@ -131,6 +131,27 @@
   **Importante:** a camada foi criada sem acoplar admin/cliente/
   fornecedor, sem writes, sem Supabase, e sem substituir ainda o
   tracking funcional atual do cliente.
+- **Tracking visual do cliente agora lendo o status real**
+  (fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-CLIENTE-A`, esta):
+  `js/screens/cliente-pedido-detail.js` passou a selecionar
+  `status_cliente_visual`, `status_cliente_excecao`,
+  `status_cliente_mensagem` e `status_cliente_atualizado_em` em
+  `pedidos`, mantendo SELECT explicito e sanitizado. O modulo
+  `js/screens/cliente-pedido-tracking.js`
+  (`buildClientePedidoTrackingCard(pedido)`) continua sendo puro
+  (sem Supabase, sem writes), mas deixou de usar o stepper local
+  antigo de 6 etapas. Agora usa a taxonomia compartilhada de
+  `js/pedido-tracking-ui.js`, com 8 etapas principais, 4 excecoes,
+  prioridade para `status_cliente_excecao`, depois
+  `status_cliente_visual`, depois fallback seguro para `recebido`
+  quando ainda nao houver status visual publicado. `cancelado`
+  virou excecao terminal com aviso calmo, sem renderizar o progresso
+  comum. Mensagem personalizada publicada pelo admin sobrescreve a
+  frase padrao. `status_cliente_atualizado_em` aparece no card quando
+  existir. **O cliente ainda nao le `pedido_cliente_eventos`.**
+  **Nao ha timeline/historico nesta fase.** **Dashboard cliente ainda
+  nao existe.** **Status operacional continua separado do status
+  visual.**
 - **Controle admin de publish do tracking visual** (fase
   `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-ADMIN-A`, esta):
   novo modulo `js/screens/pedido-tracking-admin.js`, carregado em
@@ -152,9 +173,7 @@
   `criado_por = CURRENT_USER.id` e `metadata = null`. Regras de erro:
   falha em `pedidos` aborta o historico; falha no historico apos o
   update fica explicita ao admin. **O cliente ainda nao le
-  `status_cliente_visual`.** **O cliente ainda nao le
-  `pedido_cliente_eventos`.** **O tracking atual do cliente ainda nao
-  foi substituido.** **Status operacional continua separado.**
+  `pedido_cliente_eventos`.** **Status operacional continua separado.**
   **Fornecedor nao participa.**
 
 ## Estado operacional atual
@@ -302,15 +321,13 @@ visual sem reaproveitar `pedido_eventos` e sem depender de
 puros para admin/cliente/dashboard futuros, sem integrar ainda as
 telas ao `status_cliente_visual` real.
 
-**Proxima fase recomendada:** criar o controle admin para publicar a
-situacao visual do cliente usando o schema ja aplicado.
+**Proxima fase recomendada:** cliente ler `pedido_cliente_eventos`
+em uma timeline read-only propria.
 
-**Atualizacao:** o controle admin de publish ja foi entregue nesta
-fase. A proxima fase recomendada passa a ser o detalhe cliente ler
-`status_cliente_visual` real.
+**Atualizacao:** o detalhe cliente ja passou a ler
+`status_cliente_visual` real nesta fase.
 
-**Sequencia recomendada depois desta fase:** detalhe cliente lendo
-`status_cliente_visual` real; historico visivel;
+**Sequencia recomendada depois desta fase:** historico visivel;
 dashboard cliente; redesign de shell/componentes comuns; e so depois
 fornecedor/automacao.
 

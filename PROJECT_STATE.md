@@ -1065,15 +1065,36 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
   ainda nao foi substituido.** **Status operacional segue separado.**
   **Fornecedor nao participa.**
 
+- ðŸŸ¢ **Detalhe cliente agora le o status visual real**
+  (fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-CLIENTE-A`, esta).
+  `js/screens/cliente-pedido-detail.js` passou a selecionar
+  `status_cliente_visual`, `status_cliente_excecao`,
+  `status_cliente_mensagem` e `status_cliente_atualizado_em` de forma
+  explicita, sem `select('*')` e sem expor `token_acesso`, OP, lote,
+  fornecedor, NF, romaneio, custo, margem ou metadados internos.
+  `js/screens/cliente-pedido-tracking.js` deixou de usar o stepper
+  local antigo de 6 etapas e passou a consumir a taxonomia
+  compartilhada de `js/pedido-tracking-ui.js`, com as 8 etapas
+  principais e as 4 excecoes oficiais. A prioridade agora e:
+  `status_cliente_excecao`, depois `status_cliente_visual`, depois
+  fallback seguro para `recebido` quando o status visual ainda nao foi
+  publicado. `cancelado` virou excecao terminal com aviso calmo, sem
+  renderizar o progresso comum. Mensagem publicada pelo admin tem
+  prioridade sobre a frase padrao e `status_cliente_atualizado_em`
+  passa a aparecer no card do cliente quando existir. **O cliente ainda
+  nao le `pedido_cliente_eventos`.** **Nao ha timeline/historico nesta
+  fase.** **Dashboard cliente ainda nao existe.** **Status operacional
+  segue separado do status visual.**
+
 ## Próximo passo recomendado
-1. **Fazer o cliente passar a ler `status_cliente_visual` no detalhe.**
-   Esta e agora a proxima fase recomendada.
+1. **Fazer o cliente passar a ler `pedido_cliente_eventos` em uma
+   timeline read-only propria.** Esta e agora a proxima fase
+   recomendada.
 2. **Manter `pedido_cliente_eventos` separado do fluxo operacional
-   interno.** O historico visual deve entrar em fase propria e
-   controlada.
+   interno.** O historico visual deve continuar desacoplado de
+   `pedido_eventos`.
 3. **Depois seguir em fases pequenas para consumo no portal do
-   cliente.** Sequencia recomendada: detalhe cliente lendo
-   `status_cliente_visual` real; historico visivel;
+   cliente.** Sequencia recomendada: historico visivel;
    dashboard cliente; redesign do shell/componentes comuns; e
    fornecedor/automacao apenas depois.
 

@@ -129,9 +129,10 @@ test('pedido-tracking-admin nao mexe em fornecedor nem em telas cliente', () => 
   assert.doesNotMatch(clientDetailSrc, /pedido_cliente_eventos/);
   assert.doesNotMatch(clientTrackingSrc, /pedido_cliente_eventos/);
   assert.doesNotMatch(clientFormSrc, /pedido_cliente_eventos/);
-  assert.doesNotMatch(clientDetailSrc, /\.from\(\s*['"]pedidos['"]\s*\)[\s\S]*status_cliente_visual/);
-  assert.doesNotMatch(clientTrackingSrc, /\.from\(\s*['"]pedidos['"]\s*\)[\s\S]*status_cliente_visual/);
-  assert.doesNotMatch(clientFormSrc, /\.from\(\s*['"]pedidos['"]\s*\)[\s\S]*status_cliente_visual/);
+  assert.doesNotMatch(clientDetailSrc, /\.update\s*\(/);
+  assert.doesNotMatch(clientTrackingSrc, /\.update\s*\(/);
+  assert.doesNotMatch(clientDetailSrc, /\.insert\s*\(/);
+  assert.doesNotMatch(clientTrackingSrc, /\.insert\s*\(/);
 });
 
 test('pedido-tracking-admin nao contem termos internos proibidos no contexto visual', () => {
