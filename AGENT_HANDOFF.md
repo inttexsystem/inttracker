@@ -10,13 +10,14 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-CLIENTE-EVENTS-A`
-  (timeline read-only de `pedido_cliente_eventos` no detalhe cliente,
-  usando a policy cliente SELECT ja aplicada em staging
-  `ucrjtfswnfdlxwtmxnoo`).
-- **HEAD aceito de entrada desta fase:** `f7b90d9`
-  (fase EVENTS-RLS-B tecnicamente aceita, policy aplicada e validada em
-  staging; esta fase ligou o frontend cliente a essa policy).
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-E2E-HOMOLOG-RECORD-A`
+  (registro docs-only da homologação manual E2E aprovada em staging
+  do fluxo admin → cliente de acompanhamento visual).
+- **HEAD aceito de entrada desta fase:** `fc7843c`
+  (fase TRACKING-CLIENTE-EVENTS-A tecnicamente aceita, timeline
+  read-only entregue no frontend; esta fase apenas registra a
+  homologação manual feita sobre esse HEAD, sem alterar código).
+- **HEAD homologado em staging:** `fc7843c`.
 - **Working tree:** limpo após commit.
 - **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
 - **PR #2:** intocado
@@ -88,6 +89,25 @@
   `pedido-tracking-admin.js`, fase anterior). Fornecedor nao participa.
   Testes: `tests/cliente-pedido-events.smoke.js` novo (19/19);
   `tests/cliente-pedido-detail.smoke.js` atualizado (46/46).
+- **Homologação manual E2E aprovada** (fase
+  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-E2E-HOMOLOG-RECORD-A`,
+  esta, docs-only). HMNlead validou manualmente em staging
+  `ucrjtfswnfdlxwtmxnoo`, no HEAD `fc7843c`, sem tocar
+  `bhgifjrfagkzubpyqpew`: admin publicou `status_cliente_visual =
+  acabamento` com mensagem personalizada via
+  `pedido-tracking-admin.js`; `pedidos.status_cliente_*` foram
+  gravados; `pedido_cliente_eventos` recebeu o evento correspondente
+  (`origem = manual`, `visivel_cliente = true`); cliente visualizou o
+  stepper na etapa "Acabamento" com mensagem e data de atualização; a
+  seção "Atualizações do pedido" exibiu o evento. Excecao visual
+  (`status_cliente_excecao = aguardando_insumo`) tambem foi testada e
+  exibida corretamente, sem quebrar o stepper, com novo evento na
+  timeline. `metadata`, `criado_por` e `origem` nao apareceram ao
+  cliente; nenhum dado de OP/lote/fornecedor/NF/romaneio/custo/margem
+  foi exposto. **Cancelado nao foi testado** (pedido usado nao era
+  seguro para esse teste). **Decisão: fluxo aprovado** para avançar ao
+  Dashboard Cliente read-only ou refinamento visual do portal cliente.
+  **Sem** alteração de código/schema/SQL/Supabase/frontend nesta fase.
 - **Provisionamento cliente** (fase PROV-A, esta): `admin-create-user`
   aceita `cliente` (valida `cliente_id` em `public.clientes`, rejeita
   `fornecedor_id` simultâneo). UI `#/cadastros/usuarios` com tipo
@@ -364,20 +384,23 @@ aplicado e validado no Supabase staging `ucrjtfswnfdlxwtmxnoo`
 **Atualizacao:** o detalhe cliente ja passou a ler
 `status_cliente_visual` real nesta fase.
 
-**Entregue (fase TRACKING-CLIENTE-EVENTS-A, esta):** o cliente ja le
+**Entregue (fase TRACKING-CLIENTE-EVENTS-A):** o cliente ja le
 `pedido_cliente_eventos` em uma timeline read-only no detalhe do
 proprio pedido. Admin continua o unico publicador de eventos.
 Fornecedor, dashboard cliente e automacao continuam fora do escopo.
 
-**Proxima fase recomendada:** validar manualmente o fluxo completo
-admin → cliente em staging (admin publica via
-`pedido-tracking-admin.js`, cliente confere o evento na nova
-timeline), ou avancar para dashboard cliente, conforme decisao do
-dono do projeto.
+**Homologado (fase E2E-HOMOLOG-RECORD-A, esta):** o fluxo completo
+admin → cliente (status visual + excecao + timeline) foi validado
+manualmente em staging `ucrjtfswnfdlxwtmxnoo`, no HEAD `fc7843c`, e
+**aprovado** pelo dono do projeto. Cancelado nao foi testado (fica
+para fase futura com pedido de teste dedicado, se necessario).
 
-**Sequencia recomendada depois desta fase:** historico visivel;
-dashboard cliente; redesign de shell/componentes comuns; e so depois
-fornecedor/automacao.
+**Proxima fase recomendada:** Dashboard Cliente read-only ou
+refinamento visual do portal cliente, conforme decisao do dono do
+projeto.
+
+**Sequencia recomendada depois desta fase:** dashboard cliente;
+redesign de shell/componentes comuns; e so depois fornecedor/automacao.
 
 **Não iniciar execução sem autorização explícita.**
 **NÃO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**

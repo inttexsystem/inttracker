@@ -1,28 +1,24 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > Snapshot de estado canonico curto. Atualizado em **2026-06-27** (fase
-> `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-CLIENTE-EVENTS-A` — timeline
-> read-only de eventos no detalhe cliente).
-> **O detalhe cliente do pedido (`#/cliente/pedidos/<uuid>`) agora exibe
-> uma secao "Atualizacoes do pedido"** com os eventos visiveis do
-> proprio pedido, lidos de `public.pedido_cliente_eventos` usando a
-> policy `pedido_cliente_eventos_cliente_select` ja aplicada em
-> staging. SELECT explicito e sanitizado
-> (`id, pedido_id, status, titulo, mensagem, criado_em`), sem
-> `metadata`, `criado_por` ou `origem`. **Sem schema, SQL, RLS, Edge
-> Function, admin, fornecedor, dashboard ou automacao nesta fase. Sem
-> writes.**
+> `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-E2E-HOMOLOG-RECORD-A` —
+> registro da homologacao manual E2E aprovada em staging).
+> **O fluxo completo admin → cliente de acompanhamento visual foi
+> homologado manualmente em staging (`ucrjtfswnfdlxwtmxnoo`) e
+> aprovado pelo dono do projeto, no HEAD `fc7843c`.** Admin publicou
+> situacao visual e excecao; cliente visualizou o stepper atualizado e
+> a timeline read-only em "Atualizacoes do pedido"; nenhum dado interno
+> foi exposto ao cliente. **Producao/original `bhgifjrfagkzubpyqpew`
+> nao foi tocada. Esta fase e docs-only: sem codigo, sem schema, sem
+> SQL, sem Supabase, sem frontend.**
 
 ## Produto
-> Atualizacao da fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-CLIENTE-EVENTS-A`:
-> `js/screens/cliente-pedido-detail.js` passou a consultar
-> `public.pedido_cliente_eventos` (SELECT explicito, ordenado por
-> `criado_em desc`, filtrado por `pedido_id`) e a renderizar uma
-> timeline read-only no detalhe do pedido do cliente, com empty state
-> quando nao ha eventos e tratamento de erro isolado (nao quebra o
-> resto da tela). O admin continua sendo o unico publicador de eventos
-> (via `js/screens/pedido-tracking-admin.js`, fase anterior). Fornecedor
-> nao participa. Dashboard cliente e automacao ainda nao existem.
+> Atualizacao da fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-E2E-HOMOLOG-RECORD-A`:
+> a homologacao manual E2E do acompanhamento visual cliente (status
+> visual + excecao + timeline de eventos) foi validada e aprovada em
+> staging. Fluxo admin → cliente funciona ponta a ponta sem exigir
+> intervencao tecnica fora das telas ja implementadas. Dashboard
+> cliente e automacao continuam fora do escopo.
 SPA web para controlar a produção de tapetes, do pedido de fio até o
 recebimento do látex. Perfis: **admin** (operação), **fornecedor**
 (fio / tecelagem / látex) e **cliente** (pedidos próprios — schema
@@ -1166,26 +1162,60 @@ staging `ucrjtfswnfdlxwtmxnoo`.)*
   122/122. **Total: 138/138** (focados desta fase, sem contar
   regressao de boot/router/routing/list).
 
+- 🟢 **Homologação manual E2E do fluxo cliente aprovada em staging**
+  (fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-E2E-HOMOLOG-RECORD-A`,
+  esta, docs-only). HMNlead validou manualmente, no HEAD `fc7843c`, em
+  staging `ucrjtfswnfdlxwtmxnoo`, sem tocar
+  `bhgifjrfagkzubpyqpew`:
+  * **Admin → status visual:** admin publicou
+    `status_cliente_visual = acabamento` com mensagem personalizada
+    via `pedido-tracking-admin.js`; `pedidos.status_cliente_visual`,
+    `status_cliente_mensagem` e `status_cliente_atualizado_em` foram
+    gravados; `pedido_cliente_eventos` recebeu o evento correspondente
+    (`status = acabamento`, `origem = manual`,
+    `visivel_cliente = true`, `pedido_id` correto).
+  * **Cliente → stepper:** detalhe cliente mostrou a etapa
+    "Acabamento" no stepper, com a mensagem personalizada e a data de
+    atualização.
+  * **Cliente → timeline:** secao "Atualizacoes do pedido" exibiu o
+    evento publicado pelo admin, lido via
+    `pedido_cliente_eventos_cliente_select`.
+  * **Excecao visual:** admin publicou
+    `status_cliente_excecao = aguardando_insumo` com mensagem
+    propria; cliente visualizou a excecao com tom de atencao, sem
+    quebrar o stepper, e a timeline recebeu o novo evento visivel.
+  * **Sanitizacao confirmada:** `metadata`, `criado_por` e `origem`
+    nao apareceram na tela cliente; nenhuma referencia a OP, lote,
+    fornecedor, NF, romaneio, custo ou margem foi exposta.
+  * **Cancelado:** **nao testado nesta fase** (pedido usado nao era
+    seguro para esse teste; fica para fase futura com pedido de teste
+    dedicado, se necessario).
+  * **Decisao:** fluxo **aprovado** para avancar ao Dashboard Cliente
+    read-only ou refinamento visual do portal cliente.
+  * **Sem** alteracao de codigo/schema/SQL/Supabase/frontend nesta
+    fase — apenas registro documental da homologacao.
+
 ## Próximo passo recomendado
 1. **Aplicado em fase anterior:** `db/16_pedido_cliente_eventos_cliente_select.sql`
    no Supabase staging `ucrjtfswnfdlxwtmxnoo`.
-2. **Entregue nesta fase:** cliente agora le `pedido_cliente_eventos`
+2. **Entregue em fase anterior:** cliente le `pedido_cliente_eventos`
    em uma timeline read-only no detalhe do pedido (frontend).
-3. **Proxima fase recomendada:** validar manualmente o fluxo completo
-   admin → cliente em staging (admin publica situacao visual em
-   `pedido-tracking-admin.js`, cliente confere o evento na nova
-   timeline) ou avancar para dashboard cliente, conforme decisao do
-   dono do projeto.
-4. **Manter `pedido_cliente_eventos` separado do fluxo operacional
+3. **Homologado nesta fase:** fluxo completo admin → cliente
+   (status visual + excecao + timeline) validado manualmente em
+   staging e **aprovado** pelo dono do projeto.
+4. **Proxima fase recomendada:** Dashboard Cliente read-only ou
+   refinamento visual do portal cliente, conforme decisao do dono do
+   projeto.
+5. **Manter `pedido_cliente_eventos` separado do fluxo operacional
    interno.** O historico visual deve continuar desacoplado de
    `pedido_eventos`.
-5. **Depois seguir em fases pequenas para consumo no portal do
+6. **Depois seguir em fases pequenas para consumo no portal do
    cliente.** Sequencia recomendada: dashboard cliente; redesign do
    shell/componentes comuns; e fornecedor/automacao apenas depois.
 
-> Atualizacao desta fase: a timeline read-only de
-> `pedido_cliente_eventos` ja esta disponivel no detalhe cliente. O
-> admin continua sendo o unico publicador de eventos.
+> Atualizacao desta fase: a homologacao manual E2E do acompanhamento
+> visual cliente foi aprovada em staging. Fluxo admin → cliente
+> funciona ponta a ponta sem intervencao tecnica adicional.
 >
 > Proxima fase recomendada: validar o fluxo manual admin → cliente em
 > staging, ou avancar para dashboard cliente, conforme decisao do dono
