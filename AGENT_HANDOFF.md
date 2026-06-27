@@ -10,9 +10,30 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-CLIENTE-DASHBOARD-A` (Dashboard Cliente read-only —
-  frontend cliente, sem schema/SQL/Supabase). HEAD de entrada desta
-  fase: `9fa5eee` (fim da fase de homologação E2E).
+  `RAVATEX-TAPETES-CLIENTE-DASHBOARD-HOMOLOG-RECORD-A` (docs-only —
+  registro da homologação aprovada do Dashboard Cliente read-only).
+  HEAD homologado e aceito: `54fabfa`.
+- **Homologação Dashboard Cliente APROVADA** (fase
+  `RAVATEX-TAPETES-CLIENTE-DASHBOARD-HOMOLOG-RECORD-A`, esta,
+  docs-only). Validação manual/controlada feita em **app local
+  (`http://localhost:8765/`) conectado ao Supabase staging
+  `ucrjtfswnfdlxwtmxnoo`** (runtime confirmou `APP_ENV=staging` e
+  `SUPABASE_URL` → `ucrjtfswnfdlxwtmxnoo`), no HEAD `54fabfa`, **sem
+  tocar produção/original `bhgifjrfagkzubpyqpew`**. Confirmado: login
+  cliente cai em `#/cliente/dashboard`; menu "Início" + "Meus pedidos"
+  funcionais; dashboard sem erro de console; KPIs coerentes (em aberto
+  2, em andamento 2, prontos/concluidos 0, atualizacoes recentes 3);
+  pedidos recentes (#3 excecao "Aguardando insumo", #2 "Acabamento");
+  ultimas atualizacoes exibidas; "Ver pedido" abre o detalhe correto
+  com **stepper + timeline** preservados; navegacao
+  dashboard→detalhe→Meus pedidos→dashboard OK; **sem** dados internos
+  (OP/lote/fornecedor/NF/romaneio/custo/margem/metadata/criado_por/
+  origem/token_acesso) e **sem** acoes de escrita (read-only). Cliente
+  de teste usado: `cliente@teste.com`, `tipo=cliente`, `cliente_id=3`,
+  nome "Teste" (**senha não registrada**). Observacao nao bloqueante:
+  evento cujo `titulo` = status pode repetir o texto no titulo e no
+  badge — dado do evento, nao defeito. **Sem** codigo/schema/SQL/
+  Supabase/frontend/teste nesta fase.
 - **Dashboard Cliente read-only** (fase
   `RAVATEX-TAPETES-CLIENTE-DASHBOARD-A`, esta): novo modulo
   `js/screens/cliente-dashboard.js` (`screenClienteDashboard`) servindo
@@ -140,12 +161,21 @@
   seguro para esse teste). **Decisão: fluxo aprovado** para avançar ao
   Dashboard Cliente read-only ou refinamento visual do portal cliente.
   **Sem** alteração de código/schema/SQL/Supabase/frontend nesta fase.
-- **Provisionamento cliente** (fase PROV-A, esta): `admin-create-user`
+- **Provisionamento cliente** (fase PROV-A): `admin-create-user`
   aceita `cliente` (valida `cliente_id` em `public.clientes`, rejeita
   `fornecedor_id` simultâneo). UI `#/cadastros/usuarios` com tipo
   Cliente + select de cliente. `loadCurrentUser()` carrega
   `cliente_id` e `cliente_nome`. `isCliente()` disponível.
-  **Não** deployado em staging ainda.
+  **Correção 2026-06-27 (HOMOLOG-RECORD-A):** já **existe um cliente
+  de teste funcional em staging** (`cliente@teste.com`, `cliente_id=3`,
+  nome "Teste"), com login validado e dashboard homologado — portanto
+  a nota anterior de "provisionamento cliente pendente / não há cliente
+  em staging" **não vale mais para fins de homologação**. Ressalva
+  fiel: o **deploy da versão de `admin-create-user` que aceita
+  `cliente` em staging ainda NÃO foi confirmado** nesta frente; o
+  usuário de teste pode ter sido criado manualmente. Ou seja: cliente
+  de teste = disponível; provisionamento self-service via Edge Function
+  em staging = ainda a confirmar.
 - **Frontend Pedidos cliente entregue (UI-A + CREATE-A):**
   shell mínimo (`js/screens/cliente-common.js` com `CLIENTE_MENU`:
   "Meus pedidos" apenas), listagem read-only com botão

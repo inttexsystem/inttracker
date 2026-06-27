@@ -1,5 +1,34 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
+> **Atualizacao 2026-06-27 — fase
+> `RAVATEX-TAPETES-CLIENTE-DASHBOARD-HOMOLOG-RECORD-A` (docs-only,
+> registro de homologacao).** A **homologacao manual/controlada do
+> Dashboard Cliente read-only foi APROVADA**, no HEAD homologado
+> `54fabfa`, em **app local (`http://localhost:8765/`) conectado ao
+> Supabase staging `ucrjtfswnfdlxwtmxnoo`** (runtime confirmou
+> `APP_ENV=staging` e `SUPABASE_URL` apontando para
+> `ucrjtfswnfdlxwtmxnoo`). **Produção/original `bhgifjrfagkzubpyqpew`
+> NAO foi tocada.** Validado: login cliente cai em
+> `#/cliente/dashboard`; menu cliente com "Início" e "Meus pedidos"
+> funcionais; dashboard carrega sem erro de console; KPIs coerentes
+> (em aberto **2**, em andamento **2**, prontos/concluidos **0**,
+> atualizacoes recentes **3**); pedidos recentes exibidos (**#3** com
+> excecao "Aguardando insumo", **#2** em "Acabamento"); ultimas
+> atualizacoes exibidas; links "Ver pedido" abrem o detalhe correto; o
+> detalhe mantem **stepper** e **timeline** ja homologados; navegacao
+> dashboard → detalhe → Meus pedidos → dashboard funciona; **nenhum
+> dado interno** (OP/lote/fornecedor/NF/romaneio/custo/margem/metadata/
+> criado_por/origem/token_acesso) aparece; **nenhuma acao de escrita**
+> e oferecida (dashboard read-only). **Cliente de teste funcional em
+> staging:** `cliente@teste.com`, `tipo=cliente`, `cliente_id=3`,
+> cliente nome "Teste" (senha **não** registrada). Observacao nao
+> bloqueante: quando o `titulo` do evento e igual ao status, titulo e
+> badge podem repetir o texto — e dado do evento, nao defeito de tela.
+> **Esta fase e docs-only: sem codigo, sem schema, sem SQL, sem
+> Supabase, sem frontend, sem testes (apenas verificacao Git).**
+> Proxima fase recomendada: refinamento visual do portal cliente ou
+> proxima frente de funcionalidade cliente (ainda sem automacao).
+
 > **Atualizacao 2026-06-27 — fase `RAVATEX-TAPETES-CLIENTE-DASHBOARD-A`
 > (frontend cliente read-only).** Criado o **Dashboard Cliente
 > read-only** como pagina inicial do portal B2B, na rota
@@ -61,7 +90,11 @@
 SPA web para controlar a produção de tapetes, do pedido de fio até o
 recebimento do látex. Perfis: **admin** (operação), **fornecedor**
 (fio / tecelagem / látex) e **cliente** (pedidos próprios — schema
-aplicado, provisionamento pendente).
+aplicado; **cliente de teste funcional em staging**, login validado na
+homologacao do dashboard 2026-06-27. Provisionamento self-service via
+Edge Function `admin-create-user` aceitando `cliente` permanece em
+codigo, mas **deploy em staging ainda nao confirmado**; o usuario de
+teste pode ter sido criado manualmente).
 
 ## Stack real (confirmada)
 - Frontend: `index.html` único + `js/**` (JS clássico, sem build) +
