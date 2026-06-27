@@ -31,7 +31,8 @@
 //     screenFornecedorOrdens,
 //     screenFornecedorEntregas,
 //     screenFornecedorLatex                    (js/screens/fornecedor.js)
-//   - window.screenClientePedidosLista,
+//   - window.screenClienteDashboard,
+//     screenClientePedidosLista,
 //     screenClientePedidoNovo,
 //     screenClientePedidoDetalhe               (js/screens/cliente-*.js)
 //   - window.handleRoute, window.navigate,
@@ -68,6 +69,7 @@
     '#/fornecedor/entregas': { render: window.screenFornecedorEntregas, roles: ['fornecedor'] },
     '#/fornecedor/latex':    { render: window.screenFornecedorLatex,    roles: ['fornecedor'] },
 
+    '#/cliente/dashboard':    { render: window.screenClienteDashboard,    roles: ['cliente'] },
     '#/cliente/pedidos':      { render: window.screenClientePedidosLista, roles: ['cliente'] },
     '#/cliente/pedidos/novo': { render: window.screenClientePedidoNovo,   roles: ['cliente'] },
   });

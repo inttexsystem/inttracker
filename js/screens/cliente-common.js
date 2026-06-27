@@ -22,6 +22,7 @@
   'use strict';
 
   const CLIENTE_MENU = [
+    { href: '#/cliente/dashboard', label: 'Início' },
     { href: '#/cliente/pedidos', label: 'Meus pedidos' },
   ];
 

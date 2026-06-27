@@ -68,6 +68,7 @@ const EF    = path.join(ROOT, 'js', 'screens', 'entrega-form.js');
 const EW    = path.join(ROOT, 'js', 'screens', 'entrega-writes.js');
 const FORN  = path.join(ROOT, 'js', 'screens', 'fornecedor.js');
 const CLI_COMMON = path.join(ROOT, 'js', 'screens', 'cliente-common.js');
+const CLI_DASHBOARD = path.join(ROOT, 'js', 'screens', 'cliente-dashboard.js');
 const CLI_LIST  = path.join(ROOT, 'js', 'screens', 'cliente-pedidos-list.js');
 const CLI_TRACKING = path.join(ROOT, 'js', 'screens', 'cliente-pedido-tracking.js');
 const CLI_DETAIL = path.join(ROOT, 'js', 'screens', 'cliente-pedido-detail.js');
@@ -94,6 +95,7 @@ const efSrc      = fs.readFileSync(EF,     'utf8');
 const ewSrc      = fs.readFileSync(EW,     'utf8');
 const fornSrc    = fs.readFileSync(FORN,   'utf8');
 const cliCommonSrc = fs.readFileSync(CLI_COMMON, 'utf8');
+const cliDashboardSrc = fs.readFileSync(CLI_DASHBOARD, 'utf8');
 const cliListSrc  = fs.readFileSync(CLI_LIST,  'utf8');
 const cliTrackingSrc = fs.readFileSync(CLI_TRACKING, 'utf8');
 const cliDetailSrc = fs.readFileSync(CLI_DETAIL, 'utf8');
@@ -207,14 +209,14 @@ test('8. boot.js contém window.RAVATEX_ROUTER.setRoutes', () => {
     'boot.js não chama window.RAVATEX_ROUTER.setRoutes');
 });
 
-test('9. boot.js registra as 19 rotas esperadas (15 originais + #/pedidos + #/pedidos/novo + #/cliente/pedidos + #/cliente/pedidos/novo)', () => {
+test('9. boot.js registra as 20 rotas esperadas (15 originais + #/pedidos + #/pedidos/novo + #/cliente/dashboard + #/cliente/pedidos + #/cliente/pedidos/novo)', () => {
   const esperadas = [
     '#/login', '#/painel', '#/ops', '#/ops/nova', '#/pedidos', '#/pedidos/novo',
     '#/cadastros/cores', '#/cadastros/modelos', '#/cadastros/parametros',
     '#/cadastros/fornecedores', '#/cadastros/clientes', '#/cadastros/precos',
     '#/cadastros/usuarios',
     '#/fornecedor/home', '#/fornecedor/ordens', '#/fornecedor/entregas', '#/fornecedor/latex',
-    '#/cliente/pedidos', '#/cliente/pedidos/novo',
+    '#/cliente/dashboard', '#/cliente/pedidos', '#/cliente/pedidos/novo',
   ];
   for (const rota of esperadas) {
     assert.ok(bootSrc.includes(`'${rota}'`),
@@ -351,6 +353,7 @@ function makeBootChainSandbox() {
   vm.runInContext(oppSrc,    sandbox, { filename: 'js/screens/op-persistir.js' });
   vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
   vm.runInContext(cliCommonSrc, sandbox, { filename: 'js/screens/cliente-common.js' });
+  vm.runInContext(cliDashboardSrc, sandbox, { filename: 'js/screens/cliente-dashboard.js' });
   vm.runInContext(cliListSrc,   sandbox, { filename: 'js/screens/cliente-pedidos-list.js' });
   vm.runInContext(cliTrackingSrc, sandbox, { filename: 'js/screens/cliente-pedido-tracking.js' });
   vm.runInContext(cliDetailSrc, sandbox, { filename: 'js/screens/cliente-pedido-detail.js' });
@@ -390,9 +393,9 @@ test('18. boot chain completo não lança SyntaxError de duplicate identifier', 
 
 test('19. boot chain completo não lança ReferenceError de globals', () => {
   const { sandbox } = makeBootChainSandbox();
-  const routesOk = vm.runInContext('window.routes && Object.keys(window.routes).length === 19', sandbox);
+  const routesOk = vm.runInContext('window.routes && Object.keys(window.routes).length === 20', sandbox);
   assert.equal(routesOk, true,
-    'window.routes não foi populado com 19 rotas (algum window.screen* não foi resolvido)');
+    'window.routes não foi populado com 20 rotas (algum window.screen* não foi resolvido)');
 });
 
 test('20. window.routes populado corretamente após o boot completo', () => {
@@ -403,7 +406,7 @@ test('20. window.routes populado corretamente após o boot completo', () => {
     '#/cadastros/fornecedores', '#/cadastros/clientes', '#/cadastros/precos',
     '#/cadastros/usuarios',
     '#/fornecedor/home', '#/fornecedor/ordens', '#/fornecedor/entregas', '#/fornecedor/latex',
-    '#/cliente/pedidos', '#/cliente/pedidos/novo',
+    '#/cliente/dashboard', '#/cliente/pedidos', '#/cliente/pedidos/novo',
   ];
   for (const rota of rotasEsperadas) {
     const tem = vm.runInContext(`!!window.routes['${rota}']`, sandbox);

@@ -109,6 +109,7 @@ isso é registrado explicitamente no header do arquivo e em
 | `tests/cliente-events-rls-schema.smoke.js` | Validação estática de `db/16_pedido_cliente_eventos_cliente_select.sql`: existência do arquivo, policy `pedido_cliente_eventos_cliente_select`, `FOR SELECT`, filtro `visivel_cliente = true`, ownership via `public.pedidos` + `public.meu_cliente_id()`, ausência de writes de cliente e ausência de escopo indevido. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-EVENTS-RLS-A` |
 | `tests/cliente-tracking-steps.smoke.js` | Validação estática e em sandbox de `js/pedido-tracking-ui.js`: namespace global, 8 etapas principais, 4 exceções, helpers puros, fallback para `recebido`, ausência de termos internos proibidos e ausência de query/write. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-STEPS-A` |
 | `tests/admin-pedido-tracking-control.smoke.js` | Validação estática do controle admin de publish do tracking visual: novo módulo `js/screens/pedido-tracking-admin.js`, integração com `pedido-detail.js`, uso da taxonomia compartilhada, writes em `pedidos.status_cliente_*` e `pedido_cliente_eventos`, separação do status operacional e ausência de mudanças funcionais nas telas cliente/fornecedor. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-ADMIN-A` |
+| `tests/cliente-dashboard.smoke.js` | Validação estática do Dashboard Cliente read-only: existência do módulo `js/screens/cliente-dashboard.js`, rota `#/cliente/dashboard` (role cliente), menu "Início", SELECT explícito de pedidos restrito aos campos permitidos, `pedido_cliente_eventos` apenas com colunas seguras, ausência de `metadata`/`criado_por`/`origem`/`pedido_eventos`, uso da taxonomia `window.RavatexPedidoTracking`, render de KPIs/pedidos recentes/atualizações e ausência de writes/`service_role`/dados internos. | `RAVATEX-TAPETES-CLIENTE-DASHBOARD-A` |
 
 ### Módulos frontend de tracking visual
 
@@ -116,6 +117,7 @@ isso é registrado explicitamente no header do arquivo e em
 |---|---|---|
 | `js/pedido-tracking-ui.js` | Camada compartilhada de taxonomia visual e helpers puros para status, mensagem e progresso do tracking cliente. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-STEPS-A` |
 | `js/screens/pedido-tracking-admin.js` | Card admin para publicar a situação visível ao cliente, com preview e writes auditáveis em `pedidos.status_cliente_*` e `pedido_cliente_eventos`. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-ADMIN-A` |
+| `js/screens/cliente-dashboard.js` | Dashboard Cliente read-only (`#/cliente/dashboard`, `screenClienteDashboard`): página inicial do portal B2B. Cards/KPIs derivados localmente, pedidos recentes e últimas atualizações. SELECT explícito em `pedidos` (campos seguros) e `pedido_cliente_eventos` (`id, pedido_id, status, titulo, mensagem, criado_em`). Sem writes, sem `metadata`/`criado_por`/`origem`, sem `pedido_eventos`, sem expor `OP`/`lote`/`fornecedor`/`NF`/`romaneio`/`custo`/`margem`. | `RAVATEX-TAPETES-CLIENTE-DASHBOARD-A` |
 
 > O design que justifica a migration de schema está em
 > `docs/architecture/AUTH_DELETE_USER_DESIGN.md` (fase

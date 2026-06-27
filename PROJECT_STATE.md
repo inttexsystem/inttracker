@@ -1,5 +1,44 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
+> **Atualizacao 2026-06-27 — fase `RAVATEX-TAPETES-CLIENTE-DASHBOARD-A`
+> (frontend cliente read-only).** Criado o **Dashboard Cliente
+> read-only** como pagina inicial do portal B2B, na rota
+> `#/cliente/dashboard` (role `cliente`). Entrega:
+> - novo modulo `js/screens/cliente-dashboard.js` (SELECT-only) e
+>   smoke `tests/cliente-dashboard.smoke.js`;
+> - rota `#/cliente/dashboard` registrada em `js/boot.js`; cliente
+>   passa a cair nela apos login (`routeAfterLogin` em `js/router.js`)
+>   sem quebrar `#/cliente/pedidos`, `#/cliente/pedidos/novo` nem
+>   `#/cliente/pedidos/<id>`;
+> - menu cliente ganha item **"Início"** preservando **"Meus pedidos"**;
+> - cards/KPIs (em aberto, em andamento, prontos/concluidos,
+>   atualizacoes recentes) derivados localmente dos pedidos carregados;
+> - lista de pedidos recentes (ate 5) com label visual via
+>   `window.RavatexPedidoTracking` e botao "Ver pedido";
+> - ultimas atualizacoes lidas de `pedido_cliente_eventos`, com empty
+>   state "Suas atualizações aparecerão aqui.".
+>
+> **Pedidos sao lidos com SELECT explicito** apenas dos campos seguros
+> (`id, numero, status, status_cliente_visual, status_cliente_excecao,
+> status_cliente_mensagem, status_cliente_atualizado_em, prazo_entrega,
+> prazo_desejado, tipo_recebimento, criado_em, atualizado_em`).
+> **Eventos sao lidos com SELECT explicito**
+> (`id, pedido_id, status, titulo, mensagem, criado_em`). **Nunca**
+> seleciona `metadata`, `criado_por` ou `origem`; **nao** consulta
+> `pedido_eventos`; **nao** expoe `OP`/`lote`/`fornecedor`/`NF`/
+> `romaneio`/`custo`/`margem`/`token_acesso`. Tela **read-only**: sem
+> insert/update/delete/rpc, sem `functions.invoke`, sem `service_role`.
+> **Telas admin e fornecedor nao foram alteradas. Sem schema, sem SQL,
+> sem Supabase migration. Producao `bhgifjrfagkzubpyqpew` intocada.**
+> Aderente a `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md`
+> (separacao de papeis §2, SELECT explicito §8, renderizacao sem writes
+> §9). Testes focados: `cliente-dashboard` + `cliente-pedido-detail` +
+> `cliente-pedido-events` + `cliente-pedido-tracking` +
+> `cliente-tracking-steps` 135/135; `boot`+`cliente-routing`+`router`+
+> `cliente-pedidos-list` 154/154 apos ajuste das contagens de rota.
+> Proxima fase recomendada: homologacao manual do dashboard em staging
+> ou refinamento visual do portal cliente.
+
 > Snapshot de estado canonico curto. Atualizado em **2026-06-27** (fase
 > `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-E2E-HOMOLOG-RECORD-A` —
 > registro da homologacao manual E2E aprovada em staging).

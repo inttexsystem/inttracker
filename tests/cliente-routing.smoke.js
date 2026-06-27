@@ -83,9 +83,9 @@ function routeAfterLoginDestino(user, startHash) {
 // 1. routeAfterLogin — cliente
 // ---------------------------------------------------------------------
 
-test('routeAfterLogin: cliente → #/cliente/pedidos', async () => {
+test('routeAfterLogin: cliente → #/cliente/dashboard', async () => {
   var dst = await routeAfterLoginDestino({ tipo: 'cliente' });
-  assert.equal(dst, '#/cliente/pedidos');
+  assert.equal(dst, '#/cliente/dashboard');
 });
 
 test('routeAfterLogin: admin → #/painel (preservado)', async () => {
@@ -249,7 +249,7 @@ test('cliente-common: CLIENTE_MENU não expõe entradas admin', () => {
 
 test('router.js: routeAfterLogin contém branch para cliente', () => {
   assert.match(routerSrc, /tipo\s*===?\s*['"]cliente['"]/);
-  assert.match(routerSrc, /#\/cliente\/pedidos/);
+  assert.match(routerSrc, /#\/cliente\/dashboard/);
 });
 
 test('router.js: matchRoute contém match para #/cliente/pedidos/<uuid>', () => {

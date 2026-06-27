@@ -10,9 +10,41 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-E2E-HOMOLOG-RECORD-A`
-  (registro docs-only da homologação manual E2E aprovada em staging
-  do fluxo admin → cliente de acompanhamento visual).
+  `RAVATEX-TAPETES-CLIENTE-DASHBOARD-A` (Dashboard Cliente read-only —
+  frontend cliente, sem schema/SQL/Supabase). HEAD de entrada desta
+  fase: `9fa5eee` (fim da fase de homologação E2E).
+- **Dashboard Cliente read-only** (fase
+  `RAVATEX-TAPETES-CLIENTE-DASHBOARD-A`, esta): novo modulo
+  `js/screens/cliente-dashboard.js` (`screenClienteDashboard`) servindo
+  de pagina inicial do portal B2B em `#/cliente/dashboard`
+  (`roles: ['cliente']`, registrada em `js/boot.js`). `routeAfterLogin`
+  (em `js/router.js`) passa a levar o cliente para `#/cliente/dashboard`
+  apos login; `#/cliente/pedidos`, `#/cliente/pedidos/novo` e
+  `#/cliente/pedidos/<uuid>` continuam funcionando. Menu cliente
+  (`CLIENTE_MENU` em `cliente-common.js`) ganha **"Início"** preservando
+  **"Meus pedidos"**. Dashboard mostra cards/KPIs (em aberto, em
+  andamento, prontos/concluidos, atualizacoes recentes) derivados
+  localmente; ate 5 pedidos recentes com label visual via
+  `window.RavatexPedidoTracking` e botao "Ver pedido"; e as ultimas
+  atualizacoes (ate 8) lidas de `pedido_cliente_eventos`, com empty
+  state "Suas atualizações aparecerão aqui.". **Pedidos** lidos com
+  SELECT explicito apenas dos campos seguros (`id, numero, status,
+  status_cliente_visual, status_cliente_excecao,
+  status_cliente_mensagem, status_cliente_atualizado_em, prazo_entrega,
+  prazo_desejado, tipo_recebimento, criado_em, atualizado_em`).
+  **Eventos** lidos com SELECT explicito (`id, pedido_id, status,
+  titulo, mensagem, criado_em`), `order('criado_em', desc)`, erro
+  isolado em `state.eventosError` sem quebrar o resto. **Sem**
+  `metadata`/`criado_por`/`origem`, **sem** `select('*')`, **sem**
+  `pedido_eventos`, **sem** `OP`/`lote`/`fornecedor`/`NF`/`romaneio`/
+  `custo`/`margem`/`token_acesso`. Read-only: sem insert/update/delete/
+  rpc/`functions.invoke`/`service_role`. **Admin e fornecedor
+  intocados. Sem schema/SQL/Supabase. Producao `bhgifjrfagkzubpyqpew`
+  intocada.** Testes: `tests/cliente-dashboard.smoke.js` novo (32/32);
+  `tests/boot.smoke.js`, `tests/cliente-routing.smoke.js` atualizados
+  para a nova contagem de rotas (20) e o novo destino pos-login.
+  Proxima fase recomendada: homologacao manual do dashboard em staging
+  ou refinamento visual do portal cliente.
 - **HEAD aceito de entrada desta fase:** `fc7843c`
   (fase TRACKING-CLIENTE-EVENTS-A tecnicamente aceita, timeline
   read-only entregue no frontend; esta fase apenas registra a

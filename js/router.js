@@ -156,7 +156,7 @@
     }
 
     if (window.CURRENT_USER.tipo === 'cliente') {
-      navigate('#/cliente/pedidos');
+      navigate('#/cliente/dashboard');
       return;
     }
 
