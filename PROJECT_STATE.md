@@ -1,5 +1,30 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
+> **Atualizacao 2026-06-28 — fase
+> `RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-HOMOLOG-RECORD-A` (docs-only,
+> registro de homologacao).** A **homologacao visual manual do portal
+> cliente B2B, apos o refinamento visual da fase
+> `RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-POLISH-A`, foi APROVADA** pelo
+> dono do projeto, no HEAD homologado `3b0f8e4`, em ambiente conectado
+> ao Supabase staging `ucrjtfswnfdlxwtmxnoo`. **Produção/original
+> `bhgifjrfagkzubpyqpew` NAO foi tocada.** Validado: **Dashboard
+> Cliente** aprovado; **Meus pedidos** aprovado; **Detalhe do pedido**
+> aprovado; **Stepper/Acompanhamento** aprovado; **Timeline de
+> atualizacoes** aprovada; **responsividade basica** aprovada (sem
+> sobreposicao grosseira, tabelas com rolagem quando necessario, menu
+> permanece utilizavel em largura menor); **nenhum dado interno**
+> (OP/lote/fornecedor/NF/romaneio/custo/margem/metadata/criado_por/
+> origem/token_acesso) exposto ao cliente; **portal cliente permanece
+> 100% read-only** — nenhuma acao de editar pedido, cancelar pedido,
+> atualizar status, publicar evento ou mexer em fornecedor foi
+> oferecida; **nenhuma regressao funcional reportada**. **Esta fase e
+> docs-only: sem codigo, sem schema, sem SQL, sem Supabase, sem
+> frontend, sem testes (apenas verificacao Git).** Senha, token e
+> qualquer credencial **nao foram registrados**.
+> Proxima fase recomendada: decidir, com o dono do projeto, entre
+> preparacao para producao/staging closeout do portal cliente ou
+> avancar para o proximo bloco funcional.
+
 > **Atualizacao 2026-06-27 — fase
 > `RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-POLISH-A` (frontend, refino
 > visual).** Refinada a apresentacao do portal cliente B2B nas 5

@@ -10,9 +10,28 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
-  `RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-POLISH-A` (frontend cliente,
-  refino visual — sem schema/SQL/Supabase). HEAD de entrada desta
-  fase: `3835dba`.
+  `RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-HOMOLOG-RECORD-A` (docs-only,
+  registro de homologacao visual aprovada — sem schema/SQL/Supabase).
+  HEAD homologado: `3b0f8e4`.
+- **Homologação visual do portal cliente APROVADA** (fase
+  `RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-HOMOLOG-RECORD-A`, esta,
+  docs-only). Validação manual/controlada pelo dono do projeto, no HEAD
+  `3b0f8e4`, em ambiente conectado ao Supabase staging
+  `ucrjtfswnfdlxwtmxnoo`, **sem tocar produção/original**
+  `bhgifjrfagkzubpyqpew`. Aprovados: **Dashboard Cliente**, **Meus
+  pedidos**, **Detalhe do pedido**, **Stepper/Acompanhamento** e
+  **Timeline de atualizações** — as 5 telas refinadas na fase
+  `RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-POLISH-A`. **Responsividade
+  básica** aprovada (desktop e largura menor, sem sobreposição
+  grosseira, tabelas com rolagem horizontal quando necessário, menu
+  permanece utilizável). **Nenhum dado interno**
+  (OP/lote/fornecedor/NF/romaneio/custo/margem/metadata/criado_por/
+  origem/token_acesso) exposto ao cliente. Portal cliente **permanece
+  read-only** — sem editar pedido, cancelar pedido, atualizar status,
+  publicar evento ou mexer em fornecedor. **Nenhuma regressão
+  funcional reportada**. **Sem** código/schema/SQL/Supabase/frontend/
+  teste nesta fase. Senha, token e qualquer credencial **não foram
+  registrados**.
 - **Polish visual do portal cliente** (fase
   `RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-POLISH-A`, esta): refinada a
   camada de apresentação das 5 telas do portal cliente sem alterar
@@ -503,6 +522,17 @@ projeto.
 
 **Sequencia recomendada depois desta fase:** dashboard cliente;
 redesign de shell/componentes comuns; e so depois fornecedor/automacao.
+
+**Homologado (fase `RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-HOMOLOG-RECORD-A`,
+esta):** a homologação visual manual do portal cliente B2B (Dashboard,
+Meus pedidos, Detalhe, Stepper/Acompanhamento, Timeline), pós
+refinamento visual da fase POLISH-A, foi validada e **aprovada** pelo
+dono do projeto, no HEAD `3b0f8e4`, em ambiente conectado ao Supabase
+staging `ucrjtfswnfdlxwtmxnoo`, sem tocar `bhgifjrfagkzubpyqpew`.
+
+**Proxima fase recomendada (atualizada):** decidir, com o dono do
+projeto, entre preparação para produção/staging closeout do portal
+cliente ou avanço para o próximo bloco funcional.
 
 **Não iniciar execução sem autorização explícita.**
 **NÃO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**
