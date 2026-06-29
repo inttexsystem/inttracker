@@ -4,9 +4,10 @@
 // pedidos. Confia na RLS para filtrar por `cliente_id`.
 //
 // Fase: RAVATEX-TAPETES-PEDIDOS-CLIENTE-UI-A +
-//   RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-POLISH-A (legibilidade da
-//   lista — contagem, rolagem horizontal e rotulo "Ver pedido" — sem
-//   alterar o select de pedidos)
+//   RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-POLISH-A +
+//   RAVATEX-TAPETES-CLIENTE-STATUS-VISUAL-LIST-A (lista alinhada ao
+//   tracking visual publicado pelo admin, preservando o fallback
+//   seguro para pedidos sem status visual)
 // Escopo: listagem cliente. Sem criar/editar/cancelar pedido.
 //   Sem expor dados internos, de produção ou administrativos.
 //
@@ -17,13 +18,15 @@
 //   - window.el / window.toast / window.pageHeader / window.dataTable
 //     (js/ui.js)
 //   - window.clienteShellLayout (js/screens/cliente-common.js)
-//   - window.pedidoStatusBadge / window.pedidoStatusLabel
-//     / window.fmtDataCurta (js/pedido-ui.js)
+//   - window.fmtDataCurta (js/pedido-ui.js)
+//   - window.RavatexPedidoTracking (js/pedido-tracking-ui.js)
 //   - window.navigate (js/router.js)
 //   - window.supa (js/supabase-client.js)
 //
 // A tela é read-only: APENAS `select` em `pedidos`. Sem
-// insert/update/delete/rpc.
+// insert/update/delete/rpc. O select inclui os campos
+// `status_cliente_*` apenas para refletir ao cliente o mesmo estado
+// visual já consumido pelo dashboard e pelo detalhe.
 //
 // Compatibilidade: window.screenClientePedidosLista fica disponível
 // para o setRoutes.
@@ -38,10 +41,53 @@
     var allRows = [];
     var filtroStatus = 'todos';
 
+    function getTrackingApi() {
+      return window.RavatexPedidoTracking
+        || (window.RAVATEX_PEDIDO_UI && window.RAVATEX_PEDIDO_UI.CLIENTE_TRACKING)
+        || null;
+    }
+
+    function normalizarKey(value) {
+      if (typeof value !== 'string') return '';
+      return value.trim().toLowerCase();
+    }
+
+    function resolveStatusFiltro(row) {
+      var api = getTrackingApi();
+      var visualKey = normalizarKey(row && row.status_cliente_visual);
+      if (api && api.getClienteTrackingStep) {
+        var step = api.getClienteTrackingStep(visualKey);
+        if (step) return step.key;
+      }
+      return normalizarKey(row && row.status);
+    }
+
+    function renderStatusBadge(row) {
+      var api = getTrackingApi();
+      var excecaoKey = normalizarKey(row && row.status_cliente_excecao);
+      var excecao = api && api.getClienteTrackingException
+        ? api.getClienteTrackingException(excecaoKey)
+        : null;
+      var label = api && api.getClienteTrackingStatusLabel
+        ? api.getClienteTrackingStatusLabel(row || {})
+        : (row && row.status ? row.status : null);
+      var toneClass = 'bg-blue-50 text-blue-700';
+
+      if (excecao) {
+        if (excecao.tom === 'danger') toneClass = 'bg-red-50 text-red-700';
+        else if (excecao.tom === 'warning') toneClass = 'bg-amber-50 text-amber-700';
+        else if (excecao.tom === 'neutral') toneClass = 'bg-gray-100 text-gray-700';
+      }
+
+      return window.el('span', {
+        class: 'px-2 py-1 rounded text-xs font-semibold ' + toneClass,
+      }, label || 'Recebido');
+    }
+
     async function reload() {
       var pedidosRes = await window.supa
         .from('pedidos')
-        .select('id, numero, status, prazo_entrega, observacao, criado_em')
+        .select('id, numero, status, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, prazo_entrega, observacao, criado_em')
         .order('criado_em', { ascending: false })
         .limit(200);
 
@@ -84,7 +130,7 @@
 
       var visiveis = filtroStatus === 'todos'
         ? allRows
-        : allRows.filter(function (r) { return r.status === filtroStatus; });
+        : allRows.filter(function (r) { return resolveStatusFiltro(r) === filtroStatus; });
 
       var contagem = window.el('div', { class: 'text-xs text-gray-500 mb-2' },
         visiveis.length + (visiveis.length === 1 ? ' pedido encontrado' : ' pedidos encontrados'));
@@ -103,7 +149,7 @@
               {
                 key: 'status',
                 label: 'Status',
-                render: function (r) { return window.pedidoStatusBadge(r.status); },
+                render: function (r) { return renderStatusBadge(r); },
               },
               {
                 key: 'prazo',

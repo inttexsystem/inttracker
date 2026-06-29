@@ -144,6 +144,13 @@ test('cliente-pedidos-list: usa from(\'pedidos\')', () => {
   assert.match(screen, /from\(['"]pedidos['"]\)/);
 });
 
+test('cliente-pedidos-list: select inclui status visual publicado ao cliente', () => {
+  assert.match(
+    screen,
+    /\.select\(\s*['"]id, numero, status, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, prazo_entrega, observacao, criado_em['"]\s*\)/
+  );
+});
+
 test('cliente-pedidos-list: NÃO usa from(\'clientes\')', () => {
   assert.equal(/from\(['"]clientes['"]\)/.test(screen), false, 'não deve usar from("clientes")');
 });
@@ -212,6 +219,11 @@ test('cliente-pedidos-list: select não contém cliente_id (sanitizado)', () => 
 
 test('cliente-pedidos-list: ação Visualizar navega para #/cliente/pedidos/<id>', () => {
   assert.match(screen, /#\/cliente\/pedidos\//, 'ação Visualizar deve navegar para #/cliente/pedidos/<id>');
+});
+
+test('cliente-pedidos-list: usa taxonomia compartilhada de tracking para badge visual', () => {
+  assert.match(screen, /getClienteTrackingStatusLabel/);
+  assert.match(screen, /getClienteTrackingStep/);
 });
 
 // ---------------------------------------------------------------------

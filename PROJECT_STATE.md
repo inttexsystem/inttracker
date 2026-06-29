@@ -1916,6 +1916,27 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 `RAVATEX-TAPETES-DOCS-SANITIZE-A` (substituídas por
 `[REDACTED_TEST_PASSWORD]`).
 
+> **Atualizacao 2026-06-29 — fase
+> `RAVATEX-TAPETES-CLIENTE-STATUS-VISUAL-LIST-A-R1` (frontend cliente
+> read-only + testes focados).** A tela `Meus pedidos`
+> (`js/screens/cliente-pedidos-list.js`) passou a usar a taxonomia
+> compartilhada de status visual ja homologada em
+> `window.RavatexPedidoTracking`, preservando a natureza **read-only**
+> da lista e mantendo `select(...)` explicito em `pedidos`. Escopo
+> entregue: leitura dos campos seguros `status_cliente_visual`,
+> `status_cliente_excecao`, `status_cliente_mensagem` e
+> `status_cliente_atualizado_em`; badge/filtro alinhados ao tracking
+> visual compartilhado; sem `select('*')`, sem writes, sem RPC, sem
+> Edge Function, sem admin/fornecedor e sem ativar consumo do modelo
+> parcial nessa tela. Validacao focada:
+> `tests/cliente-pedidos-list.smoke.js`,
+> `tests/cliente-portal-visual.smoke.js`,
+> `tests/cliente-dashboard.smoke.js` e
+> `tests/cliente-routing.smoke.js` passaram. Sem schema, sem SQL, sem
+> Supabase; o schema de acompanhamento parcial segue nao aplicado.
+> Proximo estado esperado: working tree limpo, sem residuos locais
+> remanescentes desta frente.
+
 ## Ações PROIBIDAS sem autorização explícita
 - `db/10_reset_producao.sql` e `db/11_reset_producao.sql` (DELETE em
   massa de produção).

@@ -166,10 +166,10 @@ for (const key of SCREEN_KEYS) {
 //    da fase de polish visual (nenhum campo novo selecionado)
 // ---------------------------------------------------------------------
 
-test('cliente-portal-visual: cliente-pedidos-list.js select de pedidos inalterado', () => {
+test('cliente-portal-visual: cliente-pedidos-list.js select de pedidos inclui status visual publicado', () => {
   assert.match(
     src.list,
-    /\.select\(\s*['"]id, numero, status, prazo_entrega, observacao, criado_em['"]\s*\)/
+    /\.select\(\s*['"]id, numero, status, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, prazo_entrega, observacao, criado_em['"]\s*\)/
   );
 });
 

@@ -10,6 +10,23 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
+  `RAVATEX-TAPETES-CLIENTE-STATUS-VISUAL-LIST-A-R1` (frontend cliente
+  read-only). `js/screens/cliente-pedidos-list.js` passou a consumir
+  somente a taxonomia compartilhada de `window.RavatexPedidoTracking`
+  para filtro e badge visual da lista `Meus pedidos`.
+- **Contrato preservado:** lista continua read-only, com
+  `from('pedidos')` e `select(...)` explicito; usa apenas campos
+  seguros de status visual publicados ao cliente; sem `select('*')`,
+  sem writes, sem RPC, sem Edge Function, sem admin e sem fornecedor.
+- **Sem contaminação de escopo:** nenhuma alteracao em schema, SQL,
+  Supabase ou helper/read-model parcial; nenhuma tela consumidora fora
+  da lista foi alterada nesta fase.
+- **Validacao registrada:** `tests/cliente-pedidos-list.smoke.js`,
+  `tests/cliente-portal-visual.smoke.js`,
+  `tests/cliente-dashboard.smoke.js` e
+  `tests/cliente-routing.smoke.js` passaram.
+- **Proximo estado esperado:** working tree limpo ao final desta fase.
+- **Estado atual aceito:** `work/app-next` na ponta da fase
   `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-OPERATIONS-RULES-A` (docs-only,
   matriz operacional de decisoes para UI; sem codigo, sem schema, sem
   SQL, sem Supabase). Produzido
