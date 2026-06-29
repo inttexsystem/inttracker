@@ -1058,3 +1058,38 @@ node --test tests/boot.smoke.js \
 - **Proxima decisao recomendada:** escolher entre ativacao controlada
   da leitura parcial em detalhe/lista ou homologacao tecnica dos
   dados reais de parciais.
+
+## Registro documental de controle admin de parciais
+
+- **Estado atual aceito:** `work/app-next` na ponta da fase
+  `RAVATEX-TAPETES-CLIENTE-PARCIAIS-ADMIN-CONTROL-A`
+  (controle manual admin no detalhe do pedido, sem leitura cliente).
+- **Escopo publicado:** novo modulo
+  `js/screens/pedido-parciais-admin.js`, integracao em
+  `js/screens/pedido-detail.js`, carregamento em `index.html` e smoke
+  dedicado `tests/pedido-parciais-admin-control.smoke.js`.
+- **Comportamento entregue:** admin lista parciais existentes em
+  `pedido_parciais` com SELECT explicito (`id`, `pedido_id`,
+  `sequencia`, `situacao`, `metros`, `data_referencia`, `titulo`,
+  `mensagem_cliente`, `visivel_cliente`, `criado_em`,
+  `atualizado_em`) e pode cadastrar novas parciais manuais via insert
+  controlado em `pedido_parciais`, usando `origem = 'manual'`,
+  `criado_por` quando `window.CURRENT_USER.id` estiver disponivel e
+  `visivel_cliente` default `false`. O formulario reaproveita o
+  catalogo compartilhado
+  `window.RavatexPedidoTracking.CLIENTE_PARCIAL_SITUACOES` e mostra
+  preview tecnico simples com `buildPedidoAcompanhamentoParcial`,
+  tolerando `pedidos.metros_total` nulo.
+- **Escopo preservado:** cliente ainda nao le `pedido_parciais`;
+  lista/dashboard/detalhe/tracking cliente permanecem sem alteracao;
+  `pedido_parcial_itens` continua fora do MVP; nenhuma policy, schema,
+  SQL, Supabase apply ou producao/original foi tocado.
+- **Validacao registrada:** `tests/pedido-parciais-admin-control.smoke.js`,
+  `tests/pedido-parciais-schema.smoke.js`,
+  `tests/pedido-acompanhamento-parcial.smoke.js`,
+  `tests/cliente-pedido-detail.smoke.js`,
+  `tests/cliente-pedidos-list.smoke.js` e
+  `tests/cliente-dashboard.smoke.js` passaram.
+- **Proxima fase recomendada:** homologacao tecnica do fluxo admin
+  criando parciais reais em staging, ou leitura read-only de parciais
+  no detalhe cliente depois de haver dados controlados suficientes.

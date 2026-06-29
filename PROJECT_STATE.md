@@ -2029,3 +2029,39 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 > `tests/cliente-portal-visual.smoke.js`. Proxima fase recomendada:
 > decidir entre ativacao controlada da leitura parcial em detalhe/lista
 > ou homologacao tecnica dos dados de parciais.
+
+> **Atualizacao 2026-06-29 — fase
+> `RAVATEX-TAPETES-CLIENTE-PARCIAIS-ADMIN-CONTROL-A`
+> (controle manual admin + writes controlados + smoke focado).**
+> Publicado controle manual de parciais no detalhe admin do pedido,
+> via novo modulo `js/screens/pedido-parciais-admin.js` integrado a
+> `js/screens/pedido-detail.js` e carregado por `index.html`. O admin
+> agora lista parciais existentes de `pedido_parciais` com SELECT
+> explicito (`id`, `pedido_id`, `sequencia`, `situacao`, `metros`,
+> `data_referencia`, `titulo`, `mensagem_cliente`, `visivel_cliente`,
+> `criado_em`, `atualizado_em`) e pode cadastrar novas parciais
+> manuais com insert controlado em `pedido_parciais`, preenchendo
+> `pedido_id`, `sequencia`, `situacao`, `metros`, `data_referencia`,
+> `titulo`, `mensagem_cliente`, `visivel_cliente`, `origem = 'manual'`
+> e `criado_por` quando `window.CURRENT_USER.id` estiver disponivel.
+> O formulario usa o catalogo compartilhado
+> `window.RavatexPedidoTracking.CLIENTE_PARCIAL_SITUACOES`, default
+> `visivel_cliente = false`, tolera `pedidos.metros_total` nulo e
+> mostra preview tecnico simples com `buildPedidoAcompanhamentoParcial`
+> sem alterar status visual do pedido. Escopo preservado: cliente ainda
+> nao le `pedido_parciais`; `js/screens/cliente-pedido-detail.js`,
+> `js/screens/cliente-pedidos-list.js`,
+> `js/screens/cliente-dashboard.js` e
+> `js/screens/cliente-pedido-tracking.js` permaneceram intocados;
+> `pedido_parcial_itens` continua fora do MVP desta fase; nenhum
+> schema, SQL, Supabase apply ou producao/original foi tocado.
+> Validacao focada verde:
+> `tests/pedido-parciais-admin-control.smoke.js`,
+> `tests/pedido-parciais-schema.smoke.js`,
+> `tests/pedido-acompanhamento-parcial.smoke.js`,
+> `tests/cliente-pedido-detail.smoke.js`,
+> `tests/cliente-pedidos-list.smoke.js`,
+> `tests/cliente-dashboard.smoke.js`. Proxima fase recomendada:
+> homologacao tecnica do fluxo admin criando parciais reais em staging,
+> ou leitura read-only de parciais no detalhe cliente depois de haver
+> dado controlado suficiente.

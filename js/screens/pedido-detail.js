@@ -41,13 +41,15 @@
 //     (js/pedido-ui.js)
 //   - window.buildPedidoTrackingAdminCard / window.RavatexPedidoTracking
 //     (js/screens/pedido-tracking-admin.js, js/pedido-tracking-ui.js)
+//   - window.buildPedidoParciaisAdminCard
+//     (js/screens/pedido-parciais-admin.js)
 //   - window.navigate                  (js/router.js)
 //   - window.supa                      (js/supabase-client.js)
 //
-// Writes permitidos nesta fase: APENAS `update` em `pedidos` (campo
-// `status` apenas, via RLS admin-only). Sem insert/update/delete em
-// `pedido_itens`, sem insert em `pedido_eventos` (fica para fase
-// futura), sem mexer em `lotes`/`pedido_eventos`.
+// Writes permitidos nesta fase: `update` em `pedidos.status` e
+// `insert` controlado em `pedido_parciais` via modulo separado
+// admin-only. Sem insert/update/delete em `pedido_itens`, sem insert
+// em `pedido_eventos` (fica para fase futura), sem mexer em `lotes`.
 //
 // Compatibilidade: window.screenPedidoDetalhe e
 // window.RAVATEX_SCREENS.pedidoDetail ficam disponíveis para o
@@ -206,7 +208,7 @@
       // Joins via select aninhado do Supabase (admin-only via RLS).
       const pedidoRes = await window.supa
         .from('pedidos')
-        .select('id, numero, status, cliente_id, prazo_entrega, observacao, criado_em, atualizado_em, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, cliente:cliente_id(id, nome)')
+        .select('id, numero, status, cliente_id, prazo_entrega, observacao, criado_em, atualizado_em, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, parcial_habilitado, parcial_atualizado_em, metros_total, cliente:cliente_id(id, nome)')
         .eq('id', pedidoId)
         .maybeSingle();
 
@@ -424,6 +426,21 @@
       });
     }
 
+    function buildParciaisAdmin() {
+      if (typeof window.buildPedidoParciaisAdminCard !== 'function') {
+        return window.el('div', {});
+      }
+      return window.buildPedidoParciaisAdminCard({
+        pedido: state.pedido,
+        itens: state.itens,
+        onReload: async function () {
+          loadingError = null;
+          await carregar();
+          render();
+        },
+      });
+    }
+
     function buildItens() {
       const itens = state.itens;
       if (itens.length === 0) {
@@ -588,6 +605,7 @@
         header,
         buildResumo(),
         buildTrackingAdmin(),
+        buildParciaisAdmin(),
         buildDadosGerais(),
         buildItens(),
         buildActions()
