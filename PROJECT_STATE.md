@@ -1,6 +1,43 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > **Atualizacao 2026-06-29 — fase
+> `RAVATEX-TAPETES-UI-MATCH-STANDALONE-NOVO-PEDIDO-ADD-ITEM-MODAL`
+> (frontend cliente + registro de homologacao visual).** O modal
+> **"Adicionar item"** da tela Novo Pedido (`#/cliente/pedidos/novo`)
+> foi **alinhado visualmente ao HTML standalone de referencia**
+> (`Modal Adicionar Item - standalone.html`, em
+> `D:\OneDrive\Ravatex\Inttex\Mockups - nova interface\`) pelo agente
+> IAexec (Claude Sonnet 4.6), e o aceite visual foi **APROVADO
+> EXPLICITAMENTE PELO DONO DO PROJETO em 2026-06-29**.
+> Branch: `work/app-next`. Pushed para `staging/main`. Producao
+> `bhgifjrfagkzubpyqpew` e `origin/main` nao foram tocados.
+> Arquivo alterado: `js/screens/cliente-pedido-form.js` (unico).
+> Elementos entregues e homologados: overlay com backdrop escurecido;
+> card branco 460px com radius/shadow; header com titulo + subtitulo
+> + botao fechar; campo Modelo (select real, estilizado como o
+> falso-select do standalone); Cor 1/Cor 2 derivadas do modelo
+> selecionado (caixas estaticas somente leitura — override por item
+> deferido para fase futura); Largura derivada (caixa estatica) +
+> Metragem (input numerico) em grid 2 colunas; "Referencia visual"
+> decorativa (gradiente/circulo/borda tracejada, sem dado real
+> associado); Observacao do item (textarea com contador "0/200");
+> footer Cancelar/Adicionar item. Funcionalidades preservadas:
+> abertura do modal via clique em "Adicionar item", inclusao real do
+> item em `state.itens` (refletido no INSERT de `pedido_itens` ao
+> finalizar), validacoes de modelo obrigatorio e metragem > 0,
+> fechamento via botao fechar/Cancelar/clique fora/Esc. Diferencas
+> visuais residuais documentadas: campo Metragem usa `type="number"`
+> (nao `type="text"` como no standalone, para preservar a validacao
+> numerica existente) e o placeholder de Observacao foi adaptado para
+> nao referenciar o termo interno "lote" (guard de teste existente).
+> Checks: `node --check` OK; `node --test` do smoke focado 35/36
+> (1 falha pre-existente, nao relacionada, sobre divergencia de texto
+> "metros"/"metragem" na validacao de `salvar()`). Gap do Modal
+> Adicionar Item marcado como resolvido em
+> `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. Dashboard nao foi
+> tocado nesta fase. Producao permanece bloqueada.
+
+> **Atualizacao 2026-06-29 — fase
 > `RAVATEX-TAPETES-UI-MATCH-STANDALONE-NOVO-PEDIDO`
 > (frontend cliente + registro de homologacao visual).** A tela
 > **Novo Pedido** (`#/cliente/pedidos/novo`) foi **alinhada

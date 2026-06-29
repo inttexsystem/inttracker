@@ -3,9 +3,13 @@
 // Tela cliente `#/cliente/pedidos/novo` — formulário de criação de
 // Pedido pelo cliente autenticado.
 //
-// Fase: RAVATEX-TAPETES-UI-MATCH-STANDALONE-NOVO-PEDIDO
-// Escopo: visual match ao standalone "Novo Pedido - standalone.html".
-//   Modal "Adicionar item" deixado para fase posterior.
+// Fase: RAVATEX-TAPETES-UI-MATCH-STANDALONE-NOVO-PEDIDO +
+//   RAVATEX-TAPETES-UI-MATCH-STANDALONE-NOVO-PEDIDO-ADD-ITEM-MODAL
+// Escopo: visual match ao standalone "Novo Pedido - standalone.html"
+//   e ao standalone "Modal Adicionar Item - standalone.html"
+//   (openAddItemModal). Cor 1/Cor 2 no modal são derivadas do
+//   modelo selecionado (somente leitura); override por item fica
+//   para fase futura.
 //
 // Carregar via <script src="js/screens/cliente-pedido-form.js"></script>
 // no <head>, DEPOIS de cliente-common.js, pedido-ui.js e ui.js.
@@ -30,6 +34,7 @@
   var SVG_TRASH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d6403a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
   var SVG_CALENDAR = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="8" y1="3" x2="8" y2="6"></line><line x1="16" y1="3" x2="16" y2="6"></line></svg>';
   var SVG_CHEVRON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+  var SVG_CLOSE = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
 
   async function screenClientePedidoNovo() {
     var clienteId = window.CURRENT_USER && window.CURRENT_USER.cliente_id;
@@ -53,6 +58,7 @@
     var container = window.el('div', {});
 
     var modelos = [];
+    var coresById = {};
     var loadingError = null;
 
     var state = {
@@ -68,14 +74,32 @@
     async function carregarDados() {
       var modRes = await window.supa
         .from('modelos')
-        .select('id, nome, largura')
+        .select('id, nome, largura, cor_1_id, cor_2_id')
         .order('nome');
       if (modRes.error) {
         loadingError = 'modelos';
         window.toast('Erro ao carregar modelos', 'error');
         console.error(modRes.error);
-      } else {
-        modelos = modRes.data || [];
+        return;
+      }
+      modelos = modRes.data || [];
+
+      var corIds = [];
+      for (var i = 0; i < modelos.length; i++) {
+        if (modelos[i].cor_1_id) corIds.push(modelos[i].cor_1_id);
+        if (modelos[i].cor_2_id) corIds.push(modelos[i].cor_2_id);
+      }
+      corIds = Array.from(new Set(corIds));
+      if (corIds.length > 0) {
+        var corRes = await window.supa
+          .from('cores')
+          .select('id, nome')
+          .in('id', corIds);
+        if (corRes.error) {
+          console.error('cliente-pedido-form: erro ao carregar cores', corRes.error);
+        } else {
+          coresById = Object.fromEntries((corRes.data || []).map(function (c) { return [c.id, c]; }));
+        }
       }
     }
 
@@ -91,6 +115,10 @@
       return typeof modelo.largura === 'number'
         ? modelo.largura.toFixed(2).replace('.', ',') + ' m'
         : String(modelo.largura || '—');
+    }
+
+    function corNome(id) {
+      return (coresById[id] && coresById[id].nome) || '—';
     }
 
     function metrosStr(val) {
@@ -288,6 +316,199 @@
     }
 
     // ------------------------------------------------------------------
+    // Modal: Adicionar item
+    // Visual fiel ao standalone "Modal Adicionar Item". Modelo é select
+    // real; Cor 1/Cor 2/Largura são derivados do modelo selecionado
+    // (somente leitura — override por item fica para fase futura);
+    // Metragem e Observação usam as mesmas validações do formulário.
+    // ------------------------------------------------------------------
+    function openAddItemModal() {
+      var draft = { modeloId: '', metros: '', observacao: '' };
+
+      var overlay = window.el('div', {
+        style: 'position:fixed; inset:0; background:rgba(22,32,58,.45); display:flex; align-items:center; justify-content:center; padding:40px; z-index:1000;',
+      });
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+
+      function close() {
+        overlay.remove();
+        document.removeEventListener('keydown', onKeydown);
+      }
+      function onKeydown(e) { if (e.key === 'Escape') close(); }
+      document.addEventListener('keydown', onKeydown);
+
+      function requiredLabel(text) {
+        return window.el('label', {
+          style: 'display:block; font-size:13px; font-weight:600; color:#3f4757; margin-bottom:6px;'
+        }, text + ' ', window.el('span', { style: 'color:#d6403a;' }, '*'));
+      }
+      function plainLabel(text) {
+        return window.el('div', {
+          style: 'font-size:13px; font-weight:600; color:#3f4757; margin-bottom:6px;'
+        }, text);
+      }
+      function staticBox(span) {
+        return window.el('div', {
+          style: 'display:flex; align-items:center; justify-content:space-between; border:1px solid #d8dce2; border-radius:4px; padding:9px 12px; font-size:14px; color:#16203a; background:#fff;'
+        }, span, svgEl(SVG_CHEVRON));
+      }
+
+      var closeBtn = window.el('button', {
+        type: 'button',
+        style: 'background:none; border:none; cursor:pointer; padding:4px; color:#9aa2af;',
+        onclick: close,
+      }, svgEl(SVG_CLOSE));
+
+      var header = window.el('div', {
+        style: 'display:flex; align-items:flex-start; justify-content:space-between; padding:18px 20px 12px;'
+      },
+        window.el('div', {},
+          window.el('div', { style: 'font-size:16px; font-weight:700; color:#16203a;' }, 'Adicionar item'),
+          window.el('div', { style: 'font-size:13px; color:#8a93a3; margin-top:3px;' },
+            'Informe os dados do item que será incluído no pedido.')
+        ),
+        closeBtn
+      );
+
+      // Modelo (select real)
+      var modeloSelect = window.el('select', {
+        style: 'flex:1; border:none; outline:none; font-size:14px; color:#16203a; background:transparent; font-family:inherit; cursor:pointer; -webkit-appearance:none; appearance:none; min-width:0;',
+      }, window.el('option', { value: '' }, 'Modelo…'));
+      for (var i = 0; i < modelos.length; i++) {
+        modeloSelect.appendChild(window.el('option', { value: modelos[i].id }, modelos[i].nome));
+      }
+      var modeloWrap = window.el('div', {
+        style: 'display:flex; align-items:center; justify-content:space-between; border:1px solid #d8dce2; border-radius:4px; padding:9px 12px; background:#fff;'
+      }, modeloSelect, svgEl(SVG_CHEVRON));
+      var modeloField = window.el('div', {}, requiredLabel('Modelo'), modeloWrap);
+
+      // Cores (derivadas do modelo selecionado — somente leitura)
+      var cor1Span = window.el('span', {}, '—');
+      var cor2Span = window.el('span', {}, '—');
+      var coresField = window.el('div', {},
+        requiredLabel('Cores'),
+        window.el('div', { style: 'display:grid; grid-template-columns:1fr 1fr; gap:12px;' },
+          window.el('div', {},
+            window.el('div', { style: 'font-size:12.5px; color:#9aa2af; margin-bottom:6px;' }, 'Cor 1'),
+            staticBox(cor1Span)
+          ),
+          window.el('div', {},
+            window.el('div', { style: 'font-size:12.5px; color:#9aa2af; margin-bottom:6px;' }, 'Cor 2'),
+            staticBox(cor2Span)
+          )
+        )
+      );
+
+      // Largura (derivada do modelo) + Metragem (input real)
+      var larguraSpan = window.el('span', {}, '—');
+      var larguraField = window.el('div', {}, requiredLabel('Largura'), staticBox(larguraSpan));
+
+      var metragemInput = window.el('input', {
+        type: 'number',
+        step: '0.01',
+        min: '0.01',
+        placeholder: '0,00',
+        style: 'flex:1; border:none; outline:none; padding:9px 12px; font-size:14px; font-family:inherit; color:#16203a; background:transparent; min-width:0;',
+      });
+      metragemInput.addEventListener('input', function () { draft.metros = metragemInput.value; });
+      var metragemWrap = window.el('div', {
+        style: 'display:flex; align-items:center; border:1px solid #d8dce2; border-radius:4px; overflow:hidden; background:#fff;'
+      }, metragemInput, window.el('span', { style: 'padding:9px 12px 9px 0; color:#9aa2af; font-size:14px;' }, 'm'));
+      var metragemField = window.el('div', {}, requiredLabel('Metragem'), metragemWrap);
+
+      var larguraMetragemRow = window.el('div', {
+        style: 'display:grid; grid-template-columns:1fr 1fr; gap:12px;'
+      }, larguraField, metragemField);
+
+      modeloSelect.addEventListener('change', function () {
+        draft.modeloId = modeloSelect.value;
+        var mod = modeloById(draft.modeloId);
+        larguraSpan.textContent = mod ? larguraStr(mod) : '—';
+        cor1Span.textContent = mod ? corNome(mod.cor_1_id) : '—';
+        cor2Span.textContent = mod ? corNome(mod.cor_2_id) : '—';
+      });
+
+      // Referência visual (decorativo, estático — sem dado real associado)
+      var referenciaField = window.el('div', {},
+        plainLabel('Referência visual'),
+        window.el('div', { style: 'height:120px; border-radius:4px; overflow:hidden; background:#d4c9a8; position:relative;' },
+          window.el('div', { style: 'position:absolute; inset:0; background:'
+            + 'repeating-linear-gradient(0deg, transparent, transparent 18px, rgba(180,155,100,.25) 18px, rgba(180,155,100,.25) 19px),'
+            + 'repeating-linear-gradient(90deg, transparent, transparent 18px, rgba(180,155,100,.25) 18px, rgba(180,155,100,.25) 19px),'
+            + 'repeating-linear-gradient(45deg, rgba(160,130,80,.15) 0 4px, transparent 4px 14px),'
+            + 'linear-gradient(135deg, #c9b98a 0%, #d9caa0 30%, #c8b680 50%, #ddd0a8 70%, #c4b47c 100%);' }),
+          window.el('div', { style: 'position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:72px; height:72px; border-radius:50%; border:3px solid rgba(100,75,30,.28); background:radial-gradient(circle, rgba(140,110,55,.3) 0%, transparent 70%);' }),
+          window.el('div', { style: 'position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:40px; height:40px; border-radius:50%; border:2px solid rgba(100,75,30,.35); background:rgba(150,120,60,.2);' }),
+          window.el('div', { style: 'position:absolute; inset:6px; border:1.5px solid rgba(100,75,30,.2); border-radius:2px;' }),
+          window.el('div', { style: 'position:absolute; inset:10px; border:1px dashed rgba(100,75,30,.14); border-radius:2px;' })
+        )
+      );
+
+      // Observação do item
+      var obsTextarea = window.el('textarea', {
+        placeholder: 'Ex.: prioridade vitrine, embalagem separada, atenção na largura...',
+        maxlength: '200',
+        style: 'width:100%; border:1px solid #d8dce2; border-radius:4px; padding:9px 12px 24px; font-size:14px; font-family:inherit; color:#16203a; background:#fff; resize:none; outline:none; min-height:80px; line-height:1.5; box-sizing:border-box;',
+      });
+      var counterSpan = window.el('span', {
+        style: 'position:absolute; right:12px; bottom:10px; font-size:12px; color:#c2c8d0;'
+      }, '0/200');
+      obsTextarea.addEventListener('input', function () {
+        draft.observacao = obsTextarea.value;
+        counterSpan.textContent = obsTextarea.value.length + '/200';
+      });
+      var obsField = window.el('div', {},
+        plainLabel('Observação do item'),
+        window.el('div', { style: 'position:relative;' }, obsTextarea, counterSpan)
+      );
+
+      var body = window.el('div', {
+        style: 'padding:0 20px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; flex:1; min-height:0;'
+      }, modeloField, coresField, larguraMetragemRow, referenciaField, obsField);
+
+      var cancelBtn = window.el('button', {
+        type: 'button',
+        style: 'background:#fff; color:#3f4757; border:1px solid #d8dce2; border-radius:4px; padding:9px 18px; font-weight:600; font-size:14px; font-family:inherit; cursor:pointer;',
+        onclick: close,
+      }, 'Cancelar');
+
+      var confirmBtn = window.el('button', {
+        type: 'button',
+        style: 'background:#2563eb; color:#fff; border:none; border-radius:4px; padding:9px 20px; font-weight:700; font-size:14px; font-family:inherit; cursor:pointer;',
+        onclick: function () {
+          if (!draft.modeloId) {
+            window.toast('Selecione um modelo.', 'error');
+            return;
+          }
+          var m = Number(draft.metros);
+          if (!Number.isFinite(m) || m <= 0) {
+            window.toast('Metragem deve ser maior que zero.', 'error');
+            return;
+          }
+          state.itens.push({
+            uid: novoUid(),
+            modeloId: draft.modeloId,
+            metros: draft.metros,
+            observacao: draft.observacao,
+          });
+          close();
+          render();
+        },
+      }, 'Adicionar item');
+
+      var footer = window.el('div', {
+        style: 'display:flex; align-items:center; justify-content:flex-end; gap:12px; padding:14px 20px; border-top:1px solid #eceef1; margin-top:14px;'
+      }, cancelBtn, confirmBtn);
+
+      var card = window.el('div', {
+        style: 'background:#fff; border-radius:4px; width:460px; max-width:100%; max-height:90vh; box-shadow:0 24px 60px rgba(20,30,45,.14); overflow:hidden; display:flex; flex-direction:column;'
+      }, header, body, footer);
+
+      overlay.appendChild(card);
+      document.body.appendChild(overlay);
+    }
+
+    // ------------------------------------------------------------------
     // Card: Itens do pedido
     // ------------------------------------------------------------------
     function buildItensCard() {
@@ -296,10 +517,7 @@
       var addBtn = window.el('button', {
         type: 'button',
         style: 'display:inline-flex; align-items:center; gap:8px; background:#fff; color:#2563eb; border:1px solid #2563eb; border-radius:4px; padding:7px 13px; font-weight:600; font-size:13.5px; font-family:inherit; cursor:pointer; white-space:nowrap;',
-        onclick: function () {
-          state.itens.push({ uid: novoUid(), modeloId: '', metros: '', observacao: '' });
-          render();
-        },
+        onclick: function () { openAddItemModal(); },
       }, svgEl(SVG_PLUS), 'Adicionar item');
 
       var tableHeader = window.el('div', {

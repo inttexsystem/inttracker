@@ -10,6 +10,33 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next`, ponta da fase
+  `RAVATEX-TAPETES-UI-MATCH-STANDALONE-NOVO-PEDIDO-ADD-ITEM-MODAL`.
+  O modal "Adicionar item" da tela `#/cliente/pedidos/novo` foi
+  alinhado visualmente ao HTML standalone de referência
+  (`Modal Adicionar Item - standalone.html`). **Aceite visual
+  explícito do dono do projeto em 2026-06-29.** Arquivo alterado:
+  `js/screens/cliente-pedido-form.js` (único). Elementos homologados:
+  overlay com backdrop; card 460px com radius/shadow; header
+  (título + subtítulo + botão fechar); campo Modelo (select real);
+  Cor 1/Cor 2 derivadas do modelo selecionado (somente leitura,
+  override por item deferido); Largura derivada + Metragem (input
+  numérico); "Referência visual" decorativa (gradiente/círculo/borda
+  tracejada); Observação do item (textarea + contador "0/200");
+  footer Cancelar/Adicionar item. Funcionalidade preservada: abertura
+  via clique, inclusão real do item em `state.itens`, validações de
+  modelo e metragem > 0, fechamento por botão/overlay/Esc. Diferenças
+  residuais documentadas: Metragem usa `type="number"` (não `text`,
+  para manter validação numérica) e placeholder de Observação evita o
+  termo interno "lote". Pushed para `staging/main`. Produção e
+  `origin/main` não tocados.
+- **Contrato preservado:** nenhum campo interno exposto; RLS intocada;
+  schema não alterado; nenhuma tela fora do escopo alterada (dashboard
+  não tocado).
+- **Gap fechado:** `Modal Adicionar Item` marcado como resolvido em
+  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. Próxima etapa:
+  avaliar demais gaps (Dashboard, shell), com decisões `OP-001` a
+  `OP-012` respondidas antes de nova UI.
+- **Estado atual aceito:** `work/app-next`, ponta da fase
   `RAVATEX-TAPETES-UI-MATCH-STANDALONE-NOVO-PEDIDO`.
   A tela `#/cliente/pedidos/novo` foi alinhada visualmente ao HTML
   standalone de referência (`Novo Pedido - standalone.html`). **Aceite
