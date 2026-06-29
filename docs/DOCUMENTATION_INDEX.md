@@ -48,6 +48,7 @@ não substituem nenhuma das 7 fontes de §1.
 | Documento | Propósito | Fase |
 |---|---|---|
 | `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md` | Inventário read-only de divergências entre os 5 mockups do Portal Cliente B2B (Dashboard, Novo Pedido, Modal Adicionar Item, Detalhe do Pedido, Acompanhamento) e as telas `js/screens/cliente-*.js` atuais. Matriz por tela, gaps detalhados, particularidades operacionais ainda em TBD e proposta de fases futuras (`UI-GAP-FIX-*`, `UI-OPERATIONS-RULES-A`). Não implementa nem corrige nada. | `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-GAP-INVENTORY-A` |
+| `docs/ui/CLIENTE_PORTAL_UI_OPERATIONS_RULES.md` | Matriz operacional docs-only para a UI do Portal Cliente B2B. Consolida decisões já fechadas, registra as pendências `OP-001` a `OP-012`, recomendações técnicas, impacto por tela e a sequência futura (`UI-GAP-FIX-NOVO-PEDIDO-A` até `UI-GAP-FIX-SHELL-A`). Não implementa UI nem altera código/schema/Supabase. | `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-OPERATIONS-RULES-A` |
 
 ## 2. Regra de prevalência
 

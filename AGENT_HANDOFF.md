@@ -10,6 +10,37 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next` na ponta da fase
+  `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-OPERATIONS-RULES-A` (docs-only,
+  matriz operacional de decisoes para UI; sem codigo, sem schema, sem
+  SQL, sem Supabase). Produzido
+  `docs/ui/CLIENTE_PORTAL_UI_OPERATIONS_RULES.md`, derivado do
+  inventario `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`, para
+  separar: decisoes ja consolidadas, decisoes pendentes do dono do
+  projeto, recomendacoes tecnicas, impacto por tela e sequencia futura
+  de implementacao. **Decisoes ja fechadas preservadas:** cliente nao
+  ve OP/lote/fornecedor/NF-romaneio/custo-margem/metadata; portal
+  cliente permanece read-only exceto criacao de pedido; status
+  operacional e status visual continuam separados; admin publica
+  status visual; fornecedor nao altera status visual diretamente nesta
+  etapa; timeline cliente le apenas eventos visiveis; producao segue
+  bloqueada. **Pendencias principais a responder antes de qualquer UI:**
+  `OP-001` fluxo de novo pedido (1 etapa vs 2 etapas), `OP-002` inline
+  vs modal para item, `OP-003` campos obrigatorios por item, `OP-004`
+  exibir `tipo_recebimento`, `OP-005` uso de `referencia_cliente`,
+  `OP-006` separar `prazo_desejado` de `prazo_entrega`, `OP-007`
+  exibir ou nao `pedido.status` operacional ao cliente, `OP-008`
+  acoes rapidas no dashboard, `OP-009` menu com 2 ou 4 itens,
+  `OP-010` existencia de Suporte, `OP-011` upload/imagem por item,
+  `OP-012` edicao/cancelamento pelo cliente. **A UI continua
+  funcional, NAO final.** **A proxima etapa correta nao e implementar
+  UI ainda**: primeiro o dono do projeto deve responder `OP-001` a
+  `OP-012`; so depois entram `UI-GAP-FIX-NOVO-PEDIDO-A`,
+  `UI-GAP-FIX-MODAL-ITEM-A`, `UI-GAP-FIX-DETALHE-A`,
+  `UI-GAP-FIX-DASHBOARD-A` e por ultimo `UI-GAP-FIX-SHELL-A`
+  (risco cross-role do `shellLayout`). `docs/ui/CLIENTE_PORTAL_UI_OPERATIONS_RULES.md`
+  e documento diagnostico/operacional, nao-canonico, indexado em
+  `docs/DOCUMENTATION_INDEX.md` §1b.
+- **Estado atual aceito:** `work/app-next` na ponta da fase
   `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-GAP-INVENTORY-A` (docs-only,
   inventário de gaps de UI, read-only/diagnóstico — sem código, sem
   schema, sem SQL, sem Supabase). HEAD: ver `git log -1` (commit desta

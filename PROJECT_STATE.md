@@ -1,5 +1,34 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
+> **Atualizacao 2026-06-29 — fase
+> `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-OPERATIONS-RULES-A` (docs-only,
+> matriz operacional de decisoes para UI).** Criado
+> `docs/ui/CLIENTE_PORTAL_UI_OPERATIONS_RULES.md` como matriz objetiva
+> para orientar a proxima rodada de UI do Portal Cliente B2B **sem
+> implementar nada**. O documento consolida as decisoes ja fechadas
+> (cliente nao ve OP/lote/fornecedor/NF-romaneio/custo-margem/
+> metadata; portal cliente segue read-only exceto criacao de pedido;
+> status operacional separado do status visual; admin publica status
+> visual; timeline cliente le apenas eventos visiveis; producao segue
+> bloqueada) e registra como **pendentes do dono do projeto** as
+> decisoes `OP-001` a `OP-012`: fluxo de novo pedido (1 etapa vs 2
+> etapas), inline vs modal para item, campos obrigatorios por item,
+> uso de `tipo_recebimento`, uso de `referencia_cliente`, separacao
+> `prazo_desejado` vs `prazo_entrega`, exibicao ou nao do status
+> operacional no detalhe cliente, acoes rapidas no dashboard,
+> composicao do menu cliente, existencia de Suporte, upload de imagem
+> por item e possibilidade futura de edicao/cancelamento pelo cliente.
+> A UI continua **funcional, porem NAO final**. A proxima etapa
+> recomendada agora e **o dono do projeto responder OP-001 a OP-012
+> antes de qualquer implementacao de UI**; so depois devem entrar as
+> fases `UI-GAP-FIX-NOVO-PEDIDO-A`, `UI-GAP-FIX-MODAL-ITEM-A`,
+> `UI-GAP-FIX-DETALHE-A`, `UI-GAP-FIX-DASHBOARD-A` e por ultimo
+> `UI-GAP-FIX-SHELL-A` (devido ao risco cross-role do
+> `shellLayout`). **Producao permanece BLOQUEADA**; sem codigo, sem
+> schema, sem SQL, sem Supabase, sem Edge Function, sem testes de app
+> (apenas verificacao Git/diff). Senha, token e credenciais nao foram
+> registrados. Documento indexado em `docs/DOCUMENTATION_INDEX.md`
+> §1b como diagnostico/operacional nao-canonico.
 > **Atualizacao 2026-06-28 — fase
 > `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-GAP-INVENTORY-A` (docs-only,
 > inventario de gaps de UI, read-only/diagnostico).** Concluido o
