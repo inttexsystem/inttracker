@@ -9,6 +9,26 @@
 > Convenção: **tudo em português brasileiro**.
 
 ## Estado atual aceito
+- **Estado atual aceito:** `work/app-next`, ponta da fase
+  `RAVATEX-TAPETES-UI-MATCH-STANDALONE-NOVO-PEDIDO`.
+  A tela `#/cliente/pedidos/novo` foi alinhada visualmente ao HTML
+  standalone de referência (`Novo Pedido - standalone.html`). **Aceite
+  visual explícito do dono do projeto em 2026-06-29.** Arquivo alterado:
+  `js/screens/cliente-pedido-form.js` (único). Elementos homologados:
+  header back + título 23px/800 + Cancelar; card "Dados gerais" 3 colunas;
+  tabela de itens grid `60px 1.1fr 1.1fr .8fr 1.1fr 1.2fr 84px`;
+  rodapé de totais; seção bottom grid 3fr/1fr com textarea auto-extensível
+  + card "Ir para checkout"; align-items:stretch. Funcionalidade de criação
+  preservada (INSERT `pedidos` + `pedido_itens`, compensação, validações).
+  Campos `referencia`/`recebimento` em UI mas **não enviados ao DB**.
+  Modal "Adicionar item" deferido para fase posterior. Pushed para
+  `staging/main`. Produção e `origin/main` não tocados.
+- **Contrato preservado:** nenhum campo interno exposto; RLS intocada;
+  schema não alterado; nenhuma tela fora do escopo alterada.
+- **Gap fechado:** `Novo Pedido` marcado como resolvido em
+  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. Próxima etapa:
+  avaliar demais gaps (Dashboard, Modal Adicionar Item, shell), com
+  decisões `OP-001` a `OP-012` respondidas antes de nova UI.
 - **Estado atual aceito:** `work/app-next`, HEAD `8650bb5` ("Match
   cliente pedido detail to standalone reference"), ponta da fase
   `RAVATEX-TAPETES-CLIENTE-DETAIL-VISUAL-HOMOLOG-RECORD-A`

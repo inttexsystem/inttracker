@@ -1,6 +1,43 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > **Atualizacao 2026-06-29 — fase
+> `RAVATEX-TAPETES-UI-MATCH-STANDALONE-NOVO-PEDIDO`
+> (frontend cliente + registro de homologacao visual).** A tela
+> **Novo Pedido** (`#/cliente/pedidos/novo`) foi **alinhada
+> visualmente ao HTML standalone de referencia**
+> (`Novo Pedido - standalone.html`, em
+> `D:\OneDrive\Ravatex\Inttex\Mockups - nova interface\`) pelo agente
+> IAexec (Claude Sonnet 4.6), e o aceite visual foi **APROVADO
+> EXPLICITAMENTE PELO DONO DO PROJETO em 2026-06-29**.
+> Branch: `work/app-next`. Pushed para `staging/main`. Producao
+> `bhgifjrfagkzubpyqpew` e `origin/main` nao foram tocados.
+> Arquivo alterado: `js/screens/cliente-pedido-form.js` (unico).
+> Elementos entregues e homologados: header com botao back (36x36,
+> arrow SVG) + titulo "Novo pedido" (23px, 800) + subtitulo +
+> botao "Cancelar"; card "Dados gerais" grid 3 cols
+> (Referencia do cliente | Prazo desejado com icone calendario |
+> Recebimento select); card "Itens do pedido" tabela colunas
+> `60px 1.1fr 1.1fr .8fr 1.1fr 1.2fr 84px`
+> (Img | Modelo | Cores | Largura | Metragem | Obs | Acoes),
+> swatch placeholder, selects de modelo, inputs inline editaveis,
+> icones lapis/lixeira; rodape da tabela com
+> "Total de itens: N | Metragem total: X m"; secao bottom
+> grid 3fr/1fr com "Instrucoes gerais" (textarea 1 linha,
+> auto-extensivel, overflow-y:hidden) + "Ir para checkout" +
+> "Finalizar pedido" (azul); align-items:stretch nos dois cards.
+> Funcionalidades preservadas: criacao de pedido
+> (INSERT `pedidos` + `pedido_itens`), compensacao em falha,
+> validacoes, toast, navegacao pos-save. Campos internos nao
+> expostos: OP, lote, fornecedor, NF, romaneio, custo, margem,
+> observacao_admin, token_acesso, service_role. Campos de UI
+> `referencia` e `recebimento` exibidos mas NAO enviados ao DB
+> (sem coluna em schema). Checks: `node --check` OK.
+> Gap do Novo Pedido marcado como resolvido em
+> `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`.
+> Modal "Adicionar item" permanece para fase posterior.
+> Producao permanece bloqueada.
+
+> **Atualizacao 2026-06-29 — fase
 > `RAVATEX-TAPETES-CLIENTE-DETAIL-VISUAL-HOMOLOG-RECORD-A`
 > (docs-only, registro de homologacao visual — sem codigo, sem schema,
 > sem SQL, sem Supabase).** A tela de **Detalhe do Pedido Cliente**
