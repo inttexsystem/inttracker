@@ -104,7 +104,7 @@ com admin/fornecedor, ex.: `shellLayout`).
 | Dashboard Cliente | `Dashboard Cliente - standalone.html` | `js/screens/cliente-dashboard.js` | KPIs com semântica diferente; sem "pedidos em destaque"; sem distribuição por etapa; sem "ações rápidas"; layout 2 colunas em vez de pilha de seções; sem CTA no header | 🟡 média | layout, hierarquia visual, componente ausente, nomenclatura | baixo | `UI-GAP-FIX-DASHBOARD-A` |
 | Novo Pedido | `Novo Pedido - standalone.html` | `js/screens/cliente-pedido-form.js` | Sem "Dados gerais" (referência do cliente, recebimento); itens inline em vez de tabela+modal; sem totais; fluxo de 1 etapa em vez de checkout em 2 etapas | 🔴 alta | componente ausente, fluxo, particularidade operacional | médio | `UI-GAP-FIX-NOVO-PEDIDO-A` |
 | Modal Adicionar Item | `Modal Adicionar Item - standalone.html` | `js/screens/cliente-pedido-form.js` (inline, sem modal) | Não existe como modal; sem Cor 1/Cor 2/Largura por item; sem referência visual (upload); sem contador de caracteres | 🔴 alta | componente ausente, fluxo | médio | `UI-GAP-FIX-MODAL-ITEM-A` |
-| Detalhe do Pedido | `Detalhe do Pedido - standalone.html` | `js/screens/cliente-pedido-detail.js` | Resumo com 3 colunas em vez de 4 cards; sem breadcrumb; status operacional e status visual exibidos juntos (duas taxonomias); colunas de itens com nomenclatura diferente | 🟡 média | layout, hierarquia visual, nomenclatura, componente ausente | baixo | `UI-GAP-FIX-DETALHE-A` |
+| Detalhe do Pedido | `Detalhe do Pedido - standalone.html` | `js/screens/cliente-pedido-detail.js` | ~~Resumo com 3 colunas em vez de 4 cards; sem breadcrumb; status operacional e status visual exibidos juntos (duas taxonomias); colunas de itens com nomenclatura diferente~~ **✅ RESOLVIDO 2026-06-29 — HEAD `8650bb5`** | ✅ fechado | — | — | `RAVATEX-TAPETES-CLIENTE-DETAIL-VISUAL-HOMOLOG-RECORD-A` |
 | Acompanhamento/Stepper/Timeline | `Admin-Cliente-Acompanhamento B2B - standalone.html` (seção cliente) | `js/screens/cliente-pedido-tracking.js`, `js/screens/cliente-pedido-detail.js` | Sem datas de conclusão por etapa; taxonomia das 8 etapas + 4 exceções já bate exatamente com o mockup (alinhamento confirmado) | 🟡 média (apenas a parte de datas) | componente ausente | baixo–médio (depende de novo dado/evento) | `UI-GAP-FIX-DETALHE-A` (mesma fase do detalhe, ou subfase própria se exigir novo dado) |
 | Shell/Menu cliente | sidebar/topbar presentes em todos os mockups | `js/screens/cliente-common.js` + `js/screens/common.js` (`shellLayout`, **compartilhado com admin/fornecedor**) | Menu com 2 itens em vez de 4 (sem "Novo pedido", sem "Suporte"); sem marca "Inttex"/"Portal do cliente"; sem pílula de papel "Cliente"; sem ícones; topbar genérica "Controle de Tapetes" | 🔴 alta | layout, hierarquia visual, componente ausente | **alto** (componente compartilhado com admin/fornecedor) | `UI-GAP-FIX-SHELL-A` (fase própria, com autorização explícita) |
 
@@ -257,6 +257,12 @@ o que existe hoje:
   aplicado client-side.
 
 ## 6. Detalhe do Pedido — comparação detalhada
+
+> **STATUS: RESOLVIDO / GAP FECHADO** — Homologação visual aprovada
+> pelo dono do projeto em **2026-06-29**. HEAD do commit: `8650bb5`
+> ("Match cliente pedido detail to standalone reference"). Todos os
+> itens abaixo foram implementados e aceitos. A seção é mantida apenas
+> como registro histórico.
 
 **Mockup** (`Detalhe do Pedido - standalone.html`):
 - Breadcrumb "Meus pedidos / Pedido #2" + botão "← Voltar para

@@ -1,6 +1,33 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > **Atualizacao 2026-06-29 — fase
+> `RAVATEX-TAPETES-CLIENTE-DETAIL-VISUAL-HOMOLOG-RECORD-A`
+> (docs-only, registro de homologacao visual — sem codigo, sem schema,
+> sem SQL, sem Supabase).** A tela de **Detalhe do Pedido Cliente**
+> (`#/cliente/pedidos/<uuid>`) foi **alinhada visualmente ao HTML
+> standalone de referencia** (`Detalhe do Pedido v2 - standalone.html`,
+> fora do repo em
+> `D:\OneDrive\Ravatex\Inttex\Mockups - nova interface\`) pelo agente
+> IAexec (Claude Sonnet 4.6), e o aceite visual foi **APROVADO
+> EXPLICITAMENTE PELO DONO DO PROJETO em 2026-06-29**. HEAD do commit:
+> `8650bb5` ("Match cliente pedido detail to standalone reference"),
+> branch `work/app-next`, pushed para `staging/main`. Producao/original
+> `bhgifjrfagkzubpyqpew` e `origin/main` nao foram tocados. Elementos
+> entregues e homologados: breadcrumb + titulo inline + badge de status;
+> meta card 3 colunas; stepper 42px com conic-gradient two-tone
+> (`#2563eb` preenchido / `#dbeafe` vazio), check SVG nos concluidos,
+> wrapper ambar para excecao; preview de item com textura preservada;
+> distribuicao com barras coloridas; parciais em tabela 4 colunas;
+> historico com timeline vertical flat. Seguranca preservada: nenhum
+> campo interno exposto; tela permanece 100% read-only; RLS intocada;
+> dashboard/lista/admin nao alterados. Testes: 92/92 pass
+> (59 detail + 11 parcial + 22 tracking). Gap do Detalhe marcado como
+> resolvido em `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. Producao
+> permanece bloqueada. Esta fase e docs-only. Proxima etapa: avaliar
+> demais gaps do inventario (dashboard, novo pedido, shell), com
+> decisoes `OP-001` a `OP-012` respondidas antes de nova UI.
+
+> **Atualizacao 2026-06-29 — fase
 > `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-OPERATIONS-RULES-A` (docs-only,
 > matriz operacional de decisoes para UI).** Criado
 > `docs/ui/CLIENTE_PORTAL_UI_OPERATIONS_RULES.md` como matriz objetiva

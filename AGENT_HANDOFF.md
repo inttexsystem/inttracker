@@ -9,6 +9,28 @@
 > Convenção: **tudo em português brasileiro**.
 
 ## Estado atual aceito
+- **Estado atual aceito:** `work/app-next`, HEAD `8650bb5` ("Match
+  cliente pedido detail to standalone reference"), ponta da fase
+  `RAVATEX-TAPETES-CLIENTE-DETAIL-VISUAL-HOMOLOG-RECORD-A`
+  (docs-only, registro de homologação visual). A tela
+  `#/cliente/pedidos/<uuid>` foi alinhada visualmente ao HTML standalone
+  de referência (`Detalhe do Pedido v2 - standalone.html`). **Aceite
+  visual explícito do dono do projeto em 2026-06-29.** Elementos
+  entregues e homologados: breadcrumb + título inline + badge de status;
+  meta card 3 colunas; stepper 42px conic-gradient two-tone
+  (`#2563eb`/`#dbeafe`), check SVG nos concluídos, wrapper âmbar para
+  exceção; preview com textura preservada; distribuição com barras;
+  parciais em tabela 4 colunas; histórico com timeline vertical. 92/92
+  testes passam. Pushed para `staging/main`. Produção `bhgifjrfagkzubpyqpew`
+  e `origin/main` não tocados.
+- **Contrato preservado:** tela permanece 100% read-only; nenhum campo
+  interno exposto (OP, lote, fornecedor, NF, romaneio, custo, margem,
+  metadata, criado_por, origem, observacao_admin, token_acesso); RLS
+  intocada; dashboard/lista/admin não alterados.
+- **Gap fechado:** `Detalhe do Pedido` marcado como resolvido em
+  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. Próxima etapa:
+  avaliar demais gaps (Dashboard, Novo Pedido, shell), com decisões
+  `OP-001` a `OP-012` respondidas antes de nova UI.
 - **Estado atual aceito:** `work/app-next` na ponta da fase
   `RAVATEX-TAPETES-CLIENTE-STATUS-VISUAL-LIST-A-R1` (frontend cliente
   read-only). `js/screens/cliente-pedidos-list.js` passou a consumir
