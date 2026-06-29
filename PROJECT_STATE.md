@@ -1952,3 +1952,22 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 > 2. lista cliente/status visual;
 > 3. apply controlado de `db/17_pedido_parciais_schema.sql` em
 > staging, somente quando houver autorizacao explicita.
+
+> **Atualizacao 2026-06-29 — fase
+> `RAVATEX-TAPETES-CLIENTE-PARCIAIS-HELPER-A` (frontend helper/read-model
+> puro + smoke estatico).** Publicado somente o helper/read-model de
+> acompanhamento parcial em `js/pedido-tracking-ui.js`, preservando
+> `window.RavatexPedidoTracking`, `CLIENTE_TRACKING_STEPS`,
+> `CLIENTE_TRACKING_EXCECOES` e os helpers existentes do tracking
+> visual ja homologado. Escopo entregue: catalogo
+> `CLIENTE_PARCIAL_SITUACOES`, normalizacao/ordenacao de parciais,
+> distribuicao por situacao, calculo percentual, DTO seguro de
+> parciais e builder puro `buildPedidoAcompanhamentoParcial`, sem
+> query, sem Supabase, sem writes e sem side effects. Validacao focada:
+> `tests/pedido-acompanhamento-parcial.smoke.js`,
+> `tests/cliente-tracking-steps.smoke.js` e
+> `tests/cliente-pedido-tracking.smoke.js` passaram. `db/17` continua
+> **nao aplicado**; nenhuma tela consumidora foi alterada; lista
+> cliente/status visual permanece residual fora de escopo. Proxima
+> fase recomendada: lista cliente/status visual ou apply controlado do
+> `db/17`, conforme decisao do projeto.

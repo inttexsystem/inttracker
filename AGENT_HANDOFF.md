@@ -982,3 +982,28 @@ node --test tests/boot.smoke.js \
   2. lista cliente/status visual;
   3. apply controlado de `db/17_pedido_parciais_schema.sql` em
      staging, somente quando houver autorizacao explicita.
+
+## Registro documental de helper de parciais
+
+- **Estado atual aceito:** `work/app-next` na ponta da fase
+  `RAVATEX-TAPETES-CLIENTE-PARCIAIS-HELPER-A` (helper/read-model puro,
+  sem telas consumidoras). O arquivo `js/pedido-tracking-ui.js`
+  recebeu somente helpers puros de acompanhamento parcial:
+  catalogo `CLIENTE_PARCIAL_SITUACOES`, distribuicao por situacao,
+  calculo percentual, DTO seguro de parciais e builder
+  `buildPedidoAcompanhamentoParcial`.
+- **Compatibilidade preservada:** `window.RavatexPedidoTracking`,
+  `CLIENTE_TRACKING_STEPS`, `CLIENTE_TRACKING_EXCECOES` e helpers
+  antigos de status visual permanecem disponiveis e com semantica
+  preservada; nenhuma tela cliente/admin/fornecedor passou a consumir
+  parciais nesta fase.
+- **Validacao registrada:** `tests/pedido-acompanhamento-parcial.smoke.js`,
+  `tests/cliente-tracking-steps.smoke.js` e
+  `tests/cliente-pedido-tracking.smoke.js` passaram. Sem Supabase, sem
+  query real, sem writes, sem apply do `db/17`.
+- **Residuos fora de escopo preservados:** lista cliente/status visual
+  e seus testes dedicados continuam para fase separada.
+- **Proxima decisao recomendada:** ou fechar a fase de lista
+  cliente/status visual, ou fazer apply controlado de
+  `db/17_pedido_parciais_schema.sql` em staging quando houver
+  autorizacao explicita.
