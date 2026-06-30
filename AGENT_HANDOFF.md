@@ -10,6 +10,31 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next`, ponta da fase
+  `RAVATEX-TAPETES-STANDARD-SHELL-SIDEBAR-TOPSTRIP-A`. O chrome global
+  (topbar 62px + sidebar 196px) foi alinhado visualmente aos HTMLs
+  standalone (`Admin - Topbar` / `Admin - Sidebar`). **Aceite visual
+  explícito do dono do projeto em 2026-06-30** (após hard-refresh para
+  descartar cache). Implementação única em `shellLayout` em
+  `js/screens/common.js` — propaga para admin/fornecedor e (via
+  `clienteShellLayout`) para cliente, sem duplicação. Arquivos
+  alterados: `js/screens/common.js` (chrome em inline styles pixel
+  -exatos, sem Tailwind arbitrary) + `index.html` (apenas bump do
+  `?v=` do `common.js` para forçar re-fetch). Elementos homologados:
+  topbar com brand "Inttex" + sectionLabel por perfil + sino + avatar
+  com iniciais + nome + chevron; sidebar com nav-items iconizados,
+  estado ativo por `window.location.hash` (novo — antes não havia
+  destaque), hover via JS, separador e "Sair" no rodapé. Menus/rotas/
+  privilégios de cada perfil intactos. Miolos das páginas não
+  redesenhados. Pushed para `staging/main`. Produção e `origin/main`
+  não tocados.
+- **Contrato preservado:** nenhum campo interno exposto (o shell só lê
+  `nome`/`tipo` do `CURRENT_USER` e dispara `logout`); nenhum SELECT;
+  RLS/schema intocados; nenhuma tela fora do escopo alterada.
+- **Gap fechado:** `Shell/Menu cliente` marcado como resolvido em
+  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. Observação operacional:
+  ao mexer no shell no futuro, o cache-busting `?v=` do `common.js` em
+  `index.html` deve ser bumped para o navegador re-buscar o arquivo.
+- **Estado atual aceito:** `work/app-next`, ponta da fase
   `RAVATEX-TAPETES-CLIENTE-DASHBOARD-MATCH-STANDALONE-GLM`. O miolo da
   tela Dashboard do Cliente (`#/cliente/dashboard`) foi alinhado
   visualmente ao HTML standalone de referência (`Dashboard Cliente v3

@@ -1,5 +1,50 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
+> **Atualizacao 2026-06-30 — fase
+> `RAVATEX-TAPETES-STANDARD-SHELL-SIDEBAR-TOPSTRIP-A`
+> (frontend global + registro de homologacao visual).** O chrome global
+> (topbar 62px + sidebar 196px) compartilhado por todas as areas
+> (Admin, Fornecedor, Cliente) foi **alinhado visualmente aos HTMLs
+> standalone de referencia** (`Admin - Topbar - standalone.html` e
+> `Admin - Sidebar - standalone.html`, em
+> `D:\OneDrive\Ravatex\Inttex\Mockups - nova interface\`) pelo agente
+> IAexec (GLM-5.2/ZCode), e o aceite visual foi **APROVADO
+> EXPLICITAMENTE PELO DONO DO PROJETO em 2026-06-30** (apos hard-refresh
+> para descartar cache do navegador). Implementacao unica no ponto
+> central `shellLayout(menuItems, contentNode)` em
+> `js/screens/common.js` — propaga para ~25 telas admin/fornecedor e,
+> via `clienteShellLayout`, para todas as telas cliente, sem duplicacao.
+> Branch: `work/app-next`. Pushed para `staging/main`. Producao
+> `bhgifjrfagkzubpyqpew` e `origin/main` nao foram tocados. Arquivos
+> alterados: `js/screens/common.js` (chrome em inline styles pixel-exatos
+> — mesma convencao das telas cliente homologadas, sem dependencia de
+> classes Tailwind arbitrary do CDN) e `index.html` (apenas bump do
+> cache-busting `?v=` do `common.js` de `20260623-asset1` para
+> `20260630-shell1`). Elementos entregues e homologados: topbar com
+> brand "Inttex" + divisor + sectionLabel por perfil (Admin / Portal do
+> cliente / Fornecedor) + sino + avatar circular azul com iniciais do
+> usuario + nome + chevron; sidebar com nav-items iconizados (SVG
+> 17x17 por href), estado ativo derivado do `window.location.hash`
+> (novo — antes nao havia destaque de item selecionado), hover via JS,
+> separador e item "Sair" no rodape. Parametrizacao por perfil via
+> `menuItems` (ja vinha por parametro), `sectionLabel` por
+> `CURRENT_USER.tipo` e icones por mapa de href. Preservado: estrutura
+> DOM (header + div > aside + main), `<span>` "nome (tipo)" e
+> `<button>` "Sair" no header (escondidos) para compatibilidade dos
+> smoke tests, `<main class="flex-1 p-6 bg-gray-100">` herdado pelas
+> telas. Menus/rotas/permissoes de cada perfil intactos (cliente sem
+> itens admin; admin sem itens cliente). Miolos das paginas nao
+> redesenhados. Diferenca visual residual: avatares usam iniciais do
+> nome (sem foto — CURRENT_USER nao tem URL de imagem); fornecedor usa
+> rotas proprias `#/fornecedor/*`. Checks: `node --check` OK;
+> `git diff --check` OK; `screens-common.smoke.js` 13/10 (idem HEAD
+> limpo, zero regressao — as 10 falhas sao pre-existentes, todas por
+> `extractInlineScript` nao achar inline no `index.html` migrado para
+> `boot.js`); `cliente-routing.smoke.js` 19/19; `cliente-portal-visual
+> .smoke.js` 45/4 (idem HEAD limpo). Gap do Shell marcado como
+> resolvido em `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. Producao
+> permanece bloqueada.
+
 > **Atualizacao 2026-06-29 — fase
 > `RAVATEX-TAPETES-CLIENTE-DASHBOARD-MATCH-STANDALONE-GLM`
 > (frontend cliente + registro de homologacao visual).** O miolo da
