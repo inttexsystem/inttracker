@@ -1,6 +1,54 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > **Atualizacao 2026-06-30 — fase
+> `RAVATEX-TAPETES-CLIENTE-PEDIDOS-LIST-MATCH-STANDALONE-CLAUDE-R1`
+> (frontend cliente + registro de homologacao visual).** O miolo da
+> tela "Meus pedidos" do Cliente (`#/cliente/pedidos`) foi **alinhado
+> visualmente ao HTML standalone de referencia** (`Cliente - Lista de
+> Pedidos - standalone.html`, em
+> `D:\OneDrive\Ravatex\Inttex\Mockups - nova interface\Cliente\`) pelo
+> agente IAexec (Claude Sonnet 4.6), e o aceite visual foi **APROVADO
+> EXPLICITAMENTE PELO DONO DO PROJETO em 2026-06-30**. Um patch
+> anterior do agente GLM/ZCode para esta mesma tela **nao foi aceito**
+> (busca sem icone dentro de card indevido, texto do botao trocado por
+> causa de teste, icones de acao invisiveis) e foi descartado via
+> `git restore` antes desta implementacao final — nada daquele patch
+> foi reaproveitado. Branch: `work/app-next`. Pushed para
+> `staging/main`. Producao `bhgifjrfagkzubpyqpew` e `origin/main` nao
+> foram tocados. Arquivo alterado: `js/screens/cliente-pedidos-list.js`
+> (unico). Elementos entregues e homologados: header com titulo "Meus
+> Pedidos" + subtitulo + botao "Solicitar pedido" com icone "+"; busca
+> com icone de lupa na mesma caixa (sem card duplicado) + 5 tabs com
+> badge de contagem (Todos / Em producao / Pronto p/ expedicao /
+> Entregue / Cancelado); tabela de 7 colunas (Pedido / Situacao /
+> Avanco / Prazo / Recebimento / Atualizado / Acao) com pill de
+> situacao, avanco "Parcial · X / Y m" ou "Total · Y m" e botao olho
+> visivel/funcional para o detalhe; rodape de paginacao "Mostrando X a
+> Y de Z pedidos". Parciais preservadas via
+> `buildPedidoAcompanhamentoParcial(..., { forCliente: true })` (mesma
+> API ja homologada no dashboard/detalhe), com SELECTs adicionais em
+> `pedido_itens`/`pedido_parciais` (mesmas colunas seguras ja usadas
+> alhures). Shell/sidebar/topbar globais preservados (miolo entregue a
+> `clienteShellLayout`). SELECT de `pedidos` mantido **identico** ao
+> contrato ja travado pelos testes (nenhum campo novo, nenhum campo
+> interno). Diferencas visuais residuais documentadas: botao usa o
+> texto do standalone "Solicitar pedido" em vez do literal "+ Novo
+> pedido" exigido por um guard de teste desatualizado (teste falha,
+> reportado, nao corrigido para nao deformar o visual); coluna
+> "Recebimento" exibe fallback seguro "—" (campo `tipo_recebimento` ja
+> existe no schema mas esta fora do contrato de SELECT travado e nao e
+> capturado hoje na criacao do pedido); rotulos de situacao usam a
+> taxonomia compartilhada (`getClienteTrackingStatusLabel`), por isso
+> "Expedicao"/"Acabamento"/"Aguardando definicao" em vez do texto
+> decorativo do mockup. Checks: `node --check` OK; `git diff --check`
+> OK; `cliente-pedidos-list.smoke.js` 35/36 (1 falha esperada, ver
+> acima); `cliente-routing.smoke.js` 19/19; `cliente-portal-visual
+> .smoke.js` 44/5 (4 falhas identicas ao HEAD limpo + 1 nova esperada
+> por usar a mesma convencao `svgEl` via `innerHTML` ja homologada em
+> dashboard/detail/tracking — zero regressao alem do esperado).
+> Producao permanece bloqueada.
+
+> **Atualizacao 2026-06-30 — fase
 > `RAVATEX-TAPETES-STANDARD-SHELL-SIDEBAR-TOPSTRIP-A`
 > (frontend global + registro de homologacao visual).** O chrome global
 > (topbar 62px + sidebar 196px) compartilhado por todas as areas

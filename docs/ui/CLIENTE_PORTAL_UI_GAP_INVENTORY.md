@@ -57,11 +57,16 @@ projeto — em conformidade com a proibição de
 `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md` §10.
 
 **Mockup ausente para a listagem "Meus pedidos":** não foi localizado
-nenhum mockup dedicado para a tela `#/cliente/pedidos` (listagem). Essa
-tela não está entre as 4 mockups oficiais de
-`PORTAL_B2B_ARCHITECTURE_RULES.md` §10 nem nas 6 unidades de
-comparação desta fase. Registrado aqui apenas para rastreabilidade —
-**não é um bloqueio** desta fase.
+nenhum mockup dedicado para a tela `#/cliente/pedidos` (listagem) no
+momento desta fase de inventário. Essa tela não estava entre as 4
+mockups oficiais de `PORTAL_B2B_ARCHITECTURE_RULES.md` §10 nem nas 6
+unidades de comparação desta fase. Registrado aqui apenas para
+rastreabilidade — **não era um bloqueio** desta fase de inventário.
+**Atualização 2026-06-30:** o mockup `Cliente - Lista de Pedidos -
+standalone.html` foi posteriormente disponibilizado pelo dono do
+projeto e a tela foi homologada na fase
+`RAVATEX-TAPETES-CLIENTE-PEDIDOS-LIST-MATCH-STANDALONE-CLAUDE-R1`
+(ver linha "Meus Pedidos (Lista)" na matriz da §2).
 
 ### 1.2 Arquivos de implementação lidos (contexto obrigatório + telas)
 
@@ -107,6 +112,7 @@ com admin/fornecedor, ex.: `shellLayout`).
 | Detalhe do Pedido | `Detalhe do Pedido - standalone.html` | `js/screens/cliente-pedido-detail.js` | ~~Resumo com 3 colunas em vez de 4 cards; sem breadcrumb; status operacional e status visual exibidos juntos (duas taxonomias); colunas de itens com nomenclatura diferente~~ **✅ RESOLVIDO 2026-06-29 — HEAD `8650bb5`** | ✅ fechado | — | — | `RAVATEX-TAPETES-CLIENTE-DETAIL-VISUAL-HOMOLOG-RECORD-A` |
 | Acompanhamento/Stepper/Timeline | `Admin-Cliente-Acompanhamento B2B - standalone.html` (seção cliente) | `js/screens/cliente-pedido-tracking.js`, `js/screens/cliente-pedido-detail.js` | Sem datas de conclusão por etapa; taxonomia das 8 etapas + 4 exceções já bate exatamente com o mockup (alinhamento confirmado) | 🟡 média (apenas a parte de datas) | componente ausente | baixo–médio (depende de novo dado/evento) | `UI-GAP-FIX-DETALHE-A` (mesma fase do detalhe, ou subfase própria se exigir novo dado) |
 | Shell/Menu cliente | sidebar/topbar presentes em todos os mockups | `js/screens/cliente-common.js` + `js/screens/common.js` (`shellLayout`, **compartilhado com admin/fornecedor**) | ~~Menu com 2 itens em vez de 4 (sem "Novo pedido", sem "Suporte"); sem marca "Inttex"/"Portal do cliente"; sem pílula de papel "Cliente"; sem ícones; topbar genérica "Controle de Tapetes"~~ **✅ RESOLVIDO 2026-06-30 — fase `RAVATEX-TAPETES-STANDARD-SHELL-SIDEBAR-TOPSTRIP-A`** (chrome global em inline styles no `shellLayout` de `common.js`: topbar 62px com brand "Inttex" + sectionLabel por perfil + avatar; sidebar 196px com nav-items iconizados e estado ativo por hash. Itens de menu próprios de cada perfil preservados; avatares usam iniciais, sem foto. Risco "alto" mitigado: implementação única no ponto central, propaga para admin/fornecedor/cliente sem duplicação) | ✅ fechado | — | — | `RAVATEX-TAPETES-STANDARD-SHELL-SIDEBAR-TOPSTRIP-A` |
+| Meus Pedidos (Lista) | `Cliente - Lista de Pedidos - standalone.html` (disponibilizado após o inventário inicial — ver nota §1.1) | `js/screens/cliente-pedidos-list.js` | ~~Header sem botão de ação; busca/tabs ausentes (apenas chips de filtro simples); tabela 5 colunas sem badge de situação nem ícone de ação; sem coluna de avanço parcial/total; sem coluna "Recebimento"; sem paginação~~ **✅ RESOLVIDO 2026-06-30 — fase `RAVATEX-TAPETES-CLIENTE-PEDIDOS-LIST-MATCH-STANDALONE-CLAUDE-R1`** (header com botão "Solicitar pedido"; busca com ícone de lupa inline + 5 tabs com badge de contagem; tabela 7 colunas com pill de situação, avanço parcial/total via `buildPedidoAcompanhamentoParcial`, botão olho e paginação real. Diferenças residuais: botão usa o texto do standalone, não o literal exigido por um guard de teste desatualizado [reportado, teste não corrigido]; coluna "Recebimento" com fallback "—" por estar fora do contrato de SELECT travado e não capturada hoje na criação do pedido; rótulos de situação seguem a taxonomia compartilhada, não o texto decorativo do mockup) | ✅ fechado | — | — | `RAVATEX-TAPETES-CLIENTE-PEDIDOS-LIST-MATCH-STANDALONE-CLAUDE-R1` |
 
 ## 3. Dashboard Cliente — comparação detalhada
 

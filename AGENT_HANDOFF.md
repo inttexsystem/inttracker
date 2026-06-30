@@ -10,6 +10,45 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next`, ponta da fase
+  `RAVATEX-TAPETES-CLIENTE-PEDIDOS-LIST-MATCH-STANDALONE-CLAUDE-R1`. O
+  miolo da tela "Meus pedidos" do Cliente (`#/cliente/pedidos`) foi
+  alinhado visualmente ao HTML standalone de referência (`Cliente -
+  Lista de Pedidos - standalone.html`). **Aceite visual explícito do
+  dono do projeto em 2026-06-30.** Um patch anterior do agente
+  GLM/ZCode para esta tela **não foi aceito** (busca sem ícone dentro
+  de card indevido, texto do botão trocado por causa de teste, ícones
+  de ação invisíveis) e foi descartado via `git restore` antes desta
+  implementação final. Arquivo alterado: `js/screens/cliente-pedidos
+  -list.js` (único). Elementos homologados: header com botão
+  "Solicitar pedido"; busca com ícone de lupa inline (sem card
+  duplicado) + 5 tabs com badge de contagem (Todos / Em produção /
+  Pronto p/ expedição / Entregue / Cancelado); tabela 7 colunas
+  (Pedido / Situação / Avanço / Prazo / Recebimento / Atualizado /
+  Ação) com pill de situação, avanço "Parcial · X / Y m" / "Total ·
+  Y m" e botão olho visível/funcional para o detalhe; rodapé de
+  paginação. Parciais preservadas via
+  `buildPedidoAcompanhamentoParcial(..., { forCliente: true })` (mesma
+  API do dashboard/detalhe). Shell/sidebar/topbar globais preservados.
+  Pushed para `staging/main`. Produção e `origin/main` não tocados.
+- **Contrato preservado:** SELECT de `pedidos` mantido idêntico ao já
+  travado pelos testes (nenhum campo novo, nenhum campo interno
+  exposto); novos SELECTs em `pedido_itens`/`pedido_parciais` usam as
+  mesmas colunas seguras já consultadas pelo dashboard/detalhe; RLS/
+  schema intocados; nenhuma tela fora do escopo alterada.
+- **Diferenças residuais conhecidas:** botão usa o texto do standalone
+  "Solicitar pedido" em vez do literal "+ Novo pedido" exigido por um
+  guard de teste desatualizado (`cliente-pedidos-list.smoke.js`,
+  1 falha conhecida — não corrigido para não deformar o visual); coluna
+  "Recebimento" exibe fallback seguro "—" (campo `tipo_recebimento` já
+  existe no schema mas está fora do contrato de SELECT travado e não é
+  capturado hoje na criação do pedido — ver
+  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`); rótulos de situação
+  usam a taxonomia compartilhada (`getClienteTrackingStatusLabel`), por
+  isso "Expedição"/"Acabamento"/"Aguardando definicao" em vez do texto
+  decorativo do mockup.
+- **Gap fechado:** `Meus Pedidos` (lista) marcado como resolvido em
+  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`.
+- **Estado atual aceito:** `work/app-next`, ponta da fase
   `RAVATEX-TAPETES-STANDARD-SHELL-SIDEBAR-TOPSTRIP-A`. O chrome global
   (topbar 62px + sidebar 196px) foi alinhado visualmente aos HTMLs
   standalone (`Admin - Topbar` / `Admin - Sidebar`). **Aceite visual
