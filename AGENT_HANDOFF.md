@@ -10,6 +10,42 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next`, ponta da fase
+  `RAVATEX-TAPETES-ADMIN-OPS-LIST-MATCH-STANDALONE-CLOSEOUT`.
+  O miolo da tela Admin → Lista de OPs (`#/ops`) foi alinhado
+  visualmente ao HTML standalone de referencia (`Admin - Lista de
+  OPs - standalone.html`). **Aceite visual explicito do dono do
+  projeto em 2026-06-30.** Arquivo funcional principal alterado:
+  `js/screens/ops-list.js`. Microfix pontual no shell global em
+  `js/screens/common.js`, limitado a derivacao das iniciais do avatar
+  para eliminar o bug visual `A(` no admin. Elementos homologados:
+  header com botao `Nova OP` sem `+` textual duplicado; 4 KPIs
+  corretos (Total / Em producao / Simuladas / Abertas); busca com
+  icone inline; tabs `Todas / Tecelagem / Latex`; filtros/dropdowns
+  `Cliente / Todos os clientes`, `Status / Todos` e `Criada em /
+  Todos os periodos`; tabela 7 colunas (`OP / LOTE`, `TIPO`,
+  `CLIENTE`, `STATUS`, `ENTREGUE`, `CRIADA EM`, `AÇÕES`) com label de
+  `AÇÕES` centralizado, botoes `Visualizar`/`Mais` centralizados na
+  celula, badges, progresso entregue e paginacao. Shell/sidebar/
+  topbar globais preservados fora esse microfix de avatar; rota
+  `#/ops`, navegacao para detalhe/novo, acoes e permissoes admin
+  preservadas. Regra de acao preservada: OP simulada → `Editar`;
+  demais OPs → `Visualizar`; botao `Mais` apenas visual/disabled.
+  Pushed para `staging/main`. Producao e `origin/main` nao tocados.
+- **Contrato preservado:** tela continua read-only; somente SELECTs em
+  `ops` e `entrega_itens`; sem insert/update/delete/rpc/functions;
+  sem schema, SQL ou mutation Supabase; sem alteracao em telas fora
+  do escopo.
+- **Diferencas residuais conhecidas:** KPIs/contagens/linhas seguem
+  dinamicos conforme dados reais; filtro `Cliente` e derivado dos
+  clientes presentes na lista; progresso `Entregue` continua vindo de
+  `percentualEntregueOP(...)` sobre `op_itens` + `entrega_itens`, sem
+  logica nova.
+- **Teste focado conhecido:** `tests/ops-list-screen.smoke.js`
+  continua desatualizado nesta branch por blocos estaticos antigos
+  pre-`boot.js`/pre-querystring em `index.html`; se falhar, registrar
+  como teste legado fora de sincronia, sem deformar o visual para
+  tentar faze-lo passar.
+- **Estado atual aceito:** `work/app-next`, ponta da fase
   `RAVATEX-TAPETES-ADMIN-PEDIDOS-LIST-MATCH-STANDALONE-CLOSEOUT`.
   O miolo da tela Admin → Lista de pedidos (`#/pedidos`) foi alinhado
   visualmente ao HTML standalone de referencia (`Admin - Lista de

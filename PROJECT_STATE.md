@@ -1,6 +1,49 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > **Atualizacao 2026-06-30 — fase
+> `RAVATEX-TAPETES-ADMIN-OPS-LIST-MATCH-STANDALONE-CLOSEOUT`
+> (frontend admin + registro de homologacao visual).** O miolo da
+> tela **Admin → Lista de OPs** (`#/ops`) foi **alinhado visualmente
+> ao HTML standalone de referencia** (`Admin - Lista de OPs -
+> standalone.html`, em
+> `D:\OneDrive\Ravatex\Inttex\Mockups - nova interface\Admin\`) pelo
+> agente IAexec (Codex), e o aceite visual foi **APROVADO
+> EXPLICITAMENTE PELO DONO DO PROJETO em 2026-06-30**. Branch:
+> `work/app-next`. HEAD base da fase: `82d0871`. `origin/main` e a
+> producao `bhgifjrfagkzubpyqpew` permaneceram intocados. Arquivo
+> funcional principal alterado: `js/screens/ops-list.js`. Microfix
+> pontual no shell global em `js/screens/common.js`, limitado a
+> derivacao das iniciais do avatar para eliminar o bug visual `A(` no
+> admin. Elementos entregues e homologados: header com titulo
+> "Ordens de Produção" + subtitulo + botao "Nova OP" sem `+` textual
+> duplicado; 4 KPI cards corretos (Total / Em produção / Simuladas /
+> Abertas); busca com icone inline; tabs `Todas / Tecelagem / Látex`;
+> linha de filtros com dropdowns `Cliente / Todos os clientes`,
+> `Status / Todos` e `Criada em / Todos os períodos`; tabela 7
+> colunas (`OP / LOTE`, `TIPO`, `CLIENTE`, `STATUS`, `ENTREGUE`,
+> `CRIADA EM`, `AÇÕES`) com label de `AÇÕES` centralizado, badges,
+> progresso entregue, acoes centralizadas na celula e paginacao.
+> Shell/sidebar/topbar globais preservados, exceto a correcao
+> pontual das iniciais do avatar; rota `#/ops`, navegacao para
+> detalhe/novo, acoes e permissoes admin preservadas. Regra de acao
+> preservada: `OP simulada → Editar`; demais OPs → `Visualizar`; botao
+> `Mais` mantido apenas visual/disabled. Diferencas residuais
+> documentadas: contagens/KPIs/linhas continuam dinamicos conforme
+> dados reais; o filtro `Cliente` e derivado dos clientes realmente
+> presentes na lista; progresso `Entregue` segue calculado via
+> `percentualEntregueOP(...)` sobre `op_itens` + `entrega_itens`,
+> sem inventar regra nova. Checks executados:
+> `node --check js/screens/ops-list.js`,
+> `node --check js/screens/common.js`,
+> `git diff --check`. O teste focado
+> `node --test tests/ops-list-screen.smoke.js` permanece
+> **desatualizado** nesta branch por blocos estaticos antigos
+> pre-`boot.js`/pre-querystring em `index.html`; as falhas restantes
+> foram registradas, sem deformar o visual homologado para fazer o
+> teste legado passar. Nenhum schema, SQL, mutation Supabase ou fluxo
+> de producao foi tocado.
+
+> **Atualizacao 2026-06-30 — fase
 > `RAVATEX-TAPETES-ADMIN-PEDIDOS-LIST-MATCH-STANDALONE-CLOSEOUT`
 > (frontend admin + registro de homologacao visual).** O miolo da
 > tela **Admin → Lista de pedidos** (`#/pedidos`) foi **alinhado

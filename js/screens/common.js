@@ -88,7 +88,9 @@
   function initialsFor(user) {
     var nome = user && user.nome ? String(user.nome).trim() : '';
     if (!nome) return '?';
-    var parts = nome.split(/\s+/).filter(Boolean);
+    var parts = nome.split(/\s+/).map(function (part) {
+      return part.replace(/[^A-Za-zÀ-ÿ]/g, '');
+    }).filter(Boolean);
     if (parts.length === 0) return '?';
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
