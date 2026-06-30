@@ -334,59 +334,323 @@
 
   async function screenCadastrosParametros() {
     const container = window.el('div', {});
+    let lastRows = [];
+    let saving = false;
 
     async function reload() {
       const { data, error } = await window.supa.from('parametros_largura').select('*').order('largura');
-      if (error) { window.toast('Erro ao carregar parâmetros', 'error'); console.error(error); return; }
-      render(data || []);
+      if (error) { window.toast('Erro ao carregar par\u00e2metros', 'error'); console.error(error); return; }
+      lastRows = (data || []).map((row) => ({ ...row }));
+      render(lastRows);
     }
 
     function render(rows) {
-      const cards = window.el('div', { class: 'grid md:grid-cols-2 gap-4' });
-      for (const p of rows) cards.appendChild(cardParametro(p));
-      container.replaceChildren(
-        window.pageHeader('Parâmetros de cálculo', []),
-        window.el('p', { class: 'text-gray-600 mb-4 text-sm' }, 'Esses valores são usados no cálculo de fios ao simular uma OP. Edite com cuidado.'),
-        cards
-      );
+      const orderedRows = [...rows].sort((a, b) => Number(a.largura) - Number(b.largura));
+      const inputsByWidth = new Map();
+      const latestMeta = getLatestMeta(orderedRows);
+
+      const page = window.el('div', {
+        style: 'display:flex; flex-direction:column;'
+      });
+      const headerBlock = window.el('div', {
+        style: 'margin-bottom:22px;'
+      });
+      headerBlock.appendChild(window.el('div', {
+        style: 'font-size:22px; font-weight:800; color:#16203a; letter-spacing:-.01em;'
+      }, 'Par\u00e2metros de c\u00e1lculo'));
+      headerBlock.appendChild(window.el('div', {
+        style: 'font-size:13px; color:#8a93a3; margin-top:3px;'
+      }, 'Esses valores s\u00e3o usados no c\u00e1lculo de fios ao simular uma OP. Edite com cuidado.'));
+      page.appendChild(headerBlock);
+
+      const card = window.el('section', {
+        style: 'background:#fff; border:1px solid #eceef1; border-radius:6px; overflow:hidden;'
+      });
+
+      const cardHeader = window.el('div', {
+        style: 'display:flex; align-items:flex-start; justify-content:space-between; gap:24px; padding:20px 24px 18px;'
+      });
+      const headerLeft = window.el('div', {
+        style: 'display:flex; align-items:center; gap:14px; min-width:0;'
+      });
+      headerLeft.appendChild(window.el('div', {
+        style: 'width:36px; height:36px; border-radius:6px; background:#eaf1fd; display:flex; align-items:center; justify-content:center; flex-shrink:0;'
+      }, svgEl('<svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M9 21V9"></path></svg>', 18)));
+      const headerText = window.el('div', {
+        style: 'display:flex; flex-direction:column;'
+      });
+      headerText.appendChild(window.el('h2', {
+        style: 'margin:0; font-size:15px; font-weight:700; color:#16203a;'
+      }, 'Par\u00e2metros por largura'));
+      headerText.appendChild(window.el('p', {
+        style: 'margin:2px 0 0 0; font-size:12.5px; color:#8a93a3;'
+      }, 'Valores em kg/ml, salvo indica\u00e7\u00e3o contr\u00e1ria.'));
+      headerLeft.appendChild(headerText);
+
+      const callout = window.el('div', {
+        style: 'display:flex; align-items:flex-start; gap:8px; background:#f6f9ff; border:1px solid #d0e0fb; border-radius:4px; padding:10px 14px; max-width:340px; flex-shrink:0;'
+      });
+      callout.appendChild(svgEl('<svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>', 15));
+      callout.appendChild(window.el('span', {
+        style: 'font-size:12.5px; color:#2563eb; line-height:1.5;'
+      }, 'Altera\u00e7\u00f5es afetam novas simula\u00e7\u00f5es de OP.', window.el('br'), 'OPs j\u00e1 abertas n\u00e3o s\u00e3o recalculadas automaticamente.'));
+      cardHeader.appendChild(headerLeft);
+      cardHeader.appendChild(callout);
+      card.appendChild(cardHeader);
+
+      const tableWrap = window.el('div', {
+        style: 'border-top:1px solid #eceef1; overflow-x:auto;'
+      });
+      const grid = window.el('div', {});
+      const headRow = window.el('div', {
+        style: 'display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; background:#f8f9fb; border-bottom:1px solid #eceef1;'
+      });
+      headRow.appendChild(headerCell('PAR\u00c2METRO', true));
+      for (const row of orderedRows) headRow.appendChild(headerCell(`LARGURA ${formatWidth(row.largura)} m`, false));
+      grid.appendChild(headRow);
+
+      const fieldDefs = [
+        { key: 'peso_linear', label: 'Peso linear', step: '0.0001' },
+        { key: 'algodao_por_ml', label: 'Algod\u00e3o / ML', step: '0.000001' },
+        { key: 'poliester_por_ml', label: 'Poli\u00e9ster / ML', step: '0.000001' },
+        { key: 'valor_x', label: 'Fator X', step: '0.0001' },
+      ];
+
+      for (let index = 0; index < fieldDefs.length; index += 1) {
+        const field = fieldDefs[index];
+        const rowNode = window.el('div', {
+          style: `display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; align-items:center; border-bottom:${index === fieldDefs.length - 1 ? 'none' : '1px solid #f1f3f6'};`
+        });
+        rowNode.appendChild(paramLabelCell(field.label, index === fieldDefs.length - 1));
+        for (const row of orderedRows) {
+          const input = window.textInput({
+            type: 'text',
+            step: field.step,
+            value: formatInputValue(row[field.key] ?? '')
+          });
+          styleInput(input);
+          const widthKey = String(row.largura);
+          if (!inputsByWidth.has(widthKey)) inputsByWidth.set(widthKey, {});
+          inputsByWidth.get(widthKey)[field.key] = input;
+          rowNode.appendChild(valueCell(input, index === fieldDefs.length - 1));
+        }
+        grid.appendChild(rowNode);
+      }
+
+      tableWrap.appendChild(grid);
+      card.appendChild(tableWrap);
+
+      const footer = window.el('div', {
+        style: 'display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 24px; border-top:1px solid #eceef1; margin-top:4px; flex-wrap:wrap;'
+      });
+      footer.appendChild(buildFooterMeta(latestMeta));
+
+      const actions = window.el('div', {
+        style: 'display:flex; gap:12px; align-items:center; justify-content:flex-end; flex-wrap:wrap;'
+      });
+      const cancelBtn = window.el('button', {
+        type: 'button',
+        style: 'display:inline-flex; align-items:center; gap:7px; background:#fff; color:#5b6472; border:1px solid #d8dce2; border-radius:4px; padding:9px 18px; font-weight:600; font-size:14px; font-family:inherit; cursor:pointer;',
+        onclick: () => render(lastRows)
+      }, 'Cancelar altera\u00e7\u00f5es');
+      const saveBtn = window.el('button', {
+        type: 'button',
+        style: 'display:inline-flex; align-items:center; gap:8px; background:#2563eb; color:#fff; border:none; border-radius:4px; padding:9px 18px; font-weight:600; font-size:14px; font-family:inherit; cursor:pointer;',
+        onclick: async () => {
+          if (saving) return;
+          saving = true;
+          toggleActionButtons(cancelBtn, saveBtn, true);
+          try {
+            for (const row of orderedRows) {
+              const widthKey = String(row.largura);
+              const fieldInputs = inputsByWidth.get(widthKey) || {};
+              const payload = {
+                peso_linear: normalizeInputValue(fieldInputs.peso_linear?.value ?? row.peso_linear),
+                algodao_por_ml: normalizeInputValue(fieldInputs.algodao_por_ml?.value ?? row.algodao_por_ml),
+                poliester_por_ml: normalizeInputValue(fieldInputs.poliester_por_ml?.value ?? row.poliester_por_ml),
+                valor_x: normalizeInputValue(fieldInputs.valor_x?.value ?? row.valor_x),
+                atualizado_em: new Date().toISOString()
+              };
+              const { error } = await window.supa.from('parametros_largura').update(payload).eq('largura', row.largura);
+              if (error) throw error;
+            }
+            window.toast('Par\u00e2metros atualizados', 'success');
+            await reload();
+          } catch (error) {
+            window.toast('Erro ao salvar', 'error');
+            console.error(error);
+            toggleActionButtons(cancelBtn, saveBtn, false);
+          } finally {
+            saving = false;
+          }
+        }
+      });
+      saveBtn.appendChild(svgEl('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>', 15));
+      saveBtn.appendChild(window.el('span', {}, 'Salvar par\u00e2metros'));
+      actions.appendChild(cancelBtn);
+      actions.appendChild(saveBtn);
+      footer.appendChild(actions);
+      card.appendChild(footer);
+
+      page.appendChild(card);
+      container.replaceChildren(page);
     }
 
-    function cardParametro(p) {
-      const card = window.el('div', { class: 'bg-white rounded-xl shadow p-6' });
-      card.appendChild(window.el('h2', { class: 'text-lg font-semibold mb-4' }, `Largura ${Number(p.largura).toFixed(2).replace('.', ',')} m`));
-      const pesoInput  = window.textInput({ type: 'number', step: '0.0001', value: p.peso_linear });
-      const algoInput  = window.textInput({ type: 'number', step: '0.000001', value: p.algodao_por_ml });
-      const poliInput  = window.textInput({ type: 'number', step: '0.000001', value: p.poliester_por_ml });
-      const valxInput  = window.textInput({ type: 'number', step: '0.0001', value: p.valor_x });
-      card.appendChild(window.formField({ label: 'Peso linear', input: pesoInput }));
-      card.appendChild(window.formField({ label: 'Algodão / ML', input: algoInput }));
-      card.appendChild(window.formField({ label: 'Poliéster / ML', input: poliInput }));
-      card.appendChild(window.formField({ label: 'Valor X', input: valxInput }));
-      const btn = window.el('button', {
-        class: 'mt-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold px-4 py-2 rounded-lg',
-        onclick: async () => {
-          btn.disabled = true; btn.textContent = 'Salvando...';
-          const payload = {
-            peso_linear: pesoInput.value,
-            algodao_por_ml: algoInput.value,
-            poliester_por_ml: poliInput.value,
-            valor_x: valxInput.value,
-            atualizado_em: new Date().toISOString()
-          };
-          const { error } = await window.supa.from('parametros_largura').update(payload).eq('largura', p.largura);
-          btn.disabled = false; btn.textContent = 'Salvar';
-          if (error) { window.toast('Erro ao salvar', 'error'); console.error(error); return; }
-          window.toast(`Parâmetros de ${p.largura}m atualizados`, 'success');
-        }
-      }, 'Salvar');
-      card.appendChild(btn);
-      return card;
+    function svgEl(markup, size) {
+      const wrap = window.el('span', {
+        style: `width:${size}px; height:${size}px; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto;`
+      });
+      wrap.innerHTML = markup;
+      const icon = wrap.firstChild;
+      if (icon && icon.style) {
+        icon.style.width = `${size}px`;
+        icon.style.height = `${size}px`;
+        icon.style.display = 'block';
+      }
+      return wrap;
+    }
+
+    function headerCell(text, isFirst) {
+      return window.el('div', {
+        style: [
+          'padding:12px 24px',
+          'text-align:left',
+          'vertical-align:middle',
+          `border-right:${isFirst ? '1px solid #eceef1' : 'none'}`,
+          'font-size:11px',
+          'font-weight:700',
+          'color:#8a93a3',
+          'letter-spacing:.04em'
+        ].filter(Boolean).join('; ')
+      }, text);
+    }
+
+    function paramLabelCell(label, isLastRow) {
+      const td = window.el('div', {
+        style: [
+          'padding:16px 24px',
+          'vertical-align:middle',
+          'border-right:1px solid #eceef1'
+        ].join('; ')
+      });
+      const wrap = window.el('div', {
+        style: 'display:flex; align-items:center; font-size:14px; font-weight:500; color:#16203a;'
+      });
+      wrap.appendChild(window.el('span', {}, label));
+      wrap.appendChild(window.el('span', {
+        title: label,
+        style: 'display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; border:1.5px solid #c5cad4; color:#9aa2af; font-size:10px; font-weight:700; cursor:help; flex-shrink:0; margin-left:6px;'
+      }, '?'));
+      td.appendChild(wrap);
+      return td;
+    }
+
+    function valueCell(input, isLastRow) {
+      const td = window.el('div', {
+        style: [
+          'padding:16px 24px',
+          'vertical-align:middle'
+        ].join('; ')
+      });
+      td.appendChild(input);
+      return td;
+    }
+
+    function styleInput(input) {
+      input.style.width = '100%';
+      input.style.border = '1px solid #d8dce2';
+      input.style.borderRadius = '4px';
+      input.style.padding = '9px 12px';
+      input.style.fontSize = '14px';
+      input.style.fontFamily = 'inherit';
+      input.style.color = '#16203a';
+      input.style.border = '1px solid #d8dce2';
+      input.style.background = '#fff';
+      input.style.outline = 'none';
+      input.style.boxSizing = 'border-box';
+      input.addEventListener('focus', function () {
+        input.style.borderColor = '#2563eb';
+        input.style.boxShadow = '0 0 0 3px rgba(37,99,235,.1)';
+      });
+      input.addEventListener('blur', function () {
+        input.style.borderColor = '#d8dce2';
+        input.style.boxShadow = 'none';
+      });
+    }
+
+    function buildFooterMeta(meta) {
+      const wrap = window.el('div', {
+        style: 'display:flex; align-items:center; gap:8px;'
+      });
+      wrap.appendChild(svgEl('<svg viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>', 14));
+      const text = window.el('div', {
+        style: 'display:flex; flex-direction:column;'
+      });
+      text.appendChild(window.el('p', {
+        style: 'margin:0; font-size:12.5px; color:#5b6472;'
+      }, `\u00daltima atualiza\u00e7\u00e3o: ${meta.updatedAtLabel}`));
+      text.appendChild(window.el('p', {
+        style: 'margin:0; font-size:12px; color:#9aa2af;'
+      }, `Atualizado por: ${meta.updatedByLabel}`));
+      wrap.appendChild(text);
+      return wrap;
+    }
+
+    function toggleActionButtons(cancelBtn, saveBtn, disabled) {
+      cancelBtn.disabled = disabled;
+      saveBtn.disabled = disabled;
+      cancelBtn.style.opacity = disabled ? '0.65' : '1';
+      saveBtn.style.opacity = disabled ? '0.75' : '1';
+      cancelBtn.style.cursor = disabled ? 'default' : 'pointer';
+      saveBtn.style.cursor = disabled ? 'default' : 'pointer';
+      if (saveBtn.lastChild) saveBtn.lastChild.textContent = disabled ? 'Salvando...' : 'Salvar par\u00e2metros';
+    }
+
+    function getLatestMeta(rows) {
+      const latestRow = rows.reduce((best, current) => {
+        const bestTime = best?.atualizado_em ? Date.parse(best.atualizado_em) : 0;
+        const currentTime = current?.atualizado_em ? Date.parse(current.atualizado_em) : 0;
+        return currentTime > bestTime ? current : best;
+      }, null);
+      const updatedByLabel = latestRow?.atualizado_por_nome
+        || latestRow?.atualizado_por
+        || latestRow?.atualizado_por_email
+        || '\u2014';
+      return {
+        updatedAtLabel: formatUpdatedAt(latestRow?.atualizado_em),
+        updatedByLabel
+      };
+    }
+
+    function formatUpdatedAt(value) {
+      if (!value) return '\u2014';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '\u2014';
+      const datePart = date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      const timePart = date.toLocaleTimeString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      return `${datePart} \u00e0s ${timePart}`;
+    }
+
+    function formatWidth(value) {
+      return Number(value || 0).toFixed(2).replace('.', ',');
+    }
+
+    function formatInputValue(value) {
+      if (value == null || value === '') return '';
+      return String(value).replace('.', ',');
+    }
+
+    function normalizeInputValue(value) {
+      return value == null ? value : String(value).replace(',', '.');
     }
 
     await reload();
     return window.shellLayout(window.ADMIN_MENU, container);
   }
-
   async function screenCadastrosFornecedores() {
     const container = window.el('div', {});
 

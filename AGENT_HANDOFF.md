@@ -1,17 +1,43 @@
-# AGENT_HANDOFF.md — Controle de Tapetes
+# AGENT_HANDOFF.md â€” Controle de Tapetes
 
-> Para uma nova sessão de IA continuar com segurança. Leia junto:
+> Para uma nova sessÃ£o de IA continuar com seguranÃ§a. Leia junto:
 > `PROJECT_STATE.md`, `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md`
 > e `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`.
 > Regras vinculantes em `docs/architecture/CODE_HEALTH_RULES.md`.
-> Índice de fontes canônicas vs. legadas em
+> Ãndice de fontes canÃ´nicas vs. legadas em
 > `docs/DOCUMENTATION_INDEX.md`.
-> Convenção: **tudo em português brasileiro**.
+> ConvenÃ§Ã£o: **tudo em portuguÃªs brasileiro**.
 
 ## Estado atual aceito
-- **Estado atual aceito:** `work/app-next`, ponta da fase
+-- **Estado atual aceito:** `work/app-next`, ponta da fase
+  `RAVATEX-TAPETES-ADMIN-PARAMETROS-CALCULO-MATCH-STANDALONE-CLOSEOUT`.
+  O miolo da tela Admin -> Parametros de calculo
+  (`#/cadastros/parametros`) foi alinhado visualmente ao HTML
+  standalone de referencia (`Admin - Parametros - standalone.html`).
+  **Aceite visual explicito do dono do projeto em 2026-06-30.**
+  Arquivo funcional alterado: `js/screens/cadastros.js` (unico).
+  Elementos homologados: header interno e espacamentos alinhados;
+  callout azul com icone e bloco compacto; tabela convertida para grid
+  no desenho do mockup; inputs, tooltips e rodape alinhados em
+  radius, padding e tipografia; acoes `Cancelar alteracoes` e
+  `Salvar parametros` no padrao visual esperado. Shell/sidebar/topbar
+  globais preservados; rota, acoes, validacoes e permissoes admin
+  preservadas. Preview temporario `.codex-parametros-visual-check.html`
+  removido antes do fechamento e nao commitado. Pushed para
+  `staging/main`. Producao e `origin/main` nao tocados.
+- **Contrato preservado:** tela continua usando os dados reais de
+  `parametros_largura`; leituras em `select('*').order('largura')` e
+  salvamento por `update(...).eq('largura', ...)`; sem schema, SQL,
+  mutation Supabase nova, RPC nova ou alteracao de payload.
+- **Diferencas residuais conhecidas:** `Atualizado por` usa fallback
+  seguro em `atualizado_por_nome`, `atualizado_por` ou
+  `atualizado_por_email`; se ausentes, exibe `-`, sem inventar dado.
+- **Teste focado conhecido:** `tests/cadastros-screens.smoke.js`
+  continua verde para `screenCadastrosParametros`; a unica falha
+  remanescente fica fora do escopo desta fase, em `screenPainel`, por
+  contagem esperada de itens do `ADMIN_MENU`. **Estado atual aceito:** `work/app-next`, ponta da fase
   `RAVATEX-TAPETES-ADMIN-OPS-LIST-MATCH-STANDALONE-CLOSEOUT`.
-  O miolo da tela Admin → Lista de OPs (`#/ops`) foi alinhado
+  O miolo da tela Admin â†’ Lista de OPs (`#/ops`) foi alinhado
   visualmente ao HTML standalone de referencia (`Admin - Lista de
   OPs - standalone.html`). **Aceite visual explicito do dono do
   projeto em 2026-06-30.** Arquivo funcional principal alterado:
@@ -23,13 +49,13 @@
   icone inline; tabs `Todas / Tecelagem / Latex`; filtros/dropdowns
   `Cliente / Todos os clientes`, `Status / Todos` e `Criada em /
   Todos os periodos`; tabela 7 colunas (`OP / LOTE`, `TIPO`,
-  `CLIENTE`, `STATUS`, `ENTREGUE`, `CRIADA EM`, `AÇÕES`) com label de
-  `AÇÕES` centralizado, botoes `Visualizar`/`Mais` centralizados na
+  `CLIENTE`, `STATUS`, `ENTREGUE`, `CRIADA EM`, `AÃ‡Ã•ES`) com label de
+  `AÃ‡Ã•ES` centralizado, botoes `Visualizar`/`Mais` centralizados na
   celula, badges, progresso entregue e paginacao. Shell/sidebar/
   topbar globais preservados fora esse microfix de avatar; rota
   `#/ops`, navegacao para detalhe/novo, acoes e permissoes admin
-  preservadas. Regra de acao preservada: OP simulada → `Editar`;
-  demais OPs → `Visualizar`; botao `Mais` apenas visual/disabled.
+  preservadas. Regra de acao preservada: OP simulada â†’ `Editar`;
+  demais OPs â†’ `Visualizar`; botao `Mais` apenas visual/disabled.
   Pushed para `staging/main`. Producao e `origin/main` nao tocados.
 - **Contrato preservado:** tela continua read-only; somente SELECTs em
   `ops` e `entrega_itens`; sem insert/update/delete/rpc/functions;
@@ -47,7 +73,7 @@
   tentar faze-lo passar.
 - **Estado atual aceito:** `work/app-next`, ponta da fase
   `RAVATEX-TAPETES-ADMIN-PEDIDOS-LIST-MATCH-STANDALONE-CLOSEOUT`.
-  O miolo da tela Admin → Lista de pedidos (`#/pedidos`) foi alinhado
+  O miolo da tela Admin â†’ Lista de pedidos (`#/pedidos`) foi alinhado
   visualmente ao HTML standalone de referencia (`Admin - Lista de
   Pedidos - standalone.html`). **Aceite visual explicito do dono do
   projeto em 2026-06-30.** Arquivo funcional alterado:
@@ -71,45 +97,45 @@
   Supabase; sem alteracao em `js/screens/common.js` ou `index.html`.
 - **Diferencas residuais conhecidas:** KPIs/contagens/linhas sao
   dinamicos conforme dados reais; `tipo_recebimento` fica em fallback
-  seguro "—" quando ausente; "Visivel ao cliente" usa a taxonomia
+  seguro "â€”" quando ausente; "Visivel ao cliente" usa a taxonomia
   publicada em `status_cliente_visual` / `status_cliente_excecao`,
   podendo divergir do texto decorativo estatico do mockup.
 - **Estado atual aceito:** `work/app-next`, ponta da fase
   `RAVATEX-TAPETES-CLIENTE-PEDIDOS-LIST-MATCH-STANDALONE-CLAUDE-R1`. O
   miolo da tela "Meus pedidos" do Cliente (`#/cliente/pedidos`) foi
-  alinhado visualmente ao HTML standalone de referência (`Cliente -
-  Lista de Pedidos - standalone.html`). **Aceite visual explícito do
+  alinhado visualmente ao HTML standalone de referÃªncia (`Cliente -
+  Lista de Pedidos - standalone.html`). **Aceite visual explÃ­cito do
   dono do projeto em 2026-06-30.** Um patch anterior do agente
-  GLM/ZCode para esta tela **não foi aceito** (busca sem ícone dentro
-  de card indevido, texto do botão trocado por causa de teste, ícones
-  de ação invisíveis) e foi descartado via `git restore` antes desta
-  implementação final. Arquivo alterado: `js/screens/cliente-pedidos
-  -list.js` (único). Elementos homologados: header com botão
-  "Solicitar pedido"; busca com ícone de lupa inline (sem card
-  duplicado) + 5 tabs com badge de contagem (Todos / Em produção /
-  Pronto p/ expedição / Entregue / Cancelado); tabela 7 colunas
-  (Pedido / Situação / Avanço / Prazo / Recebimento / Atualizado /
-  Ação) com pill de situação, avanço "Parcial · X / Y m" / "Total ·
-  Y m" e botão olho visível/funcional para o detalhe; rodapé de
-  paginação. Parciais preservadas via
+  GLM/ZCode para esta tela **nÃ£o foi aceito** (busca sem Ã­cone dentro
+  de card indevido, texto do botÃ£o trocado por causa de teste, Ã­cones
+  de aÃ§Ã£o invisÃ­veis) e foi descartado via `git restore` antes desta
+  implementaÃ§Ã£o final. Arquivo alterado: `js/screens/cliente-pedidos
+  -list.js` (Ãºnico). Elementos homologados: header com botÃ£o
+  "Solicitar pedido"; busca com Ã­cone de lupa inline (sem card
+  duplicado) + 5 tabs com badge de contagem (Todos / Em produÃ§Ã£o /
+  Pronto p/ expediÃ§Ã£o / Entregue / Cancelado); tabela 7 colunas
+  (Pedido / SituaÃ§Ã£o / AvanÃ§o / Prazo / Recebimento / Atualizado /
+  AÃ§Ã£o) com pill de situaÃ§Ã£o, avanÃ§o "Parcial Â· X / Y m" / "Total Â·
+  Y m" e botÃ£o olho visÃ­vel/funcional para o detalhe; rodapÃ© de
+  paginaÃ§Ã£o. Parciais preservadas via
   `buildPedidoAcompanhamentoParcial(..., { forCliente: true })` (mesma
   API do dashboard/detalhe). Shell/sidebar/topbar globais preservados.
-  Pushed para `staging/main`. Produção e `origin/main` não tocados.
-- **Contrato preservado:** SELECT de `pedidos` mantido idêntico ao já
+  Pushed para `staging/main`. ProduÃ§Ã£o e `origin/main` nÃ£o tocados.
+- **Contrato preservado:** SELECT de `pedidos` mantido idÃªntico ao jÃ¡
   travado pelos testes (nenhum campo novo, nenhum campo interno
   exposto); novos SELECTs em `pedido_itens`/`pedido_parciais` usam as
-  mesmas colunas seguras já consultadas pelo dashboard/detalhe; RLS/
+  mesmas colunas seguras jÃ¡ consultadas pelo dashboard/detalhe; RLS/
   schema intocados; nenhuma tela fora do escopo alterada.
-- **Diferenças residuais conhecidas:** botão usa o texto do standalone
+- **DiferenÃ§as residuais conhecidas:** botÃ£o usa o texto do standalone
   "Solicitar pedido" em vez do literal "+ Novo pedido" exigido por um
   guard de teste desatualizado (`cliente-pedidos-list.smoke.js`,
-  1 falha conhecida — não corrigido para não deformar o visual); coluna
-  "Recebimento" exibe fallback seguro "—" (campo `tipo_recebimento` já
-  existe no schema mas está fora do contrato de SELECT travado e não é
-  capturado hoje na criação do pedido — ver
-  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`); rótulos de situação
+  1 falha conhecida â€” nÃ£o corrigido para nÃ£o deformar o visual); coluna
+  "Recebimento" exibe fallback seguro "â€”" (campo `tipo_recebimento` jÃ¡
+  existe no schema mas estÃ¡ fora do contrato de SELECT travado e nÃ£o Ã©
+  capturado hoje na criaÃ§Ã£o do pedido â€” ver
+  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`); rÃ³tulos de situaÃ§Ã£o
   usam a taxonomia compartilhada (`getClienteTrackingStatusLabel`), por
-  isso "Expedição"/"Acabamento"/"Aguardando definicao" em vez do texto
+  isso "ExpediÃ§Ã£o"/"Acabamento"/"Aguardando definicao" em vez do texto
   decorativo do mockup.
 - **Gap fechado:** `Meus Pedidos` (lista) marcado como resolvido em
   `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`.
@@ -117,121 +143,121 @@
   `RAVATEX-TAPETES-STANDARD-SHELL-SIDEBAR-TOPSTRIP-A`. O chrome global
   (topbar 62px + sidebar 196px) foi alinhado visualmente aos HTMLs
   standalone (`Admin - Topbar` / `Admin - Sidebar`). **Aceite visual
-  explícito do dono do projeto em 2026-06-30** (após hard-refresh para
-  descartar cache). Implementação única em `shellLayout` em
-  `js/screens/common.js` — propaga para admin/fornecedor e (via
-  `clienteShellLayout`) para cliente, sem duplicação. Arquivos
+  explÃ­cito do dono do projeto em 2026-06-30** (apÃ³s hard-refresh para
+  descartar cache). ImplementaÃ§Ã£o Ãºnica em `shellLayout` em
+  `js/screens/common.js` â€” propaga para admin/fornecedor e (via
+  `clienteShellLayout`) para cliente, sem duplicaÃ§Ã£o. Arquivos
   alterados: `js/screens/common.js` (chrome em inline styles pixel
   -exatos, sem Tailwind arbitrary) + `index.html` (apenas bump do
-  `?v=` do `common.js` para forçar re-fetch). Elementos homologados:
+  `?v=` do `common.js` para forÃ§ar re-fetch). Elementos homologados:
   topbar com brand "Inttex" + sectionLabel por perfil + sino + avatar
   com iniciais + nome + chevron; sidebar com nav-items iconizados,
-  estado ativo por `window.location.hash` (novo — antes não havia
-  destaque), hover via JS, separador e "Sair" no rodapé. Menus/rotas/
-  privilégios de cada perfil intactos. Miolos das páginas não
-  redesenhados. Pushed para `staging/main`. Produção e `origin/main`
-  não tocados.
-- **Contrato preservado:** nenhum campo interno exposto (o shell só lê
+  estado ativo por `window.location.hash` (novo â€” antes nÃ£o havia
+  destaque), hover via JS, separador e "Sair" no rodapÃ©. Menus/rotas/
+  privilÃ©gios de cada perfil intactos. Miolos das pÃ¡ginas nÃ£o
+  redesenhados. Pushed para `staging/main`. ProduÃ§Ã£o e `origin/main`
+  nÃ£o tocados.
+- **Contrato preservado:** nenhum campo interno exposto (o shell sÃ³ lÃª
   `nome`/`tipo` do `CURRENT_USER` e dispara `logout`); nenhum SELECT;
   RLS/schema intocados; nenhuma tela fora do escopo alterada.
 - **Gap fechado:** `Shell/Menu cliente` marcado como resolvido em
-  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. Observação operacional:
+  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. ObservaÃ§Ã£o operacional:
   ao mexer no shell no futuro, o cache-busting `?v=` do `common.js` em
   `index.html` deve ser bumped para o navegador re-buscar o arquivo.
 - **Estado atual aceito:** `work/app-next`, ponta da fase
   `RAVATEX-TAPETES-CLIENTE-DASHBOARD-MATCH-STANDALONE-GLM`. O miolo da
   tela Dashboard do Cliente (`#/cliente/dashboard`) foi alinhado
-  visualmente ao HTML standalone de referência (`Dashboard Cliente v3
-  - standalone.html`). **Aceite visual explícito do dono do projeto em
-  2026-06-29** (após ajuste R1: coluna "Resumo" removida de "Pedidos
+  visualmente ao HTML standalone de referÃªncia (`Dashboard Cliente v3
+  - standalone.html`). **Aceite visual explÃ­cito do dono do projeto em
+  2026-06-29** (apÃ³s ajuste R1: coluna "Resumo" removida de "Pedidos
   em destaque" e largura/alinhamento do card "Resumo dos pedidos"
   corrigidos). Arquivo alterado: `js/screens/cliente-dashboard.js`
-  (único). Elementos homologados: header com botão "Novo pedido"; 4
-  KPI cards (Meus pedidos / Em produção / Concluído / Atrasado) com
-  ícone; "Pedidos em destaque" como tabela 6 colunas (Pedido ·
-  Situação · Avanço · Atualizado · Prazo previsto · Ação) com badge de
-  situação e avanço "Parcial · X / Y m" / "Total · Y m"; "Resumo dos
-  pedidos" com donut SVG + legenda; "Últimas atualizações" e "Prazos
-  próximos". Parciais preservadas via
+  (Ãºnico). Elementos homologados: header com botÃ£o "Novo pedido"; 4
+  KPI cards (Meus pedidos / Em produÃ§Ã£o / ConcluÃ­do / Atrasado) com
+  Ã­cone; "Pedidos em destaque" como tabela 6 colunas (Pedido Â·
+  SituaÃ§Ã£o Â· AvanÃ§o Â· Atualizado Â· Prazo previsto Â· AÃ§Ã£o) com badge de
+  situaÃ§Ã£o e avanÃ§o "Parcial Â· X / Y m" / "Total Â· Y m"; "Resumo dos
+  pedidos" com donut SVG + legenda; "Ãšltimas atualizaÃ§Ãµes" e "Prazos
+  prÃ³ximos". Parciais preservadas via
   `buildPedidoAcompanhamentoParcial` (dados seguros, mesma API do
   detalhe). Shell/sidebar/topbar globais preservados. Pushed para
-  `staging/main`. Produção e `origin/main` não tocados.
+  `staging/main`. ProduÃ§Ã£o e `origin/main` nÃ£o tocados.
 - **Contrato preservado:** nenhum campo interno exposto; SELECTs
-  read-only mantidos; RLS intocada; schema não alterado; nenhuma tela
-  fora do escopo alterada; shell global não redesenhado.
+  read-only mantidos; RLS intocada; schema nÃ£o alterado; nenhuma tela
+  fora do escopo alterada; shell global nÃ£o redesenhado.
 - **Gap fechado:** `Dashboard Cliente` marcado como resolvido em
-  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. Próximos gaps
+  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. PrÃ³ximos gaps
   remanescentes: Acompanhamento/Stepper (datas por etapa) e
-  Shell/Menu cliente, este último de risco alto (componente
+  Shell/Menu cliente, este Ãºltimo de risco alto (componente
   compartilhado com admin/fornecedor).
 - **Estado atual aceito:** `work/app-next`, ponta da fase
   `RAVATEX-TAPETES-UI-MATCH-STANDALONE-NOVO-PEDIDO-ADD-ITEM-MODAL`.
   O modal "Adicionar item" da tela `#/cliente/pedidos/novo` foi
-  alinhado visualmente ao HTML standalone de referência
+  alinhado visualmente ao HTML standalone de referÃªncia
   (`Modal Adicionar Item - standalone.html`). **Aceite visual
-  explícito do dono do projeto em 2026-06-29.** Arquivo alterado:
-  `js/screens/cliente-pedido-form.js` (único). Elementos homologados:
+  explÃ­cito do dono do projeto em 2026-06-29.** Arquivo alterado:
+  `js/screens/cliente-pedido-form.js` (Ãºnico). Elementos homologados:
   overlay com backdrop; card 460px com radius/shadow; header
-  (título + subtítulo + botão fechar); campo Modelo (select real);
+  (tÃ­tulo + subtÃ­tulo + botÃ£o fechar); campo Modelo (select real);
   Cor 1/Cor 2 derivadas do modelo selecionado (somente leitura,
   override por item deferido); Largura derivada + Metragem (input
-  numérico); "Referência visual" decorativa (gradiente/círculo/borda
-  tracejada); Observação do item (textarea + contador "0/200");
+  numÃ©rico); "ReferÃªncia visual" decorativa (gradiente/cÃ­rculo/borda
+  tracejada); ObservaÃ§Ã£o do item (textarea + contador "0/200");
   footer Cancelar/Adicionar item. Funcionalidade preservada: abertura
-  via clique, inclusão real do item em `state.itens`, validações de
-  modelo e metragem > 0, fechamento por botão/overlay/Esc. Diferenças
-  residuais documentadas: Metragem usa `type="number"` (não `text`,
-  para manter validação numérica) e placeholder de Observação evita o
-  termo interno "lote". Pushed para `staging/main`. Produção e
-  `origin/main` não tocados.
+  via clique, inclusÃ£o real do item em `state.itens`, validaÃ§Ãµes de
+  modelo e metragem > 0, fechamento por botÃ£o/overlay/Esc. DiferenÃ§as
+  residuais documentadas: Metragem usa `type="number"` (nÃ£o `text`,
+  para manter validaÃ§Ã£o numÃ©rica) e placeholder de ObservaÃ§Ã£o evita o
+  termo interno "lote". Pushed para `staging/main`. ProduÃ§Ã£o e
+  `origin/main` nÃ£o tocados.
 - **Contrato preservado:** nenhum campo interno exposto; RLS intocada;
-  schema não alterado; nenhuma tela fora do escopo alterada (dashboard
-  não tocado).
+  schema nÃ£o alterado; nenhuma tela fora do escopo alterada (dashboard
+  nÃ£o tocado).
 - **Gap fechado:** `Modal Adicionar Item` marcado como resolvido em
-  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. Próxima etapa:
-  avaliar demais gaps (Dashboard, shell), com decisões `OP-001` a
+  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. PrÃ³xima etapa:
+  avaliar demais gaps (Dashboard, shell), com decisÃµes `OP-001` a
   `OP-012` respondidas antes de nova UI.
 - **Estado atual aceito:** `work/app-next`, ponta da fase
   `RAVATEX-TAPETES-UI-MATCH-STANDALONE-NOVO-PEDIDO`.
   A tela `#/cliente/pedidos/novo` foi alinhada visualmente ao HTML
-  standalone de referência (`Novo Pedido - standalone.html`). **Aceite
-  visual explícito do dono do projeto em 2026-06-29.** Arquivo alterado:
-  `js/screens/cliente-pedido-form.js` (único). Elementos homologados:
-  header back + título 23px/800 + Cancelar; card "Dados gerais" 3 colunas;
+  standalone de referÃªncia (`Novo Pedido - standalone.html`). **Aceite
+  visual explÃ­cito do dono do projeto em 2026-06-29.** Arquivo alterado:
+  `js/screens/cliente-pedido-form.js` (Ãºnico). Elementos homologados:
+  header back + tÃ­tulo 23px/800 + Cancelar; card "Dados gerais" 3 colunas;
   tabela de itens grid `60px 1.1fr 1.1fr .8fr 1.1fr 1.2fr 84px`;
-  rodapé de totais; seção bottom grid 3fr/1fr com textarea auto-extensível
-  + card "Ir para checkout"; align-items:stretch. Funcionalidade de criação
-  preservada (INSERT `pedidos` + `pedido_itens`, compensação, validações).
-  Campos `referencia`/`recebimento` em UI mas **não enviados ao DB**.
+  rodapÃ© de totais; seÃ§Ã£o bottom grid 3fr/1fr com textarea auto-extensÃ­vel
+  + card "Ir para checkout"; align-items:stretch. Funcionalidade de criaÃ§Ã£o
+  preservada (INSERT `pedidos` + `pedido_itens`, compensaÃ§Ã£o, validaÃ§Ãµes).
+  Campos `referencia`/`recebimento` em UI mas **nÃ£o enviados ao DB**.
   Modal "Adicionar item" deferido para fase posterior. Pushed para
-  `staging/main`. Produção e `origin/main` não tocados.
+  `staging/main`. ProduÃ§Ã£o e `origin/main` nÃ£o tocados.
 - **Contrato preservado:** nenhum campo interno exposto; RLS intocada;
-  schema não alterado; nenhuma tela fora do escopo alterada.
+  schema nÃ£o alterado; nenhuma tela fora do escopo alterada.
 - **Gap fechado:** `Novo Pedido` marcado como resolvido em
-  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. Próxima etapa:
+  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. PrÃ³xima etapa:
   avaliar demais gaps (Dashboard, Modal Adicionar Item, shell), com
-  decisões `OP-001` a `OP-012` respondidas antes de nova UI.
+  decisÃµes `OP-001` a `OP-012` respondidas antes de nova UI.
 - **Estado atual aceito:** `work/app-next`, HEAD `8650bb5` ("Match
   cliente pedido detail to standalone reference"), ponta da fase
   `RAVATEX-TAPETES-CLIENTE-DETAIL-VISUAL-HOMOLOG-RECORD-A`
-  (docs-only, registro de homologação visual). A tela
+  (docs-only, registro de homologaÃ§Ã£o visual). A tela
   `#/cliente/pedidos/<uuid>` foi alinhada visualmente ao HTML standalone
-  de referência (`Detalhe do Pedido v2 - standalone.html`). **Aceite
-  visual explícito do dono do projeto em 2026-06-29.** Elementos
-  entregues e homologados: breadcrumb + título inline + badge de status;
+  de referÃªncia (`Detalhe do Pedido v2 - standalone.html`). **Aceite
+  visual explÃ­cito do dono do projeto em 2026-06-29.** Elementos
+  entregues e homologados: breadcrumb + tÃ­tulo inline + badge de status;
   meta card 3 colunas; stepper 42px conic-gradient two-tone
-  (`#2563eb`/`#dbeafe`), check SVG nos concluídos, wrapper âmbar para
-  exceção; preview com textura preservada; distribuição com barras;
-  parciais em tabela 4 colunas; histórico com timeline vertical. 92/92
-  testes passam. Pushed para `staging/main`. Produção `bhgifjrfagkzubpyqpew`
-  e `origin/main` não tocados.
+  (`#2563eb`/`#dbeafe`), check SVG nos concluÃ­dos, wrapper Ã¢mbar para
+  exceÃ§Ã£o; preview com textura preservada; distribuiÃ§Ã£o com barras;
+  parciais em tabela 4 colunas; histÃ³rico com timeline vertical. 92/92
+  testes passam. Pushed para `staging/main`. ProduÃ§Ã£o `bhgifjrfagkzubpyqpew`
+  e `origin/main` nÃ£o tocados.
 - **Contrato preservado:** tela permanece 100% read-only; nenhum campo
   interno exposto (OP, lote, fornecedor, NF, romaneio, custo, margem,
   metadata, criado_por, origem, observacao_admin, token_acesso); RLS
-  intocada; dashboard/lista/admin não alterados.
+  intocada; dashboard/lista/admin nÃ£o alterados.
 - **Gap fechado:** `Detalhe do Pedido` marcado como resolvido em
-  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. Próxima etapa:
-  avaliar demais gaps (Dashboard, Novo Pedido, shell), com decisões
+  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. PrÃ³xima etapa:
+  avaliar demais gaps (Dashboard, Novo Pedido, shell), com decisÃµes
   `OP-001` a `OP-012` respondidas antes de nova UI.
 - **Estado atual aceito:** `work/app-next` na ponta da fase
   `RAVATEX-TAPETES-CLIENTE-STATUS-VISUAL-LIST-A-R1` (frontend cliente
@@ -242,7 +268,7 @@
   `from('pedidos')` e `select(...)` explicito; usa apenas campos
   seguros de status visual publicados ao cliente; sem `select('*')`,
   sem writes, sem RPC, sem Edge Function, sem admin e sem fornecedor.
-- **Sem contaminação de escopo:** nenhuma alteracao em schema, SQL,
+- **Sem contaminaÃ§Ã£o de escopo:** nenhuma alteracao em schema, SQL,
   Supabase ou helper/read-model parcial; nenhuma tela consumidora fora
   da lista foi alterada nesta fase.
 - **Validacao registrada:** `tests/cliente-pedidos-list.smoke.js`,
@@ -280,55 +306,55 @@
   `UI-GAP-FIX-DASHBOARD-A` e por ultimo `UI-GAP-FIX-SHELL-A`
   (risco cross-role do `shellLayout`). `docs/ui/CLIENTE_PORTAL_UI_OPERATIONS_RULES.md`
   e documento diagnostico/operacional, nao-canonico, indexado em
-  `docs/DOCUMENTATION_INDEX.md` §1b.
+  `docs/DOCUMENTATION_INDEX.md` Â§1b.
 - **Estado atual aceito:** `work/app-next` na ponta da fase
   `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-GAP-INVENTORY-A` (docs-only,
-  inventário de gaps de UI, read-only/diagnóstico — sem código, sem
+  inventÃ¡rio de gaps de UI, read-only/diagnÃ³stico â€” sem cÃ³digo, sem
   schema, sem SQL, sem Supabase). HEAD: ver `git log -1` (commit desta
   fase, mensagem `"Inventory cliente portal UI gaps"`). Supabase
-  staging: `ucrjtfswnfdlxwtmxnoo` (não acessado nesta fase — só
-  leitura de arquivos locais). Produção/original
+  staging: `ucrjtfswnfdlxwtmxnoo` (nÃ£o acessado nesta fase â€” sÃ³
+  leitura de arquivos locais). ProduÃ§Ã£o/original
   `bhgifjrfagkzubpyqpew` e `origin/main` **intocados**.
-- **Inventário de gaps de UI do Portal Cliente B2B** (fase
+- **InventÃ¡rio de gaps de UI do Portal Cliente B2B** (fase
   `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-GAP-INVENTORY-A`, esta, docs-only).
   Produzido `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`, comparando os
   5 mockups aprovados (localizados fora do repo em
   `D:\OneDrive\Ravatex\Inttex\Mockups - nova interface\`: Dashboard
   Cliente, Novo Pedido, Modal Adicionar Item, Detalhe do Pedido,
-  Admin-Cliente-Acompanhamento B2B) contra as 6 telas/áreas do portal
+  Admin-Cliente-Acompanhamento B2B) contra as 6 telas/Ã¡reas do portal
   cliente atual (Dashboard, Novo Pedido, Modal Adicionar Item, Detalhe
   do Pedido, Acompanhamento/Stepper/Timeline, Shell/Menu). Gaps
-  principais: KPIs do dashboard com semântica diferente do mockup;
+  principais: KPIs do dashboard com semÃ¢ntica diferente do mockup;
   fluxo de novo pedido em 1 etapa/itens inline em vez de tabela+modal+
-  checkout em 2 etapas; campos já existentes no schema
+  checkout em 2 etapas; campos jÃ¡ existentes no schema
   (`referencia_cliente`, `tipo_recebimento`, `cor_1_id`/`cor_2_id`/
-  `largura` por item) não capturados na criação; exibição simultânea
+  `largura` por item) nÃ£o capturados na criaÃ§Ã£o; exibiÃ§Ã£o simultÃ¢nea
   do status operacional (`pedidoStatusBadge`) e do status visual no
   detalhe; stepper sem datas por etapa; shell/menu cliente com 2 itens
-  (faltam "Novo pedido" e "Suporte") e sem identidade visual própria,
+  (faltam "Novo pedido" e "Suporte") e sem identidade visual prÃ³pria,
   usando `shellLayout` **compartilhado com admin/fornecedor** (risco
-  alto para qualquer correção futura). Particularidades operacionais
-  registradas como **TBD explícito** (sem inventar regra): obrigação
-  ou não de "tipo de recebimento"; checkout em 1 ou 2 etapas; manter
-  ou não o status operacional visível ao cliente; campos obrigatórios
-  do formulário; regras futuras de edição/cancelamento pelo cliente.
+  alto para qualquer correÃ§Ã£o futura). Particularidades operacionais
+  registradas como **TBD explÃ­cito** (sem inventar regra): obrigaÃ§Ã£o
+  ou nÃ£o de "tipo de recebimento"; checkout em 1 ou 2 etapas; manter
+  ou nÃ£o o status operacional visÃ­vel ao cliente; campos obrigatÃ³rios
+  do formulÃ¡rio; regras futuras de ediÃ§Ã£o/cancelamento pelo cliente.
   Proposta de 6 fases futuras no documento (`UI-GAP-FIX-DASHBOARD-A`,
   `UI-GAP-FIX-NOVO-PEDIDO-A`, `UI-GAP-FIX-MODAL-ITEM-A`,
   `UI-GAP-FIX-DETALHE-A`, `UI-GAP-FIX-SHELL-A`,
   `UI-OPERATIONS-RULES-A`), com `UI-OPERATIONS-RULES-A` recomendada
-  como **primeira** (resolve os TBDs antes do código) e
-  `UI-GAP-FIX-SHELL-A` como **última** (maior risco, cross-role).
-  **A UI permanece funcional, NÃO final.** **Produção permanece
-  bloqueada.** Sem código, sem schema, sem SQL, sem Supabase, sem Edge
-  Function, sem frontend, sem testes de app (apenas verificação Git).
-  Senha, token e credencial **não foram registrados**.
-  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md` é diagnóstico/não-
-  canônico, indexado em `docs/DOCUMENTATION_INDEX.md` §1b.
+  como **primeira** (resolve os TBDs antes do cÃ³digo) e
+  `UI-GAP-FIX-SHELL-A` como **Ãºltima** (maior risco, cross-role).
+  **A UI permanece funcional, NÃƒO final.** **ProduÃ§Ã£o permanece
+  bloqueada.** Sem cÃ³digo, sem schema, sem SQL, sem Supabase, sem Edge
+  Function, sem frontend, sem testes de app (apenas verificaÃ§Ã£o Git).
+  Senha, token e credencial **nÃ£o foram registrados**.
+  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md` Ã© diagnÃ³stico/nÃ£o-
+  canÃ´nico, indexado em `docs/DOCUMENTATION_INDEX.md` Â§1b.
 - **Estado anterior:** fase
   `RAVATEX-TAPETES-CLIENTE-PORTAL-STAGING-CLOSEOUT-A` (docs-only,
-  closeout do marco funcional do portal cliente em staging — sem
+  closeout do marco funcional do portal cliente em staging â€” sem
   schema/SQL/Supabase). HEAD fechado: `23286ae`. `staging/main`:
-  `23286ae`. Supabase staging: `ucrjtfswnfdlxwtmxnoo`. Produção/
+  `23286ae`. Supabase staging: `ucrjtfswnfdlxwtmxnoo`. ProduÃ§Ã£o/
   original `bhgifjrfagkzubpyqpew` e `origin/main` **intocados**.
 - **Closeout funcional de staging do Portal Cliente B2B** (fase
   `RAVATEX-TAPETES-CLIENTE-PORTAL-STAGING-CLOSEOUT-A`, esta,
@@ -340,7 +366,7 @@
   via `admin-create-user` validado, ausencia de exposicao de dados
   internos, portal 100% read-only para o cliente (exceto criacao de
   pedido) e polimento visual inicial. **A UI NAO esta marcada como
-  final** — o dono do projeto confirmou que a apresentacao atual ainda
+  final** â€” o dono do projeto confirmou que a apresentacao atual ainda
   diverge dos HTMLs/mockups pedidos e que havera nova rodada de
   refinamento visual e ajustes para particularidades operacionais.
   **Producao permanece bloqueada**: nenhuma autorizacao de merge ou
@@ -352,81 +378,81 @@
   implementacao ou decisao de promocao para producao.
 - **Estado anterior:** fase
   `RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-HOMOLOG-RECORD-A` (docs-only,
-  registro de homologacao visual aprovada — sem schema/SQL/Supabase).
+  registro de homologacao visual aprovada â€” sem schema/SQL/Supabase).
   HEAD homologado: `3b0f8e4`.
-- **Homologação visual do portal cliente APROVADA** (fase
+- **HomologaÃ§Ã£o visual do portal cliente APROVADA** (fase
   `RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-HOMOLOG-RECORD-A`, esta,
-  docs-only). Validação manual/controlada pelo dono do projeto, no HEAD
+  docs-only). ValidaÃ§Ã£o manual/controlada pelo dono do projeto, no HEAD
   `3b0f8e4`, em ambiente conectado ao Supabase staging
-  `ucrjtfswnfdlxwtmxnoo`, **sem tocar produção/original**
+  `ucrjtfswnfdlxwtmxnoo`, **sem tocar produÃ§Ã£o/original**
   `bhgifjrfagkzubpyqpew`. Aprovados: **Dashboard Cliente**, **Meus
   pedidos**, **Detalhe do pedido**, **Stepper/Acompanhamento** e
-  **Timeline de atualizações** — as 5 telas refinadas na fase
+  **Timeline de atualizaÃ§Ãµes** â€” as 5 telas refinadas na fase
   `RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-POLISH-A`. **Responsividade
-  básica** aprovada (desktop e largura menor, sem sobreposição
-  grosseira, tabelas com rolagem horizontal quando necessário, menu
-  permanece utilizável). **Nenhum dado interno**
+  bÃ¡sica** aprovada (desktop e largura menor, sem sobreposiÃ§Ã£o
+  grosseira, tabelas com rolagem horizontal quando necessÃ¡rio, menu
+  permanece utilizÃ¡vel). **Nenhum dado interno**
   (OP/lote/fornecedor/NF/romaneio/custo/margem/metadata/criado_por/
   origem/token_acesso) exposto ao cliente. Portal cliente **permanece
-  read-only** — sem editar pedido, cancelar pedido, atualizar status,
-  publicar evento ou mexer em fornecedor. **Nenhuma regressão
-  funcional reportada**. **Sem** código/schema/SQL/Supabase/frontend/
-  teste nesta fase. Senha, token e qualquer credencial **não foram
+  read-only** â€” sem editar pedido, cancelar pedido, atualizar status,
+  publicar evento ou mexer em fornecedor. **Nenhuma regressÃ£o
+  funcional reportada**. **Sem** cÃ³digo/schema/SQL/Supabase/frontend/
+  teste nesta fase. Senha, token e qualquer credencial **nÃ£o foram
   registrados**.
 - **Polish visual do portal cliente** (fase
   `RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-POLISH-A`, esta): refinada a
-  camada de apresentação das 5 telas do portal cliente sem alterar
+  camada de apresentaÃ§Ã£o das 5 telas do portal cliente sem alterar
   nenhum comportamento homologado. `cliente-dashboard.js` ganhou
   cards/KPIs com borda de cor, grade de 2 colunas (desktop) entre
-  "Pedidos recentes" e "Últimas atualizações", e badges com tom de
-  cor derivado da exceção (mesma paleta do stepper, antes fixo em
+  "Pedidos recentes" e "Ãšltimas atualizaÃ§Ãµes", e badges com tom de
+  cor derivado da exceÃ§Ã£o (mesma paleta do stepper, antes fixo em
   azul). `cliente-pedidos-list.js` ganhou contador de resultados,
-  rolagem horizontal na tabela e renomeou a ação "Visualizar" para
-  "Ver pedido" (consistência com o Dashboard) — **select de pedidos
+  rolagem horizontal na tabela e renomeou a aÃ§Ã£o "Visualizar" para
+  "Ver pedido" (consistÃªncia com o Dashboard) â€” **select de pedidos
   inalterado**. `cliente-pedido-detail.js` reorganizou o resumo em
-  grade de 3 colunas e deu à timeline "Atualizações do pedido" um
-  indicador visual de linha do tempo (ponto + conector) — **selects
+  grade de 3 colunas e deu Ã  timeline "AtualizaÃ§Ãµes do pedido" um
+  indicador visual de linha do tempo (ponto + conector) â€” **selects
   de pedidos/pedido_itens/pedido_cliente_eventos inalterados**.
   `cliente-pedido-tracking.js` recebeu apenas ajustes de classe
-  (cantos, sombra, tamanho de círculo); taxonomia, exceções,
-  "cancelado" como exceção terminal e mensagem personalizada
+  (cantos, sombra, tamanho de cÃ­rculo); taxonomia, exceÃ§Ãµes,
+  "cancelado" como exceÃ§Ã£o terminal e mensagem personalizada
   permanecem intactos; continua sem consultar Supabase.
-  `cliente-common.js` **não foi alterado** (menu "Início"/"Meus
-  pedidos" já atendia ao padrão). Novo teste cruzado
-  `tests/cliente-portal-visual.smoke.js` (49 casos) garante, num só
-  lugar, que nenhuma das 5 telas ganhou exposição de
+  `cliente-common.js` **nÃ£o foi alterado** (menu "InÃ­cio"/"Meus
+  pedidos" jÃ¡ atendia ao padrÃ£o). Novo teste cruzado
+  `tests/cliente-portal-visual.smoke.js` (49 casos) garante, num sÃ³
+  lugar, que nenhuma das 5 telas ganhou exposiÃ§Ã£o de
   metadata/criado_por/origem/`pedido_eventos`/OP/lote/fornecedor/NF/
-  romaneio/custo/margem/token_acesso nem ação de escrita, e que os
-  SELECTs de dados permanecem **literalmente idênticos** aos de antes
-  da fase (guarda anti-regressão por comparação de string exata).
-  Verificação visual manual feita em app local conectado ao staging
-  `ucrjtfswnfdlxwtmxnoo` (usuário `cliente@teste.com`): Dashboard,
+  romaneio/custo/margem/token_acesso nem aÃ§Ã£o de escrita, e que os
+  SELECTs de dados permanecem **literalmente idÃªnticos** aos de antes
+  da fase (guarda anti-regressÃ£o por comparaÃ§Ã£o de string exata).
+  VerificaÃ§Ã£o visual manual feita em app local conectado ao staging
+  `ucrjtfswnfdlxwtmxnoo` (usuÃ¡rio `cliente@teste.com`): Dashboard,
   Detalhe e Meus pedidos renderizam sem erro de console, com o tom de
   cor e o layout em 2 colunas funcionando como esperado. **Admin e
-  fornecedor não foram tocados. Sem schema/SQL/Supabase nesta fase.**
-  Testes: lista obrigatória da fase + `cliente-pedidos-list` +
+  fornecedor nÃ£o foram tocados. Sem schema/SQL/Supabase nesta fase.**
+  Testes: lista obrigatÃ³ria da fase + `cliente-pedidos-list` +
   `cliente-portal-visual` (novo, com 49 casos) = 265 testes, todos
   passando.
-- **Homologação Dashboard Cliente APROVADA** (fase
+- **HomologaÃ§Ã£o Dashboard Cliente APROVADA** (fase
   `RAVATEX-TAPETES-CLIENTE-DASHBOARD-HOMOLOG-RECORD-A`, esta,
-  docs-only). Validação manual/controlada feita em **app local
+  docs-only). ValidaÃ§Ã£o manual/controlada feita em **app local
   (`http://localhost:8765/`) conectado ao Supabase staging
   `ucrjtfswnfdlxwtmxnoo`** (runtime confirmou `APP_ENV=staging` e
-  `SUPABASE_URL` → `ucrjtfswnfdlxwtmxnoo`), no HEAD `54fabfa`, **sem
-  tocar produção/original `bhgifjrfagkzubpyqpew`**. Confirmado: login
-  cliente cai em `#/cliente/dashboard`; menu "Início" + "Meus pedidos"
+  `SUPABASE_URL` â†’ `ucrjtfswnfdlxwtmxnoo`), no HEAD `54fabfa`, **sem
+  tocar produÃ§Ã£o/original `bhgifjrfagkzubpyqpew`**. Confirmado: login
+  cliente cai em `#/cliente/dashboard`; menu "InÃ­cio" + "Meus pedidos"
   funcionais; dashboard sem erro de console; KPIs coerentes (em aberto
   2, em andamento 2, prontos/concluidos 0, atualizacoes recentes 3);
   pedidos recentes (#3 excecao "Aguardando insumo", #2 "Acabamento");
   ultimas atualizacoes exibidas; "Ver pedido" abre o detalhe correto
   com **stepper + timeline** preservados; navegacao
-  dashboard→detalhe→Meus pedidos→dashboard OK; **sem** dados internos
+  dashboardâ†’detalheâ†’Meus pedidosâ†’dashboard OK; **sem** dados internos
   (OP/lote/fornecedor/NF/romaneio/custo/margem/metadata/criado_por/
   origem/token_acesso) e **sem** acoes de escrita (read-only). Cliente
   de teste usado: `cliente@teste.com`, `tipo=cliente`, `cliente_id=3`,
-  nome "Teste" (**senha não registrada**). Observacao nao bloqueante:
+  nome "Teste" (**senha nÃ£o registrada**). Observacao nao bloqueante:
   evento cujo `titulo` = status pode repetir o texto no titulo e no
-  badge — dado do evento, nao defeito. **Sem** codigo/schema/SQL/
+  badge â€” dado do evento, nao defeito. **Sem** codigo/schema/SQL/
   Supabase/frontend/teste nesta fase.
 - **Dashboard Cliente read-only** (fase
   `RAVATEX-TAPETES-CLIENTE-DASHBOARD-A`, esta): novo modulo
@@ -436,13 +462,13 @@
   (em `js/router.js`) passa a levar o cliente para `#/cliente/dashboard`
   apos login; `#/cliente/pedidos`, `#/cliente/pedidos/novo` e
   `#/cliente/pedidos/<uuid>` continuam funcionando. Menu cliente
-  (`CLIENTE_MENU` em `cliente-common.js`) ganha **"Início"** preservando
+  (`CLIENTE_MENU` em `cliente-common.js`) ganha **"InÃ­cio"** preservando
   **"Meus pedidos"**. Dashboard mostra cards/KPIs (em aberto, em
   andamento, prontos/concluidos, atualizacoes recentes) derivados
   localmente; ate 5 pedidos recentes com label visual via
   `window.RavatexPedidoTracking` e botao "Ver pedido"; e as ultimas
   atualizacoes (ate 8) lidas de `pedido_cliente_eventos`, com empty
-  state "Suas atualizações aparecerão aqui.". **Pedidos** lidos com
+  state "Suas atualizaÃ§Ãµes aparecerÃ£o aqui.". **Pedidos** lidos com
   SELECT explicito apenas dos campos seguros (`id, numero, status,
   status_cliente_visual, status_cliente_excecao,
   status_cliente_mensagem, status_cliente_atualizado_em, prazo_entrega,
@@ -463,25 +489,25 @@
 - **HEAD aceito de entrada desta fase:** `fc7843c`
   (fase TRACKING-CLIENTE-EVENTS-A tecnicamente aceita, timeline
   read-only entregue no frontend; esta fase apenas registra a
-  homologação manual feita sobre esse HEAD, sem alterar código).
+  homologaÃ§Ã£o manual feita sobre esse HEAD, sem alterar cÃ³digo).
 - **HEAD homologado em staging:** `fc7843c`.
-- **Working tree:** limpo após commit.
-- **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` — intocado
+- **Working tree:** limpo apÃ³s commit.
+- **origin/main:** `1047181eba888242c6428de366cbd9fda2f1c72c` â€” intocado
 - **PR #2:** intocado
-- **⚠️ NÃO CHAMAR `ucrjtfswnfdlxwtmxnoo` DE "PRODUÇÃO ORIGINAL".**
-  É o ambiente paralelo. O app original online está em
-  `bhgifjrfagkzubpyqpew` + Vercel e **não deve ser tocado**.
-- **⚠️ NÃO TOCAR `bhgifjrfagkzubpyqpew`.**
-- **⚠️ NÃO TOCAR Vercel original.**
+- **âš ï¸ NÃƒO CHAMAR `ucrjtfswnfdlxwtmxnoo` DE "PRODUÃ‡ÃƒO ORIGINAL".**
+  Ã‰ o ambiente paralelo. O app original online estÃ¡ em
+  `bhgifjrfagkzubpyqpew` + Vercel e **nÃ£o deve ser tocado**.
+- **âš ï¸ NÃƒO TOCAR `bhgifjrfagkzubpyqpew`.**
+- **âš ï¸ NÃƒO TOCAR Vercel original.**
 - **Schema Pedidos** `db/13_pedidos_schema.sql` aplicado em
   `ucrjtfswnfdlxwtmxnoo`: tabelas `pedidos`, `pedido_itens`,
   `pedido_eventos` e `lotes.pedido_id` (nullable). RLS admin-only.
-  Sem policy pública. Sem `pedidos.op_id`.
+  Sem policy pÃºblica. Sem `pedidos.op_id`.
 - **Schema Cliente Perfil** `db/14_cliente_perfil_schema.sql`
   **aplicado em staging** `ucrjtfswnfdlxwtmxnoo` via Management API
   (fase B2). Role `cliente`, `usuarios.cliente_id`, `meu_cliente_id()`
   e 5 policies cliente SELECT/INSERT operacionais. Sem UPDATE/DELETE
-  cliente. Sem token público. `pedido_eventos` admin-only.
+  cliente. Sem token pÃºblico. `pedido_eventos` admin-only.
 - **Schema Tracking Visual** `db/15_status_cliente_visual.sql`
   **aplicado e validado em staging** `ucrjtfswnfdlxwtmxnoo` em
   `2026-06-26`, sem tocar o projeto original/producao
@@ -536,7 +562,7 @@
   `pedido-tracking-admin.js`, fase anterior). Fornecedor nao participa.
   Testes: `tests/cliente-pedido-events.smoke.js` novo (19/19);
   `tests/cliente-pedido-detail.smoke.js` atualizado (46/46).
-- **Homologação manual E2E aprovada** (fase
+- **HomologaÃ§Ã£o manual E2E aprovada** (fase
   `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-E2E-HOMOLOG-RECORD-A`,
   esta, docs-only). HMNlead validou manualmente em staging
   `ucrjtfswnfdlxwtmxnoo`, no HEAD `fc7843c`, sem tocar
@@ -545,46 +571,46 @@
   `pedido-tracking-admin.js`; `pedidos.status_cliente_*` foram
   gravados; `pedido_cliente_eventos` recebeu o evento correspondente
   (`origem = manual`, `visivel_cliente = true`); cliente visualizou o
-  stepper na etapa "Acabamento" com mensagem e data de atualização; a
-  seção "Atualizações do pedido" exibiu o evento. Excecao visual
+  stepper na etapa "Acabamento" com mensagem e data de atualizaÃ§Ã£o; a
+  seÃ§Ã£o "AtualizaÃ§Ãµes do pedido" exibiu o evento. Excecao visual
   (`status_cliente_excecao = aguardando_insumo`) tambem foi testada e
   exibida corretamente, sem quebrar o stepper, com novo evento na
   timeline. `metadata`, `criado_por` e `origem` nao apareceram ao
   cliente; nenhum dado de OP/lote/fornecedor/NF/romaneio/custo/margem
   foi exposto. **Cancelado nao foi testado** (pedido usado nao era
-  seguro para esse teste). **Decisão: fluxo aprovado** para avançar ao
+  seguro para esse teste). **DecisÃ£o: fluxo aprovado** para avanÃ§ar ao
   Dashboard Cliente read-only ou refinamento visual do portal cliente.
-  **Sem** alteração de código/schema/SQL/Supabase/frontend nesta fase.
+  **Sem** alteraÃ§Ã£o de cÃ³digo/schema/SQL/Supabase/frontend nesta fase.
 - **Provisionamento cliente** (fase PROV-A): `admin-create-user`
   aceita `cliente` (valida `cliente_id` em `public.clientes`, rejeita
-  `fornecedor_id` simultâneo). UI `#/cadastros/usuarios` com tipo
+  `fornecedor_id` simultÃ¢neo). UI `#/cadastros/usuarios` com tipo
   Cliente + select de cliente. `loadCurrentUser()` carrega
-  `cliente_id` e `cliente_nome`. `isCliente()` disponível.
-  **Correção 2026-06-27 (HOMOLOG-RECORD-A):** já **existe um cliente
+  `cliente_id` e `cliente_nome`. `isCliente()` disponÃ­vel.
+  **CorreÃ§Ã£o 2026-06-27 (HOMOLOG-RECORD-A):** jÃ¡ **existe um cliente
   de teste funcional em staging** (`cliente@teste.com`, `cliente_id=3`,
   nome "Teste"), com login validado e dashboard homologado.
   **CONFIRMADO 2026-06-27 (PROVISIONING-STAGING-VERIFY-A):** o **deploy
-  da versão de `admin-create-user` que aceita `tipo=cliente` está ATIVO
-  em staging** `ucrjtfswnfdlxwtmxnoo`. Verificado por probe não
+  da versÃ£o de `admin-create-user` que aceita `tipo=cliente` estÃ¡ ATIVO
+  em staging** `ucrjtfswnfdlxwtmxnoo`. Verificado por probe nÃ£o
   destrutivo: admin (`admin@tapetes.test`) invocou
   `functions.invoke('admin-create-user', { body: { tipo: 'cliente',
   cliente_id: 999999, ... } })` e recebeu HTTP 400 `VALIDATION_ERROR
-  "cliente_id não existe em public.clientes."` — mensagem exclusiva do
-  ramo `cliente` da função; a versão antiga teria barrado antes no gate
-  de `tipo`. **Nenhum usuário real foi criado** (a validação de
-  `cliente_id` ocorre antes de `createUser`). Senha/token **não
-  registrados**; produção `bhgifjrfagkzubpyqpew` **não tocada**. A
+  "cliente_id nÃ£o existe em public.clientes."` â€” mensagem exclusiva do
+  ramo `cliente` da funÃ§Ã£o; a versÃ£o antiga teria barrado antes no gate
+  de `tipo`. **Nenhum usuÃ¡rio real foi criado** (a validaÃ§Ã£o de
+  `cliente_id` ocorre antes de `createUser`). Senha/token **nÃ£o
+  registrados**; produÃ§Ã£o `bhgifjrfagkzubpyqpew` **nÃ£o tocada**. A
   lacuna "provisionamento self-service via Edge Function em staging =
-  a confirmar" está **resolvida**.
+  a confirmar" estÃ¡ **resolvida**.
 - **Frontend Pedidos cliente entregue (UI-A + CREATE-A):**
-  shell mínimo (`js/screens/cliente-common.js` com `CLIENTE_MENU`:
-  "Meus pedidos" apenas), listagem read-only com botão
+  shell mÃ­nimo (`js/screens/cliente-common.js` com `CLIENTE_MENU`:
+  "Meus pedidos" apenas), listagem read-only com botÃ£o
   "+ Novo pedido" (`js/screens/cliente-pedidos-list.js`,
   `#/cliente/pedidos`, `screenClientePedidosLista`, confia na
   RLS), detalhe sanitizado (`js/screens/cliente-pedido-detail.js`,
   `#/cliente/pedidos/<uuid>`, `screenClientePedidoDetalhe`,
   sem editar/cancelar, sem expor OP/lote/fornecedor/
-  token/eventos), formulário de criação
+  token/eventos), formulÃ¡rio de criaÃ§Ã£o
   (`js/screens/cliente-pedido-form.js`,
   `#/cliente/pedidos/novo`, `screenClientePedidoNovo`,
   `cliente_id` de `CURRENT_USER.cliente_id`, status inicial
@@ -596,38 +622,38 @@
   e `#/cliente/pedidos/novo`. **Sem** editar/cancelar pedido.
   **Sem** schema, SQL, Edge Function, service_role,
   functions.invoke.
-- **Admin Pedidos completo (C1-C3C3):** listagem, formulário,
-  detalhe, ações de status, edição de dados gerais e itens.
-- **Governança obrigatória antes da próxima implementação:**
+- **Admin Pedidos completo (C1-C3C3):** listagem, formulÃ¡rio,
+  detalhe, aÃ§Ãµes de status, ediÃ§Ã£o de dados gerais e itens.
+- **GovernanÃ§a obrigatÃ³ria antes da prÃ³xima implementaÃ§Ã£o:**
   `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md` fixa os
-  limites da frente Portal B2B/Pedidos. **Não iniciar**
+  limites da frente Portal B2B/Pedidos. **NÃ£o iniciar**
   `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-SCHEMA-A` sem
   respeitar esse documento. Em especial: separar cliente,
   admin e fornecedor; separar status operacional de
-  `status_cliente_visual`; não colar HTML standalone no app;
-  reaproveitar componentes comuns; manter SPA estático + JS
-  clássico + `window.*`; quebrar próximas entregas em fases
+  `status_cliente_visual`; nÃ£o colar HTML standalone no app;
+  reaproveitar componentes comuns; manter SPA estÃ¡tico + JS
+  clÃ¡ssico + `window.*`; quebrar prÃ³ximas entregas em fases
   pequenas (schema, staging SQL, admin UI, cliente UI,
-  dashboard, redesign shell, fornecedor, automação).
+  dashboard, redesign shell, fornecedor, automaÃ§Ã£o).
 - **Sketch de acompanhamento visual no detalhe cliente
-  (fase TRACKING-UI-A, esta):** novo módulo
+  (fase TRACKING-UI-A, esta):** novo mÃ³dulo
   `js/screens/cliente-pedido-tracking.js`
-  (`buildClientePedidoTrackingCard(pedido)`) — componente puro
-  de apresentação (sem Supabase, sem writes), com stepper de 6
-  etapas (Recebido/Confirmado/Em produção/Em acabamento/Pronto
-  para entrega/Entregue) + banner de situação atual.
+  (`buildClientePedidoTrackingCard(pedido)`) â€” componente puro
+  de apresentaÃ§Ã£o (sem Supabase, sem writes), com stepper de 6
+  etapas (Recebido/Confirmado/Em produÃ§Ã£o/Em acabamento/Pronto
+  para entrega/Entregue) + banner de situaÃ§Ã£o atual.
   `cliente-pedido-detail.js` chama o componente no topo do
-  detalhe via `buildTracking()`. Etapa é DERIVADA de
+  detalhe via `buildTracking()`. Etapa Ã© DERIVADA de
   `pedido.status` (`statusParaEtapaCliente`): `rascunho`/
-  `recebido` → "Recebido", `confirmado` → "Confirmado", demais
+  `recebido` â†’ "Recebido", `confirmado` â†’ "Confirmado", demais
   status (`produzindo`, `entregue`) ficam neutros (sem etapa
-  marcada) por não terem transição alcançável nesta fase nem
-  correspondência 1:1 com um único nó do stepper. `cancelado`
+  marcada) por nÃ£o terem transiÃ§Ã£o alcanÃ§Ã¡vel nesta fase nem
+  correspondÃªncia 1:1 com um Ãºnico nÃ³ do stepper. `cancelado`
   substitui o stepper por um aviso calmo. **Sem** campo
   `status_cliente_visual` real ainda no frontend, **sem** tabela de
   eventos visivel ainda, **sem** dropdown admin, **sem**
   schema/SQL/Edge Function na fase TRACKING-UI-A, **sem**
-  dados internos sensíveis. Script carregado em `index.html`
+  dados internos sensÃ­veis. Script carregado em `index.html`
   entre `cliente-pedidos-list.js` e `cliente-pedido-detail.js`.
 - **Taxonomia compartilhada de tracking visual** (fase
   `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-STEPS-A`, esta):
@@ -695,36 +721,36 @@
   **Fornecedor nao participa.**
 
 ## Estado operacional atual
-- `index.html` está declarativo, sem script inline final, com
+- `index.html` estÃ¡ declarativo, sem script inline final, com
   cache-busting `?v=20260623-asset1` em 26 assets locais
   (23 originais + `js/screens/pedido-detail.js` adicionado em C3A).
-- `js/boot.js` é o entrypoint oficial; respeita DOM ready
+- `js/boot.js` Ã© o entrypoint oficial; respeita DOM ready
   (`startApp` aguarda `DOMContentLoaded` se
   `document.readyState === 'loading'`).
-- `js/router.js` é engine genérica e não foi alterado no ciclo.
-- `js/ui.js` faz lookup lazy do root `#app` via `getAppRoot()` —
-  `replaceChildren null` foi eliminado após cache limpo.
-- `js/screens/op-pdf.js` foi extraído de `op-nova.js` em
+- `js/router.js` Ã© engine genÃ©rica e nÃ£o foi alterado no ciclo.
+- `js/ui.js` faz lookup lazy do root `#app` via `getAppRoot()` â€”
+  `replaceChildren null` foi eliminado apÃ³s cache limpo.
+- `js/screens/op-pdf.js` foi extraÃ­do de `op-nova.js` em
   `7f3c6da` (`RAVATEX-TAPETES-OP-NOVA-PDF-MODULE-A`).
-- `run-local.bat` é o tooling local para servir o app em
+- `run-local.bat` Ã© o tooling local para servir o app em
   `http://localhost:8765/`.
 
-## Decisão arquitetural vigente
-**REFATORAÇÃO ARQUITETURAL CONGELADA.**
+## DecisÃ£o arquitetural vigente
+**REFATORAÃ‡ÃƒO ARQUITETURAL CONGELADA.**
 
-Próxima fase esperada é **homologação / release**, **não** nova
-extração em `op-nova.js`. Em particular, **NÃO iniciar** novas fases
+PrÃ³xima fase esperada Ã© **homologaÃ§Ã£o / release**, **nÃ£o** nova
+extraÃ§Ã£o em `op-nova.js`. Em particular, **NÃƒO iniciar** novas fases
 como `RAVATEX-TAPETES-OP-BLOCO-FIOS-DIAG-A`,
 `RAVATEX-TAPETES-OP-PROPOSTA-DIAG-A` ou
-`RAVATEX-TAPETES-TRANSACTION-RISK-DIAG-A` sem nova instrução
-explícita do dono do projeto: o refactor está fechado e essas
-sugestões são **opcionais** (vide `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`
-seção 9).
+`RAVATEX-TAPETES-TRANSACTION-RISK-DIAG-A` sem nova instruÃ§Ã£o
+explÃ­cita do dono do projeto: o refactor estÃ¡ fechado e essas
+sugestÃµes sÃ£o **opcionais** (vide `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`
+seÃ§Ã£o 9).
 
-## Comandos de verificação (rodar antes de qualquer patch)
+## Comandos de verificaÃ§Ã£o (rodar antes de qualquer patch)
 
 ```bash
-cd "D:\OneDrive\Programação\Ravatex\controle-tapetes"
+cd "D:\OneDrive\ProgramaÃ§Ã£o\Ravatex\controle-tapetes"
 
 git status --short
 git branch --show-current
@@ -736,82 +762,82 @@ git ls-remote --heads origin main
 
 Abortar e revisar o escopo se:
 - branch != `work/app-next`;
-- HEAD não estiver no commit `247b8ca` ou commit posterior
+- HEAD nÃ£o estiver no commit `247b8ca` ou commit posterior
   da fase `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1`
   (commit "Add cliente perfil schema and RLS" no topo);
-- working tree não estiver limpo;
-- `staging/main` não tiver sido atualizado para o commit
+- working tree nÃ£o estiver limpo;
+- `staging/main` nÃ£o tiver sido atualizado para o commit
   desta fase (antes do push era `247b8ca`);
 - `origin/main` != `1047181eba888242c6428de366cbd9fda2f1c72c`
-  (qualquer mudança em `origin/main` é regressão grave).
+  (qualquer mudanÃ§a em `origin/main` Ã© regressÃ£o grave).
 
-## Regras (NÃO renegocia)
+## Regras (NÃƒO renegocia)
 
-1. **Push autorizado somente para `staging`**, salvo ordem explícita
+1. **Push autorizado somente para `staging`**, salvo ordem explÃ­cita
    futura. Nunca `git push origin` em `work/app-next:main`.
-2. **Não tocar `origin/main` oficial.**
-3. **Não tocar PR #2.**
-4. **Não acessar Supabase real** em refactors/testes mockados. Toda
-   validação de chain de Supabase usa `fakeSupa` em `vm.Context`.
-5. **Não registrar** em relatório ou doc: `service_role`, senha,
+2. **NÃ£o tocar `origin/main` oficial.**
+3. **NÃ£o tocar PR #2.**
+4. **NÃ£o acessar Supabase real** em refactors/testes mockados. Toda
+   validaÃ§Ã£o de chain de Supabase usa `fakeSupa` em `vm.Context`.
+5. **NÃ£o registrar** em relatÃ³rio ou doc: `service_role`, senha,
    `JWT secret`, connection string com senha, anon key completa.
 6. **Testes focados** por fase (`node --test <arquivo>.smoke.js`).
-   Não rodar suíte completa por padrão.
-7. **Fase schema-only atual**: só `db/15_status_cliente_visual.sql`,
+   NÃ£o rodar suÃ­te completa por padrÃ£o.
+7. **Fase schema-only atual**: sÃ³ `db/15_status_cliente_visual.sql`,
    `tests/cliente-tracking-schema.smoke.js`, `PROJECT_STATE.md`,
    `AGENT_HANDOFF.md` e `docs/DOCUMENTATION_INDEX.md` podem ser
    criados/alterados. Qualquer diff fora desses 5 arquivos reprova.
-8. **Não mexer** em `aplicarRecalculoOP` ou `persistirOP` sem
-   nova fase explícita.
-9. **Não fazer docs + código na mesma fase.**
-10. **Não iniciar nova extração em `op-nova.js`** (refactor
-    congelado). Próxima ação é homologação/release, não refactor.
+8. **NÃ£o mexer** em `aplicarRecalculoOP` ou `persistirOP` sem
+   nova fase explÃ­cita.
+9. **NÃ£o fazer docs + cÃ³digo na mesma fase.**
+10. **NÃ£o iniciar nova extraÃ§Ã£o em `op-nova.js`** (refactor
+    congelado). PrÃ³xima aÃ§Ã£o Ã© homologaÃ§Ã£o/release, nÃ£o refactor.
 
-## Módulos principais e responsabilidades
+## MÃ³dulos principais e responsabilidades
 
 ### `boot.js` (RAVATEX-TAPETES-ROUTES-BOOT-MODULE-A + 87d4559)
 - Registra rotas via `window.RAVATEX_ROUTER.setRoutes` (15 rotas).
 - Executa `main()` via `startApp()` (que aguarda `DOMContentLoaded`
   se `document.readyState === 'loading'`).
 - Registra `hashchange` listener.
-- Carrega usuário atual via `window.loadCurrentUser`.
+- Carrega usuÃ¡rio atual via `window.loadCurrentUser`.
 - Direciona para `navigate('#/login')`, `handleRoute()` ou
   `routeAfterLogin()`.
 - Captura erro de boot via `main().catch()` + `toast('Erro ao iniciar o app', 'error')`.
 
 ### `op-nova.js` (RAVATEX-TAPETES-SCREENNOVAOP-MODULE-A)
-- `screenNovaOP` (closure inteira com `~20` subfunções aninhadas).
+- `screenNovaOP` (closure inteira com `~20` subfunÃ§Ãµes aninhadas).
 - UI/estado da Nova OP.
 - Proposta, blocos de fios, tecelagem, wrappers de
-  persistência/recálculo.
+  persistÃªncia/recÃ¡lculo.
 - Call-site de PDF: `window.gerarPdfCompraFios({ op, ordens })`.
-- **NÃO** contém mais a função `gerarPdfCompraFios` (extraída em
+- **NÃƒO** contÃ©m mais a funÃ§Ã£o `gerarPdfCompraFios` (extraÃ­da em
   `7f3c6da`).
-- Mantém read-only em Supabase (apenas `.select()`).
+- MantÃ©m read-only em Supabase (apenas `.select()`).
 - Writes delegados: `window.persistirOP`, `window.aplicarRecalculoOP`,
   `window.registrarRecebimentoOrdemFio`,
   `window.atribuirFornecedorFioOp`, `window.renderOPLatexAdmin`.
 
 ### `op-pdf.js` (RAVATEX-TAPETES-OP-NOVA-PDF-MODULE-A)
-- `gerarPdfCompraFios({ op, ordens })` — helper puro, sem closure.
+- `gerarPdfCompraFios({ op, ordens })` â€” helper puro, sem closure.
 - Usa `window.jspdf.jsPDF` (CDN) e `window.agruparOrdensCompraFio`
   (de `calculo-op.js`).
 - Fallback `toast` quando jsPDF ausente.
 - Exports: `window.gerarPdfCompraFios` e
   `window.RAVATEX_SCREENS.opPdf.gerarPdfCompraFios`.
-- Não toca Supabase, não muta DOM.
+- NÃ£o toca Supabase, nÃ£o muta DOM.
 
 ### `op-persistir.js` (RAVATEX-TAPETES-OP-PERSISTIR-MODULE-A)
-- Helpers puros de persistência: `itensValidosOP`,
+- Helpers puros de persistÃªncia: `itensValidosOP`,
   `montarPayloadItensOP`, `montarPayloadFornecedoresOP`,
   `montarPayloadOP`, `montarPayloadLote`.
-- Write helper: `persistirOP` — executa 8 writes da persistência
+- Write helper: `persistirOP` â€” executa 8 writes da persistÃªncia
   (ops, lotes, op_itens, op_fornecedores, ordens_compra_fio).
   Retorna envelope `{ error, step, partial, opId }`.
 
 ### `op-recalculo.js` (RAVATEX-TAPETES-OP-RECALCULO-MODULE-A)
 - Helpers puros: `maxMetrosItem`, `normalizarChaveSaldo`.
-- Write helper: `aplicarRecalculoOP` — executa 4 writes do recálculo
+- Write helper: `aplicarRecalculoOP` â€” executa 4 writes do recÃ¡lculo
   (`op_itens.update`, `saldo_fios_op.insert`, `saldo_fios`
   select/update/insert, `ops.update status='em_producao'`).
   Retorna envelope `{ error, step, partial }`.
@@ -820,11 +846,11 @@ Abortar e revisar o escopo se:
 - `el`, `toast`, `pageHeader`, `textInput`, `selectInput`,
   `formField`, `dataTable`, `modal`, `confirmDialog`, `shellLayout`,
   `ADMIN_MENU`.
-- `getAppRoot()` — lookup lazy do root `#app`.
+- `getAppRoot()` â€” lookup lazy do root `#app`.
 
-## Próxima recomendação operacional
+## PrÃ³xima recomendaÃ§Ã£o operacional
 
-**Governança Portal B2B/Pedidos registrada (fase GOV-A, esta).**
+**GovernanÃ§a Portal B2B/Pedidos registrada (fase GOV-A, esta).**
 Antes de retomar o schema de tracking do cliente, o projeto agora tem
 um documento curto e vinculante de limites arquiteturais em
 `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md`.
@@ -852,7 +878,7 @@ proprio pedido. Admin continua o unico publicador de eventos.
 Fornecedor, dashboard cliente e automacao continuam fora do escopo.
 
 **Homologado (fase E2E-HOMOLOG-RECORD-A, esta):** o fluxo completo
-admin → cliente (status visual + excecao + timeline) foi validado
+admin â†’ cliente (status visual + excecao + timeline) foi validado
 manualmente em staging `ucrjtfswnfdlxwtmxnoo`, no HEAD `fc7843c`, e
 **aprovado** pelo dono do projeto. Cancelado nao foi testado (fica
 para fase futura com pedido de teste dedicado, se necessario).
@@ -865,231 +891,231 @@ projeto.
 redesign de shell/componentes comuns; e so depois fornecedor/automacao.
 
 **Homologado (fase `RAVATEX-TAPETES-CLIENTE-PORTAL-VISUAL-HOMOLOG-RECORD-A`,
-esta):** a homologação visual manual do portal cliente B2B (Dashboard,
-Meus pedidos, Detalhe, Stepper/Acompanhamento, Timeline), pós
+esta):** a homologaÃ§Ã£o visual manual do portal cliente B2B (Dashboard,
+Meus pedidos, Detalhe, Stepper/Acompanhamento, Timeline), pÃ³s
 refinamento visual da fase POLISH-A, foi validada e **aprovada** pelo
 dono do projeto, no HEAD `3b0f8e4`, em ambiente conectado ao Supabase
 staging `ucrjtfswnfdlxwtmxnoo`, sem tocar `bhgifjrfagkzubpyqpew`.
 
 **Proxima fase recomendada (atualizada):** decidir, com o dono do
-projeto, entre preparação para produção/staging closeout do portal
-cliente ou avanço para o próximo bloco funcional.
+projeto, entre preparaÃ§Ã£o para produÃ§Ã£o/staging closeout do portal
+cliente ou avanÃ§o para o prÃ³ximo bloco funcional.
 
-**Não iniciar execução sem autorização explícita.**
-**NÃO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**
+**NÃ£o iniciar execuÃ§Ã£o sem autorizaÃ§Ã£o explÃ­cita.**
+**NÃƒO tocar `bhgifjrfagkzubpyqpew`, Vercel original, ou `origin/main`.**
 
-## Fases de implementação do design Auth (aprovadas para execução)
+## Fases de implementaÃ§Ã£o do design Auth (aprovadas para execuÃ§Ã£o)
 
-Design concluído em `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`.
+Design concluÃ­do em `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`.
 Fases, em ordem:
 
-1. **`RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A`** — criar/implementar a
-   Edge Function `admin-create-user` (sem UI ainda). **Concluída
+1. **`RAVATEX-TAPETES-AUTH-EDGE-FUNCTION-A`** â€” criar/implementar a
+   Edge Function `admin-create-user` (sem UI ainda). **ConcluÃ­da
    localmente (sem deploy).**
-2. **`RAVATEX-TAPETES-AUTH-EDGE-STAGING-DEPLOY-A`** — deploy controlado
-   em staging e validação de permissões. **Concluída em staging.**
-3. **`RAVATEX-TAPETES-AUTH-ADMIN-UI-A`** — adaptar
-   `screenCadastrosUsuarios` para chamar a Edge Function. **Concluída.**
-4. **`RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A`** — documentar operação
-   final (runbook). **Concluída.**
-5. **`RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`** — decidir
-   exclusão/desativação de usuários pelo app. **Concluída.**
-   Recomendação: desativar (soft delete + ban Auth), não deletar.
+2. **`RAVATEX-TAPETES-AUTH-EDGE-STAGING-DEPLOY-A`** â€” deploy controlado
+   em staging e validaÃ§Ã£o de permissÃµes. **ConcluÃ­da em staging.**
+3. **`RAVATEX-TAPETES-AUTH-ADMIN-UI-A`** â€” adaptar
+   `screenCadastrosUsuarios` para chamar a Edge Function. **ConcluÃ­da.**
+4. **`RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A`** â€” documentar operaÃ§Ã£o
+   final (runbook). **ConcluÃ­da.**
+5. **`RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`** â€” decidir
+   exclusÃ£o/desativaÃ§Ã£o de usuÃ¡rios pelo app. **ConcluÃ­da.**
+   RecomendaÃ§Ã£o: desativar (soft delete + ban Auth), nÃ£o deletar.
    Design em `docs/architecture/AUTH_DELETE_USER_DESIGN.md`.
-6. **`RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A`** — contenção
+6. **`RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A`** â€” contenÃ§Ã£o
    imediata: remover `.from('usuarios').delete()` do front-end e
-   substituir botão "Excluir vínculo" por placeholder "Em breve".
-   **Concluída.** Nenhum write Supabase exposto; nenhum `auth.admin`
+   substituir botÃ£o "Excluir vÃ­nculo" por placeholder "Em breve".
+   **ConcluÃ­da.** Nenhum write Supabase exposto; nenhum `auth.admin`
    no front; smoke tests 48/48 verdes.
-7. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`** — schema
-   versionado para desativação (colunas + recriação de funções e
-   policies RLS em `public.usuarios`). **Concluída.** Migration em
+7. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`** â€” schema
+   versionado para desativaÃ§Ã£o (colunas + recriaÃ§Ã£o de funÃ§Ãµes e
+   policies RLS em `public.usuarios`). **ConcluÃ­da.** Migration em
    `db/12_auth_user_disable_schema.sql`; testes 20/20 em
    `tests/auth-disable-user-schema.smoke.js`. **Aplicada em staging**
    (ver item 8b).
-8. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A`** — aplicar
-   a migration em staging. **Concluída como docs-only (commit
-   `8fa924a`).** Orientação e validação local para aplicação em
-   staging; smoke 20/20 e regressões 65/65 verdes; SQL limpo
-   (sem DELETE/DROP/TRUNCATE/secrets). A execução real do SQL
+8. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A`** â€” aplicar
+   a migration em staging. **ConcluÃ­da como docs-only (commit
+   `8fa924a`).** OrientaÃ§Ã£o e validaÃ§Ã£o local para aplicaÃ§Ã£o em
+   staging; smoke 20/20 e regressÃµes 65/65 verdes; SQL limpo
+   (sem DELETE/DROP/TRUNCATE/secrets). A execuÃ§Ã£o real do SQL
    ficou pendente de HMNlead e foi registrada na fase 8b.
 8b. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-EVIDENCE-A`**
-    *(esta fase, docs-only)* — registro da **aplicação real** de
+    *(esta fase, docs-only)* â€” registro da **aplicaÃ§Ã£o real** de
     `db/12_auth_user_disable_schema.sql` no Supabase **staging**
     `ucrjtfswnfdlxwtmxnoo`, feita manualmente pelo HMNlead no
-    SQL Editor do Dashboard. Evidências: 4 colunas novas em
-    `public.usuarios`; funções `is_admin`/`meu_fornecedor_id`
+    SQL Editor do Dashboard. EvidÃªncias: 4 colunas novas em
+    `public.usuarios`; funÃ§Ãµes `is_admin`/`meu_fornecedor_id`
     recriadas com checagem de `ativo`; policies
     `usuarios_select`/`usuarios_admin_all`/`usuarios_self_update`
     recriadas; contagem `ativo = true, total = 3`,
     `auth_users_total = 3`, `public_usuarios_total = 3`,
-    `auth_sem_perfil = 0`, `perfil_sem_auth = 0`. Nenhum usuário
-    foi criado, excluído ou desativado. `db/10_reset_producao.sql`
-    e `db/11_reset_ops.sql` não foram rodados. Produção
-    `bhgifjrfagkzubpyqpew` não foi tocada. App validado
+    `auth_sem_perfil = 0`, `perfil_sem_auth = 0`. Nenhum usuÃ¡rio
+    foi criado, excluÃ­do ou desativado. `db/10_reset_producao.sql`
+    e `db/11_reset_ops.sql` nÃ£o foram rodados. ProduÃ§Ã£o
+    `bhgifjrfagkzubpyqpew` nÃ£o foi tocada. App validado
     manualmente em staging: login OK, `#/cadastros/usuarios`
-    carrega, `+ Novo usuário` visível, exclusão insegura segue
-    bloqueada como `Em breve`, sem erros críticos de Auth/RLS
-    no console. Warnings não bloqueantes: Tailwind CDN,
+    carrega, `+ Novo usuÃ¡rio` visÃ­vel, exclusÃ£o insegura segue
+    bloqueada como `Em breve`, sem erros crÃ­ticos de Auth/RLS
+    no console. Warnings nÃ£o bloqueantes: Tailwind CDN,
     `favicon.ico` 404.
-9. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`** — Edge Function
+9. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`** â€” Edge Function
    `admin-disable-user` (soft delete no perfil + ban Auth).
-   **Concluída localmente (sem deploy).** Implementação em
+   **ConcluÃ­da localmente (sem deploy).** ImplementaÃ§Ã£o em
    `supabase/functions/admin-disable-user/index.ts` (mesmos
    `_shared/cors.ts` e `_shared/response.ts` de `admin-create-user`).
-   Validações: JWT no header `Authorization` + `tipo = 'admin' AND
+   ValidaÃ§Ãµes: JWT no header `Authorization` + `tipo = 'admin' AND
    ativo IS TRUE` em `public.usuarios` server-side; UUID regex
-   para `user_id`; `reason` ≤ 500 chars (trim, opcional);
+   para `user_id`; `reason` â‰¤ 500 chars (trim, opcional);
    `SELF_DISABLE_FORBIDDEN` quando `target_id === caller_id`;
-   `LAST_ADMIN_FORBIDDEN` quando alvo é o único admin ativo;
-   idempotência (`already_disabled: true`) se alvo já está inativo;
+   `LAST_ADMIN_FORBIDDEN` quando alvo Ã© o Ãºnico admin ativo;
+   idempotÃªncia (`already_disabled: true`) se alvo jÃ¡ estÃ¡ inativo;
    soft delete via `.update({ ativo: false, desativado_em, desativado_por,
    motivo_desativacao })`; ban Auth via
    `auth.admin.updateUserById(target_id, { ban_duration: '876000h' })`;
-   compensação (reverte `ativo = true` e limpa campos) se ban
-   falhar; `COMPENSATION_FAILED` se a reversão também falhar.
-   **Sem `auth.admin.deleteUser` e sem `.delete()`** — apenas soft
+   compensaÃ§Ã£o (reverte `ativo = true` e limpa campos) se ban
+   falhar; `COMPENSATION_FAILED` se a reversÃ£o tambÃ©m falhar.
+   **Sem `auth.admin.deleteUser` e sem `.delete()`** â€” apenas soft
    delete. Smoke `tests/admin-disable-user.smoke.js` 39/39 verde.
-   Regressões preservadas: `admin-create-user` 17/17,
+   RegressÃµes preservadas: `admin-create-user` 17/17,
    `auth-disable-user-schema` 20/20, `cadastros-usuarios-auth-ui`
    16/16, `cadastros-screens` 32/32. **Sem deploy nesta fase.**
-   Deploy e validação E2E em staging:
+   Deploy e validaÃ§Ã£o E2E em staging:
    `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A`
-   (próxima fase).
+   (prÃ³xima fase).
 10. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-STAGING-DEPLOY-A`**
-    *(próxima — separada da fase atual)* — deploy controlado de
-    `admin-disable-user` em staging e validação manual. A fase
-    E2E-AUTO-RUNNER-A abaixo já cria o runner que automatiza a
-    validação E2E.
+    *(prÃ³xima â€” separada da fase atual)* â€” deploy controlado de
+    `admin-disable-user` em staging e validaÃ§Ã£o manual. A fase
+    E2E-AUTO-RUNNER-A abaixo jÃ¡ cria o runner que automatiza a
+    validaÃ§Ã£o E2E.
  11. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-AUTO-RUNNER-A`**
-     *(em andamento, fase atual, repo-only)* — runner local
+     *(em andamento, fase atual, repo-only)* â€” runner local
      automatizado em `scripts/staging/admin-disable-user-e2e.mjs`
      com comandos `setup` (coleta admin_email/admin_password uma
-     única vez; detecta staging de `js/config.js`; salva em
+     Ãºnica vez; detecta staging de `js/config.js`; salva em
      `.ravatex-local/admin-disable-user-e2e.config.json`,
-     gitignored) e `run` (carrega config; aborta se URL não for
+     gitignored) e `run` (carrega config; aborta se URL nÃ£o for
      `ucrjtfswnfdlxwtmxnoo` ou se for `bhgifjrfagkzubpyqpew`;
      login admin; valida `tipo=admin AND ativo=true`; resolve
-     `fornecedor_id` config/autodetect; cria fornecedor descartável
+     `fornecedor_id` config/autodetect; cria fornecedor descartÃ¡vel
      via `admin-create-user`; tenta desativar admin como fornecedor
-     esperando `FORBIDDEN`; revalida admin; desativa descartável
+     esperando `FORBIDDEN`; revalida admin; desativa descartÃ¡vel
      esperando `auth_banned=true`; valida `desativado_em`/
      `desativado_por`/`motivo_desativacao`; tenta login do
      desativado esperando falha; re-desativa esperando
      `already_disabled=true`; tenta self-disable esperando
      `SELF_DISABLE_FORBIDDEN`; imprime resumo sanitizado).
-     Smoke estático
+     Smoke estÃ¡tico
      `tests/admin-disable-user-e2e-runner.smoke.js` 32/32 verde
-     (após `E2E-RUNNER-FIX-A`).
+     (apÃ³s `E2E-RUNNER-FIX-A`).
      `.gitignore` agora ignora `.ravatex-local/`. **E2E real
-     não foi rerodado após o fix** — fica para a próxima
+     nÃ£o foi rerodado apÃ³s o fix** â€” fica para a prÃ³xima
      (`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-A` ou similar).
  11b. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-E2E-RUNNER-FIX-A`**
-     *(esta fase, repo-only)* — correção do bug do runner no
-     passo `login_blocked`. Execução real do runner em staging
-     avançou até `profile_inactive` e falhou com
+     *(esta fase, repo-only)* â€” correÃ§Ã£o do bug do runner no
+     passo `login_blocked`. ExecuÃ§Ã£o real do runner em staging
+     avanÃ§ou atÃ© `profile_inactive` e falhou com
      `HTTP 400 User is banned` tratado como erro fatal, porque
      `supabaseLogin` chamava `die()`/`process.exit` em qualquer
      HTTP 4xx e usava mensagem hardcoded "Login admin falhou"
-     (rótulo incorreto para o usuário descartável desativado).
-     Correção: helpers separados `loginExpectSuccess(...)` (fatal,
-     rótulo parametrizado: `admin_login failed`,
+     (rÃ³tulo incorreto para o usuÃ¡rio descartÃ¡vel desativado).
+     CorreÃ§Ã£o: helpers separados `loginExpectSuccess(...)` (fatal,
+     rÃ³tulo parametrizado: `admin_login failed`,
      `test_user_login failed`, `admin_relogin failed`) e
-     `loginExpectFailure(...)` (não-fatal; aceita HTTP 4xx com
+     `loginExpectFailure(...)` (nÃ£o-fatal; aceita HTTP 4xx com
      `User is banned`/`banned`/`Banned user`/`User is already
      registered` como falha esperada; retorna
      `{ ok, unexpected, status, detail }` para o caller decidir).
      Camada HTTP crua em `postSupabaseLogin(...)` (sem `die()`).
      Passo `login_blocked` agora imprime `login_blocked: OK` e
      continua para `idempotency` e `self_disable_blocked`. Smoke
-     estático
+     estÃ¡tico
      `tests/admin-disable-user-e2e-runner.smoke.js` 32/32 verde
      (4 testes novos: login bloqueado esperado, fluxo continua,
      loginExpectSuccess nos 3 logins, loginExpectFailure com
      substrings banned, loginExpectFailure retorna controle).
-     Regressão `admin-disable-user.smoke.js` 39/39. **E2E real
-     não foi rerodado nesta fase** — só após autorização do
+     RegressÃ£o `admin-disable-user.smoke.js` 39/39. **E2E real
+     nÃ£o foi rerodado nesta fase** â€” sÃ³ apÃ³s autorizaÃ§Ã£o do
      HMNlead. **Sem deploy, sem Supabase real, sem SQL, sem
-     alteração de UI, sem produção, sem origin/main, sem PR
+     alteraÃ§Ã£o de UI, sem produÃ§Ã£o, sem origin/main, sem PR
      #2.**
  11c. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`** *(esta
-     fase, repo-only)* — integração da tela
+     fase, repo-only)* â€” integraÃ§Ã£o da tela
      `#/cadastros/usuarios` com a Edge Function
-     `admin-disable-user` (já deployada em staging
-     `ucrjtfswnfdlxwtmxnoo`). Botão `Desativar` substitui o
+     `admin-disable-user` (jÃ¡ deployada em staging
+     `ucrjtfswnfdlxwtmxnoo`). BotÃ£o `Desativar` substitui o
      placeholder `Em breve`; chama
      `window.supa.functions.invoke('admin-disable-user', {
      body: { user_id: usr.id, reason } })`; modal de
-     confirmação com campo de motivo opcional (≤ 500 chars,
-     default `"Desativação via UI"`); mapeia 8 códigos de erro
+     confirmaÃ§Ã£o com campo de motivo opcional (â‰¤ 500 chars,
+     default `"DesativaÃ§Ã£o via UI"`); mapeia 8 cÃ³digos de erro
      (`FORBIDDEN`/`SELF_DISABLE_FORBIDDEN`/
      `LAST_ADMIN_FORBIDDEN`/`NOT_FOUND`/`AUTH_BAN_FAILED`/
      `COMPENSATION_FAILED`/`VALIDATION_ERROR`/`UNAUTHORIZED`)
-     para mensagens PT-BR; guarda de UX para o próprio usuário
-     logado e para usuários já inativos (proteção visual, não
+     para mensagens PT-BR; guarda de UX para o prÃ³prio usuÃ¡rio
+     logado e para usuÃ¡rios jÃ¡ inativos (proteÃ§Ã£o visual, nÃ£o
      substitui server-side); coluna `Status` na listagem
      (`Ativo`/`Inativo`). Helper top-level
      `friendlyDisableMessage(code, fallback)` no
-     `js/screens/cadastros.js`. Preserva `+ Novo usuário` e a
+     `js/screens/cadastros.js`. Preserva `+ Novo usuÃ¡rio` e a
      chamada `admin-create-user`. **Sem deploy, sem Supabase
-     real, sem SQL, sem produção, sem origin/main, sem PR
-     #2, sem E2E real nesta fase.** E2E real do runner já
+     real, sem SQL, sem produÃ§Ã£o, sem origin/main, sem PR
+     #2, sem E2E real nesta fase.** E2E real do runner jÃ¡
      havia passado em `result: PASS` em staging ANTES desta
-     fase (evidência sanitizada em LEDGER §5k). Smoke
+     fase (evidÃªncia sanitizada em LEDGER Â§5k). Smoke
      `tests/cadastros-usuarios-auth-ui.smoke.js` 23/23 verde
-     (+7 testes novos para a fase UI-A: botão `Desativar`
+     (+7 testes novos para a fase UI-A: botÃ£o `Desativar`
      substitui `Em breve`, chamada `admin-disable-user` com
      payload `user_id`+`reason`, leitura de
-     `error.context.json`, tratamento dos 8 códigos, guarda
-     de UX para self e inativo, coluna Status, preservação
-     de `+ Novo usuário` e `admin-create-user`); regressões
+     `error.context.json`, tratamento dos 8 cÃ³digos, guarda
+     de UX para self e inativo, coluna Status, preservaÃ§Ã£o
+     de `+ Novo usuÃ¡rio` e `admin-create-user`); regressÃµes
      focais `tests/cadastros-screens.smoke.js` 32/32,
      `tests/admin-disable-user.smoke.js` 39/39,
      `tests/admin-create-user.smoke.js` 17/17,
-     `tests/admin-disable-user-e2e-runner.smoke.js` 32/32 —
+     `tests/admin-disable-user-e2e-runner.smoke.js` 32/32 â€”
      todas verdes.
-12. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`** *(futura)* — restaurar
-    botão "Desativar" na UI quando Edge Function estiver
+12. **`RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-A`** *(futura)* â€” restaurar
+    botÃ£o "Desativar" na UI quando Edge Function estiver
     deployada e validada em staging.
 
-## Possíveis fases futuras opcionais (NÃO obrigatórias)
+## PossÃ­veis fases futuras opcionais (NÃƒO obrigatÃ³rias)
 
-Estas fases **não** fazem parte do fechamento do refactor e **não**
-são bloqueadas pelo design Auth. São sugestões para trabalho futuro,
-se houver benefício prático **e** autorização explícita do dono do
+Estas fases **nÃ£o** fazem parte do fechamento do refactor e **nÃ£o**
+sÃ£o bloqueadas pelo design Auth. SÃ£o sugestÃµes para trabalho futuro,
+se houver benefÃ­cio prÃ¡tico **e** autorizaÃ§Ã£o explÃ­cita do dono do
 projeto:
 
-- **`RAVATEX-TAPETES-OP-BLOCO-FIOS-DIAG-A`** — diagnosticar
+- **`RAVATEX-TAPETES-OP-BLOCO-FIOS-DIAG-A`** â€” diagnosticar
   `buildBlocoFios` (montagem do bloco de recebimento de fios).
-- **`RAVATEX-TAPETES-OP-PROPOSTA-DIAG-A`** — diagnosticar
+- **`RAVATEX-TAPETES-OP-PROPOSTA-DIAG-A`** â€” diagnosticar
   `buildProposta` / `recompute` / `onAceitar` (UI de proposta +
-  interação com recálculo).
-- **`RAVATEX-TAPETES-TRANSACTION-RISK-DIAG-A`** — avaliar uso de
-  RPC/transações Supabase para `persistirOP` e `aplicarRecalculoOP`
-  (risco de produto/dados, não de refactor).
+  interaÃ§Ã£o com recÃ¡lculo).
+- **`RAVATEX-TAPETES-TRANSACTION-RISK-DIAG-A`** â€” avaliar uso de
+  RPC/transaÃ§Ãµes Supabase para `persistirOP` e `aplicarRecalculoOP`
+  (risco de produto/dados, nÃ£o de refactor).
 
 > **Nota:** `RAVATEX-TAPETES-OP-PDF-MODULE-A` foi **executada** em
-> `7f3c6da`; não está mais em backlog.
+> `7f3c6da`; nÃ£o estÃ¡ mais em backlog.
 
-## Proibições operacionais
+## ProibiÃ§Ãµes operacionais
 
-- **Não tocar `origin/main` nem PR #2 sem autorização explícita.**
-- **Não mexer em `persistirOP` ou `aplicarRecalculoOP` sem fase
-  específica** (risco transacional residual, documentado em
+- **NÃ£o tocar `origin/main` nem PR #2 sem autorizaÃ§Ã£o explÃ­cita.**
+- **NÃ£o mexer em `persistirOP` ou `aplicarRecalculoOP` sem fase
+  especÃ­fica** (risco transacional residual, documentado em
   `PROJECT_STATE.md` e no LEDGER).
-- **Não fazer docs + código na mesma fase.**
-- **Não tratar cortes opcionais como obrigatórios** (sugestões acima
-  são apenas para futuro).
-- **Não iniciar nova extração em `op-nova.js`** (refactor
+- **NÃ£o fazer docs + cÃ³digo na mesma fase.**
+- **NÃ£o tratar cortes opcionais como obrigatÃ³rios** (sugestÃµes acima
+  sÃ£o apenas para futuro).
+- **NÃ£o iniciar nova extraÃ§Ã£o em `op-nova.js`** (refactor
   congelado em `7f3c6da`).
-- **Não remover o cache-busting `?v=20260623-asset1`** de `index.html`
-  (proteção contra navegador servindo JS antigo).
-- **Não remover `getAppRoot()`** de `js/ui.js` (proteção contra
+- **NÃ£o remover o cache-busting `?v=20260623-asset1`** de `index.html`
+  (proteÃ§Ã£o contra navegador servindo JS antigo).
+- **NÃ£o remover `getAppRoot()`** de `js/ui.js` (proteÃ§Ã£o contra
   `replaceChildren null` no boot).
 
-## Resumo do refactor (24 módulos extraídos)
+## Resumo do refactor (24 mÃ³dulos extraÃ­dos)
 
-| # | Módulo | Commit | Fase |
+| # | MÃ³dulo | Commit | Fase |
 |---|---|---|---|
 | 1 | `js/config.js` | `5547e27` | CONFIG-MODULE-A |
 | 2 | `js/supabase-client.js` | `6d50d08` | SUPABASE-CLIENT-MODULE-A |
@@ -1114,53 +1140,53 @@ projeto:
 | 21 | `js/screens/op-pdf.js` | `7f3c6da` | RAVATEX-TAPETES-OP-NOVA-PDF-MODULE-A |
 | 22 | `js/screens/pedidos-list.js` | `bf960f8` | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C1 |
 | 23 | `js/screens/pedido-form.js` | `62a9f9a` (+ `2de595c`) | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C2 (+ C2-R1) |
-| 24 | `js/screens/pedido-detail.js` | `7184388` + `d2b5a6a` + (commit desta fase) | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A (+ C3B: ações reais de status + C3C1: Editar funcional por status) |
-| 25 | `js/screens/pedido-edit.js` | `2d36077` C3C1: edição admin dos dados gerais do Pedido |
-| 26 | `js/screens/pedido-itens-edit.js` | `acc96c3` C3C2B: edição admin de itens existentes (update 3 chaves) + `fd1a9a3` C3C2C1: também ADICIONAR novos itens (insert 5 chaves, `isNew`, `Descartar novo item`) + `bd3aedc` C3C2C2: também REMOVER itens existentes (delete em `pedido_itens` com `.eq('id').eq('pedido_id')`, `markedForDeletion`, `window.confirmDialog`, "Desfazer remoção", mínimo 1) + (commit desta fase) C3C2C3: também NORMALIZAR `ordem` automaticamente no `salvar()` (loop `activeItems[i].ordem = i` por posição final; update com 4 chaves incluindo `ordem`; insert com `ordem: it.ordem`; sem drag/setas/reordenar) |
+| 24 | `js/screens/pedido-detail.js` | `7184388` + `d2b5a6a` + (commit desta fase) | RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A (+ C3B: aÃ§Ãµes reais de status + C3C1: Editar funcional por status) |
+| 25 | `js/screens/pedido-edit.js` | `2d36077` C3C1: ediÃ§Ã£o admin dos dados gerais do Pedido |
+| 26 | `js/screens/pedido-itens-edit.js` | `acc96c3` C3C2B: ediÃ§Ã£o admin de itens existentes (update 3 chaves) + `fd1a9a3` C3C2C1: tambÃ©m ADICIONAR novos itens (insert 5 chaves, `isNew`, `Descartar novo item`) + `bd3aedc` C3C2C2: tambÃ©m REMOVER itens existentes (delete em `pedido_itens` com `.eq('id').eq('pedido_id')`, `markedForDeletion`, `window.confirmDialog`, "Desfazer remoÃ§Ã£o", mÃ­nimo 1) + (commit desta fase) C3C2C3: tambÃ©m NORMALIZAR `ordem` automaticamente no `salvar()` (loop `activeItems[i].ordem = i` por posiÃ§Ã£o final; update com 4 chaves incluindo `ordem`; insert com `ordem: it.ordem`; sem drag/setas/reordenar) |
 
 ## Testes recentes (focados passando)
-- `cliente-pedido-tracking.smoke.js` — novo (fase TRACKING-UI-A).
-- `cliente-pedido-detail.smoke.js` — atualizado (fase TRACKING-UI-A).
-- `cliente-perfil-schema.smoke.js` — 49/49
-- `pedido-itens-edit.smoke.js` — 64/64
-- `pedido-edit.smoke.js` — 35/35
-- `pedido-detail.smoke.js` — 43/43
-- `pedido-form.smoke.js` — 35/35
-- `pedido-ui.test.js` — 18/18
-- `pedidos-list.smoke.js` — 29/29
-- `pedidos-schema.smoke.js` — 41/41
-- `boot.smoke.js` — 28/28
-- `router.smoke.js` — 41/41
+- `cliente-pedido-tracking.smoke.js` â€” novo (fase TRACKING-UI-A).
+- `cliente-pedido-detail.smoke.js` â€” atualizado (fase TRACKING-UI-A).
+- `cliente-perfil-schema.smoke.js` â€” 49/49
+- `pedido-itens-edit.smoke.js` â€” 64/64
+- `pedido-edit.smoke.js` â€” 35/35
+- `pedido-detail.smoke.js` â€” 43/43
+- `pedido-form.smoke.js` â€” 35/35
+- `pedido-ui.test.js` â€” 18/18
+- `pedidos-list.smoke.js` â€” 29/29
+- `pedidos-schema.smoke.js` â€” 41/41
+- `boot.smoke.js` â€” 28/28
+- `router.smoke.js` â€” 41/41
 - **Total Pedidos (C1+C2+C2-R1+C3A+C3B+C3C1+C3C2B+C3C2C1+C3C2C2+C3C2C3): 334/334** (todos os focados
   passam).
 
 Focados do refactor (mantidos verdes):
-- `op-pdf.smoke.js` — 20/20
-- `op-nova.smoke.js` — 30/30
-- `op-recalculo.smoke.js` — 59/59
-- `op-persistir.smoke.js` — 65/65
-- `op-writes.smoke.js` — 49/49
-- `op-latex-admin.smoke.js` — 30/30
-- `op-form-helpers.smoke.js` — 36/36
-- `painel-screen.smoke.js` — 16/16
-- `fornecedor-screens.smoke.js` — 35/35
+- `op-pdf.smoke.js` â€” 20/20
+- `op-nova.smoke.js` â€” 30/30
+- `op-recalculo.smoke.js` â€” 59/59
+- `op-persistir.smoke.js` â€” 65/65
+- `op-writes.smoke.js` â€” 49/49
+- `op-latex-admin.smoke.js` â€” 30/30
+- `op-form-helpers.smoke.js` â€” 36/36
+- `painel-screen.smoke.js` â€” 16/16
+- `fornecedor-screens.smoke.js` â€” 35/35
 
-Pré-existentes dependentes de `http.server :8765`: 6 falhas em
+PrÃ©-existentes dependentes de `http.server :8765`: 6 falhas em
 `tests/index-inline.smoke.js` e 17 em `tests/write-guard.smoke.js`
-— não relacionadas ao refactor; exigem servidor local
+â€” nÃ£o relacionadas ao refactor; exigem servidor local
 (`.\run-local.bat` ou `python -m http.server 8765`).
-Falhas pré-existentes em `tests/ops-list-screen.smoke.js` (10/30)
-são de testes do refactor monolítico antigo, **fora do escopo**
+Falhas prÃ©-existentes em `tests/ops-list-screen.smoke.js` (10/30)
+sÃ£o de testes do refactor monolÃ­tico antigo, **fora do escopo**
 da fase `RAVATEX-TAPETES-PEDIDOS-UI-ADMIN-C3A`.
 
 ## Comandos seguros por fase
 
 ```bash
-# Após mudança em js/screens/<X>.js:
+# ApÃ³s mudanÃ§a em js/screens/<X>.js:
 node --check js/screens/<X>.js
 node --test tests/<X>.smoke.js
 
-# Validação focada de regressão completa:
+# ValidaÃ§Ã£o focada de regressÃ£o completa:
 node --test tests/boot.smoke.js \
               tests/router.smoke.js \
               tests/op-nova.smoke.js \
@@ -1174,33 +1200,33 @@ node --test tests/boot.smoke.js \
               tests/fornecedor-screens.smoke.js
 ```
 
-## O que um agente NÃO deve fazer
+## O que um agente NÃƒO deve fazer
 
 - Editar `index.html`, `js/**`, `tests/**` em fase docs-only.
-- Rodar `db/10_*`/`db/11_*` (resets destrutivos de produção).
+- Rodar `db/10_*`/`db/11_*` (resets destrutivos de produÃ§Ã£o).
 - Fazer push em `origin/main`.
 - Acessar Supabase real em testes/refactors.
 - Registrar `service_role`, senha, `JWT secret`, connection string
-  com senha ou anon key completa em qualquer doc/relatório.
+  com senha ou anon key completa em qualquer doc/relatÃ³rio.
 - Mexer em `persistirOP` ou `aplicarRecalculoOP` sem nova fase
-  explícita.
-- Tentar mover `renderOPLatexAdmin` para outro módulo (já está
+  explÃ­cita.
+- Tentar mover `renderOPLatexAdmin` para outro mÃ³dulo (jÃ¡ estÃ¡
   isolada em `op-latex-admin.js`).
-- Tentar mover `screenPainel` (já está isolada em `painel.js`).
-- Tentar mover `gerarPdfCompraFios` (já está isolada em `op-pdf.js`).
+- Tentar mover `screenPainel` (jÃ¡ estÃ¡ isolada em `painel.js`).
+- Tentar mover `gerarPdfCompraFios` (jÃ¡ estÃ¡ isolada em `op-pdf.js`).
 - Rodar `git add .` (sempre stage seletivo por arquivo).
 - Mexer no PR #2.
 - Tratar fases opcionais (bloco fios, proposta, transaction risk)
-  como obrigatórias.
-- Iniciar nova extração em `op-nova.js` (refactor congelado).
+  como obrigatÃ³rias.
+- Iniciar nova extraÃ§Ã£o em `op-nova.js` (refactor congelado).
 - Remover cache-busting `?v=20260623-asset1` de `index.html`.
 - Remover `getAppRoot()` de `js/ui.js`.
-- Tratar `docs/superpowers/plans/*.md` como playbook executável
-  (esses planos foram escritos para o monólito pré-refactor e
+- Tratar `docs/superpowers/plans/*.md` como playbook executÃ¡vel
+  (esses planos foram escritos para o monÃ³lito prÃ©-refactor e
   instruem a modificar `index.html` diretamente; devem ser
-  adaptados à arquitetura atual antes de qualquer uso).
-- Tratar `docs/qa/*.md` como especificação técnica atual
-  (checklists históricos; ver `docs/qa/README.md`).
+  adaptados Ã  arquitetura atual antes de qualquer uso).
+- Tratar `docs/qa/*.md` como especificaÃ§Ã£o tÃ©cnica atual
+  (checklists histÃ³ricos; ver `docs/qa/README.md`).
 ## Registro documental de schema versionado
 
 - **Estado atual aceito:** `work/app-next` na ponta da fase
@@ -1208,7 +1234,7 @@ node --test tests/boot.smoke.js \
   fechamento documental). A fase
   `RAVATEX-TAPETES-CLIENTE-PARCIAIS-SCHEMA-A-R1` fica aceita com
   **ressalva documental** por registrar, apos o fato, o commit
-  publicado `0a02f6a — Add pedido parciais schema`.
+  publicado `0a02f6a â€” Add pedido parciais schema`.
 - **Escopo publicado no commit `0a02f6a`:**
   `db/17_pedido_parciais_schema.sql` +
   `tests/pedido-parciais-schema.smoke.js`.
@@ -1425,12 +1451,12 @@ node --test tests/boot.smoke.js \
 
 - **Estado atual aceito:** `work/app-next` no HEAD `9495918`, fase
   `RAVATEX-TAPETES-ADMIN-NOVA-OP-MATCH-STANDALONE-CLOSEOUT`. Fica
-  aceita como **APROVADA** a homologacao visual da tela Admin →
+  aceita como **APROVADA** a homologacao visual da tela Admin â†’
   Nova OP, com aceite visual explicito do dono do projeto em app
   local (`run-local.bat`).
 - **Escopo publicado:** `js/screens/op-nova.js` (rota `#/ops/nova` e
   edicao `#/ops/:id`) foi redesenhado para igualar ao HTML standalone
-  `Admin - Nova OP - standalone.html` — header com subtitulo e botao
+  `Admin - Nova OP - standalone.html` â€” header com subtitulo e botao
   Voltar, card "1. Dados da OP", card "2. Itens da OP", card
   "3. Recebimento de fios" (pendentes, recebidas, proposta por
   sliders), card "4. Entregas tecelagem", coluna lateral "Resumo da
@@ -1447,7 +1473,7 @@ node --test tests/boot.smoke.js \
 - **Diferenca residual deferida:** as colunas Quantidade e
   Observacao por item, presentes no standalone, nao existem em
   `op_itens` (`db/01_schema.sql` so tem `modelo_id` e
-  `metros_pedidos`) e exigiriam schema/logica nova — a tabela real
+  `metros_pedidos`) e exigiriam schema/logica nova â€” a tabela real
   usa apenas Modelo/Metros/Acoes; decisao de adicionar esses campos
   fica para fase futura.
 - **Seguranca/escopo preservados:** nenhum schema, SQL, Supabase
@@ -1460,7 +1486,7 @@ node --test tests/boot.smoke.js \
   `tests/op-pdf.smoke.js`, `tests/op-latex-admin.smoke.js`) tambem
   executada: 2 falhas pre-existentes e nao relacionadas
   (`screenPainel ... 9 itens do ADMIN_MENU`, ja presentes no HEAD
-  `9495918` antes desta fase, confirmadas via `git stash`) — nao
+  `9495918` antes desta fase, confirmadas via `git stash`) â€” nao
   corrigidas por estarem fora do escopo desta fase.
 - **Proxima fase recomendada:** avaliar, em frente separada, se vale
   criar campos de quantidade/observacao por item de OP (exige
