@@ -10,6 +10,32 @@
 
 ## Estado atual aceito
 - **Estado atual aceito:** `work/app-next`, ponta da fase
+  `RAVATEX-TAPETES-CLIENTE-DASHBOARD-MATCH-STANDALONE-GLM`. O miolo da
+  tela Dashboard do Cliente (`#/cliente/dashboard`) foi alinhado
+  visualmente ao HTML standalone de referência (`Dashboard Cliente v3
+  - standalone.html`). **Aceite visual explícito do dono do projeto em
+  2026-06-29** (após ajuste R1: coluna "Resumo" removida de "Pedidos
+  em destaque" e largura/alinhamento do card "Resumo dos pedidos"
+  corrigidos). Arquivo alterado: `js/screens/cliente-dashboard.js`
+  (único). Elementos homologados: header com botão "Novo pedido"; 4
+  KPI cards (Meus pedidos / Em produção / Concluído / Atrasado) com
+  ícone; "Pedidos em destaque" como tabela 6 colunas (Pedido ·
+  Situação · Avanço · Atualizado · Prazo previsto · Ação) com badge de
+  situação e avanço "Parcial · X / Y m" / "Total · Y m"; "Resumo dos
+  pedidos" com donut SVG + legenda; "Últimas atualizações" e "Prazos
+  próximos". Parciais preservadas via
+  `buildPedidoAcompanhamentoParcial` (dados seguros, mesma API do
+  detalhe). Shell/sidebar/topbar globais preservados. Pushed para
+  `staging/main`. Produção e `origin/main` não tocados.
+- **Contrato preservado:** nenhum campo interno exposto; SELECTs
+  read-only mantidos; RLS intocada; schema não alterado; nenhuma tela
+  fora do escopo alterada; shell global não redesenhado.
+- **Gap fechado:** `Dashboard Cliente` marcado como resolvido em
+  `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. Próximos gaps
+  remanescentes: Acompanhamento/Stepper (datas por etapa) e
+  Shell/Menu cliente, este último de risco alto (componente
+  compartilhado com admin/fornecedor).
+- **Estado atual aceito:** `work/app-next`, ponta da fase
   `RAVATEX-TAPETES-UI-MATCH-STANDALONE-NOVO-PEDIDO-ADD-ITEM-MODAL`.
   O modal "Adicionar item" da tela `#/cliente/pedidos/novo` foi
   alinhado visualmente ao HTML standalone de referência

@@ -1,6 +1,44 @@
 # PROJECT_STATE.md — Controle de Tapetes (Grupo Terra Branca)
 
 > **Atualizacao 2026-06-29 — fase
+> `RAVATEX-TAPETES-CLIENTE-DASHBOARD-MATCH-STANDALONE-GLM`
+> (frontend cliente + registro de homologacao visual).** O miolo da
+> tela Dashboard do Cliente (`#/cliente/dashboard`) foi **alinhado
+> visualmente ao HTML standalone de referencia** (`Dashboard Cliente
+> v3 - standalone.html`, em
+> `D:\OneDrive\Ravatex\Inttex\Mockups - nova interface\Cliente\`) pelo
+> agente IAexec (GLM-5.2/ZCode), e o aceite visual foi **APROVADO
+> EXPLICITAMENTE PELO DONO DO PROJETO em 2026-06-29** (apos ajuste
+> R1: remocao da coluna "Resumo" da tabela "Pedidos em destaque" e
+> correcao de largura/alinhamento do card "Resumo dos pedidos").
+> Branch: `work/app-next`. Pushed para `staging/main`. Producao
+> `bhgifjrfagkzubpyqpew` e `origin/main` nao foram tocados.
+> Arquivo alterado: `js/screens/cliente-dashboard.js` (unico).
+> Elementos entregues e homologados: header com titulo "Dashboard" +
+> subtitulo + botao "Novo pedido"; 4 KPI cards (Meus pedidos / Em
+> producao / Concluido / Atrasado) com icone em circulo colorido;
+> "Pedidos em destaque" como tabela 6 colunas (Pedido · Situacao ·
+> Avanco · Atualizado · Prazo previsto · Acao) com badge de situacao,
+> avanco "Parcial · X / Y m" ou "Total · Y m" e botao olho para o
+> detalhe; "Resumo dos pedidos" com donut SVG (em producao/concluido/
+> atrasado/rascunho) + legenda com percentual e total; "Ultimas
+> atualizacoes" e "Prazos proximos" na linha de baixo. Parciais
+> preservadas no dashboard via dados seguros
+> (`buildPedidoAcompanhamentoParcial`, mesma API homologada no
+> detalhe). Shell/sidebar/topbar globais preservados (miolo entregue
+> a `clienteShellLayout`/`shellLayout`, sem chrome proprio).
+> Convencoes visuais herdadas das telas cliente homologadas (inline
+> styles pixel-exatos). Valores dinamicos a partir dos pedidos/eventos
+> reais do cliente. Diferencas visuais residuais documentadas: os
+> numeros (KPIs, donut, destaque, prazos) sao dinamicos (nao os
+> literais do mockup); itens de sidebar do standalone pertencem ao
+> shell global; "Rascunho" do donut agrega os estados recebido/
+> confirmado/insumos/aguardando. Checks: `node --check` OK;
+> `git diff --check` OK. Gap do Dashboard marcado como resolvido em
+> `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`. Producao permanece
+> bloqueada.
+
+> **Atualizacao 2026-06-29 — fase
 > `RAVATEX-TAPETES-UI-MATCH-STANDALONE-NOVO-PEDIDO-ADD-ITEM-MODAL`
 > (frontend cliente + registro de homologacao visual).** O modal
 > **"Adicionar item"** da tela Novo Pedido (`#/cliente/pedidos/novo`)
