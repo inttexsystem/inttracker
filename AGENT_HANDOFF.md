@@ -1857,3 +1857,37 @@ node --test tests/boot.smoke.js \
 - **Residual restante:** `supabase/.temp/` continua fora do stage/commit.
 - **Proximo passo recomendado:** Modal Movimentar Producao, somente
   com worktree limpo exceto `supabase/.temp/`.
+
+## Closeout do Modal Movimentar Producao B
+
+- **Estado atual aceito:** branch `work/app-next`, fase
+  `RAVATEX-TAPETES-MOVIMENTAR-PRODUCAO-MODAL-B`, validada sobre o HEAD
+  base `583f90a`.
+- **Arquivos alterados nesta fase:** `js/screens/pedido-detail-events.js`
+  e `tests/pedido-detail.smoke.js`.
+- **Entrega publicada nesta fase:** o Detalhe do Pedido passou a abrir
+  um modal de Movimentar Producao **pre-carregado e readonly** a partir
+  dos atalhos `Transferir`/`Movimentar`, com origem, destino, OP de
+  origem, itens envolvidos, saldo/restante calculado, documentos
+  esperados e CTA para abrir a OP de origem.
+- **Regra preservada:** o Pedido continua sendo apenas **visao
+  consolidada**. A movimentacao canonica continua na OP/cadeia
+  produtiva; o modal nao cria lancamento paralelo no Pedido nem estado
+  concorrente.
+- **Escopo explicitamente preservado:** nenhuma gravacao operacional foi
+  implementada; nao houve chamadas a `salvarEntregaCima`,
+  `salvarEntregaLatex`, `gerar_op_latex` ou `alterar_status_op`; nenhum
+  SQL/schema/OP lifecycle/Supabase/producao foi tocado.
+- **Validacao registrada:** `node --check
+  js/screens/pedido-detail-events.js`, `node --test
+  tests/pedido-detail.smoke.js` e o pacote de closeout
+  `node --test tests/pedido-detail.smoke.js tests/pedido-edit.smoke.js
+  tests/pedido-itens-edit.smoke.js
+  tests/admin-pedido-tracking-control.smoke.js
+  tests/pedido-parciais-admin-control.smoke.js`, com
+  `pedido-detail.smoke.js` em `46/46` e o agregado em `180/180`.
+- **Residual preservado:** `?? supabase/.temp/` permanece fora do
+  stage/commit.
+- **Proximo passo recomendado:** abrir a frente de telas de OP,
+  comecando por **OP Aberta** baseada em **Admin -> Nova OP**, para
+  levar a movimentacao canonica ao fluxo operacional proprio da OP.

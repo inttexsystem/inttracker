@@ -2930,3 +2930,33 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 > do commit R1: `M js/screens/pedidos-list.js` e `?? supabase/.temp/`.
 > Push nao realizado. Producao nao tocada.
 >
+> **Atualizacao 2026-07-01 - fase
+> `RAVATEX-TAPETES-MOVIMENTAR-PRODUCAO-MODAL-B`
+> (modal Movimentar Producao readonly/pre-carregado no Detalhe do
+> Pedido).** Fica registrada como **VALIDADA** a fase visual do modal
+> aberto pelos atalhos `Transferir`/`Movimentar` em
+> `js/screens/pedido-detail.js`, na branch `work/app-next`, sobre o
+> HEAD base `583f90a`. O arquivo funcional alterado foi
+> `js/screens/pedido-detail-events.js`, com ajuste focado do modal para
+> um estado **pre-carregado e somente leitura**, alinhado ao standalone
+> de referencia e sem criar formulario operacional no Pedido. O modal
+> passou a exibir origem, destino, OP de origem, itens envolvidos,
+> saldo/restante calculado, documentos esperados e aviso explicito de
+> que a movimentacao canonica continua na OP/cadeia produtiva. Fica
+> confirmado nesta fase que **nao houve gravacao de movimentacao**,
+> nenhum `update`/`insert`/`delete` novo em Pedido, nenhuma chamada a
+> `salvarEntregaCima`, `salvarEntregaLatex`, `gerar_op_latex` ou
+> `alterar_status_op`, nenhuma alteracao de SQL/schema, nenhuma mudanca
+> de OP lifecycle e nenhum toque em Supabase ou producao. A validacao
+> focada ja registrada para o modal incluiu
+> `node --check js/screens/pedido-detail-events.js`,
+> `node --test tests/pedido-detail.smoke.js` e o pacote de closeout
+> `node --test tests/pedido-detail.smoke.js tests/pedido-edit.smoke.js
+> tests/pedido-itens-edit.smoke.js
+> tests/admin-pedido-tracking-control.smoke.js
+> tests/pedido-parciais-admin-control.smoke.js`, com resultado
+> **180/180 passing** no comando agregado e
+> `tests/pedido-detail.smoke.js` atualizado para **46/46 passing**.
+> Residual conhecido preservado fora do commit: `?? supabase/.temp/`.
+> Producao permanece intocada.
+>

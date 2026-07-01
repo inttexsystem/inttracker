@@ -164,22 +164,141 @@
           style: 'display:block;font-size:12px;font-weight:600;color:#5b6472;margin-bottom:6px;',
         }, label),
         window.el('div', {
-          style: 'border:1px solid #d8dce2;border-radius:4px;padding:9px 12px;font-size:13.5px;color:#16203a;background:#fff;',
+          style: 'border:1px solid #eceef1;border-radius:4px;padding:9px 12px;font-size:13.5px;color:#16203a;background:#f8f9fb;',
         }, ns.fmtTextoOuEmpty(value, '-'))
       );
     }
 
+    function movementMetricCard(label, value, accent) {
+      return window.el('div', {
+        style: 'border:1px solid #eceef1;border-radius:4px;background:#fff;padding:12px 14px;',
+      },
+        window.el('div', {
+          style: 'font-size:11px;font-weight:700;letter-spacing:.03em;color:#8a93a3;text-transform:uppercase;margin-bottom:6px;',
+        }, label),
+        window.el('div', {
+          style: 'font-size:16px;font-weight:800;color:' + (accent || '#16203a') + ';',
+        }, ns.fmtTextoOuEmpty(value, '-'))
+      );
+    }
+
+    function resolveUniquePedidoItemByModelo() {
+      var countByModelo = {};
+      var map = {};
+      state.itens.forEach(function (item) {
+        countByModelo[item.modelo_id] = (countByModelo[item.modelo_id] || 0) + 1;
+        map[item.modelo_id] = item;
+      });
+      Object.keys(map).forEach(function (modeloId) {
+        if (countByModelo[modeloId] !== 1) delete map[modeloId];
+      });
+      return map;
+    }
+
+    function movementItemLabel(opItem, uniquePedidoItemByModelo) {
+      var modelo = state.modelosById[opItem.modelo_id] || {};
+      var pedidoItem = opItem.pedido_item_id
+        ? state.itens.find(function (item) { return item.id === opItem.pedido_item_id; }) || null
+        : uniquePedidoItemByModelo[opItem.modelo_id] || null;
+      var larguraValue = pedidoItem && pedidoItem.largura != null
+        ? pedidoItem.largura
+        : modelo.largura;
+      var larguraLabel = larguraValue != null
+        ? Number(larguraValue).toFixed(2).replace('.', ',') + ' m'
+        : null;
+      var cor1Id = pedidoItem && pedidoItem.cor_1_id != null ? pedidoItem.cor_1_id : modelo.cor_1_id;
+      var cor2Id = pedidoItem && pedidoItem.cor_2_id != null ? pedidoItem.cor_2_id : modelo.cor_2_id;
+      var cor1 = cor1Id != null && state.coresById[cor1Id] ? state.coresById[cor1Id].nome : null;
+      var cor2 = cor2Id != null && state.coresById[cor2Id] ? state.coresById[cor2Id].nome : null;
+      var label = modelo.nome || 'Item sem modelo';
+      if (larguraLabel) label += ' · ' + larguraLabel;
+      if (cor1 || cor2) label += ' · ' + (cor1 || '-') + ' / ' + (cor2 || '-');
+      return label;
+    }
+
+    function buildMovementItems(ctxMovement) {
+      if (Array.isArray(ctxMovement.items) && ctxMovement.items.length) return ctxMovement.items;
+      if (!ctxMovement.op || !Array.isArray(ctxMovement.op.op_itens) || !ctxMovement.op.op_itens.length) return [];
+
+      var uniquePedidoItemByModelo = resolveUniquePedidoItemByModelo();
+      return ctxMovement.op.op_itens.map(function (opItem) {
+        var metros = typeof ns.targetMetersForOpItem === 'function'
+          ? ns.targetMetersForOpItem(opItem)
+          : ns.round2(opItem && opItem.metros_ajustados != null ? opItem.metros_ajustados : opItem.metros_pedidos);
+        return {
+          label: movementItemLabel(opItem, uniquePedidoItemByModelo),
+          meta: ns.fmtMetrosShort(metros),
+        };
+      });
+    }
+
+    function buildMovementMetrics(ctxMovement) {
+      if (ctxMovement.metrics) return ctxMovement.metrics;
+      if (!ctxMovement.op || !Array.isArray(ctxMovement.op.op_itens) || !ctxMovement.op.op_itens.length) {
+        return {
+          totalLabel: '-',
+          movedLabel: '-',
+          remainingLabel: '-',
+        };
+      }
+
+      var stage = typeof ns.deliveryStageForOp === 'function'
+        ? ns.deliveryStageForOp(ctxMovement.op)
+        : (ctxMovement.op && ctxMovement.op.tipo === 'latex' ? 'latex' : 'cima');
+      var opItemIds = {};
+      var total = 0;
+      var moved = 0;
+
+      ctxMovement.op.op_itens.forEach(function (opItem) {
+        if (opItem && opItem.id != null) opItemIds[opItem.id] = true;
+        total += typeof ns.targetMetersForOpItem === 'function'
+          ? ns.targetMetersForOpItem(opItem)
+          : ns.toFiniteNumber(opItem && opItem.metros_ajustados != null ? opItem.metros_ajustados : opItem.metros_pedidos);
+      });
+
+      state.entregaItens.forEach(function (ei) {
+        if (!opItemIds[ei.op_item_id] || ei.defeito) return;
+        var entrega = state.entregasById[ei.entrega_id];
+        if (!entrega || entrega.etapa !== stage) return;
+        moved += ns.toFiniteNumber(ei.metros_entregues);
+      });
+
+      total = ns.round2(total);
+      moved = ns.round2(moved);
+      return {
+        totalLabel: ns.fmtMetros(total),
+        movedLabel: ns.fmtMetros(moved),
+        remainingLabel: ns.fmtMetros(Math.max(total - moved, 0)),
+      };
+    }
+
+    function buildMovementDocs(ctxMovement) {
+      if (Array.isArray(ctxMovement.docsList) && ctxMovement.docsList.length) return ctxMovement.docsList;
+      if (Array.isArray(ctxMovement.docs) && ctxMovement.docs.length) return ctxMovement.docs;
+      var raw = ns.fmtTextoOuEmpty(ctxMovement.docs, 'Romaneio e NF');
+      return raw.split(/\s*,\s*|\s+e\s+/i).filter(Boolean).map(function (item) {
+        return item.charAt(0).toUpperCase() + item.slice(1);
+      });
+    }
+
     function openMovementModal(ctxMovement) {
+      var opLabel = ctxMovement.op ? ns.opLabel(ctxMovement.op) : 'Sem OP vinculada';
+      var items = buildMovementItems(ctxMovement);
+      var metrics = buildMovementMetrics(ctxMovement);
+      var docs = buildMovementDocs(ctxMovement);
       var body = window.el('div', {},
         window.el('div', {
-          style: 'display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;',
+          style: 'display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;',
         },
           window.el('div', {
             style: 'width:36px;height:36px;border-radius:50%;background:#eef3ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;',
           }, ns.svgEl(ns.SVG_INFO)),
           window.el('div', {},
             window.el('div', {
-              style: 'font-size:15px;font-weight:700;color:#16203a;',
+              style: 'font-size:11px;font-weight:700;letter-spacing:.04em;color:#2563eb;text-transform:uppercase;margin-bottom:4px;',
+            }, 'Operacao canonica da OP'),
+            window.el('div', {
+              style: 'font-size:15px;font-weight:800;color:#16203a;',
             }, ctxMovement.title),
             window.el('div', {
               style: 'font-size:13px;color:#5b6472;margin-top:6px;line-height:1.5;',
@@ -187,34 +306,146 @@
           )
         ),
         window.el('div', {
+          style: 'display:flex;align-items:flex-start;gap:10px;background:#f6f9ff;border:1px solid #d0e0fb;border-radius:4px;padding:12px 14px;margin-bottom:14px;',
+        },
+          ns.svgEl(ns.SVG_INFO),
+          window.el('span', {
+            style: 'font-size:12.5px;color:#2c4a78;line-height:1.5;',
+          }, 'Este modal e somente leitura nesta fase. Revise o contexto abaixo e use "Abrir OP de origem" para executar a movimentacao canonica na OP.')
+        ),
+        window.el('div', {
           style: 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;',
         },
           movementField('Origem', ctxMovement.origem),
           movementField('Destino', ctxMovement.destino)
         ),
-        movementField('Documentos esperados', ctxMovement.docs || 'Romaneio e NF'),
-        ctxMovement.op ? movementField('OP vinculada', ns.opLabel(ctxMovement.op)) : null,
+        window.el('div', {
+          style: 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;',
+        },
+          movementField('OP de origem', opLabel),
+          movementField('Saldo/restante calculado', metrics.remainingLabel)
+        ),
+        window.el('div', {
+          style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px;',
+        },
+          movementMetricCard('Planejado na OP', metrics.totalLabel),
+          movementMetricCard('Ja movimentado', metrics.movedLabel, '#2563eb'),
+          movementMetricCard('Restante na origem', metrics.remainingLabel, '#c2610c')
+        ),
+        window.el('div', {
+          style: 'border:1px solid #eceef1;border-radius:4px;background:#fff;overflow:hidden;margin-bottom:14px;',
+        },
+          window.el('div', {
+            style: 'padding:11px 14px;border-bottom:1px solid #f1f3f6;font-size:12px;font-weight:700;letter-spacing:.03em;color:#8a93a3;text-transform:uppercase;',
+          }, 'Itens envolvidos'),
+          items.length
+            ? items.map(function (item, index) {
+                return window.el('div', {
+                  style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;' + (index < items.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : ''),
+                },
+                  window.el('div', {
+                    style: 'font-size:13px;color:#16203a;line-height:1.45;',
+                  }, item.label),
+                  window.el('div', {
+                    style: 'font-size:12px;font-weight:700;color:#2563eb;white-space:nowrap;',
+                  }, item.meta)
+                );
+              })
+            : window.el('div', {
+                style: 'padding:12px 14px;font-size:13px;color:#8a93a3;',
+              }, 'Nenhum item consolidado para exibir nesta origem.')
+        ),
+        window.el('div', {
+          style: 'border:1px solid #eceef1;border-radius:4px;background:#fff;overflow:hidden;',
+        },
+          window.el('div', {
+            style: 'padding:11px 14px;border-bottom:1px solid #f1f3f6;font-size:12px;font-weight:700;letter-spacing:.03em;color:#8a93a3;text-transform:uppercase;',
+          }, 'Documentos esperados'),
+          docs.map(function (doc, index) {
+            return window.el('div', {
+              style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;' + (index < docs.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : ''),
+            },
+              window.el('div', { style: 'display:flex;align-items:center;gap:9px;min-width:0;' },
+                ns.svgEl(ns.SVG_FILE),
+                window.el('span', {
+                  style: 'font-size:13px;font-weight:600;color:#3f4757;',
+                }, doc)
+              ),
+              window.el('span', {
+                style: 'display:inline-flex;align-items:center;border:1px solid #fbe8c6;background:#fff9ee;color:#8a5a15;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:700;white-space:nowrap;',
+              }, 'Esperado')
+            );
+          })
+        ),
         window.el('div', {
           style: 'display:flex;align-items:flex-start;gap:10px;background:#f8f9fb;border:1px solid #eceef1;border-radius:4px;padding:12px 14px;margin-top:12px;',
         },
           ns.svgEl(ns.SVG_INFO),
           window.el('span', {
             style: 'font-size:12.5px;color:#5b6472;line-height:1.5;',
-          }, 'A operacao continua canonica na OP. Use este atalho apenas para abrir a mesma origem de movimentacao, sem duplicar lancamentos no pedido.')
+          }, ctxMovement.op
+            ? 'A operacao continua canonica na OP de origem. Este atalho nao grava entrega, nao cria movimentacao no Pedido e nao mantem estado paralelo.'
+            : 'Ainda nao existe uma OP de origem vinculada para este atalho. O Pedido continua sem gravacao propria de movimentacao nesta fase.')
         )
       );
 
-      window.modal({
-        title: ctxMovement.title,
-        body: body,
-        saveLabel: ctxMovement.op ? 'Abrir OP' : 'Fechar',
-        onSave: async function () {
-          if (ctxMovement.op) {
-            window.navigate('#/ops/' + ctxMovement.op.id);
-          }
-          return true;
-        },
+      var overlay = window.el('div', {
+        style: 'position:fixed;inset:0;background:rgba(20,30,45,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;',
       });
+
+      function closeModal() {
+        overlay.remove();
+        document.removeEventListener('keydown', escListener);
+      }
+
+      function escListener(evt) {
+        if (evt.key === 'Escape') closeModal();
+      }
+
+      overlay.addEventListener('click', function (evt) {
+        if (evt.target === overlay) closeModal();
+      });
+      document.addEventListener('keydown', escListener);
+
+      var card = window.el('div', {
+        style: 'position:relative;background:#fff;border-radius:4px;width:520px;max-height:calc(100vh - 48px);overflow-y:auto;box-shadow:0 24px 60px rgba(20,30,45,.2);',
+      });
+      var closeBtn = window.el('button', {
+        type: 'button',
+        style: 'position:absolute;top:18px;right:18px;background:none;border:none;cursor:pointer;padding:4px;color:#9aa2af;line-height:0;',
+        onclick: closeModal,
+      }, ns.svgEl('<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'));
+      var content = window.el('div', {
+        style: 'padding:20px 22px 18px;',
+      }, body);
+      var footer = window.el('div', {
+        style: 'display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid #eceef1;',
+      });
+      var cancelBtn = window.el('button', {
+        type: 'button',
+        style: 'background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:9px 18px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
+        onclick: closeModal,
+      }, 'Cancelar');
+      var primaryBtn = window.el('button', {
+        type: 'button',
+        style: 'background:#2563eb;color:#fff;border:none;border-radius:4px;padding:9px 20px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;',
+        onclick: function () {
+          if (ctxMovement.op) {
+            closeModal();
+            window.navigate('#/ops/' + ctxMovement.op.id);
+            return;
+          }
+          closeModal();
+        },
+      }, ctxMovement.op ? 'Abrir OP de origem' : 'Fechar');
+
+      footer.appendChild(cancelBtn);
+      footer.appendChild(primaryBtn);
+      card.appendChild(closeBtn);
+      card.appendChild(content);
+      card.appendChild(footer);
+      overlay.appendChild(card);
+      document.body.appendChild(overlay);
     }
 
     function openEditWarning(mode) {

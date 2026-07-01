@@ -80,6 +80,9 @@ const detailBundle = [
   detailEvents,
   detailRender,
 ].join('\n\n');
+const movementModalSlice = (detailEvents.match(
+  /function openMovementModal\s*\(ctxMovement\)\s*\{[\s\S]*?\n    \}\n\n    function openEditWarning/
+) || [''])[0];
 
 // Strip line comments and block comments for code-only assertions.
 function codeOnly(src) {
@@ -411,6 +414,46 @@ test('pedido-detail.js: NÃO referencia arquivos críticos de OP', () => {
   assert.doesNotMatch(detailBundle, /window\.screenNovaOP/);
   assert.doesNotMatch(detailBundle, /renderOPLatexAdmin/);
   assert.doesNotMatch(detailBundle, /screenFornecedor/);
+});
+
+test('pedido-detail.js: openMovementModal existe e permanece somente leitura', () => {
+  assert.ok(movementModalSlice, 'trecho de openMovementModal nao encontrado');
+  assert.match(movementModalSlice, /somente leitura/i,
+    'modal deve se declarar somente leitura');
+  assert.match(movementModalSlice, /Operacao canonica da OP/,
+    'modal deve reforcar a origem canonica na OP');
+  assert.match(movementModalSlice, /Abrir OP de origem/,
+    'acao primaria do modal deve abrir a OP de origem');
+  assert.match(movementModalSlice, /nao grava entrega, nao cria movimentacao no Pedido/i,
+    'modal deve deixar explicito que nao grava nem cria estado paralelo');
+});
+
+test('pedido-detail.js: openMovementModal mostra contexto pre-carregado esperado', () => {
+  assert.ok(movementModalSlice, 'trecho de openMovementModal nao encontrado');
+  for (const label of [
+    'Origem',
+    'Destino',
+    'OP de origem',
+    'Itens envolvidos',
+    'Saldo/restante calculado',
+    'Documentos esperados',
+  ]) {
+    assert.match(movementModalSlice, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      'modal nao renderiza o campo esperado: ' + label);
+  }
+});
+
+test('pedido-detail.js: openMovementModal nao vira formulario operacional nem chama writes proibidos', () => {
+  assert.ok(movementModalSlice, 'trecho de openMovementModal nao encontrado');
+  assert.doesNotMatch(movementModalSlice, /window\.el\(\s*['"]input['"]/);
+  assert.doesNotMatch(movementModalSlice, /window\.el\(\s*['"]textarea['"]/);
+  assert.doesNotMatch(movementModalSlice, /window\.el\(\s*['"]select['"]/);
+  assert.doesNotMatch(movementModalSlice, /salvarEntregaCima/);
+  assert.doesNotMatch(movementModalSlice, /salvarEntregaLatex/);
+  assert.doesNotMatch(movementModalSlice, /gerar_op_latex/);
+  assert.doesNotMatch(movementModalSlice, /alterar_status_op/);
+  assert.doesNotMatch(movementModalSlice, /window\.supa/);
+  assert.doesNotMatch(movementModalSlice, /\.from\(\s*['"]/);
 });
 
 // ---------------------------------------------------------------------
