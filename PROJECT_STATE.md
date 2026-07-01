@@ -1,4 +1,55 @@
 > **Atualizacao 2026-07-01 - fase
+> `RAVATEX-TAPETES-OP-EM-PRODUCAO-TECELAGEM-STANDALONE-B`
+> (template operacional proprio PROD-OP para OP Em Producao Tecelagem).**
+> Regra absoluta desta fase: OP Aberta != OP Em Producao; Nova OP !=
+> PROD-OP; Preparacao != Operacao. Ate esta fase, `status ===
+> 'em_producao'` reaproveitava o mesmo layout de preparacao (Nova
+> OP/OP Aberta) com o card `4. Entregas tecelagem` a mais — isso foi
+> substituido por um template proprio.
+> Em `js/screens/op-nova.js`, `buildScreen()` agora bifurca
+> explicitamente: quando `isOpEmProducaoTecelagem()` (status
+> `em_producao` e tipo != `latex`), a tela renderiza via
+> `buildScreenProducaoTecelagem()`, baseada no standalone
+> `Admin - PROD-OP-TECELAGEM- standalone.html`, com: header operacional
+> (badges Tecelagem + Em producao, acoes Abrir Pedido/Pausar[placeholder
+> desabilitado]/Movimentar[ancora para o card de entregas]/
+> Concluir[placeholder desabilitado]/Documentos/Historico), Card 1 Dados
+> da OP (read-only) + Resumo lateral (Total ajustado / Entregue para
+> acabamento / Saldo em tecelagem / progresso), Card 2 Itens da OP
+> (read-only, Pedido/Ajustado/Entregue/Falta/Item do pedido), Card 3
+> Insumos (reaproveita `buildBlocoFios` sem alteracao), Card 4 Entregas
+> tecelagem (reaproveita `buildBlocoTecelagem` sem alteracao —
+> preserva `+ Nova entrega`, Editar, Excluir, `salvarEntregaCima`,
+> `atualizarEntregaCima`, `excluirEntrega`, incluindo o
+> best-effort de `gerar_op_latex`), Card 5 Movimentacao (bloco visual
+> com Disponivel/Entregue/Total ajustado + CTA "Transferir" que aponta
+> para o card de entregas existente — nenhuma gravacao nova), Card 6
+> Documentos da OP (placeholder controlado: "Documentos da OP serao
+> integrados em fase propria", sem schema/upload/gravacao) e Card 7
+> Historico (leitura read-only de `op_eventos`, tabela ja aplicada em
+> staging por `db/21_op_lifecycle_status_eventos.sql`; fallback
+> controlado "Nenhum evento registrado para esta OP." quando vazio ou
+> em erro).
+> OP Aberta/Nova OP nao foi tocada (continua com
+> `buildHeader`/`buildCardDados`/`buildCardItens`/`buildRight`
+> inalterados). Acabamento/Latex nao foi tocado — `op.tipo === 'latex'`
+> continua delegando para `js/screens/op-latex-admin.js` sem receber o
+> template PROD-OP-TECELAGEM nem o card `4. Entregas tecelagem`. OP Em
+> Producao Acabamento standalone fica como proxima fase.
+> Sem escrita nova: nenhuma chamada a `alterar_status_op`, nenhum
+> `ops.update({ status: ... })` novo, nenhuma tabela/coluna nova, sem
+> Supabase, sem producao.
+> Gap conhecido e registrado (nao corrigido nesta fase): `gerar_op_latex`
+> ainda pode gerar a OP de Acabamento/Latex diretamente em
+> `em_producao` em vez de `aberta`/preparacao.
+> Testes executados: `node --check js/screens/op-nova.js` OK;
+> `node --check tests/op-nova.smoke.js` OK;
+> `node --test tests/op-nova.smoke.js` OK (48/48);
+> `node --test tests/op-nova.smoke.js tests/op-latex-admin.smoke.js
+> tests/op-persistir.smoke.js tests/boot.smoke.js
+> tests/pedido-detail.smoke.js` OK (228/228).
+
+> **Atualizacao 2026-07-01 - fase
 > `RAVATEX-TAPETES-OP-NOVA-ACABAMENTO-STANDALONE-B-R1`
 > (correcao cirurgica de escopo na Nova OP Acabamento standalone).**
 > O bloqueio da fase anterior foi corrigido sem reverter o redesign visual.

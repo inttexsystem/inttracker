@@ -67,6 +67,21 @@
 //  29. Boot chain: todos os módulos + op-nova + inline coexiste
 //      sem SyntaxError de duplicate identifier.
 //  30. window.screenNovaOP continua resolvível após o boot completo.
+//
+// RAVATEX-TAPETES-OP-EM-PRODUCAO-TECELAGEM-STANDALONE-B (39-47):
+// OP Em Produção Tecelagem passou a usar template operacional próprio
+// (baseado no standalone PROD-OP-TECELAGEM), separado do template de
+// preparação (Nova OP/OP Aberta). Testes 39-47 cobrem essa separação:
+//  39. OP Em Produção Tecelagem usa o template PROD-OP (sinais mínimos).
+//  40. OP Aberta Tecelagem não ganha os blocos operacionais novos.
+//  41. OP Em Produção Tecelagem não usa linguagem de preparação.
+//  42. Card "4. Entregas tecelagem" ausente na OP Aberta.
+//  43. Card "4. Entregas tecelagem" presente na OP Em Produção Tecelagem.
+//  44. Fluxo de entrega (+ Nova entrega/Editar/Excluir) preservado.
+//  45. Histórico (Bloco 7) cai no fallback controlado sem op_eventos.
+//  46. Histórico (Bloco 7) renderiza op_eventos real quando disponível.
+//  47. Acabamento/Látex continua delegado, sem template PROD-OP-TECELAGEM.
+//  48. Guardas de segurança: sem alterar_status_op, sem write novo de status.
 
 'use strict';
 
@@ -803,8 +818,8 @@ test('38. OP Aberta de Tecelagem mostra linguagem de preparação', async () => 
   assert.match(rendered.text, /Preparacao da OP/i);
 });
 
-test('39. OP Em Produção não é redesenhada nesta fase', async () => {
-  const db = buildOpNovaFixture({
+function buildOpEmProducaoTecelagemFixture(overrides = {}) {
+  return buildOpNovaFixture(Object.assign({
     ops: [
       {
         id: 93,
@@ -826,9 +841,143 @@ test('39. OP Em Produção não é redesenhada nesta fase', async () => {
       { id: 501, op_id: 93, tipo: 'algodao', cor_id: 11, cor_poliester: null, kg_pedido: 1.2, kg_recebido: 1.2, status: 'recebido_total', cores: { id: 11, nome: 'PRETO' } },
     ],
     entregas: [],
-  });
+  }, overrides));
+}
+
+test('39. OP Em Produção Tecelagem usa o template PROD-OP (não é a OP Aberta + badge)', async () => {
+  const db = buildOpEmProducaoTecelagemFixture();
   const rendered = await renderNovaOpForTest({ opId: 93, db });
+  assert.match(rendered.text, /Em produção/i);
+  assert.match(rendered.text, /Entregue para acabamento/i);
+  assert.match(rendered.text, /Saldo em tecelagem/i);
+  assert.match(rendered.text, /Movimentação\s*—\s*enviar para acabamento/i);
+  assert.match(rendered.text, /Documentos da OP/i);
+  assert.match(rendered.text, /7\.\s*Histórico/i);
   assert.match(rendered.text, /4\.\s*Entregas tecelagem/i);
+});
+
+test('40. OP Aberta Tecelagem não ganha os blocos operacionais novos (Movimentação/Documentos/Histórico)', async () => {
+  const db = buildOpNovaFixture({
+    ops: [
+      {
+        id: 92,
+        numero: 8,
+        ano: 2026,
+        status: 'aberta',
+        tipo: 'tecelagem',
+        observacao: '',
+        origem_op_id: null,
+        lote_id: 302,
+        lote: { id: 302, numero: 15, pedido_id: 'ped-1', cliente: { id: 501, nome: 'Cliente Atlas' } },
+        op_itens: [
+          { id: 2, modelo_id: 2, metros_pedidos: 80, metros_ajustados: null, pedido_item_id: 'pi-2' },
+        ],
+        op_fornecedores: [{ fornecedor_id: 701, etapa: 'cima' }],
+      },
+    ],
+    ordens_compra_fio: [],
+  });
+  const rendered = await renderNovaOpForTest({ opId: 92, db });
+  assert.doesNotMatch(rendered.text, /Movimentação\s*—\s*enviar para acabamento/i);
+  assert.doesNotMatch(rendered.text, /Documentos da OP/i);
+  assert.doesNotMatch(rendered.text, /7\.\s*Histórico/i);
+  assert.doesNotMatch(rendered.text, /4\.\s*Entregas tecelagem/i);
+});
+
+test('41. OP Em Produção Tecelagem não contém linguagem de preparação da OP Aberta', async () => {
+  const db = buildOpEmProducaoTecelagemFixture();
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
   assert.doesNotMatch(rendered.text, /OP Aberta de Tecelagem/i);
   assert.doesNotMatch(rendered.text, /Preparacao da OP/i);
+  assert.doesNotMatch(rendered.text, /Nova OP de Tecelagem/i);
+  assert.doesNotMatch(rendered.text, /a produ[çc][aã]o s[oó] come[çc]a/i);
+  assert.doesNotMatch(rendered.text, /Colocar em produ[çc][aã]o/i);
+});
+
+test('42. Card "4. Entregas tecelagem" permanece ausente da OP Aberta', async () => {
+  const db = buildOpNovaFixture({
+    ops: [
+      {
+        id: 92, numero: 8, ano: 2026, status: 'aberta', tipo: 'tecelagem',
+        observacao: '', origem_op_id: null, lote_id: 302,
+        lote: { id: 302, numero: 15, pedido_id: 'ped-1', cliente: { id: 501, nome: 'Cliente Atlas' } },
+        op_itens: [{ id: 2, modelo_id: 2, metros_pedidos: 80, metros_ajustados: null, pedido_item_id: 'pi-2' }],
+        op_fornecedores: [{ fornecedor_id: 701, etapa: 'cima' }],
+      },
+    ],
+    ordens_compra_fio: [],
+  });
+  const rendered = await renderNovaOpForTest({ opId: 92, db });
+  assert.doesNotMatch(rendered.text, /4\.\s*Entregas tecelagem/i);
+});
+
+test('43. Card "4. Entregas tecelagem" permanece presente na OP Em Produção Tecelagem', async () => {
+  const db = buildOpEmProducaoTecelagemFixture();
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
+  assert.match(rendered.text, /4\.\s*Entregas tecelagem/i);
+});
+
+test('44. OP Em Produção Tecelagem preserva o fluxo de entrega existente (+ Nova entrega/Editar/Excluir)', async () => {
+  const db = buildOpEmProducaoTecelagemFixture({
+    entregas: [
+      {
+        id: 'ent-1', fornecedor_id: 701, etapa: 'cima', data: '2026-06-30', observacao: '',
+        destino_fornecedor_id: 704, destino: { nome: 'Latex Base' }, fornecedores: { nome: 'Tecelagem Sul' },
+        entrega_itens: [{ id: 'ei-1', op_id: 93, op_item_id: 3, metros_entregues: 50, defeito: false, observacao: '' }],
+      },
+    ],
+  });
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
+  assert.match(rendered.text, /\+ Nova entrega/);
+  assert.match(rendered.text, /Editar/);
+  assert.match(rendered.text, /Excluir/);
+  // Os identificadores de write existentes continuam apenas onde já
+  // existiam (buildBlocoTecelagem, reaproveitado sem alteração).
+  assert.match(opnSrc, /salvarEntregaCima/);
+  assert.match(opnSrc, /atualizarEntregaCima/);
+  assert.match(opnSrc, /excluirEntrega/);
+});
+
+test('45. Bloco 7 (Histórico) cai no fallback controlado quando não há op_eventos', async () => {
+  const db = buildOpEmProducaoTecelagemFixture({ op_eventos: [] });
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
+  assert.match(rendered.text, /Nenhum evento registrado para esta OP\./i);
+});
+
+test('46. Bloco 7 (Histórico) renderiza op_eventos real quando disponível (read-only)', async () => {
+  const db = buildOpEmProducaoTecelagemFixture({
+    op_eventos: [
+      { id: 1, op_id: 93, tipo_evento: 'status_alterado', status_anterior: 'aberta', status_novo: 'em_producao', observacao: null, criado_em: '2026-06-30T09:40:00Z' },
+    ],
+  });
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
+  assert.match(rendered.text, /Status alterado/i);
+  assert.doesNotMatch(rendered.text, /Nenhum evento registrado para esta OP\./i);
+});
+
+test('47. Acabamento/Látex continua delegado a renderOPLatexAdmin, sem template PROD-OP-TECELAGEM', async () => {
+  const db = buildOpNovaFixture({
+    ops: [
+      {
+        id: 94, numero: 8, ano: 2026, status: 'em_producao', tipo: 'latex',
+        observacao: '', origem_op_id: 93, lote_id: null, lote: null,
+        op_itens: [], op_fornecedores: [],
+      },
+    ],
+  });
+  const sandbox = makeRenderSandbox(db);
+  let delegatedTo = null;
+  sandbox.renderOPLatexAdmin = async (opId) => { delegatedTo = opId; return new FakeNode('div'); };
+  sandbox.__args = { opId: 94, pedidoId: null };
+  const view = await vm.runInContext('window.screenNovaOP(window.__args.opId, window.__args.pedidoId)', sandbox);
+  const text = collectNodeText(view);
+  assert.equal(delegatedTo, 94);
+  assert.doesNotMatch(text, /4\.\s*Entregas tecelagem/i);
+  assert.doesNotMatch(text, /Movimentação\s*—\s*enviar para acabamento/i);
+});
+
+test('48. Guardas de segurança: sem alterar_status_op e sem write novo de status em op-nova.js', () => {
+  assert.doesNotMatch(opnSrc, /alterar_status_op/);
+  assert.doesNotMatch(opnSrc, /\.from\(['"]ops['"]\)\.update\(\s*\{\s*status\s*:/);
+  assert.doesNotMatch(opnSrc, /supa\.from\(['"]op_eventos['"]\)\.(insert|update|delete)/);
 });

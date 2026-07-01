@@ -1,4 +1,79 @@
-﻿# Estado pos-fase - Nova OP Acabamento Standalone B R1
+﻿# Estado pos-fase - OP Em Producao Tecelagem Standalone B
+
+- Fase concluida no codigo:
+  `RAVATEX-TAPETES-OP-EM-PRODUCAO-TECELAGEM-STANDALONE-B`.
+- Escopo fechado:
+  `js/screens/op-nova.js`,
+  `tests/op-nova.smoke.js`,
+  `PROJECT_STATE.md`,
+  `AGENT_HANDOFF.md`.
+- Regra absoluta desta fase (vinculante para fases futuras):
+  OP Aberta != OP Em Producao;
+  Nova OP != PROD-OP;
+  Preparacao != Operacao;
+  Pedido organiza != OP executa.
+  OP Em Producao NAO e um incremento visual da OP Aberta — usa
+  template proprio, baseado no standalone
+  `Admin - PROD-OP-TECELAGEM- standalone.html`.
+- Implementado:
+  `buildScreen()` em `op-nova.js` bifurca para
+  `buildScreenProducaoTecelagem()` quando `isOpEmProducaoTecelagem()`
+  (status `em_producao`, tipo != `latex`);
+  header operacional com badges Tecelagem + Em producao e acoes
+  Abrir Pedido / Pausar (placeholder) / Movimentar (ancora) / Concluir
+  (placeholder) / Documentos / Historico;
+  Card 1 Dados da OP e Card 2 Itens da OP read-only (nao parecem
+  formulario de preparacao);
+  Card 3 Insumos reaproveita `buildBlocoFios` sem alteracao;
+  Card 4 Entregas tecelagem reaproveita `buildBlocoTecelagem` sem
+  alteracao (preserva `+ Nova entrega`, Editar, Excluir,
+  `salvarEntregaCima`, `atualizarEntregaCima`, `excluirEntrega` e o
+  best-effort de `gerar_op_latex`);
+  Card 5 Movimentacao e bloco visual controlado que aponta (CTA
+  "Transferir") para o card de entregas existente, sem gravacao nova;
+  Card 6 Documentos da OP e placeholder controlado ("Documentos da OP
+  serao integrados em fase propria"), sem schema/upload/gravacao;
+  Card 7 Historico le `op_eventos` (read-only, tabela ja aplicada em
+  staging por `db/21_op_lifecycle_status_eventos.sql`) com fallback
+  controlado quando vazio/erro.
+- Preservacoes obrigatorias confirmadas:
+  OP Aberta/Nova OP nao foi redesenhada (buildHeader/buildCardDados/
+  buildCardItens/buildRight inalterados);
+  Acabamento/Latex nao foi tocado — `op.tipo === 'latex'` continua
+  delegando para `js/screens/op-latex-admin.js`, sem template
+  PROD-OP-TECELAGEM e sem o card `4. Entregas tecelagem`;
+  nenhuma chamada a RPC de transicao de status;
+  nenhum `ops.update({ status: ... })` novo;
+  nenhum schema/tabela/coluna nova;
+  sem SQL, sem Supabase, sem producao, sem push.
+- Proximo gap (registrado, nao corrigido nesta fase):
+  OP Em Producao Acabamento standalone (fase propria futura, mesmo
+  padrao aplicado aqui para Tecelagem);
+  ajuste futuro de `gerar_op_latex` para nascer em
+  preparacao/entrada (`aberta`) em vez de `em_producao` direto;
+  documentos reais da OP (schema/tabela/upload);
+  lifecycle Pausar/Concluir via contrato proprio (RPC de transicao de
+  status ja existe em `db/21_op_lifecycle_status_eventos.sql`, mas
+  sem UI ainda).
+- Testes:
+  `node --check js/screens/op-nova.js` OK;
+  `node --check tests/op-nova.smoke.js` OK;
+  `node --test tests/op-nova.smoke.js` OK (48/48);
+  `node --test tests/op-nova.smoke.js tests/op-latex-admin.smoke.js
+  tests/op-persistir.smoke.js tests/boot.smoke.js
+  tests/pedido-detail.smoke.js` OK (228/228).
+- Residual preservado:
+  `?? supabase/.temp/` permanece fora do stage/commit;
+  104 falhas pre-existentes em `tests/*.smoke.js` (fora do pacote de
+  regressao desta fase, relacionadas a ordem/estrutura de scripts em
+  `index.html` e outras telas) ja existiam antes desta fase — confirmado
+  via `git stash` + `node --test tests/*.smoke.js` no HEAD anterior.
+- Proxima recomendacao:
+  OP Em Producao Acabamento/Latex standalone, replicando esta mesma
+  decisao arquitetural (template PROD-OP proprio, sem incrementar a
+  tela de preparacao).
+
+# Estado pos-fase - Nova OP Acabamento Standalone B R1
 
 - Fase concluida no codigo:
   `RAVATEX-TAPETES-OP-NOVA-ACABAMENTO-STANDALONE-B-R1`.
