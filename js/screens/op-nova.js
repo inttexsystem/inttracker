@@ -157,6 +157,7 @@
     return shellLayout(ADMIN_MENU, container);
   }
   const clientesOptions = (clientesRes.data || []).map(c => ({ value: c.id, label: c.nome }));
+  const clientesById = Object.fromEntries((clientesRes.data || []).map(c => [String(c.id), c.nome]));
   const modelos = modelosRes.data || [];
   const modelosById = Object.fromEntries(modelos.map(m => [m.id, m]));
   const parametrosByLargura = Object.fromEntries((paramsRes.data || []).map(p => [larguraKey(p.largura), p]));
@@ -179,19 +180,78 @@
   let readOnly = false;
   let saving = false;
   let pedidoIdState = null;
+  let pedidoCtx = null;
+
+  function humanizeLabel(value) {
+    if (!value) return '—';
+    return String(value).charAt(0).toUpperCase() + String(value).slice(1).replace(/_/g, ' ');
+  }
+
+  function fmtDateLabel(value) {
+    if (!value) return '';
+    try {
+      return new Date(value).toLocaleDateString('pt-BR');
+    } catch (err) {
+      return '';
+    }
+  }
+
+  async function loadPedidoContext(targetPedidoId) {
+    if (!targetPedidoId) return null;
+    const pedRes = await supa.from('pedidos')
+      .select('id, numero, status, criado_em, prazo_entrega, cliente_id, cliente:cliente_id(id, nome)')
+      .eq('id', targetPedidoId)
+      .maybeSingle();
+    if (pedRes.error || !pedRes.data) return null;
+    return {
+      id: pedRes.data.id,
+      numero: pedRes.data.numero,
+      status: pedRes.data.status,
+      criadoEm: pedRes.data.criado_em,
+      prazoEntrega: pedRes.data.prazo_entrega,
+      clienteId: pedRes.data.cliente_id,
+      clienteNome: pedRes.data.cliente?.nome || '',
+    };
+  }
+
+  function hasLinkedPedido() {
+    return !!(pedidoCtx && pedidoCtx.id);
+  }
+
+  function isOpAbertaTecelagem() {
+    return !!(op && op.status === 'aberta' && op.tipo !== 'latex');
+  }
+
+  function isOpEmProducaoTecelagem() {
+    return !!(op && op.status === 'em_producao' && op.tipo !== 'latex');
+  }
+
+  function resolveClienteNome() {
+    if (pedidoCtx && pedidoCtx.clienteNome) return pedidoCtx.clienteNome;
+    if (op && op.lote && op.lote.cliente && op.lote.cliente.nome) return op.lote.cliente.nome;
+    return clientesById[String(clienteSel)] || '—';
+  }
+
+  function buildPedidoMetaLine() {
+    if (!hasLinkedPedido()) return '';
+    const parts = [];
+    if (pedidoCtx.status) parts.push('Status: ' + humanizeLabel(pedidoCtx.status));
+    if (pedidoCtx.criadoEm) parts.push('Criado em ' + fmtDateLabel(pedidoCtx.criadoEm));
+    if (pedidoCtx.prazoEntrega) parts.push('Prazo: ' + fmtDateLabel(pedidoCtx.prazoEntrega));
+    return parts.join(' · ');
+  }
 
   if (pedidoId) {
-    const pedRes = await supa.from('pedidos').select('id, numero, cliente_id').eq('id', pedidoId).maybeSingle();
-    if (pedRes.error || !pedRes.data) {
+    pedidoCtx = await loadPedidoContext(pedidoId);
+    if (!pedidoCtx) {
       toast('Pedido nao encontrado', 'error');
       container.replaceChildren(el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;' },
         el('div', { style: 'font-size:22px;font-weight:800;color:#16203a;letter-spacing:-.01em;' }, 'Pedido nao encontrado'),
         el('button', { type: 'button', style: BTN_BACK, onclick: () => navigate('#/pedidos') }, svgEl(SVG_BACK), 'Voltar')));
       return shellLayout(ADMIN_MENU, container);
     }
-    var pedido = pedRes.data;
-    pedidoIdState = pedido.id;
-    if (pedido.cliente_id) clienteSel = pedido.cliente_id;
+    pedidoIdState = pedidoCtx.id;
+    if (pedidoCtx.clienteId) clienteSel = pedidoCtx.clienteId;
 
     var pitensRes = await supa.from('pedido_itens')
       .select('id, modelo_id, metros, observacao')
@@ -209,7 +269,7 @@
 
   if (opId) {
     const { data, error } = await supa.from('ops')
-      .select('id, numero, ano, status, tipo, observacao, origem_op_id, lote_id, lote:lote_id(id, numero, cliente:cliente_id(id, nome)), op_itens(id, modelo_id, metros_pedidos, metros_ajustados), op_fornecedores(fornecedor_id, etapa)')
+      .select('id, numero, ano, status, tipo, observacao, origem_op_id, lote_id, lote:lote_id(id, numero, pedido_id, cliente:cliente_id(id, nome)), op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa)')
       .eq('id', opId).single();
     if (error || !data) {
       toast('OP não encontrada', 'error'); console.error(error);
@@ -219,10 +279,15 @@
       return shellLayout(ADMIN_MENU, container);
     }
     op = data;
-    clienteSel = op.lote?.cliente?.id || '';
     if (op.tipo === 'latex') return await window.renderOPLatexAdmin(op.id);
+    pedidoIdState = op.lote?.pedido_id || pedidoIdState || null;
+    if (pedidoIdState) {
+      const pedidoExistente = await loadPedidoContext(pedidoIdState);
+      if (pedidoExistente) pedidoCtx = pedidoExistente;
+    }
+    clienteSel = (pedidoCtx && pedidoCtx.clienteId) || op.lote?.cliente?.id || '';
     numero = data.numero; ano = data.ano;
-    itens = (data.op_itens || []).map(i => ({ modeloId: i.modelo_id, metros: i.metros_pedidos }));
+    itens = (data.op_itens || []).map(i => ({ modeloId: i.modelo_id, metros: i.metros_pedidos, pedidoItemId: i.pedido_item_id || null }));
     for (const f of (data.op_fornecedores || [])) fornSel[f.etapa] = f.fornecedor_id;
     fioFornSel.fio_algodao = (data.op_fornecedores || []).find(f => f.etapa === 'fio_algodao')?.fornecedor_id || '';
     fioFornSel.fio_poliester = (data.op_fornecedores || []).find(f => f.etapa === 'fio_poliester')?.fornecedor_id || '';
@@ -346,17 +411,15 @@
   }
 
   function buildScreen() {
-    const loteTxt = op && op.lote ? ` · Lote Nº ${op.lote.numero} · ${op.lote.cliente?.nome || '—'}` : '';
-    const titulo = op ? `OP Nº ${op.numero}/${op.ano}${loteTxt}` + (readOnly ? ' (leitura)' : ' (editar)') : 'Nova OP';
     const wrap = el('div', {});
-    wrap.appendChild(buildHeader(titulo));
+    wrap.appendChild(buildHeader());
 
     const grid = el('div', { style: 'display:grid;grid-template-columns:1fr 288px;gap:16px;align-items:start;' });
     const leftCol = el('div', { style: 'display:flex;flex-direction:column;gap:16px;' });
     leftCol.appendChild(buildCardDados());
     leftCol.appendChild(buildCardItens());
     if (op && op.status !== 'simulada') leftCol.appendChild(buildBlocoFios());
-    if (op && op.status !== 'simulada' && cimaFornecedorId) leftCol.appendChild(buildBlocoTecelagem());
+    if (isOpEmProducaoTecelagem() && cimaFornecedorId) leftCol.appendChild(buildBlocoTecelagem());
     grid.appendChild(leftCol);
     grid.appendChild(buildRight());
     wrap.appendChild(grid);
@@ -364,11 +427,26 @@
     return wrap;
   }
 
-  function buildHeader(titulo) {
+  function buildHeader() {
+    const loteTxt = op && op.lote ? `Lote Nº ${op.lote.numero} · ${op.lote.cliente?.nome || '—'}` : '';
+    let titulo = 'Nova OP de Tecelagem';
+    let subtitulo = 'Monte a simulacao da tecelagem antes de abrir a OP.';
+
+    if (hasLinkedPedido() && !op) {
+      subtitulo = `Pedido Nº ${pedidoCtx.numero} como origem principal. Cliente derivado do pedido.`;
+    } else if (isOpAbertaTecelagem()) {
+      titulo = `OP Aberta de Tecelagem · Nº ${op.numero}/${op.ano}`;
+      subtitulo = hasLinkedPedido()
+        ? `Preparacao da OP com Pedido Nº ${pedidoCtx.numero} como origem principal.`
+        : 'Preparacao da OP de tecelagem antes da producao.';
+    } else if (op) {
+      titulo = `OP Nº ${op.numero}/${op.ano}`;
+      subtitulo = loteTxt || 'Acompanhamento da OP de tecelagem.';
+    }
+
     const headerLeft = el('div', {},
       el('div', { style: 'font-size:22px;font-weight:800;color:#16203a;letter-spacing:-.01em;' }, titulo),
-      !op ? el('div', { style: 'font-size:13px;color:#8a93a3;margin-top:3px;' },
-        'Crie uma ordem de produção e confira a simulação de fio necessário.') : '',
+      el('div', { style: 'font-size:13px;color:#8a93a3;margin-top:3px;line-height:1.45;' }, subtitulo),
     );
     return el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;' },
       headerLeft,
@@ -377,9 +455,15 @@
   }
 
   function buildBottomInfoBar() {
+    let texto = 'Apos abrir a OP, voce podera acompanhar o andamento e gerenciar entregas nas proximas etapas.';
+    if (!op) {
+      texto = 'Abrir a OP nao inicia a producao — ela fica com status "Aberta" ate a fase futura de transicao.';
+    } else if (isOpAbertaTecelagem()) {
+      texto = 'Esta OP ja foi aberta e esta em preparacao — a producao nao e iniciada nesta fase.';
+    }
     return el('div', { style: 'margin-top:16px;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #eceef1;border-radius:6px;padding:12px 16px;' },
       svgEl(SVG_INFO_BAR),
-      el('span', { style: 'font-size:13px;color:#5b6472;' }, 'Após abrir a OP, você poderá acompanhar o andamento e gerenciar entregas nas próximas etapas.'),
+      el('span', { style: 'font-size:13px;color:#5b6472;' }, texto),
     );
   }
 
@@ -395,13 +479,34 @@
     styleSelect(clienteSelEl);
     clienteSelEl.addEventListener('change', () => { clienteSel = clienteSelEl.value ? Number(clienteSelEl.value) : ''; renderRight(); });
 
+    const pedidoBlock = hasLinkedPedido()
+      ? el('div', { style: 'margin-bottom:16px;background:#f8f9fb;border:1px solid #eceef1;border-radius:6px;padding:14px 16px;' },
+          el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px;' },
+            el('div', {},
+              el('div', { style: 'font-size:12px;font-weight:700;color:#8a93a3;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;' }, 'Pedido vinculado'),
+              el('div', { style: 'font-size:15px;font-weight:700;color:#16203a;' }, `Pedido Nº ${pedidoCtx.numero}`),
+            ),
+            el('button', {
+              type: 'button',
+              style: BTN_LINK + 'white-space:nowrap;',
+              onclick: () => navigate('#/pedidos/' + pedidoCtx.id),
+            }, 'Abrir pedido'),
+          ),
+          el('div', { style: 'font-size:12px;font-weight:700;color:#8a93a3;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;' }, 'Cliente derivado do pedido'),
+          el('div', { style: 'font-size:14px;font-weight:600;color:#16203a;' }, resolveClienteNome()),
+          buildPedidoMetaLine()
+            ? el('div', { style: 'font-size:12.5px;color:#5b6472;line-height:1.5;margin-top:8px;' }, buildPedidoMetaLine())
+            : '',
+        )
+      : fieldBlock('Cliente', wrapSelect(clienteSelEl), 'margin-bottom:16px;');
+
     return el('div', { style: CARD + 'padding:22px 24px;' },
-      sectionHead(SVG_ICON_OP, '1. Dados da OP'),
+      sectionHead(SVG_ICON_OP, isOpAbertaTecelagem() ? '1. Preparacao da OP' : '1. Dados da OP'),
       el('div', { style: 'display:grid;grid-template-columns:1fr 140px;gap:14px;margin-bottom:16px;' },
         fieldBlock('Número', numInput),
         fieldBlock('Ano', anoInput),
       ),
-      fieldBlock('Cliente', wrapSelect(clienteSelEl), 'margin-bottom:16px;'),
+      pedidoBlock,
       buildFornField('Fornecedor de tecelagem (parte de cima)', 'cima'),
     );
   }
@@ -427,6 +532,10 @@
     );
 
     const card = el('div', { style: CARD + 'padding:22px 0 0;' }, header);
+    if (hasLinkedPedido()) {
+      card.appendChild(el('div', { style: 'padding:0 24px 14px;font-size:12.5px;color:#5b6472;line-height:1.5;' },
+        op ? 'Itens mantidos do pedido vinculado para rastreabilidade da OP.' : 'Itens carregados do pedido vinculado como base desta OP.'));
+    }
 
     if (itens.length === 0) {
       card.appendChild(el('div', { style: 'display:grid;grid-template-columns:2fr 1fr 80px;gap:10px;padding:10px 24px;border-top:1px solid #eceef1;border-bottom:1px solid #eceef1;background:#f8f9fb;' },
@@ -951,9 +1060,11 @@
     }
     const fmt = (n) => Number(n).toFixed(3).replace('.', ',') + ' kg';
     const semItens = window.itensValidosOP(itens).length === 0;
-    const statusLabel = (op && op.status !== 'simulada')
-      ? (op.status.charAt(0).toUpperCase() + op.status.slice(1).replace(/_/g, ' '))
-      : 'Simulação';
+    const statusLabel = !op
+      ? 'Simulacao'
+      : isOpAbertaTecelagem()
+        ? 'Preparacao'
+        : humanizeLabel(op.status);
 
     const children = [
       el('div', { style: 'display:flex;align-items:center;gap:12px;margin-bottom:16px;' },
@@ -965,8 +1076,17 @@
       ),
       el('div', { style: 'font-size:13px;color:#5b6472;font-weight:500;margin-bottom:16px;' }, `OP ${numero || '—'}/${ano || '—'}`),
       el('div', { style: 'height:1px;background:#eceef1;margin-bottom:16px;' }),
-      el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;margin-bottom:14px;' }, 'Fio necessário'),
     ];
+
+    if (hasLinkedPedido()) {
+      children.push(
+        el('div', { style: 'font-size:10.5px;font-weight:700;color:#8a93a3;letter-spacing:.06em;margin-bottom:6px;' }, 'ORIGEM'),
+        el('div', { style: 'font-size:13.5px;font-weight:700;color:#16203a;margin-bottom:4px;' }, `Pedido Nº ${pedidoCtx.numero}`),
+        el('div', { style: 'font-size:12.5px;color:#5b6472;margin-bottom:14px;line-height:1.5;' }, 'Cliente derivado do pedido: ' + resolveClienteNome()),
+      );
+    }
+
+    children.push(el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;margin-bottom:14px;' }, 'Fio necessário'));
 
     const algEntries = Object.values(calc.algodaoPorCor);
     const algKids = [el('div', { style: 'font-size:10.5px;font-weight:700;color:#8a93a3;letter-spacing:.06em;margin-bottom:6px;' }, 'ALGODÃO')];
@@ -996,7 +1116,7 @@
       children.push(el('div', { style: 'height:1px;background:#eceef1;margin-bottom:14px;' }));
 
       const faltamForn = [];
-      if (!clienteSel) faltamForn.push('cliente');
+      if (!clienteSel && !hasLinkedPedido()) faltamForn.push('cliente');
       if (!fornSel.cima) faltamForn.push('tecelagem');
 
       const btnSim = el('button', { type: 'button', style: BTN_SECONDARY + 'margin-bottom:10px;', onclick: salvarSimulacao }, svgEl(SVG_SAVE), 'Salvar simulação');
@@ -1010,7 +1130,10 @@
       if (faltamForn.length) {
         children.push(el('div', { style: 'display:flex;align-items:flex-start;gap:7px;' },
           svgEl(SVG_HINT_LOCK),
-          el('span', { style: 'font-size:12px;color:#8a93a3;line-height:1.5;' }, 'Escolha cliente e fornecedor de tecelagem para abrir.')));
+          el('span', { style: 'font-size:12px;color:#8a93a3;line-height:1.5;' },
+            hasLinkedPedido()
+              ? 'Selecione o fornecedor de tecelagem para abrir.'
+              : 'Escolha cliente e fornecedor de tecelagem para abrir.')));
       }
     }
 

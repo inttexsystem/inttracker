@@ -233,14 +233,18 @@ test('10. todas as referências de rota em boot.js usam window.* (sem bare)', ()
   assert.ok(setRoutesBlock, 'bloco setRoutes não encontrado em boot.js');
   const block = setRoutesBlock[1];
   // Garante que cada `render:` aponta para window.screen* ou () => window.screen*
-  const renderLines = [...block.matchAll(/render:\s*([^\n,}]+)/g)].map(m => m[1].trim());
+  const renderLines = [...block.matchAll(/render:\s*([\s\S]*?)(?=,\s*(?:public|roles)\s*:)/g)].map(m => m[1].trim());
   assert.ok(renderLines.length >= 14,
     `esperado >= 14 render em setRoutes, encontrado ${renderLines.length}`);
   for (const render of renderLines) {
-    const isWindowRef = /^window\./.test(render) || /=>\s*window\./.test(render);
+    const isWindowRef = /^window\./.test(render)
+      || /=>\s*window\./.test(render)
+      || /=>\s*\{[\s\S]*?window\.[a-zA-Z0-9_]+\(/.test(render);
     assert.ok(isWindowRef,
       `render "${render}" não usa window.* — deve usar window.screen*`);
   }
+  assert.match(block, /'#\/ops\/nova':\s*\{\s*render:\s*\(\)\s*=>\s*\{[\s\S]*?pedido_id[\s\S]*?window\.screenNovaOP\(null,\s*pid\)/,
+    'rota #/ops/nova deve parsear pedido_id do hash e chamar window.screenNovaOP(null, pid)');
 });
 
 test('11. boot.js contém window.addEventListener(\'hashchange\', window.handleRoute)', () => {
@@ -302,9 +306,11 @@ test('17. nenhuma alteração em js/router.js (router.js intacto)', () => {
 
 function makeBootChainSandbox() {
   const toastsNode = new FakeNode('div');
+  const appNode = new FakeNode('div');
   const document = {
     createElement: (t) => new FakeNode(t),
     createTextNode: (t) => ({ textContent: t, appendChild() {}, setAttribute() {} }),
+    getElementById: (id) => id === 'app' ? appNode : new FakeNode('div'),
     querySelector: (sel) => (sel === '#toasts') ? toastsNode : new FakeNode('div'),
     querySelectorAll: () => [],
     addEventListener: () => {}, removeEventListener: () => {},
@@ -330,6 +336,8 @@ function makeBootChainSandbox() {
     document, setTimeout, clearTimeout, console, URL, URLSearchParams,
     location: { hash: '' }, supa: fakeSupa,
   };
+  sandbox.addEventListener = () => {};
+  sandbox.removeEventListener = () => {};
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);

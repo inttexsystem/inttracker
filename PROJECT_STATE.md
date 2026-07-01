@@ -1,4 +1,50 @@
 > **Atualizacao 2026-07-01 - fase
+> `RAVATEX-TAPETES-OP-NOVA-TECELAGEM-STANDALONE-B-R1-BOOT-SMOKE`
+> (correcao focada do teste de boot e fechamento da fase B).**
+> Nenhuma mudanca funcional na implementacao visual da OP.
+> Ajustado apenas `tests/boot.smoke.js` para aceitar o comportamento
+> canonico de `#/ops/nova?pedido_id=<id>` com parse de `pedido_id`
+> no hash e delegacao para `window.screenNovaOP(null, pid)`, alem de
+> completar o sandbox de runtime com `window.addEventListener`,
+> `window.removeEventListener` e `document.getElementById('app')`.
+> Checks executados apos o patch:
+> `node --check tests/boot.smoke.js` OK;
+> `node --test tests/boot.smoke.js` OK (28/28);
+> `node --test tests/op-nova.smoke.js tests/op-persistir.smoke.js tests/boot.smoke.js tests/pedido-detail.smoke.js` OK (181/181).
+> Fase B anterior deixa de estar bloqueada por residual de teste.
+> Proximo passo recomendado: validacao visual / closeout final da
+> Nova OP Tecelagem.
+
+> **Atualizacao 2026-07-01 - fase
+> `RAVATEX-TAPETES-OP-NOVA-TECELAGEM-STANDALONE-B`
+> (template Nova OP Tecelagem aplicado na tela real de OP).**
+> Base canonica confirmada no inicio da fase:
+> branch `work/app-next`, HEAD `c4bd218f1d230ea6d4531d8af54d127ad2a6d46e`,
+> residual permitido `?? supabase/.temp/`.
+> Referencia visual usada: `Admin - NOVA-OP-TECELAGEM.html`.
+> Implementado em `js/screens/op-nova.js`:
+> Nova OP de Tecelagem com bloco principal **Pedido vinculado**
+> quando houver `#/ops/nova?pedido_id=<id>`, usando o Pedido como
+> origem principal; Cliente passa a ser dado derivado do Pedido;
+> fluxo avulso sem pedido permanece com select principal de cliente;
+> OP Aberta de Tecelagem reaproveita a mesma tela com linguagem de
+> preparacao; card/item `4. Entregas tecelagem` foi retirado da
+> preparacao e permanece apenas no comportamento de `em_producao`;
+> OP Em Producao nao foi redesenhada nesta fase; `op-persistir.js`,
+> backend, SQL, Supabase e producao ficaram intocados.
+> Rastreabilidade visual reforcada lendo `lote.pedido_id` e
+> `op_itens.pedido_item_id` na tela.
+> Testes executados:
+> `node --check js/screens/op-nova.js` OK;
+> `node --test tests/op-nova.smoke.js` OK (39/39);
+> `node --test tests/op-nova.smoke.js tests/op-persistir.smoke.js tests/boot.smoke.js tests/pedido-detail.smoke.js`
+> resultou em **1 falha residual pre-existente fora do escopo desta fase**:
+> `tests/boot.smoke.js` teste 10 ainda rejeita o call-site atual de
+> `#/ops/nova` com parse de `pedido_id`.
+> Proximo passo recomendado: validacao visual / closeout da tela de
+> Nova OP Tecelagem antes de avancar para OP Em Producao.
+
+> **Atualizacao 2026-07-01 - fase
 > `RAVATEX-TAPETES-PEDIDOS-LIST-ADMIN-VISUAL-CLEANUP-B`
 > (patch proprio de residual da lista admin).**
 > Commit HEAD atual.

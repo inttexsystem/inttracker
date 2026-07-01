@@ -158,21 +158,45 @@ class FakeNode {
     this.disabled = false;
     this.value = '';
     this._attrs = {};
+    this.style = {};
+    this.firstElementChild = null;
+    this._innerHTML = '';
   }
-  appendChild(n) { this.children.push(n); return n; }
+  appendChild(n) {
+    if (n && typeof n === 'object') n.parentNode = this;
+    this.children.push(n);
+    if (!this.firstElementChild && n && n.tagName) this.firstElementChild = n;
+    return n;
+  }
   setAttribute(k, v) { this._attrs[k] = v; if (k === 'disabled') this.disabled = v; }
+  getAttribute(k) { return this._attrs[k]; }
   addEventListener(type, fn) { this._listeners[type] = fn; }
   removeEventListener(type) { delete this._listeners[type]; }
   replaceChildren(...ns) {
     this.children = [];
+    this.firstElementChild = null;
     for (const n of ns.flat()) {
       if (n == null || n === false) continue;
-      this.children.push(typeof n === 'string' ? { textContent: n, appendChild(){}, setAttribute(){} } : n);
+      const child = typeof n === 'string' ? { textContent: n, appendChild(){}, setAttribute(){} } : n;
+      if (!this.firstElementChild && child && child.tagName) this.firstElementChild = child;
+      this.children.push(child);
     }
   }
   remove() { this._removed = true; }
-  get textContent() { return this._text != null ? this._text : ''; }
+  get textContent() {
+    if (this._text != null) return this._text;
+    return this.children.map((n) => n && typeof n.textContent === 'string' ? n.textContent : '').join('');
+  }
   set textContent(v) { this._text = v; }
+  get innerHTML() { return this._innerHTML; }
+  set innerHTML(v) {
+    this._innerHTML = String(v);
+    this.children = [];
+    const svg = new FakeNode('svg');
+    svg._raw = String(v);
+    this.firstElementChild = svg;
+    this.children.push(svg);
+  }
 }
 
 // -------------------------------------------------------------------------
@@ -229,12 +253,12 @@ test('6. index.html NÃO contém mais async function screenNovaOP (extraído)', 
     'inline ainda tem async function screenNovaOP — extração incompleta');
 });
 
-test('7. boot.js contém window.screenNovaOP(null) no call-site de #/ops/nova', () => {
+test('7. boot.js contém call-site de #/ops/nova com leitura de pedido_id e window.screenNovaOP(null, pid)', () => {
   // Após ROUTES-BOOT-MODULE-A, o inline foi removido e o call-site
   // de #/ops/nova está em js/boot.js.
   const bootSrc = fs.readFileSync(path.join(ROOT, 'js', 'boot.js'), 'utf8');
-  assert.match(bootSrc, /'#\/ops\/nova':\s*\{\s*render:\s*\(\)\s*=>\s*window\.screenNovaOP\(null\)/,
-    'boot.js deve ter call-site de #/ops/nova com window.screenNovaOP(null)');
+  assert.match(bootSrc, /'#\/ops\/nova':\s*\{\s*render:\s*\(\)\s*=>\s*\{[\s\S]*?pedido_id[\s\S]*?window\.screenNovaOP\(null,\s*pid\)/,
+    'boot.js deve ler pedido_id no hash e chamar window.screenNovaOP(null, pid)');
 });
 
 test('8. index.html NÃO contém mais setRoutes (extraído para js/boot.js)', () => {
@@ -451,10 +475,10 @@ test('27. setRoutes e main foram extraídos para js/boot.js (NÃO estão mais no
     'inline ainda tem main — extração incompleta');
 });
 
-test('28. setRoutes referencia window.screenNovaOP(null) para #/ops/nova (em boot.js)', () => {
+test('28. setRoutes referencia window.screenNovaOP(null, pid) para #/ops/nova (em boot.js)', () => {
   const bootSrc = fs.readFileSync(path.join(ROOT, 'js', 'boot.js'), 'utf8');
-  assert.match(bootSrc, /'#\/ops\/nova':\s*\{\s*render:\s*\(\)\s*=>\s*window\.screenNovaOP\(null\)/,
-    'call-site de #/ops/nova em boot.js deve usar window.screenNovaOP(null)');
+  assert.match(bootSrc, /'#\/ops\/nova':\s*\{\s*render:\s*\(\)\s*=>\s*\{[\s\S]*?window\.screenNovaOP\(null,\s*pid\)/,
+    'call-site de #/ops/nova em boot.js deve usar window.screenNovaOP(null, pid)');
 });
 
 // -------------------------------------------------------------------------
@@ -503,4 +527,308 @@ test('30. window.screenNovaOP continua resolvível após o boot completo', () =>
   const ref = vm.runInContext('window.RAVATEX_SCREENS.opNova.screenNovaOP === window.screenNovaOP', sandbox);
   assert.equal(ref, true,
     'window.screenNovaOP não é mais a referência de RAVATEX_SCREENS.opNova');
+});
+
+// -------------------------------------------------------------------------
+// 7. Fluxos visuais da fase NOVA OP TECELAGEM STANDALONE B
+// -------------------------------------------------------------------------
+
+function buildOpNovaFixture(overrides = {}) {
+  const base = {
+    modelos: [
+      { id: 1, nome: 'Arabesco', largura: 2.10, cor_1: { id: 11, nome: 'PRETO' }, cor_2: { id: 12, nome: 'CRU' } },
+      { id: 2, nome: 'Roma', largura: 1.50, cor_1: { id: 13, nome: 'GELO' }, cor_2: { id: 14, nome: 'CINZA' } },
+    ],
+    parametros_largura: [
+      { largura: 2.10, algodao_por_ml: 0.01, poliester_por_ml: 0.02, valor_x: 1 },
+      { largura: 1.50, algodao_por_ml: 0.01, poliester_por_ml: 0.02, valor_x: 1 },
+    ],
+    fornecedores: [
+      { id: 701, nome: 'Tecelagem Sul', tipo: 'tecelagem' },
+      { id: 702, nome: 'Fios do Vale', tipo: 'algodao' },
+      { id: 703, nome: 'Poliester Norte', tipo: 'poliester' },
+      { id: 704, nome: 'Latex Base', tipo: 'latex' },
+    ],
+    clientes: [
+      { id: 501, nome: 'Cliente Atlas' },
+      { id: 502, nome: 'Cliente Aurora' },
+    ],
+    pedidos: [
+      {
+        id: 'ped-1',
+        numero: 120,
+        status: 'confirmado',
+        criado_em: '2026-06-10T00:00:00Z',
+        prazo_entrega: '2026-07-20',
+        cliente_id: 501,
+        cliente: { id: 501, nome: 'Cliente Atlas' },
+      },
+    ],
+    pedido_itens: [
+      { id: 'pi-1', pedido_id: 'ped-1', modelo_id: 1, metros: 120, observacao: '', ordem: 1 },
+      { id: 'pi-2', pedido_id: 'ped-1', modelo_id: 2, metros: 80, observacao: '', ordem: 2 },
+    ],
+    ops: [],
+    ordens_compra_fio: [],
+    entregas: [],
+  };
+
+  return Object.assign(base, overrides);
+}
+
+function buildFakeSupa(db) {
+  function cloneRows(rows) {
+    return JSON.parse(JSON.stringify(rows || []));
+  }
+
+  function applyFilters(rows, filters, limit) {
+    let out = cloneRows(rows);
+    for (const filter of filters) {
+      if (filter.type === 'eq') out = out.filter((row) => row && row[filter.key] === filter.value);
+      if (filter.type === 'in') out = out.filter((row) => row && filter.value.includes(row[filter.key]));
+    }
+    if (typeof limit === 'number') out = out.slice(0, limit);
+    return out;
+  }
+
+  function rowsFor(table, state) {
+    const source = db[table] || [];
+    return applyFilters(source, state.filters, state.limit);
+  }
+
+  return {
+    from(table) {
+      const state = { filters: [], limit: null };
+      return {
+        select() { return this; },
+        order() { return this; },
+        eq(key, value) { state.filters.push({ type: 'eq', key, value }); return this; },
+        in(key, value) { state.filters.push({ type: 'in', key, value }); return this; },
+        limit(value) { state.limit = value; return this; },
+        maybeSingle() {
+          const rows = rowsFor(table, state);
+          return Promise.resolve({ data: rows[0] || null, error: null });
+        },
+        single() {
+          const rows = rowsFor(table, state);
+          return Promise.resolve(rows[0]
+            ? { data: rows[0], error: null }
+            : { data: null, error: { message: 'not found' } });
+        },
+        then(resolve, reject) {
+          return Promise.resolve({ data: rowsFor(table, state), error: null }).then(resolve, reject);
+        },
+      };
+    },
+  };
+}
+
+function makeRenderSandbox(db) {
+  const toastsNode = new FakeNode('div');
+  const appNode = new FakeNode('div');
+  const document = {
+    createElement: (t) => new FakeNode(t),
+    createTextNode: (t) => ({ textContent: String(t), appendChild() {}, setAttribute() {} }),
+    getElementById: (id) => id === 'app' ? appNode : new FakeNode('div'),
+    querySelector: (sel) => sel === '#toasts' ? toastsNode : new FakeNode('div'),
+    querySelectorAll: () => [],
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    body: new FakeNode('body'),
+  };
+
+  const sandbox = {
+    document,
+    setTimeout,
+    clearTimeout,
+    console,
+    URL,
+    URLSearchParams,
+    location: { hash: '#/ops/nova' },
+    supa: buildFakeSupa(db),
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+
+  vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
+  vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
+  vm.runInContext(calcSrc, sandbox, { filename: 'js/calculo-op.js' });
+  vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
+  vm.runInContext(efSrc, sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ofhSrc, sandbox, { filename: 'js/screens/op-form-helpers.js' });
+  vm.runInContext(opnSrc, sandbox, { filename: 'js/screens/op-nova.js' });
+
+  sandbox.ADMIN_MENU = sandbox.ADMIN_MENU || [];
+  sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
+  sandbox.logout = () => {};
+  sandbox.navigate = () => {};
+  sandbox.itensValidosOP = (itens) => (itens || []).filter((item) => item && item.modeloId && Number(item.metros) > 0);
+  sandbox.renderOPLatexAdmin = async () => new FakeNode('div');
+
+  return sandbox;
+}
+
+function collectNodeText(node) {
+  if (!node) return '';
+  const parts = [];
+  if (typeof node.textContent === 'string' && node.textContent) parts.push(node.textContent);
+  if (node.tagName === 'INPUT' && node.value != null && node.value !== '') parts.push(String(node.value));
+  if (node.tagName === 'SELECT') {
+    const options = node.children || [];
+    const selected = options.find((opt) => opt && opt.selected) || options[0];
+    if (selected && selected.textContent) parts.push(selected.textContent);
+  }
+  for (const child of (node.children || [])) parts.push(collectNodeText(child));
+  return parts.join(' ');
+}
+
+function collectInputValues(node, out = []) {
+  if (!node) return out;
+  if (node.tagName === 'INPUT') out.push(String(node.value));
+  for (const child of (node.children || [])) collectInputValues(child, out);
+  return out;
+}
+
+async function renderNovaOpForTest({ opId = null, pedidoId = null, db } = {}) {
+  const sandbox = makeRenderSandbox(db || buildOpNovaFixture());
+  sandbox.__args = { opId, pedidoId };
+  const view = await vm.runInContext('window.screenNovaOP(window.__args.opId, window.__args.pedidoId)', sandbox);
+  return {
+    sandbox,
+    view,
+    text: collectNodeText(view),
+    inputs: collectInputValues(view),
+  };
+}
+
+test('31. op-nova.js lê lote.pedido_id e op_itens.pedido_item_id para rastreabilidade', () => {
+  assert.match(opnSrc, /lote:lote_id\(id,\s*numero,\s*pedido_id,/,
+    'select de lotes deve incluir pedido_id');
+  assert.match(opnSrc, /op_itens\(id,\s*modelo_id,\s*metros_pedidos,\s*metros_ajustados,\s*pedido_item_id\)/,
+    'select de op_itens deve incluir pedido_item_id');
+});
+
+test('32. Nova OP com pedido_id mostra "Pedido vinculado"', async () => {
+  const rendered = await renderNovaOpForTest({
+    pedidoId: 'ped-1',
+    db: buildOpNovaFixture(),
+  });
+  assert.match(rendered.text, /Pedido vinculad/i);
+  assert.match(rendered.text, /Pedido N[ºo]\s*120/i);
+});
+
+test('33. Nova OP com pedido_id mostra cliente como dado derivado do pedido', async () => {
+  const rendered = await renderNovaOpForTest({
+    pedidoId: 'ped-1',
+    db: buildOpNovaFixture(),
+  });
+  assert.match(rendered.text, /Cliente derivado do pedido/i);
+  assert.match(rendered.text, /Cliente Atlas/);
+});
+
+test('34. Nova OP com pedido_id não mostra cliente como select principal', async () => {
+  const rendered = await renderNovaOpForTest({
+    pedidoId: 'ped-1',
+    db: buildOpNovaFixture(),
+  });
+  assert.doesNotMatch(rendered.text, /Selecione o cliente/i);
+});
+
+test('35. Nova OP com pedido_id mantém os itens do pedido', async () => {
+  const rendered = await renderNovaOpForTest({
+    pedidoId: 'ped-1',
+    db: buildOpNovaFixture(),
+  });
+  assert.match(rendered.text, /Itens carregados do pedido vinculado/i);
+  assert.ok(rendered.inputs.includes('120'), 'metros do item 1 do pedido deveriam aparecer na tela');
+  assert.ok(rendered.inputs.includes('80'), 'metros do item 2 do pedido deveriam aparecer na tela');
+});
+
+test('36. Nova OP sem pedido_id preserva o select principal de cliente', async () => {
+  const rendered = await renderNovaOpForTest({
+    db: buildOpNovaFixture(),
+  });
+  assert.match(rendered.text, /Selecione o cliente/i);
+});
+
+test('37. OP Aberta de Tecelagem não mostra "4. Entregas tecelagem"', async () => {
+  const db = buildOpNovaFixture({
+    ops: [
+      {
+        id: 91,
+        numero: 7,
+        ano: 2026,
+        status: 'aberta',
+        tipo: 'tecelagem',
+        observacao: '',
+        origem_op_id: null,
+        lote_id: 301,
+        lote: { id: 301, numero: 14, pedido_id: 'ped-1', cliente: { id: 501, nome: 'Cliente Atlas' } },
+        op_itens: [
+          { id: 1, modelo_id: 1, metros_pedidos: 120, metros_ajustados: null, pedido_item_id: 'pi-1' },
+        ],
+        op_fornecedores: [{ fornecedor_id: 701, etapa: 'cima' }],
+      },
+    ],
+    ordens_compra_fio: [],
+  });
+  const rendered = await renderNovaOpForTest({ opId: 91, db });
+  assert.doesNotMatch(rendered.text, /4\.\s*Entregas tecelagem/i);
+});
+
+test('38. OP Aberta de Tecelagem mostra linguagem de preparação', async () => {
+  const db = buildOpNovaFixture({
+    ops: [
+      {
+        id: 92,
+        numero: 8,
+        ano: 2026,
+        status: 'aberta',
+        tipo: 'tecelagem',
+        observacao: '',
+        origem_op_id: null,
+        lote_id: 302,
+        lote: { id: 302, numero: 15, pedido_id: 'ped-1', cliente: { id: 501, nome: 'Cliente Atlas' } },
+        op_itens: [
+          { id: 2, modelo_id: 2, metros_pedidos: 80, metros_ajustados: null, pedido_item_id: 'pi-2' },
+        ],
+        op_fornecedores: [{ fornecedor_id: 701, etapa: 'cima' }],
+      },
+    ],
+    ordens_compra_fio: [],
+  });
+  const rendered = await renderNovaOpForTest({ opId: 92, db });
+  assert.match(rendered.text, /OP Aberta de Tecelagem/i);
+  assert.match(rendered.text, /Preparacao da OP/i);
+});
+
+test('39. OP Em Produção não é redesenhada nesta fase', async () => {
+  const db = buildOpNovaFixture({
+    ops: [
+      {
+        id: 93,
+        numero: 9,
+        ano: 2026,
+        status: 'em_producao',
+        tipo: 'tecelagem',
+        observacao: '',
+        origem_op_id: null,
+        lote_id: 303,
+        lote: { id: 303, numero: 16, pedido_id: 'ped-1', cliente: { id: 501, nome: 'Cliente Atlas' } },
+        op_itens: [
+          { id: 3, modelo_id: 1, metros_pedidos: 120, metros_ajustados: 100, pedido_item_id: 'pi-1' },
+        ],
+        op_fornecedores: [{ fornecedor_id: 701, etapa: 'cima' }],
+      },
+    ],
+    ordens_compra_fio: [
+      { id: 501, op_id: 93, tipo: 'algodao', cor_id: 11, cor_poliester: null, kg_pedido: 1.2, kg_recebido: 1.2, status: 'recebido_total', cores: { id: 11, nome: 'PRETO' } },
+    ],
+    entregas: [],
+  });
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
+  assert.match(rendered.text, /4\.\s*Entregas tecelagem/i);
+  assert.doesNotMatch(rendered.text, /OP Aberta de Tecelagem/i);
+  assert.doesNotMatch(rendered.text, /Preparacao da OP/i);
 });

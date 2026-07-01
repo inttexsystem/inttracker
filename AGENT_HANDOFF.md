@@ -10,6 +10,62 @@
 
 #### Último estado aceito
 
+- Estado pos-fase - Nova OP Tecelagem Standalone B R1 Boot Smoke
+- Fase concluida no codigo:
+  `RAVATEX-TAPETES-OP-NOVA-TECELAGEM-STANDALONE-B-R1-BOOT-SMOKE`.
+- Escopo do R1:
+  nenhuma mudanca funcional na UI;
+  ajuste focado em `tests/boot.smoke.js` para aceitar o call-site
+  canonico de `#/ops/nova?pedido_id=<id>` e completar o sandbox do
+  boot com `window.addEventListener`, `window.removeEventListener`
+  e `document.getElementById('app')`.
+- Resultado:
+  o residual que bloqueava a fase B foi removido;
+  `node --test tests/boot.smoke.js` fecha verde;
+  `node --test tests/op-nova.smoke.js tests/op-persistir.smoke.js tests/boot.smoke.js tests/pedido-detail.smoke.js`
+  fecha verde (`181/181`).
+- Proximo passo recomendado:
+  validacao visual / closeout final da Nova OP Tecelagem.
+
+- Estado pos-fase - Nova OP Tecelagem Standalone B
+- Fase concluida no codigo:
+  `RAVATEX-TAPETES-OP-NOVA-TECELAGEM-STANDALONE-B`.
+- Referencia visual obrigatoria usada:
+  `Admin - NOVA-OP-TECELAGEM.html`.
+- Arquivos alterados na fase:
+  `js/screens/op-nova.js`,
+  `tests/op-nova.smoke.js`,
+  `PROJECT_STATE.md`,
+  `AGENT_HANDOFF.md`.
+- Resultado funcional:
+  Nova OP de Tecelagem agora usa o template visual da referencia;
+  quando houver `pedido_id`, o bloco principal passa a ser
+  **Pedido vinculado** e o Cliente vira dado derivado do Pedido;
+  o fluxo avulso sem pedido foi preservado;
+  OP Aberta de Tecelagem usa linguagem de preparacao;
+  `4. Entregas tecelagem` ficou fora da preparacao e segue apenas
+  no comportamento atual de `em_producao`;
+  OP Em Producao nao foi redesenhada nesta fase.
+- Fora desta fase por decisao explicita:
+  Nova OP Acabamento;
+  item/card `4. Entregas tecelagem` como parte da futura tela de
+  OP Em Producao;
+  movimentacao;
+  entrega produtiva;
+  transicao de status / `alterar_status_op`;
+  backend / SQL / Supabase / producao.
+- Testes da fase:
+  `node --check js/screens/op-nova.js` OK;
+  `node --test tests/op-nova.smoke.js` OK (39/39).
+- Check amplo exigido pela instrucao:
+  `node --test tests/op-nova.smoke.js tests/op-persistir.smoke.js tests/boot.smoke.js tests/pedido-detail.smoke.js`
+  ainda fecha com 1 falha residual fora do escopo desta fase:
+  `tests/boot.smoke.js` teste 10, que nao aceita o render atual de
+  `#/ops/nova` com parse de `pedido_id`.
+- Proxima fase recomendada:
+  validacao visual / closeout da Nova OP Tecelagem antes de abrir
+  qualquer trabalho de OP Em Producao.
+
 - HEAD 79eaab8
 - migration 21 aplicada em staging
 - evidencia do check consolidado
