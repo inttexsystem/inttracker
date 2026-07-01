@@ -649,6 +649,145 @@
 
   async function screenCadastrosModelos() {
     const container = window.el('div', {});
+    let allRows = [];
+    let allCores = [];
+    let busca = '';
+
+    function svgIcon(markup) {
+      const wrap = window.el('span', {
+        style: 'display:inline-flex; align-items:center; justify-content:center;'
+      });
+      wrap.innerHTML = markup;
+      return wrap.firstChild;
+    }
+
+    var ICON_PLUS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+    var ICON_SEARCH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
+    var ICON_SQUARE_PEN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>';
+    var ICON_TRASH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
+
+    function makePrimaryButton(label, onClick) {
+      const icon = svgIcon(ICON_PLUS);
+      return window.el('button', {
+        type: 'button',
+        onclick: onClick,
+        style: 'display:inline-flex; align-items:center; gap:7px; background:#2563eb; color:#fff; border:none; border-radius:4px; padding:9px 16px; font-weight:600; font-size:14px; font-family:inherit; cursor:pointer; box-shadow:none;'
+      }, icon, label);
+    }
+
+    function makeIconButton(title, icon, onClick, danger) {
+      const button = window.el('button', {
+        type: 'button',
+        title,
+        'aria-label': title,
+        onclick: onClick,
+        style: [
+          'width:30px',
+          'height:30px',
+          'display:inline-flex',
+          'align-items:center',
+          'justify-content:center',
+          'border:1px solid #eceef1',
+          'border-radius:4px',
+          'background:#fff',
+          `color:${danger ? '#d6403a' : '#8a93a3'}`,
+          'cursor:pointer',
+          'padding:0',
+          'transition:border-color .18s ease, color .18s ease, background .18s ease'
+        ].join(';'),
+        onmouseenter: () => {
+          if (danger) {
+            button.style.borderColor = '#fca5a5';
+            button.style.background = '#fff1f1';
+            button.style.color = '#c53030';
+          } else {
+            button.style.borderColor = '#d0d5de';
+            button.style.color = '#3f4757';
+          }
+        },
+        onmouseleave: () => {
+          button.style.borderColor = '#eceef1';
+          button.style.background = '#fff';
+          button.style.color = danger ? '#d6403a' : '#8a93a3';
+        }
+      }, icon);
+      return button;
+    }
+
+    function formatWidthBadge(value) {
+      return Number(value).toFixed(2).replace('.', ',') + ' m';
+    }
+
+    function getSwatchTone(nome) {
+      const normalized = String(nome || '').trim().toUpperCase();
+      const palette = {
+        AMARELO: '#facc15',
+        AREIA: '#d6c3a1',
+        AZUL: '#2563eb',
+        AZUL_CLARO: '#60a5fa',
+        BEGE: '#d6b98c',
+        BRANCO: '#f8fafc',
+        CINZA: '#8a93a3',
+        CRU: '#e8dcc8',
+        GRAFITE: '#4b5563',
+        KRAFT: '#b5722e',
+        LARANJA: '#f97316',
+        MARINHO: '#1e3a5f',
+        PRETO: '#1a1a1a',
+        ROSA: '#ec4899',
+        ROXO: '#7c3aed',
+        VERDE: '#16a34a',
+        VERMELHO: '#dc2626'
+      };
+      if (palette[normalized]) return palette[normalized];
+      if (normalized.includes('AZUL')) return '#2563eb';
+      if (normalized.includes('CINZA')) return '#8a93a3';
+      if (normalized.includes('CRU')) return '#e8dcc8';
+      if (normalized.includes('KRAFT')) return '#b5722e';
+      if (normalized.includes('MARINHO')) return '#1e3a5f';
+      if (normalized.includes('PRETO')) return '#1a1a1a';
+      if (normalized.includes('BRANCO')) return '#f8fafc';
+      if (normalized.includes('VERDE')) return '#16a34a';
+      if (normalized.includes('VERMELHO')) return '#dc2626';
+      if (normalized.includes('ROSA')) return '#ec4899';
+      if (normalized.includes('ROXO')) return '#7c3aed';
+      if (normalized.includes('AMARELO')) return '#facc15';
+      if (normalized.includes('LARANJA')) return '#f97316';
+      return '#cbd5e1';
+    }
+
+    function buildSwatchChip(color) {
+      const tone = getSwatchTone(color?.nome || '');
+      const isLight = ['#f8fafc', '#e8dcc8', '#facc15', '#d6c3a1', '#d6b98c'].includes(String(tone).toLowerCase());
+      return window.el('span', {
+        style: 'display:inline-flex; align-items:center; gap:8px; min-width:0;'
+      },
+      window.el('span', {
+        style: `width:14px; height:14px; border-radius:999px; border:1px solid ${isLight ? '#d8dce2' : 'rgba(22,32,58,.12)'}; background:${tone}; flex:0 0 auto;`
+      }),
+      window.el('span', {
+        style: `font-size:13px; color:${color?.nome ? '#3f4757' : '#aab2bf'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;`
+      }, color?.nome || '—'));
+    }
+
+    function buildPreviewCard(row) {
+      const tone1 = getSwatchTone(row.cor_1?.nome || '');
+      const tone2 = getSwatchTone(row.cor_2?.nome || '');
+      const widthLabel = formatWidthBadge(row.largura);
+      const preview = window.el('div', {
+        style: 'width:72px; height:48px; border-radius:6px; border:1px solid #e5e7eb; background:#fff; position:relative; overflow:hidden; box-shadow:inset 0 1px 0 rgba(255,255,255,.55);'
+      });
+      preview.appendChild(window.el('div', {
+        style: `position:absolute; inset:0; background:linear-gradient(135deg, ${tone1} 0%, ${tone1} 49%, ${tone2} 51%, ${tone2} 100%);`
+      }));
+      preview.appendChild(window.el('div', {
+        style: 'position:absolute; inset:10px 12px; border-radius:999px; border:2px solid rgba(255,255,255,.85);'
+      }));
+      preview.appendChild(window.el('div', {
+        style: 'position:absolute; left:0; right:0; bottom:0; padding:3px 6px; background:rgba(22,32,58,.58); color:#fff; font-size:9px; font-weight:700; letter-spacing:.04em; text-align:center;'
+      }, widthLabel));
+      return preview;
+    }
 
     async function reload() {
       const [modelosRes, coresRes] = await Promise.all([
@@ -656,27 +795,128 @@
         window.supa.from('cores').select('id, nome').order('nome')
       ]);
       if (modelosRes.error || coresRes.error) { window.toast('Erro ao carregar', 'error'); console.error(modelosRes.error || coresRes.error); return; }
-      render(modelosRes.data || [], coresRes.data || []);
+      allRows = modelosRes.data || [];
+      allCores = coresRes.data || [];
+      render();
     }
 
-    function render(modelos, cores) {
-      container.replaceChildren(
-        window.pageHeader('Modelos', [{ label: '+ Novo modelo', onclick: () => openModal(null, cores) }]),
-        window.dataTable({
-          columns: [
-            { key: 'id', label: 'ID' },
-            { key: 'nome', label: 'Nome' },
-            { key: 'cor_1', label: 'Cor 1 (predominante)', render: (r) => r.cor_1?.nome || '' },
-            { key: 'cor_2', label: 'Cor 2', render: (r) => r.cor_2?.nome || '' },
-            { key: 'largura', label: 'Largura', render: (r) => Number(r.largura).toFixed(2).replace('.', ',') + ' m' },
-          ],
-          rows: modelos,
-          actions: [
-            { label: 'Editar', onclick: (r) => openModal(r, cores) },
-            { label: 'Excluir', class: 'text-red-600 hover:underline', onclick: (r) => confirmExcluir(r) },
-          ]
-        })
+    function render() {
+      const rows = busca
+        ? allRows.filter((row) => {
+            const q = busca.trim().toLowerCase();
+            return [row.nome, row.cor_1?.nome, row.cor_2?.nome, String(row.id), String(row.largura)].join(' ').toLowerCase().includes(q);
+          })
+        : allRows.slice();
+
+      const page = window.el('div', { style: 'display:flex; flex-direction:column;' });
+      const header = window.el('div', {
+        style: 'display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px;'
+      });
+      const headerText = window.el('div', {},
+        window.el('div', {
+          style: 'font-size:22px; font-weight:800; color:#16203a; letter-spacing:-.01em;'
+        }, 'Modelos'),
+        window.el('div', {
+          style: 'font-size:13px; color:#8a93a3; margin-top:3px;'
+        }, 'Gerencie os modelos com preview sintético, cores e largura.')
       );
+      header.appendChild(headerText);
+      header.appendChild(makePrimaryButton('Novo modelo', () => openModal(null, allCores)));
+
+      const searchWrap = window.el('div', {
+        style: 'display:flex; align-items:center; gap:8px; width:100%; background:#fff; border:1px solid #d8dce2; border-radius:4px; padding:8px 13px; margin-bottom:14px;'
+      });
+      const searchInput = window.el('input', {
+        type: 'search',
+        value: busca,
+        placeholder: 'Buscar por nome, cor, largura ou ID...',
+        oninput: (e) => {
+          busca = e.target.value || '';
+          render();
+        },
+        style: 'width:100%; border:0; outline:none; background:transparent; font-size:13px; color:#16203a; padding:0; font-family:inherit;'
+      });
+      searchInput.setAttribute('aria-label', 'Buscar modelos');
+      searchWrap.appendChild(svgIcon(ICON_SEARCH));
+      searchWrap.appendChild(searchInput);
+
+      const tableWrap = window.el('div', { style: 'display:flex; flex-direction:column;' });
+      const card = window.el('div', {
+        style: 'background:#fff; border:1px solid #eceef1; border-radius:6px 6px 0 0; overflow:hidden;'
+      });
+      const gridTemplate = '92px 1.25fr 1.2fr 100px 66px';
+      const headRow = window.el('div', {
+        style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:10px 18px; background:#f8f9fb; border-bottom:1px solid #eceef1;`
+      });
+      ['PREVIEW', 'MODELO', 'CORES', 'LARGURA'].forEach((label) => {
+        headRow.appendChild(window.el('div', {
+          style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;'
+        }, label));
+      });
+      headRow.appendChild(window.el('div', {
+        style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; text-align:center; white-space:nowrap;'
+      }, 'ACOES'));
+      card.appendChild(headRow);
+
+      rows.forEach((row, index) => {
+        const line = window.el('div', {
+          style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid #f1f3f6'};`
+        });
+
+        line.appendChild(buildPreviewCard(row));
+
+        const modelInfo = window.el('div', {
+          style: 'display:flex; flex-direction:column; min-width:0;'
+        });
+        modelInfo.appendChild(window.el('div', {
+          style: 'font-size:14px; font-weight:600; color:#16203a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'
+        }, row.nome || ''));
+        modelInfo.appendChild(window.el('div', {
+          style: 'font-size:12px; color:#9aa2af; margin-top:3px;'
+        }, `ID ${row.id ?? '—'}`));
+        line.appendChild(modelInfo);
+
+        const colorsWrap = window.el('div', {
+          style: 'display:flex; flex-direction:column; gap:7px; min-width:0;'
+        });
+        colorsWrap.appendChild(buildSwatchChip(row.cor_1));
+        colorsWrap.appendChild(buildSwatchChip(row.cor_2));
+        line.appendChild(colorsWrap);
+
+        line.appendChild(window.el('div', {},
+          window.el('span', {
+            style: 'display:inline-flex; align-items:center; border-radius:4px; padding:3px 9px; font-size:12px; font-weight:600; white-space:nowrap; background:#eef2ff; color:#3b5bcc;'
+          }, formatWidthBadge(row.largura))
+        ));
+
+        const actions = window.el('div', {
+          style: 'display:flex; align-items:center; justify-content:center; gap:6px;'
+        });
+        actions.appendChild(makeIconButton('Editar modelo', svgIcon(ICON_SQUARE_PEN), () => openModal(row, allCores), false));
+        actions.appendChild(makeIconButton('Excluir modelo', svgIcon(ICON_TRASH), () => confirmExcluir(row), true));
+        line.appendChild(actions);
+        card.appendChild(line);
+      });
+
+      if (!rows.length) {
+        card.appendChild(window.el('div', {
+          style: 'padding:20px 18px; font-size:14px; color:#6b7280; text-align:center;'
+        }, busca ? 'Nenhum modelo encontrado.' : 'Nenhum modelo cadastrado.'));
+      }
+
+      const footer = window.el('div', {
+        style: 'padding:11px 18px; background:#fff; border:1px solid #eceef1; border-top:none; border-radius:0 0 6px 6px;'
+      });
+      footer.appendChild(window.el('span', {
+        style: 'font-size:13px; color:#9aa2af;'
+      }, `${rows.length} ${rows.length === 1 ? 'modelo cadastrado' : 'modelos cadastrados'}`));
+
+      tableWrap.appendChild(card);
+      tableWrap.appendChild(footer);
+      page.appendChild(header);
+      page.appendChild(searchWrap);
+      page.appendChild(tableWrap);
+      container.replaceChildren(page);
     }
 
     function openModal(modelo, cores) {
@@ -1674,7 +1914,7 @@
         const actions = window.el('div', { style: 'display:flex; align-items:center; justify-content:center; gap:6px;' });
         actions.appendChild(window.el('button', { type: 'button', onclick: () => openModal(user, allForns, allClients), title: 'Editar usuario', 'aria-label': 'Editar usuario', style: 'width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#8a93a3; cursor:pointer;' }, svgIcon(ICON_SQUARE_PEN)));
         actions.appendChild(window.el('button', { type: 'button', onclick: user.ativo === false ? undefined : () => handleDesativarClick(user, meId), disabled: user.ativo === false, title: user.ativo === false ? 'Usuario inativo' : 'Desativar usuario', 'aria-label': user.ativo === false ? 'Usuario inativo' : 'Desativar usuario', style: `width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#8a93a3; cursor:${user.ativo === false ? 'default' : 'pointer'}; opacity:${user.ativo === false ? '0.45' : '1'};` }, svgIcon(ICON_BAN)));
-        actions.appendChild(window.el('button', { type: 'button', onclick: meId && user.id === meId ? undefined : () => handleExcluirClick(user, meId), disabled: !!(meId && user.id === meId), title: meId && user.id === meId ? 'Nao pode excluir o proprio usuario' : 'Excluir usuario', 'aria-label': meId && user.id === meId ? 'Nao pode excluir o proprio usuario' : 'Excluir usuario', style: `width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#8a93a3; cursor:${meId && user.id === meId ? 'default' : 'pointer'}; opacity:${meId && user.id === meId ? '0.45' : '1'};` }, svgIcon(ICON_TRASH)));
+        actions.appendChild(window.el('button', { type: 'button', onclick: meId && user.id === meId ? undefined : () => handleExcluirClick(user, meId), disabled: !!(meId && user.id === meId), title: meId && user.id === meId ? 'Nao pode excluir o proprio usuario' : 'Excluir usuario', 'aria-label': meId && user.id === meId ? 'Nao pode excluir o proprio usuario' : 'Excluir usuario', style: `width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#d6403a; cursor:${meId && user.id === meId ? 'default' : 'pointer'}; opacity:${meId && user.id === meId ? '0.45' : '1'};` }, svgIcon(ICON_TRASH)));
         line.appendChild(actions);
         card.appendChild(line);
       });

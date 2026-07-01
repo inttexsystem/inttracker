@@ -1583,3 +1583,37 @@ node --test tests/boot.smoke.js \
 - **Escopo preservado:** nenhum schema, SQL, Supabase, producao ou
   `origin/main` foi tocado nesta fase; `supabase/.temp/` permanece
   fora do stage/commit.
+
+## Homologacao visual Admin Modelos
+
+- **Estado atual aceito:** `work/app-next` na fase
+  `RAVATEX-TAPETES-ADMIN-MODELOS-MATCH-STANDALONE-CLOSEOUT`, com
+  aceite visual explicito do dono para `#/cadastros/modelos`.
+- **Arquivo funcional alterado:** `js/screens/cadastros.js`.
+- **Modelos homologado:** a tela foi alinhada ao padrao visual
+  homologado de Cadastros com header, botao principal, busca
+  full-width, card/tabela e footer.
+- **Preview sintetico registrado:** cada modelo agora exibe preview
+  sintetico construido a partir de `cor_1`, `cor_2`, `largura` e
+  nome, sem uso de imagem real, storage ou alteracao de schema.
+- **Representacao visual homologada:** nome como coluna principal com
+  ID secundario, swatches lado a lado para `cor_1`/`cor_2` e acoes com
+  icones `SquarePen` e `Trash`.
+- **CRUD e regras preservados:** carregamento real, criacao, edicao,
+  exclusao, payloads, validacoes, permissoes admin e schema atual
+  permaneceram intactos.
+- **Correcao runtime registrada:** Modelos passou a abrir normalmente
+  com helper local de swatch, sem depender do escopo de Cores.
+- **Hotfix visual em Usuarios:** o icone de excluir foi mantido em
+  vermelho, com botao neutro, sem alterar fluxos administrativos.
+- **Shell preservado:** sidebar, topbar e shell global permaneceram
+  intactos; nao houve alteracoes em `common.js`, `index.html` ou em
+  qualquer arquivo fora do escopo.
+- **Checks executados:** `node --check js/screens/cadastros.js`,
+  `tests/cadastros-screens.smoke.js` e `git diff --check`. O smoke de
+  cadastros permaneceu em 31/32 pela unica falha conhecida e fora do
+  escopo: `screenPainel` espera 9 itens de `ADMIN_MENU` e renderiza
+  10.
+- **Escopo preservado:** nenhum schema, SQL, Supabase, producao ou
+  `origin/main` foi tocado nesta fase; `supabase/.temp/` permanece
+  fora do stage/commit.

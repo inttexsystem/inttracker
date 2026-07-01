@@ -2588,6 +2588,31 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 > `tests/cadastros-screens.smoke.js` com resultado 31/32 e unica falha
 > conhecida pre-existente fora do escopo (`screenPainel` espera 9 itens
 > de `ADMIN_MENU` e renderiza 10), alem de `git diff --check` verde.
+
+> **Atualizacao 2026-06-30 - fase
+> `RAVATEX-TAPETES-ADMIN-MODELOS-MATCH-STANDALONE-CLOSEOUT`
+> (homologacao visual da tela Admin -> Modelos).** Fica registrada
+> como **APROVADA** a homologacao visual da tela
+> `#/cadastros/modelos`, com aceite visual explicito do dono na branch
+> `work/app-next`, sobre o HEAD inicial desta fase `9b37ac6`. O unico
+> arquivo funcional alterado foi `js/screens/cadastros.js`,
+> preservando shell, sidebar e topbar globais. Modelos foi alinhado ao
+> padrao visual homologado de Cadastros com busca full-width,
+> card/tabela e footer, preview sintetico por modelo sem uso de
+> schema/storage/imagem real, nome como coluna principal com ID
+> secundario, swatches lado a lado para `cor_1`/`cor_2` e acoes com
+> icones `SquarePen` e `Trash`, preservando CRUD real, payloads,
+> validacoes, permissoes e schema atual. Tambem fica registrado o
+> hotfix visual em Usuarios, mantendo o botao neutro e o icone de
+> excluir em vermelho, sem alterar fluxos administrativos. A correcao
+> de runtime de Modelos foi incluida nesta fase ao internalizar o
+> helper de swatch, fazendo a rota abrir normalmente sem dependencia de
+> outro escopo. Nenhum schema, SQL, Supabase, producao, `origin/main`,
+> `common.js` ou `index.html` foi tocado. Checks executados:
+> `node --check js/screens/cadastros.js`,
+> `tests/cadastros-screens.smoke.js` com resultado 31/32 e unica falha
+> conhecida pre-existente fora do escopo (`screenPainel` espera 9 itens
+> de `ADMIN_MENU` e renderiza 10), alem de `git diff --check` verde.
 > Nenhum schema/SQL em producao, mutation Supabase de producao ou
 > alteracao fora de `cadastros` foi realizada. `supabase/.temp/`
 > permanece fora do commit.
