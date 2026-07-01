@@ -1009,7 +1009,7 @@
       header.appendChild(makePrimaryButton('Novo fornecedor', () => openModal(null)));
 
       const searchWrap = window.el('div', {
-        style: 'display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #d8dce2; border-radius:4px; padding:8px 13px; margin-bottom:14px; max-width:360px;'
+        style: 'display:flex; align-items:center; gap:8px; width:100%; background:#fff; border:1px solid #d8dce2; border-radius:4px; padding:8px 13px; margin-bottom:14px;'
       });
       const searchInput = window.el('input', {
         type: 'search',
