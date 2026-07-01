@@ -133,7 +133,7 @@ Pedido
 | **H** | Integração Drive/OneDrive: upload real de arquivos, storage externo, ponteiros no banco. | G |
 | **I** | Automação futura por e-mail/PDF/XML: leitura de `eddiravazio@gmail.com`, classificação, anexo automático com revisão humana. | H |
 | **J** | Saldo inteligente por etapa e bloqueio transacional: evitar que uma etapa consuma mais do que a anterior produziu. | F |
-| **L** | Lifecycle de OP backend: status expandido (`pausada`/`concluida`/`cancelada`), tabela `op_eventos`, trigger de eventos, RPC `alterar_status_op` (admin-only, R1). Migration `db/21_op_lifecycle_status_eventos.sql`. | — | **[x] Concluída** (Fase B, backend-only, sem UI; R1 hardening aplicado) |
+| **L** | Lifecycle de OP backend: status expandido (`pausada`/`concluida`/`cancelada`), tabela `op_eventos`, trigger de eventos, RPC `alterar_status_op` (admin-only, R1). Migration `db/21_op_lifecycle_status_eventos.sql` aplicada em staging `ucrjtfswnfdlxwtmxnoo`. | — | **[x] Concluída** (backend aplicado em staging; proximo: UI de lifecycle OP) |
 
 ---
 

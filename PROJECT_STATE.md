@@ -1,4 +1,18 @@
 > **Atualizacao 2026-07-01 - fase
+> `RAVATEX-TAPETES-OP-LIFECYCLE-BACKEND-B-STAGING-SQL-CLOSEOUT`
+> (registro de aplicacao da migration 21 no staging).**
+> A migration `db/21_op_lifecycle_status_eventos.sql` foi
+> **aplicada no Supabase staging** `ucrjtfswnfdlxwtmxnoo`.
+> Confirmado: `ops.status` CHECK expandido (7 valores,
+> incluindo `pausada`, `concluida`, `cancelada`);
+> `op_eventos` criada com indices; `trg_op_evento` ativo;
+> RPC `alterar_status_op` presente. Producao
+> `bhgifjrfagkzubpyqpew` intocada. Push nao realizado.
+> Status residual preservado:
+> `M js/screens/pedidos-list.js`, `?? supabase/.temp/`.
+> Proximo passo: UI de lifecycle OP.
+>
+> **Atualizacao 2026-07-01 - fase
 > `RAVATEX-TAPETES-OP-LIFECYCLE-BACKEND-B-R1`
 > (R1 hardening sobre lifecycle de OP).**
 > Patch R1 sobre `db/21_op_lifecycle_status_eventos.sql`

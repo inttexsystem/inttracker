@@ -26,7 +26,7 @@
 | `pedido_cliente_eventos` | `db/15_status_cliente_visual.sql` | Aplicado |
 | `pedido_parciais` | `db/17_pedido_parciais_schema.sql` | Aplicado |
 | `pedido_parcial_itens` | `db/17_pedido_parciais_schema.sql` | Aplicado |
-| `op_eventos` | `db/21_op_lifecycle_status_eventos.sql` | **Não aplicado** — migration versionada |
+| `op_eventos` | `db/21_op_lifecycle_status_eventos.sql` | **Aplicado em staging** `ucrjtfswnfdlxwtmxnoo`. Pendente em produção. |
 | `documentos_operacionais` | — | **Não existe** |
 
 ### 1.2. Colunas-chave validadas
@@ -162,6 +162,21 @@
 | `criado_em` | TIMESTAMPTZ | NOT NULL DEFAULT `now()` | |
 
 Índices: `op_eventos_op_id_idx (op_id)`, `op_eventos_criado_em_idx (op_id, criado_em DESC)`.
+
+**Evidência SQL staging aplicada (2026-07-01):**
+
+```json
+[
+  {
+    "op_eventos": "op_eventos",
+    "tem_alterar_status_op": true,
+    "tem_trg_op_evento": true,
+    "status_check": "CHECK ((status = ANY (ARRAY['simulada'::text, 'aberta'::text, 'em_producao'::text, 'pausada'::text, 'concluida'::text, 'cancelada'::text, 'finalizada'::text])))"
+  }
+]
+```
+
+Conclusão: SQL STAGING OK. Constraint de ops.status atualizada. Tabela op_eventos criada. RPC alterar_status_op criada. Trigger trg_op_evento criado. Produção não tocada. Repo ainda sem push.
 
 ### 1.6. RLS relevante
 

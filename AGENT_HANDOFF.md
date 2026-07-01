@@ -8,16 +8,27 @@
 > `docs/DOCUMENTATION_INDEX.md`.
 > ConvenÃ§Ã£o: **tudo em portuguÃªs brasileiro**.
 
+#### Último estado aceito
+
+- HEAD 79eaab8
+- migration 21 aplicada em staging
+- evidencia do check consolidado
+- producao nao tocada
+- proximo passo recomendado: UI lifecycle OP, usando:
+  - OP Aberta = Admin - Nova OP
+  - OP Em producao = Admin - Detalhe da OP
+
 - **Lifecycle de OP backend** (Fase L,
   `db/21_op_lifecycle_status_eventos.sql`, migration versionada,
-  **NAO aplicada em staging**): `ops.status` CHECK expandido
+  **APLICADA em staging**): `ops.status` CHECK expandido
   (`pausada`/`concluida`/`cancelada` + legado `finalizada`);
   `op_eventos` + trigger `trg_op_evento` + RPC
   `alterar_status_op`. `gerar_op_latex` e `op-latex-admin.js`
-  intocados. Nenhum JS alterado. Proximo: aplicar migration
-  em staging; UI de transicao de status na tela de OP.
-- **R1 hardening** sobre a Fase L (mesmo arquivo db/21, ainda
-  nao aplicada): (1) `alterar_status_op` agora **admin-only**
+  intocados. Nenhum JS alterado. Proximo: UI de transicao de
+  status na tela de OP.
+- **R1 hardening** sobre a Fase L (mesmo arquivo db/21,
+  aplicado em staging): (1) `alterar_status_op` agora
+  **admin-only**
   (`is_admin()` no inicio, padrao `gerar_op_latex`) —
   fornecedor nao transita status nesta fase; (2) observacao
   vinculada determinicamente ao evento `status_alterado` de
