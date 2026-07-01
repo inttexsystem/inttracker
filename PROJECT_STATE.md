@@ -2591,3 +2591,28 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 > Nenhum schema/SQL em producao, mutation Supabase de producao ou
 > alteracao fora de `cadastros` foi realizada. `supabase/.temp/`
 > permanece fora do commit.
+
+> **Atualizacao 2026-06-30 - fase
+> `RAVATEX-TAPETES-ADMIN-CADASTROS-CLIENTES-PRECOS-USUARIOS-CLOSEOUT`
+> (homologacao visual do pacote Clientes + Precos + Usuarios).**
+> Fica registrada como **APROVADA** a homologacao visual do pacote
+> Admin -> Cadastros para `#/cadastros/clientes`,
+> `#/cadastros/precos` e `#/cadastros/usuarios`, com aceite visual
+> explicito do dono na branch `work/app-next`, sobre o HEAD inicial
+> desta fase `f55a10d`. O unico arquivo funcional alterado foi
+> `js/screens/cadastros.js`, mantendo shell, sidebar e topbar
+> preservados. Clientes foi alinhado ao padrao visual homologado com
+> header, busca full-width, tabela/card, footer e acoes coerentes ao
+> pacote de Cadastros, preservando o CRUD real e os campos opcionais
+> `contato`/`telefone`. Precos foi alinhado ao mesmo padrao visual com
+> busca, grid de listagem, footer e acoes preservando rotas, modais,
+> validacoes e writes existentes. Usuarios foi alinhado ao mesmo
+> padrao visual com busca, toggle de inativos, tabela/card, badges de
+> status e acoes administrativas preservando validacoes, permissoes e
+> fluxos reais de editar, desativar e excluir. Nenhum schema, SQL,
+> Supabase, producao ou `origin/main` foi tocado nesta fase; nao houve
+> alteracoes em `common.js`, `index.html`, shell global ou telas fora
+> do pacote. Checks executados: `node --check js/screens/cadastros.js`,
+> `tests/cadastros-screens.smoke.js` com resultado 31/32 e unica falha
+> conhecida pre-existente fora do escopo (`screenPainel` espera 9 itens
+> de `ADMIN_MENU` e renderiza 10), alem de `git diff --check` verde.

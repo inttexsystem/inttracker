@@ -1551,3 +1551,35 @@ node --test tests/boot.smoke.js \
   10.
 - **Escopo preservado:** producao e `origin/main` nao foram tocados;
   `supabase/.temp/` permanece fora do stage/commit.
+
+## Homologacao visual Admin Cadastros Clientes + Precos + Usuarios
+
+- **Estado atual aceito:** `work/app-next` na fase
+  `RAVATEX-TAPETES-ADMIN-CADASTROS-CLIENTES-PRECOS-USUARIOS-CLOSEOUT`,
+  com aceite visual explicito do dono sobre as tres telas do pacote.
+- **Arquivo funcional alterado:** `js/screens/cadastros.js`.
+- **Clientes homologado:** `#/cadastros/clientes` foi alinhado ao
+  padrao visual homologado de Cadastros com header, botao principal,
+  busca full-width, tabela/card, footer e acoes centralizadas,
+  preservando CRUD, rota, validacoes e os campos opcionais
+  `contato`/`telefone`.
+- **Precos homologado:** `#/cadastros/precos` foi alinhado ao mesmo
+  padrao visual com busca, tabela/card, footer e acoes, preservando
+  modais, validacoes e writes reais do cadastro de precos de
+  terceirizadas.
+- **Usuarios homologado:** `#/cadastros/usuarios` foi alinhado ao
+  mesmo padrao visual com busca, toggle de inativos, tabela/card,
+  badges de status e acoes administrativas, preservando rotas,
+  validacoes, permissoes e os fluxos reais de editar, desativar e
+  excluir usuario.
+- **Shell preservado:** sidebar, topbar e shell global permaneceram
+  intactos; nao houve alteracoes em `common.js`, `index.html` ou em
+  outras telas fora deste pacote.
+- **Checks executados:** `node --check js/screens/cadastros.js`,
+  `tests/cadastros-screens.smoke.js` e `git diff --check`. O smoke de
+  cadastros permaneceu em 31/32 pela unica falha conhecida e fora do
+  escopo: `screenPainel` espera 9 itens de `ADMIN_MENU` e renderiza
+  10.
+- **Escopo preservado:** nenhum schema, SQL, Supabase, producao ou
+  `origin/main` foi tocado nesta fase; `supabase/.temp/` permanece
+  fora do stage/commit.

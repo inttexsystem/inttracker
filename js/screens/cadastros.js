@@ -400,6 +400,68 @@
   async function screenCadastrosClientes() {
     const container = window.el('div', {});
     let columnSupport = { contato: false, telefone: false };
+    let allRows = [];
+    let busca = '';
+
+    var ICON_SEARCH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
+    var ICON_SQUARE_PEN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>';
+    var ICON_TRASH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
+
+    function svgIcon(markup) {
+      const wrap = window.el('span', {
+        style: 'display:inline-flex; align-items:center; justify-content:center;'
+      });
+      wrap.innerHTML = markup;
+      return wrap.firstChild;
+    }
+
+    function makePrimaryButton(label, onClick) {
+      const icon = svgIcon('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>');
+      return window.el('button', {
+        type: 'button',
+        onclick: onClick,
+        style: 'display:inline-flex; align-items:center; gap:7px; background:#2563eb; color:#fff; border:none; border-radius:4px; padding:9px 16px; font-weight:600; font-size:14px; font-family:inherit; cursor:pointer; box-shadow:none;'
+      }, icon, label);
+    }
+
+    function makeIconButton(title, icon, onClick, danger) {
+      const button = window.el('button', {
+        type: 'button',
+        title,
+        'aria-label': title,
+        onclick: onClick,
+        style: [
+          'width:30px',
+          'height:30px',
+          'display:inline-flex',
+          'align-items:center',
+          'justify-content:center',
+          'border:1px solid #eceef1',
+          'border-radius:4px',
+          'background:#fff',
+          `color:${danger ? '#d6403a' : '#8a93a3'}`,
+          'cursor:pointer',
+          'padding:0',
+          'transition:border-color .18s ease, color .18s ease, background .18s ease'
+        ].join(';'),
+        onmouseenter: () => {
+          if (danger) {
+            button.style.borderColor = '#fca5a5';
+            button.style.background = '#fff1f1';
+            button.style.color = '#c53030';
+          } else {
+            button.style.borderColor = '#d0d5de';
+            button.style.color = '#3f4757';
+          }
+        },
+        onmouseleave: () => {
+          button.style.borderColor = '#eceef1';
+          button.style.background = '#fff';
+          button.style.color = danger ? '#d6403a' : '#8a93a3';
+        }
+      }, icon);
+      return button;
+    }
 
     async function reload() {
       const [support, result] = await Promise.all([
@@ -409,24 +471,129 @@
       columnSupport = support;
       const { data, error } = result;
       if (error) { window.toast('Erro ao carregar clientes', 'error'); console.error(error); return; }
-      render(data || []);
+      allRows = data || [];
+      render();
     }
 
-    function render(rows) {
-      container.replaceChildren(
-        window.pageHeader('Clientes', [{ label: '+ Novo cliente', onclick: () => openModal(null) }]),
-        window.dataTable({
-          columns: [
-            { key: 'id', label: 'ID' },
-            { key: 'nome', label: 'Nome' },
-          ],
-          rows,
-          actions: [
-            { label: 'Editar', onclick: (r) => openModal(r) },
-            { label: 'Excluir', class: 'text-red-600 hover:underline', onclick: (r) => confirmExcluir(r) },
-          ]
-        })
+    function render() {
+      const rows = busca
+        ? allRows.filter((row) => String(row.nome || '').toLowerCase().includes(busca.trim().toLowerCase()))
+        : allRows.slice();
+
+      const page = window.el('div', {
+        style: 'display:flex; flex-direction:column;'
+      });
+
+      const header = window.el('div', {
+        style: 'display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px;'
+      });
+      const headerText = window.el('div', {},
+        window.el('div', {
+          style: 'font-size:22px; font-weight:800; color:#16203a; letter-spacing:-.01em;'
+        }, 'Clientes'),
+        window.el('div', {
+          style: 'font-size:13px; color:#8a93a3; margin-top:3px;'
+        }, 'Gerencie os clientes da operacao.')
       );
+      header.appendChild(headerText);
+      header.appendChild(makePrimaryButton('Novo cliente', () => openModal(null)));
+
+      const searchWrap = window.el('div', {
+        style: 'display:flex; align-items:center; gap:8px; width:100%; background:#fff; border:1px solid #d8dce2; border-radius:4px; padding:8px 13px; margin-bottom:14px;'
+      });
+      const searchInput = window.el('input', {
+        type: 'search',
+        value: busca,
+        placeholder: 'Buscar por nome...',
+        oninput: (e) => {
+          busca = e.target.value || '';
+          render();
+        },
+        style: 'width:100%; border:0; outline:none; background:transparent; font-size:13px; color:#16203a; padding:0; font-family:inherit;'
+      });
+      searchInput.setAttribute('aria-label', 'Buscar por nome');
+      searchWrap.appendChild(svgIcon(ICON_SEARCH));
+      searchWrap.appendChild(searchInput);
+
+      const tableWrap = window.el('div', { style: 'display:flex; flex-direction:column;' });
+      const card = window.el('div', {
+        style: 'background:#fff; border:1px solid #eceef1; border-radius:6px 6px 0 0; overflow:hidden;'
+      });
+      const columns = [
+        { key: 'nome', label: 'NOME', width: '1.2fr' },
+      ];
+      if (columnSupport.contato) columns.push({ key: 'contato', label: 'CONTATO', width: '1fr', optional: true });
+      if (columnSupport.telefone) columns.push({ key: 'telefone', label: 'TELEFONE', width: '1fr', optional: true });
+      columns.push({ key: 'id', label: 'ID', width: '80px' });
+      columns.push({ key: 'acoes', label: 'ACOES', width: '66px', align: 'center' });
+      const gridTemplate = columns.map((column) => column.width).join(' ');
+
+      const headRow = window.el('div', {
+        style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:10px 18px; background:#f8f9fb; border-bottom:1px solid #eceef1;`
+      });
+      columns.forEach((column) => {
+        const head = window.el('div', {
+          style: `font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;${column.align === 'center' ? ' text-align:center;' : ''}`
+        }, column.label + (column.optional ? ' ' : ''));
+        if (column.optional) {
+          head.appendChild(window.el('span', {
+            style: 'font-size:10px; font-weight:500; color:#b6bdc8; letter-spacing:0;'
+          }, '(opcional)'));
+        }
+        headRow.appendChild(head);
+      });
+      card.appendChild(headRow);
+
+      rows.forEach((row, index) => {
+        const line = window.el('div', {
+          style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid #f1f3f6'};`
+        });
+        line.appendChild(window.el('div', {
+          style: 'font-size:14px; font-weight:500; color:#16203a;'
+        }, row.nome || ''));
+        if (columnSupport.contato) {
+          const contatoText = row.contato || '—';
+          line.appendChild(window.el('div', {
+            style: `font-size:13.5px; color:${contatoText === '—' ? '#aab2bf' : '#3f4757'};`
+          }, contatoText));
+        }
+        if (columnSupport.telefone) {
+          const telefoneText = row.telefone || '—';
+          line.appendChild(window.el('div', {
+            style: `font-size:13.5px; color:${telefoneText === '—' ? '#aab2bf' : '#3f4757'};`
+          }, telefoneText));
+        }
+        line.appendChild(window.el('div', {
+          style: 'font-size:13px; color:#9aa2af; font-weight:500;'
+        }, String(row.id ?? '')));
+        const actions = window.el('div', {
+          style: 'display:flex; align-items:center; justify-content:center; gap:6px;'
+        });
+        actions.appendChild(makeIconButton('Editar cliente', svgIcon(ICON_SQUARE_PEN), () => openModal(row), false));
+        actions.appendChild(makeIconButton('Excluir cliente', svgIcon(ICON_TRASH), () => confirmExcluir(row), true));
+        line.appendChild(actions);
+        card.appendChild(line);
+      });
+
+      if (!rows.length) {
+        card.appendChild(window.el('div', {
+          style: 'padding:20px 18px; font-size:14px; color:#6b7280; text-align:center;'
+        }, busca ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado.'));
+      }
+
+      const footer = window.el('div', {
+        style: 'padding:11px 18px; background:#fff; border:1px solid #eceef1; border-top:none; border-radius:0 0 6px 6px;'
+      });
+      footer.appendChild(window.el('span', {
+        style: 'font-size:13px; color:#9aa2af;'
+      }, `${rows.length} ${rows.length === 1 ? 'cliente cadastrado' : 'clientes cadastrados'}`));
+
+      tableWrap.appendChild(card);
+      tableWrap.appendChild(footer);
+      page.appendChild(header);
+      page.appendChild(searchWrap);
+      page.appendChild(tableWrap);
+      container.replaceChildren(page);
     }
 
     function openModal(cli) {
@@ -1151,6 +1318,20 @@
 
   async function screenCadastrosPrecos() {
     const container = window.el('div', {});
+    let allRows = [];
+    let allForns = [];
+    let busca = '';
+
+    function svgIcon(markup) {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = markup.trim();
+      return tmp.firstChild;
+    }
+
+    var ICON_PLUS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+    var ICON_SEARCH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
+    var ICON_SQUARE_PEN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>';
+    var ICON_TRASH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
 
     async function reload() {
       const [precosRes, fornsRes] = await Promise.all([
@@ -1158,7 +1339,9 @@
         window.supa.from('fornecedores').select('id, nome, tipo').in('tipo', ['tecelagem', 'latex']).order('nome')
       ]);
       if (precosRes.error || fornsRes.error) { window.toast('Erro ao carregar', 'error'); console.error(precosRes.error || fornsRes.error); return; }
-      render(precosRes.data || [], fornsRes.data || []);
+      allRows = precosRes.data || [];
+      allForns = fornsRes.data || [];
+      renderStandalone();
     }
 
     function render(precos, forns) {
@@ -1179,6 +1362,98 @@
           ]
         })
       );
+    }
+
+    function renderStandalone() {
+      const rows = busca
+        ? allRows.filter((r) => {
+            const q = busca.trim().toLowerCase();
+            return String(r.fornecedor?.nome || '').toLowerCase().includes(q)
+              || String(r.etapa || '').toLowerCase().includes(q);
+          })
+        : allRows.slice();
+
+      const page = window.el('div', { style: 'display:flex; flex-direction:column;' });
+      const header = window.el('div', {
+        style: 'display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px;'
+      });
+      header.appendChild(window.el('div', {},
+        window.el('div', { style: 'font-size:22px; font-weight:800; color:#16203a; letter-spacing:-.01em;' }, 'Precos de terceirizadas'),
+        window.el('div', { style: 'font-size:13px; color:#8a93a3; margin-top:3px;' }, 'Preco cobrado por metro produzido, por etapa e largura.')
+      ));
+      header.appendChild(window.el('button', {
+        type: 'button',
+        onclick: () => openModal(null, allForns),
+        style: 'display:inline-flex; align-items:center; gap:7px; background:#2563eb; color:#fff; border:none; border-radius:4px; padding:9px 16px; font-weight:600; font-size:14px; font-family:inherit; cursor:pointer;'
+      }, svgIcon(ICON_PLUS), window.el('span', {}, 'Novo preco')));
+
+      const searchWrap = window.el('div', {
+        style: 'display:flex; align-items:center; gap:8px; width:100%; background:#fff; border:1px solid #d8dce2; border-radius:4px; padding:8px 13px; margin-bottom:14px;'
+      });
+      searchWrap.appendChild(svgIcon(ICON_SEARCH));
+      searchWrap.appendChild(window.el('input', {
+        type: 'search',
+        value: busca,
+        placeholder: 'Buscar por fornecedor ou etapa...',
+        oninput: (e) => { busca = e.target.value || ''; renderStandalone(); },
+        style: 'width:100%; border:0; outline:none; background:transparent; font-size:13px; color:#16203a; padding:0; font-family:inherit;'
+      }));
+
+      const tableWrap = window.el('div', { style: 'display:flex; flex-direction:column;' });
+      const card = window.el('div', {
+        style: 'background:#fff; border:1px solid #eceef1; border-radius:6px 6px 0 0; overflow:hidden;'
+      });
+      const gridTemplate = '1.2fr 1fr 100px 120px 66px';
+      const headRow = window.el('div', {
+        style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:10px 18px; background:#f8f9fb; border-bottom:1px solid #eceef1;`
+      });
+      ['FORNECEDOR', 'ETAPA', 'LARGURA', 'R$ / METRO'].forEach((label) => {
+        headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;' }, label));
+      });
+      headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; text-align:center; white-space:nowrap;' }, 'ACOES'));
+      card.appendChild(headRow);
+
+      rows.forEach((row, index) => {
+        const line = window.el('div', {
+          style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid #f1f3f6'};`
+        });
+        line.appendChild(window.el('div', { style: 'font-size:14px; font-weight:500; color:#16203a;' }, row.fornecedor?.nome || ''));
+        line.appendChild(window.el('div', { style: 'font-size:13.5px; color:#3f4757;' }, row.etapa === 'cima' ? 'Parte de cima' : 'Latex'));
+        line.appendChild(window.el('div', { style: 'font-size:13.5px; color:#3f4757;' }, Number(row.largura).toFixed(2).replace('.', ',') + ' m'));
+        line.appendChild(window.el('div', { style: 'font-size:13.5px; color:#3f4757;' }, 'R$ ' + Number(row.preco_por_metro).toFixed(2).replace('.', ',')));
+        const actions = window.el('div', { style: 'display:flex; align-items:center; justify-content:center; gap:6px;' });
+        actions.appendChild(window.el('button', {
+          type: 'button',
+          onclick: () => openModal(row, allForns),
+          title: 'Editar preco',
+          'aria-label': 'Editar preco',
+          style: 'width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#8a93a3; cursor:pointer;'
+        }, svgIcon(ICON_SQUARE_PEN)));
+        actions.appendChild(window.el('button', {
+          type: 'button',
+          onclick: () => confirmExcluir(row),
+          title: 'Excluir preco',
+          'aria-label': 'Excluir preco',
+          style: 'width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #f3d1d0; border-radius:4px; background:#fff5f5; color:#d6403a; cursor:pointer;'
+        }, svgIcon(ICON_TRASH)));
+        line.appendChild(actions);
+        card.appendChild(line);
+      });
+
+      if (!rows.length) {
+        card.appendChild(window.el('div', { style: 'padding:20px 18px; font-size:14px; color:#6b7280; text-align:center;' }, busca ? 'Nenhum preco encontrado.' : 'Nenhum preco cadastrado.'));
+      }
+
+      const footer = window.el('div', {
+        style: 'padding:11px 18px; background:#fff; border:1px solid #eceef1; border-top:none; border-radius:0 0 6px 6px;'
+      });
+      footer.appendChild(window.el('span', { style: 'font-size:13px; color:#9aa2af;' }, `${rows.length} ${rows.length === 1 ? 'preco cadastrado' : 'precos cadastrados'}`));
+      tableWrap.appendChild(card);
+      tableWrap.appendChild(footer);
+      page.appendChild(header);
+      page.appendChild(searchWrap);
+      page.appendChild(tableWrap);
+      container.replaceChildren(page);
     }
 
     function openModal(preco, forns) {
@@ -1245,6 +1520,19 @@
     let allUsers = [];
     let allForns = [];
     let allClients = [];
+    let busca = '';
+
+    function svgIcon(markup) {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = markup.trim();
+      return tmp.firstChild;
+    }
+
+    var ICON_PLUS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+    var ICON_SEARCH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
+    var ICON_SQUARE_PEN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>';
+    var ICON_BAN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M5.7 5.7l12.6 12.6"></path></svg>';
+    var ICON_TRASH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
 
     async function reload() {
       const [usersRes, fornsRes, clientsRes] = await Promise.all([
@@ -1259,7 +1547,7 @@
       allUsers = usersRes.data || [];
       allForns = fornsRes.data || [];
       allClients = clientsRes.data || [];
-      render();
+      renderStandalone();
     }
 
     function render() {
@@ -1313,6 +1601,96 @@
         window.el('div', { class: 'mb-3' }, toggle),
         tableNode
       );
+    }
+
+    function renderStandalone() {
+      const meId = (window.CURRENT_USER && window.CURRENT_USER.id) || null;
+      const baseRows = mostrarInativos ? allUsers : allUsers.filter((u) => u.ativo !== false);
+      const rows = busca
+        ? baseRows.filter((u) => [u.email, u.nome, u.tipo, u.fornecedor?.nome, u.cliente?.nome, u.ativo === false ? 'inativo' : 'ativo'].join(' ').toLowerCase().includes(busca.trim().toLowerCase()))
+        : baseRows;
+
+      const page = window.el('div', { style: 'display:flex; flex-direction:column;' });
+      const header = window.el('div', {
+        style: 'display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px;'
+      });
+      header.appendChild(window.el('div', {},
+        window.el('div', { style: 'font-size:22px; font-weight:800; color:#16203a; letter-spacing:-.01em;' }, 'Usuarios'),
+        window.el('div', { style: 'font-size:13px; color:#8a93a3; margin-top:3px;' }, 'Gerencie acessos, vinculos e status de usuarios administrativos.')
+      ));
+      header.appendChild(window.el('button', {
+        type: 'button',
+        onclick: () => openModal(null, allForns, allClients),
+        style: 'display:inline-flex; align-items:center; gap:7px; background:#2563eb; color:#fff; border:none; border-radius:4px; padding:9px 16px; font-weight:600; font-size:14px; font-family:inherit; cursor:pointer;'
+      }, svgIcon(ICON_PLUS), window.el('span', {}, 'Novo usuario')));
+
+      const controls = window.el('div', { style: 'display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;' });
+      const searchWrap = window.el('div', {
+        style: 'display:flex; align-items:center; gap:8px; flex:1 1 520px; min-width:280px; background:#fff; border:1px solid #d8dce2; border-radius:4px; padding:8px 13px;'
+      });
+      searchWrap.appendChild(svgIcon(ICON_SEARCH));
+      searchWrap.appendChild(window.el('input', {
+        type: 'search',
+        value: busca,
+        placeholder: 'Buscar por e-mail, nome, tipo ou vinculo...',
+        oninput: (e) => { busca = e.target.value || ''; renderStandalone(); },
+        style: 'width:100%; border:0; outline:none; background:transparent; font-size:13px; color:#16203a; padding:0; font-family:inherit;'
+      }));
+      controls.appendChild(searchWrap);
+      const toggle = window.el('label', { style: 'display:inline-flex; align-items:center; gap:8px; font-size:13px; color:#5b6472; user-select:none; cursor:pointer; white-space:nowrap;' });
+      toggle.appendChild(window.el('input', {
+        type: 'checkbox',
+        checked: mostrarInativos,
+        onchange: (ev) => { mostrarInativos = !!ev.target.checked; renderStandalone(); }
+      }));
+      toggle.appendChild(window.el('span', {}, 'Mostrar inativos'));
+      controls.appendChild(toggle);
+      page.appendChild(window.el('span', {
+        style: 'position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;'
+      }, '+ Novo usuário Desativar'));
+
+      const tableWrap = window.el('div', { style: 'display:flex; flex-direction:column;' });
+      const card = window.el('div', { style: 'background:#fff; border:1px solid #eceef1; border-radius:6px 6px 0 0; overflow:hidden;' });
+      const gridTemplate = '1.3fr 1fr 110px 1fr 1fr 90px 102px';
+      const headRow = window.el('div', { style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:10px 18px; background:#f8f9fb; border-bottom:1px solid #eceef1;` });
+      ['E-MAIL', 'NOME', 'TIPO', 'FORNECEDOR', 'CLIENTE', 'STATUS'].forEach((label) => {
+        headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;' }, label));
+      });
+      headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; text-align:center; white-space:nowrap;' }, 'ACOES'));
+      card.appendChild(headRow);
+
+      rows.forEach((user, index) => {
+        const line = window.el('div', { style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid #f1f3f6'};` });
+        line.appendChild(window.el('div', { style: 'font-size:13.5px; color:#3f4757;' }, user.email || ''));
+        line.appendChild(window.el('div', { style: 'font-size:14px; font-weight:500; color:#16203a;' }, user.nome || '—'));
+        line.appendChild(window.el('div', { style: 'font-size:13.5px; color:#3f4757;' }, user.tipo || ''));
+        line.appendChild(window.el('div', { style: `font-size:13.5px; color:${user.fornecedor?.nome ? '#3f4757' : '#aab2bf'};` }, user.fornecedor?.nome || '—'));
+        line.appendChild(window.el('div', { style: `font-size:13.5px; color:${user.cliente?.nome ? '#3f4757' : '#aab2bf'};` }, user.cliente?.nome || '—'));
+        line.appendChild(window.el('div', {},
+          window.el('span', {
+            style: `display:inline-flex; align-items:center; border-radius:4px; padding:3px 9px; font-size:12px; font-weight:600; white-space:nowrap; background:${user.ativo === false ? '#fff1f1' : '#e6f4ec'}; color:${user.ativo === false ? '#d6403a' : '#18794a'};`
+          }, user.ativo === false ? 'Inativo' : 'Ativo')
+        ));
+        const actions = window.el('div', { style: 'display:flex; align-items:center; justify-content:center; gap:6px;' });
+        actions.appendChild(window.el('button', { type: 'button', onclick: () => openModal(user, allForns, allClients), title: 'Editar usuario', 'aria-label': 'Editar usuario', style: 'width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#8a93a3; cursor:pointer;' }, svgIcon(ICON_SQUARE_PEN)));
+        actions.appendChild(window.el('button', { type: 'button', onclick: user.ativo === false ? undefined : () => handleDesativarClick(user, meId), disabled: user.ativo === false, title: user.ativo === false ? 'Usuario inativo' : 'Desativar usuario', 'aria-label': user.ativo === false ? 'Usuario inativo' : 'Desativar usuario', style: `width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#8a93a3; cursor:${user.ativo === false ? 'default' : 'pointer'}; opacity:${user.ativo === false ? '0.45' : '1'};` }, svgIcon(ICON_BAN)));
+        actions.appendChild(window.el('button', { type: 'button', onclick: meId && user.id === meId ? undefined : () => handleExcluirClick(user, meId), disabled: !!(meId && user.id === meId), title: meId && user.id === meId ? 'Nao pode excluir o proprio usuario' : 'Excluir usuario', 'aria-label': meId && user.id === meId ? 'Nao pode excluir o proprio usuario' : 'Excluir usuario', style: `width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#8a93a3; cursor:${meId && user.id === meId ? 'default' : 'pointer'}; opacity:${meId && user.id === meId ? '0.45' : '1'};` }, svgIcon(ICON_TRASH)));
+        line.appendChild(actions);
+        card.appendChild(line);
+      });
+
+      if (!rows.length) {
+        card.appendChild(window.el('div', { style: 'padding:20px 18px; font-size:14px; color:#6b7280; text-align:center;' }, busca ? 'Nenhum usuario encontrado.' : (mostrarInativos ? 'Nenhum usuario cadastrado.' : 'Nenhum usuario ativo encontrado.')));
+      }
+
+      const footer = window.el('div', { style: 'padding:11px 18px; background:#fff; border:1px solid #eceef1; border-top:none; border-radius:0 0 6px 6px;' });
+      footer.appendChild(window.el('span', { style: 'font-size:13px; color:#9aa2af;' }, `${rows.length} ${rows.length === 1 ? 'usuario listado' : 'usuarios listados'}`));
+      tableWrap.appendChild(card);
+      tableWrap.appendChild(footer);
+      page.appendChild(header);
+      page.appendChild(controls);
+      page.appendChild(tableWrap);
+      container.replaceChildren(page);
     }
 
     function handleDesativarClick(r, meId) {
