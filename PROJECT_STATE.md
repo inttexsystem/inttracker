@@ -3216,3 +3216,39 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 > Residual conhecido preservado fora do commit: `?? supabase/.temp/`.
 > Producao permanece intocada.
 >
+> **Atualizacao 2026-07-01 - fase
+> `RAVATEX-TAPETES-OP-EM-PRODUCAO-ACABAMENTO-STANDALONE-B`.**
+> Implementado em `js/screens/op-latex-admin.js` um renderer operacional
+> proprio para OP Acabamento/Latex em producao (`renderOPLatexProducao`),
+> aplicado somente quando `op.status === 'em_producao'`. A OP aberta de
+> acabamento continua no template de preparacao ja existente, com o CTA
+> controlado "Colocar em producao" ainda apenas nesse ramo; OP finalizada/
+> legado segue no fallback anterior.
+> A nova tela de producao de acabamento renderiza header operacional com
+> badges "Acabamento/Latex" e "Em producao", cadeia produtiva com vinculo
+> para a OP de tecelagem quando disponivel, Card 1 Dados da OP, resumo
+> operacional, Card 2 Itens da OP com enviado/recebido/falta e excedente,
+> Card 3 Material recebido da tecelagem, Card 4 Recebimentos/acabamento,
+> Card 5 Finalizacao/liberar para proxima etapa, Card 6 Documentos da OP
+> como placeholder controlado (Romaneio, Nota fiscal de entrada, Nota
+> fiscal de saida, todos "Aguardando integracao") e Card 7 Historico com
+> fallback "Nenhum evento registrado para esta OP.".
+> Preservacoes: os writes legados de recebimento/finalizacao continuam
+> chamando `salvarEntregaLatex`, `atualizarEntregaLatex`, `excluirEntrega`,
+> `editarEnviado`, `finalizar` e `excluirOpLatex`; nao houve alteracao em
+> `salvarEntregaLatex`, `atualizarEntregaLatex`, `salvarEntregaCima`,
+> `gerar_op_latex`, `op-nova.js`, `op-persistir.js`, `op-recalculo.js`,
+> SQL/db, Supabase ou producao. Nao foi copiado card "Entregas tecelagem"
+> para Acabamento, nao foi chamada `alterar_status_op`, nao foi criado
+> update novo para `ops.status = em_producao`, nao houve upload/schema de
+> documentos reais nem expedicao gravavel.
+> Testes: `node --check js/screens/op-latex-admin.js` OK;
+> `node --check tests/op-latex-admin.smoke.js` OK;
+> `node --test tests/op-latex-admin.smoke.js` OK (44/44);
+> `node --test tests/op-latex-admin.smoke.js tests/op-nova.smoke.js
+> tests/op-persistir.smoke.js tests/boot.smoke.js
+> tests/pedido-detail.smoke.js tests/op-recalculo.smoke.js` OK (308/308).
+> Busca de seguranca: encontrou apenas writes legados permitidos
+> (`salvarEntregaLatex`, `atualizarEntregaLatex`, `excluirEntrega`) e a
+> finalizacao existente para `finalizada`; "Colocar em producao" permanece
+> no ramo de OP aberta/preparacao, nao no renderer `em_producao`.

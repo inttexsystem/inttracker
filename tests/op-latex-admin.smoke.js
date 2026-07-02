@@ -806,3 +806,150 @@ test('38. op-latex-admin.js nao faz update de status para em_producao', () => {
   assert.doesNotMatch(olaSrc, /update\s*\(\s*\{\s*status\s*:\s*['"]em_producao['"]/,
     'op-latex-admin.js nao pode fazer update de status para em_producao nesta fase');
 });
+
+test('39. OP em producao de acabamento usa template operacional proprio', async () => {
+  const rendered = await renderLatexAdminForTest({
+    opData: {
+      id: 42,
+      numero: 8,
+      ano: 2026,
+      status: 'em_producao',
+      tipo: 'latex',
+      observacao: 'OP gerada da entrega da tecelagem',
+      origem_op_id: 12,
+      lote: { id: 91, numero: 22, pedido_id: 77, cliente: { id: 3, nome: 'Cliente Atlas' } },
+      op_itens: [{ id: 100, modelo_id: 1, metros_pedidos: 125, pedido_item_id: 700 }],
+      op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
+    },
+    entData: [{
+      id: 501,
+      fornecedor_id: 7,
+      data: '2026-07-01',
+      observacao: 'Primeiro lote',
+      entrega_itens: [{ id: 601, op_id: 42, op_item_id: 100, metros_entregues: 50, defeito: false, observacao: '' }],
+    }],
+    modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
+    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+  });
+
+  assert.match(olaSrc, /function\s+renderOPLatexProducao\s*\(/,
+    'op-latex-admin.js deve ter renderer proprio para OP em producao de acabamento');
+  assert.match(rendered.text, /Em producao/i);
+  assert.match(rendered.text, /Acabamento\/Latex/i);
+  assert.match(rendered.text, /Cadeia produtiva/i);
+  assert.match(rendered.text, /Resumo operacional/i);
+});
+
+test('40. OP em producao de acabamento mostra todos os blocos operacionais esperados', async () => {
+  const rendered = await renderLatexAdminForTest({
+    opData: {
+      id: 42,
+      numero: 8,
+      ano: 2026,
+      status: 'em_producao',
+      tipo: 'latex',
+      observacao: '',
+      origem_op_id: 12,
+      lote: { id: 91, numero: 22, pedido_id: 77, cliente: { id: 3, nome: 'Cliente Atlas' } },
+      op_itens: [{ id: 100, modelo_id: 1, metros_pedidos: 125, pedido_item_id: 700 }],
+      op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
+    },
+    entData: [{
+      id: 501,
+      fornecedor_id: 7,
+      data: '2026-07-01',
+      observacao: 'Primeiro lote',
+      entrega_itens: [{ id: 601, op_id: 42, op_item_id: 100, metros_entregues: 50, defeito: false, observacao: '' }],
+    }],
+    modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
+    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+  });
+
+  for (const label of [
+    /1\.\s*Dados da OP/i,
+    /2\.\s*Itens da OP/i,
+    /3\.\s*Material recebido da tecelagem/i,
+    /4\.\s*Recebimentos \/ acabamento/i,
+    /5\.\s*Finalizacao \/ liberar para proxima etapa/i,
+    /6\.\s*Documentos da OP/i,
+    /7\.\s*Historico/i,
+  ]) {
+    assert.match(rendered.text, label);
+  }
+  assert.match(rendered.text, /Romaneio/i);
+  assert.match(rendered.text, /Nota fiscal de entrada/i);
+  assert.match(rendered.text, /Nota fiscal de saida/i);
+  assert.match(rendered.text, /Nenhum evento registrado para esta OP/i);
+});
+
+test('41. OP em producao de acabamento mostra enviado, recebido, falta e excedente quando houver', async () => {
+  const rendered = await renderLatexAdminForTest({
+    opData: {
+      id: 42,
+      numero: 8,
+      ano: 2026,
+      status: 'em_producao',
+      tipo: 'latex',
+      observacao: '',
+      origem_op_id: 12,
+      lote: { id: 91, numero: 22, pedido_id: 77, cliente: { id: 3, nome: 'Cliente Atlas' } },
+      op_itens: [{ id: 100, modelo_id: 1, metros_pedidos: 100, pedido_item_id: 700 }],
+      op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
+    },
+    entData: [{
+      id: 501,
+      fornecedor_id: 7,
+      data: '2026-07-01',
+      observacao: 'Excedente informado',
+      entrega_itens: [{ id: 601, op_id: 42, op_item_id: 100, metros_entregues: 120, defeito: false, observacao: '' }],
+    }],
+    modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
+    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+  });
+
+  assert.match(rendered.text, /Enviado da tecelagem/i);
+  assert.match(rendered.text, /Recebido\/acabado/i);
+  assert.match(rendered.text, /Excedente/i);
+  assert.match(rendered.text, /120,00 m/);
+});
+
+test('42. OP em producao de acabamento nao mostra elementos de preparacao ou tecelagem', async () => {
+  const rendered = await renderLatexAdminForTest({
+    opData: {
+      id: 42,
+      numero: 8,
+      ano: 2026,
+      status: 'em_producao',
+      tipo: 'latex',
+      observacao: '',
+      origem_op_id: 12,
+      lote: { id: 91, numero: 22, pedido_id: 77, cliente: { id: 3, nome: 'Cliente Atlas' } },
+      op_itens: [{ id: 100, modelo_id: 1, metros_pedidos: 125, pedido_item_id: 700 }],
+      op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
+    },
+    modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
+    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+  });
+
+  assert.doesNotMatch(rendered.text, /4\.\s*Entregas tecelagem/i);
+  assert.doesNotMatch(rendered.text, /PDF de compra de fios/i);
+  assert.doesNotMatch(rendered.text, /Colocar em producao/i);
+  assert.doesNotMatch(rendered.text, /Transicao para producao sera implementada em fase propria/i);
+});
+
+test('43. nenhum schema, upload real ou lifecycle novo foi introduzido no modulo de acabamento', () => {
+  assert.doesNotMatch(olaSrc, /supa\.from\(\s*['"]op_eventos['"]\s*\)\.(insert|update|delete)/);
+  assert.doesNotMatch(olaSrc, /storage\.from|upload\s*\(/,
+    'documentos da OP devem ser placeholder controlado, sem upload real');
+  assert.doesNotMatch(olaSrc, /alterar_status_op/);
+  assert.doesNotMatch(olaSrc, /gerar_op_latex/);
+});
+
+test('44. OP em producao de tecelagem permanece no modulo op-nova', () => {
+  assert.match(opnSrc, /function\s+buildScreenProducaoTecelagem\s*\(/,
+    'render de producao de tecelagem deve continuar em op-nova.js');
+  assert.match(opnSrc, /buildBlocoTecelagem\s*\(/,
+    'bloco de entregas de tecelagem deve continuar no fluxo de tecelagem');
+  assert.match(opnSrc, /window\.renderOPLatexAdmin\(op\.id\)/,
+    'call-site de OP latex deve continuar delegado ao modulo de latex');
+});

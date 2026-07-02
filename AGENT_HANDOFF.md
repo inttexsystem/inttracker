@@ -2177,3 +2177,65 @@ node --test tests/boot.smoke.js \
 - **Proximo passo recomendado:** abrir a frente de telas de OP,
   comecando por **OP Aberta** baseada em **Admin -> Nova OP**, para
   levar a movimentacao canonica ao fluxo operacional proprio da OP.
+# Estado pos-fase - OP Em Producao Acabamento Standalone B
+
+- Fase concluida no codigo: `RAVATEX-TAPETES-OP-EM-PRODUCAO-ACABAMENTO-STANDALONE-B`.
+- Regra absoluta preservada:
+  OP Aberta != OP Em Producao;
+  Nova OP != PROD-OP;
+  Preparacao != Operacao;
+  Pedido organiza != OP executa.
+- Escopo alterado: `js/screens/op-latex-admin.js`,
+  `tests/op-latex-admin.smoke.js`, `PROJECT_STATE.md`,
+  `AGENT_HANDOFF.md`. Nenhum SQL/db, Supabase config, producao ou push.
+- Implementado um renderer proprio para OP Acabamento/Latex em producao:
+  `renderOPLatexProducao`, aplicado somente para
+  `op.status === 'em_producao'`. OP aberta/preparacao de acabamento foi
+  preservada no template anterior; finalizada/legado segue no fallback
+  legado.
+- Tela nova de producao de acabamento:
+  header operacional com badges "Acabamento/Latex" e "Em producao";
+  cadeia produtiva com OP de tecelagem vinculada quando houver;
+  Card 1 Dados da OP;
+  resumo operacional;
+  Card 2 Itens da OP com enviado pela tecelagem, recebido/acabado,
+  falta e excedente quando houver;
+  Card 3 Material recebido da tecelagem;
+  Card 4 Recebimentos/acabamento;
+  Card 5 Finalizacao/liberar para proxima etapa;
+  Card 6 Documentos da OP placeholder controlado;
+  Card 7 Historico com fallback "Nenhum evento registrado para esta OP.".
+- Preservado:
+  `salvarEntregaLatex`, `atualizarEntregaLatex`, `excluirEntrega`,
+  `editarEnviado`, `finalizar`, `excluirOpLatex`, `gerar_op_latex`,
+  OP Aberta/Nova OP e OP Em Producao Tecelagem. O modulo `op-nova.js`
+  nao foi alterado.
+- Proibicoes confirmadas:
+  nao foi copiado card "Entregas tecelagem" para Acabamento;
+  nao foi chamado `alterar_status_op`;
+  nao foi criado update novo de `ops.status = em_producao`;
+  nao foi criado schema;
+  nao houve upload/documentos reais;
+  nao foi implementada expedicao gravavel;
+  nao houve Supabase apply, producao ou push.
+- Testes:
+  `node --check js/screens/op-latex-admin.js` OK;
+  `node --check tests/op-latex-admin.smoke.js` OK;
+  `node --test tests/op-latex-admin.smoke.js` OK (44/44);
+  `node --test tests/op-latex-admin.smoke.js tests/op-nova.smoke.js
+  tests/op-persistir.smoke.js tests/boot.smoke.js
+  tests/pedido-detail.smoke.js tests/op-recalculo.smoke.js` OK (308/308).
+- Busca de seguranca:
+  `alterar_status_op` ausente;
+  `gerar_op_latex` ausente;
+  write novo para `em_producao` ausente;
+  `salvarEntregaLatex` / `atualizarEntregaLatex` / `excluirEntrega`
+  aparecem apenas como fluxo legado preservado;
+  `Colocar em producao` permanece no ramo de OP aberta/preparacao, nao
+  no renderer operacional `em_producao`.
+- Gaps futuros:
+  ajustar `gerar_op_latex` para fluxo preparacao/entrada em fase propria;
+  documentos reais;
+  lifecycle Pausar/Concluir;
+  expedicao/cliente como etapa operacional apenas quando houver backend
+  ou fonte real.
