@@ -173,7 +173,9 @@
   let ordens = [];
   let entregasCima = [];
   let latexOpPorEntrega = {};
+  let latexOpInfo = {};
   let opEventos = [];
+  let saldoFiosOp = [];
   let cimaFornecedorId = null;
   let fioFornSel = { fio_algodao: '', fio_poliester: '' };
   let latexOptions = [];
@@ -313,20 +315,32 @@
         .order('id', { ascending: false });
       if (entRes.error) { toast('Erro ao carregar entregas de tecelagem', 'error'); console.error(entRes.error); }
       entregasCima = (entRes.data || []).filter(e => (e.entrega_itens || []).some(ei => ei.op_id === op.id));
-      const latexOpsRes = await supa.from('ops').select('id, origem_entrega_id').eq('tipo', 'latex').eq('origem_op_id', op.id);
+      const latexOpsRes = await supa.from('ops').select('id, numero, ano, origem_entrega_id').eq('tipo', 'latex').eq('origem_op_id', op.id);
       latexOpPorEntrega = {};
-      for (const lo of (latexOpsRes.data || [])) if (lo.origem_entrega_id) latexOpPorEntrega[lo.origem_entrega_id] = lo.id;
+      latexOpInfo = {};
+      for (const lo of (latexOpsRes.data || [])) {
+        if (!lo.origem_entrega_id) continue;
+        latexOpPorEntrega[lo.origem_entrega_id] = lo.id;
+        latexOpInfo[lo.origem_entrega_id] = { id: lo.id, numero: lo.numero, ano: lo.ano };
+      }
 
-      // Bloco 7 (Histórico) da OP Em Produção Tecelagem: leitura read-only
-      // de op_eventos (db/21_op_lifecycle_status_eventos.sql, já aplicada em
-      // staging). Puro SELECT — nenhuma escrita, nenhuma RPC de transição
-      // de status. Erro ou ausência de dados cai no fallback controlado.
+      // Blocos 4/7 da OP Em Produção Tecelagem: leituras read-only
+      // adicionais (db/21_op_lifecycle_status_eventos.sql já aplicada em
+      // staging para op_eventos; saldo_fios_op já existe e é escrita por
+      // window.aplicarRecalculoOP em op-recalculo.js, não alterado aqui).
+      // Puro SELECT — nenhuma escrita, nenhuma RPC de transição de status.
+      // Erro ou ausência de dados cai no fallback controlado da UI.
       if (op.status === 'em_producao' && op.tipo !== 'latex') {
         const eventosRes = await supa.from('op_eventos')
           .select('id, tipo_evento, status_anterior, status_novo, observacao, criado_em')
           .eq('op_id', op.id)
           .order('criado_em', { ascending: false });
         opEventos = eventosRes.error ? [] : (eventosRes.data || []);
+
+        const saldoOpRes = await supa.from('saldo_fios_op')
+          .select('id, cor_id, cor_poliester, tipo, kg_sobra, cores:cor_id(id, nome)')
+          .eq('op_id', op.id);
+        saldoFiosOp = saldoOpRes.error ? [] : (saldoOpRes.data || []);
       }
     }
   } else {
@@ -765,7 +779,7 @@
   function buildBlocoTecelagem() {
     const box = el('div', { style: CARD + 'padding:0;' });
     box.appendChild(el('div', { style: 'display:flex;align-items:center;gap:10px;padding:20px 24px 16px;' },
-      sectionIcon(SVG_ICON_ARROW), el('span', { style: 'font-size:16px;font-weight:700;color:#16203a;' }, '4. Entregas tecelagem')));
+      sectionIcon(SVG_ICON_ARROW), el('span', { style: 'font-size:16px;font-weight:700;color:#16203a;' }, 'Entregas tecelagem')));
 
     const todosItens = entregasCima.flatMap(e => (e.entrega_itens || []).filter(ei => ei.op_id === op.id));
     const totalPorItem = totalEntregueCimaPorItem(todosItens);
@@ -774,12 +788,19 @@
     for (const i of opItensRaw) {
       const ajustado = i.metros_ajustados == null ? Number(i.metros_pedidos) : Number(i.metros_ajustados);
       const falta = Math.round((ajustado - (totalPorItem[i.id] || 0)) * 100) / 100;
+      // Excedente (entregue > ajustado) tem cor/rótulo próprio — mesmo
+      // tratamento visual do Card 2 (buildCardItensProducao), não fica
+      // escondido atrás de "✅ completo".
+      let faltaCor, faltaTxt;
+      if (falta > 0) { faltaCor = '#d6403a'; faltaTxt = window.fmtMetros(falta); }
+      else if (falta === 0) { faltaCor = '#18794a'; faltaTxt = '✅ completo'; }
+      else { faltaCor = '#c2610c'; faltaTxt = 'excedente ' + window.fmtMetros(-falta); }
       box.appendChild(gridRow('1fr 120px 120px 120px 120px', [
         el('div', { style: 'font-size:13.5px;font-weight:500;color:#16203a;' }, window.rotuloModelo(modelosById[i.modelo_id])),
         el('div', { style: 'font-size:13.5px;color:#3f4757;' }, window.fmtMetros(i.metros_pedidos)),
         el('div', { style: 'font-size:13.5px;color:#3f4757;' }, i.metros_ajustados == null ? window.fmtMetros(i.metros_pedidos) : window.fmtMetros(i.metros_ajustados)),
         el('div', { style: 'font-size:13.5px;color:#3f4757;' }, window.fmtMetros(totalPorItem[i.id] || 0)),
-        el('span', { style: 'font-size:13.5px;font-weight:600;color:' + (falta <= 0 ? '#18794a' : '#d6403a') + ';' }, falta <= 0 ? '✅ completo' : window.fmtMetros(falta)),
+        el('span', { style: 'font-size:13.5px;font-weight:600;color:' + faltaCor + ';' }, faltaTxt),
       ]));
     }
 
@@ -904,7 +925,39 @@
     totalEntregue = Math.round(totalEntregue * 100) / 100;
     const saldo = Math.round((totalAjustado - totalEntregue) * 100) / 100;
     const pct = totalAjustado > 0 ? Math.round((totalEntregue / totalAjustado) * 1000) / 10 : 0;
-    return { totalPorItem, totalAjustado, totalEntregue, saldo, pct };
+    // Tratamento visual de excedente: entrega acima do total ajustado
+    // (saldo negativo) é sinalizado, não escondido atrás de "completo".
+    const pctClamped = Math.max(0, Math.min(100, pct));
+    const excedente = saldo < 0;
+    return { totalPorItem, totalAjustado, totalEntregue, saldo, pct, pctClamped, excedente };
+  }
+
+  function buildBreadcrumbProducao() {
+    return el('div', { style: 'display:flex;align-items:center;justify-content:space-between;' },
+      el('div', { style: 'font-size:13.5px;color:#9aa2af;' },
+        'OPs ', el('span', { style: 'margin:0 6px;color:#d0d5dc;' }, '/'),
+        el('span', { style: 'color:#5b6472;font-weight:600;' }, `OP ${numero}/${ano}`)),
+      el('button', { type: 'button', style: BTN_BACK, onclick: () => navigate('#/ops') }, svgEl(SVG_BACK), 'Voltar'));
+  }
+
+  // Cadeia produtiva: mostra o link para a OP de Acabamento/Látex gerada
+  // por entrega parcial desta OP, quando existir. Leitura de dados já
+  // carregados (latexOpInfo, via query existente de ops tipo='latex'
+  // origem_op_id=op.id) — nenhuma query nova, nenhum write.
+  function buildLineageStripProducao() {
+    let destino = null;
+    for (const ent of entregasCima) {
+      if (latexOpInfo[ent.id]) { destino = latexOpInfo[ent.id]; break; }
+    }
+    if (!destino) return null;
+    return el('div', { style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#eaf1fd;border:1px solid #d7e6fb;border-radius:4px;padding:10px 16px;' },
+      el('span', { style: 'font-size:12.5px;color:#2c4a78;' }, 'Cadeia produtiva:'),
+      el('span', { style: 'font-size:12.5px;font-weight:700;color:#16203a;background:#fff;border-radius:4px;padding:3px 9px;' }, `OP ${numero}/${ano} · Tecelagem (esta OP)`),
+      el('button', {
+        type: 'button',
+        style: 'font-size:12.5px;font-weight:700;color:#2563eb;background:#fff;border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-family:inherit;',
+        onclick: () => navigate('#/ops/' + destino.id),
+      }, `OP ${destino.numero}/${destino.ano} · Acabamento (gerada por entrega parcial)`));
   }
 
   function buildHeaderProducao() {
@@ -976,16 +1029,21 @@
         el('span', {}, label), el('span', { style: 'color:' + (cor || '#16203a') + ';font-weight:700;' }, valor));
     }
     const pctLabel = String(totais.pct).replace('.', ',');
+    const saldoCor = totais.excedente ? '#d6403a' : '#2563eb';
+    const barCor = totais.pct > 100 ? '#d6403a' : '#2563eb';
+    const pctTexto = totais.excedente
+      ? `${pctLabel}% entregue — acima do total ajustado desta OP (excedente).`
+      : `${pctLabel}% já entregue para a próxima etapa`;
     return el('div', { style: CARD + 'padding:16px 20px;' },
       el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;margin-bottom:12px;' }, 'Resumo desta OP'),
       el('div', { style: 'display:flex;flex-direction:column;gap:9px;' },
         linha('Total ajustado da OP', window.fmtMetros(totais.totalAjustado)),
-        linha('Entregue para acabamento', window.fmtMetros(totais.totalEntregue)),
-        linha('Saldo em tecelagem', window.fmtMetros(totais.saldo), '#2563eb'),
+        linha('Entregue p/ acabamento', window.fmtMetros(totais.totalEntregue)),
+        linha('Saldo em tecelagem', window.fmtMetros(totais.saldo) + (totais.excedente ? ' (excedente)' : ''), saldoCor),
       ),
       el('div', { style: 'height:6px;border-radius:99px;background:#e2e5ea;overflow:hidden;margin:12px 0 6px;' },
-        el('div', { style: 'width:' + totais.pct + '%;height:100%;background:#2563eb;' })),
-      el('div', { style: 'font-size:11.5px;color:#9aa2af;' }, pctLabel + '% já entregue para a próxima etapa'),
+        el('div', { style: 'width:' + totais.pctClamped + '%;height:100%;background:' + barCor + ';' })),
+      el('div', { style: 'font-size:11.5px;color:#9aa2af;' }, pctTexto),
     );
   }
 
@@ -998,16 +1056,60 @@
       const entregue = totalPorItem[i.id] || 0;
       const falta = Math.round((ajustado - entregue) * 100) / 100;
       const itemPedidoLabel = (hasLinkedPedido() && i.pedido_item_id) ? `Pedido Nº ${pedidoCtx.numero}` : '—';
+      // Excedente (entregue > ajustado, falta < 0) tem cor/rótulo próprio —
+      // não pode ficar escondido atrás de "✅ completo".
+      let faltaCor, faltaTxt;
+      if (falta > 0) { faltaCor = '#d6403a'; faltaTxt = window.fmtMetros(falta); }
+      else if (falta === 0) { faltaCor = '#18794a'; faltaTxt = '✅ completo'; }
+      else { faltaCor = '#c2610c'; faltaTxt = 'excedente ' + window.fmtMetros(-falta); }
       card.appendChild(gridRow('1.3fr .8fr .8fr .8fr .8fr 1.3fr', [
         el('div', { style: 'font-size:13.5px;font-weight:700;color:#16203a;' }, window.rotuloModelo(modelosById[i.modelo_id])),
         el('div', { style: 'font-size:13.5px;color:#3f4757;font-weight:600;' }, window.fmtMetros(i.metros_pedidos)),
         el('div', { style: 'font-size:13.5px;color:#3f4757;font-weight:600;' }, window.fmtMetros(ajustado)),
         el('div', { style: 'font-size:13.5px;font-weight:700;color:' + (entregue > 0 ? '#18794a' : '#b6bdc8') + ';' }, window.fmtMetros(entregue)),
-        el('div', { style: 'font-size:13.5px;font-weight:700;color:' + (falta <= 0 ? '#18794a' : '#d6403a') + ';' }, falta <= 0 ? '✅ completo' : window.fmtMetros(falta)),
+        el('div', { style: 'font-size:13.5px;font-weight:700;color:' + faltaCor + ';' }, faltaTxt),
         el('div', { style: 'font-size:12.5px;color:#2563eb;font-weight:600;' }, itemPedidoLabel),
       ]));
     }
     return card;
+  }
+
+  // Bloco 4 (só Tecelagem): leitura read-only de saldo_fios_op (já
+  // gravada por window.aplicarRecalculoOP em op-recalculo.js — não
+  // alterado aqui) cruzada com ordens (já carregadas) para mostrar o
+  // consumo/sobra real de cada fio. Sem "fator proporcional" fabricado —
+  // só números que já temos gravados/lidos.
+  function buildBlocoCapacidadeAjuste(totais) {
+    const box = el('div', { style: CARD + 'padding:16px 20px;' },
+      el('div', { style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;' },
+        el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, '4. Capacidade e ajuste'),
+        el('span', { style: 'background:#eaf1fd;color:#2563eb;border-radius:4px;padding:4px 10px;font-size:11.5px;font-weight:700;' }, 'Ajustado')));
+
+    box.appendChild(el('div', { style: 'font-size:13px;color:#5b6472;margin-bottom:12px;line-height:1.5;' },
+      'Capacidade liberada para produção nesta OP: ',
+      el('strong', { style: 'color:#16203a;' }, window.fmtMetros(totais.totalAjustado)),
+      ', distribuída entre os itens acima conforme o fio efetivamente recebido.'));
+
+    if (!saldoFiosOp.length) {
+      box.appendChild(el('div', { style: 'font-size:13px;color:#aab2bf;' }, 'Sem dados de sobra de fio registrados para esta OP.'));
+      return box;
+    }
+
+    const linhas = el('div', { style: 'display:flex;flex-wrap:wrap;gap:16px;padding:12px 14px;background:#f8f9fb;border-radius:4px;' });
+    for (const row of saldoFiosOp) {
+      const ordemRef = ordens.find(o => o.tipo === row.tipo && (row.tipo === 'poliester' ? o.cor_poliester === row.cor_poliester : o.cor_id === row.cor_id));
+      const kgRecebido = ordemRef ? Number(ordemRef.kg_recebido) : null;
+      const kgSobra = Number(row.kg_sobra);
+      const label = window.rotuloFio(row);
+      const consumoTxt = kgRecebido != null
+        ? window.fmtKg(Math.round((kgRecebido - kgSobra) * 1000) / 1000) + ' / ' + window.fmtKg(kgRecebido)
+        : window.fmtKg(kgSobra);
+      linhas.appendChild(el('div', { style: 'font-size:12.5px;color:#3f4757;' },
+        label + ': ', el('strong', {}, consumoTxt),
+        kgRecebido != null ? el('span', { style: 'color:#18794a;' }, ' (sobra ' + window.fmtKg(kgSobra) + ')') : ''));
+    }
+    box.appendChild(linhas);
+    return box;
   }
 
   function buildBlocoMovimentacao(totais) {
@@ -1024,14 +1126,15 @@
     } else {
       historicoNode = el('div', { style: 'font-size:13px;color:#aab2bf;padding:10px 0;border-top:1px solid #f1f3f6;' }, 'Nenhuma entrega registrada ainda.');
     }
+    const disponivelCor = totais.excedente ? '#d6403a' : '#2563eb';
 
     return el('div', { style: CARD + 'padding:16px 20px;' },
       el('div', { style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;' },
         el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, '5. Movimentação — enviar para acabamento'),
         el('a', { href: '#entregas-tecelagem-op', style: BTN_SOLID_SM + 'text-decoration:none;' }, 'Transferir')),
       el('div', { style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px;' },
-        el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Disponível'), el('div', { style: 'font-size:16px;font-weight:800;color:#2563eb;' }, window.fmtMetros(totais.saldo))),
-        el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Entregue para acabamento'), el('div', { style: 'font-size:16px;font-weight:800;color:#18794a;' }, window.fmtMetros(totais.totalEntregue))),
+        el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Disponível'), el('div', { style: 'font-size:16px;font-weight:800;color:' + disponivelCor + ';' }, window.fmtMetros(totais.saldo) + (totais.excedente ? ' (excedente)' : ''))),
+        el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Já enviado'), el('div', { style: 'font-size:16px;font-weight:800;color:#18794a;' }, window.fmtMetros(totais.totalEntregue))),
         el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Total ajustado da OP'), el('div', { style: 'font-size:16px;font-weight:800;color:#16203a;' }, window.fmtMetros(totais.totalAjustado))),
       ),
       el('div', { style: 'font-size:12.5px;font-weight:700;color:#8a93a3;letter-spacing:.03em;margin-bottom:8px;' }, 'HISTÓRICO DE ENTREGAS'),
@@ -1040,10 +1143,20 @@
 
   function buildBlocoDocumentos() {
     // Bloco controlado — sem schema/tabela/upload de documentos reais
-    // nesta fase (fica para fase própria).
+    // nesta fase (fica para fase própria). O rótulo "Aguardando
+    // integração" é deliberadamente neutro — não sugere um estado real
+    // de aprovação/pendência que a tela ainda não rastreia.
+    function linhaDoc(nome, isLast) {
+      return el('div', { style: 'display:flex;align-items:center;justify-content:space-between;padding:8px 0;' + (isLast ? '' : 'border-bottom:1px solid #f1f3f6;') },
+        el('span', { style: 'font-size:13px;color:#3f4757;' }, nome),
+        el('span', { style: 'background:#f1f3f6;color:#8a93a3;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;' }, 'Aguardando integração'));
+    }
     return el('div', { id: 'documentos-op', style: CARD + 'padding:16px 20px;' },
       el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:12px;' }, '6. Documentos da OP'),
-      el('div', { style: 'font-size:13px;color:#8a93a3;' }, 'Documentos da OP serão integrados em fase própria.'));
+      linhaDoc('Romaneio', false),
+      linhaDoc('Nota fiscal de entrada', false),
+      linhaDoc('Nota fiscal de saída', true),
+      el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:12px;' }, 'Documentos da OP serão integrados em fase própria.'));
   }
 
   function buildBlocoHistorico() {
@@ -1053,26 +1166,35 @@
       box.appendChild(el('div', { style: 'font-size:13px;color:#aab2bf;' }, 'Nenhum evento registrado para esta OP.'));
       return box;
     }
-    for (const ev of opEventos) {
+    opEventos.forEach((ev, idx) => {
       const linhaTxt = ev.tipo_evento === 'status_alterado'
         ? `Status alterado: ${humanizeLabel(ev.status_anterior)} → ${humanizeLabel(ev.status_novo)}`
         : humanizeLabel(ev.tipo_evento);
-      box.appendChild(el('div', { style: 'padding:10px 0;border-top:1px solid #f1f3f6;' },
+      const isLast = idx === opEventos.length - 1;
+      const trilha = el('div', { style: 'display:flex;flex-direction:column;align-items:center;' },
+        el('div', { style: 'width:11px;height:11px;border-radius:50%;background:' + (idx === 0 ? '#2563eb' : '#cfd5de') + ';margin-top:4px;flex-shrink:0;' }),
+        isLast ? '' : el('div', { style: 'width:2px;flex:1;background:#eceef1;' }));
+      const conteudo = el('div', { style: 'padding-bottom:' + (isLast ? '0' : '16px') + ';' },
         el('div', { style: 'font-size:12px;color:#9aa2af;' }, fmtDateLabel(ev.criado_em)),
         el('div', { style: 'font-size:14px;font-weight:700;color:#16203a;margin-top:2px;' }, linhaTxt),
-        ev.observacao ? el('div', { style: 'font-size:13px;color:#7b8494;margin-top:1px;' }, ev.observacao) : ''));
-    }
+        ev.observacao ? el('div', { style: 'font-size:13px;color:#7b8494;margin-top:1px;' }, ev.observacao) : '');
+      box.appendChild(el('div', { style: 'display:flex;gap:14px;' }, trilha, conteudo));
+    });
     return box;
   }
 
   function buildScreenProducaoTecelagem() {
     const totais = computeTotaisProducao();
     const wrap = el('div', { style: 'display:flex;flex-direction:column;gap:14px;' });
+    wrap.appendChild(buildBreadcrumbProducao());
+    const lineage = buildLineageStripProducao();
+    if (lineage) wrap.appendChild(lineage);
     wrap.appendChild(buildHeaderProducao());
     wrap.appendChild(el('div', { style: 'display:grid;grid-template-columns:1fr 320px;gap:14px;align-items:start;' },
       buildCardDadosProducao(), buildResumoLateralProducao(totais)));
     wrap.appendChild(buildCardItensProducao(totais.totalPorItem));
     wrap.appendChild(buildBlocoFios());
+    wrap.appendChild(buildBlocoCapacidadeAjuste(totais));
     if (cimaFornecedorId) {
       const cardEntregas = buildBlocoTecelagem();
       cardEntregas.setAttribute('id', 'entregas-tecelagem-op');

@@ -75,13 +75,29 @@
 //  39. OP Em Produção Tecelagem usa o template PROD-OP (sinais mínimos).
 //  40. OP Aberta Tecelagem não ganha os blocos operacionais novos.
 //  41. OP Em Produção Tecelagem não usa linguagem de preparação.
-//  42. Card "4. Entregas tecelagem" ausente na OP Aberta.
-//  43. Card "4. Entregas tecelagem" presente na OP Em Produção Tecelagem.
+//  42. Card "Entregas tecelagem" ausente na OP Aberta.
+//  43. Card "Entregas tecelagem" presente na OP Em Produção Tecelagem.
 //  44. Fluxo de entrega (+ Nova entrega/Editar/Excluir) preservado.
 //  45. Histórico (Bloco 7) cai no fallback controlado sem op_eventos.
 //  46. Histórico (Bloco 7) renderiza op_eventos real quando disponível.
 //  47. Acabamento/Látex continua delegado, sem template PROD-OP-TECELAGEM.
 //  48. Guardas de segurança: sem alterar_status_op, sem write novo de status.
+//
+// RAVATEX-TAPETES-OP-EM-PRODUCAO-TECELAGEM-STANDALONE-B (ajuste fino
+// visual, 49-54): paridade estrutural mais fina com o standalone
+// PROD-OP-TECELAGEM, sem backend novo.
+//  49. Breadcrumb "OPs / OP X/ANO" + botão Voltar.
+//  50. Cadeia produtiva (lineage strip) aparece quando há OP de
+//      Acabamento/Látex gerada por entrega parcial.
+//  51. Cadeia produtiva ausente quando não há OP gerada.
+//  52. Bloco "4. Capacidade e ajuste" lê saldo_fios_op (read-only) e
+//      mostra consumo/sobra real; sem "fator" fabricado.
+//  53. Bloco "4. Capacidade e ajuste" cai no fallback controlado sem
+//      saldo_fios_op.
+//  54. Documentos da OP com aparência de lista (Romaneio/Nota fiscal de
+//      entrada/Nota fiscal de saída), ainda placeholder/controlado.
+//  55. Saldo negativo/excedente (entregue > ajustado) tem tratamento
+//      visual próprio — não fica escondido atrás de "✅ completo".
 
 'use strict';
 
@@ -767,7 +783,7 @@ test('36. Nova OP sem pedido_id preserva o select principal de cliente', async (
   assert.match(rendered.text, /Selecione o cliente/i);
 });
 
-test('37. OP Aberta de Tecelagem não mostra "4. Entregas tecelagem"', async () => {
+test('37. OP Aberta de Tecelagem não mostra "Entregas tecelagem"', async () => {
   const db = buildOpNovaFixture({
     ops: [
       {
@@ -789,7 +805,7 @@ test('37. OP Aberta de Tecelagem não mostra "4. Entregas tecelagem"', async () 
     ordens_compra_fio: [],
   });
   const rendered = await renderNovaOpForTest({ opId: 91, db });
-  assert.doesNotMatch(rendered.text, /4\.\s*Entregas tecelagem/i);
+  assert.doesNotMatch(rendered.text, /Entregas tecelagem/i);
 });
 
 test('38. OP Aberta de Tecelagem mostra linguagem de preparação', async () => {
@@ -848,12 +864,15 @@ test('39. OP Em Produção Tecelagem usa o template PROD-OP (não é a OP Aberta
   const db = buildOpEmProducaoTecelagemFixture();
   const rendered = await renderNovaOpForTest({ opId: 93, db });
   assert.match(rendered.text, /Em produção/i);
-  assert.match(rendered.text, /Entregue para acabamento/i);
+  assert.match(rendered.text, /Entregue p\/ acabamento/i);
+  assert.match(rendered.text, /Já enviado/i);
   assert.match(rendered.text, /Saldo em tecelagem/i);
+  assert.match(rendered.text, /4\.\s*Capacidade e ajuste/i);
   assert.match(rendered.text, /Movimentação\s*—\s*enviar para acabamento/i);
   assert.match(rendered.text, /Documentos da OP/i);
   assert.match(rendered.text, /7\.\s*Histórico/i);
-  assert.match(rendered.text, /4\.\s*Entregas tecelagem/i);
+  assert.match(rendered.text, /Entregas tecelagem/i);
+  assert.match(rendered.text, /OPs.*OP 9\/2026/s);
 });
 
 test('40. OP Aberta Tecelagem não ganha os blocos operacionais novos (Movimentação/Documentos/Histórico)', async () => {
@@ -881,7 +900,7 @@ test('40. OP Aberta Tecelagem não ganha os blocos operacionais novos (Movimenta
   assert.doesNotMatch(rendered.text, /Movimentação\s*—\s*enviar para acabamento/i);
   assert.doesNotMatch(rendered.text, /Documentos da OP/i);
   assert.doesNotMatch(rendered.text, /7\.\s*Histórico/i);
-  assert.doesNotMatch(rendered.text, /4\.\s*Entregas tecelagem/i);
+  assert.doesNotMatch(rendered.text, /Entregas tecelagem/i);
 });
 
 test('41. OP Em Produção Tecelagem não contém linguagem de preparação da OP Aberta', async () => {
@@ -908,13 +927,17 @@ test('42. Card "4. Entregas tecelagem" permanece ausente da OP Aberta', async ()
     ordens_compra_fio: [],
   });
   const rendered = await renderNovaOpForTest({ opId: 92, db });
-  assert.doesNotMatch(rendered.text, /4\.\s*Entregas tecelagem/i);
+  assert.doesNotMatch(rendered.text, /Entregas tecelagem/i);
 });
 
-test('43. Card "4. Entregas tecelagem" permanece presente na OP Em Produção Tecelagem', async () => {
+test('43. Card "Entregas tecelagem" permanece presente na OP Em Produção Tecelagem (reposicionado, sem numeral "4." — conflitava com o novo Bloco 4 Capacidade e ajuste)', async () => {
   const db = buildOpEmProducaoTecelagemFixture();
   const rendered = await renderNovaOpForTest({ opId: 93, db });
-  assert.match(rendered.text, /4\.\s*Entregas tecelagem/i);
+  assert.match(rendered.text, /Entregas tecelagem/i);
+  assert.match(rendered.text, /4\.\s*Capacidade e ajuste/i);
+  // O card de entregas não reivindica mais o numeral "4." — isso agora
+  // pertence só ao bloco Capacidade e ajuste (sem colisão de numeração).
+  assert.doesNotMatch(rendered.text, /4\.\s*Entregas tecelagem/i);
 });
 
 test('44. OP Em Produção Tecelagem preserva o fluxo de entrega existente (+ Nova entrega/Editar/Excluir)', async () => {
@@ -972,7 +995,7 @@ test('47. Acabamento/Látex continua delegado a renderOPLatexAdmin, sem template
   const view = await vm.runInContext('window.screenNovaOP(window.__args.opId, window.__args.pedidoId)', sandbox);
   const text = collectNodeText(view);
   assert.equal(delegatedTo, 94);
-  assert.doesNotMatch(text, /4\.\s*Entregas tecelagem/i);
+  assert.doesNotMatch(text, /Entregas tecelagem/i);
   assert.doesNotMatch(text, /Movimentação\s*—\s*enviar para acabamento/i);
 });
 
@@ -980,4 +1003,99 @@ test('48. Guardas de segurança: sem alterar_status_op e sem write novo de statu
   assert.doesNotMatch(opnSrc, /alterar_status_op/);
   assert.doesNotMatch(opnSrc, /\.from\(['"]ops['"]\)\.update\(\s*\{\s*status\s*:/);
   assert.doesNotMatch(opnSrc, /supa\.from\(['"]op_eventos['"]\)\.(insert|update|delete)/);
+});
+
+test('49. OP Em Produção Tecelagem mostra breadcrumb "OPs / OP X/ANO" e botão Voltar', async () => {
+  const db = buildOpEmProducaoTecelagemFixture();
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
+  assert.match(rendered.text, /OPs/);
+  assert.match(rendered.text, /OP 9\/2026/);
+  assert.match(rendered.text, /Voltar/);
+});
+
+test('50. Cadeia produtiva (lineage strip) aparece quando há OP de Acabamento gerada por entrega parcial', async () => {
+  const db = buildOpEmProducaoTecelagemFixture({
+    ops: [
+      {
+        id: 93, numero: 9, ano: 2026, status: 'em_producao', tipo: 'tecelagem',
+        observacao: '', origem_op_id: null, lote_id: 303,
+        lote: { id: 303, numero: 16, pedido_id: 'ped-1', cliente: { id: 501, nome: 'Cliente Atlas' } },
+        op_itens: [{ id: 3, modelo_id: 1, metros_pedidos: 120, metros_ajustados: 100, pedido_item_id: 'pi-1' }],
+        op_fornecedores: [{ fornecedor_id: 701, etapa: 'cima' }],
+      },
+      {
+        id: 95, numero: 8, ano: 2026, status: 'em_producao', tipo: 'latex',
+        observacao: '', origem_op_id: 93, origem_entrega_id: 'ent-1', lote_id: null, lote: null,
+        op_itens: [], op_fornecedores: [],
+      },
+    ],
+    entregas: [
+      {
+        id: 'ent-1', fornecedor_id: 701, etapa: 'cima', data: '2026-06-30', observacao: '',
+        destino_fornecedor_id: 704, destino: { nome: 'Latex Base' }, fornecedores: { nome: 'Tecelagem Sul' },
+        entrega_itens: [{ id: 'ei-1', op_id: 93, op_item_id: 3, metros_entregues: 50, defeito: false, observacao: '' }],
+      },
+    ],
+  });
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
+  assert.match(rendered.text, /Cadeia produtiva/i);
+  assert.match(rendered.text, /OP 8\/2026/);
+  assert.match(rendered.text, /Acabamento \(gerada por entrega parcial\)/i);
+});
+
+test('51. Cadeia produtiva ausente quando não há OP de Acabamento gerada', async () => {
+  const db = buildOpEmProducaoTecelagemFixture();
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
+  assert.doesNotMatch(rendered.text, /Cadeia produtiva/i);
+});
+
+test('52. Bloco "4. Capacidade e ajuste" lê saldo_fios_op (read-only) e mostra consumo/sobra real', async () => {
+  const db = buildOpEmProducaoTecelagemFixture({
+    ordens_compra_fio: [
+      { id: 501, op_id: 93, tipo: 'algodao', cor_id: 11, cor_poliester: null, kg_pedido: 1000, kg_recebido: 1000, status: 'recebido_total', cores: { id: 11, nome: 'PRETO' } },
+    ],
+    saldo_fios_op: [
+      { id: 1, op_id: 93, cor_id: 11, cor_poliester: null, tipo: 'algodao', kg_sobra: 87.369, cores: { id: 11, nome: 'PRETO' } },
+    ],
+  });
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
+  assert.match(rendered.text, /4\.\s*Capacidade e ajuste/i);
+  assert.match(rendered.text, /Algodão\s*—\s*PRETO/i);
+  assert.match(rendered.text, /sobra 87,369 kg/i);
+  // Não fabricar um "fator proporcional" que não temos gravado.
+  assert.doesNotMatch(rendered.text, /Fator proporcional/i);
+  assert.doesNotMatch(rendered.text, /Sem dados de sobra/i);
+});
+
+test('53. Bloco "4. Capacidade e ajuste" cai no fallback controlado sem saldo_fios_op', async () => {
+  const db = buildOpEmProducaoTecelagemFixture({ saldo_fios_op: [] });
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
+  assert.match(rendered.text, /4\.\s*Capacidade e ajuste/i);
+  assert.match(rendered.text, /Sem dados de sobra de fio registrados para esta OP\./i);
+});
+
+test('54. Documentos da OP tem aparência de lista (Romaneio/NF entrada/NF saída), ainda placeholder/controlado', async () => {
+  const db = buildOpEmProducaoTecelagemFixture();
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
+  assert.match(rendered.text, /Romaneio/);
+  assert.match(rendered.text, /Nota fiscal de entrada/i);
+  assert.match(rendered.text, /Nota fiscal de saída/i);
+  assert.match(rendered.text, /Aguardando integração/i);
+  assert.match(rendered.text, /Documentos da OP serão integrados em fase própria\./i);
+});
+
+test('55. Saldo negativo/excedente (entregue > ajustado) tem tratamento visual próprio, não fica escondido', async () => {
+  const db = buildOpEmProducaoTecelagemFixture({
+    entregas: [
+      {
+        id: 'ent-1', fornecedor_id: 701, etapa: 'cima', data: '2026-06-30', observacao: '',
+        destino_fornecedor_id: 704, destino: { nome: 'Latex Base' }, fornecedores: { nome: 'Tecelagem Sul' },
+        entrega_itens: [{ id: 'ei-1', op_id: 93, op_item_id: 3, metros_entregues: 150, defeito: false, observacao: '' }],
+      },
+    ],
+  });
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
+  assert.match(rendered.text, /excedente/i);
+  assert.match(rendered.text, /acima do total ajustado/i);
+  assert.doesNotMatch(rendered.text, /✅ completo/);
 });

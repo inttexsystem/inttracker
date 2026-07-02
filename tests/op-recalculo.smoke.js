@@ -242,10 +242,14 @@ test('11. op-nova.js contém aplicarRecalculo wrapper (NÃO está mais no inline
 test('12. op-nova.js NÃO contém writes de saldo_fios_op (write extraído para op-recalculo.js)', () => {
   // O wrapper aplicarRecalculo em op-nova.js apenas chama window.aplicarRecalculoOP
   // que executa os writes. Não há writes diretos em op-nova.js.
-  assert.equal(/supa\.from\(['"`]saldo_fios_op['"`]\)/.test(opnSrc), false,
-    'op-nova.js ainda tem supa.from("saldo_fios_op") — write deveria ter sido extraído');
-  // O literal 'saldo_fios_op' PODE aparecer como string de mensagem
-  // em mensagens de erro do aplicarRecalculo wrapper, mas não como chamada.
+  // Leitura read-only (supa.from('saldo_fios_op').select(...)) passou a
+  // ser permitida a partir de RAVATEX-TAPETES-OP-EM-PRODUCAO-TECELAGEM-
+  // STANDALONE-B (bloco "4. Capacidade e ajuste" da OP Em Produção
+  // Tecelagem, leitura read-only do saldo já gravado por
+  // aplicarRecalculoOP) — o que continua proibido é insert/update/
+  // delete/upsert nessa tabela a partir de op-nova.js.
+  assert.equal(/supa\.from\(['"`]saldo_fios_op['"`]\)[\s\S]{0,200}?\.(insert|update|delete|upsert)\(/.test(opnSrc), false,
+    'op-nova.js tem write (insert/update/delete/upsert) em saldo_fios_op — write deveria ter sido extraído');
 });
 
 test('13. inline NÃO contém mais from("saldo_fios") como Supabase call', () => {

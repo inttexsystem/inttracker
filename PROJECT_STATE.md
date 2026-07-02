@@ -1,4 +1,46 @@
 > **Atualizacao 2026-07-01 - fase
+> `RAVATEX-TAPETES-OP-EM-PRODUCAO-TECELAGEM-STANDALONE-B` (ajuste fino
+> visual / paridade estrutural com o standalone PROD-OP-TECELAGEM,
+> sem backend novo).**
+> Continuacao da fase anterior no mesmo `js/screens/op-nova.js`, sem
+> transformar nenhum placeholder em funcionalidade real. Adicionado:
+> breadcrumb "OPs / OP X/ANO" + botao Voltar; cadeia produtiva (lineage
+> strip) apontando para a OP de Acabamento/Latex gerada por entrega
+> parcial, quando existir (leitura de dados ja carregados, sem query
+> nova de escrita); nomenclatura ajustada para bater com o standalone
+> ("Entregue p/ acabamento" no resumo lateral, "Ja enviado" no bloco de
+> Movimentacao); bloco `4. Capacidade e ajuste` novo (read-only, le
+> `saldo_fios_op` — ja gravada por `aplicarRecalculoOP` em
+> `op-recalculo.js`, nao alterado — cruzada com `ordens` para mostrar
+> consumo/sobra real por fio; sem "fator proporcional" fabricado; cai em
+> fallback controlado quando nao ha dados); o card "Entregas tecelagem"
+> foi reposicionado para depois do novo Bloco 4 e perdeu o numeral "4."
+> do titulo (evita colisao de numeracao — o numeral "4." agora pertence
+> só à Capacidade e ajuste); Documentos da OP ganhou visual de lista
+> (Romaneio / Nota fiscal de entrada / Nota fiscal de saida, pill neutro
+> "Aguardando integracao"), continua placeholder controlado sem
+> schema/upload; Historico ganhou visual de timeline (ponto + conector),
+> mesma fonte de dados/fallback (`op_eventos`) da fase anterior; saldo
+> negativo/excedente (entrega acima do ajustado) agora tem tratamento
+> visual proprio (cor/texto "excedente") tanto no Resumo lateral quanto
+> no bloco Movimentacao e nas colunas Falta dos Cards 2 e "Entregas
+> tecelagem" — antes ficava escondido atras de "✅ completo".
+> Nenhum write novo: sem `alterar_status_op`, sem `ops.update({status})`
+> novo, sem schema novo. `tests/op-recalculo.smoke.js` teve 1 teste
+> ajustado (`12.`) porque sua regex original bloqueava qualquer
+> `supa.from('saldo_fios_op')` em `op-nova.js` (intencao original era
+> so bloquear writes); a regra foi precisada para continuar bloqueando
+> insert/update/delete/upsert nessa tabela, permitindo a leitura
+> read-only nova do Bloco 4.
+> Testes executados: `node --check js/screens/op-nova.js` OK;
+> `node --check tests/op-nova.smoke.js` OK;
+> `node --test tests/op-nova.smoke.js` OK (55/55);
+> `node --test tests/op-nova.smoke.js tests/op-latex-admin.smoke.js
+> tests/op-persistir.smoke.js tests/boot.smoke.js
+> tests/pedido-detail.smoke.js tests/op-recalculo.smoke.js` OK
+> (294/294).
+
+> **Atualizacao 2026-07-01 - fase
 > `RAVATEX-TAPETES-OP-EM-PRODUCAO-TECELAGEM-STANDALONE-B`
 > (template operacional proprio PROD-OP para OP Em Producao Tecelagem).**
 > Regra absoluta desta fase: OP Aberta != OP Em Producao; Nova OP !=

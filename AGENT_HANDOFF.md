@@ -1,12 +1,48 @@
-﻿# Estado pos-fase - OP Em Producao Tecelagem Standalone B
+﻿# Estado pos-fase - OP Em Producao Tecelagem Standalone B (ajuste fino visual)
 
-- Fase concluida no codigo:
-  `RAVATEX-TAPETES-OP-EM-PRODUCAO-TECELAGEM-STANDALONE-B`.
+- Fase concluida no codigo (continuacao/ajuste fino da mesma fase
+  `RAVATEX-TAPETES-OP-EM-PRODUCAO-TECELAGEM-STANDALONE-B`, sem transformar
+  nenhum placeholder em funcionalidade real).
 - Escopo fechado:
-  `js/screens/op-nova.js`,
-  `tests/op-nova.smoke.js`,
-  `PROJECT_STATE.md`,
-  `AGENT_HANDOFF.md`.
+  `js/screens/op-nova.js`, `tests/op-nova.smoke.js`,
+  `tests/op-recalculo.smoke.js` (1 teste precisado — ver abaixo),
+  `PROJECT_STATE.md`, `AGENT_HANDOFF.md`.
+- O que foi ajustado nesta rodada (paridade estrutural mais fina com o
+  standalone `Admin - PROD-OP-TECELAGEM- standalone.html`):
+  breadcrumb "OPs / OP X/ANO" + botao Voltar;
+  cadeia produtiva (lineage strip) para a OP de Acabamento/Latex gerada
+  por entrega parcial (le dados ja carregados, sem write);
+  nomenclatura alinhada ao standalone ("Entregue p/ acabamento" no
+  resumo lateral, "Ja enviado" no bloco de Movimentacao);
+  bloco novo `4. Capacidade e ajuste` (read-only, le `saldo_fios_op` —
+  ja gravada por `aplicarRecalculoOP`/`op-recalculo.js`, nao alterado —
+  cruzada com `ordens` para consumo/sobra real por fio; sem "fator
+  proporcional" fabricado; fallback controlado sem dados);
+  card "Entregas tecelagem" reposicionado apos o Bloco 4 e sem o
+  numeral "4." no titulo (evita colisao — "4." passou a pertencer so
+  ao Capacidade e ajuste);
+  Documentos da OP com visual de lista (Romaneio/Nota fiscal de
+  entrada/Nota fiscal de saida, pill neutro "Aguardando integracao"),
+  continua placeholder controlado;
+  Historico com visual de timeline (ponto + conector), mesma fonte de
+  dados/fallback (`op_eventos`);
+  tratamento visual de saldo negativo/excedente (entrega acima do
+  ajustado) no Resumo lateral, bloco Movimentacao e nas colunas Falta
+  dos Cards 2 e Entregas tecelagem — antes ficava escondido atras de
+  "✅ completo".
+- Ajuste de teste fora do escopo usual (justificado): `tests/op-recalculo.smoke.js`
+  teste `12.` tinha uma regex que bloqueava qualquer
+  `supa.from('saldo_fios_op')` em `op-nova.js`, mas seu proprio
+  comentario ja dizia que a intencao era so bloquear writes (o write
+  real fica em `op-recalculo.js`). A leitura read-only nova do Bloco 4
+  precisou dessa precisao: a regra passou a bloquear especificamente
+  insert/update/delete/upsert nessa tabela, preservando a garantia
+  original sem impedir a leitura legitima.
+- Testes: `node --check js/screens/op-nova.js` OK;
+  `node --test tests/op-nova.smoke.js` OK (55/55);
+  `node --test tests/op-nova.smoke.js tests/op-latex-admin.smoke.js
+  tests/op-persistir.smoke.js tests/boot.smoke.js
+  tests/pedido-detail.smoke.js tests/op-recalculo.smoke.js` OK (294/294).
 - Regra absoluta desta fase (vinculante para fases futuras):
   OP Aberta != OP Em Producao;
   Nova OP != PROD-OP;
@@ -55,13 +91,9 @@
   lifecycle Pausar/Concluir via contrato proprio (RPC de transicao de
   status ja existe em `db/21_op_lifecycle_status_eventos.sql`, mas
   sem UI ainda).
-- Testes:
-  `node --check js/screens/op-nova.js` OK;
-  `node --check tests/op-nova.smoke.js` OK;
-  `node --test tests/op-nova.smoke.js` OK (48/48);
-  `node --test tests/op-nova.smoke.js tests/op-latex-admin.smoke.js
-  tests/op-persistir.smoke.js tests/boot.smoke.js
-  tests/pedido-detail.smoke.js` OK (228/228).
+- Testes do R1 inicial desta fase (48/48, 228/228) — ver contagem
+  atualizada (55/55, 294/294) no topo deste registro, apos o ajuste
+  fino visual.
 - Residual preservado:
   `?? supabase/.temp/` permanece fora do stage/commit;
   104 falhas pre-existentes em `tests/*.smoke.js` (fora do pacote de
