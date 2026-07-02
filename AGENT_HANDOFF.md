@@ -1,4 +1,48 @@
-﻿# Estado pos-fase - OP Em Producao Tecelagem R1 Visual Parity (icones vs. standalone)
+﻿# Estado pos-fase - OP Em Producao Acabamento (correcao pos-implementacao)
+
+- Fase: `RAVATEX-TAPETES-OP-EM-PRODUCAO-ACABAMENTO-STANDALONE-B`, correcao
+  aplicada em cima do commit `f675818` (mesma fase, achado ao verificar
+  a paridade com o standalone proativamente, sem o arquiteto ter
+  precisado apontar de novo).
+- Escopo fechado: `js/screens/op-latex-admin.js`,
+  `tests/op-latex-admin.smoke.js`, `PROJECT_STATE.md`,
+  `AGENT_HANDOFF.md`. Nenhum outro arquivo.
+- Achado 1 (icones): `Admin - PROD-OP-ACABAMENTO-standalone.html` e
+  `Admin - PROD-OP-TECELAGEM- standalone.html` sao byte-a-byte o mesmo
+  arquivo (confirmado por `diff`) — mesmo componente, so alternado pela
+  prop `tipo`. Logo tem a mesma convencao: zero icones em titulo de
+  bloco. `renderOPLatexProducao` (implementacao inicial) usava
+  `sectionIcon`/`sectionHead` nos 7 cards, repetindo o mesmo erro ja
+  corrigido em `op-nova.js` (fase R1 Visual Parity da Tecelagem).
+  Corrigido: os 8 usos de icone dentro do renderer operacional foram
+  removidos; `SVG_ICON_ARROW`, `SVG_DOC`, `SVG_CLOCK` (que so serviam
+  a esses icones) foram removidas por ficarem sem uso. O ramo legado de
+  preparacao (OP aberta) mantem seu icone original, sem alteracao.
+- Achado 2 (layout, via preview real em navegador — nao so texto): Card
+  1 "Dados da OP" tinha 8 campos com rotulos longos em grid de 2
+  colunas — em ~800px, cada campo ficava com ~76px, quebrando e
+  amontoando linhas adjacentes (mesmo bug ja corrigido no Card 1 da OP
+  Em Producao Tecelagem). Corrigido para 1 coluna (campos empilhados).
+  Os demais grids do renderer (Resumo, Material recebido, Finalizacao)
+  foram checados e nao tem o mesmo risco (caixas com borda propria ou
+  uma unica linha, sem adjacencia vertical).
+- Testes: 2 novos (45, 46) travam ausencia de icone de secao e Card 1
+  fora do grid de 2 colunas.
+  `node --check js/screens/op-latex-admin.js` OK;
+  `node --test tests/op-latex-admin.smoke.js` OK (46/46);
+  `node --test tests/op-latex-admin.smoke.js tests/op-nova.smoke.js
+  tests/op-persistir.smoke.js tests/boot.smoke.js
+  tests/pedido-detail.smoke.js tests/op-recalculo.smoke.js` OK
+  (310/310).
+- Harness de preview usado so localmente e removido antes do commit.
+- Licao reforcada: ao gerar um renderer operacional novo a partir de um
+  standalone de referencia, verificar SEMPRE se esse standalone e
+  realmente distinto do ja usado em fase anterior (aqui era o mesmo
+  arquivo) e reconferir a convencao visual (icones, colunas) em vez de
+  reaproveitar por habito o padrao do template antigo (Nova OP/OP
+  Aberta).
+
+# Estado pos-fase - OP Em Producao Tecelagem R1 Visual Parity (icones vs. standalone)
 
 - Fase concluida no codigo: `RAVATEX-TAPETES-OP-EM-PRODUCAO-TECELAGEM-STANDALONE-R1-VISUAL-PARITY`
   (2a rodada, apos a rodada de bugs de layout).

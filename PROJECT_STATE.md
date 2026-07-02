@@ -1,4 +1,45 @@
 > **Atualizacao 2026-07-01 - fase
+> `RAVATEX-TAPETES-OP-EM-PRODUCAO-ACABAMENTO-STANDALONE-B` (correcao
+> pos-implementacao — mesmo bug de icones/layout ja corrigido na
+> Tecelagem, encontrado proativamente ao verificar a paridade com o
+> standalone).**
+> Confirmado por diff binario: `Admin - PROD-OP-ACABAMENTO-standalone.html`
+> e `Admin - PROD-OP-TECELAGEM- standalone.html` sao byte-a-byte o mesmo
+> arquivo (mesmo componente, alternado pela prop `tipo`) — logo seguem a
+> mesma convencao de zero icones em titulo de bloco. A implementacao
+> inicial de `renderOPLatexProducao` (commit `f675818`) usava
+> `sectionIcon`/`sectionHead` em todos os 7 cards, repetindo o mesmo erro
+> ja corrigido em `op-nova.js` na fase R1 Visual Parity da Tecelagem.
+> Corrigido em `js/screens/op-latex-admin.js`: os 8 usos de icone dentro
+> de `renderOPLatexProducao` (Dados da OP, Resumo operacional, Itens da
+> OP, Material recebido da tecelagem, Recebimentos/acabamento,
+> Finalizacao, Documentos, Historico) foram removidos — titulos agora sao
+> texto puro, como no standalone. Constantes `SVG_ICON_ARROW`, `SVG_DOC`,
+> `SVG_CLOCK` (adicionadas so para esses icones) foram removidas por
+> ficarem sem uso; `SVG_ICON_OP/GRID/LINES/SUMMARY` permanecem, ainda
+> usadas pelo ramo legado de preparacao (OP aberta), que preserva seu
+> icone original sem alteracao.
+> Tambem corrigido, via verificacao visual real em navegador (nao so
+> texto): Card 1 "Dados da OP" tinha 8 campos com rotulos longos ("OP de
+> tecelagem vinculada", "Fornecedor/acabador") em grid de 2 colunas — em
+> ~800px de largura, cada campo ficava com ~76px, quebrando e amontoando
+> linhas adjacentes (mesmo padrao de bug ja corrigido no Card 1 da OP Em
+> Producao Tecelagem). Trocado para 1 coluna (campos empilhados).
+> Demais grids do renderer (Resumo operacional, Material recebido,
+> Finalizacao) foram inspecionados e nao apresentam o mesmo risco — usam
+> caixas com borda propria (`metric()`) ou uma unica linha sem
+> adjacencia vertical, absorvendo a quebra de texto sem sobreposicao.
+> 2 testes novos (45, 46) travam: ausencia total de icone de secao;
+> Card 1 fora do grid de 2 colunas.
+> Testes executados: `node --check js/screens/op-latex-admin.js` OK;
+> `node --test tests/op-latex-admin.smoke.js` OK (46/46);
+> `node --test tests/op-latex-admin.smoke.js tests/op-nova.smoke.js
+> tests/op-persistir.smoke.js tests/boot.smoke.js
+> tests/pedido-detail.smoke.js tests/op-recalculo.smoke.js` OK
+> (310/310).
+> Harness de preview usado so localmente e removido antes do commit.
+
+> **Atualizacao 2026-07-01 - fase
 > `RAVATEX-TAPETES-OP-EM-PRODUCAO-TECELAGEM-STANDALONE-R1-VISUAL-PARITY`
 > (2a rodada — inconsistencia de icones vs. o standalone).**
 > Confirmado card a card no markup de referencia do standalone

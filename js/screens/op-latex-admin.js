@@ -22,9 +22,6 @@
   var SVG_INFO_BAR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
   var SVG_OPEN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>';
   var SVG_HINT_LOCK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>';
-  var SVG_ICON_ARROW = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>';
-  var SVG_DOC = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="13" y2="17"></line></svg>';
-  var SVG_CLOCK = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>';
 
   var CARD = 'background:#fff;border:1px solid #eceef1;border-radius:6px;';
   var FIELD_LABEL = 'font-size:13px;font-weight:600;color:#3f4757;margin-bottom:7px;display:block;';
@@ -183,9 +180,7 @@
       function buildRecebimentosOperacional(opArg, recebimentosArg, modelosByIdArg, latexFornecedorIdArg) {
         var box = el('div', { style: CARD + 'padding:16px 20px;' });
         box.appendChild(el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;' },
-          el('div', { style: 'display:flex;align-items:center;gap:10px;' },
-            sectionIcon(SVG_ICON_LINES),
-            el('span', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, '4. Recebimentos / acabamento')),
+          el('span', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, '4. Recebimentos / acabamento'),
           opArg.status === 'em_producao' && latexFornecedorIdArg
             ? el('button', { type: 'button', style: BTN_SOLID_SM,
               onclick: function () {
@@ -271,9 +266,15 @@
         }
 
         function buildDados() {
+          // 1 coluna: este card tem 8 campos com rótulos longos ("OP de
+          // tecelagem vinculada", "Fornecedor/acabador") e divide a
+          // largura com a coluna lateral de 320px — em 2 colunas, cada
+          // campo ficava com ~76px em larguras de janela comuns (~800px),
+          // quebrando e amontoando linhas adjacentes (mesmo bug já
+          // corrigido no Card 1 da OP Em Produção Tecelagem).
           return el('div', { style: CARD + 'padding:16px 20px;' },
-            sectionHead(SVG_ICON_OP, '1. Dados da OP'),
-            el('div', { style: 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;' },
+            el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:14px;' }, '1. Dados da OP'),
+            el('div', { style: 'display:flex;flex-direction:column;gap:12px;' },
               fieldBlock('Cliente', el('div', { style: 'font-size:13.5px;font-weight:600;color:#16203a;' }, op.lote?.cliente?.nome || '---')),
               fieldBlock('Lote', el('div', { style: 'font-size:13.5px;font-weight:600;color:#16203a;' }, loteLabel)),
               fieldBlock('Etapa', el('div', { style: 'font-size:13.5px;font-weight:700;color:#c2610c;' }, 'Acabamento/Latex')),
@@ -288,11 +289,9 @@
 
         function buildResumo() {
           return el('div', { style: CARD + 'padding:16px 20px;' },
-            el('div', { style: 'display:flex;align-items:center;gap:10px;margin-bottom:14px;' },
-              sectionIcon(SVG_ICON_SUMMARY),
-              el('div', {},
-                el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, 'Resumo operacional'),
-                el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:2px;' }, percentualAcabamento + '% recebido/acabado'))),
+            el('div', { style: 'margin-bottom:14px;' },
+              el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, 'Resumo operacional'),
+              el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:2px;' }, percentualAcabamento + '% recebido/acabado')),
             el('div', { style: 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;' },
               metric('Enviado da tecelagem', window.fmtMetros(totalEnviado), '#16203a'),
               metric('Recebido/acabado', window.fmtMetros(totalRecebido), '#18794a'),
@@ -304,9 +303,7 @@
 
         function buildItens() {
           var card = el('div', { style: CARD + 'padding:16px 0 0;' },
-            el('div', { style: 'display:flex;align-items:center;gap:10px;padding:0 20px 14px;' },
-              sectionIcon(SVG_ICON_GRID),
-              el('span', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, '2. Itens da OP')));
+            el('div', { style: 'padding:0 20px 14px;font-size:15.5px;font-weight:700;color:#16203a;' }, '2. Itens da OP'));
           if (!(op.op_itens || []).length) {
             card.appendChild(el('div', { style: 'padding:0 20px 18px;font-size:13px;color:#aab2bf;' }, 'Nenhum item vinculado a esta OP.'));
             return card;
@@ -330,7 +327,7 @@
 
         function buildMaterialRecebido() {
           return el('div', { style: CARD + 'padding:16px 20px;' },
-            sectionHead(SVG_ICON_LINES, '3. Material recebido da tecelagem'),
+            el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:14px;' }, '3. Material recebido da tecelagem'),
             el('div', { style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:12px;' },
               fieldBlock('OP origem',
                 op.origem_op_id ? el('button', { type: 'button', style: BTN_LINK, onclick: function () { navigate('#/ops/' + op.origem_op_id); } }, origemLabel)
@@ -344,7 +341,7 @@
 
         function buildFinalizacao() {
           return el('div', { style: CARD + 'padding:16px 20px;' },
-            sectionHead(SVG_ICON_ARROW, '5. Finalizacao / liberar para proxima etapa'),
+            el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:14px;' }, '5. Finalizacao / liberar para proxima etapa'),
             el('div', { style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px;' },
               metric('Disponivel para finalizar', window.fmtMetros(totalRecebido), '#18794a'),
               metric('Saldo no acabamento', resumoSaldoTexto, resumoSaldoCor),
@@ -356,7 +353,7 @@
 
         function buildDocumentos() {
           return el('div', { id: 'documentos-op', style: CARD + 'padding:16px 20px;' },
-            sectionHead(SVG_DOC, '6. Documentos da OP'),
+            el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:12px;' }, '6. Documentos da OP'),
             linhaDocumento('Romaneio', false),
             linhaDocumento('Nota fiscal de entrada', false),
             linhaDocumento('Nota fiscal de saida', true));
@@ -364,7 +361,7 @@
 
         function buildHistorico() {
           return el('div', { id: 'historico-op', style: CARD + 'padding:16px 20px;' },
-            sectionHead(SVG_CLOCK, '7. Historico'),
+            el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:14px;' }, '7. Historico'),
             el('div', { style: 'display:flex;gap:12px;align-items:flex-start;' },
               el('div', { style: 'width:11px;height:11px;border-radius:50%;background:#cfd5de;margin-top:4px;flex-shrink:0;' }),
               el('div', { style: 'font-size:13px;color:#aab2bf;' }, 'Nenhum evento registrado para esta OP.')));

@@ -666,6 +666,28 @@ function collectNodeText(node) {
   return parts.join(' ');
 }
 
+// Coleta o atributo style (string bruta) de cada nó da árvore — usado
+// para travar regressões de layout (ex.: ícone de seção, grid de
+// colunas) que asserções de texto puro não conseguem detectar.
+function collectStyles(node, out = []) {
+  if (!node) return out;
+  const style = typeof node.getAttribute === 'function' ? node.getAttribute('style') : null;
+  if (style) out.push(style);
+  for (const child of (node.children || [])) collectStyles(child, out);
+  return out;
+}
+
+// Busca em profundidade o primeiro nó cujo predicate(node) seja true.
+function findNode(node, predicate) {
+  if (!node) return null;
+  if (predicate(node)) return node;
+  for (const child of (node.children || [])) {
+    const found = findNode(child, predicate);
+    if (found) return found;
+  }
+  return null;
+}
+
 async function renderLatexAdminForTest(opts = {}) {
   const { sandbox } = makeFullBootSandbox(opts);
   const view = await vm.runInContext('window.renderOPLatexAdmin(42)', sandbox);
@@ -673,6 +695,7 @@ async function renderLatexAdminForTest(opts = {}) {
     sandbox,
     view,
     text: collectNodeText(view),
+    styles: collectStyles(view),
   };
 }
 
@@ -952,4 +975,53 @@ test('44. OP em producao de tecelagem permanece no modulo op-nova', () => {
     'bloco de entregas de tecelagem deve continuar no fluxo de tecelagem');
   assert.match(opnSrc, /window\.renderOPLatexAdmin\(op\.id\)/,
     'call-site de OP latex deve continuar delegado ao modulo de latex');
+});
+
+// RAVATEX-TAPETES-OP-EM-PRODUCAO-ACABAMENTO-STANDALONE-R1-VISUAL-PARITY
+// (correção pós-implementação — a standalone PROD-OP-ACABAMENTO é
+// byte-a-byte o mesmo componente da PROD-OP-TECELAGEM, alternado pela
+// prop `tipo`, logo segue a mesma convenção: nenhum dos 7 blocos usa
+// ícone no título. `renderOPLatexProducao` tinha herdado o ícone do
+// template Nova OP/OP Aberta em todos os 7 cards — o mesmo erro já
+// corrigido em op-nova.js duas fases atrás.)
+test('45. OP em producao de acabamento não tem nenhum ícone de seção (padrão do standalone: título só em texto)', async () => {
+  const rendered = await renderLatexAdminForTest({
+    opData: {
+      id: 42, numero: 8, ano: 2026, status: 'em_producao', tipo: 'latex',
+      observacao: '', origem_op_id: 12,
+      lote: { id: 91, numero: 22, pedido_id: 77, cliente: { id: 3, nome: 'Cliente Atlas' } },
+      op_itens: [{ id: 100, modelo_id: 1, metros_pedidos: 125, pedido_item_id: 700 }],
+      op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
+    },
+    entData: [{
+      id: 501, fornecedor_id: 7, data: '2026-07-01', observacao: '',
+      entrega_itens: [{ id: 601, op_id: 42, op_item_id: 100, metros_entregues: 50, defeito: false, observacao: '' }],
+    }],
+    modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
+    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+  });
+  const temIconeSecao = rendered.styles.some((s) => /width:34px;height:34px;border-radius:6px;background:#eaf1fd/.test(s));
+  assert.equal(temIconeSecao, false, 'nenhum dos 7 blocos do standalone PROD-OP-ACABAMENTO usa ícone no título — renderOPLatexProducao não pode ter herdado o ícone do template Nova OP/OP Aberta');
+});
+
+test('46. Card "1. Dados da OP" (Acabamento em produção) usa 1 coluna — 2 colunas quebrava rótulos longos em janelas estreitas', async () => {
+  const rendered = await renderLatexAdminForTest({
+    opData: {
+      id: 42, numero: 8, ano: 2026, status: 'em_producao', tipo: 'latex',
+      observacao: '', origem_op_id: 12,
+      lote: { id: 91, numero: 22, pedido_id: 77, cliente: { id: 3, nome: 'Cliente Atlas' } },
+      op_itens: [{ id: 100, modelo_id: 1, metros_pedidos: 125, pedido_item_id: 700 }],
+      op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
+    },
+    modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
+    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+  });
+  const camposDados = findNode(rendered.view, (n) => {
+    const style = typeof n.getAttribute === 'function' ? n.getAttribute('style') : null;
+    return !!style && /display:flex|display:grid/.test(style) && /^Cliente/.test(n.textContent || '');
+  });
+  assert.ok(camposDados, 'esperado encontrar o container de campos do Card 1 (começa com "Cliente")');
+  const style = camposDados.getAttribute('style');
+  assert.doesNotMatch(style, /grid-template-columns\s*:\s*repeat\(\s*2/,
+    'Card 1 (Dados da OP) da OP Em Produção Acabamento não deve usar grid de 2 colunas — 8 campos com rótulos longos ("OP de tecelagem vinculada", "Fornecedor/acabador") quebravam e amontoavam linhas em larguras de janela comuns (~800px)');
 });
