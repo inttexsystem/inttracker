@@ -33,7 +33,7 @@
 
   function thRow(colsTemplate, labels) {
     var cells = labels.map(function (l, i) {
-      return el('div', { style: TH_STYLE + (i === labels.length - 1 ? 'text-align:right;' : '') }, l);
+      return el('div', { style: TH_STYLE }, l);
     });
     return el('div', { style: 'display:grid;grid-template-columns:' + colsTemplate + ';gap:10px;padding:10px 24px;background:#f8f9fb;border-bottom:1px solid #eceef1;' }, cells);
   }

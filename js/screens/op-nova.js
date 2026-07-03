@@ -133,9 +133,10 @@
     input.setAttribute('style', INPUT_STYLE + (extra || ''));
     return input;
   }
-  function thRow(colsTemplate, labels) {
+  function thRow(colsTemplate, labels, options) {
+    var alignLastRight = options && options.alignLast === 'right';
     var cells = labels.map(function (l, i) {
-      return el('div', { style: TH_STYLE + (i === labels.length - 1 ? 'text-align:right;' : '') }, l);
+      return el('div', { style: TH_STYLE + (alignLastRight && i === labels.length - 1 ? 'text-align:right;' : '') }, l);
     });
     return el('div', { style: 'display:grid;grid-template-columns:' + colsTemplate + ';gap:10px;padding:10px 24px;background:#f8f9fb;border-bottom:1px solid #eceef1;' }, cells);
   }
@@ -597,7 +598,7 @@
         el('div', { style: 'font-size:13px;color:#8a93a3;' }, 'Adicione ao menos um item para calcular o fio necessário.'),
       ));
     } else {
-      card.appendChild(thRow('2fr 1fr 80px', ['MODELO', 'METROS', 'AÇÕES']));
+      card.appendChild(thRow('2fr 1fr 80px', ['MODELO', 'METROS', 'AÇÕES'], { alignLast: 'right' }));
       const rows = el('div', { style: 'padding-bottom:6px;' });
       itens.forEach((item, idx) => rows.appendChild(buildItemRow(item, idx, modeloOptions)));
       card.appendChild(rows);

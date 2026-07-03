@@ -773,6 +773,20 @@ function collectStyles(node, out = []) {
   return out;
 }
 
+function collectStyledTextNodes(node, out = []) {
+  if (!node) return out;
+  const style = typeof node.getAttribute === 'function' ? node.getAttribute('style') : '';
+  const ownText = node._text != null
+    ? String(node._text)
+    : (node.children || [])
+        .filter((child) => child && !child.tagName && typeof child.textContent === 'string')
+        .map((child) => child.textContent)
+        .join('');
+  if (ownText) out.push({ text: ownText, style: style || '' });
+  for (const child of (node.children || [])) collectStyledTextNodes(child, out);
+  return out;
+}
+
 async function renderNovaOpForTest({ opId = null, pedidoId = null, db } = {}) {
   const sandbox = makeRenderSandbox(db || buildOpNovaFixture());
   sandbox.__args = { opId, pedidoId };
@@ -783,6 +797,7 @@ async function renderNovaOpForTest({ opId = null, pedidoId = null, db } = {}) {
     text: collectNodeText(view),
     inputs: collectInputValues(view),
     styles: collectStyles(view),
+    styledText: collectStyledTextNodes(view),
   };
 }
 
@@ -1221,6 +1236,19 @@ test('63. OP Aberta Tecelagem continua com o ícone do Card 3 (ajuste é condici
   const temIconeSecao = rendered.styles.some((s) => /width:34px;height:34px;border-radius:6px;background:#eaf1fd/.test(s));
   assert.equal(temIconeSecao, true, 'OP Aberta deve manter o ícone do Card 3 — o ajuste do standalone PROD-OP é condicional só para em_producao');
   assert.match(rendered.text, /3\.\s*Recebimento de fios/i);
+});
+
+test('66. Headers STATUS e FALTA da OP Em ProduÃ§Ã£o Tecelagem ficam alinhados Ã  esquerda', async () => {
+  const db = buildOpEmProducaoTecelagemFixture();
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
+  const statusHeaders = rendered.styledText.filter((node) => node.text === 'STATUS' && /font-size:11px/.test(node.style));
+  const faltaHeaders = rendered.styledText.filter((node) => node.text === 'FALTA' && /font-size:11px/.test(node.style));
+  assert.ok(statusHeaders.length >= 1, 'esperado header STATUS no Card 3');
+  assert.ok(faltaHeaders.length >= 2, 'esperado header FALTA nos blocos de itens e Entregas tecelagem');
+  for (const header of statusHeaders.concat(faltaHeaders)) {
+    assert.doesNotMatch(header.style, /text-align\s*:\s*(?:right|center)/,
+      'STATUS/FALTA devem herdar alinhamento left/start, sem right/center: ' + header.style);
+  }
 });
 
 test('64. Bloco "5. Movimentacao" mostra na ultima entrega so metros sem defeito', async () => {
