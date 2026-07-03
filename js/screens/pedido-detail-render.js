@@ -295,15 +295,11 @@
 
   function buildConnectorVisual(action, disabled) {
     var mode = action && action.mode ? action.mode : 'enabled';
-    var rawLabel = String(action && action.label ? action.label : '').toLowerCase();
-    if (isConnectorDoneAction(action)) {
+    if (isConnectorDoneAction(action) || mode === 'view') {
       return { state: 'done', label: 'Concluído' };
     }
     if (disabled || mode === 'disabled') {
       return { state: 'waiting', label: 'Aguardar' };
-    }
-    if (mode === 'view') {
-      return { state: 'view', label: rawLabel.indexOf('editar') >= 0 ? 'Editar' : 'Ver' };
     }
     return { state: 'active', label: 'Transferir' };
   }
@@ -317,17 +313,17 @@
 
   function buildConnectorStyle(visual, clickable) {
     var tones = {
-      done: { bg: '#edf7e8', color: '#4f7f37', border: '1px solid #c9dfc0' },
-      waiting: { bg: '#eef1f5', color: '#8a93a3', border: '1px solid #dde2e8' },
-      view: { bg: '#fff', color: '#2563eb', border: '1px solid #2563eb' },
-      active: { bg: '#2563eb', color: '#fff', border: '1px solid #2563eb' },
+      done: { bg: '#e7f4ec', color: '#2f8256' },
+      waiting: { bg: '#eef0f3', color: '#9aa2af' },
+      active: { bg: '#2563eb', color: '#fff' },
     };
     var tone = tones[visual.state] || tones.waiting;
-    return 'width:96px;height:28px;padding:0 13px 0 18px;display:inline-flex;align-items:center;justify-content:center;'
-      + 'background:' + tone.bg + ';color:' + tone.color + ';border:' + tone.border + ';'
-      + 'font-size:11px;font-weight:700;font-family:inherit;line-height:1;white-space:nowrap;box-sizing:border-box;'
-      + 'clip-path:polygon(0% 0%, 80% 0%, 100% 50%, 80% 100%, 0% 100%, 15% 50%);'
-      + 'cursor:' + (clickable ? 'pointer' : 'default') + ';';
+    return 'min-width:100px;height:30px;padding:0 14px;display:flex;align-items:center;justify-content:center;gap:5px;'
+      + 'background:' + tone.bg + ';color:' + tone.color + ';border:none;'
+      + 'font-size:11px;font-weight:700;font-family:inherit;line-height:1;letter-spacing:.02em;white-space:nowrap;box-sizing:border-box;'
+      + 'clip-path:polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%, 13px 50%);'
+      + 'cursor:' + (visual.state === 'waiting' ? 'not-allowed' : (clickable ? 'pointer' : 'default')) + ';'
+      + (clickable ? 'filter:drop-shadow(0 1.5px 1.5px rgba(37,99,235,.35));' : '');
   }
 
   function buildTransferButton(stage, handlers) {
@@ -342,12 +338,12 @@
     var disabled = mode === 'disabled' || (!stage.transfer.op && (stage.transfer.title !== 'Registrar saida para entrega'));
     var visual = buildConnectorVisual(action, disabled);
     var title = buildConnectorTitle(stage, action, visual);
-    var clickable = visual.state === 'active' || visual.state === 'view';
+    var clickable = visual.state === 'active';
     if (visual.state === 'done' || visual.state === 'waiting') {
       return window.el('div', {
         style: 'display:flex;align-items:center;justify-content:center;height:42px;',
       },
-        window.el('span', {
+        window.el('div', {
           title: title,
           'aria-label': title,
           style: buildConnectorStyle(visual, false),

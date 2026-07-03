@@ -2557,6 +2557,22 @@ node --test tests/boot.smoke.js \
   nenhum lifecycle de OP, nenhuma alteracao de `gerar_op_latex`,
   expedicao, auth/login ou push. Residual permitido preservado:
   `?? supabase/.temp/`.
+- Complemento R2 final alinhado a
+  `Setas de transicao - referencia.html`: conectores do
+  `Progresso produtivo` aceitam somente `Concluido`, `Transferir` e
+  `Aguardar` como texto visivel. `Ver`, `Editar`, `Entregar` e textos
+  longos/contextuais nao aparecem dentro das setas.
+- `Concluido` e `Aguardar` sao elementos estaticos sem handler;
+  somente `Transferir` e botao/clicavel e continua chamando
+  `openMovementModal(stage.transfer)` quando o gate permite. Shape
+  solido com `clip-path`, `min-width:100px`, sem borda quebrada e sem
+  pilula solta.
+- Testes finais desta correcao: `node --check` nos dois arquivos OK;
+  `node --test tests/pedido-detail.smoke.js` OK (56/56);
+  `node --test tests/boot.smoke.js` OK (29/29);
+  `node --test tests/router.smoke.js` OK (43/43; aviso conhecido de
+  sandbox sobre `window.addEventListener`, exit code 0).
+
 - Fase R2 concluida no codigo: `RAVATEX-TAPETES-PEDIDO-PROGRESS-CONNECTORS-R2`.
 - Escopo fechado: `js/screens/pedido-detail-render.js`,
   `tests/pedido-detail.smoke.js`, `PROJECT_STATE.md`,

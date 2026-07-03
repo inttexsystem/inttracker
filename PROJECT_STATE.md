@@ -3528,3 +3528,18 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 > `node --test tests/router.smoke.js`. Sem SQL, Supabase remoto/producao,
 > lifecycle de OP, login, rota fisica `/ops/nova`, criacao automatica de OP
 > ou push. Residual preservado fora do commit: `?? supabase/.temp/`.
+> **Atualizacao 2026-07-03 - complemento R2 final.**
+> Alinhado ao arquivo `Setas de transicao - referencia.html`: as setas
+> do `Progresso produtivo` agora aceitam somente `Concluido`,
+> `Transferir` e `Aguardar` como texto visivel. `Ver`, `Editar`,
+> `Entregar` e textos longos/contextuais nao aparecem dentro dos
+> conectores. `Concluido` e `Aguardar` sao estaticos sem handler;
+> somente `Transferir` e botao/clicavel, chamando a operacao canonica
+> quando o gate permite. Shape solido com `clip-path`, `min-width:100px`
+> e sem bordas quebradas/pilula solta.
+> Testes finais: `node --check js/screens/pedido-detail-render.js` OK;
+> `node --check tests/pedido-detail.smoke.js` OK;
+> `node --test tests/pedido-detail.smoke.js` OK (56/56);
+> `node --test tests/boot.smoke.js` OK (29/29);
+> `node --test tests/router.smoke.js` OK (43/43, com aviso conhecido
+> de sandbox sobre `window.addEventListener`, exit code 0).

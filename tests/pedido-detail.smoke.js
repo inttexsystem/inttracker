@@ -184,15 +184,19 @@ test('pedido-chain-state: pedido sem OP preserva abertura de tecelagem', () => {
 });
 
 test('pedido-detail: conectores do progresso usam labels visuais curtos', () => {
+  const connectorRegion = (detailRender.match(
+    /function isConnectorDoneAction\s*\(action\)\s*\{[\s\S]*?\n  function buildStepper/
+  ) || [''])[0];
   const connectorSlice = (detailRender.match(
     /function buildTransferButton\s*\(stage,\s*handlers\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
   ) || [''])[0];
+  assert.ok(connectorRegion, 'trecho dos helpers de conector nao encontrado');
   assert.ok(connectorSlice, 'trecho buildTransferButton nao encontrado');
   assert.match(detailRender, /function buildConnectorVisual/);
   assert.match(detailRender, /label:\s*['"]Conclu[ií]do['"]/);
   assert.match(detailRender, /label:\s*['"]Transferir['"]/);
   assert.match(detailRender, /label:\s*['"]Aguardar['"]/);
-  assert.match(detailRender, /rawLabel\.indexOf\(['"]editar['"]\)[\s\S]{0,80}['"]Editar['"][\s\S]{0,80}['"]Ver['"]/);
+  assert.doesNotMatch(connectorRegion, /['"](?:Ver|Editar|Entregar|Done|Waiting|View|Edit)['"]/);
   assert.doesNotMatch(connectorSlice, /var\s+label\s*=\s*action\.label/);
   assert.doesNotMatch(connectorSlice, /action\.label\s*\|\|/);
 });
@@ -205,25 +209,44 @@ test('pedido-detail: pipeline nao renderiza textos longos da matriz nos conector
   assert.doesNotMatch(connectorSlice, /Insumos conclu[ií]dos/i);
   assert.doesNotMatch(connectorSlice, /Aguardando acabamento/i);
   assert.doesNotMatch(connectorSlice, /Transferir para acabamento/i);
+  assert.doesNotMatch(connectorSlice, /Liberar para expedi[cç][aã]o/i);
   assert.match(connectorSlice, /handlers\.openMovementModal\(stage\.transfer\)/,
     'Transferir pelo Pedido continua abrindo a operacao canonica quando permitido');
 });
 
 test('pedido-detail: conectores continuam como setas integradas, nao badges soltos', () => {
+  const connectorRegion = (detailRender.match(
+    /function isConnectorDoneAction\s*\(action\)\s*\{[\s\S]*?\n  function buildStepper/
+  ) || [''])[0];
   const connectorSlice = (detailRender.match(
     /function buildTransferButton\s*\(stage,\s*handlers\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
   ) || [''])[0];
+  assert.ok(connectorRegion, 'trecho dos helpers de conector nao encontrado');
   assert.ok(connectorSlice, 'trecho buildTransferButton nao encontrado');
   assert.match(detailRender, /function buildConnectorStyle/);
-  assert.match(detailRender, /clip-path:polygon\(0% 0%, 80% 0%, 100% 50%, 80% 100%, 0% 100%, 15% 50%\)/);
-  assert.match(detailRender, /width:96px;height:28px/,
+  assert.match(detailRender, /clip-path:polygon\(0 0, calc\(100% - 15px\) 0, 100% 50%, calc\(100% - 15px\) 100%, 0 100%, 13px 50%\)/);
+  assert.match(detailRender, /min-width:100px;height:30px/,
     'conector deve ter largura fixa suficiente para label curto');
   assert.match(connectorSlice, /buildConnectorStyle\(visual,\s*false\)/,
     'concluido/aguardando devem usar o mesmo formato de seta integrada');
   assert.match(connectorSlice, /buildConnectorStyle\(visual,\s*clickable\)/,
-    'ativo/view devem usar o mesmo formato de seta integrada');
+    'ativo deve usar o mesmo formato de seta integrada');
   assert.doesNotMatch(detailRender, /function buildPassiveConnector/);
   assert.doesNotMatch(detailRender, /border-radius:999px/);
+  assert.doesNotMatch(connectorRegion, /border:\s*1px solid/);
+});
+
+test('pedido-detail: somente Transferir cria botao e handler no conector', () => {
+  const connectorSlice = (detailRender.match(
+    /function buildTransferButton\s*\(stage,\s*handlers\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
+  ) || [''])[0];
+  assert.ok(connectorSlice, 'trecho buildTransferButton nao encontrado');
+  assert.match(connectorSlice, /visual\.state === ['"]done['"] \|\| visual\.state === ['"]waiting['"]/);
+  assert.match(connectorSlice, /window\.el\(['"]div['"][\s\S]*?buildConnectorStyle\(visual,\s*false\)/,
+    'Concluido/Aguardar devem ser elementos estaticos sem handler');
+  assert.match(connectorSlice, /window\.el\(['"]button['"][\s\S]*?handlers\.openMovementModal\(stage\.transfer\)/,
+    'Transferir deve continuar abrindo a operacao canonica existente');
+  assert.doesNotMatch(connectorSlice, /visual\.state === ['"]view['"]/);
 });
 
 test('pedido-chain-state: matriz preserva labels contextuais e gates funcionais', () => {
