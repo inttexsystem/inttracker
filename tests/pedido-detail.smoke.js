@@ -642,6 +642,15 @@ test('pedido-detail.js: openMovementModal mostra contexto pre-carregado esperado
   }
 });
 
+test('pedido-detail.js: modal usa resumo proprio para insumos e expedicao', () => {
+  assert.match(detailEvents, /function summarizeInsumos/);
+  assert.match(detailEvents, /function summarizeExpedicao/);
+  assert.match(detailEvents, /key === ['"]Insumos>Tecelagem['"][\s\S]{0,500}summarizeInsumos\(ctxMovement\)\.ordens/);
+  assert.match(detailEvents, /key === ['"]Expedicao>Entrega['"][\s\S]{0,500}state\.expedicaoItens/);
+  assert.match(detailEvents, /key === ['"]Insumos>Tecelagem['"][\s\S]{0,500}totalLabel:\s*ns\.fmtKg\(insumos\.pedido\)/);
+  assert.match(detailEvents, /key === ['"]Expedicao>Entrega['"][\s\S]{0,500}totalLabel:\s*ns\.fmtMetros\(expedicao\.liberado\)/);
+});
+
 test('pedido-detail.js: openMovementModal usa operacoes canonicas para movimentar pelo Pedido', () => {
   assert.ok(movementModalSlice, 'trecho de openMovementModal nao encontrado');
   assert.match(detailEvents, /window\.registrarRecebimentoOrdemFio/,

@@ -253,6 +253,30 @@
 
     function buildMovementItems(ctxMovement) {
       if (Array.isArray(ctxMovement.items) && ctxMovement.items.length) return ctxMovement.items;
+      var key = transitionKey(ctxMovement);
+      if (key === 'Insumos>Tecelagem') {
+        return summarizeInsumos(ctxMovement).ordens.map(function (ordem) {
+          var pedido = ns.toFiniteNumber(ordem.kg_pedido);
+          var recebido = ns.toFiniteNumber(ordem.kg_recebido);
+          var saldo = ns.round2(Math.max(pedido - recebido, 0));
+          var op = (state.ops || []).find(function (row) { return row.id === ordem.op_id; }) || null;
+          return {
+            label: window.rotuloFio ? window.rotuloFio(ordem) : ns.fmtTextoOuEmpty(ordem.tipo, 'Fio'),
+            meta: 'Saldo ' + ns.fmtKg(saldo) + (op ? ' - ' + ns.opLabel(op) : ''),
+          };
+        });
+      }
+      if (key === 'Expedicao>Entrega') {
+        return (state.expedicaoItens || []).map(function (item) {
+          var liberado = ns.toFiniteNumber(item.metros_liberados);
+          var entregue = ns.toFiniteNumber(item.metros_entregues);
+          var saldo = ns.round2(Math.max(liberado - entregue, 0));
+          return {
+            label: modelLabelByModeloId(item.modelo_id),
+            meta: 'Saldo ' + ns.fmtMetros(saldo) + ' de ' + ns.fmtMetros(liberado),
+          };
+        });
+      }
       if (!ctxMovement.op || !Array.isArray(ctxMovement.op.op_itens) || !ctxMovement.op.op_itens.length) return [];
 
       var uniquePedidoItemByModelo = resolveUniquePedidoItemByModelo();
@@ -269,6 +293,23 @@
 
     function buildMovementMetrics(ctxMovement) {
       if (ctxMovement.metrics) return ctxMovement.metrics;
+      var key = transitionKey(ctxMovement);
+      if (key === 'Insumos>Tecelagem') {
+        var insumos = summarizeInsumos(ctxMovement);
+        return {
+          totalLabel: ns.fmtKg(insumos.pedido),
+          movedLabel: ns.fmtKg(insumos.recebido),
+          remainingLabel: ns.fmtKg(insumos.saldo),
+        };
+      }
+      if (key === 'Expedicao>Entrega') {
+        var expedicao = summarizeExpedicao();
+        return {
+          totalLabel: ns.fmtMetros(expedicao.liberado),
+          movedLabel: ns.fmtMetros(expedicao.entregue),
+          remainingLabel: ns.fmtMetros(expedicao.saldo),
+        };
+      }
       if (!ctxMovement.op || !Array.isArray(ctxMovement.op.op_itens) || !ctxMovement.op.op_itens.length) {
         return {
           totalLabel: '-',
@@ -353,6 +394,41 @@
         return fornecedor && fornecedor.etapa === etapa;
       });
       return row ? row.fornecedor_id : null;
+    }
+
+    function summarizeInsumos(ctxMovement) {
+      var opIds = ctxMovement.op ? [ctxMovement.op.id] : (state.ops || [])
+        .filter(function (op) { return ns.stageKeyForOp(op) === 'tecelagem'; })
+        .map(function (op) { return op.id; });
+      var ordens = (state.ordensFio || []).filter(function (ordem) {
+        return opIds.indexOf(ordem.op_id) !== -1;
+      });
+      var pedido = ns.round2(ordens.reduce(function (acc, ordem) {
+        return acc + ns.toFiniteNumber(ordem.kg_pedido);
+      }, 0));
+      var recebido = ns.round2(ordens.reduce(function (acc, ordem) {
+        return acc + ns.toFiniteNumber(ordem.kg_recebido);
+      }, 0));
+      return {
+        ordens: ordens,
+        pedido: pedido,
+        recebido: recebido,
+        saldo: ns.round2(Math.max(pedido - recebido, 0)),
+      };
+    }
+
+    function summarizeExpedicao() {
+      var liberado = ns.round2((state.expedicaoItens || []).reduce(function (acc, item) {
+        return acc + ns.toFiniteNumber(item.metros_liberados);
+      }, 0));
+      var entregue = ns.round2((state.expedicaoItens || []).reduce(function (acc, item) {
+        return acc + ns.toFiniteNumber(item.metros_entregues);
+      }, 0));
+      return {
+        liberado: liberado,
+        entregue: entregue,
+        saldo: ns.round2(Math.max(liberado - entregue, 0)),
+      };
     }
 
     function findOpDestinoByEntregaId(entregaId) {
