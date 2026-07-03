@@ -3430,3 +3430,26 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 > `tests/pedido-novo.smoke.js` nao existe. Busca de seguranca para rota
 > fisica `/ops/nova` sem ocorrencias. Residual preservado fora do commit:
 > `?? supabase/.temp/`.
+
+> **Atualizacao 2026-07-03 - fase
+> `RAVATEX-TAPETES-LOGIN-STANDALONE-UI-B`.**
+> Tela real de login redesenhada em `js/screens/system-screens.js`,
+> usando o `Login-standalone.html` apenas como referencia visual: fundo
+> cinza claro, card central branco com borda/sombra sutil, marca Inttex,
+> titulo "Inttex OptiControl", subtitulo, campos E-mail/Senha com icones,
+> botao de mostrar/ocultar senha, link "Esqueceu a senha?", checkbox
+> visual "Lembrar-me neste dispositivo", botao "Entrar" e rodape
+> "© 2026 Inttex · Controle de Tapetes".
+> Auth preservado: submit continua chamando `window.login(email, senha)`,
+> sucesso segue com `window.toast('Login OK', 'success')` e
+> `window.routeAfterLogin()`, erro continua exibindo
+> "E-mail ou senha incorretos" e o loading/disabled do botao foi mantido.
+> Recuperacao de senha permanece placeholder controlado com toast
+> "Recuperação de senha ainda não configurada."; lembrar-me segue visual,
+> sem criar `localStorage` ou alterar persistencia de sessao.
+> Nao houve SQL, migration, RLS, alteracao de Supabase/auth client,
+> producao, Pedido, OP ou Expedicao.
+> Testes atualizados em `tests/system-screens.smoke.js` para cobrir titulo,
+> subtitulo, campos, botao Entrar, lembrar-me, esqueceu senha, submit,
+> erro, loading/disabled, toggle de senha e ausencia de chamadas Supabase
+> no modulo.

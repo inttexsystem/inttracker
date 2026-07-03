@@ -43,6 +43,7 @@ const vm     = require('node:vm');
 const ROOT   = path.resolve(__dirname, '..');
 const INDEX  = path.join(ROOT, 'index.html');
 const SYS    = path.join(ROOT, 'js', 'screens', 'system-screens.js');
+const BOOT   = path.join(ROOT, 'js', 'boot.js');
 const COMMON = path.join(ROOT, 'js', 'screens', 'common.js');
 const CAD    = path.join(ROOT, 'js', 'screens', 'cadastros.js');
 const OPS    = path.join(ROOT, 'js', 'screens', 'ops-list.js');
@@ -55,6 +56,7 @@ const ROUTER = path.join(ROOT, 'js', 'router.js');
 
 const indexSrc  = fs.readFileSync(INDEX,  'utf8');
 const sysSrc    = fs.readFileSync(SYS,    'utf8');
+const bootSrc   = fs.readFileSync(BOOT,   'utf8');
 const commonSrc = fs.readFileSync(COMMON, 'utf8');
 const cadSrc    = fs.readFileSync(CAD,    'utf8');
 const opsSrc    = fs.readFileSync(OPS,    'utf8');
@@ -74,12 +76,12 @@ function extractInlineScript(html) {
   const matches = [];
   let m;
   while ((m = re.exec(html)) !== null) matches.push(m[1]);
-  if (matches.length === 0) throw new Error('nenhum <script> inline encontrado');
+  if (matches.length === 0) return bootSrc;
   return matches.reduce((a, b) => (a.length >= b.length ? a : b));
 }
 
 function findScriptIdx(html, src) {
-  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}"\\s*></script>`);
+  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}(?:\\?[^"]*)?"\\s*></script>`);
   const m = re.exec(html);
   return m ? m.index : -1;
 }
@@ -106,13 +108,47 @@ class FakeNode {
     this.value = '';
   }
   appendChild(n) { this.children.push(n); return n; }
-  setAttribute(k, v) { this['_attr_' + k] = v; }
+  setAttribute(k, v) { this['_attr_' + k] = v; this[k] = v; }
   addEventListener(type, fn) { this._listeners[type] = fn; }
   removeEventListener(type) { delete this._listeners[type]; }
-  replaceChildren() { this.children = []; }
+  replaceChildren(...nodes) { this.children = nodes; }
   remove() { this._removed = true; }
-  get textContent() { return this._text != null ? this._text : ''; }
+  get textContent() {
+    if (this._text != null) return this._text;
+    return this.children.map((c) => c && c.textContent ? c.textContent : '').join('');
+  }
   set textContent(v) { this._text = v; }
+}
+
+function walk(node) {
+  const out = [];
+  function visit(n) {
+    if (!n) return;
+    out.push(n);
+    if (Array.isArray(n.children)) n.children.forEach(visit);
+  }
+  visit(node);
+  return out;
+}
+
+function firstByTag(root, tag) {
+  return walk(root).find((n) => n.tagName === tag.toUpperCase());
+}
+
+function allByTag(root, tag) {
+  return walk(root).filter((n) => n.tagName === tag.toUpperCase());
+}
+
+function byText(root, text) {
+  return walk(root).find((n) => n.textContent === text);
+}
+
+function inputByType(root, type) {
+  return allByTag(root, 'input').find((n) => n.type === type || n._attr_type === type);
+}
+
+function buttonByText(root, text) {
+  return allByTag(root, 'button').find((n) => n.textContent === text);
 }
 
 function makeSystemScreensSandbox() {
@@ -166,11 +202,11 @@ test('system-screens.js: sintaxe JS válida (node --check)', () => {
 });
 
 test('index.html carrega js/screens/system-screens.js EXATAMENTE UMA VEZ, sem type=module', () => {
-  const re = /<script\s+src="js\/screens\/system-screens\.js"\s*><\/script>/g;
+  const re = /<script\s+src="js\/screens\/system-screens\.js(?:\?[^"]*)?"\s*><\/script>/g;
   const matches = indexSrc.match(re) || [];
   assert.equal(matches.length, 1,
     `esperado 1 <script src="js/screens/system-screens.js">, encontrado ${matches.length}`);
-  assert.equal(/<script[^>]*src="js\/screens\/system-screens\.js"[^>]*type=/.test(indexSrc), false,
+  assert.equal(/<script[^>]*src="js\/screens\/system-screens\.js(?:\?[^"]*)?"[^>]*type=/.test(indexSrc), false,
     'system-screens.js está sendo carregado com type=module — deve ser script clássico');
 });
 
@@ -178,7 +214,8 @@ test('index.html: ordem auth → router → system-screens → inline', () => {
   const authIdx = findScriptIdx(indexSrc, 'js/auth.js');
   const routerIdx = findScriptIdx(indexSrc, 'js/router.js');
   const sysIdx = findScriptIdx(indexSrc, 'js/screens/system-screens.js');
-  const inlineIdx = firstInlineScriptIndex(indexSrc);
+  const bootIdx = findScriptIdx(indexSrc, 'js/boot.js');
+  const inlineIdx = bootIdx;
   assert.ok(authIdx > 0, 'js/auth.js não encontrado');
   assert.ok(routerIdx > 0, 'js/router.js não encontrado');
   assert.ok(sysIdx > 0, 'js/screens/system-screens.js não encontrado');
@@ -200,7 +237,7 @@ test('script inline NÃO contém mais screenLogin, screenNotFound, screenForbidd
 
 test('script inline ainda contém screenPainel, main e window.RAVATEX_ROUTER.setRoutes', () => {
   const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+screenPainel\s*\(/);
+  assert.match(inline, /window\.screenPainel/);
   assert.match(inline, /function\s+main\s*\(/);
   assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/);
 });
@@ -208,7 +245,7 @@ test('script inline ainda contém screenPainel, main e window.RAVATEX_ROUTER.set
 test('setRoutes ainda registra a rota #/login', () => {
   const inline = extractInlineScript(indexSrc);
   assert.ok(inline.includes(`'#/login'`), 'rota #/login não encontrada no setRoutes do inline');
-  assert.match(inline, /'#\/login':\s*\{\s*render:\s*screenLogin,\s*public:\s*true\s*\}/);
+  assert.match(inline, /'#\/login':\s*\{\s*render:\s*window\.screenLogin,\s*public:\s*true\s*\}/);
 });
 
 test('js/screens/system-screens.js não contém chamadas Supabase (supa.from/.insert/.update/.delete/.rpc)', () => {
@@ -256,9 +293,9 @@ test('runtime: screenLogin() retorna nó renderizável com form de login', () =>
   const { sandbox } = makeSystemScreensSandbox();
   const root = vm.runInContext('window.screenLogin()', sandbox);
   assert.ok(root && root.tagName === 'DIV', 'screenLogin não retornou um <div>');
-  const card = root.children[0];
-  assert.ok(card, 'card ausente');
-  const form = card.children.find((c) => c.tagName === 'FORM');
+  const card = walk(root).find((c) => c.className === 'login-card');
+  assert.ok(card, 'card de login ausente');
+  const form = firstByTag(root, 'form');
   assert.ok(form, 'form ausente dentro do card');
   assert.equal(typeof form._listeners.submit, 'function', 'form não tem listener de submit');
 });
@@ -279,12 +316,48 @@ test('runtime: screenForbidden() retorna nó renderizável com botão de ação'
   assert.ok(btn, 'botão ausente em screenForbidden');
 });
 
+test('runtime: login renderiza titulo, subtitulo e rodape', () => {
+  const { sandbox } = makeSystemScreensSandbox();
+  const root = vm.runInContext('window.screenLogin()', sandbox);
+  assert.ok(byText(root, 'Inttex OptiControl'), 'titulo do produto ausente');
+  assert.ok(byText(root, 'Entre com seu e-mail e senha'), 'subtitulo ausente');
+  assert.ok(byText(root, '© 2026 Inttex · Controle de Tapetes'), 'rodape ausente');
+});
+
+test('runtime: login renderiza campos E-mail e Senha com botao Entrar', () => {
+  const { sandbox } = makeSystemScreensSandbox();
+  const root = vm.runInContext('window.screenLogin()', sandbox);
+  assert.ok(byText(root, 'E-mail'), 'label E-mail ausente');
+  assert.ok(byText(root, 'Senha'), 'label Senha ausente');
+  assert.ok(inputByType(root, 'email'), 'input de e-mail ausente');
+  assert.ok(inputByType(root, 'password'), 'input de senha ausente');
+  assert.ok(buttonByText(root, 'Entrar'), 'botao Entrar ausente');
+});
+
+test('runtime: login renderiza lembrar-me e esqueceu a senha', () => {
+  const { sandbox } = makeSystemScreensSandbox();
+  const root = vm.runInContext('window.screenLogin()', sandbox);
+  assert.ok(byText(root, 'Lembrar-me neste dispositivo'), 'checkbox lembrar-me ausente');
+  assert.ok(inputByType(root, 'checkbox'), 'input checkbox ausente');
+  assert.ok(buttonByText(root, 'Esqueceu a senha?'), 'acao esqueceu a senha ausente');
+});
+
+test('runtime: esqueceu a senha mostra placeholder controlado', () => {
+  const { sandbox, calls } = makeSystemScreensSandbox();
+  const root = vm.runInContext('window.screenLogin()', sandbox);
+  const btn = buttonByText(root, 'Esqueceu a senha?');
+  btn._listeners.click();
+  assert.ok(calls.toast.some((t) =>
+    t.message === 'Recuperação de senha ainda não configurada.' && t.type === 'info'
+  ), 'placeholder de recuperacao nao foi exibido');
+});
+
 test('runtime: submit do login chama window.login(email, senha)', async () => {
   const { sandbox, calls } = makeSystemScreensSandbox();
   const root = vm.runInContext('window.screenLogin()', sandbox);
-  const card = root.children[0];
-  const form = card.children.find((c) => c.tagName === 'FORM');
-  const [emailInput, senhaInput] = form.children.filter((c) => c.tagName === 'INPUT');
+  const form = firstByTag(root, 'form');
+  const emailInput = inputByType(form, 'email');
+  const senhaInput = inputByType(form, 'password');
   emailInput.value = '  a@b.c  ';
   senhaInput.value = 'minhaSenha123';
   await form._listeners.submit({ preventDefault() {} });
@@ -296,9 +369,9 @@ test('runtime: submit do login chama window.login(email, senha)', async () => {
 test('runtime: login bem-sucedido chama window.toast("Login OK", "success") e window.routeAfterLogin()', async () => {
   const { sandbox, calls } = makeSystemScreensSandbox();
   const root = vm.runInContext('window.screenLogin()', sandbox);
-  const card = root.children[0];
-  const form = card.children.find((c) => c.tagName === 'FORM');
-  const [emailInput, senhaInput] = form.children.filter((c) => c.tagName === 'INPUT');
+  const form = firstByTag(root, 'form');
+  const emailInput = inputByType(form, 'email');
+  const senhaInput = inputByType(form, 'password');
   emailInput.value = 'a@b.c';
   senhaInput.value = 'segredo';
   await form._listeners.submit({ preventDefault() {} });
@@ -311,9 +384,9 @@ test('runtime: login com erro chama window.toast(erro) e NÃO chama routeAfterLo
   const { sandbox, calls } = makeSystemScreensSandbox();
   vm.runInContext('window.login = async () => { throw new Error("credenciais inválidas"); };', sandbox);
   const root = vm.runInContext('window.screenLogin()', sandbox);
-  const card = root.children[0];
-  const form = card.children.find((c) => c.tagName === 'FORM');
-  const [emailInput, senhaInput] = form.children.filter((c) => c.tagName === 'INPUT');
+  const form = firstByTag(root, 'form');
+  const emailInput = inputByType(form, 'email');
+  const senhaInput = inputByType(form, 'password');
   emailInput.value = 'a@b.c';
   senhaInput.value = 'errada';
   await form._listeners.submit({ preventDefault() {} });
@@ -336,6 +409,36 @@ test('runtime: screenForbidden chama window.routeAfterLogin() ao clicar no botã
   const btn = root.children.find((c) => c.tagName === 'BUTTON');
   btn._listeners.click();
   assert.equal(calls.routeAfterLogin, 1);
+});
+
+test('runtime: loading/disabled do botao Entrar e preservado durante login pendente', async () => {
+  const { sandbox } = makeSystemScreensSandbox();
+  vm.runInContext('window.__loginPromise = new Promise((resolve) => { window.__resolveLogin = resolve; }); window.login = async () => window.__loginPromise;', sandbox);
+  const resolveLogin = vm.runInContext('window.__resolveLogin', sandbox);
+  const root = vm.runInContext('window.screenLogin()', sandbox);
+  const form = firstByTag(root, 'form');
+  const btn = buttonByText(root, 'Entrar');
+  const pending = form._listeners.submit({ preventDefault() {} });
+  assert.equal(btn.disabled, true, 'botao Entrar nao ficou disabled durante loading');
+  assert.equal(btn.textContent, 'Entrando...', 'botao Entrar nao exibiu loading');
+  resolveLogin();
+  await pending;
+  assert.equal(btn.disabled, false, 'botao Entrar nao voltou do disabled');
+  assert.equal(btn.textContent, 'Entrar', 'botao Entrar nao restaurou label');
+});
+
+test('runtime: toggle de senha alterna password/text sem chamar login', () => {
+  const { sandbox, calls } = makeSystemScreensSandbox();
+  const root = vm.runInContext('window.screenLogin()', sandbox);
+  const senhaInput = inputByType(root, 'password');
+  const toggle = allByTag(root, 'button').find((b) => b['aria-label'] === 'Mostrar senha');
+  assert.ok(toggle, 'botao de mostrar senha ausente');
+  toggle._listeners.click();
+  assert.equal(senhaInput.type, 'text', 'senha nao alternou para text');
+  assert.equal(toggle['aria-label'], 'Ocultar senha');
+  toggle._listeners.click();
+  assert.equal(senhaInput.type, 'password', 'senha nao voltou para password');
+  assert.equal(calls.login.length, 0, 'toggle de senha nao deve chamar login');
 });
 
 // -----------------------------------------------------------------------------

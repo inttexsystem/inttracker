@@ -2474,3 +2474,38 @@ node --test tests/boot.smoke.js \
 - Nao alterado: lifecycle, `salvarEntregaCima`, `atualizarEntregaCima`,
   `excluirEntrega`, `gerar_op_latex`, Acabamento/Latex, SQL, Supabase,
   producao ou push.
+
+# Estado pos-fase - Login Standalone UI B
+
+- Fase concluida localmente:
+  `RAVATEX-TAPETES-LOGIN-STANDALONE-UI-B`.
+- Escopo fechado:
+  `js/screens/system-screens.js`, `tests/system-screens.smoke.js`,
+  `PROJECT_STATE.md`, `AGENT_HANDOFF.md`.
+- Login visual atualizado conforme referencia `Login-standalone.html`:
+  fundo cinza claro, card central branco, borda/sombra sutil, cantos
+  discretos, marca Inttex, titulo "Inttex OptiControl", subtitulo
+  "Entre com seu e-mail e senha", campos E-mail/Senha com icones, botao
+  de mostrar/ocultar senha, link "Esqueceu a senha?", checkbox
+  "Lembrar-me neste dispositivo", botao "Entrar" e rodape
+  "© 2026 Inttex · Controle de Tapetes".
+- Auth preservado:
+  submit continua chamando `window.login(emailInput.value.trim(),
+  senhaInput.value)`, sucesso continua exibindo toast "Login OK" e
+  chamando `window.routeAfterLogin()`, erro continua exibindo
+  "E-mail ou senha incorretos", e o loading/disabled do botao Entrar
+  foi mantido.
+- Recuperacao de senha:
+  continua placeholder controlado; clique em "Esqueceu a senha?" mostra
+  toast "Recuperação de senha ainda não configurada.". Nao foi
+  implementado reset de senha nesta fase.
+- Lembrar-me:
+  checkbox apenas visual; nao foi criado `localStorage` nem alterada
+  politica de sessao/persistencia do Supabase.
+- Nao mexer no auth client:
+  `js/auth.js`, `js/supabase-client.js`, Supabase config, RLS, SQL,
+  producao, Pedido, OP e Expedicao permaneceram fora do escopo.
+- Testes:
+  `tests/system-screens.smoke.js` cobre titulo/subtitulo, campos,
+  botao Entrar, lembrar-me, esqueceu senha, submit, erro, loading,
+  toggle de senha e ausencia de chamadas Supabase no modulo.
