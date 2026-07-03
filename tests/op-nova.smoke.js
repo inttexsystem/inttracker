@@ -1106,6 +1106,7 @@ test('50. Cadeia produtiva (lineage strip) aparece quando há OP de Acabamento g
       {
         id: 95, numero: 8, ano: 2026, status: 'aberta', tipo: 'latex',
         observacao: '', origem_op_id: 93, origem_entrega_id: 'ent-1', lote_id: null, lote: null,
+        op_latex_entregas: [{ entrega_id: 'ent-1' }],
         op_itens: [], op_fornecedores: [],
       },
     ],
@@ -1284,6 +1285,7 @@ test('67. Entregas tecelagem fica dentro do Card 5 Movimentacao e fora do Card 4
       {
         id: 95, numero: 8, ano: 2026, status: 'aberta', tipo: 'latex',
         observacao: '', origem_op_id: 93, origem_entrega_id: 'ent-1', lote_id: null, lote: null,
+        op_latex_entregas: [{ entrega_id: 'ent-1' }],
         op_itens: [], op_fornecedores: [],
       },
     ],
@@ -1307,8 +1309,14 @@ test('67. Entregas tecelagem fica dentro do Card 5 Movimentacao e fora do Card 4
   assert.match(card5Text, /Entregas tecelagem/i);
   assert.match(card5Text, /MODELO\s*PEDIDO\s*AJUSTADO\s*ENTREGUE\s*FALTA/i);
   assert.match(card5Text, /\+ Nova entrega/);
-  assert.match(card5Text, /Editar/);
-  assert.match(card5Text, /Excluir/);
+  // ent-1 está vinculada a uma OP Látex (op_latex_entregas): pela regra de
+  // consolidação (op-tecelagem-producao-admin.js), a entrega vira documento
+  // de origem — o card NÃO expõe Editar/Excluir e mantém o texto de bloqueio
+  // + o CTA "Ver OP de látex". O caminho editável (não vinculada) segue
+  // coberto pelo teste 44. Não reabrir edição/retificação aqui.
+  assert.doesNotMatch(card5Text, /Editar/);
+  assert.doesNotMatch(card5Text, /Excluir/);
+  assert.match(card5Text, /Entrega vinculada à OP de acabamento/i);
   assert.match(card5Text, /Ver OP de l/i);
 });
 
@@ -1334,10 +1342,11 @@ test('64. Bloco "5. Movimentacao" preserva historico detalhado sem totalizar def
   assert.doesNotMatch(card5Text, /70,00\s*m/);
 });
 
-test('65. reloadEntregasCima recarrega numero/ano da OP de latex para a cadeia produtiva', () => {
-  assert.match(opnSrc, /select\(['"]id,\s*numero,\s*ano,\s*status,\s*origem_entrega_id['"]\)/);
+test('65. reloadEntregasCima recarrega numero/ano da OP de latex (consolidado via op_latex_entregas)', () => {
+  assert.match(opnSrc, /select\(['"]id,\s*numero,\s*ano,\s*status,\s*op_latex_entregas\(entrega_id\)['"]\)/);
   assert.match(opnSrc, /latexOpInfo\s*=\s*\{\}/);
-  assert.match(opnSrc, /latexOpInfo\[lo\.origem_entrega_id\]\s*=\s*\{\s*id:\s*lo\.id,\s*numero:\s*lo\.numero,\s*ano:\s*lo\.ano,\s*status:\s*lo\.status\s*\}/);
+  // Mapeia cada entrega vinculada (N:1) -> mesma OP Látex consolidada.
+  assert.match(opnSrc, /latexOpInfo\[link\.entrega_id\]\s*=\s*\{\s*id:\s*lo\.id,\s*numero:\s*lo\.numero,\s*ano:\s*lo\.ano,\s*status:\s*lo\.status\s*\}/);
 });
 
 test('66. Nova OP com pedido_id UUID preserva string e mostra erro de pedido nao encontrado', () => {

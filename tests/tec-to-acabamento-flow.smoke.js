@@ -61,8 +61,15 @@ function makeHelperSandbox({ opLatexRow = null, entregaEtapa = 'cima', deleteRes
         },
         maybeSingle() {
           calls.push({ op: 'maybeSingle', table });
-          // Para tabelas ops/entregas no preflight, retorna o row configurado.
-          if (table === 'ops') return Promise.resolve({ data: opLatexRow, error: null });
+          // Preflight consolidado: op_latex_entregas embute a OP Látex.
+          if (table === 'op_latex_entregas') {
+            return Promise.resolve({
+              data: opLatexRow
+                ? { op_latex_id: opLatexRow.id, ops: Object.assign({ tipo: 'latex' }, opLatexRow) }
+                : null,
+              error: null,
+            });
+          }
           if (table === 'entregas') return Promise.resolve({ data: entregaEtapa ? { etapa: entregaEtapa } : null, error: null });
           return Promise.resolve({ data: null, error: null });
         },
@@ -127,9 +134,9 @@ test('D-B caso 2: atualizarEntregaCima com OP Latex vinculada retorna false e n�
   // Não deve ter feito update/delete/insert em entregas/entrega_itens.
   const writes = h.calls.filter(c => (c.op === 'update' || c.op === 'delete' || c.op === 'insert') && (c.table === 'entregas' || c.table === 'entrega_itens'));
   assert.equal(writes.length, 0, 'não deve ter feito update/delete/insert em entregas/entrega_itens');
-  // Deve ter feito o preflight (select em ops).
-  const preflight = h.calls.filter(c => c.op === 'maybeSingle' && c.table === 'ops');
-  assert.ok(preflight.length >= 1, 'deve ter consultado ops para o preflight');
+  // Deve ter feito o preflight (select em op_latex_entregas).
+  const preflight = h.calls.filter(c => c.op === 'maybeSingle' && c.table === 'op_latex_entregas');
+  assert.ok(preflight.length >= 1, 'deve ter consultado op_latex_entregas para o preflight');
   // Deve ter emitido toast de erro.
   const errs = h.getToasts().filter(t => t.type === 'error');
   assert.ok(errs.length >= 1, 'deve ter emitido toast de erro');
@@ -281,11 +288,13 @@ test('D-B caso 1 (estático): buildEntregaHistorico aplica gate latexOpPorEntreg
   assert.match(slice, /Ver OP de látex/, 'CTA Ver OP de látex deve permanecer');
 });
 
-test('D-B helper: entregaCimaTemOpLatex consulta ops por origem_entrega_id', () => {
-  // Asserção estática do preflight.
+test('helper: entregaCimaTemOpLatex consulta op_latex_entregas por entrega_id (consolidado)', () => {
+  // Asserção estática do preflight consolidado.
   assert.match(ewSrc, /async function entregaCimaTemOpLatex/);
-  assert.match(ewSrc, /eq\(\s*['"]tipo['"]\s*,\s*['"]latex['"]\s*\)/);
-  assert.match(ewSrc, /eq\(\s*['"]origem_entrega_id['"]/);
+  assert.match(ewSrc, /from\(\s*['"]op_latex_entregas['"]\s*\)/);
+  assert.match(ewSrc, /eq\(\s*['"]entrega_id['"]/);
+  // A OP Látex é resolvida via embed e filtrada por tipo='latex' em JS.
+  assert.match(ewSrc, /ops:op_latex_id/);
 });
 
 test('D-B helper: excluirEntrega só aplica gate quando etapa === cima', () => {

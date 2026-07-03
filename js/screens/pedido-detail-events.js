@@ -447,6 +447,17 @@
     }
 
     function findOpDestinoByEntregaId(entregaId) {
+      // Consolidação: a OP Látex de destino é resolvida pelo vínculo N:1
+      // op_latex_entregas (várias parciais -> mesma OP). Fallback legado
+      // por origem_entrega_id para dados anteriores à consolidação.
+      var link = (state.opLatexEntregas || []).find(function (row) {
+        return row && row.entrega_id === entregaId;
+      });
+      if (link) {
+        return (state.ops || []).find(function (op) {
+          return op && op.id === link.op_latex_id;
+        }) || null;
+      }
       return (state.ops || []).find(function (op) {
         return op && op.origem_entrega_id === entregaId;
       }) || null;

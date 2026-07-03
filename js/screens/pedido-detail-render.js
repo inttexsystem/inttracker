@@ -626,6 +626,10 @@
       style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:10px;',
     }, 'OPs vinculadas'));
 
+    // Fallback global APENAS quando a camada base de OPs falhou de fato
+    // (erro na consulta canônica de `ops`). Uma falha de enriquecimento
+    // (consolidação Látex) nunca deve chegar aqui — ela é tratada como
+    // aviso restrito abaixo, mantendo as OPs base visíveis.
     if (state.opsLoadError) {
       wrap.appendChild(window.el('div', {
         style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:18px 20px;font-size:14px;color:#b45309;',
@@ -650,6 +654,15 @@
         }, 'Gerar primeira OP')
       ));
       return wrap;
+    }
+
+    // Aviso restrito: a base de OPs carregou, mas o enriquecimento da
+    // consolidação Látex falhou (ex.: db/25 ainda não aplicada). As OPs
+    // continuam visíveis; só alguns detalhes de produção podem faltar.
+    if (state.opsEnrichError) {
+      wrap.appendChild(window.el('div', {
+        style: 'background:#fff;border:1px solid #f5e3c3;border-radius:4px;padding:10px 14px;font-size:12.5px;color:#b45309;margin-bottom:10px;',
+      }, 'Alguns detalhes de producao nao puderam ser carregados.'));
     }
 
     wrap.appendChild(window.el('div', {

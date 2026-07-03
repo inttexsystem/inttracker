@@ -1245,8 +1245,10 @@ test('50. runtime: atualizarEntregaCima happy path — update (com destino) + de
   assert.equal(updateEntregas.length, 1, '1 update entregas');
   assert.equal(deleteItens.length, 1, '1 delete entrega_itens');
   assert.equal(insertItens.length, 1, '1 insert entrega_itens');
-  assert.equal(eqEntregaId.length, 1);
-  assert.equal(eqEntregaId[0].val, 7);
+  // O preflight consolidado consulta op_latex_entregas por entrega_id
+  // (best-effort) além do delete de entrega_itens — ambos com entregaId=7.
+  assert.ok(eqEntregaId.length >= 1);
+  assert.ok(eqEntregaId.every(c => c.val === 7));
   assert.equal(rpcCalls.length, 0, 'atualizarEntregaCima NÃO chama rpc (só salvar)');
   // Conteúdo do update
   const updPayload = updateEntregas[0].args[0];

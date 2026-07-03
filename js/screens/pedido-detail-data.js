@@ -19,6 +19,7 @@
     state.parcialItens = [];
     state.entregaItens = [];
     state.entregasById = {};
+    state.opLatexEntregas = [];
     state.expedicoes = [];
     state.expedicaoItens = [];
     state.expedicaoMovimentos = [];
@@ -28,6 +29,7 @@
     state.modelosById = {};
     state.coresById = {};
     state.opsLoadError = false;
+    state.opsEnrichError = false;
     state.docsLoadError = false;
     state.expedicoesLoadError = false;
     state.partialItemLoadError = false;
@@ -236,6 +238,14 @@
     }
 
     var loteIds = state.lotes.map(function (lote) { return lote.id; });
+    // CAMADA BASE: OPs diretamente vinculadas ao Pedido (via lote). Esta
+    // consulta é a fonte canônica das "OPs vinculadas" e NÃO pode depender
+    // de DDL da consolidação Látex (db/25). Ela precisa carregar a OP
+    // Tecelagem aberta/preparação independentemente de recebimento, aceite,
+    // entrega ou acabamento. Por isso NÃO seleciona ops.destino_fornecedor_id
+    // (coluna adicionada por db/25): selecioná-la faria o PostgREST devolver
+    // erro em ambientes sem a migration aplicada, derrubando toda a lista
+    // base. Campos da consolidação Látex entram na camada de enriquecimento.
     var opsSelect = 'id, numero, ano, status, tipo, observacao, origem_op_id, origem_entrega_id, lote_id, op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa, fornecedores:fornecedor_id(id, nome))';
     var opsRes = await window.supa
       .from('ops')
@@ -255,6 +265,30 @@
     if (state.ops.length === 0) return null;
 
     var opIds = state.ops.map(function (op) { return op.id; });
+
+    // CAMADA DE ENRIQUECIMENTO (isolada da base): consolidação Látex,
+    // vínculo N entregas (cima) -> 1 OP Látex. Usado para resolver a OP
+    // Látex de origem de cada entrega parcial no histórico. Depende da
+    // tabela op_latex_entregas (db/25) que pode ainda não existir; se a
+    // leitura falhar, sinalizamos opsEnrichError e seguimos SEM apagar a
+    // lista base de OPs (Invariante 3: falha de enriquecimento não derruba
+    // o bloco). A base já foi carregada acima; aqui só agregamos detalhes.
+    var latexOpIds = state.ops
+      .filter(function (op) { return op.tipo === 'latex'; })
+      .map(function (op) { return op.id; });
+    if (latexOpIds.length > 0) {
+      var opLatexEntregasRes = await window.supa
+        .from('op_latex_entregas')
+        .select('op_latex_id, entrega_id')
+        .in('op_latex_id', latexOpIds);
+      if (opLatexEntregasRes.error) {
+        state.opLatexEntregas = [];
+        state.opsEnrichError = true;
+        console.error('pedido-detail: erro ao enriquecer op_latex_entregas (base preservada)', opLatexEntregasRes.error);
+      } else {
+        state.opLatexEntregas = opLatexEntregasRes.data || [];
+      }
+    }
 
     var entregaItensRes = await window.supa
       .from('entrega_itens')

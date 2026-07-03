@@ -177,6 +177,7 @@
       modelosById: {},
       coresById: {},
       opsLoadError: false,
+      opsEnrichError: false,
       docsLoadError: false,
       expedicoesLoadError: false,
       partialItemLoadError: false,
