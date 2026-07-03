@@ -2557,6 +2557,31 @@ node --test tests/boot.smoke.js \
   nenhum lifecycle de OP, nenhuma alteracao de `gerar_op_latex`,
   expedicao, auth/login ou push. Residual permitido preservado:
   `?? supabase/.temp/`.
+- Fase R2 concluida no codigo: `RAVATEX-TAPETES-PEDIDO-PROGRESS-CONNECTORS-R2`.
+- Escopo fechado: `js/screens/pedido-detail-render.js`,
+  `tests/pedido-detail.smoke.js`, `PROJECT_STATE.md`,
+  `AGENT_HANDOFF.md`.
+- Correcao sobre a R1: labels curtos preservados, mas a apresentacao
+  voltou a ser seta/chevron integrada entre etapas. Removido o helper
+  de linha/badge passivo; todos os estados usam `buildConnectorStyle`
+  com `clip-path` de chevron e largura fixa.
+- Estados visuais: `Concluído` discreto verde/neutral; `Transferir`
+  azul e clicavel quando o gate permite; `Aguardar` cinza/muted sem
+  clique; `Ver`/`Editar` curtos e integrados. Contexto completo segue
+  em `title`/`aria-label`.
+- Garantias preservadas: sem alteracao de `derivePedidoChainState`,
+  gates, operacao canonica, SQL, Supabase, producao, lifecycle ou
+  writes. `Transferir` pelo Pedido continua chamando
+  `openMovementModal(stage.transfer)` quando permitido.
+- Testes executados:
+  `node --check js/screens/pedido-detail-render.js` OK;
+  `node --check tests/pedido-detail.smoke.js` OK;
+  `node --test tests/pedido-detail.smoke.js` OK (55/55);
+  `node --test tests/boot.smoke.js` OK (29/29);
+  `node --test tests/router.smoke.js` OK (43/43; imprime o aviso
+  conhecido de sandbox sobre `window.addEventListener`, mas termina com
+  exit code 0 e todos os subtestes passam).
+
 # Estado pos-fase - Pedido Progress Connectors R1
 
 - Fase concluida no codigo: `RAVATEX-TAPETES-PEDIDO-PROGRESS-CONNECTORS-R1`.

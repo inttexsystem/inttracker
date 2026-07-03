@@ -1,4 +1,28 @@
 > **Atualizacao 2026-07-03 - fase
+> `RAVATEX-TAPETES-PEDIDO-PROGRESS-CONNECTORS-R2`.**
+> Correcao visual fina local, sem SQL/Supabase/producao e sem push: a
+> R1 acertou os labels curtos, mas simplificou demais o componente ao
+> trocar conectores por linha/badge. A R2 manteve a decisao de produto
+> dos labels curtos (`Concluído`, `Transferir`, `Aguardar`, `Ver`,
+> `Editar`) e restaurou a linguagem visual de seta/chevron integrada
+> entre etapas no bloco `Progresso produtivo`.
+>
+> O conector agora usa chevron de largura fixa para todos os estados,
+> evitando corte de texto sem virar pilula solta. Concluido usa tom
+> discreto verde/neutral; ativo permanece azul e clicavel com
+> `Transferir`; aguardando fica cinza/muted sem clique; view/edit usa
+> label curto integrado e continua abrindo o mesmo contexto quando
+> permitido. `derivePedidoChainState`, gates, operacao canonica,
+> lifecycle e writes permaneceram intocados.
+>
+> Testes: `node --check js/screens/pedido-detail-render.js` OK;
+> `node --check tests/pedido-detail.smoke.js` OK;
+> `node --test tests/pedido-detail.smoke.js` OK (55/55);
+> `node --test tests/boot.smoke.js` OK (29/29);
+> `node --test tests/router.smoke.js` OK (43/43, com o aviso conhecido
+> de sandbox sobre `window.addEventListener`, exit code 0).
+
+> **Atualizacao 2026-07-03 - fase
 > `RAVATEX-TAPETES-PEDIDO-PROGRESS-CONNECTORS-R1`.**
 > Patch visual/UX local, sem SQL/Supabase/producao e sem push: os
 > conectores do bloco `Progresso produtivo` no Pedido Admin deixaram de
