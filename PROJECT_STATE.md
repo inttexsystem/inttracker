@@ -1,3 +1,41 @@
+> **Atualizacao 2026-07-02 - fase
+> `RAVATEX-TAPETES-OP-PRODUCAO-STRUCTURE-CLOSEOUT-PUSH`.**
+> Fechamento estrutural coerente das telas de OP em producao antes do
+> push para staging. A OP Em Producao Tecelagem foi extraida de
+> `js/screens/op-nova.js` para `js/screens/op-tecelagem-producao-admin.js`;
+> `op-nova.js` fica responsavel por carregar dados e delegar
+> `status === 'em_producao' && tipo !== 'latex'` para
+> `window.renderOPTecelagemProducaoAdmin(ctx)`. `index.html` carrega o
+> novo modulo antes de `op-nova.js`. O renderer antigo inline em
+> `op-nova.js` foi removido: nao ha dois renderers operacionais
+> equivalentes para Tecelagem ativa.
+>
+> Correcoes de auditoria incluidas: bloco de movimentacao considera, na
+> ultima entrega, apenas itens sem defeito; `reloadEntregasCima`
+> recarrega `id, numero, ano, origem_entrega_id` das OPs de Latex para
+> atualizar a cadeia produtiva sem reload completo; acao "Movimentar"
+> da Tecelagem em producao so aparece quando existe card/ancora de
+> entregas disponivel. Ajustes de Acabamento/Latex ja presentes no
+> estado coerente atual permanecem cobertos por
+> `tests/op-latex-admin.smoke.js`, sem SQL/schema novo.
+>
+> Divida conhecida preservada para fase de lifecycle: o legado
+> `gerar_op_latex` ainda pode criar OP de Latex/Acabamento diretamente
+> em `em_producao`; a regra de produto correta exige gate de
+> entrada/recebimento no Acabamento antes de entrar em producao. Isso
+> nao foi mascarado na UI nem corrigido com schema nesta fase.
+>
+> Testes desta rodada: `node --check` em `op-tecelagem-producao-admin.js`,
+> `op-nova.js`, `op-latex-admin.js`, `tests/op-nova.smoke.js` e
+> `tests/op-latex-admin.smoke.js`; `node --test` em
+> `tests/op-nova.smoke.js`, `tests/op-latex-admin.smoke.js`,
+> `tests/boot.smoke.js`, `tests/router.smoke.js`,
+> `tests/op-recalculo.smoke.js` e `tests/painel-screen.smoke.js` OK.
+> `tests/router.smoke.js` e `tests/painel-screen.smoke.js` ainda
+> imprimem no console o erro esperado do sandbox sobre
+> `window.addEventListener`, mas terminam com exit code 0 e todos os
+> subtestes passam.
+
 > **Atualizacao 2026-07-01 - fase
 > `RAVATEX-TAPETES-OP-EM-PRODUCAO-ACABAMENTO-STANDALONE-B` (correcao
 > pos-implementacao — mesmo bug de icones/layout ja corrigido na

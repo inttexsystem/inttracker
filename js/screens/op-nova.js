@@ -11,10 +11,9 @@
 //      window.maxMetrosItem, window.itensValidosOP,
 //      window.registrarRecebimentoOrdemFio,
 //      window.atribuirFornecedorFioOp, window.renderOPLatexAdmin,
+//      window.renderOPTecelagemProducaoAdmin,
 //      window.rotuloModelo, window.fmtKg, window.fmtMetros,
-//      window.disabledAttr, window.rotuloFio, window.OCF_STATUS_LABEL,
-//      window.buildEntregaInlineForm, window.salvarEntregaCima,
-//      window.atualizarEntregaCima, window.excluirEntrega);
+//      window.disabledAttr, window.rotuloFio, window.OCF_STATUS_LABEL);
 //   - os helpers de UI vindos de js/ui.js e js/badges.js
 //     (el, toast, textInput, selectInput, modal, confirmDialog,
 //      shellLayout, ADMIN_MENU);
@@ -41,8 +40,9 @@
 //   inventar campos ou alterar schema.
 //
 // Carregar via <script src="js/screens/op-nova.js"></script> no
-// <head>, DEPOIS de js/screens/op-pdf.js + jspdf e ANTES de
-// script inline principal. O call-site do inline em setRoutes
+// <head>, DEPOIS de js/screens/op-pdf.js e de
+// js/screens/op-tecelagem-producao-admin.js, antes de
+// js/boot.js. O call-site do inline em setRoutes
 // (rota #/ops/nova) foi atualizado para window.screenNovaOP.
 //
 // O call-site dinâmico em js/router.js (rota #/ops/:id) já usava
@@ -439,11 +439,29 @@
   }
 
   function buildScreen() {
-    // OP Em Produção Tecelagem tem template operacional próprio
-    // (RAVATEX-TAPETES-OP-EM-PRODUCAO-TECELAGEM-STANDALONE-B), baseado no
-    // standalone PROD-OP-TECELAGEM — não é um incremento visual da tela de
-    // Nova OP/OP Aberta. Ver buildScreenProducaoTecelagem().
-    if (isOpEmProducaoTecelagem()) return buildScreenProducaoTecelagem();
+    // OP Em Producao Tecelagem tem modulo operacional proprio:
+    // js/screens/op-tecelagem-producao-admin.js.
+    if (isOpEmProducaoTecelagem()) {
+      return window.renderOPTecelagemProducaoAdmin({
+        op, numero, ano,
+        pedidoCtx,
+        itens,
+        opItensRaw,
+        modelosById,
+        forns,
+        fornSel,
+        ordens,
+        entregasCima,
+        latexOpPorEntrega,
+        latexOpInfo,
+        opEventos,
+        saldoFiosOp,
+        cimaFornecedorId,
+        latexOptions,
+        buildBlocoFios,
+        reloadEntregasCima,
+      });
+    }
 
     const wrap = el('div', {});
     wrap.appendChild(buildHeader());
@@ -791,120 +809,6 @@
     return box;
   }
 
-  function buildBlocoTecelagem() {
-    // Sem ícone: só usada pela tela Em Produção (buildScreenProducaoTecelagem),
-    // cujo template PROD-OP-TECELAGEM não usa ícone em nenhum dos 7 blocos.
-    const box = el('div', { style: CARD + 'padding:0;' });
-    box.appendChild(el('div', { style: 'display:flex;align-items:center;gap:10px;padding:20px 24px 16px;' },
-      el('span', { style: 'font-size:16px;font-weight:700;color:#16203a;' }, 'Entregas tecelagem')));
-
-    const todosItens = entregasCima.flatMap(e => (e.entrega_itens || []).filter(ei => ei.op_id === op.id));
-    const totalPorItem = totalEntregueCimaPorItem(todosItens);
-
-    // Colunas em px fixo (120px × 4) não encolhem — em larguras de janela
-    // estreitas a tabela pode ficar mais larga que o card. overflow-x:auto
-    // + min-width evita que a coluna FALTA fique cortada/escondida atrás
-    // da borda da página.
-    const tabela = el('div', { style: 'overflow-x:auto;' });
-    const tabelaInner = el('div', { style: 'min-width:600px;' });
-    tabelaInner.appendChild(thRow('1fr 120px 120px 120px 120px', ['MODELO', 'PEDIDO', 'AJUSTADO', 'ENTREGUE', 'FALTA']));
-    for (const i of opItensRaw) {
-      const ajustado = i.metros_ajustados == null ? Number(i.metros_pedidos) : Number(i.metros_ajustados);
-      const falta = Math.round((ajustado - (totalPorItem[i.id] || 0)) * 100) / 100;
-      // Excedente (entregue > ajustado) tem cor/rótulo próprio — mesmo
-      // tratamento visual do Card 2 (buildCardItensProducao), não fica
-      // escondido atrás de "✅ completo".
-      let faltaCor, faltaTxt;
-      if (falta > 0) { faltaCor = '#d6403a'; faltaTxt = window.fmtMetros(falta); }
-      else if (falta === 0) { faltaCor = '#18794a'; faltaTxt = '✅ completo'; }
-      else { faltaCor = '#c2610c'; faltaTxt = 'excedente ' + window.fmtMetros(-falta); }
-      tabelaInner.appendChild(gridRow('1fr 120px 120px 120px 120px', [
-        el('div', { style: 'font-size:13.5px;font-weight:500;color:#16203a;' }, window.rotuloModelo(modelosById[i.modelo_id])),
-        el('div', { style: 'font-size:13.5px;color:#3f4757;' }, window.fmtMetros(i.metros_pedidos)),
-        el('div', { style: 'font-size:13.5px;color:#3f4757;' }, i.metros_ajustados == null ? window.fmtMetros(i.metros_pedidos) : window.fmtMetros(i.metros_ajustados)),
-        el('div', { style: 'font-size:13.5px;color:#3f4757;' }, window.fmtMetros(totalPorItem[i.id] || 0)),
-        el('span', { style: 'font-size:13.5px;font-weight:600;color:' + faltaCor + ';' }, faltaTxt),
-      ]));
-    }
-    tabela.appendChild(tabelaInner);
-    box.appendChild(tabela);
-
-    if (op.status === 'em_producao') {
-      const formHolder = el('div', { style: 'padding:0 24px;' });
-      const btnNova = el('button', {
-        type: 'button', style: BTN_LINK + 'margin:14px 24px 0;',
-        onclick: () => {
-          const form = buildEntregaInlineForm({ opItens: opItensRaw, modelosById, latexOptions });
-          const btnSalvar = el('button', {
-            type: 'button', style: BTN_SOLID_SM + 'margin-right:8px;',
-            onclick: async () => {
-              btnSalvar.disabled = true;
-              const ok = await salvarEntregaCima({ fornecedorId: cimaFornecedorId, opId: op.id, payload: form.getPayload() });
-              btnSalvar.disabled = false;
-              if (ok) reloadEntregasCima();
-            },
-          }, 'Salvar entrega');
-          const btnCancelar = el('button', {
-            type: 'button', style: 'background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:8px 16px;font-weight:600;font-size:13px;font-family:inherit;cursor:pointer;',
-            onclick: () => { formHolder.replaceChildren(); btnNova.style.display = ''; },
-          }, 'Cancelar');
-          formHolder.replaceChildren(el('div', { style: 'padding:12px 0;' }, form.node, el('div', { style: 'margin-top:10px;' }, btnSalvar, btnCancelar)));
-          btnNova.style.display = 'none';
-        },
-      }, '+ Nova entrega');
-      box.appendChild(btnNova);
-      box.appendChild(formHolder);
-    }
-
-    box.appendChild(el('div', { style: 'padding:16px 24px 20px;' },
-      el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;margin-bottom:8px;' }, 'Histórico'),
-      entregasCima.length === 0
-        ? el('div', { style: 'font-size:13px;color:#aab2bf;' }, 'Nenhuma entrega registrada ainda.')
-        : el('div', {}, entregasCima.map(ent => {
-            const subcard = el('div', { style: 'border-bottom:1px solid #f1f3f6;padding:14px 0;' });
-            const itensRow = (ent.entrega_itens || []).filter(x => x.op_id === op.id).map(ei => {
-              const it = opItensRaw.find(i => i.id === ei.op_item_id);
-              const nome = it ? window.rotuloModelo(modelosById[it.modelo_id]) : '?';
-              return el('div', { style: 'font-size:13.5px;color:#3f4757;margin-top:3px;' },
-                nome + ': ' + window.fmtMetros(ei.metros_entregues),
-                ei.defeito ? el('span', { style: 'margin-left:8px;color:#d6403a;font-weight:600;font-size:12.5px;' }, '⚠ DEFEITO') : '',
-                ei.observacao ? el('span', { style: 'margin-left:8px;font-size:12px;color:#8a93a3;' }, '(' + ei.observacao + ')') : '',
-              );
-            });
-            subcard.appendChild(el('div', { style: 'display:flex;align-items:center;justify-content:space-between;' },
-              el('div', { style: 'font-size:14px;font-weight:600;color:#16203a;' },
-                new Date(ent.data + 'T00:00:00').toLocaleDateString('pt-BR'),
-                ' · ' + (ent.fornecedores?.nome || '?'),
-                ent.destino?.nome ? ' → látex: ' + ent.destino.nome : '',
-              ),
-              op.status === 'em_producao' ? el('div', { style: 'display:flex;align-items:center;gap:14px;' },
-                el('button', { type: 'button', style: BTN_LINK, onclick: () => abrirEdicaoAdmin(ent) }, 'Editar'),
-                el('button', { type: 'button', style: BTN_LINK + 'color:#d6403a;', onclick: () => excluirEntrega(ent.id, reloadEntregasCima) }, 'Excluir'),
-                latexOpPorEntrega[ent.id] ? el('button', { type: 'button', style: BTN_LINK + 'color:#c2610c;', onclick: () => navigate('#/ops/' + latexOpPorEntrega[ent.id]) }, 'Ver OP de látex') : '',
-              ) : '',
-            ));
-            if (ent.observacao) subcard.appendChild(el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:2px;' }, ent.observacao));
-            itensRow.forEach(n => subcard.appendChild(n));
-            return subcard;
-          })),
-    ));
-    return box;
-  }
-
-  function abrirEdicaoAdmin(entrega) {
-    const form = buildEntregaInlineForm({ opItens: opItensRaw, modelosById, entrega, latexOptions });
-    modal({
-      title: `Editar entrega — ${new Date(entrega.data + 'T00:00:00').toLocaleDateString('pt-BR')}`,
-      body: form.node,
-      saveLabel: 'Salvar alterações',
-      onSave: async () => {
-        const ok = await atualizarEntregaCima({ entregaId: entrega.id, opId: op.id, payload: form.getPayload() });
-        if (ok) reloadEntregasCima();
-        return ok;
-      },
-    });
-  }
-
   async function reloadEntregasCima() {
     const entRes = await supa.from('entregas')
       .select('id, fornecedor_id, data, observacao, destino_fornecedor_id, destino:destino_fornecedor_id(nome), fornecedores:fornecedor_id(nome), entrega_itens(id, op_id, op_item_id, metros_entregues, defeito, observacao)')
@@ -914,336 +818,15 @@
       .order('id', { ascending: false });
     if (entRes.error) { toast('Erro ao recarregar entregas', 'error'); console.error(entRes.error); return; }
     entregasCima = (entRes.data || []).filter(e => (e.entrega_itens || []).some(ei => ei.op_id === op.id));
-    const latexOpsRes = await supa.from('ops').select('id, origem_entrega_id').eq('tipo', 'latex').eq('origem_op_id', op.id);
+    const latexOpsRes = await supa.from('ops').select('id, numero, ano, origem_entrega_id').eq('tipo', 'latex').eq('origem_op_id', op.id);
     latexOpPorEntrega = {};
-    for (const lo of (latexOpsRes.data || [])) if (lo.origem_entrega_id) latexOpPorEntrega[lo.origem_entrega_id] = lo.id;
+    latexOpInfo = {};
+    for (const lo of (latexOpsRes.data || [])) {
+      if (!lo.origem_entrega_id) continue;
+      latexOpPorEntrega[lo.origem_entrega_id] = lo.id;
+      latexOpInfo[lo.origem_entrega_id] = { id: lo.id, numero: lo.numero, ano: lo.ano };
+    }
     render();
-  }
-
-  // =====================================================================
-  // === OP EM PRODUÇÃO TECELAGEM (template operacional PROD-OP) =========
-  // Fase: RAVATEX-TAPETES-OP-EM-PRODUCAO-TECELAGEM-STANDALONE-B.
-  // Template próprio para status === 'em_producao' && tipo !== 'latex',
-  // baseado no standalone "Admin - PROD-OP-TECELAGEM- standalone.html" —
-  // NÃO é o layout de preparação (buildHeader/buildCardDados/
-  // buildCardItens/buildRight) com badge a mais. Reaproveita apenas os
-  // helpers de escrita já existentes (buildBlocoFios para o card de
-  // insumos e buildBlocoTecelagem para o card de entregas), sem alterar
-  // nenhum write. "Movimentação"/"Documentos"/"Histórico" são blocos
-  // visuais controlados: sem gravação nova, sem RPC de transição de
-  // status, sem schema novo.
-  // =====================================================================
-
-  const BADGE_TECELAGEM = 'background:#f3effe;color:#7c3aed;border-radius:4px;padding:4px 11px;font-size:12.5px;font-weight:700;';
-  const BADGE_EM_PRODUCAO = 'display:inline-flex;align-items:center;gap:6px;background:#fff4e6;color:#c2610c;border-radius:4px;padding:4px 11px;font-size:12.5px;font-weight:700;';
-
-  function computeTotaisProducao() {
-    const todosItens = entregasCima.flatMap(e => (e.entrega_itens || []).filter(ei => ei.op_id === op.id));
-    const totalPorItem = totalEntregueCimaPorItem(todosItens);
-    let totalAjustado = 0, totalEntregue = 0;
-    for (const i of opItensRaw) {
-      const ajustado = i.metros_ajustados == null ? Number(i.metros_pedidos) : Number(i.metros_ajustados);
-      totalAjustado += ajustado;
-      totalEntregue += (totalPorItem[i.id] || 0);
-    }
-    totalAjustado = Math.round(totalAjustado * 100) / 100;
-    totalEntregue = Math.round(totalEntregue * 100) / 100;
-    const saldo = Math.round((totalAjustado - totalEntregue) * 100) / 100;
-    const pct = totalAjustado > 0 ? Math.round((totalEntregue / totalAjustado) * 1000) / 10 : 0;
-    // Tratamento visual de excedente: entrega acima do total ajustado
-    // (saldo negativo) é sinalizado, não escondido atrás de "completo".
-    const pctClamped = Math.max(0, Math.min(100, pct));
-    const excedente = saldo < 0;
-    return { totalPorItem, totalAjustado, totalEntregue, saldo, pct, pctClamped, excedente };
-  }
-
-  function buildBreadcrumbProducao() {
-    return el('div', { style: 'display:flex;align-items:center;justify-content:space-between;' },
-      el('div', { style: 'font-size:13.5px;color:#9aa2af;' },
-        'OPs ', el('span', { style: 'margin:0 6px;color:#d0d5dc;' }, '/'),
-        el('span', { style: 'color:#5b6472;font-weight:600;' }, `OP ${numero}/${ano}`)),
-      el('button', { type: 'button', style: BTN_BACK, onclick: () => navigate('#/ops') }, svgEl(SVG_BACK), 'Voltar'));
-  }
-
-  // Cadeia produtiva: mostra o link para a OP de Acabamento/Látex gerada
-  // por entrega parcial desta OP, quando existir. Leitura de dados já
-  // carregados (latexOpInfo, via query existente de ops tipo='latex'
-  // origem_op_id=op.id) — nenhuma query nova, nenhum write.
-  function buildLineageStripProducao() {
-    let destino = null;
-    for (const ent of entregasCima) {
-      if (latexOpInfo[ent.id]) { destino = latexOpInfo[ent.id]; break; }
-    }
-    if (!destino) return null;
-    return el('div', { style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#eaf1fd;border:1px solid #d7e6fb;border-radius:4px;padding:10px 16px;' },
-      el('span', { style: 'font-size:12.5px;color:#2c4a78;' }, 'Cadeia produtiva:'),
-      el('span', { style: 'font-size:12.5px;font-weight:700;color:#16203a;background:#fff;border-radius:4px;padding:3px 9px;' }, `OP ${numero}/${ano} · Tecelagem (esta OP)`),
-      el('button', {
-        type: 'button',
-        style: 'font-size:12.5px;font-weight:700;color:#2563eb;background:#fff;border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-family:inherit;',
-        onclick: () => navigate('#/ops/' + destino.id),
-      }, `OP ${destino.numero}/${destino.ano} · Acabamento (gerada por entrega parcial)`));
-  }
-
-  function buildHeaderProducao() {
-    const badgeTecelagem = el('span', { style: BADGE_TECELAGEM }, 'Tecelagem');
-    const badgeEmProducao = el('span', { style: BADGE_EM_PRODUCAO },
-      el('span', { style: 'width:6px;height:6px;border-radius:50%;background:#e07b39;' }), 'Em produção');
-
-    const titleRow = el('div', { style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;' },
-      el('h1', { style: 'margin:0;font-size:24px;font-weight:800;color:#16203a;letter-spacing:-.01em;' }, `OP ${numero}/${ano}`),
-      badgeTecelagem, badgeEmProducao);
-
-    const metaParts = [];
-    if (hasLinkedPedido()) metaParts.push(`Pedido Nº ${pedidoCtx.numero}`);
-    metaParts.push(resolveClienteNome());
-    if (op.lote) metaParts.push(`Lote Nº ${op.lote.numero}`);
-    if (op.criado_em) metaParts.push(`Aberta em ${fmtDateLabel(op.criado_em)}`);
-    const metaLine = el('div', { style: 'font-size:13px;color:#8a93a3;margin-top:6px;' }, metaParts.join(' · '));
-
-    const headerLeft = el('div', {}, titleRow, metaLine);
-
-    const acoes = [];
-    if (hasLinkedPedido()) {
-      acoes.push(el('button', {
-        type: 'button', style: BTN_BACK, onclick: () => navigate('#/pedidos/' + pedidoCtx.id),
-      }, svgEl(SVG_OPEN), 'Abrir Pedido'));
-    }
-    // Pausar/Concluir: sinais visuais previstos pelo template PROD-OP.
-    // Sem write — lifecycle Pausar/Concluir fica para fase própria com
-    // contrato de transição de status (não implementado aqui).
-    acoes.push(el('button', { type: 'button', style: BTN_BACK + 'opacity:.55;cursor:not-allowed;', disabled: true }, 'Pausar'));
-    acoes.push(el('a', { href: '#entregas-tecelagem-op', style: BTN_BACK + 'text-decoration:none;' }, 'Movimentar'));
-    acoes.push(el('button', { type: 'button', style: BTN_BACK + 'opacity:.55;cursor:not-allowed;', disabled: true }, 'Concluir'));
-    acoes.push(el('a', { href: '#documentos-op', style: BTN_BACK + 'text-decoration:none;' }, 'Documentos'));
-    acoes.push(el('a', { href: '#historico-op', style: BTN_BACK + 'text-decoration:none;' }, 'Histórico'));
-
-    return el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;' },
-      headerLeft,
-      el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;' }, acoes));
-  }
-
-  function campoProducao(label, valor) {
-    return el('div', {},
-      el('label', { style: 'display:block;font-size:12px;color:#9aa2af;margin-bottom:6px;' }, label),
-      el('div', { style: 'font-size:13.5px;color:#16203a;font-weight:600;' }, valor));
-  }
-
-  function buildCardDadosProducao() {
-    const fornecedorNome = (forns.find(f => f.id === fornSel.cima) || {}).nome || '—';
-    const itemVinculadoLabel = itens.length
-      ? `${itens.length} ${itens.length === 1 ? 'item' : 'itens'} (ver abaixo)`
-      : '—';
-
-    const campos = [
-      campoProducao('Cliente', resolveClienteNome()),
-      campoProducao('Lote', op.lote ? `Lote Nº ${op.lote.numero}` : '—'),
-      campoProducao('Etapa', 'Tecelagem'),
-      campoProducao('Fornecedor de tecelagem', fornecedorNome),
-    ];
-    if (hasLinkedPedido()) campos.push(campoProducao('Pedido vinculado', `Pedido Nº ${pedidoCtx.numero}`));
-    campos.push(campoProducao('Item do pedido vinculado', itemVinculadoLabel));
-
-    // 2 colunas, não 3: este card divide a largura com a coluna lateral de
-    // 320px (Resumo desta OP). Em 3 colunas, rótulos longos ("Fornecedor
-    // de tecelagem", "Item do pedido vinculado") quebravam em várias
-    // linhas e se sobrepunham visualmente em larguras de janela comuns
-    // (~800px) — confirmado visualmente via preview. Mesmo padrão de
-    // js/screens/op-latex-admin.js buildCardDados (grid-template-columns
-    // 1fr 1fr) para um card ao lado da mesma coluna lateral.
-    return el('div', { style: CARD + 'padding:16px 20px;' },
-      el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:14px;' }, '1. Dados da OP'),
-      el('div', { style: 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;' }, campos));
-  }
-
-  function buildResumoLateralProducao(totais) {
-    function linha(label, valor, cor) {
-      return el('div', { style: 'display:flex;justify-content:space-between;font-size:13px;color:#5b6472;' },
-        el('span', {}, label), el('span', { style: 'color:' + (cor || '#16203a') + ';font-weight:700;' }, valor));
-    }
-    const pctLabel = String(totais.pct).replace('.', ',');
-    const saldoCor = totais.excedente ? '#d6403a' : '#2563eb';
-    const barCor = totais.pct > 100 ? '#d6403a' : '#2563eb';
-    const pctTexto = totais.excedente
-      ? `${pctLabel}% entregue — acima do total ajustado desta OP (excedente).`
-      : `${pctLabel}% já entregue para a próxima etapa`;
-    return el('div', { style: CARD + 'padding:16px 20px;' },
-      el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;margin-bottom:12px;' }, 'Resumo desta OP'),
-      el('div', { style: 'display:flex;flex-direction:column;gap:9px;' },
-        linha('Total ajustado da OP', window.fmtMetros(totais.totalAjustado)),
-        linha('Entregue p/ acabamento', window.fmtMetros(totais.totalEntregue)),
-        linha('Saldo em tecelagem', window.fmtMetros(totais.saldo) + (totais.excedente ? ' (excedente)' : ''), saldoCor),
-      ),
-      el('div', { style: 'height:6px;border-radius:99px;background:#e2e5ea;overflow:hidden;margin:12px 0 6px;' },
-        el('div', { style: 'width:' + totais.pctClamped + '%;height:100%;background:' + barCor + ';' })),
-      el('div', { style: 'font-size:11.5px;color:#9aa2af;' }, pctTexto),
-    );
-  }
-
-  function buildCardItensProducao(totalPorItem) {
-    const card = el('div', { style: CARD + 'padding:16px 0 0;overflow:hidden;' },
-      el('div', { style: 'padding:0 20px 12px;font-size:15.5px;font-weight:700;color:#16203a;' }, '2. Itens da OP'));
-    card.appendChild(thRow('1.3fr .8fr .8fr .8fr .8fr 1.3fr', ['MODELO / CORES', 'PEDIDO', 'AJUSTADO', 'ENTREGUE', 'FALTA', 'ITEM DO PEDIDO']));
-    for (const i of opItensRaw) {
-      const ajustado = i.metros_ajustados == null ? Number(i.metros_pedidos) : Number(i.metros_ajustados);
-      const entregue = totalPorItem[i.id] || 0;
-      const falta = Math.round((ajustado - entregue) * 100) / 100;
-      const itemPedidoLabel = (hasLinkedPedido() && i.pedido_item_id) ? `Pedido Nº ${pedidoCtx.numero}` : '—';
-      // Excedente (entregue > ajustado, falta < 0) tem cor/rótulo próprio —
-      // não pode ficar escondido atrás de "✅ completo".
-      let faltaCor, faltaTxt;
-      if (falta > 0) { faltaCor = '#d6403a'; faltaTxt = window.fmtMetros(falta); }
-      else if (falta === 0) { faltaCor = '#18794a'; faltaTxt = '✅ completo'; }
-      else { faltaCor = '#c2610c'; faltaTxt = 'excedente ' + window.fmtMetros(-falta); }
-      card.appendChild(gridRow('1.3fr .8fr .8fr .8fr .8fr 1.3fr', [
-        el('div', { style: 'font-size:13.5px;font-weight:700;color:#16203a;' }, window.rotuloModelo(modelosById[i.modelo_id])),
-        el('div', { style: 'font-size:13.5px;color:#3f4757;font-weight:600;' }, window.fmtMetros(i.metros_pedidos)),
-        el('div', { style: 'font-size:13.5px;color:#3f4757;font-weight:600;' }, window.fmtMetros(ajustado)),
-        el('div', { style: 'font-size:13.5px;font-weight:700;color:' + (entregue > 0 ? '#18794a' : '#b6bdc8') + ';' }, window.fmtMetros(entregue)),
-        el('div', { style: 'font-size:13.5px;font-weight:700;color:' + faltaCor + ';' }, faltaTxt),
-        el('div', { style: 'font-size:12.5px;color:#2563eb;font-weight:600;' }, itemPedidoLabel),
-      ]));
-    }
-    return card;
-  }
-
-  // Bloco 4 (só Tecelagem): leitura read-only de saldo_fios_op (já
-  // gravada por window.aplicarRecalculoOP em op-recalculo.js — não
-  // alterado aqui) cruzada com ordens (já carregadas) para mostrar o
-  // consumo/sobra real de cada fio. Sem "fator proporcional" fabricado —
-  // só números que já temos gravados/lidos.
-  function buildBlocoCapacidadeAjuste(totais) {
-    const box = el('div', { style: CARD + 'padding:16px 20px;' },
-      el('div', { style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;' },
-        el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, '4. Capacidade e ajuste'),
-        el('span', { style: 'background:#eaf1fd;color:#2563eb;border-radius:4px;padding:4px 10px;font-size:11.5px;font-weight:700;' }, 'Ajustado')));
-
-    box.appendChild(el('div', { style: 'font-size:13px;color:#5b6472;margin-bottom:12px;line-height:1.5;' },
-      'Capacidade liberada para produção nesta OP: ',
-      el('strong', { style: 'color:#16203a;' }, window.fmtMetros(totais.totalAjustado)),
-      ', distribuída entre os itens acima conforme o fio efetivamente recebido.'));
-
-    if (!saldoFiosOp.length) {
-      box.appendChild(el('div', { style: 'font-size:13px;color:#aab2bf;' }, 'Sem dados de sobra de fio registrados para esta OP.'));
-      return box;
-    }
-
-    const linhas = el('div', { style: 'display:flex;flex-wrap:wrap;gap:16px;padding:12px 14px;background:#f8f9fb;border-radius:4px;' });
-    for (const row of saldoFiosOp) {
-      const ordemRef = ordens.find(o => o.tipo === row.tipo && (row.tipo === 'poliester' ? o.cor_poliester === row.cor_poliester : o.cor_id === row.cor_id));
-      const kgRecebido = ordemRef ? Number(ordemRef.kg_recebido) : null;
-      const kgSobra = Number(row.kg_sobra);
-      const label = window.rotuloFio(row);
-      const consumoTxt = kgRecebido != null
-        ? window.fmtKg(Math.round((kgRecebido - kgSobra) * 1000) / 1000) + ' / ' + window.fmtKg(kgRecebido)
-        : window.fmtKg(kgSobra);
-      linhas.appendChild(el('div', { style: 'font-size:12.5px;color:#3f4757;' },
-        label + ': ', el('strong', {}, consumoTxt),
-        kgRecebido != null ? el('span', { style: 'color:#18794a;' }, ' (sobra ' + window.fmtKg(kgSobra) + ')') : ''));
-    }
-    box.appendChild(linhas);
-    return box;
-  }
-
-  function buildBlocoMovimentacao(totais) {
-    const ultimaEntrega = entregasCima[0];
-    let historicoNode;
-    if (ultimaEntrega) {
-      const itensDaEntrega = (ultimaEntrega.entrega_itens || []).filter(ei => ei.op_id === op.id);
-      const totalEntregaMetros = Math.round(itensDaEntrega.reduce((acc, ei) => acc + Number(ei.metros_entregues || 0), 0) * 100) / 100;
-      const destinoTxt = ultimaEntrega.destino?.nome ? ' → ' + ultimaEntrega.destino.nome : '';
-      historicoNode = el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #f1f3f6;' },
-        el('div', {},
-          el('div', { style: 'font-size:13.5px;color:#16203a;font-weight:600;' }, window.fmtMetros(totalEntregaMetros) + destinoTxt),
-          el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-top:2px;' }, new Date(ultimaEntrega.data + 'T00:00:00').toLocaleDateString('pt-BR'))));
-    } else {
-      historicoNode = el('div', { style: 'font-size:13px;color:#aab2bf;padding:10px 0;border-top:1px solid #f1f3f6;' }, 'Nenhuma entrega registrada ainda.');
-    }
-    const disponivelCor = totais.excedente ? '#d6403a' : '#2563eb';
-
-    return el('div', { style: CARD + 'padding:16px 20px;' },
-      el('div', { style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;' },
-        el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, '5. Movimentação — enviar para acabamento'),
-        el('a', { href: '#entregas-tecelagem-op', style: BTN_SOLID_SM + 'text-decoration:none;' }, 'Transferir')),
-      // auto-fit + minmax (não repeat(3,...) fixo): este card divide a
-      // largura com a coluna de Documentos (320px) — em janelas estreitas,
-      // 3 colunas rígidas espremiam rótulo+valor de cada estatística a
-      // ponto de quebrar em várias linhas ilegíveis. Com auto-fit, as
-      // estatísticas reduzem para 2 ou 1 por linha conforme o espaço.
-      el('div', { style: 'display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px;margin-bottom:14px;' },
-        el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Disponível'), el('div', { style: 'font-size:16px;font-weight:800;color:' + disponivelCor + ';' }, window.fmtMetros(totais.saldo) + (totais.excedente ? ' (excedente)' : ''))),
-        el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Já enviado'), el('div', { style: 'font-size:16px;font-weight:800;color:#18794a;' }, window.fmtMetros(totais.totalEntregue))),
-        el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Total ajustado da OP'), el('div', { style: 'font-size:16px;font-weight:800;color:#16203a;' }, window.fmtMetros(totais.totalAjustado))),
-      ),
-      el('div', { style: 'font-size:12.5px;font-weight:700;color:#8a93a3;letter-spacing:.03em;margin-bottom:8px;' }, 'HISTÓRICO DE ENTREGAS'),
-      historicoNode);
-  }
-
-  function buildBlocoDocumentos() {
-    // Bloco controlado — sem schema/tabela/upload de documentos reais
-    // nesta fase (fica para fase própria). O rótulo "Aguardando
-    // integração" é deliberadamente neutro — não sugere um estado real
-    // de aprovação/pendência que a tela ainda não rastreia.
-    function linhaDoc(nome, isLast) {
-      return el('div', { style: 'display:flex;align-items:center;justify-content:space-between;padding:8px 0;' + (isLast ? '' : 'border-bottom:1px solid #f1f3f6;') },
-        el('span', { style: 'font-size:13px;color:#3f4757;' }, nome),
-        el('span', { style: 'background:#f1f3f6;color:#8a93a3;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;' }, 'Aguardando integração'));
-    }
-    return el('div', { id: 'documentos-op', style: CARD + 'padding:16px 20px;' },
-      el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:12px;' }, '6. Documentos da OP'),
-      linhaDoc('Romaneio', false),
-      linhaDoc('Nota fiscal de entrada', false),
-      linhaDoc('Nota fiscal de saída', true),
-      el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:12px;' }, 'Documentos da OP serão integrados em fase própria.'));
-  }
-
-  function buildBlocoHistorico() {
-    const box = el('div', { id: 'historico-op', style: CARD + 'padding:16px 20px;' },
-      el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:14px;' }, '7. Histórico'));
-    if (!opEventos.length) {
-      box.appendChild(el('div', { style: 'font-size:13px;color:#aab2bf;' }, 'Nenhum evento registrado para esta OP.'));
-      return box;
-    }
-    opEventos.forEach((ev, idx) => {
-      const linhaTxt = ev.tipo_evento === 'status_alterado'
-        ? `Status alterado: ${humanizeLabel(ev.status_anterior)} → ${humanizeLabel(ev.status_novo)}`
-        : humanizeLabel(ev.tipo_evento);
-      const isLast = idx === opEventos.length - 1;
-      const trilha = el('div', { style: 'display:flex;flex-direction:column;align-items:center;' },
-        el('div', { style: 'width:11px;height:11px;border-radius:50%;background:' + (idx === 0 ? '#2563eb' : '#cfd5de') + ';margin-top:4px;flex-shrink:0;' }),
-        isLast ? '' : el('div', { style: 'width:2px;flex:1;background:#eceef1;' }));
-      const conteudo = el('div', { style: 'padding-bottom:' + (isLast ? '0' : '16px') + ';' },
-        el('div', { style: 'font-size:12px;color:#9aa2af;' }, fmtDateLabel(ev.criado_em)),
-        el('div', { style: 'font-size:14px;font-weight:700;color:#16203a;margin-top:2px;' }, linhaTxt),
-        ev.observacao ? el('div', { style: 'font-size:13px;color:#7b8494;margin-top:1px;' }, ev.observacao) : '');
-      box.appendChild(el('div', { style: 'display:flex;gap:14px;' }, trilha, conteudo));
-    });
-    return box;
-  }
-
-  function buildScreenProducaoTecelagem() {
-    const totais = computeTotaisProducao();
-    const wrap = el('div', { style: 'display:flex;flex-direction:column;gap:14px;' });
-    wrap.appendChild(buildBreadcrumbProducao());
-    const lineage = buildLineageStripProducao();
-    if (lineage) wrap.appendChild(lineage);
-    wrap.appendChild(buildHeaderProducao());
-    wrap.appendChild(el('div', { style: 'display:grid;grid-template-columns:1fr 320px;gap:14px;align-items:start;' },
-      buildCardDadosProducao(), buildResumoLateralProducao(totais)));
-    wrap.appendChild(buildCardItensProducao(totais.totalPorItem));
-    wrap.appendChild(buildBlocoFios());
-    wrap.appendChild(buildBlocoCapacidadeAjuste(totais));
-    if (cimaFornecedorId) {
-      const cardEntregas = buildBlocoTecelagem();
-      cardEntregas.setAttribute('id', 'entregas-tecelagem-op');
-      wrap.appendChild(cardEntregas);
-      wrap.appendChild(el('div', { style: 'display:grid;grid-template-columns:1fr 320px;gap:14px;align-items:start;' },
-        buildBlocoMovimentacao(totais), buildBlocoDocumentos()));
-    } else {
-      wrap.appendChild(buildBlocoDocumentos());
-    }
-    wrap.appendChild(buildBlocoHistorico());
-    return wrap;
   }
 
   // Limite individual de metros de um item assumindo os demais em zero

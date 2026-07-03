@@ -68,6 +68,7 @@ const ROOT   = path.resolve(__dirname, '..');
 const INDEX  = path.join(ROOT, 'index.html');
 const OLA    = path.join(ROOT, 'js', 'screens', 'op-latex-admin.js');
 const OPN    = path.join(ROOT, 'js', 'screens', 'op-nova.js');
+const OPTP   = path.join(ROOT, 'js', 'screens', 'op-tecelagem-producao-admin.js');
 const OPW    = path.join(ROOT, 'js', 'screens', 'op-writes.js');
 const OFH    = path.join(ROOT, 'js', 'screens', 'op-form-helpers.js');
 const BOOT   = path.join(ROOT, 'js', 'boot.js');
@@ -87,6 +88,7 @@ const PAINEL = path.join(ROOT, 'js', 'screens', 'painel.js');
 const indexSrc  = fs.readFileSync(INDEX, 'utf8');
 const olaSrc    = fs.readFileSync(OLA,   'utf8');
 const opnSrc    = fs.readFileSync(OPN,   'utf8');
+const optpSrc   = fs.readFileSync(OPTP,  'utf8');
 const opwSrc    = fs.readFileSync(OPW,   'utf8');
 const ofhSrc    = fs.readFileSync(OFH,   'utf8');
 const bootSrc   = fs.readFileSync(BOOT,  'utf8');
@@ -769,7 +771,7 @@ test('34. OP de acabamento nao mostra "4. Entregas tecelagem"', async () => {
   assert.doesNotMatch(rendered.text, /4\.\s*Entregas tecelagem/i);
 });
 
-test('35. OP em producao de acabamento preserva o fluxo legado de recebimentos', async () => {
+test('35. OP em producao de acabamento segue o standalone e nao mostra recebimentos legados', async () => {
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
@@ -793,9 +795,11 @@ test('35. OP em producao de acabamento preserva o fluxo legado de recebimentos',
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
     origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
-  assert.match(rendered.text, /Recebimentos/i);
-  assert.match(rendered.text, /Novo recebimento/i);
-  assert.match(rendered.text, /Finalizar OP de l[áa]tex/i);
+  assert.match(rendered.text, /5\.\s*Movimenta/i);
+  assert.match(rendered.text, /Transferir/i);
+  assert.doesNotMatch(rendered.text, /Recebimentos/i);
+  assert.doesNotMatch(rendered.text, /Novo recebimento/i);
+  assert.doesNotMatch(rendered.text, /Finalizar OP de l[áa]tex/i);
 });
 
 test('36. OP aberta de acabamento informa que a producao permanece fora de escopo', async () => {
@@ -857,10 +861,11 @@ test('39. OP em producao de acabamento usa template operacional proprio', async 
 
   assert.match(olaSrc, /function\s+renderOPLatexProducao\s*\(/,
     'op-latex-admin.js deve ter renderer proprio para OP em producao de acabamento');
-  assert.match(rendered.text, /Em producao/i);
-  assert.match(rendered.text, /Acabamento\/Latex/i);
+  assert.match(rendered.text, /Em produ/i);
+  assert.match(rendered.text, /Acabamento/i);
+  assert.doesNotMatch(rendered.text, /Acabamento\/Latex/i);
   assert.match(rendered.text, /Cadeia produtiva/i);
-  assert.match(rendered.text, /Resumo operacional/i);
+  assert.match(rendered.text, /Resumo desta OP/i);
 });
 
 test('40. OP em producao de acabamento mostra todos os blocos operacionais esperados', async () => {
@@ -892,17 +897,19 @@ test('40. OP em producao de acabamento mostra todos os blocos operacionais esper
     /1\.\s*Dados da OP/i,
     /2\.\s*Itens da OP/i,
     /3\.\s*Material recebido da tecelagem/i,
-    /4\.\s*Recebimentos \/ acabamento/i,
-    /5\.\s*Finalizacao \/ liberar para proxima etapa/i,
+    /5\.\s*Movimenta/i,
     /6\.\s*Documentos da OP/i,
-    /7\.\s*Historico/i,
+    /7\.\s*Hist.rico/i,
   ]) {
     assert.match(rendered.text, label);
   }
-  assert.match(rendered.text, /Romaneio/i);
-  assert.match(rendered.text, /Nota fiscal de entrada/i);
-  assert.match(rendered.text, /Nota fiscal de saida/i);
-  assert.match(rendered.text, /Nenhum evento registrado para esta OP/i);
+  assert.match(rendered.text, /Transferir/i);
+  assert.match(rendered.text, /NF_INSUMOS_2026\.pdf/i);
+  assert.match(rendered.text, /ROMANEIO_OP-002-2026\.pdf/i);
+  assert.match(rendered.text, /Entrega parcial para Acabamento/i);
+  assert.match(rendered.text, /OP aberta/i);
+  assert.doesNotMatch(rendered.text, /4\.\s*Recebimentos \/ acabamento/i);
+  assert.doesNotMatch(rendered.text, /5\.\s*Finalizacao \/ liberar para proxima etapa/i);
 });
 
 test('41. OP em producao de acabamento mostra enviado, recebido, falta e excedente quando houver', async () => {
@@ -930,8 +937,9 @@ test('41. OP em producao de acabamento mostra enviado, recebido, falta e exceden
     origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
 
-  assert.match(rendered.text, /Enviado da tecelagem/i);
-  assert.match(rendered.text, /Recebido\/acabado/i);
+  assert.match(rendered.text, /Total ajustado da OP/i);
+  assert.match(rendered.text, /Finalizado \(pronto \+ entregue\)/i);
+  assert.match(rendered.text, /J[aá] liberado/i);
   assert.match(rendered.text, /Excedente/i);
   assert.match(rendered.text, /120,00 m/);
 });
@@ -955,6 +963,9 @@ test('42. OP em producao de acabamento nao mostra elementos de preparacao ou tec
   });
 
   assert.doesNotMatch(rendered.text, /4\.\s*Entregas tecelagem/i);
+  assert.doesNotMatch(rendered.text, /4\.\s*Recebimentos \/ acabamento/i);
+  assert.doesNotMatch(rendered.text, /Finalizar OP de latex/i);
+  assert.doesNotMatch(rendered.text, /Acabamento\/Latex/i);
   assert.doesNotMatch(rendered.text, /PDF de compra de fios/i);
   assert.doesNotMatch(rendered.text, /Colocar em producao/i);
   assert.doesNotMatch(rendered.text, /Transicao para producao sera implementada em fase propria/i);
@@ -968,11 +979,15 @@ test('43. nenhum schema, upload real ou lifecycle novo foi introduzido no modulo
   assert.doesNotMatch(olaSrc, /gerar_op_latex/);
 });
 
-test('44. OP em producao de tecelagem permanece no modulo op-nova', () => {
-  assert.match(opnSrc, /function\s+buildScreenProducaoTecelagem\s*\(/,
-    'render de producao de tecelagem deve continuar em op-nova.js');
-  assert.match(opnSrc, /buildBlocoTecelagem\s*\(/,
-    'bloco de entregas de tecelagem deve continuar no fluxo de tecelagem');
+test('44. OP em producao de tecelagem fica em modulo proprio, fora do acabamento', () => {
+  assert.doesNotMatch(opnSrc, /function\s+buildScreenProducaoTecelagem\s*\(/,
+    'render de producao de tecelagem nao deve voltar para op-nova.js');
+  assert.match(opnSrc, /window\.renderOPTecelagemProducaoAdmin\(/,
+    'op-nova.js deve apenas delegar o template operacional de tecelagem');
+  assert.match(optpSrc, /function\s+renderOPTecelagemProducaoAdmin\s*\(/,
+    'modulo dedicado de tecelagem em producao deve expor o renderer');
+  assert.match(optpSrc, /function\s+buildBlocoTecelagem\s*\(/,
+    'bloco de entregas de tecelagem deve ficar no modulo de tecelagem em producao');
   assert.match(opnSrc, /window\.renderOPLatexAdmin\(op\.id\)/,
     'call-site de OP latex deve continuar delegado ao modulo de latex');
 });
@@ -1004,7 +1019,7 @@ test('45. OP em producao de acabamento não tem nenhum ícone de seção (padrã
   assert.equal(temIconeSecao, false, 'nenhum dos 7 blocos do standalone PROD-OP-ACABAMENTO usa ícone no título — renderOPLatexProducao não pode ter herdado o ícone do template Nova OP/OP Aberta');
 });
 
-test('46. Card "1. Dados da OP" (Acabamento em produção) usa 1 coluna — 2 colunas quebrava rótulos longos em janelas estreitas', async () => {
+test('46. Card "1. Dados da OP" (Acabamento em produção) usa 3 colunas do standalone', async () => {
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42, numero: 8, ano: 2026, status: 'em_producao', tipo: 'latex',
@@ -1018,10 +1033,12 @@ test('46. Card "1. Dados da OP" (Acabamento em produção) usa 1 coluna — 2 co
   });
   const camposDados = findNode(rendered.view, (n) => {
     const style = typeof n.getAttribute === 'function' ? n.getAttribute('style') : null;
-    return !!style && /display:flex|display:grid/.test(style) && /^Cliente/.test(n.textContent || '');
+    return !!style && /grid-template-columns/.test(style) && /^Cliente/.test(n.textContent || '');
   });
   assert.ok(camposDados, 'esperado encontrar o container de campos do Card 1 (começa com "Cliente")');
   const style = camposDados.getAttribute('style');
+  assert.match(style, /grid-template-columns\s*:\s*repeat\(\s*3\s*,\s*minmax\(0,\s*1fr\)\s*\)/,
+    'Card 1 (Dados da OP) da OP Em Producao Acabamento deve seguir o standalone PROD-OP-ACABAMENTO, que usa 3 colunas e 6 campos');
   assert.doesNotMatch(style, /grid-template-columns\s*:\s*repeat\(\s*2/,
-    'Card 1 (Dados da OP) da OP Em Produção Acabamento não deve usar grid de 2 colunas — 8 campos com rótulos longos ("OP de tecelagem vinculada", "Fornecedor/acabador") quebravam e amontoavam linhas em larguras de janela comuns (~800px)');
+    'Card 1 (Dados da OP) da OP Em Producao Acabamento nao deve voltar ao grid intermediario de 2 colunas');
 });

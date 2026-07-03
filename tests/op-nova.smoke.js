@@ -35,8 +35,9 @@
 //      op-pdf.js em OP-NOVA-PDF-MODULE-A); chama
 //      window.gerarPdfCompraFios no call-site.
 //  14. op-nova.js contém buildProposta / recompute / onAceitar.
-//  15. op-nova.js contém buildBlocoFios / buildBlocoTecelagem /
-//      buildOrdemPendenteRow.
+//  15. op-nova.js mantém buildBlocoFios / buildOrdemPendenteRow e
+//      delega Tecelagem em produção para op-tecelagem-producao-admin.js
+//      (sem renderer operacional duplicado em op-nova.js).
 //
 // Call-sites de módulos extraídos (16-22):
 //  16. op-nova.js chama window.persistirOP.
@@ -142,6 +143,7 @@ const cp     = require('node:child_process');
 const ROOT  = path.resolve(__dirname, '..');
 const INDEX = path.join(ROOT, 'index.html');
 const OPN   = path.join(ROOT, 'js', 'screens', 'op-nova.js');
+const OPTP  = path.join(ROOT, 'js', 'screens', 'op-tecelagem-producao-admin.js');
 const OPPDF = path.join(ROOT, 'js', 'screens', 'op-pdf.js');
 const OPP   = path.join(ROOT, 'js', 'screens', 'op-persistir.js');
 const OPR   = path.join(ROOT, 'js', 'screens', 'op-recalculo.js');
@@ -163,6 +165,7 @@ const OPSLIST = path.join(ROOT, 'js', 'screens', 'ops-list.js');
 
 const indexSrc  = fs.readFileSync(INDEX, 'utf8');
 const opnSrc    = fs.readFileSync(OPN,   'utf8');
+const optpSrc   = fs.readFileSync(OPTP,  'utf8');
 const opPdfSrc  = fs.readFileSync(OPPDF, 'utf8');
 const oppSrc    = fs.readFileSync(OPP,   'utf8');
 const oprSrc    = fs.readFileSync(OPR,   'utf8');
@@ -294,16 +297,19 @@ test('4. index.html carrega op-nova.js EXATAMENTE UMA VEZ, sem type=module', () 
 test('5. index.html: ordem op-persistir.js → op-pdf.js → op-nova.js → jspdf → boot.js (último local antes de </head>)', () => {
   const oppIdx    = findScriptIdx(indexSrc, 'js/screens/op-persistir.js');
   const opPdfIdx  = findScriptIdx(indexSrc, 'js/screens/op-pdf.js');
+  const optpIdx   = findScriptIdx(indexSrc, 'js/screens/op-tecelagem-producao-admin.js');
   const opnIdx    = findScriptIdx(indexSrc, 'js/screens/op-nova.js');
   const jspdfIdx  = indexSrc.indexOf('cdnjs.cloudflare.com/ajax/libs/jspdf');
   const bootIdx   = findScriptIdx(indexSrc, 'js/boot.js');
   assert.ok(oppIdx > 0, 'op-persistir.js não encontrado');
   assert.ok(opPdfIdx > 0, 'op-pdf.js não encontrado (extraído de op-nova.js)');
+  assert.ok(optpIdx > 0, 'op-tecelagem-producao-admin.js nao encontrado');
   assert.ok(opnIdx > 0, 'op-nova.js não encontrado');
   assert.ok(jspdfIdx > 0, 'jspdf não encontrado');
   assert.ok(bootIdx > 0, 'js/boot.js não encontrado como último script local');
   assert.ok(oppIdx < opPdfIdx, 'op-persistir.js deve vir antes de op-pdf.js');
-  assert.ok(opPdfIdx < opnIdx, 'op-pdf.js deve vir antes de op-nova.js');
+  assert.ok(opPdfIdx < optpIdx, 'op-pdf.js deve vir antes de op-tecelagem-producao-admin.js');
+  assert.ok(optpIdx < opnIdx, 'op-tecelagem-producao-admin.js deve vir antes de op-nova.js');
   assert.ok(opnIdx < jspdfIdx, 'op-nova.js deve vir antes de jspdf');
   assert.ok(jspdfIdx < bootIdx, 'jspdf CDN deve vir antes de boot.js');
   assert.ok(bootIdx > jspdfIdx, 'boot.js deve ser o último script local');
@@ -398,6 +404,7 @@ function makeOpNovaBootSandbox() {
   vm.runInContext(oprSrc,    sandbox, { filename: 'js/screens/op-recalculo.js' });
   vm.runInContext(oppSrc,    sandbox, { filename: 'js/screens/op-persistir.js' });
   vm.runInContext(opPdfSrc,  sandbox, { filename: 'js/screens/op-pdf.js' });
+  vm.runInContext(optpSrc,   sandbox, { filename: 'js/screens/op-tecelagem-producao-admin.js' });
   vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
@@ -434,12 +441,14 @@ test('14. op-nova.js contém buildProposta / recompute / onAceitar', () => {
   assert.match(opnSrc, /function\s+onAceitar\s*\(/);
 });
 
-test('15. op-nova.js contém buildBlocoFios / buildBlocoTecelagem / buildOrdemPendenteRow', () => {
+test('15. op-nova.js mantem preparacao e delega Tecelagem em producao para modulo proprio', () => {
   assert.match(opnSrc, /function\s+buildBlocoFios\s*\(/);
-  assert.match(opnSrc, /function\s+buildBlocoTecelagem\s*\(/);
   assert.match(opnSrc, /function\s+buildOrdemPendenteRow\s*\(/);
+  assert.doesNotMatch(opnSrc, /function\s+buildBlocoTecelagem\s*\(/);
+  assert.match(opnSrc, /window\.renderOPTecelagemProducaoAdmin\(/);
+  assert.match(optpSrc, /function\s+buildBlocoTecelagem\s*\(/);
+  assert.match(optpSrc, /function\s+renderOPTecelagemProducaoAdmin\s*\(/);
 });
-
 // -------------------------------------------------------------------------
 // 3. Call-sites de módulos extraídos
 // -------------------------------------------------------------------------
@@ -719,6 +728,7 @@ function makeRenderSandbox(db) {
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   vm.runInContext(efSrc, sandbox, { filename: 'js/screens/entrega-form.js' });
   vm.runInContext(ofhSrc, sandbox, { filename: 'js/screens/op-form-helpers.js' });
+  vm.runInContext(optpSrc, sandbox, { filename: 'js/screens/op-tecelagem-producao-admin.js' });
   vm.runInContext(opnSrc, sandbox, { filename: 'js/screens/op-nova.js' });
 
   sandbox.ADMIN_MENU = sandbox.ADMIN_MENU || [];
@@ -1000,9 +1010,9 @@ test('44. OP Em Produção Tecelagem preserva o fluxo de entrega existente (+ No
   assert.match(rendered.text, /Excluir/);
   // Os identificadores de write existentes continuam apenas onde já
   // existiam (buildBlocoTecelagem, reaproveitado sem alteração).
-  assert.match(opnSrc, /salvarEntregaCima/);
-  assert.match(opnSrc, /atualizarEntregaCima/);
-  assert.match(opnSrc, /excluirEntrega/);
+  assert.match(optpSrc, /salvarEntregaCima/);
+  assert.match(optpSrc, /atualizarEntregaCima/);
+  assert.match(optpSrc, /excluirEntrega/);
 });
 
 test('45. Bloco 7 (Histórico) cai no fallback controlado quando não há op_eventos', async () => {
@@ -1210,4 +1220,28 @@ test('63. OP Aberta Tecelagem continua com o ícone do Card 3 (ajuste é condici
   const temIconeSecao = rendered.styles.some((s) => /width:34px;height:34px;border-radius:6px;background:#eaf1fd/.test(s));
   assert.equal(temIconeSecao, true, 'OP Aberta deve manter o ícone do Card 3 — o ajuste do standalone PROD-OP é condicional só para em_producao');
   assert.match(rendered.text, /3\.\s*Recebimento de fios/i);
+});
+
+test('64. Bloco "5. Movimentacao" mostra na ultima entrega so metros sem defeito', async () => {
+  const db = buildOpEmProducaoTecelagemFixture({
+    entregas: [
+      {
+        id: 'ent-1', fornecedor_id: 701, etapa: 'cima', data: '2026-06-30', observacao: '',
+        destino_fornecedor_id: 704, destino: { nome: 'Latex Base' }, fornecedores: { nome: 'Tecelagem Sul' },
+        entrega_itens: [
+          { id: 'ei-1', op_id: 93, op_item_id: 3, metros_entregues: 50, defeito: false, observacao: '' },
+          { id: 'ei-2', op_id: 93, op_item_id: 3, metros_entregues: 20, defeito: true, observacao: 'defeito' },
+        ],
+      },
+    ],
+  });
+  const rendered = await renderNovaOpForTest({ opId: 93, db });
+  assert.match(rendered.text, /50,00\s*m\s*→\s*Latex Base/);
+  assert.doesNotMatch(rendered.text, /70,00\s*m\s*→\s*Latex Base/);
+});
+
+test('65. reloadEntregasCima recarrega numero/ano da OP de latex para a cadeia produtiva', () => {
+  assert.match(opnSrc, /select\(['"]id,\s*numero,\s*ano,\s*origem_entrega_id['"]\)/);
+  assert.match(opnSrc, /latexOpInfo\s*=\s*\{\}/);
+  assert.match(opnSrc, /latexOpInfo\[lo\.origem_entrega_id\]\s*=\s*\{\s*id:\s*lo\.id,\s*numero:\s*lo\.numero,\s*ano:\s*lo\.ano\s*\}/);
 });

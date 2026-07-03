@@ -2283,3 +2283,54 @@ node --test tests/boot.smoke.js \
   lifecycle Pausar/Concluir;
   expedicao/cliente como etapa operacional apenas quando houver backend
   ou fonte real.
+# Estado pos-fase - OP Producao Structure Closeout Push
+
+- Fase: `RAVATEX-TAPETES-OP-PRODUCAO-STRUCTURE-CLOSEOUT-PUSH`.
+- Branch alvo: `work/app-next`.
+- Escopo fechado:
+  `js/screens/op-tecelagem-producao-admin.js`,
+  `js/screens/op-nova.js`,
+  `js/screens/op-latex-admin.js`,
+  `index.html`,
+  `tests/op-nova.smoke.js`,
+  `tests/op-latex-admin.smoke.js`,
+  `PROJECT_STATE.md`,
+  `AGENT_HANDOFF.md`.
+- Decisao estrutural:
+  OP Em Producao Tecelagem tem renderer ativo dedicado em
+  `js/screens/op-tecelagem-producao-admin.js`.
+  `js/screens/op-nova.js` nao carrega mais o renderer operacional antigo;
+  ele so prepara contexto e delega para
+  `window.renderOPTecelagemProducaoAdmin(ctx)` quando
+  `status === 'em_producao' && tipo !== 'latex'`.
+  `index.html` carrega o modulo dedicado antes de `op-nova.js`.
+- Correcoes de auditoria:
+  movimentacao da ultima entrega ignora itens com defeito;
+  `reloadEntregasCima` recarrega numero/ano das OPs de Latex para a
+  cadeia produtiva sem reload completo;
+  acao "Movimentar" da Tecelagem em producao nao fica como link morto
+  quando nao ha fornecedor/card de entregas.
+- Acabamento/Latex:
+  ajustes pendentes ja presentes no estado coerente atual foram
+  mantidos e cobertos por `tests/op-latex-admin.smoke.js`;
+  nao houve SQL/schema/Supabase.
+- Divida conhecida:
+  fluxo legado `gerar_op_latex` ainda pode criar OP de
+  Latex/Acabamento direto em `em_producao`. Produto correto exige:
+  transferencia da Tecelagem abre/vincula OP Acabamento aguardando
+  entrada; Acabamento confirma recebimento; so depois entra em
+  producao. Tratar em fase propria de lifecycle, nao por mascara de UI.
+- Testes executados nesta rodada:
+  `node --check js/screens/op-tecelagem-producao-admin.js`;
+  `node --check js/screens/op-nova.js`;
+  `node --check js/screens/op-latex-admin.js`;
+  `node --check tests/op-nova.smoke.js`;
+  `node --check tests/op-latex-admin.smoke.js`;
+  `node --test tests/op-nova.smoke.js`;
+  `node --test tests/op-latex-admin.smoke.js`;
+  `node --test tests/boot.smoke.js`;
+  `node --test tests/router.smoke.js`;
+  `node --test tests/op-recalculo.smoke.js`;
+  `node --test tests/painel-screen.smoke.js`.
+  Todos OK. `router` e `painel-screen` imprimem mensagens esperadas do
+  sandbox sobre `window.addEventListener`, mas passam com exit code 0.
