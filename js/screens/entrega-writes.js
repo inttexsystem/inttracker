@@ -72,6 +72,39 @@
   }
 
   // -------------------------------------------------------------------
+  // D-C-C: detecção de erro do trigger server-side
+  // `entrega_cima_latex_guard` (em entregas) e
+  // `entrega_itens_cima_latex_guard` (em entrega_itens) — ver
+  // db/24_tec_to_acabamento_guard.sql. Quando o app tenta editar/
+  // excluir uma entrega cima já vinculada a OP de Látex, o PostgREST
+  // retorna um erro com code P0001 e a mensagem do trigger em
+  // error.message / error.details / error.hint. Esta função detecta
+  // esse padrão e devolve true para que o callsite mostre um toast
+  // amigável em vez de vazar a mensagem técnica do Postgres.
+  // Não classifica erros genéricos como sendo do guard.
+  var GUARD_UPDATE_MSG = 'Esta entrega já gerou OP de acabamento e não pode ser alterada. Abra a OP de acabamento ou use uma retificação autorizada.';
+  var GUARD_DELETE_MSG = 'Esta entrega já gerou OP de acabamento e não pode ser excluída. Abra a OP de acabamento ou use uma retificação autorizada.';
+
+  function isEntregaLatexGuardError(err) {
+    if (!err) return false;
+    var parts = [];
+    if (typeof err.message === 'string') parts.push(err.message);
+    if (typeof err.details === 'string') parts.push(err.details);
+    if (typeof err.hint === 'string') parts.push(err.hint);
+    if (typeof err.code === 'string') parts.push(err.code);
+    if (parts.length === 0) return false;
+    var blob = parts.join(' \u0001 ').toLowerCase();
+    // Marcadores suficientes para identificar a mensagem do trigger
+    // (PostgREST prefixa o message com "P0001:" e pode quebrar a
+    // frase original em message/details; checamos ambos os ramos
+    // do trigger para tolerar variações de formato).
+    var isGuardCode = /p0001/.test(blob);
+    var isGuardText = blob.indexOf('tecelagem vinculada a op de acabamento') !== -1
+      || blob.indexOf('retifica') !== -1 && blob.indexOf('autorizada') !== -1;
+    return isGuardText || (isGuardCode && blob.indexOf('tecelagem') !== -1);
+  }
+
+  // -------------------------------------------------------------------
   // Excluir entrega: usa o padrao de callback do confirmDialog (que so dispara
   // onConfirm em caso afirmativo). onSuccess() roda apos delete bem-sucedido.
   async function excluirEntrega(entregaId, onSuccess) {
@@ -91,7 +124,14 @@
       confirmLabel: 'Excluir',
       onConfirm: async () => {
         const r = await window.supa.from('entregas').delete().eq('id', entregaId);
-        if (r.error) { window.toast('Erro ao excluir entrega', 'error'); console.error(r.error); return; }
+        if (r.error) {
+          if (isEntregaLatexGuardError(r.error)) {
+            window.toast(GUARD_DELETE_MSG, 'error');
+            console.error('entrega-writes: trigger entrega_cima_latex_guard', r.error);
+            return;
+          }
+          window.toast('Erro ao excluir entrega', 'error'); console.error(r.error); return;
+        }
         window.toast('Entrega excluída', 'success');
         if (onSuccess) onSuccess();
       },
@@ -185,13 +225,32 @@
       data: payload.data, observacao: payload.observacao,
       destino_fornecedor_id: payload.destino_fornecedor_id,
     }).eq('id', entregaId);
-    if (upd.error) { window.toast('Erro ao atualizar entrega', 'error'); console.error(upd.error); return false; }
-    await window.supa.from('entrega_itens').delete().eq('entrega_id', entregaId);
+    if (upd.error) {
+      if (isEntregaLatexGuardError(upd.error)) {
+        window.toast(GUARD_UPDATE_MSG, 'error');
+        console.error('entrega-writes: trigger entrega_cima_latex_guard', upd.error);
+        return false;
+      }
+      window.toast('Erro ao atualizar entrega', 'error'); console.error(upd.error); return false;
+    }
+    const delItens = await window.supa.from('entrega_itens').delete().eq('entrega_id', entregaId);
+    if (delItens && delItens.error && isEntregaLatexGuardError(delItens.error)) {
+      window.toast(GUARD_UPDATE_MSG, 'error');
+      console.error('entrega-writes: trigger entrega_itens_cima_latex_guard', delItens.error);
+      return false;
+    }
     const itens = payload.linhas.map(l => ({ entrega_id: entregaId, op_id: opId, ...l }));
     const insItens = await window.supa.from('entrega_itens').insert(itens);
     // MVP: se a reinsercao falhar aqui, a entrega fica sem itens. Como o app eh
     // single-admin e baixo volume, aceitamos o risco e a correcao manual via Supabase.
-    if (insItens.error) { window.toast('Erro ao regravar itens da entrega', 'error'); console.error(insItens.error); return false; }
+    if (insItens.error) {
+      if (isEntregaLatexGuardError(insItens.error)) {
+        window.toast(GUARD_UPDATE_MSG, 'error');
+        console.error('entrega-writes: trigger entrega_itens_cima_latex_guard', insItens.error);
+        return false;
+      }
+      window.toast('Erro ao regravar itens da entrega', 'error'); console.error(insItens.error); return false;
+    }
     window.toast('Entrega atualizada', 'success');
     return true;
   }

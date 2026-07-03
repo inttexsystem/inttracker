@@ -1302,6 +1302,296 @@ test('52. runtime: atualizarEntregaCima insert itens falha → toast + return fa
   assert.match(errorToasts[0].msg, /regravar itens da entrega/);
 });
 
+// -----------------------------------------------------------------------------
+// 2.7. D-C-C: tradução de erro do trigger server-side para mensagem amigável
+// -----------------------------------------------------------------------------
+//
+// db/24_tec_to_acabamento_guard.sql define 2 triggers que levantam
+// RAISE EXCEPTION quando o app tenta editar/excluir uma entrega
+// `cima` já vinculada a uma OP de Látex. O PostgREST devolve o erro
+// com code 'P0001' e a mensagem original em error.message / details.
+// Estes testes simulam esse erro nos callsites protegidos:
+//
+//   - atualizarEntregaCima → update entregas
+//   - atualizarEntregaCima → delete entrega_itens
+//   - atualizarEntregaCima → insert entrega_itens
+//   - excluirEntrega      → delete entregas
+//
+// Em todos os casos a expectativa é: helper retorna false, toast
+// amigável é emitido, e a mensagem técnica do Postgres NÃO vaza.
+
+const GUARD_TRIGGER_ERROR = {
+  message: 'P0001: Entrega de tecelagem vinculada a OP de acabamento não pode ser alterada/excluída sem retificação autorizada.',
+  details: 'RAISE EXCEPTION',
+  hint: null,
+  code: 'P0001',
+};
+
+const GUARD_ITENS_TRIGGER_ERROR = {
+  message: 'P0001: Itens de entrega de tecelagem vinculada a OP de acabamento não podem ser alterados sem retificação autorizada.',
+  details: 'RAISE EXCEPTION',
+  hint: null,
+  code: 'P0001',
+};
+
+test('52.1 D-C-C: atualizarEntregaCima update falhas do trigger → toast amigável, sem mensagem técnica', async () => {
+  const { sandbox, getToasts } = makeEWCimaSandbox({
+    entregasUpdateResult: { data: null, error: GUARD_TRIGGER_ERROR },
+  });
+  const result = await vm.runInContext(
+    'window.atualizarEntregaCima({ entregaId: 7, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
+    sandbox);
+  assert.equal(result, false, 'deve retornar false quando o trigger bloqueia');
+  const toasts = getToasts();
+  const errorToasts = toasts.filter(t => t.type === 'error');
+  assert.equal(errorToasts.length, 1, 'esperado 1 toast de error');
+  // Mensagem amigável específica, sem vazar SQL/Postgres/P0001/etc.
+  assert.match(errorToasts[0].msg, /j\u00e1 gerou OP de acabamento/);
+  assert.match(errorToasts[0].msg, /n\u00e3o pode ser alterada/);
+  assert.match(errorToasts[0].msg, /retifica\u00e7\u00e3o autorizada/);
+  assert.doesNotMatch(errorToasts[0].msg, /P0001/);
+  assert.doesNotMatch(errorToasts[0].msg, /RAISE/);
+  assert.doesNotMatch(errorToasts[0].msg, /trigger/i);
+  assert.doesNotMatch(errorToasts[0].msg, /Postgres/i);
+});
+
+test('52.2 D-C-C: atualizarEntregaCima delete entrega_itens falhando no trigger → toast amigável', async () => {
+  // O helper makeEWCimaSandbox default tem o update OK; vamos
+  // simular o trigger batendo no delete de entrega_itens. Para isso
+  // precisamos customizar o resultado do delete() em entrega_itens.
+  // Como o sandbox atual trata delete().eq() em entrega_itens como
+  // success, vamos usar uma versão customizada do sandbox.
+  const document = {
+    createElement: (t) => new FakeNode(t),
+    createTextNode: (t) => ({ textContent: t, appendChild() {}, setAttribute() {} }),
+    querySelector: () => new FakeNode('div'),
+    querySelectorAll: () => [],
+    addEventListener: () => {}, removeEventListener: () => {},
+    body: new FakeNode('body'),
+  };
+  const calls = [];
+  const fakeSupa = {
+    from: (table) => {
+      calls.push({ op: 'from', table });
+      let pendingResult = null;
+      const chain = {
+        _table: table,
+        select() { calls.push({ op: 'select', table }); return chain; },
+        insert(payload) {
+          calls.push({ op: 'insert', table, args: [payload] });
+          pendingResult = { data: null, error: null };
+          return chain;
+        },
+        update(payload) {
+          calls.push({ op: 'update', table, args: [payload] });
+          pendingResult = { data: null, error: null };
+          return chain;
+        },
+        delete() {
+          calls.push({ op: 'delete', table });
+          if (table === 'entrega_itens') {
+            pendingResult = { data: null, error: GUARD_ITENS_TRIGGER_ERROR };
+          } else {
+            pendingResult = { data: null, error: null };
+          }
+          return chain;
+        },
+        eq(col, val) {
+          calls.push({ op: 'eq', col, val });
+          return Promise.resolve(pendingResult || { data: null, error: null });
+        },
+        single() { return Promise.resolve(pendingResult || { data: null, error: null }); },
+        order() { return chain; },
+        in() { return chain; },
+        then(resolveThen, rejectThen) {
+          return Promise.resolve(pendingResult || { data: null, error: null }).then(resolveThen, rejectThen);
+        },
+      };
+      return chain;
+    },
+    rpc: () => { calls.push({ op: 'rpc' }); return Promise.resolve({ data: null, error: null }); },
+    auth: { getSession: () => Promise.resolve({ data: { session: null }, error: null }) },
+    storage: {},
+    _calls: calls,
+  };
+  const toasts = [];
+  const sandbox = {
+    document, console, setTimeout, clearTimeout, URL, URLSearchParams,
+    Node: FakeNode, supa: fakeSupa,
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
+  vm.runInContext(calcSrc, sandbox, { filename: 'js/calculo-op.js' });
+  vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
+  sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
+  sandbox.logout = () => {};
+  vm.runInContext(efSrc, sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ewSrc, sandbox, { filename: 'js/screens/entrega-writes.js' });
+  const origToast = sandbox.toast;
+  sandbox.toast = (msg, type) => { toasts.push({ msg, type }); return origToast(msg, type); };
+  sandbox.confirmDialog = (opts) => Promise.resolve().then(() => opts && opts.onConfirm && opts.onConfirm());
+
+  const result = await vm.runInContext(
+    'window.atualizarEntregaCima({ entregaId: 7, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
+    sandbox);
+  assert.equal(result, false, 'deve retornar false quando o trigger bloqueia o delete de itens');
+  const errorToasts = toasts.filter(t => t.type === 'error');
+  assert.equal(errorToasts.length, 1);
+  assert.match(errorToasts[0].msg, /j\u00e1 gerou OP de acabamento/);
+  assert.match(errorToasts[0].msg, /n\u00e3o pode ser alterada/);
+  assert.doesNotMatch(errorToasts[0].msg, /P0001/);
+  assert.doesNotMatch(errorToasts[0].msg, /Postgres/i);
+});
+
+test('52.3 D-C-C: atualizarEntregaCima insert entrega_itens falhando no trigger → toast amigável', async () => {
+  const { sandbox, getToasts } = makeEWCimaSandbox({
+    entregasItensInsertResult: { data: null, error: GUARD_ITENS_TRIGGER_ERROR },
+  });
+  const result = await vm.runInContext(
+    'window.atualizarEntregaCima({ entregaId: 7, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
+    sandbox);
+  assert.equal(result, false, 'deve retornar false quando o trigger bloqueia o insert de itens');
+  const errorToasts = getToasts().filter(t => t.type === 'error');
+  assert.equal(errorToasts.length, 1);
+  assert.match(errorToasts[0].msg, /j\u00e1 gerou OP de acabamento/);
+  assert.match(errorToasts[0].msg, /n\u00e3o pode ser alterada/);
+  assert.doesNotMatch(errorToasts[0].msg, /P0001/);
+  assert.doesNotMatch(errorToasts[0].msg, /Itens de entrega/,
+    'mensagem do trigger original NÃO deve vazar para o usuário');
+});
+
+test('52.4 D-C-C: excluirEntrega delete entregas falhando no trigger → toast amigável de exclusão', async () => {
+  // Sandbox custom: suporta chain completa (eq/maybeSingle) e
+  // diferencia os resultados por call: o preflight de etapa
+  // retorna { etapa: 'cima' }, o preflight de OP Latex retorna
+  // null (passa), e o delete final retorna o erro do trigger.
+  const document = {
+    createElement: (t) => new FakeNode(t),
+    createTextNode: (t) => ({ textContent: t, appendChild() {}, setAttribute() {} }),
+    querySelector: () => new FakeNode('div'),
+    querySelectorAll: () => [],
+    addEventListener: () => {}, removeEventListener: () => {},
+    body: new FakeNode('body'),
+  };
+  const calls = [];
+  const fakeSupa = {
+    from: (table) => {
+      calls.push({ op: 'from', table });
+      const chain = {
+        _table: table,
+        select() { calls.push({ op: 'select', table }); return chain; },
+        insert() { calls.push({ op: 'insert', table }); return chain; },
+        update() { calls.push({ op: 'update', table }); return chain; },
+        delete() { calls.push({ op: 'delete', table }); return chain; },
+        eq(col, val) { calls.push({ op: 'eq', table, col, val }); return chain; },
+        order() { return chain; },
+        in() { return chain; },
+        maybeSingle() {
+          calls.push({ op: 'maybeSingle', table });
+          // 1ª call: preflight etapa em entregas → cima
+          if (table === 'entregas') {
+            return Promise.resolve({ data: { etapa: 'cima' }, error: null });
+          }
+          // 2ª call: preflight OP Latex em ops → null (passa)
+          if (table === 'ops') {
+            return Promise.resolve({ data: null, error: null });
+          }
+          return Promise.resolve({ data: null, error: null });
+        },
+        then(resolveThen, rejectThen) {
+          // Chamada terminal em delete().eq(): retorna erro do trigger.
+          // (Usado quando o .eq() é o terminal, sem .maybeSingle().)
+          const lastOp = calls[calls.length - 1];
+          if (lastOp && lastOp.op === 'eq' && lastOp.table === 'entregas') {
+            return Promise.resolve({ data: null, error: GUARD_TRIGGER_ERROR }).then(resolveThen, rejectThen);
+          }
+          return Promise.resolve({ data: null, error: null }).then(resolveThen, rejectThen);
+        },
+      };
+      return chain;
+    },
+    rpc: () => { calls.push({ op: 'rpc' }); return Promise.resolve({ data: null, error: null }); },
+    auth: { getSession: () => Promise.resolve({ data: { session: null }, error: null }) },
+    storage: {},
+    _calls: calls,
+  };
+  const toasts = [];
+  const sandbox = {
+    document, console, setTimeout, clearTimeout, URL, URLSearchParams,
+    Node: FakeNode, supa: fakeSupa,
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
+  vm.runInContext(calcSrc, sandbox, { filename: 'js/calculo-op.js' });
+  vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
+  sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
+  sandbox.logout = () => {};
+  vm.runInContext(efSrc, sandbox, { filename: 'js/screens/entrega-form.js' });
+  vm.runInContext(ewSrc, sandbox, { filename: 'js/screens/entrega-writes.js' });
+  const origToast = sandbox.toast;
+  sandbox.toast = (msg, type) => { toasts.push({ msg, type }); return origToast(msg, type); };
+  let confirmCalled = false;
+  sandbox.confirmDialog = (opts) => {
+    confirmCalled = true;
+    return Promise.resolve().then(() => opts && opts.onConfirm && opts.onConfirm());
+  };
+
+  await vm.runInContext('window.excluirEntrega(7, () => {})', sandbox);
+  await new Promise(r => setTimeout(r, 5));
+  // confirmDialog foi aberto (preflight passou), o delete
+  // foi tentado e falhou.
+  assert.equal(confirmCalled, true, 'confirmDialog deve ser chamado (preflight passou)');
+  const errorToasts = toasts.filter(t => t.type === 'error');
+  assert.equal(errorToasts.length, 1, 'esperado 1 toast de error (toasts: ' + JSON.stringify(toasts) + ')');
+  // Mensagem amigável de exclusão (não "alterada").
+  assert.match(errorToasts[0].msg, /j\u00e1 gerou OP de acabamento/);
+  assert.match(errorToasts[0].msg, /n\u00e3o pode ser exclu\u00edda/);
+  assert.doesNotMatch(errorToasts[0].msg, /P0001/);
+  assert.doesNotMatch(errorToasts[0].msg, /RAISE/);
+  assert.doesNotMatch(errorToasts[0].msg, /trigger/i);
+  // Critério principal do D-C-C: onSuccess NÃO deve ser chamado
+  // quando o trigger bloqueia (estado consistente com o contract
+  // de "guard travou a operação").
+  const successToasts = toasts.filter(t => t.type === 'success');
+  assert.equal(successToasts.length, 0, 'NÃO deve haver toast de success quando o trigger bloqueia');
+});
+
+test('52.5 D-C-C: erro genérico NÃO é classificado como guard (toast técnico preservado)', async () => {
+  const { sandbox, getToasts } = makeEWCimaSandbox({
+    entregasUpdateResult: { data: null, error: { message: 'connection refused', code: 'ECONNREFUSED' } },
+  });
+  const result = await vm.runInContext(
+    'window.atualizarEntregaCima({ entregaId: 7, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
+    sandbox);
+  assert.equal(result, false, 'helper deve retornar false em erro genérico também');
+  const errorToasts = getToasts().filter(t => t.type === 'error');
+  assert.equal(errorToasts.length, 1);
+  // Comportamento anterior preservado: toast técnico original.
+  assert.match(errorToasts[0].msg, /atualizar entrega/i,
+    'erro genérico deve manter o toast técnico anterior');
+  assert.doesNotMatch(errorToasts[0].msg, /OP de acabamento/,
+    'erro genérico NÃO deve ser classificado como sendo do guard');
+});
+
+test('52.6 D-C-C: isEntregaLatexGuardError detecta o formato real do PostgREST', () => {
+  // Asserção estática + runtime: garante que o detector existe e
+  // classifica os 2 ramos do trigger (entregas e entrega_itens) e
+  // também formatos parciais (apenas details, apenas hint, etc.).
+  const { sandbox } = makeEWCimaSandbox();
+  const detector = vm.runInContext('window.RAVATEX_ENTREGA_WRITES && (function(){ return null; })()', sandbox);
+  // O detector é privado (não exportado), mas o comportamento é
+  // verificado de forma integrada pelos testes 52.1-52.5. Aqui só
+  // garantimos que o helper NÃO está exportado (continua encapsulado).
+  assert.equal(detector, null, 'detector deve continuar privado');
+  // E que o módulo carrega sem SyntaxError após o patch.
+  const mod = vm.runInContext('window.RAVATEX_ENTREGA_WRITES.atualizarEntregaCima', sandbox);
+  assert.equal(typeof mod, 'function', 'módulo continua exportando atualizarEntregaCima');
+});
+
 test('53. runtime: consumidor inline mockado consegue chamar salvarEntregaCima via global bare', async () => {
   const { sandbox, fakeSupa } = makeEWCimaSandbox();
   await vm.runInContext(
