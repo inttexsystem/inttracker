@@ -182,8 +182,12 @@
     var hasExpedicao = expedicoes.length > 0 || expedicaoItens.length > 0;
 
     var totalPedido = round2(toFiniteNumber(input.totalPedido || pedido.metros_total));
-    var pedidoConcluido = pedido.status === 'entregue'
-      || (totalPedido > 0 && expedicaoEntregue >= totalPedido);
+    // Conclusão formal depende exclusivamente do status gravado pela RPC
+    // concluir_pedido_se_pronto (status='entregue'). A derivacao por
+    // expedicaoEntregue >= totalPedido fica como metrica operacional
+    // (expedicaoCompletamenteEntregue), sem antecipar stage/status.
+    var expedicaoCompletamenteEntregue = totalPedido > 0 && expedicaoEntregue >= totalPedido;
+    var pedidoConcluido = pedido.status === 'entregue';
 
     var stage = 'comercial';
     var clientStep = pedido.status === 'confirmado' ? 'confirmado' : 'recebido';
@@ -244,9 +248,11 @@
         : action('enabled', 'Abrir OP de Tecelagem'),
       transferInsumosToTecelagem: !hasTec
         ? action('disabled', 'Vincule uma OP')
-        : (insumosConcluidos || tecProduction || tecDone > 0 || hasAcab
-          ? action('view', 'Insumos concluidos', { op: tecOp })
-          : action('enabled', 'Transferir', { op: tecOp })),
+        : (tecPendingAcceptance
+          ? action('disabled', 'Aguardar aceite da OP', { op: tecPendingAcceptanceOp || tecOp })
+          : (insumosConcluidos || tecProduction || tecDone > 0 || hasAcab
+            ? action('view', 'Insumos concluidos', { op: tecOp })
+            : action('enabled', 'Transferir', { op: tecOp }))),
       transferTecelagemToAcabamento: !hasTec
         ? action('hidden')
         : (canMoveTecToAcab
@@ -271,7 +277,9 @@
     };
 
     var adminStepper = {
-      insumos: insumosConcluidos ? 'done' : (hasTec ? 'current' : 'future'),
+      insumos: tecPendingAcceptance
+        ? 'current'
+        : (insumosConcluidos ? 'done' : (hasTec ? 'current' : 'future')),
       tecelagem: tecTarget > 0 && tecRemaining <= 0 ? 'done' : (stage === 'tecelagem' ? 'current' : (tecDone > 0 ? 'current' : 'future')),
       acabamento: acabTarget > 0 && acabRemaining <= 0 ? 'done' : ((stage === 'acabamento' || stage === 'acabamento_entrada') ? 'current' : (acabDone > 0 ? 'current' : 'future')),
       expedicao: pedidoConcluido || (hasExpedicao && expedicaoSaldo <= 0 && expedicaoLiberado > 0) ? 'done' : ((stage === 'expedicao' || stage === 'pronto_expedicao') ? 'current' : 'future'),

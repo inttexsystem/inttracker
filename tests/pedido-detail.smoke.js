@@ -296,7 +296,7 @@ test('pedido-chain-state: ultima transicao preserva gates hidden/enabled/view', 
 });
 
 test('pedido-chain-state: matriz preserva labels contextuais e gates funcionais', () => {
-  assert.match(chainState, /transferInsumosToTecelagem:[\s\S]{0,260}action\(['"]view['"],\s*['"]Insumos concluidos['"]/);
+  assert.match(chainState, /transferInsumosToTecelagem:[\s\S]{0,420}action\(['"]view['"],\s*['"]Insumos concluidos['"]/);
   assert.match(chainState, /releaseExpedicao:[\s\S]{0,260}action\(['"]disabled['"],\s*['"]Aguardando acabamento['"]/);
 
   const sandbox = { window: {}, console };
@@ -350,13 +350,113 @@ test('pedido-chain-state: insumos recebidos com OP aberta expõe pendência de a
     expedicaoItens: [],
   });
 
-  assert.equal(result.adminStepper.insumos, 'done');
-  assert.equal(result.actions.transferInsumosToTecelagem.mode, 'view');
+  // B4: etapa INSUMOS não pode ficar done enquanto OP está aberta —
+  // induziria que a cadeia está fechada.
+  assert.equal(result.adminStepper.insumos, 'current');
+  // B1: a action INS->TEC deve representar bloqueio, não conclusão.
+  assert.equal(result.actions.transferInsumosToTecelagem.mode, 'disabled');
+  assert.equal(result.actions.transferInsumosToTecelagem.label, 'Aguardar aceite da OP');
   assert.equal(result.actions.transferTecelagemToAcabamento.mode, 'disabled');
   assert.equal(result.actions.transferTecelagemToAcabamento.label, 'OP pendente de aceite');
   assert.equal(result.tecPendingAcceptance.label, 'OP 12/2026 pendente de aceite');
   assert.equal(result.tecPendingAcceptance.message, 'Insumos recebidos; OP pendente de aceite');
   assert.equal(result.tecPendingAcceptance.opId, 12);
+});
+
+// ---------------------------------------------------------------------
+// PRODUCTION-FLOW-STATE-CONTRACT-B: casos obrigatórios do patch visual
+// ---------------------------------------------------------------------
+
+test('CONTRACT-B caso 1: OP aberta + insumos recebidos => conector INS->TEC NAO é Concluido', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
+  const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
+  const result = derive({
+    pedido: { id: 'p1', status: 'confirmado', metros_total: 100 },
+    ops: [{
+      id: 12, numero: 12, ano: 2026, status: 'aberta', tipo: 'tecelagem',
+      op_itens: [{ id: 'i1', metros_pedidos: 100 }],
+    }],
+    ordensFio: [{ op_id: 12, kg_pedido: 10, kg_recebido: 10 }],
+    entregaItens: [], entregasById: {}, expedicoes: [], expedicaoItens: [],
+  });
+
+  // Conector INS->TEC: action em modo disabled, não view/done.
+  const insAct = result.actions.transferInsumosToTecelagem;
+  assert.equal(insAct.mode, 'disabled',
+    'conector INS->TEC deve ficar bloqueado (disabled), não view/done');
+  assert.equal(result.adminStepper.insumos, 'current',
+    'etapa INSUMOS não pode ser done enquanto OP está aberta');
+  // Tecelagem mostra pendência de aceite.
+  assert.ok(result.tecPendingAcceptance,
+    'tecPendingAcceptance deve estar ativo');
+  // Pedido não expõe Transferir para TEC->ACAB enquanto aceite pendente.
+  const tecAct = result.actions.transferTecelagemToAcabamento;
+  assert.notEqual(tecAct.mode, 'enabled',
+    'Pedido não deve expor Transferir TEC->ACAB com OP ainda aberta');
+});
+
+test('CONTRACT-B caso 2: OP em_producao + insumos recebidos => conector INS->TEC pode ser Concluido (sem regressao)', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
+  const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
+  const result = derive({
+    pedido: { id: 'p1', status: 'confirmado', metros_total: 100 },
+    ops: [{
+      id: 12, numero: 12, ano: 2026, status: 'em_producao', tipo: 'tecelagem',
+      op_itens: [{ id: 'i1', metros_pedidos: 100 }],
+    }],
+    ordensFio: [{ op_id: 12, kg_pedido: 10, kg_recebido: 10 }],
+    entregaItens: [], entregasById: {}, expedicoes: [], expedicaoItens: [],
+  });
+
+  // Após aceite (em_producao), o conector INS->TEC volta a poder ser Concluido.
+  assert.equal(result.actions.transferInsumosToTecelagem.mode, 'view');
+  assert.equal(result.actions.transferInsumosToTecelagem.label, 'Insumos concluidos');
+  assert.equal(result.adminStepper.insumos, 'done');
+  assert.equal(result.stage, 'tecelagem');
+  assert.equal(result.adminBadge, 'Em producao');
+  assert.ok(!result.tecPendingAcceptance,
+    'não deve haver tecPendingAcceptance após aceite da OP');
+});
+
+test('CONTRACT-B caso 3: expedicao entregue >= total mas status != entregue => pedido NAO Concluido', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
+  const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
+  const result = derive({
+    // status confirmado: a RPC concluir_pedido_se_pronto ainda não rodou.
+    pedido: { id: 'p1', status: 'confirmado', metros_total: 100 },
+    ops: [{
+      id: 12, numero: 12, ano: 2026, status: 'finalizada', tipo: 'latex',
+      op_itens: [{ id: 'i1', metros_pedidos: 100 }],
+    }],
+    ordensFio: [],
+    entregaItens: [], entregasById: {},
+    expedicoes: [{ id: 'ex1', status: 'concluida' }],
+    expedicaoItens: [{ expedicao_id: 'ex1', metros_liberados: 100, metros_entregues: 100 }],
+  });
+
+  // Métrica operacional sinaliza entrega completa, mas o status principal
+  // não deve antecipar Concluido sem a RPC ter gravado status='entregue'.
+  assert.notEqual(result.displayStatus, 'Concluido',
+    'status principal não deve virar Concluido sem pedido.status=entregue');
+  assert.notEqual(result.stage, 'concluido',
+    'stage não deve virar concluido sem pedido.status=entregue');
+  assert.notEqual(result.adminBadge, 'Concluido',
+    'badge admin não deve virar Concluido sem pedido.status=entregue');
+});
+
+test('CONTRACT-B B2: render trata action de aguardo como waiting, nunca done', () => {
+  // Mesmo que uma action chegue em mode=view com label de aguardo,
+  // o render não pode rotular como Concluído (defesa B2).
+  assert.match(detailRender, /label\.indexOf\(['"]aguard['"]\) >= 0\)*\s*return false/);
+  // O conector permanece como seta integrada (não vira link).
+  assert.doesNotMatch(detailRender, /function buildPassiveConnector/);
+  assert.match(detailRender, /clip-path:polygon\(0 0, calc\(100% - 15px\) 0, 100% 50%, calc\(100% - 15px\) 100%, 0 100%, 13px 50%\)/);
 });
 
 // ---------------------------------------------------------------------

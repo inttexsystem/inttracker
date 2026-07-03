@@ -604,9 +604,17 @@
 
     if (chainState && chainState.tecPendingAcceptance) {
       stepper.forEach(function (stage) {
-        if (stage.key !== 'tecelagem') return;
-        stage.state = stage.state === 'done' ? 'current' : stage.state;
-        stage.sublabel = 'OP pendente de aceite';
+        if (stage.key === 'tecelagem') {
+          stage.state = stage.state === 'done' ? 'current' : stage.state;
+          stage.sublabel = 'OP pendente de aceite';
+          return;
+        }
+        if (stage.key === 'insumos') {
+          // Recebimento ocorreu, mas a transicao produtiva aguarda aceite da OP;
+          // nao deve induzir que a cadeia esta fechada.
+          stage.state = 'current';
+          stage.sublabel = 'Recebido — aguardando aceite';
+        }
       });
     }
 

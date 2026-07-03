@@ -290,15 +290,24 @@
 
   function isConnectorDoneAction(action) {
     var label = String(action && action.label ? action.label : '').toLowerCase();
+    // Defesa B2: labels de aguardo/bloqueio nunca podem ser lidos como
+    // "Concluído", mesmo que o mode seja view por engano.
+    if (label.indexOf('aguard') >= 0) return false;
     return label.indexOf('conclu') >= 0;
   }
 
   function buildConnectorVisual(action, disabled) {
     var mode = action && action.mode ? action.mode : 'enabled';
-    if (isConnectorDoneAction(action) || mode === 'view') {
+    var label = String(action && action.label ? action.label : '').toLowerCase();
+    // Defesa B2: uma action que representa aguardo/bloqueio (mesmo em
+    // modo view) não pode virar Concluído. O gate canônico fica em
+    // pedido-chain-state.js (transferInsumosToTecelagem); este é o
+    // backstop do render.
+    var isWaiting = mode === 'disabled' || mode === 'hidden' || label.indexOf('aguard') >= 0;
+    if (!isWaiting && (isConnectorDoneAction(action) || mode === 'view')) {
       return { state: 'done', label: 'Concluído' };
     }
-    if (disabled || mode === 'disabled' || mode === 'hidden') {
+    if (disabled || isWaiting) {
       return { state: 'waiting', label: 'Aguardar' };
     }
     return { state: 'active', label: 'Transferir' };
