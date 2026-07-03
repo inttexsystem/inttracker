@@ -29,9 +29,62 @@
   'use strict';
 
   // -------------------------------------------------------------------
+  // D-B preflight: uma entrega de tecelagem (etapa='cima') que já gerou
+  // OP de Acabamento/Látex (ops.origem_entrega_id) não pode ser editada
+  // nem excluída livremente pelo app — vira documento de origem da OP
+  // seguinte. Correção futura deve ser retificação auditável (D-C).
+  // Retorna { bloqueada: bool, opLabel: string|null }.
+  //   - bloqueada=true quando existe ops tipo='latex' com origem_entrega_id=entregaId.
+  //   - Silenciosa em erro de leitura (fallback permissivo) para não
+  //     travar o app por falha de infra; o gate server-side (D-C) é a
+  //     defesa definitiva.
+  async function entregaCimaTemOpLatex(entregaId) {
+    try {
+      var res = await window.supa
+        .from('ops')
+        .select('id, numero, ano')
+        .eq('tipo', 'latex')
+        .eq('origem_entrega_id', entregaId)
+        .maybeSingle();
+      if (res && res.error) return { bloqueada: false, opLabel: null };
+      if (res && res.data && res.data.id) {
+        var label = 'OP ' + res.data.numero + '/' + res.data.ano;
+        return { bloqueada: true, opLabel: label };
+      }
+    } catch (err) {
+      console.error('entrega-writes: preflight OP Latex falhou', err);
+    }
+    return { bloqueada: false, opLabel: null };
+  }
+
+  async function etapaDaEntrega(entregaId) {
+    try {
+      var res = await window.supa
+        .from('entregas')
+        .select('etapa')
+        .eq('id', entregaId)
+        .maybeSingle();
+      if (res && res.data) return res.data.etapa || null;
+    } catch (err) {
+      console.error('entrega-writes: preflight etapa falhou', err);
+    }
+    return null;
+  }
+
+  // -------------------------------------------------------------------
   // Excluir entrega: usa o padrao de callback do confirmDialog (que so dispara
   // onConfirm em caso afirmativo). onSuccess() roda apos delete bem-sucedido.
-  function excluirEntrega(entregaId, onSuccess) {
+  async function excluirEntrega(entregaId, onSuccess) {
+    // D-B: entrega cima que gerou OP Latex não pode ser excluída —
+    // deixaria a OP órfã (origem_entrega_id ON DELETE SET NULL).
+    var etapa = await etapaDaEntrega(entregaId);
+    if (etapa === 'cima') {
+      var pre = await entregaCimaTemOpLatex(entregaId);
+      if (pre.bloqueada) {
+        window.toast('Entrega vinculada à ' + (pre.opLabel || 'OP de acabamento') + '. Exclusão bloqueada — use retificação.', 'error');
+        return false;
+      }
+    }
     window.confirmDialog({
       title: 'Excluir entrega',
       message: 'Esta ação remove a entrega e todos os seus itens. Continuar?',
@@ -119,6 +172,13 @@
   //   Decisão aceita por design (single-admin / baixo volume);
   //   correção manual via Supabase.
   async function atualizarEntregaCima({ entregaId, opId, payload }) {
+    // D-B: se a entrega cima já gerou OP Latex, a edição livre criaria
+    // divergência silenciosa (op_itens da OP Latex não é propagada).
+    var pre = await entregaCimaTemOpLatex(entregaId);
+    if (pre.bloqueada) {
+      window.toast('Entrega vinculada à ' + (pre.opLabel || 'OP de acabamento') + '. Edição bloqueada — use retificação.', 'error');
+      return false;
+    }
     if (payload.linhas.length === 0) { window.toast('Adicione ao menos 1 item com metros entregues', 'error'); return false; }
     if (!payload.destino_fornecedor_id) { window.toast('Escolha a empresa de látex de destino', 'error'); return false; }
     const upd = await window.supa.from('entregas').update({

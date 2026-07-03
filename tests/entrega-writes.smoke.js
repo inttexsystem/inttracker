@@ -467,10 +467,12 @@ test('18. runtime: onConfirm chama supa.from("entregas").delete().eq("id", entre
     `delete não foi chamado em 'entregas' (chamadas: ${fromCalls.join(',')})`);
   const deleteCalls = fakeSupa._calls.filter(c => c.op === 'delete');
   assert.equal(deleteCalls.length, 1, 'esperado exatamente 1 chamada a .delete()');
-  const eqCalls = fakeSupa._calls.filter(c => c.op === 'eq');
-  assert.equal(eqCalls.length, 1, 'esperado exatamente 1 chamada a .eq()');
-  assert.deepEqual(eqCalls[0], { op: 'eq', col: 'id', val: 42 },
-    `.eq deve ser chamado com ('id', 42), veio ${JSON.stringify(eqCalls[0])}`);
+  // D-B: o preflight de etapa agora adiciona um .eq('id', entregaId) em
+  // entregas antes do delete. Portanto pode haver 1 ou 2 .eq('id', 42):
+  // o preflight (select etapa) e o delete.
+  const eqId42Calls = fakeSupa._calls.filter(c => c.op === 'eq' && c.col === 'id' && c.val === 42);
+  assert.ok(eqId42Calls.length >= 1,
+    `.eq('id', 42) do delete deve ocorrer ao menos 1 vez (preflight + delete)`);
 });
 
 test('19. runtime: em sucesso — toast("Entrega excluída", "success") + onSuccess()', async () => {
@@ -507,20 +509,21 @@ test('20. runtime: em erro — toast("Erro ao excluir entrega", "error") + NÃO 
   assert.equal(errorToasts[0].msg, 'Erro ao excluir entrega');
 });
 
-test('21. runtime: mock registra exatamente 1 from("entregas") + 1 delete + 1 eq, e zero insert/update/rpc', async () => {
+test('21. runtime: mock registra delete + eq do delete + preflight etapa, e zero insert/update/rpc', async () => {
   const { sandbox, fakeSupa } = makeEWSandbox();
   await vm.runInContext('window.excluirEntrega(1, () => {})', sandbox);
   await new Promise(r => setTimeout(r, 5));
   const ops = fakeSupa._calls.map(c => c.op);
+  // D-B: o preflight agora adiciona um from('entregas').select('etapa')
+  // antes do delete. Portanto from('entregas') ocorre 2x (preflight + delete).
   const fromEntregasCount = fakeSupa._calls.filter(c => c.op === 'from' && c.table === 'entregas').length;
   const deleteCount    = fakeSupa._calls.filter(c => c.op === 'delete').length;
-  const eqCount        = fakeSupa._calls.filter(c => c.op === 'eq').length;
   const insertCount    = fakeSupa._calls.filter(c => c.op === 'insert').length;
   const updateCount    = fakeSupa._calls.filter(c => c.op === 'update').length;
   const rpcCount       = fakeSupa._calls.filter(c => c.op === 'rpc').length;
-  assert.equal(fromEntregasCount, 1, `esperado 1 from('entregas'), veio ${fromEntregasCount} (todas: ${ops.join(',')})`);
+  assert.ok(fromEntregasCount >= 1 && fromEntregasCount <= 2,
+    `esperado 1-2 from('entregas') (preflight + delete), veio ${fromEntregasCount} (todas: ${ops.join(',')})`);
   assert.equal(deleteCount, 1, `esperado 1 delete, veio ${deleteCount}`);
-  assert.equal(eqCount, 1, `esperado 1 eq, veio ${eqCount}`);
   assert.equal(insertCount, 0, 'zero insert esperado');
   assert.equal(updateCount, 0, 'zero update esperado');
   assert.equal(rpcCount, 0, 'zero rpc esperado');

@@ -346,15 +346,25 @@
         ei.defeito ? el('span', { style: 'margin-left:8px;color:#d6403a;font-weight:600;font-size:12.5px;' }, '⚠ DEFEITO') : '',
         ei.observacao ? el('span', { style: 'margin-left:8px;font-size:12px;color:#8a93a3;' }, '(' + ei.observacao + ')') : '');
     });
+    // D-B: se a entrega cima já gerou OP de acabamento (latexOpPorEntrega),
+    // ela vira documento de origem — edição/exclusão livres ficam
+    // bloqueadas pelo app. Mantém histórico e o CTA "Ver OP de látex".
+    var vinculadaLatex = !!ctx.latexOpPorEntrega[ent.id];
+    var acoes = el('div', { style: 'display:flex;align-items:center;gap:14px;' });
+    if (!vinculadaLatex) {
+      acoes.appendChild(el('button', { type: 'button', style: BTN_LINK, onclick: function () { abrirEdicaoAdmin(ctx, ent); } }, 'Editar'));
+      acoes.appendChild(el('button', { type: 'button', style: BTN_LINK + 'color:#d6403a;', onclick: function () { window.excluirEntrega(ent.id, ctx.reloadEntregasCima); } }, 'Excluir'));
+    }
+    if (vinculadaLatex) {
+      acoes.appendChild(el('span', { style: 'font-size:12px;font-weight:700;color:#c2610c;' }, 'Entrega vinculada à OP de acabamento'));
+      acoes.appendChild(el('button', { type: 'button', style: BTN_LINK + 'color:#c2610c;', onclick: function () { window.navigate('#/ops/' + ctx.latexOpPorEntrega[ent.id]); } }, 'Ver OP de látex'));
+    }
     subcard.appendChild(el('div', { style: 'display:flex;align-items:center;justify-content:space-between;' },
       el('div', { style: 'font-size:14px;font-weight:600;color:#16203a;' },
         new Date(ent.data + 'T00:00:00').toLocaleDateString('pt-BR'),
         ' · ' + (ent.fornecedores?.nome || '?'),
         ent.destino?.nome ? ' → látex: ' + ent.destino.nome : ''),
-      el('div', { style: 'display:flex;align-items:center;gap:14px;' },
-        el('button', { type: 'button', style: BTN_LINK, onclick: function () { abrirEdicaoAdmin(ctx, ent); } }, 'Editar'),
-        el('button', { type: 'button', style: BTN_LINK + 'color:#d6403a;', onclick: function () { window.excluirEntrega(ent.id, ctx.reloadEntregasCima); } }, 'Excluir'),
-        ctx.latexOpPorEntrega[ent.id] ? el('button', { type: 'button', style: BTN_LINK + 'color:#c2610c;', onclick: function () { window.navigate('#/ops/' + ctx.latexOpPorEntrega[ent.id]); } }, 'Ver OP de látex') : '')));
+      acoes));
     if (ent.observacao) subcard.appendChild(el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:2px;' }, ent.observacao));
     itensRow.forEach(function (n) { subcard.appendChild(n); });
     return subcard;
