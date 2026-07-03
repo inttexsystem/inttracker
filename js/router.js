@@ -50,9 +50,11 @@
   // #/pedidos/:id/editar (UUID + /editar), #/pedidos/:id/itens
   // (UUID + /itens) e #/pedidos/:id (UUID).
   function matchRoute(hash) {
-    if (_routes[hash]) return _routes[hash];
+    const rawHash = String(hash || '');
+    const routeHash = rawHash.split('?')[0];
+    if (_routes[routeHash]) return _routes[routeHash];
 
-    const mOps = String(hash || '').match(/^#\/ops\/(\d+)$/);
+    const mOps = rawHash.match(/^#\/ops\/(\d+)$/);
     if (mOps) {
       return {
         render: () => window.screenNovaOP(Number(mOps[1])),
@@ -64,7 +66,7 @@
     // o match de detalhe (terminado em /editar) — vem antes do match
     // de detalhe para clareza, embora o regex do detalhe (ancorado em
     // $) já exclua o caso.
-    const mExp = String(hash || '').match(/^#\/expedicoes\/(\d+)$/);
+    const mExp = rawHash.match(/^#\/expedicoes\/(\d+)$/);
     if (mExp) {
       return {
         render: () => window.screenExpedicaoAdmin(Number(mExp[1])),
@@ -72,7 +74,7 @@
       };
     }
 
-    const mPedEdit = String(hash || '').match(
+    const mPedEdit = rawHash.match(
       /^#\/pedidos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/editar$/i
     );
     if (mPedEdit) {
@@ -86,7 +88,7 @@
     // específico que o match de detalhe (terminado em /itens) — vem
     // antes do match de detalhe para clareza, embora o regex do
     // detalhe (ancorado em $) já exclua o caso.
-    const mPedItens = String(hash || '').match(
+    const mPedItens = rawHash.match(
       /^#\/pedidos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/itens$/i
     );
     if (mPedItens) {
@@ -101,7 +103,7 @@
   // `#/pedidos/novo` (resolvidos pelo match exato acima),
   // `#/pedidos/<uuid>/editar` nem com
   // `#/pedidos/<uuid>/itens` (que têm regex próprios acima).
-  const mPed = String(hash || '').match(/^#\/pedidos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
+  const mPed = rawHash.match(/^#\/pedidos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
   if (mPed) {
     return {
       render: () => window.screenPedidoDetalhe(mPed[1]),
@@ -110,7 +112,7 @@
   }
 
   // Match dinâmico para detalhe de Pedido do cliente (read-only, UUID).
-  const mCliPed = String(hash || '').match(/^#\/cliente\/pedidos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
+  const mCliPed = rawHash.match(/^#\/cliente\/pedidos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
   if (mCliPed) {
     return {
       render: () => window.screenClientePedidoDetalhe(mCliPed[1]),

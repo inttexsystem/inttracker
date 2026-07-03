@@ -417,3 +417,11 @@ test('schema 13_*: não foi alterado pela fase C2', () => {
   // RLS continua admin-only
   assert.match(schema, /ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
 });
+
+test('pedido-form: CTA post-save aceita pedido_id UUID sem Number/parseInt', () => {
+  const postSave = (screen.match(/function\s+buildPostSaveResumo\s*\([\s\S]*?\n    async function salvar/) || [''])[0];
+  assert.ok(postSave, 'trecho buildPostSaveResumo nao encontrado');
+  assert.match(postSave, /#\/ops\/nova\?pedido_id=['"]\s*\+\s*pedido\.id/);
+  assert.doesNotMatch(postSave, /Number\s*\(\s*pedido\.id\s*\)/);
+  assert.doesNotMatch(postSave, /parseInt\s*\(\s*pedido\.id\s*/);
+});

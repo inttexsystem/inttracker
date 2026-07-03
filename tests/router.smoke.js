@@ -328,6 +328,37 @@ test('runtime: matchRoute retorna rota exata', () => {
   assert.equal(vm.runInContext("JSON.stringify(window.matchRoute('#/painel').roles)", sandbox), '["admin"]');
 });
 
+test('runtime: matchRoute aceita query string em rota exata e preserva pedido_id UUID no hash', async () => {
+  const uuid = '41c17ad7-1264-4540-817a-4a5abebe46c3';
+  const { sandbox } = makeRouterSandbox({ hash: '#/ops/nova?pedido_id=' + uuid });
+  sandbox.CURRENT_USER = { tipo: 'admin' };
+  vm.runInContext(`
+    window.__screenNovaOPArgs = null;
+    window.screenNovaOP = function () {
+      window.__screenNovaOPArgs = Array.from(arguments);
+      return { __screen: 'novaOP' };
+    };
+    window.RAVATEX_ROUTER.setRoutes({
+      '#/ops/nova': {
+        render: () => {
+          var h = window.location.hash;
+          var q = h.indexOf('?');
+          var pid = null;
+          if (q >= 0) {
+            var params = new URLSearchParams(h.slice(q));
+            pid = params.get('pedido_id') || null;
+          }
+          return window.screenNovaOP(null, pid);
+        },
+        roles: ['admin'],
+      },
+    });
+  `, sandbox);
+  assert.equal(vm.runInContext("window.matchRoute(window.location.hash) === window.routes['#/ops/nova']", sandbox), true);
+  await vm.runInContext('window.handleRoute()', sandbox);
+  assert.equal(vm.runInContext('JSON.stringify(window.__screenNovaOPArgs)', sandbox), JSON.stringify([null, uuid]));
+});
+
 test('runtime: matchRoute retorna null para hash desconhecido', () => {
   const { sandbox } = makeRouterSandbox();
   vm.runInContext("window.RAVATEX_ROUTER.setRoutes({ '#/login': { render: () => ({}), public: true } });", sandbox);

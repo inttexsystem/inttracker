@@ -569,3 +569,18 @@ test('28. matchRoute distingue #/pedidos/<uuid>, /editar e /itens', () => {
   assert.equal(editarCall, uuid, 'render de #/pedidos/<uuid>/editar deve chamar screenPedidoEditar');
   assert.equal(itensCall, uuid, 'render de #/pedidos/<uuid>/itens deve chamar screenPedidoItensEditar');
 });
+
+test('29. rota #/ops/nova preserva pedido_id UUID e chama screenNovaOP(null, uuid)', async () => {
+  const { sandbox } = makeBootChainSandbox();
+  const uuid = '41c17ad7-1264-4540-817a-4a5abebe46c3';
+  vm.runInContext(`
+    window.__screenNovaOPArgs = null;
+    window.location.hash = '#/ops/nova?pedido_id=${uuid}';
+    window.screenNovaOP = function () {
+      window.__screenNovaOPArgs = Array.from(arguments);
+      return Promise.resolve({ __screen: 'novaOP' });
+    };
+  `, sandbox);
+  await vm.runInContext("window.routes['#/ops/nova'].render()", sandbox);
+  assert.equal(vm.runInContext('JSON.stringify(window.__screenNovaOPArgs)', sandbox), JSON.stringify([null, uuid]));
+});

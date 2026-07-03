@@ -3453,3 +3453,30 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 > subtitulo, campos, botao Entrar, lembrar-me, esqueceu senha, submit,
 > erro, loading/disabled, toggle de senha e ausencia de chamadas Supabase
 > no modulo.
+
+> **Atualizacao 2026-07-03 - fase
+> `RAVATEX-TAPETES-PEDIDO-POST-SAVE-OP-CTA-ROUTE-R1`.**
+> Corrigido o 404 interno ao clicar em "Abrir OP de Tecelagem" apos salvar
+> Pedido admin. O CTA em `js/screens/pedido-form.js` ja montava a hash
+> canonica `#/ops/nova?pedido_id=<uuid>`; a causa estava em `js/router.js`,
+> onde `matchRoute` fazia match exato usando a hash inteira, incluindo a
+> query, e por isso nao encontrava a rota registrada `#/ops/nova`.
+> O router agora remove apenas a query para o match exato, preservando
+> `window.location.hash` completa para o `js/boot.js` ler `pedido_id` via
+> `URLSearchParams` e chamar `window.screenNovaOP(null, pid)`.
+> `screenNovaOP` segue recebendo `pedido_id` como string UUID, sem
+> `Number`/`parseInt`, carregando Pedido/cliente/itens por esse id; quando
+> o Pedido nao existe, mostra erro claro "Pedido não encontrado" em vez de
+> cair no 404 generico do router.
+> Tambem foi coberto que o CTA "Gerar primeira OP" do detalhe usa a mesma
+> hash route com UUID preservado. Texto admin do pos-save nao foi alterado
+> nesta fase, exceto a mensagem de erro de Pedido nao encontrado.
+> Testes focados OK: `node --check js/router.js`,
+> `node --check js/screens/op-nova.js`,
+> `node --test tests/pedido-form.smoke.js`,
+> `node --test tests/pedido-detail.smoke.js`,
+> `node --test tests/op-nova.smoke.js`,
+> `node --test tests/boot.smoke.js` e
+> `node --test tests/router.smoke.js`. Sem SQL, Supabase remoto/producao,
+> lifecycle de OP, login, rota fisica `/ops/nova`, criacao automatica de OP
+> ou push. Residual preservado fora do commit: `?? supabase/.temp/`.

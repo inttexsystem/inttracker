@@ -249,9 +249,9 @@
   if (pedidoId) {
     pedidoCtx = await loadPedidoContext(pedidoId);
     if (!pedidoCtx) {
-      toast('Pedido nao encontrado', 'error');
+      toast('Pedido não encontrado', 'error');
       container.replaceChildren(el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;' },
-        el('div', { style: 'font-size:22px;font-weight:800;color:#16203a;letter-spacing:-.01em;' }, 'Pedido nao encontrado'),
+        el('div', { style: 'font-size:22px;font-weight:800;color:#16203a;letter-spacing:-.01em;' }, 'Pedido não encontrado'),
         el('button', { type: 'button', style: BTN_BACK, onclick: () => navigate('#/pedidos') }, svgEl(SVG_BACK), 'Voltar')));
       return shellLayout(ADMIN_MENU, container);
     }

@@ -638,3 +638,9 @@ test('pedido-detail.js: NÃO referencia cadastros.js (escopo separado)', () => {
   assert.doesNotMatch(detailBundle, /cadastros\.js/);
   assert.doesNotMatch(screen, /screenCadastros/);
 });
+
+test('pedido-detail.js: Gerar primeira OP preserva pedido_id UUID sem Number/parseInt', () => {
+  assert.match(detailEvents, /#\/ops\/nova\?pedido_id=['"]\s*\+\s*pedidoId/);
+  assert.doesNotMatch(detailEvents, /Number\s*\(\s*pedidoId\s*\)/);
+  assert.doesNotMatch(detailEvents, /parseInt\s*\(\s*pedidoId\s*/);
+});

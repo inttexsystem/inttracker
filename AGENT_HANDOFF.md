@@ -2509,3 +2509,51 @@ node --test tests/boot.smoke.js \
   `tests/system-screens.smoke.js` cobre titulo/subtitulo, campos,
   botao Entrar, lembrar-me, esqueceu senha, submit, erro, loading,
   toggle de senha e ausencia de chamadas Supabase no modulo.
+
+# Estado pos-fase - Pedido Post Save OP CTA Route R1
+
+- Fase concluida localmente:
+  `RAVATEX-TAPETES-PEDIDO-POST-SAVE-OP-CTA-ROUTE-R1`.
+- Branch base da fase: `work/app-next`, HEAD inicial
+  `8fd9d08ec6494cfb2a37678c82a7e239aa6a49fd`.
+- Causa encontrada:
+  `js/router.js` fazia match exato com a hash completa
+  `#/ops/nova?pedido_id=<uuid>`, mas a rota registrada pelo boot e
+  `#/ops/nova`. Resultado: `handleRoute` recebia `null` de `matchRoute`
+  e renderizava o 404 interno (`screenNotFound`). O 404 de `favicon.ico`
+  no log HTTP nao era a causa.
+- Correcao:
+  `matchRoute` agora calcula `routeHash` removendo a query apenas para o
+  match exato. A hash completa permanece em `window.location.hash`, entao
+  o render de `#/ops/nova` em `js/boot.js` continua extraindo
+  `pedido_id` via `URLSearchParams` e chamando
+  `window.screenNovaOP(null, pid)`.
+- UUID preservado:
+  `screenNovaOP` recebe `pedidoId` como string e usa esse valor em
+  `.eq('id', targetPedidoId)` / `.eq('pedido_id', pedidoId)`, sem
+  `Number` ou `parseInt`. A regex numerica existente em `router.js`
+  permanece restrita aos legados `#/ops/:id` e `#/expedicoes/:id`.
+- CTAs:
+  o pos-save admin continua usando
+  `window.location.hash = '#/ops/nova?pedido_id=' + pedido.id`; o detalhe
+  do Pedido continua usando `window.navigate('#/ops/nova?pedido_id=' +
+  pedidoId)`. Nenhuma rota fisica `/ops/nova` foi criada.
+- Erro de Pedido inexistente:
+  `js/screens/op-nova.js` mostra "Pedido não encontrado" no toast e na tela,
+  evitando confusao com 404 generico do router.
+- Texto admin:
+  texto do pos-save nao foi alterado nesta fase; apenas a mensagem de erro
+  de Pedido inexistente recebeu acento.
+- Testes/checks executados com sucesso:
+  `node --check js/router.js`;
+  `node --check js/screens/op-nova.js`;
+  `node --test tests/pedido-form.smoke.js`;
+  `node --test tests/pedido-detail.smoke.js`;
+  `node --test tests/op-nova.smoke.js`;
+  `node --test tests/boot.smoke.js`;
+  `node --test tests/router.smoke.js`.
+- Preservado fora de escopo:
+  nenhuma OP automatica, nenhum SQL, nenhum Supabase remoto/producao,
+  nenhum lifecycle de OP, nenhuma alteracao de `gerar_op_latex`,
+  expedicao, auth/login ou push. Residual permitido preservado:
+  `?? supabase/.temp/`.

@@ -1339,3 +1339,15 @@ test('65. reloadEntregasCima recarrega numero/ano da OP de latex para a cadeia p
   assert.match(opnSrc, /latexOpInfo\s*=\s*\{\}/);
   assert.match(opnSrc, /latexOpInfo\[lo\.origem_entrega_id\]\s*=\s*\{\s*id:\s*lo\.id,\s*numero:\s*lo\.numero,\s*ano:\s*lo\.ano,\s*status:\s*lo\.status\s*\}/);
 });
+
+test('66. Nova OP com pedido_id UUID preserva string e mostra erro de pedido nao encontrado', () => {
+  const pedidoCtxBlock = (opnSrc.match(/async function loadPedidoContext[\s\S]*?function hasLinkedPedido/) || [''])[0];
+  const pedidoRouteBlock = (opnSrc.match(/if\s*\(\s*pedidoId\s*\)\s*\{[\s\S]*?if\s*\(\s*opId\s*\)/) || [''])[0];
+  assert.ok(pedidoCtxBlock, 'trecho loadPedidoContext nao encontrado');
+  assert.ok(pedidoRouteBlock, 'trecho de carregamento por pedidoId nao encontrado');
+  assert.match(pedidoCtxBlock, /\.eq\(\s*['"]id['"]\s*,\s*targetPedidoId\s*\)/);
+  assert.match(pedidoRouteBlock, /\.eq\(\s*['"]pedido_id['"]\s*,\s*pedidoId\s*\)/);
+  assert.doesNotMatch(pedidoRouteBlock, /Number\s*\(\s*pedidoId\s*\)/);
+  assert.doesNotMatch(pedidoRouteBlock, /parseInt\s*\(\s*pedidoId\s*/);
+  assert.match(opnSrc, /Pedido não encontrado/);
+});
