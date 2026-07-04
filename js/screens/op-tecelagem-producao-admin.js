@@ -118,7 +118,7 @@
         onclick: function () { window.navigate('#/ops/' + destino.id); },
       }, 'OP ' + destino.numero + '/' + destino.ano + ' · Acabamento'
         + (destinoStatus ? ' · ' + destinoStatus : '')
-        + ' (gerada por entrega parcial)'));
+        + ' (consolidada desta OP de tecelagem)'));
   }
 
   function buildHeaderProducao(ctx) {

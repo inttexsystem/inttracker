@@ -205,7 +205,11 @@
       console.error(rpc.error);
       return true;
     }
-    window.toast('Entrega registrada' + (rpc.data ? ' · OP de látex gerada' : ''), 'success');
+    // A RPC é find-or-accumulate: a entrega pode CRIAR a OP de látex ou
+    // apenas ACUMULAR numa OP já consolidada por (origem_op + destino).
+    // Sem distinção no retorno (BIGINT), usamos linguagem neutra de vínculo
+    // para não afirmar "gerada" quando pode ter sido acumulação (Contrato 6).
+    window.toast('Entrega registrada' + (rpc.data ? ' · vinculada à OP de acabamento' : ''), 'success');
     return true;
   }
 

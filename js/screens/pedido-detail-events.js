@@ -517,13 +517,21 @@
           var entrega = state.entregasById[item.entrega_id];
           if (!entrega || entrega.etapa !== 'cima') return;
           var opDestino = findOpDestinoByEntregaId(entrega.id);
+          // Contrato 6 — o histórico deve distinguir CRIAÇÃO de ACUMULAÇÃO.
+          // A OP Látex é consolidada por (origem_op_id, destino_fornecedor_id):
+          // a primeira entrega a criá-la fica gravada em ops.origem_entrega_id;
+          // as demais apenas acumulam (op_latex_entregas N:1). Dizer "Gerou"
+          // para toda entrega mentiria quando ela só somou numa OP já existente.
+          var criouDestino = opDestino && opDestino.origem_entrega_id === entrega.id;
           entries.push({
             title: 'Transferencia para acabamento',
             meta: modelLabelByModeloId((ctxMovement.op && (ctxMovement.op.op_itens || []).find(function (opItem) {
               return opItem.id === item.op_item_id;
             }) || {}).modelo_id),
             amount: ns.fmtMetros(item.metros_entregues),
-            status: opDestino ? ('Gerou ' + ns.opLabel(opDestino)) : 'Registrada',
+            status: opDestino
+              ? ((criouDestino ? 'Criou ' : 'Acumulou em ') + ns.opLabel(opDestino))
+              : 'Registrada',
             date: formatTransitionDate(entrega.data),
             note: entrega.destino && entrega.destino.nome ? ('Destino: ' + entrega.destino.nome) : null,
           });

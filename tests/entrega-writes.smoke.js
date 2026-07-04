@@ -94,7 +94,7 @@
 //      return false;
 //  44. salvarEntregaCima happy path — insert entregas etapa='cima'
 //      + destino_fornecedor_id + insert itens + rpc gerar_op_latex
-//      best-effort + toast success com "OP de látex gerada";
+//      best-effort + toast success com vínculo à OP de acabamento;
 //  45. salvarEntregaCima RPC falhando → entrega é mantida, toast
 //      específico de erro da RPC, console.error, return true;
 //  46. salvarEntregaCima insert entregas falha → toast error +
@@ -950,7 +950,7 @@ test('38. runtime: consumidor inline mockado consegue chamar atualizarEntregaLat
 // O sandbox Cima é uma variação do sandbox Latex: precisa suportar
 // .insert().select().single() (entregas) E controle programático do
 // resultado de .rpc() (best-effort, mas com payload) para validar
-// o toast "OP de látex gerada" e o ramo de erro da RPC.
+// o toast de vínculo à OP de acabamento e o ramo de erro da RPC.
 
 function makeEWCimaSandbox({
   entregasInsertResult  = { data: { id: 999 }, error: null },
@@ -1113,7 +1113,7 @@ test('44. runtime: salvarEntregaCima sem destino_fornecedor_id → toast + retur
   assert.equal(allCalls.length, 0, 'NÃO deve chamar Supabase sem destino');
 });
 
-test('45. runtime: salvarEntregaCima happy path — insert etapa=cima + destino + rpc best-effort + toast "OP de látex gerada"', async () => {
+test('45. runtime: salvarEntregaCima happy path — insert etapa=cima + destino + rpc best-effort + toast "vinculada à OP de acabamento"', async () => {
   const { sandbox, fakeSupa, getToasts } = makeEWCimaSandbox();
   const result = await vm.runInContext(
     'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
@@ -1141,11 +1141,12 @@ test('45. runtime: salvarEntregaCima happy path — insert etapa=cima + destino 
   assert.equal(rpcCalls[0].fn, 'gerar_op_latex');
   assert.equal(JSON.stringify(rpcCalls[0].params), JSON.stringify({ p_entrega_id: 999 }),
     'RPC deve receber { p_entrega_id: 999 }');
-  // Toast de success com "OP de látex gerada" (rpc.data truthy)
+  // Toast de success com linguagem neutra de vínculo (rpc.data truthy):
+  // a RPC é find-or-accumulate, então NÃO afirmamos "gerada" (Contrato 6).
   const toasts = getToasts();
   const successToasts = toasts.filter(t => t.type === 'success');
   assert.equal(successToasts.length, 1);
-  assert.equal(successToasts[0].msg, 'Entrega registrada · OP de látex gerada');
+  assert.equal(successToasts[0].msg, 'Entrega registrada · vinculada à OP de acabamento');
 });
 
 test('46. runtime: salvarEntregaCima RPC falhando → entrega mantida, toast específico da RPC, return true', async () => {
