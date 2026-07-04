@@ -146,23 +146,47 @@
     function buildHeader(totalLiberado, totalEntregue) {
       var exp = state.expedicao || {};
       var pedidoNumero = exp.pedido && exp.pedido.numero ? ('#' + exp.pedido.numero) : ('#' + exp.pedido_id);
-      return window.el('div', {
-        style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap;',
-      },
-        window.el('div', {},
-          window.el('div', { style: 'font-size:13.5px;color:#9aa2af;margin-bottom:6px;' },
-            'Expedicoes / ', window.el('span', { style: 'color:#5b6472;font-weight:600;' }, 'Pedido ' + pedidoNumero)),
-          window.el('h1', { style: 'margin:0;font-size:24px;font-weight:800;color:#16203a;letter-spacing:-.01em;' },
-            'Expedicao do Pedido ' + pedidoNumero),
-          window.el('div', { style: 'font-size:13px;color:#8a93a3;margin-top:6px;' },
-            (exp.cliente && exp.cliente.nome ? exp.cliente.nome : 'Cliente') + ' - ' +
-            (exp.lote && exp.lote.numero ? 'Lote ' + exp.lote.numero : 'Lote') + ' - ' +
-            fmtMetros(totalEntregue) + ' de ' + fmtMetros(totalLiberado))
-        ),
-        window.el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;' },
-          badge(exp.status),
-          exp.pedido_id ? window.el('button', { type: 'button', style: BTN_SECONDARY, onclick: function () { window.navigate('#/pedidos/' + exp.pedido_id); } }, 'Abrir pedido') : null,
-          exp.op_latex_id ? window.el('button', { type: 'button', style: BTN_SECONDARY, onclick: function () { window.navigate('#/ops/' + exp.op_latex_id); } }, 'Abrir OP') : null)
+      var opLabel = exp.op && exp.op.numero && exp.op.ano
+        ? ('OP ' + exp.op.numero + '/' + exp.op.ano)
+        : (exp.op_latex_id ? 'OP #' + exp.op_latex_id : null);
+
+      var lineageNodes = [];
+      lineageNodes.push(window.el('span', { style: 'font-size:12.5px;color:#2c4a78;font-weight:600;' }, 'Cadeia:'));
+      lineageNodes.push(window.el('span', { style: 'font-size:12.5px;font-weight:700;color:#16203a;background:#fff;border-radius:3px;padding:3px 7px;' }, 'Pedido ' + pedidoNumero));
+      lineageNodes.push(window.el('span', { style: 'font-size:12px;color:#9aa2af;' }, '→'));
+      lineageNodes.push(opLabel
+        ? window.el('button', {
+            type: 'button',
+            style: 'font-size:12.5px;font-weight:700;color:#2563eb;background:#fff;border:none;border-radius:3px;padding:3px 7px;cursor:pointer;font-family:inherit;',
+            onclick: function () { window.navigate('#/ops/' + exp.op_latex_id); },
+          }, opLabel)
+        : window.el('span', { style: 'font-size:12.5px;font-weight:700;color:#8a93a3;background:#fff;border-radius:3px;padding:3px 7px;' }, 'OP sem vinculo'));
+      lineageNodes.push(window.el('span', { style: 'font-size:12px;color:#9aa2af;' }, '→'));
+      lineageNodes.push(window.el('span', { style: 'font-size:12.5px;font-weight:700;color:#c2610c;background:#fff;border-radius:3px;padding:3px 7px;' }, 'Expedicao (esta tela)'));
+      var lineageStrip = window.el('div', {
+        style: 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#eaf1fd;border:1px solid #d7e6fb;border-radius:4px;padding:8px 14px;margin-bottom:12px;',
+      }, lineageNodes);
+
+      return window.el('div', { style: 'margin-bottom:14px;' },
+        lineageStrip,
+        window.el('div', {
+          style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;',
+        },
+          window.el('div', {},
+            window.el('div', { style: 'font-size:13.5px;color:#9aa2af;margin-bottom:6px;' },
+              'Expedicoes / ', window.el('span', { style: 'color:#5b6472;font-weight:600;' }, 'Pedido ' + pedidoNumero)),
+            window.el('h1', { style: 'margin:0;font-size:24px;font-weight:800;color:#16203a;letter-spacing:-.01em;' },
+              'Expedicao do Pedido ' + pedidoNumero),
+            window.el('div', { style: 'font-size:13px;color:#8a93a3;margin-top:6px;' },
+              (exp.cliente && exp.cliente.nome ? exp.cliente.nome : 'Cliente') + ' - ' +
+              (exp.lote && exp.lote.numero ? 'Lote ' + exp.lote.numero : 'Lote') + ' - ' +
+              fmtMetros(totalEntregue) + ' de ' + fmtMetros(totalLiberado))
+          ),
+          window.el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;' },
+            badge(exp.status),
+            exp.pedido_id ? window.el('button', { type: 'button', style: BTN_SECONDARY, onclick: function () { window.navigate('#/pedidos/' + exp.pedido_id); } }, 'Abrir pedido') : null,
+            exp.op_latex_id ? window.el('button', { type: 'button', style: BTN_SECONDARY, onclick: function () { window.navigate('#/ops/' + exp.op_latex_id); } }, 'Abrir OP') : null)
+        )
       );
     }
 

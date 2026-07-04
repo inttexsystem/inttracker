@@ -75,6 +75,11 @@ const router = readOrFail(ROUTER);
 const boot   = readOrFail(BOOT);
 const index  = readOrFail(INDEX);
 const schema = readOrFail(SCHEMA);
+const OLA = path.join(ROOT, 'js', 'screens', 'op-latex-admin.js');
+const OPTP = path.join(ROOT, 'js', 'screens', 'op-tecelagem-producao-admin.js');
+const olaSrc = fs.readFileSync(OLA, 'utf8');
+const optpSrc = fs.readFileSync(OPTP, 'utf8');
+const opnSrc = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'op-nova.js'), 'utf8');
 const detailBundle = [
   chainState,
   screen,
@@ -1310,4 +1315,68 @@ test('stepper-modals-B: "Transferir restante" da fase C continua preservado', ()
     'modal de transicao deve continuar renderizando "Transferir restante"');
   assert.match(detailEvents, /transferForm\.fillRemaining\(\)/,
     'fillRemaining deve continuar existindo');
+});
+
+// ---------------------------------------------------------------------
+// 21. OP-PEDIDO-LINEAGE-UX-B — linhagem padronizada Pedido ↔ OP
+// ---------------------------------------------------------------------
+
+test('lineage-UX-B: buildOpCard renderiza lineage strip com Pedido + OP', () => {
+  assert.match(detailRender, /lineageNodes/,
+    'buildOpCard deve construir lineageNodes');
+  assert.match(detailRender, /state\.pedido && state\.pedido\.numero/,
+    'deve usar state.pedido.numero para referenciar Pedido');
+  assert.match(detailRender, /lineageStrip/,
+    'deve renderizar lineageStrip nos cards de OP');
+});
+
+test('lineage-UX-B: buildOpCard mostra origem para OP de acabamento', () => {
+  assert.match(detailRender, /summary\.origemOp/,
+    'deve verificar origemOp para OP de acabamento');
+  assert.match(detailRender, /ns\.opLabel\(summary\.origemOp\)/,
+    'deve mostrar label da OP de origem no lineage');
+});
+
+test('lineage-UX-B: OP Tecelagem lineage strip inclui Pedido quando vinculado', () => {
+  assert.match(optpSrc, /if \(hasLinkedPedido\(ctx\)\)/,
+    'deve checar hasLinkedPedido antes de incluir Pedido na cadeia');
+  assert.match(optpSrc, /Pedido ' \+ ctx\.pedidoCtx\.numero/,
+    'deve exibir Pedido + numero do pedido na cadeia');
+  assert.match(optpSrc, /navigate\('#\/pedidos\/' \+ ctx\.pedidoCtx\.id\)/,
+    'deve permitir navegar para o Pedido via clique');
+});
+
+test('lineage-UX-B: OP Latex cadeia inclui Pedido quando vinculado', () => {
+  assert.match(olaSrc, /if \(pedidoId\)/);
+  assert.match(olaSrc, /Pedido #' \+ pedidoId/,
+    'deve exibir Pedido na cadeia produtiva do Latex');
+  assert.match(olaSrc, /navigate\('#\/pedidos\/' \+ pedidoId\)/,
+    'deve permitir navegar para o Pedido via clique');
+});
+
+test('lineage-UX-B: Expedicao header inclui lineage strip Pedido → OP → Expedicao', () => {
+  var expSrc = readOrFail(path.join(ROOT, 'js', 'screens', 'expedicao-admin.js'));
+  assert.match(expSrc, /Cadeia:/,
+    'deve ter label "Cadeia:" no header da expedicao');
+  assert.match(expSrc, /Pedido ' \+ pedidoNumero/,
+    'deve exibir Pedido na cadeia da expedicao');
+  assert.match(expSrc, /Expedicao \(esta tela\)/,
+    'deve marcar Expedicao como etapa atual na cadeia');
+});
+
+test('lineage-UX-B: nenhum arquivo inventa ID operacional persistido', () => {
+  var allSources = [detailRender, detailProgress, detailEvents, olaSrc, optpSrc, opnSrc];
+  for (var i = 0; i < allSources.length; i++) {
+    assert.doesNotMatch(allSources[i], /P\d{2}-T\d{2}-L\d{2}/,
+      'nao deve conter ID operacional inventado tipo P18-T16-L5');
+    assert.doesNotMatch(allSources[i], /op_lineage_id/,
+      'nao deve conter campo persistido novo');
+  }
+});
+
+test('lineage-UX-B: numeração oficial da OP preservada', () => {
+  assert.match(detailRender, /ns\.opLabel/,
+    'deve usar ns.opLabel (numero/ano oficial) para identificar OP');
+  assert.doesNotMatch(detailRender, /op\.codigo|op\.codigo_lineage/,
+    'nao deve usar campo inexistente');
 });

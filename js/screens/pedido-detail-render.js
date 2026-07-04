@@ -592,9 +592,35 @@
     var movementView = movementAction.mode === 'view';
     var movementLabel = movementAction.label || (movementView ? 'Visualizar' : 'Movimentar');
 
+    var pedidoNumero = state.pedido && state.pedido.numero ? state.pedido.numero : null;
+    var lineageNodes = [];
+    if (pedidoNumero) {
+      lineageNodes.push(window.el('button', {
+        type: 'button',
+        style: 'font-size:12px;font-weight:600;color:#2563eb;background:#eaf1fd;border:none;border-radius:3px;padding:3px 7px;cursor:pointer;font-family:inherit;white-space:nowrap;',
+        onclick: function () { handlers.scrollToSection ? null : null; },
+      }, 'Pedido ' + pedidoNumero));
+      lineageNodes.push(ns.svgEl('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>'));
+    }
+    lineageNodes.push(window.el('span', {
+      style: 'font-size:12.5px;font-weight:700;color:#16203a;',
+    }, summary.label));
+    if (summary.origemOp) {
+      lineageNodes.push(ns.svgEl('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>'));
+      lineageNodes.push(window.el('button', {
+        type: 'button',
+        style: 'font-size:11.5px;font-weight:600;color:#2563eb;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;',
+        onclick: function () { handlers.navigateToOp(summary.origemOp.id); },
+      }, ns.opLabel(summary.origemOp)));
+    }
+    var lineageStrip = window.el('div', {
+      style: 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 18px;background:#f6f9ff;border-bottom:1px solid #f1f3f6;',
+    }, lineageNodes);
+
     return window.el('div', {
       style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;overflow:hidden;',
     },
+      lineageStrip,
       window.el('div', {
         style: 'padding:14px 18px;border-bottom:1px solid #f1f3f6;display:flex;align-items:center;justify-content:space-between;',
       },

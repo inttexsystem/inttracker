@@ -109,16 +109,25 @@
     var destinoStatus = destino.status === 'aberta'
       ? 'Aguardando entrada'
       : (destino.status === 'em_producao' ? 'Em producao' : '');
-    return el('div', { style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#eaf1fd;border:1px solid #d7e6fb;border-radius:4px;padding:10px 16px;' },
-      el('span', { style: 'font-size:12.5px;color:#2c4a78;' }, 'Cadeia produtiva:'),
-      el('span', { style: 'font-size:12.5px;font-weight:700;color:#16203a;background:#fff;border-radius:4px;padding:3px 9px;' }, 'OP ' + ctx.numero + '/' + ctx.ano + ' · Tecelagem (esta OP)'),
-      el('button', {
+    var nodes = [];
+    nodes.push(el('span', { style: 'font-size:12.5px;color:#2c4a78;' }, 'Cadeia produtiva:'));
+    if (hasLinkedPedido(ctx)) {
+      nodes.push(el('button', {
         type: 'button',
         style: 'font-size:12.5px;font-weight:700;color:#2563eb;background:#fff;border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-family:inherit;',
-        onclick: function () { window.navigate('#/ops/' + destino.id); },
-      }, 'OP ' + destino.numero + '/' + destino.ano + ' · Acabamento'
-        + (destinoStatus ? ' · ' + destinoStatus : '')
-        + ' (consolidada desta OP de tecelagem)'));
+        onclick: function () { window.navigate('#/pedidos/' + ctx.pedidoCtx.id); },
+      }, 'Pedido ' + ctx.pedidoCtx.numero));
+      nodes.push(svgEl('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>'));
+    }
+    nodes.push(el('span', { style: 'font-size:12.5px;font-weight:700;color:#16203a;background:#fff;border-radius:4px;padding:3px 9px;' }, 'OP ' + ctx.numero + '/' + ctx.ano + ' · Tecelagem (esta OP)'));
+    nodes.push(el('button', {
+      type: 'button',
+      style: 'font-size:12.5px;font-weight:700;color:#2563eb;background:#fff;border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-family:inherit;',
+      onclick: function () { window.navigate('#/ops/' + destino.id); },
+    }, 'OP ' + destino.numero + '/' + destino.ano + ' · Acabamento'
+      + (destinoStatus ? ' · ' + destinoStatus : '')
+      + ' (consolidada desta OP de tecelagem)'));
+    return el('div', { style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#eaf1fd;border:1px solid #d7e6fb;border-radius:4px;padding:10px 16px;' }, nodes);
   }
 
   function buildHeaderProducao(ctx) {
