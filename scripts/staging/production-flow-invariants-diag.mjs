@@ -196,7 +196,7 @@ const opLbl = (o) => o ? (o.numero + '/' + o.ano) : '—';
   console.log('\n===== [2.5c] DB/29 RPC SPLIT CHECK =====');
   try {
     const rpcCheck = await selOptional('rpc/gerar_op_latex_split?select=op_latex_id');
-    console.log('RPC gerar_op_latex_split: OK (acessivel)');
+    console.log('RPC gerar_op_latex_split:', rpcCheck ? 'OK (acessivel)' : 'INDISPONIVEL (db/29 nao aplicada ou nao recarregada)');
   } catch {
     console.log('RPC gerar_op_latex_split: INDISPONIVEL (db/29 nao aplicada ou nao recarregada)');
   }

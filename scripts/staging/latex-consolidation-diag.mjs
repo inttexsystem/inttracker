@@ -67,6 +67,17 @@ async function sel(token, pathq) {
   return res.json();
 }
 
+async function selOptional(token, pathq) {
+  const res = await fetch(url + '/rest/v1/' + pathq, {
+    headers: { apikey: anonKey, Authorization: 'Bearer ' + token },
+  });
+  if (!res.ok) {
+    console.log('SELECT opcional indisponivel (' + pathq + '): HTTP ' + res.status);
+    return null;
+  }
+  return res.json();
+}
+
 function fornecedorLatex(op) {
   const row = (op.op_fornecedores || []).find((f) => f.etapa === 'latex');
   return row ? row.fornecedor_id : null;
@@ -198,8 +209,8 @@ const round2 = (n) => Math.round(Number(n || 0) * 100) / 100;
     console.log('OPs split sem rastro completo:', semRastro.length ? semRastro.map((op) => op.numero + '/' + op.ano).join(', ') : '0 (OK)');
   }
   try {
-    const rpcCheck = await sel(token, 'rpc/gerar_op_latex_split?select=op_latex_id');
-    console.log('RPC gerar_op_latex_split: OK (acessivel via PostgREST)');
+    const rpcCheck = await selOptional(token, 'rpc/gerar_op_latex_split?select=op_latex_id');
+    console.log('RPC gerar_op_latex_split:', rpcCheck ? 'OK (acessivel via PostgREST)' : 'INDISPONIVEL (db/29 nao aplicada ou schema nao recarregado)');
   } catch {
     console.log('RPC gerar_op_latex_split: INDISPONIVEL (db/29 nao aplicada ou schema nao recarregado)');
   }
