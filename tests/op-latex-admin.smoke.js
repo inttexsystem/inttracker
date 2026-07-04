@@ -333,6 +333,7 @@ function makeFullBootSandbox({
     ],
   },
   entData = [],
+  opLatexEntregasData = [],
   modelosData = [],
   origemOpData = null,
   expedicaoData = null,
@@ -351,9 +352,16 @@ function makeFullBootSandbox({
   const calls = [];
 
   function makeChain(table) {
-    const opDataMap = { ops: opData, entregas: entData, modelos: modelosData, expedicoes: expedicaoData };
+    const opDataMap = { ops: opData, entregas: entData, op_latex_entregas: opLatexEntregasData, modelos: modelosData, expedicoes: expedicaoData };
     const defaultData = opDataMap[table] !== undefined ? opDataMap[table] : [];
     const state = { filters: [] };
+    function filteredDefaultData() {
+      if (!Array.isArray(defaultData)) return defaultData;
+      return defaultData.filter((row) => state.filters.every((filter) => {
+        if (filter.type === 'in') return filter.vals.includes(row[filter.col]);
+        return row[filter.col] === filter.val;
+      }));
+    }
     return {
       _table: table,
       _lastUpdate: null,
@@ -367,11 +375,15 @@ function makeFullBootSandbox({
       delete() { calls.push({ op: 'delete', table }); return this; },
       eq(col, val) {
         calls.push({ op: 'eq', table, col, val });
-        state.filters.push({ col, val });
+        state.filters.push({ type: 'eq', col, val });
         return this;
       },
       order() { return this; },
-      in() { return this; },
+      in(col, vals) {
+        calls.push({ op: 'in', table, col, vals });
+        state.filters.push({ type: 'in', col, vals });
+        return this;
+      },
       single() {
         if (table === 'ops') {
           const idFilter = state.filters.find((f) => f.col === 'id');
@@ -398,7 +410,7 @@ function makeFullBootSandbox({
         if (this._lastUpdate) {
           return Promise.resolve({ data: null, error: null }).then(resolveThen, rejectThen);
         }
-        return Promise.resolve({ data: defaultData, error: null }).then(resolveThen, rejectThen);
+        return Promise.resolve({ data: filteredDefaultData(), error: null }).then(resolveThen, rejectThen);
       },
     };
   }
@@ -494,12 +506,59 @@ test('21. runtime: reload chama select em ops com .eq("id", opId).single()', asy
   assert.ok(hasEq, 'reload não filtra ops por eq("id", 42)');
 });
 
-test('22. runtime: reload chama select em entregas com .eq("etapa", "latex")', async () => {
-  const { sandbox, fakeSupa } = makeFullBootSandbox();
+test('22. runtime: reload consulta op_latex_entregas e separa movimentos latex', async () => {
+  const { sandbox, fakeSupa } = makeFullBootSandbox({
+    opLatexEntregasData: [{ op_latex_id: 42, entrega_id: 6 }],
+  });
   await vm.runInContext('window.renderOPLatexAdmin(42)', sandbox);
+  const linksCalls = fakeSupa._calls.filter(c => c.table === 'op_latex_entregas');
+  assert.ok(linksCalls.some(c => c.op === 'from'), 'reload nao consulta op_latex_entregas');
+  assert.ok(linksCalls.some(c => c.op === 'eq' && c.col === 'op_latex_id' && c.val === 42),
+    'reload nao filtra op_latex_entregas por op_latex_id');
   const entregasCalls = fakeSupa._calls.filter(c => c.table === 'entregas');
+  const hasOriginIn = entregasCalls.some(c => c.op === 'in' && c.col === 'id' && c.vals.includes(6));
+  assert.ok(hasOriginIn, 'reload nao busca entregas de origem pelos ids vinculados');
   const hasEtapaEq = entregasCalls.some(c => c.op === 'eq' && c.col === 'etapa' && c.val === 'latex');
-  assert.ok(hasEtapaEq, 'reload não filtra entregas por eq("etapa", "latex")');
+  assert.ok(hasEtapaEq, 'reload nao mantem consulta separada de movimentos latex');
+});
+
+test('22b. OP latex consolidada mostra multiplas entregas de origem por op_latex_entregas', async () => {
+  const rendered = await renderLatexAdminForTest({
+    opData: {
+      id: 42,
+      numero: 5,
+      ano: 2026,
+      status: 'em_producao',
+      tipo: 'latex',
+      observacao: '',
+      origem_op_id: 12,
+      lote: { id: 91, numero: 22, pedido_id: 77, cliente: { id: 3, nome: 'Cliente Atlas' } },
+      op_itens: [{ id: 100, modelo_id: 1, metros_pedidos: 5265, pedido_item_id: 700 }],
+      op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Conitex' } }],
+    },
+    opLatexEntregasData: [
+      { op_latex_id: 42, entrega_id: 6 },
+      { op_latex_id: 42, entrega_id: 7 },
+      { op_latex_id: 42, entrega_id: 9 },
+    ],
+    entData: [
+      { id: 6, etapa: 'cima', fornecedor_id: 1, destino_fornecedor_id: 7, data: '2026-07-01', destino: { nome: 'Conitex' }, entrega_itens: [{ id: 601, op_id: 12, op_item_id: 201, metros_entregues: 200, defeito: false, observacao: '' }] },
+      { id: 7, etapa: 'cima', fornecedor_id: 1, destino_fornecedor_id: 7, data: '2026-07-02', destino: { nome: 'Conitex' }, entrega_itens: [{ id: 602, op_id: 12, op_item_id: 201, metros_entregues: 25, defeito: false, observacao: '' }] },
+      { id: 9, etapa: 'cima', fornecedor_id: 1, destino_fornecedor_id: 7, data: '2026-07-03', destino: { nome: 'Conitex' }, entrega_itens: [{ id: 603, op_id: 12, op_item_id: 201, metros_entregues: 5040, defeito: false, observacao: '' }] },
+      { id: 501, etapa: 'latex', fornecedor_id: 7, data: '2026-07-04', entrega_itens: [{ id: 701, op_id: 42, op_item_id: 100, metros_entregues: 50, defeito: false, observacao: '' }] },
+    ],
+    modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
+    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem', op_itens: [{ id: 201, modelo_id: 1, pedido_item_id: 700 }] },
+  });
+
+  assert.match(rendered.text, /Entregas vinculadas3/);
+  assert.match(rendered.text, /Entrega #6/);
+  assert.match(rendered.text, /Entrega #7/);
+  assert.match(rendered.text, /Entrega #9/);
+  assert.match(rendered.text, /5265,00 m/);
+  assert.match(rendered.text, /HISTORICO DE MOVIMENTOS DO ACABAMENTO/);
+  assert.doesNotMatch(rendered.text, /gerou a OP/);
+  assert.doesNotMatch(rendered.text, /origem - entrega parcial/);
 });
 
 test('23. runtime: reload chama select em modelos quando há modeloIds', async () => {
@@ -796,6 +855,7 @@ test('35. OP em producao de acabamento segue o standalone e nao mostra recebimen
     },
     entData: [{
       id: 501,
+      etapa: 'latex',
       fornecedor_id: 7,
       data: '2026-07-01',
       observacao: 'Primeiro lote',
@@ -892,6 +952,7 @@ test('39. OP em producao de acabamento usa template operacional proprio', async 
     },
     entData: [{
       id: 501,
+      etapa: 'latex',
       fornecedor_id: 7,
       data: '2026-07-01',
       observacao: 'Primeiro lote',
@@ -926,6 +987,7 @@ test('40. OP em producao de acabamento mostra todos os blocos operacionais esper
     },
     entData: [{
       id: 501,
+      etapa: 'latex',
       fornecedor_id: 7,
       data: '2026-07-01',
       observacao: 'Primeiro lote',
@@ -948,7 +1010,7 @@ test('40. OP em producao de acabamento mostra todos os blocos operacionais esper
   assert.match(rendered.text, /Finalizar acabamento/i);
   assert.match(rendered.text, /NF_INSUMOS_2026\.pdf/i);
   assert.match(rendered.text, /ROMANEIO_OP-002-2026\.pdf/i);
-  assert.match(rendered.text, /Entrega parcial para Acabamento/i);
+  assert.match(rendered.text, /Entrada consolidada da Tecelagem/i);
   assert.match(rendered.text, /OP aberta/i);
   assert.doesNotMatch(rendered.text, /4\.\s*Recebimentos \/ acabamento/i);
   assert.doesNotMatch(rendered.text, /5\.\s*Finalizacao \/ liberar para proxima etapa/i);
@@ -970,6 +1032,7 @@ test('41. OP em producao de acabamento mostra enviado, recebido, falta e exceden
     },
     entData: [{
       id: 501,
+      etapa: 'latex',
       fornecedor_id: 7,
       data: '2026-07-01',
       observacao: 'Excedente informado',
@@ -1079,7 +1142,7 @@ test('45. OP em producao de acabamento não tem nenhum ícone de seção (padrã
       op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
     },
     entData: [{
-      id: 501, fornecedor_id: 7, data: '2026-07-01', observacao: '',
+      id: 501, etapa: 'latex', fornecedor_id: 7, data: '2026-07-01', observacao: '',
       entrega_itens: [{ id: 601, op_id: 42, op_item_id: 100, metros_entregues: 50, defeito: false, observacao: '' }],
     }],
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],

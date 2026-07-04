@@ -73,7 +73,7 @@
 
     async function reload() {
       var opRes = await supa.from('ops')
-        .select('id, numero, ano, status, tipo, observacao, origem_op_id, criado_em, lote:lote_id(id, numero, pedido_id, cliente:cliente_id(id, nome)), op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa, fornecedores:fornecedor_id(nome))')
+        .select('id, numero, ano, status, tipo, observacao, origem_op_id, origem_entrega_id, criado_em, lote:lote_id(id, numero, pedido_id, cliente:cliente_id(id, nome)), op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa, fornecedores:fornecedor_id(nome))')
         .eq('id', opId)
         .single();
       if (opRes.error) {
@@ -89,10 +89,37 @@
       var origemOp = null;
       if (op.origem_op_id) {
         var origemRes = await supa.from('ops')
-          .select('id, numero, ano, tipo')
+          .select('id, numero, ano, tipo, op_itens(id, modelo_id, pedido_item_id)')
           .eq('id', op.origem_op_id)
           .maybeSingle();
         if (!origemRes.error && origemRes.data) origemOp = origemRes.data;
+      }
+
+      var origemEntregaIds = [];
+      var origemLinksRes = await supa.from('op_latex_entregas')
+        .select('entrega_id')
+        .eq('op_latex_id', op.id);
+      if (!origemLinksRes.error) {
+        origemEntregaIds = (origemLinksRes.data || [])
+          .map(function (row) { return row.entrega_id; })
+          .filter(function (id) { return id != null; });
+      }
+      if (!origemEntregaIds.length && op.origem_entrega_id) {
+        origemEntregaIds = [op.origem_entrega_id];
+      }
+      origemEntregaIds = Array.from(new Set(origemEntregaIds));
+      var origemEntregas = [];
+      if (origemEntregaIds.length) {
+        var origemEntRes = await supa.from('entregas')
+          .select('id, fornecedor_id, destino_fornecedor_id, data, observacao, fornecedores:fornecedor_id(nome), destino:destino_fornecedor_id(nome), entrega_itens(id, op_id, op_item_id, metros_entregues, defeito, observacao)')
+          .in('id', origemEntregaIds)
+          .order('data', { ascending: false })
+          .order('id', { ascending: false });
+        origemEntregas = (origemEntRes.data || []).filter(function (row) {
+          return (row.entrega_itens || []).some(function (ei) {
+            return !ei.defeito && (!op.origem_op_id || ei.op_id === op.origem_op_id);
+          });
+        });
       }
 
       var entRes = await supa.from('entregas')
@@ -101,11 +128,14 @@
         .eq('fornecedor_id', latexFornecedorId)
         .order('data', { ascending: false })
         .order('id', { ascending: false });
-      var recebimentos = (entRes.data || []).filter(function (row) {
+      var movimentosLatex = (entRes.data || []).filter(function (row) {
         return (row.entrega_itens || []).some(function (ei) { return ei.op_id === op.id; });
       });
 
-      var modeloIds = Array.from(new Set((op.op_itens || []).map(function (item) { return item.modelo_id; })));
+      var modeloIds = Array.from(new Set((op.op_itens || [])
+        .concat((origemOp && origemOp.op_itens) || [])
+        .map(function (item) { return item.modelo_id; })
+        .filter(function (id) { return id != null; })));
       var modelosRes = modeloIds.length
         ? await supa.from('modelos').select('id, nome, largura, cor_1:cor_1_id(id,nome), cor_2:cor_2_id(id,nome)').in('id', modeloIds)
         : { data: [] };
@@ -119,14 +149,37 @@
         .maybeSingle();
       if (!expRes.error && expRes.data) expedicao = expRes.data;
 
-      render(op, recebimentos, modelosById, latexFornecedorId, origemOp, expedicao);
+      render(op, movimentosLatex, origemEntregas, modelosById, latexFornecedorId, origemOp, expedicao);
     }
 
-    function render(op, recebimentos, modelosById, latexFornecedorId, origemOp, expedicao) {
-      var recItens = recebimentos.flatMap(function (ent) {
+    function render(op, movimentosLatex, origemEntregas, modelosById, latexFornecedorId, origemOp, expedicao) {
+      movimentosLatex = movimentosLatex || [];
+      origemEntregas = origemEntregas || [];
+      var recItens = movimentosLatex.flatMap(function (ent) {
         return (ent.entrega_itens || []).filter(function (ei) { return ei.op_id === op.id; });
       });
       var totalPorItem = totalEntregueCimaPorItem(recItens);
+      function origemEntregaItens(ent) {
+        return (ent.entrega_itens || []).filter(function (ei) {
+          return !ei.defeito && (!op.origem_op_id || ei.op_id === op.origem_op_id);
+        });
+      }
+      function origemItemLabel(ei) {
+        var itemOrigem = ((origemOp && origemOp.op_itens) || []).find(function (item) { return item.id === ei.op_item_id; });
+        var itemLatex = (op.op_itens || []).find(function (item) {
+          return itemOrigem && item.modelo_id === itemOrigem.modelo_id;
+        });
+        var modelo = itemOrigem ? modelosById[itemOrigem.modelo_id] : (itemLatex ? modelosById[itemLatex.modelo_id] : null);
+        return modelo ? window.rotuloModelo(modelo) : ('Item #' + ei.op_item_id);
+      }
+      function totalOrigemEntrega(ent) {
+        return Math.round(origemEntregaItens(ent).reduce(function (acc, ei) {
+          return acc + Number(ei.metros_entregues || 0);
+        }, 0) * 100) / 100;
+      }
+      var totalOrigemTecelagem = Math.round(origemEntregas.reduce(function (acc, ent) {
+        return acc + totalOrigemEntrega(ent);
+      }, 0) * 100) / 100;
       function metrosAjustadosItem(item) {
         return item && item.metros_ajustados != null ? Number(item.metros_ajustados) : Number(item && item.metros_pedidos ? item.metros_pedidos : 0);
       }
@@ -250,7 +303,7 @@
       function buildRecebimentosOperacional(opArg, recebimentosArg, modelosByIdArg, latexFornecedorIdArg) {
         var box = el('div', { style: CARD + 'padding:16px 20px;' });
         box.appendChild(el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;' },
-          el('span', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, '4. Recebimentos / acabamento'),
+          el('span', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, '4. Movimentos do acabamento'),
           opArg.status === 'em_producao' && latexFornecedorIdArg
             ? el('button', { type: 'button', style: BTN_SOLID_SM,
               onclick: function () {
@@ -269,7 +322,7 @@
             : ''));
 
         if (!recebimentosArg.length) {
-          box.appendChild(el('div', { style: 'font-size:13px;color:#aab2bf;' }, 'Nenhum recebimento registrado ainda.'));
+          box.appendChild(el('div', { style: 'font-size:13px;color:#aab2bf;' }, 'Nenhum movimento de acabamento registrado ainda.'));
           return box;
         }
 
@@ -366,7 +419,7 @@
             svgEl(SVG_LINEAGE),
             el('span', { style: 'font-size:12.5px;color:#2c4a78;' }, 'Cadeia produtiva:'),
             op.origem_op_id
-              ? el('button', { type: 'button', style: 'font-size:12.5px;font-weight:700;color:#2563eb;background:#fff;border:none;border-radius:4px;padding:3px 9px;text-decoration:none;cursor:pointer;font-family:inherit;', onclick: function () { navigate('#/ops/' + op.origem_op_id); } }, origemProdLabel + ' (origem - entrega parcial)')
+              ? el('button', { type: 'button', style: 'font-size:12.5px;font-weight:700;color:#2563eb;background:#fff;border:none;border-radius:4px;padding:3px 9px;text-decoration:none;cursor:pointer;font-family:inherit;', onclick: function () { navigate('#/ops/' + op.origem_op_id); } }, origemProdLabel + ' (origem consolidada)')
               : el('span', { style: 'font-size:12.5px;font-weight:700;color:#8a93a3;background:#fff;border-radius:4px;padding:3px 9px;' }, 'Tecelagem sem vínculo'),
             svgEl('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>'),
             el('span', { style: 'font-size:12.5px;font-weight:700;color:#16203a;background:#fff;border-radius:4px;padding:3px 9px;' }, 'OP ' + op.numero + '/' + op.ano + ' · Acabamento (esta OP)'));
@@ -457,19 +510,39 @@
         }
 
         function buildMaterialRecebido() {
+          var listaEntregasOrigem = origemEntregas.length
+            ? origemEntregas.map(function (ent) {
+              var itens = origemEntregaItens(ent);
+              return el('div', { style: 'border-top:1px solid #f1f3f6;padding:12px 0 0;margin-top:12px;' },
+                el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;' },
+                  el('div', { style: 'font-size:13.5px;font-weight:700;color:#16203a;' }, 'Entrega #' + ent.id),
+                  el('div', { style: 'font-size:12px;color:#8a93a3;font-weight:600;' }, fmtData(ent.data))),
+                el('div', { style: 'font-size:12.5px;color:#5b6472;margin-top:4px;line-height:1.5;' },
+                  origemProdLabel + ' para ' + ((ent.destino && ent.destino.nome) || latexFornecedorNome)),
+                itens.map(function (ei) {
+                  return el('div', { style: 'font-size:13.5px;color:#3f4757;margin-top:5px;' },
+                    origemItemLabel(ei) + ': ' + window.fmtMetros(ei.metros_entregues));
+                }));
+            })
+            : [el('div', { style: 'font-size:13px;color:#aab2bf;border-top:1px solid #f1f3f6;padding-top:12px;margin-top:12px;' },
+              'Vinculos de origem nao encontrados; usando total consolidado da OP.')];
           return el('div', { style: CARD_PROD + 'padding:16px 20px;' },
             el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:14px;' }, '3. Material recebido da tecelagem'),
             el('div', { style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:14px;' },
               campo('OP origem',
                 op.origem_op_id ? el('button', { type: 'button', style: 'font-size:13.5px;color:#2563eb;font-weight:700;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;', onclick: function () { navigate('#/ops/' + op.origem_op_id); } }, origemProdLabel)
                   : valor(origemLabel, '#8a93a3')),
-              campo('Metros recebidos', valor(window.fmtMetros(totalEnviado))),
+              campo('Entregas vinculadas', valor(String(origemEntregas.length || 0))),
+              campo('Metros recebidos', valor(window.fmtMetros(totalOrigemTecelagem || totalEnviado)))),
+            el('div', { style: 'font-size:12.5px;font-weight:700;color:#8a93a3;letter-spacing:.03em;margin-bottom:8px;' }, 'ENTRADAS DA TECELAGEM'),
+            el('div', {}, listaEntregasOrigem),
+            el('div', { style: 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:14px;' },
               campo('Metros em acabamento', valor(window.fmtMetros(faltaAcabamento), '#c2610c', '700'))),
             el('a', { href: '#movimentacao-op', style: 'display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#2563eb;font-weight:600;text-decoration:none;' }, 'Ver liberação para expedição ↓'));
         }
 
         function buildMovimentacao() {
-          var ultimaEntrega = recebimentos[0];
+          var ultimaEntrega = movimentosLatex[0];
           var itensDaEntrega = ultimaEntrega ? (ultimaEntrega.entrega_itens || []).filter(function (ei) {
             return ei.op_id === op.id && !ei.defeito;
           }) : [];
@@ -485,7 +558,7 @@
                 el('div', { style: 'font-size:13.5px;color:#16203a;font-weight:600;' }, window.fmtMetros(totalUltimaEntrega) + ' → Expedição'),
                 el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-top:2px;' }, fmtData(ultimaEntrega.data) + ' · Item ' + modeloLabel(itemHistorico))),
               el('span', { style: 'background:#fff4e6;color:#c2610c;border-radius:4px;padding:3px 9px;font-size:11.5px;font-weight:600;flex-shrink:0;' }, 'Romaneio pendente'))
-            : el('div', { style: 'font-size:13px;color:#aab2bf;padding:10px 0;border-top:1px solid #f1f3f6;' }, 'Nenhuma entrega registrada ainda.');
+            : el('div', { style: 'font-size:13px;color:#aab2bf;padding:10px 0;border-top:1px solid #f1f3f6;' }, 'Nenhum movimento de acabamento registrado ainda.');
 
           return el('div', { style: CARD_PROD + 'padding:16px 20px;' },
             el('div', { style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap;' },
@@ -495,7 +568,7 @@
               el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Disponível'), el('div', { style: 'font-size:16px;font-weight:800;color:#2563eb;' }, window.fmtMetros(faltaAcabamento))),
               el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Já liberado'), el('div', { style: 'font-size:16px;font-weight:800;color:#18794a;' }, window.fmtMetros(totalRecebido))),
               el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Total ajustado da OP'), el('div', { style: 'font-size:16px;font-weight:800;color:#16203a;' }, window.fmtMetros(totalEnviado)))),
-            el('div', { style: 'font-size:12.5px;font-weight:700;color:#8a93a3;letter-spacing:.03em;margin-bottom:8px;' }, 'HISTÓRICO DE ENTREGAS'),
+            el('div', { style: 'font-size:12.5px;font-weight:700;color:#8a93a3;letter-spacing:.03em;margin-bottom:8px;' }, 'HISTORICO DE MOVIMENTOS DO ACABAMENTO'),
             historico);
         }
 
@@ -513,7 +586,10 @@
         }
 
         function buildHistorico() {
-          var dataBase = recebimentos[0] ? fmtData(recebimentos[0].data) : (abertaEm || '---');
+          var dataBase = origemEntregas[0] ? fmtData(origemEntregas[0].data) : (abertaEm || '---');
+          var resumoOrigem = origemEntregas.length
+            ? String(origemEntregas.length) + ' entrega' + (origemEntregas.length === 1 ? '' : 's') + ' de Tecelagem vinculada' + (origemEntregas.length === 1 ? '' : 's')
+            : 'Entrada consolidada sem vinculo detalhado';
           return el('div', { id: 'historico-op', style: CARD_PROD + 'padding:16px 20px;' },
             el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:14px;' }, '7. Histórico'),
             el('div', { style: 'display:flex;gap:12px;align-items:flex-start;' },
@@ -522,14 +598,14 @@
                 el('div', { style: 'width:2px;flex:1;background:#eceef1;' })),
               el('div', { style: 'padding-bottom:16px;' },
                 el('div', { style: 'font-size:12px;color:#9aa2af;' }, dataBase),
-                el('div', { style: 'font-size:14px;font-weight:700;color:#16203a;margin-top:2px;' }, 'Entrega parcial para Acabamento'),
-                el('div', { style: 'font-size:13px;color:#7b8494;margin-top:1px;' }, window.fmtMetros(totalEnviado) + ' recebidos da tecelagem - gerou a OP ' + op.numero + '/' + op.ano + ' (Acabamento). Romaneio marcado como pendente.'))),
+                el('div', { style: 'font-size:14px;font-weight:700;color:#16203a;margin-top:2px;' }, 'Entrada consolidada da Tecelagem'),
+                el('div', { style: 'font-size:13px;color:#7b8494;margin-top:1px;' }, resumoOrigem + ' em OP ' + op.numero + '/' + op.ano + ' (Acabamento). Romaneio marcado como pendente.'))),
             el('div', { style: 'display:flex;gap:12px;align-items:flex-start;' },
               el('div', { style: 'width:11px;height:11px;border-radius:50%;background:#cfd5de;margin-top:4px;flex-shrink:0;' }),
               el('div', {},
                 el('div', { style: 'font-size:14px;font-weight:600;color:#475065;margin-top:2px;' }, 'OP aberta'),
                 el('div', { style: 'font-size:12px;color:#9aa2af;' }, dataBase),
-                el('div', { style: 'font-size:13px;color:#7b8494;margin-top:1px;' }, 'OP ' + op.numero + '/' + op.ano + ' criada a partir da entrega parcial da ' + origemProdLabel + '.'))));
+                el('div', { style: 'font-size:13px;color:#7b8494;margin-top:1px;' }, 'OP ' + op.numero + '/' + op.ano + ' acompanha a origem consolidada da ' + origemProdLabel + '.'))));
         }
 
         return el('div', { style: 'display:block;' },
@@ -606,10 +682,10 @@
           box.appendChild(formHolder);
         }
 
-        if (recebimentos.length === 0) {
+        if (movimentosLatex.length === 0) {
           box.appendChild(el('p', { class: 'text-sm text-gray-400 mt-2' }, 'Nenhum recebimento registrado ainda.'));
         } else {
-          recebimentos.forEach(function (ent) {
+          movimentosLatex.forEach(function (ent) {
             var sub = el('div', { class: 'border-b py-3' });
             sub.appendChild(el('div', { class: 'flex items-center justify-between' },
               el('div', { class: 'text-sm' }, el('b', {}, new Date(ent.data + 'T00:00:00').toLocaleDateString('pt-BR'))),
@@ -711,22 +787,20 @@
           fieldBlock('Metros aguardando inicio do acabamento', el('div', { style: 'font-size:14px;font-weight:700;color:#2563eb;' }, window.fmtMetros(metrosAguardando)))));
 
         box.appendChild(el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;margin-bottom:8px;' }, 'Historico'));
-        if (!recebimentos.length) {
-          box.appendChild(el('div', { style: 'font-size:13px;color:#aab2bf;' }, 'Nenhum recebimento registrado ainda.'));
+        if (!origemEntregas.length) {
+          box.appendChild(el('div', { style: 'font-size:13px;color:#aab2bf;' }, 'Nenhuma entrega de Tecelagem vinculada encontrada.'));
           return box;
         }
 
         box.appendChild(el('div', {},
-          recebimentos.map(function (ent) {
+          origemEntregas.map(function (ent) {
             var sub = el('div', { style: 'border-bottom:1px solid #f1f3f6;padding:14px 0;' });
             sub.appendChild(el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;' },
               el('div', { style: 'font-size:14px;font-weight:600;color:#16203a;' }, new Date(ent.data + 'T00:00:00').toLocaleDateString('pt-BR'))));
             if (ent.observacao) sub.appendChild(el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:2px;' }, ent.observacao));
-            (ent.entrega_itens || []).filter(function (item) { return item.op_id === op.id; }).forEach(function (ei) {
-              var opItem = (op.op_itens || []).find(function (row) { return row.id === ei.op_item_id; });
-              var modelo = opItem ? modelosById[opItem.modelo_id] : null;
+            origemEntregaItens(ent).forEach(function (ei) {
               sub.appendChild(el('div', { style: 'font-size:13.5px;color:#3f4757;margin-top:4px;' },
-                (modelo ? window.rotuloModelo(modelo) : ('#' + ei.op_item_id)) + ': ' + window.fmtMetros(ei.metros_entregues),
+                origemItemLabel(ei) + ': ' + window.fmtMetros(ei.metros_entregues),
                 ei.defeito ? el('span', { style: 'margin-left:8px;color:#d6403a;font-weight:600;font-size:12.5px;' }, 'DEFEITO') : '',
                 ei.observacao ? el('span', { style: 'margin-left:8px;font-size:12px;color:#8a93a3;' }, '(' + ei.observacao + ')') : ''));
             });
