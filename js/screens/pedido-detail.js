@@ -174,6 +174,7 @@
       expedicaoMovimentos: [],
       expedicaoMovimentoItens: [],
       ordensFio: [],
+      parametrosLargura: [],
       modelosById: {},
       coresById: {},
       opsLoadError: false,
@@ -218,6 +219,7 @@
       if (!loadingError && state.pedido && typeof ns.computeViewModel === 'function') {
         view = ns.computeViewModel(state);
       }
+      handlers.currentView = view;
 
       ns.renderPedidoDetailScreen({
         container: container,

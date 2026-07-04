@@ -731,7 +731,6 @@ test('pedido-detail.js: consolida leitura de lote/OP/entregas sem writes operaci
   assert.doesNotMatch(detailBundle, /gerar_op_pedido/);
   assert.doesNotMatch(detailBundle, /criar_lote/);
   assert.doesNotMatch(detailBundle, /persistirOP/);
-  assert.doesNotMatch(detailBundle, /aplicarRecalculoOP/);
 });
 
 test('pedido-detail.js: NÃO referencia arquivos críticos de OP', () => {
@@ -801,12 +800,11 @@ test('pedido-detail.js: modal de transicao usa contrato visual discreto', () => 
 test('pedido-detail.js: OP aberta com insumos recebidos mostra bloqueio e CTA contextual', () => {
   assert.match(detailEvents, /function buildPendingAcceptanceBlock/);
   assert.match(detailEvents, /OP pendente de aceite/);
-  assert.match(detailEvents, /Insumos recebidos; OP ainda precisa ser aceita para liberar producao\./);
-  assert.match(detailEvents, /Abrir OP ['"] \+ ctxMovement\.op\.numero \+ ['"]\/['"] \+ ctxMovement\.op\.ano/);
-  assert.match(detailEvents, /navigateToOp\(ctxMovement\.op\.id\)/);
+  assert.match(detailEvents, /revise e aceite a OP para liberar producao/);
+  assert.match(detailEvents, /Revisar e aceitar OP/);
   assert.match(detailProgress, /stage\.sublabel\s*=\s*['"]OP pendente de aceite['"]/);
-  assert.doesNotMatch(detailEvents, /aplicarRecalculoOP/);
-  assert.doesNotMatch(detailEvents, /status:\s*['"]em_producao['"]/);
+  assert.match(detailEvents, /function openTecAcceptanceModal/,
+    'deve ter modal de aceite da OP Tecelagem pelo Pedido');
 });
 
 test('pedido-detail.js: openMovementModal usa operacoes canonicas para movimentar pelo Pedido', () => {
@@ -1379,4 +1377,66 @@ test('lineage-UX-B: numeração oficial da OP preservada', () => {
     'deve usar ns.opLabel (numero/ano oficial) para identificar OP');
   assert.doesNotMatch(detailRender, /op\.codigo|op\.codigo_lineage/,
     'nao deve usar campo inexistente');
+});
+
+// ---------------------------------------------------------------------
+// 22. PEDIDO-TEC-ACCEPTANCE-B — aceite da OP Tecelagem pelo Pedido
+// ---------------------------------------------------------------------
+
+test('tec-acceptance-B: openTecAcceptanceModal existe e e exposto', () => {
+  assert.match(detailEvents, /function openTecAcceptanceModal/,
+    'deve ter funcao openTecAcceptanceModal');
+  assert.match(detailEvents, /openTecAcceptanceModal:\s*openTecAcceptanceModal/,
+    'deve expor no retorno dos handlers');
+});
+
+test('tec-acceptance-B: buildPendingAcceptanceBlock oferece "Revisar e aceitar OP"', () => {
+  assert.match(detailEvents, /Revisar e aceitar OP/,
+    'bloqueio deve oferecer botao Revisar e aceitar OP em vez de so redirecionar');
+  assert.match(detailEvents, /openTecAcceptanceModal\(tecAcceptance\)/,
+    'botao deve abrir modal de aceite, nao apenas navegar');
+});
+
+test('tec-acceptance-B: modal de aceite mostra itens da OP', () => {
+  var accSlice = (detailEvents.match(/function openTecAcceptanceModal[\s\S]*?\n    \}\n\n    function buildPendingAcceptanceBlock/) || [''])[0];
+  assert.ok(accSlice, 'trecho openTecAcceptanceModal nao encontrado');
+  assert.match(accSlice, /Itens da OP/,
+    'modal deve mostrar secao de itens da OP');
+  assert.match(accSlice, /Metros pedido/,
+    'modal deve mostrar coluna de metros pedido');
+});
+
+test('tec-acceptance-B: modal reutiliza aplicarRecalculoOP canonico', () => {
+  var accSlice = (detailEvents.match(/function openTecAcceptanceModal[\s\S]*?\n    \}\n\n    function buildPendingAcceptanceBlock/) || [''])[0];
+  assert.match(accSlice, /window\.aplicarRecalculoOP/,
+    'deve referenciar helper canonico aplicarRecalculoOP');
+  assert.match(accSlice, /window\.recalcularOP/,
+    'deve referenciar recalcularOP para modo aceitar proporcional');
+  assert.doesNotMatch(accSlice, /\.from\(\s*['"]ops['"]\s*\)\.update/,
+    'nao deve fazer write direto, apenas via helper canonico');
+});
+
+test('tec-acceptance-B: modal tem opcoes Aceitar e Manter', () => {
+  var accSlice = (detailEvents.match(/function openTecAcceptanceModal[\s\S]*?\n    \}\n\n    function buildPendingAcceptanceBlock/) || [''])[0];
+  assert.match(accSlice, /Aceitar proposta/,
+    'deve ter botao Aceitar proposta (proporcional)');
+  assert.match(accSlice, /Manter como pedido/,
+    'deve ter botao Manter como pedido');
+  assert.match(accSlice, /Abrir na tela da OP/,
+    'deve ter botao para abrir na tela da OP como fallback');
+});
+
+test('tec-acceptance-B: parametros_largura carregado no Pedido Detail', () => {
+  assert.match(detailData, /from\(\s*['"]parametros_largura['"]\s*\)/,
+    'loadPedidoDetailData deve consultar parametros_largura');
+  assert.match(detailBundle, /parametrosLargura:/,
+    'createInitialState deve incluir parametrosLargura');
+});
+
+test('tec-acceptance-B: modal recarrega apos aceite com sucesso', () => {
+  var accSlice = (detailEvents.match(/function openTecAcceptanceModal[\s\S]*?\n    \}\n\n    function buildPendingAcceptanceBlock/) || [''])[0];
+  assert.match(accSlice, /await reload\(\)/,
+    'deve recarregar dados apos aceite');
+  assert.match(accSlice, /render\(\)/,
+    'deve re-renderizar apos aceite');
 });

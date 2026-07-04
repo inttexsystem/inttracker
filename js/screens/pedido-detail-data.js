@@ -353,6 +353,17 @@
       }
     }
 
+    var parametrosRes = await window.supa
+      .from('parametros_largura')
+      .select('id, largura, r_algoritmo_poliester, r_algoritmo_algodao')
+      .order('largura', { ascending: true });
+    if (parametrosRes.error) {
+      state.parametrosLargura = [];
+      console.error('pedido-detail: erro ao carregar parametros_largura', parametrosRes.error);
+    } else {
+      state.parametrosLargura = parametrosRes.data || [];
+    }
+
     return null;
   }
 

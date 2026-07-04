@@ -14,6 +14,7 @@
     var state = ctx.state;
     var reload = ctx.reload;
     var render = ctx.render;
+    var currentView = null;
 
     function navigateToPedidos() {
       window.navigate('#/pedidos');
@@ -633,14 +634,160 @@
       }) || null;
     }
 
+    function openTecAcceptanceModal(tecAcceptance) {
+      var op = tecAcceptance.op;
+      if (!op || !Array.isArray(op.op_itens)) return;
+      var ordens = (state.ordensFio || []).filter(function (o) { return o.op_id === op.id; });
+      var parametrosByLargura = {};
+      (state.parametrosLargura || []).forEach(function (p) {
+        parametrosByLargura[Number(p.largura)] = p;
+      });
+      var pedidoNumero = state.pedido && state.pedido.numero ? state.pedido.numero : null;
+
+      function itemLabel(opItem) {
+        var modelo = state.modelosById[opItem.modelo_id] || {};
+        var cor1 = modelo.cor_1_id != null && state.coresById[modelo.cor_1_id] ? state.coresById[modelo.cor_1_id].nome : null;
+        var cor2 = modelo.cor_2_id != null && state.coresById[modelo.cor_2_id] ? state.coresById[modelo.cor_2_id].nome : null;
+        var label = modelo.nome || ('Modelo #' + opItem.modelo_id);
+        if (modelo.largura != null) label += ' · ' + Number(modelo.largura).toFixed(2).replace('.', ',') + ' m';
+        if (cor1 || cor2) label += ' · ' + (cor1 || '-') + ' / ' + (cor2 || '-');
+        return label;
+      }
+
+      function buildItensTable() {
+        return window.el('div', { style: 'border:1px solid #eceef1;border-radius:4px;overflow:hidden;margin-bottom:12px;' },
+          window.el('div', {
+            style: 'display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 14px;border-bottom:1px solid #f1f3f6;background:#f8f9fb;font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;',
+          },
+            window.el('span', {}, 'Produto'),
+            window.el('span', { style: 'text-align:right;' }, 'Metros pedido')),
+          op.op_itens.map(function (opItem, index) {
+            var metros = ns.toFiniteNumber(opItem.metros_pedidos);
+            return window.el('div', {
+              style: 'display:grid;grid-template-columns:1fr auto;gap:10px;padding:11px 14px;align-items:center;' + (index < op.op_itens.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : ''),
+            },
+              window.el('div', { style: 'font-size:13px;color:#16203a;line-height:1.45;' }, itemLabel(opItem)),
+              window.el('div', { style: 'font-size:13px;font-weight:600;color:#3f4757;text-align:right;' }, ns.fmtMetros(metros))
+            );
+          })
+        );
+      }
+
+      function buildInfoBanner() {
+        return window.el('div', {
+          style: 'display:flex;align-items:flex-start;gap:8px;background:#f6f9ff;border:1px solid #d0e0fb;border-radius:4px;padding:10px 12px;margin-bottom:12px;',
+        },
+          ns.svgEl(ns.SVG_INFO),
+          window.el('div', { style: 'font-size:12.5px;color:#2c4a78;line-height:1.45;' },
+            'Aceitar a OP libera a producao e aplica o ajuste proporcional. O mesmo helper canonico usado pela tela de OP (' +
+            (window.aplicarRecalculoOP ? 'aplicarRecalculoOP' : 'indisponivel') +
+            ') sera usado. A tela da OP continua aceitando como antes.')
+        );
+      }
+
+      async function aplicarAceite(modo) {
+        var itensCalc = op.op_itens.map(function (opItem) {
+          return {
+            op_item_id: opItem.id,
+            modelo_id: opItem.modelo_id,
+            metros_pedidos: ns.toFiniteNumber(opItem.metros_pedidos),
+            metros_ajustados: ns.round2(ns.toFiniteNumber(opItem.metros_ajustados || opItem.metros_pedidos)),
+          };
+        });
+        var resultado;
+        if (modo === 'aceitar' && typeof window.recalcularOP === 'function') {
+          resultado = window.recalcularOP(itensCalc, ordens);
+        } else {
+          resultado = { fator: 1, itens: itensCalc, sobras: [] };
+        }
+        if (!window.aplicarRecalculoOP) {
+          window.toast('Operacao de recalculo indisponivel.', 'error');
+          return false;
+        }
+        var res = await window.aplicarRecalculoOP({ opId: op.id, resultado: resultado, modo: modo, ordens: ordens });
+        if (res && res.error) {
+          window.toast('Erro ao aceitar OP: ' + (res.error.message || 'desconhecido'), 'error');
+          console.error(res.error);
+          return false;
+        }
+        return true;
+      }
+
+      function buildActions() {
+        return window.el('div', { style: 'display:flex;gap:8px;' },
+          window.el('button', {
+            type: 'button',
+            style: 'flex:1;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:10px 14px;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;',
+            onclick: async function (event) {
+              var btn = event && event.currentTarget ? event.currentTarget : null;
+              if (btn) btn.disabled = true;
+              var ok = await aplicarAceite('aceitar');
+              if (!ok) {
+                if (btn) btn.disabled = false;
+                return;
+              }
+              window.toast('OP aceita e producao liberada.', 'success');
+              await reload();
+              render();
+            },
+          }, 'Aceitar proposta (proporcional)'),
+          window.el('button', {
+            type: 'button',
+            style: 'flex:1;background:#fff;color:#2563eb;border:1px solid #cfe0fb;border-radius:4px;padding:10px 14px;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;',
+            onclick: async function (event) {
+              var btn = event && event.currentTarget ? event.currentTarget : null;
+              if (btn) btn.disabled = true;
+              var ok = await aplicarAceite('manter');
+              if (!ok) {
+                if (btn) btn.disabled = false;
+                return;
+              }
+              window.toast('OP aceita com metragem do pedido.', 'success');
+              await reload();
+              render();
+            },
+          }, 'Manter como pedido'),
+          window.el('button', {
+            type: 'button',
+            style: 'background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:10px 14px;font-weight:600;font-size:13px;font-family:inherit;cursor:pointer;',
+            onclick: function () { navigateToOp(op.id); },
+          }, 'Abrir na tela da OP')
+        );
+      }
+
+      window.modal({
+        title: 'Aceitar OP ' + ns.opLabel(op) + (pedidoNumero ? ' · Pedido ' + pedidoNumero : ''),
+        body: window.el('div', {},
+          buildInfoBanner(),
+          window.el('div', {
+            style: 'display:flex;gap:12px;margin-bottom:12px;',
+          },
+            movementField('OP', ns.opLabel(op)),
+            movementField('Status', ns.fmtTextoOuEmpty(op.status, 'aberta'))
+          ),
+          window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;margin-bottom:8px;' }, 'Itens da OP'),
+          buildItensTable(),
+          ordens.length
+            ? window.el('div', { style: 'font-size:12px;color:#5b6472;margin-bottom:12px;line-height:1.45;' },
+                'Fios recebidos: ' + ordens.filter(function (o) { return ns.toFiniteNumber(o.kg_recebido) > 0; }).length + ' de ' + ordens.length)
+            : null,
+          buildActions()
+        ),
+        saveLabel: null,
+        onSave: null,
+      });
+    }
+
     function buildPendingAcceptanceBlock(ctxMovement) {
       if (transitionKey(ctxMovement) !== 'Insumos>Tecelagem') return null;
       if (!ctxMovement.op || ctxMovement.op.status !== 'aberta') return null;
       var insumos = summarizeInsumos(ctxMovement);
       if (!(insumos.pedido > 0) || insumos.saldo > 0) return null;
-      var opLabel = ctxMovement.op.numero && ctxMovement.op.ano
-        ? 'Abrir OP ' + ctxMovement.op.numero + '/' + ctxMovement.op.ano
-        : 'Abrir OP de Tecelagem';
+      var opLabelBtn = ctxMovement.op.numero && ctxMovement.op.ano
+        ? 'Revisar e aceitar OP ' + ctxMovement.op.numero + '/' + ctxMovement.op.ano
+        : 'Revisar e aceitar OP';
+
+      var tecAcceptance = currentView && currentView.chainState && currentView.chainState.tecPendingAcceptance || null;
 
       return window.el('div', {
         style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff9ee;border:1px solid #fbe8c6;border-radius:' + MOVEMENT_SURFACE_RADIUS + ';padding:11px 14px;margin-bottom:14px;',
@@ -648,13 +795,19 @@
         window.el('div', { style: 'min-width:0;' },
           window.el('div', { style: 'font-size:13px;font-weight:800;color:#8a5a15;line-height:1.3;' }, 'OP pendente de aceite'),
           window.el('div', { style: 'font-size:12.5px;color:#8a5a15;line-height:1.45;margin-top:2px;' },
-            'Insumos recebidos; OP ainda precisa ser aceita para liberar producao.')
+            'Insumos recebidos; revise e aceite a OP para liberar producao.')
         ),
-        window.el('button', {
-          type: 'button',
-          style: 'flex-shrink:0;background:#fff;color:#2563eb;border:1px solid #2563eb;border-radius:' + MOVEMENT_SURFACE_RADIUS + ';padding:8px 12px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;',
-          onclick: function () { navigateToOp(ctxMovement.op.id); },
-        }, opLabel)
+        tecAcceptance && tecAcceptance.op
+          ? window.el('button', {
+              type: 'button',
+              style: 'flex-shrink:0;background:#2563eb;color:#fff;border:none;border-radius:' + MOVEMENT_SURFACE_RADIUS + ';padding:8px 14px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;',
+              onclick: function () { openTecAcceptanceModal(tecAcceptance); },
+            }, 'Revisar e aceitar OP')
+          : window.el('button', {
+              type: 'button',
+              style: 'flex-shrink:0;background:#fff;color:#2563eb;border:1px solid #2563eb;border-radius:' + MOVEMENT_SURFACE_RADIUS + ';padding:8px 12px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;',
+              onclick: function () { navigateToOp(ctxMovement.op.id); },
+            }, opLabelBtn)
       );
     }
 
@@ -1799,6 +1952,8 @@
     }
 
     return {
+      get currentView() { return currentView; },
+      set currentView(v) { currentView = v; },
       buildTrackingAdmin: buildTrackingAdmin,
       buildParciaisAdmin: buildParciaisAdmin,
       buildEditButton: buildEditButton,
@@ -1811,6 +1966,7 @@
       scrollToSection: scrollToSection,
       openMovementModal: openMovementModal,
       openStageDetailModal: openStageDetailModal,
+      openTecAcceptanceModal: openTecAcceptanceModal,
       openEditWarning: openEditWarning,
       openStatusActions: openStatusActions,
       openTrackingModal: openTrackingModal,
