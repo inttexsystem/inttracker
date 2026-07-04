@@ -1149,6 +1149,45 @@ test('45. runtime: salvarEntregaCima happy path — insert etapa=cima + destino 
   assert.equal(successToasts[0].msg, 'Entrega registrada · vinculada à OP de acabamento');
 });
 
+test('45.1 runtime: salvarEntregaCima mostra "Criou OP X/Y" quando RPC retorna created=true', async () => {
+  const { sandbox, getToasts } = makeEWCimaSandbox({
+    rpcResult: { data: { op_latex_id: 44, numero: 5, ano: 2026, created: true, accumulated: false, already_linked: false }, error: null },
+  });
+  const result = await vm.runInContext(
+    'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
+    sandbox);
+  assert.equal(result, true);
+  const successToasts = getToasts().filter(t => t.type === 'success');
+  assert.equal(successToasts.length, 1);
+  assert.equal(successToasts[0].msg, 'Criou OP 5/2026');
+});
+
+test('45.2 runtime: salvarEntregaCima mostra "Acumulou na OP X/Y" quando RPC retorna accumulated=true', async () => {
+  const { sandbox, getToasts } = makeEWCimaSandbox({
+    rpcResult: { data: { op_latex_id: 44, numero: 5, ano: 2026, created: false, accumulated: true, already_linked: false }, error: null },
+  });
+  const result = await vm.runInContext(
+    'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
+    sandbox);
+  assert.equal(result, true);
+  const successToasts = getToasts().filter(t => t.type === 'success');
+  assert.equal(successToasts.length, 1);
+  assert.equal(successToasts[0].msg, 'Acumulou na OP 5/2026');
+});
+
+test('45.3 runtime: salvarEntregaCima mostra "Já vinculada à OP X/Y" quando RPC retorna already_linked=true', async () => {
+  const { sandbox, getToasts } = makeEWCimaSandbox({
+    rpcResult: { data: { op_latex_id: 44, numero: 5, ano: 2026, created: false, accumulated: false, already_linked: true }, error: null },
+  });
+  const result = await vm.runInContext(
+    'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
+    sandbox);
+  assert.equal(result, true);
+  const successToasts = getToasts().filter(t => t.type === 'success');
+  assert.equal(successToasts.length, 1);
+  assert.equal(successToasts[0].msg, 'Já vinculada à OP 5/2026');
+});
+
 test('46. runtime: salvarEntregaCima RPC falhando → entrega mantida, toast específico da RPC, return true', async () => {
   const { sandbox, fakeSupa, getToasts } = makeEWCimaSandbox({
     rpcResult: { data: null, error: { message: 'rpc timeout' } },

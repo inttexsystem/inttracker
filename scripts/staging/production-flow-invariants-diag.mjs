@@ -57,6 +57,17 @@ async function sel(pathq) {
   return res.json();
 }
 
+async function selOptional(pathq) {
+  const res = await fetch(url + '/rest/v1/' + pathq, {
+    headers: { apikey: anonKey, Authorization: 'Bearer ' + TOKEN },
+  });
+  if (!res.ok) {
+    console.log('SELECT opcional indisponivel (' + pathq + '): HTTP ' + res.status);
+    return null;
+  }
+  return res.json();
+}
+
 const r2 = (n) => Math.round(Number(n || 0) * 100) / 100;
 const opLbl = (o) => o ? (o.numero + '/' + o.ano) : '—';
 
@@ -162,6 +173,21 @@ const opLbl = (o) => o ? (o.numero + '/' + o.ano) : '—';
     for (let i = 1; i <= max; i++) if (!nums.includes(i)) missing.push(i);
     console.log('  ' + k + ' -> usados [' + nums.join(',') + '] max=' + max + ' | buracos(possível delete/reuso)=' + (missing.length ? '[' + missing.join(',') + ']' : 'nenhum'));
   });
+
+  console.log('\n===== OP_NUMEROS (db/26 high-water) =====');
+  const opNumeros = await selOptional('op_numeros?select=tipo,ano,ultimo_numero,updated_at&order=tipo.asc,ano.asc');
+  if (!opNumeros) {
+    console.log('op_numeros indisponivel: db/26 ainda nao aplicada ou policy ausente.');
+  } else if (!opNumeros.length) {
+    console.log('op_numeros vazia: verificar backfill da db/26.');
+  } else {
+    opNumeros.forEach((row) => {
+      const key = row.tipo + '::' + row.ano;
+      const maxAtual = byTipoAno[key] && byTipoAno[key].length ? Math.max(...byTipoAno[key]) : 0;
+      const ok = Number(row.ultimo_numero || 0) >= maxAtual;
+      console.log('  ' + key + ' ultimo_numero=' + row.ultimo_numero + ' max_ops_atual=' + maxAtual + ' -> ' + (ok ? 'OK' : '!!! MENOR QUE MAX OPS'));
+    });
+  }
 
   console.log('\n================ FIM ================');
 })().catch((e) => die(e && e.message ? e.message : String(e)));

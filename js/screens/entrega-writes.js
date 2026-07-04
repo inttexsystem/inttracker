@@ -106,6 +106,32 @@
     return isGuardText || (isGuardCode && blob.indexOf('tecelagem') !== -1);
   }
 
+  function normalizeGerarOpLatexResult(data) {
+    if (Array.isArray(data)) data = data[0] || null;
+    if (data && typeof data === 'object') {
+      if ('op_latex_id' in data || 'created' in data || 'accumulated' in data || 'already_linked' in data) return data;
+      if ('id' in data) return { op_latex_id: data.id, numero: data.numero, ano: data.ano };
+      return data;
+    }
+    if (data == null || data === false) return null;
+    return { op_latex_id: data };
+  }
+
+  function opLatexLabelFromRpc(info) {
+    if (info && info.numero != null && info.ano != null) return 'OP ' + info.numero + '/' + info.ano;
+    return 'OP de acabamento';
+  }
+
+  function toastMsgGerarOpLatex(data) {
+    var info = normalizeGerarOpLatexResult(data);
+    if (!info || (!info.op_latex_id && info.numero == null && info.ano == null)) return 'Entrega registrada';
+    var label = opLatexLabelFromRpc(info);
+    if (info.created === true) return 'Criou ' + label;
+    if (info.accumulated === true) return 'Acumulou na ' + label;
+    if (info.already_linked === true) return 'Já vinculada à ' + label;
+    return 'Entrega registrada · vinculada à OP de acabamento';
+  }
+
   // -------------------------------------------------------------------
   // Excluir entrega: usa o padrao de callback do confirmDialog (que so dispara
   // onConfirm em caso afirmativo). onSuccess() roda apos delete bem-sucedido.
@@ -205,11 +231,9 @@
       console.error(rpc.error);
       return true;
     }
-    // A RPC é find-or-accumulate: a entrega pode CRIAR a OP de látex ou
-    // apenas ACUMULAR numa OP já consolidada por (origem_op + destino).
-    // Sem distinção no retorno (BIGINT), usamos linguagem neutra de vínculo
-    // para não afirmar "gerada" quando pode ter sido acumulação (Contrato 6).
-    window.toast('Entrega registrada' + (rpc.data ? ' · vinculada à OP de acabamento' : ''), 'success');
+    // A RPC e find-or-accumulate. Ambientes com db/26 retornam flags
+    // operacionais; ambientes antigos ainda podem retornar somente o id.
+    window.toast(toastMsgGerarOpLatex(rpc.data), 'success');
     return true;
   }
 
