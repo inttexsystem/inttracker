@@ -266,6 +266,63 @@
       return label;
     }
 
+    function computePendingByItem(ctxMovement) {
+      var key = transitionKey(ctxMovement);
+      if (key === 'Insumos>Tecelagem') {
+        var insumos = summarizeInsumos(ctxMovement);
+        return insumos.ordens.map(function (ordem) {
+          var pedido = ns.toFiniteNumber(ordem.kg_pedido);
+          var recebido = ns.toFiniteNumber(ordem.kg_recebido);
+          return {
+            opItemId: ordem.id,
+            target: pedido,
+            moved: recebido,
+            pending: ns.round2(Math.max(pedido - recebido, 0)),
+          };
+        });
+      }
+      if (key === 'Expedicao>Entrega') {
+        return (state.expedicaoItens || []).map(function (item) {
+          var liberado = ns.toFiniteNumber(item.metros_liberados);
+          var entregue = ns.toFiniteNumber(item.metros_entregues);
+          return {
+            opItemId: item.id,
+            target: liberado,
+            moved: entregue,
+            pending: ns.round2(Math.max(liberado - entregue, 0)),
+          };
+        });
+      }
+      if (ctxMovement.op && Array.isArray(ctxMovement.op.op_itens) && ctxMovement.op.op_itens.length) {
+        var stage = typeof ns.deliveryStageForOp === 'function'
+          ? ns.deliveryStageForOp(ctxMovement.op)
+          : (ctxMovement.op && ctxMovement.op.tipo === 'latex' ? 'latex' : 'cima');
+        var movedByOpItem = {};
+        ctxMovement.op.op_itens.forEach(function (opItem) {
+          if (opItem && opItem.id != null) movedByOpItem[opItem.id] = 0;
+        });
+        state.entregaItens.forEach(function (ei) {
+          if (!(movedByOpItem.hasOwnProperty(ei.op_item_id)) || ei.defeito) return;
+          var entrega = state.entregasById[ei.entrega_id];
+          if (!entrega || entrega.etapa !== stage) return;
+          movedByOpItem[ei.op_item_id] = ns.round2((movedByOpItem[ei.op_item_id] || 0) + ns.toFiniteNumber(ei.metros_entregues));
+        });
+        return ctxMovement.op.op_itens.map(function (opItem) {
+          var target = typeof ns.targetMetersForOpItem === 'function'
+            ? ns.targetMetersForOpItem(opItem)
+            : ns.round2(opItem && opItem.metros_ajustados != null ? opItem.metros_ajustados : opItem.metros_pedidos);
+          var moved = movedByOpItem[opItem.id] || 0;
+          return {
+            opItemId: opItem.id,
+            target: target,
+            moved: moved,
+            pending: ns.round2(Math.max(target - moved, 0)),
+          };
+        });
+      }
+      return [];
+    }
+
     function buildMovementItems(ctxMovement) {
       if (Array.isArray(ctxMovement.items) && ctxMovement.items.length) return ctxMovement.items;
       var key = transitionKey(ctxMovement);
@@ -756,6 +813,14 @@
           )
         ),
         saveLabel: 'Registrar recebimento',
+        fillRemaining: function () {
+          linhas.forEach(function (linha) {
+            if (linha.saldo > 0 && !linha.input.disabled) {
+              linha.input.value = String(linha.saldo);
+            }
+          });
+        },
+        hasRemaining: linhas.some(function (linha) { return linha.saldo > 0; }),
         onSave: async function () {
           if (!window.registrarRecebimentoOrdemFio) {
             window.toast('Operacao canonica de recebimento indisponivel.', 'error');
@@ -801,9 +866,23 @@
         modelosById: buildModelosForEntregaForm(),
         latexOptions: state.latexOptions || [],
       });
+      var pendingByItem = computePendingByItem(ctxMovement);
+      var hasRemaining = pendingByItem.some(function (row) { return row.pending > 0; });
       return {
         node: form.node,
         saveLabel: 'Salvar transferencia',
+        fillRemaining: function () {
+          var inputs = form.node.querySelectorAll
+            ? form.node.querySelectorAll('input[type="number"]')
+            : [];
+          var itemList = ctxMovement.op.op_itens || [];
+          for (var i = 0; i < inputs.length && i < itemList.length && i < pendingByItem.length; i++) {
+            if (pendingByItem[i].pending > 0 && !inputs[i].disabled) {
+              inputs[i].value = String(pendingByItem[i].pending);
+            }
+          }
+        },
+        hasRemaining: hasRemaining,
         onSave: async function () {
           var fornecedorId = opFornecedorId(ctxMovement.op, 'cima');
           if (!fornecedorId) {
@@ -880,6 +959,14 @@
           )
         ),
         saveLabel: 'Registrar entrega',
+        fillRemaining: function () {
+          linhas.forEach(function (linha) {
+            if (linha.saldo > 0 && !linha.input.disabled) {
+              linha.input.value = String(linha.saldo);
+            }
+          });
+        },
+        hasRemaining: linhas.some(function (linha) { return linha.saldo > 0; }),
         onSave: async function () {
           var payload = [];
           linhas.forEach(function (linha) {
@@ -1018,7 +1105,15 @@
               transferForm
                 ? transferForm.node
                 : window.el('div', { style: 'font-size:13px;color:#8a93a3;line-height:1.5;' },
-                    'Nao ha formulario canonico disponivel para esta transicao no estado atual.')
+                    'Nao ha formulario canonico disponivel para esta transicao no estado atual.'),
+              transferForm && transferForm.hasRemaining && typeof transferForm.fillRemaining === 'function'
+                ? window.el('div', { style: 'margin-top:10px;' },
+                    window.el('button', {
+                      type: 'button',
+                      style: 'display:inline-flex;align-items:center;gap:6px;background:#fff;color:#2563eb;border:1px solid #cfe0fb;border-radius:' + MOVEMENT_SURFACE_RADIUS + ';padding:7px 12px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;',
+                      onclick: function () { transferForm.fillRemaining(); },
+                    }, 'Transferir restante'))
+                : null
             )
           : null,
         window.el('div', {

@@ -1105,3 +1105,99 @@ test('modal-gaps-B: itens de expedicao mostram entregue/de/liberado/pendente', (
   assert.match(itemsSlice, /ns\.fmtMetros\(entregue\) \+ ' de ' \+ ns\.fmtMetros\(liberado\)/,
     'meta de expedicao deve mostrar entregue de liberado');
 });
+
+// ---------------------------------------------------------------------
+// 19. PEDIDO-TRANSFER-REMAINING-B — ação "Transferir restante"
+// ---------------------------------------------------------------------
+
+test('transfer-remaining-B: computePendingByItem existe como helper canonico', () => {
+  assert.match(detailEvents, /function computePendingByItem/,
+    'deve ter helper canonico para calcular pendentes por item');
+  assert.match(detailEvents, /var key = transitionKey\(ctxMovement\)/,
+    'deve usar a mesma chave de transicao compartilhada');
+});
+
+test('transfer-remaining-B: computePendingByItem retorna pending/target/moved por item', () => {
+  const slice = (detailEvents.match(/function computePendingByItem[\s\S]*?\n    \}\n\n    function buildMovementItems/) || [''])[0];
+  assert.match(slice, /pending:\s*ns\.round2\(Math\.max\(target\s*-\s*moved,\s*0\)\)/,
+    'pending deve ser calculado como target - moved');
+  assert.match(slice, /state\.entregaItens/,
+    'deve usar state.entregaItens como fonte canonica');
+  assert.match(slice, /state\.entregasById/,
+    'deve usar state.entregasById como fonte canonica');
+});
+
+test('transfer-remaining-B: buildInsumosTransferForm expoe fillRemaining e hasRemaining', () => {
+  const slice = (detailEvents.match(/function buildInsumosTransferForm[\s\S]*?\n    \}\n\n    function buildTecelagemTransferForm/) || [''])[0];
+  assert.match(slice, /fillRemaining:\s*function/,
+    'buildInsumosTransferForm deve expor fillRemaining');
+  assert.match(slice, /hasRemaining:\s*linhas\.some/,
+    'buildInsumosTransferForm deve expor hasRemaining');
+  assert.match(slice, /linha\.saldo > 0 && !linha\.input\.disabled/,
+    'fillRemaining deve preencher apenas itens com saldo positivo e nao desabilitados');
+  assert.match(slice, /linha\.input\.value = String\(linha\.saldo\)/,
+    'fillRemaining deve setar input.value = saldo pendente');
+});
+
+test('transfer-remaining-B: buildTecelagemTransferForm expoe fillRemaining e hasRemaining', () => {
+  const slice = (detailEvents.match(/function buildTecelagemTransferForm[\s\S]*?\n    \}\n\n    function buildAcabamentoTransferForm/) || [''])[0];
+  assert.match(slice, /fillRemaining:\s*function/,
+    'buildTecelagemTransferForm deve expor fillRemaining');
+  assert.match(slice, /hasRemaining:\s*hasRemaining/,
+    'buildTecelagemTransferForm deve expor hasRemaining');
+  assert.match(slice, /querySelectorAll\(['"]input\[type="number"\]['"]\)/,
+    'fillRemaining deve buscar inputs number no form via querySelectorAll');
+  assert.match(slice, /pendingByItem\[i\]\.pending > 0 && !inputs\[i\]\.disabled/,
+    'fillRemaining so preenche se pending > 0 e input nao disabled');
+});
+
+test('transfer-remaining-B: buildExpedicaoTransferForm expoe fillRemaining e hasRemaining', () => {
+  const slice = (detailEvents.match(/function buildExpedicaoTransferForm[\s\S]*?\n    \}\n\n    function buildTransferForm/) || [''])[0];
+  assert.match(slice, /fillRemaining:\s*function/,
+    'buildExpedicaoTransferForm deve expor fillRemaining');
+  assert.match(slice, /hasRemaining:\s*linhas\.some/,
+    'buildExpedicaoTransferForm deve expor hasRemaining');
+});
+
+test('transfer-remaining-B: openMovementModal renderiza botao "Transferir restante"', () => {
+  assert.match(movementModalSlice, /Transferir restante/,
+    'modal deve renderizar botao "Transferir restante"');
+  assert.match(movementModalSlice, /transferForm \&\& transferForm\.hasRemaining \&\& typeof transferForm\.fillRemaining === 'function'/,
+    'botao deve aparecer apenas quando transferForm tem hasRemaining e fillRemaining');
+  assert.match(movementModalSlice, /transferForm\.fillRemaining\(\)/,
+    'onclick do botao deve chamar transferForm.fillRemaining()');
+});
+
+test('transfer-remaining-B: botao NAO chama write, RPC, ou save automatico', () => {
+  const slice = (detailEvents.match(/Transferir restante[\s\S]*?\n\s*\}\)/) || [''])[0];
+  assert.ok(slice, 'trecho do botao Transferir restante nao encontrado');
+  assert.doesNotMatch(slice, /salvarEntregaCima/,
+    'botao nao pode chamar salvarEntregaCima');
+  assert.doesNotMatch(slice, /salvarEntregaLatex/,
+    'botao nao pode chamar salvarEntregaLatex');
+  assert.doesNotMatch(slice, /registrarRecebimentoOrdemFio/,
+    'botao nao pode chamar registrarRecebimentoOrdemFio');
+  assert.doesNotMatch(slice, /window\.supa\.rpc/,
+    'botao nao pode chamar RPC');
+  assert.doesNotMatch(slice, /transferForm\.onSave/,
+    'botao nao pode disparar onSave automaticamente');
+  assert.doesNotMatch(slice, /\.insert\(|\.update\(|\.delete\(/,
+    'botao nao pode fazer write');
+});
+
+test('transfer-remaining-B: Acabamento>Expedicao sem form de metros NAO expoe fillRemaining', () => {
+  const slice = (detailEvents.match(/function buildAcabamentoTransferForm[\s\S]*?\n    \}\n\n    function buildExpedicaoTransferForm/) || [''])[0];
+  assert.ok(slice, 'trecho buildAcabamentoTransferForm nao encontrado');
+  assert.doesNotMatch(slice, /fillRemaining/,
+    'Acabamento>Expedicao usa RPC direta, nao deve ter fillRemaining (sem campos para preencher)');
+  assert.doesNotMatch(slice, /hasRemaining/,
+    'Acabamento>Expedicao nao deve expor hasRemaining');
+});
+
+test('transfer-remaining-B: preenchimento preenche valor correto, nao zera nem excede', () => {
+  const buildTecSlice = (detailEvents.match(/function buildTecelagemTransferForm[\s\S]*?\n    \}\n\n    function buildAcabamentoTransferForm/) || [''])[0];
+  assert.match(buildTecSlice, /inputs\[i\]\.value = String\(pendingByItem\[i\]\.pending\)/,
+    'deve preencher com valor string do pending do item correspondente');
+  assert.doesNotMatch(buildTecSlice, /inputs\[i\]\.value = ['"]0['"]/,
+    'nao deve zerar o campo');
+});
