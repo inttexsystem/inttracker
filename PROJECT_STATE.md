@@ -1,4 +1,33 @@
 > **Atualizacao 2026-07-04 - fase
+> `RAVATEX-TAPETES-OP-PARTIAL-SPLIT-E2E-STAGING-C`.**
+> E2E controlado do split parcial no staging (ucrjtfswnfdlxwtmxnoo),
+> apos a correcao da regressao do Pedido Detail. Part 0 confirmou que
+> Pedido com OP abre (loader+render reais contra dados reais, pedido #12
+> / tecelagem 9/2026, loadingError=null, RENDER OK).
+>
+> Metodo: script controlado dirigindo os helpers reais
+> (`salvarEntregaCima` default e `{forceSplit,motivo}`) via shim
+> PostgREST admin — sem chamar a RPC fora do helper. Cenario de menor
+> risco: tecelagem OP id 11 (9/2026, em_producao, sem latex previa),
+> destino Conitex (2). IDs criados (evidencia, NAO apagar): entrega
+> default id 10 + OP Latex default id 25 (7/2026, motivo NULL); entrega
+> split id 11 + OP Latex split id 26 (8/2026, motivo "Teste controlado
+> split staging"). Mesma origem_op_id=11 e destino=2 para as duas.
+>
+> Validacao 14/14: split com motivo/origem/destino/origem_entrega
+> corretos; default com motivo NULL; op_latex_entregas N:1 (COUNT=1 por
+> entrega); op_eventos criacao_split (OP 8) + split_derivado (OP 11) com
+> payload completo; numeracao monotonica (latex ultimo=8, sem buracos,
+> colisoes 0). Diagnosticos pos: split atuais=1 legitimo, duplicatas
+> default=0, orfas=0, high-water latex 8=8 e tecelagem 17=17 OK.
+>
+> Patch legitimo: `[2.5]` do `production-flow-invariants-diag.mjs` agora
+> e split-aware — alarma so 2+ OPs DEFAULT na mesma (origem,destino);
+> default+split e coexistencia esperada. Testes locais 263/263 OK.
+> Producao intocada; sem SQL destrutivo; db/25-db/29 intocadas; default
+> acumulador e split opt-in preservados.
+>
+> **Atualizacao 2026-07-04 - fase
 > `RAVATEX-TAPETES-STAGING-FLOW-REGRESSION-AUDIT-A`.**
 > Auditoria do fluxo staging/local (Pedido -> OP -> Tecelagem ->
 > Acabamento/Latex -> Expedicao -> Entrega). Causa raiz encontrada e

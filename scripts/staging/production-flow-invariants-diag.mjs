@@ -165,7 +165,20 @@ const opLbl = (o) => o ? (o.numero + '/' + o.ano) : '—';
   const defaultGrp = {};
   defaultLatexOps.forEach((o) => { const k = o.origem_op_id + '::' + o.destino_fornecedor_id; (defaultGrp[k] = defaultGrp[k] || []).push(o); });
   const defaultDups = Object.entries(defaultGrp).filter(([, a]) => a.length > 1);
-  console.log(dups.length ? ('!!! ' + dups.length + ' grupo(s) DUPLICADO(s): ' + JSON.stringify(dups.map(([k, a]) => ({ k, ops: a.map(opLbl) })))) : 'OK — 0 duplicatas.');
+  // Classificacao split-aware: o BUG e ter 2+ OPs DEFAULT (motivo_separacao
+  // IS NULL) na mesma (origem_op_id, destino) — isso e a duplicidade que a
+  // db/28/db/29 previnem. Um grupo com 1 default + N split e coexistencia
+  // LEGITIMA (split e excecao explicita com motivo), NAO deve alarmar.
+  if (defaultDups.length) {
+    console.log('!!! ' + defaultDups.length + ' grupo(s) DEFAULT DUPLICADO(s) [BUG: 2+ OPs default por origem+destino]: '
+      + JSON.stringify(defaultDups.map(([k, a]) => ({ k, ops: a.map(opLbl) }))));
+  } else if (dups.length) {
+    console.log('OK — 0 duplicatas default. ' + dups.length
+      + ' grupo(s) com split legitimo coexistindo (default + split), esperado: '
+      + JSON.stringify(dups.map(([k, a]) => ({ k, ops: a.map((o) => opLbl(o) + (o.motivo_separacao ? '(split)' : '(default)')) }))));
+  } else {
+    console.log('OK — 0 duplicatas.');
+  }
 
   console.log('\n===== [2.5b] DB/28 SPLIT LATEX (motivo_separacao) =====');
   console.log('Coluna ops.motivo_separacao: OK (select executado)');

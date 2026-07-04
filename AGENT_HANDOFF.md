@@ -1,4 +1,65 @@
-﻿# Estado pos-fase - Staging Flow Regression Audit A
+﻿# Estado pos-fase - OP Partial Split E2E Staging C
+
+- Fase: `RAVATEX-TAPETES-OP-PARTIAL-SPLIT-E2E-STAGING-C`.
+- Objetivo: validar o fluxo REAL de split parcial no staging
+  (`ucrjtfswnfdlxwtmxnoo`), confirmando default=acumular e a opcao
+  explicita "Criar nova OP para esta parcial".
+- Part 0 (Pedido Detail abre com OP): CONFIRMADO. Driver executou o
+  helper real `loadPedidoDetailData` + `computeViewModel` +
+  `renderPedidoDetailScreen` contra dados reais (pedido #12, tecelagem
+  OP 9/2026): `loadingError=null`, RENDER OK (9 nodes, 1 opSummary). A
+  regressao `buildOpCard` (fase anterior) esta corrigida em runtime real.
+- Metodo E2E: script controlado em Node dirigindo os helpers reais do
+  app (`salvarEntregaCima` default e `salvarEntregaCima(..., {forceSplit,
+  motivo})`) via shim PostgREST autenticado como admin. NAO chamou a RPC
+  fora do fluxo do helper. Script mantido fora do repo (temp).
+- Cenario (OP de homologacao, menor risco): tecelagem OP id 11
+  (`9/2026`, em_producao, sem OP latex previa), destino Conitex (id 2),
+  op_item 26 (modelo 3).
+- IDs criados no staging (mantidos como evidencia — NAO apagar):
+  - Pedido: `12c930e5-d7dc-47dd-8d3a-f07d3ccf147e` (#12)
+  - OP Tecelagem origem: id 11 (`9/2026`)
+  - Entrega default: id 10 (`TESTE SPLIT STAGING - entrega default`, 10 m)
+  - Entrega split:   id 11 (`TESTE SPLIT STAGING - entrega split`, 7 m)
+  - OP Latex default: id 25 = `7/2026` (motivo_separacao NULL)
+  - OP Latex split:   id 26 = `8/2026`
+    (motivo_separacao = "Teste controlado split staging")
+  - Fornecedor destino: 2 (Conitex)
+- Evidencias (14/14 asserts OK):
+  - split.origem_op_id=11, destino=2, origem_entrega_id=11, motivo set;
+  - default.motivo NULL, mesma origem_op_id=11 e destino=2;
+  - `op_latex_entregas`: entrega 10->OP25, entrega 11->OP26, COUNT=1 cada
+    (N:1, nenhuma entrega em 2 OPs);
+  - `op_eventos`: OP 8 `criacao_split` + OP 11 `split_derivado`, payload
+    {origem_op_id:11, entrega_id:11, nova_op_id:26, destino:2, motivo};
+  - numeracao: split consumiu numero 8; `op_numeros` latex ultimo=8;
+    usados [1..8] sem buracos; colisoes 0; high-water tecelagem 17=17.
+- Diagnosticos pos-E2E:
+  - split atuais = 1 (primeiro split real), listado como LEGITIMO;
+  - duplicatas DEFAULT = 0; duplicidade materializada bugada = 0;
+  - orfas = 0; `op_latex_entregas` N:1 OK; high-water latex 8=8 OK.
+- Patch legitimo (permitido pelo brief): `[2.5]` do
+  `production-flow-invariants-diag.mjs` era motivo-unaware e alarmava
+  `!!! DUPLICADO` para o split legitimo. Agora classifica: alarme so
+  para 2+ OPs DEFAULT na mesma (origem,destino); default+split e
+  coexistencia esperada. Nenhuma alteracao de deteccao de bug real.
+- `[2.5c]`/verdict ainda imprimem RPC `gerar_op_latex_split`
+  "INDISPONIVEL" por sondagem GET (RPC nao e selecionavel por GET); o
+  proprio E2E prova que a RPC funciona (criou `8/2026`). Cosmetico
+  conhecido, fora do escopo.
+- Testes locais: `pedido-detail`, `pedido-detail-linked-ops`,
+  `tec-to-acabamento-flow`, `entrega-writes`, `op-latex-split`,
+  `production-flow-invariants` — 263/263 OK.
+- Residual (nao introduzido aqui, nao corrigido nesta fase): loader
+  seleciona `parametros_largura.id` que nao existe no schema staging
+  (erro 42703 nao-fatal; `state.parametrosLargura=[]`, pedido abre).
+  Candidato a patch em fase de dados/schema, nao no E2E.
+- Producao intocada; `origin` nao usado para escrita; sem SQL destrutivo;
+  sem cleanup destrutivo; OP split real criada APENAS em staging; default
+  acumulador preservado; split nao-automatico (opt-in); db/25-db/29
+  intocadas; residual permitido `supabase/.temp/`.
+
+# Estado pos-fase - Staging Flow Regression Audit A
 
 - Fase: `RAVATEX-TAPETES-STAGING-FLOW-REGRESSION-AUDIT-A`.
 - Sintoma reportado: Pedido recem-criado com OP recem-criada nao abre;
