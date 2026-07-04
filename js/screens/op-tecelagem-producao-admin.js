@@ -144,7 +144,7 @@
       }, svgEl(SVG_OPEN), 'Abrir Pedido'));
     }
     acoes.push(el('button', { type: 'button', style: BTN_BACK + 'opacity:.55;cursor:not-allowed;', disabled: true }, 'Pausar'));
-    if (ctx.cimaFornecedorId) acoes.push(el('a', { href: '#entregas-tecelagem-op', style: BTN_BACK + 'text-decoration:none;' }, 'Movimentar'));
+    if (ctx.cimaFornecedorId) acoes.push(el('a', { href: '#entregas-tecelagem-op', style: BTN_BACK + 'text-decoration:none;' }, 'Ir para entregas'));
     acoes.push(el('button', { type: 'button', style: BTN_BACK + 'opacity:.55;cursor:not-allowed;', disabled: true }, 'Concluir'));
     acoes.push(el('a', { href: '#documentos-op', style: BTN_BACK + 'text-decoration:none;' }, 'Documentos'));
     acoes.push(el('a', { href: '#historico-op', style: BTN_BACK + 'text-decoration:none;' }, 'Histórico'));

@@ -443,7 +443,7 @@
             el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;' },
               pedidoId ? el('button', { type: 'button', style: BTN_ACTION, onclick: function () { navigate('#/pedidos/' + pedidoId); } }, svgEl(SVG_DOC), 'Abrir Pedido') : '',
               el('button', { type: 'button', style: BTN_ACTION, onclick: function () { toastOperacional('Produção pausada.'); } }, svgEl(SVG_PAUSE), 'Pausar'),
-              el('a', { href: '#movimentacao-op', style: BTN_ACTION_LINK }, svgEl(SVG_ARROW_RIGHT), 'Movimentar'),
+              el('a', { href: '#movimentacao-op', style: BTN_ACTION_LINK }, svgEl(SVG_ARROW_RIGHT), 'Ir para movimentos'),
               el('button', { type: 'button', style: BTN_ACTION, onclick: function () { finalizar(op.id); } }, svgEl(SVG_CHECK), 'Finalizar acabamento'),
               el('a', { href: '#documentos-op', style: BTN_ACTION_LINK }, svgEl(SVG_DOC), 'Documentos'),
               el('a', { href: '#historico-op', style: BTN_ACTION_LINK }, svgEl(SVG_CLOCK), 'Histórico')));

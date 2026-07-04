@@ -306,3 +306,21 @@ test('D-B sintaxe: entrega-writes.js e op-tecelagem-producao-admin.js válidos',
   require('node:child_process').execFileSync(process.execPath, ['--check', EW], { stdio: 'pipe' });
   require('node:child_process').execFileSync(process.execPath, ['--check', OTPA], { stdio: 'pipe' });
 });
+
+// RAVATEX-TAPETES-PRODUCTION-FLOW-ACTION-BUTTONS-R1
+// Botão "Movimentar" no header da OP Tecelagem renomeado para "Ir para entregas"
+// — o comportamento continua sendo scroll anchor, mas o label agora reflete
+// que é navegação interna, não ação produtiva.
+test('R1: OP Tecelagem header não contém botão "Movimentar" ambíguo (renomeado)', () => {
+  assert.doesNotMatch(otpaSrc, /'Movimentar'/,
+    'botão do header da OP Tecelagem não deve mais usar label "Movimentar" ambíguo');
+  assert.match(otpaSrc, /'Ir para entregas'/,
+    'botão do header da OP Tecelagem deve usar label "Ir para entregas" que reflete scroll');
+});
+
+test('R1: OP Tecelagem anchor #entregas-tecelagem-op continua sendo destino do scroll', () => {
+  assert.match(otpaSrc, /id:\s*['"]entregas-tecelagem-op['"]/,
+    'o bloco de destino #entregas-tecelagem-op deve continuar existindo');
+  assert.match(otpaSrc, /href:\s*['"]#entregas-tecelagem-op['"]/,
+    'o anchor para #entregas-tecelagem-op deve continuar existindo no botão renomeado');
+});

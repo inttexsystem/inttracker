@@ -1175,3 +1175,21 @@ test('46. Card "1. Dados da OP" (Acabamento em produção) usa 3 colunas do stan
   assert.doesNotMatch(style, /grid-template-columns\s*:\s*repeat\(\s*2/,
     'Card 1 (Dados da OP) da OP Em Producao Acabamento nao deve voltar ao grid intermediario de 2 colunas');
 });
+
+// RAVATEX-TAPETES-PRODUCTION-FLOW-ACTION-BUTTONS-R1
+// Botão "Movimentar" no header da OP Látex renomeado para "Ir para movimentos"
+// — o comportamento continua sendo scroll anchor, mas o label agora reflete
+// que é navegação interna, não ação produtiva.
+test('47. OP Látex: header não contém botão "Movimentar" ambíguo (renomeado para "Ir para movimentos")', () => {
+  assert.doesNotMatch(olaSrc, /'Movimentar'/,
+    'botão do header da OP Látex não deve mais usar label "Movimentar" ambíguo');
+  assert.match(olaSrc, /'Ir para movimentos'/,
+    'botão do header da OP Látex deve usar label "Ir para movimentos" que reflete scroll');
+});
+
+test('48. OP Látex: anchor #movimentacao-op continua existindo como destino do scroll', () => {
+  assert.match(olaSrc, /id:\s*['"]movimentacao-op['"]/,
+    'o bloco de destino #movimentacao-op deve continuar existindo');
+  assert.match(olaSrc, /href:\s*['"]#movimentacao-op['"]/,
+    'o anchor para #movimentacao-op deve continuar existindo no botão renomeado');
+});
