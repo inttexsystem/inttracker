@@ -84,7 +84,7 @@ const detailBundle = [
   detailRender,
 ].join('\n\n');
 const movementModalSlice = (detailEvents.match(
-  /function openMovementModal\s*\(ctxMovement\)\s*\{[\s\S]*?\n    \}\n\n    function openEditWarning/
+  /function openMovementModal\s*\(ctxMovement\)\s*\{[\s\S]*?\n    \}\n\n    function buildStageDetailBody/
 ) || [''])[0];
 
 // Strip line comments and block comments for code-only assertions.
@@ -1200,4 +1200,114 @@ test('transfer-remaining-B: preenchimento preenche valor correto, nao zera nem e
     'deve preencher com valor string do pending do item correspondente');
   assert.doesNotMatch(buildTecSlice, /inputs\[i\]\.value = ['"]0['"]/,
     'nao deve zerar o campo');
+});
+
+// ---------------------------------------------------------------------
+// 20. PEDIDO-STEPPER-STAGE-MODALS-B — bolinhas do stepper clicaveis
+// ---------------------------------------------------------------------
+
+test('stepper-modals-B: buildStageNode aceita onclick e renderiza button quando clicavel', () => {
+  assert.match(detailRender, /function buildStageNode\s*\(stage,\s*index,\s*onclick\)/,
+    'buildStageNode deve aceitar parametro onclick');
+  assert.match(detailRender, /if \(typeof onclick === 'function'\)/,
+    'deve checar se onclick e funcao antes de criar button');
+  assert.match(detailRender, /window\.el\(['"]button['"][\s\S]{0,200}onclick:\s*onclick/,
+    'deve criar button com onclick quando clicavel');
+});
+
+test('stepper-modals-B: buildStepper passa onclick para buildStageNode', () => {
+  assert.match(detailRender, /handlers\.openStageDetailModal/,
+    'buildStepper deve referenciar handlers.openStageDetailModal');
+  assert.match(detailRender, /buildStageNode\(stage,\s*index,\s*typeof handlers\.openStageDetailModal/,
+    'deve passar onclick condicional para buildStageNode');
+});
+
+test('stepper-modals-B: openStageDetailModal existe e e exposto nos handlers', () => {
+  assert.match(detailEvents, /function openStageDetailModal/,
+    'deve ter funcao openStageDetailModal');
+  assert.match(detailEvents, /openStageDetailModal:\s*openStageDetailModal/,
+    'deve expor openStageDetailModal no retorno dos handlers');
+});
+
+test('stepper-modals-B: buildStageDetailBody cobre todas as 5 etapas', () => {
+  for (const key of ['insumos', 'tecelagem', 'acabamento', 'expedicao', 'entrega']) {
+    assert.match(detailEvents, new RegExp("if \\(key === '" + key + "'\\)"),
+      'buildStageDetailBody deve ter ramo para etapa: ' + key);
+  }
+});
+
+test('stepper-modals-B: modal read-only NAO chama writes ou RPCs', () => {
+  const stageModalSlice = (detailEvents.match(/function buildStageDetailBody[\s\S]*?\n    \}\n\n    function openStageDetailModal/) || [''])[0];
+  assert.ok(stageModalSlice, 'trecho buildStageDetailBody nao encontrado');
+  assert.doesNotMatch(stageModalSlice, /salvarEntregaCima/,
+    'modal de etapa nao pode chamar salvarEntregaCima');
+  assert.doesNotMatch(stageModalSlice, /salvarEntregaLatex/,
+    'modal de etapa nao pode chamar salvarEntregaLatex');
+  assert.doesNotMatch(stageModalSlice, /registrarRecebimentoOrdemFio/,
+    'modal de etapa nao pode chamar registrarRecebimentoOrdemFio');
+  assert.doesNotMatch(stageModalSlice, /liberar_expedicao/,
+    'modal de etapa nao pode chamar liberar_expedicao');
+  assert.doesNotMatch(stageModalSlice, /registrar_entrega_expedicao/,
+    'modal de etapa nao pode chamar registrar_entrega_expedicao');
+  assert.doesNotMatch(stageModalSlice, /concluir_pedido_se_pronto/,
+    'modal de etapa nao pode chamar concluir_pedido_se_pronto');
+  assert.doesNotMatch(stageModalSlice, /\.insert\(|\.update\(|\.delete\(/,
+    'modal de etapa nao pode fazer write direto');
+  assert.doesNotMatch(stageModalSlice, /supa\.rpc/,
+    'modal de etapa nao pode chamar RPC');
+});
+
+test('stepper-modals-B: modal mostra estados vazios claros', () => {
+  const stageModalSlice = (detailEvents.match(/function buildStageDetailBody[\s\S]*?\n    \}\n\n    function openStageDetailModal/) || [''])[0];
+  assert.match(stageModalSlice, /Nenhuma OP/,
+    'deve ter mensagem de estado vazio');
+  assert.match(stageModalSlice, /Nenhuma entrega/,
+    'deve ter mensagem de estado vazio para entregas');
+  assert.match(stageModalSlice, /Nenhuma informacao/,
+    'deve ter mensagem de fallback');
+});
+
+test('stepper-modals-B: botao "Fechar" unico CTA do modal (sem Salvar/Transferir)', () => {
+  const openStageSlice = (detailEvents.match(/function openStageDetailModal[\s\S]*?\n    \}\n\n    function openEditWarning/) || [''])[0];
+  assert.ok(openStageSlice, 'trecho openStageDetailModal nao encontrado');
+  assert.match(openStageSlice, /'Fechar'/,
+    'modal deve ter botao "Fechar"');
+  assert.doesNotMatch(openStageSlice, /'Salvar'/,
+    'modal nao pode ter botao "Salvar"');
+  assert.doesNotMatch(openStageSlice, /'Transferir'/,
+    'modal nao pode ter botao "Transferir"');
+  assert.doesNotMatch(openStageSlice, /transferForm/,
+    'modal de etapa nao referencia transferForm');
+});
+
+test('stepper-modals-B: setas de transicao continuam usando openMovementModal', () => {
+  assert.match(detailRender, /handlers\.openMovementModal\(stage\.transfer\)/,
+    'botoes de transferencia devem continuar usando openMovementModal');
+  assert.match(detailRender, /buildTransferButton\(stage,\s*handlers\)/,
+    'buildTransferButton deve continuar recebendo handlers');
+});
+
+test('stepper-modals-B: modal Acabamento mostra OPs latex e fornecedor', () => {
+  const stageModalSlice = (detailEvents.match(/function buildStageDetailBody[\s\S]*?\n    \}\n\n    function openStageDetailModal/) || [''])[0];
+  assert.match(stageModalSlice, /OPs de Acabamento\/Latex/,
+    'deve ter secao de OPs de Acabamento/Latex');
+  assert.match(stageModalSlice, /Fornecedor:/,
+    'deve mostrar fornecedor da OP de latex');
+});
+
+test('stepper-modals-B: navegacao read-only permitida (Abrir OP, Abrir Expedicao)', () => {
+  const stageModalSlice = (detailEvents.match(/function buildStageDetailBody[\s\S]*?\n    \}\n\n    function openStageDetailModal/) || [''])[0];
+  assert.match(stageModalSlice, /Abrir OP/,
+    'deve permitir navegacao para Abrir OP');
+  assert.match(stageModalSlice, /Abrir Expedicao/,
+    'deve permitir navegacao para Abrir Expedicao');
+  assert.match(stageModalSlice, /navigateToOp|navigateToExpedicao/,
+    'deve usar funcoes de navegacao existentes');
+});
+
+test('stepper-modals-B: "Transferir restante" da fase C continua preservado', () => {
+  assert.match(movementModalSlice, /Transferir restante/,
+    'modal de transicao deve continuar renderizando "Transferir restante"');
+  assert.match(detailEvents, /transferForm\.fillRemaining\(\)/,
+    'fillRemaining deve continuar existindo');
 });

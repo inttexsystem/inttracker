@@ -1216,6 +1216,297 @@
       document.body.appendChild(overlay);
     }
 
+    function buildStageDetailBody(stage, view) {
+      var key = stage.key;
+      var sectionTitle = function (title) {
+        return window.el('div', {
+          style: 'font-size:13px;font-weight:700;color:#16203a;margin-bottom:10px;margin-top:16px;',
+        }, title);
+      };
+      var emptyRow = function (msg) {
+        return window.el('div', { style: 'font-size:12.5px;color:#8a93a3;' }, msg || 'Nenhuma informacao disponivel.');
+      };
+      var linkBtn = function (label, onclick) {
+        return window.el('button', {
+          type: 'button',
+          style: 'display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:#2563eb;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;',
+          onclick: onclick,
+        }, label);
+      };
+
+      if (key === 'insumos') {
+        var insumos = summarizeInsumos({ op: null });
+        var tecelagens = (state.ops || []).filter(function (op) { return ns.stageKeyForOp(op) === 'tecelagem'; });
+        var tecOpen = tecelagens.some(function (op) { return op.status === 'aberta' || op.status === 'simulada'; });
+        var tecProduction = tecelagens.some(function (op) { return op.status === 'em_producao'; });
+
+        return window.el('div', {},
+          sectionTitle('Ordens de fio'),
+          insumos.ordens.length
+            ? insumos.ordens.map(function (ordem) {
+                return window.el('div', {
+                  style: 'display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f3f6;',
+                },
+                  window.el('div', { style: 'font-size:12.5px;color:#3f4757;' },
+                    window.rotuloFio ? window.rotuloFio(ordem) : ns.fmtTextoOuEmpty(ordem.tipo, 'Fio')),
+                  window.el('div', { style: 'font-size:12.5px;font-weight:600;color:#2563eb;text-align:right;' },
+                    ns.fmtKg(ordem.kg_recebido) + ' de ' + ns.fmtKg(ordem.kg_pedido) + ' · ' + (ns.toFiniteNumber(ordem.kg_recebido) >= ns.toFiniteNumber(ordem.kg_pedido) ? 'completo' : 'pendente'))
+                );
+              })
+            : emptyRow('Nenhuma ordem de fio vinculada.'),
+          tecelagens.length
+            ? window.el('div', {},
+                sectionTitle('OPs de Tecelagem'),
+                tecelagens.map(function (op) {
+                  return window.el('div', {
+                    style: 'display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f3f6;',
+                  },
+                    window.el('div', { style: 'font-size:12.5px;color:#3f4757;' },
+                      ns.opLabel(op) + ' · ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(op.status) : op.status)),
+                    linkBtn('Abrir OP', function () { navigateToOp(op.id); }));
+                })
+              )
+            : null,
+          tecOpen && !tecProduction && insumos.ordens.length > 0
+            ? window.el('div', {
+                style: 'display:flex;align-items:flex-start;gap:8px;background:#fff9ee;border:1px solid #fbe8c6;border-radius:4px;padding:10px 12px;margin-top:10px;',
+              },
+                ns.svgEl(ns.SVG_INFO),
+                window.el('div', { style: 'font-size:12.5px;color:#8a5a15;line-height:1.4;' },
+                  'OP de Tecelagem pendente de aceite. Insumos recebidos, mas a OP ainda precisa ser aceita para liberar producao.'))
+            : null
+        );
+      }
+
+      if (key === 'tecelagem') {
+        var tecOps = (state.ops || []).filter(function (op) { return ns.stageKeyForOp(op) === 'tecelagem'; });
+        var tecSummaries = (view && view.opSummaries || []).filter(function (s) { return s.stageKey === 'tecelagem'; });
+
+        return window.el('div', {},
+          tecOps.length
+            ? window.el('div', {},
+                sectionTitle('OPs de Tecelagem'),
+                tecOps.map(function (op) {
+                  var summary = tecSummaries.find(function (s) { return s.id === op.id; }) || {};
+                  return window.el('div', { style: 'margin-bottom:12px;' },
+                    window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;' },
+                      window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;' },
+                        ns.opLabel(op) + ' · ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(op.status) : op.status)),
+                      linkBtn('Abrir OP', function () { navigateToOp(op.id); })),
+                    window.el('div', { style: 'font-size:12.5px;color:#5b6472;margin-top:4px;line-height:1.4;' },
+                      'Target: ' + ns.fmtMetros(summary.target || 0) + ' | Transferido: ' + ns.fmtMetros(summary.done || 0) + ' | Pendente: ' + ns.fmtMetros(summary.remaining || 0)),
+                    summary.modelNames && summary.modelNames.length
+                      ? window.el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:2px;' }, 'Modelos: ' + summary.modelNames.join(', '))
+                      : null,
+                    summary.docBanner
+                      ? window.el('div', { style: 'font-size:11.5px;color:#c2610c;margin-top:2px;' }, summary.docBanner)
+                      : null
+                  );
+                })
+              )
+            : window.el('div', {},
+                sectionTitle('OPs de Tecelagem'),
+                emptyRow('Nenhuma OP de tecelagem vinculada ao pedido.')),
+          sectionTitle('Entregas recentes (Tecelagem → Acabamento)'),
+          (state.entregaItens || []).filter(function (ei) {
+            if (ei.defeito) return false;
+            var entrega = state.entregasById[ei.entrega_id];
+            if (!entrega || entrega.etapa !== 'cima') return false;
+            return tecOps.some(function (op) { return op.id === ei.op_id; });
+          }).slice(0, 5).map(function (ei) {
+            var entrega = state.entregasById[ei.entrega_id];
+            var opDestino = findOpDestinoByEntregaId(entrega && entrega.id);
+            var item = (tecOps[0] && tecOps[0].op_itens || []).find(function (it) { return it.id === ei.op_item_id; });
+            return window.el('div', {
+              style: 'display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f3f6;',
+            },
+              window.el('div', { style: 'font-size:12px;color:#3f4757;' },
+                formatTransitionDate(entrega && entrega.data) + ' · ' + ns.fmtMetros(ei.metros_entregues)),
+              window.el('div', { style: 'font-size:11.5px;color:#8a93a3;text-align:right;' },
+                opDestino ? ('→ ' + ns.opLabel(opDestino)) : 'Registrada'));
+          }).length
+            ? (tecOps.length ? '' : emptyRow('Nenhuma entrega registrada.'))
+            : null,
+          (state.ops || []).filter(function (op) { return op.tipo === 'latex'; }).filter(function (op) {
+            return tecOps.some(function (tecOp) { return op.origem_op_id === tecOp.id; });
+          }).length
+            ? window.el('div', {},
+                sectionTitle('OPs Latex geradas desta Tecelagem'),
+                (state.ops || []).filter(function (op) { return op.tipo === 'latex'; }).filter(function (op) {
+                  return tecOps.some(function (tecOp) { return op.origem_op_id === tecOp.id; });
+                }).map(function (op) {
+                  return window.el('div', {
+                    style: 'display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f3f6;',
+                  },
+                    window.el('div', { style: 'font-size:12.5px;color:#3f4757;' },
+                      ns.opLabel(op) + ' · ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(op.status) : op.status)),
+                    linkBtn('Abrir OP', function () { navigateToOp(op.id); }));
+                })
+              )
+            : null,
+          view && view.chainState && view.chainState.tecPendingAcceptance
+            ? window.el('div', {
+                style: 'display:flex;align-items:flex-start;gap:8px;background:#fff9ee;border:1px solid #fbe8c6;border-radius:4px;padding:10px 12px;margin-top:10px;',
+              },
+                ns.svgEl(ns.SVG_INFO),
+                window.el('div', { style: 'font-size:12.5px;color:#8a5a15;line-height:1.4;' }, 'OP pendente de aceite — necessario confirmar entrada na producao.'))
+            : null
+        );
+      }
+
+      if (key === 'acabamento') {
+        var acabOps = (state.ops || []).filter(function (op) { return ns.stageKeyForOp(op) === 'acabamento'; });
+        var acabSummaries = (view && view.opSummaries || []).filter(function (s) { return s.stageKey === 'acabamento'; });
+
+        return window.el('div', {},
+          acabOps.length
+            ? window.el('div', {},
+                sectionTitle('OPs de Acabamento/Latex'),
+                acabOps.map(function (op) {
+                  var summary = acabSummaries.find(function (s) { return s.id === op.id; }) || {};
+                  var fornecedor = ((op.op_fornecedores || []).find(function (f) { return f.etapa === 'latex'; }) || {}).fornecedores;
+                  return window.el('div', { style: 'margin-bottom:10px;' },
+                    window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;' },
+                      window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;' },
+                        ns.opLabel(op) + ' · ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(op.status) : op.status)),
+                      linkBtn('Abrir OP', function () { navigateToOp(op.id); })),
+                    window.el('div', { style: 'font-size:12.5px;color:#5b6472;margin-top:4px;line-height:1.4;' },
+                      'Recebido: ' + ns.fmtMetros(summary.done || 0) + ' | Pendente: ' + ns.fmtMetros(summary.remaining || 0)),
+                    fornecedor
+                      ? window.el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:2px;' }, 'Fornecedor: ' + fornecedor.nome)
+                      : null
+                  );
+                })
+              )
+            : emptyRow('Nenhuma OP de acabamento vinculada.'),
+          sectionTitle('Material recebido da Tecelagem'),
+          (state.entregaItens || []).filter(function (ei) {
+            if (ei.defeito) return false;
+            var entrega = state.entregasById[ei.entrega_id];
+            if (!entrega || entrega.etapa !== 'cima') return false;
+            return acabOps.some(function (op) { return ei.op_id === (op.origem_op_id) || (state.ops || []).some(function (origemOp) { return origemOp.id === ei.op_id && origemOp.tipo === 'tecelagem'; }); });
+          }).slice(0, 5).map(function (ei) {
+            var entrega = state.entregasById[ei.entrega_id];
+            return window.el('div', {
+              style: 'display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f3f6;',
+            },
+              window.el('div', { style: 'font-size:12px;color:#3f4757;' },
+                formatTransitionDate(entrega && entrega.data) + ' · ' + ns.fmtMetros(ei.metros_entregues)),
+              window.el('div', { style: 'font-size:11.5px;color:#8a93a3;text-align:right;' }, 'Recebido da Tecelagem'));
+          }).length ? null : emptyRow('Nenhum material registrado.')
+        );
+      }
+
+      if (key === 'expedicao') {
+        var expSummaries = view && view.expedicaoSummaries || [];
+        return window.el('div', {},
+          sectionTitle('Expedicoes'),
+          expSummaries.length
+            ? expSummaries.map(function (exp) {
+                return window.el('div', { style: 'margin-bottom:10px;' },
+                  window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;' },
+                    window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;' },
+                      'Expedicao #' + exp.id + ' · ' + ns.fmtTextoOuEmpty(exp.status, '-')),
+                    linkBtn('Abrir Expedicao', function () { navigateToExpedicao(exp.id); })),
+                  window.el('div', { style: 'font-size:12.5px;color:#5b6472;margin-top:4px;line-height:1.4;' },
+                    'Liberado: ' + ns.fmtMetros(exp.liberado) + ' | Entregue: ' + ns.fmtMetros(exp.entregue) + ' | Saldo: ' + ns.fmtMetros(exp.saldo)),
+                  exp.movimentos && exp.movimentos.length
+                    ? window.el('div', { style: 'font-size:11.5px;color:#8a93a3;margin-top:2px;' }, exp.movimentos.length + ' entrega/coleta registrada(s)')
+                    : null
+                );
+              })
+            : emptyRow('Nenhuma expedicao criada.'),
+          expSummaries.length === 0 && (view && view.prontoExpedicao > 0)
+            ? window.el('div', {
+                style: 'display:flex;align-items:flex-start;gap:8px;background:#f6f9ff;border:1px solid #d0e0fb;border-radius:4px;padding:10px 12px;margin-top:10px;',
+              },
+                ns.svgEl(ns.SVG_INFO),
+                window.el('div', { style: 'font-size:12.5px;color:#2c4a78;line-height:1.4;' },
+                  'Pronto para expedicao: ' + ns.fmtMetros(view.prontoExpedicao) + '. Libere a expedicao a partir da OP de acabamento.'))
+            : null
+        );
+      }
+
+      if (key === 'entrega') {
+        var entregueTotal = view && view.entregue || 0;
+        var total = view && view.totalPedido || 0;
+        var pendentes = ns.round2(Math.max(total - entregueTotal, 0));
+        return window.el('div', {},
+          window.el('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;' },
+            movementMetricCard('Total do pedido', ns.fmtMetros(total)),
+            movementMetricCard('Entregue ao cliente', ns.fmtMetros(entregueTotal), '#18794a')
+          ),
+          pendentes > 0
+            ? window.el('div', {
+                style: 'display:flex;align-items:flex-start;gap:8px;background:#fff9ee;border:1px solid #fbe8c6;border-radius:4px;padding:10px 12px;',
+              },
+                ns.svgEl(ns.SVG_INFO),
+                window.el('div', { style: 'font-size:12.5px;color:#8a5a15;line-height:1.4;' },
+                  'Pendencias restantes: ' + ns.fmtMetros(pendentes) + '. Registre todas as entregas de expedicao antes de concluir o pedido.'))
+            : window.el('div', {
+                style: 'display:flex;align-items:flex-start;gap:8px;background:#e7f4ec;border:1px solid #c2e7d1;border-radius:4px;padding:10px 12px;',
+              },
+                ns.svgEl(ns.SVG_INFO),
+                window.el('div', { style: 'font-size:12.5px;color:#2f8256;line-height:1.4;' },
+                  'Pedido pronto para conclusao. Use a acao "Concluir pedido" na pagina de detalhe.')),
+          stage.state === 'done'
+            ? window.el('div', { style: 'margin-top:8px;font-size:12.5px;font-weight:700;color:#18794a;' }, 'Etapa concluida.')
+            : null
+        );
+      }
+
+      return window.el('div', {},
+        emptyRow('Etapa em andamento. Dados operacionais serao exibidos conforme a cadeia produtiva avancar.'));
+    }
+
+    function openStageDetailModal(stage, view) {
+      var bodyContent = buildStageDetailBody(stage, view);
+      var titleText = 'Etapa: ' + (stage.label || stage.key || '');
+
+      var overlay = window.el('div', {
+        style: 'position:fixed;inset:0;background:rgba(20,30,45,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;',
+      });
+
+      var card = window.el('div', {
+        style: 'position:relative;background:#fff;border:1px solid #eceef1;border-radius:' + MOVEMENT_MODAL_RADIUS + ';width:520px;max-height:calc(100vh - 48px);overflow-y:auto;box-shadow:' + MOVEMENT_MODAL_SHADOW + ';',
+      });
+
+      var titleBar = window.el('div', {
+        style: 'display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid #eceef1;',
+      },
+        window.el('div', { style: 'display:flex;align-items:center;gap:10px;' },
+          window.el('div', {
+            style: 'width:10px;height:10px;border-radius:50%;background:' + (stage.color || '#2563eb') + ';flex-shrink:0;',
+          }),
+          window.el('div', { style: 'font-size:16px;font-weight:800;color:#16203a;' }, titleText)),
+        window.el('button', {
+          type: 'button',
+          style: 'background:none;border:none;cursor:pointer;padding:4px;color:#9aa2af;line-height:0;',
+          onclick: function () { overlay.remove(); },
+        }, ns.svgEl('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'))
+      );
+
+      var content = window.el('div', { style: 'padding:20px 22px 18px;' }, bodyContent);
+      var footer = window.el('div', {
+        style: 'display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid #eceef1;',
+      },
+        window.el('button', {
+          type: 'button',
+          style: 'background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:9px 18px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
+          onclick: function () { overlay.remove(); },
+        }, 'Fechar')
+      );
+
+      card.appendChild(titleBar);
+      card.appendChild(content);
+      card.appendChild(footer);
+      overlay.appendChild(card);
+      overlay.addEventListener('click', function (evt) {
+        if (evt.target === overlay) overlay.remove();
+      });
+      document.body.appendChild(overlay);
+    }
+
     function openEditWarning(mode) {
       var statusAtual = state.pedido ? state.pedido.status : null;
       var editavel = window.isPedidoEditavel
@@ -1519,6 +1810,7 @@
       concluirPedido: concluirPedido,
       scrollToSection: scrollToSection,
       openMovementModal: openMovementModal,
+      openStageDetailModal: openStageDetailModal,
       openEditWarning: openEditWarning,
       openStatusActions: openStatusActions,
       openTrackingModal: openTrackingModal,

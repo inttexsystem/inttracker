@@ -260,7 +260,7 @@
     );
   }
 
-  function buildStageNode(stage, index) {
+  function buildStageNode(stage, index, onclick) {
     var outerStyle;
     var inner;
 
@@ -275,10 +275,21 @@
       }, String(index + 1));
     }
 
+    var circleNode = window.el('div', { style: outerStyle }, inner);
+    if (typeof onclick === 'function') {
+      circleNode = window.el('button', {
+        type: 'button',
+        style: outerStyle + 'cursor:pointer;border:none;padding:0;font-family:inherit;',
+        onclick: onclick,
+        title: 'Ver detalhes da etapa ' + (stage.label || ''),
+        'aria-label': 'Ver detalhes da etapa ' + (stage.label || ''),
+      }, inner);
+    }
+
     return window.el('div', {
       style: 'display:flex;flex-direction:column;align-items:center;',
     },
-      window.el('div', { style: outerStyle }, inner),
+      circleNode,
       window.el('div', {
         style: 'margin-top:10px;font-size:12.5px;color:' + (stage.state === 'future' ? '#475065' : '#16203a') + ';font-weight:700;text-align:center;',
       }, stage.label),
@@ -374,7 +385,9 @@
   function buildStepper(view, handlers) {
     var gridChildren = [];
     view.stepper.forEach(function (stage, index) {
-      gridChildren.push(buildStageNode(stage, index));
+      gridChildren.push(buildStageNode(stage, index, typeof handlers.openStageDetailModal === 'function'
+        ? function () { handlers.openStageDetailModal(stage, view); }
+        : null));
       if (index < view.stepper.length - 1) {
         gridChildren.push(buildTransferButton(stage, handlers));
       }
