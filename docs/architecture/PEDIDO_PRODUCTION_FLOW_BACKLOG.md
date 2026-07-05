@@ -1,7 +1,7 @@
 # Atualizacao 2026-07-05 - Acabamento Expedicao Modal Move R1
 
 Fase: `RAVATEX-TAPETES-PEDIDO-ACABAMENTO-EXPEDICAO-MODAL-MOVE-R1`
-Status: **PATCH VALIDADO LOCALMENTE E DIAGNOSTICOS STAGING READ-ONLY OK; PUSH STAGING PENDENTE POR CREDENCIAL GITHUB LOCAL**
+Status: **CONCLUIDO - PATCH VALIDADO LOCALMENTE, DIAGNOSTICOS STAGING READ-ONLY OK E PUSH STAGING REALIZADO**
 
 Item reaberto: a seta `Acabamento -> Expedicao` no Pedido Detail Admin deve
 permitir movimentar OP Acabamento/Latex com saldo recebido diretamente no
@@ -9,10 +9,7 @@ modal da seta, inclusive quando a OP Latex esta `aberta`. Finalizar OP Latex
 continua sendo acao separada e nao e pre-requisito para liberar saldo para
 Expedicao.
 
-Push: `git push staging work/app-next` ficou preso no Git Credential Manager.
-Nova tentativa com prompt desativado falhou por falta de usuario/senha para
-`https://github.com`. O remoto `staging/work/app-next` permanece em
-`76195b16d7a1a2bcc3ea849a2ce31724782f2387`.
+Push staging realizado em `work/app-next`: `76195b1..fce09b1`.
 
 Causa raiz: `openMovementModal` so entrava em modo de transferencia quando
 `chainState.actions.releaseExpedicao.mode` era `enabled`. Esse gate nao

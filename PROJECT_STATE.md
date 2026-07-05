@@ -1,14 +1,11 @@
 > **Atualizacao 2026-07-05 - fase
 > `RAVATEX-TAPETES-PEDIDO-ACABAMENTO-EXPEDICAO-MODAL-MOVE-R1`.**
-> Status: PATCH VALIDADO LOCALMENTE E DIAGNOSTICOS STAGING READ-ONLY OK;
-> PUSH STAGING PENDENTE POR CREDENCIAL GITHUB LOCAL.
+> Status: CONCLUIDO - PATCH VALIDADO LOCALMENTE, DIAGNOSTICOS STAGING
+> READ-ONLY OK E PUSH STAGING REALIZADO.
 > Estado inicial confirmado: branch `work/app-next`, HEAD
 > `76195b16d7a1a2bcc3ea849a2ce31724782f2387`, status inicial somente
 > `?? supabase/.temp/`; remoto de escrita permitido: `staging/work/app-next`.
-> Push: `git push staging work/app-next` ficou preso no Git Credential Manager;
-> nova tentativa com prompt desativado falhou com falta de usuario/senha para
-> `https://github.com`. O remoto `staging/work/app-next` permaneceu em
-> `76195b16d7a1a2bcc3ea849a2ce31724782f2387`.
+> Push staging realizado em `work/app-next`: `76195b1..fce09b1`.
 >
 > Causa raiz: o modal da seta `Acabamento -> Expedicao` ja tinha formulario
 > para chamar o movimento parcial canonico, mas abria como historico/read-only
