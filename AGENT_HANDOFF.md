@@ -1,4 +1,52 @@
-﻿# Estado pos-fase - Pedido Acabamento Expedicao Modal Move R1
+﻿# Estado pos-fase - Acabamento Expedicao Modal UX Parity R2
+
+- Fase: `RAVATEX-TAPETES-ACABAMENTO-EXPEDICAO-MODAL-UX-PARITY-R2`.
+- Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.
+- Branch/HEAD base: `work/app-next`,
+  `bef41f0960ea6cd7c21eedeb1099d6a1ae21b7da`; status inicial somente
+  `?? supabase/.temp/`; remoto de escrita permitido: `staging/work/app-next`.
+- Reabertura: validacao visual do usuario apontou que a fase anterior corrigiu
+  o gate tecnico, mas deixou Acabamento -> Expedicao fora do padrao validado de
+  Tecelagem -> Acabamento.
+- Diagnostico obrigatorio de paridade:
+  Tecelagem -> Acabamento abre por `openMovementModal`, usa
+  `buildTecelagemTransferForm`, reaproveita `buildEntregaInlineForm` com
+  `layout: 'stacked'`, mostra `Produtos a transferir` e `Preencher restante`,
+  e grava via `salvarEntregaCima`. Acabamento -> Expedicao abre pelo mesmo
+  modal e grava via `liberar_expedicao_latex_parcial`, mas antes mostrava OPs
+  relacionadas e historico antes do form e tinha acao solta `Movimentar`.
+- Decisoes:
+  diferenca de RPC/helper e justificada tecnicamente e foi preservada;
+  divergencias de ordem visual, botao ambiguo e card de produtos nao tinham
+  justificativa e foram alinhadas; nenhuma duvida de produto bloqueou.
+- Correcoes:
+  `openMovementModal` renderiza o formulario operacional como acao primaria,
+  antes de OPs relacionadas/historico/documentos; `buildRelatedOpsSection`
+  usa `Carregar nesta movimentacao` para selecionar outra OP de origem no
+  proprio modal; `buildAcabamentoTransferForm` ganhou card `Produtos a
+  transferir`, link `Preencher restante`, saldo/movimentado por produto e
+  mantem o botao principal `Movimentar para Expedicao`.
+- Provas cobertas em teste: OP carregada nao mostra `Movimentar`; OP relacionada
+  com saldo mostra acao de carregar; carregar outra OP nao chama RPC; saldo,
+  produto e OP de origem mudam no modal; o save posterior chama
+  `liberar_expedicao_latex_parcial` com a OP selecionada.
+- Testes OK:
+  `node --test tests\pedido-detail.smoke.js` 156/156;
+  `node --test tests\pedido-detail-linked-ops.smoke.js tests\expedicao-partial-flow.smoke.js tests\expedicao-flow.smoke.js tests\op-latex-admin.smoke.js tests\tec-to-acabamento-flow.smoke.js tests\production-flow-invariants.smoke.js`
+  132/132.
+- Diagnosticos staging read-only OK:
+  `node scripts/staging/production-flow-invariants-diag.mjs`;
+  `node scripts/staging/latex-consolidation-diag.mjs`;
+  `node scripts/staging/expedicao-partial-flow-diag.mjs`.
+- Confirmacoes: sem SQL, sem migration, sem dados reais novos, sem mutacao real
+  nao autorizada, sem finalizar OP Latex, sem aceitar OP real, sem concluir
+  pedido, sem update direto em `ops.status`, sem write paralelo no Pedido, sem
+  `git add .`, `supabase/.temp/` fora do commit, producao/origin intocados.
+- Validacao visual pendente: conferir que a seta Acabamento -> Expedicao abre
+  modal operacional com form principal primeiro; OP relacionada apenas carrega
+  a origem; o save acontece pelo botao principal do formulario.
+
+# Estado pos-fase - Pedido Acabamento Expedicao Modal Move R1
 
 - Fase: `RAVATEX-TAPETES-PEDIDO-ACABAMENTO-EXPEDICAO-MODAL-MOVE-R1`.
 - Status: CONCLUIDO. Patch validado localmente, diagnosticos staging read-only

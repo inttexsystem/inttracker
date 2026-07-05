@@ -1,3 +1,40 @@
+# Atualizacao 2026-07-05 - Acabamento Expedicao Modal UX Parity R2
+
+Fase: `RAVATEX-TAPETES-ACABAMENTO-EXPEDICAO-MODAL-UX-PARITY-R2`
+Status: **PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO**
+
+Reabertura: a validacao visual mostrou que o gate operacional estava correto,
+mas a experiencia do modal Acabamento -> Expedicao nao seguia o padrao ja
+validado para Tecelagem -> Acabamento.
+
+Diagnostico de paridade:
+
+| Item | Tecelagem -> Acabamento validado | Acabamento -> Expedicao antes | Decisao |
+|---|---|---|---|
+| Form principal | `buildEntregaInlineForm` em `layout: 'stacked'` | form proprio abaixo de contexto/historico | alinhar ordem visual |
+| Produtos | card `Produtos a transferir` + `Preencher restante` | grid compacto sem mesmo peso visual | alinhar por paridade |
+| OPs relacionadas | contexto auxiliar | botao solto `Movimentar` | trocar por selecao/carregamento |
+| Write canonico | `salvarEntregaCima` | `liberar_expedicao_latex_parcial` | diferenca justificada, manter |
+| Lifecycle | finalizacao separada | finalizacao separada | manter |
+
+Correcao: o formulario operacional agora aparece como centro do modal e antes
+de OPs relacionadas, itens, historico e documentos. OP relacionada com saldo
+usa `Carregar nesta movimentacao`, atualiza OP de origem/saldo/produtos no
+proprio modal e nao chama RPC automaticamente. A movimentacao continua pelo
+botao principal `Movimentar para Expedicao`, usando
+`liberar_expedicao_latex_parcial`.
+
+Diferencas remanescentes e justificativa: o helper/form nao e o mesmo de
+Tecelagem porque o contrato de dados e outro (`salvarEntregaCima` cria entrega
+de cima e possivel OP Latex; Acabamento -> Expedicao libera saldo para
+expedicao por RPC parcial). A diferenca tecnica foi documentada e preservada;
+as divergencias puramente visuais foram alinhadas.
+
+Testes: `pedido-detail.smoke.js` 156/156 e bateria obrigatoria complementar
+132/132. Diagnosticos staging read-only OK: invariantes de fluxo, consolidacao
+Latex e expedicao parcial. Sem SQL, sem migration, sem dados reais novos, sem
+write paralelo no Pedido, sem exigir finalizar OP Latex e sem uso de `origin`.
+
 # Atualizacao 2026-07-05 - Acabamento Expedicao Modal Move R1
 
 Fase: `RAVATEX-TAPETES-PEDIDO-ACABAMENTO-EXPEDICAO-MODAL-MOVE-R1`

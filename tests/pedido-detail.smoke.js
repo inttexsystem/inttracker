@@ -1259,12 +1259,12 @@ test('modal-gaps-B: tabela de pendencias cobre Insumos, Tecelagem e Expedicao', 
 });
 
 test('modal-gaps-B: openMovementModal integra tabela de pendencias', () => {
-  assert.match(movementModalSlice, /buildTransitionPendingTable\(ctxMovement\)/,
+  assert.match(movementModalSlice, /buildTransitionPendingTable\(activeCtx\)/,
     'openMovementModal deve chamar buildTransitionPendingTable');
 });
 
 test('transition-related-ops-R2: openMovementModal integra secao OPs relacionadas', () => {
-  assert.match(movementModalSlice, /buildRelatedOpsSection\(ctxMovement\)/,
+  assert.match(movementModalSlice, /buildRelatedOpsSection\(activeCtx/,
     'modal da seta deve compor a secao OPs relacionadas sem substituir o fluxo principal');
   assert.match(detailEvents, /function buildRelatedOpsSection/,
     'deve existir builder dedicado para OPs relacionadas');
@@ -1280,12 +1280,24 @@ test('transition-related-ops-R2: openMovementModal integra secao OPs relacionada
     'cada OP deve exibir status');
   assert.match(sectionSlice, /relatedActionButton\('Abrir OP'/,
     'Abrir OP deve aparecer sempre que houver OP relacionada');
-  assert.match(sectionSlice, /relatedActionButton\('Movimentar'/,
-    'Movimentar deve aparecer quando aplicavel');
+  assert.match(sectionSlice, /relatedActionButton\('Carregar nesta movimentacao'/,
+    'OP relacionada com saldo deve carregar a origem no formulario principal');
+  assert.doesNotMatch(sectionSlice, /relatedActionButton\('Movimentar'/,
+    'OP relacionada nao pode expor botao ambiguo Movimentar');
   assert.match(sectionSlice, /relatedActionButton\('Finalizar OP'/,
     'Finalizar OP deve aparecer quando aplicavel');
   assert.doesNotMatch(sectionSlice, /Aceitar OP/,
     'secao do modal da seta nao pode substituir o fluxo real por botao simples Aceitar OP');
+});
+
+test('ACABAMENTO-EXPEDICAO-MODAL-UX-PARITY-R2: formulario operacional vem antes de OPs relacionadas', () => {
+  assert.ok(movementModalSlice, 'trecho openMovementModal nao encontrado');
+  var formIndex = movementModalSlice.indexOf('Registrar nova transferencia');
+  var relatedIndex = movementModalSlice.indexOf('buildRelatedOpsSection(activeCtx');
+  var historyIndex = movementModalSlice.indexOf('buildHistoryBlock(historyEntries)');
+  assert.ok(formIndex >= 0, 'modal deve manter bloco operacional de transferencia');
+  assert.ok(relatedIndex > formIndex, 'OPs relacionadas devem ser auxiliares, abaixo do formulario principal');
+  assert.ok(historyIndex > formIndex, 'historico deve ficar abaixo do formulario operacional');
 });
 
 test('transition-related-ops-R2: aceite Tecelagem usa slider/proposta e helper canonico', () => {
@@ -1414,7 +1426,7 @@ test('transfer-remaining-B: botao NAO chama write, RPC, ou save automatico', () 
 test('transfer-remaining-B: Acabamento>Expedicao expoe fillRemaining e hasRemaining', () => {
   const slice = (detailEvents.match(/function buildAcabamentoTransferForm[\s\S]*?\n    \}\n\n    function buildExpedicaoTransferForm/) || [''])[0];
   assert.ok(slice, 'trecho buildAcabamentoTransferForm nao encontrado');
-  assert.match(slice, /fillRemaining:\s*function/,
+  assert.match(slice, /fillRemaining:\s*preencherRestante/,
     'Acabamento>Expedicao deve expor fillRemaining para movimentar saldo por produto');
   assert.match(slice, /hasRemaining:\s*linhas\.some/,
     'Acabamento>Expedicao deve expor hasRemaining quando ha saldo movimentavel');
@@ -2218,8 +2230,10 @@ test('TRANSITION runtime: Acabamento aberto com saldo movimenta para Expedicao p
   s.ops = [
     { id: 29, tipo: 'tecelagem', numero: 18, ano: 2026, status: 'concluida', op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 2000, metros_ajustados: 2000, pedido_item_id: 'pi1' }] },
     { id: 30, tipo: 'latex', numero: 13, ano: 2026, status: 'aberta', origem_op_id: 29, op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 1000, pedido_item_id: 'pi1' }] },
-    { id: 31, tipo: 'latex', numero: 14, ano: 2026, status: 'aberta', origem_op_id: 29, op_itens: [{ id: 302, modelo_id: 7, metros_pedidos: 1000, pedido_item_id: 'pi1' }] },
+    { id: 31, tipo: 'latex', numero: 14, ano: 2026, status: 'aberta', origem_op_id: 29, op_itens: [{ id: 302, modelo_id: 9, metros_pedidos: 650, pedido_item_id: 'pi2' }] },
   ];
+  s.itens.push({ id: 'pi2', modelo_id: 9, metros: 650 });
+  s.modelosById[9] = { id: 9, nome: 'Venezia' };
   const view = rt.ns.computeViewModel(s);
   const acabamento = view.stepper.find((stage) => stage.key === 'acabamento');
   assert.equal(view.chainState.actions.releaseExpedicao.mode, 'enabled',
@@ -2249,12 +2263,23 @@ test('TRANSITION runtime: Acabamento aberto com saldo movimenta para Expedicao p
 
   const text = collectHubText(cap);
   assert.match(text, /Registrar nova transferencia/);
+  assert.match(text, /Produtos a transferir/);
   assert.match(text, /Esta OP esta carregada para movimentacao neste modal/);
   assert.match(text, /Transferir restante/);
-  assert.ok(findHubBtn(cap, /^Movimentar$/i),
-    'OP relacionada com saldo deve mostrar acao contextual Movimentar');
+  assert.equal(findHubBtn(cap, /^Movimentar$/i), null,
+    'OP relacionada nao pode mostrar acao contextual ambigua Movimentar');
+  const selectRelated = findHubBtn(cap, /^Carregar nesta movimentacao$/i);
+  assert.ok(selectRelated,
+    'OP relacionada com saldo deve mostrar acao de carregar/selecionar origem');
   assert.equal(/Nenhuma acao contextual disponivel agora para esta OP/.test(text), false,
     'OP aberta com saldo nao pode aparecer sem acao contextual');
+
+  await selectRelated._listeners.click({ currentTarget: selectRelated });
+  assert.equal(rpcCalls.length, 0,
+    'carregar OP relacionada nao pode executar movimentacao automaticamente');
+  const selectedText = collectHubText(cap);
+  assert.match(selectedText, /OP 14\/2026/);
+  assert.match(selectedText, /Venezia/);
 
   const save = findHubBtn(cap, /^Movimentar para Expedicao$/i);
   assert.ok(save, 'modal deve expor botao efetivo de movimentar para Expedicao');
@@ -2262,10 +2287,10 @@ test('TRANSITION runtime: Acabamento aberto com saldo movimenta para Expedicao p
 
   assert.equal(rpcCalls.length, 1);
   assert.equal(rpcCalls[0].fn, 'liberar_expedicao_latex_parcial');
-  assert.equal(rpcCalls[0].args.p_op_latex_id, 30);
+  assert.equal(rpcCalls[0].args.p_op_latex_id, 31);
   assert.equal(rpcCalls[0].args.p_itens.length, 1);
-  assert.equal(rpcCalls[0].args.p_itens[0].op_item_id, 301);
-  assert.equal(rpcCalls[0].args.p_itens[0].metros, 1000);
+  assert.equal(rpcCalls[0].args.p_itens[0].op_item_id, 302);
+  assert.equal(rpcCalls[0].args.p_itens[0].metros, 650);
   assert.ok(rt.events.indexOf('reload') !== -1, 'sucesso deve recarregar a tela');
   assert.ok(rt.events.indexOf('render') !== -1, 'sucesso deve renderizar a tela');
 });

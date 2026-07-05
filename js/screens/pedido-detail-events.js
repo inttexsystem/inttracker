@@ -1071,7 +1071,8 @@
       return list;
     }
 
-    function buildRelatedOpsSection(ctxMovement) {
+    function buildRelatedOpsSection(ctxMovement, options) {
+      options = options || {};
       var ops = relatedOpsForTransition(ctxMovement);
       var summaries = (currentView && currentView.opSummaries) || [];
       function summaryFor(op) {
@@ -1130,7 +1131,10 @@
                       : null),
                   window.el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;' },
                     relatedActionButton('Abrir OP', function () { navigateToOp(op.id); }, 'secondary'),
-                    !opCarregada && podeMovimentar ? relatedActionButton('Movimentar', function () { openMovementModal(movementContextForStage(movementStep(op), op)); }) : null,
+                    !opCarregada && podeMovimentar ? relatedActionButton('Carregar nesta movimentacao', function () {
+                      var nextCtx = movementContextForStage(movementStep(op), op);
+                      if (typeof options.onSelectOp === 'function') options.onSelectOp(nextCtx);
+                    }) : null,
                     podeFinalizar ? relatedActionButton('Finalizar OP', function () { finalizarOp(op); }) : null)
                 ),
                 proposta,
@@ -1138,7 +1142,10 @@
                   ? window.el('div', { style: 'font-size:11.5px;color:#2563eb;line-height:1.4;margin-top:7px;font-weight:700;' }, 'Esta OP esta carregada para movimentacao neste modal.')
                   : null,
                 !proposta && !opCarregada && !podeMovimentar && !podeFinalizar
-                  ? window.el('div', { style: 'font-size:11.5px;color:#8a93a3;line-height:1.4;margin-top:7px;' }, 'Nenhuma acao contextual disponivel agora para esta OP.')
+                  ? window.el('div', { style: 'font-size:11.5px;color:#8a93a3;line-height:1.4;margin-top:7px;' },
+                      ns.stageKeyForOp(op) === 'acabamento'
+                        ? 'Sem saldo disponivel para carregar nesta movimentacao.'
+                        : 'Nenhuma acao contextual disponivel agora para esta OP.')
                   : null
               );
             })
@@ -1632,31 +1639,45 @@
         var input = window.textInput({ type: 'number', step: '0.01', value: String(row.saldo) });
         return { row: row, input: input };
       });
+      var preencherRestante = function () {
+        linhas.forEach(function (linha) {
+          if (linha.row.saldo > 0 && !linha.input.disabled) {
+            linha.input.value = String(linha.row.saldo);
+          }
+        });
+      };
 
       return {
         node: window.el('div', {},
           window.el('div', { style: 'border:1px solid #eceef1;border-radius:4px;background:#fff;overflow:hidden;' },
+            window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:1px solid #f1f3f6;' },
+              window.el('span', { style: 'font-size:12px;font-weight:700;letter-spacing:.03em;color:#8a93a3;text-transform:uppercase;' }, 'Produtos a transferir'),
+              window.el('button', {
+                type: 'button',
+                style: 'background:none;border:none;padding:0;color:#2563eb;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;',
+                onclick: preencherRestante,
+              }, 'Preencher restante')),
             linhas.map(function (linha, index) {
-              return window.el('div', { style: 'display:grid;grid-template-columns:1fr 120px 120px 130px;gap:12px;align-items:center;padding:10px 12px;' + (index < linhas.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : '') },
-                window.el('div', {},
-                  window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;' }, modelLabelByModeloId(linha.row.opItem.modelo_id)),
-                  window.el('div', { style: 'font-size:11.5px;color:#8a93a3;margin-top:2px;' },
-                    'Recebido: ' + ns.fmtMetros(linha.row.recebido) + ' | movimentado: ' + ns.fmtMetros(linha.row.liberado))),
-                window.el('div', { style: 'font-size:12.5px;font-weight:700;color:#2563eb;' }, ns.fmtMetros(linha.row.saldo)),
-                window.el('label', { style: 'font-size:11.5px;color:#8a93a3;font-weight:700;text-transform:uppercase;' }, 'Movimentar'),
-                linha.input
+              return window.el('div', { style: 'padding:12px 14px;' + (index < linhas.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : '') },
+                window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;' },
+                  window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;line-height:1.35;' }, modelLabelByModeloId(linha.row.opItem.modelo_id)),
+                  window.el('span', { style: 'display:inline-flex;align-items:center;border:1px solid #fbe8c6;background:#fff9ee;color:#8a5a15;border-radius:4px;padding:3px 9px;font-size:11px;font-weight:700;white-space:nowrap;' }, ns.fmtMetros(linha.row.saldo) + ' disponivel')),
+                window.el('div', { style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end;' },
+                  window.el('div', {},
+                    window.el('div', { style: 'font-size:11.5px;color:#8a93a3;font-weight:700;text-transform:uppercase;margin-bottom:4px;' }, 'Recebido'),
+                    window.el('div', { style: 'font-size:12.5px;font-weight:700;color:#16203a;' }, ns.fmtMetros(linha.row.recebido))),
+                  window.el('div', {},
+                    window.el('div', { style: 'font-size:11.5px;color:#8a93a3;font-weight:700;text-transform:uppercase;margin-bottom:4px;' }, 'Ja movimentado'),
+                    window.el('div', { style: 'font-size:12.5px;font-weight:700;color:#2563eb;' }, ns.fmtMetros(linha.row.liberado))),
+                  window.el('div', {},
+                    window.el('label', { style: 'display:block;font-size:11.5px;color:#8a93a3;font-weight:700;text-transform:uppercase;margin-bottom:4px;' }, 'Movimentar'),
+                    linha.input))
               );
             })
           )
         ),
         saveLabel: 'Movimentar para Expedicao',
-        fillRemaining: function () {
-          linhas.forEach(function (linha) {
-            if (linha.row.saldo > 0 && !linha.input.disabled) {
-              linha.input.value = String(linha.row.saldo);
-            }
-          });
-        },
+        fillRemaining: preencherRestante,
         hasRemaining: linhas.some(function (linha) { return linha.row.saldo > 0; }),
         onSave: async function () {
           if (!ctxMovement.op || !window.supa) {
@@ -1784,145 +1805,6 @@
     }
 
     function openMovementModal(ctxMovement) {
-      var opLabel = ctxMovement.op ? ns.opLabel(ctxMovement.op) : 'Sem OP vinculada';
-      var items = buildMovementItems(ctxMovement);
-      var metrics = buildMovementMetrics(ctxMovement);
-      var docs = buildMovementDocs(ctxMovement);
-      var action = ctxMovement.action || {};
-      var mode = action.mode === 'enabled' ? 'transfer' : 'history';
-      var historyEntries = buildTransitionHistoryEntries(ctxMovement);
-      var transferForm = mode === 'transfer' ? buildTransferForm(ctxMovement) : null;
-      if (transferForm && transferForm.node) normalizeMovementModalControls(transferForm.node);
-      var body = window.el('div', {},
-        window.el('div', {
-          style: 'display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;',
-        },
-          window.el('div', {
-            style: 'width:36px;height:36px;border-radius:' + MOVEMENT_SURFACE_RADIUS + ';background:#eef3ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;',
-          }, ns.svgEl(ns.SVG_INFO)),
-          window.el('div', {},
-            window.el('div', {
-              style: 'font-size:11px;font-weight:700;letter-spacing:.04em;color:#2563eb;text-transform:uppercase;margin-bottom:4px;',
-            }, mode === 'transfer' ? 'Movimentacao no Pedido' : 'Historico da transicao'),
-            window.el('div', {
-              style: 'font-size:15px;font-weight:800;color:#16203a;',
-            }, ctxMovement.title),
-            window.el('div', {
-              style: 'font-size:13px;color:#5b6472;margin-top:6px;line-height:1.5;',
-            }, ctxMovement.detalhe)
-          )
-        ),
-        window.el('div', {
-          style: 'display:flex;align-items:flex-start;gap:10px;background:#f6f9ff;border:1px solid #d0e0fb;border-radius:4px;padding:12px 14px;margin-bottom:14px;',
-        },
-          ns.svgEl(ns.SVG_INFO),
-          window.el('span', {
-            style: 'font-size:12.5px;color:#2c4a78;line-height:1.5;',
-          }, mode === 'transfer'
-            ? 'A transferencia acontece no contexto do Pedido, mas grava pela mesma operacao canonica usada na OP. Nao existe lancamento paralelo.'
-            : 'Movimentos feitos pela OP ou pela seta do Pedido aparecem neste historico da transicao.')
-        ),
-        buildPendingAcceptanceBlock(ctxMovement),
-        window.el('div', {
-          style: 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;',
-        },
-          movementField('Origem', ctxMovement.origem),
-          movementField('Destino', ctxMovement.destino)
-        ),
-        window.el('div', {
-          style: 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;',
-        },
-          movementField('OP de origem', opLabel),
-          movementField('Saldo/restante calculado', metrics.remainingLabel)
-        ),
-        window.el('div', {
-          style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px;',
-        },
-          movementMetricCard('Planejado na OP', metrics.totalLabel),
-          movementMetricCard('Ja movimentado', metrics.movedLabel, '#2563eb'),
-          movementMetricCard('Restante na origem', metrics.remainingLabel, '#c2610c')
-        ),
-        buildTransitionPendingTable(ctxMovement),
-        buildRelatedOpsSection(ctxMovement),
-        window.el('div', {
-          style: 'border:1px solid #eceef1;border-radius:4px;background:#fff;overflow:hidden;margin-bottom:14px;',
-        },
-          window.el('div', {
-            style: 'padding:11px 14px;border-bottom:1px solid #f1f3f6;font-size:12px;font-weight:700;letter-spacing:.03em;color:#8a93a3;text-transform:uppercase;',
-          }, 'Itens envolvidos'),
-          items.length
-            ? items.map(function (item, index) {
-                return window.el('div', {
-                  style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;' + (index < items.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : ''),
-                },
-                  window.el('div', {
-                    style: 'font-size:13px;color:#16203a;line-height:1.45;',
-                  }, item.label),
-                  window.el('div', {
-            style: 'font-size:12px;font-weight:700;color:#2563eb;white-space:nowrap;',
-                  }, item.meta)
-                );
-              })
-            : window.el('div', {
-                style: 'padding:12px 14px;font-size:13px;color:#8a93a3;',
-              }, 'Nenhum item consolidado para exibir nesta origem.')
-        ),
-        buildHistoryBlock(historyEntries),
-        mode === 'transfer'
-          ? window.el('div', {
-              style: 'border:1px solid #d0e0fb;border-radius:4px;background:#f8fbff;padding:13px 14px;margin-bottom:14px;',
-            },
-              window.el('div', {
-                style: 'font-size:12px;font-weight:700;letter-spacing:.03em;color:#2563eb;text-transform:uppercase;margin-bottom:10px;',
-              }, 'Registrar nova transferencia'),
-              transferForm
-                ? transferForm.node
-                : window.el('div', { style: 'font-size:13px;color:#8a93a3;line-height:1.5;' },
-                    'Nao ha formulario canonico disponivel para esta transicao no estado atual.'),
-              transferForm && transferForm.hasRemaining && typeof transferForm.fillRemaining === 'function'
-                ? window.el('div', { style: 'margin-top:10px;' },
-                    window.el('button', {
-                      type: 'button',
-                      style: 'display:inline-flex;align-items:center;gap:6px;background:#fff;color:#2563eb;border:1px solid #cfe0fb;border-radius:' + MOVEMENT_SURFACE_RADIUS + ';padding:7px 12px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;',
-                      onclick: function () { transferForm.fillRemaining(); },
-                    }, 'Transferir restante'))
-                : null
-            )
-          : null,
-        window.el('div', {
-          style: 'border:1px solid #eceef1;border-radius:4px;background:#fff;overflow:hidden;',
-        },
-          window.el('div', {
-            style: 'padding:11px 14px;border-bottom:1px solid #f1f3f6;font-size:12px;font-weight:700;letter-spacing:.03em;color:#8a93a3;text-transform:uppercase;',
-          }, 'Documentos esperados'),
-          docs.map(function (doc, index) {
-            return window.el('div', {
-              style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;' + (index < docs.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : ''),
-            },
-              window.el('div', { style: 'display:flex;align-items:center;gap:9px;min-width:0;' },
-                ns.svgEl(ns.SVG_FILE),
-                window.el('span', {
-                  style: 'font-size:13px;font-weight:600;color:#3f4757;',
-                }, doc)
-              ),
-              window.el('span', {
-                style: 'display:inline-flex;align-items:center;border:1px solid #fbe8c6;background:#fff9ee;color:#8a5a15;border-radius:' + MOVEMENT_SURFACE_RADIUS + ';padding:4px 9px;font-size:11px;font-weight:700;white-space:nowrap;',
-              }, 'Esperado')
-            );
-          })
-        ),
-        window.el('div', {
-          style: 'display:flex;align-items:flex-start;gap:10px;background:#f8f9fb;border:1px solid #eceef1;border-radius:4px;padding:12px 14px;margin-top:12px;',
-        },
-          ns.svgEl(ns.SVG_INFO),
-          window.el('span', {
-            style: 'font-size:12.5px;color:#5b6472;line-height:1.5;',
-          }, ctxMovement.op
-            ? 'A operacao continua canonica na OP de origem. Este atalho reutiliza o mesmo helper/RPC operacional e nao mantem estado paralelo no Pedido.'
-            : 'Ainda nao existe uma OP de origem vinculada para esta transicao. O Pedido nao cria movimentacao propria fora da operacao canonica.')
-        )
-      );
-
       var overlay = window.el('div', {
         style: 'position:fixed;inset:0;background:rgba(20,30,45,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;',
       });
@@ -1954,42 +1836,186 @@
       }, ns.svgEl('<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'));
       var content = window.el('div', {
         style: 'padding:20px 22px 18px;',
-      }, body);
+      });
       var footer = window.el('div', {
         style: 'display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid #eceef1;',
       });
-      var cancelBtn = window.el('button', {
-        type: 'button',
-        style: 'background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:9px 18px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
-        onclick: closeModal,
-      }, mode === 'transfer' ? 'Cancelar' : 'Fechar');
 
-      footer.appendChild(cancelBtn);
-      if (mode === 'transfer' && transferForm && typeof transferForm.onSave === 'function') {
-        var primaryBtn = window.el('button', {
-          type: 'button',
-          style: 'background:#2563eb;color:#fff;border:none;border-radius:4px;padding:9px 20px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;',
-          onclick: async function (event) {
-            var btn = event && event.currentTarget ? event.currentTarget : null;
-            if (btn) btn.disabled = true;
-            var ok = await transferForm.onSave();
-            if (!ok) {
-              if (btn) btn.disabled = false;
-              return;
-            }
-            window.toast('Movimentacao registrada.', 'success');
-            await reload();
-            render();
-            closeModal();
+      function renderMovement(activeCtx) {
+        var opLabel = activeCtx.op ? ns.opLabel(activeCtx.op) : 'Sem OP vinculada';
+        var items = buildMovementItems(activeCtx);
+        var metrics = buildMovementMetrics(activeCtx);
+        var docs = buildMovementDocs(activeCtx);
+        var action = activeCtx.action || {};
+        var mode = action.mode === 'enabled' ? 'transfer' : 'history';
+        var historyEntries = buildTransitionHistoryEntries(activeCtx);
+        var transferForm = mode === 'transfer' ? buildTransferForm(activeCtx) : null;
+        if (transferForm && transferForm.node) normalizeMovementModalControls(transferForm.node);
+
+        var transferBlock = mode === 'transfer'
+          ? window.el('div', {
+              style: 'border:1px solid #d0e0fb;border-radius:4px;background:#f8fbff;padding:13px 14px;margin-bottom:14px;',
+            },
+              window.el('div', {
+                style: 'font-size:12px;font-weight:700;letter-spacing:.03em;color:#2563eb;text-transform:uppercase;margin-bottom:10px;',
+              }, 'Registrar nova transferencia'),
+              transferForm
+                ? transferForm.node
+                : window.el('div', { style: 'font-size:13px;color:#8a93a3;line-height:1.5;' },
+                    'Nao ha formulario canonico disponivel para esta transicao no estado atual.'),
+              transferForm && transferForm.hasRemaining && typeof transferForm.fillRemaining === 'function'
+                ? window.el('div', { style: 'margin-top:10px;' },
+                    window.el('button', {
+                      type: 'button',
+                      style: 'display:inline-flex;align-items:center;gap:6px;background:#fff;color:#2563eb;border:1px solid #cfe0fb;border-radius:' + MOVEMENT_SURFACE_RADIUS + ';padding:7px 12px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;',
+                      onclick: function () { transferForm.fillRemaining(); },
+                    }, 'Transferir restante'))
+                : null
+            )
+          : null;
+
+        var body = window.el('div', {},
+          window.el('div', {
+            style: 'display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;',
           },
-        }, transferForm.saveLabel || 'Salvar');
-        footer.appendChild(primaryBtn);
+            window.el('div', {
+              style: 'width:36px;height:36px;border-radius:' + MOVEMENT_SURFACE_RADIUS + ';background:#eef3ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;',
+            }, ns.svgEl(ns.SVG_INFO)),
+            window.el('div', {},
+              window.el('div', {
+                style: 'font-size:11px;font-weight:700;letter-spacing:.04em;color:#2563eb;text-transform:uppercase;margin-bottom:4px;',
+              }, mode === 'transfer' ? 'Movimentacao no Pedido' : 'Historico da transicao'),
+              window.el('div', {
+                style: 'font-size:15px;font-weight:800;color:#16203a;',
+              }, activeCtx.title),
+              window.el('div', {
+                style: 'font-size:13px;color:#5b6472;margin-top:6px;line-height:1.5;',
+              }, activeCtx.detalhe)
+            )
+          ),
+          window.el('div', {
+            style: 'display:flex;align-items:flex-start;gap:10px;background:#f6f9ff;border:1px solid #d0e0fb;border-radius:4px;padding:12px 14px;margin-bottom:14px;',
+          },
+            ns.svgEl(ns.SVG_INFO),
+            window.el('span', {
+              style: 'font-size:12.5px;color:#2c4a78;line-height:1.5;',
+            }, mode === 'transfer'
+              ? 'A transferencia acontece no contexto do Pedido, mas grava pela mesma operacao canonica usada na OP. Nao existe lancamento paralelo.'
+              : 'Movimentos feitos pela OP ou pela seta do Pedido aparecem neste historico da transicao.')
+          ),
+          buildPendingAcceptanceBlock(activeCtx),
+          window.el('div', {
+            style: 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;',
+          },
+            movementField('Origem', activeCtx.origem),
+            movementField('Destino', activeCtx.destino)
+          ),
+          window.el('div', {
+            style: 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;',
+          },
+            movementField('OP de origem', opLabel),
+            movementField('Saldo/restante calculado', metrics.remainingLabel)
+          ),
+          window.el('div', {
+            style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px;',
+          },
+            movementMetricCard('Planejado na OP', metrics.totalLabel),
+            movementMetricCard('Ja movimentado', metrics.movedLabel, '#2563eb'),
+            movementMetricCard('Restante na origem', metrics.remainingLabel, '#c2610c')
+          ),
+          buildTransitionPendingTable(activeCtx),
+          transferBlock,
+          buildRelatedOpsSection(activeCtx, { onSelectOp: renderMovement }),
+          window.el('div', {
+            style: 'border:1px solid #eceef1;border-radius:4px;background:#fff;overflow:hidden;margin-bottom:14px;',
+          },
+            window.el('div', {
+              style: 'padding:11px 14px;border-bottom:1px solid #f1f3f6;font-size:12px;font-weight:700;letter-spacing:.03em;color:#8a93a3;text-transform:uppercase;',
+            }, 'Itens envolvidos'),
+            items.length
+              ? items.map(function (item, index) {
+                  return window.el('div', {
+                    style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;' + (index < items.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : ''),
+                  },
+                    window.el('div', {
+                      style: 'font-size:13px;color:#16203a;line-height:1.45;',
+                    }, item.label),
+                    window.el('div', {
+                      style: 'font-size:12px;font-weight:700;color:#2563eb;white-space:nowrap;',
+                    }, item.meta)
+                  );
+                })
+              : window.el('div', {
+                  style: 'padding:12px 14px;font-size:13px;color:#8a93a3;',
+                }, 'Nenhum item consolidado para exibir nesta origem.')
+          ),
+          buildHistoryBlock(historyEntries),
+          window.el('div', {
+            style: 'border:1px solid #eceef1;border-radius:4px;background:#fff;overflow:hidden;',
+          },
+            window.el('div', {
+              style: 'padding:11px 14px;border-bottom:1px solid #f1f3f6;font-size:12px;font-weight:700;letter-spacing:.03em;color:#8a93a3;text-transform:uppercase;',
+            }, 'Documentos esperados'),
+            docs.map(function (doc, index) {
+              return window.el('div', {
+                style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;' + (index < docs.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : ''),
+              },
+                window.el('div', { style: 'display:flex;align-items:center;gap:9px;min-width:0;' },
+                  ns.svgEl(ns.SVG_FILE),
+                  window.el('span', {
+                    style: 'font-size:13px;font-weight:600;color:#3f4757;',
+                  }, doc)
+                ),
+                window.el('span', {
+                  style: 'display:inline-flex;align-items:center;border:1px solid #fbe8c6;background:#fff9ee;color:#8a5a15;border-radius:' + MOVEMENT_SURFACE_RADIUS + ';padding:4px 9px;font-size:11px;font-weight:700;white-space:nowrap;',
+                }, 'Esperado')
+              );
+            })
+          ),
+          window.el('div', {
+            style: 'display:flex;align-items:flex-start;gap:10px;background:#f8f9fb;border:1px solid #eceef1;border-radius:4px;padding:12px 14px;margin-top:12px;',
+          },
+            ns.svgEl(ns.SVG_INFO),
+            window.el('span', {
+              style: 'font-size:12.5px;color:#5b6472;line-height:1.5;',
+            }, activeCtx.op
+              ? 'A operacao continua canonica na OP de origem. Este atalho reutiliza o mesmo helper/RPC operacional e nao mantem estado paralelo no Pedido.'
+              : 'Ainda nao existe uma OP de origem vinculada para esta transicao. O Pedido nao cria movimentacao propria fora da operacao canonica.')
+          )
+        );
+
+        content.replaceChildren(body);
+        footer.replaceChildren(window.el('button', {
+          type: 'button',
+          style: 'background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:9px 18px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
+          onclick: closeModal,
+        }, mode === 'transfer' ? 'Cancelar' : 'Fechar'));
+        if (mode === 'transfer' && transferForm && typeof transferForm.onSave === 'function') {
+          footer.appendChild(window.el('button', {
+            type: 'button',
+            style: 'background:#2563eb;color:#fff;border:none;border-radius:4px;padding:9px 20px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;',
+            onclick: async function (event) {
+              var btn = event && event.currentTarget ? event.currentTarget : null;
+              if (btn) btn.disabled = true;
+              var ok = await transferForm.onSave();
+              if (!ok) {
+                if (btn) btn.disabled = false;
+                return;
+              }
+              window.toast('Movimentacao registrada.', 'success');
+              await reload();
+              render();
+              closeModal();
+            },
+          }, transferForm.saveLabel || 'Salvar'));
+        }
       }
       card.appendChild(closeBtn);
       card.appendChild(content);
       card.appendChild(footer);
       overlay.appendChild(card);
       document.body.appendChild(overlay);
+      renderMovement(ctxMovement);
     }
 
     function buildStageDetailBody(stage, view) {

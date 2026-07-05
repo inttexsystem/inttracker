@@ -1,4 +1,51 @@
 > **Atualizacao 2026-07-05 - fase
+> `RAVATEX-TAPETES-ACABAMENTO-EXPEDICAO-MODAL-UX-PARITY-R2`.**
+> Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.
+> Entrada: fase reaberta por validacao visual do usuario. Base confirmada em
+> `work/app-next`, HEAD inicial `bef41f0960ea6cd7c21eedeb1099d6a1ae21b7da`,
+> status inicial somente `?? supabase/.temp/`; remoto de escrita permitido:
+> `staging/work/app-next`.
+>
+> Diagnostico de paridade antes do patch: Tecelagem -> Acabamento usa a seta
+> `openMovementModal`, form principal `buildTecelagemTransferForm` com
+> `buildEntregaInlineForm({ layout: 'stacked' })`, card `Produtos a transferir`,
+> `Preencher restante`, botao principal do rodape e write canonico
+> `salvarEntregaCima`. Acabamento -> Expedicao ja usava a mesma seta e a RPC
+> canonica `liberar_expedicao_latex_parcial`, mas divergia na UX: formulario
+> operacional ficava depois de OPs relacionadas/itens/historico e a OP
+> relacionada com saldo mostrava botao solto `Movimentar`.
+>
+> Classificacao das diferencas: builder e RPC diferentes sao justificadas
+> tecnicamente (`salvarEntregaCima` x `liberar_expedicao_latex_parcial`). A
+> ordem visual do modal, o botao ambiguo `Movimentar` nas OPs relacionadas e o
+> layout compacto de produtos nao tinham justificativa; foram alinhados por
+> paridade. Nenhuma duvida de produto bloqueou a fase.
+>
+> Correcao: `openMovementModal` passou a renderizar o formulario operacional
+> antes de `OPs relacionadas`, `Itens envolvidos`, historico e documentos. A
+> secao `OPs relacionadas` virou contexto/selecionador: OP carregada informa
+> que esta carregada; OP com saldo oferece `Carregar nesta movimentacao`, que
+> troca a OP de origem e atualiza saldo/produtos no proprio modal sem disparar
+> RPC. O botao ambiguo `Movimentar` foi removido dessa secao. O formulario
+> Acabamento -> Expedicao ganhou card `Produtos a transferir`, link
+> `Preencher restante`, campos por produto e continua salvando apenas pelo
+> botao principal `Movimentar para Expedicao`.
+>
+> Garantias preservadas: OP Latex `aberta` ou `em_producao` com saldo recebido
+> continua podendo movimentar parcial/total para Expedicao; finalizar OP Latex
+> segue separado; sem update direto em `ops.status`; sem write paralelo no
+> Pedido; sem SQL, sem migration e sem dados reais novos.
+>
+> Testes OK: `node --test tests\pedido-detail.smoke.js` (156/156);
+> `node --test tests\pedido-detail-linked-ops.smoke.js
+> tests\expedicao-partial-flow.smoke.js tests\expedicao-flow.smoke.js
+> tests\op-latex-admin.smoke.js tests\tec-to-acabamento-flow.smoke.js
+> tests\production-flow-invariants.smoke.js` (132/132). Diagnosticos staging
+> read-only OK: `production-flow-invariants-diag`, `latex-consolidation-diag`,
+> `expedicao-partial-flow-diag`. Producao/origin intocados; `supabase/.temp/`
+> fora do commit.
+>
+> **Atualizacao 2026-07-05 - fase
 > `RAVATEX-TAPETES-PEDIDO-ACABAMENTO-EXPEDICAO-MODAL-MOVE-R1`.**
 > Status: CONCLUIDO - PATCH VALIDADO LOCALMENTE, DIAGNOSTICOS STAGING
 > READ-ONLY OK E PUSH STAGING REALIZADO.
