@@ -1,4 +1,58 @@
-﻿# Estado pos-fase - Tec Stage Finalization A-B
+﻿# Estado pos-fase - Latex Lifecycle Canonical A-B
+
+- Fase: `RAVATEX-TAPETES-LATEX-LIFECYCLE-CANONICAL-A-B`.
+- Objetivo: alinhar a finalizacao da OP Latex/Acabamento ao contrato
+  canonico de lifecycle/status/evento ja validado na Tecelagem.
+- Branch/HEAD base: `work/app-next`,
+  `d0f7fb2a9e9ea69c3e60286d3a41d0bea8d95ff4`.
+- Contrato encontrado:
+  - `alterar_status_op(BIGINT, TEXT, TEXT)` existe em `db/21`;
+  - e admin-only (`is_admin()`), `SECURITY DEFINER`;
+  - aceita `em_producao -> concluida`;
+  - `concluida` preenche `finalizada_em` no backend;
+  - `trg_op_evento` registra `status_alterado` em `op_eventos`;
+  - `finalizada` continua legado/compatibilidade.
+- Causa raiz: `op-latex-admin.js` ainda fazia update direto em
+  `ops.status='finalizada'` e `finalizada_em`, divergindo da
+  terminalidade canonica usada em Tecelagem e deixando evento/auditoria
+  dependentes de um fluxo legado.
+- Patch aplicado:
+  - `js/screens/op-latex-admin.js`: `finalizar` agora chama
+    `supa.rpc('alterar_status_op', { p_op_id, p_novo_status:
+    'concluida', p_observacao: 'Finalizacao da OP Latex pelo painel
+    administrativo' })`; exibe erro real da RPC; recarrega no sucesso;
+    sem update direto em `ops.status`; sem evento manual.
+  - `tests/op-latex-admin.smoke.js`: cobre finalizacao por RPC canonica,
+    ausencia de update direto em `ops`, preservacao de leitura legada e
+    liberacao de expedicao tanto para `finalizada` quanto para `concluida`.
+  - `tests/pedido-detail.smoke.js`: cobre `metrics.acabamento.terminal`,
+    `adminStepper.acabamento=done` e `releaseExpedicao` para `concluida`
+    canonico e `finalizada` legado.
+- Preservado: `gerar_op_latex`, `gerar_op_latex_split`, regra default de
+  consolidacao Latex, split opt-in, `liberar_expedicao`,
+  `registrar_entrega_expedicao`, documentos placeholder e botao Pausar.
+- Testes:
+  - baseline pre-patch obrigatorio: 343/343 OK;
+  - pos-patch obrigatorio: `op-latex-admin`, `op-latex-split`,
+    `pedido-detail-linked-ops`, `tec-to-acabamento-flow`, `pedido-detail`,
+    `entrega-writes`, `production-flow-invariants`,
+    `latex-consolidation-schema` = 346/346 OK.
+- Diagnosticos staging read-only:
+  - OPs totais 25; Tecelagem 17; Latex 8;
+  - Latex default 7; split legitimo 1;
+  - duplicatas default 0; orfas 0;
+  - `op_latex_entregas` N:1: 11 entregas, 0 em multiplas OPs;
+  - colisoes `tipo+numero+ano` 0;
+  - high-water Latex 8/8 e Tecelagem 17/17;
+  - staging ainda tem OPs Latex antigas em `finalizada`, preservadas.
+- Nao tocado: producao `bhgifjrfagkzubpyqpew`, `origin` para escrita,
+  SQL, migration, db/25-db/29, OP real, split real, cleanup destrutivo.
+- Residual permitido: `?? supabase/.temp/` fora do commit.
+- Proximo P1 recomendado: `EXPEDICAO-ENTREGA-LIFECYCLE-AUDIT-A` -
+  auditar Expedicao/Entrega para status/eventos canonicos e literais
+  remanescentes depois que Tecelagem e Latex ficaram alinhados.
+
+# Estado pos-fase - Tec Stage Finalization A-B
 
 - Fase: `RAVATEX-TAPETES-TEC-STAGE-FINALIZATION-A-B`.
 - Objetivo: resolver a pendencia P1 de finalizacao explicita da OP

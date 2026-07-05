@@ -880,16 +880,21 @@
     async function finalizar(id) {
       confirmDialog({
         title: 'Finalizar OP de latex',
-        message: 'Marcar esta OP de latex como finalizada?',
+        message: 'Marcar esta OP de latex como concluida?',
         confirmLabel: 'Finalizar',
         onConfirm: async function () {
-          var r = await supa.from('ops').update({ status: 'finalizada', finalizada_em: new Date().toISOString() }).eq('id', id);
-          if (r.error) {
-            toast('Erro ao finalizar', 'error');
-            console.error(r.error);
+          var r = await supa.rpc('alterar_status_op', {
+            p_op_id: id,
+            p_novo_status: 'concluida',
+            p_observacao: 'Finalizacao da OP Latex pelo painel administrativo',
+          });
+          if (r.error || (r.data && r.data.ok === false)) {
+            var msg = r.error ? r.error.message : (r.data && r.data.erro ? r.data.erro : 'Transicao nao realizada');
+            toast('Erro ao finalizar: ' + msg, 'error');
+            console.error(r.error || r.data);
             return;
           }
-          toast('OP de latex finalizada', 'success');
+          toast('OP de latex concluida', 'success');
           reload();
         },
       });

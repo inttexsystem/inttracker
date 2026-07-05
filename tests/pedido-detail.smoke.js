@@ -225,6 +225,37 @@ test('TEC-STAGE-FINALIZATION-A-B: status concluida e terminalidade canonica da T
   assert.equal(result.displayStatus, 'Tecelagem concluida');
 });
 
+test('LATEX-LIFECYCLE-CANONICAL-A-B: Acabamento reconhece concluida canonico e finalizada legado', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
+  const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
+
+  for (const status of ['concluida', 'finalizada']) {
+    const result = derive({
+      pedido: { id: 'p1', status: 'confirmado', metros_total: 100 },
+      ops: [{
+        id: 'latex1',
+        numero: 8,
+        ano: 2026,
+        status,
+        tipo: 'latex',
+        op_itens: [{ id: 'li1', metros_pedidos: 100 }],
+      }],
+      entregaItens: [{ entrega_id: 'e1', op_id: 'latex1', op_item_id: 'li1', metros_entregues: 100, defeito: false }],
+      entregasById: { e1: { id: 'e1', etapa: 'latex' } },
+      expedicoes: [],
+      expedicaoItens: [],
+    });
+
+    assert.equal(result.metrics.acabamento.saldoEntregue, true, status);
+    assert.equal(result.metrics.acabamento.terminal, true, status);
+    assert.equal(result.adminStepper.acabamento, 'done', status);
+    assert.equal(result.actions.releaseExpedicao.mode, 'enabled', status);
+    assert.equal(result.displayStatus, 'Pronto para expedicao', status);
+  }
+});
+
 test('TEC-STAGE-FINALIZATION-A-B: Pedido Detail diferencia saldo entregue de conclusao explicita', () => {
   assert.match(detailProgress, /var\s+tecTerminal\s*=/,
     'computeViewModel deve calcular terminalidade real da Tecelagem');

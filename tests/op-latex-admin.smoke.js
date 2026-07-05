@@ -43,8 +43,8 @@
 //  21. Mock registra select em ops (.eq('id', opId).single());
 //  22. Mock registra select em entregas com .eq('etapa', 'latex');
 //  23. Mock registra select em modelos quando há modeloIds;
-//  24. finalizar chama supa.from('ops').update({ status:
-//      'finalizada', finalizada_em });
+//  24. finalizar chama alterar_status_op(..., 'concluida') e nao faz
+//      update direto em ops.status;
 //  25. editarEnviado chama supa.from('op_itens').update({ metros_pedidos });
 //  26. excluirOpLatex chama supa.from('ops').delete();
 //
@@ -569,15 +569,15 @@ test('23. runtime: reload chama select em modelos quando há modeloIds', async (
     `renderOPLatexAdmin não chamou from('modelos') (tabelas: ${fromCalls.join(',')})`);
 });
 
-test('24. runtime: finalizar chama supa.from("ops").update com { status: "finalizada", finalizada_em }', async () => {
+test('24. estatico: finalizar preserva leitura legada e nao faz update direto em ops.status', async () => {
   const { sandbox, fakeSupa } = makeFullBootSandbox();
   await vm.runInContext('window.renderOPLatexAdmin(42)', sandbox);
   // Validação estática do source: finalizar existe e faz o write correto.
-  assert.match(olaSrc, /status:\s*['"]finalizada['"]/,
+  assert.match(olaSrc, /finalizada/,
     'op-latex-admin.js não referencia status: "finalizada"');
-  assert.match(olaSrc, /finalizada_em/,
+  assert.doesNotMatch(olaSrc, /finalizada_em/,
     'op-latex-admin.js não referencia finalizada_em');
-  assert.match(olaSrc, /from\(\s*['"]ops['"]\s*\)\s*\.update/,
+  assert.doesNotMatch(olaSrc, /from\(\s*['"]ops['"]\s*\)\s*\.update/,
     'op-latex-admin.js não tem from("ops").update');
   // Tabela que está sendo modificada por finalizar
   const updateOpsCalls = fakeSupa._calls.filter(c => c.op === 'update' && c.table === 'ops');
@@ -585,6 +585,31 @@ test('24. runtime: finalizar chama supa.from("ops").update com { status: "finali
   // updateOpsCalls pode estar vazio. Mas validamos que o source tem
   // o write correto.
   assert.ok(updateOpsCalls.length >= 0, 'write de finalizar está no source');
+});
+
+test('24b. runtime: finalizar OP Latex usa alterar_status_op para concluida sem update direto em ops.status', async () => {
+  const { sandbox, fakeSupa } = makeFullBootSandbox();
+  const view = await vm.runInContext('window.renderOPLatexAdmin(42)', sandbox);
+  const btnFinalizar = findNode(view, (n) => (
+    n.tagName === 'BUTTON' && /Finalizar/i.test(collectNodeText(n))
+  ));
+  assert.ok(btnFinalizar, 'CTA Finalizar nao encontrado');
+
+  await btnFinalizar._listeners.click({ currentTarget: btnFinalizar });
+  const btnConfirmar = findNode(sandbox.document.body, (n) => (
+    n.tagName === 'BUTTON' && /Finalizar/i.test(collectNodeText(n))
+  ));
+  assert.ok(btnConfirmar, 'botao de confirmacao Finalizar nao encontrado');
+
+  await btnConfirmar._listeners.click({ currentTarget: btnConfirmar });
+
+  const rpcCalls = fakeSupa._calls.filter(c => c.op === 'rpc' && c.fn === 'alterar_status_op');
+  assert.equal(rpcCalls.length, 1, 'finalizacao deve chamar a RPC canonica alterar_status_op');
+  assert.equal(rpcCalls[0].params.p_op_id, 42);
+  assert.equal(rpcCalls[0].params.p_novo_status, 'concluida');
+  assert.equal(rpcCalls[0].params.p_observacao, 'Finalizacao da OP Latex pelo painel administrativo');
+  assert.equal(fakeSupa._calls.some(c => c.op === 'update' && c.table === 'ops'), false,
+    'finalizacao nao deve executar update direto na tabela ops');
 });
 
 test('25. runtime: editarEnviado chama supa.from("op_itens").update com { metros_pedidos }', async () => {
@@ -1091,6 +1116,34 @@ test('43b. OP finalizada habilita liberar expedicao via RPC dedicada', async () 
       numero: 8,
       ano: 2026,
       status: 'finalizada',
+      tipo: 'latex',
+      observacao: '',
+      origem_op_id: 12,
+      lote: { id: 91, numero: 22, pedido_id: '11111111-2222-3333-4444-555555555555', cliente: { id: 3, nome: 'Cliente Atlas' } },
+      op_itens: [{ id: 100, modelo_id: 1, metros_pedidos: 125, pedido_item_id: 'aaaaaaaa-2222-3333-4444-555555555555' }],
+      op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
+    },
+    modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
+    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+  });
+  assert.match(rendered.text, /Liberar para expedicao/i);
+  const btn = findNode(rendered.view, (n) => (
+    n.tagName === 'BUTTON' && /Liberar para expedicao/i.test(collectNodeText(n))
+  ));
+  assert.ok(btn, 'CTA de liberar expedicao nao encontrado');
+  await btn._listeners.click({ currentTarget: btn });
+  const rpcCalls = rendered.fakeSupa._calls.filter(c => c.op === 'rpc' && c.fn === 'liberar_expedicao');
+  assert.equal(rpcCalls.length, 1);
+  assert.equal(rpcCalls[0].params.p_op_latex_id, 42);
+});
+
+test('43c. OP concluida habilita liberar expedicao via RPC dedicada', async () => {
+  const rendered = await renderLatexAdminForTest({
+    opData: {
+      id: 42,
+      numero: 8,
+      ano: 2026,
+      status: 'concluida',
       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,

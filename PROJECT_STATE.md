@@ -1,4 +1,56 @@
 > **Atualizacao 2026-07-05 - fase
+> `RAVATEX-TAPETES-LATEX-LIFECYCLE-CANONICAL-A-B`.**
+> P1 de finalizacao canonica da OP Latex/Acabamento resolvido com patch
+> pequeno em JS + testes + docs, sem SQL/migration e sem criar dados reais.
+>
+> Causa raiz: `js/screens/op-latex-admin.js` ainda finalizava OP Latex por
+> update direto em `ops.status = 'finalizada'` e `finalizada_em`, enquanto
+> Tecelagem ja usava o contrato canonico de lifecycle/status/evento. Isso
+> deixava auditoria e terminalidade divergentes entre etapas.
+>
+> Contrato usado: `alterar_status_op(BIGINT, TEXT, TEXT)` ja existe em
+> `db/21_op_lifecycle_status_eventos.sql`, e admin-only, `SECURITY
+> DEFINER`, aceita `em_producao -> concluida`, preenche `finalizada_em` no
+> backend e deixa o trigger `trg_op_evento` registrar `status_alterado` em
+> `op_eventos`. `concluida` e canonico; `finalizada` permanece legado de
+> leitura/compatibilidade.
+>
+> Implementado: `op-latex-admin.js` trocou a finalizacao para
+> `supa.rpc('alterar_status_op', { p_op_id, p_novo_status: 'concluida',
+> p_observacao: 'Finalizacao da OP Latex pelo painel administrativo' })`.
+> O erro real da RPC e exibido; sucesso mostra OP concluida e recarrega a
+> tela. Nao ha mais update direto em `ops.status` nem escrita direta de
+> `finalizada_em`; nenhum evento manual foi criado em JS.
+>
+> Compatibilidade preservada: leitura de OP Latex terminal continua aceitando
+> `concluida` e `finalizada`. `buildExpedicaoCard`,
+> `pedido-chain-state.js`, `pedido-detail-progress.js` e
+> `pedido-detail-events.js` ja reconhecem ambos; testes novos cobrem
+> `concluida` no Pedido Detail e liberacao de expedicao pela tela da OP.
+>
+> Testes: baseline pre-patch obrigatorio 343/343 OK. Pos-patch:
+> `op-latex-admin`, `op-latex-split`, `pedido-detail-linked-ops`,
+> `tec-to-acabamento-flow`, `pedido-detail`, `entrega-writes`,
+> `production-flow-invariants`, `latex-consolidation-schema` = 346/346 OK.
+>
+> Diagnosticos staging read-only: OPs totais=25, Tecelagem=17, Latex=8,
+> Latex default=7, split legitimo=1, duplicatas default=0, orfas=0,
+> `op_latex_entregas` N:1 com 11 entregas e 0 em multiplas OPs, colisoes
+> tipo+numero+ano=0, high-water Latex=8/8 e Tecelagem=17/17. Staging ainda
+> possui OPs Latex antigas `finalizada` com eventos legados; nao houve
+> conversao de dados nesta fase.
+>
+> Preservado: regra default de consolidacao Latex, split opt-in,
+> `gerar_op_latex`, `gerar_op_latex_split`, Expedicao/Entrega,
+> documentos placeholder e botao Pausar (P2 fora de escopo).
+>
+> Producao intocada; `origin` nao usado para escrita; sem SQL aplicado; sem
+> migration; sem OP real nova; sem split real novo; sem cleanup destrutivo;
+> sem `git add .`; `supabase/.temp/` preservado fora do commit. Proximo P1
+> recomendado: `EXPEDICAO-ENTREGA-LIFECYCLE-AUDIT-A`, auditar Expedicao e
+> Entrega para status/eventos canonicos e literais remanescentes.
+
+> **Atualizacao 2026-07-05 - fase
 > `RAVATEX-TAPETES-TEC-STAGE-FINALIZATION-A-B`.**
 > P1 de finalizacao explicita da OP Tecelagem resolvido com patch pequeno
 > em JS + testes + docs, sem SQL/migration e sem criar dados reais.
