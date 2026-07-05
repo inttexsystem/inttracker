@@ -1805,11 +1805,19 @@ test('HUB: modal Acabamento usa recebido/movimentado/disponivel (contrato Acabam
 // ---- Runtime: renderiza o corpo do modal de etapa e exercita as acoes ----
 
 function makeHubRuntime() {
+  function isNodeLike(c) {
+    return !!c && (c.nodeType === 3 || typeof c.tagName === 'string');
+  }
   function node(tag) {
     return {
       tagName: (tag || 'div').toUpperCase(), attrs: {}, children: [], _listeners: {}, style: {}, textContent: '', disabled: false, className: '',
-      appendChild(c) { this.children.push(c); return c; }, append() { for (const c of arguments) this.children.push(c); },
-      replaceChildren() { this.children = Array.prototype.slice.call(arguments); },
+      appendChild(c) {
+        if (!isNodeLike(c)) throw new TypeError('Failed to execute appendChild: parameter 1 is not of type Node.');
+        this.children.push(c);
+        return c;
+      },
+      append() { for (const c of arguments) this.appendChild(c); },
+      replaceChildren() { this.children = []; for (const c of arguments) this.appendChild(c); },
       setAttribute(k, v) {
         this.attrs[k] = v == null ? String(v) : String(v);
         if (k === 'disabled') this.disabled = true;
@@ -1824,7 +1832,7 @@ function makeHubRuntime() {
   const sandbox = { console };
   sandbox.window = sandbox;
   sandbox.document = {
-    createElement: (t) => node(t), createTextNode: (t) => ({ textContent: String(t), nodeType: 3 }),
+    createElement: (t) => node(t), createTextNode: (t) => ({ textContent: String(t), nodeType: 3, children: [] }),
     getElementById: () => null, querySelector: () => null, querySelectorAll: () => [], body: node('body'),
     addEventListener() {}, removeEventListener() {},
   };
@@ -1837,13 +1845,12 @@ function makeHubRuntime() {
       else if (k.startsWith('on') && typeof v === 'function') n._listeners[k.slice(2)] = v;
       else n.setAttribute(k, v);
     });
-    const kids = Array.prototype.slice.call(arguments, 2);
-    (function add(c) {
+    const kids = Array.prototype.slice.call(arguments, 2).flat();
+    kids.forEach(function add(c) {
       if (c == null || c === '' || c === false) return;
-      if (Array.isArray(c)) return c.forEach(add);
-      if (typeof c === 'string' || typeof c === 'number') { n.children.push({ textContent: String(c) }); return; }
-      n.children.push(c);
-    })(kids);
+      if (typeof c === 'string' || typeof c === 'number') { n.appendChild(sandbox.document.createTextNode(c)); return; }
+      n.appendChild(c);
+    });
     return n;
   };
   const events = [];
@@ -2077,6 +2084,43 @@ test('HUB runtime: OP Tecelagem aberta oferece Aceitar OP', () => {
   s.ordensFio = [{ op_id: 29, kg_pedido: 10, kg_recebido: 10 }];
   const r = stageHub(rt, s, 'insumos');
   assert.ok(findHubBtn(r.root, /Aceitar OP/i), 'OP aberta deve oferecer Aceitar OP');
+});
+
+test('HUB runtime: Pedido #13 abre Tecelagem/Aguardar sem appendChild invalido', () => {
+  const rt = makeHubRuntime();
+  assert.throws(
+    () => rt.node('div').appendChild({ tone: 'neutral', text: 'Sem movimentacao para acabamento registrada ainda' }),
+    /parameter 1 is not of type Node/,
+    'harness deve rejeitar objeto comum como o DOM real'
+  );
+
+  const s = hubTecAcab(rt.ns, 'em_producao');
+  s.pedido = { id: 'pedido-13', numero: 13, status: 'rascunho', metros_total: 500 };
+  s.itens = [
+    { id: 'pi-barcelona', modelo_id: 7, metros: 300 },
+    { id: 'pi-obra', modelo_id: 8, metros: 200 },
+  ];
+  s.modelosById = { 7: { id: 7, nome: 'Barcelona' }, 8: { id: 8, nome: 'Obra de Arte' } };
+  s.ops = [
+    { id: 10, tipo: 'tecelagem', numero: 10, ano: 2026, status: 'aberta', op_fornecedores: [{ fornecedor_id: 5, etapa: 'cima' }], op_itens: [
+      { id: 1001, modelo_id: 7, metros_pedidos: 300, metros_ajustados: 300, pedido_item_id: 'pi-barcelona' },
+      { id: 1002, modelo_id: 8, metros_pedidos: 200, metros_ajustados: 200, pedido_item_id: 'pi-obra' },
+    ] },
+  ];
+  s.entregaItens = [];
+  s.entregasById = {};
+  s.opLatexEntregas = [];
+  s.ordensFio = [{ op_id: 10, kg_pedido: 10, kg_recebido: 10 }];
+
+  const r = stageHub(rt, s, 'tecelagem');
+  const text = collectHubText(r.root);
+  assert.match(text, /OPs de Tecelagem/);
+  assert.match(text, /OP 10\/2026/);
+  assert.match(text, /Sem movimentacao para acabamento registrada ainda/);
+  assert.match(text, /OP Tecelagem pendente de aceite/);
+  assert.ok(findHubBtn(r.root, /Abrir OP/i), 'hub deve manter Abrir OP');
+  assert.ok(findHubBtn(r.root, /Aceitar OP/i), 'hub deve oferecer Aceitar OP');
+  assert.equal(rt.events.some((ev) => /^rpc:|^toast:/.test(ev)), false, 'abrir hub nao deve executar write');
 });
 
 test('HUB runtime: Acabamento com disponivel>0 oferece Movimentar sem exigir status terminal', () => {

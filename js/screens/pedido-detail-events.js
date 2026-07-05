@@ -1594,6 +1594,14 @@
       var reasonRow = function (msg) {
         return window.el('div', { style: 'font-size:11.5px;color:#8a93a3;margin-top:4px;line-height:1.4;' }, msg);
       };
+      var docBannerRow = function (banner) {
+        var text = typeof banner === 'string' ? banner : (banner && banner.text);
+        if (!text) return null;
+        var color = banner && banner.tone === 'danger'
+          ? '#a23434'
+          : (banner && banner.tone === 'warning' ? '#c2610c' : '#8a93a3');
+        return window.el('div', { style: 'font-size:11.5px;color:' + color + ';margin-top:2px;' }, text);
+      };
       var infoRow = function (msg, tone) {
         var styles = {
           info: { bg: '#f6f9ff', border: '#d0e0fb', color: '#2c4a78' },
@@ -1722,9 +1730,7 @@
                     summary.modelNames && summary.modelNames.length
                       ? window.el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:2px;' }, 'Modelos: ' + summary.modelNames.join(', '))
                       : null,
-                    summary.docBanner
-                      ? window.el('div', { style: 'font-size:11.5px;color:#c2610c;margin-top:2px;' }, summary.docBanner)
-                      : null
+                    docBannerRow(summary.docBanner)
                   );
                 })
               )

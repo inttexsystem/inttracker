@@ -1,4 +1,59 @@
 > **Atualizacao 2026-07-05 - fase
+> `RAVATEX-TAPETES-PEDIDO-STAGE-HUB-R2-REAL-STAGING`.**
+> Status: OK para os itens reabertos do hub. Correcao pequena aplicada apos
+> reproducao visual real do Pedido #13 em staging. A falha original foi
+> reproduzida no app real: clique na etapa `TECELAGEM` do Pedido #13 gerava
+> `TypeError: Failed to execute 'appendChild' on 'Node': parameter 1 is not of
+> type 'Node'` em `js/ui.js:19`, chamado por
+> `pedido-detail-events.js:1726`, dentro de `buildStageDetailBody`.
+>
+> Causa raiz: `summary.docBanner` e um objeto `{ tone, text }` produzido por
+> `pedido-detail-progress.js`; o hub de Tecelagem passava o objeto inteiro
+> como filho de `window.el(...)`. O DOM real tentava anexar esse objeto comum
+> via `appendChild`, enquanto o harness anterior era permissivo e aceitava
+> filhos invalidos, por isso os testes locais deram falso positivo.
+>
+> Correcao: `buildStageDetailBody` agora converte `docBanner` em linha de DOM
+> por `docBannerRow(...)`, usando apenas texto/tom validos. O harness runtime
+> de `tests/pedido-detail.smoke.js` foi endurecido para rejeitar objeto comum
+> em `appendChild`, imitando o DOM real, e ganhou caso equivalente ao Pedido
+> #13: OP 10/2026 aberta, Tecelagem/Aguardar, motivo, `Abrir OP` e
+> `Aceitar OP`.
+>
+> Validacao visual real/read-only: app local `http://localhost:8765/` contra
+> Supabase staging `ucrjtfswnfdlxwtmxnoo`; producao intocada. O asset
+> `pedido-detail-events.js?v=20260623-asset1` servido bateu SHA-256 com o
+> arquivo local corrigido. No browser real autenticado em staging, Pedido #13
+> abriu o hub por `Ver detalhes da etapa TECELAGEM` e por `Movimentar
+> Tecelagem -> Acabamento` / `Aguardar`; sem erros de console/pageerror; modal
+> mostrou OP 10/2026, `Abrir OP`, `Aceitar OP`, motivo de pendencia e banner
+> `Sem movimentacao para acabamento registrada ainda`. Nenhum clique em
+> `Aceitar OP`, nenhum save e nenhuma transferencia real foram executados.
+>
+> Itens fechados nesta R2: `PEDIDO-STAGE-ACTION-HUB-B`,
+> `PEDIDO-STAGE-BLOCKER-EXPLANATION-R1`,
+> `TEC-ACCEPTANCE-IN-PEDIDO-MODAL-B`,
+> `PEDIDO-STAGE-RELATED-OPS-LINKS-R1` e
+> `PEDIDO-STAGE-MODAL-WIDTH-R1` para o hub de etapa validado. Backlog
+> Admin/Pedido: itens do hub zerados; backlog geral ainda nao considerado
+> zerado por haver residuo estatico fora desta fase em
+> `js/screens/expedicao-admin.js`.
+>
+> Testes OK: `pedido-detail.smoke.js` (148/148),
+> `pedido-detail-linked-ops.smoke.js` (7/7), `op-latex-admin.smoke.js`
+> (55/55), `tec-to-acabamento-flow.smoke.js` (37/37),
+> `expedicao-partial-flow.smoke.js` (12/12) e
+> `expedicao-flow.smoke.js` (8/8). Diagnosticos staging read-only OK:
+> `production-flow-invariants-diag`, `latex-consolidation-diag` e
+> `expedicao-partial-flow-diag`.
+>
+> Confirmacoes: sem SQL, sem migration, sem dados reais novos, sem concluir
+> pedido, sem aceitar OP real, sem transferencia, sem alterar fluxo
+> Acabamento -> Expedicao, sem alterar lifecycle de OP, sem write paralelo no
+> Pedido, sem `git add .`, `origin` nao usado para escrita e
+> `supabase/.temp/` fora do commit.
+>
+> **Atualizacao 2026-07-05 - fase
 > `RAVATEX-TAPETES-ADMIN-BACKLOG-VISUAL-CLOSEOUT-A`.**
 > Status: BLOQUEADO / backlog Admin-Pedido NAO zerado. Auditoria visual
 > read-only em app real servido por `http://localhost:8765/` apontando para

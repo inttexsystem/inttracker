@@ -641,3 +641,78 @@ Testes/diagnosticos desta auditoria:
 | `node scripts/staging/production-flow-invariants-diag.mjs` | OK |
 | `node scripts/staging/latex-consolidation-diag.mjs` | OK |
 | `node scripts/staging/expedicao-partial-flow-diag.mjs` | OK |
+
+### 9.7 R2 real do hub de etapa - 2026-07-05
+
+Fase: `RAVATEX-TAPETES-PEDIDO-STAGE-HUB-R2-REAL-STAGING`
+
+Status: **OK** para os itens reabertos do hub.
+
+Motivo da R2: a auditoria visual real de `2026-07-05` reabriu o hub porque
+Pedido #13, etapa Tecelagem, quebrava no clique da bolinha/`Aguardar` com:
+
+`TypeError: Failed to execute 'appendChild' on 'Node': parameter 1 is not of type 'Node'`
+
+Stack observado no browser real: `js/ui.js:19` ->
+`js/screens/pedido-detail-events.js:1726` -> `buildStageDetailBody` ->
+`openStageDetailModal`.
+
+Diagnostico:
+
+| Campo | Resultado |
+|---|---|
+| Pedido de reproducao | Pedido #13 |
+| Etapa | Tecelagem |
+| OP relacionada | OP 10/2026, tipo `tecelagem`, status `aberta` |
+| Valor invalido | Objeto comum `summary.docBanner` (`{ tone, text }`) |
+| Causa raiz | O hub passava o objeto inteiro como filho de `window.el(...)`; o DOM real tentava anexar o objeto via `appendChild`. |
+| Por que o teste anterior nao pegou | O harness runtime aceitava filhos invalidos e achatava listas de forma mais permissiva que `js/ui.js`. |
+
+Correcao aplicada:
+
+- `js/screens/pedido-detail-events.js`: `docBannerRow(...)` converte o banner
+  documental em texto/Node valido antes de chamar `window.el(...)`.
+- `tests/pedido-detail.smoke.js`: o harness runtime agora rejeita objeto comum
+  em `appendChild`, imitando o DOM real, e inclui caso equivalente ao Pedido
+  #13/Tecelagem/Aguardar.
+
+Validacao real pos-correcao:
+
+| Clique | Resultado |
+|---|---|
+| `Ver detalhes da etapa TECELAGEM` | Hub abre sem erro; mostra OP 10/2026, `Abrir OP`, `Aceitar OP`, motivo e `Sem movimentacao para acabamento registrada ainda`. |
+| `Movimentar Tecelagem -> Acabamento` / `Aguardar` | Hub abre com o mesmo conteudo, sem erro no console/pageerror. |
+
+Classificacao pos-R2:
+
+| Item | Status |
+|---|---|
+| `PEDIDO-STAGE-ACTION-HUB-B` | Fechado |
+| `PEDIDO-STAGE-BLOCKER-EXPLANATION-R1` | Fechado |
+| `TEC-ACCEPTANCE-IN-PEDIDO-MODAL-B` | Fechado |
+| `PEDIDO-STAGE-RELATED-OPS-LINKS-R1` | Fechado |
+| `PEDIDO-STAGE-MODAL-WIDTH-R1` | Fechado para o hub validado |
+
+Testes/diagnosticos:
+
+| Tipo | Resultado |
+|---|---|
+| `node --test tests\pedido-detail.smoke.js` | OK, 148/148 |
+| `node --test tests\pedido-detail-linked-ops.smoke.js` | OK, 7/7 |
+| `node --test tests\op-latex-admin.smoke.js` | OK, 55/55 |
+| `node --test tests\tec-to-acabamento-flow.smoke.js` | OK, 37/37 |
+| `node --test tests\expedicao-partial-flow.smoke.js` | OK, 12/12 |
+| `node --test tests\expedicao-flow.smoke.js` | OK, 8/8 |
+| `node scripts/staging/production-flow-invariants-diag.mjs` | OK |
+| `node scripts/staging/latex-consolidation-diag.mjs` | OK |
+| `node scripts/staging/expedicao-partial-flow-diag.mjs` | OK |
+
+Confirmacoes: producao `bhgifjrfagkzubpyqpew` intocada; sem SQL, sem
+migration, sem dados reais novos, sem aceitar OP real, sem concluir pedido
+real, sem transferencia real, sem write paralelo no Pedido e sem alteracao do
+fluxo Acabamento -> Expedicao ou lifecycle de OP.
+
+Nota de backlog: os itens reabertos do hub estao zerados nesta R2. O backlog
+Admin/Pedido geral nao deve ser declarado zerado sem tratar ou explicitamente
+retirar de escopo o residuo estatico `disabled: ready ? null : 'disabled'` em
+`js/screens/expedicao-admin.js:361`.
