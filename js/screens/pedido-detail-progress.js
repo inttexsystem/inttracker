@@ -360,6 +360,7 @@
           expedicaoItens: state.expedicaoItens,
         })
       : null;
+    var releaseExpedicaoAction = chainState && chainState.actions ? chainState.actions.releaseExpedicao : null;
 
     var partialMeta = collectPartialMeta(state);
     var itemMetricsById = {};
@@ -600,9 +601,11 @@
           origem: 'Acabamento',
           destino: 'Expedicao',
           detalhe: acabamentoSummaries.length ? 'Movimente para expedicao a quantidade recebida da tecelagem ainda disponivel; a finalizacao da OP continua separada.' : 'Nenhuma OP de acabamento vinculada.',
-          op: acabamentoSummaries.length ? acabamentoSummaries[0].op : null,
+          op: releaseExpedicaoAction && releaseExpedicaoAction.op
+            ? releaseExpedicaoAction.op
+            : (acabamentoSummaries.length ? acabamentoSummaries[0].op : null),
           docs: 'NF de servico e romaneio',
-          action: chainState && chainState.actions ? chainState.actions.releaseExpedicao : null,
+          action: releaseExpedicaoAction,
         },
       },
       {

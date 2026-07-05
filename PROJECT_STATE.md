@@ -1,4 +1,56 @@
 > **Atualizacao 2026-07-05 - fase
+> `RAVATEX-TAPETES-PEDIDO-ACABAMENTO-EXPEDICAO-MODAL-MOVE-R1`.**
+> Status: PATCH VALIDADO LOCALMENTE E DIAGNOSTICOS STAGING READ-ONLY OK;
+> PUSH STAGING PENDENTE POR CREDENCIAL GITHUB LOCAL.
+> Estado inicial confirmado: branch `work/app-next`, HEAD
+> `76195b16d7a1a2bcc3ea849a2ce31724782f2387`, status inicial somente
+> `?? supabase/.temp/`; remoto de escrita permitido: `staging/work/app-next`.
+> Push: `git push staging work/app-next` ficou preso no Git Credential Manager;
+> nova tentativa com prompt desativado falhou com falta de usuario/senha para
+> `https://github.com`. O remoto `staging/work/app-next` permaneceu em
+> `76195b16d7a1a2bcc3ea849a2ce31724782f2387`.
+>
+> Causa raiz: o modal da seta `Acabamento -> Expedicao` ja tinha formulario
+> para chamar o movimento parcial canonico, mas abria como historico/read-only
+> quando a OP Latex estava `aberta`, porque o gate do chain-state so tratava
+> `em_producao`/terminal como movimentavel. A lista de OPs relacionadas tinha
+> o mesmo filtro restrito e ainda podia mostrar "Nenhuma acao contextual..."
+> para a OP carregada no proprio modal. Alem disso, o stepper podia carregar a
+> primeira OP de acabamento em vez da OP escolhida pela acao `releaseExpedicao`.
+>
+> Correcao: `js/screens/pedido-chain-state.js` passa a permitir OP Latex
+> `aberta` quando ha saldo recebido/liberavel, sem tratar isso como
+> finalizacao. `js/screens/pedido-detail-progress.js` carrega a OP definida
+> pela acao `releaseExpedicao`. `js/screens/pedido-detail-events.js` mostra o
+> formulario efetivo no modal, expoe `Transferir restante`, preserva
+> quantidades por produto, mostra origem/saldo/produtos pendentes, evita a
+> mensagem falsa de "Nenhuma acao contextual..." na OP carregada e oferece
+> `Movimentar` nas OPs relacionadas com saldo.
+>
+> Escrita canonica preservada: o Pedido nao cria write paralelo em `pedidos`,
+> `pedido_itens`, `ops` ou `expedicoes`; a movimentacao usa somente a RPC
+> canonica `liberar_expedicao_latex_parcial` com `p_op_latex_id` e itens
+> parciais. A leitura canonica de saldo da tela OP Latex continua em
+> `consultar_saldo_expedicao_latex`; o Pedido usa os saldos consolidados ja
+> carregados no detalhe para montar o modal e recarrega/renderiza apos sucesso.
+>
+> Testes locais OK: `node --test tests\pedido-detail.smoke.js` (155/155);
+> `node --test tests\pedido-detail-linked-ops.smoke.js
+> tests\expedicao-partial-flow.smoke.js tests\expedicao-flow.smoke.js
+> tests\op-latex-admin.smoke.js tests\tec-to-acabamento-flow.smoke.js
+> tests\production-flow-invariants.smoke.js` (132/132).
+>
+> Diagnosticos staging read-only OK:
+> `node scripts/staging/production-flow-invariants-diag.mjs`;
+> `node scripts/staging/latex-consolidation-diag.mjs`;
+> `node scripts/staging/expedicao-partial-flow-diag.mjs`.
+>
+> Confirmacoes: sem SQL, sem migration, sem dados reais novos, sem finalizar
+> OP Latex, sem aceitar OP real, sem transferencia real em staging, sem concluir
+> pedido, sem alteracao de lifecycle, sem `git add .`, `supabase/.temp/` fora
+> do commit, producao e `origin` intocados.
+>
+> **Atualizacao 2026-07-05 - fase
 > `RAVATEX-TAPETES-PEDIDO-TRANSITION-MODAL-RELATED-OPS-ACTIONS-R2`.**
 > Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.
 > Item reaberto: o requisito original era que clique nas setas de transicao do

@@ -295,6 +295,30 @@ test('STEPPER-OP-PENDING-R1: Acabamento movimentavel nao exige OP terminal, mas 
   assert.equal(acabamento.sublabel, 'OP pendente');
 });
 
+test('ACABAMENTO-EXPEDICAO-MODAL-MOVE-R1: OP Latex simulada com saldo nao habilita movimentacao', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
+  const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
+  const result = derive({
+    pedido: { id: 'p1', status: 'rascunho', metros_total: 100 },
+    ops: [{
+      id: 'latex1',
+      numero: 13,
+      ano: 2026,
+      status: 'simulada',
+      tipo: 'latex',
+      op_itens: [{ id: 'li1', metros_pedidos: 100 }],
+    }],
+    expedicoes: [],
+    expedicaoItens: [],
+  });
+
+  assert.equal(result.metrics.acabamento.saldoEntregue, false);
+  assert.equal(result.actions.releaseExpedicao.mode, 'disabled');
+  assert.equal(result.actions.releaseExpedicao.label, 'Aguardando acabamento');
+});
+
 test('TEC-STAGE-FINALIZATION-A-B: Pedido Detail diferencia saldo entregue de conclusao explicita', () => {
   assert.match(detailProgress, /var\s+tecTerminal\s*=/,
     'computeViewModel deve calcular terminalidade real da Tecelagem');
@@ -1387,13 +1411,17 @@ test('transfer-remaining-B: botao NAO chama write, RPC, ou save automatico', () 
     'botao nao pode fazer write');
 });
 
-test('transfer-remaining-B: Acabamento>Expedicao sem form de metros NAO expoe fillRemaining', () => {
+test('transfer-remaining-B: Acabamento>Expedicao expoe fillRemaining e hasRemaining', () => {
   const slice = (detailEvents.match(/function buildAcabamentoTransferForm[\s\S]*?\n    \}\n\n    function buildExpedicaoTransferForm/) || [''])[0];
   assert.ok(slice, 'trecho buildAcabamentoTransferForm nao encontrado');
-  assert.doesNotMatch(slice, /fillRemaining/,
-    'Acabamento>Expedicao usa RPC direta, nao deve ter fillRemaining (sem campos para preencher)');
-  assert.doesNotMatch(slice, /hasRemaining/,
-    'Acabamento>Expedicao nao deve expor hasRemaining');
+  assert.match(slice, /fillRemaining:\s*function/,
+    'Acabamento>Expedicao deve expor fillRemaining para movimentar saldo por produto');
+  assert.match(slice, /hasRemaining:\s*linhas\.some/,
+    'Acabamento>Expedicao deve expor hasRemaining quando ha saldo movimentavel');
+  assert.match(slice, /linha\.input\.value = String\(linha\.row\.saldo\)/,
+    'fillRemaining deve preencher a quantidade restante de cada item');
+  assert.match(slice, /liberar_expedicao_latex_parcial/,
+    'write efetivo deve continuar na RPC canonica parcial');
 });
 
 test('transfer-remaining-B: preenchimento preenche valor correto, nao zera nem excede', () => {
@@ -1965,7 +1993,19 @@ function makeHubRuntime() {
   sandbox.window.navigate = (h) => events.push('navigate:' + h);
   sandbox.window.modal = (o) => events.push('modal:' + (o && o.title || ''));
   sandbox.window.confirmDialog = (o) => { events.push('confirm'); if (o && o.onConfirm) return o.onConfirm(); };
-  sandbox.window.textInput = () => node('input'); sandbox.window.selectInput = () => node('select');
+  sandbox.window.textInput = (opts = {}) => {
+    const input = node('input');
+    input.value = opts.value || '';
+    if (opts.type) input.setAttribute('type', opts.type);
+    if (opts.step) input.setAttribute('step', opts.step);
+    if (opts.placeholder) input.placeholder = opts.placeholder;
+    return input;
+  };
+  sandbox.window.selectInput = (opts = {}) => {
+    const select = node('select');
+    select.value = opts.value || '';
+    return select;
+  };
   sandbox.window.formField = (o) => (o && o.input) || node('div');
   sandbox.window.buildEntregaInlineForm = () => ({ node: node('div'), getPayload: () => [], getSplitOption: () => ({ forceSplit: false, motivo: null }) });
   sandbox.window.salvarEntregaCima = async () => true;
@@ -2170,6 +2210,64 @@ test('TRANSITION runtime: clique em seta Aguardar abre modal de transicao', () =
     'Aguardar da transicao inicial deve abrir o modal de transicao/movimento');
   assert.equal(rt.events.indexOf('stage:insumos:same-view'), -1,
     'Aguardar da seta nao deve abrir o hub contextual da bolinha');
+});
+
+test('TRANSITION runtime: Acabamento aberto com saldo movimenta para Expedicao pelo modal da seta', async () => {
+  const rt = makeHubRuntime();
+  const s = hubBase(rt.ns);
+  s.ops = [
+    { id: 29, tipo: 'tecelagem', numero: 18, ano: 2026, status: 'concluida', op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 2000, metros_ajustados: 2000, pedido_item_id: 'pi1' }] },
+    { id: 30, tipo: 'latex', numero: 13, ano: 2026, status: 'aberta', origem_op_id: 29, op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 1000, pedido_item_id: 'pi1' }] },
+    { id: 31, tipo: 'latex', numero: 14, ano: 2026, status: 'aberta', origem_op_id: 29, op_itens: [{ id: 302, modelo_id: 7, metros_pedidos: 1000, pedido_item_id: 'pi1' }] },
+  ];
+  const view = rt.ns.computeViewModel(s);
+  const acabamento = view.stepper.find((stage) => stage.key === 'acabamento');
+  assert.equal(view.chainState.actions.releaseExpedicao.mode, 'enabled',
+    'OP Latex aberta com saldo recebido deve habilitar movimento para Expedicao');
+  assert.equal(acabamento.transfer.op.id, 30,
+    'modal deve carregar a OP escolhida pela matriz de releaseExpedicao');
+
+  const rpcCalls = [];
+  rt.sandbox.window.supa = {
+    rpc: async (fn, args) => {
+      rpcCalls.push({ fn, args });
+      return { data: { ok: true, expedicao_id: 3 }, error: null };
+    },
+  };
+  const handlers = rt.ns.createPedidoDetailEvents({
+    pedidoId: s.pedido.id,
+    state: s,
+    reload: async () => { rt.events.push('reload'); },
+    render: () => { rt.events.push('render'); },
+    getLoadingError: () => null,
+    setLoadingError: () => {},
+  });
+  handlers.currentView = view;
+  const cap = rt.node('body');
+  rt.sandbox.document.body = cap;
+  handlers.openMovementModal(acabamento.transfer);
+
+  const text = collectHubText(cap);
+  assert.match(text, /Registrar nova transferencia/);
+  assert.match(text, /Esta OP esta carregada para movimentacao neste modal/);
+  assert.match(text, /Transferir restante/);
+  assert.ok(findHubBtn(cap, /^Movimentar$/i),
+    'OP relacionada com saldo deve mostrar acao contextual Movimentar');
+  assert.equal(/Nenhuma acao contextual disponivel agora para esta OP/.test(text), false,
+    'OP aberta com saldo nao pode aparecer sem acao contextual');
+
+  const save = findHubBtn(cap, /^Movimentar para Expedicao$/i);
+  assert.ok(save, 'modal deve expor botao efetivo de movimentar para Expedicao');
+  await save._listeners.click({ currentTarget: save });
+
+  assert.equal(rpcCalls.length, 1);
+  assert.equal(rpcCalls[0].fn, 'liberar_expedicao_latex_parcial');
+  assert.equal(rpcCalls[0].args.p_op_latex_id, 30);
+  assert.equal(rpcCalls[0].args.p_itens.length, 1);
+  assert.equal(rpcCalls[0].args.p_itens[0].op_item_id, 301);
+  assert.equal(rpcCalls[0].args.p_itens[0].metros, 1000);
+  assert.ok(rt.events.indexOf('reload') !== -1, 'sucesso deve recarregar a tela');
+  assert.ok(rt.events.indexOf('render') !== -1, 'sucesso deve renderizar a tela');
 });
 
 test('HUB runtime: modal lista OPs com Abrir OP e Finalizar OP para Tecelagem entregue', () => {

@@ -1086,7 +1086,7 @@
       function canMove(op, summary) {
         var remaining = ns.toFiniteNumber(summary.remaining);
         if (ns.stageKeyForOp(op) === 'tecelagem') return op.status === 'em_producao' && remaining > 0;
-        if (ns.stageKeyForOp(op) === 'acabamento') return (op.status === 'em_producao' || terminalStatus(op.status)) && remaining > 0;
+        if (ns.stageKeyForOp(op) === 'acabamento') return (op.status === 'aberta' || op.status === 'em_producao' || terminalStatus(op.status)) && remaining > 0;
         return false;
       }
       function canFinalize(op, summary) {
@@ -1113,6 +1113,7 @@
               var podeMovimentar = canMove(op, summary);
               var podeFinalizar = canFinalize(op, summary);
               var proposta = podeAceitar ? buildTecAcceptanceProposalBlock(op, { compact: true }) : null;
+              var opCarregada = ctxMovement.op && String(ctxMovement.op.id) === String(op.id);
               return window.el('div', {
                 style: 'padding:12px 14px;' + (index < ops.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : ''),
               },
@@ -1129,11 +1130,14 @@
                       : null),
                   window.el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;' },
                     relatedActionButton('Abrir OP', function () { navigateToOp(op.id); }, 'secondary'),
-                    podeMovimentar ? relatedActionButton('Movimentar', function () { openMovementModal(movementContextForStage(movementStep(op), op)); }) : null,
+                    !opCarregada && podeMovimentar ? relatedActionButton('Movimentar', function () { openMovementModal(movementContextForStage(movementStep(op), op)); }) : null,
                     podeFinalizar ? relatedActionButton('Finalizar OP', function () { finalizarOp(op); }) : null)
                 ),
                 proposta,
-                !proposta && !podeMovimentar && !podeFinalizar
+                opCarregada
+                  ? window.el('div', { style: 'font-size:11.5px;color:#2563eb;line-height:1.4;margin-top:7px;font-weight:700;' }, 'Esta OP esta carregada para movimentacao neste modal.')
+                  : null,
+                !proposta && !opCarregada && !podeMovimentar && !podeFinalizar
                   ? window.el('div', { style: 'font-size:11.5px;color:#8a93a3;line-height:1.4;margin-top:7px;' }, 'Nenhuma acao contextual disponivel agora para esta OP.')
                   : null
               );
@@ -1606,7 +1610,7 @@
         return {
           node: window.el('div', { style: 'font-size:13px;color:#5b6472;line-height:1.5;' },
             'Sem saldo recebido para movimentar. Para OP terminal, a liberacao total legada continua disponivel.'),
-          saveLabel: 'Movimentar para expedicao',
+          saveLabel: 'Movimentar para Expedicao',
           onSave: async function () {
             if (!ctxMovement.op || !window.supa) {
               window.toast('OP de acabamento indisponivel para movimentar.', 'error');
@@ -1645,7 +1649,15 @@
             })
           )
         ),
-        saveLabel: 'Movimentar para expedicao',
+        saveLabel: 'Movimentar para Expedicao',
+        fillRemaining: function () {
+          linhas.forEach(function (linha) {
+            if (linha.row.saldo > 0 && !linha.input.disabled) {
+              linha.input.value = String(linha.row.saldo);
+            }
+          });
+        },
+        hasRemaining: linhas.some(function (linha) { return linha.row.saldo > 0; }),
         onSave: async function () {
           if (!ctxMovement.op || !window.supa) {
             window.toast('OP de acabamento indisponivel para movimentar.', 'error');

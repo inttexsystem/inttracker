@@ -1,4 +1,61 @@
-﻿# Estado pos-fase - Pedido Transition Modal Related Ops Actions R2
+﻿# Estado pos-fase - Pedido Acabamento Expedicao Modal Move R1
+
+- Fase: `RAVATEX-TAPETES-PEDIDO-ACABAMENTO-EXPEDICAO-MODAL-MOVE-R1`.
+- Status: PATCH VALIDADO LOCALMENTE. Diagnosticos staging read-only OK; push
+  staging pendente por credencial GitHub local.
+- Branch/HEAD base: `work/app-next`,
+  `76195b16d7a1a2bcc3ea849a2ce31724782f2387`; status inicial somente
+  `?? supabase/.temp/`; remoto de escrita permitido: `staging/work/app-next`.
+- Push: `git push staging work/app-next` ficou preso no Git Credential Manager.
+  Nova tentativa com `GIT_TERMINAL_PROMPT=0` e `GCM_INTERACTIVE=Never` falhou
+  com falta de usuario/senha para `https://github.com`. O remoto
+  `staging/work/app-next` segue em
+  `76195b16d7a1a2bcc3ea849a2ce31724782f2387`.
+- Requisito confirmado: a seta `Acabamento -> Expedicao` no Pedido Detail
+  Admin deve permitir movimentar OP Acabamento/Latex `aberta` ou
+  `em_producao` com saldo recebido diretamente no modal, sem exigir finalizar
+  OP Latex.
+- Causa raiz: o formulario parcial ja existia no modal, mas o chain-state
+  bloqueava OP Latex `aberta`; assim `openMovementModal` caia em modo
+  historico/read-only. A secao de OPs relacionadas repetia o gate restrito e
+  podia renderizar "Nenhuma acao contextual..." ate para a OP carregada.
+- Correcoes:
+  `js/screens/pedido-chain-state.js` permite `aberta` em
+  `acabPodeMovimentar` quando ha saldo liberavel;
+  `js/screens/pedido-detail-progress.js` usa a OP indicada por
+  `chainState.actions.releaseExpedicao.op`;
+  `js/screens/pedido-detail-events.js` ajusta o gate de OPs relacionadas,
+  identifica a OP carregada no modal, mostra `Movimentar` para OPs correlatas
+  com saldo e adiciona `fillRemaining`/`hasRemaining` ao formulario de
+  Acabamento -> Expedicao.
+- Contrato canonico: o modal salva apenas via
+  `liberar_expedicao_latex_parcial`, com `p_op_latex_id`,
+  `p_itens[{ op_item_id, metros }]` e `p_observacao`; apos sucesso recarrega o
+  estado e renderiza de novo. Nao houve update/insert/delete paralelo em
+  `pedidos`, `pedido_itens`, `ops` ou `expedicoes`.
+- Testes OK:
+  `node --test tests\pedido-detail.smoke.js` 155/155;
+  `node --test tests\pedido-detail-linked-ops.smoke.js tests\expedicao-partial-flow.smoke.js tests\expedicao-flow.smoke.js tests\op-latex-admin.smoke.js tests\tec-to-acabamento-flow.smoke.js tests\production-flow-invariants.smoke.js`
+  132/132.
+- Diagnosticos staging read-only OK:
+  `node scripts/staging/production-flow-invariants-diag.mjs`;
+  `node scripts/staging/latex-consolidation-diag.mjs`;
+  `node scripts/staging/expedicao-partial-flow-diag.mjs`.
+- Arquivos alterados: `js/screens/pedido-chain-state.js`,
+  `js/screens/pedido-detail-progress.js`,
+  `js/screens/pedido-detail-events.js`, `tests/pedido-detail.smoke.js`,
+  `PROJECT_STATE.md`, `AGENT_HANDOFF.md`,
+  `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`.
+- Confirmacoes: sem SQL, sem migration, sem dados reais novos, sem finalizar
+  OP Latex, sem aceitar OP real, sem transferencia real em staging, sem
+  concluir pedido, sem alteracao de lifecycle, sem `git add .`,
+  `supabase/.temp/` fora do commit, producao/origin intocados.
+- Validacao visual recomendada: abrir um Pedido com OP Latex `aberta` e saldo
+  recebido, clicar a seta `Acabamento -> Expedicao`, conferir o formulario com
+  origem/saldo/produtos pendentes, usar `Transferir restante` apenas para
+  preencher os inputs, e salvar com `Movimentar para Expedicao`.
+
+# Estado pos-fase - Pedido Transition Modal Related Ops Actions R2
 
 - Fase: `RAVATEX-TAPETES-PEDIDO-TRANSITION-MODAL-RELATED-OPS-ACTIONS-R2`.
 - Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.

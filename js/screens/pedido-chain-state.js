@@ -220,10 +220,10 @@
     // RECEBIDO da Tecelagem (op_itens acumulados = row.target), nao um
     // movimento intermediario "registrar acabamento" (etapa='latex'). O saldo
     // movimentavel para Expedicao = recebido - ja movimentado para expedicao.
-    // Somente OP que ja confirmou entrada (em_producao/concluida/finalizada)
-    // pode movimentar.
+    // OP aberta tambem pode movimentar quando ja tem saldo recebido
+    // acumulado nos op_itens. Finalizar a OP e terminalidade formal separada.
     function acabPodeMovimentar(status) {
-      return status === 'em_producao' || status === 'concluida' || status === 'finalizada';
+      return status === 'aberta' || status === 'em_producao' || status === 'concluida' || status === 'finalizada';
     }
     var acabLiberavel = round2(acabamento.reduce(function (acc, row) {
       var recebido = acabPodeMovimentar(row.status) ? row.target : 0;
