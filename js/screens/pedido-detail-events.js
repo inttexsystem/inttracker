@@ -218,6 +218,24 @@
       }
     }
 
+    // Pilha dos modais bespoke do hub do Pedido (setas de transicao e etapa).
+    // Cada overlay proprio (z-index alto, anexado ao document.body) registra
+    // seu close aqui. Assim conseguimos FECHAR o modal pai antes de abrir a
+    // confirmacao de finalizar OP — caso contrario a confirmacao (window.modal,
+    // z menor) abriria ATRAS do modal da seta e o clique pareceria nao reagir.
+    var pedidoOverlayStack = [];
+    function registerPedidoOverlay(closeFn) {
+      pedidoOverlayStack.push(closeFn);
+      return function deregisterPedidoOverlay() {
+        var i = pedidoOverlayStack.indexOf(closeFn);
+        if (i !== -1) pedidoOverlayStack.splice(i, 1);
+      };
+    }
+    function closeTopPedidoOverlay() {
+      var closeFn = pedidoOverlayStack.pop();
+      if (typeof closeFn === 'function') closeFn();
+    }
+
     // Finalizacao de OP pelo hub do Pedido: reutiliza o contrato canonico
     // alterar_status_op(..., 'concluida'). Nao ha update direto em ops.status,
     // nao finaliza automaticamente (exige confirmacao) e nao cria write
@@ -227,6 +245,9 @@
         window.toast('OP indisponivel para finalizacao.', 'error');
         return;
       }
+      // Fecha o modal pai (seta de transicao / etapa) ANTES da confirmacao,
+      // para que ela apareca no topo e visivel. Sem gambiarra de z-index.
+      closeTopPedidoOverlay();
       window.confirmDialog({
         title: 'Finalizar OP ' + ns.opLabel(op),
         message: 'Marcar a OP ' + ns.opLabel(op) + ' como concluida? Isto encerra o total desta OP; nao e pre-requisito para movimentacoes parciais ja registradas.',
@@ -1503,14 +1524,19 @@
       if (!ctxMovement.op || !window.buildEntregaInlineForm || !window.salvarEntregaCima) {
         return null;
       }
+      // Pendência por op_item — alimenta as pills e o link "Preencher
+      // restante" dentro do card "Produtos a transferir" do form stacked.
+      var pendingByItem = computePendingByItem(ctxMovement);
+      var pendingByOpItemId = {};
+      pendingByItem.forEach(function (row) { pendingByOpItemId[row.opItemId] = row.pending; });
       var form = window.buildEntregaInlineForm({
         opItens: ctxMovement.op.op_itens || [],
         modelosById: buildModelosForEntregaForm(),
         latexOptions: state.latexOptions || [],
         comOpcaoSplit: true,
         layout: 'stacked',
+        pendingByOpItemId: pendingByOpItemId,
       });
-      var pendingByItem = computePendingByItem(ctxMovement);
       var hasRemaining = pendingByItem.some(function (row) { return row.pending > 0; });
       return {
         node: form.node,
@@ -1892,11 +1918,14 @@
       function closeModal() {
         overlay.remove();
         document.removeEventListener('keydown', escListener);
+        deregisterOverlay();
       }
 
       function escListener(evt) {
         if (evt.key === 'Escape') closeModal();
       }
+
+      var deregisterOverlay = registerPedidoOverlay(closeModal);
 
       overlay.addEventListener('click', function (evt) {
         if (evt.target === overlay) closeModal();
@@ -2344,6 +2373,13 @@
         style: 'position:fixed;inset:0;background:rgba(20,30,45,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;',
       });
 
+      function closeModal() {
+        overlay.remove();
+        deregisterOverlay();
+      }
+
+      var deregisterOverlay = registerPedidoOverlay(closeModal);
+
       var card = window.el('div', {
         style: 'position:relative;background:#fff;border:1px solid #eceef1;border-radius:' + MOVEMENT_MODAL_RADIUS + ';width:100%;max-width:520px;max-height:calc(100vh - 48px);overflow-y:auto;box-shadow:' + MOVEMENT_MODAL_SHADOW + ';',
       });
@@ -2359,7 +2395,7 @@
         window.el('button', {
           type: 'button',
           style: 'background:none;border:none;cursor:pointer;padding:4px;color:#9aa2af;line-height:0;',
-          onclick: function () { overlay.remove(); },
+          onclick: closeModal,
         }, ns.svgEl('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'))
       );
 
@@ -2370,7 +2406,7 @@
         window.el('button', {
           type: 'button',
           style: 'background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:9px 18px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
-          onclick: function () { overlay.remove(); },
+          onclick: closeModal,
         }, 'Fechar')
       );
 
@@ -2379,7 +2415,7 @@
       card.appendChild(footer);
       overlay.appendChild(card);
       overlay.addEventListener('click', function (evt) {
-        if (evt.target === overlay) overlay.remove();
+        if (evt.target === overlay) closeModal();
       });
       document.body.appendChild(overlay);
     }

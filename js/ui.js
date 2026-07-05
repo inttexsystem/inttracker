@@ -47,7 +47,7 @@ function setApp(node) {
 // Uso: modal({title, body: node, onSave, saveLabel='Salvar'})
 function modal({ title, body, onSave, saveLabel = 'Salvar', onClose }) {
   const overlay = el('div', {
-    class: 'fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-40',
+    class: 'fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-40',
     onclick: (e) => { if (e.target === overlay) close(); }
   });
 
@@ -59,17 +59,19 @@ function modal({ title, body, onSave, saveLabel = 'Salvar', onClose }) {
   function escListener(e) { if (e.key === 'Escape') close(); }
   document.addEventListener('keydown', escListener);
 
-  const card = el('div', { class: 'bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col' });
-  const header = el('div', { class: 'px-6 py-4 border-b flex justify-between items-center' },
-    el('h2', { class: 'text-lg font-semibold' }, title),
+  // Padrao visual atual: cantos pouco arredondados, borda clara, espacamento
+  // limpo e botoes consistentes com o restante da UI (#2563eb / borda #d8dce2).
+  const card = el('div', { class: 'bg-white rounded-lg shadow-xl border border-[#eceef1] w-full max-w-lg max-h-[90vh] flex flex-col' });
+  const header = el('div', { class: 'px-6 py-4 border-b border-[#eceef1] flex justify-between items-center' },
+    el('h2', { class: 'text-base font-bold text-[#16203a]' }, title),
     el('button', { class: 'text-gray-400 hover:text-gray-700 text-2xl leading-none', onclick: close }, '×')
   );
   const content = el('div', { class: 'px-6 py-4 overflow-y-auto flex-1' }, body);
 
   const btnCancel = el('button', { type: 'button',
-    class: 'px-4 py-2 rounded-lg border hover:bg-gray-50', onclick: close }, 'Cancelar');
+    class: 'px-4 py-2 rounded border border-[#d8dce2] text-[#3f4757] font-semibold hover:bg-gray-50', onclick: close }, 'Cancelar');
   const btnSave = el('button', { type: 'button',
-    class: 'px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-semibold',
+    class: 'px-5 py-2 rounded bg-[#2563eb] hover:bg-[#1e56d6] text-white font-bold',
     onclick: async () => {
       btnSave.disabled = true;
       btnSave.textContent = 'Salvando...';
@@ -83,7 +85,7 @@ function modal({ title, body, onSave, saveLabel = 'Salvar', onClose }) {
     }
   }, saveLabel);
 
-  const footer = el('div', { class: 'px-6 py-4 border-t flex justify-end gap-2' }, btnCancel, btnSave);
+  const footer = el('div', { class: 'px-6 py-4 border-t border-[#eceef1] flex justify-end gap-2' }, btnCancel, btnSave);
 
   card.appendChild(header);
   card.appendChild(content);

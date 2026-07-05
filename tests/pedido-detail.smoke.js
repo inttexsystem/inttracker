@@ -1803,6 +1803,28 @@ test('HUB: finalizarOp reutiliza alterar_status_op(concluida) sem update direto 
   assert.match(detailEvents, /finalizarOp:\s*finalizarOp/, 'finalizarOp exposto nos handlers');
 });
 
+test('HUB stacking: finalizarOp fecha o modal pai (overlay bespoke) ANTES de abrir a confirmacao', () => {
+  const finSlice = (detailEvents.match(/function finalizarOp[\s\S]*?\n    \}\n\n    function movementField/) || [''])[0];
+  assert.ok(finSlice, 'trecho finalizarOp nao encontrado');
+  // A chamada de fechar o modal pai deve preceder a confirmacao, evitando que
+  // a confirmacao (window.modal) apareca atras do modal da seta (z maior).
+  const idxClose = finSlice.indexOf('closeTopPedidoOverlay()');
+  const idxConfirm = finSlice.indexOf('confirmDialog');
+  assert.ok(idxClose !== -1, 'finalizarOp deve fechar o overlay pai via closeTopPedidoOverlay()');
+  assert.ok(idxConfirm !== -1, 'finalizarOp deve abrir a confirmacao');
+  assert.ok(idxClose < idxConfirm, 'closeTopPedidoOverlay() deve ocorrer ANTES de confirmDialog');
+});
+
+test('HUB stacking: modais bespoke da seta e da etapa registram-se na pilha de overlays', () => {
+  // Registro do overlay permite fechar o pai antes da confirmacao (root cause).
+  const registros = (detailEvents.match(/registerPedidoOverlay\(closeModal\)/g) || []).length;
+  assert.ok(registros >= 2, 'openMovementModal e openStageDetailModal devem registrar seus overlays (>=2 registros)');
+  assert.match(detailEvents, /function closeTopPedidoOverlay/, 'helper closeTopPedidoOverlay deve existir');
+  // Nao mascarar com z-index gigante: o modal da confirmacao continua sendo o
+  // window.confirmDialog padrao; a correcao e fechar o pai, nao inflar z-index.
+  assert.doesNotMatch(detailEvents, /z-index:\s*9{4,}/, 'nao deve usar z-index gigante como mascara');
+});
+
 test('HUB: modal de etapa oferece acoes contextuais curtas por OP/expedicao', () => {
   assert.ok(stageBodySlice, 'trecho buildStageDetailBody nao encontrado');
   for (const label of ['Abrir OP', 'Aceitar OP', 'Finalizar OP', 'Movimentar', 'Entregar', 'Abrir Expedicao', 'Gerar primeira OP', 'Concluir']) {

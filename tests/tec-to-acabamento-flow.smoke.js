@@ -725,21 +725,24 @@ const STACKED_ARGS = {
   comOpcaoSplit: true,
 };
 
-test('MODAL-LAYOUT-R1 caso 1: layout stacked renderiza Nome, depois Data/Destino/Metros', () => {
+test('MODAL-LAYOUT-R1 caso 1: layout stacked coloca dados gerais (Data/Destino) no topo, depois Nome/Metros por produto', () => {
   const h = makeEntregaFormSandbox();
   const result = h.sandbox.window.buildEntregaInlineForm(Object.assign({}, STACKED_ARGS, { layout: 'stacked' }));
   const text = h.collectText(result.node);
 
-  const idxNome = text.indexOf('Modelo A');
   const idxData = text.indexOf('Data');
   const idxDestino = text.indexOf('Destino');
+  const idxProdutos = text.indexOf('Produtos a transferir');
+  const idxNome = text.indexOf('Modelo A');
   const idxMetros = text.indexOf('Metros');
-  assert.ok(idxNome >= 0, 'Nome do item deve aparecer no form');
   assert.ok(idxData >= 0, 'label Data deve aparecer no form');
-  assert.ok(idxNome < idxData, 'Nome do item deve vir ANTES de Data');
-  assert.ok(idxNome < idxDestino, 'Nome do item deve vir ANTES de Destino');
-  assert.ok(idxData < idxMetros, 'Data deve vir ANTES de Metros no layout final');
-  assert.ok(idxDestino < idxMetros, 'Destino deve vir ANTES de Metros no layout final');
+  assert.ok(idxDestino >= 0, 'label Destino deve aparecer no form');
+  assert.ok(idxProdutos >= 0, 'card "Produtos a transferir" deve aparecer');
+  assert.ok(idxNome >= 0, 'Nome do item deve aparecer no form');
+  assert.ok(idxData < idxNome, 'Data (dado geral) deve vir ANTES do Nome do produto');
+  assert.ok(idxDestino < idxNome, 'Destino (dado geral) deve vir ANTES do Nome do produto');
+  assert.ok(idxProdutos < idxNome, 'cabeçalho do card deve vir ANTES do primeiro produto');
+  assert.ok(idxNome < idxMetros, 'Metros deve ser por produto, DEPOIS do Nome do item');
 });
 
 test('MODAL-LAYOUT-R1 caso 2: layout stacked coloca Observação DEPOIS de Data/Destino/Metros', () => {
@@ -790,6 +793,39 @@ test('MODAL-LAYOUT-R1 caso 5: layout inline (default) permanece com Data ANTES d
   const idxNome = text.indexOf('Modelo A');
   assert.ok(idxData >= 0 && idxNome >= 0);
   assert.ok(idxData < idxNome, 'no layout inline histórico, o cabeçalho Data/Destino continua ANTES dos itens');
+});
+
+test('MODAL-LAYOUT-R1 caso 5b: stacked com pendência renderiza pill "pendente" e link "Preencher restante" que preenche Metros', () => {
+  const h = makeEntregaFormSandbox();
+  const result = h.sandbox.window.buildEntregaInlineForm(Object.assign({}, STACKED_ARGS, {
+    layout: 'stacked',
+    pendingByOpItemId: { 1: 40 },
+  }));
+  const text = h.collectText(result.node);
+  assert.match(text, /Produtos a transferir/, 'card deve ter cabeçalho "Produtos a transferir"');
+  assert.match(text, /pendente/, 'produto com saldo deve exibir pill de pendência');
+
+  const link = h.findChildByText(result.node, 'Preencher restante');
+  assert.ok(link, 'link "Preencher restante" deve aparecer quando há pendência');
+
+  // Antes de clicar, Metros vazio => sem linhas no payload.
+  assert.equal(result.getPayload().linhas.length, 0, 'sem clique, nenhuma linha preenchida');
+  link.dispatchEvent('click');
+  const linhas = result.getPayload().linhas;
+  assert.equal(linhas.length, 1, 'após "Preencher restante", a linha com pendência é preenchida');
+  assert.equal(linhas[0].metros_entregues, 40, 'Metros deve receber o pendente do produto');
+});
+
+test('MODAL-LAYOUT-R1 caso 5c: stacked sem pendência não mostra link e marca produto "sem pendência"', () => {
+  const h = makeEntregaFormSandbox();
+  const result = h.sandbox.window.buildEntregaInlineForm(Object.assign({}, STACKED_ARGS, {
+    layout: 'stacked',
+    pendingByOpItemId: { 1: 0 },
+  }));
+  const text = h.collectText(result.node);
+  assert.match(text, /sem pendência/, 'produto sem saldo deve exibir "sem pendência"');
+  assert.equal(h.findChildByText(result.node, 'Preencher restante'), null,
+    'sem pendência, o link "Preencher restante" não deve aparecer');
 });
 
 test('MODAL-LAYOUT-R1 caso 6: estático — buildTecelagemTransferForm passa layout stacked ao helper canônico', () => {
