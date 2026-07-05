@@ -342,11 +342,11 @@
       + 'background:' + tone.bg + ';color:' + tone.color + ';border:none;'
       + 'font-size:11px;font-weight:700;font-family:inherit;line-height:1;letter-spacing:.02em;white-space:nowrap;box-sizing:border-box;'
       + 'clip-path:polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%, 13px 50%);'
-      + 'cursor:' + (visual.state === 'waiting' ? 'not-allowed' : (clickable ? 'pointer' : 'default')) + ';'
+      + 'cursor:' + (clickable ? 'pointer' : 'default') + ';'
       + (visual.state === 'active' && clickable ? 'filter:drop-shadow(0 1.5px 1.5px rgba(37,99,235,.35));' : '');
   }
 
-  function buildTransferButton(stage, handlers) {
+  function buildTransferButton(stage, handlers, view) {
     if (!stage.transfer) {
       return window.el('div', { style: 'display:flex;align-items:center;justify-content:center;height:42px;' });
     }
@@ -355,12 +355,21 @@
     var disabled = mode === 'disabled' || (!stage.transfer.op && (stage.transfer.title !== 'Registrar saida para entrega'));
     var visual = buildConnectorVisual(action, disabled);
     var title = buildConnectorTitle(stage, action, visual);
-    var clickable = visual.state === 'active' || visual.state === 'done';
+    var canOpenStageHub = visual.state === 'waiting' && typeof handlers.openStageDetailModal === 'function';
+    var clickable = visual.state === 'active' || visual.state === 'done' || canOpenStageHub;
     if (visual.state === 'waiting') {
       return window.el('div', {
         style: 'display:flex;align-items:center;justify-content:center;height:42px;',
       },
-        window.el('div', {
+        canOpenStageHub ? window.el('button', {
+          type: 'button',
+          title: title,
+          'aria-label': title,
+          style: buildConnectorStyle(visual, true),
+          onclick: function () {
+            handlers.openStageDetailModal(stage, view);
+          },
+        }, visual.label) : window.el('div', {
           title: title,
           'aria-label': title,
           style: buildConnectorStyle(visual, false),
@@ -389,7 +398,7 @@
         ? function () { handlers.openStageDetailModal(stage, view); }
         : null));
       if (index < view.stepper.length - 1) {
-        gridChildren.push(buildTransferButton(stage, handlers));
+        gridChildren.push(buildTransferButton(stage, handlers, view));
       }
     });
 

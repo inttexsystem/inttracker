@@ -1,4 +1,77 @@
-﻿# Estado pos-fase - Pedido Stage Action Hub B
+﻿# Estado pos-fase - Pedido Stage Blocker Explanation R1
+
+- Fase: `RAVATEX-TAPETES-PEDIDO-STAGE-BLOCKER-EXPLANATION-R1`.
+- Status: OK local / push staging bloqueado por autenticacao GitHub. Patch
+  leve em JS + testes + docs; sem SQL, migration, producao ou dados novos.
+- Branch/HEAD base: `work/app-next`,
+  `9d511ab7eb7006d75a1c45bcb2e8603b34b7dfea`.
+- Validacao inicial: branch correta, HEAD esperado, status inicial somente
+  `?? supabase/.temp/`; remoto `staging` confirmado e `origin` nao usado para
+  escrita.
+- Diagnostico:
+  - bolinhas/etapas ja abriam `openStageDetailModal` e o hub contextual;
+  - setas ativas/de historico ja abriam `openMovementModal`;
+  - a seta `Aguardar` era visualmente passiva, gerando confusao sobre onde
+    ver motivo, OP/expedicao envolvida e proxima acao.
+- Regra final:
+  - clique em etapa/bolinha: sempre abre o hub contextual da etapa;
+  - clique em seta com acao direta ou historico (`Transferir`/`Concluido`):
+    abre `openMovementModal(stage.transfer)`;
+  - clique em seta bloqueada (`Aguardar`): abre o hub/explicacao da etapa;
+  - setas continuam com texto curto; nenhuma explicacao longa entra na seta;
+  - explicacoes, metricas e acoes aparecem no hub.
+- Comportamento por etapa no hub:
+  - Insumos/inicio: pedido sem OP explica o bloqueio e oferece `Gerar
+    primeira OP`;
+  - Tecelagem: OP aberta explica aceite pendente e oferece `Aceitar OP`;
+    saldo disponivel oferece `Transferir`; saldo 0 em producao explica
+    "Tecelagem entregue; finalizar OP" e oferece `Finalizar OP`;
+  - Acabamento: saldo recebido nao movimentado oferece `Movimentar`; sem
+    material recebido, OP ainda nao movivel ou tudo ja movimentado recebem
+    motivo curto e proxima etapa; saldo 0 em producao oferece `Finalizar OP`;
+  - Expedicao: saldo liberado oferece `Entregar`; sem expedicao liberada
+    explica "Nenhuma quantidade movimentada para Expedicao";
+  - Entrega: pedido apto oferece `Concluir`; pedido nao apto lista pendencias.
+- Reuso canonico preservado: `openMovementModal`, `openTecAcceptanceModal`,
+  `finalizarOp`/`alterar_status_op`, `concluirPedido`/
+  `concluir_pedido_se_pronto`, `navigateToOp`, `navigateToExpedicao`,
+  `navigateToNovaOp`.
+- Garantias: sem write paralelo no Pedido, sem update direto em `ops.status`,
+  sem finalizacao automatica de OP, sem alteracao do read model Cliente, sem
+  alteracao de Acabamento -> Expedicao direta, sem mexer em split/
+  consolidacao Latex.
+- Testes locais obrigatorios OK:
+  - `node --test tests\pedido-detail.smoke.js` = 142/142;
+  - `node --test tests\pedido-detail-linked-ops.smoke.js` = 7/7;
+  - `node --test tests\tec-to-acabamento-flow.smoke.js` = 30/30;
+  - `node --test tests\op-latex-admin.smoke.js` = 53/53;
+  - `node --test tests\expedicao-partial-flow.smoke.js` = 12/12;
+  - `node --test tests\expedicao-flow.smoke.js` = 8/8;
+  - `node --test tests\entrega-writes.smoke.js` = 70/70;
+  - `node --test tests\op-latex-split.smoke.js` = 28/28;
+  - total local: 350/350 OK.
+- Diagnosticos staging read-only OK:
+  - `node scripts/staging/production-flow-invariants-diag.mjs`;
+  - `node scripts/staging/latex-consolidation-diag.mjs`;
+  - `node scripts/staging/expedicao-partial-flow-diag.mjs`.
+- Arquivos alterados:
+  - `js/screens/pedido-detail-render.js`;
+  - `js/screens/pedido-detail-events.js`;
+  - `tests/pedido-detail.smoke.js`;
+  - `PROJECT_STATE.md`;
+  - `AGENT_HANDOFF.md`.
+- Proximo backlog recomendado: `PEDIDO-FIRST-OP-CTA-PLACEMENT-R1` (mantido
+  fora desta fase), depois `TEC-TO-ACABAMENTO-MODAL-LAYOUT-R1` se a validacao
+  visual pedir ajuste de largura/layout do modal de transferencia.
+- Confirmacoes: producao intocada, `origin` nao usado para escrita, nenhum
+  segredo impresso intencionalmente, sem SQL, sem migration, sem dados reais
+  novos, sem alteracao destrutiva, sem `git add .`, `supabase/.temp/` fora do
+  escopo.
+- Commit local criado; push para `staging` tentou 3 vezes, travou no
+  gerenciador de credenciais e a tentativa controlada sem prompt falhou por
+  autenticacao ausente para GitHub.
+
+# Estado pos-fase - Pedido Stage Action Hub B
 
 - Fase: `RAVATEX-TAPETES-PEDIDO-STAGE-ACTION-HUB-B`.
 - Status: OK. Patch em JS + testes + docs; sem SQL/migration/producao/dados

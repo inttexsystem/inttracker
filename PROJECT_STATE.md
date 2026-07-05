@@ -1,4 +1,60 @@
 > **Atualizacao 2026-07-05 - fase
+> `RAVATEX-TAPETES-PEDIDO-STAGE-BLOCKER-EXPLANATION-R1`.**
+> Status: OK local / push staging bloqueado por autenticacao GitHub. Patch
+> leve em JS + testes + docs; sem SQL/migration/producao e sem dados novos.
+>
+> Diagnostico: a fase anterior ja tinha transformado a bolinha/etapa em hub
+> contextual (`openStageDetailModal` -> `buildStageDetailBody`) e mantido as
+> setas ativas/de historico em `openMovementModal`. A confusao restante era
+> que a seta `Aguardar` continuava visualmente passiva: o operador via o
+> bloqueio, mas precisava descobrir sozinho se deveria clicar na etapa, na OP
+> ou na expedicao. O render agora mantem a seta com texto curto (`Aguardar`),
+> porem ela vira botao explicativo e abre o hub da etapa correspondente. As
+> setas ativas/de historico seguem abrindo `openMovementModal`.
+>
+> Regra final consolidada: bolinha/etapa sempre abre o hub contextual com
+> OPs/expedicoes, metricas, motivos e acoes; seta com acao direta unica
+> continua abrindo o modal de transicao/historico canonico; seta bloqueada
+> `Aguardar` abre o hub/explicacao da etapa; explicacao longa nunca entra na
+> seta; rotulos de seta permanecem curtos (`Concluido`, `Transferir`,
+> `Aguardar`).
+>
+> Bloqueios/explicacoes implementados no hub: Pedido sem OP -> "Gerar
+> primeira OP"; OP Tecelagem pendente de aceite -> "Aceitar OP"; Tecelagem
+> entregue com OP ainda em producao -> "Finalizar OP"; Tecelagem com saldo ->
+> "Transferir"; Acabamento com saldo recebido nao movimentado -> "Movimentar
+> para Expedicao"; Acabamento sem material recebido / OP ainda nao movivel /
+> tudo ja movimentado -> motivo curto + proxima etapa; Expedicao com saldo ->
+> "Entregar"; sem expedicao liberada -> "Nenhuma quantidade movimentada para
+> Expedicao"; Entrega apta -> "Concluir"; Entrega nao apta -> lista de
+> pendencias.
+>
+> Reuso canonico preservado: `openMovementModal`, `openTecAcceptanceModal`,
+> `finalizarOp` -> `alterar_status_op`, `concluirPedido` ->
+> `concluir_pedido_se_pronto`, navegacao `Abrir OP`/`Abrir Expedicao`/
+> `Gerar primeira OP`. Nao houve write paralelo no Pedido, nem update direto
+> em `ops.status`, nem finalizacao automatica de OP.
+>
+> Testes locais obrigatorios OK: `pedido-detail.smoke.js` (142/142, com
+> novo runtime de clique em `Aguardar`), `pedido-detail-linked-ops.smoke.js`
+> (7/7), `tec-to-acabamento-flow.smoke.js` (30/30),
+> `op-latex-admin.smoke.js` (53/53), `expedicao-partial-flow.smoke.js`
+> (12/12), `expedicao-flow.smoke.js` (8/8), `entrega-writes.smoke.js`
+> (70/70), `op-latex-split.smoke.js` (28/28). Total: 350/350 OK.
+> Diagnosticos staging read-only OK: invariantes do fluxo produtivo,
+> consolidacao Latex e expedicao partial. Staging analisado:
+> `ucrjtfswnfdlxwtmxnoo`; producao `bhgifjrfagkzubpyqpew` intocada.
+>
+> Arquivos alterados: `js/screens/pedido-detail-render.js`,
+> `js/screens/pedido-detail-events.js`, `tests/pedido-detail.smoke.js`,
+> `PROJECT_STATE.md`, `AGENT_HANDOFF.md`. Proximo backlog recomendado:
+> `PEDIDO-FIRST-OP-CTA-PLACEMENT-R1` (sem resolver nesta fase), depois
+> `TEC-TO-ACABAMENTO-MODAL-LAYOUT-R1` se o modal de transferencia ficar
+> apertado em validacao visual. Commit local criado; push para `staging`
+> tentou 3 vezes, travou no gerenciador de credenciais e a tentativa
+> controlada sem prompt falhou com autenticacao ausente para GitHub.
+
+> **Atualizacao 2026-07-05 - fase
 > `RAVATEX-TAPETES-PEDIDO-STAGE-ACTION-HUB-B`.**
 > Status: OK. Patch em JS + testes, sem SQL/migration/producao. O modal de
 > etapa do Pedido virou um hub contextual: opera o fluxo comum sem obrigar

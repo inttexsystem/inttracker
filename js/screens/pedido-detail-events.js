@@ -1593,6 +1593,20 @@
       var reasonRow = function (msg) {
         return window.el('div', { style: 'font-size:11.5px;color:#8a93a3;margin-top:4px;line-height:1.4;' }, msg);
       };
+      var infoRow = function (msg, tone) {
+        var styles = {
+          info: { bg: '#f6f9ff', border: '#d0e0fb', color: '#2c4a78' },
+          warn: { bg: '#fff9ee', border: '#fbe8c6', color: '#8a5a15' },
+          ok: { bg: '#e7f4ec', border: '#c2e7d1', color: '#2f8256' },
+        };
+        var s = styles[tone || 'info'] || styles.info;
+        return window.el('div', {
+          style: 'display:flex;align-items:flex-start;gap:8px;background:' + s.bg + ';border:1px solid ' + s.border + ';border-radius:4px;padding:10px 12px;margin-top:10px;',
+        },
+          ns.svgEl(ns.SVG_INFO),
+          window.el('div', { style: 'font-size:12.5px;color:' + s.color + ';line-height:1.4;' }, msg)
+        );
+      };
       // Reusa o objeto de transferencia canonico do stepper (mesma origem/
       // destino/RPC) forcando a acao para o modal de movimentacao existente.
       var stageTransfer = function (stepKey, op) {
@@ -1621,6 +1635,9 @@
                 window.el('div', { style: 'font-size:12.5px;color:#2c4a78;line-height:1.4;min-width:180px;' },
                   'Pedido ainda sem OP vinculada. Gere a primeira OP para iniciar o fluxo produtivo.'),
                 actionBtn('Gerar primeira OP', function () { navigateToNovaOp(); }))
+            : null,
+          semOp
+            ? infoRow('Pedido ainda nao possui OP vinculada. Proxima acao: Gerar primeira OP neste hub.', 'info')
             : null,
           sectionTitle('Ordens de fio'),
           insumos.ordens.length
@@ -1658,8 +1675,8 @@
                 ns.svgEl(ns.SVG_INFO),
                 window.el('div', { style: 'font-size:12.5px;color:#8a5a15;line-height:1.4;' },
                   tecPend
-                    ? 'OP de Tecelagem pendente de aceite. Use "Aceitar OP" acima para liberar a producao.'
-                    : 'OP de Tecelagem pendente de aceite. Insumos recebidos, mas a OP ainda precisa ser aceita para liberar producao.'))
+                    ? 'OP de Tecelagem pendente de aceite. Proxima acao: Aceitar OP neste hub ou abrir a OP.'
+                    : 'OP de Tecelagem pendente de aceite. Insumos recebidos; proxima acao: Aceitar OP.'))
             : null
         );
       }
@@ -1680,7 +1697,7 @@
                   var terminalidadeLabel = terminal
                     ? 'Finalizacao explicita registrada no status da OP.'
                     : (saldoEntregue
-                      ? 'Saldo produtivo entregue; falta finalizar a OP de Tecelagem.'
+                      ? 'Tecelagem entregue; finalizar OP.'
                       : 'Tecelagem ainda possui saldo produtivo pendente.');
                   var podeAceitar = op.status === 'aberta';
                   var podeFinalizar = op.status === 'em_producao' && saldoEntregue && !terminal;
@@ -1698,6 +1715,8 @@
                     window.el('div', { style: 'font-size:12.5px;color:#5b6472;margin-top:4px;line-height:1.4;' },
                       'Target: ' + ns.fmtMetros(summary.target || 0) + ' | Transferido: ' + ns.fmtMetros(summary.done || 0) + ' | Pendente: ' + ns.fmtMetros(summary.remaining || 0)),
                     window.el('div', { style: 'font-size:12px;color:' + (terminal ? '#18794a' : (saldoEntregue ? '#c2610c' : '#8a93a3')) + ';margin-top:2px;font-weight:600;' }, terminalidadeLabel),
+                    podeTransferir ? reasonRow('Ha saldo disponivel para transferir. Proxima acao: Transferir para Acabamento.') : null,
+                    podeFinalizar ? reasonRow('Saldo produtivo entregue. Proxima acao: Finalizar OP neste hub.') : null,
                     semAcao && !terminal ? reasonRow('Sem acao disponivel agora nesta OP.') : null,
                     summary.modelNames && summary.modelNames.length
                       ? window.el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:2px;' }, 'Modelos: ' + summary.modelNames.join(', '))
@@ -1753,7 +1772,7 @@
                 style: 'display:flex;align-items:flex-start;gap:8px;background:#fff9ee;border:1px solid #fbe8c6;border-radius:4px;padding:10px 12px;margin-top:10px;',
               },
                 ns.svgEl(ns.SVG_INFO),
-                window.el('div', { style: 'font-size:12.5px;color:#8a5a15;line-height:1.4;' }, 'OP pendente de aceite — necessario confirmar entrada na producao.'))
+                window.el('div', { style: 'font-size:12.5px;color:#8a5a15;line-height:1.4;' }, 'OP Tecelagem pendente de aceite. Proxima acao: Aceitar OP neste hub.'))
             : null
         );
       }
@@ -1782,6 +1801,18 @@
                   var movivel = op.status === 'em_producao' || terminal;
                   var podeMovimentar = movivel && disponivel > 0;
                   var podeFinalizar = op.status === 'em_producao' && recebido > 0 && disponivel <= 0 && !terminal;
+                  var motivoBloqueio = null;
+                  if (!podeMovimentar && !podeFinalizar) {
+                    if (recebido <= 0) {
+                      motivoBloqueio = 'Sem material recebido da Tecelagem. Proxima acao: transferir material pela etapa Tecelagem.';
+                    } else if (!movivel) {
+                      motivoBloqueio = 'OP Acabamento ainda nao esta em producao para movimentar. Abra a OP para revisar o status.';
+                    } else if (disponivel <= 0 && exp) {
+                      motivoBloqueio = 'Tudo ja movimentado para Expedicao. Proxima acao: Entregar pela etapa Expedicao.';
+                    } else if (disponivel <= 0) {
+                      motivoBloqueio = 'Sem saldo em acabamento disponivel para movimentar.';
+                    }
+                  }
                   return window.el('div', { style: 'margin-bottom:10px;' },
                     window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;' },
                       window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;' },
@@ -1792,9 +1823,9 @@
                         podeFinalizar ? actionBtn('Finalizar OP', function () { finalizarOp(op); }) : null)),
                     window.el('div', { style: 'font-size:12.5px;color:#5b6472;margin-top:4px;line-height:1.4;' },
                       'Recebido: ' + ns.fmtMetros(recebido) + ' | Movimentado: ' + ns.fmtMetros(movido) + ' | Disponivel: ' + ns.fmtMetros(disponivel) + ' | Entregue: ' + ns.fmtMetros(entregueOp)),
-                    !podeMovimentar && !podeFinalizar && disponivel <= 0 && exp
-                      ? reasonRow('Sem saldo em acabamento; prossiga na etapa Expedicao/Entrega.')
-                      : null,
+                    podeMovimentar ? reasonRow('Ha saldo em acabamento nao movimentado. Proxima acao: Movimentar para Expedicao.') : null,
+                    podeFinalizar ? reasonRow('Saldo 0 em acabamento. Proxima acao: Finalizar OP neste hub.') : null,
+                    motivoBloqueio ? reasonRow(motivoBloqueio) : null,
                     fornecedor
                       ? window.el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:2px;' }, 'Fornecedor: ' + fornecedor.nome)
                       : null
@@ -1836,6 +1867,9 @@
                       podeEntregar ? actionBtn('Entregar', openMovimentar('expedicao', exp.op || null)) : null)),
                   window.el('div', { style: 'font-size:12.5px;color:#5b6472;margin-top:4px;line-height:1.4;' },
                     'Liberado: ' + ns.fmtMetros(exp.liberado) + ' | Entregue: ' + ns.fmtMetros(exp.entregue) + ' | Saldo: ' + ns.fmtMetros(exp.saldo)),
+                  podeEntregar
+                    ? reasonRow('Ha saldo liberado nesta expedicao. Proxima acao: Entregar.')
+                    : null,
                   !podeEntregar
                     ? reasonRow('Sem saldo liberado pendente de entrega/coleta.')
                     : null,
@@ -1845,6 +1879,9 @@
                 );
               })
             : emptyRow('Nenhuma expedicao criada.'),
+          expSummaries.length === 0
+            ? infoRow('Nenhuma quantidade movimentada para Expedicao. Proxima acao: movimentar pela etapa Acabamento.', 'warn')
+            : null,
           expSummaries.length === 0 && (view && view.prontoExpedicao > 0)
             ? window.el('div', {
                 style: 'display:flex;align-items:flex-start;gap:8px;background:#f6f9ff;border:1px solid #d0e0fb;border-radius:4px;padding:10px 12px;margin-top:10px;',

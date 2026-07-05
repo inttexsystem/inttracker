@@ -261,7 +261,7 @@ test('TEC-STAGE-FINALIZATION-A-B: Pedido Detail diferencia saldo entregue de con
     'computeViewModel deve calcular terminalidade real da Tecelagem');
   assert.match(detailProgress, /entregue; finalizar OP/,
     'saldo zerado sem status terminal deve pedir finalizacao explicita, nao "concluido"');
-  assert.match(detailEvents, /Saldo produtivo entregue; falta finalizar a OP de Tecelagem\./,
+  assert.match(detailEvents, /Tecelagem entregue; finalizar OP\./,
     'modal da etapa deve explicar a diferenca entre saldo e terminalidade');
 });
 
@@ -283,7 +283,7 @@ test('pedido-detail: conectores do progresso usam labels visuais curtos', () => 
     /function isConnectorDoneAction\s*\(action\)\s*\{[\s\S]*?\n  function buildStepper/
   ) || [''])[0];
   const connectorSlice = (detailRender.match(
-    /function buildTransferButton\s*\(stage,\s*handlers\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
+    /function buildTransferButton\s*\(stage,\s*handlers,\s*view\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
   ) || [''])[0];
   assert.ok(connectorRegion, 'trecho dos helpers de conector nao encontrado');
   assert.ok(connectorSlice, 'trecho buildTransferButton nao encontrado');
@@ -298,7 +298,7 @@ test('pedido-detail: conectores do progresso usam labels visuais curtos', () => 
 
 test('pedido-detail: pipeline nao renderiza textos longos da matriz nos conectores', () => {
   const connectorSlice = (detailRender.match(
-    /function buildTransferButton\s*\(stage,\s*handlers\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
+    /function buildTransferButton\s*\(stage,\s*handlers,\s*view\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
   ) || [''])[0];
   assert.ok(connectorSlice, 'trecho buildTransferButton nao encontrado');
   assert.doesNotMatch(connectorSlice, /Insumos conclu[ií]dos/i);
@@ -314,7 +314,7 @@ test('pedido-detail: conectores continuam como setas integradas, nao badges solt
     /function isConnectorDoneAction\s*\(action\)\s*\{[\s\S]*?\n  function buildStepper/
   ) || [''])[0];
   const connectorSlice = (detailRender.match(
-    /function buildTransferButton\s*\(stage,\s*handlers\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
+    /function buildTransferButton\s*\(stage,\s*handlers,\s*view\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
   ) || [''])[0];
   assert.ok(connectorRegion, 'trecho dos helpers de conector nao encontrado');
   assert.ok(connectorSlice, 'trecho buildTransferButton nao encontrado');
@@ -331,12 +331,12 @@ test('pedido-detail: conectores continuam como setas integradas, nao badges solt
   assert.doesNotMatch(connectorRegion, /border:\s*1px solid/);
 });
 
-test('pedido-detail: Transferir e Concluido abrem transicao; Aguardar permanece sem handler', () => {
+test('pedido-detail: Transferir e Concluido abrem transicao; Aguardar abre hub explicativo', () => {
   const connectorRegion = (detailRender.match(
     /function isConnectorDoneAction\s*\(action\)\s*\{[\s\S]*?\n  function buildStepper/
   ) || [''])[0];
   const connectorSlice = (detailRender.match(
-    /function buildTransferButton\s*\(stage,\s*handlers\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
+    /function buildTransferButton\s*\(stage,\s*handlers,\s*view\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
   ) || [''])[0];
   assert.ok(connectorRegion, 'trecho dos helpers de conector nao encontrado');
   assert.ok(connectorSlice, 'trecho buildTransferButton nao encontrado');
@@ -344,8 +344,10 @@ test('pedido-detail: Transferir e Concluido abrem transicao; Aguardar permanece 
     'action hidden deve renderizar Aguardar, nao sumir');
   assert.match(connectorSlice, /var\s+clickable\s*=\s*visual\.state === ['"]active['"] \|\| visual\.state === ['"]done['"]/,
     'Concluido deve ficar clicavel para abrir historico da transicao');
-  assert.match(connectorSlice, /window\.el\(['"]div['"][\s\S]*?buildConnectorStyle\(visual,\s*false\)/,
-    'Aguardar deve ser elemento estatico sem handler');
+  assert.match(connectorSlice, /var\s+canOpenStageHub\s*=\s*visual\.state === ['"]waiting['"][\s\S]*?handlers\.openStageDetailModal/,
+    'Aguardar deve abrir o hub da etapa quando houver explicacao');
+  assert.match(connectorSlice, /handlers\.openStageDetailModal\(stage,\s*view\)/,
+    'clique em Aguardar deve abrir o hub contextual da etapa');
   assert.match(connectorSlice, /window\.el\(['"]button['"][\s\S]*?handlers\.openMovementModal\(stage\.transfer\)/,
     'Transferir/Concluido devem abrir o modal de transicao do Pedido');
   assert.doesNotMatch(connectorSlice, /visual\.state === ['"]view['"]/);
@@ -1376,8 +1378,8 @@ test('stepper-modals-B: botao "Fechar" unico CTA do modal (sem Salvar/Transferir
 test('stepper-modals-B: setas de transicao continuam usando openMovementModal', () => {
   assert.match(detailRender, /handlers\.openMovementModal\(stage\.transfer\)/,
     'botoes de transferencia devem continuar usando openMovementModal');
-  assert.match(detailRender, /buildTransferButton\(stage,\s*handlers\)/,
-    'buildTransferButton deve continuar recebendo handlers');
+  assert.match(detailRender, /buildTransferButton\(stage,\s*handlers,\s*view\)/,
+    'buildTransferButton deve receber handlers e view para acao direta ou hub');
 });
 
 test('stepper-modals-B: modal Acabamento mostra OPs latex e fornecedor', () => {
@@ -1736,6 +1738,23 @@ test('HUB: modal de etapa oferece acoes contextuais curtas por OP/expedicao', ()
   }
 });
 
+test('BLOCKER: hub explica bloqueios com motivo e proxima acao fora da seta', () => {
+  assert.ok(stageBodySlice, 'trecho buildStageDetailBody nao encontrado');
+  for (const text of [
+    'Pedido ainda nao possui OP vinculada. Proxima acao: Gerar primeira OP neste hub.',
+    'OP de Tecelagem pendente de aceite. Proxima acao: Aceitar OP',
+    'Tecelagem entregue; finalizar OP.',
+    'Saldo produtivo entregue. Proxima acao: Finalizar OP neste hub.',
+    'Sem material recebido da Tecelagem.',
+    'Tudo ja movimentado para Expedicao.',
+    'Ha saldo em acabamento nao movimentado. Proxima acao: Movimentar para Expedicao.',
+    'Nenhuma quantidade movimentada para Expedicao.',
+    'Ha saldo liberado nesta expedicao. Proxima acao: Entregar.',
+  ]) {
+    assert.ok(stageBodySlice.indexOf(text) !== -1, 'hub deve explicar: ' + text);
+  }
+});
+
 test('HUB: acoes do modal delegam a handlers canonicos (sem write inline)', () => {
   // Delegacao a helpers canonicos.
   assert.match(stageBodySlice, /finalizarOp\(op\)/);
@@ -1852,6 +1871,36 @@ function hubTecAcab(ns, latexStatus) {
   s.opLatexEntregas = [{ op_latex_id: 30, entrega_id: 'e1' }];
   return s;
 }
+
+test('BLOCKER runtime: clique em seta Aguardar abre hub contextual da etapa', () => {
+  const rt = makeHubRuntime();
+  const s = hubBase(rt.ns);
+  const view = rt.ns.computeViewModel(s);
+  const container = rt.node('div');
+  const handlers = {
+    buildEditButton: () => rt.node('button'),
+    navigateToPedidos: () => {},
+    scrollToSection: () => {},
+    openStatusActions: () => {},
+    navigateToNovaOp: () => {},
+    navigateToOp: () => {},
+    navigateToExpedicao: () => {},
+    concluirPedido: () => {},
+    openTrackingModal: () => {},
+    openMovementModal: () => { rt.events.push('movement'); },
+    openStageDetailModal: (stage, stageView) => {
+      rt.events.push('stage:' + stage.key + ':' + (stageView === view ? 'same-view' : 'other-view'));
+    },
+  };
+  rt.ns.renderPedidoDetailScreen({ container, state: s, view, handlers, loadingError: null });
+  const wait = findHubBtn(container, /^Aguardar$/i);
+  assert.ok(wait, 'seta Aguardar deve renderizar como botao clicavel');
+  wait._listeners.click({});
+  assert.ok(rt.events.indexOf('stage:insumos:same-view') !== -1,
+    'Aguardar da transicao inicial deve abrir o hub da etapa Insumos');
+  assert.equal(rt.events.indexOf('movement'), -1,
+    'Aguardar bloqueado nao deve abrir modal de movimentacao direta');
+});
 
 test('HUB runtime: modal lista OPs com Abrir OP e Finalizar OP para Tecelagem entregue', () => {
   const rt = makeHubRuntime();
