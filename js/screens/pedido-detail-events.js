@@ -218,6 +218,45 @@
       }
     }
 
+    // Finalizacao de OP pelo hub do Pedido: reutiliza o contrato canonico
+    // alterar_status_op(..., 'concluida'). Nao ha update direto em ops.status,
+    // nao finaliza automaticamente (exige confirmacao) e nao cria write
+    // paralelo — e a mesma RPC usada pelas telas de OP.
+    function finalizarOp(op) {
+      if (!op || op.id == null) {
+        window.toast('OP indisponivel para finalizacao.', 'error');
+        return;
+      }
+      window.confirmDialog({
+        title: 'Finalizar OP ' + ns.opLabel(op),
+        message: 'Marcar a OP ' + ns.opLabel(op) + ' como concluida? Isto encerra o total desta OP; nao e pre-requisito para movimentacoes parciais ja registradas.',
+        confirmLabel: 'Finalizar OP',
+        onConfirm: async function () {
+          var r;
+          try {
+            r = await window.supa.rpc('alterar_status_op', {
+              p_op_id: op.id,
+              p_novo_status: 'concluida',
+              p_observacao: 'Finalizacao da OP pelo hub do Pedido',
+            });
+          } catch (e) {
+            window.toast('Erro ao finalizar OP: ' + (e && e.message ? e.message : 'falha de comunicacao'), 'error');
+            console.error('pedido-detail: alterar_status_op lancou', e);
+            return;
+          }
+          if (r.error || (r.data && r.data.ok === false)) {
+            var msg = r.error ? r.error.message : (r.data && r.data.erro ? r.data.erro : 'Nao foi possivel finalizar');
+            window.toast('Erro ao finalizar OP: ' + msg, 'error');
+            console.error(r.error || r.data);
+            return;
+          }
+          window.toast('OP ' + ns.opLabel(op) + ' concluida.', 'success');
+          await reload();
+          render();
+        },
+      });
+    }
+
     function movementField(label, value) {
       return window.el('div', {},
         window.el('label', {
@@ -1537,14 +1576,52 @@
           onclick: onclick,
         }, label);
       };
+      // Botao de acao solido (curto). As acoes REUTILIZAM handlers canonicos
+      // (finalizarOp -> alterar_status_op; openMovementModal -> forms/RPCs;
+      // openTecAcceptanceModal; concluirPedido). Nao ha write inline aqui.
+      var actionBtn = function (label, onclick) {
+        return window.el('button', {
+          type: 'button',
+          style: 'display:inline-flex;align-items:center;justify-content:center;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:7px 12px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;',
+          onclick: onclick,
+        }, label);
+      };
+      var actionsRow = function () {
+        var btns = Array.prototype.slice.call(arguments).filter(Boolean);
+        return window.el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;' }, btns);
+      };
+      var reasonRow = function (msg) {
+        return window.el('div', { style: 'font-size:11.5px;color:#8a93a3;margin-top:4px;line-height:1.4;' }, msg);
+      };
+      // Reusa o objeto de transferencia canonico do stepper (mesma origem/
+      // destino/RPC) forcando a acao para o modal de movimentacao existente.
+      var stageTransfer = function (stepKey, op) {
+        var st = ((view && view.stepper) || []).find(function (s) { return s.key === stepKey; });
+        var t = (st && st.transfer) ? st.transfer : {};
+        return Object.assign({}, t, { op: op || t.op, action: { mode: 'enabled' } });
+      };
+      var openMovimentar = function (stepKey, op) {
+        return function () { openMovementModal(stageTransfer(stepKey, op)); };
+      };
+      var terminalStatus = function (st) { return st === 'concluida' || st === 'finalizada'; };
 
       if (key === 'insumos') {
         var insumos = summarizeInsumos({ op: null });
         var tecelagens = (state.ops || []).filter(function (op) { return ns.stageKeyForOp(op) === 'tecelagem'; });
         var tecOpen = tecelagens.some(function (op) { return op.status === 'aberta' || op.status === 'simulada'; });
         var tecProduction = tecelagens.some(function (op) { return op.status === 'em_producao'; });
+        var semOp = (state.ops || []).length === 0;
+        var tecPend = view && view.chainState && view.chainState.tecPendingAcceptance;
 
         return window.el('div', {},
+          semOp
+            ? window.el('div', {
+                style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f6f9ff;border:1px solid #d0e0fb;border-radius:4px;padding:12px 14px;margin-bottom:12px;flex-wrap:wrap;',
+              },
+                window.el('div', { style: 'font-size:12.5px;color:#2c4a78;line-height:1.4;min-width:180px;' },
+                  'Pedido ainda sem OP vinculada. Gere a primeira OP para iniciar o fluxo produtivo.'),
+                actionBtn('Gerar primeira OP', function () { navigateToNovaOp(); }))
+            : null,
           sectionTitle('Ordens de fio'),
           insumos.ordens.length
             ? insumos.ordens.map(function (ordem) {
@@ -1562,12 +1639,15 @@
             ? window.el('div', {},
                 sectionTitle('OPs de Tecelagem'),
                 tecelagens.map(function (op) {
+                  var podeAceitar = op.status === 'aberta';
                   return window.el('div', {
-                    style: 'display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f3f6;',
+                    style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #f1f3f6;flex-wrap:wrap;',
                   },
                     window.el('div', { style: 'font-size:12.5px;color:#3f4757;' },
                       ns.opLabel(op) + ' · ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(op.status) : op.status)),
-                    linkBtn('Abrir OP', function () { navigateToOp(op.id); }));
+                    actionsRow(
+                      linkBtn('Abrir OP', function () { navigateToOp(op.id); }),
+                      podeAceitar ? actionBtn('Aceitar OP', function () { openTecAcceptanceModal({ op: op }); }) : null));
                 })
               )
             : null,
@@ -1577,7 +1657,9 @@
               },
                 ns.svgEl(ns.SVG_INFO),
                 window.el('div', { style: 'font-size:12.5px;color:#8a5a15;line-height:1.4;' },
-                  'OP de Tecelagem pendente de aceite. Insumos recebidos, mas a OP ainda precisa ser aceita para liberar producao.'))
+                  tecPend
+                    ? 'OP de Tecelagem pendente de aceite. Use "Aceitar OP" acima para liberar a producao.'
+                    : 'OP de Tecelagem pendente de aceite. Insumos recebidos, mas a OP ainda precisa ser aceita para liberar producao.'))
             : null
         );
       }
@@ -1592,21 +1674,31 @@
                 sectionTitle('OPs de Tecelagem'),
                 tecOps.map(function (op) {
                   var summary = tecSummaries.find(function (s) { return s.id === op.id; }) || {};
-                  var saldoEntregue = ns.toFiniteNumber(summary.target) > 0 && ns.toFiniteNumber(summary.remaining) <= 0;
-                  var terminal = op.status === 'concluida' || op.status === 'finalizada';
+                  var remaining = ns.toFiniteNumber(summary.remaining);
+                  var saldoEntregue = ns.toFiniteNumber(summary.target) > 0 && remaining <= 0;
+                  var terminal = terminalStatus(op.status);
                   var terminalidadeLabel = terminal
                     ? 'Finalizacao explicita registrada no status da OP.'
                     : (saldoEntregue
                       ? 'Saldo produtivo entregue; falta finalizar a OP de Tecelagem.'
                       : 'Tecelagem ainda possui saldo produtivo pendente.');
+                  var podeAceitar = op.status === 'aberta';
+                  var podeFinalizar = op.status === 'em_producao' && saldoEntregue && !terminal;
+                  var podeTransferir = op.status === 'em_producao' && remaining > 0;
+                  var semAcao = !podeAceitar && !podeFinalizar && !podeTransferir;
                   return window.el('div', { style: 'margin-bottom:12px;' },
-                    window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;' },
+                    window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;' },
                       window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;' },
                         ns.opLabel(op) + ' · ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(op.status) : op.status)),
-                      linkBtn('Abrir OP', function () { navigateToOp(op.id); })),
+                      actionsRow(
+                        linkBtn('Abrir OP', function () { navigateToOp(op.id); }),
+                        podeAceitar ? actionBtn('Aceitar OP', function () { openTecAcceptanceModal({ op: op }); }) : null,
+                        podeTransferir ? actionBtn('Transferir', openMovimentar('tecelagem', op)) : null,
+                        podeFinalizar ? actionBtn('Finalizar OP', function () { finalizarOp(op); }) : null)),
                     window.el('div', { style: 'font-size:12.5px;color:#5b6472;margin-top:4px;line-height:1.4;' },
                       'Target: ' + ns.fmtMetros(summary.target || 0) + ' | Transferido: ' + ns.fmtMetros(summary.done || 0) + ' | Pendente: ' + ns.fmtMetros(summary.remaining || 0)),
                     window.el('div', { style: 'font-size:12px;color:' + (terminal ? '#18794a' : (saldoEntregue ? '#c2610c' : '#8a93a3')) + ';margin-top:2px;font-weight:600;' }, terminalidadeLabel),
+                    semAcao && !terminal ? reasonRow('Sem acao disponivel agora nesta OP.') : null,
                     summary.modelNames && summary.modelNames.length
                       ? window.el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:2px;' }, 'Modelos: ' + summary.modelNames.join(', '))
                       : null,
@@ -1669,6 +1761,7 @@
       if (key === 'acabamento') {
         var acabOps = (state.ops || []).filter(function (op) { return ns.stageKeyForOp(op) === 'acabamento'; });
         var acabSummaries = (view && view.opSummaries || []).filter(function (s) { return s.stageKey === 'acabamento'; });
+        var expSummariesAcab = (view && view.expedicaoSummaries) || [];
 
         return window.el('div', {},
           acabOps.length
@@ -1677,13 +1770,31 @@
                 acabOps.map(function (op) {
                   var summary = acabSummaries.find(function (s) { return s.id === op.id; }) || {};
                   var fornecedor = ((op.op_fornecedores || []).find(function (f) { return f.etapa === 'latex'; }) || {}).fornecedores;
+                  // Paridade com o contrato Acabamento->Expedicao: target =
+                  // recebido da Tecelagem; done = ja movimentado p/ Expedicao;
+                  // remaining = disponivel/saldo em acabamento.
+                  var recebido = ns.toFiniteNumber(summary.target);
+                  var movido = ns.toFiniteNumber(summary.done);
+                  var disponivel = ns.toFiniteNumber(summary.remaining);
+                  var exp = expSummariesAcab.find(function (e) { return String(e.opLatexId) === String(op.id); });
+                  var entregueOp = exp ? ns.toFiniteNumber(exp.entregue) : 0;
+                  var terminal = terminalStatus(op.status);
+                  var movivel = op.status === 'em_producao' || terminal;
+                  var podeMovimentar = movivel && disponivel > 0;
+                  var podeFinalizar = op.status === 'em_producao' && recebido > 0 && disponivel <= 0 && !terminal;
                   return window.el('div', { style: 'margin-bottom:10px;' },
-                    window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;' },
+                    window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;' },
                       window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;' },
                         ns.opLabel(op) + ' · ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(op.status) : op.status)),
-                      linkBtn('Abrir OP', function () { navigateToOp(op.id); })),
+                      actionsRow(
+                        linkBtn('Abrir OP', function () { navigateToOp(op.id); }),
+                        podeMovimentar ? actionBtn('Movimentar', openMovimentar('acabamento', op)) : null,
+                        podeFinalizar ? actionBtn('Finalizar OP', function () { finalizarOp(op); }) : null)),
                     window.el('div', { style: 'font-size:12.5px;color:#5b6472;margin-top:4px;line-height:1.4;' },
-                      'Recebido: ' + ns.fmtMetros(summary.done || 0) + ' | Pendente: ' + ns.fmtMetros(summary.remaining || 0)),
+                      'Recebido: ' + ns.fmtMetros(recebido) + ' | Movimentado: ' + ns.fmtMetros(movido) + ' | Disponivel: ' + ns.fmtMetros(disponivel) + ' | Entregue: ' + ns.fmtMetros(entregueOp)),
+                    !podeMovimentar && !podeFinalizar && disponivel <= 0 && exp
+                      ? reasonRow('Sem saldo em acabamento; prossiga na etapa Expedicao/Entrega.')
+                      : null,
                     fornecedor
                       ? window.el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:2px;' }, 'Fornecedor: ' + fornecedor.nome)
                       : null
@@ -1715,13 +1826,19 @@
           sectionTitle('Expedicoes'),
           expSummaries.length
             ? expSummaries.map(function (exp) {
+                var podeEntregar = ns.toFiniteNumber(exp.saldo) > 0;
                 return window.el('div', { style: 'margin-bottom:10px;' },
-                  window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;' },
+                  window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;' },
                     window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;' },
                       'Expedicao #' + exp.id + ' · ' + ns.fmtTextoOuEmpty(exp.status, '-')),
-                    linkBtn('Abrir Expedicao', function () { navigateToExpedicao(exp.id); })),
+                    actionsRow(
+                      linkBtn('Abrir Expedicao', function () { navigateToExpedicao(exp.id); }),
+                      podeEntregar ? actionBtn('Entregar', openMovimentar('expedicao', exp.op || null)) : null)),
                   window.el('div', { style: 'font-size:12.5px;color:#5b6472;margin-top:4px;line-height:1.4;' },
                     'Liberado: ' + ns.fmtMetros(exp.liberado) + ' | Entregue: ' + ns.fmtMetros(exp.entregue) + ' | Saldo: ' + ns.fmtMetros(exp.saldo)),
+                  !podeEntregar
+                    ? reasonRow('Sem saldo liberado pendente de entrega/coleta.')
+                    : null,
                   exp.movimentos && exp.movimentos.length
                     ? window.el('div', { style: 'font-size:11.5px;color:#8a93a3;margin-top:2px;' }, exp.movimentos.length + ' entrega/coleta registrada(s)')
                     : null
@@ -1743,6 +1860,9 @@
         var entregueTotal = view && view.entregue || 0;
         var total = view && view.totalPedido || 0;
         var pendentes = ns.round2(Math.max(total - entregueTotal, 0));
+        var jaEntregue = state.pedido && state.pedido.status === 'entregue';
+        var aptoConcluir = !jaEntregue && view && view.pedidoConclusao && view.pedidoConclusao.pronto;
+        var pendConclusao = (view && view.pedidoConclusao && view.pedidoConclusao.pendencias) || [];
         return window.el('div', {},
           window.el('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;' },
             movementMetricCard('Total do pedido', ns.fmtMetros(total)),
@@ -1755,12 +1875,30 @@
                 ns.svgEl(ns.SVG_INFO),
                 window.el('div', { style: 'font-size:12.5px;color:#8a5a15;line-height:1.4;' },
                   'Pendencias restantes: ' + ns.fmtMetros(pendentes) + '. Registre todas as entregas de expedicao antes de concluir o pedido.'))
-            : window.el('div', {
-                style: 'display:flex;align-items:flex-start;gap:8px;background:#e7f4ec;border:1px solid #c2e7d1;border-radius:4px;padding:10px 12px;',
+            : null,
+          jaEntregue
+            ? window.el('div', {
+                style: 'display:flex;align-items:center;gap:8px;background:#e7f4ec;border:1px solid #c2e7d1;border-radius:4px;padding:10px 12px;',
               },
                 ns.svgEl(ns.SVG_INFO),
-                window.el('div', { style: 'font-size:12.5px;color:#2f8256;line-height:1.4;' },
-                  'Pedido pronto para conclusao. Use a acao "Concluir pedido" na pagina de detalhe.')),
+                window.el('div', { style: 'font-size:12.5px;color:#2f8256;line-height:1.4;font-weight:700;' }, 'Pedido concluido.'))
+            : (aptoConcluir
+              ? window.el('div', {
+                  style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;background:#e7f4ec;border:1px solid #c2e7d1;border-radius:4px;padding:10px 12px;flex-wrap:wrap;',
+                },
+                  window.el('div', { style: 'font-size:12.5px;color:#2f8256;line-height:1.4;min-width:180px;' },
+                    'Cadeia concluida. Pode concluir o pedido.'),
+                  window.el('button', {
+                    type: 'button',
+                    style: 'display:inline-flex;align-items:center;justify-content:center;background:#18794a;color:#fff;border:none;border-radius:4px;padding:8px 14px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;',
+                    onclick: function (ev) { concluirPedido(ev && ev.currentTarget ? ev.currentTarget : null); },
+                  }, 'Concluir'))
+              : window.el('div', { style: 'font-size:12.5px;color:#8a93a3;line-height:1.5;' },
+                  pendConclusao.length
+                    ? window.el('div', {},
+                        window.el('div', { style: 'font-weight:700;color:#8a5a15;margin-bottom:4px;' }, 'Pendencias para concluir:'),
+                        pendConclusao.map(function (p) { return window.el('div', { style: 'color:#b45309;' }, '- ' + p); }))
+                    : 'Cadeia produtiva ainda em andamento.')),
           stage.state === 'done'
             ? window.el('div', { style: 'margin-top:8px;font-size:12.5px;font-weight:700;color:#18794a;' }, 'Etapa concluida.')
             : null
@@ -2122,6 +2260,7 @@
       navigateToExpedicao: navigateToExpedicao,
       navigateToNovaOp: navigateToNovaOp,
       concluirPedido: concluirPedido,
+      finalizarOp: finalizarOp,
       scrollToSection: scrollToSection,
       openMovementModal: openMovementModal,
       openStageDetailModal: openStageDetailModal,

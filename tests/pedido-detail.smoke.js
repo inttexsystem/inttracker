@@ -1711,3 +1711,211 @@ test('PEDIDO-CONCLUIR: onclick delega ao handler canonico e handler nao engole e
   assert.match(detailEvents, /Erro ao concluir pedido/);
   assert.doesNotMatch(detailEvents, /catch\s*\([^)]*\)\s*\{\s*\}/);
 });
+
+// ---------------------------------------------------------------------
+// PEDIDO-STAGE-ACTION-HUB-B: hub contextual de acoes por etapa
+// ---------------------------------------------------------------------
+
+const stageBodySlice = (detailEvents.match(/function buildStageDetailBody[\s\S]*?\n    \}\n\n    function openStageDetailModal/) || [''])[0];
+
+test('HUB: finalizarOp reutiliza alterar_status_op(concluida) sem update direto em ops.status', () => {
+  assert.match(detailEvents, /function finalizarOp/);
+  const finSlice = (detailEvents.match(/function finalizarOp[\s\S]*?\n    \}\n\n    function movementField/) || [''])[0];
+  assert.ok(finSlice, 'trecho finalizarOp nao encontrado');
+  assert.match(finSlice, /alterar_status_op/);
+  assert.match(finSlice, /p_novo_status:\s*'concluida'/);
+  assert.match(finSlice, /confirmDialog/, 'nao finaliza automaticamente: exige confirmacao');
+  assert.doesNotMatch(finSlice, /from\(\s*['"]ops['"]\s*\)\s*\.update/, 'sem update direto em ops.status');
+  assert.match(detailEvents, /finalizarOp:\s*finalizarOp/, 'finalizarOp exposto nos handlers');
+});
+
+test('HUB: modal de etapa oferece acoes contextuais curtas por OP/expedicao', () => {
+  assert.ok(stageBodySlice, 'trecho buildStageDetailBody nao encontrado');
+  for (const label of ['Abrir OP', 'Aceitar OP', 'Finalizar OP', 'Movimentar', 'Entregar', 'Abrir Expedicao', 'Gerar primeira OP', 'Concluir']) {
+    assert.ok(stageBodySlice.indexOf(label) !== -1, 'hub deve oferecer acao: ' + label);
+  }
+});
+
+test('HUB: acoes do modal delegam a handlers canonicos (sem write inline)', () => {
+  // Delegacao a helpers canonicos.
+  assert.match(stageBodySlice, /finalizarOp\(op\)/);
+  assert.match(stageBodySlice, /openTecAcceptanceModal\(\{\s*op:\s*op\s*\}\)/);
+  assert.match(stageBodySlice, /openMovimentar\(/);
+  assert.match(stageBodySlice, /navigateToNovaOp\(\)/);
+  assert.match(stageBodySlice, /concluirPedido\(/);
+  // Continua sem write/RPC inline no corpo do modal (contrato read-only-of-writes).
+  assert.doesNotMatch(stageBodySlice, /salvarEntregaCima/);
+  assert.doesNotMatch(stageBodySlice, /salvarEntregaLatex/);
+  assert.doesNotMatch(stageBodySlice, /registrarRecebimentoOrdemFio/);
+  assert.doesNotMatch(stageBodySlice, /supa\.rpc/);
+  assert.doesNotMatch(stageBodySlice, /\.insert\(|\.update\(|\.delete\(/);
+});
+
+test('HUB: modal Acabamento usa recebido/movimentado/disponivel (contrato Acabamento->Expedicao)', () => {
+  assert.match(stageBodySlice, /Recebido:\s*'\s*\+\s*ns\.fmtMetros\(recebido\)/);
+  assert.match(stageBodySlice, /Movimentado:\s*'\s*\+\s*ns\.fmtMetros\(movido\)/);
+  assert.match(stageBodySlice, /Disponivel:\s*'\s*\+\s*ns\.fmtMetros\(disponivel\)/);
+});
+
+// ---- Runtime: renderiza o corpo do modal de etapa e exercita as acoes ----
+
+function makeHubRuntime() {
+  function node(tag) {
+    return {
+      tagName: (tag || 'div').toUpperCase(), attrs: {}, children: [], _listeners: {}, style: {}, textContent: '', disabled: false,
+      appendChild(c) { this.children.push(c); return c; }, append() { for (const c of arguments) this.children.push(c); },
+      replaceChildren() { this.children = Array.prototype.slice.call(arguments); },
+      setAttribute(k, v) { this.attrs[k] = v; }, getAttribute(k) { return this.attrs[k]; },
+      querySelector() { return null; }, querySelectorAll() { return []; },
+      addEventListener(ev, fn) { this._listeners[ev] = fn; }, removeEventListener() {}, remove() {}, focus() {},
+    };
+  }
+  const sandbox = { console };
+  sandbox.window = sandbox;
+  sandbox.document = {
+    createElement: (t) => node(t), createTextNode: (t) => ({ textContent: String(t), nodeType: 3 }),
+    getElementById: () => null, querySelector: () => null, querySelectorAll: () => [], body: node('body'),
+    addEventListener() {}, removeEventListener() {},
+  };
+  vm.createContext(sandbox);
+  sandbox.window.el = function el(tag, attrs) {
+    const n = node(tag); attrs = attrs || {};
+    Object.keys(attrs).forEach((k) => {
+      if (k === 'onclick') n._listeners.click = attrs[k];
+      else if (k === 'disabled') n.disabled = attrs[k] != null && attrs[k] !== false;
+      else if (k === 'style') n.style = attrs[k];
+      else n.attrs[k] = attrs[k];
+    });
+    const kids = Array.prototype.slice.call(arguments, 2);
+    (function add(c) {
+      if (c == null || c === '' || c === false) return;
+      if (Array.isArray(c)) return c.forEach(add);
+      if (typeof c === 'string' || typeof c === 'number') { n.children.push({ textContent: String(c) }); return; }
+      n.children.push(c);
+    })(kids);
+    return n;
+  };
+  const events = [];
+  sandbox.window.toast = (m, t) => events.push('toast:' + t);
+  sandbox.window.navigate = (h) => events.push('navigate:' + h);
+  sandbox.window.modal = (o) => events.push('modal:' + (o && o.title || ''));
+  sandbox.window.confirmDialog = (o) => { events.push('confirm'); if (o && o.onConfirm) return o.onConfirm(); };
+  sandbox.window.textInput = () => node('input'); sandbox.window.selectInput = () => node('select');
+  sandbox.window.formField = (o) => (o && o.input) || node('div');
+  sandbox.window.buildEntregaInlineForm = () => ({ node: node('div'), getPayload: () => [], getSplitOption: () => ({ forceSplit: false, motivo: null }) });
+  sandbox.window.salvarEntregaCima = async () => true;
+  sandbox.window.rotuloModelo = (m) => (m && m.nome) || 'm'; sandbox.window.rotuloFio = () => 'fio';
+  sandbox.window.fmtMetros = (v) => Number(v || 0).toFixed(2) + ' m'; sandbox.window.pedidoStatusLabel = (s) => s;
+  sandbox.window.isPedidoEditavel = (s) => s === 'rascunho';
+  sandbox.window.recalcularOP = () => ({ fator: 1, itens: [], sobras: [] }); sandbox.window.aplicarRecalculoOP = async () => ({ error: null });
+  vm.runInContext(detailBundle, sandbox);
+  const ns = sandbox.window.RAVATEX_SCREENS.pedidoDetail;
+  return { sandbox, ns, events, node };
+}
+function collectHubText(n) {
+  if (!n) return '';
+  if (n.textContent && (!n.children || !n.children.length)) return n.textContent;
+  let s = ''; (n.children || []).forEach((c) => { s += collectHubText(c); }); return s;
+}
+function findHubBtn(n, re) {
+  if (!n) return null;
+  if (n.tagName === 'BUTTON' && re.test(collectHubText(n))) return n;
+  for (const c of (n.children || [])) { const f = findHubBtn(c, re); if (f) return f; }
+  return null;
+}
+function stageHub(rt, s, key) {
+  const view = rt.ns.computeViewModel(s);
+  rt.sandbox.window.supa = { rpc: async (fn) => { rt.events.push('rpc:' + fn); return { data: { ok: true }, error: null }; } };
+  const handlers = rt.ns.createPedidoDetailEvents({ pedidoId: s.pedido.id, state: s, reload: async () => {}, render: () => {}, getLoadingError: () => null, setLoadingError: () => {} });
+  handlers.currentView = view;
+  const cap = rt.node('body'); rt.sandbox.document.body = cap;
+  const stg = (view.stepper || []).find((x) => x.key === key) || { key: key, state: 'current' };
+  rt.events.length = 0;
+  handlers.openStageDetailModal(stg, view);
+  return { root: cap, view: view };
+}
+function hubBase(ns) {
+  const s = ns.createInitialState();
+  s.pedido = { id: CONCLUIR_PEDIDO_ID, numero: 20, status: 'rascunho', metros_total: 1000 };
+  s.itens = [{ id: 'pi1', modelo_id: 7, metros: 1000 }];
+  s.modelosById = { 7: { id: 7, nome: 'Roma' } };
+  return s;
+}
+function hubTecAcab(ns, latexStatus) {
+  const s = hubBase(ns);
+  s.ops = [
+    { id: 29, tipo: 'tecelagem', numero: 18, ano: 2026, status: 'em_producao', op_fornecedores: [{ fornecedor_id: 5, etapa: 'cima' }], op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 1000, metros_ajustados: 1000, pedido_item_id: 'pi1' }] },
+    { id: 30, tipo: 'latex', numero: 11, ano: 2026, status: latexStatus, origem_op_id: 29, op_fornecedores: [{ fornecedor_id: 2, etapa: 'latex', fornecedores: { nome: 'Conitex' } }], op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 1000, pedido_item_id: null }] },
+  ];
+  s.entregaItens = [{ id: 1, entrega_id: 'e1', op_id: 29, op_item_id: 290, modelo_id: 7, metros_entregues: 1000, defeito: false }];
+  s.entregasById = { e1: { id: 'e1', etapa: 'cima' } };
+  s.opLatexEntregas = [{ op_latex_id: 30, entrega_id: 'e1' }];
+  return s;
+}
+
+test('HUB runtime: modal lista OPs com Abrir OP e Finalizar OP para Tecelagem entregue', () => {
+  const rt = makeHubRuntime();
+  const r = stageHub(rt, hubTecAcab(rt.ns, 'em_producao'), 'tecelagem');
+  assert.ok(findHubBtn(r.root, /Abrir OP/i), 'deve ter Abrir OP');
+  const fin = findHubBtn(r.root, /Finalizar OP/i);
+  assert.ok(fin, 'Tecelagem em_producao com saldo 0 deve ter Finalizar OP');
+  rt.events.length = 0;
+  fin._listeners.click({});
+  assert.ok(rt.events.indexOf('confirm') !== -1, 'Finalizar OP deve pedir confirmacao');
+  assert.ok(rt.events.indexOf('rpc:alterar_status_op') !== -1, 'Finalizar OP deve chamar alterar_status_op');
+});
+
+test('HUB runtime: OP Tecelagem aberta oferece Aceitar OP', () => {
+  const rt = makeHubRuntime();
+  const s = hubTecAcab(rt.ns, 'em_producao');
+  s.ops[0].status = 'aberta'; s.entregaItens = []; s.opLatexEntregas = [];
+  s.ordensFio = [{ op_id: 29, kg_pedido: 10, kg_recebido: 10 }];
+  const r = stageHub(rt, s, 'insumos');
+  assert.ok(findHubBtn(r.root, /Aceitar OP/i), 'OP aberta deve oferecer Aceitar OP');
+});
+
+test('HUB runtime: Acabamento com disponivel>0 oferece Movimentar sem exigir status terminal', () => {
+  const rt = makeHubRuntime();
+  const r = stageHub(rt, hubTecAcab(rt.ns, 'em_producao'), 'acabamento');
+  assert.ok(findHubBtn(r.root, /Movimentar/i), 'disponivel>0 deve oferecer Movimentar');
+  assert.match(collectHubText(r.root), /Recebido:[\s\S]*Movimentado:[\s\S]*Disponivel:/);
+});
+
+test('HUB runtime: Acabamento com tudo movimentado oferece Finalizar OP (nao Movimentar)', () => {
+  const rt = makeHubRuntime();
+  const s = hubTecAcab(rt.ns, 'em_producao');
+  s.expedicoes = [{ id: 3, op_latex_id: 30, pedido_id: s.pedido.id, status: 'aguardando_expedicao' }];
+  s.expedicaoItens = [{ id: 4, expedicao_id: 3, op_item_id: 301, modelo_id: 7, metros_liberados: 1000, metros_entregues: 0 }];
+  const r = stageHub(rt, s, 'acabamento');
+  assert.ok(findHubBtn(r.root, /Finalizar OP/i), 'saldo 0 + em_producao deve oferecer Finalizar OP');
+  assert.ok(!findHubBtn(r.root, /Movimentar/i), 'sem disponivel nao deve oferecer Movimentar');
+});
+
+test('HUB runtime: Expedicao com saldo pendente oferece Entregar', () => {
+  const rt = makeHubRuntime();
+  const s = hubTecAcab(rt.ns, 'em_producao');
+  s.expedicoes = [{ id: 3, op_latex_id: 30, pedido_id: s.pedido.id, status: 'aguardando_expedicao' }];
+  s.expedicaoItens = [{ id: 4, expedicao_id: 3, op_item_id: 301, modelo_id: 7, metros_liberados: 1000, metros_entregues: 0 }];
+  const r = stageHub(rt, s, 'expedicao');
+  assert.ok(findHubBtn(r.root, /Abrir Expedicao/i));
+  assert.ok(findHubBtn(r.root, /Entregar/i), 'saldo pendente deve oferecer Entregar');
+});
+
+test('HUB runtime: Pedido sem OP oferece Gerar primeira OP; etapa entrega apto oferece Concluir', () => {
+  const rt = makeHubRuntime();
+  const semOp = stageHub(rt, hubBase(rt.ns), 'insumos');
+  const gerar = findHubBtn(semOp.root, /Gerar primeira OP/i);
+  assert.ok(gerar, 'pedido sem OP deve oferecer Gerar primeira OP');
+  rt.events.length = 0; gerar._listeners.click({});
+  assert.ok(rt.events.some((e) => /navigate:#\/ops\/nova/.test(e)), 'Gerar primeira OP deve navegar para nova OP');
+
+  const s = hubTecAcab(rt.ns, 'concluida');
+  s.ops[0].status = 'concluida';
+  s.expedicoes = [{ id: 3, op_latex_id: 30, pedido_id: s.pedido.id, status: 'concluida' }];
+  s.expedicaoItens = [{ id: 4, expedicao_id: 3, op_item_id: 301, modelo_id: 7, metros_liberados: 1000, metros_entregues: 1000 }];
+  const ent = stageHub(rt, s, 'entrega');
+  const concluir = findHubBtn(ent.root, /Concluir/i);
+  assert.ok(concluir, 'etapa entrega apta deve oferecer Concluir');
+  rt.events.length = 0; concluir._listeners.click({ currentTarget: rt.node('button') });
+  assert.ok(rt.events.indexOf('rpc:concluir_pedido_se_pronto') !== -1, 'Concluir deve reutilizar concluir_pedido_se_pronto');
+});

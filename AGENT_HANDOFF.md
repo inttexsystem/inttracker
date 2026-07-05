@@ -1,4 +1,49 @@
-﻿# Estado pos-fase - Pedido Concluir Action R1
+﻿# Estado pos-fase - Pedido Stage Action Hub B
+
+- Fase: `RAVATEX-TAPETES-PEDIDO-STAGE-ACTION-HUB-B`.
+- Status: OK. Patch em JS + testes + docs; sem SQL/migration/producao/dados
+  novos.
+- Branch/HEAD base: `work/app-next`,
+  `a3936981783f7d673af3fb053dc08f3a67044da2`.
+- Premissas registradas: (1) a tela do Pedido opera o fluxo comum sem obrigar
+  a procurar a OP; (2) o modal de etapa e o hub contextual; (3) setas com
+  texto curto; (4) explicacoes longas no modal/painel, nao na seta; (5) acoes
+  reutilizam handlers/RPCs canonicos; (6) sem write paralelo no Pedido.
+- Diagnostico: dois modais existem — o de etapa (bolinha do stepper):
+  `openStageDetailModal` -> `buildStageDetailBody` (read-only por contrato
+  `stepper-modals-B`); e o de seta: `openMovementModal` (forms de
+  transferencia). O hub foi construido no modal de etapa DELEGANDO a handlers
+  canonicos externos, mantendo o corpo do modal sem write/RPC inline.
+- Implementado (`pedido-detail-events.js`):
+  - novo handler `finalizarOp(op)`: confirmDialog +
+    `alterar_status_op(..., 'concluida')` com guard de erro; sem update
+    direto em `ops.status`; sem auto-finalizacao; exposto em handlers.
+  - `buildStageDetailBody` ganhou acoes contextuais por OP/expedicao:
+    - Insumos: "Gerar primeira OP" (sem OP) + "Aceitar OP" (Tec aberta);
+    - Tecelagem: Abrir OP / Aceitar OP / Transferir (openMovementModal) /
+      Finalizar OP (finalizarOp);
+    - Acabamento: rotulos Recebido/Movimentado/Disponivel/Entregue; Abrir OP /
+      Movimentar (openMovementModal, sem exigir terminal) / Finalizar OP;
+    - Expedicao: Abrir Expedicao / Entregar (openMovementModal);
+    - Entrega: "Concluir" quando apto (concluirPedido) ou lista pendencias.
+  - motivos de bloqueio em texto auxiliar curto (reasonRow) no modal.
+- Reuso canonico (sem duplicar logica de OP, sem write paralelo):
+  `openTecAcceptanceModal`, `openMovementModal`, `finalizarOp`(alterar_status_op),
+  `concluirPedido`(concluir_pedido_se_pronto), `navigateToOp/Expedicao/NovaOp`.
+- Nao alterado: `openMovementModal`, telas de OP, `expedicao-admin.js`,
+  fluxo Acabamento->Expedicao, consolidacao/split Latex, read model Cliente.
+- Testes: 384/384 OK (10 novos em `pedido-detail.smoke.js`, estaticos +
+  runtime que renderiza o corpo do modal e exercita as acoes; o contrato
+  read-only-of-writes do corpo do modal permanece).
+- Diagnosticos staging read-only OK: invariantes, consolidacao Latex,
+  expedicao-partial (VEREDICTO OK; Pedido #20 rascunho apto).
+- Impacto Pedido #20: sem write; no hub, a etapa Entrega ofereceria "Concluir"
+  (apto) e a etapa Acabamento mostraria disponivel 0 / OP concluida.
+- Nao tocado: producao, `origin` p/ escrita, db, read model Cliente.
+- Proximo backlog: `PEDIDO-STAGE-BLOCKER-EXPLANATION-R1` (completo),
+  `PEDIDO-FIRST-OP-CTA-PLACEMENT-R1`.
+
+# Estado pos-fase - Pedido Concluir Action R1
 
 - Fase: `RAVATEX-TAPETES-PEDIDO-CONCLUIR-ACTION-R1`.
 - Status: OK. Patch pequeno em JS + testes + docs; sem SQL/migration/
