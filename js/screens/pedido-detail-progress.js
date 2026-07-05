@@ -503,6 +503,12 @@
         pendenciasConclusao.push(summary.label + ' ainda esta aberta ou em producao.');
       }
     });
+    // Explica a pendencia em termos do fluxo Acabamento -> Expedicao: se ha
+    // material recebido no acabamento ainda nao movimentado para a expedicao,
+    // o clique de conclusao nao pode parecer morto sem esse motivo.
+    if (emAcabamento > 0) {
+      pendenciasConclusao.push('Ha saldo em acabamento (' + ns.fmtMetros(emAcabamento) + ') nao movimentado para expedicao.');
+    }
     acabamentoSummaries.forEach(function (summary) {
       var temExpedicao = expedicoes.some(function (expedicao) {
         return expedicao.op_latex_id === summary.id;

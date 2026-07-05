@@ -1,4 +1,63 @@
 > **Atualizacao 2026-07-05 - fase
+> `RAVATEX-TAPETES-PEDIDO-CONCLUIR-ACTION-R1`.**
+> Status: OK. Diagnostico direcionado + patch pequeno em JS, sem SQL/
+> migration/producao.
+>
+> Sintoma: a acao "Concluir pedido" no detalhe do Pedido podia parecer um
+> clique morto. Diagnostico por harness runtime + SELECTs read-only em
+> staging.
+>
+> Estado real de dados: Pedido #20 (id ad988da1-df36-4441-afef-16d9172f5c01)
+> ja esta APTO a concluir (OP Tecelagem 18/2026 concluida, OP Latex 11/2026
+> concluida, expedicao #3 concluida, 1000/1000 entregue), porem
+> `pedidos.status='rascunho'` e `pedido_eventos` vazio. O botao fica
+> corretamente HABILITADO (view.pedidoConclusao.pronto=true) e chama
+> `concluir_pedido_se_pronto(UUID)`.
+>
+> Contrato da RPC (db/23, inalterado): admin-only, valida OPs terminais +
+> expedicoes concluidas, grava `pedidos.status='entregue'` +
+> `status_cliente_visual` + `pedido_eventos`, retorna JSONB {ok,...} ou
+> {ok:false, erro, pendencias}. Nao bloqueia 'rascunho' (so 'cancelado').
+> RPC correta; nenhuma alteracao de DB nesta fase.
+>
+> Causa raiz (erro silencioso): `concluirPedido` em
+> `pedido-detail-events.js` nao tinha guard em volta da RPC nem do
+> pos-sucesso. Se `supa.rpc(...)` lancasse (rede/sessao) ou se
+> `reload()/render()` lancasse APOS a conclusao, a promise rejeitava sem
+> tratamento (o onclick do botao nao faz await/catch): nenhum toast e o
+> botao preso em "Concluindo..." e desabilitado. Pior: um crash de render
+> pos-sucesso podia induzir novo clique e duplicar `pedido_eventos`.
+>
+> Correcao (pequena, sem redesenho): `concluirPedido` agora (1) envolve a
+> RPC em try/catch e exibe o erro real acionavel, restaurando o botao; (2)
+> mantem a exibicao das pendencias reais da RPC; (3) separa o pos-sucesso
+> em try/catch — toast de sucesso primeiro, e se reload/render falhar,
+> avisa "Pedido concluido. Recarregue a pagina..." e restaura o botao, sem
+> parecer falha e sem induzir novo clique. Sem catch generico que engula a
+> mensagem; erro real vai ao console e ao toast.
+> `pedido-detail-progress.js`: a lista de pendencias de conclusao passou a
+> explicar, quando `emAcabamento > 0`, "Ha saldo em acabamento (X) nao
+> movimentado para expedicao", reaproveitando o calculo do fluxo recem
+> corrigido (nao altera aptidao de pedido apto, pois emAcabamento=0 nesse
+> caso).
+>
+> Testes: 374/374 OK, incluindo 7 novos em `pedido-detail.smoke.js`
+> (harness runtime que carrega o bundle e exercita `concluirPedido`):
+> apto habilita/pronto; nao-apto explica saldo em acabamento; clique chama
+> a RPC + atualiza tela; pendencias da RPC exibidas; RPC que lanca gera erro
+> acionavel e restaura o botao; falha de render pos-sucesso nao induz
+> duplicidade; onclick delega ao handler e o handler nao engole erro.
+> Diagnosticos staging read-only OK: `production-flow-invariants-diag`,
+> `latex-consolidation-diag` e `expedicao-partial-flow-diag` (contrato
+> Acabamento->Expedicao intacto; Pedido #20 rascunho apto).
+>
+> Preservado: fluxo Acabamento->Expedicao recem-corrigido, read model
+> Cliente, `origin`, producao, db/23. Sem SQL, sem migration, sem dados
+> reais novos. Proximo backlog: `PEDIDO-STAGE-ACTION-HUB-B`,
+> `PEDIDO-STAGE-BLOCKER-EXPLANATION-R1` (completo),
+> `PEDIDO-FIRST-OP-CTA-PLACEMENT-R1`.
+
+> **Atualizacao 2026-07-05 - fase
 > `RAVATEX-TAPETES-ADMIN-FLOW-BACKLOG-SYNC-A`.**
 > Status: OK. Patch documental somente, sem JS/SQL/migration/producao.
 > Fase de consolidacao de backlog Admin — registra observacoes de

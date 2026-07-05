@@ -1,4 +1,58 @@
-﻿# Estado pos-fase - Admin Flow Backlog Sync A
+﻿# Estado pos-fase - Pedido Concluir Action R1
+
+- Fase: `RAVATEX-TAPETES-PEDIDO-CONCLUIR-ACTION-R1`.
+- Status: OK. Patch pequeno em JS + testes + docs; sem SQL/migration/
+  producao/dados novos.
+- Branch/HEAD base: `work/app-next`,
+  `69b8e8c7e6a121ae0690451211b6eccb23b303ee`.
+- Diagnostico (harness runtime + SELECTs read-only staging):
+  1. Botao "Concluir pedido" existe no render (`buildConclusaoPedido` em
+     `pedido-detail-render.js`, sempre renderizado);
+  2. Handler `handlers.concluirPedido` registrado (`pedido-detail-events.js`,
+     exportado) e ligado ao `onclick`; wiring correto;
+  3. RPC `concluir_pedido_se_pronto(UUID)` e chamada com `p_pedido_id`;
+  4. Pedido #20 (id ad988da1-df36-4441-afef-16d9172f5c01) esta APTO: OP
+     Tecelagem 18/2026 concluida, OP Latex 11/2026 concluida, expedicao #3
+     concluida (1000/1000), mas `pedidos.status='rascunho'`,
+     `pedido_eventos` vazio -> botao habilitado (pronto=true);
+  5. Botao habilitado/desabilitado corretamente conforme pendencias.
+- Contrato RPC (db/23) confirmado e correto; NAO alterado (sem migration):
+  admin-only, valida OPs terminais + expedicoes concluidas, grava
+  `pedidos.status='entregue'` + `status_cliente_visual` + `pedido_eventos`,
+  retorna JSONB {ok,...}/{ok:false,erro,pendencias}; nao bloqueia
+  'rascunho', so 'cancelado'.
+- Causa raiz: erro silencioso. `concluirPedido` nao tinha guard na RPC nem
+  no pos-sucesso; se a RPC lancasse (rede/sessao) ou `reload()/render()`
+  lancasse apos a conclusao, a rejeicao ficava sem tratamento (o onclick
+  nao faz await/catch): sem toast e botao preso em "Concluindo...".
+  Render-crash pos-sucesso podia induzir novo clique e duplicar
+  `pedido_eventos`.
+- Correcao (`pedido-detail-events.js`): try/catch na RPC com erro real
+  acionavel + restauro do botao; pendencias reais preservadas; pos-sucesso
+  isolado em try/catch (toast de sucesso, e em falha de render avisa
+  "recarregue" e restaura o botao, sem parecer falha e sem novo clique).
+  Sem catch generico que engula a mensagem.
+- Mensagem de pendencia (`pedido-detail-progress.js`): quando
+  `emAcabamento > 0`, adiciona "Ha saldo em acabamento (X) nao movimentado
+  para expedicao" (reaproveita o calculo do fluxo Acabamento->Expedicao;
+  nao afeta pedido apto).
+- Comportamento apos correcao:
+  - Pedido apto: botao habilitado -> chama RPC -> sucesso -> reload/render.
+  - RPC com pendencias: toast de erro com a lista, botao restaurado.
+  - RPC que lanca: toast de erro real, botao restaurado (nao morto).
+  - Falha de render pos-sucesso: toast sucesso + info "recarregue", botao
+    restaurado, sem duplicar evento.
+  - Nao apto: botao desabilitado com pendencias explicadas.
+- Testes: 374/374 OK (7 novos runtime em `pedido-detail.smoke.js`).
+- Diagnosticos staging read-only OK: invariantes, consolidacao Latex e
+  expedicao-partial-flow (contrato Acabamento->Expedicao intacto).
+- Nao tocado: producao, `origin` p/ escrita, db/23, read model Cliente,
+  fluxo Acabamento->Expedicao.
+- Proximo backlog: `PEDIDO-STAGE-ACTION-HUB-B`,
+  `PEDIDO-STAGE-BLOCKER-EXPLANATION-R1` (completo),
+  `PEDIDO-FIRST-OP-CTA-PLACEMENT-R1`.
+
+# Estado pos-fase - Admin Flow Backlog Sync A
 
 - Fase: `RAVATEX-TAPETES-ADMIN-FLOW-BACKLOG-SYNC-A`.
 - Status: OK. Docs-only, read-only patch documental.

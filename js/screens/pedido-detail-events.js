@@ -170,28 +170,52 @@
       }
       var oldDisabled = btn ? btn.disabled : false;
       var oldLabel = btn ? btn.textContent : null;
+      function restaurarBotao() {
+        if (btn) {
+          btn.disabled = oldDisabled;
+          btn.textContent = oldLabel;
+        }
+      }
       if (btn) {
         btn.disabled = true;
         btn.textContent = 'Concluindo...';
       }
 
-      var r = await window.supa.rpc('concluir_pedido_se_pronto', { p_pedido_id: pedidoId });
+      // A chamada da RPC pode lancar (rede/sessao). Sem este guard, a
+      // rejeicao ficava sem tratamento: nenhum toast e o botao preso em
+      // "Concluindo...", parecendo um clique morto.
+      var r;
+      try {
+        r = await window.supa.rpc('concluir_pedido_se_pronto', { p_pedido_id: pedidoId });
+      } catch (e) {
+        window.toast('Erro ao concluir pedido: ' + (e && e.message ? e.message : 'falha de comunicacao'), 'error');
+        console.error('pedido-detail: concluir_pedido_se_pronto lancou', e);
+        restaurarBotao();
+        return;
+      }
+
       if (r.error || (r.data && r.data.ok === false)) {
         var msg = r.error ? r.error.message : (r.data && r.data.erro ? r.data.erro : 'Pedido com pendencias');
         var pendencias = r.data && Array.isArray(r.data.pendencias) && r.data.pendencias.length
           ? ' (' + r.data.pendencias.join('; ') + ')'
           : '';
         window.toast('Pedido nao concluido: ' + msg + pendencias, 'error');
-        if (btn) {
-          btn.disabled = oldDisabled;
-          btn.textContent = oldLabel;
-        }
+        restaurarBotao();
         return;
       }
 
+      // Sucesso confirmado pelo backend. Uma falha ao recarregar/re-renderizar
+      // NAO deve parecer falha de conclusao nem induzir novo clique (que
+      // duplicaria pedido_eventos).
       window.toast('Pedido concluido.', 'success');
-      await reload();
-      render();
+      try {
+        await reload();
+        render();
+      } catch (e) {
+        console.error('pedido-detail: falha ao atualizar a tela apos conclusao', e);
+        window.toast('Pedido concluido. Recarregue a pagina para ver o estado atualizado.', 'info');
+        restaurarBotao();
+      }
     }
 
     function movementField(label, value) {

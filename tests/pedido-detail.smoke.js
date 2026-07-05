@@ -1598,3 +1598,116 @@ test('split-UI-B: "Transferir restante" permanece sem chamar writes ou RPC split
   assert.doesNotMatch(transferRestanteSlice, /supa\.rpc/);
   assert.doesNotMatch(transferRestanteSlice, /transferForm\.onSave/);
 });
+
+// ---------------------------------------------------------------------
+// PEDIDO-CONCLUIR-ACTION-R1: acao de conclusao do pedido
+// ---------------------------------------------------------------------
+
+function makeConclusaoRuntime() {
+  var toasts = [];
+  var sandbox = { window: {}, console };
+  sandbox.window.RavatexPedidoTracking = null;
+  sandbox.window.toast = function (msg, type) { toasts.push({ msg: msg, type: type }); };
+  vm.createContext(sandbox);
+  vm.runInContext(detailBundle, sandbox);
+  return { sandbox: sandbox, ns: sandbox.window.RAVATEX_SCREENS.pedidoDetail, toasts: toasts };
+}
+
+var CONCLUIR_PEDIDO_ID = 'ad988da1-df36-4441-afef-16d9172f5c01';
+function aptConclusaoState(ns) {
+  var s = ns.createInitialState();
+  s.pedido = { id: CONCLUIR_PEDIDO_ID, numero: 20, status: 'rascunho', metros_total: 1000 };
+  s.itens = [{ id: 'pi1', modelo_id: 7, metros: 1000 }];
+  s.ops = [
+    { id: 29, tipo: 'tecelagem', numero: 18, ano: 2026, status: 'concluida', op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 1000, metros_ajustados: 1000, pedido_item_id: 'pi1' }] },
+    { id: 30, tipo: 'latex', numero: 11, ano: 2026, status: 'concluida', origem_op_id: 29, op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 1000, pedido_item_id: null }] },
+  ];
+  s.entregaItens = [{ id: 1, entrega_id: 'e1', op_id: 29, op_item_id: 290, modelo_id: 7, metros_entregues: 1000, defeito: false }];
+  s.entregasById = { e1: { id: 'e1', etapa: 'cima' } };
+  s.opLatexEntregas = [{ op_latex_id: 30, entrega_id: 'e1' }];
+  s.expedicoes = [{ id: 3, op_latex_id: 30, pedido_id: CONCLUIR_PEDIDO_ID, status: 'concluida' }];
+  s.expedicaoItens = [{ id: 4, expedicao_id: 3, op_item_id: 301, modelo_id: 7, metros_liberados: 1000, metros_entregues: 1000 }];
+  s.modelosById = { 7: { id: 7, nome: 'Roma' } };
+  return s;
+}
+
+async function runConcluir(rpcImpl, opts) {
+  opts = opts || {};
+  var rt = makeConclusaoRuntime();
+  var s = aptConclusaoState(rt.ns);
+  var rpcCalls = [];
+  rt.sandbox.window.supa = { rpc: async function (fn, params) { rpcCalls.push({ fn: fn, params: params }); return rpcImpl(fn, params); } };
+  var reloadN = 0, renderN = 0;
+  var handlers = rt.ns.createPedidoDetailEvents({
+    pedidoId: s.pedido.id, state: s,
+    reload: async function () { reloadN++; if (opts.reloadThrows) throw new Error('reload boom'); },
+    render: function () { renderN++; if (opts.renderThrows) throw new Error('render boom'); },
+    getLoadingError: function () { return null; }, setLoadingError: function () {},
+  });
+  var btn = { disabled: false, textContent: 'Concluir pedido' };
+  await handlers.concluirPedido(btn);
+  return { rpcCalls: rpcCalls, toasts: rt.toasts, reloadN: reloadN, renderN: renderN, btn: btn };
+}
+
+test('PEDIDO-CONCLUIR: pedido apto habilita conclusao (pronto=true, sem pendencias)', () => {
+  var rt = makeConclusaoRuntime();
+  var view = rt.ns.computeViewModel(aptConclusaoState(rt.ns));
+  assert.equal(view.pedidoConclusao.pronto, true);
+  assert.equal(view.pedidoConclusao.pendencias.length, 0);
+});
+
+test('PEDIDO-CONCLUIR: pedido nao apto explica saldo em acabamento nao movimentado', () => {
+  var rt = makeConclusaoRuntime();
+  var s = aptConclusaoState(rt.ns);
+  s.ops[1].status = 'em_producao';
+  s.expedicoes = [];
+  s.expedicaoItens = [];
+  var view = rt.ns.computeViewModel(s);
+  assert.equal(view.pedidoConclusao.pronto, false);
+  assert.ok(view.pedidoConclusao.pendencias.some(function (p) { return /aberta ou em producao/.test(p); }));
+  assert.ok(view.pedidoConclusao.pendencias.some(function (p) { return /saldo em acabamento[\s\S]*nao movimentado para expedicao/i.test(p); }),
+    'pendencia deve explicar saldo em acabamento nao movimentado');
+});
+
+test('PEDIDO-CONCLUIR: clique apto chama concluir_pedido_se_pronto e atualiza a tela', async () => {
+  var r = await runConcluir(async function () { return { data: { ok: true, status: 'entregue' }, error: null }; });
+  assert.equal(r.rpcCalls.length, 1);
+  assert.equal(r.rpcCalls[0].fn, 'concluir_pedido_se_pronto');
+  assert.equal(r.rpcCalls[0].params.p_pedido_id, CONCLUIR_PEDIDO_ID);
+  assert.equal(r.reloadN, 1);
+  assert.equal(r.renderN, 1);
+  assert.ok(r.toasts.some(function (t) { return t.type === 'success' && /concluido/i.test(t.msg); }));
+});
+
+test('PEDIDO-CONCLUIR: RPC com pendencias exibe erro real e restaura o botao', async () => {
+  var r = await runConcluir(async function () {
+    return { data: { ok: false, erro: 'Pedido ainda possui pendencias', pendencias: ['Ha expedicao com saldo pendente'] }, error: null };
+  });
+  assert.ok(r.toasts.some(function (t) { return t.type === 'error' && /pendencias/i.test(t.msg) && /saldo pendente/i.test(t.msg); }));
+  assert.equal(r.btn.disabled, false);
+  assert.equal(r.btn.textContent, 'Concluir pedido');
+});
+
+test('PEDIDO-CONCLUIR: RPC que lanca nao deixa o clique morto (erro acionavel + botao restaurado)', async () => {
+  var r = await runConcluir(async function () { throw new Error('network down'); });
+  assert.ok(r.toasts.some(function (t) { return t.type === 'error' && /network down/.test(t.msg); }),
+    'erro real da RPC deve ser exibido, nao engolido');
+  assert.equal(r.btn.disabled, false);
+  assert.equal(r.btn.textContent, 'Concluir pedido');
+});
+
+test('PEDIDO-CONCLUIR: falha ao re-renderizar pos-sucesso nao induz novo clique/duplicidade', async () => {
+  var r = await runConcluir(async function () { return { data: { ok: true }, error: null }; }, { renderThrows: true });
+  assert.equal(r.rpcCalls.length, 1);
+  assert.ok(r.toasts.some(function (t) { return t.type === 'success' && /concluido/i.test(t.msg); }));
+  assert.ok(r.toasts.some(function (t) { return t.type === 'info' && /Recarregue/i.test(t.msg); }));
+  assert.equal(r.btn.disabled, false);
+});
+
+test('PEDIDO-CONCLUIR: onclick delega ao handler canonico e handler nao engole erro', () => {
+  assert.match(detailRender, /handlers\.concluirPedido\(/);
+  assert.match(detailRender, /jaEntregue \? 'Pedido concluido' : 'Concluir pedido'/);
+  assert.match(detailEvents, /try\s*\{[\s\S]*?concluir_pedido_se_pronto[\s\S]*?\}\s*catch/);
+  assert.match(detailEvents, /Erro ao concluir pedido/);
+  assert.doesNotMatch(detailEvents, /catch\s*\([^)]*\)\s*\{\s*\}/);
+});
