@@ -163,9 +163,11 @@
     var tecOpen = tecelagem.some(function (row) { return row.status === 'aberta' || row.status === 'simulada'; });
     var tecOpenAcceptance = tecelagem.find(function (row) { return row.status === 'aberta'; }) || null;
     var tecFinished = tecelagem.some(function (row) { return row.status === 'finalizada' || row.status === 'concluida'; });
+    var tecSaldoEntregue = tecTarget > 0 && tecRemaining <= 0;
     var acabOpen = acabamento.some(function (row) { return row.status === 'aberta' || row.status === 'simulada'; });
     var acabProduction = acabamento.some(function (row) { return row.status === 'em_producao'; });
     var acabFinished = acabamento.some(function (row) { return row.status === 'finalizada' || row.status === 'concluida'; });
+    var acabSaldoEntregue = acabTarget > 0 && acabRemaining <= 0;
 
     var ordens = Array.isArray(input.ordensFio) ? input.ordensFio : [];
     var insumoPedidoKg = sum(ordens, 'kg_pedido');
@@ -219,6 +221,11 @@
       clientStep = 'acabamento';
       displayStatus = 'Acabamento aguardando entrada';
       adminBadge = 'Aguardando entrada';
+    } else if (tecFinished) {
+      stage = 'tecelagem_concluida';
+      clientStep = 'tecelagem';
+      displayStatus = 'Tecelagem concluida';
+      adminBadge = 'Tecelagem concluida';
     } else if (tecProduction || (tecRemaining > 0 && (insumosConcluidos || tecDone > 0))) {
       stage = 'tecelagem';
       clientStep = 'tecelagem';
@@ -280,8 +287,8 @@
       insumos: tecPendingAcceptance
         ? 'current'
         : (insumosConcluidos ? 'done' : (hasTec ? 'current' : 'future')),
-      tecelagem: tecTarget > 0 && tecRemaining <= 0 ? 'done' : (stage === 'tecelagem' ? 'current' : (tecDone > 0 ? 'current' : 'future')),
-      acabamento: acabTarget > 0 && acabRemaining <= 0 ? 'done' : ((stage === 'acabamento' || stage === 'acabamento_entrada') ? 'current' : (acabDone > 0 ? 'current' : 'future')),
+      tecelagem: tecFinished ? 'done' : (stage === 'tecelagem' || tecSaldoEntregue ? 'current' : (tecDone > 0 ? 'current' : 'future')),
+      acabamento: acabFinished ? 'done' : (acabSaldoEntregue ? 'current' : ((stage === 'acabamento' || stage === 'acabamento_entrada') ? 'current' : (acabDone > 0 ? 'current' : 'future'))),
       expedicao: pedidoConcluido || (hasExpedicao && expedicaoSaldo <= 0 && expedicaoLiberado > 0) ? 'done' : ((stage === 'expedicao' || stage === 'pronto_expedicao') ? 'current' : 'future'),
       entrega: pedidoConcluido ? 'done' : (expedicaoEntregue > 0 ? 'current' : 'future'),
     };
@@ -293,8 +300,8 @@
       adminBadge: adminBadge,
       isOperationalOverride: hasTec || hasAcab || hasExpedicao || pedidoConcluido,
       metrics: {
-        tecelagem: { target: tecTarget, done: tecDone, remaining: tecRemaining },
-        acabamento: { target: acabTarget, done: acabDone, remaining: acabRemaining },
+        tecelagem: { target: tecTarget, done: tecDone, remaining: tecRemaining, saldoEntregue: tecSaldoEntregue, terminal: tecFinished },
+        acabamento: { target: acabTarget, done: acabDone, remaining: acabRemaining, saldoEntregue: acabSaldoEntregue, terminal: acabFinished },
         insumos: { pedidoKg: insumoPedidoKg, recebidoKg: insumoRecebidoKg, concluido: insumosConcluidos },
         expedicao: { liberado: expedicaoLiberado, entregue: expedicaoEntregue, saldo: expedicaoSaldo },
       },

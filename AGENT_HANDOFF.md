@@ -1,4 +1,63 @@
-﻿# Estado pos-fase - Staging Hardening R1
+﻿# Estado pos-fase - Tec Stage Finalization A-B
+
+- Fase: `RAVATEX-TAPETES-TEC-STAGE-FINALIZATION-A-B`.
+- Objetivo: resolver a pendencia P1 de finalizacao explicita da OP
+  Tecelagem sem criar fluxo paralelo, sem schema novo e sem migration.
+- Branch/HEAD base: `work/app-next`,
+  `51b0e03d7a6d5aaaa05254f4ed2edfc99e76153f`.
+- Contrato encontrado:
+  - `alterar_status_op(BIGINT, TEXT, TEXT)` ja existe em `db/21`;
+  - e admin-only (`is_admin()`), `SECURITY DEFINER`;
+  - aceita `em_producao -> concluida`;
+  - `concluida` preenche `finalizada_em`;
+  - `trg_op_evento` registra `status_alterado` em `op_eventos`;
+  - `finalizada` continua legado/compatibilidade.
+- Causa raiz: o Pedido marcava Tecelagem como concluida pelo saldo
+  (`tecRemaining <= 0`) mesmo quando a OP real ainda estava
+  `em_producao`. Isso misturava progresso derivado com terminalidade
+  canonica.
+- Patch aplicado:
+  - `js/screens/op-tecelagem-producao-admin.js`: botao `Concluir`
+    habilitado somente com `totalAjustado > 0 && saldo <= 0`; chama
+    `supa.rpc('alterar_status_op', { p_op_id, p_novo_status:
+    'concluida', p_observacao })`; exibe erro real da RPC; recarrega a
+    rota da OP no sucesso; sem update direto em `ops.status`.
+  - `js/screens/pedido-chain-state.js`: separa
+    `metrics.tecelagem.saldoEntregue` de `metrics.tecelagem.terminal`;
+    `adminStepper.tecelagem` so vira `done` com status terminal
+    (`concluida`/`finalizada`).
+  - `js/screens/pedido-detail-progress.js`: sublabel do stepper passa a
+    mostrar `entregue; finalizar OP` quando o saldo zerou mas falta
+    terminalidade explicita. Arquivo extra justificado: e o view model do
+    stepper, necessario para nao exibir `concluido` indevidamente.
+  - `js/screens/pedido-detail-events.js`: modal da etapa Tecelagem explica
+    a diferenca entre saldo entregue e finalizacao explicita.
+  - Testes atualizados em `tests/pedido-detail.smoke.js` e
+    `tests/tec-to-acabamento-flow.smoke.js`.
+- Preservado: criacao de OP Tecelagem, aceite da OP, entrega parcial,
+  `Transferir restante`, `salvarEntregaCima`, consolidacao Latex default,
+  split Latex opt-in, OP Latex/Acabamento e Expedicao.
+- Testes:
+  - baseline pre-patch: pacote focado 390/390 OK;
+  - pos-patch: `tec-to-acabamento-flow`, `pedido-detail`,
+    `pedido-detail-linked-ops`, `op-nova`, `op-persistir`,
+    `entrega-writes`, `op-latex-split`, `op-latex-admin` = 445/445 OK.
+- Diagnosticos staging read-only:
+  - OPs totais 25; Tecelagem 17; Latex 8;
+  - Latex default 7; split legitimo 1;
+  - duplicatas default 0; orfas 0;
+  - `op_latex_entregas` N:1: 11 entregas, 0 em multiplas OPs;
+  - colisoes `tipo+numero+ano` 0;
+  - high-water Latex 8/8 e Tecelagem 17/17.
+- Nao tocado: producao `bhgifjrfagkzubpyqpew`, `origin` para escrita,
+  SQL, migration, db/25-db/29, dados reais em staging.
+- Residual permitido: `?? supabase/.temp/` fora do commit.
+- Proximo P1 recomendado: `LATEX-LIFECYCLE-CANONICAL-A` - alinhar a
+  finalizacao da OP Latex/Acabamento ao mesmo contrato
+  `alterar_status_op(..., 'concluida')`, preservando leitura de
+  `finalizada` legado.
+
+# Estado pos-fase - Staging Hardening R1
 
 - Fase: `RAVATEX-TAPETES-STAGING-HARDENING-R1`.
 - Objetivo: limpar 2 pendencias nao-fatais reveladas pelo E2E do split,

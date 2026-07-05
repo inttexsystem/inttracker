@@ -1,3 +1,61 @@
+> **Atualizacao 2026-07-05 - fase
+> `RAVATEX-TAPETES-TEC-STAGE-FINALIZATION-A-B`.**
+> P1 de finalizacao explicita da OP Tecelagem resolvido com patch pequeno
+> em JS + testes + docs, sem SQL/migration e sem criar dados reais.
+>
+> Causa raiz: a cadeia do Pedido tratava saldo de Tecelagem zerado como
+> `adminStepper.tecelagem = done`, mesmo quando a OP de Tecelagem ainda
+> permanecia gravada como `em_producao`. Isso misturava metrica derivada
+> (`entregue para acabamento`) com terminalidade canonica (`ops.status`
+> terminal + evento em `op_eventos`).
+>
+> Contrato confirmado antes do patch: `alterar_status_op(BIGINT, TEXT,
+> TEXT)` ja existe, e admin-only, aceita `em_producao -> concluida`,
+> preenche `finalizada_em`, e o trigger `trg_op_evento` registra
+> `status_alterado` em `op_eventos`. `concluida` e o status canonico;
+> `finalizada` segue legado/compatibilidade.
+>
+> Implementado: em `op-tecelagem-producao-admin.js`, o botao `Concluir`
+> sai do estado placeholder e fica habilitado somente quando
+> `totalAjustado > 0` e `saldo <= 0`. O clique chama exclusivamente
+> `supa.rpc('alterar_status_op', { p_op_id, p_novo_status: 'concluida',
+> p_observacao })`, mostra erro real da RPC quando houver rejeicao e
+> recarrega a rota da OP no sucesso. Nao ha update direto em `ops.status`.
+>
+> Pedido Detail: `pedido-chain-state.js` agora separa
+> `metrics.tecelagem.saldoEntregue` de `metrics.tecelagem.terminal`.
+> Saldo zerado sem status terminal mantem Tecelagem como `current`; apenas
+> `concluida`/`finalizada` vira `done`. `pedido-detail-progress.js`
+> ajusta o sublabel para `entregue; finalizar OP` quando o saldo acabou
+> mas a terminalidade explicita ainda falta, e `pedido-detail-events.js`
+> mostra a mesma diferenca no modal da etapa. Arquivo extra justificado:
+> `pedido-detail-progress.js` e o normalizador do view model/stepper, logo
+> era necessario para impedir texto visual enganoso no Pedido.
+>
+> Preservado: criacao/aceite de OP Tecelagem, entrega parcial,
+> "Transferir restante", acumulacao Latex default, split Latex explicito,
+> OP Latex/Acabamento e Expedicao. Nenhuma regra de consolidacao Latex foi
+> alterada; db/25-db/29 ficaram intocados.
+>
+> Testes: baseline antes do patch 390/390 OK. Pos-patch:
+> `node --test tests\tec-to-acabamento-flow.smoke.js
+> tests\pedido-detail.smoke.js tests\pedido-detail-linked-ops.smoke.js
+> tests\op-nova.smoke.js tests\op-persistir.smoke.js
+> tests\entrega-writes.smoke.js tests\op-latex-split.smoke.js
+> tests\op-latex-admin.smoke.js` = 445/445 OK.
+>
+> Diagnosticos staging read-only: OPs totais=25, Tecelagem=17,
+> Latex=8, Latex default=7, split legitimo=1, duplicatas default=0,
+> orfas=0, `op_latex_entregas` N:1 com 11 entregas e 0 em multiplas OPs,
+> colisoes tipo+numero+ano=0, high-water Latex=8/8 e Tecelagem=17/17.
+> Nenhuma OP real nova foi criada.
+>
+> Producao intocada; `origin` nao usado para escrita; sem SQL aplicado;
+> sem migration; sem `git add .`; `supabase/.temp/` preservado fora do
+> commit. Proximo P1 recomendado: `LATEX-LIFECYCLE-CANONICAL-A`, migrar
+> finalizacao de OP Latex para `alterar_status_op(..., 'concluida')`
+> preservando compatibilidade de `finalizada`.
+
 > **Atualizacao 2026-07-04 - fase
 > `RAVATEX-TAPETES-STAGING-HARDENING-R1`.**
 > Limpeza de 2 pendencias nao-fatais reveladas pelo E2E do split.

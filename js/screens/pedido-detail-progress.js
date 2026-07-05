@@ -181,6 +181,7 @@
         simulada: { bg: '#f1f3f6', text: '#5b6472', dot: '#9aa2af', label: 'Simulada' },
         aberta: { bg: '#eaf1fd', text: '#2563eb', dot: '#2563eb', label: 'Aberta' },
         em_producao: { bg: '#fff4e6', text: '#c2610c', dot: '#e07b39', label: 'Em producao' },
+        concluida: { bg: '#e6f4ec', text: '#18794a', dot: '#18794a', label: 'Concluida' },
         finalizada: { bg: '#e6f4ec', text: '#18794a', dot: '#18794a', label: 'Finalizada' },
       }[op.status] || { bg: '#f1f3f6', text: '#5b6472', dot: '#9aa2af', label: ns.fmtTextoOuEmpty(op.status, 'Status') };
 
@@ -283,6 +284,7 @@
 
     var tecMeta = ns.round2(tecelagemSummaries.reduce(function (acc, row) { return acc + row.target; }, 0));
     var tecDone = ns.round2(tecelagemSummaries.reduce(function (acc, row) { return acc + row.done; }, 0));
+    var tecTerminal = tecelagemSummaries.some(function (row) { return row.status === 'concluida' || row.status === 'finalizada'; });
     var acabMeta = ns.round2(acabamentoSummaries.reduce(function (acc, row) { return acc + row.target; }, 0));
     var acabDone = ns.round2(acabamentoSummaries.reduce(function (acc, row) { return acc + row.done; }, 0));
 
@@ -528,7 +530,7 @@
         color: '#2563eb',
         percent: tecMeta > 0 ? ns.clampPercent((tecDone / tecMeta) * 100) : 0,
         state: stageState(tecMeta > 0 ? ns.clampPercent((tecDone / tecMeta) * 100) : 0, tecMeta, emTecelagem, tecDone, false),
-        sublabel: emTecelagem > 0 ? ns.fmtMetros(emTecelagem) : (tecMeta > 0 ? 'concluido' : 'aguardando'),
+        sublabel: emTecelagem > 0 ? ns.fmtMetros(emTecelagem) : (tecMeta > 0 ? (tecTerminal ? 'concluido' : 'entregue; finalizar OP') : 'aguardando'),
         transfer: {
           title: 'Movimentar Tecelagem -> Acabamento',
           origem: 'Tecelagem',

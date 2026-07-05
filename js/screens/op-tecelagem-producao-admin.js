@@ -131,6 +131,8 @@
   }
 
   function buildHeaderProducao(ctx) {
+    var totais = computeTotaisProducao(ctx);
+    var podeConcluir = totais.totalAjustado > 0 && totais.saldo <= 0;
     var badgeTecelagem = el('span', { style: BADGE_TECELAGEM }, 'Tecelagem');
     var badgeEmProducao = el('span', { style: BADGE_EM_PRODUCAO },
       el('span', { style: 'width:6px;height:6px;border-radius:50%;background:#e07b39;' }), 'Em produção');
@@ -154,13 +156,62 @@
     }
     acoes.push(el('button', { type: 'button', style: BTN_BACK + 'opacity:.55;cursor:not-allowed;', disabled: true }, 'Pausar'));
     if (ctx.cimaFornecedorId) acoes.push(el('a', { href: '#entregas-tecelagem-op', style: BTN_BACK + 'text-decoration:none;' }, 'Ir para entregas'));
-    acoes.push(el('button', { type: 'button', style: BTN_BACK + 'opacity:.55;cursor:not-allowed;', disabled: true }, 'Concluir'));
+    var concluirAttrs = {
+      type: 'button',
+      style: podeConcluir ? BTN_BACK : BTN_BACK + 'opacity:.55;cursor:not-allowed;',
+      title: podeConcluir ? 'Registrar conclusao explicita da Tecelagem' : 'Concluir fica disponivel quando nao houver saldo pendente.',
+      onclick: function (event) { if (podeConcluir) finalizarTecelagem(ctx, totais, event && event.currentTarget); },
+    };
+    if (!podeConcluir) concluirAttrs.disabled = 'disabled';
+    acoes.push(el('button', concluirAttrs, 'Concluir'));
     acoes.push(el('a', { href: '#documentos-op', style: BTN_BACK + 'text-decoration:none;' }, 'Documentos'));
     acoes.push(el('a', { href: '#historico-op', style: BTN_BACK + 'text-decoration:none;' }, 'Histórico'));
 
     return el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;' },
       el('div', {}, titleRow, metaLine),
       el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;' }, acoes));
+  }
+
+  async function finalizarTecelagem(ctx, totais, btn) {
+    if (!ctx || !ctx.op || !ctx.op.id) {
+      toast('OP de tecelagem indisponivel para conclusao.', 'error');
+      return false;
+    }
+    if (!totais || !(totais.totalAjustado > 0) || totais.saldo > 0) {
+      toast('Tecelagem ainda possui saldo pendente.', 'error');
+      return false;
+    }
+    if (!window.supa || typeof window.supa.rpc !== 'function') {
+      toast('RPC de status indisponivel.', 'error');
+      return false;
+    }
+    if (btn) btn.disabled = true;
+    try {
+      var result = await window.supa.rpc('alterar_status_op', {
+        p_op_id: ctx.op.id,
+        p_novo_status: 'concluida',
+        p_observacao: 'Tecelagem concluida explicitamente sem saldo produtivo pendente.',
+      });
+      if (result.error) {
+        console.error(result.error);
+        toast(result.error.message || 'Erro ao concluir tecelagem.', 'error');
+        return false;
+      }
+      if (result.data && result.data.ok === false) {
+        console.error(result.data);
+        toast(result.data.erro || 'Conclusao rejeitada pela regra operacional.', 'error');
+        return false;
+      }
+      toast('Tecelagem concluida', 'success');
+      window.navigate('#/ops/' + ctx.op.id);
+      return true;
+    } catch (err) {
+      console.error(err);
+      toast((err && err.message) || 'Erro ao concluir tecelagem.', 'error');
+      return false;
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
 
   function campoProducao(label, valor) {

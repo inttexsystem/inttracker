@@ -311,6 +311,30 @@ test('D-B sintaxe: entrega-writes.js e op-tecelagem-producao-admin.js válidos',
 // RAVATEX-TAPETES-OP-PARTIAL-SPLIT-UI-B — testes de UI do select split
 // =====================================================================
 
+test('TEC-STAGE-FINALIZATION-A-B: OP Tecelagem finaliza via RPC canonica', () => {
+  const slice = (otpaSrc.match(/async function finalizarTecelagem[\s\S]*?\n  \}\n\n  function campoProducao/) || [''])[0];
+  assert.ok(slice, 'finalizarTecelagem deve existir');
+  assert.match(slice, /rpc\(\s*['"]alterar_status_op['"]/,
+    'finalizacao deve chamar a RPC canonica alterar_status_op');
+  assert.match(slice, /p_novo_status:\s*['"]concluida['"]/,
+    'Tecelagem deve usar status canonico concluida');
+  assert.match(slice, /p_observacao:/,
+    'RPC deve receber observacao para op_eventos');
+  assert.doesNotMatch(slice, /\.from\(\s*['"]ops['"]\s*\)\.update/,
+    'nao deve existir update direto em ops.status');
+});
+
+test('TEC-STAGE-FINALIZATION-A-B: botao Concluir exige saldo zerado', () => {
+  const slice = (otpaSrc.match(/function buildHeaderProducao[\s\S]*?\n  \}\n\n  async function finalizarTecelagem/) || [''])[0];
+  assert.ok(slice, 'buildHeaderProducao deve existir');
+  assert.match(slice, /var\s+podeConcluir\s*=\s*totais\.totalAjustado\s*>\s*0\s*&&\s*totais\.saldo\s*<=\s*0/,
+    'Concluir deve depender de total ajustado e saldo sem pendencia');
+  assert.match(slice, /if\s*\(\s*!podeConcluir\s*\)\s*concluirAttrs\.disabled\s*=\s*['"]disabled['"]/,
+    'botao deve permanecer desabilitado enquanto houver saldo');
+  assert.match(slice, /finalizarTecelagem\(ctx,\s*totais/,
+    'clique do botao deve chamar finalizarTecelagem com os totais calculados');
+});
+
 function makeEntregaFormSandbox() {
   function FakeEl(tag, attrs) {
     this.tag = tag;

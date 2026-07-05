@@ -1443,6 +1443,13 @@
                 sectionTitle('OPs de Tecelagem'),
                 tecOps.map(function (op) {
                   var summary = tecSummaries.find(function (s) { return s.id === op.id; }) || {};
+                  var saldoEntregue = ns.toFiniteNumber(summary.target) > 0 && ns.toFiniteNumber(summary.remaining) <= 0;
+                  var terminal = op.status === 'concluida' || op.status === 'finalizada';
+                  var terminalidadeLabel = terminal
+                    ? 'Finalizacao explicita registrada no status da OP.'
+                    : (saldoEntregue
+                      ? 'Saldo produtivo entregue; falta finalizar a OP de Tecelagem.'
+                      : 'Tecelagem ainda possui saldo produtivo pendente.');
                   return window.el('div', { style: 'margin-bottom:12px;' },
                     window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;' },
                       window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;' },
@@ -1450,6 +1457,7 @@
                       linkBtn('Abrir OP', function () { navigateToOp(op.id); })),
                     window.el('div', { style: 'font-size:12.5px;color:#5b6472;margin-top:4px;line-height:1.4;' },
                       'Target: ' + ns.fmtMetros(summary.target || 0) + ' | Transferido: ' + ns.fmtMetros(summary.done || 0) + ' | Pendente: ' + ns.fmtMetros(summary.remaining || 0)),
+                    window.el('div', { style: 'font-size:12px;color:' + (terminal ? '#18794a' : (saldoEntregue ? '#c2610c' : '#8a93a3')) + ';margin-top:2px;font-weight:600;' }, terminalidadeLabel),
                     summary.modelNames && summary.modelNames.length
                       ? window.el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:2px;' }, 'Modelos: ' + summary.modelNames.join(', '))
                       : null,

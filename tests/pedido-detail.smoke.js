@@ -175,6 +175,65 @@ test('pedido-chain-state: OP tecelagem em producao vira estado operacional e gat
   assert.equal(result.clientSteps[3].state, 'atual');
 });
 
+test('TEC-STAGE-FINALIZATION-A-B: saldo zerado sem status terminal nao conclui Tecelagem', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
+  const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
+  const result = derive({
+    pedido: { id: 'p1', status: 'rascunho', metros_total: 100 },
+    ops: [{
+      id: 'op1',
+      numero: 1,
+      ano: 2026,
+      status: 'em_producao',
+      tipo: 'tecelagem',
+      op_itens: [{ id: 'i1', metros_pedidos: 100 }],
+    }],
+    entregaItens: [{ entrega_id: 'e1', op_id: 'op1', op_item_id: 'i1', metros_entregues: 100, defeito: false }],
+    entregasById: { e1: { id: 'e1', etapa: 'cima' } },
+  });
+
+  assert.equal(result.metrics.tecelagem.saldoEntregue, true);
+  assert.equal(result.metrics.tecelagem.terminal, false);
+  assert.equal(result.adminStepper.tecelagem, 'current');
+  assert.equal(result.displayStatus, 'Tecelagem em andamento');
+});
+
+test('TEC-STAGE-FINALIZATION-A-B: status concluida e terminalidade canonica da Tecelagem', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
+  const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
+  const result = derive({
+    pedido: { id: 'p1', status: 'rascunho', metros_total: 100 },
+    ops: [{
+      id: 'op1',
+      numero: 1,
+      ano: 2026,
+      status: 'concluida',
+      tipo: 'tecelagem',
+      op_itens: [{ id: 'i1', metros_pedidos: 100 }],
+    }],
+    entregaItens: [{ entrega_id: 'e1', op_id: 'op1', op_item_id: 'i1', metros_entregues: 100, defeito: false }],
+    entregasById: { e1: { id: 'e1', etapa: 'cima' } },
+  });
+
+  assert.equal(result.metrics.tecelagem.saldoEntregue, true);
+  assert.equal(result.metrics.tecelagem.terminal, true);
+  assert.equal(result.adminStepper.tecelagem, 'done');
+  assert.equal(result.displayStatus, 'Tecelagem concluida');
+});
+
+test('TEC-STAGE-FINALIZATION-A-B: Pedido Detail diferencia saldo entregue de conclusao explicita', () => {
+  assert.match(detailProgress, /var\s+tecTerminal\s*=/,
+    'computeViewModel deve calcular terminalidade real da Tecelagem');
+  assert.match(detailProgress, /entregue; finalizar OP/,
+    'saldo zerado sem status terminal deve pedir finalizacao explicita, nao "concluido"');
+  assert.match(detailEvents, /Saldo produtivo entregue; falta finalizar a OP de Tecelagem\./,
+    'modal da etapa deve explicar a diferenca entre saldo e terminalidade');
+});
+
 test('pedido-chain-state: pedido sem OP preserva abertura de tecelagem', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
