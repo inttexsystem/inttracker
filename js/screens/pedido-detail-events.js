@@ -733,6 +733,396 @@
       }) || null;
     }
 
+    function terminalStatus(st) {
+      return st === 'concluida' || st === 'finalizada';
+    }
+
+    function movementContextForStage(stepKey, op) {
+      var st = ((currentView && currentView.stepper) || []).find(function (s) { return s.key === stepKey; });
+      var t = (st && st.transfer) ? st.transfer : {};
+      return Object.assign({}, t, { op: op || t.op, action: { mode: 'enabled' } });
+    }
+
+    function buildTecAcceptanceProposalBlock(op, options) {
+      options = options || {};
+      if (!op || !Array.isArray(op.op_itens) || !op.op_itens.length) return null;
+
+      var ordens = (state.ordensFio || []).filter(function (o) { return o.op_id === op.id; });
+      var pendentes = ordens.filter(function (o) { return o.status === 'pendente'; });
+      var todasRecebidas = ordens.length > 0 && pendentes.length === 0;
+      if (!todasRecebidas) {
+        return window.el('div', {
+          style: (options.compact
+            ? 'display:flex;align-items:flex-start;gap:8px;background:#fff9ee;border:1px solid #fbe8c6;border-radius:4px;padding:10px 12px;margin-top:10px;'
+            : 'display:flex;align-items:flex-start;gap:8px;background:#fff9ee;border:1px solid #fbe8c6;border-radius:4px;padding:10px 12px;margin-top:12px;'),
+        },
+          ns.svgEl(ns.SVG_INFO),
+          window.el('div', { style: 'font-size:12.5px;color:#8a5a15;line-height:1.4;' },
+            ordens.length
+              ? 'Aguardando recebimento de ' + pendentes.length + ' fio(s) para calcular a proposta de ajuste.'
+              : 'Aguardando ordens de fio para calcular a proposta de ajuste.')
+        );
+      }
+      var modelosById = buildModelosForEntregaForm();
+      var parametrosByLargura = {};
+      (state.parametrosLargura || []).forEach(function (p) {
+        if (!p) return;
+        parametrosByLargura[Number(p.largura)] = p;
+        if (typeof window.larguraKey === 'function') {
+          parametrosByLargura[window.larguraKey(p.largura)] = p;
+        }
+      });
+      var fmtMetros = typeof window.fmtMetros === 'function' ? window.fmtMetros : ns.fmtMetros;
+      var fmtKg = typeof window.fmtKg === 'function' ? window.fmtKg : ns.fmtKg;
+      var rotuloModelo = typeof window.rotuloModelo === 'function'
+        ? window.rotuloModelo
+        : function (modelo) { return modelo && modelo.nome ? modelo.nome : 'Modelo'; };
+      var itensCalc = op.op_itens.map(function (opItem) {
+        return {
+          op_item_id: opItem.id,
+          modelo_id: opItem.modelo_id,
+          metros_pedidos: ns.toFiniteNumber(opItem.metros_pedidos),
+          metros_ajustados: ns.round2(ns.toFiniteNumber(opItem.metros_ajustados || opItem.metros_pedidos)),
+        };
+      });
+      var resultado = typeof window.recalcularOP === 'function'
+        ? window.recalcularOP(itensCalc, ordens)
+        : {
+            fator: 1,
+            itens: itensCalc.map(function (item) {
+              return {
+                op_item_id: item.op_item_id,
+                metros_pedidos: item.metros_pedidos,
+                metros_ajustados: item.metros_ajustados || item.metros_pedidos,
+              };
+            }),
+            sobras: [],
+          };
+      var metrosOverride = {};
+      (resultado.itens || []).forEach(function (item) {
+        metrosOverride[item.op_item_id] = ns.round2(ns.toFiniteNumber(item.metros_ajustados));
+      });
+
+      var wrap = window.el('div', {
+        style: (options.compact
+          ? 'border:1px solid #d0e0fb;border-radius:4px;background:#f8fbff;padding:12px 14px;margin-top:10px;'
+          : 'border-top:1px solid #eceef1;padding-top:14px;margin-top:12px;'),
+      });
+
+      wrap.appendChild(window.el('div', {
+        style: 'font-size:12px;font-weight:800;color:#2563eb;letter-spacing:.03em;text-transform:uppercase;margin-bottom:6px;',
+      }, 'Proposta de aceite'));
+      wrap.appendChild(window.el('div', {
+        style: 'font-size:12.5px;color:#5b6472;line-height:1.45;margin-bottom:10px;',
+      }, 'Ajuste os sliders como na tela da OP. O aceite usa aplicarRecalculoOP, sem write paralelo no Pedido.'));
+      wrap.appendChild(window.el('div', {
+        style: 'font-size:12.5px;color:#3f4757;margin-bottom:12px;',
+      },
+        window.el('strong', {}, 'Fator proporcional: '),
+        ns.toFiniteNumber(resultado.fator).toFixed(2).replace('.', ',')
+      ));
+
+      var sliders = window.el('div', {});
+      var itemRowState = {};
+
+      function trackBg(slider) {
+        var max = Number(slider.max) || 1;
+        var pct = Math.max(0, Math.min(100, (Number(slider.value) / max) * 100));
+        return '-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:99px;background:linear-gradient(to right,#2563eb ' + pct + '%,#d8dce2 ' + pct + '%);outline:none;border:none;cursor:pointer;';
+      }
+
+      itensCalc.forEach(function (item) {
+        var modelo = modelosById[item.modelo_id] || state.modelosById[item.modelo_id] || {};
+        var max = item.metros_pedidos;
+        if (typeof window.maxMetrosItem === 'function') {
+          try {
+            max = Math.max(window.maxMetrosItem(item, modelosById, parametrosByLargura, ordens), item.metros_pedidos);
+          } catch (e) {
+            max = item.metros_pedidos;
+          }
+        }
+        var slider = window.el('input', { type: 'range', min: '0', max: String(max), step: '1' });
+        slider.value = String(Math.round(metrosOverride[item.op_item_id] || item.metros_pedidos || 0));
+        slider.setAttribute('style', trackBg(slider));
+        var valorLabel = window.el('span', { style: 'font-size:13px;font-weight:800;color:#16203a;white-space:nowrap;' }, fmtMetros(Number(slider.value)));
+        slider.addEventListener('input', function () {
+          metrosOverride[item.op_item_id] = Number(slider.value);
+          valorLabel.textContent = fmtMetros(Number(slider.value));
+          slider.setAttribute('style', trackBg(slider));
+          recompute();
+        });
+        sliders.appendChild(window.el('div', { style: 'margin-bottom:14px;' },
+          window.el('div', { style: 'display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:6px;' },
+            window.el('span', { style: 'font-size:12.5px;font-weight:700;color:#16203a;line-height:1.35;' },
+              rotuloModelo(modelo) + ' - pedido ' + fmtMetros(item.metros_pedidos)),
+            valorLabel),
+          slider,
+          window.el('div', { style: 'display:flex;justify-content:space-between;gap:10px;margin-top:4px;' },
+            window.el('span', { style: 'font-size:11px;color:#aab2bf;' }, '0 m'),
+            window.el('span', { style: 'font-size:11px;color:#aab2bf;text-align:right;' }, 'max individual: ' + fmtMetros(max)))
+        ));
+        itemRowState[item.op_item_id] = { slider: slider, valorLabel: valorLabel };
+      });
+      wrap.appendChild(sliders);
+
+      var consumoBox = window.el('div', { style: 'padding-bottom:10px;' });
+      wrap.appendChild(consumoBox);
+
+      var btnReset = window.el('button', {
+        type: 'button',
+        style: 'display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:#2563eb;background:none;border:none;padding:0;margin-bottom:10px;cursor:pointer;font-family:inherit;',
+        onclick: function () {
+          (resultado.itens || []).forEach(function (item) {
+            var v = Math.round(ns.toFiniteNumber(item.metros_ajustados));
+            metrosOverride[item.op_item_id] = v;
+            var row = itemRowState[item.op_item_id];
+            if (row) {
+              row.slider.value = String(v);
+              row.valorLabel.textContent = fmtMetros(v);
+              row.slider.setAttribute('style', trackBg(row.slider));
+            }
+          });
+          recompute();
+        },
+      }, 'Voltar a proposta proporcional');
+      var btnManter = window.el('button', {
+        type: 'button',
+        style: 'background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:8px 14px;font-weight:700;font-size:12.5px;font-family:inherit;cursor:pointer;',
+        onclick: function (event) { aceitarProposta('manter', event && event.currentTarget); },
+      }, 'Manter pedido');
+      var btnAceitar = window.el('button', {
+        type: 'button',
+        onclick: function (event) { aceitarProposta('aceitar', event && event.currentTarget); },
+      }, 'Aceitar proposta');
+
+      wrap.appendChild(window.el('div', { style: 'border-top:1px solid #eceef1;padding-top:12px;' },
+        btnReset,
+        window.el('div', { style: 'display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap;' },
+          btnManter,
+          btnAceitar)
+      ));
+
+      function itensComMetrosAtuais() {
+        return itensCalc.map(function (item) {
+          return {
+            op_item_id: item.op_item_id,
+            modelo_id: item.modelo_id,
+            metros: metrosOverride[item.op_item_id] || 0,
+          };
+        });
+      }
+
+      function currentConsumos() {
+        if (typeof window.consumoPorOrdem !== 'function' || !ordens.length) return [];
+        try {
+          return window.consumoPorOrdem(itensComMetrosAtuais(), ordens, modelosById, parametrosByLargura);
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function recompute() {
+        var consumos = currentConsumos();
+        var algumExcede = consumos.some(function (row) { return row.sobra < 0; });
+        if (consumos.length) {
+          consumoBox.replaceChildren(window.el('div', {
+            style: 'font-size:10.5px;font-weight:800;color:#8a93a3;letter-spacing:.06em;margin-bottom:8px;',
+          }, 'CONSUMO DE FIO'));
+          consumos.forEach(function (row) {
+            var ordem = ordens.find(function (o) { return o.id === row.ordem_id; }) || {};
+            var nome = ordem.tipo === 'algodao'
+              ? 'Algodao - ' + ((ordem.cores && ordem.cores.nome) || '?')
+              : 'Poliester - ' + (ordem.cor_poliester || '?');
+            var sobraTxt = row.sobra >= 0 ? ('sobra ' + fmtKg(row.sobra)) : ('EXCEDE em ' + fmtKg(-row.sobra));
+            consumoBox.appendChild(window.el('div', {
+              style: 'display:flex;justify-content:space-between;gap:10px;font-size:12px;color:' + (row.sobra < 0 ? '#d6403a' : '#3f4757') + ';margin-bottom:5px;',
+            },
+              window.el('span', {}, nome + ': ' + fmtKg(row.kg_consumido) + ' / ' + fmtKg(row.kg_recebido)),
+              window.el('span', { style: 'font-weight:800;color:' + (row.sobra < 0 ? '#d6403a' : '#18794a') + ';white-space:nowrap;' }, sobraTxt)
+            ));
+          });
+        } else {
+          consumoBox.replaceChildren(window.el('div', {
+            style: 'font-size:12px;color:#8a93a3;line-height:1.45;',
+          }, 'Consumo de fio sera recalculado quando as ordens e parametros estiverem disponiveis.'));
+        }
+
+        var disabled = algumExcede || typeof window.aplicarRecalculoOP !== 'function';
+        btnAceitar.disabled = disabled;
+        btnAceitar.setAttribute('style', 'display:inline-flex;align-items:center;justify-content:center;background:' + (disabled ? '#93b7f5' : '#2563eb') + ';color:#fff;border:none;border-radius:4px;padding:8px 14px;font-weight:800;font-size:12.5px;font-family:inherit;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';');
+      }
+
+      async function aceitarProposta(modo, btn) {
+        if (btn) btn.disabled = true;
+        var consumos = currentConsumos();
+        if (modo === 'aceitar' && consumos.some(function (row) { return row.sobra < 0; })) {
+          window.toast('Algum fio esta excedido - ajuste os sliders.', 'error');
+          if (btn) btn.disabled = false;
+          return;
+        }
+        if (typeof window.aplicarRecalculoOP !== 'function') {
+          window.toast('Operacao de recalculo indisponivel.', 'error');
+          if (btn) btn.disabled = false;
+          return;
+        }
+        var round3 = function (n) { return Math.round(n * 1000) / 1000; };
+        var itensFinais = itensCalc.map(function (item) {
+          return {
+            op_item_id: item.op_item_id,
+            metros_pedidos: item.metros_pedidos,
+            metros_ajustados: Math.round((metrosOverride[item.op_item_id] || 0) * 100) / 100,
+          };
+        });
+        var sobrasFinais = consumos.filter(function (row) { return row.sobra > 0; }).map(function (row) {
+          var ordem = ordens.find(function (o) { return o.id === row.ordem_id; }) || {};
+          return {
+            ordem_id: ordem.id,
+            tipo: ordem.tipo,
+            cor_id: ordem.cor_id != null ? ordem.cor_id : null,
+            cor_poliester: ordem.cor_poliester != null ? ordem.cor_poliester : null,
+            kg_sobra: round3(row.sobra),
+          };
+        });
+        var res = await window.aplicarRecalculoOP({
+          opId: op.id,
+          resultado: {
+            fator: resultado.fator,
+            itens: itensFinais,
+            sobras: modo === 'aceitar' ? sobrasFinais : (resultado.sobras || []),
+          },
+          modo: modo,
+          ordens: ordens,
+        });
+        if (res && res.error) {
+          window.toast('Erro ao aceitar OP: ' + (res.error.message || 'desconhecido'), 'error');
+          console.error(res.error);
+          if (btn) btn.disabled = false;
+          return;
+        }
+        window.toast(modo === 'aceitar' ? 'Proposta aceita - producao liberada.' : 'Pedido mantido - producao liberada.', 'success');
+        await reload();
+        render();
+      }
+
+      recompute();
+      return wrap;
+    }
+
+    function relatedActionButton(label, onclick, variant) {
+      var secondary = variant === 'secondary';
+      return window.el('button', {
+        type: 'button',
+        style: 'display:inline-flex;align-items:center;justify-content:center;background:' + (secondary ? '#fff' : '#2563eb') + ';color:' + (secondary ? '#2563eb' : '#fff') + ';border:' + (secondary ? '1px solid #cfe0fb' : 'none') + ';border-radius:4px;padding:7px 12px;font-size:12.5px;font-weight:800;font-family:inherit;cursor:pointer;white-space:nowrap;',
+        onclick: onclick,
+      }, label);
+    }
+
+    function relatedOpsForTransition(ctxMovement) {
+      var key = transitionKey(ctxMovement);
+      var isTecToAcab = key === 'Tecelagem>Acabamento';
+      var list = [];
+      var seen = {};
+      function add(op) {
+        if (!op || op.id == null || seen[op.id]) return;
+        seen[op.id] = true;
+        list.push(op);
+      }
+      if (ctxMovement.op) add(ctxMovement.op);
+      var tecOps = (state.ops || []).filter(function (op) { return ns.stageKeyForOp(op) === 'tecelagem'; });
+      var acabOps = (state.ops || []).filter(function (op) { return ns.stageKeyForOp(op) === 'acabamento'; });
+      if (key === 'Insumos>Tecelagem' || isTecToAcab) {
+        tecOps.forEach(add);
+      }
+      if (isTecToAcab) {
+        acabOps.filter(function (op) {
+          return tecOps.some(function (tec) { return op.origem_op_id === tec.id; });
+        }).forEach(add);
+      }
+      if (key === 'Acabamento>Expedicao') {
+        acabOps.forEach(add);
+      }
+      if (key === 'Expedicao>Entrega') {
+        ((currentView && currentView.expedicaoSummaries) || []).forEach(function (exp) { add(exp.op); });
+        acabOps.filter(function (op) {
+          return (state.expedicoes || []).some(function (exp) { return exp.op_latex_id === op.id; });
+        }).forEach(add);
+      }
+      return list;
+    }
+
+    function buildRelatedOpsSection(ctxMovement) {
+      var ops = relatedOpsForTransition(ctxMovement);
+      var summaries = (currentView && currentView.opSummaries) || [];
+      function summaryFor(op) {
+        return summaries.find(function (s) { return String(s.id) === String(op.id); }) || {};
+      }
+      function typeLabel(op) {
+        return ns.stageKeyForOp(op) === 'acabamento' ? 'Acabamento/Latex' : 'Tecelagem';
+      }
+      function statusLabel(op) {
+        return window.pedidoStatusLabel ? window.pedidoStatusLabel(op.status) : ns.fmtTextoOuEmpty(op.status, '-');
+      }
+      function canMove(op, summary) {
+        var remaining = ns.toFiniteNumber(summary.remaining);
+        if (ns.stageKeyForOp(op) === 'tecelagem') return op.status === 'em_producao' && remaining > 0;
+        if (ns.stageKeyForOp(op) === 'acabamento') return (op.status === 'em_producao' || terminalStatus(op.status)) && remaining > 0;
+        return false;
+      }
+      function canFinalize(op, summary) {
+        var target = ns.toFiniteNumber(summary.target);
+        var remaining = ns.toFiniteNumber(summary.remaining);
+        if (ns.stageKeyForOp(op) === 'tecelagem') return op.status === 'em_producao' && target > 0 && remaining <= 0 && !terminalStatus(op.status);
+        if (ns.stageKeyForOp(op) === 'acabamento') return op.status === 'em_producao' && target > 0 && remaining <= 0 && !terminalStatus(op.status);
+        return false;
+      }
+      function movementStep(op) {
+        return ns.stageKeyForOp(op) === 'acabamento' ? 'acabamento' : 'tecelagem';
+      }
+
+      return window.el('div', {
+        style: 'border:1px solid #eceef1;border-radius:4px;background:#fff;overflow:hidden;margin-bottom:14px;',
+      },
+        window.el('div', {
+          style: 'padding:11px 14px;border-bottom:1px solid #f1f3f6;font-size:12px;font-weight:800;letter-spacing:.03em;color:#8a93a3;text-transform:uppercase;',
+        }, 'OPs relacionadas'),
+        ops.length
+          ? ops.map(function (op, index) {
+              var summary = summaryFor(op);
+              var podeAceitar = ns.stageKeyForOp(op) === 'tecelagem' && op.status === 'aberta';
+              var podeMovimentar = canMove(op, summary);
+              var podeFinalizar = canFinalize(op, summary);
+              var proposta = podeAceitar ? buildTecAcceptanceProposalBlock(op, { compact: true }) : null;
+              return window.el('div', {
+                style: 'padding:12px 14px;' + (index < ops.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : ''),
+              },
+                window.el('div', {
+                  style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;',
+                },
+                  window.el('div', { style: 'min-width:190px;' },
+                    window.el('div', { style: 'font-size:13.5px;font-weight:800;color:#16203a;line-height:1.35;' }, ns.opLabel(op)),
+                    window.el('div', { style: 'font-size:12px;color:#5b6472;line-height:1.45;margin-top:3px;' },
+                      'Tipo: ' + typeLabel(op) + ' | Numero/Ano: ' + (op.numero && op.ano ? (op.numero + '/' + op.ano) : '-') + ' | Status: ' + statusLabel(op)),
+                    summary.target != null
+                      ? window.el('div', { style: 'font-size:12px;color:#8a93a3;line-height:1.45;margin-top:2px;' },
+                          'Total: ' + ns.fmtMetros(summary.target || 0) + ' | Movimentado: ' + ns.fmtMetros(summary.done || 0) + ' | Saldo: ' + ns.fmtMetros(summary.remaining || 0))
+                      : null),
+                  window.el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;' },
+                    relatedActionButton('Abrir OP', function () { navigateToOp(op.id); }, 'secondary'),
+                    podeMovimentar ? relatedActionButton('Movimentar', function () { openMovementModal(movementContextForStage(movementStep(op), op)); }) : null,
+                    podeFinalizar ? relatedActionButton('Finalizar OP', function () { finalizarOp(op); }) : null)
+                ),
+                proposta,
+                !proposta && !podeMovimentar && !podeFinalizar
+                  ? window.el('div', { style: 'font-size:11.5px;color:#8a93a3;line-height:1.4;margin-top:7px;' }, 'Nenhuma acao contextual disponivel agora para esta OP.')
+                  : null
+              );
+            })
+          : window.el('div', {
+              style: 'padding:12px 14px;font-size:13px;color:#8a93a3;',
+            }, 'Nenhuma OP relacionada carregada para esta transicao.')
+      );
+    }
+
     function openTecAcceptanceModal(tecAcceptance) {
       var op = tecAcceptance.op;
       if (!op || !Array.isArray(op.op_itens)) return;
@@ -1415,6 +1805,7 @@
           movementMetricCard('Restante na origem', metrics.remainingLabel, '#c2610c')
         ),
         buildTransitionPendingTable(ctxMovement),
+        buildRelatedOpsSection(ctxMovement),
         window.el('div', {
           style: 'border:1px solid #eceef1;border-radius:4px;background:#fff;overflow:hidden;margin-bottom:14px;',
         },
@@ -1513,7 +1904,7 @@
       document.addEventListener('keydown', escListener);
 
       var card = window.el('div', {
-        style: 'position:relative;background:#fff;border:1px solid #eceef1;border-radius:' + MOVEMENT_MODAL_RADIUS + ';width:100%;max-width:520px;max-height:calc(100vh - 48px);overflow-y:auto;box-shadow:' + MOVEMENT_MODAL_SHADOW + ';',
+        style: 'position:relative;background:#fff;border:1px solid #eceef1;border-radius:' + MOVEMENT_MODAL_RADIUS + ';width:100%;max-width:720px;max-height:calc(100vh - 48px);overflow-y:auto;box-shadow:' + MOVEMENT_MODAL_SHADOW + ';',
       });
       var closeBtn = window.el('button', {
         type: 'button',
@@ -1616,17 +2007,9 @@
           window.el('div', { style: 'font-size:12.5px;color:' + s.color + ';line-height:1.4;' }, msg)
         );
       };
-      // Reusa o objeto de transferencia canonico do stepper (mesma origem/
-      // destino/RPC) forcando a acao para o modal de movimentacao existente.
-      var stageTransfer = function (stepKey, op) {
-        var st = ((view && view.stepper) || []).find(function (s) { return s.key === stepKey; });
-        var t = (st && st.transfer) ? st.transfer : {};
-        return Object.assign({}, t, { op: op || t.op, action: { mode: 'enabled' } });
-      };
       var openMovimentar = function (stepKey, op) {
-        return function () { openMovementModal(stageTransfer(stepKey, op)); };
+        return function () { openMovementModal(movementContextForStage(stepKey, op)); };
       };
-      var terminalStatus = function (st) { return st === 'concluida' || st === 'finalizada'; };
 
       if (key === 'insumos') {
         var insumos = summarizeInsumos({ op: null });

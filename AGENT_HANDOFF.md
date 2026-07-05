@@ -1,4 +1,64 @@
-﻿# Estado pos-fase - Pedido Stage Hub R2 Real Staging
+﻿# Estado pos-fase - Pedido Transition Modal Related Ops Actions R2
+
+- Fase: `RAVATEX-TAPETES-PEDIDO-TRANSITION-MODAL-RELATED-OPS-ACTIONS-R2`.
+- Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.
+- Branch/HEAD base: `work/app-next`,
+  `8cde96d91a525ae80a4106cfaac64090ae501dcd`; status inicial somente
+  `?? supabase/.temp/`; remoto de escrita permitido: `staging/work/app-next`.
+- Item reaberto: clique em seta de transicao do Pedido Detail Admin deve abrir
+  modal de transicao/movimento, nao o hub da etapa. A bolinha/etapa continua
+  sendo o ponto de entrada do hub. O erro anterior foi a seta `Aguardar`
+  desviar para `openStageDetailModal`, copiando o comportamento da bolinha.
+- Correcao em `js/screens/pedido-detail-render.js`: `buildTransferButton`
+  chama `handlers.openMovementModal(stage.transfer)` para os conectores/setas
+  renderizados. `buildStepper`/bolinhas continuam usando
+  `openStageDetailModal(stage, view)`.
+- Correcao em `js/screens/pedido-detail-events.js`: `openMovementModal`
+  renderiza `OPs relacionadas` dentro do modal de seta, logo apos
+  `Pendencias por produto`. A secao correlaciona OPs de Tecelagem,
+  Acabamento/Latex e Expedicao conforme a transicao:
+  `Insumos>Tecelagem`, `Tecelagem>Acabamento`, `Acabamento>Expedicao` e
+  `Expedicao>Entrega`.
+- Acoes da secao: `Abrir OP`, `Movimentar` quando ha saldo/etapa aplicavel,
+  `Finalizar OP` quando cabivel via handler canonico, e proposta de aceite para
+  OP Tecelagem `aberta`. O aceite nao e botao simples: replica a proposta com
+  sliders/recalculo da OP real.
+- Origem canonica do aceite: `js/screens/op-nova.js` (`buildProposta`) e
+  `js/screens/op-recalculo.js` (`aplicarRecalculoOP`). O Pedido reutiliza os
+  helpers globais (`recalcularOP`, `consumoPorOrdem`, `maxMetrosItem`,
+  `fmtMetros`, `fmtKg`, `rotuloModelo`, `aplicarRecalculoOP`) e nao introduz
+  write paralelo direto em `ops`.
+- Testes OK:
+  `node --check js\screens\pedido-detail-events.js`;
+  `node --check js\screens\pedido-detail-render.js`;
+  `node --test tests\pedido-detail.smoke.js` 150/150;
+  `node --test tests\pedido-detail-linked-ops.smoke.js` 7/7;
+  `node --test tests\tec-to-acabamento-flow.smoke.js` 37/37;
+  `node --test tests\op-latex-admin.smoke.js` 55/55;
+  `node --test tests\expedicao-partial-flow.smoke.js` 12/12;
+  `node --test tests\expedicao-flow.smoke.js` 8/8;
+  `node --test tests\production-flow-invariants.smoke.js` 11/11.
+- Diagnosticos staging read-only OK:
+  `node scripts/staging/production-flow-invariants-diag.mjs`;
+  `node scripts/staging/latex-consolidation-diag.mjs`;
+  `node scripts/staging/expedicao-partial-flow-diag.mjs`.
+- Arquivos alterados: `js/screens/pedido-detail-render.js`,
+  `js/screens/pedido-detail-events.js`, `tests/pedido-detail.smoke.js`,
+  `PROJECT_STATE.md`, `AGENT_HANDOFF.md`,
+  `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`.
+- Confirmacoes: sem SQL, sem migration, sem dados reais novos, sem aceitar OP
+  real, sem finalizar OP real, sem transferencia, sem concluir pedido, sem
+  mudanca de lifecycle, sem alteracao Acabamento -> Expedicao, sem write
+  paralelo no Pedido, sem `git add .`, `supabase/.temp/` fora do commit,
+  producao/origin intocados.
+- Validacao visual pendente do usuario: testar Pedido #13 para OP Tecelagem
+  aberta/aceite, Pedido #14 para Tecelagem -> Acabamento/movimento e Pedido
+  #21 para fluxo apto geral. Esperado: bolinha abre hub; seta `Aguardar` ou
+  `Transferir` abre modal de transicao com `OPs relacionadas`; nao deve haver
+  copia do hub, botao simples de aceite, mutacao automatica ou erro de console.
+- Backlog Admin/Pedido: NAO declarar zerado ate validacao visual do usuario.
+
+# Estado pos-fase - Pedido Stage Hub R2 Real Staging
 
 - Fase: `RAVATEX-TAPETES-PEDIDO-STAGE-HUB-R2-REAL-STAGING`.
 - Status: OK. Itens reabertos do hub foram corrigidos e revalidados em

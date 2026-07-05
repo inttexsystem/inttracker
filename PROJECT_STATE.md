@@ -1,4 +1,48 @@
 > **Atualizacao 2026-07-05 - fase
+> `RAVATEX-TAPETES-PEDIDO-TRANSITION-MODAL-RELATED-OPS-ACTIONS-R2`.**
+> Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.
+> Item reaberto: o requisito original era que clique nas setas de transicao do
+> Pedido Detail Admin continuasse abrindo o modal de transicao/movimento, com
+> as OPs relacionadas e suas acoes contextuais dentro desse modal. A bolinha da
+> etapa deve continuar abrindo o hub da etapa. O erro anterior foi tratar a seta
+> `Aguardar` como atalho para o hub, copiando a experiencia da bolinha e
+> retirando o usuario do modal de transicao esperado.
+>
+> Correcao tecnica: `js/screens/pedido-detail-render.js` voltou a delegar todo
+> conector/seta renderizado para `openMovementModal(stage.transfer)`. O hub
+> permanece exclusivo das bolinhas/etapas via `openStageDetailModal`. Em
+> `js/screens/pedido-detail-events.js`, o modal de movimento ganhou a secao
+> `OPs relacionadas`, entre as pendencias por produto e os itens envolvidos,
+> listando OPs de Tecelagem, Acabamento/Latex e Expedicao conforme a transicao.
+>
+> Acoes contextuais integradas: `Abrir OP`; `Movimentar` quando existe saldo e
+> etapa aplicavel; `Finalizar OP` via handler canonico `finalizarOp`; e, para
+> OP Tecelagem `aberta`, bloco de proposta de aceite com sliders e recalculo,
+> nao um botao simples. A fonte real do aceite foi preservada: a UI original
+> esta em `js/screens/op-nova.js` (`buildProposta`) e os writes canonicos em
+> `js/screens/op-recalculo.js`; o Pedido apenas reutiliza os helpers globais
+> (`recalcularOP`, `consumoPorOrdem`, `maxMetrosItem`,
+> `aplicarRecalculoOP`). Sem `.from('ops').update` paralelo no Pedido.
+>
+> Testes locais OK: `node --check js\screens\pedido-detail-events.js`;
+> `node --check js\screens\pedido-detail-render.js`;
+> `node --test tests\pedido-detail.smoke.js` (150/150);
+> `node --test tests\pedido-detail-linked-ops.smoke.js` (7/7);
+> `node --test tests\tec-to-acabamento-flow.smoke.js` (37/37);
+> `node --test tests\op-latex-admin.smoke.js` (55/55);
+> `node --test tests\expedicao-partial-flow.smoke.js` (12/12);
+> `node --test tests\expedicao-flow.smoke.js` (8/8);
+> `node --test tests\production-flow-invariants.smoke.js` (11/11).
+>
+> Diagnosticos staging read-only OK: `production-flow-invariants-diag`,
+> `latex-consolidation-diag` e `expedicao-partial-flow-diag`. Sem SQL, sem
+> migration, sem dados reais novos, sem aceitar OP real, sem finalizar OP real,
+> sem transferencia, sem concluir pedido, sem alteracao de lifecycle, sem write
+> paralelo no Pedido, sem `git add .`, `supabase/.temp/` fora do commit,
+> producao/origin intocados. Backlog Admin/Pedido: NAO declarar zerado; falta
+> validacao visual do usuario.
+>
+> **Atualizacao 2026-07-05 - fase
 > `RAVATEX-TAPETES-PEDIDO-STAGE-HUB-R2-REAL-STAGING`.**
 > Status: OK para os itens reabertos do hub. Correcao pequena aplicada apos
 > reproducao visual real do Pedido #13 em staging. A falha original foi

@@ -324,14 +324,14 @@ test('pedido-detail: conectores continuam como setas integradas, nao badges solt
     'conector deve ter largura fixa suficiente para label curto');
   assert.match(connectorSlice, /buildConnectorStyle\(visual,\s*false\)/,
     'concluido/aguardando devem usar o mesmo formato de seta integrada');
-  assert.match(connectorSlice, /buildConnectorStyle\(visual,\s*clickable\)/,
-    'ativo deve usar o mesmo formato de seta integrada');
+  assert.match(connectorSlice, /buildConnectorStyle\(visual,\s*true\)/,
+    'seta clicavel deve usar o mesmo formato integrado');
   assert.doesNotMatch(detailRender, /function buildPassiveConnector/);
   assert.doesNotMatch(detailRender, /border-radius:999px/);
   assert.doesNotMatch(connectorRegion, /border:\s*1px solid/);
 });
 
-test('pedido-detail: Transferir e Concluido abrem transicao; Aguardar abre hub explicativo', () => {
+test('pedido-detail: setas de transicao abrem modal de movimento; bolinhas mantem hub', () => {
   const connectorRegion = (detailRender.match(
     /function isConnectorDoneAction\s*\(action\)\s*\{[\s\S]*?\n  function buildStepper/
   ) || [''])[0];
@@ -342,14 +342,14 @@ test('pedido-detail: Transferir e Concluido abrem transicao; Aguardar abre hub e
   assert.ok(connectorSlice, 'trecho buildTransferButton nao encontrado');
   assert.match(connectorRegion, /mode === ['"]hidden['"][\s\S]*?state:\s*['"]waiting['"][\s\S]*?label:\s*['"]Aguardar['"]/,
     'action hidden deve renderizar Aguardar, nao sumir');
-  assert.match(connectorSlice, /var\s+clickable\s*=\s*visual\.state === ['"]active['"] \|\| visual\.state === ['"]done['"]/,
-    'Concluido deve ficar clicavel para abrir historico da transicao');
-  assert.match(connectorSlice, /var\s+canOpenStageHub\s*=\s*visual\.state === ['"]waiting['"][\s\S]*?handlers\.openStageDetailModal/,
-    'Aguardar deve abrir o hub da etapa quando houver explicacao');
-  assert.match(connectorSlice, /handlers\.openStageDetailModal\(stage,\s*view\)/,
-    'clique em Aguardar deve abrir o hub contextual da etapa');
+  assert.match(connectorSlice, /var\s+clickable\s*=\s*typeof handlers\.openMovementModal === ['"]function['"]/,
+    'toda seta renderizada deve usar o modal de transicao/movimento');
+  assert.doesNotMatch(connectorSlice, /handlers\.openStageDetailModal\(stage,\s*view\)/,
+    'seta nao pode abrir o hub da bolinha');
+  assert.match(detailRender, /buildStageNode\(stage,\s*index,[\s\S]*?handlers\.openStageDetailModal\(stage,\s*view\)/,
+    'bolinha/etapa continua abrindo o hub contextual');
   assert.match(connectorSlice, /window\.el\(['"]button['"][\s\S]*?handlers\.openMovementModal\(stage\.transfer\)/,
-    'Transferir/Concluido devem abrir o modal de transicao do Pedido');
+    'Transferir/Concluido/Aguardar devem abrir o modal de transicao do Pedido');
   assert.doesNotMatch(connectorSlice, /visual\.state === ['"]view['"]/);
   assert.doesNotMatch(connectorSlice, /action\.mode === ['"]hidden['"][\s\S]*?return window\.el\(['"]div['"],\s*\{\s*style:\s*['"]display:flex;align-items:center;justify-content:center;height:42px;['"]\s*\}\)/);
 });
@@ -1200,6 +1200,52 @@ test('modal-gaps-B: openMovementModal integra tabela de pendencias', () => {
     'openMovementModal deve chamar buildTransitionPendingTable');
 });
 
+test('transition-related-ops-R2: openMovementModal integra secao OPs relacionadas', () => {
+  assert.match(movementModalSlice, /buildRelatedOpsSection\(ctxMovement\)/,
+    'modal da seta deve compor a secao OPs relacionadas sem substituir o fluxo principal');
+  assert.match(detailEvents, /function buildRelatedOpsSection/,
+    'deve existir builder dedicado para OPs relacionadas');
+  const sectionSlice = (detailEvents.match(/function buildRelatedOpsSection[\s\S]*?\n    \}\n\n    function openTecAcceptanceModal/) || [''])[0];
+  assert.ok(sectionSlice, 'trecho buildRelatedOpsSection nao encontrado');
+  assert.match(sectionSlice, /OPs relacionadas/,
+    'secao deve ter titulo OPs relacionadas');
+  assert.match(sectionSlice, /Tipo: /,
+    'cada OP deve exibir tipo');
+  assert.match(sectionSlice, /Numero\/Ano: /,
+    'cada OP deve exibir numero\/ano');
+  assert.match(sectionSlice, /Status: /,
+    'cada OP deve exibir status');
+  assert.match(sectionSlice, /relatedActionButton\('Abrir OP'/,
+    'Abrir OP deve aparecer sempre que houver OP relacionada');
+  assert.match(sectionSlice, /relatedActionButton\('Movimentar'/,
+    'Movimentar deve aparecer quando aplicavel');
+  assert.match(sectionSlice, /relatedActionButton\('Finalizar OP'/,
+    'Finalizar OP deve aparecer quando aplicavel');
+  assert.doesNotMatch(sectionSlice, /Aceitar OP/,
+    'secao do modal da seta nao pode substituir o fluxo real por botao simples Aceitar OP');
+});
+
+test('transition-related-ops-R2: aceite Tecelagem usa slider/proposta e helper canonico', () => {
+  const proposalSlice = (detailEvents.match(/function buildTecAcceptanceProposalBlock[\s\S]*?\n    \}\n\n    function relatedActionButton/) || [''])[0];
+  assert.ok(proposalSlice, 'trecho buildTecAcceptanceProposalBlock nao encontrado');
+  assert.match(proposalSlice, /Proposta de aceite/,
+    'deve renderizar bloco de proposta');
+  assert.match(proposalSlice, /type:\s*['"]range['"]/,
+    'deve renderizar slider real');
+  assert.match(proposalSlice, /Aceitar proposta/,
+    'deve renderizar botao real Aceitar proposta');
+  assert.match(proposalSlice, /Voltar a proposta proporcional/,
+    'deve permitir voltar para proposta proporcional');
+  assert.match(proposalSlice, /window\.recalcularOP/,
+    'deve usar o recalculo canonico da proposta');
+  assert.match(proposalSlice, /window\.consumoPorOrdem/,
+    'deve recomputar consumo de fio ao vivo');
+  assert.match(proposalSlice, /window\.aplicarRecalculoOP/,
+    'aceite deve reutilizar o helper canonico');
+  assert.doesNotMatch(proposalSlice, /\.from\(\s*['"]ops['"]\s*\)\.update/,
+    'nao deve fazer update direto em ops.status no Pedido');
+});
+
 test('modal-gaps-B: items do modal mostram moved/de/pendente por item', () => {
   // buildMovementItems agora mostra "X de Y · Z pendente" ou "X de Y · completo"
   const itemsSlice = (detailEvents.match(/function buildMovementItems[\s\S]*?\n    \}\n\n    function buildMovementMetrics/) || [''])[0];
@@ -2035,7 +2081,7 @@ test('FIRST-OP runtime: pedido com OP nao mostra CTA de gerar primeira OP na tel
   assert.match(collectHubText(rendered.root), /Abrir OP/);
 });
 
-test('BLOCKER runtime: clique em seta Aguardar abre hub contextual da etapa', () => {
+test('TRANSITION runtime: clique em seta Aguardar abre modal de transicao', () => {
   const rt = makeHubRuntime();
   const s = hubBase(rt.ns);
   const view = rt.ns.computeViewModel(s);
@@ -2059,10 +2105,10 @@ test('BLOCKER runtime: clique em seta Aguardar abre hub contextual da etapa', ()
   const wait = findHubBtn(container, /^Aguardar$/i);
   assert.ok(wait, 'seta Aguardar deve renderizar como botao clicavel');
   wait._listeners.click({});
-  assert.ok(rt.events.indexOf('stage:insumos:same-view') !== -1,
-    'Aguardar da transicao inicial deve abrir o hub da etapa Insumos');
-  assert.equal(rt.events.indexOf('movement'), -1,
-    'Aguardar bloqueado nao deve abrir modal de movimentacao direta');
+  assert.ok(rt.events.indexOf('movement') !== -1,
+    'Aguardar da transicao inicial deve abrir o modal de transicao/movimento');
+  assert.equal(rt.events.indexOf('stage:insumos:same-view'), -1,
+    'Aguardar da seta nao deve abrir o hub contextual da bolinha');
 });
 
 test('HUB runtime: modal lista OPs com Abrir OP e Finalizar OP para Tecelagem entregue', () => {

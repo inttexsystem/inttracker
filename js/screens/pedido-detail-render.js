@@ -355,39 +355,25 @@
     var disabled = mode === 'disabled' || (!stage.transfer.op && (stage.transfer.title !== 'Registrar saida para entrega'));
     var visual = buildConnectorVisual(action, disabled);
     var title = buildConnectorTitle(stage, action, visual);
-    var canOpenStageHub = visual.state === 'waiting' && typeof handlers.openStageDetailModal === 'function';
-    var clickable = visual.state === 'active' || visual.state === 'done' || canOpenStageHub;
-    if (visual.state === 'waiting') {
-      return window.el('div', {
-        style: 'display:flex;align-items:center;justify-content:center;height:42px;',
-      },
-        canOpenStageHub ? window.el('button', {
-          type: 'button',
-          title: title,
-          'aria-label': title,
-          style: buildConnectorStyle(visual, true),
-          onclick: function () {
-            handlers.openStageDetailModal(stage, view);
-          },
-        }, visual.label) : window.el('div', {
-          title: title,
-          'aria-label': title,
-          style: buildConnectorStyle(visual, false),
-        }, visual.label)
-      );
-    }
+    var clickable = typeof handlers.openMovementModal === 'function';
     return window.el('div', {
       style: 'display:flex;align-items:center;justify-content:center;height:42px;',
     },
-      window.el('button', {
-        type: 'button',
-        title: title,
-        'aria-label': title,
-        style: buildConnectorStyle(visual, clickable),
-        onclick: function () {
-          handlers.openMovementModal(stage.transfer);
-        },
-      }, visual.label)
+      clickable
+        ? window.el('button', {
+            type: 'button',
+            title: title,
+            'aria-label': title,
+            style: buildConnectorStyle(visual, true),
+            onclick: function () {
+              handlers.openMovementModal(stage.transfer);
+            },
+          }, visual.label)
+        : window.el('div', {
+            title: title,
+            'aria-label': title,
+            style: buildConnectorStyle(visual, false),
+          }, visual.label)
     );
   }
 

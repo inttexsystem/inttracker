@@ -1,3 +1,58 @@
+# Atualizacao 2026-07-05 - Transition Modal Related Ops Actions R2
+
+Fase: `RAVATEX-TAPETES-PEDIDO-TRANSITION-MODAL-RELATED-OPS-ACTIONS-R2`
+Status: **PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO**
+
+Item reaberto: o comportamento correto das setas do Pedido Detail Admin e
+abrir o modal de transicao/movimento. A bolinha da etapa abre o hub da etapa.
+A falha anterior foi desviar a seta `Aguardar` para o hub (`openStageDetailModal`),
+copiando o comportamento da bolinha e quebrando o requisito original de manter
+a experiencia de transicao no modal de seta.
+
+Escopo entregue:
+
+- `js/screens/pedido-detail-render.js`: setas/conectores renderizados chamam
+  `openMovementModal(stage.transfer)`; bolinhas continuam chamando
+  `openStageDetailModal(stage, view)`.
+- `js/screens/pedido-detail-events.js`: `openMovementModal` recebeu a secao
+  `OPs relacionadas`, com OPs de Tecelagem, Acabamento/Latex e Expedicao
+  relacionadas a transicao corrente.
+- Acoes contextuais no modal de seta: `Abrir OP`, `Movimentar` quando ha saldo
+  aplicavel, `Finalizar OP` via handler canonico, e proposta de aceite para OP
+  Tecelagem `aberta`.
+- Aceite Tecelagem: nao foi implementado como botao simples. A UI real de
+  aceite/proposta fica em `js/screens/op-nova.js` (`buildProposta`) e o write
+  canonico em `js/screens/op-recalculo.js` (`aplicarRecalculoOP`). O Pedido
+  reaproveita os helpers globais de proposta, sliders e recalculo, sem criar
+  `.from('ops').update` paralelo.
+
+Testes e diagnosticos:
+
+- `node --check js\screens\pedido-detail-events.js`
+- `node --check js\screens\pedido-detail-render.js`
+- `node --test tests\pedido-detail.smoke.js` = 150/150
+- `node --test tests\pedido-detail-linked-ops.smoke.js` = 7/7
+- `node --test tests\tec-to-acabamento-flow.smoke.js` = 37/37
+- `node --test tests\op-latex-admin.smoke.js` = 55/55
+- `node --test tests\expedicao-partial-flow.smoke.js` = 12/12
+- `node --test tests\expedicao-flow.smoke.js` = 8/8
+- `node --test tests\production-flow-invariants.smoke.js` = 11/11
+- Staging read-only OK: `production-flow-invariants-diag`,
+  `latex-consolidation-diag`, `expedicao-partial-flow-diag`
+
+Confirmacoes: sem SQL, sem migration, sem dados reais novos, sem aceitar OP
+real, sem finalizar OP real, sem transferencia, sem concluir pedido, sem
+alterar lifecycle de OP, sem alterar Acabamento -> Expedicao, sem write
+paralelo no Pedido, sem `git add .`, `supabase/.temp/` fora do commit,
+producao/origin intocados.
+
+Criterio visual pendente: Pedido #13 deve mostrar seta `Aguardar` abrindo o
+modal de transicao com `OPs relacionadas` e proposta real de aceite quando a OP
+Tecelagem estiver aberta; bolinha Tecelagem deve continuar abrindo o hub.
+Pedido #14 deve validar Tecelagem -> Acabamento; Pedido #21 pode ser usado como
+fluxo apto geral. Nao declarar backlog Admin/Pedido zerado antes dessa
+validacao visual.
+
 # Backlog Funcional/Arquitetural do Fluxo Produtivo — Pedido
 
 Fase: `RAVATEX-TAPETES-PRODUCTION-BACKLOG-REGISTER-A`
