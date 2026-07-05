@@ -1,4 +1,87 @@
-﻿# Estado pos-fase - Tec To Acabamento Modal Layout R1 Closeout
+﻿# Estado pos-fase - Latex Admin Compact Buttons R1
+
+- Fase: `RAVATEX-TAPETES-LATEX-ADMIN-COMPACT-BUTTONS-R1`.
+- Status: OK. Patch UI focado + testes; sem SQL, migration, producao,
+  dados reais novos, payload novo, RPC nova ou mudanca de regra de negocio.
+- Branch/HEAD base: `work/app-next`,
+  `2ff4ab816ef491f1beed76f9e18fc45d2aebc7d5`.
+- Validacao inicial:
+  - branch correta;
+  - HEAD esperado;
+  - status inicial somente `?? supabase/.temp/`;
+  - remoto `staging` confirmado;
+  - `origin` nao usado para escrita.
+- Arquivos lidos:
+  - `PROJECT_STATE.md`;
+  - `AGENT_HANDOFF.md`;
+  - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`;
+  - `js/screens/op-latex-admin.js`;
+  - `js/screens/pedido-detail-events.js`;
+  - `js/screens/pedido-chain-state.js`;
+  - `js/screens/pedido-detail-progress.js`;
+  - `tests/op-latex-admin.smoke.js`;
+  - `tests/expedicao-partial-flow.smoke.js`;
+  - `tests/pedido-detail.smoke.js`.
+- Diagnostico e ajustes:
+  - `Confirmar entrada / iniciar acabamento` era texto longo e misturava
+    explicacao com acao; a funcao real e confirmar recebimento vindo da
+    Tecelagem e chamar `alterar_status_op` para `em_producao`.
+  - Novo label: `Confirmar`; helper: `Confirma o recebimento do material
+    vindo da Tecelagem.`.
+  - `Movimentar para Expedicao` chama `liberar_expedicao_latex_parcial` e
+    movimenta Acabamento -> Expedicao sem finalizar OP.
+  - Novo label: `Movimentar`; helper: `Movimenta a quantidade disponivel do
+    Acabamento para Expedicao.`.
+  - `Liberar total para expedicao` preserva a RPC legada
+    `liberar_expedicao`; novo label: `Liberar total`.
+  - `Finalizar OP de latex`/dialogo longo virou `Finalizar OP`, mantendo
+    `alterar_status_op` para `concluida`.
+  - `Excluir OP de latex`/`Excluir OP de acabamento` virou `Excluir OP`,
+    sem mudar handler.
+  - `BTN_PRIMARY` recebeu `white-space:nowrap` para evitar quebra de linha.
+- Garantias:
+  - nao existe etapa obrigatoria `registrar acabamento`;
+  - `finalizar acabamento` nao foi introduzido como etapa operacional;
+  - Finalizar OP continua separado de movimentar;
+  - movimentar para Expedicao nao exige OP terminal;
+  - Acabamento -> Expedicao permanece via `liberar_expedicao_latex_parcial`;
+  - calculo de saldo, split/consolidacao Latex, Cliente Detail/read model e
+    lifecycle de OP nao foram alterados.
+- Testes locais OK:
+  - `node --check js\screens\op-latex-admin.js`;
+  - `node --check tests\op-latex-admin.smoke.js`;
+  - `node --check tests\expedicao-partial-flow.smoke.js`;
+  - `node --check tests\expedicao-flow.smoke.js`;
+  - `node --test tests\op-latex-admin.smoke.js` = 55/55;
+  - `node --test tests\expedicao-partial-flow.smoke.js` = 12/12;
+  - `node --test tests\pedido-detail.smoke.js` = 145/145;
+  - `node --test tests\pedido-detail-linked-ops.smoke.js` = 7/7;
+  - `node --test tests\tec-to-acabamento-flow.smoke.js` = 37/37;
+  - `node --test tests\expedicao-flow.smoke.js` = 8/8;
+  - `node --test tests\entrega-writes.smoke.js` = 70/70;
+  - `node --test tests\op-latex-split.smoke.js` = 28/28;
+  - `node --test tests\production-flow-invariants.smoke.js` = 11/11;
+  - `node --test tests\latex-consolidation-schema.smoke.js` = 25/25.
+- Diagnosticos staging read-only OK:
+  - `node scripts/staging/production-flow-invariants-diag.mjs`;
+  - `node scripts/staging/latex-consolidation-diag.mjs`;
+  - `node scripts/staging/expedicao-partial-flow-diag.mjs`.
+- Arquivos alterados:
+  - `js/screens/op-latex-admin.js`;
+  - `tests/op-latex-admin.smoke.js`;
+  - `tests/expedicao-partial-flow.smoke.js`;
+  - `tests/expedicao-flow.smoke.js`;
+  - `PROJECT_STATE.md`;
+  - `AGENT_HANDOFF.md`.
+- Arquivo extra justificado: `tests/expedicao-flow.smoke.js` foi atualizado
+  porque a suite obrigatoria ainda dependia do texto longo antigo
+  `Movimentar para Expedicao`.
+- Proximo backlog recomendado: `PEDIDO-STAGE-MODAL-WIDTH-R1`.
+- Confirmacoes: producao intocada, `origin` nao usado para escrita, nenhum
+  segredo impresso intencionalmente, sem `git add .`, sem reset/rebase/clean/
+  stash e `supabase/.temp/` fora do commit.
+
+# Estado pos-fase - Tec To Acabamento Modal Layout R1 Closeout
 
 - Fase: `RAVATEX-TAPETES-TEC-TO-ACABAMENTO-MODAL-LAYOUT-R1-CLOSEOUT`.
 - Status: OK. Closeout de patch parcial retomado; executor anterior foi

@@ -94,8 +94,8 @@ test('4. Nao existe etapa obrigatoria "registrar acabamento"', () => {
   assert.match(db32, /op_latex_entregas/);
   assert.match(db32, /e\.etapa = 'cima'/);
   // O modulo da OP nao renderiza um card operacional "novo recebimento" de
-  // acabamento; a UI principal usa "Movimentar para Expedicao".
-  assert.match(ola, /Movimentar para Expedicao/);
+  // acabamento; a UI principal usa botao curto para movimentar.
+  assert.match(ola, /'Movimentar'/);
   assert.doesNotMatch(ola, /'\+ Novo recebimento'/);
 });
 
@@ -141,7 +141,7 @@ test('8. Pedido Detail recalcula em_acabamento / pronto_expedicao / entregue', (
 test('9. Fluxo total legado de OP terminal continua valido', () => {
   assert.match(db23, /CREATE OR REPLACE FUNCTION public\.liberar_expedicao\s*\(\s*p_op_latex_id BIGINT\s*\)/i);
   assert.match(db23, /v_op\.status NOT IN \('finalizada', 'concluida'\)/);
-  assert.match(ola, /Liberar total para expedicao/);
+  assert.match(ola, /'Liberar total'/);
   assert.match(ola, /supa\.rpc\(\s*'liberar_expedicao'/);
 });
 

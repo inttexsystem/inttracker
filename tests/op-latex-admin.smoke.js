@@ -848,7 +848,9 @@ test('33. OP aberta de acabamento mostra origem e CTA de confirmar entrada', asy
   });
   assert.match(rendered.text, /OP origem/i);
   assert.match(rendered.text, /OP 2\/2026 · Tecelagem/i);
-  assert.match(rendered.text, /Confirmar entrada \/ iniciar acabamento/i);
+  assert.match(rendered.text, /Confirmar/i);
+  assert.match(rendered.text, /Confirma o recebimento do material vindo da Tecelagem/i);
+  assert.doesNotMatch(rendered.text, /Confirmar entrada \/ iniciar acabamento/i);
   assert.doesNotMatch(rendered.text, /Colocar em producao/i);
 });
 
@@ -945,7 +947,7 @@ test('37. OP aberta de acabamento confirma entrada via alterar_status_op', async
     origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
   const btn = findNode(rendered.view, (n) => (
-    n.tagName === 'BUTTON' && /Confirmar entrada \/ iniciar acabamento/i.test(collectNodeText(n))
+    n.tagName === 'BUTTON' && /\bConfirmar\b/i.test(collectNodeText(n))
   ));
   assert.ok(btn, 'CTA de confirmar entrada nao encontrado');
   assert.equal(btn.disabled, false, 'CTA de confirmar entrada nao deve nascer desabilitado');
@@ -963,6 +965,32 @@ test('37. OP aberta de acabamento confirma entrada via alterar_status_op', async
   assert.ok(opsFromAfter > opsFromBefore, 'confirmacao deve recarregar a OP apos sucesso');
   assert.doesNotMatch(olaSrc, /function\s+colocarEmProducao\s*\(/,
     'op-latex-admin.js nao deve manter funcao legada colocarEmProducao');
+});
+
+test('37a. OP aberta de acabamento nao renderiza botao longo ou etapa inexistente', async () => {
+  const rendered = await renderLatexAdminForTest({
+    opData: {
+      id: 42,
+      numero: 8,
+      ano: 2026,
+      status: 'aberta',
+      tipo: 'latex',
+      observacao: '',
+      origem_op_id: 12,
+      lote: { id: 91, numero: 22, cliente: { id: 3, nome: 'Cliente Atlas' } },
+      op_itens: [{ id: 100, modelo_id: 1, metros_pedidos: 125 }],
+      op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
+    },
+    modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
+    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+  });
+  assert.doesNotMatch(rendered.text, /Confirmar entrada \/ iniciar acabamento/i);
+  assert.doesNotMatch(rendered.text, /Registrar acabamento/i);
+  assert.doesNotMatch(rendered.text, /Finalizar acabamento/i);
+  assert.doesNotMatch(rendered.text, /Novo recebimento/i);
+  assert.ok(findNode(rendered.view, (n) => (
+    n.tagName === 'BUTTON' && /\bConfirmar\b/i.test(collectNodeText(n))
+  )), 'botao curto Confirmar deve existir');
 });
 
 test('38. op-latex-admin.js nao faz update de status para em_producao', () => {
@@ -1159,9 +1187,9 @@ test('43a. OP em producao com saldo acabado libera expedicao parcial sem finaliz
   });
 
   assert.match(rendered.text, /Saldo movimentavel/i);
-  assert.match(rendered.text, /Movimentar para Expedicao/i);
+  assert.match(rendered.text, /Movimenta a quantidade disponivel do Acabamento para Expedicao/i);
   const btn = findNode(rendered.view, (n) => (
-    n.tagName === 'BUTTON' && /Movimentar para Expedicao/i.test(collectNodeText(n))
+    n.tagName === 'BUTTON' && /\bMovimentar\b/i.test(collectNodeText(n))
   ));
   assert.ok(btn, 'CTA parcial de movimentar para expedicao nao encontrado');
   await btn._listeners.click({ currentTarget: btn });
@@ -1173,6 +1201,50 @@ test('43a. OP em producao com saldo acabado libera expedicao parcial sem finaliz
   assert.equal(rpcCalls[0].params.p_itens[0].metros, 30);
   assert.equal(rendered.fakeSupa._calls.some(c => c.op === 'rpc' && c.fn === 'alterar_status_op'), false);
   assert.equal(rendered.fakeSupa._calls.some(c => c.op === 'rpc' && c.fn === 'liberar_expedicao'), false);
+});
+
+test('43d. OP em producao mantem botoes curtos e Finalizar OP separado', async () => {
+  const rendered = await renderLatexAdminForTest({
+    opData: {
+      id: 42,
+      numero: 8,
+      ano: 2026,
+      status: 'em_producao',
+      tipo: 'latex',
+      observacao: '',
+      origem_op_id: 12,
+      lote: { id: 91, numero: 22, pedido_id: '11111111-2222-3333-4444-555555555555', cliente: { id: 3, nome: 'Cliente Atlas' } },
+      op_itens: [{ id: 100, modelo_id: 1, metros_pedidos: 125, pedido_item_id: 'aaaaaaaa-2222-3333-4444-555555555555' }],
+      op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
+    },
+    modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
+    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    saldoData: {
+      ok: true,
+      recebido_total: 50,
+      liberado_total: 20,
+      disponivel_total: 30,
+      entregue_total: 0,
+      saldo_em_acabamento_total: 30,
+      itens: [{
+        op_item_id: 100,
+        pedido_item_id: 'aaaaaaaa-2222-3333-4444-555555555555',
+        modelo_id: 1,
+        previsto: 125,
+        recebido: 50,
+        liberado: 20,
+        entregue: 0,
+        disponivel: 30,
+      }],
+    },
+  });
+  assert.ok(findNode(rendered.view, (n) => n.tagName === 'BUTTON' && /\bMovimentar\b/i.test(collectNodeText(n))),
+    'botao de movimentacao deve ser curto');
+  assert.ok(findNode(rendered.view, (n) => n.tagName === 'BUTTON' && /Finalizar OP/i.test(collectNodeText(n))),
+    'Finalizar OP deve permanecer separado');
+  assert.doesNotMatch(rendered.text, /Finalizar acabamento/i);
+  assert.doesNotMatch(rendered.text, /Registrar acabamento/i);
+  assert.doesNotMatch(rendered.text, /Confirmar entrada \/ iniciar acabamento/i);
 });
 
 test('43b. OP finalizada preserva liberar expedicao total legado quando nao ha saldo parcial', async () => {
@@ -1192,9 +1264,9 @@ test('43b. OP finalizada preserva liberar expedicao total legado quando nao ha s
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
     origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
-  assert.match(rendered.text, /Liberar total para expedicao/i);
+  assert.match(rendered.text, /Liberar total/i);
   const btn = findNode(rendered.view, (n) => (
-    n.tagName === 'BUTTON' && /Liberar total para expedicao/i.test(collectNodeText(n))
+    n.tagName === 'BUTTON' && /Liberar total/i.test(collectNodeText(n))
   ));
   assert.ok(btn, 'CTA legado de liberar expedicao nao encontrado');
   await btn._listeners.click({ currentTarget: btn });
@@ -1220,9 +1292,9 @@ test('43c. OP concluida preserva liberar expedicao total legado quando nao ha sa
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
     origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
-  assert.match(rendered.text, /Liberar total para expedicao/i);
+  assert.match(rendered.text, /Liberar total/i);
   const btn = findNode(rendered.view, (n) => (
-    n.tagName === 'BUTTON' && /Liberar total para expedicao/i.test(collectNodeText(n))
+    n.tagName === 'BUTTON' && /Liberar total/i.test(collectNodeText(n))
   ));
   assert.ok(btn, 'CTA legado de liberar expedicao nao encontrado');
   await btn._listeners.click({ currentTarget: btn });
@@ -1300,9 +1372,11 @@ test('46. Card "1. Dados da OP" (Acabamento em produção) usa 3 colunas do stan
 // — o comportamento continua sendo scroll anchor, mas o label agora reflete
 // que é navegação interna, não ação produtiva.
 test('47. OP Látex: header não contém botão "Movimentar" ambíguo (renomeado para "Ir para movimentos")', () => {
-  assert.doesNotMatch(olaSrc, /'Movimentar'/,
+  const headerSlice = (olaSrc.match(/function buildHeaderProducao[\s\S]*?\n        function buildDados/) || [''])[0];
+  assert.ok(headerSlice, 'trecho buildHeaderProducao nao encontrado');
+  assert.doesNotMatch(headerSlice, /'Movimentar'/,
     'botão do header da OP Látex não deve mais usar label "Movimentar" ambíguo');
-  assert.match(olaSrc, /'Ir para movimentos'/,
+  assert.match(headerSlice, /'Ir para movimentos'/,
     'botão do header da OP Látex deve usar label "Ir para movimentos" que reflete scroll');
 });
 

@@ -68,7 +68,7 @@ test('expedicao flow: nao altera contrato gerar_op_latex e OP Latex continua nas
 test('expedicao flow: acabamento finalizado libera expedicao sem concluir pedido', () => {
   assert.match(latex, /supa\.rpc\(\s*['"]liberar_expedicao['"]/);
   assert.match(latex, /p_op_latex_id\s*:\s*id/);
-  assert.match(latex, /Movimentar para Expedicao/);
+  assert.match(latex, /'Movimentar'/);
   assert.doesNotMatch(latex, /concluir_pedido_se_pronto/);
 });
 

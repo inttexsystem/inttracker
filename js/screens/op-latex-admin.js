@@ -26,7 +26,7 @@
   var CARD = 'background:#fff;border:1px solid #eceef1;border-radius:6px;';
   var FIELD_LABEL = 'font-size:13px;font-weight:600;color:#3f4757;margin-bottom:7px;display:block;';
   var TH_STYLE = 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.04em;white-space:nowrap;';
-  var BTN_PRIMARY = 'display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:12px 16px;font-weight:700;font-size:15px;font-family:inherit;';
+  var BTN_PRIMARY = 'display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:12px 16px;font-weight:700;font-size:15px;font-family:inherit;white-space:nowrap;';
   var BTN_BACK = 'display:inline-flex;align-items:center;gap:7px;background:#fff;color:#5b6472;border:1px solid #d8dce2;border-radius:4px;padding:8px 16px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;';
   var BTN_LINK = 'display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#2563eb;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;';
   var BTN_DANGER_LINK = 'display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#d6403a;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;';
@@ -247,11 +247,11 @@
         });
         if (r.error || (r.data && r.data.ok === false)) {
           var msg = r.error ? r.error.message : (r.data && r.data.erro ? r.data.erro : 'Transicao nao realizada');
-          toast('Erro ao iniciar acabamento: ' + msg, 'error');
+          toast('Erro ao confirmar entrada: ' + msg, 'error');
           console.error(r.error || r.data);
           return false;
         }
-        toast('Entrada confirmada. Acabamento iniciado.', 'success');
+        toast('Entrada confirmada.', 'success');
         await reload();
         return true;
       }
@@ -349,7 +349,7 @@
             fieldBlock('Disponivel', el('div', { style: 'font-size:14px;font-weight:700;color:' + (saldoTotal > 0 ? '#2563eb' : '#8a93a3') + ';' }, window.fmtMetros(saldoTotal)))));
           if (saldoTotal > 0) {
             card.appendChild(el('div', { style: 'font-size:12px;color:#8a93a3;line-height:1.5;margin-bottom:10px;' },
-              'Ainda ha saldo recebido para movimentar. Use "Movimentar para Expedicao" na expedicao vinculada.'));
+              'Ainda ha saldo recebido para movimentar. Use a acao Movimentar na expedicao vinculada.'));
           }
           card.appendChild(el('button', {
             type: 'button',
@@ -397,7 +397,9 @@
               }
               liberarExpedicaoParcial(opArg.id, payload, event && event.currentTarget ? event.currentTarget : null);
             },
-          }, 'Movimentar para Expedicao'));
+          }, 'Movimentar'));
+          card.appendChild(el('div', { style: 'font-size:12px;color:#8a93a3;line-height:1.5;margin-top:8px;' },
+            'Movimenta a quantidade disponivel do Acabamento para Expedicao.'));
           return card;
         }
 
@@ -415,7 +417,7 @@
           onclick: function (event) {
             liberarExpedicao(opArg.id, event && event.currentTarget ? event.currentTarget : null);
           },
-        }, 'Liberar total para expedicao'));
+        }, 'Liberar total'));
         return card;
       }
 
@@ -641,7 +643,7 @@
               el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Movimentado p/ Expedicao'), el('div', { style: 'font-size:16px;font-weight:800;color:#18794a;' }, window.fmtMetros(movimentadoExpedicao))),
               el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Saldo em Acabamento'), el('div', { style: 'font-size:16px;font-weight:800;color:' + (saldoEmAcabamento > 0 ? '#c2610c' : '#18794a') + ';' }, window.fmtMetros(saldoEmAcabamento)))),
             el('div', { style: 'font-size:12.5px;color:#5b6472;line-height:1.5;background:#f8f9fb;border:1px solid #eceef1;border-radius:4px;padding:10px 12px;' },
-              'Movimentar para a Expedicao (bloco abaixo) e o que declara a quantidade acabada/liberada. Finalizar a OP e uma acao separada e so encerra o total desta OP; nao e pre-requisito para movimentar parciais.'));
+              'O bloco Expedicao abaixo movimenta a quantidade acabada/liberada. Finalizar a OP e uma acao separada e so encerra o total desta OP; nao e pre-requisito para movimentar parciais.'));
         }
 
         function buildDocumentos() {
@@ -701,9 +703,9 @@
       if (op.status !== 'aberta') {
         var acoes = [{ label: '← Voltar', onclick: function () { navigate('#/ops'); } }];
         if (op.origem_op_id) acoes.push({ label: 'Ir para OP de tecelagem', onclick: function () { navigate('#/ops/' + op.origem_op_id); } });
-        if (op.status === 'em_producao') acoes.push({ label: 'Finalizar OP de látex', onclick: function () { finalizar(op.id); } });
+        if (op.status === 'em_producao') acoes.push({ label: 'Finalizar OP', onclick: function () { finalizar(op.id); } });
         if (op.status === 'em_producao') acoes.push({ label: 'Editar enviado', onclick: function () { editarEnviado(op, modelosById); } });
-        acoes.push({ label: 'Excluir OP de látex', onclick: function () { excluirOpLatex(op.id); } });
+        acoes.push({ label: 'Excluir OP', onclick: function () { excluirOpLatex(op.id); } });
 
         var header = pageHeader('OP de látex Nº ' + op.numero + '/' + op.ano, acoes);
         var info = el('div', { class: 'bg-white rounded-xl shadow p-5 mb-4' },
@@ -891,12 +893,12 @@
               var ok = await confirmarEntradaAcabamento(op.id);
               if (!ok && btn) btn.disabled = false;
             },
-          }, svgEl(SVG_OPEN), 'Confirmar entrada / iniciar acabamento'),
+          }, svgEl(SVG_OPEN), 'Confirmar'),
           el('div', { style: 'display:flex;align-items:flex-start;gap:7px;margin-bottom:14px;' },
             svgEl(SVG_HINT_LOCK),
-            el('span', { style: 'font-size:12px;color:#8a93a3;line-height:1.5;' }, 'Confirme a entrada do material no acabamento antes de iniciar a producao.')),
+            el('span', { style: 'font-size:12px;color:#8a93a3;line-height:1.5;' }, 'Confirma o recebimento do material vindo da Tecelagem.')),
           origemOp ? el('button', { type: 'button', style: BTN_LINK + 'margin-bottom:10px;', onclick: function () { navigate('#/ops/' + origemOp.id); } }, 'Ir para OP de tecelagem') : '',
-          el('button', { type: 'button', style: BTN_DANGER_LINK, onclick: function () { excluirOpLatex(op.id); } }, 'Excluir OP de acabamento'));
+          el('button', { type: 'button', style: BTN_DANGER_LINK, onclick: function () { excluirOpLatex(op.id); } }, 'Excluir OP'));
         return right;
       }
 
@@ -919,8 +921,8 @@
 
     async function finalizar(id) {
       confirmDialog({
-        title: 'Finalizar OP de latex',
-        message: 'Marcar esta OP de latex como concluida?',
+        title: 'Finalizar OP',
+        message: 'Marcar esta OP de acabamento como concluida?',
         confirmLabel: 'Finalizar',
         onConfirm: async function () {
           var r = await supa.rpc('alterar_status_op', {

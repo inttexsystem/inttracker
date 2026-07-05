@@ -1,4 +1,58 @@
 > **Atualizacao 2026-07-05 - fase
+> `RAVATEX-TAPETES-LATEX-ADMIN-COMPACT-BUTTONS-R1`.**
+> Status: OK. Patch UI focado na tela OP Latex/Acabamento Admin; sem SQL,
+> migration, producao, dados reais novos, payload novo, RPC nova ou alteracao
+> de lifecycle/saldo/split/consolidacao.
+>
+> Diagnostico inicial: branch `work/app-next`, HEAD base
+> `2ff4ab816ef491f1beed76f9e18fc45d2aebc7d5`, status residual somente
+> `?? supabase/.temp/`; remoto `staging` confirmado e `origin` nao usado para
+> escrita. Arquivos lidos: `PROJECT_STATE.md`, `AGENT_HANDOFF.md`,
+> `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`,
+> `js/screens/op-latex-admin.js`, `js/screens/pedido-detail-events.js`,
+> `js/screens/pedido-chain-state.js`, `js/screens/pedido-detail-progress.js`,
+> `tests/op-latex-admin.smoke.js`, `tests/expedicao-partial-flow.smoke.js` e
+> `tests/pedido-detail.smoke.js`.
+>
+> Auditoria semantica: `Confirmar entrada / iniciar acabamento` apenas
+> confirma o recebimento vindo da Tecelagem e chama `alterar_status_op` para
+> `em_producao`; virou botao `Confirmar` com helper `Confirma o recebimento
+> do material vindo da Tecelagem.`. `Movimentar para Expedicao` chama
+> `liberar_expedicao_latex_parcial` e movimenta Acabamento -> Expedicao; virou
+> `Movimentar` com helper `Movimenta a quantidade disponivel do Acabamento
+> para Expedicao.`. `Liberar total para expedicao` preserva a RPC legada
+> `liberar_expedicao` e virou `Liberar total`. `Finalizar OP de latex` virou
+> `Finalizar OP`; exclusao longa virou `Excluir OP`.
+>
+> Garantias de fluxo: nao existe etapa obrigatoria `registrar acabamento`;
+> nao foi criado `finalizar acabamento` como etapa operacional; Finalizar OP
+> continua separado e nao e pre-requisito para movimentar; Acabamento ->
+> Expedicao permanece direto via `liberar_expedicao_latex_parcial`; botoes
+> receberam texto curto e `white-space:nowrap`.
+>
+> Testes locais OK: `op-latex-admin.smoke.js` (55/55),
+> `expedicao-partial-flow.smoke.js` (12/12), `pedido-detail.smoke.js`
+> (145/145), `pedido-detail-linked-ops.smoke.js` (7/7),
+> `tec-to-acabamento-flow.smoke.js` (37/37), `expedicao-flow.smoke.js`
+> (8/8), `entrega-writes.smoke.js` (70/70), `op-latex-split.smoke.js`
+> (28/28), `production-flow-invariants.smoke.js` (11/11) e
+> `latex-consolidation-schema.smoke.js` (25/25). Checks de sintaxe OK para
+> `js/screens/op-latex-admin.js`, `tests/op-latex-admin.smoke.js`,
+> `tests/expedicao-partial-flow.smoke.js` e `tests/expedicao-flow.smoke.js`.
+> Diagnosticos staging read-only OK: invariantes do fluxo produtivo,
+> consolidacao Latex e expedicao partial.
+>
+> Arquivos alterados: `js/screens/op-latex-admin.js`,
+> `tests/op-latex-admin.smoke.js`, `tests/expedicao-partial-flow.smoke.js`,
+> `tests/expedicao-flow.smoke.js`, `PROJECT_STATE.md`, `AGENT_HANDOFF.md`.
+> Arquivo extra justificado: `tests/expedicao-flow.smoke.js` foi atualizado
+> porque a suite obrigatoria ainda validava o texto longo antigo.
+>
+> Proximo backlog recomendado: `PEDIDO-STAGE-MODAL-WIDTH-R1`. Confirmacoes:
+> producao intocada, sem SQL/migration, sem `git add .`, sem reset/rebase/
+> clean/stash, `supabase/.temp/` fora do commit.
+>
+> **Atualizacao 2026-07-05 - fase
 > `RAVATEX-TAPETES-TEC-TO-ACABAMENTO-MODAL-LAYOUT-R1-CLOSEOUT`.**
 > Status: OK. Closeout de patch parcial retomado; executor anterior havia
 > parado antes de testes, docs, commit e push. Sem SQL/migration, sem
