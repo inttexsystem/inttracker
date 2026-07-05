@@ -13,6 +13,13 @@ function readOrFail(p) {
   return fs.readFileSync(p, 'utf8');
 }
 
+function extractFunctionBody(source, fnName) {
+  const start = source.indexOf('function ' + fnName + '(');
+  assert.ok(start !== -1, 'function ' + fnName + ' nao encontrada');
+  const next = source.indexOf('\n    function ', start + 1);
+  return next === -1 ? source.slice(start) : source.slice(start, next);
+}
+
 const screen = readOrFail(SCREEN);
 const router = readOrFail(ROUTER);
 const index = readOrFail(INDEX);
@@ -22,8 +29,9 @@ test('cliente-pedido-detail: arquivo existe', () => {
 });
 
 test('cliente-pedido-detail: sintaxe JS valida (node --check)', () => {
-  const { execSync } = require('node:child_process');
-  execSync(`node --check "${SCREEN}"`, { stdio: 'pipe' });
+  require('node:child_process').execFileSync(
+    process.execPath, ['--check', SCREEN], { stdio: 'pipe' }
+  );
 });
 
 test('cliente-pedido-detail: script classico (nao ES module)', () => {
@@ -39,168 +47,115 @@ test('cliente-pedido-detail: expoe RAVATEX_SCREENS.clientePedidoDetail', () => {
   assert.match(screen, /RAVATEX_SCREENS\.clientePedidoDetail/);
 });
 
-test('router.js: matchRoute reconhece #/cliente/pedidos/<uuid>', () => {
+test('router.js: matchRoute reconhece #/cliente/pedidos/<uuid> com role cliente', () => {
   assert.match(router, /cliente\\\/pedidos\\\//);
-});
-
-test('router.js: matchRoute #/cliente/pedidos/<uuid> role e ["cliente"]', () => {
   assert.match(router, /roles:\s*\[['"]cliente['"]\]/);
 });
 
-test('cliente-pedido-detail: usa from(\'pedidos\')', () => {
-  assert.match(screen, /from\(['"]pedidos['"]\)/);
+test('index.html carrega cliente-pedido-detail.js exatamente uma vez', () => {
+  const matches = index.match(/js\/screens\/cliente-pedido-detail\.js/g) || [];
+  assert.equal(matches.length, 1);
 });
 
-test('cliente-pedido-detail: usa from(\'pedido_parciais\')', () => {
-  assert.match(screen, /from\(['"]pedido_parciais['"]\)/);
+test('cliente-pedido-detail: usa somente a RPC publica cliente_pedido_summary para dados do detalhe', () => {
+  assert.match(screen, /\.rpc\(\s*['"]cliente_pedido_summary['"]/);
+  assert.match(screen, /p_pedido_id:\s*pedidoId/);
+  assert.equal(/\.from\s*\(/.test(screen), false, 'nao deve consultar tabelas diretamente');
+  assert.equal(/\.select\s*\(/.test(screen), false, 'nao deve montar selects diretos');
 });
 
-test('cliente-pedido-detail: usa from(\'pedido_itens\')', () => {
-  assert.match(screen, /from\(['"]pedido_itens['"]\)/);
+test('cliente-pedido-detail: removeu carregarCadeiaCliente e nao deriva cadeia operacional no front', () => {
+  assert.equal(/carregarCadeiaCliente/.test(screen), false);
+  assert.equal(/derivePedidoChainState/.test(screen), false);
 });
 
-test('cliente-pedido-detail: usa from(\'modelos\')', () => {
-  assert.match(screen, /from\(['"]modelos['"]\)/);
-});
-
-test('cliente-pedido-detail: usa from(\'cores\')', () => {
-  assert.match(screen, /from\(['"]cores['"]\)/);
-});
-
-test('cliente-pedido-detail: seleciona status_cliente_visual, status_cliente_excecao, status_cliente_mensagem e status_cliente_atualizado_em', () => {
-  assert.match(screen, /status_cliente_visual/);
-  assert.match(screen, /status_cliente_excecao/);
-  assert.match(screen, /status_cliente_mensagem/);
-  assert.match(screen, /status_cliente_atualizado_em/);
-});
-
-test('cliente-pedido-detail: mantem SELECT explicito e nao usa select(*)', () => {
-  assert.doesNotMatch(screen, /\.select\(\s*['"]\*['"]\s*\)/);
-});
-
-test('cliente-pedido-detail: nao expoe cliente_id no select de pedidos', () => {
-  const selectRe = /\.select\(['"]([^'"]*)['"]\)/g;
-  let m;
-  let foundClienteIdInSelect = false;
-  while ((m = selectRe.exec(screen)) !== null) {
-    if (m[1].includes('cliente_id')) foundClienteIdInSelect = true;
+test('cliente-pedido-detail: nao consulta tabelas operacionais internas', () => {
+  for (const table of [
+    'lotes',
+    'ops',
+    'op_itens',
+    'ordens_compra_fio',
+    'entrega_itens',
+    'entregas',
+    'expedicoes',
+    'expedicao_itens',
+    'op_latex_entregas',
+  ]) {
+    assert.equal(
+      new RegExp(`from\\(['"]${table}['"]\\)`).test(screen),
+      false,
+      'nao deve consultar ' + table
+    );
   }
-  assert.equal(foundClienteIdInSelect, false);
 });
 
-test('cliente-pedido-detail: nao expoe token_acesso', () => {
-  assert.equal(/token_acesso/.test(screen), false);
+test('cliente-pedido-detail: nao consulta diretamente tabelas comerciais tambem cobertas pela RPC', () => {
+  for (const table of ['pedidos', 'pedido_parciais', 'pedido_itens', 'modelos', 'cores', 'pedido_cliente_eventos']) {
+    assert.equal(new RegExp(`from\\(['"]${table}['"]\\)`).test(screen), false);
+  }
 });
 
-test('cliente-pedido-detail: nao expoe pedido_eventos', () => {
-  assert.equal(/pedido_eventos/.test(screen), false);
+test('cliente-pedido-detail: nao recebe IDs de catalogo no front', () => {
+  assert.equal(/modelo_id/.test(screen), false);
+  assert.equal(/cor_1_id/.test(screen), false);
+  assert.equal(/cor_2_id/.test(screen), false);
 });
 
-test('cliente-pedido-detail: consulta pedido_cliente_eventos para a timeline read-only', () => {
-  assert.match(screen, /from\(['"]pedido_cliente_eventos['"]\)/);
+test('cliente-pedido-detail: usa campos publicos do payload simplificado', () => {
+  for (const key of [
+    'payload.pedido',
+    'payload.itens',
+    'payload.parciais',
+    'payload.timeline',
+    'payload.entregas',
+    'payload.pendencias',
+    'payload.chain_state',
+  ]) {
+    assert.ok(screen.includes(key), 'faltou usar ' + key);
+  }
 });
 
-test('cliente-pedido-detail: select de pedido_parciais usa apenas colunas seguras', () => {
-  const match = screen.match(/from\(['"]pedido_parciais['"]\)\s*\.select\('([^']*)'\)/);
-  assert.ok(match, 'select de pedido_parciais nao encontrado');
-  const select = match[1];
-  assert.equal(select, 'id, pedido_id, sequencia, situacao, metros, data_referencia, titulo, mensagem_cliente, criado_em, atualizado_em');
+test('cliente-pedido-detail: trata falha da camada publica com erro claro', () => {
+  assert.match(screen, /loadingError\s*=\s*['"]summary['"]/);
+  assert.match(screen, /resumo p[uú]blico do pedido/i);
 });
 
-test('cliente-pedido-detail: pedido_parciais nao seleciona metadata, criado_por, origem, observacao_admin ou visivel_cliente', () => {
-  const match = screen.match(/from\(['"]pedido_parciais['"]\)\s*\.select\('([^']*)'\)/);
-  assert.ok(match, 'select de pedido_parciais nao encontrado');
-  const select = match[1];
-  assert.equal(select.includes('metadata'), false);
-  assert.equal(select.includes('criado_por'), false);
-  assert.equal(select.includes('origem'), false);
-  assert.equal(select.includes('observacao_admin'), false);
-  assert.equal(select.includes('visivel_cliente'), false);
+test('cliente-pedido-detail: nao expoe campos internos proibidos', () => {
+  for (const pattern of [
+    /\bop_id\b/i,
+    /\bop_numero\b/i,
+    /\blote_id\b/i,
+    /\bfornecedor_id\b/i,
+    /\bfornecedor_nome\b/i,
+    /\bordem_compra_id\b/i,
+    /romaneio/i,
+    /\bnf\b/i,
+    /custo/i,
+    /margem/i,
+    /motivo_separacao/i,
+    /origem_op_id/i,
+    /destino_fornecedor_id/i,
+    /service_role/i,
+    /token_acesso/i,
+    /functions\.invoke/,
+  ]) {
+    assert.equal(pattern.test(screen), false, 'campo proibido encontrado: ' + pattern);
+  }
 });
 
-test('cliente-pedido-detail: pedido_parciais filtra por pedido_id e ordena por sequencia e criado_em', () => {
-  assert.match(screen, /from\(['"]pedido_parciais['"]\)[\s\S]*?\.eq\(['"]pedido_id['"],\s*pedidoId\)/);
-  assert.match(screen, /from\(['"]pedido_parciais['"]\)[\s\S]*?\.order\(['"]sequencia['"],\s*\{\s*ascending:\s*true\s*\}\)/);
-  assert.match(screen, /from\(['"]pedido_parciais['"]\)[\s\S]*?\.order\(['"]criado_em['"],\s*\{\s*ascending:\s*true\s*\}\)/);
-});
-
-test('cliente-pedido-detail: usa helper compartilhado buildPedidoAcompanhamentoParcial', () => {
-  assert.match(screen, /buildPedidoAcompanhamentoParcial/);
-});
-
-test('cliente-pedido-detail: nao consulta pedido_parcial_itens', () => {
-  assert.equal(/from\(['"]pedido_parcial_itens['"]\)/.test(screen), false);
-});
-
-test('cliente-pedido-detail: consulta cadeia minima em modo leitura para o stepper', () => {
-  assert.match(screen, /from\(['"]lotes['"]\)/);
-  assert.match(screen, /from\(['"]ops['"]\)/);
-  assert.match(screen, /from\(['"]entrega_itens['"]\)/);
-  assert.match(screen, /from\(['"]entregas['"]\)/);
-  assert.match(screen, /from\(['"]ordens_compra_fio['"]\)/);
-  assert.match(screen, /from\(['"]expedicoes['"]\)/);
-  assert.match(screen, /from\(['"]expedicao_itens['"]\)/);
-  assert.match(screen, /derivePedidoChainState/);
-});
-
-test('cliente-pedido-detail: cadeia minima nao cria escrita operacional', () => {
-  const body = extractFunctionBody(screen, 'carregarCadeiaCliente');
-  assert.equal(/\.insert\s*\(/.test(body), false);
-  assert.equal(/\.update\s*\(/.test(body), false);
-  assert.equal(/\.delete\s*\(/.test(body), false);
-  assert.equal(/\.upsert\s*\(/.test(body), false);
-  assert.equal(/\.rpc\s*\(/.test(body), false);
-});
-
-test('cliente-pedido-detail: nao referencia fornecedor', () => {
-  assert.equal(/fornecedor/i.test(screen), false);
-});
-
-test('cliente-pedido-detail: nao referencia NF, romaneio, custo ou margem', () => {
-  assert.equal(/\bNF\b/.test(screen), false);
-  assert.equal(/romaneio/i.test(screen), false);
-  assert.equal(/custo/i.test(screen), false);
-  assert.equal(/margem/i.test(screen), false);
-});
-
-test('cliente-pedido-detail: nao referencia service_role', () => {
-  assert.equal(/service_role/.test(screen), false);
-});
-
-test('cliente-pedido-detail: nao referencia functions.invoke', () => {
-  assert.equal(/functions\.invoke/.test(screen), false);
-});
-
-test('cliente-pedido-detail: nao faz insert', () => {
+test('cliente-pedido-detail: nao faz writes', () => {
   assert.equal(/\.insert\s*\(/.test(screen), false);
-});
-
-test('cliente-pedido-detail: nao faz update', () => {
   assert.equal(/\.update\s*\(/.test(screen), false);
-});
-
-test('cliente-pedido-detail: nao faz delete', () => {
   assert.equal(/\.delete\s*\(/.test(screen), false);
+  assert.equal(/\.upsert\s*\(/.test(screen), false);
 });
 
-test('cliente-pedido-detail: nao usa rpc', () => {
-  assert.equal(/\.rpc\s*\(/.test(screen), false);
-});
-
-test('cliente-pedido-detail: nao tem botao Editar', () => {
+test('cliente-pedido-detail: nao tem acoes administrativas', () => {
   assert.equal(/Editar/i.test(screen), false);
-});
-
-test('cliente-pedido-detail: nao tem botao Cancelar', () => {
   assert.equal(/Cancelar pedido/i.test(screen), false);
-});
-
-test('cliente-pedido-detail: nao tem botao Confirmar', () => {
   assert.equal(/Confirmar pedido/i.test(screen), false);
-});
-
-test('cliente-pedido-detail: nao tem botao "Editar itens"', () => {
   assert.equal(/Editar itens/i.test(screen), false);
+  assert.equal(/window\.ADMIN_MENU/.test(screen), false);
 });
 
 test('cliente-pedido-detail: valida UUID antes de consultar', () => {
@@ -211,33 +166,17 @@ test('cliente-pedido-detail: mensagem "nao encontrado ou sem permissao" presente
   assert.match(screen, /n[aã]o encontrado ou sem permiss[aã]o/i);
 });
 
-test('cliente-pedido-detail: usa window.pedidoStatusBadge', () => {
+test('cliente-pedido-detail: usa helpers visuais esperados', () => {
   assert.match(screen, /window\.pedidoStatusBadge/);
-});
-
-test('cliente-pedido-detail: usa window.fmtDataCurta', () => {
   assert.match(screen, /window\.fmtDataCurta/);
-});
-
-test('cliente-pedido-detail: usa window.corPreviewElement', () => {
   assert.match(screen, /window\.corPreviewElement/);
-});
-
-test('cliente-pedido-detail: usa corPreviewHex', () => {
   assert.match(screen, /window\.corPreviewHex/);
-});
-
-test('cliente-pedido-detail: usa window.clienteShellLayout', () => {
   assert.match(screen, /window\.clienteShellLayout/);
-  assert.equal(/window\.ADMIN_MENU/.test(screen), false);
-});
-
-test('cliente-pedido-detail: chama window.buildClientePedidoTrackingCard', () => {
   assert.match(screen, /window\.buildClientePedidoTrackingCard/);
 });
 
 test('cliente-pedido-detail: renderiza o card de acompanhamento depois do resumo', () => {
-  const matches = [...screen.matchAll(/container\.replaceChildren\(([^;]*)\);/g)];
+  const matches = [...screen.matchAll(/container\.replaceChildren\(([\s\S]*?)\);/g)];
   const principal = matches.find((m) => m[1].includes('buildResumo()'));
   assert.ok(principal);
   const args = principal[1];
@@ -247,14 +186,13 @@ test('cliente-pedido-detail: renderiza o card de acompanhamento depois do resumo
   assert.ok(idxResumo < idxTracking);
 });
 
-function extractFunctionBody(source, fnName) {
-  const start = source.indexOf('function ' + fnName + '(');
-  assert.ok(start !== -1, 'function ' + fnName + ' nao encontrada');
-  const next = source.indexOf('\n    function ', start + 1);
-  return next === -1 ? source.slice(start) : source.slice(start, next);
-}
+test('cliente-pedido-detail: tracking visual continua consumindo chainState publico', () => {
+  const body = extractFunctionBody(screen, 'buildTracking');
+  assert.match(body, /state\.chainState/);
+  assert.match(body, /buildClientePedidoTrackingCard\(state\.pedido,\s*state\.itens,\s*state\.parciais,\s*state\.chainState\)/);
+});
 
-test('cliente-pedido-detail: itens do pedido usa layout local compacto (sem window.dataTable)', () => {
+test('cliente-pedido-detail: itens do pedido usa layout local compacto', () => {
   const body = extractFunctionBody(screen, 'buildItens');
   assert.equal(/window\.dataTable\(/.test(body), false);
   assert.match(body, /Itens do pedido/);
@@ -271,7 +209,7 @@ test('cliente-pedido-detail: itens do pedido nao renderiza botoes de acao', () =
   assert.equal(/'button'/.test(body), false);
 });
 
-test('cliente-pedido-detail: secao "Distribuicao atual" presente e usa buildPedidoAcompanhamentoParcial', () => {
+test('cliente-pedido-detail: secao "Distribuicao atual" usa buildPedidoAcompanhamentoParcial', () => {
   assert.match(screen, /Distribui[cç][aã]o atual/i);
   const body = extractFunctionBody(screen, 'buildDistribuicaoAtual');
   assert.match(body, /buildPedidoAcompanhamentoParcial/);
@@ -279,8 +217,16 @@ test('cliente-pedido-detail: secao "Distribuicao atual" presente e usa buildPedi
   assert.equal(/window\.supa/.test(body), false);
 });
 
-test('cliente-pedido-detail: renderiza a timeline de eventos depois dos itens', () => {
-  const matches = [...screen.matchAll(/container\.replaceChildren\(([^;]*)\);/g)];
+test('cliente-pedido-detail: renderiza resumo publico de entrega e pendencias', () => {
+  assert.match(screen, /function buildEntregasResumo/);
+  assert.match(screen, /Entrega e expedi[cç][aã]o/);
+  assert.match(screen, /Ainda n[aã]o h[aá] entrega registrada/);
+  assert.match(screen, /function buildAvisos/);
+  assert.match(screen, /Pend[eê]ncias/);
+});
+
+test('cliente-pedido-detail: renderiza a timeline depois dos itens', () => {
+  const matches = [...screen.matchAll(/container\.replaceChildren\(([\s\S]*?)\);/g)];
   const principal = matches.find((m) => m[1].includes('buildResumo()'));
   assert.ok(principal);
   const args = principal[1];
@@ -291,33 +237,18 @@ test('cliente-pedido-detail: renderiza a timeline de eventos depois dos itens', 
   assert.ok(idxItens < idxEventos);
 });
 
-test('cliente-pedido-detail: titulo da secao "Historico" presente', () => {
+test('cliente-pedido-detail: timeline publica tem titulo e empty state', () => {
   assert.match(screen, /Hist[oó]rico/i);
-});
-
-test('cliente-pedido-detail: possui empty state para timeline sem eventos', () => {
   assert.match(screen, /Assim que houver novas atualiza[cç][oõ]es, elas aparecer[aã]o aqui\./);
-});
-
-test('cliente-pedido-detail: erro na timeline nao quebra o restante do detalhe (sem loadingError = eventos)', () => {
   assert.equal(/loadingError\s*=\s*['"]eventos['"]/.test(screen), false);
   assert.match(screen, /eventosError/);
 });
 
-test('cliente-pedido-detail: titulo da secao "Parciais do pedido" presente', () => {
+test('cliente-pedido-detail: parciais continuam renderizando tabela publica', () => {
   assert.match(screen, /Parciais do pedido/i);
-});
-
-test('cliente-pedido-detail: possui empty state para parciais sem registros', () => {
-  assert.match(screen, /Este pedido ainda n[aÃ£]o possui parciais publicadas\./);
-});
-
-test('cliente-pedido-detail: erro nas parciais nao quebra o restante do detalhe', () => {
+  assert.match(screen, /Este pedido ainda n[aã]o possui parciais publicadas\./);
   assert.equal(/loadingError\s*=\s*['"]parciais['"]/.test(screen), false);
   assert.match(screen, /parciaisError/);
-});
-
-test('cliente-pedido-detail: parciais em layout tabular com colunas Parcial/Situacao/Metragem/Atualizado em', () => {
   const body = extractFunctionBody(screen, 'buildParciaisHeaderRow');
   assert.match(body, /['"]Parcial['"]/);
   assert.match(body, /Situa[cç][aã]o/);
@@ -325,7 +256,7 @@ test('cliente-pedido-detail: parciais em layout tabular com colunas Parcial/Situ
   assert.match(body, /Atualizado em/);
 });
 
-test('cliente-pedido-detail: parciais nao usa campos alem do DTO existente (codigo, label, metros, dataReferencia, titulo, mensagemCliente)', () => {
+test('cliente-pedido-detail: parciais usam DTO existente do tracking compartilhado', () => {
   const body = extractFunctionBody(screen, 'buildParcialRow');
   assert.match(body, /parcial\.codigo/);
   assert.match(body, /parcial\.label/);
@@ -334,20 +265,23 @@ test('cliente-pedido-detail: parciais nao usa campos alem do DTO existente (codi
   assert.equal(/parcial\.atualizadoEm/.test(body), false);
 });
 
-test('cliente-pedido-detail: renderiza itens e distribuicao antes das parciais e preserva timeline depois', () => {
+test('cliente-pedido-detail: ordem visual preserva itens, entrega, parciais e timeline', () => {
   const matches = [...screen.matchAll(/container\.replaceChildren\(([\s\S]*?)\);/g)];
   const principal = matches.find((m) => m[1].includes('buildResumo()'));
   assert.ok(principal);
   const args = principal[1];
-  const idxParciais = args.indexOf('buildParciais()');
   const idxItens = args.indexOf('buildItens()');
   const idxDistribuicao = args.indexOf('buildDistribuicaoAtual()');
+  const idxEntrega = args.indexOf('buildEntregasResumo()');
+  const idxParciais = args.indexOf('buildParciais()');
   const idxEventos = args.indexOf('buildEventos()');
-  assert.ok(idxParciais !== -1);
   assert.ok(idxItens !== -1);
   assert.ok(idxDistribuicao !== -1);
+  assert.ok(idxEntrega !== -1);
+  assert.ok(idxParciais !== -1);
   assert.ok(idxEventos !== -1);
-  assert.ok(idxItens < idxParciais);
-  assert.ok(idxDistribuicao < idxParciais);
+  assert.ok(idxItens < idxEntrega);
+  assert.ok(idxDistribuicao < idxEntrega);
+  assert.ok(idxEntrega < idxParciais);
   assert.ok(idxParciais < idxEventos);
 });

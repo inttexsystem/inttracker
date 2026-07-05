@@ -21,9 +21,8 @@
 //   Ordem de renderização: header/titulo →
 //   resumo (meta card) → observação geral →
 //   acompanhamento (stepper, delegado a cliente-pedido-tracking.js) →
-//   itens + distribuição atual (2 colunas) → parciais do pedido →
-//   histórico read-only com os eventos visíveis de
-//   `pedido_cliente_eventos` do próprio pedido.
+//   itens + distribuição atual (2 colunas) → resumo de entrega →
+//   parciais do pedido → histórico read-only com os eventos públicos.
 //
 // Carregar via <script src="js/screens/cliente-pedido-detail.js"></script>
 // no <head>, DEPOIS de cliente-common.js, cliente-pedido-tracking.js,
@@ -41,8 +40,7 @@
 //   - window.navigate (js/router.js)
 //   - window.supa (js/supabase-client.js)
 //
-// SELECT-only em `pedidos`, `pedido_parciais`, `pedido_itens`,
-// `modelos`, `cores`, `pedido_cliente_eventos`.
+// Leitura por RPC pública `cliente_pedido_summary`.
 // =====================================================================
 
 (function (window) {
@@ -108,45 +106,31 @@
       parciais: [],
       parciaisError: false,
       itens: [],
-      modelosById: {},
-      coresById: {},
       chainState: null,
       eventos: [],
       eventosError: false,
+      entregasResumo: [],
+      pendencias: [],
     };
 
     function modelLabel(item) {
-      var m = state.modelosById[item.modelo_id];
-      if (!m) return '—';
-      var w = (typeof m.largura === 'number')
-        ? m.largura.toFixed(2).replace('.', ',') + ' m'
-        : (m.largura != null ? String(m.largura) : '—');
-      return m.nome + ' · ' + w;
-    }
-
-    function corNomeById(id) {
-      if (id == null) return null;
-      var c = state.coresById[id];
-      return c && c.nome ? c.nome : null;
+      if (!item) return '—';
+      var nome = fmtTextoOuEmpty(item.modelo, 'Modelo');
+      var largura = item.largura;
+      var w = (typeof largura === 'number')
+        ? largura.toFixed(2).replace('.', ',') + ' m'
+        : (largura != null ? String(largura) : '—');
+      return nome + ' · ' + w;
     }
 
     function itemCoresLabel(item) {
-      var c1Id = item.cor_1_id != null
-        ? item.cor_1_id
-        : (state.modelosById[item.modelo_id] && state.modelosById[item.modelo_id].cor_1_id);
-      var c2Id = item.cor_2_id != null
-        ? item.cor_2_id
-        : (state.modelosById[item.modelo_id] && state.modelosById[item.modelo_id].cor_2_id);
-      var c1 = corNomeById(c1Id) || '—';
-      var c2 = corNomeById(c2Id) || '—';
+      var c1 = fmtTextoOuEmpty(item && item.cor_1, '—');
+      var c2 = fmtTextoOuEmpty(item && item.cor_2, '—');
       return c1 + ' / ' + c2;
     }
 
     function itemPreviewEl(item) {
-      var c1Id = item.cor_1_id != null
-        ? item.cor_1_id
-        : (state.modelosById[item.modelo_id] && state.modelosById[item.modelo_id].cor_1_id);
-      var c1Nome = corNomeById(c1Id);
+      var c1Nome = item && item.cor_1 ? item.cor_1 : null;
       if (c1Nome && window.corPreviewElement) {
         var thumb = window.corPreviewElement(c1Nome);
         if (thumb) {
@@ -193,204 +177,44 @@
     }
 
     async function carregar() {
-      var pedidoRes = await window.supa
-        .from('pedidos')
-        .select('id, numero, status, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, prazo_entrega, observacao, criado_em, atualizado_em, metros_total')
-        .eq('id', pedidoId)
-        .maybeSingle();
+      var summaryRes = await window.supa.rpc('cliente_pedido_summary', {
+        p_pedido_id: pedidoId,
+      });
 
-      if (pedidoRes.error || !pedidoRes.data) {
+      if (summaryRes.error) {
+        loadingError = 'summary';
+        window.toast('Erro ao carregar o resumo do pedido.', 'error');
+        console.error(summaryRes.error);
+        return;
+      }
+
+      var payload = summaryRes.data || null;
+      if (typeof payload === 'string') {
+        try { payload = JSON.parse(payload); } catch (_) { payload = null; }
+      }
+      if (Array.isArray(payload)) payload = payload[0] || null;
+
+      if (!payload || payload.ok === false || !payload.pedido) {
         loadingError = 'pedido';
-        window.toast('Pedido não encontrado ou sem permissão.', 'error');
-        console.error(pedidoRes.error);
+        window.toast((payload && payload.erro) || 'Pedido não encontrado ou sem permissão.', 'error');
         state.pedido = null;
         return;
       }
 
-      state.pedido = pedidoRes.data;
-
-      var parciaisRes = await window.supa
-        .from('pedido_parciais')
-        .select('id, pedido_id, sequencia, situacao, metros, data_referencia, titulo, mensagem_cliente, criado_em, atualizado_em')
-        .eq('pedido_id', pedidoId)
-        .order('sequencia', { ascending: true })
-        .order('criado_em', { ascending: true });
-
-      if (parciaisRes.error) {
-        state.parciaisError = true;
-        state.parciais = [];
-        console.error('cliente-pedido-detail: erro ao carregar parciais do pedido', parciaisRes.error);
-      } else {
-        state.parciaisError = false;
-        state.parciais = parciaisRes.data || [];
-      }
-
-      var eventosRes = await window.supa
-        .from('pedido_cliente_eventos')
-        .select('id, pedido_id, status, titulo, mensagem, criado_em')
-        .eq('pedido_id', pedidoId)
-        .order('criado_em', { ascending: false });
-
-      if (eventosRes.error) {
-        state.eventosError = true;
-        state.eventos = [];
-        console.error('cliente-pedido-detail: erro ao carregar eventos do pedido', eventosRes.error);
-      } else {
-        state.eventosError = false;
-        state.eventos = eventosRes.data || [];
-      }
-
-      var itensRes = await window.supa
-        .from('pedido_itens')
-        .select('id, pedido_id, modelo_id, metros, largura, cor_1_id, cor_2_id, observacao, ordem')
-        .eq('pedido_id', pedidoId)
-        .order('ordem', { ascending: true });
-
-      if (itensRes.error) {
-        loadingError = 'itens';
-        window.toast('Erro ao carregar itens do pedido.', 'error');
-        console.error(itensRes.error);
-        state.itens = [];
-      } else {
-        state.itens = itensRes.data || [];
-      }
-
-      var modeloIds = Array.from(new Set(state.itens
-        .map(function (it) { return it.modelo_id; })
-        .filter(function (x) { return x != null; })));
-      var corIds = Array.from(new Set([].concat.apply([], state.itens.map(function (it) {
-        return [it.cor_1_id, it.cor_2_id];
-      })).filter(function (x) { return x != null; })));
-
-      if (modeloIds.length > 0) {
-        var modRes = await window.supa
-          .from('modelos')
-          .select('id, nome, largura, cor_1_id, cor_2_id')
-          .in('id', modeloIds);
-        if (modRes.error) {
-          console.error('cliente-pedido-detail: erro ao carregar modelos', modRes.error);
-        } else {
-          state.modelosById = Object.fromEntries(
-            (modRes.data || []).map(function (m) { return [m.id, m]; })
-          );
-          for (var i = 0; i < (modRes.data || []).length; i++) {
-            var m = modRes.data[i];
-            if (m.cor_1_id) corIds.push(m.cor_1_id);
-            if (m.cor_2_id) corIds.push(m.cor_2_id);
-          }
-        }
-      }
-
-      corIds = Array.from(new Set(corIds.filter(function (x) { return x != null; })));
-      if (corIds.length > 0) {
-        var corRes = await window.supa
-          .from('cores')
-          .select('id, nome')
-          .in('id', corIds);
-        if (corRes.error) {
-          console.error('cliente-pedido-detail: erro ao carregar cores', corRes.error);
-        } else {
-          state.coresById = Object.fromEntries(
-            (corRes.data || []).map(function (c) { return [c.id, c]; })
-          );
-        }
-      }
-
-      await carregarCadeiaCliente();
-    }
-
-    async function carregarCadeiaCliente() {
-      state.chainState = null;
-      var chainApi = window.RAVATEX_SCREENS
-        && window.RAVATEX_SCREENS.pedidoChainState;
-      if (!chainApi || typeof chainApi.derivePedidoChainState !== 'function') return;
-
-      var chainInput = {
-        pedido: state.pedido,
-        ops: [],
-        ordensFio: [],
-        entregaItens: [],
-        entregasById: {},
-        expedicoes: [],
-        expedicaoItens: [],
-      };
-
-      var lotesRes = await window.supa
-        .from('lotes')
-        .select('id, pedido_id')
-        .eq('pedido_id', pedidoId);
-
-      if (lotesRes.error || !(lotesRes.data || []).length) {
-        if (lotesRes.error) console.error('cliente-pedido-detail: cadeia indisponivel', lotesRes.error);
-        state.chainState = chainApi.derivePedidoChainState(chainInput);
-        return;
-      }
-
-      var loteIds = (lotesRes.data || []).map(function (row) { return row.id; });
-      var opsRes = await window.supa
-        .from('ops')
-        .select('id, numero, ano, status, tipo, origem_op_id, lote_id, op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id)')
-        .in('lote_id', loteIds);
-
-      if (opsRes.error) {
-        console.error('cliente-pedido-detail: cadeia indisponivel', opsRes.error);
-        state.chainState = chainApi.derivePedidoChainState(chainInput);
-        return;
-      }
-
-      chainInput.ops = opsRes.data || [];
-      var idsEtapas = chainInput.ops.map(function (row) { return row.id; });
-      if (!idsEtapas.length) {
-        state.chainState = chainApi.derivePedidoChainState(chainInput);
-        return;
-      }
-
-      var entregaItensRes = await window.supa
-        .from('entrega_itens')
-        .select('id, entrega_id, op_id, op_item_id, metros_entregues, defeito')
-        .in('op_id', idsEtapas);
-
-      if (!entregaItensRes.error) {
-        chainInput.entregaItens = entregaItensRes.data || [];
-        var entregaIds = Array.from(new Set(chainInput.entregaItens
-          .map(function (row) { return row.entrega_id; })
-          .filter(function (id) { return id != null; })));
-        if (entregaIds.length > 0) {
-          var entregasRes = await window.supa
-            .from('entregas')
-            .select('id, etapa')
-            .in('id', entregaIds);
-          if (!entregasRes.error) {
-            chainInput.entregasById = Object.fromEntries((entregasRes.data || []).map(function (row) {
-              return [row.id, row];
-            }));
-          }
-        }
-      }
-
-      var ordensRes = await window.supa
-        .from('ordens_compra_fio')
-        .select('id, op_id, kg_pedido, kg_recebido, status')
-        .in('op_id', idsEtapas);
-      if (!ordensRes.error) chainInput.ordensFio = ordensRes.data || [];
-
-      var expedicoesRes = await window.supa
-        .from('expedicoes')
-        .select('id, pedido_id, op_latex_id, status')
-        .eq('pedido_id', pedidoId);
-      if (!expedicoesRes.error) {
-        chainInput.expedicoes = expedicoesRes.data || [];
-        var expedicaoIds = chainInput.expedicoes.map(function (row) { return row.id; });
-        if (expedicaoIds.length > 0) {
-          var expedicaoItensRes = await window.supa
-            .from('expedicao_itens')
-            .select('id, expedicao_id, op_item_id, pedido_item_id, modelo_id, metros_liberados, metros_entregues')
-            .in('expedicao_id', expedicaoIds);
-          if (!expedicaoItensRes.error) chainInput.expedicaoItens = expedicaoItensRes.data || [];
-        }
-      }
-
-      state.chainState = chainApi.derivePedidoChainState(chainInput);
+      state.pedido = payload.pedido;
+      state.itens = Array.isArray(payload.itens) ? payload.itens : [];
+      state.parciais = Array.isArray(payload.parciais) ? payload.parciais : [];
+      state.entregasResumo = Array.isArray(payload.entregas) ? payload.entregas : [];
+      state.pendencias = Array.isArray(payload.pendencias) ? payload.pendencias : [];
+      state.chainState = payload.chain_state || null;
+      state.eventos = (Array.isArray(payload.timeline) ? payload.timeline : []).map(function (evento) {
+        return {
+          criado_em: evento.data,
+          titulo: evento.titulo,
+          mensagem: evento.descricao,
+          status: evento.status,
+        };
+      });
     }
 
     // Breadcrumb + titulo + badge de status + data de atualizacao.
@@ -507,7 +331,10 @@
       var updatedAt = p.status_cliente_atualizado_em || p.atualizado_em;
       var updatedStr = updatedAt ? window.fmtDataCurta(updatedAt) : '—';
       var prazoStr = p.prazo_entrega ? window.fmtDataCurta(p.prazo_entrega) : '—';
-      var recebimentoStr = p.tipo_entrega === 'envio' ? 'Envio' : 'Retirada';
+      var tipoRecebimento = p.tipo_recebimento || p.tipo_entrega;
+      var recebimentoStr = tipoRecebimento === 'entrega' || tipoRecebimento === 'envio'
+        ? 'Entrega'
+        : 'Retirada';
 
       var iconClock = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
         + ' stroke="#c2c8d0" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
@@ -647,14 +474,8 @@
 
     // Grade 4 colunas: thumb (40px) | modelo | cores | metragem
     function buildItemRow(item, isLast) {
-      var c1Id = item.cor_1_id != null
-        ? item.cor_1_id
-        : (state.modelosById[item.modelo_id] && state.modelosById[item.modelo_id].cor_1_id);
-      var c2Id = item.cor_2_id != null
-        ? item.cor_2_id
-        : (state.modelosById[item.modelo_id] && state.modelosById[item.modelo_id].cor_2_id);
-      var c1Nome = corNomeById(c1Id);
-      var c2Nome = corNomeById(c2Id);
+      var c1Nome = item && item.cor_1 ? item.cor_1 : null;
+      var c2Nome = item && item.cor_2 ? item.cor_2 : null;
       var c1Hex = c1Nome && window.corPreviewHex ? window.corPreviewHex(c1Nome) : '#e5e7eb';
       var c2Hex = c2Nome && window.corPreviewHex ? window.corPreviewHex(c2Nome) : '#e5e7eb';
 
@@ -785,6 +606,73 @@
       return card;
     }
 
+    function buildAvisos() {
+      if (!state.pedido || !state.pendencias.length) return window.el('div', {});
+      var card = window.el('div', {
+        style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:14px 18px;margin-bottom:14px;',
+      });
+      card.appendChild(window.el('div', {
+        style: 'font-size:15px;font-weight:700;color:#16203a;margin-bottom:8px;',
+      }, 'Pendências'));
+      state.pendencias.forEach(function (item) {
+        card.appendChild(window.el('div', {
+          style: 'display:flex;align-items:center;gap:8px;font-size:13.5px;color:#5b6472;margin-top:6px;',
+        },
+          window.el('span', {
+            style: 'width:7px;height:7px;border-radius:50%;background:#d99a2b;display:inline-block;flex-shrink:0;',
+          }),
+          String(item)
+        ));
+      });
+      return card;
+    }
+
+    function buildEntregasResumo() {
+      if (!state.pedido) return window.el('div', {});
+      var card = window.el('div', {
+        style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;overflow:hidden;margin-bottom:14px;',
+      });
+      card.appendChild(window.el('div', {
+        style: 'padding:14px 20px 12px;font-size:15px;font-weight:700;color:#16203a;border-bottom:1px solid #eceef1;',
+      }, 'Entrega e expedição'));
+
+      if (!state.entregasResumo.length) {
+        card.appendChild(window.el('p', {
+          style: 'padding:14px 20px;font-size:14px;color:#9aa2af;',
+        }, 'Ainda não há entrega registrada para este pedido.'));
+        return card;
+      }
+
+      card.appendChild(window.el('div', {
+        style: 'display:grid;grid-template-columns:1fr 130px;gap:12px;padding:10px 20px;background:#f8f9fb;border-bottom:1px solid #eceef1;',
+      },
+        window.el('div', { style: 'font-size:11.5px;font-weight:600;color:#9aa2af;' }, 'Atualização'),
+        window.el('div', {
+          style: 'font-size:11.5px;font-weight:600;color:#9aa2af;text-align:right;',
+        }, 'Quantidade')
+      ));
+
+      state.entregasResumo.forEach(function (row, idx) {
+        card.appendChild(window.el('div', {
+          style: 'display:grid;grid-template-columns:1fr 130px;gap:12px;padding:11px 20px;align-items:center;'
+            + (idx === state.entregasResumo.length - 1 ? '' : 'border-bottom:1px solid #f1f3f6;'),
+        },
+          window.el('div', {},
+            window.el('div', {
+              style: 'font-size:14px;font-weight:600;color:#16203a;',
+            }, fmtTextoOuEmpty(row.descricao, 'Entrega registrada')),
+            window.el('div', {
+              style: 'font-size:12.5px;color:#9aa2af;margin-top:2px;',
+            }, fmtEventoData(row.data))
+          ),
+          window.el('div', {
+            style: 'text-align:right;font-size:13.5px;font-weight:700;color:#16203a;',
+          }, fmtMetros(row.quantidade))
+        ));
+      });
+      return card;
+    }
+
     // Item do historico: ponto + linha vertical + conteudo.
     function buildEventoItem(evento, isLast, isFirst) {
       var dotColor = isFirst ? '#2563eb' : '#cfd5de';
@@ -865,6 +753,12 @@
             'Pedido não encontrado ou sem permissão. Ele pode ter sido removido.'));
         return;
       }
+      if (loadingError === 'summary') {
+        container.replaceChildren(header,
+          window.el('div', { class: 'bg-white rounded border border-gray-200 p-6 text-red-700' },
+            'Não foi possível carregar o resumo público do pedido. Tente recarregar a página.'));
+        return;
+      }
       if (loadingError) {
         container.replaceChildren(header,
           window.el('div', { class: 'bg-white rounded border border-gray-200 p-6 text-red-700' },
@@ -876,7 +770,9 @@
         buildResumo(),
         buildDadosGerais(),
         buildTracking(),
+        buildAvisos(),
         window.el('div', { class: 'grid grid-cols-2 gap-3 mb-3' }, buildItens(), buildDistribuicaoAtual()),
+        buildEntregasResumo(),
         buildParciais(),
         buildEventos()
       );

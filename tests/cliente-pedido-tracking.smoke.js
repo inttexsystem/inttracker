@@ -183,6 +183,25 @@ test('cliente-pedido-tracking: usa cadeia derivada para etapa em tecelagem', () 
   assert.equal(/Recebido\s+em andamento/i.test(texto), false);
 });
 
+test('cliente-pedido-tracking: prioriza mensagem publica enviada pela cadeia simplificada', () => {
+  const texto = renderCardComCadeia({ status_cliente_visual: 'recebido' }, {
+    displayStatus: 'Expedicao',
+    mensagem: 'Mensagem publica do read model.',
+    clientSteps: [
+      { key: 'recebido', label: 'Recebido', state: 'concluido' },
+      { key: 'confirmado', label: 'Confirmado', state: 'concluido' },
+      { key: 'insumos', label: 'Insumos', state: 'concluido' },
+      { key: 'tecelagem', label: 'Tecelagem', state: 'concluido' },
+      { key: 'acabamento', label: 'Acabamento', state: 'concluido' },
+      { key: 'expedicao', label: 'Expedicao', state: 'atual' },
+      { key: 'transporte', label: 'Transporte', state: 'futuro' },
+      { key: 'concluido', label: 'Concluido', state: 'futuro' },
+    ],
+  });
+  assert.ok(texto.includes('Mensagem publica do read model.'));
+  assert.equal(texto.includes('Seu pedido esta em expedicao.'), false);
+});
+
 test('cliente-pedido-tracking: pedido nulo nao lanca erro e devolve no vazio', () => {
   const texto = renderCard(null);
   assert.equal(texto.trim(), '');

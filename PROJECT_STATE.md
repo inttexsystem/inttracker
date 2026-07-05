@@ -1,4 +1,57 @@
 > **Atualizacao 2026-07-05 - fase
+> `RAVATEX-TAPETES-CLIENTE-ORDER-SUMMARY-READMODEL-A-B`.**
+> P1 `CLIENTE-INTERNAL-CHAIN-READ-A` resolvido com read model publico
+> para o detalhe do pedido no Portal Cliente. A tela cliente deixou de
+> consultar diretamente tabelas operacionais internas e passou a consumir
+> exclusivamente a RPC `cliente_pedido_summary(p_pedido_id UUID)`.
+>
+> Causa raiz: `js/screens/cliente-pedido-detail.js` montava a cadeia do
+> pedido no frontend lendo `lotes`, `ops`, `op_itens`,
+> `ordens_compra_fio`, `entrega_itens`, `entregas`, `expedicoes` e
+> `expedicao_itens`. Mesmo sem writes, isso quebrava a fronteira Cliente
+> vs Admin definida no plano Pedido-OP-Movimentacao-Documentos.
+>
+> Camada escolhida: nova migration versionada
+> `db/30_cliente_pedido_summary_readmodel.sql`, ainda nao aplicada em
+> Supabase. Ela cria `public.cliente_pedido_summary(UUID)` como
+> `SECURITY DEFINER`, `STABLE`, `search_path = public`, com permissao
+> por admin ou cliente dono (`is_admin()` / `meu_cliente_id()`) e grant
+> apenas para `authenticated`. A RPC encapsula fontes operacionais e
+> retorna um DTO publico: `pedido`, `itens`, `parciais`, `timeline`,
+> `entregas`, `pendencias`, `etapas` e `chain_state`.
+>
+> Contrato publico: itens saem por nomes (`modelo`, `cor_1`, `cor_2`,
+> `metros`, `observacao`, `ordem`), parciais/timeline respeitam
+> `visivel_cliente IS TRUE`, e o payload nao publica chaves internas:
+> `op_id`, `op_numero`, `lote_id`, `fornecedor_id`, `fornecedor_nome`,
+> `ordem_compra_id`, `romaneio`, `nf`, `custo`, `margem`,
+> `motivo_separacao`, `origem_op_id`, `destino_fornecedor_id`,
+> `modelo_id`, `cor_1_id`, `cor_2_id`, `expedicao_id`.
+>
+> Frontend: `cliente-pedido-detail.js` chama somente
+> `supa.rpc('cliente_pedido_summary', { p_pedido_id })`; removeu
+> `carregarCadeiaCliente` e todos os `.from(...)` diretos da tela.
+> `cliente-pedido-tracking.js` passou a priorizar `chain_state.mensagem`
+> publica no banner. Dashboard Cliente ja usava somente dados publicos e
+> nao precisou de alteracao. Admin/Pedido Detail ficou fora do escopo e
+> nao foi alterado.
+>
+> Testes locais: pacote principal obrigatorio + read model + eventos =
+> 265/265 OK; invariantes adicionais de fluxo produtivo e consolidacao
+> Latex = 36/36 OK. Diagnosticos staging read-only repetidos: OPs
+> totais=25, Tecelagem=17, Latex=8, default=7, split legitimo=1,
+> duplicatas default=0, orfas=0, `op_latex_entregas` 11 entregas e 0
+> em multiplas OPs, colisoes `tipo+numero+ano` 0, high-water Latex=8/8
+> e Tecelagem=17/17.
+>
+> Preservado: producao intocada; `origin` nao usado para escrita; SQL
+> nao aplicado em staging/producao; sem OP/pedido/entrega/expedicao real
+> criada; sem cleanup destrutivo; sem `git add .`; `supabase/.temp/`
+> preservado fora do commit. Proximo P1 recomendado:
+> `CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A`, aplicar a db/30 em
+> staging e validar o Portal Cliente real antes de qualquer producao.
+
+> **Atualizacao 2026-07-05 - fase
 > `RAVATEX-TAPETES-LATEX-LIFECYCLE-CANONICAL-A-B`.**
 > P1 de finalizacao canonica da OP Latex/Acabamento resolvido com patch
 > pequeno em JS + testes + docs, sem SQL/migration e sem criar dados reais.

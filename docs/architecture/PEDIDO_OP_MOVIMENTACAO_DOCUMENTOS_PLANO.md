@@ -106,6 +106,10 @@ Pedido
 ### 4.3. Tela Cliente
 - **Evolução simplificada** (stepper, parciais, timeline).
 - **Nunca** vê OP, lote, fornecedor, NF, romaneio, custo ou margem.
+- O detalhe do pedido Cliente deve consumir um read model publico
+  (`cliente_pedido_summary`) e nao consultar diretamente tabelas
+  operacionais internas. A RPC pode consolidar a cadeia no backend, mas
+  seu payload deve publicar apenas dados simplificados e seguros.
 - Documentos visíveis apenas se o admin publicar (ex.: romaneio de entrega).
 
 ### 4.4. Documentos
@@ -170,6 +174,16 @@ Sempre que houver evolução, decisão, bloqueio, conclusão parcial ou fechamen
 | D-L08-R1 | `alterar_status_op` é **admin-only** nesta fase (`is_admin()`). Fornecedor não tem WRITE em `ops` e não pode transitar status. | Hardening R1: guard de caller explícito, no padrão de `gerar_op_latex` (db/08/09). Não prometer permissão de fornecedor. |
 | D-L09-R1 | `p_observacao` da RPC é vinculada ao evento `status_alterado` correspondente a `status_novo` (filtro `status_novo = p_novo_status` + ordenação `criado_em DESC, id DESC`). Trigger segue como fonte única do evento (não há segundo `INSERT`). | Hardening R1: reduzir risco de observação cair em evento errado sob concorrência. `SET LOCAL/current_setting` fica para fase futura. |
 
+### 6.2. Decisões da Fase Cliente Order Summary Readmodel
+
+| # | Decisão | Fundamentação |
+|---|---|---|
+| D-COS01 | O Portal Cliente deve ler o detalhe do pedido por `public.cliente_pedido_summary(UUID)`, nao por joins diretos em tabelas operacionais no frontend. | Mantem a fronteira Cliente/Admin e reduz acoplamento com OP, lote, fornecedor e documentos internos. |
+| D-COS02 | A RPC e `SECURITY DEFINER`, `STABLE`, `search_path = public`, com acesso para admin ou cliente dono e grant apenas para `authenticated`. | Permite consolidacao server-side sem abrir tabelas internas ao cliente ou a `anon`. |
+| D-COS03 | O payload publico nao inclui chaves internas como OP, lote, fornecedor, NF, romaneio, custo, margem, split ou IDs de catalogo. | Cumpre a regra de evolucao simplificada da tela Cliente. |
+| D-COS04 | `pedido_parciais` e `pedido_cliente_eventos` entram no resumo apenas quando `visivel_cliente IS TRUE`. | Preserva o papel comercial/cliente das parciais e evita publicar eventos administrativos. |
+| D-COS05 | Dashboard Cliente permaneceu fora da alteracao porque ja lia dados publicos; Admin/Pedido Detail tambem ficou fora do escopo. | Limita o blast radius da fase ao P1 de leitura interna no detalhe Cliente. |
+
 ---
 
 ## 7. Riscos
@@ -208,9 +222,13 @@ Toda fase desta frente deve registrar ao fechar:
 
 ## 9. Próximo passo
 
-**Fase B — Contrato arquitetura/schema detalhado.**
+**`CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A`**.
 
-Validar o schema existente (`lotes.pedido_id`, `op_itens`, `pedido_itens`, tabelas de entrega) contra o modelo alvo (§3), desenhar a tabela `documentos_operacionais`, avaliar a necessidade de `op_itens.pedido_item_id` e propor índices, constraints e FKs. Somente após esse contrato, iniciar implementação.
+Aplicar `db/30_cliente_pedido_summary_readmodel.sql` em staging
+(`ucrjtfswnfdlxwtmxnoo`) e validar o Portal Cliente real lendo o detalhe
+do pedido por `cliente_pedido_summary`, sem reabrir leituras diretas de
+OP/lote/fornecedor/documentos internos no frontend. Producao so deve ser
+discutida em fase separada, com autorizacao explicita.
 
 ---
 

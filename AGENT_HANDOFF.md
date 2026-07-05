@@ -1,4 +1,63 @@
-﻿# Estado pos-fase - Latex Lifecycle Canonical A-B
+﻿# Estado pos-fase - Cliente Order Summary Readmodel A-B
+
+- Fase: `RAVATEX-TAPETES-CLIENTE-ORDER-SUMMARY-READMODEL-A-B`.
+- Objetivo: resolver o P1 `CLIENTE-INTERNAL-CHAIN-READ-A`, impedindo
+  que o detalhe do pedido no Portal Cliente leia diretamente tabelas
+  operacionais internas.
+- Branch/HEAD base: `work/app-next`,
+  `2a0f7c9011d41b409e475ab8231aa6b9ac0328ea`.
+- Causa raiz: `js/screens/cliente-pedido-detail.js` derivava a cadeia do
+  pedido no frontend via `lotes`, `ops`, `op_itens`,
+  `ordens_compra_fio`, `entrega_itens`, `entregas`, `expedicoes` e
+  `expedicao_itens`. Isso expunha acoplamento operacional ao Cliente e
+  contrariava a regra de evolucao simplificada do plano Pedido-OP.
+- Camada escolhida: migration nova
+  `db/30_cliente_pedido_summary_readmodel.sql`, ainda nao aplicada em
+  Supabase. A RPC `public.cliente_pedido_summary(p_pedido_id UUID)`
+  retorna JSONB publico, `SECURITY DEFINER`, `STABLE`,
+  `search_path = public`, autorizada por admin ou cliente dono e com
+  `GRANT EXECUTE` apenas para `authenticated`.
+- Payload publico: `pedido`, `itens`, `parciais`, `timeline`,
+  `entregas`, `pendencias`, `etapas`, `chain_state`,
+  `status_label`, `mensagem` e `progresso_percentual`. Itens usam nomes
+  (`modelo`, `cor_1`, `cor_2`) e nao IDs de catalogo; parciais e eventos
+  filtram `visivel_cliente IS TRUE`.
+- Campos internos proibidos validados como ausentes do payload:
+  `op_id`, `op_numero`, `lote_id`, `fornecedor_id`,
+  `fornecedor_nome`, `ordem_compra_id`, `romaneio`, `nf`, `custo`,
+  `margem`, `motivo_separacao`, `origem_op_id`,
+  `destino_fornecedor_id`, `modelo_id`, `cor_1_id`, `cor_2_id`,
+  `expedicao_id`.
+- Frontend:
+  - `js/screens/cliente-pedido-detail.js` chama somente
+    `supa.rpc('cliente_pedido_summary', { p_pedido_id })`; removeu
+    `carregarCadeiaCliente` e nao tem mais `.from(...)` direto.
+  - `js/screens/cliente-pedido-tracking.js` prioriza a mensagem publica
+    de `chain_state.mensagem` no banner.
+  - `js/screens/cliente-dashboard.js` ja estava seguro e nao foi
+    alterado.
+  - Admin/Pedido Detail ficou fora do escopo e nao foi alterado.
+- Testes locais:
+  - `cliente-pedido-detail`, `cliente-pedido-tracking`,
+    `cliente-tracking-steps`, `cliente-tracking-schema`,
+    `pedido-detail`, `pedido-detail-linked-ops`,
+    `cliente-pedido-summary-readmodel`, `cliente-pedido-events` =
+    265/265 OK.
+  - `production-flow-invariants` + `latex-consolidation-schema` =
+    36/36 OK.
+- Diagnosticos staging read-only: OPs totais 25; Tecelagem 17; Latex 8;
+  Latex default 7; split legitimo 1; duplicatas default 0; orfas 0;
+  `op_latex_entregas` com 11 entregas e 0 em multiplas OPs; colisoes
+  `tipo+numero+ano` 0; high-water Latex 8/8 e Tecelagem 17/17.
+- Nao tocado: producao `bhgifjrfagkzubpyqpew`, `origin` para escrita,
+  aplicacao de SQL em staging/producao, dados reais
+  OP/pedido/entrega/expedicao, cleanup destrutivo.
+- Residual permitido: `?? supabase/.temp/` fora do commit.
+- Proximo P1 recomendado: `CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A`
+  - aplicar `db/30` em staging, validar o Portal Cliente real, e so entao
+  discutir qualquer caminho para producao.
+
+# Estado pos-fase - Latex Lifecycle Canonical A-B
 
 - Fase: `RAVATEX-TAPETES-LATEX-LIFECYCLE-CANONICAL-A-B`.
 - Objetivo: alinhar a finalizacao da OP Latex/Acabamento ao contrato

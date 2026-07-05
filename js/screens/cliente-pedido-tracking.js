@@ -238,9 +238,11 @@
     var statusLabel = chainState && chainState.displayStatus
       ? chainState.displayStatus
       : api.getClienteTrackingStatusLabel(pedido);
-    var mensagem = chainState && chainState.displayStatus
-      ? 'Seu pedido esta em ' + chainState.displayStatus.toLowerCase() + '.'
-      : api.getClienteTrackingMensagem(pedido);
+    var mensagem = chainState && chainState.mensagem
+      ? chainState.mensagem
+      : (chainState && chainState.displayStatus
+        ? 'Seu pedido esta em ' + chainState.displayStatus.toLowerCase() + '.'
+        : api.getClienteTrackingMensagem(pedido));
     var bgColor = '#f1f6fe';
     var borderColor = '#d7e6fb';
     var iconColor = '#2563eb';
