@@ -256,6 +256,45 @@ test('LATEX-LIFECYCLE-CANONICAL-A-B: Acabamento reconhece concluida canonico e f
   }
 });
 
+test('STEPPER-OP-PENDING-R1: Acabamento movimentavel nao exige OP terminal, mas 100% liberado fica pendente visual', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(detailBundle, sandbox);
+  const ns = sandbox.window.RAVATEX_SCREENS.pedidoDetail;
+
+  function baseState() {
+    const s = ns.createInitialState();
+    s.pedido = { id: 'p1', numero: 1, status: 'rascunho', metros_total: 100 };
+    s.itens = [{ id: 'pi1', modelo_id: 7, metros: 100 }];
+    s.modelosById = { 7: { id: 7, nome: 'Roma' } };
+    s.ops = [
+      { id: 29, tipo: 'tecelagem', numero: 1, ano: 2026, status: 'concluida', op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 100, pedido_item_id: 'pi1' }] },
+      { id: 30, tipo: 'latex', numero: 2, ano: 2026, status: 'em_producao', origem_op_id: 29, op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 100, pedido_item_id: 'pi1' }] },
+    ];
+    s.entregaItens = [{ id: 1, entrega_id: 'e1', op_id: 29, op_item_id: 290, modelo_id: 7, metros_entregues: 100, defeito: false }];
+    s.entregasById = { e1: { id: 'e1', etapa: 'cima' } };
+    return s;
+  }
+
+  const movimentavel = baseState();
+  const movimentavelView = ns.computeViewModel(movimentavel);
+  assert.equal(movimentavelView.chainState.actions.releaseExpedicao.mode, 'enabled',
+    'Acabamento em producao com saldo disponivel continua liberando movimento para Expedicao');
+
+  const liberado = baseState();
+  liberado.expedicoes = [{ id: 3, op_latex_id: 30, pedido_id: 'p1', status: 'aguardando_expedicao' }];
+  liberado.expedicaoItens = [{ id: 4, expedicao_id: 3, op_item_id: 301, modelo_id: 7, metros_liberados: 100, metros_entregues: 0 }];
+
+  const view = ns.computeViewModel(liberado);
+  const acabamento = view.stepper.find((stage) => stage.key === 'acabamento');
+  assert.equal(view.chainState.metrics.acabamento.saldoEntregue, true);
+  assert.equal(view.chainState.metrics.acabamento.formalPending, true);
+  assert.notEqual(view.chainState.adminStepper.acabamento, 'done');
+  assert.equal(acabamento.percent, 100);
+  assert.equal(acabamento.state, 'current');
+  assert.equal(acabamento.sublabel, 'OP pendente');
+});
+
 test('TEC-STAGE-FINALIZATION-A-B: Pedido Detail diferencia saldo entregue de conclusao explicita', () => {
   assert.match(detailProgress, /var\s+tecTerminal\s*=/,
     'computeViewModel deve calcular terminalidade real da Tecelagem');

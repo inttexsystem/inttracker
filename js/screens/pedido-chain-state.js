@@ -65,6 +65,10 @@
     return stageKeyForOp(row) === 'acabamento' ? 'latex' : 'cima';
   }
 
+  function isTerminalOpStatus(status) {
+    return status === 'concluida' || status === 'finalizada' || status === 'cancelada';
+  }
+
   function targetMetersForOpItem(row) {
     if (!row) return 0;
     return round2(row.metros_ajustados != null ? row.metros_ajustados : row.metros_pedidos);
@@ -88,6 +92,17 @@
   function buildOpSummaries(input) {
     var entregaItens = Array.isArray(input.entregaItens) ? input.entregaItens : [];
     var entregasById = input.entregasById || {};
+    var expedicoesById = {};
+    var liberadoByLatexOp = {};
+
+    (Array.isArray(input.expedicoes) ? input.expedicoes : []).forEach(function (expedicao) {
+      if (expedicao) expedicoesById[expedicao.id] = expedicao;
+    });
+    (Array.isArray(input.expedicaoItens) ? input.expedicaoItens : []).forEach(function (item) {
+      var expedicao = expedicoesById[item.expedicao_id];
+      if (!expedicao || expedicao.op_latex_id == null) return;
+      liberadoByLatexOp[expedicao.op_latex_id] = round2((liberadoByLatexOp[expedicao.op_latex_id] || 0) + toFiniteNumber(item.metros_liberados));
+    });
 
     return (Array.isArray(input.ops) ? input.ops : []).map(function (op) {
       var target = 0;
@@ -108,6 +123,10 @@
         if (!entrega || entrega.etapa !== deliveryStage) return;
         done += toFiniteNumber(item.metros_entregues);
       });
+
+      if (stageKey === 'acabamento') {
+        done = Math.max(done, liberadoByLatexOp[op.id] || 0);
+      }
 
       target = round2(target);
       done = round2(done);
@@ -162,11 +181,13 @@
     var tecProduction = tecelagem.some(function (row) { return row.status === 'em_producao'; });
     var tecOpen = tecelagem.some(function (row) { return row.status === 'aberta' || row.status === 'simulada'; });
     var tecOpenAcceptance = tecelagem.find(function (row) { return row.status === 'aberta'; }) || null;
-    var tecFinished = tecelagem.some(function (row) { return row.status === 'finalizada' || row.status === 'concluida'; });
+    var tecFormalPending = tecelagem.some(function (row) { return !isTerminalOpStatus(row.status); });
+    var tecFinished = hasTec && !tecFormalPending;
     var tecSaldoEntregue = tecTarget > 0 && tecRemaining <= 0;
     var acabOpen = acabamento.some(function (row) { return row.status === 'aberta' || row.status === 'simulada'; });
     var acabProduction = acabamento.some(function (row) { return row.status === 'em_producao'; });
-    var acabFinished = acabamento.some(function (row) { return row.status === 'finalizada' || row.status === 'concluida'; });
+    var acabFormalPending = acabamento.some(function (row) { return !isTerminalOpStatus(row.status); });
+    var acabFinished = hasAcab && !acabFormalPending;
     var acabSaldoEntregue = acabTarget > 0 && acabRemaining <= 0;
 
     var ordens = Array.isArray(input.ordensFio) ? input.ordensFio : [];
@@ -336,8 +357,8 @@
       adminBadge: adminBadge,
       isOperationalOverride: hasTec || hasAcab || hasExpedicao || pedidoConcluido,
       metrics: {
-        tecelagem: { target: tecTarget, done: tecDone, remaining: tecRemaining, saldoEntregue: tecSaldoEntregue, terminal: tecFinished },
-        acabamento: { target: acabTarget, done: acabDone, remaining: acabRemaining, saldoEntregue: acabSaldoEntregue, terminal: acabFinished },
+        tecelagem: { target: tecTarget, done: tecDone, remaining: tecRemaining, saldoEntregue: tecSaldoEntregue, terminal: tecFinished, formalPending: tecFormalPending },
+        acabamento: { target: acabTarget, done: acabDone, remaining: acabRemaining, saldoEntregue: acabSaldoEntregue, terminal: acabFinished, formalPending: acabFormalPending },
         insumos: { pedidoKg: insumoPedidoKg, recebidoKg: insumoRecebidoKg, concluido: insumosConcluidos },
         expedicao: { liberado: expedicaoLiberado, entregue: expedicaoEntregue, saldo: expedicaoSaldo, liberavel: acabLiberavel },
       },

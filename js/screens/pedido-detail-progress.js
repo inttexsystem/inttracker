@@ -126,6 +126,23 @@
     return 'future';
   }
 
+  function isTerminalOpStatus(status) {
+    return status === 'concluida' || status === 'finalizada' || status === 'cancelada';
+  }
+
+  function hasFormalPendingOp(summaries) {
+    return summaries.some(function (row) { return !isTerminalOpStatus(row.status); });
+  }
+
+  function applyFormalPendingStage(stepper, key, hasBase, remaining, hasPending, label) {
+    if (!hasPending || !(hasBase > 0) || remaining > 0) return;
+    stepper.forEach(function (stage) {
+      if (stage.key !== key) return;
+      stage.state = 'current';
+      stage.sublabel = label;
+    });
+  }
+
   function computeViewModel(state) {
     var pedido = state.pedido || {};
     var trackingApi = ns.getTrackingApi();
@@ -309,9 +326,12 @@
 
     var tecMeta = ns.round2(tecelagemSummaries.reduce(function (acc, row) { return acc + row.target; }, 0));
     var tecDone = ns.round2(tecelagemSummaries.reduce(function (acc, row) { return acc + row.done; }, 0));
-    var tecTerminal = tecelagemSummaries.some(function (row) { return row.status === 'concluida' || row.status === 'finalizada'; });
+    var tecFormalPending = hasFormalPendingOp(tecelagemSummaries);
+    var tecTerminal = tecelagemSummaries.length > 0 && !tecFormalPending;
     var acabMeta = ns.round2(acabamentoSummaries.reduce(function (acc, row) { return acc + row.target; }, 0));
     var acabDone = ns.round2(acabamentoSummaries.reduce(function (acc, row) { return acc + row.done; }, 0));
+    var acabFormalPending = hasFormalPendingOp(acabamentoSummaries);
+    var acabTerminal = acabamentoSummaries.length > 0 && !acabFormalPending;
 
     var tecOpIds = tecelagemSummaries.map(function (row) { return row.id; });
     var insumoOrdens = state.ordensFio.filter(function (ordem) {
@@ -488,7 +508,6 @@
     }).length;
 
     var pendenciasConclusao = [];
-    var statusTerminal = { concluida: true, finalizada: true, cancelada: true };
     if (totalPedido <= 0) {
       pendenciasConclusao.push('Pedido sem metragem consolidada.');
     }
@@ -499,7 +518,7 @@
       pendenciasConclusao.push('Pedido sem OP de acabamento vinculada.');
     }
     opSummaries.forEach(function (summary) {
-      if (!statusTerminal[summary.status]) {
+      if (!isTerminalOpStatus(summary.status)) {
         pendenciasConclusao.push(summary.label + ' ainda esta aberta ou em producao.');
       }
     });
@@ -575,7 +594,7 @@
         color: '#e07b39',
         percent: acabMeta > 0 ? ns.clampPercent((acabDone / acabMeta) * 100) : 0,
         state: stageState(acabMeta > 0 ? ns.clampPercent((acabDone / acabMeta) * 100) : 0, acabMeta, emAcabamento, acabDone, false),
-        sublabel: emAcabamento > 0 ? ns.fmtMetros(emAcabamento) : (acabMeta > 0 ? 'concluido' : 'aguardando'),
+        sublabel: emAcabamento > 0 ? ns.fmtMetros(emAcabamento) : (acabMeta > 0 ? (acabTerminal ? 'concluido' : 'OP pendente') : 'aguardando'),
         transfer: {
           title: 'Movimentar Acabamento -> Expedicao',
           origem: 'Acabamento',
@@ -631,6 +650,9 @@
         }
       });
     }
+
+    applyFormalPendingStage(stepper, 'tecelagem', tecMeta, emTecelagem, tecFormalPending, 'entregue; finalizar OP');
+    applyFormalPendingStage(stepper, 'acabamento', acabMeta, emAcabamento, acabFormalPending, 'OP pendente');
 
     if (chainState && chainState.tecPendingAcceptance) {
       stepper.forEach(function (stage) {
