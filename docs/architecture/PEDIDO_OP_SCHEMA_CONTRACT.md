@@ -687,3 +687,19 @@ Expedicao permanece bloqueador nesta fase. Producao futura deve substituir
 este modo por senha/admin forte, soft-delete e auditoria permanente. A regra de
 numeracao permanece invariavel: `op_numeros` nao muda, OPs nao sao renumeradas
 e numeros nao sao reciclados.
+
+### FK Order Fix E - ordem fisica da cascata de teste
+
+Na fase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-FK-ORDER-FIX-E`, a
+cascata controlada deve considerar dois caminhos FK de `entrega_itens` antes de
+qualquer `DELETE FROM ops`: `entrega_itens.op_id -> ops.id` e
+`entrega_itens.op_item_id -> op_itens.id`. A RPC monta alvos explicitos
+(`target_ops`, `target_op_itens`, `target_entregas`,
+`target_op_latex_links`, `target_child_ops`, `target_child_op_itens`), remove
+`op_latex_entregas`, remove `entrega_itens` por `op_id` ou `op_item_id`,
+remove entregas vazias e so entao apaga OPs filhas antes das raizes.
+
+A `db/36_controlled_delete_fk_order_fix.sql` tambem corrige os guards de
+entrega para retornar `OLD` em `DELETE` autorizado. Sem isso, um `BEFORE
+DELETE` que retorna `NEW` cancela silenciosamente a remocao. Expedicao segue
+bloqueador; `op_numeros` segue intocado.

@@ -7,6 +7,7 @@ const cp = require('node:child_process');
 const ROOT = path.resolve(__dirname, '..');
 const SQL = path.join(ROOT, 'db', '34_controlled_delete_pedido_op.sql');
 const SQL_CASCADE = path.join(ROOT, 'db', '35_controlled_delete_test_cascade.sql');
+const SQL_FIX = path.join(ROOT, 'db', '36_controlled_delete_fk_order_fix.sql');
 const HELPER = path.join(ROOT, 'js', 'delete-helpers.js');
 const INDEX = path.join(ROOT, 'index.html');
 const PEDIDOS_LIST = path.join(ROOT, 'js', 'screens', 'pedidos-list.js');
@@ -23,9 +24,18 @@ function read(file) {
   return fs.readFileSync(file, 'utf8');
 }
 
+function assertOrder(src, first, second, msg) {
+  const a = src.search(first);
+  const b = src.search(second);
+  assert.ok(a >= 0, 'trecho inicial ausente: ' + first);
+  assert.ok(b >= 0, 'trecho final ausente: ' + second);
+  assert.ok(a < b, msg || 'ordem invalida');
+}
+
 const sql = read(SQL);
 const sqlCascade = read(SQL_CASCADE);
-const sqlAll = sql + '\n' + sqlCascade;
+const sqlFix = read(SQL_FIX);
+const sqlAll = sql + '\n' + sqlCascade + '\n' + sqlFix;
 const helper = read(HELPER);
 const index = read(INDEX);
 const pedidosList = read(PEDIDOS_LIST);
@@ -118,6 +128,72 @@ test('SQL35 remover_pedido exige EXCLUIR TUDO e bloqueia expedicao', () => {
 
 test('SQL35 nao usa mensagem antiga de entrega como bloqueio de cascata', () => {
   assert.doesNotMatch(sqlCascade, /existe entrega vinculada\. Exclua a entrega antes/i);
+});
+
+test('SQL36 remove entrega_itens por op_id/op_item_id antes de DELETE FROM ops', () => {
+  assert.match(sqlFix, /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.remover_op/i);
+  assert.match(sqlFix, /DELETE\s+FROM\s+public\.entrega_itens[\s\S]*op_id\s*=\s*ANY\(v_target_ops\)[\s\S]*op_item_id\s*=\s*ANY\(v_target_op_itens\)/i);
+  assert.match(sqlFix, /DELETE\s+FROM\s+public\.ops\s+WHERE\s+id\s*=\s*v_op_id/i);
+  assertOrder(
+    sqlFix,
+    /DELETE\s+FROM\s+public\.entrega_itens/i,
+    /DELETE\s+FROM\s+public\.ops\s+WHERE\s+id\s*=\s*v_op_id/i,
+    'entrega_itens deve ser removido antes de ops'
+  );
+});
+
+test('SQL36 verifica entrega_itens remanescentes antes de apagar OPs', () => {
+  assert.match(sqlFix, /v_remaining_entrega_item_ids/i);
+  assert.match(sqlFix, /WHERE\s+ei\.op_id\s*=\s*ANY\(v_target_ops\)[\s\S]*OR\s+ei\.op_item_id\s*=\s*ANY\(v_target_op_itens\)/i);
+  assert.match(sqlFix, /RAISE\s+EXCEPTION\s+USING[\s\S]*Exclusao interrompida: ainda existem itens de entrega vinculados a OPs alvo\./i);
+  assert.match(sqlFix, /DETAIL\s*=\s*format\([\s\S]*entrega_item_ids=%s; op_ids=%s; op_item_ids=%s/i);
+  assert.doesNotMatch(sqlFix, /entrega_itens_op_id_fkey/i);
+  assert.doesNotMatch(helper, /entrega_itens_op_id_fkey/i);
+});
+
+test('SQL36 guards de entrega retornam OLD em DELETE autorizado', () => {
+  assert.match(sqlFix, /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.entrega_cima_latex_guard_fn\(\)[\s\S]*IF\s+TG_OP\s*=\s*'DELETE'\s+THEN\s+RETURN\s+OLD;/i);
+  assert.match(sqlFix, /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.entrega_itens_cima_latex_guard_fn\(\)[\s\S]*IF\s+TG_OP\s*=\s*'DELETE'\s+THEN\s+RETURN\s+OLD;/i);
+});
+
+test('SQL36 OP com entrega_itens.op_id exige EXCLUIR TUDO e nao fica blocked por entrega', () => {
+  assert.match(sqlFix, /v_entrega_itens_por_op_id\s*>\s*0[\s\S]*v_cascade\s*:=\s*TRUE/i);
+  assert.match(sqlFix, /requires_cascade_confirmation/i);
+  assert.match(sqlFix, /EXCLUIR TUDO/i);
+  assert.doesNotMatch(sqlFix, /v_entrega_itens_por_op_id\s*>\s*0[\s\S]{0,260}v_blocked\s*:=\s*TRUE/i);
+  assert.doesNotMatch(sqlFix, /existe entrega vinculada\. Exclua a entrega antes/i);
+});
+
+test('SQL36 OP com expedicao ou expedicao_itens continua blocked', () => {
+  assert.match(sqlFix, /v_expedicoes\s*>\s*0\s+OR\s+v_expedicao_itens\s*>\s*0[\s\S]*v_blocked\s*:=\s*TRUE/i);
+  assert.match(sqlFix, /existe expedicao vinculada/i);
+  assert.match(sqlFix, /expedicao_itens[\s\S]*op_item_id\s*=\s*ANY\(v_target_op_itens\)/i);
+});
+
+test('SQL36 OP mae com filha sem expedicao entra em cascata', () => {
+  assert.match(sqlFix, /v_filhas\s*>\s*0[\s\S]*v_cascade\s*:=\s*TRUE/i);
+  assert.match(sqlFix, /target_child_ops/i);
+  assert.match(sqlFix, /FOR\s+v_op_id\s+IN[\s\S]*unnest\(v_target_child_ops\)[\s\S]*DELETE\s+FROM\s+public\.ops\s+WHERE\s+id\s*=\s*v_op_id/i);
+});
+
+test('SQL36 Pedido com OP e entrega_itens sem expedicao entra em cascata', () => {
+  assert.match(sqlFix, /diagnosticar_impacto_pedido[\s\S]*v_entrega_itens_por_op_id\s*>\s*0[\s\S]*v_cascade\s*:=\s*TRUE/i);
+  assert.match(sqlFix, /remover_pedido[\s\S]*p_confirmacao[\s\S]*EXCLUIR TUDO/i);
+  assert.match(sqlFix, /DELETE\s+FROM\s+public\.op_latex_entregas[\s\S]*DELETE\s+FROM\s+public\.entrega_itens[\s\S]*DELETE\s+FROM\s+public\.entregas[\s\S]*v_remaining_entrega_item_ids[\s\S]*DELETE\s+FROM\s+public\.ops/i);
+});
+
+test('SQL36 mantem op_numeros fora de update/delete/insert', () => {
+  assert.doesNotMatch(sqlFix, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+public\.op_numeros/i);
+  assert.doesNotMatch(sqlFix, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+op_numeros/i);
+});
+
+test('script staging mostra alvos FK e cobertura da cascata', () => {
+  assert.match(stagingScript, /entrega_itens_por_op_id/);
+  assert.match(stagingScript, /entrega_itens_por_op_item_id/);
+  assert.match(stagingScript, /target_ops/);
+  assert.match(stagingScript, /target_op_itens/);
+  assert.match(stagingScript, /op_latex_entregas/);
+  assert.match(stagingScript, /cascade_zera_entrega_itens_antes_de_ops/);
 });
 
 test('helper central expoe API RAVATEX_DELETE e chama RPCs', () => {

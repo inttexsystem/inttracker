@@ -78,9 +78,30 @@ function uniq(values) {
   return Array.from(new Set(values.filter((value) => value != null)));
 }
 
+function summarizeIds(ids, max = 12) {
+  const clean = uniq(ids);
+  const head = clean.slice(0, max).join(',');
+  return '[' + head + (clean.length > max ? ',...' : '') + ']';
+}
+
+function collectTargetOps(rootIds, opsByParent) {
+  const out = [];
+  const seen = new Set();
+  const queue = rootIds.filter((id) => id != null);
+  while (queue.length) {
+    const id = queue.shift();
+    const key = String(id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(id);
+    (opsByParent.get(key) || []).forEach((child) => queue.push(child.id));
+  }
+  return out;
+}
+
 function classifyPedido(c) {
   if (c.expedicoes > 0) return { classification: 'blocked', reason: 'expedicao' };
-  if (c.entregas > 0 || c.ops_filhas > 0 || c.ops_filhas_nao_tratadas > 0) {
+  if (c.entregas > 0 || c.entrega_itens_por_op_id > 0 || c.entrega_itens_por_op_item_id > 0 || c.op_latex_entregas > 0 || c.ops_filhas > 0 || c.ops_filhas_nao_tratadas > 0) {
     return {
       classification: 'requires_cascade_confirmation',
       reason: 'cadeia_produtiva_teste',
@@ -94,7 +115,7 @@ function classifyPedido(c) {
 
 function classifyOp(c) {
   if (c.expedicoes > 0) return { classification: 'blocked', reason: 'expedicao' };
-  if (c.entregas > 0 || c.ops_filhas > 0) {
+  if (c.entregas > 0 || c.entrega_itens_por_op_id > 0 || c.entrega_itens_por_op_item_id > 0 || c.op_latex_entregas > 0 || c.ops_filhas > 0) {
     return {
       classification: 'requires_cascade_confirmation',
       reason: 'cadeia_produtiva_teste',
@@ -152,16 +173,38 @@ function classifyOp(c) {
   ]);
 
   const parcialById = byId(pedidoParciais);
+  const opsByParent = new Map();
+  ops.forEach((op) => {
+    if (op.origem_op_id == null) return;
+    const key = String(op.origem_op_id);
+    if (!opsByParent.has(key)) opsByParent.set(key, []);
+    opsByParent.get(key).push(op);
+  });
 
   console.log('\n===== PEDIDOS =====');
   pedidos
     .filter((pedido) => !pedidoFilter || pedido.id === pedidoFilter)
     .forEach((pedido) => {
       const loteIds = lotes.filter((lote) => lote.pedido_id === pedido.id).map((lote) => lote.id);
-      const pedidoOps = ops.filter((op) => loteIds.includes(op.lote_id));
-      const opIds = pedidoOps.map((op) => op.id);
-      const entregaIds = uniq(entregaItens.filter((item) => opIds.includes(item.op_id)).map((item) => item.entrega_id));
-      const expIds = expedicoes.filter((exp) => exp.pedido_id === pedido.id || opIds.includes(exp.op_latex_id)).map((exp) => exp.id);
+      const rootOps = ops.filter((op) => loteIds.includes(op.lote_id));
+      const rootOpIds = rootOps.map((op) => op.id);
+      const targetOpIds = collectTargetOps(rootOpIds, opsByParent);
+      const targetChildOpIds = targetOpIds.filter((id) => !rootOpIds.includes(id));
+      const targetOpItemIds = opItens.filter((item) => targetOpIds.includes(item.op_id)).map((item) => item.id);
+      const targetChildOpItemIds = opItens.filter((item) => targetChildOpIds.includes(item.op_id)).map((item) => item.id);
+      const entregaItensByOpId = entregaItens.filter((item) => targetOpIds.includes(item.op_id));
+      const entregaItensByOpItemId = entregaItens.filter((item) => targetOpItemIds.includes(item.op_item_id));
+      const entregaIds = uniq([
+        ...entregaItensByOpId.map((item) => item.entrega_id),
+        ...entregaItensByOpItemId.map((item) => item.entrega_id),
+        ...opLatexEntregas.filter((link) => targetOpIds.includes(link.op_latex_id)).map((link) => link.entrega_id),
+      ]);
+      const opLatexLinks = opLatexEntregas.filter((link) => targetOpIds.includes(link.op_latex_id) || entregaIds.includes(link.entrega_id));
+      const expIdsFromOpItems = expedicaoItens.filter((item) => targetOpItemIds.includes(item.op_item_id)).map((item) => item.expedicao_id);
+      const expIds = uniq([
+        ...expedicoes.filter((exp) => exp.pedido_id === pedido.id || targetOpIds.includes(exp.op_latex_id)).map((exp) => exp.id),
+        ...expIdsFromOpItems,
+      ]);
       const c = {
         pedido_itens: count(pedidoItens, (row) => row.pedido_id === pedido.id),
         pedido_eventos: count(pedidoEventos, (row) => row.pedido_id === pedido.id),
@@ -169,44 +212,82 @@ function classifyOp(c) {
         pedido_parciais: count(pedidoParciais, (row) => row.pedido_id === pedido.id),
         pedido_parcial_itens: count(pedidoParcialItens, (row) => parcialById[String(row.parcial_id)]?.pedido_id === pedido.id),
         lotes: loteIds.length,
-        ops_vinculadas: pedidoOps.length,
-        ops_tecelagem: count(pedidoOps, (op) => (op.tipo || 'tecelagem') === 'tecelagem'),
-        ops_latex_acabamento: count(pedidoOps, (op) => op.tipo === 'latex'),
+        ops_vinculadas: targetOpIds.length,
+        ops_tecelagem: count(ops, (op) => targetOpIds.includes(op.id) && (op.tipo || 'tecelagem') === 'tecelagem'),
+        ops_latex_acabamento: count(ops, (op) => targetOpIds.includes(op.id) && op.tipo === 'latex'),
         entregas: entregaIds.length,
-        entrega_itens: count(entregaItens, (row) => opIds.includes(row.op_id)),
+        entrega_itens: entregaItensByOpId.length + entregaItensByOpItemId.length,
+        entrega_itens_por_op_id: entregaItensByOpId.length,
+        entrega_itens_por_op_item_id: entregaItensByOpItemId.length,
         expedicoes: expIds.length,
-        expedicao_itens: count(expedicaoItens, (row) => expIds.includes(row.expedicao_id)),
+        expedicao_itens: count(expedicaoItens, (row) => expIds.includes(row.expedicao_id) || targetOpItemIds.includes(row.op_item_id)),
         expedicao_movimentos: count(expedicaoMovimentos, (row) => expIds.includes(row.expedicao_id)),
-        op_eventos: count(opEventos, (row) => opIds.includes(row.op_id)),
-        op_itens: count(opItens, (row) => opIds.includes(row.op_id)),
-        op_latex_entregas: count(opLatexEntregas, (row) => opIds.includes(row.op_latex_id) || entregaIds.includes(row.entrega_id)),
-        ops_filhas: count(ops, (op) => opIds.includes(op.origem_op_id)),
-        ops_filhas_nao_tratadas: count(ops, (op) => opIds.includes(op.origem_op_id) && !opIds.includes(op.id)),
+        op_eventos: count(opEventos, (row) => targetOpIds.includes(row.op_id)),
+        op_itens: targetOpItemIds.length,
+        op_itens_filhas: targetChildOpItemIds.length,
+        op_latex_entregas: opLatexLinks.length,
+        ops_filhas: targetChildOpIds.length,
+        ops_filhas_nao_tratadas: 0,
+        target_ops: targetOpIds.length,
+        target_op_itens: targetOpItemIds.length,
+        cascade_can_zero_entrega_itens_before_ops: expIds.length === 0,
       };
       const cls = classifyPedido(c);
       console.log('Pedido #' + pedido.numero + ' id=' + pedido.id + ' status=' + pedido.status + ' -> ' + cls.classification + ' (' + cls.reason + ') ' + JSON.stringify(c));
+      console.log('  targets: target_ops=' + summarizeIds(targetOpIds)
+        + ' target_op_itens=' + summarizeIds(targetOpItemIds)
+        + ' target_entregas=' + summarizeIds(entregaIds)
+        + ' op_latex_entregas=' + summarizeIds(opLatexLinks.map((link) => link.id))
+        + ' cascade_zera_entrega_itens_antes_de_ops=' + (expIds.length === 0 ? 'sim' : 'nao'));
     });
 
   console.log('\n===== OPS =====');
   ops
     .filter((op) => !opFilter || String(op.id) === String(opFilter))
     .forEach((op) => {
-      const expIds = expedicoes.filter((exp) => exp.op_latex_id === op.id).map((exp) => exp.id);
+      const targetOpIds = collectTargetOps([op.id], opsByParent);
+      const targetChildOpIds = targetOpIds.filter((id) => id !== op.id);
+      const targetOpItemIds = opItens.filter((item) => targetOpIds.includes(item.op_id)).map((item) => item.id);
+      const targetChildOpItemIds = opItens.filter((item) => targetChildOpIds.includes(item.op_id)).map((item) => item.id);
+      const entregaItensByOpId = entregaItens.filter((item) => targetOpIds.includes(item.op_id));
+      const entregaItensByOpItemId = entregaItens.filter((item) => targetOpItemIds.includes(item.op_item_id));
+      const entregaIds = uniq([
+        ...entregaItensByOpId.map((item) => item.entrega_id),
+        ...entregaItensByOpItemId.map((item) => item.entrega_id),
+        ...opLatexEntregas.filter((link) => targetOpIds.includes(link.op_latex_id)).map((link) => link.entrega_id),
+      ]);
+      const opLatexLinks = opLatexEntregas.filter((link) => targetOpIds.includes(link.op_latex_id) || entregaIds.includes(link.entrega_id));
+      const expIdsFromOpItems = expedicaoItens.filter((item) => targetOpItemIds.includes(item.op_item_id)).map((item) => item.expedicao_id);
+      const expIds = uniq([
+        ...expedicoes.filter((exp) => targetOpIds.includes(exp.op_latex_id)).map((exp) => exp.id),
+        ...expIdsFromOpItems,
+      ]);
       const c = {
-        op_itens: count(opItens, (row) => row.op_id === op.id),
-        op_eventos: count(opEventos, (row) => row.op_id === op.id),
-        op_fornecedores: count(opFornecedores, (row) => row.op_id === op.id),
-        ordens_compra_fio: count(ordensFio, (row) => row.op_id === op.id),
-        saldo_fios_op: count(saldoFiosOp, (row) => row.op_id === op.id),
-        entregas: uniq(entregaItens.filter((row) => row.op_id === op.id).map((row) => row.entrega_id)).length,
-        entrega_itens: count(entregaItens, (row) => row.op_id === op.id),
+        op_itens: targetOpItemIds.length,
+        op_itens_filhas: targetChildOpItemIds.length,
+        op_eventos: count(opEventos, (row) => targetOpIds.includes(row.op_id)),
+        op_fornecedores: count(opFornecedores, (row) => targetOpIds.includes(row.op_id)),
+        ordens_compra_fio: count(ordensFio, (row) => targetOpIds.includes(row.op_id)),
+        saldo_fios_op: count(saldoFiosOp, (row) => targetOpIds.includes(row.op_id)),
+        entregas: entregaIds.length,
+        entrega_itens: entregaItensByOpId.length + entregaItensByOpItemId.length,
+        entrega_itens_por_op_id: entregaItensByOpId.length,
+        entrega_itens_por_op_item_id: entregaItensByOpItemId.length,
         expedicoes: expIds.length,
-        expedicao_itens: count(expedicaoItens, (row) => expIds.includes(row.expedicao_id)),
-        ops_filhas: count(ops, (row) => row.origem_op_id === op.id),
+        expedicao_itens: count(expedicaoItens, (row) => expIds.includes(row.expedicao_id) || targetOpItemIds.includes(row.op_item_id)),
+        ops_filhas: targetChildOpIds.length,
         op_mae: op.origem_op_id == null ? 0 : 1,
-        op_latex_entregas: count(opLatexEntregas, (row) => row.op_latex_id === op.id),
+        op_latex_entregas: opLatexLinks.length,
+        target_ops: targetOpIds.length,
+        target_op_itens: targetOpItemIds.length,
+        cascade_can_zero_entrega_itens_before_ops: expIds.length === 0,
       };
       const cls = classifyOp(c);
       console.log('OP ' + op.numero + '/' + op.ano + ' id=' + op.id + ' tipo=' + (op.tipo || 'tecelagem') + ' status=' + op.status + ' -> ' + cls.classification + ' (' + cls.reason + ') ' + JSON.stringify(c));
+      console.log('  targets: target_ops=' + summarizeIds(targetOpIds)
+        + ' target_op_itens=' + summarizeIds(targetOpItemIds)
+        + ' target_entregas=' + summarizeIds(entregaIds)
+        + ' op_latex_entregas=' + summarizeIds(opLatexLinks.map((link) => link.id))
+        + ' cascade_zera_entrega_itens_antes_de_ops=' + (expIds.length === 0 ? 'sim' : 'nao'));
     });
 })();

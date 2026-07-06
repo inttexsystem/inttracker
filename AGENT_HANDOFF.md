@@ -4837,3 +4837,33 @@ node --test tests/boot.smoke.js \
   `EXCLUIR TUDO` quando `cascade_required=true`.
 - Preservado: sem producao, sem delete real automatico, sem alterar
   `op_numeros`, sem renumerar OP e sem reciclar numeros.
+# Estado pos-fase - Pedido/OP Controlled Delete FK Order Fix E
+
+- Fase: `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-FK-ORDER-FIX-E`.
+- Status: **PATCH VALIDADO COM DELETE SINTETICO EM STAGING - AGUARDANDO RETESTE DO USUARIO**.
+- Migration nova: `db/36_controlled_delete_fk_order_fix.sql`, aplicada somente
+  em staging `ucrjtfswnfdlxwtmxnoo`.
+- Causa raiz confirmada: `db/35` nao limpava todos os caminhos FK de
+  `entrega_itens` (`op_id` e `op_item_id`) antes de `DELETE FROM ops`; alem
+  disso, os guards de `entregas`/`entrega_itens` retornavam `NEW` em `DELETE`,
+  cancelando deletes autorizados. A `db/36` corrige os guards para retornar
+  `OLD` em DELETE.
+- Ordem da RPC: montar `target_ops`, `target_op_itens`, `target_entregas`,
+  `target_op_latex_links`, `target_child_ops`, `target_child_op_itens`;
+  bloquear expedicao; apagar `op_latex_entregas`; apagar `entrega_itens` por
+  `op_id` ou `op_item_id`; apagar entregas vazias; verificar zero
+  `entrega_itens` remanescente; apagar OPs filhas antes das raizes; apagar
+  lotes/pedido quando aplicavel.
+- Teste sintetico real em staging: Pedido #29
+  `e9b43072-2c7b-4a16-8d4a-9f9e66ec7415`, lote 27, OP Tecelagem 45, OP Latex
+  46, itens 68/69, entrega 21, entrega_item 23, link `op_latex_entregas` 21.
+  `remover_pedido(..., 'EXCLUIR TUDO')` retornou `ok=true`; remanescentes
+  todos 0; `op_numeros` antes/depois identico (`latex::2026=16`,
+  `tecelagem::2026=25`).
+- Testes: `controlled-delete`, `pedidos-list`, `ops-list`,
+  `op-latex-admin`, `production-flow-invariants` OK. Diagnosticos staging:
+  `delete-impact`, `production-flow-invariants`, `latex-consolidation`,
+  `expedicao-partial-flow` OK.
+- Garantias: producao intocada, `origin` nao usado para escrita, sem
+  renumerar OP, sem reciclar numero, sem alterar `op_numeros`, sem
+  `git add .`, `supabase/.temp` fora do patch.

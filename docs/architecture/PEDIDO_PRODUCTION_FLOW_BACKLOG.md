@@ -1143,3 +1143,18 @@ Fase: `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-CASCADE-TEST-D`
 - Expedição permanece bloqueador nesta etapa.
 - Backlog de producao permanece aberto: trocar cascata fisica por soft-delete,
   auditoria permanente e autorizacao forte.
+
+## Atualizacao 2026-07-06 - Controlled Delete FK Order Fix E
+
+Fase: `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-FK-ORDER-FIX-E`
+
+- `db/36_controlled_delete_fk_order_fix.sql` corrige a ordem fisica da cascata
+  de teste: `op_latex_entregas` -> `entrega_itens` por `op_id`/`op_item_id` ->
+  entregas vazias -> verificacao de zero `entrega_itens` -> OPs filhas -> OPs
+  raizes -> lotes/pedido.
+- Guards de entrega retornam `OLD` em DELETE autorizado para nao cancelar a
+  remocao silenciosamente.
+- Teste sintetico real em staging validou Pedido #29, OPs 45/46 e entrega 21
+  removidos pela RPC com `EXCLUIR TUDO`, sem alterar `op_numeros`.
+- Backlog de producao continua: substituir exclusao fisica por fluxo auditado,
+  autorizacao forte e politica permanente antes de qualquer producao.

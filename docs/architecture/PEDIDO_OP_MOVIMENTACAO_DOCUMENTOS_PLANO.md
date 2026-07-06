@@ -293,6 +293,7 @@ controlada de limpeza para dados de teste sem alterar o contrato produtivo:
 | D-DEL06 | `op_numeros` nao e alterado. | Numeracao e historico operacional seguem monotonicamente preservados. |
 | D-DEL07 | Em staging/teste, OP numerada sem bloqueadores reais pode ser removida pela RPC controlada. | A `db/34` remove/bypassa o trigger legado `ops_numeradas_no_delete`; o numero nao e reciclado porque `op_numeros` permanece high-water. |
 | D-DEL08 | Em staging/teste, cadeia com entrega/OP filha sem expedicao exige `EXCLUIR TUDO` e pode ser removida em cascata transacional. | A `db/35` diferencia `requires_cascade_confirmation` de `blocked`; expedicao segue bloqueador e producao futura exige auditoria/soft-delete. |
+| D-DEL09 | Antes de apagar OP, a cascata deve zerar `entrega_itens` por `op_id` e por `op_item_id`, e guards de DELETE devem retornar `OLD`. | A `db/36` corrige a ordem FK e evita cancelamento silencioso por trigger `BEFORE DELETE`; teste sintetico real validou Pedido #29/OPs 45-46 em staging sem alterar `op_numeros`. |
 
 Botao/fluxo adicionado nas telas principais de Pedido e OP por
 `window.RAVATEX_DELETE`. O antigo `excluirOpLatex` direto foi substituido pelo

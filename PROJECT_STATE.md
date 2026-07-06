@@ -5502,3 +5502,36 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 > de impacto e confirmacao `EXCLUIR TUDO`. `op_numeros` nao e alterado, OPs nao
 > sao renumeradas e numeros nao sao reciclados. Producao futura continua
 > pendente de senha/admin forte, soft-delete e auditoria permanente.
+>
+> **Atualizacao 2026-07-06 - fase
+> `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-FK-ORDER-FIX-E`.**
+> Status: **PATCH VALIDADO COM DELETE SINTETICO EM STAGING - AGUARDANDO RETESTE
+> DO USUARIO**.
+>
+> Criada migration incremental `db/36_controlled_delete_fk_order_fix.sql`,
+> aplicada somente em staging `ucrjtfswnfdlxwtmxnoo`. Causa raiz confirmada:
+> a cascata limpava `entrega_itens` apenas por `op_id`, sem cobrir
+> `op_item_id`, e os guards de entrega retornavam `NEW` em `DELETE`, o que
+> cancelava silenciosamente deletes autorizados. A `db/36` monta
+> `target_ops`, `target_op_itens`, `target_entregas`,
+> `target_op_latex_links`, `target_child_ops` e `target_child_op_itens`;
+> remove `op_latex_entregas`; remove `entrega_itens` por `op_id` ou
+> `op_item_id`; remove entregas vazias; verifica zero `entrega_itens`
+> remanescente antes de `DELETE FROM ops`; remove OPs filhas antes das raizes.
+>
+> Teste sintetico real em staging via REST/RPC: Pedido #29
+> `e9b43072-2c7b-4a16-8d4a-9f9e66ec7415`, lote 27, OP Tecelagem 45, OP Latex
+> 46, entrega 21, entrega_item 23, `op_latex_entrega` 21. Diagnostico previo:
+> `requires_cascade_confirmation`, sem expedicao, com
+> `entrega_itens_por_op_id=1`, `entrega_itens_por_op_item_id=1` e
+> `cascade_can_zero_entrega_itens_before_ops=true`. RPC
+> `remover_pedido(..., 'EXCLUIR TUDO')` retornou `ok=true`; remanescentes de
+> pedido/lote/ops/op_itens/entrega/entrega_itens/op_latex_entregas/origem
+> quebrada ficaram todos 0. `op_numeros` antes/depois identico
+> (`latex::2026=16`, `tecelagem::2026=25`).
+>
+> Validacao: `controlled-delete`, `pedidos-list`, `ops-list`,
+> `op-latex-admin`, `production-flow-invariants` verdes; diagnosticos staging
+> `delete-impact`, `production-flow-invariants`, `latex-consolidation` e
+> `expedicao-partial-flow` OK. Producao e `origin` intocados; sem renumerar OP,
+> sem reciclar numero e sem commit de `supabase/.temp`.
