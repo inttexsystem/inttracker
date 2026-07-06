@@ -1171,7 +1171,10 @@
       function canMove(op, summary) {
         var remaining = ns.toFiniteNumber(summary.remaining);
         if (ns.stageKeyForOp(op) === 'tecelagem') return op.status === 'em_producao' && remaining > 0;
-        if (ns.stageKeyForOp(op) === 'acabamento') return (op.status === 'aberta' || op.status === 'em_producao' || terminalStatus(op.status)) && remaining > 0;
+        if (ns.stageKeyForOp(op) === 'acabamento') {
+          if (transitionKey(ctxMovement) === 'Tecelagem>Acabamento') return false;
+          return (op.status === 'aberta' || op.status === 'em_producao' || terminalStatus(op.status)) && remaining > 0;
+        }
         return false;
       }
       function canFinalize(op, summary) {
@@ -1229,10 +1232,12 @@
                   ? window.el('div', { style: 'font-size:11.5px;color:#2563eb;line-height:1.4;margin-top:7px;font-weight:700;' }, 'Esta OP esta carregada para movimentacao neste modal.')
                   : null,
                 !proposta && !opCarregada && !podeMovimentar && !podeFinalizar
-                  ? window.el('div', { style: 'font-size:11.5px;color:#8a93a3;line-height:1.4;margin-top:7px;' },
-                      ns.stageKeyForOp(op) === 'acabamento'
-                        ? 'Sem saldo disponivel para carregar nesta movimentacao.'
-                        : 'Nenhuma acao contextual disponivel agora para esta OP.')
+                  ? (ns.stageKeyForOp(op) === 'acabamento' && transitionKey(ctxMovement) === 'Tecelagem>Acabamento'
+                      ? null
+                      : window.el('div', { style: 'font-size:11.5px;color:#8a93a3;line-height:1.4;margin-top:7px;' },
+                          ns.stageKeyForOp(op) === 'acabamento'
+                            ? 'Sem saldo disponivel para carregar nesta movimentacao.'
+                            : 'Nenhuma acao contextual disponivel agora para esta OP.'))
                   : null
               );
             })

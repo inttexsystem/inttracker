@@ -5677,3 +5677,33 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 > `supabase/.temp`. Risco remanescente: esta politica e apenas de
 > staging/teste; producao ainda exige decisao futura de senha/admin forte,
 > soft-delete e auditoria permanente antes de qualquer exclusao fisica.
+>
+> **Atualizacao 2026-07-06 - fase
+> `RAVATEX-TAPETES-PEDIDO-NO-PARALLEL-LOAD-ACTION-B`.**
+> Patch P0 para esconder acao "Carregar nesta movimentacao" em OPs de
+> Acabamento/Latex no modal Tecelagem -> Acabamento, onde nao existe fluxo
+> paralelo.
+> - **Causa raiz (isolada):** `canMove()` dentro de
+>   `buildRelatedOpsSection` em
+>   `js/screens/pedido-detail-events.js:1171` nao considerava o contexto
+>   de transicao; para `Tecelagem>Acabamento` permitia que OPs de
+>   acabamento com saldo exibissem o botao de carregar, quando a OP ativa
+>   deveria ser sempre a tecelagem.
+> - **Regra aplicada:** `canMove` para `acabamento` retorna `false` quando
+>   `transitionKey(ctxMovement) === 'Tecelagem>Acabamento'`. A mensagem
+>   vazia "Sem saldo disponivel" tambem foi suprimida nesse contexto, pois
+>   a ausencia de acao e por restricao de transicao e nao por falta de
+>   saldo real.
+> - **Acoes preservadas:** Abrir OP, Finalizar OP e demais acoes
+>   contextuais validas permanecem intactas para acabamento. O fluxo
+>   `Acabamento>Expedicao` continua mostrando "Carregar nesta
+>   movimentacao" normalmente.
+> - **Arquivos alterados:**
+>   - `js/screens/pedido-detail-events.js` (+4 linhas em `canMove`,
+>     +2 linhas no bloco de mensagem vazia)
+>   - `tests/pedido-detail.smoke.js` (+1 teste:
+>     `NO-PARALLEL-LOAD-B: acabamento OP nao mostra Carregar...`)
+> - **Testes:** `node --test tests/pedido-detail.smoke.js` OK (172/172);
+>   `node --test tests/pedido-detail-linked-ops.smoke.js` OK (7/7).
+> - **Garantias:** producao intocada; `origin` nao usado para escrita;
+>   sem `git add .`; `supabase/.temp` fora do commit.

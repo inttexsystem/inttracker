@@ -2790,3 +2790,43 @@ test('INSUMOS-TECELAGEM-UI-FIX-A: Excluir OP no card passa summary.op e exige he
   assert.match(opCardSlice, /typeof handlers\.excluirOpRelacionada === 'function'/,
     'botao deve ser condicional a handlers.excluirOpRelacionada existir');
 });
+
+test('NO-PARALLEL-LOAD-B: acabamento OP nao mostra Carregar no modal Tecelagem>Acabamento', () => {
+  const rt = makeHubRuntime();
+  const s = hubTecAcab(rt.ns, 'em_producao');
+  var tecOp = s.ops[0];
+  tecOp.status = 'em_producao';
+  var acabOp = s.ops[1];
+  acabOp.status = 'em_producao';
+  var pedidoNumero = s.pedido && s.pedido.numero ? s.pedido.numero : null;
+  if (pedidoNumero) acabOp.origem_op_id = tecOp.id;
+  const view = rt.ns.computeViewModel(s);
+  const tecelagemStage = view.stepper.find(function (st) { return st && st.key === 'tecelagem'; });
+  assert.ok(tecelagemStage && tecelagemStage.transfer,
+    'stepper deve ter etapa Tecelagem com transfer context');
+  assert.equal(tecelagemStage.transfer.op && tecelagemStage.transfer.op.id, tecOp.id,
+    'modal deve carregar OP Tecelagem como origem');
+
+  const handlers = rt.ns.createPedidoDetailEvents({
+    pedidoId: s.pedido.id,
+    state: s,
+    reload: async () => { rt.events.push('reload'); },
+    render: () => { rt.events.push('render'); },
+    getLoadingError: () => null,
+    setLoadingError: () => {},
+  });
+  handlers.currentView = view;
+  const cap = rt.node('body');
+  rt.sandbox.document.body = cap;
+  handlers.openMovementModal(tecelagemStage.transfer);
+
+  const text = collectHubText(cap);
+  assert.match(text, /OPs relacionadas/,
+    'modal Tecelagem>Acabamento deve ter secao OPs relacionadas');
+  assert.ok(findHubBtn(cap, /^Abrir OP$/i),
+    'OP relacionada (acabamento) deve manter Abrir OP');
+  assert.equal(findHubBtn(cap, /^Carregar nesta movimentacao$/i), null,
+    'OP acabamento NAO pode mostrar Carregar nesta movimentacao no modal Tecelagem>Acabamento');
+  assert.doesNotMatch(text, /Sem saldo disponivel para carregar nesta movimentacao/,
+    'nao deve exibir mensagem enganosa de saldo quando a acao foi bloqueada por contexto');
+});

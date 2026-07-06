@@ -4975,9 +4975,9 @@ node --test tests/boot.smoke.js \
   48, itens 70/71, entrega 22, entrega_item 24, link `op_latex_entregas` 22,
   expedicao 5, expedicao_item 10, expedicao_movimento 5,
   expedicao_movimento_item 7. Pre-diagnostico:
-  `requires_cascade_confirmation`, `blocked=false`, expedicao incluída na
+  `requires_cascade_confirmation`, `blocked=false`, expedicao inclu�da na
   cascata. `remover_pedido(..., 'EXCLUIR TUDO')` retornou `ok=true`;
-  remanescentes todos 0, inclusive expedição/movimentos/itens e origem
+  remanescentes todos 0, inclusive expedi��o/movimentos/itens e origem
   quebrada.
 - `op_numeros` antes/depois identico: `latex::2026=16`,
   `tecelagem::2026=25`. Nao renumerar OP e nao reciclar numero.
@@ -4989,3 +4989,70 @@ node --test tests/boot.smoke.js \
 - Risco remanescente: politica fisica limitada a staging/teste. Producao
   ainda precisa de senha/admin forte, soft-delete e auditoria permanente antes
   de qualquer caminho equivalente.
+
+# Estado pos-fase - NO-PARALLEL-LOAD-ACTION-B
+
+- Fase: `RAVATEX-TAPETES-PEDIDO-NO-PARALLEL-LOAD-ACTION-B`.
+- Prioridade: P0.
+- Tipo: PATCH pequeno com diagnostico obrigatorio.
+- Branch: `work/app-next`.
+- HEAD inicial: `04cc445c05c35ff9a86203343236481a763fe993`.
+- HEAD final: a definir apos commit.
+- Status: `supabase/.temp` (untracked) — limpo no resto.
+
+## Problema
+
+No modal do Pedido, durante a transicao `Tecelagem → Acabamento`, aparecia
+o botao `Carregar nesta movimentacao` na OP de Acabamento/Latex relacionada.
+Isso estava errado — nao existe paralelismo nesse fluxo; a OP ativa da
+movimentacao e determinada pelo estagio do Pedido.
+
+## Diagnostico
+
+- O botao e renderizado em `buildRelatedOpsSection` dentro de
+  `js/screens/pedido-detail-events.js:1221`.
+- A condicao que permite aparecer e `!opCarregada && podeMovimentar`, onde
+  `podeMovimentar` vem de `canMove(op, summary)` (linha 1171).
+- `canMove` para acabamento retorna `true` se a OP estiver em `aberta`,
+  `em_producao` ou terminal com `remaining > 0`, SEM considerar o contexto
+  da transicao.
+- No fluxo `Acabamento>Expedicao`, essa acao e valida (trocar a OP de
+  origem). No fluxo `Tecelagem>Acabamento`, nao e — a origem e sempre a
+  OP de tecelagem.
+
+## Correcao
+
+1. `canMove()` agora verifica `transitionKey(ctxMovement)`:
+   se for `Tecelagem>Acabamento`, retorna `false` para acabamento.
+2. A mensagem "Sem saldo disponivel para carregar nesta movimentacao" e
+   suprimida no mesmo contexto (`Tecelagem>Acabamento` + acabamento),
+   pois a ausencia de acao e por restricao de transicao e nao por falta
+   de saldo real.
+3. Teste smoke `NO-PARALLEL-LOAD-B` adicionado ao
+   `tests/pedido-detail.smoke.js`, validando:
+   - OP acabamento NAO mostra "Carregar nesta movimentacao"
+   - OP acabamento mantem "Abrir OP"
+   - Nao ha mensagem enganosa de saldo
+
+## Arquivos alterados
+
+- `js/screens/pedido-detail-events.js`: +4 linhas em `canMove` (gate
+  `transitionKey`), +2 linhas no bloco de mensagem vazia.
+- `tests/pedido-detail.smoke.js`: +1 teste runtime.
+- `PROJECT_STATE.md`: atualizado.
+- `AGENT_HANDOFF.md`: este bloco.
+
+## Testes
+
+- `node --test tests/pedido-detail.smoke.js` — 172/172 OK.
+- `node --test tests/pedido-detail-linked-ops.smoke.js` — 7/7 OK.
+
+## Garantias
+
+- Producao intocada.
+- `origin` nao usado para escrita.
+- Sem `git add .`.
+- `supabase/.temp` fora do commit.
+- `Abrir OP` e demais acoes validas preservadas.
+- Fluxo `Acabamento>Expedicao` (com `Carregar nesta movimentacao` valido)
+  inalterado.
