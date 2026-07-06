@@ -1,3 +1,49 @@
+# Atualizacao 2026-07-05 - Pedido Insumos Tecelagem Modal Parity And Refresh R1
+
+Fase: `RAVATEX-TAPETES-PEDIDO-INSUMOS-TECELAGEM-MODAL-PARITY-AND-REFRESH-R1`
+Status: **PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO**
+
+Reabertura: validacao visual mostrou que a seta `Insumos -> Tecelagem` ainda
+nao respeitava o contrato "sem OP, sem material" e que acoes executadas dentro
+do modal da seta podiam deixar o conteudo stale ou fechar antes do proximo
+estado operacional.
+
+Contrato de paralelismo aplicado:
+
+| Eixo | Referencia obrigatoria | Decisao aplicada |
+|---|---|---|
+| Modal operacional de transicao | Tecelagem -> Acabamento | O modal da seta continua sendo o lugar da proxima acao, com formulario quando ha operacao real e contexto auxiliar depois. |
+| Sem OP | Regra de produto "sem OP, sem material" | Insumos -> Tecelagem sem OP nao mostra recebimento, nao mostra historico vazio e oferece `Gerar primeira OP`. |
+| Aceite/proposta | Tela OP Tecelagem | OP aberta com insumos recebidos mostra proposta real com slider e `Aceitar proposta`, usando `aplicarRecalculoOP`. |
+| Pos-acao | Fluxo continuo no mesmo modal | Recebimento e aceite chamam refresh/re-render do proprio modal, sem exigir fechar/reabrir. |
+
+Matriz de diagnostico:
+
+| Caso | Antes | Depois |
+|---|---|---|
+| Insumos -> Tecelagem sem OP | `pedido-detail-progress.js` mantinha titulo `Registrar recebimento de insumos` mesmo sem OP; o modal caia em estado de contexto/historico e podia induzir operacao inexistente. | Titulo/detalhe sem OP viram criacao da primeira OP; `openMovementModal` renderiza bloqueio claro, `Nao e possivel registrar material sem OP vinculada.` e CTA `Gerar primeira OP`; `buildInsumosTransferForm` tem guard defensivo sem OP. |
+| OP Tecelagem pendente de aceite | `buildRelatedOpsSection` ja resolvia OP relacionada e `buildTecAcceptanceProposalBlock` ja renderizava slider/proposta, mas o sucesso do aceite nao atualizava o modal da seta. | A proposta recebe `onAfterSuccess` e usa `refreshPedidoTransitionModal`, mantendo handler/RPC canonico e removendo slider/botao stale apos sucesso. |
+| Apos registrar recebimento | `registrarRecebimentoOrdemFio` era canonico, mas o modal fechava depois do sucesso. | O sucesso chama `refreshPedidoTransitionModal`, recarrega Pedido/OPs/chain-state e mostra o proximo estado no mesmo modal. |
+| Paralelismo Tecelagem -> Acabamento | Fluxo validado ja tinha formulario primeiro, OPs relacionadas auxiliares, `Transferir restante` e `salvarEntregaCima`. | Padrao preservado; diferenca tecnica: sem OP inicial nao tem formulario porque ainda nao ha OP de origem nem ordens recebiveis. |
+
+Arquivos funcionais: `js/screens/pedido-detail-events.js`,
+`js/screens/pedido-detail-progress.js`. Testes: `tests/pedido-detail.smoke.js`
+ganhou cobertura runtime para sem OP, OP aberta com slider/proposta, aceite com
+refresh do modal e recebimento com refresh para proposta.
+
+Resultados: testes obrigatorios OK (`pedido-detail` 160/160,
+`pedido-detail-linked-ops` 7/7, `tec-to-acabamento-flow` 39/39,
+`expedicao-partial-flow` 12/12, `expedicao-flow` 8/8,
+`op-latex-admin` 55/55, `production-flow-invariants` 11/11). Diagnosticos
+staging read-only OK: invariantes de fluxo, consolidacao Latex e expedicao
+parcial.
+
+Confirmacoes: sem write paralelo no Pedido, sem update direto em `ops.status`,
+sem SQL, sem migration, sem dados reais novos, sem aceitar OP real, sem
+registrar recebimento real, sem finalizar OP real, sem concluir pedido,
+producao/origin intocados e `supabase/.temp/` fora do commit. Validacao visual
+do usuario segue pendente; nao declarar backlog zerado por esta fase.
+
 # Atualizacao 2026-07-05 - Acabamento Expedicao Modal UX Parity R2
 
 Fase: `RAVATEX-TAPETES-ACABAMENTO-EXPEDICAO-MODAL-UX-PARITY-R2`

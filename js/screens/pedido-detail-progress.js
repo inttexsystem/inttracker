@@ -563,10 +563,10 @@
         state: stageState(insumoPercent, insumoPedidoKg, Math.max(insumoPedidoKg - insumoRecebidoKg, 0), insumoRecebidoKg, false),
         sublabel: insumoPercent >= 100 ? 'concluido' : (insumoPedidoKg > 0 ? ns.fmtKg(insumoRecebidoKg) : 'aguardando'),
         transfer: {
-          title: 'Registrar recebimento de insumos',
+          title: linkedOpCount ? 'Registrar recebimento de insumos' : 'Gerar primeira OP de Tecelagem',
           origem: 'Insumos',
           destino: 'Tecelagem',
-          detalhe: linkedOpCount ? 'O recebimento de fio continua canonico na OP de tecelagem vinculada.' : 'Vincule uma OP ao pedido para iniciar o fluxo produtivo.',
+          detalhe: linkedOpCount ? 'O recebimento de fio continua canonico na OP de tecelagem vinculada.' : 'Este pedido ainda nao possui OP de Tecelagem vinculada. Gere a primeira OP para iniciar o fluxo produtivo.',
           op: tecelagemSummaries.length ? tecelagemSummaries[0].op : null,
           docs: 'NF de compra e romaneio',
           action: chainState && chainState.actions ? chainState.actions.transferInsumosToTecelagem : null,

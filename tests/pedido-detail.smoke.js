@@ -2040,6 +2040,12 @@ function findHubBtn(n, re) {
   for (const c of (n.children || [])) { const f = findHubBtn(c, re); if (f) return f; }
   return null;
 }
+function findNode(n, pred) {
+  if (!n) return null;
+  if (pred(n)) return n;
+  for (const c of (n.children || [])) { const f = findNode(c, pred); if (f) return f; }
+  return null;
+}
 function stageHub(rt, s, key) {
   const view = rt.ns.computeViewModel(s);
   rt.sandbox.window.supa = { rpc: async (fn) => { rt.events.push('rpc:' + fn); return { data: { ok: true }, error: null }; } };
@@ -2222,6 +2228,160 @@ test('TRANSITION runtime: clique em seta Aguardar abre modal de transicao', () =
     'Aguardar da transicao inicial deve abrir o modal de transicao/movimento');
   assert.equal(rt.events.indexOf('stage:insumos:same-view'), -1,
     'Aguardar da seta nao deve abrir o hub contextual da bolinha');
+});
+
+test('INSUMOS-TECELAGEM modal: pedido sem OP bloqueia recebimento e oferece Gerar primeira OP', () => {
+  const rt = makeHubRuntime();
+  const s = hubBase(rt.ns);
+  const view = rt.ns.computeViewModel(s);
+  const handlers = rt.ns.createPedidoDetailEvents({
+    pedidoId: s.pedido.id,
+    state: s,
+    reload: async () => { rt.events.push('reload'); },
+    render: () => { rt.events.push('render'); },
+    getLoadingError: () => null,
+    setLoadingError: () => {},
+  });
+  handlers.currentView = view;
+  const cap = rt.node('body');
+  rt.sandbox.document.body = cap;
+  handlers.openMovementModal(view.stepper[0].transfer);
+
+  const text = collectHubText(cap);
+  assert.match(text, /Este pedido ainda nao possui OP de Tecelagem vinculada/);
+  assert.match(text, /Gere a primeira OP para iniciar o fluxo produtivo/);
+  assert.match(text, /Nao e possivel registrar material sem OP vinculada/);
+  assert.equal(findHubBtn(cap, /^Registrar recebimento$/i), null,
+    'sem OP nao pode expor acao de recebimento');
+  assert.doesNotMatch(text, /Nenhuma parcial registrada para esta transicao/,
+    'sem OP nao deve usar historico vazio como fluxo');
+
+  const gerar = findHubBtn(cap, /^Gerar primeira OP$/i);
+  assert.ok(gerar, 'deve mostrar CTA Gerar primeira OP');
+  rt.events.length = 0;
+  gerar._listeners.click({});
+  assert.ok(rt.events.some((e) => /navigate:#\/ops\/nova/.test(e)),
+    'CTA deve usar a rota canonica de Nova OP do Pedido');
+});
+
+test('INSUMOS-TECELAGEM modal: OP aberta mostra proposta com slider e botao canonico', () => {
+  const rt = makeHubRuntime();
+  const s = hubTecAcab(rt.ns, 'em_producao');
+  s.ops = [s.ops[0]];
+  s.ops[0].status = 'aberta';
+  s.entregaItens = [];
+  s.entregasById = {};
+  s.opLatexEntregas = [];
+  s.ordensFio = [{ id: 'fio1', op_id: 29, tipo: 'algodao', kg_pedido: 10, kg_recebido: 10 }];
+  const view = rt.ns.computeViewModel(s);
+  const handlers = rt.ns.createPedidoDetailEvents({
+    pedidoId: s.pedido.id,
+    state: s,
+    reload: async () => { rt.events.push('reload'); },
+    render: () => { rt.events.push('render'); },
+    getLoadingError: () => null,
+    setLoadingError: () => {},
+  });
+  handlers.currentView = view;
+  const cap = rt.node('body');
+  rt.sandbox.document.body = cap;
+  handlers.openMovementModal(view.stepper[0].transfer);
+
+  const text = collectHubText(cap);
+  assert.match(text, /OPs relacionadas/);
+  assert.match(text, /OP 18\/2026/);
+  assert.ok(findHubBtn(cap, /^Abrir OP$/i), 'deve mostrar Abrir OP');
+  assert.match(text, /Proposta de aceite/);
+  assert.ok(findNode(cap, (n) => n.tagName === 'INPUT' && n.getAttribute('type') === 'range'),
+    'deve renderizar slider real');
+  assert.ok(findHubBtn(cap, /^Aceitar proposta$/i), 'deve mostrar botao real Aceitar proposta');
+  assert.equal(findHubBtn(cap, /^Aceitar OP$/i), null,
+    'nao pode substituir a proposta por botao simples Aceitar OP');
+});
+
+test('INSUMOS-TECELAGEM modal: aceitar proposta recarrega e re-renderiza o mesmo modal', async () => {
+  const rt = makeHubRuntime();
+  const s = hubTecAcab(rt.ns, 'em_producao');
+  s.ops = [s.ops[0]];
+  s.ops[0].status = 'aberta';
+  s.entregaItens = [];
+  s.entregasById = {};
+  s.opLatexEntregas = [];
+  s.ordensFio = [{ id: 'fio1', op_id: 29, tipo: 'algodao', kg_pedido: 10, kg_recebido: 10 }];
+  rt.sandbox.window.aplicarRecalculoOP = async () => {
+    rt.events.push('aplicarRecalculoOP');
+    return { error: null };
+  };
+  const handlers = rt.ns.createPedidoDetailEvents({
+    pedidoId: s.pedido.id,
+    state: s,
+    reload: async () => {
+      rt.events.push('reload');
+      s.ops[0].status = 'em_producao';
+    },
+    render: () => { rt.events.push('render'); },
+    getLoadingError: () => null,
+    setLoadingError: () => {},
+  });
+  handlers.currentView = rt.ns.computeViewModel(s);
+  const cap = rt.node('body');
+  rt.sandbox.document.body = cap;
+  handlers.openMovementModal(handlers.currentView.stepper[0].transfer);
+
+  const aceitar = findHubBtn(cap, /^Aceitar proposta$/i);
+  assert.ok(aceitar, 'proposta deve estar visivel antes do aceite');
+  await aceitar._listeners.click({ currentTarget: aceitar });
+
+  const updatedText = collectHubText(cap);
+  assert.ok(rt.events.includes('aplicarRecalculoOP'), 'deve chamar helper canonico');
+  assert.ok(rt.events.includes('reload'), 'deve recarregar dados apos aceite');
+  assert.ok(rt.events.includes('render'), 'deve re-renderizar a tela apos aceite');
+  assert.doesNotMatch(updatedText, /Aceitar proposta/,
+    'modal nao pode manter slider/botao antigo stale apos aceite');
+  assert.match(updatedText, /OP 18\/2026/);
+});
+
+test('INSUMOS-TECELAGEM modal: registrar recebimento atualiza para proposta sem fechar', async () => {
+  const rt = makeHubRuntime();
+  const s = hubTecAcab(rt.ns, 'em_producao');
+  s.ops = [s.ops[0]];
+  s.ops[0].status = 'aberta';
+  s.entregaItens = [];
+  s.entregasById = {};
+  s.opLatexEntregas = [];
+  s.ordensFio = [{ id: 'fio1', op_id: 29, tipo: 'algodao', kg_pedido: 10, kg_recebido: 4 }];
+  rt.sandbox.window.registrarRecebimentoOrdemFio = async ({ kgRecebido }) => {
+    rt.events.push('registrarRecebimentoOrdemFio');
+    s.ordensFio[0].kg_recebido = kgRecebido;
+    return { error: null };
+  };
+  const handlers = rt.ns.createPedidoDetailEvents({
+    pedidoId: s.pedido.id,
+    state: s,
+    reload: async () => { rt.events.push('reload'); },
+    render: () => { rt.events.push('render'); },
+    getLoadingError: () => null,
+    setLoadingError: () => {},
+  });
+  handlers.currentView = rt.ns.computeViewModel(s);
+  const cap = rt.node('body');
+  rt.sandbox.document.body = cap;
+  handlers.openMovementModal(handlers.currentView.stepper[0].transfer);
+
+  assert.match(collectHubText(cap), /Registrar nova transferencia/);
+  const salvar = findHubBtn(cap, /^Registrar recebimento$/i);
+  assert.ok(salvar, 'com OP vinculada e saldo de fio deve permitir recebimento canonico');
+  await salvar._listeners.click({ currentTarget: salvar });
+
+  const updatedText = collectHubText(cap);
+  assert.ok(rt.events.includes('registrarRecebimentoOrdemFio'), 'deve usar helper canonico de recebimento');
+  assert.ok(rt.events.includes('reload'), 'deve recarregar dados apos recebimento');
+  assert.ok(rt.events.includes('render'), 'deve re-renderizar a tela apos recebimento');
+  assert.match(updatedText, /Proposta de aceite/,
+    'apos receber todos os insumos, o mesmo modal deve mostrar a proposta pendente');
+  assert.ok(findHubBtn(cap, /^Aceitar proposta$/i), 'proxima acao deve aparecer sem fechar/reabrir');
+  assert.doesNotMatch(updatedText, /Registrar nova transferencia/,
+    'modal nao deve manter formulario antigo stale apos recebimento');
 });
 
 test('TRANSITION runtime: Acabamento aberto com saldo movimenta para Expedicao pelo modal da seta', async () => {

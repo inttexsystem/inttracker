@@ -1,4 +1,67 @@
-﻿# Estado pos-fase - Acabamento Expedicao Modal UX Parity R2
+﻿# Estado pos-fase - Pedido Insumos Tecelagem Modal Parity And Refresh R1
+
+- Fase: `RAVATEX-TAPETES-PEDIDO-INSUMOS-TECELAGEM-MODAL-PARITY-AND-REFRESH-R1`.
+- Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.
+- Branch/HEAD base: `work/app-next`,
+  `fae90337472d118f4f90b4223900af752d9d3757`; status inicial somente
+  `?? supabase/.temp/`; remoto de escrita permitido: `staging/work/app-next`.
+- Falha visual reaberta: a seta `Insumos -> Tecelagem` podia parecer uma
+  operacao de `Registrar recebimento de insumos` mesmo quando o Pedido ainda
+  nao tinha OP Tecelagem vinculada; alem disso, acoes feitas dentro do modal da
+  seta nao atualizavam o proprio modal para o proximo estado canonico.
+- Matriz de diagnostico:
+  - Sem OP: `openMovementModal` era aberto pela seta; `transferInsumosToTecelagem`
+    vinha bloqueado pelo chain-state, mas o titulo/detalhe ainda carregavam o
+    vocabulario de recebimento. Nao havia OP de origem; agora o modal mostra
+    bloqueio operacional, `Nao e possivel registrar material sem OP vinculada.`
+    e CTA `Gerar primeira OP`, sem historico vazio.
+  - OP aberta/aceite pendente: OP relacionada vem de
+    `relatedOpsForTransition` e a proposta real vem de
+    `buildTecAcceptanceProposalBlock`, com slider `input[type="range"]`,
+    recalculo ao vivo e `aplicarRecalculoOP`. O patch passa
+    `onAfterSuccess` para atualizar o modal apos aceitar.
+  - Apos recebimento: `buildInsumosTransferForm` segue usando
+    `registrarRecebimentoOrdemFio`; no sucesso agora chama
+    `refreshPedidoTransitionModal`, nao fecha o modal. Quando o refresh gera
+    estado de aceite pendente, o mesmo modal mostra `Proposta de aceite` e
+    `Aceitar proposta`.
+  - Paralelismo: Tecelagem -> Acabamento continua sendo a referencia
+    operacional (`openMovementModal`, formulario antes de OPs relacionadas,
+    `Transferir restante`, write canonico `salvarEntregaCima`). A diferenca
+    permitida e Insumos sem OP mostrar criacao da primeira OP, pois sem OP nao
+    existe material recebivel.
+- Helper criado/reutilizado: `refreshPedidoTransitionModal(...)`, local a
+  `openMovementModal`, executa `reload()`, recalcula `computeViewModel(state)`,
+  localiza de novo a transicao no stepper e re-renderiza o mesmo modal.
+- Arquivos alterados:
+  - `js/screens/pedido-detail-events.js`;
+  - `js/screens/pedido-detail-progress.js`;
+  - `tests/pedido-detail.smoke.js`;
+  - `PROJECT_STATE.md`;
+  - `AGENT_HANDOFF.md`;
+  - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`.
+- Testes OK:
+  - `node --test tests\pedido-detail.smoke.js` = 160/160;
+  - `node --test tests\pedido-detail-linked-ops.smoke.js` = 7/7;
+  - `node --test tests\tec-to-acabamento-flow.smoke.js` = 39/39;
+  - `node --test tests\expedicao-partial-flow.smoke.js` = 12/12;
+  - `node --test tests\expedicao-flow.smoke.js` = 8/8;
+  - `node --test tests\op-latex-admin.smoke.js` = 55/55;
+  - `node --test tests\production-flow-invariants.smoke.js` = 11/11.
+- Diagnosticos staging read-only OK:
+  - `node scripts/staging/production-flow-invariants-diag.mjs`;
+  - `node scripts/staging/latex-consolidation-diag.mjs`;
+  - `node scripts/staging/expedicao-partial-flow-diag.mjs`.
+- Confirmacoes: sem SQL, sem migration, sem dados reais novos, sem aceitar OP
+  real, sem registrar recebimento real, sem finalizar OP real, sem concluir
+  pedido real, sem update direto em `ops.status`, sem write paralelo no Pedido,
+  sem `git add .`, `supabase/.temp/` fora do commit, producao/origin intocados.
+- Validacao visual pendente: abrir Pedido sem OP e clicar a seta
+  `Insumos -> Tecelagem`; abrir Pedido com OP Tecelagem aberta e insumos
+  recebidos para ver slider/proposta; registrar recebimento controlado somente
+  com autorizacao explicita e conferir que o modal atualiza sem fechar.
+
+# Estado pos-fase - Acabamento Expedicao Modal UX Parity R2
 
 - Fase: `RAVATEX-TAPETES-ACABAMENTO-EXPEDICAO-MODAL-UX-PARITY-R2`.
 - Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.

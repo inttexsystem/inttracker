@@ -1,4 +1,51 @@
 > **Atualizacao 2026-07-05 - fase
+> `RAVATEX-TAPETES-PEDIDO-INSUMOS-TECELAGEM-MODAL-PARITY-AND-REFRESH-R1`.**
+> Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.
+> Entrada: fase reaberta por validacao visual do usuario. Base confirmada em
+> `work/app-next`, HEAD inicial `fae90337472d118f4f90b4223900af752d9d3757`,
+> status inicial somente `?? supabase/.temp/`; remoto de escrita permitido:
+> `staging/work/app-next`.
+>
+> Diagnostico de paralelismo antes do patch:
+>
+> | Caso | Diagnostico | Correcao |
+> |---|---|---|
+> | Insumos -> Tecelagem sem OP | A seta abria `openMovementModal` com titulo generico `Registrar recebimento de insumos`, sem OP de origem. O chain-state ja bloqueava a action, mas o modal ainda parecia historico/operacao vazia e nao oferecia o CTA inicial dentro da transicao. | `pedido-detail-progress.js` muda o titulo/detalhe sem OP para geracao da primeira OP. `openMovementModal` agora detecta `Insumos>Tecelagem` sem OP e renderiza bloqueio claro, texto "Nao e possivel registrar material sem OP vinculada." e CTA `Gerar primeira OP`, sem historico vazio nem botao de recebimento. `buildInsumosTransferForm` tambem tem guard defensivo sem OP. |
+> | Insumos -> Tecelagem com OP aberta/pendente de aceite | A OP relacionada e resolvida por `relatedOpsForTransition`/`buildRelatedOpsSection`; a proposta real ja vinha de `buildTecAcceptanceProposalBlock`, que replica slider/proposta da OP e chama `aplicarRecalculoOP`. Faltava garantir refresh do proprio modal apos aceitar. | `buildTecAcceptanceProposalBlock` recebeu `onAfterSuccess` e o modal de seta passa `refreshPedidoTransitionModal`, preservando slider/proposta real e removendo o estado antigo depois do aceite. |
+> | Apos registrar recebimento de insumos | O recebimento usa `registrarRecebimentoOrdemFio`, mas o sucesso anterior chamava `reload()/render()` e fechava o modal, obrigando fechar/reabrir para ver aceite/proxima etapa. | O botao de salvar agora chama `refreshPedidoTransitionModal`, que recarrega dados, recalcula `computeViewModel`, reencontra a transicao e re-renderiza o mesmo modal sem fechar. Se o proximo estado for aceite, o slider/proposta aparece no mesmo modal. |
+> | Paralelismo Tecelagem -> Acabamento | O fluxo validado usa `openMovementModal`, formulario operacional primeiro, `buildTecelagemTransferForm`, `Transferir restante` e write canonico `salvarEntregaCima`. | O padrao foi preservado: o modal de transicao continua operacional, com OPs relacionadas auxiliares e sem hub vazio. A diferenca justificada e que Insumos sem OP mostra CTA de criacao em vez de formulario, pois sem OP nao existe material recebivel. |
+>
+> Causa raiz: a transicao inicial reutilizava o mesmo shell de modal das
+> movimentacoes com uma `action` bloqueada, mantendo titulo/texto de
+> recebimento mesmo sem OP; alem disso, acoes bem-sucedidas do modal da seta
+> atualizavam a tela e fechavam/deixavam stale o conteudo do modal em vez de
+> recalcular a transicao dentro dele.
+>
+> Correcoes tecnicas: criado helper local `refreshPedidoTransitionModal(...)`
+> em `js/screens/pedido-detail-events.js`; sem OP vinculada bloqueia
+> recebimento e mostra `Gerar primeira OP`; aceite/proposta inline passa a
+> retornar a Promise do handler e a re-renderizar a transicao; recebimento de
+> insumos pelo modal permanece aberto e atualiza para o proximo estado canonico.
+> Nao houve write paralelo no Pedido, update direto em `ops.status`, SQL,
+> migration, dados reais novos ou mutacao real nao autorizada.
+>
+> Testes OK: `node --test tests\pedido-detail.smoke.js` 160/160;
+> `node --test tests\pedido-detail-linked-ops.smoke.js` 7/7;
+> `node --test tests\tec-to-acabamento-flow.smoke.js` 39/39;
+> `node --test tests\expedicao-partial-flow.smoke.js` 12/12;
+> `node --test tests\expedicao-flow.smoke.js` 8/8;
+> `node --test tests\op-latex-admin.smoke.js` 55/55;
+> `node --test tests\production-flow-invariants.smoke.js` 11/11.
+> Diagnosticos staging read-only OK: `production-flow-invariants-diag`,
+> `latex-consolidation-diag`, `expedicao-partial-flow-diag`.
+>
+> Confirmacoes: producao intocada, `origin` nao usado para escrita, sem SQL,
+> sem migration, sem dados reais novos, sem aceitar OP real, sem registrar
+> recebimento real, sem finalizar OP real, sem concluir pedido, sem `git add .`
+> e `supabase/.temp/` fora do commit. Validacao visual do usuario segue
+> pendente; nao declarar OK visual nem backlog zerado.
+
+> **Atualizacao 2026-07-05 - fase
 > `RAVATEX-TAPETES-ACABAMENTO-EXPEDICAO-MODAL-UX-PARITY-R2`.**
 > Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.
 > Entrada: fase reaberta por validacao visual do usuario. Base confirmada em

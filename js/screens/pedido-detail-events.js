@@ -909,11 +909,11 @@
       var btnManter = window.el('button', {
         type: 'button',
         style: 'background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:8px 14px;font-weight:700;font-size:12.5px;font-family:inherit;cursor:pointer;',
-        onclick: function (event) { aceitarProposta('manter', event && event.currentTarget); },
+        onclick: function (event) { return aceitarProposta('manter', event && event.currentTarget); },
       }, 'Manter pedido');
       var btnAceitar = window.el('button', {
         type: 'button',
-        onclick: function (event) { aceitarProposta('aceitar', event && event.currentTarget); },
+        onclick: function (event) { return aceitarProposta('aceitar', event && event.currentTarget); },
       }, 'Aceitar proposta');
 
       wrap.appendChild(window.el('div', { style: 'border-top:1px solid #eceef1;padding-top:12px;' },
@@ -1021,8 +1021,12 @@
           return;
         }
         window.toast(modo === 'aceitar' ? 'Proposta aceita - producao liberada.' : 'Pedido mantido - producao liberada.', 'success');
-        await reload();
-        render();
+        if (typeof options.onAfterSuccess === 'function') {
+          await options.onAfterSuccess(op);
+        } else {
+          await reload();
+          render();
+        }
       }
 
       recompute();
@@ -1113,7 +1117,10 @@
               var podeAceitar = ns.stageKeyForOp(op) === 'tecelagem' && op.status === 'aberta';
               var podeMovimentar = canMove(op, summary);
               var podeFinalizar = canFinalize(op, summary);
-              var proposta = podeAceitar ? buildTecAcceptanceProposalBlock(op, { compact: true }) : null;
+              var proposta = podeAceitar ? buildTecAcceptanceProposalBlock(op, {
+                compact: true,
+                onAfterSuccess: options.onAfterSuccess,
+              }) : null;
               var opCarregada = ctxMovement.op && String(ctxMovement.op.id) === String(op.id);
               return window.el('div', {
                 style: 'padding:12px 14px;' + (index < ops.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : ''),
@@ -1455,6 +1462,20 @@
     }
 
     function buildInsumosTransferForm(ctxMovement) {
+      if (!ctxMovement.op) {
+        return {
+          node: window.el('div', {
+            style: 'display:flex;align-items:flex-start;gap:8px;background:#fff9ee;border:1px solid #fbe8c6;border-radius:4px;padding:10px 12px;',
+          },
+            ns.svgEl(ns.SVG_WARN),
+            window.el('div', { style: 'font-size:12.5px;color:#8a5a15;line-height:1.45;' },
+              'Nao e possivel registrar material sem OP vinculada. Gere a primeira OP para iniciar o fluxo produtivo.')),
+          saveLabel: null,
+          fillRemaining: null,
+          hasRemaining: false,
+          onSave: null,
+        };
+      }
       var opIds = ctxMovement.op ? [ctxMovement.op.id] : [];
       var ordens = (state.ordensFio || []).filter(function (ordem) {
         return opIds.indexOf(ordem.op_id) !== -1;
@@ -1841,6 +1862,76 @@
         style: 'display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid #eceef1;',
       });
 
+      function recomputeCurrentView() {
+        if (state.pedido && typeof ns.computeViewModel === 'function') {
+          currentView = ns.computeViewModel(state);
+        }
+        return currentView;
+      }
+
+      function freshMovementContextFor(activeCtx) {
+        var key = transitionKey(activeCtx);
+        var view = currentView || recomputeCurrentView();
+        var stage = ((view && view.stepper) || []).find(function (item) {
+          return item && item.transfer && transitionKey(item.transfer) === key;
+        });
+        return stage && stage.transfer ? stage.transfer : activeCtx;
+      }
+
+      async function refreshPedidoTransitionModal(activeCtx, renderFn) {
+        await reload();
+        recomputeCurrentView();
+        render();
+        var nextCtx = freshMovementContextFor(activeCtx);
+        renderFn(nextCtx);
+        return nextCtx;
+      }
+
+      function buildInitialTecelagemBlockedBody(activeCtx) {
+        return window.el('div', {},
+          window.el('div', {
+            style: 'display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;',
+          },
+            window.el('div', {
+              style: 'width:36px;height:36px;border-radius:' + MOVEMENT_SURFACE_RADIUS + ';background:#fff9ee;display:flex;align-items:center;justify-content:center;flex-shrink:0;',
+            }, ns.svgEl(ns.SVG_WARN)),
+            window.el('div', {},
+              window.el('div', {
+                style: 'font-size:11px;font-weight:700;letter-spacing:.04em;color:#c2610c;text-transform:uppercase;margin-bottom:4px;',
+              }, 'Fluxo produtivo bloqueado'),
+              window.el('div', {
+                style: 'font-size:15px;font-weight:800;color:#16203a;',
+              }, activeCtx.title || 'Gerar primeira OP de Tecelagem'),
+              window.el('div', {
+                style: 'font-size:13px;color:#5b6472;margin-top:6px;line-height:1.5;',
+              }, 'Este pedido ainda nao possui OP de Tecelagem vinculada. Gere a primeira OP para iniciar o fluxo produtivo.')
+            )
+          ),
+          window.el('div', {
+            style: 'display:flex;align-items:flex-start;gap:10px;background:#fff9ee;border:1px solid #fbe8c6;border-radius:4px;padding:12px 14px;margin-bottom:14px;',
+          },
+            ns.svgEl(ns.SVG_INFO),
+            window.el('span', {
+              style: 'font-size:12.5px;color:#8a5a15;line-height:1.5;',
+            }, 'Nao e possivel registrar material sem OP vinculada.')
+          ),
+          window.el('div', {
+            style: 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;',
+          },
+            movementField('Origem', activeCtx.origem),
+            movementField('Destino', activeCtx.destino)
+          ),
+          window.el('div', {
+            style: 'display:flex;justify-content:flex-end;',
+          },
+            window.el('button', {
+              type: 'button',
+              style: 'display:inline-flex;align-items:center;justify-content:center;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:9px 16px;font-weight:800;font-size:13px;font-family:inherit;cursor:pointer;',
+              onclick: function () { navigateToNovaOp(); },
+            }, 'Gerar primeira OP'))
+        );
+      }
+
       function renderMovement(activeCtx) {
         var opLabel = activeCtx.op ? ns.opLabel(activeCtx.op) : 'Sem OP vinculada';
         var items = buildMovementItems(activeCtx);
@@ -1848,6 +1939,16 @@
         var docs = buildMovementDocs(activeCtx);
         var action = activeCtx.action || {};
         var mode = action.mode === 'enabled' ? 'transfer' : 'history';
+        var semOpInicial = transitionKey(activeCtx) === 'Insumos>Tecelagem' && !activeCtx.op;
+        if (semOpInicial) {
+          content.replaceChildren(buildInitialTecelagemBlockedBody(activeCtx));
+          footer.replaceChildren(window.el('button', {
+            type: 'button',
+            style: 'background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:9px 18px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
+            onclick: closeModal,
+          }, 'Fechar'));
+          return;
+        }
         var historyEntries = buildTransitionHistoryEntries(activeCtx);
         var transferForm = mode === 'transfer' ? buildTransferForm(activeCtx) : null;
         if (transferForm && transferForm.node) normalizeMovementModalControls(transferForm.node);
@@ -1925,7 +2026,10 @@
           ),
           buildTransitionPendingTable(activeCtx),
           transferBlock,
-          buildRelatedOpsSection(activeCtx, { onSelectOp: renderMovement }),
+          buildRelatedOpsSection(activeCtx, {
+            onSelectOp: renderMovement,
+            onAfterSuccess: function () { return refreshPedidoTransitionModal(activeCtx, renderMovement); },
+          }),
           window.el('div', {
             style: 'border:1px solid #eceef1;border-radius:4px;background:#fff;overflow:hidden;margin-bottom:14px;',
           },
@@ -2003,9 +2107,12 @@
                 return;
               }
               window.toast('Movimentacao registrada.', 'success');
-              await reload();
-              render();
-              closeModal();
+              try {
+                await refreshPedidoTransitionModal(activeCtx, renderMovement);
+              } catch (e) {
+                console.error('pedido-detail: falha ao atualizar modal de transicao', e);
+                window.toast('Movimentacao registrada. Recarregue a pagina para ver o estado atualizado.', 'info');
+              }
             },
           }, transferForm.saveLabel || 'Salvar'));
         }
