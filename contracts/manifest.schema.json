@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PedidoManifest",
+  "description": "Manifest de um Pedido — lista todos os documentos associados a ele dentro de data/documents/pedidos/PED-XX-YYYY/",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "pedido",
+    "created_at",
+    "updated_at",
+    "documents"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "pedido": {
+      "type": "string",
+      "pattern": "^PED-\\d{2}-\\d{4}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "document_id",
+          "tipo_documento",
+          "filename_original",
+          "sha256",
+          "local_path",
+          "ingested_at",
+          "event_id",
+          "status"
+        ],
+        "properties": {
+          "document_id": { "type": "string", "format": "uuid" },
+          "tipo_documento": {
+            "type": "string",
+            "enum": ["nf_xml", "nf_pdf", "romaneio", "desconhecido"]
+          },
+          "filename_original": { "type": "string" },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "local_path": { "type": "string" },
+          "ingested_at": { "type": "string", "format": "date-time" },
+          "event_id": { "type": "string", "format": "uuid" },
+          "status": {
+            "type": "string",
+            "enum": ["pending_app_acceptance", "accepted", "rejected"]
+          }
+        }
+      }
+    }
+  }
+}

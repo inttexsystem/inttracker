@@ -1,0 +1,31 @@
+{
+  "name": "ravatex-documents-ingestor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Módulo separado para ingestão de documentos (XML/PDF) via Gmail para o sistema Ravatex",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/cli.ts",
+    "scan": "tsx src/cli.ts scan",
+    "list:pending": "tsx src/cli.ts list-pending",
+    "assign": "tsx src/cli.ts assign",
+    "export:events": "tsx src/cli.ts export-events",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "commander": "^13.1.0",
+    "googleapis": "^144.0.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.13.0",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

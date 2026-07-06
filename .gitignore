@@ -1,0 +1,9 @@
+.env
+data/*.db
+data/google-token.json
+data/documents/
+data/outbox/*.jsonl
+credentials*.json
+node_modules/
+dist/
+coverage/
