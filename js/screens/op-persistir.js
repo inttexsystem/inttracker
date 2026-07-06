@@ -76,6 +76,10 @@
     };
   }
 
+  function hasPedidoIdValido(pedidoId) {
+    return pedidoId != null && String(pedidoId).trim() !== '';
+  }
+
   // Persiste OP + filhos. Retorna envelope { error, step, partial, opId }.
   //
   // Steps:
@@ -101,6 +105,15 @@
     parametrosByLargura,
     pedidoId,
   }) {
+    if (!hasPedidoIdValido(pedidoId)) {
+      return {
+        error: { message: 'Nao e possivel criar OP sem Pedido vinculado.' },
+        step: 'pedido_required',
+        partial: false,
+        opId: op && op.id ? op.id : null,
+      };
+    }
+
     const supa = window.supa;
     const numeroInt = parseInt(numero, 10);
     const anoInt = parseInt(ano, 10);
@@ -142,8 +155,7 @@
     //    cliente. Liga em ops.lote_id. Numeração depende do UNIQUE(numero) de lotes.
     let loteId = op?.lote_id || null;
     if (loteId) {
-      const updatePayload = { cliente_id: clienteSel };
-      if (pedidoId !== undefined) updatePayload.pedido_id = pedidoId || null;
+      const updatePayload = { cliente_id: clienteSel, pedido_id: pedidoId };
       const lu = await supa.from('lotes').update(updatePayload).eq('id', loteId);
       if (lu.error) {
         return { error: lu.error, step: 'lotes_update', partial: true, opId: opIdSalvo };
@@ -154,8 +166,7 @@
         return { error: proxRes.error, step: 'lotes_insert', partial: true, opId: opIdSalvo };
       }
       const prox = (proxRes.data && proxRes.data[0]) ? Number(proxRes.data[0].numero) + 1 : 1;
-      const lotePayload = { numero: prox, cliente_id: clienteSel };
-      if (pedidoId) lotePayload.pedido_id = pedidoId;
+      const lotePayload = { numero: prox, cliente_id: clienteSel, pedido_id: pedidoId };
       const li = await supa.from('lotes').insert(lotePayload).select().single();
       if (li.error) {
         if (isNova) {
@@ -235,6 +246,7 @@
     montarPayloadFornecedoresOP,
     montarPayloadOP,
     montarPayloadLote,
+    hasPedidoIdValido,
     persistirOP,
   };
 
@@ -243,5 +255,6 @@
   window.montarPayloadFornecedoresOP = montarPayloadFornecedoresOP;
   window.montarPayloadOP = montarPayloadOP;
   window.montarPayloadLote = montarPayloadLote;
+  window.hasPedidoIdValidoOP = hasPedidoIdValido;
   window.persistirOP = persistirOP;
 })(window);

@@ -584,3 +584,22 @@ test('29. rota #/ops/nova preserva pedido_id UUID e chama screenNovaOP(null, uui
   await vm.runInContext("window.routes['#/ops/nova'].render()", sandbox);
   assert.equal(vm.runInContext('JSON.stringify(window.__screenNovaOPArgs)', sandbox), JSON.stringify([null, uuid]));
 });
+
+test('30. rota direta #/ops/nova sem pedido_id mostra orientacao e chama screenNovaOP(null, null)', async () => {
+  const { sandbox } = makeBootChainSandbox();
+  vm.runInContext(`
+    window.__screenNovaOPArgs = null;
+    window.__toasts = [];
+    window.location.hash = '#/ops/nova';
+    window.screenNovaOP = function () {
+      window.__screenNovaOPArgs = Array.from(arguments);
+      return { __screen: 'nova-op' };
+    };
+    window.toast = function (message, type) {
+      window.__toasts.push({ message, type });
+    };
+  `, sandbox);
+  await vm.runInContext("window.routes['#/ops/nova'].render()", sandbox);
+  assert.equal(vm.runInContext('JSON.stringify(window.__screenNovaOPArgs)', sandbox), JSON.stringify([null, null]));
+  assert.equal(vm.runInContext("window.__toasts.some((t) => /Crie a OP a partir de um Pedido\\./.test(t.message))", sandbox), true);
+});

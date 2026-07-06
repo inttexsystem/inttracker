@@ -4632,3 +4632,42 @@ node --test tests/boot.smoke.js \
   segredo impresso intencionalmente, sem SQL, sem migration, sem dados reais
   novos, sem alteracao destrutiva, sem `git add .`, sem reset/rebase/clean/
   stash e `supabase/.temp/` fora do commit.
+# Estado pos-fase - OP Create Requires Pedido Guard B
+
+- Fase: `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-GUARD-B`.
+- Status: **PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO**.
+- Branch/HEAD inicial: `work/app-next`,
+  `9478ebe9cddb2748fe1b0ebb842d8906b903412b`; status inicial somente
+  `?? supabase/.temp/`.
+- Regra aplicada: OP nova so pode nascer a partir de Pedido. `#/ops/nova`
+  avulso vira estado bloqueado/orientativo; `#/ops/nova?pedido_id=<uuid>`
+  continua sendo a rota canonica.
+- UI:
+  - `js/screens/ops-list.js`: botao `Nova OP` mostra toast
+    `Crie a OP a partir de um Pedido.` e navega para `#/pedidos`.
+  - `js/boot.js`: acesso direto a `#/ops/nova` sem `pedido_id` tambem orienta
+    por toast antes de chamar a tela.
+  - `js/screens/op-nova.js`: sem Pedido e sem OP existente renderiza bloqueio
+    com CTA `Ir para Pedidos`; salvar simulacao/abrir OP tambem validam
+    `pedidoIdState`.
+- Persistencia:
+  - `js/screens/op-persistir.js`: `persistirOP` sem `pedidoId` valido retorna
+    `step: 'pedido_required'` antes de qualquer leitura de proximo numero ou
+    write em `ops`/`lotes`/itens.
+  - Com Pedido valido, `lotes.pedido_id` e sempre preenchido com o `pedidoId`.
+- Diagnostico staging read-only criado:
+  `scripts/staging/ops-without-pedido-diag.mjs`. Resultado atual:
+  `STATUS ALERTA`; `OPs com lote_id NULL: 0`; `OPs cujo lote.pedido_id IS NULL:
+  11`; `Lotes com pedido_id IS NULL vinculados a OPs: 9`. Nao corrige dados.
+- Testes verdes: `op-nova` 69/69, `op-persistir` 70/70, `ops-list` 1/1,
+  `boot` 30/30, `router` 43/43, `pedido-detail` 163/163,
+  `production-flow-invariants` 12/12, `op-display` 20/20.
+- Diagnosticos staging complementares: invariantes de fluxo OK, consolidacao
+  Latex OK e expedicao parcial OK. O novo diagnostico de orfaos retorna ALERTA
+  por dados historicos ja existentes.
+- Pendencia proxima: fase C/RPC para guard backend em `gerar_op_latex` e
+  split/derivados, impedindo propagacao de OP filha a partir de origem sem
+  Pedido. Tambem fica pendente decisao de cleanup/backfill dos orfaos de
+  staging, em fase propria e com autorizacao explicita.
+- Confirmacoes: sem SQL, sem migration, sem producao, sem dados reais novos,
+  sem push para `origin`, sem `git add .`, `supabase/.temp/` fora do commit.

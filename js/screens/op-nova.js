@@ -166,6 +166,33 @@
   const forns = fornsRes.data || [];
   const fornsPorTipo = (tipo) => forns.filter(f => f.tipo === tipo).map(f => ({ value: f.id, label: f.nome }));
 
+  function buildPedidoRequiredScreen() {
+    return el('div', {},
+      el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap;' },
+        el('div', {},
+          el('div', { style: 'font-size:22px;font-weight:800;color:#16203a;letter-spacing:-.01em;' }, 'Nova OP'),
+          el('div', { style: 'font-size:13.5px;color:#8a93a3;margin-top:4px;' }, 'Crie a OP a partir de um Pedido.')
+        ),
+        el('button', { type: 'button', style: BTN_BACK, onclick: () => navigate('#/pedidos') }, svgEl(SVG_BACK), 'Ir para Pedidos')
+      ),
+      el('div', { style: CARD + 'padding:22px 24px;max-width:760px;' },
+        el('div', { style: 'display:flex;align-items:flex-start;gap:12px;' },
+          svgEl(SVG_INFO),
+          el('div', {},
+            el('div', { style: 'font-size:16px;font-weight:800;color:#16203a;margin-bottom:8px;' }, 'Nao e possivel abrir OP sem Pedido vinculado.'),
+            el('div', { style: 'font-size:13.5px;color:#5b6472;line-height:1.55;margin-bottom:4px;' }, 'Acesse um Pedido e use Gerar primeira OP.'),
+            el('div', { style: 'font-size:13px;color:#8a93a3;line-height:1.55;' }, 'Sem Pedido, a OP nao pode ser salva, aberta ou usada para movimentacao de material.')
+          )
+        )
+      )
+    );
+  }
+
+  if (!opId && !pedidoId) {
+    container.replaceChildren(buildPedidoRequiredScreen());
+    return shellLayout(ADMIN_MENU, container);
+  }
+
   // 2) Estado da tela
   let op = null;                 // OP existente (modo edição/leitura)
   let itens = [];                // [{ modeloId, metros }]
@@ -426,11 +453,16 @@
     console.error(error);
   }
 
+  function bloquearSemPedido() {
+    toast('Nao e possivel abrir OP sem Pedido vinculado.', 'error');
+  }
+
   async function salvarSimulacao() {
     if (saving) return;
     saving = true;
     try {
       const numeroInt = parseInt(numero, 10), anoInt = parseInt(ano, 10);
+      if (!pedidoIdState) { bloquearSemPedido(); return; }
       if (!numeroInt || !anoInt) { toast('Número e ano são obrigatórios', 'error'); return; }
       if (!clienteSel) { toast('Escolha o cliente', 'error'); return; }
       const validos = window.itensValidosOP(itens);
@@ -446,6 +478,8 @@
       if (result.error) {
         if (result.step === 'ops_insert' || result.step === 'ops_update') {
           erroSalvar(result.error);
+        } else if (result.step === 'pedido_required') {
+          bloquearSemPedido();
         } else {
           toast('Erro ao salvar OP', 'error');
           console.error(result.error);
@@ -461,6 +495,7 @@
     saving = true;
     try {
       const numeroInt = parseInt(numero, 10), anoInt = parseInt(ano, 10);
+      if (!pedidoIdState) { bloquearSemPedido(); return; }
       if (!numeroInt || !anoInt) { toast('Número e ano são obrigatórios', 'error'); return; }
       if (!clienteSel) { toast('Escolha o cliente', 'error'); return; }
       const validos = window.itensValidosOP(itens);
@@ -486,6 +521,7 @@
           op_itens_insert: 'Erro ao salvar itens',
           op_fornecedores_delete: 'Erro ao salvar fornecedor de tecelagem',
           op_fornecedores_insert: 'Erro ao salvar fornecedor de tecelagem',
+          pedido_required: 'Nao e possivel abrir OP sem Pedido vinculado.',
           ordens_compra_fio_delete: 'Falha ao gerar ordens de compra — OP mantida como simulada',
           ordens_compra_fio_insert: 'Falha ao gerar ordens de compra — OP mantida como simulada',
         };

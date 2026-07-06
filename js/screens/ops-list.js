@@ -269,7 +269,10 @@
       window.el('button', {
         type: 'button',
         style: 'display:inline-flex;align-items:center;gap:7px;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:9px 16px;font-weight:600;font-size:14px;font-family:inherit;cursor:pointer;white-space:nowrap;',
-        onclick: function () { window.navigate('#/ops/nova'); }
+        onclick: function () {
+          window.toast('Crie a OP a partir de um Pedido.', 'info');
+          window.navigate('#/pedidos');
+        }
       }, svgEl(ICON_PLUS), 'Nova OP'));
     }
 

@@ -52,7 +52,7 @@
     '#/login':    { render: window.screenLogin,    public: true },
     '#/painel':   { render: window.screenPainel,   roles: ['admin'] },
     '#/ops':      { render: window.screenListaOPs, roles: ['admin'] },
-    '#/ops/nova': { render: () => { var h = window.location.hash; var q = h.indexOf('?'); var pid = null; if (q >= 0) { var params = new URLSearchParams(h.slice(q)); pid = params.get('pedido_id') || null; } return window.screenNovaOP(null, pid); }, roles: ['admin'] },
+    '#/ops/nova': { render: () => { var h = window.location.hash; var q = h.indexOf('?'); var pid = null; if (q >= 0) { var params = new URLSearchParams(h.slice(q)); pid = params.get('pedido_id') || null; } if (!pid) window.toast('Crie a OP a partir de um Pedido.', 'info'); return window.screenNovaOP(null, pid); }, roles: ['admin'] },
     '#/pedidos':  { render: window.screenPedidosLista, roles: ['admin'] },
     '#/pedidos/novo': { render: window.screenPedidoNovo, roles: ['admin'] },
 

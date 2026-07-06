@@ -862,11 +862,16 @@ test('35. Nova OP com pedido_id mantém os itens do pedido', async () => {
   assert.ok(rendered.inputs.includes('80'), 'metros do item 2 do pedido deveriam aparecer na tela');
 });
 
-test('36. Nova OP sem pedido_id preserva o select principal de cliente', async () => {
+test('36. Nova OP sem pedido_id mostra bloqueio e nao renderiza formulario operacional', async () => {
   const rendered = await renderNovaOpForTest({
     db: buildOpNovaFixture(),
   });
-  assert.match(rendered.text, /Selecione o cliente/i);
+  assert.match(rendered.text, /Nova OP/i);
+  assert.match(rendered.text, /Nao e possivel abrir OP sem Pedido vinculado/i);
+  assert.match(rendered.text, /Acesse um Pedido e use Gerar primeira OP/i);
+  assert.match(rendered.text, /Ir para Pedidos/i);
+  assert.doesNotMatch(rendered.text, /Salvar simula/i);
+  assert.doesNotMatch(rendered.text, /Selecione o cliente/i);
 });
 
 test('37. OP Aberta de Tecelagem não mostra "Entregas tecelagem"', async () => {

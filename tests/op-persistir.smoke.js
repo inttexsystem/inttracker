@@ -736,6 +736,7 @@ function payloadBase() {
     fornSel: { cima: 3, fio_algodao: '', fio_poliester: '' },
     modelosById: { 1: { id: 1, largura: 1.40, cor_1: { id: 10 }, cor_2: { id: 11 } } },
     parametrosByLargura: { '1.40': { algodao_por_ml: 0.5, poliester_por_ml: 0.3, valor_x: 2 } },
+    pedidoId: 'ped-1',
   };
 }
 
@@ -827,6 +828,19 @@ test('37.1 falha em proximo_numero_op retorna step "op_numero_next" e nao insere
   assert.equal(result.partial, false);
   assert.equal(result.opId, null);
   assert.equal(calls.some((c) => c.op === 'ops_insert_single'), false, 'nao deve inserir ops sem numero monotonicamente reservado');
+});
+
+test('37.2 persistirOP sem pedidoId retorna pedido_required antes de reservar numero ou inserir dados', async () => {
+  const { sandbox, calls } = makePersistirOPSandbox();
+  sandbox.payload = { ...payloadBase(), pedidoId: null };
+  const result = await vm.runInContext('window.persistirOP(payload)', sandbox);
+  assert.ok(result.error, 'error deveria estar setado');
+  assert.equal(result.step, 'pedido_required');
+  assert.equal(result.partial, false);
+  assert.equal(result.opId, null);
+  assert.equal(calls.some((c) => c.op === 'rpc' && c.fn === 'proximo_numero_op'), false, 'nao deve consumir op_numeros sem pedido');
+  assert.equal(calls.some((c) => c.op === 'ops_insert_single' || c.op === 'ops_insert'), false, 'nao deve inserir ops sem pedido');
+  assert.equal(calls.some((c) => c.op === 'lotes_insert_single' || c.op === 'lotes_insert'), false, 'nao deve inserir lotes sem pedido');
 });
 
 test('38. falha em ops.update retorna step "ops_update" e opId do OP existente', async () => {

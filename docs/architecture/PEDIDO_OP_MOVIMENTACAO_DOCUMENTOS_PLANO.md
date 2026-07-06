@@ -7,6 +7,29 @@
 
 ---
 
+## Atualizacao 2026-07-06 - OP Create Requires Pedido Guard B
+
+Fase `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-GUARD-B` atualiza a frente
+Pedido -> OP sem alterar schema: criar OP nova agora exige Pedido vinculado na
+UI e na persistencia JS.
+
+Decisoes novas:
+
+| # | Decisao | Fundamentacao |
+|---|---|---|
+| D-GUARD01 | OP avulsa deixa de ser caminho de produto pela UI Admin. | A cadeia produtiva e o display operacional dependem de Pedido confiavel. |
+| D-GUARD02 | `persistirOP` deve recusar `pedidoId` ausente antes de consumir numeracao ou escrever em `ops`/`lotes`. | Evita criar novos orfaos e evita consumo indevido de `op_numeros`. |
+| D-GUARD03 | Dados historicos sem Pedido sao tratados como legado/alerta, nao corrigidos nesta fase. | Nao houve autorizacao para write SQL/backfill. |
+| D-GUARD04 | Guard backend em RPCs de Latex/split fica como proxima fase P1. | Frontend nao substitui bloqueio transacional. |
+
+Evidencia staging read-only: `scripts/staging/ops-without-pedido-diag.mjs`
+retornou ALERTA com 11 OPs cujo lote nao possui Pedido e 9 lotes sem Pedido
+vinculados a OPs; nenhum dado real foi alterado.
+
+Proximo passo recomendado desta frente: `OP-LATEX-RPC-REQUIRES-PEDIDO-GUARD-C`
+para bloquear em backend a geracao de OP filha quando a origem nao tiver
+`lotes.pedido_id`.
+
 ## 1. Estado de entrada
 
 | Item | Valor |

@@ -1,3 +1,39 @@
+# Atualizacao 2026-07-06 - OP Create Requires Pedido Guard B
+
+Fase: `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-GUARD-B`
+Status: **PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO**
+
+Brecha fechada no frontend/persistencia JS: criar OP sem Pedido pelo botao
+`Nova OP`, por URL direta `#/ops/nova` ou por `persistirOP` sem `pedidoId`
+deixa de ser permitido. O usuario deve iniciar pelo Pedido e usar a rota
+`#/ops/nova?pedido_id=<uuid>`.
+
+Resultado:
+
+| Item | Estado |
+|---|---|
+| Botao avulso `Nova OP` | Orienta com toast e envia para `#/pedidos`. |
+| URL direta `#/ops/nova` | Renderiza bloqueio com CTA `Ir para Pedidos`. |
+| `persistirOP` sem Pedido | Retorna `pedido_required` antes de `op_numeros` ou writes. |
+| OP com Pedido | Continua permitido e grava `lotes.pedido_id`. |
+| Diagnostico staging | Novo script read-only retorna ALERTA para dados historicos orfaos. |
+
+Novo item P1 de backlog tecnico:
+
+| Campo | Valor |
+|---|---|
+| **Item** | `OP-LATEX-RPC-REQUIRES-PEDIDO-GUARD-C` |
+| **Prioridade** | P1 |
+| **Sintoma** | Mesmo com a UI bloqueada, RPCs como `gerar_op_latex` ainda precisam de guard backend explicito para impedir OP filha a partir de OP/lote sem Pedido. |
+| **Arquivos provaveis** | migrations/RPCs `gerar_op_latex`, `gerar_op_latex_split` e diagnosticos relacionados. |
+| **Criterio de aceite** | RPC rejeita origem sem `lotes.pedido_id` com erro controlado; diagnostico comprova que nao ha novo caminho de criacao orfa; sem afetar OPs validas com Pedido. |
+| **Dependencias** | Autorizacao explicita para SQL/migration em fase separada. |
+
+Dados historicos de staging continuam sem cleanup: `OPs com lote_id NULL: 0`,
+`OPs cujo lote.pedido_id IS NULL: 11`, `Lotes com pedido_id IS NULL vinculados
+a OPs: 9`. Qualquer backfill/correcao real deve ser fase propria, com script
+revisado e autorizacao explicita.
+
 # Atualizacao 2026-07-06 - OP Operational Code Closeout C
 
 # Atualizacao 2026-07-06 - OP Operational Code Admin Wide Expand D

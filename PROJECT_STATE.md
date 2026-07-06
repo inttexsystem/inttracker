@@ -1,4 +1,48 @@
 > **Atualizacao 2026-07-06 - fase
+> `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-GUARD-B`.**
+> Status: **PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO**.
+> Entrada: branch `work/app-next`, HEAD inicial
+> `9478ebe9cddb2748fe1b0ebb842d8906b903412b`; status inicial somente
+> `?? supabase/.temp/`; `origin` somente leitura; escrita permitida somente em
+> `staging/work/app-next`.
+>
+> Brecha DIAG-A confirmada em staging: havia OPs/lotes sem Pedido vinculado.
+> Diagnostico read-only novo `scripts/staging/ops-without-pedido-diag.mjs`
+> encontrou `OPs com lote_id NULL: 0`, `OPs cujo lote.pedido_id IS NULL: 11` e
+> `Lotes com pedido_id IS NULL vinculados a OPs: 9`; resultado esperado
+> `STATUS ALERTA`, sem qualquer escrita ou correcao de dados reais.
+>
+> Patch aplicado: `Nova OP` em `js/screens/ops-list.js` nao abre mais
+> `#/ops/nova`; orienta o usuario com toast e navega para `#/pedidos`.
+> A rota direta `#/ops/nova` sem `pedido_id` continua registrada, mas
+> `js/boot.js` avisa e `js/screens/op-nova.js` renderiza estado bloqueado com
+> CTA `Ir para Pedidos`, sem formulario, sem simulacao e sem salvar. A rota
+> canonica `#/ops/nova?pedido_id=<uuid>` permanece funcionando.
+>
+> Guard defensivo em `js/screens/op-persistir.js`: `persistirOP` sem
+> `pedidoId` valido retorna `step: 'pedido_required'` antes de consumir
+> `op_numeros`, inserir/atualizar `ops`, inserir/atualizar `lotes` ou gravar
+> itens. Quando ha Pedido, `lotes.pedido_id` e sempre preenchido com o
+> `pedidoId`. `op-nova.js` tambem bloqueia salvar simulacao/abrir OP quando o
+> estado nao possui Pedido vinculado.
+>
+> Testes locais verdes: `op-nova` 69/69, `op-persistir` 70/70,
+> `ops-list` 1/1, `boot` 30/30, `router` 43/43, `pedido-detail` 163/163,
+> `production-flow-invariants` 12/12 e `op-display` 20/20. Checks de sintaxe
+> OK para os arquivos alterados e o novo diagnostico. Diagnosticos staging:
+> novo diagnostico de orfaos retornou ALERTA controlado; invariantes de fluxo,
+> consolidacao Latex e expedicao parcial seguem OK.
+>
+> Pendente para fase C/RPC: adicionar guard backend em `gerar_op_latex` e
+> derivados de split para rejeitar/criar bloqueio canonico quando a OP/lote de
+> origem nao tiver Pedido. Esta fase mitigou a origem pela UI e persistencia JS,
+> mas nao altera SQL/RPC nem limpa dados historicos.
+>
+> Confirmacoes: sem SQL, sem migration, sem producao, sem dados reais novos,
+> sem update/delete ad hoc, sem consumo indevido de `op_numeros`, sem push para
+> `origin`, sem `git add .`; `supabase/.temp/` permanece fora do patch.
+
+> **Atualizacao 2026-07-06 - fase
 > `RAVATEX-TAPETES-OP-OPERATIONAL-CODE-ADMIN-WIDE-EXPAND-D`.**
 > Status: **PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO**.
 > Retomada apos bloqueio por limite de sessao. Entrada: branch `work/app-next`,

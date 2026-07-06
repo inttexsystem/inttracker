@@ -38,6 +38,7 @@ const detailProgress = read('js/screens/pedido-detail-progress.js');
 const detailRender = read('js/screens/pedido-detail-render.js');
 const opTec = read('js/screens/op-tecelagem-producao-admin.js');
 const entregaWrites = read('js/screens/entrega-writes.js');
+const opsWithoutPedidoDiag = read('scripts/staging/ops-without-pedido-diag.mjs');
 
 // ---------------------------------------------------------------------
 // Contrato split Latex - db/28 prepara schema sem mudar fluxo funcional
@@ -50,6 +51,17 @@ test('Contrato split Latex: db/28 preserva acumular como default e reserva split
   assert.match(db28, /WHERE\s+tipo\s*=\s*'latex'\s+AND\s+motivo_separacao\s+IS\s+NULL/i);
   assert.match(db28, /WHERE\s+tipo\s*=\s*'latex'\s+AND\s+motivo_separacao\s+IS\s+NOT\s+NULL/i);
   assert.doesNotMatch(db28, /gerar_op_latex_split/i);
+});
+
+test('Diagnostico staging de OPs sem Pedido e read-only e bloqueia producao', () => {
+  assert.match(opsWithoutPedidoDiag, /ops\?select=/);
+  assert.match(opsWithoutPedidoDiag, /lotes\?select=/);
+  assert.match(opsWithoutPedidoDiag, /STATUS OK/);
+  assert.match(opsWithoutPedidoDiag, /STATUS ALERTA/);
+  assert.match(opsWithoutPedidoDiag, /URL aponta para PRODUCAO - bloqueado/);
+  assert.match(opsWithoutPedidoDiag, /URL nao e staging autorizado/);
+  assert.doesNotMatch(opsWithoutPedidoDiag, /\b(?:insert|update|delete|upsert)\s*\(/i);
+  assert.doesNotMatch(opsWithoutPedidoDiag, /\/rest\/v1\/rpc\//i);
 });
 
 // ---------------------------------------------------------------------

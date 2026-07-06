@@ -8,6 +8,31 @@
 
 ---
 
+## Atualizacao 2026-07-06 - OP Create Requires Pedido Guard B
+
+Fase `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-GUARD-B`: a criacao de OP
+via frontend/persistencia JS passa a exigir Pedido vinculado. Esta fase nao
+altera schema, SQL, migrations, RLS ou RPCs.
+
+- `lotes.pedido_id` deixa de ser opcional no caminho canonico de criacao de
+  OP por UI: `persistirOP` rejeita `pedidoId` vazio antes de qualquer write.
+- `#/ops/nova?pedido_id=<uuid>` permanece o caminho permitido para criar OP.
+- `#/ops/nova` sem `pedido_id` e o botao avulso `Nova OP` deixam de iniciar
+  uma OP sem Pedido.
+- O helper defensivo retorna `step: 'pedido_required'` e nao consome
+  `op_numeros`.
+- Diagnostico read-only de staging confirmou dados historicos fora do contrato:
+  11 OPs cujo `lote.pedido_id` esta NULL e 9 lotes sem Pedido vinculados a OPs.
+
+Decisao registrada: a partir desta fase, OP avulsa nao e mais caminho de
+produto pela UI Admin. O contrato anterior que permitia OP avulsa deve ser
+tratado como legado/historico para dados ja existentes, nao como comportamento
+novo aceitavel.
+
+Pendencia obrigatoria de backend: criar guard em `gerar_op_latex` e funcoes de
+split/derivadas para rejeitar origem sem Pedido antes de criar OP filha. A
+mitigacao atual e frontend/persistencia JS, nao substitui constraint/RPC.
+
 ## Atualizacao 2026-07-06 - Admin Wide Expand D
 
 Fase `RAVATEX-TAPETES-OP-OPERATIONAL-CODE-ADMIN-WIDE-EXPAND-D`: expansao
