@@ -4720,8 +4720,13 @@ node --test tests/boot.smoke.js \
 - Ambiente alvo: Supabase staging `ucrjtfswnfdlxwtmxnoo`.
 - Metodo: aplicacao manual informada pelo usuario no SQL Editor do Supabase
   staging. Producao `bhgifjrfagkzubpyqpew` nao usada. Supabase CLI nao esta
-  instalado neste ambiente e nao ha `STAGING_DB_URL`/`DB_URL`/`DATABASE_URL`
-  local para consulta direta ao catalogo.
+  instalado neste ambiente. Apos o usuario fornecer a URL SQL do staging,
+  catalogo PostgreSQL consultado via Node/`pg` com `pg_get_functiondef`.
+- Confirmacao de catalogo: `gerar_op_latex(p_entrega_id bigint)` e
+  `gerar_op_latex_split(p_entrega_id bigint, p_motivo text)` retornaram
+  `guard=true` e `guard_before_number=true`; a guarda
+  `ops.lote_id -> lotes.pedido_id` esta aplicada antes de
+  `public.proximo_numero_op`.
 - Validacao pos-aplicacao:
   - `ops-without-pedido-diag`: ALERTA historico esperado; `0` OPs com
     `lote_id NULL`, `11` OPs cujo `lote.pedido_id IS NULL`, `9` lotes sem

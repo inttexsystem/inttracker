@@ -8,10 +8,15 @@
 > Migration aplicada em Supabase staging `ucrjtfswnfdlxwtmxnoo`:
 > `db/33_op_latex_requires_pedido_guard.sql`. Metodo: aplicacao manual pelo
 > usuario no SQL Editor do Supabase staging; nao foi usada producao
-> `bhgifjrfagkzubpyqpew`. Supabase CLI nao esta disponivel neste ambiente e nao
-> ha `STAGING_DB_URL`/`DB_URL`/`DATABASE_URL` local para consulta direta ao
-> catalogo; validacao foi feita por testes locais e diagnosticos staging
-> read-only apos a aplicacao.
+> `bhgifjrfagkzubpyqpew`. Supabase CLI nao esta disponivel neste ambiente; apos
+> o usuario fornecer a URL SQL do staging, o catalogo PostgreSQL foi consultado
+> via Node/`pg` com `pg_get_functiondef`.
+>
+> Confirmacao de catalogo staging: `gerar_op_latex(p_entrega_id bigint)` e
+> `gerar_op_latex_split(p_entrega_id bigint, p_motivo text)` contem a guarda
+> `ops.lote_id -> lotes.pedido_id` e `guard_before_number=true` nas duas
+> funcoes, ou seja, a validacao de Pedido ocorre antes de
+> `public.proximo_numero_op`.
 >
 > Resultado pos-aplicacao: diagnostico de orfaos permanece ALERTA historico com
 > `0` OPs com `lote_id NULL`, `11` OPs cujo `lote.pedido_id IS NULL` e `9`
