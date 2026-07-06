@@ -4821,3 +4821,19 @@ node --test tests/boot.smoke.js \
 - Preservado: entrega/expedicao/filha continuam `blocked`; `op_numeros` nao e
   alterado; OPs restantes nao sao renumeradas; numeros nao sao reciclados;
   nenhuma exclusao real em staging sem ID autorizado pelo usuario.
+# Estado pos-fase - Pedido/OP Controlled Delete Cascade Test D
+
+- Fase: `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-CASCADE-TEST-D`.
+- Status: **PATCH TECNICO PRONTO - AGUARDANDO RETESTE DO USUARIO**.
+- Migration nova: `db/35_controlled_delete_test_cascade.sql`.
+- A `db/35` redefine `diagnosticar_impacto_pedido`,
+  `diagnosticar_impacto_op`, `remover_pedido` e `remover_op`.
+- Nova classificacao: `requires_cascade_confirmation` com
+  `cascade_required=true`, `cascade_reason` e
+  `confirmation_required='EXCLUIR TUDO'`.
+- Politica: entrega/OP filha sem expedicao pode ser removida em cascata
+  controlada no ambiente de teste; expedição permanece `blocked`.
+- Helper `js/delete-helpers.js` agora mostra aviso de cascata e exige
+  `EXCLUIR TUDO` quando `cascade_required=true`.
+- Preservado: sem producao, sem delete real automatico, sem alterar
+  `op_numeros`, sem renumerar OP e sem reciclar numeros.

@@ -5485,3 +5485,20 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 > Mantido: `op_numeros` nao e alterado, OPs restantes nao sao renumeradas e
 > numeros nao sao reciclados. Bloqueios reais permanecem para entrega,
 > expedicao, OP filha e FKs restritivas do fluxo.
+>
+> **Atualizacao 2026-07-06 - fase
+> `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-CASCADE-TEST-D`.**
+> Status: **PATCH TECNICO PRONTO - AGUARDANDO RETESTE DO USUARIO**.
+>
+> Criada migration incremental `db/35_controlled_delete_test_cascade.sql`.
+> Ela substitui as quatro RPCs de exclusao controlada para permitir, somente em
+> staging/teste, cascata fisica de Pedido/OP com entregas e OPs filhas quando
+> nao houver expedicao. Nova classificacao: `requires_cascade_confirmation`,
+> com `cascade_required=true`, `cascade_reason` e
+> `confirmation_required='EXCLUIR TUDO'`.
+>
+> Politica aplicada: expedição continua bloqueador duro nesta fase; cadeia sem
+> expedicao pode ser removida de forma transacional e explicita, com relatorio
+> de impacto e confirmacao `EXCLUIR TUDO`. `op_numeros` nao e alterado, OPs nao
+> sao renumeradas e numeros nao sao reciclados. Producao futura continua
+> pendente de senha/admin forte, soft-delete e auditoria permanente.

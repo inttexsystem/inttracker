@@ -4,7 +4,8 @@
 //
 // - Somente SELECT via PostgREST.
 // - Bloqueia producao.
-// - Lista Pedidos e OPs como safe / requires_confirmation / blocked.
+// - Lista Pedidos e OPs como safe / requires_confirmation /
+//   requires_cascade_confirmation / blocked.
 // - Filtros opcionais: PEDIDO_ID=uuid OP_ID=123 ou args
 //   --pedido-id=uuid --op-id=123.
 // =====================================================================
@@ -78,17 +79,29 @@ function uniq(values) {
 }
 
 function classifyPedido(c) {
-  if (c.entregas > 0) return { classification: 'blocked', reason: 'entrega' };
   if (c.expedicoes > 0) return { classification: 'blocked', reason: 'expedicao' };
-  if (c.ops_filhas_nao_tratadas > 0) return { classification: 'blocked', reason: 'op_filha' };
+  if (c.entregas > 0 || c.ops_filhas > 0 || c.ops_filhas_nao_tratadas > 0) {
+    return {
+      classification: 'requires_cascade_confirmation',
+      reason: 'cadeia_produtiva_teste',
+      cascade_required: true,
+      confirmation_required: 'EXCLUIR TUDO'
+    };
+  }
   if (c.ops_vinculadas > 0) return { classification: 'requires_confirmation', reason: 'ops_sem_movimento' };
   return { classification: 'safe', reason: 'sem_cadeia_produtiva' };
 }
 
 function classifyOp(c) {
-  if (c.entregas > 0) return { classification: 'blocked', reason: 'entrega' };
   if (c.expedicoes > 0) return { classification: 'blocked', reason: 'expedicao' };
-  if (c.ops_filhas > 0) return { classification: 'blocked', reason: 'op_filha' };
+  if (c.entregas > 0 || c.ops_filhas > 0) {
+    return {
+      classification: 'requires_cascade_confirmation',
+      reason: 'cadeia_produtiva_teste',
+      cascade_required: true,
+      confirmation_required: 'EXCLUIR TUDO'
+    };
+  }
   if ((c.op_itens + c.op_eventos + c.op_fornecedores + c.ordens_compra_fio + c.saldo_fios_op + c.op_latex_entregas) > 0) {
     return { classification: 'requires_confirmation', reason: 'dependencias_sem_movimento' };
   }

@@ -1132,3 +1132,14 @@ Fase: `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-POLICY-FIX-C`
   trilha permanente e autorizacao forte antes de qualquer exclusao real.
 - `op_numeros` permanece high-water; nao reduzir, nao reciclar e nao renumerar
   OPs.
+
+## Atualizacao 2026-07-06 - Controlled Delete Cascade Test D
+
+Fase: `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-CASCADE-TEST-D`
+
+- Staging/teste passa a aceitar cascata fisica controlada para Pedido/OP com
+  entrega e OP filha, desde que nao haja expedicao.
+- A confirmacao passa a ser `EXCLUIR TUDO` para cascata produtiva.
+- Expedição permanece bloqueador nesta etapa.
+- Backlog de producao permanece aberto: trocar cascata fisica por soft-delete,
+  auditoria permanente e autorizacao forte.

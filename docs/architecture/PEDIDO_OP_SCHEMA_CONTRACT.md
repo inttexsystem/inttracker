@@ -674,3 +674,16 @@ OP numerada pode ser removida fisicamente pela RPC controlada quando nao possui
 entrega, expedicao ou OP filha e quando o usuario confirma `EXCLUIR` nos casos
 de impacto. O numero apagado nao e reciclado porque `op_numeros` continua
 high-water e nao e reduzido.
+
+### Cascade Test D - cascata fisica controlada em staging
+
+Na fase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-CASCADE-TEST-D`, a
+politica de teste passa a permitir remover cadeia produtiva com entrega e OP
+filha quando nao houver expedicao. O diagnostico retorna
+`requires_cascade_confirmation`, `cascade_required=true`,
+`cascade_reason` e `confirmation_required='EXCLUIR TUDO'`.
+
+Expedicao permanece bloqueador nesta fase. Producao futura deve substituir
+este modo por senha/admin forte, soft-delete e auditoria permanente. A regra de
+numeracao permanece invariavel: `op_numeros` nao muda, OPs nao sao renumeradas
+e numeros nao sao reciclados.

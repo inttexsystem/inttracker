@@ -6,6 +6,7 @@ const cp = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const SQL = path.join(ROOT, 'db', '34_controlled_delete_pedido_op.sql');
+const SQL_CASCADE = path.join(ROOT, 'db', '35_controlled_delete_test_cascade.sql');
 const HELPER = path.join(ROOT, 'js', 'delete-helpers.js');
 const INDEX = path.join(ROOT, 'index.html');
 const PEDIDOS_LIST = path.join(ROOT, 'js', 'screens', 'pedidos-list.js');
@@ -23,6 +24,8 @@ function read(file) {
 }
 
 const sql = read(SQL);
+const sqlCascade = read(SQL_CASCADE);
+const sqlAll = sql + '\n' + sqlCascade;
 const helper = read(HELPER);
 const index = read(INDEX);
 const pedidosList = read(PEDIDOS_LIST);
@@ -41,8 +44,8 @@ test('controlled delete: arquivos novos existem e JS tem sintaxe valida', () => 
 
 test('SQL cria as quatro RPCs exigidas', () => {
   for (const fn of ['diagnosticar_impacto_pedido', 'diagnosticar_impacto_op', 'remover_pedido', 'remover_op']) {
-    assert.match(sql, new RegExp('CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.' + fn, 'i'));
-    assert.match(sql, new RegExp('GRANT\\s+EXECUTE\\s+ON\\s+FUNCTION\\s+public\\.' + fn, 'i'));
+    assert.match(sqlAll, new RegExp('CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.' + fn, 'i'));
+    assert.match(sqlAll, new RegExp('GRANT\\s+EXECUTE\\s+ON\\s+FUNCTION\\s+public\\.' + fn, 'i'));
   }
 });
 
@@ -58,9 +61,9 @@ test('SQL exige EXCLUIR para Pedido com OP sem movimento', () => {
 });
 
 test('SQL bloqueia OP com entrega, expedicao ou filha', () => {
-  assert.match(sql, /diagnosticar_impacto_op[\s\S]*v_entregas\s*>\s*0[\s\S]*existe entrega vinculada/i);
-  assert.match(sql, /diagnosticar_impacto_op[\s\S]*v_expedicoes\s*>\s*0[\s\S]*existe expedicao vinculada/i);
-  assert.match(sql, /diagnosticar_impacto_op[\s\S]*v_filhas\s*>\s*0[\s\S]*OP de Acabamento vinculada/i);
+  assert.match(sqlCascade, /diagnosticar_impacto_op[\s\S]*v_expedicoes\s*>\s*0[\s\S]*existe expedicao vinculada/i);
+  assert.doesNotMatch(sqlCascade, /v_entregas\s*>\s*0[\s\S]{0,220}existe entrega vinculada/i);
+  assert.doesNotMatch(sqlCascade, /v_filhas\s*>\s*0[\s\S]{0,220}OP de Acabamento vinculada/i);
 });
 
 test('SQL desativa bloqueio legado por OP numerada em modo teste', () => {
@@ -71,9 +74,9 @@ test('SQL desativa bloqueio legado por OP numerada em modo teste', () => {
 });
 
 test('SQL permite remocao de OP sem bloqueadores e nao altera op_numeros', () => {
-  assert.match(sql, /DELETE\s+FROM\s+public\.ops\s+WHERE\s+id\s*=\s*p_op_id/i);
-  assert.doesNotMatch(sql, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+public\.op_numeros/i);
-  assert.doesNotMatch(sql, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+op_numeros/i);
+  assert.match(sqlAll, /DELETE\s+FROM\s+public\.ops\s+WHERE\s+id\s*=\s*p_op_id/i);
+  assert.doesNotMatch(sqlAll, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+public\.op_numeros/i);
+  assert.doesNotMatch(sqlAll, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+op_numeros/i);
 });
 
 test('OP numerada sem movimento pode ser removida com EXCLUIR', () => {
@@ -89,6 +92,32 @@ test('Pedido com OP numerada sem movimento pode remover OPs vinculadas com EXCLU
   assert.match(sql, /SELECT\s+COALESCE\(array_agg\(o\.id\)[\s\S]*FROM\s+public\.ops\s+o[\s\S]*o\.lote_id\s*=\s*ANY\(v_lote_ids\)/i);
   assert.match(sql, /DELETE\s+FROM\s+public\.ops[\s\S]*WHERE\s+id\s*=\s*ANY\(v_op_ids\)/i);
   assert.doesNotMatch(sql, /v_op_ids[\s\S]{0,260}numero[\s\S]{0,260}blocked/i);
+});
+
+test('SQL35 classifica cadeia de teste como requires_cascade_confirmation', () => {
+  assert.match(sqlCascade, /requires_cascade_confirmation/i);
+  assert.match(sqlCascade, /cascade_required/i);
+  assert.match(sqlCascade, /cascade_reason/i);
+  assert.match(sqlCascade, /confirmation_required/i);
+  assert.match(sqlCascade, /EXCLUIR TUDO/i);
+  assert.match(sqlCascade, /v_entregas\s*>\s*0\s+OR\s+v_filhas\s*>\s*0[\s\S]*v_cascade\s*:=\s*TRUE/i);
+});
+
+test('SQL35 remover_op exige EXCLUIR TUDO e apaga filha antes da OP mae', () => {
+  assert.match(sqlCascade, /remover_op[\s\S]*v_class\s*=\s*'requires_cascade_confirmation'[\s\S]*p_confirmacao[\s\S]*EXCLUIR TUDO/i);
+  assert.match(sqlCascade, /DELETE\s+FROM\s+public\.op_latex_entregas[\s\S]*op_latex_id\s*=\s*ANY\(v_op_ids\)/i);
+  assert.match(sqlCascade, /DELETE\s+FROM\s+public\.entrega_itens[\s\S]*op_id\s*=\s*ANY\(v_op_ids\)/i);
+  assert.match(sqlCascade, /DELETE\s+FROM\s+public\.ops[\s\S]*id\s*<>\s*p_op_id[\s\S]*DELETE\s+FROM\s+public\.ops\s+WHERE\s+id\s*=\s*p_op_id/i);
+});
+
+test('SQL35 remover_pedido exige EXCLUIR TUDO e bloqueia expedicao', () => {
+  assert.match(sqlCascade, /diagnosticar_impacto_pedido[\s\S]*v_expedicoes\s*>\s*0[\s\S]*existe expedicao vinculada/i);
+  assert.match(sqlCascade, /remover_pedido[\s\S]*v_class\s*=\s*'requires_cascade_confirmation'[\s\S]*p_confirmacao[\s\S]*EXCLUIR TUDO/i);
+  assert.match(sqlCascade, /DELETE\s+FROM\s+public\.op_latex_entregas[\s\S]*DELETE\s+FROM\s+public\.entrega_itens[\s\S]*DELETE\s+FROM\s+public\.entregas[\s\S]*DELETE\s+FROM\s+public\.ops[\s\S]*tipo\s*=\s*'latex'[\s\S]*DELETE\s+FROM\s+public\.ops[\s\S]*DELETE\s+FROM\s+public\.lotes[\s\S]*DELETE\s+FROM\s+public\.pedidos/i);
+});
+
+test('SQL35 nao usa mensagem antiga de entrega como bloqueio de cascata', () => {
+  assert.doesNotMatch(sqlCascade, /existe entrega vinculada\. Exclua a entrega antes/i);
 });
 
 test('helper central expoe API RAVATEX_DELETE e chama RPCs', () => {
@@ -108,6 +137,10 @@ test('helper contem mensagens obrigatorias e relatorio antes da exclusao', () =>
   assert.match(helper, /Não é possível excluir esta OP: existe OP de Acabamento vinculada\. Exclua a OP filha primeiro\./);
   assert.match(helper, /Digite EXCLUIR para confirmar\./);
   assert.match(helper, /Esta ação é irreversível no ambiente de testes\./);
+  assert.match(helper, /EXCLUIR TUDO/);
+  assert.match(helper, /requires_cascade_confirmation/);
+  assert.match(helper, /cascade_required/);
+  assert.match(helper, /confirmation_required/);
   assert.match(helper, /Impacto previsto/);
 });
 

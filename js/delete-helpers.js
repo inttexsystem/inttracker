@@ -11,6 +11,7 @@
   var MSG_EXPEDICAO = 'Não é possível excluir: existe expedição vinculada. Exclua a expedição antes.';
   var MSG_FILHA = 'Não é possível excluir esta OP: existe OP de Acabamento vinculada. Exclua a OP filha primeiro.';
   var MSG_FORTE = 'Digite EXCLUIR para confirmar.';
+  var MSG_CASCADE_FORTE = 'Esta exclusão remove cadeia produtiva de teste: OPs, entregas, itens e vínculos. Digite EXCLUIR TUDO para confirmar.';
   var MSG_AVISO = 'Esta ação é irreversível no ambiente de testes.';
 
   function normalizeResult(res) {
@@ -106,7 +107,10 @@
     var tipo = config.tipo || 'registro';
     var impacto = config.impacto || {};
     var blocked = !!(impacto.blocked || config.blocked);
-    var requires = impacto.classification === 'requires_confirmation' || !!impacto.requires_confirmation;
+    var requiresCascade = impacto.classification === 'requires_cascade_confirmation' || !!impacto.cascade_required;
+    var requires = requiresCascade || impacto.classification === 'requires_confirmation' || !!impacto.requires_confirmation;
+    var requiredText = impacto.confirmation_required || (requiresCascade ? 'EXCLUIR TUDO' : 'EXCLUIR');
+    var requiredMessage = requiresCascade ? MSG_CASCADE_FORTE : MSG_FORTE;
     var summary = buildImpactSummary(impacto);
     var input = null;
 
@@ -134,14 +138,20 @@
       }, impacto.policy) : null
     );
 
+    if (!blocked && requiresCascade) {
+      body.appendChild(window.el('div', {
+        style: 'background:#fff7e6;border:1px solid #ffd899;border-radius:4px;padding:10px 12px;font-size:13px;color:#8a5a00;font-weight:700;line-height:1.45;margin-bottom:12px;'
+      }, impacto.cascade_reason || MSG_CASCADE_FORTE));
+    }
+
     if (blocked) {
       body.appendChild(window.el('div', {
         style: 'background:#fdecec;border:1px solid #f5c2c7;border-radius:4px;padding:10px 12px;font-size:13px;color:#a23434;font-weight:700;line-height:1.45;'
       }, reasonWithMandatoryText(config.reason)));
     } else if (requires) {
-      input = window.textInput ? window.textInput({ placeholder: 'EXCLUIR' }) : window.el('input', { type: 'text' });
+      input = window.textInput ? window.textInput({ placeholder: requiredText }) : window.el('input', { type: 'text' });
       body.appendChild(window.formField ? window.formField({
-        label: MSG_FORTE,
+        label: requiredMessage,
         input: input,
         hint: 'Use letras maiúsculas.'
       }) : input);
@@ -153,12 +163,12 @@
       saveLabel: blocked ? 'Fechar' : 'Excluir',
       onSave: async function () {
         if (blocked) return true;
-        if (requires && (!input || input.value !== 'EXCLUIR')) {
-          window.toast(MSG_FORTE, 'error');
+        if (requires && (!input || input.value !== requiredText)) {
+          window.toast(requiredMessage, 'error');
           return false;
         }
         if (typeof config.onConfirm === 'function') {
-          return await config.onConfirm({ confirmacao: requires ? 'EXCLUIR' : null });
+          return await config.onConfirm({ confirmacao: requires ? requiredText : null });
         }
         return true;
       }
@@ -231,6 +241,7 @@
       expedicao: MSG_EXPEDICAO,
       filha: MSG_FILHA,
       confirmacao: MSG_FORTE,
+      confirmacaoCascata: MSG_CASCADE_FORTE,
       aviso: MSG_AVISO
     }
   };
