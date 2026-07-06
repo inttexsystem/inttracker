@@ -291,6 +291,7 @@ controlada de limpeza para dados de teste sem alterar o contrato produtivo:
 | D-DEL04 | Pedido com OP sem movimento exige `EXCLUIR` e remove OPs/lotes vinculados. | Limpeza de teste nao deve deixar lote orfao nem OP vinculada a Pedido apagado. |
 | D-DEL05 | OP mae com filha bloqueia na exclusao individual. | Evita deixar OP de Acabamento orfa; o usuario deve excluir a filha primeiro. |
 | D-DEL06 | `op_numeros` nao e alterado. | Numeracao e historico operacional seguem monotonicamente preservados. |
+| D-DEL07 | Em staging/teste, OP numerada sem bloqueadores reais pode ser removida pela RPC controlada. | A `db/34` remove/bypassa o trigger legado `ops_numeradas_no_delete`; o numero nao e reciclado porque `op_numeros` permanece high-water. |
 
 Botao/fluxo adicionado nas telas principais de Pedido e OP por
 `window.RAVATEX_DELETE`. O antigo `excluirOpLatex` direto foi substituido pelo

@@ -5470,3 +5470,18 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 > `pedidos-list`, `ops-list`, `pedido-detail`, `op-nova`, `op-latex-admin` e
 > `production-flow-invariants`.
 >
+> **Atualizacao 2026-07-06 - fase
+> `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-POLICY-FIX-C`.**
+> Status: **PATCH CORRETIVO TECNICO**.
+>
+> Corrigida a politica de teste da exclusao controlada: o bloqueio generico da
+> `db/26` para "OP numerada" e removido/bypassado pela `db/34` com
+> `DROP TRIGGER IF EXISTS ops_numeradas_no_delete ON public.ops` e
+> `DROP FUNCTION IF EXISTS public.ops_numeradas_no_delete_fn()`. Em staging,
+> OP numerada pode ser removida fisicamente pela RPC controlada se nao houver
+> entrega, expedicao ou OP filha, e se a confirmacao `EXCLUIR` for fornecida
+> quando o diagnostico exigir.
+>
+> Mantido: `op_numeros` nao e alterado, OPs restantes nao sao renumeradas e
+> numeros nao sao reciclados. Bloqueios reais permanecem para entrega,
+> expedicao, OP filha e FKs restritivas do fluxo.

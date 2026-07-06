@@ -12,6 +12,14 @@
 -- - op_numeros nao e lida para escrita, nao e alterada e nao e resetada.
 -- ============================================================
 
+-- A db/26 instalou uma politica futura de producao para impedir delete fisico
+-- de qualquer OP numerada. Nesta fase de staging/teste, a porta controlada de
+-- limpeza precisa permitir OP numerada sem bloqueadores reais. O numero fica
+-- como rastro interno historico e nunca e reciclado porque op_numeros nao e
+-- reduzido nem reescrito aqui.
+DROP TRIGGER IF EXISTS ops_numeradas_no_delete ON public.ops;
+DROP FUNCTION IF EXISTS public.ops_numeradas_no_delete_fn();
+
 CREATE OR REPLACE FUNCTION public.diagnosticar_impacto_pedido(p_pedido_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql

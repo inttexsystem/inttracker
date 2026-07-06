@@ -4806,3 +4806,18 @@ node --test tests/boot.smoke.js \
   exclusao real em staging sem ID autorizado explicitamente.
 - Futuro: senha/admin forte + soft-delete/auditoria permanente antes de
   qualquer uso em producao.
+# Estado pos-fase - Pedido/OP Controlled Delete Policy Fix C
+
+- Fase: `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-POLICY-FIX-C`.
+- Status: **PATCH CORRETIVO TECNICO**.
+- Problema corrigido: trigger legado `ops_numeradas_no_delete` da `db/26`
+  bloqueava delete fisico de OP numerada antes das RPCs controladas concluirem.
+- Ajuste: `db/34_controlled_delete_pedido_op.sql` agora derruba
+  `ops_numeradas_no_delete` e `ops_numeradas_no_delete_fn()` para o modo
+  staging/teste de exclusao controlada.
+- Politica atual: OP numerada sem entrega, sem expedicao e sem OP filha pode
+  ser removida fisicamente com confirmacao `EXCLUIR` quando exigida; Pedido com
+  OP numerada sem bloqueadores reais tambem pode remover a cadeia vinculada.
+- Preservado: entrega/expedicao/filha continuam `blocked`; `op_numeros` nao e
+  alterado; OPs restantes nao sao renumeradas; numeros nao sao reciclados;
+  nenhuma exclusao real em staging sem ID autorizado pelo usuario.

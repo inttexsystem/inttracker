@@ -1119,3 +1119,16 @@ Backlog residual:
 |---|---|---|
 | `DELETE-PROD-GUARD-A` | P1 futuro | Trocar exclusao fisica temporaria por fluxo produtivo com senha admin, soft-delete e auditoria permanente antes de liberar em producao. |
 | `DELETE-AUDIT-LOG-A` | P2 futuro | Registrar solicitante, impacto aprovado e resultado final em trilha auditavel. |
+
+## Atualizacao 2026-07-06 - Controlled Delete Policy Fix C
+
+Fase: `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-POLICY-FIX-C`
+
+- Em staging/teste, a exclusao fisica controlada precisa sobrepor a politica
+  futura da `db/26` que bloqueava qualquer OP numerada.
+- `db/34_controlled_delete_pedido_op.sql` remove o trigger/função
+  `ops_numeradas_no_delete` para permitir OP numerada sem bloqueadores reais.
+- Producao futura ainda deve voltar para politica auditada: soft-delete,
+  trilha permanente e autorizacao forte antes de qualquer exclusao real.
+- `op_numeros` permanece high-water; nao reduzir, nao reciclar e nao renumerar
+  OPs.

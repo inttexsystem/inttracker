@@ -664,3 +664,13 @@ helper JS unico.
   renumeradas.
 - A exclusao fisica e temporaria para validacao; producao futura deve usar
   senha/admin forte, soft-delete e auditoria permanente.
+
+### Fix C - politica de OP numerada em staging/teste
+
+Para a fase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-POLICY-FIX-C`, a
+porta controlada de teste remove/bypassa o trigger legado
+`ops_numeradas_no_delete` da `db/26`. A regra atual do produto em staging e:
+OP numerada pode ser removida fisicamente pela RPC controlada quando nao possui
+entrega, expedicao ou OP filha e quando o usuario confirma `EXCLUIR` nos casos
+de impacto. O numero apagado nao e reciclado porque `op_numeros` continua
+high-water e nao e reduzido.

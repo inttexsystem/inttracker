@@ -63,10 +63,32 @@ test('SQL bloqueia OP com entrega, expedicao ou filha', () => {
   assert.match(sql, /diagnosticar_impacto_op[\s\S]*v_filhas\s*>\s*0[\s\S]*OP de Acabamento vinculada/i);
 });
 
+test('SQL desativa bloqueio legado por OP numerada em modo teste', () => {
+  assert.match(sql, /DROP\s+TRIGGER\s+IF\s+EXISTS\s+ops_numeradas_no_delete\s+ON\s+public\.ops/i);
+  assert.match(sql, /DROP\s+FUNCTION\s+IF\s+EXISTS\s+public\.ops_numeradas_no_delete_fn\s*\(\s*\)/i);
+  assert.doesNotMatch(sql, /nao pode ser removida fisicamente/i);
+  assert.doesNotMatch(sql, /Use cancelamento\/arquivamento\/consolidacao com rastro/i);
+});
+
 test('SQL permite remocao de OP sem bloqueadores e nao altera op_numeros', () => {
   assert.match(sql, /DELETE\s+FROM\s+public\.ops\s+WHERE\s+id\s*=\s*p_op_id/i);
   assert.doesNotMatch(sql, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+public\.op_numeros/i);
   assert.doesNotMatch(sql, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+op_numeros/i);
+});
+
+test('OP numerada sem movimento pode ser removida com EXCLUIR', () => {
+  assert.match(sql, /'numero'\s*,\s*v_op\.numero/i);
+  assert.match(sql, /'ano'\s*,\s*v_op\.ano/i);
+  assert.doesNotMatch(sql, /v_op\.numero[\s\S]{0,220}v_blocked\s*:=\s*TRUE/i);
+  assert.doesNotMatch(sql, /v_op\.ano[\s\S]{0,220}v_blocked\s*:=\s*TRUE/i);
+  assert.match(sql, /remover_op[\s\S]*v_class\s*=\s*'requires_confirmation'[\s\S]*p_confirmacao[\s\S]*'EXCLUIR'[\s\S]*DELETE\s+FROM\s+public\.ops\s+WHERE\s+id\s*=\s*p_op_id/i);
+});
+
+test('Pedido com OP numerada sem movimento pode remover OPs vinculadas com EXCLUIR', () => {
+  assert.match(sql, /remover_pedido[\s\S]*v_class\s*=\s*'requires_confirmation'[\s\S]*p_confirmacao[\s\S]*'EXCLUIR'/i);
+  assert.match(sql, /SELECT\s+COALESCE\(array_agg\(o\.id\)[\s\S]*FROM\s+public\.ops\s+o[\s\S]*o\.lote_id\s*=\s*ANY\(v_lote_ids\)/i);
+  assert.match(sql, /DELETE\s+FROM\s+public\.ops[\s\S]*WHERE\s+id\s*=\s*ANY\(v_op_ids\)/i);
+  assert.doesNotMatch(sql, /v_op_ids[\s\S]{0,260}numero[\s\S]{0,260}blocked/i);
 });
 
 test('helper central expoe API RAVATEX_DELETE e chama RPCs', () => {
