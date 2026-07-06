@@ -1,4 +1,55 @@
 > **Atualizacao 2026-07-06 - fase
+> `RAVATEX-TAPETES-ADMIN-DASHBOARD-STANDALONE-PARITY-R1`.**
+> Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.
+> Entrada: branch `work/app-next`, HEAD inicial
+> `963c96cfc358e8d55560f8bbc0c77ef40f355ad4`; status inicial somente
+> `?? supabase/.temp/`; remotos confirmados com `origin` somente leitura e
+> escrita permitida em `staging/work/app-next`.
+>
+> Standalone usado como referencia:
+> `D:/OneDrive/Ravatex/Inttex/Mockups - nova interface/Admin/Admin - Dashboard - standalone.html`.
+> Diagnostico obrigatorio executado: `PROJECT_STATE.md`, `AGENT_HANDOFF.md`,
+> `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`,
+> `docs/DOCUMENTATION_INDEX.md`, busca ampla em `js tests docs index.html`,
+> tela real `js/screens/painel.js`, shell global `js/screens/common.js`,
+> Dashboard Cliente, listas de Pedidos/OPs e detalhe Pedido.
+>
+> Decisao de implementacao: preservar `#/painel`, `shellLayout(ADMIN_MENU, ...)`,
+> auth/admin route e topbar/sidebar homologados. O placeholder foi substituido
+> por dashboard admin especifico no proprio `js/screens/painel.js`, com CSS
+> local prefixado e blocos do standalone: header, 5 KPIs, fila de acoes,
+> alertas, cadeia produtiva em 6 etapas e atividade recente. Elementos
+> reaproveitados: shell/sidebar/topbar, navegacao por `window.navigate`, padrao
+> visual de cards/botoes/badges das telas homologadas. Componentes novos:
+> primitives internos do dashboard e agregacao read-only para KPIs/acoes.
+>
+> Dados reais preservados: apenas SELECTs em `pedidos`, `clientes`, `lotes`,
+> `ops`, `expedicoes`, `expedicao_itens` e `pedido_cliente_eventos`; sem mock
+> permanente, sem insert/update/delete/rpc. O render inicial e sincronico para
+> preservar contratos de rota/testes; as leituras carregam em background e
+> falham de modo tolerante. Fluxos Pedido/OP/Expedicao nao foram alterados.
+>
+> Validacao visual automatizada: o arquivo standalone foi analisado por fonte e
+> a tela foi coberta por smoke estrutural, mas o Browser do Codex bloqueou
+> navegacao para `file://` e tambem para pagina temporaria `data:`; por politica
+> nao foi feito workaround. Portanto nao declarar OK visual/identico. Pendencia:
+> validacao visual manual do usuario contra o standalone.
+>
+> Testes OK: `node --check js\screens\painel.js`;
+> `node --test tests\admin-dashboard.smoke.js` 6/6;
+> `node --test tests\painel-screen.smoke.js` 16/16;
+> `node --test tests\pedido-detail.smoke.js` 161/161;
+> `node --test tests\pedido-detail-linked-ops.smoke.js` 7/7;
+> `node --test tests\router.smoke.js` 43/43.
+>
+> Arquivos alterados: `js/screens/painel.js`,
+> `tests/admin-dashboard.smoke.js`, `tests/painel-screen.smoke.js`,
+> `PROJECT_STATE.md`, `AGENT_HANDOFF.md`. `docs/DOCUMENTATION_INDEX.md` nao
+> foi alterado porque nenhum documento novo foi criado. Confirmacoes: producao
+> intocada, `origin` nao usado para escrita, sem SQL, sem migration, sem dados
+> reais novos, sem `git add .`, `supabase/.temp/` fora do patch.
+
+> **Atualizacao 2026-07-06 - fase
 > `RAVATEX-TAPETES-PEDIDO-FLOW-UI-AUDIT-FIX-R1`.**
 > Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.
 > Entrada: base confirmada em `work/app-next`, HEAD inicial

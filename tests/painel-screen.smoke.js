@@ -136,6 +136,14 @@ class FakeNode {
   set textContent(v) { this._text = v; }
 }
 
+function textOf(node) {
+  if (!node) return '';
+  let out = '';
+  if (typeof node.textContent === 'string') out += node.textContent + ' ';
+  for (const child of node.children || []) out += textOf(child);
+  return out;
+}
+
 // -------------------------------------------------------------------------
 // 1. Estáticos
 // -------------------------------------------------------------------------
@@ -245,6 +253,10 @@ function makeFullBootSandbox() {
   const sandbox = {
     document, setTimeout, clearTimeout, console, URL, URLSearchParams,
     location: { hash: '' }, supa: fakeSupa,
+    addEventListener: () => {}, removeEventListener: () => {},
+    CURRENT_USER: { nome: 'Tester', tipo: 'admin' },
+    logout: () => {},
+    loadCurrentUser: () => Promise.resolve(),
   };
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
@@ -268,9 +280,6 @@ function makeFullBootSandbox() {
   vm.runInContext(opnSrc,    sandbox, { filename: 'js/screens/op-nova.js' });
   vm.runInContext(bootSrc,   sandbox, { filename: 'js/boot.js' });
 
-  sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
-  sandbox.logout = () => {};
-
   return { sandbox };
 }
 
@@ -286,7 +295,7 @@ test('12. runtime: window.screenPainel (global legado) é função', () => {
     'window.screenPainel não é função');
 });
 
-test('13. runtime: screenPainel renderiza sem Supabase (não faz write nem select)', () => {
+test('13. runtime: screenPainel renderiza imediatamente com fallback Supabase seguro', () => {
   const { sandbox } = makeFullBootSandbox();
   const result = vm.runInContext('window.screenPainel()', sandbox);
   assert.ok(result, 'screenPainel() não retornou resultado');
@@ -308,9 +317,9 @@ test('14. runtime: screenPainel usa shellLayout e ADMIN_MENU como antes', () => 
   const main = flexDiv.children[1];
   assert.ok(main.children.length >= 1, 'main deve ter content');
   const contentDiv = main.children[0];
-  const h1 = contentDiv.children[0];
-  const h1Text = h1.children.length > 0 ? h1.children[0].textContent : '';
-  assert.ok(h1Text.includes('Painel'), 'content deve conter "Painel"');
+  const text = textOf(contentDiv);
+  assert.ok(text.includes('Dashboard'), 'content deve conter "Dashboard"');
+  assert.ok(text.includes('Fila de'), 'content deve conter a fila operacional');
 });
 
 test('15. boot chain: ui + router + system-screens + common + cadastros + ops-list + entrega-form + entrega-writes + fornecedor + op-form-helpers + op-writes + op-latex-admin + painel + inline coexiste sem SyntaxError', () => {

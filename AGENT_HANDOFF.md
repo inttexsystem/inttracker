@@ -1,4 +1,51 @@
-﻿# Estado pos-fase - Pedido Flow UI Audit Fix R1
+﻿# Estado pos-fase - Admin Dashboard Standalone Parity R1
+
+- Fase: `RAVATEX-TAPETES-ADMIN-DASHBOARD-STANDALONE-PARITY-R1`.
+- Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.
+- Branch/HEAD base: `work/app-next`,
+  `963c96cfc358e8d55560f8bbc0c77ef40f355ad4`.
+- Status inicial observado: somente `?? supabase/.temp/`.
+- Standalone de referencia:
+  `D:/OneDrive/Ravatex/Inttex/Mockups - nova interface/Admin/Admin - Dashboard - standalone.html`.
+- Diagnostico obrigatorio:
+  - `js/screens/painel.js` era placeholder do Admin Dashboard;
+  - `js/screens/common.js` ja fornece shell/topbar/sidebar homologados e foi
+    preservado;
+  - `js/screens/cliente-dashboard.js`, `js/screens/pedidos-list.js`,
+    `js/screens/ops-list.js` e `js/screens/pedido-detail-*` foram usados como
+    referencias de padrao visual/contratos, sem alteracao;
+  - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md` confirmou que fluxos
+    Pedido/OP/Expedicao nao deveriam receber write paralelo.
+- Patch aplicado:
+  - `js/screens/painel.js`: substitui placeholder por dashboard admin com
+    header, 5 KPIs, fila de acoes, alertas, cadeia produtiva e atividade
+    recente, mantendo `screenPainel()` sincronico e `shellLayout(ADMIN_MENU)`;
+  - leituras read-only em `pedidos`, `clientes`, `lotes`, `ops`,
+    `expedicoes`, `expedicao_itens`, `pedido_cliente_eventos`;
+  - `tests/admin-dashboard.smoke.js`: novo smoke de render, rota/admin,
+    blocos principais, selects e ausencia de writes;
+  - `tests/painel-screen.smoke.js`: atualizado para o dashboard atual e
+    sandbox de boot limpo.
+- Diferencas/pendencias visuais:
+  - o shell global foi preservado por ser a versao homologada do app;
+  - estados vazios sao reais, nao mockados permanentemente;
+  - o Browser do Codex bloqueou `file://` para o standalone e `data:` para o
+    harness temporario; por politica nao houve workaround. Validacao visual
+    manual do usuario continua pendente. Nao declarar OK visual/identico.
+- Testes OK:
+  - `node --check js\screens\painel.js`;
+  - `node --test tests\admin-dashboard.smoke.js` = 6/6;
+  - `node --test tests\painel-screen.smoke.js` = 16/16;
+  - `node --test tests\pedido-detail.smoke.js` = 161/161;
+  - `node --test tests\pedido-detail-linked-ops.smoke.js` = 7/7;
+  - `node --test tests\router.smoke.js` = 43/43.
+- Confirmacoes: producao intocada, `origin` nao usado para escrita, sem SQL,
+  sem migration, sem dados reais novos, sem writes no dashboard, sem fluxo
+  Pedido/OP/Expedicao alterado, sem `git add .`, `supabase/.temp/` fora do
+  patch. `docs/DOCUMENTATION_INDEX.md` nao foi alterado porque nenhum doc novo
+  foi criado.
+
+# Estado pos-fase - Pedido Flow UI Audit Fix R1
 
 - Fase: `RAVATEX-TAPETES-PEDIDO-FLOW-UI-AUDIT-FIX-R1`.
 - Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.
