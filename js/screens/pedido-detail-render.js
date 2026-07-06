@@ -644,7 +644,7 @@
         style: 'display:flex;gap:8px;padding:12px 18px;border-top:1px solid #f1f3f6;flex-wrap:wrap;align-items:center;justify-content:space-between;',
       },
         window.el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;' },
-          buildFooterAction('Abrir OP', function () { handlers.navigateToOp(summary.id); }, false),
+          buildFooterAction('Ver OP', function () { handlers.navigateToOp(summary.id); }, false),
           buildFooterAction(movementLabel, function () {
             handlers.openMovementModal({
               title: summary.stageKey === 'tecelagem' ? 'Transferir para Acabamento' : 'Movimentar para Expedicao',

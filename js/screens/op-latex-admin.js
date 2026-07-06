@@ -481,7 +481,7 @@
 
       function renderOPLatexProducao() {
         var CARD_PROD = 'background:#fff;border:1px solid #eceef1;border-radius:4px;';
-        var BTN_ACTION = 'display:inline-flex;align-items:center;gap:7px;background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;';
+        var BTN_ACTION = 'display:inline-flex;align-items:center;gap:6px;background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:7px 12px;font-weight:600;font-size:12.5px;font-family:inherit;cursor:pointer;';
         var SVG_ARROW_RIGHT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>';
         var SVG_PAUSE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
         var SVG_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
@@ -580,10 +580,11 @@
                 pedidoId ? el('button', { type: 'button', style: 'background:none;border:none;padding:0;color:#2563eb;font-weight:600;font:inherit;cursor:pointer;', onclick: function () { navigate('#/pedidos/' + pedidoId); } }, pedidoLabelCurto) : 'Pedido',
                 metaLine)),
             el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;' },
-              pedidoId ? el('button', { type: 'button', style: BTN_ACTION, onclick: function () { navigate('#/pedidos/' + pedidoId); } }, svgEl(SVG_DOC), 'Abrir Pedido') : '',
+              pedidoId ? el('button', { type: 'button', style: BTN_ACTION, onclick: function () { navigate('#/pedidos/' + pedidoId); } }, svgEl(SVG_DOC), 'Ver Pedido') : '',
               el('button', { type: 'button', style: BTN_ACTION, onclick: function () { toastOperacional('Produção pausada.'); } }, svgEl(SVG_PAUSE), 'Pausar'),
               el('button', { type: 'button', style: BTN_ACTION, onclick: function () { var el = document.getElementById('movimentacao-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, svgEl(SVG_ARROW_RIGHT), 'Ir para movimentos'),
               el('button', { type: 'button', style: BTN_ACTION, onclick: function () { finalizar(op.id); } }, svgEl(SVG_CHECK), 'Finalizar OP'),
+              el('button', { type: 'button', style: BTN_ACTION, onclick: function () { excluirOpLatex(op.id); } }, 'Excluir OP'),
               el('button', { type: 'button', style: BTN_ACTION, onclick: function () { var el = document.getElementById('documentos-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, svgEl(SVG_DOC), 'Documentos'),
               el('button', { type: 'button', style: BTN_ACTION, onclick: function () { var el = document.getElementById('historico-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, svgEl(SVG_CLOCK), 'Histórico')));
         }
@@ -950,9 +951,7 @@
           }, svgEl(SVG_OPEN), 'Confirmar'),
           el('div', { style: 'display:flex;align-items:flex-start;gap:7px;margin-bottom:14px;' },
             svgEl(SVG_HINT_LOCK),
-            el('span', { style: 'font-size:12px;color:#8a93a3;line-height:1.5;' }, 'Confirma o recebimento do material vindo da Tecelagem.')),
-          origemOp ? el('button', { type: 'button', style: BTN_LINK + 'margin-bottom:10px;', onclick: function () { navigate('#/ops/' + origemOp.id); } }, 'Ir para OP de tecelagem') : '',
-          el('button', { type: 'button', style: BTN_DANGER_LINK, onclick: function () { excluirOpLatex(op.id); } }, 'Excluir OP'));
+            el('span', { style: 'font-size:12px;color:#8a93a3;line-height:1.5;' }, 'Confirma o recebimento do material vindo da Tecelagem.')));
         return right;
       }
 

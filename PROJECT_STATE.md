@@ -1,47 +1,59 @@
 > **Atualizacao 2026-07-06 - fase
-> `RAVATEX-TAPETES-TEC-ACABAMENTO-TRANSFER-404-A`.**
-> Status: **PATCH TRANSFER TECELAGEM→ACABAMENTO PRONTO — AGUARDANDO RETESTE DO USUÁRIO**.
+> `RAVATEX-TAPETES-OP-ACTION-BAR-UX-CLEANUP-A`.**
+> Status: **PATCH OP ACTION BAR UX PRONTO — AGUARDANDO RETESTE DO USUARIO**.
 > Entrada: branch `work/app-next`, HEAD inicial
-> `2ca2b4a8bbbcfbb0160e14dedb5d756c81be40da`; status inicial somente
-> `?? supabase/.temp/`; `origin` somente leitura e producao intocados.
+> `05d96e2`; status inicial somente `?? supabase/.temp/`;
+> `origin` somente leitura e producao intocados.
 >
 > Fase anterior:
-> `RAVATEX-TAPETES-PEDIDO-NO-PARALLEL-LOAD-ACTION-B` (HEAD
-> `2ca2b4a8bbbcfbb0160e14dedb5d756c81be40da`).
+> `RAVATEX-TAPETES-TEC-ACABAMENTO-TRANSFER-404-A` (HEAD
+> `05d96e2`).
 >
-> Itens entregues (P0):
+> Itens entregues (P1):
 >
-> 1. **Correcao do 404 ao clicar em "Transferir" na OP de Tecelagem
-> (bloco "5. Movimentacao — enviar para acabamento").**
-> (`js/screens/op-tecelagem-producao-admin.js:481` e headers relacionados).
-> Causa raiz: o botao usava `<a href="#entregas-tecelagem-op">` (tag `<a>`
-> com href de hash). A app usa hash-based routing (`boot.js` registra
-> `hashchange` → `handleRoute`). O hash `#entregas-tecelagem-op` nao
-> corresponde a nenhuma rota registrada, e o router (`router.js:130-132`)
-> chama `screenNotFound()` que renderiza "404 - Tela nao encontrada".
-> Mesma classe de bug atingia `<a>` similares em `op-latex-admin.js`
-> (`#documentos-op`, `#historico-op`, `#movimentacao-op`) e na header
-> de navegacao da OP Tecelagem.
-> Correcao: substituidas todas as `<a href="#..."` por `<button>` com
-> `onclick` que chama `document.getElementById(...).scrollIntoView()`
-> (`behavior: 'smooth', block: 'start'`). O scroll interno e preservado
-> sem disparar navegacao por hash.
+> 1. **Resumo da OP de Acabamento limpo.**
+> (`js/screens/op-latex-admin.js:buildRight`).
+> Removidos os hypertextos encavalados "Ir para OP de tecelagem" e
+> "Excluir OP" da coluna lateral `buildRight()` (status `aberta`).
+> O botao "Excluir OP" foi reposicionado na barra de acoes do header
+> (`buildHeaderProducao`) ao lado de "Finalizar OP", usando o helper
+> canonico `excluirOpLatex`.
+>
+> 2. **Barras/botoes de acao compactos e alinhados.**
+> - OP Tecelagem: criado `BTN_ACTION`
+>   (`display:inline-flex;padding:7px 12px;font-size:12.5px`),
+>   substituindo `BTN_BACK` (8px 16px / 13.5px) em todos os botoes
+>   do header: Ver Pedido, Pausar, Ir para entregas, Excluir OP,
+>   Finalizar OP, Documentos, Historico.
+> - OP Latex: `BTN_ACTION` reduzido ao mesmo padrao compacto.
+> - Labels encurtados:
+>   - `'Abrir Pedido'` → `'Ver Pedido'` (OP Tecelagem + OP Latex)
+>   - `'Finalizar OP Tecelagem'` → `'Finalizar OP'`
+>   - `'Abrir OP'` → `'Ver OP'` nos cards e hub do Pedido Detail
+>     (`pedido-detail-render.js`, `pedido-detail-events.js`)
+>   - `'Abrir OP'`/`'Abrir pedido'` → `'Ver OP'`/`'Ver pedido'`
+>     em `expedicao-admin.js`
+> - Preservado `'Abrir OP'` em `op-nova.js:1228` (acao de iniciar
+>   producao, nao apenas visualizar OP ja aberta).
 >
 > - **Arquivos alterados:**
->   - `js/screens/op-tecelagem-producao-admin.js` (4 anchors → buttons)
->   - `js/screens/op-latex-admin.js` (4 anchors → buttons + remocao de
->     `BTN_ACTION_LINK`)
->   - `tests/tec-to-acabamento-flow.smoke.js` (teste R1 atualizado)
->   - `tests/op-latex-admin.smoke.js` (teste 48 atualizado)
-> - **Nao alterado:** schema, migrations, RPCs, SQL, production, origin.
+>   - `js/screens/op-tecelagem-producao-admin.js`
+>   - `js/screens/op-latex-admin.js`
+>   - `js/screens/pedido-detail-render.js`
+>   - `js/screens/pedido-detail-events.js`
+>   - `js/screens/expedicao-admin.js`
+>   - `tests/tec-to-acabamento-flow.smoke.js`
+>   - `tests/pedido-detail.smoke.js`
+> - **Nao alterado:** schema, migrations, RPCs, fluxo produtivo,
+>   handlers canonicos.
 > - **Testes:**
 >   - `node --test tests/tec-to-acabamento-flow.smoke.js` — 39/39 OK.
 >   - `node --test tests/pedido-detail.smoke.js` — 172/172 OK.
 >   - `node --test tests/op-latex-admin.smoke.js` — 55/55 OK.
+>   - `node --test tests/pedido-detail-linked-ops.smoke.js` — 7/7 OK.
 > - **Garantias:** producao intocada; `origin` nao usado para escrita;
->   sem `git add .`; `supabase/.temp` fora do commit; fluxo canonico
->   Tecelagem→Acabamento preservado (via `salvarEntregaCima` →
->   RPC `gerar_op_latex`); OP Acabamento consistente.
+>   sem `git add .`; `supabase/.temp` fora do commit; handlers
+>   preservados.
 >
 > ---
 >

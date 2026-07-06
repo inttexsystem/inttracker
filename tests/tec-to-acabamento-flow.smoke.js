@@ -329,10 +329,10 @@ test('ADMIN-TEC-FINALIZE-CTA-R1: CTA destacado exige saldo zerado', () => {
   assert.ok(slice, 'buildHeaderProducao deve existir');
   assert.match(slice, /var\s+podeConcluir\s*=\s*totais\.totalAjustado\s*>\s*0\s*&&\s*totais\.saldo\s*<=\s*0/,
     'Finalizar OP Tecelagem deve depender de total ajustado e saldo sem pendencia');
-  assert.match(slice, /BTN_FINALIZAR_TEC/,
-    'CTA habilitado deve usar estilo destacado, nao o botao secundario do header');
-  assert.match(slice, /Finalizar OP Tecelagem/,
-    'CTA deve ter rotulo explicito para a OP Tecelagem');
+  assert.match(slice, /background:#18794a/,
+    'CTA habilitado deve usar estilo verde destacado');
+  assert.match(slice, /Finalizar OP/,
+    'CTA deve ter rotulo Finalizar OP');
   assert.match(slice, /if\s*\(\s*!podeConcluir\s*\)\s*concluirAttrs\.disabled\s*=\s*['"]disabled['"]/,
     'botao deve permanecer desabilitado enquanto houver saldo');
   assert.match(slice, /finalizarTecelagem\(ctx,\s*totais/,

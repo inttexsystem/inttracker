@@ -228,8 +228,8 @@
           ),
           window.el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;' },
             badge(exp.status),
-            exp.pedido_id ? window.el('button', { type: 'button', style: BTN_SECONDARY, onclick: function () { window.navigate('#/pedidos/' + exp.pedido_id); } }, 'Abrir pedido') : null,
-            exp.op_latex_id ? window.el('button', { type: 'button', style: BTN_SECONDARY, onclick: function () { window.navigate('#/ops/' + exp.op_latex_id); } }, 'Abrir OP') : null)
+            exp.pedido_id ? window.el('button', { type: 'button', style: BTN_SECONDARY, onclick: function () { window.navigate('#/pedidos/' + exp.pedido_id); } }, 'Ver pedido') : null,
+            exp.op_latex_id ? window.el('button', { type: 'button', style: BTN_SECONDARY, onclick: function () { window.navigate('#/ops/' + exp.op_latex_id); } }, 'Ver OP') : null)
         )
       );
     }

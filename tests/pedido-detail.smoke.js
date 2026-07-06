@@ -1158,7 +1158,7 @@ test('pedido-detail.js: se OP já existir não sugere gerar duplicada; mostra OP
   assert.match(buildOpsSlice, /Gerar primeira OP/);
   assert.match(buildOpsSlice, /view\.opSummaries\.map/);
   assert.match(buildOpsSlice, /buildOpCard/);
-  assert.match(detailRender, /buildFooterAction\(\s*['"]Abrir OP['"]/);
+  assert.match(detailRender, /buildFooterAction\(\s*['"]Ver OP['"]/);
 });
 
 test('pedido-detail.js: NÃO usa mais "Confirmar / Receber" como placeholder (substituído)', () => {
@@ -1284,8 +1284,8 @@ test('transition-related-ops-R2: openMovementModal integra secao OPs relacionada
     'cada OP deve exibir numero\/ano');
   assert.match(sectionSlice, /Status: /,
     'cada OP deve exibir status');
-  assert.match(sectionSlice, /relatedActionButton\('Abrir OP'/,
-    'Abrir OP deve aparecer sempre que houver OP relacionada');
+  assert.match(sectionSlice, /relatedActionButton\('Ver OP'/,
+    'Ver OP deve aparecer sempre que houver OP relacionada');
   assert.match(sectionSlice, /relatedActionButton\('Carregar nesta movimentacao'/,
     'OP relacionada com saldo deve carregar a origem no formulario principal');
   assert.doesNotMatch(sectionSlice, /relatedActionButton\('Movimentar'/,
@@ -1543,10 +1543,10 @@ test('stepper-modals-B: modal Acabamento mostra OPs latex e fornecedor', () => {
     'deve mostrar fornecedor da OP de latex');
 });
 
-test('stepper-modals-B: navegacao read-only permitida (Abrir OP, Abrir Expedicao)', () => {
+test('stepper-modals-B: navegacao read-only permitida (Ver OP, Abrir Expedicao)', () => {
   const stageModalSlice = (detailEvents.match(/function buildStageDetailBody[\s\S]*?\n    \}\n\n    function openStageDetailModal/) || [''])[0];
-  assert.match(stageModalSlice, /Abrir OP/,
-    'deve permitir navegacao para Abrir OP');
+  assert.match(stageModalSlice, /Ver OP/,
+    'deve permitir navegacao para Ver OP');
   assert.match(stageModalSlice, /Abrir Expedicao/,
     'deve permitir navegacao para Abrir Expedicao');
   assert.match(stageModalSlice, /navigateToOp|navigateToExpedicao/,
@@ -1912,7 +1912,7 @@ test('HUB stacking: modais bespoke da seta e da etapa registram-se na pilha de o
 
 test('HUB: modal de etapa oferece acoes contextuais curtas por OP/expedicao', () => {
   assert.ok(stageBodySlice, 'trecho buildStageDetailBody nao encontrado');
-  for (const label of ['Abrir OP', 'Aceitar OP', 'Finalizar OP', 'Movimentar', 'Entregar', 'Abrir Expedicao', 'Gerar primeira OP', 'Concluir']) {
+  for (const label of ['Ver OP', 'Aceitar OP', 'Finalizar OP', 'Movimentar', 'Entregar', 'Abrir Expedicao', 'Gerar primeira OP', 'Concluir']) {
     assert.ok(stageBodySlice.indexOf(label) !== -1, 'hub deve oferecer acao: ' + label);
   }
 });
@@ -2203,7 +2203,7 @@ test('FIRST-OP runtime: pedido com OP nao mostra CTA de gerar primeira OP na tel
   const rendered = renderDetailForFirstOp(rt, hubTecAcab(rt.ns, 'em_producao'));
   assert.equal(countHubBtns(rendered.root, /^Gerar primeira OP$/i), 0,
     'pedido com OP vinculada nao deve sugerir gerar primeira OP duplicada');
-  assert.match(collectHubText(rendered.root), /Abrir OP/);
+  assert.match(collectHubText(rendered.root), /Ver OP/);
 });
 
 test('TRANSITION runtime: setas ativas usam labels especificos do contrato', () => {
@@ -2381,7 +2381,7 @@ test('INSUMOS-TECELAGEM modal: OP aberta mostra proposta com slider e botao cano
   const text = collectHubText(cap);
   assert.match(text, /OPs relacionadas/);
   assert.match(text, /OP 18\/2026/);
-  assert.ok(findHubBtn(cap, /^Abrir OP$/i), 'deve mostrar Abrir OP');
+  assert.ok(findHubBtn(cap, /^Ver OP$/i), 'deve mostrar Ver OP');
   assert.match(text, /Proposta de aceite/);
   assert.ok(findNode(cap, (n) => n.tagName === 'INPUT' && n.getAttribute('type') === 'range'),
     'deve renderizar slider real');
@@ -2546,10 +2546,10 @@ test('TRANSITION runtime: Acabamento aberto com saldo movimenta para Expedicao p
   assert.ok(rt.events.indexOf('render') !== -1, 'sucesso deve renderizar a tela');
 });
 
-test('HUB runtime: modal lista OPs com Abrir OP e Finalizar OP para Tecelagem entregue', () => {
+test('HUB runtime: modal lista OPs com Ver OP e Finalizar OP para Tecelagem entregue', () => {
   const rt = makeHubRuntime();
   const r = stageHub(rt, hubTecAcab(rt.ns, 'em_producao'), 'tecelagem');
-  assert.ok(findHubBtn(r.root, /Abrir OP/i), 'deve ter Abrir OP');
+  assert.ok(findHubBtn(r.root, /Ver OP/i), 'deve ter Ver OP');
   const fin = findHubBtn(r.root, /Finalizar OP/i);
   assert.ok(fin, 'Tecelagem em_producao com saldo 0 deve ter Finalizar OP');
   rt.events.length = 0;
@@ -2599,7 +2599,7 @@ test('HUB runtime: Pedido #13 abre Tecelagem/Aguardar sem appendChild invalido',
   assert.match(text, /OP 10\/2026/);
   assert.match(text, /Sem movimentacao para acabamento registrada ainda/);
   assert.match(text, /OP Tecelagem pendente de aceite/);
-  assert.ok(findHubBtn(r.root, /Abrir OP/i), 'hub deve manter Abrir OP');
+  assert.ok(findHubBtn(r.root, /Ver OP/i), 'hub deve manter Ver OP');
   assert.ok(findHubBtn(r.root, /Aceitar OP/i), 'hub deve oferecer Aceitar OP');
   assert.equal(rt.events.some((ev) => /^rpc:|^toast:/.test(ev)), false, 'abrir hub nao deve executar write');
 });
@@ -2823,8 +2823,8 @@ test('NO-PARALLEL-LOAD-B: acabamento OP nao mostra Carregar no modal Tecelagem>A
   const text = collectHubText(cap);
   assert.match(text, /OPs relacionadas/,
     'modal Tecelagem>Acabamento deve ter secao OPs relacionadas');
-  assert.ok(findHubBtn(cap, /^Abrir OP$/i),
-    'OP relacionada (acabamento) deve manter Abrir OP');
+  assert.ok(findHubBtn(cap, /^Ver OP$/i),
+    'OP relacionada (acabamento) deve manter Ver OP');
   assert.equal(findHubBtn(cap, /^Carregar nesta movimentacao$/i), null,
     'OP acabamento NAO pode mostrar Carregar nesta movimentacao no modal Tecelagem>Acabamento');
   assert.doesNotMatch(text, /Sem saldo disponivel para carregar nesta movimentacao/,

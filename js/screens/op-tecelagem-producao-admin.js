@@ -29,6 +29,7 @@
   var BTN_FINALIZAR_TEC = 'display:inline-flex;align-items:center;gap:7px;background:#18794a;color:#fff;border:1px solid #18794a;border-radius:4px;padding:9px 16px;font-weight:800;font-size:13.5px;font-family:inherit;cursor:pointer;white-space:nowrap;box-shadow:0 6px 14px rgba(24,121,74,.18);';
   var BTN_SOLID_SM = 'display:inline-flex;align-items:center;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:8px 16px;font-weight:600;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;';
   var BTN_LINK = 'display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#2563eb;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;';
+  var BTN_ACTION = 'display:inline-flex;align-items:center;gap:6px;background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:7px 12px;font-weight:600;font-size:12.5px;font-family:inherit;cursor:pointer;';
   var BADGE_TECELAGEM = 'background:#f3effe;color:#7c3aed;border-radius:4px;padding:4px 11px;font-size:12.5px;font-weight:700;';
   var BADGE_EM_PRODUCAO = 'display:inline-flex;align-items:center;gap:6px;background:#fff4e6;color:#c2610c;border-radius:4px;padding:4px 11px;font-size:12.5px;font-weight:700;';
 
@@ -171,28 +172,28 @@
     var acoes = [];
     if (hasLinkedPedido(ctx)) {
       acoes.push(el('button', {
-        type: 'button', style: BTN_BACK, onclick: function () { window.navigate('#/pedidos/' + ctx.pedidoCtx.id); },
-      }, svgEl(SVG_OPEN), 'Abrir Pedido'));
+        type: 'button', style: BTN_ACTION, onclick: function () { window.navigate('#/pedidos/' + ctx.pedidoCtx.id); },
+      }, svgEl(SVG_OPEN), 'Ver Pedido'));
     }
-    acoes.push(el('button', { type: 'button', style: BTN_BACK + 'opacity:.55;cursor:not-allowed;', disabled: true }, 'Pausar'));
-    if (ctx.cimaFornecedorId) acoes.push(el('button', { type: 'button', style: BTN_BACK, onclick: function () { var el = document.getElementById('entregas-tecelagem-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 'Ir para entregas'));
+    acoes.push(el('button', { type: 'button', style: BTN_ACTION + 'opacity:.55;cursor:not-allowed;', disabled: true }, 'Pausar'));
+    if (ctx.cimaFornecedorId) acoes.push(el('button', { type: 'button', style: BTN_ACTION, onclick: function () { var el = document.getElementById('entregas-tecelagem-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 'Ir para entregas'));
     if (typeof ctx.excluirOP === 'function') {
       acoes.push(el('button', {
         type: 'button',
-        style: 'display:inline-flex;align-items:center;gap:7px;background:#fff;color:#d6403a;border:1px solid #f1c7c5;border-radius:4px;padding:9px 16px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;white-space:nowrap;',
+        style: BTN_ACTION + 'color:#d6403a;',
         onclick: ctx.excluirOP,
       }, 'Excluir OP'));
     }
     var concluirAttrs = {
       type: 'button',
-      style: podeConcluir ? BTN_FINALIZAR_TEC : BTN_BACK + 'opacity:.55;cursor:not-allowed;',
+      style: podeConcluir ? BTN_ACTION + 'background:#18794a;color:#fff;border-color:#18794a;font-weight:800;' : BTN_ACTION + 'opacity:.55;cursor:not-allowed;',
       title: podeConcluir ? 'Finalizar formalmente a OP Tecelagem pela RPC canonica.' : 'Finalizar fica disponivel quando nao houver saldo pendente.',
       onclick: function (event) { if (podeConcluir) finalizarTecelagem(ctx, totais, event && event.currentTarget); },
     };
     if (!podeConcluir) concluirAttrs.disabled = 'disabled';
-    acoes.push(el('button', concluirAttrs, 'Finalizar OP Tecelagem'));
-    acoes.push(el('button', { type: 'button', style: BTN_BACK, onclick: function () { var el = document.getElementById('documentos-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 'Documentos'));
-    acoes.push(el('button', { type: 'button', style: BTN_BACK, onclick: function () { var el = document.getElementById('historico-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 'Histórico'));
+    acoes.push(el('button', concluirAttrs, 'Finalizar OP'));
+    acoes.push(el('button', { type: 'button', style: BTN_ACTION, onclick: function () { var el = document.getElementById('documentos-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 'Documentos'));
+    acoes.push(el('button', { type: 'button', style: BTN_ACTION, onclick: function () { var el = document.getElementById('historico-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 'Histórico'));
 
     return el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;' },
       el('div', {}, titleRow, metaLine),

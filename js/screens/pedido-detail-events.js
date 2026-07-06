@@ -1220,7 +1220,7 @@
                           'Total: ' + ns.fmtMetros(summary.target || 0) + ' | Movimentado: ' + ns.fmtMetros(summary.done || 0) + ' | Saldo: ' + ns.fmtMetros(summary.remaining || 0))
                       : null),
                   window.el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;' },
-                    relatedActionButton('Abrir OP', function () { navigateToOp(op.id); }, 'secondary'),
+                    relatedActionButton('Ver OP', function () { navigateToOp(op.id); }, 'secondary'),
                     !opCarregada && podeMovimentar ? relatedActionButton('Carregar nesta movimentacao', function () {
                       var nextCtx = movementContextForStage(movementStep(op), op);
                       if (typeof options.onSelectOp === 'function') options.onSelectOp(nextCtx);
@@ -2314,7 +2314,7 @@
                     window.el('div', { style: 'font-size:12.5px;color:#3f4757;' },
                       ns.opLabel(op) + ' · ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(op.status) : op.status)),
                     actionsRow(
-                      linkBtn('Abrir OP', function () { navigateToOp(op.id); }),
+                      linkBtn('Ver OP', function () { navigateToOp(op.id); }),
                       podeAceitar ? actionBtn('Aceitar OP', function () { openTecAcceptanceModal({ op: op }); }) : null));
                 })
               )
@@ -2359,7 +2359,7 @@
                       window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;' },
                         ns.opLabel(op) + ' · ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(op.status) : op.status)),
                       actionsRow(
-                        linkBtn('Abrir OP', function () { navigateToOp(op.id); }),
+                        linkBtn('Ver OP', function () { navigateToOp(op.id); }),
                         podeAceitar ? actionBtn('Aceitar OP', function () { openTecAcceptanceModal({ op: op }); }) : null,
                         podeTransferir ? actionBtn('Transferir', openMovimentar('tecelagem', op)) : null,
                         podeFinalizar ? actionBtn('Finalizar OP', function () { finalizarOp(op); }) : null)),
@@ -2412,7 +2412,7 @@
                   },
                     window.el('div', { style: 'font-size:12.5px;color:#3f4757;' },
                       ns.opLabel(op) + ' · ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(op.status) : op.status)),
-                    linkBtn('Abrir OP', function () { navigateToOp(op.id); }));
+                    linkBtn('Ver OP', function () { navigateToOp(op.id); }));
                 })
               )
             : null,
@@ -2467,7 +2467,7 @@
                       window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;' },
                         ns.opLabel(op) + ' · ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(op.status) : op.status)),
                       actionsRow(
-                        linkBtn('Abrir OP', function () { navigateToOp(op.id); }),
+                        linkBtn('Ver OP', function () { navigateToOp(op.id); }),
                         podeMovimentar ? actionBtn('Movimentar', openMovimentar('acabamento', op)) : null,
                         podeFinalizar ? actionBtn('Finalizar OP', function () { finalizarOp(op); }) : null)),
                     window.el('div', { style: 'font-size:12.5px;color:#5b6472;margin-top:4px;line-height:1.4;' },

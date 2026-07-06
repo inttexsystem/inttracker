@@ -5116,3 +5116,68 @@ movimentacao e determinada pelo estagio do Pedido.
   - Fluxo canonico Tecelagem→Acabamento preservado (transferencia real
     continua via `salvarEntregaCima` → RPC `gerar_op_latex`.
   - OP Acabamento relacionada continua consistente.
+
+---
+
+# Estado pos-fase - OP Action Bar UX Cleanup A
+
+- Fase: `RAVATEX-TAPETES-OP-ACTION-BAR-UX-CLEANUP-A`.
+- Status: **PATCH OP ACTION BAR UX PRONTO — AGUARDANDO RETESTE DO USUARIO**.
+- Branch/HEAD base: `work/app-next`, `05d96e2`; status inicial somente
+  `?? supabase/.temp/`; `origin` somente leitura; producao intocada.
+
+- **Entregas (P1):**
+
+  1. **OP Acabamento — Resumo da OP limpo.**
+     - Removidos os hypertextos encavalados "Ir para OP de tecelagem" e
+       "Excluir OP" do bloco `buildRight()` (status `aberta`).
+     - Botao "Excluir OP" reposicionado na barra de acoes do header
+       (`buildHeaderProducao`), ao lado de "Finalizar OP". Usa helper
+       canonico `excluirOpLatex`, sem delete direto.
+
+  2. **Barras/botoes de acao da OP — compactos.**
+     - OP Tecelagem: criado `BTN_ACTION` (`padding:7px 12px;font-size:12.5px`)
+       para todos os botoes do header (Ver Pedido, Pausar, Ir para entregas,
+       Excluir OP, Finalizar OP, Documentos, Historico). Substitui `BTN_BACK`
+       (8px 16px / 13.5px).
+     - OP Latex: `BTN_ACTION` reduzido para o mesmo tamanho.
+     - **Labels encurtados:**
+       - `'Abrir Pedido'` → `'Ver Pedido'` (ambos OP Tecelagem + OP Latex)
+       - `'Finalizar OP Tecelagem'` → `'Finalizar OP'`
+       - `'Abrir OP'` → `'Ver OP'` nos cards de OPs vinculadas e hub
+         (`pedido-detail-render.js`, `pedido-detail-events.js`)
+       - `'Abrir OP'`/`'Abrir pedido'` → `'Ver OP'`/`'Ver pedido'` em
+         `expedicao-admin.js`
+     - Preservado `'Abrir OP'` em `op-nova.js` (acao real de iniciar
+       producao, nao apenas visualizar).
+
+  3. **Handlers preservados.** Excluir OP usa `excluirOpLatex` canonico.
+     Finalizar OP mantém `finalizarTecelagem`/`finalizar(op.id)`. Ver OP
+     mantém navegacao `navigate('#/ops/:id')`. Ver Pedido mantém
+     `navigate('#/pedidos/:id')`.
+
+- **Arquivos alterados:**
+  - `js/screens/op-tecelagem-producao-admin.js` (BTN_ACTION, labels, compact)
+  - `js/screens/op-latex-admin.js` (buildRight limpo, Excluir OP no header,
+    BTN_ACTION compacto, Ver Pedido)
+  - `js/screens/pedido-detail-render.js` (Abrir OP → Ver OP)
+  - `js/screens/pedido-detail-events.js` (Abrir OP → Ver OP, 5x)
+  - `js/screens/expedicao-admin.js` (Abrir OP/pedido → Ver OP/pedido)
+  - `tests/tec-to-acabamento-flow.smoke.js` (ajuste CTA label)
+  - `tests/pedido-detail.smoke.js` (Abrir OP → Ver OP, 9 locais)
+
+- **Nao alterado:** schema, migrations, RPCs, SQL, fluxo Tecelagem→Acabamento
+  (commit anterior), handlers produtivos.
+
+- **Testes:**
+  - `node --test tests/tec-to-acabamento-flow.smoke.js` — 39/39 OK.
+  - `node --test tests/pedido-detail.smoke.js` — 172/172 OK.
+  - `node --test tests/op-latex-admin.smoke.js` — 55/55 OK.
+  - `node --test tests/pedido-detail-linked-ops.smoke.js` — 7/7 OK.
+
+- **Garantias:**
+  - Producao intocada.
+  - `origin` nao usado para escrita.
+  - Sem `git add .`.
+  - `supabase/.temp` fora do commit.
+  - Sem SQL/migration.
