@@ -5252,3 +5252,59 @@ movimentacao e determinada pelo estagio do Pedido.
   - Sem `git add .`.
   - `supabase/.temp` fora do commit.
   - Sem SQL/migration.
+
+---
+
+# Estado pos-fase - Acabamento Entry Quick Action C
+
+- Fase: `RAVATEX-TAPETES-ACABAMENTO-ENTRY-QUICK-ACTION-C`.
+- Status: **PATCH ACABAMENTO ENTRY QUICK ACTION PRONTO — AGUARDANDO RETESTE DO USUARIO**.
+- Branch/HEAD base: `work/app-next`, `0710a18`; status inicial somente
+  `?? supabase/.temp/`; `origin` somente leitura; producao intocada.
+
+- **Causa raiz:** Confirmar entrada no Acabamento exigia sair do contexto do
+  modal de movimentacao e abrir a OP separadamente (`Ver OP`). O usuario
+  precisa de acao rapida no proprio modal/card.
+
+- **Entregas (P1):**
+
+  1. **Handler `confirmEntradaAcabamento`.**
+     (`js/screens/pedido-detail-events.js`). Fecha overlays empilhados,
+     abre `confirmDialog` (nao-danger) e chama
+     `supa.rpc('alterar_status_op', { p_novo_status: 'em_producao' })`.
+     Mesma RPC de `confirmarEntradaAcabamento` em `op-latex-admin.js`.
+
+  2. **Botao "Entrada" no modal de OPs relacionadas.**
+     (`buildRelatedOpsSection`). Mostrado entre "Ver OP" e "Carregar
+     nesta movimentacao" quando `ns.stageKeyForOp(op) === 'acabamento'
+     && op.status === 'aberta'`.
+
+  3. **Botao "Entrada" no card de OP do Pedido Detail.**
+     (`buildOpCard`). Mesma condicao: `summary.stageKey === 'acabamento'
+     && summary.op.status === 'aberta'`. Botao primario ao lado de
+     "Ver OP".
+
+- **Regra de exibicao:** Aparece apenas em OP Acabamento `aberta`.
+  Nao aparece em OP em_producao/concluida/finalizada, nem em OP
+  Tecelagem.
+
+- **Handler canonico:** `alterar_status_op(em_producao)` — RPC existente.
+
+- **Arquivos alterados:**
+  - `js/screens/pedido-detail-events.js` (handler + botao modal)
+  - `js/screens/pedido-detail-render.js` (botao card)
+
+- **Nao alterado:** schema, migrations, RPCs, SQL, op-latex-admin.js.
+
+- **Testes:**
+  - `node --test tests/pedido-detail.smoke.js` — 172/172 OK.
+  - `node --test tests/pedido-detail-linked-ops.smoke.js` — 7/7 OK.
+  - `node --test tests/tec-to-acabamento-flow.smoke.js` — 39/39 OK.
+  - `node --test tests/op-latex-admin.smoke.js` — 55/55 OK.
+
+- **Garantias:**
+  - Producao intocada.
+  - `origin` nao usado para escrita.
+  - Sem `git add .`.
+  - `supabase/.temp` fora do commit.
+  - Sem SQL/migration.

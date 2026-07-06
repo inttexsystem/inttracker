@@ -1,54 +1,41 @@
 > **Atualizacao 2026-07-06 - fase
-> `RAVATEX-TAPETES-MODAL-FOOTER-TRANSFER-UX-B`.**
-> Status: **PATCH MODAL/FOOTER/TRANSFER UX PRONTO — AGUARDANDO RETESTE DO USUARIO**.
+> `RAVATEX-TAPETES-ACABAMENTO-ENTRY-QUICK-ACTION-C`.**
+> Status: **PATCH ACABAMENTO ENTRY QUICK ACTION PRONTO — AGUARDANDO RETESTE DO USUARIO**.
 > Entrada: branch `work/app-next`, HEAD inicial
-> `90a1f80`; status inicial somente `?? supabase/.temp/`;
+> `0710a18`; status inicial somente `?? supabase/.temp/`;
 > `origin` somente leitura e producao intocados.
 >
 > Fase anterior:
-> `RAVATEX-TAPETES-OP-ACTION-BAR-UX-CLEANUP-A` (HEAD
-> `90a1f80`).
+> `RAVATEX-TAPETES-MODAL-FOOTER-TRANSFER-UX-B` (HEAD
+> `0710a18`).
 >
 > Itens entregues (P1):
 >
-> 1. **Dialogo de finalizar OP padronizado.**
-> (`js/ui.js`). `confirmDialog` agora encaminha `danger` (default `true`)
-> para `modal()`. Botao de confirmacao usa vermelho (`bg-red-600`) quando
-> `danger=true`, azul padrao caso contrario. Cancelar mantido a esquerda,
-> Confirmar a direita. Handler `alterar_status_op` via `finalizarOp`
-> preservado.
->
-> 2. **Toasts visiveis acima do modal de transicao.**
-> (`index.html:69`). Container `#toasts` alterado de `z-50` para
-> `z-[250]`, acima do overlay do `openMovementModal` (`z-index:200`).
-> Sem novo sistema de toast, sem gambiarra de z-index.
->
-> 3. **Footer de OPs vinculadas com alinhamento consistente.**
-> (`js/screens/pedido-detail-render.js:buildFooterAction`).
-> Botoes `flex:1` ganharam `min-height:34px`, `white-space:nowrap`,
-> `box-sizing:border-box`, padding horizontal. Labels longos (ex.
-> "Liberar expedicao") nao quebram linha nem desalinham o grupo.
->
-> 4. **"Transferir restante" unificado com "Preencher restante".**
-> (`js/screens/pedido-detail-events.js:openMovementModal`).
-> Botao duplicado removido do `transferBlock`. "Preencher restante"
-> no form canonico (stacked) permanece como acao auxiliar. `fillRemaining`
-> preservado.
+> 1. **Botao rapido "Entrada" para confirmar OP Acabamento no modal/card.**
+> (`js/screens/pedido-detail-events.js`,
+>  `js/screens/pedido-detail-render.js`).
+> - Novo handler `confirmEntradaAcabamento` chama
+>   `alterar_status_op(em_producao)` — mesma RPC canonica de
+>   `confirmarEntradaAcabamento` em `op-latex-admin.js`.
+> - Botao "Entrada" no modal de OPs relacionadas
+>   (`buildRelatedOpsSection`): entre "Ver OP" e "Carregar nesta
+>   movimentacao", visivel quando `stageKey === 'acabamento'` e
+>   `status === 'aberta'`.
+> - Botao "Entrada" no card de OP do Pedido Detail (`buildOpCard`):
+>   primario (azul), mesma condicao.
+> - Nao aparece em OP ja aceita (`em_producao`, `concluida`,
+>   `finalizada`) ou OP de Tecelagem.
+> - "Ver OP" preservado inalterado.
 >
 > - **Arquivos alterados:**
->   - `js/ui.js`
->   - `index.html`
->   - `js/screens/pedido-detail-render.js`
 >   - `js/screens/pedido-detail-events.js`
->   - `tests/pedido-detail.smoke.js`
->   - `tests/tec-to-acabamento-flow.smoke.js`
-> - **Nao alterado:** schema, migrations, RPCs, handlers.
+>   - `js/screens/pedido-detail-render.js`
+> - **Nao alterado:** schema, migrations, RPCs, SQL, op-latex-admin.js,
+>   fluxo Tecelagem→Acabamento.
 > - **Testes:** `pedido-detail.smoke.js` 172/172,
->   `op-latex-admin.smoke.js` 55/55,
->   `tec-to-acabamento-flow.smoke.js` 39/39,
 >   `pedido-detail-linked-ops.smoke.js` 7/7,
->   `expedicao-flow.smoke.js` 8/8,
->   `expedicao-partial-flow.smoke.js` 12/12.
+>   `tec-to-acabamento-flow.smoke.js` 39/39,
+>   `op-latex-admin.smoke.js` 55/55.
 > - **Garantias:** producao intocada; `origin` nao usado; sem
 >   `git add .`; `supabase/.temp` fora do commit.
 >

@@ -335,6 +335,42 @@
       });
     }
 
+    function confirmEntradaAcabamento(op) {
+      if (!op || op.id == null) {
+        window.toast('OP de Acabamento indisponivel.', 'error');
+        return;
+      }
+      closeTopPedidoOverlay();
+      window.confirmDialog({
+        title: 'Entrada no Acabamento',
+        message: 'Confirmar a entrada da ' + opCode(op) + ' no acabamento? A OP passara de aberta para em producao.',
+        confirmLabel: 'Confirmar entrada',
+        danger: false,
+        onConfirm: async function () {
+          var r;
+          try {
+            r = await window.supa.rpc('alterar_status_op', {
+              p_op_id: op.id,
+              p_novo_status: 'em_producao',
+              p_observacao: 'Entrada no acabamento confirmada',
+            });
+          } catch (e) {
+            window.toast('Erro ao confirmar entrada: ' + (e && e.message ? e.message : 'falha de comunicacao'), 'error');
+            return;
+          }
+          if (r.error || (r.data && r.data.ok === false)) {
+            var msg = r.error ? r.error.message : (r.data && r.data.erro ? r.data.erro : 'Nao foi possivel confirmar');
+            window.toast('Erro ao confirmar entrada: ' + msg, 'error');
+            console.error(r.error || r.data);
+            return;
+          }
+          window.toast('Entrada confirmada. ' + opCode(op) + ' em producao.', 'success');
+          await reload();
+          render();
+        },
+      });
+    }
+
     function movementField(label, value) {
       return window.el('div', {},
         window.el('label', {
@@ -1198,6 +1234,7 @@
           ? ops.map(function (op, index) {
               var summary = summaryFor(op);
               var podeAceitar = ns.stageKeyForOp(op) === 'tecelagem' && op.status === 'aberta';
+              var podeConfirmarEntrada = ns.stageKeyForOp(op) === 'acabamento' && op.status === 'aberta';
               var podeMovimentar = canMove(op, summary);
               var podeFinalizar = canFinalize(op, summary);
               var proposta = podeAceitar ? buildTecAcceptanceProposalBlock(op, {
@@ -1221,6 +1258,7 @@
                       : null),
                   window.el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;' },
                     relatedActionButton('Ver OP', function () { navigateToOp(op.id); }, 'secondary'),
+                    podeConfirmarEntrada ? relatedActionButton('Entrada', function () { confirmEntradaAcabamento(op); }) : null,
                     !opCarregada && podeMovimentar ? relatedActionButton('Carregar nesta movimentacao', function () {
                       var nextCtx = movementContextForStage(movementStep(op), op);
                       if (typeof options.onSelectOp === 'function') options.onSelectOp(nextCtx);
@@ -2947,6 +2985,7 @@
       navigateToNovaOp: navigateToNovaOp,
       concluirPedido: concluirPedido,
       finalizarOp: finalizarOp,
+      confirmEntradaAcabamento: confirmEntradaAcabamento,
       excluirPedido: excluirPedido,
       excluirOpRelacionada: excluirOpRelacionada,
       scrollToSection: scrollToSection,
