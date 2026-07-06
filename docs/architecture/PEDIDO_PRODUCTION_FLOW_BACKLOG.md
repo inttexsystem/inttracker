@@ -1,3 +1,34 @@
+# Atualizacao 2026-07-06 - OP Operational Code Closeout C
+
+Fase: `RAVATEX-TAPETES-OP-OPERATIONAL-CODE-CLOSEOUT-C`
+Status: **OK VISUAL NO ESCOPO COM CONTEXTO DE PEDIDO** (closeout documental)
+
+Aceite visual do usuario: a identificacao operacional
+`OP {pedido}/{ano}-{tipo}{seq}` apareceu nos lugares principais e deu certo.
+Aparecer "em poucos lugares" e esperado: o codigo so aparece onde ha contexto
+confiavel de Pedido; sem contexto, mantem-se o legado `OP {numero}/{ano}`.
+Nao ha meta de exibicao global agora.
+
+Regra consolidada: `OP {pedido_numero}/{year(pedido.criado_em)}-{tipo}{seq}`
+(`OP 25/2026-T01`); `T=Tecelagem`, `A=Acabamento/Latex`; `seq` por Pedido+Tipo
+por `ops.criado_em`/`ops.id`; fallback `OP {numero}/{ano}`; formatacao unica em
+`js/op-display.js`.
+
+Escopo validado: Pedido Detail Admin (OPs vinculadas, OPs relacionadas, modais
+das setas, hub, `tecPendingAcceptance`, `relatedOpsLabel`, docs/expedicao).
+Legado por decisao: PDFs, fornecedor/RLS, toasts, logs, diagnosticos, telas sem
+contexto (`ops-list`, `op-latex-admin`, `op-tecelagem-producao-admin`,
+`op-nova`, `expedicao-admin`, `painel`).
+
+Pendencia controlada: expandir a outras telas so quando (1) contexto confiavel
+de Pedido; (2) necessidade visual clara; (3) sem migration; (4) sem query
+pesada; (5) sem duplicar formatacao fora de `js/op-display.js`. Candidatos:
+`painel.js`, `expedicao-admin.js`. Sem nova expansao funcional nesta fase.
+
+Closeout documental: bateria funcional ja verde no commit `d7f57c4`
+(op-display 20/20, pedido-detail 163/163, obrigatorio 337/337); revalidacao
+minima desta fase em `op-display.smoke.js` + `pedido-detail.smoke.js`.
+
 # Atualizacao 2026-07-06 - OP Operational Code Helper B
 
 Fase: `RAVATEX-TAPETES-OP-OPERATIONAL-CODE-HELPER-B`

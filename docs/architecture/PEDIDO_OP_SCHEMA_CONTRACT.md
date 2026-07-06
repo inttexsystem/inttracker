@@ -552,6 +552,8 @@ WHERE l.pedido_id = :pedido_id;
 | D-OC05 | Fallback obrigatório ao legado `OP {numero}/{ano}` sem `pedido.numero`/`pedido.criado_em`/irmãs/tipo conhecido, e onde não há contexto de Pedido (PDF, fornecedor/RLS, toasts, `ops-list`, telas de OP standalone). | Não inventar código incompleto; respeitar RLS do fornecedor. |
 | D-OC06 | `pedido-detail-data.js` seleciona `ops.criado_em` (SELECT aditivo, sem write) para o sequencial. | Base de OPs já carregava por `lote_id`; só faltava o campo de ordenação. |
 | D-OC07 | Aplicado nesta fase apenas em telas com contexto de Pedido (Pedido Detail Admin). `painel.js`/`expedicao-admin.js` ficam para o próximo incremento (têm contexto, exigem resolver OP→Pedido sem query nova). | Escopo inicial obrigatório + gestão de risco. |
+| D-OC08 | **Aceite visual do usuário registrado (fase `RAVATEX-TAPETES-OP-OPERATIONAL-CODE-CLOSEOUT-C`):** OK no escopo com contexto de Pedido. A aparição "em poucos lugares" é esperada — o código operacional é intencionalmente **não-global**. | O código só aparece onde há contexto confiável de Pedido; fora disso, legado. |
+| D-OC09 | **Pendência controlada** — expandir a outras telas só quando: (1) houver contexto confiável de Pedido; (2) houver necessidade visual clara; (3) não exigir migration; (4) não criar query pesada; (5) não duplicar formatação fora de `js/op-display.js`. | Evita expansão global sem necessidade validada; formatação permanece central. |
 
 ###
 

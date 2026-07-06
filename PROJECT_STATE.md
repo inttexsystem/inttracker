@@ -1,4 +1,50 @@
 > **Atualizacao 2026-07-06 - fase
+> `RAVATEX-TAPETES-OP-OPERATIONAL-CODE-CLOSEOUT-C`.**
+> Status: **OK VISUAL NO ESCOPO COM CONTEXTO DE PEDIDO**. Closeout
+> documental/estado, sem patch funcional.
+> Entrada/saida: branch `work/app-next`, HEAD `d7f57c4`; status somente
+> `?? supabase/.temp/`; `origin` somente leitura; escrita em
+> `staging/work/app-next`.
+>
+> Aceite visual do usuario: conferiu que a identificacao operacional
+> `OP {pedido}/{ano}-{tipo}{seq}` apareceu nos lugares principais e considerou
+> OK. Observou que ainda aparece em poucos lugares - comportamento ESPERADO
+> pela estrategia: o codigo operacional so aparece onde ha contexto confiavel
+> de Pedido; onde nao ha, mantem-se o legado `OP {numero}/{ano}`. Nao ha
+> objetivo de exibicao global agora.
+>
+> Regra consolidada: display operacional principal com contexto de Pedido
+> `OP {pedido_numero}/{year(pedido.criado_em)}-{tipo}{seq}` (ex.: `OP 25/2026-T01`);
+> `T=Tecelagem`, `A=Acabamento/Latex`; `seq` por Pedido+Tipo ordenado por
+> `ops.criado_em` e `ops.id`; fallback `OP {numero}/{ano}`. Formatacao unica em
+> `js/op-display.js`.
+>
+> Escopo validado (onde o codigo operacional aparece): Pedido Detail Admin -
+> OPs vinculadas, OPs relacionadas, modais das setas, hub da etapa,
+> `tecPendingAcceptance`, `relatedOpsLabel` e labels de documentos/expedicao.
+>
+> Mantido em legado por decisao: PDFs, fornecedor/RLS, toasts, logs,
+> diagnosticos, telas sem contexto confiavel de Pedido (`ops-list`,
+> `op-latex-admin`, `op-tecelagem-producao-admin`, `op-nova`, `expedicao-admin`,
+> Dashboard `painel`), e locais onde a expansao exigiria query/read model
+> adicional sem necessidade validada.
+>
+> Decisao: NAO perseguir aplicacao global agora. Pendencia controlada -
+> expandir para outras telas somente quando (1) houver contexto confiavel de
+> Pedido, (2) houver necessidade visual clara, (3) nao exigir migration,
+> (4) nao criar query pesada, (5) nao duplicar formatacao fora de
+> `js/op-display.js`. Candidatos naturais: `painel.js` e `expedicao-admin.js`.
+>
+> Testes: fase de closeout documental; a bateria funcional ja estava verde no
+> commit anterior `d7f57c4` (op-display 20/20, pedido-detail 163/163, conjunto
+> obrigatorio 337/337). Revalidacao minima desta fase: `op-display.smoke.js` e
+> `pedido-detail.smoke.js` verdes. Nenhum arquivo funcional alterado.
+>
+> Confirmacoes: producao intocada, `origin` nao usado para escrita, sem SQL,
+> sem migration, sem dados reais novos, sem alterar `op_numeros`/RPC/`ops.numero`/
+> `ops.ano`, sem `git add .`, `supabase/.temp/` fora do commit.
+
+> **Atualizacao 2026-07-06 - fase
 > `RAVATEX-TAPETES-OP-OPERATIONAL-CODE-HELPER-B`.**
 > Status: PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO.
 > Entrada: branch `work/app-next`, HEAD inicial
