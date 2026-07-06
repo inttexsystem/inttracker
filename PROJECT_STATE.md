@@ -5535,3 +5535,47 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 > `delete-impact`, `production-flow-invariants`, `latex-consolidation` e
 > `expedicao-partial-flow` OK. Producao e `origin` intocados; sem renumerar OP,
 > sem reciclar numero e sem commit de `supabase/.temp`.
+>
+> **Atualizacao 2026-07-06 - fase
+> `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-EXPEDICAO-CASCADE-E2`.**
+> Status: **PATCH VALIDADO COM DELETE SINTETICO COM EXPEDICAO EM STAGING -
+> AGUARDANDO RETESTE DO USUARIO**.
+>
+> Criada migration incremental
+> `db/37_controlled_delete_expedicao_cascade.sql`, aplicada somente em staging
+> `ucrjtfswnfdlxwtmxnoo`. Causa raiz confirmada: a fase anterior ainda
+> tratava expedicao como bloqueador duro e orientava exclusao manual antes da
+> RPC, mas o fluxo de teste precisa remover a cadeia inteira de forma
+> transacional e controlada. Mapeamento FK confirmou tambem a dependencia
+> `expedicao_movimento_itens`, que entra na cascata antes de movimentos,
+> itens e expedicoes.
+>
+> Politica ativa em staging/teste: expedição vinculada deixa de ser `blocked`
+> e passa a exigir `EXCLUIR TUDO`, com `cascade_required=true`,
+> `cascade_includes_expedicao=true` e contagens de expedicoes, itens,
+> movimentos e itens de movimento no diagnostico. A RPC remove
+> `expedicao_movimento_itens`, `expedicao_movimentos`, `expedicao_itens`,
+> `expedicoes`, `op_latex_entregas`, `entrega_itens`, entregas vazias e entao
+> OPs filhas antes das OPs raizes, com verificacoes de remanescentes antes de
+> apagar Pedido/OP.
+>
+> Teste sintetico real em staging via REST/RPC: Pedido #30
+> `1803e2d3-39f4-47c2-a60e-e7629cb69810`, lote 28, OP Tecelagem 47, OP Latex
+> 48, itens 70/71, entrega 22, entrega_item 24, link `op_latex_entregas` 22,
+> expedicao 5, expedicao_item 10, expedicao_movimento 5 e
+> expedicao_movimento_item 7. Diagnostico previo:
+> `requires_cascade_confirmation`, `blocked=false`, com expedicao incluída na
+> cascata. `remover_pedido(..., 'EXCLUIR TUDO')` retornou `ok=true`;
+> remanescentes de pedido/lote/ops/op_itens/entregas/entrega_itens/
+> op_latex_entregas/expedicoes/expedicao_itens/expedicao_movimentos/
+> expedicao_movimento_itens/origem quebrada ficaram todos 0.
+> `op_numeros` antes/depois identico (`latex::2026=16`,
+> `tecelagem::2026=25`).
+>
+> Validacao local: `controlled-delete`, `pedidos-list`, `ops-list`,
+> `op-latex-admin` e `production-flow-invariants` verdes. Producao e `origin`
+> intocados; sem delete real nao autorizado; sem renumerar OP, sem reciclar
+> numero, sem alterar `op_numeros`, sem `git add .` e sem commit de
+> `supabase/.temp`. Risco remanescente: esta politica e apenas de
+> staging/teste; producao ainda exige decisao futura de senha/admin forte,
+> soft-delete e auditoria permanente antes de qualquer exclusao fisica.

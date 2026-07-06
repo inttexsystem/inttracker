@@ -8,6 +8,7 @@ const ROOT = path.resolve(__dirname, '..');
 const SQL = path.join(ROOT, 'db', '34_controlled_delete_pedido_op.sql');
 const SQL_CASCADE = path.join(ROOT, 'db', '35_controlled_delete_test_cascade.sql');
 const SQL_FIX = path.join(ROOT, 'db', '36_controlled_delete_fk_order_fix.sql');
+const SQL_EXPEDICAO = path.join(ROOT, 'db', '37_controlled_delete_expedicao_cascade.sql');
 const HELPER = path.join(ROOT, 'js', 'delete-helpers.js');
 const INDEX = path.join(ROOT, 'index.html');
 const PEDIDOS_LIST = path.join(ROOT, 'js', 'screens', 'pedidos-list.js');
@@ -35,7 +36,8 @@ function assertOrder(src, first, second, msg) {
 const sql = read(SQL);
 const sqlCascade = read(SQL_CASCADE);
 const sqlFix = read(SQL_FIX);
-const sqlAll = sql + '\n' + sqlCascade + '\n' + sqlFix;
+const sqlExpedicao = read(SQL_EXPEDICAO);
+const sqlAll = sql + '\n' + sqlCascade + '\n' + sqlFix + '\n' + sqlExpedicao;
 const helper = read(HELPER);
 const index = read(INDEX);
 const pedidosList = read(PEDIDOS_LIST);
@@ -187,6 +189,37 @@ test('SQL36 mantem op_numeros fora de update/delete/insert', () => {
   assert.doesNotMatch(sqlFix, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+op_numeros/i);
 });
 
+test('SQL37 expedição entra em cascata e nao fica blocked em staging/teste', () => {
+  assert.match(sqlExpedicao, /CONTROLLED-DELETE-EXPEDICAO-CASCADE-E2/i);
+  assert.match(sqlExpedicao, /cascade_includes_expedicao/i);
+  assert.match(sqlExpedicao, /v_expedicoes\s*>\s*0[\s\S]*v_cascade\s*:=\s*TRUE/i);
+  assert.doesNotMatch(sqlExpedicao, /existe expedicao vinculada\. Exclua a expedicao antes/i);
+  assert.doesNotMatch(sqlExpedicao, /v_expedicoes\s*>\s*0\s+OR\s+v_expedicao_itens\s*>\s*0[\s\S]{0,220}v_blocked\s*:=\s*TRUE/i);
+});
+
+test('SQL37 remove expedicao antes de entrega e ops', () => {
+  assert.match(sqlExpedicao, /DELETE\s+FROM\s+public\.expedicao_movimento_itens/i);
+  assert.match(sqlExpedicao, /DELETE\s+FROM\s+public\.expedicao_movimentos/i);
+  assert.match(sqlExpedicao, /DELETE\s+FROM\s+public\.expedicao_itens/i);
+  assert.match(sqlExpedicao, /DELETE\s+FROM\s+public\.expedicoes/i);
+  assertOrder(sqlExpedicao, /DELETE\s+FROM\s+public\.expedicao_movimentos/i, /DELETE\s+FROM\s+public\.expedicao_itens/i);
+  assertOrder(sqlExpedicao, /DELETE\s+FROM\s+public\.expedicao_itens/i, /DELETE\s+FROM\s+public\.expedicoes/i);
+  assertOrder(sqlExpedicao, /DELETE\s+FROM\s+public\.expedicoes/i, /DELETE\s+FROM\s+public\.op_latex_entregas/i);
+  assertOrder(sqlExpedicao, /DELETE\s+FROM\s+public\.expedicoes/i, /DELETE\s+FROM\s+public\.ops\s+WHERE\s+id\s*=\s*v_op_id/i);
+});
+
+test('SQL37 verifica remanescentes de expedicao antes de apagar OP/Pedido', () => {
+  assert.match(sqlExpedicao, /v_remaining_expedicao_item_ids/i);
+  assert.match(sqlExpedicao, /Exclusao interrompida: ainda existem itens de expedicao vinculados/i);
+  assert.match(sqlExpedicao, /v_remaining_expedicao_ids/i);
+  assert.match(sqlExpedicao, /Exclusao interrompida: ainda existem expedicoes vinculadas/i);
+});
+
+test('SQL37 mantem op_numeros fora de update/delete/insert', () => {
+  assert.doesNotMatch(sqlExpedicao, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+public\.op_numeros/i);
+  assert.doesNotMatch(sqlExpedicao, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+op_numeros/i);
+});
+
 test('script staging mostra alvos FK e cobertura da cascata', () => {
   assert.match(stagingScript, /entrega_itens_por_op_id/);
   assert.match(stagingScript, /entrega_itens_por_op_item_id/);
@@ -194,6 +227,7 @@ test('script staging mostra alvos FK e cobertura da cascata', () => {
   assert.match(stagingScript, /target_op_itens/);
   assert.match(stagingScript, /op_latex_entregas/);
   assert.match(stagingScript, /cascade_zera_entrega_itens_antes_de_ops/);
+  assert.match(stagingScript, /cascade_inclui_expedicao/);
 });
 
 test('helper central expoe API RAVATEX_DELETE e chama RPCs', () => {
@@ -209,7 +243,8 @@ test('helper central expoe API RAVATEX_DELETE e chama RPCs', () => {
 
 test('helper contem mensagens obrigatorias e relatorio antes da exclusao', () => {
   assert.match(helper, /Não é possível excluir: existe entrega vinculada\. Exclua a entrega antes\./);
-  assert.match(helper, /Não é possível excluir: existe expedição vinculada\. Exclua a expedição antes\./);
+  assert.doesNotMatch(helper, /Exclua a expedição antes\./);
+  assert.match(helper, /A expedição vinculada entra na exclusão controlada de teste com EXCLUIR TUDO\./);
   assert.match(helper, /Não é possível excluir esta OP: existe OP de Acabamento vinculada\. Exclua a OP filha primeiro\./);
   assert.match(helper, /Digite EXCLUIR para confirmar\./);
   assert.match(helper, /Esta ação é irreversível no ambiente de testes\./);

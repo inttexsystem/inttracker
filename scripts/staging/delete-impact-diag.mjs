@@ -100,8 +100,7 @@ function collectTargetOps(rootIds, opsByParent) {
 }
 
 function classifyPedido(c) {
-  if (c.expedicoes > 0) return { classification: 'blocked', reason: 'expedicao' };
-  if (c.entregas > 0 || c.entrega_itens_por_op_id > 0 || c.entrega_itens_por_op_item_id > 0 || c.op_latex_entregas > 0 || c.ops_filhas > 0 || c.ops_filhas_nao_tratadas > 0) {
+  if (c.expedicoes > 0 || c.expedicao_itens > 0 || c.expedicao_movimentos > 0 || c.entregas > 0 || c.entrega_itens_por_op_id > 0 || c.entrega_itens_por_op_item_id > 0 || c.op_latex_entregas > 0 || c.ops_filhas > 0 || c.ops_filhas_nao_tratadas > 0) {
     return {
       classification: 'requires_cascade_confirmation',
       reason: 'cadeia_produtiva_teste',
@@ -114,8 +113,7 @@ function classifyPedido(c) {
 }
 
 function classifyOp(c) {
-  if (c.expedicoes > 0) return { classification: 'blocked', reason: 'expedicao' };
-  if (c.entregas > 0 || c.entrega_itens_por_op_id > 0 || c.entrega_itens_por_op_item_id > 0 || c.op_latex_entregas > 0 || c.ops_filhas > 0) {
+  if (c.expedicoes > 0 || c.expedicao_itens > 0 || c.expedicao_movimentos > 0 || c.entregas > 0 || c.entrega_itens_por_op_id > 0 || c.entrega_itens_por_op_item_id > 0 || c.op_latex_entregas > 0 || c.ops_filhas > 0) {
     return {
       classification: 'requires_cascade_confirmation',
       reason: 'cadeia_produtiva_teste',
@@ -230,7 +228,8 @@ function classifyOp(c) {
         ops_filhas_nao_tratadas: 0,
         target_ops: targetOpIds.length,
         target_op_itens: targetOpItemIds.length,
-        cascade_can_zero_entrega_itens_before_ops: expIds.length === 0,
+        cascade_can_zero_entrega_itens_before_ops: true,
+        cascade_includes_expedicao: expIds.length > 0,
       };
       const cls = classifyPedido(c);
       console.log('Pedido #' + pedido.numero + ' id=' + pedido.id + ' status=' + pedido.status + ' -> ' + cls.classification + ' (' + cls.reason + ') ' + JSON.stringify(c));
@@ -238,7 +237,8 @@ function classifyOp(c) {
         + ' target_op_itens=' + summarizeIds(targetOpItemIds)
         + ' target_entregas=' + summarizeIds(entregaIds)
         + ' op_latex_entregas=' + summarizeIds(opLatexLinks.map((link) => link.id))
-        + ' cascade_zera_entrega_itens_antes_de_ops=' + (expIds.length === 0 ? 'sim' : 'nao'));
+        + ' cascade_zera_entrega_itens_antes_de_ops=sim'
+        + ' cascade_inclui_expedicao=' + (expIds.length > 0 ? 'sim' : 'nao'));
     });
 
   console.log('\n===== OPS =====');
@@ -275,12 +275,14 @@ function classifyOp(c) {
         entrega_itens_por_op_item_id: entregaItensByOpItemId.length,
         expedicoes: expIds.length,
         expedicao_itens: count(expedicaoItens, (row) => expIds.includes(row.expedicao_id) || targetOpItemIds.includes(row.op_item_id)),
+        expedicao_movimentos: count(expedicaoMovimentos, (row) => expIds.includes(row.expedicao_id)),
         ops_filhas: targetChildOpIds.length,
         op_mae: op.origem_op_id == null ? 0 : 1,
         op_latex_entregas: opLatexLinks.length,
         target_ops: targetOpIds.length,
         target_op_itens: targetOpItemIds.length,
-        cascade_can_zero_entrega_itens_before_ops: expIds.length === 0,
+        cascade_can_zero_entrega_itens_before_ops: true,
+        cascade_includes_expedicao: expIds.length > 0,
       };
       const cls = classifyOp(c);
       console.log('OP ' + op.numero + '/' + op.ano + ' id=' + op.id + ' tipo=' + (op.tipo || 'tecelagem') + ' status=' + op.status + ' -> ' + cls.classification + ' (' + cls.reason + ') ' + JSON.stringify(c));
@@ -288,6 +290,7 @@ function classifyOp(c) {
         + ' target_op_itens=' + summarizeIds(targetOpItemIds)
         + ' target_entregas=' + summarizeIds(entregaIds)
         + ' op_latex_entregas=' + summarizeIds(opLatexLinks.map((link) => link.id))
-        + ' cascade_zera_entrega_itens_antes_de_ops=' + (expIds.length === 0 ? 'sim' : 'nao'));
+        + ' cascade_zera_entrega_itens_antes_de_ops=sim'
+        + ' cascade_inclui_expedicao=' + (expIds.length > 0 ? 'sim' : 'nao'));
     });
 })();

@@ -8,7 +8,7 @@
   'use strict';
 
   var MSG_ENTREGA = 'Não é possível excluir: existe entrega vinculada. Exclua a entrega antes.';
-  var MSG_EXPEDICAO = 'Não é possível excluir: existe expedição vinculada. Exclua a expedição antes.';
+  var MSG_EXPEDICAO = 'A expedição vinculada entra na exclusão controlada de teste com EXCLUIR TUDO.';
   var MSG_FILHA = 'Não é possível excluir esta OP: existe OP de Acabamento vinculada. Exclua a OP filha primeiro.';
   var MSG_FORTE = 'Digite EXCLUIR para confirmar.';
   var MSG_CASCADE_FORTE = 'Esta exclusão remove cadeia produtiva de teste: OPs, entregas, itens e vínculos. Digite EXCLUIR TUDO para confirmar.';
@@ -85,6 +85,7 @@
       ['expedicoes', 'Expedições'],
       ['expedicao_itens', 'Itens de expedição'],
       ['expedicao_movimentos', 'Movimentos de expedição'],
+      ['expedicao_movimento_itens', 'Itens de movimentos de expedição'],
       ['op_latex_entregas', 'Vínculos de entrega para Acabamento'],
       ['ops_filhas', 'OPs filhas']
     ];

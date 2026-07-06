@@ -4867,3 +4867,48 @@ node --test tests/boot.smoke.js \
 - Garantias: producao intocada, `origin` nao usado para escrita, sem
   renumerar OP, sem reciclar numero, sem alterar `op_numeros`, sem
   `git add .`, `supabase/.temp` fora do patch.
+# Estado pos-fase - Pedido/OP Controlled Delete Expedicao Cascade E2
+
+- Fase: `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-EXPEDICAO-CASCADE-E2`.
+- Status: **PATCH VALIDADO COM DELETE SINTETICO COM EXPEDICAO EM STAGING - AGUARDANDO RETESTE DO USUARIO**.
+- Migration nova: `db/37_controlled_delete_expedicao_cascade.sql`, aplicada
+  somente em staging `ucrjtfswnfdlxwtmxnoo`.
+- Causa raiz: a `db/36` ainda classificava expedição como `blocked` e a UI
+  orientava excluir a expedição antes. Para staging/teste, a regra atual e
+  cascata fisica controlada da cadeia inteira quando o usuario confirma
+  `EXCLUIR TUDO`.
+- Mapeamento FK confirmado em staging: `expedicoes` referencia Pedido/OP;
+  `expedicao_itens` referencia `expedicoes` e `op_itens`;
+  `expedicao_movimentos` referencia `expedicoes`; e
+  `expedicao_movimento_itens` referencia movimentos e itens de expedição.
+  Nao havia triggers nas tabelas de expedicao inspecionadas.
+- Nova politica: expedição vinculada nao fica `blocked` em staging/teste;
+  diagnostico retorna `requires_cascade_confirmation`,
+  `cascade_required=true`, `confirmation_required='EXCLUIR TUDO'` e
+  `cascade_includes_expedicao=true`. O texto antigo "Exclua a expedição
+  antes" foi removido do helper.
+- Ordem da RPC: montar alvos de Pedido/OP; apagar
+  `expedicao_movimento_itens`; apagar `expedicao_movimentos`; apagar
+  `expedicao_itens`; apagar `expedicoes`; apagar `op_latex_entregas`;
+  apagar `entrega_itens` por `op_id` ou `op_item_id`; apagar entregas vazias;
+  verificar zero remanescente de entrega/expedição; apagar OPs filhas antes
+  das raizes; apagar lotes/pedido quando aplicavel.
+- Teste sintetico real em staging via REST/RPC: Pedido #30
+  `1803e2d3-39f4-47c2-a60e-e7629cb69810`, lote 28, OP Tecelagem 47, OP Latex
+  48, itens 70/71, entrega 22, entrega_item 24, link `op_latex_entregas` 22,
+  expedicao 5, expedicao_item 10, expedicao_movimento 5,
+  expedicao_movimento_item 7. Pre-diagnostico:
+  `requires_cascade_confirmation`, `blocked=false`, expedicao incluída na
+  cascata. `remover_pedido(..., 'EXCLUIR TUDO')` retornou `ok=true`;
+  remanescentes todos 0, inclusive expedição/movimentos/itens e origem
+  quebrada.
+- `op_numeros` antes/depois identico: `latex::2026=16`,
+  `tecelagem::2026=25`. Nao renumerar OP e nao reciclar numero.
+- Testes locais verdes: `controlled-delete`, `pedidos-list`, `ops-list`,
+  `op-latex-admin`, `production-flow-invariants`.
+- Garantias: producao intocada; `origin` nao usado para escrita; sem delete
+  real nao autorizado; sem alterar `op_numeros`; sem `git add .`;
+  `supabase/.temp` fora do patch.
+- Risco remanescente: politica fisica limitada a staging/teste. Producao
+  ainda precisa de senha/admin forte, soft-delete e auditoria permanente antes
+  de qualquer caminho equivalente.
