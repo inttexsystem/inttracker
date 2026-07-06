@@ -4709,3 +4709,35 @@ node --test tests/boot.smoke.js \
   cleanup/backfill; sem constraint global; sem alteracao de dados reais; sem
   RLS; sem fornecedor/PDF; sem alterar identificacao OP; sem `git add .`;
   `supabase/.temp/` fora do patch.
+# Estado pos-fase - OP Create Requires Pedido RPC Guard C Staging Apply
+
+- Fase: `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-RPC-GUARD-C-STAGING-APPLY`.
+- Status: **STAGING APPLY OK**.
+- Branch/HEAD inicial antes do registro: `work/app-next`,
+  `95946d5f4026fa927c41be486eefecb68a01100c`; status inicial somente
+  `?? supabase/.temp/`.
+- Migration aplicada: `db/33_op_latex_requires_pedido_guard.sql`.
+- Ambiente alvo: Supabase staging `ucrjtfswnfdlxwtmxnoo`.
+- Metodo: aplicacao manual informada pelo usuario no SQL Editor do Supabase
+  staging. Producao `bhgifjrfagkzubpyqpew` nao usada. Supabase CLI nao esta
+  instalado neste ambiente e nao ha `STAGING_DB_URL`/`DB_URL`/`DATABASE_URL`
+  local para consulta direta ao catalogo.
+- Validacao pos-aplicacao:
+  - `ops-without-pedido-diag`: ALERTA historico esperado; `0` OPs com
+    `lote_id NULL`, `11` OPs cujo `lote.pedido_id IS NULL`, `9` lotes sem
+    Pedido vinculados a OPs. Classificacao: A=6 (`op_id` 1,2,3,4,9,15), B=4
+    (`op_id` 5,6,7,8), C=0, D=1 (`op_id` 10).
+  - `production-flow-invariants-diag`: OK; 0 duplicatas default; `op_numeros`
+    OK (`latex::2026=16`, `tecelagem::2026=25`).
+  - `latex-consolidation-diag`: OK; 0 duplicidades default; 1 split atual com
+    `criacao_split` e `split_derivado` completos.
+  - `expedicao-partial-flow-diag`: OK; saldos, status e limites coerentes.
+- Testes locais verdes: `op-latex-requires-pedido-guard`, `op-latex-split`,
+  `latex-consolidation-schema`, `production-flow-invariants`, `op-nova`,
+  `op-persistir`.
+- Pendencias posteriores: triagem das 11 orfas historicas; backfill/cleanup e
+  constraint global somente apos decisao de produto/tecnica.
+- Confirmacoes: producao intocada; `origin` nao usado para escrita; sem
+  cleanup/backfill; sem constraint global; sem dados reais novos; sem alterar
+  RLS/PDF/fornecedor/identificacao OP; sem alterar `op_numeros`; usar staging
+  seletivo se houver commit; `supabase/.temp/` fora do patch.

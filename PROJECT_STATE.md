@@ -1,4 +1,37 @@
 > **Atualizacao 2026-07-06 - fase
+> `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-RPC-GUARD-C-STAGING-APPLY`.**
+> Status: **STAGING APPLY OK**.
+> Entrada: branch `work/app-next`, HEAD inicial/final antes do registro
+> `95946d5f4026fa927c41be486eefecb68a01100c`; status inicial somente
+> `?? supabase/.temp/`; `origin` e producao intocados.
+>
+> Migration aplicada em Supabase staging `ucrjtfswnfdlxwtmxnoo`:
+> `db/33_op_latex_requires_pedido_guard.sql`. Metodo: aplicacao manual pelo
+> usuario no SQL Editor do Supabase staging; nao foi usada producao
+> `bhgifjrfagkzubpyqpew`. Supabase CLI nao esta disponivel neste ambiente e nao
+> ha `STAGING_DB_URL`/`DB_URL`/`DATABASE_URL` local para consulta direta ao
+> catalogo; validacao foi feita por testes locais e diagnosticos staging
+> read-only apos a aplicacao.
+>
+> Resultado pos-aplicacao: diagnostico de orfaos permanece ALERTA historico com
+> `0` OPs com `lote_id NULL`, `11` OPs cujo `lote.pedido_id IS NULL` e `9`
+> lotes sem Pedido vinculados a OPs. Classificacao preservada: A=6 (`op_id`
+> 1,2,3,4,9,15), B=4 (`op_id` 5,6,7,8), C=0, D=1 (`op_id` 10). Nenhuma
+> correcao/backfill foi feita.
+>
+> Diagnosticos staging pos-aplicacao: `production-flow-invariants-diag` OK
+> (sem duplicatas default, `op_numeros` OK), `latex-consolidation-diag` OK
+> (0 duplicidades default, 1 split com rastro completo), e
+> `expedicao-partial-flow-diag` OK (saldos/status coerentes). Testes locais
+> verdes: `op-latex-requires-pedido-guard`, `op-latex-split`,
+> `latex-consolidation-schema`, `production-flow-invariants`, `op-nova` e
+> `op-persistir`.
+>
+> Confirmacoes: sem producao, sem cleanup/backfill, sem constraint global, sem
+> dados reais novos, sem alteracao de RLS/PDF/fornecedor/identificacao OP, sem
+> alterar `op_numeros`; `supabase/.temp/` permanece fora do patch.
+
+> **Atualizacao 2026-07-06 - fase
 > `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-RPC-GUARD-C`.**
 > Status: **PATCH TECNICO PRONTO - AGUARDANDO VALIDACAO TECNICA/STAGING**.
 > Entrada: branch `work/app-next`, HEAD inicial
