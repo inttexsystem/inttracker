@@ -1,5 +1,7 @@
 .env
 data/*.db
+data/*.db-shm
+data/*.db-wal
 data/google-token.json
 data/documents/
 data/outbox/*.jsonl
