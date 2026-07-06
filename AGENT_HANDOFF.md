@@ -5056,3 +5056,63 @@ movimentacao e determinada pelo estagio do Pedido.
 - `Abrir OP` e demais acoes validas preservadas.
 - Fluxo `Acabamento>Expedicao` (com `Carregar nesta movimentacao` valido)
   inalterado.
+
+---
+
+# Estado pos-fase - Tecelagem Transfer 404 Fix A
+
+- Fase: `RAVATEX-TAPETES-TEC-ACABAMENTO-TRANSFER-404-A`.
+- Status: **PATCH TRANSFER TECELAGEM→ACABAMENTO PRONTO — AGUARDANDO RETESTE DO USUARIO**.
+- Branch/HEAD base: `work/app-next`,
+  `2ca2b4a8bbbcfbb0160e14dedb5d756c81be40da`; status inicial somente
+  `?? supabase/.temp/`; `origin` somente leitura; producao intocada.
+
+- **Causa raiz do 404:** Na OP de Tecelagem (`op-tecelagem-producao-admin.js`),
+  o botao "Transferir" no bloco "5. Movimentacao — enviar para acabamento"
+  usava `<a href="#entregas-tecelagem-op">` (tag `<a>` com href de hash).
+  A app usa hash-based routing (`boot.js:78` registra `hashchange` →
+  `handleRoute`). O hash `#entregas-tecelagem-op` nao corresponde a
+  nenhuma rota registrada, e o router (`router.js:130-132`) chama
+  `screenNotFound()` que renderiza "404 - Tela nao encontrada".
+  Mesma classe de bug atingia `<a>` similares em `op-latex-admin.js` e
+  na header de navegacao da OP Tecelagem (`#documentos-op`,
+  `#historico-op`, `#movimentacao-op`).
+
+- **Correcao:** Substituidas todas as `<a href="#..."` por `<button>`
+  com `onclick` que chama `document.getElementById(...).scrollIntoView()`
+  (comportamento `smooth`/`start`). O scroll interno e preservado sem
+  disparar navegacao por hash.
+
+- **Arquivos alterados:**
+  - `js/screens/op-tecelagem-producao-admin.js`:
+    + line 178: `<a href="#entregas-tecelagem-op">Ir para entregas</a>` → `<button>` + onclick
+    + line 481: `<a href="#entregas-tecelagem-op">Transferir</a>` → `<button>` + onclick
+    + lines 194-195: `<a href="#documentos-op/historico-op">` → `<button>` + onclick
+  - `js/screens/op-latex-admin.js`:
+    + line 485: removido `var BTN_ACTION_LINK` (nao mais usado)
+    + line 586: `<a href="#movimentacao-op">Ir para movimentos</a>` → `<button>` + onclick
+    + line 588: `<a href="#documentos-op">Documentos</a>` → `<button>` + onclick
+    + line 589: `<a href="#historico-op">Historico</a>` → `<button>` + onclick
+    + line 687: `<a href="#movimentacao-op">Ver movimentacao...</a>` → `<button>` + onclick
+  - `tests/tec-to-acabamento-flow.smoke.js`: teste R1 atualizado para
+    validar `getElementById` + `doesNotMatch href`.
+  - `tests/op-latex-admin.smoke.js`: teste 48 atualizado para validar
+    `getElementById` + `doesNotMatch href`.
+
+- **Nao alterado:** schema, migrations, RPCs, SQL, policies, production,
+  origin. Nenhuma chamada a `delete`, `update` ou `insert` nova.
+
+- **Testes:**
+  - `node --test tests/tec-to-acabamento-flow.smoke.js` — 39/39 OK.
+  - `node --test tests/pedido-detail.smoke.js` — 172/172 OK.
+  - `node --test tests/op-latex-admin.smoke.js` — 55/55 OK.
+
+- **Garantias:**
+  - Producao intocada.
+  - `origin` nao usado para escrita.
+  - Sem `git add .`.
+  - `supabase/.temp` fora do commit.
+  - Sem SQL/migration/alteracao de schema.
+  - Fluxo canonico Tecelagem→Acabamento preservado (transferencia real
+    continua via `salvarEntregaCima` → RPC `gerar_op_latex`.
+  - OP Acabamento relacionada continua consistente.

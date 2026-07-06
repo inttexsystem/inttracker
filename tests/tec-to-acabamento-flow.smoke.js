@@ -704,11 +704,13 @@ test('R1: OP Tecelagem header não contém botão "Movimentar" ambíguo (renomea
     'botão do header da OP Tecelagem deve usar label "Ir para entregas" que reflete scroll');
 });
 
-test('R1: OP Tecelagem anchor #entregas-tecelagem-op continua sendo destino do scroll', () => {
+test('R1: OP Tecelagem scroll para #entregas-tecelagem-op preservado com button sem hash navigation', () => {
   assert.match(otpaSrc, /id:\s*['"]entregas-tecelagem-op['"]/,
     'o bloco de destino #entregas-tecelagem-op deve continuar existindo');
-  assert.match(otpaSrc, /href:\s*['"]#entregas-tecelagem-op['"]/,
-    'o anchor para #entregas-tecelagem-op deve continuar existindo no botão renomeado');
+  assert.match(otpaSrc, /getElementById\(\s*['"]entregas-tecelagem-op['"]\s*\)/,
+    'scroll para #entregas-tecelagem-op deve usar getElementById no onclick');
+  assert.doesNotMatch(otpaSrc, /href:\s*['"]#entregas-tecelagem-op['"]/,
+    'NAO deve usar href=#entregas-tecelagem-op (hash navigation quebra rota)');
 });
 
 // =====================================================================

@@ -1,9 +1,53 @@
 > **Atualizacao 2026-07-06 - fase
-> `RAVATEX-TAPETES-INSUMOS-TECELAGEM-UI-FIX-A`.**
-> Status: **PATCH UI INSUMOS/TECELAGEM PRONTO — AGUARDANDO RETESTE DO USUÁRIO**.
+> `RAVATEX-TAPETES-TEC-ACABAMENTO-TRANSFER-404-A`.**
+> Status: **PATCH TRANSFER TECELAGEM→ACABAMENTO PRONTO — AGUARDANDO RETESTE DO USUÁRIO**.
 > Entrada: branch `work/app-next`, HEAD inicial
-> `2a492f08ee8c9d0b85f6a012f2ca84a767321338`; status inicial somente
+> `2ca2b4a8bbbcfbb0160e14dedb5d756c81be40da`; status inicial somente
 > `?? supabase/.temp/`; `origin` somente leitura e producao intocados.
+>
+> Fase anterior:
+> `RAVATEX-TAPETES-PEDIDO-NO-PARALLEL-LOAD-ACTION-B` (HEAD
+> `2ca2b4a8bbbcfbb0160e14dedb5d756c81be40da`).
+>
+> Itens entregues (P0):
+>
+> 1. **Correcao do 404 ao clicar em "Transferir" na OP de Tecelagem
+> (bloco "5. Movimentacao — enviar para acabamento").**
+> (`js/screens/op-tecelagem-producao-admin.js:481` e headers relacionados).
+> Causa raiz: o botao usava `<a href="#entregas-tecelagem-op">` (tag `<a>`
+> com href de hash). A app usa hash-based routing (`boot.js` registra
+> `hashchange` → `handleRoute`). O hash `#entregas-tecelagem-op` nao
+> corresponde a nenhuma rota registrada, e o router (`router.js:130-132`)
+> chama `screenNotFound()` que renderiza "404 - Tela nao encontrada".
+> Mesma classe de bug atingia `<a>` similares em `op-latex-admin.js`
+> (`#documentos-op`, `#historico-op`, `#movimentacao-op`) e na header
+> de navegacao da OP Tecelagem.
+> Correcao: substituidas todas as `<a href="#..."` por `<button>` com
+> `onclick` que chama `document.getElementById(...).scrollIntoView()`
+> (`behavior: 'smooth', block: 'start'`). O scroll interno e preservado
+> sem disparar navegacao por hash.
+>
+> - **Arquivos alterados:**
+>   - `js/screens/op-tecelagem-producao-admin.js` (4 anchors → buttons)
+>   - `js/screens/op-latex-admin.js` (4 anchors → buttons + remocao de
+>     `BTN_ACTION_LINK`)
+>   - `tests/tec-to-acabamento-flow.smoke.js` (teste R1 atualizado)
+>   - `tests/op-latex-admin.smoke.js` (teste 48 atualizado)
+> - **Nao alterado:** schema, migrations, RPCs, SQL, production, origin.
+> - **Testes:**
+>   - `node --test tests/tec-to-acabamento-flow.smoke.js` — 39/39 OK.
+>   - `node --test tests/pedido-detail.smoke.js` — 172/172 OK.
+>   - `node --test tests/op-latex-admin.smoke.js` — 55/55 OK.
+> - **Garantias:** producao intocada; `origin` nao usado para escrita;
+>   sem `git add .`; `supabase/.temp` fora do commit; fluxo canonico
+>   Tecelagem→Acabamento preservado (via `salvarEntregaCima` →
+>   RPC `gerar_op_latex`); OP Acabamento consistente.
+>
+> ---
+>
+> > **(Histórico) `RAVATEX-TAPETES-INSUMOS-TECELAGEM-UI-FIX-A`.**
+> > Status: concluido. Branch `work/app-next`, HEAD
+> > `2a492f08ee8c9d0b85f6a012f2ca84a767321338`.
 >
 > Itens entregues (P0):
 >

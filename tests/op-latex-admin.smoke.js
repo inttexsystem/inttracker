@@ -1380,9 +1380,11 @@ test('47. OP Látex: header não contém botão "Movimentar" ambíguo (renomeado
     'botão do header da OP Látex deve usar label "Ir para movimentos" que reflete scroll');
 });
 
-test('48. OP Látex: anchor #movimentacao-op continua existindo como destino do scroll', () => {
+test('48. OP Látex: scroll para #movimentacao-op preservado com button sem hash navigation', () => {
   assert.match(olaSrc, /id:\s*['"]movimentacao-op['"]/,
     'o bloco de destino #movimentacao-op deve continuar existindo');
-  assert.match(olaSrc, /href:\s*['"]#movimentacao-op['"]/,
-    'o anchor para #movimentacao-op deve continuar existindo no botão renomeado');
+  assert.match(olaSrc, /getElementById\(\s*['"]movimentacao-op['"]\s*\)/,
+    'scroll para #movimentacao-op deve usar getElementById no onclick');
+  assert.doesNotMatch(olaSrc, /href:\s*['"]#movimentacao-op['"]/,
+    'NAO deve usar href=#movimentacao-op (hash navigation quebra rota)');
 });

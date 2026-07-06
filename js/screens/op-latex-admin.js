@@ -482,7 +482,6 @@
       function renderOPLatexProducao() {
         var CARD_PROD = 'background:#fff;border:1px solid #eceef1;border-radius:4px;';
         var BTN_ACTION = 'display:inline-flex;align-items:center;gap:7px;background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;';
-        var BTN_ACTION_LINK = BTN_ACTION + 'text-decoration:none;';
         var SVG_ARROW_RIGHT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>';
         var SVG_PAUSE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
         var SVG_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
@@ -583,10 +582,10 @@
             el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;' },
               pedidoId ? el('button', { type: 'button', style: BTN_ACTION, onclick: function () { navigate('#/pedidos/' + pedidoId); } }, svgEl(SVG_DOC), 'Abrir Pedido') : '',
               el('button', { type: 'button', style: BTN_ACTION, onclick: function () { toastOperacional('Produção pausada.'); } }, svgEl(SVG_PAUSE), 'Pausar'),
-              el('a', { href: '#movimentacao-op', style: BTN_ACTION_LINK }, svgEl(SVG_ARROW_RIGHT), 'Ir para movimentos'),
+              el('button', { type: 'button', style: BTN_ACTION, onclick: function () { var el = document.getElementById('movimentacao-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, svgEl(SVG_ARROW_RIGHT), 'Ir para movimentos'),
               el('button', { type: 'button', style: BTN_ACTION, onclick: function () { finalizar(op.id); } }, svgEl(SVG_CHECK), 'Finalizar OP'),
-              el('a', { href: '#documentos-op', style: BTN_ACTION_LINK }, svgEl(SVG_DOC), 'Documentos'),
-              el('a', { href: '#historico-op', style: BTN_ACTION_LINK }, svgEl(SVG_CLOCK), 'Histórico')));
+              el('button', { type: 'button', style: BTN_ACTION, onclick: function () { var el = document.getElementById('documentos-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, svgEl(SVG_DOC), 'Documentos'),
+              el('button', { type: 'button', style: BTN_ACTION, onclick: function () { var el = document.getElementById('historico-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, svgEl(SVG_CLOCK), 'Histórico')));
         }
 
         function buildDados() {
@@ -684,7 +683,7 @@
             el('div', {}, listaEntregasOrigem),
             el('div', { style: 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:14px;' },
               campo('Saldo em acabamento', valor(window.fmtMetros(saldoEmAcabamento), '#c2610c', '700'))),
-            el('a', { href: '#movimentacao-op', style: 'display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#2563eb;font-weight:600;text-decoration:none;' }, 'Ver movimentação para expedição ↓'));
+            el('button', { type: 'button', style: 'display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#2563eb;font-weight:600;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;', onclick: function () { var el = document.getElementById('movimentacao-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 'Ver movimentação para expedição ↓'));
         }
 
         function buildMovimentacao() {

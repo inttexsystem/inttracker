@@ -175,7 +175,7 @@
       }, svgEl(SVG_OPEN), 'Abrir Pedido'));
     }
     acoes.push(el('button', { type: 'button', style: BTN_BACK + 'opacity:.55;cursor:not-allowed;', disabled: true }, 'Pausar'));
-    if (ctx.cimaFornecedorId) acoes.push(el('a', { href: '#entregas-tecelagem-op', style: BTN_BACK + 'text-decoration:none;' }, 'Ir para entregas'));
+    if (ctx.cimaFornecedorId) acoes.push(el('button', { type: 'button', style: BTN_BACK, onclick: function () { var el = document.getElementById('entregas-tecelagem-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 'Ir para entregas'));
     if (typeof ctx.excluirOP === 'function') {
       acoes.push(el('button', {
         type: 'button',
@@ -191,8 +191,8 @@
     };
     if (!podeConcluir) concluirAttrs.disabled = 'disabled';
     acoes.push(el('button', concluirAttrs, 'Finalizar OP Tecelagem'));
-    acoes.push(el('a', { href: '#documentos-op', style: BTN_BACK + 'text-decoration:none;' }, 'Documentos'));
-    acoes.push(el('a', { href: '#historico-op', style: BTN_BACK + 'text-decoration:none;' }, 'Histórico'));
+    acoes.push(el('button', { type: 'button', style: BTN_BACK, onclick: function () { var el = document.getElementById('documentos-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 'Documentos'));
+    acoes.push(el('button', { type: 'button', style: BTN_BACK, onclick: function () { var el = document.getElementById('historico-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 'Histórico'));
 
     return el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;' },
       el('div', {}, titleRow, metaLine),
@@ -478,7 +478,7 @@
     return el('div', { id: 'entregas-tecelagem-op', style: CARD + 'padding:16px 20px;' },
       el('div', { style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;' },
         el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, '5. Movimentação — enviar para acabamento'),
-        el('a', { href: '#entregas-tecelagem-op', style: BTN_SOLID_SM + 'text-decoration:none;' }, 'Transferir')),
+        el('button', { type: 'button', style: BTN_SOLID_SM, onclick: function () { var el = document.getElementById('entregas-tecelagem-op'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 'Transferir')),
       el('div', { style: 'display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px;margin-bottom:14px;' },
         el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Disponível'), el('div', { style: 'font-size:16px;font-weight:800;color:' + disponivelCor + ';' }, window.fmtMetros(totais.saldo) + (totais.excedente ? ' (excedente)' : ''))),
         el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Já enviado'), el('div', { style: 'font-size:16px;font-weight:800;color:#18794a;' }, window.fmtMetros(totais.totalEntregue))),
