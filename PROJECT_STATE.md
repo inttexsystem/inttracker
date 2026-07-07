@@ -19,10 +19,10 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - `contracts/manifest.schema.json` — schema do manifest de Pedido
 
 ## Status atual
-- HEAD (documents-ingestor): `a48209a`
+- HEAD (documents-ingestor): `6622526`
 - HEAD canônico staging/work/app-next (Controle de Tapetes): `997486a`
 - Push staging: `af919a2..997486a` (produção/origin oficial intocados)
-- 152 testes passando (20 suites) — incluindo integração mockada completa
+- 229 testes passando (21 suites) — incluindo integração mockada completa
 - Hermético: nenhum teste depende de `.env` real, token real ou chamadas Google
 - OAuth real validado (C1)
 - Smoke real com Drive/Gmail reais validado (C2)
@@ -35,7 +35,8 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - `npm run dev` — tsx watch
 - `npm run scan` — scan (dry-run por padrão; use `--confirm-real-google` para real)
 - `npm run list:pending` — lista documentos pendentes
-- `npm run assign -- --id <id> --pedido <num> --confirm-real-google` — atribui Pedido
+- `npm run assign -- --id <id> --pedido <num> --confirm-real-google` — atribui Pedido (Drive real)
+- `npm run link -- --id <id> --pedido <num>` — vincula documento a Pedido (local-only, sem Google)
 - `npm run export:events` — exporta eventos para JSONL
 - `npm run login` — OAuth interativo (gera `data/google-token.json`)
 - `npm test` — roda testes herméticos
@@ -52,8 +53,8 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 
 ## Última evidência de testes
 ```
-Test Files  20 passed (20)
-     Tests  152 passed (152)
+Test Files  21 passed (21)
+     Tests  229 passed (229)
 ```
 
 ## Decisão arquitetural
@@ -73,6 +74,7 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - G3 — Drive folder layout hierarchical (pendentes + pedidos por tipo/direção)
 - G4 — Manifest do Pedido (estrutura + add document ao manifest)
 - G5 — Retry por Gmail messageId + validação real R4-R1 + crossMessageDuplicates tracking
+- G6-B — Comando `link` local-only (vincular documento pending a pedido sem Drive)
 - G/H — UI Backlog (Controle de Tapetes — staging/work/app-next)
 
 ## Fase G1: Taxonomia de Documentos (3 eixos)
@@ -94,5 +96,5 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - Status residual esperado: `?? supabase/.temp/`
 
 ## Próxima fase recomendada
-RAVATEX-DOC-INGESTOR-G6-ASSIGNMENT-AND-OPERATIONAL-LINK
-Foco: vincular documento pending a pedido sem Google real (assign local-only — sem Drive move, sem upload manifest, apenas SQLite + outbox). Ver diagnóstico completo em AGENT_HANDOFF.md (G6-A diagnostic) para detalhes, riscos e ordem de implementação.
+RAVATEX-DOC-INGESTOR-G6-C-APP-ACCEPTANCE-AND-FUNNEL
+Foco: implementar transição `assigned → accepted/rejected` para fechar o funil de aceite do app, com evento outbox `document.accepted` / `document.rejected`. O link local-only (G6-B) expôs que documentos assigned aguardam aceite mas não há comando para concluir o fluxo. Ver AGENT_HANDOFF.md para riscos remanescentes.

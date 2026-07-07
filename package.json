@@ -14,6 +14,7 @@
     "report": "tsx src/cli.ts report",
     "inspect": "tsx src/cli.ts inspect",
     "reprocess": "tsx src/cli.ts reprocess",
+    "link": "tsx src/cli.ts link",
     "build": "tsc",
     "test": "vitest run",
     "test:ci": "vitest run",

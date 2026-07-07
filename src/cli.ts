@@ -8,6 +8,7 @@ import { listPendingDocuments, inspectByDocumentOrEmail, generateReport, planRep
 import { maskId, maskIdStrict, maskEmail, maskSubject, maskLink } from './core/mask.js';
 import { fromLegacyTipo } from './types/document.js';
 import type { TipoDocumentoLegado } from './types/document.js';
+import { linkDocumentToPedido } from './core/link.js';
 import { closeDb, getDb } from './storage/sqlite.js';
 
 const program = new Command();
@@ -163,6 +164,23 @@ program
       console.log('Assign did not produce a result. Use --confirm-real-google to perform real Drive move.');
       process.exit(1);
     }
+  });
+
+program
+  .command('link')
+  .description('Link a pending document to a Pedido (local-only, no Google Drive calls)')
+  .requiredOption('--id <id>', 'Document ID or Gmail message ID')
+  .requiredOption('--pedido <pedido>', 'Pedido number (e.g. 25/2026)')
+  .action((opts) => {
+    try {
+      const result = linkDocumentToPedido(opts.id, opts.pedido);
+      console.log('[link] Linked: document=%s pedido=%s event=%s', result.documentId, result.pedidoManual, result.eventId);
+      console.log('[link] Local-only — no Google Drive calls performed.');
+    } catch (e: any) {
+      console.error('[link]', e.message);
+      process.exit(1);
+    }
+    closeDb();
   });
 
 program
