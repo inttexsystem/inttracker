@@ -12,6 +12,7 @@ export interface ScanOptions {
   daysBack?: number;
   confirmReal?: boolean;
   maxAttachments?: number;
+  query?: string;
 }
 
 export interface ScanResult {
@@ -27,7 +28,7 @@ export interface ScanResult {
 }
 
 export interface ScanDeps {
-  fetchEmails: (daysBack: number) => Promise<GmailMessageMeta[]>;
+  fetchEmails: (daysBack: number, extraQuery?: string) => Promise<GmailMessageMeta[]>;
   listAtts: (msgId: string) => Promise<GmailAttachmentRef[]>;
   downloadAtt: (msgId: string, attId: string) => Promise<Buffer | null>;
   uploadDoc: (params: { folderLogicalPath: string; filename: string; mimeType: string; data: Buffer }) => Promise<{ file: { storageUri: string; driveFileId: string; driveWebViewLink: string; driveFolderId?: string; driveWebContentLink?: string } }>;
@@ -35,7 +36,7 @@ export interface ScanDeps {
 }
 
 const defaultDeps: ScanDeps = {
-  fetchEmails: async (daysBack) => fetchRecentEmails(daysBack),
+  fetchEmails: async (daysBack, extraQuery) => fetchRecentEmails(daysBack, undefined, extraQuery),
   listAtts: async (msgId) => listAttachments(msgId),
   downloadAtt: async (msgId, attId) => downloadAttachment(msgId, attId),
   uploadDoc: async (params) => {
@@ -75,7 +76,7 @@ export function createScan(deps: ScanDeps = defaultDeps) {
     const logger = deps.logger ?? createRunLogger();
     logger.log({ type: 'run.start', timestamp: new Date().toISOString(), daysBack, maxAttachments, wideScan });
 
-    const emails = await deps.fetchEmails(daysBack);
+    const emails = await deps.fetchEmails(daysBack, opts.query);
     const database = getDb();
 
     for (const email of emails) {

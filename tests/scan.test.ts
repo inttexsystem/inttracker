@@ -318,4 +318,44 @@ describe('real scan flow (mocked Google)', () => {
     expect(lines.some((l) => l.type === 'attachment.processed' && l.status === 'new')).toBe(true);
     expect(lines.some((l) => l.type === 'run.end')).toBe(true);
   });
+
+  it('scan passes --query to fetchEmails', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\nquery test');
+    let receivedQuery: string | undefined;
+    const deps = mkDeps({
+      fetchEmails: async (daysBack, extraQuery) => {
+        receivedQuery = extraQuery;
+        return [
+          { gmailMessageId: 'm-query', threadId: 't', from: '', subject: 'Q', date: '', attachmentCount: 1 },
+        ];
+      },
+      listAtts: async () => [
+        { gmailMessageId: 'm-query', threadId: 't', attachmentId: 'a', filename: 'q.pdf', mimeType: 'application/pdf', size: 0 },
+      ],
+      downloadAtt: async () => fakePdf,
+    });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true, query: 'subject:"SMOKE TEST"' });
+    expect(receivedQuery).toBe('subject:"SMOKE TEST"');
+  });
+
+  it('scan without query passes undefined to fetchEmails', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\nno query');
+    let receivedQuery: string | null = 'NOT_CALLED';
+    const deps = mkDeps({
+      fetchEmails: async (daysBack, extraQuery) => {
+        receivedQuery = extraQuery ?? null;
+        return [
+          { gmailMessageId: 'm-noquery', threadId: 't', from: '', subject: 'NQ', date: '', attachmentCount: 1 },
+        ];
+      },
+      listAtts: async () => [
+        { gmailMessageId: 'm-noquery', threadId: 't', attachmentId: 'a', filename: 'nq.pdf', mimeType: 'application/pdf', size: 0 },
+      ],
+      downloadAtt: async () => fakePdf,
+    });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    expect(receivedQuery).toBeNull();
+  });
 });

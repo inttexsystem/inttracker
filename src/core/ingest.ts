@@ -12,6 +12,7 @@ export interface ScanGmailOptions {
   daysBack?: number;
   confirmReal?: boolean;
   maxAttachments?: number;
+  query?: string;
 }
 
 export async function scanGmail(options: ScanGmailOptions = {}): Promise<ScanResult> {
@@ -32,6 +33,7 @@ export async function scanGmail(options: ScanGmailOptions = {}): Promise<ScanRes
     daysBack: options.daysBack,
     confirmReal: true,
     maxAttachments: options.maxAttachments,
+    query: options.query,
   });
 }
 

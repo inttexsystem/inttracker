@@ -78,18 +78,23 @@ function buildGmailClient(auth: OAuth2Client): gmail_v1.Gmail {
   return google.gmail({ version: 'v1', auth });
 }
 
-function buildQuery(daysBack: number): string {
+export function buildQuery(daysBack: number, extraQuery?: string): string {
   const sinceDate = new Date();
   sinceDate.setDate(sinceDate.getDate() - daysBack);
   const y = sinceDate.getFullYear();
   const m = String(sinceDate.getMonth() + 1).padStart(2, '0');
   const d = String(sinceDate.getDate()).padStart(2, '0');
-  return `has:attachment (filename:pdf OR filename:xml) after:${y}/${m}/${d}`;
+  const base = `has:attachment (filename:pdf OR filename:xml) after:${y}/${m}/${d}`;
+  if (extraQuery && extraQuery.trim()) {
+    return `${base} ${extraQuery.trim()}`;
+  }
+  return base;
 }
 
 export async function fetchRecentEmails(
   daysBack: number = config.scanDaysBack,
   client: gmail_v1.Gmail | null = null,
+  extraQuery?: string,
 ): Promise<GmailMessageMeta[]> {
   const auth = client ? null : await getAuthenticatedClient();
   const gmail = client ?? (auth ? buildGmailClient(auth) : null);
@@ -97,7 +102,7 @@ export async function fetchRecentEmails(
     return [];
   }
 
-  const query = buildQuery(daysBack);
+  const query = buildQuery(daysBack, extraQuery);
   const list = await gmail.users.messages.list({ userId: 'me', q: query, maxResults: 50 });
   const messages = list.data.messages ?? [];
   const metas: GmailMessageMeta[] = [];
