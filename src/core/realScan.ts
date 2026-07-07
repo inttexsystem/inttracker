@@ -80,7 +80,23 @@ export function createScan(deps: ScanDeps = defaultDeps) {
     logger.log({ type: 'run.start', timestamp: new Date().toISOString(), daysBack, maxAttachments, wideScan, retryMessageId: opts.retryMessageId ?? null });
 
     let emails: GmailMessageMeta[];
-    if (opts.retryMessageId && deps.fetchMessageById) {
+    if (opts.retryMessageId) {
+      if (!deps.fetchMessageById) {
+        const errMsg = '[retry] --retry-message requires fetchMessageById dependency which is unavailable.';
+        logger.log({ type: 'retry.error', timestamp: new Date().toISOString(), error: errMsg });
+        errors.push(errMsg);
+        return {
+          mode,
+          emailsScanned: 0,
+          attachmentsFound: 0,
+          newDocuments: 0,
+          duplicates: 0,
+          crossMessageDuplicates: 0,
+          skippedByCap: 0,
+          errors,
+          runLogPath: logger.path,
+        };
+      }
       logger.log({ type: 'retry.direct_fetch', timestamp: new Date().toISOString(), gmailMessageId: opts.retryMessageId });
       const msg = await deps.fetchMessageById(opts.retryMessageId);
       emails = msg ? [msg] : [];

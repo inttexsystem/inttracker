@@ -539,4 +539,24 @@ describe('real scan flow (mocked Google)', () => {
     await scan({ confirmReal: true });
     expect(fetchEmailsCalled).toBe(true);
   });
+
+  it('retry-message fails closed when fetchMessageById is unavailable', async () => {
+    let fetchEmailsCalled = false;
+    const deps = mkDeps({
+      fetchEmails: async () => {
+        fetchEmailsCalled = true;
+        return [{ gmailMessageId: 'msg-failclosed', threadId: 't', from: '', subject: 'FC', date: '', attachmentCount: 1 }];
+      },
+    });
+    delete (deps as any).fetchMessageById;
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true, retryMessageId: 'msg-failclosed' });
+    expect(r.emailsScanned).toBe(0);
+    expect(r.attachmentsFound).toBe(0);
+    expect(r.newDocuments).toBe(0);
+    expect(fetchEmailsCalled).toBe(false);
+    expect(r.errors.length).toBeGreaterThan(0);
+    expect(r.errors[0]).toContain('fetchMessageById');
+  });
 });
