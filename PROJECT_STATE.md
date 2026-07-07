@@ -45,7 +45,8 @@
 > | 13 | Botao "Confirmar" entrada Acabamento | FECHADO |
 > | 14 | Paridade Aceitar/Manter proposta modal ↔ tela OP | FECHADO |
 >
-> - **HEAD canônico staging/work/app-next:** `997486a`
+> - **HEAD canônico staging/work/app-next:** `0d62563`
+> - **HEAD da reconciliacao UI:** `997486a` (antes do closeout documental)
 > - **Origem:** `production` intocada, `origin` somente leitura
 > - **Próximo passo:** funcionalidade (romaneios, NFs, integracao)
 >

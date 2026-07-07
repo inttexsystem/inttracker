@@ -5442,7 +5442,8 @@ movimentacao e determinada pelo estagio do Pedido.
 
 - Fase: `RAVATEX-TAPETES-UI-BACKLOG-CLOSEOUT-H`.
 - Status: **UI BACKLOG CLOSEOUT — BLOCO UI FECHADO. 14/14 ITENS.**
-- HEAD staging/work/app-next: `997486a`.
+- HEAD staging/work/app-next: `0d62563`.
+- HEAD da reconciliacao UI: `997486a` (antes do closeout documental).
 - Push staging: `af919a2..997486a`.
 
 - **Ultimas fases:**
