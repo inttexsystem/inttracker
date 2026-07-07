@@ -134,6 +134,38 @@ export async function fetchRecentEmails(
   return metas;
 }
 
+export async function fetchMessageById(
+  gmailMessageId: string,
+  client: gmail_v1.Gmail | null = null,
+): Promise<GmailMessageMeta | null> {
+  const auth = client ? null : await getAuthenticatedClient();
+  const gmail = client ?? (auth ? buildGmailClient(auth) : null);
+  if (!gmail) {
+    return null;
+  }
+
+  const meta = await gmail.users.messages.get({
+    userId: 'me',
+    id: gmailMessageId,
+    format: 'metadata',
+    metadataHeaders: ['From', 'Subject', 'Date'],
+  });
+  const headers = meta.data.payload?.headers ?? [];
+  const from = headers.find(h => h.name === 'From')?.value ?? '';
+  const subject = headers.find(h => h.name === 'Subject')?.value ?? '';
+  const date = headers.find(h => h.name === 'Date')?.value ?? '';
+  const attachmentCount = countAttachments(meta.data.payload);
+
+  return {
+    gmailMessageId: meta.data.id ?? gmailMessageId,
+    threadId: meta.data.threadId ?? '',
+    from,
+    subject,
+    date,
+    attachmentCount,
+  };
+}
+
 function countAttachments(payload: any): number {
   if (!payload) return 0;
   let count = 0;

@@ -12,6 +12,7 @@ function mkDeps(overrides: Partial<ScanDeps> = {}): ScanDeps {
       void daysBack;
       return [];
     },
+    fetchMessageById: async (msgId: string) => null,
     listAtts: async (msgId: string) => {
       void msgId;
       return [];
@@ -362,9 +363,10 @@ describe('real scan flow (mocked Google)', () => {
   it('retry-message bypasses skip for processed email and inserts document', async () => {
     const fakePdf = Buffer.from('%PDF-1.4\nretry test content');
     const deps = mkDeps({
-      fetchEmails: async () => [
-        { gmailMessageId: 'msg-retry', threadId: 't', from: '', subject: 'RETRY TEST', date: '', attachmentCount: 1 },
-      ],
+      fetchMessageById: async (msgId) => {
+        if (msgId === 'msg-retry') return { gmailMessageId: 'msg-retry', threadId: 't', from: '', subject: 'RETRY TEST', date: '', attachmentCount: 1 };
+        return null;
+      },
       listAtts: async () => [
         { gmailMessageId: 'msg-retry', threadId: 't', attachmentId: 'att-retry', filename: 'retry-nf.pdf', mimeType: 'application/pdf', size: fakePdf.length },
       ],
@@ -385,9 +387,10 @@ describe('real scan flow (mocked Google)', () => {
   it('retry-message does not duplicate if document already exists', async () => {
     const fakePdf = Buffer.from('%PDF-1.4\ndedup retry');
     const deps = mkDeps({
-      fetchEmails: async () => [
-        { gmailMessageId: 'msg-retry-2', threadId: 't', from: '', subject: 'DEDUP', date: '', attachmentCount: 1 },
-      ],
+      fetchMessageById: async (msgId) => {
+        if (msgId === 'msg-retry-2') return { gmailMessageId: 'msg-retry-2', threadId: 't', from: '', subject: 'DEDUP', date: '', attachmentCount: 1 };
+        return null;
+      },
       listAtts: async () => [
         { gmailMessageId: 'msg-retry-2', threadId: 't', attachmentId: 'att-dedup', filename: 'dup.pdf', mimeType: 'application/pdf', size: fakePdf.length },
       ],
@@ -409,9 +412,10 @@ describe('real scan flow (mocked Google)', () => {
   it('retry-message respects maxAttachments cap', async () => {
     const fakePdf = Buffer.from('%PDF-1.4\ncap retry');
     const deps = mkDeps({
-      fetchEmails: async () => [
-        { gmailMessageId: 'msg-retry-3', threadId: 't', from: '', subject: 'CAP TEST', date: '', attachmentCount: 2 },
-      ],
+      fetchMessageById: async (msgId) => {
+        if (msgId === 'msg-retry-3') return { gmailMessageId: 'msg-retry-3', threadId: 't', from: '', subject: 'CAP TEST', date: '', attachmentCount: 2 };
+        return null;
+      },
       listAtts: async () => [
         { gmailMessageId: 'msg-retry-3', threadId: 't', attachmentId: 'att-cap-1', filename: 'a.pdf', mimeType: 'application/pdf', size: 0 },
         { gmailMessageId: 'msg-retry-3', threadId: 't', attachmentId: 'att-cap-2', filename: 'b.pdf', mimeType: 'application/pdf', size: 0 },
@@ -438,9 +442,10 @@ describe('real scan flow (mocked Google)', () => {
       },
     };
     const deps = mkDeps({
-      fetchEmails: async () => [
-        { gmailMessageId: 'msg-rlog', threadId: 't', from: '', subject: 'LOG RETRY', date: '', attachmentCount: 1 },
-      ],
+      fetchMessageById: async (msgId) => {
+        if (msgId === 'msg-rlog') return { gmailMessageId: 'msg-rlog', threadId: 't', from: '', subject: 'LOG RETRY', date: '', attachmentCount: 1 };
+        return null;
+      },
       listAtts: async () => [
         { gmailMessageId: 'msg-rlog', threadId: 't', attachmentId: 'a', filename: 'r.pdf', mimeType: 'application/pdf', size: 0 },
       ],
@@ -457,7 +462,81 @@ describe('real scan flow (mocked Google)', () => {
     const content = readFileSync(logPath, 'utf-8');
     const lines = content.trim().split('\n').map((l) => JSON.parse(l));
     expect(lines.some((l) => l.type === 'run.start')).toBe(true);
+    expect(lines.some((l) => l.type === 'retry.direct_fetch')).toBe(true);
     expect(lines.some((l) => l.type === 'retry.start' && l.status === 'retry_requested')).toBe(true);
     expect(lines.some((l) => l.type === 'attachment.processed' && l.status === 'new')).toBe(true);
+  });
+
+  it('retry-message uses fetchMessageById and NOT fetchEmails', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\ndirect');
+    let fetchEmailsCalled = false;
+    let fetchMessageByIdCalled = false;
+    const deps = mkDeps({
+      fetchEmails: async () => {
+        fetchEmailsCalled = true;
+        return [];
+      },
+      fetchMessageById: async (msgId) => {
+        fetchMessageByIdCalled = true;
+        if (msgId === 'msg-direct') return { gmailMessageId: 'msg-direct', threadId: 't', from: '', subject: 'DIRECT', date: '', attachmentCount: 1 };
+        return null;
+      },
+      listAtts: async () => [
+        { gmailMessageId: 'msg-direct', threadId: 't', attachmentId: 'a', filename: 'd.pdf', mimeType: 'application/pdf', size: 0 },
+      ],
+      downloadAtt: async () => fakePdf,
+    });
+
+    const db = getDb();
+    db.prepare(`INSERT OR IGNORE INTO emails_processados (gmail_message_id) VALUES (?)`).run('msg-direct');
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true, retryMessageId: 'msg-direct' });
+    expect(fetchEmailsCalled).toBe(false);
+    expect(fetchMessageByIdCalled).toBe(true);
+    expect(r.emailsScanned).toBe(1);
+    expect(r.newDocuments).toBe(1);
+  });
+
+  it('retry-message processes only one message', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\nsingle');
+    const deps = mkDeps({
+      fetchMessageById: async (msgId) => {
+        if (msgId === 'msg-single') return { gmailMessageId: 'msg-single', threadId: 't', from: '', subject: 'SINGLE', date: '', attachmentCount: 1 };
+        return null;
+      },
+      listAtts: async () => [
+        { gmailMessageId: 'msg-single', threadId: 't', attachmentId: 'a', filename: 's.pdf', mimeType: 'application/pdf', size: 0 },
+      ],
+      downloadAtt: async () => fakePdf,
+    });
+
+    const db = getDb();
+    db.prepare(`INSERT OR IGNORE INTO emails_processados (gmail_message_id) VALUES (?)`).run('msg-single');
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true, retryMessageId: 'msg-single' });
+    expect(r.emailsScanned).toBe(1);
+    expect(r.attachmentsFound).toBe(1);
+    expect(r.skippedByCap).toBe(0);
+  });
+
+  it('scan normal without retry still uses fetchEmails', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\nnormal');
+    let fetchEmailsCalled = false;
+    const deps = mkDeps({
+      fetchEmails: async () => {
+        fetchEmailsCalled = true;
+        return [{ gmailMessageId: 'msg-normal', threadId: 't', from: '', subject: 'NORMAL', date: '', attachmentCount: 1 }];
+      },
+      listAtts: async () => [
+        { gmailMessageId: 'msg-normal', threadId: 't', attachmentId: 'a', filename: 'n.pdf', mimeType: 'application/pdf', size: 0 },
+      ],
+      downloadAtt: async () => fakePdf,
+    });
+
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    expect(fetchEmailsCalled).toBe(true);
   });
 });

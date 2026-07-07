@@ -4,7 +4,7 @@ import { classifyAttachment } from './classifier.js';
 import { isDuplicate, isEmailProcessed, markEmailProcessed, findExistingBySha256 } from './dedupe.js';
 import { pendenteDrivePath } from './paths.js';
 import { uploadDocument } from '../connectors/drive.js';
-import { fetchRecentEmails, listAttachments, downloadAttachment, isAttachmentCandidate } from '../connectors/gmail.js';
+import { fetchRecentEmails, fetchMessageById, listAttachments, downloadAttachment, isAttachmentCandidate } from '../connectors/gmail.js';
 import { createRunLogger, type RunLogger } from './runLog.js';
 import type { GmailAttachmentRef, GmailMessageMeta } from '../connectors/gmail.js';
 
@@ -30,6 +30,7 @@ export interface ScanResult {
 
 export interface ScanDeps {
   fetchEmails: (daysBack: number, extraQuery?: string) => Promise<GmailMessageMeta[]>;
+  fetchMessageById?: (msgId: string) => Promise<GmailMessageMeta | null>;
   listAtts: (msgId: string) => Promise<GmailAttachmentRef[]>;
   downloadAtt: (msgId: string, attId: string) => Promise<Buffer | null>;
   uploadDoc: (params: { folderLogicalPath: string; filename: string; mimeType: string; data: Buffer }) => Promise<{ file: { storageUri: string; driveFileId: string; driveWebViewLink: string; driveFolderId?: string; driveWebContentLink?: string } }>;
@@ -38,6 +39,7 @@ export interface ScanDeps {
 
 const defaultDeps: ScanDeps = {
   fetchEmails: async (daysBack, extraQuery) => fetchRecentEmails(daysBack, undefined, extraQuery),
+  fetchMessageById: async (msgId) => fetchMessageById(msgId),
   listAtts: async (msgId) => listAttachments(msgId),
   downloadAtt: async (msgId, attId) => downloadAttachment(msgId, attId),
   uploadDoc: async (params) => {
@@ -77,7 +79,14 @@ export function createScan(deps: ScanDeps = defaultDeps) {
     const logger = deps.logger ?? createRunLogger();
     logger.log({ type: 'run.start', timestamp: new Date().toISOString(), daysBack, maxAttachments, wideScan, retryMessageId: opts.retryMessageId ?? null });
 
-    const emails = await deps.fetchEmails(daysBack, opts.query);
+    let emails: GmailMessageMeta[];
+    if (opts.retryMessageId && deps.fetchMessageById) {
+      logger.log({ type: 'retry.direct_fetch', timestamp: new Date().toISOString(), gmailMessageId: opts.retryMessageId });
+      const msg = await deps.fetchMessageById(opts.retryMessageId);
+      emails = msg ? [msg] : [];
+    } else {
+      emails = await deps.fetchEmails(daysBack, opts.query);
+    }
     const database = getDb();
 
     for (const email of emails) {
