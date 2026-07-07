@@ -1,27 +1,38 @@
 > **Atualizacao 2026-07-07 - fase
 > `RAVATEX-TAPETES-OP-TECELAGEM-ABERTA-VISUAL-ALIGNMENT-D`.**
-> Status: **PATCH UI VISUAL APLICADO E VALIDADO - COMMIT LOCAL; PUSH
-> STAGING BLOQUEADO POR CREDENCIAL**.
+> Status: **CLOSED / VALIDADO PELO USUARIO**.
 > Entrada: branch `work/app-next`, HEAD base
 > `e4c69aa0c2a8ada9c94f82e3655c6d1f5696a279`; status inicial
 > `?? .claude/` e `?? supabase/.temp/`; `origin` somente leitura e
 > producao intocados. Escrita permitida somente em
 > `staging/work/app-next`.
+> HEAD final da implementacao:
+> `97b62a63adeac2026616ecd02d436dd4ed4103ad`.
 >
 > Escopo: alinhamento visual controlado da OP Tecelagem aberta
-> (`js/screens/op-nova.js`) aos padroes ja validados de OP
-> Acabamento aberta e OP Tecelagem em producao. A fase foi
+> (`js/screens/op-nova.js`) aos padroes visuais validados da OP
+> Acabamento aberta e da OP Tecelagem em producao. A fase foi
 > estritamente visual: sem SQL, sem schema, sem migration, sem RPC
 > nova, sem alterar lifecycle, status, tipo interno, calculos, rotas,
 > writes Supabase ou regras de negocio.
 >
-> Patch aplicado: header da OP aberta passou a usar breadcrumb,
-> titulo canonico, pills discretas de etapa/status e somente a acao
-> Excluir; cards Dados/Itens/Insumos foram reformatados com tokens
-> `--rv-*`, icon-chip real, grid amplo e sem faixas numeradas antigas;
-> a rail direita ganhou Resumo, Preparacao e Documentos em largura
-> consistente. O bloco de recebimento de fios manteve os mesmos
-> handlers de PDF, fornecedores, recebimento, proposta e aceite.
+> Arquivos alterados na implementacao:
+> `js/screens/op-nova.js`, `tests/op-nova.smoke.js`,
+> `PROJECT_STATE.md`, `AGENT_HANDOFF.md`.
+>
+> Patch aplicado: header enxuto com breadcrumb, titulo canonico,
+> badges etapa/status separados e somente a acao Excluir; cards
+> Dados/Itens/Insumos com tokens `--rv-*`, icon-chips reais e sem
+> strips/barras; rail lateral Resumo/Preparacao/Documentos; largura
+> ampla preservada.
+>
+> Elementos preservados: fios/insumos, PDF de compra, fornecedores,
+> pendentes/recebidas, proposta/aceite, status interno, calculos,
+> handlers, rotas e writes existentes.
+>
+> Elementos visuais validados: header enxuto, badges etapa/status
+> separados, icon-chips reais, cards com tokens, rail lateral
+> Resumo/Preparacao/Documentos e largura ampla preservada.
 >
 > Garantias: OP Acabamento/Latex, OP Tecelagem em producao, Pedido
 > Detail, listas, painel, expedicao, `common.js`, `ui.js`,
@@ -29,19 +40,21 @@
 > `.claude/` foi usado apenas para referencia/preview local e
 > permanece untracked; `supabase/.temp/` tambem permanece untracked.
 >
-> Validacao: `node --check js/screens/op-nova.js`;
-> `node --check js/screens/op-tecelagem-producao-admin.js`;
-> `node --test tests/op-nova.smoke.js` (69/69);
-> `node --test tests/tec-to-acabamento-flow.smoke.js` (39/39);
-> `node --test tests/pedido-detail.smoke.js` (172/172). Nao ha
-> arquivo `tests/op-tecelagem*.smoke.js` no repositorio. Validacao
-> visual local gerou screenshots de OP Tecelagem aberta, OP
-> Tecelagem em producao e OP Acabamento aberta em
-> `.claude/preview/screenshots/`.
+> Testes reportados: `node --check js/screens/op-nova.js` OK;
+> `node --check js/screens/op-tecelagem-producao-admin.js` OK;
+> `tests/op-nova.smoke.js` 69/69; `tests/tec-to-acabamento-flow.smoke.js`
+> 39/39; `tests/pedido-detail.smoke.js` 172/172;
+> `tests/op-tecelagem*.smoke.js` inexistente.
 >
-> Proxima fase sugerida: autenticar o remoto `staging`, publicar
-> `work/app-next` e entao validar visualmente a OP Tecelagem aberta;
-> sem proxima alteracao tecnica obrigatoria antes desse aceite.
+> Validacao final: a OP Tecelagem aberta foi validada visualmente pelo
+> usuario; o push em `staging/work/app-next` ja foi realizado;
+> `origin`/producao permaneceram intocados.
+>
+> Candidatas futuras, fora deste closeout: expansao do padrao visual
+> para outras telas pendentes; revisao dedicada de `badges.js`/tokens
+> se ainda houver colisao visual etapa/status; ou decisao separada
+> sobre versionar `.claude/design-skill/` versus copiar aprendizados
+> para docs versionados. Nenhuma nova fase e iniciada neste closeout.
 
 > **Atualizacao 2026-07-07 - fase
 > `RAVATEX-TAPETES-DESIGN-TOKENS-TARGET-PILOT-B`.**
