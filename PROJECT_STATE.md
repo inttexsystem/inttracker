@@ -97,6 +97,7 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - G9-B — Manifest local exportável + sync scaffold (dry-run, comando sync:manifest, 8 testes)
 - G9-C — Smoke real de manifest (sync real confirmado, manifest Drive publicado, 0 efeitos colaterais)
 - G10-A — Design de integração Controle de Tapetes (modelo outbox, fonte de verdade, transporte, UI)
+- G10-B — Pacote export:package (eventos + manifest + summary + README por pedido, 8 testes)
 - G/H — UI Backlog (Controle de Tapetes — staging/work/app-next)
 
 ## Fase G1: Taxonomia de Documentos (3 eixos)
@@ -118,5 +119,5 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - Status residual esperado: `?? supabase/.temp/`
 
 ## Próxima fase recomendada
-RAVATEX-DOC-INGESTOR-G10-B-EXPORT-PACKAGE
-Foco: comando `export:package --pedido` gerando JSONL + manifest + summary consolidado para consumo fácil pelo Controle de Tapetes. Opcional — blocos já existem.
+RAVATEX-DOC-INGESTOR-G11-CONTROLE-TAPETES-WATCHER
+Foco: implementar watcher no Controle de Tapetes para consumir outbox JSONL, exibir documentos no pedido via drive_web_view_link, e integrar timeline de eventos. A implementação é no repositório do Controle de Tapetes — ingestor entrega pacote, app consome.

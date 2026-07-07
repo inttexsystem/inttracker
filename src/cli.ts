@@ -12,6 +12,7 @@ import { linkDocumentToPedido } from './core/link.js';
 import { acceptDocument, rejectDocument } from './core/acceptance.js';
 import { normalizePedido } from './core/pedido.js';
 import { exportManifest, syncManifest } from './core/syncManifest.js';
+import { exportPackage } from './core/exportPackage.js';
 import { closeDb, getDb } from './storage/sqlite.js';
 
 const program = new Command();
@@ -531,6 +532,29 @@ program
       console.log('[sync-manifest] Drive file: %s', result.driveFileId ?? '(none)');
       console.log('[sync-manifest] Storage URI: %s', result.storageUri ?? '(none)');
     }
+    closeDb();
+  });
+
+program
+  .command('export-package')
+  .description('Generate integration package for Controle de Tapetes (local-only, no Google Drive)')
+  .requiredOption('--pedido <pedido>', 'Pedido (e.g. 25/2026 or PED-25-2026)')
+  .option('--output <dir>', 'Output directory (default: data/exports/packages/<PEDIDO>)')
+  .action((opts) => {
+    const n = normalizePedido(opts.pedido);
+    if (!n) {
+      console.error('[export-package] Invalid pedido format:', opts.pedido);
+      process.exit(1);
+    }
+    const result = exportPackage(n, { outputDir: opts.output });
+    console.log('[export-package] Package generated for pedido %s', result.pedido);
+    console.log('[export-package] Output: %s', result.outputDir);
+    console.log('[export-package] Total events: %d', result.totalEvents);
+    console.log('[export-package] Total documents: %d', result.totalDocuments);
+    console.log('[export-package] Event types: linked=%d accepted=%d rejected=%d detected=%d',
+      result.linkedCount, result.acceptedCount, result.rejectedCount, result.detectedCount);
+    console.log('[export-package] Files: %s', result.files.map(f => f.split(/[\\/]/).pop()).join(', '));
+    console.log('[export-package] Local-only — no Google Drive calls performed.');
     closeDb();
   });
 

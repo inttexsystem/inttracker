@@ -9,4 +9,6 @@ export type { AssignResult, AssignOptions, AssignDeps } from './core/realAssign.
 export type { LinkResult } from './core/link.js';
 export type { AcceptanceResult } from './core/acceptance.js';
 export { exportManifest, syncManifest } from './core/syncManifest.js';
+export { exportPackage } from './core/exportPackage.js';
 export type { SyncManifestResult } from './core/syncManifest.js';
+export type { ExportPackageResult } from './core/exportPackage.js';
