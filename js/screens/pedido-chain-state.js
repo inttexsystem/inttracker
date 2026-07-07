@@ -332,7 +332,7 @@
         : (canMoveTecToAcab
           ? action('enabled', 'Transferir', { op: tecOp })
           : (tecDone > 0 || hasAcab
-            ? action('view', 'Ver movimento', { op: tecOp })
+            ? action('view', 'Movimento', { op: tecOp })
             : action('disabled', tecPendingAcceptance ? 'OP pendente de aceite' : 'Sem saldo disponivel', { op: tecOp }))),
       confirmAcabamentoEntry: !hasAcab
         ? action('hidden')
@@ -340,7 +340,7 @@
           ? action('enabled', 'Confirmar entrada', { op: acabOp })
           : action('view', 'Ver OP Acabamento', { op: acabOp })),
       releaseExpedicao: canReleaseExpedicao
-        ? action('enabled', 'Liberar expedicao', { op: acabOp })
+        ? action('enabled', 'Liberar exp.', { op: acabOp })
         : (hasExpedicao ? action('view', 'Ver expedicao', { op: acabOp }) : action('disabled', 'Aguardando acabamento', { op: acabOp })),
       registerDelivery: canRegisterDelivery
         ? action('enabled', 'Registrar entrega')

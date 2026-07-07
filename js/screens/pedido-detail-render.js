@@ -525,7 +525,7 @@
   function buildFooterAction(label, onclick, primary, disabled) {
     var attrs = {
       type: 'button',
-      style: 'flex:1;min-height:34px;box-sizing:border-box;background:' + (disabled ? '#f1f3f6' : (primary ? '#2563eb' : '#fff')) + ';color:' + (disabled ? '#9aa2af' : (primary ? '#fff' : '#3f4757')) + ';border:' + (primary && !disabled ? 'none' : '1px solid #d8dce2') + ';border-radius:4px;padding:6px 4px;font-size:12.5px;font-weight:' + (primary ? '700' : '600') + ';font-family:inherit;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;',
+      style: 'flex:1;min-width:60px;min-height:32px;box-sizing:border-box;background:' + (disabled ? '#f1f3f6' : (primary ? '#2563eb' : '#fff')) + ';color:' + (disabled ? '#9aa2af' : (primary ? '#fff' : '#3f4757')) + ';border:' + (primary && !disabled ? 'none' : '1px solid #d8dce2') + ';border-radius:4px;padding:5px 8px;font-size:12.5px;font-weight:' + (primary ? '700' : '600') + ';font-family:inherit;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;',
     };
     if (disabled) {
       attrs.disabled = 'disabled';
