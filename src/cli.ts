@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { createInterface } from 'node:readline/promises';
-import { scanGmail, listPending, assignPedido, exportPendingEvents } from './index.js';
+import { scanGmail, listPending, assignPedido, exportPendingEvents, queryAndExportEvents } from './index.js';
 import { config } from './config.js';
 import { assertSafeScopes, exchangeCodeForToken, generateAuthUrl, loadOAuthConfig } from './connectors/oauth.js';
 import { listPendingDocuments, inspectByDocumentOrEmail, generateReport, planReprocess } from './core/queries.js';
@@ -10,6 +10,7 @@ import { fromLegacyTipo } from './types/document.js';
 import type { TipoDocumentoLegado } from './types/document.js';
 import { linkDocumentToPedido } from './core/link.js';
 import { acceptDocument, rejectDocument } from './core/acceptance.js';
+import { normalizePedido } from './core/pedido.js';
 import { closeDb, getDb } from './storage/sqlite.js';
 
 const program = new Command();
@@ -93,6 +94,7 @@ program
   .option('--tipo <tipo>', 'Filter by tipo: nf|romaneio|desconhecido (also accepts legacy nf_pdf|nf_xml)')
   .option('--formato <formato>', 'Filter by formato: pdf|xml|desconhecido')
   .option('--direcao <direcao>', 'Filter by direcao NF: entrada|saida|desconhecida')
+  .option('--pedido <pedido>', 'Filter by pedido (e.g. 25/2026 or PED-25-2026)')
   .option('--json', 'Print full JSON (no token/secret by design)', false)
   .action((opts) => {
     let limit = parseInt(opts.limit, 10);
@@ -109,8 +111,14 @@ program
     const tipo = (validTipos as readonly string[]).includes(opts.tipo) ? opts.tipo as any : undefined;
     const formato = (validFormatos as readonly string[]).includes(opts.formato) ? opts.formato as any : undefined;
     const direcaoNf = (validDirecoes as readonly string[]).includes(opts.direcao) ? opts.direcao as any : undefined;
+    let pedido: string | undefined;
+    if (opts.pedido) {
+      const n = normalizePedido(opts.pedido);
+      pedido = n ?? undefined;
+      if (!n) console.error(`[list-pending] Invalid pedido format: ${opts.pedido} — filter ignored`);
+    }
 
-    const rows = listPendingDocuments({ limit, status, tipo, formato, direcaoNf });
+    const rows = listPendingDocuments({ limit, status, tipo, formato, direcaoNf, pedido });
     if (rows.length === 0) {
       console.log('No documents matched.');
       closeDb();
@@ -275,10 +283,16 @@ program
       console.log(`  status:           ${d.status}`);
       console.log(`  pedido_manual:    ${d.pedido_manual ?? '(none)'}`);
       console.log(`  storage_backend:  ${d.storage_backend}`);
-      console.log(`  drive_file_id:    ${d.drive_file_id ? maskIdStrict(d.drive_file_id) : '(none)'}`);
-      console.log(`  drive_link:       ${d.drive_web_view_link ? maskLink(d.drive_web_view_link) : '(none)'}`);
       console.log(`  created_at:       ${d.created_at}`);
       console.log(`  updated_at:       ${d.updated_at}`);
+      if (d.drive_file_id) {
+        console.log('--- drive links ---');
+        console.log(`  drive_file_id:         ${d.drive_file_id}`);
+        console.log(`  drive_web_view_link:   ${d.drive_web_view_link ?? '(none)'}`);
+        console.log(`  drive_web_content_link: ${d.drive_web_content_link ?? '(none)'}`);
+        console.log(`  drive_folder_id:       ${d.drive_folder_id ?? '(none)'}`);
+        console.log(`  storage_uri:           ${d.storage_uri ?? '(none)'}`);
+      }
       if (result.email) {
         console.log('--- email ---');
         console.log(`  gmail_message_id: ${maskIdStrict(result.email.gmail_message_id)}`);
@@ -434,9 +448,47 @@ program
 
 program
   .command('export-events')
-  .description('Export pending events to JSONL outbox')
-  .action(() => {
-    const events = exportPendingEvents();
+  .description('Export events to JSONL (read-only with filters; use --mark-exported to mark as sent)')
+  .option('--event-type <type>', 'Filter by event_type: document.detected|document.linked|document.accepted|document.rejected')
+  .option('--pedido <pedido>', 'Filter by pedido (e.g. 25/2026 or PED-25-2026)')
+  .option('--mark-exported', 'Mark events as exported (updates exported_at)', false)
+  .option('--json', 'Print as JSON instead of lines', false)
+  .action((opts) => {
+    const validTypes = ['document.detected', 'document.linked', 'document.accepted', 'document.rejected'] as const;
+    const eventType = (validTypes as readonly string[]).includes(opts.eventType) ? opts.eventType : undefined;
+
+    let pedido: string | undefined;
+    if (opts.pedido) {
+      const n = normalizePedido(opts.pedido);
+      if (n) pedido = n;
+      else console.error(`[export-events] Invalid pedido format: ${opts.pedido} — filter ignored`);
+    }
+
+    if (opts.markExported && !eventType && !pedido) {
+      const events = exportPendingEvents();
+      console.log('Exported %d events.', events.length);
+      return;
+    }
+
+    if (opts.markExported) {
+      const events = exportPendingEvents();
+      const filtered = events.filter(e => {
+        if (eventType && e.event_type !== eventType) return false;
+        if (pedido && e.pedido_manual !== pedido) return false;
+        return true;
+      });
+      console.log('Exported %d events (filtered from %d total).', filtered.length, events.length);
+      return;
+    }
+
+    const events = queryAndExportEvents({ eventType, pedido });
+    if (opts.json) {
+      console.log(JSON.stringify({ count: events.length, events }, null, 2));
+    } else {
+      for (const e of events) {
+        console.log(JSON.stringify(e));
+      }
+    }
     console.log('Exported %d events.', events.length);
   });
 

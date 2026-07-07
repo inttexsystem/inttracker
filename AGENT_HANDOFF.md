@@ -1,49 +1,58 @@
 # AGENT HANDOFF
 
 ## Branch/HEAD/Status
-### documentos-ingestor (este repositório)
+### documents-ingestor (este repositório)
 - Branch: master
-- HEAD: `fd75989` — Update document event contract (G8-B)
-
-### Controle de Tapetes (staging/work/app-next)
-- HEAD canônico: `997486a`
+- HEAD: `(new commit)` — Improve local document operations (G8-C)
 
 ## Fase concluída
-RAVATEX-DOC-INGESTOR-G8-B-CONTRACT-UPDATE
+RAVATEX-DOC-INGESTOR-G8-C-OPERATIONAL-POLISH
 
 ## Fase anterior
-G8-A — Design de integração e sync
+G8-B — Atualização de contrato (JSON schema + docs)
 
-## Objetivo da fase G8-B
-Atualizar contratos documentais (JSON schema + docs) para refletir o estado real do outbox pós-G6/G7.
+## Objetivo da fase G8-C
+Melhorar operação local em 3 pontos: filtro por pedido, export filtrado de eventos, e inspect com links Drive claros.
 
-### Alterações no JSON schema (`contracts/document-event.schema.json`)
-- **event_type enum** expandido em v1 e v2: `["document.detected", "document.linked", "document.accepted", "document.rejected"]`
-- **ingestion_event_id** adicionado a v1 e v2 (opcional, string, format uuid)
-- **event_id** agora documentado como "legado — pode ser igual a document_id"
-- **reason** adicionado a DocumentEventDocument v1 e v2 (opcional, string, "presente apenas em document.rejected")
+### Patch 1 — Filtro por pedido
+- `queries.ts`: `ListPendingFilters` ganhou `pedido?: string`; filtra por `documentos.pedido_manual`
+- `cli.ts list-pending`: nova opção `--pedido <25/2026 or PED-25-2026>`
+- Pedido normalizado via `normalizePedido()`: `25/2026` → `PED-25-2026`
+- 2 testes em `queries.test.ts`
 
-### Alterações na documentação (`docs/CONTROL_TAPETES_DOCUMENTS_CONTRACT.md`)
-- Status atualizado para "G6+ validated — outbox operacional"
-- Seção 2.1: tabela com os 4 event_types e seus status
-- Seção 2.2: tabela completa de campos (28 campos) com obrigatoriedade
-- Seção 2.3: visualização via `drive_web_view_link` (nova aba, sem Supabase)
-- Seção 3: campos mínimos expandidos com formato, direcao_nf, reason, ingestion_event_id
-- Seção 4: fluxo operacional (scan → assign real | link local-only)
-- Seção 5: decision points (manifest deferred, event_id legacy preserved, direction guard deferred)
-- Seção 6: fases concluídas (G5 → G8-A)
-- Seção 7: limites atuais
-- Seção 8: comandos úteis atualizados (inclui link, accept, reject)
+### Patch 2 — Export filtrado
+- `outbox.ts`: nova função `queryAndExportEvents(filters)` — read-only, sem marcar exported_at
+- `cli.ts export-events`: novas opções `--event-type`, `--pedido`, `--mark-exported`, `--json`
+- `--mark-exported` executa o export batch original (side-effect)
+- Sem `--mark-exported`: read-only, imprime eventos em JSONL ou JSON
+- 3 testes em `guardrails.test.ts` (filter por event_type, por pedido, preserva ingestion_event_id + reason)
 
-### Testes
-- `contract-doc.test.ts` atualizado: verifica "outbox operacional" + todos os 4 event_types + ingestion_event_id + drive_web_view_link
-- 24 suites, 265 testes passando
+### Patch 3 — Inspect com links Drive
+- `cli.ts inspect`: separa seção `--- drive links ---` com todos os campos Drive (não mascarados)
+- Campos exibidos: `drive_file_id`, `drive_web_view_link`, `drive_web_content_link`, `drive_folder_id`, `storage_uri`
+- Texto mode mostra valores reais; JSON mode já exibia (inalterado)
+- Exibe apenas se `drive_file_id` existe
+
+### Comandos implementados
+```
+npm run list:pending -- --pedido 25/2026 --status assigned
+npm run export:events -- --event-type document.linked --pedido PED-25-2026 --json
+npm run export:events -- --event-type document.accepted
+npm run inspect -- --id <doc_id>
+```
 
 ### Arquivos alterados
-- `contracts/document-event.schema.json` — event_type enum, ingestion_event_id, reason
-- `docs/CONTROL_TAPETES_DOCUMENTS_CONTRACT.md` — reescrita completa para estado atual
-- `tests/contract-doc.test.ts` — teste atualizado para novo conteúdo
-- `PROJECT_STATE.md`, `AGENT_HANDOFF.md` — atualização documental
+- `src/cli.ts` — --pedido no list-pending, export-events filtrado, inspect com Drive links
+- `src/core/queries.ts` — ListPendingFilters.pedido + filtro
+- `src/core/outbox.ts` — queryAndExportEvents()
+- `src/index.ts` — export queryAndExportEvents
+- `tests/queries.test.ts` — +2 pedido filter tests
+- `tests/guardrails.test.ts` — +3 filtered export tests
+- `PROJECT_STATE.md`, `AGENT_HANDOFF.md` — atualização
+
+### Testes
+- 24 suites, 270 testes passando (5 novos)
+- Nenhuma regressão
 
 ### Riscos remanescentes
 1. Bloqueio de mismatch entrada/saída deferido
@@ -51,5 +60,5 @@ Atualizar contratos documentais (JSON schema + docs) para refletir o estado real
 3. event_id migração v2 deferida
 
 ### Próxima fase recomendada
-RAVATEX-DOC-INGESTOR-G8-C-OPERATIONAL-POLISH
-Foco: filtros operacionais (list:pending --pedido, export:events --event-type), inspect com link Drive legível. Sem Google/Drive real.
+RAVATEX-DOC-INGESTOR-G8-D-SMOKE-REAL-REVISIT
+Foco: revalidar scan + link + accept/reject com Google/Drive real, validar manifest Drive e consumo de outbox.

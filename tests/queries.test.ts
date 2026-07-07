@@ -165,4 +165,17 @@ describe('operational queries (hermetic)', () => {
     expect(plan!.blocked).toBe(true);
     expect(plan!.blockReason).toContain('assigned');
   });
+
+  it('listPendingDocuments filters by pedido', () => {
+    const rows = listPendingDocuments({ pedido: 'PED-01-2026' });
+    expect(rows.length).toBe(1);
+    expect(rows[0].id).toBe('doc-2');
+    expect(rows[0].pedido_manual).toBe('PED-01-2026');
+  });
+
+  it('listPendingDocuments filters by pedido and status', () => {
+    const rows = listPendingDocuments({ pedido: 'PED-01-2026', status: 'assigned' });
+    expect(rows.length).toBe(1);
+    expect(rows[0].id).toBe('doc-2');
+  });
 });

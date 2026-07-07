@@ -1,5 +1,6 @@
 export { scanGmail, listPending, assignPedido, getDocumentEvents, exportPendingEvents, classifyAttachment, normalizePedido } from './core/ingest.js';
 export { linkDocumentToPedido } from './core/link.js';
+export { queryAndExportEvents } from './core/outbox.js';
 export { acceptDocument, rejectDocument } from './core/acceptance.js';
 export { createScan } from './core/realScan.js';
 export { createAssignPedido } from './core/realAssign.js';

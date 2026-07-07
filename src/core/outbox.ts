@@ -92,3 +92,35 @@ export function isEventDuplicate(eventId: string): boolean {
   ).get(eventId);
   return !!row;
 }
+
+export function queryAndExportEvents(filters: {
+  eventType?: string;
+  pedido?: string;
+} = {}): DocumentEvent[] {
+  const database = getDb();
+  const where: string[] = [];
+  const params: any[] = [];
+
+  if (filters.eventType) {
+    where.push('e.event_type = ?');
+    params.push(filters.eventType);
+  }
+  if (filters.pedido) {
+    where.push('e.pedido_manual = ?');
+    params.push(filters.pedido);
+  }
+
+  const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+  const rows = database.prepare(
+    `SELECT d.*, e.id AS ingestion_event_id,
+            e.pedido_manual, e.event_type, e.status AS event_status,
+            e.storage_uri, e.drive_file_id, e.drive_web_view_link,
+            e.manifest_storage_uri, e.reason
+     FROM ingestion_events e
+     JOIN documentos d ON d.id = e.document_id
+     ${whereClause}
+     ORDER BY e.created_at DESC`
+  ).all(...params) as any[];
+
+  return rows.map(row => buildEventFromRow(row));
+}

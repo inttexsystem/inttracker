@@ -7,6 +7,7 @@ export interface ListPendingFilters {
   tipo?: string;
   formato?: string;
   direcaoNf?: string;
+  pedido?: string;
 }
 
 export interface PendingDocumentRow {
@@ -56,6 +57,10 @@ export function listPendingDocuments(filters: ListPendingFilters = {}): PendingD
   if (filters.direcaoNf) {
     where.push('d.direcao_nf = ?');
     params.push(filters.direcaoNf);
+  }
+  if (filters.pedido) {
+    where.push('d.pedido_manual = ?');
+    params.push(filters.pedido);
   }
 
   const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
