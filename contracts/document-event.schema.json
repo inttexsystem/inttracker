@@ -32,11 +32,17 @@
         },
         "event_type": {
           "type": "string",
-          "enum": ["document.detected"]
+          "enum": ["document.detected", "document.linked", "document.accepted", "document.rejected"]
         },
         "event_id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "description": "Identificador legado — pode ser igual a document_id. Usar ingestion_event_id como identificador canônico do evento."
+        },
+        "ingestion_event_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Identificador canônico do evento (ingestion_events.id). UUID único por evento."
         },
         "created_at": {
           "type": "string",
@@ -84,11 +90,17 @@
         },
         "event_type": {
           "type": "string",
-          "enum": ["document.detected"]
+          "enum": ["document.detected", "document.linked", "document.accepted", "document.rejected"]
         },
         "event_id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "description": "Identificador legado — pode ser igual a document_id. Usar ingestion_event_id como identificador canônico do evento."
+        },
+        "ingestion_event_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Identificador canônico do evento (ingestion_events.id). UUID único por evento."
         },
         "created_at": {
           "type": "string",
@@ -151,6 +163,10 @@
         "manifest_storage_uri": {
           "type": "string",
           "pattern": "^gdrive://file/.+"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Motivo da rejeição. Presente apenas em document.rejected."
         }
       }
     },
@@ -203,6 +219,10 @@
         "manifest_storage_uri": {
           "type": "string",
           "pattern": "^gdrive://file/.+"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Motivo da rejeição. Presente apenas em document.rejected."
         }
       }
     }

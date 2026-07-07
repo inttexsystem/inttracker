@@ -89,6 +89,7 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - G7-C — Smoke local sintético (funil pending→link→accept/reject→outbox→report validado)
 - G7-C-R1 — Persistência de `reason` no re-export de document.rejected
 - G8-A — Design de integração e sync (matriz link/assign/manifest/outbox/Drive/event_id)
+- G8-B — Atualização de contrato (JSON schema + docs) refletindo estado real G6/G7
 - G/H — UI Backlog (Controle de Tapetes — staging/work/app-next)
 
 ## Fase G1: Taxonomia de Documentos (3 eixos)
@@ -110,5 +111,5 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - Status residual esperado: `?? supabase/.temp/`
 
 ## Próxima fase recomendada
-RAVATEX-DOC-INGESTOR-G8-B-CONTRACT-UPDATE
-Foco: atualizar contratos documentais (JSON schema + docs) para refletir estado real do outbox pós-G6/G7: novos event_types, ingestion_event_id, reason. Sem alteração funcional.
+RAVATEX-DOC-INGESTOR-G8-C-OPERATIONAL-POLISH
+Foco: filtro `list:pending --pedido`, export de outbox filtrado, inspect com link Drive legível. Sem Google/Drive real, sem integração com Controle de Tapetes.
