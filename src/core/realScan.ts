@@ -13,6 +13,7 @@ export interface ScanOptions {
   confirmReal?: boolean;
   maxAttachments?: number;
   query?: string;
+  retryMessageId?: string;
 }
 
 export interface ScanResult {
@@ -74,15 +75,21 @@ export function createScan(deps: ScanDeps = defaultDeps) {
     }
 
     const logger = deps.logger ?? createRunLogger();
-    logger.log({ type: 'run.start', timestamp: new Date().toISOString(), daysBack, maxAttachments, wideScan });
+    logger.log({ type: 'run.start', timestamp: new Date().toISOString(), daysBack, maxAttachments, wideScan, retryMessageId: opts.retryMessageId ?? null });
 
     const emails = await deps.fetchEmails(daysBack, opts.query);
     const database = getDb();
 
     for (const email of emails) {
-      if (isEmailProcessed(email.gmailMessageId)) {
+      const isRetry = opts.retryMessageId != null && email.gmailMessageId === opts.retryMessageId;
+
+      if (!isRetry && isEmailProcessed(email.gmailMessageId)) {
         logger.log({ type: 'email.scanned', timestamp: new Date().toISOString(), gmailMessageId: email.gmailMessageId, subject: email.subject, attachmentsCount: 0, status: 'skipped_already' });
         continue;
+      }
+
+      if (isRetry) {
+        logger.log({ type: 'retry.start', timestamp: new Date().toISOString(), gmailMessageId: email.gmailMessageId, subject: email.subject, status: 'retry_requested' });
       }
 
       markEmailProcessed(email.gmailMessageId, email.threadId, email.subject, 0);

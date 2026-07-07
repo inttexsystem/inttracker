@@ -358,4 +358,106 @@ describe('real scan flow (mocked Google)', () => {
     await scan({ confirmReal: true });
     expect(receivedQuery).toBeNull();
   });
+
+  it('retry-message bypasses skip for processed email and inserts document', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\nretry test content');
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'msg-retry', threadId: 't', from: '', subject: 'RETRY TEST', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'msg-retry', threadId: 't', attachmentId: 'att-retry', filename: 'retry-nf.pdf', mimeType: 'application/pdf', size: fakePdf.length },
+      ],
+      downloadAtt: async () => fakePdf,
+    });
+
+    const db = getDb();
+    db.prepare(`INSERT OR IGNORE INTO emails_processados (gmail_message_id) VALUES (?)`).run('msg-retry');
+
+    const scan = createScan(deps);
+    const r1 = await scan({ confirmReal: true });
+    expect(r1.newDocuments).toBe(0);
+
+    const r2 = await scan({ confirmReal: true, retryMessageId: 'msg-retry' });
+    expect(r2.newDocuments).toBe(1);
+  });
+
+  it('retry-message does not duplicate if document already exists', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\ndedup retry');
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'msg-retry-2', threadId: 't', from: '', subject: 'DEDUP', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'msg-retry-2', threadId: 't', attachmentId: 'att-dedup', filename: 'dup.pdf', mimeType: 'application/pdf', size: fakePdf.length },
+      ],
+      downloadAtt: async () => fakePdf,
+    });
+
+    const db = getDb();
+    db.prepare(`INSERT OR IGNORE INTO emails_processados (gmail_message_id) VALUES (?)`).run('msg-retry-2');
+
+    const scan = createScan(deps);
+    const r1 = await scan({ confirmReal: true, retryMessageId: 'msg-retry-2' });
+    expect(r1.newDocuments).toBe(1);
+
+    const r2 = await scan({ confirmReal: true, retryMessageId: 'msg-retry-2' });
+    expect(r2.newDocuments).toBe(0);
+    expect(r2.duplicates).toBe(1);
+  });
+
+  it('retry-message respects maxAttachments cap', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\ncap retry');
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'msg-retry-3', threadId: 't', from: '', subject: 'CAP TEST', date: '', attachmentCount: 2 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'msg-retry-3', threadId: 't', attachmentId: 'att-cap-1', filename: 'a.pdf', mimeType: 'application/pdf', size: 0 },
+        { gmailMessageId: 'msg-retry-3', threadId: 't', attachmentId: 'att-cap-2', filename: 'b.pdf', mimeType: 'application/pdf', size: 0 },
+      ],
+      downloadAtt: async () => fakePdf,
+    });
+
+    const db = getDb();
+    db.prepare(`INSERT OR IGNORE INTO emails_processados (gmail_message_id) VALUES (?)`).run('msg-retry-3');
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true, retryMessageId: 'msg-retry-3', maxAttachments: 1 });
+    expect(r.newDocuments).toBe(1);
+    expect(r.skippedByCap).toBe(1);
+  });
+
+  it('retry-message logs retry.start in run log', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\nlog retry');
+    const logPath = join(DB_DIR, 'retry-log.jsonl');
+    const logger = {
+      path: logPath,
+      log(event: any): void {
+        appendFileSync(logPath, JSON.stringify(event) + '\n', 'utf-8');
+      },
+    };
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'msg-rlog', threadId: 't', from: '', subject: 'LOG RETRY', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'msg-rlog', threadId: 't', attachmentId: 'a', filename: 'r.pdf', mimeType: 'application/pdf', size: 0 },
+      ],
+      downloadAtt: async () => fakePdf,
+      logger,
+    });
+
+    const db = getDb();
+    db.prepare(`INSERT OR IGNORE INTO emails_processados (gmail_message_id) VALUES (?)`).run('msg-rlog');
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true, retryMessageId: 'msg-rlog' });
+    expect(r.runLogPath).toBe(logPath);
+    const content = readFileSync(logPath, 'utf-8');
+    const lines = content.trim().split('\n').map((l) => JSON.parse(l));
+    expect(lines.some((l) => l.type === 'run.start')).toBe(true);
+    expect(lines.some((l) => l.type === 'retry.start' && l.status === 'retry_requested')).toBe(true);
+    expect(lines.some((l) => l.type === 'attachment.processed' && l.status === 'new')).toBe(true);
+  });
 });

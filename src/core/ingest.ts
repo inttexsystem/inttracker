@@ -13,6 +13,7 @@ export interface ScanGmailOptions {
   confirmReal?: boolean;
   maxAttachments?: number;
   query?: string;
+  retryMessageId?: string;
 }
 
 export async function scanGmail(options: ScanGmailOptions = {}): Promise<ScanResult> {
@@ -34,6 +35,7 @@ export async function scanGmail(options: ScanGmailOptions = {}): Promise<ScanRes
     confirmReal: true,
     maxAttachments: options.maxAttachments,
     query: options.query,
+    retryMessageId: options.retryMessageId,
   });
 }
 

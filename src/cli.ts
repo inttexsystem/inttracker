@@ -26,6 +26,7 @@ program
   .option('--confirm-real-google', 'Process real Gmail/Drive (otherwise dry-run)')
   .option('--dry-run', 'Force dry-run even if --confirm-real-google is set')
   .option('--query <gmail_query>', 'Additional Gmail search query (refines base filter, does not replace)')
+  .option('--retry-message <gmail_message_id>', 'Retry processing a specific Gmail message (bypasses skip for this message)')
   .action(async (opts) => {
     const days = parseInt(opts.days, 10);
     if (!Number.isFinite(days) || days < 1 || days > 30) {
@@ -45,6 +46,7 @@ program
 
     const confirmReal = Boolean(opts.confirmRealGoogle) && !opts.dryRun;
     const gmailQuery = opts.query ? String(opts.query).trim() : undefined;
+    const retryMessageId = opts.retryMessage ? String(opts.retryMessage).trim() : undefined;
 
     if (confirmReal && maxAttachments > 5 && !gmailQuery) {
       console.error('[scan] REAL mode with --max-attachments > 5 requires --query for safety. Use --query to narrow the scan or reduce --max-attachments.');
@@ -58,6 +60,7 @@ program
       confirmReal,
       maxAttachments,
       query: gmailQuery,
+      retryMessageId,
     });
     if (result.mode === 'dry-run') {
       console.log('[scan] DRY-RUN — no real Gmail/Drive calls performed.');
