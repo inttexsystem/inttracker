@@ -1,35 +1,53 @@
-> **Atualizacao 2026-07-06 - fase
-> `RAVATEX-TAPETES-TRANSFER-GRID-COLUMN-REFINE-E`.**
-> Status: **PATCH TRANSFER GRID COLUMN REFINE PRONTO — AGUARDANDO RETESTE DO USUARIO**.
-> Entrada: branch `work/app-next`, HEAD inicial
-> `ce56738`; status inicial somente `?? supabase/.temp/`;
+> **Atualizacao 2026-07-07 - fase
+> `RAVATEX-TAPETES-UI-BACKLOG-CLOSEOUT-H`.**
+> Status: **UI BACKLOG CLOSEOUT — BLOCO UI FECHADO. 14/14 ITENS.**
+> Entrada: branch `work/app-next`, HEAD
+> `997486a`; status somente `?? supabase/.temp/`;
 > `origin` somente leitura e producao intocados.
+> Push staging: `af919a2..997486a` → `work/app-next`.
 >
-> Fase anterior:
-> `RAVATEX-TAPETES-TRANSFER-METRICS-ALIGNMENT-D` (HEAD
-> `ce56738`).
+> Fases concluidas desde o ultimo closeout:
 >
-> Itens entregues (P2):
+> **`RAVATEX-TAPETES-TRANSFER-GRID-CELL-CENTER-R1`** (P2) — CLOSED `c8b45b6`.
+> Centralizacao horizontal das colunas Alocado/Transferido/Pendente
+> (`text-align:right` → `text-align:center`) na tabela Pendencias por
+> produto. Produto mantido a esquerda com ellipsis.
 >
-> 1. **Tabela Pendencias por produto refinada.**
-> (`js/screens/pedido-detail-events.js:buildTransitionPendingTable`).
-> Grid alterado de `1fr auto auto auto` para `minmax(0,1fr) 80px 80px 80px`
-> (colunas ~15% mais largas, larguras explicitas garantindo alinhamento
-> entre cabecalho e linhas de dados). Coluna Produto ganhou
-> `overflow:hidden;text-overflow:ellipsis;white-space:nowrap` com `title`
-> mostrando nome completo.
+> **`RAVATEX-TAPETES-LINKED-OPS-FOOTER-BUTTONS-UX-F`** (P3) — CLOSED
+> `e80b9de` + `55bc32b` + `997486a`.
+> Footer de OPs vinculadas: labels encurtados ("Liberar exp.",
+> "Movimento"), `flex:1` removido, botoes com largura natural +
+> `min-width:72px`, `min-height:34px`, `padding:7px 12px` uniforme
+> entre `buildFooterAction` e "Excluir OP".
 >
-> 2. **Metricas do buildAcabamentoTransferForm ajustadas.**
-> Reduzido excesso visual da fase D: `font-size:14px;padding:8px 0` →
-> `font-size:13px;padding:6px 0` nos valores de Recebido e Ja movimentado.
+> **`RAVATEX-TAPETES-UI-BACKLOG-RECONCILIATION-G`** (P2) — CLOSED.
+> Diagnostico read-only: 14/14 itens do backlog UI fechados,
+> 0 pendentes, 0 obsoletos.
 >
-> - **Arquivos alterados:**
->   - `js/screens/pedido-detail-events.js`
-> - **Nao alterado:** calculos, handlers, RPC, schema, fluxo de transferencia.
-> - **Testes:** `pedido-detail.smoke.js` 172/172,
->   `tec-to-acabamento-flow.smoke.js` 39/39.
-> - **Garantias:** producao intocada; `origin` nao usado; sem
->   `git add .`; `supabase/.temp` fora do commit.
+> ---
+>
+> ## Closeout do bloco UI — resumo final
+>
+> | # | Item | Status |
+> |---|------|--------|
+> | 1 | Modal finalizar OP com confirmacao padrao (danger) | FECHADO |
+> | 2 | Toasts acima do modal (`z-[250]`) | FECHADO |
+> | 3 | Links encavalados removidos da OP Acabamento | FECHADO |
+> | 4 | Botoes de acao compactos (`BTN_ACTION`) | FECHADO |
+> | 5 | "Finalizar OP de Tecelagem/Acabamento" → "Finalizar OP" | FECHADO |
+> | 6 | "Abrir Pedido" → "Ver Pedido" | FECHADO |
+> | 7 | "Abrir OP" → "Ver OP" (visualizacao) | FECHADO |
+> | 8 | Movimentar/Finalizar a direita na OP Acabamento | FECHADO |
+> | 9 | "Transferir restante" unificado com "Preencher restante" | FECHADO |
+> | 10 | Footer OPs vinculadas: labels curtos, altura uniforme | FECHADO |
+> | 11 | Grid Produto/Alocado/Transferido/Pendente (80px + ellipsis) | FECHADO |
+> | 12 | Metricas Recebido/Ja movimentado/Movimentar alinhadas | FECHADO |
+> | 13 | Botao "Confirmar" entrada Acabamento | FECHADO |
+> | 14 | Paridade Aceitar/Manter proposta modal ↔ tela OP | FECHADO |
+>
+> - **HEAD canônico staging/work/app-next:** `997486a`
+> - **Origem:** `production` intocada, `origin` somente leitura
+> - **Próximo passo:** funcionalidade (romaneios, NFs, integracao)
 >
 > ---
 >

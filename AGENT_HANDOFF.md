@@ -5435,3 +5435,37 @@ movimentacao e determinada pelo estagio do Pedido.
   - `origin` nao usado para escrita.
   - Sem `git add .`.
   - `supabase/.temp` fora do commit.
+
+---
+
+# Closeout do bloco UI
+
+- Fase: `RAVATEX-TAPETES-UI-BACKLOG-CLOSEOUT-H`.
+- Status: **UI BACKLOG CLOSEOUT — BLOCO UI FECHADO. 14/14 ITENS.**
+- HEAD staging/work/app-next: `997486a`.
+- Push staging: `af919a2..997486a`.
+
+- **Ultimas fases:**
+  - `TRANSFER-GRID-CELL-CENTER-R1` (P2, `c8b45b6`)
+  - `LINKED-OPS-FOOTER-BUTTONS-UX-F` (P3, `e80b9de`+`55bc32b`+`997486a`)
+  - `UI-BACKLOG-RECONCILIATION-G` (P2, read-only)
+
+- **14/14 itens fechados:**
+  1. Modal finalizar OP (danger) ✅
+  2. Toasts acima do modal (z-[250]) ✅
+  3. Links encavalados OP Acabamento ✅
+  4. Botoes acao compactos ✅
+  5. Labels Finalizar OP curtos ✅
+  6. Abrir Pedido → Ver Pedido ✅
+  7. Abrir OP → Ver OP (visualizacao) ✅
+  8. Movimentar/Finalizar a direita ✅
+  9. Transferir/Preencher restante unificado ✅
+  10. Footer OPs vinculadas uniforme ✅
+  11. Grid Produto/Alocado/Transferido/Pendente ✅
+  12. Metricas Recebido/Movimentado/Movimentar ✅
+  13. Botao Confirmar entrada Acabamento ✅
+  14. Paridade proposta modal ↔ OP ✅
+
+- **Proximo passo:** funcionalidade (romaneios, NFs, integracao).
+- **Garantias:** producao intocada; origin somente leitura; sem
+  `git add .`; `supabase/.temp` fora do commit.
