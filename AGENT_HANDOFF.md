@@ -3,58 +3,69 @@
 ## Branch/HEAD/Status
 ### documentos-ingestor (este repositório)
 - Branch: master
-- HEAD: `9c9898f` — Record drive manifest sync design (G9-A)
+- HEAD: `(new commit)` — Add local manifest export and sync dry run (G9-B)
 
 ### Controle de Tapetes (staging/work/app-next)
 - HEAD canônico: `997486a`
 
 ## Fase concluída
-RAVATEX-DOC-INGESTOR-G9-A-DRIVE-MANIFEST-SYNC-DESIGN
+RAVATEX-DOC-INGESTOR-G9-B-MANIFEST-LOCAL-AND-SYNC-SCAFFOLD
 
 ## Fase anterior
-G8-E — Pacote de handoff de integração (exemplos JSONL, regras, idempotência)
+G9-A — Design de sincronização manifest Drive
 
-## Objetivo da fase G9-A
-Diagnosticar e desenhar o modelo de sincronização do manifest Drive sem implementar patch funcional.
+## Objetivo da fase G9-B
+Implementar export local de manifest e scaffold de sync, sem execução real Google/Drive.
 
-### Diagnóstico principal
-- Manifest Drive é criado APENAS por `realAssign.ts` — é snapshot do assign real
-- Link/accept/reject são local-only e NÃO tocam manifest
-- `realAssign.ts:73` bloqueia documentos linked (`if (doc.status !== 'pending')`)
-- `manifest.ts:117` em realAssign escreve em `/dev/null` (placeholder local)
-- `drive.ts:202-265` uploadManifest cria/atualiza manifest.json no Drive
+### Comandos implementados
 
-### Fonte de verdade
-- **SQLite** = estado operacional (status, pedido, taxonomy)
-- **Outbox JSONL** = eventos (contrato de integração)
-- **Manifest Drive** = snapshot derivado (deve ser sincronizável, não fonte primária)
+**export-manifest** (local-only, sem Drive):
+```
+npm run export:manifest -- --pedido 25/2026
+```
+Lê SQLite, gera manifest JSON para stdout. Read-only, não altera documentos, não chama Drive.
 
-### Opções avaliadas (4)
+**sync-manifest** (dry-run por padrão):
+```
+npm run sync:manifest -- --pedido 25/2026
+npm run sync:manifest -- --pedido 25/2026 --confirm-real-google
+```
+Dry-run: imprime preview JSON, não toca Drive.
+Com `--confirm-real-google`: chama `uploadManifest()` do `drive.ts` com payload do SQLite (stub em modo hermético).
 
-| Opção | Veredito | Risco |
-|---|---|---|
-| 1 — Nada | Não atende | linked/rejected invisíveis |
-| 2 — Manifest local exportável | Complementar | Baixo |
-| **3 — Sync:manifest Drive** | **Recomendado** | Médio (dry-run protege) |
-| 4 — Revisar assign real | Não recomendado | Alto (mistura rotas) |
+### Arquivos
+- `src/core/syncManifest.ts` — novo: buildManifestFromDb, exportManifest, syncManifest
+- `src/cli.ts` — comandos export-manifest e sync-manifest
+- `src/index.ts` — export das novas funções
+- `package.json` — scripts npm
+- `tests/manifest-sync.test.ts` — novo, 8 testes
 
-### Recomendação
-Implementar opção 2 + 3: comando `export:manifest` (local, sem Drive) e `sync:manifest` (Drive com `--confirm-real-google`), sem alterar assign real, sem mover arquivos.
+### Formato do manifest local
+- `generated_at` (via created_at/updated_at)
+- `source`: implícito (SQLite)
+- `schema_version`: 1
+- `pedido`: normalizado
+- `documents[]`: com document_id, tipo_documento, formato, direcao_nf, filename, sha256, storage_backend, storage_uri, drive_file_id, drive_*, ingested_at, event_id, status
 
-### Decisões documentais
-- Design completo em `docs/architecture/G9_DRIVE_MANIFEST_SYNC_DESIGN.md`
-- Manifest classificado como snapshot derivado, não fonte de verdade
-- Integração Controle de Tapetes permanece baseada em outbox (G8-E)
+### Comportamento de sync
+- **Sem `--confirm-real-google`**: dry-run. Imprime preview, não chama Drive, retorna `{ dryRun: true, driveSyncApplied: false }`
+- **Com `--confirm-real-google`**: chama `uploadManifest` (usando stub Drive em ambiente sem token, ou mock em testes)
+- Sync não altera documentos, não move arquivos, não altera status
 
-### Arquivos alterados/criados
-- `docs/architecture/G9_DRIVE_MANIFEST_SYNC_DESIGN.md` — novo (design completo + ordem)
-- `PROJECT_STATE.md`, `AGENT_HANDOFF.md` — atualização
+### Testes
+- 8 testes em `tests/manifest-sync.test.ts`
+- buildManifestFromDb retorna manifesto com linked/accepted/rejected
+- exportManifest não chama Drive
+- syncManifest dry-run não chama Drive
+- syncManifest com confirmRealGoogle retorna stub (hermético, sem Drive real)
+- manifest não altera documentos.status
+- 25 suites, 278 testes passando
 
 ### Riscos remanescentes
-1. Bloqueio de mismatch entrada/saída deferido
-2. event_id v2 deferido
-3. Sync manifest não implementado ainda
+1. Sync real com Drive nunca executado em smoke
+2. Bloqueio de mismatch entrada/saída deferido
+3. event_id v2 deferido
 
 ### Próxima fase recomendada
-RAVATEX-DOC-INGESTOR-G9-B-MANIFEST-LOCAL-AND-SYNC
-Foco: export:manifest local + sync:manifest Drive com --confirm-real-google. Manifest reflete linked/accepted/rejected.
+RAVATEX-DOC-INGESTOR-G9-C-MANIFEST-REAL-SMOKE
+Foco: validar sync real com --confirm-real-google em documento teste, integração do manifest Drive e consumo de outbox pelo Controle de Tapetes.

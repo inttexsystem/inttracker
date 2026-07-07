@@ -8,3 +8,5 @@ export type { ScanResult, ScanOptions, ScanDeps } from './core/realScan.js';
 export type { AssignResult, AssignOptions, AssignDeps } from './core/realAssign.js';
 export type { LinkResult } from './core/link.js';
 export type { AcceptanceResult } from './core/acceptance.js';
+export { exportManifest, syncManifest } from './core/syncManifest.js';
+export type { SyncManifestResult } from './core/syncManifest.js';

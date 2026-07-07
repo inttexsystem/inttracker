@@ -11,6 +11,8 @@
     "assign": "tsx src/cli.ts assign",
     "login": "tsx src/cli.ts login",
     "export:events": "tsx src/cli.ts export-events",
+    "export:manifest": "tsx src/cli.ts export-manifest",
+    "sync:manifest": "tsx src/cli.ts sync-manifest",
     "report": "tsx src/cli.ts report",
     "inspect": "tsx src/cli.ts inspect",
     "reprocess": "tsx src/cli.ts reprocess",

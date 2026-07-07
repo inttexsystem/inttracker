@@ -11,6 +11,7 @@ import type { TipoDocumentoLegado } from './types/document.js';
 import { linkDocumentToPedido } from './core/link.js';
 import { acceptDocument, rejectDocument } from './core/acceptance.js';
 import { normalizePedido } from './core/pedido.js';
+import { exportManifest, syncManifest } from './core/syncManifest.js';
 import { closeDb, getDb } from './storage/sqlite.js';
 
 const program = new Command();
@@ -490,6 +491,47 @@ program
       }
     }
     console.log('Exported %d events.', events.length);
+  });
+
+program
+  .command('export-manifest')
+  .description('Export local manifest snapshot for a pedido (read-only, no Google Drive)')
+  .requiredOption('--pedido <pedido>', 'Pedido (e.g. 25/2026 or PED-25-2026)')
+  .action((opts) => {
+    const n = normalizePedido(opts.pedido);
+    if (!n) {
+      console.error('[export-manifest] Invalid pedido format:', opts.pedido);
+      process.exit(1);
+    }
+    const manifest = exportManifest(n);
+    console.log(JSON.stringify(manifest, null, 2));
+    closeDb();
+  });
+
+program
+  .command('sync-manifest')
+  .description('Sync manifest to Google Drive for a pedido (dry-run by default)')
+  .requiredOption('--pedido <pedido>', 'Pedido (e.g. 25/2026 or PED-25-2026)')
+  .option('--confirm-real-google', 'Perform real Drive sync (otherwise dry-run)')
+  .action(async (opts) => {
+    const n = normalizePedido(opts.pedido);
+    if (!n) {
+      console.error('[sync-manifest] Invalid pedido format:', opts.pedido);
+      process.exit(1);
+    }
+    const result = await syncManifest(n, { confirmRealGoogle: Boolean(opts.confirmRealGoogle) });
+    if (result.dryRun) {
+      console.log('[sync-manifest] DRY-RUN — no Google Drive calls performed.');
+      console.log('[sync-manifest] Would sync %d documents for pedido %s.', result.documentCount, n);
+      console.log('[sync-manifest] Preview:');
+      const manifest = exportManifest(n);
+      console.log(JSON.stringify(manifest, null, 2));
+    } else {
+      console.log('[sync-manifest] Synced %d documents for pedido %s.', result.documentCount, n);
+      console.log('[sync-manifest] Drive file: %s', result.driveFileId ?? '(none)');
+      console.log('[sync-manifest] Storage URI: %s', result.storageUri ?? '(none)');
+    }
+    closeDb();
   });
 
 program.parse(process.argv);
