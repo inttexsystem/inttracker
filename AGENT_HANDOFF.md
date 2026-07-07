@@ -3,7 +3,7 @@
 ## Branch/HEAD/Status
 ### documentos-ingestor (este repositório)
 - Branch: master
-- HEAD: `c7cb500` — Validate local document funnel smoke (G7-C)
+- HEAD: `3ff31a7` — Validate local document funnel smoke (G7-C)
 
 ### Controle de Tapetes (staging/work/app-next)
 - HEAD canônico: `997486a`
