@@ -3,81 +3,52 @@
 ## Branch/HEAD/Status
 ### documentos-ingestor (este repositório)
 - Branch: master
-- HEAD: `257a352` (nenhum novo commit — smoke operacional)
-- Status: clean
+- HEAD: `(new commit)` — Record Controle Tapetes integration design (G10-A)
 
 ### Controle de Tapetes (staging/work/app-next)
 - HEAD canônico: `997486a`
 
 ## Fase concluída
-RAVATEX-DOC-INGESTOR-G9-C-MANIFEST-REAL-SMOKE
+RAVATEX-DOC-INGESTOR-G10-A-CONTROLE-TAPETES-INTEGRATION-DESIGN
 
 ## Fase anterior
-G9-B — Manifest local exportável + sync scaffold
+G9-C — Manifest real smoke (sync Drive confirmado)
 
-## Objetivo da fase G9-C
-Validar sync real controlado de manifest para pedido PED-99-2026 com Google Drive.
+## Objetivo da fase G10-A
+Desenhar integração com Controle de Tapetes sem implementar patch funcional. Mapear contratos, fontes de verdade, estratégia de transporte e lacunas.
 
-### Documento teste
-- Gmail message ID: `19f3...e1`
-- Doc ID: `cda1...05`
-- Tipo: nf, formato: xml, direção: entrada
-- Status: accepted
-- Pedido: PED-99-2026
+### Decisões-chave
 
-### Comandos executados
+**Modelo de integração:** Outbox JSONL como contrato primário. Controle de Tapetes faz watch do arquivo + pull sob demanda via `export:events`.
 
-**Parte 1 — Baseline:**
-```
-export:manifest --pedido PED-99-2026 → 1 documento (accepted), drive_file_id presente
-inspect → accepted, PED-99-2026, 2 eventos (linked + accepted)
-report → 1 accepted, 2 pending, 0 rejected
-```
+**Fonte de verdade:** Outbox para o app; SQLite/manifest internos do ingestor.
 
-**Parte 2 — Dry-run:**
-```
-sync:manifest --pedido PED-99-2026
-→ DRY-RUN — no Google Drive calls performed. Would sync 1 documents.
-```
+**Contrato:** Completo — 25+ campos documentados, 4 event_types, ingestion_event_id canônico. Nenhum campo faltando.
 
-**Parte 3 — Sync real:**
-```
-sync:manifest --pedido PED-99-2026 --confirm-real-google
-→ Synced 1 documents for pedido PED-99-2026.
-→ Drive file: 1Tp***Na
-→ Storage URI: gdrive://file/1Tp***Na
-```
+**Transporte:** JSONL watch (modo 1) + export filtrado (modo 2). Ambos já funcionais.
 
-**Parte 4 — Post-check:**
-```
-inspect → accepted (inalterado), same drive_file_id (1ao8qFfl***Vh), same updated_at
-export:events → 2 eventos (linked + accepted, inalterados)
-report → 1 accepted, 2 pending (inalterado)
-```
+**Idempotência:** 5 regras documentadas (ingestion_event_id canônico, event_id legado, consolidação por document_id, reprocessamento seguro, ordenação por created_at).
 
-### Resultado
-- **Sync real: SUCESSO** (não stub — OAuth token válido, upload Drive confirmado)
-- Manifest Drive criado/atualizado: `1Tp***Na`
-- Documento **não foi movido** (drive_file_id inalterado)
-- Status **não foi alterado** (accepted mantido)
-- Outbox **não foi alterado** (2 eventos mantidos)
-- Nenhum scan/assign/link/accept/reject executado
-- Apenas manifest foi tocado no Drive
+**UI Controle de Tapetes:** Botão "Ver documento" abre `drive_web_view_link` em nova aba. Badges por tipo/formato/direção/status. Timeline de eventos. Sem Supabase/upload.
+
+**Próximo patch (G10-B):** `export:package --pedido` como comando de conveniência (JSONL + manifest + summary consolidado). Opcional — blocos já existem.
+
+### Arquivos alterados/criados
+- `docs/architecture/G10_CONTROLE_TAPETES_INTEGRATION_DESIGN.md` — novo (design completo)
+- `PROJECT_STATE.md`, `AGENT_HANDOFF.md` — atualização
 
 ### Garantias
-- Nenhum scan real executado
-- Nenhum assign real executado
-- Nenhum link/accept/reject executado
-- Apenas Google Drive chamado para upload/update do manifest
-- `data/app.db` não alterado indevidamente
+- Nenhum scan/assign/sync real executado
+- Google/Drive não chamado
+- Controle de Tapetes não tocado
+- `data/app.db` real não tocado
 - Nenhum dado commitado
-- Git status clean
 
 ### Riscos remanescentes
 1. Bloqueio de mismatch entrada/saída deferido
 2. event_id v2 deferido
-3. Controle de Tapetes ainda não consome outbox
+3. Controle de Tapetes ainda não implementa consumo de outbox
 
 ### Próxima fase recomendada
-RAVATEX-DOC-INGESTOR-G10-CONTROLE-TAPETES-INTEGRATION
-Foco: primeiro consumo real do outbox pelo Controle de Tapetes. Visualização via drive_web_view_link. Manifest sincronizável disponível como snapshot derivado.
+RAVATEX-DOC-INGESTOR-G10-B-EXPORT-PACKAGE
+Foco: comando `export:package --pedido` consolidando JSONL + manifest + summary. Consumo inicial pelo Controle de Tapetes.
