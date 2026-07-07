@@ -176,6 +176,9 @@ program
     try {
       const result = linkDocumentToPedido(opts.id, opts.pedido);
       console.log('[link] Linked: document=%s pedido=%s event=%s', result.documentId, result.pedidoManual, result.eventId);
+      if (result.warnedDirection) {
+        console.log('[link] Warning: document NF direction is unknown — linked without direction guard. Verify manually.');
+      }
       console.log('[link] Local-only — no Google Drive calls performed.');
     } catch (e: any) {
       console.error('[link]', e.message);
@@ -308,11 +311,24 @@ program
       console.log('--- import report ---');
       console.log(`  totalEmailsProcessed:  ${report.totalEmailsProcessed}`);
       console.log(`  totalDocuments:        ${report.totalDocuments}`);
+      console.log(`  recentErrors (${days}d):   ${report.recentErrors}`);
+      console.log('');
+      console.log('--- funnel ---');
       console.log(`  pendingWithoutPedido:  ${report.pendingWithoutPedido}`);
-      console.log(`  pendingAppAcceptance:  ${report.pendingAppAcceptance}`);
       console.log(`  documentsAccepted:     ${report.documentsAccepted}`);
       console.log(`  documentsRejected:     ${report.documentsRejected}`);
-      console.log(`  recentErrors (${days}d):   ${report.recentErrors}`);
+      console.log('  by status:');
+      for (const [k, v] of Object.entries(report.documentsByStatus)) {
+        console.log(`    ${k}: ${v}`);
+      }
+      if (Object.keys(report.assignedByPedido).length > 0) {
+        console.log('  by pedido:');
+        for (const [k, v] of Object.entries(report.assignedByPedido)) {
+          console.log(`    ${k}: ${v}`);
+        }
+      }
+      console.log('');
+      console.log('--- taxonomy ---');
       console.log('  by tipo:');
       for (const [k, v] of Object.entries(report.documentsByTipo)) {
         console.log(`    ${k}: ${v}`);
@@ -333,16 +349,9 @@ program
       for (const [k, v] of Object.entries(report.pendingByDirecao)) {
         console.log(`    ${k}: ${v}`);
       }
-      console.log('  by status:');
-      for (const [k, v] of Object.entries(report.documentsByStatus)) {
-        console.log(`    ${k}: ${v}`);
-      }
-      if (Object.keys(report.assignedByPedido).length > 0) {
-        console.log('  by pedido:');
-        for (const [k, v] of Object.entries(report.assignedByPedido)) {
-          console.log(`    ${k}: ${v}`);
-        }
-      }
+      console.log('');
+      console.log('--- outbox ---');
+      console.log(`  pendingAppAcceptance:  ${report.pendingAppAcceptance}`);
       console.log(`  outbox:                ${report.outboxPath}`);
     }
     closeDb();

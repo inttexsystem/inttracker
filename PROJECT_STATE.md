@@ -19,10 +19,10 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - `contracts/manifest.schema.json` — schema do manifest de Pedido
 
 ## Status atual
-- HEAD (documents-ingestor): `4385697`
+- HEAD (documents-ingestor): `d0f3bc4`
 - HEAD canônico staging/work/app-next (Controle de Tapetes): `997486a`
 - Push staging: `af919a2..997486a` (produção/origin oficial intocados)
-- 250 testes passando (22 suites) — incluindo integração mockada completa
+- 260 testes passando (23 suites) — incluindo integração mockada completa
 - Hermético: nenhum teste depende de `.env` real, token real ou chamadas Google
 - OAuth real validado (C1)
 - Smoke real com Drive/Gmail reais validado (C2)
@@ -55,8 +55,8 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 
 ## Última evidência de testes
 ```
-Test Files  22 passed (22)
-     Tests  250 passed (250)
+Test Files  23 passed (23)
+     Tests  260 passed (260)
 ```
 
 ## Decisão arquitetural
@@ -85,6 +85,7 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - G6-B-R1 — Preservação de event_type/status no outbox export (fix `buildEventFromRow`)
 - G6-C — Comandos `accept`/`reject` local-only + funil operacional no report
 - G7-A — Diagnóstico de guardrails (direção NF, event_id, manifest, report)
+- G7-B — Guardrails patch (warning direção, ingestion_event_id, report seções)
 - G/H — UI Backlog (Controle de Tapetes — staging/work/app-next)
 
 ## Fase G1: Taxonomia de Documentos (3 eixos)
@@ -106,5 +107,5 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - Status residual esperado: `?? supabase/.temp/`
 
 ## Próxima fase recomendada
-RAVATEX-DOC-INGESTOR-G7-B-GUARDRAILS-PATCH
-Foco: 3 patches seguros — warning de direção NF no link, ingestion_event_id no outbox, reorganização do report. Sem bloqueio de direção, sem migração de event_id, sem tocar manifest Drive. Ver diagnóstico completo em AGENT_HANDOFF.md (G7-A diagnostic).
+RAVATEX-DOC-INGESTOR-G8-INTEGRATION-AND-SYNC
+Foco: revisar assign real para incluir documentos já linked, sync de manifest Drive, e preparação para integração com Controle de Tapetes. Guardrails locais estão completos.

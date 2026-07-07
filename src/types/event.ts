@@ -29,6 +29,7 @@ export interface DocumentEvent {
   schema_version: 1 | 2;
   event_type: string;
   event_id: string;
+  ingestion_event_id?: string;
   created_at: string;
   pedido_manual: string;
   source: 'gmail';

@@ -29,7 +29,8 @@ export function exportPendingEvents(): DocumentEvent[] {
   const events: DocumentEvent[] = [];
   for (const row of rows) {
     const doc = database.prepare(
-      `SELECT d.*, e.pedido_manual, e.event_type, e.status AS event_status,
+      `SELECT d.*, e.id AS ingestion_event_id,
+              e.pedido_manual, e.event_type, e.status AS event_status,
               e.storage_uri, e.drive_file_id, e.drive_web_view_link,
               e.manifest_storage_uri
        FROM ingestion_events e
@@ -59,6 +60,7 @@ function buildEventFromRow(row: any): DocumentEvent {
     schema_version: 1,
     event_type: row.event_type,
     event_id: row.id,
+    ingestion_event_id: row.ingestion_event_id,
     created_at: row.created_at,
     pedido_manual: row.pedido_manual,
     source: 'gmail',

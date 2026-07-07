@@ -258,4 +258,44 @@ describe('link document to pedido (local-only)', () => {
     expect(exported[0].event_type).not.toBe('document.detected');
     expect(exported[0].event_type).toBe('document.linked');
   });
+
+  it('link warns when NF has direcao_nf = null', () => {
+    const db = getDb();
+    const docId = seedPendingDoc(db, { direcao: null });
+    const result = linkDocumentToPedido(docId, '25/2026');
+    expect(result.warnedDirection).toBe(true);
+    expect(result.documentId).toBe(docId);
+  });
+
+  it('link warns when NF has direcao_nf = desconhecida', () => {
+    const db = getDb();
+    const docId = seedPendingDoc(db, { direcao: 'desconhecida' });
+    const result = linkDocumentToPedido(docId, '25/2026');
+    expect(result.warnedDirection).toBe(true);
+  });
+
+  it('link does not warn when NF has direcao_nf = entrada', () => {
+    const db = getDb();
+    const docId = seedPendingDoc(db, { direcao: 'entrada' });
+    const result = linkDocumentToPedido(docId, '25/2026');
+    expect(result.warnedDirection).toBe(false);
+  });
+
+  it('link does not warn when NF has direcao_nf = saida', () => {
+    const db = getDb();
+    const docId = seedPendingDoc(db, { direcao: 'saida' });
+    const result = linkDocumentToPedido(docId, '25/2026');
+    expect(result.warnedDirection).toBe(false);
+  });
+
+  it('warning does not block outbox document.linked', () => {
+    const db = getDb();
+    const docId = seedPendingDoc(db, { direcao: 'desconhecida' });
+    linkDocumentToPedido(docId, '25/2026');
+
+    const outboxPath = join(SCENARIO_DIR, 'outbox.jsonl');
+    const lines = readFileSync(outboxPath, 'utf-8').trim().split('\n').filter(Boolean);
+    const linkedEvents = lines.map(l => JSON.parse(l)).filter((e: any) => e.event_type === 'document.linked');
+    expect(linkedEvents).toHaveLength(1);
+  });
 });

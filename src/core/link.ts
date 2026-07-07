@@ -7,6 +7,7 @@ export interface LinkResult {
   documentId: string;
   pedidoManual: string;
   eventId: string;
+  warnedDirection: boolean;
 }
 
 export function linkDocumentToPedido(
@@ -37,6 +38,7 @@ export function linkDocumentToPedido(
           documentId: doc.id,
           pedidoManual: normalized,
           eventId: existingEvent?.id ?? '(no event)',
+          warnedDirection: false,
         };
       }
       if (doc.pedido_manual && doc.pedido_manual !== normalized) {
@@ -53,6 +55,13 @@ export function linkDocumentToPedido(
   db.prepare(
     `UPDATE documentos SET pedido_manual = ?, status = 'assigned', updated_at = datetime('now') WHERE id = ?`
   ).run(normalized, doc.id);
+
+  const isNf = doc.tipo_documento === 'nf' || doc.tipo_documento === 'nf_xml' || doc.tipo_documento === 'nf_pdf';
+  const directionUnknown = !doc.direcao_nf || doc.direcao_nf === 'desconhecida';
+  let warnedDirection = false;
+  if (isNf && directionUnknown) {
+    warnedDirection = true;
+  }
 
   const eventId = randomUUID();
   const driveFileId: string = doc.drive_file_id ?? '';
@@ -110,5 +119,6 @@ export function linkDocumentToPedido(
     documentId: doc.id,
     pedidoManual: normalized,
     eventId,
+    warnedDirection,
   };
 }
