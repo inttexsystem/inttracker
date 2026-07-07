@@ -1,30 +1,31 @@
 > **Atualizacao 2026-07-06 - fase
-> `RAVATEX-TAPETES-TRANSFER-METRICS-ALIGNMENT-D`.**
-> Status: **PATCH TRANSFER METRICS ALIGNMENT PRONTO — AGUARDANDO RETESTE DO USUARIO**.
+> `RAVATEX-TAPETES-TRANSFER-GRID-COLUMN-REFINE-E`.**
+> Status: **PATCH TRANSFER GRID COLUMN REFINE PRONTO — AGUARDANDO RETESTE DO USUARIO**.
 > Entrada: branch `work/app-next`, HEAD inicial
-> `4cf35de`; status inicial somente `?? supabase/.temp/`;
+> `ce56738`; status inicial somente `?? supabase/.temp/`;
 > `origin` somente leitura e producao intocados.
 >
 > Fase anterior:
-> `RAVATEX-TAPETES-OP-PROPOSAL-CONTROLS-PARITY-R1` (HEAD
-> `4cf35de`).
+> `RAVATEX-TAPETES-TRANSFER-METRICS-ALIGNMENT-D` (HEAD
+> `ce56738`).
 >
 > Itens entregues (P2):
 >
-> 1. **Alinhamento das metricas no modal Acabamento → Expedicao.**
-> (`js/screens/pedido-detail-events.js:buildAcabamentoTransferForm`).
-> Causa raiz: o grid `align-items:end` + valores em `font-size:12.5px`
-> (sem padding) ficavam deslocados e pequenos em relacao ao campo input
-> de "Movimentar" (altura ~38px via `textInput` com `px-3 py-2`).
-> Correcao: `align-items:end` → `align-items:start`; valores de
-> "Recebido" e "Ja movimentado" ganharam `font-size:14px` e
-> `padding:8px 0` para equilibrar visualmente com o input.
-> Labels, calculos e handlers preservados. <Preencher restante> intacto.
+> 1. **Tabela Pendencias por produto refinada.**
+> (`js/screens/pedido-detail-events.js:buildTransitionPendingTable`).
+> Grid alterado de `1fr auto auto auto` para `minmax(0,1fr) 80px 80px 80px`
+> (colunas ~15% mais largas, larguras explicitas garantindo alinhamento
+> entre cabecalho e linhas de dados). Coluna Produto ganhou
+> `overflow:hidden;text-overflow:ellipsis;white-space:nowrap` com `title`
+> mostrando nome completo.
+>
+> 2. **Metricas do buildAcabamentoTransferForm ajustadas.**
+> Reduzido excesso visual da fase D: `font-size:14px;padding:8px 0` →
+> `font-size:13px;padding:6px 0` nos valores de Recebido e Ja movimentado.
 >
 > - **Arquivos alterados:**
 >   - `js/screens/pedido-detail-events.js`
-> - **Nao alterado:** calculo de quantidade, handler de movimentacao,
->   RPC, schema.
+> - **Nao alterado:** calculos, handlers, RPC, schema, fluxo de transferencia.
 > - **Testes:** `pedido-detail.smoke.js` 172/172,
 >   `tec-to-acabamento-flow.smoke.js` 39/39.
 > - **Garantias:** producao intocada; `origin` nao usado; sem

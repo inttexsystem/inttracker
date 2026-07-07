@@ -658,7 +658,7 @@
           style: 'padding:11px 14px;border-bottom:1px solid #f1f3f6;font-size:12px;font-weight:700;letter-spacing:.03em;color:#8a93a3;text-transform:uppercase;',
         }, 'Pendencias por produto'),
         window.el('div', {
-          style: 'display:grid;grid-template-columns:1fr auto auto auto;gap:10px;padding:10px 14px;border-bottom:1px solid #f1f3f6;background:#f8f9fb;font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;',
+          style: 'display:grid;grid-template-columns:minmax(0,1fr) 80px 80px 80px;gap:10px;padding:10px 14px;border-bottom:1px solid #f1f3f6;background:#f8f9fb;font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;',
         },
           window.el('span', {}, 'Produto'),
           window.el('span', { style: 'text-align:right;' }, key === 'Insumos>Tecelagem' ? 'Pedido' : 'Alocado'),
@@ -667,9 +667,9 @@
         ),
         rows.map(function (row, index) {
           return window.el('div', {
-            style: 'display:grid;grid-template-columns:1fr auto auto auto;gap:10px;padding:11px 14px;align-items:center;' + (index < rows.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : ''),
+            style: 'display:grid;grid-template-columns:minmax(0,1fr) 80px 80px 80px;gap:10px;padding:11px 14px;align-items:center;' + (index < rows.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : ''),
           },
-            window.el('div', { style: 'font-size:13px;color:#16203a;line-height:1.45;' }, row.label),
+            window.el('div', { style: 'font-size:13px;color:#16203a;line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', title: row.label }, row.label),
             window.el('div', { style: 'font-size:12.5px;font-weight:600;color:#3f4757;text-align:right;' }, row.target),
             window.el('div', { style: 'font-size:12.5px;font-weight:600;color:#2563eb;text-align:right;' }, row.moved),
             window.el('div', {
@@ -1809,10 +1809,10 @@
                 window.el('div', { style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start;' },
                   window.el('div', {},
                     window.el('div', { style: 'font-size:11.5px;color:#8a93a3;font-weight:700;text-transform:uppercase;margin-bottom:4px;' }, 'Recebido'),
-                    window.el('div', { style: 'font-size:14px;font-weight:700;color:#16203a;padding:8px 0;' }, ns.fmtMetros(linha.row.recebido))),
+                    window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;padding:6px 0;' }, ns.fmtMetros(linha.row.recebido))),
                   window.el('div', {},
                     window.el('div', { style: 'font-size:11.5px;color:#8a93a3;font-weight:700;text-transform:uppercase;margin-bottom:4px;' }, 'Ja movimentado'),
-                    window.el('div', { style: 'font-size:14px;font-weight:700;color:#2563eb;padding:8px 0;' }, ns.fmtMetros(linha.row.liberado))),
+                    window.el('div', { style: 'font-size:13px;font-weight:700;color:#2563eb;padding:6px 0;' }, ns.fmtMetros(linha.row.liberado))),
                   window.el('div', {},
                     window.el('label', { style: 'display:block;font-size:11.5px;color:#8a93a3;font-weight:700;text-transform:uppercase;margin-bottom:4px;' }, 'Movimentar'),
                     linha.input))
