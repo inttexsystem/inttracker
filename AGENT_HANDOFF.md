@@ -1,4 +1,146 @@
-﻿# Estado pos-fase - Insumos Tecelagem UI Fix A
+﻿# Estado pos-fase - Design Tokens Target Pilot B
+
+- Fase: `RAVATEX-TAPETES-DESIGN-TOKENS-TARGET-PILOT-B`.
+- Status: **PATCH UI PRONTO - AGUARDANDO VALIDACAO VISUAL DO USUARIO**.
+- Branch/HEAD base: `work/app-next`,
+  `59f88be1e1e2d04d5d23737332ccdbc6512b62f7`; status inicial
+  `?? .claude/` e `?? supabase/.temp/`; `origin` somente leitura e
+  producao intocados. Escrita permitida em `staging/work/app-next`.
+- Contexto: a fase read-only
+  `RAVATEX-TAPETES-UI-VISUAL-SOURCE-RECONCILIATION-A` apontou que
+  o app e fonte funcional canonica, as paginas Claude sao fonte
+  visual candidata, a tela mais segura para piloto visual e OP
+  Acabamento/Latex, e os tokens devem refletir o visual-alvo
+  Claude/Inttex ajustado para Ravatex. `.claude/` permanece
+  untracked e nao foi commitado nesta fase; foi usado apenas como
+  referencia (Inttex tokens em
+  `.claude/tokens/colors.css`, `typography.css`, `layout.css` e o
+  `SKILL.md` da `.claude/design-skill/`).
+- Tokens criados (`css/tokens.css`, prefixo reservado `--rv-`):
+  - Texto/titulo: `--rv-color-title` (#16203a), `--rv-color-text`
+    (#16203a), `--rv-color-muted` (#8a93a3), `--rv-color-accent`
+    (#2563eb).
+  - Superficies: `--rv-color-surface` (#ffffff),
+    `--rv-color-bg-header` (#f8f9fb),
+    `--rv-color-subtle-bg` (#eaf1fd).
+  - Linhas: `--rv-color-line-100` (#eef0f3),
+    `--rv-color-line-200` (#e7eaee),
+    `--rv-color-input-border` (#e2e6eb).
+  - Semanticas: `--rv-color-danger` (#d6403a),
+    `--rv-color-success` (#18794a),
+    `--rv-color-warning` (#c2610c).
+  - Etapas: `--rv-stage-tecelagem` (#7c3aed) +
+    `--rv-stage-tecelagem-bg` (#f3effe); `--rv-stage-acabamento`
+    (#0f9488) + `--rv-stage-acabamento-bg` (#e6f7f5).
+  - Raios: `--rv-radius-card` (6px), `--rv-radius-control` (4px),
+    `--rv-radius-pill` (999px).
+  - Tipografia: `--rv-font-size-label` (11px),
+    `--rv-font-size-value` (12.5px), `--rv-font-size-body` (13px),
+    `--rv-tracking-label` (.06em).
+  - Shell: `--rv-header-h` (62px), `--rv-sidebar-w` (196px),
+    `--rv-rail-w` (300px), `--rv-gap-cols` (18px).
+  - Z-index: `--rv-z-modal` (200), `--rv-z-toast` (250).
+  - Sem nomes genericos (`--title`, `--accent`, `--border`,
+    etc.). Nenhum `body`/reset/tipografia do body foi definido
+    aqui; `index.html` continua dono do Inter via Google Fonts.
+- Piloto visual aplicado somente na OP Acabamento/Latex
+  (`js/screens/op-latex-admin.js`):
+  - Borda de card: `var(--rv-color-line-200)`; raio
+    `var(--rv-radius-card)`.
+  - Divisivas internas: `var(--rv-color-line-100)`.
+  - Borda de input/controle: `var(--rv-color-input-border)`; raio
+    `var(--rv-radius-control)`.
+  - Titulo/texto: `var(--rv-color-title)`.
+  - Muted/labels: `var(--rv-color-muted)`.
+  - Etapa acabamento: teal `var(--rv-stage-acabamento)` /
+    `var(--rv-stage-acabamento-bg)`.
+  - Cockpit: `display:grid;grid-template-columns:minmax(0,1fr)
+    var(--rv-rail-w);gap:var(--rv-gap-cols)` e
+    `min-width:0` em ambas as colunas. Rail NAO recebeu
+    `position:sticky` nesta fase (risco de quebra em conteudo
+    dinamico; reportado para validacao visual).
+  - Header de secao: helper `rvSectionPill(label)` com chip
+    pequeno a esquerda + label em `text-transform:uppercase`,
+    `font-size:var(--rv-font-size-label)`,
+    `letter-spacing:var(--rv-tracking-label)`, cor
+    `var(--rv-color-muted)`. Substitui os titulos numerados
+    (`1. Dados da OP`, `2. Itens da OP`,
+    `3. Material recebido da tecelagem`, `5. Finalizacao da OP`,
+    `6. Documentos da OP`, `7. Historico`, `Resumo desta OP`,
+    `Resumo da OP`, `Expedicao`) APENAS no piloto. Conteudo
+    funcional (numeracao e texto) preservado.
+- Arquivos alterados (escopo permitido estrito):
+  - `css/tokens.css` (novo, 64 linhas);
+  - `index.html` (adicionada 1 linha de `<link rel="stylesheet"
+    href="css/tokens.css">` no `<head>`, apos Google Fonts;
+    Tailwind CDN, `<style>` inline e shell global intocados);
+  - `js/screens/op-latex-admin.js` (constantes de estilo +
+    helper `rvSectionPill` + `rvSectionPill` aplicado nos
+    titulos + cockpit grid migrado para os tokens);
+  - `PROJECT_STATE.md` (registro da fase);
+  - `AGENT_HANDOFF.md` (registro da fase).
+- Arquivos NAO alterados (escopo proibido respeitado):
+  `.claude/*`, `supabase/.temp/`, `badges.js`, `common.js`,
+  `ui.js`, `pedido-detail-*`, `op-tecelagem-producao-admin.js`,
+  `op-nova.js` (caller inalterado; piloto nao precisa de
+  alteracoes nele), `ops-list.js`, `pedidos-list.js`,
+  `expedicao-admin.js`, `painel.js`, listas, painel,
+  expedicao. Sem SQL, migration, RPC nova, schema, lifecycle
+  de OP, alteracao de fluxo, alteracao de regra de negocio,
+  alteracao de tipo interno `latex`, renomeacao de entidade
+  funcional, mock Claude, `href="#"`, substituicao de
+  componentes por estrutura estatica, `git add .`.
+- Testes focados verdes (463/463):
+  - `tests/op-latex-admin.smoke.js` 55/55;
+  - `tests/tec-to-acabamento-flow.smoke.js` 39/39;
+  - `tests/pedido-detail.smoke.js` 172/172;
+  - `tests/op-latex-requires-pedido-guard.smoke.js` 7/7;
+  - `tests/op-latex-split.smoke.js` 28/28;
+  - `tests/expedicao-partial-flow.smoke.js` 12/12;
+  - `tests/op-display.smoke.js` 20/20;
+  - `tests/pedido-detail-linked-ops.smoke.js` 7/7;
+  - `tests/expedicao-flow.smoke.js` 8/8;
+  - `tests/op-nova.smoke.js` 69/69 (smoke que cobre o caller do
+    piloto; passou sem alteracoes porque o piloto e restrito a
+    `op-latex-admin.js`);
+  - `tests/production-flow-invariants.smoke.js` 13/13;
+  - `tests/latex-consolidation-schema.smoke.js` 25/25.
+- Evidencia visual/comportamental (objetiva, em descricao, sem
+  browser real nesta fase):
+  - Card da OP Acabamento: borda `#eceef1` ->
+    `var(--rv-color-line-200)`; raio 4/6px ->
+    `var(--rv-radius-card)` (6px).
+  - Badge de etapa acabamento (estado `em_producao`): amarelo/
+    laranja -> teal `var(--rv-stage-acabamento)` /
+    `var(--rv-stage-acabamento-bg)`.
+  - Rail lateral: card com tokens, padding preservado;
+    `position:sticky` NAO aplicado nesta fase.
+  - Acao principal (`Confirmar`/`Movimentar`/`Liberar total`):
+    estilo `BTN_PRIMARY`/`BTN_SOLID_SM` migrado para
+    `var(--rv-color-accent)` e `var(--rv-radius-control)`.
+  - Historico/itens: `thRow`/`gridRow` migrados para tokens;
+    tabela mantem `min-width:820px` no estado `em_producao` para
+    nao quebrar a regra de ouro de tabela (largura/alinhamento do
+    cabecalho = dos valores). Sem `display:flex;align-items:
+    flex-start` regressivo.
+  - Comportamento: chamadas canonicas preservadas
+    (`alterar_status_op`, `liberar_expedicao_latex_parcial`,
+    `liberar_expedicao`, `consultar_saldo_expedicao_latex`,
+    `RAVATEX_DELETE.excluirOPComFluxo`,
+    `window.aplicarRecalculoOP` quando aplicavel). Handlers
+    reais preservados; nenhum `href="#"` mock; nenhum
+    componente real substituido por estatico.
+- Confirmacoes: `.claude/` NAO commitado;
+  `supabase/.temp/` NAO commitado; producao intocada;
+  `origin` NAO usado para escrita; sem `git add .`;
+  commit e push seletivos somente para
+  `staging/work/app-next`.
+- Proximo passo recomendado: validar visualmente o piloto
+  (Acabamento `aberta` e `em_producao`) e, se aprovado,
+  replicar o mesmo padrao para OP Tecelagem em uma fase
+  dedicada (similar escopo).
+
+# Estado pos-fase - Insumos Tecelagem UI Fix A
 
 - Fase: `RAVATEX-TAPETES-INSUMOS-TECELAGEM-UI-FIX-A`.
 - Status: **PATCH UI INSUMOS/TECELAGEM PRONTO — AGUARDANDO RETESTE DO USUARIO**.

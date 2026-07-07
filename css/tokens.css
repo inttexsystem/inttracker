@@ -1,0 +1,63 @@
+/* ============================================================
+   RAVATEX — DESIGN TOKENS
+   Tokens visuais canônicos para a base do app Ravatex.
+   Fase: RAVATEX-TAPETES-DESIGN-TOKENS-TARGET-PILOT-B.
+   - Prefixo reservado: --rv- (não usar nomes genéricos).
+   - Origem visual: alinhamento Inttex/Claude ajustado para Ravatex.
+   - Não aplicar globalmente; consumo é feito pela tela piloto
+     OP Acabamento/Látex nesta fase.
+   - Não inclui resets, tipografia do body, ou regras de elementos.
+     Mantém comportamento/RPC/schema/fluxo intocados.
+   ============================================================ */
+
+:root {
+  /* ---- Texto / títulos ---- */
+  --rv-color-title: #16203a;
+  --rv-color-text: #16203a;
+  --rv-color-muted: #8a93a3;
+
+  /* ---- Acento (azul principal) ---- */
+  --rv-color-accent: #2563eb;
+
+  /* ---- Superfícies ---- */
+  --rv-color-surface: #ffffff;
+  --rv-color-bg-header: #f8f9fb;
+  --rv-color-subtle-bg: #eaf1fd;
+
+  /* ---- Linhas / bordas ---- */
+  --rv-color-line-100: #eef0f3;
+  --rv-color-line-200: #e7eaee;
+  --rv-color-input-border: #e2e6eb;
+
+  /* ---- Semânticas ---- */
+  --rv-color-danger: #d6403a;
+  --rv-color-success: #18794a;
+  --rv-color-warning: #c2610c;
+
+  /* ---- Etapas (stage) ---- */
+  --rv-stage-tecelagem: #7c3aed;
+  --rv-stage-tecelagem-bg: #f3effe;
+  --rv-stage-acabamento: #0f9488;
+  --rv-stage-acabamento-bg: #e6f7f5;
+
+  /* ---- Raios ---- */
+  --rv-radius-card: 6px;
+  --rv-radius-control: 4px;
+  --rv-radius-pill: 999px;
+
+  /* ---- Tipografia ---- */
+  --rv-font-size-label: 11px;
+  --rv-font-size-value: 12.5px;
+  --rv-font-size-body: 13px;
+  --rv-tracking-label: .06em;
+
+  /* ---- Shell / layout ---- */
+  --rv-header-h: 62px;
+  --rv-sidebar-w: 196px;
+  --rv-rail-w: 300px;
+  --rv-gap-cols: 18px;
+
+  /* ---- Z-index ---- */
+  --rv-z-modal: 200;
+  --rv-z-toast: 250;
+}

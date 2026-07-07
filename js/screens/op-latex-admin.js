@@ -23,26 +23,32 @@
   var SVG_OPEN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>';
   var SVG_HINT_LOCK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>';
 
-  var CARD = 'background:#fff;border:1px solid #eceef1;border-radius:6px;';
-  var FIELD_LABEL = 'font-size:13px;font-weight:600;color:#3f4757;margin-bottom:7px;display:block;';
-  var TH_STYLE = 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.04em;white-space:nowrap;';
-  var BTN_PRIMARY = 'display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:12px 16px;font-weight:700;font-size:15px;font-family:inherit;white-space:nowrap;';
-  var BTN_BACK = 'display:inline-flex;align-items:center;gap:7px;background:#fff;color:#5b6472;border:1px solid #d8dce2;border-radius:4px;padding:8px 16px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;';
-  var BTN_LINK = 'display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#2563eb;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;';
-  var BTN_DANGER_LINK = 'display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#d6403a;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;';
-  var BTN_SOLID_SM = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:8px 14px;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;';
-  var BTN_SOFT_SM = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#fff;color:#2563eb;border:1px solid #cfe0fb;border-radius:4px;padding:8px 14px;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;';
-  var BTN_DANGER_SM = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#fff;color:#d6403a;border:1px solid #f1c7c5;border-radius:4px;padding:8px 14px;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;';
-  var SECTION_ICON = 'width:34px;height:34px;border-radius:6px;background:#eaf1fd;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+  var CARD = 'background:var(--rv-color-surface);border:1px solid var(--rv-color-line-200);border-radius:var(--rv-radius-card);';
+  var FIELD_LABEL = 'font-size:var(--rv-font-size-body);font-weight:600;color:#3f4757;margin-bottom:7px;display:block;';
+  var TH_STYLE = 'font-size:var(--rv-font-size-label);font-weight:700;color:var(--rv-color-muted);letter-spacing:.04em;white-space:nowrap;';
+  var BTN_PRIMARY = 'display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;background:var(--rv-color-accent);color:#fff;border:none;border-radius:var(--rv-radius-control);padding:12px 16px;font-weight:700;font-size:15px;font-family:inherit;white-space:nowrap;';
+  var BTN_BACK = 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-color-surface);color:#5b6472;border:1px solid var(--rv-color-input-border);border-radius:var(--rv-radius-control);padding:8px 16px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;';
+  var BTN_LINK = 'display:inline-flex;align-items:center;gap:6px;font-size:var(--rv-font-size-body);font-weight:600;color:var(--rv-color-accent);background:none;border:none;padding:0;cursor:pointer;font-family:inherit;';
+  var BTN_DANGER_LINK = 'display:inline-flex;align-items:center;gap:6px;font-size:var(--rv-font-size-body);font-weight:600;color:var(--rv-color-danger);background:none;border:none;padding:0;cursor:pointer;font-family:inherit;';
+  var BTN_SOLID_SM = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--rv-color-accent);color:#fff;border:none;border-radius:var(--rv-radius-control);padding:8px 14px;font-weight:700;font-size:var(--rv-font-size-body);font-family:inherit;cursor:pointer;white-space:nowrap;';
+  var BTN_SOFT_SM = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#fff;color:var(--rv-color-accent);border:1px solid #cfe0fb;border-radius:var(--rv-radius-control);padding:8px 14px;font-weight:700;font-size:var(--rv-font-size-body);font-family:inherit;cursor:pointer;white-space:nowrap;';
+  var BTN_DANGER_SM = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#fff;color:var(--rv-color-danger);border:1px solid #f1c7c5;border-radius:var(--rv-radius-control);padding:8px 14px;font-weight:700;font-size:var(--rv-font-size-body);font-family:inherit;cursor:pointer;white-space:nowrap;';
+  var SECTION_ICON = 'width:34px;height:34px;border-radius:var(--rv-radius-card);background:var(--rv-color-subtle-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;';
 
   function sectionIcon(svgMarkup) {
     return el('div', { style: SECTION_ICON }, svgEl(svgMarkup));
   }
 
+  function rvSectionPill(label) {
+    return el('div', { style: 'display:flex;align-items:center;gap:8px;margin-bottom:14px;' },
+      el('span', { style: 'width:3px;height:14px;border-radius:2px;background:var(--rv-color-accent);flex-shrink:0;' }),
+      el('span', { style: 'font-size:var(--rv-font-size-label);font-weight:700;color:var(--rv-color-muted);letter-spacing:var(--rv-tracking-label);text-transform:uppercase;' }, label));
+  }
+
   function sectionHead(svgMarkup, title) {
     return el('div', { style: 'display:flex;align-items:center;gap:10px;margin-bottom:18px;' },
       sectionIcon(svgMarkup),
-      el('span', { style: 'font-size:16px;font-weight:700;color:#16203a;' }, title));
+      el('span', { style: 'font-size:16px;font-weight:700;color:var(--rv-color-title);' }, title));
   }
 
   function fieldBlock(label, valueNode, style) {
@@ -52,14 +58,14 @@
   }
 
   function thRow(colsTemplate, labels) {
-    return el('div', { style: 'display:grid;grid-template-columns:' + colsTemplate + ';gap:10px;padding:10px 24px;background:#f8f9fb;border-bottom:1px solid #eceef1;' },
+    return el('div', { style: 'display:grid;grid-template-columns:' + colsTemplate + ';gap:10px;padding:10px 24px;background:var(--rv-color-bg-header);border-bottom:1px solid var(--rv-color-line-200);' },
       labels.map(function (label, idx) {
         return el('div', { style: TH_STYLE + (idx === labels.length - 1 ? 'text-align:right;' : '') }, label);
       }));
   }
 
   function gridRow(colsTemplate, cells) {
-    return el('div', { style: 'display:grid;grid-template-columns:' + colsTemplate + ';gap:10px;padding:12px 24px;border-bottom:1px solid #f1f3f6;align-items:center;' }, cells);
+    return el('div', { style: 'display:grid;grid-template-columns:' + colsTemplate + ';gap:10px;padding:12px 24px;border-bottom:1px solid var(--rv-color-line-100);align-items:center;' }, cells);
   }
 
   function sumMetros(rows, key) {
@@ -386,20 +392,20 @@
 
         var card = el('div', { style: CARD + 'padding:16px 20px;' });
         card.appendChild(el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;' },
-          el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, 'Expedicao'),
+          rvSectionPill('Expedicao'),
           expedicaoArg
-            ? smallBadge('Expedicao ' + expedicaoArg.status, '#eaf1fd', '#2563eb')
-            : smallBadge(saldoTotal > 0 ? 'Saldo movimentavel' : (statusOk ? 'Fluxo total disponivel' : 'Sem saldo'), saldoTotal > 0 ? '#e6f4ec' : (statusOk ? '#fff4e6' : '#f1f3f6'), saldoTotal > 0 ? '#18794a' : (statusOk ? '#c2610c' : '#6b7280'))));
+            ? smallBadge('Expedicao ' + expedicaoArg.status, 'var(--rv-color-subtle-bg)', 'var(--rv-color-accent)')
+            : smallBadge(saldoTotal > 0 ? 'Saldo movimentavel' : (statusOk ? 'Fluxo total disponivel' : 'Sem saldo'), saldoTotal > 0 ? '#e6f4ec' : (statusOk ? '#fff4e6' : 'var(--rv-color-line-100)'), saldoTotal > 0 ? '#18794a' : (statusOk ? '#c2610c' : '#6b7280'))));
 
         if (expedicaoArg) {
           card.appendChild(el('div', { style: 'font-size:13px;color:#5b6472;line-height:1.5;margin-bottom:12px;' },
             'Expedicao criada. Registre entrega/coleta na tela operacional de expedicao.'));
           card.appendChild(el('div', { style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px;' },
-            fieldBlock('Recebido', el('div', { style: 'font-size:14px;font-weight:700;color:#16203a;' }, window.fmtMetros(recebidoTotal))),
+            fieldBlock('Recebido', el('div', { style: 'font-size:14px;font-weight:700;color:var(--rv-color-title);' }, window.fmtMetros(recebidoTotal))),
             fieldBlock('Movimentado', el('div', { style: 'font-size:14px;font-weight:700;color:#18794a;' }, window.fmtMetros(liberadoTotal))),
-            fieldBlock('Disponivel', el('div', { style: 'font-size:14px;font-weight:700;color:' + (saldoTotal > 0 ? '#2563eb' : '#8a93a3') + ';' }, window.fmtMetros(saldoTotal)))));
+            fieldBlock('Disponivel', el('div', { style: 'font-size:14px;font-weight:700;color:' + (saldoTotal > 0 ? 'var(--rv-color-accent)' : 'var(--rv-color-muted)') + ';' }, window.fmtMetros(saldoTotal)))));
           if (saldoTotal > 0) {
-            card.appendChild(el('div', { style: 'font-size:12px;color:#8a93a3;line-height:1.5;margin-bottom:10px;' },
+            card.appendChild(el('div', { style: 'font-size:12px;color:var(--rv-color-muted);line-height:1.5;margin-bottom:10px;' },
               'Ainda ha saldo recebido para movimentar. Use a acao Movimentar na expedicao vinculada.'));
           }
           card.appendChild(el('button', {
@@ -416,17 +422,17 @@
             return { row: row, input: input };
           });
           card.appendChild(el('div', { style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px;' },
-            fieldBlock('Recebido', el('div', { style: 'font-size:14px;font-weight:700;color:#16203a;' }, window.fmtMetros(recebidoTotal))),
+            fieldBlock('Recebido', el('div', { style: 'font-size:14px;font-weight:700;color:var(--rv-color-title);' }, window.fmtMetros(recebidoTotal))),
             fieldBlock('Movimentado', el('div', { style: 'font-size:14px;font-weight:700;color:#18794a;' }, window.fmtMetros(liberadoTotal))),
-            fieldBlock('Disponivel', el('div', { style: 'font-size:14px;font-weight:800;color:#2563eb;' }, window.fmtMetros(saldoTotal)))));
-          card.appendChild(el('div', { style: 'border:1px solid #eceef1;border-radius:4px;overflow:hidden;margin-bottom:12px;' },
+            fieldBlock('Disponivel', el('div', { style: 'font-size:14px;font-weight:800;color:var(--rv-color-accent);' }, window.fmtMetros(saldoTotal)))));
+          card.appendChild(el('div', { style: 'border:1px solid var(--rv-color-line-200);border-radius:var(--rv-radius-control);overflow:hidden;margin-bottom:12px;' },
             linhas.map(function (linha, index) {
-              return el('div', { style: 'display:grid;grid-template-columns:1fr 100px 100px 120px;gap:10px;align-items:center;padding:10px 12px;' + (index < linhas.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : '') },
+              return el('div', { style: 'display:grid;grid-template-columns:1fr 100px 100px 120px;gap:10px;align-items:center;padding:10px 12px;' + (index < linhas.length - 1 ? 'border-bottom:1px solid var(--rv-color-line-100);' : '') },
                 el('div', {},
-                  el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;' }, modeloSaldoLabel(linha.row)),
-                  el('div', { style: 'font-size:11.5px;color:#8a93a3;margin-top:2px;' }, 'Recebido ' + window.fmtMetros(linha.row.recebido) + ' | movimentado ' + window.fmtMetros(linha.row.liberado))),
+                  el('div', { style: 'font-size:13px;font-weight:700;color:var(--rv-color-title);' }, modeloSaldoLabel(linha.row)),
+                  el('div', { style: 'font-size:11.5px;color:var(--rv-color-muted);margin-top:2px;' }, 'Recebido ' + window.fmtMetros(linha.row.recebido) + ' | movimentado ' + window.fmtMetros(linha.row.liberado))),
                 el('div', { style: 'font-size:12.5px;color:#5b6472;font-weight:700;' }, window.fmtMetros(linha.row.disponivel)),
-                el('label', { style: 'font-size:11.5px;color:#8a93a3;font-weight:700;text-transform:uppercase;' }, 'Mover'),
+                el('label', { style: 'font-size:11.5px;color:var(--rv-color-muted);font-weight:700;text-transform:uppercase;' }, 'Mover'),
                 linha.input);
             })));
           card.appendChild(el('button', {
@@ -449,7 +455,7 @@
               liberarExpedicaoParcial(opArg.id, payload, event && event.currentTarget ? event.currentTarget : null);
             },
           }, 'Movimentar'));
-          card.appendChild(el('div', { style: 'font-size:12px;color:#8a93a3;line-height:1.5;margin-top:8px;' },
+          card.appendChild(el('div', { style: 'font-size:12px;color:var(--rv-color-muted);line-height:1.5;margin-top:8px;' },
             'Movimenta a quantidade disponivel do Acabamento para Expedicao.'));
           return card;
         }
@@ -480,8 +486,8 @@
       // acabamento nesta tela.
 
       function renderOPLatexProducao() {
-        var CARD_PROD = 'background:#fff;border:1px solid #eceef1;border-radius:4px;';
-        var BTN_ACTION = 'display:inline-flex;align-items:center;gap:6px;background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:7px 12px;font-weight:600;font-size:12.5px;font-family:inherit;cursor:pointer;';
+        var CARD_PROD = 'background:var(--rv-color-surface);border:1px solid var(--rv-color-line-200);border-radius:var(--rv-radius-card);';
+        var BTN_ACTION = 'display:inline-flex;align-items:center;gap:6px;background:#fff;color:#3f4757;border:1px solid var(--rv-color-input-border);border-radius:var(--rv-radius-control);padding:7px 12px;font-weight:600;font-size:12.5px;font-family:inherit;cursor:pointer;';
         var SVG_ARROW_RIGHT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>';
         var SVG_PAUSE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
         var SVG_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
@@ -548,18 +554,18 @@
           nodes.push(svgEl(SVG_LINEAGE));
           nodes.push(el('span', { style: 'font-size:12.5px;color:#2c4a78;' }, 'Cadeia produtiva:'));
           if (pedidoId) {
-            nodes.push(el('button', { type: 'button', style: 'font-size:12.5px;font-weight:700;color:#2563eb;background:#fff;border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-family:inherit;', onclick: function () { navigate('#/pedidos/' + pedidoId); } }, pedidoLabelCurto));
+            nodes.push(el('button', { type: 'button', style: 'font-size:12.5px;font-weight:700;color:var(--rv-color-accent);background:#fff;border:none;border-radius:var(--rv-radius-control);padding:3px 9px;cursor:pointer;font-family:inherit;', onclick: function () { navigate('#/pedidos/' + pedidoId); } }, pedidoLabelCurto));
             nodes.push(svgEl('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>'));
           }
           if (op.origem_op_id) {
-            nodes.push(el('button', { type: 'button', style: 'font-size:12.5px;font-weight:700;color:#2563eb;background:#fff;border:none;border-radius:4px;padding:3px 9px;cursor:pointer;font-family:inherit;', onclick: function () { navigate('#/ops/' + op.origem_op_id); } }, origemProdLabel + ' (origem consolidada)'));
+            nodes.push(el('button', { type: 'button', style: 'font-size:12.5px;font-weight:700;color:var(--rv-color-accent);background:#fff;border:none;border-radius:var(--rv-radius-control);padding:3px 9px;cursor:pointer;font-family:inherit;', onclick: function () { navigate('#/ops/' + op.origem_op_id); } }, origemProdLabel + ' (origem consolidada)'));
             nodes.push(svgEl('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>'));
           } else {
-            nodes.push(el('span', { style: 'font-size:12.5px;font-weight:700;color:#8a93a3;background:#fff;border-radius:4px;padding:3px 9px;' }, 'Tecelagem sem vínculo'));
+            nodes.push(el('span', { style: 'font-size:12.5px;font-weight:700;color:var(--rv-color-muted);background:#fff;border-radius:var(--rv-radius-control);padding:3px 9px;' }, 'Tecelagem sem vínculo'));
             nodes.push(svgEl('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>'));
           }
-          nodes.push(el('span', { style: 'font-size:12.5px;font-weight:700;color:#16203a;background:#fff;border-radius:4px;padding:3px 9px;' }, formatOpDisplay(op, opDisplayContext) + ' · Acabamento (esta OP)'));
-          return el('div', { style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#eaf1fd;border:1px solid #d7e6fb;border-radius:4px;padding:10px 16px;margin-bottom:16px;' }, nodes);
+          nodes.push(el('span', { style: 'font-size:12.5px;font-weight:700;color:var(--rv-color-title);background:#fff;border-radius:var(--rv-radius-control);padding:3px 9px;' }, formatOpDisplay(op, opDisplayContext) + ' · Acabamento (esta OP)'));
+          return el('div', { style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--rv-color-subtle-bg);border:1px solid #d7e6fb;border-radius:var(--rv-radius-control);padding:10px 16px;margin-bottom:16px;' }, nodes);
         }
 
         function buildHeaderProducao() {
@@ -572,12 +578,12 @@
           return el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;' },
             el('div', {},
               el('div', { style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;' },
-                el('h1', { style: 'margin:0;font-size:24px;font-weight:800;color:#16203a;letter-spacing:-.01em;' }, formatOpDisplay(op, opDisplayContext)),
-                el('span', { style: 'background:#fef9ec;color:#b45309;border-radius:4px;padding:4px 11px;font-size:12.5px;font-weight:700;' }, 'Acabamento'),
-                el('span', { style: 'display:inline-flex;align-items:center;gap:6px;background:#fff4e6;color:#c2610c;border-radius:4px;padding:4px 11px;font-size:12.5px;font-weight:700;' },
-                  el('span', { style: 'width:6px;height:6px;border-radius:50%;background:#e07b39;' }), 'Em produção')),
-              el('div', { style: 'font-size:13px;color:#8a93a3;margin-top:6px;' },
-                pedidoId ? el('button', { type: 'button', style: 'background:none;border:none;padding:0;color:#2563eb;font-weight:600;font:inherit;cursor:pointer;', onclick: function () { navigate('#/pedidos/' + pedidoId); } }, pedidoLabelCurto) : 'Pedido',
+                el('h1', { style: 'margin:0;font-size:24px;font-weight:800;color:var(--rv-color-title);letter-spacing:-.01em;' }, formatOpDisplay(op, opDisplayContext)),
+                el('span', { style: 'background:var(--rv-stage-acabamento-bg);color:var(--rv-stage-acabamento);border-radius:var(--rv-radius-control);padding:4px 11px;font-size:12.5px;font-weight:700;' }, 'Acabamento'),
+                el('span', { style: 'display:inline-flex;align-items:center;gap:6px;background:var(--rv-stage-acabamento-bg);color:var(--rv-stage-acabamento);border-radius:var(--rv-radius-control);padding:4px 11px;font-size:12.5px;font-weight:700;' },
+                  el('span', { style: 'width:6px;height:6px;border-radius:50%;background:var(--rv-stage-acabamento);' }), 'Em produção')),
+              el('div', { style: 'font-size:13px;color:var(--rv-color-muted);margin-top:6px;' },
+                pedidoId ? el('button', { type: 'button', style: 'background:none;border:none;padding:0;color:var(--rv-color-accent);font-weight:600;font:inherit;cursor:pointer;', onclick: function () { navigate('#/pedidos/' + pedidoId); } }, pedidoLabelCurto) : 'Pedido',
                 metaLine)),
             el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;' },
               pedidoId ? el('button', { type: 'button', style: BTN_ACTION, onclick: function () { navigate('#/pedidos/' + pedidoId); } }, svgEl(SVG_DOC), 'Ver Pedido') : '',
@@ -591,7 +597,7 @@
 
         function buildDados() {
           return el('div', { style: CARD_PROD + 'padding:16px 20px;' },
-            el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:14px;' }, '1. Dados da OP'),
+            rvSectionPill('1. Dados da OP'),
             el('div', { style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;' },
               campo('Cliente', valor(clienteNome)),
               campo('Lote', valor(op.lote ? ('Lote Nº ' + op.lote.numero) : '---')),
@@ -603,7 +609,7 @@
 
         function buildResumo() {
           return el('div', { style: CARD_PROD + 'padding:16px 20px;' },
-            el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;margin-bottom:12px;' }, 'Resumo desta OP'),
+            rvSectionPill('Resumo desta OP'),
             el('div', { style: 'display:flex;flex-direction:column;gap:9px;' },
               linhaResumo('Recebido da Tecelagem', window.fmtMetros(recebidoTecelagem)),
               linhaResumo('Ja movimentado para Expedicao', window.fmtMetros(movimentadoExpedicao), '#18794a'),
@@ -618,16 +624,16 @@
         function buildItens() {
           var cols = '1.3fr .8fr .8fr .8fr .8fr 1.3fr';
           function tableHead(labels) {
-            return el('div', { style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;padding:9px 20px;background:#f8f9fb;border-top:1px solid #eceef1;border-bottom:1px solid #eceef1;min-width:820px;' },
+            return el('div', { style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;padding:9px 20px;background:var(--rv-color-bg-header);border-top:1px solid var(--rv-color-line-200);border-bottom:1px solid var(--rv-color-line-200);min-width:820px;' },
               labels.map(function (label) {
-                return el('div', { style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;' }, label);
+                return el('div', { style: 'font-size:var(--rv-font-size-label);font-weight:700;color:var(--rv-color-muted);letter-spacing:.03em;' }, label);
               }));
           }
           function tableRow(cells) {
             return el('div', { style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;padding:12px 20px;align-items:center;min-width:820px;' }, cells);
           }
           var card = el('div', { style: CARD_PROD + 'overflow:hidden;' },
-            el('div', { style: 'padding:16px 20px 12px;font-size:15.5px;font-weight:700;color:#16203a;' }, '2. Itens da OP'));
+            el('div', { style: 'padding:16px 20px 12px;' }, rvSectionPill('2. Itens da OP')));
           if (!(op.op_itens || []).length) {
             card.appendChild(el('div', { style: 'padding:0 20px 18px;font-size:13px;color:#aab2bf;' }, 'Nenhum item vinculado a esta OP.'));
             return card;
@@ -643,7 +649,7 @@
               : Math.max(Math.round((recebidoItem - movimentadoItem) * 100) / 100, 0);
             var entregueItem = Number(saldoItem.entregue || 0);
             table.appendChild(tableRow([
-              el('div', { style: 'font-size:13.5px;font-weight:700;color:#16203a;' }, modeloLabel(item)),
+              el('div', { style: 'font-size:13.5px;font-weight:700;color:var(--rv-color-title);' }, modeloLabel(item)),
               el('div', { style: 'font-size:13.5px;color:#3f4757;font-weight:600;' }, window.fmtMetros(recebidoItem)),
               el('div', { style: 'font-size:13.5px;color:#2563eb;font-weight:700;' }, window.fmtMetros(movimentadoItem)),
               el('div', { style: 'font-size:13.5px;color:' + (disponivelItem > 0 ? '#c2610c' : '#18794a') + ';font-weight:700;' }, window.fmtMetros(disponivelItem)),
@@ -659,10 +665,10 @@
           var listaEntregasOrigem = origemEntregas.length
             ? origemEntregas.map(function (ent) {
               var itens = origemEntregaItens(ent);
-              return el('div', { style: 'border-top:1px solid #f1f3f6;padding:12px 0 0;margin-top:12px;' },
+              return el('div', { style: 'border-top:1px solid var(--rv-color-line-100);padding:12px 0 0;margin-top:12px;' },
                 el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;' },
-                  el('div', { style: 'font-size:13.5px;font-weight:700;color:#16203a;' }, 'Entrega #' + ent.id),
-                  el('div', { style: 'font-size:12px;color:#8a93a3;font-weight:600;' }, fmtData(ent.data))),
+                  el('div', { style: 'font-size:13.5px;font-weight:700;color:var(--rv-color-title);' }, 'Entrega #' + ent.id),
+                  el('div', { style: 'font-size:12px;color:var(--rv-color-muted);font-weight:600;' }, fmtData(ent.data))),
                 el('div', { style: 'font-size:12.5px;color:#5b6472;margin-top:4px;line-height:1.5;' },
                   origemProdLabel + ' para ' + ((ent.destino && ent.destino.nome) || latexFornecedorNome)),
                 itens.map(function (ei) {
@@ -670,17 +676,17 @@
                     origemItemLabel(ei) + ': ' + window.fmtMetros(ei.metros_entregues));
                 }));
             })
-            : [el('div', { style: 'font-size:13px;color:#aab2bf;border-top:1px solid #f1f3f6;padding-top:12px;margin-top:12px;' },
+            : [el('div', { style: 'font-size:13px;color:#aab2bf;border-top:1px solid var(--rv-color-line-100);padding-top:12px;margin-top:12px;' },
               'Vinculos de origem nao encontrados; usando total consolidado da OP.')];
           return el('div', { style: CARD_PROD + 'padding:16px 20px;' },
-            el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:14px;' }, '3. Material recebido da tecelagem'),
+            rvSectionPill('3. Material recebido da tecelagem'),
             el('div', { style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:14px;' },
               campo('OP origem',
                 op.origem_op_id ? el('button', { type: 'button', style: 'font-size:13.5px;color:#2563eb;font-weight:700;text-decoration:none;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;', onclick: function () { navigate('#/ops/' + op.origem_op_id); } }, origemProdLabel)
                   : valor(origemLabel, '#8a93a3')),
               campo('Entregas vinculadas', valor(String(origemEntregas.length || 0))),
               campo('Metros recebidos', valor(window.fmtMetros(totalOrigemTecelagem || totalEnviado)))),
-            el('div', { style: 'font-size:12.5px;font-weight:700;color:#8a93a3;letter-spacing:.03em;margin-bottom:8px;' }, 'ENTRADAS DA TECELAGEM'),
+            el('div', { style: 'font-size:12.5px;font-weight:700;color:var(--rv-color-muted);letter-spacing:.03em;margin-bottom:8px;' }, 'ENTRADAS DA TECELAGEM'),
             el('div', {}, listaEntregasOrigem),
             el('div', { style: 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:14px;' },
               campo('Saldo em acabamento', valor(window.fmtMetros(saldoEmAcabamento), '#c2610c', '700'))),
@@ -690,13 +696,13 @@
         function buildMovimentacao() {
           return el('div', { style: CARD_PROD + 'padding:16px 20px;' },
             el('div', { style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap;' },
-              el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, '5. Finalizacao da OP'),
-              el('button', { type: 'button', style: 'height:30px;padding:0 14px 0 18px;background:#2563eb;color:#fff;border:none;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;clip-path:polygon(0% 0%,82% 0%,100% 50%,82% 100%,0% 100%,13% 50%);white-space:nowrap;', onclick: function () { finalizar(op.id); } }, 'Finalizar OP')),
+              rvSectionPill('5. Finalizacao da OP'),
+              el('button', { type: 'button', style: 'height:30px;padding:0 14px 0 18px;background:var(--rv-color-accent);color:#fff;border:none;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;clip-path:polygon(0% 0%,82% 0%,100% 50%,82% 100%,0% 100%,13% 50%);white-space:nowrap;', onclick: function () { finalizar(op.id); } }, 'Finalizar OP')),
             el('div', { style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px;' },
-              el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Recebido da Tecelagem'), el('div', { style: 'font-size:16px;font-weight:800;color:#16203a;' }, window.fmtMetros(recebidoTecelagem))),
+              el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Recebido da Tecelagem'), el('div', { style: 'font-size:16px;font-weight:800;color:var(--rv-color-title);' }, window.fmtMetros(recebidoTecelagem))),
               el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Movimentado p/ Expedicao'), el('div', { style: 'font-size:16px;font-weight:800;color:#18794a;' }, window.fmtMetros(movimentadoExpedicao))),
               el('div', {}, el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:4px;' }, 'Saldo em Acabamento'), el('div', { style: 'font-size:16px;font-weight:800;color:' + (saldoEmAcabamento > 0 ? '#c2610c' : '#18794a') + ';' }, window.fmtMetros(saldoEmAcabamento)))),
-            el('div', { style: 'font-size:12.5px;color:#5b6472;line-height:1.5;background:#f8f9fb;border:1px solid #eceef1;border-radius:4px;padding:10px 12px;' },
+            el('div', { style: 'font-size:12.5px;color:#5b6472;line-height:1.5;background:var(--rv-color-bg-header);border:1px solid var(--rv-color-line-200);border-radius:var(--rv-radius-control);padding:10px 12px;' },
               'O bloco Expedicao abaixo movimenta a quantidade acabada/liberada. Finalizar a OP e uma acao separada e so encerra o total desta OP; nao e pre-requisito para movimentar parciais.'));
         }
 
@@ -704,8 +710,8 @@
           var romaneioNumero = origemOp ? origemOp.numero : op.numero;
           var romaneioAno = origemOp ? origemOp.ano : op.ano;
           return el('div', { id: 'documentos-op', style: CARD_PROD + 'padding:16px 20px;' },
-            el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:12px;' }, '6. Documentos da OP'),
-            el('div', { style: 'display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f3f6;' },
+            rvSectionPill('6. Documentos da OP'),
+            el('div', { style: 'display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--rv-color-line-100);' },
               el('span', { style: 'font-size:13px;color:#3f4757;' }, 'NF_INSUMOS_' + op.ano + '.pdf'),
               smallBadge('Anexado', '#e6f4ec', '#18794a')),
             el('div', { style: 'display:flex;align-items:center;justify-content:space-between;padding:8px 0;' },
@@ -719,14 +725,14 @@
             ? String(origemEntregas.length) + ' entrega' + (origemEntregas.length === 1 ? '' : 's') + ' de Tecelagem vinculada' + (origemEntregas.length === 1 ? '' : 's')
             : 'Entrada consolidada sem vinculo detalhado';
           return el('div', { id: 'historico-op', style: CARD_PROD + 'padding:16px 20px;' },
-            el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:14px;' }, '7. Histórico'),
+            rvSectionPill('7. Histórico'),
             el('div', { style: 'display:flex;gap:12px;align-items:flex-start;' },
               el('div', { style: 'display:flex;flex-direction:column;align-items:center;' },
-                el('div', { style: 'width:11px;height:11px;border-radius:50%;background:#2563eb;margin-top:4px;flex-shrink:0;' }),
-                el('div', { style: 'width:2px;flex:1;background:#eceef1;' })),
+                el('div', { style: 'width:11px;height:11px;border-radius:50%;background:var(--rv-color-accent);margin-top:4px;flex-shrink:0;' }),
+                el('div', { style: 'width:2px;flex:1;background:var(--rv-color-line-200);' })),
               el('div', { style: 'padding-bottom:16px;' },
                 el('div', { style: 'font-size:12px;color:#9aa2af;' }, dataBase),
-                el('div', { style: 'font-size:14px;font-weight:700;color:#16203a;margin-top:2px;' }, 'Entrada consolidada da Tecelagem'),
+                el('div', { style: 'font-size:14px;font-weight:700;color:var(--rv-color-title);margin-top:2px;' }, 'Entrada consolidada da Tecelagem'),
                 el('div', { style: 'font-size:13px;color:#7b8494;margin-top:1px;' }, resumoOrigem + ' em ' + formatOpDisplay(op, opDisplayContext) + ' (Acabamento). Romaneio marcado como pendente.'))),
             el('div', { style: 'display:flex;gap:12px;align-items:flex-start;' },
               el('div', { style: 'width:11px;height:11px;border-radius:50%;background:#cfd5de;margin-top:4px;flex-shrink:0;' }),
@@ -740,11 +746,14 @@
           buildBreadcrumb(),
           buildCadeia(),
           buildHeaderProducao(),
-          el('div', { style: 'display:grid;grid-template-columns:1fr 320px;gap:14px;align-items:start;margin-bottom:14px;' }, buildDados(), buildResumo()),
-          buildItens(),
-          buildMaterialRecebido(),
-          el('div', { id: 'movimentacao-op', style: 'display:grid;grid-template-columns:1fr 320px;gap:14px;align-items:start;margin-bottom:14px;margin-top:14px;' },
-            buildMovimentacao(), buildDocumentos()),
+          el('div', { style: 'display:grid;grid-template-columns:minmax(0,1fr) var(--rv-rail-w);gap:var(--rv-gap-cols);align-items:start;margin-bottom:14px;' },
+            el('div', { style: 'min-width:0;' }, buildDados()),
+            el('div', { style: 'min-width:0;' }, buildResumo())),
+          el('div', { style: 'min-width:0;' }, buildItens()),
+          el('div', { style: 'min-width:0;' }, buildMaterialRecebido()),
+          el('div', { id: 'movimentacao-op', style: 'display:grid;grid-template-columns:minmax(0,1fr) var(--rv-rail-w);gap:var(--rv-gap-cols);align-items:start;margin-bottom:14px;margin-top:14px;' },
+            el('div', { style: 'min-width:0;' }, buildMovimentacao()),
+            el('div', { style: 'min-width:0;' }, buildDocumentos())),
           buildExpedicaoCard(op, expedicao, saldoExpedicao),
           buildHistorico());
       }
@@ -833,8 +842,8 @@
           : 'Preparacao da OP de acabamento antes do inicio da producao.';
         return el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:12px;flex-wrap:wrap;' },
           el('div', {},
-            el('div', { style: 'font-size:22px;font-weight:800;color:#16203a;letter-spacing:-.01em;' }, 'OP Aberta de Acabamento · ' + formatOpDisplay(op, opDisplayContext)),
-            el('div', { style: 'font-size:13px;color:#8a93a3;margin-top:3px;line-height:1.45;' }, subtitulo)),
+            el('div', { style: 'font-size:22px;font-weight:800;color:var(--rv-color-title);letter-spacing:-.01em;' }, 'OP Aberta de Acabamento · ' + formatOpDisplay(op, opDisplayContext)),
+            el('div', { style: 'font-size:13px;color:var(--rv-color-muted);margin-top:3px;line-height:1.45;' }, subtitulo)),
           el('button', { type: 'button', style: BTN_BACK, onclick: function () { navigate('#/ops'); } }, svgEl(SVG_BACK), 'Voltar'));
       }
 
@@ -843,23 +852,22 @@
           ? ('Lote Nº ' + op.lote.numero + ' · ' + (op.lote.cliente?.nome || '—'))
           : 'Sem lote vinculado';
         return el('div', { style: CARD + 'padding:22px 24px;' },
-          sectionHead(SVG_ICON_OP, '1. Preparacao da OP'),
+          rvSectionPill('1. Preparacao da OP'),
           el('div', { style: 'display:grid;grid-template-columns:1fr 140px;gap:14px;margin-bottom:16px;' },
-            fieldBlock('Número', el('div', { style: 'font-size:14px;font-weight:600;color:#16203a;' }, String(op.numero))),
-            fieldBlock('Ano', el('div', { style: 'font-size:14px;font-weight:600;color:#16203a;' }, String(op.ano)))),
+            fieldBlock('Número', el('div', { style: 'font-size:14px;font-weight:600;color:var(--rv-color-title);' }, String(op.numero))),
+            fieldBlock('Ano', el('div', { style: 'font-size:14px;font-weight:600;color:var(--rv-color-title);' }, String(op.ano)))),
           el('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:16px;' },
-            fieldBlock('Fornecedor de acabamento', el('div', { style: 'font-size:14px;font-weight:600;color:#16203a;' }, latexFornecedorNome)),
-            fieldBlock('Lote', el('div', { style: 'font-size:14px;font-weight:600;color:#16203a;' }, loteLabel))),
+            fieldBlock('Fornecedor de acabamento', el('div', { style: 'font-size:14px;font-weight:600;color:var(--rv-color-title);' }, latexFornecedorNome)),
+            fieldBlock('Lote', el('div', { style: 'font-size:14px;font-weight:600;color:var(--rv-color-title);' }, loteLabel))),
           op.observacao ? el('div', { style: 'margin-top:16px;font-size:12.5px;color:#5b6472;line-height:1.5;' }, op.observacao) : '');
       }
 
       function buildCardItens() {
         var card = el('div', { style: CARD + 'padding:22px 0 0;' },
           el('div', { style: 'display:flex;align-items:center;justify-content:space-between;padding:0 24px 18px;' },
-            el('div', { style: 'display:flex;align-items:center;gap:10px;' },
-              sectionIcon(SVG_ICON_GRID),
-              el('span', { style: 'font-size:16px;font-weight:700;color:#16203a;' }, '2. Itens da OP'),
-              el('span', { style: 'font-size:13px;color:#8a93a3;font-weight:400;' }, '(modelo × metros)'))));
+            el('div', { style: 'display:flex;align-items:flex-start;gap:8px;' },
+              rvSectionPill('2. Itens da OP'),
+              el('span', { style: 'font-size:12.5px;color:var(--rv-color-muted);font-weight:400;margin-top:1px;' }, '(modelo × metros)'))));
 
         if (!(op.op_itens || []).length) {
           card.appendChild(el('div', { style: 'padding:0 24px 20px;font-size:13px;color:#aab2bf;' }, 'Nenhum item vinculado a esta OP.'));
@@ -870,7 +878,7 @@
         (op.op_itens || []).forEach(function (item) {
           var modelo = modelosById[item.modelo_id];
           card.appendChild(gridRow('1fr 140px 140px', [
-            el('div', { style: 'font-size:13.5px;font-weight:500;color:#16203a;' }, modelo ? window.rotuloModelo(modelo) : ('#' + item.modelo_id)),
+            el('div', { style: 'font-size:13.5px;font-weight:500;color:var(--rv-color-title);' }, modelo ? window.rotuloModelo(modelo) : ('#' + item.modelo_id)),
             el('div', { style: 'font-size:13.5px;color:#3f4757;' }, window.fmtMetros(item.metros_pedidos)),
             el('div', { style: 'font-size:13.5px;color:#3f4757;' }, window.fmtMetros(totalPorItem[item.id] || 0)),
           ]));
@@ -880,17 +888,17 @@
 
       function buildCardRecebimentos() {
         var box = el('div', { style: CARD + 'padding:22px 24px 20px;' });
-        box.appendChild(sectionHead(SVG_ICON_LINES, '3. Material recebido da tecelagem'));
+        box.appendChild(rvSectionPill('3. Material recebido da tecelagem'));
         box.appendChild(el('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;' },
           fieldBlock('OP origem',
             origemOp
               ? el('button', { type: 'button', style: BTN_LINK, onclick: function () { navigate('#/ops/' + origemOp.id); } }, origemLabel)
-              : el('div', { style: 'font-size:14px;font-weight:600;color:#16203a;' }, origemLabel)),
-          fieldBlock('Material recebido da tecelagem', el('div', { style: 'font-size:14px;font-weight:600;color:#16203a;' }, window.fmtMetros(totalEnviado))),
-          fieldBlock('Total ajustado da OP', el('div', { style: 'font-size:14px;font-weight:600;color:#16203a;' }, window.fmtMetros(totalEnviado))),
-          fieldBlock('Metros aguardando inicio do acabamento', el('div', { style: 'font-size:14px;font-weight:700;color:#2563eb;' }, window.fmtMetros(metrosAguardando)))));
+              : el('div', { style: 'font-size:14px;font-weight:600;color:var(--rv-color-title);' }, origemLabel)),
+          fieldBlock('Material recebido da tecelagem', el('div', { style: 'font-size:14px;font-weight:600;color:var(--rv-color-title);' }, window.fmtMetros(totalEnviado))),
+          fieldBlock('Total ajustado da OP', el('div', { style: 'font-size:14px;font-weight:600;color:var(--rv-color-title);' }, window.fmtMetros(totalEnviado))),
+          fieldBlock('Metros aguardando inicio do acabamento', el('div', { style: 'font-size:14px;font-weight:700;color:var(--rv-color-accent);' }, window.fmtMetros(metrosAguardando)))));
 
-        box.appendChild(el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;margin-bottom:8px;' }, 'Historico'));
+        box.appendChild(el('div', { style: 'font-size:13px;font-weight:700;color:var(--rv-color-title);margin-bottom:8px;' }, 'Historico'));
         if (!origemEntregas.length) {
           box.appendChild(el('div', { style: 'font-size:13px;color:#aab2bf;' }, 'Nenhuma entrega de Tecelagem vinculada encontrada.'));
           return box;
@@ -898,15 +906,15 @@
 
         box.appendChild(el('div', {},
           origemEntregas.map(function (ent) {
-            var sub = el('div', { style: 'border-bottom:1px solid #f1f3f6;padding:14px 0;' });
+            var sub = el('div', { style: 'border-bottom:1px solid var(--rv-color-line-100);padding:14px 0;' });
             sub.appendChild(el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;' },
-              el('div', { style: 'font-size:14px;font-weight:600;color:#16203a;' }, new Date(ent.data + 'T00:00:00').toLocaleDateString('pt-BR'))));
-            if (ent.observacao) sub.appendChild(el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:2px;' }, ent.observacao));
+              el('div', { style: 'font-size:14px;font-weight:600;color:var(--rv-color-title);' }, new Date(ent.data + 'T00:00:00').toLocaleDateString('pt-BR'))));
+            if (ent.observacao) sub.appendChild(el('div', { style: 'font-size:12px;color:var(--rv-color-muted);margin-top:2px;' }, ent.observacao));
             origemEntregaItens(ent).forEach(function (ei) {
               sub.appendChild(el('div', { style: 'font-size:13.5px;color:#3f4757;margin-top:4px;' },
                 origemItemLabel(ei) + ': ' + window.fmtMetros(ei.metros_entregues),
-                ei.defeito ? el('span', { style: 'margin-left:8px;color:#d6403a;font-weight:600;font-size:12.5px;' }, 'DEFEITO') : '',
-                ei.observacao ? el('span', { style: 'margin-left:8px;font-size:12px;color:#8a93a3;' }, '(' + ei.observacao + ')') : ''));
+                ei.defeito ? el('span', { style: 'margin-left:8px;color:var(--rv-color-danger);font-weight:600;font-size:12.5px;' }, 'DEFEITO') : '',
+                ei.observacao ? el('span', { style: 'margin-left:8px;font-size:12px;color:var(--rv-color-muted);' }, '(' + ei.observacao + ')') : ''));
             });
             return sub;
           })));
@@ -917,17 +925,17 @@
         var right = el('div', { style: CARD + 'padding:20px;' });
         right.replaceChildren(
           el('div', { style: 'display:flex;align-items:center;gap:12px;margin-bottom:16px;' },
-            el('div', { style: 'width:40px;height:40px;border-radius:8px;background:#eaf1fd;display:flex;align-items:center;justify-content:center;flex-shrink:0;' }, svgEl(SVG_ICON_SUMMARY)),
+            el('div', { style: 'width:40px;height:40px;border-radius:8px;background:var(--rv-color-subtle-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;' }, svgEl(SVG_ICON_SUMMARY)),
             el('div', {},
-              el('div', { style: 'font-size:15px;font-weight:700;color:#16203a;' }, 'Resumo da OP'),
-              el('span', { style: 'display:inline-block;margin-top:4px;background:#eaf1fd;color:#2563eb;font-size:11.5px;font-weight:600;border-radius:4px;padding:2px 8px;' }, 'Preparacao'))),
+              el('div', { style: 'font-size:15px;font-weight:700;color:var(--rv-color-title);' }, 'Resumo da OP'),
+              el('span', { style: 'display:inline-block;margin-top:4px;background:var(--rv-color-subtle-bg);color:var(--rv-color-accent);font-size:11.5px;font-weight:600;border-radius:var(--rv-radius-control);padding:2px 8px;' }, 'Preparacao'))),
           el('div', { style: 'font-size:13px;color:#5b6472;font-weight:500;margin-bottom:4px;' }, formatOpDisplay(op, opDisplayContext)),
           el('div', { style: 'font-size:11.5px;color:#9aa2af;margin-bottom:16px;' }, internalOpLabel(op)),
-          el('div', { style: 'height:1px;background:#eceef1;margin-bottom:16px;' }),
-          origemOp ? el('div', { style: 'font-size:10.5px;font-weight:700;color:#8a93a3;letter-spacing:.06em;margin-bottom:6px;' }, 'ORIGEM') : '',
-          origemOp ? el('div', { style: 'font-size:13.5px;font-weight:700;color:#16203a;margin-bottom:4px;' }, origemLabel) : '',
+          el('div', { style: 'height:1px;background:var(--rv-color-line-200);margin-bottom:16px;' }),
+          origemOp ? el('div', { style: 'font-size:10.5px;font-weight:700;color:var(--rv-color-muted);letter-spacing:.06em;margin-bottom:6px;' }, 'ORIGEM') : '',
+          origemOp ? el('div', { style: 'font-size:13.5px;font-weight:700;color:var(--rv-color-title);margin-bottom:4px;' }, origemLabel) : '',
           el('div', { style: 'font-size:12.5px;color:#5b6472;margin-bottom:14px;line-height:1.5;' }, 'Fornecedor de acabamento: ' + latexFornecedorNome),
-          el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;margin-bottom:14px;' }, 'Movimentacao da OP'),
+          el('div', { style: 'font-size:13px;font-weight:700;color:var(--rv-color-title);margin-bottom:14px;' }, 'Movimentacao da OP'),
           el('div', { style: 'margin-bottom:14px;' },
             el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;' },
               el('span', { style: 'font-size:13px;font-weight:600;color:#3f4757;' }, 'Recebido da tecelagem'),
@@ -937,8 +945,8 @@
               el('span', { style: 'font-size:13px;color:#3f4757;font-weight:500;' }, window.fmtMetros(totalRecebido))),
             el('div', { style: 'display:flex;justify-content:space-between;align-items:center;' },
               el('span', { style: 'font-size:13px;font-weight:600;color:#3f4757;' }, 'Saldo aguardando'),
-              el('span', { style: 'font-size:13px;color:' + (metrosAguardando > 0 ? '#2563eb' : '#18794a') + ';font-weight:700;' }, window.fmtMetros(metrosAguardando)))),
-          el('div', { style: 'height:1px;background:#eceef1;margin-bottom:14px;' }),
+              el('span', { style: 'font-size:13px;color:' + (metrosAguardando > 0 ? 'var(--rv-color-accent)' : '#18794a') + ';font-weight:700;' }, window.fmtMetros(metrosAguardando)))),
+          el('div', { style: 'height:1px;background:var(--rv-color-line-200);margin-bottom:14px;' }),
           el('button', {
             type: 'button',
             style: BTN_PRIMARY + 'margin-bottom:12px;cursor:pointer;',
@@ -951,24 +959,24 @@
           }, svgEl(SVG_OPEN), 'Confirmar'),
           el('div', { style: 'display:flex;align-items:flex-start;gap:7px;margin-bottom:14px;' },
             svgEl(SVG_HINT_LOCK),
-            el('span', { style: 'font-size:12px;color:#8a93a3;line-height:1.5;' }, 'Confirma o recebimento do material vindo da Tecelagem.')));
+            el('span', { style: 'font-size:12px;color:var(--rv-color-muted);line-height:1.5;' }, 'Confirma o recebimento do material vindo da Tecelagem.')));
         return right;
       }
 
       function buildBottomInfoBar() {
-        return el('div', { style: 'margin-top:16px;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #eceef1;border-radius:6px;padding:12px 16px;' },
+        return el('div', { style: 'margin-top:16px;display:flex;align-items:center;gap:10px;background:var(--rv-color-surface);border:1px solid var(--rv-color-line-200);border-radius:var(--rv-radius-card);padding:12px 16px;' },
           svgEl(SVG_INFO_BAR),
           el('span', { style: 'font-size:13px;color:#5b6472;' }, 'Esta OP esta aberta aguardando confirmacao de entrada no acabamento.'));
       }
 
       container.replaceChildren(
         buildHeader(),
-        el('div', { style: 'display:grid;grid-template-columns:1fr 288px;gap:16px;align-items:start;' },
-          el('div', { style: 'display:flex;flex-direction:column;gap:16px;' },
+        el('div', { style: 'display:grid;grid-template-columns:minmax(0,1fr) var(--rv-rail-w);gap:var(--rv-gap-cols);align-items:start;' },
+          el('div', { style: 'min-width:0;display:flex;flex-direction:column;gap:16px;' },
             buildCardDados(),
             buildCardItens(),
             buildCardRecebimentos()),
-          buildRight()),
+          el('div', { style: 'min-width:0;' }, buildRight())),
         buildBottomInfoBar());
     }
 
