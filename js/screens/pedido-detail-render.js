@@ -525,7 +525,7 @@
   function buildFooterAction(label, onclick, primary, disabled) {
     var attrs = {
       type: 'button',
-      style: 'min-width:72px;min-height:32px;box-sizing:border-box;background:' + (disabled ? '#f1f3f6' : (primary ? '#2563eb' : '#fff')) + ';color:' + (disabled ? '#9aa2af' : (primary ? '#fff' : '#3f4757')) + ';border:' + (primary && !disabled ? 'none' : '1px solid #d8dce2') + ';border-radius:4px;padding:5px 12px;font-size:12px;font-weight:' + (primary ? '700' : '600') + ';font-family:inherit;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';white-space:nowrap;line-height:1.3;',
+      style: 'min-width:72px;min-height:34px;box-sizing:border-box;background:' + (disabled ? '#f1f3f6' : (primary ? '#2563eb' : '#fff')) + ';color:' + (disabled ? '#9aa2af' : (primary ? '#fff' : '#3f4757')) + ';border:' + (primary && !disabled ? 'none' : '1px solid #d8dce2') + ';border-radius:4px;padding:7px 12px;font-size:12.5px;font-weight:' + (primary ? '700' : '600') + ';font-family:inherit;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';white-space:nowrap;line-height:1.3;display:inline-flex;align-items:center;justify-content:center;',
     };
     if (disabled) {
       attrs.disabled = 'disabled';
@@ -665,7 +665,7 @@
           ? window.el('button', {
               type: 'button',
               title: 'Excluir OP (controlado, exige confirmacao forte)',
-              style: 'display:inline-flex;align-items:center;gap:6px;background:#fff;color:#d6403a;border:1px solid #f1c7c5;border-radius:4px;padding:8px 12px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;',
+              style: 'display:inline-flex;align-items:center;justify-content:center;min-height:34px;box-sizing:border-box;background:#fff;color:#d6403a;border:1px solid #f1c7c5;border-radius:4px;padding:7px 12px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;',
               onclick: function () { handlers.excluirOpRelacionada(summary.op); },
             }, 'Excluir OP')
           : null
