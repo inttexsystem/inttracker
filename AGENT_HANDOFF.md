@@ -3,85 +3,57 @@
 ## Branch/HEAD/Status
 ### documentos-ingestor (este repositório)
 - Branch: master
-- HEAD: `0f864a2` — Record real-lite operational smoke
-- Status: limpo
+- HEAD: `(new commit)` — Add documents integration handoff package (G8-E)
 
 ### Controle de Tapetes (staging/work/app-next)
 - HEAD canônico: `997486a`
 
 ## Fase concluída
-RAVATEX-DOC-INGESTOR-G8-D-REAL-LITE-OPERATIONAL-SMOKE
+RAVATEX-DOC-INGESTOR-G8-E-INTEGRATION-HANDOFF-PACKAGE
 
 ## Fase anterior
-G8-C — Polish operacional (filtros, export, inspect)
+G8-D — Smoke real-lite operacional
 
-## Objetivo da fase G8-D
-Validar em ambiente real-lite (SQLite real, sem Google/Drive) que o funil local funciona com documento teste do G5.
+## Objetivo da fase G8-E
+Entregar pacote de handoff claro para integração futura com Controle de Tapetes: eventos, campos, exemplos JSONL, regras de consumo/idempotência, comandos operacionais e limites.
 
-### Documento teste usado
-- Gmail message ID: `19f3...e1` (G5 smoke document)
-- Doc ID: `cda1...05` (masked)
-- Tipo: nf, formato: xml, direção: entrada
-- Status inicial: `pending`
-- Pedido inicial: `(none)`
+### Pacote criado
 
-### Comandos executados
+**1. Exemplo JSONL** (`contracts/examples/document-events.sample.jsonl`)
+- 4 eventos fictícios: `document.detected`, `document.linked`, `document.accepted`, `document.rejected`
+- IDs fictícios (sem dados reais)
+- `event_id` repete-se (legado), `ingestion_event_id` é único por evento
+- `reason` presente apenas em `document.rejected`
 
-**Parte 1 — Baseline:**
-```
-npm.cmd run inspect -- --id 19f3c813e8d45be1
-→ status=pending, pedido=none, drive_file_id presente, drive_web_view_link presente
+**2. Contrato atualizado** (`docs/CONTROL_TAPETES_DOCUMENTS_CONTRACT.md`)
+- Seção 6: Regras de idempotência (5 regras: `ingestion_event_id` canônico, `event_id` legado, ordenação, status derivado)
+- Seção 7: Exemplo JSONL (tabela com 4 eventos)
+- Seção 8-10: Fases, limites, comandos expandidos (inclui export filtrado, --pedido, --event-type, --mark-exported)
 
-npm.cmd run report -- --days 1
-→ 3 documentos (1 nf/entrada, 2 desconhecido), 0 accepted, 0 rejected
-```
+### Decisões documentadas
+- `ingestion_event_id` deve ser usado como identificador canônico do evento pelo consumidor
+- `event_id` é legado e pode repetir-se (documento com linked+accepted compartilha event_id)
+- Visualização Drive: consumidor abre `drive_web_view_link` em nova aba, sem Supabase/backend
+- Assign real e link local-only são rotas alternativas, não complementares
+- Manifest Drive sync deferido
+- Bloqueio de direção NF deferido (falta modelo de pedido)
+- event_id v2 deferido
 
-**Parte 2 — Link local-only:**
-```
-npm.cmd run link -- --id 19f3c813e8d45be1 --pedido 999/2026
-→ [link] Linked: document=cda1...05 pedido=PED-99-2026 event=c9fe...fc
+### Arquivos alterados/criados
+- `contracts/examples/document-events.sample.jsonl` — **novo** (4 eventos fictícios)
+- `docs/CONTROL_TAPETES_DOCUMENTS_CONTRACT.md` — seções 6-10 adicionadas/expandidas
+- `PROJECT_STATE.md`, `AGENT_HANDOFF.md` — atualização
 
-npm.cmd run inspect -- --id 19f3c813e8d45be1
-→ status=assigned, pedido=PED-99-2026
-
-npm.cmd run export:events -- --pedido PED-99-2026 --event-type document.linked --json
-→ event_type=document.linked, ingestion_event_id=c9fe...fc, event_id=cda1...05 (legado)
-```
-
-**Parte 3 — Accept local-only:**
-```
-npm.cmd run accept -- --id 19f3c813e8d45be1
-→ [accept] Accepted: document=cda1...05 pedido=PED-99-2026 event=ebfd...76
-
-npm.cmd run inspect -- --id 19f3c813e8d45be1
-→ status=accepted
-
-npm.cmd run export:events -- --pedido PED-99-2026 --event-type document.accepted --json
-→ event_type=document.accepted, ingestion_event_id=ebfd...76, status=accepted, event_id legado preservado
-
-npm.cmd run report -- --days 1
-→ documentsAccepted=1, pendingWithoutPedido=2
-```
-
-### Evidências
-- **Link**: `document.linked` exportado com `ingestion_event_id` UUID, `event_id` = document_id (legado)
-- **Accept**: `document.accepted` exportado com `ingestion_event_id` diferente do linked
-- **Links Drive**: `inspect` mostra `drive_file_id`, `drive_web_view_link`, `drive_content_link`, `storage_uri` (valores reais, sem máscara)
-- **Report**: baseline 3 pending → após link+accept: 1 accepted, 2 pending (sem pedido)
-- **Git status**: limpo (nenhum arquivo alterado, nenhum dado commitado)
-
-### Garantias
-- Nenhum scan real executado
-- Nenhum assign real executado
-- Nenhuma chamada Google/Drive real
-- Nenhum dado commitado
-- Apenas documento teste controlado foi tocado via comandos CLI local-only
+### Testes
+- Apenas documentação/fixture (sem código funcional)
+- `git diff --check` limpo
 
 ### Riscos remanescentes
-1. Manifest Drive não reflete link/accept local-only (documento não foi movido no Drive)
+1. Manifest Drive sync deferido
 2. Bloqueio de mismatch entrada/saída deferido
-3. event_id migração v2 deferida
+3. event_id v2 deferido
+4. Integração real com Controle de Tapetes não iniciada
 
 ### Próxima fase recomendada
-RAVATEX-DOC-INGESTOR-G9-DRIVE-MANIFEST-SYNC-DESIGN
-Foco: sincronizar assign real com documentos linked, atualizar manifest Drive, integração Controle de Tapetes.
+RAVATEX-DOC-INGESTOR-G9-DRIVE-MANIFEST-SYNC
+Foco: sincronizar assign real com documentos linked, atualizar manifest Drive para refletir estado local, preparar integração com Controle de Tapetes.

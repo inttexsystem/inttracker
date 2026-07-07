@@ -137,7 +137,37 @@ document.detected → link → document.linked → accept/reject → document.ac
 
 ---
 
-## 6. Fases concluídas (documents-ingestor)
+## 6. Regras de idempotência para o consumidor
+
+1. **`ingestion_event_id` é o identificador canônico do evento.** O consumidor deve usá-lo como chave primária. Reprocessar o mesmo `ingestion_event_id` deve ser idempotente (ignorar duplicatas).
+2. **`event_id` é legado.** Pode repetir-se em eventos do mesmo documento. Não usar como chave única.
+3. **`document_id` identifica o documento.** Pode ser usado para consolidar o estado atual do documento a partir do último evento recebido.
+4. **Ordem de processamento:** processar eventos por `created_at` ascendente. Se dois eventos tiverem o mesmo timestamp, usar `ingestion_event_id` lexicográfico como desempate.
+5. **Status derivado:** o status final de um documento é o `status` do evento mais recente (maior `created_at`).
+
+---
+
+## 7. Exemplo de eventos (JSONL)
+
+Arquivo: `contracts/examples/document-events.sample.jsonl`
+
+Contém 4 eventos sequenciais com IDs fictícios:
+
+| event_type | doc_id | ingestion_event_id | status |
+|---|---|---|---|
+| `document.detected` | doc_example_001 | 550e8400-...-440001 | pending_app_acceptance |
+| `document.linked` | doc_example_001 | 550e8400-...-440002 | pending_app_acceptance |
+| `document.accepted` | doc_example_001 | 550e8400-...-440003 | accepted |
+| `document.rejected` | doc_example_002 | 550e8400-...-440004 | rejected + reason |
+
+Notas:
+- `event_id` repete-se em `doc_example_001` (3 eventos, mesmo event_id).
+- `ingestion_event_id` é único por evento.
+- `reason` aparece apenas no `document.rejected`.
+
+---
+
+## 8. Fases concluídas (documents-ingestor)
 
 | Fase | Descrição |
 |---|---|
@@ -149,10 +179,13 @@ document.detected → link → document.linked → accept/reject → document.ac
 | G7-C | Validação hermética do funil completo |
 | G7-C-R1 | Persistência de reason no re-export |
 | G8-A | Design de integração e sync |
+| G8-B | Atualização de contrato (JSON schema + docs) |
+| G8-C | Polish operacional (filtros, export, inspect) |
+| G8-D | Smoke real-lite (link+accept validados em documento real) |
 
 ---
 
-## 7. O que NÃO será feito (fase atual)
+## 9. O que NÃO será feito (fase atual)
 
 - Nenhuma chamada HTTP/Webhook para o Controle de Tapetes
 - Nenhum polling ativo do Controle de Tapetes (consumo passivo via arquivo)
@@ -163,14 +196,29 @@ document.detected → link → document.linked → accept/reject → document.ac
 
 ---
 
-## 8. Comandos úteis
+## 10. Comandos úteis
 
 ```bash
-npm run list:pending -- --status assigned --tipo nf
+# Listar documentos por pedido
+npm run list:pending -- --pedido 25/2026 --status assigned
+
+# Inspecionar documento (mostra links Drive)
 npm run inspect -- --id <doc_id_or_gmail_msg_id>
+
+# Ver relatório agregado do funil
 npm run report
+
+# Vincular localmente (sem Drive)
 npm run link -- --id <doc_id> --pedido 25/2026
+
+# Aceitar/rejeitar localmente
 npm run accept -- --id <doc_id>
 npm run reject -- --id <doc_id> --reason "motivo"
-npm run export:events
+
+# Exportar eventos (filtrado, read-only)
+npm run export:events -- --pedido PED-99-2026 --event-type document.accepted --json
+npm run export:events -- --event-type document.linked
+
+# Exportar eventos pendentes (com side-effect)
+npm run export:events -- --mark-exported
 ```

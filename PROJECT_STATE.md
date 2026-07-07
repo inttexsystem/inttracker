@@ -92,6 +92,7 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - G8-B — Atualização de contrato (JSON schema + docs) refletindo estado real G6/G7
 - G8-C — Polish operacional (filtro por pedido, export eventos filtrado, inspect com links Drive)
 - G8-D — Smoke real-lite (link+accept local-only validados em documento real existente)
+- G8-E — Pacote de handoff de integração (exemplos JSONL, regras de consumo, idempotência documentadas)
 - G/H — UI Backlog (Controle de Tapetes — staging/work/app-next)
 
 ## Fase G1: Taxonomia de Documentos (3 eixos)
