@@ -5400,3 +5400,38 @@ movimentacao e determinada pelo estagio do Pedido.
   - `origin` nao usado para escrita.
   - Sem `git add .`.
   - `supabase/.temp` fora do commit.
+
+---
+
+# Estado pos-fase - Transfer Grid Column Refine E
+
+- Fase: `RAVATEX-TAPETES-TRANSFER-GRID-COLUMN-REFINE-E`.
+- Status: **PATCH TRANSFER GRID COLUMN REFINE PRONTO — AGUARDANDO RETESTE DO USUARIO**.
+- Branch/HEAD base: `work/app-next`, `ce56738`. Prioridade: P2.
+
+- **Causa raiz:** Tabela "Pendencias por produto" usava `1fr auto auto auto`
+  com colunas independentes entre cabecalho e dados. Metricas do
+  Acabamento→Expedicao ficaram grandes demais (14px/8px padding).
+
+- **Correcoes:**
+  1. Grid `1fr auto auto auto` → `minmax(0,1fr) 80px 80px 80px`. Colunas
+     com largura fixa garantem alinhamento entre cabecalho e linhas.
+  2. Coluna Produto ganhou `overflow:hidden;text-overflow:ellipsis;
+     white-space:nowrap` + `title` com nome completo.
+  3. Metricas Recebido/Ja movimentado reduzidas: `font-size:14px;
+     padding:8px 0` → `font-size:13px;padding:6px 0`.
+
+- **Arquivos alterados:** `js/screens/pedido-detail-events.js`.
+
+- **Grid-template antes/depois:**
+  - Antes: `1fr auto auto auto` (colunas independentes, potencial desalinhamento)
+  - Depois: `minmax(0,1fr) 80px 80px 80px` (larguras fixas, alinhamento garantido)
+
+- **Testes:** `pedido-detail.smoke.js` 172/172,
+  `tec-to-acabamento-flow.smoke.js` 39/39.
+
+- **Garantias:**
+  - Producao intocada.
+  - `origin` nao usado para escrita.
+  - Sem `git add .`.
+  - `supabase/.temp` fora do commit.
