@@ -19,7 +19,7 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - `contracts/manifest.schema.json` — schema do manifest de Pedido
 
 ## Status atual
-- HEAD (documents-ingestor): `b4659a1`
+- HEAD (documents-ingestor): `60bc12e`
 - HEAD canônico staging/work/app-next (Controle de Tapetes): `997486a`
 - Push staging: `af919a2..997486a` (produção/origin oficial intocados)
 - 264 testes passando (24 suites) — incluindo integração mockada completa
@@ -88,6 +88,7 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - G7-B — Guardrails patch (warning direção, ingestion_event_id, report seções)
 - G7-C — Smoke local sintético (funil pending→link→accept/reject→outbox→report validado)
 - G7-C-R1 — Persistência de `reason` no re-export de document.rejected
+- G8-A — Design de integração e sync (matriz link/assign/manifest/outbox/Drive/event_id)
 - G/H — UI Backlog (Controle de Tapetes — staging/work/app-next)
 
 ## Fase G1: Taxonomia de Documentos (3 eixos)
@@ -109,5 +110,5 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - Status residual esperado: `?? supabase/.temp/`
 
 ## Próxima fase recomendada
-RAVATEX-DOC-INGESTOR-G8-INTEGRATION-AND-SYNC
-Foco: revisar assign real para incluir documentos já linked, sync de manifest Drive, e integração com Controle de Tapetes. Funil local completo com rejection reason persistido.
+RAVATEX-DOC-INGESTOR-G8-B-CONTRACT-UPDATE
+Foco: atualizar contratos documentais (JSON schema + docs) para refletir estado real do outbox pós-G6/G7: novos event_types, ingestion_event_id, reason. Sem alteração funcional.
