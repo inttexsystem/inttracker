@@ -446,7 +446,7 @@ test('15. op-nova.js mantem preparacao e delega Tecelagem em producao para modul
   assert.match(opnSrc, /function\s+buildOrdemPendenteRow\s*\(/);
   assert.doesNotMatch(opnSrc, /function\s+buildBlocoTecelagem\s*\(/);
   assert.match(opnSrc, /window\.renderOPTecelagemProducaoAdmin\(/);
-  assert.match(optpSrc, /function\s+buildBlocoTecelagem\s*\(/);
+  assert.match(optpSrc, /function\s+buildBlocoEntregas\s*\(/);
   assert.match(optpSrc, /function\s+renderOPTecelagemProducaoAdmin\s*\(/);
 });
 // -------------------------------------------------------------------------
@@ -959,11 +959,11 @@ test('39. OP Em Produção Tecelagem usa o template PROD-OP (não é a OP Aberta
   assert.match(rendered.text, /Entregue p\/ acabamento/i);
   assert.match(rendered.text, /Já enviado/i);
   assert.match(rendered.text, /Saldo em tecelagem/i);
-  assert.match(rendered.text, /4\.\s*Capacidade e ajuste/i);
-  assert.match(rendered.text, /Movimentação\s*—\s*enviar para acabamento/i);
-  assert.match(rendered.text, /Documentos da OP/i);
-  assert.match(rendered.text, /7\.\s*Histórico/i);
-  assert.match(rendered.text, /Entregas tecelagem/i);
+  assert.match(rendered.text, /Capacidade e ajuste/i);
+  assert.match(rendered.text, /Enviar para acabamento/i);
+  assert.match(rendered.text, /Documentos/i);
+  assert.match(rendered.text, /Histórico/i);
+  assert.match(rendered.text, /Entregas de tecelagem/i);
   assert.match(rendered.text, /OPs.*OP 9\/2026/s);
 });
 
@@ -1025,11 +1025,10 @@ test('42. Card "4. Entregas tecelagem" permanece ausente da OP Aberta', async ()
 test('43. Card "Entregas tecelagem" permanece presente na OP Em Produção Tecelagem (reposicionado, sem numeral "4." — conflitava com o novo Bloco 4 Capacidade e ajuste)', async () => {
   const db = buildOpEmProducaoTecelagemFixture();
   const rendered = await renderNovaOpForTest({ opId: 93, db });
-  assert.match(rendered.text, /Entregas tecelagem/i);
-  assert.match(rendered.text, /4\.\s*Capacidade e ajuste/i);
-  // O card de entregas não reivindica mais o numeral "4." — isso agora
-  // pertence só ao bloco Capacidade e ajuste (sem colisão de numeração).
-  assert.doesNotMatch(rendered.text, /4\.\s*Entregas tecelagem/i);
+  assert.match(rendered.text, /Entregas de tecelagem/i);
+  assert.match(rendered.text, /Capacidade e ajuste/i);
+  // Headers de seção agora são icon-chips sem numeral.
+  assert.doesNotMatch(rendered.text, /4\.\s*Entregas/i);
 });
 
 test('44. OP Em Produção Tecelagem preserva o fluxo de entrega existente (+ Nova entrega/Editar/Excluir)', async () => {
@@ -1097,12 +1096,13 @@ test('48. Guardas de segurança: sem alterar_status_op e sem write novo de statu
   assert.doesNotMatch(opnSrc, /supa\.from\(['"]op_eventos['"]\)\.(insert|update|delete)/);
 });
 
-test('49. OP Em Produção Tecelagem mostra breadcrumb "OPs / OP X/ANO" e botão Voltar', async () => {
+test('49. OP Em Produção Tecelagem mostra breadcrumb "OPs / OP X/ANO" (OPs clicável)', async () => {
   const db = buildOpEmProducaoTecelagemFixture();
   const rendered = await renderNovaOpForTest({ opId: 93, db });
   assert.match(rendered.text, /OPs/);
   assert.match(rendered.text, /OP 9\/2026/);
-  assert.match(rendered.text, /Voltar/);
+  // O breadcrumb é o próprio caminho de volta (OPs clicável) — sem botão "Voltar".
+  assert.match(optpSrc, /navigate\('#\/ops'\)/);
 });
 
 test('50. Cadeia produtiva (lineage strip) aparece quando há OP de Acabamento gerada por entrega parcial', async () => {
@@ -1131,10 +1131,12 @@ test('50. Cadeia produtiva (lineage strip) aparece quando há OP de Acabamento g
     ],
   });
   const rendered = await renderNovaOpForTest({ opId: 93, db });
-  assert.match(rendered.text, /Cadeia produtiva/i);
+  // A lineage foi integrada aos "Dados da OP" (campo Destino, clicável) em vez
+  // da antiga strip "Cadeia produtiva": a OP de Acabamento consolidada aparece
+  // como destino navegável.
+  assert.match(rendered.text, /Destino/i);
   assert.match(rendered.text, /OP 8\/2026/);
   assert.match(rendered.text, /Acabamento/i);
-  assert.match(rendered.text, /Aguardando entrada/i);
 });
 
 test('51. Cadeia produtiva ausente quando não há OP de Acabamento gerada', async () => {
@@ -1153,7 +1155,7 @@ test('52. Bloco "4. Capacidade e ajuste" lê saldo_fios_op (read-only) e mostra 
     ],
   });
   const rendered = await renderNovaOpForTest({ opId: 93, db });
-  assert.match(rendered.text, /4\.\s*Capacidade e ajuste/i);
+  assert.match(rendered.text, /Capacidade e ajuste/i);
   assert.match(rendered.text, /Algodão\s*—\s*PRETO/i);
   assert.match(rendered.text, /sobra 87,369 kg/i);
   // Não fabricar um "fator proporcional" que não temos gravado.
@@ -1164,18 +1166,21 @@ test('52. Bloco "4. Capacidade e ajuste" lê saldo_fios_op (read-only) e mostra 
 test('53. Bloco "4. Capacidade e ajuste" cai no fallback controlado sem saldo_fios_op', async () => {
   const db = buildOpEmProducaoTecelagemFixture({ saldo_fios_op: [] });
   const rendered = await renderNovaOpForTest({ opId: 93, db });
-  assert.match(rendered.text, /4\.\s*Capacidade e ajuste/i);
+  assert.match(rendered.text, /Capacidade e ajuste/i);
   assert.match(rendered.text, /Sem dados de sobra de fio registrados para esta OP\./i);
 });
 
-test('54. Documentos da OP tem aparência de lista (Romaneio/NF entrada/NF saída), ainda placeholder/controlado', async () => {
+test('54. Documentos da OP: slots por tipo (Romaneio/NF entrada/NF saída) com Anexar, camada visual sem backend', async () => {
   const db = buildOpEmProducaoTecelagemFixture();
   const rendered = await renderNovaOpForTest({ opId: 93, db });
   assert.match(rendered.text, /Romaneio/);
-  assert.match(rendered.text, /Nota fiscal de entrada/i);
-  assert.match(rendered.text, /Nota fiscal de saída/i);
-  assert.match(rendered.text, /Aguardando integração/i);
-  assert.match(rendered.text, /Documentos da OP serão integrados em fase própria\./i);
+  assert.match(rendered.text, /NF de entrada/i);
+  assert.match(rendered.text, /NF de saida/i);
+  assert.match(rendered.text, /Anexar Romaneio/i);
+  assert.match(rendered.text, /Nenhum arquivo anexado/i);
+  // Sem nomes de arquivo fabricados nem badges falsos.
+  assert.doesNotMatch(rendered.text, /Aguardando integração/i);
+  assert.doesNotMatch(rendered.text, /\.pdf/i);
 });
 
 test('55. Saldo negativo/excedente (entregue > ajustado) tem tratamento visual próprio, não fica escondido', async () => {
@@ -1200,12 +1205,11 @@ test('56. Subtítulo do header mostra "Aberta em DATA" quando op.criado_em exist
   assert.match(rendered.text, /Aberta em \d{2}\/\d{2}\/\d{4}/);
 });
 
-test('57. Card "1. Dados da OP" usa grid de 2 colunas (não 3) — evita rótulos longos se sobrepondo em janelas estreitas', async () => {
+test('57. Card "Dados da OP" usa grid de 3 colunas no cockpit largo (rail sticky libera a coluna esquerda)', async () => {
   const db = buildOpEmProducaoTecelagemFixture();
   const rendered = await renderNovaOpForTest({ opId: 93, db });
-  const dadosGrid = rendered.styles.find((s) => /grid-template-columns/.test(s) && /repeat\(\s*[23]\s*,\s*minmax\(0(?:px)?,\s*1fr\)\s*\)/.test(s));
-  assert.ok(dadosGrid, 'esperado encontrar o grid de campos do Card 1');
-  assert.match(dadosGrid, /repeat\(\s*2\s*,/, 'Card 1 deve usar 2 colunas, não 3 — 3 colunas quebra rótulos longos em janelas estreitas (~800px)');
+  const dadosGrid = rendered.styles.find((s) => /grid-template-columns/.test(s) && /repeat\(\s*3\s*,\s*minmax\(0(?:px)?,\s*1fr\)\s*\)/.test(s));
+  assert.ok(dadosGrid, 'esperado o grid de 3 colunas dos campos de Dados da OP (igual ao piloto Acabamento validado)');
 });
 
 test('58. Card "Entregas tecelagem" tem wrapper overflow-x:auto (colunas em px fixo não encolhem)', async () => {
@@ -1215,12 +1219,15 @@ test('58. Card "Entregas tecelagem" tem wrapper overflow-x:auto (colunas em px f
   assert.ok(temOverflowWrapper, 'esperado um wrapper overflow-x:auto ao redor da tabela de colunas fixas em px (evita coluna FALTA cortada em janelas estreitas)');
 });
 
-test('59. Bloco "5. Movimentação" usa grid auto-fit para as estatísticas (não repeat(3,...) fixo)', async () => {
+test('59. "Enviar para acabamento" (rail) usa métricas empilhadas + botão full-width (não grid rígido que estoura 300px)', async () => {
   const db = buildOpEmProducaoTecelagemFixture();
   const rendered = await renderNovaOpForTest({ opId: 93, db });
-  const statGrid = rendered.styles.find((s) => /grid-template-columns/.test(s) && /minmax\(120px/.test(s));
-  assert.ok(statGrid, 'esperado encontrar o grid de estatísticas do bloco Movimentação');
-  assert.match(statGrid, /auto-fit/, 'estatísticas devem usar auto-fit — 3 colunas rígidas espremem rótulo+valor ao dividir espaço com a coluna de Documentos (320px)');
+  assert.match(rendered.text, /Enviar para acabamento/i);
+  assert.match(rendered.text, /Transferir p\/ acabamento/i);
+  const fullWidthBtn = rendered.styles.find((s) => /width:100%/.test(s) && /height:38px/.test(s));
+  assert.ok(fullWidthBtn, 'o botão Transferir deve ser full-width no rail (padrão de ação do cockpit)');
+  const rigidStatGrid = rendered.styles.find((s) => /grid-template-columns/.test(s) && /minmax\(120px/.test(s));
+  assert.ok(!rigidStatGrid, 'o rail não deve usar grid rígido minmax(120px) que espreme as métricas em 300px');
 });
 
 test('60. OP Em Produção Tecelagem não tem nenhum ícone de seção (padrão do standalone: título só em texto)', async () => {
@@ -1230,10 +1237,11 @@ test('60. OP Em Produção Tecelagem não tem nenhum ícone de seção (padrão 
   assert.equal(temIconeSecao, false, 'nenhum dos 7 blocos do standalone PROD-OP-TECELAGEM usa ícone no título — Card 3 e Entregas tecelagem não podem ter herdado o ícone do template Nova OP/OP Aberta');
 });
 
-test('61. Card 3 usa o texto do standalone ("3. Insumos — recebimento de fios") na OP Em Produção', async () => {
+test('61. Card 3 usa "Insumos — recebimento de fios" (icon-chip, sem numeral) na OP Em Produção', async () => {
   const db = buildOpEmProducaoTecelagemFixture();
   const rendered = await renderNovaOpForTest({ opId: 93, db });
-  assert.match(rendered.text, /3\.\s*Insumos\s*—\s*recebimento de fios/i);
+  assert.match(rendered.text, /Insumos\s*—\s*recebimento de fios/i);
+  assert.doesNotMatch(rendered.text, /3\.\s*Insumos/i);
   assert.doesNotMatch(rendered.text, /3\.\s*Recebimento de fios/i);
 });
 
@@ -1265,13 +1273,13 @@ test('63. OP Aberta Tecelagem continua com o ícone do Card 3 (ajuste é condici
 test('66. Headers STATUS e FALTA da OP Em ProduÃ§Ã£o Tecelagem ficam alinhados Ã  esquerda', async () => {
   const db = buildOpEmProducaoTecelagemFixture();
   const rendered = await renderNovaOpForTest({ opId: 93, db });
-  const statusHeaders = rendered.styledText.filter((node) => node.text === 'STATUS' && /font-size:11px/.test(node.style));
-  const faltaHeaders = rendered.styledText.filter((node) => node.text === 'FALTA' && /font-size:11px/.test(node.style));
-  assert.ok(statusHeaders.length >= 1, 'esperado header STATUS no Card 3');
-  assert.ok(faltaHeaders.length >= 2, 'esperado header FALTA nos blocos de itens e Entregas tecelagem');
-  for (const header of statusHeaders.concat(faltaHeaders)) {
-    assert.doesNotMatch(header.style, /text-align\s*:\s*(?:right|center)/,
-      'STATUS/FALTA devem herdar alinhamento left/start, sem right/center: ' + header.style);
+  // Nova convenção (reference Inttex / regra de ouro): colunas numéricas têm
+  // header alinhado à direita, igual aos valores. FALTA é numérica.
+  const faltaHeaders = rendered.styledText.filter((node) => node.text === 'FALTA');
+  assert.ok(faltaHeaders.length >= 2, 'esperado header FALTA nos blocos Itens e Entregas de tecelagem');
+  for (const header of faltaHeaders) {
+    assert.match(header.style, /text-align\s*:\s*right/,
+      'FALTA (coluna numérica) deve ter o header à direita, igual aos valores: ' + header.style);
   }
 });
 
@@ -1316,9 +1324,10 @@ test('67. Entregas tecelagem fica dentro do Card 5 Movimentacao e fora do Card 4
   assert.ok(card5, 'esperado encontrar o Card 5 Movimentacao');
   const card4Text = collectNodeText(card4);
   const card5Text = collectNodeText(card5);
-  assert.doesNotMatch(card4Text, /Entregas tecelagem/i);
-  assert.match(card5Text, /5\.\s*Movimenta/i);
-  assert.match(card5Text, /Entregas tecelagem/i);
+  assert.doesNotMatch(card4Text, /Entregas de tecelagem/i);
+  // Entregas de tecelagem agora é uma seção própria (id entregas-tecelagem-op),
+  // fora do bloco Capacidade (Card 4). Header em icon-chip, sem numeral.
+  assert.match(card5Text, /Entregas de tecelagem/i);
   assert.match(card5Text, /MODELO\s*PEDIDO\s*AJUSTADO\s*ENTREGUE\s*FALTA/i);
   assert.match(card5Text, /\+ Nova entrega/);
   // ent-1 está vinculada a uma OP Látex (op_latex_entregas): pela regra de

@@ -312,7 +312,7 @@ test('D-B sintaxe: entrega-writes.js e op-tecelagem-producao-admin.js válidos',
 // =====================================================================
 
 test('TEC-STAGE-FINALIZATION-A-B: OP Tecelagem finaliza via RPC canonica', () => {
-  const slice = (otpaSrc.match(/async function finalizarTecelagem[\s\S]*?\n  \}\n\n  function campoProducao/) || [''])[0];
+  const slice = (otpaSrc.match(/async function finalizarTecelagem[\s\S]*?\n  \}\n/) || [''])[0];
   assert.ok(slice, 'finalizarTecelagem deve existir');
   assert.match(slice, /rpc\(\s*['"]alterar_status_op['"]/,
     'finalizacao deve chamar a RPC canonica alterar_status_op');
@@ -325,15 +325,15 @@ test('TEC-STAGE-FINALIZATION-A-B: OP Tecelagem finaliza via RPC canonica', () =>
 });
 
 test('ADMIN-TEC-FINALIZE-CTA-R1: CTA destacado exige saldo zerado', () => {
-  const slice = (otpaSrc.match(/function buildHeaderProducao[\s\S]*?\n  \}\n\n  async function finalizarTecelagem/) || [''])[0];
-  assert.ok(slice, 'buildHeaderProducao deve existir');
+  const slice = (otpaSrc.match(/function buildHeader\b[\s\S]*?\n  \}\n\n  async function finalizarTecelagem/) || [''])[0];
+  assert.ok(slice, 'buildHeader deve existir');
   assert.match(slice, /var\s+podeConcluir\s*=\s*totais\.totalAjustado\s*>\s*0\s*&&\s*totais\.saldo\s*<=\s*0/,
     'Finalizar OP Tecelagem deve depender de total ajustado e saldo sem pendencia');
-  assert.match(slice, /background:#18794a/,
-    'CTA habilitado deve usar estilo verde destacado');
+  assert.match(slice, /podeConcluir\s*\?\s*BTN_HDR_SUCCESS/,
+    'CTA habilitado deve usar o estilo de sucesso (verde) destacado');
   assert.match(slice, /Finalizar OP/,
     'CTA deve ter rotulo Finalizar OP');
-  assert.match(slice, /if\s*\(\s*!podeConcluir\s*\)\s*concluirAttrs\.disabled\s*=\s*['"]disabled['"]/,
+  assert.match(slice, /if\s*\(\s*!podeConcluir\s*\)\s*finalizarAttrs\.disabled\s*=\s*['"]disabled['"]/,
     'botao deve permanecer desabilitado enquanto houver saldo');
   assert.match(slice, /finalizarTecelagem\(ctx,\s*totais/,
     'clique do botao deve chamar finalizarTecelagem com os totais calculados');
@@ -643,10 +643,10 @@ test('split-UI-B caso 9: estático — pedido-detail-events.js buildTecelagemTra
 });
 
 test('split-UI-B caso 10: estático — op-tecelagem-producao-admin.js buildBlocoTecelagem passa comOpcaoSplit:true', () => {
-  var buildBlocoSlice = (otpaSrc.match(/function buildBlocoTecelagem[\s\S]*?\n  \}\n\n  function buildEntregaHistorico/) || [''])[0];
-  assert.ok(buildBlocoSlice, 'trecho buildBlocoTecelagem nao encontrado');
+  var buildBlocoSlice = (otpaSrc.match(/function buildBlocoEntregas[\s\S]*?\n  \}\n\n  function buildEntregaHistorico/) || [''])[0];
+  assert.ok(buildBlocoSlice, 'trecho buildBlocoEntregas nao encontrado');
   assert.match(buildBlocoSlice, /comOpcaoSplit:\s*true/,
-    'buildBlocoTecelagem deve passar comOpcaoSplit:true no +Nova entrega');
+    'buildBlocoEntregas deve passar comOpcaoSplit:true no +Nova entrega');
   assert.match(buildBlocoSlice, /form\.getSplitOption\(\)/,
     '+Nova entrega onclick deve chamar form.getSplitOption()');
   assert.match(buildBlocoSlice, /salvarEntregaCima\([\s\S]*splitOpt\.forceSplit[\s\S]*forceSplit:/,
@@ -654,7 +654,7 @@ test('split-UI-B caso 10: estático — op-tecelagem-producao-admin.js buildBloc
 });
 
 test('split-UI-B caso 11: estático — abrirEdicaoAdmin NÃO passa comOpcaoSplit (edição não troca split)', () => {
-  var abrirSlice = (otpaSrc.match(/function abrirEdicaoAdmin[\s\S]*?\n  \}\n\n  function buildBlocoMovimentacao/) || [''])[0];
+  var abrirSlice = (otpaSrc.match(/function abrirEdicaoAdmin[\s\S]*?\n  \}\n\n  function buildBlocoHistorico/) || [''])[0];
   assert.ok(abrirSlice, 'trecho abrirEdicaoAdmin nao encontrado');
   assert.doesNotMatch(abrirSlice, /comOpcaoSplit/,
     'abrirEdicaoAdmin nao deve passar comOpcaoSplit (edicao nao altera decisao de split)');
@@ -699,11 +699,11 @@ test('split-UI-B sintaxe: entrega-form.js válido apos patch', () => {
 // Botão "Movimentar" no header da OP Tecelagem renomeado para "Ir para entregas"
 // — o comportamento continua sendo scroll anchor, mas o label agora reflete
 // que é navegação interna, não ação produtiva.
-test('R1: OP Tecelagem header não contém botão "Movimentar" ambíguo (renomeado)', () => {
+test('R1: OP Tecelagem não usa label "Movimentar" ambíguo; envio é "Transferir p/ acabamento" (rail)', () => {
   assert.doesNotMatch(otpaSrc, /'Movimentar'/,
-    'botão do header da OP Tecelagem não deve mais usar label "Movimentar" ambíguo');
-  assert.match(otpaSrc, /'Ir para entregas'/,
-    'botão do header da OP Tecelagem deve usar label "Ir para entregas" que reflete scroll');
+    'a OP Tecelagem não deve usar o label "Movimentar" ambíguo');
+  assert.match(otpaSrc, /Transferir p\/ acabamento/,
+    'a ação de envio deve usar o rótulo claro "Transferir p/ acabamento" no rail');
 });
 
 test('R1: OP Tecelagem scroll para #entregas-tecelagem-op preservado com button sem hash navigation', () => {

@@ -1314,7 +1314,7 @@ test('44. OP em producao de tecelagem fica em modulo proprio, fora do acabamento
     'op-nova.js deve apenas delegar o template operacional de tecelagem');
   assert.match(optpSrc, /function\s+renderOPTecelagemProducaoAdmin\s*\(/,
     'modulo dedicado de tecelagem em producao deve expor o renderer');
-  assert.match(optpSrc, /function\s+buildBlocoTecelagem\s*\(/,
+  assert.match(optpSrc, /function\s+buildBlocoEntregas\s*\(/,
     'bloco de entregas de tecelagem deve ficar no modulo de tecelagem em producao');
   assert.match(opnSrc, /window\.renderOPLatexAdmin\(op\.id\)/,
     'call-site de OP latex deve continuar delegado ao modulo de latex');

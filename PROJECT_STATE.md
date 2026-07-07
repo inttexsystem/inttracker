@@ -5958,3 +5958,45 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 >   `PROJECT_STATE.md`. Testes: op-latex-admin 55/55, tec-to-acabamento 39/39,
 >   pedido-detail 172/172, op-latex-split 28/28. Evidencia visual real
 >   (harness) confirmando ausencia de overflow e Anexar full-width.
+
+> **Atualizacao 2026-07-07 - fase
+> `RAVATEX-TAPETES-DESIGN-TOKENS-TARGET-PILOT-TECELAGEM`.**
+> Piloto de Acabamento **validado** pelo usuario; aplicada a MESMA linguagem
+> visual a **OP Tecelagem em producao** (`js/screens/op-tecelagem-producao-admin.js`,
+> + header do bloco de fios em `js/screens/op-nova.js`), preservando os itens
+> proprios da tecelagem.
+> - **Rework visual:** icon-chips reais em todas as secoes (sem barras/numeros);
+>   header enxuto (breadcrumb + H1 + badge etapa **roxo** Tecelagem + status
+>   **ambar** Em producao + metadados; acoes reais: Finalizar OP verde gated +
+>   Excluir vermelho); cockpit `minmax(0,1fr) var(--rv-rail-w)` com **rail
+>   sticky** (Resumo + Enviar para acabamento + Documentos), largura ampla;
+>   strip "Cadeia produtiva" removida e dobrada em "Dados da OP" (campo Destino/
+>   Pedido clicavel); Documentos = slots por tipo + Anexar full-width (visual,
+>   sem backend); tabelas com header numerico a direita (regra de ouro) e
+>   `overflow-x:auto`.
+> - **Funcional intocado:** `computeTotaisProducao`, `finalizarTecelagem`
+>   (RPC `alterar_status_op` → concluida, gated por saldo<=0), entregas de
+>   tecelagem (+ Nova entrega com `salvarEntregaCima`/split, Editar/Excluir,
+>   gate `latexOpPorEntrega`), capacidade e ajuste (saldo_fios_op), fios
+>   (`ctx.buildBlocoFios`), rotas e `tipo='tecelagem'`.
+> - **Renomeacoes:** `buildBlocoTecelagem`→`buildBlocoEntregas`,
+>   `buildHeaderProducao`→`buildHeader`, `campoProducao`→`campo`,
+>   `concluirAttrs`→`finalizarAttrs`; removidos `buildLineageStripProducao`,
+>   `buildBlocoMovimentacao`, `buildBlocoDocumentos` legado.
+> - **Escopo bloqueado mantido:** listas, painel, expedicao, `common.js`,
+>   `ui.js`, `badges.js` **NAO** alterados. OP Acabamento inalterada nesta fase.
+> - **Skill retroalimentada:** `.claude/design-skill/README.md` §10 —
+>   aprendizados dos pilotos (regra do rail vertical/full-width, icon-chip,
+>   etapa≠status, lineage→campo, Documentos slots, `chipLabel`, regra de ouro).
+> - **Arquivos alterados:** `js/screens/op-tecelagem-producao-admin.js`
+>   (reescrito), `js/screens/op-nova.js` (header do bloco de fios em producao),
+>   `tests/op-nova.smoke.js`, `tests/tec-to-acabamento-flow.smoke.js`,
+>   `tests/op-latex-admin.smoke.js`, `tests/pedido-detail.smoke.js` (assercoes
+>   visuais stale → novo canonico; funcionais preservadas),
+>   `PROJECT_STATE.md`, `AGENT_HANDOFF.md`. (`.claude/` untracked.)
+> - **Testes:** op-nova 69/69, op-latex-admin 55/55, tec-to-acabamento 39/39,
+>   pedido-detail 172/172, op-latex-split 28/28, admin-dashboard 6/6.
+> - **Evidencia visual:** render real (harness `.claude/preview/tecelagem.html`)
+>   — badges roxo/ambar, rail 300px sem overflow, icon-chips, largura ampla.
+> - **Garantias:** producao intocada; `origin` (grupoterrabranca) somente
+>   leitura; sem `git add .`; `.claude/` e `supabase/.temp` fora do commit.

@@ -5647,3 +5647,34 @@ movimentacao e determinada pelo estagio do Pedido.
   (harness `.claude/preview/acabamento.html`, nao commitado).
 - **Garantias:** producao intocada; `origin` somente leitura; sem
   `git add .`; `.claude/` e `supabase/.temp` fora do commit.
+
+---
+
+## RAVATEX-TAPETES-DESIGN-TOKENS-TARGET-PILOT-TECELAGEM (2026-07-07)
+
+**OP Acabamento validada pelo usuario.** Mesma linguagem aplicada a **OP
+Tecelagem em producao** — `js/screens/op-tecelagem-producao-admin.js` (reescrito)
++ header do bloco de fios em `js/screens/op-nova.js` (só o ramo `em_producao`).
+
+- **Igual ao Acabamento:** icon-chips reais (sem barras/numeros), header enxuto
+  (breadcrumb + H1 + badge **etapa roxo** Tecelagem + **status ambar** Em
+  producao + metadados; Finalizar OP verde gated + Excluir vermelho), cockpit
+  com rail sticky (Resumo + **Enviar para acabamento** com "Transferir p/
+  acabamento" + Documentos slots/Anexar), largura ampla, tabelas com header
+  numerico a direita.
+- **Itens proprios da tecelagem PRESERVADOS:** insumos/recebimento de fios,
+  capacidade e ajuste (saldo_fios_op), entregas de tecelagem (+ Nova entrega,
+  split, Editar/Excluir com gate `latexOpPorEntrega`), Finalizar via RPC
+  `alterar_status_op`. Lineage dobrada em "Dados da OP" (Destino/Pedido link).
+- **Bloqueado:** listas, painel, expedicao, `common.js`, `ui.js`, `badges.js`
+  intocados. OP Acabamento inalterada nesta fase.
+- **Skill:** `.claude/design-skill/README.md` §10 documenta os aprendizados
+  (regra do rail vertical/full-width, icon-chip, etapa≠status, Documentos,
+  `chipLabel`, regra de ouro) para as proximas telas nascerem certas.
+- **Testes:** op-nova 69/69, op-latex-admin 55/55, tec-to-acabamento 39/39,
+  pedido-detail 172/172, op-latex-split 28/28, admin-dashboard 6/6.
+- **Evidencia visual:** harness `.claude/preview/tecelagem.html` (nao commitado).
+- **Proximo passo:** validacao do usuario; depois, se aprovado, avaliar OP
+  Aberta de Tecelagem/demais telas (ainda no visual antigo).
+- **Garantias:** producao intocada; `origin` somente leitura; sem `git add .`;
+  `.claude/` e `supabase/.temp` fora do commit.

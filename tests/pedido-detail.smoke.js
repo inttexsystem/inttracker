@@ -1593,10 +1593,12 @@ test('lineage-UX-B: buildOpCard mostra origem para OP de acabamento', () => {
 });
 
 test('lineage-UX-B: OP Tecelagem lineage strip inclui Pedido quando vinculado', () => {
+  // A lineage foi integrada ao cabeçalho/Dados da OP (campo Pedido vinculado e
+  // Destino clicáveis) em vez da antiga strip "Cadeia produtiva".
   assert.match(optpSrc, /if \(hasLinkedPedido\(ctx\)\)/,
     'deve checar hasLinkedPedido antes de incluir Pedido na cadeia');
-  assert.match(optpSrc, /Pedido ' \+ ctx\.pedidoCtx\.numero/,
-    'deve exibir Pedido + numero do pedido na cadeia');
+  assert.match(optpSrc, /Pedido Nº ' \+ ctx\.pedidoCtx\.numero/,
+    'deve exibir Pedido + numero do pedido');
   assert.match(optpSrc, /navigate\('#\/pedidos\/' \+ ctx\.pedidoCtx\.id\)/,
     'deve permitir navegar para o Pedido via clique');
 });

@@ -818,11 +818,21 @@
     // Produção usa o texto do standalone PROD-OP-TECELAGEM ("3. Insumos
     // — recebimento de fios"), que não usa ícones em nenhum dos 7
     // blocos — confirmado card a card no markup de referência.
-    const headerTitulo = op.status === 'aberta' ? '3. Recebimento de fios' : '3. Insumos — recebimento de fios';
-    const headerKids = op.status === 'aberta'
-      ? [sectionIcon(SVG_ICON_LINES), el('span', { style: 'font-size:16px;font-weight:700;color:#16203a;' }, headerTitulo)]
-      : [el('span', { style: 'font-size:16px;font-weight:700;color:#16203a;' }, headerTitulo)];
-    box.appendChild(el('div', { style: 'display:flex;align-items:center;gap:10px;padding:20px 24px 16px;' }, headerKids));
+    if (op.status === 'aberta') {
+      // OP Aberta: linguagem de preparação (ícone grande + título 16px).
+      box.appendChild(el('div', { style: 'display:flex;align-items:center;gap:10px;padding:20px 24px 16px;' },
+        sectionIcon(SVG_ICON_LINES),
+        el('span', { style: 'font-size:16px;font-weight:700;color:#16203a;' }, '3. Recebimento de fios')));
+    } else {
+      // OP Em Produção: header no padrão Inttex (icon-chip 22px + rótulo
+      // UPPERCASE), consistente com os demais blocos do cockpit de produção
+      // (js/screens/op-tecelagem-producao-admin.js).
+      const chipFios = el('span', { style: 'display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:var(--rv-radius-control);background:var(--rv-color-chip-bg);border:1px solid var(--rv-color-line-200);color:var(--rv-color-chip-glyph);flex-shrink:0;' },
+        svgEl('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>'));
+      box.appendChild(el('div', { style: 'display:flex;align-items:center;gap:9px;padding:15px 17px 12px;' },
+        chipFios,
+        el('span', { style: 'font-size:11px;font-weight:700;color:var(--rv-color-section-label);letter-spacing:.06em;text-transform:uppercase;' }, 'Insumos — recebimento de fios')));
+    }
 
     if (ordens.length) {
       box.appendChild(el('div', { style: 'padding:0 24px 16px;' },
