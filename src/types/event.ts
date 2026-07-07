@@ -19,6 +19,8 @@ export interface DocumentEventDocument {
 
   manifest_storage_uri?: string;
 
+  reason?: string;
+
   formato?: string;
   direcao_nf?: string;
 }

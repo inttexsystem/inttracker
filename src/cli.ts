@@ -9,6 +9,7 @@ import { maskId, maskIdStrict, maskEmail, maskSubject, maskLink } from './core/m
 import { fromLegacyTipo } from './types/document.js';
 import type { TipoDocumentoLegado } from './types/document.js';
 import { linkDocumentToPedido } from './core/link.js';
+import { acceptDocument, rejectDocument } from './core/acceptance.js';
 import { closeDb, getDb } from './storage/sqlite.js';
 
 const program = new Command();
@@ -184,6 +185,40 @@ program
   });
 
 program
+  .command('accept')
+  .description('Accept a linked document (local-only, no Google Drive calls)')
+  .requiredOption('--id <id>', 'Document ID or Gmail message ID')
+  .action((opts) => {
+    try {
+      const result = acceptDocument(opts.id);
+      console.log('[accept] Accepted: document=%s pedido=%s event=%s', result.documentId, result.pedidoManual, result.eventId);
+      console.log('[accept] Local-only — no Google Drive calls performed.');
+    } catch (e: any) {
+      console.error('[accept]', e.message);
+      process.exit(1);
+    }
+    closeDb();
+  });
+
+program
+  .command('reject')
+  .description('Reject a linked document (local-only, no Google Drive calls)')
+  .requiredOption('--id <id>', 'Document ID or Gmail message ID')
+  .option('--reason <reason>', 'Reason for rejection')
+  .action((opts) => {
+    try {
+      const result = rejectDocument(opts.id, opts.reason);
+      console.log('[reject] Rejected: document=%s pedido=%s event=%s', result.documentId, result.pedidoManual, result.eventId);
+      if (opts.reason) console.log('[reject] Reason: %s', opts.reason);
+      console.log('[reject] Local-only — no Google Drive calls performed.');
+    } catch (e: any) {
+      console.error('[reject]', e.message);
+      process.exit(1);
+    }
+    closeDb();
+  });
+
+program
   .command('inspect')
   .description('Show safe details for a document or gmail message (no real Google calls)')
   .requiredOption('--id <id>', 'Document ID or Gmail message ID')
@@ -275,6 +310,8 @@ program
       console.log(`  totalDocuments:        ${report.totalDocuments}`);
       console.log(`  pendingWithoutPedido:  ${report.pendingWithoutPedido}`);
       console.log(`  pendingAppAcceptance:  ${report.pendingAppAcceptance}`);
+      console.log(`  documentsAccepted:     ${report.documentsAccepted}`);
+      console.log(`  documentsRejected:     ${report.documentsRejected}`);
       console.log(`  recentErrors (${days}d):   ${report.recentErrors}`);
       console.log('  by tipo:');
       for (const [k, v] of Object.entries(report.documentsByTipo)) {

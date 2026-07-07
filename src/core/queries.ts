@@ -117,6 +117,8 @@ export interface ReportSummary {
   pendingWithoutPedido: number;
   assignedByPedido: Record<string, number>;
   pendingAppAcceptance: number;
+  documentsAccepted: number;
+  documentsRejected: number;
   recentErrors: number;
   outboxPath: string;
   runLogs: { path: string; lines: number }[];
@@ -196,6 +198,14 @@ export function generateReport(opts: { daysBack?: number; pedido?: string } = {}
     `SELECT COUNT(*) AS c FROM ingestion_events WHERE status = 'pending_app_acceptance' AND exported_at IS NULL`
   ).get() as any).c;
 
+  const documentsAccepted = (database.prepare(
+    `SELECT COUNT(*) AS c FROM documentos WHERE status = 'accepted'`
+  ).get() as any).c;
+
+  const documentsRejected = (database.prepare(
+    `SELECT COUNT(*) AS c FROM documentos WHERE status = 'rejected'`
+  ).get() as any).c;
+
   const sinceDate = new Date();
   sinceDate.setDate(sinceDate.getDate() - daysBack);
   const sinceIso = sinceDate.toISOString().replace('T', ' ').slice(0, 19);
@@ -217,6 +227,8 @@ export function generateReport(opts: { daysBack?: number; pedido?: string } = {}
     pendingWithoutPedido,
     assignedByPedido,
     pendingAppAcceptance,
+    documentsAccepted,
+    documentsRejected,
     recentErrors,
     outboxPath,
     runLogs: [],

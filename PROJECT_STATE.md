@@ -19,10 +19,10 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - `contracts/manifest.schema.json` — schema do manifest de Pedido
 
 ## Status atual
-- HEAD (documents-ingestor): `6622526`
+- HEAD (documents-ingestor): `0889d29`
 - HEAD canônico staging/work/app-next (Controle de Tapetes): `997486a`
 - Push staging: `af919a2..997486a` (produção/origin oficial intocados)
-- 232 testes passando (21 suites) — incluindo integração mockada completa
+- 250 testes passando (22 suites) — incluindo integração mockada completa
 - Hermético: nenhum teste depende de `.env` real, token real ou chamadas Google
 - OAuth real validado (C1)
 - Smoke real com Drive/Gmail reais validado (C2)
@@ -37,6 +37,8 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - `npm run list:pending` — lista documentos pendentes
 - `npm run assign -- --id <id> --pedido <num> --confirm-real-google` — atribui Pedido (Drive real)
 - `npm run link -- --id <id> --pedido <num>` — vincula documento a Pedido (local-only, sem Google)
+- `npm run accept -- --id <id>` — aceita documento vinculado (local-only)
+- `npm run reject -- --id <id> --reason "<motivo>"` — rejeita documento vinculado (local-only)
 - `npm run export:events` — exporta eventos para JSONL
 - `npm run login` — OAuth interativo (gera `data/google-token.json`)
 - `npm test` — roda testes herméticos
@@ -53,19 +55,17 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 
 ## Última evidência de testes
 ```
-Test Files  21 passed (21)
-     Tests  232 passed (232)
+Test Files  22 passed (22)
+     Tests  250 passed (250)
 ```
 
 ## Decisão arquitetural
 Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração. O app principal consumirá os eventos quando estiver pronto.
 
-### Correção G6-B-R1: Preservação de event_type no outbox
-- `DocumentEvent.event_type` ampliado de `'document.detected'` para `string`
-- `buildEventFromRow()` em `outbox.ts` agora usa `row.event_type` do DB em vez de hardcode
-- `document.linked` exporta como `document.linked` (não é mais sobrescrito como `document.detected`)
-- `document.detected` continua preservado
-- `status` (`pending_app_acceptance`) já era preservado corretamente (usava `row.event_status`)
+### Funil operacional (G6-C)
+- **pending** → `link` → **assigned** → `accept` → **accepted** | `reject` → **rejected**
+- `report` mostra: `pendingWithoutPedido`, `pendingAppAcceptance`, `documentsAccepted`, `documentsRejected`, `assignedByPedido`, `documentsByStatus`
+- Eventos outbox: `document.linked`, `document.accepted`, `document.rejected`
 
 ## Fases concluídas
 - A — Scaffold
@@ -83,6 +83,7 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - G5 — Retry por Gmail messageId + validação real R4-R1 + crossMessageDuplicates tracking
 - G6-B — Comando `link` local-only (vincular documento pending a pedido sem Drive)
 - G6-B-R1 — Preservação de event_type/status no outbox export (fix `buildEventFromRow`)
+- G6-C — Comandos `accept`/`reject` local-only + funil operacional no report
 - G/H — UI Backlog (Controle de Tapetes — staging/work/app-next)
 
 ## Fase G1: Taxonomia de Documentos (3 eixos)
@@ -104,5 +105,5 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - Status residual esperado: `?? supabase/.temp/`
 
 ## Próxima fase recomendada
-RAVATEX-DOC-INGESTOR-G6-C-APP-ACCEPTANCE-AND-FUNNEL
-Foco: implementar transição `assigned → accepted/rejected` para fechar o funil de aceite do app, com evento outbox `document.accepted` / `document.rejected`. O link local-only (G6-B) expôs que documentos assigned aguardam aceite mas não há comando para concluir o fluxo. Ver AGENT_HANDOFF.md para riscos remanescentes.
+RAVATEX-DOC-INGESTOR-G7-DIRECTION-GUARD-AND-CLEANUP
+Foco: adicionar proteção contra vínculo de NF entrada/saída com pedido errado, revisar event_id legado no outbox (document_id vs event_id), e opcionalmente limpar/accepted docs. Funil operacional local está fechado (pending → assigned → accepted/rejected).
