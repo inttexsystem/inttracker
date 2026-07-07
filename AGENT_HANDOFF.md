@@ -5612,3 +5612,38 @@ movimentacao e determinada pelo estagio do Pedido.
 - **Proximo passo:** funcionalidade (romaneios, NFs, integracao).
 - **Garantias:** producao intocada; origin somente leitura; sem
   `git add .`; `supabase/.temp` fora do commit.
+
+---
+
+## RAVATEX-TAPETES-DESIGN-TOKENS-TARGET-PILOT-B-R1 (2026-07-07)
+
+**Rework visual corretivo da OP Acabamento/Latex** — `js/screens/op-latex-admin.js`.
+
+- **Fase B anterior (commit `dfad847`) REJEITADA visualmente.** Causa: o patch
+  tokenizou o layout antigo em vez de reproduzir a referencia. Faltavam os
+  **icon chips reais**; havia **barra/strip vertical azul**, **headers
+  numerados** dominantes, cabecalho com **muitos botoes pesados**, strip
+  "Cadeia produtiva" e **documentos fabricados** (mock).
+- **B-R1 corrige SOMENTE a OP Acabamento** (aberta + em_producao):
+  - **Icon chips reais** em todos os headers de secao (chip 22px, fundo claro
+    `#eef2f7`, borda sutil, SVG 13px) + rotulo UPPERCASE — sem strips solidas,
+    sem barra vertical, sem numero.
+  - Cabecalho enxuto (breadcrumb + titulo + badges + metadados + acoes reais).
+    Badges: **etapa Acabamento teal**, **status distinto** (Preparacao azul /
+    Em producao ambar com dot).
+  - Cockpit 2 colunas com **rail sticky** (Resumo + acao principal +
+    Documentos). **Largura ampla preservada** (sem max-width estreito).
+  - Documentos = estado vazio honesto (sem nomes fabricados).
+- **Largura:** a tela deve continuar ocupando o monitor — NAO reduzir.
+- **Funcional intocado:** RPCs, handlers, calculos, split/consolidacao,
+  expedicao, recebimento, exclusao canonica, rotas, `tipo='latex'`.
+- **Bloqueado:** OP Tecelagem e demais telas continuam bloqueadas ate a
+  **validacao visual do piloto pelo usuario**. Nao tocar
+  `op-tecelagem-producao-admin.js`, listas, painel, expedicao, `common.js`,
+  `ui.js`, `badges.js`.
+- **Testes:** op-latex-admin 55/55, tec-to-acabamento-flow 39/39,
+  pedido-detail 172/172, op-latex-split 28/28.
+- **Evidencia visual:** screenshots reais dos estados aberta e em_producao
+  (harness `.claude/preview/acabamento.html`, nao commitado).
+- **Garantias:** producao intocada; `origin` somente leitura; sem
+  `git add .`; `.claude/` e `supabase/.temp` fora do commit.

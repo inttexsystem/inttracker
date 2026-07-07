@@ -34,11 +34,24 @@
   --rv-color-success: #18794a;
   --rv-color-warning: #c2610c;
 
-  /* ---- Etapas (stage) ---- */
+  /* ---- Etapas (stage) — cor da etapa, distinta do status ---- */
   --rv-stage-tecelagem: #7c3aed;
   --rv-stage-tecelagem-bg: #f3effe;
   --rv-stage-acabamento: #0f9488;
   --rv-stage-acabamento-bg: #e6f7f5;
+
+  /* ---- Status da OP — visualmente distinto da etapa ---- */
+  --rv-status-prep: #2563eb;        /* Preparação (aberta) */
+  --rv-status-prep-bg: #eaf1fd;
+  --rv-status-prod: #c2610c;        /* Em produção */
+  --rv-status-prod-bg: #fff4e6;
+  --rv-status-prod-dot: #f0871e;
+
+  /* ---- Chip de ícone dos headers de seção ---- */
+  --rv-color-chip-bg: #eef2f7;
+  --rv-color-chip-glyph: #64748b;
+  --rv-color-section-label: #9aa2af;
+  --rv-color-value: #26303f;        /* valor forte de campo/tabela */
 
   /* ---- Raios ---- */
   --rv-radius-card: 6px;

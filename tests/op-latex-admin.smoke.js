@@ -563,8 +563,8 @@ test('22b. OP latex consolidada mostra multiplas entregas de origem por op_latex
   assert.match(rendered.text, /Entrega #7/);
   assert.match(rendered.text, /Entrega #9/);
   assert.match(rendered.text, /5265,00 m/);
-  assert.match(rendered.text, /5\.\s*Finalizacao da OP/);
-  assert.match(rendered.text, /Movimentado p\/ Expedicao/);
+  assert.match(rendered.text, /Resumo desta OP/);
+  assert.match(rendered.text, /Ja movimentado para Expedicao/);
   assert.doesNotMatch(rendered.text, /gerou a OP/);
   assert.doesNotMatch(rendered.text, /origem - entrega parcial/);
 });
@@ -802,8 +802,8 @@ async function renderLatexAdminForTest(opts = {}) {
 }
 
 test('31. op-latex-admin.js usa o bloco "Material recebido da tecelagem"', () => {
-  assert.match(olaSrc, /3\.\s*Material recebido da tecelagem/,
-    'layout novo deve incluir o card "3. Material recebido da tecelagem"');
+  assert.match(olaSrc, /Material recebido da tecelagem/,
+    'layout novo deve incluir o card "Material recebido da tecelagem"');
 });
 
 test('32. OP aberta de acabamento mostra linguagem de preparacao e fornecedor de acabamento', async () => {
@@ -823,8 +823,8 @@ test('32. OP aberta de acabamento mostra linguagem de preparacao e fornecedor de
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
     origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
-  assert.match(rendered.text, /OP Aberta de Acabamento/i);
-  assert.match(rendered.text, /Preparacao da OP/i);
+  assert.match(rendered.text, /Acabamento/i);
+  assert.match(rendered.text, /Preparaç/i);
   assert.match(rendered.text, /Fornecedor de acabamento/i);
   assert.match(rendered.text, /Acabamento Sul/);
 });
@@ -899,7 +899,7 @@ test('35. OP em producao de acabamento segue o standalone e nao mostra recebimen
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
     origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
-  assert.match(rendered.text, /5\.\s*Finalizacao/i);
+  assert.match(rendered.text, /Resumo desta OP/i);
   assert.match(rendered.text, /Finalizar OP/i);
   assert.match(rendered.text, /Sem saldo recebido disponivel para movimentar/i);
   assert.doesNotMatch(rendered.text, /Finalize o acabamento antes de liberar o material para expedicao/i);
@@ -925,7 +925,7 @@ test('36. OP aberta de acabamento informa que aguarda entrada no acabamento', as
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
     origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
-  assert.match(rendered.text, /aguardando confirmacao de entrada no acabamento/i);
+  assert.match(rendered.text, /Confirmar recebimento/i);
   assert.doesNotMatch(rendered.text, /Transicao para producao sera implementada em fase propria/i);
 });
 
@@ -1029,7 +1029,7 @@ test('39. OP em producao de acabamento usa template operacional proprio', async 
   assert.match(rendered.text, /Em produ/i);
   assert.match(rendered.text, /Acabamento/i);
   assert.doesNotMatch(rendered.text, /Acabamento\/Latex/i);
-  assert.match(rendered.text, /Cadeia produtiva/i);
+  assert.match(rendered.text, /Dados da OP/i);
   assert.match(rendered.text, /Resumo desta OP/i);
 });
 
@@ -1060,18 +1060,20 @@ test('40. OP em producao de acabamento mostra todos os blocos operacionais esper
   });
 
   for (const label of [
-    /1\.\s*Dados da OP/i,
-    /2\.\s*Itens da OP/i,
-    /3\.\s*Material recebido da tecelagem/i,
-    /5\.\s*Finalizacao/i,
-    /6\.\s*Documentos da OP/i,
-    /7\.\s*Hist.rico/i,
+    /Dados da OP/i,
+    /Itens da OP/i,
+    /Material recebido da tecelagem/i,
+    /Resumo desta OP/i,
+    /Documentos/i,
+    /Hist.rico/i,
   ]) {
     assert.match(rendered.text, label);
   }
   assert.match(rendered.text, /Finalizar OP/i);
-  assert.match(rendered.text, /NF_INSUMOS_2026\.pdf/i);
-  assert.match(rendered.text, /ROMANEIO_OP-002-2026\.pdf/i);
+  // Sem storage real de documentos: estado vazio honesto, sem nomes de arquivo fabricados.
+  assert.match(rendered.text, /Nenhum documento anexado/i);
+  assert.doesNotMatch(rendered.text, /NF_INSUMOS_.*\.pdf/i);
+  assert.doesNotMatch(rendered.text, /ROMANEIO_OP-.*\.pdf/i);
   assert.match(rendered.text, /Entrada consolidada da Tecelagem/i);
   assert.match(rendered.text, /OP aberta/i);
   assert.doesNotMatch(rendered.text, /Finalizar acabamento/i);
@@ -1371,20 +1373,21 @@ test('46. Card "1. Dados da OP" (Acabamento em produção) usa 3 colunas do stan
 // Botão "Movimentar" no header da OP Látex renomeado para "Ir para movimentos"
 // — o comportamento continua sendo scroll anchor, mas o label agora reflete
 // que é navegação interna, não ação produtiva.
-test('47. OP Látex: header não contém botão "Movimentar" ambíguo (renomeado para "Ir para movimentos")', () => {
+test('47. OP Látex: header em produção é enxuto (Finalizar OP + Excluir), sem botões pesados/ambíguos', () => {
   const headerSlice = (olaSrc.match(/function buildHeaderProducao[\s\S]*?\n        function buildDados/) || [''])[0];
   assert.ok(headerSlice, 'trecho buildHeaderProducao nao encontrado');
-  assert.doesNotMatch(headerSlice, /'Movimentar'/,
-    'botão do header da OP Látex não deve mais usar label "Movimentar" ambíguo');
-  assert.match(headerSlice, /'Ir para movimentos'/,
-    'botão do header da OP Látex deve usar label "Ir para movimentos" que reflete scroll');
+  // Header deve conter apenas ações reais: Finalizar OP (sucesso) e Excluir (destrutivo).
+  assert.match(headerSlice, /'Finalizar OP'/, 'header deve manter a ação real Finalizar OP');
+  assert.match(headerSlice, /'Excluir'/, 'header deve manter a ação destrutiva Excluir');
+  // Não deve reintroduzir a barra antiga de botões pesados/ambíguos.
+  assert.doesNotMatch(headerSlice, /'Movimentar'/, 'header não deve usar label "Movimentar" ambíguo');
+  assert.doesNotMatch(headerSlice, /'Ir para movimentos'/, 'header não deve manter o botão de scroll "Ir para movimentos"');
+  assert.doesNotMatch(headerSlice, /'Pausar'/, 'header não deve usar o botão fake "Pausar" (sem backend)');
 });
 
-test('48. OP Látex: scroll para #movimentacao-op preservado com button sem hash navigation', () => {
-  assert.match(olaSrc, /id:\s*['"]movimentacao-op['"]/,
-    'o bloco de destino #movimentacao-op deve continuar existindo');
-  assert.match(olaSrc, /getElementById\(\s*['"]movimentacao-op['"]\s*\)/,
-    'scroll para #movimentacao-op deve usar getElementById no onclick');
-  assert.doesNotMatch(olaSrc, /href:\s*['"]#movimentacao-op['"]/,
-    'NAO deve usar href=#movimentacao-op (hash navigation quebra rota)');
+test('48. OP Látex: navegação de seção não usa hash navigation que quebra rota', () => {
+  // Guarda anti-regressão: nenhuma âncora href=#... (hash navigation) na tela,
+  // pois a rota é por hash e isso quebraria o roteamento.
+  assert.doesNotMatch(olaSrc, /href:\s*['"]#/,
+    'NAO deve usar href=#... (hash navigation quebra a rota da SPA)');
 });

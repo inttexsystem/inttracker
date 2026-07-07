@@ -5882,3 +5882,57 @@ Senhas de teste antigas em `docs/qa/fase1-checklist.md` e
 >   `node --test tests/pedido-detail-linked-ops.smoke.js` OK (7/7).
 > - **Garantias:** producao intocada; `origin` nao usado para escrita;
 >   sem `git add .`; `supabase/.temp` fora do commit.
+
+> **Atualizacao 2026-07-07 - fase
+> `RAVATEX-TAPETES-DESIGN-TOKENS-TARGET-PILOT-B-R1`.**
+> Rework visual corretivo APENAS da OP Acabamento/Latex
+> (`js/screens/op-latex-admin.js`). A fase B anterior (commit `dfad847`) foi
+> **rejeitada visualmente**.
+> - **Causa raiz do erro anterior:** o patch B tokenizou a estrutura antiga
+>   em vez de reproduzir a linguagem visual da referencia. Sintomas:
+>   (1) headers de secao usavam uma **barra/strip vertical azul** de 3px
+>   (`rvSectionPill` antigo) no lugar do **icon-chip** da referencia;
+>   (2) **headers numerados dominantes** ("1. Dados", "2. Itens", "3.
+>   Material", "5. Finalizacao"...); (3) cabecalho com **7 botoes pesados**
+>   de mesmo peso; (4) **strip azul "Cadeia produtiva"**; (5) card de
+>   Documentos com **nomes de arquivo fabricados** (mock); (6) etapa e
+>   status ambos em teal (ambiguo).
+> - **B-R1 corrige (somente OP Acabamento):**
+>   - `rvSectionPill` reescrito para **icon-chip real** (quadradinho 22px,
+>     fundo `--rv-color-chip-bg #eef2f7`, borda sutil, SVG 13px) + rotulo
+>     11px UPPERCASE. Sem barra vertical, sem numero.
+>   - Cabecalho enxuto: breadcrumb + H1 + badges (Acabamento teal /
+>     Preparacao azul / Em producao ambar com dot) + metadados; acoes reais
+>     apenas (aberta: Excluir; em producao: Finalizar OP + Excluir).
+>   - Cockpit 2 colunas `minmax(0,1fr) var(--rv-rail-w)` com **rail sticky**
+>     (Resumo + acao principal + Documentos). **Largura ampla preservada**
+>     (sem max-width estreito; ocupa o monitor).
+>   - Badge de **etapa (teal)** distinta do **status**; lineage integrada
+>     aos "Dados da OP" (campos Origem/Pedido clicaveis) no lugar da strip.
+>   - Documentos vira estado vazio honesto ("Nenhum documento anexado"),
+>     sem nomes fabricados. `buildCadeia`/`buildMovimentacao`/botao Pausar
+>     (sem backend) removidos.
+> - **Funcional intocado:** RPCs (`alterar_status_op`, `liberar_expedicao`,
+>   `liberar_expedicao_latex_parcial`, `consultar_saldo_expedicao_latex`),
+>   handlers (Confirmar entrada, Finalizar, Excluir, Movimentar parcial),
+>   calculos, split/consolidacao, `tipo='latex'` e rotas preservados.
+> - **Tokens:** `css/tokens.css` ganhou `--rv-color-chip-bg`,
+>   `--rv-color-chip-glyph`, `--rv-color-section-label`, `--rv-color-value`
+>   e bloco de **status** (`--rv-status-prep/prod*`) distinto da etapa.
+> - **Escopo bloqueado:** OP Tecelagem, `op-tecelagem-producao-admin.js`,
+>   listas, painel, expedicao, `common.js`, `ui.js`, `badges.js` **NAO**
+>   alterados. Demais telas seguem bloqueadas ate validacao do piloto.
+> - **Arquivos alterados:** `js/screens/op-latex-admin.js`,
+>   `css/tokens.css`, `tests/op-latex-admin.smoke.js` (assercoes visuais
+>   stale atualizadas para o novo layout, funcionais preservadas),
+>   `tests/pedido-detail.smoke.js` (1 proxy de lineage atualizado),
+>   `PROJECT_STATE.md`, `AGENT_HANDOFF.md`.
+> - **Testes:** `node --check op-latex-admin.js` OK;
+>   `op-latex-admin.smoke` 55/55; `tec-to-acabamento-flow.smoke` 39/39;
+>   `pedido-detail.smoke` 172/172; `op-latex-split.smoke` 28/28.
+> - **Evidencia visual:** screenshots reais (harness em `.claude/preview/`
+>   com `renderOPLatexAdmin` real + supa fake) dos estados **aberta** e
+>   **em_producao** — icon-chips reais, sem strips solidas, largura ampla.
+> - **Garantias:** producao intocada; `origin` (grupoterrabranca) nao usado
+>   para escrita; sem `git add .`; `.claude/` e `supabase/.temp` fora do
+>   commit.

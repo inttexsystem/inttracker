@@ -1602,7 +1602,11 @@ test('lineage-UX-B: OP Tecelagem lineage strip inclui Pedido quando vinculado', 
 });
 
 test('lineage-UX-B: OP Latex cadeia inclui Pedido quando vinculado', () => {
-  assert.match(olaSrc, /if \(pedidoId\)/);
+  // Lineage foi integrada aos "Dados da OP" (campo Pedido vinculado, clicável)
+  // em vez da antiga strip "Cadeia produtiva": o Pedido é renderizado
+  // condicionalmente quando vinculado e permanece navegável.
+  assert.match(olaSrc, /pedidoId \?/,
+    'deve renderizar o Pedido condicionalmente quando vinculado');
   assert.match(olaSrc, /Pedido #' \+ pedidoId/,
     'deve exibir Pedido na cadeia produtiva do Latex');
   assert.match(olaSrc, /navigate\('#\/pedidos\/' \+ pedidoId\)/,
