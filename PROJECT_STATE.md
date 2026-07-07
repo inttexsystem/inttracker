@@ -19,8 +19,10 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - `contracts/manifest.schema.json` — schema do manifest de Pedido
 
 ## Status atual
-- HEAD: `ae9c20a` + commits da fase E
-- 94 testes passando (16 suites) — incluindo integração mockada completa
+- HEAD (documents-ingestor): `2c8f316`
+- HEAD canônico staging/work/app-next (Controle de Tapetes): `997486a`
+- Push staging: `af919a2..997486a` (produção/origin oficial intocados)
+- 152 testes passando (20 suites) — incluindo integração mockada completa
 - Hermético: nenhum teste depende de `.env` real, token real ou chamadas Google
 - OAuth real validado (C1)
 - Smoke real com Drive/Gmail reais validado (C2)
@@ -49,8 +51,8 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 
 ## Última evidência de testes
 ```
-Test Files  16 passed (16)
-     Tests  94 passed (94)
+Test Files  20 passed (20)
+     Tests  152 passed (152)
 ```
 
 ## Decisão arquitetural
@@ -64,7 +66,28 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - D — Hardening (caps, dedup, run log)
 - D-R1 — Test isolation (drive.test.ts com fake Drive)
 - E — CI mock integration (hermetic setup + integration test + workflow)
+- F — UX (documents-ingestor operational UX)
+- G1 — Taxonomia 3 eixos: types + contracts + storage (21 files, 152 testes)
+- G/H — UI Backlog (Controle de Tapetes — staging/work/app-next)
+
+## Fase G1: Taxonomia de Documentos (3 eixos)
+- **TipoDocumento**: `nf | romaneio | desconhecido` (novo) + legado (`nf_xml | nf_pdf`)
+- **FormatoDocumento**: `pdf | xml | desconhecido`
+- **DirecaoNF**: `entrada | saida | desconhecida`
+- Helpers: `fromLegacyTipo()`, `toLegacyTipo()`, `formatoFromMimeType()`
+- SQLite: colunas `formato`, `direcao_nf`; CHECK expandido para ambos legado e novo
+- Contracts: suporte a `schema_version: 1` (legado) e `schema_version: 2` (novo)
+- Commit: `2c8f316` — 21 files, 753 inserções, 208 remoções
+
+## Fase G/H: UI Backlog Closeout (Controle de Tapetes)
+- **TRANSFER-GRID-CELL-CENTER-R1** — CLOSED em `c8b45b6`
+- **LINKED-OPS-FOOTER-BUTTONS-UX-F** — CLOSED em `e80b9de` + `55bc32b` + `997486a`
+- **UI-BACKLOG-RECONCILIATION-G** — 14/14 itens fechados, 0 pendentes
+- HEAD canônico staging/work/app-next: `997486a`
+- Push staging: `af919a2..997486a`
+- Produção/origin oficial: intocados
+- Status residual esperado: `?? supabase/.temp/`
 
 ## Próxima fase recomendada
-RAVATEX-DOC-INGESTOR-OPERATIONAL-UX-F
-Foco: melhorar UX de list:pending, seleção por documento/email, relatório de importação, reprocessamento controlado e preparação do contrato visual que o Controle de Tapetes consumirá futuramente.
+RAVATEX-DOC-INGESTOR-TAXONOMY-G2-XML-NF-DIRECTION-PATCH
+Foco: classificar XML NF-e como entrada/saída/desconhecida usando RAVATEX_CNPJS, sem OCR e sem PDF parsing ainda.
