@@ -95,6 +95,7 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - G8-E — Pacote de handoff de integração (exemplos JSONL, regras de consumo, idempotência documentadas)
 - G9-A — Design de sincronização manifest Drive (matriz opções, recomendação sync:manifest)
 - G9-B — Manifest local exportável + sync scaffold (dry-run, comando sync:manifest, 8 testes)
+- G9-C — Smoke real de manifest (sync real confirmado, manifest Drive publicado, 0 efeitos colaterais)
 - G/H — UI Backlog (Controle de Tapetes — staging/work/app-next)
 
 ## Fase G1: Taxonomia de Documentos (3 eixos)
@@ -116,5 +117,5 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - Status residual esperado: `?? supabase/.temp/`
 
 ## Próxima fase recomendada
-RAVATEX-DOC-INGESTOR-G9-C-MANIFEST-REAL-SMOKE
-Foco: validar sync real com --confirm-real-google em documento teste, integração do manifest Drive e consumo de outbox pelo Controle de Tapetes (fase real-lite).
+RAVATEX-DOC-INGESTOR-G10-CONTROLE-TAPETES-INTEGRATION
+Foco: primeiro consumo real do outbox pelo Controle de Tapetes. Visualização de documentos via drive_web_view_link no app. Manifest sincronizável disponível como snapshot derivado.
