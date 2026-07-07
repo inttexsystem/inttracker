@@ -3,7 +3,7 @@
 ## Branch/HEAD/Status
 ### documentos-ingestor (este repositório)
 - Branch: master
-- HEAD: `(new commit)` — Record drive manifest sync design (G9-A)
+- HEAD: `9c9898f` — Record drive manifest sync design (G9-A)
 
 ### Controle de Tapetes (staging/work/app-next)
 - HEAD canônico: `997486a`
