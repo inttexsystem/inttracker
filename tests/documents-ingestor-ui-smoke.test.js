@@ -460,6 +460,102 @@ test('ingestor-ui-data: year-mismatch fallback — criado_em nulo usa prefixo', 
     '3 documentos encontrados via prefix-fallback com criado_em nulo');
 });
 
+test('ingestor-ui-data: prefix-fallback ambiguo — duas chaves distintas bloqueia vinculacao', () => {
+  // Simula eventos para PED-02-2025 E PED-02-2026 carregados simultaneamente.
+  // O fallback de prefixo deve detectar ambiguidade e NAO vincular.
+  var rt = makeIngestorRuntime({ skipFixture: true });
+  var ns = rt.ns;
+
+  // Clona eventos da fixture e cria duas versoes com anos diferentes
+  var fixtureEvents = require('fs').readFileSync(
+    require('path').resolve(__dirname, '..', 'data', 'fixtures', 'document-events-sample.jsonl'),
+    'utf8'
+  ).split('\n').filter(function (l) { return l.trim(); }).map(function (line) { return JSON.parse(line); });
+
+  // Cria eventos PED-02-2025
+  var ev2025 = fixtureEvents.map(function (ev) {
+    var clone = JSON.parse(JSON.stringify(ev));
+    clone.pedido_manual = 'PED-02-2025';
+    clone.ingestion_event_id = 'a' + clone.ingestion_event_id;
+    if (clone.document) {
+      clone.document.document_id = 'd25_' + clone.document.document_id;
+      clone.document.drive_web_view_link = clone.document.drive_web_view_link.replace(/drive_sample_/g, 'drive_25_');
+    }
+    return clone;
+  });
+
+  // Cria eventos PED-02-2026
+  var ev2026 = fixtureEvents.map(function (ev) {
+    var clone = JSON.parse(JSON.stringify(ev));
+    clone.pedido_manual = 'PED-02-2026';
+    clone.ingestion_event_id = 'b' + clone.ingestion_event_id;
+    if (clone.document) {
+      clone.document.document_id = 'd26_' + clone.document.document_id;
+      clone.document.drive_web_view_link = clone.document.drive_web_view_link.replace(/drive_sample_/g, 'drive_26_');
+    }
+    return clone;
+  });
+
+  // Popula global com ambas as versoes
+  rt.sandbox.window.RAVATEX_DOCUMENTS_LOADED_EVENTS = ev2025.concat(ev2026);
+
+  var s = ns.createInitialState();
+  s.pedido = { id: 'ped-test-02', numero: 2, status: 'recebido', metros_total: 0 };
+  // criado_em nao definido — chave exata seria PED-02-XXXX, nao casa com nenhuma
+  s.itens = [];
+  s.ops = [];
+  s.entregaItens = [];
+  s.entregasById = {};
+  s.opLatexEntregas = [];
+  s.expedicoes = [];
+  s.expedicaoItens = [];
+  s.modelosById = {};
+  s.coresById = {};
+  var view = ns.computeViewModel(s);
+  assert.equal(view.ingestorDocsLoaded, false,
+    'ambiguo: nao deve vincular quando ha 2 chaves distintas para o mesmo numero');
+  assert.equal(view.ingestorDocumentRows.length, 0,
+    'ambiguo: 0 documentos');
+});
+
+test('ingestor-ui-data: prefix-fallback — chave unica apos filtro funciona', () => {
+  // Apenas PED-02-2026 nos eventos. Prefix-fallback deve encontrar a chave unica.
+  var rt = makeIngestorRuntime({ skipFixture: true });
+  var ns = rt.ns;
+
+  var fixtureEvents = require('fs').readFileSync(
+    require('path').resolve(__dirname, '..', 'data', 'fixtures', 'document-events-sample.jsonl'),
+    'utf8'
+  ).split('\n').filter(function (l) { return l.trim(); }).map(function (line) { return JSON.parse(line); });
+
+  // Apenas PED-02-2026
+  var events = fixtureEvents.map(function (ev) {
+    var clone = JSON.parse(JSON.stringify(ev));
+    clone.pedido_manual = 'PED-02-2026';
+    return clone;
+  });
+
+  rt.sandbox.window.RAVATEX_DOCUMENTS_LOADED_EVENTS = events;
+
+  var s = ns.createInitialState();
+  s.pedido = { id: 'ped-test-02', numero: 2, status: 'recebido', metros_total: 0 };
+  s.pedido.criado_em = '2025-06-01T00:00:00.000Z'; // ano 2025, nao casa exato
+  s.itens = [];
+  s.ops = [];
+  s.entregaItens = [];
+  s.entregasById = {};
+  s.opLatexEntregas = [];
+  s.expedicoes = [];
+  s.expedicaoItens = [];
+  s.modelosById = {};
+  s.coresById = {};
+  var view = ns.computeViewModel(s);
+  assert.equal(view.ingestorDocsLoaded, true,
+    'chave unica: deve vincular quando ha exatamente 1 chave para o prefixo');
+  assert.equal(view.ingestorDocumentRows.length, 3,
+    'chave unica: 3 documentos');
+});
+
 // -------------------------------------------------------------------
 // 3. Testes DOM (buildDocuments via runtime)
 // -------------------------------------------------------------------

@@ -733,8 +733,19 @@
             return ev.pedido_manual && ev.pedido_manual.indexOf(prefixo) === 0;
           });
           if (matchingEvents.length > 0) {
-            var matchKey = matchingEvents[0].pedido_manual;
-            result = window.RAVATEX_DOCUMENTS.buildDocumentsForPedido(loadedEvents, matchKey);
+            // Coleta chaves distintas (ex: PED-02-2025, PED-02-2026).
+            // So faz fallback se houver exatamente uma chave unica.
+            // Multiplas chaves = ambiguo; nao vincula automaticamente.
+            var distinct = {};
+            for (var k = 0; k < matchingEvents.length; k++) {
+              if (matchingEvents[k].pedido_manual) {
+                distinct[matchingEvents[k].pedido_manual] = true;
+              }
+            }
+            var uniqueKeys = Object.keys(distinct);
+            if (uniqueKeys.length === 1) {
+              result = window.RAVATEX_DOCUMENTS.buildDocumentsForPedido(loadedEvents, uniqueKeys[0]);
+            }
           }
         }
 
@@ -787,7 +798,9 @@
             });
           }
 
-          ingestorDocsLoaded = true;
+          if (ingestorDocumentRows.length > 0) {
+            ingestorDocsLoaded = true;
+          }
         }
       }
     }
