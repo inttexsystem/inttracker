@@ -440,6 +440,66 @@ test('import-ui-scope: staging + admin => import funciona', function () {
   assert.ok(successToast, 'deve haver toast de sucesso');
 });
 
+test('import-ui-scope: admin tardio via SPA — comeca null, dps vira admin', function () {
+  // Simula SPA login: CURRENT_USER comeca null, depois vira admin.
+  // O fast poll deve detectar na proxima iteracao (200 ms).
+  var rt = makeImportUISandbox({
+    appEnv: 'staging',
+    currentUser: null, // usuario ainda nao logado
+  });
+  // Neste momento, fast poll esta rodando. CURRENT_USER e null.
+  var buttons = rt.domElements['button'] || [];
+  var importBtn = buttons.find(function (b) { return b.id === 'rv-docs-import-btn'; });
+  assert.equal(importBtn, undefined, 'botao nao deve existir com CURRENT_USER null');
+
+  // Simula login: CURRENT_USER vira admin
+  rt.sandbox.window.CURRENT_USER = { tipo: 'admin' };
+  // Dispara recheck manual (equivalente a proxima iteracao do slow poll)
+  rt.sandbox.window.RAVATEX_DOCUMENTS._importUIRecheck();
+
+  buttons = rt.domElements['button'] || [];
+  importBtn = buttons.find(function (b) { return b.id === 'rv-docs-import-btn'; });
+  assert.ok(importBtn, 'botao deve aparecer apos admin ser detectado via recheck');
+});
+
+test('import-ui-scope: admin tardio — _importUIHasButton confirma estado', function () {
+  var rt = makeImportUISandbox({
+    appEnv: 'staging',
+    currentUser: null,
+  });
+  assert.equal(rt.sandbox.window.RAVATEX_DOCUMENTS._importUIHasButton(), false,
+    'sem admin, sem botao');
+  rt.sandbox.window.CURRENT_USER = { tipo: 'admin' };
+  rt.sandbox.window.RAVATEX_DOCUMENTS._importUIRecheck();
+  assert.equal(rt.sandbox.window.RAVATEX_DOCUMENTS._importUIHasButton(), true,
+    'com admin, botao criado');
+});
+
+test('import-ui-scope: loader globals ausentes — erro controlado, sem crash', function () {
+  // Cria sandbox SEM documents-ingestor.js e loader — import UI deve
+  // emitir console.warn e retornar sem crash.
+  var warnings = [];
+  var sandbox = {
+    window: { APP_ENV: 'staging', CURRENT_USER: { tipo: 'admin' }, toast: function () {} },
+    document: {
+      body: { appendChild: function () {} },
+      createElement: function () { return { style: {}, addEventListener: function () {}, setAttribute: function () {}, click: function () {} }; },
+      addEventListener: function () {},
+    },
+    console: { warn: function (msg) { warnings.push(msg); } },
+  };
+  vm.createContext(sandbox);
+  // NAO carrega documents-ingestor.js nem loader
+  vm.runInContext(importUiSrc, sandbox);
+
+  // Nao deve ter criado botao
+  assert.ok(warnings.length >= 1, 'deve emitir console.warn');
+  assert.ok(warnings.join(' ').indexOf('RAVATEX_DOCUMENTS') >= 0,
+    'warn deve mencionar RAVATEX_DOCUMENTS');
+  assert.ok(warnings.join(' ').indexOf('loadDocumentsIngestorEventsFromText') >= 0,
+    'warn deve mencionar loadDocumentsIngestorEventsFromText');
+});
+
 // -------------------------------------------------------------------
 // 5. Testes: seguranca
 // -------------------------------------------------------------------

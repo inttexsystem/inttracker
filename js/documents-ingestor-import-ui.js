@@ -30,6 +30,12 @@
 
   var docs = window.RAVATEX_DOCUMENTS;
   if (!docs || typeof docs.loadDocumentsIngestorEventsFromText !== 'function') {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('[Documents Ingestor Import UI] '
+        + 'RAVATEX_DOCUMENTS.loadDocumentsIngestorEventsFromText ausente. '
+        + 'Verifique se js/documents-ingestor.js e js/documents-ingestor-loader.js '
+        + 'foram carregados antes deste script.');
+    }
     return;
   }
 
@@ -203,6 +209,14 @@
   // -------------------------------------------------------------------
   // Bootstrap
   // -------------------------------------------------------------------
+
+  // Exposto para diagnostico/teste
+  docs._importUIRecheck = function () {
+    tryCreateImportUI();
+  };
+  docs._importUIHasButton = function () {
+    return _uiCreated;
+  };
 
   try {
     if (document.body) {
