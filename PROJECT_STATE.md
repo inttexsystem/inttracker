@@ -19,10 +19,10 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - `contracts/manifest.schema.json` — schema do manifest de Pedido
 
 ## Status atual
-- HEAD (documents-ingestor): `956682d`
+- HEAD (documents-ingestor): `7affcfe`
 - HEAD canônico staging/work/app-next (Controle de Tapetes): `997486a`
 - Push staging: `af919a2..997486a` (produção/origin oficial intocados)
-- 312 testes passando (26 suites) — incluindo integração mockada completa
+- 318 testes passando (26 suites) — incluindo integração mockada completa
 - Hermético: nenhum teste depende de `.env` real, token real ou chamadas Google
 - OAuth real validado (C1)
 - Smoke real com Drive/Gmail reais validado (C2)
@@ -30,7 +30,8 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - Drive tests isolados de credenciais reais (D-R1)
 - CI workflow criado (E)
 - G5 taxonomy validado em real (R4-R1): retry por Gmail messageId confirmado funcional
-- G12-B folder taxonomy paths: builders Recebidos/Pedidos com YYYY/MM/DD (testes, sem ativação no fluxo real)
+- G12-B folder taxonomy paths: builders Recebidos/Pedidos com YYYY/MM/DD
+- G12-C1: scan emite document.detected (pedido_manual=''); assign emite document.linked
 
 ## Comandos disponíveis
 - `npm run dev` — tsx watch
@@ -57,7 +58,7 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 ## Última evidência de testes
 ```
 Test Files  26 passed (26)
-     Tests  312 passed (312)
+     Tests  318 passed (318)
 ```
 
 ## Decisão arquitetural
@@ -66,7 +67,12 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 ### Funil operacional (G6-C)
 - **pending** → `link` → **assigned** → `accept` → **accepted** | `reject` → **rejected**
 - `report` mostra: `pendingWithoutPedido`, `pendingAppAcceptance`, `documentsAccepted`, `documentsRejected`, `assignedByPedido`, `documentsByStatus`
-- Eventos outbox: `document.linked`, `document.accepted`, `document.rejected`
+- Eventos outbox: `document.detected`, `document.linked`, `document.accepted`, `document.rejected`
+
+### Semântica de eventos (G12-C1)
+- `document.detected` → emitido no **scan** (documento recebido, ainda não atrelado a Pedido). `pedido_manual=''` como sentinela.
+- `document.linked` → emitido no **assign real** e **link local** (documento vinculado a Pedido). `pedido_manual=PED-XX-YYYY`.
+- `document.accepted` / `document.rejected` → emitidos no **accept/reject** (decisão sobre documento vinculado).
 
 ## Fases concluídas
 - A — Scaffold
@@ -102,6 +108,7 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - G10-C — Smoke real-lite do export:package em PED-99-2026 (4 arquivos validados, 0 alterações)
 - G12-A — Design da taxonomia futura de Drive (Recebidos + Pedidos com YYYY/MM/DD)
 - G12-B — Path builders da taxonomia futura + testes (sem ativação no fluxo real)
+- G12-C1 — Evento document.detected no scan + document.linked no assign (sem schema novo)
 - G/H — UI Backlog (Controle de Tapetes — staging/work/app-next)
 
 ## Fase G1: Taxonomia de Documentos (3 eixos)
@@ -123,5 +130,5 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - Status residual esperado: `?? supabase/.temp/`
 
 ## Próxima fase recomendada
-RAVATEX-DOC-INGESTOR-G11-CONTROLE-TAPETES-WATCHER
-Foco: implementar watcher no Controle de Tapetes para consumir outbox JSONL, exibir documentos no pedido via drive_web_view_link, e integrar timeline de eventos. A implementação é no repositório do Controle de Tapetes — ingestor entrega pacote, app consome.
+RAVATEX-DOCUMENTS-G12-D-EXPORT-GLOBAL-RECEIVED
+Foco: criar export global de documentos recebidos (`documentos-recebidos.jsonl`) filtrando por `pedido_manual=''`, sem alterar Controle de Tapetes.

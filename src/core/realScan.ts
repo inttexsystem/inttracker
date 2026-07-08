@@ -6,6 +6,8 @@ import { pendenteDrivePath } from './paths.js';
 import { uploadDocument } from '../connectors/drive.js';
 import { fetchRecentEmails, fetchMessageById, listAttachments, downloadAttachment, isAttachmentCandidate } from '../connectors/gmail.js';
 import { createRunLogger, type RunLogger } from './runLog.js';
+import { createDocumentEvent } from '../types/event.js';
+import { appendEvent, isEventDuplicate } from './outbox.js';
 import type { GmailAttachmentRef, GmailMessageMeta } from '../connectors/gmail.js';
 
 export interface ScanOptions {
@@ -225,6 +227,49 @@ export function createScan(deps: ScanDeps = defaultDeps) {
             upload.file.driveWebContentLink ?? null,
             null,
           );
+
+          const detectedEventId = randomUUID();
+          const detectedEvent = createDocumentEvent({
+            eventId: detectedEventId,
+            pedidoManual: '',
+            gmailMessageId: email.gmailMessageId,
+            threadId: email.threadId,
+            documentId,
+            tipoDocumento: classificacao.tipoDocumento,
+            filenameOriginal: att.filename,
+            sha256,
+            driveFileId: upload.file.driveFileId,
+            driveFolderId: upload.file.driveFolderId ?? undefined,
+            driveWebViewLink: upload.file.driveWebViewLink,
+            driveWebContentLink: upload.file.driveWebContentLink ?? undefined,
+            formato: classificacao.formato,
+            direcaoNf: classificacao.direcaoNf ?? undefined,
+            status: 'pending_app_acceptance',
+          });
+
+          if (!isEventDuplicate(detectedEventId)) {
+            database.prepare(
+              `INSERT INTO ingestion_events (
+                 id, event_type, pedido_manual, document_id, status,
+                 storage_backend, storage_uri, drive_file_id, drive_web_view_link,
+                 manifest_storage_uri, manifest_drive_file_id
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).run(
+              detectedEventId,
+              'document.detected',
+              '',
+              documentId,
+              'pending_app_acceptance',
+              'google_drive',
+              upload.file.storageUri,
+              upload.file.driveFileId,
+              upload.file.driveWebViewLink,
+              null,
+              null,
+            );
+            appendEvent(detectedEvent);
+          }
+
           newDocuments++;
           processedAttachments++;
           processedCount++;

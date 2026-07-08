@@ -57,6 +57,7 @@ export function createDocumentEvent(params: {
   status?: EventStatus;
   formato?: string;
   direcaoNf?: string;
+  eventType?: string;
 }): DocumentEvent {
   const document: DocumentEventDocument = {
     document_id: params.documentId,
@@ -80,7 +81,7 @@ export function createDocumentEvent(params: {
   }
   return {
     schema_version: 1,
-    event_type: 'document.detected',
+    event_type: params.eventType ?? 'document.detected',
     event_id: params.eventId,
     created_at: new Date().toISOString(),
     pedido_manual: params.pedidoManual,

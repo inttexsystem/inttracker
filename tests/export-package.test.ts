@@ -191,4 +191,38 @@ describe('export package for Controle de Tapetes', () => {
     expect(result.pedido).toBe('PED-99-2026');
     expect(result.totalEvents).toBe(1);
   });
+
+  it('G12-C: exportPackage excludes events with pedido_manual empty string', () => {
+    const db = getDb();
+
+    const docLinked = seedPendingDoc(db, { gmailMessageId: 'msg-ep-g12c-linked' });
+    linkDocumentToPedido(docLinked, '25/2026');
+
+    const docUnlinked = seedPendingDoc(db, { gmailMessageId: 'msg-ep-g12c-unlinked' });
+    db.prepare(
+      `INSERT INTO ingestion_events (id, event_type, pedido_manual, document_id, status, storage_backend)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(
+      randomUUID(),
+      'document.detected',
+      '',
+      docUnlinked,
+      'pending_app_acceptance',
+      'google_drive',
+    );
+
+    const outDir = join(SCENARIO_DIR, 'exports-g12c');
+    const result = exportPackage('PED-25-2026', { outputDir: outDir });
+
+    expect(result.totalEvents).toBe(1);
+    expect(result.linkedCount).toBe(1);
+    expect(result.detectedCount).toBe(0);
+
+    const eventsFile = join(outDir, 'document-events.jsonl');
+    const lines = readFileSync(eventsFile, 'utf-8').trim().split('\n').filter(Boolean);
+    expect(lines).toHaveLength(1);
+    const parsed = JSON.parse(lines[0]);
+    expect(parsed.event_type).toBe('document.linked');
+    expect(parsed.pedido_manual).toBe('PED-25-2026');
+  });
 });

@@ -170,6 +170,7 @@ export function createAssignPedido(deps: AssignDeps = defaultDeps) {
       localCachePath: localCacheFilePath,
       manifestStorageUri: manifestRef.storageUri,
       status: 'pending_app_acceptance',
+      eventType: 'document.linked',
     });
 
     if (!isEventDuplicate(eventId)) {
@@ -181,7 +182,7 @@ export function createAssignPedido(deps: AssignDeps = defaultDeps) {
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         eventId,
-        'document.detected',
+        'document.linked',
         normalized,
         doc.id,
         'pending_app_acceptance',

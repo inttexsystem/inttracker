@@ -559,4 +559,122 @@ describe('real scan flow (mocked Google)', () => {
     expect(r.errors.length).toBeGreaterThan(0);
     expect(r.errors[0]).toContain('fetchMessageById');
   });
+
+  it('G12-C: scan emits document.detected event with pedido_manual empty string', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\nG12-C detected test');
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        {
+          gmailMessageId: 'msg-g12c',
+          threadId: 'thr-g12c',
+          from: 'test@example.com',
+          subject: 'G12-C test',
+          date: '2026-07-08',
+          attachmentCount: 1,
+        },
+      ],
+      listAtts: async () => [
+        {
+          gmailMessageId: 'msg-g12c',
+          threadId: 'thr-g12c',
+          attachmentId: 'att-g12c',
+          filename: 'NF-G12C.pdf',
+          mimeType: 'application/pdf',
+          size: fakePdf.length,
+        },
+      ],
+      downloadAtt: async () => fakePdf,
+    });
+    const scan = createScan(deps);
+    const result = await scan({ confirmReal: true });
+    expect(result.newDocuments).toBe(1);
+
+    const db = getDb();
+    const events = db.prepare(
+      `SELECT * FROM ingestion_events WHERE event_type = 'document.detected' ORDER BY created_at DESC`
+    ).all() as any[];
+    expect(events).toHaveLength(1);
+    expect(events[0].event_type).toBe('document.detected');
+    expect(events[0].pedido_manual).toBe('');
+    expect(events[0].status).toBe('pending_app_acceptance');
+    expect(events[0].document_id).toBeTruthy();
+  });
+
+  it('G12-C: retry does NOT duplicate document.detected event', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\nG12-C dedup test');
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        {
+          gmailMessageId: 'msg-g12c-dup',
+          threadId: 't',
+          from: '',
+          subject: 'Dedup G12-C',
+          date: '',
+          attachmentCount: 1,
+        },
+      ],
+      listAtts: async () => [
+        {
+          gmailMessageId: 'msg-g12c-dup',
+          threadId: 't',
+          attachmentId: 'att-g12c-dup',
+          filename: 'dup.pdf',
+          mimeType: 'application/pdf',
+          size: fakePdf.length,
+        },
+      ],
+      downloadAtt: async () => fakePdf,
+    });
+    const scan = createScan(deps);
+
+    const r1 = await scan({ confirmReal: true });
+    expect(r1.newDocuments).toBe(1);
+
+    const r2 = await scan({ confirmReal: true });
+    expect(r2.newDocuments).toBe(0);
+
+    const db = getDb();
+    const events = db.prepare(
+      `SELECT * FROM ingestion_events WHERE event_type = 'document.detected'`
+    ).all() as any[];
+    expect(events).toHaveLength(1);
+  });
+
+  it('G12-C: cross-message duplicate does NOT emit document.detected', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\nSAME G12-C DEDUP');
+    const firstUploadId = 'mock-g12c-upload';
+    let uploadCalls = 0;
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'msg-g12c-A', threadId: 'tA', from: '', subject: 'A', date: '', attachmentCount: 1 },
+        { gmailMessageId: 'msg-g12c-B', threadId: 'tB', from: '', subject: 'B (duplicate)', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async (msgId) => [
+        { gmailMessageId: msgId, threadId: 't', attachmentId: 'a', filename: 'same.pdf', mimeType: 'application/pdf', size: fakePdf.length },
+      ],
+      downloadAtt: async () => fakePdf,
+      uploadDoc: async ({ filename, mimeType }) => {
+        uploadCalls++;
+        return {
+          file: {
+            storageUri: `gdrive://file/${firstUploadId}`,
+            driveFileId: firstUploadId,
+            driveWebViewLink: `https://drive.google.com/file/d/${firstUploadId}/view`,
+            driveFolderId: 'mock-folder',
+          },
+        };
+      },
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    expect(r.crossMessageDuplicates).toBe(1);
+    expect(uploadCalls).toBe(1);
+
+    const db = getDb();
+    const events = db.prepare(
+      `SELECT * FROM ingestion_events WHERE event_type = 'document.detected'`
+    ).all() as any[];
+    expect(events).toHaveLength(1);
+  });
 });

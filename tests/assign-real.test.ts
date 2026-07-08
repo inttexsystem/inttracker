@@ -118,6 +118,7 @@ describe('real assign flow (mocked Google)', () => {
 
     const ev = database.prepare(`SELECT * FROM ingestion_events WHERE id = ?`).get(r!.eventId) as any;
     expect(ev).toBeTruthy();
+    expect(ev.event_type).toBe('document.linked');
     expect(ev.pedido_manual).toBe('PED-25-2026');
     expect(ev.status).toBe('pending_app_acceptance');
     expect(ev.storage_uri).toBe(r!.storageUri);
@@ -127,6 +128,7 @@ describe('real assign flow (mocked Google)', () => {
     expect(existsSync(outboxFile)).toBe(true);
     const line = readFileSync(outboxFile, 'utf-8').trim();
     const parsed = JSON.parse(line);
+    expect(parsed.event_type).toBe('document.linked');
     expect(parsed.event_id).toBe(r!.eventId);
     expect(parsed.document.storage_uri).toBe(r!.storageUri);
     expect(parsed.document.manifest_storage_uri).toBe(r!.manifestStorageUri);

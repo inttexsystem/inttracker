@@ -185,20 +185,27 @@ describe('integration mock flow — full Gmail→Drive→SQLite→Outbox hermeti
     expect(docAfter.pedido_manual).toBe('PED-25-2026');
     expect(docAfter.drive_file_id).toBe(assignResult!.driveFileId);
 
-    const events = db.prepare(`SELECT id, event_type, pedido_manual, document_id, status, drive_file_id, manifest_storage_uri FROM ingestion_events`).all() as any[];
-    expect(events).toHaveLength(1);
+    const events = db.prepare(`SELECT id, event_type, pedido_manual, document_id, status, drive_file_id, manifest_storage_uri FROM ingestion_events ORDER BY created_at`).all() as any[];
+    expect(events).toHaveLength(2);
     expect(events[0].event_type).toBe('document.detected');
+    expect(events[0].pedido_manual).toBe('');
     expect(events[0].status).toBe('pending_app_acceptance');
-    expect(events[0].pedido_manual).toBe('PED-25-2026');
+    expect(events[1].event_type).toBe('document.linked');
+    expect(events[1].pedido_manual).toBe('PED-25-2026');
+    expect(events[1].status).toBe('pending_app_acceptance');
 
     const outboxPath = process.env.OUTBOX_PATH!;
     expect(existsSync(outboxPath)).toBe(true);
     const outboxLines = readFileSync(outboxPath, 'utf-8').trim().split('\n').filter(Boolean);
-    expect(outboxLines).toHaveLength(1);
+    expect(outboxLines).toHaveLength(2);
     const ev = JSON.parse(outboxLines[0]);
+    expect(ev.event_type).toBe('document.detected');
+    expect(ev.pedido_manual).toBe('');
     expect(ev.status).toBe('pending_app_acceptance');
-    expect(ev.pedido_manual).toBe('PED-25-2026');
-    expect(ev.document.drive_file_id).toBe(assignResult!.driveFileId);
+    const ev2 = JSON.parse(outboxLines[1]);
+    expect(ev2.event_type).toBe('document.linked');
+    expect(ev2.pedido_manual).toBe('PED-25-2026');
+    expect(ev2.document.drive_file_id).toBe(assignResult!.driveFileId);
 
     expect(fakeDrive.copyCalls().length).toBeGreaterThan(0);
     expect(fakeDrive.uploadCalls().some(c => c.args?.requestBody?.name === 'manifest.json')).toBe(true);
@@ -269,18 +276,22 @@ describe('integration mock flow — full Gmail→Drive→SQLite→Outbox hermeti
     await assign(doc, '50/2026', { confirmReal: true });
 
     const before = (getDb().prepare(`SELECT COUNT(*) AS c FROM ingestion_events WHERE exported_at IS NULL`).get() as any).c;
-    expect(before).toBe(1);
+    expect(before).toBe(2);
 
     const outboxPath = process.env.OUTBOX_PATH!;
     if (existsSync(outboxPath)) rmSync(outboxPath);
     const exported = exportPendingEvents();
-    expect(exported).toHaveLength(1);
+    expect(exported).toHaveLength(2);
     expect(existsSync(outboxPath)).toBe(true);
     const content = readFileSync(outboxPath, 'utf-8').trim().split('\n');
-    expect(content).toHaveLength(1);
+    expect(content).toHaveLength(2);
     const ev = JSON.parse(content[0]);
-    expect(ev.pedido_manual).toBe('PED-50-2026');
-    expect(ev.status).toBe('pending_app_acceptance');
+    expect(ev.event_type).toBe('document.detected');
+    expect(ev.pedido_manual).toBe('');
+    const ev2 = JSON.parse(content[1]);
+    expect(ev2.event_type).toBe('document.linked');
+    expect(ev2.pedido_manual).toBe('PED-50-2026');
+    expect(ev2.status).toBe('pending_app_acceptance');
 
     const after = (getDb().prepare(`SELECT COUNT(*) AS c FROM ingestion_events WHERE exported_at IS NULL`).get() as any).c;
     expect(after).toBe(0);

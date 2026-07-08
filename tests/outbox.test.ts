@@ -67,4 +67,52 @@ describe('outbox', () => {
   it('isEventDuplicate is a function', () => {
     expect(typeof isEventDuplicate).toBe('function');
   });
+
+  it('G12-C: accepts pedidoManual empty string for unlinked documents', () => {
+    const event = createDocumentEvent({
+      eventId: 'evt-g12c-001',
+      pedidoManual: '',
+      gmailMessageId: 'msg-g12c',
+      threadId: 'thread-g12c',
+      documentId: 'doc-g12c',
+      tipoDocumento: 'nf',
+      filenameOriginal: 'NF-recebida.pdf',
+      sha256: 'd'.repeat(64),
+      driveFileId: 'file-g12c',
+      driveFolderId: 'folder-g12c',
+      driveWebViewLink: 'https://drive.google.com/file/d/file-g12c/view',
+      formato: 'pdf',
+      direcaoNf: 'entrada',
+    });
+
+    appendEvent(event);
+
+    const content = readFileSync(outboxPath, 'utf-8').trim();
+    const parsed: DocumentEvent = JSON.parse(content);
+
+    expect(parsed.event_type).toBe('document.detected');
+    expect(parsed.pedido_manual).toBe('');
+    expect(parsed.status).toBe('pending_app_acceptance');
+    expect(parsed.document.drive_file_id).toBe('file-g12c');
+    expect(parsed.document.formato).toBe('pdf');
+    expect(parsed.document.direcao_nf).toBe('entrada');
+  });
+
+  it('G12-C: createDocumentEvent accepts eventType parameter for document.linked', () => {
+    const event = createDocumentEvent({
+      eventId: 'evt-g12c-linked',
+      pedidoManual: 'PED-25-2026',
+      gmailMessageId: 'msg-linked',
+      threadId: 'thread-linked',
+      documentId: 'doc-linked',
+      tipoDocumento: 'nf',
+      filenameOriginal: 'NF-linked.pdf',
+      sha256: 'e'.repeat(64),
+      driveFileId: 'file-linked',
+      eventType: 'document.linked',
+    });
+
+    expect(event.event_type).toBe('document.linked');
+    expect(event.pedido_manual).toBe('PED-25-2026');
+  });
 });
