@@ -1,5 +1,87 @@
-> **Atualizacao 2026-07-07 - fase
-> `RAVATEX-TAPETES-G11-C-DOCUMENTS-CONSUMER-UI-SMOKE`.**
+> **Atualizacao 2026-07-08 - fase
+> `RAVATEX-TAPETES-G11-D-DOCUMENTS-LOCAL-LOADER`.**
+> Status: **PRONTO — LOADER LOCAL IMPLEMENTADO**.
+> Entrada: branch `work/app-next`, HEAD base
+> `a8f932b`; status inicial `?? .claude/` e
+> `?? supabase/.temp/`; `origin` somente leitura e
+> producao intocados. Escrita permitida em
+> `staging/work/app-next`.
+> HEAD final da implementacao:
+> `(HEAD apos commit g11-d)`.
+>
+> Escopo: loader local/manual para popular
+> `window.RAVATEX_DOCUMENTS_LOADED_EVENTS` a partir de
+> texto JSONL, array de eventos ou URL local controlada.
+> Sem watcher, sem Supabase, sem Google/Drive, sem
+> persistencia, sem auto-load em producao.
+>
+> Loader criado: `js/documents-ingestor-loader.js`
+> (141 linhas, IIFE padrao do projeto).
+> Funcoes expostas em `window.RAVATEX_DOCUMENTS`:
+> - `loadDocumentsIngestorEventsFromText(jsonlText)` —
+>   parseia JSONL, valida, deduplica e popula a global.
+>   Retorna `{ ok, count, error }`.
+> - `loadDocumentsIngestorEventsFromUrl(url)` —
+>   fetch explicito de URL local; nao chamado
+>   automaticamente. Retorna Promise.
+> - `setDocumentsIngestorEvents(events)` —
+>   aceita array pre-parsed, valida e deduplica.
+>
+> Seguranca:
+> - Limite de `MAX_EVENTS = 2000`.
+> - Validacao de cada evento via `isValidDocumentEvent`.
+> - Deduplicacao via `deduplicateEvents` do parser.
+> - Nao chama fetch no bootstrap (apenas em funcao
+>   explicita `loadFromUrl`).
+> - Nao referencia Supabase, Google/Drive,
+>   localStorage, sessionStorage.
+>
+> Integracao em `index.html`:
+> - `js/documents-ingestor.js` adicionado apos
+>   `js/ui.js`, antes de `pedido-detail.js`.
+> - `js/documents-ingestor-loader.js` apos o ingestor.
+> - Ambos carregados exatamente 1 vez.
+> - Nenhum auto-load: loader apenas expoe funcoes.
+>
+> Teste novo: `tests/documents-ingestor-loader.test.js`
+> (32 testes — exitencia/sintaxe, loadFromText 8,
+> setEvents 5, loadFromUrl 5, seguranca 5,
+> integracao 2, index.html 5, regressao 2).
+>
+> Arquivos alterados: `js/documents-ingestor-loader.js`
+> (novo), `tests/documents-ingestor-loader.test.js`
+> (novo), `index.html` (2 linhas de script),
+> `PROJECT_STATE.md`, `AGENT_HANDOFF.md`.
+>
+> Testes reportados:
+> - `documents-ingestor.test.js`: 44/44;
+> - `documents-ingestor-ui-smoke.test.js`: 35/35;
+> - `documents-ingestor-loader.test.js`: 32/32;
+> - `pedido-detail.smoke.js`: 172/172 (sem regressao).
+>
+> `git diff --check`: OK.
+>
+> Garantias: sem Supabase, sem Google/Drive, sem export
+> real, sem alterar Documents Ingestor, sem PDF/XML
+> armazenado, sem dados reais commitados, `.claude/` e
+> `supabase/.temp/` fora do commit.
+>
+> Riscos remanescentes:
+> 1. `loadDocumentsIngestorEventsFromUrl` usa fetch real
+>    no browser; limitado a chamada explicita, mas em
+>    producao qualquer script pode chama-la. A funcao
+>    existe apenas para dev/teste local.
+> 2. Validacao visual browser/staging com loader real
+>    ainda pendente.
+> 3. Watcher/poller persistente ainda nao implementado
+>    (fase futura).
+>
+> Proxima fase recomendada: integracao com watcher real
+> ou export:package para alimentar o loader
+> automaticamente em staging (G11-E).
+>
+> > **Atualizacao 2026-07-07 - fase
+> > `RAVATEX-TAPETES-G11-C-DOCUMENTS-CONSUMER-UI-SMOKE`.**
 > Status: **VALIDADO — UI SMOKE PRONTO**.
 > Entrada: branch `work/app-next`, HEAD base
 > `4861f69`; status inicial `?? .claude/` e
