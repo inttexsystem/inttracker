@@ -22,7 +22,7 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - HEAD (documents-ingestor): `7affcfe`
 - HEAD canônico staging/work/app-next (Controle de Tapetes): `997486a`
 - Push staging: `af919a2..997486a` (produção/origin oficial intocados)
-- 318 testes passando (26 suites) — incluindo integração mockada completa
+- 327 testes passando (27 suites) — incluindo integração mockada completa
 - Hermético: nenhum teste depende de `.env` real, token real ou chamadas Google
 - OAuth real validado (C1)
 - Smoke real com Drive/Gmail reais validado (C2)
@@ -32,6 +32,7 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - G5 taxonomy validado em real (R4-R1): retry por Gmail messageId confirmado funcional
 - G12-B folder taxonomy paths: builders Recebidos/Pedidos com YYYY/MM/DD
 - G12-C1: scan emite document.detected (pedido_manual=''); assign emite document.linked
+- G12-D1: exportReceivedDocuments + CLI export-received (9 testes herméticos)
 
 ## Comandos disponíveis
 - `npm run dev` — tsx watch
@@ -57,8 +58,8 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 
 ## Última evidência de testes
 ```
-Test Files  26 passed (26)
-     Tests  318 passed (318)
+Test Files  27 passed (27)
+     Tests  327 passed (327)
 ```
 
 ## Decisão arquitetural
@@ -109,6 +110,7 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - G12-A — Design da taxonomia futura de Drive (Recebidos + Pedidos com YYYY/MM/DD)
 - G12-B — Path builders da taxonomia futura + testes (sem ativação no fluxo real)
 - G12-C1 — Evento document.detected no scan + document.linked no assign (sem schema novo)
+- G12-D1 — exportReceivedDocuments + CLI `export-received` (read-only, sem Drive, sem scan, sem schema)
 - G/H — UI Backlog (Controle de Tapetes — staging/work/app-next)
 
 ## Fase G1: Taxonomia de Documentos (3 eixos)
@@ -130,5 +132,5 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - Status residual esperado: `?? supabase/.temp/`
 
 ## Próxima fase recomendada
-RAVATEX-DOCUMENTS-G12-D-EXPORT-GLOBAL-RECEIVED
-Foco: criar export global de documentos recebidos (`documentos-recebidos.jsonl`) filtrando por `pedido_manual=''`, sem alterar Controle de Tapetes.
+RAVATEX-DOCUMENTS-G12-D2-RECEIVED-DOCUMENTS-CONSUMER
+Foco: integração opcional do `documentos-recebidos.jsonl` no Controle de Tapetes para exibir a fila de documentos pendentes de atrelamento (read-only, sem mutação, mesmo contrato JSONL).

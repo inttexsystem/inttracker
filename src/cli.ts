@@ -12,7 +12,7 @@ import { linkDocumentToPedido } from './core/link.js';
 import { acceptDocument, rejectDocument } from './core/acceptance.js';
 import { normalizePedido } from './core/pedido.js';
 import { exportManifest, syncManifest } from './core/syncManifest.js';
-import { exportPackage } from './core/exportPackage.js';
+import { exportPackage, exportReceivedDocuments } from './core/exportPackage.js';
 import { closeDb, getDb } from './storage/sqlite.js';
 
 const program = new Command();
@@ -555,6 +555,49 @@ program
       result.linkedCount, result.acceptedCount, result.rejectedCount, result.detectedCount);
     console.log('[export-package] Files: %s', result.files.map(f => f.split(/[\\/]/).pop()).join(', '));
     console.log('[export-package] Local-only — no Google Drive calls performed.');
+    closeDb();
+  });
+
+program
+  .command('export-received')
+  .description('Export received documents (pending, no pedido) to JSONL (read-only, no Google Drive)')
+  .option('--output <path>', 'Output file path (default: data/exports/documentos-recebidos.jsonl)')
+  .option('--days <n>', 'Filter documents created in the last N days')
+  .option('--limit <n>', 'Max documents to export (cap 5000)', '5000')
+  .action((opts) => {
+    let daysBack: number | undefined;
+    if (opts.days !== undefined) {
+      const n = parseInt(opts.days, 10);
+      if (!Number.isFinite(n) || n < 1) {
+        console.error('[export-received] --days must be a positive integer. Got:', opts.days);
+        process.exit(1);
+      }
+      daysBack = n;
+    }
+
+    let limit: number | undefined;
+    if (opts.limit !== undefined) {
+      const n = parseInt(opts.limit, 10);
+      if (!Number.isFinite(n) || n < 1) {
+        console.error('[export-received] --limit must be a positive integer. Got:', opts.limit);
+        process.exit(1);
+      }
+      if (n > 5000) {
+        console.error(`[export-received] --limit capped at 5000 (was ${n})`);
+        limit = 5000;
+      } else {
+        limit = n;
+      }
+    }
+
+    const result = exportReceivedDocuments({
+      outputPath: opts.output,
+      daysBack,
+      limit,
+    });
+    console.log('[export-received] Exported %d received document(s).', result.totalDocuments);
+    console.log('[export-received] Output: %s', result.outputPath);
+    console.log('[export-received] Local-only — no Google Drive calls performed.');
     closeDb();
   });
 

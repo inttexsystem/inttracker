@@ -1,7 +1,8 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { queryAndExportEvents } from './outbox.js';
 import { buildManifestFromDb } from './syncManifest.js';
+import { getDb } from '../storage/sqlite.js';
 import type { DocumentEvent } from '../types/event.js';
 
 export interface PackageResult {
@@ -97,5 +98,114 @@ export function exportPackage(
     rejectedCount: eventTypeCounts['document.rejected'] ?? 0,
     linkedCount: eventTypeCounts['document.linked'] ?? 0,
     detectedCount: eventTypeCounts['document.detected'] ?? 0,
+  };
+}
+
+export interface ReceivedDocumentRow {
+  document_id: string;
+  gmail_message_id: string;
+  thread_id: string;
+  filename_original: string;
+  sha256: string;
+  tipo_documento: string;
+  formato: string | null;
+  direcao_nf: string | null;
+  drive_file_id: string | null;
+  drive_web_view_link: string | null;
+  created_at: string;
+  updated_at: string;
+  detected_event_id: string;
+  detected_event_created_at: string;
+}
+
+export interface ExportReceivedOptions {
+  outputPath?: string;
+  daysBack?: number;
+  limit?: number;
+}
+
+export interface ExportReceivedResult {
+  outputPath: string;
+  totalDocuments: number;
+  files: string[];
+}
+
+export function listReceivedDocuments(
+  opts: { daysBack?: number; limit?: number } = {},
+): ReceivedDocumentRow[] {
+  const database = getDb();
+  const limit = Math.min(opts.limit ?? 5000, 5000);
+  const where: string[] = [
+    "d.status = 'pending'",
+    "(d.pedido_manual IS NULL OR d.pedido_manual = '')",
+  ];
+  const params: any[] = [];
+
+  if (opts.daysBack !== undefined) {
+    if (!Number.isFinite(opts.daysBack) || opts.daysBack < 1) {
+      throw new Error(`daysBack must be a positive integer (got ${opts.daysBack})`);
+    }
+    const since = new Date();
+    since.setDate(since.getDate() - opts.daysBack);
+    const sinceIso = since.toISOString().replace('T', ' ').slice(0, 19);
+    where.push('d.created_at >= ?');
+    params.push(sinceIso);
+  }
+
+  const whereClause = `WHERE ${where.join(' AND ')}`;
+  const sql = `
+    SELECT
+      d.id AS document_id,
+      d.gmail_message_id,
+      d.thread_id,
+      d.filename_original,
+      d.sha256,
+      d.tipo_documento,
+      d.formato,
+      d.direcao_nf,
+      d.drive_file_id,
+      d.drive_web_view_link,
+      d.created_at,
+      d.updated_at,
+      det.id AS detected_event_id,
+      det.created_at AS detected_event_created_at
+    FROM documentos d
+    INNER JOIN (
+      SELECT e.document_id, e.id, e.created_at
+      FROM ingestion_events e
+      WHERE e.event_type = 'document.detected'
+    ) det ON det.document_id = d.id
+    ${whereClause}
+    ORDER BY d.created_at DESC
+    LIMIT ?
+  `;
+  params.push(limit);
+  return database.prepare(sql).all(...params) as ReceivedDocumentRow[];
+}
+
+export function exportReceivedDocuments(
+  opts: ExportReceivedOptions = {},
+): ExportReceivedResult {
+  const baseDir = opts.outputPath && opts.outputPath.trim()
+    ? resolve(process.cwd(), opts.outputPath)
+    : resolve(process.cwd(), 'data', 'exports', 'documentos-recebidos.jsonl');
+
+  const dir = dirname(baseDir);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+
+  const rows = listReceivedDocuments({
+    daysBack: opts.daysBack,
+    limit: opts.limit,
+  });
+
+  const content = rows.map(r => JSON.stringify(r)).join('\n') + (rows.length > 0 ? '\n' : '');
+  writeFileSync(baseDir, content, 'utf-8');
+
+  return {
+    outputPath: baseDir,
+    totalDocuments: rows.length,
+    files: [baseDir],
   };
 }

@@ -12,3 +12,5 @@ export { exportManifest, syncManifest } from './core/syncManifest.js';
 export { exportPackage } from './core/exportPackage.js';
 export type { SyncManifestResult } from './core/syncManifest.js';
 export type { ExportPackageResult } from './core/exportPackage.js';
+export { exportReceivedDocuments, listReceivedDocuments } from './core/exportPackage.js';
+export type { ExportReceivedResult, ExportReceivedOptions, ReceivedDocumentRow } from './core/exportPackage.js';
