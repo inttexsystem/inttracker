@@ -89,7 +89,8 @@
       }, 'Documentos Recebidos'),
       window.el('div', {
         style: 'font-size:13px;color:#5b6472;line-height:1.5;',
-      }, 'Importe a lista gerada pelo Documents Ingestor para revisar documentos mapeados.')
+      }, 'Importe a lista gerada pelo Documents Ingestor para revisar documentos mapeados. '
+        + 'Aceita os exports documentos-recebidos.jsonl (antigo) e documentos-mapeados.jsonl (G12-F1).')
     );
     return header;
   }
@@ -130,7 +131,8 @@
       }, 'Nenhum documento recebido'),
       window.el('div', {
         style: 'font-size:13px;color:#8a93a3;line-height:1.5;',
-      }, 'Use o botao acima para carregar um arquivo documentos-recebidos.jsonl. '
+      }, 'Use o botao acima para carregar o arquivo JSONL exportado pelo Documents Ingestor '
+        + '(documentos-recebidos.jsonl ou documentos-mapeados.jsonl). '
         + 'A lista abaixo sera preenchida com os documentos importados.')
     );
     return card;
@@ -183,8 +185,34 @@
     var direcao = doc && doc.direcao_nf;
     var filename = doc && doc.filename_original ? doc.filename_original : 'Documento';
     var driveLink = doc && doc.drive_web_view_link ? doc.drive_web_view_link : null;
-    var when = doc && doc.created_at ? doc.created_at : null;
+    // G12-F2: o export documentos-mapeados.jsonl usa received_at;
+    // o antigo documentos-recebidos.jsonl so trazia created_at.
+    // Fallback encadeado para manter compatibilidade.
+    var when = doc && (doc.received_at || doc.created_at)
+      ? (doc.received_at || doc.created_at)
+      : null;
     var pedido = doc && doc.pedido_manual ? doc.pedido_manual : '';
+    // G12-F2: status agora vem do doc (mapeados); antigo nao trazia.
+    // Mapeamento operacional consistente.
+    var statusRaw = doc && doc.status ? String(doc.status).toLowerCase() : '';
+    var statusLabel;
+    var statusBg = '#fff4e6';
+    var statusFg = '#c2610c';
+    if (statusRaw === 'pending') {
+      statusLabel = 'Pendente';
+    } else if (statusRaw === 'assigned') {
+      statusLabel = 'Atrelado';
+      statusBg = '#eaf1fd'; statusFg = '#2563eb';
+    } else if (statusRaw === 'accepted') {
+      statusLabel = 'Aceito';
+      statusBg = '#e6f4ec'; statusFg = '#18794a';
+    } else if (statusRaw === 'rejected') {
+      statusLabel = 'Rejeitado';
+      statusBg = '#fde6e6'; statusFg = '#b65050';
+    } else {
+      // Fallback seguro (legado ou valor desconhecido) -> Pendente.
+      statusLabel = 'Pendente';
+    }
 
     var badges = window.el('div', { style: 'display:flex;gap:5px;flex-wrap:wrap;align-items:center;' });
     var tipoB = buildBadge(badgeTone(tipo));
@@ -196,10 +224,11 @@
 
     var statusPill = window.el('span', {
       'data-field': 'status',
-      style: 'display:inline-flex;background:#fff4e6;color:#c2610c;'
+      'data-status': statusRaw || 'pending',
+      style: 'display:inline-flex;background:' + statusBg + ';color:' + statusFg + ';'
         + 'border-radius:4px;padding:2px 8px;font-size:10.5px;font-weight:700;'
         + 'letter-spacing:.02em;flex-shrink:0;',
-    }, 'Pendente');
+    }, statusLabel);
 
     var pedidoCell;
     if (pedido) {

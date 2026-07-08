@@ -1,10 +1,14 @@
 // =====================================================================
 // === tests/documents-ingestor-import-received.test.js =================
-// Testes para a UX de import de `documentos-recebidos.jsonl`
-// em js/documents-ingestor-import-received.js.
+// Testes para a UX de import do arquivo JSONL flat exportado pelo
+// Documents Ingestor em js/documents-ingestor-import-received.js.
+// Aceita tanto `documentos-recebidos.jsonl` (G12-D1, antigo) quanto
+// `documentos-mapeados.jsonl` (G12-F1, com campos extras).
 //
 // Fase: RAVATEX-TAPETES-G12-G3-RECEIVED-DOCUMENTS-IMPORT-BUTTON
 //       + G12-R1 (refactor: botao inline na tela, sem auto-floating)
+//       + G12-F2-MAPPED-DOCUMENTS-CONSUMER-PATCH (copy generica,
+//         sem induzir usuario a usar apenas o arquivo antigo)
 //
 // Garante:
 //   - Botao NAO aparece flutuando por padrao (G12-R1)
@@ -14,8 +18,8 @@
 //   - Popula window.RAVATEX_DOCUMENTS_RECEIVED
 //   - NAO sobrescreve window.RAVATEX_DOCUMENTS_LOADED_EVENTS (legado)
 //   - Coexiste com o botao legado "Importar eventos" sem conflito
-//   - Toast de sucesso mostra count
-//   - Toast de erro para JSONL invalido
+//   - Toast de sucesso mostra count (sem citar arquivo especifico)
+//   - Toast de erro para JSONL invalido (copy generica do Ingestor)
 //   - Erro de FileReader tratado
 //   - Guarda admin/staging mantida
 //   - Loader ausente -> console.warn + sem crash
@@ -276,12 +280,12 @@ test('import-received (G12-R1): NAO cria botao flutuante para nao-admin sem flag
   assert.equal(importBtn, undefined, 'sem flag, sem botao flutuante');
 });
 
-test('import-received (G12-R1): flag RAVATEX_ENABLE_FLOATING_RECEIVED_IMPORT restaura flutuante', function () {
+test('import-received (G12-F2): flag RAVATEX_ENABLE_FLOATING_RECEIVED_IMPORT restaura flutuante', function () {
   var rt = makeImportReceivedSandbox({ floatingFlag: true });
   var buttons = rt.domElements['button'] || [];
   var importBtn = buttons.find(function (b) { return b.id === 'rv-docs-received-import-btn'; });
   assert.ok(importBtn, 'com flag explicita, botao flutuante opcional aparece');
-  assert.equal(importBtn.textContent, 'Importar recebidos', 'label do botao');
+  assert.equal(importBtn.textContent, 'Importar documentos', 'label do botao (G12-F2)');
 });
 
 // -------------------------------------------------------------------
@@ -297,23 +301,31 @@ test('import-received (G12-R1): createReceivedImportButton retorna button+fileIn
   assert.equal(typeof pair.mount, 'function', 'mount deve ser funcao');
   assert.equal(typeof pair.mountBody, 'function', 'mountBody deve ser funcao');
   assert.equal(pair.button.id, 'btn-inline-test', 'id customizada respeitada');
-  assert.equal(pair.button.textContent, 'Importar recebidos', 'label padrao');
+  assert.equal(pair.button.textContent, 'Importar documentos', 'label padrao (G12-F2)');
   assert.equal(pair.fileInput.type, 'file', 'file input type=file');
   assert.ok(pair.fileInput.accept.indexOf('.jsonl') >= 0, 'accept inclui .jsonl');
   assert.equal(pair.fileInput.style.display, 'none', 'file input escondido');
 });
 
-test('import-received (G12-R1): botao inline menciona documentos-recebidos.jsonl no title/aria', function () {
+test('import-received (G12-F2): botao inline usa copy generica (Documents Ingestor)', function () {
   var rt = makeImportReceivedSandbox();
   var pair = rt.RAVATEX_DOCUMENTS.createReceivedImportButton();
-  assert.ok(pair.button.title.indexOf('documentos-recebidos.jsonl') >= 0,
-    'title menciona arquivo: ' + pair.button.title);
+  // G12-F2: copy NAO induz o usuario a usar apenas o formato antigo
+  assert.equal(pair.button.title.indexOf('documentos-recebidos.jsonl'), -1,
+    'title NAO menciona apenas o arquivo antigo: ' + pair.button.title);
   var al = pair.button['aria-label'] || pair.button.ariaLabel || '';
-  assert.ok(al.indexOf('documentos-recebidos.jsonl') >= 0,
-    'aria-label menciona arquivo: ' + al);
+  assert.equal(al.indexOf('documentos-recebidos.jsonl'), -1,
+    'aria-label NAO menciona apenas o arquivo antigo: ' + al);
   var fil = pair.fileInput['aria-label'] || pair.fileInput.ariaLabel || '';
-  assert.ok(fil.indexOf('documentos-recebidos.jsonl') >= 0,
-    'input aria-label menciona arquivo: ' + fil);
+  assert.equal(fil.indexOf('documentos-recebidos.jsonl'), -1,
+    'input aria-label NAO menciona apenas o arquivo antigo: ' + fil);
+  // Copy generica esperada
+  assert.ok(pair.button.title.indexOf('JSONL') >= 0
+    && pair.button.title.indexOf('Documents Ingestor') >= 0,
+    'title usa copy generica do Ingestor: ' + pair.button.title);
+  assert.ok(fil.indexOf('JSONL') >= 0
+    && fil.indexOf('Documents Ingestor') >= 0,
+    'input aria-label usa copy generica do Ingestor: ' + fil);
 });
 
 test('import-received (G12-R1): mount() anexa button+input ao container', function () {
@@ -360,7 +372,7 @@ test('import-received (G12-R1): NAO altera RAVATEX_DOCUMENTS_LOADED_EVENTS (lega
   assert.equal(rt.sandbox.window.RAVATEX_DOCUMENTS_RECEIVED.length, 3, 'novo estado populado');
 });
 
-test('import-received (G12-R1): toast sucesso mostra count e "Nada foi persistido"', function () {
+test('import-received (G12-F2): toast sucesso mostra count e "Nada foi persistido" (sem nome de arquivo)', function () {
   var rt = makeImportReceivedSandbox({ mockFileContent: RECEIVED_JSONL });
   var pair = rt.RAVATEX_DOCUMENTS.createReceivedImportButton({ buttonId: 'btn-toast' });
   var container = makeContainer();
@@ -371,11 +383,15 @@ test('import-received (G12-R1): toast sucesso mostra count e "Nada foi persistid
   var successToast = rt.toasts.find(function (t) { return t.type === 'success'; });
   assert.ok(successToast, 'deve haver toast de sucesso');
   assert.ok(successToast.msg.indexOf('3 documento') >= 0, 'count no toast');
-  assert.ok(successToast.msg.indexOf('documentos-recebidos.jsonl') >= 0, 'arquivo no toast');
+  // G12-F2: toast NAO cita um arquivo especifico
+  assert.equal(successToast.msg.indexOf('documentos-recebidos.jsonl'), -1,
+    'toast de sucesso NAO cita o arquivo antigo especifico: ' + successToast.msg);
+  assert.equal(successToast.msg.indexOf('documentos-mapeados.jsonl'), -1,
+    'toast de sucesso NAO cita o arquivo novo especifico: ' + successToast.msg);
   assert.ok(successToast.msg.indexOf('Nada foi persistido') >= 0, 'aviso de persistencia no toast');
 });
 
-test('import-received (G12-R1): JSONL invalido mostra toast de erro', function () {
+test('import-received (G12-F2): JSONL invalido mostra toast de erro com copy do Ingestor', function () {
   var rt = makeImportReceivedSandbox({ mockFileContent: 'isto nao e json' });
   var pair = rt.RAVATEX_DOCUMENTS.createReceivedImportButton({ buttonId: 'btn-err' });
   var container = makeContainer();
@@ -385,10 +401,16 @@ test('import-received (G12-R1): JSONL invalido mostra toast de erro', function (
 
   var errorToast = rt.toasts.find(function (t) { return t.type === 'error'; });
   assert.ok(errorToast, 'deve haver toast de erro');
-  assert.ok(errorToast.msg.indexOf('Arquivo incompativel com documentos-recebidos.jsonl') >= 0,
-    'mensagem clara de arquivo incompativel (G12-R3)');
+  // G12-F2: copy agora menciona "Arquivo incompativel" + "Documents Ingestor"
+  // sem induzir o usuario a usar apenas o arquivo antigo
+  assert.ok(errorToast.msg.indexOf('Arquivo incompativel') >= 0,
+    'mensagem inicia com "Arquivo incompativel": ' + errorToast.msg);
+  assert.ok(errorToast.msg.indexOf('Documents Ingestor') >= 0,
+    'mensagem menciona Documents Ingestor: ' + errorToast.msg);
+  assert.equal(errorToast.msg.indexOf('documentos-recebidos.jsonl'), -1,
+    'mensagem NAO cita apenas o arquivo antigo: ' + errorToast.msg);
   assert.ok(errorToast.msg.indexOf('Motivo:') >= 0,
-    'detalha o motivo do erro (G12-R3)');
+    'detalha o motivo do erro');
 });
 
 test('import-received (G12-R1): texto vazio mostra toast de erro', function () {
@@ -572,7 +594,7 @@ test('import-received: index.html NAO referencia documentos-recebidos.js (nao ha
 // 8. G12-R3: mensagem de erro de arquivo incompativel mais clara
 // -------------------------------------------------------------------
 
-test('import-received (G12-R3): JSONL do Ingestor (formato de eventos) e rejeitado como incompativel', function () {
+test('import-received (G12-F2): JSONL do Ingestor (formato de eventos) e rejeitado como incompativel', function () {
   // Carrega um JSONL no formato errado (eventos de Pedido, nao flat docs)
   // e espera mensagem clara apontando o motivo.
   var wrongFormat = fixtureText; // document-events-sample.jsonl (formato wrapper {event_type,...})
@@ -585,12 +607,13 @@ test('import-received (G12-R3): JSONL do Ingestor (formato de eventos) e rejeita
 
   var errorToast = rt.toasts.find(function (t) { return t.type === 'error'; });
   assert.ok(errorToast, 'deve haver toast de erro');
-  assert.ok(errorToast.msg.indexOf('Arquivo incompativel com documentos-recebidos.jsonl') >= 0,
-    'mensagem sinaliza o arquivo esperado');
+  // G12-F2: copy agora e generica, nao cita um arquivo especifico
+  assert.ok(errorToast.msg.indexOf('Arquivo incompativel') >= 0,
+    'mensagem sinaliza formato incompativel');
   assert.ok(errorToast.msg.indexOf('Motivo:') >= 0, 'detalha o motivo');
 });
 
-test('import-received (G12-R3): toast de erro NAO usa mais copy generica "Erro ao importar"', function () {
+test('import-received (G12-F2): toast de erro NAO usa copy generica antiga "Erro ao importar"', function () {
   var rt = makeImportReceivedSandbox({ mockFileContent: 'isto nao e json' });
   var pair = rt.RAVATEX_DOCUMENTS.createReceivedImportButton({ buttonId: 'btn-old-msg' });
   var container = makeContainer();
@@ -600,9 +623,10 @@ test('import-received (G12-R3): toast de erro NAO usa mais copy generica "Erro a
 
   var errorToast = rt.toasts.find(function (t) { return t.type === 'error'; });
   assert.ok(errorToast, 'deve haver toast de erro');
-  // G12-R3: copy antiga foi removida; nova copy e especifica.
+  // G12-R3: copy antiga foi removida
   assert.equal(errorToast.msg.indexOf('Erro ao importar:'), -1,
     'copy antiga "Erro ao importar:" removida (G12-R3)');
-  assert.ok(errorToast.msg.indexOf('documentos-recebidos.jsonl') >= 0,
-    'nova copy menciona o arquivo esperado');
+  // G12-F2: copy nova NAO induz usuario a usar um arquivo especifico
+  assert.equal(errorToast.msg.indexOf('documentos-recebidos.jsonl'), -1,
+    'copy nova NAO cita apenas o arquivo antigo: ' + errorToast.msg);
 });

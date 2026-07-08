@@ -4,6 +4,7 @@
 // Ingestor em js/documents-ingestor.js.
 //
 // Fase: RAVATEX-TAPETES-G11-B-DOCUMENTS-CONSUMER-PATCH
+//       + G12-F2-MAPPED-DOCUMENTS-CONSUMER-PATCH
 // Escopo: valida parser, deduplicacao, consolidacao, filtro, badges.
 //   Nao acessa Supabase, Google/Drive, DOM ou rede.
 //
@@ -17,6 +18,8 @@
 //   - status badges meta: accepted, rejected, pending
 //   - reason preservado em rejected
 //   - drive_web_view_link preservado
+//   - G12-F2: isValidReceivedDocument aceita formato documentos-mapeados.jsonl
+//   - G12-F2: parseReceivedDocumentsJsonl preserva campos extras (mapped)
 //   - sem chamada Supabase
 //   - sem chamada Google/Drive
 // =====================================================================
@@ -650,4 +653,82 @@ test('received: modulo continua sem chamada Supabase/Google/Drive', function () 
   assert.ok(src.indexOf('googleapis') === -1);
   assert.ok(src.indexOf('google-auth') === -1);
   assert.ok(src.indexOf('fetch(') === -1);
+});
+
+// -------------------------------------------------------------------
+// G12-F2: Suporte ao export documentos-mapeados.jsonl
+// (campos extras alem do flat original: schema_version, status,
+//  pedido_manual, received_at, detected_at, linked_at, accepted_at,
+//  rejected_at, rejected_reason). Validador/parser devem aceitar e
+//  preservar todos.
+// -------------------------------------------------------------------
+
+test('G12-F2: isValidReceivedDocument aceita doc no formato documentos-mapeados.jsonl', function () {
+  var RAVATEX_DOCUMENTS = loadModule();
+  var mapped = {
+    schema_version: 1,
+    document_id: 'doc-mapped-1',
+    filename_original: 'NF-001.xml',
+    tipo_documento: 'nf',
+    formato: 'xml',
+    direcao_nf: 'entrada',
+    drive_web_view_link: 'https://drive.google.com/file/d/1/view',
+    status: 'pending',
+    pedido_manual: '',
+    received_at: '2026-07-08T10:00:00.000Z',
+    detected_at: '2026-07-08T09:55:00.000Z',
+    linked_at: null,
+    accepted_at: null,
+    rejected_at: null,
+    rejected_reason: null,
+  };
+  assert.strictEqual(RAVATEX_DOCUMENTS.isValidReceivedDocument(mapped), true,
+    'doc no formato mapeados deve passar no validador');
+});
+
+test('G12-F2: parseReceivedDocumentsJsonl preserva todos os campos do export mapeados', function () {
+  var RAVATEX_DOCUMENTS = loadModule();
+  var mapped = {
+    schema_version: 1,
+    document_id: 'doc-mapped-2',
+    filename_original: 'romaneio.pdf',
+    tipo_documento: 'romaneio',
+    formato: 'pdf',
+    direcao_nf: 'saida',
+    drive_web_view_link: 'https://drive.google.com/file/d/2/view',
+    status: 'assigned',
+    pedido_manual: 'PED-25-2026',
+    received_at: '2026-07-08T11:00:00.000Z',
+    detected_at: '2026-07-08T10:55:00.000Z',
+    linked_at: '2026-07-08T10:58:00.000Z',
+    accepted_at: null,
+    rejected_at: null,
+    rejected_reason: null,
+  };
+  var text = JSON.stringify(mapped);
+  var docs = RAVATEX_DOCUMENTS.parseReceivedDocumentsJsonl(text);
+  assert.strictEqual(docs.length, 1, '1 doc esperado');
+  var parsed = docs[0];
+  assert.strictEqual(parsed.document_id, mapped.document_id);
+  assert.strictEqual(parsed.schema_version, 1, 'schema_version preservado');
+  assert.strictEqual(parsed.status, 'assigned', 'status preservado');
+  assert.strictEqual(parsed.pedido_manual, 'PED-25-2026', 'pedido_manual preservado');
+  assert.strictEqual(parsed.received_at, mapped.received_at, 'received_at preservado');
+  assert.strictEqual(parsed.detected_at, mapped.detected_at, 'detected_at preservado');
+  assert.strictEqual(parsed.linked_at, mapped.linked_at, 'linked_at preservado');
+  assert.strictEqual(parsed.accepted_at, null, 'accepted_at null preservado');
+  assert.strictEqual(parsed.rejected_at, null, 'rejected_at null preservado');
+  assert.strictEqual(parsed.rejected_reason, null, 'rejected_reason null preservado');
+});
+
+test('G12-F2: isValidReceivedDocument ainda exige document_id (rejeita mapeado sem id)', function () {
+  var RAVATEX_DOCUMENTS = loadModule();
+  var mappedSemId = {
+    schema_version: 1,
+    filename_original: 'NF.xml',
+    status: 'pending',
+    received_at: '2026-07-08T10:00:00.000Z',
+  };
+  assert.strictEqual(RAVATEX_DOCUMENTS.isValidReceivedDocument(mappedSemId), false,
+    'sem document_id, mesmo com campos do mapeados, deve falhar');
 });

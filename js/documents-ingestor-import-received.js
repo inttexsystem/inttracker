@@ -1,9 +1,13 @@
 // =====================================================================
 // === js/documents-ingestor-import-received.js =========================
-// UX para importar `documentos-recebidos.jsonl` (formato flat do
-// Ingestor G12-D1). Cria um botao (inline na tela, NAO flutuante)
-// que abre dialogo de arquivo, le via FileReader e chama
-// `loadReceivedDocumentsFromText` do loader dedicado (G12-G1).
+// UX para importar o arquivo JSONL flat exportado pelo Documents
+// Ingestor. Aceita tanto `documentos-recebidos.jsonl` (formato
+// G12-D1) quanto `documentos-mapeados.jsonl` (formato G12-F1 com
+// campos extras: schema_version, status, pedido_manual, received_at,
+// detected_at, linked_at, accepted_at, rejected_at, rejected_reason).
+// Cria um botao (inline na tela, NAO flutuante) que abre dialogo de
+// arquivo, le via FileReader e chama `loadReceivedDocumentsFromText`
+// do loader dedicado (G12-G1).
 //
 // Estado populado: window.RAVATEX_DOCUMENTS_RECEIVED.
 // NAO toca window.RAVATEX_DOCUMENTS_LOADED_EVENTS (estado legado
@@ -33,9 +37,17 @@
 // Separacao do import legado:
 //   - Botao legado (Importar eventos) -> document-events.jsonl
 //     -> RAVATEX_DOCUMENTS_LOADED_EVENTS (Pedido Detail).
-//   - Este botao -> documentos-recebidos.jsonl
-//     -> RAVATEX_DOCUMENTS_RECEIVED (tela global G12-G2).
+//   - Este botao -> documentos-recebidos.jsonl OU documentos-mapeados.jsonl
+//     -> RAVATEX_DOCUMENTS_RECEIVED (tela global G12-G2 + G12-F2).
 //   - Os dois coexistem; cada um escreve em seu proprio estado.
+//
+// Compatibilidade dual (G12-F2):
+//   - documentos-recebidos.jsonl: formato antigo (G12-D1), sem status/pedido_manual.
+//   - documentos-mapeados.jsonl:  formato novo (G12-F1), com schema_version,
+//     status, pedido_manual, received_at, detected_at, linked_at, accepted_at,
+//     rejected_at, rejected_reason.
+//   - O parser/validador do loader preserva todos os campos extras;
+//     a tela faz fallback received_at||created_at e status||'pending'.
 //
 // API exposta:
 //   RAVATEX_DOCUMENTS.createReceivedImportButton(opts) ->
@@ -98,7 +110,7 @@
     fileInput.style.display = 'none';
     fileInput.id = 'rv-docs-received-import-input';
     if (!opts.buttonId) fileInput.id = 'rv-docs-received-import-input';
-    fileInput.setAttribute('aria-label', 'Selecionar documentos-recebidos.jsonl do export global do Documents Ingestor');
+    fileInput.setAttribute('aria-label', 'Selecionar arquivo JSONL de documentos exportados do Documents Ingestor');
 
     var toast = (typeof window.toast === 'function') ? window.toast : function (msg) { console.log(msg); };
 
@@ -112,13 +124,13 @@
         var result = docs.loadReceivedDocumentsFromText(text);
 
         if (result && result.ok) {
-          toast(result.count + ' documento(s) carregado(s) de documentos-recebidos.jsonl. '
+          toast(result.count + ' documento(s) carregado(s). '
             + 'Nada foi persistido.', 'success');
         } else {
           toast(
-            'Arquivo incompativel com documentos-recebidos.jsonl. '
-            + 'Selecione o export global do Documents Ingestor (lista flat, '
-            + '1 documento por linha, com document_id). '
+            'Arquivo incompativel. '
+            + 'Selecione o export do Documents Ingestor '
+            + '(JSONL flat, 1 documento por linha, com document_id). '
             + 'Motivo: ' + ((result && result.error) || 'falha desconhecida.'),
             'error'
           );
@@ -138,9 +150,9 @@
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.id = opts.buttonId || 'rv-docs-received-import-btn';
-    btn.setAttribute('aria-label', 'Selecionar documentos-recebidos.jsonl do export global do Documents Ingestor');
-    btn.title = 'Selecionar documentos-recebidos.jsonl do export global do Documents Ingestor';
-    btn.textContent = 'Importar recebidos';
+    btn.setAttribute('aria-label', 'Selecionar arquivo JSONL de documentos exportados do Documents Ingestor');
+    btn.title = 'Selecionar arquivo JSONL de documentos exportados do Documents Ingestor';
+    btn.textContent = 'Importar documentos';
     btn.style.cssText =
       'background:#18794a;color:#fff;border:none;border-radius:4px;'
       + 'padding:8px 16px;font-size:13px;font-weight:600;'

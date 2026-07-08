@@ -5,6 +5,7 @@
 // `window.RAVATEX_DOCUMENTS_RECEIVED` (loader do G12-G1).
 //
 // Fase: RAVATEX-TAPETES-G12-G2-RECEIVED-DOCUMENTS-GLOBAL-SCREEN
+//       + G12-F2-MAPPED-DOCUMENTS-CONSUMER-PATCH
 // Escopo: valida a fila global de documentos recebidos, separada do
 //   estado do Pedido Detail (RAVATEX_DOCUMENTS_LOADED_EVENTS).
 //
@@ -23,12 +24,15 @@
 //     populado;
 //   - badges de tipo/formato/direcao aparecem para os campos
 //     preenchidos;
-//   - status pill "Pendente" sempre visivel;
+//   - status pill "Pendente" sempre visivel (default + pending);
 //   - botao "Ver" chama window.open com noopener,noreferrer;
 //   - documento sem drive_web_view_link mostra "Sem link";
 //   - NAO le RAVATEX_DOCUMENTS_LOADED_EVENTS (estado legado continua
 //     intocado);
 //   - NAO referencia Supabase, Google/Drive, fetch, localStorage;
+//   - G12-F2: tela usa received_at quando created_at nao existe;
+//   - G12-F2: tela mapeia status (pending/assigned/accepted/rejected);
+//   - G12-F2: tela continua aceitando formato antigo (regressao);
 // =====================================================================
 
 'use strict';
@@ -506,7 +510,7 @@ test('G12-R1: tela contem section data-section="documentos-recebidos-import-acti
   assert.equal(sections.length, 1, 'section de import action presente');
   // Deve estar antes do card de empty state
   var allText = JSON.stringify(findAll(result, () => true).map(textOf));
-  var importIdx = allText.indexOf('Importar recebidos');
+  var importIdx = allText.indexOf('Importar documentos');
   var emptyIdx = allText.indexOf('Nenhum documento recebido');
   assert.ok(importIdx >= 0 && emptyIdx >= 0, 'ambos textos presentes');
   assert.ok(importIdx < emptyIdx, 'botao inline vem antes do empty state');
@@ -622,4 +626,208 @@ test('G12-R1: empty state instrui a usar o botao acima', function () {
   const allText = JSON.stringify(findAll(result, () => true).map(textOf));
   assert.ok(allText.indexOf('Use o botao acima para carregar') >= 0,
     'empty state instrui a usar botao acima');
+});
+
+// ---------------------------------------------------------------------
+// 9. G12-F2: suporte ao export documentos-mapeados.jsonl
+//    A tela usa received_at como data principal, com fallback para
+//    created_at, e mapeia status para labels operacionais.
+// ---------------------------------------------------------------------
+
+test('G12-F2: tela usa received_at quando created_at nao existe', function () {
+  const sb = makeScreenSandbox([
+    {
+      document_id: 'doc-mapped-date',
+      filename_original: 'NF-001.xml',
+      tipo_documento: 'nf',
+      formato: 'xml',
+      direcao_nf: 'entrada',
+      drive_web_view_link: 'https://drive/x',
+      received_at: '2026-07-08T10:30:00.000Z',
+      // sem created_at
+    },
+  ]);
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const row = findAll(result, findRow)[0];
+  const rowText = textOf(row);
+  // Recebido em formatado dd/mm HH:MM
+  assert.ok(/\d{2}\/\d{2}\s+\d{2}:\d{2}/.test(rowText),
+    'Recebido em formatado a partir de received_at: ' + rowText);
+});
+
+test('G12-F2: tela prioriza received_at quando created_at tambem existe', function () {
+  // received_at e 30min depois de created_at. A tela deve usar received_at.
+  // O fuso local do runner pode variar (UTC-3 tipico), entao calculamos
+  // o offset dinamicamente para que o teste seja deterministico.
+  const sampleIso = '2026-07-08T10:30:00.000Z';
+  const localHHMM = (function () {
+    const d = new Date(sampleIso);
+    const pad = function (n) { return String(n).padStart(2, '0'); };
+    return pad(d.getHours()) + ':' + pad(d.getMinutes());
+  })();
+  const sb = makeScreenSandbox([
+    {
+      document_id: 'doc-both-dates',
+      filename_original: 'NF-001.xml',
+      tipo_documento: 'nf',
+      formato: 'xml',
+      drive_web_view_link: 'https://drive/x',
+      received_at: sampleIso,
+      created_at: '2026-07-08T10:00:00.000Z',
+    },
+  ]);
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const row = findAll(result, findRow)[0];
+  const recebidoEm = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'recebido-em')[0];
+  assert.ok(recebidoEm, 'celula recebido-em existe');
+  // received_at aparece (offset local), created_at NAO aparece
+  assert.ok(textOf(recebidoEm).indexOf(localHHMM) >= 0,
+    'celula deve usar received_at (' + localHHMM + '), nao created_at: ' + textOf(recebidoEm));
+});
+
+test('G12-F2: tela mostra status:pending como Pendente', function () {
+  const sb = makeScreenSandbox([
+    {
+      document_id: 'doc-pending',
+      filename_original: 'NF-001.xml',
+      tipo_documento: 'nf',
+      formato: 'xml',
+      drive_web_view_link: 'https://drive/x',
+      status: 'pending',
+    },
+  ]);
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const row = findAll(result, findRow)[0];
+  const statusPill = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'status')[0];
+  assert.ok(statusPill, 'pill de status existe');
+  assert.equal(textOf(statusPill), 'Pendente', 'label Pendente');
+  assert.equal(statusPill._attrs['data-status'], 'pending', 'data-status=pending');
+});
+
+test('G12-F2: tela mostra status:assigned como Atrelado', function () {
+  const sb = makeScreenSandbox([
+    {
+      document_id: 'doc-assigned',
+      filename_original: 'NF-001.xml',
+      tipo_documento: 'nf',
+      formato: 'xml',
+      drive_web_view_link: 'https://drive/x',
+      status: 'assigned',
+      pedido_manual: 'PED-25-2026',
+    },
+  ]);
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const row = findAll(result, findRow)[0];
+  const statusPill = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'status')[0];
+  assert.ok(statusPill, 'pill de status existe');
+  assert.equal(textOf(statusPill), 'Atrelado', 'label Atrelado');
+  assert.equal(statusPill._attrs['data-status'], 'assigned', 'data-status=assigned');
+});
+
+test('G12-F2: tela mostra status:accepted como Aceito', function () {
+  const sb = makeScreenSandbox([
+    {
+      document_id: 'doc-accepted',
+      filename_original: 'NF-001.xml',
+      tipo_documento: 'nf',
+      formato: 'xml',
+      drive_web_view_link: 'https://drive/x',
+      status: 'accepted',
+    },
+  ]);
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const row = findAll(result, findRow)[0];
+  const statusPill = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'status')[0];
+  assert.ok(statusPill, 'pill de status existe');
+  assert.equal(textOf(statusPill), 'Aceito', 'label Aceito');
+  assert.equal(statusPill._attrs['data-status'], 'accepted', 'data-status=accepted');
+});
+
+test('G12-F2: tela mostra status:rejected como Rejeitado', function () {
+  const sb = makeScreenSandbox([
+    {
+      document_id: 'doc-rejected',
+      filename_original: 'NF-001.xml',
+      tipo_documento: 'nf',
+      formato: 'xml',
+      drive_web_view_link: 'https://drive/x',
+      status: 'rejected',
+    },
+  ]);
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const row = findAll(result, findRow)[0];
+  const statusPill = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'status')[0];
+  assert.ok(statusPill, 'pill de status existe');
+  assert.equal(textOf(statusPill), 'Rejeitado', 'label Rejeitado');
+  assert.equal(statusPill._attrs['data-status'], 'rejected', 'data-status=rejected');
+});
+
+test('G12-F2: status desconhecido cai para Pendente (fallback seguro)', function () {
+  const sb = makeScreenSandbox([
+    {
+      document_id: 'doc-bogus',
+      filename_original: 'NF-001.xml',
+      tipo_documento: 'nf',
+      formato: 'xml',
+      drive_web_view_link: 'https://drive/x',
+      status: 'valor-desconhecido',
+    },
+  ]);
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const row = findAll(result, findRow)[0];
+  const statusPill = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'status')[0];
+  assert.ok(statusPill, 'pill de status existe mesmo com status invalido');
+  assert.equal(textOf(statusPill), 'Pendente', 'fallback Pendente para status invalido');
+});
+
+test('G12-F2: tela continua aceitando formato antigo (sem status, sem received_at)', function () {
+  // Regressao: o formato documentos-recebidos.jsonl antigo nao tinha
+  // status nem received_at. A tela deve continuar renderizando sem
+  // quebrar.
+  const sb = makeScreenSandbox([
+    {
+      document_id: 'doc-legacy-1',
+      filename_original: 'NF-001.xml',
+      tipo_documento: 'nf',
+      formato: 'xml',
+      direcao_nf: 'entrada',
+      drive_web_view_link: 'https://drive/x',
+      created_at: '2026-07-07T12:00:00.000Z',
+    },
+  ]);
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const row = findAll(result, findRow)[0];
+  assert.ok(row, 'row do formato antigo renderiza');
+  const statusPill = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'status')[0];
+  assert.equal(textOf(statusPill), 'Pendente', 'status padrao sem status field');
+  const recebidoEm = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'recebido-em')[0];
+  assert.ok(textOf(recebidoEm).length > 0, 'data formatada a partir de created_at');
+});
+
+test('G12-F2: header do screen menciona compatibilidade com ambos exports', function () {
+  const sb = makeScreenSandbox([]);
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const allText = JSON.stringify(findAll(result, () => true).map(textOf));
+  assert.ok(allText.indexOf('documentos-recebidos.jsonl') >= 0,
+    'header menciona o formato antigo: ' + allText.slice(0, 400));
+  assert.ok(allText.indexOf('documentos-mapeados.jsonl') >= 0,
+    'header menciona o formato novo (G12-F1): ' + allText.slice(0, 400));
 });

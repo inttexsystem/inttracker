@@ -1,4 +1,77 @@
 > **Atualizacao 2026-07-08 - fase
+> `RAVATEX-TAPETES-G12-F2-MAPPED-DOCUMENTS-CONSUMER-PATCH`.**
+> Status: **PRONTO — SUPORTE A documentos-mapeados.jsonl NO CONTROLE**.
+> Entrada: branch `work/app-next`, HEAD `30f0a82`.
+>
+> Escopo:
+> - `js/documents-ingestor-import-received.js`: copy de import
+>   reescrita para aceitar ambos os exports do Ingestor
+>   (documentos-recebidos.jsonl OU documentos-mapeados.jsonl).
+>   - Botao: `Importar documentos` (generico).
+>   - title/aria-label: `Selecionar arquivo JSONL de documentos
+>     exportados do Documents Ingestor`.
+>   - toast sucesso: `N documento(s) carregado(s). Nada foi persistido.`
+>   - toast erro: `Arquivo incompativel. Selecione o export do
+>     Documents Ingestor (JSONL flat, 1 documento por linha, com
+>     document_id). Motivo: <erro>.`
+>   - NAO chama o nome de um arquivo especifico: copy NAO induz o
+>     operador a procurar apenas o export antigo.
+> - `js/screens/documentos-recebidos.js`:
+>   - Data: `received_at || created_at` (prioriza o campo novo do
+>     mapeados; fallback para o campo antigo do recebidos).
+>   - Status: lido de `doc.status` com mapeamento operacional:
+>     - `pending`   -> `Pendente`
+>     - `assigned`  -> `Atrelado` (azul)
+>     - `accepted`  -> `Aceito` (verde)
+>     - `rejected`  -> `Rejeitado` (vermelho)
+>     - ausente / desconhecido -> `Pendente` (fallback seguro).
+>   - Pill de status agora expoe `data-status` para inspecao automatica.
+>   - Header e empty state mencionam ambos os exports aceitos.
+>   - **Sem** alteracao em `documents-ingestor.js` ou
+>     `documents-ingestor-loader.js`: parser/loader ja eram
+>     tolerantes a campos extras e preservavam o objeto como veio
+>     do JSONL.
+>
+> Compatibilidade:
+> - `documentos-recebidos.jsonl` (G12-D1, antigo, sem status /
+>   received_at): continua aceito, renderiza com fallback Pendente
+>   e data via created_at.
+> - `documentos-mapeados.jsonl` (G12-F1, com schema_version, status,
+>   pedido_manual, received_at, detected_at, linked_at, accepted_at,
+>   rejected_at, rejected_reason): aceito, campos extras preservados
+>   no estado, status e data exibidos via fallbacks da tela.
+>
+> Garantias:
+> - Pedido Detail NAO tocado: continua consumindo apenas
+>   `RAVATEX_DOCUMENTS_LOADED_EVENTS`.
+> - Estado unico: `window.RAVATEX_DOCUMENTS_RECEIVED` (sem
+>   `RAVATEX_DOCUMENTS_MAPPED`).
+> - Sem Supabase, sem Google/Drive real, sem persistencia,
+>   sem auto-load, sem watcher.
+> - Sem alteracao no repo Documents Ingestor.
+> - Sem associacao documento -> Pedido.
+>
+> Testes:
+> - `documents-ingestor.test.js`: +3 casos G12-F2 (isValid + parse
+>   aceita mapeados, parse preserva campos extras, ainda exige
+>   document_id).
+> - `documents-ingestor-loader.test.js`: +4 casos G12-F2 (loader
+>   aceita mapeados, preserva campos extras em RECEIVED, aceita
+>   antigo (regressao), dedup funciona com misto).
+> - `documentos-recebidos.smoke.js`: +8 casos G12-F2 (received_at,
+>   prioridade received_at > created_at, status pending/assigned/
+>   accepted/rejected, status desconhecido -> Pendente, formato
+>   antigo continua OK, header menciona ambos).
+> - `documents-ingestor-import-received.test.js`: 4 casos reescritos
+>   para a nova copy (title/aria genericos, toast sem nome de
+>   arquivo, erro generico).
+> - Total novo: +15 casos, sem regressao.
+>
+> Proximo: nenhum (escopo de suporte a mapped documents consumer
+> esta fechado). Aguardar export real do Ingestor G12-F1 ou
+> evolucoes no Ingestor.
+
+> **Atualizacao 2026-07-08 - fase
 > `RAVATEX-TAPETES-G12-R1-DOCUMENTOS-REAL-BROWSER-FIX`.**
 > Status: **PRONTO — UX: BOTAO INLINE + TEXTO EXPLICITO**.
 > Entrada: branch `work/app-next`, HEAD `2c7f72f`.

@@ -4,6 +4,7 @@
 // js/documents-ingestor-loader.js.
 //
 // Fase: RAVATEX-TAPETES-G11-D-DOCUMENTS-LOCAL-LOADER
+//       + G12-F2-MAPPED-DOCUMENTS-CONSUMER-PATCH
 // Escopo: valida funcoes de carga, seguranca e integracao com o
 //   view model do Pedido Detail.
 //
@@ -17,6 +18,10 @@
 //   - nao chama Google/Drive
 //   - view model renderiza docs apos loader popular a global
 //   - sem regressao nos testes G11-B/G11-C
+//   - G12-F2: loadReceivedDocumentsFromText preserva campos extras
+//     de documentos-mapeados.jsonl em RAVATEX_DOCUMENTS_RECEIVED
+//   - G12-F2: loadReceivedDocumentsFromText aceita formato antigo
+//     documentos-recebidos.jsonl (regressao)
 // =====================================================================
 
 const test = require('node:test');
@@ -852,4 +857,146 @@ test('received-loader: integracao com Pedido Detail NAO quebra', function () {
   // Documentos recebidos NAO vazam para o Pedido Detail
   assert.ok(!('receivedDocumentRows' in view),
     'Pedido Detail NAO deve ter coluna de received');
+});
+
+// =====================================================================
+// Bloco G12-F2: Suporte a documentos-mapeados.jsonl
+// O export G12-F1 traz campos alem dos do documentos-recebidos.jsonl
+// (schema_version, status, pedido_manual, received_at, detected_at,
+//  linked_at, accepted_at, rejected_at, rejected_reason).
+// O loader deve aceitar e preservar todos esses campos extras
+// em window.RAVATEX_DOCUMENTS_RECEIVED, sem alterar o estado
+// legado do Pedido Detail.
+// =====================================================================
+
+const MAPPED_JSONL = [
+  JSON.stringify({
+    schema_version: 1,
+    document_id: 'doc-mapped-1',
+    filename_original: 'NF-001.xml',
+    tipo_documento: 'nf',
+    formato: 'xml',
+    direcao_nf: 'entrada',
+    drive_file_id: 'drive-m1',
+    drive_web_view_link: 'https://drive.google.com/file/d/m1/view',
+    status: 'pending',
+    pedido_manual: '',
+    received_at: '2026-07-08T10:00:00.000Z',
+    detected_at: '2026-07-08T09:55:00.000Z',
+    linked_at: null,
+    accepted_at: null,
+    rejected_at: null,
+    rejected_reason: null,
+    created_at: '2026-07-08T10:00:00.000Z',
+  }),
+  JSON.stringify({
+    schema_version: 1,
+    document_id: 'doc-mapped-2',
+    filename_original: 'romaneio.pdf',
+    tipo_documento: 'romaneio',
+    formato: 'pdf',
+    direcao_nf: 'saida',
+    drive_file_id: 'drive-m2',
+    drive_web_view_link: 'https://drive.google.com/file/d/m2/view',
+    status: 'assigned',
+    pedido_manual: 'PED-25-2026',
+    received_at: '2026-07-08T11:00:00.000Z',
+    detected_at: '2026-07-08T10:55:00.000Z',
+    linked_at: '2026-07-08T10:58:00.000Z',
+    accepted_at: null,
+    rejected_at: null,
+    rejected_reason: null,
+    created_at: '2026-07-08T11:00:00.000Z',
+  }),
+  JSON.stringify({
+    schema_version: 1,
+    document_id: 'doc-mapped-3',
+    filename_original: 'NF-002.pdf',
+    tipo_documento: 'nf',
+    formato: 'pdf',
+    direcao_nf: 'entrada',
+    drive_file_id: 'drive-m3',
+    drive_web_view_link: 'https://drive.google.com/file/d/m3/view',
+    status: 'rejected',
+    pedido_manual: '',
+    received_at: '2026-07-08T12:00:00.000Z',
+    detected_at: '2026-07-08T11:55:00.000Z',
+    linked_at: null,
+    accepted_at: null,
+    rejected_at: '2026-07-08T12:05:00.000Z',
+    rejected_reason: 'formato invalido',
+    created_at: '2026-07-08T12:00:00.000Z',
+  }),
+].join('\n');
+
+test('G12-F2: loadReceivedDocumentsFromText aceita formato documentos-mapeados.jsonl', function () {
+  var sandbox = makeLoaderSandbox();
+  var ns = sandbox.window.RAVATEX_DOCUMENTS;
+  var result = ns.loadReceivedDocumentsFromText(MAPPED_JSONL);
+  assert.equal(result.ok, true);
+  assert.equal(result.count, 3, '3 documentos mapeados aceitos');
+});
+
+test('G12-F2: loader preserva campos extras (schema_version, status, received_at...) em RECEIVED', function () {
+  var sandbox = makeLoaderSandbox();
+  var ns = sandbox.window.RAVATEX_DOCUMENTS;
+  ns.loadReceivedDocumentsFromText(MAPPED_JSONL);
+  var received = sandbox.window.RAVATEX_DOCUMENTS_RECEIVED;
+  assert.equal(received.length, 3);
+  // Campos extras do export mapeados estao preservados nos objetos
+  var d1 = received[0];
+  assert.equal(d1.schema_version, 1, 'schema_version preservado');
+  assert.equal(d1.status, 'pending', 'status preservado');
+  assert.equal(d1.received_at, '2026-07-08T10:00:00.000Z', 'received_at preservado');
+  assert.equal(d1.detected_at, '2026-07-08T09:55:00.000Z', 'detected_at preservado');
+  assert.equal(d1.linked_at, null, 'linked_at null preservado');
+  assert.equal(d1.rejected_reason, null, 'rejected_reason null preservado');
+  var d2 = received[1];
+  assert.equal(d2.status, 'assigned', 'status assigned preservado');
+  assert.equal(d2.pedido_manual, 'PED-25-2026', 'pedido_manual preenchido preservado');
+  var d3 = received[2];
+  assert.equal(d3.status, 'rejected', 'status rejected preservado');
+  assert.equal(d3.rejected_reason, 'formato invalido', 'rejected_reason preservado');
+  assert.equal(d3.rejected_at, '2026-07-08T12:05:00.000Z', 'rejected_at preservado');
+});
+
+test('G12-F2: loader aceita formato antigo documentos-recebidos.jsonl (regressao)', function () {
+  // Sem schema_version, status, received_at, etc.
+  // O parser/loader deve continuar aceitando (regressao).
+  var sandbox = makeLoaderSandbox();
+  var ns = sandbox.window.RAVATEX_DOCUMENTS;
+  var result = ns.loadReceivedDocumentsFromText(RECEIVED_JSONL);
+  assert.equal(result.ok, true);
+  assert.equal(result.count, 3, '3 docs do formato antigo aceitos');
+  var received = sandbox.window.RAVATEX_DOCUMENTS_RECEIVED;
+  // Campos do mapeados ficam undefined (ausentes) no formato antigo
+  assert.equal(received[0].status, undefined, 'status ausente no formato antigo');
+  assert.equal(received[0].schema_version, undefined, 'schema_version ausente no formato antigo');
+  assert.equal(received[0].received_at, undefined, 'received_at ausente no formato antigo');
+  // Mas os campos do flat original estao intactos
+  assert.equal(received[0].document_id, 'doc-rcv-1');
+  assert.equal(received[0].filename_original, 'NF-001.xml');
+  assert.equal(received[0].created_at, '2026-07-07T12:00:00.000Z');
+});
+
+test('G12-F2: loader dedup continua funcionando com mapped + legacy misturados', function () {
+  var sandbox = makeLoaderSandbox();
+  var ns = sandbox.window.RAVATEX_DOCUMENTS;
+  // Doc do mapeados (doc-mapped-1) + mesmo document_id no formato antigo
+  // nao devem duplicar. Cria um legacy com mesmo document_id.
+  var legacyComMesmoId = JSON.stringify({
+    document_id: 'doc-mapped-1',
+    filename_original: 'NF-001.xml',
+    tipo_documento: 'nf',
+    formato: 'xml',
+    created_at: '2026-07-07T12:00:00.000Z',
+  });
+  var mixed = MAPPED_JSONL + '\n' + legacyComMesmoId;
+  var result = ns.loadReceivedDocumentsFromText(mixed);
+  assert.equal(result.ok, true);
+  assert.equal(result.count, 3, 'dedup por document_id funciona entre formatos (3 unicos, 4 linhas)');
+  // O primeiro doc e o do mapeados (preservado como veio)
+  assert.equal(sandbox.window.RAVATEX_DOCUMENTS_RECEIVED[0].document_id, 'doc-mapped-1');
+  assert.equal(sandbox.window.RAVATEX_DOCUMENTS_RECEIVED[0].status, 'pending',
+    'doc do mapeados preserva campos extras no dedup');
 });

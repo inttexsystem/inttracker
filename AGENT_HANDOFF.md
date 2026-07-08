@@ -1,4 +1,51 @@
-﻿# Estado pos-fase - Received Documents Real Browser Fix (G12-R1)
+﻿# Estado pos-fase - Mapped Documents Consumer Patch (G12-F2)
+
+- Fase: `RAVATEX-TAPETES-G12-F2-MAPPED-DOCUMENTS-CONSUMER-PATCH`.
+- Status: **PRONTO**.
+- Branch/HEAD base: `work/app-next`, `30f0a82`.
+- Escopo (UX copy + field fallbacks no consumidor Controle):
+  - `js/documents-ingestor-import-received.js`:
+    copy reescrita (botao `Importar documentos`, title/aria
+    genericos, toasts sem citar arquivo especifico). Loader
+    chamado continua sendo `loadReceivedDocumentsFromText` —
+    sem mudanca de contrato.
+  - `js/screens/documentos-recebidos.js`:
+    - `received_at || created_at` para coluna "Recebido em".
+    - `doc.status` lido e mapeado (pending/assigned/accepted/
+      rejected) com fallback seguro para "Pendente".
+    - Pill de status expoe `data-status` para inspecao.
+    - Header e empty state mencionam ambos os exports aceitos.
+- Sem alteracao em `js/documents-ingestor.js` e
+  `js/documents-ingestor-loader.js`: parser/loader ja eram
+  tolerantes a campos extras. O objeto de cada linha do JSONL
+  e preservado como vem do export.
+- Estado unico: `window.RAVATEX_DOCUMENTS_RECEIVED` (sem
+  `RAVATEX_DOCUMENTS_MAPPED`).
+- Compatibilidade:
+  - `documentos-recebidos.jsonl` (antigo, G12-D1): aceito.
+    Data via `created_at`, status via fallback `Pendente`.
+  - `documentos-mapeados.jsonl` (novo, G12-F1): aceito.
+    Data via `received_at`, status lido e mapeado, campos
+    extras (schema_version, pedido_manual, detected_at,
+    linked_at, accepted_at, rejected_at, rejected_reason)
+    preservados em `RAVATEX_DOCUMENTS_RECEIVED` para uso
+    futuro pela tela.
+- Garantias:
+  - Pedido Detail NAO tocado: continua consumindo
+    `RAVATEX_DOCUMENTS_LOADED_EVENTS`.
+  - Sem Supabase, sem Google/Drive, sem persistencia,
+    sem auto-load, sem watcher, sem export real, sem
+    chamada Gmail/Drive.
+  - Sem associacao documento -> Pedido.
+  - Sem alteracao no repo Documents Ingestor.
+  - `RAVATEX_ENABLE_FLOATING_RECEIVED_IMPORT` continua
+    opcional (default off) e NAO e alterada.
+- Testes: 4 suites atualizadas, +15 casos novos, sem
+  regressao nos suites G12-G1/G12-G2/G12-R1.
+- Proximo: aguardar export real do Ingestor G12-F1
+  (fora do escopo do Controle).
+
+# Estado pos-fase - Received Documents Real Browser Fix (G12-R1)
 
 - Fase: `RAVATEX-TAPETES-G12-R1-DOCUMENTOS-REAL-BROWSER-FIX`.
 - Status: **PRONTO**.
