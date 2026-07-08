@@ -1,4 +1,71 @@
-﻿# Estado pos-fase - Received Documents Import Button (G12-G3)
+﻿# Estado pos-fase - Received Documents Browser Closeout (G12)
+
+- Fase: `RAVATEX-TAPETES-G12-RECEIVED-DOCUMENTS-BROWSER-CLOSEOUT`.
+- Status: **FECHADO**.
+- Branch/HEAD base: `work/app-next`, `bfc36c2`.
+- HEAD final: `(commit g12-close)`.
+
+Trilha G12 completa:
+- G12-G1 `8fc2568` — `documents-ingestor.js` +
+  `documents-ingestor-loader.js` com parser/loader para o
+  formato flat `documentos-recebidos.jsonl`.
+  Estado: `window.RAVATEX_DOCUMENTS_RECEIVED`.
+- G12-G2 `d1486ae` — `js/screens/documentos-recebidos.js`
+  (tela admin `#/documentos/recebidos`), rota e item de menu.
+- G12-G3 `bfc36c2` —
+  `js/documents-ingestor-import-received.js` (botao dedicado
+  "Importar recebidos" verde, ao lado do legado azul
+  "Importar eventos").
+
+Validacao browser (scripts/staging/g12-browser-validation.mjs):
+- 33 checks, todos OK, exit 0.
+- Console probes: `APP_ENV = 'staging'`,
+  `CURRENT_USER.tipo = 'admin'`, ambos arrays globais
+  inicializados, ambos loaders como funcao,
+  `screenDocumentosRecebidos` como funcao.
+- Ambos botoes de import presentes, distinguiveis
+  (azul #2563eb legado vs verde #18794a novo,
+  labels distintos: "Importar eventos" vs
+  "Importar recebidos").
+- Import legado (document-events.jsonl) popula
+  `RAVATEX_DOCUMENTS_LOADED_EVENTS` com 7 eventos,
+  toast menciona "document-events.jsonl", NAO
+  afeta `RAVATEX_DOCUMENTS_RECEIVED`.
+- Import novo (documentos-recebidos.jsonl) popula
+  `RAVATEX_DOCUMENTS_RECEIVED` com 3 docs,
+  toast menciona "documentos-recebidos.jsonl +
+  Documentos + Nada foi persistido", NAO afeta
+  `RAVATEX_DOCUMENTS_LOADED_EVENTS`.
+- Tela Documentos renderiza 3 rows com 1 botao Ver
+  (doc-rcv-1 com drive_web_view_link), 2 placeholders
+  Sem link (doc-rcv-2 e doc-rcv-3-no-link), badges
+  (NF, XML, Entrada, Pendente), shellLayout.
+- Pedido Detail continua consumindo apenas
+  `RAVATEX_DOCUMENTS_LOADED_EVENTS`: 3 docs / 7 eventos
+  timeline. Nao tem coluna `receivedDocumentRows`.
+  Ambos os arrays permanecem intactos apos o Pedido Detail
+  ser exercitado.
+
+Testes: 427/427 focado (parser + loader + 2 import UIs +
+tela + pedido-detail + router), 0 regressao.
+
+Riscos remanescentes:
+- 8 falhas pre-existentes em screens-common.smoke.js
+  (inline-script patterns extraidos em fases anteriores).
+  Fora de escopo desta fase, mantido como decisao
+  consciente.
+- O export do Ingestor pode mudar formato no futuro;
+  a validacao `isValidReceivedDocument` precisaria
+  ser ampliada. Hoje e tolerante.
+
+Proximo passo: encerramento da trilha G12 (nenhuma
+nova fase obrigatoria). Possiveis evolucoes
+opcionais em G12-H:
+- Validacao browser real via puppeteer/playwright.
+- Re-exportar validacoes do sandbox para `.smoke.js`
+  se o operador preferir rodar via `node --test`.
+
+# Estado pos-fase - Received Documents Import Button (G12-G3)
 
 - Fase: `RAVATEX-TAPETES-G12-G3-RECEIVED-DOCUMENTS-IMPORT-BUTTON`.
 - Status: **PRONTO**.

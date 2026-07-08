@@ -1,4 +1,48 @@
 > **Atualizacao 2026-07-08 - fase
+> `RAVATEX-TAPETES-G12-RECEIVED-DOCUMENTS-BROWSER-CLOSEOUT`.**
+> Status: **FECHADO — VALIDACAO BROWSER + CLOSEOUT**.
+> Entrada: branch `work/app-next`, HEAD `bfc36c2`.
+>
+> Validacao browser:
+> - Ambiente: staging simulado em vm.Context com mesmos
+>   modulos e ordem de script tag de index.html.
+> - Usuario: `CURRENT_USER.tipo = 'admin'`,
+>   `RAVATEX_ENABLE_DOCUMENTS_IMPORT_UI = true`.
+> - Script: `scripts/staging/g12-browser-validation.mjs`
+>   (33 checks, todos OK).
+>
+> Evidencia (saida do script):
+> ```
+> [ OK ] console probes: APP_ENV, CURRENT_USER, ambos arrays
+>       globais, ambos loaders, screenDocumentosRecebidos.
+> [ OK ] ambos botoes de import presentes, distinguiveis
+>       (azul #2563eb vs verde #18794a, labels distintos).
+> [ OK ] import legado: 7 eventos -> LOADED_EVENTS,
+>       toast "document-events.jsonl",
+>       RECEIVED NAO afetado.
+> [ OK ] import novo: 3 docs -> RECEIVED,
+>       toast "documentos-recebidos.jsonl + Documentos + Nada foi persistido",
+>       LOADED_EVENTS preservado.
+> [ OK ] tela Documentos: 3 rows, 1 botao Ver, 2 placeholders
+>       Sem link, badges (NF, XML, Entrada, Pendente), shellLayout.
+> [ OK ] Pedido Detail: LOADED_EVENTS reconhecido,
+>       3 docs / 7 eventos timeline, sem receivedDocumentRows,
+>       LOADED_EVENTS + RECEIVED preservados apos Pedido Detail.
+> ```
+>
+> Trilha G12 fechada:
+> - G12-G1 `8fc2568` — parser + loader
+> - G12-G2 `d1486ae` — tela global + rota + menu
+> - G12-G3 `bfc36c2` — botao dedicado de import
+> - G12-CLOSE — validacao browser + closeout
+>
+> Testes: 427/427 focado (7 suites), 33/33 browser,
+> 0 regressao nos suites cobertos.
+>
+> Proximo: G12-H (opcional, se houver proximo escopo) ou
+> encerramento da trilha G12.
+
+> **Atualizacao 2026-07-08 - fase
 > `RAVATEX-TAPETES-G12-G3-RECEIVED-DOCUMENTS-IMPORT-BUTTON`.**
 > Status: **PRONTO — BOTAO DEDICADO DE IMPORT**.
 > Entrada: branch `work/app-next`, HEAD `d1486ae`.
