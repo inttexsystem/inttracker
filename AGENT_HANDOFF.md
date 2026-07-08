@@ -1,4 +1,35 @@
-﻿# Estado pos-fase - Documents Import Admin Surface Guard
+﻿# Estado pos-fase - Documents Manual Import UX Closeout
+
+- Fase: `RAVATEX-TAPETES-G11-E-DOCUMENTS-MANUAL-IMPORT-UX-CLOSEOUT`.
+- Status: **FECHADO — VALIDACAO MANUAL CONCLUIDA**.
+- Branch/HEAD: `work/app-next`, `888cf47`.
+- Push staging: `1ae3384..888cf47` → `staging/work/app-next`.
+
+Validacao manual staging:
+- Fixture `document-events-pedido-02.jsonl` (nao
+  commitada).
+- Pedido #2: seção DOCUMENTOS RECEBIDOS (INGESTOR)
+  renderizada com 3 docs, badges, timeline, botao Ver.
+- Links Drive sinteticos (Google mostra "arquivo nao
+  existe" — esperado).
+- Estado nao persistiu apos reload.
+- Botao "Importar docs" restrito a admin/dev (APP_ENV +
+  CURRENT_USER.tipo + flag).
+
+Matching: exato `PED-{numeroPad2}-{ano}` canonico;
+fallback prefixo so com chave unica; multi-ano bloqueado.
+
+Visibilidade: APP_ENV !== 'production' E
+(CURRENT_USER.tipo === 'admin' OU flag).
+
+Bloco G11 completo (B + C + D-R1 + E + R1 + R2 + R3 +
+R3-R1 + closeout). Sem Supabase, Drive real, export real,
+Documents Ingestor, PDF/XML, persistencia.
+Origin/producao intocados.
+
+Proximo: integracao com export:package real ou watcher.
+
+# Estado pos-fase - Documents Import Admin Surface Guard
 
 - Fase: `RAVATEX-TAPETES-G11-E-R2-DOCUMENTS-IMPORT-ADMIN-SURFACE-GUARD`.
 - Status: **PRONTO — SUPERFICIE RESTRITA A ADMIN/DEV**.

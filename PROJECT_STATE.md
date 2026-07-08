@@ -1,5 +1,78 @@
 > **Atualizacao 2026-07-08 - fase
-> `RAVATEX-TAPETES-G11-E-R2-DOCUMENTS-IMPORT-ADMIN-SURFACE-GUARD`.**
+> `RAVATEX-TAPETES-G11-E-DOCUMENTS-MANUAL-IMPORT-UX-CLOSEOUT`.**
+> Status: **FECHADO — VALIDACAO MANUAL CONCLUIDA**.
+> Entrada: branch `work/app-next`, HEAD base
+> `888cf47`; `origin` e producao intocados. Escrita
+> permitida em `staging/work/app-next`.
+>
+> Fases concluidas no bloco G11-E:
+>
+> | Fase | Commit | Descricao |
+> |------|--------|-----------|
+> | G11-E | `56eb5a6` | UX manual de import (file input + FileReader) |
+> | G11-E-R1 | `318d51b` | Scope guard: APP_ENV gate |
+> | G11-E-R2 | `1ae3384` | Admin surface guard: role + flag |
+> | G11-E-R3 | `975cb75` | Prefix fallback fix (year mismatch) |
+> | G11-E-R3-R1 | `888cf47` | Unique-key fallback (multi-ano seguro) |
+>
+> Validacao manual em staging:
+> - Fixture local: `data/fixtures/document-events-pedido-02.jsonl`
+>   (nao commitada, descartavel).
+> - Pedido #2 exibiu seção DOCUMENTOS RECEBIDOS (INGESTOR)
+>   com 3 documentos consolidados:
+>   * NF-3201-entrada.xml — status Aceito
+>   * NF-4815-saida.pdf — status Rejeitado com reason
+>   * Romaneio-Entrega-9210.pdf — status Pendente
+> - Timeline de 7 eventos renderizada com dots e labels.
+> - Botao "Ver" abriu nova aba para drive_web_view_link
+>   (links sinteticos — Google Drive exibiu "arquivo nao
+>   existe", esperado para fixture).
+> - Estado nao persistiu apos reload.
+> - Botao "Importar docs" nao visivel para cliente/
+>   fornecedor (validado).
+>
+> Regras de matching consolidadas:
+> 1. Match exato `PED-{numeroPad2}-{ano}` — canonico.
+> 2. Fallback prefixo com chave unica distinta.
+> 3. Conflito multi-ano nao vincula automaticamente.
+>
+> Regras de visibilidade do botao de import:
+> - `APP_ENV !== 'production'`
+> - `CURRENT_USER.tipo === 'admin'` OU
+>   `RAVATEX_ENABLE_DOCUMENTS_IMPORT_UI === true`
+> - Poll 200 ms ate ~10 s para aguardar login.
+>
+> Arquivos alterados:
+> `PROJECT_STATE.md`, `AGENT_HANDOFF.md` (docs-only).
+>
+> Garantias finais do bloco G11:
+> - Sem Supabase.
+> - Sem Google/Drive real.
+> - Sem export real.
+> - Sem alteracao no repo Documents Ingestor.
+> - Sem PDF/XML armazenado.
+> - Sem persistencia.
+> - Sem watcher.
+> - `.claude/`, `supabase/.temp/` e fixture local
+>   fora do commit.
+> - Origin/producao intocados.
+>
+> Riscos remanescentes:
+> 1. Fixture `pedido-02.jsonl` e descartavel — usar
+>    fixture apropriada para cada pedido testado.
+> 2. Poll de `CURRENT_USER` tem timeout de ~10 s;
+>    em redes lentas, botao pode nao aparecer.
+> 3. Links Drive sinteticos nao abrem documentos reais
+>    (esperado; so o export package real tera links
+>    validos).
+>
+> Proxima fase recomendada:
+> Integracao com export:package real do Documents
+> Ingestor (com links Drive validos) e/ou watcher
+> automatizado de outbox.
+>
+> > **Atualizacao 2026-07-08 - fase
+> > `RAVATEX-TAPETES-G11-E-R2-DOCUMENTS-IMPORT-ADMIN-SURFACE-GUARD`.**
 > Status: **PRONTO — SUPERFICIE RESTRITA A ADMIN/DEV**.
 > Entrada: branch `work/app-next`, HEAD base
 > `318d51b`; `origin` somente leitura.
