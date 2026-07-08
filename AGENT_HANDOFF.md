@@ -3,7 +3,7 @@
 ## Branch/HEAD/Status
 ### documentos-ingestor (este repositório)
 - Branch: master
-- HEAD: `(new commit)` — Record export package real-lite smoke (G10-C)
+- HEAD: `e5c872c` — Record export package real-lite smoke and add data/exports/ to gitignore (G10-C)
 
 ### Controle de Tapetes (staging/work/app-next)
 - HEAD canônico: `997486a`
