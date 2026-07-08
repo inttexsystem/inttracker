@@ -1,4 +1,97 @@
 > **Atualizacao 2026-07-07 - fase
+> `RAVATEX-TAPETES-G11-C-DOCUMENTS-CONSUMER-UI-SMOKE`.**
+> Status: **VALIDADO — UI SMOKE PRONTO**.
+> Entrada: branch `work/app-next`, HEAD base
+> `4861f69`; status inicial `?? .claude/` e
+> `?? supabase/.temp/`; `origin` somente leitura e
+> producao intocados. Escrita permitida em
+> `staging/work/app-next`.
+> HEAD final da implementacao:
+> `(HEAD apos commit g11-c)`.
+>
+> Escopo: validacao visual/read-only + closeout
+> documental. Nenhum patch funcional (codigo fonte
+> inalterado exceto export `ns.buildDocuments` para
+> testabilidade). Sem Supabase, sem Google/Drive,
+> sem export real, sem Documents Ingestor alterado.
+>
+> Smoke criado: `tests/documents-ingestor-ui-smoke.test.js`
+> com 35 testes distribuidos em 3 camadas:
+>
+> **Estatico (10 tests)**: `assert.match` na fonte de
+> `pedido-detail-render.js` validando:
+> - secao `DOCUMENTOS RECEBIDOS (INGESTOR)`;
+> - condicional `view.ingestorDocsLoaded`;
+> - badges com `bg/text/label` inline;
+> - botao `Ver` com `window.open` + `noopener,noreferrer`;
+> - reason em vermelho `#a23434` + prefixo `Rejeitado:`;
+> - timeline dots com `border-radius:50%`;
+> - status badge fallback a `window.RAVATEX_DOCUMENTS`;
+> - `computeViewModel` referencia `RAVATEX_DOCUMENTS_LOADED_EVENTS`;
+> - icone `SVG_FILE` no card de documento.
+>
+> **Dados (13 tests)**: `computeViewModel` com fixture
+> populada em sandbox VM (PED-25-2026):
+> - `ingestorDocsLoaded === true`;
+> - 3 documentos consolidados (7 eventos -> 3);
+> - filenames: `NF-25487-entrada.xml`, `NF-35891-saida.pdf`,
+>   `Romaneio-Entrega-8720.pdf`;
+> - badges: NF, XML, Entrada, PDF, Saida, Romaneio;
+> - status: Aceito, Rejeitado, Pendente;
+> - `driveLink` presente em todos os documentos;
+> - `reason` presente apenas no doc rejeitado com texto
+>   `NF emitida com valor divergente — aguardando correcao`;
+> - timeline: 7 eventos com `eventType`/`label`/`docLabel`
+>   corretos e ordenados por `created_at`;
+> - sem injecao quando global nao populada;
+> - sem documentos para pedido diferente (PED-99-2026).
+>
+> **DOM (8 tests)**: `buildDocuments(view)` com mock `el` +
+> `document` no sandbox, validando:
+> - texto `DOCUMENTOS RECEBIDOS (INGESTOR)` no DOM;
+> - filenames, badges, status labels, `Ver` button,
+>   `Rejeitado:` com reason text, `EVENTOS` timeline labels.
+>
+> Arquivos alterados nesta fase:
+> `js/screens/pedido-detail-render.js` (1 linha: export
+> `ns.buildDocuments`), `tests/documents-ingestor-ui-smoke.test.js`
+> (novo, 548 linhas), `PROJECT_STATE.md`, `AGENT_HANDOFF.md`.
+>
+> Fixture usada: `data/fixtures/document-events-sample.jsonl`
+> (7 eventos, pedido `PED-25-2026`, 3 documentos).
+>
+> Elementos UI validados: secao header, filename, badges,
+> status, botao Ver, reason, timeline dots.
+>
+> Garantias: sem Supabase, sem Google/Drive, sem export
+> real, sem alterar Documents Ingestor, sem PDF/XML
+> armazenado, sem dados reais commitados.
+>
+> Testes reportados:
+> - `documents-ingestor.test.js`: 44/44;
+> - `pedido-detail.smoke.js`: 172/172 (sem regressao);
+> - `documents-ingestor-ui-smoke.test.js`: 35/35.
+>
+> `git diff --check`: OK (apenas warning CRLF Windows).
+>
+> Riscos remanescentes:
+> 1. `ingestorDocsLoaded` pode ser `true` mesmo sem documentos
+>    do pedido (filtro retorna vazio mas Array.isArray([]) passa).
+>    O render ja protege com `view.ingestorDocumentRows.length > 0`.
+> 2. Validacao visual real contra browser/staging ainda pendente.
+> 3. Watcher/loader real ainda nao implementado (G11-D).
+>
+> Proxima fase recomendada:
+> `RAVATEX-TAPETES-G11-D` — implementar loader/pre-charger
+> que popula `RAVATEX_DOCUMENTS_LOADED_EVENTS` a partir de
+> arquivo `export:package` (ou integracao futura com
+> Supabase bucket/API).
+>
+> Confirmacoes: producao intocada, `origin` nao usado para
+> escrita, sem push, sem `git add .`, `supabase/.temp/` e
+> `.claude/` fora do commit.
+>
+> **Atualizacao 2026-07-07 - fase
 > `RAVATEX-TAPETES-OP-TECELAGEM-ABERTA-VISUAL-ALIGNMENT-D`.**
 > Status: **CLOSED / VALIDADO PELO USUARIO**.
 > Entrada: branch `work/app-next`, HEAD base

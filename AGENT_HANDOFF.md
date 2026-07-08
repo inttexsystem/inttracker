@@ -1,4 +1,58 @@
-﻿# Estado pos-fase - OP Tecelagem Aberta Visual Alignment D
+﻿# Estado pos-fase - Documents Consumer UI Smoke
+
+- Fase: `RAVATEX-TAPETES-G11-C-DOCUMENTS-CONSUMER-UI-SMOKE`.
+- Status: **VALIDADO — UI SMOKE PRONTO**.
+- Branch/HEAD base: `work/app-next`, `4861f69`; status
+  inicial `?? .claude/` e `?? supabase/.temp/`;
+  `origin` somente leitura; producao intocados. Escrita
+  permitida em `staging/work/app-next`.
+- Escopo: validacao visual/read-only da secao
+  `DOCUMENTOS RECEBIDOS (INGESTOR)` no Pedido Detail
+  quando `window.RAVATEX_DOCUMENTS_LOADED_EVENTS` e
+  populada via fixture.
+- Nao implementado: watcher, loader real, import/export
+  real, Supabase, Google/Drive, alteracao no Documents
+  Ingestor, persistencia, schema, download/upload de
+  PDF/XML.
+- Smoke criado: `tests/documents-ingestor-ui-smoke.test.js`
+  (35 tests em 3 camadas: estatico 10, dados 13, DOM 8).
+- Fixture: `data/fixtures/document-events-sample.jsonl`
+  (7 eventos, PED-25-2026, 3 documentos consolidados).
+- Pedido usado: PED-25-2026 (compativel com pedido.numero=25,
+  pedido.criado_em='2026-01-15T10:00:00.000Z').
+- Elementos UI validados:
+  - texto "DOCUMENTOS RECEBIDOS (INGESTOR)";
+  - filenames NF-25487, NF-35891, Romaneio;
+  - badges NF/XML/Entrada, NF/PDF/Saida, Romaneio/PDF;
+  - status Aceito/Rejeitado/Pendente;
+  - botao "Ver" com `window.open(driveLink, '_blank', 'noopener,noreferrer')`;
+  - reason rejeitado (texto + cor #a23434);
+  - timeline dots + labels + docLabel.
+- Patch minimo: `js/screens/pedido-detail-render.js`
+  ganhou export `ns.buildDocuments = buildDocuments;`
+  (1 linha, nao quebra render existente).
+- Testes OK:
+  - `documents-ingestor.test.js`: 44/44;
+  - `pedido-detail.smoke.js`: 172/172 (sem regressao);
+  - `documents-ingestor-ui-smoke.test.js`: 35/35.
+- `git diff --check`: OK (CRLF warning Windows).
+- Confirmacoes:
+  - sem Supabase;
+  - sem Google/Drive;
+  - sem export real;
+  - Documents Ingestor nao alterado;
+  - nenhum PDF/XML armazenado;
+  - dados reais nao commitados;
+  - `supabase/.temp/` e `.claude/` fora do commit.
+- Riscos: `ingestorDocsLoaded` fica `true` mesmo para
+  pedido diferente (filtro vazio — render ja protege
+  com `length > 0`); validacao visual browser real
+  pendente; loader/watcher ainda nao implementado.
+- Proxima fase: `RAVATEX-TAPETES-G11-D` — loader/pré-
+  charger que popula `RAVATEX_DOCUMENTS_LOADED_EVENTS`
+  a partir de export:package ou Supabase bucket.
+
+# Estado pos-fase - OP Tecelagem Aberta Visual Alignment D
 
 - Fase: `RAVATEX-TAPETES-OP-TECELAGEM-ABERTA-VISUAL-ALIGNMENT-D`.
 - Status: **CLOSED / VALIDADO PELO USUARIO**.

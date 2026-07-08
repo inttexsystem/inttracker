@@ -1195,4 +1195,5 @@
   }
 
   ns.renderPedidoDetailScreen = renderPedidoDetailScreen;
+  ns.buildDocuments = buildDocuments;
 })(window);
