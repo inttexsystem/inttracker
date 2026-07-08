@@ -8,6 +8,14 @@
 // Escopo: UX manual, local, read-only. Sem rede, sem Supabase, sem
 //   Google/Drive, sem persistencia, sem watcher.
 //
+// Restricao de superficie (G11-E-R1 + G11-E-R2):
+//   - Nunca visivel em producao (APP_ENV === 'production').
+//   - Em staging/dev/local, visivel apenas quando:
+//     * usuario e admin (CURRENT_USER.tipo === 'admin'), OU
+//     * flag RAVATEX_ENABLE_DOCUMENTS_IMPORT_UI === true.
+//   - CURRENT_USER e populado assincronamente; um poll curto aguarda
+//     ate ~10 s apos o carregamento da pagina.
+//
 // Depende de:
 //   - js/documents-ingestor-loader.js (RAVATEX_DOCUMENTS.loadFromText)
 //   - js/ui.js (window.toast)
@@ -26,6 +34,66 @@
   }
 
   var IMPORT_BUTTON_ID = 'rv-docs-import-btn';
+  var _uiCreated = false;
+  var _pollTimer = null;
+  var _pollAttempts = 0;
+  var MAX_POLL_ATTEMPTS = 50; // ~10 s com intervalo de 200 ms
+
+  // -------------------------------------------------------------------
+  // Decisao de visibilidade
+  // -------------------------------------------------------------------
+
+  function shouldShowImportUI() {
+    // Nunca em producao
+    if (window.APP_ENV === 'production') return false;
+    // Flag explicita (dev/local override)
+    if (window.RAVATEX_ENABLE_DOCUMENTS_IMPORT_UI === true) return true;
+    // Admin logado
+    var user = window.CURRENT_USER;
+    if (user && user.tipo === 'admin') return true;
+    // CURRENT_USER ainda nao foi populado — pode ser admin
+    if (!user) return null;
+    // Usuario nao-admin
+    return false;
+  }
+
+  function tryCreateImportUI() {
+    if (_uiCreated) return true;
+    var decision = shouldShowImportUI();
+    if (decision === true) {
+      createImportUI();
+      _uiCreated = true;
+      return true;
+    }
+    // decision === null: CURRENT_USER ainda nao setado, continue polling
+    // decision === false: usuario claramente nao autorizado
+    if (decision === false) {
+      stopPoll();
+    }
+    return false;
+  }
+
+  function startPoll() {
+    if (_pollTimer) return;
+    _pollAttempts = 0;
+    _pollTimer = setInterval(function () {
+      _pollAttempts++;
+      if (tryCreateImportUI() || _pollAttempts >= MAX_POLL_ATTEMPTS) {
+        stopPoll();
+      }
+    }, 200);
+  }
+
+  function stopPoll() {
+    if (_pollTimer) {
+      clearInterval(_pollTimer);
+      _pollTimer = null;
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // Criacao da UI de import
+  // -------------------------------------------------------------------
 
   function createImportUI() {
     // Hidden file input
@@ -92,15 +160,24 @@
     document.body.appendChild(btn);
   }
 
+  // -------------------------------------------------------------------
+  // Bootstrap
+  // -------------------------------------------------------------------
+
   try {
     if (document.body) {
-      if (window.APP_ENV !== 'production') {
-        createImportUI();
+      if (!tryCreateImportUI()) {
+        // CURRENT_USER provavelmente ainda nao foi populado.
+        // Poll ate o usuario ser carregado ou timeout.
+        startPoll();
+        // Tambem observa CURRENT_USER diretamente quando for sobrescrito
+        // por loadCurrentUser (setCurrentUser reatribui window.CURRENT_USER).
+        // Usamos um Object.defineProperty ou setInterval simples.
       }
     } else if (document.addEventListener) {
       document.addEventListener('DOMContentLoaded', function () {
-        if (window.APP_ENV !== 'production') {
-          createImportUI();
+        if (!tryCreateImportUI()) {
+          startPoll();
         }
       });
     }

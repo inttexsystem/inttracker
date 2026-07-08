@@ -126,6 +126,14 @@ function makeImportUISandbox(opts) {
 
   sandbox.window.APP_ENV = opts.appEnv !== undefined ? opts.appEnv : 'staging';
 
+  if (opts.currentUser !== undefined) {
+    sandbox.window.CURRENT_USER = opts.currentUser;
+  } else {
+    sandbox.window.CURRENT_USER = { tipo: 'admin' };
+  }
+
+  sandbox.window.RAVATEX_ENABLE_DOCUMENTS_IMPORT_UI = opts.enableFlag === true ? true : undefined;
+
   sandbox.window.toast = function (msg, type) {
     toasts.push({ msg: msg, type: type || 'info' });
   };
@@ -290,35 +298,86 @@ test('import-ui: sem arquivo selecionado nao faz nada', function () {
 });
 
 // -------------------------------------------------------------------
-// 4b. Testes: scope guard — visibilidade por ambiente
+// 4b. Testes: scope guard — visibilidade por ambiente e role
 // -------------------------------------------------------------------
 
-test('import-ui-scope: botao NAO aparece em producao (APP_ENV=production)', function () {
-  var rt = makeImportUISandbox({ appEnv: 'production' });
+test('import-ui-scope: producao + admin => NAO aparece', function () {
+  var rt = makeImportUISandbox({
+    appEnv: 'production',
+    currentUser: { tipo: 'admin' },
+  });
   var buttons = rt.domElements['button'] || [];
   var importBtn = buttons.find(function (b) { return b.id === 'rv-docs-import-btn'; });
-  assert.equal(importBtn, undefined, 'botao nao deve existir em producao');
-  assert.equal(rt.fileInputEl, null, 'file input nao deve existir em producao');
+  assert.equal(importBtn, undefined, 'botao nao deve existir em producao mesmo admin');
 });
 
-test('import-ui-scope: botao aparece em staging (APP_ENV=staging)', function () {
-  var rt = makeImportUISandbox({ appEnv: 'staging' });
+test('import-ui-scope: producao + cliente => NAO aparece', function () {
+  var rt = makeImportUISandbox({
+    appEnv: 'production',
+    currentUser: { tipo: 'cliente' },
+  });
   var buttons = rt.domElements['button'] || [];
   var importBtn = buttons.find(function (b) { return b.id === 'rv-docs-import-btn'; });
-  assert.ok(importBtn, 'botao deve existir em staging');
-  assert.ok(rt.fileInputEl, 'file input deve existir em staging');
+  assert.equal(importBtn, undefined, 'botao nao deve existir em producao para cliente');
 });
 
-test('import-ui-scope: botao aparece com APP_ENV indefinido (default dev/local)', function () {
-  var rt = makeImportUISandbox({ appEnv: undefined });
-  var buttons = rt.domElements['button'] || [];
-  var importBtn = buttons.find(function (b) { return b.id === 'rv-docs-import-btn'; });
-  assert.ok(importBtn, 'botao deve existir com APP_ENV indefinido (dev/local default)');
-});
-
-test('import-ui-scope: import ainda funciona em staging', function () {
+test('import-ui-scope: staging + admin => aparece', function () {
   var rt = makeImportUISandbox({
     appEnv: 'staging',
+    currentUser: { tipo: 'admin' },
+  });
+  var buttons = rt.domElements['button'] || [];
+  var importBtn = buttons.find(function (b) { return b.id === 'rv-docs-import-btn'; });
+  assert.ok(importBtn, 'botao deve existir em staging para admin');
+  assert.ok(rt.fileInputEl, 'file input deve existir');
+});
+
+test('import-ui-scope: staging + cliente => NAO aparece', function () {
+  var rt = makeImportUISandbox({
+    appEnv: 'staging',
+    currentUser: { tipo: 'cliente' },
+  });
+  var buttons = rt.domElements['button'] || [];
+  var importBtn = buttons.find(function (b) { return b.id === 'rv-docs-import-btn'; });
+  assert.equal(importBtn, undefined, 'botao nao deve existir em staging para cliente');
+});
+
+test('import-ui-scope: staging + fornecedor => NAO aparece', function () {
+  var rt = makeImportUISandbox({
+    appEnv: 'staging',
+    currentUser: { tipo: 'fornecedor' },
+  });
+  var buttons = rt.domElements['button'] || [];
+  var importBtn = buttons.find(function (b) { return b.id === 'rv-docs-import-btn'; });
+  assert.equal(importBtn, undefined, 'botao nao deve existir para fornecedor');
+});
+
+test('import-ui-scope: staging + flag=true (sem admin) => aparece', function () {
+  var rt = makeImportUISandbox({
+    appEnv: 'staging',
+    currentUser: null,
+    enableFlag: true,
+  });
+  var buttons = rt.domElements['button'] || [];
+  var importBtn = buttons.find(function (b) { return b.id === 'rv-docs-import-btn'; });
+  assert.ok(importBtn, 'botao deve existir com flag=true mesmo sem admin logado');
+});
+
+test('import-ui-scope: staging + admin + flag=false => aparece (admin prevalece)', function () {
+  var rt = makeImportUISandbox({
+    appEnv: 'staging',
+    currentUser: { tipo: 'admin' },
+    enableFlag: false,
+  });
+  var buttons = rt.domElements['button'] || [];
+  var importBtn = buttons.find(function (b) { return b.id === 'rv-docs-import-btn'; });
+  assert.ok(importBtn, 'botao deve existir para admin em staging (flag irrelevante)');
+});
+
+test('import-ui-scope: staging + admin => import funciona', function () {
+  var rt = makeImportUISandbox({
+    appEnv: 'staging',
+    currentUser: { tipo: 'admin' },
     mockFileContent: fixtureText,
   });
 

@@ -1,4 +1,26 @@
-﻿# Estado pos-fase - Documents Manual Import Scope Guard
+﻿# Estado pos-fase - Documents Import Admin Surface Guard
+
+- Fase: `RAVATEX-TAPETES-G11-E-R2-DOCUMENTS-IMPORT-ADMIN-SURFACE-GUARD`.
+- Status: **PRONTO — SUPERFICIE RESTRITA A ADMIN/DEV**.
+- Branch/HEAD base: `work/app-next`, `318d51b`.
+- HEAD final: `(commit g11-e-r2)`.
+- Regra final: `APP_ENV !== 'production'` E
+  (`CURRENT_USER.tipo === 'admin'` OU
+  `RAVATEX_ENABLE_DOCUMENTS_IMPORT_UI === true`).
+- Poll 200 ms ate ~10 s aguarda `CURRENT_USER` do
+  `boot.js`/`loadCurrentUser()`.
+- Como habilitar: logar como admin em staging, OU
+  `window.RAVATEX_ENABLE_DOCUMENTS_IMPORT_UI = true`
+  no console.
+- Cliente/fornecedor em staging: nao ve o botao.
+- Loader (`loadFromText`, `loadFromUrl`,
+  `setEvents`) inalterado.
+- Testes: 320/320 (import-ui 26/26, loader 43/43,
+  UI smoke 35/35, ingestor 44/44, pedido-detail 172/172).
+- Sem push. `.claude/` e `supabase/.temp/` fora do commit.
+- Proxima: validacao visual staging/browser.
+
+# Estado pos-fase - Documents Manual Import Scope Guard
 
 - Fase: `RAVATEX-TAPETES-G11-E-R1-DOCUMENTS-MANUAL-IMPORT-SCOPE-GUARD`.
 - Status: **PRONTO — SCOPE GUARD APLICADO**.

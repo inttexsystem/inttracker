@@ -1,5 +1,45 @@
 > **Atualizacao 2026-07-08 - fase
-> `RAVATEX-TAPETES-G11-E-R1-DOCUMENTS-MANUAL-IMPORT-SCOPE-GUARD`.**
+> `RAVATEX-TAPETES-G11-E-R2-DOCUMENTS-IMPORT-ADMIN-SURFACE-GUARD`.**
+> Status: **PRONTO — SUPERFICIE RESTRITA A ADMIN/DEV**.
+> Entrada: branch `work/app-next`, HEAD base
+> `318d51b`; `origin` somente leitura.
+>
+> Causa raiz: G11-E-R1 protegeu producao, mas o botao
+> ainda aparecia em staging para qualquer usuario
+> (incluindo cliente/fornecedor).
+>
+> Correcao: guard duplo:
+> 1. `APP_ENV !== 'production'` (ja existente).
+> 2. Admin (`CURRENT_USER.tipo === 'admin'`) OU flag
+>    `RAVATEX_ENABLE_DOCUMENTS_IMPORT_UI === true`.
+> 3. Poll de 200ms ate ~10s aguarda `CURRENT_USER` ser
+>    populado por `boot.js` via `loadCurrentUser()`.
+>
+> Regra final de visibilidade:
+> - Producao: nunca visivel.
+> - Staging + admin: aparece (apos login).
+> - Staging + flag: aparece imediatamente.
+> - Staging + cliente/fornecedor: nunca.
+> - Flag pode ser ativada via console:
+>   `window.RAVATEX_ENABLE_DOCUMENTS_IMPORT_UI = true`.
+>
+> Arquivos: `js/documents-ingestor-import-ui.js`
+> (refatorado: funcoes `shouldShowImportUI`,
+> `tryCreateImportUI`, `startPoll`, `stopPoll`),
+> `tests/documents-ingestor-import-ui.test.js`
+> (+8 novos casos de scope por role/flag),
+> `PROJECT_STATE.md`, `AGENT_HANDOFF.md`.
+> `index.html` inalterado.
+>
+> Testes: import-ui 26/26, loader 43/43, UI smoke 35/35,
+> ingestor 44/44, pedido-detail 172/172 = 320/320.
+>
+> Garantias: sem Supabase, Google/Drive, export real,
+> alteracao no Documents Ingestor, PDF/XML, dados reais.
+> `.claude/` e `supabase/.temp/` fora do commit.
+>
+> > **Atualizacao 2026-07-08 - fase
+> > `RAVATEX-TAPETES-G11-E-R1-DOCUMENTS-MANUAL-IMPORT-SCOPE-GUARD`.**
 > Status: **PRONTO — SCOPE GUARD APLICADO**.
 > Entrada: branch `work/app-next`, HEAD base
 > `56eb5a6`; status inicial `?? .claude/` e
