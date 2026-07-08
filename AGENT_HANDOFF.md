@@ -1,4 +1,36 @@
-﻿# Estado pos-fase - Received Documents Global Screen (G12-G2)
+﻿# Estado pos-fase - Received Documents Import Button (G12-G3)
+
+- Fase: `RAVATEX-TAPETES-G12-G3-RECEIVED-DOCUMENTS-IMPORT-BUTTON`.
+- Status: **PRONTO**.
+- Branch/HEAD base: `work/app-next`, `d1486ae`.
+- HEAD final: `(commit g12-g3)`.
+- Escopo:
+  - `js/documents-ingestor-import-received.js` (novo): botao
+    flutuante "Importar recebidos" (verde, `bottom:16px;right:200px`
+    para nao colidir com o legado azul em `right:16px`).
+    FileReader -> `loadReceivedDocumentsFromText` ->
+    `RAVATEX_DOCUMENTS_RECEIVED`.
+  - `index.html`: `<script>` apos o import legado.
+  - `tests/documents-ingestor-import-received.test.js` (novo,
+    35 testes).
+- Guarda: APP_ENV !== 'production' AND
+  (CURRENT_USER.tipo === 'admin' OR
+   RAVATEX_ENABLE_DOCUMENTS_IMPORT_UI === true).
+- Toast sucesso: "N documento(s) carregado(s) de
+  documentos-recebidos.jsonl. Abra Documentos para visualizar a
+  fila. Nada foi persistido."
+- Toast erro: "Erro ao importar: <motivo>." /
+  "Erro ao ler o arquivo selecionado."
+- Sem Supabase, sem Google/Drive real, sem fetch, sem
+  localStorage/sessionStorage, sem persistencia, sem
+  watcher/polling.
+- Sem alteracao no repo Documents Ingestor, no Supabase, no
+  Controle de Tapetes alem desses 3 arquivos.
+- Proximo: fechamento da trilha G12 (validacao browser da
+  tela global + botao dedicado, ou G12-H se houver proximo
+  escopo).
+
+# Estado pos-fase - Received Documents Global Screen (G12-G2)
 
 - Fase: `RAVATEX-TAPETES-G12-G2-RECEIVED-DOCUMENTS-GLOBAL-SCREEN`.
 - Status: **PRONTO**.

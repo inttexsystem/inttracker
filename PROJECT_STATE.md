@@ -1,4 +1,49 @@
 > **Atualizacao 2026-07-08 - fase
+> `RAVATEX-TAPETES-G12-G3-RECEIVED-DOCUMENTS-IMPORT-BUTTON`.**
+> Status: **PRONTO — BOTAO DEDICADO DE IMPORT**.
+> Entrada: branch `work/app-next`, HEAD `d1486ae`.
+>
+> Escopo:
+> - `js/documents-ingestor-import-received.js` (novo): botao
+>   flutuante "Importar recebidos" (verde, ao lado do legado
+>   "Importar eventos" em azul). FileReader ->
+>   `loadReceivedDocumentsFromText` -> popula
+>   `window.RAVATEX_DOCUMENTS_RECEIVED`. NAO toca
+>   `RAVATEX_DOCUMENTS_LOADED_EVENTS`.
+> - `index.html`: `<script>` do novo importador apos o legado.
+> - `tests/documents-ingestor-import-received.test.js` (novo,
+>   35 testes).
+>
+> Guarda (mesma politica do legado):
+> - Nunca em producao (APP_ENV === 'production').
+> - Em staging/local/dev: visivel para admin OU com flag
+>   `RAVATEX_ENABLE_DOCUMENTS_IMPORT_UI === true`.
+> - CURRENT_USER pode ser populado assincronamente (fast poll
+>   ~10s, slow poll indefinido).
+>
+> Toast de sucesso (verde):
+> "N documento(s) carregado(s) de documentos-recebidos.jsonl.
+>  Abra Documentos para visualizar a fila.
+>  Nada foi persistido."
+>
+> Toast de erro (vermelho):
+> "Erro ao importar: <motivo>." ou "Erro ao ler o arquivo."
+>
+> Garantias:
+> - Sem Supabase, sem Google/Drive real, sem fetch, sem
+>   localStorage/sessionStorage.
+> - Sem persistencia, sem watcher/polling/backend.
+> - Sem PDF/XML armazenado.
+> - Sem associacao documento -> Pedido.
+> - NAO interfere no botao legado "Importar eventos".
+> - NAO sobrescreve `RAVATEX_DOCUMENTS_LOADED_EVENTS`.
+>
+> Testes: 35/35 import-received, 152/152 focado (4 suites),
+> sem regressao.
+>
+> Proximo: G12-H ou fechamento da trilha G12.
+
+> **Atualizacao 2026-07-08 - fase
 > `RAVATEX-TAPETES-G12-G2-RECEIVED-DOCUMENTS-GLOBAL-SCREEN`.**
 > Status: **PRONTO — TELA GLOBAL + ROTA + MENU**.
 > Entrada: branch `work/app-next`, HEAD `8fc2568`.
