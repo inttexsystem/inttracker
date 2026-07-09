@@ -15,8 +15,11 @@
 //
 // Fase: RAVATEX-TAPETES-G12-G3-RECEIVED-DOCUMENTS-IMPORT-BUTTON
 //       + G12-R1 (refactor: botao inline na tela, sem flutuante)
+//       + G16-B (metadata do ultimo import em localStorage)
 // Escopo: UX manual, local, read-only. Sem rede, sem Supabase, sem
-//   Google/Drive, sem persistencia, sem watcher, sem auto-load.
+//   Google/Drive, sem persistencia do array de documentos. Apenas
+//   metadata do último import é persistida em localStorage.
+//   Sem watcher, sem auto-load.
 //
 // Restricao de superficie (mesma politica do import legado):
 //   - Nunca visivel em producao (APP_ENV === 'production').
@@ -48,6 +51,14 @@
 //     rejected_at, rejected_reason.
 //   - O parser/validador do loader preserva todos os campos extras;
 //     a tela faz fallback received_at||created_at e status||'pending'.
+//
+// Persistencia de metadata (G16-B):
+//   - Apos import bem-sucedido, salva em localStorage a chave
+//     RAVATEX_DOCUMENTS_RECEIVED_METADATA com: importedAt, fileName,
+//     count, hash (DJB2 sobre o texto), statusCounts.
+//   - O array RAVATEX_DOCUMENTS_RECEIVED continua volatil (em memoria).
+//   - Erro de import NAO sobrescreve metadata anterior.
+//   - localStorage corrompido ou indisponivel e ignorado silenciosamente.
 //
 // API exposta:
 //   RAVATEX_DOCUMENTS.createReceivedImportButton(opts) ->
@@ -84,6 +95,74 @@
   var _fastPollAttempts = 0;
   var FAST_POLL_MAX = 50;
   var SLOW_POLL_INTERVAL = 10000;
+
+  var METADATA_KEY = 'RAVATEX_DOCUMENTS_RECEIVED_METADATA';
+
+  function simpleHash(str) {
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash = hash & hash;
+    }
+    return hash.toString(16);
+  }
+
+  function normalizeStatusForCount(status) {
+    var raw = String(status || '').toLowerCase();
+    if (raw === 'accepted' || raw === 'aceito') return 'accepted';
+    if (raw === 'assigned' || raw === 'atrelado' || raw === 'vinculado') return 'assigned';
+    if (raw === 'rejected' || raw === 'rejeitado') return 'rejected';
+    if (raw === 'pending' || raw === 'pendente' || raw === 'pending_app_acceptance' || !raw) return 'pending';
+    return 'unknown';
+  }
+
+  function computeStatusCounts(received) {
+    var counts = { accepted: 0, assigned: 0, pending: 0, rejected: 0, unknown: 0 };
+    if (!Array.isArray(received)) return counts;
+    for (var i = 0; i < received.length; i++) {
+      var s = normalizeStatusForCount(received[i] && received[i].status);
+      if (counts[s] != null) counts[s]++;
+    }
+    return counts;
+  }
+
+  function saveReceivedMetadata(opts) {
+    var meta = {
+      importedAt: new Date().toISOString(),
+      fileName: opts.fileName || '',
+      count: opts.count || 0,
+      hash: opts.hash || '',
+      statusCounts: opts.statusCounts || { accepted: 0, assigned: 0, pending: 0, rejected: 0, unknown: 0 },
+    };
+    try {
+      window.RAVATEX_DOCUMENTS_RECEIVED_METADATA = meta;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(METADATA_KEY, JSON.stringify(meta));
+      }
+    } catch (_ignored) {
+      // Ambiente restrito (sandbox de teste, worker, etc.).
+    }
+  }
+
+  function loadReceivedMetadata() {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        var raw = localStorage.getItem(METADATA_KEY);
+        if (raw) {
+          var meta = JSON.parse(raw);
+          if (meta && typeof meta.importedAt === 'string') {
+            window.RAVATEX_DOCUMENTS_RECEIVED_METADATA = meta;
+            return;
+          }
+        }
+      }
+    } catch (_ignored) {
+      // localStorage corrompido ou JSON inválido: ignorar.
+    }
+    window.RAVATEX_DOCUMENTS_RECEIVED_METADATA = null;
+  }
+
+  loadReceivedMetadata();
 
   function shouldShowImportUI() {
     if (window.APP_ENV === 'production') return false;
@@ -126,6 +205,16 @@
         if (result && result.ok) {
           toast(result.count + ' documento(s) carregado(s). '
             + 'Nada foi persistido.', 'success');
+
+          var received = window.RAVATEX_DOCUMENTS_RECEIVED;
+          var statusCounts = computeStatusCounts(received);
+          var h = simpleHash(text);
+          saveReceivedMetadata({
+            fileName: file && file.name ? file.name : '',
+            count: result.count,
+            hash: h,
+            statusCounts: statusCounts,
+          });
         } else {
           toast(
             'Arquivo incompativel. '

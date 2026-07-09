@@ -188,6 +188,10 @@ function makeImportReceivedSandbox(opts) {
   sandbox.window.document = mockDocument;
   sandbox.window.FileReader = MockFileReader;
 
+  if (opts.localStorage) {
+    sandbox.localStorage = opts.localStorage;
+  }
+
   vm.createContext(sandbox);
 
   // Carrega UI primeiro (para que window.el esteja disponivel)
@@ -543,10 +547,148 @@ test('import-received: NAO faz fetch ou XMLHttpRequest', function () {
   assert.ok(src.indexOf('XMLHttpRequest') === -1, 'import-received contem XMLHttpRequest');
 });
 
-test('import-received: NAO persiste em localStorage/sessionStorage', function () {
-  var src = readOrFail(DOC_IMPORT_RECEIVED);
-  assert.ok(src.indexOf('localStorage') === -1, 'import-received referencia localStorage');
-  assert.ok(src.indexOf('sessionStorage') === -1, 'import-received referencia sessionStorage');
+// -------------------------------------------------------------------
+// 6. G16-B: metadata do ultimo import em localStorage
+// -------------------------------------------------------------------
+
+test('import-received (G16-B): salva metadata em localStorage apos import bem-sucedido', function () {
+  var store = {};
+  var ls = {
+    getItem: function (key) { return key in store ? store[key] : null; },
+    setItem: function (key, val) { store[key] = val; },
+  };
+  var rt = makeImportReceivedSandbox({ mockFileContent: RECEIVED_JSONL, localStorage: ls });
+  var pair = rt.RAVATEX_DOCUMENTS.createReceivedImportButton({ buttonId: 'g16b-meta-test' });
+  var container = makeContainer();
+  pair.mount(container);
+  pair.fileInput.files = [{ name: 'mapeados.jsonl' }];
+  pair.fileInput._changeHandlers.forEach(function (fn) { fn(); });
+
+  var raw = store['RAVATEX_DOCUMENTS_RECEIVED_METADATA'];
+  assert.ok(raw, 'metadata deve ser salva em localStorage');
+  var meta = JSON.parse(raw);
+  assert.equal(typeof meta.importedAt, 'string', 'importedAt presente');
+  assert.ok(meta.importedAt.length > 0, 'importedAt nao vazio');
+  assert.equal(meta.fileName, 'mapeados.jsonl', 'fileName e o nome do arquivo');
+  assert.equal(meta.count, 3, 'count igual a 3');
+  assert.equal(typeof meta.hash, 'string', 'hash presente');
+  assert.ok(meta.hash.length > 0, 'hash nao vazio');
+  assert.ok(meta.statusCounts && typeof meta.statusCounts === 'object', 'statusCounts e objeto');
+});
+
+test('import-received (G16-B): window.RAVATEX_DOCUMENTS_RECEIVED_METADATA exposto', function () {
+  var store = {};
+  var ls = {
+    getItem: function (key) { return key in store ? store[key] : null; },
+    setItem: function (key, val) { store[key] = val; },
+  };
+  var rt = makeImportReceivedSandbox({ mockFileContent: RECEIVED_JSONL, localStorage: ls });
+  var pair = rt.RAVATEX_DOCUMENTS.createReceivedImportButton({ buttonId: 'g16b-window-test' });
+  var container = makeContainer();
+  pair.mount(container);
+  pair.fileInput.files = [{ name: 'test.jsonl' }];
+  pair.fileInput._changeHandlers.forEach(function (fn) { fn(); });
+
+  assert.ok(rt.sandbox.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA, 'metadata no window global');
+  assert.equal(rt.sandbox.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA.fileName, 'test.jsonl');
+});
+
+test('import-received (G16-B): hash muda quando conteudo muda', function () {
+  var rt = makeImportReceivedSandbox({ mockFileContent: RECEIVED_JSONL });
+  var pair = rt.RAVATEX_DOCUMENTS.createReceivedImportButton({ buttonId: 'g16b-hash1' });
+  var container = makeContainer();
+  pair.mount(container);
+  pair.fileInput.files = [{ name: 'docs.jsonl' }];
+  pair.fileInput._changeHandlers.forEach(function (fn) { fn(); });
+
+  var meta1 = rt.sandbox.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA;
+  assert.ok(meta1, 'metadata salva');
+  var hash1 = meta1.hash;
+
+  // Reimporta com conteudo diferente
+  var altContent = JSON.stringify({
+    document_id: 'alt-1',
+    filename_original: 'alt.xml',
+    tipo_documento: 'nf',
+    formato: 'xml',
+  });
+  var rt2 = makeImportReceivedSandbox({ mockFileContent: altContent });
+  var pair2 = rt2.RAVATEX_DOCUMENTS.createReceivedImportButton({ buttonId: 'g16b-hash2' });
+  var container2 = makeContainer();
+  pair2.mount(container2);
+  pair2.fileInput.files = [{ name: 'alt.jsonl' }];
+  pair2.fileInput._changeHandlers.forEach(function (fn) { fn(); });
+
+  var meta2 = rt2.sandbox.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA;
+  assert.ok(meta2, 'metadata salva');
+  assert.notStrictEqual(meta2.hash, hash1, 'hash muda com conteudo diferente');
+});
+
+test('import-received (G16-B): metadata tem statusCounts corretas', function () {
+  var rt = makeImportReceivedSandbox({ mockFileContent: RECEIVED_JSONL });
+  var pair = rt.RAVATEX_DOCUMENTS.createReceivedImportButton({ buttonId: 'g16b-status' });
+  var container = makeContainer();
+  pair.mount(container);
+  pair.fileInput.files = [{ name: 'status-test.jsonl' }];
+  pair.fileInput._changeHandlers.forEach(function (fn) { fn(); });
+
+  var meta = rt.sandbox.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA;
+  assert.ok(meta, 'metadata existe');
+  assert.equal(meta.count, 3, '3 documentos');
+  assert.equal(typeof meta.statusCounts.pending, 'number', 'pending count existe');
+  assert.equal(typeof meta.statusCounts.assigned, 'number', 'assigned count existe');
+  assert.equal(typeof meta.statusCounts.accepted, 'number', 'accepted count existe');
+  assert.equal(typeof meta.statusCounts.rejected, 'number', 'rejected count existe');
+  // RECEIVED_JSONL nao tem status, entao tudo pending
+  assert.equal(meta.statusCounts.pending, 3, '3 pending (sem status nos fixtures)');
+  assert.equal(meta.statusCounts.assigned, 0, '0 assigned');
+  assert.equal(meta.statusCounts.accepted, 0, '0 accepted');
+  assert.equal(meta.statusCounts.rejected, 0, '0 rejected');
+});
+
+test('import-received (G16-B): import invalido NAO sobrescreve metadata anterior', function () {
+  var store = {};
+  var ls = {
+    getItem: function (key) { return key in store ? store[key] : null; },
+    setItem: function (key, val) { store[key] = val; },
+  };
+
+  // Primeiro import: bem-sucedido
+  var rt1 = makeImportReceivedSandbox({ mockFileContent: RECEIVED_JSONL, localStorage: ls });
+  var pair1 = rt1.RAVATEX_DOCUMENTS.createReceivedImportButton({ buttonId: 'g16b-ok' });
+  var container1 = makeContainer();
+  pair1.mount(container1);
+  pair1.fileInput.files = [{ name: 'ok.jsonl' }];
+  pair1.fileInput._changeHandlers.forEach(function (fn) { fn(); });
+
+  var metaBefore = JSON.parse(store['RAVATEX_DOCUMENTS_RECEIVED_METADATA']);
+  assert.ok(metaBefore, 'metadata do primeiro import');
+  assert.equal(metaBefore.fileName, 'ok.jsonl');
+
+  // Segundo import: falha (content vazio -> loadReceivedDocumentsFromText retorna erro)
+  var rt2 = makeImportReceivedSandbox({ mockFileContent: '', localStorage: ls });
+  var pair2 = rt2.RAVATEX_DOCUMENTS.createReceivedImportButton({ buttonId: 'g16b-bad' });
+  var container2 = makeContainer();
+  pair2.mount(container2);
+  pair2.fileInput.files = [{ name: 'invalid.jsonl' }];
+  pair2.fileInput._changeHandlers.forEach(function (fn) { fn(); });
+
+  var metaAfter = JSON.parse(store['RAVATEX_DOCUMENTS_RECEIVED_METADATA']);
+  assert.ok(metaAfter, 'metadata ainda existe');
+  assert.equal(metaAfter.fileName, 'ok.jsonl', 'fileName preservado apos erro');
+});
+
+test('import-received (G16-B): localStorage indisponivel nao quebra import', function () {
+  var rt = makeImportReceivedSandbox({ mockFileContent: RECEIVED_JSONL });
+  var pair = rt.RAVATEX_DOCUMENTS.createReceivedImportButton({ buttonId: 'g16b-nols' });
+  var container = makeContainer();
+  pair.mount(container);
+  pair.fileInput.files = [{ name: 'test.jsonl' }];
+  pair.fileInput._changeHandlers.forEach(function (fn) { fn(); });
+
+  // Ao menos window global foi populada
+  assert.ok(rt.sandbox.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA, 'metadata no window');
+  assert.equal(rt.sandbox.window.RAVATEX_DOCUMENTS_RECEIVED.length, 3, 'docs carregados mesmo sem localStorage');
 });
 
 // -------------------------------------------------------------------

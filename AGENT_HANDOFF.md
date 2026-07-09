@@ -1,4 +1,60 @@
-﻿# Estado pos-fase - G14-D Closeout and Staging Push
+﻿# Estado pos-fase - G16-B Last Import Metadata Patch
+
+- Fase: `RAVATEX-DOCUMENTS-G16-B-LAST-IMPORT-METADATA-PATCH`.
+- Status: **PRONTO**.
+- Branch/HEAD base: `work/app-next`, pendente commit (a partir de `a646a92`).
+- Escopo geral (G16-A a G16-B):
+  - G16-A: Design read-only da metadata de import
+  - G16-B: Implementacao do helper `simpleHash` + persistencia em `localStorage` + card na tela
+
+- Patch:
+  - `js/documents-ingestor-import-received.js`:
+    - `simpleHash(str)`: hash DJB2 (5 linhas, 0 dependencias)
+    - `normalizeStatusForCount(status)`: mapeia status para chave de contagem
+    - `computeStatusCounts(received)`: conta docs por status
+    - `saveReceivedMetadata(opts)`: salva metadata em `localStorage` + `window`
+    - `loadReceivedMetadata()`: bootstrap: carrega metadata do `localStorage` no load
+    - No callback `change` do file input: apos `result.ok`, calcula `statusCounts`,
+      gera `hash` e chama `saveReceivedMetadata`
+    - Chave `localStorage`: `RAVATEX_DOCUMENTS_RECEIVED_METADATA`
+    - Window global: `window.RAVATEX_DOCUMENTS_RECEIVED_METADATA`
+  - `js/screens/documentos-recebidos.js`:
+    - `getReceivedMetadata()`: le de `window` com fallback `localStorage`
+    - `buildImportMetadataCard(docs)`: renderiza card discreto entre header e scan strip
+      com: data/hora, nome do arquivo, count, pills por status, hash, aviso de snapshot
+      manual. Chip "Defasado"/"Atualizado" conforme idade do import (>24h).
+    - `localStorage` corrompido: retorna `null`, sem card.
+  - `tests/documents-ingestor-import-received.test.js`:
+    - Teste `NAO persiste em localStorage` removido (G16-B intencionalmente usa localStorage).
+    - 6 novos testes: metadata salva, window global, hash muda, statusCounts, erro preserva,
+      localStorage indisponivel.
+    - `makeImportReceivedSandbox` aceita `localStorage` no opts.
+  - `tests/documentos-recebidos.smoke.js`:
+    - Teste `NAO usa localStorage` atualizado para confirmar que a tela referencia.
+    - 8 novos testes: card ausente sem metadata, card com metadata, chip Defasado,
+      chip Atualizado, tolera null, sem fileName, sem statusCounts, exibe Rejeitados.
+
+- Testes (4 suites focadas):
+  - `tests/documents-ingestor-import-received.test.js`: 36/36
+  - `tests/documentos-recebidos.smoke.js`: 54/54
+  - `tests/documents-ingestor-loader.test.js`: 71/71
+  - `tests/pedido-detail.smoke.js`: 177/177
+  - Total: 338 pass, 0 fail, 0 regressao
+
+- Garantias:
+  - Array `RAVATEX_DOCUMENTS_RECEIVED` continua volatil (em memoria, sem persistencia).
+  - Apenas metadata persiste em `localStorage`.
+  - Toast de sucesso inalterado.
+  - Pedido Detail intocado.
+  - Documents Ingestor intocado.
+  - Sem Supabase, Google/Drive, polling, scheduler, backend, endpoint.
+  - Sem alteracao no loader, parser, ou no estado legado.
+
+- Proximo:
+  - Commit com mensagem: `Show last received documents import metadata`
+  - Futuro: `ingestion_event_id` no JSONL (produtor) ou aceite/rejeicao no Controle.
+
+# Estado pos-fase - G14-D Closeout and Staging Push
 
 - Fase: `RAVATEX-DOCUMENTS-G14-D-CLOSEOUT-AND-STAGING-PUSH`.
 - Status: **PRONTO**.

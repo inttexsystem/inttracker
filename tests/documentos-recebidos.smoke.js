@@ -167,9 +167,10 @@ test('documentos-recebidos: NAO faz fetch nem XMLHttpRequest', function () {
   assert.equal(/XMLHttpRequest/.test(screen), false, 'XHR em documentos-recebidos');
 });
 
-test('documentos-recebidos: NAO usa localStorage/sessionStorage', function () {
-  assert.equal(/localStorage/.test(screen), false, 'localStorage em documentos-recebidos');
-  assert.equal(/sessionStorage/.test(screen), false, 'sessionStorage em documentos-recebidos');
+test('documentos-recebidos: referencia localStorage (G16-B metadata)', function () {
+  // G16-B: a tela agora usa localStorage para ler metadata do ultimo import.
+  assert.ok(/localStorage/.test(screen), 'a tela referencia localStorage para metadata');
+  assert.equal(/sessionStorage/.test(screen), false, 'sessionStorage nao e usado');
 });
 
 // ---------------------------------------------------------------------
@@ -1056,4 +1057,148 @@ test('G12-F2: header traz subtitulo conciso sem citar os arquivos jsonl', functi
     'subtitulo enxuto NAO cita nome de arquivo jsonl');
   assert.equal(allText.indexOf('documentos-mapeados.jsonl'), -1,
     'subtitulo enxuto NAO cita nome de arquivo jsonl');
+});
+
+// ---------------------------------------------------------------------
+// 10. G16-B: metadata card do ultimo import
+// ---------------------------------------------------------------------
+
+test('G16-B: metadata card NAO aparece quando nao ha metadata', function () {
+  const sb = makeScreenSandbox([]);
+  delete sb.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA;
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const cards = findAll(result, (n) => n._attrs && n._attrs['data-section'] === 'documentos-recebidos-import-metadata');
+  assert.equal(cards.length, 0, 'card de metadata NAO aparece sem metadata');
+});
+
+test('G16-B: metadata card aparece com metadata valida no window', function () {
+  const sb = makeScreenSandbox([]);
+  sb.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA = {
+    importedAt: '2026-07-09T15:30:00.000Z',
+    fileName: 'documentos-mapeados.jsonl',
+    count: 3,
+    hash: '1a2b3c4d',
+    statusCounts: { accepted: 1, assigned: 1, pending: 1, rejected: 0, unknown: 0 },
+  };
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const cards = findAll(result, (n) => n._attrs && n._attrs['data-section'] === 'documentos-recebidos-import-metadata');
+  assert.equal(cards.length, 1, 'card de metadata presente');
+  const cardText = textOf(cards[0]);
+  assert.ok(cardText.indexOf('Último import') >= 0, 'mostra rotulo Ultimo import');
+  assert.ok(cardText.indexOf('documentos-mapeados.jsonl') >= 0, 'mostra nome do arquivo');
+  assert.ok(cardText.indexOf('3 documento') >= 0, 'mostra count');
+  assert.ok(cardText.indexOf('Snapshot manual') >= 0, 'mostra aviso de snapshot manual');
+  assert.ok(cardText.indexOf('1a2b3c4d') >= 0, 'mostra hash curto');
+  assert.ok(cardText.indexOf('1 Aceitos') >= 0, 'mostra accepted count');
+  assert.ok(cardText.indexOf('1 Atrelados') >= 0, 'mostra assigned count');
+  assert.ok(cardText.indexOf('1 Pendentes') >= 0, 'mostra pending count');
+});
+
+test('G16-B: metadata card mostra chip "Defasado" para import >24h', function () {
+  const sb = makeScreenSandbox([]);
+  var twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+  sb.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA = {
+    importedAt: twoDaysAgo,
+    fileName: 'antigo.jsonl',
+    count: 1,
+    hash: 'ff00ff00',
+    statusCounts: { accepted: 0, assigned: 0, pending: 1, rejected: 0, unknown: 0 },
+  };
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const cards = findAll(result, (n) => n._attrs && n._attrs['data-section'] === 'documentos-recebidos-import-metadata');
+  assert.equal(cards.length, 1, 'card aparece mesmo com metadata antiga');
+  const cardText = textOf(cards[0]);
+  assert.ok(cardText.indexOf('Defasado') >= 0, 'chip Defasado visivel para import antigo');
+  assert.ok(cardText.indexOf('mais de 24h') >= 0, 'aviso de 24h no texto');
+  assert.ok(cardText.indexOf('Reimporte para dados atuais') >= 0, 'instru para reimportar');
+});
+
+test('G16-B: metadata card mostra chip "Atualizado" para import <24h', function () {
+  const sb = makeScreenSandbox([]);
+  var oneHourAgo = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString();
+  sb.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA = {
+    importedAt: oneHourAgo,
+    fileName: 'recente.jsonl',
+    count: 2,
+    hash: 'abc12345',
+    statusCounts: { accepted: 2, assigned: 0, pending: 0, rejected: 0, unknown: 0 },
+  };
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const cards = findAll(result, (n) => n._attrs && n._attrs['data-section'] === 'documentos-recebidos-import-metadata');
+  assert.equal(cards.length, 1);
+  const cardText = textOf(cards[0]);
+  assert.ok(cardText.indexOf('Atualizado') >= 0, 'chip Atualizado para import recente');
+  assert.equal(cardText.indexOf('mais de 24h'), -1, 'sem aviso de 24h quando recente');
+});
+
+test('G16-B: metadata card tolera JSON corrompido (retorna null, sem card)', function () {
+  const sb = makeScreenSandbox([]);
+  sb.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA = null;
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const cards = findAll(result, (n) => n._attrs && n._attrs['data-section'] === 'documentos-recebidos-import-metadata');
+  assert.equal(cards.length, 0, 'card NAO aparece com metadata null');
+});
+
+test('G16-B: metadata card sem fileName nao quebra', function () {
+  const sb = makeScreenSandbox([]);
+  sb.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA = {
+    importedAt: '2026-07-09T10:00:00.000Z',
+    count: 5,
+    hash: 'bbbbbbbb',
+    statusCounts: { accepted: 5, assigned: 0, pending: 0, rejected: 0, unknown: 0 },
+  };
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const cards = findAll(result, (n) => n._attrs && n._attrs['data-section'] === 'documentos-recebidos-import-metadata');
+  assert.equal(cards.length, 1, 'card aparece sem fileName');
+  const cardText = textOf(cards[0]);
+  assert.ok(cardText.indexOf('Último import') >= 0, 'mostra Ultimo import');
+  assert.ok(cardText.indexOf('5 documento') >= 0, 'mostra count');
+});
+
+test('G16-B: metadata card com statusCounts vazias nao quebra', function () {
+  const sb = makeScreenSandbox([]);
+  sb.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA = {
+    importedAt: '2026-07-09T08:00:00.000Z',
+    count: 0,
+    hash: '00000000',
+  };
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const cards = findAll(result, (n) => n._attrs && n._attrs['data-section'] === 'documentos-recebidos-import-metadata');
+  assert.equal(cards.length, 1, 'card aparece com statusCounts vazias');
+  const cardText = textOf(cards[0]);
+  assert.ok(cardText.indexOf('Snapshot manual') >= 0, 'aviso de snapshot aparece');
+});
+
+test('G16-B: metadata card exibe status Rejeitados quando existem', function () {
+  const sb = makeScreenSandbox([]);
+  sb.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA = {
+    importedAt: '2026-07-09T12:00:00.000Z',
+    fileName: 'rejected.jsonl',
+    count: 4,
+    hash: 'deadbeef',
+    statusCounts: { accepted: 1, assigned: 0, pending: 1, rejected: 2, unknown: 0 },
+  };
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const cards = findAll(result, (n) => n._attrs && n._attrs['data-section'] === 'documentos-recebidos-import-metadata');
+  assert.equal(cards.length, 1);
+  const cardText = textOf(cards[0]);
+  assert.ok(cardText.indexOf('2 Rejeitados') >= 0, 'mostra Rejeitados count');
+  assert.ok(cardText.indexOf('1 Aceitos') >= 0, 'mostra Aceitos count');
+  assert.ok(cardText.indexOf('1 Pendentes') >= 0, 'mostra Pendentes count');
 });

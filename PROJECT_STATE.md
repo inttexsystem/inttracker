@@ -1,5 +1,61 @@
 > **Atualizacao 2026-07-09 — fase
-> `RAVATEX-DOCUMENTS-G14-D-CLOSEOUT-AND-STAGING-PUSH`.**
+> `RAVATEX-DOCUMENTS-G16-B-LAST-IMPORT-METADATA-PATCH`.**
+> Status: **PRONTO — METADATA DO ULTIMO IMPORT NO LOCALSTORAGE + CARD VISUAL**.
+> Branch/HEAD: `work/app-next`, pendente commit (a partir de `a646a92`).
+>
+> Escopo G16 (fases A e B):
+> - **G16-A**: Design read-only da metadata de import (10 perguntas respondidas).
+> - **G16-B**: Implementacao do helper `simpleHash` + persistencia de metadata em
+>   `localStorage` (`RAVATEX_DOCUMENTS_RECEIVED_METADATA`) + card discreto na tela
+>   `#/documentos/recebidos`.
+>
+> Metadata salva apos import bem-sucedido:
+> - `importedAt`: ISO string (data/hora do import)
+> - `fileName`: nome do arquivo selecionado (ex: `documentos-mapeados.jsonl`)
+> - `count`: quantidade de documentos importados
+> - `hash`: hash DJB2 simples do conteudo do JSONL (8 chars hex)
+> - `statusCounts`: `{ accepted, assigned, pending, rejected, unknown }`
+>
+> Comportamento:
+> - Metadata sobrevive a F5/reload (localStorage).
+> - Reimport substitui metadata anterior.
+> - Import invalido NAO sobrescreve metadata anterior.
+> - localStorage indisponivel/corrompido nao quebra a tela.
+> - Card exibe data/hora em pt-BR, nome do arquivo, count, pills por status,
+>   hash curto (`#xxxxxxxx`) e aviso "Snapshot manual — pode estar defasado".
+> - Se `importedAt > 24h`, card ganha chip "Defasado" em tom ambar com
+>   instrucao para reimportar.
+> - Sem metadata = sem card (estado vazio preservado).
+>
+> Arquivos alterados (G16-B):
+> - `js/documents-ingestor-import-received.js` — `+simpleHash`, `+computeStatusCounts`,
+>   `+saveReceivedMetadata`, `+loadReceivedMetadata`, metadata salva no callback `change`
+>   do file input.
+> - `js/screens/documentos-recebidos.js` — `+getReceivedMetadata`,
+>   `+buildImportMetadataCard`, card renderizado entre header e scan strip.
+> - `tests/documents-ingestor-import-received.test.js` — teste localStorage ban removido;
+>   6 novos testes G16-B (metadata salva, window global, hash muda, statusCounts,
+>   erro preserva, localStorage indisponivel).
+> - `tests/documentos-recebidos.smoke.js` — teste localStorage ban atualizado
+>   (agora confirma referencia); 8 novos testes G16-B (card ausente sem metadata,
+>   card presente com metadata, chip Defasado >24h, chip Atualizado <24h,
+>   tolera null, tolera sem fileName, tolera sem statusCounts, exibe Rejeitados).
+>
+> Testes: 338 pass (4 suites focadas) — 0 regressao.
+>
+> Garantias:
+> - Array `RAVATEX_DOCUMENTS_RECEIVED` continua volatil (em memoria).
+> - Apenas metadata persiste em localStorage.
+> - Toast de sucesso inalterado.
+> - Pedido Detail intocado.
+> - Documents Ingestor intocado.
+> - Sem Supabase, Google/Drive, polling, scheduler, backend.
+>
+> Proximo: integracao com `ingestion_event_id` no JSONL (melhoria futura no produtor)
+> ou aceite/rejeicao dentro do Controle (feature posterior).
+>
+> > **Atualizacao 2026-07-09 — fase
+> > `RAVATEX-DOCUMENTS-G14-D-CLOSEOUT-AND-STAGING-PUSH`.**
 > Status: **PRONTO — CONSUMIDOR BRIDGE DOCUMENTOS-MAPEADOS.JSONL NO CONTROLE**.
 > Branch/HEAD `work/app-next`, `fff052b`.
 >

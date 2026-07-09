@@ -3,7 +3,11 @@
 // Tela admin `#/documentos/recebidos` sobre o estado
 // `window.RAVATEX_DOCUMENTS_RECEIVED`, populado manualmente via JSONL do
 // Documents Ingestor. Mantem o contrato local/read-only: sem Supabase,
-// sem rede, sem persistencia e sem consumir `RAVATEX_DOCUMENTS_LOADED_EVENTS`.
+// sem rede, sem persistencia do array de documentos e sem consumir
+// `RAVATEX_DOCUMENTS_LOADED_EVENTS`.
+//
+// G16-B: exibe metadata do ultimo import (localStorage) em card
+// discreto abaixo do header. O array de documentos continua volatil.
 // =====================================================================
 
 (function (window) {
@@ -547,6 +551,128 @@
       }, 'Importe a lista gerada pelo Documents Ingestor para revisar os documentos mapeados.'));
   }
 
+  function getReceivedMetadata() {
+    try {
+      if (window.RAVATEX_DOCUMENTS_RECEIVED_METADATA
+          && window.RAVATEX_DOCUMENTS_RECEIVED_METADATA.importedAt) {
+        return window.RAVATEX_DOCUMENTS_RECEIVED_METADATA;
+      }
+      if (typeof localStorage !== 'undefined') {
+        var raw = localStorage.getItem('RAVATEX_DOCUMENTS_RECEIVED_METADATA');
+        if (raw) {
+          var meta = JSON.parse(raw);
+          if (meta && typeof meta.importedAt === 'string') {
+            window.RAVATEX_DOCUMENTS_RECEIVED_METADATA = meta;
+            return meta;
+          }
+        }
+      }
+    } catch (_ignored) {
+      // localStorage corrompido ou indisponivel: retornar null.
+    }
+    return null;
+  }
+
+  function buildImportMetadataCard(docs) {
+    var meta = getReceivedMetadata();
+    if (!meta || !meta.importedAt) return null;
+
+    var now = Date.now();
+    var importedMs = new Date(meta.importedAt).getTime();
+    var isStale = !isNaN(importedMs) && (now - importedMs) > 24 * 60 * 60 * 1000;
+
+    var when = fmtDataHoraCurta(meta.importedAt);
+    var fileName = meta.fileName || '';
+    var count = meta.count;
+    var hash = meta.hash || '';
+    var sc = meta.statusCounts || {};
+
+    var statusPills = [];
+    var statusOrder = ['pending', 'assigned', 'accepted', 'rejected', 'unknown'];
+    var statusLabels = { pending: 'Pendentes', assigned: 'Atrelados', accepted: 'Aceitos', rejected: 'Rejeitados', unknown: 'Outros' };
+    var statusColors = { pending: '#c2610c', assigned: '#2563eb', accepted: '#18794a', rejected: '#d6403a', unknown: '#8a93a3' };
+    var statusBg = { pending: '#fff4e6', assigned: '#eaf1fd', accepted: '#e6f4ec', rejected: '#fdecec', unknown: '#f1f3f6' };
+    for (var si = 0; si < statusOrder.length; si++) {
+      var key = statusOrder[si];
+      var val = sc[key];
+      if (typeof val !== 'number' || val <= 0) continue;
+      statusPills.push(window.el('span', {
+        style: 'display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;'
+          + 'padding:1px 7px;border-radius:3px;white-space:nowrap;'
+          + 'background:' + statusBg[key] + ';color:' + statusColors[key] + ';',
+      }, String(val) + ' ' + statusLabels[key]));
+    }
+
+    var chipBg = isStale ? '#fdf0e6' : '#eaf1fd';
+    var chipFg = isStale ? '#b65630' : '#2563eb';
+    var chipLabel = isStale ? 'Defasado' : 'Atualizado';
+
+    var chip = window.el('span', {
+      style: 'display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;'
+        + 'letter-spacing:.05em;text-transform:uppercase;padding:1px 6px;border-radius:3px;'
+        + 'white-space:nowrap;background:' + chipBg + ';color:' + chipFg + ';',
+    }, chipLabel);
+
+    var hashDisplay = hash ? hash.slice(0, 8) : '';
+    var hashChip = hashDisplay ? window.el('span', {
+      style: 'font-size:10.5px;font-weight:500;color:#9aa2af;white-space:nowrap;font-family:monospace;',
+    }, '#' + hashDisplay) : null;
+
+    var fileDisplay = fileName ? window.el('span', {
+      style: 'font-size:12px;font-weight:600;color:#3f4757;white-space:nowrap;max-width:260px;'
+        + 'overflow:hidden;text-overflow:ellipsis;',
+      title: fileName,
+    }, fileName) : null;
+
+    var infoRow = window.el('div', {
+      style: 'display:flex;align-items:center;gap:14px;flex-wrap:wrap;',
+    },
+      window.el('span', {
+        style: 'font-size:11.5px;color:#8a93a3;white-space:nowrap;',
+      }, window.el('span', { style: 'font-weight:600;color:#5b6472;' }, 'Último import: '), when));
+
+    if (fileDisplay) infoRow.appendChild(fileDisplay);
+    if (count != null) infoRow.appendChild(window.el('span', {
+      style: 'font-size:12px;color:#5b6472;font-weight:500;white-space:nowrap;',
+    }, String(count) + ' documento(s)'));
+    infoRow.appendChild(chip);
+
+    var detailRow = null;
+    if (statusPills.length || hashChip) {
+      detailRow = window.el('div', {
+        style: 'display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px;',
+      });
+      if (statusPills.length) {
+        for (var pi = 0; pi < statusPills.length; pi++) {
+          detailRow.appendChild(statusPills[pi]);
+        }
+        if (hashChip) {
+          detailRow.appendChild(window.el('span', { style: 'color:#d8dce2;font-size:10px;' }, '·'));
+        }
+      }
+      if (hashChip) detailRow.appendChild(hashChip);
+    }
+
+    var warningRow = window.el('div', {
+      style: 'display:flex;align-items:flex-start;gap:4px;margin-top:4px;font-size:11px;'
+        + 'color:' + (isStale ? '#b65630' : '#8a93a3') + ';line-height:1.4;',
+    },
+      window.el('span', {
+        style: 'flex-shrink:0;width:13px;height:13px;display:inline-flex;align-items:center;justify-content:center;'
+          + 'border-radius:50%;background:' + (isStale ? '#fde0ce' : '#f1f3f6') + ';'
+          + 'font-size:9px;font-weight:700;color:' + (isStale ? '#b65630' : '#8a93a3') + ';',
+      }, 'i'),
+      window.el('span', {}, isStale
+        ? 'Snapshot manual — este import tem mais de 24h e pode estar defasado. Reimporte para dados atuais.'
+        : 'Snapshot manual — pode estar defasado. Reimporte para dados atuais.'));
+
+    return window.el('div', {
+      'data-section': 'documentos-recebidos-import-metadata',
+      style: CARD + 'margin-bottom:10px;padding:10px 14px;'
+        + 'font-size:12px;' + (isStale ? 'border-color:#ebc8a6;' : ''),
+    }, infoRow, detailRow, warningRow);
+  }
+
   function latestRunLabel(docs) {
     if (ui.lastRun) return fmtDataHoraCurta(ui.lastRun);
     var latest = null;
@@ -921,6 +1047,8 @@
 
     var page = window.el('div', { style: 'width:100%;max-width:1600px;margin:0 auto;' });
     page.appendChild(buildHeader());
+    var metaCard = buildImportMetadataCard(docs);
+    if (metaCard) page.appendChild(metaCard);
     page.appendChild(buildScanStrip(docs));
     page.appendChild(buildSearchTabs(docs));
     page.appendChild(buildFilters(docs));
