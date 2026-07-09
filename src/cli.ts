@@ -14,6 +14,7 @@ import { normalizePedido } from './core/pedido.js';
 import { exportManifest, syncManifest } from './core/syncManifest.js';
 import { exportPackage, exportReceivedDocuments, exportMappedDocuments } from './core/exportPackage.js';
 import { closeDb, getDb } from './storage/sqlite.js';
+import { runSyncMapped, validateSyncMappedOptions } from './core/syncMapped.js';
 
 const program = new Command();
 
@@ -653,6 +654,159 @@ program
     console.log('[export-mapped] Exported %d mapped document(s).', result.totalDocuments);
     console.log('[export-mapped] Output: %s', result.outputPath);
     console.log('[export-mapped] Local-only — no Google Drive calls performed.');
+    closeDb();
+  });
+
+program
+  .command('sync-mapped')
+  .description('Run scan → export mapped → report in a single local command (dry-run by default)')
+  .option('-d, --days <number>', 'Days back for scan (1-30; >7 requires --wide-scan)', String(config.scanDaysBack))
+  .option('--max-attachments <number>', 'Hard cap on attachments processed per scan run (1-200)', '25')
+  .option('--wide-scan', 'Acknowledge scanning more than 7 days back (required for --days > 7)')
+  .option('--confirm-real-google', 'Process real Gmail/Drive (otherwise dry-run)')
+  .option('--query <gmail_query>', 'Additional Gmail search query (refines base filter)')
+  .option('--retry-message <gmail_message_id>', 'Retry processing a specific Gmail message (single-message, narrow)')
+  .option('--status <status>', 'Filter export by status: pending|assigned|accepted|rejected')
+  .option('--export-days <n>', 'Filter export by documents created in the last N days')
+  .option('--limit <n>', 'Max documents to export (cap 5000)', '5000')
+  .option('--output <path>', 'Output file path (default: data/exports/documentos-mapeados.jsonl)')
+  .option('--json-report', 'Print report as JSON instead of human-readable text', false)
+  .action(async (opts) => {
+    const days = parseInt(opts.days, 10);
+    if (!Number.isFinite(days) || days < 1 || days > 30) {
+      console.error('[sync-mapped] --days must be between 1 and 30. Got:', opts.days);
+      process.exit(1);
+    }
+    if (days > 7 && !opts.wideScan) {
+      console.error(`[sync-mapped] --days=${days} requires --wide-scan. Refusing to run a wide scan without explicit opt-in.`);
+      process.exit(1);
+    }
+
+    const maxAttachments = parseInt(opts.maxAttachments, 10);
+    if (!Number.isFinite(maxAttachments) || maxAttachments < 1 || maxAttachments > 200) {
+      console.error('[sync-mapped] --max-attachments must be between 1 and 200. Got:', opts.maxAttachments);
+      process.exit(1);
+    }
+
+    const confirmReal = Boolean(opts.confirmRealGoogle);
+    const gmailQuery = opts.query ? String(opts.query).trim() : undefined;
+    const retryMessageId = opts.retryMessage ? String(opts.retryMessage).trim() : undefined;
+    const daysExplicitlyProvided = process.argv.includes('--days') || process.argv.includes('-d');
+
+    if (confirmReal && maxAttachments > 5 && !gmailQuery && !retryMessageId) {
+      console.error('[sync-mapped] REAL mode with --max-attachments > 5 requires --query (or --retry-message) for safety.');
+      process.exit(1);
+    }
+
+    const validation = validateSyncMappedOptions({
+      daysBack: daysExplicitlyProvided ? days : undefined,
+      wideScan: Boolean(opts.wideScan),
+      query: gmailQuery,
+      retryMessageId,
+    });
+    if (!validation.ok) {
+      console.error(`[sync-mapped] ${validation.reason}`);
+      process.exit(1);
+    }
+    const effectiveDays = validation.resolvedDaysBack ?? days;
+
+    let status: 'pending' | 'assigned' | 'accepted' | 'rejected' | undefined;
+    if (opts.status) {
+      const validStatuses = ['pending', 'assigned', 'accepted', 'rejected'] as const;
+      if (!(validStatuses as readonly string[]).includes(opts.status)) {
+        console.error('[sync-mapped] --status must be one of: pending, assigned, accepted, rejected. Got:', opts.status);
+        process.exit(1);
+      }
+      status = opts.status as 'pending' | 'assigned' | 'accepted' | 'rejected';
+    }
+
+    let exportDays: number | undefined;
+    if (opts.exportDays !== undefined) {
+      const n = parseInt(opts.exportDays, 10);
+      if (!Number.isFinite(n) || n < 1) {
+        console.error('[sync-mapped] --export-days must be a positive integer. Got:', opts.exportDays);
+        process.exit(1);
+      }
+      exportDays = n;
+    }
+
+    let limit: number | undefined;
+    if (opts.limit !== undefined) {
+      const n = parseInt(opts.limit, 10);
+      if (!Number.isFinite(n) || n < 1) {
+        console.error('[sync-mapped] --limit must be a positive integer. Got:', opts.limit);
+        process.exit(1);
+      }
+      if (n > 5000) {
+        console.error(`[sync-mapped] --limit capped at 5000 (was ${n})`);
+        limit = 5000;
+      } else {
+        limit = n;
+      }
+    }
+
+    if (retryMessageId) {
+      console.log(`[sync-mapped] --retry-message detected: forcing effective days=${effectiveDays}, narrow mode.`);
+    }
+    if (days > 7) {
+      console.warn(`[sync-mapped] WIDE-SCAN: processing up to ${days} days of inbox. Cap: ${maxAttachments} attachments.`);
+    }
+    if (!confirmReal) {
+      console.log('[sync-mapped] DRY-RUN — no real Gmail/Drive calls performed.');
+      console.log('[sync-mapped] Pass --confirm-real-google to perform real processing.');
+    } else {
+      console.log('[sync-mapped] REAL mode (Gmail/Drive calls will be made).');
+    }
+
+    const startedAt = Date.now();
+    console.log('[sync-mapped] Step 1/3: scan');
+    const result = await runSyncMapped({
+      daysBack: effectiveDays,
+      confirmReal,
+      maxAttachments,
+      query: gmailQuery,
+      retryMessageId,
+      status,
+      days: exportDays,
+      limit,
+      outputPath: opts.output,
+    });
+    const elapsedMs = Date.now() - startedAt;
+
+    if (result.scan.mode === 'real') {
+      console.log(`[sync-mapped] scan: emailsScanned=${result.scan.emailsScanned} new=${result.scan.newDocuments} duplicates=${result.scan.duplicates} crossMessageDuplicates=${result.scan.crossMessageDuplicates} skippedByCap=${result.scan.skippedByCap ?? 0} errors=${result.scan.errors.length}`);
+    } else {
+      console.log('[sync-mapped] scan: dry-run (no Gmail calls).');
+    }
+    if (result.scan.runLogPath) {
+      console.log(`[sync-mapped] scan runLog: ${result.scan.runLogPath}`);
+    }
+
+    console.log('[sync-mapped] Step 2/3: export mapped documents');
+    console.log(`[sync-mapped] exported ${result.export.totalDocuments} mapped document(s) → ${result.export.outputPath}`);
+
+    console.log('[sync-mapped] Step 3/3: report');
+    const r = result.report;
+    if (opts.jsonReport) {
+      console.log(JSON.stringify(r, null, 2));
+    } else {
+      console.log('--- import report ---');
+      console.log(`  totalEmailsProcessed:  ${r.totalEmailsProcessed}`);
+      console.log(`  totalDocuments:        ${r.totalDocuments}`);
+      console.log(`  recentErrors (7d):     ${r.recentErrors}`);
+      console.log('  by status:');
+      for (const [k, v] of Object.entries(r.documentsByStatus)) {
+        console.log(`    ${k}: ${v}`);
+      }
+      console.log(`  pendingWithoutPedido:  ${r.pendingWithoutPedido}`);
+      console.log(`  documentsAccepted:     ${r.documentsAccepted}`);
+      console.log(`  documentsRejected:     ${r.documentsRejected}`);
+      console.log(`  pendingAppAcceptance:  ${r.pendingAppAcceptance}`);
+    }
+
+    console.log(`[sync-mapped] DONE in ${elapsedMs}ms — sequence: ${result.sequence.join(' → ')}.`);
+    console.log('[sync-mapped] Local-only — no Google Drive calls were made by this command unless --confirm-real-google was used.');
+
     closeDb();
   });
 

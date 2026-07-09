@@ -15,6 +15,7 @@
     "sync:manifest": "tsx src/cli.ts sync-manifest",
     "export:package": "tsx src/cli.ts export-package",
     "export:mapped": "tsx src/cli.ts export-mapped",
+    "sync:mapped": "tsx src/cli.ts sync-mapped",
     "report": "tsx src/cli.ts report",
     "inspect": "tsx src/cli.ts inspect",
     "reprocess": "tsx src/cli.ts reprocess",

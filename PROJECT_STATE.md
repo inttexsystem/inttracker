@@ -22,7 +22,7 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - HEAD (documents-ingestor): `800d4af` (em fechamento G12-E5)
 - HEAD canônico staging/work/app-next (Controle de Tapetes): `997486a`
 - Push staging: `af919a2..997486a` (produção/origin oficial intocados)
-- 340+17=357 testes passando (28 suites) — incluindo integração mockada completa
+- 340+17+23=380 testes passando (29 suites) — incluindo integração mockada completa
 - Hermético: nenhum teste depende de `.env` real, token real ou chamadas Google
 - OAuth real validado (C1)
 - Smoke real com Drive/Gmail reais validado (C2)
@@ -48,6 +48,7 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - `npm run accept -- --id <id>` — aceita documento vinculado (local-only)
 - `npm run reject -- --id <id> --reason "<motivo>"` — rejeita documento vinculado (local-only)
 - `npm run export:events` — exporta eventos para JSONL
+- `npm run sync:mapped` — scan + export mapped + report em um comando (dry-run padrão)
 - `npm run login` — OAuth interativo (gera `data/google-token.json`)
 - `npm test` — roda testes herméticos
 - `npm run test:ci` — alias para CI
@@ -63,8 +64,8 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 
 ## Última evidência de testes
 ```
-Test Files  28 passed (28)
-     Tests  357 passed (357)
+Test Files  29 passed (29)
+     Tests  370 passed (370)
 ```
 
 ## Decisão arquitetural
@@ -121,6 +122,8 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - G12-E3 — Diagnóstico de data quality no export mapeado (causa raiz + queries before/after)
 - G12-E4 — Hardening dedup dentro do mesmo email + cleanup local (5c3074bb removido após backup)
 - G12-E5 — Correção `/dev/null` cross-platform em realAssign (os.devNull, 1 linha + 1 import)
+- G13-A — Design do comando `sync:mapped` (mapeamento read-only de scan/export/report)
+- G13-B — Comando `sync:mapped` (CLI + script npm + 23 testes focados; dry-run padrão; retry-message narrow)
 - G/H — UI Backlog (Controle de Tapetes — staging/work/app-next)
 
 ## Fase G1: Taxonomia de Documentos (3 eixos)
@@ -172,6 +175,40 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - **Regressão verificada**: `tests/export-mapped.test.ts` 13/13, `tests/dedupe.test.ts` 10/10.
 - **Risco residual**: nenhum. `os.devNull` é suportado em todas as plataformas desde Node.js 0.x.
 
+## Fase G13-A: Sync Mapped Command Design (read-only)
+- **HEAD inicial**: `c2f89b4`
+- **Atividade**: mapeamento read-only dos blocos existentes (scan / export-mapped / assign / report / retry-message) e proposta de `sync:mapped`. Documento de design entregue ao arquiteto.
+- **Não alterado**: nenhum arquivo (apenas leitura).
+- **Próxima fase recomendada**: G13-B — implementar `sync:mapped` (CLI + script + testes focados) com dry-run padrão e guards de retry-message.
+
+## Fase G13-B: Sync Mapped Command Implementation
+- **HEAD inicial**: `c2f89b4`
+- **Objetivo**: comando único local `npm run sync:mapped` que orquestra `scan → export mapped → report` em sequência, com dry-run por padrão, sem tocar Controle de Tapetes.
+- **Arquivos alterados (3) + 1 novo**:
+  - `src/core/syncMapped.ts` (**novo**, 112 linhas) — orquestrador puro com `validateSyncMappedOptions()`, `buildScanOptions()`, `buildExportOptions()`, `runSyncMapped(opts, deps)`. Aceita deps injetáveis para teste.
+  - `src/cli.ts` (+~140 linhas no final) — comando `sync-mapped` com banner dry-run, guards de retry-message, propagação de opções a scan/export/report, impressão de report formatado ou JSON.
+  - `package.json` (+1 script) — `"sync:mapped": "tsx src/cli.ts sync-mapped"`.
+  - `tests/sync-mapped.test.ts` (**novo**, 23 testes) — validação, opções de scan, opções de export, sequência scan→export→report, guards de retry-message (com days, com wide-scan, com query), wiring de package.json, end-to-end com DB hermético (escrita real de JSONL e report).
+- **Comportamento**:
+  - Dry-run por padrão; `scan()` é chamado com `confirmReal=false` e retorna mode='dry-run'.
+  - `--confirm-real-google` propaga para `scan()`; sem isso, zero chamadas Gmail/Drive.
+  - `--retry-message` força `daysBack=1` internamente (sem precisar de --days).
+  - `--retry-message + --days > 1` falha com mensagem clara.
+  - `--retry-message + --wide-scan` falha.
+  - `--retry-message + --query` falha.
+  - Sequência explícita: scan → export → report.
+  - `result.sequence: ['scan', 'export', 'report']` retornado no envelope.
+- **Não alterado**: `schema.sql`, `sqlite.ts` (migrations), `realScan.ts`, `realAssign.ts`, `manifest.ts`, `outbox.ts`, `link.ts`, `acceptance.ts`, `exportPackage.ts` (núcleo intocado), `index.ts`, `data/app.db`, `data/app.db.backup-*`, `data/outbox/`, `data/exports/documentos-mapeados.jsonl`. Controle de Tapetes não tocado.
+- **Não executado**: nenhuma chamada Gmail/Drive real, nenhum scan real, nenhum assign/accept/reject, nenhuma migration, nenhum push, nenhum `git reset/rebase/stash/clean`. Backup local preservado.
+- **Testes**:
+  - `tests/sync-mapped.test.ts` — 23/23 passando (novo arquivo).
+  - `tests/scan.test.ts` — 27/27 (regressão verificada).
+  - `tests/dedupe.test.ts` — 10/10 (regressão verificada).
+  - `tests/export-mapped.test.ts` — 13/13 (regressão verificada).
+  - **Total**: 370 testes / 29 suites, todos passando (`+23` novos).
+- **Riscos remanescentes**: nenhum. Implementação é integração de blocos já validados (scan, export-mapped, report) sem alteração de semântica.
+- **Próxima fase recomendada**: G13-C — smoke real-lite do `sync:mapped` em uma mensagem real (similar a C2 do G12).
+
 ## Próxima fase recomendada
-RAVATEX-DOCUMENTS-G12-F-MAPPED-DOCUMENTS-CONSUMER
-Foco: integrar `documentos-mapeados.jsonl` (e/ou `documentos-recebidos.jsonl`) no Controle de Tapetes para exibir a fila de documentos com status, pedido_manual, timestamps por evento e `rejected_reason` (read-only, sem mutação, mesmo contrato JSONL).
+RAVATEX-DOCUMENTS-G13-C-SYNC-MAPPED-SMOKE
+Foco: smoke real-lite do `npm run sync:mapped` em uma mensagem real conhecida, validando que o pipeline executa scan real (com `--confirm-real-google --retry-message <msg>`), export mapeado é gerado, e report é impresso. Sem tocar Controle de Tapetes.

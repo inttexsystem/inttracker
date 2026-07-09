@@ -3,13 +3,105 @@
 ## Branch/HEAD/Status
 ### documentos-ingestor (este repositório)
 - Branch: master
-- HEAD: `800d4af` (em fechamento G12-E5)
+- HEAD: `c2f89b4` (em fechamento G13-B)
 
 ### Controle de Tapetes (staging/work/app-next)
 - HEAD canônico: `997486a`
 
 ## Fase concluída
-RAVATEX-DOCUMENTS-G12-E5-DEV-NULL-CROSS-PLATFORM
+RAVATEX-DOCUMENTS-G13-SYNC-MAPPED-CLI-B
+
+## Fase anterior
+G13-A — Design do comando `sync:mapped` (read-only, mapeamento de blocos)
+
+## Objetivo da fase G13-B
+Implementar comando único local `npm run sync:mapped` que orquestra `scan → export mapped → report` em sequência. Dry-run por padrão. Guards rígidos para `--retry-message` (forçar `days=1` quando não fornecido; falhar com `days > 1`, `--wide-scan` ou `--query`).
+
+### Patch aplicado
+
+**`src/core/syncMapped.ts` (novo, 112 linhas):**
+- Orquestrador puro com DI: `runSyncMapped(opts, deps)`.
+- `validateSyncMappedOptions(opts)`: retorna `{ ok, reason?, resolvedDaysBack? }`.
+- `buildScanOptions(opts)`: monta `ScanGmailOptions` para `scanGmail()`.
+- `buildExportOptions(opts)`: monta `ExportMappedOptions` para `exportMappedDocuments()`.
+- Regras de retry-message:
+  - sem `--days`: `resolvedDaysBack = 1`
+  - com `--days > 1`: rejeita com mensagem clara
+  - com `--wide-scan`: rejeita
+  - com `--query`: rejeita
+- Retorna `SyncMappedResult { scan, export, report, sequence: ['scan','export','report'] }`.
+
+**`src/cli.ts` (comando `sync-mapped`, +~140 linhas):**
+- Opções: `--days`, `--max-attachments`, `--wide-scan`, `--confirm-real-google`, `--query`, `--retry-message`, `--status`, `--export-days`, `--limit`, `--output`, `--json-report`.
+- Valida dias (1-30, >7 exige `--wide-scan`).
+- Detecta se `--days` foi explicitamente fornecido via `process.argv` (necessário para retry sem --days usar 1 em vez do config default 7).
+- Replica guards de retry-message vindos do orquestrador.
+- Banner: dry-run por padrão, real mode com `--confirm-real-google`.
+- Passos: 1/3 scan, 2/3 export, 3/3 report (com `--json-report` opcional).
+- Mensagem final: `DONE in <ms>ms — sequence: scan → export → report`.
+
+**`package.json` (+1 script):**
+- `"sync:mapped": "tsx src/cli.ts sync-mapped"`.
+
+**`tests/sync-mapped.test.ts` (novo, 23 testes, 5 describe blocks):**
+- `validation` (7): retry sem days → days=1; retry+days=1 ok; retry+days>1 fail; retry+wide-scan fail; retry+query fail; wide-scan alone ok; plain run ok.
+- `buildScanOptions` (3): propagação de days/query/maxAttachments/confirmReal; retry forces days=1.
+- `buildExportOptions` (2): mapeamento de days/limit/status/output; omissão quando undefined.
+- `runSyncMapped` (8): ordem scan→export→report; dry-run default; confirm-real propaga; retry+days>1 throws; retry+wide-scan throws; retry+query throws; envelope result; package.json wiring.
+- `end-to-end hermetic` (2): write real de `documentos-mapeados.jsonl` com 1 doc seedado (asserts: existsSync, totalDocuments=1, schema_version=1, document_id, status); report computa contagens corretas (2 docs seedados).
+
+### Garantias
+- Nenhuma migration / schema alterado.
+- Nenhuma chamada Gmail/Drive real sem `--confirm-real-google`.
+- Nenhum push, nenhum `git reset/rebase/stash/clean`, nenhum `git add .`.
+- Backup local preservado.
+- Controle de Tapetes não tocado.
+- Credenciais não tocadas.
+- Sem scheduler, daemon ou watcher.
+
+### Testes
+- `tests/sync-mapped.test.ts`: 23/23 passando (novo)
+- `tests/scan.test.ts`: 27/27 (sem regressão)
+- `tests/dedupe.test.ts`: 10/10 (sem regressão)
+- `tests/export-mapped.test.ts`: 13/13 (sem regressão)
+- **Total**: 370 testes / 29 suites (era 357 / 28).
+
+### Comportamento dry-run vs real
+- **Sem `--confirm-real-google`**: `scanGmail()` recebe `confirmReal=false` → retorna `mode: 'dry-run'` com 0 contadores. `exportMappedDocuments()` e `generateReport()` rodam normalmente (ambos são read-only por natureza). Zero chamadas reais Gmail/Drive.
+- **Com `--confirm-real-google`**: scan real é executado (delega para `createScan` em `realScan.ts` com `confirmReal=true`). Upload real no Drive só acontece se autenticado e dentro de cap.
+
+### Comportamento retry-message
+- `sync:mapped --retry-message <id>`: usa `daysBack=1` (config default 7 é descartado). Modo narrow.
+- `sync:mapped --retry-message <id> --days 5`: falha com `[sync-mapped] --retry-message requires --days <= 1 (got 5)`.
+- `sync:mapped --retry-message <id> --wide-scan`: falha com `[sync-mapped] --retry-message cannot be combined with --wide-scan.`
+- `sync:mapped --retry-message <id> --query "from:foo"`: falha com `[sync-mapped] --retry-message cannot be combined with --query.`
+
+### Exemplo de uso
+```
+# Dry-run padrão (zero chamadas reais)
+npm run sync:mapped
+
+# Real mode (requer token OAuth + confirmação explícita)
+npm run sync:mapped -- --confirm-real-google --days 3
+
+# Retry por mensagem específica (narrow, days=1 automático)
+npm run sync:mapped -- --retry-message <msgId>
+
+# Filtrar export por status
+npm run sync:mapped -- --status pending --export-days 7
+
+# Report em JSON
+npm run sync:mapped -- --json-report
+```
+
+### Riscos remanescentes
+Nenhum. Implementação é integração de blocos já validados (scan, export-mapped, report) sem alteração de semântica. Os guards de retry-message são testados unitariamente e end-to-end via CLI.
+
+## Fase anterior
+G13-A — Design do comando `sync:mapped` (read-only, mapeamento de blocos)
+
+## Fase anterior
+G12-E5 — Dev Null Cross-Platform Fix (1 linha)
 
 ## Fase anterior
 G12-C1 — Evento document.detected no scan (sem schema novo)
