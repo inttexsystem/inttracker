@@ -29,10 +29,11 @@
     tipo: 'todos',
     pedido: 'todos',
     periodo: 'todos',
-    scanPlaying: false,
+    scanPlaying: true,
     refreshing: false,
     lastRun: null,
     statusOverrides: {},
+    mappedTypes: {},
     searchHasFocus: false,
     searchCursorPos: 0,
   };
@@ -50,14 +51,25 @@
     { extensions: ['zip'], kind: 'zip', icon: 'ti-file-type-zip' },
   ];
 
+  var MAPPED_SCAN_TYPES = [
+    { key: 'pdf', label: 'PDF', icon: 'ti-pdf' },
+    { key: 'xml', label: 'XML', icon: 'ti-file-type-xml' },
+    { key: 'json', label: 'JSON', icon: 'ti-json' },
+    { key: 'csv', label: 'CSV', icon: 'ti-csv' },
+    { key: 'xls', label: 'XLS', icon: 'ti-file-type-xls' },
+    { key: 'doc', label: 'DOC', icon: 'ti-file-type-doc' },
+    { key: 'txt', label: 'TXT', icon: 'ti-file-type-txt' },
+    { key: 'png', label: 'PNG', icon: 'ti-file-type-png' },
+    { key: 'jpg', label: 'JPG', icon: 'ti-file-type-jpg' },
+    { key: 'zip', label: 'ZIP', icon: 'ti-file-type-zip' },
+  ];
+
   var SVG_REFRESH = '<polyline points="23 4 23 10 17 10"></polyline>'
     + '<path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>';
   var SVG_UPLOAD = '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>'
     + '<polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line>';
   var SVG_SEARCH = '<circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>';
   var SVG_MAIL = '<rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m2 7 10 6 10-6"></path>';
-  var SVG_PLAY = '<polygon points="6 4 20 12 6 20 6 4"></polygon>';
-  var SVG_PAUSE = '<rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect>';
   var SVG_EYE = '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path><circle cx="12" cy="12" r="3"></circle>';
   var SVG_DOWNLOAD = '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>'
     + '<polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line>';
@@ -93,6 +105,24 @@
     }
     return window.el('span', {
       'data-icon': label || 'svg',
+      style: 'display:inline-flex;width:' + s + 'px;height:' + s + 'px;flex-shrink:0;' + (extraStyle || ''),
+    });
+  }
+
+  function lucideEl(name, inner, size, extraStyle) {
+    var s = size || 14;
+    var holder = document.createElement('span');
+    if (typeof holder.innerHTML !== 'undefined') {
+      holder.innerHTML = '<svg class="lucide lucide-' + name + '" data-icon="lucide-' + name + '"'
+        + ' width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none"'
+        + ' stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
+        + ' style="display:block;flex-shrink:0;' + (extraStyle || '') + '">'
+        + inner + '</svg>';
+      return holder.firstChild || holder.firstElementChild;
+    }
+    return window.el('span', {
+      class: 'lucide lucide-' + name,
+      'data-icon': 'lucide-' + name,
       style: 'display:inline-flex;width:' + s + 'px;height:' + s + 'px;flex-shrink:0;' + (extraStyle || ''),
     });
   }
@@ -531,6 +561,45 @@
     return latest ? fmtDataHoraCurta(latest) : 'Aguardando import';
   }
 
+  function isMappedTypeActive(key) {
+    return ui.mappedTypes[key] !== false;
+  }
+
+  function mappedTypeButton(type) {
+    var active = isMappedTypeActive(type.key);
+    var style = 'height:24px;display:inline-flex;align-items:center;gap:5px;border-radius:999px;'
+      + 'padding:0 8px;font-size:11.5px;font-weight:700;font-family:inherit;'
+      + 'cursor:pointer;white-space:nowrap;transition:background .12s ease,border-color .12s ease,color .12s ease,opacity .12s ease;'
+      + (active
+        ? 'background:#eef6ff;border:1px solid #cfe4ff;color:#2563eb;'
+        : 'background:transparent;border:1px dashed #d6dbe4;color:#9aa2af;opacity:.62;');
+    return window.el('button', {
+      type: 'button',
+      'data-action': 'toggle-tipo-mapeado',
+      'data-mapped-type': type.key,
+      'aria-pressed': active ? 'true' : 'false',
+      title: (active ? 'Desativar mapeamento ' : 'Ativar mapeamento ') + type.label,
+      style: style,
+      onclick: function () {
+        ui.mappedTypes[type.key] = !active;
+        rerender();
+      },
+    },
+      tablerIcon(type.icon, 'mapped-type-' + type.key, 15, active ? '' : 'filter:grayscale(1);'),
+      window.el('span', {}, type.label));
+  }
+
+  function buildMappedTypesControls() {
+    return window.el('span', {
+      'data-section': 'tipos-mapeados',
+      style: 'display:inline-flex;align-items:center;gap:7px;min-width:0;flex:1 1 auto;flex-wrap:wrap;',
+    },
+      window.el('span', {
+        style: 'font-size:12.5px;color:#8a93a3;font-weight:600;white-space:nowrap;',
+      }, 'Tipos mapeados:'),
+      MAPPED_SCAN_TYPES.map(mappedTypeButton));
+  }
+
   function buildScanStrip(docs) {
     var playBtn = window.el('button', {
       type: 'button',
@@ -543,7 +612,9 @@
         rerender();
       },
     });
-    playBtn.appendChild(svgEl(ui.scanPlaying ? SVG_PAUSE : SVG_PLAY, 14, 'play-pause'));
+    playBtn.appendChild(ui.scanPlaying
+      ? lucideEl('circle-pause', '<circle cx="12" cy="12" r="10"></circle><line x1="10" x2="10" y1="15" y2="9"></line><line x1="14" x2="14" y1="15" y2="9"></line>', 15)
+      : lucideEl('circle-play', '<circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon>', 15));
 
     var dot = window.el('span', {
       style: 'position:relative;display:inline-flex;width:8px;height:8px;flex-shrink:0;',
@@ -563,28 +634,30 @@
 
     return window.el('div', {
       'data-section': 'documentos-scan-strip',
-      style: CARD + 'min-height:34px;display:flex;align-items:center;gap:14px;'
-        + 'padding:4px 10px;margin-bottom:12px;flex-wrap:wrap;',
+      style: 'min-height:34px;display:flex;align-items:center;gap:14px;'
+        + 'padding:2px 2px 10px;margin-bottom:8px;flex-wrap:wrap;',
     },
       window.el('span', {
         style: 'display:inline-flex;align-items:center;gap:8px;font-size:13px;'
           + 'font-weight:600;color:#16203a;white-space:nowrap;',
-      }, dot, 'Varredura ativa', playBtn),
+      }, dot, ui.scanPlaying ? 'Varredura ativa' : 'Varredura inativa', playBtn),
       divider(),
-      window.el('span', {
-        style: 'font-size:13px;color:#8a93a3;white-space:nowrap;',
-      }, 'Última execução ', window.el('span', {
-        style: 'color:#3f4757;font-weight:500;',
-      }, latestRunLabel(docs))),
+      buildMappedTypesControls(),
       divider(),
       window.el('span', {
         style: 'display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#8a93a3;white-space:nowrap;',
-      }, 'Origem',
+      }, 'Origem:',
         window.el('span', {
           style: 'display:inline-flex;align-items:center;gap:5px;background:#f6f7f9;'
             + 'border:1px solid #eceef1;border-radius:4px;padding:2px 8px;'
             + 'font-size:12px;font-weight:600;color:#3f4757;',
-        }, svgEl(SVG_MAIL, 12, 'Gmail'), 'Gmail')));
+        }, svgEl(SVG_MAIL, 12, 'Gmail'), 'Gmail')),
+      divider(),
+      window.el('span', {
+        style: 'font-size:13px;color:#8a93a3;white-space:nowrap;margin-left:auto;',
+      }, 'Última execução: ', window.el('span', {
+        style: 'color:#3f4757;font-weight:500;',
+      }, latestRunLabel(docs))));
   }
 
   function tabButton(key, label, count) {

@@ -598,7 +598,9 @@ test('redesign: acoes ficam no header e strip de varredura e compacta com play/p
   assert.equal(strips.length, 1, 'strip de varredura presente');
   const stripStyle = strips[0]._attrs.style || '';
   assert.ok(stripStyle.indexOf('min-height:34px') >= 0, 'strip tem altura compacta: ' + stripStyle);
-  assert.ok(stripStyle.indexOf('padding:4px 10px') >= 0, 'strip tem padding compacto: ' + stripStyle);
+  assert.ok(stripStyle.indexOf('padding:2px 2px 10px') >= 0, 'strip tem padding compacto: ' + stripStyle);
+  assert.equal(stripStyle.indexOf('background:#fff'), -1, 'strip nao deve ter background de card: ' + stripStyle);
+  assert.equal(stripStyle.indexOf('border:1px solid'), -1, 'strip nao deve ter borda de card: ' + stripStyle);
 
   const toggles = findAll(result, findAction('toggle-varredura'));
   assert.equal(toggles.length, 1, 'botao play/pause presente na frente de Varredura ativa');
@@ -606,6 +608,47 @@ test('redesign: acoes ficam no header e strip de varredura e compacta com play/p
   const toggleStyle = toggles[0]._attrs.style || '';
   assert.ok(toggleStyle.indexOf('border:none') >= 0, 'play/pause nao deve ter contorno: ' + toggleStyle);
   assert.ok(toggleStyle.indexOf('background:transparent') >= 0, 'play/pause e apenas icone: ' + toggleStyle);
+  const pauseIcons = findAll(strips[0], (n) => n._attrs && n._attrs['data-icon'] === 'lucide-circle-pause');
+  assert.equal(pauseIcons.length, 1, 'varredura ativa usa icone Lucide circle-pause');
+  assert.ok(textOf(strips[0]).indexOf('Tipos mapeados:') >= 0, 'strip mostra Tipos mapeados');
+  assert.ok(textOf(strips[0]).indexOf('Origem:') >= 0, 'strip mostra Origem antes da ultima execucao');
+  assert.ok(textOf(strips[0]).indexOf('Última execução:') >= 0, 'strip mostra Ultima execucao');
+  assert.ok(stripStyle.indexOf('margin-bottom:8px') >= 0, 'strip tem respiro reduzido: ' + stripStyle);
+});
+
+test('redesign: strip alterna varredura e tipos mapeados ativos/inativos', function () {
+  const sb = makeScreenSandbox([]);
+  sb.window.setApp = function () {};
+  const container = new FakeNode('div');
+  sb.container = container;
+  let result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  let strip = findAll(result, (n) => n._attrs && n._attrs['data-section'] === 'documentos-scan-strip')[0];
+  assert.ok(textOf(strip).indexOf('Varredura ativa') >= 0, 'comeca ativa');
+
+  const scanToggle = findAll(result, findAction('toggle-varredura'))[0];
+  scanToggle._listeners.click[0]();
+  result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  strip = findAll(result, (n) => n._attrs && n._attrs['data-section'] === 'documentos-scan-strip')[0];
+  assert.ok(textOf(strip).indexOf('Varredura inativa') >= 0, 'pausar muda texto para inativa');
+  const playIcons = findAll(strip, (n) => n._attrs && n._attrs['data-icon'] === 'lucide-circle-play');
+  assert.equal(playIcons.length, 1, 'varredura inativa usa icone Lucide circle-play');
+
+  const typeButtons = findAll(strip, findAction('toggle-tipo-mapeado'));
+  assert.equal(typeButtons.length, 10, 'dez tipos mapeados disponiveis');
+  const pdfBtn = typeButtons.filter((n) => n._attrs && n._attrs['data-mapped-type'] === 'pdf')[0];
+  assert.ok(pdfBtn, 'botao PDF presente');
+  assert.equal(pdfBtn._attrs['aria-pressed'], 'true', 'PDF comeca ativo');
+  assert.ok(textOf(pdfBtn).indexOf('PDF') >= 0, 'botao PDF tem texto da extensao');
+  const pdfIcon = findAll(pdfBtn, (n) => n._attrs && n._attrs['data-icon'] === 'mapped-type-pdf')[0];
+  assert.ok(pdfIcon && pdfIcon.className.indexOf('ti ti-pdf') >= 0, 'PDF usa Tabler ti-pdf');
+
+  pdfBtn._listeners.click[0]();
+  result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  strip = findAll(result, (n) => n._attrs && n._attrs['data-section'] === 'documentos-scan-strip')[0];
+  const inactivePdf = findAll(strip, (n) => n._attrs && n._attrs['data-mapped-type'] === 'pdf')[0];
+  assert.equal(inactivePdf._attrs['aria-pressed'], 'false', 'PDF fica inativo apos clique');
+  assert.ok((inactivePdf._attrs.style || '').indexOf('opacity:.62') >= 0,
+    'tipo inativo ganha aparencia apagada: ' + (inactivePdf._attrs.style || ''));
 });
 
 test('redesign: filtros nao duplicam chevron e Limpar acompanha a altura da linha', function () {
