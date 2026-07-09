@@ -731,8 +731,10 @@ test('G12-R3: card exibe colunas Status, Pedido e Recebido em', function () {
   assert.ok(colsText.indexOf('PEDIDO') >= 0, 'cabecalho tem PEDIDO');
   assert.ok(colsText.indexOf('RECEBIDO EM') >= 0, 'cabecalho tem RECEBIDO EM');
   assert.ok(colsText.indexOf('AÇÕES') >= 0, 'cabecalho tem AÇÕES');
-  assert.ok((colsHeader[0]._attrs.style || '').indexOf('minmax(220px,1.25fr)') >= 0,
-    'coluna Tipo deve ser mais larga no grid: ' + (colsHeader[0]._attrs.style || ''));
+  assert.ok((colsHeader[0]._attrs.style || '').indexOf('minmax(190px,1.05fr)') >= 0,
+    'coluna Tipo deve ceder espaco para Acoes no grid: ' + (colsHeader[0]._attrs.style || ''));
+  assert.ok((colsHeader[0]._attrs.style || '').indexOf('148px') >= 0,
+    'coluna Acoes deve comportar quatro botoes: ' + (colsHeader[0]._attrs.style || ''));
 
   // Cada row exibe os tres campos
   const rows = findAll(result, findRow);

@@ -9,7 +9,7 @@
 (function (window) {
   'use strict';
 
-  var TABLE_GRID = 'minmax(280px,1.7fr) minmax(220px,1.25fr) minmax(112px,.75fr) minmax(140px,.85fr) minmax(120px,.75fr) 112px';
+  var TABLE_GRID = 'minmax(280px,1.7fr) minmax(190px,1.05fr) minmax(112px,.75fr) minmax(140px,.85fr) minmax(120px,.75fr) 148px';
   var TABLE_MIN_WIDTH = '1080px';
   var CARD = 'background:#fff;border:1px solid #eceef1;border-radius:6px;';
   var BTN_PRIMARY = 'height:34px;display:inline-flex;align-items:center;gap:7px;'
