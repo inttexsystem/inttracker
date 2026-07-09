@@ -71,7 +71,7 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 ## Última evidência de testes
 ```
 Test Files  29 passed (29)
-     Tests  370 passed (370)
+     Tests  374 passed (374)
 ```
 
 ## Decisão arquitetural
@@ -292,10 +292,17 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
   - `AGENT_HANDOFF.md` — registro G17-A/B.
 - **Não alterado**: `schema.sql`, `sqlite.ts`, `types/event.ts`, `outbox.ts`, `link.ts`, `acceptance.ts`, `cli.ts`, Controle de Tapetes, DB, backups.
 - **Não executado**: Gmail/Drive real, push, `git add .`, `reset/rebase/stash/clean`.
-- **Próxima fase**: G18 — consumo de `ingestion_event_id` pelo Controle (bridge enhance, fora de escopo do produtor).
+
+## Fase G17-C: Ingestion Event ID Export Smoke (read-only)
+- **HEAD**: `e6b135d` (mesmo HEAD G17-B)
+- **Objetivo**: validar JSONL real com os novos campos opcionais.
+- **Resultado**: 2 linhas, `schema_version: 1`, 5 campos novos presentes, `null` onde sem evento. Testes `export-mapped.test.ts`: 17/17 pass.
+- **Não alterado**: nenhum arquivo (smoke read-only).
+- **Próxima fase**: G18 — consumo no Controle de Tapetes.
 
 ## Próxima fase recomendada
-RAVATEX-DOCUMENTS-G18-CONSUMER-INGESTION-EVENT-ID (futuro, fora de escopo)
-- Produtor `sync:mapped` pronto (HEAD `bedbe909` → agora `4346275`, master)
-- `ingestion_event_id` disponível no mapped export JSONL (5 campos opcionais)
-- Consumidor bridge flat → Pedido Detail pode evoluir para usar `ingestion_event_id` como chave primária
+RAVATEX-DOCUMENTS-G18-CLOSEOUT (concluída no Controle de Tapetes)
+- Produtor `sync:mapped` pronto (HEAD `e6b135d`, master)
+- `ingestion_event_id` exportado (5 campos opcionais, `schema_version: 1`)
+- Consumidor bridge implementado no Controle (G18-B), staging publicado (G18-D), smoke validado (G18-C/E)
+- Próximo roadmap: UX de aceite/rejeição no Controle; dedup por `event_id`; telemetria de import

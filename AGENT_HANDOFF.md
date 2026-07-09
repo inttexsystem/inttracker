@@ -3,13 +3,13 @@
 ## Branch/HEAD/Status
 ### documentos-ingestor (este repositório)
 - Branch: master
-- HEAD: `4346275` (G17-B fechado — `ingestion_event_id` no mapped export)
+- HEAD: `e6b135d` (G17-B/C fechado — `ingestion_event_id` no mapped export + smoke validado)
 
 ### Controle de Tapetes (staging/work/app-next)
-- HEAD canônico: `fff052b` (G14-D fechado — consumidor bridge flat pronto)
+- HEAD canônico: `19d83bb` (G18-E fechado — bridge preserva `ingestion_event_id`, staging publicado)
 
 ## Fase concluída
-RAVATEX-DOCUMENTS-G17-B-INGESTION-EVENT-ID-EXPORT-PATCH — `ingestion_event_id` adicionado ao mapped export
+RAVATEX-DOCUMENTS-G17-B/C-CLOSEOUT — produtor `ingestion_event_id` exportado + smoke validado. Consumidor bridge G18 implementado no Controle, staging publicado e smoke cross-repo validado.
 
 ## Fase anterior
 G17-A — Ingestion Event ID Export Design (read-only)
@@ -604,4 +604,4 @@ Foco: integrar `documentos-mapeados.jsonl` no Controle de Tapetes para exibir a 
   - `schema_version` permanece `1`.
   - Tie-breaker por `id` garante resultado determinístico.
 - **Riscos**: nenhum.
-- **Próxima fase recomendada**: G18 — consumo de `ingestion_event_id` pelo Controle (bridge enhance, fora de escopo do produtor). Produtor `sync:mapped` estável, consumidor bridge publicado em staging.
+- **Próxima fase recomendada**: G18 fechado — bridge no Controle preserva `ingestion_event_id`, staging `19d83bb`, smoke cross-repo validado. Próximo roadmap: UX de aceite/rejeição no Controle; dedup por `event_id`; telemetria de import.
