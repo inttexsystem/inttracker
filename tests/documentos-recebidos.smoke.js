@@ -1044,14 +1044,16 @@ test('G12-F2: tela continua aceitando formato antigo (sem status, sem received_a
   assert.ok(textOf(recebidoEm).length > 0, 'data formatada a partir de created_at');
 });
 
-test('G12-F2: header do screen menciona compatibilidade com ambos exports', function () {
+test('G12-F2: header traz subtitulo conciso sem citar os arquivos jsonl', function () {
   const sb = makeScreenSandbox([]);
   const container = new FakeNode('div');
   sb.container = container;
   const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   const allText = JSON.stringify(findAll(result, () => true).map(textOf));
-  assert.ok(allText.indexOf('documentos-recebidos.jsonl') >= 0,
-    'header menciona o formato antigo: ' + allText.slice(0, 400));
-  assert.ok(allText.indexOf('documentos-mapeados.jsonl') >= 0,
-    'header menciona o formato novo (G12-F1): ' + allText.slice(0, 400));
+  assert.ok(allText.indexOf('Importe a lista gerada pelo Documents Ingestor') >= 0,
+    'subtitulo conciso presente: ' + allText.slice(0, 400));
+  assert.equal(allText.indexOf('documentos-recebidos.jsonl'), -1,
+    'subtitulo enxuto NAO cita nome de arquivo jsonl');
+  assert.equal(allText.indexOf('documentos-mapeados.jsonl'), -1,
+    'subtitulo enxuto NAO cita nome de arquivo jsonl');
 });

@@ -544,9 +544,7 @@
         actions),
       window.el('div', {
         style: 'font-size:13px;color:#8a93a3;line-height:1.45;white-space:nowrap;',
-      }, 'Importe a lista gerada pelo Documents Ingestor para revisar documentos recebidos. '
-        + 'A fila mostra documentos mapeados e é compatível com documentos-recebidos.jsonl '
-        + 'e documentos-mapeados.jsonl.'));
+      }, 'Importe a lista gerada pelo Documents Ingestor para revisar os documentos mapeados.'));
   }
 
   function latestRunLabel(docs) {
