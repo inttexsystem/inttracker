@@ -3,13 +3,13 @@
 ## Branch/HEAD/Status
 ### documentos-ingestor (este repositório)
 - Branch: master
-- HEAD: `60ccada` — G12-E2: exportMappedDocuments + CLI export-mapped (sem schema novo, sem Drive, sem scan)
+- HEAD: `61841b2` (em fechamento G12-E4)
 
 ### Controle de Tapetes (staging/work/app-next)
 - HEAD canônico: `997486a`
 
 ## Fase concluída
-RAVATEX-DOCUMENTS-G12-E2-MAPPED-DOCUMENTS-EXPORT
+RAVATEX-DOCUMENTS-G12-E4-DOCUMENT-DEDUPE-HARDENING
 
 ## Fase anterior
 G12-C1 — Evento document.detected no scan (sem schema novo)
@@ -251,3 +251,108 @@ A query parte de `documentos` (não de eventos) — `MIN(created_at)` agregado p
 ### Próxima fase recomendada
 RAVATEX-DOCUMENTS-G12-F-MAPPED-DOCUMENTS-CONSUMER
 Foco: opcionalmente integrar `documentos-mapeados.jsonl` no Controle de Tapetes para exibir a fila de documentos com status, pedido_manual, timestamps por evento e `rejected_reason` (read-only, mesmo contrato JSONL).
+
+---
+
+## Fase G12-E3: Mapped Export Data Quality Diagnostic (read-only)
+
+### Objetivo
+Diagnosticar a duplicata encontrada no `documentos-mapeados.jsonl` exportado: 3 registros (teste-nfe-entrada.xml aparecendo 2× + L.pdf fixture), explicar por que um deles é `desconhecido/desconhecido`, por que `detected_at` saiu null, e classificar L.pdf como fixture/mock.
+
+### Achados
+- 3 documentos no DB: `cda18ef9` (teste-nfe-entrada.xml, accepted, PED-99-2026), `5c3074bb` (teste-nfe-entrada.xml, pending, desconhecido), `ec07577a` (L.pdf, pending, desconhecido, fixture mock com gmail_message_id=m-log, drive_file_id=mock-L.pdf)
+- `cda18ef9` e `5c3074bb` têm o mesmo `gmail_message_id` (19f3c813e8d45be1) e mesmo `sha256` (d71f327...) e mesmo `drive_file_id` (1ao8qFfl...) mas `attachment_id` diferentes
+- Apenas `cda18ef9` tem eventos (linked+accepted); `5c3074bb` e `ec07577a` não têm eventos — por isso `detected_at`, `linked_at`, `accepted_at` saem null no export
+- L.pdf é fixture mock (evidências: gmail_message_id=m-log, drive_file_id=mock-L.pdf, thread_id=t, email subject=LOG)
+- Índice de dedup `(gmail_message_id, attachment_id, sha256)` não cobre o caso em que o mesmo arquivo físico reaparece com `attachment_id` diferente
+
+### Causa raiz
+O pipeline de scan inseria o mesmo arquivo físico duas vezes (mesmo `gmail_message_id` + mesmo `sha256`, mas `attachment_id` diferente) porque o índice de dedup tratava `attachment_id` como parte da chave. O segundo documento entrava como `desconhecido` e nunca era classificado.
+
+### Garantias do diagnóstico
+- Nenhuma alteração em arquivo
+- Nenhuma query destrutiva
+- Nenhuma chamada Gmail/Drive
+- Nenhum scan real
+
+---
+
+## Fase G12-E4: Document Dedupe Hardening (patch + cleanup local)
+
+### Objetivo
+Endurecer o dedup no pipeline de scan para bloquear inserção de documento duplicado dentro do mesmo email (mesmo `gmail_message_id` + mesmo `sha256` não vazio, mesmo com `attachment_id` diferente) e remover a duplicata pendente (`5c3074bb`) já presente no DB local, com backup prévio.
+
+### Patch aplicado (a partir de `61841b2`)
+
+**src/core/dedupe.ts:**
+- Nova função `isDuplicateInSameMessage(gmailMessageId, sha256)`: retorna true se já existir documento com mesmo `gmail_message_id` e mesmo `sha256` (não vazio). Não consulta `attachment_id` (intencional — queremos bloquear independente do attachment_id).
+- Função `isDuplicate` (estrita `(msg, att, sha)`) preservada como fallback rápido.
+
+**src/core/realScan.ts:**
+- Importa `isDuplicateInSameMessage` de `dedupe.js`
+- No loop de scan, após `isDuplicate(...)` (chave completa), chama `isDuplicateInSameMessage(email.gmailMessageId, sha256)`. Se retornar true, loga `status: 'duplicate_same_message'`, incrementa `duplicates`, faz `continue` (não insere novo documento, não chama cross-message dedup, não faz upload).
+- Cross-message dedup (`findExistingBySha256`) preservado e rodando depois dessa verificação.
+
+**tests/dedupe.test.ts:**
+- Novo describe `isDuplicateInSameMessage (G12-E4 hardening)` com 5 testes:
+  - retorna false quando não há documento
+  - retorna false quando sha256 é vazio
+  - retorna true quando mesmo `gmail_message_id` + mesmo `sha256` (attachment_id diferente)
+  - retorna false quando mesmo `sha256` mas `gmail_message_id` diferente (cross-message ainda permitido)
+  - retorna false quando mesmo `gmail_message_id` mas `sha256` diferente
+- Total dedupe.test.ts: 10/10 passando
+
+**tests/scan.test.ts:**
+- Novo teste `G12-E4: same email + same sha256 + different attachment_id does NOT create a second document`: valida que `createScan` rejeita 2º anexo com mesmo sha256 no mesmo email (newDocuments=1, duplicates=1, uploadCalls=1)
+- Novo teste `G12-E4: cross-message dedup behavior is preserved (same sha256 across different emails still allowed)`: valida que mensagens diferentes com mesmo sha256 ainda criam cross-message duplicate
+- Ajuste em `hardening: per-run maxAttachments cap is enforced`: usa buffers distintos entre anexos (antes usava mesmo buffer para n1.pdf e n2.pdf, o que conflitava com a nova regra)
+- Total scan.test.ts: 27/27 passando
+
+**.gitignore:**
+- Adicionada regra `data/*.backup-*` para ignorar backups do DB fora do versionamento
+
+### Critério de delete aplicado
+- `documentos.id = '5c3074bb-76f5-4096-a50e-767a4be090ab'`
+- `status = 'pending'`
+- `pedido_manual IS NULL`
+- 0 eventos em `ingestion_events`
+- mesmo `sha256` (d71f327...) e `drive_file_id` (1ao8qFfl...) de `cda18ef9` aceito
+- classificação `desconhecido/desconhecido`
+
+`cda18ef9` (aceito, PED-99-2026) preservado. `ec07577a` (L.pdf fixture) preservado.
+
+### Backup
+- `data/app.db.backup-g12-e4-20260708-210928` (65536 bytes, idêntico ao DB pré-DELETE)
+- Backup NÃO commitado (ignorado por `.gitignore` via `data/*.backup-*`)
+- Backup NÃO deletado (preservado em disco para eventual rollback)
+
+### Export pós-cleanup
+- `data/exports/documentos-mapeados.jsonl` regenerado: 2 linhas
+  - `cda18ef9` (teste-nfe-entrada.xml, accepted, PED-99-2026) preservado com `linked_at` e `accepted_at`
+  - `ec07577a` (L.pdf, pending) preservado
+  - `5c3074bb` removido
+- `npm run export:mapped` reporta `Exported 2 mapped document(s). Local-only — no Google Drive calls performed.`
+
+### Garantias
+- Nenhuma migration, nenhuma alteração de schema
+- Nenhuma chamada Gmail/Drive real
+- Nenhum scan real, nenhum assign/accept/reject
+- Nenhuma alteração em `outbox.jsonl` (intacto, 5 eventos preservados)
+- Controle de Tapetes não tocado
+- Backup local preservado e ignorado pelo git
+
+### Testes (357 totais, 28 suites, 0 falhas)
+- `tests/dedupe.test.ts` — 10/10 (5 novos)
+- `tests/scan.test.ts` — 27/27 (2 novos G12-E4 + 1 ajustado)
+- `tests/export-mapped.test.ts` — 13/13 (regressão verde)
+- `tests/export-received.test.ts` — 9/9 (regressão verde)
+- Demais suites: 298/298 (regressão verde)
+
+### Riscos remanescentes
+- **Pré-existente (não introduzido por este patch)**: `src/core/realAssign.ts:117` chama `addDocumentToManifest('/dev/null', ...)`, que falha em Windows porque `/dev/null` aponta para um arquivo com lixo (provavelmente conteúdo residual de sessão PowerShell anterior). Os testes `assign-real.test.ts`, `cli-ops.test.ts` e `integration-mock-flow.test.ts` falham por esse motivo em Windows. Deveria usar `os.devNull` cross-platform — endereçável em fase futura (G12-E5).
+- **Reenvio cross-email**: a nova regra NÃO bloqueia reenvio do mesmo arquivo em outro `gmail_message_id` — esse caso ainda cria cross-message duplicate (reuso do Drive file), que é o comportamento operacional desejado.
+- **Colisão de sha256**: se dois arquivos logicamente diferentes tiverem o mesmo `sha256` no mesmo email (improvável mas possível), a nova regra trata como duplicata. Aceitável dado que o `sha256` é o identificador físico do arquivo.
+
+### Próxima fase recomendada
+RAVATEX-DOCUMENTS-G12-E5-DEV-NULL-CROSS-PLATFORM
+Foco: corrigir `realAssign.ts:117` para usar `os.devNull` (cross-platform), eliminando falha pré-existente nos testes de assign em Windows. Patch de 1 linha + ajuste de teste.

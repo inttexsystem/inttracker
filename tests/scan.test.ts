@@ -273,17 +273,32 @@ describe('real scan flow (mocked Google)', () => {
   });
 
   it('hardening: per-run maxAttachments cap is enforced', async () => {
-    const fakePdf = Buffer.from('%PDF-1.4\n...');
+    const dep1 = { msgId: 'm-cap-1-a1', buffer: Buffer.from('%PDF-1.4\nA1') };
+    const dep2 = { msgId: 'm-cap-1-a2', buffer: Buffer.from('%PDF-1.4\nA2') };
+    const dep3 = { msgId: 'm-cap-2-a1', buffer: Buffer.from('%PDF-1.4\nB1') };
+    const dep4 = { msgId: 'm-cap-2-a2', buffer: Buffer.from('%PDF-1.4\nB2') };
+    const bufs: Record<string, Buffer> = {
+      'm-cap-1-a1': dep1.buffer,
+      'm-cap-1-a2': dep2.buffer,
+      'm-cap-2-a1': dep3.buffer,
+      'm-cap-2-a2': dep4.buffer,
+    };
     const deps = mkDeps({
       fetchEmails: async () => [
         { gmailMessageId: 'm-cap-1', threadId: 't', from: '', subject: 'A', date: '', attachmentCount: 2 },
         { gmailMessageId: 'm-cap-2', threadId: 't', from: '', subject: 'B', date: '', attachmentCount: 2 },
       ],
-      listAtts: async (msgId) => [
-        { gmailMessageId: msgId, threadId: 't', attachmentId: `${msgId}-a1`, filename: 'n1.pdf', mimeType: 'application/pdf', size: 0 },
-        { gmailMessageId: msgId, threadId: 't', attachmentId: `${msgId}-a2`, filename: 'n2.pdf', mimeType: 'application/pdf', size: 0 },
-      ],
-      downloadAtt: async () => fakePdf,
+      listAtts: async (msgId) => {
+        if (msgId === 'm-cap-1') return [
+          { gmailMessageId: 'm-cap-1', threadId: 't', attachmentId: 'm-cap-1-a1', filename: 'n1.pdf', mimeType: 'application/pdf', size: dep1.buffer.length },
+          { gmailMessageId: 'm-cap-1', threadId: 't', attachmentId: 'm-cap-1-a2', filename: 'n2.pdf', mimeType: 'application/pdf', size: dep2.buffer.length },
+        ];
+        return [
+          { gmailMessageId: 'm-cap-2', threadId: 't', attachmentId: 'm-cap-2-a1', filename: 'n3.pdf', mimeType: 'application/pdf', size: dep3.buffer.length },
+          { gmailMessageId: 'm-cap-2', threadId: 't', attachmentId: 'm-cap-2-a2', filename: 'n4.pdf', mimeType: 'application/pdf', size: dep4.buffer.length },
+        ];
+      },
+      downloadAtt: async (msgId, attId) => bufs[attId] ?? null,
     });
     const scan = createScan(deps);
     const r = await scan({ confirmReal: true, maxAttachments: 2 });
@@ -676,5 +691,79 @@ describe('real scan flow (mocked Google)', () => {
       `SELECT * FROM ingestion_events WHERE event_type = 'document.detected'`
     ).all() as any[];
     expect(events).toHaveLength(1);
+  });
+
+  it('G12-E4: same email + same sha256 + different attachment_id does NOT create a second document', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\nG12-E4 SAME EMAIL SAME HASH');
+    let uploadCalls = 0;
+    let callCount = 0;
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'msg-g12e4', threadId: 'thr-g12e4', from: '', subject: 'G12-E4', date: '', attachmentCount: 2 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'msg-g12e4', threadId: 'thr-g12e4', attachmentId: 'att-X1', filename: 'doc.pdf', mimeType: 'application/pdf', size: fakePdf.length },
+        { gmailMessageId: 'msg-g12e4', threadId: 'thr-g12e4', attachmentId: 'att-X2', filename: 'doc.pdf', mimeType: 'application/pdf', size: fakePdf.length },
+      ],
+      downloadAtt: async () => fakePdf,
+      uploadDoc: async ({ filename }) => {
+        uploadCalls++;
+        callCount++;
+        return {
+          file: {
+            storageUri: `gdrive://file/mock-g12e4-${callCount}`,
+            driveFileId: `mock-g12e4-${callCount}`,
+            driveWebViewLink: `https://drive.google.com/file/d/mock-g12e4-${callCount}/view`,
+            driveFolderId: 'mock-folder',
+          },
+        };
+      },
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    expect(r.duplicates).toBe(1);
+    expect(uploadCalls).toBe(1);
+
+    const db = getDb();
+    const docs = db.prepare(`SELECT id, attachment_id, sha256 FROM documentos`).all() as any[];
+    expect(docs).toHaveLength(1);
+    expect(docs[0].attachment_id).toBe('att-X1');
+  });
+
+  it('G12-E4: cross-message dedup behavior is preserved (same sha256 across different emails still allowed)', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\nG12-E4 CROSS MESSAGE');
+    const firstUploadId = 'mock-g12e4-cross';
+    let uploadCalls = 0;
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'msg-cross-1', threadId: 't1', from: '', subject: 'A', date: '', attachmentCount: 1 },
+        { gmailMessageId: 'msg-cross-2', threadId: 't2', from: '', subject: 'B (re-send)', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async (msgId) => [
+        { gmailMessageId: msgId, threadId: 't', attachmentId: 'a', filename: 'NF-X.pdf', mimeType: 'application/pdf', size: fakePdf.length },
+      ],
+      downloadAtt: async () => fakePdf,
+      uploadDoc: async ({ filename }) => {
+        uploadCalls++;
+        return {
+          file: {
+            storageUri: `gdrive://file/${firstUploadId}`,
+            driveFileId: firstUploadId,
+            driveWebViewLink: `https://drive.google.com/file/d/${firstUploadId}/view`,
+            driveFolderId: 'mock-folder',
+          },
+        };
+      },
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    expect(r.crossMessageDuplicates).toBe(1);
+    expect(uploadCalls).toBe(1);
+
+    const db = getDb();
+    const docs = db.prepare(`SELECT gmail_message_id, drive_file_id FROM documentos ORDER BY created_at`).all() as any[];
+    expect(docs).toHaveLength(2);
   });
 });

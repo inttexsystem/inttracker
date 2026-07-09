@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { getDb } from '../storage/sqlite.js';
 import { classifyAttachment } from './classifier.js';
-import { isDuplicate, isEmailProcessed, markEmailProcessed, findExistingBySha256 } from './dedupe.js';
+import { isDuplicate, isDuplicateInSameMessage, isEmailProcessed, markEmailProcessed, findExistingBySha256 } from './dedupe.js';
 import { pendenteDrivePath } from './paths.js';
 import { uploadDocument } from '../connectors/drive.js';
 import { fetchRecentEmails, fetchMessageById, listAttachments, downloadAttachment, isAttachmentCandidate } from '../connectors/gmail.js';
@@ -143,6 +143,12 @@ export function createScan(deps: ScanDeps = defaultDeps) {
           if (isDuplicate(email.gmailMessageId, att.attachmentId, sha256)) {
             duplicates++;
             logger.log({ type: 'attachment.processed', timestamp: new Date().toISOString(), gmailMessageId: email.gmailMessageId, attachmentId: att.attachmentId, filename: att.filename, sha256, status: 'duplicate' });
+            continue;
+          }
+
+          if (isDuplicateInSameMessage(email.gmailMessageId, sha256)) {
+            duplicates++;
+            logger.log({ type: 'attachment.processed', timestamp: new Date().toISOString(), gmailMessageId: email.gmailMessageId, attachmentId: att.attachmentId, filename: att.filename, sha256, status: 'duplicate_same_message' });
             continue;
           }
 

@@ -12,6 +12,15 @@ export function isDuplicate(gmailMessageId: string, attachmentId: string, sha256
   return !!row;
 }
 
+export function isDuplicateInSameMessage(gmailMessageId: string, sha256: string): boolean {
+  if (!sha256 || sha256 === '') return false;
+  const database = getDb();
+  const row = database.prepare(
+    `SELECT 1 FROM documentos WHERE gmail_message_id = ? AND sha256 = ? LIMIT 1`
+  ).get(gmailMessageId, sha256);
+  return !!row;
+}
+
 export interface CrossMessageMatch {
   documentId: string;
   driveFileId: string;

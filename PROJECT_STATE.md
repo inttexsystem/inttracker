@@ -19,10 +19,10 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - `contracts/manifest.schema.json` — schema do manifest de Pedido
 
 ## Status atual
-- HEAD (documents-ingestor): `60ccada`
+- HEAD (documents-ingestor): `61841b2` (em fechamento G12-E4)
 - HEAD canônico staging/work/app-next (Controle de Tapetes): `997486a`
 - Push staging: `af919a2..997486a` (produção/origin oficial intocados)
-- 327+13=340 testes passando (28 suites) — incluindo integração mockada completa
+- 340+17=357 testes passando (28 suites) — incluindo integração mockada completa
 - Hermético: nenhum teste depende de `.env` real, token real ou chamadas Google
 - OAuth real validado (C1)
 - Smoke real com Drive/Gmail reais validado (C2)
@@ -35,6 +35,8 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - G12-D1: exportReceivedDocuments + CLI export-received (9 testes herméticos)
 - G12-E1: design do export de documentos mapeados (read-only, zero alterações)
 - G12-E2: exportMappedDocuments + CLI export-mapped (13 testes herméticos)
+- G12-E3: diagnóstico de duplicata no export mapeado (causa raiz + queries before/after)
+- G12-E4: hardening de dedup dentro do mesmo email + cleanup local da duplicata 5c3074bb
 
 ## Comandos disponíveis
 - `npm run dev` — tsx watch
@@ -60,8 +62,8 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 
 ## Última evidência de testes
 ```
-Test Files  27 passed (27)
-     Tests  327 passed (327)
+Test Files  28 passed (28)
+     Tests  357 passed (357)
 ```
 
 ## Decisão arquitetural
@@ -115,6 +117,8 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - G12-D1 — exportReceivedDocuments + CLI `export-received` (read-only, sem Drive, sem scan, sem schema)
 - G12-E1 — Design do export de documentos mapeados (todos os status, com timestamps por evento)
 - G12-E2 — exportMappedDocuments + CLI `export-mapped` (read-only, sem Drive, sem scan, sem schema, 13 testes)
+- G12-E3 — Diagnóstico de data quality no export mapeado (causa raiz + queries before/after)
+- G12-E4 — Hardening dedup dentro do mesmo email + cleanup local (5c3074bb removido após backup)
 - G/H — UI Backlog (Controle de Tapetes — staging/work/app-next)
 
 ## Fase G1: Taxonomia de Documentos (3 eixos)
@@ -135,6 +139,24 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - Produção/origin oficial: intocados
 - Status residual esperado: `?? supabase/.temp/`
 
+## Fase G12-E4: Document Dedupe Hardening (cleanup local)
+- **HEAD inicial**: `61841b2`
+- **Causa raiz**: o dedup index `(gmail_message_id, attachment_id, sha256)` permitia duplicata quando o mesmo arquivo físico (mesmo sha256 + mesmo gmail_message_id) reaparecia com `attachment_id` diferente (reprocessamento / attachment_id re-emitido pelo Gmail). O segundo documento entrava como `desconhecido` e ficava pendurado sem classificação, poluindo o export mapeado.
+- **Nova regra** (`src/core/dedupe.ts` + `src/core/realScan.ts`): `isDuplicateInSameMessage(gmail_message_id, sha256)` bloqueia novo documento quando já existe registro com mesmo `gmail_message_id` e mesmo `sha256` (não vazio), mesmo que `attachment_id` seja diferente. Aplicado no fluxo de scan, antes do cross-message dedup.
+- **Cross-message dedup preservado**: mesmo `sha256` em `gmail_message_id` diferente continua criando cross-message duplicate (reuso do Drive file) — comportamento desejado, não regredido.
+- **Cleanup local** (read-only DB + DELETE por critério): removido `5c3074bb-76f5-4096-a50e-767a4be090ab` (status=pending, pedido_manual=NULL, 0 eventos, sha256=d71f327..., drive_file_id=1ao8qFfl..., classificação desconhecida, mesmo sha256/drive_file_id do cda18ef9 aceito). `cda18ef9` (accepted / PED-99-2026) preservado. `ec07577a` (L.pdf fixture) preservado.
+- **Backup**: `data/app.db.backup-g12-e4-20260708-210928` (65536 bytes, idêntico ao DB pré-DELETE). Backup ignorado por `.gitignore` (nova regra `data/*.backup-*`).
+- **Export regenerado**: `data/exports/documentos-mapeados.jsonl` agora tem 2 linhas (cda18ef9 + ec07577a); 5c3074bb removido. `npm run export:mapped` reporta `Exported 2 mapped document(s)`.
+- **Não alterado**: `schema.sql`, `sqlite.ts` (migrations), `outbox.jsonl`, `realAssign.ts`, `manifest.ts`, `outbox.ts`, `link.ts`, `acceptance.ts`, `exportPackage.ts`, `cli.ts`, `index.ts`. Controle de Tapetes não tocado.
+- **Não executado**: nenhuma chamada Gmail/Drive real, nenhum scan real, nenhum assign/accept/reject, nenhuma migration.
+- **Testes**: 357 totais (28 suites), todos passando.
+  - `tests/dedupe.test.ts` — 10/10 (5 novos para `isDuplicateInSameMessage`)
+  - `tests/scan.test.ts` — 27/27 (2 novos G12-E4 + 1 existente ajustado)
+  - `tests/export-mapped.test.ts` — 13/13
+  - `tests/export-received.test.ts` — 9/9
+- **Riscos remanescentes**: pré-existente (não introduzido por este patch) — `src/core/realAssign.ts:117` chama `addDocumentToManifest('/dev/null', ...)`, que falha em Windows porque `/dev/null` aponta para um arquivo com lixo. Testes `assign-real.test.ts`, `cli-ops.test.ts`, `integration-mock-flow.test.ts` falham por isso em Windows; deveriam usar `os.devNull` (fase futura).
+- **Próxima fase recomendada**: G12-E5 — corrigir `realAssign.ts:117` para usar `os.devNull` cross-platform (eliminar falha pré-existente nos testes de assign em Windows).
+
 ## Próxima fase recomendada
-RAVATEX-DOCUMENTS-G12-F-MAPPED-DOCUMENTS-CONSUMER
+RAVATEX-DOCUMENTS-G12-F-MAPPED-DOCUMENTS-CONSUMER (G12-E4 primeiro fecha o hardening de dedup; a integração no Controle de Tapetes continua opcional e read-only).
 Foco: integração opcional do `documentos-mapeados.jsonl` (e/ou `documentos-recebidos.jsonl`) no Controle de Tapetes para exibir a fila de documentos com status, pedido, timestamps por evento e `rejected_reason` (read-only, sem mutação, mesmo contrato JSONL).
