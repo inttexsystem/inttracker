@@ -1,4 +1,32 @@
 > **Atualizacao 2026-07-09 - fase
+> `RAVATEX-DOCUMENTS-G23-D-B-CLOUD-DOCUMENT-DECISIONS-PATCH`.**
+> Status: **PRONTO - DECISOES EM NUVEM VIA RPC decidir_documento**.
+> Branch/HEAD base: `work/app-next` em `72402ee`.
+>
+> Escopo G23-D-B:
+> - Novo `js/documents-supabase-decisions.js`: expoe
+>   `RAVATEX_DOCUMENTS.decideDocumentInCloud(documentId, status, motivo)`.
+>   Wrapper sem DOM, so `window.supa.rpc('decidir_documento', ...)`, sem
+>   `.from()`, writes diretos, service_role ou armazenamento local. Guards de
+>   `supabase_unavailable`/`document_id_required`/`invalid_status`/
+>   `motivo_required` (rejeicao sem motivo nao chama a RPC). Le `r.data.error`
+>   (a RPC usa a chave `error`, nao `erro`); `r.error` PostgREST e throw viram
+>   `ok:false` (`supabase_error`/`network`).
+> - `js/screens/documentos-recebidos.js`: a branch de doc Supabase troca o
+>   placeholder "decisao em nuvem sera habilitada" por botoes reais
+>   `aceitar-documento-nuvem`/`rejeitar-documento-nuvem`. Sucesso -> toast,
+>   `loadReceivedDocumentsFromSupabase()` e rerender (verdade vinda do servidor,
+>   sem optimistic). Erros mapeados para PT (admin_required etc.). Docs
+>   Supabase nunca usam `saveDocumentDecision`/`removeDocumentDecision`/
+>   `statusOverrides`; docs manual/G22-B preservam o fluxo localStorage.
+> - `index.html`: carrega `documents-supabase-decisions.js` apos o reader e
+>   antes das telas.
+> - Pedido Detail nao mudou: reflete passivamente apos o reload do reader.
+> - Testes: decisions 17/17, documentos recebidos 77/77, reader 9/9, Pedido
+>   Detail 181/181, auto-load 35/35, import received 36/36, loader 71/71.
+> - Sem migration, schema, escrita Supabase real, service_role, producao ou push.
+>
+> **Atualizacao 2026-07-09 - fase
 > `RAVATEX-DOCUMENTS-G23-C-B-CONTROL-SUPABASE-DOCUMENTS-READER-PATCH`.**
 > Status: **PRONTO - READER SUPABASE ADMIN-ONLY COM FALLBACK G22-B**.
 > Branch/HEAD base: `work/app-next` em `03c49db`.

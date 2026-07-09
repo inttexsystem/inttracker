@@ -495,6 +495,50 @@
     return btn;
   }
 
+  function cloudDecisionErrorMessage(error) {
+    if (error === 'admin_required') return 'Apenas administradores podem decidir documentos.';
+    if (error === 'motivo_required') return 'Rejeição exige um motivo.';
+    if (error === 'supabase_unavailable' || error === 'network') return 'Falha de comunicação.';
+    // invalid_status, document_id_required, supabase_error, mensagens
+    // PostgREST e qualquer code desconhecido caem numa mensagem
+    // controlada generica (nao vaza detalhe tecnico do banco).
+    return 'Não foi possível registrar a decisão.';
+  }
+
+  // Decisao em nuvem (Supabase). NAO usa localStorage nem statusOverrides:
+  // a verdade vem do servidor via reload do reader apos a RPC.
+  function runCloudDecision(btn, doc, status, motivo) {
+    var api = window.RAVATEX_DOCUMENTS;
+    if (!api || typeof api.decideDocumentInCloud !== 'function') {
+      if (typeof window.toast === 'function') window.toast('Falha de comunicação.', 'error');
+      return;
+    }
+    if (btn) btn.disabled = true;
+    api.decideDocumentInCloud(doc.id, status, motivo).then(function (result) {
+      if (result && result.ok) {
+        if (typeof window.toast === 'function') {
+          window.toast(status === 'accepted' ? 'Documento aceito.' : 'Documento rejeitado.',
+            status === 'accepted' ? 'success' : 'info');
+        }
+        var reload = typeof api.loadReceivedDocumentsFromSupabase === 'function'
+          ? api.loadReceivedDocumentsFromSupabase() : null;
+        if (reload && typeof reload.then === 'function') {
+          reload.then(function () { rerender(); });
+        } else {
+          rerender();
+        }
+        return;
+      }
+      if (btn) btn.disabled = false;
+      if (typeof window.toast === 'function') {
+        window.toast(cloudDecisionErrorMessage(result && result.error), 'error');
+      }
+    }).catch(function () {
+      if (btn) btn.disabled = false;
+      if (typeof window.toast === 'function') window.toast('Falha de comunicação.', 'error');
+    });
+  }
+
   function buildActionButtons(doc) {
     var wrap = window.el('div', {
       style: 'display:flex;align-items:center;justify-content:center;gap:6px;',
@@ -526,11 +570,31 @@
     }
 
     if (doc.isSupabaseSource) {
-      wrap.appendChild(window.el('span', {
-        'data-action': 'decisao-nuvem-pendente',
-        title: 'Decisao em nuvem sera habilitada na proxima fase.',
-        style: 'color:#8a93a3;font-size:10.5px;line-height:1.25;text-align:center;max-width:108px;',
-      }, 'Decisao em nuvem sera habilitada na proxima fase.'));
+      if (doc.status === 'pending' && doc.hasRealId) {
+        var rejeitarNuvemBtn;
+        rejeitarNuvemBtn = iconButton('Rejeitar', SVG_X, function () {
+          var motivo = typeof window.prompt === 'function' ? window.prompt('Motivo da rejeição:') : '';
+          if (motivo === null) return;
+          if (typeof motivo !== 'string' || !motivo.trim()) {
+            if (typeof window.toast === 'function') window.toast('Rejeição exige um motivo.', 'error');
+            return;
+          }
+          runCloudDecision(rejeitarNuvemBtn, doc, 'rejected', motivo);
+        }, 'color:#d6403a;border-color:#f0cfcd;', {
+          'data-action': 'rejeitar-documento-nuvem',
+          'data-document-id': doc.id,
+        });
+        wrap.appendChild(rejeitarNuvemBtn);
+
+        var aceitarNuvemBtn;
+        aceitarNuvemBtn = iconButton('Aceitar', SVG_CHECK, function () {
+          runCloudDecision(aceitarNuvemBtn, doc, 'accepted', null);
+        }, 'color:#18794a;border-color:#a7d8bd;', {
+          'data-action': 'aceitar-documento-nuvem',
+          'data-document-id': doc.id,
+        });
+        wrap.appendChild(aceitarNuvemBtn);
+      }
     } else if (doc.status === 'pending' && doc.hasRealId) {
       wrap.appendChild(iconButton('Rejeitar', SVG_X, function () {
         var motivo = typeof window.prompt === 'function' ? window.prompt('Motivo da rejeição:') : '';

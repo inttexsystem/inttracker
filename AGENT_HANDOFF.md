@@ -1,5 +1,35 @@
 ﻿# Estado pos-fase - G22-B Documents Auto Load Patch
 
+# Estado pos-fase - G23-D-B Cloud Document Decisions Patch
+
+- Fase: `RAVATEX-DOCUMENTS-G23-D-B-CLOUD-DOCUMENT-DECISIONS-PATCH`.
+- Status: **PRONTO - DECISOES EM NUVEM VIA RPC (UI ONLY)**.
+- Base: `work/app-next` em `72402ee6ba2b2d81fc48a7eeb634e366c51dd3fd`.
+- Patch:
+  - Novo `js/documents-supabase-decisions.js` expoe
+    `RAVATEX_DOCUMENTS.decideDocumentInCloud(documentId, status, motivo)`:
+    apenas `window.supa.rpc('decidir_documento', {p_document_id, p_status,
+    p_motivo})`, sem `.from()`, writes, service_role ou armazenamento local.
+  - Guards: sem supa -> `supabase_unavailable`; sem id -> `document_id_required`;
+    status invalido -> `invalid_status`; rejeicao sem motivo -> `motivo_required`
+    (nao chama a RPC). `r.data` preservado (le `r.data.error`, chave `error`);
+    `r.error`/throw viram `ok:false` (`supabase_error`/`network`).
+  - `js/screens/documentos-recebidos.js`: docs Supabase pendentes agora exibem
+    `aceitar-documento-nuvem`/`rejeitar-documento-nuvem`. Sucesso recarrega o
+    reader (`loadReceivedDocumentsFromSupabase`) e re-renderiza; erros geram
+    toast mapeado; sem optimistic e sem localStorage/statusOverrides.
+  - Fluxo manual/G22-B intacto (saveDocumentDecision/localStorage/Desfazer).
+  - `index.html` carrega o modulo apos o reader e antes das telas.
+  - Pedido Detail nao alterado: reflete passivamente no proximo render apos o
+    reload do reader.
+- Testes: decisions 17/17; documentos recebidos 77/77; reader 9/9; Pedido
+  Detail 181/181; auto-load 35/35; import received 36/36; loader 71/71.
+- Confirmacoes: nenhuma migration aplicada, schema, escrita Supabase real,
+  service_role, Documents Ingestor, Pedido Detail, producao, commit ou push
+  fora do previsto nesta fase.
+- Proximo passo: staging smoke com sessao admin real exercendo
+  `decidir_documento`; depois avaliar undo em nuvem e migracao do localStorage.
+
 # Estado pos-fase - G23-C-B Control Supabase Documents Reader Patch
 
 - Fase: `RAVATEX-DOCUMENTS-G23-C-B-CONTROL-SUPABASE-DOCUMENTS-READER-PATCH`.

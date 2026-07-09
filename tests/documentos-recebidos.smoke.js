@@ -1383,18 +1383,196 @@ test('G23-C-B: tela tenta o reader Supabase antes do fallback delegado', functio
     'a tela nao deve criar query Supabase diretamente');
 });
 
-test('G23-C-B: documento Supabase nao expoe acoes locais', function () {
-  var sb = makeScreenSandbox([{
-    document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb18',
+// ---------------------------------------------------------------------
+// G23-D-B: decisao em nuvem (aceitar/rejeitar via RPC decidir_documento)
+// ---------------------------------------------------------------------
+
+const SUPA_DOC_ID = '96ed4f0e-26b2-4c2f-9186-65f72bf5fb18';
+
+function makeSupaDoc(overrides) {
+  return Object.assign({
+    document_id: SUPA_DOC_ID,
     filename_original: 'NF-cloud.xml', tipo_documento: 'nf', formato: 'xml',
     status: 'pending', pedido_manual: 'PED-99-2026', _ravatex_source: 'supabase',
-  }]);
+  }, overrides || {});
+}
+
+function flushAsync() {
+  return new Promise(function (resolve) { setTimeout(resolve, 10); });
+}
+
+test('G23-D-B: documento Supabase pending mostra botoes de decisao em nuvem', function () {
+  var sb = makeScreenSandbox([makeSupaDoc()]);
   var container = new FakeNode('div');
   sb.container = container;
   var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
-  assert.equal(findAll(result, findAction('aceitar-documento')).length, 0);
-  assert.equal(findAll(result, findAction('rejeitar-documento')).length, 0);
-  assert.equal(findAll(result, findAction('decisao-nuvem-pendente')).length, 1);
+  // Botoes reais de nuvem
+  assert.equal(findAll(result, findAction('aceitar-documento-nuvem')).length, 1, 'aceitar nuvem presente');
+  assert.equal(findAll(result, findAction('rejeitar-documento-nuvem')).length, 1, 'rejeitar nuvem presente');
+  // Nao usa acoes locais nem o placeholder antigo
+  assert.equal(findAll(result, findAction('aceitar-documento')).length, 0, 'sem acao local aceitar');
+  assert.equal(findAll(result, findAction('rejeitar-documento')).length, 0, 'sem acao local rejeitar');
+  assert.equal(findAll(result, findAction('decisao-nuvem-pendente')).length, 0, 'placeholder removido');
+  assert.equal(findAll(result, findAction('desfazer-decisao-documento')).length, 0, 'sem Desfazer local para Supabase');
+  // Nao mostra chip de decisao local / divergente para docs Supabase
+  var allText = JSON.stringify(findAll(result, function () { return true; }).map(textOf));
+  assert.equal(allText.indexOf('Decisão local'), -1, 'sem chip Decisão local');
+  assert.equal(allText.indexOf('Divergente'), -1, 'sem chip Divergente');
+});
+
+test('G23-D-B: aceitar nuvem chama decideDocumentInCloud(accepted) e recarrega o reader', async function () {
+  var sb = makeScreenSandbox([makeSupaDoc()]);
+  var calls = [];
+  var reloadCalls = 0;
+  var toasts = [];
+  var setAppCalls = 0;
+  sb.window.RAVATEX_DOCUMENTS.decideDocumentInCloud = function (id, status, motivo) {
+    calls.push({ id: id, status: status, motivo: motivo });
+    return Promise.resolve({ ok: true, status: status });
+  };
+  sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
+    reloadCalls++;
+    return Promise.resolve({ ok: true, source: 'supabase', count: 1 });
+  };
+  sb.window.toast = function (msg, kind) { toasts.push({ msg: msg, kind: kind }); };
+  sb.window.setApp = function () { setAppCalls++; };
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  var btn = findAll(result, findAction('aceitar-documento-nuvem'))[0];
+  assert.ok(btn, 'botao aceitar nuvem existe');
+  btn._listeners.click[0]();
+  await flushAsync();
+  assert.equal(calls.length, 1, 'decideDocumentInCloud chamada uma vez');
+  assert.equal(calls[0].id, SUPA_DOC_ID, 'document_id correto');
+  assert.equal(calls[0].status, 'accepted', 'status accepted');
+  assert.equal(calls[0].motivo, null, 'motivo null no accept');
+  assert.equal(reloadCalls, 1, 'reader recarregado apos sucesso');
+  assert.ok(setAppCalls >= 1, 'rerender (setApp) chamado');
+  assert.ok(toasts.some(function (t) { return t.kind === 'success'; }), 'toast de sucesso');
+});
+
+test('G23-D-B: rejeitar nuvem cancelado (prompt null) NAO chama RPC', async function () {
+  var sb = makeScreenSandbox([makeSupaDoc()]);
+  var calls = 0;
+  sb.window.RAVATEX_DOCUMENTS.decideDocumentInCloud = function () { calls++; return Promise.resolve({ ok: true }); };
+  sb.window.prompt = function () { return null; };
+  sb.window.setApp = function () {};
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  findAll(result, findAction('rejeitar-documento-nuvem'))[0]._listeners.click[0]();
+  await flushAsync();
+  assert.equal(calls, 0, 'RPC nao chamada quando cancelado');
+});
+
+test('G23-D-B: rejeitar nuvem com motivo vazio NAO chama RPC e avisa', async function () {
+  var sb = makeScreenSandbox([makeSupaDoc()]);
+  var calls = 0;
+  var toasts = [];
+  sb.window.RAVATEX_DOCUMENTS.decideDocumentInCloud = function () { calls++; return Promise.resolve({ ok: true }); };
+  sb.window.prompt = function () { return '   '; };
+  sb.window.toast = function (msg, kind) { toasts.push({ msg: msg, kind: kind }); };
+  sb.window.setApp = function () {};
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  findAll(result, findAction('rejeitar-documento-nuvem'))[0]._listeners.click[0]();
+  await flushAsync();
+  assert.equal(calls, 0, 'RPC nao chamada com motivo vazio');
+  assert.ok(toasts.some(function (t) { return t.kind === 'error' && t.msg.indexOf('motivo') >= 0; }),
+    'toast avisando que rejeicao exige motivo');
+});
+
+test('G23-D-B: rejeitar nuvem com motivo valido chama decideDocumentInCloud(rejected)', async function () {
+  var sb = makeScreenSandbox([makeSupaDoc()]);
+  var calls = [];
+  var reloadCalls = 0;
+  sb.window.RAVATEX_DOCUMENTS.decideDocumentInCloud = function (id, status, motivo) {
+    calls.push({ id: id, status: status, motivo: motivo });
+    return Promise.resolve({ ok: true, status: status });
+  };
+  sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
+    reloadCalls++; return Promise.resolve({ ok: true });
+  };
+  sb.window.prompt = function () { return 'Arquivo ilegivel'; };
+  sb.window.toast = function () {};
+  sb.window.setApp = function () {};
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  findAll(result, findAction('rejeitar-documento-nuvem'))[0]._listeners.click[0]();
+  await flushAsync();
+  assert.equal(calls.length, 1, 'RPC chamada com motivo valido');
+  assert.equal(calls[0].status, 'rejected', 'status rejected');
+  assert.equal(calls[0].motivo, 'Arquivo ilegivel', 'motivo repassado');
+  assert.equal(reloadCalls, 1, 'reader recarregado apos sucesso');
+});
+
+test('G23-D-B: erro admin_required mostra toast e NAO recarrega o reader', async function () {
+  var sb = makeScreenSandbox([makeSupaDoc()]);
+  var reloadCalls = 0;
+  var toasts = [];
+  sb.window.RAVATEX_DOCUMENTS.decideDocumentInCloud = function () {
+    return Promise.resolve({ ok: false, error: 'admin_required' });
+  };
+  sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
+    reloadCalls++; return Promise.resolve({ ok: true });
+  };
+  sb.window.toast = function (msg, kind) { toasts.push({ msg: msg, kind: kind }); };
+  sb.window.setApp = function () {};
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  findAll(result, findAction('aceitar-documento-nuvem'))[0]._listeners.click[0]();
+  await flushAsync();
+  assert.equal(reloadCalls, 0, 'nao recarrega o reader em erro');
+  assert.ok(toasts.some(function (t) {
+    return t.kind === 'error' && t.msg.indexOf('administradores') >= 0;
+  }), 'toast admin_required mapeado');
+});
+
+test('G23-D-B: doc Supabase NAO usa saveDocumentDecision/removeDocumentDecision', async function () {
+  var sb = makeScreenSandbox([makeSupaDoc()]);
+  var saveCalls = 0;
+  var removeCalls = 0;
+  sb.window.RAVATEX_DOCUMENTS.saveDocumentDecision = function () { saveCalls++; return { ok: true }; };
+  sb.window.RAVATEX_DOCUMENTS.removeDocumentDecision = function () { removeCalls++; return { ok: true }; };
+  sb.window.RAVATEX_DOCUMENTS.decideDocumentInCloud = function () { return Promise.resolve({ ok: true }); };
+  sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () { return Promise.resolve({ ok: true }); };
+  sb.window.setApp = function () {};
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  findAll(result, findAction('aceitar-documento-nuvem'))[0]._listeners.click[0]();
+  await flushAsync();
+  assert.equal(saveCalls, 0, 'nao grava decisao local para doc Supabase');
+  assert.equal(removeCalls, 0, 'nao remove decisao local para doc Supabase');
+});
+
+test('G23-D-B: doc manual continua usando saveDocumentDecision (localStorage), sem nuvem', function () {
+  var sb = makeScreenSandbox([{
+    document_id: 'cda18ef9-d1d9-4f5a-8956-74875cd60b05',
+    filename_original: 'manual.pdf', tipo_documento: 'nf', formato: 'pdf', status: 'pending',
+  }]);
+  var saveCalls = [];
+  var cloudCalls = 0;
+  sb.window.RAVATEX_DOCUMENTS.saveDocumentDecision = function (id, decision) {
+    saveCalls.push({ id: id, decision: decision }); return { ok: true };
+  };
+  sb.window.RAVATEX_DOCUMENTS.decideDocumentInCloud = function () { cloudCalls++; return Promise.resolve({ ok: true }); };
+  sb.window.setApp = function () {};
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  // Doc manual usa acoes locais, nao as de nuvem
+  assert.equal(findAll(result, findAction('aceitar-documento-nuvem')).length, 0, 'sem acao de nuvem para doc manual');
+  var acc = findAll(result, findAction('aceitar-documento'))[0];
+  assert.ok(acc, 'doc manual mostra acao local aceitar-documento');
+  acc._listeners.click[0]();
+  assert.equal(saveCalls.length, 1, 'usou saveDocumentDecision (localStorage)');
+  assert.equal(saveCalls[0].decision.status, 'accepted', 'decisao local accepted');
+  assert.equal(cloudCalls, 0, 'nao usou decisao em nuvem para doc manual');
 });
 
 test('G22-B: botao Atualizar agora presente e funcional', function () {
