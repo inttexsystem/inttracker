@@ -16,6 +16,8 @@ import { exportPackage, exportReceivedDocuments, exportMappedDocuments } from '.
 import { closeDb, getDb } from './storage/sqlite.js';
 import { runSyncMapped, validateSyncMappedOptions } from './core/syncMapped.js';
 import { writeLatestManifest } from './core/latestManifest.js';
+import { runSyncSupabase } from './core/syncSupabase.js';
+import { createServiceRoleWriterClient, loadServiceRoleConfig } from './supabase/serviceRoleClient.js';
 
 const program = new Command();
 
@@ -678,6 +680,47 @@ program
     console.log(`[write-latest] Wrote latest manifest: ${result.manifestPath}`);
     console.log(`[write-latest] count=${m.count} hash=${m.hash} bytes=${m.bytes}`);
     console.log('[write-latest] Local-only — no Gmail/Drive calls performed.');
+  });
+
+program
+  .command('sync-supabase')
+  .description('Sync local mapped JSONL and optional event JSONL to Supabase document tables')
+  .requiredOption('--mapped <path>', 'Path to export:mapped JSONL')
+  .option('--events <path>', 'Path to outbox/export events JSONL')
+  .option('--confirm-supabase-write', 'Allow service-role writes (otherwise dry-run)')
+  .option('--dry-run', 'Force dry-run even if --confirm-supabase-write is set')
+  .option('--source <source>', 'Logical scan source', 'documents_ingestor')
+  .action(async (opts) => {
+    const confirmWrite = Boolean(opts.confirmSupabaseWrite) && !Boolean(opts.dryRun);
+    let client;
+    let projectRef: string | null = null;
+
+    if (confirmWrite) {
+      try {
+        const serviceRoleConfig = loadServiceRoleConfig();
+        client = createServiceRoleWriterClient(serviceRoleConfig);
+        projectRef = serviceRoleConfig.projectRef;
+      } catch (error: any) {
+        console.error(error?.message ?? String(error));
+        process.exitCode = 1;
+        return;
+      }
+    }
+
+    try {
+      const result = await runSyncSupabase({
+        mappedPath: opts.mapped,
+        eventsPath: opts.events,
+        confirmWrite,
+        dryRun: Boolean(opts.dryRun),
+        source: opts.source,
+      }, client);
+      console.log(JSON.stringify({ ...result, project_ref: projectRef }, null, 2));
+      if (!result.ok) process.exitCode = 1;
+    } catch (error: any) {
+      console.error(`[sync:supabase] ${error?.message ?? String(error)}`);
+      process.exitCode = 1;
+    }
   });
 
 program

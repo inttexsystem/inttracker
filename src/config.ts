@@ -52,6 +52,12 @@ export const config = {
 
   ingestRealGoogle: (env.INGEST_REAL_GOOGLE ?? 'false').toLowerCase() === 'true',
 
+  // Server-side Supabase writer only. This module is never imported by the browser app.
+  supabaseUrl: env.SUPABASE_URL ?? '',
+  supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY ?? '',
+  supabaseProjectRef: env.SUPABASE_PROJECT_REF ?? '',
+  supabaseWriterEnabled: (env.SUPABASE_WRITER_ENABLED ?? 'false').toLowerCase() === 'true',
+
   ravatexCnpjs: (env.RAVATEX_CNPJS
     ? env.RAVATEX_CNPJS.split(',').map(s => s.replace(/\D/g, '')).filter(s => s.length === 14)
     : []),

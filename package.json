@@ -16,6 +16,7 @@
     "export:package": "tsx src/cli.ts export-package",
     "export:mapped": "tsx src/cli.ts export-mapped",
     "sync:mapped": "tsx src/cli.ts sync-mapped",
+    "sync:supabase": "tsx src/cli.ts sync-supabase",
     "write:latest": "tsx src/cli.ts write-latest",
     "report": "tsx src/cli.ts report",
     "inspect": "tsx src/cli.ts inspect",
@@ -29,6 +30,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "better-sqlite3": "^11.7.0",
     "commander": "^13.1.0",
     "googleapis": "^144.0.0",
