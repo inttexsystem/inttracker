@@ -368,11 +368,17 @@ REVOKE ALL ON TABLE public.document_candidates FROM anon;
 REVOKE ALL ON TABLE public.document_events FROM anon;
 REVOKE ALL ON TABLE public.document_decisions FROM anon;
 REVOKE ALL ON TABLE public.document_scan_runs FROM anon;
+REVOKE ALL ON TABLE public.document_candidates FROM authenticated;
+REVOKE ALL ON TABLE public.document_events FROM authenticated;
+REVOKE ALL ON TABLE public.document_decisions FROM authenticated;
+REVOKE ALL ON TABLE public.document_scan_runs FROM authenticated;
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.document_candidates TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.document_events TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.document_decisions TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.document_scan_runs TO authenticated;
+-- Primeira versao admin-only: leitura direta para admins autenticados
+-- via RLS; escrita de UI passa pelas RPCs SECURITY DEFINER abaixo.
+GRANT SELECT ON TABLE public.document_candidates TO authenticated;
+GRANT SELECT ON TABLE public.document_events TO authenticated;
+GRANT SELECT ON TABLE public.document_decisions TO authenticated;
+GRANT SELECT ON TABLE public.document_scan_runs TO authenticated;
 
 
 -- ============================================================
@@ -609,6 +615,9 @@ COMMENT ON FUNCTION public.finalizar_document_scan_run(UUID, TEXT, INTEGER, INTE
 REVOKE ALL ON FUNCTION public.decidir_documento(TEXT, TEXT, TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.iniciar_document_scan_run(TEXT, TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.finalizar_document_scan_run(UUID, TEXT, INTEGER, INTEGER, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.decidir_documento(TEXT, TEXT, TEXT) FROM anon;
+REVOKE ALL ON FUNCTION public.iniciar_document_scan_run(TEXT, TEXT) FROM anon;
+REVOKE ALL ON FUNCTION public.finalizar_document_scan_run(UUID, TEXT, INTEGER, INTEGER, TEXT) FROM anon;
 
 GRANT EXECUTE ON FUNCTION public.decidir_documento(TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.iniciar_document_scan_run(TEXT, TEXT) TO authenticated;

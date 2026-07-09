@@ -131,8 +131,10 @@ test('grants sao para authenticated e nao expoem anon', () => {
     'document_scan_runs',
   ]) {
     assertHas(new RegExp('REVOKE\\s+ALL\\s+ON\\s+TABLE\\s+public\\.' + table + '\\s+FROM\\s+anon', 'i'));
-    assertHas(new RegExp('GRANT\\s+SELECT\\s*,\\s*INSERT\\s*,\\s*UPDATE\\s*,\\s*DELETE\\s+ON\\s+TABLE\\s+public\\.' + table + '\\s+TO\\s+authenticated', 'i'));
-    assertNot(new RegExp('GRANT\\s+[^;]*(INSERT|UPDATE|DELETE)[^;]*public\\.' + table + '[^;]*TO\\s+anon', 'i'));
+    assertHas(new RegExp('REVOKE\\s+ALL\\s+ON\\s+TABLE\\s+public\\.' + table + '\\s+FROM\\s+authenticated', 'i'));
+    assertHas(new RegExp('GRANT\\s+SELECT\\s+ON\\s+TABLE\\s+public\\.' + table + '\\s+TO\\s+authenticated', 'i'));
+    assertNot(new RegExp('GRANT\\s+[^;]*(INSERT|UPDATE|DELETE|TRUNCATE)[^;]*public\\.' + table + '[^;]*TO\\s+anon', 'i'));
+    assertNot(new RegExp('GRANT\\s+[^;]*(INSERT|UPDATE|DELETE|TRUNCATE)[^;]*public\\.' + table + '[^;]*TO\\s+authenticated', 'i'));
   }
 });
 
@@ -180,6 +182,7 @@ test('RPCs tem grants somente para authenticated', () => {
     'finalizar_document_scan_run\\(UUID, TEXT, INTEGER, INTEGER, TEXT\\)',
   ]) {
     assertHas(new RegExp('REVOKE\\s+ALL\\s+ON\\s+FUNCTION\\s+public\\.' + signature + '\\s+FROM\\s+PUBLIC', 'i'));
+    assertHas(new RegExp('REVOKE\\s+ALL\\s+ON\\s+FUNCTION\\s+public\\.' + signature + '\\s+FROM\\s+anon', 'i'));
     assertHas(new RegExp('GRANT\\s+EXECUTE\\s+ON\\s+FUNCTION\\s+public\\.' + signature + '\\s+TO\\s+authenticated', 'i'));
     assertNot(new RegExp('GRANT\\s+EXECUTE\\s+ON\\s+FUNCTION\\s+public\\.' + signature + '\\s+TO\\s+anon', 'i'));
   }
