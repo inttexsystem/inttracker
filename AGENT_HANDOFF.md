@@ -6696,6 +6696,7 @@ Pedido usando fixture JSONL local. Sem Supabase, sem Google/Drive, sem fetch.
 - Staging UI smoke G18-E: 374/374 testes (5 suites), botão import, render, metadata card, dedup, pluralização, Pedido Detail
 - origin/main intocado (`1047181`), produção não tocada
 - Próximo roadmap: UX de aceite/rejeição no Controle; dedup por `event_id`; telemetria de import
+
 ## RAVATEX-DOCUMENTS-G23-D-D-CLOUD-DECISIONS-CLOSEOUT-DOCS (2026-07-09)
 
 G23-D fechado documentalmente no commit-base `d33dc29bbcd7a733825c70f98ac736f0b121c4f3` (G23-D-B). O G23-D-C foi aprovado em smoke de staging via harness usando Supabase real e admin autenticado.
@@ -6705,3 +6706,13 @@ Evidencias: `public.decidir_documento` validada; aceitar/rejeitar persistiram a 
 Ressalvas: nao-admin nao testado; browser real nao testado, pois a UI foi exercitada pelo harness; producao permaneceu fora de escopo. Nenhum push realizado.
 
 Proximos debitos: validar browser visual real e executar smoke com sessao segura nao-admin para confirmar `admin_required`.
+
+## RAVATEX-DOCUMENTS-G23-E-C-CANONICAL-INGESTOR-STATE-MIGRATION-PATCH (2026-07-09)
+
+Migration somente versionada, sem apply: `db/39_documentos_ingestor_state_undo.sql`. Separa base canonica do Ingestor de `document_candidates.status` efetivo, adiciona auditoria de revogacao e prepara undo seguro por RPC.
+
+`desfazer_decisao_documento` e admin-only, bloqueia candidate/decisao, responde `no_active_decision` ou `base_status_unavailable` quando aplicavel, revoga a decisao ativa e restaura apenas `ingestor_status` completo. Nao ha fallback presumido para `pending` nem decisao pending sintetica.
+
+`upsert_document_candidate_ingestor_state` e backend-only: grants removidos de PUBLIC/anon/authenticated e concedido somente a `service_role`; o futuro writer do Documents Ingestor atualizara `ingestor_*` mesmo durante decisao humana ativa, preservando o estado efetivo. O Ingestor permaneceu somente leitura nesta fase.
+
+Backfill permanece diagnostico/manual verificado por `document_id`, `ingestion_event_id`, status e timestamp confiavel. Sem prova, a base fica nula e o undo continua bloqueado. Teste novo: `tests/documentos-ingestor-state-undo-schema.test.js`.

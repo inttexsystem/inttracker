@@ -7297,6 +7297,7 @@ sem fetch real.
 - Sem polling/scheduler/daemon por enquanto
 - Produtor `sync:mapped` estavel em `bedbe909` (master)
 - Consumidor bridge publicado em staging `fff052b`
+
 ## RAVATEX-DOCUMENTS-G23-D-D-CLOUD-DECISIONS-CLOSEOUT-DOCS (2026-07-09)
 
 Closeout tecnico de G23-D registrado no HEAD `d33dc29bbcd7a733825c70f98ac736f0b121c4f3` (G23-D-B).
@@ -7310,3 +7311,13 @@ Closeout tecnico de G23-D registrado no HEAD `d33dc29bbcd7a733825c70f98ac736f0b1
 - Producao ficou fora de escopo (`bhgifjrfagkzubpyqpew`); nenhum push foi realizado.
 
 Debitos: repetir validacao visual em browser real e obter sessao segura nao-admin para confirmar `admin_required`.
+
+## RAVATEX-DOCUMENTS-G23-E-C-CANONICAL-INGESTOR-STATE-MIGRATION-PATCH (2026-07-09)
+
+- Migration versionada em `db/39_documentos_ingestor_state_undo.sql`; nao aplicada em Supabase.
+- `document_candidates` passa a ter base canonica separada (`ingestor_status`, `ingestor_state_at`, `ingestor_event_id`, `ingestor_rejected_reason`) e `status` permanece efetivo.
+- Nova RPC admin `desfazer_decisao_documento` revoga a decisao ativa e restaura somente base completa e comprovavel; nao presume `pending`.
+- Nova RPC backend `upsert_document_candidate_ingestor_state` prepara a escrita atomica do Ingestor: atualiza sempre a base, preservando estado efetivo enquanto houver decisao humana ativa. Sem uso no frontend.
+- `document_decisions` recebe auditoria de revogacao (`revogada_em`, `revogada_por`, `revogada_motivo`) sem criar decisao pending falsa.
+- Backfill automatico deliberadamente ausente: candidatos legados so podem receber base apos verificacao de evento compativel; sem prova, undo retorna `base_status_unavailable`.
+- Teste SQL focado: `tests/documentos-ingestor-state-undo-schema.test.js`.
