@@ -360,6 +360,33 @@ RAVATEX-DOCUMENTS-G22-A-AUTO-LOADER-DESIGN (Controle de Tapetes, read-only)
 - Controle precisa de `documents-auto-loader.js` para ler `latest.json` via fetch e carregar automaticamente
 - Task Scheduler: `sync:mapped --confirm-real-google --write-latest` diário
 - Próximo roadmap: UX de aceite/rejeição no Controle; dedup por `event_id`; telemetria de import
+## RAVATEX-DOCUMENTS-G23-E-G-CANONICAL-UNDO-CLOSEOUT (2026-07-09)
+
+- Status: **PRONTO — CLOSEOUT MULTI-REPO DA TRILHA G23-E**.
+- HEAD Ingestor: `20b9cf1d726a1d3669352937f62b21b9c77d59e8` (master).
+- HEAD Controle: `d7e71071e7c5bc673c4a0efe79c021c642742cd7` (work/app-next).
+
+- Trilha G23-E completa:
+  - G23-E-C: migration 39 (`d5c9951`) — base canonica `ingestor_*`, RPC undo (admin-only),
+    RPC writer (service_role-only), grants e backfill conservador.
+  - G23-E-C-R1: aplicada em staging (`ucrjtfswnfdlxwtmxnoo`).
+  - G23-E-D: writer canonical state patch (`20b9cf1`) — `latest_ingestion_event_at`
+    no export, RPC `upsert_document_candidate_ingestor_state`, skips para candidatos
+    incompletos.
+  - G23-E-E: UI undo patch (`d7e7107`) — `undoDocumentDecisionInCloud`, reader
+    com `ingestor_*`, botoes Desfazer na tela.
+  - G23-E-F: staging E2E smoke validado — writer real contra staging (service_role),
+    reader authenticated, decidir/desfazer via RPC, idempotencia writer confirmada,
+    cleanup 0 residuos. 37/37 ingestor + 291/291 controle.
+  - G23-E-G: closeout docs multi-repo (este arquivo + AGENT_HANDOFF.md).
+
+- Confirmacoes:
+  - Producao nao usada.
+  - Browser visual real nao executado (harness programatico usado no E2E).
+  - Nao-admin logado nao testado end-to-end (guarda `is_admin()` provada).
+  - Cleanup remoto 0 residuos (candidates=0, decisions=0, events=0, scan_runs=0).
+  - Sem push, sem migration nova, sem `git add .`.
+
 ## RAVATEX-DOCUMENTS-G23-E-D-INGESTOR-WRITER-CANONICAL-STATE-PATCH (2026-07-09)
 
 - `export:mapped` inclui `latest_ingestion_event_at`, derivado do mesmo ultimo evento canonico de `latest_ingestion_event_id`, sem fallback para hora atual.

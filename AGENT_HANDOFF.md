@@ -645,6 +645,26 @@ Foco: integrar `documentos-mapeados.jsonl` no Controle de Tapetes para exibir a 
 - **Garantias**: zero chamadas Gmail/Drive, zero schema/migrations, zero Controle.
 - **Riscos**: nenhum. `latest.json` é read-only sobre o JSONL.
 - **Próxima fase recomendada**: G22-A — auto-loader no Controle de Tapetes (design read-only de `documents-auto-loader.js` que lê `latest.json` via fetch).
+## RAVATEX-DOCUMENTS-G23-E-G-CANONICAL-UNDO-CLOSEOUT (2026-07-09)
+
+- Status: **PRONTO — CLOSEOUT MULTI-REPO DA TRILHA G23-E**.
+- HEAD Ingestor: `20b9cf1d726a1d3669352937f62b21b9c77d59e8` (master).
+- HEAD Controle: `d7e71071e7c5bc673c4a0efe79c021c642742cd7` (work/app-next).
+
+- Trilha G23-E completa:
+  - G23-E-C migration patch: `d5c9951` — `39_documentos_ingestor_state_undo.sql`
+    com base canonica `ingestor_*`, RPCs `desfazer_decisao_documento` (admin-only)
+    e `upsert_document_candidate_ingestor_state` (service_role-only).
+  - G23-E-C-R1: migration aplicada em staging.
+  - G23-E-D writer patch: `20b9cf1` — Ingestor com canonical state writer.
+  - G23-E-E UI undo patch: `d7e7107` — Controle com undo RPC + reader ingestor_*.
+  - G23-E-F: staging E2E smoke validado com writer real, reader authenticated,
+    decidir/desfazer via RPC, idempotencia writer, cleanup 0 residuos.
+  - G23-E-G: closeout docs multi-repo (este arquivo + PROJECT_STATE.md).
+
+- Confirmacoes: producao intocada, browser visual real nao executado, nao-admin
+  nao testado, cleanup remoto 0 residuos, sem push, sem migration nova.
+
 ## RAVATEX-DOCUMENTS-G23-E-D-INGESTOR-WRITER-CANONICAL-STATE-PATCH (2026-07-09)
 
 O writer service-role passa a chamar somente `upsert_document_candidate_ingestor_state`, RPC backend ja aplicada em staging pelo Controle. O export mapped fornece `latest_ingestion_event_at` do mesmo evento de `latest_ingestion_event_id`; o sync so envia base quando ID, timestamp, status e motivo rejected forem comprovaveis.
