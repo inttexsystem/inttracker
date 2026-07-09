@@ -19,7 +19,10 @@
 //   - boot.js registra a rota '#/documentos/recebidos' (admin-only);
 //   - ADMIN_MENU contem entrada "Documentos" -> '#/documentos/recebidos';
 //   - tela renderiza empty state se RAVATEX_DOCUMENTS_RECEIVED ausente
-//     ou vazio;
+//     ou vazio, no layout "Documentos Mapeados";
+//   - acoes "Atualizar agora" e "Importar JSONL" ficam no header;
+//   - strip de varredura e compacta e tem toggle play/pause;
+//   - rows usam icones especificos por formato (xml/pdf/etc.) antes do nome;
 //   - tela renderiza card com 1+ documentos quando o estado esta
 //     populado;
 //   - badges de tipo/formato/direcao aparecem para os campos
@@ -270,8 +273,8 @@ test('runtime: screenDocumentosRecebidos renderiza empty state sem documentos', 
   const allText = JSON.stringify(findAll(result, () => true).map((n) => textOf(n)));
   assert.ok(allText.indexOf('Nenhum documento recebido') >= 0,
     'empty state deve aparecer quando RAVATEX_DOCUMENTS_RECEIVED e vazio');
-  assert.ok(allText.indexOf('Documentos Recebidos') >= 0,
-    'header deve aparecer');
+  assert.ok(allText.indexOf('Documentos Mapeados') >= 0,
+    'header novo deve aparecer');
   assert.ok(allText.indexOf('Importe a lista gerada pelo Documents Ingestor') >= 0,
     'subtitulo explica o fluxo de import (G12-R3)');
   // Nenhuma row data-document-id
@@ -508,12 +511,91 @@ test('G12-R1: tela contem section data-section="documentos-recebidos-import-acti
   const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   const sections = findAll(result, (n) => n._attrs && n._attrs['data-section'] === 'documentos-recebidos-import-action');
   assert.equal(sections.length, 1, 'section de import action presente');
-  // Deve estar antes do card de empty state
+  // No redesign, o botao fica no header, antes da strip e do empty state.
   var allText = JSON.stringify(findAll(result, () => true).map(textOf));
-  var importIdx = allText.indexOf('Importar documentos');
+  var importIdx = allText.indexOf('Importar JSONL');
+  var scanIdx = allText.indexOf('Varredura ativa');
   var emptyIdx = allText.indexOf('Nenhum documento recebido');
-  assert.ok(importIdx >= 0 && emptyIdx >= 0, 'ambos textos presentes');
-  assert.ok(importIdx < emptyIdx, 'botao inline vem antes do empty state');
+  assert.ok(importIdx >= 0 && scanIdx >= 0 && emptyIdx >= 0, 'textos principais presentes');
+  assert.ok(importIdx < scanIdx, 'botao de import fica no header, antes da strip');
+  assert.ok(scanIdx < emptyIdx, 'strip vem antes da tabela/empty state');
+});
+
+test('redesign: acoes ficam no header e strip de varredura e compacta com play/pause', function () {
+  const sb = makeScreenSandbox([]);
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+
+  const refreshBtns = findAll(result, findAction('atualizar-documentos'));
+  assert.equal(refreshBtns.length, 1, 'botao Atualizar agora presente no header');
+  const importBtns = findAll(result, (n) => n.tagName === 'BUTTON' && n.id === 'rv-docs-received-import-btn-inline');
+  assert.equal(importBtns.length, 1, 'botao Importar JSONL presente no header');
+
+  const strips = findAll(result, (n) => n._attrs && n._attrs['data-section'] === 'documentos-scan-strip');
+  assert.equal(strips.length, 1, 'strip de varredura presente');
+  const stripStyle = strips[0]._attrs.style || '';
+  assert.ok(stripStyle.indexOf('min-height:34px') >= 0, 'strip tem altura compacta: ' + stripStyle);
+  assert.ok(stripStyle.indexOf('padding:4px 10px') >= 0, 'strip tem padding compacto: ' + stripStyle);
+
+  const toggles = findAll(result, findAction('toggle-varredura'));
+  assert.equal(toggles.length, 1, 'botao play/pause presente na frente de Varredura ativa');
+  assert.equal(toggles[0]._listeners.click.length, 1, 'toggle play/pause tem click handler');
+  const toggleStyle = toggles[0]._attrs.style || '';
+  assert.ok(toggleStyle.indexOf('border:none') >= 0, 'play/pause nao deve ter contorno: ' + toggleStyle);
+  assert.ok(toggleStyle.indexOf('background:transparent') >= 0, 'play/pause e apenas icone: ' + toggleStyle);
+});
+
+test('redesign: filtros nao duplicam chevron e Limpar acompanha a altura da linha', function () {
+  const sb = makeScreenSandbox([]);
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+
+  const selects = findAll(result, (n) => n.tagName === 'SELECT');
+  assert.equal(selects.length, 3, 'tres selects de filtro esperados');
+  selects.forEach(function (selectNode) {
+    const style = selectNode._attrs.style || '';
+    assert.ok(style.indexOf('appearance:none') >= 0, 'select deve esconder chevron nativo: ' + style);
+    assert.ok(style.indexOf('-webkit-appearance:none') >= 0, 'select deve esconder chevron nativo no WebKit: ' + style);
+  });
+
+  const clearBtns = findAll(result, findAction('limpar-filtros'));
+  assert.equal(clearBtns.length, 1, 'botao Limpar presente');
+  const clearStyle = clearBtns[0]._attrs.style || '';
+  assert.ok(clearStyle.indexOf('min-height:49px') >= 0, 'Limpar acompanha altura dos filtros: ' + clearStyle);
+});
+
+test('redesign: rows usam icones especificos por formato antes do nome do arquivo', function () {
+  const sb = makeScreenSandbox([
+    {
+      document_id: 'doc-xml',
+      filename_original: 'NF-001.xml',
+      tipo_documento: 'nf',
+      formato: 'xml',
+      drive_web_view_link: 'https://drive/x',
+    },
+    {
+      document_id: 'doc-pdf',
+      filename_original: 'Romaneio.pdf',
+      tipo_documento: 'romaneio',
+      formato: 'pdf',
+      drive_web_view_link: 'https://drive/y',
+    },
+  ]);
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+
+  const xmlIcons = findAll(result, (n) => n._attrs && n._attrs['data-icon'] === 'arquivo-xml');
+  const pdfIcons = findAll(result, (n) => n._attrs && n._attrs['data-icon'] === 'arquivo-pdf');
+  assert.equal(xmlIcons.length, 1, 'icone XML especifico presente');
+  assert.equal(pdfIcons.length, 1, 'icone PDF especifico presente');
+
+  const rows = findAll(result, findRow);
+  assert.equal(rows.length, 2, 'duas rows renderizadas');
+  assert.ok(textOf(rows[0]).indexOf('NF-001.xml') >= 0, 'row XML mantem filename');
+  assert.ok(textOf(rows[1]).indexOf('Romaneio.pdf') >= 0, 'row PDF mantem filename');
 });
 
 test('G12-R3: header instrui a importar a lista do Documents Ingestor', function () {
@@ -529,8 +611,8 @@ test('G12-R3: header instrui a importar a lista do Documents Ingestor', function
   // G12-R3: copy NAO afirma mais "carregado automaticamente do Gmail".
   assert.equal(allText.indexOf('automaticamente'), -1,
     'subtitulo NAO deve sugerir auto-load: ' + allText.slice(0, 400));
-  assert.equal(allText.indexOf('Gmail'), -1,
-    'subtitulo NAO deve mencionar Gmail explicitamente: ' + allText.slice(0, 400));
+  assert.ok(allText.indexOf('Origem') >= 0 && allText.indexOf('Gmail') >= 0,
+    'strip compacta mostra Origem Gmail');
 });
 
 test('G12-R3: card exibe colunas Status, Pedido e Recebido em', function () {
@@ -624,8 +706,8 @@ test('G12-R1: empty state instrui a usar o botao acima', function () {
   sb.container = container;
   const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   const allText = JSON.stringify(findAll(result, () => true).map(textOf));
-  assert.ok(allText.indexOf('Use o botao acima para carregar') >= 0,
-    'empty state instrui a usar botao acima');
+  assert.ok(allText.indexOf('Use o botão Importar JSONL acima para carregar') >= 0,
+    'empty state instrui a usar o botao Importar JSONL acima');
 });
 
 // ---------------------------------------------------------------------
