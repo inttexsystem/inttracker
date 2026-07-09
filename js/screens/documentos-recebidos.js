@@ -59,6 +59,8 @@
   var SVG_PLAY = '<polygon points="6 4 20 12 6 20 6 4"></polygon>';
   var SVG_PAUSE = '<rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect>';
   var SVG_EYE = '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path><circle cx="12" cy="12" r="3"></circle>';
+  var SVG_DOWNLOAD = '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>'
+    + '<polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line>';
   var SVG_CHECK = '<polyline points="20 6 9 17 4 12"></polyline>';
   var SVG_X = '<line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>';
   var SVG_INBOX = '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>'
@@ -257,6 +259,7 @@
       status: status,
       pedido: doc && (doc.pedido_manual || doc.pedido || doc.pedido_key) || '',
       when: when,
+      driveId: doc && doc.drive_file_id ? doc.drive_file_id : '',
       driveLink: doc && doc.drive_web_view_link ? doc.drive_web_view_link : '',
       dateParts: fmtDataParts(when),
     };
@@ -367,7 +370,14 @@
       'data-field': 'pedido',
       'data-pedido': '',
       style: 'font-size:12.5px;color:#aab2bf;font-style:italic;white-space:nowrap;',
-    }, '\u2014 sem pedido');
+    }, 'Não mapeado');
+  }
+
+  function driveDownloadLink(doc) {
+    if (doc.driveId) return 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(doc.driveId);
+    var match = String(doc.driveLink || '').match(/\/file\/d\/([^/]+)/);
+    if (match && match[1]) return 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(match[1]);
+    return doc.driveLink;
   }
 
   function iconButton(title, iconMarkup, onclick, extraStyle, attrs) {
@@ -401,6 +411,14 @@
         }
       }, '', {
         'data-action': 'ver-documento-drive',
+        'data-document-id': doc.id,
+      }));
+      wrap.appendChild(iconButton('Baixar', SVG_DOWNLOAD, function () {
+        if (typeof window.open === 'function') {
+          window.open(driveDownloadLink(doc), '_blank', 'noopener,noreferrer');
+        }
+      }, '', {
+        'data-action': 'baixar-documento-drive',
         'data-document-id': doc.id,
       }));
     } else {

@@ -329,6 +329,9 @@ test('runtime: screenDocumentosRecebidos renderiza card com 1 documento', functi
   assert.equal(verBtn.length, 1, '1 botao Ver esperado');
   const btn = verBtn[0];
   assert.equal(textOf(btn), 'Ver', 'label do botao');
+  const downloadBtn = findAll(row, findAction('baixar-documento-drive'));
+  assert.equal(downloadBtn.length, 1, '1 botao Baixar esperado');
+  assert.equal(textOf(downloadBtn[0]), 'Baixar', 'label do botao Baixar');
 });
 
 test('runtime: botao Ver chama window.open com noopener,noreferrer', function () {
@@ -365,6 +368,46 @@ test('runtime: botao Ver chama window.open com noopener,noreferrer', function ()
     'features deve conter noreferrer: ' + openedFeatures);
 });
 
+test('runtime: botao Baixar fica depois de Ver e abre link de download do Drive', function () {
+  let openedUrl = null;
+  let openedTarget = null;
+  let openedFeatures = null;
+  const sb = makeScreenSandbox([
+    {
+      document_id: 'doc-download',
+      filename_original: 'NF-001.xml',
+      tipo_documento: 'nf',
+      formato: 'xml',
+      drive_file_id: 'drive-download-id',
+      drive_web_view_link: 'https://drive.google.com/file/d/drive-download-id/view',
+    },
+  ]);
+  sb.window.open = function (url, target, features) {
+    openedUrl = url;
+    openedTarget = target;
+    openedFeatures = features;
+  };
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const row = findAll(result, findRow)[0];
+  const actions = findAll(row, (n) => n._attrs && (
+    n._attrs['data-action'] === 'ver-documento-drive'
+    || n._attrs['data-action'] === 'baixar-documento-drive'
+  ));
+  assert.equal(actions.length, 2, 'Ver e Baixar presentes');
+  assert.equal(actions[0]._attrs['data-action'], 'ver-documento-drive', 'Ver vem antes');
+  assert.equal(actions[1]._attrs['data-action'], 'baixar-documento-drive', 'Baixar vem depois');
+  actions[1]._listeners.click[0]();
+  assert.equal(openedUrl, 'https://drive.google.com/uc?export=download&id=drive-download-id',
+    'window.open deve receber link de download do Drive');
+  assert.equal(openedTarget, '_blank', 'alvo _blank');
+  assert.ok(openedFeatures && openedFeatures.indexOf('noopener') >= 0,
+    'features deve conter noopener: ' + openedFeatures);
+  assert.ok(openedFeatures && openedFeatures.indexOf('noreferrer') >= 0,
+    'features deve conter noreferrer: ' + openedFeatures);
+});
+
 test('runtime: documento sem drive_web_view_link mostra "Sem link"', function () {
   const sb = makeScreenSandbox([
     {
@@ -383,6 +426,8 @@ test('runtime: documento sem drive_web_view_link mostra "Sem link"', function ()
   assert.equal(textOf(semLink[0]), 'Sem link', 'label do placeholder');
   const verBtns = findAll(result, findAction('ver-documento-drive'));
   assert.equal(verBtns.length, 0, 'sem botao Ver para doc sem link');
+  const downloadBtns = findAll(result, findAction('baixar-documento-drive'));
+  assert.equal(downloadBtns.length, 0, 'sem botao Baixar para doc sem link');
 });
 
 test('runtime: documento com direcao nula NAO mostra badge direcao', function () {
@@ -418,6 +463,8 @@ test('runtime: renderiza 3 documentos com todos os campos', function () {
   assert.equal(rows.length, 3, '3 rows esperados');
   const verBtns = findAll(result, findAction('ver-documento-drive'));
   assert.equal(verBtns.length, 2, '2 botoes Ver esperados (a e c)');
+  const downloadBtns = findAll(result, findAction('baixar-documento-drive'));
+  assert.equal(downloadBtns.length, 2, '2 botoes Baixar esperados (a e c)');
   const semLinks = findAll(result, findAction('sem-link'));
   assert.equal(semLinks.length, 1, '1 placeholder Sem link esperado (b)');
 });
@@ -699,7 +746,7 @@ test('G12-R3: card exibe colunas Status, Pedido e Recebido em', function () {
     'Recebido em formatado dd/mm HH:MM: ' + rowText);
 });
 
-test('G12-R3: row sem pedido_manual mostra placeholder "— sem pedido"', function () {
+test('G12-R3: row sem pedido_manual mostra placeholder "Nao mapeado"', function () {
   const sb = makeScreenSandbox([
     {
       document_id: 'doc-no-ped',
@@ -719,8 +766,8 @@ test('G12-R3: row sem pedido_manual mostra placeholder "— sem pedido"', functi
   assert.ok(pedidoCell, 'celula de pedido existe');
   assert.equal(pedidoCell._attrs['data-pedido'], '',
     'data-pedido vazio quando nao ha pedido_manual');
-  assert.ok(textOf(pedidoCell).indexOf('sem pedido') >= 0,
-    'placeholder "sem pedido" aparece: ' + textOf(pedidoCell));
+  assert.ok(textOf(pedidoCell).indexOf('Não mapeado') >= 0,
+    'placeholder "Nao mapeado" aparece: ' + textOf(pedidoCell));
 });
 
 test('G12-R3: row com pedido_manual exibe chip de pedido', function () {
