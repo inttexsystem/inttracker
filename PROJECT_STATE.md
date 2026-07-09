@@ -262,8 +262,40 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - **Riscos remanescentes**: nenhum. Documentação é apenas textual.
 - **Próxima fase recomendada**: G14-A — design de integração `sync:mapped` ↔ Controle de Tapetes (fase futura, não implementar nesta rodada).
 
+## Fase G17-A: Ingestion Event ID Export Design (read-only)
+- **HEAD inicial**: `4346275`
+- **Objetivo**: mapear como incluir `ingestion_event_id` no `documentos-mapeados.jsonl` sem quebrar o Controle de Tapetes.
+- **Diagnóstico G17-A**:
+  - `ingestion_events.id` é UUID estável, imutável desde inserção.
+  - `exportMappedDocuments` já faz JOIN com `ingestion_events` (subqueries para timestamps), mas **não seleciona `e.id`**.
+  - Controle de Tapetes ignora campos extras (validador allowlist, bridge não lê `ingestion_event_id`).
+  - Recomendado: 5 campos opcionais (`latest_ingestion_event_id`, `detected_ingestion_event_id`, `linked_ingestion_event_id`, `accepted_ingestion_event_id`, `rejected_ingestion_event_id`), `schema_version: 1` mantido.
+- **Não alterado**: nenhum arquivo (read-only).
+- **Próxima fase**: G17-B — implementar patch.
+
+## Fase G17-B: Ingestion Event ID Export Patch
+- **HEAD inicial**: `4346275`
+- **Objetivo**: adicionar IDs de `ingestion_events` ao mapped export.
+- **Campos adicionados** (5, todos `string | null`):
+  - `latest_ingestion_event_id` — evento mais recente do documento.
+  - `detected_ingestion_event_id` — evento `document.detected`.
+  - `linked_ingestion_event_id` — evento `document.linked`.
+  - `accepted_ingestion_event_id` — evento `document.accepted`.
+  - `rejected_ingestion_event_id` — evento `document.rejected`.
+- **schema_version**: mantido `1` (retrocompatível).
+- **SQL**: 5 subqueries adicionadas em `listMappedDocuments()` com tie-breaker por `id` para determinismo.
+- **Arquivos alterados**:
+  - `src/core/exportPackage.ts` — `MappedDocumentRow` + SQL.
+  - `tests/export-mapped.test.ts` — 3 novos testes + asserções expandidas.
+  - `docs/CONTROL_TAPETES_DOCUMENTS_CONTRACT.md` — nova seção 4.5.
+  - `PROJECT_STATE.md` — este registro.
+  - `AGENT_HANDOFF.md` — registro G17-A/B.
+- **Não alterado**: `schema.sql`, `sqlite.ts`, `types/event.ts`, `outbox.ts`, `link.ts`, `acceptance.ts`, `cli.ts`, Controle de Tapetes, DB, backups.
+- **Não executado**: Gmail/Drive real, push, `git add .`, `reset/rebase/stash/clean`.
+- **Próxima fase**: G18 — consumo de `ingestion_event_id` pelo Controle (bridge enhance, fora de escopo do produtor).
+
 ## Próxima fase recomendada
-RAVATEX-DOCUMENTS-G14-CLOSEOUT (já concluída via fases G14-A a G14-D no Controle de Tapetes)
-- Produtor `sync:mapped` pronto (HEAD `bedbe909`, master, sem remote staging)
-- Consumidor bridge flat → Pedido Detail pronto (HEAD `fff052b`, work/app-next, staging publicado)
-- Próximo roadmap: UX de último import/timestamp/hash no Controle; `ingestion_event_id` no JSONL como melhoria futura; aceite/rejeição dentro do Controle como feature posterior.
+RAVATEX-DOCUMENTS-G18-CONSUMER-INGESTION-EVENT-ID (futuro, fora de escopo)
+- Produtor `sync:mapped` pronto (HEAD `bedbe909` → agora `4346275`, master)
+- `ingestion_event_id` disponível no mapped export JSONL (5 campos opcionais)
+- Consumidor bridge flat → Pedido Detail pode evoluir para usar `ingestion_event_id` como chave primária

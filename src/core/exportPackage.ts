@@ -143,6 +143,11 @@ export interface MappedDocumentRow {
   accepted_at: string | null;
   rejected_at: string | null;
   rejected_reason: string | null;
+  latest_ingestion_event_id: string | null;
+  detected_ingestion_event_id: string | null;
+  linked_ingestion_event_id: string | null;
+  accepted_ingestion_event_id: string | null;
+  rejected_ingestion_event_id: string | null;
 }
 
 export interface ExportMappedOptions {
@@ -206,7 +211,22 @@ export function listMappedDocuments(
         WHERE e.document_id = d.id AND e.event_type = 'document.rejected') AS rejected_at,
       (SELECT e.reason FROM ingestion_events e
         WHERE e.document_id = d.id AND e.event_type = 'document.rejected'
-        ORDER BY e.created_at ASC LIMIT 1) AS rejected_reason
+        ORDER BY e.created_at ASC LIMIT 1) AS rejected_reason,
+      (SELECT e.id FROM ingestion_events e
+        WHERE e.document_id = d.id
+        ORDER BY e.created_at DESC, e.id DESC LIMIT 1) AS latest_ingestion_event_id,
+      (SELECT e.id FROM ingestion_events e
+        WHERE e.document_id = d.id AND e.event_type = 'document.detected'
+        ORDER BY e.created_at ASC, e.id ASC LIMIT 1) AS detected_ingestion_event_id,
+      (SELECT e.id FROM ingestion_events e
+        WHERE e.document_id = d.id AND e.event_type = 'document.linked'
+        ORDER BY e.created_at ASC, e.id ASC LIMIT 1) AS linked_ingestion_event_id,
+      (SELECT e.id FROM ingestion_events e
+        WHERE e.document_id = d.id AND e.event_type = 'document.accepted'
+        ORDER BY e.created_at ASC, e.id ASC LIMIT 1) AS accepted_ingestion_event_id,
+      (SELECT e.id FROM ingestion_events e
+        WHERE e.document_id = d.id AND e.event_type = 'document.rejected'
+        ORDER BY e.created_at ASC, e.id ASC LIMIT 1) AS rejected_ingestion_event_id
     FROM documentos d
     ${whereClause}
     ORDER BY d.created_at DESC

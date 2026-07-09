@@ -130,6 +130,12 @@ describe('export mapped documents (G12-E2)', () => {
     expect(parsed.linked_at).toBeNull();
     expect(parsed.accepted_at).toBeNull();
     expect(parsed.rejected_at).toBeNull();
+    expect(parsed.latest_ingestion_event_id).toBeTruthy();
+    expect(parsed.latest_ingestion_event_id).toMatch(/^[a-f0-9-]{36}$/);
+    expect(parsed.detected_ingestion_event_id).toBeTruthy();
+    expect(parsed.linked_ingestion_event_id).toBeNull();
+    expect(parsed.accepted_ingestion_event_id).toBeNull();
+    expect(parsed.rejected_ingestion_event_id).toBeNull();
   });
 
   it('exports an assigned document with pedido_manual', () => {
@@ -151,6 +157,11 @@ describe('export mapped documents (G12-E2)', () => {
     expect(parsed.linked_at).toBeTruthy();
     expect(parsed.accepted_at).toBeNull();
     expect(parsed.rejected_at).toBeNull();
+    expect(parsed.latest_ingestion_event_id).toBeTruthy();
+    expect(parsed.detected_ingestion_event_id).toBeTruthy();
+    expect(parsed.linked_ingestion_event_id).toBeTruthy();
+    expect(parsed.accepted_ingestion_event_id).toBeNull();
+    expect(parsed.rejected_ingestion_event_id).toBeNull();
   });
 
   it('exports an accepted document with accepted_at populated', () => {
@@ -172,6 +183,11 @@ describe('export mapped documents (G12-E2)', () => {
     expect(parsed.accepted_at).toBeTruthy();
     expect(parsed.rejected_at).toBeNull();
     expect(parsed.rejected_reason).toBeNull();
+    expect(parsed.latest_ingestion_event_id).toBeTruthy();
+    expect(parsed.detected_ingestion_event_id).toBeTruthy();
+    expect(parsed.linked_ingestion_event_id).toBeTruthy();
+    expect(parsed.accepted_ingestion_event_id).toBeTruthy();
+    expect(parsed.rejected_ingestion_event_id).toBeNull();
   });
 
   it('exports a rejected document with rejected_at and rejected_reason', () => {
@@ -196,6 +212,11 @@ describe('export mapped documents (G12-E2)', () => {
     expect(parsed.rejected_at).toBeTruthy();
     expect(parsed.rejected_reason).toBe('Documento duplicado');
     expect(parsed.accepted_at).toBeNull();
+    expect(parsed.latest_ingestion_event_id).toBeTruthy();
+    expect(parsed.detected_ingestion_event_id).toBeTruthy();
+    expect(parsed.linked_ingestion_event_id).toBeTruthy();
+    expect(parsed.accepted_ingestion_event_id).toBeNull();
+    expect(parsed.rejected_ingestion_event_id).toBeTruthy();
   });
 
   it('non-applicable fields are null', () => {
@@ -212,6 +233,11 @@ describe('export mapped documents (G12-E2)', () => {
     expect(row.rejected_reason).toBeNull();
     expect(row.received_at).toBeTruthy();
     expect(row.detected_at).toBeTruthy();
+    expect(row.linked_ingestion_event_id).toBeNull();
+    expect(row.accepted_ingestion_event_id).toBeNull();
+    expect(row.rejected_ingestion_event_id).toBeNull();
+    expect(row.detected_ingestion_event_id).toBeTruthy();
+    expect(row.latest_ingestion_event_id).toBeTruthy();
   });
 
   it('every line has schema_version: 1', () => {
@@ -370,5 +396,84 @@ describe('export mapped documents (G12-E2)', () => {
     expect(parsed.rejected_at).toBeTruthy();
     expect(parsed.rejected_reason).toBe('Documento inválido');
     expect(parsed.accepted_at).toBeNull();
+    expect(parsed.latest_ingestion_event_id).toBeTruthy();
+    expect(parsed.rejected_ingestion_event_id).toBeTruthy();
+    expect(parsed.accepted_ingestion_event_id).toBeNull();
+  });
+
+  it('latest_ingestion_event_id corresponds to the most recent event', () => {
+    const db = getDb();
+    const docId = seedDoc(db, { gmailMessageId: 'msg-em-latest-id' });
+    const t1 = '2026-07-01 10:00:00';
+    const t2 = '2026-07-01 10:01:00';
+    const t3 = '2026-07-01 10:02:00';
+    seedEvent(db, docId, 'document.detected', { createdAt: t1 });
+    seedEvent(db, docId, 'document.linked', { pedidoManual: 'PED-25-2026', createdAt: t2 });
+    seedEvent(db, docId, 'document.accepted', { pedidoManual: 'PED-25-2026', status: 'accepted', createdAt: t3 });
+
+    const rows = listMappedDocuments();
+    expect(rows).toHaveLength(1);
+    const row = rows[0];
+
+    const latestId = row.latest_ingestion_event_id;
+    expect(latestId).toBeTruthy();
+    expect(latestId).toBe(row.accepted_ingestion_event_id);
+    expect(latestId).not.toBe(row.detected_ingestion_event_id);
+    expect(latestId).not.toBe(row.linked_ingestion_event_id);
+  });
+
+  it('ingestion event IDs are null when no events exist for a document', () => {
+    const db = getDb();
+    seedDoc(db, { gmailMessageId: 'msg-em-no-events' });
+
+    const rows = listMappedDocuments();
+    expect(rows).toHaveLength(1);
+    const row = rows[0];
+    expect(row.latest_ingestion_event_id).toBeNull();
+    expect(row.detected_ingestion_event_id).toBeNull();
+    expect(row.linked_ingestion_event_id).toBeNull();
+    expect(row.accepted_ingestion_event_id).toBeNull();
+    expect(row.rejected_ingestion_event_id).toBeNull();
+  });
+
+  it('ingestion event IDs use UUID format and are distinct across event types', () => {
+    const db = getDb();
+    const docId = seedDoc(db, { gmailMessageId: 'msg-em-uuid-format' });
+    seedEvent(db, docId, 'document.detected');
+    seedEvent(db, docId, 'document.linked', { pedidoManual: 'PED-25-2026' });
+    seedEvent(db, docId, 'document.accepted', { pedidoManual: 'PED-25-2026', status: 'accepted' });
+
+    const rows = listMappedDocuments();
+    expect(rows).toHaveLength(1);
+    const row = rows[0];
+
+    const uuidRe = /^[a-f0-9-]{36}$/;
+    expect(row.latest_ingestion_event_id).toMatch(uuidRe);
+    expect(row.detected_ingestion_event_id).toMatch(uuidRe);
+    expect(row.linked_ingestion_event_id).toMatch(uuidRe);
+    expect(row.accepted_ingestion_event_id).toMatch(uuidRe);
+    expect(row.rejected_ingestion_event_id).toBeNull();
+
+    expect(row.detected_ingestion_event_id).not.toBe(row.linked_ingestion_event_id);
+    expect(row.linked_ingestion_event_id).not.toBe(row.accepted_ingestion_event_id);
+    expect(row.accepted_ingestion_event_id).not.toBe(row.detected_ingestion_event_id);
+  });
+
+  it('schema_version remains 1 with new ingestion event ID fields present', () => {
+    const db = getDb();
+    const docId = seedDoc(db, { gmailMessageId: 'msg-em-sv-id' });
+    seedEvent(db, docId, 'document.detected');
+    seedEvent(db, docId, 'document.linked', { pedidoManual: 'PED-25-2026' });
+
+    const outDir = join(SCENARIO_DIR, 'mapped-sv-id.jsonl');
+    exportMappedDocuments({ outputPath: outDir });
+
+    const lines = readFileSync(outDir, 'utf-8').trim().split('\n').filter(Boolean);
+    expect(lines).toHaveLength(1);
+    const parsed = JSON.parse(lines[0]);
+    expect(parsed.schema_version).toBe(1);
+    expect(parsed.latest_ingestion_event_id).toBeTruthy();
+    expect(parsed.detected_ingestion_event_id).toBeTruthy();
+    expect(parsed.linked_ingestion_event_id).toBeTruthy();
   });
 });

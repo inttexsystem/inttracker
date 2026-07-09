@@ -139,6 +139,25 @@ sync:mapped → scan (Gmail) → export mapped (JSONL) → report (stdout)
 
 **Importante:** `sync:mapped` é um **produtor** de `documentos-mapeados.jsonl`. **Não toca o Controle de Tapetes** — é apenas geração local sob demanda do operador. O **consumo automático** desse JSONL pelo Controle é **fase posterior** (G14+) e não está implementado nesta versão. Hoje, o JSONL é gerado apenas como snapshot local para inspeção manual ou polling externo.
 
+### 4.5 Campos opcionais de `ingestion_event_id` no mapped export (`schema_version: 1`)
+
+A partir da fase G17-B, `documentos-mapeados.jsonl` (`schema_version: 1`) pode incluir **5 campos opcionais**:
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `latest_ingestion_event_id` | UUID \| null | ID do evento mais recente do documento (maior `created_at`) |
+| `detected_ingestion_event_id` | UUID \| null | ID do evento `document.detected` (primeiro detectado) |
+| `linked_ingestion_event_id` | UUID \| null | ID do evento `document.linked` (primeiro vinculado) |
+| `accepted_ingestion_event_id` | UUID \| null | ID do evento `document.accepted` (primeiro aceito) |
+| `rejected_ingestion_event_id` | UUID \| null | ID do evento `document.rejected` (primeiro rejeitado) |
+
+**Regras de consumo:**
+- Campos **opcionais** — consumidores devem ignorar campos desconhecidos.
+- `null` significa ausência daquele evento para o documento.
+- O Controle de Tapetes **não depende** desses campos na bridge atual.
+- Não há mudança de schema SQLite, migration, ou outbox.
+- O `schema_version` permanece `1`.
+
 ---
 
 ## 5. Decision points

@@ -3,16 +3,16 @@
 ## Branch/HEAD/Status
 ### documentos-ingestor (este repositório)
 - Branch: master
-- HEAD: `bedbe909` (G13-D fechado — produtor `sync:mapped` pronto)
+- HEAD: `4346275` (G17-B fechado — `ingestion_event_id` no mapped export)
 
 ### Controle de Tapetes (staging/work/app-next)
 - HEAD canônico: `fff052b` (G14-D fechado — consumidor bridge flat pronto)
 
 ## Fase concluída
-RAVATEX-DOCUMENTS-G14-D-CLOSEOUT — consumidor bridge implementado no Controle de Tapetes
+RAVATEX-DOCUMENTS-G17-B-INGESTION-EVENT-ID-EXPORT-PATCH — `ingestion_event_id` adicionado ao mapped export
 
 ## Fase anterior
-G13-D — documentação operacional do `sync:mapped`
+G17-A — Ingestion Event ID Export Design (read-only)
 
 ## Objetivo da fase G13-B
 Implementar comando único local `npm run sync:mapped` que orquestra `scan → export mapped → report` em sequência. Dry-run por padrão. Guards rígidos para `--retry-message` (forçar `days=1` quando não fornecido; falhar com `days > 1`, `--wide-scan` ou `--query`).
@@ -556,3 +556,52 @@ Foco: integrar `documentos-mapeados.jsonl` no Controle de Tapetes para exibir a 
   - Documents Ingestor **não foi alterado** — produtor permanece idêntico
 - **Não implementado em G14**: polling, scheduler, endpoint local, backend, aceite/rejeição no Controle, `ingestion_event_id` no JSONL
 - **Próxima fase recomendada**: G15 — UX de último import/timestamp/hash no Controle; `ingestion_event_id` no JSONL como melhoria futura; aceite/rejeição dentro do Controle como feature posterior. Produtor `sync:mapped` estável, consumidor bridge publicado em staging. Sem scheduler/daemon/watcher.
+
+## Fase G17-A: Ingestion Event ID Export Design (read-only)
+- **HEAD inicial**: `4346275`
+- **Objetivo**: mapear como incluir `ingestion_event_id` no `documentos-mapeados.jsonl` sem quebrar o Controle de Tapetes.
+- **Diagnóstico**:
+  - `ingestion_events.id` é UUID estável (PRIMARY KEY), imutável desde inserção.
+  - `exportMappedDocuments` já faz JOIN com `ingestion_events` via subqueries correlacionadas, mas **nunca seleciona `e.id`**.
+  - Controle de Tapetes ignora campos extras (validador allowlist, bridge não lê `ingestion_event_id`).
+  - Recomendado: 5 campos opcionais (`latest`, `detected`, `linked`, `accepted`, `rejected`), `schema_version: 1` mantido.
+- **Não alterado**: nenhum arquivo (read-only).
+- **Próxima fase**: G17-B — implementar patch.
+
+## Fase G17-B: Ingestion Event ID Export Patch
+- **HEAD inicial**: `4346275`
+- **Objetivo**: adicionar 5 campos opcionais de `ingestion_event_id` ao mapped export.
+- **Arquivos alterados**:
+  - `src/core/exportPackage.ts` — `MappedDocumentRow` expandido com 5 campos (`latest_ingestion_event_id`, `detected_ingestion_event_id`, `linked_ingestion_event_id`, `accepted_ingestion_event_id`, `rejected_ingestion_event_id`, todos `string | null`). 5 subqueries SQL adicionadas com tie-breaker por `id` para determinismo.
+  - `tests/export-mapped.test.ts` — 3 novos testes + asserções expandidas nos existentes (latest é o mais recente, UUID format, null quando sem eventos, schema_version=1 mantido).
+  - `docs/CONTROL_TAPETES_DOCUMENTS_CONTRACT.md` — nova seção 4.5 documentando os campos opcionais.
+  - `PROJECT_STATE.md` — registro G17-A e G17-B.
+  - `AGENT_HANDOFF.md` — este arquivo.
+- **Campos SQL** (5 subqueries):
+  ```sql
+  (SELECT e.id FROM ingestion_events e
+    WHERE e.document_id = d.id
+    ORDER BY e.created_at DESC, e.id DESC LIMIT 1) AS latest_ingestion_event_id,
+  (SELECT e.id FROM ingestion_events e
+    WHERE e.document_id = d.id AND e.event_type = 'document.detected'
+    ORDER BY e.created_at ASC, e.id ASC LIMIT 1) AS detected_ingestion_event_id,
+  (SELECT e.id FROM ingestion_events e
+    WHERE e.document_id = d.id AND e.event_type = 'document.linked'
+    ORDER BY e.created_at ASC, e.id ASC LIMIT 1) AS linked_ingestion_event_id,
+  (SELECT e.id FROM ingestion_events e
+    WHERE e.document_id = d.id AND e.event_type = 'document.accepted'
+    ORDER BY e.created_at ASC, e.id ASC LIMIT 1) AS accepted_ingestion_event_id,
+  (SELECT e.id FROM ingestion_events e
+    WHERE e.document_id = d.id AND e.event_type = 'document.rejected'
+    ORDER BY e.created_at ASC, e.id ASC LIMIT 1) AS rejected_ingestion_event_id
+  ```
+- **schema_version**: mantido `1` (retrocompatível — campos opcionais).
+- **Não alterado**: `schema.sql`, `sqlite.ts`, `types/event.ts`, `outbox.ts`, `link.ts`, `acceptance.ts`, `cli.ts`, `index.ts`, Controle de Tapetes, DB, backups.
+- **Não executado**: Gmail/Drive real, push, `git add .`, `reset/rebase/stash/clean`.
+- **Garantias**:
+  - Zero migrations, zero alterações de schema.
+  - Controle de Tapetes ignora campos extras (evidência: `isValidReceivedDocument` allowlist, `mapReceivedDocToEventShape` não lê `ingestion_event_id`, testes bridge G14-C smoke).
+  - `schema_version` permanece `1`.
+  - Tie-breaker por `id` garante resultado determinístico.
+- **Riscos**: nenhum.
+- **Próxima fase recomendada**: G18 — consumo de `ingestion_event_id` pelo Controle (bridge enhance, fora de escopo do produtor). Produtor `sync:mapped` estável, consumidor bridge publicado em staging.
