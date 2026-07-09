@@ -1,9 +1,9 @@
-﻿# Estado pos-fase - G18-E Staging UI Smoke (closeout G17/G18)
+﻿# Estado pos-fase - G20-B Local Document Decisions Patch
 
-- Fase: `RAVATEX-DOCUMENTS-G18-E-STAGING-UI-SMOKE`.
-- Status: **PRONTO — G18 COMPLETO: bridge + staging + smoke validados**.
-- Branch/HEAD base: `work/app-next`, `19d83bb`.
-- staging/main: `19d83bb` (push G18-D publicado).
+- Fase: `RAVATEX-DOCUMENTS-G20-B-LOCAL-DOCUMENT-DECISIONS-PATCH`.
+- Status: **PRONTO — Aceite/rejeição local persistido no Controle**.
+- Branch/HEAD base: `work/app-next` (após commit G20-B).
+- staging/main: `19d83bb` (G18 bridge, sem G20-B ainda).
 - origin/main: `1047181` (intocado).
 - Escopo geral (G16-A a G16-B):
   - G16-A: Design read-only da metadata de import

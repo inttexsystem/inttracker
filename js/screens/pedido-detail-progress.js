@@ -854,8 +854,20 @@
           var rev = window.RAVATEX_DOCUMENTS.mapReceivedDocToEventShape(rdoc);
           if (!rev) continue;
 
+          // G20-B: aplicar decisão local se houver
+          var effectiveSt = null;
+          var isLocalDecision = false;
+          if (typeof window.RAVATEX_DOCUMENTS.getEffectiveDocumentStatus === 'function') {
+            var eff = window.RAVATEX_DOCUMENTS.getEffectiveDocumentStatus(rdoc);
+            if (eff && eff.isLocalDecision) {
+              effectiveSt = eff.effectiveStatus;
+              isLocalDecision = true;
+            }
+          }
+          var effectiveStatus = effectiveSt || rev.status;
+
           var rdocDoc = rev.document;
-          var rstatusMeta = window.RAVATEX_DOCUMENTS.getDocumentStatusBadgeMeta(rev.status || 'pending');
+          var rstatusMeta = window.RAVATEX_DOCUMENTS.getDocumentStatusBadgeMeta(effectiveStatus || 'pending');
           var rtipoMeta = window.RAVATEX_DOCUMENTS.getDocumentTipoBadgeMeta(rdocDoc && rdocDoc.tipo_documento);
           var rformatoMeta = window.RAVATEX_DOCUMENTS.getDocumentFormatoBadgeMeta(rdocDoc && rdocDoc.formato);
           var rdirecaoMeta = window.RAVATEX_DOCUMENTS.getDocumentDirecaoBadgeMeta(rdocDoc && rdocDoc.direcao_nf);
@@ -873,11 +885,12 @@
 
           ingestorDocumentRows.push({
             label: rdocDoc && rdocDoc.filename_original ? rdocDoc.filename_original : 'Documento',
-            status: rev.status || 'pending',
+            status: effectiveStatus || 'pending',
             statusMeta: rstatusMeta,
             badges: rbadges,
             reason: rreason,
             driveLink: rdriveLink,
+            isLocalDecision: isLocalDecision || undefined,
             meta: 'Ingestor · ' + (typeof window.RAVATEX_DOCUMENTS.fmtTimestamp === 'function'
               ? window.RAVATEX_DOCUMENTS.fmtTimestamp(rev.created_at)
               : String(rev.created_at || '')),

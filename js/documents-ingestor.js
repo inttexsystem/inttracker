@@ -409,6 +409,93 @@
   };
 
   // -------------------------------------------------------------------
+  // G20-B: Decisão local de documento (aceitar/rejeitar/desfazer)
+  // Persistida em localStorage por document_id. O JSONL importado
+  // continua sendo snapshot externo — a decisão local vence na UI.
+  // -------------------------------------------------------------------
+
+  ns.DECISIONS_KEY = 'RAVATEX_DOCUMENTS_DECISIONS';
+
+  ns.loadDocumentDecisions = function loadDocumentDecisions() {
+    try {
+      var raw = localStorage.getItem(ns.DECISIONS_KEY);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      if (typeof parsed !== 'object' || parsed === null) return {};
+      return parsed;
+    } catch (_e) {
+      return {};
+    }
+  };
+
+  ns.saveDocumentDecision = function saveDocumentDecision(documentId, decision) {
+    if (typeof documentId !== 'string' || !documentId) return { ok: false, error: 'document_id obrigatorio' };
+    if (!decision || typeof decision !== 'object') return { ok: false, error: 'decision invalida' };
+    var st = decision.status;
+    if (st !== 'accepted' && st !== 'rejected') return { ok: false, error: 'status deve ser accepted ou rejected' };
+    if (st === 'rejected' && !(typeof decision.motivo === 'string' && decision.motivo.trim())) {
+      return { ok: false, error: 'rejeicao exige motivo' };
+    }
+    var decisions = ns.loadDocumentDecisions();
+    decisions[documentId] = {
+      status: st,
+      motivo: (typeof decision.motivo === 'string' ? decision.motivo.trim() : ''),
+      decidedAt: typeof decision.decidedAt === 'string' ? decision.decidedAt : new Date().toISOString(),
+      decidedBy: typeof decision.decidedBy === 'string' ? decision.decidedBy : '',
+      importHash: typeof decision.importHash === 'string' ? decision.importHash : '',
+    };
+    try {
+      localStorage.setItem(ns.DECISIONS_KEY, JSON.stringify(decisions));
+      return { ok: true };
+    } catch (_e) {
+      return { ok: false, error: 'falha ao salvar localStorage' };
+    }
+  };
+
+  ns.removeDocumentDecision = function removeDocumentDecision(documentId) {
+    if (typeof documentId !== 'string' || !documentId) return { ok: false };
+    var decisions = ns.loadDocumentDecisions();
+    if (!decisions[documentId]) return { ok: true };
+    delete decisions[documentId];
+    try {
+      localStorage.setItem(ns.DECISIONS_KEY, JSON.stringify(decisions));
+      return { ok: true };
+    } catch (_e) {
+      return { ok: false };
+    }
+  };
+
+  ns.getDocumentDecision = function getDocumentDecision(documentId) {
+    if (typeof documentId !== 'string' || !documentId) return null;
+    var decisions = ns.loadDocumentDecisions();
+    return decisions[documentId] || null;
+  };
+
+  ns.getEffectiveDocumentStatus = function getEffectiveDocumentStatus(docOrId, importedStatus) {
+    var docId, impSt;
+    if (typeof docOrId === 'string') {
+      docId = docOrId;
+      impSt = typeof importedStatus === 'string' ? importedStatus.toLowerCase() : 'pending';
+    } else if (docOrId && typeof docOrId === 'object') {
+      docId = docOrId.document_id || docOrId.id;
+      impSt = typeof docOrId.status === 'string' ? docOrId.status.toLowerCase() : 'pending';
+    } else {
+      return null;
+    }
+    if (!docId) return null;
+    var decision = ns.getDocumentDecision(docId);
+    var effSt = decision ? decision.status : impSt;
+    return {
+      document_id: docId,
+      importedStatus: impSt,
+      effectiveStatus: effSt,
+      decision: decision,
+      isLocalDecision: !!decision,
+      isDivergent: decision && decision.status !== impSt,
+    };
+  };
+
+  // -------------------------------------------------------------------
   // Namespace
   // -------------------------------------------------------------------
 

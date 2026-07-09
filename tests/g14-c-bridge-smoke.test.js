@@ -586,3 +586,52 @@ test('G14-C EVIDENCIA: fluxo completo importa + exibe + dedup', function () {
   };
   console.log('G14-C EVIDENCE:', JSON.stringify(evidence, null, 2));
 });
+
+test('G20-B: Pedido Detail bridge reflete decisao local quando localStorage tem override', function () {
+  const ls = { data: {} };
+  ls.getItem = function (k) { return this.data[k] != null ? String(this.data[k]) : null; };
+  ls.setItem = function (k, v) { this.data[k] = String(v); };
+  ls.removeItem = function (k) { delete this.data[k]; };
+
+  const sb = makePedidoDetailSandbox();
+  sb.localStorage = ls;
+  importRealJsonlIntoSandbox(sb);
+
+  const firstDoc = sb.window.RAVATEX_DOCUMENTS_RECEIVED[0];
+  const docId = firstDoc.document_id;
+  const saveR = vm.runInContext(
+    'window.RAVATEX_DOCUMENTS.saveDocumentDecision(' + JSON.stringify(docId) + ', { status: "rejected", motivo: "teste bridge" })',
+    sb
+  );
+  assert.ok(saveR && saveR.ok, 'decisao salva');
+
+  const eff = vm.runInContext(
+    'window.RAVATEX_DOCUMENTS.getEffectiveDocumentStatus(' + JSON.stringify(docId) + ', "accepted")',
+    sb
+  );
+  assert.equal(eff.importedStatus, 'accepted', 'importado accepted');
+  assert.equal(eff.effectiveStatus, 'rejected', 'efetivo rejected');
+  assert.ok(eff.isLocalDecision, 'e decisao local');
+  assert.ok(eff.isDivergent, 'e divergente');
+
+  const ns = sb.window.RAVATEX_SCREENS.pedidoDetail;
+  const s = makePedidoState(ns, 99, 2026);
+  const view = ns.computeViewModel(s);
+  assert.equal(view.ingestorDocsLoaded, true, 'ingestorDocsLoaded true');
+  assert.equal(view.ingestorDocumentRows.length, 1, '1 doc');
+  const row = view.ingestorDocumentRows[0];
+  assert.ok(row.isLocalDecision, 'isLocalDecision true no Pedido Detail');
+  assert.equal(row.status, 'rejected', 'status reflete decisao local rejected');
+});
+
+test('G20-B: Pedido Detail bridge mantem status importado quando nao ha decisao local', function () {
+  const sb = makePedidoDetailSandbox();
+  importRealJsonlIntoSandbox(sb);
+  const ns = sb.window.RAVATEX_SCREENS.pedidoDetail;
+  const s = makePedidoState(ns, 99, 2026);
+  const view = ns.computeViewModel(s);
+  assert.ok(view.ingestorDocsLoaded, 'ingestorDocsLoaded true');
+  const row = view.ingestorDocumentRows[0];
+  assert.equal(row.status, 'accepted', 'status importado accepted preservado');
+  assert.strictEqual(row.isLocalDecision, undefined, 'sem isLocalDecision');
+});

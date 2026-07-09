@@ -2874,3 +2874,19 @@ test('G18-B-bridge-smoke: documents-ingestor.js nao inventa event_id no mapper (
       'mapReceivedDocToEventShape nao deve atribuir event_id');
   }
 });
+
+test('G20-B-bridge-smoke: pedido-detail-progress referencia getEffectiveDocumentStatus', () => {
+  assert.match(detailProgress, /getEffectiveDocumentStatus/,
+    'pedido-detail-progress deve usar getEffectiveDocumentStatus');
+});
+
+test('G20-B-bridge-smoke: pedido-detail-progress usa effectiveStatus para status exibido', () => {
+  assert.match(detailProgress, /effectiveStatus/,
+    'pedido-detail-progress deve usar effectiveStatus');
+});
+
+test('G20-B-bridge-smoke: pedido-detail-progress nao referencia ingestion_event_id como chave de decisao', () => {
+  const decisionSection = (detailProgress.match(/isLocalDecision[\s\S]{0,300}/) || [''])[0];
+  assert.doesNotMatch(decisionSection || '', /ingestion_event_id\s*[:=]/,
+    'decisao local deve usar document_id, nao ingestion_event_id');
+});

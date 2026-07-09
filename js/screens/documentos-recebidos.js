@@ -280,7 +280,13 @@
     var formato = inferFormato(doc, filename);
     var tipo = inferTipo(doc, filename);
     var direcao = inferDirecao(doc, filename);
-    var status = ui.statusOverrides[id] || normalizeStatus(doc && doc.status);
+    var effective = typeof window.RAVATEX_DOCUMENTS !== 'undefined'
+      && typeof window.RAVATEX_DOCUMENTS.getEffectiveDocumentStatus === 'function'
+      ? window.RAVATEX_DOCUMENTS.getEffectiveDocumentStatus(doc) : null;
+    var importedStatus = normalizeStatus(doc && doc.status);
+    var status = effective ? effective.effectiveStatus : (ui.statusOverrides[id] || importedStatus);
+    var hasLocalDecision = effective ? effective.isLocalDecision : false;
+    var isDivergent = effective ? effective.isDivergent : false;
     var when = receivedAt(doc);
     return {
       id: id,
@@ -291,6 +297,9 @@
       tipo: tipo,
       direcao: direcao,
       status: status,
+      importedStatus: importedStatus,
+      hasLocalDecision: hasLocalDecision,
+      isDivergent: isDivergent,
       pedido: doc && (doc.pedido_manual || doc.pedido || doc.pedido_key) || '',
       when: when,
       driveId: doc && doc.drive_file_id ? doc.drive_file_id : '',
@@ -465,19 +474,56 @@
 
     if (doc.status === 'pending') {
       wrap.appendChild(iconButton('Rejeitar', SVG_X, function () {
-        ui.statusOverrides[doc.id] = 'rejected';
-        if (typeof window.toast === 'function') window.toast('Documento marcado como rejeitado nesta sessao.', 'info');
+        var motivo = typeof window.prompt === 'function' ? window.prompt('Motivo da rejeição:') : '';
+        if (motivo === null) return;
+        if (typeof motivo !== 'string' || !motivo.trim()) {
+          if (typeof window.toast === 'function') window.toast('Rejeição exige um motivo.', 'error');
+          return;
+        }
+        var result = typeof window.RAVATEX_DOCUMENTS !== 'undefined'
+          && typeof window.RAVATEX_DOCUMENTS.saveDocumentDecision === 'function'
+          ? window.RAVATEX_DOCUMENTS.saveDocumentDecision(doc.id, { status: 'rejected', motivo: motivo })
+          : null;
+        if (result && result.ok) {
+          if (typeof window.toast === 'function') window.toast('Documento rejeitado.', 'info');
+        } else {
+          ui.statusOverrides[doc.id] = 'rejected';
+          if (typeof window.toast === 'function') window.toast('Documento marcado como rejeitado nesta sessao (sem persistencia).', 'info');
+        }
         rerender();
       }, 'color:#d6403a;border-color:#f0cfcd;', {
         'data-action': 'rejeitar-documento',
         'data-document-id': doc.id,
       }));
       wrap.appendChild(iconButton('Aceitar', SVG_CHECK, function () {
-        ui.statusOverrides[doc.id] = 'accepted';
-        if (typeof window.toast === 'function') window.toast('Documento marcado como aceito nesta sessao.', 'success');
+        var result = typeof window.RAVATEX_DOCUMENTS !== 'undefined'
+          && typeof window.RAVATEX_DOCUMENTS.saveDocumentDecision === 'function'
+          ? window.RAVATEX_DOCUMENTS.saveDocumentDecision(doc.id, { status: 'accepted' })
+          : null;
+        if (result && result.ok) {
+          if (typeof window.toast === 'function') window.toast('Documento aceito.', 'success');
+        } else {
+          ui.statusOverrides[doc.id] = 'accepted';
+          if (typeof window.toast === 'function') window.toast('Documento marcado como aceito nesta sessao (sem persistencia).', 'success');
+        }
         rerender();
       }, 'color:#18794a;border-color:#a7d8bd;', {
         'data-action': 'aceitar-documento',
+        'data-document-id': doc.id,
+      }));
+    }
+
+    if (doc.hasLocalDecision) {
+      wrap.appendChild(iconButton('Desfazer', null, function () {
+        if (typeof window.RAVATEX_DOCUMENTS !== 'undefined'
+            && typeof window.RAVATEX_DOCUMENTS.removeDocumentDecision === 'function') {
+          window.RAVATEX_DOCUMENTS.removeDocumentDecision(doc.id);
+        }
+        delete ui.statusOverrides[doc.id];
+        if (typeof window.toast === 'function') window.toast('Decisão local removida.', 'info');
+        rerender();
+      }, 'color:#8a93a3;border-color:#d0d3d8;font-size:11px;', {
+        'data-action': 'desfazer-decisao-documento',
         'data-document-id': doc.id,
       }));
     }
@@ -978,7 +1024,24 @@
         fileIcon(doc.formato, doc.filename),
         nameBlock),
       badges,
-      window.el('div', {}, statusPill(doc.status)),
+      window.el('div', {
+        style: 'display:flex;align-items:center;gap:6px;',
+      },
+        statusPill(doc.status),
+        doc.isDivergent ? window.el('span', {
+          'data-field': 'decisao-local',
+          'data-decisao': 'divergente',
+          style: 'display:inline-flex;align-items:center;border-radius:3px;padding:1px 6px;'
+            + 'font-size:10px;font-weight:700;white-space:nowrap;'
+            + 'background:#fef4e6;color:#b65630;letter-spacing:.03em;text-transform:uppercase;',
+        }, 'Divergente') : null,
+        doc.hasLocalDecision && !doc.isDivergent ? window.el('span', {
+          'data-field': 'decisao-local',
+          'data-decisao': 'local',
+          style: 'display:inline-flex;align-items:center;border-radius:3px;padding:1px 6px;'
+            + 'font-size:10px;font-weight:700;white-space:nowrap;'
+            + 'background:#eaf1fd;color:#2563eb;letter-spacing:.03em;text-transform:uppercase;',
+        }, 'Decisão local') : null),
       window.el('div', {
         style: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
       }, pedidoCell(doc)),

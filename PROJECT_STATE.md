@@ -1,13 +1,30 @@
 > **Atualizacao 2026-07-09 — fase
-> `RAVATEX-DOCUMENTS-G18-E-STAGING-UI-SMOKE`.**
-> Status: **PRONTO — G18 COMPLETO: BRIDGE + STAGING + SMOKE VALIDADOS**.
-> Branch/HEAD: `work/app-next`, `19d83bb` (push staging publicado).
+> `RAVATEX-DOCUMENTS-G20-B-LOCAL-DOCUMENT-DECISIONS-PATCH`.**
+> Status: **PRONTO — ACEITE/REJEIÇÃO LOCAL PERSISTIDO NO CONTROLE**.
+> Branch/HEAD: `work/app-next`, após commit G20-B.
 >
 > HEADs:
-> - staging/main: `19d83bb` — G18 bridge + smoke
-> - origin/main: `1047181` — intocado (produção não tocada)
+> - G20-B: decisão local de documento (aceitar/rejeitar/desfazer) persistida em localStorage por document_id.
+> - staging/main: `19d83bb` — G18 bridge (intocado, sem push G20-B).
+> - origin/main: `1047181` — intocado (produção não tocada).
 >
-> Escopo G18:
+> Escopo G20:
+> - **G20-A**: Design — definir aceite/rejeição local, sem escrever no Ingestor.
+> - **G20-B**: Implementação:
+>   - Helpers: `loadDocumentDecisions`, `saveDocumentDecision`, `removeDocumentDecision`, `getDocumentDecision`, `getEffectiveDocumentStatus` em `js/documents-ingestor.js`.
+>   - Chave localStorage: `RAVATEX_DOCUMENTS_DECISIONS` (Map<document_id, {status, motivo, decidedAt}>).
+>   - Rejeição exige motivo (via `window.prompt`).
+>   - Efeito na tela Documentos Mapeados:
+>     - Status efetivo via `getEffectiveDocumentStatus`.
+>     - Badge "Decisão local" (azul) quando há override.
+>     - Badge "Divergente" (laranja) quando efetivo != importado.
+>     - Botão "Desfazer" para remover decisão local.
+>     - Fallback: `statusOverrides` volátil quando localStorage indisponível.
+>   - Efeito no Pedido Detail bridge:
+>     - Status reflete decisão local via `getEffectiveDocumentStatus`.
+>     - `isLocalDecision` no `ingestorDocumentRows`.
+>   - Botão legado "Importar eventos" continua ausente.
+>   - Zero alterações no Documents Ingestor, schema, backend.
 > - **G18-A**: Design da preservacao de `ingestion_event_id` no bridge.
 > - **G18-B**: Patch `mapReceivedDocToEventShape` seleciona ID por status (accepted/accepted_ingestion_event_id, assigned/linked_ingestion_event_id, rejected/rejected_ingestion_event_id, pending/detected_ingestion_event_id) com fallback para `latest_ingestion_event_id`. Testes: 7 novos + 2 atualizados.
 > - **G18-C**: Cross-repo smoke com JSONL real do Ingestor (2 linhas, 355/355 testes).

@@ -1202,3 +1202,27 @@ test('G16-B: metadata card exibe status Rejeitados quando existem', function () 
   assert.ok(cardText.indexOf('1 Aceito') >= 0, 'mostra Aceitos count singular');
   assert.ok(cardText.indexOf('1 Pendente') >= 0, 'mostra Pendentes count singular');
 });
+
+// G20-B: Decision helpers smoke (statusOverrides fallback)
+test('G20-B: row sem decisao local NAO mostra badge de decisao', function () {
+  const sb = makeScreenSandbox([{ document_id: 'doc-no-decision', filename_original: 'test.pdf', status: 'pending' }]);
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const rows = findAll(result, (n) => n._attrs && n._attrs['data-row'] === 'documento-recebido');
+  assert.equal(rows.length, 1, '1 row');
+  const rowText = textOf(rows[0]);
+  assert.ok(rowText.indexOf('Pendente') >= 0, 'mostra Pendente');
+  assert.strictEqual(rowText.indexOf('Divergente'), -1, 'sem badge divergente');
+  assert.strictEqual(rowText.indexOf('Decisão local'), -1, 'sem badge decisao local');
+});
+
+test('G20-B: botao legado Importar eventos segue ausente com statusOverrides ativos', function () {
+  const sb = makeScreenSandbox([{ document_id: 'doc-legacy', status: 'pending' }]);
+  sb.statusOverrides = { 'doc-legacy': 'accepted' };
+  const container = new FakeNode('div');
+  sb.container = container;
+  const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  const legacyBtns = findAll(result, (n) => n._attrs && n._attrs['data-action'] === 'importar-eventos');
+  assert.equal(legacyBtns.length, 0, 'Importar eventos ausente');
+});
