@@ -1,4 +1,72 @@
-﻿# Estado pos-fase - G20-B Local Document Decisions Patch
+﻿# Estado pos-fase - G22-B Documents Auto Load Patch
+
+- Fase: `RAVATEX-DOCUMENTS-G22-B-DOCUMENTS-AUTO-LOAD-PATCH`.
+- Status: **PRONTO — AUTO-LOAD DE DOCUMENTOS MAPEADOS VIA FETCH RELATIVO**.
+- Branch/HEAD base: `work/app-next` (apos commit G22-B).
+- staging/main: `19d83bb` (G18 bridge, sem push G22-B ainda).
+- origin/main: `1047181` (intocado).
+- Escopo (G22-A a G22-B):
+  - G22-A: Design (13 perguntas respondidas, gate verificada).
+  - G22-B: Implementacao do auto-load controlado.
+
+- Patch:
+  - `js/documents-ingestor-auto-load.js` (novo, ~165 linhas):
+    - `autoLoadDocuments()`: fetch relativo de `data/documents/latest.json` + `data/documents/documentos-mapeados.jsonl`.
+    - Hash skip via `localStorage` (reusa `RAVATEX_DOCUMENTS_RECEIVED_METADATA`).
+    - Salva metadata + sets `window.RAVATEX_DOCUMENTS_AUTO_LOADED_SESSION = true`.
+    - `autoLoadDocumentsReset()`: reseta flag de sessao.
+    - Gate: `APP_ENV !== 'production'` AND `CURRENT_USER.tipo === 'admin'` AND `window.fetch` disponivel.
+  - `index.html`: +1 `<script>` para `js/documents-ingestor-auto-load.js` (apos loader, antes import-received).
+  - `js/screens/documentos-recebidos.js`:
+    - Botao "Atualizar agora": chama `autoLoadDocuments()` em vez de setTimeout vazio.
+    - Primeira renderizacao: tenta auto-load com 300ms delay (se fetch disponivel).
+    - Card de metadata: mostra "Auto-sincronizado — dados carregados via fetch relativo." com chip verde "Auto-sync" quando `RAVATEX_DOCUMENTS_AUTO_LOADED_SESSION === true`.
+    - Flag `ui.autoLoadAttempted` e `ui.autoLoadRunning` controlam re-entrada.
+  - `tests/documents-ingestor-auto-load.test.js` (novo, 34 testes):
+    - Gate producao/admin/cliente/fornecedor/sem fetch.
+    - Fetch latest.json + JSONL, skip por hash, erros 404/JSON invalido/vazio.
+    - Flag de sessao, reset, metadata salva, localStorage indisponivel.
+    - Sem Supabase, Drive, Gmail API, fetch auto no bootstrap.
+    - index.html ordem e unicidade.
+    - Popula RAVATEX_DOCUMENTS_RECEIVED, NAO toca LOADED_EVENTS.
+  - `tests/documentos-recebidos.smoke.js`:
+    - Auto-load module carregado no sandbox makeScreenSandbox.
+    - +9 testes G22-B: refreshBtn referencia, autoLoadAttempted, sem fetch direto,
+      card Auto-sincronizado com/sem flag, comportamento antigo preservado sem flag,
+      cards Defasado/Atualizado mantidos, autoLoadDocuments no namespace,
+      subtitulo header preservado, botao Atualizar funcional.
+
+- URLs fixas (same-origin relativo):
+  - `data/documents/latest.json`
+  - `data/documents/documentos-mapeados.jsonl`
+- Sem URL dinamica fornecida pelo usuario.
+- Sem polling, scheduler, daemon, backend, endpoint.
+- Documents Ingestor intocado.
+- Gmail/Drive intocados.
+- Supabase intocado.
+- Botao "Importar documentos" preservado como fallback.
+- Decisoes locais (RAVATEX_DOCUMENTS_DECISIONS) continuam vencendo.
+
+- Testes (5 suites):
+  - `tests/documents-ingestor-auto-load.test.js`: 34/34
+  - `tests/documentos-recebidos.smoke.js`: 68/68
+  - `tests/documents-ingestor-loader.test.js`: 71/71
+  - `tests/documents-ingestor-import-received.test.js`: 36/36
+  - `tests/pedido-detail.smoke.js`: 180/180
+  - Total: 389 pass, 0 fail, 0 regressao
+
+- Garantias:
+  - Array `RAVATEX_DOCUMENTS_RECEIVED` continua volatil (em memoria).
+  - Apenas metadata persiste em `localStorage`.
+  - Pedido Detail intocado.
+  - Documents Ingestor intocado.
+  - Botao "Importar documentos" preservado como fallback.
+  - Sem Supabase, Google/Drive, Gmail, polling, scheduler, backend, endpoint.
+  - Sem alteracao no loader, parser, ou estado legado.
+
+- Proximo: commit com mensagem `Add relative fetch auto-load for mapped documents`.
+
+# Estado pos-fase - G20-B Local Document Decisions Patch
 
 - Fase: `RAVATEX-DOCUMENTS-G20-B-LOCAL-DOCUMENT-DECISIONS-PATCH`.
 - Status: **PRONTO — Aceite/rejeição local persistido no Controle**.

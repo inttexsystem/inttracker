@@ -65,6 +65,8 @@ const ingestor = readOrFail(INGESTOR);
 const loader = readOrFail(LOADER);
 const IMPORT_RECEIVED = path.join(ROOT, 'js', 'documents-ingestor-import-received.js');
 const importReceivedSrc = readOrFail(IMPORT_RECEIVED);
+const AUTO_LOAD = path.join(ROOT, 'js', 'documents-ingestor-auto-load.js');
+const autoLoadSrc = readOrFail(AUTO_LOAD);
 const common = readOrFail(COMMON);
 const boot = readOrFail(BOOT);
 const ui = readOrFail(UI);
@@ -255,6 +257,8 @@ function makeScreenSandbox(received) {
   // Carrega ingestor + loader (para garantir que RAVATEX_DOCUMENTS existe)
   vm.runInContext(ingestor, sandbox, { filename: 'js/documents-ingestor.js' });
   vm.runInContext(loader, sandbox, { filename: 'js/documents-ingestor-loader.js' });
+  // Carrega auto-load (G22-B)
+  vm.runInContext(autoLoadSrc, sandbox, { filename: 'js/documents-ingestor-auto-load.js' });
   // Carrega import-received (G12-R1: expoe createReceivedImportButton)
   vm.runInContext(importReceivedSrc, sandbox, { filename: 'js/documents-ingestor-import-received.js' });
   // Carrega common (shellLayout + ADMIN_MENU)
@@ -1258,4 +1262,121 @@ test('G20-B-R1: doc sem document_id NAO mostra botao Desfazer', function () {
   const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   const undos = findAll(result, (n) => n._attrs && n._attrs['data-action'] === 'desfazer-decisao-documento');
   assert.equal(undos.length, 0, 'sem botao Desfazer');
+});
+
+// ---------------------------------------------------------------------
+// G22-B: auto-load documents tests
+// ---------------------------------------------------------------------
+
+test('G22-B: refreshBtn referencia autoLoadDocuments', function () {
+  var src = readOrFail(SCREEN);
+  assert.ok(src.indexOf('autoLoadDocuments') >= 0,
+    'refreshBtn deve referenciar autoLoadDocuments');
+});
+
+test('G22-B: tela contem autoLoadAttempted na primeira renderizacao', function () {
+  var src = readOrFail(SCREEN);
+  assert.ok(src.indexOf('autoLoadAttempted') >= 0,
+    'tela deve conter flag autoLoadAttempted');
+});
+
+test('G22-B: tela NAO faz fetch diretamente (fetch delegado ao auto-load)', function () {
+  var src = readOrFail(SCREEN);
+  assert.equal(/fetch\s*\(/.test(src), false,
+    'tela nao deve chamar fetch diretamente; usa autoLoadDocuments');
+});
+
+test('G22-B: metadata card mostra Auto-sincronizado com flag de sessao', function () {
+  var sb = makeScreenSandbox([]);
+  sb.window.RAVATEX_DOCUMENTS_AUTO_LOADED_SESSION = true;
+  sb.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA = {
+    importedAt: '2026-07-09T15:30:00.000Z',
+    fileName: 'documentos-mapeados.jsonl',
+    count: 3,
+    hash: '1a2b3c4d',
+    statusCounts: { accepted: 1, assigned: 1, pending: 1, rejected: 0, unknown: 0 },
+  };
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  var cards = findAll(result, function (n) { return n._attrs && n._attrs['data-section'] === 'documentos-recebidos-import-metadata'; });
+  assert.equal(cards.length, 1, 'card presente');
+  var cardText = textOf(cards[0]);
+  assert.ok(cardText.indexOf('Auto-sincronizado') >= 0,
+    'mostra Auto-sincronizado quando auto-load ativo');
+  assert.ok(cardText.indexOf('fetch relativo') >= 0,
+    'menciona fetch relativo');
+  assert.ok(cardText.indexOf('Auto-sync') >= 0,
+    'mostra chip Auto-sync');
+});
+
+test('G22-B: metadata card NAO mostra Auto-sincronizado sem flag de sessao', function () {
+  var sb = makeScreenSandbox([{ document_id: 'doc-meta-1', filename_original: 'f.xml', tipo_documento: 'nf', formato: 'xml', drive_web_view_link: 'https://drive/x' }]);
+  sb.window.RAVATEX_DOCUMENTS_AUTO_LOADED_SESSION = false;
+  sb.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA = {
+    importedAt: '2026-07-09T10:00:00.000Z',
+    fileName: 'manual.jsonl',
+    count: 1,
+    hash: 'ffffffff',
+    statusCounts: { accepted: 0, assigned: 0, pending: 1, rejected: 0, unknown: 0 },
+  };
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  var cards = findAll(result, function (n) { return n._attrs && n._attrs['data-section'] === 'documentos-recebidos-import-metadata'; });
+  assert.equal(cards.length, 1);
+  var cardText = textOf(cards[0]);
+  assert.equal(cardText.indexOf('Auto-sincronizado'), -1, 'sem Auto-sincronizado sem flag');
+  assert.ok(cardText.indexOf('Snapshot manual') >= 0,
+    'mantem Snapshot manual quando nao ha auto-load');
+});
+
+test('G22-B: metadata card sem flag mantem comportamento antigo para defasado', function () {
+  var sb = makeScreenSandbox([]);
+  var twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+  sb.window.RAVATEX_DOCUMENTS_AUTO_LOADED_SESSION = undefined;
+  sb.window.RAVATEX_DOCUMENTS_RECEIVED_METADATA = {
+    importedAt: twoDaysAgo,
+    fileName: 'antigo.jsonl',
+    count: 1,
+    hash: 'ff00ff00',
+    statusCounts: { accepted: 0, assigned: 0, pending: 1, rejected: 0, unknown: 0 },
+  };
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  var cards = findAll(result, function (n) { return n._attrs && n._attrs['data-section'] === 'documentos-recebidos-import-metadata'; });
+  var cardText = textOf(cards[0]);
+  assert.ok(cardText.indexOf('Defasado') >= 0, 'chip Defasado mantido');
+  assert.ok(cardText.indexOf('Snapshot manual') >= 0, 'Snapshot manual mantido');
+  assert.equal(cardText.indexOf('Auto-sincronizado'), -1, 'sem auto-sync sem flag');
+});
+
+test('G22-B: autoLoadDocuments carregado no namespace', function () {
+  var sb = makeScreenSandbox([]);
+  assert.equal(typeof sb.window.RAVATEX_DOCUMENTS.autoLoadDocuments, 'function',
+    'autoLoadDocuments deve estar disponivel apos carregar auto-load');
+  assert.equal(typeof sb.window.RAVATEX_DOCUMENTS.autoLoadDocumentsReset, 'function',
+    'autoLoadDocumentsReset deve estar disponivel');
+});
+
+test('G22-B: header subtitulo mantido apos alteracoes G22-B', function () {
+  var sb = makeScreenSandbox([]);
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  var allText = JSON.stringify(findAll(result, function () { return true; }).map(textOf));
+  assert.ok(allText.indexOf('Importe a lista gerada pelo Documents Ingestor') >= 0,
+    'subtitulo enxuto preservado');
+});
+
+test('G22-B: botao Atualizar agora presente e funcional', function () {
+  var sb = makeScreenSandbox([]);
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  var refreshBtns = findAll(result, function (n) { return n._attrs && n._attrs['data-action'] === 'atualizar-documentos'; });
+  assert.equal(refreshBtns.length, 1, 'botao Atualizar agora presente');
+  assert.ok(refreshBtns[0].children && refreshBtns[0].children.length >= 2,
+    'botao tem icone SVG + texto');
 });

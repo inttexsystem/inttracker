@@ -40,6 +40,8 @@
     mappedTypes: {},
     searchHasFocus: false,
     searchCursorPos: 0,
+    autoLoadAttempted: false,
+    autoLoadRunning: false,
   };
 
   var FILE_TYPE_ICONS = [
@@ -547,12 +549,27 @@
         ui.refreshing = true;
         ui.lastRun = new Date();
         rerender();
-        setTimeout(function () {
+
+        var autoLoad = window.RAVATEX_DOCUMENTS && typeof window.RAVATEX_DOCUMENTS.autoLoadDocuments === 'function'
+          ? window.RAVATEX_DOCUMENTS.autoLoadDocuments()
+          : Promise.resolve({ ok: false, error: 'autoLoadDocuments indisponivel' });
+
+        autoLoad.then(function (result) {
           ui.refreshing = false;
           ui.lastRun = new Date();
-          if (typeof window.toast === 'function') window.toast('Lista de documentos atualizada.', 'success');
+          if (result && result.ok) {
+            if (!result.skipped && typeof window.toast === 'function') {
+              window.toast(result.count + ' documento(s) atualizado(s) via auto-sync.', 'success');
+            } else if (result.skipped && typeof window.toast === 'function') {
+              window.toast('Dados ja estao em dia com o Ingestor.', 'info');
+            }
+          } else {
+            if (typeof window.toast === 'function') {
+              window.toast('Auto-sync indisponivel. Use Importar documentos como fallback.', 'info');
+            }
+          }
           rerender();
-        }, 900);
+        });
       },
     });
     refreshBtn.appendChild(svgEl(SVG_REFRESH, 14, 'Atualizar', ui.refreshing ? 'animation:rv-doc-spin .8s linear infinite;' : ''));
@@ -702,18 +719,36 @@
       if (hashChip) detailRow.appendChild(hashChip);
     }
 
+    var autoSyncSession = window.RAVATEX_DOCUMENTS_AUTO_LOADED_SESSION === true;
+    var autoSyncChip = autoSyncSession ? window.el('span', {
+      style: 'display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;'
+        + 'letter-spacing:.05em;text-transform:uppercase;padding:1px 6px;border-radius:3px;'
+        + 'white-space:nowrap;background:#e6f4ec;color:#18794a;margin-left:6px;',
+    }, 'Auto-sync') : null;
+
+    var warningMsg;
+    if (autoSyncSession) {
+      warningMsg = 'Auto-sincronizado — dados carregados via fetch relativo do Ingestor.';
+    } else if (isStale) {
+      warningMsg = 'Snapshot manual — este import tem mais de 24h e pode estar defasado. Reimporte para dados atuais.';
+    } else {
+      warningMsg = 'Snapshot manual — pode estar defasado. Reimporte para dados atuais.';
+    }
+
+    var warnColor = autoSyncSession ? '#18794a' : (isStale ? '#b65630' : '#8a93a3');
+    var warnBg = autoSyncSession ? '#e6f4ec' : (isStale ? '#fde0ce' : '#f1f3f6');
+
     var warningRow = window.el('div', {
       style: 'display:flex;align-items:flex-start;gap:4px;margin-top:4px;font-size:11px;'
-        + 'color:' + (isStale ? '#b65630' : '#8a93a3') + ';line-height:1.4;',
+        + 'color:' + warnColor + ';line-height:1.4;',
     },
       window.el('span', {
         style: 'flex-shrink:0;width:13px;height:13px;display:inline-flex;align-items:center;justify-content:center;'
-          + 'border-radius:50%;background:' + (isStale ? '#fde0ce' : '#f1f3f6') + ';'
-          + 'font-size:9px;font-weight:700;color:' + (isStale ? '#b65630' : '#8a93a3') + ';',
+          + 'border-radius:50%;background:' + warnBg + ';'
+          + 'font-size:9px;font-weight:700;color:' + warnColor + ';',
       }, 'i'),
-      window.el('span', {}, isStale
-        ? 'Snapshot manual — este import tem mais de 24h e pode estar defasado. Reimporte para dados atuais.'
-        : 'Snapshot manual — pode estar defasado. Reimporte para dados atuais.'));
+      window.el('span', {}, warningMsg),
+      autoSyncChip);
 
     return window.el('div', {
       'data-section': 'documentos-recebidos-import-metadata',
@@ -1122,6 +1157,23 @@
 
     container.appendChild(page);
     setTimeout(restoreSearchFocus, 0);
+
+    if (!ui.autoLoadAttempted
+        && window.RAVATEX_DOCUMENTS && typeof window.RAVATEX_DOCUMENTS.autoLoadDocuments === 'function'
+        && typeof window.fetch === 'function') {
+      ui.autoLoadAttempted = true;
+      setTimeout(function () {
+        if (ui.autoLoadRunning) return;
+        ui.autoLoadRunning = true;
+        window.RAVATEX_DOCUMENTS.autoLoadDocuments().then(function () {
+          ui.autoLoadRunning = false;
+          if (window.RAVATEX_DOCUMENTS_AUTO_LOADED_SESSION === true) {
+            rerender();
+          }
+        });
+      }, 300);
+    }
+
     return window.shellLayout(window.ADMIN_MENU, container);
   }
 

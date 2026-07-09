@@ -1,7 +1,51 @@
 > **Atualizacao 2026-07-09 — fase
-> `RAVATEX-DOCUMENTS-G20-B-LOCAL-DOCUMENT-DECISIONS-PATCH`.**
-> Status: **PRONTO — ACEITE/REJEIÇÃO LOCAL PERSISTIDO NO CONTROLE**.
-> Branch/HEAD: `work/app-next`, após commit G20-B.
+> `RAVATEX-DOCUMENTS-G22-B-DOCUMENTS-AUTO-LOAD-PATCH`.**
+> Status: **PRONTO — AUTO-LOAD DE DOCUMENTOS MAPEADOS VIA FETCH RELATIVO**.
+> Branch/HEAD: `work/app-next`.
+>
+> Escopo G22-B:
+> - **G22-A**: Design (13 perguntas respondidas, gate verificada, HEAD 2e95a5e clean).
+> - **G22-B**: Implementacao:
+>   - `js/documents-ingestor-auto-load.js` (novo, ~165 linhas): IIFE com `autoLoadDocuments()` e `autoLoadDocumentsReset()`.
+>   - Fetch relativo de `data/documents/latest.json` + `data/documents/documentos-mapeados.jsonl`.
+>   - Hash skip evita reparse desnecessario do JSONL.
+>   - Salva metadata no `localStorage` (reusando chave `RAVATEX_DOCUMENTS_RECEIVED_METADATA`).
+>   - Sets `window.RAVATEX_DOCUMENTS_AUTO_LOADED_SESSION = true` no sucesso.
+>   - `index.html`: +1 tag script para auto-load.
+>   - `js/screens/documentos-recebidos.js`:
+>     - Botao "Atualizar agora" chama `autoLoadDocuments()` (antes era setTimeout vazio).
+>     - Primeira renderizacao tenta auto-load com 300ms delay (requer fetch disponivel).
+>     - Card de metadata mostra "Auto-sincronizado — dados carregados via fetch relativo." + chip "Auto-sync" verde.
+>   - Gate: `APP_ENV !== 'production'` AND `CURRENT_USER.tipo === 'admin'` AND `window.fetch` disponivel.
+>   - Sem polling, sem scheduler, sem backend, sem daemon.
+>   - Documents Ingestor intocado.
+>   - Gmail/Drive intocados.
+>   - Supabase intocado.
+>   - Botao "Importar documentos" preservado como fallback.
+>   - Decisoes locais (`RAVATEX_DOCUMENTS_DECISIONS`) continuam vencendo.
+> - Testes:
+>   - `tests/documents-ingestor-auto-load.test.js`: 34/34 (novo)
+>   - `tests/documentos-recebidos.smoke.js`: 68/68 (+9 novos G22-B, 0 regressao)
+>   - `tests/documents-ingestor-loader.test.js`: 71/71 (regressao)
+>   - `tests/documents-ingestor-import-received.test.js`: 36/36 (regressao)
+>   - `tests/pedido-detail.smoke.js`: 180/180 (regressao)
+>   - Total: 389 pass, 0 fail
+>
+> Arquivos alterados/criados:
+> - `js/documents-ingestor-auto-load.js` (novo)
+> - `index.html` (1 linha de script)
+> - `js/screens/documentos-recebidos.js` (refreshBtn + auto-load + metadata)
+> - `tests/documents-ingestor-auto-load.test.js` (novo)
+> - `tests/documentos-recebidos.smoke.js` (+9 testes + auto-load no sandbox)
+> - `PROJECT_STATE.md` (registro)
+> - `AGENT_HANDOFF.md` (registro)
+>
+> Proximo: commit, staging push quando decidido.
+>
+> > **Atualizacao 2026-07-09 — fase
+> > `RAVATEX-DOCUMENTS-G20-B-LOCAL-DOCUMENT-DECISIONS-PATCH`.**
+> > Status: **PRONTO — ACEITE/REJEIÇÃO LOCAL PERSISTIDO NO CONTROLE**.
+> > Branch/HEAD: `work/app-next`, após commit G20-B.
 >
 > HEADs:
 > - G20-B: decisão local de documento (aceitar/rejeitar/desfazer) persistida em localStorage por document_id.
