@@ -3,16 +3,16 @@
 ## Branch/HEAD/Status
 ### documentos-ingestor (este repositório)
 - Branch: master
-- HEAD: `7cc673f` (em fechamento G13-D)
+- HEAD: `bedbe909` (G13-D fechado — produtor `sync:mapped` pronto)
 
 ### Controle de Tapetes (staging/work/app-next)
-- HEAD canônico: `997486a`
+- HEAD canônico: `fff052b` (G14-D fechado — consumidor bridge flat pronto)
 
 ## Fase concluída
-RAVATEX-DOCUMENTS-G13-D-SYNC-MAPPED-DOCS
+RAVATEX-DOCUMENTS-G14-D-CLOSEOUT — consumidor bridge implementado no Controle de Tapetes
 
 ## Fase anterior
-G13-C-R1 — Sync Mapped Smoke Real-Lite (1 doc, isolamento confirmado, 0 mutação)
+G13-D — documentação operacional do `sync:mapped`
 
 ## Objetivo da fase G13-B
 Implementar comando único local `npm run sync:mapped` que orquestra `scan → export mapped → report` em sequência. Dry-run por padrão. Guards rígidos para `--retry-message` (forçar `days=1` quando não fornecido; falhar com `days > 1`, `--wide-scan` ou `--query`).
@@ -536,4 +536,23 @@ Foco: integrar `documentos-mapeados.jsonl` no Controle de Tapetes para exibir a 
   - Relação com `export:mapped`, `report`, `list-pending` (equivalência: `sync:mapped` é atalho que executa 3 comandos em sequência).
   - Limites: não toca Controle, não cria scheduler/daemon/watcher, consumo automático é fase posterior.
 - **Riscos**: nenhum. Documentação é apenas textual.
-- **Próxima fase recomendada**: G14-A — design de integração `sync:mapped` ↔ Controle de Tapetes (read-only, sem implementação).
+
+## Fase G14: Sync Mapped Consumer — Bridge no Controle de Tapetes (cross-repo, design + implementação)
+- **HEAD Documents Ingestor**: `bedbe909` (master, produtor inalterado — sem alterações no produtor para G14)
+- **HEAD Controle de Tapetes**: `fff052b` (work/app-next, consumidor bridge implementado e staging publicado)
+- **Objetivo**: implementar o consumo do `documentos-mapeados.jsonl` (gerado por `sync:mapped`) pelo Controle de Tapetes via bridge `RAVATEX_DOCUMENTS_RECEIVED` → `mapReceivedDocToEventShape` → Pedido Detail.
+- **Fases dentro do Controle de Tapetes**:
+  - G14-A: design (read-only) — diagnóstico do import atual, decisão por bridge manual sem polling
+  - G14-B: patch `mapReceivedDocToEventShape` + fallback `RAVATEX_DOCUMENTS_RECEIVED` no Pedido Detail (commit `624d064`)
+  - G14-C: smoke real com `documentos-mapeados.jsonl` real (teste `g14-c-bridge-smoke.test.js`, 22/22 pass, commit `fff052b`)
+  - G14-D: closeout + staging push (`fff052b` → `staging main`)
+- **Pontos entregues**:
+  - Botão "Importar documentos" na tela `#/documentos/recebidos` — preservado, funcional
+  - Botão legado "Importar eventos" — ausente (sem flag `RAVATEX_ENABLE_DOCUMENTS_EVENTS_IMPORT_UI`)
+  - Bridge: `loadReceivedDocumentsFromText(JSONL)` → `RAVATEX_DOCUMENTS_RECEIVED` → `mapReceivedDocToEventShape()` → Pedido Detail filtra por `pedido_manual`
+  - Idempotência por `document_id` (dedup no reimport)
+  - Precedência: `RAVATEX_DOCUMENTS_LOADED_EVENTS` (eventos legados) vence sobre `RAVATEX_DOCUMENTS_RECEIVED`
+  - Flat JSONL não gera timeline (eventos de histórico ausentes)
+  - Documents Ingestor **não foi alterado** — produtor permanece idêntico
+- **Não implementado em G14**: polling, scheduler, endpoint local, backend, aceite/rejeição no Controle, `ingestion_event_id` no JSONL
+- **Próxima fase recomendada**: G15 — UX de último import/timestamp/hash no Controle; `ingestion_event_id` no JSONL como melhoria futura; aceite/rejeição dentro do Controle como feature posterior. Produtor `sync:mapped` estável, consumidor bridge publicado em staging. Sem scheduler/daemon/watcher.

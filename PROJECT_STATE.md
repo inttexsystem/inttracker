@@ -19,9 +19,9 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - `contracts/manifest.schema.json` — schema do manifest de Pedido
 
 ## Status atual
-- HEAD (documents-ingestor): `800d4af` (em fechamento G12-E5)
-- HEAD canônico staging/work/app-next (Controle de Tapetes): `997486a`
-- Push staging: `af919a2..997486a` (produção/origin oficial intocados)
+- HEAD (documents-ingestor): `bedbe909` (fechamento G13-D, produtor `sync:mapped` pronto)
+- HEAD canônico staging/work/app-next (Controle de Tapetes): `fff052b` (consumidor bridge G14-D pronto)
+- Push staging: `a6574fd..fff052b` via G14-D (produção/origin oficial intocados)
 - 340+17+23=380 testes passando (29 suites) — incluindo integração mockada completa
 - Hermético: nenhum teste depende de `.env` real, token real ou chamadas Google
 - OAuth real validado (C1)
@@ -38,6 +38,11 @@ D:\OneDrive\Programação\Ravatex\documents-ingestor
 - G12-E3: diagnóstico de duplicata no export mapeado (causa raiz + queries before/after)
 - G12-E4: hardening de dedup dentro do mesmo email + cleanup local da duplicata 5c3074bb
 - G12-E5: correção cross-platform do `/dev/null` em realAssign (os.devNull)
+- G13-A: design do comando `sync:mapped` (read-only)
+- G13-B: comando `sync:mapped` (CLI + script + 23 testes)
+- G13-C-R1: smoke real-lite do `sync:mapped` (isolamento confirmado, 0 mutação)
+- G13-D: documentação operacional do `sync:mapped` (README + contratos)
+- G14-A/G14-B/G14-C/G14-D: **consumidor implementado no Controle de Tapetes** (bridge flat → Pedido Detail, staging publicado, ver Controle de Tapetes PROJECT_STATE.md)
 
 ## Comandos disponíveis
 - `npm run dev` — tsx watch
@@ -258,5 +263,7 @@ Não integrar Supabase nesta fase. O outbox JSONL é o contrato de integração.
 - **Próxima fase recomendada**: G14-A — design de integração `sync:mapped` ↔ Controle de Tapetes (fase futura, não implementar nesta rodada).
 
 ## Próxima fase recomendada
-RAVATEX-DOCUMENTS-G14-A-SYNC-MAPPED-CONSUMER-DESIGN
-Foco: design (read-only) de como o Controle de Tapetes consumirá o `documentos-mapeados.jsonl` gerado pelo `sync:mapped` — frequência de polling, formato de consumo, idempotência, fallback se arquivo não existir. Não implementar nesta fase; apenas entregar documento de design.
+RAVATEX-DOCUMENTS-G14-CLOSEOUT (já concluída via fases G14-A a G14-D no Controle de Tapetes)
+- Produtor `sync:mapped` pronto (HEAD `bedbe909`, master, sem remote staging)
+- Consumidor bridge flat → Pedido Detail pronto (HEAD `fff052b`, work/app-next, staging publicado)
+- Próximo roadmap: UX de último import/timestamp/hash no Controle; `ingestion_event_id` no JSONL como melhoria futura; aceite/rejeição dentro do Controle como feature posterior.
