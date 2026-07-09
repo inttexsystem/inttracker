@@ -7321,3 +7321,9 @@ Debitos: repetir validacao visual em browser real e obter sessao segura nao-admi
 - `document_decisions` recebe auditoria de revogacao (`revogada_em`, `revogada_por`, `revogada_motivo`) sem criar decisao pending falsa.
 - Backfill automatico deliberadamente ausente: candidatos legados so podem receber base apos verificacao de evento compativel; sem prova, undo retorna `base_status_unavailable`.
 - Teste SQL focado: `tests/documentos-ingestor-state-undo-schema.test.js`.
+## RAVATEX-DOCUMENTS-G23-E-E-CLOUD-DECISION-UNDO-UI-PATCH (2026-07-09)
+
+- `undoDocumentDecisionInCloud(documentId, motivo)` chama somente `desfazer_decisao_documento` por `window.supa.rpc`, sem tabela direta, localStorage ou service_role.
+- Reader expõe `_ravatex_can_undo_server_decision` apenas com decisão server ativa e base canonica completa (`ingestor_status`, timestamp, event ID e motivo em rejected).
+- Documentos Supabase elegiveis mostram o icone `Desfazer decisão`; sucesso recarrega o reader e renderiza a verdade do servidor. Erros controlados nao mutam estado local.
+- Fluxos manual/G22 e Pedido Detail permanecem inalterados.

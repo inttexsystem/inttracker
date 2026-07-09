@@ -66,5 +66,35 @@
       });
   };
 
+  ns.undoDocumentDecisionInCloud = function undoDocumentDecisionInCloud(documentId, motivo) {
+    if (!window.supa || typeof window.supa.rpc !== 'function') {
+      return Promise.resolve({ ok: false, error: 'supabase_unavailable' });
+    }
+
+    var docId = typeof documentId === 'string' ? documentId.trim() : '';
+    if (!docId) {
+      return Promise.resolve({ ok: false, error: 'document_id_required' });
+    }
+
+    var motivoTrimmed = typeof motivo === 'string' ? motivo.trim() : '';
+    return Promise.resolve()
+      .then(function () {
+        return window.supa.rpc('desfazer_decisao_documento', {
+          p_document_id: docId,
+          p_motivo: motivoTrimmed || null,
+        });
+      })
+      .then(function (r) {
+        if (r && r.error) {
+          return { ok: false, error: (r.error && r.error.message) || 'supabase_error' };
+        }
+        if (r && r.data) return r.data;
+        return { ok: false, error: 'supabase_error' };
+      })
+      .catch(function () {
+        return { ok: false, error: 'network' };
+      });
+  };
+
   window.RAVATEX_DOCUMENTS = ns;
 })(window);

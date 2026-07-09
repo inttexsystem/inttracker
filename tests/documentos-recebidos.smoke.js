@@ -1575,6 +1575,72 @@ test('G23-D-B: doc manual continua usando saveDocumentDecision (localStorage), s
   assert.equal(cloudCalls, 0, 'nao usou decisao em nuvem para doc manual');
 });
 
+// ---------------------------------------------------------------------
+// G23-E-E: undo de decisao em nuvem via RPC, sem estado local
+// ---------------------------------------------------------------------
+
+test('G23-E-E: mostra Desfazer decisao somente para decisao server com base segura', function () {
+  var safe = makeScreenSandbox([makeSupaDoc({
+    status: 'accepted', _ravatex_can_undo_server_decision: true,
+  })]);
+  var safeContainer = new FakeNode('div');
+  safe.container = safeContainer;
+  var safeResult = vm.runInContext('window.screenDocumentosRecebidos(container)', safe);
+  assert.equal(findAll(safeResult, findAction('desfazer-decisao-nuvem')).length, 1, 'undo nuvem presente');
+  assert.equal(findAll(safeResult, findAction('aceitar-documento-nuvem')).length, 0, 'sem decidir novamente');
+
+  var unsafe = makeScreenSandbox([makeSupaDoc({ status: 'accepted', _ravatex_can_undo_server_decision: false })]);
+  var unsafeContainer = new FakeNode('div');
+  unsafe.container = unsafeContainer;
+  var unsafeResult = vm.runInContext('window.screenDocumentosRecebidos(container)', unsafe);
+  assert.equal(findAll(unsafeResult, findAction('desfazer-decisao-nuvem')).length, 0, 'sem undo sem base segura');
+});
+
+test('G23-E-E: desfazer nuvem chama wrapper, recarrega reader e nao usa localStorage', async function () {
+  var sb = makeScreenSandbox([makeSupaDoc({ status: 'rejected', _ravatex_can_undo_server_decision: true })]);
+  var calls = [];
+  var reloadCalls = 0;
+  var removeCalls = 0;
+  var setAppCalls = 0;
+  sb.window.RAVATEX_DOCUMENTS.undoDocumentDecisionInCloud = function (id, motivo) {
+    calls.push({ id: id, motivo: motivo }); return Promise.resolve({ ok: true, restored_status: 'assigned' });
+  };
+  sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
+    reloadCalls++; return Promise.resolve({ ok: true });
+  };
+  sb.window.RAVATEX_DOCUMENTS.removeDocumentDecision = function () { removeCalls++; return { ok: true }; };
+  sb.window.toast = function () {};
+  sb.window.setApp = function () { setAppCalls++; };
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  findAll(result, findAction('desfazer-decisao-nuvem'))[0]._listeners.click[0]();
+  await flushAsync();
+  assert.deepEqual(calls, [{ id: SUPA_DOC_ID, motivo: null }]);
+  assert.equal(reloadCalls, 1, 'reader recarregado');
+  assert.ok(setAppCalls >= 1, 'rerender chamado');
+  assert.equal(removeCalls, 0, 'nao remove decisao local');
+});
+
+test('G23-E-E: erro de base indisponivel mostra toast e nao recarrega', async function () {
+  var sb = makeScreenSandbox([makeSupaDoc({ status: 'accepted', _ravatex_can_undo_server_decision: true })]);
+  var reloadCalls = 0;
+  var toasts = [];
+  sb.window.RAVATEX_DOCUMENTS.undoDocumentDecisionInCloud = function () {
+    return Promise.resolve({ ok: false, error: 'base_status_unavailable' });
+  };
+  sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () { reloadCalls++; return Promise.resolve({ ok: true }); };
+  sb.window.toast = function (msg, kind) { toasts.push({ msg: msg, kind: kind }); };
+  sb.window.setApp = function () {};
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  findAll(result, findAction('desfazer-decisao-nuvem'))[0]._listeners.click[0]();
+  await flushAsync();
+  assert.equal(reloadCalls, 0);
+  assert.ok(toasts.some(function (toast) { return toast.kind === 'error' && toast.msg.indexOf('canônico') >= 0; }));
+});
+
 test('G22-B: botao Atualizar agora presente e funcional', function () {
   var sb = makeScreenSandbox([]);
   var container = new FakeNode('div');

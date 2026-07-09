@@ -60,6 +60,7 @@ test('decisions: arquivo existe e sintaxe valida', function () {
 test('decisions: expoe decideDocumentInCloud no namespace', function () {
   const rt = makeSandbox({ withSupa: false });
   assert.equal(typeof rt.ns.decideDocumentInCloud, 'function');
+  assert.equal(typeof rt.ns.undoDocumentDecisionInCloud, 'function');
 });
 
 test('decisions: sem supa retorna supabase_unavailable', async function () {
@@ -121,6 +122,32 @@ test('decisions: rejected envia motivo trimmed', async function () {
   });
 });
 
+test('decisions: undo usa rpc desfazer_decisao_documento com motivo trimmed', async function () {
+  const rt = makeSandbox({ rpcResult: { data: { ok: true, restored_status: 'assigned' } } });
+  const result = await rt.ns.undoDocumentDecisionInCloud(DOC_ID, '  Reabertura conferida  ');
+  assert.equal(result.ok, true);
+  assert.deepEqual(plain(rt.calls[0]), {
+    fn: 'desfazer_decisao_documento',
+    params: { p_document_id: DOC_ID, p_motivo: 'Reabertura conferida' },
+  });
+});
+
+test('decisions: undo sem motivo envia null e id ausente nao chama rpc', async function () {
+  const rt = makeSandbox({});
+  const missing = await rt.ns.undoDocumentDecisionInCloud(' ', null);
+  assert.deepEqual(plain(missing), { ok: false, error: 'document_id_required' });
+  assert.equal(rt.calls.length, 0);
+  await rt.ns.undoDocumentDecisionInCloud(DOC_ID, '   ');
+  assert.deepEqual(plain(rt.calls[0].params), { p_document_id: DOC_ID, p_motivo: null });
+});
+
+test('decisions: undo preserva erros retornados pela RPC', async function () {
+  const rt = makeSandbox({ rpcResult: { data: { ok: false, error: 'base_status_unavailable' } } });
+  const result = await rt.ns.undoDocumentDecisionInCloud(DOC_ID, null);
+  assert.equal(result.ok, false);
+  assert.equal(result.error, 'base_status_unavailable');
+});
+
 test('decisions: admin_required em r.data.error e preservado', async function () {
   const rt = makeSandbox({ rpcResult: { data: { ok: false, error: 'admin_required' } } });
   const result = await rt.ns.decideDocumentInCloud(DOC_ID, 'accepted', null);
@@ -172,7 +199,7 @@ test('decisions: nao contem .from(), writes diretos nem service_role', function 
   assert.equal(/localStorage/.test(DECISIONS), false, 'localStorage presente');
 });
 
-test('decisions: usa apenas rpc(\'decidir_documento\')', function () {
+test('decisions: usa apenas as RPCs de decidir e desfazer', function () {
   const rpcNames = Array.from(DECISIONS.matchAll(/\.rpc\s*\(\s*['"]([^'"]+)['"]/g)).map((m) => m[1]);
-  assert.deepEqual(rpcNames, ['decidir_documento']);
+  assert.deepEqual(rpcNames, ['decidir_documento', 'desfazer_decisao_documento']);
 });

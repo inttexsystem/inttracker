@@ -75,6 +75,9 @@ test('reader: consulta candidates e decisoes ativas, sem raw_payload no select',
   assert.ok(rt.calls.some((call) => call.table === 'document_decisions' && call.method === 'eq' && call.field === 'ativo' && call.value === true));
   const candidatesSelect = rt.calls.find((call) => call.table === 'document_candidates' && call.method === 'select');
   assert.ok(candidatesSelect.fields.includes('document_id'));
+  assert.ok(candidatesSelect.fields.includes('ingestor_status'));
+  assert.ok(candidatesSelect.fields.includes('ingestor_state_at'));
+  assert.ok(candidatesSelect.fields.includes('ingestor_event_id'));
   assert.equal(candidatesSelect.fields.includes('raw_payload'), false);
 });
 
@@ -94,13 +97,28 @@ test('reader: mapeia candidate para o shape flat e preserva origem Supabase', as
 
 test('reader: decisao ativa sobrescreve status e motivo de rejeicao', async function () {
   const decision = { document_id: candidate.document_id, status: 'rejected', motivo: 'Arquivo ilegivel', decidido_em: '2026-07-09T12:00:00.000Z', source: 'manual', ativo: true };
-  const rt = makeSandbox({ candidatesResult: { data: [candidate] }, decisionsResult: { data: [decision] } });
+  const candidateWithBase = Object.assign({}, candidate, {
+    ingestor_status: 'assigned',
+    ingestor_state_at: '2026-07-09T10:02:00.000Z',
+    ingestor_event_id: 'ingevt-assigned-99',
+    ingestor_rejected_reason: null,
+  });
+  const rt = makeSandbox({ candidatesResult: { data: [candidateWithBase] }, decisionsResult: { data: [decision] } });
   await rt.ns.loadReceivedDocumentsFromSupabase();
   const doc = rt.sandbox.RAVATEX_DOCUMENTS_RECEIVED[0];
   assert.equal(doc.status, 'rejected');
   assert.equal(doc.rejected_reason, 'Arquivo ilegivel');
   assert.equal(doc._ravatex_decision_source, 'server');
+  assert.equal(doc._ravatex_can_undo_server_decision, true);
   assert.equal(rt.ns.getEffectiveDocumentStatus(doc).isLocalDecision, false);
+});
+
+test('reader: decisao server sem base completa nao habilita undo', async function () {
+  const decision = { document_id: candidate.document_id, status: 'accepted', motivo: null, decidido_em: '2026-07-09T12:00:00.000Z', source: 'manual', ativo: true };
+  const incomplete = Object.assign({}, candidate, { ingestor_status: 'pending', ingestor_event_id: 'ingevt-pending-99' });
+  const rt = makeSandbox({ candidatesResult: { data: [incomplete] }, decisionsResult: { data: [decision] } });
+  await rt.ns.loadReceivedDocumentsFromSupabase();
+  assert.equal(rt.sandbox.RAVATEX_DOCUMENTS_RECEIVED[0]._ravatex_can_undo_server_decision, false);
 });
 
 test('reader: lista vazia e sucesso primario, sem fallback', async function () {

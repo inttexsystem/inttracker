@@ -83,6 +83,7 @@
     + '<polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line>';
   var SVG_CHECK = '<polyline points="20 6 9 17 4 12"></polyline>';
   var SVG_X = '<line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>';
+  var SVG_UNDO = '<path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-1"></path>';
   var SVG_INBOX = '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>'
     + '<path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>';
   var SVG_CHEVRON = '<polyline points="6 9 12 15 18 9"></polyline>';
@@ -286,6 +287,7 @@
     var tipo = inferTipo(doc, filename);
     var direcao = inferDirecao(doc, filename);
     var isSupabaseSource = !!(doc && doc._ravatex_source === 'supabase');
+    var canUndoCloudDecision = !!(doc && doc._ravatex_can_undo_server_decision === true);
     var effective = hasRealId && typeof window.RAVATEX_DOCUMENTS !== 'undefined'
       && typeof window.RAVATEX_DOCUMENTS.getEffectiveDocumentStatus === 'function'
       ? window.RAVATEX_DOCUMENTS.getEffectiveDocumentStatus(doc) : null;
@@ -308,6 +310,7 @@
       hasLocalDecision: hasLocalDecision,
       isDivergent: isDivergent,
       isSupabaseSource: isSupabaseSource,
+      canUndoCloudDecision: canUndoCloudDecision,
       pedido: doc && (doc.pedido_manual || doc.pedido || doc.pedido_key) || '',
       when: when,
       driveId: doc && doc.drive_file_id ? doc.drive_file_id : '',
@@ -498,6 +501,9 @@
   function cloudDecisionErrorMessage(error) {
     if (error === 'admin_required') return 'Apenas administradores podem decidir documentos.';
     if (error === 'motivo_required') return 'Rejeição exige um motivo.';
+    if (error === 'no_active_decision') return 'A decisão já não está ativa.';
+    if (error === 'base_status_unavailable') return 'Não há estado canônico seguro para desfazer esta decisão.';
+    if (error === 'document_id_required' || error === 'candidate_not_found') return 'Documento indisponível para desfazer a decisão.';
     if (error === 'supabase_unavailable' || error === 'network') return 'Falha de comunicação.';
     // invalid_status, document_id_required, supabase_error, mensagens
     // PostgREST e qualquer code desconhecido caem numa mensagem
@@ -520,6 +526,35 @@
           window.toast(status === 'accepted' ? 'Documento aceito.' : 'Documento rejeitado.',
             status === 'accepted' ? 'success' : 'info');
         }
+        var reload = typeof api.loadReceivedDocumentsFromSupabase === 'function'
+          ? api.loadReceivedDocumentsFromSupabase() : null;
+        if (reload && typeof reload.then === 'function') {
+          reload.then(function () { rerender(); });
+        } else {
+          rerender();
+        }
+        return;
+      }
+      if (btn) btn.disabled = false;
+      if (typeof window.toast === 'function') {
+        window.toast(cloudDecisionErrorMessage(result && result.error), 'error');
+      }
+    }).catch(function () {
+      if (btn) btn.disabled = false;
+      if (typeof window.toast === 'function') window.toast('Falha de comunicação.', 'error');
+    });
+  }
+
+  function runCloudUndo(btn, doc) {
+    var api = window.RAVATEX_DOCUMENTS;
+    if (!api || typeof api.undoDocumentDecisionInCloud !== 'function') {
+      if (typeof window.toast === 'function') window.toast('Falha de comunicação.', 'error');
+      return;
+    }
+    if (btn) btn.disabled = true;
+    api.undoDocumentDecisionInCloud(doc.id, null).then(function (result) {
+      if (result && result.ok) {
+        if (typeof window.toast === 'function') window.toast('Decisão desfeita.', 'info');
         var reload = typeof api.loadReceivedDocumentsFromSupabase === 'function'
           ? api.loadReceivedDocumentsFromSupabase() : null;
         if (reload && typeof reload.then === 'function') {
@@ -570,6 +605,16 @@
     }
 
     if (doc.isSupabaseSource) {
+      if (doc.canUndoCloudDecision && doc.hasRealId) {
+        var desfazerNuvemBtn;
+        desfazerNuvemBtn = iconButton('Desfazer decisão', SVG_UNDO, function () {
+          runCloudUndo(desfazerNuvemBtn, doc);
+        }, 'color:#687385;border-color:#cfd5dd;', {
+          'data-action': 'desfazer-decisao-nuvem',
+          'data-document-id': doc.id,
+        });
+        wrap.appendChild(desfazerNuvemBtn);
+      }
       if (doc.status === 'pending' && doc.hasRealId) {
         var rejeitarNuvemBtn;
         rejeitarNuvemBtn = iconButton('Rejeitar', SVG_X, function () {

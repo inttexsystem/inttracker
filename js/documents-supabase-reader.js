@@ -17,7 +17,8 @@
     'document_id', 'filename_original', 'tipo_documento', 'formato', 'direcao_nf',
     'drive_file_id', 'drive_web_view_link', 'status', 'pedido_manual', 'pedido_id',
     'fornecedor_id', 'received_at', 'detected_at', 'linked_at', 'accepted_at',
-    'rejected_at', 'rejected_reason', 'schema_version', 'criado_em'
+    'rejected_at', 'rejected_reason', 'ingestor_status', 'ingestor_state_at',
+    'ingestor_event_id', 'ingestor_rejected_reason', 'schema_version', 'criado_em'
   ].join(', ');
   var DECISION_FIELDS = 'document_id, status, motivo, decidido_em, source';
 
@@ -34,6 +35,19 @@
       byDocumentId[documentId] = decision;
     });
     return byDocumentId;
+  }
+
+  function hasCompleteCanonicalBase(candidate) {
+    var status = candidate && candidate.ingestor_status;
+    if (status !== 'pending' && status !== 'assigned' && status !== 'accepted' && status !== 'rejected') {
+      return false;
+    }
+    if (!asString(candidate.ingestor_state_at) || !asString(candidate.ingestor_event_id)) return false;
+    if (status === 'rejected') {
+      return typeof candidate.ingestor_rejected_reason === 'string'
+        && !!candidate.ingestor_rejected_reason.trim();
+    }
+    return true;
   }
 
   function mapCandidate(candidate, decisionsByDocumentId) {
@@ -68,6 +82,7 @@
       created_at: candidate.criado_em,
       _ravatex_source: 'supabase',
       _ravatex_decision_source: decision ? 'server' : null,
+      _ravatex_can_undo_server_decision: !!decision && hasCompleteCanonicalBase(candidate),
       _ravatex_server_decision: decision ? {
         status: decision.status,
         motivo: decision.motivo || '',

@@ -6716,3 +6716,8 @@ Migration somente versionada, sem apply: `db/39_documentos_ingestor_state_undo.s
 `upsert_document_candidate_ingestor_state` e backend-only: grants removidos de PUBLIC/anon/authenticated e concedido somente a `service_role`; o futuro writer do Documents Ingestor atualizara `ingestor_*` mesmo durante decisao humana ativa, preservando o estado efetivo. O Ingestor permaneceu somente leitura nesta fase.
 
 Backfill permanece diagnostico/manual verificado por `document_id`, `ingestion_event_id`, status e timestamp confiavel. Sem prova, a base fica nula e o undo continua bloqueado. Teste novo: `tests/documentos-ingestor-state-undo-schema.test.js`.
+## RAVATEX-DOCUMENTS-G23-E-E-CLOUD-DECISION-UNDO-UI-PATCH (2026-07-09)
+
+UI de undo cloud entregue para documentos Supabase com base canonica segura. O wrapper usa somente `desfazer_decisao_documento`; reader marca elegibilidade a partir da decisao ativa e dos campos `ingestor_*`; tela mostra a acao apenas nesse caso e recarrega o reader apos sucesso.
+
+Nao ha localStorage, write direto, service_role no frontend, alteracao de Documents Ingestor, migration ou Supabase remoto nesta fase. Documentos manuais continuam no undo local existente.
