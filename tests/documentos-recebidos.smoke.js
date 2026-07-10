@@ -1672,3 +1672,84 @@ test('G22-B: botao Atualizar agora presente e funcional', function () {
   assert.ok(refreshBtns[0].children && refreshBtns[0].children.length >= 2,
     'botao tem icone SVG + texto');
 });
+
+test('G24-B4-R1: primeiro clique admin chama trigger uma vez e mostra feedback imediato', function () {
+  var sb = makeScreenSandbox([]);
+  var calls = [];
+  var latestTree = null;
+  sb.window.RAVATEX_DOCUMENTS.requestDocumentScan = function (options) {
+    calls.push(options);
+    return new Promise(function () {});
+  };
+  sb.window.toast = undefined;
+  sb.window.setApp = function (tree) { latestTree = tree; };
+  var result = vm.runInContext('window.screenDocumentosRecebidos()', sb);
+  var button = findAll(result, findAction('verificar-novos-documentos'))[0];
+  assert.equal(Object.prototype.hasOwnProperty.call(button._attrs, 'disabled'), false,
+    'botao inicial nao pode receber atributo disabled');
+  button._listeners.click[0]();
+  assert.equal(calls.length, 1, 'primeiro clique deve chamar requestDocumentScan uma vez');
+  assert.equal(typeof calls[0].onUpdate, 'function');
+  assert.equal(typeof calls[0].onComplete, 'function');
+  var feedback = findAll(latestTree, function (node) {
+    return node._attrs && node._attrs['data-section'] === 'document-scan-feedback';
+  });
+  assert.equal(feedback.length, 1, 'feedback deve ser renderizado no DOM');
+  assert.ok(textOf(feedback[0]).indexOf('Solicitacao enviada') >= 0,
+    'feedback inicial nao pode depender de toast');
+});
+
+test('G24-B4-R1: sessao perdida apos render nao encerra o clique silenciosamente', function () {
+  var sb = makeScreenSandbox([]);
+  var calls = 0;
+  var latestTree = null;
+  sb.window.RAVATEX_DOCUMENTS.requestDocumentScan = function () { calls += 1; return new Promise(function () {}); };
+  sb.window.toast = undefined;
+  sb.window.setApp = function (tree) { latestTree = tree; };
+  var result = vm.runInContext('window.screenDocumentosRecebidos()', sb);
+  var button = findAll(result, findAction('verificar-novos-documentos'))[0];
+  sb.window.CURRENT_USER = null;
+  button._listeners.click[0]();
+  assert.equal(calls, 0, 'sessao invalida nao deve chamar a RPC');
+  var feedback = findAll(latestTree, function (node) {
+    return node._attrs && node._attrs['data-section'] === 'document-scan-feedback';
+  });
+  assert.ok(textOf(feedback[0]).indexOf('Sessao expirada') >= 0,
+    'guard de sessao deve informar o bloqueio no DOM');
+});
+
+test('G24-B4-R1: request ativa mostra feedback persistente e bloqueia segunda RPC', function () {
+  var sb = makeScreenSandbox([]);
+  var calls = 0;
+  var latestTree = null;
+  sb.window.RAVATEX_DOCUMENTS.requestDocumentScan = function () { calls += 1; return new Promise(function () {}); };
+  sb.window.toast = undefined;
+  sb.window.setApp = function (tree) { latestTree = tree; };
+  var result = vm.runInContext('window.screenDocumentosRecebidos()', sb);
+  var button = findAll(result, findAction('verificar-novos-documentos'))[0];
+  button._listeners.click[0]();
+  button._listeners.click[0]();
+  assert.equal(calls, 1, 'request ativa nao pode disparar uma segunda RPC');
+  var feedback = findAll(latestTree, function (node) {
+    return node._attrs && node._attrs['data-section'] === 'document-scan-feedback';
+  });
+  assert.ok(textOf(feedback[0]).indexOf('ja esta sendo acompanhada') >= 0);
+});
+
+test('G24-B4-R1: falha da RPC aparece no DOM sem depender de toast', async function () {
+  var sb = makeScreenSandbox([]);
+  var latestTree = null;
+  sb.window.RAVATEX_DOCUMENTS.requestDocumentScan = function () {
+    return Promise.resolve({ ok: false, error: 'migration_unavailable' });
+  };
+  sb.window.toast = undefined;
+  sb.window.setApp = function (tree) { latestTree = tree; };
+  var result = vm.runInContext('window.screenDocumentosRecebidos()', sb);
+  findAll(result, findAction('verificar-novos-documentos'))[0]._listeners.click[0]();
+  await flushAsync();
+  var feedback = findAll(latestTree, function (node) {
+    return node._attrs && node._attrs['data-section'] === 'document-scan-feedback';
+  });
+  assert.ok(textOf(feedback[0]).indexOf('ainda nao foi aplicada') >= 0,
+    'falha da RPC deve ficar visivel no DOM');
+});

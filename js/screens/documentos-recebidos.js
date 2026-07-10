@@ -45,6 +45,7 @@
     sourceLoadAttempted: false,
     sourceLoadRunning: false,
     scanRequest: null,
+    scanFeedback: null,
     logoutWrapped: false,
   };
 
@@ -456,6 +457,10 @@
       || ui.scanRequest.status === 'claimed' || ui.scanRequest.status === 'running'));
   }
 
+  function setScanFeedback(kind, message) {
+    ui.scanFeedback = { kind: kind, message: message };
+  }
+
   function ensureScanLogoutCancellation() {
     if (ui.logoutWrapped || typeof window.logout !== 'function') return;
     var originalLogout = window.logout;
@@ -469,38 +474,61 @@
   }
 
   function startDocumentScan() {
-    if (!isAdminUser() || isActiveScanRequest()) return;
+    if (!isAdminUser()) {
+      setScanFeedback('error', 'Sessao expirada. Entre novamente.');
+      rerender();
+      return;
+    }
+    if (isActiveScanRequest()) {
+      setScanFeedback('info', 'Verificacao ja esta sendo acompanhada.');
+      rerender();
+      return;
+    }
     var docsApi = window.RAVATEX_DOCUMENTS;
     if (!docsApi || typeof docsApi.requestDocumentScan !== 'function') {
-      if (typeof window.toast === 'function') window.toast(scanErrorMessage('migration_unavailable'), 'error');
+      setScanFeedback('error', scanErrorMessage('migration_unavailable'));
+      rerender();
       return;
     }
     ui.scanRequest = { status: 'requested', pending: true };
+    setScanFeedback('info', 'Solicitacao enviada. Aguardando executor.');
     rerender();
-    docsApi.requestDocumentScan({
+    var completed = false;
+    function handleScanComplete(result) {
+      if (completed) return;
+      completed = true;
+      if (result && result.status === 'completed') {
+        ui.scanRequest = result.request || { status: 'completed' };
+        setScanFeedback('success', 'Verificacao concluida. Atualizando lista.');
+        loadDocumentsPrimaryThenFallback().then(function () {
+          ui.scanRequest = null;
+          setScanFeedback('success', 'Verificacao concluida. Lista atualizada.');
+          if (typeof window.toast === 'function') window.toast('Verificacao concluida. Lista atualizada.', 'success');
+          rerender();
+        });
+        return;
+      }
+      ui.scanRequest = null;
+      if (result && result.status === 'cancelled') {
+        setScanFeedback('info', 'Solicitacao cancelada.');
+      } else {
+        setScanFeedback('error', scanErrorMessage(result && result.error));
+      }
+      rerender();
+    }
+    var requestPromise = docsApi.requestDocumentScan({
       onUpdate: function (request) {
         ui.scanRequest = request;
+        setScanFeedback('info', scanStatusLabel(request.status));
         rerender();
       },
-      onComplete: function (result) {
-        if (result && result.status === 'completed') {
-          ui.scanRequest = result.request || { status: 'completed' };
-          loadDocumentsPrimaryThenFallback().then(function () {
-            ui.scanRequest = null;
-            if (typeof window.toast === 'function') window.toast('Verificacao concluida. Lista atualizada.', 'success');
-            rerender();
-          });
-          return;
-        }
-        ui.scanRequest = null;
-        if (result && result.status === 'cancelled') {
-          if (typeof window.toast === 'function') window.toast('Solicitacao cancelada.', 'info');
-        } else if (typeof window.toast === 'function') {
-          window.toast(scanErrorMessage(result && result.error), 'error');
-        }
-        rerender();
-      },
+      onComplete: handleScanComplete,
     });
+    if (requestPromise && typeof requestPromise.then === 'function') {
+      requestPromise.then(function (result) {
+        if (result && result.error && !result.status) handleScanComplete(result);
+      });
+    }
   }
 
   function restoreSearchFocus() {
@@ -810,13 +838,14 @@
 
     if (isAdminUser()) {
       var scanActive = isActiveScanRequest();
-      var scanBtn = window.el('button', {
+      var scanAttrs = {
         type: 'button',
-        disabled: scanActive ? 'disabled' : null,
         'data-action': 'verificar-novos-documentos',
         style: BTN_SECONDARY + (scanActive ? 'opacity:.65;cursor:wait;' : ''),
         onclick: startDocumentScan,
-      });
+      };
+      if (scanActive) scanAttrs.disabled = 'disabled';
+      var scanBtn = window.el('button', scanAttrs);
       scanBtn.appendChild(svgEl(SVG_MAIL, 14, 'Verificar novos documentos'));
       scanBtn.appendChild(document.createTextNode(scanActive
         ? scanStatusLabel(ui.scanRequest.status) : 'Verificar novos documentos'));
@@ -858,6 +887,12 @@
       },
         window.el('div', { style: 'font-size:22px;font-weight:800;color:#16203a;letter-spacing:-.01em;white-space:nowrap;' }, 'Documentos Mapeados'),
         actions),
+      ui.scanFeedback ? window.el('div', {
+        'data-section': 'document-scan-feedback',
+        'data-kind': ui.scanFeedback.kind,
+        style: 'margin-top:8px;font-size:12.5px;font-weight:600;color:'
+          + (ui.scanFeedback.kind === 'error' ? '#b42318' : ui.scanFeedback.kind === 'success' ? '#18794a' : '#2563eb') + ';',
+      }, ui.scanFeedback.message) : null,
       window.el('div', {
         style: 'font-size:13px;color:#8a93a3;line-height:1.45;white-space:nowrap;',
       }, 'Importe a lista gerada pelo Documents Ingestor para revisar os documentos mapeados.'));
