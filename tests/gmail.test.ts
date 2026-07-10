@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isAttachmentCandidate, buildQuery, normalizeEmailReceivedAt } from '../src/connectors/gmail.js';
+import { isAttachmentCandidate, buildQuery, normalizeEmailReceivedAt, normalizeSenderEmail } from '../src/connectors/gmail.js';
 
 describe('gmail attachment filter', () => {
   it('accepts PDF by mime', () => {
@@ -91,5 +91,17 @@ describe('Gmail received timestamp normalization', () => {
       emailReceivedAtSource: null,
       emailReceivedAtEstimated: false,
     });
+  });
+});
+
+describe('Gmail sender email normalization', () => {
+  it.each([
+    ['Fornecedor <FORNECEDOR@Empresa.com.br>', 'fornecedor@empresa.com.br'],
+    ['fornecedor@empresa.com.br', 'fornecedor@empresa.com.br'],
+    ['"Fornecedor Ltda" <fornecedor@empresa.com.br>', 'fornecedor@empresa.com.br'],
+    ['  FORNECEDOR@EMPRESA.COM.BR  ', 'fornecedor@empresa.com.br'],
+    ['Fornecedor sem email', null],
+  ])('normalizes %s', (value, expected) => {
+    expect(normalizeSenderEmail(value)).toBe(expected);
   });
 });

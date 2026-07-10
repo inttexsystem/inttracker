@@ -147,6 +147,7 @@ function normalizeCandidate(row: Record<string, unknown>): DocumentCandidateWrit
     fornecedor_id: null,
     schema_version: schemaVersion,
     raw_payload: rawPayload,
+    sender_email: optionalText(row.sender_email),
     email_message_id: optionalText(row.email_message_id),
     email_received_at: emailReceivedAt,
     email_received_at_source: emailReceivedAtSource,

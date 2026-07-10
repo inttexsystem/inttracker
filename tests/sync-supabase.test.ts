@@ -31,6 +31,7 @@ function mappedRow(overrides: Record<string, unknown> = {}): Record<string, unkn
     direcao_nf: 'entrada',
     status: 'pending',
     pedido_manual: 'PED-25-2026',
+    sender_email: 'fornecedor@empresa.com.br',
     gmail_message_id: 'gmail-001',
     email_message_id: 'gmail-001',
     email_received_at: '2026-07-09T09:00:00.000Z',
@@ -159,6 +160,13 @@ describe('sync:supabase canonical writer', () => {
     expect(client.canonicalWrites[0].candidate.document_id).toBe('doc-001');
     expect(client.canonicalWrites[0].candidate.email_received_at).toBe('2026-07-09T09:00:00.000Z');
     expect(client.canonicalWrites[0].candidate.email_received_at_source).toBe('gmail_internal_date');
+    expect(client.canonicalWrites[0].candidate.sender_email).toBe('fornecedor@empresa.com.br');
+  });
+
+  it('keeps a missing sender as null in the canonical payload', async () => {
+    const client = new WriterClientMock();
+    await runSyncSupabase(options([mappedRow({ sender_email: null })]), client);
+    expect(client.canonicalWrites[0].candidate.sender_email).toBeNull();
   });
 
   it.each(['pending', 'assigned', 'accepted', 'rejected'] as const)(

@@ -25,6 +25,7 @@ function seedDoc(
     formato?: string;
     direcao?: string | null;
     sha256?: string;
+    senderEmail?: string | null;
     createdAt?: string;
   } = {},
 ): string {
@@ -40,10 +41,10 @@ function seedDoc(
   database.prepare(
     `INSERT INTO documentos (
        id, gmail_message_id, thread_id, attachment_id, filename_original,
-       sha256, tipo_documento, formato, direcao_nf,
+       sha256, sender_email, tipo_documento, formato, direcao_nf,
        storage_backend, storage_uri, drive_file_id,
        drive_web_view_link, status, pedido_manual, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     gmailMessageId,
@@ -51,6 +52,7 @@ function seedDoc(
     `att-${randomUUID().slice(0, 8)}`,
     overrides.filename ?? 'NF-test.xml',
     sha256,
+    overrides.senderEmail ?? null,
     overrides.tipo ?? 'nf',
     overrides.formato ?? 'xml',
     overrides.direcao ?? 'entrada',
@@ -114,6 +116,15 @@ describe('export received documents (G12-D1)', () => {
     expect(parsed.formato).toBe('xml');
     expect(parsed.direcao_nf).toBe('entrada');
     expect(parsed.detected_event_id).toBeTruthy();
+  });
+
+  it('exports sender_email without changing timestamp fields', () => {
+    const db = getDb();
+    const docId = seedDoc(db, { gmailMessageId: 'msg-er-sender', senderEmail: 'fornecedor@empresa.com.br' });
+    seedDetectedEvent(db, docId);
+
+    const row = listReceivedDocuments({ daysBack: 30 })[0];
+    expect(row.sender_email).toBe('fornecedor@empresa.com.br');
   });
 
   it('excludes documents that have been linked to a pedido', () => {

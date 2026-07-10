@@ -20,6 +20,7 @@ export interface DocumentCandidateWrite {
   fornecedor_id: null;
   schema_version: number;
   raw_payload: Record<string, unknown>;
+  sender_email: string | null;
   email_message_id: string | null;
   email_received_at: string | null;
   email_received_at_source: 'gmail_internal_date' | 'header_date' | null;

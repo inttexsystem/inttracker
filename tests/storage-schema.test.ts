@@ -63,6 +63,12 @@ describe('SQLite schema carries Drive-first contract', () => {
     expect(index).toBeTruthy();
   });
 
+  it('creates the sender_email column for a new database', () => {
+    const db = getDb();
+    const names = (db.prepare(`PRAGMA table_info(documentos)`).all() as any[]).map((column) => column.name);
+    expect(names).toContain('sender_email');
+  });
+
   it('documentos table has taxonomia G1 columns', () => {
     const db = getDb();
     const cols = db.prepare(`PRAGMA table_info(documentos)`).all() as any[];
@@ -311,6 +317,22 @@ describe('SQLite migration for taxonomy columns (pre-G1 → G1+)', () => {
       .get('legacy-email-doc')).toMatchObject({
       id: 'legacy-email-doc', filename_original: 'legacy.pdf', created_at: '2026-07-10 18:00:00',
     });
+    db.close();
+  });
+
+  it('adds sender_email on a legacy database without replacing existing data', () => {
+    const db = openOldDb();
+    db.prepare(`INSERT INTO documentos (id, gmail_message_id, attachment_id, filename_original, sha256, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)`)
+      .run('legacy-sender-doc', 'legacy-sender-message', 'legacy-sender-att', 'legacy-sender.pdf', 'legacy-sender-sha', '2026-07-10 18:00:00');
+
+    expect(() => ensureLocalMigrations(db)).not.toThrow();
+    expect(() => ensureLocalMigrations(db)).not.toThrow();
+
+    const row = db.prepare(`SELECT filename_original, sender_email FROM documentos WHERE id = ?`)
+      .get('legacy-sender-doc') as any;
+    expect(row.filename_original).toBe('legacy-sender.pdf');
+    expect(row.sender_email).toBeNull();
     db.close();
   });
 

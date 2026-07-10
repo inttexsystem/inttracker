@@ -112,6 +112,7 @@ export interface ReceivedDocumentRow {
   direcao_nf: string | null;
   drive_file_id: string | null;
   drive_web_view_link: string | null;
+  sender_email: string | null;
   email_message_id: string | null;
   email_received_at: string | null;
   email_received_at_source: 'gmail_internal_date' | 'header_date' | null;
@@ -141,6 +142,7 @@ export interface MappedDocumentRow {
   thread_id: string;
   drive_file_id: string | null;
   drive_web_view_link: string | null;
+  sender_email: string | null;
   /** @deprecated Processing timestamp retained only for old consumers. */
   received_at: string | null;
   processed_at: string;
@@ -218,6 +220,7 @@ export function listMappedDocuments(
       d.thread_id,
       d.drive_file_id,
       d.drive_web_view_link,
+      d.sender_email,
       d.email_message_id,
       d.email_received_at,
       d.email_received_at_source,
@@ -482,6 +485,7 @@ export function listReceivedDocuments(
       d.direcao_nf,
       d.drive_file_id,
       d.drive_web_view_link,
+      d.sender_email,
       d.email_message_id,
       d.email_received_at,
       d.email_received_at_source,

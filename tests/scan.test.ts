@@ -79,6 +79,7 @@ describe('real scan flow (mocked Google)', () => {
           gmailMessageId: 'msg-1',
           threadId: 'thr-1',
           from: 'fornecedor@example.com',
+          senderEmail: 'fornecedor@example.com',
           subject: 'NF-e 12345',
           date: '2026-07-01',
           attachmentCount: 1,
@@ -105,6 +106,7 @@ describe('real scan flow (mocked Google)', () => {
     const docs = db.prepare(`SELECT * FROM documentos`).all() as any[];
     expect(docs).toHaveLength(1);
     expect(docs[0].filename_original).toBe('NF-12345.pdf');
+    expect(docs[0].sender_email).toBe('fornecedor@example.com');
     expect(docs[0].tipo_documento).toBe('nf');
     expect(docs[0].formato).toBe('pdf');
     expect(docs[0].storage_backend).toBe('google_drive');
@@ -261,8 +263,8 @@ describe('real scan flow (mocked Google)', () => {
     let uploadCalls = 0;
     const deps = mkDeps({
       fetchEmails: async () => [
-        { gmailMessageId: 'msg-A', threadId: 'tA', from: '', subject: 'NF A', date: '', attachmentCount: 1 },
-        { gmailMessageId: 'msg-B', threadId: 'tB', from: '', subject: 'NF B (re-send)', date: '', attachmentCount: 1 },
+        { gmailMessageId: 'msg-A', threadId: 'tA', from: '', senderEmail: 'origem@empresa.com', subject: 'NF A', date: '', attachmentCount: 1 },
+        { gmailMessageId: 'msg-B', threadId: 'tB', from: '', senderEmail: 'reenvio@empresa.com', subject: 'NF B (re-send)', date: '', attachmentCount: 1 },
       ],
       listAtts: async (msgId) => [
         { gmailMessageId: msgId, threadId: 't', attachmentId: 'a', filename: 'NF-001.pdf', mimeType: 'application/pdf', size: fakePdf.length },
@@ -286,10 +288,11 @@ describe('real scan flow (mocked Google)', () => {
     expect(r.crossMessageDuplicates).toBe(1);
     expect(uploadCalls).toBe(1);
     const db = getDb();
-    const docs = db.prepare(`SELECT gmail_message_id, drive_file_id FROM documentos ORDER BY created_at`).all() as any[];
+    const docs = db.prepare(`SELECT gmail_message_id, drive_file_id, sender_email FROM documentos ORDER BY created_at`).all() as any[];
     expect(docs).toHaveLength(2);
     expect(docs[0].drive_file_id).toBe(firstUploadId);
     expect(docs[1].drive_file_id).toBe(firstUploadId);
+    expect(docs.map((doc) => doc.sender_email).sort()).toEqual(['origem@empresa.com', 'reenvio@empresa.com']);
   });
 
   it('hardening: per-run maxAttachments cap is enforced', async () => {

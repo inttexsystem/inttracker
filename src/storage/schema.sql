@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS documentos (
   attachment_id TEXT NOT NULL,
   filename_original TEXT NOT NULL,
   sha256 TEXT NOT NULL,
+  sender_email TEXT,
   email_message_id TEXT,
   email_received_at TEXT,
   email_received_at_source TEXT

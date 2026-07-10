@@ -39,6 +39,9 @@ export function ensureLocalMigrations(database: Database.Database): void {
   if (!colNames.has('email_message_id')) {
     database.exec(`ALTER TABLE documentos ADD COLUMN email_message_id TEXT`);
   }
+  if (!colNames.has('sender_email')) {
+    database.exec(`ALTER TABLE documentos ADD COLUMN sender_email TEXT`);
+  }
   if (!colNames.has('email_received_at')) {
     database.exec(`ALTER TABLE documentos ADD COLUMN email_received_at TEXT`);
   }
@@ -94,6 +97,7 @@ export function ensureCheckMigration(database: Database.Database): void {
     attachment_id TEXT NOT NULL,
     filename_original TEXT NOT NULL,
     sha256 TEXT NOT NULL,
+    sender_email TEXT,
     email_message_id TEXT,
     email_received_at TEXT,
     email_received_at_source TEXT,

@@ -13,12 +13,22 @@ export interface GmailMessageMeta {
   gmailMessageId: string;
   threadId: string;
   from: string;
+  senderEmail?: string | null;
   subject: string;
   date: string;
   emailReceivedAt: string | null;
   emailReceivedAtSource: 'gmail_internal_date' | 'header_date' | null;
   emailReceivedAtEstimated: boolean;
   attachmentCount: number;
+}
+
+export function normalizeSenderEmail(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  const match = trimmed.match(/(?:<\s*)?([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})(?:\s*>)?$/i);
+  if (!match) return null;
+  const email = match[1].toLowerCase();
+  return /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(email) ? email : null;
 }
 
 export interface NormalizedEmailReceivedAt {
@@ -160,6 +170,7 @@ export async function fetchRecentEmails(
     });
     const headers = meta.data.payload?.headers ?? [];
     const from = headers.find(h => h.name === 'From')?.value ?? '';
+    const senderEmail = normalizeSenderEmail(from);
     const subject = headers.find(h => h.name === 'Subject')?.value ?? '';
     const date = headers.find(h => h.name === 'Date')?.value ?? '';
     const emailReceived = normalizeEmailReceivedAt(meta.data.internalDate, date);
@@ -169,6 +180,7 @@ export async function fetchRecentEmails(
       gmailMessageId: m.id,
       threadId: m.threadId ?? '',
       from,
+      senderEmail,
       subject,
       date,
       ...emailReceived,
@@ -197,6 +209,7 @@ export async function fetchMessageById(
   });
   const headers = meta.data.payload?.headers ?? [];
   const from = headers.find(h => h.name === 'From')?.value ?? '';
+  const senderEmail = normalizeSenderEmail(from);
   const subject = headers.find(h => h.name === 'Subject')?.value ?? '';
   const date = headers.find(h => h.name === 'Date')?.value ?? '';
   const emailReceived = normalizeEmailReceivedAt(meta.data.internalDate, date);
@@ -206,6 +219,7 @@ export async function fetchMessageById(
     gmailMessageId: meta.data.id ?? gmailMessageId,
     threadId: meta.data.threadId ?? '',
     from,
+    senderEmail,
     subject,
     date,
     ...emailReceived,
