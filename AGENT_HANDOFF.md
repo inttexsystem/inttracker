@@ -747,3 +747,12 @@ Bases incompletas sao retornadas em `canonical_base_skipped`, sem inventar pendi
 - Watcher executado uma vez com source explicita; contagens `1/1/1/0/0` (cycles/processed/completed/failed/empty), transicao `requested -> claimed -> running -> completed`, sem retry/recover-stale.
 - E2E confirmou scan Gmail, export/sync/finalizacao e refresh automatico da tela, com cinco documentos novos visiveis. Producao intocada, sem novas requests, sem alteracoes tecnicas e sem push.
 - Dividas nao bloqueantes: feedback duplicado visualmente e hidratacao de request ativa apos hard reload; proximo recomendado apenas B5 (`SCAN STATUS UI DEDUP + ACTIVE REQUEST HYDRATION`).
+## RAVATEX-DOCUMENTS-G24-C-AUTO-SCAN-ENTRY-GMAIL-COVERAGE (2026-07-10)
+
+- **Status**: `G24-C BLOCKED — R1 REQUIRED`; nao declarar CLOSED.
+- **Baseline**: Ingestor `master` / `62b4e10`; Controle `work/app-next` / `e72d966`.
+- **Filtro Gmail**: comparacao read-only de 7 dias entre a query atual e `has:attachment` sem filtro de filename retornou exatamente 10 mensagens/18 anexos nas duas consultas. Foram 17 candidatos PDF/XML e 1 rejeitado irrelevante; zero candidatos omitidos pelo filtro atual. Nenhum corpo/anexo foi baixado e o ledger foi sanitizado.
+- **Gate**: filtro, MIME/extensao, cap, dedup e classificacao permanecem intocados porque nao ha causa comprovada. R1 deve fornecer um documento ausente conhecido ou janela limitada que o contenha; so entao alterar condicao causal e adicionar teste.
+- **Watcher persistente implementado, nao ativado**: `src/core/watcherInstanceLock.ts` faz exclusao atomica por source em modo continuo; o CLI a usa somente fora de `--once`. `ops/watcher/` fornece start/status/stop e instalacao de Task Scheduler. O start recusa ref diferente de `ucrjtfswnfdlxwtmxnoo`; Task Scheduler usa `IgnoreNew`; lock do CLI cobre corrida/processo externo. Nenhum segredo foi inserido nos scripts.
+- **Testes**: 31/31 nos testes focados de watcher/CLI; build geral ainda falha por seis erros anteriores em arquivos fora deste escopo (`drive.ts`, `realScan.ts`, `syncMapped.ts`).
+- **E2E**: nao executado. Task nao instalada, watcher 0, e falta documento antes omitido para comprovar cobertura. Nao houve producao, push, Gmail/Drive/Supabase writes.

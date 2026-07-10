@@ -465,3 +465,23 @@ RAVATEX-DOCUMENTS-G22-A-AUTO-LOADER-DESIGN (Controle de Tapetes, read-only)
 - Gmail/scan/export/sync/finalizacao concluidos conforme evidencia E2E; a UI atualizou a lista automaticamente e exibiu pelo menos cinco documentos novos.
 - Producao nao acessada; nenhum retry ou `--recover-stale`; nenhuma migration/codigo tecnico alterado nesta ordem; nenhuma nova request e nenhum push.
 - Dividas nao bloqueantes ficam para B5: duplicidade visual do feedback e ausencia de reidratacao automatica apos hard reload. Proximo recomendado: `G24-B5 - SCAN STATUS UI DEDUP + ACTIVE REQUEST HYDRATION`.
+> **Atualizacao 2026-07-10 — fase `RAVATEX-DOCUMENTS-G24-C-AUTO-SCAN-ENTRY-GMAIL-COVERAGE`.**
+> Status: **G24-C BLOCKED — R1 REQUIRED**. Sem compactacao deste arquivo.
+>
+> Baseline confirmado: `master` em `62b4e10`, working tree inicialmente limpa. O Controle permaneceu em `work/app-next` / `e72d966` (com somente os untracked explicitamente preservados).
+>
+> Diagnostico Gmail read-only, limitado a `after:2026/07/03`:
+> - Query atual: `has:attachment (filename:pdf OR filename:xml) after:2026/07/03`.
+> - Controle: `has:attachment after:2026/07/03`.
+> - Resultado: 10 mensagens e 18 anexos em ambas; 17 candidatos PDF/XML, 1 anexo irrelevante e zero mensagens/candidatos ausentes da query atual.
+> - IDs, assuntos e filenames foram mascarados; nao houve download de anexos, Gmail write, Drive write ou Supabase write.
+>
+> O filtro nao foi alterado porque a causa dos documentos omitidos nao foi comprovada. R1 requer um documento ausente identificavel ou uma janela temporal limitada que o contenha, para produzir ledger por etapa e teste causal.
+>
+> Operacao persistente preparada (ainda nao instalada/ativada):
+> - `src/core/watcherInstanceLock.ts` cria lock atomico por source para watcher continuo e recupera somente lock de PID morto.
+> - `src/cli.ts` adquire essa trava somente com `--no-once` e a libera no encerramento.
+> - `ops/watcher/` contem scripts versionados para iniciar, instalar task de logon, consultar estado e parar de forma controlada. O start valida o project ref staging `ucrjtfswnfdlxwtmxnoo`; a tarefa usa `IgnoreNew` e o CLI mantem a trava por source. Nenhuma credencial e embutida.
+> - Testes focados: watcher/CLI 31/31 pass; `git diff --check` OK. `npm run build` continua bloqueado por seis erros preexistentes em `drive.ts`, `realScan.ts` e `syncMapped.ts`, fora deste patch.
+>
+> E2E staging nao executado: nao ha watcher persistente ativo e nao existe documento antes omitido comprovado. Producao e push intocados.
