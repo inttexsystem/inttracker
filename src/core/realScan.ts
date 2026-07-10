@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { getDb } from '../storage/sqlite.js';
 import { classifyAttachment } from './classifier.js';
-import { isDuplicate, isDuplicateInSameMessage, isEmailProcessed, markEmailProcessed, findExistingBySha256 } from './dedupe.js';
+import { isDuplicate, isDuplicateInSameMessage, getProcessedEmailAttachmentCount, markEmailProcessed, findExistingBySha256 } from './dedupe.js';
 import { pendenteDrivePath } from './paths.js';
 import { uploadDocument } from '../connectors/drive.js';
 import { fetchRecentEmails, fetchMessageById, listAttachments, downloadAttachment, isAttachmentCandidate } from '../connectors/gmail.js';
@@ -110,7 +110,8 @@ export function createScan(deps: ScanDeps = defaultDeps) {
     for (const email of emails) {
       const isRetry = opts.retryMessageId != null && email.gmailMessageId === opts.retryMessageId;
 
-      if (!isRetry && isEmailProcessed(email.gmailMessageId)) {
+      const priorAttachmentCount = isRetry ? null : getProcessedEmailAttachmentCount(email.gmailMessageId);
+      if (!isRetry && priorAttachmentCount !== null && priorAttachmentCount > 0) {
         logger.log({ type: 'email.scanned', timestamp: new Date().toISOString(), gmailMessageId: email.gmailMessageId, subject: email.subject, attachmentsCount: 0, status: 'skipped_already' });
         continue;
       }

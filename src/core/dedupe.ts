@@ -66,6 +66,22 @@ export function isEmailProcessed(gmailMessageId: string): boolean {
   return !!row;
 }
 
+/**
+ * A zero count is an incomplete scan marker, not a completed email. This can
+ * happen when a prior run marked the email before attachment extraction and
+ * then failed or was interrupted. Callers must retry these rows so a later
+ * healthy scan does not permanently omit the email's documents.
+ */
+export function getProcessedEmailAttachmentCount(gmailMessageId: string): number | null {
+  const database = getDb();
+  const row = database.prepare(
+    `SELECT attachments_count FROM emails_processados WHERE gmail_message_id = ? LIMIT 1`
+  ).get(gmailMessageId) as { attachments_count?: unknown } | undefined;
+  if (!row) return null;
+  const count = Number(row.attachments_count);
+  return Number.isFinite(count) ? count : 0;
+}
+
 export function markEmailProcessed(gmailMessageId: string, threadId: string, subject: string, attachmentsCount: number): void {
   const database = getDb();
   database.prepare(

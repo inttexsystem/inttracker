@@ -217,6 +217,26 @@ describe('real scan flow (mocked Google)', () => {
     expect(emails).toHaveLength(1);
   });
 
+  it('real scan: retries an email previously marked with zero attachments', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\nrecovery after incomplete extraction');
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'msg-incomplete', threadId: 't', from: '', subject: 'NF recovery', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'msg-incomplete', threadId: 't', attachmentId: 'att-incomplete', filename: 'recovered.pdf', mimeType: 'application/pdf', size: fakePdf.length },
+      ],
+      downloadAtt: async () => fakePdf,
+    });
+    const db = getDb();
+    db.prepare(`INSERT INTO emails_processados (gmail_message_id, attachments_count) VALUES (?, 0)`).run('msg-incomplete');
+
+    const result = await createScan(deps)({ confirmReal: true });
+    expect(result.newDocuments).toBe(1);
+    const row = db.prepare(`SELECT attachments_count FROM emails_processados WHERE gmail_message_id = ?`).get('msg-incomplete') as any;
+    expect(row.attachments_count).toBe(1);
+  });
+
   it('real scan: errors during upload are captured, not thrown', async () => {
     const fakePdf = Buffer.from('%PDF-1.4\n...');
     const deps = mkDeps({
