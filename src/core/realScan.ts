@@ -107,6 +107,16 @@ export function createScan(deps: ScanDeps = defaultDeps) {
     }
     const database = getDb();
 
+    function hydrateDuplicateSender(email: GmailMessageMeta, att: GmailAttachmentRef, sha256: string): void {
+      if (!email.senderEmail) return;
+      database.prepare(
+        `UPDATE documentos
+           SET sender_email = COALESCE(sender_email, ?)
+         WHERE gmail_message_id = ?
+           AND (attachment_id = ? OR sha256 = ?)`
+      ).run(email.senderEmail, email.gmailMessageId, att.attachmentId, sha256);
+    }
+
     for (const email of emails) {
       const isRetry = opts.retryMessageId != null && email.gmailMessageId === opts.retryMessageId;
 
@@ -142,12 +152,14 @@ export function createScan(deps: ScanDeps = defaultDeps) {
 
           const sha256 = createHash('sha256').update(buffer).digest('hex');
           if (isDuplicate(email.gmailMessageId, att.attachmentId, sha256)) {
+            hydrateDuplicateSender(email, att, sha256);
             duplicates++;
             logger.log({ type: 'attachment.processed', timestamp: new Date().toISOString(), gmailMessageId: email.gmailMessageId, attachmentId: att.attachmentId, filename: att.filename, sha256, status: 'duplicate' });
             continue;
           }
 
           if (isDuplicateInSameMessage(email.gmailMessageId, sha256)) {
+            hydrateDuplicateSender(email, att, sha256);
             duplicates++;
             logger.log({ type: 'attachment.processed', timestamp: new Date().toISOString(), gmailMessageId: email.gmailMessageId, attachmentId: att.attachmentId, filename: att.filename, sha256, status: 'duplicate_same_message' });
             continue;

@@ -138,6 +138,35 @@ describe('real scan flow (mocked Google)', () => {
     expect(docCount).toBe(1);
   });
 
+  it('retry fills a legacy null sender without replacing a known sender', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\n...sender retry...');
+    const message = {
+      gmailMessageId: 'msg-sender-retry', threadId: 't', from: '', subject: 'NF', date: '', attachmentCount: 1,
+    };
+    const deps = mkDeps({
+      fetchEmails: async () => [message],
+      fetchMessageById: async () => ({ ...message, senderEmail: 'fornecedor@empresa.com' }),
+      listAtts: async () => [
+        { gmailMessageId: 'msg-sender-retry', threadId: 't', attachmentId: 'att-1', filename: 'n.pdf', mimeType: 'application/pdf', size: fakePdf.length },
+      ],
+      downloadAtt: async () => fakePdf,
+    });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    expect((db.prepare(`SELECT sender_email FROM documentos WHERE gmail_message_id = ?`).get('msg-sender-retry') as any).sender_email).toBeNull();
+
+    await scan({ confirmReal: true, retryMessageId: 'msg-sender-retry' });
+    expect((db.prepare(`SELECT sender_email FROM documentos WHERE gmail_message_id = ?`).get('msg-sender-retry') as any).sender_email)
+      .toBe('fornecedor@empresa.com');
+
+    db.prepare(`UPDATE documentos SET sender_email = ? WHERE gmail_message_id = ?`)
+      .run('existente@empresa.com', 'msg-sender-retry');
+    await scan({ confirmReal: true, retryMessageId: 'msg-sender-retry' });
+    expect((db.prepare(`SELECT sender_email FROM documentos WHERE gmail_message_id = ?`).get('msg-sender-retry') as any).sender_email)
+      .toBe('existente@empresa.com');
+  });
+
   it('real scan: XML with NF-e structure is classified as nf + formato xml', async () => {
     const xml = Buffer.from('<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe>...</NFe></nfeProc>');
     const deps = mkDeps({
