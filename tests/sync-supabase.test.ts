@@ -189,8 +189,90 @@ describe('sync:supabase canonical writer', () => {
   it('keeps the service-role key guard for confirmed writes', () => {
     expect(() => loadServiceRoleConfig({
       SUPABASE_WRITER_ENABLED: 'true',
-      SUPABASE_URL: 'https://example.supabase.co',
+      SUPABASE_URL: 'https://abc123def456.supabase.co',
+      SUPABASE_PROJECT_REF: 'abc123def456',
     })).toThrow(/SUPABASE_SERVICE_ROLE_KEY is required/);
+  });
+
+  describe('project ref guard for confirmed writes', () => {
+    const validUrl = 'https://abc123def456.supabase.co';
+    const validRef = 'abc123def456';
+
+    it('fails with supabase_project_ref_required when SUPABASE_PROJECT_REF is missing', () => {
+      expect(() => loadServiceRoleConfig({
+        SUPABASE_WRITER_ENABLED: 'true',
+        SUPABASE_URL: validUrl,
+        SUPABASE_SERVICE_ROLE_KEY: 'sk-test-key',
+      })).toThrow('supabase_project_ref_required');
+    });
+
+    it('fails with supabase_project_ref_mismatch when URL hostname ref does not match SUPABASE_PROJECT_REF', () => {
+      expect(() => loadServiceRoleConfig({
+        SUPABASE_WRITER_ENABLED: 'true',
+        SUPABASE_URL: validUrl,
+        SUPABASE_SERVICE_ROLE_KEY: 'sk-test-key',
+        SUPABASE_PROJECT_REF: 'differentref000000',
+      })).toThrow('supabase_project_ref_mismatch');
+    });
+
+    it('fails with supabase_url_invalid when SUPABASE_URL is not parseable', () => {
+      expect(() => loadServiceRoleConfig({
+        SUPABASE_WRITER_ENABLED: 'true',
+        SUPABASE_URL: 'not-a-valid-url',
+        SUPABASE_SERVICE_ROLE_KEY: 'sk-test-key',
+        SUPABASE_PROJECT_REF: 'some-ref',
+      })).toThrow('supabase_url_invalid');
+    });
+
+    it('fails with supabase_url_invalid when SUPABASE_URL hostname is not *.supabase.co', () => {
+      expect(() => loadServiceRoleConfig({
+        SUPABASE_WRITER_ENABLED: 'true',
+        SUPABASE_URL: 'https://example.com',
+        SUPABASE_SERVICE_ROLE_KEY: 'sk-test-key',
+        SUPABASE_PROJECT_REF: 'some-ref',
+      })).toThrow('supabase_url_invalid');
+    });
+
+    it('succeeds when project ref matches URL hostname', () => {
+      const cfg = loadServiceRoleConfig({
+        SUPABASE_WRITER_ENABLED: 'true',
+        SUPABASE_URL: validUrl,
+        SUPABASE_SERVICE_ROLE_KEY: 'sk-test-key',
+        SUPABASE_PROJECT_REF: validRef,
+      });
+      expect(cfg.projectRef).toBe(validRef);
+      expect(cfg.url).toBe(validUrl);
+      expect(cfg.serviceRoleKey).toBe('sk-test-key');
+    });
+
+    it('never logs service_role key in error messages', () => {
+      const key = 'sk-sensitive-secret-key-12345';
+      const urls = [
+        'not-a-valid-url',
+        'https://wrongref.supabase.co',
+      ];
+      const configs = [
+        { SUPABASE_WRITER_ENABLED: 'true', SUPABASE_URL: urls[0], SUPABASE_SERVICE_ROLE_KEY: key, SUPABASE_PROJECT_REF: 'any' },
+        { SUPABASE_WRITER_ENABLED: 'true', SUPABASE_URL: urls[1], SUPABASE_SERVICE_ROLE_KEY: key, SUPABASE_PROJECT_REF: 'different' },
+      ];
+
+      for (const cfg of configs) {
+        try {
+          loadServiceRoleConfig(cfg);
+        } catch (error: any) {
+          const msg = error?.message ?? '';
+          expect(msg).not.toContain(key);
+        }
+      }
+
+      try {
+        loadServiceRoleConfig({ SUPABASE_WRITER_ENABLED: 'true', SUPABASE_URL: 'https://abc.supabase.co', SUPABASE_PROJECT_REF: 'abc' });
+      } catch (error: any) {
+        const msg = error?.message ?? '';
+        expect(msg).not.toContain('sk-');
+        expect(msg).not.toContain('service_role');
+      }
+    });
   });
 
   it('delegates active human decision preservation to the database RPC', () => {

@@ -65,18 +65,32 @@ export interface SupabaseWriterClient {
   }): Promise<void>;
 }
 
-export interface ServiceRoleConfig {
-  url: string;
-  serviceRoleKey: string;
-  projectRef: string | null;
-}
-
 function requiredEnv(env: NodeJS.ProcessEnv, name: string, configuredValue: string): string {
   const value = env[name]?.trim() || configuredValue.trim();
   if (!value) {
     throw new Error(`[sync:supabase] ${name} is required when --confirm-supabase-write is used.`);
   }
   return value;
+}
+
+export interface ServiceRoleConfig {
+  url: string;
+  serviceRoleKey: string;
+  projectRef: string;
+}
+
+function extractProjectRefFromUrl(urlString: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(urlString);
+  } catch {
+    throw new Error('supabase_url_invalid');
+  }
+  const hostname = parsed.hostname;
+  if (!hostname) throw new Error('supabase_url_invalid');
+  const match = hostname.match(/^([a-z0-9]+)\.supabase\.co$/);
+  if (match) return match[1];
+  throw new Error('supabase_url_invalid');
 }
 
 export function loadServiceRoleConfig(env: NodeJS.ProcessEnv = process.env): ServiceRoleConfig {
@@ -88,11 +102,21 @@ export function loadServiceRoleConfig(env: NodeJS.ProcessEnv = process.env): Ser
     throw new Error('[sync:supabase] SUPABASE_WRITER_ENABLED=true is required for a real write.');
   }
 
-  return {
-    url: requiredEnv(env, 'SUPABASE_URL', useLoadedDotEnv ? config.supabaseUrl : ''),
-    serviceRoleKey: requiredEnv(env, 'SUPABASE_SERVICE_ROLE_KEY', useLoadedDotEnv ? config.supabaseServiceRoleKey : ''),
-    projectRef: env.SUPABASE_PROJECT_REF?.trim() || (useLoadedDotEnv ? config.supabaseProjectRef.trim() : '') || null,
-  };
+  const url = requiredEnv(env, 'SUPABASE_URL', useLoadedDotEnv ? config.supabaseUrl : '');
+  const serviceRoleKey = requiredEnv(env, 'SUPABASE_SERVICE_ROLE_KEY', useLoadedDotEnv ? config.supabaseServiceRoleKey : '');
+
+  const urlProjectRef = extractProjectRefFromUrl(url);
+
+  const projectRef = env.SUPABASE_PROJECT_REF?.trim() || (useLoadedDotEnv ? config.supabaseProjectRef.trim() : '') || '';
+  if (!projectRef) {
+    throw new Error('supabase_project_ref_required');
+  }
+
+  if (urlProjectRef !== projectRef) {
+    throw new Error('supabase_project_ref_mismatch');
+  }
+
+  return { url, serviceRoleKey, projectRef };
 }
 
 function throwOnError(error: { message: string } | null): void {
