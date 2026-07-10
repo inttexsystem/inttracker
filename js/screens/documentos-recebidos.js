@@ -13,8 +13,8 @@
 (function (window) {
   'use strict';
 
-  var TABLE_GRID = 'minmax(280px,1.7fr) minmax(190px,1.05fr) minmax(112px,.75fr) minmax(140px,.85fr) minmax(120px,.75fr) 148px';
-  var TABLE_MIN_WIDTH = '1080px';
+  var TABLE_GRID = 'minmax(260px,1.6fr) minmax(175px,1fr) minmax(112px,.75fr) minmax(130px,.8fr) minmax(220px,1.15fr) 148px';
+  var TABLE_MIN_WIDTH = '1180px';
   var CARD = 'background:#fff;border:1px solid #eceef1;border-radius:6px;';
   var BTN_PRIMARY = 'height:34px;display:inline-flex;align-items:center;gap:7px;'
     + 'background:#2563eb;color:#fff;border:none;border-radius:4px;padding:0 14px;'
@@ -279,8 +279,12 @@
     return { date: parts[0] || full, time: parts[1] || '' };
   }
 
-  function receivedAt(doc) {
-    return doc && (doc.received_at || doc.created_at || doc.detected_at || doc.linked_at || doc.accepted_at || doc.rejected_at) || null;
+  function emailReceivedAt(doc) {
+    return doc && doc.email_received_at || null;
+  }
+
+  function processedAt(doc) {
+    return doc && (doc.created_at || doc.detected_at || doc.linked_at || doc.accepted_at || doc.rejected_at) || null;
   }
 
   function decorateDoc(doc, index) {
@@ -299,7 +303,8 @@
     var status = effective ? effective.effectiveStatus : (ui.statusOverrides[id] || importedStatus);
     var hasLocalDecision = effective ? effective.isLocalDecision : false;
     var isDivergent = effective ? effective.isDivergent : false;
-    var when = receivedAt(doc);
+    var emailWhen = emailReceivedAt(doc);
+    var processedWhen = processedAt(doc);
     return {
       id: id,
       hasRealId: hasRealId,
@@ -316,10 +321,13 @@
       isSupabaseSource: isSupabaseSource,
       canUndoCloudDecision: canUndoCloudDecision,
       pedido: doc && (doc.pedido_manual || doc.pedido || doc.pedido_key) || '',
-      when: when,
+      emailReceivedAt: emailWhen,
+      processedAt: processedWhen,
+      temporalBase: emailWhen ? 'email_received' : 'processed_legacy',
       driveId: doc && doc.drive_file_id ? doc.drive_file_id : '',
       driveLink: doc && doc.drive_web_view_link ? doc.drive_web_view_link : '',
-      dateParts: fmtDataParts(when),
+      emailDateParts: fmtDataParts(emailWhen),
+      processedDateParts: fmtDataParts(processedWhen),
     };
   }
 
@@ -329,8 +337,7 @@
 
   function matchesPeriod(doc) {
     if (ui.periodo === 'todos') return true;
-    if (!doc.when) return false;
-    var d = new Date(doc.when);
+    var d = new Date(doc.emailReceivedAt || doc.processedAt);
     if (isNaN(d.getTime())) return false;
     var now = new Date();
     if (ui.periodo === 'hoje') {
@@ -1099,8 +1106,9 @@
     if (ui.lastRun) return fmtDataHoraCurta(ui.lastRun);
     var latest = null;
     docs.forEach(function (doc) {
-      if (!doc.when) return;
-      var d = new Date(doc.when);
+      var temporalValue = doc.emailReceivedAt || doc.processedAt;
+      if (!temporalValue) return;
+      var d = new Date(temporalValue);
       if (isNaN(d.getTime())) return;
       if (!latest || d.getTime() > latest.getTime()) latest = d;
     });
@@ -1331,7 +1339,7 @@
     },
       selectControl('Tipo', ui.tipo, tipoOptions, function (v) { ui.tipo = v; }),
       selectControl('Pedido', ui.pedido, pedidoOptions, function (v) { ui.pedido = v; }),
-      selectControl('Recebido em', ui.periodo, periodoOptions, function (v) { ui.periodo = v; }),
+      selectControl('Período (e-mail; processamento em legado)', ui.periodo, periodoOptions, function (v) { ui.periodo = v; }),
       window.el('button', {
         type: 'button',
         'data-action': 'limpar-filtros',
@@ -1363,7 +1371,7 @@
       head('Tipo'),
       head('Status'),
       head('Pedido'),
-      head('Recebido em'),
+      head('Datas'),
       head('Ações', 'center'));
   }
 
@@ -1420,16 +1428,17 @@
       window.el('div', {
         style: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
       }, pedidoCell(doc)),
-      window.el('div', {
-        'data-field': 'recebido-em',
-        style: 'white-space:nowrap;',
-      },
-        window.el('span', {
-          style: 'font-size:12.5px;color:#5b6472;font-weight:500;',
-        }, doc.dateParts.date),
-        doc.dateParts.time ? window.el('span', {
-          style: 'font-size:11.5px;color:#9aa2af;',
-        }, ' ' + doc.dateParts.time) : null),
+      window.el('div', { style: 'display:flex;flex-direction:column;gap:3px;min-width:0;' },
+        window.el('div', { 'data-field': 'recebido-no-email', style: 'font-size:11.5px;color:#5b6472;' },
+          'Recebido no e-mail: ', doc.emailReceivedAt ? fmtDataHoraCurta(doc.emailReceivedAt) : 'indisponível',
+          doc.raw.email_received_at_estimated === true ? window.el('span', {
+            'data-badge': 'data-estimada', style: 'margin-left:5px;font-size:10px;font-weight:700;color:#a16207;',
+          }, 'data estimada') : null,
+          !doc.emailReceivedAt ? window.el('span', {
+            'data-badge': 'documento-legado', style: 'margin-left:5px;font-size:10px;font-weight:700;color:#7c3aed;',
+          }, 'documento legado') : null),
+        window.el('div', { 'data-field': 'processado-pelo-ingestor', style: 'font-size:11.5px;color:#7b8492;' },
+          'Processado pelo Ingestor: ', doc.processedAt ? fmtDataHoraCurta(doc.processedAt) : 'indisponível')),
       buildActionButtons(doc));
   }
 

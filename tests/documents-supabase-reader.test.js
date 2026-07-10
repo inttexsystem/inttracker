@@ -46,6 +46,8 @@ const candidate = {
   filename_original: 'NF-99.xml', tipo_documento: 'nf', formato: 'xml', direcao_nf: 'entrada',
   drive_file_id: 'drive-99', drive_web_view_link: 'https://drive.example/99', status: 'pending',
   pedido_manual: 'PED-99-2026', pedido_id: null, fornecedor_id: null,
+  email_message_id: 'gmail-99', email_received_at: '2026-07-09T09:00:00.000Z',
+  email_received_at_source: 'gmail_internal_date', email_received_at_estimated: false,
   received_at: '2026-07-09T10:00:00.000Z', detected_at: '2026-07-09T10:01:00.000Z',
   linked_at: null, accepted_at: null, rejected_at: null, rejected_reason: null,
   schema_version: 1, criado_em: '2026-07-09T10:00:00.000Z', raw_payload: { segredo: true },
@@ -78,6 +80,8 @@ test('reader: consulta candidates e decisoes ativas, sem raw_payload no select',
   assert.ok(candidatesSelect.fields.includes('ingestor_status'));
   assert.ok(candidatesSelect.fields.includes('ingestor_state_at'));
   assert.ok(candidatesSelect.fields.includes('ingestor_event_id'));
+  assert.ok(candidatesSelect.fields.includes('email_received_at'));
+  assert.ok(candidatesSelect.fields.includes('email_received_at_source'));
   assert.equal(candidatesSelect.fields.includes('raw_payload'), false);
 });
 
@@ -90,6 +94,8 @@ test('reader: mapeia candidate para o shape flat e preserva origem Supabase', as
   assert.equal(doc.filename_original, 'NF-99.xml');
   assert.equal(doc.pedido_manual, 'PED-99-2026');
   assert.equal(doc.created_at, candidate.criado_em);
+  assert.equal(doc.email_received_at, candidate.email_received_at);
+  assert.equal(doc.email_received_at_source, 'gmail_internal_date');
   assert.equal(doc._ravatex_source, 'supabase');
   assert.equal(rt.sandbox.RAVATEX_DOCUMENTS_RECEIVED_SOURCE, 'supabase');
   assert.equal(Object.prototype.hasOwnProperty.call(doc, 'raw_payload'), false);

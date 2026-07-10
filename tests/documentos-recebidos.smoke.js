@@ -784,7 +784,7 @@ test('G12-R3: header instrui a importar a lista do Documents Ingestor', function
     'strip compacta mostra Origem Gmail');
 });
 
-test('G12-R3: card exibe colunas Status, Pedido e Recebido em', function () {
+test('G25-B1: card exibe colunas Status, Pedido e Datas', function () {
   const sb = makeScreenSandbox([
     {
       document_id: 'doc-cols',
@@ -808,9 +808,9 @@ test('G12-R3: card exibe colunas Status, Pedido e Recebido em', function () {
   const colsText = textOf(colsHeader[0]);
   assert.ok(colsText.indexOf('STATUS') >= 0, 'cabecalho tem STATUS');
   assert.ok(colsText.indexOf('PEDIDO') >= 0, 'cabecalho tem PEDIDO');
-  assert.ok(colsText.indexOf('RECEBIDO EM') >= 0, 'cabecalho tem RECEBIDO EM');
+  assert.ok(colsText.indexOf('DATAS') >= 0, 'cabecalho tem DATAS');
   assert.ok(colsText.indexOf('AÇÕES') >= 0, 'cabecalho tem AÇÕES');
-  assert.ok((colsHeader[0]._attrs.style || '').indexOf('minmax(190px,1.05fr)') >= 0,
+  assert.ok((colsHeader[0]._attrs.style || '').indexOf('minmax(175px,1fr)') >= 0,
     'coluna Tipo deve ceder espaco para Acoes no grid: ' + (colsHeader[0]._attrs.style || ''));
   assert.ok((colsHeader[0]._attrs.style || '').indexOf('148px') >= 0,
     'coluna Acoes deve comportar quatro botoes: ' + (colsHeader[0]._attrs.style || ''));
@@ -822,7 +822,7 @@ test('G12-R3: card exibe colunas Status, Pedido e Recebido em', function () {
   const rowText = textOf(row);
   assert.ok(rowText.indexOf('PED-25-2026') >= 0, 'pedido_manual aparece no row');
   assert.ok(rowText.indexOf('Pendente') >= 0, 'status Pendente padrao aparece');
-  // Recebido em aparece formatado (dd/mm HH:MM)
+  // Processamento aparece mesmo para documento legado.
   assert.ok(/\d{2}\/\d{2}\s+\d{2}:\d{2}/.test(rowText),
     'Recebido em formatado dd/mm HH:MM: ' + rowText);
 });
@@ -890,7 +890,7 @@ test('G12-R1: empty state instrui a usar o botao acima', function () {
 //    created_at, e mapeia status para labels operacionais.
 // ---------------------------------------------------------------------
 
-test('G12-F2: tela usa received_at quando created_at nao existe', function () {
+test('G25-B1: received_at legado nao e usado como data do e-mail', function () {
   const sb = makeScreenSandbox([
     {
       document_id: 'doc-mapped-date',
@@ -908,13 +908,12 @@ test('G12-F2: tela usa received_at quando created_at nao existe', function () {
   const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   const row = findAll(result, findRow)[0];
   const rowText = textOf(row);
-  // Recebido em formatado dd/mm HH:MM
-  assert.ok(/\d{2}\/\d{2}\s+\d{2}:\d{2}/.test(rowText),
-    'Recebido em formatado a partir de received_at: ' + rowText);
+  assert.ok(rowText.indexOf('Recebido no e-mail: indisponível') >= 0,
+    'received_at legado nao pode ser apresentado como Gmail: ' + rowText);
 });
 
-test('G12-F2: tela prioriza received_at quando created_at tambem existe', function () {
-  // received_at e 30min depois de created_at. A tela deve usar received_at.
+test('G25-B1: tela usa email_received_at e exibe processamento separadamente', function () {
+  // email_received_at e 30min depois de created_at. A tela deve expor ambos.
   // O fuso local do runner pode variar (UTC-3 tipico), entao calculamos
   // o offset dinamicamente para que o teste seja deterministico.
   const sampleIso = '2026-07-08T10:30:00.000Z';
@@ -930,7 +929,7 @@ test('G12-F2: tela prioriza received_at quando created_at tambem existe', functi
       tipo_documento: 'nf',
       formato: 'xml',
       drive_web_view_link: 'https://drive/x',
-      received_at: sampleIso,
+      email_received_at: sampleIso,
       created_at: '2026-07-08T10:00:00.000Z',
     },
   ]);
@@ -938,11 +937,12 @@ test('G12-F2: tela prioriza received_at quando created_at tambem existe', functi
   sb.container = container;
   const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   const row = findAll(result, findRow)[0];
-  const recebidoEm = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'recebido-em')[0];
-  assert.ok(recebidoEm, 'celula recebido-em existe');
-  // received_at aparece (offset local), created_at NAO aparece
-  assert.ok(textOf(recebidoEm).indexOf(localHHMM) >= 0,
-    'celula deve usar received_at (' + localHHMM + '), nao created_at: ' + textOf(recebidoEm));
+  const recebidoEmail = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'recebido-no-email')[0];
+  const processado = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'processado-pelo-ingestor')[0];
+  assert.ok(recebidoEmail, 'celula recebido-no-email existe');
+  assert.ok(processado, 'celula processado-pelo-ingestor existe');
+  assert.ok(textOf(recebidoEmail).indexOf(localHHMM) >= 0,
+    'celula deve usar email_received_at (' + localHHMM + '): ' + textOf(recebidoEmail));
 });
 
 test('G12-F2: tela mostra status:pending como Pendente', function () {
@@ -1072,8 +1072,10 @@ test('G12-F2: tela continua aceitando formato antigo (sem status, sem received_a
   assert.ok(row, 'row do formato antigo renderiza');
   const statusPill = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'status')[0];
   assert.equal(textOf(statusPill), 'Pendente', 'status padrao sem status field');
-  const recebidoEm = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'recebido-em')[0];
-  assert.ok(textOf(recebidoEm).length > 0, 'data formatada a partir de created_at');
+  const recebidoEmail = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'recebido-no-email')[0];
+  const processado = findAll(row, (n) => n._attrs && n._attrs['data-field'] === 'processado-pelo-ingestor')[0];
+  assert.ok(textOf(recebidoEmail).indexOf('indisponível') >= 0, 'legado marcado como indisponível');
+  assert.ok(textOf(processado).length > 0, 'processamento continua navegável para legado');
 });
 
 test('G12-F2: header traz subtitulo conciso sem citar os arquivos jsonl', function () {
@@ -1823,4 +1825,30 @@ test('G24-B5: status ativo nao e duplicado entre botao e feedback', function () 
   var button = findAll(latestTree, findAction('verificar-novos-documentos'))[0];
   assert.ok(textOf(button).indexOf('Solicitacao aguardando executor') >= 0,
     'botao exibe o status ativo como fonte unica');
+});
+
+test('G25-B1: separa recebimento Gmail do processamento e marca fallback/legado', function () {
+  var sb = makeScreenSandbox([
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb18', filename_original: 'interno.pdf',
+      email_received_at: '2026-07-09T09:00:00.000Z', email_received_at_source: 'gmail_internal_date',
+      email_received_at_estimated: false, created_at: '2026-07-09T12:00:00.000Z', status: 'pending',
+    },
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb19', filename_original: 'header.pdf',
+      email_received_at: '2026-07-09T10:00:00.000Z', email_received_at_source: 'header_date',
+      email_received_at_estimated: true, created_at: '2026-07-09T12:00:00.000Z', status: 'pending',
+    },
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb20', filename_original: 'legacy.pdf',
+      received_at: '2026-07-09T08:00:00.000Z', created_at: '2026-07-09T12:00:00.000Z', status: 'pending',
+    },
+  ]);
+  var tree = vm.runInContext('window.screenDocumentosRecebidos()', sb);
+  var rendered = textOf(tree);
+  assert.ok(rendered.indexOf('Recebido no e-mail: 09/07 06:00') >= 0, 'internalDate shown as email timestamp');
+  assert.ok(rendered.indexOf('Processado pelo Ingestor: 09/07 09:00') >= 0, 'processing shown separately');
+  assert.ok(rendered.indexOf('data estimada') >= 0, 'header fallback labelled');
+  assert.ok(rendered.indexOf('Recebido no e-mail: indisponível') >= 0, 'legacy does not use received_at as email date');
+  assert.ok(rendered.indexOf('documento legado') >= 0, 'legacy label shown');
 });

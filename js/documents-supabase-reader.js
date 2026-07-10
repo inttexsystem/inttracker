@@ -17,6 +17,7 @@
     'document_id', 'filename_original', 'tipo_documento', 'formato', 'direcao_nf',
     'drive_file_id', 'drive_web_view_link', 'status', 'pedido_manual', 'pedido_id',
     'fornecedor_id', 'received_at', 'detected_at', 'linked_at', 'accepted_at',
+    'email_message_id', 'email_received_at', 'email_received_at_source', 'email_received_at_estimated',
     'rejected_at', 'rejected_reason', 'ingestor_status', 'ingestor_state_at',
     'ingestor_event_id', 'ingestor_rejected_reason', 'schema_version', 'criado_em'
   ].join(', ');
@@ -72,6 +73,10 @@
       pedido_manual: candidate.pedido_manual,
       pedido_id: candidate.pedido_id,
       fornecedor_id: candidate.fornecedor_id,
+      email_message_id: candidate.email_message_id,
+      email_received_at: candidate.email_received_at,
+      email_received_at_source: candidate.email_received_at_source,
+      email_received_at_estimated: candidate.email_received_at_estimated === true,
       received_at: candidate.received_at,
       detected_at: candidate.detected_at,
       linked_at: candidate.linked_at,
