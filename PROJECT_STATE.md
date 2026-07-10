@@ -1,5 +1,74 @@
 > **Atualizacao 2026-07-10 — fase
-> `RAVATEX-DOCUMENTS-G25-B2-A-R2-SHARED-PARTNER-CNPJ-REGISTRY`.**
+> `RAVATEX-DOCUMENTS-G25-B2-A-R3-PARTNER-CNPJ-ADMIN-UI`.**
+> Status: **CLOSED — G25-B2-A-R3**.
+> Branch/HEAD: `work/app-next` (HEAD inicial `998103d`).
+>
+> Escopo (UI administrativa do registro empresarial compartilhado MODELO C,
+> consome o schema 44 de R2; sem migration/RPC/Ingestor):
+> - Nova tela `screenCadastrosParceiros` em `js/screens/cadastros.js`:
+>   lista de parceiros (nome, estado, CNPJ principal, contagens de CNPJ/
+>   fornecedores/clientes) + tela de detalhe com paineis de CNPJs e de
+>   vinculos (fornecedores/clientes).
+> - Helpers de CNPJ (puros, sem Supabase): `normalizarCnpj`,
+>   `formatarCnpj`, `validarCnpjDv` (espelha `is_valid_cnpj` do db/44) e
+>   `mapearErroParceiroCnpj` (mapeia CHECK/unique/RLS para PT-BR sem
+>   expor payload sensivel).
+> - Cadastro/edicao de parceiro grava somente `{nome, ativo}` — nao cria
+>   cliente nem fornecedor automaticamente.
+> - CNPJ normalizado para 14 digitos antes do write; validacao de DV no
+>   front e auxiliar (constraint do banco e autoridade final).
+> - Marcacao de principal, ativacao/desativacao de CNPJ.
+> - Associacao/desassociacao escreve exclusivamente `parceiro_id`
+>   (NULLABLE); nao altera IDs legados, `fornecedores.tipo`, nem FKs de
+>   pedidos/lotes/OPs.
+> - Autorizacao: rota `roles:['admin']` (router) + RLS `is_admin()`
+>   (backstop do banco). Sem bypass, sem service role, sem afrouxar RLS.
+>   Erros de RLS em write tratados como falha de autorizacao.
+> - Rota `#/cadastros/parceiros` registrada no `boot.js`; item "Parceiros"
+>   + icone adicionados ao `ADMIN_MENU`/`MENU_ICONS` em `common.js`;
+>   cache-bust `?v=20260710-g25b3` em `index.html`.
+>
+> Testes focados (node --test):
+> - `tests/parceiros-screens.smoke.js` (NOVO, 24 testes): 24/24 PASS.
+> - `tests/cadastros-screens.smoke.js`: 32/32 PASS (teste 24, que esperava
+>   9 itens do ADMIN_MENU estalado, corrigido para 12).
+> - `tests/boot.smoke.js`: 30/30 PASS (testes 9/19/20 com contagens de
+>   rotas atualizadas: 21 rotas listadas, 22 em window.routes).
+> - `tests/screens-common.smoke.js`: teste 19 (ADMIN_MENU deepEqual com
+>   Parceiros) PASS. 8 testes pre-existentes seguem falhando (dependem de
+>   `<script>` inline removido no refactor do boot) — fora de escopo.
+> - Suporte completa nao executada (politica de testes focados).
+>
+> Staging smoke write (`ucrjtfswnfdlxwtmxnoo`, login admin):
+> - ANTES: `parceiros=0`, `parceiro_cnpjs=0`.
+> - Criou parceiro sintetico `__smoke_r3_<ts>` + CNPJ de teste
+>   `11222333000181` (valido, reservado; gravado normalizado, sem
+>   pontuacao).
+> - DEPOIS: `parceiros=1`, `parceiro_cnpjs=1` (+1/+1).
+> - Cleanup integral: CNPJ removido, parceiro removido.
+> - FINAIS: `parceiros=0`, `parceiro_cnpjs=0` (estado anterior restaurado).
+> - Producao (`bhgifjrfagkzubpyqpew`) nao contatada (guarda de ref).
+>
+> Arquivos alterados nesta fase:
+> - `js/screens/cadastros.js` (helpers CNPJ + screenCadastrosParceiros + exports)
+> - `js/screens/common.js` (item de menu + icone)
+> - `js/boot.js` (rota admin)
+> - `index.html` (cache-bust)
+> - `tests/parceiros-screens.smoke.js` (novo)
+> - `tests/boot.smoke.js`, `tests/cadastros-screens.smoke.js`,
+>   `tests/screens-common.smoke.js` (regressao de contagens)
+> - `scripts/staging/g25-b3-parceiros-smoke.mjs` (novo, smoke write)
+> - `PROJECT_STATE.md`, `AGENT_HANDOFF.md` (registro closeout)
+>
+> Confirmacoes:
+> - `node --check` em todos os JS alterados: OK.
+> - Working tree: somente residuos previamente autorizados (`.claude/`,
+>   `data/fixtures/document-events-pedido-02.jsonl`, `supabase/.temp/`).
+> - Nenhum push realizado.
+>
+> STATUS FINAL: **G25-B2-A-R3 CLOSED**. ENTREGAR AO ARQUITETO.
+
+
 > Status: **CLOSED — G25-B2-A-R2**.
 > Branch/HEAD: `work/app-next` em `f89dcc6`.
 >

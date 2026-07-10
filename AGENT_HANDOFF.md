@@ -1,4 +1,68 @@
-﻿# Estado pos-fase - G25-B2-A-R2 Shared Partner CNPJ Registry
+﻿# Estado pos-fase - G25-B2-A-R3 Partner CNPJ Admin UI
+
+- Fase: `RAVATEX-DOCUMENTS-G25-B2-A-R3-PARTNER-CNPJ-ADMIN-UI`.
+- Status: **CLOSED — G25-B2-A-R3**.
+- Branch/HEAD: `work/app-next` (HEAD inicial `998103d`).
+
+- Diagnostico read-only (R3-A): decisao GO. Schema 44 (R2) atende
+  integralmente a UI; nenhuma migration/RPC/Ingestor necessaria;
+  padrao canonico de tela admin, formulario, write e autorizacao
+  confirmado; `parceiro_id` nao referenciado no frontend (UI greenfield
+  isolada em cadastros/admin).
+
+- O que foi entregue (UI administrativa MODELO C, consome schema 44):
+  - `screenCadastrosParceiros` em `js/screens/cadastros.js`: lista de
+    parceiros (nome, estado, CNPJ principal formatado, contagens) +
+    tela de detalhe com paineis de CNPJs e de vinculos.
+  - Helpers de CNPJ (puros): `normalizarCnpj`, `formatarCnpj`,
+    `validarCnpjDv` (espelha `is_valid_cnpj` do db/44, rejeita tamanho
+    errado/sequencia repetida/DV invalido), `mapearErroParceiroCnpj`
+    (CHECK/unique/RLS -> PT-BR, sem expor payload).
+  - Cadastro de parceiro grava somente `{nome, ativo}` — nenhum papel
+    automatico. CNPJ normalizado para 14 digitos antes do write;
+    validacao de DV no front e auxiliar (banco = autoridade final).
+  - Vinculos escrevem exclusivamente `parceiro_id` (NULLABLE);
+    desassociacao volta para NULL. Nao altera IDs legados,
+    `fornecedores.tipo`, nem FKs de pedidos/lotes/OPs.
+  - Autorizacao: rota `roles:['admin']` + RLS `is_admin()` backstop.
+    Sem bypass, sem service role, RLS nao afrouxada. Erros de RLS em
+    write tratados como falha de autorizacao, nunca como lista vazia.
+  - Rota `#/cadastros/parceiros` no `boot.js`; item + icone no
+    `ADMIN_MENU`/`MENU_ICONS` (`common.js`); cache-bust
+    `?v=20260710-g25b3` no `index.html`.
+
+- Testes focados (`node --test`, suporte completa nao executada):
+  - `tests/parceiros-screens.smoke.js` (NOVO): 24/24 PASS.
+  - `tests/cadastros-screens.smoke.js`: 32/32 PASS.
+  - `tests/boot.smoke.js`: 30/30 PASS.
+  - `tests/screens-common.smoke.js`: teste 19 (menu com Parceiros) PASS.
+    8 testes pre-existentes seguem falhando (dependem de `<script>`
+    inline removido no refactor do boot) — fora de escopo desta fase.
+
+- Staging smoke write (`ucrjtfswnfdlxwtmxnoo`, login admin):
+  - ANTES: `parceiros=0`, `parceiro_cnpjs=0`.
+  - Criou parceiro `__smoke_r3_<ts>` + CNPJ `11222333000181` (gravado
+    normalizado, sem pontuacao). DEPOIS: `parceiros=1`, `parceiro_cnpjs=1`.
+  - Cleanup integral: FINAIS `parceiros=0`, `parceiro_cnpjs=0`
+    (estado anterior restaurado).
+  - Producao (`bhgifjrfagkzubpyqpew`) nao contatada (guarda de ref).
+
+- Estado local/Git:
+  - Commits seletivos por arquivo (tecnico UI+testes, depois
+    documental de closeout). Nenhum push realizado.
+  - Untracked esperados preservados: `.claude/`,
+    `data/fixtures/document-events-pedido-02.jsonl`, `supabase/.temp/`.
+  - Risco residual: 8 testes pre-existentes do `screens-common.smoke.js`
+    dependem de `<script>` inline inexistente — pendencia pre-existente,
+    fora de escopo, a tratar em fase propria.
+
+- STATUS FINAL: **G25-B2-A-R3 CLOSED**. ENTREGAR AO ARQUITETO.
+- Proximo passo recomendado: homologacao visual manual da tela
+  `#/cadastros/parceiros` em browser (login admin) e, em sequencia,
+  decisao sobre vincular registros legados reais (Conitex/TPX/etc.) aos
+  parceiros — fase propria, fora do escopo de UI.
+
+# Estado pos-fase - G25-B2-A-R2 Shared Partner CNPJ Registry
 
 - Fase: `RAVATEX-DOCUMENTS-G25-B2-A-R2-SHARED-PARTNER-CNPJ-REGISTRY`.
 - Status: **CLOSED — G25-B2-A-R2**.
