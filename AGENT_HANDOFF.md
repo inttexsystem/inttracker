@@ -764,3 +764,13 @@ Bases incompletas sao retornadas em `canonical_base_skipped`, sem inventar pendi
 - E2E staging: request `bd43ecdb...` / run `77115770...` completed; 19 processados, 17 novos, zero ativos. A falha anterior (`8717df4b...` / `755ee531...`) foi preservada.
 - Documento de controle: `TESTE-G25-B1-20260710-1536.pdf`; `email_received_at=2026-07-10T18:42:59.000Z`, source `gmail_internal_date`, estimated `false`, processamento posterior.
 - Sem producao, push, novo e-mail, recriacao de banco ou backfill. Proxima acao: `G25-B2 — RELEVANCE CLASSIFIER V1`.
+
+## G25-B1-UX-B-C — Full Gmail reconciliation (2026-07-10)
+
+- Status: **PARTIAL — AMBIGUOUS OR UNRECOVERABLE ROWS DOCUMENTED**. Não há ambiguidade de match; a parcial decorre exclusivamente da row local `ec07577a...` / `L.pdf` (`gmail_message_id=m-log`), que não existe no Gmail e foi preservada sem alteração.
+- Ingestor: `master`, commits `145f1c3` e `4995ba6`; Controle: `work/app-next`, sem alteração técnica nesta fase. Push e produção não realizados.
+- Janela Gmail: desde `2026-06-19T03:00:00.000Z`, query iniciada um dia antes. Inventário: 24 mensagens, 40 anexos PDF/XML. Escrita controlada: 17 reconciliações de metadata e 20 documentos ausentes criados pelo pipeline canônico; nenhum INSERT paralelo.
+- Idempotência: segundo dry-run retornou 40 matches, zero candidatos ausentes, `WOULD_UPDATE_SQLITE=0`, `WOULD_UPDATE_SUPABASE=0`, `WOULD_CREATE_DOCUMENTS=0`, zero mudança protegida.
+- Test candidates preservados e somente reportados: `TESTE-G25-B1-20260710-1536.pdf`, `teste-nfe-entrada.xml`, `pdf143429.pdf`. Nenhuma exclusão.
+- Staging: `ucrjtfswnfdlxwtmxnoo`, 40 candidates; watcher oficial com uma instância e `active_gmail_requests=0`. Produção `bhgifjrfagkzubpyqpew` intocada.
+- Próxima ação: `G25-B1-UX-C — TEST DOCUMENT CLEANUP`, exigindo lista explícita do operador; em seguida `G25-B2 — RELEVANCE CLASSIFIER V1`.

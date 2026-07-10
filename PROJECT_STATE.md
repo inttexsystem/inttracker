@@ -495,3 +495,15 @@ RAVATEX-DOCUMENTS-G22-A-AUTO-LOADER-DESIGN (Controle de Tapetes, read-only)
 - Prova temporal: `internalDate` `1783708979000` = `2026-07-10T18:42:59.000Z`; SQLite e Supabase persistiram `gmail_internal_date` / `false`; processamento `2026-07-10T19:10:56Z` ocorreu depois. UI validada pelo operador: recebido `10/07 15:42`, processado `10/07 16:10`, sem badge legado.
 - Testes focados: 81/81 verdes; `git diff --check` OK. Build manteve apenas diagnosticos TypeScript preexistentes fora desta correcao, sem erros novos. Producao intocada; sem push, backfill ou alteracao de relevancia.
 - Proxima fase: `G25-B2 — RELEVANCE CLASSIFIER V1`.
+
+## G25-B1-UX-B-C PARTIAL — Full Gmail reconciliation since 2026-06-19 (2026-07-10)
+
+- Janela canônica: `2026-06-19T03:00:00.000Z` em diante; query Gmail `after:2026/06/18 has:attachment (filename:pdf OR filename:xml)`, com filtro final pelo `internalDate` normalizado.
+- Dry-run estável antes da escrita: 24 mensagens na janela, 40 anexos PDF/XML, 20 matches existentes, 20 candidatos ausentes, zero ambiguidade, zero alteração protegida e zero escrita.
+- Execução controlada em staging `ucrjtfswnfdlxwtmxnoo`: 17 documentos legados receberam somente `sender_email`, `email_message_id` e timestamps Gmail ausentes; 20 candidatos ausentes foram criados pelo `createScan` canônico usando o buffer já lido, sem INSERT paralelo. Não houve exclusão, alteração de status, pedido, aceite/rejeição ou relevância.
+- Auditoria pós-execução: 40 pares únicos `(gmail_message_id, attachment_id)`; 40 candidates no staging; segundo dry-run com `WOULD_UPDATE_SQLITE=0`, `WOULD_UPDATE_SUPABASE=0` e `WOULD_CREATE_DOCUMENTS=0`.
+- Exceção documentada: `ec07577a...` / `L.pdf`, `gmail_message_id=m-log`, não pertence ao inventário Gmail e retornou `MESSAGE_NOT_FOUND=1`. Permanece sem metadados e sem qualquer exclusão automática.
+- Candidatos de teste apenas reportados e preservados: `TESTE-G25-B1-20260710-1536.pdf`, `teste-nfe-entrada.xml` e `pdf143429.pdf` (sinal de assunto). Nenhuma exclusão realizada.
+- Commits técnicos: `145f1c3 Reconcile Gmail document metadata since cutoff`; `4995ba6 Report unrecoverable legacy Gmail rows`. Sem push; produção `bhgifjrfagkzubpyqpew` intocada.
+- Watcher reiniciado pelo script oficial: uma instância; `active_gmail_requests=0`.
+- Próxima fase: `G25-B1-UX-C — TEST DOCUMENT CLEANUP`, somente com lista explícita do operador; depois `G25-B2 — RELEVANCE CLASSIFIER V1`.
