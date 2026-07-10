@@ -23,6 +23,7 @@ import {
   type WatchEvent,
   type WatchScanCycleResult,
 } from './core/watchDocumentScanRequests.js';
+import { acquireWatcherInstanceLock, type WatcherInstanceLock } from './core/watcherInstanceLock.js';
 import { createServiceRoleWriterClient, loadServiceRoleConfig } from './supabase/serviceRoleClient.js';
 
 const program = new Command();
@@ -740,6 +741,7 @@ program
         projectRef = serviceRoleConfig.projectRef;
       } catch (error: any) {
         console.error(error?.message ?? String(error));
+        watcherLock?.release();
         process.exitCode = 1;
         return;
       }
@@ -961,6 +963,17 @@ program
     const confirmSupabaseWrite = Boolean(opts.confirmSupabaseWrite);
     const once = opts.once !== false;
     const recoverStale = Boolean(opts.recoverStale);
+    let watcherLock: WatcherInstanceLock | null = null;
+
+    if (!once) {
+      try {
+        watcherLock = acquireWatcherInstanceLock(source);
+      } catch (error: any) {
+        console.error(`[watch:scan-requests] ${error?.message ?? String(error)}`);
+        process.exitCode = 1;
+        return;
+      }
+    }
 
     // The watcher needs a real Supabase client to operate outside dry-run.
     // In dry-run mode, no client is constructed (no secrets touched).
@@ -1051,6 +1064,7 @@ program
       console.error(`[watch:scan-requests] ${error?.message ?? String(error)}`);
       process.exitCode = 1;
     } finally {
+      watcherLock?.release();
       closeDb();
     }
   });
