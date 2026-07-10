@@ -123,4 +123,16 @@ describe('G25-B1-UX-B-C Gmail reconciliation', () => {
     expect(report.wouldCreateDocuments).toBe(1);
     expect(report.localWrites).toBe(0);
   });
+
+  it('documents a local-only legacy row whose Gmail message no longer exists', async () => {
+    const deps: ReconcileDeps = {
+      fetchMessages: async () => [], fetchMessageById: async () => null,
+      listAttachments: async () => [], downloadAttachment: async () => null,
+      loadLocalDocuments: () => [document({ gmailMessageId: 'm-local-only' })],
+      loadRemoteDocuments: async () => [], now: () => new Date('2026-07-10T20:00:00.000Z'),
+    };
+    const report = await reconcileGmailDocuments({ since: '2026-06-19', dryRun: true }, deps);
+    expect(report.messageNotFound).toBe(1);
+    expect(report.localWrites).toBe(0);
+  });
 });

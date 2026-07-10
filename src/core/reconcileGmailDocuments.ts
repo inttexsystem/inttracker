@@ -115,6 +115,7 @@ export interface ReconciliationReport {
 
 export interface ReconcileDeps {
   fetchMessages(query: string): Promise<GmailMessageMeta[]>;
+  fetchMessageById?(messageId: string): Promise<GmailMessageMeta | null>;
   listAttachments(messageId: string): Promise<GmailAttachmentRef[]>;
   downloadAttachment(messageId: string, attachmentId: string): Promise<Buffer | null>;
   loadLocalDocuments(): ReconcileLocalDocument[];
@@ -281,6 +282,10 @@ function createDefaultDeps(): ReconcileDeps {
   });
   return {
     fetchMessages: (query) => fetchEmailsByQuery(query),
+    fetchMessageById: async (messageId) => {
+      const { fetchMessageById } = await import('../connectors/gmail.js');
+      return fetchMessageById(messageId);
+    },
     listAttachments: (messageId) => listAttachments(messageId),
     downloadAttachment: (messageId, attachmentId) => downloadAttachment(messageId, attachmentId),
     loadLocalDocuments: loadLocalDocumentsFromDb,
@@ -431,6 +436,7 @@ export async function reconcileGmailDocuments(
   const attachmentCache = new Map<string, GmailAttachmentRef[]>();
   const attachmentBuffers = new Map<string, Buffer>();
   const missingMessageIds = new Set<string>();
+  const matchedDocumentIds = new Set<string>();
   const messages = await deps.fetchMessages(query);
   report.gmailMessagesScanned = messages.length;
 
@@ -475,6 +481,7 @@ export async function reconcileGmailDocuments(
         continue;
       }
       const document = match.document!;
+      matchedDocumentIds.add(document.id);
       report.existingMatched++;
       if (match.kind === 'canonical_message_id') report.matchedByCanonicalMessageId++;
       if (match.kind === 'legacy_message_id') report.matchedByLegacyMessageId++;
@@ -515,6 +522,23 @@ export async function reconcileGmailDocuments(
   }
 
   report.testCandidates = [...testCandidates.values()];
+
+  // Local-only fixtures and interrupted legacy rows can remain outside the
+  // Gmail listing. Probe their persisted message ID once so the dry-run
+  // reports an individual, evidence-based unrecoverable reason instead of
+  // silently treating the database as fully reconciled.
+  if (deps.fetchMessageById) {
+    for (const document of localDocuments) {
+      const needsMetadata = !document.senderEmail || !document.emailMessageId || !document.emailReceivedAt;
+      if (!needsMetadata || matchedDocumentIds.has(document.id) || !document.gmailMessageId) continue;
+      try {
+        const direct = await deps.fetchMessageById(document.gmailMessageId);
+        if (!direct) report.messageNotFound++;
+      } catch {
+        report.messageNotFound++;
+      }
+    }
+  }
   report.wouldUpdateSqlite = localPlans.size;
   report.wouldUpdateSupabase = remotePlans.size;
 
