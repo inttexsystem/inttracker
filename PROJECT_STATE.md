@@ -7472,3 +7472,12 @@ Debitos: repetir validacao visual em browser real e obter sessao segura nao-admi
 - Watcher: a unica execucao autorizada abortou antes de qualquer acesso externo por `error: required option '--source <source>' not specified`. Request preservada. Gmail, Drive, scan run, sync e refresh automatico nao ocorreram.
 - Resultado de documentos: antes 2; depois nao comprovado; documento novo nao comprovado. Duplicidade visual residual de `Solicitacao aguardando executor` foi observada e preservada para B4-R2.
 - Risco residual: B4-R2 deve validar a request ainda ativa e autorizar uma unica execucao com source explicita; nao repetir nesta ordem. Push nao realizado.
+
+## RAVATEX-DOCUMENTS-G24-B4-STAGING-E2E-CLOSED (2026-07-10)
+
+- STATUS: G24-B4 CLOSED. Verificacao terminal read-only no staging `ucrjtfswnfdlxwtmxnoo` confirmou a request `41a6506e...` como `completed`, source `gmail`, `requested_at` `2026-07-10T13:36:40.936656+00:00`, claim/start/finish preenchidos, `scan_run_id` `d7b90a68...`, erro nulo e `active_gmail_requests=0`.
+- Migration 41: staging aplicada; SHA-256 `E789D1BB23997859D79E26D5956D26192FAEBD791C0759D61644C024668C683B`.
+- Watcher real: executado exatamente uma vez com `npm.cmd run watch:scan-requests -- --source gmail --once --poll-seconds 5 --confirm-real-google --confirm-supabase-write`; ciclos `1`, processadas `1`, concluidas `1`, falhas `0`, polls vazios `0`; transicoes `requested -> claimed -> running -> completed`.
+- UI/E2E: antes havia 2 documentos; sem refresh manual e sem importacao JSONL, a lista foi atualizada automaticamente e surgiram pelo menos 5 novos: `EDDI - VENC. 06-08.PDF`, `EDDI - VENC. 07-07.PDF`, `EDDI - VENC. 05-09.PDF`, `EDDI - VENC. 07-06.PDF` e `pdf091400.pdf`.
+- Protecoes: producao nao acessada, nenhuma migration ou codigo tecnico alterado nesta ordem, nenhum retry/recover-stale, nenhum novo clique/request e nenhum push.
+- Dividas nao bloqueantes: `Solicitacao aguardando executor` aparece duas vezes visualmente; hard reload nao reidrata request ativa automaticamente (foi necessario o fluxo manual anterior). Proximo recomendado: `G24-B5 - SCAN STATUS UI DEDUP + ACTIVE REQUEST HYDRATION`; nao implementar nesta ordem.

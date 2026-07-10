@@ -6901,3 +6901,22 @@ Aplicar exclusivamente a migration 41 em staging e somente apos gate do arquitet
 ### 3. PROXIMA ACAO
 
 **G24-B4-R2 REQUIRED.** Em nova ordem, primeiro confirmar que `41a6506e...` ainda esta `requested`, depois autorizar uma unica execucao do watcher com `--source gmail` explicito. Nao repetir o watcher nesta ordem.
+
+## G24-B4 CLOSEOUT (2026-07-10)
+
+### 1. ESTADO DO CONTROLE DE TAPETES
+
+- G24-B4 CLOSED. Baseline anterior: branch `work/app-next`, HEAD `c92edf5`; este closeout altera somente `PROJECT_STATE.md` e `AGENT_HANDOFF.md`.
+- Staging `ucrjtfswnfdlxwtmxnoo`, migration 41 SHA-256 `E789D1BB23997859D79E26D5956D26192FAEBD791C0759D61644C024668C683B`.
+- Request `41a6506e...` foi observada terminalmente como `completed`, source `gmail`, `scan_run_id` `d7b90a68...`, erro nulo, `active_gmail_requests=0`; timestamps requested/claimed/started/finished preenchidos.
+- Watcher uma unica vez: `npm.cmd run watch:scan-requests -- --source gmail --once --poll-seconds 5 --confirm-real-google --confirm-supabase-write`; `cycles=1`, `processed=1`, `completed=1`, `failed=0`, `empty_polls=0`; requested -> claimed -> running -> completed.
+- UI: de 2 documentos para pelo menos 7, com cinco novos documentos visiveis; refresh automatico sem reload manual e sem JSONL import. Duplicidade visual de `Solicitacao aguardando executor` confirmada; hidratacao apos hard reload permanece divida nao bloqueante.
+
+### 2. ESTADO DO DOCUMENTS INGESTOR
+
+- Nenhuma alteracao tecnica nesta ordem. Producao, retry/recover-stale e novas requests nao usados; nenhum push.
+- O watcher consumiu uma request real de staging e concluiu o scan Gmail com run `d7b90a68...`; export/sync/finalizacao ocorreram conforme evidencia do operador.
+
+### 3. PROXIMA ACAO
+
+- Recomendada somente: **G24-B5 - SCAN STATUS UI DEDUP + ACTIVE REQUEST HYDRATION**. Nao implementar agora.
