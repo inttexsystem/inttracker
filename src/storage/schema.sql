@@ -64,9 +64,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_documentos_dedup
 CREATE INDEX IF NOT EXISTS idx_documentos_drive_file_id
   ON documentos(drive_file_id);
 
-CREATE INDEX IF NOT EXISTS idx_documentos_email_received_at
-  ON documentos(email_received_at DESC);
-
 -- ingestion_events: eventos gerados no outbox JSONL.
 -- Carregam referências Drive (storage_uri, drive_file_id, manifest_storage_uri).
 CREATE TABLE IF NOT EXISTS ingestion_events (

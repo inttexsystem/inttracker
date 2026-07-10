@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { getDb, closeDb, ensureLocalMigrations, ensureCheckMigration } from '../src/storage/sqlite.js';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 
 const DB_DIR = join(tmpdir(), `ravatex-schema-test-${randomUUID()}`);
 
@@ -57,6 +58,9 @@ describe('SQLite schema carries Drive-first contract', () => {
       email_received_at: '2026-07-09T09:00:00.000Z', email_received_at_source: 'gmail_internal_date',
       email_received_at_estimated: 0, created_at: '2026-07-09 12:00:00',
     });
+    const index = db.prepare(`SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?`)
+      .get('idx_documentos_email_received_at');
+    expect(index).toBeTruthy();
   });
 
   it('documentos table has taxonomia G1 columns', () => {
@@ -282,6 +286,57 @@ describe('SQLite migration for taxonomy columns (pre-G1 → G1+)', () => {
     expect(names).toContain('formato');
     expect(names).toContain('direcao_nf');
     db.close();
+  });
+
+  it('migrates email timestamp columns and index on a legacy database without losing rows', () => {
+    const db = openOldDb();
+    db.prepare(`INSERT INTO emails_processados (gmail_message_id) VALUES (?)`).run('legacy-email-message');
+    db.prepare(`INSERT INTO documentos (
+      id, gmail_message_id, attachment_id, filename_original, sha256, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?)`)
+      .run('legacy-email-doc', 'legacy-email-message', 'legacy.pdf', 'legacy.pdf', 'legacy-sha', '2026-07-10 18:00:00');
+
+    expect(() => ensureLocalMigrations(db)).not.toThrow();
+    expect(() => ensureLocalMigrations(db)).not.toThrow();
+
+    const columns = db.prepare(`PRAGMA table_info(documentos)`).all() as any[];
+    const names = columns.map((column: any) => column.name);
+    expect(names).toEqual(expect.arrayContaining([
+      'email_message_id', 'email_received_at', 'email_received_at_source', 'email_received_at_estimated',
+    ]));
+    const indexes = db.prepare(`SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?`)
+      .all('idx_documentos_email_received_at') as any[];
+    expect(indexes).toHaveLength(1);
+    expect(db.prepare(`SELECT id, filename_original, created_at FROM documentos WHERE id = ?`)
+      .get('legacy-email-doc')).toMatchObject({
+      id: 'legacy-email-doc', filename_original: 'legacy.pdf', created_at: '2026-07-10 18:00:00',
+    });
+    db.close();
+  });
+
+  it('opens a legacy database through the real getDb startup flow', () => {
+    const dbPath = join(MIG_DB_DIR, 'startup-legacy.db');
+    const legacy = new Database(dbPath);
+    createOldDb(legacy);
+    legacy.prepare(`INSERT INTO emails_processados (gmail_message_id) VALUES (?)`).run('startup-legacy-message');
+    legacy.prepare(`INSERT INTO documentos (id, gmail_message_id, attachment_id, filename_original, sha256)
+      VALUES (?, ?, ?, ?, ?)`)
+      .run('startup-legacy-doc', 'startup-legacy-message', 'legacy.pdf', 'legacy.pdf', 'startup-sha');
+    legacy.close();
+
+    const tsxCli = join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
+    execFileSync(process.execPath, [tsxCli, '-e', "import { getDb, closeDb } from './src/storage/sqlite.ts'; getDb(); closeDb();"], {
+      cwd: process.cwd(),
+      env: { ...process.env, DATABASE_PATH: dbPath },
+      stdio: 'pipe',
+    });
+
+    const migrated = new Database(dbPath, { readonly: true });
+    expect(migrated.prepare(`SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?`)
+      .get('idx_documentos_email_received_at')).toBeTruthy();
+    expect(migrated.prepare(`SELECT id FROM documentos WHERE id = ?`).get('startup-legacy-doc'))
+      .toMatchObject({ id: 'startup-legacy-doc' });
+    migrated.close();
   });
 
   it('listPendingDocuments works after migration on legacy DB', () => {
