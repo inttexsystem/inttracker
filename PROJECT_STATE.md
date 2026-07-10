@@ -7542,3 +7542,11 @@ Debitos: repetir validacao visual em browser real e obter sessao segura nao-admi
 > - Consequentemente, o filtro permanece inalterado: nao ha evidencia para atribuir documento omitido a query, MIME/extensao, cap, deduplicacao ou classificacao nesta janela. R1 precisa de um documento ausente identificavel ou de uma janela temporal autorizada que o contenha.
 >
 > E2E staging nao executado: nao havia watcher persistente nem task instalada, e o criterio de “documento antes omitido agora ingerido” nao pode ser demonstrado sem satisfazer o gate acima. Producao, push, Gmail writes e Drive writes permanecem intocados.
+
+## G25-B1 CLOSED — Gmail received timestamp vertical slice (2026-07-10)
+
+- Migration 42 aplicada somente em staging `ucrjtfswnfdlxwtmxnoo`; campos `email_message_id`, `email_received_at`, `email_received_at_source` e `email_received_at_estimated` e RPC writer foram validados. Producao intocada.
+- E2E reutilizou `TESTE-G25-B1-20260710-1536.pdf`: candidate `40ed90ab...` persistiu `email_received_at=2026-07-10T18:42:59+00:00`, source `gmail_internal_date`, estimated `false`, `received_at=null` e `detected_at=2026-07-10T19:10:56+00:00`.
+- UI validada pelo operador: **Recebido no e-mail: 10/07 15:42** e **Processado pelo Ingestor: 10/07 16:10**; sem `documento legado` para o documento novo.
+- Request `bd43ecdb...` / run `77115770...` completed; request/run R1 failed permanecem como evidencia. Sem push e sem alteracao tecnica adicional no Controle nesta retomada.
+- Proxima fase: `G25-B2 — RELEVANCE CLASSIFIER V1`.

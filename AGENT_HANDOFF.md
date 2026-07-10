@@ -6973,3 +6973,10 @@ Aplicar exclusivamente a migration 41 em staging e somente apos gate do arquitet
 - **Diagnostico Gmail somente leitura**: na janela `after:2026/07/03`, query atual e query-controle ampla retornaram as mesmas 10 mensagens/18 anexos. Houve 17 candidatos PDF/XML e 1 anexo irrelevante; zero candidatos omitidos pela query atual. Ledger foi mantido apenas sanitizado em memoria/saida operacional; nenhum corpo ou anexo foi baixado.
 - **Decisao de gate**: nenhum patch de filtro e permitido ainda. Nao foi comprovada causa em query, data, label, cap, MIME/extensao, dedup ou classificacao. R1 requer um documento ausente conhecido (ou uma janela delimitada que o contenha) para repetir a comparacao e adicionar teste causal.
 - **E2E**: nao executado. Watcher persistente nao estava ativo (task `Ravatex-DocumentScanWatcher-Staging` ainda nao instalada) e nao existe evidencia de documento antes ausente para o criterio de aceite. Producao, push, Gmail/Drive writes foram preservados.
+
+## G25-B1 CLOSED — Controle de Tapetes
+
+- Staging `ucrjtfswnfdlxwtmxnoo` recebeu a migration 42; producao nao foi acessada. Reader/UI consomem os quatro campos Gmail sem reutilizar `received_at` legado como data do e-mail.
+- E2E do documento `TESTE-G25-B1-20260710-1536.pdf`: candidate `40ed90ab...`; internalDate `1783708979000` = `2026-07-10T18:42:59Z`; source `gmail_internal_date`; estimated `false`; processamento posterior.
+- Gate visual confirmado: recebido `10/07 15:42`, processado `10/07 16:10`, sem badge de legado. Request `bd43ecdb...` e run `77115770...` completed; request/run R1 failed preservados.
+- Nenhuma mudanca tecnica nova neste repositorio durante R2; sem push. Proxima acao: `G25-B2 — RELEVANCE CLASSIFIER V1`.
