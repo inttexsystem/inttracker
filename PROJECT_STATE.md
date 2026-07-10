@@ -447,3 +447,12 @@ RAVATEX-DOCUMENTS-G22-A-AUTO-LOADER-DESIGN (Controle de Tapetes, read-only)
 - `sync:supabase` deriva base completa somente com status valido, event ID real, timestamp real e motivo para rejected; candidatos incompletos sao reportados como skipped e nao recebem base falsa.
 - Escrita de candidate agora usa exclusivamente a RPC backend `upsert_document_candidate_ingestor_state`; nao consulta/escreve `document_decisions`, nao chama RPCs de decisao e preserva eventos por `ingestion_event_id`.
 - Dry-run permanece sem cliente/conexao/write e retorna totais, bases completas e lista de skips. Nenhum sync real foi executado nesta fase.
+
+## RAVATEX-DOCUMENTS-G24-B4-STAGING-E2E-BLOCKED (2026-07-10)
+
+- Status: **BLOCKED - B4-R2 REQUIRED**. HEAD tecnico preservado: `c48e14678c7f4564790a57e6f3829551dcddbb34`.
+- Ambiente staging `ucrjtfswnfdlxwtmxnoo` comprovado por project ref e hostname; writer, service credential e credenciais Google presentes sem expor valores. Producao nao acessada.
+- Migration 41 foi aplicada manualmente no SQL Editor do staging pelo operador (SHA-256 `E789D1BB23997859D79E26D5956D26192FAEBD791C0759D61644C024668C683B`). A request `41a6506e...` foi criada pelo app e permanece `requested`.
+- Comando real tentado uma unica vez: `npm.cmd run watch:scan-requests -- --once --poll-seconds 5 --confirm-real-google --confirm-supabase-write`.
+- Resultado: abortou antes de claim, Gmail, Drive, scan run ou sync com `error: required option '--source <source>' not specified`. Nenhum run foi criado; request preservada.
+- Nenhuma alteracao tecnica no Ingestor. Proximo passo: B4-R2 deve, em nova autorizacao, confirmar a request e executar uma unica vez com `--source gmail` explicito.

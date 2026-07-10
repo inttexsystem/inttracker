@@ -731,3 +731,11 @@ Foco: integrar `documentos-mapeados.jsonl` no Controle de Tapetes para exibir a 
 O writer service-role passa a chamar somente `upsert_document_candidate_ingestor_state`, RPC backend ja aplicada em staging pelo Controle. O export mapped fornece `latest_ingestion_event_at` do mesmo evento de `latest_ingestion_event_id`; o sync so envia base quando ID, timestamp, status e motivo rejected forem comprovaveis.
 
 Bases incompletas sao retornadas em `canonical_base_skipped`, sem inventar pending/timestamp e sem chamada de candidate RPC. Eventos continuam no caminho idempotente por `ingestion_event_id`. Nao houve sync real, Gmail/Drive, alteracao no Controle, producao ou uso de credencial no browser.
+
+## RAVATEX-DOCUMENTS-G24-B4-STAGING-E2E-BLOCKED (2026-07-10)
+
+- HEAD tecnico: `c48e146`; nenhum patch tecnico criado.
+- Staging `ucrjtfswnfdlxwtmxnoo` confirmado; producao nao acessada. Migration 41 aplicada manualmente pelo operador.
+- Request `41a6506e...` permanece `requested`. A unica chamada real do watcher abortou antes de qualquer efeito externo porque o CLI exige `--source <source>`.
+- Nao houve claim, run, Gmail, Drive, export ou sync. Request preservada para diagnostico.
+- Proxima acao: **G24-B4-R2 REQUIRED**; em nova ordem, validar a request e autorizar somente `watch:scan-requests --source gmail ...` uma vez.
