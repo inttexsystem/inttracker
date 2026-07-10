@@ -1,5 +1,22 @@
 # AGENT HANDOFF
 
+## RAVATEX-DOCUMENTS-G25-B1-UX-C-B-TEST-CLEANUP-CLOSEOUT (2026-07-10)
+
+- Status: **CONCLUIDO - LIMPEZA DE DOCUMENTOS DE TESTE (STAGING)**.
+- Autorizacao: operador respondeu G25-B1-UX-C com exclusao direta escopada (allowlist exclusiva de 3 `document_id`). Modo somente-staging; producao (`bhgifjrfagkzubpyqpew`) bloqueada por guarda; alvo `ucrjtfswnfdlxwtmxnoo`.
+- Removido:
+  - `cda18ef9-...` teste-nfe-entrada.xml (era `accepted`): SQLite -1 `documentos` / -2 `ingestion_events`; Supabase -1 `document_candidates` / -2 `document_events`.
+  - `6c871580-...` pdf143429.pdf (`pending`): SQLite -1 / -1; Supabase -1 / -0.
+  - `40ed90ab-...` TESTE-G25-B1-20260710-1536.pdf (`pending`): SQLite -1 / -1; Supabase -1 / -0.
+  - Total: SQLite 7 linhas, Supabase 5 linhas. Ambos os bancos 40 -> 37.
+- Ponto de atencao para o proximo agente: `desfazer_decisao_documento` NAO foi executado. Diagnostico: `admin_required` para o cliente `service_role` (auth.uid null) e `no_active_decision` (o aceite era ingestor-side; 0 linhas em `document_decisions`). Como `pedido_id` era null, a exclusao direta removeu o estado `accepted` sem cascata para Pedido/OP. Nenhuma RPC de exclusao (`desfazer_decisao_documento`, `remover_pedido`, `remover_op`) foi invocada.
+- Guarda de hash compartilhado: `40ed90ab` compartilha sha256 `efa7f31f13...` com o doc legitimo `e9c0922c` / `cce-001_000006192-1_S_1.pdf`, mas Drive/mensagem sao distintos (`1DVYMT...` vs `1v7KQ2...`). O doc legitimo, seu Drive e o hash permanecem intactos e verificados.
+- Preservado: `L.pdf` (pending); `pedidos`=5 e `ops`=7 inalterados; 0 eventos orfaos.
+- Drive: nenhuma chamada de API e nenhum arquivo fisico removido (apenas IDs lidos do banco). Gmail: nenhuma chamada. Nenhum novo scan.
+- Watcher: parado (`Stop-DocumentScanWatcher.ps1`, `watcher_instances=0`) antes; retomado (`Start-DocumentScanWatcher.ps1`, `watcher_instances=1`, worker pid 10620) depois. `active_gmail_requests=0` antes e depois. Backup: `data/app.db.backup-g25b1uxcb-20260710-182109`.
+- Producao intocada; nenhum push; `git add` restrito a `PROJECT_STATE.md` e `AGENT_HANDOFF.md`.
+- Encerramento: G25-B1-UX-A e G25-B1-UX-C encerrados. Proximo passo: **G25-B2 - RELEVANCE CLASSIFIER V1**.
+
 ## RAVATEX-DOCUMENTS-G24-B2-SCAN-REQUEST-WATCHER-CLOSEOUT (2026-07-10)
 
 - Status: **PRONTO - WATCHER DE SOLICITACOES DE SCAN**.

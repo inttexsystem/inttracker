@@ -1,5 +1,27 @@
 # PROJECT STATE
 
+## RAVATEX-DOCUMENTS-G25-B1-UX-C-B-TEST-CLEANUP-CLOSEOUT (2026-07-10)
+
+- Status: **CONCLUIDO - LIMPEZA DE DOCUMENTOS DE TESTE (STAGING) AUTORIZADA E EXECUTADA**.
+- Escopo: exclusao escopada de 3 documentos de teste, autorizada pelo operador (G25-B1-UX-C-B), somente em SQLite local e Supabase staging (`ucrjtfswnfdlxwtmxnoo`). Producao (`bhgifjrfagkzubpyqpew`) bloqueada por guarda de ref antes de cada operacao; nunca contatada.
+- Allowlist exclusiva (3 `document_id`):
+  - `cda18ef9-d1d9-4f5a-8956-74875cd60b05` - teste-nfe-entrada.xml (era `accepted`, pedido_manual `PED-99-2026`, `pedido_id` null).
+  - `6c871580-6734-40f8-9cac-9fbf27daaa21` - pdf143429.pdf (`pending`, assunto "Teste Ravatex Smoke - NF 123").
+  - `40ed90ab-049c-40c2-a3a2-74481f528f87` - TESTE-G25-B1-20260710-1536.pdf (`pending`; sha256 compartilhado com doc legitimo).
+- Reversao do aceite (cda18ef9): o fluxo canonico `desfazer_decisao_documento` foi diagnosticado **nao aplicavel e nao alcancavel** neste dado - exige `is_admin()` (o Ingestor usa `service_role`, `auth.uid()` null -> `admin_required`) e exige decisao ativa em `document_decisions` (havia 0; o aceite era ingestor-side via status + eventos). Com `pedido_id` null (sem Pedido/OP real vinculado), o operador autorizou **exclusao direta escopada**; o estado `accepted` foi removido pela propria exclusao, sem tocar Pedido/OP.
+- Removido (exato):
+  - SQLite: 3 `documentos` + 4 `ingestion_events` = 7 linhas (transacional, com assercao de contagem por ID e ROLLBACK-on-mismatch).
+  - Supabase staging: 3 `document_candidates` + 2 `document_events` = 5 linhas (delete keyed por `document_id`).
+- Preservado e verificado intacto:
+  - Doc legitimo `e9c0922c-6d1d-4801-ab91-ea17cf20306b` / `cce-001_000006192-1_S_1.pdf`, Drive `1v7KQ2...`, sha256 compartilhado `efa7f31f13...` (mesmo conteudo do teste 40ed90ab, mas Drive/mensagem distintos).
+  - `L.pdf` (MESSAGE_NOT_FOUND) preservado, `pending`.
+- Auditoria pos-execucao: SQLite `documentos` 40 -> 37; Supabase `document_candidates` 40 -> 37; os 3 IDs ausentes nos dois bancos; 0 eventos orfaos; `pedidos`=5 e `ops`=7 inalterados.
+- Google Drive: **nenhuma chamada** (Drive IDs apenas lidos do banco; nenhum arquivo fisico do Drive removido). Gmail: nenhuma chamada. Nenhum novo scan.
+- Watcher: parado pelo script oficial antes da exclusao (`watcher_instances=0`) e retomado apos (`watcher_instances=1`, worker pid 10620); `active_gmail_requests=0` antes e depois. Backup pre-exclusao do SQLite: `data/app.db.backup-g25b1uxcb-20260710-182109`.
+- Producao intocada; nenhum push; `git add` restrito aos arquivos de documentacao.
+- Encerramento: **G25-B1-UX-A** e **G25-B1-UX-C** (A + B) encerrados.
+- Proximo passo: **G25-B2 - RELEVANCE CLASSIFIER V1**.
+
 ## RAVATEX-DOCUMENTS-G24-B2-SCAN-REQUEST-WATCHER-CLOSEOUT (2026-07-10)
 
 - Status: **PRONTO - WATCHER DE SOLICITACOES DE SCAN**.
