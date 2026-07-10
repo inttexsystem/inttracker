@@ -1,5 +1,35 @@
 > **Atualizacao 2026-07-10 — fase
-> `RAVATEX-DOCUMENTS-G24-B1-R1-DOCUMENT-SCAN-REQUEST-QUEUE-HARDENING-CLOSEOUT`.**
+> `RAVATEX-DOCUMENTS-G24-B5-V-VISUAL-GATE-CLOSEOUT`.**
+> Status: **CLOSED — G24-B5-V VISUAL_GATE_OK**.
+> Branch/HEAD: `work/app-next` em `9aacfe2` (HEAD inicial `9aacfe2`).
+>
+> Escopo G24-B5-V (closeout visual, sem alteracao de codigo):
+> - Validacao visual da deduplicacao: status ativo aparece somente no botao.
+> - Hard reload reidratou automaticamente a mesma request ativa.
+> - Reload nao criou request adicional.
+> - Request de validacao `4afb65f3…` foi consumida.
+> - Watcher executado uma unica vez.
+> - `requests_processed 1`, `requests_completed 1`, `requests_failed 0`.
+> - `active_gmail_requests` final 0.
+> - Botao retornou ao estado disponivel apos conclusao.
+> - Producao intocada.
+> - Nenhum push.
+> - Nenhuma alteracao tecnica neste closeout.
+>
+> Arquivos alterados nesta fase:
+> - `PROJECT_STATE.md` (registro closeout)
+> - `AGENT_HANDOFF.md` (registro closeout)
+>
+> Confirmacoes:
+> - Producao intocada.
+> - Nenhum push realizado.
+> - Nenhuma alteracao tecnica (nem Controle, nem Documents Ingestor).
+> - Untracked preservados: `.claude/`, `data/fixtures/document-events-pedido-02.jsonl`, `supabase/.temp/`.
+>
+> STATUS FINAL: G24-B5-V VISUAL_GATE_OK — CLOSED. ENTREGAR AO ARQUITETO.
+>
+> > **Atualizacao 2026-07-10 — fase
+> > `RAVATEX-DOCUMENTS-G24-B1-R1-DOCUMENT-SCAN-REQUEST-QUEUE-HARDENING-CLOSEOUT`.**
 > Status: **PRONTO — FILA DE SOLICITACOES DE SCAN (REQUEST × RUN DESACOPLADOS) COM ESTADO `cancelled`**.
 > Branch/HEAD tecnico Controle: `work/app-next` em `7847bbc597eb8558ad2d3bea7c8323889ef65ea0` (HEAD inicial `eed680ed322bc1ad2496d6fa316e242100f29709`).
 > HEAD canonico de referencia no Ingestor: `master` em `dfc2e648554e7ea987bca34a14263f5344c92b8e`.

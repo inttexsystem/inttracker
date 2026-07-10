@@ -1,4 +1,30 @@
-﻿# Estado pos-fase - G24-B1 Document Scan Request Queue
+﻿# Estado pos-fase - G24-B5-V Visual Gate Closeout
+
+- Fase: `RAVATEX-DOCUMENTS-G24-B5-V-VISUAL-GATE-CLOSEOUT`.
+- Status: **CLOSED — G24-B5-V VISUAL_GATE_OK**.
+- Branch/HEAD: `work/app-next` em `9aacfe2` (HEAD inicial `9aacfe2`).
+
+- O que foi validado:
+  - Deduplicacao visual: status ativo aparece somente no botao.
+  - Hard reload reidratou automaticamente a mesma request ativa.
+  - Reload nao criou request adicional.
+  - Request de validacao `4afb65f3…` foi consumida.
+  - Watcher executado uma unica vez.
+  - `requests_processed 1`, `requests_completed 1`, `requests_failed 0`.
+  - `active_gmail_requests` final 0.
+  - Botao retornou ao estado disponivel apos conclusao.
+
+- Confirmacoes:
+  - Producao intocada.
+  - Nenhum push realizado.
+  - Nenhuma alteracao tecnica (nem Controle, nem Documents Ingestor).
+  - Nenhuma alteracao em `.claude/`, `data/fixtures/document-events-pedido-02.jsonl`, `supabase/.temp/`.
+
+- Este closeout nao altera codigo. Registro documental apenas.
+
+- STATUS FINAL: G24-B5-V VISUAL_GATE_OK — CLOSED. ENTREGAR AO ARQUITETO.
+
+# Estado pos-fase - G24-B1 Document Scan Request Queue
 
 - Fase: `RAVATEX-DOCUMENTS-G24-B1-R1-DOCUMENT-SCAN-REQUEST-QUEUE-HARDENING-CLOSEOUT`.
 - Status: **PRONTO — FILA DE SOLICITACOES DE SCAN COM ESTADO `cancelled`**.
