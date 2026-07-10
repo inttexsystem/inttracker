@@ -46,6 +46,7 @@ const candidate = {
   filename_original: 'NF-99.xml', tipo_documento: 'nf', formato: 'xml', direcao_nf: 'entrada',
   drive_file_id: 'drive-99', drive_web_view_link: 'https://drive.example/99', status: 'pending',
   pedido_manual: 'PED-99-2026', pedido_id: null, fornecedor_id: null,
+  sender_email: 'fornecedor@empresa.com.br',
   email_message_id: 'gmail-99', email_received_at: '2026-07-09T09:00:00.000Z',
   email_received_at_source: 'gmail_internal_date', email_received_at_estimated: false,
   received_at: '2026-07-09T10:00:00.000Z', detected_at: '2026-07-09T10:01:00.000Z',
@@ -82,6 +83,7 @@ test('reader: consulta candidates e decisoes ativas, sem raw_payload no select',
   assert.ok(candidatesSelect.fields.includes('ingestor_event_id'));
   assert.ok(candidatesSelect.fields.includes('email_received_at'));
   assert.ok(candidatesSelect.fields.includes('email_received_at_source'));
+  assert.ok(candidatesSelect.fields.includes('sender_email'));
   assert.equal(candidatesSelect.fields.includes('raw_payload'), false);
 });
 
@@ -96,9 +98,22 @@ test('reader: mapeia candidate para o shape flat e preserva origem Supabase', as
   assert.equal(doc.created_at, candidate.criado_em);
   assert.equal(doc.email_received_at, candidate.email_received_at);
   assert.equal(doc.email_received_at_source, 'gmail_internal_date');
+  assert.equal(doc.sender_email, candidate.sender_email);
+  assert.equal(doc.from, candidate.sender_email);
   assert.equal(doc._ravatex_source, 'supabase');
   assert.equal(rt.sandbox.RAVATEX_DOCUMENTS_RECEIVED_SOURCE, 'supabase');
   assert.equal(Object.prototype.hasOwnProperty.call(doc, 'raw_payload'), false);
+});
+
+test('reader: candidate legado sem sender_email permanece valido', async function () {
+  const legacyCandidate = Object.assign({}, candidate);
+  delete legacyCandidate.sender_email;
+  const rt = makeSandbox({ candidatesResult: { data: [legacyCandidate] }, decisionsResult: { data: [] } });
+  const result = await rt.ns.loadReceivedDocumentsFromSupabase();
+  assert.equal(result.ok, true);
+  const doc = rt.sandbox.RAVATEX_DOCUMENTS_RECEIVED[0];
+  assert.equal(doc.sender_email, null);
+  assert.equal(doc.from, '');
 });
 
 test('reader: decisao ativa sobrescreve status e motivo de rejeicao', async function () {

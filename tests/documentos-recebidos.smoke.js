@@ -597,7 +597,7 @@ test('G12-R1: tela contem section data-section="documentos-recebidos-import-acti
   assert.equal(sections.length, 1, 'section de import action presente');
   // No redesign, o botao fica no header, antes da strip e do empty state.
   var allText = JSON.stringify(findAll(result, () => true).map(textOf));
-  var importIdx = allText.indexOf('Importar documentos');
+  var importIdx = allText.indexOf('Importar');
   var scanIdx = allText.indexOf('Varredura');
   var emptyIdx = allText.indexOf('Nenhum documento recebido');
   assert.ok(importIdx >= 0 && scanIdx >= 0 && emptyIdx >= 0, 'textos principais presentes');
@@ -622,9 +622,9 @@ test('redesign: acoes ficam no header e strip de varredura e compacta com play/p
   const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
 
   const refreshBtns = findAll(result, findAction('atualizar-documentos'));
-  assert.equal(refreshBtns.length, 1, 'botao Atualizar agora presente no header');
+  assert.equal(refreshBtns.length, 1, 'botao Atualizar presente no header');
   const importBtns = findAll(result, (n) => n.tagName === 'BUTTON' && n.id === 'rv-docs-received-import-btn-inline');
-  assert.equal(importBtns.length, 1, 'botao Importar documentos presente no header');
+  assert.equal(importBtns.length, 1, 'botao Importar presente no header');
 
   const strips = findAll(result, (n) => n._attrs && n._attrs['data-section'] === 'documentos-scan-strip');
   assert.equal(strips.length, 1, 'strip de varredura presente');
@@ -810,8 +810,8 @@ test('G25-B1: card exibe colunas Status, Pedido e Datas', function () {
   assert.ok(colsText.indexOf('PEDIDO') >= 0, 'cabecalho tem PEDIDO');
   assert.ok(colsText.indexOf('DATAS') >= 0, 'cabecalho tem DATAS');
   assert.ok(colsText.indexOf('AÇÕES') >= 0, 'cabecalho tem AÇÕES');
-  assert.ok((colsHeader[0]._attrs.style || '').indexOf('minmax(175px,1fr)') >= 0,
-    'coluna Tipo deve ceder espaco para Acoes no grid: ' + (colsHeader[0]._attrs.style || ''));
+  assert.ok((colsHeader[0]._attrs.style || '').indexOf('minmax(260px,1.45fr)') >= 0,
+    'coluna Documento deve priorizar o remetente no grid: ' + (colsHeader[0]._attrs.style || ''));
   assert.ok((colsHeader[0]._attrs.style || '').indexOf('148px') >= 0,
     'coluna Acoes deve comportar quatro botoes: ' + (colsHeader[0]._attrs.style || ''));
 
@@ -908,7 +908,7 @@ test('G25-B1: received_at legado nao e usado como data do e-mail', function () {
   const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   const row = findAll(result, findRow)[0];
   const rowText = textOf(row);
-  assert.ok(rowText.indexOf('Recebido no e-mail: indisponível') >= 0,
+  assert.ok(rowText.indexOf('Recebido: indisponível') >= 0,
     'received_at legado nao pode ser apresentado como Gmail: ' + rowText);
 });
 
@@ -1664,13 +1664,13 @@ test('G23-E-E: erro de base indisponivel mostra toast e nao recarrega', async fu
   assert.ok(toasts.some(function (toast) { return toast.kind === 'error' && toast.msg.indexOf('canônico') >= 0; }));
 });
 
-test('G22-B: botao Atualizar agora presente e funcional', function () {
+test('G22-B: botao Atualizar presente e funcional', function () {
   var sb = makeScreenSandbox([]);
   var container = new FakeNode('div');
   sb.container = container;
   var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   var refreshBtns = findAll(result, function (n) { return n._attrs && n._attrs['data-action'] === 'atualizar-documentos'; });
-  assert.equal(refreshBtns.length, 1, 'botao Atualizar agora presente');
+  assert.equal(refreshBtns.length, 1, 'botao Atualizar presente');
   assert.ok(refreshBtns[0].children && refreshBtns[0].children.length >= 2,
     'botao tem icone SVG + texto');
 });
@@ -1801,7 +1801,7 @@ test('G24-B5: hidratacao sem request ativa nao inicia polling nem altera o botao
   var button = findAll(result, findAction('verificar-novos-documentos'))[0];
   assert.equal(Object.prototype.hasOwnProperty.call(button._attrs, 'disabled'), false,
     'botao permanece habilitado');
-  assert.ok(textOf(button).indexOf('Verificar novos documentos') >= 0,
+  assert.ok(textOf(button).indexOf('Verificar') >= 0,
     'botao mantem o rotulo padrao');
 });
 
@@ -1846,9 +1846,42 @@ test('G25-B1: separa recebimento Gmail do processamento e marca fallback/legado'
   ]);
   var tree = vm.runInContext('window.screenDocumentosRecebidos()', sb);
   var rendered = textOf(tree);
-  assert.ok(rendered.indexOf('Recebido no e-mail: 09/07 06:00') >= 0, 'internalDate shown as email timestamp');
-  assert.ok(rendered.indexOf('Processado pelo Ingestor: 09/07 09:00') >= 0, 'processing shown separately');
+  assert.ok(rendered.indexOf('Recebido: 09/07 06:00') >= 0, 'internalDate shown as email timestamp');
+  assert.ok(rendered.indexOf('Processado: 09/07 09:00') >= 0, 'processing shown separately');
   assert.ok(rendered.indexOf('data estimada') >= 0, 'header fallback labelled');
-  assert.ok(rendered.indexOf('Recebido no e-mail: indisponível') >= 0, 'legacy does not use received_at as email date');
+  assert.ok(rendered.indexOf('Recebido: indisponível') >= 0, 'legacy does not use received_at as email date');
   assert.ok(rendered.indexOf('documento legado') >= 0, 'legacy label shown');
+});
+
+test('G25-B1-UX-A: mostra remetente e compacta labels e acoes sem perder acessibilidade', function () {
+  var sb = makeScreenSandbox([{
+    document_id: 'doc-sender', filename_original: 'nota.pdf', sender_email: 'fornecedor@empresa.com.br',
+    email_received_at: '2026-07-09T09:00:00.000Z', created_at: '2026-07-09T12:00:00.000Z', status: 'pending',
+  }, {
+    document_id: 'doc-sender-legacy', filename_original: 'legado.pdf', created_at: '2026-07-09T12:00:00.000Z', status: 'pending',
+  }]);
+  var tree = vm.runInContext('window.screenDocumentosRecebidos()', sb);
+  var rendered = textOf(tree);
+  assert.ok(rendered.indexOf('Remetente: fornecedor@empresa.com.br') >= 0);
+  assert.ok(rendered.indexOf('Remetente: indisponível') >= 0);
+  assert.ok(rendered.indexOf('Recebido:') >= 0);
+  assert.ok(rendered.indexOf('Processado:') >= 0);
+  assert.equal(rendered.indexOf('Recebido no e-mail:'), -1);
+  assert.equal(rendered.indexOf('Processado pelo Ingestor:'), -1);
+
+  var refresh = findAll(tree, findAction('atualizar-documentos'))[0];
+  var scan = findAll(tree, findAction('verificar-novos-documentos'))[0];
+  var importBtn = findAll(tree, function (n) { return n.tagName === 'BUTTON' && n.id === 'rv-docs-received-import-btn-inline'; })[0];
+  assert.equal(textOf(refresh), 'Atualizar');
+  assert.equal(textOf(scan), 'Verificar');
+  assert.equal(textOf(importBtn), 'Importar');
+  assert.equal(refresh._attrs['aria-label'], 'Atualizar agora');
+  assert.equal(refresh._attrs.title, 'Atualizar agora');
+  assert.equal(scan._attrs['aria-label'], 'Verificar novos documentos');
+  assert.equal(scan._attrs.title, 'Verificar novos documentos');
+  assert.equal(importBtn._attrs['aria-label'], 'Importar documentos');
+  assert.equal(importBtn.title, 'Importar documentos');
+  assert.equal(refresh._listeners.click.length, 1);
+  assert.equal(scan._listeners.click.length, 1);
+  assert.equal(importBtn._listeners.click.length, 1);
 });

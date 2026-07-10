@@ -13,7 +13,7 @@
 (function (window) {
   'use strict';
 
-  var TABLE_GRID = 'minmax(260px,1.6fr) minmax(175px,1fr) minmax(112px,.75fr) minmax(130px,.8fr) minmax(220px,1.15fr) 148px';
+  var TABLE_GRID = 'minmax(260px,1.45fr) minmax(175px,.9fr) minmax(112px,.7fr) minmax(130px,.75fr) minmax(270px,1.45fr) 148px';
   var TABLE_MIN_WIDTH = '1180px';
   var CARD = 'background:#fff;border:1px solid #eceef1;border-radius:6px;';
   var BTN_PRIMARY = 'height:34px;display:inline-flex;align-items:center;gap:7px;'
@@ -310,7 +310,7 @@
       hasRealId: hasRealId,
       raw: doc || {},
       filename: filename,
-      from: doc && (doc.gmail_from || doc.from || doc.sender || doc.email_from || doc.origem_email) || '',
+      from: doc && (doc.sender_email || doc.gmail_from || doc.from || doc.sender || doc.email_from || doc.origem_email) || '',
       formato: formato,
       tipo: tipo,
       direcao: direcao,
@@ -880,6 +880,8 @@
     var refreshBtn = window.el('button', {
       type: 'button',
       'data-action': 'atualizar-documentos',
+      'aria-label': 'Atualizar agora',
+      title: 'Atualizar agora',
       style: BTN_PRIMARY + (ui.refreshing ? 'opacity:.72;cursor:wait;' : ''),
       onclick: function () {
         if (ui.refreshing) return;
@@ -896,7 +898,7 @@
       },
     });
     refreshBtn.appendChild(svgEl(SVG_REFRESH, 14, 'Atualizar', ui.refreshing ? 'animation:rv-doc-spin .8s linear infinite;' : ''));
-    refreshBtn.appendChild(document.createTextNode('Atualizar agora'));
+    refreshBtn.appendChild(document.createTextNode('Atualizar'));
     actions.appendChild(refreshBtn);
 
     if (isAdminUser()) {
@@ -904,6 +906,8 @@
       var scanAttrs = {
         type: 'button',
         'data-action': 'verificar-novos-documentos',
+        'aria-label': 'Verificar novos documentos',
+        title: 'Verificar novos documentos',
         style: BTN_SECONDARY + (scanActive ? 'opacity:.65;cursor:wait;' : ''),
         onclick: startDocumentScan,
       };
@@ -911,7 +915,7 @@
       var scanBtn = window.el('button', scanAttrs);
       scanBtn.appendChild(svgEl(SVG_MAIL, 14, 'Verificar novos documentos'));
       scanBtn.appendChild(document.createTextNode(scanActive
-        ? scanStatusLabel(ui.scanRequest.status) : 'Verificar novos documentos'));
+        ? scanStatusLabel(ui.scanRequest.status) : 'Verificar'));
       actions.appendChild(scanBtn);
     }
 
@@ -925,10 +929,11 @@
         buttonId: 'rv-docs-received-import-btn-inline',
       });
       pair.button.style.cssText = BTN_SECONDARY;
-      pair.button.title = 'Selecionar JSONL exportado do Documents Ingestor';
+      pair.button.title = 'Importar documentos';
+      pair.button.setAttribute('aria-label', 'Importar documentos');
       pair.button.textContent = '';
       pair.button.appendChild(svgEl(SVG_UPLOAD, 14, 'Importar documentos'));
-      pair.button.appendChild(document.createTextNode('Importar documentos'));
+      pair.button.appendChild(document.createTextNode('Importar'));
       pair.fileInput.addEventListener('change', function () {
         ui.lastRun = new Date();
         rerenderSoon(80);
@@ -936,11 +941,14 @@
       });
       pair.mount(importWrap);
     } else {
-      importWrap.appendChild(window.el('button', {
+      var unavailableImportBtn = window.el('button', {
         type: 'button',
         disabled: 'disabled',
+        'aria-label': 'Importar documentos',
+        title: 'Importar documentos',
         style: BTN_SECONDARY + 'opacity:.65;cursor:not-allowed;',
-      }, 'Importar documentos'));
+      }, 'Importar');
+      importWrap.appendChild(unavailableImportBtn);
     }
     actions.appendChild(importWrap);
 
@@ -1392,9 +1400,12 @@
       }, doc.filename));
     if (doc.from) {
       nameBlock.appendChild(window.el('div', {
-        style: 'font-size:11px;color:#9aa2af;margin-top:1px;white-space:nowrap;'
-          + 'overflow:hidden;text-overflow:ellipsis;',
-      }, 'de ' + doc.from));
+        style: 'font-size:11px;color:#9aa2af;margin-top:1px;min-width:0;overflow-wrap:anywhere;',
+      }, 'Remetente: ' + doc.from));
+    } else {
+      nameBlock.appendChild(window.el('div', {
+        style: 'font-size:11px;color:#9aa2af;margin-top:1px;overflow-wrap:anywhere;',
+      }, 'Remetente: indisponível'));
     }
 
     return window.el('div', {
@@ -1429,16 +1440,16 @@
         style: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
       }, pedidoCell(doc)),
       window.el('div', { style: 'display:flex;flex-direction:column;gap:3px;min-width:0;' },
-        window.el('div', { 'data-field': 'recebido-no-email', style: 'font-size:11.5px;color:#5b6472;' },
-          'Recebido no e-mail: ', doc.emailReceivedAt ? fmtDataHoraCurta(doc.emailReceivedAt) : 'indisponível',
+        window.el('div', { 'data-field': 'recebido-no-email', style: 'font-size:11.5px;color:#5b6472;white-space:nowrap;' },
+          'Recebido: ', doc.emailReceivedAt ? fmtDataHoraCurta(doc.emailReceivedAt) : 'indisponível',
           doc.raw.email_received_at_estimated === true ? window.el('span', {
             'data-badge': 'data-estimada', style: 'margin-left:5px;font-size:10px;font-weight:700;color:#a16207;',
           }, 'data estimada') : null,
           !doc.emailReceivedAt ? window.el('span', {
             'data-badge': 'documento-legado', style: 'margin-left:5px;font-size:10px;font-weight:700;color:#7c3aed;',
           }, 'documento legado') : null),
-        window.el('div', { 'data-field': 'processado-pelo-ingestor', style: 'font-size:11.5px;color:#7b8492;' },
-          'Processado pelo Ingestor: ', doc.processedAt ? fmtDataHoraCurta(doc.processedAt) : 'indisponível')),
+        window.el('div', { 'data-field': 'processado-pelo-ingestor', style: 'font-size:11.5px;color:#7b8492;white-space:nowrap;' },
+          'Processado: ', doc.processedAt ? fmtDataHoraCurta(doc.processedAt) : 'indisponível')),
       buildActionButtons(doc));
   }
 

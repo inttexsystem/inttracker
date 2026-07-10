@@ -241,7 +241,7 @@
     btn.id = opts.buttonId || 'rv-docs-received-import-btn';
     btn.setAttribute('aria-label', 'Selecionar arquivo JSONL de documentos exportados do Documents Ingestor');
     btn.title = 'Selecionar arquivo JSONL de documentos exportados do Documents Ingestor';
-    btn.textContent = 'Importar documentos';
+    btn.textContent = 'Importar';
     btn.style.cssText =
       'background:#18794a;color:#fff;border:none;border-radius:4px;'
       + 'padding:8px 16px;font-size:13px;font-weight:600;'

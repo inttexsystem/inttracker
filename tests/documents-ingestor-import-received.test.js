@@ -290,7 +290,7 @@ test('import-received (G12-F2): flag RAVATEX_ENABLE_FLOATING_RECEIVED_IMPORT res
   var buttons = rt.domElements['button'] || [];
   var importBtn = buttons.find(function (b) { return b.id === 'rv-docs-received-import-btn'; });
   assert.ok(importBtn, 'com flag explicita, botao flutuante opcional aparece');
-  assert.equal(importBtn.textContent, 'Importar documentos', 'label do botao (G12-F2)');
+  assert.equal(importBtn.textContent, 'Importar', 'label do botao compacto');
 });
 
 // -------------------------------------------------------------------
@@ -306,7 +306,7 @@ test('import-received (G12-R1): createReceivedImportButton retorna button+fileIn
   assert.equal(typeof pair.mount, 'function', 'mount deve ser funcao');
   assert.equal(typeof pair.mountBody, 'function', 'mountBody deve ser funcao');
   assert.equal(pair.button.id, 'btn-inline-test', 'id customizada respeitada');
-  assert.equal(pair.button.textContent, 'Importar documentos', 'label padrao (G12-F2)');
+  assert.equal(pair.button.textContent, 'Importar', 'label padrao compacto');
   assert.equal(pair.fileInput.type, 'file', 'file input type=file');
   assert.ok(pair.fileInput.accept.indexOf('.jsonl') >= 0, 'accept inclui .jsonl');
   assert.equal(pair.fileInput.style.display, 'none', 'file input escondido');

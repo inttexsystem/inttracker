@@ -334,8 +334,8 @@ test('G14-C: botao "Importar documentos" presente no header (inline)', function 
     return n.tagName === 'BUTTON' && n.id === 'rv-docs-received-import-btn-inline';
   });
   assert.equal(importBtns.length, 1, 'botao "Importar documentos" ausente no header');
-  assert.ok(textOf(importBtns[0]).indexOf('Importar documentos') >= 0,
-    'label do botao deve ser "Importar documentos"');
+  assert.ok(textOf(importBtns[0]).indexOf('Importar') >= 0,
+    'label do botao deve ser "Importar"');
 });
 
 test('G14-C: botao legado "Importar eventos" NAO aparece na tela Documentos', function () {
