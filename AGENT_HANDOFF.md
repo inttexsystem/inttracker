@@ -1,5 +1,57 @@
 # AGENT HANDOFF
 
+## RAVATEX-DOCUMENTS-G23-F-D-SCAN-RUN-STALE-LOCK-RECOVERY-PATCH (2026-07-09)
+
+- Status: **PRONTO — RECOVERY RPC + FLAGS DO WRITER PARA STALE LOCKS EM document_scan_runs**.
+- HEAD tecnico Ingestor: `master` em `ea4f1d2ced154194358fe90df714bfba41d74ae3` (HEAD inicial `b573b9958bb5c1a219ee057d423d6563968f2dd0`).
+- HEAD canonico de referencia no Controle: `work/app-next` em `aa62793f251e4643037f421cd8ec419406ea9911` (HEAD inicial `2ae80d9f165cae9b926e2a1fcffae17979cb5eba`).
+
+- O que foi entregue:
+  - `src/supabase/serviceRoleClient.ts`: wrapper da RPC `recuperar_document_scan_runs_travados` com defaults canonicos (`p_source = null`, `p_stale_after = 30 minutes`) e piso de 5 minutos aplicado no client. `service_role` preservado; nenhuma consulta/escrita direta em `document_scan_runs` no Ingestor.
+  - `src/core/syncSupabase.ts`: gate de `recover-stale` chama a RPC antes do scan. Skips de candidatos sem base completa continuam preservados (RPC nao interfere no funil de escrita).
+  - `src/cli.ts`: flags `sync:supabase --recover-stale` e `--recover-stale --stale-after-minutes <N>`. Default canonico `30`. Piso `5` com coercion local.
+  - `docs/SUPABASE_WRITER_RUNBOOK.md`: secao dedicada a `--recover-stale` / `--stale-after-minutes`, ao piso de 5 minutos, ao retorno JSONB da RPC e a politica de apply (somente staging no G23-F-E).
+  - `tests/sync-supabase.test.ts`: 24/24 passando.
+
+- Contrato da RPC (canonica no Controle, referenciada pelo Ingestor):
+  - `public.recuperar_document_scan_runs_travados(p_source TEXT DEFAULT NULL, p_stale_after INTERVAL DEFAULT INTERVAL '30 minutes')`.
+  - CAS `running` -> `failed` com `FOR UPDATE SKIP LOCKED` + reconfirmacao `status = 'running'`.
+  - Default canonico: **30 minutos**. Piso: **5 minutos**.
+  - Auditoria: `error_message` recebe sentinela `stale_recovered: exceeded <stale_after>, started_at=<ISO Z>`. Reusa `status = 'failed'`.
+  - Grants: `service_role` e `authenticated`; `PUBLIC`/`anon` revogados.
+
+- Flags operacionais:
+  - `--recover-stale` (boolean): habilita a chamada da RPC antes do scan.
+  - `--stale-after-minutes <N>` (int): default `30`, piso `5`.
+
+- Causa raiz:
+  - O writer cria `status='running'` e depende do indice unico parcial `document_scan_runs_running_source_uidx` (`db/38`) para impedir concorrencia por source. Crash entre o INSERT e a finalizacao deixa a linha `running` para sempre, bloqueando scans futuros daquela source. A RPC no Controle entrega destravamento self-heal; o Ingestor apenas a invoca quando `--recover-stale` esta ativo.
+
+- Migration 40: **VERSIONADA, MAS NAO APLICADA** nesta fase. Aplicar **somente em staging** no G23-F-E.
+
+- Arquivos alterados nesta fase (Ingestor):
+  - `docs/SUPABASE_WRITER_RUNBOOK.md`
+  - `src/cli.ts`
+  - `src/core/syncSupabase.ts`
+  - `src/supabase/serviceRoleClient.ts`
+  - `tests/sync-supabase.test.ts`
+
+- Arquivos alterados nesta fase (Controle, registro sincrono):
+  - `db/40_document_scan_runs_stale_recovery.sql` (novo).
+
+- Testes:
+  - Ingestor `tests/sync-supabase.test.ts`: **24/24**.
+  - Controle suite acumulada: **431/431** (sem regressao).
+
+- Confirmacoes:
+  - Producao intocada.
+  - Gmail, Drive e Supabase real **nao utilizados** (RPC nao aplicada, nenhuma chamada remota, nenhuma credencial real).
+  - Sem push, sem `git add .`, sem `git add -A`.
+
+- Ressalva obrigatoria: a RPC foi especificada e versionada, e o writer foi preparado para invoca-la. A **concorrencia real ainda depende do smoke staging** a ser executado no G23-F-E. O piso de 5 minutos e a protecao `FOR UPDATE SKIP LOCKED` sao contratos logicos, nao verificados contra carga real ate G23-F-E.
+
+- Proximo passo: G23-F-E — STAGING SMOKE. Aplicar a migration 40 no projeto staging do Supabase e exercitar `--recover-stale` + `--stale-after-minutes` em cenario real com run orfao simulado, validando destravamento e idempotencia concorrente.
+
 ## G23-B-F-R2 Canonical Ingestion Events Export
 
 - Added `npm run export:ingestion-events`, producing `data/exports/ingestion-events.jsonl` from SQLite `ingestion_events` only.
