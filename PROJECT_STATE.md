@@ -7550,3 +7550,12 @@ Debitos: repetir validacao visual em browser real e obter sessao segura nao-admi
 - UI validada pelo operador: **Recebido no e-mail: 10/07 15:42** e **Processado pelo Ingestor: 10/07 16:10**; sem `documento legado` para o documento novo.
 - Request `bd43ecdb...` / run `77115770...` completed; request/run R1 failed permanecem como evidencia. Sem push e sem alteracao tecnica adicional no Controle nesta retomada.
 - Proxima fase: `G25-B2 — RELEVANCE CLASSIFIER V1`.
+
+## G25-B1-UX-B-C PARTIAL — Reconciliacao Gmail historica (2026-07-10)
+
+- Migration 43 e reader/UI de remetente permanecem em staging `ucrjtfswnfdlxwtmxnoo`; produção `bhgifjrfagkzubpyqpew` não foi acessada.
+- O reconciliador do Documents Ingestor percorreu a janela desde `2026-06-19T03:00:00.000Z`: 24 mensagens, 40 anexos PDF/XML, 17 metadados legados preenchidos e 20 documentos ausentes criados pelo pipeline canônico. Staging passou a ter 40 candidates.
+- O segundo dry-run confirmou idempotência: zero update SQLite/Supabase e zero criação. O reader continua compatível com legado.
+- Exceção preservada: `L.pdf` local (`gmail_message_id=m-log`) não existe no Gmail e permanece sem remetente/data/message ID; não houve exclusão automática. Os documentos de teste foram apenas reportados, não removidos.
+- UI continua apresentando `Remetente`, `Recebido`, `Processado` e ações compactas; revalidação visual autenticada fica disponível ao administrador. Watcher voltou com uma instância e fila Gmail ativa zero.
+- Próxima fase: `G25-B1-UX-C — TEST DOCUMENT CLEANUP`, com lista explícita do operador; depois `G25-B2 — RELEVANCE CLASSIFIER V1`.
