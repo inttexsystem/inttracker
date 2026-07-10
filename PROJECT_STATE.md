@@ -7554,7 +7554,7 @@ Debitos: repetir validacao visual em browser real e obter sessao segura nao-admi
 ## G25-B1-UX-B-C PARTIAL — Reconciliacao Gmail historica (2026-07-10)
 
 - Migration 43 e reader/UI de remetente permanecem em staging `ucrjtfswnfdlxwtmxnoo`; produção `bhgifjrfagkzubpyqpew` não foi acessada.
-- O reconciliador do Documents Ingestor percorreu a janela desde `2026-06-19T03:00:00.000Z`: 24 mensagens, 40 anexos PDF/XML, 17 metadados legados preenchidos e 20 documentos ausentes criados pelo pipeline canônico. Staging passou a ter 40 candidates.
+- O reconciliador do Documents Ingestor percorreu a janela desde `2026-06-19T03:00:00.000Z`: 24 mensagens, 40 anexos PDF/XML, 17 metadados legados preenchidos e 20 anexos ausentes processados pelo pipeline canônico. Uma referência cross-message reutilizou Drive existente, resultando em 21 candidates novos sem par mensagem/anexo duplicado. Staging passou a ter 40 candidates.
 - O segundo dry-run confirmou idempotência: zero update SQLite/Supabase e zero criação. O reader continua compatível com legado.
 - Exceção preservada: `L.pdf` local (`gmail_message_id=m-log`) não existe no Gmail e permanece sem remetente/data/message ID; não houve exclusão automática. Os documentos de teste foram apenas reportados, não removidos.
 - UI continua apresentando `Remetente`, `Recebido`, `Processado` e ações compactas; revalidação visual autenticada fica disponível ao administrador. Watcher voltou com uma instância e fila Gmail ativa zero.

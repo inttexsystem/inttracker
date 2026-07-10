@@ -6984,7 +6984,7 @@ Aplicar exclusivamente a migration 41 em staging e somente apos gate do arquitet
 ## G25-B1-UX-B-C — Reconciliacao Gmail historica (2026-07-10)
 
 - Status: **PARTIAL — uma row local irrecuperável documentada**. Sem ambiguidade no Gmail, sem exclusões e sem produção.
-- Staging `ucrjtfswnfdlxwtmxnoo`: 40 `document_candidates`, metadados Gmail reconciliados e `sender_email` disponível para os documentos encontrados. O Controle já lê e exibe o campo com labels compactos.
+- Staging `ucrjtfswnfdlxwtmxnoo`: 40 `document_candidates`, metadados Gmail reconciliados e `sender_email` disponível para os documentos encontrados. Os 20 anexos ausentes produziram 21 candidates por uma referência cross-message com Drive reutilizado, sem par mensagem/anexo duplicado. O Controle já lê e exibe o campo com labels compactos.
 - A única exceção é `L.pdf` (`gmail_message_id=m-log`), ausente do Gmail; continua preservada como legado sem metadados. Test candidates foram somente reportados, nunca excluídos.
 - Watcher: uma instância oficial; `active_gmail_requests=0`. Push não realizado.
 - Próxima ação: `G25-B1-UX-C — TEST DOCUMENT CLEANUP` com decisão explícita do operador, seguida de `G25-B2 — RELEVANCE CLASSIFIER V1`.
