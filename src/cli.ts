@@ -25,6 +25,7 @@ import {
 } from './core/watchDocumentScanRequests.js';
 import { acquireWatcherInstanceLock, type WatcherInstanceLock } from './core/watcherInstanceLock.js';
 import { createServiceRoleWriterClient, loadServiceRoleConfig } from './supabase/serviceRoleClient.js';
+import { reconcileGmailDocuments } from './core/reconcileGmailDocuments.js';
 
 const program = new Command();
 
@@ -705,6 +706,81 @@ program
     console.log(`[write-latest] Wrote latest manifest: ${result.manifestPath}`);
     console.log(`[write-latest] count=${m.count} hash=${m.hash} bytes=${m.bytes}`);
     console.log('[write-latest] Local-only — no Gmail/Drive calls performed.');
+  });
+
+program
+  .command('reconcile-gmail-documents')
+  .description('Reconcile Gmail document metadata since an explicit Sao Paulo cutoff; dry-run by default')
+  .requiredOption('--since <YYYY-MM-DD>', 'Inclusive America/Sao_Paulo date cutoff')
+  .option('--dry-run', 'Read Gmail, SQLite and staging only (default)', false)
+  .option('--confirm-real-google', 'Required with both write confirmations for the controlled reconciliation')
+  .option('--confirm-local-write', 'Allow whitelisted SQLite metadata updates')
+  .option('--confirm-supabase-write', 'Allow whitelisted staging metadata updates')
+  .action(async (opts) => {
+    const allWriteConfirmations = Boolean(opts.confirmRealGoogle)
+      && Boolean(opts.confirmLocalWrite)
+      && Boolean(opts.confirmSupabaseWrite)
+      && !Boolean(opts.dryRun);
+    try {
+      const report = await reconcileGmailDocuments({
+        since: String(opts.since),
+        dryRun: !allWriteConfirmations,
+        confirmRealGoogle: Boolean(opts.confirmRealGoogle),
+        confirmLocalWrite: Boolean(opts.confirmLocalWrite),
+        confirmSupabaseWrite: Boolean(opts.confirmSupabaseWrite),
+      });
+      const output = {
+        WINDOW_START: report.windowStart,
+        WINDOW_END: report.windowEnd,
+        GMAIL_QUERY: report.gmailQuery,
+        GMAIL_MESSAGES_SCANNED: report.gmailMessagesScanned,
+        GMAIL_MESSAGES_IN_WINDOW: report.gmailMessagesInWindow,
+        ATTACHMENTS_FOUND: report.attachmentsFound,
+        PDF_XML_CANDIDATES: report.pdfXmlCandidates,
+        EXISTING_MATCHED: report.existingMatched,
+        MATCHED_BY_CANONICAL_MESSAGE_ID: report.matchedByCanonicalMessageId,
+        MATCHED_BY_LEGACY_MESSAGE_ID: report.matchedByLegacyMessageId,
+        MATCHED_BY_HASH: report.matchedByHash,
+        MATCHED_BY_DRIVE_ID: report.matchedByDriveId,
+        AMBIGUOUS_MATCHES: report.ambiguousMatches,
+        MISSING_DOCUMENT_CANDIDATES: report.missingDocumentCandidates,
+        WOULD_CREATE_DOCUMENTS: report.wouldCreateDocuments,
+        MISSING_SENDER_EMAIL: report.missingSenderEmail,
+        WOULD_FILL_SENDER_EMAIL: report.wouldFillSenderEmail,
+        MISSING_EMAIL_RECEIVED_AT: report.missingEmailReceivedAt,
+        WOULD_FILL_EMAIL_RECEIVED_AT: report.wouldFillEmailReceivedAt,
+        MISSING_CANONICAL_EMAIL_MESSAGE_ID: report.missingCanonicalEmailMessageId,
+        WOULD_FILL_EMAIL_MESSAGE_ID: report.wouldFillEmailMessageId,
+        ALREADY_COMPLETE: report.alreadyComplete,
+        MESSAGE_NOT_FOUND: report.messageNotFound,
+        INVALID_FROM: report.invalidFrom,
+        INVALID_DATE: report.invalidDate,
+        TEST_CANDIDATES: report.testCandidates.map((candidate) => ({
+          document_id: candidate.documentId,
+          filename: candidate.filename,
+          message_id: maskId(candidate.gmailMessageId),
+          reason: candidate.reason,
+          status: candidate.status,
+          pedido: candidate.pedidoManual,
+          known_e2e: candidate.knownE2e,
+        })),
+        WOULD_UPDATE_SQLITE: report.wouldUpdateSqlite,
+        WOULD_UPDATE_SUPABASE: report.wouldUpdateSupabase,
+        LOCAL_WRITES: report.localWrites,
+        SUPABASE_WRITES: report.supabaseWrites,
+        LOCAL_DOCUMENTS_BEFORE: report.localDocumentsBefore,
+        SUPABASE_DOCUMENTS_BEFORE: report.supabaseDocumentsBefore,
+        PROTECTED_FIELD_CHANGES: report.protectedFieldChanges,
+        ERRORS: report.errors,
+      };
+      console.log(JSON.stringify(output, null, 2));
+      if (report.ambiguousMatches > 0 || report.protectedFieldChanges > 0) process.exitCode = 2;
+    } catch (error: any) {
+      console.error(`[reconcile:gmail-documents] ${error?.message ?? String(error)}`);
+      process.exitCode = 1;
+    } finally {
+      closeDb();
+    }
   });
 
 program

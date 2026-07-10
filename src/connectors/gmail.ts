@@ -149,15 +149,35 @@ export async function fetchRecentEmails(
   client: gmail_v1.Gmail | null = null,
   extraQuery?: string,
 ): Promise<GmailMessageMeta[]> {
+  const query = buildQuery(daysBack, extraQuery);
+  return fetchEmailsByQuery(query, client);
+}
+
+/**
+ * Lists every Gmail message matching an explicit query. This is used by
+ * historical reconciliation flows that must not rely on a relative day count.
+ */
+export async function fetchEmailsByQuery(
+  query: string,
+  client: gmail_v1.Gmail | null = null,
+): Promise<GmailMessageMeta[]> {
   const auth = client ? null : await getAuthenticatedClient();
   const gmail = client ?? (auth ? buildGmailClient(auth) : null);
-  if (!gmail) {
-    return [];
-  }
+  if (!gmail) return [];
 
-  const query = buildQuery(daysBack, extraQuery);
-  const list = await gmail.users.messages.list({ userId: 'me', q: query, maxResults: 50 });
-  const messages = list.data.messages ?? [];
+  const messages: gmail_v1.Schema$Message[] = [];
+  let pageToken: string | undefined;
+  do {
+    const list = await gmail.users.messages.list({
+      userId: 'me',
+      q: query,
+      maxResults: 500,
+      pageToken,
+    });
+    messages.push(...(list.data.messages ?? []));
+    pageToken = list.data.nextPageToken ?? undefined;
+  } while (pageToken);
+
   const metas: GmailMessageMeta[] = [];
 
   for (const m of messages) {
