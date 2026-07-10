@@ -6920,3 +6920,21 @@ Aplicar exclusivamente a migration 41 em staging e somente apos gate do arquitet
 ### 3. PROXIMA ACAO
 
 - Recomendada somente: **G24-B5 - SCAN STATUS UI DEDUP + ACTIVE REQUEST HYDRATION**. Nao implementar agora.
+
+## G24-B5 CLOSEOUT (2026-07-10)
+
+### 1. ESTADO DO CONTROLE DE TAPETES
+
+- G24-B5 CLOSED. Baseline: branch `work/app-next`, HEAD inicial `df18061`; commit tecnico `e453bc0` (`Dedup scan status and hydrate active scan request`). Diferente do G24-B4, esta ordem entrega mudanca tecnica real (frontend), nao apenas documental.
+- Dedup: status da request ativa nao e mais duplicado. Antes aparecia no botao (`scanStatusLabel`) e espelhado na linha de feedback; agora `onUpdate` limpa `ui.scanFeedback` e o botao e a fonte unica do status ao vivo. Feedback fica so para mensagens transitorias/terminais.
+- Hidratacao: hard reload agora reidrata request ativa. `js/documents-scan-trigger.js` ganha `getActiveDocumentScanRequest(source)` (SELECT admin-only puro sobre `document_scan_requests`, estados `requested/claimed/running`, `limit 1`); `js/screens/documentos-recebidos.js` ganha `hydrateActiveScanRequest()` + `resumeScanTracking()`, que retomam o polling via `pollDocumentScanRequest` sem chamar `solicitar_document_scan`.
+- Contrato G24-B5 honrado: no maximo um polling (flag `scanHydrationAttempted` + guarda `isActiveScanRequest` + dedup por id do trigger); cancelamento por rota/logout preservado; refresh automatico em `completed` preservado via handlers compartilhados `makeScanTrackingHandlers`.
+- Arquivos: `js/documents-scan-trigger.js`, `js/screens/documentos-recebidos.js`, `tests/documents-scan-trigger.test.js`, `tests/documentos-recebidos.smoke.js`. Testes afetados 105/105 (+6 novos). Baseline no mesmo diretorio confirmou zero novas falhas (suite suspeita mantem 60/49/11 com ou sem os fontes revertidos).
+
+### 2. ESTADO DO DOCUMENTS INGESTOR
+
+- Nenhuma alteracao. Ordem 100% client-side no Controle. Migration 41, Gmail/Drive/Supabase real, staging e producao nao acessados; nenhum push.
+
+### 3. PROXIMA ACAO
+
+- Nenhuma fase dependente. As duas dividas nao bloqueantes do G24-B4 (duplicidade visual + hidratacao apos hard reload) estao resolvidas no frontend. Revalidacao visual em staging fica a criterio do arquiteto — esta ordem nao acessou staging.
