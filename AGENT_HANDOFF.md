@@ -756,3 +756,11 @@ Bases incompletas sao retornadas em `canonical_base_skipped`, sem inventar pendi
 - **Watcher persistente implementado, nao ativado**: `src/core/watcherInstanceLock.ts` faz exclusao atomica por source em modo continuo; o CLI a usa somente fora de `--once`. `ops/watcher/` fornece start/status/stop e instalacao de Task Scheduler. O start recusa ref diferente de `ucrjtfswnfdlxwtmxnoo`; Task Scheduler usa `IgnoreNew`; lock do CLI cobre corrida/processo externo. Nenhum segredo foi inserido nos scripts.
 - **Testes**: 31/31 nos testes focados de watcher/CLI; build geral ainda falha por seis erros anteriores em arquivos fora deste escopo (`drive.ts`, `realScan.ts`, `syncMapped.ts`).
 - **E2E**: nao executado. Task nao instalada, watcher 0, e falta documento antes omitido para comprovar cobertura. Nao houve producao, push, Gmail/Drive/Supabase writes.
+
+## G25-B1 CLOSED — Documents Ingestor
+
+- Causa R1: `schema.sql` tentava criar o indice de `email_received_at` antes da migration incremental de banco legado. R2 removeu apenas essa criacao antecipada; `ensureLocalMigrations()` continua adicionando as colunas e criando o indice depois.
+- Commit tecnico: `23bcaa3 Fix legacy SQLite received timestamp migration`. Testes SQLite cobrem legado pelo fluxo real `getDb()`, banco novo, indice e idempotencia.
+- E2E staging: request `bd43ecdb...` / run `77115770...` completed; 19 processados, 17 novos, zero ativos. A falha anterior (`8717df4b...` / `755ee531...`) foi preservada.
+- Documento de controle: `TESTE-G25-B1-20260710-1536.pdf`; `email_received_at=2026-07-10T18:42:59.000Z`, source `gmail_internal_date`, estimated `false`, processamento posterior.
+- Sem producao, push, novo e-mail, recriacao de banco ou backfill. Proxima acao: `G25-B2 — RELEVANCE CLASSIFIER V1`.

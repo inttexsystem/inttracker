@@ -485,3 +485,13 @@ RAVATEX-DOCUMENTS-G22-A-AUTO-LOADER-DESIGN (Controle de Tapetes, read-only)
 > - Testes focados: watcher/CLI 31/31 pass; `git diff --check` OK. `npm run build` continua bloqueado por seis erros preexistentes em `drive.ts`, `realScan.ts` e `syncMapped.ts`, fora deste patch.
 >
 > E2E staging nao executado: nao ha watcher persistente ativo e nao existe documento antes omitido comprovado. Producao e push intocados.
+
+## G25-B1 CLOSED — Gmail received timestamp vertical slice (2026-07-10)
+
+- R1 preservado como evidencia: request `8717df4b...` e run `755ee531...` falharam por `no such column: email_received_at`; nenhuma linha historica foi removida.
+- R2 corrigiu a abertura de SQLite legado no commit `23bcaa3`: o schema base nao cria mais prematuramente `idx_documentos_email_received_at`; `ensureLocalMigrations()` adiciona as quatro colunas e so entao cria o indice. Banco legado, banco novo e reabertura idempotente estao cobertos em `tests/storage-schema.test.ts`.
+- Linhagem valida: Gmail `internalDate` -> `email_received_at` UTC; `Date` e somente fallback `header_date` marcado `estimated=true`; sem fallback para hora de ingestao. Campos persistidos: `email_message_id`, `email_received_at`, `email_received_at_source`, `email_received_at_estimated`.
+- E2E staging `ucrjtfswnfdlxwtmxnoo`: request `bd43ecdb...` e run `77115770...` terminaram `completed`, com 19 processados, 17 novos e zero requests Gmail ativas. O documento controlado `TESTE-G25-B1-20260710-1536.pdf` foi reutilizado, sem novo e-mail.
+- Prova temporal: `internalDate` `1783708979000` = `2026-07-10T18:42:59.000Z`; SQLite e Supabase persistiram `gmail_internal_date` / `false`; processamento `2026-07-10T19:10:56Z` ocorreu depois. UI validada pelo operador: recebido `10/07 15:42`, processado `10/07 16:10`, sem badge legado.
+- Testes focados: 81/81 verdes; `git diff --check` OK. Build manteve apenas diagnosticos TypeScript preexistentes fora desta correcao, sem erros novos. Producao intocada; sem push, backfill ou alteracao de relevancia.
+- Proxima fase: `G25-B2 — RELEVANCE CLASSIFIER V1`.
