@@ -25,6 +25,19 @@ describe('SQLite schema carries Drive-first contract', () => {
     if (existsSync(DB_DIR)) rmSync(DB_DIR, { recursive: true });
   });
 
+  it('documentos table has CNPJ party columns', () => {
+    const db = getDb();
+    const cols = db.prepare(`PRAGMA table_info(documentos)`).all() as any[];
+    const names = cols.map((c: any) => c.name);
+    expect(names).toContain('cnpj_emitente');
+    expect(names).toContain('cnpj_destinatario');
+    const cnpjCols = cols.filter((c: any) => c.name === 'cnpj_emitente' || c.name === 'cnpj_destinatario');
+    for (const col of cnpjCols) {
+      expect(col.notnull).toBe(0);
+      expect(col.dflt_value).toBeNull();
+    }
+  });
+
   it('documentos table has Drive columns', () => {
     const db = getDb();
     const cols = db.prepare(`PRAGMA table_info(documentos)`).all() as any[];
@@ -380,6 +393,71 @@ describe('SQLite migration for taxonomy columns (pre-G1 → G1+)', () => {
     expect(rows[0].tipo_documento).toBe('nf_pdf');
     expect(rows[0].formato).toBe('pdf');
 
+    db.close();
+  });
+
+  it('adds cnpj_emitente and cnpj_destinatario columns to old schema', () => {
+    const db = openOldDb();
+    ensureLocalMigrations(db);
+    const cols = db.prepare(`PRAGMA table_info(documentos)`).all() as any[];
+    const names = cols.map((c: any) => c.name);
+    expect(names).toContain('cnpj_emitente');
+    expect(names).toContain('cnpj_destinatario');
+    db.close();
+  });
+
+  it('existing documents get null CNPJ columns after migration', () => {
+    const db = openOldDb();
+    db.prepare(`INSERT INTO documentos (id, gmail_message_id, attachment_id, filename_original, sha256)
+      VALUES (?, ?, ?, ?, ?)`)
+      .run('cnpj-legacy-doc', 'cnpj-legacy-message', 'cnpj-legacy-att', 'legacy.pdf', 'cnpj-legacy-sha');
+    ensureLocalMigrations(db);
+    const row = db.prepare(`SELECT cnpj_emitente, cnpj_destinatario, filename_original FROM documentos WHERE id = ?`)
+      .get('cnpj-legacy-doc') as any;
+    expect(row.cnpj_emitente).toBeNull();
+    expect(row.cnpj_destinatario).toBeNull();
+    expect(row.filename_original).toBe('legacy.pdf');
+    db.close();
+  });
+
+  it('multiple legacy rows are preserved with null CNPJs', () => {
+    const db = openOldDb();
+    db.prepare(`INSERT INTO documentos (id, gmail_message_id, attachment_id, filename_original, sha256)
+      VALUES (?, ?, ?, ?, ?)`)
+      .run('cnpj-legacy-1', 'cnpj-legacy-msg', 'att-1', 'doc1.pdf', 'sha-cnpj-1');
+    db.prepare(`INSERT INTO documentos (id, gmail_message_id, attachment_id, filename_original, sha256)
+      VALUES (?, ?, ?, ?, ?)`)
+      .run('cnpj-legacy-2', 'cnpj-legacy-msg', 'att-2', 'doc2.pdf', 'sha-cnpj-2');
+    ensureLocalMigrations(db);
+    const rows = db.prepare(`SELECT id, cnpj_emitente, cnpj_destinatario FROM documentos ORDER BY id`).all() as any[];
+    expect(rows).toHaveLength(2);
+    expect(rows[0].cnpj_emitente).toBeNull();
+    expect(rows[1].cnpj_emitente).toBeNull();
+    db.close();
+  });
+
+  it('partial migration: only cnpj_emitente exists, cnpj_destinatario is added', () => {
+    const db = openOldDb();
+    ensureLocalMigrations(db);
+    const before = db.prepare(`PRAGMA table_info(documentos)`).all() as any[];
+    expect(before.map((c: any) => c.name)).toContain('cnpj_emitente');
+    expect(before.map((c: any) => c.name)).toContain('cnpj_destinatario');
+    db.close();
+  });
+
+  it('CNPJ column migration is idempotent (running twice)', () => {
+    const db = openOldDb();
+    db.prepare(`INSERT INTO documentos (id, gmail_message_id, attachment_id, filename_original, sha256)
+      VALUES (?, ?, ?, ?, ?)`)
+      .run('cnpj-idem', 'cnpj-idem-msg', 'att', 'doc.pdf', 'sha-cnpj-idem');
+    ensureLocalMigrations(db);
+    ensureLocalMigrations(db);
+    const cols = db.prepare(`PRAGMA table_info(documentos)`).all() as any[];
+    const names = cols.map((c: any) => c.name);
+    expect(names).toContain('cnpj_emitente');
+    expect(names).toContain('cnpj_destinatario');
+    const row = db.prepare(`SELECT id, cnpj_emitente FROM documentos WHERE id = ?`).get('cnpj-idem') as any;
+    expect(row.id).toBe('cnpj-idem');
     db.close();
   });
 });

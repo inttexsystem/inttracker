@@ -51,6 +51,12 @@ export function ensureLocalMigrations(database: Database.Database): void {
   if (!colNames.has('email_received_at_estimated')) {
     database.exec(`ALTER TABLE documentos ADD COLUMN email_received_at_estimated INTEGER NOT NULL DEFAULT 0`);
   }
+  if (!colNames.has('cnpj_emitente')) {
+    database.exec(`ALTER TABLE documentos ADD COLUMN cnpj_emitente TEXT`);
+  }
+  if (!colNames.has('cnpj_destinatario')) {
+    database.exec(`ALTER TABLE documentos ADD COLUMN cnpj_destinatario TEXT`);
+  }
   database.exec(`CREATE INDEX IF NOT EXISTS idx_documentos_email_received_at ON documentos(email_received_at DESC)`);
 
   database.exec(`
@@ -108,6 +114,8 @@ export function ensureCheckMigration(database: Database.Database): void {
       CHECK (formato IN ('pdf', 'xml', 'desconhecido')),
     direcao_nf TEXT
       CHECK (direcao_nf IS NULL OR direcao_nf IN ('entrada', 'saida', 'desconhecida')),
+    cnpj_emitente TEXT,
+    cnpj_destinatario TEXT,
     storage_backend TEXT NOT NULL DEFAULT 'google_drive',
     storage_uri TEXT,
     drive_file_id TEXT,

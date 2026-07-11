@@ -38,6 +38,9 @@ CREATE TABLE IF NOT EXISTS documentos (
   direcao_nf TEXT
     CHECK (direcao_nf IS NULL OR direcao_nf IN ('entrada', 'saida', 'desconhecida')),
 
+  cnpj_emitente TEXT,
+  cnpj_destinatario TEXT,
+
   -- Storage canônico (Drive-first)
   storage_backend TEXT NOT NULL DEFAULT 'google_drive'
     CHECK (storage_backend IN ('google_drive')),
