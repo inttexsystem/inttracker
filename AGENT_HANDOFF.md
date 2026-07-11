@@ -17,12 +17,13 @@ FASE: G27-B2-R1 E G27-B-CORE-GATE-R1 COM EVIDENCIA TECNICA; DECISAO ARQUITETURAL
 - Commits locais: `5b012a0`, `3cc3999`, `09b45f8`, `8b3f9fd`, `aac06be`, `ab1e85e`, `a06fa62`.
 - Testes focados: classifier/scan **4 arquivos / 250 testes** verdes; suite completa Documents Ingestor: **40 arquivos / 812 testes** verde.
 - Build: baseline detached `26111e04` e G27 retornaram `tsc` exit 2 com os mesmos 8 erros (`drive.ts`, eventos historicos em `realScan.ts`, `syncMapped.ts`); debt comprovado preexistente.
+- Revisao integral independente final: Kimi K2.7 Code, somente leitura, revisou `26111e04..9a3aae2` e retornou `APPROVE`; a arvore permaneceu limpa.
 - Git final antes da documentacao: apenas os tres documentos permanentes previstos em alteracao; staging seletivo sera usado. Nenhum push, merge, cherry-pick ou contato remoto; `work/app-next` continua intocada.
 - Debito preservado: metadata orfa `.git/worktrees/baseline-worktree`; nao executar prune sem ordem independente.
 
 ## PROXIMO PASSO
 
-Concluir revisao integral final e snapshot somente-leitura do original; depois submeter a cadeia ao arquiteto. Nao integrar, cherry-pickar, mesclar nem publicar nesta cadeia.
+Executar snapshot somente-leitura final do original e submeter a cadeia ao arquiteto. Nao integrar, cherry-pickar, mesclar nem publicar nesta cadeia.
 
 ---
 

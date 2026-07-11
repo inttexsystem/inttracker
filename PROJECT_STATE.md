@@ -7,6 +7,7 @@
 > - B2-R1: XML candidato e convertido do Buffer integral ja baixado, sem novo download ou limite artificial; somente PDF usa prefixo limitado a 2048 bytes. XML bruto nao e persistido em SQLite, outbox/JSONL, logs ou Supabase. XML malformado/truncado e estrutura nao fiscal continuam `desconhecido`.
 > - Regressao: NF-e grande com raiz `NFe`/`nfeProc`, namespaces padrao/prefixado, `infNFe`/emit/dest/CNPJ/fechamento apos 2048, XML malformado/generico e sentinela de nao-persistencia; PDF com token NF somente apos 2048 confirma o limite PDF. Entidades internas nao expandem CNPJ.
 > - Verificacao: focados **4 arquivos / 250 testes** verdes; suite completa **40 arquivos / 812 testes** verde. Baseline detached em `26111e04` e G27 retornaram o mesmo build `tsc` (exit 2; 8 erros TypeScript identicos), portanto build debt e preexistente.
+> - Revisao integral independente final: Kimi K2.7 Code em modo somente-leitura avaliou `26111e04..9a3aae2` e emitiu `APPROVE`; `git status --short` permaneceu vazio ao encerramento da revisao.
 > - Nenhum push, merge, cherry-pick ou alteracao em `work/app-next`; remotos nao publicados. Nenhum `prune` explicito foi executado; a metadata orfa `baseline-worktree` permanece debito conhecido.
 >
 > **Atualizacao 2026-07-11 — fase
