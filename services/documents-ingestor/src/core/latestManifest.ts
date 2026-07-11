@@ -1,8 +1,7 @@
-import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname } from 'node:path';
-import { resolve } from 'node:path';
-import { mkdirSync } from 'node:fs';
+import { resolveFromPackageRoot } from '../packagePaths.js';
 
 export interface LatestManifest {
   schema_version: 1;
@@ -38,7 +37,7 @@ export function buildLatestManifestFromJsonl(
   jsonlPath: string,
   options: { lastError?: string | null } = {},
 ): LatestManifestResult {
-  const resolved = resolve(process.cwd(), jsonlPath);
+  const resolved = resolveFromPackageRoot(jsonlPath);
 
   if (!existsSync(resolved)) {
     return {
@@ -120,7 +119,7 @@ export interface WriteLatestManifestResult {
 }
 
 export function writeLatestManifest(opts: WriteLatestManifestOptions): WriteLatestManifestResult {
-  const resolved = resolve(process.cwd(), opts.manifestPath);
+  const resolved = resolveFromPackageRoot(opts.manifestPath);
   const dir = dirname(resolved);
 
   if (!existsSync(dir)) {
