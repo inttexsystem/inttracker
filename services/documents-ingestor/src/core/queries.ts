@@ -1,5 +1,6 @@
 import { getDb } from '../storage/sqlite.js';
 import type { DocumentStatus } from '../types/document.js';
+import { resolveFromPackageRoot } from '../packagePaths.js';
 
 export interface ListPendingFilters {
   limit?: number;
@@ -218,7 +219,7 @@ export function generateReport(opts: { daysBack?: number; pedido?: string } = {}
     `SELECT COUNT(*) AS c FROM emails_processados WHERE scan_status = 'error' AND processed_at >= ?`
   ).get(sinceIso) as any).c;
 
-  const outboxPath = process.env.OUTBOX_PATH ?? './data/outbox/document-events.jsonl';
+  const outboxPath = resolveFromPackageRoot(process.env.OUTBOX_PATH ?? './data/outbox/document-events.jsonl');
 
   return {
     totalEmailsProcessed,
