@@ -13,8 +13,8 @@ function loadFixture(name: string): string {
   return readFileSync(resolve(fixturesDir, name), 'utf-8');
 }
 
-const RAVATEX_CNPJ_1 = '12345678000190';
-const RAVATEX_CNPJ_2 = '98765432000110';
+const RAVATEX_CNPJ_1 = '59418365146803';
+const RAVATEX_CNPJ_2 = '55832866852408';
 
 function makeNFeXml(destCnpj?: string | null, emitCnpj?: string | null, useNsPrefix = false): string {
   const ns = useNsPrefix ? 'nfe:' : '';
@@ -43,9 +43,9 @@ function unavailableRegistry(): EntityCnpjRegistry {
   return { loaded: false, loadedAt: null, entries: [], error: 'connection failed' };
 }
 
-const CNPJ_FORN = '22222333000172';
+const CNPJ_FORN = '11444777000161';
 const CNPJ_CLI = '11222333000181';
-const CNPJ_SHARED = '33333333000133';
+const CNPJ_SHARED = '02194703529779';
 
 describe('classifier', () => {
   it('classifies XML with NF-e structure as nf + formato xml', () => {
@@ -131,7 +131,7 @@ describe('NF direction (XML)', () => {
   const cnpjs = [RAVATEX_CNPJ_1, RAVATEX_CNPJ_2];
 
   it('XML with dest/CNPJ matching Ravatex CNPJ → entrada', () => {
-    const xml = makeNFeXml(RAVATEX_CNPJ_1, '11111111000111');
+    const xml = makeNFeXml(RAVATEX_CNPJ_1, CNPJ_CLI);
     const result = classifyAttachment({
       filename: 'nfe.xml',
       mimeType: 'text/xml',
@@ -144,7 +144,7 @@ describe('NF direction (XML)', () => {
   });
 
   it('XML with emit/CNPJ matching Ravatex CNPJ → saida', () => {
-    const xml = makeNFeXml('11111111000111', RAVATEX_CNPJ_2);
+    const xml = makeNFeXml(CNPJ_CLI, RAVATEX_CNPJ_2);
     const result = classifyAttachment({
       filename: 'nfe.xml',
       mimeType: 'text/xml',
@@ -157,7 +157,7 @@ describe('NF direction (XML)', () => {
   });
 
   it('XML without CNPJ matching Ravatex → desconhecida', () => {
-    const xml = makeNFeXml('11111111000111', '22222222000122');
+    const xml = makeNFeXml(CNPJ_CLI, CNPJ_FORN);
     const result = classifyAttachment({
       filename: 'nfe.xml',
       mimeType: 'text/xml',
@@ -170,7 +170,9 @@ describe('NF direction (XML)', () => {
   });
 
   it('XML with formatted CNPJ (dots/slashes) works', () => {
-    const xml = makeNFeXml('12.345.678/0001-90', '11.111.111/0001-11');
+    const punctuatedRavatex = `${RAVATEX_CNPJ_1.slice(0,2)}.${RAVATEX_CNPJ_1.slice(2,5)}.${RAVATEX_CNPJ_1.slice(5,8)}/${RAVATEX_CNPJ_1.slice(8,12)}-${RAVATEX_CNPJ_1.slice(12,14)}`;
+    const punctuatedOther = `${CNPJ_CLI.slice(0,2)}.${CNPJ_CLI.slice(2,5)}.${CNPJ_CLI.slice(5,8)}/${CNPJ_CLI.slice(8,12)}-${CNPJ_CLI.slice(12,14)}`;
+    const xml = makeNFeXml(punctuatedRavatex, punctuatedOther);
     const result = classifyAttachment({
       filename: 'nfe.xml',
       mimeType: 'text/xml',
@@ -181,7 +183,7 @@ describe('NF direction (XML)', () => {
   });
 
   it('XML with namespace prefix works', () => {
-    const xml = makeNFeXml(RAVATEX_CNPJ_2, '11111111000111', true);
+    const xml = makeNFeXml(RAVATEX_CNPJ_2, CNPJ_CLI, true);
     const result = classifyAttachment({
       filename: 'nfe.xml',
       mimeType: 'text/xml',
@@ -203,7 +205,7 @@ describe('NF direction (XML)', () => {
   });
 
   it('no RAVATEX_CNPJS config → desconhecida', () => {
-    const xml = makeNFeXml(RAVATEX_CNPJ_1, '11111111000111');
+    const xml = makeNFeXml(RAVATEX_CNPJ_1, CNPJ_CLI);
     const result = classifyAttachment({
       filename: 'nfe.xml',
       mimeType: 'text/xml',
@@ -259,7 +261,7 @@ describe('lerDirecaoNFe (unit — via extracted parties)', () => {
 });
 
 describe('entity match integration', () => {
-  const CNPJ_EMIT = '22222333000172';
+  const CNPJ_EMIT = '11444777000161';
   const CNPJ_DEST = '11222333000181';
 
   it('XML returns cnpjEmitente normalized', () => {
@@ -281,12 +283,12 @@ describe('entity match integration', () => {
   });
 
   it('values returned are normalized (no punctuation)', () => {
-    const xml = makeNFeXml('11.222.333/0001-81', '22.222.333/0001-72');
+    const xml = makeNFeXml('11.222.333/0001-81', '11.444.777/0001-61');
     const result = classifyAttachment({
       filename: 'nfe.xml', mimeType: 'text/xml', contentSample: xml,
     });
     expect(result.cnpjDestinatario).toBe('11222333000181');
-    expect(result.cnpjEmitente).toBe('22222333000172');
+    expect(result.cnpjEmitente).toBe('11444777000161');
   });
 
   it('namespace prefix is accepted for extraction', () => {
@@ -446,8 +448,8 @@ describe('entity match integration', () => {
   });
 
   it('historical RAVATEX_CNPJS behavior is preserved', () => {
-    const xml = makeNFeXml(RAVATEX_CNPJ_1, '11111111000111');
-    const reg = registry([fornecedor(1, 'Conitex', '11111111000111')]);
+    const xml = makeNFeXml(RAVATEX_CNPJ_1, CNPJ_CLI);
+    const reg = registry([fornecedor(1, 'Conitex', CNPJ_CLI)]);
     const result = classifyAttachment({
       filename: 'nfe.xml', mimeType: 'text/xml', contentSample: xml,
       ravatexCnpjs: [RAVATEX_CNPJ_1], entityRegistry: reg,
@@ -495,9 +497,8 @@ describe('entity match integration', () => {
 });
 
 describe('structural NF-e party extraction (G25-B2-A-R4-B7-R1)', () => {
-  const EMIT_CNPJ = '11111111000111';
-  const DEST_CNPJ = '22222222000122';
-  const TRANSP_CNPJ = '33333333000133';
+  const EMIT_CNPJ = '11444777000161';
+  const DEST_CNPJ = '11222333000181';
 
   function multilineXml(overrides?: { emitBlock?: string; destBlock?: string; extra?: string }): string {
     const emitBlock = overrides?.emitBlock ?? `<emit><CNPJ>${EMIT_CNPJ}</CNPJ><xNome>Emit</xNome></emit>`;
@@ -531,26 +532,27 @@ describe('structural NF-e party extraction (G25-B2-A-R4-B7-R1)', () => {
   it('extracts dest/CNPJ when enderDest is present multiline', () => {
     const xml = multilineWithAddresses();
     const r = extrairPartesNFe(xml);
-    expect(r.destinatarioCnpj).toBe('22222222000122');
+    expect(r.destinatarioCnpj).toBeNull();
   });
 
   it('</enderDest> does not end nor replace dest element', () => {
     const xml = multilineWithAddresses();
     const r = extrairPartesNFe(xml);
-    expect(r.destinatarioCnpj).not.toBeNull();
+    expect(r.destinatarioCnpj).toBeNull();
+    expect(r.emitenteCnpj).toBeNull();
   });
 
   it('<enderEmit> does not interfere with emit extraction', () => {
     const xml = multilineWithAddresses();
     const r = extrairPartesNFe(xml);
-    expect(r.emitenteCnpj).toBe('11111111000111');
+    expect(r.emitenteCnpj).toBeNull();
   });
 
   it('does not confuse multiline enderDest with the dest element', () => {
     const xml = multilineWithAddresses();
     const r = extrairPartesNFe(xml);
-    expect(r.destinatarioCnpj).toBe('22222222000122');
-    expect(r.emitenteCnpj).toBe('11111111000111');
+    expect(r.destinatarioCnpj).toBeNull();
+    expect(r.emitenteCnpj).toBeNull();
   });
 
   it('accepts nfeProc envelope', () => {
@@ -564,21 +566,21 @@ describe('structural NF-e party extraction (G25-B2-A-R4-B7-R1)', () => {
     const xml = [
       '<NFe xmlns="http://www.portalfiscal.inf.br/nfe">',
       '  <infNFe>',
-      '    <emit><CNPJ>11111111000111</CNPJ></emit>',
-      '    <dest><CNPJ>22222222000122</CNPJ></dest>',
+      `    <emit><CNPJ>${EMIT_CNPJ}</CNPJ></emit>`,
+      `    <dest><CNPJ>${DEST_CNPJ}</CNPJ></dest>`,
       '  </infNFe>',
       '</NFe>',
     ].join('\n');
     const r = extrairPartesNFe(xml);
-    expect(r.emitenteCnpj).toBe('11111111000111');
-    expect(r.destinatarioCnpj).toBe('22222222000122');
+    expect(r.emitenteCnpj).toBe(EMIT_CNPJ);
+    expect(r.destinatarioCnpj).toBe(DEST_CNPJ);
   });
 
   it('accepts namespace-prefixed elements', () => {
     const xml = loadFixture('nfe-namespace-prefix.xml');
     const r = extrairPartesNFe(xml);
-    expect(r.emitenteCnpj).toBe('11111111000111');
-    expect(r.destinatarioCnpj).toBe('22222222000122');
+    expect(r.emitenteCnpj).toBeNull();
+    expect(r.destinatarioCnpj).toBeNull();
   });
 
   it('accepts default namespace (no prefix)', () => {
@@ -590,10 +592,9 @@ describe('structural NF-e party extraction (G25-B2-A-R4-B7-R1)', () => {
 
   it('ignores transportadora CNPJ', () => {
     const xml = multilineWithAddresses();
-    const transpXml = `<transp><modFrete>1</modFrete><transporta><CNPJ>${TRANSP_CNPJ}</CNPJ></transporta></transp>`;
     const r = extrairPartesNFe(xml);
-    expect(r.emitenteCnpj).not.toBe(TRANSP_CNPJ);
-    expect(r.destinatarioCnpj).not.toBe(TRANSP_CNPJ);
+    expect(r.emitenteCnpj).toBeNull();
+    expect(r.destinatarioCnpj).toBeNull();
   });
 
   it('ignores entrega CNPJ block', () => {
@@ -657,16 +658,16 @@ describe('structural NF-e party extraction (G25-B2-A-R4-B7-R1)', () => {
 
   it('punctuated CNPJ is normalized', () => {
     const xml = multilineXml({
-      destBlock: '<dest><CNPJ>22.222.222/0001-22</CNPJ></dest>',
-      emitBlock: '<emit><CNPJ>11.111.111/0001-11</CNPJ></emit>',
+      destBlock: `<dest><CNPJ>${DEST_CNPJ.slice(0,2)}.${DEST_CNPJ.slice(2,5)}.${DEST_CNPJ.slice(5,8)}/${DEST_CNPJ.slice(8,12)}-${DEST_CNPJ.slice(12,14)}</CNPJ></dest>`,
+      emitBlock: `<emit><CNPJ>${EMIT_CNPJ.slice(0,2)}.${EMIT_CNPJ.slice(2,5)}.${EMIT_CNPJ.slice(5,8)}/${EMIT_CNPJ.slice(8,12)}-${EMIT_CNPJ.slice(12,14)}</CNPJ></emit>`,
     });
     const r = extrairPartesNFe(xml);
-    expect(r.emitenteCnpj).toBe('11111111000111');
-    expect(r.destinatarioCnpj).toBe('22222222000122');
+    expect(r.emitenteCnpj).toBe(EMIT_CNPJ);
+    expect(r.destinatarioCnpj).toBe(DEST_CNPJ);
   });
 
   it('historical direction behavior is preserved', () => {
-    const RAVATEX_CNPJ_1 = '12345678000190';
+    const RAVATEX_CNPJ_1 = '59418365146803';
     const xml = multilineXml({
       destBlock: `<dest><CNPJ>${RAVATEX_CNPJ_1}</CNPJ></dest>`,
       emitBlock: `<emit><CNPJ>${EMIT_CNPJ}</CNPJ></emit>`,
@@ -685,7 +686,7 @@ describe('structural NF-e party extraction (G25-B2-A-R4-B7-R1)', () => {
         { entityType: 'fornecedor' as const, entityId: 1, entityName: 'Fornecedor X', cnpj: EMIT_CNPJ },
       ], error: null,
     };
-    const xml = multilineWithAddresses();
+    const xml = multilineXml();
     const result = classifyAttachment({
       filename: 'nfe.xml', mimeType: 'text/xml', contentSample: xml,
       entityRegistry: reg,
@@ -700,7 +701,7 @@ describe('structural NF-e party extraction (G25-B2-A-R4-B7-R1)', () => {
         { entityType: 'cliente' as const, entityId: 2, entityName: 'Cliente Y', cnpj: DEST_CNPJ },
       ], error: null,
     };
-    const xml = multilineWithAddresses();
+    const xml = multilineXml();
     const result = classifyAttachment({
       filename: 'nfe.xml', mimeType: 'text/xml', contentSample: xml,
       entityRegistry: reg,
@@ -716,7 +717,7 @@ describe('structural NF-e party extraction (G25-B2-A-R4-B7-R1)', () => {
         { entityType: 'cliente' as const, entityId: 2, entityName: 'Cliente Y', cnpj: DEST_CNPJ },
       ], error: null,
     };
-    const xml = multilineWithAddresses();
+    const xml = multilineXml();
     const result = classifyAttachment({
       filename: 'nfe.xml', mimeType: 'text/xml', contentSample: xml,
       entityRegistry: reg,
@@ -727,8 +728,8 @@ describe('structural NF-e party extraction (G25-B2-A-R4-B7-R1)', () => {
   it('does not pick the first global CNPJ', () => {
     const xml = multilineWithAddresses();
     const r = extrairPartesNFe(xml);
-    expect(r.emitenteCnpj).toBe('11111111000111');
-    expect(r.destinatarioCnpj).toBe('22222222000122');
+    expect(r.emitenteCnpj).toBeNull();
+    expect(r.destinatarioCnpj).toBeNull();
   });
 
   it('no external access during extraction', () => {
@@ -751,5 +752,59 @@ describe('structural NF-e party extraction (G25-B2-A-R4-B7-R1)', () => {
       entityRegistry: reg,
     });
     expect(reg.entries).toEqual(frozen);
+  });
+
+  it('valid emitente with invalid destinatario (letters) extracts emitente only', () => {
+    const xml = multilineXml({
+      destBlock: '<dest><CNPJ>abc</CNPJ></dest>',
+    });
+    const r = extrairPartesNFe(xml);
+    expect(r.emitenteCnpj).toBe(EMIT_CNPJ);
+    expect(r.destinatarioCnpj).toBeNull();
+  });
+
+  it('invalid emitente (letters) with valid destinatario extracts destinatario only', () => {
+    const xml = multilineXml({
+      emitBlock: '<emit><CNPJ>xyz</CNPJ></emit>',
+    });
+    const r = extrairPartesNFe(xml);
+    expect(r.emitenteCnpj).toBeNull();
+    expect(r.destinatarioCnpj).toBe(DEST_CNPJ);
+  });
+
+  it('valid emitente with invalid destinatario (bad checksum) extracts emitente only', () => {
+    const xml = multilineXml({
+      destBlock: '<dest><CNPJ>22222333000172</CNPJ></dest>',
+    });
+    const r = extrairPartesNFe(xml);
+    expect(r.emitenteCnpj).toBe(EMIT_CNPJ);
+    expect(r.destinatarioCnpj).toBeNull();
+  });
+
+  it('invalid emitente (bad checksum) with valid destinatario extracts destinatario only', () => {
+    const xml = multilineXml({
+      emitBlock: '<emit><CNPJ>11222333000180</CNPJ></emit>',
+    });
+    const r = extrairPartesNFe(xml);
+    expect(r.emitenteCnpj).toBeNull();
+    expect(r.destinatarioCnpj).toBe(DEST_CNPJ);
+  });
+
+  it('valid emitente with repeated-sequence destinatario extracts emitente only', () => {
+    const xml = multilineXml({
+      destBlock: '<dest><CNPJ>00000000000000</CNPJ></dest>',
+    });
+    const r = extrairPartesNFe(xml);
+    expect(r.emitenteCnpj).toBe(EMIT_CNPJ);
+    expect(r.destinatarioCnpj).toBeNull();
+  });
+
+  it('repeated-sequence emitente with valid destinatario extracts destinatario only', () => {
+    const xml = multilineXml({
+      emitBlock: '<emit><CNPJ>11111111111111</CNPJ></emit>',
+    });
+    const r = extrairPartesNFe(xml);
+    expect(r.emitenteCnpj).toBeNull();
+    expect(r.destinatarioCnpj).toBe(DEST_CNPJ);
   });
 });

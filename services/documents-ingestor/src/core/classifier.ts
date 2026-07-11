@@ -4,6 +4,7 @@ import { config } from '../config.js';
 import type { EntityCnpjRegistry } from '../types/entityCnpj.js';
 import type { DocumentEntityMatchResult } from '../types/documentEntityMatch.js';
 import { matchDocumentEntityCnpjs } from './documentEntityMatch.js';
+import { extractValidCnpj } from './cnpj.js';
 
 export interface ExtractedNfeParties {
   emitenteCnpj: string | null;
@@ -97,15 +98,9 @@ export function extrairPartesNFe(xmlContent: string): ExtractedNfeParties {
   const rawEmitente = extrairCNPJdeElemento(xmlContent, 'emit');
   const rawDestinatario = extrairCNPJdeElemento(xmlContent, 'dest');
 
-  const normalizar = (raw: string | null): string | null => {
-    if (!raw) return null;
-    const digits = raw.replace(/\D/g, '');
-    return digits.length === 14 ? digits : null;
-  };
-
   return {
-    emitenteCnpj: normalizar(rawEmitente),
-    destinatarioCnpj: normalizar(rawDestinatario),
+    emitenteCnpj: extractValidCnpj(rawEmitente),
+    destinatarioCnpj: extractValidCnpj(rawDestinatario),
   };
 }
 

@@ -22,9 +22,10 @@ function unavailableRegistry(): EntityCnpjRegistry {
   return { loaded: false, loadedAt: null, entries: [], error: 'connection failed' };
 }
 
-const CNPJ_FORN = '22222333000172';
+const CNPJ_FORN = '11444777000161';
 const CNPJ_CLI = '11222333000181';
-const CNPJ_SHARED = '33333333000133';
+const CNPJ_SHARED = '02194703529779';
+const CNPJ_NON_MATCH_A = '59418365146803';
 
 describe('matchDocumentEntityCnpjs', () => {
   it('emitente matches one fornecedor', () => {
@@ -108,12 +109,12 @@ describe('matchDocumentEntityCnpjs', () => {
 
   it('no match with valid CNPJ', () => {
     const reg = registry([fornecedor(1, 'Conitex', CNPJ_FORN)]);
-    const result = matchDocumentEntityCnpjs({ emitenteCnpj: '99999999000199', destinatarioCnpj: null, registry: reg });
+    const result = matchDocumentEntityCnpjs({ emitenteCnpj: CNPJ_NON_MATCH_A, destinatarioCnpj: null, registry: reg });
 
     expect(result.state).toBe('unmatched');
     expect(result.emitente.state).toBe('unmatched');
     expect(result.emitente.matches).toHaveLength(0);
-    expect(result.emitente.extractedCnpj).toBe('99999999000199');
+    expect(result.emitente.extractedCnpj).toBe(CNPJ_NON_MATCH_A);
   });
 
   it('registry empty and loaded', () => {
@@ -212,8 +213,8 @@ describe('matchDocumentEntityCnpjs', () => {
   });
 
   it('no association by name', () => {
-    const reg = registry([cliente(1, 'Encanta Lar', '99999999000199')]);
-    const result = matchDocumentEntityCnpjs({ emitenteCnpj: '99999999000199', destinatarioCnpj: null, registry: reg });
+    const reg = registry([cliente(1, 'Encanta Lar', CNPJ_NON_MATCH_A)]);
+    const result = matchDocumentEntityCnpjs({ emitenteCnpj: CNPJ_NON_MATCH_A, destinatarioCnpj: null, registry: reg });
 
     expect(result.emitente.matches).toHaveLength(1);
     expect(result.emitente.matches[0].entityName).toBe('Encanta Lar');

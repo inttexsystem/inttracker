@@ -7,10 +7,7 @@ import type {
   DocumentPartyKind,
   DocumentPartyMatchState,
 } from '../types/documentEntityMatch.js';
-
-function normalizeCnpj(raw: string): string {
-  return raw.replace(/\D/g, '');
-}
+import { isValidCnpj, normalizeCnpj } from './cnpj.js';
 
 function matchParty(
   party: DocumentPartyKind,
@@ -37,7 +34,7 @@ function matchParty(
 
   const normalized = normalizeCnpj(rawCnpj);
 
-  if (normalized.length !== 14) {
+  if (!isValidCnpj(normalized)) {
     return {
       party,
       extractedCnpj: null,

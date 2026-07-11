@@ -74,7 +74,7 @@ describe('loadRegisteredEntityCnpjs', () => {
             return {
               then(resolve: (v: { data: unknown[] | null; error: { message: string } | null }) => unknown) {
                 if (table === 'clientes') return Promise.resolve(resolve(successResult([])));
-                return Promise.resolve(resolve(successResult([{ id: 2, nome: 'Conitex', tipo: 'latex', cnpj: '22222333000172' }])));
+                return Promise.resolve(resolve(successResult([{ id: 2, nome: 'Conitex', tipo: 'latex', cnpj: '11444777000161' }])));
               },
             };
           },
@@ -86,7 +86,7 @@ describe('loadRegisteredEntityCnpjs', () => {
 
     expect(registry.loaded).toBe(true);
     expect(registry.entries).toHaveLength(1);
-    expect(registry.entries[0]).toMatchObject({ entityType: 'fornecedor', entityId: 2, entityName: 'Conitex', cnpj: '22222333000172', supplierType: 'latex' });
+    expect(registry.entries[0]).toMatchObject({ entityType: 'fornecedor', entityId: 2, entityName: 'Conitex', cnpj: '11444777000161', supplierType: 'latex' });
   });
 
   it('supplierType is preserved only on fornecedor', async () => {
@@ -97,7 +97,7 @@ describe('loadRegisteredEntityCnpjs', () => {
             return {
               then(resolve: (v: { data: unknown[] | null; error: { message: string } | null }) => unknown) {
                 if (table === 'clientes') return Promise.resolve(resolve(successResult([{ id: 1, nome: 'Cliente A', cnpj: '11222333000181' }])));
-                return Promise.resolve(resolve(successResult([{ id: 2, nome: 'Fornecedor B', tipo: 'tecelagem', cnpj: '22222333000172' }])));
+                return Promise.resolve(resolve(successResult([{ id: 2, nome: 'Fornecedor B', tipo: 'tecelagem', cnpj: '11444777000161' }])));
               },
             };
           },
@@ -146,7 +146,7 @@ describe('loadRegisteredEntityCnpjs', () => {
               then(resolve: (v: { data: unknown[] | null; error: { message: string } | null }) => unknown) {
                 if (table === 'clientes') return Promise.resolve(resolve(successResult([
                   { id: 1, nome: 'Cliente A', cnpj: '11222333000181' },
-                  { id: 2, nome: 'Cliente B', cnpj: '22222333000172' },
+                  { id: 2, nome: 'Cliente B', cnpj: '11444777000161' },
                 ])));
                 return Promise.resolve(resolve(successResult([])));
               },
@@ -273,6 +273,82 @@ describe('loadRegisteredEntityCnpjs', () => {
             return {
               then(resolve: (v: { data: unknown[] | null; error: { message: string } | null }) => unknown) {
                 if (table === 'clientes') return Promise.resolve(resolve(successResult([{ id: 1, nome: 'Curto', cnpj: '123' }])));
+                return Promise.resolve(resolve(successResult([])));
+              },
+            };
+          },
+        };
+      },
+    }));
+
+    const registry = await loadRegisteredEntityCnpjs(client);
+
+    expect(registry.loaded).toBe(true);
+    expect(registry.entries).toHaveLength(0);
+  });
+
+  it('CNPJ with invalid DV checksum is dropped (G27-B1-B)', async () => {
+    const { client } = makeSpy((table: string) => ({
+      select(_columns: string) {
+        return {
+          not(_col: string, _op: string, _val: unknown) {
+            return {
+              then(resolve: (v: { data: unknown[] | null; error: { message: string } | null }) => unknown) {
+                if (table === 'clientes') return Promise.resolve(resolve(successResult([
+                  { id: 1, nome: 'Invalido DV1', cnpj: '22222333000172' },
+                  { id: 2, nome: 'Invalido DV2', cnpj: '11222333000180' },
+                  { id: 3, nome: 'Repetido', cnpj: '00000000000000' },
+                  { id: 4, nome: 'Valido', cnpj: '11222333000181' },
+                ])));
+                return Promise.resolve(resolve(successResult([])));
+              },
+            };
+          },
+        };
+      },
+    }));
+
+    const registry = await loadRegisteredEntityCnpjs(client);
+
+    expect(registry.loaded).toBe(true);
+    expect(registry.entries).toHaveLength(1);
+    expect(registry.entries[0].entityName).toBe('Valido');
+    expect(registry.entries[0].cnpj).toBe('11222333000181');
+  });
+
+  it('CNPJ with punctuation from mock is defensively normalized and accepted', async () => {
+    const { client } = makeSpy((table: string) => ({
+      select(_columns: string) {
+        return {
+          not(_col: string, _op: string, _val: unknown) {
+            return {
+              then(resolve: (v: { data: unknown[] | null; error: { message: string } | null }) => unknown) {
+                if (table === 'clientes') return Promise.resolve(resolve(successResult([{ id: 1, nome: 'Pontuado', cnpj: '11.222.333/0001-81' }])));
+                return Promise.resolve(resolve(successResult([])));
+              },
+            };
+          },
+        };
+      },
+    }));
+
+    const registry = await loadRegisteredEntityCnpjs(client);
+
+    expect(registry.entries).toHaveLength(1);
+    expect(registry.entries[0].cnpj).toBe('11222333000181');
+  });
+
+  it('CNPJ with alphanumeric chars from mock fails closed', async () => {
+    const { client } = makeSpy((table: string) => ({
+      select(_columns: string) {
+        return {
+          not(_col: string, _op: string, _val: unknown) {
+            return {
+              then(resolve: (v: { data: unknown[] | null; error: { message: string } | null }) => unknown) {
+                if (table === 'clientes') return Promise.resolve(resolve(successResult([
+                  { id: 1, nome: 'Alfanumerico', cnpj: 'CNPJ11.222.333/0001-81' },
+                  { id: 2, nome: 'So Letras', cnpj: 'abc' },
+                ])));
                 return Promise.resolve(resolve(successResult([])));
               },
             };
@@ -442,7 +518,7 @@ describe('loadRegisteredEntityCnpjs', () => {
             return {
               then(resolve: (v: { data: unknown[] | null; error: { message: string } | null }) => unknown) {
                 if (table === 'clientes') return Promise.resolve(resolve(successResult([])));
-                return Promise.resolve(resolve(successResult([{ id: 3, nome: 'Sem tipo', cnpj: '33333333000133' }])));
+                return Promise.resolve(resolve(successResult([{ id: 3, nome: 'Sem tipo', cnpj: '02194703529779' }])));
               },
             };
           },
