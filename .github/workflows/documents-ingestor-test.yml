@@ -2,12 +2,12 @@ name: Documents Ingestor Tests
 
 on:
   push:
-    branches: [master, main]
+    branches: [master, main, work/app-next]
     paths:
       - 'services/documents-ingestor/**'
       - '.github/workflows/documents-ingestor-test.yml'
   pull_request:
-    branches: [master, main]
+    branches: [master, main, work/app-next]
     paths:
       - 'services/documents-ingestor/**'
       - '.github/workflows/documents-ingestor-test.yml'
