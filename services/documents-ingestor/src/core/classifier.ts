@@ -34,7 +34,7 @@ const nfeParser = new XMLParser({
   parseTagValue: false,
   removeNSPrefix: true,
   trimValues: true,
-  processEntities: true,
+  processEntities: false,
   htmlEntities: false,
 });
 

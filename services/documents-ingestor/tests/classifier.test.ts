@@ -1436,3 +1436,63 @@ describe('B3 PDF recognition safety (G27-B3)', () => {
     expect(result.formato).toBe('pdf');
   });
 });
+
+describe('G27 entity expansion disabled (security regression)', () => {
+  const DEST_CNPJ = '11444777000161';
+
+  function nfeWithEntity(processedAs?: 'expanded' | 'literal'): string {
+    switch (processedAs) {
+      case 'expanded':
+        return `<?xml version="1.0"?><nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>11222333000181</CNPJ></emit><dest><CNPJ>${DEST_CNPJ}</CNPJ></dest></infNFe></NFe></nfeProc>`;
+      case 'literal':
+      default:
+        return `<?xml version="1.0"?>
+<!DOCTYPE nfeProc [
+  <!ENTITY cnpjEnt "11222333000181">
+]>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>&cnpjEnt;</CNPJ></emit><dest><CNPJ>${DEST_CNPJ}</CNPJ></dest></infNFe></NFe></nfeProc>`;
+    }
+  }
+
+  it('NF-e with internal entity used as CNPJ still has valid NFe structure', () => {
+    const xml = nfeWithEntity('literal');
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+    });
+    expect(result.tipoDocumento).toBe('nf');
+    expect(result.formato).toBe('xml');
+  });
+
+  it('internal entity used as emitente CNPJ does not expand (fail-closed → null)', () => {
+    const xml = nfeWithEntity('literal');
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+    });
+    expect(result.cnpjEmitente).toBeNull();
+  });
+
+  it('literal CNPJ in destinatario is still extracted correctly alongside entity emitente', () => {
+    const xml = nfeWithEntity('literal');
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+    });
+    expect(result.cnpjDestinatario).toBe(DEST_CNPJ);
+  });
+
+  it('same NF-e without entity (control) extracts both CNPJs', () => {
+    const xml = nfeWithEntity('expanded');
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+    });
+    expect(result.cnpjEmitente).toBe('11222333000181');
+    expect(result.cnpjDestinatario).toBe(DEST_CNPJ);
+  });
+});
