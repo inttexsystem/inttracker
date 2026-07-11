@@ -17,6 +17,7 @@ import { closeDb, getDb } from './storage/sqlite.js';
 import { runSyncMapped, validateSyncMappedOptions } from './core/syncMapped.js';
 import { writeLatestManifest } from './core/latestManifest.js';
 import { runSyncSupabase, prepareSyncSupabaseInput } from './core/syncSupabase.js';
+import { resolveFromPackageRoot } from './packagePaths.js';
 import {
   runWatchDocumentScanRequests,
   type WatchDocumentScanRequestsDeps,
@@ -692,8 +693,8 @@ program
   .option('--jsonl <path>', 'Path to the mapped JSONL file (default: data/exports/documentos-mapeados.jsonl)')
   .option('--output <path>', 'Output path for latest.json (default: data/exports/latest.json)')
   .action((opts) => {
-    const jsonlPath = opts.jsonl ?? 'data/exports/documentos-mapeados.jsonl';
-    const manifestPath = opts.output ?? 'data/exports/latest.json';
+    const jsonlPath = resolveFromPackageRoot(opts.jsonl ?? 'data/exports/documentos-mapeados.jsonl');
+    const manifestPath = resolveFromPackageRoot(opts.output ?? 'data/exports/latest.json');
 
     const result = writeLatestManifest({ jsonlPath, manifestPath });
 
@@ -970,8 +971,8 @@ program
     console.log(`[sync-mapped] exported ${result.export.totalDocuments} mapped document(s) → ${result.export.outputPath}`);
 
     if (opts.writeLatest) {
-      const latestJsonlPath = opts.output ?? 'data/exports/documentos-mapeados.jsonl';
-      const latestManifestPath = 'data/exports/latest.json';
+      const latestJsonlPath = resolveFromPackageRoot(opts.output ?? 'data/exports/documentos-mapeados.jsonl');
+      const latestManifestPath = resolveFromPackageRoot('data/exports/latest.json');
       const latestResult = writeLatestManifest({ jsonlPath: latestJsonlPath, manifestPath: latestManifestPath });
       if (!latestResult.ok) {
         console.log(`[sync-mapped] write-latest: WARNING — ${latestResult.error}`);
