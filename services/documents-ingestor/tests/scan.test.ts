@@ -1477,3 +1477,325 @@ describe('B2 real scan: sample collection by MIME + extension (fast-xml-parser c
     expect(doc.cnpj_emitente).toBe('11222333000181');
   });
 });
+
+describe('B3 real scan: PDF sample delivery (G27-B3)', () => {
+  beforeEach(() => {
+    if (existsSync(DB_DIR)) rmSync(DB_DIR, { recursive: true });
+    mkdirSync(DB_DIR, { recursive: true });
+    process.env.DATABASE_PATH = join(DB_DIR, 'app.db');
+    process.env.OUTBOX_PATH = join(DB_DIR, 'outbox.jsonl');
+    process.env.LOCAL_CACHE_PATH = join(DB_DIR, 'cache');
+    process.env.GOOGLE_DRIVE_ROOT_FOLDER_NAME = 'Ravatex Documents Ingestor';
+    closeDb();
+    const db = getDb();
+    db.exec('DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
+  });
+
+  afterEach(() => {
+    closeDb();
+    if (existsSync(DB_DIR)) rmSync(DB_DIR, { recursive: true });
+  });
+
+  const VALID_XML = Buffer.from(
+    '<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>11222333000181</CNPJ></emit><dest><CNPJ>11444777000161</CNPJ></dest></infNFe></NFe></nfeProc>'
+  );
+  const PDF_DANFE = Buffer.from('%PDF-1.4\nDANFE - DOCUMENTO AUXILIAR\n%%EOF\n');
+  const PDF_NOTA_FISCAL = Buffer.from('%PDF-1.4\nNOTA FISCAL 12345\n%%EOF\n');
+  const PDF_NF_NAME = Buffer.from('%PDF-1.4\nconteudo generico\n%%EOF\n');
+  const PDF_INFO = Buffer.from('%PDF-1.4\nInformativo do fornecedor\n%%EOF\n');
+  const PDF_HTML = Buffer.from('<!DOCTYPE html><html><body>DANFE</body></html>');
+  const PDF_NOT_PDF = Buffer.from('NOT a real PDF\nrandom content\n');
+
+  function pdfDeps(overrides: Partial<ScanDeps> = {}): ScanDeps {
+    return mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3', threadId: 't', from: '', subject: 'B3', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3', threadId: 't', attachmentId: 'a-b3', filename: 'doc.pdf', mimeType: 'application/pdf', size: 0 },
+      ],
+      downloadAtt: async () => PDF_DANFE,
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null }),
+      ...overrides,
+    });
+  }
+
+  it('scan passes contentSample to classifier for PDF MIME (DANFE no contentSample → nf)', async () => {
+    const deps = pdfDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3-danfe', threadId: 't', from: '', subject: 'Sem NF no subject', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3-danfe', threadId: 't', attachmentId: 'a', filename: 'documento.pdf', mimeType: 'application/pdf', size: PDF_DANFE.length },
+      ],
+      downloadAtt: async () => PDF_DANFE,
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato, direcao_nf FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('nf');
+    expect(doc.formato).toBe('pdf');
+    expect(doc.direcao_nf).toBeNull();
+  });
+
+  it('scan passes contentSample to classifier for PDF MIME (nota fiscal no contentSample → nf)', async () => {
+    const deps = pdfDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3-nf', threadId: 't', from: '', subject: 'Sem NF no subject', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3-nf', threadId: 't', attachmentId: 'a', filename: 'documento.pdf', mimeType: 'application/pdf', size: PDF_NOTA_FISCAL.length },
+      ],
+      downloadAtt: async () => PDF_NOTA_FISCAL,
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato, direcao_nf FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('nf');
+    expect(doc.formato).toBe('pdf');
+    expect(doc.direcao_nf).toBeNull();
+  });
+
+  it('scan with info.pdf content (sem token NF em conteúdo) → desconhecido + formato pdf', async () => {
+    const deps = pdfDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3-info', threadId: 't', from: '', subject: '', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3-info', threadId: 't', attachmentId: 'a', filename: 'info.pdf', mimeType: 'application/pdf', size: PDF_INFO.length },
+      ],
+      downloadAtt: async () => PDF_INFO,
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('desconhecido');
+    expect(doc.formato).toBe('pdf');
+  });
+
+  it('scan with conferencia.pdf content (sem token NF em conteúdo) → desconhecido + formato pdf', async () => {
+    const deps = pdfDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3-conf', threadId: 't', from: '', subject: '', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3-conf', threadId: 't', attachmentId: 'a', filename: 'conferencia.pdf', mimeType: 'application/pdf', size: PDF_INFO.length },
+      ],
+      downloadAtt: async () => PDF_INFO,
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('desconhecido');
+    expect(doc.formato).toBe('pdf');
+  });
+
+  it('scan with NF-123.pdf (filename com NF, contentSample com %PDF-) → nf', async () => {
+    const deps = pdfDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3-nfname', threadId: 't', from: '', subject: '', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3-nfname', threadId: 't', attachmentId: 'a', filename: 'NF-123.pdf', mimeType: 'application/pdf', size: PDF_NF_NAME.length },
+      ],
+      downloadAtt: async () => PDF_NF_NAME,
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('nf');
+    expect(doc.formato).toBe('pdf');
+  });
+
+  it('scan com MIME PDF conteúdo HTML (sem %PDF-) → desconhecido + formato pdf', async () => {
+    const deps = pdfDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3-html', threadId: 't', from: '', subject: '', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3-html', threadId: 't', attachmentId: 'a', filename: 'doc.pdf', mimeType: 'application/pdf', size: PDF_HTML.length },
+      ],
+      downloadAtt: async () => PDF_HTML,
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('desconhecido');
+    expect(doc.formato).toBe('pdf');
+  });
+
+  it('scan com .pdf + MIME generic e signature válida → nf (DANFE em conteúdo)', async () => {
+    const deps = pdfDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3-gen-ok', threadId: 't', from: '', subject: '', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3-gen-ok', threadId: 't', attachmentId: 'a', filename: 'doc.pdf', mimeType: 'application/octet-stream', size: PDF_DANFE.length },
+      ],
+      downloadAtt: async () => PDF_DANFE,
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato FROM documentos LIMIT 1`).get() as any;
+    expect(doc.formato).toBe('pdf');
+    expect(doc.tipo_documento).toBe('nf');
+  });
+
+  it('scan com .pdf + MIME generic e signature inválida → desconhecido + formato pdf', async () => {
+    const deps = pdfDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3-gen-bad', threadId: 't', from: '', subject: '', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3-gen-bad', threadId: 't', attachmentId: 'a', filename: 'NF-123.pdf', mimeType: 'application/octet-stream', size: PDF_NOT_PDF.length },
+      ],
+      downloadAtt: async () => PDF_NOT_PDF,
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato FROM documentos LIMIT 1`).get() as any;
+    expect(doc.formato).toBe('pdf');
+    expect(doc.tipo_documento).toBe('desconhecido');
+  });
+
+  it('scan com romaneio no nome → romaneio (precedência mantida, sem OCR)', async () => {
+    const deps = pdfDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3-rom', threadId: 't', from: '', subject: '', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3-rom', threadId: 't', attachmentId: 'a', filename: 'romaneio_carga.pdf', mimeType: 'application/pdf', size: PDF_DANFE.length },
+      ],
+      downloadAtt: async () => PDF_DANFE,
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('romaneio');
+    expect(doc.formato).toBe('pdf');
+  });
+
+  it('scan com MIME XML ext diferente (application/octet-stream + .xml) preserva classificação XML (B2)', async () => {
+    const deps = pdfDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3-xml', threadId: 't', from: '', subject: '', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3-xml', threadId: 't', attachmentId: 'a', filename: 'nfe.xml', mimeType: 'application/octet-stream', size: VALID_XML.length },
+      ],
+      downloadAtt: async () => VALID_XML,
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato, cnpj_emitente, cnpj_destinatario FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('nf');
+    expect(doc.formato).toBe('xml');
+    expect(doc.cnpj_emitente).toBe('11222333000181');
+    expect(doc.cnpj_destinatario).toBe('11444777000161');
+  });
+
+  it('scan com text/html + .xml preserva classificação XML (B2) — formato xml', async () => {
+    const deps = pdfDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3-html-xml', threadId: 't', from: '', subject: '', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3-html-xml', threadId: 't', attachmentId: 'a', filename: 'nfe.xml', mimeType: 'text/html', size: VALID_XML.length },
+      ],
+      downloadAtt: async () => VALID_XML,
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('nf');
+    expect(doc.formato).toBe('xml');
+  });
+
+  it('scan limita sample de PDF a 2048 bytes (não persiste, não amplia)', async () => {
+    const validPrefix = Buffer.from('%PDF-1.4\nDANFE - DOCUMENTO AUXILIAR\n', 'utf-8');
+    const padding = Buffer.alloc(2048 - validPrefix.length, 0x20);
+    const tail = Buffer.from('conteudo irrelevante apos sample', 'utf-8');
+    const big = Buffer.concat([validPrefix, padding, tail]);
+    expect(big.length).toBeGreaterThan(2048);
+
+    const deps = pdfDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3-cap', threadId: 't', from: '', subject: 'Sem NF no subject', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3-cap', threadId: 't', attachmentId: 'a', filename: 'documento.pdf', mimeType: 'application/pdf', size: big.length },
+      ],
+      downloadAtt: async () => big,
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato, direcao_nf FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('nf');
+    expect(doc.formato).toBe('pdf');
+    expect(doc.direcao_nf).toBeNull();
+  });
+
+  it('scan não persiste sample de PDF no banco (verifica ausência de coluna de sample)', async () => {
+    const deps = pdfDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3-nopersist', threadId: 't', from: '', subject: '', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3-nopersist', threadId: 't', attachmentId: 'a', filename: 'doc.pdf', mimeType: 'application/pdf', size: PDF_DANFE.length },
+      ],
+      downloadAtt: async () => PDF_DANFE,
+    });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const cols = db.prepare(`PRAGMA table_info(documentos)`).all() as any[];
+    const names = cols.map((c: any) => c.name);
+    expect(names).not.toContain('content_sample');
+    expect(names).not.toContain('sample');
+    expect(names).not.toContain('contentSample');
+  });
+
+  it('scan com PDF real e status permanece pending (sem autoaceite)', async () => {
+    const deps = pdfDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b3-status', threadId: 't', from: '', subject: 'Sem NF no subject', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b3-status', threadId: 't', attachmentId: 'a', filename: 'documento.pdf', mimeType: 'application/pdf', size: PDF_DANFE.length },
+      ],
+      downloadAtt: async () => PDF_DANFE,
+    });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const doc = db.prepare(`SELECT status, tipo_documento, formato FROM documentos LIMIT 1`).get() as any;
+    expect(doc.status).toBe('pending');
+    expect(doc.tipo_documento).toBe('nf');
+    expect(doc.formato).toBe('pdf');
+  });
+});

@@ -233,7 +233,7 @@ export function createScan(deps: ScanDeps = defaultDeps) {
             filename: att.filename,
             mimeType: att.mimeType,
             subject: email.subject,
-            contentSample: sampleXml(buffer, att.mimeType, att.filename),
+            contentSample: sampleContent(buffer, att.mimeType, att.filename),
             entityRegistry,
           });
 
@@ -357,9 +357,17 @@ export function createScan(deps: ScanDeps = defaultDeps) {
   };
 }
 
-function sampleXml(buffer: Buffer, mimeType: string, filename: string): string {
+function sampleContent(buffer: Buffer, mimeType: string, filename: string): string {
+  const lower = filename.toLowerCase();
   const isXmlMime = mimeType === 'text/xml' || mimeType === 'application/xml';
-  const isXmlExt = filename.toLowerCase().endsWith('.xml');
-  if (!isXmlMime && !isXmlExt) return '';
-  return buffer.toString('utf-8', 0, Math.min(buffer.length, 2048));
+  const isXmlExt = lower.endsWith('.xml');
+  if (isXmlMime || isXmlExt) {
+    return buffer.toString('utf-8', 0, Math.min(buffer.length, 2048));
+  }
+  const isPdfMime = mimeType === 'application/pdf';
+  const isPdfExt = lower.endsWith('.pdf');
+  if (isPdfMime || isPdfExt) {
+    return buffer.toString('utf-8', 0, Math.min(buffer.length, 2048));
+  }
+  return '';
 }

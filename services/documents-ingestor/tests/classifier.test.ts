@@ -65,6 +65,7 @@ describe('classifier', () => {
     const result = classifyAttachment({
       filename: 'NF-12345.pdf',
       mimeType: 'application/pdf',
+      contentSample: '%PDF-1.4\nNF-e 12345 conteudo',
     });
     expect(result.tipoDocumento).toBe('nf');
     expect(result.formato).toBe('pdf');
@@ -76,6 +77,7 @@ describe('classifier', () => {
       filename: 'documento.pdf',
       mimeType: 'application/pdf',
       subject: 'Nota Fiscal 123',
+      contentSample: '%PDF-1.4\nconteudo generico',
     });
     expect(result.tipoDocumento).toBe('nf');
     expect(result.formato).toBe('pdf');
@@ -1017,5 +1019,271 @@ describe('B2 structural NF-e validation (fast-xml-parser)', () => {
   it('does not persist parsed XML tree or payload via classifier API', () => {
     const src = String(extrairPartesNFe);
     expect(src).not.toMatch(/writeFile|writeFileSync|appendFile/);
+  });
+});
+
+describe('B3 PDF recognition safety (G27-B3)', () => {
+  const PDF_SIG = '%PDF-1.4\n';
+  const PDF_END = '\n%%EOF\n';
+
+  function pdfWithContent(text: string): string {
+    return `${PDF_SIG}${text}${PDF_END}`;
+  }
+
+  it('PDF real DANFE → nf + formato pdf + direcao null', () => {
+    const result = classifyAttachment({
+      filename: 'documento.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfWithContent('DANFE - DOCUMENTO AUXILIAR DA NOTA FISCAL ELETRONICA'),
+    });
+    expect(result.tipoDocumento).toBe('nf');
+    expect(result.formato).toBe('pdf');
+    expect(result.direcaoNf).toBeNull();
+  });
+
+  it('PDF real nota fiscal → nf + formato pdf + direcao null', () => {
+    const result = classifyAttachment({
+      filename: 'doc.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfWithContent('NOTA FISCAL 12345 - FORNECEDOR X'),
+    });
+    expect(result.tipoDocumento).toBe('nf');
+    expect(result.formato).toBe('pdf');
+    expect(result.direcaoNf).toBeNull();
+  });
+
+  it('PDF real com NFe no conteúdo → nf + formato pdf + direcao null', () => {
+    const result = classifyAttachment({
+      filename: 'documento.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfWithContent('NFe: 000123 Serie 1'),
+    });
+    expect(result.tipoDocumento).toBe('nf');
+    expect(result.formato).toBe('pdf');
+    expect(result.direcaoNf).toBeNull();
+  });
+
+  it('info.pdf sem token NF → desconhecido + formato pdf', () => {
+    const result = classifyAttachment({
+      filename: 'info.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfWithContent('Informativo generico do fornecedor'),
+    });
+    expect(result.tipoDocumento).toBe('desconhecido');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('conferencia.pdf sem token NF → desconhecido + formato pdf', () => {
+    const result = classifyAttachment({
+      filename: 'conferencia.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfWithContent('Conferencia interna do estoque'),
+    });
+    expect(result.tipoDocumento).toBe('desconhecido');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('informativo.pdf sem token NF → desconhecido + formato pdf', () => {
+    const result = classifyAttachment({
+      filename: 'informativo.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfWithContent('Memorando informativo mensal'),
+    });
+    expect(result.tipoDocumento).toBe('desconhecido');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('NF-123.pdf com %PDF- → nf + formato pdf + direcao null', () => {
+    const result = classifyAttachment({
+      filename: 'NF-123.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfWithContent('conteudo generico'),
+    });
+    expect(result.tipoDocumento).toBe('nf');
+    expect(result.formato).toBe('pdf');
+    expect(result.direcaoNf).toBeNull();
+  });
+
+  it('NF123.pdf (NF seguido de dígito) com %PDF- → nf', () => {
+    const result = classifyAttachment({
+      filename: 'NF123.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfWithContent('conteudo generico'),
+    });
+    expect(result.tipoDocumento).toBe('nf');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('NFe-001.pdf (NFe token) com %PDF- → nf', () => {
+    const result = classifyAttachment({
+      filename: 'NFe-001.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfWithContent('conteudo generico'),
+    });
+    expect(result.tipoDocumento).toBe('nf');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('NF-e no subject com %PDF- → nf', () => {
+    const result = classifyAttachment({
+      filename: 'documento.pdf',
+      mimeType: 'application/pdf',
+      subject: 'NF-e 12345 - Fornecedor X',
+      contentSample: pdfWithContent('conteudo generico'),
+    });
+    expect(result.tipoDocumento).toBe('nf');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('PDF com MIME generic + signature válida → formato pdf + nf se tokens', () => {
+    const result = classifyAttachment({
+      filename: 'doc.pdf',
+      mimeType: 'application/octet-stream',
+      contentSample: pdfWithContent('DANFE documento'),
+    });
+    expect(result.formato).toBe('pdf');
+    expect(result.tipoDocumento).toBe('nf');
+  });
+
+  it('PDF com MIME generic + assinatura inválida → desconhecido + formato pdf', () => {
+    const result = classifyAttachment({
+      filename: 'NF-123.pdf',
+      mimeType: 'application/octet-stream',
+      contentSample: 'NOT a real PDF\nrandom content\n',
+    });
+    expect(result.formato).toBe('pdf');
+    expect(result.tipoDocumento).toBe('desconhecido');
+  });
+
+  it('MIME PDF com conteúdo HTML (sem %PDF-) → desconhecido + formato pdf', () => {
+    const result = classifyAttachment({
+      filename: 'doc.pdf',
+      mimeType: 'application/pdf',
+      contentSample: '<!DOCTYPE html><html><body>DANFE documento</body></html>',
+    });
+    expect(result.formato).toBe('pdf');
+    expect(result.tipoDocumento).toBe('desconhecido');
+  });
+
+  it('MIME PDF sem %PDF- em contentSample → desconhecido + formato pdf (mesmo com NF no nome)', () => {
+    const result = classifyAttachment({
+      filename: 'NF-123.pdf',
+      mimeType: 'application/pdf',
+      contentSample: 'not a real PDF\nrandom content\n',
+    });
+    expect(result.tipoDocumento).toBe('desconhecido');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('romaneio por nome prevalece sem contentSample', () => {
+    const result = classifyAttachment({
+      filename: 'romaneio_carga.pdf',
+      mimeType: 'application/pdf',
+    });
+    expect(result.tipoDocumento).toBe('romaneio');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('romaneio por nome com contentSample válido → romaneio (precedência mantida)', () => {
+    const result = classifyAttachment({
+      filename: 'romaneio_2024.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfWithContent('DANFE documento'),
+    });
+    expect(result.tipoDocumento).toBe('romaneio');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('romaneio apenas no conteúdo (sem nome/subject) não é implementado → desconhecido', () => {
+    const result = classifyAttachment({
+      filename: 'documento.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfWithContent('romaneio de entrega interno'),
+    });
+    expect(result.tipoDocumento).toBe('desconhecido');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('nota fiscal no subject com separador hífen → nf', () => {
+    const result = classifyAttachment({
+      filename: 'documento.pdf',
+      mimeType: 'application/pdf',
+      subject: 'nota-fiscal 12345 - Fornecedor X',
+      contentSample: pdfWithContent('conteudo generico'),
+    });
+    expect(result.tipoDocumento).toBe('nf');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('nota fiscal no subject com separador underscore → nf', () => {
+    const result = classifyAttachment({
+      filename: 'documento.pdf',
+      mimeType: 'application/pdf',
+      subject: 'nota_fiscal 12345 - Fornecedor X',
+      contentSample: pdfWithContent('conteudo generico'),
+    });
+    expect(result.tipoDocumento).toBe('nf');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('notafiscal sem separador → não é NF', () => {
+    const result = classifyAttachment({
+      filename: 'documento.pdf',
+      mimeType: 'application/pdf',
+      subject: 'notafiscal 12345 - Fornecedor X',
+      contentSample: pdfWithContent('conteudo generico'),
+    });
+    expect(result.tipoDocumento).toBe('desconhecido');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('INFORME.pdf (incidental) → desconhecido + formato pdf', () => {
+    const result = classifyAttachment({
+      filename: 'INFORME.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfWithContent('conteudo generico'),
+    });
+    expect(result.tipoDocumento).toBe('desconhecido');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('CONFERENCIA.pdf (incidental) → desconhecido + formato pdf', () => {
+    const result = classifyAttachment({
+      filename: 'CONFERENCIA.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfWithContent('conteudo generico'),
+    });
+    expect(result.tipoDocumento).toBe('desconhecido');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('PDF sem contentSample → desconhecido (sem promoção por nome/subject)', () => {
+    const result = classifyAttachment({
+      filename: 'NF-12345.pdf',
+      mimeType: 'application/pdf',
+      subject: 'NF-e 12345',
+    });
+    expect(result.tipoDocumento).toBe('desconhecido');
+    expect(result.formato).toBe('pdf');
+  });
+
+  it('PDF real não cria autoaceite (status permanece pending via realScan downstream)', () => {
+    const result = classifyAttachment({
+      filename: 'documento.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfWithContent('DANFE documento'),
+    });
+    expect(result.tipoDocumento).toBe('nf');
+    expect(result.direcaoNf).toBeNull();
+  });
+
+  it('conteúdo com lixo antes de %PDF- e token DANFE → desconhecido (assinatura deve ser prefixo inicial)', () => {
+    const result = classifyAttachment({
+      filename: 'documento.pdf',
+      mimeType: 'application/pdf',
+      contentSample: '<html>debug output\n%PDF-1.4\nDANFE - DOCUMENTO AUXILIAR DA NOTA FISCAL ELETRONICA\n%%EOF',
+    });
+    expect(result.tipoDocumento).toBe('desconhecido');
+    expect(result.formato).toBe('pdf');
   });
 });

@@ -39,6 +39,8 @@ const nfeParser = new XMLParser({
 });
 
 const XML_SAMPLE_CAP_BYTES = 2048;
+const PDF_SAMPLE_CAP_BYTES = 2048;
+const PDF_SIGNATURE = '%PDF-';
 
 function computeFormato(mimeType: string, filenameLower: string): FormatoDocumento {
   if (mimeType === 'text/xml' || mimeType === 'application/xml') return 'xml';
@@ -52,6 +54,17 @@ function isXmlCandidate(mimeType: string, filenameLower: string): boolean {
   if (mimeType === 'text/xml' || mimeType === 'application/xml') return true;
   if (filenameLower.endsWith('.xml')) return true;
   return false;
+}
+
+function isPdfCandidate(mimeType: string, filenameLower: string): boolean {
+  if (mimeType === 'application/pdf') return true;
+  if (filenameLower.endsWith('.pdf')) return true;
+  return false;
+}
+
+function hasPdfSignature(contentSample: string | undefined): boolean {
+  if (!contentSample || typeof contentSample !== 'string') return false;
+  return contentSample.startsWith(PDF_SIGNATURE);
 }
 
 function validateXmlWellFormed(content: string): boolean {
@@ -123,6 +136,24 @@ export function extrairPartesNFe(xmlContent: string): ExtractedNfeParties {
   };
 }
 
+function hasNfToken(text: string): boolean {
+  if (!text) return false;
+  if (/\bDANFE\b/i.test(text)) return true;
+  if (/\bnota[\s\-_]fiscal\b/i.test(text)) return true;
+  if (/\bNF-e\b/i.test(text)) return true;
+  if (/\bNFe\b/i.test(text)) return true;
+  if (/(?:^|[^a-zA-Z0-9])NF(?:[-_]|[-_]?\d)/i.test(text)) return true;
+  if (/(?:^|[^a-zA-Z0-9])NF\b/i.test(text)) return true;
+  return false;
+}
+
+function hasNfSignal(name: string, subj: string, contentSample: string | undefined): boolean {
+  if (hasNfToken(name)) return true;
+  if (subj && hasNfToken(subj)) return true;
+  if (contentSample && hasNfToken(contentSample)) return true;
+  return false;
+}
+
 export function classifyAttachment(input: ClassifyInput): ClassifyOutput {
   const name = input.filename.toLowerCase();
   const subj = (input.subject ?? '').toLowerCase();
@@ -157,12 +188,19 @@ export function classifyAttachment(input: ClassifyInput): ClassifyOutput {
     };
   }
 
-  const nfKeywords = ['nf', 'nfe', 'nota', 'danfe'];
-  const nameMatch = nfKeywords.some(k => name.includes(k));
-  const subjMatch = nfKeywords.some(k => subj.includes(k));
-
-  if (input.mimeType === 'application/pdf' || name.endsWith('.pdf')) {
-    if (nameMatch || subjMatch) {
+  if (isPdfCandidate(input.mimeType, name)) {
+    const sample = input.contentSample;
+    if (!hasPdfSignature(sample)) {
+      return {
+        tipoDocumento: 'desconhecido',
+        formato: 'pdf',
+        direcaoNf: null,
+        cnpjEmitente: null,
+        cnpjDestinatario: null,
+        entityMatch: buildEntityMatch({ emitenteCnpj: null, destinatarioCnpj: null }, input.entityRegistry),
+      };
+    }
+    if (hasNfSignal(name, subj, sample)) {
       return {
         tipoDocumento: 'nf',
         formato: 'pdf',
@@ -172,6 +210,14 @@ export function classifyAttachment(input: ClassifyInput): ClassifyOutput {
         entityMatch: buildEntityMatch({ emitenteCnpj: null, destinatarioCnpj: null }, input.entityRegistry),
       };
     }
+    return {
+      tipoDocumento: 'desconhecido',
+      formato: 'pdf',
+      direcaoNf: null,
+      cnpjEmitente: null,
+      cnpjDestinatario: null,
+      entityMatch: buildEntityMatch({ emitenteCnpj: null, destinatarioCnpj: null }, input.entityRegistry),
+    };
   }
 
   return {
