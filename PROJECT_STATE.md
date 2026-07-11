@@ -1,3 +1,12 @@
+> **Atualizacao 2026-07-11 — G27-B0 + G27-B-CORE — ISOLATED DOCUMENT RECOGNITION SAFETY HARDENING.**
+> Status: **TECNICAMENTE CONCLUIDA EM WORKTREE ISOLADO; INTEGRACAO EM `work/app-next` PENDENTE.**
+>
+> - Workspace original preservado em quarentena, sem alteracao pela cadeia: `D:\\OneDrive\\Programação\\Ravatex\\controle-tapetes` (`work/app-next`, HEAD `26111e04ab185dc1f484567cc48f3516cd6012a1`).
+> - Workspace G27 isolado: `D:\\OneDrive\\Programação\\Ravatex\\controle-tapetes-g27`; branch local `work/g27-document-recognition-safety`, criada do HEAD canonico `26111e04ab185dc1f484567cc48f3516cd6012a1`.
+> - Commits G27 locais: `5b012a0` (validacao CNPJ), `3cc3999` (fast-xml-parser MIT 5.2.5 + transitive `strnum`), `09b45f8` (estrutura NF-e XML), `8b3f9fd` (assinatura/heuristica PDF), `aac06be` (fixtures CNPJ validos).
+> - Verificacao: suite Documents Ingestor completa **40 arquivos / 788 testes** verde; focadas CNPJ, XML e PDF/scan verdes. `npm run build` continua falhando por erros TypeScript preexistentes fora da G27 (`drive.ts`, tipos historicos de `realScan.ts`, `syncMapped.ts`).
+> - Nenhum push, merge, cherry-pick ou alteracao em `work/app-next`; remotos nao publicados. Metadata orfa `baseline-worktree` continuou intocada.
+>
 > **Atualizacao 2026-07-11 — fase
 > `G26-C-D — FINAL MONOREPO CLOSEOUT DOCUMENTATION`.**
 > Status: **G26-C CLOSED — INTEGRADO E VALIDADO EM STAGING**.

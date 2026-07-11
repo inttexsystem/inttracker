@@ -1,3 +1,30 @@
+# G27-B0 + G27-B-CORE — ISOLATED DOCUMENT RECOGNITION SAFETY HARDENING
+
+PROJETO: Ravatex — Controle de Tapetes (monorepo)
+WORKSPACE ORIGINAL EM QUARENTENA: `D:\\OneDrive\\Programação\\Ravatex\\controle-tapetes`
+WORKSPACE G27: `D:\\OneDrive\\Programação\\Ravatex\\controle-tapetes-g27`
+BRANCH G27: `work/g27-document-recognition-safety`
+HEAD INICIAL CANONICO: `26111e04ab185dc1f484567cc48f3516cd6012a1`
+FASE: G27-B-CORE CONCLUIDA TECNICAMENTE; INTEGRACAO EM `work/app-next` PENDENTE
+
+## RESULTADO E EVIDENCIA
+
+- G27-B0 confirmou o worktree novo limpo: branch exclusiva, HEAD canônico, index/working tree/untracked/diffs vazios. O original foi consultado somente em leitura e preservado sem mutacao.
+- B1: CNPJ normalizado somente de pontuacao e validado por tamanho, repeticao e digitos verificadores antes de matching, direcao e persistencia; invalidos resultam `null`.
+- B2: XML usa `fast-xml-parser` 5.2.5 (MIT, transitive `strnum`) para XML bem formado + estrutura NF-e; amostras XML/PDF sao limitadas a 2048 bytes e nao persistem.
+- B3: PDF exige prefixo inicial `%PDF-` para NF; tokens explicitos eliminam falsos positivos `info.pdf`/`conferencia.pdf`; romaneio por nome/assunto tem precedencia e nenhum autoaceite foi criado.
+- Commits locais: `5b012a0`, `3cc3999`, `09b45f8`, `8b3f9fd`, `aac06be`.
+- Testes focados: CNPJ, classifier/scan e service-role reader verdes. Suite completa Documents Ingestor: **40 arquivos / 788 testes** verde.
+- Build: `npm run build` ainda falha por erros TypeScript preexistentes fora do diff G27 (`drive.ts`, tipos históricos de `realScan.ts`, `syncMapped.ts`).
+- Git final antes da documentacao: apenas os tres documentos permanentes previstos em alteracao; staging seletivo sera usado. Nenhum push, merge, cherry-pick ou contato remoto; `work/app-next` continua intocada.
+- Debito preservado: metadata orfa `.git/worktrees/baseline-worktree`; nao executar prune sem ordem independente.
+
+## PROXIMO PASSO
+
+Revisar e integrar posteriormente os commits G27 em `work/app-next` por procedimento autorizado. Nao integrar, cherry-pickar, mesclar nem publicar nesta cadeia.
+
+---
+
 # G26-C-D — FINAL MONOREPO CLOSEOUT DOCUMENTATION
 
 PROJETO: Ravatex — Controle de Tapetes (monorepo)

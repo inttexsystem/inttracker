@@ -1,6 +1,16 @@
 # PROJECT STATE
 
-> **Atualizacao 2026-07-11 — fase
+> **Atualizacao 2026-07-11 — G27-B-CORE — DOCUMENT RECOGNITION INPUT SAFETY HARDENING.**
+> Status: **CONCLUIDA EM BRANCH ISOLADA; AINDA NAO INTEGRADA EM `work/app-next`.**
+>
+> - Execucao exclusiva no worktree `D:\\OneDrive\\Programação\\Ravatex\\controle-tapetes-g27`, branch `work/g27-document-recognition-safety`, a partir de `26111e04ab185dc1f484567cc48f3516cd6012a1`; workspace original ficou em quarentena e intocado.
+> - CNPJ: normalizacao restrita de pontuacao e validacao de 14 digitos/checksum antes de persistencia, direcao e matching de registro; valores invalidos falham fechados como `null`.
+> - XML: `fast-xml-parser` 5.2.5 (MIT; unico transitive pequeno `strnum`) valida XML bem formado, raiz NF-e/nfeProc e `infNFe`; XML semelhante/eventos/malformado ficam `desconhecido`; amostra limitada a 2048 bytes e nunca persistida.
+> - PDF: NF exige assinatura inicial `%PDF-` e token explicito (NF/NF-e/NFe/DANFE/nota fiscal); remove falsos positivos como `info.pdf` e `conferencia.pdf`; romaneio por nome/assunto preservado; sem autoaceite.
+> - Commits: `5b012a0`, `3cc3999`, `09b45f8`, `8b3f9fd`, `aac06be`. Suite: **40 arquivos / 788 testes** verde. Nenhum push; integracao/cherry-pick posterior em `work/app-next` permanece pendente.
+> - Risco residual: `npm run build` ainda reporta erros TypeScript preexistentes em `drive.ts`, tipos historicos de `realScan.ts` e `syncMapped.ts`, nao introduzidos pela G27.
+>
+> **Atualizacao 2026-07-11
 > `G26-C-D — FINAL MONOREPO CLOSEOUT DOCUMENTATION`.**
 > Status: **G26-C CLOSED — INTEGRADO E VALIDADO EM STAGING**.
 > Branch/HEAD final local e remoto: `work/app-next` (`8f1df9b6d9e80444b31ed69f3187fa52183023fb`).
