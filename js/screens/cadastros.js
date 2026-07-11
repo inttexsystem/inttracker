@@ -133,13 +133,10 @@
   }
 
   // -------------------------------------------------------------------
-  // Helpers de CNPJ (puros, sem Supabase).
-  // O armazenamento canonico no banco e 14 digitos sem pontuacao
-  // (ver db/44_partner_cnpj_registry.sql: is_valid_cnpj + CHECK). A UI
-  // pode aceitar entrada formatada por conveniencia, mas DEVE
-  // normalizar para 14 digitos antes do write, e formatar apenas na
-  // exibicao. A validacao de DV aqui e auxiliar; a constraint do banco
-  // (is_valid_cnpj em CHECK) permanece a autoridade final.
+  // Helpers puros de CNPJ. O armazenamento direto em Clientes e
+  // Fornecedores e canonico: 14 digitos sem pontuacao. A interface
+  // normaliza antes da gravacao e formata somente para exibicao; a
+  // constraint do banco permanece a autoridade final.
   // -------------------------------------------------------------------
 
   // Remove pontuacao/espacos e devolve ate 14 digitos (ou '').
@@ -156,8 +153,7 @@
   }
 
   // Valida DV do CNPJ canonico (exatamente 14 digitos sem pontuacao).
-  // Espelha a logica de public.is_valid_cnpj (db/44): rejeita o que nao
-  // casa ^[0-9]{14}$, sequencia repetida e DV invalido. Retorna { ok, motivo }.
+  // Rejeita tamanho incorreto, sequencia repetida e DV invalido.
   // NOTA: nao usa normalizarCnpj (que trunca para 14) — a validacao deve
   // rejeitar entradas com tamanho diferente de 14, como o banco faz.
   function validarCnpjDv(valor) {
@@ -178,25 +174,18 @@
     return { ok: true, motivo: '' };
   }
 
-  // Mapeia erros do PostgREST/Supabase para mensagens PT-BR
-  // compreensiveis, sem expor payload sensivel. As constraints reais
-  // vem de db/44 (CHECK parceiro_cnpjs_cnpj_valido, UNIQUE
-  // parceiro_cnpjs_cnpj_uidx, UNIQUE parcial
-  // parceiro_cnpjs_um_principal_ativo_uidx). PostgREST entrega o nome
-  // da constraint em error.message e/ou em hint; checamos ambos.
-  function mapearErroParceiroCnpj(error, fallback) {
+  // Mapeia erros diretos de CNPJ para mensagens operacionais, sem expor
+  // detalhes tecnicos de persistencia.
+  function mapearErroCnpjEntidade(error, entidade, fallback) {
     if (!error) return fallback || 'Erro ao salvar.';
     const msg = String(error.message || '');
     const hint = String(error.hint || error.details || '');
     const ambos = msg + ' ' + hint;
-    if (/um_principal_ativo|principal/i.test(ambos)) {
-      return 'Já existe um CNPJ principal ativo para esse parceiro.';
-    }
-    if (/cnpj_uidx|duplicate key/i.test(ambos) || /^23505/.test(String(error.code))) {
-      return 'Esse CNPJ já está cadastrado (globalmente único).';
+    if (/clientes_cnpj_uidx|fornecedores_cnpj_uidx/i.test(ambos)) {
+      return 'Já existe outro ' + entidade + ' com este CNPJ.';
     }
     if (/cnpj_valido|check constraint/i.test(ambos) || /^23514/.test(String(error.code))) {
-      return 'CNPJ inválido (formato ou dígitos verificadores).';
+      return 'CNPJ inválido.';
     }
     if (/row-level security|rls|policy/i.test(ambos)) {
       return 'Sem permissão para gravar (autorização negada).';
@@ -863,8 +852,9 @@
       ];
       if (columnSupport.contato) columns.push({ key: 'contato', label: 'CONTATO', width: '1fr', optional: true });
       if (columnSupport.telefone) columns.push({ key: 'telefone', label: 'TELEFONE', width: '1fr', optional: true });
-      columns.push({ key: 'id', label: 'ID', width: '80px' });
-      columns.push({ key: 'acoes', label: 'ACOES', width: '66px', align: 'center' });
+      columns.push({ key: 'cnpj', label: 'CNPJ', width: '1.2fr' });
+      columns.push({ key: 'id', label: 'ID', width: '70px' });
+      columns.push({ key: 'acoes', label: 'ACOES', width: '100px', align: 'center' });
       const gridTemplate = columns.map((column) => column.width).join(' ');
 
       const headRow = window.el('div', {
@@ -903,6 +893,9 @@
           }, telefoneText));
         }
         line.appendChild(window.el('div', {
+          style: 'font-size:13.5px; color:' + (row.cnpj ? '#3f4757' : '#aab2bf') + '; font-variant-numeric:tabular-nums;'
+        }, row.cnpj ? formatarCnpj(row.cnpj) : '—'));
+        line.appendChild(window.el('div', {
           style: 'font-size:13px; color:#9aa2af; font-weight:500;'
         }, String(row.id ?? '')));
         const actions = window.el('div', {
@@ -938,7 +931,15 @@
     function openModal(cli) {
       const isEdit = !!cli;
       const nomeInput = window.textInput({ value: cli?.nome || '', placeholder: 'Ex: LOJA CENTRAL', required: true });
-      const bodyRows = [cadastrosModalField({ label: 'Nome', input: nomeInput, fullWidth: true })];
+      const cnpjInput = window.textInput({ value: formatarCnpj(cli?.cnpj || ''), placeholder: '00.000.000/0000-00' });
+      cnpjInput.addEventListener('input', function () {
+        const normalizado = normalizarCnpj(cnpjInput.value);
+        cnpjInput.value = normalizado.length > 1 ? formatarCnpj(normalizado) : normalizado;
+      });
+      const bodyRows = [
+        cadastrosModalField({ label: 'Nome', input: nomeInput, fullWidth: true }),
+        cadastrosModalField({ label: 'CNPJ', input: cnpjInput, hint: 'Opcional. Armazenado sem pontuação.' })
+      ];
       const optionalFields = [];
       let contatoInput = null;
       let telefoneInput = null;
@@ -965,14 +966,19 @@
         onSave: async () => {
           const nome = nomeInput.value.trim();
           if (!nome) { window.toast('Nome é obrigatório', 'error'); return false; }
-          const payload = { nome };
+          const cnpj = normalizarCnpj(cnpjInput.value);
+          if (cnpj) {
+            const validacao = validarCnpjDv(cnpj);
+            if (!validacao.ok) { window.toast(validacao.motivo, 'error'); return false; }
+          }
+          const payload = { nome, cnpj: cnpj || null };
           if (columnSupport.contato) payload.contato = contatoInput.value.trim() || null;
           if (columnSupport.telefone) payload.telefone = telefoneInput.value.trim() || null;
           if (columnSupport.observacoes) payload.observacoes = observacoesField.input.value.trim() || null;
           const { error } = isEdit
             ? await window.supa.from('clientes').update(payload).eq('id', cli.id)
             : await window.supa.from('clientes').insert(payload);
-          if (error) { window.toast(error.message.includes('duplicate') ? 'Cliente já cadastrado' : 'Erro ao salvar', 'error'); console.error(error); return false; }
+          if (error) { window.toast(mapearErroCnpjEntidade(error, 'Cliente', error.message.includes('duplicate') ? 'Cliente já cadastrado' : 'Erro ao salvar'), 'error'); console.error(error); return false; }
           window.toast(isEdit ? 'Cliente atualizado' : 'Cliente criado', 'success');
           reload();
         }
@@ -1839,7 +1845,7 @@
         style: 'background:#fff; border:1px solid #eceef1; border-radius:6px 6px 0 0; overflow:hidden;'
       });
       const headRow = window.el('div', {
-        style: 'display:grid; grid-template-columns:1fr 1fr 1fr 80px 66px; align-items:center; gap:16px; padding:10px 18px; background:#f8f9fb; border-bottom:1px solid #eceef1;'
+        style: 'display:grid; grid-template-columns:1fr 1fr 110px 1fr 70px 100px; align-items:center; gap:16px; padding:10px 18px; background:#f8f9fb; border-bottom:1px solid #eceef1;'
       });
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;' }, 'NOME'));
       const emailHead = window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;' }, 'EMAIL ');
@@ -1847,6 +1853,7 @@
         style: 'font-size:10px; font-weight:500; color:#b6bdc8; letter-spacing:0;'
       }, '(opcional)'));
       headRow.appendChild(emailHead);
+      headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;' }, 'CNPJ'));
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;' }, 'TIPO'));
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;' }, 'ID'));
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; text-align:center; white-space:nowrap;' }, 'AÇÕES'));
@@ -1854,7 +1861,7 @@
 
       rows.forEach((row, index) => {
         const line = window.el('div', {
-          style: `display:grid; grid-template-columns:1fr 1fr 1fr 80px 66px; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid #f1f3f6'};`
+          style: `display:grid; grid-template-columns:1fr 1fr 110px 1fr 70px 100px; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid #f1f3f6'};`
         });
         line.appendChild(window.el('div', {
           style: 'font-size:14px; font-weight:500; color:#16203a;'
@@ -1863,6 +1870,9 @@
         line.appendChild(window.el('div', {
           style: `font-size:13.5px; color:${emailText === '—' ? '#aab2bf' : '#3f4757'};`
         }, emailText));
+        line.appendChild(window.el('div', {
+          style: 'font-size:13.5px; color:' + (row.cnpj ? '#3f4757' : '#aab2bf') + '; font-variant-numeric:tabular-nums;'
+        }, row.cnpj ? formatarCnpj(row.cnpj) : '—'));
         const theme = pillTheme(row.tipo);
         line.appendChild(window.el('div', {},
           window.el('span', {
@@ -1906,6 +1916,11 @@
       const isEdit = !!forn;
       const nomeInput = window.textInput({ value: forn?.nome || '', placeholder: 'Ex: Tecelagem Fulano', required: true });
       const tipoSel = window.selectInput({ options: FORNECEDOR_TIPOS, value: forn?.tipo });
+      const cnpjInput = window.textInput({ value: formatarCnpj(forn?.cnpj || ''), placeholder: '00.000.000/0000-00' });
+      cnpjInput.addEventListener('input', function () {
+        const normalizado = normalizarCnpj(cnpjInput.value);
+        cnpjInput.value = normalizado.length > 1 ? formatarCnpj(normalizado) : normalizado;
+      });
       let emailInput = null;
       let telefoneInput = null;
       const nomeField = cadastrosModalField({ label: 'Nome', input: nomeInput, fullWidth: true });
@@ -1920,7 +1935,11 @@
         telefoneInput = window.textInput({ value: forn?.telefone || '', placeholder: 'Ex: (11) 99999-9999' });
         telefoneField = cadastrosModalField({ label: 'Telefone', input: telefoneInput, hint: 'Opcional' });
       }
-      const bodyRows = [nomeField, tipoField];
+      const bodyRows = [
+        nomeField,
+        tipoField,
+        cadastrosModalField({ label: 'CNPJ', input: cnpjInput, hint: 'Opcional. Armazenado sem pontuação.' })
+      ];
       if (emailField || telefoneField) {
         bodyRows.push(cadastrosModalRow([emailField, telefoneField].filter(Boolean), 2, 720));
       }
@@ -1938,14 +1957,19 @@
           const nome = nomeInput.value.trim();
           const tipo = tipoSel.value;
           if (!nome || !tipo) { window.toast('Preencha nome e tipo', 'error'); return false; }
-          const payload = { nome, tipo };
+          const cnpj = normalizarCnpj(cnpjInput.value);
+          if (cnpj) {
+            const validacao = validarCnpjDv(cnpj);
+            if (!validacao.ok) { window.toast(validacao.motivo, 'error'); return false; }
+          }
+          const payload = { nome, tipo, cnpj: cnpj || null };
           if (columnSupport.email) payload.email = emailInput.value.trim() || null;
           if (columnSupport.telefone) payload.telefone = telefoneInput.value.trim() || null;
           if (columnSupport.observacoes) payload.observacoes = observacoesField.input.value.trim() || null;
           const { error } = isEdit
             ? await window.supa.from('fornecedores').update(payload).eq('id', forn.id)
             : await window.supa.from('fornecedores').insert(payload);
-          if (error) { window.toast(error.message.includes('duplicate') ? 'Fornecedor com esse nome e tipo já existe' : 'Erro ao salvar', 'error'); console.error(error); return false; }
+          if (error) { window.toast(mapearErroCnpjEntidade(error, 'Fornecedor', error.message.includes('duplicate') ? 'Fornecedor com esse nome e tipo já existe' : 'Erro ao salvar'), 'error'); console.error(error); return false; }
           window.toast(isEdit ? 'Fornecedor atualizado' : 'Fornecedor criado', 'success');
           reload();
         }
@@ -1967,538 +1991,6 @@
     }
 
     await reload();
-    return window.shellLayout(window.ADMIN_MENU, container);
-  }
-
-  // ===================================================================
-  // === PARCEIROS (G25-B2-A-R3) ======================================
-  // Tela administrativa do registro empresarial compartilhado
-  // (MODELO C, db/44_partner_cnpj_registry.sql):
-  //   - lista parceiros com CNPJ principal + contagens de CNPJ,
-  //     fornecedores e clientes vinculados;
-  //   - cadastra/edita parceiro (nome + ativo) SEM criar papel
-  //     automaticamente;
-  //   - cadastra/edita CNPJ por estabelecimento (validacao de DV no
-  //     front auxiliar + normalizacao para 14 digitos; constraint do
-  //     banco e a autoridade final);
-  //   - marca CNPJ principal, ativa/desativa CNPJ;
-  //   - associa/desassocia fornecedores e clientes existentes via
-  //     parceiro_id (NULLABLE). Nao altera IDs legados, fornecedores.
-  //     tipo, FKs de pedidos/lotes/OPs.
-  //
-  // Autorizacao: rota roles:['admin'] (router) + RLS is_admin() no
-  // banco. Nenhum bypass, sem service role, sem afrouxar RLS. Erros de
-  // RLS em write sao tratados como falha de autorizacao, nunca
-  // mascarados como lista vazia.
-  // ===================================================================
-  async function screenCadastrosParceiros() {
-    const container = window.el('div', {});
-    let allRows = [];
-    let busca = '';
-    // parceiro selecionado para a tela de detalhe (null = lista)
-    let selecionado = null;
-    // dados do detalhe
-    let detalhe = { cnpjs: [], forns: [], clientes: [], fornsLivres: [], clientesLivres: [] };
-
-    var ICON_PLUS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
-    var ICON_SEARCH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
-    var ICON_BACK = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>';
-    var ICON_SQUARE_PEN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>';
-    var ICON_STAR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>';
-    var ICON_LINK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>';
-
-    function svgIcon(markup) {
-      const wrap = window.el('span', { style: 'display:inline-flex; align-items:center; justify-content:center;' });
-      wrap.innerHTML = markup;
-      return wrap.firstChild;
-    }
-
-    function makePrimaryButton(label, onClick) {
-      return window.el('button', {
-        type: 'button', onclick: onClick,
-        style: 'display:inline-flex; align-items:center; gap:7px; background:#2563eb; color:#fff; border:none; border-radius:4px; padding:9px 16px; font-weight:600; font-size:14px; font-family:inherit; cursor:pointer;'
-      }, svgIcon(ICON_PLUS), window.el('span', {}, label));
-    }
-
-    function makeGhostButton(label, icon, onClick) {
-      return window.el('button', {
-        type: 'button', onclick: onClick,
-        style: 'display:inline-flex; align-items:center; gap:7px; background:#fff; color:#3f4757; border:1px solid #d8dce2; border-radius:4px; padding:8px 14px; font-weight:600; font-size:13px; font-family:inherit; cursor:pointer;'
-      }, svgIcon(icon), window.el('span', {}, label));
-    }
-
-    function makeIconButton(title, icon, onClick, danger) {
-      const button = window.el('button', {
-        type: 'button', title, 'aria-label': title, onclick: onClick,
-        style: ['width:30px', 'height:30px', 'display:inline-flex', 'align-items:center', 'justify-content:center',
-          'border:1px solid #eceef1', 'border-radius:4px', 'background:#fff',
-          'color:' + (danger ? '#d6403a' : '#8a93a3'), 'cursor:pointer', 'padding:0',
-          'transition:border-color .18s ease, color .18s ease, background .18s ease'].join(';')
-      }, icon);
-      button.addEventListener('mouseenter', function () {
-        button.style.borderColor = danger ? '#fca5a5' : '#d0d5de';
-        button.style.background = danger ? '#fff1f1' : '#f8fafc';
-        button.style.color = danger ? '#c53030' : '#3f4757';
-      });
-      button.addEventListener('mouseleave', function () {
-        button.style.borderColor = '#eceef1'; button.style.background = '#fff';
-        button.style.color = danger ? '#d6403a' : '#8a93a3';
-      });
-      return button;
-    }
-
-    function estadoPill(ativo) {
-      return window.el('span', {
-        style: 'display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:3px 10px; font-size:12px; font-weight:600; white-space:nowrap;'
-          + (ativo ? ' background:#f0fbf4; color:#18794a;' : ' background:#f3f4f6; color:#5b6472;')
-      },
-        window.el('span', { style: 'width:7px; height:7px; border-radius:50%; background:' + (ativo ? '#22c55e' : '#9aa2af') + ';' }),
-        ativo ? 'Ativo' : 'Inativo');
-    }
-
-    function principalPill(principal) {
-      if (!principal) return window.el('span', { style: 'color:#aab2bf; font-size:13px;' }, '—');
-      return window.el('span', {
-        style: 'display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:3px 10px; font-size:12px; font-weight:600; background:#eaf1fd; color:#2563eb; white-space:nowrap;'
-      }, svgIcon(ICON_STAR), 'Principal');
-    }
-
-    // -----------------------------------------------------------------
-    // Carga de dados
-    // -----------------------------------------------------------------
-
-    async function reloadLista() {
-      // Conta CNPJs, acha o principal ativo e conta fornecedores/clientes
-      // vinculados — tudo via joins, sem RPC. RLS (is_admin) garante o
-      // acesso; erro de leitura nao e mascarado como lista vazia.
-      const { data, error } = await window.supa
-        .from('parceiros')
-        .select('id, nome, ativo, parceiro_cnpjs(cnpj, principal, ativo), fornecedores(id), clientes(id)')
-        .order('nome');
-      if (error) {
-        window.toast('Erro ao carregar parceiros', 'error'); console.error(error); return;
-      }
-      allRows = (data || []).map(function (p) {
-        const cnpjs = (p.parceiro_cnpjs || []);
-        const principalAtivo = cnpjs.find(function (c) { return c.principal && c.ativo; });
-        return {
-          id: p.id, nome: p.nome, ativo: p.ativo,
-          cnpjPrincipal: principalAtivo ? principalAtivo.cnpj : null,
-          qtdCnpjs: cnpjs.length,
-          qtdForns: (p.fornecedores || []).length,
-          qtdClientes: (p.clientes || []).length,
-        };
-      });
-      render();
-    }
-
-    async function reloadDetalhe() {
-      if (!selecionado) { render(); return; }
-      const id = selecionado.id;
-      const [parRes, fornsRes, clientesRes] = await Promise.all([
-        window.supa.from('parceiro_cnpjs').select('id, cnpj, principal, ativo').eq('parceiro_id', id).order('principal', { ascending: false }).order('ativo', { ascending: false }).order('cnpj'),
-        window.supa.from('fornecedores').select('id, nome, tipo').eq('parceiro_id', id).order('nome'),
-        window.supa.from('clientes').select('id, nome').eq('parceiro_id', id).order('nome'),
-      ]);
-      if (parRes.error) { window.toast('Erro ao carregar parceiro', 'error'); console.error(parRes.error); }
-      if (fornsRes.error) { window.toast('Erro ao carregar fornecedores', 'error'); console.error(fornsRes.error); }
-      if (clientesRes.error) { window.toast('Erro ao carregar clientes', 'error'); console.error(clientesRes.error); }
-      detalhe.cnpjs = parRes.data || [];
-      detalhe.forns = fornsRes.data || [];
-      detalhe.clientes = clientesRes.data || [];
-
-      // Fornecedores/clientes "livres" (sem parceiro) para associar.
-      const [fornsLivresRes, clientesLivresRes] = await Promise.all([
-        window.supa.from('fornecedores').select('id, nome, tipo').is('parceiro_id', true).order('nome'),
-        window.supa.from('clientes').select('id, nome').is('parceiro_id', true).order('nome'),
-      ]);
-      detalhe.fornsLivres = fornsLivresRes.data || [];
-      detalhe.clientesLivres = clientesLivresRes.data || [];
-      render();
-    }
-
-    // -----------------------------------------------------------------
-    // Render: lista de parceiros
-    // -----------------------------------------------------------------
-    function renderLista(page) {
-      const term = busca.trim().toLowerCase();
-      const rows = term ? allRows.filter(function (r) { return String(r.nome || '').toLowerCase().includes(term); }) : allRows.slice();
-
-      const header = window.el('div', {
-        style: 'display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px;'
-      },
-        window.el('div', {},
-          window.el('div', { style: 'font-size:22px; font-weight:800; color:#16203a; letter-spacing:-.01em;' }, 'Parceiros'),
-          window.el('div', { style: 'font-size:13px; color:#8a93a3; margin-top:3px;' }, 'Empresas compartilhadas entre clientes e fornecedores, com CNPJ por estabelecimento.')
-        ),
-        makePrimaryButton('Novo parceiro', function () { abrirModalParceiro(null); })
-      );
-
-      const searchWrap = window.el('div', {
-        style: 'display:flex; align-items:center; gap:8px; width:100%; background:#fff; border:1px solid #d8dce2; border-radius:4px; padding:8px 13px; margin-bottom:14px;'
-      });
-      const searchInput = window.el('input', {
-        type: 'search', value: busca, placeholder: 'Buscar por nome...',
-        oninput: function (e) { busca = e.target.value || ''; render(); },
-        style: 'width:100%; border:0; outline:none; background:transparent; font-size:13px; color:#16203a; padding:0; font-family:inherit;'
-      });
-      searchInput.setAttribute('aria-label', 'Buscar por nome');
-      searchWrap.appendChild(svgIcon(ICON_SEARCH));
-      searchWrap.appendChild(searchInput);
-
-      const gridCols = '1.6fr 110px 1.4fr 70px 70px 70px 96px';
-      const card = window.el('div', { style: 'background:#fff; border:1px solid #eceef1; border-radius:6px 6px 0 0; overflow:hidden;' });
-      const headRow = window.el('div', {
-        style: 'display:grid; grid-template-columns:' + gridCols + '; align-items:center; gap:14px; padding:10px 18px; background:#f8f9fb; border-bottom:1px solid #eceef1;'
-      });
-      ['NOME', 'ESTADO', 'CNPJ PRINCIPAL', 'CNPJs', 'FORNS.', 'CLIENTES', 'AÇÃO'].forEach(function (label, i) {
-        headRow.appendChild(window.el('div', {
-          style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;' + (i >= 3 && i <= 5 ? ' text-align:center;' : '') + (i === 6 ? ' text-align:center;' : '')
-        }, label));
-      });
-      card.appendChild(headRow);
-
-      rows.forEach(function (row, index) {
-        const line = window.el('div', {
-          style: 'display:grid; grid-template-columns:' + gridCols + '; align-items:center; gap:14px; padding:13px 18px; border-bottom:' + (index === rows.length - 1 ? '0' : '1px solid #f1f3f6') + ';'
-        });
-        line.appendChild(window.el('div', { style: 'font-size:14px; font-weight:600; color:#16203a;' }, row.nome || ''));
-        line.appendChild(estadoPill(row.ativo));
-        line.appendChild(window.el('div', { style: 'font-size:13.5px; color:' + (row.cnpjPrincipal ? '#3f4757' : '#aab2bf') + ';' }, row.cnpjPrincipal ? formatarCnpj(row.cnpjPrincipal) : '—'));
-        line.appendChild(window.el('div', { style: 'font-size:13px; color:#3f4757; text-align:center; font-variant-numeric:tabular-nums;' }, String(row.qtdCnpjs)));
-        line.appendChild(window.el('div', { style: 'font-size:13px; color:#3f4757; text-align:center; font-variant-numeric:tabular-nums;' }, String(row.qtdForns)));
-        line.appendChild(window.el('div', { style: 'font-size:13px; color:#3f4757; text-align:center; font-variant-numeric:tabular-nums;' }, String(row.qtdClientes)));
-        const actions = window.el('div', { style: 'display:flex; align-items:center; justify-content:center; gap:6px;' });
-        actions.appendChild(makeIconButton('Editar parceiro', svgIcon(ICON_SQUARE_PEN), function () { abrirModalParceiro(row); }, false));
-        actions.appendChild(window.el('button', {
-          type: 'button', onclick: function () { selecionado = row; reloadDetalhe(); },
-          style: 'height:30px; padding:0 12px; border:1px solid #d8dce2; border-radius:4px; background:#fff; color:#2563eb; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;'
-        }, 'Detalhes'));
-        line.appendChild(actions);
-        card.appendChild(line);
-      });
-
-      if (!rows.length) {
-        card.appendChild(window.el('div', { style: 'padding:20px 18px; font-size:14px; color:#6b7280; text-align:center;' }, busca ? 'Nenhum parceiro encontrado.' : 'Nenhum parceiro cadastrado.'));
-      }
-
-      const footer = window.el('div', { style: 'padding:11px 18px; background:#fff; border:1px solid #eceef1; border-top:none; border-radius:0 0 6px 6px;' });
-      footer.appendChild(window.el('span', { style: 'font-size:13px; color:#9aa2af;' }, rows.length + ' ' + (rows.length === 1 ? 'parceiro cadastrado' : 'parceiros cadastrados')));
-
-      const tableWrap = window.el('div', { style: 'display:flex; flex-direction:column;' }, card, footer);
-      page.appendChild(header);
-      page.appendChild(searchWrap);
-      page.appendChild(tableWrap);
-    }
-
-    // -----------------------------------------------------------------
-    // Render: detalhe do parceiro
-    // -----------------------------------------------------------------
-    function renderDetalhe(page) {
-      const p = selecionado;
-      const header = window.el('div', {
-        style: 'display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:18px;'
-      },
-        makeGhostButton('Voltar', ICON_BACK, function () { selecionado = null; reloadLista(); }),
-        window.el('div', {},
-          window.el('div', { style: 'display:flex; align-items:center; gap:10px;' },
-            window.el('span', { style: 'font-size:22px; font-weight:800; color:#16203a; letter-spacing:-.01em;' }, p.nome || ''),
-            estadoPill(p.ativo)
-          ),
-          window.el('div', { style: 'font-size:13px; color:#8a93a3; margin-top:3px;' }, 'Parceiro #' + p.id)
-        ),
-        window.el('div', { style: 'margin-left:auto;' },
-          makeGhostButton('Editar', '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>',
-            function () { abrirModalParceiro(p); })
-        )
-      );
-      page.appendChild(header);
-
-      // Painel CNPJs
-      page.appendChild(painelCnpjs());
-      // Painel Fornecedores
-      page.appendChild(painelVinculos({
-        titulo: 'Fornecedores vinculados',
-        itens: detalhe.forns,
-        livres: detalhe.fornsLivres,
-        labelItem: function (f) { return f.nome + ' (' + (labelFornecedorTipo(f.tipo) || f.tipo || '') + ')'; },
-        onAssociar: abrirModalAssociarForn,
-        onDesassociar: desassociarForn,
-        linkTable: 'fornecedores',
-      }));
-      // Painel Clientes
-      page.appendChild(painelVinculos({
-        titulo: 'Clientes vinculados',
-        itens: detalhe.clientes,
-        livres: detalhe.clientesLivres,
-        labelItem: function (c) { return c.nome; },
-        onAssociar: abrirModalAssociarCliente,
-        onDesassociar: desassociarCliente,
-        linkTable: 'clientes',
-      }));
-    }
-
-    function painelCnpjs() {
-      const wrap = window.el('div', {
-        style: 'background:#fff; border:1px solid #eceef1; border-radius:6px; margin-bottom:16px;'
-      });
-      const head = window.el('div', { style: 'display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #eceef1;' },
-        window.el('span', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.06em; text-transform:uppercase;' }, 'CNPJs / Estabelecimentos'),
-        makePrimaryButton('Adicionar CNPJ', function () { abrirModalCnpj(null); })
-      );
-      wrap.appendChild(head);
-
-      const gridCols = '1.6fr 130px 110px 96px';
-      const table = window.el('div', {});
-      const thead = window.el('div', {
-        style: 'display:grid; grid-template-columns:' + gridCols + '; align-items:center; gap:14px; padding:9px 18px; background:#f8fafc; border-bottom:1px solid #eceef1;'
-      });
-      ['CNPJ', 'TIPO', 'ESTADO', 'AÇÃO'].forEach(function (label, i) {
-        thead.appendChild(window.el('div', { style: 'font-size:10.5px; font-weight:700; color:#9aa2af; letter-spacing:.04em;' + (i === 3 ? ' text-align:center;' : '') }, label));
-      });
-      table.appendChild(thead);
-
-      detalhe.cnpjs.forEach(function (c, index) {
-        const line = window.el('div', {
-          style: 'display:grid; grid-template-columns:' + gridCols + '; align-items:center; gap:14px; padding:12px 18px; border-bottom:' + (index === detalhe.cnpjs.length - 1 ? '0' : '1px solid #f1f3f6') + ';'
-        });
-        line.appendChild(window.el('div', { style: 'font-size:14px; font-weight:600; color:#16203a; font-variant-numeric:tabular-nums;' }, formatarCnpj(c.cnpj)));
-        line.appendChild(principalPill(c.principal));
-        line.appendChild(estadoPill(c.ativo));
-        const actions = window.el('div', { style: 'display:flex; align-items:center; justify-content:center; gap:6px;' });
-        if (!c.principal && c.ativo) {
-          actions.appendChild(makeIconButton('Definir como principal', svgIcon(ICON_STAR), function () { definirPrincipal(c); }, false));
-        }
-        actions.appendChild(makeIconButton('Editar CNPJ', svgIcon(ICON_SQUARE_PEN), function () { abrirModalCnpj(c); }, false));
-        actions.appendChild(makeIconButton(c.ativo ? 'Desativar CNPJ' : 'Ativar CNPJ',
-          svgIcon('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + (c.ativo ? '<circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>' : '<circle cx="12" cy="12" r="10"></circle><polyline points="9 12 11 14 15 10"></polyline>') + '</svg>'),
-          function () { toggleCnpjAtivo(c); }, c.ativo));
-        line.appendChild(actions);
-        table.appendChild(line);
-      });
-
-      if (!detalhe.cnpjs.length) {
-        table.appendChild(window.el('div', { style: 'padding:18px; font-size:14px; color:#6b7280; text-align:center;' }, 'Nenhum CNPJ cadastrado para este parceiro.'));
-      }
-      wrap.appendChild(table);
-      return wrap;
-    }
-
-    function painelVinculos(opts) {
-      const wrap = window.el('div', { style: 'background:#fff; border:1px solid #eceef1; border-radius:6px; margin-bottom:16px;' });
-      const head = window.el('div', { style: 'display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #eceef1;' },
-        window.el('span', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.06em; text-transform:uppercase;' }, opts.titulo),
-        makeGhostButton('Associar', ICON_LINK, function () { opts.onAssociar(); })
-      );
-      wrap.appendChild(head);
-
-      const list = window.el('div', { style: 'padding:6px 18px;' });
-      opts.itens.forEach(function (item) {
-        const row = window.el('div', { style: 'display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 0; border-bottom:1px solid #f1f3f6;' },
-          window.el('div', { style: 'font-size:14px; color:#26303f; font-weight:500;' }, opts.labelItem(item)),
-          makeIconButton('Desvincular', svgIcon('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg>'),
-            function () { opts.onDesassociar(item); }, true)
-        );
-        list.appendChild(row);
-      });
-      if (!opts.itens.length) {
-        list.appendChild(window.el('div', { style: 'padding:16px 0; font-size:14px; color:#6b7280; text-align:center;' }, 'Nenhum registro vinculado.'));
-      }
-      wrap.appendChild(list);
-      return wrap;
-    }
-
-    function render() {
-      const page = window.el('div', { style: 'display:flex; flex-direction:column;' });
-      if (selecionado) renderDetalhe(page); else renderLista(page);
-      container.replaceChildren(page);
-    }
-
-    // -----------------------------------------------------------------
-    // Modais: parceiro (nome + ativo)
-    // -----------------------------------------------------------------
-    function abrirModalParceiro(parceiro) {
-      const isEdit = !!parceiro;
-      const nomeInput = window.textInput({ value: parceiro ? (parceiro.nome || '') : '', placeholder: 'Ex: Conitex Indústria Têxtil', required: true });
-      const ativoSel = window.selectInput({
-        options: [{ value: 'true', label: 'Ativo' }, { value: 'false', label: 'Inativo' }],
-        value: parceiro ? String(!!parceiro.ativo) : 'true'
-      });
-      const body = cadastrosModalStack([
-        cadastrosModalField({ label: 'Nome', input: nomeInput, fullWidth: true, hint: 'Nome comercial do parceiro. Não cria cliente nem fornecedor automaticamente.' }),
-        cadastrosModalField({ label: 'Estado', input: ativoSel, fullWidth: true }),
-      ]);
-      openCadastrosFormModal({
-        title: isEdit ? 'Editar parceiro' : 'Novo parceiro', maxWidth: 560, body,
-        onSave: async function () {
-          const nome = nomeInput.value.trim();
-          if (!nome) { window.toast('Nome é obrigatório', 'error'); return false; }
-          const ativo = ativoSel.value === 'true';
-          const payload = { nome: nome, ativo: ativo };
-          let error;
-          if (isEdit) {
-            const r = await window.supa.from('parceiros').update(payload).eq('id', parceiro.id);
-            error = r.error;
-          } else {
-            const r = await window.supa.from('parceiros').insert(payload);
-            error = r.error;
-          }
-          if (error) {
-            window.toast(/row-level security|rls|policy/i.test(String(error.message || '')) ? 'Sem permissão para gravar (autorização negada).' : 'Erro ao salvar parceiro', 'error');
-            console.error(error); return false;
-          }
-          window.toast(isEdit ? 'Parceiro atualizado' : 'Parceiro criado', 'success');
-          if (selecionado && isEdit) { selecionado = Object.assign({}, selecionado, payload); await reloadDetalhe(); }
-          else { await reloadLista(); }
-        }
-      });
-    }
-
-    // -----------------------------------------------------------------
-    // Modais: CNPJ
-    // -----------------------------------------------------------------
-    function abrirModalCnpj(cnpj) {
-      const isEdit = !!cnpj;
-      const cnpjInput = window.textInput({ value: cnpj ? formatarCnpj(cnpj.cnpj) : '', placeholder: '00.000.000/0000-00', required: true });
-      // formata enquanto digita
-      cnpjInput.addEventListener('input', function () {
-        const d = normalizarCnpj(cnpjInput.value);
-        cnpjInput.value = d.length > 1 ? formatarCnpj(d) : d;
-      });
-      const principalSel = window.selectInput({
-        options: [{ value: 'false', label: 'Não principal' }, { value: 'true', label: 'Principal' }],
-        value: cnpj ? String(!!cnpj.principal) : 'false'
-      });
-      const ativoSel = window.selectInput({
-        options: [{ value: 'true', label: 'Ativo' }, { value: 'false', label: 'Inativo' }],
-        value: cnpj ? String(!!cnpj.ativo) : 'true'
-      });
-      const body = cadastrosModalStack([
-        cadastrosModalField({ label: 'CNPJ', input: cnpjInput, fullWidth: true, hint: 'Armazenado sem pontuação (14 dígitos). A validação do banco é a autoridade final.' }),
-        cadastrosModalRow([
-          cadastrosModalField({ label: 'Principal', input: principalSel }),
-          cadastrosModalField({ label: 'Estado', input: ativoSel }),
-        ], 2, 640),
-      ]);
-      openCadastrosFormModal({
-        title: isEdit ? 'Editar CNPJ' : 'Adicionar CNPJ', maxWidth: 560, body,
-        onSave: async function () {
-          const cnpjNorm = normalizarCnpj(cnpjInput.value);
-          const v = validarCnpjDv(cnpjNorm);
-          if (!v.ok) { window.toast(v.motivo, 'error'); return false; }
-          const principal = principalSel.value === 'true';
-          const ativo = ativoSel.value === 'true';
-          const payload = { cnpj: cnpjNorm, principal: principal, ativo: ativo };
-          let error;
-          if (isEdit) {
-            const r = await window.supa.from('parceiro_cnpjs').update(payload).eq('id', cnpj.id);
-            error = r.error;
-          } else {
-            const r = await window.supa.from('parceiro_cnpjs').insert(Object.assign({ parceiro_id: selecionado.id }, payload));
-            error = r.error;
-          }
-          if (error) {
-            window.toast(mapearErroParceiroCnpj(error, 'Erro ao salvar CNPJ'), 'error');
-            console.error(error); return false;
-          }
-          window.toast(isEdit ? 'CNPJ atualizado' : 'CNPJ adicionado', 'success');
-          await reloadDetalhe();
-        }
-      });
-    }
-
-    async function definirPrincipal(cnpj) {
-      // Desmarca outros principais ativos e marca este. O indice parcial
-      // do banco garante a unicidade; se houver race, o erro e tratado.
-      const { error } = await window.supa.from('parceiro_cnpjs').update({ principal: true }).eq('id', cnpj.id);
-      if (error) {
-        window.toast(mapearErroParceiroCnpj(error, 'Erro ao definir principal'), 'error');
-        console.error(error); return;
-      }
-      window.toast('CNPJ marcado como principal', 'success');
-      await reloadDetalhe();
-    }
-
-    async function toggleCnpjAtivo(cnpj) {
-      const { error } = await window.supa.from('parceiro_cnpjs').update({ ativo: !cnpj.ativo }).eq('id', cnpj.id);
-      if (error) {
-        window.toast(mapearErroParceiroCnpj(error, 'Erro ao alterar estado do CNPJ'), 'error');
-        console.error(error); return;
-      }
-      window.toast(cnpj.ativo ? 'CNPJ desativado' : 'CNPJ ativado', 'success');
-      await reloadDetalhe();
-    }
-
-    // -----------------------------------------------------------------
-    // Vínculos: associar / desassociar (somente parceiro_id)
-    // -----------------------------------------------------------------
-    function abrirModalAssociar(opts) {
-      const select = window.selectInput({
-        options: opts.livres.map(function (i) { return { value: String(i.id), label: opts.labelItem(i) }; }),
-        value: ''
-      });
-      const body = cadastrosModalStack([
-        cadastrosModalField({ label: opts.tituloCampo, input: select, fullWidth: true, hint: opts.hint || 'Apenas registros sem parceiro vinculado aparecem aqui.' }),
-      ]);
-      openCadastrosFormModal({
-        title: opts.tituloModal, maxWidth: 520, body,
-        onSave: async function () {
-          const id = select.value;
-          if (!id) { window.toast('Selecione um registro', 'error'); return false; }
-          const { error } = await window.supa.from(opts.table).update({ parceiro_id: selecionado.id }).eq('id', id);
-          if (error) {
-            window.toast(/row-level security|rls|policy/i.test(String(error.message || '')) ? 'Sem permissão para associar (autorização negada).' : 'Erro ao associar', 'error');
-            console.error(error); return false;
-          }
-          window.toast(opts.sucesso, 'success');
-          await reloadDetalhe();
-        }
-      });
-    }
-    function abrirModalAssociarForn() {
-      abrirModalAssociar({
-        table: 'fornecedores', tituloModal: 'Associar fornecedor', tituloCampo: 'Fornecedor',
-        livres: detalhe.fornsLivres, labelItem: function (f) { return f.nome + ' (' + (labelFornecedorTipo(f.tipo) || f.tipo || '') + ')'; },
-        hint: 'Vários fornecedores/tipos podem apontar para o mesmo parceiro.', sucesso: 'Fornecedor associado',
-      });
-    }
-    function abrirModalAssociarCliente() {
-      abrirModalAssociar({
-        table: 'clientes', tituloModal: 'Associar cliente', tituloCampo: 'Cliente',
-        livres: detalhe.clientesLivres, labelItem: function (c) { return c.nome; },
-        sucesso: 'Cliente associado',
-      });
-    }
-    function desassociar(opts) {
-      window.confirmDialog({
-        title: opts.titulo, message: opts.mensagem, confirmLabel: 'Desvincular', danger: true,
-        onConfirm: async function () {
-          const { error } = await window.supa.from(opts.table).update({ parceiro_id: null }).eq('id', opts.item.id);
-          if (error) {
-            window.toast(/row-level security|rls|policy/i.test(String(error.message || '')) ? 'Sem permissão (autorização negada).' : 'Erro ao desvincular', 'error');
-            console.error(error); return;
-          }
-          window.toast(opts.sucesso, 'success');
-          await reloadDetalhe();
-        }
-      });
-    }
-    function desassociarForn(f) {
-      desassociar({
-        table: 'fornecedores', item: f, titulo: 'Desvincular fornecedor',
-        mensagem: 'Desvincular "' + f.nome + '" deste parceiro? O registro do fornecedor não será excluído — apenas o vínculo será removido.',
-        sucesso: 'Fornecedor desvinculado',
-      });
-    }
-    function desassociarCliente(c) {
-      desassociar({
-        table: 'clientes', item: c, titulo: 'Desvincular cliente',
-        mensagem: 'Desvincular "' + c.nome + '" deste parceiro? O registro do cliente não será excluído — apenas o vínculo será removido.',
-        sucesso: 'Cliente desvinculado',
-      });
-    }
-
-    await (selecionado ? reloadDetalhe() : reloadLista());
     return window.shellLayout(window.ADMIN_MENU, container);
   }
 
@@ -3214,10 +2706,9 @@
     normalizarCnpj,
     formatarCnpj,
     validarCnpjDv,
-    mapearErroParceiroCnpj,
+    mapearErroCnpjEntidade,
     screenCadastrosCores,
     screenCadastrosClientes,
-    screenCadastrosParceiros,
     screenCadastrosModelos,
     screenCadastrosParametros,
     screenCadastrosFornecedores,
@@ -3233,7 +2724,6 @@
 
   window.screenCadastrosCores = screenCadastrosCores;
   window.screenCadastrosClientes = screenCadastrosClientes;
-  window.screenCadastrosParceiros = screenCadastrosParceiros;
   window.screenCadastrosModelos = screenCadastrosModelos;
   window.screenCadastrosParametros = screenCadastrosParametros;
   window.screenCadastrosFornecedores = screenCadastrosFornecedores;

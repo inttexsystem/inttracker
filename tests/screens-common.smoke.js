@@ -97,7 +97,6 @@ const EXPECTED_ADMIN_MENU = [
   { href: '#/cadastros/parametros',    label: 'Parâmetros' },
   { href: '#/cadastros/fornecedores',  label: 'Fornecedores' },
   { href: '#/cadastros/clientes',      label: 'Clientes' },
-  { href: '#/cadastros/parceiros',     label: 'Parceiros' },
   { href: '#/cadastros/precos',        label: 'Preços' },
   { href: '#/cadastros/usuarios',      label: 'Usuários' },
 ];

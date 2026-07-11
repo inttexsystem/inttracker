@@ -781,8 +781,8 @@ test('24. screenPainel (módulo) renderiza via shellLayout com os itens do ADMIN
   const flex = root.children.find((c) => c.tagName === 'DIV');
   const aside = flex && flex.children.find((c) => c.tagName === 'ASIDE');
   const links = aside && aside.children.filter((c) => c.tagName === 'A');
-  // O ADMIN_MENU tem 12 itens (Painel, OPs, Pedidos, Documentos, Cores,
-  // Modelos, Parâmetros, Fornecedores, Clientes, Parceiros, Preços, Usuários).
-  assert.ok(links && links.length === 12,
-    `screenPainel não renderizou 12 itens do ADMIN_MENU (renderizou ${links ? links.length : 0})`);
+  // O ADMIN_MENU tem 11 itens (Painel, OPs, Pedidos, Documentos, Cores,
+  // Modelos, Parâmetros, Fornecedores, Clientes, Preços, Usuários).
+  assert.ok(links && links.length === 11,
+    `screenPainel não renderizou 11 itens do ADMIN_MENU (renderizou ${links ? links.length : 0})`);
 });

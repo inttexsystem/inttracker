@@ -209,11 +209,11 @@ test('8. boot.js contém window.RAVATEX_ROUTER.setRoutes', () => {
     'boot.js não chama window.RAVATEX_ROUTER.setRoutes');
 });
 
-test('9. boot.js registra as 21 rotas esperadas (15 originais + #/pedidos + #/pedidos/novo + #/cliente/dashboard + #/cliente/pedidos + #/cliente/pedidos/novo + #/cadastros/parceiros)', () => {
+test('9. boot.js registra as 20 rotas esperadas (15 originais + #/pedidos + #/pedidos/novo + #/cliente/dashboard + #/cliente/pedidos + #/cliente/pedidos/novo)', () => {
   const esperadas = [
     '#/login', '#/painel', '#/ops', '#/ops/nova', '#/pedidos', '#/pedidos/novo',
     '#/cadastros/cores', '#/cadastros/modelos', '#/cadastros/parametros',
-    '#/cadastros/fornecedores', '#/cadastros/clientes', '#/cadastros/parceiros',
+    '#/cadastros/fornecedores', '#/cadastros/clientes',
     '#/cadastros/precos', '#/cadastros/usuarios',
     '#/fornecedor/home', '#/fornecedor/ordens', '#/fornecedor/entregas', '#/fornecedor/latex',
     '#/cliente/dashboard', '#/cliente/pedidos', '#/cliente/pedidos/novo',
@@ -401,9 +401,9 @@ test('18. boot chain completo não lança SyntaxError de duplicate identifier', 
 
 test('19. boot chain completo não lança ReferenceError de globals', () => {
   const { sandbox } = makeBootChainSandbox();
-  const routesOk = vm.runInContext('window.routes && Object.keys(window.routes).length === 22', sandbox);
+  const routesOk = vm.runInContext('window.routes && Object.keys(window.routes).length === 21', sandbox);
   assert.equal(routesOk, true,
-    'window.routes não foi populado com 22 rotas (algum window.screen* não foi resolvido)');
+    'window.routes não foi populado com 21 rotas (algum window.screen* não foi resolvido)');
 });
 
 test('20. window.routes populado corretamente após o boot completo', () => {
@@ -411,7 +411,7 @@ test('20. window.routes populado corretamente após o boot completo', () => {
   const rotasEsperadas = [
     '#/login', '#/painel', '#/ops', '#/ops/nova', '#/pedidos', '#/pedidos/novo',
     '#/cadastros/cores', '#/cadastros/modelos', '#/cadastros/parametros',
-    '#/cadastros/fornecedores', '#/cadastros/clientes', '#/cadastros/parceiros',
+    '#/cadastros/fornecedores', '#/cadastros/clientes',
     '#/cadastros/precos', '#/cadastros/usuarios',
     '#/fornecedor/home', '#/fornecedor/ordens', '#/fornecedor/entregas', '#/fornecedor/latex',
     '#/cliente/dashboard', '#/cliente/pedidos', '#/cliente/pedidos/novo',
