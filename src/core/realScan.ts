@@ -9,6 +9,10 @@ import { createRunLogger, type RunLogger } from './runLog.js';
 import { createDocumentEvent } from '../types/event.js';
 import { appendEvent, isEventDuplicate } from './outbox.js';
 import type { GmailAttachmentRef, GmailMessageMeta } from '../connectors/gmail.js';
+import { loadRegisteredEntityCnpjs } from './entityCnpjReader.js';
+import { createServiceRoleEntityCnpjReaderClient } from '../supabase/serviceRoleReaderClient.js';
+import type { SupabaseReaderClient } from './entityCnpjReader.js';
+import type { EntityCnpjRegistry } from '../types/entityCnpj.js';
 
 export interface ScanOptions {
   daysBack?: number;
@@ -37,6 +41,8 @@ export interface ScanDeps {
   downloadAtt: (msgId: string, attId: string) => Promise<Buffer | null>;
   uploadDoc: (params: { folderLogicalPath: string; filename: string; mimeType: string; data: Buffer }) => Promise<{ file: { storageUri: string; driveFileId: string; driveWebViewLink: string; driveFolderId?: string; driveWebContentLink?: string } }>;
   logger?: RunLogger;
+  createEntityCnpjReaderClient?: () => SupabaseReaderClient;
+  loadEntityCnpjRegistry?: (client: SupabaseReaderClient) => Promise<EntityCnpjRegistry>;
 }
 
 const defaultDeps: ScanDeps = {
@@ -49,6 +55,8 @@ const defaultDeps: ScanDeps = {
     return { file: r.file };
   },
   logger: createRunLogger(),
+  createEntityCnpjReaderClient: () => createServiceRoleEntityCnpjReaderClient(),
+  loadEntityCnpjRegistry: (client) => loadRegisteredEntityCnpjs(client),
 };
 
 export function createScan(deps: ScanDeps = defaultDeps) {
@@ -80,6 +88,18 @@ export function createScan(deps: ScanDeps = defaultDeps) {
 
     const logger = deps.logger ?? createRunLogger();
     logger.log({ type: 'run.start', timestamp: new Date().toISOString(), daysBack, maxAttachments, wideScan, retryMessageId: opts.retryMessageId ?? null });
+
+    let entityRegistry: EntityCnpjRegistry;
+    try {
+      const createReader = deps.createEntityCnpjReaderClient ?? defaultDeps.createEntityCnpjReaderClient!;
+      const loadRegistry = deps.loadEntityCnpjRegistry ?? defaultDeps.loadEntityCnpjRegistry!;
+      entityRegistry = await loadRegistry(createReader());
+    } catch (err: any) {
+      const message = (err?.message ?? String(err)).replace(/\d{10,}/g, (m: string) => '*'.repeat(m.length));
+      entityRegistry = { loaded: false, loadedAt: null, entries: [], error: `entityCnpjReader: ${message}` };
+      errors.push('Entity CNPJ registry unavailable; scan continuing in degraded mode');
+      logger.log({ type: 'registry.error', timestamp: new Date().toISOString(), error: message });
+    }
 
     let emails: GmailMessageMeta[];
     if (opts.retryMessageId) {
@@ -212,6 +232,7 @@ export function createScan(deps: ScanDeps = defaultDeps) {
             mimeType: att.mimeType,
             subject: email.subject,
             contentSample: sampleXml(buffer, att.mimeType),
+            entityRegistry,
           });
 
           const drivePath = pendenteDrivePath({

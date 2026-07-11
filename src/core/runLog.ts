@@ -6,7 +6,8 @@ export type RunEvent =
   | { type: 'run.start'; timestamp: string; daysBack: number; maxAttachments: number; wideScan: boolean }
   | { type: 'run.end'; timestamp: string; emailsScanned: number; attachmentsFound: number; newDocuments: number; duplicates: number; crossMessageDuplicates: number; skippedByCap: number; errors: number }
   | { type: 'email.scanned'; timestamp: string; gmailMessageId: string; subject: string; attachmentsCount: number; status: 'processed' | 'skipped_already' }
-  | { type: 'attachment.processed'; timestamp: string; gmailMessageId: string; attachmentId: string; filename: string; sha256: string; status: 'new' | 'duplicate' | 'cross_message_duplicate' | 'skipped_cap'; driveFileId?: string; reusedFrom?: string };
+  | { type: 'attachment.processed'; timestamp: string; gmailMessageId: string; attachmentId: string; filename: string; sha256: string; status: 'new' | 'duplicate' | 'cross_message_duplicate' | 'skipped_cap'; driveFileId?: string; reusedFrom?: string }
+  | { type: 'registry.error'; timestamp: string; error: string };
 
 export interface RunLogger {
   log(event: RunEvent): void;

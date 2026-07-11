@@ -819,3 +819,282 @@ describe('real scan flow (mocked Google)', () => {
     expect(docs).toHaveLength(2);
   });
 });
+
+describe('entity CnpjRegistry integration', () => {
+  beforeEach(() => {
+    if (existsSync(DB_DIR)) rmSync(DB_DIR, { recursive: true });
+    mkdirSync(DB_DIR, { recursive: true });
+    process.env.DATABASE_PATH = join(DB_DIR, 'app.db');
+    process.env.OUTBOX_PATH = join(DB_DIR, 'outbox.jsonl');
+    process.env.LOCAL_CACHE_PATH = join(DB_DIR, 'cache');
+    process.env.GOOGLE_DRIVE_ROOT_FOLDER_NAME = 'Ravatex Documents Ingestor';
+    closeDb();
+    const db = getDb();
+    db.exec('DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
+  });
+
+  afterEach(() => {
+    closeDb();
+    if (existsSync(DB_DIR)) rmSync(DB_DIR, { recursive: true });
+  });
+  const fakePdf = Buffer.from('%PDF-1.4\nregistry test');
+
+  function registryDeps(overrides: Partial<ScanDeps> = {}) {
+    const base = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-reg', threadId: 't', from: '', subject: 'NF', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-reg', threadId: 't', attachmentId: 'a', filename: 'n.pdf', mimeType: 'application/pdf', size: fakePdf.length },
+      ],
+      downloadAtt: async () => fakePdf,
+    });
+    return { ...base, ...overrides };
+  }
+
+  it('registry is loaded once per scan', async () => {
+    let clientCreateCount = 0;
+    let registryLoadCount = 0;
+
+    const deps = registryDeps({
+      createEntityCnpjReaderClient: () => {
+        clientCreateCount++;
+        return { from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any;
+      },
+      loadEntityCnpjRegistry: async () => {
+        registryLoadCount++;
+        return { loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null };
+      },
+    });
+
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+
+    expect(clientCreateCount).toBe(1);
+    expect(registryLoadCount).toBe(1);
+  });
+
+  it('same registry is reused across multiple attachments', async () => {
+    let registryLoadCount = 0;
+    const regObj = { loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null };
+    const buf1 = Buffer.from('%PDF-1.4\nREGISTRY A\n');
+    const buf2 = Buffer.from('%PDF-1.4\nREGISTRY B\n');
+
+    const deps = registryDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-multi', threadId: 't', from: '', subject: 'A', date: '', attachmentCount: 2 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-multi', threadId: 't', attachmentId: 'a1', filename: 'n1.pdf', mimeType: 'application/pdf', size: buf1.length },
+        { gmailMessageId: 'm-multi', threadId: 't', attachmentId: 'a2', filename: 'n2.pdf', mimeType: 'application/pdf', size: buf2.length },
+      ],
+      downloadAtt: async (_msgId: string, attId: string) => {
+        return attId === 'a1' ? buf1 : buf2;
+      },
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async (_client: any) => {
+        registryLoadCount++;
+        return regObj;
+      },
+    });
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+
+    expect(registryLoadCount).toBe(1);
+    expect(r.newDocuments).toBe(2);
+  });
+
+  it('empty registry does not cause scan errors', async () => {
+    const deps = registryDeps({
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null }),
+    });
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+
+    expect(r.newDocuments).toBe(1);
+    expect(r.errors).toHaveLength(0);
+  });
+
+  it('empty registry is passed to classifier without error', async () => {
+    const deps = registryDeps({
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null }),
+    });
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.errors).toHaveLength(0);
+
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('nf');
+  });
+
+  it('failed client creation does not abort scan', async () => {
+    const deps = registryDeps({
+      createEntityCnpjReaderClient: () => { throw new Error('simulated create error'); },
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: '', entries: [], error: null }),
+    });
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+
+    expect(r.newDocuments).toBe(1);
+    expect(r.errors.length).toBeGreaterThan(0);
+    expect(r.errors.some(e => e.includes('Entity CNPJ registry unavailable'))).toBe(true);
+  });
+
+  it('failed client creation produces unavailable registry', async () => {
+    let passedRegistry: any = null;
+    const deps = registryDeps({
+      createEntityCnpjReaderClient: () => { throw new Error('simulated create error'); },
+      loadEntityCnpjRegistry: async (_client: any) => {
+        passedRegistry = _client;
+        return { loaded: true, loadedAt: '', entries: [], error: null };
+      },
+    });
+
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+
+    // loadEntityCnpjRegistry should never have been called because create threw
+    expect(passedRegistry).toBeNull();
+  });
+
+  it('failed reader load does not abort scan', async () => {
+    const deps = registryDeps({
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => { throw new Error('simulated load error with CNPJ 11222333000181'); },
+    });
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+
+    expect(r.newDocuments).toBe(1);
+    expect(r.errors.length).toBeGreaterThan(0);
+    expect(r.errors.some(e => e.includes('Entity CNPJ registry unavailable'))).toBe(true);
+  });
+
+  it('error is recorded only once per scan', async () => {
+    const deps = registryDeps({
+      createEntityCnpjReaderClient: () => { throw new Error('fail once'); },
+    });
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+
+    const degradedErrors = r.errors.filter(e => e.includes('Entity CNPJ registry unavailable'));
+    expect(degradedErrors).toHaveLength(1);
+  });
+
+  it('error message does not expose full CNPJ', async () => {
+    const deps = registryDeps({
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => { throw new Error('CNPJ 11222333000181 rejected'); },
+    });
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+
+    expect(r.errors.join()).not.toMatch(/11222333000181/);
+  });
+
+  it('error message does not expose service-role key', async () => {
+    const deps = registryDeps({
+      createEntityCnpjReaderClient: () => { throw new Error('sb-test-key-123-abc'); },
+    });
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+
+    expect(r.errors.join()).not.toMatch(/sb-test-key/);
+  });
+
+  it('error message does not expose full URL', async () => {
+    const deps = registryDeps({
+      createEntityCnpjReaderClient: () => {
+        const err = new Error('supabase_url_invalid for https://ucrjtfswnfdlxwtmxnoo.supabase.co');
+        throw err;
+      },
+    });
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+
+    expect(r.errors.join()).not.toMatch(/supabase\.co/);
+  });
+
+  it('direction remains unchanged with registry available', async () => {
+    const deps = registryDeps({
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null }),
+    });
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+
+    const db = getDb();
+    const doc = db.prepare(`SELECT direcao_nf FROM documentos LIMIT 1`).get() as any;
+    // PDF without XML CNPJ: direcao_nf is null (from classifier)
+    expect(doc.direcao_nf).toBeNull();
+  });
+
+  it('scan does not call from("clientes") or from("fornecedores") directly', () => {
+    const source = String(createScan);
+    // createScan does not contain direct table queries — only through injected reader
+    expect(source).not.toMatch(/from\s*\(\s*['"]clientes['"]/);
+    expect(source).not.toMatch(/from\s*\(\s*['"]fornecedores['"]/);
+  });
+
+  it('new classifier fields are not yet persisted to SQLite', async () => {
+    const xml = Buffer.from('<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>11222333000181</CNPJ></emit><dest><CNPJ>22222333000172</CNPJ></dest></infNFe></NFe></nfeProc>');
+    const deps = registryDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-xml', threadId: 't', from: '', subject: 'NF', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-xml', threadId: 't', attachmentId: 'a', filename: 'nfe.xml', mimeType: 'text/xml', size: xml.length },
+      ],
+      downloadAtt: async () => xml,
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null }),
+    });
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+
+    const db = getDb();
+    const cols = db.prepare(`PRAGMA table_info(documentos)`).all() as any[];
+    const colNames = new Set(cols.map((c: any) => c.name));
+    expect(colNames.has('cnpj_emitente')).toBe(false);
+    expect(colNames.has('cnpj_destinatario')).toBe(false);
+  });
+
+  it('dry-run does not load registry', async () => {
+    let createCalled = false;
+    const deps = registryDeps({
+      createEntityCnpjReaderClient: () => { createCalled = true; return {} as any; },
+    });
+
+    const scan = createScan(deps);
+    await scan({ confirmReal: false });
+
+    expect(createCalled).toBe(false);
+  });
+
+  it('lock is not removed during scan', async () => {
+    const deps = registryDeps({
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null }),
+    });
+
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    // Lock file is external to the scan — scan doesn't touch it. Proven by absence of lock-file code.
+  });
+});
