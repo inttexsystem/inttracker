@@ -1050,14 +1050,14 @@ describe('entity CnpjRegistry integration', () => {
     expect(source).not.toMatch(/from\s*\(\s*['"]fornecedores['"]/);
   });
 
-  it('new classifier fields are not yet persisted to SQLite', async () => {
+  it('new classifier CNPJ columns are now persisted to SQLite', async () => {
     const xml = Buffer.from('<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>11222333000181</CNPJ></emit><dest><CNPJ>22222333000172</CNPJ></dest></infNFe></NFe></nfeProc>');
     const deps = registryDeps({
       fetchEmails: async () => [
-        { gmailMessageId: 'm-xml', threadId: 't', from: '', subject: 'NF', date: '', attachmentCount: 1 },
+        { gmailMessageId: 'm-col', threadId: 't', from: '', subject: 'NF', date: '', attachmentCount: 1 },
       ],
       listAtts: async () => [
-        { gmailMessageId: 'm-xml', threadId: 't', attachmentId: 'a', filename: 'nfe.xml', mimeType: 'text/xml', size: xml.length },
+        { gmailMessageId: 'm-col', threadId: 't', attachmentId: 'a', filename: 'nfe.xml', mimeType: 'text/xml', size: xml.length },
       ],
       downloadAtt: async () => xml,
       createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
@@ -1071,8 +1071,11 @@ describe('entity CnpjRegistry integration', () => {
     const db = getDb();
     const cols = db.prepare(`PRAGMA table_info(documentos)`).all() as any[];
     const colNames = new Set(cols.map((c: any) => c.name));
-    expect(colNames.has('cnpj_emitente')).toBe(false);
-    expect(colNames.has('cnpj_destinatario')).toBe(false);
+    expect(colNames.has('cnpj_emitente')).toBe(true);
+    expect(colNames.has('cnpj_destinatario')).toBe(true);
+    const doc = db.prepare(`SELECT cnpj_emitente, cnpj_destinatario FROM documentos LIMIT 1`).get() as any;
+    expect(doc.cnpj_emitente).toBe('11222333000181');
+    expect(doc.cnpj_destinatario).toBe('22222333000172');
   });
 
   it('dry-run does not load registry', async () => {
@@ -1096,5 +1099,216 @@ describe('entity CnpjRegistry integration', () => {
     const scan = createScan(deps);
     await scan({ confirmReal: true });
     // Lock file is external to the scan — scan doesn't touch it. Proven by absence of lock-file code.
+  });
+});
+
+describe('document party CNPJ persistence', () => {
+  beforeEach(() => {
+    if (existsSync(DB_DIR)) rmSync(DB_DIR, { recursive: true });
+    mkdirSync(DB_DIR, { recursive: true });
+    process.env.DATABASE_PATH = join(DB_DIR, 'app.db');
+    process.env.OUTBOX_PATH = join(DB_DIR, 'outbox.jsonl');
+    process.env.LOCAL_CACHE_PATH = join(DB_DIR, 'cache');
+    process.env.GOOGLE_DRIVE_ROOT_FOLDER_NAME = 'Ravatex Documents Ingestor';
+    closeDb();
+    const db = getDb();
+    db.exec('DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
+  });
+
+  afterEach(() => {
+    closeDb();
+    if (existsSync(DB_DIR)) rmSync(DB_DIR, { recursive: true });
+  });
+  function nfXml(emitCnpj?: string | null, destCnpj?: string | null): Buffer {
+    const emitBlock = emitCnpj
+      ? `<emit><CNPJ>${emitCnpj}</CNPJ></emit>`
+      : `<emit><xNome>Fornecedor</xNome></emit>`;
+    const destBlock = destCnpj
+      ? `<dest><CNPJ>${destCnpj}</CNPJ></dest>`
+      : `<dest><xNome>Cliente</xNome></dest>`;
+    return Buffer.from(`<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe>${emitBlock}${destBlock}</infNFe></NFe></nfeProc>`);
+  }
+
+  function mkCnpjDeps(overrides: Partial<ScanDeps> = {}) {
+    const fakePdf = Buffer.from('%PDF-1.4');
+    const base = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-cnpj', threadId: 't', from: '', subject: 'NF', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-cnpj', threadId: 't', attachmentId: 'a', filename: 'nfe.xml', mimeType: 'text/xml', size: 0 },
+      ],
+      downloadAtt: async () => fakePdf,
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null }),
+    });
+    return { ...base, ...overrides };
+  }
+
+  it('XML with emitente and destinatario saves both', async () => {
+    const xml = nfXml('11222333000181', '22222333000172');
+    const deps = mkCnpjDeps({ downloadAtt: async () => xml });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const doc = db.prepare(`SELECT cnpj_emitente, cnpj_destinatario FROM documentos LIMIT 1`).get() as any;
+    expect(doc.cnpj_emitente).toBe('11222333000181');
+    expect(doc.cnpj_destinatario).toBe('22222333000172');
+  });
+
+  it('values are stored as 14 digits without punctuation', async () => {
+    const xml = nfXml('11.222.333/0001-81', '22.222.333/0001-72');
+    const deps = mkCnpjDeps({ downloadAtt: async () => xml });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const doc = db.prepare(`SELECT cnpj_emitente, cnpj_destinatario FROM documentos LIMIT 1`).get() as any;
+    expect(doc.cnpj_emitente).toBe('11222333000181');
+    expect(doc.cnpj_destinatario).toBe('22222333000172');
+  });
+
+  it('XML with only emitente saves destinatario as NULL', async () => {
+    const xml = nfXml('11222333000181', null);
+    const deps = mkCnpjDeps({ downloadAtt: async () => xml });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const doc = db.prepare(`SELECT cnpj_emitente, cnpj_destinatario FROM documentos LIMIT 1`).get() as any;
+    expect(doc.cnpj_emitente).toBe('11222333000181');
+    expect(doc.cnpj_destinatario).toBeNull();
+  });
+
+  it('XML with only destinatario saves emitente as NULL', async () => {
+    const xml = nfXml(null, '22222333000172');
+    const deps = mkCnpjDeps({ downloadAtt: async () => xml });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const doc = db.prepare(`SELECT cnpj_emitente, cnpj_destinatario FROM documentos LIMIT 1`).get() as any;
+    expect(doc.cnpj_emitente).toBeNull();
+    expect(doc.cnpj_destinatario).toBe('22222333000172');
+  });
+
+  it('XML without party CNPJs saves both as NULL', async () => {
+    const xml = nfXml(null, null);
+    const deps = mkCnpjDeps({ downloadAtt: async () => xml });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const doc = db.prepare(`SELECT cnpj_emitente, cnpj_destinatario FROM documentos LIMIT 1`).get() as any;
+    expect(doc.cnpj_emitente).toBeNull();
+    expect(doc.cnpj_destinatario).toBeNull();
+  });
+
+  it('invalid emitente CNPJ saves NULL', async () => {
+    const xml = nfXml('abc', '22222333000172');
+    const deps = mkCnpjDeps({ downloadAtt: async () => xml });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const doc = db.prepare(`SELECT cnpj_emitente, cnpj_destinatario FROM documentos LIMIT 1`).get() as any;
+    expect(doc.cnpj_emitente).toBeNull();
+    expect(doc.cnpj_destinatario).toBe('22222333000172');
+  });
+
+  it('PDF saves both CNPJs as NULL', async () => {
+    const pdf = Buffer.from('%PDF-1.4\nNF-e content');
+    const deps = mkCnpjDeps({
+      downloadAtt: async () => pdf,
+      listAtts: async () => [
+        { gmailMessageId: 'm-cnpj', threadId: 't', attachmentId: 'a', filename: 'nf.pdf', mimeType: 'application/pdf', size: pdf.length },
+      ],
+    });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const doc = db.prepare(`SELECT cnpj_emitente, cnpj_destinatario FROM documentos LIMIT 1`).get() as any;
+    expect(doc.cnpj_emitente).toBeNull();
+    expect(doc.cnpj_destinatario).toBeNull();
+  });
+
+  it('loaded registry does not change CNPJ values', async () => {
+    const xml = nfXml('11222333000181', null);
+    const deps = mkCnpjDeps({ downloadAtt: async () => xml });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const doc = db.prepare(`SELECT cnpj_emitente FROM documentos LIMIT 1`).get() as any;
+    expect(doc.cnpj_emitente).toBe('11222333000181');
+  });
+
+  it('unavailable registry does not prevent CNPJ persistence', async () => {
+    const xml = nfXml('11222333000181', null);
+    const deps = mkCnpjDeps({
+      downloadAtt: async () => xml,
+      createEntityCnpjReaderClient: () => { throw new Error('failed'); },
+    });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const doc = db.prepare(`SELECT cnpj_emitente FROM documentos LIMIT 1`).get() as any;
+    expect(doc.cnpj_emitente).toBe('11222333000181');
+  });
+
+  it('direction does not change persisted CNPJs', async () => {
+    const xml = nfXml('11222333000181', '22222333000172');
+    const deps = mkCnpjDeps({ downloadAtt: async () => xml });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const doc = db.prepare(`SELECT cnpj_emitente, cnpj_destinatario FROM documentos LIMIT 1`).get() as any;
+    expect(doc.cnpj_emitente).toBe('11222333000181');
+    expect(doc.cnpj_destinatario).toBe('22222333000172');
+  });
+
+  it('entityMatch is not persisted to SQLite', async () => {
+    const xml = nfXml('11222333000181', null);
+    const deps = mkCnpjDeps({ downloadAtt: async () => xml });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const cols = db.prepare(`PRAGMA table_info(documentos)`).all() as any[];
+    const names = cols.map((c: any) => c.name);
+    expect(names).not.toContain('entity_match');
+    expect(names).not.toContain('entityMatch');
+    expect(names).not.toContain('matched_entity');
+  });
+
+  it('cross-message duplicate saves NULL CNPJs', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\nCROSS CNPJ');
+    const firstUploadId = 'mock-cnpj-cross';
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'msg-cnpj-A', threadId: 'tA', from: '', subject: 'A', date: '', attachmentCount: 1 },
+        { gmailMessageId: 'msg-cnpj-B', threadId: 'tB', from: '', subject: 'B', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async (msgId) => [
+        { gmailMessageId: msgId, threadId: 't', attachmentId: 'a', filename: 'NF.pdf', mimeType: 'application/pdf', size: fakePdf.length },
+      ],
+      downloadAtt: async () => fakePdf,
+      uploadDoc: async () => ({
+        file: { storageUri: `gdrive://file/${firstUploadId}`, driveFileId: firstUploadId, driveWebViewLink: `https://drive.google.com/file/d/${firstUploadId}/view`, driveFolderId: 'mock-folder' },
+      }),
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null }),
+    });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const docs = db.prepare(`SELECT gmail_message_id, cnpj_emitente, cnpj_destinatario FROM documentos ORDER BY created_at`).all() as any[];
+    expect(docs).toHaveLength(2);
+    expect(docs[1].cnpj_emitente).toBeNull();
+    expect(docs[1].cnpj_destinatario).toBeNull();
+  });
+
+  it('no backfill of old documents occurs', async () => {
+    const xml = nfXml('11222333000181', null);
+    const deps = mkCnpjDeps({ downloadAtt: async () => xml });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+    await scan({ confirmReal: true });
+    const db = getDb();
+    const docs = db.prepare(`SELECT cnpj_emitente FROM documentos`).all() as any;
+    expect(docs).toHaveLength(1);
   });
 });
