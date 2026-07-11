@@ -1,4 +1,108 @@
-﻿# Estado pos-fase - G25-B2-A-R3 Partner CNPJ Admin UI
+﻿# G25-B2-A-R3-R2-B4 — DIRECT CNPJ DOCUMENTATION CLOSEOUT
+
+PROJETO: Ravatex — Controle de Tapetes
+WORKSPACE: D:\OneDrive\Programação\Ravatex\controle-tapetes
+BRANCH: work/app-next
+HEAD CANÔNICO ANTES DO CLOSEOUT DOCUMENTAL: e31ef3a445c0da814b8e779b23f2cfdd9ad09712
+
+## CONTROLE DE TAPETES
+
+- B1 (d37e508), B2 (5f8eddf), B3 (e31ef3a) fechadas.
+- Arquitetura final: CNPJ direto por entidade (`clientes.cnpj`, `fornecedores.cnpj`, TEXT NULL).
+- `parceiros`, `parceiro_cnpjs`, `clientes.parceiro_id`, `fornecedores.parceiro_id` removidos.
+- Staging `ucrjtfswnfdlxwtmxnoo` atualizado apos B3: 0 objetos legados, contagens preservadas.
+- 8 testes historicos de screens-common continuam falhando (pendencia pre-existente fora de escopo).
+- Producao intocada. Push nao realizado.
+
+## DOCUMENTS INGESTOR
+
+Documents Ingestor nao acessado.
+Gmail nao acessado.
+Drive nao acessado.
+Nenhum lock removido.
+
+## PROXIMA ACAO
+
+Gate documental e autorizacao de push para staging.
+
+# Estado pos-fase - G25-B2-A-R3-R1 Integrate CNPJ
+
+- Fase: `G25-B2-A-R3-R1-INTEGRATE-CNPJ-CLIENTS-SUPPLIERS`.
+- Status: **G25-B2-A-R3-R1 PATCH REPORTADO — NÃO ACEITO**
+  (CLOSED apenas apos gate do arquiteto).
+- Branch/HEAD: `work/app-next` (HEAD inicial `1962812f`).
+
+- **Decisao de produto:** R3 original reprovada. Parceiros como terceira
+  entidade operacional foi removido. Clientes e Fornecedores sao os unicos
+  conceitos. `parceiros` e `parceiro_cnpjs` permanecem infraestrutura
+  interna (schema 44 continua valido).
+
+- Remocoes:
+  - Item de menu + icone `Parceiros` do `ADMIN_MENU`/`MENU_ICONS`
+    (`js/screens/common.js`).
+  - Rota `#/cadastros/parceiros` do `boot.js` (~5 linhas + comentario).
+  - Tela autonoma `screenCadastrosParceiros` de `cadastros.js` (~530 linhas:
+    lista + detalhe + CRUD de parceiro + vinculos fornecedor/cliente).
+  - ~2450 linhas totais removidas de `cadastros.js` (codigo da tela +
+    helpers internos).
+  - Testes R3: `tests/parceiros-screens.smoke.js` substituido (24 testes
+    R3 → 17 testes R3-R1).
+
+- Integracoes (CNPJ em Clientes e Fornecedores):
+  - Funcoes compartilhadas em `cadastros.js`: `carregarMapaCnpjEntidades`,
+    `garantirParceiroPorEntidade`, `abrirModalGerenciarCnpj`.
+  - Helpers CNPJ preservados: `normalizarCnpj`, `formatarCnpj`,
+    `validarCnpjDv`, `mapearErroParceiroCnpj`.
+  - Clientes: coluna CNPJ na listagem + acao "CNPJ" (icone) abre modal de
+    gerenciamento (adicionar, editar, principal, ativar/desativar).
+  - Fornecedores: mesma integracao (coluna CNPJ + acao "CNPJ"), grid
+    ajustado para 6 colunas.
+  - Cadastro sem CNPJ continua valido.
+  - `garantirParceiroPorEntidade` cria parceiro sob demanda.
+  - CNPJ duplicado detectado via UNIQUE do banco, mensagem tratada por
+    `mapearErroParceiroCnpj`. Nenhum vinculo automatico por nome.
+  - Multiplos fornecedores podem compartilhar a mesma identidade
+    empresarial (mesmo `parceiro_id`).
+
+- Riscos residuais:
+  - `scripts/staging/g25-b3-parceiros-smoke.mjs` permanece no repositório
+    (nao afeta UX; remocao opcional futura).
+  - 8 testes pre-existentes do `screens-common.smoke.js` continuam falhando
+    (`<script>` inline removido em refactor anterior — pendencia antiga).
+  - `index.html` cache-bust manteve `?v=20260710-g25b3` (troca nao critica).
+
+- Testes focados (`node --test`):
+  - `tests/parceiros-screens.smoke.js` (NOVO, 17 testes R3-R1): **17/17 PASS**.
+  - `tests/cadastros-screens.smoke.js`: **32/32 PASS** (teste 24: 11 itens).
+  - `tests/boot.smoke.js`: **30/30 PASS** (20 rotas esperadas, 21 window.routes).
+  - `tests/screens-common.smoke.js`: **15/23 PASS** (8 pre-existentes fora de escopo).
+
+- Arquivos alterados:
+  - `js/screens/common.js` (remove Parceiros do menu)
+  - `js/boot.js` (remove rota + comentario)
+  - `js/screens/cadastros.js` (remove tela Parceiros, adiciona CNPJ em
+    clientes/fornecedores; preserva helpers)
+  - `tests/parceiros-screens.smoke.js` (substituido: 24→17 testes)
+  - `tests/screens-common.smoke.js` (EXPECTED_ADMIN_MENU 11 itens)
+  - `tests/boot.smoke.js` (20 rotas, 21 window.routes)
+  - `tests/cadastros-screens.smoke.js` (12→11)
+  - `PROJECT_STATE.md`, `AGENT_HANDOFF.md` (registro closeout)
+
+- `node --check` em todos os JS alterados: OK.
+- `git diff --check` pendente.
+- Working tree: residuos autorizados (`.claude/`, `data/fixtures/`,
+  `supabase/.temp/`).
+- Nenhum push realizado.
+- Producao (`bhgifjrfagkzubpyqpew`) nao contatada.
+- Documents Ingestor intocado.
+
+- STATUS FINAL: **G25-B2-A-R3-R1 PATCH REPORTADO — NÃO ACEITO**.
+  ENTREGAR AO ARQUITETO — GATE DE R3-R1.
+- Proximo passo recomendado: homologacao visual manual do CNPJ em
+  #/cadastros/clientes e #/cadastros/fornecedores (login admin),
+  e decisao sobre remocao do script de staging smoke legado.
+
+# Estado pos-fase - G25-B2-A-R3 Partner CNPJ Admin UI
 
 - Fase: `RAVATEX-DOCUMENTS-G25-B2-A-R3-PARTNER-CNPJ-ADMIN-UI`.
 - Status: **CLOSED — G25-B2-A-R3**.

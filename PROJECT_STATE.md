@@ -1,4 +1,156 @@
 > **Atualizacao 2026-07-10 — fase
+> `G25-B2-A-R3-R2-B4 — DIRECT CNPJ DOCUMENTATION CLOSEOUT`.**
+> Status: **G25-B2-A-R3-R2-B4 — DOCUMENTATION CLOSEOUT OK**
+> Branch/HEAD: `work/app-next` (HEAD final `e31ef3a`).
+>
+> **Decisao arquitetural final:** CNPJ armazenado diretamente em
+> `clientes.cnpj` e `fornecedores.cnpj` (TEXT, NULL). Nenhuma entidade
+> empresarial compartilhada. Nenhum vinculo automatico. Nenhuma
+> sincronizacao. Nenhum fallback.
+>
+> Contrato:
+> - cardinalidade `0..1` por cadastro;
+> - CNPJ armazenado com 14 digitos, sem pontuacao;
+> - campo opcional;
+> - validacao de formato e digitos verificadores;
+> - unicidade dentro de Clientes;
+> - unicidade dentro de Fornecedores;
+> - mesmo CNPJ permitido entre as duas categorias;
+> - Cliente e Fornecedor permanecem independentes;
+> - nenhuma entidade empresarial compartilhada.
+>
+> Removido do banco e do runtime:
+> - `parceiros`, `parceiro_cnpjs`
+> - `clientes.parceiro_id`, `fornecedores.parceiro_id`
+> - `garantirParceiroPorEntidade`, `carregarMapaCnpjEntidades`
+> - tela, rota, menu Parceiros
+>
+> Commits:
+> - `d37e508` — B1: `Add direct CNPJ columns for clients and suppliers`
+>   (db/45_direct_entity_cnpj_expand.sql + verify)
+> - `5f8eddf` — B2: `Use direct CNPJ fields in client and supplier forms`
+>   (8 arquivos: js/ + tests/)
+> - `e31ef3a` — B3: `Remove legacy partner CNPJ schema`
+>   (db/46_remove_legacy_partner_cnpj.sql + verify)
+>
+> Staging (`ucrjtfswnfdlxwtmxnoo`):
+> - Antes da B3: clientes=3, fornecedores=5, parceiros=0,
+>   parceiro_cnpjs=0, CNPJs diretos=0
+> - Depois da B3: clientes=3, fornecedores=5, CNPJs diretos=0
+> - Contagens preservadas, nenhum dado sintetico remanescente
+> - Producao nao acessada, nenhum dado real alterado
+>
+> Testes:
+> - B1: verify transacional passou integralmente
+> - B2: direct-cnpj-screens 7/7, boot 30/30, cadastros 32/32,
+>   screens-common 15/23 (8 falhas historicas fora de escopo)
+> - B3: verify: ALL REMOVE LEGACY PARTNER CNPJ VERIFY ASSERTIONS PASSED
+> - Buscas negativas em js/ e tests/: garantirParceiroPorEntidade,
+>   carregarMapaCnpjEntidades, parceiro_cnpjs, parceiro_id nao encontrados
+> - node --check em todos os JS alterados: OK
+>
+> Migrations:
+> - db/44_partner_cnpj_registry.sql: historico. Aplicada anteriormente,
+>   removida na B3. Nao representa o estado atual.
+> - db/45_direct_entity_cnpj_expand.sql: adicionou colunas diretas.
+>   Aplicada em staging, verify passou.
+> - db/46_remove_legacy_partner_cnpj.sql: removeu schema legado.
+>   Aplicada em staging, verify passou.
+>
+> Risco residual:
+> - 8 testes historicos de screens-common.smoke.js continuam falhando
+>   (script inline removido em refactor anterior — fora de escopo)
+> - scripts/staging/g25-b3-parceiros-smoke.mjs permanece (nao utilizado,
+>   remocao opcional futura)
+>
+> Producao nao contatada. Push nao realizado.
+>
+> Proximo passo: gate documental e autorizacao de push para staging.
+>
+> **Atualizacao 2026-07-10 — fase
+> `G25-B2-A-R3-R1-INTEGRATE-CNPJ-CLIENTS-SUPPLIERS`.**
+> Status: **G25-B2-A-R3-R1 PATCH REPORTADO — NÃO ACEITO**
+> (HISTORICO: estado da arquitetura intermediaria antes da decisao
+> final de remover todo o schema 44. Vide B4 para estado final.)
+> Branch/HEAD: `work/app-next` (HEAD inicial `1962812f`).
+>
+> **Decisao de produto:** R3 original foi reprovada. A exposicao de
+> Parceiros como terceira entidade operacional foi removida. Clientes e
+> Fornecedores sao os unicos conceitos operacionais. `parceiros` e
+> `parceiro_cnpjs` permanecem infraestrutura interna (schema 44 continua
+> valido).
+>
+> O que foi removido da experiencia operacional:
+> - Item de menu `Parceiros` do `ADMIN_MENU` em `common.js`.
+> - Rota `#/cadastros/parceiros` do `boot.js`.
+> - Tela autonoma `screenCadastrosParceiros` de `cadastros.js`
+>   (todo o codigo: lista + detalhe + CRUD de parceiro + vinculos
+>   fornecedor/cliente). Foram ~530 linhas removidas.
+> - Testes que legitimavam a UX autonoma (substituidos por 17 testes
+>   de R3-R1).
+>
+> O que foi integrado:
+> - CNPJ aparece como coluna na listagem de Clientes (formata
+>   automaticamente o CNPJ principal do parceiro vinculado).
+> - Acao "CNPJ" (icone) em cada linha de Cliente, que abre janela de
+>   gerenciamento de CNPJs (adicionar, editar, definir principal,
+>   ativar/desativar).
+> - Mesma integracao para Fornecedores (coluna CNPJ + acao "CNPJ").
+> - `parceiros` e `parceiro_cnpjs` sao criados sob demanda via
+>   `garantirParceiroPorEntidade` e `abrirModalGerenciarCnpj`
+>   (funcoes compartilhadas).
+> - Cadastro sem CNPJ continua valido.
+> - Helpers de CNPJ (`normalizarCnpj`, `formatarCnpj`,
+>   `validarCnpjDv`, `mapearErroParceiroCnpj`) preservados e
+>   reutilizados.
+>
+> Identidade empresarial:
+> - `garantirParceiroPorEntidade` cria parceiro apenas quando a
+>   entidade ainda nao tem `parceiro_id`.
+> - CNPJ duplicado detectado via constraint UNIQUE do banco,
+>   mensagem tratada por `mapearErroParceiroCnpj`.
+> - Nenhum vinculo automatico por nome ou texto digitado.
+> - Múltiplos fornecedores podem compartilhar a mesma identidade
+>   empresarial (mesmo `parceiro_id`).
+>
+> Riscos residuais:
+> - `scripts/staging/g25-b3-parceiros-smoke.mjs` permanece no
+>   repositório (nao faz parte da UX operacional; pode ser removido
+>   em fase futura).
+> - 8 testes pre-existentes do `screens-common.smoke.js` continuam
+>   falhando (dependem de `<script>` inline removido em refactor
+>   anterior — fora de escopo).
+> - `index.html` cache-bust (`?v=20260710-g25b3`) manteve-se como
+>   estava (troca nao obrigatoria para esta fase).
+>
+> Testes focados executados:
+> - `tests/parceiros-screens.smoke.js` (NOVO, 17 testes R3-R1):
+>   17/17 PASS.
+> - `tests/cadastros-screens.smoke.js`: 32/32 PASS.
+> - `tests/boot.smoke.js`: 30/30 PASS.
+> - `tests/screens-common.smoke.js`: 15/23 PASS (8 pre-existentes).
+>
+> Arquivos alterados:
+> - `js/screens/common.js` (remove item Parceiros + icone do menu)
+> - `js/boot.js` (remove rota + comentario)
+> - `js/screens/cadastros.js` (remove ~530 linhas de tela autonoma;
+>   adiciona ~200 linhas de integracao CNPJ em cliente/fornecedor;
+>   preserva helpers CNPJ)
+> - `tests/parceiros-screens.smoke.js` (substituido: 24 testes R3
+>   → 17 testes R3-R1)
+> - `tests/screens-common.smoke.js` (EXPECTED_ADMIN_MENU sem
+>   Parceiros)
+> - `tests/boot.smoke.js` (20 rotas esperadas, 21 em window.routes)
+> - `tests/cadastros-screens.smoke.js` (12→11 itens ADMIN_MENU)
+> - `PROJECT_STATE.md`, `AGENT_HANDOFF.md` (registro closeout)
+>
+> Produção (`bhgifjrfagkzubpyqpew`) nao contatada.
+> Documents Ingestor intocado.
+>
+> STATUS FINAL: **G25-B2-A-R3-R1 PATCH REPORTADO — NÃO ACEITO**.
+> ENTREGAR AO ARQUITETO — GATE DE R3-R1.
+>
+> **Atualizacao 2026-07-10 — fase
 > `RAVATEX-DOCUMENTS-G25-B2-A-R3-PARTNER-CNPJ-ADMIN-UI`.**
 > Status: **CLOSED — G25-B2-A-R3**.
 > Branch/HEAD: `work/app-next` (HEAD inicial `998103d`).
