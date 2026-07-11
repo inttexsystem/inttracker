@@ -362,7 +362,7 @@ function sampleContent(buffer: Buffer, mimeType: string, filename: string): stri
   const isXmlMime = mimeType === 'text/xml' || mimeType === 'application/xml';
   const isXmlExt = lower.endsWith('.xml');
   if (isXmlMime || isXmlExt) {
-    return buffer.toString('utf-8', 0, Math.min(buffer.length, 2048));
+    return buffer.toString('utf-8');
   }
   const isPdfMime = mimeType === 'application/pdf';
   const isPdfExt = lower.endsWith('.pdf');

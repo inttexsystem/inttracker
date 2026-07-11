@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { createScan } from '../src/core/realScan.js';
 import type { ScanDeps } from '../src/core/realScan.js';
 import { getDb, closeDb } from '../src/storage/sqlite.js';
+import { classifyAttachment } from '../src/core/classifier.js';
 
 function mkDeps(overrides: Partial<ScanDeps> = {}): ScanDeps {
   return {
@@ -1797,5 +1798,374 @@ describe('B3 real scan: PDF sample delivery (G27-B3)', () => {
     expect(doc.status).toBe('pending');
     expect(doc.tipo_documento).toBe('nf');
     expect(doc.formato).toBe('pdf');
+  });
+});
+
+describe('B2-R1 real scan: full XML text delivery (>2048 bytes)', () => {
+  beforeEach(() => {
+    if (existsSync(DB_DIR)) rmSync(DB_DIR, { recursive: true });
+    mkdirSync(DB_DIR, { recursive: true });
+    process.env.DATABASE_PATH = join(DB_DIR, 'app.db');
+    process.env.OUTBOX_PATH = join(DB_DIR, 'outbox.jsonl');
+    process.env.LOCAL_CACHE_PATH = join(DB_DIR, 'cache');
+    process.env.GOOGLE_DRIVE_ROOT_FOLDER_NAME = 'Ravatex Documents Ingestor';
+    closeDb();
+    const db = getDb();
+    db.exec('DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
+  });
+
+  afterEach(() => {
+    closeDb();
+    if (existsSync(DB_DIR)) rmSync(DB_DIR, { recursive: true });
+  });
+
+  const EMIT_CNPJ = '11222333000181';
+  const DEST_CNPJ = '11444777000161';
+
+  function buildLargeNfeBuffer(opts: {
+    root?: 'nfeProc' | 'NFe';
+    padBeforeEmit?: boolean;
+    padBeforeDest?: boolean;
+    malformed?: boolean;
+  } = {}): { buffer: Buffer; emitBeyond2048: boolean; destBeyond2048: boolean } {
+    const root = opts.root ?? 'nfeProc';
+    const prefix = root === 'nfeProc'
+      ? `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe>`
+      : `<NFe xmlns="http://www.portalfiscal.inf.br/nfe"><infNFe>`;
+    const prefixLen = Buffer.byteLength(prefix, 'utf-8');
+    const paddingNeed = Math.max(0, 2048 - prefixLen + 50);
+    const padEl = `<obs>${'X'.repeat(paddingNeed)}</obs>`;
+    const emitBlock = `<emit><CNPJ>${EMIT_CNPJ}</CNPJ></emit>`;
+    const destBlock = `<dest><CNPJ>${DEST_CNPJ}</CNPJ></dest>`;
+    const suffix = root === 'nfeProc'
+      ? `</infNFe></NFe></nfeProc>`
+      : `</infNFe></NFe>`;
+
+    let body: string;
+    if (opts.malformed) {
+      body = padEl + `<emit><CNPJ>${EMIT_CNPJ}`;
+    } else if (opts.padBeforeEmit) {
+      body = padEl + emitBlock + destBlock;
+    } else if (opts.padBeforeDest) {
+      body = emitBlock + padEl + destBlock;
+    } else {
+      body = emitBlock + destBlock;
+    }
+
+    const fullStr = prefix + body + suffix;
+    const buffer = Buffer.from(fullStr, 'utf-8');
+
+    const emitIdx = fullStr.indexOf('<emit>');
+    const destIdx = fullStr.indexOf('<dest>');
+    return {
+      buffer,
+      emitBeyond2048: emitIdx > 2048,
+      destBeyond2048: destIdx > 2048,
+    };
+  }
+
+  function b2r1Deps(buffer: Buffer, overrides: Partial<ScanDeps> = {}): ScanDeps {
+    return mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b2r1', threadId: 't', from: '', subject: 'B2R1', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b2r1', threadId: 't', attachmentId: 'a-b2r1', filename: 'nfe.xml', mimeType: 'text/xml', size: buffer.length },
+      ],
+      downloadAtt: async () => buffer,
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null }),
+      ...overrides,
+    });
+  }
+
+  it('large nfeProc XML (>2048) with emit CNPJ beyond 2048 bytes → nf + xml + extracted CNPJs', async () => {
+    const { buffer, emitBeyond2048 } = buildLargeNfeBuffer({ root: 'nfeProc', padBeforeEmit: true });
+    expect(buffer.length).toBeGreaterThan(2048);
+    expect(emitBeyond2048).toBe(true);
+
+    const deps = b2r1Deps(buffer);
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato, cnpj_emitente, cnpj_destinatario FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('nf');
+    expect(doc.formato).toBe('xml');
+    expect(doc.cnpj_emitente).toBe(EMIT_CNPJ);
+    expect(doc.cnpj_destinatario).toBe(DEST_CNPJ);
+  });
+
+  it('large NFe root XML (>2048) without nfeProc envelope → nf + xml', async () => {
+    const { buffer, emitBeyond2048 } = buildLargeNfeBuffer({ root: 'NFe', padBeforeEmit: true });
+    expect(buffer.length).toBeGreaterThan(2048);
+    expect(emitBeyond2048).toBe(true);
+
+    const deps = b2r1Deps(buffer, {
+      listAtts: async () => [
+        { gmailMessageId: 'm-b2r1', threadId: 't', attachmentId: 'a', filename: 'nfe.xml', mimeType: 'application/octet-stream', size: buffer.length },
+      ],
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('nf');
+    expect(doc.formato).toBe('xml');
+  });
+
+  it('large nfeProc XML with dest CNPJ beyond 2048 bytes → nf + xml + extracted dest CNPJ', async () => {
+    const { buffer, destBeyond2048 } = buildLargeNfeBuffer({ root: 'nfeProc', padBeforeDest: true });
+    expect(buffer.length).toBeGreaterThan(2048);
+    expect(destBeyond2048).toBe(true);
+
+    const deps = b2r1Deps(buffer);
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato, cnpj_emitente, cnpj_destinatario FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('nf');
+    expect(doc.formato).toBe('xml');
+    expect(doc.cnpj_emitente).toBe(EMIT_CNPJ);
+    expect(doc.cnpj_destinatario).toBe(DEST_CNPJ);
+  });
+
+  it('large malformed XML (>2048) → desconhecido + formato xml', async () => {
+    const { buffer } = buildLargeNfeBuffer({ root: 'nfeProc', padBeforeEmit: true, malformed: true });
+    expect(buffer.length).toBeGreaterThan(2048);
+
+    const deps = b2r1Deps(buffer);
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato, cnpj_emitente, cnpj_destinatario FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('desconhecido');
+    expect(doc.formato).toBe('xml');
+    expect(doc.cnpj_emitente).toBeNull();
+    expect(doc.cnpj_destinatario).toBeNull();
+  });
+
+  it('large generic XML (>2048) with nfe text but no NFe structure → desconhecido', async () => {
+    const generic = Buffer.from(`<root><item>${'A'.repeat(1500)}nfe${'B'.repeat(1500)}</item></root>`, 'utf-8');
+    expect(generic.length).toBeGreaterThan(2048);
+
+    const deps = b2r1Deps(generic, {
+      listAtts: async () => [
+        { gmailMessageId: 'm-b2r1', threadId: 't', attachmentId: 'a', filename: 'generic.xml', mimeType: 'text/xml', size: generic.length },
+      ],
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('desconhecido');
+    expect(doc.formato).toBe('xml');
+  });
+
+  it('PDF sample remains capped at 2048 bytes (B2-R1 guard)', async () => {
+    const pdfSig = '%PDF-1.4\n';
+    const prefix = Buffer.from(pdfSig + 'DANFE - DOCUMENTO AUXILIAR\n', 'utf-8');
+    const pad = Buffer.alloc(3500, 0x30);
+    const tail = Buffer.from('\n%%EOF', 'utf-8');
+    const bigPdf = Buffer.concat([prefix, pad, tail]);
+    expect(bigPdf.length).toBeGreaterThan(3500);
+
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-b2r1-pdf', threadId: 't', from: '', subject: 'B2R1 PDF', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-b2r1-pdf', threadId: 't', attachmentId: 'a', filename: 'documento.pdf', mimeType: 'application/pdf', size: bigPdf.length },
+      ],
+      downloadAtt: async () => bigPdf,
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null }),
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato, direcao_nf FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('nf');
+    expect(doc.formato).toBe('pdf');
+    expect(doc.direcao_nf).toBeNull();
+  });
+
+  it('large nfeProc XML (>2048) persists CNPJs correctly in SQLite', async () => {
+    const { buffer } = buildLargeNfeBuffer({ root: 'nfeProc', padBeforeEmit: true });
+    expect(buffer.length).toBeGreaterThan(2048);
+
+    const deps = b2r1Deps(buffer);
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+
+    const db = getDb();
+    const cols = db.prepare(`PRAGMA table_info(documentos)`).all() as any[];
+    const colNames = new Set(cols.map((c: any) => c.name));
+    expect(colNames.has('cnpj_emitente')).toBe(true);
+    expect(colNames.has('cnpj_destinatario')).toBe(true);
+
+    const doc = db.prepare(`SELECT cnpj_emitente, cnpj_destinatario FROM documentos LIMIT 1`).get() as any;
+    expect(doc.cnpj_emitente).toBe(EMIT_CNPJ);
+    expect(doc.cnpj_destinatario).toBe(DEST_CNPJ);
+  });
+
+  it('B2-R1: PDF with %PDF- prefix and DANFE token only after byte 2048 → desconhecido (PDF cap delivery proven)', async () => {
+    const sig = '%PDF-1.4\n';
+    const padNeeded = 2048 - sig.length;
+    const first2048 = Buffer.from(sig + 'X'.repeat(padNeeded), 'utf-8');
+    expect(first2048.length).toBe(2048);
+    const beyond = Buffer.from('DANFE - DOCUMENTO AUXILIAR DA NOTA FISCAL ELETRÔNICA\n%%EOF\n', 'utf-8');
+    const bigPdf = Buffer.concat([first2048, beyond]);
+    expect(bigPdf.length).toBeGreaterThan(2048);
+    expect(bigPdf.toString('utf-8').indexOf('DANFE')).toBeGreaterThanOrEqual(2048);
+
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-pdf-danfe-after', threadId: 't', from: '', subject: '', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-pdf-danfe-after', threadId: 't', attachmentId: 'a', filename: 'documento.pdf', mimeType: 'application/pdf', size: bigPdf.length },
+      ],
+      downloadAtt: async () => bigPdf,
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null }),
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato, direcao_nf FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('desconhecido');
+    expect(doc.formato).toBe('pdf');
+    expect(doc.direcao_nf).toBeNull();
+  });
+
+  it('B2-R1: truncating >2048 valid NF-e text at 2048 → desconhecido, intact full buffer → nf/xml (behavior-level truncation)', async () => {
+    const prefix = '<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe>';
+    const prefixLen = Buffer.byteLength(prefix, 'utf-8');
+    const padNeeded = 2048 - prefixLen + 100;
+    const pad = 'X'.repeat(padNeeded);
+    const emitBlock = '<emit><CNPJ>11222333000181</CNPJ></emit>';
+    const destBlock = '<dest><CNPJ>11444777000161</CNPJ></dest>';
+    const suffix = '</infNFe></NFe></nfeProc>';
+    const fullText = prefix + '<obs>' + pad + '</obs>' + emitBlock + destBlock + suffix;
+    const buffer = Buffer.from(fullText, 'utf-8');
+    expect(buffer.length).toBeGreaterThan(2048);
+
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-trunc', threadId: 't', from: '', subject: '', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-trunc', threadId: 't', attachmentId: 'a', filename: 'nfe.xml', mimeType: 'text/xml', size: buffer.length },
+      ],
+      downloadAtt: async () => buffer,
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null }),
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+
+    const db = getDb();
+    const doc = db.prepare(`SELECT tipo_documento, formato, cnpj_emitente FROM documentos LIMIT 1`).get() as any;
+    expect(doc.tipo_documento).toBe('nf');
+    expect(doc.formato).toBe('xml');
+    expect(doc.cnpj_emitente).toBe('11222333000181');
+
+    const truncated = fullText.substring(0, 2048);
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: truncated,
+    });
+    expect(result.tipoDocumento).toBe('desconhecido');
+    expect(result.formato).toBe('xml');
+  });
+
+  it('B2-R1: unique XML sentinel located after 2048 is absent from SQLite, outbox, and logger output', async () => {
+    const SENTINEL = 'UNIQUE-SENTINEL-CHECK-7f3a1b9c';
+
+    const prefix = '<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe>';
+    const prefixLen = Buffer.byteLength(prefix, 'utf-8');
+    const padNeeded = 2048 - prefixLen + 50;
+    const pad = 'X'.repeat(padNeeded);
+    const fullText = prefix + '<obs>' + pad + '<!--' + SENTINEL + '--></obs>' + '<emit><CNPJ>11222333000181</CNPJ></emit>' + '<dest><CNPJ>11444777000161</CNPJ></dest>' + '</infNFe></NFe></nfeProc>';
+    const buffer = Buffer.from(fullText, 'utf-8');
+    expect(buffer.length).toBeGreaterThan(2048);
+    expect(fullText.indexOf(SENTINEL)).toBeGreaterThan(2048);
+
+    const logPath = join(DB_DIR, 'sentinel-log.jsonl');
+    const logger = {
+      path: logPath,
+      log(event: any): void {
+        appendFileSync(logPath, JSON.stringify(event) + '\n', 'utf-8');
+      },
+    };
+
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'm-sentinel', threadId: 't', from: '', subject: '', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'm-sentinel', threadId: 't', attachmentId: 'a', filename: 'nfe.xml', mimeType: 'text/xml', size: buffer.length },
+      ],
+      downloadAtt: async () => buffer,
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null }),
+      logger,
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+
+    const db = getDb();
+
+    const docRow = db.prepare(`SELECT * FROM documentos`).get() as any;
+    expect(docRow.cnpj_emitente).toBe('11222333000181');
+    expect(docRow.cnpj_destinatario).toBe('11444777000161');
+
+    const cols = db.prepare(`PRAGMA table_info(documentos)`).all() as any[];
+    for (const col of cols) {
+      const val = docRow[col.name];
+      if (typeof val === 'string') {
+        expect(val, `documentos.${col.name} must not contain sentinel`).not.toContain(SENTINEL);
+      }
+    }
+
+    const eventCols = db.prepare(`PRAGMA table_info(ingestion_events)`).all() as any[];
+    const eventRow = db.prepare(`SELECT * FROM ingestion_events`).get() as any;
+    for (const col of eventCols) {
+      const val = eventRow[col.name];
+      if (typeof val === 'string') {
+        expect(val, `ingestion_events.${col.name} must not contain sentinel`).not.toContain(SENTINEL);
+      }
+    }
+
+    const outboxPath = process.env.OUTBOX_PATH!;
+    if (existsSync(outboxPath)) {
+      const outboxContent = readFileSync(outboxPath, 'utf-8');
+      expect(outboxContent, 'outbox must not contain sentinel').not.toContain(SENTINEL);
+    }
+
+    const logContent = readFileSync(logPath, 'utf-8');
+    expect(logContent, 'logger must not contain sentinel').not.toContain(SENTINEL);
+
+    for (const err of r.errors) {
+      expect(err, 'errors must not contain sentinel').not.toContain(SENTINEL);
+    }
   });
 });

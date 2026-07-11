@@ -1022,6 +1022,155 @@ describe('B2 structural NF-e validation (fast-xml-parser)', () => {
   });
 });
 
+describe('B2-R1 large XML handling (>2048 bytes)', () => {
+  const EMIT_CNPJ = '11222333000181';
+  const DEST_CNPJ = '11444777000161';
+
+  function buildLargeNfe(opts: {
+    root?: 'nfeProc' | 'NFe';
+    ns?: 'default' | 'prefix';
+    padBeforeEmit?: boolean;
+    padBeforeDest?: boolean;
+    padBeforeRoot?: boolean;
+    emitCnpj?: string | null;
+    destCnpj?: string | null;
+    malformed?: boolean;
+  } = {}): string {
+    const root = opts.root ?? 'nfeProc';
+    const ns = opts.ns ?? 'default';
+    const prefix = ns === 'prefix' ? 'nfe:' : '';
+    const xmlns = ns === 'default'
+      ? ' xmlns="http://www.portalfiscal.inf.br/nfe"'
+      : ' xmlns:nfe="http://www.portalfiscal.inf.br/nfe"';
+    const emitCnpj = opts.emitCnpj ?? EMIT_CNPJ;
+    const destCnpj = opts.destCnpj ?? DEST_CNPJ;
+    const padEl = `<${prefix}obs>${'X'.repeat(2200)}</${prefix}obs>`;
+
+    let emitBlock = '';
+    if (emitCnpj !== null) {
+      emitBlock = `<${prefix}emit><${prefix}CNPJ>${emitCnpj}</${prefix}CNPJ></${prefix}emit>`;
+    }
+    let destBlock = '';
+    if (destCnpj !== null) {
+      destBlock = `<${prefix}dest><${prefix}CNPJ>${destCnpj}</${prefix}CNPJ></${prefix}dest>`;
+    }
+
+    if (opts.malformed) {
+      const inner = `<${prefix}infNFe>${padEl}<${prefix}emit><${prefix}CNPJ>${emitCnpj}`;
+      return `<?xml version="1.0"?><${prefix}${root}${xmlns}>${inner}`;
+    }
+
+    let inner = '';
+    if (opts.padBeforeEmit) {
+      inner += padEl + emitBlock + destBlock;
+    } else if (opts.padBeforeDest) {
+      inner += emitBlock + padEl + destBlock;
+    } else {
+      inner += emitBlock + destBlock + padEl;
+    }
+
+    let xml: string;
+    if (root === 'nfeProc') {
+      xml = `<${prefix}nfeProc${xmlns}><${prefix}NFe><${prefix}infNFe>${inner}</${prefix}infNFe></${prefix}NFe></${prefix}nfeProc>`;
+    } else {
+      xml = `<${prefix}NFe${xmlns}><${prefix}infNFe>${inner}</${prefix}infNFe></${prefix}NFe>`;
+    }
+
+    if (opts.padBeforeRoot) {
+      xml = `<!-- ${'Y'.repeat(2100)} -->` + xml;
+    }
+
+    return xml;
+  }
+
+  it('classifies large NFe (>2048) with nfeProc root as nf + xml', () => {
+    const xml = buildLargeNfe({ root: 'nfeProc', padBeforeEmit: true });
+    expect(Buffer.byteLength(xml, 'utf-8')).toBeGreaterThan(2048);
+    const r = classifyAttachment({ filename: 'nfe.xml', mimeType: 'text/xml', contentSample: xml });
+    expect(r.tipoDocumento).toBe('nf');
+    expect(r.formato).toBe('xml');
+    expect(r.cnpjEmitente).toBe(EMIT_CNPJ);
+    expect(r.cnpjDestinatario).toBe(DEST_CNPJ);
+  });
+
+  it('classifies large NFe (>2048) with NFe root (no nfeProc envelope) as nf + xml', () => {
+    const xml = buildLargeNfe({ root: 'NFe', padBeforeEmit: true });
+    expect(Buffer.byteLength(xml, 'utf-8')).toBeGreaterThan(2048);
+    const r = classifyAttachment({ filename: 'nfe.xml', mimeType: 'text/xml', contentSample: xml });
+    expect(r.tipoDocumento).toBe('nf');
+    expect(r.formato).toBe('xml');
+  });
+
+  it('classifies large NFe where infNFe starts after 2048 bytes', () => {
+    const xml = buildLargeNfe({ root: 'nfeProc', padBeforeRoot: true });
+    expect(Buffer.byteLength(xml, 'utf-8')).toBeGreaterThan(2048);
+    const xmlBytes = Buffer.byteLength(xml, 'utf-8');
+    const infNFeIdx = xml.indexOf('<infNFe');
+    expect(infNFeIdx).toBeGreaterThan(2048);
+    const r = classifyAttachment({ filename: 'nfe.xml', mimeType: 'text/xml', contentSample: xml });
+    expect(r.tipoDocumento).toBe('nf');
+    expect(r.formato).toBe('xml');
+  });
+
+  it('extracts emit CNPJ from large XML where emit/CNPJ is beyond 2048 bytes', () => {
+    const xml = buildLargeNfe({ root: 'nfeProc', padBeforeEmit: true });
+    const emitIdx = xml.indexOf('<emit>');
+    expect(emitIdx).toBeGreaterThan(2048);
+    const r = classifyAttachment({ filename: 'nfe.xml', mimeType: 'text/xml', contentSample: xml });
+    expect(r.cnpjEmitente).toBe(EMIT_CNPJ);
+  });
+
+  it('extracts dest CNPJ from large XML where dest/CNPJ is beyond 2048 bytes', () => {
+    const xml = buildLargeNfe({ root: 'nfeProc', padBeforeDest: true });
+    const destIdx = xml.indexOf('<dest>');
+    expect(destIdx).toBeGreaterThan(2048);
+    const r = classifyAttachment({ filename: 'nfe.xml', mimeType: 'text/xml', contentSample: xml });
+    expect(r.cnpjDestinatario).toBe(DEST_CNPJ);
+  });
+
+  it('large NFe with closing tags only near end of file > 2048 classified as nf', () => {
+    const xml = buildLargeNfe({ root: 'nfeProc', padBeforeEmit: true });
+    const closeIdx = xml.lastIndexOf('</nfeProc>');
+    expect(closeIdx).toBeGreaterThan(2048);
+    const r = classifyAttachment({ filename: 'nfe.xml', mimeType: 'text/xml', contentSample: xml });
+    expect(r.tipoDocumento).toBe('nf');
+  });
+
+  it('large NFe with default namespace classified as nf + xml', () => {
+    const xml = buildLargeNfe({ root: 'nfeProc', ns: 'default', padBeforeEmit: true });
+    expect(Buffer.byteLength(xml, 'utf-8')).toBeGreaterThan(2048);
+    const r = classifyAttachment({ filename: 'nfe.xml', mimeType: 'text/xml', contentSample: xml });
+    expect(r.tipoDocumento).toBe('nf');
+    expect(r.cnpjEmitente).toBe(EMIT_CNPJ);
+  });
+
+  it('large NFe with prefixed namespace (nfe:) classified as nf + xml', () => {
+    const xml = buildLargeNfe({ root: 'nfeProc', ns: 'prefix', padBeforeEmit: true });
+    expect(Buffer.byteLength(xml, 'utf-8')).toBeGreaterThan(2048);
+    const r = classifyAttachment({ filename: 'nfe.xml', mimeType: 'text/xml', contentSample: xml });
+    expect(r.tipoDocumento).toBe('nf');
+    expect(r.cnpjEmitente).toBe(EMIT_CNPJ);
+  });
+
+  it('large malformed XML (>2048) → desconhecido + formato xml', () => {
+    const xml = buildLargeNfe({ root: 'nfeProc', malformed: true, padBeforeEmit: true });
+    expect(Buffer.byteLength(xml, 'utf-8')).toBeGreaterThan(2048);
+    const r = classifyAttachment({ filename: 'nfe.xml', mimeType: 'text/xml', contentSample: xml });
+    expect(r.tipoDocumento).toBe('desconhecido');
+    expect(r.formato).toBe('xml');
+    expect(r.cnpjEmitente).toBeNull();
+    expect(r.cnpjDestinatario).toBeNull();
+  });
+
+  it('large generic XML (>2048) with "nfe" text but no NFe structure → desconhecido', () => {
+    const xml = `<root><item>${'A'.repeat(1500)}nfe${'B'.repeat(1500)}</item></root>`;
+    expect(Buffer.byteLength(xml, 'utf-8')).toBeGreaterThan(2048);
+    const r = classifyAttachment({ filename: 'generic.xml', mimeType: 'text/xml', contentSample: xml });
+    expect(r.tipoDocumento).toBe('desconhecido');
+    expect(r.formato).toBe('xml');
+  });
+});
+
 describe('B3 PDF recognition safety (G27-B3)', () => {
   const PDF_SIG = '%PDF-1.4\n';
   const PDF_END = '\n%%EOF\n';

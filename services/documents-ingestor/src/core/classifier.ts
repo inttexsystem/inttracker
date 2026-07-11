@@ -38,7 +38,6 @@ const nfeParser = new XMLParser({
   htmlEntities: false,
 });
 
-const XML_SAMPLE_CAP_BYTES = 2048;
 const PDF_SAMPLE_CAP_BYTES = 2048;
 const PDF_SIGNATURE = '%PDF-';
 
