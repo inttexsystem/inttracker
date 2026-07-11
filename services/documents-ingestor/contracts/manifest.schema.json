@@ -1,0 +1,223 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PedidoManifest",
+  "description": "Manifest de um Pedido. Os documentos vivem no Google Drive (storage_backend=google_drive). local_cache_path é apenas cache local não-canônico. local_path é mantido apenas por compatibilidade legada e não pode ser considerado fonte de verdade. Schema version 1 (legado: nf_xml/nf_pdf) ou version 2 (taxonomia 3 eixos G1).",
+  "oneOf": [
+    {
+      "$ref": "#/definitions/ManifestV1"
+    },
+    {
+      "$ref": "#/definitions/ManifestV2"
+    }
+  ],
+  "definitions": {
+    "ManifestV1": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "pedido",
+        "created_at",
+        "updated_at",
+        "documents"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "pedido": {
+          "type": "string",
+          "pattern": "^PED-\\d{2}-\\d{4}$"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "storage_backend": {
+          "type": "string",
+          "enum": ["google_drive"],
+          "description": "Storage canônico do manifest e seus documentos."
+        },
+        "manifest_storage_uri": {
+          "type": "string",
+          "pattern": "^gdrive://file/.+",
+          "description": "URI lógica do manifest.json no Google Drive."
+        },
+        "manifest_drive_file_id": {
+          "type": "string",
+          "description": "drive_file_id do manifest.json no Google Drive."
+        },
+        "manifest_drive_web_view_link": {
+          "type": "string",
+          "format": "uri",
+          "description": "Link web do manifest no Google Drive."
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ManifestDocumentV1"
+          }
+        }
+      }
+    },
+    "ManifestV2": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "pedido",
+        "created_at",
+        "updated_at",
+        "documents"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 2
+        },
+        "pedido": {
+          "type": "string",
+          "pattern": "^PED-\\d{2}-\\d{4}$"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "storage_backend": {
+          "type": "string",
+          "enum": ["google_drive"]
+        },
+        "manifest_storage_uri": {
+          "type": "string",
+          "pattern": "^gdrive://file/.+"
+        },
+        "manifest_drive_file_id": {
+          "type": "string"
+        },
+        "manifest_drive_web_view_link": {
+          "type": "string",
+          "format": "uri"
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ManifestDocumentV2"
+          }
+        }
+      }
+    },
+    "ManifestDocumentV1": {
+      "type": "object",
+      "required": [
+        "document_id",
+        "tipo_documento",
+        "filename_original",
+        "sha256",
+        "storage_backend",
+        "storage_uri",
+        "drive_file_id",
+        "ingested_at",
+        "event_id",
+        "status"
+      ],
+      "properties": {
+        "document_id": { "type": "string", "format": "uuid" },
+        "tipo_documento": {
+          "type": "string",
+          "enum": ["nf_xml", "nf_pdf", "romaneio", "desconhecido"]
+        },
+        "filename_original": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "storage_backend": {
+          "type": "string",
+          "enum": ["google_drive"]
+        },
+        "storage_uri": {
+          "type": "string",
+          "pattern": "^gdrive://file/.+",
+          "description": "URI canônica do documento no Google Drive."
+        },
+        "drive_file_id": { "type": "string" },
+        "drive_folder_id": { "type": "string" },
+        "drive_web_view_link": { "type": "string", "format": "uri" },
+        "drive_web_content_link": { "type": "string", "format": "uri" },
+        "local_cache_path": { "type": "string" },
+        "local_path": {
+          "type": "string",
+          "description": "Campo de compatibilidade. NÃO é fonte canônica."
+        },
+        "ingested_at": { "type": "string", "format": "date-time" },
+        "event_id": { "type": "string", "format": "uuid" },
+        "status": {
+          "type": "string",
+          "enum": ["pending_app_acceptance", "accepted", "rejected"]
+        }
+      }
+    },
+    "ManifestDocumentV2": {
+      "type": "object",
+      "required": [
+        "document_id",
+        "tipo_documento",
+        "filename_original",
+        "sha256",
+        "storage_backend",
+        "storage_uri",
+        "drive_file_id",
+        "ingested_at",
+        "event_id",
+        "status"
+      ],
+      "properties": {
+        "document_id": { "type": "string", "format": "uuid" },
+        "tipo_documento": {
+          "type": "string",
+          "enum": ["nf", "romaneio", "desconhecido"],
+          "description": "Tipo base do documento (taxonomia 3 eixos G1)."
+        },
+        "formato": {
+          "type": "string",
+          "enum": ["pdf", "xml", "desconhecido"],
+          "description": "Formato do arquivo."
+        },
+        "direcao_nf": {
+          "type": "string",
+          "enum": ["entrada", "saida", "desconhecida"],
+          "description": "Direção da NF (ausente para romaneio/desconhecido)."
+        },
+        "filename_original": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "storage_backend": {
+          "type": "string",
+          "enum": ["google_drive"]
+        },
+        "storage_uri": {
+          "type": "string",
+          "pattern": "^gdrive://file/.+"
+        },
+        "drive_file_id": { "type": "string" },
+        "drive_folder_id": { "type": "string" },
+        "drive_web_view_link": { "type": "string", "format": "uri" },
+        "drive_web_content_link": { "type": "string", "format": "uri" },
+        "local_cache_path": { "type": "string" },
+        "local_path": {
+          "type": "string",
+          "description": "Campo de compatibilidade. NÃO é fonte canônica."
+        },
+        "ingested_at": { "type": "string", "format": "date-time" },
+        "event_id": { "type": "string", "format": "uuid" },
+        "status": {
+          "type": "string",
+          "enum": ["pending_app_acceptance", "accepted", "rejected"]
+        }
+      }
+    }
+  }
+}

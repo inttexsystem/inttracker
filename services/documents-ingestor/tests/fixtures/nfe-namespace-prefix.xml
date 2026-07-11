@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfe:nfeProc xmlns:nfe="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <nfe:NFe>
+    <nfe:infNFe>
+      <nfe:emit>
+        <nfe:CNPJ>11111111000111</nfe:CNPJ>
+      </nfe:emit>
+      <nfe:dest>
+        <nfe:CNPJ>22222222000122</nfe:CNPJ>
+      </nfe:dest>
+    </nfe:infNFe>
+  </nfe:NFe>
+</nfe:nfeProc>

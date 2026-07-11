@@ -1,0 +1,230 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DocumentEvent",
+  "description": "Evento gerado quando um documento é detectado e atribuído a um Pedido no Ravatex Documents Ingestor. Os documentos vivem no Google Drive (mesma conta do Gmail). Este evento é escrito no outbox local (JSONL) para consumo futuro pelo app principal (Controle de Tapetes). Schema version 1 (legado: nf_xml/nf_pdf) ou version 2 (taxonomia 3 eixos: nf/romaneio/desconhecido + formato + direcao_nf).",
+  "oneOf": [
+    {
+      "$ref": "#/definitions/DocumentEventV1"
+    },
+    {
+      "$ref": "#/definitions/DocumentEventV2"
+    }
+  ],
+  "definitions": {
+    "DocumentEventV1": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "event_type",
+        "event_id",
+        "created_at",
+        "pedido_manual",
+        "source",
+        "gmail_message_id",
+        "thread_id",
+        "document",
+        "status"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "event_type": {
+          "type": "string",
+          "enum": ["document.detected", "document.linked", "document.accepted", "document.rejected"]
+        },
+        "event_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Identificador legado — pode ser igual a document_id. Usar ingestion_event_id como identificador canônico do evento."
+        },
+        "ingestion_event_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Identificador canônico do evento (ingestion_events.id). UUID único por evento."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "pedido_manual": {
+          "type": "string",
+          "pattern": "^PED-\\d{2}-\\d{4}$",
+          "description": "Identificador normalizado do Pedido (PED-XX-YYYY)."
+        },
+        "source": {
+          "type": "string",
+          "enum": ["gmail"],
+          "description": "Origem do anexo (origem dos dados). O storage canônico é sempre google_drive, independente de source."
+        },
+        "gmail_message_id": { "type": "string" },
+        "thread_id": { "type": "string" },
+        "document": {
+          "$ref": "#/definitions/DocumentEventDocumentV1"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending_app_acceptance", "accepted", "rejected"]
+        }
+      }
+    },
+    "DocumentEventV2": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "event_type",
+        "event_id",
+        "created_at",
+        "pedido_manual",
+        "source",
+        "gmail_message_id",
+        "thread_id",
+        "document",
+        "status"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 2
+        },
+        "event_type": {
+          "type": "string",
+          "enum": ["document.detected", "document.linked", "document.accepted", "document.rejected"]
+        },
+        "event_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Identificador legado — pode ser igual a document_id. Usar ingestion_event_id como identificador canônico do evento."
+        },
+        "ingestion_event_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Identificador canônico do evento (ingestion_events.id). UUID único por evento."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "pedido_manual": {
+          "type": "string",
+          "pattern": "^PED-\\d{2}-\\d{4}$"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["gmail"]
+        },
+        "gmail_message_id": { "type": "string" },
+        "thread_id": { "type": "string" },
+        "document": {
+          "$ref": "#/definitions/DocumentEventDocumentV2"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending_app_acceptance", "accepted", "rejected"]
+        }
+      }
+    },
+    "DocumentEventDocumentV1": {
+      "type": "object",
+      "required": [
+        "document_id",
+        "tipo_documento",
+        "filename_original",
+        "sha256",
+        "storage_backend",
+        "storage_uri",
+        "drive_file_id"
+      ],
+      "properties": {
+        "document_id": { "type": "string", "format": "uuid" },
+        "tipo_documento": {
+          "type": "string",
+          "enum": ["nf_xml", "nf_pdf", "romaneio", "desconhecido"]
+        },
+        "filename_original": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "storage_backend": {
+          "type": "string",
+          "enum": ["google_drive"]
+        },
+        "storage_uri": {
+          "type": "string",
+          "pattern": "^gdrive://file/.+"
+        },
+        "drive_file_id": { "type": "string" },
+        "drive_folder_id": { "type": "string" },
+        "drive_web_view_link": { "type": "string", "format": "uri" },
+        "drive_web_content_link": { "type": "string", "format": "uri" },
+        "local_cache_path": {
+          "type": "string",
+          "description": "Caminho do espelho local (cache). Não-canônico."
+        },
+        "manifest_storage_uri": {
+          "type": "string",
+          "pattern": "^gdrive://file/.+"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Motivo da rejeição. Presente apenas em document.rejected."
+        }
+      }
+    },
+    "DocumentEventDocumentV2": {
+      "type": "object",
+      "required": [
+        "document_id",
+        "tipo_documento",
+        "filename_original",
+        "sha256",
+        "storage_backend",
+        "storage_uri",
+        "drive_file_id"
+      ],
+      "properties": {
+        "document_id": { "type": "string", "format": "uuid" },
+        "tipo_documento": {
+          "type": "string",
+          "enum": ["nf", "romaneio", "desconhecido"],
+          "description": "Tipo base do documento (taxonomia 3 eixos G1)."
+        },
+        "formato": {
+          "type": "string",
+          "enum": ["pdf", "xml", "desconhecido"],
+          "description": "Formato do arquivo."
+        },
+        "direcao_nf": {
+          "type": "string",
+          "enum": ["entrada", "saida", "desconhecida"],
+          "description": "Direção da NF (null/ausente para romaneio/desconhecido)."
+        },
+        "filename_original": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "storage_backend": {
+          "type": "string",
+          "enum": ["google_drive"]
+        },
+        "storage_uri": {
+          "type": "string",
+          "pattern": "^gdrive://file/.+"
+        },
+        "drive_file_id": { "type": "string" },
+        "drive_folder_id": { "type": "string" },
+        "drive_web_view_link": { "type": "string", "format": "uri" },
+        "drive_web_content_link": { "type": "string", "format": "uri" },
+        "local_cache_path": {
+          "type": "string",
+          "description": "Caminho do espelho local (cache). Não-canônico."
+        },
+        "manifest_storage_uri": {
+          "type": "string",
+          "pattern": "^gdrive://file/.+"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Motivo da rejeição. Presente apenas em document.rejected."
+        }
+      }
+    }
+  }
+}

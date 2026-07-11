@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+    <infNFe Id="NFe35260611111111000111550010000061921496477697" versao="4.00">
+      <ide>
+        <cUF>35</cUF>
+        <cNF>14964776</cNF>
+        <natOp>Venda de mercadorias</natOp>
+        <mod>55</mod>
+        <serie>1</serie>
+        <nNF>6192</nNF>
+        <dhEmi>2026-06-15T10:30:00-03:00</dhEmi>
+        <tpNF>1</tpNF>
+        <idDest>1</idDest>
+        <cMunFG>3550308</cMunFG>
+        <tpImp>1</tpImp>
+        <tpEmis>1</tpEmis>
+        <cDV>7</cDV>
+        <tpAmb>1</tpAmb>
+        <finNFe>1</finNFe>
+        <indFinal>1</indFinal>
+        <indPres>1</indPres>
+        <indIntermed>0</indIntermed>
+        <procEmi>0</procEmi>
+        <verProc>4.00</verProc>
+      </ide>
+      <emit>
+        <CNPJ>11111111000111</CNPJ>
+        <xNome>EMITENTE TESTE</xNome>
+        <xFant>EMITENTE TESTE</xFant>
+        <enderEmit>
+          <xLgr>Rua do Emitente</xLgr>
+          <nro>100</nro>
+          <xBairro>Centro</xBairro>
+          <cMun>3550308</cMun>
+          <xMun>Sao Paulo</xMun>
+          <UF>SP</UF>
+          <CEP>01001000</CEP>
+          <cPais>1058</cPais>
+          <xPais>Brasil</xPais>
+          <fone>1130000000</fone>
+        </enderEmit>
+        <IE>123456789</IE>
+        <CRT>3</CRT>
+      </emit>
+      <dest>
+        <CNPJ>22222222000122</CNPJ>
+        <xNome>DESTINATARIO TESTE</xNome>
+        <enderDest>
+          <xLgr>Av do Destinatario</xLgr>
+          <nro>200</nro>
+          <xBairro>Jardim</xBairro>
+          <cMun>3550308</cMun>
+          <xMun>Sao Paulo</xMun>
+          <UF>SP</UF>
+          <CEP>02002000</CEP>
+          <cPais>1058</cPais>
+          <xPais>Brasil</xPais>
+        </enderDest>
+        <indIEDest>9</indIEDest>
+      </dest>
+      <transp>
+        <modFrete>1</modFrete>
+        <transporta>
+          <CNPJ>33333333000133</CNPJ>
+          <xNome>TRANSPORTADORA TESTE</xNome>
+        </transporta>
+      </transp>
+    </infNFe>
+  </NFe>
+</nfeProc>

@@ -1,0 +1,50 @@
+{
+  "name": "ravatex-documents-ingestor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Módulo separado para ingestão de documentos (XML/PDF) via Gmail para o sistema Ravatex",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/cli.ts",
+    "scan": "tsx src/cli.ts scan",
+    "list:pending": "tsx src/cli.ts list-pending",
+    "assign": "tsx src/cli.ts assign",
+    "login": "tsx src/cli.ts login",
+    "export:events": "tsx src/cli.ts export-events",
+    "export:manifest": "tsx src/cli.ts export-manifest",
+    "sync:manifest": "tsx src/cli.ts sync-manifest",
+    "export:package": "tsx src/cli.ts export-package",
+    "export:mapped": "tsx src/cli.ts export-mapped",
+    "export:ingestion-events": "tsx src/cli.ts export-ingestion-events",
+    "sync:mapped": "tsx src/cli.ts sync-mapped",
+    "sync:supabase": "tsx src/cli.ts sync-supabase",
+    "reconcile:gmail-documents": "tsx src/cli.ts reconcile-gmail-documents",
+    "watch:scan-requests": "tsx src/cli.ts watch:scan-requests",
+    "write:latest": "tsx src/cli.ts write-latest",
+    "report": "tsx src/cli.ts report",
+    "inspect": "tsx src/cli.ts inspect",
+    "reprocess": "tsx src/cli.ts reprocess",
+    "link": "tsx src/cli.ts link",
+    "accept": "tsx src/cli.ts accept",
+    "reject": "tsx src/cli.ts reject",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:ci": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "better-sqlite3": "^11.7.0",
+    "commander": "^13.1.0",
+    "googleapis": "^144.0.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.13.0",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
