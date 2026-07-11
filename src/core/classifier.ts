@@ -123,15 +123,15 @@ export function lerDirecaoNFe(parties: ExtractedNfeParties, ravatexCnpjs: string
 
 function extrairCNPJdeElemento(xml: string, parentElement: string): string | null {
   const parentRegex = new RegExp(
-    `<[^>]*?:?${parentElement}[^>]*?>([\\s\\S]*?)<\\/[^>]*?:?${parentElement}[^>]*?>`,
+    `<(\\w+:)?${parentElement}(\\s[^>]*)?>[\\s\\S]*?<\\/(\\w+:)?${parentElement}\\s*>`,
     'i'
   );
   const parentMatch = xml.match(parentRegex);
   if (!parentMatch) return null;
 
-  const fieldRegex = /<[^>]*?:?CNPJ[^>]*?>([\d./-]*)<\/[^>]*?:?CNPJ[^>]*?>/i;
-  const fieldMatch = parentMatch[1].match(fieldRegex);
-  return fieldMatch ? fieldMatch[1].trim() : null;
+  const fieldRegex = /<(\w+:)?CNPJ(\s[^>]*)?>([\d.\/-]*)<\/(\w+:)?CNPJ\s*>/i;
+  const fieldMatch = parentMatch[0].match(fieldRegex);
+  return fieldMatch ? fieldMatch[3].trim() : null;
 }
 
 function buildEntityMatch(
