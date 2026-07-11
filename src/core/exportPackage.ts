@@ -155,6 +155,8 @@ export interface MappedDocumentRow {
   accepted_at: string | null;
   rejected_at: string | null;
   rejected_reason: string | null;
+  cnpj_emitente: string | null;
+  cnpj_destinatario: string | null;
   latest_ingestion_event_id: string | null;
   latest_ingestion_event_at: string | null;
   detected_ingestion_event_id: string | null;
@@ -214,6 +216,8 @@ export function listMappedDocuments(
       d.tipo_documento,
       d.formato,
       d.direcao_nf,
+      d.cnpj_emitente,
+      d.cnpj_destinatario,
       d.status,
       d.pedido_manual,
       d.gmail_message_id,

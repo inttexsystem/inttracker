@@ -26,6 +26,8 @@ function seedDoc(
     direcao?: string | null;
     sha256?: string;
     createdAt?: string;
+    cnpjEmitente?: string | null;
+    cnpjDestinatario?: string | null;
   } = {},
 ): string {
   const gmailMessageId = overrides.gmailMessageId ?? `msg-em-${randomUUID().slice(0, 8)}`;
@@ -41,9 +43,10 @@ function seedDoc(
     `INSERT INTO documentos (
        id, gmail_message_id, thread_id, attachment_id, filename_original,
        sha256, tipo_documento, formato, direcao_nf,
+       cnpj_emitente, cnpj_destinatario,
        storage_backend, storage_uri, drive_file_id,
        drive_web_view_link, status, pedido_manual, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     gmailMessageId,
@@ -54,6 +57,8 @@ function seedDoc(
     overrides.tipo ?? 'nf',
     overrides.formato ?? 'xml',
     overrides.direcao ?? 'entrada',
+    overrides.cnpjEmitente ?? null,
+    overrides.cnpjDestinatario ?? null,
     'google_drive',
     `gdrive://file/em-${randomUUID().slice(0, 8)}`,
     `em-${randomUUID().slice(0, 8)}`,
@@ -492,5 +497,146 @@ describe('export mapped documents (G12-E2)', () => {
     expect(parsed.latest_ingestion_event_id).toBeTruthy();
     expect(parsed.detected_ingestion_event_id).toBeTruthy();
     expect(parsed.linked_ingestion_event_id).toBeTruthy();
+  });
+});
+
+describe('document party CNPJ export', () => {
+  beforeEach(() => {
+    if (existsSync(SCENARIO_DIR)) rmSync(SCENARIO_DIR, { recursive: true });
+    mkdirSync(SCENARIO_DIR, { recursive: true });
+    process.env.DATABASE_PATH = join(SCENARIO_DIR, 'app.db');
+    process.env.OUTBOX_PATH = join(SCENARIO_DIR, 'outbox.jsonl');
+    process.env.LOCAL_CACHE_PATH = join(SCENARIO_DIR, 'cache');
+    closeDb();
+    const db = getDb();
+    db.exec('DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
+  });
+
+  afterEach(() => {
+    closeDb();
+    if (existsSync(SCENARIO_DIR)) rmSync(SCENARIO_DIR, { recursive: true });
+  });
+
+  it('exports document with both party CNPJs', () => {
+    const db = getDb();
+    const docId = seedDoc(db, { gmailMessageId: 'msg-em-cnpj-both', cnpjEmitente: '11222333000181', cnpjDestinatario: '22222333000172' });
+    seedEvent(db, docId, 'document.detected');
+
+    const outDir = join(SCENARIO_DIR, 'mapped-cnpj-both.jsonl');
+    exportMappedDocuments({ outputPath: outDir });
+    const lines = readFileSync(outDir, 'utf-8').trim().split('\n').filter(Boolean);
+    const parsed = JSON.parse(lines[0]);
+    expect(parsed.cnpj_emitente).toBe('11222333000181');
+    expect(parsed.cnpj_destinatario).toBe('22222333000172');
+  });
+
+  it('exports document with only emitente', () => {
+    const db = getDb();
+    const docId = seedDoc(db, { gmailMessageId: 'msg-em-cnpj-emit', cnpjEmitente: '11222333000181' });
+    seedEvent(db, docId, 'document.detected');
+
+    const outDir = join(SCENARIO_DIR, 'mapped-cnpj-emit.jsonl');
+    exportMappedDocuments({ outputPath: outDir });
+    const parsed = JSON.parse(readFileSync(outDir, 'utf-8').trim());
+    expect(parsed.cnpj_emitente).toBe('11222333000181');
+    expect(parsed.cnpj_destinatario).toBeNull();
+  });
+
+  it('exports document with only destinatario', () => {
+    const db = getDb();
+    const docId = seedDoc(db, { gmailMessageId: 'msg-em-cnpj-dest', cnpjDestinatario: '22222333000172' });
+    seedEvent(db, docId, 'document.detected');
+
+    const outDir = join(SCENARIO_DIR, 'mapped-cnpj-dest.jsonl');
+    exportMappedDocuments({ outputPath: outDir });
+    const parsed = JSON.parse(readFileSync(outDir, 'utf-8').trim());
+    expect(parsed.cnpj_emitente).toBeNull();
+    expect(parsed.cnpj_destinatario).toBe('22222333000172');
+  });
+
+  it('exports legacy document with NULL CNPJs', () => {
+    const db = getDb();
+    const docId = seedDoc(db, { gmailMessageId: 'msg-em-cnpj-legacy' });
+    seedEvent(db, docId, 'document.detected');
+
+    const outDir = join(SCENARIO_DIR, 'mapped-cnpj-legacy.jsonl');
+    exportMappedDocuments({ outputPath: outDir });
+    const parsed = JSON.parse(readFileSync(outDir, 'utf-8').trim());
+    expect(parsed.cnpj_emitente).toBeNull();
+    expect(parsed.cnpj_destinatario).toBeNull();
+  });
+
+  it('exported CNPJs are 14-digit strings without punctuation', () => {
+    const db = getDb();
+    const docId = seedDoc(db, { gmailMessageId: 'msg-em-cnpj-digits', cnpjEmitente: '11222333000181', cnpjDestinatario: '22222333000172' });
+    seedEvent(db, docId, 'document.detected');
+
+    const outDir = join(SCENARIO_DIR, 'mapped-cnpj-digits.jsonl');
+    exportMappedDocuments({ outputPath: outDir });
+    const parsed = JSON.parse(readFileSync(outDir, 'utf-8').trim());
+    expect(parsed.cnpj_emitente).toMatch(/^\d{14}$/);
+    expect(parsed.cnpj_destinatario).toMatch(/^\d{14}$/);
+  });
+
+  it('CNPJ fields appear in mapped result', () => {
+    const db = getDb();
+    const docId = seedDoc(db, { gmailMessageId: 'msg-em-cnpj-mapped', cnpjEmitente: '11222333000181' });
+    seedEvent(db, docId, 'document.detected');
+
+    const rows = listMappedDocuments();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].cnpj_emitente).toBe('11222333000181');
+    expect(rows[0].cnpj_destinatario).toBeNull();
+  });
+
+  it('existing fields remain unchanged when CNPJs are added', () => {
+    const db = getDb();
+    const docId = seedDoc(db, { gmailMessageId: 'msg-em-cnpj-unchanged', cnpjEmitente: '11222333000181', filename: 'nfe.xml', tipo: 'nf', formato: 'xml', direcao: 'entrada' });
+    seedEvent(db, docId, 'document.detected');
+
+    const outDir = join(SCENARIO_DIR, 'mapped-cnpj-unchanged.jsonl');
+    exportMappedDocuments({ outputPath: outDir });
+    const parsed = JSON.parse(readFileSync(outDir, 'utf-8').trim());
+    expect(parsed.filename_original).toBe('nfe.xml');
+    expect(parsed.tipo_documento).toBe('nf');
+    expect(parsed.formato).toBe('xml');
+    expect(parsed.direcao_nf).toBe('entrada');
+    expect(parsed.schema_version).toBe(1);
+  });
+
+  it('entityMatch is not exported', () => {
+    const db = getDb();
+    const docId = seedDoc(db, { gmailMessageId: 'msg-em-cnpj-nomatch' });
+    seedEvent(db, docId, 'document.detected');
+
+    const outDir = join(SCENARIO_DIR, 'mapped-cnpj-nomatch.jsonl');
+    exportMappedDocuments({ outputPath: outDir });
+    const parsed = JSON.parse(readFileSync(outDir, 'utf-8').trim());
+    expect(parsed).not.toHaveProperty('entityMatch');
+    expect(parsed).not.toHaveProperty('entity_match');
+  });
+
+  it('export does not write to SQLite', () => {
+    const db = getDb();
+    const docId = seedDoc(db, { gmailMessageId: 'msg-em-cnpj-readonly' });
+    seedEvent(db, docId, 'document.detected');
+    const before = db.prepare(`SELECT cnpj_emitente FROM documentos WHERE id = ?`).get(docId) as any;
+
+    const outDir = join(SCENARIO_DIR, 'mapped-cnpj-readonly.jsonl');
+    exportMappedDocuments({ outputPath: outDir });
+
+    const after = db.prepare(`SELECT cnpj_emitente FROM documentos WHERE id = ?`).get(docId) as any;
+    expect(after.cnpj_emitente).toBe(before.cnpj_emitente);
+  });
+
+  it('schema_version remains 1', () => {
+    const db = getDb();
+    const docId = seedDoc(db, { gmailMessageId: 'msg-em-cnpj-sv', cnpjEmitente: '11222333000181' });
+    seedEvent(db, docId, 'document.detected');
+
+    const outDir = join(SCENARIO_DIR, 'mapped-cnpj-sv.jsonl');
+    exportMappedDocuments({ outputPath: outDir });
+    const parsed = JSON.parse(readFileSync(outDir, 'utf-8').trim());
+    expect(parsed.schema_version).toBe(1);
   });
 });
