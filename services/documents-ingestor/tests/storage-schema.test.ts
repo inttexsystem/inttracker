@@ -588,3 +588,164 @@ describe('SQLite CHECK constraint rebuild (pre-G1 legacy CHECK)', () => {
     db.close();
   });
 });
+
+const EVID_DB_DIR = join(tmpdir(), `ravatex-evidence-test-${randomUUID()}`);
+
+describe('B2 technical evidence history schema', () => {
+  beforeEach(() => {
+    if (existsSync(EVID_DB_DIR)) rmSync(EVID_DB_DIR, { recursive: true });
+    mkdirSync(EVID_DB_DIR, { recursive: true });
+    process.env.DATABASE_PATH = join(EVID_DB_DIR, 'app.db');
+    process.env.OUTBOX_PATH = join(EVID_DB_DIR, 'outbox.jsonl');
+    process.env.LOCAL_CACHE_PATH = join(EVID_DB_DIR, 'cache');
+    closeDb();
+    getDb();
+  });
+
+  afterEach(() => {
+    closeDb();
+    if (existsSync(EVID_DB_DIR)) rmSync(EVID_DB_DIR, { recursive: true });
+  });
+
+  it('creates document_technical_evidences on a new database', () => {
+    const db = getDb();
+    const row = db.prepare(
+      `SELECT name FROM sqlite_master WHERE type='table' AND name='document_technical_evidences'`
+    ).get();
+    expect(row).toBeTruthy();
+  });
+
+  it('has expected columns with correct types', () => {
+    const db = getDb();
+    const cols = db.prepare(`PRAGMA table_info(document_technical_evidences)`).all() as any[];
+    const colMap = new Map(cols.map((c: any) => [c.name, c]));
+    expect(colMap.has('document_id')).toBe(true);
+    expect(colMap.has('evidence_version')).toBe(true);
+    expect(colMap.has('technical_evidence')).toBe(true);
+    expect(colMap.has('origin')).toBe(true);
+    expect(colMap.has('created_at')).toBe(true);
+    expect(colMap.get('document_id').type).toMatch(/TEXT/);
+    expect(colMap.get('document_id').notnull).toBe(1);
+    expect(colMap.get('evidence_version').type).toMatch(/INT/);
+    expect(colMap.get('evidence_version').notnull).toBe(1);
+    expect(colMap.get('technical_evidence').notnull).toBe(1);
+    expect(colMap.get('origin').notnull).toBe(1);
+    expect(colMap.get('created_at').dflt_value).toBe("datetime('now')");
+  });
+
+  it('has composite primary key (document_id, evidence_version)', () => {
+    const db = getDb();
+    const pkCols = db.prepare(
+      `SELECT name FROM pragma_table_info('document_technical_evidences') WHERE pk > 0 ORDER BY pk`
+    ).all() as any[];
+    const pkNames = pkCols.map((r: any) => r.name);
+    expect(pkNames).toEqual(['document_id', 'evidence_version']);
+  });
+
+  it('has foreign key referencing documentos(id)', () => {
+    const db = getDb();
+    const fkRows = db.prepare(
+      `SELECT "table", "from", "to" FROM pragma_foreign_key_list('document_technical_evidences')`
+    ).all() as any[];
+    expect(fkRows).toHaveLength(1);
+    expect(fkRows[0].table).toBe('documentos');
+    expect(fkRows[0].from).toBe('document_id');
+    expect(fkRows[0].to).toBe('id');
+  });
+
+  it('rejects evidence_version = 0', () => {
+    const db = getDb();
+    db.prepare(`INSERT OR IGNORE INTO emails_processados (gmail_message_id) VALUES (?)`).run('ee');
+    const docId = randomUUID();
+    db.prepare(
+      `INSERT INTO documentos (id, gmail_message_id, attachment_id, filename_original, sha256)
+       VALUES (?, ?, ?, ?, ?)`
+    ).run(docId, 'ee', 'a', 'f.pdf', 's'.repeat(64));
+    expect(() => {
+      db.prepare(
+        `INSERT INTO document_technical_evidences (document_id, evidence_version, technical_evidence, origin)
+         VALUES (?, ?, ?, ?)`
+      ).run(docId, 0, '{}', '{}');
+    }).toThrow();
+  });
+
+  it('rejects insert with nonexistent document_id', () => {
+    const db = getDb();
+    expect(() => {
+      db.prepare(
+        `INSERT INTO document_technical_evidences (document_id, evidence_version, technical_evidence, origin)
+         VALUES (?, ?, ?, ?)`
+      ).run('nonexistent', 1, '{}', '{}');
+    }).toThrow();
+  });
+
+  it('is idempotent through getDb startup flow', () => {
+    closeDb();
+    getDb();
+    const db = getDb();
+    const row = db.prepare(
+      `SELECT name FROM sqlite_master WHERE type='table' AND name='document_technical_evidences'`
+    ).get();
+    expect(row).toBeTruthy();
+  });
+
+  it('legacy document exists without any evidence rows', () => {
+    const db = getDb();
+    db.prepare(`INSERT OR IGNORE INTO emails_processados (gmail_message_id) VALUES (?)`).run('legacy');
+    const docId = randomUUID();
+    db.prepare(
+      `INSERT INTO documentos (id, gmail_message_id, attachment_id, filename_original, sha256)
+       VALUES (?, ?, ?, ?, ?)`
+    ).run(docId, 'legacy', 'a', 'doc.pdf', 's'.repeat(64));
+    const evidenceRows = db.prepare(
+      `SELECT * FROM document_technical_evidences WHERE document_id = ?`
+    ).all(docId) as any[];
+    expect(evidenceRows).toHaveLength(0);
+    const doc = db.prepare(`SELECT id, filename_original FROM documentos WHERE id = ?`).get(docId) as any;
+    expect(doc.filename_original).toBe('doc.pdf');
+  });
+
+  it('does not alter existing table columns', () => {
+    const db = getDb();
+    const docCols = db.prepare(`PRAGMA table_info(documentos)`).all() as any[];
+    const docNames = docCols.map((c: any) => c.name);
+    expect(docNames).toContain('status');
+    expect(docNames).toContain('pedido_manual');
+    expect(docNames).not.toContain('evidence_version');
+    const eventCols = db.prepare(`PRAGMA table_info(ingestion_events)`).all() as any[];
+    const eventNames = eventCols.map((c: any) => c.name);
+    expect(eventNames).toContain('event_type');
+    expect(eventNames).not.toContain('technical_evidence');
+  });
+
+  it('legacy database receives the evidence table through normal startup', () => {
+    const dbPath = join(EVID_DB_DIR, 'legacy.db');
+    const old = new Database(dbPath);
+    createOldDb(old);
+    old.prepare(`INSERT INTO emails_processados (gmail_message_id) VALUES (?)`).run('start');
+    old.prepare(
+      `INSERT INTO documentos (id, gmail_message_id, attachment_id, filename_original, sha256)
+       VALUES (?, ?, ?, ?, ?)`
+    ).run('legacy-doc', 'start', 'a', 'doc.pdf', 's'.repeat(64));
+    old.close();
+
+    closeDb();
+    process.env.DATABASE_PATH = dbPath;
+    const tsxCli = join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
+    execFileSync(process.execPath, [tsxCli, '-e',
+      "import { getDb, closeDb } from './src/storage/sqlite.ts'; getDb(); closeDb();"
+    ], {
+      cwd: process.cwd(),
+      env: { ...process.env, DATABASE_PATH: dbPath },
+      stdio: 'pipe',
+    });
+
+    const migrated = new Database(dbPath, { readonly: true });
+    expect(migrated.prepare(
+      `SELECT name FROM sqlite_master WHERE type='table' AND name='document_technical_evidences'`
+    ).get()).toBeTruthy();
+    expect(migrated.prepare(`SELECT id FROM documentos WHERE id = ?`).get('legacy-doc'))
+      .toMatchObject({ id: 'legacy-doc' });
+    migrated.close();
+  });
+});

@@ -94,3 +94,22 @@ CREATE TABLE IF NOT EXISTS ingestion_events (
 
 CREATE INDEX IF NOT EXISTS idx_events_exported
   ON ingestion_events(exported_at);
+
+-- document_technical_evidences: hist├│rico versionado da evid├¬ncia t├®cnica (B2).
+-- Cada linha ├® um snapshot imut├ível do TechnicalEvidence + EvidenceOrigin.
+-- Linha atual = MAX(evidence_version) por document_id.
+-- Documentos legados n├úo t├¬m linha → legacy_no_observation.
+-- Sem DEFAULT para evidence_version: vers├úo deve ser alocada pela aplica├º├úo.
+CREATE TABLE IF NOT EXISTS document_technical_evidences (
+  document_id       TEXT NOT NULL,
+  evidence_version  INTEGER NOT NULL
+    CHECK (evidence_version >= 1),
+  technical_evidence TEXT NOT NULL,
+  origin            TEXT NOT NULL,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+
+  PRIMARY KEY (document_id, evidence_version),
+
+  FOREIGN KEY (document_id)
+    REFERENCES documentos(id)
+);
