@@ -1,3 +1,26 @@
+# G28-P0-R1 — CORRECAO ARQUITETURAL DOS DOCUMENTOS DE GOVERNANCA
+
+PROJETO: Ravatex — Controle de Tapetes (monorepo)
+WORKSPACE G28: `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
+BRANCH: `work/g28-document-qualification`
+HEAD INICIAL: `bdb2fa3b05361c761d55506192483fe4d8be5034`
+FASE: G28-P0 `ARCHITECTURAL CORRECTION IN PROGRESS` — docs-only, aguardando aceite do IAlead.
+
+## RESULTADO
+
+- **G28-A:** `REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` (schema, `db/49`, `qualified` como estado final e `duplicate` como estado principal nao aprovados; evidencias aproveitaveis).
+- **G28-B1:** `PLANNED / NOT AUTHORIZED` — nao iniciado.
+- Sequencia B1–B8 corrigida; o modal funcional (B6) **nao antecede** a persistencia da decisao humana e dos vinculos (B5).
+- Antes de nova persistencia, G28-B1 deve mapear `document_decisions` e `documentos_operacionais` existentes; **proibido** criar fonte paralela de validacao humana se a decisao canonica existente representar o fluxo.
+- Correcoes: plano mestre (status, sequencia, governanca, proxima acao); mapa de ativos (precedencia funcional; migrations como snapshot; skill `KEEP_AS_SKILL` + `PROMOTE_RULES_TO_VERSIONED_DOC`); contrato visual (taxonomia de regras; acessibilidade minima obrigatoria; validacao por harness autorizado nao exclusivo de untracked).
+- Nenhum runtime, migration, Supabase ou UI alterado. Sem push. Workspace original intocado.
+
+## PROXIMO CHECKPOINT
+
+Aceite arquitetural de G28-P0-R1 pelo IAlead. So entao reabrir conducao pelo Hermes e emitir G28-B1 (exclusivamente contrato de dominio; sem migration, runtime ou UI). Nao iniciar implementacao.
+
+---
+
 # G28-P0 — REGISTRO DO PLANO DOCUMENTAL, MAPA DE ATIVOS E GOVERNANCA
 
 PROJETO: Ravatex — Controle de Tapetes (monorepo)

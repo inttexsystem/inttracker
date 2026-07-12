@@ -1,3 +1,14 @@
+> **Atualizacao 2026-07-11 — G28-P0-R1 — CORRECAO ARQUITETURAL DOS DOCUMENTOS (DOCS-ONLY).**
+> Status: **G28-P0 `ARCHITECTURAL CORRECTION IN PROGRESS`; correcao documental concluida tecnicamente, aguardando aceite do IAlead.**
+>
+> - **G28-A:** `REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` — schema proposto, `db/49`, `qualified` como estado final e `duplicate` como estado principal nao aprovados; evidencias do diagnostico permanecem aproveitaveis.
+> - **G28-B1:** `PLANNED / NOT AUTHORIZED` — nao iniciado.
+> - Sequencia corrigida: B1 contrato de dominio → B2 persistencia da evidencia/historico tecnico → B3 eventos/export/Supabase/reader → B4 fila/read model de revisao → B5 persistencia da decisao humana + vinculos Pedido/OP → B6 modal funcional (backend real) → B7 exibicao → B8 correcao/revogacao/restauracao/auditoria → C staging → D publicacao. O modal (B6) nao antecede a persistencia da decisao/vinculos (B5).
+> - Antes de nova persistencia, G28-B1 deve mapear `document_decisions` e `documentos_operacionais` existentes; proibido criar fonte paralela de validacao humana se a decisao canonica existente representar o fluxo.
+> - Correcoes documentais: plano mestre; mapa de ativos (precedencia funcional; migrations como snapshot; skill `KEEP_AS_SKILL` + `PROMOTE_RULES_TO_VERSIONED_DOC`); contrato visual (taxonomia GLOBAL/SCREEN-FAMILY/COMPONENT-SPECIFIC/OBSERVED-PATTERN/OPEN; acessibilidade minima obrigatoria; harness autorizado nao exclusivo de untracked).
+> - Nenhum runtime, migration ou UI alterado. Sem push. Workspace original intocado.
+> - Proximo passo: depende de aceite arquitetural de G28-P0-R1; so entao reabrir conducao pelo Hermes e emitir G28-B1.
+
 > **Atualizacao 2026-07-11 — G28-P0 — REGISTRO DO PLANO DOCUMENTAL E GOVERNANCA (DOCS-ONLY).**
 > Status: **G28-P0 IN_PROGRESS; nenhuma implementacao G28 autorizada.**
 >

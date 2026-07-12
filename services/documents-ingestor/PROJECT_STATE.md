@@ -1,5 +1,14 @@
 # PROJECT STATE
 
+> **Atualizacao 2026-07-11 — G28-P0-R1 — CORRECAO ARQUITETURAL DOS DOCUMENTOS (DOCS-ONLY).**
+> Status: **G27 tecnico concluido; G28-P0 correcao documental aguardando aceite; G28-A rejeitado como contrato.**
+>
+> - Nenhuma alteracao em `services/documents-ingestor/src/**` ou `tests/**`; suite e contratos inalterados.
+> - **G28-A:** `REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` — `db/49`, `qualified`, `duplicate` nao aprovados; evidencias aproveitaveis.
+> - **G28-B1:** `PLANNED / NOT AUTHORIZED`. Antes de nova persistencia, mapear `document_decisions`/`documentos_operacionais` existentes; nao criar fonte paralela de decisao humana.
+> - A sequencia B3 do plano cobre eventos/export/Supabase/reader; migration futura apenas aditiva e validada primeiro em staging.
+> - Proximo passo depende de aceite arquitetural de R1.
+
 > **Atualizacao 2026-07-11 — G28-P0 — REGISTRO DO PLANO DOCUMENTAL (DOCS-ONLY).**
 > Status: **G27 tecnico concluido; G28-P0 IN_PROGRESS; G28-A em HOLD.**
 >

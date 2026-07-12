@@ -1,6 +1,6 @@
 # CONTRATO VISUAL VERSIONADO — RAVATEX / CONTROLE DE TAPETES
 
-> **Fase:** `G28-P0` — registro de governança (docs-only).
+> **Fase:** `G28-P0` / correção `G28-P0-R1` — registro e correção de governança (docs-only).
 > **Origem:** consolidação da skill `.claude/design-skill/` (`inttex-ui`:
 > `SKILL.md` + `README.md`), dos tokens versionados `css/tokens.css` (`--rv-*`) e
 > dos dois pilotos reais de OP. Nenhum design novo foi inventado.
@@ -27,11 +27,75 @@ como **OPEN — REQUIRES IALEAD DECISION**.
 
 ---
 
+## 0.1 Taxonomia das regras
+
+Cada regra deste contrato tem um alcance. Antes de aplicar ou expandir uma regra,
+verifique a sua classe:
+
+- **GLOBAL** — regra geral do produto; vale em toda a aplicação.
+- **SCREEN-FAMILY** — regra de uma família de telas, não de toda a aplicação.
+- **COMPONENT-SPECIFIC** — regra de um componente específico.
+- **OBSERVED-PATTERN** — padrão observado nos pilotos; precisa de validação antes
+  de ser expandido como norma.
+- **OPEN** — decisão ainda não fechada.
+
+## 0.2 Classificação das regras
+
+**GLOBAL:**
+- tokens `--rv-*`;
+- baixa curvatura (card 6px / controle 4px);
+- evitar pílulas fora de badges/status;
+- cards flat;
+- pt-BR;
+- estados vazios honestos;
+- não fabricar arquivos ou badges;
+- alinhamento de cabeçalho e valores (regra de ouro das tabelas);
+- reutilização de componentes;
+- iconografia funcional;
+- não esconder o requisito com réplica simplificada.
+
+**SCREEN-FAMILY** (telas administrativas de detalhe, quando compatíveis):
+- cockpit de duas colunas;
+- rail;
+- rail sticky;
+- rail full-width;
+- chips de seção;
+- layout de detalhe administrativo;
+- grids de pares de formulário.
+
+**COMPONENT-SPECIFIC:**
+- badge;
+- file chip;
+- botão destrutivo;
+- modal;
+- tabela;
+- slots de documentos.
+
+**OBSERVED-PATTERN** (valores dos pilotos; não promover sem validação):
+- header 62px;
+- sidebar 196px;
+- rail 300px;
+- largura 1600px;
+- gaps exatos;
+- dimensões exatas dos pilotos;
+- qualquer valor não confirmado como token global aplicável.
+
+**OPEN:**
+- modal completo;
+- breakpoints;
+- comportamento em tela estreita;
+- meta formal de acessibilidade.
+
+---
+
 ## 1. Linguagem visual
 
 Denso, limpo e sóbrio — “padding de ferramenta, não de landing”, mas com respiro
-(gap ~14–16px entre cards). Cards **flat** (sem sombra), borda hairline. Nada de
-emoji. Português (pt-BR), objetivo e operacional.
+(gap ~14–16px entre cards). Cards **flat** (sem sombra), borda hairline.
+Português (pt-BR), objetivo e operacional. **Não usar emoji como substituto de
+iconografia funcional** em interfaces operacionais — usar o conjunto de ícones
+aprovado (ver §13). Isto **não** cria proibição absoluta de emoji em conteúdo
+textual futuro.
 
 ## 2. Tipografia
 
@@ -75,12 +139,17 @@ Re-tematizar = editar só a escala base e o accent nos tokens; cards/botões/bad
   item ativo `bg-accent-soft text-accent`, radius 4px) + main rolável.
 - **Conteúdo:** largura cheia até **1600px**, centralizado; padding `18px 32px 40px`.
   Nunca faixa central estreita com sobra lateral.
-- **Cockpit de 2 colunas** (telas de detalhe): `grid-template-columns: minmax(0,1fr)
+- **Cockpit de 2 colunas — `SCREEN-FAMILY`** (telas administrativas de detalhe,
+  quando compatíveis com o conteúdo): `grid-template-columns: minmax(0,1fr)
   var(--rv-rail-w)` com rail direito **300px** (`--rv-rail-w`) `position:sticky;top:0`.
-  Conteúdo/tabelas à esquerda; resumo, métricas e **ação primária** no rail. Não
+  Conteúdo/tabelas à esquerda; resumo, métricas e a ação dominante no rail. Não
   repetir o mesmo dado nos dois lados.
-- **Regra do rail:** tudo no rail é vertical/full-width (métricas empilhadas,
-  inputs e botões `width:100%`). **Proibido** grid de colunas fixas dentro do rail.
+- **O cockpit/rail NÃO é obrigatório** para a fila de Documentos, listagens,
+  modais, telas simples ou superfícies do portal — essas escolhem o layout
+  adequado ao conteúdo.
+- **Regra do rail (quando houver rail):** tudo no rail é vertical/full-width
+  (métricas empilhadas, inputs e botões `width:100%`). **Proibido** grid de
+  colunas fixas dentro do rail.
 
 ## 6. Cards e seções
 
@@ -100,8 +169,10 @@ de colunas fixas em px para a última coluna nunca sumir.
 
 ## 8. Botões
 
-- **Uma ação primária por tela**, preenchida (`bg-accent text-white`, radius 4px,
-  ~38px), junto do contexto (no rail). Hover accent-hover.
+- **Uma ação dominante por escopo decisório**, preenchida (`bg-accent text-white`,
+  radius 4px, ~38px), junto do contexto. Uma tela pode conter contextos
+  independentes, desde que não haja competição visual entre ações primárias no
+  mesmo bloco de decisão. A ação dominante **não precisa** ficar no rail.
 - Secundário: superfície + borda, discreto (~34px), ícone + texto.
 - Positivo (ex.: Finalizar): verdes suaves.
 - **Destrutivo (Excluir): sempre ícone + texto**, vermelho discreto — nunca só ícone.
@@ -125,6 +196,10 @@ Quando o header de seção carrega badge à direita, usar a variante de chip **s
 
 ## 11. Documentos / Anexos
 
+**`COMPONENT-SPECIFIC`** — os slots por tipo são o componente de anexos das
+superfícies de Pedido/OP (ou telas compatíveis), **não** uma obrigação da fila
+central de Documentos, que escolhe a apresentação adequada à revisão.
+
 Slots **por tipo** (Romaneio, NF de entrada, NF de saída — múltiplos arquivos por
 tipo): rótulo + badge de contagem; chips de arquivo full-width (`--rv-color-subtle-bg`,
 borda `--rv-color-line-100`, ícone PDF vermelho + nome com ellipsis + tamanho·data
@@ -135,16 +210,16 @@ falsos** quando o backend ainda não existe; o “Anexar” apenas sinaliza.
 ## 12. Modais
 
 Camada acima do conteúdo (`--rv-z-modal` 200; toast `--rv-z-toast` 250). Herdam
-tipografia, cantos (card 6px / controle 4px), cards flat e a regra de uma ação
-primária. O modal “Validar e vincular” (fase G28-B5) deve exibir **evidência
-técnica** (somente leitura) separada dos **campos humanos** (editáveis), com
-campos condicionais por tipo e ações explícitas (validar e vincular / rejeitar /
-ignorar / cancelar).
+tipografia, cantos (card 6px / controle 4px), cards flat e a regra de ação
+dominante por escopo. O modal “Validar e vincular” (fase G28-B6) deve exibir
+**evidência técnica** (somente leitura) separada dos **campos humanos**
+(editáveis), com campos condicionais por tipo e ações explícitas (validar e
+vincular / rejeitar / ignorar / cancelar).
 
 **OPEN — REQUIRES IALEAD DECISION:** dimensões exatas, comportamento de overlay
 (scroll-lock, dismiss por clique fora/ESC), largura máxima e responsividade mobile
-do modal não estão especificados nas fontes atuais e devem ser fechados antes de
-G28-B5.
+do modal não estão especificados nas fontes atuais e devem ser fechados no design
+de G28-B6. O **gerenciamento de foco** do modal já é obrigatório (ver §15).
 
 ## 13. Iconografia
 
@@ -162,17 +237,26 @@ conteúdo) ainda não estão fixados.
 
 ## 15. Acessibilidade
 
-Contraste suficiente para texto de status mesmo em paletas claras; título escuro
-(`--rv-color-title`) para legibilidade; alvos de toque coerentes com a altura dos
-controles (34–38px); status legível por dot + rótulo (não só cor). **OPEN —
-REQUIRES IALEAD DECISION:** metas WCAG explícitas, foco de teclado e labels ARIA
-não estão documentados nas fontes atuais.
+Mínimo **já obrigatório** em toda UI:
+
+- operação por teclado nas ações principais;
+- foco visível;
+- labels programáticos nos controles;
+- status não comunicado apenas por cor (dot + rótulo);
+- contraste suficiente para texto de status mesmo em paletas claras;
+- título escuro (`--rv-color-title`) para legibilidade;
+- alvos coerentes com a altura dos controles (34–38px);
+- o modal terá **gerenciamento de foco**, a ser fechado no design de G28-B6.
+
+**OPEN — REQUIRES IALEAD DECISION:** apenas a **meta formal de conformidade**
+(nível WCAG alvo) e os detalhes finais do modal.
 
 ## 16. Terminologia
 
 pt-BR. Rótulos curtos em Title Case (“Fornecedor de acabamento”, “Saldo em
 tecelagem”); rótulos de seção em UPPERCASE. Mensagens de estado curtas e neutras
-(“Nenhuma entrega registrada ainda.”). Sem emoji.
+(“Nenhuma entrega registrada ainda.”). Não usar emoji como substituto de
+iconografia funcional (ver §1 e §13).
 
 ## 17. Reutilização de componentes e continuidade Documentos/Pedido/OP
 
@@ -184,11 +268,18 @@ mesmo vínculo canônico.
 
 ## 18. Validação visual (obrigatória)
 
-Cada tela é conferida por **render real** no harness de browser
-(`.claude/preview/*.html`), instanciando o componente com dados fake e medindo
-overflow/alinhamento — não confiar só em screenshot nem só em teste. Testes de
-smoke que codificam o visual antigo (headers numerados, strips, grids fixos)
-devem ser atualizados para o canônico novo, preservando as asserções **funcionais**.
+Toda UI deve passar por **render real em harness autorizado**, além de testes
+funcionais focados — não confiar só em screenshot nem só em teste. Regras:
+
+- quando `.claude/preview` estiver disponível e aplicável, utilizá-lo;
+- quando não estiver disponível no worktree, usar um harness versionado ou
+  equivalente explicitamente autorizado, e **registrar a evidência**;
+- **nenhuma fase pode depender exclusivamente de um arquivo untracked ausente do
+  worktree** (ver `CLAUDE_PROJECT_ASSET_MAP.md` §13).
+
+Testes de smoke que codificam o visual antigo (headers numerados, strips, grids
+fixos) devem ser atualizados para o canônico novo, preservando as asserções
+**funcionais**.
 
 ## 19. Proibições (soluções simplificadas)
 

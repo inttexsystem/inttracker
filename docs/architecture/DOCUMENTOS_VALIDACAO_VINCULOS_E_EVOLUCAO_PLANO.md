@@ -2,9 +2,11 @@
 
 **Projeto:** Ravatex — Controle de Tapetes / Documents Ingestor  
 **Status do plano:** rascunho arquitetural para revisão do IAlead  
-**Fase ativa:** consolidação de sequência, governança e backlog  
+**Fase ativa:** `G28-P0-R1` — correção arquitetural dos documentos de governança (docs-only), aguardando aceite do IAlead  
 **Último marco técnico aceito:** G27 — reconhecimento documental endurecido, publicado em `staging/work/app-next`, CI verde  
-**G28-A:** diagnóstico parcial em HOLD; não aprovado como contrato final de domínio, schema ou migration
+**G28-A:** `REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` — schema proposto, migration `db/49`, `qualified` como estado final, `duplicate` como estado principal e a regra de "duas partes externas resolvidas" **não aprovados**; evidências e problemas descobertos no diagnóstico permanecem aproveitáveis  
+**G28-P0:** `ARCHITECTURAL CORRECTION IN PROGRESS` — não `CLOSED`, não `PUBLISHED`; o fechamento depende de revisão do IAlead  
+**G28-B1:** `PLANNED / NOT AUTHORIZED`
 
 ---
 
@@ -465,43 +467,66 @@ Sem código, migration ou UI.
 
 ## G28-B1 — Contrato de domínio documental
 
-Definir tipos puros para:
+Definir os tipos puros e o contrato de domínio para:
 
 - evidência técnica;
 - sugestão;
+- direção e contraparte;
 - revisão humana;
-- contraparte;
-- direção;
+- decisão canônica;
 - duplicidade;
-- vínculo;
-- razões;
-- origem;
-- autoria;
-- versão.
+- vínculos;
+- cardinalidades;
+- correção/revogação;
+- compatibilidade com estruturas existentes.
 
-Sem persistência.
+### Mapeamento obrigatório antes de qualquer persistência nova
 
-## G28-B2 — Persistência local e histórico
+A separação dos eixos de domínio (detecção, evidência, revisão, vínculo, decisão)
+**não obriga tabelas independentes**. Antes de propor persistência nova, G28-B1
+deve mapear:
 
-Persistir em SQLite:
+- `document_decisions` existente;
+- `documentos_operacionais` existente;
+- estados atuais;
+- possibilidade de ampliar a fonte canônica atual;
+- risco de dupla escrita;
+- risco de decisões humanas concorrentes.
+
+**É proibido criar fonte paralela para validação humana se a decisão canônica
+existente puder representar o fluxo corretamente.**
+
+### Decisões abertas de G28-B1 (não decididas nesta correção documental)
+
+- cardinalidade Documento ↔ OP;
+- um documento pode ou não vincular múltiplas OPs;
+- como `documentos_operacionais` representa isso;
+- quais tipos exigem Pedido;
+- quais tipos exigem OP;
+- quais vínculos são opcionais;
+- como tratar vínculo incompatível com o tipo.
+
+Sem persistência, sem runtime e sem UI nesta fase.
+
+## G28-B2 — Persistência local da evidência e histórico técnico
+
+Persistir localmente (ex.: SQLite) a evidência técnica e o histórico técnico, sem
+inventar dados legados e sem antecipar a decisão humana:
 
 - evidência técnica;
-- estado de revisão;
-- versão;
 - razões;
 - origem;
 - autoria;
+- versão;
 - relação de duplicidade;
-- histórico.
+- histórico técnico.
 
-Sem inventar dados legados.
-
-## G28-B3 — Eventos, export e Supabase
+## G28-B3 — Eventos, exportação, Supabase e reader
 
 Propagar:
 
 ```text
-SQLite
+persistência local
 → eventos/outbox
 → JSONL
 → exportPackage
@@ -512,9 +537,9 @@ SQLite
 
 Migration somente aditiva e validada primeiro em staging.
 
-## G28-B4 — Fila de Documentos
+## G28-B4 — Fila / read model de revisão documental
 
-Implementar:
+Implementar o read model e a fila de revisão:
 
 - listagem;
 - filtros;
@@ -522,15 +547,23 @@ Implementar:
 - acesso ao arquivo;
 - indicação de vínculos;
 - indicação de duplicidade;
-- ação de validação.
+- indicação de que há ação de validação disponível.
 
-## G28-B5 — Modal de validação humana
+Sem persistir decisão humana nesta fase.
 
-Implementar o modal dinâmico e os contratos de ação.
+## G28-B5 — Persistência da decisão humana e dos vínculos canônicos
 
-## G28-B6 — Vínculos Pedido/OP
+Persistir a **decisão humana** e os **vínculos canônicos com Pedido/OP**,
+reutilizando a fonte canônica existente sempre que ela representar o fluxo
+corretamente (ver o mapeamento obrigatório de G28-B1). Sem UI funcional nesta fase.
 
-Implementar relações canônicas e regras de integridade.
+## G28-B6 — Modal funcional "Validar e vincular"
+
+Implementar o modal dinâmico e os contratos de ação **consumindo o backend real**
+de decisão e de vínculos.
+
+**O modal funcional não pode anteceder a persistência da decisão e dos vínculos
+(G28-B5).**
 
 ## G28-B7 — Exibição nas superfícies
 
@@ -542,7 +575,7 @@ Exibir em:
 - timeline;
 - buscas.
 
-## G28-B8 — Correção, revogação e auditoria
+## G28-B8 — Correção, revogação, restauração e auditoria
 
 Implementar:
 
@@ -916,23 +949,27 @@ Parar e retornar ao arquiteto se:
 
 ## Estados permitidos
 
-`PLANNED` · `AUTHORIZED` · `IN_PROGRESS` · `TECHNICALLY_ACCEPTED` · `PUBLISHED` ·
-`BLOCKED` · `REJECTED` · `DEFERRED` · `CLOSED` · `SUPERSEDED`.
+`PLANNED` · `AUTHORIZED` · `IN_PROGRESS` · `HOLD` · `TECHNICALLY_ACCEPTED` ·
+`PUBLISHED` · `BLOCKED` · `REJECTED` · `DEFERRED` · `CLOSED` · `SUPERSEDED`.
+
+Qualificadores compostos podem detalhar um estado base — por exemplo
+`REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT`,
+`ARCHITECTURAL CORRECTION IN PROGRESS` e `PLANNED / NOT AUTHORIZED`.
 
 ## Matriz de fases
 
 | ID | Fase | Estado | Dependências | Branch / workspace | Commit / HEAD | Evidência | Próximo passo |
 |---|---|---|---|---|---|---|---|
-| G28-P0 | Consolidação do plano, mapa de ativos e gates | IN_PROGRESS | G27 CLOSED/publicado | `work/g28-document-qualification` @ `controle-tapetes-g28` | `247345c8` | Este commit docs-only; plano, `CLAUDE_PROJECT_ASSET_MAP.md` e `UI_VISUAL_CONTRACT.md` registrados | Aceite do IAlead ao plano, mapa e contrato visual |
-| G28-A | Diagnóstico de schema/domínio documental | HOLD / DIAGNOSTIC INPUT | G28-P0 | — | — | Diagnóstico não versionado; `db/49`, `qualified`, `duplicate` como estado e matriz de qualificação **não aprovados** | Decisão arquitetural do IAlead antes de qualquer contrato |
-| G28-B1 | Contrato de domínio documental (tipos puros) | PLANNED | G28-P0 aceito + G28-A resolvido | a definir | — | — | Aguarda aceite estrutural |
-| G28-B2 | Persistência local e histórico (SQLite) | PLANNED | G28-B1 | a definir | — | — | Aguarda G28-B1 |
-| G28-B3 | Eventos, export e Supabase | PLANNED | G28-B2 | a definir | — | — | Migration apenas aditiva, validada em staging |
-| G28-B4 | Fila de Documentos | PLANNED | G28-B3 | a definir | — | — | Aguarda G28-B3 |
-| G28-B5 | Modal “Validar e vincular” | PLANNED | G28-B4 | a definir | — | — | Gate visual obrigatório |
-| G28-B6 | Vínculos Pedido/OP | PLANNED | G28-B5 | a definir | — | — | Aguarda G28-B5 |
-| G28-B7 | Exibição nas superfícies | PLANNED | G28-B6 | a definir | — | — | Aguarda G28-B6 |
-| G28-B8 | Correção, revogação e auditoria | PLANNED | G28-B7 | a definir | — | — | Aguarda G28-B7 |
+| G28-P0 | Consolidação do plano, mapa de ativos e gates (+ correção R1) | `ARCHITECTURAL CORRECTION IN PROGRESS` | G27 CLOSED/publicado | `work/g28-document-qualification` @ `controle-tapetes-g28` | `bdb2fa3` (registro inicial); R1 sobre este HEAD | Registro inicial + correção R1 do plano, mapa e contrato visual; aguardando aceite | Aceite do IAlead a G28-P0-R1 |
+| G28-A | Diagnóstico de schema/domínio documental | `REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` | G28-P0 | — | — | Schema, `db/49`, `qualified` como estado final, `duplicate` como estado principal e regra de "duas partes externas" **não aprovados**; evidências aproveitáveis | Insumo diagnóstico para G28-B1; não é contrato |
+| G28-B1 | Contrato de domínio documental | `PLANNED / NOT AUTHORIZED` | G28-P0-R1 aceito | a definir | — | — | Mapear fontes canônicas existentes antes de nova persistência |
+| G28-B2 | Persistência local da evidência e histórico técnico | PLANNED | G28-B1 | a definir | — | — | Aguarda G28-B1 |
+| G28-B3 | Eventos, exportação, Supabase e reader | PLANNED | G28-B2 | a definir | — | — | Migration apenas aditiva, validada em staging |
+| G28-B4 | Fila / read model de revisão documental | PLANNED | G28-B3 | a definir | — | — | Não persiste decisão humana |
+| G28-B5 | Persistência da decisão humana e dos vínculos canônicos Pedido/OP | PLANNED | G28-B4 | a definir | — | — | Reutilizar fonte canônica; sem UI |
+| G28-B6 | Modal funcional "Validar e vincular" (backend real) | PLANNED | G28-B5 | a definir | — | — | Não pode anteceder G28-B5 |
+| G28-B7 | Exibição nas superfícies (Documentos/Pedido/OP/timeline/buscas) | PLANNED | G28-B6 | a definir | — | — | Aguarda G28-B6 |
+| G28-B8 | Correção, revogação, restauração e auditoria | PLANNED | G28-B7 | a definir | — | — | Aguarda G28-B7 |
 | G28-C | Validação real em staging | PLANNED | G28-B8 | a definir | — | — | Cenários mínimos da Camada 1 |
 | G28-D | Publicação para o cliente acompanhar | PLANNED | G28-C | a definir | — | — | Marco `DOCUMENTOS — CLIENT OBSERVATION RELEASE` |
 | CAMADA 2 (A1–A7) | Administração de usuários e acessos | DEFERRED | Documentos estabilizado | — | — | — | Só após Camada 1 publicada |
@@ -941,19 +978,17 @@ Parar e retornar ao arquiteto se:
 
 ## Governança de atualização (regra permanente)
 
-Documentação canônica **não deve** ser atualizada antes do aceite técnico da
-fase. Após cada fase **tecnicamente aceita**, e somente então, o executor deve,
-em ordem:
+- uma fase pode ser registrada como `AUTHORIZED`, `IN_PROGRESS`, `HOLD` ou
+  `BLOCKED` durante a sua execução;
+- decisões definitivas, evidências finais, HEADs aceitos e o fechamento só entram
+  após o aceite técnico/arquitetural aplicável;
+- a IAexec **não** declara o próprio trabalho `CLOSED`;
+- `PROJECT_STATE.md` registra o estado atual (fase, HEAD, publicação, ambiente);
+- este plano registra a sequência e as decisões;
+- `AGENT_HANDOFF.md` registra a continuidade operacional.
 
-1. atualizar este plano (matriz de fases + decisões novas);
-2. atualizar `PROJECT_STATE.md` (raiz);
-3. atualizar `AGENT_HANDOFF.md` (raiz);
-4. atualizar o estado do serviço afetado (ex.: `services/documents-ingestor/PROJECT_STATE.md`);
-5. registrar commit, evidência e próximo passo;
-6. somente então encerrar (`CLOSED`) ou publicar (`PUBLISHED`) a fase.
-
-Enquanto uma fase estiver `IN_PROGRESS`, `HOLD`, `PLANNED` ou `BLOCKED`, o
-registro canônico deve refletir esse estado, sem antecipar aceite.
+Registrar o estado durante a execução não antecipa aceite: o fechamento
+(`CLOSED`) e a publicação (`PUBLISHED`) dependem da revisão aplicável.
 
 ---
 
@@ -973,10 +1008,10 @@ Este plano só passa a estado aprovado quando:
 
 # PRÓXIMA AÇÃO APÓS APROVAÇÃO
 
-Criar fase documental controlada para:
+Após o aceite de `G28-P0-R1`:
 
-```text
-G28-P0 — CONSOLIDAÇÃO DO PLANO MESTRE E GATES ESTRUTURAIS/VISUAIS
-```
+- reabrir a condução pelo Hermes;
+- emitir `G28-B1`, exclusivamente contrato de domínio documental;
+- sem migration, sem runtime e sem UI.
 
-Sem implementação funcional, sem migration e sem UI.
+`G28-B1` permanece `PLANNED / NOT AUTHORIZED` até esse aceite.

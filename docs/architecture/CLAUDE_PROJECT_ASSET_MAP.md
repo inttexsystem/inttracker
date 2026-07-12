@@ -1,10 +1,13 @@
 # MAPA DE ATIVOS E ARQUIVOS DO PROJETO — CLAUDE / RAVATEX
 
-> **Fase:** `G28-P0` — registro do plano documental e governança (docs-only).
+> **Fase:** `G28-P0` / correção `G28-P0-R1` — registro e correção dos documentos de governança (docs-only).
 > **Tipo:** inventário read-only; nenhum código, migration, teste ou `.claude`
 > foi alterado.
 > **Workspace:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
-> **Branch / HEAD:** `work/g28-document-qualification` @ `247345c8b4d63d9b4c871f55109fe39af244f40f`
+> **Branch:** `work/g28-document-qualification`
+> **Baseline do inventário:** `247345c8b4d63d9b4c871f55109fe39af244f40f` — HEAD sobre o qual `.claude` e os entrypoints foram inventariados.
+> **Commit inicial de registro:** `bdb2fa3b05361c761d55506192483fe4d8be5034` (G28-P0).
+> **HEAD atual:** não é permanente; confirmar sempre em `PROJECT_STATE.md` e via `git rev-parse HEAD`.
 > **Workspace original (quarentena, somente leitura):** `D:\OneDrive\Programação\Ravatex\controle-tapetes`
 
 Este mapa registra onde vivem as fontes de verdade do projeto, quais são
@@ -17,7 +20,13 @@ pasta `.claude` **não existir** nele (ver §13).
 
 ## 1. Documentos canônicos (arquitetura vigente)
 
-Ordem de leitura obrigatória antes de qualquer diagnóstico, contrato ou UI.
+§1 é o **catálogo canônico** de fontes — **não** é uma ordem de leitura integral
+obrigatória antes de toda tarefa:
+
+- o **gate inicial** de qualquer tarefa é `PROJECT_STATE.md` + `AGENT_HANDOFF.md`
+  + o plano aplicável;
+- §11 define as leituras específicas por tipo de tarefa;
+- as demais referências são lidas quando afetarem o escopo da tarefa.
 
 | Documento | Papel |
 |---|---|
@@ -66,8 +75,8 @@ tokens de autenticação, chaves ou segredos — os arquivos chamados `tokens/` 
 
 | Path (`.claude/…`) | Tracked | Finalidade | Tipo | Regra permanente? | Caminho local? | Usável em worktree novo? | Ação |
 |---|---|---|---|---|---|---|---|
-| `design-skill/SKILL.md` | untracked | Skill visual `inttex-ui` (gera telas no estilo Ravatex) | skill / instrução visual | Sim (regras de UI) | Não | Não (só existe no original) | **PROMOTE_TO_VERSIONED_DOC** → §6 de `UI_VISUAL_CONTRACT.md`; manter como `KEEP_AS_SKILL` |
-| `design-skill/README.md` | untracked | Guia visual completo (fundações, layout cockpit, componentes, regra de ouro de tabelas) | referência visual / instrução | Sim | Não | Não | **PROMOTE_TO_VERSIONED_DOC** (consolidado no contrato visual) |
+| `design-skill/SKILL.md` | untracked | Skill visual `inttex-ui` (gera telas no estilo Ravatex) | skill / instrução visual | Sim (regras de UI) | Não | Não (só existe no original) | `KEEP_AS_SKILL` (arquivo) + `PROMOTE_RULES_TO_VERSIONED_DOC` (regras permanentes → `UI_VISUAL_CONTRACT.md`) |
+| `design-skill/README.md` | untracked | Guia visual completo (fundações, layout cockpit, componentes, regra de ouro de tabelas) | referência visual / instrução | Sim | Não | Não | `KEEP_AS_SKILL` (arquivo) + `PROMOTE_RULES_TO_VERSIONED_DOC` (regras consolidadas em `UI_VISUAL_CONTRACT.md`) |
 | `design-skill/styles.css` | untracked | Entry CSS que importa Inter + tokens | referência visual | Parcial | Não | Não | REFERENCE_ONLY (equivalente versionado: `css/tokens.css`) |
 | `design-skill/tokens/colors.css` | untracked | Design tokens de cor da skill | referência visual | Parcial | Não | Não | REFERENCE_ONLY → canônico versionado `css/tokens.css` (`--rv-*`) |
 | `design-skill/tokens/layout.css` | untracked | Design tokens de layout | referência visual | Parcial | Não | Não | REFERENCE_ONLY |
@@ -134,7 +143,16 @@ versionado prevalece. Uma skill não pode contrariar a arquitetura.
 
 ## 10. Contratos de Supabase / documentos existentes
 
-| Artefato | Papel | Estado |
+**Snapshot de G28-P0 — não é fonte operacional permanente.** O estado das
+migrations abaixo é um retrato do momento do registro:
+
+- o estado atual deve ser confirmado em `PROJECT_STATE.md`, nas evidências de
+  aplicação e no ambiente alvo;
+- "Aplicado" aqui significa "reportado aplicado no snapshot de G28-P0", não uma
+  garantia permanente;
+- **nunca** executar ou pular uma migration com base apenas neste mapa.
+
+| Artefato | Papel | Estado (snapshot G28-P0) |
 |---|---|---|
 | `db/38_documentos_schema.sql` | Schema base de documentos | Aplicado |
 | `db/39_documentos_ingestor_state_undo.sql` | Estado do ingestor + undo de decisão | Aplicado |
@@ -147,9 +165,11 @@ versionado prevalece. Uma skill não pode contrariar a arquitetura.
 | `services/documents-ingestor/contracts/manifest.schema.json` | Schema do manifest | Canônico |
 | `docs/architecture/DOCUMENTS_INGESTOR_CONSUMER_DESIGN.md` | Design do consumer/reader do Controle | Canônico |
 
-> `db/49` **não existe** no tree versionado. Qualquer migration proposta em
-> G28-A (incluindo `db/49`, estados `qualified`/`duplicate` e matriz de
-> qualificação) está em **HOLD** e **não** é arquitetura vigente.
+> `db/49` **não existe** no tree versionado. A arquitetura proposta em G28-A
+> (incluindo `db/49`, `qualified` como estado final, `duplicate` como estado
+> principal e a matriz de qualificação) está
+> `REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` — **não** é arquitetura
+> vigente; suas evidências permanecem como insumo diagnóstico.
 
 ## 11. Arquivos obrigatórios por tipo de tarefa
 
@@ -162,19 +182,22 @@ versionado prevalece. Uma skill não pode contrariar a arquitetura.
 | Pedido / OP | `PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` + `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` + entrypoints §8/§9 |
 | Portal Cliente / Fornecedor | `PORTAL_B2B_ARCHITECTURE_RULES.md` + `docs/ui/CLIENTE_PORTAL_UI_*` |
 
-## 12. Precedência das fontes
+## 12. Precedência funcional das fontes
 
-Quando houver divergência, prevalece a fonte mais alta:
+Cada fonte resolve um tipo de questão. Em divergência, use a fonte cujo **escopo**
+corresponde à questão — não a posição em uma lista:
 
-1. decisões arquiteturais vigentes (docs canônicos §1);
-2. planos persistentes versionados (§2);
-3. contrato visual versionado (`UI_VISUAL_CONTRACT.md`);
-4. `PROJECT_STATE.md` e `AGENT_HANDOFF.md`;
-5. skills da `.claude`;
-6. preferência do agente.
+- **decisão explícita vigente do IAlead/arquiteto** — resolve decisão reservada e supersessão;
+- **contrato arquitetural do domínio** — resolve invariantes e semântica;
+- **`PROJECT_STATE.md`** — resolve fase, HEAD, publicação, ambiente e estado corrente;
+- **plano persistente aplicável** — resolve sequência, dependências e backlog;
+- **contrato específico da tarefa** (UI, schema, integração, outro domínio técnico) — resolve o domínio técnico correspondente;
+- **`AGENT_HANDOFF.md`** — resolve continuidade operacional, sem criar arquitetura;
+- **skill** — orienta a execução, sem alterar contrato;
+- **preferência do agente** — não cria regra.
 
-> **Uma skill não pode contrariar a arquitetura.** Preferência de agente é a
-> fonte mais fraca e nunca sobrepõe decisão canônica.
+> **Em conflito real, parar e escalar.** Não escolher silenciosamente uma fonte
+> apenas pela posição em uma lista. Uma skill não pode contrariar a arquitetura.
 
 ## 13. Risco: worktree limpo pode não conter `.claude`
 
@@ -195,6 +218,11 @@ ausente no disco; não está em `.gitignore`). Consequências:
 - `.claude/settings.local.json` (permissões da máquina, sem segredos);
 - `.claude/preview/*.html` e `.claude/preview/screenshots/*.png` (harness/evidência de verificação);
 - os mocks standalone e `example.html` (referência de apoio).
+
+> Previews, screenshots e mocks permanecem `KEEP_LOCAL` / `REFERENCE_ONLY`.
+> Somente um artefato **formalmente designado** como
+> `CANONICAL_VISUAL_ACCEPTANCE_REFERENCE` poderá ser promovido a documentação
+> versionada depois.
 
 ## 15. Itens que devem virar documentação versionada
 
