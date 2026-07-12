@@ -1,3 +1,23 @@
+# G28-B2-B2 — LOCAL TECHNICAL EVIDENCE STORE — CLOSEOUT
+
+- Status: `G28-B2-B2 — CLOSED / ACCEPTED`; a aceitação técnica precedeu o fechamento documental. G28-B2-B1 `CLOSED / ACCEPTED`.
+- Supervisor: Hermes IAsup. Executor: delegação nativa, implementação seletiva; o runtime não reportou identificador de modelo verificável.
+- Workspace: `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28\services\documents-ingestor`.
+- Branch / HEAD: `work/g28-document-qualification`; HEAD anterior `db02d6d0ed21e4f933b86a49372576e70719000f` (`db02d6d`); HEAD técnico `82baee39dd139a82d0791512c7176192a933b715`.
+- Causa raiz: a tabela `document_technical_evidences` já existia, mas não havia API local de persistência/histórico.
+- Arquivos técnicos alterados e commitados seletivamente: `src/core/evidenceStore.ts`, `tests/evidence-store.test.ts`.
+- Contrato entregue: versão interna, `db.transaction(append).immediate()` fora de transação, participação em transação externa/rollback, igualdade `evidence_version` ↔ `origin.evidenceVersion`, rejeição de JSON malformado e divergência, e retorno `null`/`[]` para legado.
+- Evidência: `npm.cmd test -- tests/evidence-store.test.ts tests/storage-schema.test.ts` → 2 arquivos / 48 testes aprovados; `git diff --cached --check` vazio; revisão independente: `passed=true`, sem achados de segurança ou lógica bloqueantes.
+- Commit: `82baee3` — `Add local technical evidence store`. Push: não realizado. Nenhum arquivo fora do commit técnico foi staged.
+- Estado Git após commit: index vazio; metadados operacionais `PROJECT_STATE.md` e `AGENT_HANDOFF.md` permanecem modificados fora do commit técnico.
+- Risco residual: Git mantém o débito administrativo já conhecido de `permission denied` ao tentar limpar metadados dos worktrees `baseline-worktree` e `controle-tapetes-g27-build-baseline`; nenhuma limpeza foi executada.
+- G28-B2-B3-A: ainda não iniciado.
+- G28-B2-B3-B: ainda não iniciado.
+- G28-B2-B4: ainda não iniciado.
+- Próxima fase: G28-B2-B3-A — expor observações técnicas produzidas pelo classifier.
+
+---
+
 # G28-B1-R1 — DOCUMENT CLOSEOUT
 
 PROJETO: Ravatex — Controle de Tapetes (monorepo)

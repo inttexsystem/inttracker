@@ -1,3 +1,16 @@
+> **Atualizacao 2026-07-12 — G28-B2-B2 — LOCAL TECHNICAL EVIDENCE STORE.**
+> Status: **G28-B2-B2 — CLOSED / ACCEPTED.** A aceitação técnica precedeu o fechamento documental.
+>
+> - Branch: `work/g28-document-qualification`; HEAD anterior `db02d6d`; HEAD técnico `82baee39dd139a82d0791512c7176192a933b715`.
+> - Commit seletivo: `82baee3` — `Add local technical evidence store`; sem push.
+> - Entrega: `appendTechnicalEvidence`, `getCurrentTechnicalEvidence` e `listTechnicalEvidenceHistory` com conexão SQLite injetada, versionamento interno, transação immediate externa/participação em transação existente, rollback do chamador, invariantes de versão e leitura fail-closed de JSON.
+> - Teste focado: 2 arquivos / 48 testes aprovados; `git diff --cached --check` OK; revisão independente sem achados bloqueantes.
+> - G28-B2-B3-A: ainda não iniciado.
+> - G28-B2-B3-B: ainda não iniciado.
+> - G28-B2-B4: ainda não iniciado.
+> - Próxima fase: G28-B2-B3-A — expor observações técnicas produzidas pelo classifier.
+> - Débito administrativo de `permission denied` para metadata de worktrees permanece separado; nenhuma limpeza executada.
+>
 > **Atualizacao 2026-07-12 — G28-B1-R1 — DOCUMENT CLOSEOUT.**
 > Status: **G28-B1-R1 `CLOSED / ACCEPTED`.**
 >
