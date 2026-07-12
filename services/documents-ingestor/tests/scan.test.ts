@@ -6,6 +6,9 @@ import { createScan } from '../src/core/realScan.js';
 import type { ScanDeps } from '../src/core/realScan.js';
 import { getDb, closeDb } from '../src/storage/sqlite.js';
 import { classifyAttachment } from '../src/core/classifier.js';
+import { buildTechnicalEvidence } from '../src/core/evidenceBuilder.js';
+import { getCurrentTechnicalEvidence } from '../src/core/evidenceStore.js';
+import type { EvidenceOrigin } from '../src/types/documentReview.js';
 
 function mkDeps(overrides: Partial<ScanDeps> = {}): ScanDeps {
   return {
@@ -45,7 +48,7 @@ describe('real scan flow (mocked Google)', () => {
     process.env.GOOGLE_DRIVE_ROOT_FOLDER_NAME = 'Ravatex Documents Ingestor';
     closeDb();
     const db = getDb();
-    db.exec('DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
+    db.exec('DELETE FROM document_technical_evidences; DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
   });
 
   afterEach(() => {
@@ -835,7 +838,7 @@ describe('entity CnpjRegistry integration', () => {
     process.env.GOOGLE_DRIVE_ROOT_FOLDER_NAME = 'Ravatex Documents Ingestor';
     closeDb();
     const db = getDb();
-    db.exec('DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
+    db.exec('DELETE FROM document_technical_evidences; DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
   });
 
   afterEach(() => {
@@ -1117,7 +1120,7 @@ describe('document party CNPJ persistence', () => {
     process.env.GOOGLE_DRIVE_ROOT_FOLDER_NAME = 'Ravatex Documents Ingestor';
     closeDb();
     const db = getDb();
-    db.exec('DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
+    db.exec('DELETE FROM document_technical_evidences; DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
   });
 
   afterEach(() => {
@@ -1328,7 +1331,7 @@ describe('B2 real scan: sample collection by MIME + extension (fast-xml-parser c
     process.env.GOOGLE_DRIVE_ROOT_FOLDER_NAME = 'Ravatex Documents Ingestor';
     closeDb();
     const db = getDb();
-    db.exec('DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
+    db.exec('DELETE FROM document_technical_evidences; DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
   });
 
   afterEach(() => {
@@ -1489,7 +1492,7 @@ describe('B3 real scan: PDF sample delivery (G27-B3)', () => {
     process.env.GOOGLE_DRIVE_ROOT_FOLDER_NAME = 'Ravatex Documents Ingestor';
     closeDb();
     const db = getDb();
-    db.exec('DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
+    db.exec('DELETE FROM document_technical_evidences; DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
   });
 
   afterEach(() => {
@@ -1811,7 +1814,7 @@ describe('B2-R1 real scan: full XML text delivery (>2048 bytes)', () => {
     process.env.GOOGLE_DRIVE_ROOT_FOLDER_NAME = 'Ravatex Documents Ingestor';
     closeDb();
     const db = getDb();
-    db.exec('DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
+    db.exec('DELETE FROM document_technical_evidences; DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
   });
 
   afterEach(() => {
@@ -2167,5 +2170,330 @@ describe('B2-R1 real scan: full XML text delivery (>2048 bytes)', () => {
     for (const err of r.errors) {
       expect(err, 'errors must not contain sentinel').not.toContain(SENTINEL);
     }
+  });
+});
+
+describe('G28-B2-B4: technical evidence persistence with FK-safe transaction', () => {
+  beforeEach(() => {
+    if (existsSync(DB_DIR)) rmSync(DB_DIR, { recursive: true });
+    mkdirSync(DB_DIR, { recursive: true });
+    process.env.DATABASE_PATH = join(DB_DIR, 'app.db');
+    process.env.OUTBOX_PATH = join(DB_DIR, 'outbox.jsonl');
+    process.env.LOCAL_CACHE_PATH = join(DB_DIR, 'cache');
+    process.env.GOOGLE_DRIVE_ROOT_FOLDER_NAME = 'Ravatex Documents Ingestor';
+    closeDb();
+    const db = getDb();
+    db.exec('DELETE FROM document_technical_evidences; DELETE FROM ingestion_events; DELETE FROM documentos; DELETE FROM emails_processados;');
+  });
+
+  afterEach(() => {
+    closeDb();
+    if (existsSync(DB_DIR)) rmSync(DB_DIR, { recursive: true });
+  });
+
+  const EMIT_CNPJ = '11222333000181';
+  const DEST_CNPJ = '11444777000161';
+  const VALID_XML = Buffer.from(
+    `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>${EMIT_CNPJ}</CNPJ></emit><dest><CNPJ>${DEST_CNPJ}</CNPJ></dest></infNFe></NFe></nfeProc>`
+  );
+  const REGISTRY = { loaded: true, loadedAt: new Date().toISOString(), entries: [], error: null };
+
+  function techOrigin(): Omit<EvidenceOrigin, 'evidenceVersion'> {
+    return {
+      technical: { source: 'realScan@G28-B4', authorship: 'system' },
+      suggestion: { source: 'system', authorship: 'realScan', note: 'normal ingestion' },
+    };
+  }
+
+  function pdfDeps(overrides: Partial<ScanDeps> = {}): ScanDeps {
+    return mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'msg-b4', threadId: 't', from: '', subject: 'B4', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async () => [
+        { gmailMessageId: 'msg-b4', threadId: 't', attachmentId: 'a-b4', filename: 'nfe.xml', mimeType: 'text/xml', size: VALID_XML.length },
+      ],
+      downloadAtt: async () => VALID_XML,
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => REGISTRY,
+      ...overrides,
+    });
+  }
+
+  it('persists a normal document, event and evidence v1 with exact classifier-builder observations and origin without forbidden decision fields', async () => {
+    const scan = createScan(pdfDeps());
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+
+    const db = getDb();
+    const docs = db.prepare(`SELECT id FROM documentos`).all() as Array<{ id: string }>;
+    expect(docs).toHaveLength(1);
+    const events = db.prepare(`SELECT * FROM ingestion_events WHERE event_type = 'document.detected'`).all();
+    expect(events).toHaveLength(1);
+
+    const stored = getCurrentTechnicalEvidence(db, docs[0].id);
+    expect(stored).not.toBeNull();
+    if (!stored) throw new Error('evidence missing');
+    expect(stored.evidenceVersion).toBe(1);
+    expect(stored.origin.evidenceVersion).toBe(1);
+    expect(stored.documentId).toBe(docs[0].id);
+
+    const classificacao = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      subject: 'B4',
+      contentSample: VALID_XML.toString('utf-8'),
+      entityRegistry: REGISTRY,
+    });
+    const expectedBuilt = buildTechnicalEvidence({
+      classification: classificacao,
+      registryAvailability: { kind: 'available' },
+      duplicateRelation: { kind: 'none', detectionBasis: 'gmail_message_id+attachment_id+sha256' },
+      origin: techOrigin(),
+    });
+    expect(stored.technicalEvidence).toEqual(expectedBuilt.technicalEvidence);
+    expect(stored.technicalEvidence.tipoDocumento).toBe('nf');
+    expect(stored.technicalEvidence.formato).toBe('xml');
+    expect(stored.technicalEvidence.xmlObservation.classification).toBe('structural_nfe');
+    expect(stored.technicalEvidence.cnpjEmitente).toEqual({ kind: 'valid', normalized: EMIT_CNPJ });
+    expect(stored.technicalEvidence.cnpjDestinatario).toEqual({ kind: 'valid', normalized: DEST_CNPJ });
+    expect(stored.technicalEvidence.registryAvailability).toEqual({ kind: 'available' });
+    expect(stored.technicalEvidence.duplicateRelation).toEqual({
+      kind: 'none',
+      detectionBasis: 'gmail_message_id+attachment_id+sha256',
+    });
+    expect(stored.technicalEvidence.directionObservation).not.toBeNull();
+    expect(stored.technicalEvidence.entityMatch).not.toBeNull();
+    if (stored.technicalEvidence.entityMatch) {
+      expect(stored.technicalEvidence.entityMatch.state).toBe('unmatched');
+    }
+
+    expect(stored.origin.evidenceVersion).toBe(1);
+    expect(stored.origin.technical).toEqual({ source: 'realScan@G28-B4', authorship: 'system' });
+    expect(stored.origin.suggestion).toEqual({ source: 'system', authorship: 'realScan', note: 'normal ingestion' });
+    for (const forbidden of [
+      'humanDecision',
+      'humanReview',
+      'score',
+      'confidence',
+      'autoAccept',
+      'autoaccept',
+      'accepted',
+      'rejected',
+      'rating',
+      'qualified',
+      'qualification',
+    ]) {
+      expect(stored.origin, `origin must not have ${forbidden}`).not.toHaveProperty(forbidden);
+    }
+
+    const inputOrigin = techOrigin();
+    expect(inputOrigin).not.toHaveProperty('evidenceVersion');
+    for (const forbidden of [
+      'humanDecision',
+      'score',
+      'confidence',
+      'autoAccept',
+      'autoaccept',
+    ]) {
+      expect(inputOrigin, `input origin must not have ${forbidden}`).not.toHaveProperty(forbidden);
+    }
+  });
+
+  it('rollback: forced evidence failure rolls back document/event/evidence together', async () => {
+    const db = getDb();
+    db.exec(
+      `CREATE TEMP TRIGGER _force_evidence_fail
+         BEFORE INSERT ON document_technical_evidences
+         BEGIN
+           SELECT RAISE(ABORT, 'forced evidence failure');
+         END;`
+    );
+
+    try {
+      const scan = createScan(pdfDeps());
+      const r = await scan({ confirmReal: true });
+      expect(r.newDocuments).toBe(0);
+      expect(r.errors.some((e) => e.includes('forced evidence failure'))).toBe(true);
+
+      const docCount = (db.prepare(`SELECT COUNT(*) AS c FROM documentos`).get() as { c: number }).c;
+      const evCount = (db.prepare(`SELECT COUNT(*) AS c FROM ingestion_events`).get() as { c: number }).c;
+      const tevCount = (db.prepare(`SELECT COUNT(*) AS c FROM document_technical_evidences`).get() as { c: number }).c;
+      expect(docCount).toBe(0);
+      expect(evCount).toBe(0);
+      expect(tevCount).toBe(0);
+    } finally {
+      db.exec(`DROP TRIGGER IF EXISTS _force_evidence_fail`);
+    }
+  });
+
+  it('rollback: forced event failure rolls back document/event/evidence together', async () => {
+    const db = getDb();
+    db.exec(
+      `CREATE TEMP TRIGGER _force_event_fail
+         BEFORE INSERT ON ingestion_events
+         BEGIN
+           SELECT RAISE(ABORT, 'forced event failure');
+         END;`
+    );
+
+    try {
+      const scan = createScan(pdfDeps());
+      const r = await scan({ confirmReal: true });
+      expect(r.newDocuments).toBe(0);
+      expect(r.errors.some((e) => e.includes('forced event failure'))).toBe(true);
+
+      const docCount = (db.prepare(`SELECT COUNT(*) AS c FROM documentos`).get() as { c: number }).c;
+      const evCount = (db.prepare(`SELECT COUNT(*) AS c FROM ingestion_events`).get() as { c: number }).c;
+      const tevCount = (db.prepare(`SELECT COUNT(*) AS c FROM document_technical_evidences`).get() as { c: number }).c;
+      expect(docCount).toBe(0);
+      expect(evCount).toBe(0);
+      expect(tevCount).toBe(0);
+    } finally {
+      db.exec(`DROP TRIGGER IF EXISTS _force_event_fail`);
+    }
+  });
+
+  it('rerun of the same email creates no extra evidence and preserves legacy counters', async () => {
+    const scan = createScan(pdfDeps());
+    const r1 = await scan({ confirmReal: true });
+    expect(r1.newDocuments).toBe(1);
+    expect(r1.crossMessageDuplicates).toBe(0);
+    expect(r1.duplicates).toBe(0);
+
+    const db = getDb();
+    const evidenceRows = db.prepare(`SELECT document_id, evidence_version FROM document_technical_evidences`).all();
+    expect(evidenceRows).toHaveLength(1);
+    const events = db.prepare(`SELECT * FROM ingestion_events`).all();
+    expect(events).toHaveLength(1);
+
+    const r2 = await scan({ confirmReal: true });
+    expect(r2.newDocuments).toBe(0);
+    expect(r2.crossMessageDuplicates).toBe(0);
+    expect(r2.duplicates).toBe(0);
+    expect(r2.errors).toEqual([]);
+
+    const evidenceRowsAfter = db.prepare(`SELECT document_id, evidence_version FROM document_technical_evidences`).all();
+    expect(evidenceRowsAfter).toHaveLength(1);
+    const eventsAfter = db.prepare(`SELECT * FROM ingestion_events`).all();
+    expect(eventsAfter).toHaveLength(1);
+  });
+
+  it('unavailable registry persists unavailable separately from matching', async () => {
+    const deps = pdfDeps({
+      createEntityCnpjReaderClient: () => { throw new Error('registry_load_failed simulated'); },
+      loadEntityCnpjRegistry: async () => ({ loaded: true, loadedAt: '', entries: [], error: null }),
+    });
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+
+    const db = getDb();
+    const docs = db.prepare(`SELECT id FROM documentos`).all() as Array<{ id: string }>;
+    expect(docs).toHaveLength(1);
+    const stored = getCurrentTechnicalEvidence(db, docs[0].id);
+    expect(stored).not.toBeNull();
+    if (!stored) throw new Error('evidence missing');
+
+    expect(stored.technicalEvidence.registryAvailability.kind).toBe('unavailable');
+    if (stored.technicalEvidence.registryAvailability.kind === 'unavailable') {
+      expect(stored.technicalEvidence.registryAvailability.reason).toMatch(/registry/i);
+      expect(stored.technicalEvidence.registryAvailability.warning)
+        .toBe('Registry unavailable: document matching limited. Human review required.');
+    }
+    expect(stored.technicalEvidence.entityMatch).not.toBeNull();
+    if (stored.technicalEvidence.entityMatch) {
+      expect(stored.technicalEvidence.entityMatch.state).toBe('registry_unavailable');
+      expect(stored.technicalEvidence.entityMatch.emitente.state).toBe('registry_unavailable');
+      expect(stored.technicalEvidence.entityMatch.destinatario.state).toBe('registry_unavailable');
+    }
+  });
+
+  it('download and upload observe database.inTransaction === false', async () => {
+    const observed: Array<{ phase: 'download' | 'upload'; inTransaction: boolean }> = [];
+    const deps = pdfDeps({
+      downloadAtt: async (msgId, attId) => {
+        const db = getDb();
+        observed.push({ phase: 'download', inTransaction: db.inTransaction });
+        return VALID_XML;
+      },
+      uploadDoc: async (params) => {
+        const db = getDb();
+        observed.push({ phase: 'upload', inTransaction: db.inTransaction });
+        return {
+          file: {
+            storageUri: `gdrive://file/${params.filename}`,
+            driveFileId: `id-${params.filename}`,
+            driveWebViewLink: `https://drive.google.com/file/d/id-${params.filename}/view`,
+            driveFolderId: 'mock-folder',
+          },
+        };
+      },
+    });
+    const scan = createScan(deps);
+    await scan({ confirmReal: true });
+
+    expect(observed.some((o) => o.phase === 'download')).toBe(true);
+    expect(observed.some((o) => o.phase === 'upload')).toBe(true);
+    for (const o of observed) {
+      expect(o.inTransaction).toBe(false);
+    }
+  });
+
+  it('cross-message reuse persists evidence with cross_message_reuse and canonicalRef, no document.detected event', async () => {
+    const fakePdf = Buffer.from('%PDF-1.4\nCROSS MESSAGE B4');
+    const firstUploadId = 'mock-b4-cross';
+    const bufMap: Record<string, Buffer> = {
+      'msg-b4-cross-A': fakePdf,
+      'msg-b4-cross-B': fakePdf,
+    };
+    const deps = mkDeps({
+      fetchEmails: async () => [
+        { gmailMessageId: 'msg-b4-cross-A', threadId: 'tA', from: '', subject: 'A', date: '', attachmentCount: 1 },
+        { gmailMessageId: 'msg-b4-cross-B', threadId: 'tB', from: '', subject: 'B (re-send)', date: '', attachmentCount: 1 },
+      ],
+      listAtts: async (msgId) => [
+        { gmailMessageId: msgId, threadId: 't', attachmentId: 'a', filename: 'NF-cross.pdf', mimeType: 'application/pdf', size: fakePdf.length },
+      ],
+      downloadAtt: async (msgId) => bufMap[msgId] ?? null,
+      uploadDoc: async () => ({
+        file: {
+          storageUri: `gdrive://file/${firstUploadId}`,
+          driveFileId: firstUploadId,
+          driveWebViewLink: `https://drive.google.com/file/d/${firstUploadId}/view`,
+          driveFolderId: 'mock-folder',
+        },
+      }),
+      createEntityCnpjReaderClient: () => ({ from: () => ({ select: () => ({ not: () => Promise.resolve({ data: [], error: null }) }) }) } as any),
+      loadEntityCnpjRegistry: async () => REGISTRY,
+    });
+
+    const scan = createScan(deps);
+    const r = await scan({ confirmReal: true });
+    expect(r.newDocuments).toBe(1);
+    expect(r.crossMessageDuplicates).toBe(1);
+
+    const db = getDb();
+    const docs = db.prepare(`SELECT id, gmail_message_id FROM documentos ORDER BY created_at`).all() as Array<{ id: string; gmail_message_id: string }>;
+    expect(docs).toHaveLength(2);
+    const events = db.prepare(`SELECT * FROM ingestion_events WHERE event_type = 'document.detected'`).all();
+    expect(events).toHaveLength(1);
+
+    const evidenceRows = db.prepare(`SELECT document_id, technical_evidence FROM document_technical_evidences ORDER BY document_id`).all() as Array<{ document_id: string; technical_evidence: string }>;
+    expect(evidenceRows).toHaveLength(2);
+
+    const secondDocId = docs[1].id;
+    const secondFromStore = getCurrentTechnicalEvidence(db, secondDocId);
+    expect(secondFromStore).not.toBeNull();
+    const duplicateRelation = secondFromStore!.technicalEvidence.duplicateRelation;
+    expect(duplicateRelation.kind).toBe('cross_message_reuse');
+    expect(duplicateRelation.detectionBasis).toBe('sha256+filename');
+    expect(duplicateRelation.canonicalRef).toMatchObject({
+      documentId: docs[0].id,
+      gmailMessageId: 'msg-b4-cross-A',
+      driveFileId: firstUploadId,
+      sha256: expect.any(String),
+      filenameOriginal: 'NF-cross.pdf',
+    });
   });
 });

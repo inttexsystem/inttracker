@@ -1,18 +1,49 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { getDb } from '../storage/sqlite.js';
 import { classifyAttachment } from './classifier.js';
+import type { ClassifyOutput } from './classifier.js';
 import { isDuplicate, isDuplicateInSameMessage, getProcessedEmailAttachmentCount, markEmailProcessed, findExistingBySha256 } from './dedupe.js';
 import { pendenteDrivePath } from './paths.js';
 import { uploadDocument } from '../connectors/drive.js';
 import { fetchRecentEmails, fetchMessageById, listAttachments, downloadAttachment, isAttachmentCandidate } from '../connectors/gmail.js';
 import { createRunLogger, type RunLogger } from './runLog.js';
 import { createDocumentEvent } from '../types/event.js';
-import { appendEvent, isEventDuplicate } from './outbox.js';
+import { appendEvent } from './outbox.js';
 import type { GmailAttachmentRef, GmailMessageMeta } from '../connectors/gmail.js';
 import { loadRegisteredEntityCnpjs } from './entityCnpjReader.js';
 import { createServiceRoleEntityCnpjReaderClient } from '../supabase/serviceRoleReaderClient.js';
 import type { SupabaseReaderClient } from './entityCnpjReader.js';
 import type { EntityCnpjRegistry } from '../types/entityCnpj.js';
+import { buildTechnicalEvidence } from './evidenceBuilder.js';
+import { appendTechnicalEvidence } from './evidenceStore.js';
+import type {
+  DuplicateRelation,
+  EvidenceOrigin,
+  RegistryAvailability,
+} from '../types/documentReview.js';
+
+const REGISTRY_UNAVAILABLE_WARNING = 'Registry unavailable: document matching limited. Human review required.';
+const REGISTRY_UNAVAILABLE_REASON_FALLBACK = 'registry_load_failed';
+const NORMAL_DUPLICATE_DETECTION_BASIS = 'gmail_message_id+attachment_id+sha256';
+const CROSS_MESSAGE_DUPLICATE_DETECTION_BASIS = 'sha256+filename';
+
+function mapRegistryAvailability(registry: EntityCnpjRegistry): RegistryAvailability {
+  if (registry.loaded) {
+    return { kind: 'available' };
+  }
+  return {
+    kind: 'unavailable',
+    reason: registry.error ?? REGISTRY_UNAVAILABLE_REASON_FALLBACK,
+    warning: REGISTRY_UNAVAILABLE_WARNING,
+  };
+}
+
+function buildTechnicalOrigin(note: string): Omit<EvidenceOrigin, 'evidenceVersion'> {
+  return {
+    technical: { source: 'realScan@G28-B4', authorship: 'system' },
+    suggestion: { source: 'system', authorship: 'realScan', note },
+  };
+}
 
 export interface ScanOptions {
   daysBack?: number;
@@ -187,41 +218,75 @@ export function createScan(deps: ScanDeps = defaultDeps) {
 
           const crossMatch = findExistingBySha256(sha256, att.filename, att.size);
           if (crossMatch) {
+            const crossClassificacao: ClassifyOutput = classifyAttachment({
+              filename: att.filename,
+              mimeType: att.mimeType,
+              subject: email.subject,
+              contentSample: sampleContent(buffer, att.mimeType, att.filename),
+              entityRegistry,
+            });
+            const crossRegistryAvailability = mapRegistryAvailability(entityRegistry);
+            const crossDuplicateRelation: DuplicateRelation = {
+              kind: 'cross_message_reuse',
+              detectionBasis: CROSS_MESSAGE_DUPLICATE_DETECTION_BASIS,
+              canonicalRef: {
+                documentId: crossMatch.documentId,
+                gmailMessageId: crossMatch.gmailMessageId,
+                driveFileId: crossMatch.driveFileId,
+                sha256,
+                filenameOriginal: att.filename,
+              },
+            };
+            const crossOrigin = buildTechnicalOrigin('cross-message reuse');
+            const crossBuilt = buildTechnicalEvidence({
+              classification: crossClassificacao,
+              registryAvailability: crossRegistryAvailability,
+              duplicateRelation: crossDuplicateRelation,
+              origin: crossOrigin,
+            });
             const documentId = randomUUID();
-            database.prepare(
-              `INSERT INTO documentos (
-                 id, gmail_message_id, thread_id, attachment_id, filename_original,
-                 sha256, sender_email, email_message_id, email_received_at, email_received_at_source, email_received_at_estimated,
-                 tipo_documento, formato, direcao_nf, cnpj_emitente, cnpj_destinatario,
-                 storage_backend, storage_uri, drive_file_id, drive_folder_id,
-                 drive_web_view_link, drive_web_content_link, local_cache_path,
-                 status
-               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`
-            ).run(
-              documentId,
-              email.gmailMessageId,
-              email.threadId,
-              att.attachmentId,
-              att.filename,
-              sha256,
-              email.senderEmail,
-              email.gmailMessageId,
-              email.emailReceivedAt,
-              email.emailReceivedAtSource,
-              email.emailReceivedAtEstimated ? 1 : 0,
-              'desconhecido',
-              'desconhecido',
-              null,
-              null,
-              null,
-              'google_drive',
-              crossMatch.storageUri,
-              crossMatch.driveFileId,
-              crossMatch.driveFolderId,
-              crossMatch.driveWebViewLink,
-              crossMatch.driveWebContentLink,
-              null,
-            );
+            const persistCrossReuseDocument = database.transaction(() => {
+              database.prepare(
+                `INSERT INTO documentos (
+                   id, gmail_message_id, thread_id, attachment_id, filename_original,
+                   sha256, sender_email, email_message_id, email_received_at, email_received_at_source, email_received_at_estimated,
+                   tipo_documento, formato, direcao_nf, cnpj_emitente, cnpj_destinatario,
+                   storage_backend, storage_uri, drive_file_id, drive_folder_id,
+                   drive_web_view_link, drive_web_content_link, local_cache_path,
+                   status
+                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`
+              ).run(
+                documentId,
+                email.gmailMessageId,
+                email.threadId,
+                att.attachmentId,
+                att.filename,
+                sha256,
+                email.senderEmail,
+                email.gmailMessageId,
+                email.emailReceivedAt,
+                email.emailReceivedAtSource,
+                email.emailReceivedAtEstimated ? 1 : 0,
+                'desconhecido',
+                'desconhecido',
+                null,
+                null,
+                null,
+                'google_drive',
+                crossMatch.storageUri,
+                crossMatch.driveFileId,
+                crossMatch.driveFolderId,
+                crossMatch.driveWebViewLink,
+                crossMatch.driveWebContentLink,
+                null,
+              );
+              appendTechnicalEvidence(database, {
+                documentId,
+                technicalEvidence: crossBuilt.technicalEvidence,
+                origin: crossBuilt.origin,
+              });
+            });
+            persistCrossReuseDocument.immediate();
             crossMessageDuplicates++;
             processedAttachments++;
             processedCount++;
@@ -248,42 +313,20 @@ export function createScan(deps: ScanDeps = defaultDeps) {
             data: buffer,
           });
 
-          const documentId = randomUUID();
-          database.prepare(
-            `INSERT INTO documentos (
-               id, gmail_message_id, thread_id, attachment_id, filename_original,
-               sha256, sender_email, email_message_id, email_received_at, email_received_at_source, email_received_at_estimated,
-               tipo_documento, formato, direcao_nf, cnpj_emitente, cnpj_destinatario,
-               storage_backend, storage_uri, drive_file_id, drive_folder_id,
-               drive_web_view_link, drive_web_content_link, local_cache_path,
-               status
-             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`
-          ).run(
-            documentId,
-            email.gmailMessageId,
-            email.threadId,
-            att.attachmentId,
-            att.filename,
-            sha256,
-            email.senderEmail,
-            email.gmailMessageId,
-            email.emailReceivedAt,
-            email.emailReceivedAtSource,
-            email.emailReceivedAtEstimated ? 1 : 0,
-            classificacao.tipoDocumento,
-            classificacao.formato,
-            classificacao.direcaoNf,
-            classificacao.cnpjEmitente,
-            classificacao.cnpjDestinatario,
-            'google_drive',
-            upload.file.storageUri,
-            upload.file.driveFileId,
-            upload.file.driveFolderId ?? null,
-            upload.file.driveWebViewLink,
-            upload.file.driveWebContentLink ?? null,
-            null,
-          );
+          const registryAvailability = mapRegistryAvailability(entityRegistry);
+          const duplicateRelation: DuplicateRelation = {
+            kind: 'none',
+            detectionBasis: NORMAL_DUPLICATE_DETECTION_BASIS,
+          };
+          const origin = buildTechnicalOrigin('normal ingestion');
+          const built = buildTechnicalEvidence({
+            classification: classificacao,
+            registryAvailability,
+            duplicateRelation,
+            origin,
+          });
 
+          const documentId = randomUUID();
           const detectedEventId = randomUUID();
           const detectedEvent = createDocumentEvent({
             eventId: detectedEventId,
@@ -303,7 +346,41 @@ export function createScan(deps: ScanDeps = defaultDeps) {
             status: 'pending_app_acceptance',
           });
 
-          if (!isEventDuplicate(detectedEventId)) {
+          const persistDetectedDocument = database.transaction(() => {
+            database.prepare(
+              `INSERT INTO documentos (
+                 id, gmail_message_id, thread_id, attachment_id, filename_original,
+                 sha256, sender_email, email_message_id, email_received_at, email_received_at_source, email_received_at_estimated,
+                 tipo_documento, formato, direcao_nf, cnpj_emitente, cnpj_destinatario,
+                 storage_backend, storage_uri, drive_file_id, drive_folder_id,
+                 drive_web_view_link, drive_web_content_link, local_cache_path,
+                 status
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`
+            ).run(
+              documentId,
+              email.gmailMessageId,
+              email.threadId,
+              att.attachmentId,
+              att.filename,
+              sha256,
+              email.senderEmail,
+              email.gmailMessageId,
+              email.emailReceivedAt,
+              email.emailReceivedAtSource,
+              email.emailReceivedAtEstimated ? 1 : 0,
+              classificacao.tipoDocumento,
+              classificacao.formato,
+              classificacao.direcaoNf,
+              classificacao.cnpjEmitente,
+              classificacao.cnpjDestinatario,
+              'google_drive',
+              upload.file.storageUri,
+              upload.file.driveFileId,
+              upload.file.driveFolderId ?? null,
+              upload.file.driveWebViewLink,
+              upload.file.driveWebContentLink ?? null,
+              null,
+            );
             database.prepare(
               `INSERT INTO ingestion_events (
                  id, event_type, pedido_manual, document_id, status,
@@ -323,8 +400,14 @@ export function createScan(deps: ScanDeps = defaultDeps) {
               null,
               null,
             );
-            appendEvent(detectedEvent);
-          }
+            appendTechnicalEvidence(database, {
+              documentId,
+              technicalEvidence: built.technicalEvidence,
+              origin: built.origin,
+            });
+          });
+          persistDetectedDocument.immediate();
+          appendEvent(detectedEvent);
 
           newDocuments++;
           processedAttachments++;
