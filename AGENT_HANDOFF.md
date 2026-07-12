@@ -1,29 +1,29 @@
-# G27-B0 + G27-B-CORE — ISOLATED DOCUMENT RECOGNITION SAFETY HARDENING
+# G27-D3 — DOCUMENTATION-ONLY PATCH — G27-B-CORE CLOSED/ACCEPTED TECHNICALLY
 
 PROJETO: Ravatex — Controle de Tapetes (monorepo)
 WORKSPACE ORIGINAL EM QUARENTENA: `D:\\OneDrive\\Programação\\Ravatex\\controle-tapetes`
 WORKSPACE G27: `D:\\OneDrive\\Programação\\Ravatex\\controle-tapetes-g27`
 BRANCH G27: `work/g27-document-recognition-safety`
 HEAD INICIAL CANONICO: `26111e04ab185dc1f484567cc48f3516cd6012a1`
-FASE: G27-B2-R1 E G27-B-CORE-GATE-R1 COM EVIDENCIA TECNICA; DECISAO ARQUITETURAL E INTEGRACAO EM `work/app-next` PENDENTES
+FASE: G27-D3 — ARQUITETURA G27-B2-R1 E G27-B-CORE-GATE-R1 ACEITAS; G27-B-CORE CLOSED/ACCEPTED TECHNICALLY
 
 ## RESULTADO E EVIDENCIA
 
-- G27-B0 confirmou o worktree novo limpo: branch exclusiva, HEAD canônico, index/working tree/untracked/diffs vazios. O original foi consultado somente em leitura e preservado sem mutacao.
-- B1: CNPJ normalizado somente de pontuacao e validado por tamanho, repeticao e digitos verificadores antes de matching, direcao e persistencia; invalidos resultam `null`.
-- B2-R1: XML candidato usa o texto UTF-8 integral do Buffer ja baixado para XML bem-formado + estrutura NF-e; nao faz novo download, nao tem limite de tamanho e nao persiste XML bruto. PDF continua usando somente o prefixo inicial de 2048 bytes. XML truncado/malformado/generico falha fechado como `desconhecido`; CNPJ apos 2048 e extraido quando estruturalmente valido.
-- Parser: `processEntities: false`; entidades XML internas nao expandem CNPJ, mantendo extração fail-closed.
-- B3: PDF exige prefixo inicial `%PDF-` para NF; tokens explicitos eliminam falsos positivos `info.pdf`/`conferencia.pdf`; romaneio por nome/assunto tem precedencia e nenhum autoaceite foi criado.
-- Commits locais: `5b012a0`, `3cc3999`, `09b45f8`, `8b3f9fd`, `aac06be`, `ab1e85e`, `a06fa62`.
-- Testes focados: classifier/scan **4 arquivos / 250 testes** verdes; suite completa Documents Ingestor: **40 arquivos / 812 testes** verde.
-- Build: baseline detached `26111e04` e G27 retornaram `tsc` exit 2 com os mesmos 8 erros (`drive.ts`, eventos historicos em `realScan.ts`, `syncMapped.ts`); debt comprovado preexistente.
-- Revisao integral independente final: Kimi K2.7 Code, somente leitura, revisou `26111e04..9a3aae2` e retornou `APPROVE`; a arvore permaneceu limpa.
-- Git final antes da documentacao: apenas os tres documentos permanentes previstos em alteracao; staging seletivo sera usado. Nenhum push, merge, cherry-pick ou contato remoto; `work/app-next` continua intocada.
-- Debito preservado: metadata orfa `.git/worktrees/baseline-worktree`; nao executar prune sem ordem independente.
+- Arquitetura G27-B2-R1 (XML integral sem persistencia, PDF prefixado, processEntities false, validacao CNPJ) e G27-B-CORE-GATE-R1 (gate de evidencia tecnica) aceitas pelo arquiteto. G27-B-CORE CLOSED/ACCEPTED TECHNICALLY.
+- HEAD tecnico `21f6a7dfb879e78fb1d142828818e40fce9824fc` publicado diretamente em `staging/work/app-next` a partir da worktree isolada `work/g27-document-recognition-safety`.
+- Primeiro CI workflow Documents Ingestor Tests: run `29172909813`, evento `push`, branch `work/app-next`, SHA `21f6a7dfb879e78fb1d142828818e40fce9824fc`, conclusao `success`, 40 files / 812 tests. URL: https://github.com/ravatexapps-dotcom/controle-tapetes-staging/actions/runs/29172909813
+- Build debt preexistente verificado: conjunto identico de 8/8 erros TypeScript em baseline e G27.
+- Workspace original permanece em quarentena, inalterado. Nenhum `origin` ou force push. `work/app-next` local nao atualizado; `staging/work/app-next` remoto e a referencia publicada.
+- Branch G27 preservada. Diretorio residual `controle-tapetes-g27-build-baseline` permanece debito de cleanup; metadata orfa `baseline-worktree` (`.git/worktrees/baseline-worktree`) e debito separado de cleanup.
 
-## PROXIMO PASSO
+## DEBITOS FUTUROS SEPARADOS
 
-Executar snapshot somente-leitura final do original e submeter a cadeia ao arquiteto. Nao integrar, cherry-pickar, mesclar nem publicar nesta cadeia.
+- Persisted qualification
+- Review UI
+- Manifest accumulation
+- Historic TypeScript build
+- npm vulnerabilities
+- Worktree cleanup
 
 ---
 

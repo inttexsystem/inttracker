@@ -1,14 +1,22 @@
-> **Atualizacao 2026-07-11 — G27-B2-R1 + G27-B-CORE-GATE-R1 — FULL XML INPUT CORRECTION.**
-> Status: **evidencia tecnica coletada em worktree isolado; decisao arquitetural de B-CORE e integracao em `work/app-next` permanecem pendentes.**
+> **Atualizacao 2026-07-11 — G27-D3 — DOCUMENTATION-ONLY PATCH — G27-B-CORE CLOSED/ACCEPTED TECHNICALLY.**
+> Status: **arquitetura G27-B2-R1 e G27-B-CORE-GATE-R1 aceitas; G27-B-CORE CLOSED/ACCEPTED TECHNICALLY.**
 >
-> - Workspace original preservado em quarentena, sem alteracao pela cadeia: `D:\\OneDrive\\Programação\\Ravatex\\controle-tapetes` (`work/app-next`, HEAD `26111e04ab185dc1f484567cc48f3516cd6012a1`).
-> - Workspace G27 isolado: `D:\\OneDrive\\Programação\\Ravatex\\controle-tapetes-g27`; branch local `work/g27-document-recognition-safety`, criada do HEAD canonico `26111e04ab185dc1f484567cc48f3516cd6012a1`.
-> - Commits G27 locais: `5b012a0` (CNPJ), `3cc3999` (fast-xml-parser MIT 5.2.5 + `strnum`), `09b45f8` (estrutura NF-e), `8b3f9fd` (PDF), `aac06be` (fixtures), `ab1e85e` (parse XML integral) e `a06fa62` (entidades XML internas desabilitadas).
-> - B2-R1: XML candidato e convertido do Buffer integral ja baixado, sem novo download ou limite artificial; somente PDF usa prefixo limitado a 2048 bytes. XML bruto nao e persistido em SQLite, outbox/JSONL, logs ou Supabase. XML malformado/truncado e estrutura nao fiscal continuam `desconhecido`.
-> - Regressao: NF-e grande com raiz `NFe`/`nfeProc`, namespaces padrao/prefixado, `infNFe`/emit/dest/CNPJ/fechamento apos 2048, XML malformado/generico e sentinela de nao-persistencia; PDF com token NF somente apos 2048 confirma o limite PDF. Entidades internas nao expandem CNPJ.
-> - Verificacao: focados **4 arquivos / 250 testes** verdes; suite completa **40 arquivos / 812 testes** verde. Baseline detached em `26111e04` e G27 retornaram o mesmo build `tsc` (exit 2; 8 erros TypeScript identicos), portanto build debt e preexistente.
-> - Revisao integral independente final: Kimi K2.7 Code em modo somente-leitura avaliou `26111e04..9a3aae2` e emitiu `APPROVE`; `git status --short` permaneceu vazio ao encerramento da revisao.
-> - Nenhum push, merge, cherry-pick ou alteracao em `work/app-next`; remotos nao publicados. Nenhum `prune` explicito foi executado; a metadata orfa `baseline-worktree` permanece debito conhecido.
+> - Workspace original preservado em quarentena: `D:\\OneDrive\\Programação\\Ravatex\\controle-tapetes` (`work/app-next`, HEAD `26111e04`), inalterado.
+> - Workspace G27 isolado: `D:\\OneDrive\\Programação\\Ravatex\\controle-tapetes-g27`; branch `work/g27-document-recognition-safety`.
+> - HEAD tecnico `21f6a7dfb879e78fb1d142828818e40fce9824fc` publicado diretamente em `staging/work/app-next` a partir da worktree isolada.
+> - Primeiro CI workflow Documents Ingestor Tests: run `29172909813`, evento `push`, branch `work/app-next`, SHA `21f6a7dfb879e78fb1d142828818e40fce9824fc`, conclusao `success`, 40 files / 812 tests. URL: https://github.com/ravatexapps-dotcom/controle-tapetes-staging/actions/runs/29172909813
+> - Parsing estrutural XML completo a partir do Buffer integral ja baixado; PDF limitado ao prefixo inicial de 2048 bytes; `processEntities: false`; validacao checksum CNPJ.
+> - Build debt preexistente verificado: conjunto identico de 8/8 erros TypeScript em baseline `26111e04` e G27.
+> - Nenhum `origin` ou force push; `work/app-next` local original nao atualizado; `staging/work/app-next` remoto e a referencia publicada.
+> - Branch G27 preservada. Diretorio residual `controle-tapetes-g27-build-baseline` permanece debito de cleanup; metadata orfa `baseline-worktree` (`.git/worktrees/baseline-worktree`) e debito separado de cleanup.
+>
+> **Debitos futuros separados:**
+> - Persisted qualification
+> - Review UI
+> - Manifest accumulation
+> - Historic TypeScript build
+> - npm vulnerabilities
+> - Worktree cleanup
 >
 > **Atualizacao 2026-07-11 — fase
 > `G26-C-D — FINAL MONOREPO CLOSEOUT DOCUMENTATION`.**
