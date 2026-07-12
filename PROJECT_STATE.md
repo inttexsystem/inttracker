@@ -1,3 +1,17 @@
+> **Atualizacao 2026-07-12 — G28-B3-B4-C — TECHNICAL EVIDENCE WRITER — B3-B4 DOCUMENT CLOSEOUT.**
+> Status: **G28-B3-B4 — CLOSED / ACCEPTED.** Fase exclusivamente documental; nenhum código, teste, schema ou migration alterado nesta fase de closeout.
+>
+> - Branch: `work/g28-document-qualification`; HEAD técnico final `96f2d4de5034891e2d2f520459bb2317d437b4f1`.
+> - **G28-B3-B1 — contrato de exportação:** `b794bb7` — `Define technical evidence export contract`.
+> - **G28-B3-B2 — exportação JSONL:** `812433d` — `Export current technical evidence as JSONL`.
+> - **G28-B3-B3 — schema remoto e RPC:** `7abafbb` — `Add Supabase technical evidence storage`; migration `db/49_document_technical_evidences.sql` versionada e **não aplicada** (tabela filha `document_technical_evidences`; PK composta `document_id + evidence_version`; FK `document_id → document_candidates(document_id)` com `ON DELETE CASCADE`; RLS admin-only; RPC `upsert_document_technical_evidence_ingestor_state` restrita a `service_role`); testes 92/92.
+> - **G28-B3-B4 — writer service-role:** commit técnico `abe49f1` — `Add Supabase technical evidence writer`; hardening `96f2d4d` — `Harden technical evidence writer errors` (G28-B3-B4-R1). Client RPC injetado (`TechnicalEvidenceRpcClient`); nenhuma criação de client, ambiente ou credencial; uma chamada RPC por invocação; nenhum retry; nenhum log; nenhuma integração com sync. Mapeamento exato dos cinco parâmetros (`p_document_id`, `p_evidence_version`, `p_technical_evidence`, `p_origin`, `p_created_at`); `schemaVersion` nunca enviado. Resultados válidos `inserted`/`unchanged`; erros tipados `conflict`/`writer_required`/`migration_required`/`invalid_response`/`remote_error`. Hardening R1: nome isolado da RPC não implica `migration_required`; "does not exist" não relacionado não implica `migration_required`; `permission denied` vira `remote_error`; rejeições de `client.rpc()` classificadas sem retry; `cause` preservada; mensagens sem payload técnico. Testes finais: 91/91, duas execuções. Typecheck global vermelho por falhas **preexistentes** em `src/connectors/drive.ts`, `src/core/realScan.ts` e `src/core/syncMapped.ts`; nenhuma falha reportada em `technicalEvidenceWriter.ts`.
+> - **Resultado do B3-B4:** writer estreito e testado sobre a RPC da migration 49; sem consumidor no sync; nenhum reader, UI ou decisão humana alterados.
+> - **Estado da cadeia:** G28-B3-B1 `CLOSED/ACCEPTED`; G28-B3-B2 `CLOSED/ACCEPTED`; G28-B3-B3 `CLOSED/ACCEPTED`; G28-B3-B4 `CLOSED/ACCEPTED`; **G28-B3-B5 — NOT STARTED**. Migration 49: `VERSIONED / NOT APPLIED`. Supabase real: `NOT ACCESSED`. Push: `NOT EXECUTED`.
+> - **Próxima fase:** G28-B3-B5-A — Technical Evidence Sync Integration Diagnostic — **READ-ONLY**; diagnóstico de integração, sem implementação.
+> - **Débito administrativo não bloqueante:** o Git continua emitindo `permission denied` ao tentar remover metadata dos worktrees `baseline-worktree` e `controle-tapetes-g27-build-baseline`; nenhuma limpeza, prune ou manipulação de `.git/worktrees` foi executada.
+>
+
 > **Atualizacao 2026-07-12 — G28-B2-B5 — DOCUMENT CLOSEOUT.**
 > Status: **G28-B2 — CLOSED / ACCEPTED.** Fase exclusivamente documental; nenhum arquivo técnico alterado.
 >

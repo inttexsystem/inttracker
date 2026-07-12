@@ -1,5 +1,15 @@
 # PROJECT STATE
 
+> **Atualizacao 2026-07-12 — G28-B3-B4 — TECHNICAL EVIDENCE WRITER — CLOSED / ACCEPTED.**
+> Status: **G28-B3-B4 `CLOSED / ACCEPTED`** (inclui hardening G28-B3-B4-R1). Branch `work/g28-document-qualification`; HEAD técnico final `96f2d4de5034891e2d2f520459bb2317d437b4f1`.
+>
+> - **B3-B1 — contrato de exportação:** `b794bb7` — `Define technical evidence export contract`.
+> - **B3-B2 — exportação JSONL:** `812433d` — `Export current technical evidence as JSONL`.
+> - **B3-B3 — schema remoto e RPC:** `7abafbb` — `Add Supabase technical evidence storage`; `db/49_document_technical_evidences.sql` versionada, **não aplicada**; tabela `document_technical_evidences` (PK composta `document_id + evidence_version`; FK `document_id → document_candidates(document_id)` `ON DELETE CASCADE`); RLS admin-only; RPC `upsert_document_technical_evidence_ingestor_state` restrita a `service_role`; testes 92/92.
+> - **B3-B4 — writer service-role:** técnico `abe49f1` — `Add Supabase technical evidence writer`; hardening `96f2d4d` — `Harden technical evidence writer errors`. `src/supabase/technicalEvidenceWriter.ts`; client RPC injetado (`TechnicalEvidenceRpcClient`); sem criação de client, ambiente ou credencial; uma chamada RPC por invocação; sem retry, backoff ou log; sem integração com sync. Mapeamento exato dos cinco parâmetros (`p_document_id`, `p_evidence_version`, `p_technical_evidence`, `p_origin`, `p_created_at`); `schemaVersion` nunca enviado. Resultados válidos `inserted`/`unchanged`; erros tipados `conflict`/`writer_required`/`migration_required`/`invalid_response`/`remote_error`. Hardening R1: nome isolado da RPC e "does not exist" não relacionado não implicam `migration_required`; `permission denied` vira `remote_error`; `migration_required` exige sinal concreto (`PGRST202` ou `42883`/mensagem de ausência referenciando a RPC esperada); rejeições de `client.rpc()` convertidas em erro tipado sem retry; `cause` preservada; mensagens sem payload técnico. Testes finais: 91/91, duas execuções. Typecheck global vermelho por falhas **preexistentes** em `src/connectors/drive.ts`, `src/core/realScan.ts` e `src/core/syncMapped.ts`; nenhuma falha em `technicalEvidenceWriter.ts`.
+> - **Estado da cadeia:** B3-B1/B3-B2/B3-B3/B3-B4 `CLOSED/ACCEPTED`; **B3-B5 — NOT STARTED**. Migration 49: `VERSIONED / NOT APPLIED`. Supabase real: `NOT ACCESSED`. Push: `NOT EXECUTED`.
+> - Próxima fase: G28-B3-B5-A — Technical Evidence Sync Integration Diagnostic — **READ-ONLY**; sem implementação de sync nesta próxima fase.
+
 > **Atualizacao 2026-07-12 — G28-B2 — TECHNICAL EVIDENCE PERSISTENCE — CLOSED / ACCEPTED.**
 > Status: **G28-B2 `CLOSED / ACCEPTED`** (closeout documental G28-B2-B5). Cadeia B2 integral entregue dentro do Ingestor; branch `work/g28-document-qualification`; HEAD técnico `cb496ade5aa69d66b435409ba55745373a01ae30`.
 >
