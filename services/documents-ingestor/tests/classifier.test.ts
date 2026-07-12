@@ -5,6 +5,12 @@ import { fileURLToPath } from 'node:url';
 import { classifyAttachment, lerDirecaoNFe, extrairPartesNFe } from '../src/core/classifier.js';
 import type { DocumentEntityMatchInput } from '../src/types/documentEntityMatch.js';
 import type { EntityCnpjRegistry, RegisteredEntityCnpj } from '../src/types/entityCnpj.js';
+import type {
+  XmlObservation,
+  PdfObservation,
+  MimeExtensionObservation,
+  CnpjPartyState,
+} from '../src/types/documentReview.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixturesDir = resolve(__dirname, 'fixtures');
@@ -1494,5 +1500,576 @@ describe('G27 entity expansion disabled (security regression)', () => {
     });
     expect(result.cnpjEmitente).toBe('11222333000181');
     expect(result.cnpjDestinatario).toBe(DEST_CNPJ);
+  });
+});
+
+// ============================================================================
+// G28-B2-B3-A — technicalObservations on classifyAttachment output
+//   * additive only; legacy fields (tipoDocumento/formato/direcaoNf/
+//     cnpjEmitente/cnpjDestinatario/entityMatch) remain unchanged
+//   * entityMatch and direcaoNf are NOT inside technicalObservations
+//   * no raw payload / buffer inside any observation (JSON-serializable)
+// ============================================================================
+
+describe('G28-B2-B3-A technicalObservations (XML)', () => {
+  const EMIT_CNPJ = '11444777000161';
+  const DEST_CNPJ = '11222333000181';
+
+  function nfeXml(emitCnpj: string, destCnpj: string): string {
+    return `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>${emitCnpj}</CNPJ></emit><dest><CNPJ>${destCnpj}</CNPJ></dest></infNFe></NFe></nfeProc>`;
+  }
+
+  it('xml observation is unavailable when file is not an XML candidate (PDF)', () => {
+    const result = classifyAttachment({
+      filename: 'doc.pdf',
+      mimeType: 'application/pdf',
+    });
+    const obs = result.technicalObservations.xml as XmlObservation;
+    expect(obs.classification).toBe('unavailable');
+  });
+
+  it('xml observation is structural_nfe for valid NFe XML', () => {
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: nfeXml(EMIT_CNPJ, DEST_CNPJ),
+    });
+    expect(result.technicalObservations.xml.classification).toBe('structural_nfe');
+  });
+
+  it('xml observation is well_formed_non_nfe for valid XML without NFe structure', () => {
+    const result = classifyAttachment({
+      filename: 'dados.xml',
+      mimeType: 'text/xml',
+      contentSample: '<root><item>teste</item></root>',
+    });
+    expect(result.technicalObservations.xml.classification).toBe('well_formed_non_nfe');
+  });
+
+  it('xml observation is malformed_xml for invalid XML in .xml file', () => {
+    const result = classifyAttachment({
+      filename: 'corrupt.xml',
+      mimeType: 'text/xml',
+      contentSample: 'not even valid <<<xml>>>',
+    });
+    expect(result.technicalObservations.xml.classification).toBe('malformed_xml');
+  });
+
+  it('xml observation is non_xml for XML-candidate file whose content has no XML marker', () => {
+    const result = classifyAttachment({
+      filename: 'mystery.xml',
+      mimeType: 'text/xml',
+      contentSample: 'plain text without tags',
+    });
+    expect(result.technicalObservations.xml.classification).toBe('non_xml');
+  });
+
+  it('xml observation is non_xml for empty content in .xml file', () => {
+    const result = classifyAttachment({
+      filename: 'empty.xml',
+      mimeType: 'text/xml',
+      contentSample: '',
+    });
+    expect(result.technicalObservations.xml.classification).toBe('non_xml');
+  });
+
+  it('xml observation is non_xml for PDF signature in .xml file', () => {
+    const result = classifyAttachment({
+      filename: 'mismatch.xml',
+      mimeType: 'text/xml',
+      contentSample: '%PDF-1.4\nbinary pdf content',
+    });
+    expect(result.technicalObservations.xml.classification).toBe('non_xml');
+  });
+});
+
+describe('G28-B2-B3-A technicalObservations (PDF)', () => {
+  const PDF_SIG = '%PDF-1.4\n';
+  const PDF_END = '\n%%EOF\n';
+  const pdfSample = (text: string) => `${PDF_SIG}${text}${PDF_END}`;
+
+  it('pdf observation is unavailable if there is no content sample', () => {
+    const result = classifyAttachment({
+      filename: 'NF-12345.pdf',
+      mimeType: 'application/pdf',
+    });
+    const obs = result.technicalObservations.pdf as PdfObservation;
+    expect(obs.classification).toBe('unavailable');
+    expect(Array.isArray(obs.reasons)).toBe(true);
+  });
+
+  it('pdf observation is unavailable for non-PDF candidate (XML)', () => {
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: '<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>11444777000161</CNPJ></emit><dest><CNPJ>11222333000181</CNPJ></dest></infNFe></NFe></nfeProc>',
+    });
+    expect(result.technicalObservations.pdf.classification).toBe('unavailable');
+  });
+
+  it('pdf observation is invalid_signature when candidate sample lacks prefix signature', () => {
+    const result = classifyAttachment({
+      filename: 'doc.pdf',
+      mimeType: 'application/pdf',
+      contentSample: '<!DOCTYPE html><html>not a PDF</html>',
+    });
+    expect(result.technicalObservations.pdf.classification).toBe('invalid_signature');
+  });
+
+  it('pdf observation is invalid_signature when content is HTML, even with NF token', () => {
+    const result = classifyAttachment({
+      filename: 'NF-123.pdf',
+      mimeType: 'application/pdf',
+      contentSample: '<!DOCTYPE html><html><body>DANFE</body></html>',
+    });
+    expect(result.technicalObservations.pdf.classification).toBe('invalid_signature');
+  });
+
+  it('pdf observation is generic_pdf when signed but no fiscal signal', () => {
+    const result = classifyAttachment({
+      filename: 'info.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfSample('Informativo generico do fornecedor'),
+    });
+    expect(result.technicalObservations.pdf.classification).toBe('generic_pdf');
+  });
+
+  it('pdf observation is probable_fiscal_pdf when signed with fiscal signal in content', () => {
+    const result = classifyAttachment({
+      filename: 'documento.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfSample('DANFE - DOCUMENTO AUXILIAR DA NOTA FISCAL ELETRONICA'),
+    });
+    expect(result.technicalObservations.pdf.classification).toBe('probable_fiscal_pdf');
+  });
+
+  it('pdf observation reasons include filename/subject/inspected_content when applicable', () => {
+    const result = classifyAttachment({
+      filename: 'NF-12345.pdf',
+      mimeType: 'application/pdf',
+      subject: 'NF-e 12345',
+      contentSample: pdfSample('DANFE documento'),
+    });
+    const reasons = result.technicalObservations.pdf.reasons;
+    const sources = reasons.map((r) => r.source);
+    expect(sources).toContain('filename');
+    expect(sources).toContain('subject');
+    expect(sources).toContain('inspected_content');
+  });
+
+  it('pdf observation reasons are pure objects (no raw content/buffer)', () => {
+    const result = classifyAttachment({
+      filename: 'NF-12345.pdf',
+      mimeType: 'application/pdf',
+      subject: 'NF-e 12345',
+      contentSample: pdfSample('DANFE documento fiscal'),
+    });
+    for (const r of result.technicalObservations.pdf.reasons) {
+      expect(typeof r.source).toBe('string');
+      expect(typeof r.reasonCode).toBe('string');
+      expect(r).not.toHaveProperty('content');
+      expect(r).not.toHaveProperty('raw');
+      expect(r).not.toHaveProperty('payload');
+      expect(r).not.toHaveProperty('buffer');
+    }
+  });
+
+  it('pdf observation reasons do not leak PDF binary signature into output', () => {
+    const result = classifyAttachment({
+      filename: 'NF-12345.pdf',
+      mimeType: 'application/pdf',
+      contentSample: pdfSample('DANFE documento'),
+    });
+    const json = JSON.stringify(result.technicalObservations.pdf);
+    expect(json).not.toContain('%PDF-');
+    expect(json).not.toContain('%%EOF');
+  });
+});
+
+describe('G28-B2-B3-A technicalObservations (MIME/extension)', () => {
+  it('mime observation: compatible when both agree (xml/xml)', () => {
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+    });
+    const obs = result.technicalObservations.mimeExtension as MimeExtensionObservation;
+    expect(obs.compatibility).toBe('compatible');
+    expect(obs.mimeType).toBe('text/xml');
+    expect(obs.extension).toBe('xml');
+  });
+
+  it('mime observation: compatible when both agree (pdf/pdf)', () => {
+    const result = classifyAttachment({
+      filename: 'doc.pdf',
+      mimeType: 'application/pdf',
+    });
+    const obs = result.technicalObservations.mimeExtension as MimeExtensionObservation;
+    expect(obs.compatibility).toBe('compatible');
+    expect(obs.mimeType).toBe('application/pdf');
+    expect(obs.extension).toBe('pdf');
+  });
+
+  it('mime observation: conflict when mime and extension disagree', () => {
+    const result = classifyAttachment({
+      filename: 'doc.pdf',
+      mimeType: 'text/xml',
+    });
+    const obs = result.technicalObservations.mimeExtension as MimeExtensionObservation;
+    expect(obs.compatibility).toBe('conflict');
+    expect(obs.mimeType).toBe('text/xml');
+    expect(obs.extension).toBe('pdf');
+  });
+
+  it('mime observation: insufficient_evidence when extension is missing', () => {
+    const result = classifyAttachment({
+      filename: 'arquivo',
+      mimeType: 'text/xml',
+    });
+    const obs = result.technicalObservations.mimeExtension as MimeExtensionObservation;
+    expect(obs.compatibility).toBe('insufficient_evidence');
+    expect(obs.mimeType).toBe('text/xml');
+    expect(obs.extension).toBeNull();
+  });
+
+  it('mime observation: insufficient_evidence when MIME is generic', () => {
+    const result = classifyAttachment({
+      filename: 'doc.pdf',
+      mimeType: 'application/octet-stream',
+    });
+    const obs = result.technicalObservations.mimeExtension as MimeExtensionObservation;
+    expect(obs.compatibility).toBe('insufficient_evidence');
+    expect(obs.mimeType).toBe('application/octet-stream');
+    expect(obs.extension).toBe('pdf');
+  });
+
+  it('mime observation preserves raw mimeType string (no normalization)', () => {
+    const result = classifyAttachment({
+      filename: 'doc.pdf',
+      mimeType: 'Application/PDF',
+    });
+    const obs = result.technicalObservations.mimeExtension as MimeExtensionObservation;
+    expect(obs.mimeType).toBe('Application/PDF');
+  });
+
+  it('mime observation: extension preserved in original case, compatibility uses normalized comparison', () => {
+    const result = classifyAttachment({
+      filename: 'DOCUMENT.PDF',
+      mimeType: 'application/pdf',
+    });
+    const obs = result.technicalObservations.mimeExtension as MimeExtensionObservation;
+    expect(obs.compatibility).toBe('compatible');
+    expect(obs.mimeType).toBe('application/pdf');
+    expect(obs.extension).toBe('PDF');
+  });
+
+  it('mime observation: empty mimeType treated as absent → unavailable when no extension', () => {
+    const result = classifyAttachment({
+      filename: 'arquivo',
+      mimeType: '',
+    });
+    const obs = result.technicalObservations.mimeExtension as MimeExtensionObservation;
+    expect(obs.compatibility).toBe('unavailable');
+    expect(obs.mimeType).toBeNull();
+    expect(obs.extension).toBeNull();
+  });
+});
+
+describe('G28-B2-B3-A technicalObservations (CNPJ party state)', () => {
+  const EMIT_CNPJ = '11444777000161';
+  const DEST_CNPJ = '11222333000181';
+
+  it('cnpjEmitente is unavailable for non-XML candidate (PDF)', () => {
+    const result = classifyAttachment({
+      filename: 'doc.pdf',
+      mimeType: 'application/pdf',
+    });
+    const s = result.technicalObservations.cnpjEmitente as CnpjPartyState;
+    expect(s.kind).toBe('unavailable');
+  });
+
+  it('cnpjDestinatario is unavailable for non-XML candidate (PDF)', () => {
+    const result = classifyAttachment({
+      filename: 'doc.pdf',
+      mimeType: 'application/pdf',
+    });
+    const s = result.technicalObservations.cnpjDestinatario as CnpjPartyState;
+    expect(s.kind).toBe('unavailable');
+  });
+
+  it('cnpjEmitente is valid with normalized value for structural NFe', () => {
+    const xml = `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>11.444.777/0001-61</CNPJ></emit><dest><CNPJ>11222333000181</CNPJ></dest></infNFe></NFe></nfeProc>`;
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+    });
+    const s = result.technicalObservations.cnpjEmitente;
+    expect(s.kind).toBe('valid');
+    if (s.kind === 'valid') {
+      expect(s.normalized).toBe(EMIT_CNPJ);
+    }
+  });
+
+  it('cnpjDestinatario is valid with normalized value for structural NFe', () => {
+    const xml = `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>11444777000161</CNPJ></emit><dest><CNPJ>11.222.333/0001-81</CNPJ></dest></infNFe></NFe></nfeProc>`;
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+    });
+    const s = result.technicalObservations.cnpjDestinatario;
+    expect(s.kind).toBe('valid');
+    if (s.kind === 'valid') {
+      expect(s.normalized).toBe(DEST_CNPJ);
+    }
+  });
+
+  it('cnpjEmitente invalid preserves EXACT raw string (not normalized)', () => {
+    const xml = `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>abc</CNPJ></emit><dest><CNPJ>11222333000181</CNPJ></dest></infNFe></NFe></nfeProc>`;
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+    });
+    const s = result.technicalObservations.cnpjEmitente;
+    expect(s.kind).toBe('invalid');
+    if (s.kind === 'invalid') {
+      expect(s.raw).toBe('abc');
+    }
+  });
+
+  it('cnpjDestinatario invalid preserves EXACT raw string (not normalized)', () => {
+    const xml = `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>11444777000161</CNPJ></emit><dest><CNPJ>12</CNPJ></dest></infNFe></NFe></nfeProc>`;
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+    });
+    const s = result.technicalObservations.cnpjDestinatario;
+    expect(s.kind).toBe('invalid');
+    if (s.kind === 'invalid') {
+      expect(s.raw).toBe('12');
+    }
+  });
+
+  it('cnpjEmitente invalid preserves raw even when formatted (no normalization)', () => {
+    const xml = `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>11.222.333/0001-XX</CNPJ></emit><dest><CNPJ>11222333000181</CNPJ></dest></infNFe></NFe></nfeProc>`;
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+    });
+    const s = result.technicalObservations.cnpjEmitente;
+    expect(s.kind).toBe('invalid');
+    if (s.kind === 'invalid') {
+      expect(s.raw).toBe('11.222.333/0001-XX');
+    }
+  });
+
+  it('cnpjEmitente is missing when structural NFe side lacks CNPJ', () => {
+    const xml = `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><xNome>NoCNPJ</xNome></emit><dest><CNPJ>11222333000181</CNPJ></dest></infNFe></NFe></nfeProc>`;
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+    });
+    expect(result.technicalObservations.cnpjEmitente.kind).toBe('missing');
+  });
+
+  it('cnpjDestinatario is missing when structural NFe side lacks CNPJ', () => {
+    const xml = `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>11444777000161</CNPJ></emit><dest><xNome>NoCNPJ</xNome></dest></infNFe></NFe></nfeProc>`;
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+    });
+    expect(result.technicalObservations.cnpjDestinatario.kind).toBe('missing');
+  });
+
+  it('cnpj is unavailable when XML is malformed (no NFe to observe)', () => {
+    const result = classifyAttachment({
+      filename: 'corrupt.xml',
+      mimeType: 'text/xml',
+      contentSample: 'not even valid <<<xml>>>',
+    });
+    expect(result.technicalObservations.cnpjEmitente.kind).toBe('unavailable');
+    expect(result.technicalObservations.cnpjDestinatario.kind).toBe('unavailable');
+  });
+
+  it('cnpj is unavailable when XML is well-formed_non_nfe (no NFe to observe)', () => {
+    const result = classifyAttachment({
+      filename: 'dados.xml',
+      mimeType: 'text/xml',
+      contentSample: '<root><item>teste</item></root>',
+    });
+    expect(result.technicalObservations.cnpjEmitente.kind).toBe('unavailable');
+    expect(result.technicalObservations.cnpjDestinatario.kind).toBe('unavailable');
+  });
+
+  it('cnpj is unavailable when XML is non_xml (no NFe to observe)', () => {
+    const result = classifyAttachment({
+      filename: 'mystery.xml',
+      mimeType: 'text/xml',
+      contentSample: 'plain text without tags',
+    });
+    expect(result.technicalObservations.cnpjEmitente.kind).toBe('unavailable');
+    expect(result.technicalObservations.cnpjDestinatario.kind).toBe('unavailable');
+  });
+
+  it('NEVER turns invalid into missing — both sides with non-numeric CNPJs stay invalid', () => {
+    const xml = `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>abc</CNPJ></emit><dest><CNPJ>xyz</CNPJ></dest></infNFe></NFe></nfeProc>`;
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+    });
+    expect(result.technicalObservations.cnpjEmitente.kind).toBe('invalid');
+    expect(result.technicalObservations.cnpjDestinatario.kind).toBe('invalid');
+  });
+
+  it('NEVER turns invalid into missing — short CNPJs stay invalid with raw preserved', () => {
+    const xml = `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>12345</CNPJ></emit><dest><CNPJ>67890</CNPJ></dest></infNFe></NFe></nfeProc>`;
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+    });
+    expect(result.technicalObservations.cnpjEmitente.kind).toBe('invalid');
+    expect(result.technicalObservations.cnpjDestinatario.kind).toBe('invalid');
+    if (result.technicalObservations.cnpjEmitente.kind === 'invalid') {
+      expect(result.technicalObservations.cnpjEmitente.raw).toBe('12345');
+    }
+  });
+});
+
+describe('G28-B2-B3-A technicalObservations (serialization & boundaries)', () => {
+  it('technicalObservations is fully JSON-serializable (no buffer/payload)', () => {
+    const result = classifyAttachment({
+      filename: 'NF-12345.pdf',
+      mimeType: 'application/pdf',
+      subject: 'NF-e 12345',
+      contentSample: '%PDF-1.4\nDANFE documento fiscal',
+    });
+    const json = JSON.stringify(result.technicalObservations);
+    expect(() => JSON.parse(json)).not.toThrow();
+    expect(json).not.toContain('%PDF-');
+    expect(json).not.toContain('DANFE');
+    expect(json).not.toContain('documento fiscal');
+  });
+
+  it('technicalObservations is JSON-serializable for XML NFe case', () => {
+    const xml = `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>11444777000161</CNPJ></emit><dest><CNPJ>11222333000181</CNPJ></dest></infNFe></NFe></nfeProc>`;
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+    });
+    const json = JSON.stringify(result.technicalObservations);
+    expect(() => JSON.parse(json)).not.toThrow();
+    expect(json).not.toContain('<nfeProc');
+    expect(json).not.toContain('<emit>');
+  });
+
+  it('technicalObservations does NOT include entityMatch', () => {
+    const xml = `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>11444777000161</CNPJ></emit><dest><CNPJ>11222333000181</CNPJ></dest></infNFe></NFe></nfeProc>`;
+    const reg: EntityCnpjRegistry = {
+      loaded: true,
+      loadedAt: new Date().toISOString(),
+      entries: [{ entityType: 'fornecedor', entityId: 1, entityName: 'Conitex', cnpj: '11444777000161' }],
+      error: null,
+    };
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+      entityRegistry: reg,
+    });
+    const obs = result.technicalObservations as unknown as Record<string, unknown>;
+    expect(obs).not.toHaveProperty('entityMatch');
+    expect(obs).not.toHaveProperty('direcaoNf');
+    expect(obs).not.toHaveProperty('tipoDocumento');
+    expect(obs).not.toHaveProperty('formato');
+  });
+
+  it('technicalObservations has exactly the required additive keys', () => {
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: '<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>11444777000161</CNPJ></emit><dest><CNPJ>11222333000181</CNPJ></dest></infNFe></NFe></nfeProc>',
+    });
+    const keys = Object.keys(result.technicalObservations).sort();
+    expect(keys).toEqual([
+      'cnpjDestinatario',
+      'cnpjEmitente',
+      'mimeExtension',
+      'pdf',
+      'xml',
+    ]);
+  });
+
+  it('legacy top-level fields remain unchanged for NFe XML (regression)', () => {
+    const xml = `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe><emit><CNPJ>11222333000181</CNPJ></emit><dest><CNPJ>11444777000161</CNPJ></dest></infNFe></NFe></nfeProc>`;
+    const result = classifyAttachment({
+      filename: 'nfe.xml',
+      mimeType: 'text/xml',
+      contentSample: xml,
+      ravatexCnpjs: ['11444777000161'],
+    });
+    expect(result.tipoDocumento).toBe('nf');
+    expect(result.formato).toBe('xml');
+    expect(result.direcaoNf).toBe('entrada');
+    expect(result.cnpjEmitente).toBe('11222333000181');
+    expect(result.cnpjDestinatario).toBe('11444777000161');
+  });
+
+  it('legacy fields remain unchanged for fiscal PDF (regression)', () => {
+    const result = classifyAttachment({
+      filename: 'documento.pdf',
+      mimeType: 'application/pdf',
+      contentSample: '%PDF-1.4\nDANFE documento',
+    });
+    expect(result.tipoDocumento).toBe('nf');
+    expect(result.formato).toBe('pdf');
+    expect(result.direcaoNf).toBeNull();
+  });
+
+  it('legacy fields remain unchanged for PDF sem signature (regression)', () => {
+    const result = classifyAttachment({
+      filename: 'NF-12345.pdf',
+      mimeType: 'application/pdf',
+      contentSample: 'not a real PDF\nrandom content',
+    });
+    expect(result.tipoDocumento).toBe('desconhecido');
+    expect(result.formato).toBe('pdf');
+    expect(result.direcaoNf).toBeNull();
+  });
+
+  it('legacy fields remain unchanged for romaneio by name (regression)', () => {
+    const result = classifyAttachment({
+      filename: 'romaneio_carga.pdf',
+      mimeType: 'application/pdf',
+    });
+    expect(result.tipoDocumento).toBe('romaneio');
+    expect(result.formato).toBe('pdf');
+    expect(result.direcaoNf).toBeNull();
+    expect(result.cnpjEmitente).toBeNull();
+    expect(result.cnpjDestinatario).toBeNull();
+  });
+
+  it('legacy fields remain unchanged for unknown mime (regression)', () => {
+    const result = classifyAttachment({
+      filename: 'file.bin',
+      mimeType: 'application/octet-stream',
+    });
+    expect(result.tipoDocumento).toBe('desconhecido');
+    expect(result.formato).toBe('desconhecido');
+  });
+
+  it('legacy: conflict mime text/xml + filename .pdf without contentSample → formato pdf (regression)', () => {
+    const result = classifyAttachment({
+      filename: 'nota.pdf',
+      mimeType: 'text/xml',
+    });
+    expect(result.formato).toBe('pdf');
   });
 });
