@@ -41,6 +41,18 @@ function mockClient(response: TechnicalEvidenceRpcResponse): MockClient {
   return { client, calls };
 }
 
+/** A client whose `.rpc()` rejects with a fixed value, still recording the call. */
+function rejectingClient(rejection: unknown): MockClient {
+  const calls: RecordedCall[] = [];
+  const client: TechnicalEvidenceRpcClient = {
+    rpc(fn, params) {
+      calls.push({ fn, params });
+      return Promise.reject(rejection);
+    },
+  };
+  return { client, calls };
+}
+
 function okResponse(row: TechnicalEvidenceExportRow, outcome: 'inserted' | 'unchanged'): TechnicalEvidenceRpcResponse {
   return {
     data: [{ document_id: row.documentId, evidence_version: row.evidenceVersion, outcome }],
@@ -374,6 +386,127 @@ describe('writeTechnicalEvidence — safety and invariants', () => {
   it('performs exactly one RPC call per invocation (error path)', async () => {
     const row = makeRow();
     const { client, calls } = mockClient({ data: null, error: { code: '08006', message: 'connection failure' } });
+
+    await callAndCatch(client, row);
+
+    expect(calls).toHaveLength(1);
+  });
+});
+
+describe('writeTechnicalEvidence — migration_required hardening (R1)', () => {
+  it('treats a permission error on the RPC as remote_error, not migration_required', async () => {
+    const row = makeRow();
+    const { client } = mockClient({
+      data: null,
+      error: { code: '42501', message: `permission denied for function ${RPC_NAME}` },
+    });
+
+    assertWriterError(await callAndCatch(client, row), 'remote_error');
+  });
+
+  it('treats an unrelated "does not exist" object as remote_error', async () => {
+    const row = makeRow();
+    const { client } = mockClient({
+      data: null,
+      error: { code: '42P01', message: 'relation unrelated_table does not exist' },
+    });
+
+    assertWriterError(await callAndCatch(client, row), 'remote_error');
+  });
+
+  it('treats a generic error that only names the RPC as remote_error (name alone is insufficient)', async () => {
+    const row = makeRow();
+    const { client } = mockClient({
+      data: null,
+      error: { code: 'XX000', message: `unexpected failure while executing ${RPC_NAME}` },
+    });
+
+    assertWriterError(await callAndCatch(client, row), 'remote_error');
+  });
+
+  it('classifies PGRST202 as migration_required even when the message omits the RPC name (code-driven)', async () => {
+    const row = makeRow();
+    const { client } = mockClient({
+      data: null,
+      error: { code: 'PGRST202', message: 'Could not find the function in the schema cache' },
+    });
+
+    assertWriterError(await callAndCatch(client, row), 'migration_required');
+  });
+
+  it('classifies a schema-cache message naming the RPC, without the code, as migration_required (text-driven)', async () => {
+    const row = makeRow();
+    const { client } = mockClient({
+      data: null,
+      error: { message: `Could not find the function public.${RPC_NAME} in the schema cache` },
+    });
+
+    assertWriterError(await callAndCatch(client, row), 'migration_required');
+  });
+
+  it('classifies undefined_function (42883) that names the RPC as migration_required', async () => {
+    const row = makeRow();
+    const { client } = mockClient({
+      data: null,
+      error: { code: '42883', message: `function public.${RPC_NAME}(text, integer, jsonb, jsonb, timestamptz) does not exist` },
+    });
+
+    assertWriterError(await callAndCatch(client, row), 'migration_required');
+  });
+});
+
+describe('writeTechnicalEvidence — rpc() rejection handling (R1)', () => {
+  it('converts a generic Error rejection into a typed remote_error', async () => {
+    const row = makeRow();
+    const { client } = rejectingClient(new Error('network down'));
+
+    assertWriterError(await callAndCatch(client, row), 'remote_error');
+  });
+
+  it('converts a non-Error rejection into a typed remote_error', async () => {
+    const row = makeRow();
+    const { client } = rejectingClient('socket hang up');
+
+    assertWriterError(await callAndCatch(client, row), 'remote_error');
+  });
+
+  it('reuses classification when the rejection carries a concrete absence signal', async () => {
+    const row = makeRow();
+    const { client } = rejectingClient({ code: 'PGRST202', message: 'Could not find the function in the schema cache' });
+
+    assertWriterError(await callAndCatch(client, row), 'migration_required');
+  });
+
+  it('does not assume a rejection is a missing migration', async () => {
+    const row = makeRow();
+    const { client } = rejectingClient(new Error('does not exist somewhere unrelated'));
+
+    assertWriterError(await callAndCatch(client, row), 'remote_error');
+  });
+
+  it('preserves the original rejection as cause', async () => {
+    const row = makeRow();
+    const rejection = new Error('network down');
+    const { client } = rejectingClient(rejection);
+
+    const err = assertWriterError(await callAndCatch(client, row), 'remote_error');
+    expect(err.cause).toBe(rejection);
+  });
+
+  it('never renders payload into a rejection error message', async () => {
+    const row = makeRow();
+    const { client } = rejectingClient(new Error(`boom leaking ${SENTINEL_CNPJ}`));
+
+    const err = assertWriterError(await callAndCatch(client, row), 'remote_error');
+    expect(err.message).not.toContain(SENTINEL_CNPJ);
+    expect(err.message).not.toContain('99999999000199');
+    expect(err.message).not.toContain(row.createdAt);
+    expect(err.message).not.toContain(JSON.stringify(row.technicalEvidence));
+  });
+
+  it('makes exactly one rpc() call even when it rejects', async () => {
+    const row = makeRow();
+    const { client, calls } = rejectingClient(new Error('network down'));
 
     await callAndCatch(client, row);
 

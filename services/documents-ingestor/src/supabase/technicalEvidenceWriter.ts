@@ -109,43 +109,110 @@ export async function writeTechnicalEvidence(
     p_created_at: row.createdAt,
   };
 
-  const { data, error } = await client.rpc(RPC_NAME, params);
+  let response: TechnicalEvidenceRpcResponse;
+  try {
+    response = await client.rpc(RPC_NAME, params);
+  } catch (rejection) {
+    // A rejected rpc() (transport or unexpected throw) is converted to a typed
+    // error: no retry, no second call, no log, fixed payload-free message, the
+    // original preserved as cause. If the rejection safely presents the same
+    // structured signals it reuses the same classification; otherwise it is a
+    // generic remote_error. A rejection is never assumed to be a missing
+    // migration.
+    throw classifiedError(toRpcErrorLike(rejection), rejection);
+  }
 
+  const { data, error } = response;
   if (error) {
-    throw classifyRemoteError(error);
+    throw classifiedError(error, error);
   }
 
   return validateResponseRow(data, row);
 }
 
+/** Kinds produced from a remote error or a rejected rpc(); invalid_response is separate. */
+type RemoteFailureKind = Exclude<TechnicalEvidenceWriterErrorKind, 'invalid_response'>;
+
+/** Fixed, payload-free messages. No remote text or evidence is ever interpolated. */
+const MESSAGE_FOR_KIND: Record<RemoteFailureKind, string> = {
+  conflict: 'Technical evidence content conflict for this version.',
+  writer_required: 'A service_role writer is required for this RPC.',
+  migration_required: 'Technical evidence RPC (migration 49) is not available.',
+  remote_error: 'Technical evidence remote write failed.',
+};
+
 /**
- * Maps a remote error to a stable domain kind. Only concrete PostgREST /
- * PostgreSQL signals are treated as a missing migration; a generic remote
- * failure is never misclassified as migration_required.
+ * Builds a typed writer error from a structured remote error and the original
+ * cause. Shared by the resolved `{ error }` path and the rejected rpc() path so
+ * both classify identically. The cause is preserved but never rendered into
+ * the message.
  */
-function classifyRemoteError(error: TechnicalEvidenceRpcError): TechnicalEvidenceWriterError {
+function classifiedError(error: TechnicalEvidenceRpcError, cause: unknown): TechnicalEvidenceWriterError {
+  const kind = classifyErrorKind(error);
+  return new TechnicalEvidenceWriterError(kind, MESSAGE_FOR_KIND[kind], cause);
+}
+
+/**
+ * Maps a structured remote error to a stable domain kind. The explicit domain
+ * markers win; migration_required requires a concrete absence of THIS RPC;
+ * everything else is a generic remote_error.
+ */
+function classifyErrorKind(error: TechnicalEvidenceRpcError): RemoteFailureKind {
   const code = typeof error.code === 'string' ? error.code : '';
   const message = typeof error.message === 'string' ? error.message : '';
 
-  // The migration raises technical_evidence_conflict for a divergent repeat.
-  if (/technical_evidence_conflict/i.test(message)) {
-    return new TechnicalEvidenceWriterError('conflict', 'Technical evidence content conflict for this version.', error);
+  // Explicit domain markers raised by the migration RPC take priority.
+  if (/technical_evidence_conflict/i.test(message)) return 'conflict';
+  if (/writer_required/i.test(message)) return 'writer_required';
+
+  if (isMissingRpcSignal(code, message)) return 'migration_required';
+
+  return 'remote_error';
+}
+
+/**
+ * True only for concrete signals that THIS RPC is absent:
+ *   - PostgREST schema-cache miss (PGRST202): always about the single RPC this
+ *     writer calls, so it stands on its own;
+ *   - PostgreSQL undefined_function (42883) that references the expected RPC;
+ *   - a message that names the expected RPC AND carries an unambiguous absence
+ *     semantic (could not find / not found / does not exist / schema cache /
+ *     undefined function).
+ *
+ * The RPC name alone is never sufficient (e.g. a permission error on the RPC),
+ * and a generic "does not exist" about an unrelated object is never sufficient.
+ */
+function isMissingRpcSignal(code: string, message: string): boolean {
+  if (code === 'PGRST202') return true;
+
+  const lower = message.toLowerCase();
+  const mentionsRpc = lower.includes(RPC_NAME);
+  if (!mentionsRpc) return false;
+
+  if (code === '42883') return true;
+
+  return (
+    lower.includes('could not find')
+    || lower.includes('not found')
+    || lower.includes('does not exist')
+    || lower.includes('schema cache')
+    || lower.includes('undefined function')
+  );
+}
+
+/**
+ * Extracts only the recognized structured fields (code, message) from an
+ * unknown rpc() rejection so it can be classified with the same rules. A
+ * rejection that carries no recognized signal becomes remote_error.
+ */
+function toRpcErrorLike(value: unknown): TechnicalEvidenceRpcError {
+  if (isRecord(value)) {
+    return {
+      code: typeof value.code === 'string' ? value.code : undefined,
+      message: typeof value.message === 'string' ? value.message : undefined,
+    };
   }
-  // The RPC's internal service_role gate raises writer_required for any other role.
-  if (/writer_required/i.test(message)) {
-    return new TechnicalEvidenceWriterError('writer_required', 'A service_role writer is required for this RPC.', error);
-  }
-  // Concrete "function not found" signals: PostgREST schema-cache miss
-  // (PGRST202), PostgreSQL undefined_function (42883), or an explicit
-  // missing-function message. Everything else stays a generic remote error.
-  if (
-    code === 'PGRST202'
-    || code === '42883'
-    || /upsert_document_technical_evidence_ingestor_state|schema cache|does not exist/i.test(message)
-  ) {
-    return new TechnicalEvidenceWriterError('migration_required', 'Technical evidence RPC (migration 49) is not available.', error);
-  }
-  return new TechnicalEvidenceWriterError('remote_error', 'Technical evidence remote write failed.', error);
+  return {};
 }
 
 /**
