@@ -2,10 +2,10 @@
 
 **Projeto:** Ravatex — Controle de Tapetes / Documents Ingestor  
 **Status do plano:** rascunho arquitetural para revisão do IAlead  
-**Fase ativa:** `G28-P0-R1` — correção arquitetural dos documentos de governança (docs-only), aguardando aceite do IAlead  
+**Fase ativa:** `G28-P0-R1` — correção arquitetural dos documentos de governança (docs-only), aguardando aceite do IAlead
 **Último marco técnico aceito:** G27 — reconhecimento documental endurecido, publicado em `staging/work/app-next`, CI verde  
-**G28-A:** `REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` — schema proposto, migration `db/49`, `qualified` como estado final, `duplicate` como estado principal e a regra de "duas partes externas resolvidas" **não aprovados**; evidências e problemas descobertos no diagnóstico permanecem aproveitáveis  
-**G28-P0:** `ARCHITECTURAL CORRECTION IN PROGRESS` — não `CLOSED`, não `PUBLISHED`; o fechamento depende de revisão do IAlead  
+**G28-A:** `REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` — schema proposto, migration `db/49`, `qualified` como estado final, `duplicate` como estado principal e a regra de "duas partes externas resolvidas" **não aprovados**; evidências e problemas descobertos no diagnóstico permanecem aproveitáveis
+**G28-P0:** `ARCHITECTURAL CORRECTION IN PROGRESS` — não `CLOSED`, não `PUBLISHED`; o fechamento depende de revisão do IAlead
 **G28-B1:** `PLANNED / NOT AUTHORIZED`
 
 ---
