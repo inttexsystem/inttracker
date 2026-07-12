@@ -30,6 +30,15 @@ export interface SyncSupabaseOptions {
    * scan_run lifecycle end-to-end.
    */
   scanRunId?: string;
+  /**
+   * INTERNAL (G28-B3-B5-B): optional path to a technical-evidence JSONL
+   * file. When present, the file is read, validated, deduplicated and
+   * matched against the prepared candidates. Dry-run projects a counter
+   * (`technical_evidence_attempted`); confirmed writes fail fast locally
+   * because remote evidence persistence is not yet integrated. Not
+   * exposed by the CLI.
+   */
+  technicalEvidencePath?: string;
 }
 
 export interface PreparedCanonicalCandidate {
@@ -56,6 +65,13 @@ export interface SyncSupabaseResult {
   events_skipped: number;
   scan_run: { status: 'dry_run' | 'running' | 'completed' | 'failed' | 'scan_already_running' | 'external_owner' | 'external_owner_failed'; id: string | null };
   stale_recovery: { attempted: boolean; recovered_count: number };
+  /**
+   * INTERNAL (G28-B3-B5-B): only present when a `technicalEvidencePath`
+   * was provided (even with an empty JSONL stream). Absent from the
+   * result object otherwise, to preserve the pre-existing result shape
+   * when the path is not used.
+   */
+  technical_evidence_attempted?: number;
   errors: string[];
 }
 
@@ -240,6 +256,211 @@ export function prepareSyncSupabaseInput(options: Pick<SyncSupabaseOptions, 'map
   };
 }
 
+class TechnicalEvidenceInputError extends Error {}
+
+// ============================================================================
+// Technical-evidence internal loader (G28-B3-B5-B)
+//
+// Reads a schema-version-1 technical-evidence JSONL stream line by line as
+// `unknown` (no TypeScript cast trust), validates each row, rejects
+// duplicates by (documentId, evidenceVersion) AND by documentId, and
+// requires every evidence documentId to exist among the prepared
+// candidates. The returned collection uses a local record-shaped type
+// (`InternalValidatedEvidenceEntry`) so that acceptance depends ONLY on
+// the actual runtime checks (object-shape, not the full domain
+// TechnicalEvidence/EvidenceOrigin contracts). Errors cite line +
+// category (+ documentId only after it is validated) and never include
+// the payload. createdAt goes through `parseStrictIsoTimestamp` so that
+// both malformed strings and impossible calendar values are rejected
+// deterministically.
+// ============================================================================
+
+const TECHNICAL_EVIDENCE_SCHEMA_VERSION = 1;
+
+/**
+ * Local internal record for one validated technical-evidence row. Only
+ * the fields actually checked at runtime are declared; nested
+ * `technicalEvidence` and `origin` are kept as `Record<string, unknown>`
+ * because the loader only enforces object-shape, not the full domain
+ * contracts. This type is structurally JSON-compatible with the
+ * downstream `TechnicalEvidenceExportRow` but does NOT lie about
+ * validation that this loader did not perform.
+ */
+interface InternalValidatedEvidenceEntry {
+  schemaVersion: 1;
+  documentId: string;
+  evidenceVersion: number;
+  technicalEvidence: Record<string, unknown>;
+  origin: Record<string, unknown>;
+  createdAt: string;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Strict ISO-8601 timestamp validation with calendar-impossibility
+ * rejection. Accepts `YYYY-MM-DDTHH:mm:ss[.fraction](Z|±HH:MM)`. The
+ * `Date` constructor silently rolls impossible dates (e.g. Feb 30, Apr
+ * 31, Feb 29 in a non-leap year) into the next valid calendar day, so
+ * a roundtrip check is required: the YYYY-MM-DD written by the caller
+ * must match the YYYY-MM-DD Date produces for the same instant in the
+ * input's own timezone. Returns the deterministic UTC canonical
+ * (`YYYY-MM-DDTHH:mm:ss.sssZ`) so the loader can store a normalized
+ * value regardless of the input's offset.
+ */
+function parseStrictIsoTimestamp(value: string): string | null {
+  const isoRe = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
+  if (!isoRe.test(value)) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const inputYmd = value.slice(0, 10);
+  let parsedYmd: string;
+  if (value.endsWith('Z')) {
+    parsedYmd = date.toISOString().slice(0, 10);
+  } else {
+    const offsetMatch = /([+-])(\d{2}):?(\d{2})$/.exec(value);
+    if (!offsetMatch) return null;
+    const sign = offsetMatch[1] === '+' ? 1 : -1;
+    const offsetMinutes = sign * (Number(offsetMatch[2]) * 60 + Number(offsetMatch[3]));
+    const localMs = date.getTime() + offsetMinutes * 60000;
+    parsedYmd = new Date(localMs).toISOString().slice(0, 10);
+  }
+  if (inputYmd !== parsedYmd) return null;
+
+  return date.toISOString();
+}
+
+function loadTechnicalEvidenceRows(
+  path: string,
+  candidates: PreparedCanonicalCandidate[],
+): InternalValidatedEvidenceEntry[] {
+  let content: string;
+  try {
+    content = readFileSync(path, 'utf-8');
+  } catch (error: any) {
+    throw new TechnicalEvidenceInputError(
+      `Technical evidence JSONL: cannot read file: ${error?.message ?? String(error)}`,
+    );
+  }
+
+  const candidateDocumentIds = new Set<string>();
+  for (const item of candidates) candidateDocumentIds.add(item.candidate.document_id);
+
+  const rows: InternalValidatedEvidenceEntry[] = [];
+  const seenKeys = new Set<string>();
+  const seenDocumentIds = new Set<string>();
+  const lines = content.split(/\r?\n/);
+
+  for (let index = 0; index < lines.length; index++) {
+    const raw = lines[index];
+    if (!raw.trim()) continue;
+    const lineNumber = index + 1;
+    const ctx = `Technical evidence JSONL line ${lineNumber}`;
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new TechnicalEvidenceInputError(`${ctx}: invalid_json`);
+    }
+    if (!isPlainObject(parsed)) {
+      throw new TechnicalEvidenceInputError(`${ctx}: invalid_object`);
+    }
+    const row = parsed;
+
+    if (row.schemaVersion !== TECHNICAL_EVIDENCE_SCHEMA_VERSION) {
+      throw new TechnicalEvidenceInputError(`${ctx}: invalid_schema_version`);
+    }
+
+    if (typeof row.documentId !== 'string' || !row.documentId.trim()) {
+      throw new TechnicalEvidenceInputError(`${ctx}: invalid_document_id`);
+    }
+    const documentId = row.documentId.trim();
+
+    // evidenceVersion MUST be a present, positive integer; null,
+    // undefined, non-numbers, fractional, zero and negative are all
+    // rejected. Number.isInteger guards against values like 1.5 and
+    // strings like "1".
+    if (
+      !('evidenceVersion' in row)
+      || typeof row.evidenceVersion !== 'number'
+      || !Number.isInteger(row.evidenceVersion)
+      || row.evidenceVersion < 1
+    ) {
+      throw new TechnicalEvidenceInputError(
+        `${ctx}: invalid_evidence_version (documentId=${documentId})`,
+      );
+    }
+    const evidenceVersion = row.evidenceVersion;
+
+    if (!isPlainObject(row.technicalEvidence)) {
+      throw new TechnicalEvidenceInputError(
+        `${ctx}: invalid_technical_evidence (documentId=${documentId})`,
+      );
+    }
+    const technicalEvidence = row.technicalEvidence;
+
+    if (!isPlainObject(row.origin)) {
+      throw new TechnicalEvidenceInputError(
+        `${ctx}: invalid_origin (documentId=${documentId})`,
+      );
+    }
+    const origin = row.origin;
+    if (origin.evidenceVersion !== evidenceVersion) {
+      throw new TechnicalEvidenceInputError(
+        `${ctx}: origin_evidence_version_mismatch (documentId=${documentId})`,
+      );
+    }
+
+    if (typeof row.createdAt !== 'string' || !row.createdAt.trim()) {
+      throw new TechnicalEvidenceInputError(
+        `${ctx}: invalid_created_at (documentId=${documentId})`,
+      );
+    }
+    const createdAtCanonical = parseStrictIsoTimestamp(row.createdAt);
+    if (createdAtCanonical === null) {
+      throw new TechnicalEvidenceInputError(
+        `${ctx}: invalid_created_at (documentId=${documentId})`,
+      );
+    }
+
+    const key = `${documentId}|${evidenceVersion}`;
+    if (seenKeys.has(key)) {
+      throw new TechnicalEvidenceInputError(
+        `${ctx}: duplicate_key (documentId=${documentId}, evidenceVersion=${evidenceVersion})`,
+      );
+    }
+    if (seenDocumentIds.has(documentId)) {
+      throw new TechnicalEvidenceInputError(
+        `${ctx}: duplicate_document_id (documentId=${documentId})`,
+      );
+    }
+
+    if (!candidateDocumentIds.has(documentId)) {
+      throw new TechnicalEvidenceInputError(
+        `${ctx}: evidence_document_not_in_candidates (documentId=${documentId})`,
+      );
+    }
+
+    seenKeys.add(key);
+    seenDocumentIds.add(documentId);
+    rows.push({
+      schemaVersion: 1,
+      documentId,
+      evidenceVersion,
+      technicalEvidence,
+      origin,
+      createdAt: createdAtCanonical,
+    });
+  }
+
+  return rows;
+}
+
 function errorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   return message.slice(0, 1000);
@@ -252,10 +473,33 @@ export async function runSyncSupabase(
   const prepared = prepareSyncSupabaseInput(options);
   const source = options.source?.trim() || 'documents_ingestor';
   const dryRun = options.dryRun || !options.confirmWrite;
+
+  // Internal technical-evidence JSONL (G28-B3-B5-B): when a path is
+  // provided, read, validate, deduplicate and reconcile against the
+  // prepared candidates BEFORE any other branch. Validation throws on
+  // bad input (payload-free error); dry-run exposes the provable
+  // counter `technical_evidence_attempted` and never touches the
+  // client/recovery/scan run/service-role config. Confirmed writes
+  // fail fast locally because remote evidence persistence is not
+  // yet integrated.
+  const evidencePath = options.technicalEvidencePath?.trim() || '';
+  const evidencePathProvided = evidencePath.length > 0;
+  let technicalEvidenceAttempted = 0;
+  if (evidencePathProvided) {
+    technicalEvidenceAttempted = loadTechnicalEvidenceRows(evidencePath, prepared.candidates).length;
+  }
+
   const complete = prepared.candidates.filter((item) => item.canonical);
   const skipped = prepared.candidates
     .filter((item) => item.skip_reason)
     .map((item) => ({ document_id: item.candidate.document_id, reason: item.skip_reason! }));
+  // The `technical_evidence_attempted` counter is conditionally
+  // included ONLY when a path was provided (even with an empty JSONL).
+  // Without a path, the result object is byte-for-byte the pre-existing
+  // shape so the CLI / existing consumers see no new keys.
+  const evidenceAttemptedField = evidencePathProvided
+    ? { technical_evidence_attempted: technicalEvidenceAttempted }
+    : {};
   const initialResult: SyncSupabaseResult = {
     ok: true,
     dry_run: dryRun,
@@ -268,6 +512,7 @@ export async function runSyncSupabase(
     events_skipped: prepared.duplicateEventIds,
     scan_run: { status: dryRun ? 'dry_run' : 'running', id: null },
     stale_recovery: { attempted: false, recovered_count: 0 },
+    ...evidenceAttemptedField,
     errors: [],
   };
 
@@ -279,6 +524,19 @@ export async function runSyncSupabase(
       events_inserted: prepared.events.length,
     };
   }
+
+  // Confirmed-write fast-fail (G28-B3-B5-B): technical-evidence remote
+  // persistence is not yet integrated. A payload-free local error is
+  // raised BEFORE the client is required, BEFORE recoverStaleRuns,
+  // startScanRun, candidate RPC, event upsert or finishScanRun can
+  // even be considered. The validated evidence collection is
+  // intentionally discarded here.
+  if (evidencePathProvided) {
+    throw new Error(
+      '[sync:supabase] Technical evidence remote persistence is not yet integrated. Confirmed write with technical-evidence input is not supported.',
+    );
+  }
+
   if (!client) {
     throw new Error('[sync:supabase] A service-role client is required for a confirmed write.');
   }

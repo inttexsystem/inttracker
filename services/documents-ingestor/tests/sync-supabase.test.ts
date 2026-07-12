@@ -562,3 +562,523 @@ describe('sync:supabase canonical writer', () => {
     });
   });
 });
+
+describe('sync:supabase technical evidence internal contract (G28-B3-B5-B)', () => {
+  const SENTINEL_PAYLOAD_TOKEN = 'SENTINEL-NEVER-IN-ERROR-MESSAGE-X7Q9';
+  const EVIDENCE_DOC = 'doc-001';
+
+  function baseEvidence(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      schemaVersion: 1,
+      documentId: EVIDENCE_DOC,
+      evidenceVersion: 1,
+      technicalEvidence: {
+        tipoDocumento: 'nf',
+        formato: 'xml',
+        xmlObservation: { classification: 'structural_nfe' },
+        pdfObservation: { classification: 'unavailable', reasons: [] },
+        mimeExtensionObservation: {
+          compatibility: 'compatible',
+          mimeType: 'application/xml',
+          extension: 'xml',
+        },
+        cnpjEmitente: { kind: 'valid', normalized: '11111111000111' },
+        cnpjDestinatario: { kind: 'missing' },
+        registryAvailability: { kind: 'available' },
+        directionObservation: null,
+        entityMatch: null,
+        duplicateRelation: { kind: 'none', detectionBasis: SENTINEL_PAYLOAD_TOKEN },
+      },
+      origin: {
+        technical: { source: 'test-classifier', authorship: 'test' },
+        suggestion: { source: 'system', authorship: 'test', note: 'human review required' },
+        evidenceVersion: 1,
+      },
+      createdAt: '2026-07-12T10:30:00.000Z',
+      ...overrides,
+    };
+  }
+
+  function evidencePath(rows: unknown[]): string {
+    return writeJsonl('technical-evidence.jsonl', rows);
+  }
+
+  function rawEvidencePath(content: string): string {
+    const dir = mkdtempSync(join(tmpdir(), 'ravatex-sync-supabase-raw-'));
+    tempDirs.push(dir);
+    const path = join(dir, 'technical-evidence-raw.jsonl');
+    writeFileSync(path, content, 'utf-8');
+    return path;
+  }
+
+  function optionsWithEvidence(
+    mappedRows: unknown[],
+    evidenceRows: unknown[] | null,
+    overrides: Partial<SyncSupabaseOptions> = {},
+  ): SyncSupabaseOptions {
+    return {
+      ...options(mappedRows),
+      technicalEvidencePath: evidenceRows === null ? undefined : evidencePath(evidenceRows),
+      ...overrides,
+    };
+  }
+
+  it('preserves current behavior when technicalEvidencePath is absent', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase(options([mappedRow()]), client);
+
+    expect(result.ok).toBe(true);
+    expect(result.dry_run).toBe(false);
+    expect(result.candidates_upserted).toBe(1);
+    expect(client.canonicalWrites).toHaveLength(1);
+    expect(client.recoveredCalls).toHaveLength(0);
+  });
+
+  it('omits the technical_evidence_attempted key entirely when technicalEvidencePath is absent (result shape preserved)', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase(options([mappedRow()]), client);
+
+    expect(result).not.toHaveProperty('technical_evidence_attempted');
+    expect(Object.keys(result).sort()).toEqual([
+      'candidates_total',
+      'candidates_upserted',
+      'canonical_base_complete',
+      'canonical_base_skipped',
+      'dry_run',
+      'errors',
+      'events_inserted',
+      'events_skipped',
+      'ok',
+      'scan_run',
+      'source',
+      'stale_recovery',
+    ]);
+  });
+
+  it('includes technical_evidence_attempted when an explicit (empty) path is provided', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [], { confirmWrite: false }),
+      client,
+    );
+
+    expect(result).toHaveProperty('technical_evidence_attempted', 0);
+  });
+
+  it('dry-run with valid evidence exposes technical_evidence_attempted and does not call the client', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [baseEvidence()], { confirmWrite: false }),
+      client,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.dry_run).toBe(true);
+    expect(result.technical_evidence_attempted).toBe(1);
+    expect(client.startedRuns).toHaveLength(0);
+    expect(client.canonicalWrites).toHaveLength(0);
+    expect(client.recoveredCalls).toHaveLength(0);
+    expect(client.finishedRuns).toHaveLength(0);
+    expect(client.eventInserts).toHaveLength(0);
+  });
+
+  it('dry-run with empty evidence path reports zero attempted and does not call the client', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [], { confirmWrite: false }),
+      client,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.dry_run).toBe(true);
+    expect(result.technical_evidence_attempted).toBe(0);
+    expect(client.startedRuns).toHaveLength(0);
+    expect(client.canonicalWrites).toHaveLength(0);
+  });
+
+  it('rejects a line whose schemaVersion is not 1', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence({ schemaVersion: 2 })]), client),
+    ).rejects.toThrow(/line 1: invalid_schema_version/);
+    expect(client.startedRuns).toHaveLength(0);
+    expect(client.canonicalWrites).toHaveLength(0);
+  });
+
+  it('rejects a malformed JSON line with the line number and a payload-free message', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(
+        optionsWithEvidence(
+          [mappedRow()],
+          null,
+          { technicalEvidencePath: rawEvidencePath('not valid json\n') },
+        ),
+        client,
+      ),
+    ).rejects.toThrow(/line 1: invalid_json/);
+    expect(client.startedRuns).toHaveLength(0);
+  });
+
+  it('rejects a non-object line (string)', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(
+        optionsWithEvidence(
+          [mappedRow()],
+          null,
+          { technicalEvidencePath: rawEvidencePath('"a string"\n') },
+        ),
+        client,
+      ),
+    ).rejects.toThrow(/line 1: invalid_object/);
+  });
+
+  it('rejects a non-object line (array)', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(
+        optionsWithEvidence(
+          [mappedRow()],
+          null,
+          { technicalEvidencePath: rawEvidencePath('[1,2,3]\n') },
+        ),
+        client,
+      ),
+    ).rejects.toThrow(/line 1: invalid_object/);
+  });
+
+  it('rejects an empty documentId', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence({ documentId: '   ' })]), client),
+    ).rejects.toThrow(/line 1: invalid_document_id/);
+  });
+
+  it('rejects a non-positive, fractional, or missing evidenceVersion', async () => {
+    const client = new WriterClientMock();
+    for (const bad of [0, -1, 1.5]) {
+      await expect(
+        runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence({ evidenceVersion: bad })]), client),
+      ).rejects.toThrow(/line 1: invalid_evidence_version/);
+    }
+  });
+
+  it('rejects a missing (undefined) evidenceVersion explicitly', async () => {
+    const client = new WriterClientMock();
+    const row = baseEvidence();
+    delete (row as Record<string, unknown>).evidenceVersion;
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [row]), client),
+    ).rejects.toThrow(/line 1: invalid_evidence_version \(documentId=doc-001\)/);
+    expect(client.startedRuns).toHaveLength(0);
+  });
+
+  it('rejects a non-numeric evidenceVersion (string "1")', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence({ evidenceVersion: '1' as unknown as number })]), client),
+    ).rejects.toThrow(/line 1: invalid_evidence_version/);
+  });
+
+  it('rejects a null technicalEvidence', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence({ technicalEvidence: null })]), client),
+    ).rejects.toThrow(/line 1: invalid_technical_evidence/);
+  });
+
+  it('rejects an array technicalEvidence', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence({ technicalEvidence: [] })]), client),
+    ).rejects.toThrow(/line 1: invalid_technical_evidence/);
+  });
+
+  it('rejects a null origin', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence({ origin: null })]), client),
+    ).rejects.toThrow(/line 1: invalid_origin/);
+  });
+
+  it('rejects an array origin', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence({ origin: [] })]), client),
+    ).rejects.toThrow(/line 1: invalid_origin/);
+  });
+
+  it('rejects a non-ISO createdAt and a missing createdAt', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence({ createdAt: 'not-a-date' })]), client),
+    ).rejects.toThrow(/line 1: invalid_created_at/);
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence({ createdAt: '   ' })]), client),
+    ).rejects.toThrow(/line 1: invalid_created_at/);
+  });
+
+  it.each([
+    '2023-02-30T00:00:00.000Z',
+    '2023-04-31T00:00:00.000Z',
+    '2023-02-29T00:00:00.000Z',
+    '2024-02-30T00:00:00.000Z',
+    '2023-13-01T00:00:00.000Z',
+    '2023-00-15T00:00:00.000Z',
+    '2023-02-15T25:00:00.000Z',
+    '2023-02-15T00:60:00.000Z',
+    '2023-02-15T00:00:60.000Z',
+    '2023-02-15T00:00:00',
+    '2023/02/15T00:00:00.000Z',
+    '2023-02-15 00:00:00.000Z',
+  ])('rejects impossible / malformed createdAt %s with payload-free message', async (bad) => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence({ createdAt: bad })]), client),
+    ).rejects.toThrow(new RegExp(`line 1: invalid_created_at \\(documentId=doc-001\\)`));
+    expect(client.startedRuns).toHaveLength(0);
+  });
+
+  it('normalizes a valid Z createdAt to the deterministic UTC canonical form', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [baseEvidence({ createdAt: '2026-07-12T10:30:00.000Z' })], { confirmWrite: false }),
+      client,
+    );
+    expect(result.technical_evidence_attempted).toBe(1);
+  });
+
+  it('normalizes a non-UTC offset createdAt to the deterministic UTC canonical form', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase(
+      optionsWithEvidence(
+        [mappedRow()],
+        [baseEvidence({ createdAt: '2026-07-12T07:30:00.000-03:00' })],
+        { confirmWrite: false },
+      ),
+      client,
+    );
+    expect(result.technical_evidence_attempted).toBe(1);
+  });
+
+  it('rejects an impossible calendar value in a non-UTC offset createdAt', async () => {
+    const client = new WriterClientMock();
+    // 2023-02-30T00:00:00-03:00 is Feb 30 in UTC-3 (impossible).
+    // Date silently rolls it to 2023-03-02T03:00:00Z; the input date
+    // (2023-02-30) does not match the date in the input's own timezone
+    // (2023-03-02) after the roundtrip, so the loader must reject.
+    await expect(
+      runSyncSupabase(
+        optionsWithEvidence(
+          [mappedRow()],
+          [baseEvidence({ createdAt: '2023-02-30T00:00:00-03:00' })],
+        ),
+        client,
+      ),
+    ).rejects.toThrow(/line 1: invalid_created_at \(documentId=doc-001\)/);
+  });
+
+  it('rejects a number primitive used as technicalEvidence', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence({ technicalEvidence: 42 as unknown as Record<string, unknown> })]), client),
+    ).rejects.toThrow(/line 1: invalid_technical_evidence \(documentId=doc-001\)/);
+  });
+
+  it('rejects a boolean primitive used as origin', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence({ origin: true as unknown as Record<string, unknown> })]), client),
+    ).rejects.toThrow(/line 1: invalid_origin \(documentId=doc-001\)/);
+  });
+
+  it('accepts minimal record-shaped technicalEvidence and origin (only object-shape is required)', async () => {
+    const client = new WriterClientMock();
+    const row = {
+      schemaVersion: 1,
+      documentId: EVIDENCE_DOC,
+      evidenceVersion: 1,
+      technicalEvidence: {},
+      origin: { evidenceVersion: 1 },
+      createdAt: '2026-07-12T10:30:00.000Z',
+    };
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [row], { confirmWrite: false }),
+      client,
+    );
+    expect(result.technical_evidence_attempted).toBe(1);
+  });
+
+  it('rejects divergent origin.evidenceVersion', async () => {
+    const client = new WriterClientMock();
+    const row = baseEvidence({ evidenceVersion: 2 });
+    (row.origin as Record<string, unknown>).evidenceVersion = 1;
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [row]), client),
+    ).rejects.toThrow(/line 1: origin_evidence_version_mismatch \(documentId=doc-001\)/);
+  });
+
+  it('rejects a duplicate (documentId, evidenceVersion) key', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence(), baseEvidence()]), client),
+    ).rejects.toThrow(/line 2: duplicate_key \(documentId=doc-001, evidenceVersion=1\)/);
+  });
+
+  it('rejects a second line for the same documentId with a different version (no last-write-wins)', async () => {
+    const client = new WriterClientMock();
+    const secondLine = baseEvidence({ evidenceVersion: 2 });
+    (secondLine.origin as Record<string, unknown>).evidenceVersion = 2;
+    await expect(
+      runSyncSupabase(
+        optionsWithEvidence(
+          [mappedRow()],
+          [baseEvidence({ evidenceVersion: 1 }), secondLine],
+        ),
+        client,
+      ),
+    ).rejects.toThrow(/line 2: duplicate_document_id \(documentId=doc-001\)/);
+  });
+
+  it('rejects evidence whose documentId is not in the prepared candidates', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(
+        optionsWithEvidence([mappedRow()], [baseEvidence({ documentId: 'doc-orphan' })]),
+        client,
+      ),
+    ).rejects.toThrow(/line 1: evidence_document_not_in_candidates \(documentId=doc-orphan\)/);
+  });
+
+  it('accepts candidates without matching evidence and does not fabricate a row', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase(
+      optionsWithEvidence(
+        [mappedRow(), mappedRow({ document_id: 'doc-002' })],
+        [baseEvidence({ documentId: 'doc-001' })],
+        { confirmWrite: false },
+      ),
+      client,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.technical_evidence_attempted).toBe(1);
+    expect(result.candidates_upserted).toBe(2);
+    expect(client.canonicalWrites).toHaveLength(0);
+    expect(client.startedRuns).toHaveLength(0);
+  });
+
+  it('error messages never include the technical evidence payload content', async () => {
+    const client = new WriterClientMock();
+    const row = baseEvidence({ evidenceVersion: 2 });
+    (row.origin as Record<string, unknown>).evidenceVersion = 1;
+    (row.technicalEvidence as Record<string, unknown>).duplicateRelation = {
+      kind: 'none',
+      detectionBasis: SENTINEL_PAYLOAD_TOKEN,
+    };
+
+    let caught: Error | null = null;
+    try {
+      await runSyncSupabase(optionsWithEvidence([mappedRow()], [row]), client);
+    } catch (error: any) {
+      caught = error;
+    }
+
+    expect(caught).not.toBeNull();
+    expect(caught!.message).not.toContain(SENTINEL_PAYLOAD_TOKEN);
+  });
+
+  it('confirmed write with evidence path fails fast and makes no remote call', async () => {
+    const client = new WriterClientMock();
+    let caught: Error | null = null;
+    try {
+      await runSyncSupabase(
+        optionsWithEvidence([mappedRow()], [baseEvidence()], { confirmWrite: true }),
+        client,
+      );
+    } catch (error: any) {
+      caught = error;
+    }
+
+    expect(caught).not.toBeNull();
+    expect(caught!.message).toMatch(/technical evidence.*not.*integrated/i);
+    expect(caught!.message).not.toContain(SENTINEL_PAYLOAD_TOKEN);
+    expect(client.recoveredCalls).toHaveLength(0);
+    expect(client.startedRuns).toHaveLength(0);
+    expect(client.canonicalWrites).toHaveLength(0);
+    expect(client.finishedRuns).toHaveLength(0);
+    expect(client.eventInserts).toHaveLength(0);
+  });
+
+  it('confirmed write with invalid evidence also fails fast and makes no remote call', async () => {
+    const client = new WriterClientMock();
+    let caught: Error | null = null;
+    try {
+      await runSyncSupabase(
+        optionsWithEvidence([mappedRow()], [baseEvidence({ evidenceVersion: 0 })]),
+        client,
+      );
+    } catch (error: any) {
+      caught = error;
+    }
+
+    expect(caught).not.toBeNull();
+    expect(caught!.message).toMatch(/line 1: invalid_evidence_version/);
+    expect(client.recoveredCalls).toHaveLength(0);
+    expect(client.startedRuns).toHaveLength(0);
+    expect(client.canonicalWrites).toHaveLength(0);
+    expect(client.finishedRuns).toHaveLength(0);
+    expect(client.eventInserts).toHaveLength(0);
+  });
+
+  it('confirmed write with evidence path but no candidate match fails fast before any remote call', async () => {
+    const client = new WriterClientMock();
+    let caught: Error | null = null;
+    try {
+      await runSyncSupabase(
+        optionsWithEvidence([mappedRow()], [baseEvidence({ documentId: 'doc-orphan' })]),
+        client,
+      );
+    } catch (error: any) {
+      caught = error;
+    }
+
+    expect(caught).not.toBeNull();
+    expect(caught!.message).toMatch(/line 1: evidence_document_not_in_candidates/);
+    expect(client.recoveredCalls).toHaveLength(0);
+    expect(client.startedRuns).toHaveLength(0);
+    expect(client.canonicalWrites).toHaveLength(0);
+    expect(client.finishedRuns).toHaveLength(0);
+  });
+
+  it('confirmed write with evidence path and recoverStale still fails fast before any remote call', async () => {
+    const client = new WriterClientMock();
+    let caught: Error | null = null;
+    try {
+      await runSyncSupabase(
+        optionsWithEvidence(
+          [mappedRow()],
+          [baseEvidence()],
+          { confirmWrite: true, recoverStale: true },
+        ),
+        client,
+      );
+    } catch (error: any) {
+      caught = error;
+    }
+
+    expect(caught).not.toBeNull();
+    expect(caught!.message).toMatch(/technical evidence.*not.*integrated/i);
+    expect(client.recoveredCalls).toHaveLength(0);
+    expect(client.startedRuns).toHaveLength(0);
+    expect(client.canonicalWrites).toHaveLength(0);
+    expect(client.finishedRuns).toHaveLength(0);
+  });
+
+  it('confirmed write with no evidence path keeps the previous fail-fast on missing client', async () => {
+    await expect(
+      runSyncSupabase(options([mappedRow()]), undefined),
+    ).rejects.toThrow(/service-role client is required/);
+  });
+});
