@@ -13,6 +13,7 @@ import { acceptDocument, rejectDocument } from './core/acceptance.js';
 import { normalizePedido } from './core/pedido.js';
 import { exportManifest, syncManifest } from './core/syncManifest.js';
 import { exportIngestionEvents, exportPackage, exportReceivedDocuments, exportMappedDocuments } from './core/exportPackage.js';
+import { exportCurrentTechnicalEvidence } from './core/exportTechnicalEvidence.js';
 import { closeDb, getDb } from './storage/sqlite.js';
 import { runSyncMapped, validateSyncMappedOptions } from './core/syncMapped.js';
 import { writeLatestManifest } from './core/latestManifest.js';
@@ -626,6 +627,25 @@ program
       console.log('[export-ingestion-events] Local-only - no Gmail, Drive, or Supabase calls performed.');
     } catch (error: any) {
       console.error(`[export-ingestion-events] ${error?.message ?? String(error)}`);
+      process.exitCode = 1;
+    } finally {
+      closeDb();
+    }
+  });
+
+program
+  .command('export-technical-evidence')
+  .description('Export current technical evidence to JSONL')
+  .requiredOption('--output <path>', 'Output file path')
+  .action((opts) => {
+    try {
+      const result = exportCurrentTechnicalEvidence(getDb(), { outputPath: opts.output });
+      console.log('[export-technical-evidence] Output: %s', result.outputPath);
+      console.log('[export-technical-evidence] Exported rows: %d', result.exportedRows);
+      console.log('[export-technical-evidence] Skipped without evidence: %d', result.skippedWithoutEvidence);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[export-technical-evidence] ${message}`);
       process.exitCode = 1;
     } finally {
       closeDb();
