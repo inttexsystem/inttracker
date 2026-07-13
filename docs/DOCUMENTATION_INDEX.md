@@ -88,6 +88,35 @@ não substituem nenhuma das 7 fontes de §1.
 | `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md` | Inventário read-only de divergências entre os 5 mockups do Portal Cliente B2B (Dashboard, Novo Pedido, Modal Adicionar Item, Detalhe do Pedido, Acompanhamento) e as telas `js/screens/cliente-*.js` atuais. Matriz por tela, gaps detalhados, particularidades operacionais ainda em TBD e proposta de fases futuras (`UI-GAP-FIX-*`, `UI-OPERATIONS-RULES-A`). Não implementa nem corrige nada. | `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-GAP-INVENTORY-A` |
 | `docs/ui/CLIENTE_PORTAL_UI_OPERATIONS_RULES.md` | Matriz operacional docs-only para a UI do Portal Cliente B2B. Consolida decisões já fechadas, registra as pendências `OP-001` a `OP-012`, recomendações técnicas, impacto por tela e a sequência futura (`UI-GAP-FIX-NOVO-PEDIDO-A` até `UI-GAP-FIX-SHELL-A`). Não implementa UI nem altera código/schema/Supabase. | `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-OPERATIONS-RULES-A` |
 
+## 1c. Histórico estruturado por frente
+
+Ledgers são registros **append-only** de fases encerradas e aceitas por
+frente. Registram histórico aceito, **não** estado atual. Não substituem o
+Git (commits e diffs continuam sendo consultados diretamente) e não são
+fonte do estado operacional, que pertence a `PROJECT_STATE.md`.
+
+### Histórico estruturado por frente
+
+- `docs/ledgers/G28_LEDGER.md`
+  - proprietário do histórico estruturado de fases aceitas da frente G28;
+  - append-only;
+  - não é fonte do estado atual;
+  - não substitui o Git;
+  - não reconstrói automaticamente o histórico pré-modelo.
+
+- `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`
+  - ledger histórico existente e exclusivo da frente de refactor;
+  - permanece no caminho atual;
+  - não deve ser copiado para `docs/legacy/`.
+
+### Preservação pré-modelo
+
+- `docs/legacy/pre-model/MANIFEST.md`
+  - índice dos snapshots completos e imutáveis anteriores à compactação;
+  - snapshots não são fontes de estado atual;
+  - snapshots não recebem novos closeouts;
+  - conteúdo preservado para auditoria, não para roteamento operacional.
+
 ## 2. Regra de prevalência
 
 Toda decisão operacional, arquitetural ou de governança deve seguir
