@@ -8,6 +8,41 @@
 > **Convenção:** este diretório é docs-only. Nenhuma alteração de
 > código, teste ou `index.html` é feita aqui.
 
+## 0. Papel deste índice e contrato de governança documental
+
+A partir de `G28-DOCS-B1` (fase aditiva, sem migração), este
+arquivo passa a ser formalmente reconhecido como o **árbitro
+único de autoridade documental e caminhos canônicos** do
+projeto. Ele responde a:
+
+- qual é a **ordem de autoridade** entre documentos;
+- qual é a **classificação** de cada documento (canônico,
+  operacional, contrato, runbook, legado, diagnóstico,
+  governança);
+- quais são os **caminhos canônicos**;
+- quais documentos são **legados** a reconciliar;
+- qual é a **responsabilidade** de cada categoria de documento.
+
+Este índice **não** é fonte de fase atual, próxima ação, HEAD,
+working tree, status operacional nem histórico de closeouts.
+Esses fatos pertencem a `PROJECT_STATE.md`, ao Git e ao ledger
+da frente, conforme o contrato em
+[`docs/governance/DOCUMENTATION_MODEL.md`](governance/DOCUMENTATION_MODEL.md).
+
+O **modelo de governança documental** que rege propriedade,
+duplicação, atualização por fase, transação documental mínima,
+compactação e tratamento de Git/migrations/HEAD é o
+`docs/governance/DOCUMENTATION_MODEL.md`. Em conflito entre
+qualquer documento do projeto e este modelo, prevalece o modelo,
+exceto se a revisão estiver registrada neste índice e no
+respectivo ledger.
+
+Listas concorrentes de "fontes canônicas" existentes em outros
+arquivos (ver §2 deste índice e §14 do modelo) são **legado a
+reconciliar** em slices posteriores. Nenhuma migração de estado
+foi executada em `G28-DOCS-B1`; este slice apenas estabelece o
+contrato e declara a função deste índice.
+
 ## 1. Fontes canônicas atuais (PREVALECEM)
 
 Estas são as únicas fontes aceitas para decisões operacionais,
@@ -270,3 +305,15 @@ A regra vigente está em `AGENT_HANDOFF.md` (regras 1, 2, 3, 15) e em
 - Manter as 7 fontes canônicas como âncora; este índice é referência
   cruzada, não fonte primária.
 - Fase: docs-only. Sem alteração funcional.
+- A atualização do índice é regida pela **matriz de atualização
+  por fase** de `docs/governance/DOCUMENTATION_MODEL.md` §11 e
+  pela **transação documental mínima** §12 do mesmo modelo.
+  Mudanças de autoridade, classificação ou caminhos exigem
+  revisão deste índice; mudanças cosméticas devem ser evitadas.
+- A **§2 "Regra de prevalência"** deste índice, bem como listas
+  de "fontes canônicas" e de "precedência funcional" em outros
+  arquivos (ex.: `docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md`
+  §1/§3/§4/§11/§12), são **legado a reconciliar** conforme
+  `docs/governance/DOCUMENTATION_MODEL.md` §14. Nenhuma
+  reescrita foi realizada em `G28-DOCS-B1`; a substituição por
+  referência ao índice será feita em slices posteriores.
