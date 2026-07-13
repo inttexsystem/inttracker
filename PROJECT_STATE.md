@@ -12,17 +12,22 @@ O conteúdo histórico abaixo não determina o estado atual.
 - **Workspace:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
 - **Branch:** `work/g28-document-qualification`
 - **Remoto permitido:** nenhum push sem autorização expressa nesta cadeia
-- **Última fase aceita:** `G28-DOCS-B3-B0` — `CLOSED / ACCEPTED`
+- **Última fase aceita:** `G28-DOCS-B3-C` — `CLOSED / ACCEPTED`
 - **Correção vinculada:** `G28-DOCS-B2-R1` — `CLOSED / ACCEPTED`
-- **Fase em curso:** `G28-DOCS-B3-C` — `COMPACTAÇÃO DOCUMENTAL EM EXECUÇÃO / AGUARDANDO GATE`
-- **Próxima ação:** gate do arquiteto para `G28-DOCS-B3-C`
+- **Fase em curso:** nenhuma fase de implementação documental em execução
+- **Próxima ação:** `G28-DOCS-B3-D1` — `G28 PROSPECTIVE LEDGER BOOTSTRAP`
+  Criar o primeiro ledger por frente para G28, sem reconstrução automática
+  do histórico pré-modelo e sem usar os mapas rejeitados de `G28-DOCS-B3-A`
+  ou `G28-DOCS-B3-A-R1` como fonte de verdade.
 - **Fase técnica suspensa:** `G28-B3-B5-C` — `NOT STARTED / SUSPENDED`
 
 ### Débitos relevantes
 
-- Migration 49 versionada, mas não aplicada.
-- Supabase real não acessado nesta cadeia.
-- Ledger estruturado por frente ainda não criado.
+- Ledger estruturado da frente G28 ainda não criado.
+- `G28-B3-B5-C` — `NOT STARTED / SUSPENDED`.
+- Migration 49 — versionada, não aplicada.
+- Supabase real — não acessado.
+- Push — não autorizado nesta cadeia.
 
 ### Referência histórica
 

@@ -3,17 +3,21 @@
 - **Frente ativa:** G28 — Documentation Source-of-Truth Refactor
 - **Workspace:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
 - **Branch:** `work/g28-document-qualification`
-- **Objetivo imediato:** concluir o gate de `G28-DOCS-B3-C`, que substitui
-  os históricos congelados dos arquivos operacionais por referências aos
-  snapshots imutáveis já verificados.
+- **Objetivo imediato:** abrir `G28-DOCS-B3-D1` para criar o ledger
+  prospectivo da frente G28, usando commits e gates aceitos como fontes e
+  mantendo todo o conteúdo pré-modelo exclusivamente preservado nos
+  snapshots imutáveis.
 - **Estado de entrada:**
   - `G28-DOCS-B1` — `CLOSED / ACCEPTED`
   - `G28-DOCS-B2` — `CLOSED / ACCEPTED`
   - `G28-DOCS-B2-R1` — `CLOSED / ACCEPTED`
   - `G28-DOCS-B2-CLOSEOUT` — `CLOSED / ACCEPTED`
   - `G28-DOCS-B3-B0` — `CLOSED / ACCEPTED`
-  - `G28-DOCS-B3-C` — `EM EXECUÇÃO / AGUARDANDO GATE`
+  - `G28-DOCS-B3-C` — `CLOSED / ACCEPTED`
+  - `G28-B3-B5-B` — `CLOSED / ACCEPTED`
   - `G28-B3-B5-C` — `SUSPENDED`
+  - Os diagnósticos `G28-DOCS-B3-A` e `G28-DOCS-B3-A-R1` foram rejeitados e
+    substituídos pela estratégia de snapshots integrais.
 - **Arquivos obrigatórios:**
   - `docs/governance/DOCUMENTATION_MODEL.md`
   - `docs/DOCUMENTATION_INDEX.md`
@@ -21,16 +25,17 @@
   - `AGENT_HANDOFF.md`
   - `services/documents-ingestor/PROJECT_STATE.md`
 - **Restrições:**
-  - não editar os snapshots;
-  - não criar ledger nesta fase;
-  - não alterar planos ou índices;
+  - não editar snapshots;
+  - não reconstruir automaticamente o histórico pré-modelo;
+  - não usar os mapas `B3-A`/`B3-A-R1` como fonte de verdade;
+  - não criar ledgers de outras frentes nesta fase;
   - não retomar `G28-B3-B5-C`;
   - não aplicar migration 49;
   - não acessar Supabase real;
   - não fazer push.
 - **Próxima entrega:**
-  - gate do arquiteto para `G28-DOCS-B3-C`;
-  - após aceite, definição e criação dos ledgers estruturados por frente.
+  - patch de `G28-DOCS-B3-D1` com o ledger da frente G28 criado,
+    sem backfill especulativo de fases antigas e sem alterar os snapshots.
 - **Links canônicos:**
   - estado atual → `PROJECT_STATE.md`
   - modelo documental → `docs/governance/DOCUMENTATION_MODEL.md`
