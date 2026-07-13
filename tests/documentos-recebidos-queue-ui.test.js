@@ -83,6 +83,8 @@ test('queue-ui: namespace expoe API esperada', function () {
   assert.equal(typeof queueUI.isSourceEmpty, 'function');
   assert.equal(typeof queueUI.getPedidoOptions, 'function');
   assert.equal(typeof queueUI.countByStatus, 'function');
+  assert.equal(typeof queueUI.getSourceFilePresentation, 'function');
+  assert.equal(typeof queueUI.getValidationPresentation, 'function');
 });
 
 // =====================================================================
@@ -729,9 +731,70 @@ test('queue-ui: getAlertPresentation nao fabrica alerta para no_confirmed_link',
   assert.equal(nc.length, 0, 'no_confirmed_link nao produz alerta');
 });
 
+// =====================================================================
+// 11. G28-B4-B4: Source-file and validation presentation helpers
+// =====================================================================
+
+test('queue-ui: getSourceFilePresentation cobre unsupported e missing', function () {
+  function qi(state) { return { source_file: { state: state } }; }
+
+  var uns = queueUI.getSourceFilePresentation(qi('unsupported'));
+  assert.equal(uns.label, 'Acesso ao arquivo não suportado nesta origem', 'unsupported label');
+  assert.equal(uns.ariaLabel, 'Acesso ao arquivo não suportado nesta origem', 'unsupported ariaLabel');
+
+  var mis = queueUI.getSourceFilePresentation(qi('missing'));
+  assert.equal(mis.label, 'Arquivo não disponível', 'missing label');
+  assert.equal(mis.ariaLabel, 'Arquivo não disponível', 'missing ariaLabel');
+});
+
+test('queue-ui: getSourceFilePresentation retorna vazio para drive_available e desconhecido', function () {
+  function qi(state) { return { source_file: { state: state } }; }
+
+  var da = queueUI.getSourceFilePresentation(qi('drive_available'));
+  assert.equal(da.label, '', 'drive_available label vazio');
+  assert.equal(da.ariaLabel, '', 'drive_available ariaLabel vazio');
+
+  var bogus = queueUI.getSourceFilePresentation(qi('bogus'));
+  assert.equal(bogus.label, '', 'bogus label vazio');
+
+  var missing = queueUI.getSourceFilePresentation({});
+  assert.equal(missing.label, '', 'source_file ausente label vazio');
+
+  var nil = queueUI.getSourceFilePresentation(null);
+  assert.equal(nil.label, '', 'null queueItem label vazio');
+});
+
+test('queue-ui: getValidationPresentation cobre review_pending e review_unavailable', function () {
+  function qi(review) { return { validation: { review: review } }; }
+
+  var rp = queueUI.getValidationPresentation(qi('review_pending'));
+  assert.equal(rp.label, 'Revisão pendente', 'review_pending label');
+  assert.equal(rp.ariaLabel, 'Revisão pendente', 'review_pending ariaLabel');
+
+  var ru = queueUI.getValidationPresentation(qi('review_unavailable'));
+  assert.equal(ru.label, 'Revisão indisponível', 'review_unavailable label');
+  assert.equal(ru.ariaLabel, 'Revisão indisponível', 'review_unavailable ariaLabel');
+});
+
+test('queue-ui: getValidationPresentation retorna vazio para review_available e desconhecido', function () {
+  function qi(review) { return { validation: { review: review } }; }
+
+  var ra = queueUI.getValidationPresentation(qi('review_available'));
+  assert.equal(ra.label, '', 'review_available label vazio (reserved, nao emitido)');
+
+  var bogus = queueUI.getValidationPresentation(qi('bogus'));
+  assert.equal(bogus.label, '', 'bogus label vazio');
+
+  var missing = queueUI.getValidationPresentation({});
+  assert.equal(missing.label, '', 'validation ausente label vazio');
+
+  var nil = queueUI.getValidationPresentation(null);
+  assert.equal(nil.label, '', 'null queueItem label vazio');
+});
+
 test('queue-ui: apresentacao nao contem funcoes/acoes/callbacks', function () {
   var qi = { technical_evidence: { state: 'missing' }, review: { state: 'pending' }, pedido: { state: 'no_confirmed_link', pedido_id: null, pedido_manual: null }, source: { collection_source: 'supabase' }, alerts: [{ code: 'missing_evidence', severity: 'info' }] };
-  var fns = ['getEvidencePresentation', 'getReviewPresentation', 'getPedidoPresentation', 'getSourcePresentation', 'getAlertPresentation'];
+  var fns = ['getEvidencePresentation', 'getReviewPresentation', 'getPedidoPresentation', 'getSourcePresentation', 'getAlertPresentation', 'getSourceFilePresentation', 'getValidationPresentation'];
   fns.forEach(function (fnName) {
     var result = queueUI[fnName](qi);
     assert.ok(result, fnName + ' retorna valor');

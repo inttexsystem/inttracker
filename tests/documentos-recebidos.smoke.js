@@ -406,20 +406,17 @@ test('runtime: screenDocumentosRecebidos renderiza card com 1 documento', functi
   assert.ok(rowText.indexOf('XML') >= 0, 'badge formato XML aparece');
   assert.ok(rowText.indexOf('Entrada') >= 0, 'badge direcao Entrada aparece');
   assert.ok(rowText.indexOf('Pendente') >= 0, 'status Pendente aparece');
-  // Botao Ver
+  // Sem queueItem: mostra Indisponivel, nao acoes raw
+  const semLink = findAll(row, findAction('sem-link'));
+  assert.equal(semLink.length, 1, 'placeholder Indisponivel esperado');
+  assert.equal(textOf(semLink[0]), 'Indisponível', 'label do placeholder');
   const verBtn = findAll(row, findAction('ver-documento-drive'));
-  assert.equal(verBtn.length, 1, '1 botao Ver esperado');
-  const btn = verBtn[0];
-  assert.equal(textOf(btn), 'Ver', 'label do botao');
+  assert.equal(verBtn.length, 0, 'sem botao Ver sem queueItem');
   const downloadBtn = findAll(row, findAction('baixar-documento-drive'));
-  assert.equal(downloadBtn.length, 1, '1 botao Baixar esperado');
-  assert.equal(textOf(downloadBtn[0]), 'Baixar', 'label do botao Baixar');
+  assert.equal(downloadBtn.length, 0, 'sem botao Baixar sem queueItem');
 });
 
-test('runtime: botao Ver chama window.open com noopener,noreferrer', function () {
-  let openedUrl = null;
-  let openedTarget = null;
-  let openedFeatures = null;
+test('runtime: sem queueItem nao ha Ver nem Baixar, apenas Indisponivel', function () {
   const sb = makeScreenSandbox([
     {
       document_id: 'doc-open',
@@ -429,31 +426,17 @@ test('runtime: botao Ver chama window.open com noopener,noreferrer', function ()
       drive_web_view_link: 'https://drive.google.com/file/d/open/view',
     },
   ]);
-  sb.window.open = function (url, target, features) {
-    openedUrl = url;
-    openedTarget = target;
-    openedFeatures = features;
-  };
   const container = new FakeNode('div');
   sb.container = container;
   const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
-  const btn = findAll(result, findAction('ver-documento-drive'))[0];
-  assert.ok(btn, 'botao Ver existe');
-  assert.equal(btn._listeners.click.length, 1, '1 click handler');
-  btn._listeners.click[0]();
-  assert.equal(openedUrl, 'https://drive.google.com/file/d/open/view',
-    'window.open deve receber o drive_web_view_link');
-  assert.equal(openedTarget, '_blank', 'alvo _blank');
-  assert.ok(openedFeatures && openedFeatures.indexOf('noopener') >= 0,
-    'features deve conter noopener: ' + openedFeatures);
-  assert.ok(openedFeatures && openedFeatures.indexOf('noreferrer') >= 0,
-    'features deve conter noreferrer: ' + openedFeatures);
+  assert.equal(findAll(result, findAction('ver-documento-drive')).length, 0, 'sem Ver sem queueItem');
+  assert.equal(findAll(result, findAction('baixar-documento-drive')).length, 0, 'sem Baixar sem queueItem');
+  const semLink = findAll(result, findAction('sem-link'));
+  assert.equal(semLink.length, 1, 'Indisponivel sem queueItem');
+  assert.equal(textOf(semLink[0]), 'Indisponível', 'label do placeholder');
 });
 
-test('runtime: botao Baixar fica depois de Ver e abre link de download do Drive', function () {
-  let openedUrl = null;
-  let openedTarget = null;
-  let openedFeatures = null;
+test('runtime: sem queueItem nao ha Ver nem Baixar com file_id', function () {
   const sb = makeScreenSandbox([
     {
       document_id: 'doc-download',
@@ -464,33 +447,17 @@ test('runtime: botao Baixar fica depois de Ver e abre link de download do Drive'
       drive_web_view_link: 'https://drive.google.com/file/d/drive-download-id/view',
     },
   ]);
-  sb.window.open = function (url, target, features) {
-    openedUrl = url;
-    openedTarget = target;
-    openedFeatures = features;
-  };
   const container = new FakeNode('div');
   sb.container = container;
   const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
-  const row = findAll(result, findRow)[0];
-  const actions = findAll(row, (n) => n._attrs && (
-    n._attrs['data-action'] === 'ver-documento-drive'
-    || n._attrs['data-action'] === 'baixar-documento-drive'
-  ));
-  assert.equal(actions.length, 2, 'Ver e Baixar presentes');
-  assert.equal(actions[0]._attrs['data-action'], 'ver-documento-drive', 'Ver vem antes');
-  assert.equal(actions[1]._attrs['data-action'], 'baixar-documento-drive', 'Baixar vem depois');
-  actions[1]._listeners.click[0]();
-  assert.equal(openedUrl, 'https://drive.google.com/uc?export=download&id=drive-download-id',
-    'window.open deve receber link de download do Drive');
-  assert.equal(openedTarget, '_blank', 'alvo _blank');
-  assert.ok(openedFeatures && openedFeatures.indexOf('noopener') >= 0,
-    'features deve conter noopener: ' + openedFeatures);
-  assert.ok(openedFeatures && openedFeatures.indexOf('noreferrer') >= 0,
-    'features deve conter noreferrer: ' + openedFeatures);
+  assert.equal(findAll(result, findAction('ver-documento-drive')).length, 0, 'sem Ver sem queueItem');
+  assert.equal(findAll(result, findAction('baixar-documento-drive')).length, 0, 'sem Baixar sem queueItem');
+  const semLink = findAll(result, findAction('sem-link'));
+  assert.equal(semLink.length, 1, 'Indisponivel sem queueItem');
+  assert.equal(textOf(semLink[0]), 'Indisponível', 'label do placeholder');
 });
 
-test('runtime: documento sem drive_web_view_link mostra "Sem link"', function () {
+test('runtime: documento sem queuItem mostra "Indisponível"', function () {
   const sb = makeScreenSandbox([
     {
       document_id: 'doc-no-link',
@@ -504,12 +471,12 @@ test('runtime: documento sem drive_web_view_link mostra "Sem link"', function ()
   sb.container = container;
   const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   const semLink = findAll(result, findAction('sem-link'));
-  assert.equal(semLink.length, 1, 'placeholder Sem link aparece');
-  assert.equal(textOf(semLink[0]), 'Sem link', 'label do placeholder');
+  assert.equal(semLink.length, 1, 'placeholder Indisponivel aparece');
+  assert.equal(textOf(semLink[0]), 'Indisponível', 'label do placeholder');
   const verBtns = findAll(result, findAction('ver-documento-drive'));
-  assert.equal(verBtns.length, 0, 'sem botao Ver para doc sem link');
+  assert.equal(verBtns.length, 0, 'sem botao Ver para doc sem queueItem');
   const downloadBtns = findAll(result, findAction('baixar-documento-drive'));
-  assert.equal(downloadBtns.length, 0, 'sem botao Baixar para doc sem link');
+  assert.equal(downloadBtns.length, 0, 'sem botao Baixar para doc sem queueItem');
 });
 
 test('runtime: documento com direcao nula NAO mostra badge direcao', function () {
@@ -544,11 +511,11 @@ test('runtime: renderiza 3 documentos com todos os campos', function () {
   const rows = findAll(result, findRow);
   assert.equal(rows.length, 3, '3 rows esperados');
   const verBtns = findAll(result, findAction('ver-documento-drive'));
-  assert.equal(verBtns.length, 2, '2 botoes Ver esperados (a e c)');
+  assert.equal(verBtns.length, 0, '0 botoes Ver sem queueItem');
   const downloadBtns = findAll(result, findAction('baixar-documento-drive'));
-  assert.equal(downloadBtns.length, 2, '2 botoes Baixar esperados (a e c)');
+  assert.equal(downloadBtns.length, 0, '0 botoes Baixar sem queueItem');
   const semLinks = findAll(result, findAction('sem-link'));
-  assert.equal(semLinks.length, 1, '1 placeholder Sem link esperado (b)');
+  assert.equal(semLinks.length, 3, '3 placeholders Indisponivel (todos sem queueItem)');
 });
 
 test('runtime: tela usa shellLayout(ADMIN_MENU, container)', function () {
@@ -2325,6 +2292,7 @@ test('G28-B4-B3: indicadores sao spans nao botoes', function () {
   var indicators = [
     'Evidência disponível', 'Evidência ausente', 'Evidência inválida', 'Não disponível nesta origem',
     'Pendente de revisão', 'Aceito', 'Rejeitado', 'Estado desconhecido', 'Revisão indisponível',
+    'Revisão pendente',
     'Pedido referenciado', 'Pedido sugerido', 'Sem vínculo confirmado', 'Vínculo indisponível',
     'Supabase', 'Fallback legado', 'Origem desconhecida',
   ];
@@ -2400,4 +2368,306 @@ test('G28-B4-B3: pedido no_confirmed_link com supabase disponivel', function () 
   var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   var rowText = JSON.stringify(findAll(result, function () { return true; }).map(textOf));
   assert.ok(rowText.indexOf('Sem vínculo confirmado') >= 0, 'no_confirmed_link: ' + rowText.slice(0, 400));
+});
+
+// =====================================================================
+// 12. G28-B4-B4: Source-file state gating and validation presentation
+// =====================================================================
+
+test('G28-B4-B4: drive_available com web link exibe Ver e Baixar', function () {
+  var sb = makeScreenSandboxWithQueueUI([
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb30',
+      filename_original: 'b4-view.pdf', tipo_documento: 'nf', formato: 'pdf',
+      drive_file_id: 'drive-30', drive_web_view_link: 'https://drive.example/30',
+      status: 'pending', _ravatex_source: 'supabase',
+    },
+  ]);
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  assert.equal(findAll(result, findAction('ver-documento-drive')).length, 1, 'Ver presente');
+  assert.equal(findAll(result, findAction('baixar-documento-drive')).length, 1, 'Baixar presente');
+  assert.equal(findAll(result, function (n) { return n._attrs && n._attrs['data-source-file-state']; }).length, 0, 'nenhum span de estado source-file');
+});
+
+test('G28-B4-B4: drive_available com file_id apenas mostra Baixar, sem Ver', function () {
+  var sb = makeScreenSandboxWithQueueUI([
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb31',
+      filename_original: 'b4-dl.pdf', tipo_documento: 'nf', formato: 'pdf',
+      drive_file_id: 'drive-31',
+      status: 'pending', _ravatex_source: 'supabase',
+    },
+  ]);
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  assert.equal(findAll(result, findAction('ver-documento-drive')).length, 0, 'Ver ausente sem web link');
+  assert.equal(findAll(result, findAction('baixar-documento-drive')).length, 1, 'Baixar presente via driveId');
+  assert.equal(findAll(result, function (n) { return n._attrs && n._attrs['data-source-file-state']; }).length, 0, 'nenhum span de estado source-file');
+});
+
+test('G28-B4-B4: unsupported source mostra label estatico nao interativo', function () {
+  var sb = makeScreenSandboxWithQueueUI([
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb32',
+      filename_original: 'b4-unsup.pdf', tipo_documento: 'nf', formato: 'pdf',
+      gmail_message_id: 'msg-32',
+      status: 'pending', _ravatex_source: 'supabase',
+    },
+  ]);
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  // Nenhum botao de acao Drive
+  assert.equal(findAll(result, findAction('ver-documento-drive')).length, 0, 'sem Ver');
+  assert.equal(findAll(result, findAction('baixar-documento-drive')).length, 0, 'sem Baixar');
+  assert.equal(findAll(result, findAction('sem-link')).length, 0, 'sem Sem link antigo');
+  // Span estatico com label de unsupported
+  var sfSpans = findAll(result, function (n) { return n._attrs && n._attrs['data-source-file-state']; });
+  assert.equal(sfSpans.length, 1, 'span de estado source-file presente');
+  assert.equal(sfSpans[0]._attrs['data-source-file-state'], 'unsupported');
+  assert.equal(textOf(sfSpans[0]), 'Acesso ao arquivo não suportado nesta origem');
+  // A label deve usar wrapping para caber na coluna de 148px
+  assert.equal(sfSpans[0]._attrs.style.indexOf('white-space:nowrap'), -1,
+    'unsupported label deve usar wrapping, nao nowrap');
+  // Nao e um botao
+  assert.notEqual(sfSpans[0].tagName, 'BUTTON', 'nao e um botao');
+  // Nao tem onclick
+  assert.equal(sfSpans[0]._listeners.click, undefined, 'sem click handler');
+});
+
+test('G28-B4-B4: missing source mostra label estatico nao interativo', function () {
+  var sb = makeScreenSandboxWithQueueUI([
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb33',
+      filename_original: 'b4-miss.pdf', tipo_documento: 'nf', formato: 'pdf',
+      // Sem drive fields, sem gmail_message_id, sem local_path → missing
+      status: 'pending', _ravatex_source: 'supabase',
+    },
+  ]);
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  assert.equal(findAll(result, findAction('ver-documento-drive')).length, 0, 'sem Ver');
+  assert.equal(findAll(result, findAction('baixar-documento-drive')).length, 0, 'sem Baixar');
+  assert.equal(findAll(result, findAction('sem-link')).length, 0, 'sem Sem link antigo');
+  var sfSpans = findAll(result, function (n) { return n._attrs && n._attrs['data-source-file-state']; });
+  assert.equal(sfSpans.length, 1, 'span de estado source-file presente');
+  assert.equal(sfSpans[0]._attrs['data-source-file-state'], 'missing');
+  assert.equal(textOf(sfSpans[0]), 'Arquivo não disponível');
+  assert.notEqual(sfSpans[0].tagName, 'BUTTON', 'nao e um botao');
+  assert.equal(sfSpans[0]._listeners.click, undefined, 'sem click handler');
+});
+
+test('G28-B4-B4: filename/sender/MIME/localpath nao criam acoes se state nao permite', function () {
+  // Documento com gmail_message_id (unsupported) — nao pode ter acoes Drive
+  var sb = makeScreenSandboxWithQueueUI([
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb34',
+      filename_original: 'b4-raw.pdf', tipo_documento: 'nf', formato: 'pdf',
+      sender_email: 'fornecedor@example.com',
+      gmail_message_id: 'msg-34',
+      // Sem drive fields
+      status: 'pending', _ravatex_source: 'supabase',
+    },
+  ]);
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  assert.equal(findAll(result, findAction('ver-documento-drive')).length, 0, 'sem Ver');
+  assert.equal(findAll(result, findAction('baixar-documento-drive')).length, 0, 'sem Baixar');
+  // Label estatico aparece
+  var sfSpans = findAll(result, function (n) { return n._attrs && n._attrs['data-source-file-state']; });
+  assert.equal(sfSpans.length, 1, 'span source-file state presente');
+  assert.equal(sfSpans[0]._attrs['data-source-file-state'], 'unsupported');
+});
+
+test('G28-B4-B4: validation review_pending aparece como texto nao interativo na coluna status', function () {
+  var sb = makeScreenSandboxWithQueueUI([
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb35',
+      filename_original: 'b4-val.pdf', tipo_documento: 'nf', formato: 'pdf',
+      status: 'pending', _ravatex_source: 'supabase',
+    },
+  ]);
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  var row = findAll(result, findRow)[0];
+  assert.ok(row, 'row existe');
+  var rowText = textOf(row);
+  assert.ok(rowText.indexOf('Revisão pendente') >= 0, 'validation review_pending aparece: ' + rowText.slice(0, 400));
+  // Nao e um botao
+  var matchingSpans = findAll(row, function (n) { return n.tagName === 'SPAN' && textOf(n) === 'Revisão pendente'; });
+  assert.ok(matchingSpans.length >= 1, 'em ao menos um SPAN');
+  assert.equal(findAll(row, function (n) { return n.tagName === 'BUTTON' && textOf(n).trim() === 'Revisão pendente'; }).length, 0, 'nao em BUTTON');
+});
+
+test('G28-B4-B4: validation review_unavailable aparece como texto nao interativo', function () {
+  var sb = makeScreenSandboxWithQueueUI([
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb36',
+      filename_original: 'b4-val-unav.pdf', tipo_documento: 'nf', formato: 'pdf',
+      status: 'accepted', _ravatex_source: 'supabase',
+    },
+  ]);
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  var row = findAll(result, findRow)[0];
+  assert.ok(row, 'row existe');
+  var rowText = textOf(row);
+  // accepted decision → validation review_unavailable
+  assert.ok(rowText.indexOf('Revisão indisponível') >= 0, 'validation review_unavailable aparece: ' + rowText.slice(0, 400));
+  var matchingSpans = findAll(row, function (n) { return n.tagName === 'SPAN' && textOf(n) === 'Revisão indisponível'; });
+  assert.ok(matchingSpans.length >= 1, 'em ao menos um SPAN');
+  assert.equal(findAll(row, function (n) { return n.tagName === 'BUTTON' && textOf(n).trim() === 'Revisão indisponível'; }).length, 0, 'nao em BUTTON');
+});
+
+test('G28-B4-B4: decisoes existentes permanecem inalteradas', function () {
+  // Verifica que os botoes de decisao (aceitar/rejeitar nuvem e local)
+  // continuam funcionando apos as mudancas B4-B4
+  var sb = makeScreenSandboxWithQueueUI([
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb37',
+      filename_original: 'b4-decision.pdf', tipo_documento: 'nf', formato: 'pdf',
+      drive_web_view_link: 'https://drive.example/37',
+      status: 'pending', _ravatex_source: 'supabase',
+    },
+  ]);
+  var container = new FakeNode('div');
+  sb.container = container;
+  var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  // Botoes de decisao em nuvem preservados
+  assert.equal(findAll(result, findAction('aceitar-documento-nuvem')).length, 1, 'aceitar nuvem presente');
+  assert.equal(findAll(result, findAction('rejeitar-documento-nuvem')).length, 1, 'rejeitar nuvem presente');
+  // Botoes de acao Drive preservados
+  assert.equal(findAll(result, findAction('ver-documento-drive')).length, 1, 'Ver presente');
+  assert.equal(findAll(result, findAction('baixar-documento-drive')).length, 1, 'Baixar presente');
+  // Nenhum sem-link
+  assert.equal(findAll(result, findAction('sem-link')).length, 0, 'sem Sem link');
+});
+
+test('G28-B4-B4: raw locators nao criam acoes quando queueItem nega drive_available', function () {
+  var doc = {
+    document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb40',
+    filename_original: 'raw-blocked.pdf', tipo_documento: 'nf', formato: 'pdf',
+    drive_file_id: 'drive-40', drive_web_view_link: 'https://drive.example/40',
+    status: 'pending',
+  };
+  var sb = makeScreenSandboxWithQueueUI([doc]);
+  sb.window.RAVATEX_DOCUMENTOS_RECEBIDOS_QUEUE_UI.buildQueue = function () {
+    return [{
+      index: 0,
+      queueItem: {
+        identity: { document_id: doc.document_id, filename_original: doc.filename_original, tipo_documento: doc.tipo_documento },
+        source_file: { state: 'unsupported' },
+        source: { collection_source: 'supabase' },
+        pedido: { state: 'no_confirmed_link' },
+        review: { state: 'pending' },
+        technical_evidence: { state: 'missing' },
+        validation: { review: 'review_pending' },
+        filter_values: {},
+        alerts: [],
+      },
+    }];
+  };
+  sb.window.setApp = function () {};
+  var container = new FakeNode('div');
+  sb.container = container;
+  var tree = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  assert.equal(findAll(tree, findAction('ver-documento-drive')).length, 0, 'sem Ver (blocked by queueItem)');
+  assert.equal(findAll(tree, findAction('baixar-documento-drive')).length, 0, 'sem Baixar (blocked by queueItem)');
+  var sfSpans = findAll(tree, function (n) { return n._attrs && n._attrs['data-source-file-state']; });
+  assert.equal(sfSpans.length, 1, 'span source-file state presente');
+  assert.equal(sfSpans[0]._attrs['data-source-file-state'], 'unsupported');
+  assert.notEqual(sfSpans[0].tagName, 'BUTTON', 'nao e um botao');
+  assert.ok(sfSpans[0]._attrs.title && sfSpans[0]._attrs.title.length > 0, 'title presente');
+  assert.ok(sfSpans[0]._attrs['aria-label'] && sfSpans[0]._attrs['aria-label'].length > 0, 'aria-label presente');
+});
+
+test('G28-B4-B4: sem queueItem mostra Indisponivel sem acoes derivadas de raw locators', function () {
+  var sb = makeScreenSandbox([
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb41',
+      filename_original: 'no-qi.pdf', tipo_documento: 'nf', formato: 'pdf',
+      drive_file_id: 'drive-41', drive_web_view_link: 'https://drive.example/41',
+      status: 'pending',
+    },
+  ]);
+  var container = new FakeNode('div');
+  sb.container = container;
+  var tree = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  assert.equal(findAll(tree, findAction('ver-documento-drive')).length, 0, 'sem Ver');
+  assert.equal(findAll(tree, findAction('baixar-documento-drive')).length, 0, 'sem Baixar');
+  var semLinks = findAll(tree, findAction('sem-link'));
+  assert.equal(semLinks.length, 1, 'placeholder Indisponivel presente');
+  assert.equal(textOf(semLinks[0]), 'Indisponível', 'label do placeholder');
+  assert.notEqual(semLinks[0].tagName, 'BUTTON', 'nao e um botao');
+  assert.equal(semLinks[0]._listeners.click, undefined, 'sem click handler');
+});
+
+test('G28-B4-B4: file_id constroi link de download correto e chama window.open com noopener,noreferrer', function () {
+  var openedUrl = null;
+  var openedFeatures = null;
+  var sb = makeScreenSandboxWithQueueUI([
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb44',
+      filename_original: 'b4-dl-test.pdf', tipo_documento: 'nf', formato: 'pdf',
+      drive_file_id: 'drive-44',
+      status: 'pending', _ravatex_source: 'supabase',
+    },
+  ]);
+  sb.window.open = function (url, target, features) {
+    openedUrl = url;
+    openedFeatures = features;
+  };
+  sb.window.setApp = function () {};
+  var container = new FakeNode('div');
+  sb.container = container;
+  var tree = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  var baixar = findAll(tree, findAction('baixar-documento-drive'))[0];
+  assert.ok(baixar, 'botao Baixar existe');
+  baixar._listeners.click[0]();
+  assert.equal(openedUrl, 'https://drive.google.com/uc?export=download&id=drive-44',
+    'download link construido de drive_file_id');
+  assert.ok(openedFeatures && openedFeatures.indexOf('noopener') >= 0, 'noopener presente');
+  assert.ok(openedFeatures && openedFeatures.indexOf('noreferrer') >= 0, 'noreferrer presente');
+});
+
+test('G28-B4-B4: local_path e Gmail-like nao criam acoes, apenas label estatico', function () {
+  var sb = makeScreenSandboxWithQueueUI([
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb42',
+      filename_original: 'b4-local.pdf', tipo_documento: 'nf', formato: 'pdf',
+      local_path: '/tmp/doc.pdf',
+      status: 'pending', _ravatex_source: 'supabase',
+    },
+    {
+      document_id: '96ed4f0e-26b2-4c2f-9186-65f72bf5fb43',
+      filename_original: 'b4-gmail.pdf', tipo_documento: 'nf', formato: 'pdf',
+      gmail_message_id: 'msg-43',
+      status: 'pending', _ravatex_source: 'supabase',
+    },
+  ]);
+  sb.window.setApp = function () {};
+  var container = new FakeNode('div');
+  sb.container = container;
+  var tree = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
+  assert.equal(findAll(tree, findAction('ver-documento-drive')).length, 0, 'sem Ver para source unsupported');
+  assert.equal(findAll(tree, findAction('baixar-documento-drive')).length, 0, 'sem Baixar para source unsupported');
+  var sfSpans = findAll(tree, function (n) { return n._attrs && n._attrs['data-source-file-state']; });
+  assert.equal(sfSpans.length, 2, 'dois spans source-file');
+  sfSpans.forEach(function (span) {
+    assert.equal(span._attrs['data-source-file-state'], 'unsupported', 'ambos sao unsupported');
+    assert.ok(span._attrs.title && span._attrs.title.length > 0, 'title presente');
+    assert.ok(span._attrs['aria-label'] && span._attrs['aria-label'].length > 0, 'aria-label presente');
+    assert.notEqual(span.tagName, 'BUTTON', 'nao e botao');
+    assert.equal(span._listeners.click, undefined, 'sem click handler');
+  });
+  var allText = JSON.stringify(findAll(tree, function () { return true; }).map(textOf));
+  assert.ok(allText.indexOf('Acesso ao arquivo não suportado nesta origem') >= 0,
+    'label de unsupported visivel');
 });

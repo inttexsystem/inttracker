@@ -816,29 +816,50 @@
       style: 'display:flex;align-items:center;justify-content:center;gap:6px;',
     });
 
-    if (doc.driveLink) {
-      wrap.appendChild(iconButton('Ver', SVG_EYE, function () {
-        if (typeof window.open === 'function') {
-          window.open(doc.driveLink, '_blank', 'noopener,noreferrer');
-        }
-      }, '', {
-        'data-action': 'ver-documento-drive',
+    var qi = doc.queueItem;
+    var sourceFileState = qi && qi.source_file && qi.source_file.state;
+
+    if (sourceFileState === 'drive_available') {
+      if (doc.driveLink) {
+        wrap.appendChild(iconButton('Ver', SVG_EYE, function () {
+          if (typeof window.open === 'function') {
+            window.open(doc.driveLink, '_blank', 'noopener,noreferrer');
+          }
+        }, '', {
+          'data-action': 'ver-documento-drive',
+          'data-document-id': doc.id,
+        }));
+      }
+      if (doc.driveId || doc.driveLink) {
+        wrap.appendChild(iconButton('Baixar', SVG_DOWNLOAD, function () {
+          if (typeof window.open === 'function') {
+            window.open(driveDownloadLink(doc), '_blank', 'noopener,noreferrer');
+          }
+        }, '', {
+          'data-action': 'baixar-documento-drive',
+          'data-document-id': doc.id,
+        }));
+      }
+    } else if (sourceFileState === 'unsupported' || sourceFileState === 'missing') {
+      var q = getQueueUI();
+      var sfPres = q ? q.getSourceFilePresentation(qi) : null;
+      var label = (sfPres && sfPres.label) || 'Sem link';
+      var ariaLabel = (sfPres && sfPres.ariaLabel) || label;
+      wrap.appendChild(window.el('span', {
+        'data-source-file-state': sourceFileState,
         'data-document-id': doc.id,
-      }));
-      wrap.appendChild(iconButton('Baixar', SVG_DOWNLOAD, function () {
-        if (typeof window.open === 'function') {
-          window.open(driveDownloadLink(doc), '_blank', 'noopener,noreferrer');
-        }
-      }, '', {
-        'data-action': 'baixar-documento-drive',
-        'data-document-id': doc.id,
-      }));
+        title: ariaLabel,
+        'aria-label': ariaLabel,
+        style: 'color:#9aa2af;font-size:11px;font-style:italic;white-space:normal;line-height:1.3;text-align:center;max-width:100%;overflow-wrap:break-word;',
+      }, label));
     } else {
       wrap.appendChild(window.el('span', {
         'data-action': 'sem-link',
         'data-document-id': doc.id,
+        title: 'Ação indisponível',
+        'aria-label': 'Ação indisponível',
         style: 'color:#9aa2af;font-size:11.5px;font-style:italic;white-space:nowrap;',
-      }, 'Sem link'));
+      }, 'Indisponível'));
     }
 
     if (doc.isSupabaseSource) {
@@ -1617,6 +1638,12 @@
       }
       if (pres.evidence.label) {
         statusCol.appendChild(stateSpan(pres.evidence.label, pres.evidence.ariaLabel, toneColor(pres.evidence.tone)));
+      }
+      if (q && doc.queueItem) {
+        var valPres = q.getValidationPresentation(doc.queueItem);
+        if (valPres.label) {
+          statusCol.appendChild(stateSpan(valPres.label, valPres.ariaLabel, '#8a93a3'));
+        }
       }
     }
 

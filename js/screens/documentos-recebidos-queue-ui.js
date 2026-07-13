@@ -398,6 +398,36 @@
     return result;
   }
 
+  // ===================================================================
+  // G28-B4-B4: Source-file and validation presentation helpers.
+  // Pure consumption of queueItem source_file.state and
+  // validation.review. Never derive or call external APIs.
+  // ===================================================================
+
+  function getSourceFilePresentation(queueItem) {
+    var sf = queueItem && queueItem.source_file;
+    var state = sf && sf.state;
+    if (state === 'unsupported') {
+      return { label: 'Acesso ao arquivo não suportado nesta origem', ariaLabel: 'Acesso ao arquivo não suportado nesta origem' };
+    }
+    if (state === 'missing') {
+      return { label: 'Arquivo não disponível', ariaLabel: 'Arquivo não disponível' };
+    }
+    return { label: '', ariaLabel: '' };
+  }
+
+  function getValidationPresentation(queueItem) {
+    var vl = queueItem && queueItem.validation;
+    var review = vl && vl.review;
+    if (review === 'review_pending') {
+      return { label: 'Revisão pendente', ariaLabel: 'Revisão pendente' };
+    }
+    if (review === 'review_unavailable') {
+      return { label: 'Revisão indisponível', ariaLabel: 'Revisão indisponível' };
+    }
+    return { label: '', ariaLabel: '' };
+  }
+
   window.RAVATEX_DOCUMENTOS_RECEBIDOS_QUEUE_UI = {
     buildQueue: buildQueue,
     getFilterOptions: getFilterOptions,
@@ -411,5 +441,7 @@
     getPedidoPresentation: getPedidoPresentation,
     getSourcePresentation: getSourcePresentation,
     getAlertPresentation: getAlertPresentation,
+    getSourceFilePresentation: getSourceFilePresentation,
+    getValidationPresentation: getValidationPresentation,
   };
 })(window);
