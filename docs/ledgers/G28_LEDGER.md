@@ -229,3 +229,35 @@ risco residual e próxima fase indicada no fechamento.
   antes do apply e do smoke controlado.
 - **Próxima ação indicada:** resolver o gate de staging e retomar somente
   migration 49 + smoke controlado, preservando produção intocada.
+
+---
+
+## 2026-07-13 — G28-B3-B5-C — CLOSED / ACCEPTED
+
+- **Gate:** CLOSED / ACCEPTED
+- **Commit técnico:** `3465405db42bfedd0c1f2c479f9be61c46078d87` —
+  `Integrate technical evidence into Supabase sync`
+- **Arquivos principais:**
+  - `services/documents-ingestor/src/core/syncSupabase.ts`
+  - `services/documents-ingestor/src/supabase/serviceRoleClient.ts`
+  - `services/documents-ingestor/src/cli.ts`
+  - `services/documents-ingestor/tests/sync-supabase.test.ts`
+  - `services/documents-ingestor/tests/sync-supabase-cli.test.ts`
+  - `db/49_document_technical_evidences.sql`
+- **Validação de staging:** configuração CLI comprovada via caminho de código
+  real; ref `ucrjtfswnfdlxwtmxnoo` confirmada na URL e no project ref; writer
+  habilitado; production target false. Migration 49 aplicada e verificada
+  em staging (tabela, PK, FK cascade, checks, RLS, admin policy, RPC
+  SECURITY DEFINER, contrato escritor inserted/unchanged/conflict).
+- **Smoke controlado:** dry-run sem efeitos remotos; primeiro confirmed write
+  inseriu candidate e evidence; replay idempotente retornou unchanged sem
+  duplicata; conflito com conteúdo divergente detectado, scan finalizada como
+  failed, sem retry; cleanup confirmou zero linhas sintéticas em candidates,
+  evidences, events, scan runs e decisions.
+- **Testes locais:** 223 aprovados em cinco arquivos focados; 4 aprovados no
+  arquivo CLI; `git diff --check` limpo.
+- **Produção:** não acessada.
+- **Risco residual:** persistência confirmada é multichamada e não oferece
+  atomicidade global; a convergência depende da idempotência dos contratos
+  remotos.
+- **Próxima fase indicada:** `G28-B3-B6 — TECHNICAL EVIDENCE READER`.

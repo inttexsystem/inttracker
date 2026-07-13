@@ -1,23 +1,18 @@
 # HANDOFF OPERACIONAL ATIVO
 
-- **Frente ativa:** G28 — evidence sync / gate de staging
+- **Frente ativa:** G28 — evidence sync concluída; reader pendente
 - **Workspace:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
 - **Branch:** `work/g28-document-qualification`
 - **Estado aceito:**
   - `G28-DOCS-B3-E1` — `CLOSED / ACCEPTED`;
     commit `793185701a4c09917354330f2596e2991e8b1dfc`.
-  - `G28-B3-B5-C` — implementação local aceita;
+  - `G28-B3-B5-C` — `CLOSED / ACCEPTED`;
     commit técnico `3465405db42bfedd0c1f2c479f9be61c46078d87`.
-  - revisão independente aprovada; testes focados repetidos após revisão.
-- **Bloqueio ativo:** staging não pode ser operado pela CLI porque a
-  configuração local do writer não contém project ref, URL, service-role key
-  nem writer habilitado. O endpoint MCP identificado é
-  `ucrjtfswnfdlxwtmxnoo`, mas a guarda local obrigatória não foi satisfeita;
-  nenhum SQL/RPC, apply da migration 49 ou smoke foi executado.
+  - staging: configuração CLI validada, migration 49 aplicada/verificada,
+    smoke controlado aprovado (insert, unchanged, conflict, cleanup zero).
+  - 227 testes — 223 focados + 4 CLI — todos aprovados; `git diff --check` limpo.
 - **Produção:** intocada.
-- **Próxima fase substantiva:** resolver o gate de staging e retomar
-  `G28-B3-B5-C` exclusivamente no apply isolado de migration 49 e smoke com
-  cleanup comprovado. `G28-B3-B6` permanece bloqueada.
+- **Próxima fase substantiva:** `G28-B3-B6 — TECHNICAL EVIDENCE READER`.
 - **Restrições:** não editar snapshots; não aplicar migrations pendentes em
   lote; não acessar produção/origin; não fazer push.
 - **Links canônicos:** estado → `PROJECT_STATE.md`; ledger →
