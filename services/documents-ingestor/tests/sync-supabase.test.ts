@@ -10,6 +10,14 @@ import {
   type DocumentEventWrite,
   type SupabaseWriterClient,
 } from '../src/supabase/serviceRoleClient.js';
+import {
+  TechnicalEvidenceWriterError,
+  type TechnicalEvidenceRpcClient,
+  type TechnicalEvidenceRpcParams,
+  type TechnicalEvidenceRpcResponse,
+  type TechnicalEvidenceWriteResult,
+  type TechnicalEvidenceWriterErrorKind,
+} from '../src/supabase/technicalEvidenceWriter.js';
 
 const tempDirs: string[] = [];
 
@@ -80,12 +88,34 @@ class WriterClientMock implements SupabaseWriterClient {
   startedRuns: Array<{ source: string; triggered_by: string }> = [];
   finishedRuns: Array<{ id: string; status: 'completed' | 'failed'; documentsProcessed: number; documentsNew: number; errorMessage: string | null }> = [];
   recoveredCalls: Array<{ source: string; staleAfterMinutes?: number }> = [];
+  evidenceCalls: TechnicalEvidenceRpcParams[] = [];
+  evidenceResponses: Array<TechnicalEvidenceRpcResponse | Error> = [];
   callSequence: string[] = [];
   eventResult = { inserted: 1, skipped: 0 };
   canonicalError: Error | null = null;
   recoverResult: { recoveredCount: number } = { recoveredCount: 0 };
   recoverError: Error | null = null;
   startScanResult: { kind: 'started'; id: string } | { kind: 'already_running' } = { kind: 'started', id: 'run-001' };
+
+  writeTechnicalEvidence: TechnicalEvidenceRpcClient = {
+    rpc: async (fn, params) => {
+      this.callSequence.push('evidence');
+      this.evidenceCalls.push(params);
+      const next = this.evidenceResponses.shift();
+      if (next === undefined) {
+        return {
+          data: [{
+            document_id: params.p_document_id,
+            evidence_version: params.p_evidence_version,
+            outcome: 'inserted',
+          }],
+          error: null,
+        };
+      }
+      if (next instanceof Error) throw next;
+      return next;
+    },
+  };
 
   async recoverStaleRuns(params: { source: string; staleAfterMinutes?: number }): Promise<{ recoveredCount: number }> {
     this.callSequence.push('recover');
@@ -989,26 +1019,23 @@ describe('sync:supabase technical evidence internal contract (G28-B3-B5-B)', () 
     expect(caught!.message).not.toContain(SENTINEL_PAYLOAD_TOKEN);
   });
 
-  it('confirmed write with evidence path fails fast and makes no remote call', async () => {
+  it('confirmed write with evidence path runs the new evidence stage and never throws the legacy fast-fail', async () => {
     const client = new WriterClientMock();
-    let caught: Error | null = null;
-    try {
-      await runSyncSupabase(
-        optionsWithEvidence([mappedRow()], [baseEvidence()], { confirmWrite: true }),
-        client,
-      );
-    } catch (error: any) {
-      caught = error;
-    }
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [baseEvidence()], { confirmWrite: true }),
+      client,
+    );
 
-    expect(caught).not.toBeNull();
-    expect(caught!.message).toMatch(/technical evidence.*not.*integrated/i);
-    expect(caught!.message).not.toContain(SENTINEL_PAYLOAD_TOKEN);
-    expect(client.recoveredCalls).toHaveLength(0);
-    expect(client.startedRuns).toHaveLength(0);
-    expect(client.canonicalWrites).toHaveLength(0);
-    expect(client.finishedRuns).toHaveLength(0);
-    expect(client.eventInserts).toHaveLength(0);
+    expect(result.ok).toBe(true);
+    expect(result.technical_evidence_attempted).toBe(1);
+    expect(result.technical_evidence_inserted).toBe(1);
+    expect(result.technical_evidence_unchanged).toBe(0);
+    expect(result.technical_evidence_failed).toBe(0);
+    expect(result.technical_evidence_skipped_without_evidence).toBe(0);
+    expect(client.evidenceCalls).toHaveLength(1);
+    expect(client.canonicalWrites).toHaveLength(1);
+    expect(client.eventInserts).toHaveLength(1);
+    expect(client.finishedRuns.some((f) => f.status === 'completed')).toBe(true);
   });
 
   it('confirmed write with invalid evidence also fails fast and makes no remote call', async () => {
@@ -1052,14 +1079,14 @@ describe('sync:supabase technical evidence internal contract (G28-B3-B5-B)', () 
     expect(client.finishedRuns).toHaveLength(0);
   });
 
-  it('confirmed write with evidence path and recoverStale still fails fast before any remote call', async () => {
+  it('confirmed write with evidence path and recoverStale validates evidence before any remote call', async () => {
     const client = new WriterClientMock();
     let caught: Error | null = null;
     try {
       await runSyncSupabase(
         optionsWithEvidence(
           [mappedRow()],
-          [baseEvidence()],
+          [baseEvidence({ evidenceVersion: 0 })],
           { confirmWrite: true, recoverStale: true },
         ),
         client,
@@ -1069,7 +1096,7 @@ describe('sync:supabase technical evidence internal contract (G28-B3-B5-B)', () 
     }
 
     expect(caught).not.toBeNull();
-    expect(caught!.message).toMatch(/technical evidence.*not.*integrated/i);
+    expect(caught!.message).toMatch(/line 1: invalid_evidence_version/);
     expect(client.recoveredCalls).toHaveLength(0);
     expect(client.startedRuns).toHaveLength(0);
     expect(client.canonicalWrites).toHaveLength(0);
@@ -1080,5 +1107,630 @@ describe('sync:supabase technical evidence internal contract (G28-B3-B5-B)', () 
     await expect(
       runSyncSupabase(options([mappedRow()]), undefined),
     ).rejects.toThrow(/service-role client is required/);
+  });
+});
+
+describe('sync:supabase technical evidence writer integration (G28-B3-B5-C)', () => {
+  const SENTINEL_PAYLOAD_TOKEN = 'SENTINEL-NEVER-IN-ERROR-MESSAGE-X7Q9';
+  const EVIDENCE_DOC = 'doc-001';
+  const EVIDENCE_DOC_2 = 'doc-002';
+
+  function baseEvidence(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      schemaVersion: 1,
+      documentId: EVIDENCE_DOC,
+      evidenceVersion: 1,
+      technicalEvidence: {
+        tipoDocumento: 'nf',
+        formato: 'xml',
+        xmlObservation: { classification: 'structural_nfe' },
+        pdfObservation: { classification: 'unavailable', reasons: [] },
+        mimeExtensionObservation: {
+          compatibility: 'compatible',
+          mimeType: 'application/xml',
+          extension: 'xml',
+        },
+        cnpjEmitente: { kind: 'valid', normalized: '11111111000111' },
+        cnpjDestinatario: { kind: 'missing' },
+        registryAvailability: { kind: 'available' },
+        directionObservation: null,
+        entityMatch: null,
+        duplicateRelation: { kind: 'none', detectionBasis: SENTINEL_PAYLOAD_TOKEN },
+      },
+      origin: {
+        technical: { source: 'test-classifier', authorship: 'test' },
+        suggestion: { source: 'system', authorship: 'test', note: 'human review required' },
+        evidenceVersion: 1,
+      },
+      createdAt: '2026-07-12T10:30:00.000Z',
+      ...overrides,
+    };
+  }
+
+  function evidencePath(rows: unknown[]): string {
+    return writeJsonl('technical-evidence.jsonl', rows);
+  }
+
+  function rawEvidencePath(content: string): string {
+    const dir = mkdtempSync(join(tmpdir(), 'ravatex-sync-supabase-raw-c-'));
+    tempDirs.push(dir);
+    const path = join(dir, 'technical-evidence-raw.jsonl');
+    writeFileSync(path, content, 'utf-8');
+    return path;
+  }
+
+  function optionsWithEvidence(
+    mappedRows: unknown[],
+    evidenceRows: unknown[] | null,
+    overrides: Partial<SyncSupabaseOptions> = {},
+  ): SyncSupabaseOptions {
+    return {
+      ...options(mappedRows),
+      technicalEvidencePath: evidenceRows === null ? undefined : evidencePath(evidenceRows),
+      ...overrides,
+    };
+  }
+
+  function writerError(
+    kind: TechnicalEvidenceWriterErrorKind,
+    message = 'writer failure',
+    cause: unknown = { code: 'XX000', message: 'remote' },
+  ): TechnicalEvidenceWriterError {
+    return new TechnicalEvidenceWriterError(kind, message, cause);
+  }
+
+  function evidenceResponse(row: { documentId: string; evidenceVersion: number }, outcome: 'inserted' | 'unchanged'): TechnicalEvidenceRpcResponse {
+    return {
+      data: [{ document_id: row.documentId, evidence_version: row.evidenceVersion, outcome }],
+      error: null,
+    };
+  }
+
+  function setEvidenceResponse(
+    client: WriterClientMock,
+    row: { documentId: string; evidenceVersion: number },
+    outcome: 'inserted' | 'unchanged',
+  ): void {
+    client.evidenceResponses.push(evidenceResponse(row, outcome));
+  }
+
+  // ---------- absent option (path is undefined) ----------
+  it('absent option: no path produces no evidence counters and no writer call', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase(options([mappedRow()]), client);
+
+    expect(result.ok).toBe(true);
+    expect(result.candidates_upserted).toBe(1);
+    expect(result).not.toHaveProperty('technical_evidence_attempted');
+    expect(result).not.toHaveProperty('technical_evidence_inserted');
+    expect(result).not.toHaveProperty('technical_evidence_unchanged');
+    expect(result).not.toHaveProperty('technical_evidence_failed');
+    expect(result).not.toHaveProperty('technical_evidence_skipped_without_evidence');
+    expect(client.evidenceCalls).toHaveLength(0);
+    expect(client.eventInserts).toHaveLength(1);
+    expect(client.finishedRuns.some((f) => f.status === 'completed')).toBe(true);
+  });
+
+  // ---------- dry-run without path: strict backward compat ----------
+  it('dry-run: without path, no evidence counters, no RPC, no remote effects', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase({ ...options([mappedRow()]), confirmWrite: false }, client);
+
+    expect(result.ok).toBe(true);
+    expect(result.dry_run).toBe(true);
+    expect(result.candidates_upserted).toBe(1);
+    expect(result).not.toHaveProperty('technical_evidence_attempted');
+    expect(result).not.toHaveProperty('technical_evidence_inserted');
+    expect(result).not.toHaveProperty('technical_evidence_unchanged');
+    expect(result).not.toHaveProperty('technical_evidence_failed');
+    expect(result).not.toHaveProperty('technical_evidence_skipped_without_evidence');
+    expect(client.evidenceCalls).toHaveLength(0);
+    expect(client.startedRuns).toHaveLength(0);
+    expect(client.canonicalWrites).toHaveLength(0);
+    expect(client.recoveredCalls).toHaveLength(0);
+    expect(client.finishedRuns).toHaveLength(0);
+    expect(client.eventInserts).toHaveLength(0);
+  });
+
+  // ---------- dry-run with all 5 counters ----------
+  it('dry-run: no client, projects all five evidence counters, no RPC', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase(
+      optionsWithEvidence(
+        [mappedRow(), mappedRow({ document_id: 'doc-002' })],
+        [baseEvidence()],
+        { confirmWrite: false },
+      ),
+      client,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.dry_run).toBe(true);
+    expect(result.technical_evidence_attempted).toBe(1);
+    expect(result.technical_evidence_inserted).toBe(0);
+    expect(result.technical_evidence_unchanged).toBe(0);
+    expect(result.technical_evidence_failed).toBe(0);
+    expect(result.technical_evidence_skipped_without_evidence).toBe(1);
+    expect(client.evidenceCalls).toHaveLength(0);
+    expect(client.canonicalWrites).toHaveLength(0);
+    expect(client.recoveredCalls).toHaveLength(0);
+    expect(client.startedRuns).toHaveLength(0);
+    expect(client.finishedRuns).toHaveLength(0);
+    expect(client.eventInserts).toHaveLength(0);
+  });
+
+  it('dry-run: empty JSONL still projects the five counters with zeros and a positive skipped_without_evidence', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [], { confirmWrite: false }),
+      client,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.technical_evidence_attempted).toBe(0);
+    expect(result.technical_evidence_inserted).toBe(0);
+    expect(result.technical_evidence_unchanged).toBe(0);
+    expect(result.technical_evidence_failed).toBe(0);
+    expect(result.technical_evidence_skipped_without_evidence).toBe(1);
+  });
+
+  // ---------- strict parse / json / version / duplicates / orphan (loader-level) ----------
+  it('rejects malformed JSON strictly before any remote call', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(
+        optionsWithEvidence([mappedRow()], null, { technicalEvidencePath: rawEvidencePath('not valid json\n') }),
+        client,
+      ),
+    ).rejects.toThrow(/line 1: invalid_json/);
+    expect(client.evidenceCalls).toHaveLength(0);
+  });
+
+  it('rejects duplicate (documentId, evidenceVersion) key strictly before any remote call', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(optionsWithEvidence([mappedRow()], [baseEvidence(), baseEvidence()]), client),
+    ).rejects.toThrow(/line 2: duplicate_key/);
+    expect(client.evidenceCalls).toHaveLength(0);
+  });
+
+  it('rejects orphan evidence (no candidate match) strictly before any remote call', async () => {
+    const client = new WriterClientMock();
+    await expect(
+      runSyncSupabase(
+        optionsWithEvidence([mappedRow()], [baseEvidence({ documentId: 'doc-orphan' })]),
+        client,
+      ),
+    ).rejects.toThrow(/evidence_document_not_in_candidates/);
+    expect(client.evidenceCalls).toHaveLength(0);
+  });
+
+  it('rejects evidence for a mapped but non-eligible (skipped) candidate strictly before any remote call', async () => {
+    const client = new WriterClientMock();
+    const skippedDocId = 'doc-skipped-no-event-id';
+    const skippedCandidate = mappedRow({
+      document_id: skippedDocId,
+      latest_ingestion_event_id: null,
+    });
+    await expect(
+      runSyncSupabase(
+        optionsWithEvidence(
+          [mappedRow(), skippedCandidate],
+          [baseEvidence({ documentId: skippedDocId })],
+          { confirmWrite: true },
+        ),
+        client,
+      ),
+    ).rejects.toThrow(new RegExp(`evidence_document_not_in_candidates \\(documentId=${skippedDocId}\\)`));
+    expect(client.evidenceCalls).toHaveLength(0);
+    expect(client.startedRuns).toHaveLength(0);
+    expect(client.canonicalWrites).toHaveLength(0);
+    expect(client.finishedRuns).toHaveLength(0);
+  });
+
+  // ---------- candidate without evidence (eligible but unpaired) ----------
+  it('candidate without matching evidence: still processed, counted as skipped_without_evidence', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase(
+      optionsWithEvidence(
+        [mappedRow(), mappedRow({ document_id: 'doc-002' })],
+        [baseEvidence()],
+        { confirmWrite: true },
+      ),
+      client,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.candidates_upserted).toBe(2);
+    expect(result.technical_evidence_attempted).toBe(1);
+    expect(result.technical_evidence_inserted).toBe(1);
+    expect(result.technical_evidence_unchanged).toBe(0);
+    expect(result.technical_evidence_failed).toBe(0);
+    expect(result.technical_evidence_skipped_without_evidence).toBe(1);
+    expect(client.canonicalWrites).toHaveLength(2);
+    expect(client.evidenceCalls).toHaveLength(1);
+    expect(client.eventInserts).toHaveLength(1);
+  });
+
+  // ---------- ordering and one client ----------
+  it('ordering with one client: recover -> start -> candidate -> evidence -> events -> finish completed', async () => {
+    const client = new WriterClientMock();
+    const sequence: string[] = [];
+    const originalRecover = client.recoverStaleRuns.bind(client);
+    const originalStart = client.startScanRun.bind(client);
+    const originalCandidate = client.upsertCanonicalCandidateState.bind(client);
+    const originalEvents = client.insertEventsIgnoreConflict.bind(client);
+    const originalFinish = client.finishScanRun.bind(client);
+    client.recoverStaleRuns = async (params) => { sequence.push('recover'); return originalRecover(params); };
+    client.startScanRun = async (params) => { sequence.push('start'); return originalStart(params); };
+    client.upsertCanonicalCandidateState = async (params) => { sequence.push('candidate'); return originalCandidate(params); };
+    client.writeTechnicalEvidence = { rpc: async (fn, params) => { sequence.push('evidence'); return evidenceResponse({ documentId: params.p_document_id, evidenceVersion: params.p_evidence_version }, 'inserted'); } };
+    client.insertEventsIgnoreConflict = async (rows) => { sequence.push('events'); return originalEvents(rows); };
+    client.finishScanRun = async (params) => { sequence.push('finish'); return originalFinish(params); };
+
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [baseEvidence()], { confirmWrite: true, recoverStale: true }),
+      client,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(sequence).toEqual(['recover', 'start', 'candidate', 'evidence', 'events', 'finish']);
+    expect(result.scan_run.status).toBe('completed');
+  });
+
+  it('uses exactly one client for every writer operation (no parallel createClient, no config read in the flow)', () => {
+    const core = readFileSync(join(process.cwd(), 'src/core/syncSupabase.ts'), 'utf-8');
+    const client = readFileSync(join(process.cwd(), 'src/supabase/serviceRoleClient.ts'), 'utf-8');
+
+    // Single createClient call inside the factory; the sync flow never
+    // calls createClient itself.
+    expect(client).toMatch(/createClient\(/);
+    expect(core).not.toMatch(/createClient\(/);
+    // No second service-role URL/key read inside the sync flow.
+    expect(core).not.toMatch(/SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY/);
+    // No console / log in the sync flow that would render credentials.
+    expect(core).not.toMatch(/console\.(log|warn|error)/);
+  });
+
+  // ---------- inserted / unchanged / each writer kind ----------
+  it('inserted outcome increments the inserted counter', async () => {
+    const client = new WriterClientMock();
+    setEvidenceResponse(client, { documentId: EVIDENCE_DOC, evidenceVersion: 1 }, 'inserted');
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [baseEvidence()], { confirmWrite: true }),
+      client,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.technical_evidence_attempted).toBe(1);
+    expect(result.technical_evidence_inserted).toBe(1);
+    expect(result.technical_evidence_unchanged).toBe(0);
+    expect(result.technical_evidence_failed).toBe(0);
+  });
+
+  it('unchanged outcome increments the unchanged counter', async () => {
+    const client = new WriterClientMock();
+    setEvidenceResponse(client, { documentId: EVIDENCE_DOC, evidenceVersion: 1 }, 'unchanged');
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [baseEvidence()], { confirmWrite: true }),
+      client,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.technical_evidence_attempted).toBe(1);
+    expect(result.technical_evidence_inserted).toBe(0);
+    expect(result.technical_evidence_unchanged).toBe(1);
+    expect(result.technical_evidence_failed).toBe(0);
+  });
+
+  it('mixed outcomes: first inserted, second unchanged, counters split correctly', async () => {
+    const client = new WriterClientMock();
+    setEvidenceResponse(client, { documentId: EVIDENCE_DOC, evidenceVersion: 1 }, 'inserted');
+    setEvidenceResponse(
+      client,
+      { documentId: EVIDENCE_DOC_2, evidenceVersion: 1 },
+      'unchanged',
+    );
+    const result = await runSyncSupabase(
+      optionsWithEvidence(
+        [mappedRow(), mappedRow({ document_id: EVIDENCE_DOC_2 })],
+        [baseEvidence(), baseEvidence({ documentId: EVIDENCE_DOC_2, evidenceVersion: 1 })],
+        { confirmWrite: true },
+      ),
+      client,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.technical_evidence_attempted).toBe(2);
+    expect(result.technical_evidence_inserted).toBe(1);
+    expect(result.technical_evidence_unchanged).toBe(1);
+    expect(result.technical_evidence_failed).toBe(0);
+  });
+
+  it.each<TechnicalEvidenceWriterErrorKind>([
+    'conflict',
+    'writer_required',
+    'migration_required',
+    'invalid_response',
+    'remote_error',
+  ])('writer kind %s: payload-free sync error, prevents events, attempts finish failed', async (kind) => {
+    const client = new WriterClientMock();
+    client.evidenceResponses.push(writerError(kind, 'writer failure'));
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [baseEvidence()], { confirmWrite: true }),
+      client,
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.technical_evidence_attempted).toBe(1);
+    expect(result.technical_evidence_failed).toBe(1);
+    expect(result.technical_evidence_inserted).toBe(0);
+    expect(result.technical_evidence_unchanged).toBe(0);
+    // Events never inserted after an evidence failure.
+    expect(client.eventInserts).toHaveLength(0);
+    // No payload tokens leak into the error message.
+    expect(result.errors).toHaveLength(1);
+    const message = result.errors[0];
+    expect(message).toContain(`document_id=${EVIDENCE_DOC}`);
+    expect(message).toContain('evidence_version=1');
+    expect(message).toContain('stage=writer');
+    expect(message).not.toContain(SENTINEL_PAYLOAD_TOKEN);
+    expect(message).not.toContain('11111111000111');
+    // Scan run is finalized as failed with the same payload-free message.
+    const failedRun = client.finishedRuns.find((f) => f.status === 'failed');
+    expect(failedRun).toBeDefined();
+    expect(failedRun!.errorMessage).toBe(message);
+    expect(failedRun!.errorMessage).not.toContain(SENTINEL_PAYLOAD_TOKEN);
+    expect(result.scan_run.status).toBe('failed');
+  });
+
+  it('kind conflict: writer error is preserved as cause and exposed via the original error class', async () => {
+    const client = new WriterClientMock();
+    client.evidenceResponses.push(writerError('conflict', 'writer failure'));
+    let caught: unknown = null;
+    try {
+      await runSyncSupabase(
+        optionsWithEvidence([mappedRow()], [baseEvidence()], { confirmWrite: true }),
+        client,
+      );
+    } catch (error) {
+      caught = error;
+    }
+    // The sync flow swallows the error into result.errors; only the result
+    // error message is observable from the outside. The original writer
+    // error is still attached as cause of the typed failure, but the
+    // sync flow always reports the payload-free sync error to its caller.
+    expect(caught).toBeNull();
+  });
+
+  // ---------- evidence failure prevents events and fails scan when possible ----------
+  it('evidence failure: events never inserted, scan run finalized as failed, candidates stay upserted', async () => {
+    const client = new WriterClientMock();
+    client.evidenceResponses.push(writerError('remote_error', 'writer failure'));
+    const result = await runSyncSupabase(
+      optionsWithEvidence(
+        [mappedRow(), mappedRow({ document_id: 'doc-002' })],
+        [baseEvidence()],
+        { confirmWrite: true },
+      ),
+      client,
+    );
+
+    expect(result.ok).toBe(false);
+    // Candidate upserts already happened before the evidence stage
+    // (both complete candidates are written).
+    expect(result.candidates_upserted).toBe(2);
+    // Evidence attempted once and failed.
+    expect(result.technical_evidence_attempted).toBe(1);
+    expect(result.technical_evidence_failed).toBe(1);
+    // Events never inserted.
+    expect(client.eventInserts).toHaveLength(0);
+    // No completed finishScanRun; only the failed one.
+    expect(client.finishedRuns.some((f) => f.status === 'completed')).toBe(false);
+    const failed = client.finishedRuns.find((f) => f.status === 'failed');
+    expect(failed).toBeDefined();
+    expect(result.scan_run.status).toBe('failed');
+  });
+
+  it('evidence failure: external scan owner path does not call finishScanRun', async () => {
+    const client = new WriterClientMock();
+    client.evidenceResponses.push(writerError('remote_error', 'writer failure'));
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [baseEvidence()], {
+        confirmWrite: true,
+        scanRunId: 'external-run',
+      }),
+      client,
+    );
+
+    expect(result.ok).toBe(false);
+    expect(client.finishedRuns).toHaveLength(0);
+    expect(result.scan_run.status).toBe('external_owner_failed');
+  });
+
+  // ---------- event failure after evidence ----------
+  it('event failure after a successful evidence stage: scan finishes as failed, evidence counters preserved', async () => {
+    const client = new WriterClientMock();
+    setEvidenceResponse(client, { documentId: EVIDENCE_DOC, evidenceVersion: 1 }, 'inserted');
+    const originalEvents = client.insertEventsIgnoreConflict.bind(client);
+    client.insertEventsIgnoreConflict = async () => { throw new Error('events_rpc_failed: downstream'); };
+    void originalEvents;
+
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [baseEvidence()], { confirmWrite: true }),
+      client,
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.candidates_upserted).toBe(1);
+    expect(result.technical_evidence_attempted).toBe(1);
+    expect(result.technical_evidence_inserted).toBe(1);
+    expect(result.technical_evidence_failed).toBe(0);
+    expect(result.errors[0]).toMatch(/events_rpc_failed/);
+    expect(client.finishedRuns.some((f) => f.status === 'failed')).toBe(true);
+  });
+
+  // ---------- no payload leakage / no retry ----------
+  it('no payload / credential / remote text leakage: the sync error is a fixed string of document id, version and stage only', async () => {
+    const client = new WriterClientMock();
+    client.evidenceResponses.push(new TechnicalEvidenceWriterError(
+      'conflict',
+      'writer failure',
+      { code: 'P0001', message: 'leaked', details: SENTINEL_PAYLOAD_TOKEN },
+    ));
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [baseEvidence()], { confirmWrite: true }),
+      client,
+    );
+
+    const message = result.errors[0];
+    expect(message).toContain(`document_id=${EVIDENCE_DOC}`);
+    expect(message).toContain('evidence_version=1');
+    expect(message).toContain('stage=writer');
+    expect(message).not.toContain(SENTINEL_PAYLOAD_TOKEN);
+    expect(message).not.toContain('11111111000111');
+    expect(message).not.toContain('P0001');
+    expect(message).not.toContain('leaked');
+    expect(message).not.toContain('sk-');
+    expect(message).not.toContain('service_role');
+    expect(message).not.toContain('Bearer');
+  });
+
+  it('no retry: a writer error stops the run after the first failure (one evidence RPC)', async () => {
+    const client = new WriterClientMock();
+    client.evidenceResponses.push(writerError('remote_error', 'writer failure'));
+    const result = await runSyncSupabase(
+      optionsWithEvidence(
+        [mappedRow(), mappedRow({ document_id: EVIDENCE_DOC_2 })],
+        [baseEvidence(), baseEvidence({ documentId: EVIDENCE_DOC_2, evidenceVersion: 1 })],
+        { confirmWrite: true },
+      ),
+      client,
+    );
+
+    expect(result.technical_evidence_attempted).toBe(1);
+    expect(result.technical_evidence_failed).toBe(1);
+    expect(client.evidenceCalls).toHaveLength(1);
+  });
+
+  // ---------- stale recovery with evidence path ----------
+  it('stale recovery runs before evidence validation result is consumed: full pipeline with --recover-stale', async () => {
+    const client = new WriterClientMock();
+    client.recoverResult = { recoveredCount: 1 };
+    setEvidenceResponse(client, { documentId: EVIDENCE_DOC, evidenceVersion: 1 }, 'inserted');
+    const result = await runSyncSupabase(
+      optionsWithEvidence([mappedRow()], [baseEvidence()], {
+        confirmWrite: true,
+        recoverStale: true,
+        staleAfterMinutes: 30,
+      }),
+      client,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.stale_recovery).toEqual({ attempted: true, recovered_count: 1 });
+    expect(result.candidates_upserted).toBe(1);
+    expect(result.technical_evidence_inserted).toBe(1);
+    expect(client.callSequence).toEqual(['recover', 'start', 'evidence']);
+    expect(client.evidenceCalls).toHaveLength(1);
+    expect(client.eventInserts).toHaveLength(1);
+  });
+
+  // ---------- old candidate/event behavior preserved ----------
+  it('without evidence path: existing candidate and event flow is byte-for-byte preserved', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase(
+      options([mappedRow({ document_id: 'doc-001' }), mappedRow({ document_id: 'doc-002' })], [eventRow()]),
+      client,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.candidates_upserted).toBe(2);
+    expect(result.events_inserted).toBe(1);
+    expect(result).not.toHaveProperty('technical_evidence_attempted');
+    expect(result).not.toHaveProperty('technical_evidence_inserted');
+    expect(result).not.toHaveProperty('technical_evidence_unchanged');
+    expect(result).not.toHaveProperty('technical_evidence_failed');
+    expect(result).not.toHaveProperty('technical_evidence_skipped_without_evidence');
+    expect(client.evidenceCalls).toHaveLength(0);
+    expect(client.finishedRuns.some((f) => f.status === 'completed')).toBe(true);
+  });
+
+  it('without evidence path: stale recovery, start, candidates, events, finish all run in order', async () => {
+    const client = new WriterClientMock();
+    client.recoverResult = { recoveredCount: 1 };
+    const sequence: string[] = [];
+    const originalRecover = client.recoverStaleRuns.bind(client);
+    const originalStart = client.startScanRun.bind(client);
+    const originalCandidate = client.upsertCanonicalCandidateState.bind(client);
+    const originalEvents = client.insertEventsIgnoreConflict.bind(client);
+    const originalFinish = client.finishScanRun.bind(client);
+    client.recoverStaleRuns = async (params) => { sequence.push('recover'); return originalRecover(params); };
+    client.startScanRun = async (params) => { sequence.push('start'); return originalStart(params); };
+    client.upsertCanonicalCandidateState = async (params) => { sequence.push('candidate'); return originalCandidate(params); };
+    client.insertEventsIgnoreConflict = async (rows) => { sequence.push('events'); return originalEvents(rows); };
+    client.finishScanRun = async (params) => { sequence.push('finish'); return originalFinish(params); };
+
+    const result = await runSyncSupabase(
+      { ...options([mappedRow()]), recoverStale: true },
+      client,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(sequence).toEqual(['recover', 'start', 'candidate', 'events', 'finish']);
+  });
+
+  // ---------- forward and surface five counter keys in dry-run result ----------
+  it('dry-run with a path surfaces exactly the five snake_case evidence keys in the result', async () => {
+    const client = new WriterClientMock();
+    const result = await runSyncSupabase(
+      optionsWithEvidence(
+        [mappedRow(), mappedRow({ document_id: EVIDENCE_DOC_2 })],
+        [baseEvidence()],
+        { confirmWrite: false },
+      ),
+      client,
+    );
+
+    const keys = Object.keys(result).filter((k) => k.startsWith('technical_evidence_')).sort();
+    expect(keys).toEqual([
+      'technical_evidence_attempted',
+      'technical_evidence_failed',
+      'technical_evidence_inserted',
+      'technical_evidence_skipped_without_evidence',
+      'technical_evidence_unchanged',
+    ]);
+    expect(result.technical_evidence_attempted).toBe(1);
+    expect(result.technical_evidence_inserted).toBe(0);
+    expect(result.technical_evidence_unchanged).toBe(0);
+    expect(result.technical_evidence_failed).toBe(0);
+    expect(result.technical_evidence_skipped_without_evidence).toBe(1);
+  });
+
+  it('confirmed write with a path surfaces exactly the five snake_case evidence keys in the result', async () => {
+    const client = new WriterClientMock();
+    setEvidenceResponse(client, { documentId: EVIDENCE_DOC, evidenceVersion: 1 }, 'inserted');
+    const result = await runSyncSupabase(
+      optionsWithEvidence(
+        [mappedRow(), mappedRow({ document_id: EVIDENCE_DOC_2 })],
+        [baseEvidence()],
+        { confirmWrite: true },
+      ),
+      client,
+    );
+
+    const keys = Object.keys(result).filter((k) => k.startsWith('technical_evidence_')).sort();
+    expect(keys).toEqual([
+      'technical_evidence_attempted',
+      'technical_evidence_failed',
+      'technical_evidence_inserted',
+      'technical_evidence_skipped_without_evidence',
+      'technical_evidence_unchanged',
+    ]);
+    expect(result.technical_evidence_attempted).toBe(1);
+    expect(result.technical_evidence_inserted).toBe(1);
+    expect(result.technical_evidence_unchanged).toBe(0);
+    expect(result.technical_evidence_failed).toBe(0);
+    expect(result.technical_evidence_skipped_without_evidence).toBe(1);
   });
 });

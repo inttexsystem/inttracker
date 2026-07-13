@@ -6,6 +6,12 @@ import {
   type DocumentEventWrite,
   type SupabaseWriterClient,
 } from '../supabase/serviceRoleClient.js';
+import {
+  TechnicalEvidenceWriterError,
+  type TechnicalEvidenceWriterErrorKind,
+  writeTechnicalEvidence,
+} from '../supabase/technicalEvidenceWriter.js';
+import type { TechnicalEvidenceExportRow } from '../types/technicalEvidenceExport.js';
 
 const EVENT_TYPES = new Set<DocumentEventWrite['event_type']>([
   'document.detected',
@@ -31,12 +37,13 @@ export interface SyncSupabaseOptions {
    */
   scanRunId?: string;
   /**
-   * INTERNAL (G28-B3-B5-B): optional path to a technical-evidence JSONL
-   * file. When present, the file is read, validated, deduplicated and
-   * matched against the prepared candidates. Dry-run projects a counter
-   * (`technical_evidence_attempted`); confirmed writes fail fast locally
-   * because remote evidence persistence is not yet integrated. Not
-   * exposed by the CLI.
+   * INTERNAL (G28-B3-B5-B / C): optional path to a technical-evidence
+   * JSONL file. When present, the file is read, validated, deduplicated
+   * and matched against the prepared candidates. Dry-run projects the
+   * five snake_case evidence counters without any client, config or
+   * remote effect. Confirmed writes perform the evidence stage between
+   * candidate upserts and event inserts; a typed writer failure
+   * propagates and short-circuits the rest of the run.
    */
   technicalEvidencePath?: string;
 }
@@ -72,6 +79,23 @@ export interface SyncSupabaseResult {
    * when the path is not used.
    */
   technical_evidence_attempted?: number;
+  /**
+   * INTERNAL (G28-B3-B5-C): only present when a `technicalEvidencePath`
+   * was provided. All five snake_case evidence counters share the same
+   * presence rule as `technical_evidence_attempted`: when the path is
+   * absent, no evidence counter is added to the result.
+   *
+   * - `inserted` / `unchanged` / `failed` : confirmed writes only,
+   *   counted by writer outcome. In dry-run they are projected as zero.
+   * - `skipped_without_evidence` : the eligible candidate count
+   *   (candidates with a complete canonical base) minus the count of
+   *   valid evidence documents — i.e. the candidates that did not
+   *   receive a technical-evidence snapshot in this run.
+   */
+  technical_evidence_inserted?: number;
+  technical_evidence_unchanged?: number;
+  technical_evidence_failed?: number;
+  technical_evidence_skipped_without_evidence?: number;
   errors: string[];
 }
 
@@ -258,6 +282,40 @@ export function prepareSyncSupabaseInput(options: Pick<SyncSupabaseOptions, 'map
 
 class TechnicalEvidenceInputError extends Error {}
 
+/**
+ * Domain error raised when a confirmed technical-evidence write throws.
+ * The message is a fixed, payload-free string that contains only
+ * document id, evidence version and stage; never the technical-evidence
+ * payload, the origin payload, the remote error text, the service-role
+ * key or the Supabase URL. The original `TechnicalEvidenceWriterError`
+ * is preserved as `cause` for programmatic inspection and the writer's
+ * kind (conflict / writer_required / migration_required /
+ * invalid_response / remote_error) is exposed in `writerKind` so
+ * callers can branch on it without ever reading the payload.
+ */
+class TechnicalEvidenceSyncFailure extends Error {
+  readonly documentId: string;
+  readonly evidenceVersion: number;
+  readonly stage: 'writer';
+  readonly writerKind: TechnicalEvidenceWriterErrorKind;
+
+  constructor(
+    documentId: string,
+    evidenceVersion: number,
+    writerError: TechnicalEvidenceWriterError,
+  ) {
+    super(
+      `[sync:supabase] Technical evidence write failed: document_id=${documentId} evidence_version=${evidenceVersion} stage=writer`,
+      { cause: writerError },
+    );
+    this.name = 'TechnicalEvidenceSyncFailure';
+    this.documentId = documentId;
+    this.evidenceVersion = evidenceVersion;
+    this.stage = 'writer';
+    this.writerKind = writerError.kind;
+  }
+}
+
 // ============================================================================
 // Technical-evidence internal loader (G28-B3-B5-B)
 //
@@ -348,7 +406,9 @@ function loadTechnicalEvidenceRows(
   }
 
   const candidateDocumentIds = new Set<string>();
-  for (const item of candidates) candidateDocumentIds.add(item.candidate.document_id);
+  for (const item of candidates) {
+    if (item.canonical) candidateDocumentIds.add(item.candidate.document_id);
+  }
 
   const rows: InternalValidatedEvidenceEntry[] = [];
   const seenKeys = new Set<string>();
@@ -474,31 +534,43 @@ export async function runSyncSupabase(
   const source = options.source?.trim() || 'documents_ingestor';
   const dryRun = options.dryRun || !options.confirmWrite;
 
-  // Internal technical-evidence JSONL (G28-B3-B5-B): when a path is
-  // provided, read, validate, deduplicate and reconcile against the
-  // prepared candidates BEFORE any other branch. Validation throws on
-  // bad input (payload-free error); dry-run exposes the provable
-  // counter `technical_evidence_attempted` and never touches the
-  // client/recovery/scan run/service-role config. Confirmed writes
-  // fail fast locally because remote evidence persistence is not
-  // yet integrated.
+  // Internal technical-evidence JSONL (G28-B3-B5-B / C): when a path
+  // is provided, read, validate, deduplicate and reconcile against
+  // the prepared candidates BEFORE any other branch. Validation throws
+  // on bad input (payload-free error). This runs strictly before
+  // configuration is read, before a service-role client is built,
+  // before recoverStaleRuns, before startScanRun, before any candidate
+  // RPC, before any event upsert and before any technical-evidence
+  // RPC. A confirmed write without a technical-evidence path never
+  // touches this code.
   const evidencePath = options.technicalEvidencePath?.trim() || '';
   const evidencePathProvided = evidencePath.length > 0;
-  let technicalEvidenceAttempted = 0;
-  if (evidencePathProvided) {
-    technicalEvidenceAttempted = loadTechnicalEvidenceRows(evidencePath, prepared.candidates).length;
-  }
+  const validEvidence: InternalValidatedEvidenceEntry[] = evidencePathProvided
+    ? loadTechnicalEvidenceRows(evidencePath, prepared.candidates)
+    : [];
 
   const complete = prepared.candidates.filter((item) => item.canonical);
   const skipped = prepared.candidates
     .filter((item) => item.skip_reason)
     .map((item) => ({ document_id: item.candidate.document_id, reason: item.skip_reason! }));
-  // The `technical_evidence_attempted` counter is conditionally
-  // included ONLY when a path was provided (even with an empty JSONL).
-  // Without a path, the result object is byte-for-byte the pre-existing
-  // shape so the CLI / existing consumers see no new keys.
-  const evidenceAttemptedField = evidencePathProvided
-    ? { technical_evidence_attempted: technicalEvidenceAttempted }
+
+  // The five snake_case evidence counters are conditionally included
+  // ONLY when a path was provided (even with an empty JSONL). Without
+  // a path, the result object is byte-for-byte the pre-existing shape
+  // so the CLI / existing consumers see no new keys. The
+  // `skipped_without_evidence` counter is the eligible-candidate count
+  // (candidates with a complete canonical base) minus the count of
+  // valid evidence documents — i.e. complete candidates that did not
+  // receive a technical-evidence snapshot in this run.
+  const evidenceSkippedWithoutEvidence = complete.length - validEvidence.length;
+  const evidenceCounters = evidencePathProvided
+    ? {
+        technical_evidence_attempted: 0,
+        technical_evidence_inserted: 0,
+        technical_evidence_unchanged: 0,
+        technical_evidence_failed: 0,
+        technical_evidence_skipped_without_evidence: evidenceSkippedWithoutEvidence,
+      }
     : {};
   const initialResult: SyncSupabaseResult = {
     ok: true,
@@ -512,29 +584,22 @@ export async function runSyncSupabase(
     events_skipped: prepared.duplicateEventIds,
     scan_run: { status: dryRun ? 'dry_run' : 'running', id: null },
     stale_recovery: { attempted: false, recovered_count: 0 },
-    ...evidenceAttemptedField,
+    ...evidenceCounters,
     errors: [],
   };
 
   if (dryRun) {
-    // Dry-run never touches the client (no recovery, no scan run, no writes).
+    // Dry-run never touches the client (no recovery, no scan run, no
+    // candidate RPC, no event RPC, no technical-evidence RPC). All
+    // five evidence counters are projected from the validated input
+    // alone, with inserted/unchanged/failed equal to zero because no
+    // remote call was made.
     return {
       ...initialResult,
+      ...(evidencePathProvided ? { technical_evidence_attempted: validEvidence.length } : {}),
       candidates_upserted: complete.length,
       events_inserted: prepared.events.length,
     };
-  }
-
-  // Confirmed-write fast-fail (G28-B3-B5-B): technical-evidence remote
-  // persistence is not yet integrated. A payload-free local error is
-  // raised BEFORE the client is required, BEFORE recoverStaleRuns,
-  // startScanRun, candidate RPC, event upsert or finishScanRun can
-  // even be considered. The validated evidence collection is
-  // intentionally discarded here.
-  if (evidencePathProvided) {
-    throw new Error(
-      '[sync:supabase] Technical evidence remote persistence is not yet integrated. Confirmed write with technical-evidence input is not supported.',
-    );
   }
 
   if (!client) {
@@ -557,8 +622,9 @@ export async function runSyncSupabase(
   //      (startScanRun + finishScanRun). Used by sync:supabase.
   //   2. External (scanRunId provided): the caller (e.g. the document
   //      scan request watcher) owns the run lifecycle. This function
-  //      only does the candidate upserts + event inserts and reports
-  //      progress. The caller will finalize the run.
+  //      only does the candidate upserts + technical-evidence writes +
+  //      event inserts and reports progress. The caller will finalize
+  //      the run.
   let startedRun: { id: string };
   if (options.scanRunId) {
     startedRun = { id: options.scanRunId };
@@ -586,6 +652,44 @@ export async function runSyncSupabase(
     for (const item of complete) {
       await client.upsertCanonicalCandidateState(item.canonical!);
       result.candidates_upserted++;
+    }
+
+    // G28-B3-B5-C: evidence stage runs between candidate upserts and
+    // event inserts. With no evidence path the block is skipped and
+    // no evidence RPC / counter is touched, preserving the pre-existing
+    // behavior. With an evidence path, every validated row is sent to
+    // the writer; `attempted` is incremented immediately before the
+    // RPC; `inserted` / `unchanged` are incremented by writer outcome;
+    // a typed writer failure is rethrown as a payload-free sync
+    // failure that carries document id, evidence version, stage and
+    // the writer's kind, short-circuits the rest of the run (no
+    // event insert, no finish completed, attempt finish failed) and
+    // never retries.
+    if (evidencePathProvided) {
+      for (const entry of validEvidence) {
+        result.technical_evidence_attempted! += 1;
+        try {
+          const writeResult = await writeTechnicalEvidence(
+            client.writeTechnicalEvidence,
+            entry as unknown as TechnicalEvidenceExportRow,
+          );
+          if (writeResult.outcome === 'inserted') {
+            result.technical_evidence_inserted! += 1;
+          } else {
+            result.technical_evidence_unchanged! += 1;
+          }
+        } catch (writerError) {
+          result.technical_evidence_failed! += 1;
+          if (writerError instanceof TechnicalEvidenceWriterError) {
+            throw new TechnicalEvidenceSyncFailure(
+              entry.documentId,
+              entry.evidenceVersion,
+              writerError,
+            );
+          }
+          throw writerError;
+        }
+      }
     }
 
     const eventResult = await client.insertEventsIgnoreConflict(prepared.events);

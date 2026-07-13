@@ -1,5 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config.js';
+import type {
+  TechnicalEvidenceRpcClient,
+  TechnicalEvidenceRpcResponse,
+} from './technicalEvidenceWriter.js';
 
 export type CanonicalDocumentStatus = 'pending' | 'assigned' | 'accepted' | 'rejected';
 
@@ -78,6 +82,14 @@ export interface SupabaseWriterClient {
     status: 'completed' | 'failed';
     errorMessage: string | null;
   }): Promise<void>;
+  /**
+   * Injected G28-B3-B5-C writer port for the migration-49 RPC. The
+   * canonical Supabase client created by `createServiceRoleWriterClient`
+   * is reused here (no parallel client, no second createClient call).
+   * Tests satisfy this structurally with a hermetic mock; dry-run and
+   * confirmed-write without a technical-evidence path never invoke it.
+   */
+  readonly writeTechnicalEvidence: TechnicalEvidenceRpcClient;
 }
 
 function requiredEnv(env: NodeJS.ProcessEnv, name: string, configuredValue: string): string {
@@ -180,7 +192,21 @@ export function createServiceRoleWriterClient(config: ServiceRoleConfig): Supaba
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  // Minimal structural adapter that reuses the single `createClient`
+  // instance above for the migration-49 RPC. No second client, no
+  // config read, no env read, no log, no retry, no I/O. The PostgREST
+  // builder returned by `client.rpc` is thenable and structurally
+  // compatible with `TechnicalEvidenceRpcResponse`; the cast is
+  // contained to the adapter.
+  const writeTechnicalEvidence: TechnicalEvidenceRpcClient = {
+    rpc(fn, params) {
+      return client.rpc(fn, params as never) as unknown as PromiseLike<TechnicalEvidenceRpcResponse>;
+    },
+  };
+
   return {
+    writeTechnicalEvidence,
+
     async recoverStaleRuns({ source, staleAfterMinutes = 30 }) {
       // Floor of 5 minutes so a live run is never recovered; the SQL RPC
       // clamps identically via GREATEST(..., INTERVAL '5 minutes').

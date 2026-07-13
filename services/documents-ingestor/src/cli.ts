@@ -809,6 +809,7 @@ program
   .description('Sync local mapped JSONL and optional event JSONL to Supabase document tables')
   .requiredOption('--mapped <path>', 'Path to export:mapped JSONL')
   .option('--events <path>', 'Path to outbox/export events JSONL')
+  .option('--technical-evidence <path>', 'Optional path to a technical-evidence JSONL (G28-B3-B5-C; requires --confirm-supabase-write)')
   .option('--confirm-supabase-write', 'Allow service-role writes (otherwise dry-run)')
   .option('--dry-run', 'Force dry-run even if --confirm-supabase-write is set')
   .option('--source <source>', 'Logical scan source', 'documents_ingestor')
@@ -847,6 +848,7 @@ program
       const result = await runSyncSupabase({
         mappedPath: opts.mapped,
         eventsPath: opts.events,
+        technicalEvidencePath: opts.technicalEvidence,
         confirmWrite,
         dryRun: Boolean(opts.dryRun),
         source: opts.source,
@@ -1169,7 +1171,9 @@ program
 function makeDryRunClient(): ReturnType<typeof createServiceRoleWriterClient> {
   // Minimal stub that never actually fires any RPC. The watcher treats
   // dry-run mode at the option level (does not call the client at all),
-  // but TypeScript requires the client to be present in deps.
+  // but TypeScript requires the client to be present in deps. The
+  // injected technical-evidence writer port is a no-op; the watcher
+  // does not exercise the evidence stage on its dry-run path.
   const noop = async () => undefined;
   return {
     recoverStaleRuns: async () => ({ recoveredCount: 0 }),
@@ -1180,6 +1184,7 @@ function makeDryRunClient(): ReturnType<typeof createServiceRoleWriterClient> {
     claimNextDocumentScanRequest: async () => ({ empty: true, request: null }),
     markDocumentScanRequestRunning: noop,
     finishDocumentScanRequest: noop,
+    writeTechnicalEvidence: { rpc: noop },
   } as unknown as ReturnType<typeof createServiceRoleWriterClient>;
 }
 
