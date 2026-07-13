@@ -1,9 +1,10 @@
 # Documentation Index — Ravatex Controle de Tapetes
 
 > Índice de documentação. Toda nova sessão de IA ou pessoa deve
-> começar pelas **fontes canônicas** listadas abaixo. As **docs
-> legadas** foram preservadas como contexto histórico e **não devem
-> guiar execução** após o ciclo de refactor/hardening.
+> começar pela **lista de autoridade** da §1, que é a única lista
+> ativa de autoridade documental do projeto. As **docs legadas**
+> foram preservadas como contexto histórico e **não devem guiar
+> execução** após o ciclo de refactor/hardening.
 >
 > **Convenção:** este diretório é docs-only. Nenhuma alteração de
 > código, teste ou `index.html` é feita aqui.
@@ -11,9 +12,9 @@
 ## 0. Papel deste índice e contrato de governança documental
 
 A partir de `G28-DOCS-B1` (fase aditiva, sem migração), este
-arquivo passa a ser formalmente reconhecido como o **árbitro
-único de autoridade documental e caminhos canônicos** do
-projeto. Ele responde a:
+arquivo é formalmente reconhecido como o **árbitro único de
+autoridade documental e caminhos canônicos** do projeto. Ele
+responde a:
 
 - qual é a **ordem de autoridade** entre documentos;
 - qual é a **classificação** de cada documento (canônico,
@@ -37,35 +38,61 @@ qualquer documento do projeto e este modelo, prevalece o modelo,
 exceto se a revisão estiver registrada neste índice e no
 respectivo ledger.
 
-Listas concorrentes de "fontes canônicas" existentes em outros
-arquivos (ver §2 deste índice e §14 do modelo) são **legado a
-reconciliar** em slices posteriores. Nenhuma migração de estado
-foi executada em `G28-DOCS-B1`; este slice apenas estabelece o
-contrato e declara a função deste índice.
+As listas concorrentes de "fontes canônicas", "precedência
+funcional" e "documentos obrigatórios" que existiam em outros
+arquivos (§2 deste índice, `docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md`,
+`Guide-and-governance-rules.stxt`) foram reconciliadas em
+`G28-DOCS-B3-E1`: passaram a apontar para a §1 deste índice como
+única lista ativa de autoridade. Nenhuma outra lista concorrente
+deve ser criada.
 
-## 1. Fontes canônicas atuais (PREVALECEM)
+## 1. Autoridade documental canônica (lista única)
 
-Estas são as únicas fontes aceitas para decisões operacionais,
-arquiteturais e de governança:
+Esta é a **única lista ativa de autoridade documental** do
+projeto. Qualquer outro documento que descreva autoridade,
+prevalência, precedência ou "documentos obrigatórios" deve
+apontar para esta seção, não repetir a lista.
 
-| Documento | Propósito |
+| Documento | Papel |
 |---|---|
-| `PROJECT_STATE.md` (raiz) | Snapshot canônico curto. HEAD, staging, remotes, arquitetura atual, refactor congelado, pendências. |
-| `AGENT_HANDOFF.md` (raiz) | Resumo para próxima sessão de IA. Estado aceito, comandos de verificação, regras, proibições. |
-| `docs/architecture/CODE_HEALTH_RULES.md` | 18 regras vinculantes de saúde arquitetural. Toda nova fase deve respeitar. |
-| `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md` | Regras arquiteturais específicas da frente Portal B2B/Pedidos. Separa cliente/admin/fornecedor, status operacional vs. status visual, componentes comuns, decomposição de fases e limites de segurança para as próximas etapas. Fase `RAVATEX-TAPETES-PORTAL-B2B-GOVERNANCE-A`. |
-| `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` | Plano persistente da frente Pedido ↔ OP ↔ Movimentação ↔ Documentos. Registra estado de entrada, decisões arquiteturais já tomadas, modelo alvo, papéis das telas, 9 fases futuras (B a J), obrigação permanente de consulta/atualização, riscos e template de evidência por fase. Fase `RAVATEX-TAPETES-PEDIDO-OP-MOVEMENT-PLAN-A`. |
-| `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` | Contrato técnico detalhado de schema para a frente Pedido ↔ OP ↔ Movimentação ↔ Documentos. Valida 13 tabelas existentes, FKs, RPCs, triggers e RLS; confirma lacunas; estabelece contrato de vínculo Pedido→OP, movimentação canônica, documentos operacionais, stepper e saldo por etapa. Fase `RAVATEX-TAPETES-PEDIDO-OP-SCHEMA-CONTRACT-B`. |
-| `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md` | Backlog funcional/arquitetural do fluxo produtivo centrado no Pedido (§1-8) + backlog Admin de validação operacional (§9). Contém 8 itens de produção (A-H, já implementados) e 10 itens Admin (P1/P2) com ordem técnica, dependências, critérios de aceite e itens absorvidos. Fases `RAVATEX-TAPETES-PRODUCTION-BACKLOG-REGISTER-A` e `RAVATEX-TAPETES-ADMIN-FLOW-BACKLOG-SYNC-A`. Leitura obrigatória antes de qualquer implementação no fluxo produtivo do Pedido ou Admin. |
-| `docs/architecture/AUTH_DELETE_USER_DESIGN.md` | Design de semântica de exclusão/desativação de usuários. Recomendação: desativar (soft delete + ban Auth) em vez de deletar fisicamente. Fase `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`. |
-| `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | Histórico cronológico de fases do refactor. Lista de módulos extraídos, ressalvas, decisão de congelamento. |
-| `Guide-and-governance-rules.stxt` (raiz) | Governança geral do projeto para futuras sessões de ChatGPT. |
+| `docs/DOCUMENTATION_INDEX.md` (este arquivo) | Classifica os documentos e define seus papéis. |
+| `docs/governance/DOCUMENTATION_MODEL.md` | Define o modelo de governança e as regras de atualização documental por fase. |
+| `PROJECT_STATE.md` (raiz) | Único proprietário do estado operacional atual por frente. |
+| `AGENT_HANDOFF.md` (raiz) | Único handoff operacional ativo. |
+| `docs/ledgers/G28_LEDGER.md` | Histórico estruturado append-only da frente G28. |
+| `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | Histórico exclusivo da frente de refactor. |
+| `docs/legacy/pre-model/MANIFEST.md` | Preservação imutável pré-modelo; não operacional. |
+| Git | Commits, diffs, manifestos, branch, HEAD, staging e divergência — consultar diretamente. |
 
-### Runbooks operacionais atuais (complementam as fontes canônicas)
+> Estes papéis **não se sobrepõem**. Em divergência entre
+> documentos de papéis distintos, resolve o documento cujo papel
+> corresponde à questão (estado → `PROJECT_STATE.md`; regra de
+> atualização → `DOCUMENTATION_MODEL.md`; autoridade/classificação
+> → este índice; commit/diff → Git). A matriz detalhada de
+> atualização por fase está em
+> [`docs/governance/DOCUMENTATION_MODEL.md`](governance/DOCUMENTATION_MODEL.md) §11.
 
-Runbooks descrevem **como executar** procedimentos aprovados.
-Não substituem as fontes canônicas; quando houver divergência, as
-fontes canônicas prevalecem.
+### Inventário classificatório (documentos por categoria)
+
+Os documentos abaixo têm função classificatória ou contratual
+legítima; **não** são uma segunda lista de prevalência. Em
+divergência com a §1, resolve-se pelo papel de cada um.
+
+| Documento | Categoria | Propósito |
+|---|---|---|
+| `docs/architecture/CODE_HEALTH_RULES.md` | Contrato arquitetural | 18 regras vinculantes de saúde arquitetural. Toda nova fase deve respeitar. |
+| `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md` | Contrato arquitetural | Regras da frente Portal B2B/Pedidos: separa cliente/admin/fornecedor, status operacional vs. visual, componentes comuns, decomposição de fases. |
+| `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` | Plano persistente | Plano da frente Pedido ↔ OP ↔ Movimentação ↔ Documentos: estado de entrada, decisões, modelo alvo, papéis das telas, fases futuras (B a J), template de evidência. |
+| `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` | Contrato técnico | Contrato de schema para Pedido ↔ OP ↔ Movimentação ↔ Documentos: valida tabelas, FKs, RPCs, triggers, RLS; estabelece vínculo Pedido→OP, movimentação canônica, stepper, saldo por etapa. |
+| `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md` | Backlog | Backlog do fluxo produtivo do Pedido (§1-8) + backlog Admin (§9). 8 itens de produção (A-H) + 10 itens Admin (P1/P2). Leitura obrigatória antes de implementação no fluxo produtivo. |
+| `docs/architecture/AUTH_DELETE_USER_DESIGN.md` | Design | Semântica de exclusão/desativação de usuários: desativar (soft delete + ban Auth) em vez de deletar fisicamente. |
+| `docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md` | Inventário de ativos | Mapa de componentes, entrypoints, contratos e estrutura de `.claude`. **Não é fonte de estado atual nem árbitro de autoridade.** |
+| `Guide-and-governance-rules.stxt` (raiz) | Governança de agente | Regras operacionais estáveis para o agente Arquiteto/IAexec (Git, escopo, decomposição, roteamento). **Não repete esta lista de autoridade.** |
+
+### Runbooks operacionais (complementam, não substituem)
+
+Runbooks descrevem **como executar** procedimentos aprovados. Não
+substituem a autoridade da §1; em divergência, a §1 prevalece.
 
 | Documento | Propósito |
 |---|---|
@@ -73,66 +100,51 @@ fontes canônicas prevalecem.
 | `docs/operations/AUTH_DISABLE_USER_PROD_RELEASE_PLAN.md` | Plano operacional de release para levar a cadeia Auth do staging para produção. Ordem obrigatória, critérios GO/NO-GO, rollback, validações read-only. |
 | `docs/operations/PARALLEL_ENVIRONMENT_RECONCILIATION.md` | Taxonomia oficial dos ambientes: `bhgifjrfagkzubpyqpew` = Legacy (não tocar), `ucrjtfswnfdlxwtmxnoo` = paralelo de trabalho. Estado de cada ambiente, decisão arquitetural, próximas etapas. |
 
-> **Em caso de divergência entre qualquer doc e estas 7 fontes,
-> as 7 fontes prevalecem.** Isso inclui este índice.
-
 ## 1b. Documentos de diagnóstico de UI (não normativos, não executáveis)
 
 Documentos desta seção **comparam** mockups aprovados contra a
 implementação atual, para escopar fases futuras de ajuste visual.
 **Não são fonte canônica**, não autorizam implementação por si só e
-não substituem nenhuma das 7 fontes de §1.
+não substituem a lista de autoridade da §1.
 
 | Documento | Propósito | Fase |
 |---|---|---|
 | `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md` | Inventário read-only de divergências entre os 5 mockups do Portal Cliente B2B (Dashboard, Novo Pedido, Modal Adicionar Item, Detalhe do Pedido, Acompanhamento) e as telas `js/screens/cliente-*.js` atuais. Matriz por tela, gaps detalhados, particularidades operacionais ainda em TBD e proposta de fases futuras (`UI-GAP-FIX-*`, `UI-OPERATIONS-RULES-A`). Não implementa nem corrige nada. | `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-GAP-INVENTORY-A` |
 | `docs/ui/CLIENTE_PORTAL_UI_OPERATIONS_RULES.md` | Matriz operacional docs-only para a UI do Portal Cliente B2B. Consolida decisões já fechadas, registra as pendências `OP-001` a `OP-012`, recomendações técnicas, impacto por tela e a sequência futura (`UI-GAP-FIX-NOVO-PEDIDO-A` até `UI-GAP-FIX-SHELL-A`). Não implementa UI nem altera código/schema/Supabase. | `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-OPERATIONS-RULES-A` |
 
-## 1c. Histórico estruturado por frente
+## 1c. Histórico estruturado e preservação por frente
 
-Ledgers são registros **append-only** de fases encerradas e aceitas por
-frente. Registram histórico aceito, **não** estado atual. Não substituem o
-Git (commits e diffs continuam sendo consultados diretamente) e não são
-fonte do estado operacional, que pertence a `PROJECT_STATE.md`.
+Detalhamento classificatório dos papéis de histórico e preservação
+declarados na §1. Não é uma segunda lista de autoridade.
 
-### Histórico estruturado por frente
-
-- `docs/ledgers/G28_LEDGER.md`
-  - proprietário do histórico estruturado de fases aceitas da frente G28;
-  - append-only;
-  - não é fonte do estado atual;
-  - não substitui o Git;
-  - não reconstrói automaticamente o histórico pré-modelo.
-
-- `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`
-  - ledger histórico existente e exclusivo da frente de refactor;
-  - permanece no caminho atual;
-  - não deve ser copiado para `docs/legacy/`.
-
-### Preservação pré-modelo
-
-- `docs/legacy/pre-model/MANIFEST.md`
-  - índice dos snapshots completos e imutáveis anteriores à compactação;
-  - snapshots não são fontes de estado atual;
-  - snapshots não recebem novos closeouts;
-  - conteúdo preservado para auditoria, não para roteamento operacional.
+- `docs/ledgers/G28_LEDGER.md` — append-only; não é fonte do estado atual;
+  não substitui o Git; não reconstrói automaticamente o histórico pré-modelo.
+- `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` — ledger histórico
+  exclusivo da frente de refactor; permanece no caminho atual; não deve ser
+  copiado para `docs/legacy/`.
+- `docs/legacy/pre-model/MANIFEST.md` — índice dos snapshots completos e
+  imutáveis anteriores à compactação; snapshots não são fontes de estado
+  atual; snapshots não recebem novos closeouts; conteúdo preservado para
+  auditoria, não para roteamento operacional.
 
 ## 2. Regra de prevalência
 
-Toda decisão operacional, arquitetural ou de governança deve seguir
-a seguinte ordem de autoridade:
+A única lista ativa de autoridade documental está na **§1** deste
+índice. A regra de prevalência é: resolve a questão pelo **papel**
+do documento (estado → `PROJECT_STATE.md`; regra de atualização →
+`docs/governance/DOCUMENTATION_MODEL.md`; classificação/autoridade
+→ §1 deste índice; commit/diff/HEAD/staging/divergência → Git).
 
-1. `Guide-and-governance-rules.stxt`
-2. `docs/architecture/CODE_HEALTH_RULES.md`
-3. `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md`
-4. `PROJECT_STATE.md`
-5. `AGENT_HANDOFF.md`
-6. `docs/architecture/AUTH_DELETE_USER_DESIGN.md`
-7. `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`
-8. `docs/DOCUMENTATION_INDEX.md` (este arquivo)
-9. `docs/STAGING_BASELINE.md` (atual; regra de ambiente)
-10. Docs legadas (`docs/superpowers`, `docs/qa`, docs antigos na raiz
-   de `docs/`) — **NÃO** devem guiar execução.
+A matriz detalhada de **qual documento atualizar por tipo de
+evento de fase** está em
+[`docs/governance/DOCUMENTATION_MODEL.md`](governance/DOCUMENTATION_MODEL.md)
+§11 ("Regra de atualização por fase") e §12 ("Transação documental
+mínima").
+
+A lista numerada de prevalência que existia nesta seção foi
+removida em `G28-DOCS-B3-E1` por ser concorrente da §1. Docs
+legadas (`docs/superpowers`, `docs/qa`, docs antigos na raiz de
+`docs/`) continuam **não** devendo guiar execução.
 
 ## 3. Runbooks operacionais atuais
 
@@ -328,21 +340,22 @@ A regra vigente está em `AGENT_HANDOFF.md` (regras 1, 2, 3, 15) e em
 
 ## 6. Política de atualização deste índice
 
-- Atualizar este índice quando houver novo documento canônico
-  (entrar em §1), novo runbook (entrar em §3) ou nova categoria de
-  docs legadas (entrar em §4).
-- Manter as 7 fontes canônicas como âncora; este índice é referência
-  cruzada, não fonte primária.
+- Atualizar este índice quando houver mudança na lista de
+  autoridade da §1, novo documento classificatório (entrar no
+  inventário da §1), novo runbook (entrar em §3) ou nova
+  categoria de docs legadas (entrar em §4).
+- A §1 é a única lista ativa de autoridade; nenhuma outra seção
+  deste índice e nenhum outro arquivo deve manter lista
+  concorrente de "fontes canônicas", "prevalência" ou
+  "precedência".
 - Fase: docs-only. Sem alteração funcional.
 - A atualização do índice é regida pela **matriz de atualização
   por fase** de `docs/governance/DOCUMENTATION_MODEL.md` §11 e
   pela **transação documental mínima** §12 do mesmo modelo.
   Mudanças de autoridade, classificação ou caminhos exigem
   revisão deste índice; mudanças cosméticas devem ser evitadas.
-- A **§2 "Regra de prevalência"** deste índice, bem como listas
-  de "fontes canônicas" e de "precedência funcional" em outros
-  arquivos (ex.: `docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md`
-  §1/§3/§4/§11/§12), são **legado a reconciliar** conforme
-  `docs/governance/DOCUMENTATION_MODEL.md` §14. Nenhuma
-  reescrita foi realizada em `G28-DOCS-B1`; a substituição por
-  referência ao índice será feita em slices posteriores.
+- As listas concorrentes que existiam na antiga §2 "Regra de
+  prevalência" deste índice, em `docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md`
+  e em `Guide-and-governance-rules.stxt` foram reconciliadas em
+  `G28-DOCS-B3-E1`: passaram a apontar para a §1. O histórico
+  dessa reconciliação está no `docs/ledgers/G28_LEDGER.md`.

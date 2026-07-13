@@ -16,44 +16,28 @@ Responsabilidades principais:
 
 Não atuar como executor direto de repo salvo quando explicitamente solicitado e com arquivos disponíveis. O fluxo padrão é: ChatGPT define escopo, IAexec executa, ChatGPT audita.
 
-## 2. Estado canônico atual do app
+## 2. Referências canônicas (estado não vive neste guia)
 
-Projeto: `Ravatex Controle de Tapetes`
+Projeto: `Ravatex Controle de Tapetes`.
 
-Repo local esperado:
+Este guia **não** mantém estado operacional vivo (HEAD, working tree,
+staging, branch, próxima fase, status de migration, estado de Supabase).
+Esses fatos são obtidos das fontes canônicas e do Git:
 
-```text
-D:\OneDrive\Programação\Ravatex\controle-tapetes
-```
+- **Autoridade documental:** `docs/DOCUMENTATION_INDEX.md` (lista única de autoridade na §1).
+- **Modelo de governança:** `docs/governance/DOCUMENTATION_MODEL.md`.
+- **Estado operacional atual:** `PROJECT_STATE.md`.
+- **Handoff operacional ativo:** `AGENT_HANDOFF.md`.
+- **Branch, HEAD, working tree, staging e divergência:** consultar diretamente no Git.
 
-Branch de trabalho:
-
-```text
-work/app-next
-```
-
-Estado aceito mais recente:
-
-```text
-HEAD: 4f7c16f
-staging/main: 4f7c16f640d5ba599c3e16c5fcde09aa12e25424
-origin/main: 1047181eba888242c6428de366cbd9fda2f1c72c
-working tree: limpo
-```
-
-Remotes:
-
-```text
-origin  = https://github.com/grupoterrabranca/controle-tapetes.git
-staging = https://github.com/ravatexapps-dotcom/controle-tapetes-staging.git
-```
-
-Regra crítica:
+Regra crítica (política permanente, não estado):
 
 ```text
 origin/main e PR #2 permanecem intocados salvo autorização explícita.
-Push normal é apenas para staging: work/app-next -> main.
+Push normal é apenas para staging, quando a fase autorizar.
 ```
+
+Este guia não repete a tabela de autoridade do índice.
 
 ## 3. Estado arquitetural atual
 
@@ -78,7 +62,10 @@ Arquitetura consolidada:
 * `js/screens/op-pdf.js` existe e contém `gerarPdfCompraFios`;
 * `js/screens/op-nova.js` ainda é grande, mas está aceito e congelado porque não possui writes diretos Supabase e sua closure é coesa.
 
-Documentos de governança existentes:
+Documentos de governança e autoridade documental — a lista única de
+autoridade está em `docs/DOCUMENTATION_INDEX.md` §1 e o modelo de
+governança em `docs/governance/DOCUMENTATION_MODEL.md`. Referências
+permanentes de arquitetura incluem:
 
 ```text
 docs/architecture/CODE_HEALTH_RULES.md
@@ -310,7 +297,7 @@ Permitido:
 
 * staging seletivo;
 * commit pequeno;
-* push para `staging work/app-next:main` quando a fase autorizar.
+* push para o remote de staging quando a fase autorizar (branch de origem conforme o workspace ativo; ver `PROJECT_STATE.md`).
 
 Relatório final de IAexec sempre deve trazer:
 
@@ -410,7 +397,7 @@ GitHub Pages staging só é necessário se a homologação pública/externa exig
 
 ## 16. Próximas direções prováveis
 
-Após `4f7c16f`, não iniciar novo refactor.
+Após o ciclo de refactor/hardening congelado, não iniciar novo refactor.
 
 Próximas frentes prováveis:
 

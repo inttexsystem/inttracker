@@ -1,47 +1,60 @@
 # MAPA DE ATIVOS E ARQUIVOS DO PROJETO — CLAUDE / RAVATEX
 
-> **Fase:** `G28-P0` / correção `G28-P0-R1` — registro e correção dos documentos de governança (docs-only).
-> **Tipo:** inventário read-only; nenhum código, migration, teste ou `.claude`
-> foi alterado.
-> **Workspace:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
-> **Branch:** `work/g28-document-qualification`
-> **Baseline do inventário:** `247345c8b4d63d9b4c871f55109fe39af244f40f` — HEAD sobre o qual `.claude` e os entrypoints foram inventariados.
-> **Commit inicial de registro:** `bdb2fa3b05361c761d55506192483fe4d8be5034` (G28-P0).
-> **HEAD atual:** não é permanente; confirmar sempre em `PROJECT_STATE.md` e via `git rev-parse HEAD`.
+> **Tipo:** inventário de ativos (componentes, entrypoints, contratos,
+> estrutura de `.claude`). **Não é fonte de estado atual, não é árbitro
+> de autoridade documental e não define HEAD, branch, próxima fase ou
+> status operacional.**
+> **Autoridade documental:** `docs/DOCUMENTATION_INDEX.md` §1.
+> **Modelo de governança:** `docs/governance/DOCUMENTATION_MODEL.md`.
+> **Estado operacional atual:** `PROJECT_STATE.md`. **Handoff ativo:**
+> `AGENT_HANDOFF.md`. **Branch, HEAD, working tree, staging e divergência:**
+> consultar diretamente no Git.
+> **Commit de registro (histórico, não canônico):** `bdb2fa3b05361c761d55506192483fe4d8be5034`
+> (`G28-P0`, quando o inventário foi feito). Não o trate como estado vigente.
 > **Workspace original (quarentena, somente leitura):** `D:\OneDrive\Programação\Ravatex\controle-tapetes`
 
-Este mapa registra onde vivem as fontes de verdade do projeto, quais são
-obrigatórias por tipo de tarefa, qual a precedência entre elas e quais ativos
-precisam ser promovidos de `.claude` para documentação versionada. Serve para
-que qualquer worktree novo saiba o que ler antes de agir — inclusive quando a
-pasta `.claude` **não existir** nele (ver §13).
+Este mapa registra onde vivem os ativos do projeto, quais são úteis por tipo
+de tarefa e quais ativos precisam ser promovidos de `.claude` para
+documentação versionada. Serve para que qualquer worktree novo saiba o que
+ler antes de agir — inclusive quando a pasta `.claude` **não existir** nele
+(ver §13). **A autoridade sobre qual documento prevalece sobre qual pertence
+ao `docs/DOCUMENTATION_INDEX.md` §1 e ao
+`docs/governance/DOCUMENTATION_MODEL.md`, não a este mapa.**
 
 ---
 
-## 1. Documentos canônicos (arquitetura vigente)
+## 1. Inventário de documentos por categoria
 
-§1 é o **catálogo canônico** de fontes — **não** é uma ordem de leitura integral
-obrigatória antes de toda tarefa:
+> **Autoridade documental:** a lista única de autoridade está em
+> `docs/DOCUMENTATION_INDEX.md` §1, e o modelo de governança em
+> `docs/governance/DOCUMENTATION_MODEL.md`. A tabela abaixo é um
+> **inventário de localização e categoria**, não uma lista de
+> prevalência nem uma fonte de estado atual.
+
+§1 é o **inventário** de documentos — **não** é uma ordem de leitura
+integral obrigatória antes de toda tarefa, e **não** é árbitro de
+autoridade:
 
 - o **gate inicial** de qualquer tarefa é `PROJECT_STATE.md` + `AGENT_HANDOFF.md`
   + o plano aplicável;
 - §11 define as leituras específicas por tipo de tarefa;
 - as demais referências são lidas quando afetarem o escopo da tarefa.
 
-| Documento | Papel |
+| Documento | Categoria / localização |
 |---|---|
-| `PROJECT_STATE.md` (raiz) | Snapshot canônico: HEAD, staging, remotes, fase atual, pendências. |
-| `AGENT_HANDOFF.md` (raiz) | Resumo para a próxima sessão: estado aceito, gates, proibições, próximo checkpoint. |
-| `services/documents-ingestor/PROJECT_STATE.md` | Estado do serviço Documents Ingestor. |
+| `PROJECT_STATE.md` (raiz) | Estado operacional atual por frente (consultar o arquivo; não copiar HEAD/staging como verdade permanente). |
+| `AGENT_HANDOFF.md` (raiz) | Handoff da próxima sessão. |
+| `services/documents-ingestor/PROJECT_STATE.md` | Contexto técnico do serviço Documents Ingestor. |
 | `docs/architecture/DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md` | **Plano mestre** da frente documental (Camadas 0–4, sequência, backlog, matriz de fases, hard stops). |
 | `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` | Plano persistente Pedido ↔ OP ↔ Movimentação ↔ Documentos. |
 | `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` | Contrato técnico de schema Pedido/OP/documentos. |
 | `docs/architecture/CODE_HEALTH_RULES.md` | 18 regras vinculantes de saúde arquitetural. |
 | `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md` | Separação Cliente / Admin / Fornecedor; status operacional vs. visual. |
 | `docs/architecture/DOCUMENTS_INGESTOR_CONSUMER_DESIGN.md` | Contrato do reader do Controle sobre o Ingestor. |
-| `docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md` | **Este mapa.** |
+| `docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md` | **Este mapa** — inventário de ativos; não é autoridade documental. |
 | `docs/architecture/UI_VISUAL_CONTRACT.md` | **Contrato visual versionado** (consolidação da skill `.claude/design-skill`). |
-| `docs/DOCUMENTATION_INDEX.md` | Índice geral: fontes canônicas × docs legadas. |
+| `docs/DOCUMENTATION_INDEX.md` | **Árbitro de autoridade documental e classificação** (lista única de autoridade na §1). |
+| `docs/governance/DOCUMENTATION_MODEL.md` | **Modelo de governança documental.** |
 
 ## 2. Planos persistentes
 
@@ -175,21 +188,27 @@ migrations abaixo é um retrato do momento do registro:
 
 | Tipo de tarefa | Ler obrigatoriamente antes |
 |---|---|
-| Qualquer fase | §1 (documentos canônicos) + `PROJECT_STATE.md` + `AGENT_HANDOFF.md` |
+| Qualquer fase | §1 (inventário de documentos) + `PROJECT_STATE.md` + `AGENT_HANDOFF.md` |
 | Frente Documentos | Plano mestre + `PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` + `DOCUMENTS_INGESTOR_CONSUMER_DESIGN.md` + `services/documents-ingestor/PROJECT_STATE.md` |
 | Schema / migration | `PEDIDO_OP_SCHEMA_CONTRACT.md` + `CODE_HEALTH_RULES.md` + contratos §10 |
 | UI / modal / tabela / card | `UI_VISUAL_CONTRACT.md` + `css/tokens.css` + skill `.claude/design-skill` (quando presente) + pilotos §9 |
 | Pedido / OP | `PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` + `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` + entrypoints §8/§9 |
 | Portal Cliente / Fornecedor | `PORTAL_B2B_ARCHITECTURE_RULES.md` + `docs/ui/CLIENTE_PORTAL_UI_*` |
 
-## 12. Precedência funcional das fontes
+## 12. Uso funcional das fontes (orientação, não autoridade)
 
-Cada fonte resolve um tipo de questão. Em divergência, use a fonte cujo **escopo**
-corresponde à questão — não a posição em uma lista:
+> **Autoridade e prevalência:** `docs/DOCUMENTATION_INDEX.md` §1 é a única
+> lista ativa de autoridade; `docs/governance/DOCUMENTATION_MODEL.md` §11
+> define qual documento atualizar por evento de fase. O texto abaixo é
+> **orientação de uso** (que tipo de questão cada documento ajuda a
+> resolver), não uma lista concorrente de precedência.
+
+Cada documento resolve um tipo de questão. Em divergência, use o documento
+cujo **escopo** corresponde à questão — não a posição em uma lista:
 
 - **decisão explícita vigente do IAlead/arquiteto** — resolve decisão reservada e supersessão;
 - **contrato arquitetural do domínio** — resolve invariantes e semântica;
-- **`PROJECT_STATE.md`** — resolve fase, HEAD, publicação, ambiente e estado corrente;
+- **`PROJECT_STATE.md`** — resolve fase, publicação, ambiente e estado corrente;
 - **plano persistente aplicável** — resolve sequência, dependências e backlog;
 - **contrato específico da tarefa** (UI, schema, integração, outro domínio técnico) — resolve o domínio técnico correspondente;
 - **`AGENT_HANDOFF.md`** — resolve continuidade operacional, sem criar arquitetura;
@@ -235,6 +254,8 @@ ausente no disco; não está em `.gitignore`). Consequências:
 
 ---
 
-> **Este mapa é fonte canônica de localização de ativos.** Deve ser consultado no
-> início de cada fase e atualizado quando entrypoints, contratos ou a estrutura
-> de `.claude` mudarem.
+> **Este mapa é inventário de localização de ativos; não é árbitro de
+> > autoridade documental.** A autoridade pertence a
+> > `docs/DOCUMENTATION_INDEX.md` §1. Este mapa deve ser consultado no
+> > início de cada fase e atualizado quando entrypoints, contratos ou a
+> > estrutura de `.claude` mudarem.
