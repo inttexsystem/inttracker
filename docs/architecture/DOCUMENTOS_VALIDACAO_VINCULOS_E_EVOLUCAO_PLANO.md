@@ -1,24 +1,73 @@
-# G28-P0 — CLOSEOUT MECÂNICO
+# G28-P0 — CLOSEOUT MECÂNICO (REGISTRO HISTÓRICO)
 
-- **Status:** `CLOSED / ACCEPTED`.
+- **Status:** `CLOSED / ACCEPTED` (histórico).
 - **HEAD de fechamento:** `383db586e70852fba3c5ae5d5ac5312ab1b49284`.
 - **G28-A:** `REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT`.
-- **G28-B1:** `AUTHORIZED`; no instante deste closeout não existia implementação G28-B1.
-- **Próxima fase:** contrato puro de domínio; migration, persistência, Supabase e UI continuam proibidos.
+- **G28-B1:** `AUTHORIZED` no instante deste closeout; desde então G28-B1, B2, B3, B4 e B5-D5 foram aceitos.
+- **Estado atual:** ver CURRENT EXECUTION CHECKPOINT acima e `PROJECT_STATE.md`.
+- **Registro histórico apenas:** a fase ativa, o último bloco aceito e a próxima ação autorizável estão no checkpoint e em `PROJECT_STATE.md`.
 
 ---
 
 # PLANO MESTRE — DOCUMENTOS, VALIDAÇÃO HUMANA, VÍNCULOS E EVOLUÇÃO
 
 **Projeto:** Ravatex — Controle de Tapetes / Documents Ingestor  
-**Status do plano:** rascunho arquitetural para revisão do IAlead  
-**Fase ativa:** `G28-P0-R1` — correção arquitetural dos documentos de governança (docs-only), aguardando aceite do IAlead
-**Último marco técnico aceito:** G27 — reconhecimento documental endurecido, publicado em `staging/work/app-next`, CI verde  
+**Status do plano:** reconciliado (G28-PLAN-R1 em 2026-07-14) — este plano é o backlog arquitetural do G28; o estado operacional atual pertence a `PROJECT_STATE.md`
+**Fase ativa de implementação:** nenhuma
+**Último bloco técnico aceito:** `G28-B5-D5` — `CLOSED / ACCEPTED` (baseline `7d3e0261b668a46a80208198352039dc1f352010`, branch `work/g28-document-qualification`)
+**Próxima ação autorizável:** nenhuma; qualquer implementação futura exige autorização explícita do arquiteto e deve usar este checkpoint reconciliado, não a numeração de fases
 **G28-A:** `REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` — schema proposto, migration `db/49`, `qualified` como estado final, `duplicate` como estado principal e a regra de "duas partes externas resolvidas" **não aprovados**; evidências e problemas descobertos no diagnóstico permanecem aproveitáveis
-**G28-P0:** `ARCHITECTURAL CORRECTION IN PROGRESS` — não `CLOSED`, não `PUBLISHED`; o fechamento depende de revisão do IAlead
-**G28-B1:** `CLOSED / ACCEPTED` — contrato puro de domínio documental; commit `c65fa41` (`Define document review domain contract`); testes 187/187
-**G28-B2:** `CLOSED / ACCEPTED` — persistência local da evidência técnica e histórico versionado; closeout documental `G28-B2-B5`; testes finais 299/299
-**G28-B3:** `IN PROGRESS` — bloco eventos/exportação/Supabase/reader **ainda não encerrado**; subfases `G28-B3-B1` a `G28-B3-B4` e `G28-B3-B5-A` já `CLOSED / ACCEPTED`. B3-B5-A foi diagnóstico `READ-ONLY`, sem implementação, alteração de arquivos, commit, push, Supabase real ou migration apply; seu gate é `READY FOR SLICED IMPLEMENTATION`, não fechamento de B3-B5. O próximo candidato é `G28-B3-B5-B — TECHNICAL EVIDENCE SYNC INPUT CONTRACT AND DRY-RUN`, `NOT STARTED`, aguardando nova autorização do arquiteto; ver `### G28-B3 — Progresso das subfases` na matriz abaixo. HEAD canônico atual `410951f7817809c57de7fb8f7071750789c92dd8` é o último closeout documental anterior ao diagnóstico read-only. Migration 49: `VERSIONED / NOT APPLIED`. Supabase real: `NOT ACCESSED`. Push: `NOT EXECUTED`.
+**G28-P0:** `PLANNED / IMPLEMENTED / ACCEPTED` — consolidação do plano e gates concluída
+**G28-B1:** `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` — contrato puro de domínio documental; commit `c65fa41`; testes 187/187
+**G28-B2:** `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` — persistência local da evidência técnica e histórico versionado; testes finais 299/299
+**G28-B3:** `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` nas subfases aceitas (B3-B1 a B3-B4, B3-B5-A, B3-B5-B, B3-B5-C, B3-B6-B); migration 49 aplicada e verificada em staging
+**G28-B4:** `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` — fila/read model de revisão documental; subfases B4-A a B4-B4 aceitas
+**G28-B5:** `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` nas subfases aceitas (B5-B1, B5-B2, D5 consolidated D5-B1 a D5-B5); decisão-comando canônica implementada; linking canônico Documento↔Pedido/OP não implementado
+**G28-B6:** `PLANNED / DIAGNOSED (architectural boundaries only) / NOT DECIDED / NOT IMPLEMENTED / NOT ACCEPTED` — diagnóstico de limites arquiteturais concluído em G28-B1 (linhas 560-568); cardinalidade e contrato não decididos; sem contrato, schema, RPC, read-model ou UI aceitos; **G28-B6-B: PLANNED / NOT STARTED; no accepted definition, contract, or implementation evidence**
+**G28-B7:** `PLANNED / NOT STARTED` — exibição nas superfícies; aguarda G28-B6
+**G28-B8:** `PLANNED / NOT STARTED` — correção, revogação, restauração e auditoria; aguarda G28-B7
+**G28-C:** `PLANNED / DEFERRED` — validação real em staging; aguarda B8
+**G28-D:** `PLANNED / DEFERRED` — publicação para o cliente; aguarda C
+**Decisões de arquiteto em aberto:** cardinalidade/relacionamento Documento↔Pedido (política não decidida); cardinalidade Documento↔OP incluindo multiplicidade/representação; vínculos obrigatórios/opcionais por tipo de documento; compatibilidade de vínculos. Os quatro itens foram diagnosticados como abertos em G28-B1 (linhas 560-568) — diagnóstico de limites arquiteturais concluído, mas não decisão de cardinalidade aceita e não implementação B6. Nenhuma decisão de cardinalidade aceita separadamente existe. Não houve diagnóstico G28-B5-A separado sobre cardinalidade/linking.
+**Última reconciliação:** 2026-07-14 (G28-PLAN-R1)
+**Regras de autoridade:** Git comprova branch/HEAD/index/worktree vivos; `PROJECT_STATE.md` detém estado operacional atual; `AGENT_HANDOFF.md` detém continuidade; G28 ledger detém histórico append-only de closeouts; este plano mestre detém arquitetura/backlog; planos sozinhos não autorizam execução.
+
+---
+
+## CURRENT EXECUTION CHECKPOINT
+
+**Data:** 2026-07-14
+**Baseline:** `7d3e0261b668a46a80208198352039dc1f352010` (branch `work/g28-document-qualification`)
+
+**Último bloco técnico aceito:** `G28-B5-D5` — `CLOSED / ACCEPTED`
+
+**Fase ativa de implementação:** nenhuma.
+
+**Próxima ação autorizável:** nenhuma; qualquer implementação futura exige autorização explícita do arquiteto. Uma futura ordem para B6 deve usar este checkpoint reconciliado, não a numeração do plano.
+
+**Decisões de arquiteto em aberto:**
+- Cardinalidade/relacionamento Documento↔Pedido (política não decidida);
+- Cardinalidade Documento↔OP, incluindo multiplicidade e representação;
+- Vínculos obrigatórios/opcionais por tipo de documento;
+- Compatibilidade de vínculos.
+
+Os quatro itens foram diagnosticados como abertos em G28-B1 (linhas 560-568) — diagnóstico de limites arquiteturais concluído, mas não decisão de cardinalidade aceita e não implementação B6. Nenhuma decisão de cardinalidade aceita separadamente existe. Não houve diagnóstico G28-B5-A separado sobre cardinalidade/linking. O B1 e o contrato decisão-comando aceito de B5 não implementaram linking canônico.
+
+**Fases planejadas, não iniciadas (deferred/not-started):**
+- **G28-B6:** `PLANNED / DIAGNOSED (architectural boundaries only) / NOT DECIDED / NOT IMPLEMENTED / NOT ACCEPTED` — diagnóstico de limites arquiteturais concluído em G28-B1 (linhas 560-568); cardinalidade e contrato não decididos; sem contrato, schema, RPC, read-model ou UI aceitos
+- **G28-B6-B:** `PLANNED / NOT STARTED`; no accepted definition, contract, or implementation evidence
+- **G28-B7:** `PLANNED / NOT STARTED` — aguarda G28-B6
+- **G28-B8:** `PLANNED / NOT STARTED` — aguarda G28-B7
+
+**Limite verificado de B6:** B1 e o contrato decisão-comando aceito de B5 não implementaram linking canônico. Nenhum diagnóstico amplo sobre B6 deve ser reexecutado apenas por causa do número da fase. Esta reconciliação G28-PLAN-R1 é o inventário de evidências atual.
+
+**Regras de autoridade:**
+- Git comprova branch/HEAD/index/worktree vivos;
+- `PROJECT_STATE.md` detém o estado operacional atual;
+- `AGENT_HANDOFF.md` detém a continuidade;
+- O ledger G28 detém o histórico append-only de closeouts;
+- Este plano mestre detém arquitetura e backlog;
+- Planos sozinhos não autorizam execução.
 
 ---
 
@@ -961,38 +1010,42 @@ Parar e retornar ao arquiteto se:
 
 ## Estados permitidos
 
-`PLANNED` · `AUTHORIZED` · `IN_PROGRESS` · `HOLD` · `TECHNICALLY_ACCEPTED` ·
-`PUBLISHED` · `BLOCKED` · `REJECTED` · `DEFERRED` · `CLOSED` · `SUPERSEDED`.
+`PLANNED` · `DIAGNOSED` · `DECIDED` · `IMPLEMENTED` · `TESTED` · `ACCEPTED` ·
+`DEFERRED` · `AUTHORIZED` · `IN_PROGRESS` · `HOLD` · `TECHNICALLY_ACCEPTED` ·
+`PUBLISHED` · `BLOCKED` · `REJECTED` · `CLOSED` · `SUPERSEDED` · `NOT_STARTED`.
 
+Fases aceitas devem exibir explicitamente os rótulos separados que aplicam
+(`DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED`), não apenas `CLOSED`.
+Fases planejadas não iniciadas devem exibir `PLANNED / NOT DIAGNOSED / NOT DECIDED
+/ NOT IMPLEMENTED / NOT ACCEPTED` quando relevante, não um simples `PLANNED`.
 Qualificadores compostos podem detalhar um estado base — por exemplo
-`REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT`,
-`ARCHITECTURAL CORRECTION IN PROGRESS` e `PLANNED / NOT AUTHORIZED`.
+`REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` e `PLANNED / NOT AUTHORIZED`.
 
 ## Matriz de fases
 
-| ID | Fase | Estado | Dependências | Branch / workspace | Commit / HEAD | Evidência | Próximo passo |
+| ID | Fase | Status dimension labels | Dependências | Branch / workspace | Commit / HEAD | Evidência | Próximo passo |
 |---|---|---|---|---|---|---|---|
-| G28-P0 | Consolidação do plano, mapa de ativos e gates (+ correção R1) | `ARCHITECTURAL CORRECTION IN PROGRESS` | G27 CLOSED/publicado | `work/g28-document-qualification` @ `controle-tapetes-g28` | `bdb2fa3` (registro inicial); R1 sobre este HEAD | Registro inicial + correção R1 do plano, mapa e contrato visual; aguardando aceite | Aceite do IAlead a G28-P0-R1 |
-| G28-A | Diagnóstico de schema/domínio documental | `REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` | G28-P0 | — | — | Schema, `db/49`, `qualified` como estado final, `duplicate` como estado principal e regra de "duas partes externas" **não aprovados**; evidências aproveitáveis | Insumo diagnóstico para G28-B1; não é contrato |
-| G28-B1 | Contrato de domínio documental | `CLOSED / ACCEPTED` | G28-P0-R1 aceito | `work/g28-document-qualification` @ `controle-tapetes-g28` | `c65fa41` | Contrato puro de domínio para evidência, sugestão, revisão e decisão humana; testes 187/187 | G28-B2 |
-| G28-B2 | Persistência local da evidência e histórico técnico | `CLOSED / ACCEPTED` | G28-B1 | `work/g28-document-qualification` @ `controle-tapetes-g28` | `cb496ad` (closeout documental `G28-B2-B5`) | Evidência técnica persistida localmente; histórico versionado; classifier e builder puros; integração atômica no scan; testes finais 299/299 | G28-B3 |
-| G28-B3 | Eventos, exportação, Supabase e reader | `IN PROGRESS` — bloco não encerrado; ver subfases abaixo | G28-B2 | `work/g28-document-qualification` @ `controle-tapetes-g28` | `410951f` (`Reconcile G28 master plan status`, último closeout documental anterior; B3-B5-A read-only não gerou commit) | B3-B1 a B3-B4 e B3-B5-A `CLOSED / ACCEPTED`; B3-B5-B `NOT STARTED`; migration `db/49` `VERSIONED / NOT APPLIED`; gate A `READY FOR SLICED IMPLEMENTATION` | G28-B3-B5-B — contrato de entrada JSONL e dry-run local, aguardando nova autorização |
-| G28-B4 | Fila / read model de revisão documental | PLANNED | G28-B3 | a definir | — | — | Não persiste decisão humana |
-| G28-B5 | Persistência da decisão humana e dos vínculos canônicos Pedido/OP | PLANNED | G28-B4 | a definir | — | — | Reutilizar fonte canônica; sem UI |
-| G28-B6 | Modal funcional "Validar e vincular" (backend real) | PLANNED | G28-B5 | a definir | — | — | Não pode anteceder G28-B5 |
-| G28-B7 | Exibição nas superfícies (Documentos/Pedido/OP/timeline/buscas) | PLANNED | G28-B6 | a definir | — | — | Aguarda G28-B6 |
-| G28-B8 | Correção, revogação, restauração e auditoria | PLANNED | G28-B7 | a definir | — | — | Aguarda G28-B7 |
-| G28-C | Validação real em staging | PLANNED | G28-B8 | a definir | — | — | Cenários mínimos da Camada 1 |
-| G28-D | Publicação para o cliente acompanhar | PLANNED | G28-C | a definir | — | — | Marco `DOCUMENTOS — CLIENT OBSERVATION RELEASE` |
+| G28-P0 | Consolidação do plano, mapa de ativos e gates | `PLANNED / IMPLEMENTED / ACCEPTED` | G27 CLOSED/publicado | `work/g28-document-qualification` @ `controle-tapetes-g28` | Conforme ledger G28 | Fase documental concluída; G28-P0-R1 reconciliado | — |
+| G28-A | Diagnóstico de schema/domínio documental | `PLANNED / DIAGNOSED / REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` | G28-P0 | — | — | Schema, `db/49`, `qualified`, `duplicate` não aprovados; evidências aproveitáveis | Insumo diagnóstico para G28-B1 |
+| G28-B1 | Contrato de domínio documental | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` | G28-P0 | `work/g28-document-qualification` @ `controle-tapetes-g28` | `c65fa41` | Contrato puro de domínio para evidência, sugestão, revisão e decisão humana; testes 187/187 | — |
+| G28-B2 | Persistência local da evidência e histórico técnico | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` | G28-B1 | `work/g28-document-qualification` @ `controle-tapetes-g28` | Conforme ledger G28 | Evidência técnica persistida localmente; histórico versionado; testes finais 299/299 | — |
+| G28-B3 | Eventos, exportação, Supabase e reader | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` (subfases aceitas; ver subfases abaixo) | G28-B2 | `work/g28-document-qualification` @ `controle-tapetes-g28` | Conforme ledger G28 | B3-B1 a B3-B4, B3-B5-A, B3-B5-B, B3-B5-C, B3-B6-B aceitos; migration 49 aplicada e verificada em staging | — |
+| G28-B4 | Fila / read model de revisão documental | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` | G28-B3 | `work/g28-document-qualification` @ `controle-tapetes-g28` | Conforme ledger G28 | Subfases B4-A a B4-B4 aceitas; queue read model, filtros, indicadores de estado e acesso a arquivos implementados | — |
+| G28-B5 | Persistência da decisão humana e dos vínculos canônicos Pedido/OP | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` (B5-D5 consolidated: B1–B5) | G28-B4 | `work/g28-document-qualification` @ `controle-tapetes-g28` | `7d3e0261b668a46a80208198352039dc1f352010` | Decisão-comando canônica, boundary de source explícito, remoção de statusOverrides e legacy RPC runtime aceitos; linking canônico não implementado | — |
+| G28-B6 | Modal funcional "Validar e vincular" (backend real) | `PLANNED / DIAGNOSED (architectural boundaries only) / NOT DECIDED / NOT IMPLEMENTED / NOT ACCEPTED` | G28-B5 | a definir | — | Diagnóstico de limites arquiteturais concluído em G28-B1; cardinalidade e contrato não decididos; sem contrato, schema, RPC, read-model ou UI aceitos; G28-B6-B: PLANNED / NOT STARTED; no accepted definition, contract, or implementation evidence | Requer autorização explícita do arquiteto; usar checkpoint reconciliado, não numeração |
+| G28-B7 | Exibição nas superfícies (Documentos/Pedido/OP/timeline/buscas) | `PLANNED / NOT STARTED` | G28-B6 | a definir | — | — | Aguarda G28-B6 |
+| G28-B8 | Correção, revogação, restauração e auditoria | `PLANNED / NOT STARTED` | G28-B7 | a definir | — | — | Aguarda G28-B7 |
+| G28-C | Validação real em staging | `PLANNED / DEFERRED` | G28-B8 | a definir | — | — | Aguarda B8 |
+| G28-D | Publicação para o cliente acompanhar | `PLANNED / DEFERRED` | G28-C | a definir | — | — | Aguarda C |
 | CAMADA 2 (A1–A7) | Administração de usuários e acessos | DEFERRED | Documentos estabilizado | — | — | — | Só após Camada 1 publicada |
 | CAMADA 3 (BK1–BK8) | Backup em nuvem e restauração testada | DEFERRED | Frente independente | — | — | — | Auditoria do app de origem |
 | CAMADA 4 (F0–F5) | Participação futura de fornecedores | DEFERRED | Documentos publicado | — | — | — | Operação interna nunca depende do fornecedor |
 
 ### G28-B3 — Progresso das subfases
 
-O bloco `G28-B3` permanece `IN PROGRESS`: B3-B5-A foi aceito apenas como
-diagnóstico read-only e não autoriza marcar o bloco como `CLOSED` nem iniciar
-B3-B5-B sem nova autorização do arquiteto.
+As subfases de G28-B3 que foram aceitas estão listadas abaixo. O bloco `G28-B3`
+é considerado concluído em suas subfases aceitas; o status agregado está na
+matriz acima.
 
 | Subfase | Descrição | Estado | Commit(s) |
 |---|---|---|---|
@@ -1000,30 +1053,15 @@ B3-B5-B sem nova autorização do arquiteto.
 | G28-B3-B2 | Exportação da evidência corrente como JSONL | `CLOSED / ACCEPTED` | `812433d` |
 | G28-B3-B3 | Schema remoto e RPC (`db/49_document_technical_evidences.sql`) | `CLOSED / ACCEPTED` | `7abafbb` |
 | G28-B3-B4 | Writer service-role sobre a RPC, com hardening de classificação de erros | `CLOSED / ACCEPTED` | `abe49f1`; `96f2d4d` (R1) |
-| G28-B3-B5 | Integração de evidência técnica ao sync, em slices | `IN PROGRESS` — não concluída | B3-B5-A fechado; B3-B5-B não iniciado |
-| G28-B3-B5-A | Diagnóstico de integração sync de evidência técnica | `CLOSED / ACCEPTED` — read-only; gate `READY FOR SLICED IMPLEMENTATION` | —; HEAD canônico `410951f` é closeout documental anterior, sem commit do diagnóstico |
-| G28-B3-B5-B | Contrato de entrada JSONL e dry-run local | `NOT STARTED` — aguardando nova autorização do arquiteto | — |
+| G28-B3-B5-A | Diagnóstico de integração sync de evidência técnica | `CLOSED / ACCEPTED` — read-only | — |
+| G28-B3-B5-B | Contrato de entrada JSONL e dry-run local | `CLOSED / ACCEPTED` | `013a0e1` |
+| G28-B3-B5-C | Complete technical evidence sync integration | `CLOSED / ACCEPTED` | `3465405` |
+| G28-B3-B6-B | Current technical evidence admin reader | `CLOSED / ACCEPTED` | `6ade74f` |
 
-Diagnóstico B3-B5-A aceito: a fonte futura é `export-technical-evidence JSONL`
-no fluxo `SQLite → export-technical-evidence → JSONL de evidência corrente →
-sync-supabase → Supabase`; `runSyncSupabase()` permanece consumidor de JSONL e
-não abre SQLite. A ordem futura é `recover stale run → start scan run → document
-candidates → technical evidence → document events → finish scan run`, com
-conteúdo `candidate → technical evidence → events` pela FK para
-`document_candidates.document_id`. Não há transação global entre candidate,
-evidence, events e scan run; a RPC é idempotente somente por
-`(document_id, evidence_version)`. A futura integração reutiliza a mesma
-instância autenticada service-role por adapter compatível com
-`TechnicalEvidenceRpcClient`, sem segunda credencial/configuração ou fallback.
-Dry-run não cria client remoto, RPC ou scan run e não exige migration aplicada;
-legado não recebe linha sintética, `unavailable`, evidência negativa ou decisão.
-
-Migration 49: `VERSIONED / NOT APPLIED` — nenhum apply, nenhum acesso real ao
-Supabase. Push: `NOT EXECUTED`. Slices somente planejados: B3-B5-C
-adapter/ordem de persistência, B3-B5-D política de erros/retomada e B3-B5-E
-CLI/relatório. Próximo candidato: exclusivamente `G28-B3-B5-B`, ainda `NOT
-STARTED` e aguardando nova autorização; nenhuma implementação está autorizada
-por este registro.
+Migration 49: aplicada e verificada em staging `ucrjtfswnfdlxwtmxnoo` (conforme
+ledger G28). Push: `NOT EXECUTED`. Produção `bhgifjrfagkzubpyqpew`: não acessada.
+O reader (B3-B6-B) carrega evidência técnica corrente via RLS admin autenticado
+direto, sem segundo client Supabase e sem writes.
 
 ## Governança de atualização (regra permanente)
 
@@ -1043,27 +1081,27 @@ Registrar o estado durante a execução não antecipa aceite: o fechamento
 
 # CRITÉRIO DE FECHAMENTO DO PLANO
 
-Este plano só passa a estado aprovado quando:
+Este plano foi reconciliado em 2026-07-14 (G28-PLAN-R1). As decisões de arquiteto
+em aberto (cardinalidade Documento↔Pedido, Documento↔OP, vínculos por tipo e
+compatibilidade) permanecem listadas no CURRENT EXECUTION CHECKPOINT. O plano
+será considerado totalmente fechado quando:
 
-- IAlead revisar a sequência;
 - arquiteto fechar as decisões em aberto;
-- fontes canônicas estiverem referenciadas;
-- inventário de `.claude` estiver previsto;
-- backlog estiver ordenado;
+- backlog estiver ordenado e reconciliado com o estado operacional;
 - nenhum item futuro tiver sido confundido com escopo ativo;
 - não houver contradição com `PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`.
 
 ---
 
-# PRÓXIMA AÇÃO APÓS APROVAÇÃO
+# PRÓXIMA AÇÃO — ESTADO ATUAL
 
-Após o aceite de `G28-P0-R1`:
+**G28-P0-R1, G28-B1, G28-B2, G28-B3 (subfases aceitas), G28-B4 e G28-B5-D5 foram
+aceitos.** Não há fase ativa de implementação. A próxima ação autorizável é
+**nenhuma**; qualquer implementação futura (ex.: B6, B7, B8) exige autorização
+explícita do arquiteto e deve usar o CURRENT EXECUTION CHECKPOINT reconciliado,
+não a numeração do plano.
 
-- reabrir a condução pelo Hermes;
-- emitir `G28-B1`, exclusivamente contrato de domínio documental;
-- sem migration, sem runtime e sem UI.
-
-Essa condição de disparo já ocorreu: `G28-B1` foi aceito e fechado
-(`CLOSED / ACCEPTED`, commit `c65fa41`). Este trecho permanece como registro
-histórico da condição original; o estado corrente de `G28-B1`, `G28-B2` e
-`G28-B3` está na matriz de fases e no cabeçalho do plano mestre acima.
+Estado operacional atual: `PROJECT_STATE.md`.
+Continuidade: `AGENT_HANDOFF.md`.
+Histórico de closeouts: `docs/ledgers/G28_LEDGER.md`.
+Arquitetura/backlog: este plano mestre.

@@ -485,3 +485,49 @@ de `G28-DOCS-B2` depende de nova ordem do arquiteto.
 > somente em fase docs-only autorizada, e a revisão será
 > registrada no `docs/DOCUMENTATION_INDEX.md` e, quando
 > aplicável, no ledger da frente.
+
+---
+
+## 17. PHASE CHECKPOINT RECONCILIATION
+
+A phase checkpoint reconciliation is the mandatory end-of-phase protocol. It applies after any authorized work — technical or documentary — concludes. The protocol is a closeout procedure, not a corrective phase. It does not by itself authorize the next phase.
+
+### 17.1 Requirements
+
+1. Verify real branch, HEAD, worktree, staging, and untracked state.
+
+2. Read applicable master plan, PROJECT_STATE.md, AGENT_HANDOFF.md, applicable append-only ledger.
+
+3. Compare planned objective, work actually performed, accepted evidence, remaining work, next authorizable action.
+
+4. Update master plan status using SEPARATE labels: diagnosed, decided, implemented, tested, accepted, deferred.
+
+5. Update PROJECT_STATE.md current operational state.
+
+6. Update AGENT_HANDOFF.md when continuity remains.
+
+7. Append ledger when required.
+
+8. Include this EXACT literal section in final report (labels only, no fixed G28 values):
+
+```
+PLAN_ALIGNMENT:
+MASTER_PLAN:
+LAST_ACCEPTED_PHASE:
+CURRENT_PHASE:
+NEXT_AUTHORIZABLE_ACTION:
+OPEN_ARCHITECT_DECISIONS:
+DEFERRED_PHASES:
+STATE_FILES_UPDATED:
+MATERIAL_DIVERGENCES:
+```
+
+9. A phase cannot be accepted if PLAN_ALIGNMENT is missing or material divergence unresolved.
+
+10. Harmless wording difference must not create a corrective phase.
+
+11. No next phase may be inferred solely from numbering.
+
+12. Plans define architecture/backlog; they do not authorize execution by themselves.
+
+13. Next phase derives from reconciled checkpoint plus explicit architect authorization.
