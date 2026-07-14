@@ -12,17 +12,19 @@ O conteúdo histórico abaixo não determina o estado atual.
 - **Workspace:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
 - **Branch:** `work/g28-document-qualification`
 - **Remoto permitido:** nenhum push sem autorização expressa nesta cadeia
-- **Última fase aceita:** `G28-B5-D4-R1 — CONTROLLED CANONICAL DECISION RUNTIME INTEGRATION` — `CLOSED / ACCEPTED`
+- **Última fase aceita:** `G28-B5-D5-B1 — EXPLICIT SOURCE BOUNDARY AND FAIL-CLOSED UNKNOWN DOCUMENTS` — `CLOSED / ACCEPTED`; commit técnico `2bac73d0f386ca61a53548d304b98e076fbb06ef` — `G28-B5-D5-B1: enforce explicit document source boundary`
 - **G28-B5-B1:** `CLOSED / ACCEPTED`; commit técnico `b247e43504c0afcc0d25e95f8012f93a09eb0692` — `Add idempotent document decision command contract`
 - **G28-B5-B2:** `CLOSED / ACCEPTED`; migration `20260714012641 document_decision_command` aplicada e verificada no staging `ucrjtfswnfdlxwtmxnoo`
 - **G28-D4-V1:** `PATCH COMMITTED / NOT ACCEPTED`; commit `ae907b82613c87c5a9f2cd37031186ef94047db7` — `Wire canonical document decision runtime`; auditoria read-only detectou módulos `documents-decision-command.js`, `documentos-recebidos-decision-modal.js` e `documents-decision-controller.js` ausentes no index.html.
 - **G28-D4-R1:** `CLOSED / ACCEPTED`; commit `425172a95cbf2b340aa5f72110d317917a79e1f6` — `Load canonical document decision runtime modules`; carrega os três módulos no index.html e reordena adapter/reader.
+- **G28-B5-D5-A:** `CLOSED / ACCEPTED`; diagnóstico read-only confirmou que documentos sem `_ravatex_source` eram tratados implicitamente como legacy. Decisão arquitetural vinculante: ausência de `_ravatex_source` não significa legacy.
+- **G28-B5-D5-B1:** `CLOSED / ACCEPTED`; classificação explícita `supabase | legacy | unknown`. `unknown` não oferece ações de decisão, não usa controller/modal/adapter, não chama RPC, não grava decisão local, não usa `statusOverrides`, preserva o status original e falha fechado até normalização da origem. Supabase mantém fluxo canônico; `manual`/`legacy` explícito mantém fluxo local temporário; fallback G22 sem source permanece `unknown`. D5-B2, D5-B3 e D5-B4 não foram iniciadas.
 - **Produção:** projeto `bhgifjrfagkzubpyqpew` não acessado
 - **Contrato aceito:** coluna nullable `document_decisions.command_id`, índice único parcial `document_decisions_command_id_uidx` e RPC canônica `registrar_decisao_documento(...)`; validações estrutural, de autorização, idempotência, atomicidade e concorrência A/B/C aprovadas
-- **Runtime aceito:** somente documentos `_ravatex_source === 'supabase'` em `#/documentos/recebidos` usam módulos na ordem `documents-supabase-decisions → documents-supabase-reader → documents-decision-command → documentos-recebidos-decision-modal → documents-decision-controller → documentos-recebidos`; carregados estaticamente no index.html; sem import dinâmico; `restorePending(activeDecision)` preserva pending `uncertain` e retry reusa `commandId`. Legado `saveDocumentDecision`/`statusOverrides` permanece independente.
+- **Runtime aceito:** somente documentos `_ravatex_source === 'supabase'` em `#/documentos/recebidos` usam módulos na ordem `documents-supabase-decisions → documents-supabase-reader → documents-decision-command → documentos-recebidos-decision-modal → documents-decision-controller → documentos-recebidos`; carregados estaticamente no index.html; sem import dinâmico; `restorePending(activeDecision)` preserva pending `uncertain` e retry reusa `commandId`. O fluxo local `saveDocumentDecision`/`statusOverrides` exige provenance explícita `manual` ou `legacy`; source ausente ou inválido é `unknown` e não alcança esse fluxo.
 - **Validação D4-R1:** auditoria read-only confirmou módulos ausentes no V1; R1 carrega e reordena; `node --check` em 4 arquivos; 11 integration, 135 screen smoke, 58 queue UI, 68 controller, 41 modal, 96 lifecycle, 59 adapter, 46 reader, 23 migration contract, 48 queue read model = 585 pass/0 fail; `git diff --check` aprovado com aviso LF→CRLF não bloqueante; revisão independente OpenCode `opencode-go/deepseek-v4-flash` retornou `APPROVE` sem mutação.
 - **Push:** não executado
-- **Próxima decisão:** D5 e quaisquer mudanças remotas, de banco, linking, undo/revogação ou ampliação de UI permanecem sem autorização.
+- **Próxima decisão:** `G28-B5-D5-B2` não autorizada. D5-B3, D5-B4 e quaisquer mudanças remotas, de banco, linking, undo/revogação ou ampliação de UI permanecem sem autorização.
 
 ### Débitos relevantes
 

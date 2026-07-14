@@ -350,3 +350,20 @@ risco residual e próxima fase indicada no fechamento.
 - **Risco residual:** aviso LF→CRLF não bloqueante; nenhuma pendência técnica identificada.
 - **D5:** não iniciado e não autorizado. D5 e quaisquer mudanças remotas, de banco, linking, undo/revogação ou ampliação de UI requerem nova decisão arquitetural explícita.
 - **Próxima decisão indicada:** D5 — indeferido e não autorizado.
+
+---
+
+## 2026-07-14 — G28-B5-D5-A / G28-B5-D5-B1 — Explicit document source boundary
+
+- **G28-B5-D5-A:** diagnóstico read-only; defeito confirmado: source ausente era tratado implicitamente como legacy. Decisão: ausência de `_ravatex_source` não significa legacy.
+- **G28-B5-D5-B1:** implementação do boundary explícito; commit técnico `2bac73d0f386ca61a53548d304b98e076fbb06ef` — `G28-B5-D5-B1: enforce explicit document source boundary`.
+- **Manifesto técnico:**
+  - `js/screens/documentos-recebidos.js`
+  - `tests/documentos-recebidos-source-boundary.test.js`
+  - `tests/documentos-recebidos-decision-integration.test.js`
+  - `tests/documentos-recebidos.smoke.js`
+- **Classificação:** `supabase | legacy | unknown`.
+- **Boundary:** `unknown` fail-closed; Supabase preservado; `legacy`/`manual` explícito preservado; fallback G22 sem source tratado como `unknown`.
+- **Validação:** gates verdes; revisão independente `APPROVE`; telemetria partial e não bloqueante.
+- **Acessos remotos:** sem staging; sem produção; sem push.
+- **Próxima fase:** D5-B2, D5-B3 e D5-B4 não iniciadas.
