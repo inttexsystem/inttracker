@@ -27,6 +27,7 @@ const COMMON = path.join(ROOT, 'js', 'screens', 'common.js');
 const UI = path.join(ROOT, 'js', 'ui.js');
 const READER = path.join(ROOT, 'js', 'documents-supabase-reader.js');
 const COMMAND = path.join(ROOT, 'js', 'documents-decision-command.js');
+const VALIDATION_CMD = path.join(ROOT, 'js', 'documents-validation-command.js');
 const CONTROLLER = path.join(ROOT, 'js', 'documents-decision-controller.js');
 const DECISION_MODAL = path.join(ROOT, 'js', 'screens', 'documentos-recebidos-decision-modal.js');
 
@@ -42,6 +43,7 @@ const common = readOrFail(COMMON);
 const ui = readOrFail(UI);
 const readerSrc = readOrFail(READER);
 const commandSrc = readOrFail(COMMAND);
+const validationCmdSrc = readOrFail(VALIDATION_CMD);
 const controllerSrc = readOrFail(CONTROLLER);
 const decisionModalSrc = readOrFail(DECISION_MODAL);
 
@@ -140,7 +142,11 @@ function makeSandbox(received) {
     URLSearchParams,
     sessionStorage: sessionStorageMock,
     crypto: {
-      randomUUID: function () { return '11111111-1111-4111-8111-111111111111'; },
+      // Distinct ids per call (the atomic validation lifecycle mints two).
+      randomUUID: (function () {
+        var n = 0;
+        return function () { n++; return '1111' + String(n).padStart(4, '0') + '-1111-4111-8111-111111111111'; };
+      })(),
     },
   };
   sandbox.window = sandbox;
@@ -154,6 +160,7 @@ function makeSandbox(received) {
   vm.runInContext(loader, sandbox, { filename: 'js/documents-ingestor-loader.js' });
   vm.runInContext(readerSrc, sandbox, { filename: 'js/documents-supabase-reader.js' });
   vm.runInContext(commandSrc, sandbox, { filename: 'js/documents-decision-command.js' });
+  vm.runInContext(validationCmdSrc, sandbox, { filename: 'js/documents-validation-command.js' });
   vm.runInContext(controllerSrc, sandbox, { filename: 'js/documents-decision-controller.js' });
   vm.runInContext(decisionModalSrc, sandbox, { filename: 'js/screens/documentos-recebidos-decision-modal.js' });
   vm.runInContext(common, sandbox, { filename: 'js/screens/common.js' });
@@ -190,14 +197,16 @@ test('decisao nuvem: clique abre controller e modal para doc Supabase pending', 
 // Test 2: Accepted reaches adapter
 // ---------------------------------------------------------------------
 
-test('decisao nuvem: accepted chama registerDocumentDecisionInCloud e recarrega', async function () {
+test('decisao nuvem: accepted chama a acao atomica applyDocumentValidationInCloud e recarrega', async function () {
   var sb = makeSandbox([makeSupaDoc()]);
-  var adapterCalls = 0;
+  var atomicCalls = 0;
   var reloadCalls = 0;
   var setAppCalls = 0;
-  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () {
-    adapterCalls++;
-    return Promise.resolve({ ok: true, outcome: 'created' });
+  // Controller still needs the decision adapter (reject path).
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () { return Promise.resolve({ ok: true }); };
+  sb.window.RAVATEX_DOCUMENTS.applyDocumentValidationInCloud = function () {
+    atomicCalls++;
+    return Promise.resolve({ ok: true, outcome: 'applied' });
   };
   sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
     reloadCalls++;
@@ -214,7 +223,7 @@ test('decisao nuvem: accepted chama registerDocumentDecisionInCloud e recarrega'
   acceptRadio.checked = true;
   confirmBtn._listeners.click[0]();
   await flushAsync();
-  assert.equal(adapterCalls, 1, 'adapter chamado para accepted');
+  assert.equal(atomicCalls, 1, 'acao atomica chamada para accepted');
   assert.equal(reloadCalls, 1, 'reader recarregado');
   assert.ok(setAppCalls >= 1, 'rerender chamado');
 });
@@ -261,7 +270,8 @@ test('decisao nuvem: rejected com motivo chama registerDocumentDecisionInCloud e
 test('decisao nuvem: erro de transporte (network) NAO recarrega reader', async function () {
   var sb = makeSandbox([makeSupaDoc()]);
   var reloadCalls = 0;
-  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () {
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () { return Promise.resolve({ ok: true }); };
+  sb.window.RAVATEX_DOCUMENTS.applyDocumentValidationInCloud = function () {
     return Promise.resolve({ ok: false, error: 'network' });
   };
   sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
@@ -292,8 +302,9 @@ test('decisao nuvem: erro de transporte (network) NAO recarrega reader', async f
 test('decisao nuvem: stale NAO recarrega reader', async function () {
   var sb = makeSandbox([makeSupaDoc()]);
   var reloadCalls = 0;
-  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () {
-    return Promise.resolve({ ok: false, outcome: 'stale_active_decision', error: 'stale_active_decision' });
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () { return Promise.resolve({ ok: true }); };
+  sb.window.RAVATEX_DOCUMENTS.applyDocumentValidationInCloud = function () {
+    return Promise.resolve({ ok: false, outcome: 'decision_failed', decision: { ok: false, outcome: 'stale_active_decision' } });
   };
   sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
     reloadCalls++;
@@ -320,8 +331,9 @@ test('decisao nuvem: stale NAO recarrega reader', async function () {
 test('decisao nuvem: conflict NAO recarrega reader', async function () {
   var sb = makeSandbox([makeSupaDoc()]);
   var reloadCalls = 0;
-  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () {
-    return Promise.resolve({ ok: false, outcome: 'command_conflict', error: 'command_conflict' });
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () { return Promise.resolve({ ok: true }); };
+  sb.window.RAVATEX_DOCUMENTS.applyDocumentValidationInCloud = function () {
+    return Promise.resolve({ ok: false, outcome: 'link_failed', links: { ok: false, outcome: 'command_conflict' } });
   };
   sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
     reloadCalls++;
@@ -375,9 +387,10 @@ test('decisao nuvem: raw._ravatex_server_decision envia expectedActiveDecisionId
     _ravatex_server_decision: { id: decisionId, command_id: commandId },
   })]);
   var capturedEnvelope = null;
-  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function (envelope) {
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () { return Promise.resolve({ ok: true }); };
+  sb.window.RAVATEX_DOCUMENTS.applyDocumentValidationInCloud = function (envelope) {
     capturedEnvelope = envelope;
-    return Promise.resolve({ ok: true, outcome: 'created' });
+    return Promise.resolve({ ok: true, outcome: 'applied' });
   };
   sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
     return Promise.resolve({ ok: true });
@@ -406,15 +419,16 @@ test('decisao nuvem: raw._ravatex_server_decision envia expectedActiveDecisionId
 test('restorePending: chamado uma vez na criacao do singleton, sem register/retry', async function () {
   var sb = makeSandbox([makeSupaDoc()]);
   var reconcileCalls = 0;
-  var registerCalls = 0;
+  var atomicCalls = 0;
   var origReconcile = sb.window.RAVATEX_DOCUMENTS.documentDecisionCommand.reconcilePendingCommand;
   sb.window.RAVATEX_DOCUMENTS.documentDecisionCommand.reconcilePendingCommand = function (activeDecision, options) {
     reconcileCalls++;
     return origReconcile.call(this, activeDecision, options);
   };
-  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () {
-    registerCalls++;
-    return Promise.resolve({ ok: true });
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () { return Promise.resolve({ ok: true }); };
+  sb.window.RAVATEX_DOCUMENTS.applyDocumentValidationInCloud = function () {
+    atomicCalls++;
+    return Promise.resolve({ ok: true, outcome: 'applied' });
   };
   sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
     return Promise.resolve({ ok: true });
@@ -429,7 +443,7 @@ test('restorePending: chamado uma vez na criacao do singleton, sem register/retr
   await flushAsync();
 
   assert.equal(reconcileCalls, 1, 'reconcilePendingCommand chamado uma vez');
-  assert.equal(registerCalls, 0, 'register nao chamado pelo restorePending');
+  assert.equal(atomicCalls, 0, 'acao atomica nao chamada pelo restore');
 
   // Normal submit funciona apos restorePending (sem pending conflitante)
   var acceptRadio = findAll(sb.window.document.body, function (n) { return n.value === 'accepted'; })[0];
@@ -437,24 +451,24 @@ test('restorePending: chamado uma vez na criacao do singleton, sem register/retr
   acceptRadio.checked = true;
   confirmBtn._listeners.click[0]();
   await flushAsync();
-  assert.equal(registerCalls, 1, 'register chamado no submit normal apos restorePending');
+  assert.equal(atomicCalls, 1, 'acao atomica chamada no submit apos restore');
 });
 
 // ---------------------------------------------------------------------
-// Test 10: uncertain -> retry with same commandId -> success reloads
+// Test 10: atomic accept uncertain -> retry reuses the same command ids
 // ---------------------------------------------------------------------
 
-test('decisao nuvem: primeira confirma uncertain (sem reload), segunda retry com mesmo commandId, terceira recarrega', async function () {
+test('decisao nuvem: accept uncertain retria com os mesmos command ids ate o sucesso recarregar', async function () {
   var sb = makeSandbox([makeSupaDoc()]);
-  var adapterCalls = [];
+  var atomicCalls = [];
   var reloadCalls = 0;
   var attempt = 0;
-  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function (envelope) {
-    adapterCalls.push(envelope);
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () { return Promise.resolve({ ok: true }); };
+  sb.window.RAVATEX_DOCUMENTS.applyDocumentValidationInCloud = function (envelope) {
+    atomicCalls.push(envelope);
     attempt++;
-    if (attempt === 1) return Promise.resolve({ ok: false, error: 'network' });
-    if (attempt === 2) return Promise.resolve({ ok: false, error: 'network' });
-    return Promise.resolve({ ok: true, outcome: 'created' });
+    if (attempt <= 2) return Promise.resolve({ ok: false, error: 'network' });
+    return Promise.resolve({ ok: true, outcome: 'applied' });
   };
   sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
     reloadCalls++;
@@ -470,75 +484,59 @@ test('decisao nuvem: primeira confirma uncertain (sem reload), segunda retry com
   var confirmBtn = findAll(sb.window.document.body, function (n) { return n.id === 'r8x-dm-confirm'; })[0];
   acceptRadio.checked = true;
 
-  // 1a confirmacao: network -> uncertain, SEM reload, modal aberto
   confirmBtn._listeners.click[0]();
   await flushAsync();
-  assert.equal(adapterCalls.length, 1, 'primeira chamada ao adapter');
+  assert.equal(atomicCalls.length, 1, 'primeira chamada atomica');
   assert.equal(reloadCalls, 0, 'sem reload apos network');
   var overlay = findAll(sb.window.document.body, function (n) { return n._attrs && n._attrs['role'] === 'dialog'; })[0];
   assert.ok(overlay, 'modal permanece aberto apos uncertain');
 
-  // 2a confirmacao: network -> uncertain, retry() usado, MESMO commandId
   confirmBtn._listeners.click[0]();
   await flushAsync();
-  assert.equal(adapterCalls.length, 2, 'segunda chamada ao adapter');
+  assert.equal(atomicCalls.length, 2, 'segunda chamada atomica (retry)');
   assert.equal(reloadCalls, 0, 'sem reload apos segundo network');
-  assert.equal(adapterCalls[0].commandId, adapterCalls[1].commandId, 'retry reusa mesmo commandId');
-  overlay = findAll(sb.window.document.body, function (n) { return n._attrs && n._attrs['role'] === 'dialog'; })[0];
-  assert.ok(overlay, 'modal permanece aberto apos segundo uncertain');
+  assert.equal(atomicCalls[0].linkCommandId, atomicCalls[1].linkCommandId, 'retry reusa linkCommandId');
+  assert.equal(atomicCalls[0].decisionCommandId, atomicCalls[1].decisionCommandId, 'retry reusa decisionCommandId');
 
-  // 3a confirmacao: sucesso -> reload
   confirmBtn._listeners.click[0]();
   await flushAsync();
-  assert.equal(adapterCalls.length, 3, 'terceira chamada ao adapter');
-  assert.equal(adapterCalls[2].commandId, adapterCalls[0].commandId, 'terceiro tambem reusa mesmo commandId');
+  assert.equal(atomicCalls.length, 3, 'terceira chamada atomica');
+  assert.equal(atomicCalls[2].linkCommandId, atomicCalls[0].linkCommandId, 'terceiro reusa linkCommandId');
   assert.equal(reloadCalls, 1, 'recarrega apos sucesso');
 });
 
 // ---------------------------------------------------------------------
-// Test 11: pending uncertain survives initial render and retries its
-// persisted envelope rather than allowing open() to replace it.
+// Test 11: a persisted uncertain validation command is reused (same
+// command ids) rather than minting new ones on the next accept.
 // ---------------------------------------------------------------------
 
-test('decisao nuvem: pending uncertain restaurado na montagem reutiliza commandId no mesmo documento', async function () {
+test('decisao nuvem: validacao pendente uncertain reutiliza command ids no mesmo documento', async function () {
   var sb = makeSandbox([makeSupaDoc()]);
-  var reconcileCalls = 0;
-  var adapterCalls = [];
+  var atomicCalls = [];
   var reloadCalls = 0;
-  var commandId = '66666666-6666-4666-8666-666666666666';
-  var originalReconcile = sb.window.RAVATEX_DOCUMENTS.documentDecisionCommand.reconcilePendingCommand;
-  sb.window.RAVATEX_DOCUMENTS.documentDecisionCommand.reconcilePendingCommand = function (activeDecision, options) {
-    reconcileCalls++;
-    return originalReconcile.call(this, activeDecision, options);
-  };
-  sb.window.sessionStorage.setItem('RAVATEX_DOCUMENT_DECISION_PENDING_V1', JSON.stringify({
-    version: 1,
-    commandId: commandId,
-    documentId: SUPA_DOC_ID,
-    decision: 'accepted',
-    motivo: null,
-    expectedActiveDecisionId: null,
-    state: 'uncertain',
-    createdAt: Date.now() - 1000,
-    expiresAt: Date.now() + 86400000,
+  var linkId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  var decId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  sb.window.sessionStorage.setItem('RAVATEX_DOCUMENT_VALIDATION_PENDING_V1', JSON.stringify({
+    version: 1, linkCommandId: linkId, decisionCommandId: decId,
+    documentId: SUPA_DOC_ID, decision: 'accepted', motivo: null, pedidoId: null, opIds: [],
+    expectedActiveRevisionId: null, expectedActiveDecisionId: null,
+    state: 'uncertain', createdAt: Date.now() - 1000, expiresAt: Date.now() + 86400000,
   }));
-  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function (envelope) {
-    adapterCalls.push(envelope);
-    return Promise.resolve({ ok: true, outcome: 'created' });
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () { return Promise.resolve({ ok: true }); };
+  sb.window.RAVATEX_DOCUMENTS.applyDocumentValidationInCloud = function (envelope) {
+    atomicCalls.push(envelope);
+    return Promise.resolve({ ok: true, outcome: 'applied' });
   };
   sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
     reloadCalls++;
     return Promise.resolve({ ok: true });
   };
   sb.window.setApp = function () {};
-
   var container = new FakeNode('div');
   sb.container = container;
   var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   await flushAsync();
-  assert.equal(reconcileCalls, 1, 'reconcilia pending na montagem, antes do clique');
-  assert.equal(adapterCalls.length, 0, 'restore nao reenvia automaticamente');
-  assert.equal(reloadCalls, 0, 'uncertain restaurado nao recarrega reader');
+  assert.equal(atomicCalls.length, 0, 'restore nao reenvia automaticamente');
 
   findAll(result, findAction('aceitar-documento-nuvem'))[0]._listeners.click[0]();
   await flushAsync();
@@ -548,7 +546,8 @@ test('decisao nuvem: pending uncertain restaurado na montagem reutiliza commandI
   confirmBtn._listeners.click[0]();
   await flushAsync();
 
-  assert.equal(adapterCalls.length, 1, 'retry chama adapter uma vez');
-  assert.equal(adapterCalls[0].commandId, commandId, 'retry preserva commandId restaurado');
-  assert.equal(reloadCalls, 1, 'sucesso do retry recarrega reader uma vez');
+  assert.equal(atomicCalls.length, 1, 'acao atomica chamada uma vez');
+  assert.equal(atomicCalls[0].linkCommandId, linkId, 'reutiliza linkCommandId pendente');
+  assert.equal(atomicCalls[0].decisionCommandId, decId, 'reutiliza decisionCommandId pendente');
+  assert.equal(reloadCalls, 1, 'sucesso recarrega uma vez');
 });

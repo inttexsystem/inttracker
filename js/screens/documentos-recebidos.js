@@ -817,6 +817,120 @@
     return _cloudDecisionModal;
   }
 
+  // Linkable targets (pedidos + OPs) for the modal picker. Cached per render
+  // cycle; cleared after a successful write so the next open sees fresh data.
+  var _linkTargetsCache = null;
+
+  function ensureLinkTargets() {
+    if (_linkTargetsCache) return Promise.resolve(_linkTargetsCache);
+    var api = window.RAVATEX_DOCUMENTS;
+    if (!api || typeof api.loadLinkableTargets !== 'function') {
+      return Promise.resolve({ pedidos: [], ops: [] });
+    }
+    return api.loadLinkableTargets().then(function (r) {
+      if (r && r.ok) {
+        _linkTargetsCache = { pedidos: r.pedidos || [], ops: r.ops || [] };
+        return _linkTargetsCache;
+      }
+      return { pedidos: [], ops: [] };
+    }).catch(function () { return { pedidos: [], ops: [] }; });
+  }
+
+  function refreshCloudDocs() {
+    var api = window.RAVATEX_DOCUMENTS;
+    if (api && typeof api.loadReceivedDocumentsFromSupabase === 'function') {
+      api.loadReceivedDocumentsFromSupabase().then(function () { _linkTargetsCache = null; rerender(); });
+    } else {
+      _linkTargetsCache = null;
+      rerender();
+    }
+  }
+
+  function atomicValidationErrorMessage(result) {
+    var linkOutcome = result && result.links && result.links.outcome;
+    var decisionOutcome = result && result.decision && result.decision.outcome;
+    var code = (result && result.error) || linkOutcome || decisionOutcome || (result && result.outcome);
+    switch (code) {
+      case 'op_pedido_mismatch': return 'OP incompatível com o Pedido selecionado.';
+      case 'op_not_avulsa': return 'OP pertence a um Pedido. Selecione o Pedido correspondente.';
+      case 'pedido_not_linkable':
+      case 'op_not_linkable': return 'Pedido ou OP cancelado não pode ser vinculado.';
+      case 'pedido_not_found':
+      case 'op_not_found':
+      case 'candidate_not_found': return 'Registro não encontrado. Recarregue e tente novamente.';
+      case 'duplicate_op': return 'OP repetida na seleção.';
+      case 'active_revision_exists':
+      case 'stale_active_revision':
+      case 'stale_active_decision':
+      case 'active_decision_exists': return 'Os dados foram alterados. Recarregue e tente novamente.';
+      case 'command_conflict': return 'Comando divergente. Recarregue e tente novamente.';
+      case 'admin_required':
+      case 'auth_error': return 'Ação restrita a administradores.';
+      default: return 'Não foi possível validar e vincular.';
+    }
+  }
+
+  // Atomic "Validar e vincular" (accept + links) via the canonical composed
+  // RPC, with client idempotency (two command ids reused on retry).
+  function submitAtomicValidation(doc, draft, modal) {
+    var api = window.RAVATEX_DOCUMENTS;
+    if (!api || typeof api.applyDocumentValidationInCloud !== 'function' ||
+        typeof api.documentValidationCommand !== 'object') {
+      modal.setBusy(false);
+      modal.setError('Falha de comunicação.');
+      return;
+    }
+    var expectedDecisionId = (doc.raw && doc.raw._ravatex_server_decision && doc.raw._ravatex_server_decision.id) || null;
+    var prep = api.documentValidationCommand.prepareCommand({
+      documentId: doc.id,
+      decision: 'accepted',
+      motivo: null,
+      pedidoId: draft.pedidoId,
+      opIds: draft.opIds,
+      expectedActiveRevisionId: draft.expectedActiveRevisionId,
+      expectedActiveDecisionId: expectedDecisionId,
+    });
+    if (!prep.ok) {
+      modal.setBusy(false);
+      modal.setError(cloudDecisionErrorMessage(prep.error));
+      return;
+    }
+    var env = prep.envelope;
+    try { api.documentValidationCommand.markSubmitting(env.linkCommandId); } catch (_) {}
+
+    api.applyDocumentValidationInCloud({
+      documentId: env.documentId,
+      pedidoId: env.pedidoId,
+      opIds: env.opIds,
+      linkCommandId: env.linkCommandId,
+      expectedActiveRevisionId: env.expectedActiveRevisionId,
+      decision: 'accepted',
+      motivo: null,
+      decisionCommandId: env.decisionCommandId,
+      expectedActiveDecisionId: env.expectedActiveDecisionId,
+    }).then(function (result) {
+      if (result && result.ok && result.outcome === 'applied') {
+        try { api.documentValidationCommand.resolveCommand(env.linkCommandId); } catch (_) {}
+        modal.close();
+        refreshCloudDocs();
+        return;
+      }
+      if (result && (result.error === 'network' || result.error === 'supabase_unavailable')) {
+        try { api.documentValidationCommand.markUncertain(env.linkCommandId); } catch (_) {}
+        modal.setBusy(false);
+        modal.setOutcome('Falha de comunicação. Tente novamente.', 'warning');
+        return;
+      }
+      try { api.documentValidationCommand.resolveCommand(env.linkCommandId); } catch (_) {}
+      modal.setBusy(false);
+      modal.setError(atomicValidationErrorMessage(result));
+    }).catch(function () {
+      try { api.documentValidationCommand.markUncertain(env.linkCommandId); } catch (_) {}
+      modal.setBusy(false);
+      modal.setError('Falha de comunicação.');
+    });
+  }
+
   function handleCloudDecision(doc) {
     var controller = getCloudDecisionController();
     var modal = getCloudDecisionModal();
@@ -846,52 +960,75 @@
 
     var api = window.RAVATEX_DOCUMENTS;
     var docLabel = doc.filename_original || doc.id;
-    modal.open({ documentId: docLabel }, {
-      onConfirm: function (draft) {
-        modal.setBusy(true);
-        var ctrlState = controller.getState().state;
-        var submitPromise = ctrlState === 'uncertain' ? controller.retry() : controller.submit(draft);
-        submitPromise.then(function (result) {
-          var state = result.state;
-          if (state === 'succeeded') {
-            if (result.closeModal) {
+
+    var activeLink = null;
+    var lr = doc.raw && doc.raw._ravatex_link_revision;
+    if (lr && lr.state === 'available' && lr.revision_id) {
+      activeLink = {
+        revision_id: lr.revision_id,
+        pedido_id: lr.pedido_id || null,
+        op_ids: (lr.op_links || []).map(function (o) { return o.op_id; }),
+      };
+    }
+
+    ensureLinkTargets().then(function (targets) {
+      modal.open({
+        documentId: docLabel,
+        suggestion: (doc.raw && doc.raw.pedido_manual) || null,
+        tipoDocumento: (doc.raw && doc.raw.tipo_documento) || null,
+        activeLink: activeLink,
+        linkTargets: targets,
+      }, {
+        onConfirm: function (draft) {
+          modal.setBusy(true);
+
+          // Accept -> atomic "Validar e vincular" (links + decision).
+          if (draft.decision === 'accepted') {
+            submitAtomicValidation(doc, draft, modal);
+            return;
+          }
+
+          // Reject -> existing canonical decision path (unchanged, no links).
+          var ctrlState = controller.getState().state;
+          var submitPromise = ctrlState === 'uncertain'
+            ? controller.retry()
+            : controller.submit({ decision: draft.decision, motivo: draft.motivo });
+          submitPromise.then(function (result) {
+            var state = result.state;
+            if (state === 'succeeded') {
+              if (result.closeModal) modal.close();
+              refreshCloudDocs();
+              return;
+            }
+            if (state === 'stale' || state === 'conflict') {
               modal.close();
+              return;
             }
-            if (typeof api.loadReceivedDocumentsFromSupabase === 'function') {
-              api.loadReceivedDocumentsFromSupabase().then(function () { rerender(); });
-            } else {
-              rerender();
+            if (state === 'uncertain') {
+              modal.setBusy(false);
+              modal.setOutcome('Falha de comunicação.', 'warning');
+              return;
             }
-            return;
-          }
-          if (state === 'stale' || state === 'conflict') {
-            modal.close();
-            return;
-          }
-          if (state === 'uncertain') {
             modal.setBusy(false);
-            modal.setOutcome('Falha de comunicação.', 'warning');
+            modal.setError(cloudDecisionErrorMessage(result.error));
+          }).catch(function () {
+            modal.setBusy(false);
+            modal.setError('Falha de comunicação.');
+          });
+        },
+        onCancel: function () {
+          var st = controller.getState().state;
+          if (st === 'submitting' || st === 'uncertain') {
+            return { closeModal: false };
+          }
+          if (st === 'stale' || st === 'conflict') {
+            controller.acknowledge();
             return;
           }
-          modal.setBusy(false);
-          modal.setError(cloudDecisionErrorMessage(result.error));
-        }).catch(function () {
-          modal.setBusy(false);
-          modal.setError('Falha de comunicação.');
-        });
-      },
-      onCancel: function () {
-        var st = controller.getState().state;
-        if (st === 'submitting' || st === 'uncertain') {
-          return { closeModal: false };
-        }
-        if (st === 'stale' || st === 'conflict') {
-          controller.acknowledge();
+          controller.cancel();
           return;
-        }
-        controller.cancel();
-        return;
-      },
+        },
+      });
     });
   }
 

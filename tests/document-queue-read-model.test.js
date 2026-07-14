@@ -271,22 +271,49 @@ test('review: technical evidence does not affect review', function () {
 });
 
 // ============================================================================
-// 7. Pedido axis
+// 7. Pedido axis — confirmed derives ONLY from the active link revision
 // ============================================================================
 
-runTable('pedido: maps pedido state', [
-  [{ pedido_id: 'uuid-12345', pedido_manual: null }, { state: 'confirmed_pedido_reference', pedido_id: 'uuid-12345', pedido_manual: null }],
-  [{ pedido_id: 'uuid-12345', pedido_manual: 'PED-99-2026' }, { state: 'confirmed_pedido_reference', pedido_id: 'uuid-12345', pedido_manual: 'PED-99-2026' }],
-  [{ pedido_id: null, pedido_manual: 'PED-99-2026' }, { state: 'suggested_pedido', pedido_manual: 'PED-99-2026', pedido_id: null }],
-  [{ pedido_id: null, pedido_manual: null }, { state: 'no_confirmed_link', pedido_manual: null, pedido_id: null }],
+function withLink(overrides, link) {
+  var rec = makeRecord(overrides);
+  rec._ravatex_link_revision = link;
+  return rec;
+}
+
+runTable('pedido: confirmed derives from active link revision, not candidate.pedido_id', [
+  [withLink({ pedido_manual: null }, { state: 'available', pedido_id: 'uuid-12345', op_links: [] }),
+    { state: 'confirmed_pedido_reference', pedido_id: 'uuid-12345', pedido_manual: null }],
+  [withLink({ pedido_manual: 'PED-99-2026' }, { state: 'available', pedido_id: 'uuid-12345', op_links: [] }),
+    { state: 'confirmed_pedido_reference', pedido_id: 'uuid-12345', pedido_manual: 'PED-99-2026' }],
+  [makeRecord({ pedido_id: null, pedido_manual: 'PED-99-2026' }),
+    { state: 'suggested_pedido', pedido_manual: 'PED-99-2026', pedido_id: null }],
+  [makeRecord({ pedido_id: null, pedido_manual: null }),
+    { state: 'no_confirmed_link', pedido_manual: null, pedido_id: null }],
 ], function (row) {
-  var rec = makeRecord(row[0]);
-  var item = createItem(rec, baseCtx);
+  var item = createItem(row[0], baseCtx);
   assert.deepStrictEqual(item.pedido, row[1]);
 });
 
+test('pedido: candidate.pedido_id is IGNORED (never treated as confirmed)', function () {
+  var item = createItem(makeRecord({ pedido_id: 'uuid-should-be-ignored', pedido_manual: null }), baseCtx);
+  assert.equal(item.pedido.state, 'no_confirmed_link');
+  assert.equal(item.pedido.pedido_id, null);
+});
+
+test('pedido: suggestion stays distinct from confirmation', function () {
+  var item = createItem(withLink({ pedido_manual: 'PED-99-2026' }, { state: 'available', pedido_id: 'uuid-conf', op_links: [] }), baseCtx);
+  assert.equal(item.pedido.state, 'confirmed_pedido_reference');
+  assert.equal(item.pedido.pedido_id, 'uuid-conf');
+  assert.equal(item.pedido.pedido_manual, 'PED-99-2026');
+});
+
+test('pedido: link source unavailable is explicit, never silent no-links', function () {
+  var item = createItem(withLink({ pedido_manual: 'PED-99-2026' }, { state: 'unavailable' }), baseCtx);
+  assert.equal(item.pedido.state, 'unavailable');
+});
+
 test('pedido: does not fetch or validate pedido', function () {
-  var item = createItem(makeRecord({ pedido_id: 'uuid-12345' }), baseCtx);
+  var item = createItem(withLink({}, { state: 'available', pedido_id: 'uuid-12345', op_links: [] }), baseCtx);
   assert.equal(item.pedido.state, 'confirmed_pedido_reference');
   assert.equal(Object.prototype.hasOwnProperty.call(item.pedido, 'valid'), false);
   assert.equal(Object.prototype.hasOwnProperty.call(item.pedido, 'fetch'), false);
@@ -320,17 +347,68 @@ runTable('pedido: unavailable for non-canonical contexts', [
 });
 
 // ============================================================================
-// 8. OP and duplicate always unavailable
+// 8. OP axis — canonical projection from the active link revision
 // ============================================================================
 
-runTable('op/duplicate: always unavailable', [
-  ['supabase', ctx('supabase', 'available')],
-  ['legacy_fallback', ctx('legacy_fallback', 'not_applicable')],
-], function (row) {
-  var rec = makeRecord();
-  var item = createItem(rec, row[1]);
+test('op: unavailable in non-canonical context', function () {
+  var item = createItem(makeRecord(), ctx('legacy_fallback', 'not_applicable'));
   assert.deepStrictEqual(item.op, { state: 'unavailable' });
-  assert.deepStrictEqual(item.duplicate, { state: 'unavailable' });
+});
+
+test('op: unavailable when link source unavailable (never silent no-links)', function () {
+  var item = createItem(withLink({}, { state: 'unavailable' }), baseCtx);
+  assert.deepStrictEqual(item.op, { state: 'unavailable' });
+});
+
+test('op: no_confirmed_op when canonical and no OP children', function () {
+  var item = createItem(withLink({}, { state: 'available', pedido_id: null, op_links: [] }), baseCtx);
+  assert.deepStrictEqual(item.op, { state: 'no_confirmed_op', op_ids: [] });
+});
+
+test('op: no_confirmed_op when canonical and no link revision attached', function () {
+  var item = createItem(makeRecord(), baseCtx);
+  assert.deepStrictEqual(item.op, { state: 'no_confirmed_op', op_ids: [] });
+});
+
+test('op: confirmed_op projects the revision OP children (placeholder replaced)', function () {
+  var item = createItem(withLink({}, {
+    state: 'available', pedido_id: 'uuid-12345',
+    op_links: [{ op_id: 7, op_status: 'em_producao' }, { op_id: 3, op_status: 'aberta' }],
+  }), baseCtx);
+  assert.deepStrictEqual(item.op, { state: 'confirmed_op', op_ids: [7, 3] });
+});
+
+test('duplicate: always unavailable (not implemented in B6)', function () {
+  assert.deepStrictEqual(createItem(makeRecord(), baseCtx).duplicate, { state: 'unavailable' });
+  assert.deepStrictEqual(createItem(makeRecord(), ctx('legacy_fallback', 'not_applicable')).duplicate, { state: 'unavailable' });
+});
+
+// ============================================================================
+// 8b. Cancelled linked targets surface as warnings (never silent unlink)
+// ============================================================================
+
+test('alerts: linked cancelled Pedido surfaces a warning', function () {
+  var item = createItem(withLink({}, {
+    state: 'available', pedido_id: 'uuid-c', pedido_status: 'cancelado', op_links: [],
+  }), baseCtx);
+  assertAlert('linked pedido cancelled', item, 'linked_pedido_cancelled', 'warning');
+});
+
+test('alerts: linked cancelled OP surfaces a warning', function () {
+  var item = createItem(withLink({}, {
+    state: 'available', pedido_id: 'uuid-c', pedido_status: 'confirmado',
+    op_links: [{ op_id: 7, op_status: 'cancelada' }],
+  }), baseCtx);
+  assertAlert('linked op cancelled', item, 'linked_op_cancelled', 'warning');
+});
+
+test('alerts: no cancelled warnings when targets are healthy', function () {
+  var item = createItem(withLink({}, {
+    state: 'available', pedido_id: 'uuid-c', pedido_status: 'confirmado',
+    op_links: [{ op_id: 7, op_status: 'em_producao' }],
+  }), baseCtx);
+  assertNoAlert('healthy pedido', item, 'linked_pedido_cancelled');
+  assertNoAlert('healthy op', item, 'linked_op_cancelled');
 });
 
 // ============================================================================
@@ -474,7 +552,7 @@ test('filter_values: exposes all authorized axes', function () {
 });
 
 test('filter_values: reflects state changes', function () {
-  var itemConfirmed = createItem(makeRecord({ pedido_id: 'uuid', pedido_manual: null }), baseCtx);
+  var itemConfirmed = createItem(withLink({ pedido_manual: null }, { state: 'available', pedido_id: 'uuid', op_links: [] }), baseCtx);
   assert.equal(itemConfirmed.filter_values.pedido_state, 'confirmed_pedido_reference');
 
   var itemRemote = createItem(makeRecord({ _ravatex_technical_evidence: null }), ctx('supabase', 'unavailable'));

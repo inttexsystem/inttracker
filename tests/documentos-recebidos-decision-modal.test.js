@@ -748,8 +748,162 @@ describe('text safety', function () {
   });
 });
 
+describe('link section (G28-B6)', function () {
+  function defaultTargets() {
+    return {
+      pedidos: [
+        { id: 'ped-1', numero: 25, status: 'confirmado' },
+        { id: 'ped-2', numero: 26, status: 'produzindo' },
+      ],
+      ops: [
+        { id: 7, numero: 3, ano: 2026, tipo: 'latex', status: 'em_producao', pedido_id: 'ped-1' },
+        { id: 8, numero: 4, ano: 2026, tipo: 'tecelagem', status: 'aberta', pedido_id: 'ped-2' },
+        { id: 9, numero: 5, ano: 2026, tipo: 'latex', status: 'aberta', pedido_id: null },
+      ],
+    };
+  }
+  function openWithLinks(overrides) {
+    var rt = createModal();
+    var captured = { draft: null };
+    var model = Object.assign({
+      documentId: 'NF.xml', suggestion: 'PED-99-2026', tipoDocumento: 'nf',
+      activeLink: null, linkTargets: defaultTargets(),
+    }, overrides || {});
+    rt.modal.open(model, { onCancel: function () {}, onConfirm: function (d) { captured.draft = d; } });
+    return { modal: rt.modal, doc: rt.doc, captured: captured };
+  }
+  function checkboxes(doc) {
+    return doc.body._findAllByPred(function (n) { return n.tagName === 'INPUT' && n.type === 'checkbox'; });
+  }
+  function plain(v) { return JSON.parse(JSON.stringify(v)); }
+  function confirmBtn(doc) {
+    return doc.body.querySelector('#r8x-dm-confirm');
+  }
+
+  test('suggestion is shown separately and never auto-selected', function () {
+    var { modal, doc } = openWithLinks();
+    var sug = doc.body.querySelector('#r8x-dm-suggestion');
+    assert.match(sug.textContent, /PED-99-2026/);
+    var sel = doc.body.querySelector('#r8x-dm-pedido');
+    assert.equal(sel.value, '', 'pedido not auto-selected from suggestion');
+    modal.close();
+  });
+
+  test('pedido select offers Nenhum + one option per pedido', function () {
+    var { modal, doc } = openWithLinks();
+    var opts = doc.body._findAllByPred(function (n) { return n.tagName === 'OPTION'; });
+    assert.equal(opts.length, 3, 'Nenhum + 2 pedidos');
+    assert.equal(opts[0].value, '');
+    modal.close();
+  });
+
+  test('without a Pedido, only genuinely avulsa OPs are offered', function () {
+    var { modal, doc } = openWithLinks();
+    var boxes = checkboxes(doc);
+    assert.equal(boxes.length, 1, 'only the avulsa OP');
+    assert.equal(boxes[0].value, '9');
+    modal.close();
+  });
+
+  test('selecting a Pedido filters OPs to that Pedido only', function () {
+    var { modal, doc } = openWithLinks();
+    var sel = doc.body.querySelector('#r8x-dm-pedido');
+    sel.value = 'ped-1';
+    sel._listeners.change[0]();
+    var boxes = checkboxes(doc);
+    assert.equal(boxes.length, 1);
+    assert.equal(boxes[0].value, '7', 'only OP owned by ped-1');
+    modal.close();
+  });
+
+  test('accept confirm draft includes selected Pedido and OP ids', function () {
+    var { modal, doc, captured } = openWithLinks();
+    doc.body.querySelector('#r8x-dm-accept') || null;
+    var accept = doc.body._findAllByPred(function (n) { return n.type === 'radio' && n.value === 'accepted'; })[0];
+    var sel = doc.body.querySelector('#r8x-dm-pedido');
+    sel.value = 'ped-1';
+    sel._listeners.change[0]();
+    var box = checkboxes(doc)[0];
+    box.checked = true;
+    accept.checked = true;
+    confirmBtn(doc)._listeners.click[0]();
+    assert.ok(captured.draft);
+    assert.equal(captured.draft.decision, 'accepted');
+    assert.equal(captured.draft.pedidoId, 'ped-1');
+    assert.deepEqual(plain(captured.draft.opIds), [7]);
+    modal.close();
+  });
+
+  test('reject confirm draft carries no links', function () {
+    var { modal, doc, captured } = openWithLinks();
+    var reject = doc.body._findAllByPred(function (n) { return n.type === 'radio' && n.value === 'rejected'; })[0];
+    var motivo = doc.body.querySelector('#r8x-dm-motivo');
+    reject.checked = true;
+    motivo.value = 'documento ilegivel';
+    confirmBtn(doc)._listeners.click[0]();
+    assert.ok(captured.draft);
+    assert.equal(captured.draft.decision, 'rejected');
+    assert.equal(captured.draft.pedidoId, null);
+    assert.deepEqual(plain(captured.draft.opIds), []);
+    modal.close();
+  });
+
+  test('soft warning for NF/romaneio when accepting with no Pedido (non-blocking)', function () {
+    var { modal, doc, captured } = openWithLinks({ tipoDocumento: 'nf' });
+    var accept = doc.body._findAllByPred(function (n) { return n.type === 'radio' && n.value === 'accepted'; })[0];
+    accept.checked = true;
+    accept._listeners.change[0]();
+    var warn = doc.body.querySelector('#r8x-dm-link-warning');
+    assert.match(warn.textContent, /sem Pedido vinculado/i, 'warning shown');
+    // still non-blocking: confirm proceeds
+    confirmBtn(doc)._listeners.click[0]();
+    assert.ok(captured.draft, 'confirm not blocked by warning');
+    assert.equal(captured.draft.decision, 'accepted');
+    assert.equal(captured.draft.pedidoId, null);
+    modal.close();
+  });
+
+  test('no warning when a Pedido is selected', function () {
+    var { modal, doc } = openWithLinks({ tipoDocumento: 'nf' });
+    var accept = doc.body._findAllByPred(function (n) { return n.type === 'radio' && n.value === 'accepted'; })[0];
+    accept.checked = true;
+    accept._listeners.change[0]();
+    var sel = doc.body.querySelector('#r8x-dm-pedido');
+    sel.value = 'ped-1';
+    sel._listeners.change[0]();
+    var warn = doc.body.querySelector('#r8x-dm-link-warning');
+    assert.equal(warn.textContent, '');
+    modal.close();
+  });
+
+  test('expectedActiveRevisionId is carried from the active link', function () {
+    var { modal, doc, captured } = openWithLinks({ activeLink: { revision_id: 'rev-1', pedido_id: 'ped-1', op_ids: [7] } });
+    var accept = doc.body._findAllByPred(function (n) { return n.type === 'radio' && n.value === 'accepted'; })[0];
+    accept.checked = true;
+    confirmBtn(doc)._listeners.click[0]();
+    assert.equal(captured.draft.expectedActiveRevisionId, 'rev-1');
+    modal.close();
+  });
+
+  test('works with no link targets (backward compatible)', function () {
+    var rt = createModal();
+    var captured = null;
+    rt.modal.open({ documentId: 'DOC' }, { onCancel: function () {}, onConfirm: function (d) { captured = d; } });
+    var accept = rt.doc.body._findAllByPred(function (n) { return n.type === 'radio' && n.value === 'accepted'; })[0];
+    accept.checked = true;
+    rt.doc.body.querySelector('#r8x-dm-confirm')._listeners.click[0]();
+    assert.ok(captured);
+    assert.equal(captured.pedidoId, null);
+    assert.deepEqual(plain(captured.opIds), []);
+    rt.modal.close();
+  });
+});
+
 describe('static source assertions', function () {
-  test('no Supabase, storage, lifecycle references', function () {
+  // G28-B6: the modal now presents Pedido/OP link fields (data injected via
+  // model). It stays presentational — no Supabase, storage, rpc, UUID
+  // generation, command lifecycle, backend access, or B8 revocation UI.
+  test('modal stays presentational: no Supabase/storage/rpc/lifecycle/B8', function () {
     assert.doesNotMatch(src, /Supabase/i, 'no Supabase');
     assert.doesNotMatch(src, /storage/i, 'no storage');
     assert.doesNotMatch(src, /localStorage/, 'no localStorage');
@@ -757,9 +911,15 @@ describe('static source assertions', function () {
     assert.doesNotMatch(src, /\.rpc\s*\(/, 'no .rpc()');
     assert.doesNotMatch(src, /randomUUID/, 'no UUID generation');
     assert.doesNotMatch(src, /documentDecisionCommand/, 'no lifecycle');
-    assert.doesNotMatch(src, /fila/i, 'no fila');
-    assert.doesNotMatch(src, /Pedido/i, 'no Pedido');
-    assert.doesNotMatch(src, /\bOP\b/, 'no OP');
-    assert.doesNotMatch(src, /B8/i, 'no B8');
+    assert.doesNotMatch(src, /registrar_/, 'no direct RPC names');
+    assert.doesNotMatch(src, /B8/i, 'no B8 revocation UI');
+    assert.doesNotMatch(src, /\.innerHTML\s*=/, 'no innerHTML');
+  });
+
+  test('modal presents the canonical link fields (Pedido/OP)', function () {
+    assert.match(src, /-pedido'/, 'renders Pedido select');
+    assert.match(src, /-oplist'/, 'renders OP checklist');
+    assert.match(src, /-suggestion'/, 'renders Ingestor suggestion separately');
+    assert.match(src, /expectedActiveRevisionId/, 'carries optimistic concurrency token');
   });
 });

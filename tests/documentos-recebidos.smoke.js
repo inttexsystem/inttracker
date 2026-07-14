@@ -71,6 +71,10 @@ const READER = path.join(ROOT, 'js', 'documents-supabase-reader.js');
 const readerSrc = readOrFail(READER);
 const COMMAND = path.join(ROOT, 'js', 'documents-decision-command.js');
 const commandSrc = readOrFail(COMMAND);
+const VALIDATION_CMD = path.join(ROOT, 'js', 'documents-validation-command.js');
+const validationCmdSrc = readOrFail(VALIDATION_CMD);
+const LINKS = path.join(ROOT, 'js', 'documents-supabase-links.js');
+const linksSrc = readOrFail(LINKS);
 const CONTROLLER = path.join(ROOT, 'js', 'documents-decision-controller.js');
 const controllerSrc = readOrFail(CONTROLLER);
 const DECISION_MODAL = path.join(ROOT, 'js', 'screens', 'documentos-recebidos-decision-modal.js');
@@ -367,7 +371,11 @@ function makeScreenSandbox(received) {
     URLSearchParams,
     sessionStorage: sessionStorageMock,
     crypto: {
-      randomUUID: function () { return '11111111-1111-4111-8111-111111111111'; },
+      // Distinct ids per call (the atomic validation lifecycle mints two).
+      randomUUID: (function () {
+        var n = 0;
+        return function () { n++; return '1111' + String(n).padStart(4, '0') + '-1111-4111-8111-111111111111'; };
+      })(),
     },
   };
   sandbox.window = sandbox;
@@ -388,6 +396,8 @@ function makeScreenSandbox(received) {
   vm.runInContext(importReceivedSrc, sandbox, { filename: 'js/documents-ingestor-import-received.js' });
   // Carrega command lifecycle, controller e modal (G28-D-B cloud decision)
   vm.runInContext(commandSrc, sandbox, { filename: 'js/documents-decision-command.js' });
+  // Carrega o lifecycle atomico de validacao+vinculos (G28-B6)
+  vm.runInContext(validationCmdSrc, sandbox, { filename: 'js/documents-validation-command.js' });
   vm.runInContext(controllerSrc, sandbox, { filename: 'js/documents-decision-controller.js' });
   vm.runInContext(decisionModalSrc, sandbox, { filename: 'js/screens/documentos-recebidos-decision-modal.js' });
   // Carrega common (shellLayout + ADMIN_MENU)
@@ -1525,14 +1535,17 @@ test('G23-D-B: documento Supabase pending mostra botoes de decisao em nuvem', fu
   assert.equal(allText.indexOf('Divergente'), -1, 'sem chip Divergente');
 });
 
-test('G23-D-B: aceitar nuvem abre modal, confirmar chama adapter e recarrega reader', async function () {
+test('G23-D-B/G28-B6: aceitar nuvem abre modal, confirmar chama acao atomica e recarrega reader', async function () {
   var sb = makeScreenSandbox([makeSupaDoc()]);
-  var adapterCalls = [];
+  var atomicCalls = [];
   var reloadCalls = 0;
   var setAppCalls = 0;
-  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function (envelope) {
-    adapterCalls.push(envelope);
-    return Promise.resolve({ ok: true, outcome: 'created' });
+  // Controller still requires the decision adapter (reject path).
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () { return Promise.resolve({ ok: true, outcome: 'created' }); };
+  // Accept now routes through the atomic "Validar e vincular" action.
+  sb.window.RAVATEX_DOCUMENTS.applyDocumentValidationInCloud = function (envelope) {
+    atomicCalls.push(envelope);
+    return Promise.resolve({ ok: true, outcome: 'applied' });
   };
   sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
     reloadCalls++;
@@ -1553,10 +1566,11 @@ test('G23-D-B: aceitar nuvem abre modal, confirmar chama adapter e recarrega rea
   acceptRadio.checked = true;
   confirmBtn._listeners.click[0]();
   await flushAsync();
-  assert.equal(adapterCalls.length, 1, 'adapter chamado');
-  assert.equal(adapterCalls[0].documentId, SUPA_DOC_ID, 'documentId correto');
-  assert.equal(adapterCalls[0].decision, 'accepted', 'decision accepted');
-  assert.equal(adapterCalls[0].motivo, null, 'motivo null');
+  assert.equal(atomicCalls.length, 1, 'acao atomica chamada');
+  assert.equal(atomicCalls[0].documentId, SUPA_DOC_ID, 'documentId correto');
+  assert.equal(atomicCalls[0].decision, 'accepted', 'decision accepted');
+  assert.equal(atomicCalls[0].motivo, null, 'motivo null');
+  assert.notEqual(atomicCalls[0].linkCommandId, atomicCalls[0].decisionCommandId, 'command ids distintos');
   assert.equal(reloadCalls, 1, 'reader recarregado apos sucesso');
   assert.ok(setAppCalls >= 1, 'rerender chamado');
 });
@@ -1658,12 +1672,13 @@ test('G23-D-B: erro admin_required mostra erro no modal e NAO recarrega reader',
   assert.equal(reloadCalls, 0, 'nao recarrega reader');
 });
 
-test('G23-D-B: doc Supabase usa adapter, NAO saveDocumentDecision/removeDocumentDecision', async function () {
+test('G23-D-B/G28-B6: doc Supabase usa acao atomica, NAO saveDocumentDecision/removeDocumentDecision', async function () {
   var sb = makeScreenSandbox([makeSupaDoc()]);
-  var adapterCalls = 0;
+  var atomicCalls = 0;
   var saveCalls = 0;
   var removeCalls = 0;
-  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () { adapterCalls++; return Promise.resolve({ ok: true, outcome: 'created' }); };
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () { return Promise.resolve({ ok: true, outcome: 'created' }); };
+  sb.window.RAVATEX_DOCUMENTS.applyDocumentValidationInCloud = function () { atomicCalls++; return Promise.resolve({ ok: true, outcome: 'applied' }); };
   sb.window.RAVATEX_DOCUMENTS.saveDocumentDecision = function () { saveCalls++; return { ok: true }; };
   sb.window.RAVATEX_DOCUMENTS.removeDocumentDecision = function () { removeCalls++; return { ok: true }; };
   sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () { return Promise.resolve({ ok: true }); };
@@ -1678,7 +1693,7 @@ test('G23-D-B: doc Supabase usa adapter, NAO saveDocumentDecision/removeDocument
   acceptRadio.checked = true;
   confirmBtn._listeners.click[0]();
   await flushAsync();
-  assert.equal(adapterCalls, 1, 'adapter chamado para doc Supabase');
+  assert.equal(atomicCalls, 1, 'acao atomica chamada para doc Supabase');
   assert.equal(saveCalls, 0, 'nao grava decisao local');
   assert.equal(removeCalls, 0, 'nao remove decisao local');
 });
@@ -2369,7 +2384,7 @@ test('G28-B4-B3: indicadores sao spans nao botoes', function () {
     { document_id: 'rv-acc', filename_original: 'rv-acc.pdf', _ravatex_source: 'supabase', status: 'accepted' },
     { document_id: 'rv-rej', filename_original: 'rv-rej.pdf', _ravatex_source: 'supabase', status: 'rejected' },
     { document_id: 'rv-unk', filename_original: 'rv-unk.pdf', _ravatex_source: 'supabase', _ravatex_server_decision: { status: 'weird' } },
-    { document_id: 'ped-conf', filename_original: 'ped-conf.pdf', _ravatex_source: 'supabase', status: 'pending', pedido_id: 'PED-42-2026' },
+    { document_id: 'ped-conf', filename_original: 'ped-conf.pdf', _ravatex_source: 'supabase', status: 'pending', _ravatex_link_revision: { state: 'available', revision_id: 'rev-conf', pedido_id: 'PED-42-2026', op_links: [] } },
     { document_id: 'ped-sug', filename_original: 'ped-sug.pdf', _ravatex_source: 'supabase', status: 'pending', pedido_manual: 'PED-99-2026', pedido_id: null },
     { document_id: 'src-unk', filename_original: 'src-unk.pdf', _ravatex_source: 'bogus' },
   ];

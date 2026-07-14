@@ -29,6 +29,15 @@ var PEDIDO_STATE = {
   UNAVAILABLE: 'unavailable',
 };
 
+// OP link projection. Derived only from the active canonical link revision
+// (document_link_revision_ops), never inferred. Replaces the former
+// hard-coded unavailable placeholder.
+var OP_STATE = {
+  CONFIRMED_OP: 'confirmed_op',
+  NO_CONFIRMED_OP: 'no_confirmed_op',
+  UNAVAILABLE: 'unavailable',
+};
+
 var VALIDATION_INDICATION = {
   REVIEW_AVAILABLE: 'review_available',
   REVIEW_PENDING: 'review_pending',
@@ -43,6 +52,8 @@ var ALERT_CODE = {
   LEGACY_FALLBACK: 'legacy_fallback',
   SUGGESTED_PEDIDO: 'suggested_pedido',
   UNSUPPORTED_SOURCE_FILE: 'unsupported_source_file',
+  LINKED_PEDIDO_CANCELLED: 'linked_pedido_cancelled',
+  LINKED_OP_CANCELLED: 'linked_op_cancelled',
 };
 
 var ALERT_SEVERITY = {
@@ -141,24 +152,37 @@ function computeEvidence(documentRecord, collectionSource, remoteAvailability) {
   return { state: EVIDENCE_STATE.MISSING };
 }
 
+// Confirmed Pedido is derived ONLY from the active canonical link revision
+// (documentRecord._ravatex_link_revision, attached by the reader).
+// document_candidates.pedido_id is NOT read here and is never treated as
+// confirmed. pedido_manual remains visibly a suggestion.
 function computePedido(documentRecord, collectionSource, remoteAvailability) {
+  var pedidoManual = asString(documentRecord.pedido_manual);
   var isCanonicalAvailable = collectionSource === 'supabase' && remoteAvailability === 'available';
 
   if (!isCanonicalAvailable) {
     return {
       state: PEDIDO_STATE.UNAVAILABLE,
-      pedido_manual: asString(documentRecord.pedido_manual) || null,
-      pedido_id: asString(documentRecord.pedido_id) || null,
+      pedido_manual: pedidoManual || null,
+      pedido_id: null,
     };
   }
 
-  var pedidoId = asString(documentRecord.pedido_id);
-  var pedidoManual = asString(documentRecord.pedido_manual);
+  var link = documentRecord._ravatex_link_revision;
+  if (link && typeof link === 'object' && link.state === 'unavailable') {
+    // Link source explicitly unavailable — never silently treated as "no links".
+    return {
+      state: PEDIDO_STATE.UNAVAILABLE,
+      pedido_manual: pedidoManual || null,
+      pedido_id: null,
+    };
+  }
 
-  if (pedidoId) {
+  var confirmedPedidoId = (link && typeof link === 'object') ? asString(link.pedido_id) : null;
+  if (confirmedPedidoId) {
     return {
       state: PEDIDO_STATE.CONFIRMED_PEDIDO_REFERENCE,
-      pedido_id: pedidoId,
+      pedido_id: confirmedPedidoId,
       pedido_manual: pedidoManual || null,
     };
   }
@@ -178,8 +202,33 @@ function computePedido(documentRecord, collectionSource, remoteAvailability) {
   };
 }
 
-function computeOP() {
-  return { state: 'unavailable' };
+// Confirmed OPs are derived ONLY from the active canonical link revision's
+// typed OP children. Explicit unavailable when the link source is unavailable
+// or the context is non-canonical.
+function computeOP(documentRecord, collectionSource, remoteAvailability) {
+  var isCanonicalAvailable = collectionSource === 'supabase' && remoteAvailability === 'available';
+  if (!isCanonicalAvailable) {
+    return { state: OP_STATE.UNAVAILABLE };
+  }
+
+  var link = documentRecord._ravatex_link_revision;
+  if (link && typeof link === 'object' && link.state === 'unavailable') {
+    return { state: OP_STATE.UNAVAILABLE };
+  }
+
+  var opLinks = (link && typeof link === 'object' && Array.isArray(link.op_links)) ? link.op_links : [];
+  var opIds = [];
+  for (var i = 0; i < opLinks.length; i++) {
+    var opLink = opLinks[i];
+    if (opLink && (typeof opLink.op_id === 'number' || typeof opLink.op_id === 'string')) {
+      opIds.push(opLink.op_id);
+    }
+  }
+
+  if (opIds.length === 0) {
+    return { state: OP_STATE.NO_CONFIRMED_OP, op_ids: [] };
+  }
+  return { state: OP_STATE.CONFIRMED_OP, op_ids: opIds };
 }
 
 function computeDuplicate() {
@@ -204,7 +253,7 @@ function computeSourceFileCapability(documentRecord) {
   return { state: SOURCE_CAPABILITY.MISSING };
 }
 
-function computeAlerts(documentRecord, collectionSource, evidenceState, sourceCapability, pedidoState) {
+function computeAlerts(documentRecord, collectionSource, evidenceState, sourceCapability, pedidoState, linkRevision) {
   var alerts = [];
 
   if (evidenceState === EVIDENCE_STATE.INVALID) {
@@ -234,6 +283,21 @@ function computeAlerts(documentRecord, collectionSource, evidenceState, sourceCa
 
   if (sourceCapability === SOURCE_CAPABILITY.UNSUPPORTED || sourceCapability === SOURCE_CAPABILITY.MISSING) {
     alerts.push({ code: ALERT_CODE.UNSUPPORTED_SOURCE_FILE, severity: ALERT_SEVERITY.INFO });
+  }
+
+  // Cancelled/inactive linked targets are surfaced as warnings (never silently
+  // unlinked). Only when the canonical link revision is available.
+  if (linkRevision && typeof linkRevision === 'object' && linkRevision.state === 'available') {
+    if (asString(linkRevision.pedido_status) === 'cancelado') {
+      alerts.push({ code: ALERT_CODE.LINKED_PEDIDO_CANCELLED, severity: ALERT_SEVERITY.WARNING });
+    }
+    var opLinks = Array.isArray(linkRevision.op_links) ? linkRevision.op_links : [];
+    for (var oi = 0; oi < opLinks.length; oi++) {
+      if (opLinks[oi] && opLinks[oi].op_status === 'cancelada') {
+        alerts.push({ code: ALERT_CODE.LINKED_OP_CANCELLED, severity: ALERT_SEVERITY.WARNING });
+        break;
+      }
+    }
   }
 
   return alerts;
@@ -327,10 +391,13 @@ function createDocumentQueueItem(documentRecord, context) {
   var review = computeReview(documentRecord, collectionSource);
   var evidence = computeEvidence(documentRecord, collectionSource, remoteAvailability);
   var pedido = computePedido(documentRecord, collectionSource, remoteAvailability);
-  var op = computeOP();
+  var op = computeOP(documentRecord, collectionSource, remoteAvailability);
   var duplicate = computeDuplicate();
   var sourceFile = computeSourceFileCapability(documentRecord);
-  var alerts = computeAlerts(documentRecord, collectionSource, evidence.state, sourceFile.state, pedido.state);
+  var alerts = computeAlerts(
+    documentRecord, collectionSource, evidence.state, sourceFile.state, pedido.state,
+    documentRecord._ravatex_link_revision
+  );
   var validation = computeValidationIndication(collectionSource, remoteAvailability, review.state);
   var display = computeDisplay(documentRecord);
   var filterValues = computeFilterValues(
@@ -366,6 +433,7 @@ var constants = {
   REVIEW_STATE: REVIEW_STATE,
   SOURCE_CAPABILITY: SOURCE_CAPABILITY,
   PEDIDO_STATE: PEDIDO_STATE,
+  OP_STATE: OP_STATE,
   VALIDATION_INDICATION: VALIDATION_INDICATION,
   ALERT_CODE: ALERT_CODE,
   ALERT_SEVERITY: ALERT_SEVERITY,

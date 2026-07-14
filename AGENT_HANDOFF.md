@@ -1,12 +1,11 @@
 # HANDOFF OPERACIONAL ATIVO
 
-- **Frente ativa:** `G28-B5-D5 — CLOSED / ACCEPTED`.
+- **Frente ativa:** `G28-B6 — canonical document links — IMPLEMENTED LOCALLY / STAGING VERIFICATION BLOCKED / READY FOR IASUP ACCEPTANCE`.
 - **Workspace:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
 - **Branch:** `work/g28-document-qualification`
-- **Git baseline desta reconciliação:** `7d3e0261b668a46a80208198352039dc1f352010` (G28-PLAN-R1, 2026-07-14)
-- **Último bloco técnico aceito:** `G28-B5-D5 — CLOSED / ACCEPTED`
-- **Estado:** `G28-B5-D5 — CLOSED / ACCEPTED`. D5 regression GREEN. Semantic checks (3) exit 0. Focused tests: 584 pass / 0 fail across 13 files.
-- **Próxima ação autorizável:** **nenhuma.** Qualquer implementação futura (B6, B7, B8 ou outra) exige autorização arquitetural explícita e separada.
+- **Último bloco técnico aceito:** `G28-B5-D5 — CLOSED / ACCEPTED` (G28-B6 ainda NÃO aceito).
+- **Estado:** G28-B6 implementado localmente sobre o contrato aprovado (Documento→Pedido 0..1, Documento→OP 0..N). `db/51_document_canonical_links.sql` (2 tabelas + `registrar_vinculos_documento` + `registrar_decisao_e_vinculos_documento`) versionada e **NÃO aplicada** — não há tool de Supabase/staging neste ambiente. Runtime: adaptadores `documents-supabase-links.js`, lifecycle `documents-validation-command.js`, reader/read-model canônicos e modal "Validar e vincular". Testes focados 654/654; `git diff --check` limpo (LF→CRLF não bloqueante). Dívida pré-existente inalterada (ingestor 2, g14-c-bridge 15).
+- **Próxima ação autorizável:** aplicar+verificar `db/51` em staging `ucrjtfswnfdlxwtmxnoo` (imprimir e provar o ref antes de qualquer write; produção proibida), então aceite arquitetural de G28-B6. G28-B7 permanece não autorizado. Sem push.
 - **Nunca inferir próxima fase pela numeração do plano.** O plano mestre foi reconciliado (G28-PLAN-R1 2026-07-14). Reconciliar o plano mestre antes de emitir qualquer ordem futura.
 - **Leitura obrigatória antes de rotear qualquer ordem:**
   1. `PROJECT_STATE.md`

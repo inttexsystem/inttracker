@@ -23,6 +23,8 @@
   ].join(', ');
   var DECISION_FIELDS = 'id, document_id, status, motivo, decidido_em, source, command_id';
   var EVIDENCE_FIELDS = 'document_id, evidence_version, technical_evidence, origin, created_at';
+  var LINK_REVISION_FIELDS = 'id, document_id, pedido_id, version';
+  var LINK_OP_FIELDS = 'revision_id, op_id';
 
   function asString(value) {
     return typeof value === 'string' ? value : null;
@@ -138,6 +140,97 @@
     });
   }
 
+  // Read-only status enrichment for linked targets, so cancelled/inactive
+  // targets can be surfaced as warnings by the read model. Failure degrades
+  // to empty statuses; it never removes the revision.
+  function loadTargetStatuses(pedidoIds, opIds) {
+    var pedidoQuery = pedidoIds.length
+      ? window.supa.from('pedidos').select('id, status').in('id', pedidoIds)
+      : Promise.resolve({ data: [] });
+    var opQuery = opIds.length
+      ? window.supa.from('ops').select('id, status').in('id', opIds)
+      : Promise.resolve({ data: [] });
+    return Promise.all([pedidoQuery, opQuery])
+      .then(function (res) {
+        var pedidoStatus = {};
+        var opStatus = {};
+        (((res[0] || {}).data) || []).forEach(function (p) { if (p && p.id != null) pedidoStatus[p.id] = p.status; });
+        (((res[1] || {}).data) || []).forEach(function (o) { if (o && o.id != null) opStatus[o.id] = o.status; });
+        return { pedidoStatus: pedidoStatus, opStatus: opStatus };
+      })
+      .catch(function () { return { pedidoStatus: {}, opStatus: {} }; });
+  }
+
+  // Loads the active canonical link revision (+ typed OP children) for the
+  // given candidate documents. On query failure returns { unavailable: true }
+  // so the read model surfaces an explicit unavailable state — never a silent
+  // "no links".
+  function loadActiveLinkRevisions(documentIds) {
+    return Promise.resolve()
+      .then(function () {
+        return window.supa.from('document_link_revisions')
+          .select(LINK_REVISION_FIELDS)
+          .in('document_id', documentIds)
+          .eq('active', true);
+      })
+      .then(function (revRes) {
+        if (revRes && revRes.error) return { unavailable: true };
+        var revs = (revRes && revRes.data) || [];
+        if (revs.length === 0) return { byDoc: {} };
+        var revisionIds = revs.map(function (r) { return r.id; });
+        return window.supa.from('document_link_revision_ops')
+          .select(LINK_OP_FIELDS)
+          .in('revision_id', revisionIds)
+          .then(function (opRes) {
+            if (opRes && opRes.error) return { unavailable: true };
+            var opRows = (opRes && opRes.data) || [];
+            var pedidoIds = [];
+            var opIds = [];
+            revs.forEach(function (r) { if (r.pedido_id) pedidoIds.push(r.pedido_id); });
+            opRows.forEach(function (o) { opIds.push(o.op_id); });
+            return loadTargetStatuses(pedidoIds, opIds).then(function (status) {
+              var opsByRevision = {};
+              opRows.forEach(function (o) {
+                if (!opsByRevision[o.revision_id]) opsByRevision[o.revision_id] = [];
+                opsByRevision[o.revision_id].push({ op_id: o.op_id, op_status: status.opStatus[o.op_id] || null });
+              });
+              var byDoc = {};
+              revs.forEach(function (r) {
+                byDoc[r.document_id] = {
+                  state: 'available',
+                  revision_id: r.id,
+                  version: r.version,
+                  pedido_id: r.pedido_id || null,
+                  pedido_status: r.pedido_id ? (status.pedidoStatus[r.pedido_id] || null) : null,
+                  op_links: opsByRevision[r.id] || [],
+                };
+              });
+              return { byDoc: byDoc };
+            });
+          });
+      })
+      .catch(function () { return { unavailable: true }; });
+  }
+
+  function attachLinkRevisions(documents, linkData) {
+    var unavailable = !!(linkData && linkData.unavailable);
+    var byDoc = (linkData && linkData.byDoc) || {};
+    documents.forEach(function (doc) {
+      if (unavailable) {
+        doc._ravatex_link_revision = { state: 'unavailable' };
+        return;
+      }
+      doc._ravatex_link_revision = byDoc[doc.document_id] || {
+        state: 'available',
+        revision_id: null,
+        version: null,
+        pedido_id: null,
+        pedido_status: null,
+        op_links: [],
+      };
+    });
+  }
+
   function mapCandidate(candidate, decisionsByDocumentId) {
     var decision = candidate && decisionsByDocumentId[candidate.document_id];
     var status = decision && (decision.status === 'accepted' || decision.status === 'rejected')
@@ -249,19 +342,23 @@
           return { ok: false, source: 'supabase', error: String(err) };
         }
 
-        return evidenceQuery.then(function (evidenceResult) {
-          if (evidenceResult && evidenceResult.error) {
-            return { ok: false, source: 'supabase', error: String(evidenceResult.error) };
-          }
+        return Promise.all([evidenceQuery, loadActiveLinkRevisions(candidateDocIds)])
+          .then(function (results) {
+            var evidenceResult = results[0];
+            var linkData = results[1];
+            if (evidenceResult && evidenceResult.error) {
+              return { ok: false, source: 'supabase', error: String(evidenceResult.error) };
+            }
 
-          attachTechnicalEvidences(documents, evidenceResult && evidenceResult.data);
+            attachTechnicalEvidences(documents, evidenceResult && evidenceResult.data);
+            attachLinkRevisions(documents, linkData);
 
-          var setResult = ns.setReceivedDocuments(documents, { source: 'supabase' });
-          if (!setResult || !setResult.ok) {
-            return { ok: false, source: 'supabase', error: setResult && setResult.error || 'received_set_failed' };
-          }
-          return { ok: true, source: 'supabase', count: setResult.count, documents: window.RAVATEX_DOCUMENTS_RECEIVED };
-        });
+            var setResult = ns.setReceivedDocuments(documents, { source: 'supabase' });
+            if (!setResult || !setResult.ok) {
+              return { ok: false, source: 'supabase', error: setResult && setResult.error || 'received_set_failed' };
+            }
+            return { ok: true, source: 'supabase', count: setResult.count, documents: window.RAVATEX_DOCUMENTS_RECEIVED };
+          });
       })
       .catch(function (err) {
         return { ok: false, source: 'supabase', error: String(err) };

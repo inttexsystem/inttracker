@@ -746,7 +746,11 @@ test('evidence: linha com versao invalida nao contamina candidato com versao val
 // 20. No second client or production reference
 test('evidence: nao cria segundo cliente Supabase nem referencia producao', function () {
   var supabaseFromCount = (READER.match(/window\.supa\.from/g) || []).length;
-  assert.equal(supabaseFromCount, 4, 'reader usa apenas window.supa.from (availability guard + candidates + decisions + evidence)');
+  // availability guard + candidates + decisions + evidence + link revisions +
+  // link revision ops + pedidos status + ops status = 8 read-only reads.
+  assert.equal(supabaseFromCount, 8, 'reader usa apenas window.supa.from (leituras canonicas incluindo revisao de vinculo)');
   assert.equal(/createClient/.test(READER), false);
   assert.equal(/production/.test(READER) || /PRODUCTION/.test(READER), false);
+  // reader remains read-only: no rpc, no writes.
+  assert.equal(/\.rpc\(/.test(READER), false, 'reader nao chama rpc');
 });
