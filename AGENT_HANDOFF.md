@@ -1,35 +1,23 @@
 # HANDOFF OPERACIONAL ATIVO
 
-- **Frente ativa:** G28 — G28-B4 closed and accepted; próxima fase B5 — human validation contract and modal
+- **Frente ativa:** G28 — G28-B5 closed and accepted no banco de staging; integração runtime pendente
 - **Workspace:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
 - **Branch:** `work/g28-document-qualification`
-- **Fase aceita mais recente:** `G28-B4 — DOCUMENT QUEUE` — `CLOSED / ACCEPTED`
-- **Commit técnico aceito:** `f007ab3c733d584e9da57c8436294d9b42ea9652` — `Consolidate document queue file access`
-- **Cadeia B4 aceita:**
-  - `50f543ff8c6917599cf35768e9e84531532bf177` — Add pure document queue read model
-  - `d0f0424924b57b3754fe87a0be0336292f5c2b74` — Bind received documents queue filters
-  - `948213885506fdb6e41cfe10451af21e006ce441` — Distinguish missing Pedido link availability
-  - `2958e6451b49986ac1af414e62cd31df698dcaa5` — Show document queue state indicators
-  - `f007ab3c733d584e9da57c8436294d9b42ea9652` — Consolidate document queue file access
-- **Contratos estáveis:** queue read model puro, sem Supabase/DOM/network/write; binding/filtros aceitos; indicadores; drive action gate; sem action/modal/write/RPC/backend/Gmail/filesystem
-- **Validação:** model 48, queue UI 58, decisions 20, reader 39, screen smoke 133, import received 36, import UI 40, router 43; 3 node checks; diff check limpo (apenas avisos pré-existentes LF→CRLF)
-- **Baseline Git pré-closeout:** `f007ab3c733d584e9da57c8436294d9b42ea9652`; worktree/staging limpos; zero untracked
-- **Produção:** não acessada
+- **Fase aceita mais recente:** `G28-B5 — HUMAN DECISION COMMAND CONTRACT` — `CLOSED / ACCEPTED`
+- **G28-B5-B1:** `CLOSED / ACCEPTED`; commit técnico `b247e43504c0afcc0d25e95f8012f93a09eb0692` — `Add idempotent document decision command contract`
+- **G28-B5-B2:** `CLOSED / ACCEPTED`; migration `20260714012641 document_decision_command` aplicada e verificada no staging `ucrjtfswnfdlxwtmxnoo`
+- **HEAD documental final:** o commit que contém este handoff; consultar `git rev-parse HEAD` para o identificador imutável
+- **Contrato canônico disponível:** `registrar_decisao_documento(...)`, com autorização, idempotência, atomicidade e concorrência verificadas; fixtures removidas e contagens restauradas
+- **Integração:** a RPC canônica ainda não está integrada à UI ou a outro consumidor runtime
+- **Legado:** `decidir_documento` permanece ativa e não idempotente
+- **Pendências:** modal e integração runtime continuam pendentes; B6-A, B6-B e B8 permanecem fases separadas
+- **Produção:** projeto `bhgifjrfagkzubpyqpew` não acessado
 - **Push:** não executado
-- **Próxima fase:** `G28-B5 — HUMAN VALIDATION CONTRACT AND MODAL`
-- **Próxima ação autorizada:** `G28-B5-A — Human validation, persistence, and linking boundary diagnosis`
-- **Diagnóstico B5-A — perguntas obrigatórias:**
-  - Quais writes remotos de decisão existem hoje e qual o contrato de cada um?
-  - Quais as responsabilidades do modal de validação humana (escopo vs. B5 writes)?
-  - Quais writes B5 persistirão (decisão, vínculo, justificativa)?
-  - Qual o linking canônico Pedido/OP em B6 e como B5 o prepara?
-  - Quais os limites entre accepted/rejected/justification/correction/revocation?
-  - Quais ações de decisão legadas devem ser preservadas, migradas ou retiradas?
-  - Qual a exata propriedade de UI/persistence/RPC/audit entre as camadas?
+- **Próxima ação:** decisão arquitetural explícita sobre integração runtime, transição da RPC legada e sequenciamento; este handoff não autoriza implementação
 - **Hard prohibitions:**
-  - `Do not implement B5.`
-  - `Do not modify code, UI, tests, schema, Supabase, or production.`
-  - `Do not reopen G28-B4.`
+  - `Do not start UI, modal, runtime integration, B6-A, B6-B or B8 without a new explicit order.`
+  - `Do not modify code, tests, schema, Supabase, or production from this closeout.`
+  - `Do not redirect consumers to the canonical RPC by implication.`
   - `Do not push.`
 - **Arquivos autoritativos obrigatórios antes da próxima implementação:**
   - `PROJECT_STATE.md`

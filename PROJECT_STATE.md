@@ -12,26 +12,20 @@ O conteúdo histórico abaixo não determina o estado atual.
 - **Workspace:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
 - **Branch:** `work/g28-document-qualification`
 - **Remoto permitido:** nenhum push sem autorização expressa nesta cadeia
-- **Última fase aceita:** `G28-B4 — DOCUMENT QUEUE` — `CLOSED / ACCEPTED`
-- **Commit técnico aceito:** `f007ab3c733d584e9da57c8436294d9b42ea9652` — `Consolidate document queue file access`
-- **Cadeia B4 aceita:**
-  - `50f543ff8c6917599cf35768e9e84531532bf177` — Add pure document queue read model
-  - `d0f0424924b57b3754fe87a0be0336292f5c2b74` — Bind received documents queue filters
-  - `948213885506fdb6e41cfe10451af21e006ce441` — Distinguish missing Pedido link availability
-  - `2958e6451b49986ac1af414e62cd31df698dcaa5` — Show document queue state indicators
-  - `f007ab3c733d584e9da57c8436294d9b42ea9652` — Consolidate document queue file access
-- **Escopo funcional:** pure queue read model com eixos source/evidence/review/Pedido; estados Pedido `confirmed_pedido_reference`, `suggested_pedido`, `no_confirmed_link`, `unavailable`; OP e duplicate indisponíveis; alertas determinísticos display-only; sem Supabase/DOM/network/write no read model; binding/filtros/indicadores aceitos; gate exclusivo por `queueItem.source_file.state`; ações Drive preservadas apenas após `drive_available`; spans unsupported/missing explicativos e não interativos; validation informacional; sem action/modal/write/RPC/backend/Gmail/filesystem
-- **Subfases aceitas:** B4-A, B4-B1, B4-B2, B4-B1-R1, B4-B3, B4-B4
-- **Validação focada:** model 48, queue UI 58, decisions 20, reader 39, screen smoke 133, import received 36, import UI 40, router 43; 3 node checks; diff check limpo (apenas avisos pré-existentes LF→CRLF)
-- **Validação visual:** fixture local in-memory; ambas as posições do wrapper horizontal intencional inspecionadas; Drive um Ver e um Baixar apenas; spans unsupported/missing sem clique; wrapping sem clipping; servidor local parado
+- **Última fase aceita:** `G28-B5 — HUMAN DECISION COMMAND CONTRACT` — `CLOSED / ACCEPTED`
+- **G28-B5-B1:** `CLOSED / ACCEPTED`; commit técnico `b247e43504c0afcc0d25e95f8012f93a09eb0692` — `Add idempotent document decision command contract`
+- **G28-B5-B2:** `CLOSED / ACCEPTED`; migration `20260714012641 document_decision_command` aplicada e verificada no staging `ucrjtfswnfdlxwtmxnoo`
+- **Produção:** projeto `bhgifjrfagkzubpyqpew` não acessado
+- **Contrato aceito:** coluna nullable `document_decisions.command_id`, índice único parcial `document_decisions_command_id_uidx` e RPC canônica `registrar_decisao_documento(...)`; validações estrutural, de autorização, idempotência, atomicidade e concorrência A/B/C aprovadas
+- **Limpeza:** fixtures sintéticas removidas; 39 candidates, 0 decisions e zero resíduos verificados após o gate
+- **Runtime:** nenhum consumidor foi redirecionado; UI e modal não integram a RPC canônica; `decidir_documento` permanece ativa e não idempotente
 - **Push:** não executado
-- **Débitos não bloqueantes:** `documentos-recebidos.js` excepcionalmente grande; document-row rendering ~151 linhas, candidato a code-health futuro; sem refatoração autorizada; semântica atual exige mudanças de nomenclatura testadas deliberadamente; B4 não implementa modal de validação humana, novas writes de decisão, linking canônico Pedido/OP, detecção de duplicatas, histórico de evidência, correção/revogação, backends Gmail/novos arquivos
-- **Próxima fase:** `G28-B5 — HUMAN VALIDATION CONTRACT AND MODAL`
-- **Próxima ação autorizada:** `G28-B5-A — Human validation, persistence, and linking boundary diagnosis`
+- **Próxima decisão:** requer decisão arquitetural antes de qualquer nova implementação; B6-A, B6-B e B8 permanecem fases separadas, sem autorização automática de UI, modal, integração runtime, linking ou revogação/correção
 
 ### Débitos relevantes
 
-- Migration 49 — aplicada e verificada em staging; não aplicada em produção.
+- Migrations 49 e 50 — aplicadas e verificadas em staging; não aplicadas em produção por esta cadeia.
+- Integração da RPC canônica à UI/runtime e destino da RPC legada — pendentes de decisão arquitetural.
 - Push — não autorizado nesta cadeia.
 
 ### Referência histórica
