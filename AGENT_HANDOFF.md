@@ -1,17 +1,18 @@
 # HANDOFF OPERACIONAL ATIVO
 
-- **Frente:** G28 — D5-B3 remove local decision status overrides — `CLOSED / ACCEPTED`
+- **Frente:** G28 — D5-B4 record legacy decision RPC runtime removal — `CLOSED / ACCEPTED`
 - **Workspace:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
 - **Branch:** `work/g28-document-qualification`
-- **HEAD:** `3532aa8417281fbc0f143963a1e7ef44b73cc2e7` — `G28-B5-D5-B3: remove local decision status overrides`
-- **Estado:** `G28-B5-D5-B3 — CLOSED / ACCEPTED`.
-- **Manifesto técnico:** `js/screens/documentos-recebidos.js`, `tests/documentos-recebidos-source-boundary.test.js`, `tests/documentos-recebidos-status-overrides-removal.test.js`.
-- **Contrato final:** zero runtime `statusOverrides` e zero estado paralelo equivalente; falhas locais de save/remove exibem erro explícito; somente a persistência real determina o estado; sucesso rerenderiza a partir dela.
-- **Proveniência preservada:** `manual`/`legacy` permanecem locais; Supabase permanece canônico/cloud-only; unknown, ausente, inválido, vazio, `null` e `g22-auto` permanecem fail-closed.
-- **Validação:** gates prescritos verdes; gate focado final 26/26; node checks e diff checks passaram; revisão independente `APPROVE`; code-health delta `+13/-12`.
-- **Nenhum acesso remoto:** sem staging, produção, Supabase, SQL, migration ou push.
-- **D5-B4:** permanece não autorizada e não iniciada.
-- **Próxima fase nomeável:** `G28-B5-D5-B4 — BLOCK LEGACY DECISION RPC RUNTIME CONSUMERS`; não criar nem iniciar.
+- **HEAD:** `3d64b62f25516ef0d18e2613fc50298e2faee16a` — `G28-B5-D5-B4: remove legacy document decision RPC runtime`
+- **Estado:** `G28-B5-D5-B4 — CLOSED / ACCEPTED`.
+- **Manifesto técnico:** `js/documents-supabase-decisions.js`, `tests/documents-supabase-decisions.test.js`, `tests/documentos-recebidos.smoke.js`, `tests/document-legacy-decision-rpc-runtime-boundary.test.js`.
+- **Remoção:** `decideDocumentInCloud` e `window.RAVATEX_DOCUMENTS.decideDocumentInCloud` removidos; zero chamadas JavaScript runtime a `decidir_documento`.
+- **Preservado:** `registerDocumentDecisionInCloud`/`registrar_decisao_documento` (adapter canônico) e `undoDocumentDecisionInCloud`/`desfazer_decisao_documento` (undo adapter) permanecem. SQL `decidir_documento` não foi removido.
+- **Validação:** gates focados verdes; revisão independente `APPROVE`.
+- **Nenhum acesso remoto:** sem external, database, staging, produção, Supabase, SQL, migration ou push.
+- **Telemetria:** indisponível e não bloqueante.
+- **Risco residual:** consumidores externos de `decidir_documento` fora deste repositório podem existir.
+- **D5-B5 e B8:** permanecem não autorizados e não iniciados.
 
 # HISTÓRICO DE HANDOFFS — ARQUIVADO
 

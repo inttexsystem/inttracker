@@ -412,3 +412,28 @@ risco residual e próxima fase indicada no fechamento.
 - **Acessos:** zero staging, produção, Supabase, SQL, migration e push.
 - **Escopo:** B2 helpers, RPCs, banco e fluxo canônico não foram alterados; D5-B4 não foi iniciada.
 - **Próxima fase nomeável:** `G28-B5-D5-B4 — BLOCK LEGACY DECISION RPC RUNTIME CONSUMERS`; não criar nem iniciar.
+
+---
+
+## 2026-07-14 — G28-B5-D5-B4 — Record legacy decision RPC runtime removal closeout
+
+- **Gate:** `CLOSED / ACCEPTED`.
+- **Technical HEAD:** `3d64b62f25516ef0d18e2613fc50298e2faee16a` — `G28-B5-D5-B4: remove legacy document decision RPC runtime`.
+- **Manifesto literal:**
+  - `js/documents-supabase-decisions.js`
+  - `tests/documentos-recebidos.smoke.js`
+  - `tests/documents-supabase-decisions.test.js`
+  - `tests/document-legacy-decision-rpc-runtime-boundary.test.js`
+- **Removals:**
+  - `decideDocumentInCloud` (function) removed.
+  - `window.RAVATEX_DOCUMENTS.decideDocumentInCloud` removed.
+  - Zero JavaScript runtime calls to `decidir_documento`.
+- **Preserved:**
+  - `registerDocumentDecisionInCloud` and `registrar_decisao_documento` (canonical command adapter).
+  - `undoDocumentDecisionInCloud` and `desfazer_decisao_documento` (undo adapter).
+  - SQL `decidir_documento` was not removed.
+- **Validation:** focused gates green; independent review `APPROVE`.
+- **Access:** no external, database, staging, production, migration, or push access.
+- **Telemetry:** unavailable and non-blocking.
+- **Residual risk:** external consumers of `decidir_documento` outside this repository may exist.
+- **Next phases:** `G28-B5-D5-B5` and `G28-B8` remain unauthorized and not started.
