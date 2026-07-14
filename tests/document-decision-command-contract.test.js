@@ -217,18 +217,27 @@ test('migration notifica PostgREST', function () {
   has(/NOTIFY\s+pgrst\s*,\s*'reload config'/i);
 });
 
-test('git baseline: only db/50 adicionado vs 0d2bc1e8', function () {
+test('git baseline: B5-B1 technical-commit manifest (b247e435)', function () {
   const { execFileSync } = require('node:child_process');
-  const BASELINE = '0d2bc1e8af59ebbeaebd3a08d64529e67dbf9625';
 
-  const diffOut = execFileSync('git', ['diff', '--name-only', BASELINE], { encoding: 'utf8', cwd: ROOT }).trim();
-  const diffFiles = diffOut ? diffOut.split('\n').filter(Boolean) : [];
+  const raw = execFileSync('git',
+    ['diff-tree', '--no-commit-id', '--name-only', '-r', 'b247e43504c0afcc0d25e95f8012f93a09eb0692'],
+    { encoding: 'utf8', cwd: ROOT });
 
-  const ALLOWED = ['db/50_document_decision_command.sql', 'tests/document-decision-command-contract.test.js'];
+  const manifest = raw
+    .split('\n')
+    .map(f => f.replace(/\\/g, '/'))
+    .filter(Boolean)
+    .sort();
 
-  for (const f of diffFiles) {
-    assert.ok(ALLOWED.includes(f), 'diff from baseline contem arquivo nao autorizado: ' + f);
-  }
+  const EXPECTED = [
+    'db/50_document_decision_command.sql',
+    'tests/document-decision-command-contract.test.js',
+  ];
+
+  assert.deepEqual(manifest, EXPECTED,
+    'B5-B1 technical-commit manifest mismatch — ' +
+    'b247e435 deve conter exatamente ' + EXPECTED.join(', '));
 
   const statusOut = execFileSync('git', ['status', '--porcelain', 'db/'], { encoding: 'utf8', cwd: ROOT }).trim();
   const dbStatus = statusOut ? statusOut.split('\n').filter(Boolean) : [];
