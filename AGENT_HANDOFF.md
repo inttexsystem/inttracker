@@ -1,23 +1,15 @@
 # HANDOFF OPERACIONAL ATIVO
 
-- **Frente ativa:** `G28-B6 — canonical document links — IMPLEMENTED LOCALLY / STAGING VERIFICATION BLOCKED / READY FOR IASUP ACCEPTANCE`.
-- **Workspace:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
-- **Branch:** `work/g28-document-qualification`
-- **Último bloco técnico aceito:** `G28-B5-D5 — CLOSED / ACCEPTED` (G28-B6 ainda NÃO aceito).
-- **Estado:** G28-B6 implementado localmente sobre o contrato aprovado (Documento→Pedido 0..1, Documento→OP 0..N). `db/51_document_canonical_links.sql` (2 tabelas + `registrar_vinculos_documento` + `registrar_decisao_e_vinculos_documento`) versionada e **NÃO aplicada** — não há tool de Supabase/staging neste ambiente. Runtime: adaptadores `documents-supabase-links.js`, lifecycle `documents-validation-command.js`, reader/read-model canônicos e modal "Validar e vincular". Testes focados 654/654; `git diff --check` limpo (LF→CRLF não bloqueante). Dívida pré-existente inalterada (ingestor 2, g14-c-bridge 15).
-- **Próxima ação autorizável:** aplicar+verificar `db/51` em staging `ucrjtfswnfdlxwtmxnoo` (imprimir e provar o ref antes de qualquer write; produção proibida), então aceite arquitetural de G28-B6. G28-B7 permanece não autorizado. Sem push.
-- **Nunca inferir próxima fase pela numeração do plano.** O plano mestre foi reconciliado (G28-PLAN-R1 2026-07-14). Reconciliar o plano mestre antes de emitir qualquer ordem futura.
-- **Leitura obrigatória antes de rotear qualquer ordem:**
-  1. `PROJECT_STATE.md`
-  2. `AGENT_HANDOFF.md` (este arquivo)
-  3. `docs/architecture/DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md` (plano mestre reconciliado)
-  4. `docs/ledgers/G28_LEDGER.md`
-  5. Contratos de domínio e runtime aplicáveis (em `docs/architecture/` e `services/documents-ingestor/contracts/`)
-- **Decisões de arquiteto em aberto:** cardinalidade Documento↔Pedido; cardinalidade Documento↔OP incluindo multiplicidade/representação; vínculos obrigatórios/opcionais por tipo de documento; compatibilidade de vínculos. Os quatro itens foram diagnosticados como abertos em G28-B1 (linhas 560-568) — diagnóstico de limites arquiteturais concluído, mas não decisão de cardinalidade aceita. Nenhuma decisão de cardinalidade aceita existe.
-- **Fases planejadas, não iniciadas:** G28-B6, G28-B7, G28-B8. B6 diagnóstico de limites arquiteturais concluído (G28-B1 linhas 560-568), não decidido, não implementado, não aceito; sem contrato, schema, RPC, read-model ou UI. G28-B6-B: PLANNED / NOT STARTED; no accepted definition, contract, or implementation evidence.
-- **Runtime boundaries:** Canonical register/undo adapters and RPCs preserved; SQL `decidir_documento` preserved (not removed, not migrated); no `statusOverrides` or parallel state; no `decideDocumentInCloud`; explicit manual/legacy local domain temporarily supported; Supabase/unknown fail-closed.
-- **Nenhum acesso remoto:** sem external, database, staging, produção, Supabase, SQL, migration ou push.
-- **Risco residual:** External consumers of `window.RAVATEX_DOCUMENTS.decideDocumentInCloud` outside this repository may exist.
+- **Frente ativa:** `G28-B6 — canonical document links — READY FOR ARCHITECT ACCEPTANCE` (não `CLOSED`/`ACCEPTED`).
+- **Workspace / branch / base técnico:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28` / `work/g28-document-qualification` / `b2f180ed0e6f1c2ee6c02881d0199d1bfaf29366` antes do closeout.
+- **Última fase aceita:** `G28-PLAN-R1 — CLOSED / ACCEPTED`.
+- **Staging diretamente verificado:** projeto `ucrjtfswnfdlxwtmxnoo` (produção `bhgifjrfagkzubpyqpew` não acessada). Matriz `registrar_vinculos_documento` 20/20; composição atômica com sucesso, falha de link, rollback de falha de decisão, retry e conflitos; links confirmados não escrevem `document_candidates/document_events.{pedido_id,pedido_manual}`. Sem correção técnica.
+- **Fixtures:** marcador `G28-B6-VERIFY-c63b6c2c8aff4da58e87d1e75f7a9236`; event, decisão, OP B/cancelada, pedido cancelado e lote B órfão removidos. Permanecem somente candidate + grafo canônico restritivo (1 cliente, 2 pedidos, 2 lotes, 4 OPs, 8 revisões/10 linhas OP), pois apagar filhos de auditoria para forçar remoção destruiria o histórico aprovado.
+- **Frontend:** app local servido temporariamente em `127.0.0.1` confirmou URL Supabase staging; login/admin browser não disponível, portanto `LIVE_MODAL_SMOKE_BLOCKED_BY_TOOLING`. Fallback do leitor retornou `supabase_unavailable`; sem write do leitor.
+- **Próxima ação autorizável:** somente aceite arquitetural de G28-B6. `G28-B7` e `G28-B8` não autorizados; sem push.
+- **Leitura obrigatória antes de rotear qualquer ordem:** `PROJECT_STATE.md`, este handoff, plano mestre, ledger G28 e contratos/runtime aplicáveis.
+- **Runtime boundaries:** contrato Documento→Pedido 0..1 e Documento→OP 0..N; tabelas de revisão dedicadas; Ingestor retém campos candidate/event; B5 preservado; sem `statusOverrides`, dupla escrita, backfill ou produção.
+- **Risco residual:** smoke do modal autenticado ficou bloqueado exclusivamente por ausência de autenticação admin no browser; aceite arquitetural ainda pendente.
 
 # HISTÓRICO DE HANDOFFS — ARQUIVADO
 

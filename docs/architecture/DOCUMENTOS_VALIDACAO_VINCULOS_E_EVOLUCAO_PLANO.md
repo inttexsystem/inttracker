@@ -12,24 +12,16 @@
 # PLANO MESTRE — DOCUMENTOS, VALIDAÇÃO HUMANA, VÍNCULOS E EVOLUÇÃO
 
 **Projeto:** Ravatex — Controle de Tapetes / Documents Ingestor  
-**Status do plano:** reconciliado (G28-PLAN-R1 em 2026-07-14) — este plano é o backlog arquitetural do G28; o estado operacional atual pertence a `PROJECT_STATE.md`
-**Fase ativa de implementação:** nenhuma
-**Último bloco técnico aceito:** `G28-B5-D5` — `CLOSED / ACCEPTED` (baseline `7d3e0261b668a46a80208198352039dc1f352010`, branch `work/g28-document-qualification`)
-**Próxima ação autorizável:** nenhuma; qualquer implementação futura exige autorização explícita do arquiteto e deve usar este checkpoint reconciliado, não a numeração de fases
-**G28-A:** `REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` — schema proposto, migration `db/49`, `qualified` como estado final, `duplicate` como estado principal e a regra de "duas partes externas resolvidas" **não aprovados**; evidências e problemas descobertos no diagnóstico permanecem aproveitáveis
-**G28-P0:** `PLANNED / IMPLEMENTED / ACCEPTED` — consolidação do plano e gates concluída
-**G28-B1:** `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` — contrato puro de domínio documental; commit `c65fa41`; testes 187/187
-**G28-B2:** `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` — persistência local da evidência técnica e histórico versionado; testes finais 299/299
-**G28-B3:** `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` nas subfases aceitas (B3-B1 a B3-B4, B3-B5-A, B3-B5-B, B3-B5-C, B3-B6-B); migration 49 aplicada e verificada em staging
-**G28-B4:** `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` — fila/read model de revisão documental; subfases B4-A a B4-B4 aceitas
-**G28-B5:** `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` nas subfases aceitas (B5-B1, B5-B2, D5 consolidated D5-B1 a D5-B5); decisão-comando canônica implementada; linking canônico Documento↔Pedido/OP não implementado
-**G28-B6:** `DECIDED / IMPLEMENTED LOCALLY / TESTED (focused) / STAGING VERIFICATION BLOCKED / NOT ACCEPTED` — contrato aprovado (Documento→Pedido 0..1, Documento→OP 0..N) implementado: `db/51` (`document_link_revisions` + `document_link_revision_ops`, RPCs `registrar_vinculos_documento` e `registrar_decisao_e_vinculos_documento`), adaptadores/lifecycle/reader/read-model e modal "Validar e vincular". `document_candidates.pedido_id`/`document_events.pedido_id` NÃO promovidos; `pedido_manual` permanece sugestão. Testes focados 654/654. `db/51` versionada e NÃO aplicada (sem tool de staging). Aceite exige apply+verify em `ucrjtfswnfdlxwtmxnoo`. Ver ledger G28 (2026-07-14 G28-B6)
-**G28-B7:** `PLANNED / NOT STARTED` — exibição nas superfícies; aguarda G28-B6
-**G28-B8:** `PLANNED / NOT STARTED` — correção, revogação, restauração e auditoria; aguarda G28-B7
-**G28-C:** `PLANNED / DEFERRED` — validação real em staging; aguarda B8
-**G28-D:** `PLANNED / DEFERRED` — publicação para o cliente; aguarda C
-**Decisões de arquiteto em aberto:** cardinalidade/relacionamento Documento↔Pedido (política não decidida); cardinalidade Documento↔OP incluindo multiplicidade/representação; vínculos obrigatórios/opcionais por tipo de documento; compatibilidade de vínculos. Os quatro itens foram diagnosticados como abertos em G28-B1 (linhas 560-568) — diagnóstico de limites arquiteturais concluído, mas não decisão de cardinalidade aceita e não implementação B6. Nenhuma decisão de cardinalidade aceita separadamente existe. Não houve diagnóstico G28-B5-A separado sobre cardinalidade/linking.
-**Última reconciliação:** 2026-07-14 (G28-PLAN-R1)
+**Status do plano:** reconciliado (G28-PLAN-R1 em 2026-07-14); este plano é o backlog arquitetural do G28 e `PROJECT_STATE.md` detém o estado operacional atual.
+**Fase ativa:** `G28-B6 — READY FOR ARCHITECT ACCEPTANCE` (não aceita/fechada).
+**Última fase aceita:** `G28-PLAN-R1 — CLOSED / ACCEPTED`.
+**Próxima ação autorizável:** aceite arquitetural de G28-B6; não inferir autorização de G28-B7 pela numeração.
+**G28-B6:** `DECIDED / IMPLEMENTED / TESTED / STAGING FUNCTIONALLY VERIFIED / NOT ACCEPTED` — `db/51` foi aplicado em `ucrjtfswnfdlxwtmxnoo`; Hermes executou matriz RPC 20/20, prova de dupla propriedade e rollback PostgreSQL do wrapper. Contrato: Documento→Pedido 0..1, Documento→OP 0..N; revisão dedicada, tipada/versionada; campos do Ingestor não promovidos. Não houve correção técnica. Modal autenticado ficou bloqueado pela ausência de login admin no browser; isso não bloqueia a verificação de banco. Ver ledger G28 (closeout B6).
+**G28-B7:** `PLANNED / NOT AUTHORIZED` — exibição nas superfícies; aguarda aceite explícito de B6.
+**G28-B8:** `PLANNED / NOT AUTHORIZED` — correção, revogação, restauração e auditoria; aguarda B7.
+**G28-C/D:** `PLANNED / DEFERRED`.
+**Decisões de arquiteto em aberto:** apenas o aceite arquitetural de G28-B6; a verificação não autoriza B7.
+**Última reconciliação:** 2026-07-14 (G28-PLAN-R1; checkpoint B6 atualizado após verificação direta).
 **Regras de autoridade:** Git comprova branch/HEAD/index/worktree vivos; `PROJECT_STATE.md` detém estado operacional atual; `AGENT_HANDOFF.md` detém continuidade; G28 ledger detém histórico append-only de closeouts; este plano mestre detém arquitetura/backlog; planos sozinhos não autorizam execução.
 
 ---
@@ -37,29 +29,23 @@
 ## CURRENT EXECUTION CHECKPOINT
 
 **Data:** 2026-07-14
-**Baseline:** `7d3e0261b668a46a80208198352039dc1f352010` (branch `work/g28-document-qualification`)
+**Baseline técnico:** `b2f180ed0e6f1c2ee6c02881d0199d1bfaf29366` (branch `work/g28-document-qualification`; worktree limpo antes da verificação).
 
-**Último bloco técnico aceito:** `G28-B5-D5` — `CLOSED / ACCEPTED`
+**Última fase aceita:** `G28-PLAN-R1 — CLOSED / ACCEPTED`.
 
-**Fase ativa de implementação:** nenhuma.
+**Fase ativa:** `G28-B6 — READY FOR ARCHITECT ACCEPTANCE`.
 
-**Próxima ação autorizável:** nenhuma; qualquer implementação futura exige autorização explícita do arquiteto. Uma futura ordem para B6 deve usar este checkpoint reconciliado, não a numeração do plano.
+**Evidência de staging:** projeto `ucrjtfswnfdlxwtmxnoo`, sem acesso a produção; migration 51 já aplicada. Matriz funcional RPC 20/20 aprovada, links canônicos não tocaram campos Ingestor e a falha de decisão após link válido retornou `decision_failed` com `no_new_revision`, `no_new_decision`, estado ativo e linhas OP prévios preservados.
 
-**Decisões de arquiteto em aberto:**
-- Cardinalidade/relacionamento Documento↔Pedido (política não decidida);
-- Cardinalidade Documento↔OP, incluindo multiplicidade e representação;
-- Vínculos obrigatórios/opcionais por tipo de documento;
-- Compatibilidade de vínculos.
+**Próxima ação autorizável:** aceite arquitetural de G28-B6. B7 não é autorizado por este checkpoint.
 
-Os quatro itens foram diagnosticados como abertos em G28-B1 (linhas 560-568) — diagnóstico de limites arquiteturais concluído, mas não decisão de cardinalidade aceita e não implementação B6. Nenhuma decisão de cardinalidade aceita separadamente existe. Não houve diagnóstico G28-B5-A separado sobre cardinalidade/linking. O B1 e o contrato decisão-comando aceito de B5 não implementaram linking canônico.
+**Decisões de arquiteto em aberto:** aceite de B6; não há nova decisão de produto solicitada pela verificação.
 
-**Fases planejadas, não iniciadas (deferred/not-started):**
-- **G28-B6:** `PLANNED / DIAGNOSED (architectural boundaries only) / NOT DECIDED / NOT IMPLEMENTED / NOT ACCEPTED` — diagnóstico de limites arquiteturais concluído em G28-B1 (linhas 560-568); cardinalidade e contrato não decididos; sem contrato, schema, RPC, read-model ou UI aceitos
-- **G28-B6-B:** `PLANNED / NOT STARTED`; no accepted definition, contract, or implementation evidence
-- **G28-B7:** `PLANNED / NOT STARTED` — aguarda G28-B6
-- **G28-B8:** `PLANNED / NOT STARTED` — aguarda G28-B7
+**Fases deferred/not authorized:**
+- **G28-B7:** `PLANNED / NOT AUTHORIZED` — aguarda aceite explícito de B6.
+- **G28-B8:** `PLANNED / NOT AUTHORIZED` — aguarda B7.
 
-**Limite verificado de B6:** B1 e o contrato decisão-comando aceito de B5 não implementaram linking canônico. Nenhum diagnóstico amplo sobre B6 deve ser reexecutado apenas por causa do número da fase. Esta reconciliação G28-PLAN-R1 é o inventário de evidências atual.
+**Limite verificado:** a validação cobre o contrato B6; não autoriza novas superfícies, correção/revogação, backfill, reparo histórico ou produção.
 
 **Regras de autoridade:**
 - Git comprova branch/HEAD/index/worktree vivos;
@@ -1032,7 +1018,7 @@ Qualificadores compostos podem detalhar um estado base — por exemplo
 | G28-B3 | Eventos, exportação, Supabase e reader | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` (subfases aceitas; ver subfases abaixo) | G28-B2 | `work/g28-document-qualification` @ `controle-tapetes-g28` | Conforme ledger G28 | B3-B1 a B3-B4, B3-B5-A, B3-B5-B, B3-B5-C, B3-B6-B aceitos; migration 49 aplicada e verificada em staging | — |
 | G28-B4 | Fila / read model de revisão documental | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` | G28-B3 | `work/g28-document-qualification` @ `controle-tapetes-g28` | Conforme ledger G28 | Subfases B4-A a B4-B4 aceitas; queue read model, filtros, indicadores de estado e acesso a arquivos implementados | — |
 | G28-B5 | Persistência da decisão humana e dos vínculos canônicos Pedido/OP | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` (B5-D5 consolidated: B1–B5) | G28-B4 | `work/g28-document-qualification` @ `controle-tapetes-g28` | `7d3e0261b668a46a80208198352039dc1f352010` | Decisão-comando canônica, boundary de source explícito, remoção de statusOverrides e legacy RPC runtime aceitos; linking canônico não implementado | — |
-| G28-B6 | Vínculos canônicos Documento↔Pedido/OP + modal "Validar e vincular" | `DECIDED / IMPLEMENTED LOCALLY / TESTED (focused 654/654) / STAGING VERIFICATION BLOCKED / NOT ACCEPTED` | G28-B5 | `work/g28-document-qualification` @ `controle-tapetes-g28` | commit `G28-B6: implement canonical document links` | `db/51` (2 tabelas + 2 RPCs idempotentes), adaptadores, lifecycle, reader/read-model canônicos, modal; `db/51` NÃO aplicada (sem tool de staging). Ver ledger G28 | Aplicar+verificar `db/51` em staging `ucrjtfswnfdlxwtmxnoo`; então aceite do arquiteto. G28-B7 não autorizado |
+| G28-B6 | Vínculos canônicos Documento↔Pedido/OP + modal "Validar e vincular" | `DECIDED / IMPLEMENTED / TESTED / STAGING FUNCTIONALLY VERIFIED / READY FOR ARCHITECT ACCEPTANCE` | G28-B5 | `work/g28-document-qualification` @ `controle-tapetes-g28` | `b2f180ed0e6f1c2ee6c02881d0199d1bfaf29366` + closeout local pendente | staging `ucrjtfswnfdlxwtmxnoo`: matriz RPC 20/20, dupla propriedade e rollback do wrapper provados; modal autenticado bloqueado por tooling; sem correção | Somente aceite do arquiteto; G28-B7 não autorizado |
 | G28-B7 | Exibição nas superfícies (Documentos/Pedido/OP/timeline/buscas) | `PLANNED / NOT STARTED` | G28-B6 | a definir | — | — | Aguarda G28-B6 |
 | G28-B8 | Correção, revogação, restauração e auditoria | `PLANNED / NOT STARTED` | G28-B7 | a definir | — | — | Aguarda G28-B7 |
 | G28-C | Validação real em staging | `PLANNED / DEFERRED` | G28-B8 | a definir | — | — | Aguarda B8 |

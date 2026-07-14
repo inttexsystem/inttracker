@@ -12,11 +12,11 @@ O conteúdo histórico abaixo não determina o estado atual.
 - **Workspace:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
 - **Branch:** `work/g28-document-qualification`
 - **Remoto permitido:** nenhum push sem autorização expressa nesta cadeia
-- **Última fase aceita:** `G28-B5-D5 — documentary closeout — CLOSED / ACCEPTED`
-- **Fase ativa de implementação:** `G28-B6 — canonical document links — IMPLEMENTED LOCALLY / STAGING VERIFICATION BLOCKED / READY FOR IASUP ACCEPTANCE`. Contrato aprovado implementado: Documento→Pedido 0..1, Documento→OP 0..N; persistência canônica tipada/versionada (`db/51`, `document_link_revisions` + `document_link_revision_ops`, RPCs `registrar_vinculos_documento` e `registrar_decisao_e_vinculos_documento`); adaptadores, lifecycle idempotente, reader/read-model e modal "Validar e vincular". `document_candidates.pedido_id`/`document_events.pedido_id` NÃO promovidos; `pedido_manual` permanece sugestão. Testes focados 654/654; `db/51` versionada e NÃO aplicada (sem tool de staging).
-- **Próxima ação autorizável:** aplicar+verificar `db/51` em staging `ucrjtfswnfdlxwtmxnoo` e aceite arquitetural de G28-B6; só então G28-B7. Sem push. Produção proibida.
-- **Decisões de arquiteto resolvidas pelo contrato B6 (pendentes de aceite):** cardinalidade Documento↔Pedido 0..1 e Documento↔OP 0..N; vínculo confirmado em tabelas dedicadas (não em `pedido_id` do candidate); compatibilidade Pedido/OP via `lotes.pedido_id` fail-closed; regra avulsa. Aceite depende da verificação de staging.
-- **Fases planejadas, não iniciadas (deferred):** G28-B7 (exibição nas superfícies), G28-B8 (correção/revogação/restauração/auditoria) — aguardam aceite de B6
+- **Última fase aceita:** `G28-PLAN-R1 — CLOSED / ACCEPTED`.
+- **Fase ativa:** `G28-B6 — canonical document links — READY FOR ARCHITECT ACCEPTANCE` (não aceita/fechada). A verificação funcional foi executada diretamente em staging `ucrjtfswnfdlxwtmxnoo`: matriz RPC 20/20, propriedade dupla preservada, wrapper atômico com rollback PostgreSQL provado, reader/adapter verificados contra a projeção canônica e fallback `supabase_unavailable` exercitado no frontend local configurado para staging. Não houve correção técnica.
+- **Próxima ação autorizável:** aceite arquitetural de G28-B6. `G28-B7` permanece não autorizado; sem push; produção proibida.
+- **Contrato B6 pendente apenas de aceite:** Documento→Pedido 0..1; Documento→OP 0..N; revisão canônica tipada/versionada; `document_candidates.pedido_id` e `document_events.pedido_id` mantidos sob propriedade do Ingestor; `pedido_manual` permanece sugestão.
+- **Fases planejadas, não iniciadas (deferred):** G28-B7 (exibição nas superfícies), G28-B8 (correção/revogação/restauração/auditoria) — aguardam aceite de B6.
 - **Plano mestre reconciliado:** `docs/architecture/DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md` (G28-PLAN-R1 2026-07-14)
 - **Subfases B5-D5 aceitas:** B5-B1 (idempotent decision command contract), B5-B2 (migration applied/verified staging), D4-R1 (canonical runtime modules loaded), D5-A (source boundary diagnosis), D5-B1 (explicit source classification), D5-B2 (source-gated local decision helpers), D5-B3 (statusOverrides removal), D5-B4 (legacy decision RPC runtime removal), D5 (consolidated regression GREEN). Ver ledger G28 para detalhes de commits e validação.
 - **Push:** não executado
