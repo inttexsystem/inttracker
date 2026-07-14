@@ -304,13 +304,19 @@
     var formato = inferFormato(doc, filename);
     var tipo = inferTipo(doc, filename);
     var direcao = inferDirecao(doc, filename);
-    var isSupabaseSource = !!(doc && doc._ravatex_source === 'supabase');
+    var ravatexSource = doc && doc._ravatex_source;
+    var decisionSourceKind = ravatexSource === 'supabase' ? 'supabase'
+      : (ravatexSource === 'manual' || ravatexSource === 'legacy') ? 'legacy' : 'unknown';
+    var isSupabaseSource = decisionSourceKind === 'supabase';
     var canUndoCloudDecision = !!(doc && doc._ravatex_can_undo_server_decision === true);
-    var effective = hasRealId && typeof window.RAVATEX_DOCUMENTS !== 'undefined'
+    var effective = decisionSourceKind !== 'unknown' && hasRealId
+      && typeof window.RAVATEX_DOCUMENTS !== 'undefined'
       && typeof window.RAVATEX_DOCUMENTS.getEffectiveDocumentStatus === 'function'
       ? window.RAVATEX_DOCUMENTS.getEffectiveDocumentStatus(doc) : null;
     var importedStatus = normalizeStatus(doc && doc.status);
-    var status = effective ? effective.effectiveStatus : (ui.statusOverrides[id] || importedStatus);
+    var status = decisionSourceKind !== 'unknown'
+      ? (effective ? effective.effectiveStatus : (ui.statusOverrides[id] || importedStatus))
+      : importedStatus;
     var hasLocalDecision = effective ? effective.isLocalDecision : false;
     var isDivergent = effective ? effective.isDivergent : false;
     var emailWhen = emailReceivedAt(doc);
@@ -328,6 +334,7 @@
       importedStatus: importedStatus,
       hasLocalDecision: hasLocalDecision,
       isDivergent: isDivergent,
+      decisionSourceKind: decisionSourceKind,
       isSupabaseSource: isSupabaseSource,
       canUndoCloudDecision: canUndoCloudDecision,
       pedido: doc && (doc.pedido_manual || doc.pedido || doc.pedido_key) || '',
@@ -968,7 +975,7 @@
       }, 'Indisponível'));
     }
 
-    if (doc.isSupabaseSource) {
+    if (doc.decisionSourceKind === 'supabase') {
       if (doc.canUndoCloudDecision && doc.hasRealId) {
         var desfazerNuvemBtn;
         desfazerNuvemBtn = iconButton('Desfazer decisão', SVG_UNDO, function () {
@@ -998,7 +1005,7 @@
         });
         wrap.appendChild(aceitarNuvemBtn);
       }
-    } else if (doc.status === 'pending' && doc.hasRealId) {
+    } else if (doc.decisionSourceKind === 'legacy' && doc.status === 'pending' && doc.hasRealId) {
       wrap.appendChild(iconButton('Rejeitar', SVG_X, function () {
         var motivo = typeof window.prompt === 'function' ? window.prompt('Motivo da rejeição:') : '';
         if (motivo === null) return;
@@ -1037,9 +1044,17 @@
         'data-action': 'aceitar-documento',
         'data-document-id': doc.id,
       }));
+    } else {
+      wrap.appendChild(window.el('span', {
+        'data-source': 'unknown',
+        'data-document-id': doc.id,
+        role: 'status',
+        'aria-label': 'Origem do documento n\u00e3o identificada. Decis\u00e3o indispon\u00edvel at\u00e9 a origem ser normalizada.',
+        style: 'color:#9aa2af;font-size:11.5px;font-style:italic;white-space:normal;line-height:1.3;text-align:center;max-width:150px;overflow-wrap:break-word;',
+      }, 'Origem do documento n\u00e3o identificada. Decis\u00e3o indispon\u00edvel at\u00e9 a origem ser normalizada.'));
     }
 
-    if (!doc.isSupabaseSource && doc.hasLocalDecision && doc.hasRealId) {
+    if (doc.decisionSourceKind === 'legacy' && doc.hasLocalDecision && doc.hasRealId) {
       wrap.appendChild(iconButton('Desfazer', null, function () {
         if (typeof window.RAVATEX_DOCUMENTS !== 'undefined'
             && typeof window.RAVATEX_DOCUMENTS.removeDocumentDecision === 'function') {

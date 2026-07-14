@@ -63,6 +63,7 @@ function makeManualDoc(overrides) {
   return Object.assign({
     document_id: 'cda18ef9-d1d9-4f5a-8956-74875cd60b05',
     filename_original: 'manual.pdf', tipo_documento: 'nf', formato: 'pdf', status: 'pending',
+    _ravatex_source: 'manual',
   }, overrides || {});
 }
 

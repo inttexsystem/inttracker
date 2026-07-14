@@ -1357,7 +1357,7 @@ test('G20-B-R1: doc sem document_id NAO mostra botoes Aceitar/Rejeitar', functio
 });
 
 test('G20-B-R1: doc com document_id mostra botoes Aceitar/Rejeitar', function () {
-  const sb = makeScreenSandbox([{ document_id: 'cda18ef9-d1d9-4f5a-8956-74875cd60b05', filename_original: 'ok.pdf', status: 'pending' }]);
+  const sb = makeScreenSandbox([{ _ravatex_source: 'manual', document_id: 'cda18ef9-d1d9-4f5a-8956-74875cd60b05', filename_original: 'ok.pdf', status: 'pending' }]);
   const container = new FakeNode('div');
   sb.container = container;
   const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
@@ -1685,6 +1685,7 @@ test('G23-D-B: doc Supabase usa adapter, NAO saveDocumentDecision/removeDocument
 
 test('G23-D-B: doc manual continua usando saveDocumentDecision (localStorage), sem nuvem', function () {
   var sb = makeScreenSandbox([{
+    _ravatex_source: 'manual',
     document_id: 'cda18ef9-d1d9-4f5a-8956-74875cd60b05',
     filename_original: 'manual.pdf', tipo_documento: 'nf', formato: 'pdf', status: 'pending',
   }]);
