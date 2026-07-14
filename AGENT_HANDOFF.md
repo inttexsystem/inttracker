@@ -1,23 +1,22 @@
 # HANDOFF OPERACIONAL ATIVO
 
-- **Frente ativa:** G28 — G28-B5 closed and accepted no banco de staging; integração runtime pendente
+- **Frente ativa:** G28 — D4 canonical decision wiring para `#/documentos/recebidos` — `VALIDATED / READY FOR SELECTIVE COMMIT`
 - **Workspace:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
 - **Branch:** `work/g28-document-qualification`
+- **HEAD inicial D4:** `49497439855685a28c30eef1d9044e9baa47b9d4`; worktree limpo antes do handoff
 - **Fase aceita mais recente:** `G28-B5 — HUMAN DECISION COMMAND CONTRACT` — `CLOSED / ACCEPTED`
-- **G28-B5-B1:** `CLOSED / ACCEPTED`; commit técnico `b247e43504c0afcc0d25e95f8012f93a09eb0692` — `Add idempotent document decision command contract`
-- **G28-B5-B2:** `CLOSED / ACCEPTED`; migration `20260714012641 document_decision_command` aplicada e verificada no staging `ucrjtfswnfdlxwtmxnoo`
-- **HEAD documental final:** o commit que contém este handoff; consultar `git rev-parse HEAD` para o identificador imutável
 - **Contrato canônico disponível:** `registrar_decisao_documento(...)`, com autorização, idempotência, atomicidade e concorrência verificadas; fixtures removidas e contagens restauradas
-- **Integração:** a RPC canônica ainda não está integrada à UI ou a outro consumidor runtime
-- **Legado:** `decidir_documento` permanece ativa e não idempotente
-- **Pendências:** modal e integração runtime continuam pendentes; B6-A, B6-B e B8 permanecem fases separadas
-- **Produção:** projeto `bhgifjrfagkzubpyqpew` não acessado
-- **Push:** não executado
-- **Próxima ação:** decisão arquitetural explícita sobre integração runtime, transição da RPC legada e sequenciamento; este handoff não autoriza implementação
+- **Diagnóstico D4 (IAsup / gpt-5.6-terra):** a tela usa `_ravatex_source === 'supabase'` para a ramificação cloud, mas ainda chama `decideDocumentInCloud` e `window.prompt`. D1–D3 estão presentes e sem diff: controller + modal + command; reader projeta `_ravatex_server_decision.{id,command_id}`.
+- **Escopo D4 autorizado:** somente `js/screens/documentos-recebidos.js`, `tests/documentos-recebidos.smoke.js` e novo `tests/documentos-recebidos-decision-integration.test.js` pela implementação. D1–D3, reader, Supabase, migrations, `index.html`, produção e push são proibidos.
+- **Correção prevista:** para documentos Supabase pendentes, a tela deve usar `documentDecisionController.open` com dados canônicos; `onSubmit` deve usar `registerDocumentDecisionInCloud`, preservar/reusar command ID e só atualizar/recarregar em resultado canônico bem-sucedido. Legacy/manual permanece no fluxo local atual.
+- **Baseline D4:** `node --check js/screens/documentos-recebidos.js` e sete gates focados passaram (smoke, modal, controller, command, adapter e reader); nenhum arquivo D1–D3 tem diff.
+- **D4 — tentativa de implementação rejeitada (IAsup / OpenCode `opencode/deepseek-v4-flash-free`):** produziu somente os três arquivos do manifesto, mas violou o allowlist com `npx node`/tentativa de install e encerrou por timeout; a saída não é evidência aceita. Inspeção IAsup posterior com `node` confirmou gates locais verdes (450 pass), porém encontrou lacunas contratuais: snapshot usa `doc.activeDecision` inexistente em vez de `doc.raw._ravatex_server_decision`; não há chamada de `restorePending()`; e `uncertain` nunca aciona `controller.retry()` nem prova preservação do `commandId`.
+- **Correção D4 aceita provisoriamente (IAsup / gpt-5.6-terra, modo TDD):** `restoreCloudDecisionRuntime(docs)` reconcilia uma vez usando a decisão do documento pendente em `raw._ravatex_server_decision`; o handler não chama `open()` sobre `uncertain` do mesmo documento e encaminha confirmação para `retry()`. RED confirmou `reconcileCalls 0 !== 1`; GREEN inicial passou `454/454`.
+- **Validação final:** revisão independente read-only por OpenCode `opencode-go/deepseek-v4-flash` (`exit 0`, log `ravatex-d4-review-output.txt`) retornou `APPROVE`, sem achados e sem mutação. Gate pós-revisão: `node --check` + sete suítes D4 = `454 pass, 0 fail`; `git diff --check` e `git diff --no-index --check` limpos. Aviso LF→CRLF do Git é não bloqueante.
+- **Próximo passo:** inspecionar staging seletivo dos quatro arquivos D4/supervisão e criar commit local; não fazer push.
 - **Hard prohibitions:**
-  - `Do not start UI, modal, runtime integration, B6-A, B6-B or B8 without a new explicit order.`
-  - `Do not modify code, tests, schema, Supabase, or production from this closeout.`
-  - `Do not redirect consumers to the canonical RPC by implication.`
+  - `Do not modify D1-D3, reader, Supabase, migrations, index.html, production, profiles, skills, prompts, routing policies or orchestration configuration.`
+  - `Do not expand D4 to Pedido/OP linking, undo/revocation redesign, visual redesign or legacy migration.`
   - `Do not push.`
 - **Arquivos autoritativos obrigatórios antes da próxima implementação:**
   - `PROJECT_STATE.md`

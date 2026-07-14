@@ -69,6 +69,12 @@ const AUTO_LOAD = path.join(ROOT, 'js', 'documents-ingestor-auto-load.js');
 const autoLoadSrc = readOrFail(AUTO_LOAD);
 const READER = path.join(ROOT, 'js', 'documents-supabase-reader.js');
 const readerSrc = readOrFail(READER);
+const COMMAND = path.join(ROOT, 'js', 'documents-decision-command.js');
+const commandSrc = readOrFail(COMMAND);
+const CONTROLLER = path.join(ROOT, 'js', 'documents-decision-controller.js');
+const controllerSrc = readOrFail(CONTROLLER);
+const DECISION_MODAL = path.join(ROOT, 'js', 'screens', 'documentos-recebidos-decision-modal.js');
+const decisionModalSrc = readOrFail(DECISION_MODAL);
 const SCAN_TRIGGER = path.join(ROOT, 'js', 'documents-scan-trigger.js');
 const scanTriggerSrc = readOrFail(SCAN_TRIGGER);
 const READ_MODEL = path.join(ROOT, 'js', 'document-queue-read-model.js');
@@ -259,6 +265,7 @@ class FakeNode {
   getAttribute(k) { return this._attrs[k]; }
   addEventListener(type, fn) { (this._listeners[type] = this._listeners[type] || []).push(fn); }
   removeEventListener() {}
+  removeChild(n) { var idx = this.children.indexOf(n); if (idx >= 0) this.children.splice(idx, 1); return n; }
   replaceChildren() { this.children = []; }
   remove() { this._removed = true; }
   get textContent() { return this._text != null ? this._text : ''; }
@@ -301,6 +308,16 @@ function makeScreenSandbox(received) {
     removeEventListener: () => {},
     body: new FakeNode('body'),
   };
+  var sessionStorageMock = (function () {
+    var _data = {};
+    return {
+      getItem: function (k) { return _data.hasOwnProperty(k) ? _data[k] : null; },
+      setItem: function (k, v) { _data[k] = String(v); },
+      removeItem: function (k) { delete _data[k]; },
+      clear: function () { _data = {}; },
+    };
+  })();
+
   const sandbox = {
     document: documentMock,
     console,
@@ -308,6 +325,10 @@ function makeScreenSandbox(received) {
     clearTimeout,
     URL,
     URLSearchParams,
+    sessionStorage: sessionStorageMock,
+    crypto: {
+      randomUUID: function () { return '11111111-1111-4111-8111-111111111111'; },
+    },
   };
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
@@ -325,6 +346,10 @@ function makeScreenSandbox(received) {
   vm.runInContext(autoLoadSrc, sandbox, { filename: 'js/documents-ingestor-auto-load.js' });
   // Carrega import-received (G12-R1: expoe createReceivedImportButton)
   vm.runInContext(importReceivedSrc, sandbox, { filename: 'js/documents-ingestor-import-received.js' });
+  // Carrega command lifecycle, controller e modal (G28-D-B cloud decision)
+  vm.runInContext(commandSrc, sandbox, { filename: 'js/documents-decision-command.js' });
+  vm.runInContext(controllerSrc, sandbox, { filename: 'js/documents-decision-controller.js' });
+  vm.runInContext(decisionModalSrc, sandbox, { filename: 'js/screens/documentos-recebidos-decision-modal.js' });
   // Carrega common (shellLayout + ADMIN_MENU)
   vm.runInContext(common, sandbox, { filename: 'js/screens/common.js' });
   // Carrega a tela
@@ -1460,21 +1485,19 @@ test('G23-D-B: documento Supabase pending mostra botoes de decisao em nuvem', fu
   assert.equal(allText.indexOf('Divergente'), -1, 'sem chip Divergente');
 });
 
-test('G23-D-B: aceitar nuvem chama decideDocumentInCloud(accepted) e recarrega o reader', async function () {
+test('G23-D-B: aceitar nuvem abre modal, confirmar chama adapter e recarrega reader', async function () {
   var sb = makeScreenSandbox([makeSupaDoc()]);
-  var calls = [];
+  var adapterCalls = [];
   var reloadCalls = 0;
-  var toasts = [];
   var setAppCalls = 0;
-  sb.window.RAVATEX_DOCUMENTS.decideDocumentInCloud = function (id, status, motivo) {
-    calls.push({ id: id, status: status, motivo: motivo });
-    return Promise.resolve({ ok: true, status: status });
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function (envelope) {
+    adapterCalls.push(envelope);
+    return Promise.resolve({ ok: true, outcome: 'created' });
   };
   sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
     reloadCalls++;
-    return Promise.resolve({ ok: true, source: 'supabase', count: 1 });
+    return Promise.resolve({ ok: true });
   };
-  sb.window.toast = function (msg, kind) { toasts.push({ msg: msg, kind: kind }); };
   sb.window.setApp = function () { setAppCalls++; };
   var container = new FakeNode('div');
   sb.container = container;
@@ -1483,102 +1506,126 @@ test('G23-D-B: aceitar nuvem chama decideDocumentInCloud(accepted) e recarrega o
   assert.ok(btn, 'botao aceitar nuvem existe');
   btn._listeners.click[0]();
   await flushAsync();
-  assert.equal(calls.length, 1, 'decideDocumentInCloud chamada uma vez');
-  assert.equal(calls[0].id, SUPA_DOC_ID, 'document_id correto');
-  assert.equal(calls[0].status, 'accepted', 'status accepted');
-  assert.equal(calls[0].motivo, null, 'motivo null no accept');
+  var acceptRadio = findAll(sb.window.document.body, function (n) { return n.value === 'accepted'; })[0];
+  var confirmBtn = findAll(sb.window.document.body, function (n) { return n.id === 'r8x-dm-confirm'; })[0];
+  assert.ok(acceptRadio, 'radio accept no modal');
+  assert.ok(confirmBtn, 'botao confirmar no modal');
+  acceptRadio.checked = true;
+  confirmBtn._listeners.click[0]();
+  await flushAsync();
+  assert.equal(adapterCalls.length, 1, 'adapter chamado');
+  assert.equal(adapterCalls[0].documentId, SUPA_DOC_ID, 'documentId correto');
+  assert.equal(adapterCalls[0].decision, 'accepted', 'decision accepted');
+  assert.equal(adapterCalls[0].motivo, null, 'motivo null');
   assert.equal(reloadCalls, 1, 'reader recarregado apos sucesso');
-  assert.ok(setAppCalls >= 1, 'rerender (setApp) chamado');
-  assert.ok(toasts.some(function (t) { return t.kind === 'success'; }), 'toast de sucesso');
+  assert.ok(setAppCalls >= 1, 'rerender chamado');
 });
 
-test('G23-D-B: rejeitar nuvem cancelado (prompt null) NAO chama RPC', async function () {
+test('G23-D-B: rejeitar nuvem cancelado NAO chama adapter', async function () {
   var sb = makeScreenSandbox([makeSupaDoc()]);
-  var calls = 0;
-  sb.window.RAVATEX_DOCUMENTS.decideDocumentInCloud = function () { calls++; return Promise.resolve({ ok: true }); };
-  sb.window.prompt = function () { return null; };
+  var adapterCalls = 0;
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () { adapterCalls++; return Promise.resolve({ ok: true }); };
   sb.window.setApp = function () {};
   var container = new FakeNode('div');
   sb.container = container;
   var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   findAll(result, findAction('rejeitar-documento-nuvem'))[0]._listeners.click[0]();
   await flushAsync();
-  assert.equal(calls, 0, 'RPC nao chamada quando cancelado');
+  var cancelBtn = findAll(sb.window.document.body, function (n) { return n.id === 'r8x-dm-cancel'; })[0];
+  assert.ok(cancelBtn, 'botao cancelar no modal');
+  cancelBtn._listeners.click[0]();
+  await flushAsync();
+  assert.equal(adapterCalls, 0, 'adapter nao chamado');
 });
 
-test('G23-D-B: rejeitar nuvem com motivo vazio NAO chama RPC e avisa', async function () {
+test('G23-D-B: rejeitar nuvem com motivo vazio mostra erro no modal e NAO chama adapter', async function () {
   var sb = makeScreenSandbox([makeSupaDoc()]);
-  var calls = 0;
-  var toasts = [];
-  sb.window.RAVATEX_DOCUMENTS.decideDocumentInCloud = function () { calls++; return Promise.resolve({ ok: true }); };
-  sb.window.prompt = function () { return '   '; };
-  sb.window.toast = function (msg, kind) { toasts.push({ msg: msg, kind: kind }); };
+  var adapterCalls = 0;
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () { adapterCalls++; return Promise.resolve({ ok: true }); };
   sb.window.setApp = function () {};
   var container = new FakeNode('div');
   sb.container = container;
   var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   findAll(result, findAction('rejeitar-documento-nuvem'))[0]._listeners.click[0]();
   await flushAsync();
-  assert.equal(calls, 0, 'RPC nao chamada com motivo vazio');
-  assert.ok(toasts.some(function (t) { return t.kind === 'error' && t.msg.indexOf('motivo') >= 0; }),
-    'toast avisando que rejeicao exige motivo');
+  var rejectRadio = findAll(sb.window.document.body, function (n) { return n.value === 'rejected'; })[0];
+  var confirmBtn = findAll(sb.window.document.body, function (n) { return n.id === 'r8x-dm-confirm'; })[0];
+  assert.ok(rejectRadio, 'radio reject no modal');
+  rejectRadio.checked = true;
+  confirmBtn._listeners.click[0]();
+  await flushAsync();
+  var errorEl = findAll(sb.window.document.body, function (n) { return n.id === 'r8x-dm-error'; })[0];
+  assert.ok(errorEl, 'elemento de erro no modal');
+  assert.ok(errorEl.textContent.length > 0, 'mensagem de erro exibida');
+  assert.equal(adapterCalls, 0, 'adapter nao chamado');
 });
 
-test('G23-D-B: rejeitar nuvem com motivo valido chama decideDocumentInCloud(rejected)', async function () {
+test('G23-D-B: rejeitar nuvem com motivo valido chama adapter', async function () {
   var sb = makeScreenSandbox([makeSupaDoc()]);
-  var calls = [];
+  var adapterCalls = [];
   var reloadCalls = 0;
-  sb.window.RAVATEX_DOCUMENTS.decideDocumentInCloud = function (id, status, motivo) {
-    calls.push({ id: id, status: status, motivo: motivo });
-    return Promise.resolve({ ok: true, status: status });
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function (envelope) {
+    adapterCalls.push(envelope);
+    return Promise.resolve({ ok: true, outcome: 'created' });
   };
   sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
-    reloadCalls++; return Promise.resolve({ ok: true });
+    reloadCalls++;
+    return Promise.resolve({ ok: true });
   };
-  sb.window.prompt = function () { return 'Arquivo ilegivel'; };
-  sb.window.toast = function () {};
   sb.window.setApp = function () {};
   var container = new FakeNode('div');
   sb.container = container;
   var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   findAll(result, findAction('rejeitar-documento-nuvem'))[0]._listeners.click[0]();
   await flushAsync();
-  assert.equal(calls.length, 1, 'RPC chamada com motivo valido');
-  assert.equal(calls[0].status, 'rejected', 'status rejected');
-  assert.equal(calls[0].motivo, 'Arquivo ilegivel', 'motivo repassado');
-  assert.equal(reloadCalls, 1, 'reader recarregado apos sucesso');
+  var rejectRadio = findAll(sb.window.document.body, function (n) { return n.value === 'rejected'; })[0];
+  var motivoTa = findAll(sb.window.document.body, function (n) { return n.id === 'r8x-dm-motivo'; })[0];
+  var confirmBtn = findAll(sb.window.document.body, function (n) { return n.id === 'r8x-dm-confirm'; })[0];
+  rejectRadio.checked = true;
+  motivoTa.value = 'Arquivo ilegivel';
+  confirmBtn._listeners.click[0]();
+  await flushAsync();
+  assert.equal(adapterCalls.length, 1, 'adapter chamado');
+  assert.equal(adapterCalls[0].decision, 'rejected', 'decision rejected');
+  assert.equal(adapterCalls[0].motivo, 'Arquivo ilegivel', 'motivo repassado');
+  assert.equal(reloadCalls, 1, 'reader recarregado');
 });
 
-test('G23-D-B: erro admin_required mostra toast e NAO recarrega o reader', async function () {
+test('G23-D-B: erro admin_required mostra erro no modal e NAO recarrega reader', async function () {
   var sb = makeScreenSandbox([makeSupaDoc()]);
   var reloadCalls = 0;
-  var toasts = [];
-  sb.window.RAVATEX_DOCUMENTS.decideDocumentInCloud = function () {
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () {
     return Promise.resolve({ ok: false, error: 'admin_required' });
   };
   sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () {
-    reloadCalls++; return Promise.resolve({ ok: true });
+    reloadCalls++;
+    return Promise.resolve({ ok: true });
   };
-  sb.window.toast = function (msg, kind) { toasts.push({ msg: msg, kind: kind }); };
   sb.window.setApp = function () {};
   var container = new FakeNode('div');
   sb.container = container;
   var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   findAll(result, findAction('aceitar-documento-nuvem'))[0]._listeners.click[0]();
   await flushAsync();
-  assert.equal(reloadCalls, 0, 'nao recarrega o reader em erro');
-  assert.ok(toasts.some(function (t) {
-    return t.kind === 'error' && t.msg.indexOf('administradores') >= 0;
-  }), 'toast admin_required mapeado');
+  var acceptRadio = findAll(sb.window.document.body, function (n) { return n.value === 'accepted'; })[0];
+  var confirmBtn = findAll(sb.window.document.body, function (n) { return n.id === 'r8x-dm-confirm'; })[0];
+  acceptRadio.checked = true;
+  confirmBtn._listeners.click[0]();
+  await flushAsync();
+  var errorEl = findAll(sb.window.document.body, function (n) { return n.id === 'r8x-dm-error'; })[0];
+  assert.ok(errorEl, 'elemento de erro no modal');
+  assert.ok(errorEl.textContent.length > 0, 'mensagem de erro exibida');
+  assert.equal(reloadCalls, 0, 'nao recarrega reader');
 });
 
-test('G23-D-B: doc Supabase NAO usa saveDocumentDecision/removeDocumentDecision', async function () {
+test('G23-D-B: doc Supabase usa adapter, NAO saveDocumentDecision/removeDocumentDecision', async function () {
   var sb = makeScreenSandbox([makeSupaDoc()]);
+  var adapterCalls = 0;
   var saveCalls = 0;
   var removeCalls = 0;
+  sb.window.RAVATEX_DOCUMENTS.registerDocumentDecisionInCloud = function () { adapterCalls++; return Promise.resolve({ ok: true, outcome: 'created' }); };
   sb.window.RAVATEX_DOCUMENTS.saveDocumentDecision = function () { saveCalls++; return { ok: true }; };
   sb.window.RAVATEX_DOCUMENTS.removeDocumentDecision = function () { removeCalls++; return { ok: true }; };
-  sb.window.RAVATEX_DOCUMENTS.decideDocumentInCloud = function () { return Promise.resolve({ ok: true }); };
   sb.window.RAVATEX_DOCUMENTS.loadReceivedDocumentsFromSupabase = function () { return Promise.resolve({ ok: true }); };
   sb.window.setApp = function () {};
   var container = new FakeNode('div');
@@ -1586,8 +1633,14 @@ test('G23-D-B: doc Supabase NAO usa saveDocumentDecision/removeDocumentDecision'
   var result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
   findAll(result, findAction('aceitar-documento-nuvem'))[0]._listeners.click[0]();
   await flushAsync();
-  assert.equal(saveCalls, 0, 'nao grava decisao local para doc Supabase');
-  assert.equal(removeCalls, 0, 'nao remove decisao local para doc Supabase');
+  var acceptRadio = findAll(sb.window.document.body, function (n) { return n.value === 'accepted'; })[0];
+  var confirmBtn = findAll(sb.window.document.body, function (n) { return n.id === 'r8x-dm-confirm'; })[0];
+  acceptRadio.checked = true;
+  confirmBtn._listeners.click[0]();
+  await flushAsync();
+  assert.equal(adapterCalls, 1, 'adapter chamado para doc Supabase');
+  assert.equal(saveCalls, 0, 'nao grava decisao local');
+  assert.equal(removeCalls, 0, 'nao remove decisao local');
 });
 
 test('G23-D-B: doc manual continua usando saveDocumentDecision (localStorage), sem nuvem', function () {

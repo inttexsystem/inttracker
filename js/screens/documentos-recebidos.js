@@ -748,37 +748,143 @@
     return 'Não foi possível registrar a decisão.';
   }
 
-  // Decisao em nuvem (Supabase). NAO usa localStorage nem statusOverrides:
-  // a verdade vem do servidor via reload do reader apos a RPC.
-  function runCloudDecision(btn, doc, status, motivo) {
+  // Cloud decision via canonical controller + modal + adapter.
+  // NAO usa localStorage, statusOverrides, window.prompt, nem
+  // decideDocumentInCloud diretamente.
+  var _cloudDecisionController = null;
+  var _cloudDecisionModal = null;
+  var _cloudDecisionRestoreAttempted = false;
+
+  function getCloudDecisionController() {
+    if (!_cloudDecisionController) {
+      var api = window.RAVATEX_DOCUMENTS;
+      if (!api || typeof api.createDocumentDecisionController !== 'function' ||
+          typeof api.documentDecisionCommand !== 'object' ||
+          typeof api.registerDocumentDecisionInCloud !== 'function') {
+        return null;
+      }
+      _cloudDecisionController = api.createDocumentDecisionController({
+        commandLifecycle: api.documentDecisionCommand,
+        decisionAdapter: { register: api.registerDocumentDecisionInCloud },
+      });
+    }
+    return _cloudDecisionController;
+  }
+
+  function restoreCloudDecisionRuntime(docs) {
+    var controller = getCloudDecisionController();
+    if (!controller || _cloudDecisionRestoreAttempted) return controller;
+    _cloudDecisionRestoreAttempted = true;
+
     var api = window.RAVATEX_DOCUMENTS;
-    if (!api || typeof api.decideDocumentInCloud !== 'function') {
+    var activeDecision = null;
+    var pendingR = api.documentDecisionCommand.getPendingCommand();
+    if (pendingR && pendingR.ok && pendingR.envelope && Array.isArray(docs)) {
+      for (var di = 0; di < docs.length; di++) {
+        if (docs[di].id === pendingR.envelope.documentId) {
+          activeDecision = docs[di].raw && docs[di].raw._ravatex_server_decision || null;
+          break;
+        }
+      }
+    }
+
+    var reconcileR = controller.restorePending(activeDecision);
+    if (reconcileR && reconcileR.state === 'succeeded') {
+      if (typeof api.loadReceivedDocumentsFromSupabase === 'function') {
+        api.loadReceivedDocumentsFromSupabase().then(function () { rerender(); });
+      } else {
+        rerender();
+      }
+    }
+    return controller;
+  }
+
+  function getCloudDecisionModal() {
+    if (!_cloudDecisionModal) {
+      var api = window.RAVATEX_DOCUMENTS;
+      if (!api || typeof api.createDocumentDecisionModal !== 'function') {
+        return null;
+      }
+      _cloudDecisionModal = api.createDocumentDecisionModal({ document: window.document });
+    }
+    return _cloudDecisionModal;
+  }
+
+  function handleCloudDecision(doc) {
+    var controller = getCloudDecisionController();
+    var modal = getCloudDecisionModal();
+    if (!controller || !modal) {
       if (typeof window.toast === 'function') window.toast('Falha de comunicação.', 'error');
       return;
     }
-    if (btn) btn.disabled = true;
-    api.decideDocumentInCloud(doc.id, status, motivo).then(function (result) {
-      if (result && result.ok) {
-        if (typeof window.toast === 'function') {
-          window.toast(status === 'accepted' ? 'Documento aceito.' : 'Documento rejeitado.',
-            status === 'accepted' ? 'success' : 'info');
-        }
-        var reload = typeof api.loadReceivedDocumentsFromSupabase === 'function'
-          ? api.loadReceivedDocumentsFromSupabase() : null;
-        if (reload && typeof reload.then === 'function') {
-          reload.then(function () { rerender(); });
-        } else {
-          rerender();
-        }
+
+    var snapshot = {
+      documentId: doc.id,
+      activeDecision: doc.raw && doc.raw._ravatex_server_decision || null,
+    };
+
+    var currentState = controller.getState();
+    if (currentState.state === 'uncertain' && currentState.documentId !== doc.id) {
+      if (typeof window.toast === 'function') window.toast('Há uma decisão pendente para outro documento.', 'warning');
+      return;
+    }
+
+    if (!(currentState.state === 'uncertain' && currentState.documentId === doc.id)) {
+      var openR = controller.open(snapshot);
+      if (!openR.ok || openR.state === 'failed') {
+        if (typeof window.toast === 'function') window.toast('Falha de comunicação.', 'error');
         return;
       }
-      if (btn) btn.disabled = false;
-      if (typeof window.toast === 'function') {
-        window.toast(cloudDecisionErrorMessage(result && result.error), 'error');
-      }
-    }).catch(function () {
-      if (btn) btn.disabled = false;
-      if (typeof window.toast === 'function') window.toast('Falha de comunicação.', 'error');
+    }
+
+    var api = window.RAVATEX_DOCUMENTS;
+    var docLabel = doc.filename_original || doc.id;
+    modal.open({ documentId: docLabel }, {
+      onConfirm: function (draft) {
+        modal.setBusy(true);
+        var ctrlState = controller.getState().state;
+        var submitPromise = ctrlState === 'uncertain' ? controller.retry() : controller.submit(draft);
+        submitPromise.then(function (result) {
+          var state = result.state;
+          if (state === 'succeeded') {
+            if (result.closeModal) {
+              modal.close();
+            }
+            if (typeof api.loadReceivedDocumentsFromSupabase === 'function') {
+              api.loadReceivedDocumentsFromSupabase().then(function () { rerender(); });
+            } else {
+              rerender();
+            }
+            return;
+          }
+          if (state === 'stale' || state === 'conflict') {
+            modal.close();
+            return;
+          }
+          if (state === 'uncertain') {
+            modal.setBusy(false);
+            modal.setOutcome('Falha de comunicação.', 'warning');
+            return;
+          }
+          modal.setBusy(false);
+          modal.setError(cloudDecisionErrorMessage(result.error));
+        }).catch(function () {
+          modal.setBusy(false);
+          modal.setError('Falha de comunicação.');
+        });
+      },
+      onCancel: function () {
+        var st = controller.getState().state;
+        if (st === 'submitting' || st === 'uncertain') {
+          return { closeModal: false };
+        }
+        if (st === 'stale' || st === 'conflict') {
+          controller.acknowledge();
+          return;
+        }
+        controller.cancel();
+        return;
+      },
     });
   }
 
@@ -876,13 +982,7 @@
       if (doc.status === 'pending' && doc.hasRealId) {
         var rejeitarNuvemBtn;
         rejeitarNuvemBtn = iconButton('Rejeitar', SVG_X, function () {
-          var motivo = typeof window.prompt === 'function' ? window.prompt('Motivo da rejeição:') : '';
-          if (motivo === null) return;
-          if (typeof motivo !== 'string' || !motivo.trim()) {
-            if (typeof window.toast === 'function') window.toast('Rejeição exige um motivo.', 'error');
-            return;
-          }
-          runCloudDecision(rejeitarNuvemBtn, doc, 'rejected', motivo);
+          handleCloudDecision(doc);
         }, 'color:#d6403a;border-color:#f0cfcd;', {
           'data-action': 'rejeitar-documento-nuvem',
           'data-document-id': doc.id,
@@ -891,7 +991,7 @@
 
         var aceitarNuvemBtn;
         aceitarNuvemBtn = iconButton('Aceitar', SVG_CHECK, function () {
-          runCloudDecision(aceitarNuvemBtn, doc, 'accepted', null);
+          handleCloudDecision(doc);
         }, 'color:#18794a;border-color:#a7d8bd;', {
           'data-action': 'aceitar-documento-nuvem',
           'data-document-id': doc.id,
@@ -1734,6 +1834,7 @@
     ensureScanLogoutCancellation();
     var container = window.el('div', {});
     var docs = allDocs();
+    restoreCloudDecisionRuntime(docs);
     var visible = filteredDocs(docs);
 
     var page = window.el('div', { style: 'width:100%;max-width:1600px;margin:0 auto;' });
