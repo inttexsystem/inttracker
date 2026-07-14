@@ -12,20 +12,21 @@ O conteúdo histórico abaixo não determina o estado atual.
 - **Workspace:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28`
 - **Branch:** `work/g28-document-qualification`
 - **Remoto permitido:** nenhum push sem autorização expressa nesta cadeia
-- **Última fase aceita:** `G28-B5 — HUMAN DECISION COMMAND CONTRACT` — `CLOSED / ACCEPTED`
+- **Última fase aceita:** `G28-B5-D4 — CONTROLLED CANONICAL DECISION RUNTIME INTEGRATION` — `CLOSED / ACCEPTED`
 - **G28-B5-B1:** `CLOSED / ACCEPTED`; commit técnico `b247e43504c0afcc0d25e95f8012f93a09eb0692` — `Add idempotent document decision command contract`
 - **G28-B5-B2:** `CLOSED / ACCEPTED`; migration `20260714012641 document_decision_command` aplicada e verificada no staging `ucrjtfswnfdlxwtmxnoo`
+- **G28-D4:** `CLOSED / ACCEPTED`; commit técnico `ae907b82613c87c5a9f2cd37031186ef94047db7` — `Wire canonical document decision runtime`
 - **Produção:** projeto `bhgifjrfagkzubpyqpew` não acessado
 - **Contrato aceito:** coluna nullable `document_decisions.command_id`, índice único parcial `document_decisions_command_id_uidx` e RPC canônica `registrar_decisao_documento(...)`; validações estrutural, de autorização, idempotência, atomicidade e concorrência A/B/C aprovadas
-- **Limpeza:** fixtures sintéticas removidas; 39 candidates, 0 decisions e zero resíduos verificados após o gate
-- **Runtime:** nenhum consumidor foi redirecionado; UI e modal não integram a RPC canônica; `decidir_documento` permanece ativa e não idempotente
+- **Runtime D4:** somente documentos de origem `_ravatex_source === 'supabase'` em `#/documentos/recebidos` usam controller D3, lifecycle D2, adapter D1 e modal; `restorePending(activeDecision)` preserva pending `uncertain` e o retry reusa `commandId`. O legado `saveDocumentDecision`/`statusOverrides` permanece independente.
+- **Validação D4:** TDD RED/GREEN e gate final local: `node --check`, sete suítes focadas, `454 pass, 0 fail`; revisão independente OpenCode `opencode-go/deepseek-v4-flash` retornou `APPROVE`; nenhuma operação de rede/Supabase/push nesta fase.
 - **Push:** não executado
-- **Próxima decisão:** requer decisão arquitetural antes de qualquer nova implementação; B6-A, B6-B e B8 permanecem fases separadas, sem autorização automática de UI, modal, integração runtime, linking ou revogação/correção
+- **Próxima decisão:** D5 e quaisquer mudanças remotas, de banco, linking, undo/revogação ou ampliação de UI permanecem sem autorização.
 
 ### Débitos relevantes
 
 - Migrations 49 e 50 — aplicadas e verificadas em staging; não aplicadas em produção por esta cadeia.
-- Integração da RPC canônica à UI/runtime e destino da RPC legada — pendentes de decisão arquitetural.
+- Evoluções posteriores de UI/runtime, destino da RPC legada e qualquer linking/revogação requerem nova decisão arquitetural.
 - Push — não autorizado nesta cadeia.
 
 ### Referência histórica
