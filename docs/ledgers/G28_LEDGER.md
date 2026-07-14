@@ -448,3 +448,59 @@ risco residual e próxima fase indicada no fechamento.
 - **Corrected residual risk:** external consumers of `window.RAVATEX_DOCUMENTS.decideDocumentInCloud` may exist and will no longer find that export. The prior residual risk statement incorrectly described the risk as concerning SQL `decidir_documento`.
 - **SQL `decidir_documento`** remains preserved.
 - **Nature of prior entry:** the prior entry was not a technical-state change; it contained phase identifier imprecision and residual risk scope imprecision only. No code, tests, SQL, or package files were modified by this correction.
+
+---
+
+## 2026-07-14 — G28-B5-D5 — Consolidated regression and residual legacy decision closeout
+
+- **Gate:** `CLOSED / ACCEPTED`.
+- **B1 — explicit source boundary:** `CLOSED / ACCEPTED`.
+- **B2 — source-gated local decision helpers:** `CLOSED / ACCEPTED_WITH_PREEXISTING_TEST_DEBT`.
+- **B3 — removal of statusOverrides:** `CLOSED / ACCEPTED`.
+- **B4 — removal of legacy JavaScript decision RPC consumer:** `CLOSED / ACCEPTED`.
+- **B5 — consolidated regression and residual legacy decision:** `CLOSED / ACCEPTED`.
+- **Technical commits:**
+  - B1: `b247e43504c0afcc0d25e95f8012f93a09eb0692` — `Add idempotent document decision command contract`
+  - B2: `c51542244ab6e3c683a1a0a54fcc634df6f7478d` — `G28-B5-D5-B2: require explicit legacy source for local decisions`
+  - B3: `3532aa8417281fbc0f143963a1e7ef44b73cc2e7` — `G28-B5-D5-B3: remove local decision status overrides`
+  - B4: `3d64b62f25516ef0d18e2613fc50298e2faee16a` — `G28-B5-D5-B4: remove legacy document decision RPC runtime`
+- **Documentary closeout commits:**
+  - B4-C: `18afe021f54e422b7fe54ed60f26e49e402f41db` — `G28-B5-D5-B4-C: record legacy decision RPC runtime removal closeout`
+  - D5 (this closeout entry): documentary commit containing this entry; resolve the final HEAD with `git rev-parse HEAD` after commit.
+- **Syntax checks (all exit 0):**
+  - `node --check js/documents-supabase-decisions.js`
+  - `node --check js/documents-ingestor.js`
+  - `node --check js/screens/documentos-recebidos.js`
+- **Focused tests (all exit 0):**
+  - `documents-supabase-decisions.test.js`: 47 pass / 0 fail
+  - `documentos-recebidos-decision-integration.test.js`: 11 / 0
+  - `documentos-recebidos.smoke.js`: 135 / 0
+  - `document-legacy-decision-rpc-runtime-boundary.test.js`: 3 / 0
+  - `documents-decision-controller.test.js`: 68 / 0
+  - `documentos-recebidos-decision-modal.test.js`: 41 / 0
+  - `documents-decision-command.test.js`: 96 / 0
+  - `documents-supabase-reader.test.js`: 46 / 0
+  - `document-decision-command-contract.test.js`: 23 / 0
+  - `document-queue-read-model.test.js`: 48 / 0
+  - `documentos-recebidos-source-boundary.test.js`: 14 / 0
+  - `documentos-recebidos-status-overrides-removal.test.js`: 12 / 0
+  - `documents-ingestor-local-decision-boundary.test.js`: 40 / 0
+  - **Total: 584 pass / 0 fail**
+- **Runtime static counts:**
+  - `D5_REGRESSION_GREEN`
+  - `RUNTIME_DECIDIR_DOCUMENTO_CALLS=0`
+  - `RUNTIME_DECIDE_DOCUMENT_IN_CLOUD_EXPORTS=0`
+  - `RUNTIME_STATUS_OVERRIDES=0`
+  - `CANONICAL_REGISTER_ADAPTER_PRESENT=1`
+  - `CANONICAL_REGISTER_RPC_CALL_PRESENT=1`
+  - `CANONICAL_UNDO_ADAPTER_PRESENT=1`
+  - `CANONICAL_UNDO_RPC_CALL_PRESENT=1`
+  - `SQL_DECIDIR_DOCUMENTO_PRESENT=1`
+- **Known historical debt (not blocking, identical to baseline):**
+  - `tests/documents-ingestor.test.js`: 2 known failures
+  - `tests/g14-c-bridge-smoke.test.js`: 15 known fixture failures
+- **Binding residual decision:** The explicit manual/legacy local decision domain remains temporarily supported. Only documents explicitly classified as manual or legacy may read, write, or remove local decisions. Supabase, unknown, absent, empty, null, invalid, and g22-auto sources must remain fail-closed and must never use local decision persistence. D5 does not authorize migration, automatic conversion, database removal, or removal of the explicit legacy local decision domain. Any future migration or removal of the legacy domain requires a separate read-only diagnosis and explicit architect authorization. This does not preserve or authorize silent fallback, source inference, local persistence for Supabase/unknown, visual parallel state, `decideDocumentInCloud`, JavaScript calls to `decidir_documento`, aliases, proxies, wrappers, or stubs.
+- **Residual external-consumer risk:** External consumers of `window.RAVATEX_DOCUMENTS.decideDocumentInCloud` outside this repository may exist and will no longer find that export.
+- **SQL and canonical register/undo preservation:** SQL `decidir_documento` preserved (not removed, not migrated). Canonical register adapter `registerDocumentDecisionInCloud`/`registrar_decisao_documento` preserved. Canonical undo adapter `undoDocumentDecisionInCloud`/`desfazer_decisao_documento` preserved.
+- **Access:** No remote access. No staging, production, Supabase, database, network, MCP, or push.
+- **Next phases:** B6 and B8 not started. No next phase authorized. Any future implementation requires separate architect authorization.
