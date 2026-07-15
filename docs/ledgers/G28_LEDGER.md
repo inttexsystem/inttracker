@@ -698,3 +698,14 @@ risco residual e próxima fase indicada no fechamento.
 - **Decision:** `G28-C — CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT`.
 - **Basis:** staging database/canonical projection matrix 16/16 PASS; no product, schema, RPC, migration, ownership or architectural defect; harness-only corrections; zero fixture residue; prior append-only ledger proof and canonical closeout commit `a7d7caa8984e56b44c0302bff5d578a8be5ff536`.
 - **Residual / authority:** authenticated administrative browser smoke remains a non-blocking tooling debt. G28-D and later phases remain not authorized; no push and no production access.
+
+---
+
+## 2026-07-15 — G28-D — Release contract discovery and release-candidate preparation
+
+- **Gate:** `RELEASE CONTRACT DISCOVERY COMPLETE / BLOCKED BY SPECIFIC MISSING DEPLOYMENT DEFINITION`; this is not acceptance, publication, or authorization of later phases.
+- **Baseline / accepted lineage:** B8 technical `f985f8b857f83d977936eae47ea830a5cb6ba4c3`; B8 staging closeout `5c30c147601ac5b31e9fb09569cc057dee02de09`; C closeout `a7d7caa8984e56b44c0302bff5d578a8be5ff536`; C acceptance `d5ec09f803c2c64697ee3605b7d4ecfee168a66a`.
+- **Discovery:** static root app has no build command. Historical repository text names GitHub Pages/main, but labels itself legacy; no current canonical publication mapping, exact push contract, production migration 51/52 state/apply procedure, rollback contract, or authenticated post-deploy smoke is defined in repository evidence.
+- **Candidate:** `docs/releases/G28_D_RELEASE_CANDIDATE.md` records the source-backed fields, exact unknowns, migration prerequisites, local remote-ref relation, readiness checks and a deliberately empty publication-command contract.
+- **Local checks:** selected B4–B8 document/link battery `901` pass / `0` fail; five B8 syntax checks and `git diff --check` passed. `services/documents-ingestor` combined `npm run build; npm test` timed out locally after 120 seconds without output; no dependency installation, network, production, Supabase access, push, tag, or publication occurred.
+- **Blocker / next authority:** architect must define the current production provider/target/ref/command and authorize a production migration 51/52 verification/apply procedure before a publication plan can exist. Later phases remain unauthorized.
