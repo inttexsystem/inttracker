@@ -709,3 +709,25 @@ risco residual e próxima fase indicada no fechamento.
 - **Candidate:** `docs/releases/G28_D_RELEASE_CANDIDATE.md` records the source-backed fields, exact unknowns, migration prerequisites, local remote-ref relation, readiness checks and a deliberately empty publication-command contract.
 - **Local checks:** selected B4–B8 document/link battery `901` pass / `0` fail; five B8 syntax checks and `git diff --check` passed. `services/documents-ingestor` combined `npm run build; npm test` timed out locally after 120 seconds without output; no dependency installation, network, production, Supabase access, push, tag, or publication occurred.
 - **Blocker / next authority:** architect must define the current production provider/target/ref/command and authorize a production migration 51/52 verification/apply procedure before a publication plan can exist. Later phases remain unauthorized.
+
+---
+
+## 2026-07-15 — G28-STATE-RECONCILIATION-R1 — Canonical phase state reconciliation
+
+- **Gate:** RECONCILIATION EXECUTED (docs-only; no code, SQL, migration, test, staging, production, push, remote)
+- **Root cause:** documented canonical-state divergence. After G28-C architect acceptance and G28-D release-contract discovery, the master plan's CURRENT EXECUTION CHECKPOINT, phase matrix, PRÓXIMA AÇÃO section, AGENT_HANDOFF.md and PROJECT_STATE.md exhibited stale claims: checkpoint still described B7 as last accepted and B8 as active; matrix showed C as DEFERRED and D as DEFERRED; handoff cited B7 as last accepted and stated B8 acceptance pending; B8 classification was still READY FOR ARCHITECT ACCEPTANCE when it had been subsumed by C's gate.
+- **Historical checkpoint:** `d5ec09f803c2c64697ee3605b7d4ecfee168a66a` (C acceptance).
+- **Discovery HEAD:** `b27e79fdba1ed8fb8a6232d8e0b8ca4b37ac3a2c` (pre-reconciliation HEAD; worktree/index clean; no untracked).
+- **Classification:** `MATERIAL_DIVERGENCE` — the canonical phase state was recorded differently across four authoritative documents.
+- **B8 / C relationship:** B8 is `TECHNICALLY COMPLETED / ACCEPTANCE SUBSUMED BY G28-C`. G28-C's staging validation matrix (16/16 PASS) explicitly validated and accepted the correction, revocation, restoration and audit capabilities that B8 implemented. B8 is not pending; its capabilities were incorporated into C's gate and architectural acceptance. No separate B8 acceptance was invented.
+- **D discovery:** `RELEASE CONTRACT DISCOVERY COMPLETE / BLOCKED BY SPECIFIC MISSING DEPLOYMENT DEFINITION`. The release candidate `docs/releases/G28_D_RELEASE_CANDIDATE.md` records the source-backed discovery and the blocker list. No publication authorization is implied by the discovery state.
+- **D publication:** `NOT STARTED / NOT ACCEPTED / NOT AUTHORIZED`. No publication, push, production access, tag, release or deploy is authorized.
+- **Active functional phase:** `NONE`. G28-C is CLOSED; G28-D discovery is completed/blocked and does not constitute an active functional phase.
+- **Files updated:**
+  - `docs/architecture/DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md` — renamed stale CURRENT EXECUTION CHECKPOINT to HISTORICAL EXECUTION CHECKPOINT — SUPERSEDED; updated B8/C/D matrix rows; rewrote PRÓXIMA AÇÃO — ESTADO ATUAL.
+  - `PROJECT_STATE.md` — identified b27e79f as prior technical/documentary head; stated current reconciliation action G28-STATE-RECONCILIATION-R1; clarified no functional phase active and no next phase named.
+  - `AGENT_HANDOFF.md` — fixed last accepted phase to G28-C; classified B8 as subsumed by C; added nine-path continuity list with retransmission sentence; removed stale B8-acceptance-pending claim.
+  - `docs/ledgers/G28_LEDGER.md` — this entry (append-only).
+- **No activity:** no code, SQL, migration, runtime, test, staging, production, Supabase, network, MCP, or push executed. No functional tests, no browser, no remote, no deployment, no tag.
+- **Commit:** this closeout commit; resolve final HEAD with `git rev-parse HEAD` after commit. Do not invent future SHA.
+- **Next indicated:** after this reconciliation is committed, a new read-only reconciliation of the general backlog (`PEDIDO_PRODUCTION_FLOW_BACKLOG.md` and other fronts) shall choose the next functional front. Publication is not the next action.

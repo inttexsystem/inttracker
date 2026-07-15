@@ -26,30 +26,26 @@
 
 ---
 
-## CURRENT EXECUTION CHECKPOINT
+## HISTORICAL EXECUTION CHECKPOINT — SUPERSEDED
 
-**Data:** 2026-07-14
+> **Este checkpoint foi superado.** O estado canônico posterior está registrado no cabeçalho deste plano (linhas 1–25) e em `PROJECT_STATE.md`. G28-C é `CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT`; G28-D discovery está `COMPLETED / BLOCKED_BY_MISSING_DEPLOYMENT_DEFINITION`; G28-B8 foi subsumido pela aceitação de G28-C. Nenhuma fase funcional está ativa. Consulte o cabeçalho e `PROJECT_STATE.md` para o estado atual.
+
+**Data:** 2026-07-14 (HISTÓRICO)
 **Baseline técnico:** `9ef61e1896af631bc5aeeced4af93c77051f4de4` (branch `work/g28-document-qualification`; worktree limpo antes da implementação B8).
 
-**Última fase aceita:** `G28-B7 — exibição nas superfícies — CLOSED / ACCEPTED_WITH_NONBLOCKING_REMOTE_SMOKE_DEBT` (aceite arquitetural explícito em 2026-07-14; parcial `ed35f04`, conclusão `9ef61e1`).
+**Última fase aceita neste checkpoint:** `G28-B7 — exibição nas superfícies — CLOSED / ACCEPTED_WITH_NONBLOCKING_REMOTE_SMOKE_DEBT` (aceite arquitetural explícito em 2026-07-14; parcial `ed35f04`, conclusão `9ef61e1`).
 
-**Fase ativa:** `G28-B8 — correção, revogação, restauração e auditoria — IMPLEMENTED / TESTED (local) / READY FOR ARCHITECT ACCEPTANCE`.
+**Fase ativa neste checkpoint:** `G28-B8 — correção, revogação, restauração e auditoria — IMPLEMENTED / TESTED (local) / READY FOR ARCHITECT ACCEPTANCE`.
 
 **Incremento G28-B8:** `db/52` aplicada uma vez em `ucrjtfswnfdlxwtmxnoo` (registry `20260715024449`), sem backfill/alteração B5. Estrutura/RPC/grants e matriz `G28-B8-VERIFY` 18/18 verificadas diretamente; a fronteira candidate/event/decision permaneceu intacta e as fixtures foram limpas. O único débito é `LIVE_B8_MODAL_SMOKE_BLOCKED_BY_TOOLING`.
 
 **Evidência de staging (B6/B8):** projeto `ucrjtfswnfdlxwtmxnoo`, sem acesso a produção; migration 51 preservada e `db/52` aplicada/verificada. B8: matriz funcional RPC 18/18, sem mutar campos Ingestor/decisão, sem efeitos operacionais e cleanup de fixtures zero. B6: wrapper atômico passou no caminho interno de cinco argumentos após a evolução da assinatura.
 
-**Próxima ação autorizável:** aceite arquitetural de `G28-B8` (correção/revogação/restauração/auditoria implementadas e testadas localmente). Nenhuma fase posterior a B8 é autorizada por este checkpoint.
-
-**Decisões de arquiteto em aberto:** `OPEN_ARCHITECT_DECISIONS: NONE`.
-
-**Fases deferred/not authorized:**
-- **G28-C:** `PLANNED / DEFERRED` — validação real em staging; aguarda aceite de B8.
-- **G28-D:** `PLANNED / DEFERRED` — publicação; aguarda C.
+**Decisões de arquiteto em aberto neste checkpoint:** `OPEN_ARCHITECT_DECISIONS: NONE`.
 
 **Limite verificado:** os testes locais cobrem os contratos B6/B7/B8; a aplicação e a verificação de `db/52` em staging, e o smoke autenticado do modal de administração, são exigidos e não autorizam produção, backfill ou reparo histórico.
 
-**Regras de autoridade:**
+**Regras de autoridade neste checkpoint:**
 - Git comprova branch/HEAD/index/worktree vivos;
 - `PROJECT_STATE.md` detém o estado operacional atual;
 - `AGENT_HANDOFF.md` detém a continuidade;
@@ -1022,9 +1018,9 @@ Qualificadores compostos podem detalhar um estado base — por exemplo
 | G28-B5 | Persistência da decisão humana e dos vínculos canônicos Pedido/OP | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` (B5-D5 consolidated: B1–B5) | G28-B4 | `work/g28-document-qualification` @ `controle-tapetes-g28` | `7d3e0261b668a46a80208198352039dc1f352010` | Decisão-comando canônica, boundary de source explícito, remoção de statusOverrides e legacy RPC runtime aceitos; linking canônico não implementado | — |
 | G28-B6 | Vínculos canônicos Documento↔Pedido/OP + modal "Validar e vincular" | `DECIDED / IMPLEMENTED / TESTED / STAGING FUNCTIONALLY VERIFIED / ACCEPTED_WITH_NONBLOCKING_TEST_DEBT` | G28-B5 | `work/g28-document-qualification` @ `controle-tapetes-g28` | técnico `b2f180ed0e6f1c2ee6c02881d0199d1bfaf29366`; closeout staging `b130db44d32718ddf6d3e2bffb1439dac3a1948f` | staging `ucrjtfswnfdlxwtmxnoo`: matriz RPC 20/20, dupla propriedade e rollback do wrapper provados; modal autenticado bloqueado por tooling; sem correção | Aceito 2026-07-14; G28-B7 autorizado |
 | G28-B7 | Exibição nas superfícies (Documentos/Pedido/OP/timeline/buscas) | `CLOSED / ACCEPTED_WITH_NONBLOCKING_REMOTE_SMOKE_DEBT` | G28-B6 | `work/g28-document-qualification` @ `controle-tapetes-g28` | parcial `ed35f049397af4061ed6e8bb2d9ec3056c543724`; conclusão `9ef61e1896af631bc5aeeced4af93c77051f4de4` | read model canônico + superfícies Pedido/OP/timeline/busca; débito não bloqueante: smoke autenticado B7 em staging | Aceito 2026-07-14; G28-B8 autorizado |
-| G28-B8 | Correção, revogação, restauração e auditoria | `IMPLEMENTED / TESTED (local) / READY FOR ARCHITECT ACCEPTANCE` | G28-B7 | `work/g28-document-qualification` @ `controle-tapetes-g28` | commit técnico B8 (resolver com `git rev-parse HEAD`) | `db/52` (coluna `restored_from_revision_id` + evolução do escritor `registrar_vinculos_documento` + RPC `restaurar_vinculos_documento`); read model de auditoria; controller/modal de administração; wiring na fila central; bateria B4–B8 831/831; staging `db/52` + modal pendente por Hermes | Aceite arquitetural de B8 |
-| G28-C | Validação real em staging | `PLANNED / DEFERRED` | G28-B8 | a definir | — | — | Aguarda B8 |
-| G28-D | Publicação para o cliente acompanhar | `PLANNED / DEFERRED` | G28-C | a definir | — | — | Aguarda C |
+| G28-B8 | Correção, revogação, restauração e auditoria | `TECHNICALLY COMPLETED / ACCEPTANCE SUBSUMED BY G28-C` | G28-B7 | `work/g28-document-qualification` @ `controle-tapetes-g28` | commit técnico `f985f8b857f83d977936eae47ea830a5cb6ba4c3` | `db/52` aplicada e verificada em staging (`ucrjtfswnfdlxwtmxnoo`, registry `20260715024449`); matriz RPC 18/18; bateria B4–B8 831/831. As capacidades de correção, revogação, restauração e auditoria foram explicitamente validadas e aceitas na matriz de staging/projeções de G28-C (16/16 PASS). B8 não está pendente; sua aceitação foi subsumida pelo gate e aceite arquitetural de G28-C. | — (subsumido por G28-C) |
+| G28-C | Validação real em staging | `CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT` | G28-B8 | `work/g28-document-qualification` @ `controle-tapetes-g28` | closeout `a7d7caa8984e56b44c0302bff5d578a8be5ff536`; aceite `d5ec09f803c2c64697ee3605b7d4ecfee168a66a` | matriz staging/projeções 16/16 PASS; zero defeito material; sem alteração de produto, schema, RPC, migration ou arquitetura. Dívida não bloqueante: `AUTHENTICATED_BROWSER_SMOKE_BLOCKED_BY_TOOLING`. | — |
+| G28-D | Publicação para o cliente acompanhar | `RELEASE CONTRACT DISCOVERY COMPLETE / BLOCKED BY SPECIFIC MISSING DEPLOYMENT DEFINITION` (publicação: `NOT STARTED / NOT AUTHORIZED`) | G28-C | `work/g28-document-qualification` @ `controle-tapetes-g28` | release candidate `d5ec09f` (preparação `b27e79f`) | descoberta contratual concluída e registrada em `docs/releases/G28_D_RELEASE_CANDIDATE.md`. Bloqueio: falta mapeamento canônico de publicação e procedimento autorizado de migrations 51/52 em produção. Publicação, push, produção, tag e release não autorizados. | Definir contrato de publicação/produção (decisão de arquiteto) |
 | CAMADA 2 (A1–A7) | Administração de usuários e acessos | DEFERRED | Documentos estabilizado | — | — | — | Só após Camada 1 publicada |
 | CAMADA 3 (BK1–BK8) | Backup em nuvem e restauração testada | DEFERRED | Frente independente | — | — | — | Auditoria do app de origem |
 | CAMADA 4 (F0–F5) | Participação futura de fornecedores | DEFERRED | Documentos publicado | — | — | — | Operação interna nunca depende do fornecedor |
@@ -1083,19 +1079,21 @@ será considerado totalmente fechado quando:
 
 # PRÓXIMA AÇÃO — ESTADO ATUAL
 
-**G28-P0-R1, G28-B1, G28-B2, G28-B3 (subfases aceitas), G28-B4, G28-B5-D5, G28-B6 e
-G28-B7 foram aceitos** (G28-B7 em 2026-07-14, `CLOSED / ACCEPTED_WITH_NONBLOCKING_REMOTE_SMOKE_DEBT`;
-parcial `ed35f04`, conclusão `9ef61e1`). A fase ativa é **G28-B8 (correção, revogação,
-restauração e auditoria)**, `IMPLEMENTED / TESTED (local)`: `db/52` aditiva (coluna
-`restored_from_revision_id` + evolução DEFAULT-NULL do escritor único
-`registrar_vinculos_documento` + RPC `restaurar_vinculos_documento`), read model de
-auditoria, controller e modal de administração, e wiring apenas na fila central de
-Documentos — superfícies read-only de Pedido/OP não tocadas; correção/revogação/
-restauração exigem motivo e nunca apagam histórico nem tocam decisão/sugestão.
-Aplicação e verificação de `db/52` em staging e o smoke autenticado do modal
-permanecem pendentes (por Hermes). A próxima ação autorizável é **aceite arquitetural
-de G28-B8** (implementado e testado localmente); nenhuma fase posterior a B8 está
-autorizada e não deve ser inferida pela numeração do plano. `OPEN_ARCHITECT_DECISIONS: NONE`.
+**G28-P0-R1, G28-B1, G28-B2, G28-B3 (subfases aceitas), G28-B4, G28-B5-D5, G28-B6,
+G28-B7, G28-B8 e G28-C foram aceitos** (G28-C em 2026-07-15, `CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT`;
+closeout `a7d7caa`, aceite `d5ec09f`). G28-B8 está `TECHNICALLY COMPLETED / ACCEPTANCE SUBSUMED BY G28-C`:
+suas capacidades de correção, revogação, restauração e auditoria foram explicitamente
+validadas na matriz staging/projeções de G28-C (16/16 PASS) e aceitas no gate
+arquitetural de C. **Nenhuma fase funcional está ativa.** A ação corrente é esta
+reconciliação documental (`G28-STATE-RECONCILIATION-R1`). Após o fechamento desta
+reconciliação, uma nova reconciliação read-only do backlog geral (`PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
+e demais frentes) escolherá a próxima frente funcional. **Publicação não é a próxima
+ação e nenhuma implementação automática se segue.** `OPEN_ARCHITECT_DECISIONS: DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`.
+
+Fases aceitas: G28-P0, G28-A (rejeitado como contrato / retido como insumo diagnóstico), G28-B1, G28-B2,
+G28-B3 (subfases aceitas), G28-B4, G28-B5-D5, G28-B6, G28-B7, G28-B8 (subsumido por C), G28-C.
+G28-D discovery: `COMPLETED / BLOCKED_BY_MISSING_DEPLOYMENT_DEFINITION`. G28-D publicação: `NOT STARTED / NOT AUTHORIZED`.
+Fases posteriores: `DEFERRED / NOT AUTHORIZED`.
 
 Estado operacional atual: `PROJECT_STATE.md`.
 Continuidade: `AGENT_HANDOFF.md`.
