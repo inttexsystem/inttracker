@@ -73,6 +73,11 @@ const CLI_LIST  = path.join(ROOT, 'js', 'screens', 'cliente-pedidos-list.js');
 const CLI_TRACKING = path.join(ROOT, 'js', 'screens', 'cliente-pedido-tracking.js');
 const CLI_DETAIL = path.join(ROOT, 'js', 'screens', 'cliente-pedido-detail.js');
 const CLI_FORM  = path.join(ROOT, 'js', 'screens', 'cliente-pedido-form.js');
+// A3.1 (Camada 2): boot.js roteia #/cadastros/usuarios para
+// window.screenAdminUsuarios, extraído de screenCadastrosUsuarios.
+const ADMIN_USUARIOS_WRITES = path.join(ROOT, 'js', 'admin-usuarios-writes.js');
+const ADMIN_USUARIOS_MODAL = path.join(ROOT, 'js', 'screens', 'admin-usuarios-modal.js');
+const ADMIN_USUARIOS = path.join(ROOT, 'js', 'screens', 'admin-usuarios.js');
 
 const indexSrc   = fs.readFileSync(INDEX,  'utf8');
 const bootSrc    = fs.readFileSync(BOOT,   'utf8');
@@ -100,6 +105,9 @@ const cliListSrc  = fs.readFileSync(CLI_LIST,  'utf8');
 const cliTrackingSrc = fs.readFileSync(CLI_TRACKING, 'utf8');
 const cliDetailSrc = fs.readFileSync(CLI_DETAIL, 'utf8');
 const cliFormSrc  = fs.readFileSync(CLI_FORM,  'utf8');
+const adminUsuariosWritesSrc = fs.readFileSync(ADMIN_USUARIOS_WRITES, 'utf8');
+const adminUsuariosModalSrc  = fs.readFileSync(ADMIN_USUARIOS_MODAL,  'utf8');
+const adminUsuariosSrc       = fs.readFileSync(ADMIN_USUARIOS,        'utf8');
 
 function findScriptIdx(html, src) {
   const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}(?:\\?[^"]*)?"\\s*></script>`);
@@ -349,6 +357,9 @@ function makeBootChainSandbox() {
   vm.runInContext(systemScreensSrc, sandbox, { filename: 'js/screens/system-screens.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
+  vm.runInContext(adminUsuariosWritesSrc, sandbox, { filename: 'js/admin-usuarios-writes.js' });
+  vm.runInContext(adminUsuariosModalSrc,  sandbox, { filename: 'js/screens/admin-usuarios-modal.js' });
+  vm.runInContext(adminUsuariosSrc,       sandbox, { filename: 'js/screens/admin-usuarios.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
@@ -420,6 +431,42 @@ test('20. window.routes populado corretamente após o boot completo', () => {
     const tem = vm.runInContext(`!!window.routes['${rota}']`, sandbox);
     assert.equal(tem, true,
       `rota ${rota} não está em window.routes após boot`);
+  }
+});
+
+test('20a. #/cadastros/usuarios resolve para window.screenAdminUsuarios (cutover A3.1)', () => {
+  const { sandbox } = makeBootChainSandbox();
+  const renderName = vm.runInContext("window.routes['#/cadastros/usuarios'].render.name", sandbox);
+  assert.equal(renderName, 'screenAdminUsuarios',
+    'rota #/cadastros/usuarios deve resolver para screenAdminUsuarios (não mais screenCadastrosUsuarios)');
+});
+
+test('20b. index.html carrega os 3 módulos novos de admin-usuarios, na ordem writes → modal → screen, com cache-busting', () => {
+  const writesIdx = findScriptIdx(indexSrc, 'js/admin-usuarios-writes.js');
+  const modalIdx  = findScriptIdx(indexSrc, 'js/screens/admin-usuarios-modal.js');
+  const screenIdx = findScriptIdx(indexSrc, 'js/screens/admin-usuarios.js');
+  const cadIdx    = findScriptIdx(indexSrc, 'js/screens/cadastros.js');
+  const bootIdx   = findScriptIdx(indexSrc, 'js/boot.js');
+  assert.ok(writesIdx > 0, 'js/admin-usuarios-writes.js não encontrado em index.html');
+  assert.ok(modalIdx  > 0, 'js/screens/admin-usuarios-modal.js não encontrado em index.html');
+  assert.ok(screenIdx > 0, 'js/screens/admin-usuarios.js não encontrado em index.html');
+  assert.ok(cadIdx < writesIdx, 'admin-usuarios-writes.js deve vir depois de cadastros.js');
+  assert.ok(writesIdx < modalIdx, 'admin-usuarios-writes.js deve vir antes de admin-usuarios-modal.js');
+  assert.ok(modalIdx < screenIdx, 'admin-usuarios-modal.js deve vir antes de admin-usuarios.js');
+  assert.ok(screenIdx < bootIdx, 'admin-usuarios.js deve vir antes de boot.js');
+  for (const src of [
+    'js/admin-usuarios-writes.js', 'js/screens/admin-usuarios-modal.js', 'js/screens/admin-usuarios.js',
+  ]) {
+    const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}\\?v=[^"]+"\\s*></script>`);
+    assert.ok(re.test(indexSrc), `${src} deve ser carregado com query string de cache-busting (?v=)`);
+  }
+  // Cada um dos 3 é carregado EXATAMENTE UMA VEZ.
+  for (const src of [
+    'js/admin-usuarios-writes.js', 'js/screens/admin-usuarios-modal.js', 'js/screens/admin-usuarios.js',
+  ]) {
+    const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}(?:\\?[^"]*)?"\\s*></script>`, 'g');
+    const matches = indexSrc.match(re) || [];
+    assert.equal(matches.length, 1, `esperado 1 <script src="${src}">, encontrado ${matches.length}`);
   }
 });
 

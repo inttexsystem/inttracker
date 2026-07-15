@@ -85,6 +85,13 @@ const BOOT   = path.join(ROOT, 'js', 'boot.js');
 const PAINEL = path.join(ROOT, 'js', 'screens', 'painel.js');
 const OP_NOVA = path.join(ROOT, 'js', 'screens', 'op-nova.js');
 const OP_LATEX_ADMIN = path.join(ROOT, 'js', 'screens', 'op-latex-admin.js');
+// A3.1 (Camada 2): boot.js roteia #/cadastros/usuarios para
+// window.screenAdminUsuarios (js/screens/admin-usuarios.js), extraído
+// de screenCadastrosUsuarios. Os sandboxes de boot completo (testes 22
+// e 23) precisam carregar os 3 módulos novos para que a rota resolva.
+const ADMIN_USUARIOS_WRITES = path.join(ROOT, 'js', 'admin-usuarios-writes.js');
+const ADMIN_USUARIOS_MODAL = path.join(ROOT, 'js', 'screens', 'admin-usuarios-modal.js');
+const ADMIN_USUARIOS = path.join(ROOT, 'js', 'screens', 'admin-usuarios.js');
 
 const indexSrc  = fs.readFileSync(INDEX,  'utf8');
 const cadSrc    = fs.readFileSync(CAD,    'utf8');
@@ -98,6 +105,9 @@ const routerSrc = fs.readFileSync(ROUTER, 'utf8');
 const sysSrc    = fs.readFileSync(SYSTEM_SCREENS, 'utf8');
 const commonSrc = fs.readFileSync(COMMON, 'utf8');
 const bootSrc   = fs.readFileSync(BOOT,   'utf8');
+const adminUsuariosWritesSrc = fs.readFileSync(ADMIN_USUARIOS_WRITES, 'utf8');
+const adminUsuariosModalSrc  = fs.readFileSync(ADMIN_USUARIOS_MODAL,  'utf8');
+const adminUsuariosSrc       = fs.readFileSync(ADMIN_USUARIOS,        'utf8');
 const painelSrc = fs.readFileSync(PAINEL, 'utf8');
 const opNovaSrc = fs.readFileSync(OP_NOVA, 'utf8');
 const opLatexAdminSrc = fs.readFileSync(OP_LATEX_ADMIN, 'utf8');
@@ -650,6 +660,9 @@ test('22. boot: módulos coexistem sem SyntaxError e setRoutes registra as 7 rot
   vm.runInContext(sysSrc,    sandbox, { filename: 'js/screens/system-screens.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
+  vm.runInContext(adminUsuariosWritesSrc, sandbox, { filename: 'js/admin-usuarios-writes.js' });
+  vm.runInContext(adminUsuariosModalSrc,  sandbox, { filename: 'js/screens/admin-usuarios-modal.js' });
+  vm.runInContext(adminUsuariosSrc,       sandbox, { filename: 'js/screens/admin-usuarios.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
@@ -687,6 +700,10 @@ test('22. boot: módulos coexistem sem SyntaxError e setRoutes registra as 7 rot
     assert.equal(typeof routes[rota].render, 'function',
       `routes[${rota}].render não é função`);
   }
+  // A3.1: #/cadastros/usuarios deve resolver para window.screenAdminUsuarios
+  // (não mais window.screenCadastrosUsuarios) — cutover de rota desta fase.
+  assert.equal(routes['#/cadastros/usuarios'].render.name, 'screenAdminUsuarios',
+    'rota #/cadastros/usuarios deve resolver para screenAdminUsuarios após o cutover A3.1');
 
   if (otherErr) {
     // Erros de runtime fora do duplicate-identifier são esperados
@@ -724,6 +741,9 @@ test('23. setRoutes: as globais legadas resolvem (não há ReferenceError em run
   vm.runInContext(sysSrc,    sandbox, { filename: 'js/screens/system-screens.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
+  vm.runInContext(adminUsuariosWritesSrc, sandbox, { filename: 'js/admin-usuarios-writes.js' });
+  vm.runInContext(adminUsuariosModalSrc,  sandbox, { filename: 'js/screens/admin-usuarios-modal.js' });
+  vm.runInContext(adminUsuariosSrc,       sandbox, { filename: 'js/screens/admin-usuarios.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });

@@ -26,7 +26,8 @@
 //   - window.screenNovaOP                      (js/screens/op-nova.js)
 //   - window.screenPedidosLista                (js/screens/pedidos-list.js)
 //   - window.screenCadastros{Cores,Clientes,Modelos,
-//     Parametros,Fornecedores,Precos,Usuarios} (js/screens/cadastros.js)
+//     Parametros,Fornecedores,Precos}          (js/screens/cadastros.js)
+//   - window.screenAdminUsuarios               (js/screens/admin-usuarios.js)
 //   - window.screenDocumentosRecebidos         (js/screens/documentos-recebidos.js)
 //   - window.screenFornecedorHome,
 //     screenFornecedorOrdens,
@@ -65,7 +66,7 @@
     '#/cadastros/fornecedores':{ render: window.screenCadastrosFornecedores,roles: ['admin'] },
     '#/cadastros/clientes':    { render: window.screenCadastrosClientes,    roles: ['admin'] },
     '#/cadastros/precos':      { render: window.screenCadastrosPrecos,      roles: ['admin'] },
-    '#/cadastros/usuarios':    { render: window.screenCadastrosUsuarios,    roles: ['admin'] },
+    '#/cadastros/usuarios':    { render: window.screenAdminUsuarios,        roles: ['admin'] },
 
     '#/fornecedor/home':     { render: window.screenFornecedorHome,     roles: ['fornecedor'] },
     '#/fornecedor/ordens':   { render: window.screenFornecedorOrdens,   roles: ['fornecedor'] },
