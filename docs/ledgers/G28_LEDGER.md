@@ -667,3 +667,16 @@ risco residual e próxima fase indicada no fechamento.
 - **Commit:** single local technical commit including this closeout (resolve final HEAD with `git rev-parse HEAD` after commit).
 - **Residual risk:** staging unverified — schema/RPC/idempotency/compatibility must be applied and verified in `ucrjtfswnfdlxwtmxnoo` before acceptance; the client controller keeps command-id reuse in memory (durable convergence relies on the server RPC idempotency, not sessionStorage).
 - **Next indicated (not authorized):** architect acceptance of `G28-B8`. No phase after `G28-B8` is authorized.
+
+---
+
+## 2026-07-14 — G28-B8 — Direct staging deployment, verification and closeout
+
+- **Gate:** `STAGING FUNCTIONALLY VERIFIED / READY FOR ARCHITECT ACCEPTANCE`; not `CLOSED` or `ACCEPTED`. No phase after B8 is authorized.
+- **Operator / mode:** Hermes / `gpt-5.6-terra`, direct Supabase MCP; no delegation. Initial technical HEAD `f985f8b857f83d977936eae47ea830a5cb6ba4c3`, branch `work/g28-document-qualification`, clean worktree; production not accessed and no push.
+- **Target/apply:** `https://ucrjtfswnfdlxwtmxnoo.supabase.co` proved the staging ref. Preflight found migration 52 absent, the five-argument writer active and the B6 wrapper as textual caller. The exact repository db/52 file was applied once; registry `20260715024449 / 52_document_link_correction_revocation_restoration`.
+- **Proof:** UUID column, RESTRICT self-FK, partial index, evolved defaulted writer, restore RPC, SECURITY DEFINER/search_path/grants and unchanged B5 hashes were verified. Authenticated fixture `G28-B8-VERIFY` passed 18/18: correction/unlink/history, no-change/stale/replay/conflict, restoration/provenance/revalidation, audit/ownership and B6 wrapper compatibility. RPCs produced no operational side effects; all nine marker-residue categories are zero after cleanup.
+- **Local:** B8 focused suite 79/79; five `node --check` and `git diff --check` passed before documentation.
+- **Modal smoke:** `LIVE_B8_MODAL_SMOKE_BLOCKED_BY_TOOLING` — browser has neither the staging admin application nor an authenticated admin session; no auth was weakened.
+- **Corrections:** none; staging did not prove a defect from the technical commit.
+- **Residual / next action:** only architect acceptance of B8; G28-C/D and later phases remain deferred/not authorized.
