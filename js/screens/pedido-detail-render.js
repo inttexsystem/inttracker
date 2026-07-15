@@ -991,6 +991,77 @@
     );
   }
 
+  // G28-B7: one CONFIRMED canonical link row (Documento -> Pedido). Uses the
+  // same badge helpers as the rest of the surface; distinguished from Ingestor
+  // suggestions by an explicit "Vinculo confirmado" pill.
+  function buildLinkedDocumentRow(row, withBorder) {
+    var docRow = window.el('div', {
+      style: 'padding:9px 0;' + (withBorder ? 'border-bottom:1px solid #f1f3f6;' : ''),
+    });
+
+    var leftGroup = window.el('div', {
+      style: 'display:flex;align-items:center;gap:9px;min-width:0;',
+    },
+      ns.svgEl(ns.SVG_FILE),
+      window.el('span', {
+        style: 'font-size:13px;color:#3f4757;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
+      }, row.label)
+    );
+
+    (row.badges || []).forEach(function (b) {
+      leftGroup.appendChild(window.el('span', {
+        style: 'background:' + b.bg + ';color:' + b.text + ';border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap;',
+      }, b.label));
+    });
+
+    var rightGroup = window.el('div', {
+      style: 'display:flex;align-items:center;gap:8px;flex-shrink:0;',
+    });
+
+    rightGroup.appendChild(window.el('span', {
+      style: 'background:#e6f4ec;color:#18794a;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap;',
+    }, 'Vinculo confirmado'));
+
+    if (row.statusMeta) {
+      rightGroup.appendChild(window.el('span', {
+        style: 'background:' + row.statusMeta.bg + ';color:' + row.statusMeta.text + ';border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;flex-shrink:0;',
+      }, row.statusMeta.label));
+    }
+
+    if (row.driveLink) {
+      rightGroup.appendChild(window.el('button', {
+        type: 'button',
+        style: 'display:inline-flex;align-items:center;gap:6px;background:#fff;color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;',
+        onclick: function () {
+          window.open(row.driveLink, '_blank', 'noopener,noreferrer');
+        },
+      }, 'Ver'));
+    } else {
+      rightGroup.appendChild(window.el('span', {
+        style: 'color:#9aa2af;font-size:11px;font-style:italic;',
+      }, 'Link indisponivel'));
+    }
+
+    docRow.appendChild(window.el('div', {
+      style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;',
+    }, leftGroup, rightGroup));
+
+    var metaParts = [];
+    if (typeof row.linkVersion === 'number') metaParts.push('Revisao v' + row.linkVersion);
+    if (row.opIds && row.opIds.length > 0) metaParts.push('OPs vinculadas: ' + row.opIds.join(', '));
+    docRow.appendChild(window.el('div', {
+      style: 'font-size:11px;color:#9aa2af;margin-top:3px;',
+    }, metaParts.join(' · ')));
+
+    if (row.targetCancelled) {
+      docRow.appendChild(window.el('div', {
+        style: 'font-size:11px;color:#a23434;margin-top:2px;',
+      }, 'Atencao: alvo vinculado esta cancelado.'));
+    }
+
+    return docRow;
+  }
+
   function buildDocuments(view) {
     var card = window.el('div', {
       id: 'documentos',
@@ -1023,10 +1094,39 @@
       });
     }
 
+    // G28-B7: CONFIRMED canonical document links (Documento -> Pedido 0..1).
+    // Consumes the same canonical revision every surface reads. Explicit
+    // empty / unavailable states — never a silent "no documents".
+    card.appendChild(window.el('div', {
+      style: 'font-size:11px;font-weight:700;color:#18794a;letter-spacing:.04em;margin:14px 0 8px;',
+    }, 'DOCUMENTOS VINCULADOS'));
+
+    if (view.linkedDocumentsState === 'available'
+        && view.linkedDocumentRows && view.linkedDocumentRows.length > 0) {
+      view.linkedDocumentRows.forEach(function (row, index) {
+        card.appendChild(buildLinkedDocumentRow(row, index !== view.linkedDocumentRows.length - 1));
+      });
+    } else if (view.linkedDocumentsState === 'empty') {
+      card.appendChild(window.el('div', {
+        style: 'font-size:13px;color:#9aa2af;padding:9px 0;',
+      }, 'Nenhum documento vinculado a este pedido.'));
+    } else if (view.linkedDocumentsState === 'loading') {
+      card.appendChild(window.el('div', {
+        style: 'font-size:13px;color:#9aa2af;padding:9px 0;',
+      }, 'Carregando vinculos de documentos...'));
+    } else {
+      card.appendChild(window.el('div', {
+        style: 'font-size:13px;color:#9aa2af;padding:9px 0;',
+      }, 'Vinculos canonicos de documentos indisponiveis nesta sessao.'));
+    }
+
     if (view.ingestorDocsLoaded && view.ingestorDocumentRows && view.ingestorDocumentRows.length > 0) {
       card.appendChild(window.el('div', {
         style: 'font-size:11px;font-weight:700;color:#2563eb;letter-spacing:.04em;margin:14px 0 8px;',
       }, 'DOCUMENTOS RECEBIDOS (INGESTOR)'));
+      card.appendChild(window.el('div', {
+        style: 'font-size:11px;color:#9aa2af;margin:-4px 0 8px;',
+      }, 'Sugestoes do Ingestor (nao confirmadas). Somente a secao Documentos vinculados representa vinculo canonico.'));
 
       view.ingestorDocumentRows.forEach(function (row, index) {
         var isLast = index === view.ingestorDocumentRows.length - 1;

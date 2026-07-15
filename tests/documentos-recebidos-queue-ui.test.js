@@ -299,13 +299,16 @@ test('queue-ui: getPedidoOptions extrai pedidos unicos dos queue items', functio
     makeDoc({ document_id: 'b', pedido_manual: 'PED-2', pedido_id: null }),
     makeDoc({ document_id: 'c', pedido_manual: 'PED-1', pedido_id: null }),
     makeDoc({ document_id: 'd', pedido_manual: null, pedido_id: null }),
+    // G28-B6 contract: candidate.pedido_id is Ingestor-owned and NOT a confirmed
+    // link, so doc 'e' contributes no Pedido option (only pedido_manual
+    // suggestions and canonical confirmed references produce options).
     makeDoc({ document_id: 'e', pedido_manual: null, pedido_id: 'uuid-ped' }),
   ];
   setReceived(docs, 'supabase');
   var entries = queueUI.buildQueue();
   var options = queueUI.getPedidoOptions(entries);
   var values = options.map(function (o) { return o.value; });
-  assert.deepStrictEqual(values, ['PED-1', 'PED-2', 'uuid-ped']);
+  assert.deepStrictEqual(values, ['PED-1', 'PED-2']);
 });
 
 test('queue-ui: countByStatus conta usando queueItem.review e pedido state', function () {
@@ -399,7 +402,10 @@ test('queue-ui: pedido sugerido, OP e duplicate preservados', function () {
   setReceived([makeDoc({ pedido_id: null, pedido_manual: 'PED-99' })], 'supabase');
   var entry = queueUI.buildQueue()[0];
   assert.equal(entry.queueItem.pedido.state, C.PEDIDO_STATE.SUGGESTED_PEDIDO);
-  assert.deepStrictEqual(entry.queueItem.op, { state: 'unavailable' });
+  // G28-B6 contract: OP is projected from the active canonical revision. With
+  // no confirmed OP links the state is no_confirmed_op (not the former
+  // hard-coded unavailable placeholder). Duplicate remains unavailable.
+  assert.deepStrictEqual(entry.queueItem.op, { state: 'no_confirmed_op', op_ids: [] });
   assert.deepStrictEqual(entry.queueItem.duplicate, { state: 'unavailable' });
 });
 

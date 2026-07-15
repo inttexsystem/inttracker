@@ -904,6 +904,43 @@
       }
     }
 
+    // G28-B7: canonical CONFIRMED document links for this Pedido, derived
+    // exclusively from the active canonical link revision. pedido_manual /
+    // candidate.pedido_id are never read here — those remain Ingestor
+    // suggestions surfaced separately (ingestorDocumentRows above).
+    var linkedDocumentRows = [];
+    var linkedDocumentsState = 'unavailable';
+    var linkedDocumentsReason = 'read_model_unavailable';
+    if (pedido && pedido.id
+        && typeof window.RAVATEX_DOCUMENT_SURFACE_LINKS !== 'undefined'
+        && typeof window.RAVATEX_DOCUMENT_SURFACE_LINKS.buildLinkedDocumentsForPedido === 'function'
+        && typeof window.RAVATEX_DOCUMENTS !== 'undefined') {
+      var linkResult = window.RAVATEX_DOCUMENT_SURFACE_LINKS.buildLinkedDocumentsForPedido(pedido.id);
+      linkedDocumentsState = (linkResult && linkResult.state) ? linkResult.state : 'unavailable';
+      linkedDocumentsReason = (linkResult && linkResult.reason) ? linkResult.reason : null;
+      var confirmedLinks = (linkResult && Array.isArray(linkResult.confirmed)) ? linkResult.confirmed : [];
+      confirmedLinks.forEach(function (item) {
+        var lStatusMeta = window.RAVATEX_DOCUMENTS.getDocumentStatusBadgeMeta(item.status || 'pending');
+        var lTipoMeta = window.RAVATEX_DOCUMENTS.getDocumentTipoBadgeMeta(item.tipo_documento);
+        var lFormatoMeta = window.RAVATEX_DOCUMENTS.getDocumentFormatoBadgeMeta(item.formato);
+        var lDirecaoMeta = window.RAVATEX_DOCUMENTS.getDocumentDirecaoBadgeMeta(item.direcao_nf);
+        var lBadges = [];
+        if (lTipoMeta) lBadges.push({ bg: lTipoMeta.bg, text: lTipoMeta.text, label: lTipoMeta.label });
+        if (lFormatoMeta) lBadges.push({ bg: lFormatoMeta.bg, text: lFormatoMeta.text, label: lFormatoMeta.label });
+        if (lDirecaoMeta) lBadges.push({ bg: lDirecaoMeta.bg, text: lDirecaoMeta.text, label: lDirecaoMeta.label });
+        linkedDocumentRows.push({
+          label: item.filename_original || 'Documento',
+          status: item.status || 'pending',
+          statusMeta: lStatusMeta,
+          badges: lBadges,
+          driveLink: item.drive_web_view_link || null,
+          linkVersion: (typeof item.link_version === 'number') ? item.link_version : null,
+          targetCancelled: !!item.target_cancelled,
+          opIds: Array.isArray(item.op_ids) ? item.op_ids : [],
+        });
+      });
+    }
+
     return {
       trackingApi: trackingApi,
       trackingSummary: trackingSummary,
@@ -928,6 +965,9 @@
       ingestorDocumentRows: ingestorDocumentRows,
       ingestorTimeline: ingestorTimeline,
       ingestorDocsLoaded: ingestorDocsLoaded,
+      linkedDocumentRows: linkedDocumentRows,
+      linkedDocumentsState: linkedDocumentsState,
+      linkedDocumentsReason: linkedDocumentsReason,
       linkedOpCount: linkedOpCount,
       pedidoConclusao: pedidoConclusao,
     };
