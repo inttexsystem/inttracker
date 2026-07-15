@@ -680,3 +680,13 @@ risco residual e próxima fase indicada no fechamento.
 - **Modal smoke:** `LIVE_B8_MODAL_SMOKE_BLOCKED_BY_TOOLING` — browser has neither the staging admin application nor an authenticated admin session; no auth was weakened.
 - **Corrections:** none; staging did not prove a defect from the technical commit.
 - **Residual / next action:** only architect acceptance of B8; G28-C/D and later phases remain deferred/not authorized.
+
+---
+
+## 2026-07-15 — G28-C — Direct staging validation closeout
+
+- **Operator / target:** Hermes direct, staging `ucrjtfswnfdlxwtmxnoo`; no delegation, production access or push.
+- **Harness / result:** harness-only fixture-order and assertion-variable defects were corrected; integrated database/canonical-projection matrix `16/16 PASS` covered technical evidence, decisions, B6 multi-OP linking, B8 correction/unlink/restoration/audit and canonical projections.
+- **Proof / safety:** confirmed links derived only from `document_link_revisions` and `document_link_revision_ops`; Ingestor-owned candidate/event suggestion fields and Pedido/OP operational snapshots remained unchanged. No product, schema, RPC, migration or architecture defect was proven.
+- **Cleanup / debt:** `G28-C-VERIFY` residue is zero in candidates, technical evidence, events, decisions, revisions, revision ops, pedidos, lotes, ops, clientes and fornecedores. `AUTHENTICATED_BROWSER_SMOKE_BLOCKED_BY_TOOLING`: no staging administrative application/session was available.
+- **Gate:** `G28-C — READY FOR ARCHITECT ACCEPTANCE`, not closed or accepted. No later phase, including G28-D, is authorized.
