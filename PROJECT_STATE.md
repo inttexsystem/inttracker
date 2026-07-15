@@ -96,6 +96,22 @@ O conteúdo histórico abaixo não determina o estado atual.
 - **Próxima ação autorizável:** `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION` — sem próxima ação única inequívoca; o candidato de remediação de ACL não deve ser autosselecionado.
 - **Ledger:** `docs/ledgers/G28_LEDGER.md` (entrada append-only deste closeout).
 
+### Documentação Canônica — Backfill de Consistência — DOCS-CANONICAL-CONSISTENCY-BACKFILL-A
+
+- **Frente:** fecha 3 lacunas de documentação identificadas pela reconciliação read-only do backlog geral de `2026-07-15`. Docs-only: sem código, teste, SQL, migration, staging ou produção alterados.
+- **Branch:** `work/g28-document-qualification`.
+- **Commit documental:** este closeout (`Backfill canonical migration documentation`). O HEAD atual deve ser consultado diretamente com `git rev-parse HEAD`.
+- **Classificação:** `CLOSED / ACCEPTED`.
+- **Lacunas fechadas:**
+  1. `db/37_controlled_delete_expedicao_cascade.sql` nunca havia recebido entrada `D-DEL` própria (lacuna registrada em `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` junto às decisões `D-DEL10`–`D-DEL13`) — adicionada `D-DEL14` em `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` §10 ("Fase Controlled Delete — Expedição Cascade (db/37)"), derivada do arquivo `db/37` real e da sequência `db/34`–`db/36`.
+  2. `db/34`–`db/37` e `db/53`–`db/56` ausentes de `docs/DOCUMENTATION_INDEX.md` §4 — 8 linhas adicionadas com descrição derivada do conteúdo real de cada arquivo de migration.
+  3. Status de `db/30` no mesmo índice ainda descrito como "ainda não aplicado" — corrigido para: aplicada e funcionalmente verificada em staging (`ucrjtfswnfdlxwtmxnoo`), sem drift de schema confirmado, não registrada em `supabase_migrations.schema_migrations`, ACL ao vivo mais ampla que a intenção canônica `authenticated`-only (`D-COS02`), comportamento `anon` empiricamente fail-closed, sem exposição de dados de cliente confirmada, remediação de ACL como decisão de arquiteto separada, smoke autenticado de browser como débito não bloqueante.
+- **Não alterado:** nenhuma entrada histórica de closeout foi reescrita para fazer a omissão anterior desaparecer; `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` e `docs/architecture/DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md` foram lidos e permaneceram inalterados (nenhuma afirmação de estado atual materialmente incorreta encontrada); nenhum código, teste, SQL, migration, staging ou produção tocados; `git diff --check` limpo.
+- **Débitos preservados como abertos** (não fechados nem resolvidos por este backfill): `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` (`ARCHITECT DECISION REQUIRED`); `DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY`; débitos de smoke autenticado (G28-C/D/B7/Portal Cliente); `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`; `G28-D` (publicação); aplicação em produção das migrations staging-only (`db/12`, `db/21`, `db/30`, `db/49`–`db/56`); `DELETE-PROD-GUARD-A`; `DELETE-AUDIT-LOG-A`; frentes `G28-CAMADA-2/3/4`.
+- **Produção:** projeto `bhgifjrfagkzubpyqpew` não acessado. **Push:** não executado.
+- **Próxima ação autorizável:** `ARCHITECT DECISION REQUIRED` — `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE` permanece o único gate material do backlog. Este backfill documental não autoriza nenhuma fase técnica posterior.
+- **Ledger:** `docs/ledgers/G28_LEDGER.md` (entrada append-only deste closeout).
+
 ### Débitos relevantes
 
 - Migrations 49 e 50 — aplicadas e verificadas em staging; não aplicadas em produção por esta cadeia.

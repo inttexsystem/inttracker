@@ -1283,3 +1283,31 @@ fase nao alterou arquivos (verificacao-somente). Closeout documental.
   o backlog geral, nao e publicacao, nao e readiness de producao e nao aceita
   G28-D.
 - Ver `docs/ledgers/G28_LEDGER.md` para evidencia completa.
+
+# Atualizacao 2026-07-15 - Docs Canonical Consistency Backfill A: CLOSED / ACCEPTED
+
+Fase `DOCS-CANONICAL-CONSISTENCY-BACKFILL-A`. Docs-only; sem codigo, teste,
+SQL, migration, staging ou producao alterados.
+
+- Fecha tres lacunas documentais confirmadas na reconciliacao read-only de
+  `2026-07-15`: (1) `db/37_controlled_delete_expedicao_cascade.sql` sem
+  entrada `D-DEL` propria (agora `D-DEL14` em
+  `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` SS10); (2) `db/34`-`db/37`
+  e `db/53`-`db/56` ausentes de `docs/DOCUMENTATION_INDEX.md` SS4; (3) status
+  de `db/30` no mesmo indice ainda descrito como "ainda nao aplicado",
+  divergente do closeout `CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A`
+  acima (aplicada e verificada em staging desde antes desta reconciliacao).
+- Nenhuma entrada historica deste backlog foi reescrita; a lacuna
+  permanece registrada como ocorreu, com a correcao documental anexada
+  como nova secao append/update.
+- Debitos tecnicos e ambientais permanecem abertos e inalterados:
+  `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` (`ARCHITECT DECISION
+  REQUIRED`), `DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY`, os debitos
+  de smoke autenticado (G28-C/D/B7/Portal Cliente),
+  `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`, `DELETE-PROD-
+  GUARD-A`, `DELETE-AUDIT-LOG-A`, G28-D e todas as frentes G28-CAMADA-2/3/4.
+- Proxima acao material segue `ARCHITECT DECISION REQUIRED`
+  (`DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`). Este backfill
+  nao autoriza nenhuma fase tecnica posterior.
+- Producao (`bhgifjrfagkzubpyqpew`) nao acessada; sem push. Ver
+  `docs/ledgers/G28_LEDGER.md` para a entrada append-only desta fase.

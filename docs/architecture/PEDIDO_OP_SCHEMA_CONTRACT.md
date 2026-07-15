@@ -622,6 +622,21 @@ WHERE l.pedido_id = :pedido_id;
 | D-OC08 | **Aceite visual do usuário registrado (fase `RAVATEX-TAPETES-OP-OPERATIONAL-CODE-CLOSEOUT-C`):** OK no escopo com contexto de Pedido. A aparição "em poucos lugares" é esperada — o código operacional é intencionalmente **não-global**. | O código só aparece onde há contexto confiável de Pedido; fora disso, legado. |
 | D-OC09 | **Pendência controlada** — expandir a outras telas só quando: (1) houver contexto confiável de Pedido; (2) houver necessidade visual clara; (3) não exigir migration; (4) não criar query pesada; (5) não duplicar formatação fora de `js/op-display.js`. | Evita expansão global sem necessidade validada; formatação permanece central. |
 
+### Fase Controlled Delete — Expedição Cascade (db/37)
+
+> Backfill documental (`DOCS-CANONICAL-CONSISTENCY-BACKFILL-A`, docs-only):
+> fecha a lacuna registrada em
+> `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` (fase
+> `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-GUARD-B`, nota junto às
+> decisões `D-DEL10`–`D-DEL13`), que identificou `db/37_controlled_delete_
+> expedicao_cascade.sql` sem entrada `D-DEL` própria. Numeração continua a
+> partir de `D-DEL13` (última existente) para não colidir com as decisões
+> já registradas naquele plano.
+
+| # | Decisão | Fundamentação |
+|---|---|---|
+| D-DEL14 | Em staging/teste, expedição deixa de ser bloqueador incondicional da exclusão física de Pedido/OP e passa a integrar a cascata `EXCLUIR TUDO`: `expedicao_movimento_itens` → `expedicao_movimentos` → `expedicao_itens` → `expedicoes` são removidos antes de OPs/entregas/lotes/pedido, sem alterar `op_numeros`. | `db/37_controlled_delete_expedicao_cascade.sql` (fase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-EXPEDICAO-CASCADE-E2`) substitui o bloqueio incondicional de expedição herdado de `db/34`–`db/36` (onde expedição sempre classificava `blocked`) por alvos FK explícitos (`expedicao_ids`, `expedicao_item_ids`, `expedicao_movimento_ids`), preservando a confirmação textual `EXCLUIR TUDO` e a ordem transacional corrigida pela `db/36`. Aplicada e validada somente em staging `ucrjtfswnfdlxwtmxnoo`; produção `bhgifjrfagkzubpyqpew` intocada. Desde `db/53`, as quatro funções desta migration foram renomeadas para `diagnosticar_impacto_pedido_pre53`/`diagnosticar_impacto_op_pre53`/`remover_pedido_pre53`/`remover_op_pre53` (sem `EXECUTE` público) e passaram a ser chamadas pelos wrappers públicos do guard documental (ver "Atualização 2026-07-15 — Controlled Delete Document Link Guard" abaixo) somente quando o diagnóstico documental classifica o alvo como elegível. |
+
 ###
 
 ---
@@ -744,3 +759,31 @@ Validado em staging `ucrjtfswnfdlxwtmxnoo` com fixtures sinteticas
 (casos elegivel-OP, elegivel-Pedido e bloqueado-por-historico), cleanup
 zero e `op_numeros` preservado. Producao nao acessada; sem push. Ver
 `docs/ledgers/G28_LEDGER.md` para evidencia completa.
+
+## Atualizacao 2026-07-15 - Docs Canonical Consistency Backfill A (CLOSED / ACCEPTED)
+
+Fase `DOCS-CANONICAL-CONSISTENCY-BACKFILL-A`. Docs-only; sem codigo, teste,
+SQL, migration, staging ou producao alterados.
+
+- Fecha a lacuna documental identificada em
+  `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` (nota junto
+  as decisoes `D-DEL10`-`D-DEL13`, fase Controlled Delete Document Link
+  Guard, 2026-07-15): `db/37_controlled_delete_expedicao_cascade.sql` nunca
+  havia recebido entrada `D-DEL` propria.
+- Adicionada `D-DEL14` (secao "Fase Controlled Delete - Expedicao Cascade
+  (db/37)", SS10 acima), derivada do arquivo `db/37` real e da sequencia
+  `db/34`-`db/36`: expedicao deixa de bloquear incondicionalmente e passa a
+  integrar a cascata `EXCLUIR TUDO` em staging/teste.
+- `docs/DOCUMENTATION_INDEX.md` SS4 recebeu as linhas ausentes de `db/34`-
+  `db/37` e `db/53`-`db/56`, e o status de `db/30` foi corrigido de "ainda
+  nao aplicado" para o estado preciso ja aceito em
+  `CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A` (aplicada e verificada
+  em staging, sem drift, nao registrada em
+  `supabase_migrations.schema_migrations`, ACL ao vivo mais ampla que o
+  contrato canonico, sem exposicao confirmada).
+- Nao normaliza nem resolve `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1`,
+  `DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY`, os debitos de smoke
+  autenticado ou `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`,
+  que seguem `ARCHITECT DECISION REQUIRED`/abertos.
+- Producao (`bhgifjrfagkzubpyqpew`) nao acessada; sem push. Ver
+  `docs/ledgers/G28_LEDGER.md` para a entrada append-only desta fase.

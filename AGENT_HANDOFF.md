@@ -3,7 +3,7 @@
 - **Nenhuma fase funcional ativa.** G28-C está `CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT`. G28-D discovery está `RELEASE CONTRACT DISCOVERY COMPLETE / BLOCKED BY SPECIFIC MISSING DEPLOYMENT DEFINITION`; sua publicação está `NOT STARTED / NOT ACCEPTED / NOT AUTHORIZED` e não constitui fase ativa. A definição canônica atual do mapeamento de publicação e o procedimento autorizado para migrations 51/52 não existem no repositório; ver `docs/releases/G28_D_RELEASE_CANDIDATE.md`.
 - **Última fase aceita:** `G28-C — CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT` (decisão arquitetural explícita em 2026-07-15; matriz staging/projeções 16/16 PASS; closeout `a7d7caa`, aceite `d5ec09f`). G28-B8 está `TECHNICALLY COMPLETED / ACCEPTANCE SUBSUMED BY G28-C`: suas capacidades de correção, revogação, restauração e auditoria foram explicitamente validadas e aceitas no gate de G28-C.
 - **Commits R1 concluídos:** `271761c3de20427b2cc9059d5ff7cc3727545e6d` — `G28: reconcile canonical phase state` (closeout documental inicial R1); `edaf0b4d36f24aa7b9490e51a42624cc70d45963` — `G28: correct canonical reconciliation state` (correção de defeitos textuais do R1). O HEAD atual deve ser consultado diretamente com `git rev-parse HEAD`.
-- **Próxima ação:** após o fechamento desta reconciliação documental, uma nova reconciliação read-only do backlog geral (`PEDIDO_PRODUCTION_FLOW_BACKLOG.md` e demais frentes) escolherá a próxima frente funcional. Publicação não é a próxima ação e nenhuma implementação automática se segue. Nenhuma fase funcional posterior está autorizada. `OPEN_ARCHITECT_DECISIONS: DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`.
+- **Próxima ação:** a reconciliação read-only do backlog geral e o backfill documental `DOCS-CANONICAL-CONSISTENCY-BACKFILL-A` (docs-only, ver seção própria abaixo) já foram concluídos. Nenhuma fase funcional/técnica está autorizada. `OPEN_ARCHITECT_DECISIONS: DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE` permanece o único gate material do backlog; publicação não é a próxima ação e nenhuma implementação automática se segue.
 - **Workspace / branch / HEAD anterior:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28` / `work/g28-document-qualification`. HEAD técnico/documental anterior: `b27e79fdba1ed8fb8a6232d8e0b8ca4b37ac3a2c` (linha de base histórica de descoberta G28-D; este registro documental a sucede).
 - **Leitura obrigatória antes de rotear qualquer ordem:** `PROJECT_STATE.md`, este handoff, plano mestre G28 (`docs/architecture/DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`), `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`, ledger G28 (`docs/ledgers/G28_LEDGER.md`) e contratos/runtime aplicáveis.
 - **Continuidade documental — caminhos obrigatórios:**
@@ -58,6 +58,27 @@
 - **Estado final do worktree:** limpo; staging vazio; zero untracked.
 - **Próxima ação autorizável:** `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION` — sem próxima ação única inequívoca; o candidato de remediação de ACL não deve ser autosselecionado.
 - **Detalhe completo:** `PROJECT_STATE.md` (seção "Portal Cliente — Read Model do Detalhe do Pedido") e `docs/ledgers/G28_LEDGER.md` (entrada append-only).
+
+## Documentação Canônica — Backfill de Consistência — DOCS-CANONICAL-CONSISTENCY-BACKFILL-A — CLOSED / ACCEPTED
+
+- **Fase:** `DOCS-CANONICAL-CONSISTENCY-BACKFILL-A`. **Commit documental:** este closeout (`Backfill canonical migration documentation`). Docs-only — sem código, teste, SQL, migration, staging ou produção alterados. O HEAD atual deve ser consultado com `git rev-parse HEAD`.
+- **Lacunas fechadas:** (1) `db/37_controlled_delete_expedicao_cascade.sql` sem entrada `D-DEL` própria — adicionada `D-DEL14` em `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` §10; (2) `db/34`–`db/37` e `db/53`–`db/56` ausentes de `docs/DOCUMENTATION_INDEX.md` §4 — 8 linhas adicionadas; (3) status de `db/30` no índice, corrigido de "ainda não aplicado" para aplicada/verificada em staging com ACL mais ampla que o contrato canônico retida como débito explícito.
+- **Débitos preservados como abertos (não fechados por este backfill):** `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1`; `DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY`; débitos de smoke autenticado (G28-C/D/B7/Portal Cliente); `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`; `G28-D`; aplicação em produção do stack staging-only; `DELETE-PROD-GUARD-A`; `DELETE-AUDIT-LOG-A`; `G28-CAMADA-2/3/4`.
+- **Acessos:** sem staging; sem produção (`bhgifjrfagkzubpyqpew` não acessada); sem push.
+- **Estado final do worktree:** limpo; staging vazio; zero untracked.
+- **Próxima ação autorizável:** `ARCHITECT DECISION REQUIRED` — `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`. Este backfill não autoriza nenhuma fase técnica.
+- **Detalhe completo:** `PROJECT_STATE.md` (seção "Documentação Canônica — Backfill de Consistência") e `docs/ledgers/G28_LEDGER.md` (entrada append-only).
+- **Continuidade documental obrigatória — retransmitir em todo handoff futuro:**
+  1. `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`
+  2. `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
+  3. `docs/architecture/DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`
+  4. `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md`
+  5. `PROJECT_STATE.md`
+  6. `AGENT_HANDOFF.md`
+  7. `docs/ledgers/G28_LEDGER.md`
+  8. `docs/DOCUMENTATION_INDEX.md`
+  9. `docs/governance/DOCUMENTATION_MODEL.md`
+  Todo chat ou agente futuro deve retransmitir estes nove caminhos e instruir expressamente a próxima continuidade a retransmiti-los novamente. A cadeia de continuidade do plano e do backlog não pode ser interrompida.
 
 # HISTÓRICO DE HANDOFFS — ARQUIVADO
 
