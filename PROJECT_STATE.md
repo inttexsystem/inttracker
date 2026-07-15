@@ -13,7 +13,8 @@ O conteúdo histórico abaixo não determina o estado atual.
 - **Branch:** `work/g28-document-qualification`
 - **Remoto permitido:** nenhum push sem autorização expressa nesta cadeia
 - **HEAD técnico/documental anterior:** `b27e79fdba1ed8fb8a6232d8e0b8ca4b37ac3a2c` (linha de base histórica de descoberta G28-D; este registro documental a sucede).
-- **Ação corrente:** `G28-STATE-RECONCILIATION-R1` — reconciliação documental de estado canônico (docs-only, sem código, testes, staging, produção ou push). Após commit, o HEAD final deve ser resolvido com `git rev-parse HEAD`.
+- **Commit documental R1 inicial concluído:** `271761c3de20427b2cc9059d5ff7cc3727545e6d` — `G28: reconcile canonical phase state` (closeout documental inicial R1; já criado e registrado).
+- **Ação corrente:** corrigir defeitos textuais do commit R1 (docs-only, sem código, testes, staging, produção ou push). Após commit corretivo, resolver o HEAD final com `git rev-parse HEAD`.
 - **Última fase aceita:** `G28-C — CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT` (decisão arquitetural explícita). Base: matriz staging/projeções 16/16, sem defeito material, cleanup zero e ledger append-only; produção não acessada.
 - **Fase funcional ativa:** `NENHUMA`. G28-C está `CLOSED`. G28-D discovery está `RELEASE CONTRACT DISCOVERY COMPLETE / BLOCKED BY SPECIFIC MISSING DEPLOYMENT DEFINITION` e não constitui fase funcional ativa; sua publicação está `NOT STARTED / NOT AUTHORIZED`.
 - **Próxima fase funcional:** não nomeada. Após esta reconciliação documental, uma reconciliação read-only do backlog geral (`PEDIDO_PRODUCTION_FLOW_BACKLOG.md` e demais frentes) definirá a próxima frente.

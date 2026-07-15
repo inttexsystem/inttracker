@@ -731,3 +731,18 @@ risco residual e próxima fase indicada no fechamento.
 - **No activity:** no code, SQL, migration, runtime, test, staging, production, Supabase, network, MCP, or push executed. No functional tests, no browser, no remote, no deployment, no tag.
 - **Commit:** this closeout commit; resolve final HEAD with `git rev-parse HEAD` after commit. Do not invent future SHA.
 - **Next indicated:** after this reconciliation is committed, a new read-only reconciliation of the general backlog (`PEDIDO_PRODUCTION_FLOW_BACKLOG.md` and other fronts) shall choose the next functional front. Publication is not the next action.
+
+---
+
+## G28-STATE-RECONCILIATION-R1 — Corrective documentary addendum
+
+- **Gate:** CORRECTIVE ADDENDUM (docs-only; no code, SQL, migration, test, staging, production, push, remote)
+- **Original R1 commit:** `271761c3de20427b2cc9059d5ff7cc3727545e6d` — `G28: reconcile canonical phase state`
+- **Corrected textual defects in original R1:**
+  1. **Active header (master plan):** replaced claim "G28-D is the active authorized phase" — corrected to "Nenhuma fase funcional está ativa", G28-C accepted, G28-D discovery/preparation completed/blocked, publication not started/not accepted/not authorized.
+  2. **B7/B8 classification (master plan header):** B7 corrected from `IMPLEMENTED / TESTED (local)` to `CLOSED / ACCEPTED_WITH_NONBLOCKING_REMOTE_SMOKE_DEBT` (evidenced); B8 corrected from `STAGING FUNCTIONALLY VERIFIED / READY FOR ARCHITECT ACCEPTANCE` to `TECHNICALLY COMPLETED / ACCEPTANCE SUBSUMED BY G28-C` with explanation that C's 16/16 gate accepted B8 capabilities and B8 is not pending.
+  3. **G28-D commit reference (phase matrix):** corrected false reference "release candidate `d5ec09f`" to the actual discovery/preparation commit `b27e79fdba1ed8fb8a6232d8e0b8ca4b37ac3a2c`. D5 did not create the release candidate.
+  4. **Independent-acceptance wording (PRÓXIMA AÇÃO):** removed claim that B8 "foi aceito" as if independent; listed B8 separately as `TECHNICALLY COMPLETED / ACCEPTANCE SUBSUMED BY G28-C` with explicit note that B8 has no independent acceptance.
+  5. **PROJECT_STATE.md and AGENT_HANDOFF.md SHA recording:** recorded the already-created R1 commit SHA `271761c3de20427b2cc9059d5ff7cc3727545e6d`; removed forward-looking "resolve after commit" language for R1; instructed next chat to resolve current Git HEAD directly.
+- **No technical state changed:** no code, tests, SQL, migration, runtime, staging, production, Supabase, network, MCP, or push was executed. This is strictly a documentary correction.
+- **Corrective commit:** resolve final HEAD with `git rev-parse HEAD` after commit.
