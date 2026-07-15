@@ -9,6 +9,9 @@ const SQL = path.join(ROOT, 'db', '34_controlled_delete_pedido_op.sql');
 const SQL_CASCADE = path.join(ROOT, 'db', '35_controlled_delete_test_cascade.sql');
 const SQL_FIX = path.join(ROOT, 'db', '36_controlled_delete_fk_order_fix.sql');
 const SQL_EXPEDICAO = path.join(ROOT, 'db', '37_controlled_delete_expedicao_cascade.sql');
+const SQL53 = path.join(ROOT, 'db', '53_controlled_delete_document_link_guard.sql');
+const SQL54 = path.join(ROOT, 'db', '54_controlled_delete_document_link_grants.sql');
+const SQL56 = path.join(ROOT, 'db', '56_controlled_delete_document_link_diagnostics_null_safe.sql');
 const HELPER = path.join(ROOT, 'js', 'delete-helpers.js');
 const INDEX = path.join(ROOT, 'index.html');
 const PEDIDOS_LIST = path.join(ROOT, 'js', 'screens', 'pedidos-list.js');
@@ -33,11 +36,23 @@ function assertOrder(src, first, second, msg) {
   assert.ok(a < b, msg || 'ordem invalida');
 }
 
+function fnBlock(src, name) {
+  const re = new RegExp(
+    'CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.' + name + '[\\s\\S]*?\\$\\$([\\s\\S]*?)\\$\\$'
+  );
+  const m = src.match(re);
+  assert.ok(m, 'funcao ' + name + ' encontrada');
+  return m[1];
+}
+
 const sql = read(SQL);
 const sqlCascade = read(SQL_CASCADE);
 const sqlFix = read(SQL_FIX);
 const sqlExpedicao = read(SQL_EXPEDICAO);
-const sqlAll = sql + '\n' + sqlCascade + '\n' + sqlFix + '\n' + sqlExpedicao;
+const sql53 = read(SQL53);
+const sql54 = read(SQL54);
+const sql56 = read(SQL56);
+const sqlAll = sql + '\n' + sqlCascade + '\n' + sqlFix + '\n' + sqlExpedicao + '\n' + sql53 + '\n' + sql54;
 const helper = read(HELPER);
 const index = read(INDEX);
 const pedidosList = read(PEDIDOS_LIST);
@@ -278,7 +293,7 @@ test('botoes de exclusao aparecem nas telas principais', () => {
   assert.match(pedidoRender, /buildDeleteButton/);
   assert.match(opsList, /Excluir OP/);
   assert.match(opNova, /Excluir OP/);
-  assert.match(opTec, /Excluir OP/);
+  assert.match(opTec, /BTN_HDR_DANGER[\s\S]{0,120}['"]Excluir['"]/);
   assert.match(opLatex, /excluirOpLatex[\s\S]*RAVATEX_DELETE\.excluirOPComFluxo/);
 });
 
@@ -289,4 +304,242 @@ test('script staging e read-only e bloqueia producao', () => {
   assert.doesNotMatch(stagingScript, /\/rest\/v1\/[\s\S]{0,160}method:\s*['"](POST|PATCH|DELETE|PUT)['"]/i);
   assert.doesNotMatch(stagingScript, /\.rpc\s*\(/i);
   assert.doesNotMatch(stagingScript, /\.(insert|update|delete|upsert)\s*\(/i);
+});
+
+test('SQL53 renomeia quatro RPCs legadas para _pre53 e revoga acesso publico', () => {
+  for (const fn of ['diagnosticar_impacto_pedido', 'diagnosticar_impacto_op', 'remover_pedido', 'remover_op']) {
+    assert.match(sql53, new RegExp('ALTER\\s+FUNCTION\\s+public\\.' + fn + '\\s*\\([^)]*\\)\\s+RENAME\\s+TO\\s+' + fn + '_pre53', 'i'));
+  }
+  for (const fn of ['diagnosticar_impacto_pedido_pre53', 'diagnosticar_impacto_op_pre53', 'remover_pedido_pre53', 'remover_op_pre53']) {
+    assert.match(sql53, new RegExp('REVOKE\\s+EXECUTE\\s+ON\\s+FUNCTION\\s+public\\.' + fn, 'i'));
+    assert.doesNotMatch(sql53, new RegExp('GRANT\\s+EXECUTE\\s+ON\\s+FUNCTION\\s+public\\.' + fn, 'i'));
+  }
+});
+
+test('SQL53 recria quatro RPCs publicas com grant authenticated', () => {
+  for (const fn of ['diagnosticar_impacto_pedido', 'diagnosticar_impacto_op', 'remover_pedido', 'remover_op']) {
+    assert.match(sql53, new RegExp('CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.' + fn, 'i'));
+    assert.match(sql53, new RegExp('GRANT\\s+EXECUTE\\s+ON\\s+FUNCTION\\s+public\\.' + fn, 'i'));
+  }
+});
+
+test('SQL53 diagnostico OP chama pre53 e enriquece contagens documentais', () => {
+  const body = fnBlock(sql53, 'diagnosticar_impacto_op');
+  assert.match(body, /diagnosticar_impacto_op_pre53\s*\(\s*p_op_id\s*\)/i);
+  assert.match(body, /v_pre->'impacto'->'ids'->'target_ops'/i);
+  assert.match(body, /document_link_revision_ops/i);
+  assert.match(body, /document_link_revisions/i);
+  assert.match(body, /documentos_vinculados/i);
+  assert.match(body, /documentary_history_blocker/i);
+  assert.match(body, /v_doc_link_revision_ops\s*>\s*0[\s\S]*v_blocked\s*:=\s*TRUE/i);
+  assert.match(body, /jsonb_set\s*\(\s*v_impacto\s*,\s*'\{classification\}'\s*,\s*'"blocked"'/i);
+  assert.ok(body.indexOf('{documentary_history_blocker}') < body.indexOf('{counts,'), 'documentary_history_blocker deve estar diretamente em impacto, nao so aninhado em counts');
+  assert.match(body, /'\{documentary_history_blocker\}'\s*,\s*to_jsonb\s*\(\s*v_doc_link_revision_ops\s*>\s*0\s*\)/i);
+  assert.match(body, /v_blocked\s*:=\s*COALESCE\s*\(\s*\(\s*v_pre->>'blocked'\s*\)::BOOLEAN\s*,\s*FALSE\s*\)/i);
+  assert.match(body, /v_reason\s*:=\s*v_pre->>'reason'/i);
+});
+
+test('SQL53 diagnostico Pedido chama pre53 e bloqueia por OP ou pedido_id direto', () => {
+  const body = fnBlock(sql53, 'diagnosticar_impacto_pedido');
+  assert.match(body, /diagnosticar_impacto_pedido_pre53\s*\(\s*p_pedido_id\s*\)/i);
+  assert.match(body, /v_pre->'impacto'->'ids'->'target_ops'/i);
+  assert.match(body, /document_link_revision_ops/i);
+  assert.match(body, /document_link_revisions/i);
+  assert.match(body, /documentos_vinculados/i);
+  assert.match(body, /documentary_history_blocker/i);
+  assert.match(body, /dlr\.pedido_id\s*=\s*p_pedido_id/i);
+  assert.match(body, /v_doc_link_revision_ops\s*>\s*0\s+OR\s+v_doc_link_revisions\s*>\s*0[\s\S]*v_blocked\s*:=\s*TRUE/i);
+  assert.ok(body.indexOf('{documentary_history_blocker}') < body.indexOf('{counts,'), 'documentary_history_blocker deve estar diretamente em impacto, nao so aninhado em counts');
+  assert.match(body, /'\{documentary_history_blocker\}'\s*,\s*to_jsonb\s*\(\s*v_doc_link_revision_ops\s*>\s*0\s+OR\s+v_doc_link_revisions\s*>\s*0\s*\)/i);
+  assert.match(body, /v_blocked\s*:=\s*COALESCE\s*\(\s*\(\s*v_pre->>'blocked'\s*\)::BOOLEAN\s*,\s*FALSE\s*\)/i);
+  assert.match(body, /v_reason\s*:=\s*v_pre->>'reason'/i);
+});
+
+test('SQL53 considera TODO o historico, inclusive revisoes inactive', () => {
+  const diagOp = fnBlock(sql53, 'diagnosticar_impacto_op');
+  const diagPedido = fnBlock(sql53, 'diagnosticar_impacto_pedido');
+  assert.doesNotMatch(diagOp, /active\s+IS\s+TRUE[\s\S]{0,120}document_link_revision_ops/i);
+  assert.doesNotMatch(diagPedido, /active\s+IS\s+TRUE[\s\S]{0,120}document_link_revisions/i);
+});
+
+test('SQL53 nao contem DELETE direto nem muta tabelas de historico documental/op_numeros', () => {
+  assert.doesNotMatch(sql53, /DELETE\s+FROM\s+public\.ops/i);
+  assert.doesNotMatch(sql53, /DELETE\s+FROM\s+public\.pedidos/i);
+  assert.doesNotMatch(sql53, /DELETE\s+FROM\s+public\.lotes/i);
+  assert.doesNotMatch(sql53, /DELETE\s+FROM\s+public\.expedicoes/i);
+  assert.doesNotMatch(sql53, /DELETE\s+FROM\s+public\.entregas/i);
+  assert.doesNotMatch(sql53, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+public\.document_link_revisions/i);
+  assert.doesNotMatch(sql53, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+public\.document_link_revision_ops/i);
+  assert.doesNotMatch(sql53, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+public\.op_numeros/i);
+  assert.doesNotMatch(sql53, /(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+op_numeros/i);
+});
+
+test('SQL53 remover_op invoca diagnostico novo e bloqueia antes de delegar pre53', () => {
+  const body = fnBlock(sql53, 'remover_op');
+  assert.match(body, /v_diag\s*:=\s*public\.diagnosticar_impacto_op\s*\(\s*p_op_id\s*\)/i);
+  assert.match(body, /v_diag->>'blocked'[\s\S]*RETURN\s+jsonb_set\s*\(\s*v_diag/i);
+  assert.match(body, /RETURN\s+public\.remover_op_pre53\s*\(\s*p_op_id\s*,\s*p_confirmacao\s*\)/i);
+  assertOrder(body,
+    /v_diag\s*:=\s*public\.diagnosticar_impacto_op\s*\(\s*p_op_id\s*\)/i,
+    /RETURN\s+public\.remover_op_pre53\s*\(\s*p_op_id\s*,\s*p_confirmacao\s*\)/i,
+    'diagnostico deve vir antes da delegacao a pre53 em remover_op'
+  );
+});
+
+test('SQL53 remover_pedido invoca diagnostico novo e bloqueia antes de delegar pre53', () => {
+  const body = fnBlock(sql53, 'remover_pedido');
+  assert.match(body, /v_diag\s*:=\s*public\.diagnosticar_impacto_pedido\s*\(\s*p_pedido_id\s*\)/i);
+  assert.match(body, /v_diag->>'blocked'[\s\S]*RETURN\s+jsonb_set\s*\(\s*v_diag/i);
+  assert.match(body, /RETURN\s+public\.remover_pedido_pre53\s*\(\s*p_pedido_id\s*,\s*p_confirmacao\s*\)/i);
+  assertOrder(body,
+    /v_diag\s*:=\s*public\.diagnosticar_impacto_pedido\s*\(\s*p_pedido_id\s*\)/i,
+    /RETURN\s+public\.remover_pedido_pre53\s*\(\s*p_pedido_id\s*,\s*p_confirmacao\s*\)/i,
+    'diagnostico deve vir antes da delegacao a pre53 em remover_pedido'
+  );
+});
+
+test('SQL53 delegacao pre53 preserva argumentos e confirmacao', () => {
+  const opBody = fnBlock(sql53, 'remover_op');
+  const pedidoBody = fnBlock(sql53, 'remover_pedido');
+  assert.match(opBody, /remover_op_pre53\s*\(\s*p_op_id\s*,\s*p_confirmacao\s*\)/i);
+  assert.match(pedidoBody, /remover_pedido_pre53\s*\(\s*p_pedido_id\s*,\s*p_confirmacao\s*\)/i);
+});
+
+test('SQL54 existe como correcao de seguranca aditiva', () => {
+  assert.ok(fs.existsSync(SQL54), 'arquivo SQL54 ausente');
+  assert.match(sql54, /CONTROLLED-DELETE-DOCUMENT-LINK-GRANTS-54/i);
+  assert.match(sql54, /correcao de seguranca/i);
+});
+
+test('SQL54 revoga PUBLIC e anon nas quatro RPCs publicas', () => {
+  for (const fn of [
+    'public.diagnosticar_impacto_pedido(UUID)',
+    'public.diagnosticar_impacto_op(BIGINT)',
+    'public.remover_pedido(UUID, TEXT)',
+    'public.remover_op(BIGINT, TEXT)'
+  ]) {
+    const lower = sql54.toLowerCase();
+    assert.ok(lower.includes(`revoke execute on function ${fn.toLowerCase()} from public`), fn + ' deve revogar PUBLIC');
+    assert.ok(lower.includes(`revoke execute on function ${fn.toLowerCase()} from anon`), fn + ' deve revogar anon');
+  }
+});
+
+test('SQL54 concede EXECUTE somente a authenticated nas quatro RPCs publicas', () => {
+  for (const fn of [
+    'public.diagnosticar_impacto_pedido(UUID)',
+    'public.diagnosticar_impacto_op(BIGINT)',
+    'public.remover_pedido(UUID, TEXT)',
+    'public.remover_op(BIGINT, TEXT)'
+  ]) {
+    assert.ok(sql54.toLowerCase().includes(`grant execute on function ${fn.toLowerCase()} to authenticated`), fn + ' deve conceder a authenticated');
+  }
+  assert.doesNotMatch(sql54, /GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.(diagnosticar_impacto_pedido|diagnosticar_impacto_op|remover_pedido|remover_op)\s+TO\s+(anon|PUBLIC|service_role)/i);
+});
+
+test('SQL54 nao contem DDL/DML perigosos', () => {
+  const executableSql54 = sql54.replace(/^\s*--.*$/gm, '');
+  assert.doesNotMatch(executableSql54, /CREATE\s+OR\s+REPLACE\s+FUNCTION/i);
+  assert.doesNotMatch(executableSql54, /ALTER\s+FUNCTION/i);
+  assert.doesNotMatch(executableSql54, /DELETE\s+FROM/i);
+  assert.doesNotMatch(executableSql54, /UPDATE\s+/i);
+  assert.doesNotMatch(executableSql54, /INSERT\s+INTO/i);
+  assert.doesNotMatch(executableSql54, /DROP\s+/i);
+});
+
+test('helper expoe contagens documentais no impacto', () => {
+  assert.match(helper, /document_link_revision_ops/);
+  assert.match(helper, /document_link_revisions/);
+  assert.match(helper, /documentos_vinculados/);
+});
+
+test('helper mapeia mensagem documental e bloqueia modal sem onConfirm', { concurrency: false }, async () => {
+  const g = globalThis;
+  g.window = {
+    el: function (tag, attrs, ...children) {
+      const flat = (children || []).flat();
+      return { tag, attrs, children: flat, appendChild: function (c) { this.children.push(c); } };
+    },
+    modal: function (opts) { g.lastModal = opts; },
+    toast: function () {}
+  };
+  delete require.cache[require.resolve(HELPER)];
+  require(HELPER);
+  const api = g.window.RAVATEX_DELETE;
+  assert.ok(api, 'RAVATEX_DELETE exposto');
+  const summary = api.buildImpactSummary({ counts: { document_link_revision_ops: 3, document_link_revisions: 2, documentos_vinculados: 1 } });
+  const keys = summary.map(function (r) { return r.key; });
+  assert.ok(keys.includes('document_link_revision_ops'), 'summary inclui document_link_revision_ops');
+  assert.ok(keys.includes('document_link_revisions'), 'summary inclui document_link_revisions');
+  assert.ok(keys.includes('documentos_vinculados'), 'summary inclui documentos_vinculados');
+
+  let confirmCalled = false;
+  api.showDeleteConfirmation({
+    tipo: 'OP',
+    impacto: {
+      blocked: true,
+      classification: 'blocked',
+      counts: { document_link_revision_ops: 2, document_link_revisions: 1, documentos_vinculados: 1 },
+      documentary_history_blocker: true
+    },
+    blocked: true,
+    reason: 'Exclusao fisica bloqueada: existe historico canonico de vinculos documentais.',
+    onConfirm: function () { confirmCalled = true; return true; }
+  });
+  assert.ok(g.lastModal, 'modal foi aberto');
+  assert.equal(g.lastModal.saveLabel, 'Fechar', 'rotulo salvar deve ser Fechar quando bloqueado');
+  const saveResult = await g.lastModal.onSave();
+  assert.equal(saveResult, true, 'onSave retorna true sem executar acao');
+  assert.equal(confirmCalled, false, 'onConfirm nao deve ser invocado quando bloqueado');
+
+  delete g.window;
+  delete g.lastModal;
+});
+
+test('SQL56 existe e documenta a correcao do colapso NULL das diagnosticas documentais', () => {
+  assert.ok(fs.existsSync(SQL56), 'arquivo SQL56 ausente');
+  assert.match(sql56, /CONTROLLED-DELETE-DOCUMENT-LINK-DIAGNOSTICS-NULL-SAFE-56/i);
+});
+
+test('SQL56 redefine as duas diagnosticas publicas com CREATE OR REPLACE', () => {
+  for (const fn of ['diagnosticar_impacto_op', 'diagnosticar_impacto_pedido']) {
+    assert.match(sql56, new RegExp('CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.' + fn + '\\b', 'i'));
+  }
+});
+
+test('SQL56 usa construcao null-safe COALESCE(to_jsonb(v_reason), \'null\'::jsonb) nas duas diagnosticas', () => {
+  const nullSafePattern = /'\{reason\}',\s*COALESCE\(\s*to_jsonb\(v_reason\)\s*,\s*'null'::jsonb\s*\)\s*,\s*TRUE/i;
+  const opBody = fnBlock(sql56, 'diagnosticar_impacto_op');
+  const pedidoBody = fnBlock(sql56, 'diagnosticar_impacto_pedido');
+  assert.match(opBody, nullSafePattern, 'diagnosticar_impacto_op deve usar COALESCE null-safe em reason');
+  assert.match(pedidoBody, nullSafePattern, 'diagnosticar_impacto_pedido deve usar COALESCE null-safe em reason');
+});
+
+test('SQL56 nao contem o padrao vulneravel to_jsonb(v_reason) sem COALESCE', () => {
+  const vulnerablePattern = /'\{reason\}',\s*to_jsonb\(v_reason\),\s*TRUE/i;
+  const opBody = fnBlock(sql56, 'diagnosticar_impacto_op');
+  const pedidoBody = fnBlock(sql56, 'diagnosticar_impacto_pedido');
+  assert.doesNotMatch(opBody, vulnerablePattern, 'diagnosticar_impacto_op nao deve ter to_jsonb(v_reason) direto sem COALESCE');
+  assert.doesNotMatch(pedidoBody, vulnerablePattern, 'diagnosticar_impacto_pedido nao deve ter to_jsonb(v_reason) direto sem COALESCE');
+});
+
+test('SQL56 nao redefine remover_op, remover_pedido, funcoes *_pre53 nem grants/revokes', () => {
+  const executableSql56 = sql56.replace(/^\s*--.*$/gm, '');
+  // Chamar/delegar para as funcoes *_pre53 e esperado (preserva a logica original);
+  // o que nao pode ocorrer e a REDEFINICAO (CREATE OR REPLACE / ALTER / RENAME) delas,
+  // nem de remover_op/remover_pedido, nem qualquer GRANT/REVOKE.
+  assert.doesNotMatch(executableSql56, /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.remover_op\b/i);
+  assert.doesNotMatch(executableSql56, /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.remover_pedido\b/i);
+  assert.doesNotMatch(executableSql56, /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.\w*_pre53\b/i);
+  assert.doesNotMatch(executableSql56, /ALTER\s+FUNCTION\s+public\.\w+/i);
+  assert.doesNotMatch(executableSql56, /RENAME\s+TO\s+\w*_pre53\b/i);
+  assert.doesNotMatch(executableSql56, /\bGRANT\s+EXECUTE\b/i);
+  assert.doesNotMatch(executableSql56, /\bREVOKE\s+EXECUTE\b/i);
+});
+
+test('SQL56 limita-se as duas diagnosticas publicas (nenhuma outra CREATE OR REPLACE FUNCTION)', () => {
+  const matches = sql56.match(/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.\w+/gi) || [];
+  const names = matches.map(function (m) {
+    return m.replace(/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\./i, '').trim();
+  });
+  assert.deepEqual(new Set(names), new Set(['diagnosticar_impacto_op', 'diagnosticar_impacto_pedido']));
 });

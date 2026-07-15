@@ -10,6 +10,7 @@
   var MSG_ENTREGA = 'Não é possível excluir: existe entrega vinculada. Exclua a entrega antes.';
   var MSG_EXPEDICAO = 'A expedição vinculada entra na exclusão controlada de teste com EXCLUIR TUDO.';
   var MSG_FILHA = 'Não é possível excluir esta OP: existe OP de Acabamento vinculada. Exclua a OP filha primeiro.';
+  var MSG_DOCUMENTAL = 'Não é possível excluir: o histórico canônico de vínculos documentais bloqueia a exclusão física. Ajuste o vínculo pelo fluxo documental humano antes de tentar remover.';
   var MSG_FORTE = 'Digite EXCLUIR para confirmar.';
   var MSG_CASCADE_FORTE = 'Esta exclusão remove cadeia produtiva de teste: OPs, entregas, itens e vínculos. Digite EXCLUIR TUDO para confirmar.';
   var MSG_AVISO = 'Esta ação é irreversível no ambiente de testes.';
@@ -87,7 +88,10 @@
       ['expedicao_movimentos', 'Movimentos de expedição'],
       ['expedicao_movimento_itens', 'Itens de movimentos de expedição'],
       ['op_latex_entregas', 'Vínculos de entrega para Acabamento'],
-      ['ops_filhas', 'OPs filhas']
+      ['ops_filhas', 'OPs filhas'],
+      ['document_link_revision_ops', 'Vínculos documentais de OP'],
+      ['document_link_revisions', 'Revisões de vínculo documental'],
+      ['documentos_vinculados', 'Documentos vinculados']
     ];
     return labels
       .filter(function (row) { return counts[row[0]] != null; })
@@ -97,6 +101,7 @@
   function reasonWithMandatoryText(reason) {
     if (!reason) return '';
     var plain = String(reason);
+    if (/hist[óo]rico can[ôo]nico de v[íi]nculos documentais/i.test(plain)) return MSG_DOCUMENTAL;
     if (/entrega vinculada/i.test(plain)) return MSG_ENTREGA;
     if (/expedicao vinculada|expedição vinculada/i.test(plain)) return MSG_EXPEDICAO;
     if (/OP de Acabamento vinculada/i.test(plain)) return MSG_FILHA;
@@ -241,6 +246,7 @@
       entrega: MSG_ENTREGA,
       expedicao: MSG_EXPEDICAO,
       filha: MSG_FILHA,
+      documental: MSG_DOCUMENTAL,
       confirmacao: MSG_FORTE,
       confirmacaoCascata: MSG_CASCADE_FORTE,
       aviso: MSG_AVISO
