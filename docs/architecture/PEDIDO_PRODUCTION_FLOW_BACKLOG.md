@@ -1348,3 +1348,60 @@ migration, Supabase, staging, producao ou Vercel acessados/alterados.
 - Producao (`bhgifjrfagkzubpyqpew`) nao acessada; Supabase protegido nao
   acessado; Vercel nao acessado; sem push. Ver `docs/ledgers/G28_LEDGER.md`
   para a entrada append-only desta decisao.
+
+# Atualizacao 2026-07-15 - Cliente Order Summary ACL Grants R1: CLOSED / ACCEPTED
+
+Fase `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1`. Commit tecnico
+`82f5ba70ace2e74c51b7c0295d1ecf8e319954be` -- `Restrict client order summary
+RPC grants`. Commit documental: este closeout (`Close client order summary
+RPC grant hardening`).
+
+- Fecha o candidato tecnico registrado na secao anterior
+  (`STAGING-ONLY-EXECUTION-BOUNDARY-A`, "Proximo candidato tecnico
+  staging-only"), que listava `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1`
+  como `READY FOR EXPLICIT ARCHITECT AUTHORIZATION`. Essa entrada permanece
+  registrada como ocorreu naquele momento; esta secao substitui o estado
+  corrente do item, que sai do backlog aberto/pronto.
+- Migration `db/57_cliente_pedido_summary_acl_grants.sql` -- grants-only,
+  forward-only, idempotente -- criada, aplicada exatamente uma vez via
+  Supabase MCP (operacao de migration rastreada) e verificada em staging
+  `ucrjtfswnfdlxwtmxnoo`; registro `20260715190627 /
+  57_cliente_pedido_summary_acl_grants` confirmado no catalogo.
+- ACL final: `PUBLIC` sem `EXECUTE`; `anon` sem `EXECUTE`; `authenticated`
+  com `EXECUTE`; `service_role` sem `EXECUTE` explicito (nenhum consumidor
+  real encontrado na busca completa do repositorio). Owner `postgres`
+  retem privilegio inerente. Contrato da funcao (assinatura, retorno
+  `jsonb`, `SECURITY DEFINER`, `STABLE`, `search_path=public`, owner,
+  corpo) permanece byte a byte inalterado.
+- Matriz empirica (staging, read-only, `BEGIN ... ROLLBACK`, sem
+  fixtures): `anon` rejeitado no limite de ACL (`42501 permission denied`)
+  antes da execucao; `authenticated` dono `ok=true`; `authenticated`
+  cross-tenant `ok=false` fail-closed; `authenticated` admin `ok=true`;
+  `service_role` via `SET ROLE` direto tambem rejeitado (`rolbypassrls` de
+  RLS e mecanismo distinto do `EXECUTE` de funcao).
+- `js/screens/cliente-pedido-detail.js` permanece o unico consumidor real,
+  caminho autenticado padrao; nenhuma alteracao de frontend necessaria.
+- Testes locais: `tests/cliente-pedido-summary-acl-grants.smoke.js` (novo)
+  + `tests/cliente-pedido-summary-readmodel.smoke.js` (existente) --
+  **21/21 PASS**; `git diff --check` limpo. Sem mutacao de dados.
+- Debito fechado: `ACL_GRANTS_BROADER_THAN_CANONICAL_CONTRACT` --
+  `RESOLVED IN STAGING`.
+- Debitos preservados como abertos: `DB30_NOT_RECORDED_IN_SUPABASE_
+  MIGRATION_HISTORY` (nenhum registro de historico fabricado ou reparado
+  para `db/30`); `AUTHENTICATED_BROWSER_SMOKE_NOT_EXECUTED`; aplicacao em
+  producao do stack staging-only (incl. `db/57`) permanece postergada por
+  `STAGING-ONLY-EXECUTION-BOUNDARY-A`; `DEPLOYMENT_MAPPING_AND_
+  PRODUCTION_MIGRATION_PROCEDURE` permanece deferida.
+- Nao selecionados automaticamente por este closeout: producao/deployment,
+  G28-D, Vercel, reparo do historico de migration de `db/30`, smoke
+  autenticado de browser, Controlled Delete production guard.
+- Reconciliacao do backlog remanescente apos remover este item: nenhum
+  outro candidato tecnico unico e inequivoco foi identificado nesta
+  passagem documental.
+  `NEXT_AUTHORIZABLE_ACTION: NONE`. `ARCHITECT_DECISION_REQUIRED:`
+  reconciliacao explicita do backlog geral remanescente (producao,
+  smoke autenticado, historico de `db/30`, ou nova frente) exige decisao
+  de arquiteto; nenhuma foi autosselecionada.
+- Producao (`bhgifjrfagkzubpyqpew`) nao acessada; Vercel nao acessado; sem
+  push. Ver `docs/ledgers/G28_LEDGER.md` para a entrada append-only desta
+  fase.

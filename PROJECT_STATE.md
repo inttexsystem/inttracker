@@ -30,10 +30,27 @@ DEFERRED UNTIL GLOBAL BACKLOG COMPLETION
 G28-D:
 DEFERRED / NOT AUTHORIZED / NOT A CURRENT BLOCKER
 
+CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1:
+CLOSED / ACCEPTED
+
+MIGRATION:
+db/57_cliente_pedido_summary_acl_grants.sql
+
+STAGING REGISTRY:
+20260715190627 / 57_cliente_pedido_summary_acl_grants
+
+ACL DEBT:
+RESOLVED IN STAGING
+
+DB30 MIGRATION-HISTORY DEBT:
+OPEN
+
+ACTIVE FUNCTIONAL PHASE:
+NONE
+
 NEXT AUTHORIZABLE TECHNICAL CANDIDATE:
-CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1
-READY FOR EXPLICIT ARCHITECT AUTHORIZATION
-NOT STARTED
+NONE
+ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION
 STAGING ONLY
 ```
 
@@ -66,15 +83,12 @@ STAGING ONLY
   6. revisitar migração e publicação somente após o backlog canônico
      completo estar reconciliado e concluído;
   7. Vercel pode ser avaliado depois, mas não está selecionado atualmente.
-- **Próximo candidato técnico (não iniciado, não autorizado por este
-  registro):** `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` —
-  `READY FOR EXPLICIT ARCHITECT AUTHORIZATION` / `NOT STARTED` / staging-only.
-  Motivo: o backfill documental está fechado; a ambiguidade de escopo
-  staging-vs-produção foi resolvida por esta decisão; a ACL ao vivo em
-  staging permanece mais ampla que o contrato canônico; comportamento
-  anônimo é fail-closed sem exposição confirmada; a remediação segue
-  sendo uma migration grants-only separada; este registro documental não
-  autoriza nem cria essa migration.
+- **Próximo candidato técnico:** `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1`
+  foi autorizado, implementado, aplicado e verificado em staging em
+  2026-07-15 (`CLOSED / ACCEPTED` — ver seção própria "Portal Cliente — ACL
+  Grants Hardening" abaixo). Não há candidato técnico único e inequívoco
+  para o ciclo atual de staging; a próxima ação depende de reconciliação
+  do backlog geral remanescente.
 - **Produção:** `bhgifjrfagkzubpyqpew` não acessada. **Push:** não
   executado. **Vercel:** não acessado.
 - **Ledger:** `docs/ledgers/G28_LEDGER.md` (entrada append-only desta
@@ -186,6 +200,26 @@ STAGING ONLY
 - **Débitos preservados como abertos** (não fechados nem resolvidos por este backfill): `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` (`ARCHITECT DECISION REQUIRED`); `DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY`; débitos de smoke autenticado (G28-C/D/B7/Portal Cliente); `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`; `G28-D` (publicação); aplicação em produção das migrations staging-only (`db/12`, `db/21`, `db/30`, `db/49`–`db/56`); `DELETE-PROD-GUARD-A`; `DELETE-AUDIT-LOG-A`; frentes `G28-CAMADA-2/3/4`.
 - **Produção:** projeto `bhgifjrfagkzubpyqpew` não acessado. **Push:** não executado.
 - **Próxima ação autorizável:** `ARCHITECT DECISION REQUIRED` — `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE` permanece o único gate material do backlog. Este backfill documental não autoriza nenhuma fase técnica posterior.
+- **Ledger:** `docs/ledgers/G28_LEDGER.md` (entrada append-only deste closeout).
+
+### Portal Cliente — ACL Grants Hardening — CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1
+
+- **Frente:** remediação de ACL do read model público `public.cliente_pedido_summary(uuid)`, fechando o débito `ACL_GRANTS_BROADER_THAN_CANONICAL_CONTRACT` registrado no closeout `CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A`.
+- **Branch:** `work/g28-document-qualification`.
+- **Technical HEAD:** `82f5ba70ace2e74c51b7c0295d1ecf8e319954be` — `Restrict client order summary RPC grants`. **Commit documental:** este closeout (`Close client order summary RPC grant hardening`). O HEAD atual deve ser consultado diretamente com `git rev-parse HEAD`.
+- **Classificação:** `CLOSED / ACCEPTED`.
+- **Migration:** `db/57_cliente_pedido_summary_acl_grants.sql`, grants-only, forward-only, idempotente. Aplicada exatamente uma vez via Supabase MCP (operação de migration rastreada) em staging `ucrjtfswnfdlxwtmxnoo`; registro `20260715190627 / 57_cliente_pedido_summary_acl_grants` confirmado no catálogo de migrations.
+- **ACL final (verificada ao vivo):** `PUBLIC` sem `EXECUTE`; `anon` sem `EXECUTE`; `authenticated` com `EXECUTE`; `service_role` sem `EXECUTE` explícito (nenhum consumidor real encontrado na busca completa do repositório — apenas o cliente frontend autenticado em `js/screens/cliente-pedido-detail.js`). Owner `postgres` retém privilégio inerente de owner.
+- **Contrato da função preservado sem alteração:** nome, assinatura `cliente_pedido_summary(uuid)`, retorno `jsonb`, `SECURITY DEFINER`, `STABLE`, `search_path=public`, owner `postgres`, corpo — hash de definição idêntico antes/depois da migration (verificado via `pg_get_functiondef`).
+- **Matriz empírica de papéis (staging, read-only, `BEGIN … ROLLBACK`):** `anon` agora recebe `ERROR 42501: permission denied for function cliente_pedido_summary` no limite de ACL, antes de qualquer execução da função (upgrade em relação ao fail-closed pós-execução anterior); `authenticated` dono → `ok=true`, DTO completo; `authenticated` cross-tenant → `ok=false` (negação de negócio, fail-closed, sem dados de terceiros); `authenticated` admin → `ok=true`, DTO completo; `service_role` via `SET ROLE` direto → `ERROR 42501` (grant de objeto revogado com sucesso; o atributo de plataforma `rolbypassrls` do `service_role` é um mecanismo de bypass de RLS em tabelas, distinto e não relacionado ao `EXECUTE` de função, e não restaura acesso).
+- **Frontend:** `js/screens/cliente-pedido-detail.js` permanece o único consumidor real, via `window.supa.rpc('cliente_pedido_summary', ...)` no caminho autenticado padrão; nenhuma alteração de frontend foi necessária ou realizada.
+- **Testes locais:** `tests/cliente-pedido-summary-acl-grants.smoke.js` (novo, 13 asserções) + `tests/cliente-pedido-summary-readmodel.smoke.js` (existente) — **21/21 PASS**; `git diff --check` limpo.
+- **Sem mutação de dados:** todas as verificações empíricas rodaram em transações `BEGIN … ROLLBACK`; nenhuma fixture criada; registros reais pré-existentes reutilizados (pedido 33/cliente_id 3, pedido 34/cliente_id 22, usuários admin/cliente existentes).
+- **Débito fechado:** `ACL_GRANTS_BROADER_THAN_CANONICAL_CONTRACT` — **RESOLVED IN STAGING**.
+- **Débitos preservados como abertos (não fechados por esta fase):** `DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY` (nenhum registro de migration-history fabricado ou reparado para `db/30`); `AUTHENTICATED_BROWSER_SMOKE_NOT_EXECUTED`; aplicação em produção do stack staging-only (`db/57` incluído) permanece postergada por `STAGING-ONLY-EXECUTION-BOUNDARY-A`.
+- **Produção:** `bhgifjrfagkzubpyqpew` não acessada. **Push:** não executado. **Vercel:** não acessado.
+- **Escopo do encerramento:** encerra especificamente a remediação de ACL desta RPC. Não autoriza produção, publicação, G28-D, reparo do histórico de migration de `db/30`, smoke autenticado de browser ou Controlled Delete production guard.
+- **Próxima ação autorizável:** `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION` — sem candidato técnico único inequívoco após remover esta fase do backlog aberto.
 - **Ledger:** `docs/ledgers/G28_LEDGER.md` (entrada append-only deste closeout).
 
 ### Débitos relevantes

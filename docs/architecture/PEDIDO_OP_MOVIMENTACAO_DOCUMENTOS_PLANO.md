@@ -227,6 +227,7 @@ Sempre que houver evolução, decisão, bloqueio, conclusão parcial ou fechamen
 | D-COS04 | `pedido_parciais` e `pedido_cliente_eventos` entram no resumo apenas quando `visivel_cliente IS TRUE`. | Preserva o papel comercial/cliente das parciais e evita publicar eventos administrativos. |
 | D-COS05 | Dashboard Cliente permaneceu fora da alteracao porque ja lia dados publicos; Admin/Pedido Detail tambem ficou fora do escopo. | Limita o blast radius da fase ao P1 de leitura interna no detalhe Cliente. |
 | D-COS06 | Verificacao de staging 2026-07-15 (`CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A`): `db/30` encontrada ja aplicada em `ucrjtfswnfdlxwtmxnoo` sem drift; contrato validado por RPC real (cliente dono `ok`, `anon` fail-closed, cross-tenant negado, admin `ok`). ACL ao vivo concede `EXECUTE` tambem a `PUBLIC`/`anon`/`service_role` alem de `authenticated` (divergindo de D-COS02); `db/30` nao registrada em `supabase_migrations.schema_migrations`. Divergencias retidas como divida (anon fail-closed, sem exposicao confirmada); remediacao candidata `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` (grants-only analoga a `db/54`) fica como `ARCHITECT DECISION REQUIRED`, nao autorizada. | Registra a validacao de staging sem normalizar silenciosamente a ACL nem reaplicar a migration. |
+| D-COS07 | Remediacao de ACL aplicada e verificada em staging 2026-07-15 (`CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1`, `CLOSED / ACCEPTED`): migration grants-only forward `db/57_cliente_pedido_summary_acl_grants.sql` (registro `20260715190627` em `ucrjtfswnfdlxwtmxnoo`) revoga `EXECUTE` de `PUBLIC`, `anon` e `service_role` e mantem apenas `authenticated` em `public.cliente_pedido_summary(uuid)`, resolvendo a divergencia de ACL registrada em `D-COS06`. Corpo, `SECURITY DEFINER`, `STABLE`, `search_path=public`, owner `postgres` e assinatura permanecem byte a byte inalterados (hash de definicao identico antes/depois da migration). `anon` agora e rejeitado no limite de ACL (`42501 permission denied for function cliente_pedido_summary`) antes de qualquer execucao da funcao — nao mais apenas fail-closed apos execucao. Comportamento `authenticated` dono/cross-tenant/admin inalterado (matriz empirica revalidada). `service_role` tambem e rejeitado no limite de ACL: seu atributo de plataforma `rolbypassrls` (bypass de RLS em tabelas) e um mecanismo distinto de `EXECUTE` de funcao e nao restaura acesso. | Fecha `ACL_GRANTS_BROADER_THAN_CANONICAL_CONTRACT` sem alterar contrato funcional da RPC. `db/30` permanece nao registrada em `supabase_migrations.schema_migrations` (divida de proveniencia separada, preservada, nao reparada) e o smoke autenticado de browser permanece pendente. Aplicada e verificada somente em staging `ucrjtfswnfdlxwtmxnoo`; producao `bhgifjrfagkzubpyqpew` nao acessada; sem push. |
 
 ---
 
@@ -275,19 +276,31 @@ detalhe por `cliente_pedido_summary` com contrato validado por RPC real (cliente
 dono `ok`, `anon` fail-closed, cross-tenant negado, admin `ok`) e sem leituras
 diretas de OP/lote/fornecedor/documentos internos no frontend.
 
-Debitos nao bloqueantes: ACL ao vivo mais ampla que o contrato canonico
-(`PUBLIC`/`anon` com `EXECUTE`, anon fail-closed, sem exposicao confirmada),
-`db/30` nao registrada em `supabase_migrations.schema_migrations`, e smoke
-autenticado de browser nao executado. Ver `D-COS06`, `PROJECT_STATE.md` e
-`docs/ledgers/G28_LEDGER.md`.
+Debitos identificados neste closeout (ver `D-COS06`): ACL ao vivo mais ampla que
+o contrato canonico (`PUBLIC`/`anon`/`service_role` com `EXECUTE`, anon
+fail-closed, sem exposicao confirmada), `db/30` nao registrada em
+`supabase_migrations.schema_migrations`, e smoke autenticado de browser nao
+executado.
 
-**Proximo passo: `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION`.**
+**`CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` — `CLOSED / ACCEPTED` (2026-07-15).**
 
-Candidato de remediacao registrado mas **nao autorizado**:
-`CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` (migration grants-only forward
-analoga a `db/54`, revogando `EXECUTE` de `PUBLIC`/`anon` e preservando
-`authenticated`). Nao deve ser autosselecionado. Producao so deve ser discutida
-em fase separada, com autorizacao explicita.
+O debito de ACL acima foi fechado (ver `D-COS07`): `db/57_cliente_pedido_summary_acl_grants.sql`
+foi criada, aplicada e verificada em staging `ucrjtfswnfdlxwtmxnoo` (registro
+`20260715190627`), revogando `EXECUTE` de `PUBLIC`/`anon`/`service_role` e
+mantendo somente `authenticated`. Contrato funcional, corpo e assinatura da RPC
+permanecem inalterados; `anon` agora e rejeitado no limite de ACL antes da
+execucao. `ACL_GRANTS_BROADER_THAN_CANONICAL_CONTRACT` esta **resolvido**.
+
+Debitos preservados como abertos (nao fechados por esta fase):
+`DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY` e
+`AUTHENTICATED_BROWSER_SMOKE_NOT_EXECUTED`. Nenhum registro de migration-history
+foi fabricado para `db/30`; `db/57` e classificado como aplicado somente em
+staging. Ver `PROJECT_STATE.md` e `docs/ledgers/G28_LEDGER.md`.
+
+**Proximo passo: `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION`** —
+apos remover a fase de ACL do backlog aberto, a reconciliacao do backlog geral
+remanescente segue pendente de decisao de arquiteto. Producao so deve ser
+discutida em fase separada, com autorizacao explicita.
 
 ---
 
