@@ -100,3 +100,16 @@ test('expedicao flow: router abre #/expedicoes/:id como admin', () => {
   assert.match(router, /screenExpedicaoAdmin\(Number\(mExp\[1\]\)\)/);
   assert.match(router, /roles:\s*\[\s*['"]admin['"]\s*\]/);
 });
+
+test('expedicao flow: botao Concluir pedido nao renderiza disabled=null no DOM real', () => {
+  // ui.el() faz setAttribute(k, v) para todo atributo, sem omitir null; um
+  // valor null vira disabled="null" (atributo presente = botao desabilitado),
+  // inclusive quando a acao esta pronta (ready === true). O atributo deve ser
+  // omitido inteiramente quando pronto, e presente apenas quando nao pronto.
+  assert.doesNotMatch(expedicao, /disabled:\s*ready\s*\?\s*null\s*:\s*['"]disabled['"]/,
+    'botao Concluir pedido nao pode renderizar disabled=null, pois ui.el cria disabled="null" no DOM real');
+  assert.doesNotMatch(expedicao, /disabled:\s*!ready\s*\?\s*['"]disabled['"]\s*:\s*null/,
+    'variante equivalente de disabled=null tambem nao pode aparecer');
+  assert.match(expedicao, /if\s*\(\s*!ready\s*\)\s*\{\s*buttonAttrs\.disabled\s*=\s*['"]disabled['"];\s*\}/,
+    'disabled deve ser atribuido condicionalmente fora do objeto, nunca como null');
+});

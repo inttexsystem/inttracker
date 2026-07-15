@@ -393,31 +393,34 @@
       var exp = state.expedicao || {};
       var saldo = round2(totalLiberado - totalEntregue);
       var ready = saldo <= 0 && exp.status === 'concluida';
+      var buttonAttrs = {
+        type: 'button',
+        style: ready ? BTN_PRIMARY : (BTN_SECONDARY + 'color:#9aa2af;cursor:not-allowed;'),
+        onclick: async function (event) {
+          if (!ready) return;
+          var btn = event && event.currentTarget ? event.currentTarget : null;
+          if (btn) btn.disabled = true;
+          var r = await window.supa.rpc('concluir_pedido_se_pronto', { p_pedido_id: exp.pedido_id });
+          if (r.error || (r.data && r.data.ok === false)) {
+            var msg = r.error ? r.error.message : (r.data && r.data.erro ? r.data.erro : 'Pedido com pendencias');
+            window.toast('Pedido nao concluido: ' + msg, 'error');
+            if (btn) btn.disabled = false;
+            return;
+          }
+          window.toast('Pedido concluido.', 'success');
+          await reload();
+        },
+      };
+      if (!ready) {
+        buttonAttrs.disabled = 'disabled';
+      }
       return window.el('div', { style: CARD + 'padding:16px 20px;' },
         window.el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:10px;' }, 'Conclusao'),
         window.el('div', { style: 'font-size:13px;color:#5b6472;line-height:1.5;margin-bottom:12px;' },
           ready
             ? 'Toda a expedicao desta OP esta entregue/coletada. O pedido pode ser validado para conclusao.'
             : 'O pedido ainda nao pode ser concluido enquanto houver saldo pendente nesta expedicao.'),
-        window.el('button', {
-          type: 'button',
-          style: ready ? BTN_PRIMARY : (BTN_SECONDARY + 'color:#9aa2af;cursor:not-allowed;'),
-          disabled: ready ? null : 'disabled',
-          onclick: async function (event) {
-            if (!ready) return;
-            var btn = event && event.currentTarget ? event.currentTarget : null;
-            if (btn) btn.disabled = true;
-            var r = await window.supa.rpc('concluir_pedido_se_pronto', { p_pedido_id: exp.pedido_id });
-            if (r.error || (r.data && r.data.ok === false)) {
-              var msg = r.error ? r.error.message : (r.data && r.data.erro ? r.data.erro : 'Pedido com pendencias');
-              window.toast('Pedido nao concluido: ' + msg, 'error');
-              if (btn) btn.disabled = false;
-              return;
-            }
-            window.toast('Pedido concluido.', 'success');
-            await reload();
-          },
-        }, 'Concluir pedido')
+        window.el('button', buttonAttrs, 'Concluir pedido')
       );
     }
 
