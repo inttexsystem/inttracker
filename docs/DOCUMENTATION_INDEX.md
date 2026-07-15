@@ -127,6 +127,19 @@ declarados na §1. Não é uma segunda lista de autoridade.
   atual; snapshots não recebem novos closeouts; conteúdo preservado para
   auditoria, não para roteamento operacional.
 
+## 1d. Relatórios de diagnóstico e reconciliação, e artefatos de supervisão externa (não normativos)
+
+Documentos desta seção registram diagnósticos read-only ou artefatos de
+supervisão externa. Não são fonte canônica de estado, não autorizam
+implementação por si só e não substituem a lista de autoridade da §1. As
+decisões do arquiteto derivadas destes documentos são registradas em
+`PROJECT_STATE.md` e no ledger da frente aplicável, não neles próprios.
+
+| Documento | Propósito | Fase |
+|---|---|---|
+| `docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md` | Diagnóstico read-only do backlog geral: inventário no código real da Camada 2 (administração de usuários) e Camada 3 (backup), auditoria dos worktrees, evidência factual de validação da seção de Documentos (sem classificar aceite), tabela única de backlog remanescente e divergências entre canônicos/código/closeout do ChatGPT. Não altera estado; decisões derivadas registradas em `PROJECT_STATE.md` (`G28-RECONCILIATION-DECISIONS-A`). | `BACKLOG-RECONCILIATION-READONLY-R1` |
+| `docs/handoffs/CHATGPT_CLOSEOUT_2026-07-15.md` | Registro de encerramento da supervisão do ChatGPT: estado segundo seu próprio registro, ordens emitidas não fechadas, decisões discutidas fora dos arquivos canônicos e pendências aguardando decisão do arquiteto. Artefato externo, não canônico; seu relatório `PROJECT-CONTROL-BASELINE-R1` foi avaliado e rejeitado (`REJECTED / NOT RATIFIED`) em `PROJECT_STATE.md` (`G28-RECONCILIATION-DECISIONS-A`). | Handoff externo (ChatGPT), não numerado como fase do projeto |
+
 ## 2. Regra de prevalência
 
 A única lista ativa de autoridade documental está na **§1** deste

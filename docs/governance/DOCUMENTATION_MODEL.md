@@ -56,6 +56,7 @@ Consequências diretas:
 | **Plano arquitetural** | `docs/architecture/PLANO_*.md` | Arquitetura-alvo, requisitos, decisões permanentes, dependências, fases planejadas, critérios de aceite, backlog. |
 | **Contrato de domínio / API** | `docs/architecture/*_CONTRACT.md` e `services/documents-ingestor/contracts/*` | Contrato técnico de uma área (schema, RLS, RPCs, eventos, JSON schemas). |
 | **Contrato visual** | `docs/architecture/UI_VISUAL_CONTRACT.md` | Regras visuais versionadas. |
+| **Contrato de saúde arquitetural / modularização** | `docs/architecture/CODE_HEALTH_RULES.md` | 18 regras vinculantes de modularização, estrutura de arquivos, limites de responsabilidade por módulo/tela e o que `index.html` pode e não pode conter. Toda nova fase deve respeitar. |
 | **Runbook operacional** | `docs/operations/*` | Como executar procedimentos já aprovados. |
 | **Governança documental** | `docs/governance/DOCUMENTATION_MODEL.md` (este arquivo) | Regras de como a documentação se organiza e se atualiza. |
 

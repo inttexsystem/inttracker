@@ -94,6 +94,88 @@ STAGING ONLY
 - **Ledger:** `docs/ledgers/G28_LEDGER.md` (entrada append-only desta
   decisão).
 
+## Decisão de Arquiteto — Reconciliação de Backlog e Governança de Supervisão — G28-RECONCILIATION-DECISIONS-A
+
+Registro vivo e permanente das decisões do arquiteto (2026-07-15) sobre o
+diagnóstico read-only `BACKLOG-RECONCILIATION-READONLY-R1`
+(`docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md`). Este bloco
+prevalece sobre qualquer classificação anterior do relatório
+`PROJECT-CONTROL-BASELINE-R1` (ChatGPT) referente à Camada 2 e ao aceite da
+seção de Documentos.
+
+```text
+PROJECT-CONTROL-BASELINE-R1 (ChatGPT):
+REJECTED / NOT RATIFIED — classificação materialmente incorreta da Camada 2.
+Artefato externo, nunca canônico.
+
+PROJECT-CONTROL-BASELINE-R1-CORRECTION (ChatGPT):
+CANCELLED / ABSORBED / SUPERSEDED BY BACKLOG-RECONCILIATION-READONLY-R1
+
+BASELINE DE REFERÊNCIA ADOTADO:
+BACKLOG-RECONCILIATION-READONLY-R1
+(docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md)
+
+G28-CAMADA-2:
+CAPACIDADE PARCIAL PREEXISTENTE (subproduto de AUTH-DISABLE-USER e Portal
+Cliente) / ESCOPO PLENO A1-A7 DIFERIDO / NÃO ACEITA COMO FASE DEDICADA
+REFERÊNCIA FUNCIONAL/VISUAL PARA O ESCOPO PLENO:
+D:\OneDrive\Programação\SGAA_clean_baseline
+
+G28-C:
+CLOSED / TECHNICALLY ACCEPTED — ARCHITECT PRODUCT VALIDATION PENDING
+(reclassificação do estado vigente; ledger histórico `a7d7caa`/`d5ec09f`
+NÃO reescrito; nova entrada append-only no ledger G28)
+DÉBITO REGISTRADO: AUTHENTICATED_BROWSER_SMOKE_NOT_EXECUTED (pendente)
+
+GOVERNANÇA DE SUPERVISÃO:
+Acompanhamento e pareceres transferidos para Claude (chat) + Claude Code
+(residente). ChatGPT passa a consultor sem custódia de estado e sem
+emissão de ordens.
+
+PRÓXIMA FRENTE SELECIONADA:
+G28-CAMADA-2 — início por diagnóstico read-only comparativo (ordem própria
+subsequente, não autorizada por este registro)
+
+TAREFA PARALELA AUTORIZADA:
+Higiene do worktree `work/app-next` — read-only, ordem separada
+```
+
+- **Decisão vinculante do arquiteto:** o relatório `PROJECT-CONTROL-BASELINE-R1`
+  do ChatGPT é `REJECTED / NOT RATIFIED` quanto à classificação da Camada 2;
+  sua correção (`PROJECT-CONTROL-BASELINE-R1-CORRECTION`) é `CANCELLED /
+  ABSORBED / SUPERSEDED` pelo diagnóstico `BACKLOG-RECONCILIATION-READONLY-R1`,
+  adotado como baseline de referência corrente.
+- **G28-CAMADA-2** é reclassificada como `CAPACIDADE PARCIAL PREEXISTENTE`
+  (CRUD de usuários, desativação/ban, papel único `usuarios.tipo`, vínculo
+  cliente/fornecedor — subproduto de `AUTH-DISABLE-USER` e do Portal Cliente,
+  não de uma fase Camada-2 dedicada) mais `ESCOPO PLENO A1-A7 DIFERIDO`
+  (reset/recuperação de senha, convites, matriz de papéis/permissões,
+  auditoria de create/edit/delete, política de senha completa, reativação).
+  Não aceita como fase; nenhuma implementação autorizada por este registro.
+  Referência funcional/visual para o escopo pleno, quando autorizado:
+  `D:\OneDrive\Programação\SGAA_clean_baseline`.
+- **G28-C** é reclassificado no estado vigente como `CLOSED / TECHNICALLY
+  ACCEPTED — ARCHITECT PRODUCT VALIDATION PENDING`, separando explicitamente
+  aceite técnico/staging (matriz 16/16, migrations aplicadas e verificadas)
+  de validação funcional/pessoal do arquiteto (não registrada) e do smoke
+  autenticado de browser (nunca executado, `AUTHENTICATED_BROWSER_SMOKE_
+  NOT_EXECUTED`). O closeout histórico (`a7d7caa`/aceite `d5ec09f`) não é
+  reescrito; esta reclassificação é registrada como entrada nova e vinculada
+  no ledger G28.
+- **Governança de supervisão:** o acompanhamento de progresso, continuidade,
+  escopo, autorizações, fases e documentação passa para Claude (chat) e
+  Claude Code (residente). O ChatGPT permanece disponível como consultor,
+  sem custódia de estado e sem autoridade para emitir ordens.
+- **Próxima frente:** `G28-CAMADA-2`, iniciando por diagnóstico read-only
+  comparativo em ordem própria subsequente (não autorizada por este
+  registro). Higiene do worktree `work/app-next` (divergente do remoto e
+  com mudanças não commitadas) autorizada como tarefa paralela read-only,
+  em ordem separada.
+- **Produção:** `bhgifjrfagkzubpyqpew` não acessada. **Push:** não
+  executado nesta fase.
+- **Ledger:** `docs/ledgers/G28_LEDGER.md` (entrada append-only desta
+  decisão).
+
 ## Bloco da frente ativa
 
 ### Document Qualification / Documents Ingestor — G28
