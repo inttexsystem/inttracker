@@ -222,6 +222,21 @@ STAGING ONLY
 - **Próxima ação autorizável:** `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION` — sem candidato técnico único inequívoco após remover esta fase do backlog aberto.
 - **Ledger:** `docs/ledgers/G28_LEDGER.md` (entrada append-only deste closeout).
 
+### Documentação Canônica — Consistência de Status dos Planos Legados Pedido↔OP — DOCS-PEDIDO-OP-LEGACY-PLAN-STATUS-CONSISTENCY-R1
+
+- **Frente:** reconcilia as linhas de status materialmente desatualizadas das Fases legadas D–J nos dois planos técnicos da frente Pedido ↔ OP ↔ Movimentação ↔ Documentos. Docs-only: sem código, runtime, teste, SQL, migration, staging ou produção alterados.
+- **Branch:** `work/g28-document-qualification`.
+- **Commit documental:** este closeout (`Reconcile legacy Pedido OP plan phase statuses`). O HEAD atual deve ser consultado com `git rev-parse HEAD`.
+- **Classificação:** `CLOSED / ACCEPTED`.
+- **Correção aplicada** (`docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` §9 e `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` §5):
+  - Fases **D/E/F** deixam de aparecer como `Pendente`/em branco e passam a **Entregue** através do trabalho de fluxo produtivo aceito (Pedido Detail lista OPs vinculadas; stepper/preview via `derivePedidoChainState`; Pedido reutiliza operações canônicas da OP sem write paralelo). Base: `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` §1.1/§1.2/§9.4/§9.5/§9.7.
+  - Fases **G/H/I** passam a **Superada** pela pipeline documental canônica G28 (`document_link_revisions`/`document_link_revision_ops`, db/51/52; `documentos_operacionais` nunca criada). Base: `DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`, G28-B1…C aceitos.
+  - Fase **J** permanece visível como `Futura / não sequenciada / não iniciada / não autorizada` (bloqueio transacional de saldo por etapa; `PEDIDO_OP_SCHEMA_CONTRACT.md` §7).
+- **Não alterado:** nenhuma seção datada histórica reescrita; o desenho arquitetural original (`documentos_operacionais` §4, saldo por etapa §7) preservado como intenção; nenhum código/teste/SQL/migration/runtime tocado; nenhuma fase de implementação autorizada.
+- **Estado inalterado por esta correção:** `ACTIVE_PHASE: NONE`; `NEXT_AUTHORIZABLE_ACTION: NONE` pendente de seleção explícita de arquiteto de uma nova frente. Débitos e frentes deferidas permanecem abertos e inalterados.
+- **Produção:** `bhgifjrfagkzubpyqpew` não acessada. **Push:** não executado. **Supabase/MCP/staging/Vercel:** não acessados.
+- **Ledger:** `docs/ledgers/G28_LEDGER.md` (entrada append-only deste closeout).
+
 ### Débitos relevantes
 
 - Migrations 49 e 50 — aplicadas e verificadas em staging; não aplicadas em produção por esta cadeia.

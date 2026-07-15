@@ -130,6 +130,26 @@
   9. `docs/governance/DOCUMENTATION_MODEL.md`
   Todo chat ou agente futuro deve retransmitir estes nove caminhos e instruir expressamente a próxima continuidade a retransmiti-los novamente. A cadeia de continuidade do plano e do backlog não pode ser interrompida.
 
+## Documentação Canônica — Consistência de Status dos Planos Legados Pedido↔OP — DOCS-PEDIDO-OP-LEGACY-PLAN-STATUS-CONSISTENCY-R1 — CLOSED / ACCEPTED
+
+- **Fase:** `DOCS-PEDIDO-OP-LEGACY-PLAN-STATUS-CONSISTENCY-R1`. **Commit documental:** este closeout (`Reconcile legacy Pedido OP plan phase statuses`). Docs-only — sem código, runtime, teste, SQL, migration, Supabase, MCP, staging, produção ou Vercel acessados/alterados. O HEAD atual deve ser consultado com `git rev-parse HEAD`.
+- **Correção:** as linhas de status correntes das Fases legadas D–J foram reconciliadas em `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` §9 e `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` §5.
+- **Roteamento obrigatório para o próximo agente:** as Fases legadas **D, E, F** foram **entregues** através do trabalho de fluxo produtivo aceito e **não** devem ser roteadas como fases de implementação abertas. As Fases legadas **G, H, I** foram **superadas** pela pipeline documental canônica G28 (`document_link_revisions`/`document_link_revision_ops`; `documentos_operacionais` nunca criada) e também **não** devem ser roteadas como fases abertas. A **Fase J** permanece exclusivamente como `FUTURE / UNSEQUENCED / NOT STARTED / NOT AUTHORIZED`.
+- **Estado inalterado:** `ACTIVE_PHASE: NONE`; `NEXT_AUTHORIZABLE_ACTION: NONE` pendente de seleção explícita de arquiteto. Todos os débitos abertos e frentes deferidas permanecem inalterados (`DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY`, `AUTHENTICATED_BROWSER_SMOKE_NOT_EXECUTED`, aplicação em produção do stack staging-only, `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`, G28-D/Vercel, `DELETE-PROD-GUARD-A`, `DELETE-AUDIT-LOG-A`, `G28-CAMADA-2/3/4`).
+- **Acessos:** sem staging; sem produção (`bhgifjrfagkzubpyqpew` não acessada); sem Supabase/MCP; sem Vercel; sem push.
+- **Detalhe completo:** `PROJECT_STATE.md` (seção "Documentação Canônica — Consistência de Status dos Planos Legados Pedido↔OP") e `docs/ledgers/G28_LEDGER.md` (entrada append-only).
+- **Continuidade documental obrigatória — retransmitir em todo handoff futuro:**
+  1. `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`
+  2. `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
+  3. `docs/architecture/DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`
+  4. `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md`
+  5. `PROJECT_STATE.md`
+  6. `AGENT_HANDOFF.md`
+  7. `docs/ledgers/G28_LEDGER.md`
+  8. `docs/DOCUMENTATION_INDEX.md`
+  9. `docs/governance/DOCUMENTATION_MODEL.md`
+  Todo chat ou agente futuro deve retransmitir estes nove caminhos e instruir expressamente a próxima continuidade a retransmiti-los novamente. A cadeia de continuidade do plano e do backlog não pode ser interrompida.
+
 # HISTÓRICO DE HANDOFFS — ARQUIVADO
 
 O conteúdo histórico completo dos handoffs anteriores foi preservado,

@@ -565,14 +565,16 @@ WHERE l.pedido_id = :pedido_id;
 | **A** | Plano persistente Pedido ↔ OP ↔ Movimentação ↔ Documentos | **[x] Concluída** (`04613ee`) |
 | **B** | Contrato arquitetura/schema detalhado (este documento) | **[x] Concluída** (esta fase) |
 | **C** | Vínculo Pedido → OP: popular `lotes.pedido_id`; criar `op_itens.pedido_item_id` | **[x] Concluída** (Fase C: migration `db/20_*` + `op-persistir.js` + `op-nova.js` + `boot.js`) |
-| **D** | OPs vinculadas no detalhe do Pedido Admin | Pendente |
-| **E** | Stepper/preview produtivo no Pedido Admin | Pendente |
-| **F** | Operação canônica de movimentação | Pendente |
-| **G** | Pendência documental (`documentos_operacionais`) | Pendente |
-| **H** | Integração Drive/OneDrive | Pendente |
-| **I** | Automação por e-mail/PDF/XML | Pendente |
-| **J** | Saldo inteligente por etapa e bloqueio transacional | Pendente |
+| **D** | OPs vinculadas no detalhe do Pedido Admin | **Entregue** através do trabalho de fluxo produtivo aceito. O Pedido Detail Admin lista as OPs vinculadas com status, progresso e link para a OP. Ver `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` §1.2/§9.4 (§2 item H resolvido). |
+| **E** | Stepper/preview produtivo no Pedido Admin | **Entregue** através do trabalho de fluxo produtivo aceito. Stepper/preview com progresso real derivado das OPs via `derivePedidoChainState`. Ver `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` §9.4 (§2 item F) e §9.7 (hub R2). |
+| **F** | Operação canônica de movimentação | **Entregue** através do trabalho de fluxo produtivo aceito. O Pedido reutiliza as operações canônicas da OP (`salvarEntregaCima`, `liberar_expedicao_latex_parcial`, `registrar_entrega_expedicao`, `registrarRecebimentoOrdemFio`), sem write paralelo. Ver `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` §1.1 e §9.5. |
+| **G** | Pendência documental (`documentos_operacionais`) | **Superada** pela pipeline documental canônica G28. `documentos_operacionais` não foi criada; o vínculo documental usa `document_link_revisions`/`document_link_revision_ops` (db/51/52). Ver `DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`. |
+| **H** | Integração Drive/OneDrive | **Superada** pela pipeline documental canônica G28. Referências de arquivo externo passam pelo modelo de documentos G28 (Documents Ingestor + candidato/evidência); a camada de anexo Drive na UI permanece visual-only. Ver `DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`. |
+| **I** | Automação por e-mail/PDF/XML | **Superada** pela pipeline documental canônica G28: ingestão Gmail + detecção/classificação técnica + fila de validação humana (Documents Ingestor / G28-B1…C aceitos). Ver `DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`. |
+| **J** | Saldo inteligente por etapa e bloqueio transacional | **Futura / não sequenciada / não iniciada / não autorizada.** Bloqueio transacional de saldo por etapa (backend RPC/trigger; ver §7). Nenhuma implementação autorizada; `NEXT_AUTHORIZABLE_ACTION: NONE` até seleção explícita de arquiteto. |
 | **L** | Lifecycle de OP backend (status expandido, `op_eventos`, trigger, RPC `alterar_status_op` admin-only) | **[x] Concluída** (db/21, backend-only; R1 hardening) |
+
+> **Reconciliação `DOCS-PEDIDO-OP-LEGACY-PLAN-STATUS-CONSISTENCY-R1` (docs-only):** os status correntes das Fases D–J acima foram reconciliados com as autoridades correntes — D/E/F **entregues** via fluxo produtivo aceito; G/H/I **superadas** pela pipeline documental canônica G28 (`document_link_revisions`/`document_link_revision_ops`; `documentos_operacionais` nunca criada); J **futura/não sequenciada/não iniciada/não autorizada**. Nenhum código, runtime ou comportamento mudou. O desenho arquitetural original (§4 `documentos_operacionais`, §7 saldo por etapa) e as seções datadas históricas permanecem preservados como intenção/registro. `ACTIVE_PHASE: NONE`; `NEXT_AUTHORIZABLE_ACTION: NONE` pendente de seleção explícita de arquiteto.
 
 ---
 

@@ -169,18 +169,20 @@ Pedido
 
 > Ordem recomendada. Cada fase é atômica e rastreável.
 
-| Fase | Descrição | Dependência |
-|---|---|---|
+| Fase | Descrição | Dependência | Status |
+|---|---|---|---|
 | **B** | Contrato arquitetura/schema detalhado: validar colunas existentes, desenhar novas (`documentos_operacionais`, FK `op_itens.pedido_item_id`), validar índices e constraints. | Plano A (este doc) | **[x] Concluída** (`docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md`) |
 | **C** | Vínculo Pedido → OP: preencher `lotes.pedido_id` na criação/edição de lote; migration `op_itens.pedido_item_id`. | B | **[x] Concluída** (`bbc57b2`; migration `db/20_*` aplicada em staging `ucrjtfswnfdlxwtmxnoo`) |
-| **D** | OPs vinculadas no detalhe do Pedido Admin: listar OPs do pedido com status, progresso e link para a tela de OP. | C |
-| **E** | Stepper/preview produtivo no Pedido Admin: visão gráfica das etapas com progresso real derivado das OPs. | D |
-| **F** | Operação canônica de movimentação: módulo/função reaproveitada pela tela de OP e pelos atalhos do Pedido. | D |
-| **G** | Pendência documental por movimento: tabela `documentos_operacionais`, upload de metadados, vínculo com movimento/OP/Pedido. Sem upload de arquivo ainda. | B |
-| **H** | Integração Drive/OneDrive: upload real de arquivos, storage externo, ponteiros no banco. | G |
-| **I** | Automação futura por e-mail/PDF/XML: leitura de `eddiravazio@gmail.com`, classificação, anexo automático com revisão humana. | H |
-| **J** | Saldo inteligente por etapa e bloqueio transacional: evitar que uma etapa consuma mais do que a anterior produziu. | F |
+| **D** | OPs vinculadas no detalhe do Pedido Admin: listar OPs do pedido com status, progresso e link para a tela de OP. | C | **Entregue** via fluxo produtivo aceito (Pedido Detail lista OPs vinculadas; ver `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` §9.4 e `PEDIDO_OP_SCHEMA_CONTRACT.md` §9). |
+| **E** | Stepper/preview produtivo no Pedido Admin: visão gráfica das etapas com progresso real derivado das OPs. | D | **Entregue** via fluxo produtivo aceito (stepper/preview no Pedido Detail; `derivePedidoChainState`; ver §9.4/§9.7). |
+| **F** | Operação canônica de movimentação: módulo/função reaproveitada pela tela de OP e pelos atalhos do Pedido. | D | **Entregue** via fluxo produtivo aceito (Pedido reutiliza as operações canônicas da OP, sem write paralelo; ver §1.1/§9.5). |
+| **G** | Pendência documental por movimento: tabela `documentos_operacionais`, upload de metadados, vínculo com movimento/OP/Pedido. Sem upload de arquivo ainda. | B | **Superada** pela pipeline documental canônica G28 (`document_link_revisions`/`document_link_revision_ops`; `documentos_operacionais` não criada). |
+| **H** | Integração Drive/OneDrive: upload real de arquivos, storage externo, ponteiros no banco. | G | **Superada** pela pipeline documental canônica G28 (arquivo externo tratado no modelo de documentos G28; anexo Drive na UI é visual-only). |
+| **I** | Automação futura por e-mail/PDF/XML: leitura de `eddiravazio@gmail.com`, classificação, anexo automático com revisão humana. | H | **Superada** pela pipeline documental canônica G28 (ingestão Gmail + validação humana; ver `DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`). |
+| **J** | Saldo inteligente por etapa e bloqueio transacional: evitar que uma etapa consuma mais do que a anterior produziu. | F | **Futura / não sequenciada / não iniciada / não autorizada** (bloqueio transacional de saldo por etapa; ver `PEDIDO_OP_SCHEMA_CONTRACT.md` §7). |
 | **L** | Lifecycle de OP backend: status expandido (`pausada`/`concluida`/`cancelada`), tabela `op_eventos`, trigger de eventos, RPC `alterar_status_op` (admin-only, R1). Migration `db/21_op_lifecycle_status_eventos.sql` aplicada em staging `ucrjtfswnfdlxwtmxnoo`. | — | **[x] Concluída** (backend aplicado em staging; proximo: UI de lifecycle OP) |
+
+> **Reconciliação `DOCS-PEDIDO-OP-LEGACY-PLAN-STATUS-CONSISTENCY-R1` (docs-only):** a coluna Status das Fases D–J foi reconciliada com as autoridades correntes — D/E/F **entregues** via fluxo produtivo aceito; G/H/I **superadas** pela pipeline documental canônica G28; J **futura/não sequenciada/não iniciada/não autorizada**. Sem mudança de código, runtime ou comportamento; decisões e registros históricos datados permanecem preservados. `ACTIVE_PHASE: NONE`; `NEXT_AUTHORIZABLE_ACTION: NONE`.
 
 ---
 
