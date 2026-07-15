@@ -630,3 +630,40 @@ risco residual e próxima fase indicada no fechamento.
 - **Access:** no push; no production; no Supabase; no migration; no network.
 - **Commit:** single local commit `G28-B7: complete canonical link display surfaces` (resolve final HEAD with `git rev-parse HEAD` after commit).
 - **Next indicated (not authorized):** architect acceptance of `G28-B7` (all surfaces implemented and tested locally). `G28-B8` remains unauthorized.
+
+---
+
+## 2026-07-14 — G28-B7 — Architect acceptance and G28-B8 authorization
+
+- **Gate:** `CLOSED / ACCEPTED_WITH_NONBLOCKING_REMOTE_SMOKE_DEBT`. Explicit architect decision recorded in this session; not an inference from phase numbering.
+- **Partial commit (Pedido-detail increment):** `ed35f049397af4061ed6e8bb2d9ec3056c543724`.
+- **Completion commit (all surfaces):** `9ef61e1896af631bc5aeeced4af93c77051f4de4`.
+- **Accepted contract:** canonical reverse projection consumed by every surface (Pedido detail, OP detail, Pedido/OP timeline, central Documentos search/filters) reads confirmed links **only** from the active canonical revision (`_ravatex_link_revision`); `pedido_manual` and `candidate.pedido_id` remain Ingestor suggestions and are never read as links; OP never inferred via Pedido membership; unavailable link source is fail-closed.
+- **Accepted non-blocking debt:** authenticated staging smoke of the B7 Pedido, OP, timeline and search surfaces against `ucrjtfswnfdlxwtmxnoo` remains pending (Supabase prohibited for the local agent; no new remote queries were introduced).
+- **Authorization:** `G28-B8` (correction / revocation / restoration / audit) is explicitly authorized. No phase after `G28-B8` is authorized.
+- **Next authorizable action:** implement `G28-B8` per master plan §1.10 / §SEQUÊNCIA — G28-B8.
+
+---
+
+## 2026-07-14 — G28-B8 — Correction, revocation, restoration and audit of canonical links
+
+- **Gate:** `IMPLEMENTED / TESTED (local) / READY FOR ARCHITECT ACCEPTANCE`. Not `CLOSED`, not `ACCEPTED` (IAexec does not self-close). No phase after `G28-B8` authorized.
+- **Scope implemented:** the minimum complete contract for human administration of canonical document links, extending the single canonical command boundary (no competing writer):
+  - **Correction** — replace the complete active link set with a corrected state (new revision; previous revision revoked, not deleted; requires the expected active revision id; idempotent; fails closed on stale/divergent state; records actor/timestamp/reason).
+  - **Revocation / unlink** — register the canonical explicit empty-link state (`pedido_id` NULL, no OPs); previous linked revision preserved; reason + actor recorded; the Ingestor suggestion and the document decision are never touched.
+  - **Restoration** — copy a selected historical revision's normalized Pedido/OP set into a NEW active revision, stamping `restored_from_revision_id`; the historical row is never reactivated or mutated; current Pedido/OP validity and compatibility are revalidated (fail-closed); optimistic concurrency + idempotency.
+  - **Audit** — read-only trail of every append-only revision (version, active/revoked, Pedido, OPs, actor, created_at, revoked actor/at, reason, restoration source, command id), newest-first, with active-revision-uniqueness anomaly detection; fail-closed when history is unavailable.
+- **Schema / RPC (additive migration `db/52_document_link_correction_revocation_restoration.sql`, NOT applied):**
+  - Additive column `document_link_revisions.restored_from_revision_id UUID` (typed FK to `document_link_revisions(id)` ON DELETE RESTRICT + partial index). No backfill.
+  - Evolved the single writer `registrar_vinculos_documento` (DROP of the 5-arg signature + recreate with two trailing DEFAULT NULL params `p_reason`, `p_restored_from_revision_id`): reason → `revocation_reason` of the superseded revision (COALESCE `'superseded'`); provenance stamped on the new revision. Five-arg positional callers (the B6 atomic wrapper) keep identical behavior. All B6 outcomes/locks/validation preserved; still no DELETE, no candidate/decision mutation, no inference.
+  - New RPC `restaurar_vinculos_documento(...)` — reads the historical source (read-only), copies its normalized Pedido/OP set and delegates to `registrar_vinculos_documento` (no duplicated compatibility logic), stamping provenance; rejects `restore_source_not_found` / `restore_source_mismatch` and propagates the writer's fail-closed outcomes when the historical target is no longer valid.
+  - Admin-only grants reapplied; PostgREST reload. Additive: no DROP TABLE; B5 decision RPCs and legacy `decidir_documento` untouched.
+- **Runtime:** `js/documents-supabase-links.js` gains `loadDocumentLinkRevisionHistory` (full append-only history + OP children, read-only, fail-closed) and `restoreDocumentLinksInCloud` (→ `restaurar_vinculos_documento`); `registerDocumentLinksInCloud` carries an optional `reason` (sent only when present, preserving the accepted five-param shape for correction/unlink). New pure `js/document-link-audit-read-model.js` (ordered audit trail + active-uniqueness). New pure `js/document-link-admin-controller.js` (correction/revocation/restoration orchestration; in-memory command-id reuse on retry with the server RPC as idempotency authority; optimistic concurrency; outcome→UI mapping). New pure `js/screens/document-link-admin-modal.js` (inspect active links + full history, correct, unlink, restore; reason required; stale/conflict/unavailable fail-closed). Wired into the central Documentos queue only (`js/screens/documentos-recebidos.js`: guarded `handleLinkAdmin` + a per-row "Histórico e vínculos" action); read-only Pedido/OP display surfaces untouched. `index.html` loads the three new modules.
+- **UI boundary:** the administrative surface lives only in the central Documentos queue (plan-authorized); no parallel generic admin screen; no mutation from Pedido/OP read-only surfaces. A human reason is required for every mutating action.
+- **Local focused tests (LF, exit 0):** `document-link-correction-restoration-contract` 13/13; `document-link-audit-read-model` 11/11; `document-link-admin-controller` 18/18; `document-link-admin-modal.smoke` 12/12; `documents-supabase-links` 25/25 (12 new B8 cases). Full B4–B8 document/link battery (26 files) **831/831**. `node --check` on all five changed/new JS files; `git diff --check` clean (informational LF→CRLF only). Updated `document-decision-command-contract` allow-list to admit `db/52` (git-manifest gate), consistent with the db/51 precedent.
+- **Regression:** B6 atomic validation + B7 read-only display surfaces remain green within the 831/831 battery. Pre-existing failures unchanged vs the B7 baseline: `pedido-detail.smoke.js` 140/41 (CRLF), `ops-list-screen.smoke.js` 19/11, `op-form-helpers.smoke.js` 33/3, `op-writes.smoke.js` 48/1 (stale index.html regexes over untouched files), `documents-ingestor.test.js` 2, `g14-c-bridge-smoke.test.js` 15.
+- **Remote verification required (not performed — Supabase prohibited for the local agent):** apply + verify `db/52` in staging `ucrjtfswnfdlxwtmxnoo` (column, FK, index, evolved writer signature/grants, restoration RPC semantics, idempotent replay, optimistic concurrency, fail-closed restore of invalidated targets) and authenticated admin render of the link-admin modal (history, correct, unlink, restore, stale/conflict feedback). No new remote query shape beyond the additive history read.
+- **Access:** no push; no production; no Supabase; no applied migration; no network. `db/52` versioned and NOT applied.
+- **Commit:** single local technical commit including this closeout (resolve final HEAD with `git rev-parse HEAD` after commit).
+- **Residual risk:** staging unverified — schema/RPC/idempotency/compatibility must be applied and verified in `ucrjtfswnfdlxwtmxnoo` before acceptance; the client controller keeps command-id reuse in memory (durable convergence relies on the server RPC idempotency, not sessionStorage).
+- **Next indicated (not authorized):** architect acceptance of `G28-B8`. No phase after `G28-B8` is authorized.

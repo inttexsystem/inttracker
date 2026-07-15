@@ -71,13 +71,17 @@ test('links: arquivo existe e sintaxe valida', function () {
   require('node:child_process').execFileSync(process.execPath, ['--check', LINKS_PATH], { stdio: 'pipe' });
 });
 
-test('links: exporta exatamente os quatro pontos de entrada', function () {
+test('links: exporta os pontos de entrada canonicos (B6 + B8)', function () {
   const rt = makeSandbox({ withSupa: false });
   const fns = Object.keys(rt.ns).filter(function (k) { return typeof rt.ns[k] === 'function'; });
+  // B6 writers/readers
   assert.ok(fns.includes('registerDocumentLinksInCloud'));
   assert.ok(fns.includes('applyDocumentValidationInCloud'));
   assert.ok(fns.includes('loadActiveDocumentLinkRevision'));
   assert.ok(fns.includes('loadLinkableTargets'));
+  // B8 writer/reader
+  assert.ok(fns.includes('restoreDocumentLinksInCloud'));
+  assert.ok(fns.includes('loadDocumentLinkRevisionHistory'));
 });
 
 test('links: codigo executavel nao usa localStorage, service-role, alias legado', function () {
@@ -204,4 +208,139 @@ test('loadLinkableTargets: mapeia pedido canonico da OP via lote', async functio
   assert.deepEqual(plain(r.pedidos), [{ id: PED, numero: 25, status: 'confirmado' }]);
   assert.equal(r.ops[0].pedido_id, PED);
   assert.equal(r.ops[1].pedido_id, null);
+});
+
+// ---------------------------------------------------------------------
+// B8 — correction/revocation reason on register; restore writer; history read
+// ---------------------------------------------------------------------
+const REV2 = 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb';
+const REV3 = 'cccccccc-3333-4333-8333-cccccccccccc';
+
+test('register (correcao): sem reason envia exatamente os cinco params B6', async function () {
+  const rt = makeSandbox({ rpcResult: { data: { ok: true, outcome: 'updated' } } });
+  await rt.ns.registerDocumentLinksInCloud({
+    documentId: DOC_ID, commandId: CMD_A, pedidoId: PED, opIds: [3], expectedActiveRevisionId: REV,
+  });
+  assert.deepEqual(Object.keys(rt.calls[0].params).sort(), [
+    'p_command_id', 'p_document_id', 'p_expected_active_revision_id', 'p_op_ids', 'p_pedido_id',
+  ]);
+});
+
+test('register (correcao): reason presente adiciona p_reason (trimmed)', async function () {
+  const rt = makeSandbox({ rpcResult: { data: { ok: true, outcome: 'updated' } } });
+  const r = await rt.ns.registerDocumentLinksInCloud({
+    documentId: DOC_ID, commandId: CMD_A, pedidoId: PED, opIds: [3],
+    expectedActiveRevisionId: REV, reason: '  pedido errado  ',
+  });
+  assert.equal(r.ok, true);
+  assert.equal(rt.calls[0].params.p_reason, 'pedido errado');
+  assert.equal(rt.calls[0].params.p_expected_active_revision_id, REV);
+});
+
+test('register (revogacao): pedido null + op vazio + reason = unlink explicito', async function () {
+  const rt = makeSandbox({ rpcResult: { data: { ok: true, outcome: 'updated' } } });
+  await rt.ns.registerDocumentLinksInCloud({
+    documentId: DOC_ID, commandId: CMD_A, pedidoId: null, opIds: [],
+    expectedActiveRevisionId: REV, reason: 'documento nao pertence a este pedido',
+  });
+  assert.equal(rt.calls[0].params.p_pedido_id, null);
+  assert.deepEqual(plain(rt.calls[0].params.p_op_ids), []);
+  assert.equal(rt.calls[0].params.p_reason, 'documento nao pertence a este pedido');
+});
+
+test('restore: supabase_unavailable sem supa', async function () {
+  const rt = makeSandbox({ withSupa: false });
+  const r = await rt.ns.restoreDocumentLinksInCloud({ documentId: DOC_ID, sourceRevisionId: REV, commandId: CMD_A });
+  assert.deepEqual(plain(r), { ok: false, error: 'supabase_unavailable' });
+});
+
+test('restore: valida document_id, source_revision_id, command_id, expected', async function () {
+  const rt = makeSandbox();
+  assert.equal((await rt.ns.restoreDocumentLinksInCloud({ sourceRevisionId: REV, commandId: CMD_A })).error, 'document_id_required');
+  assert.equal((await rt.ns.restoreDocumentLinksInCloud({ documentId: DOC_ID, commandId: CMD_A })).error, 'source_revision_id_required');
+  assert.equal((await rt.ns.restoreDocumentLinksInCloud({ documentId: DOC_ID, sourceRevisionId: 'nope', commandId: CMD_A })).error, 'source_revision_id_required');
+  assert.equal((await rt.ns.restoreDocumentLinksInCloud({ documentId: DOC_ID, sourceRevisionId: REV })).error, 'command_id_required');
+  assert.equal((await rt.ns.restoreDocumentLinksInCloud({ documentId: DOC_ID, sourceRevisionId: REV, commandId: CMD_A, expectedActiveRevisionId: 'x' })).error, 'invalid_expected_active_revision_id');
+});
+
+test('restore: happy path chama restaurar_vinculos_documento com params', async function () {
+  const rt = makeSandbox({ rpcResult: { data: { ok: true, outcome: 'updated', restored_from_revision_id: REV } } });
+  const r = await rt.ns.restoreDocumentLinksInCloud({
+    documentId: '  ' + DOC_ID + '  ', sourceRevisionId: REV, commandId: CMD_A,
+    expectedActiveRevisionId: REV2, reason: '  restaurar v2  ',
+  });
+  assert.equal(r.ok, true);
+  assert.equal(r.outcome, 'updated');
+  assert.equal(rt.calls[0].fn, 'restaurar_vinculos_documento');
+  assert.deepEqual(plain(rt.calls[0].params), {
+    p_document_id: DOC_ID,
+    p_source_revision_id: REV,
+    p_command_id: CMD_A,
+    p_expected_active_revision_id: REV2,
+    p_reason: 'restaurar v2',
+  });
+});
+
+test('restore: sem reason omite p_reason', async function () {
+  const rt = makeSandbox({ rpcResult: { data: { ok: true, outcome: 'created' } } });
+  await rt.ns.restoreDocumentLinksInCloud({ documentId: DOC_ID, sourceRevisionId: REV, commandId: CMD_A });
+  assert.equal(Object.prototype.hasOwnProperty.call(rt.calls[0].params, 'p_reason'), false);
+  assert.equal(rt.calls[0].params.p_expected_active_revision_id, null);
+});
+
+test('loadDocumentLinkRevisionHistory: supabase_unavailable / document_id_required', async function () {
+  const noSupa = makeSandbox({ withSupa: false });
+  assert.equal((await noSupa.ns.loadDocumentLinkRevisionHistory(DOC_ID)).error, 'supabase_unavailable');
+  const rt = makeSandbox();
+  assert.equal((await rt.ns.loadDocumentLinkRevisionHistory('   ')).error, 'document_id_required');
+});
+
+test('loadDocumentLinkRevisionHistory: revisoes com op_ids agrupados e campos de auditoria', async function () {
+  const rt = makeSandbox({
+    tableResults: {
+      document_link_revisions: { data: [
+        { id: REV3, document_id: DOC_ID, pedido_id: PED, version: 3, active: true, command_id: CMD_A,
+          created_by: 'user-1', created_at: '2026-07-14T03:00:00Z', revoked_by: null, revoked_at: null,
+          revocation_reason: null, restored_from_revision_id: REV },
+        { id: REV2, document_id: DOC_ID, pedido_id: null, version: 2, active: false, command_id: CMD_B,
+          created_by: 'user-1', created_at: '2026-07-14T02:00:00Z', revoked_by: 'user-1',
+          revoked_at: '2026-07-14T03:00:00Z', revocation_reason: 'corrigido', restored_from_revision_id: null },
+      ] },
+      document_link_revision_ops: { data: [
+        { revision_id: REV3, op_id: 7 }, { revision_id: REV3, op_id: 3 },
+      ] },
+    },
+  });
+  const r = await rt.ns.loadDocumentLinkRevisionHistory(DOC_ID);
+  assert.equal(r.ok, true);
+  assert.equal(r.revisions.length, 2);
+  assert.equal(r.revisions[0].version, 3);
+  assert.equal(r.revisions[0].active, true);
+  assert.equal(r.revisions[0].restored_from_revision_id, REV);
+  assert.deepEqual(plain(r.revisions[0].op_ids), [3, 7]);
+  assert.equal(r.revisions[1].revocation_reason, 'corrigido');
+  assert.deepEqual(plain(r.revisions[1].op_ids), []);
+});
+
+test('loadDocumentLinkRevisionHistory: fail-closed em erro de query (nunca vazio silencioso)', async function () {
+  const rt = makeSandbox({
+    tableResults: { document_link_revisions: { error: { message: 'boom' } } },
+  });
+  const r = await rt.ns.loadDocumentLinkRevisionHistory(DOC_ID);
+  assert.equal(r.ok, false);
+  assert.equal(r.error, 'boom');
+});
+
+test('loadDocumentLinkRevisionHistory: sem revisoes retorna lista vazia ok', async function () {
+  const rt = makeSandbox({ tableResults: { document_link_revisions: { data: [] } } });
+  const r = await rt.ns.loadDocumentLinkRevisionHistory(DOC_ID);
+  assert.equal(r.ok, true);
+  assert.deepEqual(plain(r.revisions), []);
+});
+
+test('history/restore: codigo executavel permanece sem localStorage/service-role/legado', function () {
+  const exec = LINKS.replace(/\/\/.*$/gm, '');
+  assert.doesNotMatch(exec, /localStorage/i);
+  assert.doesNotMatch(exec, /service_role|serviceRole/i);
+  assert.doesNotMatch(exec, /decidir_documento/i);
 });

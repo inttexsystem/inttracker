@@ -93,6 +93,8 @@
   var SVG_INBOX = '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>'
     + '<path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>';
   var SVG_CHEVRON = '<polyline points="6 9 12 15 18 9"></polyline>';
+  var SVG_LINK = '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>'
+    + '<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>';
 
   function ensureStyles() {
     try {
@@ -1061,6 +1063,168 @@
     });
   }
 
+  // -------------------------------------------------------------------
+  // B8 — correction / revocation / restoration / audit of canonical links.
+  // Routes to the canonical link adapters via the dedicated admin controller
+  // and modal. Read-only Pedido/OP display surfaces are NOT touched here; this
+  // administrative surface lives only in the central Documentos queue.
+  // -------------------------------------------------------------------
+  var _cloudLinkAdminController = null;
+  var _cloudLinkAdminModal = null;
+
+  function newLinkCommandId() {
+    try {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return window.crypto.randomUUID();
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  function getLinkAdminController() {
+    if (!_cloudLinkAdminController) {
+      var api = window.RAVATEX_DOCUMENTS;
+      if (!api || typeof api.createDocumentLinkAdminController !== 'function' ||
+          typeof api.registerDocumentLinksInCloud !== 'function' ||
+          typeof api.restoreDocumentLinksInCloud !== 'function') {
+        return null;
+      }
+      _cloudLinkAdminController = api.createDocumentLinkAdminController({
+        linksAdapter: {
+          register: api.registerDocumentLinksInCloud,
+          restore: api.restoreDocumentLinksInCloud,
+        },
+        newCommandId: newLinkCommandId,
+      });
+    }
+    return _cloudLinkAdminController;
+  }
+
+  function getLinkAdminModal() {
+    if (!_cloudLinkAdminModal) {
+      var api = window.RAVATEX_DOCUMENTS;
+      if (!api || typeof api.createDocumentLinkAdminModal !== 'function') return null;
+      _cloudLinkAdminModal = api.createDocumentLinkAdminModal({ document: window.document });
+    }
+    return _cloudLinkAdminModal;
+  }
+
+  function linkAdminErrorMessage(result) {
+    var code = (result && (result.messageKey || result.error || result.outcome)) || '';
+    switch (code) {
+      case 'reason_required': return 'Informe o motivo desta ação.';
+      case 'stale_active_revision': return 'Os vínculos foram alterados. Recarregue e tente novamente.';
+      case 'command_conflict': return 'Comando divergente. Recarregue e tente novamente.';
+      case 'op_pedido_mismatch': return 'OP incompatível com o Pedido selecionado.';
+      case 'op_not_avulsa': return 'OP pertence a um Pedido. Selecione o Pedido correspondente.';
+      case 'pedido_not_linkable':
+      case 'op_not_linkable': return 'Pedido ou OP cancelado não pode ser vinculado.';
+      case 'pedido_not_found':
+      case 'op_not_found':
+      case 'candidate_not_found': return 'Registro não encontrado. Recarregue e tente novamente.';
+      case 'duplicate_op': return 'OP repetida na seleção.';
+      case 'restore_source_not_found':
+      case 'restore_source_mismatch': return 'Revisão de origem inválida para restauração.';
+      case 'admin_required':
+      case 'auth_error': return 'Ação restrita a administradores.';
+      case 'network_error':
+      case 'network':
+      case 'supabase_unavailable': return 'Falha de comunicação.';
+      default: return 'Não foi possível concluir a ação de vínculo.';
+    }
+  }
+
+  function runLinkAdminOp(modal, controller, intent) {
+    modal.setBusy(true);
+    modal.setError('');
+    var st = controller.getState().state;
+    var promise = (st === 'uncertain') ? controller.retry() : controller.submit(intent);
+    promise.then(function (result) {
+      if (result.state === 'succeeded') {
+        if (result.closeModal) modal.close();
+        refreshCloudDocs();
+        return;
+      }
+      if (result.state === 'stale' || result.state === 'conflict') {
+        modal.close();
+        refreshCloudDocs();
+        return;
+      }
+      if (result.state === 'uncertain') {
+        modal.setBusy(false);
+        modal.setOutcome('Falha de comunicação. Tente novamente.', 'warning');
+        return;
+      }
+      modal.setBusy(false);
+      modal.setError(linkAdminErrorMessage(result));
+    }).catch(function () {
+      modal.setBusy(false);
+      modal.setError('Falha de comunicação.');
+    });
+  }
+
+  function handleLinkAdmin(doc) {
+    var controller = getLinkAdminController();
+    var modal = getLinkAdminModal();
+    var api = window.RAVATEX_DOCUMENTS;
+    var auditApi = window.RAVATEX_DOCUMENT_LINK_AUDIT;
+    if (!controller || !modal || !api ||
+        typeof api.loadDocumentLinkRevisionHistory !== 'function' ||
+        !auditApi || typeof auditApi.buildAuditTrail !== 'function') {
+      if (typeof window.toast === 'function') window.toast('Falha de comunicação.', 'error');
+      return;
+    }
+
+    var docLabel = doc.filename_original || doc.id;
+
+    Promise.all([
+      api.loadDocumentLinkRevisionHistory(doc.id),
+      ensureLinkTargets(),
+    ]).then(function (results) {
+      var audit = auditApi.buildAuditTrail(results[0]);
+      var targets = results[1];
+
+      var openR = controller.open({
+        documentId: doc.id,
+        activeRevisionId: audit.active_revision_id || null,
+      });
+      if (!openR.ok || openR.state === 'failed') {
+        if (typeof window.toast === 'function') window.toast('Falha de comunicação.', 'error');
+        return;
+      }
+
+      modal.open({
+        documentId: docLabel,
+        suggestion: (doc.raw && doc.raw.pedido_manual) || null,
+        audit: audit,
+        linkTargets: targets,
+      }, {
+        onCorrect: function (intent) {
+          runLinkAdminOp(modal, controller, {
+            kind: 'correct', pedidoId: intent.pedidoId, opIds: intent.opIds, reason: intent.reason,
+          });
+        },
+        onUnlink: function (intent) {
+          runLinkAdminOp(modal, controller, { kind: 'unlink', reason: intent.reason });
+        },
+        onRestore: function (intent) {
+          runLinkAdminOp(modal, controller, {
+            kind: 'restore', sourceRevisionId: intent.sourceRevisionId, reason: intent.reason,
+          });
+        },
+        onCancel: function () {
+          var st = controller.getState().state;
+          if (st === 'submitting' || st === 'uncertain') return { closeModal: false };
+          if (st === 'stale' || st === 'conflict') { controller.acknowledge(); return; }
+          controller.cancel();
+          return;
+        },
+      });
+    }).catch(function () {
+      if (typeof window.toast === 'function') window.toast('Falha de comunicação.', 'error');
+    });
+  }
+
   function buildActionButtons(doc) {
     var wrap = window.el('div', {
       style: 'display:flex;align-items:center;justify-content:center;gap:6px;',
@@ -1141,6 +1305,15 @@
           'data-document-id': doc.id,
         });
         wrap.appendChild(aceitarNuvemBtn);
+      }
+      if (doc.hasRealId) {
+        // B8 admin surface: inspect history + correct / unlink / restore links.
+        wrap.appendChild(iconButton('Histórico e vínculos', SVG_LINK, function () {
+          handleLinkAdmin(doc);
+        }, 'color:#687385;border-color:#cfd5dd;', {
+          'data-action': 'administrar-vinculos-nuvem',
+          'data-document-id': doc.id,
+        }));
       }
     } else if (doc.decisionSourceKind === 'legacy' && doc.status === 'pending' && doc.hasRealId) {
       var localSource = doc.raw && doc.raw._ravatex_source;

@@ -5,10 +5,13 @@
 //
 // Writers:
 //   - registerDocumentLinksInCloud   -> registrar_vinculos_documento
+//       (B6 link; B8 correction/revocation via the optional envelope.reason)
 //   - applyDocumentValidationInCloud -> registrar_decisao_e_vinculos_documento (atomic)
+//   - restoreDocumentLinksInCloud    -> restaurar_vinculos_documento (B8)
 // Readers (read-only, no writes):
-//   - loadActiveDocumentLinkRevision -> active revision + OP children
-//   - loadLinkableTargets            -> pedidos + OPs for the picker
+//   - loadActiveDocumentLinkRevision      -> active revision + OP children
+//   - loadDocumentLinkRevisionHistory     -> full append-only revision history (B8 audit)
+//   - loadLinkableTargets                 -> pedidos + OPs for the picker
 //
 // No localStorage, no in-memory overrides, no legacy fallback, no
 // alternate RPC aliases, no duplicate browser writers, no service-role.
@@ -91,15 +94,72 @@
       expectedRevId = null;
     }
 
+    var params = {
+      p_document_id: documentId,
+      p_pedido_id: pedidoId,
+      p_op_ids: norm.opIds,
+      p_command_id: envelope.commandId,
+      p_expected_active_revision_id: expectedRevId,
+    };
+
+    // B8 correction / revocation: an optional human reason is recorded as the
+    // revocation_reason of the superseded revision. Sent only when present so
+    // the accepted B6 call shape (five params) is preserved when it is absent.
+    var reason = typeof envelope.reason === 'string' ? envelope.reason.trim() : '';
+    if (reason) params.p_reason = reason;
+
     return Promise.resolve()
       .then(function () {
-        return window.supa.rpc('registrar_vinculos_documento', {
-          p_document_id: documentId,
-          p_pedido_id: pedidoId,
-          p_op_ids: norm.opIds,
-          p_command_id: envelope.commandId,
-          p_expected_active_revision_id: expectedRevId,
-        });
+        return window.supa.rpc('registrar_vinculos_documento', params);
+      })
+      .then(rpcResult)
+      .catch(function () {
+        return { ok: false, error: 'network' };
+      });
+  };
+
+  // -------------------------------------------------------------------
+  // Writer (B8): restore a historical link revision. Delegates to the
+  // restaurar_vinculos_documento RPC, which reuses the single canonical
+  // writer (no compatibility logic duplicated; historical row never mutated).
+  // -------------------------------------------------------------------
+  ns.restoreDocumentLinksInCloud = function restoreDocumentLinksInCloud(envelope) {
+    if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)) {
+      return Promise.resolve({ ok: false, error: 'invalid_envelope' });
+    }
+    if (!window.supa || typeof window.supa.rpc !== 'function') {
+      return Promise.resolve({ ok: false, error: 'supabase_unavailable' });
+    }
+
+    var documentId = typeof envelope.documentId === 'string' ? envelope.documentId.trim() : '';
+    if (!documentId) return Promise.resolve({ ok: false, error: 'document_id_required' });
+
+    if (!envelope.sourceRevisionId || !isUuid(envelope.sourceRevisionId)) {
+      return Promise.resolve({ ok: false, error: 'source_revision_id_required' });
+    }
+    if (!envelope.commandId || !isUuid(envelope.commandId)) {
+      return Promise.resolve({ ok: false, error: 'command_id_required' });
+    }
+
+    var expectedRevId = envelope.expectedActiveRevisionId;
+    if (expectedRevId !== null && expectedRevId !== undefined) {
+      if (!isUuid(expectedRevId)) return Promise.resolve({ ok: false, error: 'invalid_expected_active_revision_id' });
+    } else {
+      expectedRevId = null;
+    }
+
+    var params = {
+      p_document_id: documentId,
+      p_source_revision_id: envelope.sourceRevisionId,
+      p_command_id: envelope.commandId,
+      p_expected_active_revision_id: expectedRevId,
+    };
+    var reason = typeof envelope.reason === 'string' ? envelope.reason.trim() : '';
+    if (reason) params.p_reason = reason;
+
+    return Promise.resolve()
+      .then(function () {
+        return window.supa.rpc('restaurar_vinculos_documento', params);
       })
       .then(rpcResult)
       .catch(function () {
@@ -226,6 +286,74 @@
                 op_ids: opIds,
               },
             };
+          });
+      })
+      .catch(function (err) {
+        return { ok: false, error: String(err) };
+      });
+  };
+
+  // -------------------------------------------------------------------
+  // Reader (B8 audit): the full append-only revision history of a single
+  // document (active + revoked), each with its typed OP children and every
+  // audit field. Read-only. Fail-closed: a query failure returns
+  // { ok:false, error } — never a silent empty history.
+  // -------------------------------------------------------------------
+  var HISTORY_REVISION_FIELDS = [
+    'id', 'document_id', 'pedido_id', 'version', 'active', 'command_id',
+    'created_by', 'created_at', 'revoked_by', 'revoked_at', 'revocation_reason',
+    'restored_from_revision_id',
+  ].join(', ');
+
+  ns.loadDocumentLinkRevisionHistory = function loadDocumentLinkRevisionHistory(documentId) {
+    if (!window.supa || typeof window.supa.from !== 'function') {
+      return Promise.resolve({ ok: false, error: 'supabase_unavailable' });
+    }
+    var docId = typeof documentId === 'string' ? documentId.trim() : '';
+    if (!docId) return Promise.resolve({ ok: false, error: 'document_id_required' });
+
+    return Promise.resolve()
+      .then(function () {
+        return window.supa.from('document_link_revisions')
+          .select(HISTORY_REVISION_FIELDS)
+          .eq('document_id', docId)
+          .order('version', { ascending: false });
+      })
+      .then(function (r) {
+        if (r && r.error) return { ok: false, error: (r.error && r.error.message) || 'supabase_error' };
+        var revs = (r && r.data) || [];
+        if (revs.length === 0) return { ok: true, revisions: [] };
+        var revisionIds = revs.map(function (x) { return x.id; });
+        return window.supa.from('document_link_revision_ops')
+          .select('revision_id, op_id')
+          .in('revision_id', revisionIds)
+          .then(function (opr) {
+            if (opr && opr.error) return { ok: false, error: (opr.error && opr.error.message) || 'supabase_error' };
+            var opsByRevision = {};
+            ((opr && opr.data) || []).forEach(function (o) {
+              if (!o || o.revision_id == null) return;
+              if (!opsByRevision[o.revision_id]) opsByRevision[o.revision_id] = [];
+              opsByRevision[o.revision_id].push(o.op_id);
+            });
+            var revisions = revs.map(function (rev) {
+              var opIds = (opsByRevision[rev.id] || []).slice().sort(function (a, b) { return a - b; });
+              return {
+                revision_id: rev.id,
+                document_id: rev.document_id,
+                pedido_id: rev.pedido_id || null,
+                version: rev.version,
+                active: rev.active === true,
+                command_id: rev.command_id || null,
+                created_by: rev.created_by || null,
+                created_at: rev.created_at || null,
+                revoked_by: rev.revoked_by || null,
+                revoked_at: rev.revoked_at || null,
+                revocation_reason: rev.revocation_reason || null,
+                restored_from_revision_id: rev.restored_from_revision_id || null,
+                op_ids: opIds,
+              };
+            });
+            return { ok: true, revisions: revisions };
           });
       })
       .catch(function (err) {

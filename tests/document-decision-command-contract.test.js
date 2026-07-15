@@ -242,9 +242,14 @@ test('git baseline: B5-B1 technical-commit manifest (b247e435)', function () {
   const statusOut = execFileSync('git', ['status', '--porcelain', 'db/'], { encoding: 'utf8', cwd: ROOT }).trim();
   const dbStatus = statusOut ? statusOut.split('\n').filter(Boolean) : [];
 
-  // B5-B1 introduced db/50; G28-B6 adds db/51 as the next migration. Both are
-  // allowed working-tree entries; anything else is an unexpected db/ change.
-  const ALLOWED_DB = ['db/50_document_decision_command.sql', 'db/51_document_canonical_links.sql'];
+  // B5-B1 introduced db/50; G28-B6 adds db/51; G28-B8 adds db/52 as the next
+  // migration. All are allowed working-tree entries; anything else is an
+  // unexpected db/ change.
+  const ALLOWED_DB = [
+    'db/50_document_decision_command.sql',
+    'db/51_document_canonical_links.sql',
+    'db/52_document_link_correction_revocation_restoration.sql',
+  ];
   for (const line of dbStatus) {
     const file = line.trim().slice(3);
     assert.ok(ALLOWED_DB.includes(file), 'db/ nao pode ter alteracao extra: ' + line);
