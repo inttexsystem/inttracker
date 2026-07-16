@@ -278,6 +278,22 @@ function actionButton({ title, icon, danger = false, disabled = false, onclick, 
   return button;
 }
 
+// --- Grid/list text-cell overflow (UI_VISUAL_CONTRACT.md §7.1) ---
+// Promoted from js/screens/admin-usuarios.js (UI-USERS-GRID-TEXT-OVERFLOW).
+// Single-line ellipsis cell with a `title` tooltip carrying the full value
+// (mandatory — ellipsis without a reveal trades one usability bug for
+// another). `min-width:0` is required for ellipsis to work inside a CSS
+// grid track (grid items default to min-width:auto, which ignores
+// overflow:hidden). `title` is only set when there is a real value, so
+// fallback dashes ("—") never show a useless "—" tooltip.
+const TRUNCATE_CELL_STYLE = 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;';
+window.TRUNCATE_CELL_STYLE = TRUNCATE_CELL_STYLE;
+function truncatedCell(displayText, rawValue, colorStyle) {
+  const attrs = { style: `${colorStyle} ${TRUNCATE_CELL_STYLE}` };
+  if (rawValue) attrs.title = rawValue;
+  return el('div', attrs, displayText);
+}
+
 // --- Page header padrão (título + botão de ação) ---
 function pageHeader(title, actions = []) {
   const wrap = el('div', { class: 'flex justify-between items-center mb-4' });
