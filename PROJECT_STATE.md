@@ -4,6 +4,119 @@ Este bloco é a única fonte de estado operacional atual por frente.
 HEAD, working tree, staging e divergência devem ser consultados diretamente no Git.
 O conteúdo histórico abaixo não determina o estado atual.
 
+## Camada 2 — Reset de Senha Administrativo — A5.1-A5.2
+
+- **Frente:** `G28-CAMADA-2`, subfase `A5.1-A5.2` de
+  `docs/architecture/CAMADA2_USUARIOS_SPEC_PROPOSED.md`, autorizada após
+  `A4.2`. `A5.3-A5.4` (reativação) explicitamente **não incluídas** —
+  autorização própria futura.
+- **Classificação: `CLOSED / ACCEPTED`** (e2e real em staging `result:
+  PASS` 15/15 + fluxo verificado em navegador real pelo executor;
+  validação visual do arquiteto **dispensada por decisão explícita**,
+  coberta pela combinação e2e + verificação de fluxo).
+- **Technical HEAD:** `b726717` — `Add admin password reset`
+  (`supabase/functions/admin-reset-user-password/index.ts` (novo),
+  `supabase/functions/admin-reset-user-password/README.md` (novo),
+  `js/admin-usuarios-writes.js`, `js/screens/admin-usuarios.js`,
+  `js/screens/admin-usuarios-modal.js`,
+  `scripts/staging/admin-reset-password-e2e.mjs` (novo),
+  `tests/admin-reset-user-password.smoke.js` (novo),
+  `tests/admin-usuarios.smoke.js`). **Commit documental:** este
+  closeout (`Close admin password reset phase`). O HEAD atual deve ser
+  consultado com `git rev-parse HEAD`.
+- **Decisão do arquiteto incorporada — auto-reset BLOQUEADO:** um
+  admin não pode resetar a própria senha por `admin-reset-user-password`
+  (`SELF_RESET_FORBIDDEN`) — usa o fluxo normal de troca (self-service,
+  `A4.2`). Simplifica e evita o footgun de um admin trocar a própria
+  senha por um valor gerado que ele mesmo não escolheu. Não há guarda
+  de "último admin" (resetar senha não desativa ninguém).
+- **Edge Function (`admin-reset-user-password`):** espelho do
+  esqueleto `admin-disable-user` — JWT→admin ATIVO→payload; senha
+  temporária gerada via `crypto.getRandomValues` (12 caracteres,
+  charset sem ambiguidade visual, garantia determinística de ≥1
+  dígito — nunca `Math.random`, nunca valor fixo);
+  `auth.admin.updateUserById(target, {password})`; marca
+  `senha_temporaria=true`/`senha_gerada_em=now()`; nunca loga a senha;
+  retorna a senha uma única vez na resposta de sucesso. Falha do
+  update de perfil pós-reset (senha já trocada no Auth, sem
+  compensação segura possível) retorna erro explícito
+  (`PROFILE_UPDATE_FAILED`), nunca sucesso silencioso.
+- **UI:** botão de ícone chave na tela de usuários (mesma convenção
+  visual dos botões existentes) → `confirmDialog` (nunca
+  `window.confirm`) → em sucesso, modal "Senha gerada" com a senha
+  exibida uma única vez, botão copiar (Clipboard API com fallback
+  gracioso) e aviso de que não será reexibida. Erro → toast, sem
+  estado ambíguo.
+- **Deploy em staging (`ucrjtfswnfdlxwtmxnoo`) executado pelo
+  arquiteto** — fora do alcance de credenciais desta sessão (agente IA
+  não entra senha/token/API key em nenhum campo, regra permanente).
+- **Verificação pós-deploy — E2E real em staging, `result: PASS`
+  (15/15), executado pelo arquiteto** via
+  `scripts/staging/admin-reset-password-e2e.mjs`
+  (`test_user_id 170f8479-e2da-4a6d-b597-080716be9c20`): guardas
+  `SELF_RESET_FORBIDDEN`/`NOT_FOUND` confirmadas ao vivo; reset real
+  com flag+`senha_gerada_em` atualizados; senha antiga confirmada
+  inválida após o reset; login com a senha temporária nova confirma
+  `senha_temporaria=true` (gate `A4.2` dispararia); self-service de
+  `A4.2` encadeado (nova troca + flag zerada); relogin com a senha
+  final confirma `senha_temporaria=false` ("próximo login entra
+  direto", sem gate); cleanup total via `admin-delete-user`, cleanup
+  zero confirmado.
+- **Testes locais:** `node --check` PASS em todos os arquivos
+  tocados/novos; `tests/admin-reset-user-password.smoke.js` (novo,
+  estático) **23/23** (guardas, régua da senha — simulação real de
+  1000 amostras com `crypto.randomBytes`, sempre 8+ caracteres com
+  dígito —, nunca loga a senha, estado parcial sem sucesso silencioso);
+  `tests/admin-usuarios.smoke.js` estendido **29/29** (6 testes novos:
+  botão + guarda de auto-reset, `confirmDialog`, fluxo de sucesso
+  completo, fluxo de erro, write isolado); regressão consolidada (9
+  suítes relacionadas) **268/275**, os 7 que falham são débito
+  pré-existente confirmado idêntico ao baseline (6 de
+  `tests/auth.smoke.js` + 1 de `tests/cadastros-*`, nenhum novo).
+  `git diff --check` limpo.
+- **Verificação visual sem credenciais (preview local, sem login) —
+  aceita como evidência suficiente pelo arquiteto, dispensando gate de
+  validação visual separado:** fluxo completo exercitado em navegador
+  real com `window.supa` mockado — botão → `confirmDialog` (título e
+  e-mail corretos) → confirmar → `invoke('admin-reset-user-password')`
+  → modal "Senha gerada" com senha/copiar/aviso confirmados; guarda de
+  auto-reset confirmada com valores reais de `.disabled` no DOM (não
+  mock).
+- **Achado fora de escopo — candidato `UI-EL-BOOLEAN-ATTR-FIX`
+  (`NOT AUTHORIZED`, severidade `NÃO CONFIRMADA` — verificação do
+  arquiteto pendente):** ao adicionar o botão novo, o executor
+  observou em navegador real que `js/ui.js`'s `el()` faz
+  `setAttribute(k, v)` sem tratar boolean — `setAttribute('disabled',
+  false)` marca o atributo presente (`.disabled` vira `true`) em
+  qualquer navegador real. Isso potencialmente afeta os botões
+  "Desativar" (`disabled: user.ativo === false`) e "Excluir"
+  (`disabled: !!(meId && user.id === meId)`) em
+  `js/screens/admin-usuarios.js`, que poderiam ficar incorretamente
+  desabilitados no caso comum (usuário ativo / não é o próprio admin)
+  — mesma causa-raiz do resíduo já corrigido uma vez em
+  `expedicao-admin.js`. **Tratar como potencial regressão ativa até o
+  arquiteto testar diretamente os botões Desativar/Excluir na tela de
+  usuários em staging.** Não corrigido nesta fase (fora do manifesto
+  de `A5.1-A5.2`, que proíbe tocar `admin-disable/delete/create`). O
+  botão de reset novo usa o padrão seguro (chave `disabled` só entra
+  no objeto quando `true`), confirmado ao vivo.
+- **Achado fora de escopo — candidato de decomposição (`CODE-HEALTH-AUDIT-§18-R1`):**
+  `js/screens/admin-usuarios-modal.js` chegou a 576 linhas (acima do
+  "aceitável" 500) ao acomodar o 4º modal (mesmo padrão dos 3
+  existentes). Não extraído para arquivo novo nesta fase — a ordem
+  autorizou explicitamente `admin-usuarios-modal.js` como destino, sem
+  arquivo novo no manifesto.
+- **Produção:** `bhgifjrfagkzubpyqpew` não acessada. **Push:** não
+  executado.
+- **Próxima ação autorizável:** `ARCHITECT DECISION` — candidatas:
+  `A5.3-A5.4` (reativação, autorização própria); `UI-EL-BOOLEAN-ATTR-FIX`
+  (correção na causa-raiz de `js/ui.js`'s `el()` + regressão ampla,
+  pendente de confirmação do arquiteto); `A2.1` (schema `nivel_acesso`);
+  `A6.1` (schema/trigger de auditoria). Nenhuma subfase autorizada por
+  este registro.
+- **Ledger:** `docs/ledgers/G28_LEDGER.md` (entrada append-only desta
+  fase).
+
 ## Camada 2 — Consumo da RPC de Último Acesso na UI — CAMADA2-LAST-ACCESS-UI
 
 - **Frente:** `G28-CAMADA-2`, micro-fase de consumo da RPC `db/59`
@@ -276,7 +389,23 @@ UNCHANGED / REMAINS IN FORCE
   `tests/auth.smoke.js` que checam `<script src="js/auth.js">` sem
   considerar `?v=` de cache-busting (regex desatualizado desde antes
   de `A4.2`, confirmado idêntico ao baseline via `git stash`) — candidato
-  de correção quando esta auditoria for autorizada.
+  de correção quando esta auditoria for autorizada. **Débito concreto
+  registrado na fase `A5.1-A5.2` (2026-07-16):**
+  `js/screens/admin-usuarios-modal.js` chegou a 576 linhas (acima do
+  "aceitável" 500) ao acomodar o 4º modal — candidato de decomposição
+  quando esta auditoria for autorizada.
+- **Frente candidata `NOT AUTHORIZED`, severidade `NÃO CONFIRMADA`:
+  `UI-EL-BOOLEAN-ATTR-FIX`** — registrada na fase `A5.1-A5.2`
+  (2026-07-16). `js/ui.js`'s `el()` faz `setAttribute(k, v)` sem tratar
+  boolean; `setAttribute('disabled', false)` marca o atributo presente
+  em qualquer navegador real, potencialmente afetando os botões
+  "Desativar"/"Excluir" em `js/screens/admin-usuarios.js` (poderiam
+  ficar incorretamente desabilitados no caso comum) — mesma
+  causa-raiz do resíduo já corrigido uma vez em `expedicao-admin.js`.
+  **Tratar como potencial regressão ativa até verificação direta do
+  arquiteto nos botões Desativar/Excluir em staging.** Não
+  confirmada/reproduzida pelo arquiteto ainda; não iniciada; nenhuma
+  implementação autorizada por este registro.
 - **Frente condicionada `NOT AUTHORIZED`: `PUBLICATION-TRACK-REVIEW`** —
   revisão da fronteira staging-only + `DEPLOYMENT_MAPPING_AND_PRODUCTION_
   MIGRATION_PROCEDURE` + G28-D + aplicação em produção das migrations hoje

@@ -341,6 +341,43 @@ isso é registrado explicitamente no header do arquivo e em
 > `<script src="js/auth.js">`. `A4.3` (convite por e-mail) permanece
 > `NOT AUTHORIZED`. Produção `bhgifjrfagkzubpyqpew` não acessada; sem
 > push.
+>
+> **`A5.1-A5.2` (`2026-07-16`) — `CLOSED / ACCEPTED`:** Edge Function
+> nova `admin-reset-user-password` (espelho de `admin-disable-user`) —
+> `auth.admin.updateUserById(target, {password})` com senha temporária
+> gerada via `crypto.getRandomValues` (nunca `Math.random`, nunca valor
+> fixo), auto-reset **bloqueado** (`SELF_RESET_FORBIDDEN`, decisão do
+> arquiteto), marca `senha_temporaria=true`/`senha_gerada_em=now()`,
+> senha retornada uma única vez, nunca logada (ver
+> `supabase/functions/admin-reset-user-password/README.md`). UI:
+> botão de ícone chave em `js/screens/admin-usuarios.js` →
+> `confirmDialog` → modal "Senha gerada" (senha/copiar/aviso de
+> exibição única) em `js/screens/admin-usuarios-modal.js`. **Deploy em
+> staging (`ucrjtfswnfdlxwtmxnoo`) executado pelo arquiteto.** Um
+> **runner local automatizado de E2E**, 4º do mesmo padrão dos
+> anteriores (`admin-disable-user-e2e.mjs`,
+> `admin-create-user-password-policy-e2e.mjs`,
+> `trocar-senha-obrigatoria-e2e.mjs` — login com senha real só por
+> humano, nunca pelo agente IA; senhas sintéticas geradas pelo próprio
+> script/pela Edge Function; sanitização de segredos; guarda de
+> staging-only; config local gitignored), foi criado em
+> `scripts/staging/admin-reset-password-e2e.mjs`. **E2E real em
+> staging passou com `result: PASS` (15/15 passos)**, cobrindo:
+> guardas `SELF_RESET_FORBIDDEN`/`NOT_FOUND` ao vivo, reset real com
+> flag+timestamp atualizados, senha antiga invalidada, login com a
+> temporária nova, self-service de `A4.2` encadeado (nova troca + flag
+> zerada), relogin sem gate ("próximo login entra direto"), cleanup
+> zero. Validação visual do arquiteto **dispensada por decisão
+> explícita**, coberta pela combinação e2e + verificação de fluxo em
+> navegador real pelo executor. Achados registrados como candidatos
+> `NOT AUTHORIZED`: `UI-EL-BOOLEAN-ATTR-FIX` (potencial bug de
+> `setAttribute` boolean em `js/ui.js`'s `el()`, severidade **não
+> confirmada** — pendente de verificação do arquiteto nos botões
+> Desativar/Excluir de `admin-usuarios.js`) e decomposição de
+> `admin-usuarios-modal.js` (576 linhas, candidato a
+> `CODE-HEALTH-AUDIT-§18-R1`). `A5.3-A5.4` (reativação) permanece
+> `NOT AUTHORIZED`, autorização própria futura. Produção
+> `bhgifjrfagkzubpyqpew` não acessada; sem push.
 
 ## 4. Docs legadas (NÃO GUIAM EXECUÇÃO)
 
