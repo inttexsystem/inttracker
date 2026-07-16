@@ -540,7 +540,9 @@ MATERIAL_DIVERGENCES:
 
 - Canonical state documents and reports: English.
 - Ledger entries: immutable in the original language of the entry.
-- Architect orders and recorded decisions: Portuguese.
+- Architect orders may be issued in Portuguese; once recorded in canonical
+  documents they are recorded in English, with the original wording preserved
+  in the ledger or archive.
 - Translated originals are archived under `docs/archive/pt-BR/` in the same
   commit as the translation.
 - No retroactive translation outside the DOC-LANGUAGE-MIGRATION track.

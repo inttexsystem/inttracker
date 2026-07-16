@@ -58,8 +58,8 @@ apontar para esta seção, não repetir a lista.
 | `docs/DOCUMENTATION_INDEX.md` (este arquivo) | Classifica os documentos e define seus papéis. |
 | `docs/governance/DOCUMENTATION_MODEL.md` | Define o modelo de governança e as regras de atualização documental por fase. Conteúdo em inglês desde `DOC-LANGUAGE-MIGRATION-L1`; original pt-BR arquivado em `docs/archive/pt-BR/` (ver §7). |
 | `docs/governance/SUPERVISION_PROTOCOL.md` | Define papéis do processo de supervisão (Arquiteto/Parecerista/Executor Residente), onboarding de parecerista novo, formato de ordem e gates (validação visual, mockup aprovado, migration como gate próprio, risco Auth separado). Não define estado nem regras de organização documental — isso é `DOCUMENTATION_MODEL.md`. Conteúdo em inglês desde `DOC-LANGUAGE-MIGRATION-L1`; original pt-BR arquivado em `docs/archive/pt-BR/` (ver §7). |
-| `PROJECT_STATE.md` (raiz) | Único proprietário do estado operacional atual por frente. |
-| `AGENT_HANDOFF.md` (raiz) | Único handoff operacional ativo. |
+| `PROJECT_STATE.md` (raiz) | Único proprietário do estado operacional atual por frente. Conteúdo em inglês desde `DOC-LANGUAGE-MIGRATION-L2`; original pt-BR arquivado em `docs/archive/pt-BR/PROJECT_STATE.md` (ver §7). |
+| `AGENT_HANDOFF.md` (raiz) | Único handoff operacional ativo. Conteúdo em inglês desde `DOC-LANGUAGE-MIGRATION-L2`; original pt-BR arquivado em `docs/archive/pt-BR/AGENT_HANDOFF.md` (ver §7). |
 | `docs/ledgers/G28_LEDGER.md` | Histórico estruturado append-only da frente G28. |
 | `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | Histórico exclusivo da frente de refactor. |
 | `docs/legacy/pre-model/MANIFEST.md` | Preservação imutável pré-modelo; não operacional. |
@@ -493,9 +493,13 @@ histórica). Nomes de arquivos, âncoras, caminhos e referências
 cruzadas permanecem **inalterados** — só o conteúdo é traduzido. O
 vocabulário canônico de status (`CLOSED`, `ACCEPTED`,
 `NOT AUTHORIZED`, `DEFERRED`, `PROPOSED`, `HARD STOP`, `READ-ONLY`
-etc.) e os blocos verbatim do arquiteto permanecem em português
-quando assim registrados. Ledgers e `docs/handoffs/` **não** são
-traduzidos.
+etc.) permanece verbatim. A partir de `DOC-LANGUAGE-MIGRATION-L2`,
+decisões de arquiteto e blocos antes mantidos em português nas casas
+canônicas também passam a ser traduzidos para inglês, marcados com nota
+de proveniência (`(translated from the architect's original Portuguese;
+original in docs/archive/pt-BR/)`); a redação pt-BR original preservada
+no arquivo permanece autoritativa em qualquer disputa de nuance.
+Ledgers e `docs/handoffs/` **não** são traduzidos.
 
 A política de idioma vigente está registrada nas casas canônicas:
 `docs/governance/DOCUMENTATION_MODEL.md` (§18, "Language policy"),
@@ -512,6 +516,23 @@ essas casas.
 | `docs/governance/SUPERVISION_PROTOCOL.md` | `docs/archive/pt-BR/docs/governance/SUPERVISION_PROTOCOL.md` |
 | `docs/governance/DOCUMENTATION_MODEL.md` | `docs/archive/pt-BR/docs/governance/DOCUMENTATION_MODEL.md` |
 | `CLAUDE.md` | `docs/archive/pt-BR/CLAUDE.md` |
+
+### Lote `DOC-LANGUAGE-MIGRATION-L2`
+
+| Caminho canônico (agora em inglês) | Original pt-BR arquivado |
+|---|---|
+| `PROJECT_STATE.md` | `docs/archive/pt-BR/PROJECT_STATE.md` |
+| `AGENT_HANDOFF.md` | `docs/archive/pt-BR/AGENT_HANDOFF.md` |
+
+No `L2`, além da tradução, a política de idioma foi ajustada: ordens de
+arquiteto podem ser emitidas em português, mas uma vez registradas nos
+canônicos passam a ser gravadas em inglês, com a redação original
+preservada no ledger ou arquivo. `docs/governance/DOCUMENTATION_MODEL.md`
+§18, `CLAUDE.md` e a linha de idioma de
+`docs/governance/SUPERVISION_PROTOCOL.md` §3 foram atualizados no mesmo
+commit; o bloco-apêndice de handoff de supervisão (template, não decisão
+assinada) foi traduzido para inglês, com o original pt-BR preservado no
+arquivo de `L1`.
 
 Os arquivos sob `docs/archive/pt-BR/` são preservação imutável (não
 operacional); em divergência, o arquivo canônico em inglês prevalece.

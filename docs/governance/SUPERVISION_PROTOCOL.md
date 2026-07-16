@@ -85,7 +85,9 @@ Every order issued to the resident executor must contain:
   COMPLIANCE`: applicable rules of `docs/architecture/CODE_HEALTH_RULES.md`
   cited by number, evidence of conformance item by item and size in
   lines of each touched file (new or modified).
-- **Language:** architect orders and decisions are written in Portuguese.
+- **Language:** architect orders may be issued in Portuguese; once recorded in
+  canonical documents they are recorded in English, with the original wording
+  preserved in the ledger or archive.
 
 **Authorization is explicit per subphase — phases do not chain
 automatically.** An order covers exclusively what it authorizes.
@@ -118,37 +120,39 @@ automatically.** An order covers exclusively what it authorizes.
 ## Appendix — Supervision handoff — standard block
 
 Generic block, without immediate context, to open any new session of
-reviewer/supervisor (human or AI). Recorded verbatim by the architect on
-2026-07-15.
+reviewer/supervisor (human or AI). Recorded by the architect on 2026-07-15;
+translated to English in `DOC-LANGUAGE-MIGRATION-L2` (the original Portuguese is
+preserved in `docs/archive/pt-BR/`).
 
 ```text
-HANDOFF DE SUPERVISÃO — RAVATEX CONTROLE DE TAPETES
+SUPERVISION HANDOFF — RAVATEX CONTROLE DE TAPETES
 
-PAPEL DESIGNADO: PARECERISTA/SUPERVISOR conforme
-docs/governance/SUPERVISION_PROTOCOL.md. Você NÃO é o executor
-nesta sessão. Você NÃO custodia estado: tudo que propuser só
-existe quando registrado nos canônicos por ordem executada.
+DESIGNATED ROLE: REVIEWER/SUPERVISOR per
+docs/governance/SUPERVISION_PROTOCOL.md. You are NOT the executor
+in this session. You do NOT hold state custody: everything you
+propose exists only once recorded in the canonical documents by an
+executed order.
 
-INTEIRAR-SE AGORA, NESTA ORDEM:
-  1. PROJECT_STATE.md — estado vigente (único dono do estado
-     operacional)
-  2. AGENT_HANDOFF.md — continuidade e última fase aceita
-  3. docs/governance/SUPERVISION_PROTOCOL.md — papéis, formato
-     de ordem, gates
-  4. Demais canônicos listados no CLAUDE.md, conforme necessidade
+GET UP TO SPEED NOW, IN THIS ORDER:
+  1. PROJECT_STATE.md — current state (sole owner of the
+     operational state)
+  2. AGENT_HANDOFF.md — continuity and last accepted phase
+  3. docs/governance/SUPERVISION_PROTOCOL.md — roles, order
+     format, gates
+  4. The other canonical documents listed in CLAUDE.md, as needed
 
-REGRAS DE SUPERVISÃO:
-  - Ordens que redigir seguem o formato do protocolo
-    (configuração de modelo/esforço, escopo, arquivos
-    permitidos, hard stops, relatório)
-  - Nenhuma fase se encadeia; cada subfase exige autorização
-    explícita do arquiteto (eu)
-  - Não alegar leitura/execução/verificação que não fez de fato
-  - Divergência entre sua conclusão e os canônicos: canônicos
-    vencem; citar e perguntar, nunca corrigir silenciosamente
+SUPERVISION RULES:
+  - Orders you draft follow the protocol format
+    (model/effort configuration, scope, allowed
+    files, hard stops, report)
+  - No phase chains; each subphase requires explicit
+    authorization from the architect (me)
+  - Do not claim reading/execution/verification you did not actually do
+  - Divergence between your conclusion and the canonical documents:
+    the canonical documents win; cite and ask, never correct silently
 
-PRIMEIRA RESPOSTA OBRIGATÓRIA: fase ativa, última fase aceita,
-próxima ação autorizável e decisões de arquiteto pendentes —
-extraídos dos canônicos, com caminho citado. Nenhuma
-recomendação antes disso.
+MANDATORY FIRST RESPONSE: active phase, last accepted phase,
+next authorizable action and pending architect decisions —
+extracted from the canonical documents, with the path cited. No
+recommendation before that.
 ```

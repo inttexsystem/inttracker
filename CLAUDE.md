@@ -27,7 +27,7 @@
 - New code, comments, and commit messages: English
 - Canonical state documents and reports: English
 - Ledger entries: language of original entry, immutable
-- Architect orders and recorded decisions: Portuguese
+- Architect orders may be issued in Portuguese; once recorded in canonical documents they are recorded in English, with the original wording preserved in the ledger or archive
 - User-facing UI text: Portuguese (pt-BR)
 - No retroactive translation outside the DOC-LANGUAGE-MIGRATION track
 
