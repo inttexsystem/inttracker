@@ -78,6 +78,9 @@ const CLI_FORM  = path.join(ROOT, 'js', 'screens', 'cliente-pedido-form.js');
 const ADMIN_USUARIOS_WRITES = path.join(ROOT, 'js', 'admin-usuarios-writes.js');
 const ADMIN_USUARIOS_MODAL = path.join(ROOT, 'js', 'screens', 'admin-usuarios-modal.js');
 const ADMIN_USUARIOS = path.join(ROOT, 'js', 'screens', 'admin-usuarios.js');
+// CAMADA2-A4.2: guarda de troca de senha obrigatória.
+const TROCAR_SENHA_WRITES = path.join(ROOT, 'js', 'trocar-senha-writes.js');
+const TROCAR_SENHA_SCREEN = path.join(ROOT, 'js', 'screens', 'trocar-senha-obrigatoria.js');
 
 const indexSrc   = fs.readFileSync(INDEX,  'utf8');
 const bootSrc    = fs.readFileSync(BOOT,   'utf8');
@@ -108,6 +111,8 @@ const cliFormSrc  = fs.readFileSync(CLI_FORM,  'utf8');
 const adminUsuariosWritesSrc = fs.readFileSync(ADMIN_USUARIOS_WRITES, 'utf8');
 const adminUsuariosModalSrc  = fs.readFileSync(ADMIN_USUARIOS_MODAL,  'utf8');
 const adminUsuariosSrc       = fs.readFileSync(ADMIN_USUARIOS,        'utf8');
+const trocarSenhaWritesSrc   = fs.readFileSync(TROCAR_SENHA_WRITES,   'utf8');
+const trocarSenhaScreenSrc   = fs.readFileSync(TROCAR_SENHA_SCREEN,   'utf8');
 
 function findScriptIdx(html, src) {
   const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}(?:\\?[^"]*)?"\\s*></script>`);
@@ -255,9 +260,13 @@ test('10. todas as referências de rota em boot.js usam window.* (sem bare)', ()
     'rota #/ops/nova deve parsear pedido_id do hash e chamar window.screenNovaOP(null, pid)');
 });
 
-test('11. boot.js contém window.addEventListener(\'hashchange\', window.handleRoute)', () => {
-  assert.match(bootSrc, /window\.addEventListener\(\s*['"]hashchange['"]\s*,\s*window\.handleRoute\s*\)/,
-    'boot.js não registra window.addEventListener("hashchange", window.handleRoute)');
+test('11. boot.js contém window.addEventListener(\'hashchange\', guardedHandleRoute) — guarda A4.2 envolve window.handleRoute sem tocar js/router.js', () => {
+  assert.match(bootSrc, /window\.addEventListener\(\s*['"]hashchange['"]\s*,\s*guardedHandleRoute\s*\)/,
+    'boot.js não registra window.addEventListener("hashchange", guardedHandleRoute)');
+  // A guarda delega para window.handleRoute (router.js, intocado) quando
+  // a flag não está ativa — não substitui o handler real, envolve.
+  assert.match(bootSrc, /function\s+guardedHandleRoute\s*\([\s\S]*?window\.handleRoute\s*\(\s*\)/,
+    'guardedHandleRoute deveria chamar window.handleRoute() como fallback');
 });
 
 test('12. boot.js chama window.loadCurrentUser', () => {
@@ -312,7 +321,13 @@ test('17. nenhuma alteração em js/router.js (router.js intacto)', () => {
 // 5. Boot chain (runtime)
 // -------------------------------------------------------------------------
 
-function makeBootChainSandbox() {
+// opts.session / opts.userProfile: injeta uma sessão autenticada e o
+// perfil devolvido por loadCurrentUser() (CAMADA2-A4.2 — testes de guarda
+// precisam de CURRENT_USER real com senha_temporaria/senha_gerada_em).
+// Sem opts, comportamento idêntico ao original (sessão nula, sem perfil).
+function makeBootChainSandbox(opts) {
+  const session = (opts && opts.session) || null;
+  const userProfile = (opts && opts.userProfile) || null;
   const toastsNode = new FakeNode('div');
   const appNode = new FakeNode('div');
   const document = {
@@ -329,14 +344,15 @@ function makeBootChainSandbox() {
       select() { return this; },
       order() { return this; },
       eq() { return this; },
-      single() { return Promise.resolve({ data: null, error: null }); },
+      single() { return Promise.resolve({ data: userProfile, error: null }); },
       then(r) { return Promise.resolve({ data: null, error: null }).then(r); },
     }),
     rpc: () => Promise.resolve({ data: null, error: null }),
     auth: {
-      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+      getSession: () => Promise.resolve({ data: { session }, error: null }),
       signInWithPassword: () => Promise.resolve({ data: { user: null }, error: null }),
       signOut: () => Promise.resolve({ error: null }),
+      updateUser: () => Promise.resolve({ error: null }),
     },
     storage: {},
   };
@@ -355,6 +371,9 @@ function makeBootChainSandbox() {
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
   vm.runInContext(systemScreensSrc, sandbox, { filename: 'js/screens/system-screens.js' });
+  // CAMADA2-A4.2 — guarda de troca de senha obrigatória.
+  vm.runInContext(trocarSenhaWritesSrc, sandbox, { filename: 'js/trocar-senha-writes.js' });
+  vm.runInContext(trocarSenhaScreenSrc, sandbox, { filename: 'js/screens/trocar-senha-obrigatoria.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
   vm.runInContext(adminUsuariosWritesSrc, sandbox, { filename: 'js/admin-usuarios-writes.js' });
@@ -381,7 +400,15 @@ function makeBootChainSandbox() {
   // boot.js é o entrypoint
   vm.runInContext(bootSrc,    sandbox, { filename: 'js/boot.js' });
 
-  return { sandbox };
+  return { sandbox, appNode };
+}
+
+// Aguarda o main()/startApp() assíncrono de boot.js assentar (getSession →
+// from('usuarios').single() → setApp/handleRoute) — main() não expõe sua
+// Promise, então flusheia a fila de microtasks/macrotasks com um
+// setTimeout real do host (mesmo loop de eventos do vm.Context).
+function flushBootChain() {
+  return new Promise((resolve) => setTimeout(resolve, 20));
 }
 
 test('18. boot chain completo não lança SyntaxError de duplicate identifier', () => {
@@ -649,4 +676,185 @@ test('30. rota direta #/ops/nova sem pedido_id mostra orientacao e chama screenN
   await vm.runInContext("window.routes['#/ops/nova'].render()", sandbox);
   assert.equal(vm.runInContext('JSON.stringify(window.__screenNovaOPArgs)', sandbox), JSON.stringify([null, null]));
   assert.equal(vm.runInContext("window.__toasts.some((t) => /Crie a OP a partir de um Pedido\\./.test(t.message))", sandbox), true);
+});
+
+// -------------------------------------------------------------------------
+// 9. CAMADA2-A4.2 — guarda de troca de senha obrigatória
+// -------------------------------------------------------------------------
+// 31. window.RAVATEX_BOOT_GUARD expõe isSenhaTemporariaExpirada e guardedHandleRoute.
+// 32-35. isSenhaTemporariaExpirada: pura, nulo/ausente/inválido → false;
+//        < 7 dias → false; > 7 dias → true; exatos 7 dias → false (limite).
+// 36-38. guardedHandleRoute (unitário, sem passar pelo boot chain completo):
+//        CURRENT_USER nulo → delega a window.handleRoute; flag false →
+//        delega; flag true → NÃO delega, chama setApp com a tela de troca.
+// 39-40. Integração via main()/startApp(): sessão autenticada com
+//        senha_temporaria=true bloqueia roteamento normal e renderiza a
+//        tela (modo normal e modo expirado); senha_temporaria=false
+//        segue o fluxo normal (routeAfterLogin/handleRoute).
+// 41. index.html carrega js/trocar-senha-writes.js e js/screens/
+//     trocar-senha-obrigatoria.js na ordem certa, com cache-busting,
+//     antes de js/boot.js.
+
+test('31. window.RAVATEX_BOOT_GUARD expõe isSenhaTemporariaExpirada e guardedHandleRoute', () => {
+  const { sandbox } = makeBootChainSandbox();
+  assert.equal(typeof vm.runInContext('window.RAVATEX_BOOT_GUARD.isSenhaTemporariaExpirada', sandbox), 'function');
+  assert.equal(typeof vm.runInContext('window.RAVATEX_BOOT_GUARD.guardedHandleRoute', sandbox), 'function');
+});
+
+test('32. isSenhaTemporariaExpirada: nulo/ausente/inválido devolve false', () => {
+  const { sandbox } = makeBootChainSandbox();
+  const fn = 'window.RAVATEX_BOOT_GUARD.isSenhaTemporariaExpirada';
+  assert.equal(vm.runInContext(`${fn}(null)`, sandbox), false);
+  assert.equal(vm.runInContext(`${fn}(undefined)`, sandbox), false);
+  assert.equal(vm.runInContext(`${fn}('data-invalida')`, sandbox), false);
+});
+
+test('33. isSenhaTemporariaExpirada: senha_gerada_em há 3 dias devolve false (dentro do prazo)', () => {
+  const { sandbox } = makeBootChainSandbox();
+  const tresDiasAtras = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+  const result = vm.runInContext(`window.RAVATEX_BOOT_GUARD.isSenhaTemporariaExpirada('${tresDiasAtras}')`, sandbox);
+  assert.equal(result, false);
+});
+
+test('34. isSenhaTemporariaExpirada: senha_gerada_em há 8 dias devolve true (expirada)', () => {
+  const { sandbox } = makeBootChainSandbox();
+  const oitoDiasAtras = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+  const result = vm.runInContext(`window.RAVATEX_BOOT_GUARD.isSenhaTemporariaExpirada('${oitoDiasAtras}')`, sandbox);
+  assert.equal(result, true);
+});
+
+test('35. isSenhaTemporariaExpirada: senha_gerada_em agora mesmo devolve false', () => {
+  const { sandbox } = makeBootChainSandbox();
+  const agora = new Date(Date.now()).toISOString();
+  const result = vm.runInContext(`window.RAVATEX_BOOT_GUARD.isSenhaTemporariaExpirada('${agora}')`, sandbox);
+  assert.equal(result, false);
+});
+
+test('36. guardedHandleRoute: CURRENT_USER nulo delega a window.handleRoute', () => {
+  const { sandbox } = makeBootChainSandbox();
+  vm.runInContext(`
+    window.__handleRouteCalls = 0;
+    window.__setAppCalls = 0;
+    window.handleRoute = function () { window.__handleRouteCalls++; };
+    window.setApp = function () { window.__setAppCalls++; };
+    window.CURRENT_USER = null;
+    window.RAVATEX_BOOT_GUARD.guardedHandleRoute();
+  `, sandbox);
+  assert.equal(vm.runInContext('window.__handleRouteCalls', sandbox), 1);
+  assert.equal(vm.runInContext('window.__setAppCalls', sandbox), 0);
+});
+
+test('37. guardedHandleRoute: senha_temporaria=false delega a window.handleRoute (não bloqueia)', () => {
+  const { sandbox } = makeBootChainSandbox();
+  vm.runInContext(`
+    window.__handleRouteCalls = 0;
+    window.__setAppCalls = 0;
+    window.handleRoute = function () { window.__handleRouteCalls++; };
+    window.setApp = function () { window.__setAppCalls++; };
+    window.CURRENT_USER = { id: 'u1', tipo: 'admin', senha_temporaria: false };
+    window.RAVATEX_BOOT_GUARD.guardedHandleRoute();
+  `, sandbox);
+  assert.equal(vm.runInContext('window.__handleRouteCalls', sandbox), 1);
+  assert.equal(vm.runInContext('window.__setAppCalls', sandbox), 0);
+});
+
+test('38. guardedHandleRoute: senha_temporaria=true BLOQUEIA — chama setApp com a tela de troca, NÃO chama window.handleRoute', () => {
+  const { sandbox } = makeBootChainSandbox();
+  vm.runInContext(`
+    window.__handleRouteCalls = 0;
+    window.__setAppArgs = [];
+    window.handleRoute = function () { window.__handleRouteCalls++; };
+    window.setApp = function (node) { window.__setAppArgs.push(node); };
+    window.CURRENT_USER = { id: 'u1', tipo: 'admin', senha_temporaria: true, senha_gerada_em: null };
+    window.RAVATEX_BOOT_GUARD.guardedHandleRoute();
+  `, sandbox);
+  assert.equal(vm.runInContext('window.__handleRouteCalls', sandbox), 0,
+    'window.handleRoute NÃO deveria ser chamado enquanto senha_temporaria === true');
+  assert.equal(vm.runInContext('window.__setAppArgs.length', sandbox), 1,
+    'setApp deveria ter sido chamado exatamente 1 vez com a tela de troca');
+});
+
+test('39. main(): sessão autenticada com senha_temporaria=true renderiza a tela de troca e NÃO chama routeAfterLogin/handleRoute', async () => {
+  const { sandbox, appNode } = makeBootChainSandbox({
+    session: { user: { id: 'u1' } },
+    userProfile: {
+      id: 'u1', email: 'a@b.c', nome: 'Test', tipo: 'admin',
+      fornecedor_id: null, cliente_id: null,
+      senha_temporaria: true, senha_gerada_em: null,
+      fornecedores: null, clientes: null,
+    },
+  });
+  vm.runInContext(`
+    window.__routeAfterLoginCalls = 0;
+    window.__handleRouteCalls = 0;
+    window.routeAfterLogin = function () { window.__routeAfterLoginCalls++; return Promise.resolve(); };
+    window.handleRoute = function () { window.__handleRouteCalls++; };
+  `, sandbox);
+  await flushBootChain();
+  assert.equal(vm.runInContext('window.__routeAfterLoginCalls', sandbox), 0,
+    'routeAfterLogin NÃO deveria ser chamado enquanto senha_temporaria === true');
+  assert.equal(vm.runInContext('window.__handleRouteCalls', sandbox), 0,
+    'handleRoute NÃO deveria ser chamado enquanto senha_temporaria === true');
+  // A tela de troca foi renderizada em #app: título "Troca de senha obrigatória" presente.
+  assert.ok(appNode.children.length >= 1, 'setApp não populou #app');
+});
+
+test('40. main(): senha_gerada_em expirada (> 7 dias) renderiza a tela em modo "Senha expirada"', async () => {
+  const oitoDiasAtras = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+  const { sandbox } = makeBootChainSandbox({
+    session: { user: { id: 'u1' } },
+    userProfile: {
+      id: 'u1', email: 'a@b.c', nome: 'Test', tipo: 'admin',
+      fornecedor_id: null, cliente_id: null,
+      senha_temporaria: true, senha_gerada_em: oitoDiasAtras,
+      fornecedores: null, clientes: null,
+    },
+  });
+  vm.runInContext(`window.__screenArgs = null; window.screenTrocarSenhaObrigatoria = (function (orig) {
+    return function (opts) { window.__screenArgs = opts; return orig(opts); };
+  })(window.screenTrocarSenhaObrigatoria);`, sandbox);
+  await flushBootChain();
+  const args = vm.runInContext('window.__screenArgs', sandbox);
+  assert.ok(args, 'screenTrocarSenhaObrigatoria não foi chamada');
+  assert.equal(args.expired, true, 'deveria chamar a tela com { expired: true }');
+});
+
+test('40a. main(): senha_temporaria=false com sessão autenticada segue o fluxo normal (routeAfterLogin)', async () => {
+  const { sandbox } = makeBootChainSandbox({
+    session: { user: { id: 'u1' } },
+    userProfile: {
+      id: 'u1', email: 'a@b.c', nome: 'Test', tipo: 'admin',
+      fornecedor_id: null, cliente_id: null,
+      senha_temporaria: false, senha_gerada_em: null,
+      fornecedores: null, clientes: null,
+    },
+  });
+  vm.runInContext(`
+    window.__routeAfterLoginCalls = 0;
+    window.__setAppCalls = 0;
+    window.routeAfterLogin = function () { window.__routeAfterLoginCalls++; return Promise.resolve(); };
+    window.setApp = function () { window.__setAppCalls++; };
+  `, sandbox);
+  await flushBootChain();
+  assert.equal(vm.runInContext('window.__routeAfterLoginCalls', sandbox), 1,
+    'routeAfterLogin deveria ser chamado normalmente quando senha_temporaria === false');
+});
+
+test('41. index.html carrega js/trocar-senha-writes.js e js/screens/trocar-senha-obrigatoria.js na ordem certa, com cache-busting, antes de boot.js', () => {
+  const writesIdx = findScriptIdx(indexSrc, 'js/trocar-senha-writes.js');
+  const screenIdx = findScriptIdx(indexSrc, 'js/screens/trocar-senha-obrigatoria.js');
+  const authIdx   = findScriptIdx(indexSrc, 'js/auth.js');
+  const bootIdx    = findScriptIdx(indexSrc, 'js/boot.js');
+  assert.ok(writesIdx > 0, 'js/trocar-senha-writes.js não encontrado em index.html');
+  assert.ok(screenIdx > 0, 'js/screens/trocar-senha-obrigatoria.js não encontrado em index.html');
+  assert.ok(authIdx  < writesIdx, 'trocar-senha-writes.js deve vir depois de auth.js');
+  assert.ok(writesIdx < screenIdx, 'trocar-senha-writes.js deve vir antes de trocar-senha-obrigatoria.js');
+  assert.ok(screenIdx < bootIdx, 'trocar-senha-obrigatoria.js deve vir antes de boot.js');
+  for (const src of ['js/trocar-senha-writes.js', 'js/screens/trocar-senha-obrigatoria.js']) {
+    const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}\\?v=[^"]+"\\s*></script>`);
+    assert.ok(re.test(indexSrc), `${src} deve ser carregado com query string de cache-busting (?v=)`);
+    const countRe = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}(?:\\?[^"]*)?"\\s*></script>`, 'g');
+    const matches = indexSrc.match(countRe) || [];
+    assert.equal(matches.length, 1, `esperado 1 <script src="${src}">, encontrado ${matches.length}`);
+  }
 });

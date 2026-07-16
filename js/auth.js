@@ -87,7 +87,7 @@
       return null;
     }
     const { data, error } = await window.supa.from('usuarios')
-      .select('id, email, nome, tipo, fornecedor_id, cliente_id, fornecedores:fornecedor_id(tipo), clientes:cliente_id(nome)')
+      .select('id, email, nome, tipo, fornecedor_id, cliente_id, senha_temporaria, senha_gerada_em, fornecedores:fornecedor_id(tipo), clientes:cliente_id(nome)')
       .eq('id', session.user.id)
       .single();
     if (error) {

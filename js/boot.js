@@ -40,11 +40,21 @@
 //   - window.handleRoute, window.navigate,
 //     window.routeAfterLogin                   (js/router.js)
 //   - window.loadCurrentUser, window.CURRENT_USER  (js/auth.js)
-//   - window.toast                             (js/ui.js)
+//   - window.toast, window.setApp              (js/ui.js)
+//   - window.screenTrocarSenhaObrigatoria       (js/screens/trocar-senha-obrigatoria.js)
 //
-// Compatibilidade: nenhum novo global é exportado. O módulo é
-// self-executing (IIFE). window.routes é populado via
-// RAVATEX_ROUTER.setRoutes.
+// Compatibilidade: window.RAVATEX_BOOT_GUARD (isSenhaTemporariaExpirada,
+// guardedHandleRoute) é exportado só para teste isolado da guarda de
+// A4.2 (Camada 2) — nenhum outro global novo. O módulo é self-executing
+// (IIFE). window.routes é populado via RAVATEX_ROUTER.setRoutes.
+//
+// CAMADA2-A4.2 — guarda de troca de senha obrigatória: pós-
+// loadCurrentUser, pré-roteamento (inclusive pré-bootstrap G24-C), se
+// CURRENT_USER.senha_temporaria === true a tela de troca substitui
+// qualquer rota via window.setApp — sem tocar js/router.js. O listener
+// de 'hashchange' usa guardedHandleRoute (não window.handleRoute
+// diretamente) para bloquear também navegação por hash enquanto a
+// flag estiver ativa.
 // =====================================================================
 
 (function (window) {
@@ -78,13 +88,45 @@
     '#/cliente/pedidos/novo': { render: window.screenClientePedidoNovo,   roles: ['cliente'] },
   });
 
+  // CAMADA2-A4.2 — expiração da senha temporária: 7 dias desde
+  // senha_gerada_em (política registrada em CAMADA2_USUARIOS_SPEC_
+  // PROPOSED.md). Pura, sem estado de closure — testável isoladamente.
+  var SENHA_TEMPORARIA_EXPIRA_MS = 7 * 24 * 60 * 60 * 1000;
+  function isSenhaTemporariaExpirada(geradaEm) {
+    if (!geradaEm) return false;
+    var geradaEmMs = new Date(geradaEm).getTime();
+    if (isNaN(geradaEmMs)) return false;
+    return (Date.now() - geradaEmMs) > SENHA_TEMPORARIA_EXPIRA_MS;
+  }
+
+  function renderSenhaObrigatoriaGate() {
+    var expired = isSenhaTemporariaExpirada(window.CURRENT_USER.senha_gerada_em);
+    window.setApp(window.screenTrocarSenhaObrigatoria({ expired: expired }));
+  }
+
+  // Envolve window.handleRoute (js/router.js, intocado) sem alterá-lo:
+  // enquanto a flag estiver ativa, qualquer hashchange é interceptado
+  // e a tela de troca é renderizada no lugar da rota real.
+  function guardedHandleRoute() {
+    if (window.CURRENT_USER && window.CURRENT_USER.senha_temporaria === true) {
+      renderSenhaObrigatoriaGate();
+      return;
+    }
+    window.handleRoute();
+  }
+
   async function main() {
-    window.addEventListener('hashchange', window.handleRoute);
+    window.addEventListener('hashchange', guardedHandleRoute);
 
     await window.loadCurrentUser();
 
     if (!window.CURRENT_USER) {
       window.navigate('#/login');
+      return;
+    }
+
+    if (window.CURRENT_USER.senha_temporaria === true) {
+      renderSenhaObrigatoriaGate();
       return;
     }
 
@@ -111,6 +153,10 @@
       window.toast('Erro ao iniciar o app', 'error');
     });
   }
+
+  // Exposto só para teste isolado da guarda A4.2, sem passar pelo boot
+  // chain completo (main()/startApp() continuam sendo o entrypoint real).
+  window.RAVATEX_BOOT_GUARD = { isSenhaTemporariaExpirada, guardedHandleRoute };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startApp, { once: true });

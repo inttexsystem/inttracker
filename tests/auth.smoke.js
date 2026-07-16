@@ -430,8 +430,10 @@ test('runtime: loadCurrentUser com session consulta from("usuarios") com select 
   vm.runInContext(authSrc, sandbox, { filename: 'js/auth.js' });
 
   await vm.runInContext('window.loadCurrentUser()', sandbox);
+  // CAMADA2-A4.2: select passou a incluir senha_temporaria/senha_gerada_em
+  // entre cliente_id e o join de fornecedores.
   assert.match(captured.selectArg,
-    /id, email, nome, tipo, fornecedor_id, cliente_id, fornecedores:fornecedor_id\(tipo\), clientes:cliente_id\(nome\)/,
+    /id, email, nome, tipo, fornecedor_id, cliente_id, senha_temporaria, senha_gerada_em, fornecedores:fornecedor_id\(tipo\), clientes:cliente_id\(nome\)/,
     `select arg não tem o formato esperado: ${captured.selectArg}`);
 });
 
@@ -664,6 +666,94 @@ test('js/auth.js: select de loadCurrentUser contém cliente_id e clientes join (
 
 test('js/auth.js: USER_ROLES contém CLIENTE', () => {
   assert.match(authSrc, /CLIENTE:\s*'cliente'/);
+});
+
+// ---------------------------------------------------------------------
+// CAMADA2-A4.2 — guarda de troca de senha obrigatória: loadCurrentUser
+// precisa expor senha_temporaria/senha_gerada_em em CURRENT_USER (o
+// gate de js/boot.js lê window.CURRENT_USER.senha_temporaria/
+// senha_gerada_em diretamente, sem query própria).
+// ---------------------------------------------------------------------
+
+test('js/auth.js: select de loadCurrentUser contém senha_temporaria e senha_gerada_em (estático)', () => {
+  assert.match(authSrc, /senha_temporaria/);
+  assert.match(authSrc, /senha_gerada_em/);
+});
+
+test('runtime: loadCurrentUser select inclui senha_temporaria e senha_gerada_em', () => {
+  const calls = [];
+  const captured = { selectArg: null };
+  const qb = () => {
+    const b = {};
+    b.select = (arg) => { captured.selectArg = arg; calls.push({ op: 'select', args: [arg] }); return b; };
+    b.eq = () => b;
+    b.single = () => Promise.resolve({ data: {
+      id: 'u1', email: 'a@b.c', nome: 'Test', tipo: 'admin',
+      fornecedor_id: null, cliente_id: null, senha_temporaria: false, senha_gerada_em: null,
+      fornecedores: null, clientes: null,
+    }, error: null });
+    return b;
+  };
+  const fakeSupa = {
+    from: (table) => { calls.push({ op: 'from', args: [table] }); return qb(); },
+    auth: {
+      getSession: () => Promise.resolve({ data: { session: { user: { id: 'u1' } } }, error: null }),
+    },
+    _calls: calls,
+  };
+  const fakeSupabase = { createClient: () => fakeSupa };
+  const documentMock = {
+    body: null,
+    createElement: (t) => ({ tagName: t.toUpperCase(), setAttribute(){}, style:{}, textContent:'', prepend(){}, appendChild(){} }),
+    getElementById: () => null,
+  };
+  const sandbox = {
+    console, URL, URLSearchParams, setTimeout, clearTimeout,
+    location: { hostname: 'localhost', href: 'http://localhost/index.html' },
+    document: documentMock, supabase: fakeSupabase,
+    Promise, Reflect, Proxy, Set,
+  };
+  sandbox.window = sandbox; sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(cfgSrc,  sandbox, { filename: 'js/config.js' });
+  vm.runInContext(supaSrc, sandbox, { filename: 'js/supabase-client.js' });
+  vm.runInContext(envSrc,  sandbox, { filename: 'js/environment-banner.js' });
+  vm.runInContext(authSrc, sandbox, { filename: 'js/auth.js' });
+
+  return vm.runInContext('window.loadCurrentUser()', sandbox).then(() => {
+    assert.match(captured.selectArg, /senha_temporaria/);
+    assert.match(captured.selectArg, /senha_gerada_em/);
+  });
+});
+
+test('runtime: loadCurrentUser propaga senha_temporaria=true e senha_gerada_em em CURRENT_USER', async () => {
+  const { sandbox } = runSandbox({
+    session: { user: { id: 'u1' } },
+    userData: {
+      id: 'u1', email: 'a@b.c', nome: 'Test', tipo: 'admin',
+      fornecedor_id: null, cliente_id: null,
+      senha_temporaria: true, senha_gerada_em: '2026-07-10T00:00:00.000Z',
+      fornecedores: null, clientes: null,
+    },
+  });
+  await vm.runInContext('window.loadCurrentUser()', sandbox);
+  assert.equal(vm.runInContext('window.CURRENT_USER.senha_temporaria', sandbox), true);
+  assert.equal(vm.runInContext('window.CURRENT_USER.senha_gerada_em', sandbox), '2026-07-10T00:00:00.000Z');
+});
+
+test('runtime: loadCurrentUser propaga senha_temporaria=false e senha_gerada_em=null (usuário sem senha temporária)', async () => {
+  const { sandbox } = runSandbox({
+    session: { user: { id: 'u1' } },
+    userData: {
+      id: 'u1', email: 'a@b.c', nome: 'Test', tipo: 'admin',
+      fornecedor_id: null, cliente_id: null,
+      senha_temporaria: false, senha_gerada_em: null,
+      fornecedores: null, clientes: null,
+    },
+  });
+  await vm.runInContext('window.loadCurrentUser()', sandbox);
+  assert.equal(vm.runInContext('window.CURRENT_USER.senha_temporaria', sandbox), false);
+  assert.equal(vm.runInContext('window.CURRENT_USER.senha_gerada_em', sandbox), null);
 });
 
 // -----------------------------------------------------------------------------
