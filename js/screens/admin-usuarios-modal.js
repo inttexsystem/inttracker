@@ -490,6 +490,80 @@
   }
 
   // -------------------------------------------------------------------
+  // Modal: reset de senha administrativo (A5.1-A5.2)
+  // -------------------------------------------------------------------
+
+  function openResetarSenhaModal(usr, options) {
+    var onDone = (options && options.onDone) || function () {};
+    var W = window.RAVATEX_ADMIN_USUARIOS_WRITES;
+    window.confirmDialog({
+      title: 'Resetar senha',
+      message: 'Gerar uma nova senha temporária para "' + usr.email + '"? '
+        + 'A senha atual deixará de funcionar imediatamente. O usuário verá '
+        + 'a tela de troca de senha obrigatória no próximo login.',
+      confirmLabel: 'Resetar senha',
+      danger: true,
+      onConfirm: async () => {
+        var { data, error } = await W.resetarSenha(usr.id);
+        if (error) {
+          var parsed = await W.parseEdgeFunctionError(error, 'Erro ao resetar senha');
+          var friendly = W.friendlyResetMessage(parsed.code, parsed.message);
+          window.toast(friendly, 'error');
+          console.error('admin-reset-user-password error', parsed.code, error);
+          return;
+        }
+        window.toast('Senha resetada', 'success');
+        openSenhaGeradaModal(data && data.password, usr.email);
+        onDone();
+      },
+    });
+  }
+
+  // Exibe a senha gerada UMA vez, com botão copiar e aviso de que não
+  // será reexibida. Não persistida em lugar nenhum além desta closure
+  // (nem localStorage, nem estado de módulo) — sai de escopo ao fechar.
+  function openSenhaGeradaModal(password, email) {
+    if (!password) {
+      window.toast('Senha resetada, mas a resposta não trouxe o valor gerado.', 'error');
+      console.error('openSenhaGeradaModal: password ausente na resposta de admin-reset-user-password');
+      return;
+    }
+    var passwordBox = window.el('div', {
+      style: 'font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:16px; font-weight:700; '
+        + 'letter-spacing:.03em; background:#f4f6f9; border:1px solid #d8dce2; border-radius:4px; '
+        + 'padding:12px 14px; user-select:all; word-break:break-all;',
+    }, password);
+    var copyBtn = window.el('button', {
+      type: 'button',
+      style: 'margin-top:10px; height:36px; padding:0 14px; border:1px solid #d8dce2; border-radius:4px; '
+        + 'background:#fff; color:#2563eb; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer;',
+      onclick: async () => {
+        try {
+          await navigator.clipboard.writeText(password);
+          copyBtn.textContent = 'Copiado!';
+          window.setTimeout(() => { copyBtn.textContent = 'Copiar senha'; }, 2000);
+        } catch (_) {
+          window.toast('Não foi possível copiar automaticamente — selecione o texto manualmente.', 'error');
+        }
+      },
+    }, 'Copiar senha');
+    var body = window.el('div', {},
+      window.el('p', { class: 'text-sm text-gray-700 mb-3' },
+        'Nova senha temporária para "' + email + '":'),
+      passwordBox,
+      copyBtn,
+      window.el('p', { style: 'margin-top:14px; font-size:12.5px; color:#b06a6a; font-weight:600;' },
+        'Esta senha não será exibida novamente. Copie e repasse ao usuário agora.')
+    );
+    window.modal({
+      title: 'Senha gerada',
+      body,
+      saveLabel: 'Já copiei, fechar',
+      onSave: () => true,
+    });
+  }
+
+  // -------------------------------------------------------------------
   // Namespace
   // -------------------------------------------------------------------
 
@@ -497,4 +571,6 @@
   window.RAVATEX_ADMIN_USUARIOS_MODAL.openUsuarioModal = openUsuarioModal;
   window.RAVATEX_ADMIN_USUARIOS_MODAL.openDesativarModal = openDesativarModal;
   window.RAVATEX_ADMIN_USUARIOS_MODAL.openExcluirModal = openExcluirModal;
+  window.RAVATEX_ADMIN_USUARIOS_MODAL.openResetarSenhaModal = openResetarSenhaModal;
+  window.RAVATEX_ADMIN_USUARIOS_MODAL.openSenhaGeradaModal = openSenhaGeradaModal;
 })(window);

@@ -639,6 +639,118 @@ test('25. ordenação "Último acesso": mais recente primeiro, nulos (nunca aces
 });
 
 // -----------------------------------------------------------------------------
+// Runtime — A5.1-A5.2: reset de senha administrativo (botão, modal de
+// confirmação, exibição única da senha gerada, wiring de escrita)
+// -----------------------------------------------------------------------------
+
+test('26. namespaces: resetarSenha/friendlyResetMessage (writes) e openResetarSenhaModal/openSenhaGeradaModal (modal) são funções', () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  assert.equal(typeof vm.runInContext('window.RAVATEX_ADMIN_USUARIOS_WRITES.resetarSenha', sandbox), 'function');
+  assert.equal(typeof vm.runInContext('window.RAVATEX_ADMIN_USUARIOS_WRITES.friendlyResetMessage', sandbox), 'function');
+  assert.equal(typeof vm.runInContext('window.RAVATEX_ADMIN_USUARIOS_MODAL.openResetarSenhaModal', sandbox), 'function');
+  assert.equal(typeof vm.runInContext('window.RAVATEX_ADMIN_USUARIOS_MODAL.openSenhaGeradaModal', sandbox), 'function');
+});
+
+test('27. botão "Resetar senha" presente por linha; guarda de auto-reset desabilitada na própria linha', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const biaRow = findRowByText(main, 'b@b.c');
+  const meRow = findRowByText(main, 'me@ravatex.com');
+  const resetBia = findAll(biaRow, (n) => n.tagName === 'BUTTON' && n._attrs && n._attrs.title === 'Resetar senha')[0];
+  const resetMe = findAll(meRow, (n) => n.tagName === 'BUTTON' && n._attrs && n._attrs.title === 'Nao pode resetar a propria senha')[0];
+  assert.ok(resetBia, 'botão "Resetar senha" não encontrado na linha da Bia');
+  assert.ok(!resetBia.disabled, 'botão de reset da Bia não deveria estar desabilitado');
+  assert.ok(resetMe, 'botão de reset com guarda de auto-reset não encontrado na própria linha');
+  assert.ok(resetMe.disabled, 'botão de reset da própria linha deveria estar desabilitado');
+});
+
+test('28. clicar em "Resetar senha" abre confirmDialog (modal de ui.js, não window.confirm)', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const biaRow = findRowByText(main, 'b@b.c');
+  const resetBia = findAll(biaRow, (n) => n.tagName === 'BUTTON' && n._attrs && n._attrs.title === 'Resetar senha')[0];
+  resetBia._listeners.click();
+  const overlays = sandbox.document.body.children;
+  const lastOverlay = overlays[overlays.length - 1];
+  assert.ok(lastOverlay, 'nenhum modal foi montado em document.body');
+  const h2 = findAll(lastOverlay, (n) => n.tagName === 'H2')[0];
+  assert.equal(textOf(h2), 'Resetar senha', 'título do modal de confirmação deveria ser "Resetar senha"');
+  assert.match(textOf(lastOverlay), /b@b\.c/, 'mensagem de confirmação deveria citar o e-mail do usuário-alvo');
+});
+
+test('29. sucesso: confirma o reset, chama resetarSenha(userId) e abre "Senha gerada" com a senha, botão copiar e aviso de exibição única', async () => {
+  const senhaGerada = 'Xk7pQ2rT9mLv';
+  const { sandbox, fakeSupa, toasts } = makeAdminUsuariosSandbox({
+    tableData: USERS_FIXTURE,
+    invokeImpl: {
+      'admin-reset-user-password': async (body) => ({
+        data: { user_id: body.user_id, email: 'b@b.c', tipo: 'fornecedor', password: senhaGerada, senha_temporaria: true },
+        error: null,
+      }),
+    },
+  });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const biaRow = findRowByText(main, 'b@b.c');
+  const resetBia = findAll(biaRow, (n) => n.tagName === 'BUTTON' && n._attrs && n._attrs.title === 'Resetar senha')[0];
+  resetBia._listeners.click();
+
+  const confirmOverlay = sandbox.document.body.children[sandbox.document.body.children.length - 1];
+  const confirmBtn = findAll(confirmOverlay, (n) => n.tagName === 'BUTTON' && textOf(n) === 'Resetar senha')[0];
+  assert.ok(confirmBtn, 'botão de confirmação "Resetar senha" não encontrado no modal');
+  await confirmBtn._listeners.click();
+
+  const invokeCall = fakeSupa._calls.find((c) => c.op === 'invoke' && c.name === 'admin-reset-user-password');
+  assert.ok(invokeCall, 'resetarSenha não invocou admin-reset-user-password');
+  assert.equal(invokeCall.body.user_id, 'u-2', 'invoke deveria ser chamado com o user_id da Bia');
+  assert.ok(toasts.some((t) => t.type === 'success'), 'toast de sucesso não disparado');
+
+  const senhaOverlay = sandbox.document.body.children.find((o) =>
+    findAll(o, (n) => n.tagName === 'H2' && textOf(n) === 'Senha gerada').length > 0);
+  assert.ok(senhaOverlay, 'modal "Senha gerada" não foi aberto após o reset');
+  const rendered = textOf(senhaOverlay);
+  assert.match(rendered, new RegExp(senhaGerada.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), 'senha gerada não aparece no modal');
+  assert.match(rendered, /Copiar senha/, 'botão "Copiar senha" ausente');
+  assert.match(rendered, /não será exibida novamente/, 'aviso de exibição única ausente');
+});
+
+test('30. falha: toast de erro, "Senha gerada" NÃO abre (sem estado ambíguo)', async () => {
+  const { sandbox, toasts } = makeAdminUsuariosSandbox({
+    tableData: USERS_FIXTURE,
+    invokeImpl: {
+      'admin-reset-user-password': async () => ({ data: null, error: { message: 'Apenas admins ativos podem resetar senha de usuários.' } }),
+    },
+  });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const biaRow = findRowByText(main, 'b@b.c');
+  const resetBia = findAll(biaRow, (n) => n.tagName === 'BUTTON' && n._attrs && n._attrs.title === 'Resetar senha')[0];
+  resetBia._listeners.click();
+  const confirmOverlay = sandbox.document.body.children[sandbox.document.body.children.length - 1];
+  const confirmBtn = findAll(confirmOverlay, (n) => n.tagName === 'BUTTON' && textOf(n) === 'Resetar senha')[0];
+  await confirmBtn._listeners.click();
+
+  assert.ok(toasts.some((t) => t.type === 'error'), 'toast de erro não disparado');
+  const senhaOverlay = sandbox.document.body.children.find((o) =>
+    findAll(o, (n) => n.tagName === 'H2' && textOf(n) === 'Senha gerada').length > 0);
+  assert.equal(senhaOverlay, undefined, '"Senha gerada" não deveria abrir após falha (estado ambíguo)');
+});
+
+test('31. write: resetarSenha(userId) invoca admin-reset-user-password com { user_id }', async () => {
+  const { sandbox, fakeSupa } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  await vm.runInContext(`window.RAVATEX_ADMIN_USUARIOS_WRITES.resetarSenha('u-2')`, sandbox);
+  const invokeCall = fakeSupa._calls.find((c) => c.op === 'invoke' && c.name === 'admin-reset-user-password');
+  assert.ok(invokeCall, 'resetarSenha não invocou admin-reset-user-password');
+  assert.equal(invokeCall.body.user_id, 'u-2');
+});
+
+// -----------------------------------------------------------------------------
 // Não-regressão
 // -----------------------------------------------------------------------------
 

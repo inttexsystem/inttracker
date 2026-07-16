@@ -110,6 +110,13 @@
     return window.supa.functions.invoke('admin-delete-user', { body: { user_id, confirm_email } });
   }
 
+  // A5.1-A5.2 — reset de senha administrativo. Retorna a senha gerada
+  // no envelope de sucesso (data.password) — o chamador exibe uma
+  // única vez e nunca a persiste.
+  async function resetarSenha(user_id) {
+    return window.supa.functions.invoke('admin-reset-user-password', { body: { user_id } });
+  }
+
   // -------------------------------------------------------------------
   // Normalização de erro de Edge Function — extrai {code, message} do
   // corpo estruturado da resposta, com fallback seguro. Mesma lógica
@@ -187,6 +194,30 @@
     }
   }
 
+  // Mapeia códigos de erro da Edge Function `admin-reset-user-password`
+  // para mensagens amigáveis em PT-BR. Mesmo padrão de
+  // friendlyDisableMessage/friendlyDeleteMessage.
+  function friendlyResetMessage(code, fallback) {
+    switch (code) {
+      case 'FORBIDDEN':
+        return 'Usuário atual não tem permissão para resetar senha de usuários.';
+      case 'SELF_RESET_FORBIDDEN':
+        return 'Você não pode resetar a própria senha por aqui — use a tela de troca de senha.';
+      case 'NOT_FOUND':
+        return 'Usuário não encontrado.';
+      case 'AUTH_RESET_FAILED':
+        return 'Falha operacional ao resetar a senha no Auth. Nada foi alterado.';
+      case 'PROFILE_UPDATE_FAILED':
+        return 'A senha já foi alterada, mas houve falha ao atualizar o perfil. Tente resetar novamente.';
+      case 'VALIDATION_ERROR':
+        return 'Dados inválidos para reset de senha.';
+      case 'UNAUTHORIZED':
+        return 'Sessão expirada. Faça login novamente.';
+      default:
+        return fallback || 'Erro ao resetar senha';
+    }
+  }
+
   // -------------------------------------------------------------------
   // Namespace
   // -------------------------------------------------------------------
@@ -200,7 +231,9 @@
   window.RAVATEX_ADMIN_USUARIOS_WRITES.updateUsuarioObservacoes = updateUsuarioObservacoes;
   window.RAVATEX_ADMIN_USUARIOS_WRITES.disableUsuario = disableUsuario;
   window.RAVATEX_ADMIN_USUARIOS_WRITES.deleteUsuario = deleteUsuario;
+  window.RAVATEX_ADMIN_USUARIOS_WRITES.resetarSenha = resetarSenha;
   window.RAVATEX_ADMIN_USUARIOS_WRITES.parseEdgeFunctionError = parseEdgeFunctionError;
   window.RAVATEX_ADMIN_USUARIOS_WRITES.friendlyDisableMessage = friendlyDisableMessage;
   window.RAVATEX_ADMIN_USUARIOS_WRITES.friendlyDeleteMessage = friendlyDeleteMessage;
+  window.RAVATEX_ADMIN_USUARIOS_WRITES.friendlyResetMessage = friendlyResetMessage;
 })(window);

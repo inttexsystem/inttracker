@@ -62,6 +62,8 @@
     var ICON_SQUARE_PEN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>';
     var ICON_BAN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M5.7 5.7l12.6 12.6"></path></svg>';
     var ICON_TRASH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
+    // A5.1-A5.2 — ícone de reset de senha.
+    var ICON_KEY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>';
     // A3.2 — ícones dos cards-resumo (KPI).
     var ICON_SHIELD = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a93a3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>';
     var ICON_FACTORY = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a93a3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"></path><path d="M4 20V10l5 3V10l5 3V10l5 3v7"></path><path d="M4 10V6l2-2"></path></svg>';
@@ -283,6 +285,21 @@
         line.appendChild(window.el('div', { style: 'font-size:13.5px; color:#8a93a3;' }, formatLastSignIn(lastSignInById[user.id])));
         const actions = window.el('div', { style: 'display:flex; align-items:center; justify-content:center; gap:6px;' });
         actions.appendChild(window.el('button', { type: 'button', onclick: () => M.openUsuarioModal(user, allForns, allClients, columnSupport, { onSaved: reload }), title: 'Editar usuario', 'aria-label': 'Editar usuario', style: 'width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#8a93a3; cursor:pointer;' }, svgIcon(ICON_SQUARE_PEN)));
+        // A5.1-A5.2 — reset de senha. `disabled` só entra no objeto
+        // quando true: window.el() faz setAttribute(k, v) sem checagem
+        // de falsy, e setAttribute('disabled', false) marca o atributo
+        // presente (disabled=true) em qualquer navegador real — mesma
+        // causa raiz do residuo estatico corrigido em expedicao-admin.js.
+        const resetSelf = !!(meId && user.id === meId);
+        const resetAttrs = {
+          type: 'button',
+          onclick: resetSelf ? undefined : () => M.openResetarSenhaModal(user, { onDone: reload }),
+          title: resetSelf ? 'Nao pode resetar a propria senha' : 'Resetar senha',
+          'aria-label': resetSelf ? 'Nao pode resetar a propria senha' : 'Resetar senha',
+          style: `width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#8a93a3; cursor:${resetSelf ? 'default' : 'pointer'}; opacity:${resetSelf ? '0.45' : '1'};`,
+        };
+        if (resetSelf) resetAttrs.disabled = 'disabled';
+        actions.appendChild(window.el('button', resetAttrs, svgIcon(ICON_KEY)));
         actions.appendChild(window.el('button', { type: 'button', onclick: user.ativo === false ? undefined : () => handleDesativarClick(user, meId), disabled: user.ativo === false, title: user.ativo === false ? 'Usuario inativo' : 'Desativar usuario', 'aria-label': user.ativo === false ? 'Usuario inativo' : 'Desativar usuario', style: `width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#8a93a3; cursor:${user.ativo === false ? 'default' : 'pointer'}; opacity:${user.ativo === false ? '0.45' : '1'};` }, svgIcon(ICON_BAN)));
         actions.appendChild(window.el('button', { type: 'button', onclick: meId && user.id === meId ? undefined : () => handleExcluirClick(user, meId), disabled: !!(meId && user.id === meId), title: meId && user.id === meId ? 'Nao pode excluir o proprio usuario' : 'Excluir usuario', 'aria-label': meId && user.id === meId ? 'Nao pode excluir o proprio usuario' : 'Excluir usuario', style: `width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#d6403a; cursor:${meId && user.id === meId ? 'default' : 'pointer'}; opacity:${meId && user.id === meId ? '0.45' : '1'};` }, svgIcon(ICON_TRASH)));
         line.appendChild(actions);
