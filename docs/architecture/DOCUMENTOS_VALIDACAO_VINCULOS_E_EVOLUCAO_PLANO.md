@@ -1,251 +1,251 @@
-# G28-P0 — CLOSEOUT MECÂNICO (REGISTRO HISTÓRICO)
+# G28-P0 — MECHANICAL CLOSEOUT (HISTORICAL RECORD)
 
-- **Status:** `CLOSED / ACCEPTED` (histórico).
-- **HEAD de fechamento:** `383db586e70852fba3c5ae5d5ac5312ab1b49284`.
+- **Status:** `CLOSED / ACCEPTED` (historical).
+- **Closing HEAD:** `383db586e70852fba3c5ae5d5ac5312ab1b49284`.
 - **G28-A:** `REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT`.
-- **G28-B1:** `AUTHORIZED` no instante deste closeout; desde então G28-B1, B2, B3, B4 e B5-D5 foram aceitos.
-- **Estado atual (histórico):** ver HISTORICAL EXECUTION CHECKPOINT — SUPERSEDED acima. O estado operacional atual está em `PROJECT_STATE.md`.
-- **Registro histórico apenas:** a fase ativa, o último bloco aceito e a próxima ação autorizável estão no checkpoint e em `PROJECT_STATE.md`.
+- **G28-B1:** `AUTHORIZED` at the moment of this closeout; since then G28-B1, B2, B3, B4 and B5-D5 have been accepted.
+- **Current state (historical):** see HISTORICAL EXECUTION CHECKPOINT — SUPERSEDED above. The current operational state is in `PROJECT_STATE.md`.
+- **Historical record only:** the active phase, the last accepted block, and the next authorizable action are in the checkpoint and in `PROJECT_STATE.md`.
 
 ---
 
-# PLANO MESTRE — DOCUMENTOS, VALIDAÇÃO HUMANA, VÍNCULOS E EVOLUÇÃO
+# MASTER PLAN — DOCUMENTS, HUMAN VALIDATION, LINKS AND EVOLUTION
 
-**Projeto:** Ravatex — Controle de Tapetes / Documents Ingestor  
-**Status do plano:** reconciliado (G28-PLAN-R1 em 2026-07-14); este plano é o backlog arquitetural do G28 e `PROJECT_STATE.md` detém o estado operacional atual.
-**Fase ativa:** Nenhuma fase funcional está ativa. G28-C está `CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT`. G28-D discovery/preparation permanece `RELEASE CONTRACT DISCOVERY COMPLETE` (evidência preservada em `docs/releases/G28_D_RELEASE_CANDIDATE.md`); por decisão explícita do arquiteto (`STAGING-ONLY-EXECUTION-BOUNDARY-A`, 2026-07-15) sua publicação está `DEFERRED BY ARCHITECT UNTIL GLOBAL BACKLOG COMPLETION` e não constitui bloqueio atual do trabalho em staging. Publicação permanece `NOT STARTED / NOT ACCEPTED / NOT AUTHORIZED`.
-**Última fase aceita:** `G28-C — CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT`.
-**G28-D:** discovery `RELEASE CONTRACT DISCOVERY COMPLETE`; publicação `DEFERRED BY ARCHITECT / NOT A CURRENT BLOCKER / NOT AUTHORIZED` (decisão explícita `STAGING-ONLY-EXECUTION-BOUNDARY-A`, 2026-07-15 — postergada até a conclusão do backlog canônico completo, não descoberta/definida/testada/concluída). Sem publicação, push, produção ou aceite; evidência de descoberta preservada em `docs/releases/G28_D_RELEASE_CANDIDATE.md`.
-**G28-B6:** `DECIDED / IMPLEMENTED / TESTED / STAGING FUNCTIONALLY VERIFIED / ACCEPTED_WITH_NONBLOCKING_TEST_DEBT` — commit técnico `b2f180ed0e6f1c2ee6c02881d0199d1bfaf29366`; closeout de verificação em staging `b130db44d32718ddf6d3e2bffb1439dac3a1948f`; `db/51` aplicado em `ucrjtfswnfdlxwtmxnoo`; matriz RPC 20/20, prova de dupla propriedade e rollback PostgreSQL do wrapper. Contrato: Documento→Pedido 0..1, Documento→OP 0..N; revisão dedicada, tipada/versionada; campos do Ingestor não promovidos. Débitos não bloqueantes aceitos: smoke autenticado de browser pendente; duas expectativas obsoletas em `tests/documentos-recebidos-queue-ui.test.js`; grafo sintético de auditoria em staging preservado sob `ON DELETE RESTRICT`. Ver ledger G28 (closeout B6 e aceite).
-**G28-B7:** `CLOSED / ACCEPTED_WITH_NONBLOCKING_REMOTE_SMOKE_DEBT` — aceite arquitetural explícito em 2026-07-14. Read model canônico de projeção reversa (`js/document-surface-links-read-model.js`) + seção `DOCUMENTOS VINCULADOS` no detalhe do Pedido, confirmados via revisão canônica ativa e distintos de sugestões `pedido_manual`. Commit parcial Pedido-detail B7: `ed35f049397af4061ed6e8bb2d9ec3056c543724`; conclusão `9ef61e1896af631bc5aeeced4af93c77051f4de4`. Superfícies restantes completas: detalhe da OP (`op-latex-admin` + `op-tecelagem-producao-admin`), timeline canônica de Pedido/OP, busca global canônica na fila central, helper UI compartilhado `js/document-links-surface-ui.js`. Débito não bloqueante: smoke autenticado B7 em staging. Ver ledger G28 (B7).
-**G28-B8:** `TECHNICALLY COMPLETED / ACCEPTANCE SUBSUMED BY G28-C` — `db/52` aplicada uma vez em `ucrjtfswnfdlxwtmxnoo` (registry `20260715024449`), estrutura/RPC/grants verificados e matriz sintética autenticada 18/18 aprovada, inclusive wrapper B6 de cinco argumentos e fronteira de propriedade. As capacidades de correção, revogação, restauração e auditoria de B8 foram explicitamente validadas e aceitas na matriz de staging/projeções de G28-C (16/16 PASS). B8 não está pendente; sua aceitação foi subsumida pelo gate e aceite arquitetural de G28-C. O smoke autenticado do modal permanece `LIVE_B8_MODAL_SMOKE_BLOCKED_BY_TOOLING`; ver ledger G28 (B8).
-**G28-C:** `CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT`; matriz staging/projeções `16/16 PASS`; browser autenticado permanece dívida de tooling. **G28-D:** `RELEASE CONTRACT DISCOVERY COMPLETE / BLOCKED BY SPECIFIC MISSING DEPLOYMENT DEFINITION`; não aceito e não publicado.
-**Controlled Delete × histórico documental (cross-cutting, fora da sequência numerada G28-A..D):** `CLOSED / ACCEPTED` — commit técnico `707a37bd1d2c4728ab2a17433b6441049bd88062`. O vínculo documental canônico (`document_link_revisions` / `document_link_revision_ops`) agora também protege a exclusão física de teste de Pedido/OP (`db/34`–`db/37`): a exclusão é bloqueada de forma controlada quando existe histórico documental vinculado, sem apagar, alterar ou reativar nenhuma revisão; na ausência de histórico, a política de exclusão anterior permanece inalterada. O contrato `Documento→Pedido 0..1` / `Documento→OP 0..N` e as duas tabelas canônicas (`document_link_revisions`, `document_link_revision_ops`) são preservados sem alteração de cardinalidade ou de propriedade. Não constitui aceitação de G28-D, publicação, nem fase G28 posterior. Ver `PROJECT_STATE.md`, `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` e `docs/ledgers/G28_LEDGER.md`.
-**Decisões de arquiteto em aberto:** `OPEN_ARCHITECT_DECISIONS: NONE` para o ciclo atual de staging. `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE` foi reclassificada por decisão explícita do arquiteto (`STAGING-ONLY-EXECUTION-BOUNDARY-A`, 2026-07-15) como `DEFERRED UNTIL GLOBAL BACKLOG COMPLETION / NOT A CURRENT STAGING BLOCKER / NOT STARTED` — não descoberta, definida, testada ou concluída; apenas postergada. Ambiente operacional atual: staging (`ucrjtfswnfdlxwtmxnoo`) exclusivamente; o projeto Supabase protegido está fora de escopo. `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` foi autorizada, implementada, aplicada e verificada em staging em 2026-07-15 (`CLOSED / ACCEPTED`; ver `D-COS07` §6.2 e `PROJECT_STATE.md`). `NEXT_AUTHORIZABLE_ACTION: NONE` — sem candidato técnico único inequívoco após remover este item; `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION`.
-**Última reconciliação:** 2026-07-14 (G28-PLAN-R1; checkpoint B6 atualizado após verificação direta).
-**Regras de autoridade:** Git comprova branch/HEAD/index/worktree vivos; `PROJECT_STATE.md` detém estado operacional atual; `AGENT_HANDOFF.md` detém continuidade; G28 ledger detém histórico append-only de closeouts; este plano mestre detém arquitetura/backlog; planos sozinhos não autorizam execução.
+**Project:** Ravatex — Controle de Tapetes / Documents Ingestor  
+**Plan status:** reconciled (G28-PLAN-R1 on 2026-07-14); this plan is the architectural backlog of G28 and `PROJECT_STATE.md` holds the current operational state.
+**Active phase:** No functional phase is active. G28-C is `CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT`. G28-D discovery/preparation remains `RELEASE CONTRACT DISCOVERY COMPLETE` (evidence preserved in `docs/releases/G28_D_RELEASE_CANDIDATE.md`); by explicit architect decision (`STAGING-ONLY-EXECUTION-BOUNDARY-A`, 2026-07-15) its publication is `DEFERRED BY ARCHITECT UNTIL GLOBAL BACKLOG COMPLETION` and does not constitute a current blocker for staging work. Publication remains `NOT STARTED / NOT ACCEPTED / NOT AUTHORIZED`.
+**Last accepted phase:** `G28-C — CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT`.
+**G28-D:** discovery `RELEASE CONTRACT DISCOVERY COMPLETE`; publication `DEFERRED BY ARCHITECT / NOT A CURRENT BLOCKER / NOT AUTHORIZED` (explicit decision `STAGING-ONLY-EXECUTION-BOUNDARY-A`, 2026-07-15 — postponed until completion of the full canonical backlog, not discovered/defined/tested/completed). No publication, push, production, or acceptance; discovery evidence preserved in `docs/releases/G28_D_RELEASE_CANDIDATE.md`.
+**G28-B6:** `DECIDED / IMPLEMENTED / TESTED / STAGING FUNCTIONALLY VERIFIED / ACCEPTED_WITH_NONBLOCKING_TEST_DEBT` — technical commit `b2f180ed0e6f1c2ee6c02881d0199d1bfaf29366`; staging verification closeout `b130db44d32718ddf6d3e2bffb1439dac3a1948f`; `db/51` applied in `ucrjtfswnfdlxwtmxnoo`; RPC matrix 20/20, proof of dual ownership and PostgreSQL rollback of the wrapper. Contract: Document→Pedido 0..1, Document→OP 0..N; dedicated, typed/versioned revision; Ingestor fields not promoted. Accepted non-blocking debts: authenticated browser smoke pending; two stale expectations in `tests/documentos-recebidos-queue-ui.test.js`; synthetic audit graph in staging preserved under `ON DELETE RESTRICT`. See G28 ledger (B6 closeout and acceptance).
+**G28-B7:** `CLOSED / ACCEPTED_WITH_NONBLOCKING_REMOTE_SMOKE_DEBT` — explicit architectural acceptance on 2026-07-14. Canonical reverse-projection read model (`js/document-surface-links-read-model.js`) + `DOCUMENTOS VINCULADOS` section in the Pedido detail, confirmed via active canonical revision and distinct from `pedido_manual` suggestions. Partial Pedido-detail B7 commit: `ed35f049397af4061ed6e8bb2d9ec3056c543724`; completion `9ef61e1896af631bc5aeeced4af93c77051f4de4`. Remaining surfaces complete: OP detail (`op-latex-admin` + `op-tecelagem-producao-admin`), canonical Pedido/OP timeline, canonical global search in the central queue, shared UI helper `js/document-links-surface-ui.js`. Non-blocking debt: authenticated B7 smoke in staging. See G28 ledger (B7).
+**G28-B8:** `TECHNICALLY COMPLETED / ACCEPTANCE SUBSUMED BY G28-C` — `db/52` applied once in `ucrjtfswnfdlxwtmxnoo` (registry `20260715024449`), structure/RPC/grants verified and synthetic authenticated matrix 18/18 approved, including the five-argument B6 wrapper and the ownership boundary. B8's correction, revocation, restoration, and audit capabilities were explicitly validated and accepted in the G28-C staging/projections matrix (16/16 PASS). B8 is not pending; its acceptance was subsumed by the G28-C gate and architectural acceptance. The authenticated modal smoke remains `LIVE_B8_MODAL_SMOKE_BLOCKED_BY_TOOLING`; see G28 ledger (B8).
+**G28-C:** `CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT`; staging/projections matrix `16/16 PASS`; authenticated browser remains a tooling debt. **G28-D:** `RELEASE CONTRACT DISCOVERY COMPLETE / BLOCKED BY SPECIFIC MISSING DEPLOYMENT DEFINITION`; not accepted and not published.
+**Controlled Delete × documentary history (cross-cutting, outside the numbered G28-A..D sequence):** `CLOSED / ACCEPTED` — technical commit `707a37bd1d2c4728ab2a17433b6441049bd88062`. The canonical documentary link (`document_link_revisions` / `document_link_revision_ops`) now also protects the physical test deletion of Pedido/OP (`db/34`–`db/37`): deletion is blocked in a controlled manner when linked documentary history exists, without deleting, altering, or reactivating any revision; in the absence of history, the prior deletion policy remains unchanged. The `Documento→Pedido 0..1` / `Documento→OP 0..N` contract and the two canonical tables (`document_link_revisions`, `document_link_revision_ops`) are preserved without change in cardinality or ownership. Does not constitute acceptance of G28-D, publication, or a later G28 phase. See `PROJECT_STATE.md`, `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md`, and `docs/ledgers/G28_LEDGER.md`.
+**Open architect decisions:** `OPEN_ARCHITECT_DECISIONS: NONE` for the current staging cycle. `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE` was reclassified by explicit architect decision (`STAGING-ONLY-EXECUTION-BOUNDARY-A`, 2026-07-15) as `DEFERRED UNTIL GLOBAL BACKLOG COMPLETION / NOT A CURRENT STAGING BLOCKER / NOT STARTED` — not discovered, defined, tested, or completed; only postponed. Current operational environment: staging (`ucrjtfswnfdlxwtmxnoo`) exclusively; the protected Supabase project is out of scope. `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` was authorized, implemented, applied, and verified in staging on 2026-07-15 (`CLOSED / ACCEPTED`; see `D-COS07` §6.2 and `PROJECT_STATE.md`). `NEXT_AUTHORIZABLE_ACTION: NONE` — no single unambiguous technical candidate after removing this item; `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION`.
+**Last reconciliation:** 2026-07-14 (G28-PLAN-R1; B6 checkpoint updated after direct verification).
+**Authority rules:** Git proves live branch/HEAD/index/worktree; `PROJECT_STATE.md` holds the current operational state; `AGENT_HANDOFF.md` holds continuity; the G28 ledger holds the append-only history of closeouts; this master plan holds architecture/backlog; plans alone do not authorize execution.
 
 ---
 
 ## HISTORICAL EXECUTION CHECKPOINT — SUPERSEDED
 
-> **Este checkpoint foi superado.** O estado canônico posterior está registrado no cabeçalho deste plano (linhas 1–25) e em `PROJECT_STATE.md`. G28-C é `CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT`; G28-D discovery está `COMPLETED / BLOCKED_BY_MISSING_DEPLOYMENT_DEFINITION`; G28-B8 foi subsumido pela aceitação de G28-C. Nenhuma fase funcional está ativa. Consulte o cabeçalho e `PROJECT_STATE.md` para o estado atual.
+> **This checkpoint has been superseded.** The subsequent canonical state is recorded in the header of this plan (lines 1–25) and in `PROJECT_STATE.md`. G28-C is `CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT`; G28-D discovery is `COMPLETED / BLOCKED_BY_MISSING_DEPLOYMENT_DEFINITION`; G28-B8 was subsumed by the acceptance of G28-C. No functional phase is active. See the header and `PROJECT_STATE.md` for the current state.
 
-**Data:** 2026-07-14 (HISTÓRICO)
-**Baseline técnico:** `9ef61e1896af631bc5aeeced4af93c77051f4de4` (branch `work/g28-document-qualification`; worktree limpo antes da implementação B8).
+**Date:** 2026-07-14 (HISTORICAL)
+**Technical baseline:** `9ef61e1896af631bc5aeeced4af93c77051f4de4` (branch `work/g28-document-qualification`; clean worktree before B8 implementation).
 
-**Última fase aceita neste checkpoint:** `G28-B7 — exibição nas superfícies — CLOSED / ACCEPTED_WITH_NONBLOCKING_REMOTE_SMOKE_DEBT` (aceite arquitetural explícito em 2026-07-14; parcial `ed35f04`, conclusão `9ef61e1`).
+**Last accepted phase in this checkpoint:** `G28-B7 — surface display — CLOSED / ACCEPTED_WITH_NONBLOCKING_REMOTE_SMOKE_DEBT` (explicit architectural acceptance on 2026-07-14; partial `ed35f04`, completion `9ef61e1`).
 
-**Fase ativa neste checkpoint:** `G28-B8 — correção, revogação, restauração e auditoria — IMPLEMENTED / TESTED (local) / READY FOR ARCHITECT ACCEPTANCE`.
+**Active phase in this checkpoint:** `G28-B8 — correction, revocation, restoration, and audit — IMPLEMENTED / TESTED (local) / READY FOR ARCHITECT ACCEPTANCE`.
 
-**Incremento G28-B8:** `db/52` aplicada uma vez em `ucrjtfswnfdlxwtmxnoo` (registry `20260715024449`), sem backfill/alteração B5. Estrutura/RPC/grants e matriz `G28-B8-VERIFY` 18/18 verificadas diretamente; a fronteira candidate/event/decision permaneceu intacta e as fixtures foram limpas. O único débito é `LIVE_B8_MODAL_SMOKE_BLOCKED_BY_TOOLING`.
+**G28-B8 increment:** `db/52` applied once in `ucrjtfswnfdlxwtmxnoo` (registry `20260715024449`), without B5 backfill/alteration. Structure/RPC/grants and the `G28-B8-VERIFY` matrix 18/18 verified directly; the candidate/event/decision boundary remained intact and fixtures were cleaned up. The only debt is `LIVE_B8_MODAL_SMOKE_BLOCKED_BY_TOOLING`.
 
-**Evidência de staging (B6/B8):** projeto `ucrjtfswnfdlxwtmxnoo`, sem acesso a produção; migration 51 preservada e `db/52` aplicada/verificada. B8: matriz funcional RPC 18/18, sem mutar campos Ingestor/decisão, sem efeitos operacionais e cleanup de fixtures zero. B6: wrapper atômico passou no caminho interno de cinco argumentos após a evolução da assinatura.
+**Staging evidence (B6/B8):** project `ucrjtfswnfdlxwtmxnoo`, no production access; migration 51 preserved and `db/52` applied/verified. B8: functional RPC matrix 18/18, no mutation of Ingestor/decision fields, no operational effects, and zero fixture cleanup residue. B6: atomic wrapper passed the five-argument internal path after the signature evolution.
 
-**Decisões de arquiteto em aberto neste checkpoint:** `OPEN_ARCHITECT_DECISIONS: NONE`.
+**Open architect decisions in this checkpoint:** `OPEN_ARCHITECT_DECISIONS: NONE`.
 
-**Limite verificado:** os testes locais cobrem os contratos B6/B7/B8; a aplicação e a verificação de `db/52` em staging, e o smoke autenticado do modal de administração, são exigidos e não autorizam produção, backfill ou reparo histórico.
+**Verified limit:** local tests cover the B6/B7/B8 contracts; the application and verification of `db/52` in staging, and the authenticated smoke of the administration modal, are required and do not authorize production, backfill, or historical repair.
 
-**Regras de autoridade neste checkpoint:**
-- Git comprova branch/HEAD/index/worktree vivos;
-- `PROJECT_STATE.md` detém o estado operacional atual;
-- `AGENT_HANDOFF.md` detém a continuidade;
-- O ledger G28 detém o histórico append-only de closeouts;
-- Este plano mestre detém arquitetura e backlog;
-- Planos sozinhos não autorizam execução.
+**Authority rules in this checkpoint:**
+- Git proves live branch/HEAD/index/worktree;
+- `PROJECT_STATE.md` holds the current operational state;
+- `AGENT_HANDOFF.md` holds continuity;
+- The G28 ledger holds the append-only history of closeouts;
+- This master plan holds architecture and backlog;
+- Plans alone do not authorize execution.
 
 ---
 
-## 1. OBJETIVO
+## 1. OBJECTIVE
 
-Organizar a evolução da frente de Documentos sem quebrar a arquitetura já consolidada, preservando:
+Organize the evolution of the Documents front without breaking the already-consolidated architecture, while preserving:
 
-- fontes de verdade reais;
-- separação entre detecção técnica, validação humana, vínculo operacional e decisão administrativa;
-- integração canônica com Pedido e OP;
-- continuidade visual do app;
-- operação completa mesmo sem participação ativa de fornecedores;
-- sequência de implementação auditável;
-- backlog futuro de acesso, backup e colaboração externa.
+- real sources of truth;
+- separation between technical detection, human validation, operational linking, and administrative decision;
+- canonical integration with Pedido and OP;
+- visual continuity of the app;
+- complete operation even without active supplier participation;
+- auditable implementation sequence;
+- future backlog for access, backup, and external collaboration.
 
-Este plano deve ser lido em conjunto com:
+This plan must be read together with:
 
 - `PROJECT_STATE.md`;
 - `AGENT_HANDOFF.md`;
 - `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`;
-- documentos de arquitetura referenciados por esses arquivos;
-- contrato visual versionado, quando criado;
-- skills e instruções relevantes existentes em `.claude/`.
+- architecture documents referenced by those files;
+- versioned visual contract, when created;
+- relevant skills and instructions existing in `.claude/`.
 
 ---
 
-# CAMADA 0 — GOVERNANÇA OBRIGATÓRIA
+# CAMADA 0 — MANDATORY GOVERNANCE
 
-## 0.1 Fontes canônicas
+## 0.1 Canonical sources
 
-Antes de qualquer diagnóstico, implementação, migration, UI ou integração, a IAsup deve ler:
+Before any diagnosis, implementation, migration, UI, or integration, the IAsup must read:
 
 1. `PROJECT_STATE.md`;
 2. `AGENT_HANDOFF.md`;
 3. `services/documents-ingestor/PROJECT_STATE.md`;
 4. `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`;
-5. este plano;
-6. demais documentos de arquitetura diretamente referenciados;
-7. instruções e skills visuais aplicáveis em `.claude/`.
+5. this plan;
+6. other architecture documents directly referenced;
+7. applicable visual instructions and skills in `.claude/`.
 
-Nenhuma ordem deve depender apenas de memória de conversa ou relatório anterior.
+No order should depend solely on conversation memory or a previous report.
 
-## 0.2 Invariantes estruturais
+## 0.2 Structural invariants
 
-### Entidades e CNPJ
+### Entities and CNPJ
 
-- `clientes.cnpj` é a fonte direta de CNPJ de Cliente.
-- `fornecedores.cnpj` é a fonte direta de CNPJ de Fornecedor.
-- Cliente e Fornecedor permanecem independentes.
-- O mesmo CNPJ pode existir legitimamente nas duas categorias.
-- É proibido reintroduzir:
+- `clientes.cnpj` is the direct source of Cliente CNPJ.
+- `fornecedores.cnpj` is the direct source of Fornecedor CNPJ.
+- Cliente and Fornecedor remain independent.
+- The same CNPJ can legitimately exist in both categories.
+- It is forbidden to reintroduce:
   - `parceiros`;
   - `parceiro_id`;
   - `parceiro_cnpjs`;
-  - entidade empresarial genérica obrigatória;
-  - dupla escrita;
-  - fallback silencioso;
-  - sincronização paralela;
-  - fonte de verdade concorrente;
-  - camada temporária que esconda arquitetura incorreta.
+  - mandatory generic business entity;
+  - dual writing;
+  - silent fallback;
+  - parallel synchronization;
+  - competing source of truth;
+  - temporary layer that hides incorrect architecture.
 
-### Pedido, OP e documentos
+### Pedido, OP, and documents
 
-- Pedido e OP são entidades operacionais reais.
-- Documento deve se vincular diretamente às entidades canônicas aplicáveis.
-- Nenhuma abstração de UI pode esconder entidade intermediária desnecessária.
-- Nenhum vínculo genérico opaco deve substituir relações reais sem justificativa arquitetural aprovada.
+- Pedido and OP are real operational entities.
+- Documento must link directly to the applicable canonical entities.
+- No UI abstraction may hide an unnecessary intermediate entity.
+- No opaque generic link should replace real relationships without approved architectural justification.
 
-### Separação de conceitos
+### Separation of concerns
 
-Devem permanecer separados:
+The following must remain separate:
 
-1. detecção técnica;
-2. classificação sugerida;
-3. evidência técnica;
-4. validação humana;
-5. vínculo com Pedido/OP;
-6. estado operacional;
-7. decisão administrativa;
-8. duplicidade;
-9. origem e autoria;
-10. histórico e versão.
+1. technical detection;
+2. suggested classification;
+3. technical evidence;
+4. human validation;
+5. link with Pedido/OP;
+6. operational state;
+7. administrative decision;
+8. duplicity;
+9. origin and authorship;
+10. history and version.
 
-Uma decisão humana não pode apagar a evidência técnica original.
+A human decision must not erase the original technical evidence.
 
-## 0.3 Regra estrutural de NF-e
+## 0.3 NF-e structural rule
 
-A análise deve ser orientada pela direção e pela contraparte relevante.
+The analysis must be guided by the direction and the relevant counterparty.
 
-### NF de entrada
+### Inbound NF
 
-- emitente = Fornecedor esperado;
-- destinatário = CNPJ próprio da Ravatex.
+- issuer = expected Fornecedor;
+- recipient = Ravatex's own CNPJ.
 
-### NF de saída
+### Outbound NF
 
-- emitente = CNPJ próprio da Ravatex;
-- destinatário = Cliente esperado.
+- issuer = Ravatex's own CNPJ;
+- recipient = expected Cliente.
 
-Não exigir match de Cliente/Fornecedor nos dois lados da nota.
+Do not require a Cliente/Fornecedor match on both sides of the note.
 
-## 0.4 Gate visual
+## 0.4 Visual gate
 
-Antes de alterar UI, modal, lista, tabela, card, navegação ou interação, a IAsup e a IAexec devem consultar:
+Before altering UI, modal, list, table, card, navigation, or interaction, the IAsup and the IAexec must consult:
 
 - `.claude/`;
-- skills visuais aplicáveis;
-- instruções de UI;
-- componentes existentes;
-- padrões de modal, formulário, tabela e navegação;
-- telas reais de Pedido e OP;
-- referências de aceite visual.
+- applicable visual skills;
+- UI instructions;
+- existing components;
+- modal, form, table, and navigation patterns;
+- real Pedido and OP screens;
+- visual acceptance references.
 
-Preservar:
+Preserve:
 
-- linguagem visual já consolidada;
-- cantos com pouca curvatura;
-- ausência de pílulas e sombras pesadas sem necessidade;
-- terminologia PT-BR já aprovada;
-- consistência entre Documentos, Pedido e OP;
-- componentes e fluxos canônicos;
-- responsividade e acessibilidade;
-- proibição de réplicas simplificadas que não atendam ao requisito real.
+- already-consolidated visual language;
+- corners with little curvature;
+- absence of pills and heavy shadows without necessity;
+- already-approved PT-BR terminology;
+- consistency between Documentos, Pedido, and OP;
+- canonical components and flows;
+- responsiveness and accessibility;
+- prohibition of simplified replicas that do not meet the actual requirement.
 
-## 0.5 Papel da pasta `.claude`
+## 0.5 Role of the `.claude` folder
 
-A pasta `.claude` deve ser inventariada antes da primeira implementação visual relevante.
+The `.claude` folder must be inventoried before the first relevant visual implementation.
 
-Separar:
+Separate:
 
-- skills operacionais;
-- instruções visuais permanentes;
-- configurações locais;
-- exemplos e referências;
-- arquivos específicos de máquina;
-- conteúdo que precisa ser promovido para documentação versionada.
+- operational skills;
+- permanent visual instructions;
+- local configurations;
+- examples and references;
+- machine-specific files;
+- content that needs to be promoted to versioned documentation.
 
-Regra:
+Rule:
 
-- `.claude/skills` pode ensinar agentes a aplicar padrões;
-- regras permanentes de produto e UI não podem existir somente em `.claude`;
-- deve ser criado ou consolidado um contrato visual versionado, preferencialmente:
+- `.claude/skills` may teach agents to apply patterns;
+- permanent product and UI rules must not exist only in `.claude`;
+- a versioned visual contract must be created or consolidated, preferably:
   - `docs/architecture/UI_VISUAL_CONTRACT.md`.
 
-## 0.6 Gate obrigatório de conformidade
+## 0.6 Mandatory compliance gate
 
-Todo relatório técnico deve incluir:
+Every technical report must include:
 
 ### STRUCTURAL POLICY COMPLIANCE
 
-- arquivos canônicos lidos;
-- invariantes aplicáveis;
-- como foram preservadas;
-- propostas rejeitadas;
-- conflitos encontrados;
-- decisões reservadas ao arquiteto.
+- canonical files read;
+- applicable invariants;
+- how they were preserved;
+- rejected proposals;
+- conflicts found;
+- decisions reserved for the architect.
 
-Toda fase de UI deve incluir também:
+Every UI phase must also include:
 
 ### VISUAL POLICY COMPLIANCE
 
-- arquivos e skills consultados;
-- padrões reutilizados;
-- desvios visuais;
-- evidência de aderência;
-- validação visual necessária.
+- files and skills consulted;
+- patterns reused;
+- visual deviations;
+- evidence of adherence;
+- necessary visual validation.
 
-Sem essas seções, a fase não pode ser aceita.
-
----
-
-# CAMADA 1 — DOCUMENTOS
-
-Esta é a frente ativa e prioritária.
-
-## 1.1 Objetivo da primeira entrega operacional
-
-Habilitar a seção de Documentos para que o sistema:
-
-1. detecte arquivos candidatos;
-2. apresente a sugestão técnica;
-3. permita validação humana;
-4. vincule corretamente a Pedido e OP;
-5. mostre o documento nas superfícies corretas;
-6. preserve histórico, autoria e evidência;
-7. funcione de ponta a ponta em staging;
-8. seja publicado para o cliente acompanhar.
-
-Não haverá autoaceite nesta primeira versão.
+Without these sections, the phase cannot be accepted.
 
 ---
 
-## 1.2 Fluxo alvo
+# CAMADA 1 — DOCUMENTS
+
+This is the active and priority front.
+
+## 1.1 Objective of the first operational delivery
+
+Enable the Documents section so that the system:
+
+1. detects candidate files;
+2. presents the technical suggestion;
+3. allows human validation;
+4. correctly links to Pedido and OP;
+5. shows the document on the correct surfaces;
+6. preserves history, authorship, and evidence;
+7. works end-to-end in staging;
+8. is published for the client to follow.
+
+There will be no auto-acceptance in this first version.
+
+---
+
+## 1.2 Target flow
 
 ```text
 Entrada do documento
@@ -259,197 +259,197 @@ Entrada do documento
 → publicação para o cliente acompanhar
 ```
 
-### Origens previstas
+### Expected origins
 
 - Gmail;
-- upload manual interno;
-- futuramente upload do fornecedor;
-- futuramente integrações externas.
+- internal manual upload;
+- future Fornecedor upload;
+- future external integrations.
 
-Toda entrada deve registrar origem e autoria.
-
----
-
-## 1.3 Detecção técnica
-
-Registrar, quando aplicável:
-
-- formato;
-- assinatura do arquivo;
-- tipo provável;
-- estrutura NF-e;
-- CNPJ de emitente e destinatário;
-- validade de cada CNPJ;
-- direção provável;
-- contraparte provável;
-- possíveis matches de Cliente/Fornecedor;
-- conflito MIME/extensão;
-- duplicidade;
-- razões técnicas da sugestão.
-
-A detecção é uma hipótese técnica, não uma decisão administrativa.
+Every entry must record origin and authorship.
 
 ---
 
-## 1.4 Fila de validação humana
+## 1.3 Technical detection
 
-A seção central de Documentos deve permitir:
+Record, when applicable:
 
-- listar candidatos;
-- filtrar pendentes;
-- abrir o arquivo;
-- visualizar evidência;
-- visualizar alertas;
-- identificar duplicidade;
-- abrir validação;
-- consultar vínculos;
-- consultar histórico.
+- format;
+- file signature;
+- probable type;
+- NF-e structure;
+- issuer and recipient CNPJ;
+- validity of each CNPJ;
+- probable direction;
+- probable counterparty;
+- possible Cliente/Fornecedor matches;
+- MIME/extension conflict;
+- duplicity;
+- technical reasons for the suggestion.
 
-Estados visuais esperados, sem fechar ainda o schema:
+Detection is a technical hypothesis, not an administrative decision.
 
-- aguardando validação;
-- validado;
-- rejeitado;
-- ignorado;
-- validação revogada;
-- duplicidade detectada;
-- conflito técnico;
-- registry indisponível;
-- documento desconhecido.
+---
+
+## 1.4 Human validation queue
+
+The central Documents section must allow:
+
+- listing candidates;
+- filtering pending items;
+- opening the file;
+- viewing evidence;
+- viewing alerts;
+- identifying duplicity;
+- opening validation;
+- consulting links;
+- consulting history.
+
+Expected visual states, without yet finalizing the schema:
+
+- awaiting validation;
+- validated;
+- rejected;
+- ignored;
+- validation revoked;
+- duplicity detected;
+- technical conflict;
+- registry unavailable;
+- unknown document.
 
 ---
 
 ## 1.5 Modal “Validar e vincular”
 
-A ação principal recomendada é:
+The recommended primary action is:
 
 ```text
 Validar e vincular
 ```
 
-O modal deve exibir:
+The modal must display:
 
-### Evidência técnica
+### Technical evidence
 
-- nome do arquivo;
-- origem;
-- remetente;
-- data;
-- formato;
-- tipo sugerido;
-- direção sugerida;
+- file name;
+- origin;
+- sender;
+- date;
+- format;
+- suggested type;
+- suggested direction;
 - CNPJs;
-- Cliente/Fornecedor possíveis;
-- motivos da sugestão;
-- avisos;
-- preview ou acesso ao arquivo.
+- possible Cliente/Fornecedor;
+- reasons for the suggestion;
+- warnings;
+- preview or access to the file.
 
-### Campos humanos
+### Human fields
 
-- tipo real;
-- subtipo, quando aplicável;
-- direção;
-- Cliente ou Fornecedor;
-- número/chave/data, quando aplicável;
+- actual type;
+- subtype, when applicable;
+- direction;
+- Cliente or Fornecedor;
+- number/key/date, when applicable;
 - Pedido;
-- OP ou OPs;
-- observação;
-- motivo de rejeição ou ignorar.
+- OP or OPs;
+- note;
+- reason for rejection or ignoring.
 
-Os campos devem aparecer conforme o tipo selecionado.
+Fields must appear according to the selected type.
 
-### Ações
+### Actions
 
-- validar e vincular;
-- rejeitar;
-- ignorar;
-- cancelar;
-- futuramente corrigir ou revogar.
+- validate and link;
+- reject;
+- ignore;
+- cancel;
+- future correct or revoke.
 
 ---
 
-## 1.6 Regras por tipo
+## 1.6 Rules by type
 
 ### NF-e XML
 
-Confirmar:
+Confirm:
 
-- entrada ou saída;
-- emitente;
-- destinatário;
-- contraparte esperada;
+- inbound or outbound;
+- issuer;
+- recipient;
+- expected counterparty;
 - Pedido;
 - OPs;
-- número/chave/data, quando extraíveis.
+- number/key/date, when extractable.
 
-### NF em PDF
+### NF in PDF
 
-- tipo apenas provável;
-- confirmação humana obrigatória;
-- nunca autoaceitar;
-- contraparte e vínculos confirmados manualmente.
+- type only probable;
+- mandatory human confirmation;
+- never auto-accept;
+- counterparty and links confirmed manually.
 
 ### Romaneio
 
-Confirmar:
+Confirm:
 
 - Fornecedor;
 - Pedido;
 - OP;
-- etapa ou movimento relacionado;
-- data;
-- observação.
+- related stage or movement;
+- date;
+- note.
 
-### Documento desconhecido
+### Unknown document
 
-Permitir:
+Allow:
 
-- escolher tipo;
-- classificar manualmente;
-- vincular;
-- rejeitar;
-- ignorar com justificativa.
+- choosing type;
+- classifying manually;
+- linking;
+- rejecting;
+- ignoring with justification.
 
-### Duplicidade
+### Duplicity
 
-Mostrar:
+Show:
 
-- documento canônico;
-- ocorrência anterior;
-- vínculos existentes;
-- opção de manter nova ocorrência;
-- opção de reutilizar vínculos;
-- opção de tratar como diferente com justificativa.
-
----
-
-## 1.7 Efeitos proibidos no modal
-
-Validar documento não deve automaticamente:
-
-- receber material;
-- concluir transferência;
-- aceitar OP;
-- alterar status de produção;
-- movimentar estoque;
-- concluir Pedido;
-- gerar financeiro;
-- substituir documento anterior.
-
-Essas ações devem permanecer explícitas e separadas.
+- canonical document;
+- previous occurrence;
+- existing links;
+- option to keep the new occurrence;
+- option to reuse links;
+- option to treat as different with justification.
 
 ---
 
-## 1.8 Vínculos canônicos
+## 1.7 Prohibited effects in the modal
 
-Primeiro escopo:
+Validating a document must not automatically:
+
+- receive material;
+- complete a transfer;
+- accept an OP;
+- change production status;
+- move inventory;
+- complete a Pedido;
+- generate financial records;
+- replace a previous document.
+
+These actions must remain explicit and separate.
+
+---
+
+## 1.8 Canonical links
+
+First scope:
 
 ```text
 Documento ↔ Pedido
 Documento ↔ OP
 ```
 
-Futuro, somente quando o processo exigir:
+Future, only when the process requires it:
 
 ```text
 Documento ↔ recebimento
@@ -458,118 +458,118 @@ Documento ↔ expedição
 Documento ↔ ordem de compra
 ```
 
-Evitar relação genérica opaca `target_type/target_id` como atalho arquitetural.
+Avoid an opaque generic relationship `target_type/target_id` as an architectural shortcut.
 
 ---
 
-## 1.9 Superfícies de exibição
+## 1.9 Display surfaces
 
-Depois de validado, o documento deve aparecer em:
+After validation, the document must appear in:
 
-- tela central de Documentos;
-- detalhe do Pedido;
-- detalhe da OP;
-- timeline/histórico aplicável;
-- buscas e filtros;
-- futuramente área do fornecedor.
+- central Documents screen;
+- Pedido detail;
+- OP detail;
+- applicable timeline/history;
+- searches and filters;
+- future Fornecedor area.
 
-Todas as telas devem consumir o mesmo vínculo canônico.
-
----
-
-## 1.10 Correção, revogação e auditoria
-
-Permitir:
-
-- corrigir tipo;
-- trocar contraparte;
-- trocar Pedido;
-- adicionar/remover OP;
-- rejeitar;
-- ignorar;
-- revogar validação;
-- restaurar;
-- consultar versões;
-- identificar ator e timestamp.
-
-Nunca sobrescrever histórico silenciosamente.
+All screens must consume the same canonical link.
 
 ---
 
-# SEQUÊNCIA DE IMPLEMENTAÇÃO — DOCUMENTOS
+## 1.10 Correction, revocation, and audit
 
-## G28-P0 — Consolidação do plano e gates
+Allow:
 
-Objetivo:
+- correcting type;
+- changing counterparty;
+- changing Pedido;
+- adding/removing OP;
+- rejecting;
+- ignoring;
+- revoking validation;
+- restoring;
+- consulting versions;
+- identifying actor and timestamp.
 
-- aprovar este plano;
-- inventariar `.claude`;
-- consolidar contrato estrutural;
-- consolidar contrato visual;
-- registrar fontes canônicas;
-- corrigir o diagnóstico G28-A.
+Never silently overwrite history.
 
-Sem código, migration ou UI.
+---
 
-## G28-B1 — Contrato de domínio documental
+# IMPLEMENTATION SEQUENCE — DOCUMENTS
 
-Definir os tipos puros e o contrato de domínio para:
+## G28-P0 — Plan consolidation and gates
 
-- evidência técnica;
-- sugestão;
-- direção e contraparte;
-- revisão humana;
-- decisão canônica;
-- duplicidade;
-- vínculos;
-- cardinalidades;
-- correção/revogação;
-- compatibilidade com estruturas existentes.
+Objective:
 
-### Mapeamento obrigatório antes de qualquer persistência nova
+- approve this plan;
+- inventory `.claude`;
+- consolidate the structural contract;
+- consolidate the visual contract;
+- record canonical sources;
+- fix the G28-A diagnosis.
 
-A separação dos eixos de domínio (detecção, evidência, revisão, vínculo, decisão)
-**não obriga tabelas independentes**. Antes de propor persistência nova, G28-B1
-deve mapear:
+No code, migration, or UI.
 
-- `document_decisions` existente;
-- `documentos_operacionais` existente;
-- estados atuais;
-- possibilidade de ampliar a fonte canônica atual;
-- risco de dupla escrita;
-- risco de decisões humanas concorrentes.
+## G28-B1 — Documentation domain contract
 
-**É proibido criar fonte paralela para validação humana se a decisão canônica
-existente puder representar o fluxo corretamente.**
+Define the pure types and the domain contract for:
 
-### Decisões abertas de G28-B1 (não decididas nesta correção documental)
+- technical evidence;
+- suggestion;
+- direction and counterparty;
+- human review;
+- canonical decision;
+- duplicity;
+- links;
+- cardinalities;
+- correction/revocation;
+- compatibility with existing structures.
 
-- cardinalidade Documento ↔ OP;
-- um documento pode ou não vincular múltiplas OPs;
-- como `documentos_operacionais` representa isso;
-- quais tipos exigem Pedido;
-- quais tipos exigem OP;
-- quais vínculos são opcionais;
-- como tratar vínculo incompatível com o tipo.
+### Mandatory mapping before any new persistence
 
-Sem persistência, sem runtime e sem UI nesta fase.
+The separation of domain axes (detection, evidence, review, linkage, decision)
+**does not require independent tables**. Before proposing new persistence, G28-B1
+must map:
 
-## G28-B2 — Persistência local da evidência e histórico técnico
+- the existing `document_decisions`;
+- the existing `documentos_operacionais`;
+- current states;
+- the possibility of extending the current canonical source;
+- risk of double writing;
+- risk of concurrent human decisions.
 
-Persistir localmente (ex.: SQLite) a evidência técnica e o histórico técnico, sem
-inventar dados legados e sem antecipar a decisão humana:
+**Creating a parallel source for human validation is forbidden if the existing
+canonical decision can correctly represent the flow.**
 
-- evidência técnica;
-- razões;
-- origem;
-- autoria;
-- versão;
-- relação de duplicidade;
-- histórico técnico.
+### Open decisions for G28-B1 (not decided in this documentation fix)
 
-## G28-B3 — Eventos, exportação, Supabase e reader
+- Document ↔ OP cardinality;
+- whether a document may or may not link multiple OPs;
+- how `documentos_operacionais` represents this;
+- which types require Pedido;
+- which types require OP;
+- which links are optional;
+- how to handle a link incompatible with the type.
 
-Propagar:
+No persistence, no runtime, and no UI in this phase.
+
+## G28-B2 — Local persistence of evidence and technical history
+
+Locally persist (e.g., SQLite) the technical evidence and the technical history,
+without inventing legacy data and without anticipating the human decision:
+
+- technical evidence;
+- reasons;
+- origin;
+- authorship;
+- version;
+- duplicity relation;
+- technical history.
+
+## G28-B3 — Events, export, Supabase, and reader
+
+Propagate:
 
 ```text
 persistência local
@@ -581,141 +581,141 @@ persistência local
 → reader do Controle
 ```
 
-Migration somente aditiva e validada primeiro em staging.
+Migration only additive and validated first in staging.
 
-## G28-B4 — Fila / read model de revisão documental
+## G28-B4 — Documentation review queue / read model
 
-Implementar o read model e a fila de revisão:
+Implement the read model and the review queue:
 
-- listagem;
-- filtros;
-- alertas;
-- acesso ao arquivo;
-- indicação de vínculos;
-- indicação de duplicidade;
-- indicação de que há ação de validação disponível.
+- listing;
+- filters;
+- alerts;
+- file access;
+- link indication;
+- duplicity indication;
+- indication that a validation action is available.
 
-Sem persistir decisão humana nesta fase.
+No human decision persistence in this phase.
 
-## G28-B5 — Persistência da decisão humana e dos vínculos canônicos
+## G28-B5 — Persistence of the human decision and canonical links
 
-Persistir a **decisão humana** e os **vínculos canônicos com Pedido/OP**,
-reutilizando a fonte canônica existente sempre que ela representar o fluxo
-corretamente (ver o mapeamento obrigatório de G28-B1). Sem UI funcional nesta fase.
+Persist the **human decision** and the **canonical links with Pedido/OP**,
+reusing the existing canonical source whenever it correctly represents the flow
+(see the mandatory mapping in G28-B1). No functional UI in this phase.
 
-## G28-B6 — Modal funcional "Validar e vincular"
+## G28-B6 — Functional "Validate and link" modal
 
-Implementar o modal dinâmico e os contratos de ação **consumindo o backend real**
-de decisão e de vínculos.
+Implement the dynamic modal and the action contracts **consuming the real
+backend** for decisions and links.
 
-**O modal funcional não pode anteceder a persistência da decisão e dos vínculos
-(G28-B5).**
+**The functional modal cannot precede the persistence of the decision and the
+links (G28-B5).**
 
-## G28-B7 — Exibição nas superfícies
+## G28-B7 — Display on surfaces
 
-Exibir em:
+Display on:
 
 - Documentos;
 - Pedido;
 - OP;
 - timeline;
-- buscas.
+- searches.
 
-## G28-B8 — Correção, revogação, restauração e auditoria
+## G28-B8 — Correction, revocation, restoration, and audit
 
-Implementar:
+Implement:
 
-- reclassificação;
-- alteração de vínculos;
-- revogação;
-- restauração;
-- histórico;
-- autoria.
+- reclassification;
+- link changes;
+- revocation;
+- restoration;
+- history;
+- authorship.
 
-## G28-C — Validação real em staging
+## G28-C — Real validation in staging
 
-Cenários mínimos:
+Minimum scenarios:
 
 - NF entrada;
 - NF saída;
 - XML;
 - PDF;
 - romaneio;
-- desconhecido;
-- duplicidade;
-- conflito MIME/extensão;
-- CNPJ inválido;
-- registry indisponível;
-- Cliente/Fornecedor não encontrado;
+- unknown;
+- duplicity;
+- MIME/extension conflict;
+- invalid CNPJ;
+- registry unavailable;
+- Cliente/Fornecedor not found;
 - Pedido;
 - OP;
-- correção;
-- revogação.
+- correction;
+- revocation.
 
-## G28-D — Publicação para o cliente acompanhar
+## G28-D — Publication for the client to follow
 
-Critérios:
+Criteria:
 
-- identificação funcional;
-- validação humana;
-- vínculos corretos;
-- exibição nas telas;
-- correção e auditoria;
-- staging validado;
-- CI verde;
-- nenhum efeito operacional implícito.
+- functional identification;
+- human validation;
+- correct links;
+- display on the screens;
+- correction and audit;
+- validated staging;
+- green CI;
+- no implicit operational effect.
 
-Marco:
+Milestone:
 
 ```text
 DOCUMENTOS — CLIENT OBSERVATION RELEASE
 ```
 
-Depois da publicação:
+After publication:
 
-- observar uso real;
-- corrigir fricções;
-- medir falsos positivos;
-- ajustar modal;
-- validar onde os usuários procuram documentos.
+- observe real usage;
+- fix friction points;
+- measure false positives;
+- adjust the modal;
+- validate where users look for documents.
 
 ---
 
-# CAMADA 2 — ADMINISTRAÇÃO DE USUÁRIOS E ACESSOS
+# CAMADA 2 — USER AND ACCESS ADMINISTRATION
 
-Frente futura, deferida até Documentos estabilizar.
+Future initiative, deferred until Documentos stabilizes.
 
-## Objetivos
+## Objectives
 
-- listar usuários;
-- criar ou convidar;
-- definir perfil;
-- definir permissões;
-- habilitar/bloquear acesso;
-- resetar senha;
-- exigir troca de senha;
-- consultar último acesso;
-- revogar sessões, se suportado;
-- auditar alterações;
-- futuramente vincular usuário externo diretamente a Fornecedor.
+- list users;
+- create or invite;
+- define profile;
+- define permissions;
+- enable/block access;
+- reset password;
+- require password change;
+- check last access;
+- revoke sessions, if supported;
+- audit changes;
+- in the future, link external user directly to Fornecedor.
 
-## Política de senha
+## Password policy
 
-Evitar senha padrão compartilhada.
+Avoid a shared default password.
 
-Preferir:
+Prefer:
 
-- senha temporária com troca obrigatória; ou
-- convite para definição da primeira senha.
+- temporary password with mandatory change; or
+- invitation to set the first password.
 
-A senha temporária deve:
+The temporary password must:
 
-- expirar;
-- ser de uso único;
-- não ser recuperável;
-- não ser reutilizada entre usuários.
+- expire;
+- be single-use;
+- not be recoverable;
+- not be reused across users.
 
-## Sequência futura
+## Future sequence
 
 ```text
 A1 — diagnóstico da autenticação
@@ -729,49 +729,49 @@ A7 — preparação para usuários externos
 
 ---
 
-# CAMADA 3 — BACKUP EM NUVEM
+# CAMADA 3 — CLOUD BACKUP
 
-Frente futura e independente.
+Future and independent initiative.
 
-Existe outro app com infraestrutura e frontend reaproveitáveis, mas a adaptação exige auditoria porque o app de origem usa SQLite e esta aplicação possui outra arquitetura de persistência.
+There is another app with reusable infrastructure and frontend, but the adaptation requires an audit because the source app uses SQLite and this application has a different persistence architecture.
 
-## Diagnóstico obrigatório
+## Mandatory diagnosis
 
-Mapear:
+Map:
 
-- o que é copiado;
-- origem dos dados;
-- destino;
-- criptografia;
-- retenção;
-- versionamento;
-- agendamento;
+- what is copied;
+- data origin;
+- destination;
+- encryption;
+- retention;
+- versioning;
+- scheduling;
 - logs;
 - checksums;
-- restauração;
-- tratamento de falha;
-- permissões.
+- restoration;
+- failure handling;
+- permissions.
 
-## Seção de backup
+## Backup section
 
-Exibir:
+Display:
 
-- último backup;
-- próximo backup;
-- tamanho;
-- destino;
-- retenção;
-- histórico;
-- falhas;
-- backup manual;
-- integridade;
-- restauração controlada.
+- last backup;
+- next backup;
+- size;
+- destination;
+- retention;
+- history;
+- failures;
+- manual backup;
+- integrity;
+- controlled restoration.
 
-## Regra
+## Rule
 
-Backup sem restauração testada não é considerado confiável.
+A backup without a tested restoration is not considered reliable.
 
-Fluxo mínimo:
+Minimum flow:
 
 ```text
 backup
@@ -782,7 +782,7 @@ backup
 → auditoria
 ```
 
-## Sequência futura
+## Future sequence
 
 ```text
 BK1 — auditoria do app existente
@@ -797,325 +797,324 @@ BK8 — teste real de recuperação
 
 ---
 
-# CAMADA 4 — PARTICIPAÇÃO FUTURA DE FORNECEDORES
+# CAMADA 4 — FUTURE FORNECEDOR PARTICIPATION
 
-A aplicação interna deve continuar funcional sem participação ativa do fornecedor.
+The internal application must remain functional without active participation from the fornecedor.
 
-## Princípio
+## Principle
 
-Usuário externo deve se vincular diretamente a `fornecedor_id`.
+External user must link directly to `fornecedor_id`.
 
-Não criar parceiro genérico.
+Do not create a generic partner.
 
-## Evolução
+## Evolution
 
-### F0 — preparação estrutural
+### F0 — structural preparation
 
-Prever:
+Anticipate:
 
-- origem;
-- autoria;
-- fornecedor direto;
-- permissões futuras;
-- histórico de submissão.
+- origin;
+- authorship;
+- direct fornecedor;
+- future permissions;
+- submission history.
 
-### F1 — portal somente leitura
+### F1 — read-only portal
 
-Fornecedor pode:
+Fornecedor can:
 
-- ver suas OPs;
-- ver documentos autorizados;
-- ver pendências;
-- acompanhar transferências/recebimentos aplicáveis;
-- baixar documentos permitidos.
+- view its OPs;
+- view authorized documents;
+- view pending items;
+- track applicable transfers/receipts;
+- download allowed documents.
 
-### F2 — upload de documentos
+### F2 — document upload
 
-Fornecedor pode enviar:
+Fornecedor can submit:
 
 - NF;
 - romaneio;
-- comprovante;
-- laudo;
-- outros tipos autorizados.
+- receipt;
+- report;
+- other authorized types.
 
-Todo upload entra na mesma fila humana.
+Every upload enters the same human queue.
 
-### F3 — respostas e correções
+### F3 — responses and corrections
 
-Fornecedor pode:
+Fornecedor can:
 
-- responder pendência;
-- substituir arquivo;
-- corrigir metadados;
-- receber rejeição;
-- reenviar.
+- respond to a pending item;
+- replace file;
+- correct metadata;
+- receive rejection;
+- resend.
 
-### F4 — participação operacional controlada
+### F4 — controlled operational participation
 
-Futuramente:
+In the future:
 
-- informar envio;
-- confirmar expedição;
-- propor transferência;
-- informar quantidade;
-- informar previsão;
-- anexar documento de movimento.
+- report shipment;
+- confirm expedição;
+- propose transfer;
+- report quantity;
+- report forecast;
+- attach movement document.
 
-Inicialmente, toda ação crítica exige aceite interno.
+Initially, every critical action requires internal acceptance.
 
-### F5 — colaboração ampliada
+### F5 — expanded collaboration
 
-- notificações;
-- comentários;
+- notifications;
+- comments;
 - SLA;
-- divergências;
-- aceite bilateral;
-- histórico de comunicação;
+- discrepancies;
+- bilateral acceptance;
+- communication history;
 - API.
 
 ---
 
-# BACKLOG PRIORIZADO
+# PRIORITIZED BACKLOG
+## P0 — mandatory before new implementation
 
-## P0 — obrigatório antes de nova implementação
+- [ ] Approve this plan.
+- [ ] Formally correct the architecture proposed in G28-A.
+- [ ] Inventory `.claude`.
+- [ ] Create/consolidate a versioned visual contract.
+- [ ] Make the structural and visual gates mandatory.
+- [ ] Confirm the NF rule by direction and counterparty.
+- [ ] Separate qualification, review, duplicity, linkage, and decision.
 
-- [ ] Aprovar este plano.
-- [ ] Corrigir formalmente a arquitetura proposta em G28-A.
-- [ ] Inventariar `.claude`.
-- [ ] Criar/consolidar contrato visual versionado.
-- [ ] Tornar gates estrutural e visual obrigatórios.
-- [ ] Confirmar regra de NF por direção e contraparte.
-- [ ] Separar qualificação, revisão, duplicidade, vínculo e decisão.
+## P1 — documents, main delivery
 
-## P1 — documentos, entrega principal
-
-- [ ] Contrato de domínio.
-- [ ] Persistência local.
-- [ ] Histórico.
-- [ ] Eventos/export.
+- [ ] Domain contract.
+- [ ] Local persistence.
+- [ ] History.
+- [ ] Events/export.
 - [ ] Supabase.
 - [ ] Reader.
-- [ ] Fila de Documentos.
-- [ ] Modal Validar e vincular.
-- [ ] Vínculos Pedido/OP.
-- [ ] Exibição nas superfícies.
-- [ ] Correção/revogação.
-- [ ] Staging real.
-- [ ] Publicação para cliente acompanhar.
+- [ ] Documents queue.
+- [ ] "Validate and link" modal.
+- [ ] Pedido/OP links.
+- [ ] Display on surfaces.
+- [ ] Correction/revocation.
+- [ ] Real staging.
+- [ ] Publication for client tracking.
 
-## P2 — estabilização pós-publicação
+## P2 — post-publication stabilization
 
-- [ ] Observar uso real.
-- [ ] Ajustar falsos positivos.
-- [ ] Ajustar UX.
-- [ ] Melhorar filtros.
-- [ ] Melhorar histórico.
-- [ ] Tratar documentos legados.
-- [ ] Refinar duplicidade.
+- [ ] Observe real usage.
+- [ ] Adjust false positives.
+- [ ] Adjust UX.
+- [ ] Improve filters.
+- [ ] Improve history.
+- [ ] Handle legacy documents.
+- [ ] Refine duplicity handling.
 
-## P3 — administração
+## P3 — administration
 
-- [ ] Usuários.
-- [ ] Papéis.
-- [ ] Permissões.
-- [ ] Senha inicial.
+- [ ] Users.
+- [ ] Roles.
+- [ ] Permissions.
+- [ ] Initial password.
 - [ ] Reset.
-- [ ] Bloqueio.
-- [ ] Auditoria.
+- [ ] Blocking.
+- [ ] Audit.
 
 ## P4 — backup
 
-- [ ] Auditar app existente.
-- [ ] Adaptar backend.
-- [ ] Adaptar frontend.
-- [ ] Agendamento.
-- [ ] Retenção.
-- [ ] Integridade.
-- [ ] Restauração testada.
+- [ ] Audit existing app.
+- [ ] Adapt backend.
+- [ ] Adapt frontend.
+- [ ] Scheduling.
+- [ ] Retention.
+- [ ] Integrity.
+- [ ] Tested restoration.
 
-## P5 — fornecedor
+## P5 — Fornecedor
 
-- [ ] Portal read-only.
+- [ ] Read-only portal.
 - [ ] OPs.
-- [ ] Documentos.
-- [ ] Pendências.
+- [ ] Documents.
+- [ ] Pending items.
 - [ ] Upload.
-- [ ] Correções.
-- [ ] Transferências.
-- [ ] Participação operacional controlada.
+- [ ] Corrections.
+- [ ] Transfers.
+- [ ] Controlled operational participation.
 
 ---
 
-# ITENS EXPLICITAMENTE DIFERIDOS
+# EXPLICITLY DEFERRED ITEMS
 
-- autoaceite de documentos;
-- movimentação automática por documento;
-- portal do fornecedor;
-- upload externo;
-- alteração operacional direta por fornecedor;
-- administração completa de usuários;
-- backup em nuvem;
-- restauração;
-- correção dos oito erros TypeScript históricos;
-- vulnerabilidades npm;
-- limpeza de worktrees;
-- metadata órfã;
-- acumulação remota de manifest.
+- automatic acceptance of documents;
+- automatic movement by document;
+- Fornecedor portal;
+- external upload;
+- direct operational change by Fornecedor;
+- full user administration;
+- cloud backup;
+- restoration;
+- correction of the eight historical TypeScript errors;
+- npm vulnerabilities;
+- worktree cleanup;
+- orphan metadata;
+- remote manifest accumulation.
 
-Esses itens devem ter fases próprias.
+These items must have their own phases.
 
 ---
 
 # HARD STOPS
 
-Parar e retornar ao arquiteto se:
+Stop and return to the architect if:
 
-- proposta contrariar fonte canônica;
-- surgir entidade intermediária;
-- houver dupla escrita ou fallback;
-- for necessário misturar validação com movimentação;
-- UI esconder arquitetura incorreta;
-- migration preceder contrato aprovado;
-- fornecedor virar dependência do fluxo interno;
-- autoaceite for introduzido;
-- acesso, backup ou portal contaminarem a cadeia documental ativa;
-- `.claude` ou contrato visual não forem consultados em fase de UI;
-- houver conflito entre documentos canônicos.
+- a proposal contradicts a canonical source;
+- an intermediate entity emerges;
+- there is double writing or fallback;
+- it becomes necessary to mix validation with movement;
+- the UI hides incorrect architecture;
+- a migration precedes an approved contract;
+- Fornecedor becomes a dependency of the internal flow;
+- automatic acceptance is introduced;
+- access, backup, or portal contaminate the active document chain;
+- `.claude` or the visual contract are not consulted during a UI phase;
+- there is a conflict between canonical documents.
 
 ---
 
-# ACOMPANHAMENTO PERMANENTE E MATRIZ DE FASES
+# PERMANENT TRACKING AND PHASE MATRIX
 
-> **Registro documental IAexec — fase `G28-P0`.** Esta seção foi acrescentada
-> durante o registro de governança (`G28-P0`). Não substitui nenhuma decisão do
-> IAlead: apenas materializa o rastreamento permanente e a governança de
-> atualização exigidos para acompanhar as fases. O conteúdo arquitetural
-> original acima permanece inalterado.
+> **IAexec documentation record — phase `G28-P0`.** This section was added
+> during the governance record (`G28-P0`). It does not replace any IAlead
+> decision: it merely materializes the permanent tracking and the update
+> governance required to follow the phases. The original architectural
+> content above remains unchanged.
 
-## Estados permitidos
+## Allowed states
 
 `PLANNED` · `DIAGNOSED` · `DECIDED` · `IMPLEMENTED` · `TESTED` · `ACCEPTED` ·
 `DEFERRED` · `AUTHORIZED` · `IN_PROGRESS` · `HOLD` · `TECHNICALLY_ACCEPTED` ·
 `PUBLISHED` · `BLOCKED` · `REJECTED` · `CLOSED` · `SUPERSEDED` · `NOT_STARTED`.
 
-Fases aceitas devem exibir explicitamente os rótulos separados que aplicam
-(`DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED`), não apenas `CLOSED`.
-Fases planejadas não iniciadas devem exibir `PLANNED / NOT DIAGNOSED / NOT DECIDED
-/ NOT IMPLEMENTED / NOT ACCEPTED` quando relevante, não um simples `PLANNED`.
-Qualificadores compostos podem detalhar um estado base — por exemplo
-`REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` e `PLANNED / NOT AUTHORIZED`.
+Accepted phases must explicitly display the separate labels that apply
+(`DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED`), not just `CLOSED`.
+Planned phases that have not started must display `PLANNED / NOT DIAGNOSED / NOT DECIDED
+/ NOT IMPLEMENTED / NOT ACCEPTED` when relevant, not a plain `PLANNED`.
+Compound qualifiers may detail a base state — for example
+`REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` and `PLANNED / NOT AUTHORIZED`.
 
-## Matriz de fases
+## Phase matrix
 
-| ID | Fase | Status dimension labels | Dependências | Branch / workspace | Commit / HEAD | Evidência | Próximo passo |
+| ID | Phase | Status dimension labels | Dependencies | Branch / workspace | Commit / HEAD | Evidence | Next step |
 |---|---|---|---|---|---|---|---|
-| G28-P0 | Consolidação do plano, mapa de ativos e gates | `PLANNED / IMPLEMENTED / ACCEPTED` | G27 CLOSED/publicado | `work/g28-document-qualification` @ `controle-tapetes-g28` | Conforme ledger G28 | Fase documental concluída; G28-P0-R1 reconciliado | — |
-| G28-A | Diagnóstico de schema/domínio documental | `PLANNED / DIAGNOSED / REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` | G28-P0 | — | — | Schema, `db/49`, `qualified`, `duplicate` não aprovados; evidências aproveitáveis | Insumo diagnóstico para G28-B1 |
-| G28-B1 | Contrato de domínio documental | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` | G28-P0 | `work/g28-document-qualification` @ `controle-tapetes-g28` | `c65fa41` | Contrato puro de domínio para evidência, sugestão, revisão e decisão humana; testes 187/187 | — |
-| G28-B2 | Persistência local da evidência e histórico técnico | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` | G28-B1 | `work/g28-document-qualification` @ `controle-tapetes-g28` | Conforme ledger G28 | Evidência técnica persistida localmente; histórico versionado; testes finais 299/299 | — |
-| G28-B3 | Eventos, exportação, Supabase e reader | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` (subfases aceitas; ver subfases abaixo) | G28-B2 | `work/g28-document-qualification` @ `controle-tapetes-g28` | Conforme ledger G28 | B3-B1 a B3-B4, B3-B5-A, B3-B5-B, B3-B5-C, B3-B6-B aceitos; migration 49 aplicada e verificada em staging | — |
-| G28-B4 | Fila / read model de revisão documental | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` | G28-B3 | `work/g28-document-qualification` @ `controle-tapetes-g28` | Conforme ledger G28 | Subfases B4-A a B4-B4 aceitas; queue read model, filtros, indicadores de estado e acesso a arquivos implementados | — |
-| G28-B5 | Persistência da decisão humana e dos vínculos canônicos Pedido/OP | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` (B5-D5 consolidated: B1–B5) | G28-B4 | `work/g28-document-qualification` @ `controle-tapetes-g28` | `7d3e0261b668a46a80208198352039dc1f352010` | Decisão-comando canônica, boundary de source explícito, remoção de statusOverrides e legacy RPC runtime aceitos; linking canônico não implementado | — |
-| G28-B6 | Vínculos canônicos Documento↔Pedido/OP + modal "Validar e vincular" | `DECIDED / IMPLEMENTED / TESTED / STAGING FUNCTIONALLY VERIFIED / ACCEPTED_WITH_NONBLOCKING_TEST_DEBT` | G28-B5 | `work/g28-document-qualification` @ `controle-tapetes-g28` | técnico `b2f180ed0e6f1c2ee6c02881d0199d1bfaf29366`; closeout staging `b130db44d32718ddf6d3e2bffb1439dac3a1948f` | staging `ucrjtfswnfdlxwtmxnoo`: matriz RPC 20/20, dupla propriedade e rollback do wrapper provados; modal autenticado bloqueado por tooling; sem correção | Aceito 2026-07-14; G28-B7 autorizado |
-| G28-B7 | Exibição nas superfícies (Documentos/Pedido/OP/timeline/buscas) | `CLOSED / ACCEPTED_WITH_NONBLOCKING_REMOTE_SMOKE_DEBT` | G28-B6 | `work/g28-document-qualification` @ `controle-tapetes-g28` | parcial `ed35f049397af4061ed6e8bb2d9ec3056c543724`; conclusão `9ef61e1896af631bc5aeeced4af93c77051f4de4` | read model canônico + superfícies Pedido/OP/timeline/busca; débito não bloqueante: smoke autenticado B7 em staging | Aceito 2026-07-14; G28-B8 autorizado |
-| G28-B8 | Correção, revogação, restauração e auditoria | `TECHNICALLY COMPLETED / ACCEPTANCE SUBSUMED BY G28-C` | G28-B7 | `work/g28-document-qualification` @ `controle-tapetes-g28` | commit técnico `f985f8b857f83d977936eae47ea830a5cb6ba4c3` | `db/52` aplicada e verificada em staging (`ucrjtfswnfdlxwtmxnoo`, registry `20260715024449`); matriz RPC 18/18; bateria B4–B8 831/831. As capacidades de correção, revogação, restauração e auditoria foram explicitamente validadas e aceitas na matriz de staging/projeções de G28-C (16/16 PASS). B8 não está pendente; sua aceitação foi subsumida pelo gate e aceite arquitetural de G28-C. | — (subsumido por G28-C) |
-| G28-C | Validação real em staging | `CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT` | G28-B8 | `work/g28-document-qualification` @ `controle-tapetes-g28` | closeout `a7d7caa8984e56b44c0302bff5d578a8be5ff536`; aceite `d5ec09f803c2c64697ee3605b7d4ecfee168a66a` | matriz staging/projeções 16/16 PASS; zero defeito material; sem alteração de produto, schema, RPC, migration ou arquitetura. Dívida não bloqueante: `AUTHENTICATED_BROWSER_SMOKE_BLOCKED_BY_TOOLING`. | — |
-| G28-D | Publicação para o cliente acompanhar | `RELEASE CONTRACT DISCOVERY COMPLETE / DEFERRED BY ARCHITECT UNTIL GLOBAL BACKLOG COMPLETION` (publicação: `NOT STARTED / NOT ACCEPTED / NOT AUTHORIZED`) | G28-C | `work/g28-document-qualification` @ `controle-tapetes-g28` | discovery/preparation commit `b27e79fdba1ed8fb8a6232d8e0b8ca4b37ac3a2c` | descoberta contratual concluída e registrada em `docs/releases/G28_D_RELEASE_CANDIDATE.md` (evidência preservada, não reescrita). Por decisão explícita do arquiteto (`STAGING-ONLY-EXECUTION-BOUNDARY-A`, 2026-07-15), o mapeamento de publicação/produção e o procedimento de migrations 51/52 em produção ficam postergados até a conclusão do backlog canônico completo — não é bloqueio atual do trabalho em staging. Publicação, push, produção, tag e release não autorizados. | Retomar a definição do contrato de publicação/produção somente após a conclusão do backlog canônico completo (decisão de arquiteto já registrada como deferral, não como bloqueio) |
-| CAMADA 2 (A1–A7) | Administração de usuários e acessos | DEFERRED | Documentos estabilizado | — | — | — | Só após Camada 1 publicada |
-| CAMADA 3 (BK1–BK8) | Backup em nuvem e restauração testada | DEFERRED | Frente independente | — | — | — | Auditoria do app de origem |
-| CAMADA 4 (F0–F5) | Participação futura de fornecedores | DEFERRED | Documentos publicado | — | — | — | Operação interna nunca depende do fornecedor |
+| G28-P0 | Plan consolidation, asset map and gates | `PLANNED / IMPLEMENTED / ACCEPTED` | G27 CLOSED/published | `work/g28-document-qualification` @ `controle-tapetes-g28` | Per G28 ledger | Documentation phase completed; G28-P0-R1 reconciled | — |
+| G28-A | Documentation schema/domain diagnosis | `PLANNED / DIAGNOSED / REJECTED AS CONTRACT / RETAINED AS DIAGNOSTIC INPUT` | G28-P0 | — | — | Schema, `db/49`, `qualified`, `duplicate` not approved; usable evidence | Diagnostic input for G28-B1 |
+| G28-B1 | Documentation domain contract | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` | G28-P0 | `work/g28-document-qualification` @ `controle-tapetes-g28` | `c65fa41` | Pure domain contract for evidence, suggestion, review, and human decision; tests 187/187 | — |
+| G28-B2 | Local persistence of technical evidence and history | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` | G28-B1 | `work/g28-document-qualification` @ `controle-tapetes-g28` | Per G28 ledger | Technical evidence persisted locally; versioned history; final tests 299/299 | — |
+| G28-B3 | Events, export, Supabase, and reader | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` (accepted subphases; see subphases below) | G28-B2 | `work/g28-document-qualification` @ `controle-tapetes-g28` | Per G28 ledger | B3-B1 through B3-B4, B3-B5-A, B3-B5-B, B3-B5-C, B3-B6-B accepted; migration 49 applied and verified in staging | — |
+| G28-B4 | Documentation review queue / read model | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` | G28-B3 | `work/g28-document-qualification` @ `controle-tapetes-g28` | Per G28 ledger | Subphases B4-A through B4-B4 accepted; queue read model, filters, state indicators, and file access implemented | — |
+| G28-B5 | Persistence of the human decision and the canonical Pedido/OP links | `PLANNED / DIAGNOSED / DECIDED / IMPLEMENTED / TESTED / ACCEPTED` (B5-D5 consolidated: B1–B5) | G28-B4 | `work/g28-document-qualification` @ `controle-tapetes-g28` | `7d3e0261b668a46a80208198352039dc1f352010` | Canonical decision-command, explicit source boundary, removal of statusOverrides and legacy runtime RPC accepted; canonical linking not implemented | — |
+| G28-B6 | Canonical Documento↔Pedido/OP links + "Validate and link" modal | `DECIDED / IMPLEMENTED / TESTED / STAGING FUNCTIONALLY VERIFIED / ACCEPTED_WITH_NONBLOCKING_TEST_DEBT` | G28-B5 | `work/g28-document-qualification` @ `controle-tapetes-g28` | technical `b2f180ed0e6f1c2ee6c02881d0199d1bfaf29366`; staging closeout `b130db44d32718ddf6d3e2bffb1439dac3a1948f` | staging `ucrjtfswnfdlxwtmxnoo`: RPC matrix 20/20, dual ownership and wrapper rollback proven; authenticated modal blocked by tooling; no fix required | Accepted 2026-07-14; G28-B7 authorized |
+| G28-B7 | Display on surfaces (Documentos/Pedido/OP/timeline/search) | `CLOSED / ACCEPTED_WITH_NONBLOCKING_REMOTE_SMOKE_DEBT` | G28-B6 | `work/g28-document-qualification` @ `controle-tapetes-g28` | partial `ed35f049397af4061ed6e8bb2d9ec3056c543724`; completion `9ef61e1896af631bc5aeeced4af93c77051f4de4` | canonical read model + Pedido/OP/timeline/search surfaces; non-blocking debt: authenticated B7 smoke in staging | Accepted 2026-07-14; G28-B8 authorized |
+| G28-B8 | Correction, revocation, restoration, and audit | `TECHNICALLY COMPLETED / ACCEPTANCE SUBSUMED BY G28-C` | G28-B7 | `work/g28-document-qualification` @ `controle-tapetes-g28` | technical commit `f985f8b857f83d977936eae47ea830a5cb6ba4c3` | `db/52` applied and verified in staging (`ucrjtfswnfdlxwtmxnoo`, registry `20260715024449`); RPC matrix 18/18; B4–B8 battery 831/831. The correction, revocation, restoration, and audit capabilities were explicitly validated and accepted in the G28-C staging/projections matrix (16/16 PASS). B8 is not pending; its acceptance was subsumed by the G28-C architectural gate and acceptance. | — (subsumed by G28-C) |
+| G28-C | Real validation in staging | `CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT` | G28-B8 | `work/g28-document-qualification` @ `controle-tapetes-g28` | closeout `a7d7caa8984e56b44c0302bff5d578a8be5ff536`; acceptance `d5ec09f803c2c64697ee3605b7d4ecfee168a66a` | staging/projections matrix 16/16 PASS; zero material defects; no change to product, schema, RPC, migration, or architecture. Non-blocking debt: `AUTHENTICATED_BROWSER_SMOKE_BLOCKED_BY_TOOLING`. | — |
+| G28-D | Publication for client tracking | `RELEASE CONTRACT DISCOVERY COMPLETE / DEFERRED BY ARCHITECT UNTIL GLOBAL BACKLOG COMPLETION` (publication: `NOT STARTED / NOT ACCEPTED / NOT AUTHORIZED`) | G28-C | `work/g28-document-qualification` @ `controle-tapetes-g28` | discovery/preparation commit `b27e79fdba1ed8fb8a6232d8e0b8ca4b37ac3a2c` | contractual discovery completed and recorded in `docs/releases/G28_D_RELEASE_CANDIDATE.md` (evidence preserved, not rewritten). By explicit architect decision (`STAGING-ONLY-EXECUTION-BOUNDARY-A`, 2026-07-15), the publication/production mapping and the production migrations 51/52 procedure are postponed until completion of the full canonical backlog — this is not a current blocker for staging work. Publication, push, production, tag, and release not authorized. | Resume defining the publication/production contract only after completion of the full canonical backlog (architect decision already recorded as a deferral, not a blocker) |
+| CAMADA 2 (A1–A7) | User and access administration | DEFERRED | Documents stabilized | — | — | — | Only after Camada 1 is published |
+| CAMADA 3 (BK1–BK8) | Cloud backup and tested restoration | DEFERRED | Independent front | — | — | — | Audit of the source app |
+| CAMADA 4 (F0–F5) | Future Fornecedor participation | DEFERRED | Documents published | — | — | — | Internal operation never depends on the Fornecedor |
 
-### G28-B3 — Progresso das subfases
+### G28-B3 — Subphase progress
 
-As subfases de G28-B3 que foram aceitas estão listadas abaixo. O bloco `G28-B3`
-é considerado concluído em suas subfases aceitas; o status agregado está na
-matriz acima.
+The G28-B3 subphases that were accepted are listed below. The `G28-B3`
+block is considered complete in its accepted subphases; the aggregate status is in
+the matrix above.
 
-| Subfase | Descrição | Estado | Commit(s) |
+| Subphase | Description | State | Commit(s) |
 |---|---|---|---|
-| G28-B3-B1 | Contrato de exportação da evidência técnica | `CLOSED / ACCEPTED` | `b794bb7` |
-| G28-B3-B2 | Exportação da evidência corrente como JSONL | `CLOSED / ACCEPTED` | `812433d` |
-| G28-B3-B3 | Schema remoto e RPC (`db/49_document_technical_evidences.sql`) | `CLOSED / ACCEPTED` | `7abafbb` |
-| G28-B3-B4 | Writer service-role sobre a RPC, com hardening de classificação de erros | `CLOSED / ACCEPTED` | `abe49f1`; `96f2d4d` (R1) |
-| G28-B3-B5-A | Diagnóstico de integração sync de evidência técnica | `CLOSED / ACCEPTED` — read-only | — |
-| G28-B3-B5-B | Contrato de entrada JSONL e dry-run local | `CLOSED / ACCEPTED` | `013a0e1` |
+| G28-B3-B1 | Technical evidence export contract | `CLOSED / ACCEPTED` | `b794bb7` |
+| G28-B3-B2 | Export of current evidence as JSONL | `CLOSED / ACCEPTED` | `812433d` |
+| G28-B3-B3 | Remote schema and RPC (`db/49_document_technical_evidences.sql`) | `CLOSED / ACCEPTED` | `7abafbb` |
+| G28-B3-B4 | Service-role writer over the RPC, with error-classification hardening | `CLOSED / ACCEPTED` | `abe49f1`; `96f2d4d` (R1) |
+| G28-B3-B5-A | Technical evidence sync integration diagnosis | `CLOSED / ACCEPTED` — read-only | — |
+| G28-B3-B5-B | JSONL input contract and local dry-run | `CLOSED / ACCEPTED` | `013a0e1` |
 | G28-B3-B5-C | Complete technical evidence sync integration | `CLOSED / ACCEPTED` | `3465405` |
 | G28-B3-B6-B | Current technical evidence admin reader | `CLOSED / ACCEPTED` | `6ade74f` |
 
-Migration 49: aplicada e verificada em staging `ucrjtfswnfdlxwtmxnoo` (conforme
-ledger G28). Push: `NOT EXECUTED`. Produção `bhgifjrfagkzubpyqpew`: não acessada.
-O reader (B3-B6-B) carrega evidência técnica corrente via RLS admin autenticado
-direto, sem segundo client Supabase e sem writes.
+Migration 49: applied and verified in staging `ucrjtfswnfdlxwtmxnoo` (per
+G28 ledger). Push: `NOT EXECUTED`. Production `bhgifjrfagkzubpyqpew`: not accessed.
+The reader (B3-B6-B) loads current technical evidence via direct authenticated
+admin RLS, without a second Supabase client and without writes.
 
-## Governança de atualização (regra permanente)
+## Update governance (permanent rule)
 
-- uma fase pode ser registrada como `AUTHORIZED`, `IN_PROGRESS`, `HOLD` ou
-  `BLOCKED` durante a sua execução;
-- decisões definitivas, evidências finais, HEADs aceitos e o fechamento só entram
-  após o aceite técnico/arquitetural aplicável;
-- a IAexec **não** declara o próprio trabalho `CLOSED`;
-- `PROJECT_STATE.md` registra o estado atual (fase, HEAD, publicação, ambiente);
-- este plano registra a sequência e as decisões;
-- `AGENT_HANDOFF.md` registra a continuidade operacional.
+- a phase may be recorded as `AUTHORIZED`, `IN_PROGRESS`, `HOLD`, or
+  `BLOCKED` during its execution;
+- definitive decisions, final evidence, accepted HEADs, and closure are only entered
+  after the applicable technical/architectural acceptance;
+- IAexec **does not** declare its own work `CLOSED`;
+- `PROJECT_STATE.md` records the current state (phase, HEAD, publication, environment);
+- this plan records the sequence and the decisions;
+- `AGENT_HANDOFF.md` records operational continuity.
 
-Registrar o estado durante a execução não antecipa aceite: o fechamento
-(`CLOSED`) e a publicação (`PUBLISHED`) dependem da revisão aplicável.
+Recording the state during execution does not anticipate acceptance: closure
+(`CLOSED`) and publication (`PUBLISHED`) depend on the applicable review.
 
 ---
 
-# CRITÉRIO DE FECHAMENTO DO PLANO
+# PLAN CLOSURE CRITERION
 
-Este plano foi reconciliado em 2026-07-14 (G28-PLAN-R1) e atualizado em
-2026-07-15 (`STAGING-ONLY-EXECUTION-BOUNDARY-A`). Não há decisão de arquiteto
-atualmente em aberto para o ciclo de staging: `DEPLOYMENT_MAPPING_AND_
-PRODUCTION_MIGRATION_PROCEDURE`, antes registrada como a única decisão em
-aberto, foi explicitamente reclassificada pelo arquiteto como `DEFERRED UNTIL
+This plan was reconciled on 2026-07-14 (G28-PLAN-R1) and updated on
+2026-07-15 (`STAGING-ONLY-EXECUTION-BOUNDARY-A`). There is no architect decision
+currently open for the staging cycle: `DEPLOYMENT_MAPPING_AND_
+PRODUCTION_MIGRATION_PROCEDURE`, previously recorded as the only open decision,
+was explicitly reclassified by the architect as `DEFERRED UNTIL
 GLOBAL BACKLOG COMPLETION / NOT A CURRENT STAGING BLOCKER / NOT STARTED` —
-não descoberta, definida, testada ou concluída, apenas postergada até o
-backlog canônico completo estar reconciliado. Ver cabeçalho deste plano e
-`PROJECT_STATE.md`. As decisões históricas de cardinalidade Documento↔Pedido,
-Documento↔OP, vínculos por tipo e compatibilidade foram resolvidas nas fases
-aceitas G28-B1 a G28-B8 e G28-C, e não estão mais abertas.
-O plano será considerado totalmente fechado quando:
+not discovered, defined, tested, or completed, merely postponed until the
+full canonical backlog is reconciled. See the header of this plan and
+`PROJECT_STATE.md`. The historical decisions on Documento↔Pedido cardinality,
+Documento↔OP, per-type links, and compatibility were resolved in the accepted
+phases G28-B1 through G28-B8 and G28-C, and are no longer open.
+The plan will be considered fully closed when:
 
-- arquiteto fechar a decisão de publicação/produção em aberto;
-- backlog estiver ordenado e reconciliado com o estado operacional;
-- nenhum item futuro tiver sido confundido com escopo ativo;
-- não houver contradição com `PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`.
+- the architect closes the open publication/production decision;
+- the backlog is ordered and reconciled with the operational state;
+- no future item has been confused with active scope;
+- there is no contradiction with `PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`.
 
 ---
 
-# PRÓXIMA AÇÃO — ESTADO ATUAL
+# NEXT ACTION — CURRENT STATE
 
-**G28-P0-R1, G28-B1, G28-B2, G28-B3 (subfases aceitas), G28-B4, G28-B5-D5, G28-B6,
-G28-B7 e G28-C foram aceitos** (G28-C em 2026-07-15, `CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT`;
-closeout `a7d7caa`, aceite `d5ec09f`). **G28-B8 está `TECHNICALLY COMPLETED / ACCEPTANCE SUBSUMED BY G28-C`:**
-suas capacidades de correção, revogação, restauração e auditoria foram explicitamente
-validadas na matriz staging/projeções de G28-C (16/16 PASS) e aceitas no gate
-arquitetural de C. B8 não possui aceitação independente. **Nenhuma fase funcional está ativa.** A ação corrente é esta
-reconciliação documental (`G28-STATE-RECONCILIATION-R1`). Após o fechamento desta
-reconciliação, uma nova reconciliação read-only do backlog geral (`PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
-e demais frentes) escolherá a próxima frente funcional. **Publicação não é a próxima
-ação e nenhuma implementação automática se segue.** A reconciliação read-only do
-backlog geral e o backfill documental `DOCS-CANONICAL-CONSISTENCY-BACKFILL-A` já
-foram concluídos (2026-07-15). Por decisão explícita do arquiteto
+**G28-P0-R1, G28-B1, G28-B2, G28-B3 (accepted subphases), G28-B4, G28-B5-D5, G28-B6,
+G28-B7, and G28-C have been accepted** (G28-C on 2026-07-15, `CLOSED / ACCEPTED_WITH_NONBLOCKING_AUTHENTICATED_BROWSER_SMOKE_DEBT`;
+closeout `a7d7caa`, acceptance `d5ec09f`). **G28-B8 is `TECHNICALLY COMPLETED / ACCEPTANCE SUBSUMED BY G28-C`:**
+its correction, revocation, restoration, and audit capabilities were explicitly
+validated in the G28-C staging/projections matrix (16/16 PASS) and accepted in C's
+architectural gate. B8 has no independent acceptance. **No functional phase is active.** The current action is this
+documentation reconciliation (`G28-STATE-RECONCILIATION-R1`). After this
+reconciliation closes, a new read-only reconciliation of the general backlog (`PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
+and other fronts) will choose the next functional front. **Publication is not the next
+action and no automatic implementation follows.** The read-only reconciliation of the
+general backlog and the documentation backfill `DOCS-CANONICAL-CONSISTENCY-BACKFILL-A` have already
+been completed (2026-07-15). By explicit architect decision
 (`STAGING-ONLY-EXECUTION-BOUNDARY-A`, 2026-07-15): `OPEN_ARCHITECT_DECISIONS: NONE`
-para o ciclo atual de staging; `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`
-está `DEFERRED UNTIL GLOBAL BACKLOG COMPLETION / NOT A CURRENT STAGING BLOCKER`.
-`CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` foi autorizada, implementada,
-aplicada e verificada em staging em 2026-07-15 (`CLOSED / ACCEPTED`; ver
-`D-COS07` §6.2). Não há candidato técnico único subsequente:
+for the current staging cycle; `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`
+is `DEFERRED UNTIL GLOBAL BACKLOG COMPLETION / NOT A CURRENT STAGING BLOCKER`.
+`CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` was authorized, implemented,
+applied, and verified in staging on 2026-07-15 (`CLOSED / ACCEPTED`; see
+`D-COS07` §6.2). There is no single subsequent technical candidate:
 `NEXT_AUTHORIZABLE_ACTION: NONE`; `ARCHITECT DECISION REQUIRED AFTER BACKLOG
 RECONCILIATION`.
 
-Fases aceitas: G28-P0, G28-A (rejeitado como contrato / retido como insumo diagnóstico), G28-B1, G28-B2,
-G28-B3 (subfases aceitas), G28-B4, G28-B5-D5, G28-B6, G28-B7, G28-B8 (subsumido por C), G28-C.
-G28-D discovery: `COMPLETED` (evidência preservada em `docs/releases/G28_D_RELEASE_CANDIDATE.md`, não
-reescrita). G28-D publicação: `DEFERRED BY ARCHITECT / NOT A CURRENT BLOCKER / NOT AUTHORIZED`.
-Fases posteriores: `DEFERRED / NOT AUTHORIZED`.
+Accepted phases: G28-P0, G28-A (rejected as contract / retained as diagnostic input), G28-B1, G28-B2,
+G28-B3 (accepted subphases), G28-B4, G28-B5-D5, G28-B6, G28-B7, G28-B8 (subsumed by C), G28-C.
+G28-D discovery: `COMPLETED` (evidence preserved in `docs/releases/G28_D_RELEASE_CANDIDATE.md`, not
+rewritten). G28-D publication: `DEFERRED BY ARCHITECT / NOT A CURRENT BLOCKER / NOT AUTHORIZED`.
+Later phases: `DEFERRED / NOT AUTHORIZED`.
 
-Estado operacional atual: `PROJECT_STATE.md`.
-Continuidade: `AGENT_HANDOFF.md`.
-Histórico de closeouts: `docs/ledgers/G28_LEDGER.md`.
-Arquitetura/backlog: este plano mestre.
+Current operational state: `PROJECT_STATE.md`.
+Continuity: `AGENT_HANDOFF.md`.
+Closeout history: `docs/ledgers/G28_LEDGER.md`.
+Architecture/backlog: this master plan.

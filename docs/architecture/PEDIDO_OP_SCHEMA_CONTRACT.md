@@ -1,164 +1,167 @@
-# Contrato Técnico — Schema Pedido ↔ OP ↔ Movimentação ↔ Documentos
+# Technical Contract — Pedido ↔ OP ↔ Movement ↔ Documents Schema
 
-> **Fase:** `RAVATEX-TAPETES-PEDIDO-OP-SCHEMA-CONTRACT-B` (docs-only)
-> **Tipo:** Diagnóstico + contrato técnico read-only no código/schema.
+> **Phase:** `RAVATEX-TAPETES-PEDIDO-OP-SCHEMA-CONTRACT-B` (docs-only)
+> **Type:** Diagnosis + technical contract, read-only on code/schema.
 > **HEAD base:** `04613ee` — `work/app-next`
-> **Data:** 2026-07-01
-> **Dependência:** `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` (Fase A)
+> **Date:** 2026-07-01
+> **Dependency:** `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` (Phase A)
 
 ---
 
-## Atualizacao 2026-07-06 - OP Create Requires Pedido Guard B
+## Update 2026-07-06 - OP Create Requires Pedido Guard B
 
-Fase `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-GUARD-B`: a criacao de OP
-via frontend/persistencia JS passa a exigir Pedido vinculado. Esta fase nao
-altera schema, SQL, migrations, RLS ou RPCs.
+Phase `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-GUARD-B`: creation of OP
+via frontend/JS persistence now requires a linked Pedido. This phase does
+not change schema, SQL, migrations, RLS, or RPCs.
 
-- `lotes.pedido_id` deixa de ser opcional no caminho canonico de criacao de
-  OP por UI: `persistirOP` rejeita `pedidoId` vazio antes de qualquer write.
-- `#/ops/nova?pedido_id=<uuid>` permanece o caminho permitido para criar OP.
-- `#/ops/nova` sem `pedido_id` e o botao avulso `Nova OP` deixam de iniciar
-  uma OP sem Pedido.
-- O helper defensivo retorna `step: 'pedido_required'` e nao consome
-  `op_numeros`.
-- Diagnostico read-only de staging confirmou dados historicos fora do contrato:
-  11 OPs cujo `lote.pedido_id` esta NULL e 9 lotes sem Pedido vinculados a OPs.
+- `lotes.pedido_id` is no longer optional in the canonical OP-creation path
+  via UI: `persistirOP` rejects an empty `pedidoId` before any write.
+- `#/ops/nova?pedido_id=<uuid>` remains the allowed path to create an OP.
+- `#/ops/nova` without `pedido_id` and the standalone `Nova OP` button no
+  longer start an OP without a Pedido.
+- The defensive helper returns `step: 'pedido_required'` and does not
+  consume `op_numeros`.
+- Read-only staging diagnosis confirmed historical data outside the
+  contract: 11 OPs whose `lote.pedido_id` is NULL and 9 lots without a
+  Pedido linked to OPs.
 
-Decisao registrada: a partir desta fase, OP avulsa nao e mais caminho de
-produto pela UI Admin. O contrato anterior que permitia OP avulsa deve ser
-tratado como legado/historico para dados ja existentes, nao como comportamento
-novo aceitavel.
+Decision recorded: as of this phase, standalone OP is no longer a product
+path via the Admin UI. The previous contract that allowed standalone OP
+must be treated as legacy/historical for already-existing data, not as
+acceptable new behavior.
 
-Pendencia obrigatoria de backend: criar guard em `gerar_op_latex` e funcoes de
-split/derivadas para rejeitar origem sem Pedido antes de criar OP filha. A
-mitigacao atual e frontend/persistencia JS, nao substitui constraint/RPC.
+Mandatory backend pending item: create a guard in `gerar_op_latex` and
+split/derived functions to reject an origin without Pedido before creating
+a child OP. The current mitigation is frontend/JS persistence, and does not
+replace a constraint/RPC.
 
-## Atualizacao 2026-07-06 - OP Create Requires Pedido RPC Guard C
+## Update 2026-07-06 - OP Create Requires Pedido RPC Guard C
 
-Fase `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-RPC-GUARD-C`: guard backend
-preparado em migration versionada `db/33_op_latex_requires_pedido_guard.sql`.
+Phase `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-RPC-GUARD-C`: backend
+guard prepared in versioned migration `db/33_op_latex_requires_pedido_guard.sql`.
 
-- `gerar_op_latex(BIGINT)` e `gerar_op_latex_split(BIGINT, TEXT)` passam a
-  exigir que a OP origem tenha `lote_id` e que `lotes.pedido_id` esteja
-  preenchido.
-- A validacao ocorre antes de `proximo_numero_op`, evitando consumo de
-  numeracao quando a origem e orfa.
-- Erro controlado: `Nao e possivel gerar OP de Acabamento/Latex: OP origem nao
+- `gerar_op_latex(BIGINT)` and `gerar_op_latex_split(BIGINT, TEXT)` now
+  require the origin OP to have `lote_id` and `lotes.pedido_id` to be
+  filled in.
+- Validation occurs before `proximo_numero_op`, avoiding number consumption
+  when the origin is orphaned.
+- Controlled error: `Nao e possivel gerar OP de Acabamento/Latex: OP origem nao
   possui Pedido vinculado.`
-- Fluxos validos com Pedido preservam assinatura, retorno JSONB,
-  `op_latex_entregas`, `op_fornecedores`, `op_itens`, eventos de split e
-  filtros `motivo_separacao IS NULL`.
-- Nao ha constraint global, trigger, `NOT NULL`, backfill, cleanup, RLS ou
-  correcao de dados historicos nesta fase.
-- Aplicado em staging `ucrjtfswnfdlxwtmxnoo` pelo usuario; producao intocada. Validacao completa executada em `2026-07-06` (5 diagnosticos OK, testes locais verdes).
+- Valid flows with Pedido preserve the signature, JSONB return,
+  `op_latex_entregas`, `op_fornecedores`, `op_itens`, split events, and
+  `motivo_separacao IS NULL` filters.
+- There is no global constraint, trigger, `NOT NULL`, backfill, cleanup,
+  RLS, or historical data correction in this phase.
+- Applied in staging `ucrjtfswnfdlxwtmxnoo` by the user; production untouched. Full validation executed on `2026-07-06` (5 diagnostics OK, local tests green).
 
-O diagnostico de orfaos foi ampliado para listar as 11 OPs historicas sem
-Pedido com entregas, movimentacao/expedicao, possibilidade de inferir Pedido e
-classificacao preliminar A/B/C/D. A classificacao e informativa; nao autoriza
-correcao automatica. Resultado desta rodada em staging: A=6 (`op_id`
+The orphan diagnosis was expanded to list the 11 historical OPs without a
+Pedido, with deliveries, movement/expedition, possibility of inferring
+Pedido, and preliminary A/B/C/D classification. The classification is
+informative; it does not authorize automatic correction. Result of this
+round in staging: A=6 (`op_id`
 1,2,3,4,9,15), B=4 (`op_id` 5,6,7,8), C=0, D=1 (`op_id` 10).
 
-## Atualizacao 2026-07-06 - Admin Wide Expand D
+## Update 2026-07-06 - Admin Wide Expand D
 
-Fase `RAVATEX-TAPETES-OP-OPERATIONAL-CODE-ADMIN-WIDE-EXPAND-D`: expansao
-frontend-only do display operacional de OP para telas Admin com Pedido
-resolvivel. O contrato permanece sem schema novo:
+Phase `RAVATEX-TAPETES-OP-OPERATIONAL-CODE-ADMIN-WIDE-EXPAND-D`: frontend-only
+expansion of the OP operational display for Admin screens with resolvable
+Pedido. The contract remains without new schema:
 
-- identificacao principal: `OP {pedido_numero}/{year(pedido.criado_em)}-{tipo}{seq}`;
-- `tipo`: `T` para tecelagem, `A` para latex/acabamento;
-- `seq`: por Pedido+Tipo, ordenado por `ops.criado_em` e `ops.id`;
-- fallback/legado: `OP {numero}/{ano}` e exibicao secundaria `Nº interno {numero}/{ano}`;
-- resolucao OP->Pedido continua por `ops.lote_id -> lotes.pedido_id -> pedidos.id`;
-- siblings sao OPs dos lotes do mesmo Pedido, obtidos em memoria quando ja carregados
-  ou por leitura leve `lotes do pedido -> ops desses lotes`.
+- primary identification: `OP {pedido_numero}/{year(pedido.criado_em)}-{tipo}{seq}`;
+- `tipo`: `T` for weaving, `A` for latex/finishing;
+- `seq`: by Pedido+Tipo, ordered by `ops.criado_em` and `ops.id`;
+- fallback/legacy: `OP {numero}/{ano}` and secondary display `Nº interno {numero}/{ano}`;
+- OP->Pedido resolution continues via `ops.lote_id -> lotes.pedido_id -> pedidos.id`;
+- siblings are OPs of the lots belonging to the same Pedido, obtained in memory when already loaded
+  or via a lightweight read `lotes do pedido -> ops desses lotes`.
 
-Nao houve alteracao em `ops.numero`, `ops.ano`, `op_numeros`, RPCs, RLS, PDFs,
-fornecedor, banco ou migrations.
+There was no change to `ops.numero`, `ops.ano`, `op_numeros`, RPCs, RLS, PDFs,
+fornecedor, database, or migrations.
 
-## 1. Estado atual validado no schema
+## 1. Current state validated in the schema
 
-### 1.1. Tabelas existentes relevantes
+### 1.1. Relevant existing tables
 
-| Tabela | Migração | Status em staging |
+| Table | Migration | Status in staging |
 |---|---|---|
-| `ops` | `db/01_schema.sql` | Aplicado |
-| `op_itens` | `db/01_schema.sql` | Aplicado |
-| `entregas` | `db/01_schema.sql` | Aplicado |
-| `entrega_itens` | `db/01_schema.sql` | Aplicado |
-| `lotes` | `db/09_fase6_cliente_lote.sql` | Aplicado |
-| `clientes` | `db/09_fase6_cliente_lote.sql` | Aplicado |
-| `pedidos` | `db/13_pedidos_schema.sql` | Aplicado |
-| `pedido_itens` | `db/13_pedidos_schema.sql` | Aplicado |
-| `pedido_eventos` | `db/13_pedidos_schema.sql` | Aplicado |
-| `pedido_cliente_eventos` | `db/15_status_cliente_visual.sql` | Aplicado |
-| `pedido_parciais` | `db/17_pedido_parciais_schema.sql` | Aplicado |
-| `pedido_parcial_itens` | `db/17_pedido_parciais_schema.sql` | Aplicado |
-| `op_eventos` | `db/21_op_lifecycle_status_eventos.sql` | **Aplicado em staging** `ucrjtfswnfdlxwtmxnoo`. Pendente em produção. |
-| `documentos_operacionais` | — | **Não existe** |
+| `ops` | `db/01_schema.sql` | Applied |
+| `op_itens` | `db/01_schema.sql` | Applied |
+| `entregas` | `db/01_schema.sql` | Applied |
+| `entrega_itens` | `db/01_schema.sql` | Applied |
+| `lotes` | `db/09_fase6_cliente_lote.sql` | Applied |
+| `clientes` | `db/09_fase6_cliente_lote.sql` | Applied |
+| `pedidos` | `db/13_pedidos_schema.sql` | Applied |
+| `pedido_itens` | `db/13_pedidos_schema.sql` | Applied |
+| `pedido_eventos` | `db/13_pedidos_schema.sql` | Applied |
+| `pedido_cliente_eventos` | `db/15_status_cliente_visual.sql` | Applied |
+| `pedido_parciais` | `db/17_pedido_parciais_schema.sql` | Applied |
+| `pedido_parcial_itens` | `db/17_pedido_parciais_schema.sql` | Applied |
+| `op_eventos` | `db/21_op_lifecycle_status_eventos.sql` | **Applied in staging** `ucrjtfswnfdlxwtmxnoo`. Pending in production. |
+| `documentos_operacionais` | — | **Does not exist** |
 
-### 1.2. Colunas-chave validadas
+### 1.2. Validated key columns
 
-#### `lotes` (db/09, alterado por db/13)
+#### `lotes` (db/09, changed by db/13)
 
-| Coluna | Tipo | Nullable | FK | Descrição |
+| Column | Type | Nullable | FK | Description |
 |---|---|---|---|---|
 | `id` | BIGSERIAL PK | | | |
-| `numero` | INTEGER UNIQUE | NOT NULL | | Sequencial global |
-| `cliente_id` | BIGINT | NOT NULL | → `clientes.id` ON DELETE RESTRICT | Cliente dono do lote |
-| `pedido_id` | UUID | **NULLABLE** | → `pedidos.id` ON DELETE SET NULL | Pedido comercial que originou o lote |
+| `numero` | INTEGER UNIQUE | NOT NULL | | Global sequential |
+| `cliente_id` | BIGINT | NOT NULL | → `clientes.id` ON DELETE RESTRICT | Cliente that owns the lot |
+| `pedido_id` | UUID | **NULLABLE** | → `pedidos.id` ON DELETE SET NULL | Commercial Pedido that originated the lot |
 | `criado_em` | TIMESTAMPTZ | NOT NULL | | |
 
-**Diagnóstico:** `lotes.pedido_id` existe, é nullable por design, mas **nunca é populado** por nenhum código JS hoje. `persistirOP` (js/screens/op-persistir.js) cria/atualiza lotes apenas com `cliente_id`.
+**Diagnosis:** `lotes.pedido_id` exists, is nullable by design, but is **never populated** by any JS code today. `persistirOP` (js/screens/op-persistir.js) creates/updates lots only with `cliente_id`.
 
-#### `ops` (db/01, alterado por db/08, db/09)
+#### `ops` (db/01, changed by db/08, db/09)
 
-| Coluna | Tipo | Nullable | FK | Descrição |
+| Column | Type | Nullable | FK | Description |
 |---|---|---|---|---|
 | `id` | BIGSERIAL PK | | | |
-| `numero` | INTEGER | NOT NULL | | Numeração por (ano, tipo) |
+| `numero` | INTEGER | NOT NULL | | Numbering by (ano, tipo) |
 | `ano` | INTEGER | NOT NULL | | |
-| `status` | TEXT | NOT NULL | simulada/aberta/em_producao/pausada/concluida/cancelada/finalizada | Expandido em db/21. `finalizada` = legado látex. `concluida` = canônico. |
-| `tipo` | TEXT | NOT NULL | tecelagem/latex | Adicionado em db/08 |
-| `lote_id` | BIGINT | NULLABLE | → `lotes.id` ON DELETE SET NULL | Adicionado em db/09 |
-| `origem_op_id` | BIGINT | NULLABLE | → `ops.id` ON DELETE SET NULL | OP de tecelagem que originou esta OP de látex (db/08) |
-| `origem_entrega_id` | BIGINT | NULLABLE | → `entregas.id` ON DELETE SET NULL | Entrega de tecelagem que originou esta OP de látex (db/08) |
-| `observacao` | TEXT | NULLABLE | | Adicionado em db/08 |
+| `status` | TEXT | NOT NULL | simulada/aberta/em_producao/pausada/concluida/cancelada/finalizada | Expanded in db/21. `finalizada` = legacy latex. `concluida` = canonical. |
+| `tipo` | TEXT | NOT NULL | tecelagem/latex | Added in db/08 |
+| `lote_id` | BIGINT | NULLABLE | → `lotes.id` ON DELETE SET NULL | Added in db/09 |
+| `origem_op_id` | BIGINT | NULLABLE | → `ops.id` ON DELETE SET NULL | Weaving OP that originated this latex OP (db/08) |
+| `origem_entrega_id` | BIGINT | NULLABLE | → `entregas.id` ON DELETE SET NULL | Weaving delivery that originated this latex OP (db/08) |
+| `observacao` | TEXT | NULLABLE | | Added in db/08 |
 
-**UNIQUE atual:** `(numero, ano, tipo)`.
+**Current UNIQUE:** `(numero, ano, tipo)`.
 
 #### `op_itens` (db/01)
 
-| Coluna | Tipo | Nullable | FK | Descrição |
+| Column | Type | Nullable | FK | Description |
 |---|---|---|---|---|
 | `id` | BIGSERIAL PK | | | |
 | `op_id` | BIGINT | NOT NULL | → `ops.id` ON DELETE CASCADE | |
 | `modelo_id` | BIGINT | NOT NULL | → `modelos.id` ON DELETE RESTRICT | |
 | `metros_pedidos` | NUMERIC(10,2) | NOT NULL | | |
-| `metros_ajustados` | NUMERIC(10,2) | NULLABLE | | Preenchido após recálculo |
-| `pedido_item_id` | UUID | **NULLABLE** | → `pedido_itens.id` ON DELETE SET NULL | Migration `db/20_op_itens_pedido_item_link.sql` (Fase C). **Aplicado em staging** `ucrjtfswnfdlxwtmxnoo`. |
+| `metros_ajustados` | NUMERIC(10,2) | NULLABLE | | Filled in after recalculation |
+| `pedido_item_id` | UUID | **NULLABLE** | → `pedido_itens.id` ON DELETE SET NULL | Migration `db/20_op_itens_pedido_item_link.sql` (Phase C). **Applied in staging** `ucrjtfswnfdlxwtmxnoo`. |
 
 #### `entrega_itens` (db/01)
 
-| Coluna | Tipo | Nullable | FK | Descrição |
+| Column | Type | Nullable | FK | Description |
 |---|---|---|---|---|
 | `id` | BIGSERIAL PK | | | |
 | `entrega_id` | BIGINT | NOT NULL | → `entregas.id` ON DELETE CASCADE | |
-| `op_id` | BIGINT | NOT NULL | → `ops.id` ON DELETE RESTRICT | De qual OP |
-| `op_item_id` | BIGINT | NULLABLE | → `op_itens.id` ON DELETE RESTRICT | Qual item da OP |
-| `modelo_id` | BIGINT | NULLABLE | → `modelos.id` ON DELETE RESTRICT | Fallback se sem op_item |
+| `op_id` | BIGINT | NOT NULL | → `ops.id` ON DELETE RESTRICT | From which OP |
+| `op_item_id` | BIGINT | NULLABLE | → `op_itens.id` ON DELETE RESTRICT | Which item of the OP |
+| `modelo_id` | BIGINT | NULLABLE | → `modelos.id` ON DELETE RESTRICT | Fallback if no op_item |
 | `metros_entregues` | NUMERIC(10,2) | NOT NULL | | |
 | `defeito` | BOOLEAN | NOT NULL | | DEFAULT FALSE |
 | `observacao` | TEXT | NULLABLE | | |
 
 **CHECK:** `op_item_id IS NOT NULL OR modelo_id IS NOT NULL`.
 
-#### `pedidos` (db/13, alterado por db/15, db/17)
+#### `pedidos` (db/13, changed by db/15, db/17)
 
-| Coluna | Tipo | Nullable | Descrição |
+| Column | Type | Nullable | Description |
 |---|---|---|---|
 | `id` | UUID PK | | |
 | `cliente_id` | BIGINT | NOT NULL | → `clientes.id` |
-| `numero` | BIGINT | GENERATED BY DEFAULT AS IDENTITY | Sequencial único |
+| `numero` | BIGINT | GENERATED BY DEFAULT AS IDENTITY | Unique sequential |
 | `status` | TEXT | NOT NULL | rascunho/recebido/confirmado/produzindo/entregue/cancelado |
 | `status_cliente_visual` | TEXT | NULLABLE | (db/15) |
 | `status_cliente_excecao` | TEXT | NULLABLE | (db/15) |
@@ -168,69 +171,69 @@ fornecedor, banco ou migrations.
 | `tipo_recebimento` | TEXT | NULLABLE | (db/15) |
 | `parcial_habilitado` | BOOLEAN | NOT NULL DEFAULT FALSE | (db/17) |
 | `metros_total` | NUMERIC(12,2) | NULLABLE | (db/17) |
-| `token_acesso` | UUID | UNIQUE | Não usado no MVP |
+| `token_acesso` | UUID | UNIQUE | Not used in the MVP |
 
 #### `pedido_itens` (db/13)
 
-| Coluna | Tipo | Nullable | Descrição |
+| Column | Type | Nullable | Description |
 |---|---|---|---|
 | `id` | UUID PK | | |
 | `pedido_id` | UUID | NOT NULL | → `pedidos.id` CASCADE |
 | `modelo_id` | BIGINT | NOT NULL | → `modelos.id` RESTRICT |
 | `metros` | NUMERIC(10,2) | NOT NULL | |
-| `largura` | NUMERIC(3,2) | NULLABLE | Override do modelo |
-| `cor_1_id` | BIGINT | NULLABLE | Override do modelo |
-| `cor_2_id` | BIGINT | NULLABLE | Override do modelo |
+| `largura` | NUMERIC(3,2) | NULLABLE | Override of the modelo |
+| `cor_1_id` | BIGINT | NULLABLE | Override of the modelo |
+| `cor_2_id` | BIGINT | NULLABLE | Override of the modelo |
 | `observacao` | TEXT | NULLABLE | |
 | `ordem` | INTEGER | NOT NULL | DEFAULT 0 |
 
 #### `pedido_parciais` + `pedido_parcial_itens` (db/17)
 
-| Tabela | Vínculo principal |
+| Table | Main link |
 |---|---|
 | `pedido_parciais` | `pedido_id` → `pedidos.id` CASCADE |
 | `pedido_parcial_itens` | `parcial_id` → `pedido_parciais.id` CASCADE; `pedido_item_id` → `pedido_itens.id` CASCADE |
 
-**Diagnóstico:** `pedido_parcial_itens.pedido_item_id` já referencia `pedido_itens.id`. Mas `op_itens` e `pedido_itens` **não possuem vínculo direto entre si**.
+**Diagnosis:** `pedido_parcial_itens.pedido_item_id` already references `pedido_itens.id`. But `op_itens` and `pedido_itens` **do not have a direct link between them**.
 
-### 1.3. RPCs existentes
+### 1.3. Existing RPCs
 
-| Função | Descrição | Relevante para esta frente |
+| Function | Description | Relevant to this front |
 |---|---|---|
-| `gerar_op_latex(BIGINT)` | Cria OP de látex a partir de entrega de tecelagem. Herda `lote_id` da OP origem. | Sim — herda lote mas não popula `lotes.pedido_id` |
-| `alterar_status_op(BIGINT, TEXT, TEXT)` | Transiciona status da OP com validação. **Admin-only** (`is_admin()`). `SECURITY DEFINER`. `p_observacao` é vinculada ao evento `status_alterado` correspondente ao novo status. Retorna JSON. | Sim — db/21 (R1: guard admin + vínculo determinístico da observação) |
-| `sincronizar_pedido_parciais_resumo(UUID, BOOLEAN)` | Atualiza campos de resumo de parciais em `pedidos`. | Sim — camada comercial |
-| `is_admin()` | Verifica se usuário é admin. | Sim — RLS |
-| `meu_fornecedor_id()` | Retorna fornecedor_id do usuário logado. | Sim — RLS |
-| `meu_cliente_id()` | Retorna cliente_id do usuário logado. | Sim — RLS |
+| `gerar_op_latex(BIGINT)` | Creates a latex OP from a weaving delivery. Inherits `lote_id` from the origin OP. | Yes — inherits the lot but does not populate `lotes.pedido_id` |
+| `alterar_status_op(BIGINT, TEXT, TEXT)` | Transitions the OP status with validation. **Admin-only** (`is_admin()`). `SECURITY DEFINER`. `p_observacao` is linked to the `status_alterado` event corresponding to the new status. Returns JSON. | Yes — db/21 (R1: admin guard + deterministic linkage of the observation) |
+| `sincronizar_pedido_parciais_resumo(UUID, BOOLEAN)` | Updates parciais summary fields in `pedidos`. | Yes — commercial layer |
+| `is_admin()` | Checks whether the user is admin. | Yes — RLS |
+| `meu_fornecedor_id()` | Returns fornecedor_id of the logged-in user. | Yes — RLS |
+| `meu_cliente_id()` | Returns cliente_id of the logged-in user. | Yes — RLS |
 
-### 1.4. Triggers existentes
+### 1.4. Existing triggers
 
-| Trigger | Tabela | Evento | Descrição |
+| Trigger | Table | Event | Description |
 |---|---|---|---|
-| `pedidos_cliente_visual_insert_guard` | `pedidos` | BEFORE INSERT | Zera campos visuais para não-admin (db/15) |
-| `pedidos_cliente_visual_touch` | `pedidos` | BEFORE UPDATE | Atualiza timestamp visual (db/15) |
-| `pedido_parciais_touch_updated_at` | `pedido_parciais` | BEFORE UPDATE | Atualiza `atualizado_em` (db/17) |
-| `pedido_parciais_after_change_trigger` | `pedido_parciais` | AFTER INSERT/UPDATE/DELETE | Sincroniza resumo (db/17) |
-| `trg_op_evento` | `ops` | AFTER UPDATE OF status | Registra evento `status_alterado` em `op_eventos` (db/21). A `p_observacao` da RPC `alterar_status_op` é vinculada ao evento deste trigger correspondente a `status_novo` (R1) |
+| `pedidos_cliente_visual_insert_guard` | `pedidos` | BEFORE INSERT | Zeroes visual fields for non-admin (db/15) |
+| `pedidos_cliente_visual_touch` | `pedidos` | BEFORE UPDATE | Updates visual timestamp (db/15) |
+| `pedido_parciais_touch_updated_at` | `pedido_parciais` | BEFORE UPDATE | Updates `atualizado_em` (db/17) |
+| `pedido_parciais_after_change_trigger` | `pedido_parciais` | AFTER INSERT/UPDATE/DELETE | Synchronizes summary (db/17) |
+| `trg_op_evento` | `ops` | AFTER UPDATE OF status | Records `status_alterado` event in `op_eventos` (db/21). The `p_observacao` of the `alterar_status_op` RPC is linked to this trigger's event corresponding to `status_novo` (R1) |
 
-### 1.5. Tabela `op_eventos` (db/21)
+### 1.5. Table `op_eventos` (db/21)
 
-| Coluna | Tipo | Nullable | Descrição |
+| Column | Type | Nullable | Description |
 |---|---|---|---|
 | `id` | BIGSERIAL PK | | |
 | `op_id` | BIGINT | NOT NULL | → `ops.id` ON DELETE CASCADE |
-| `tipo_evento` | TEXT | NOT NULL | `status_alterado` ou futuro |
-| `status_anterior` | TEXT | NULL | Status antes da transição |
-| `status_novo` | TEXT | NULL | Status após a transição |
-| `observacao` | TEXT | NULL | Observação opcional |
-| `payload` | JSONB | NOT NULL DEFAULT `{}` | Metadados complementares |
+| `tipo_evento` | TEXT | NOT NULL | `status_alterado` or future |
+| `status_anterior` | TEXT | NULL | Status before the transition |
+| `status_novo` | TEXT | NULL | Status after the transition |
+| `observacao` | TEXT | NULL | Optional observation |
+| `payload` | JSONB | NOT NULL DEFAULT `{}` | Complementary metadata |
 | `criado_por` | UUID | NULL | → `auth.users.id` ON DELETE SET NULL |
 | `criado_em` | TIMESTAMPTZ | NOT NULL DEFAULT `now()` | |
 
-Índices: `op_eventos_op_id_idx (op_id)`, `op_eventos_criado_em_idx (op_id, criado_em DESC)`.
+Indexes: `op_eventos_op_id_idx (op_id)`, `op_eventos_criado_em_idx (op_id, criado_em DESC)`.
 
-**Evidência SQL staging aplicada (2026-07-01):**
+**SQL evidence applied in staging (2026-07-01):**
 
 ```json
 [
@@ -243,38 +246,38 @@ fornecedor, banco ou migrations.
 ]
 ```
 
-Conclusão: SQL STAGING OK. Constraint de ops.status atualizada. Tabela op_eventos criada. RPC alterar_status_op criada. Trigger trg_op_evento criado. Produção não tocada. Repo ainda sem push.
+Conclusion: SQL STAGING OK. ops.status constraint updated. op_eventos table created. alterar_status_op RPC created. trg_op_evento trigger created. Production not touched. Repo still not pushed.
 
-### 1.6. RLS relevante
+### 1.6. Relevant RLS
 
-| Tabela | Policies | Acesso |
+| Table | Policies | Access |
 |---|---|---|
-| `ops` | `ops_admin`, `ops_fornecedor_read` | Admin ALL; fornecedor SELECT se vinculado |
-| `op_itens` | `op_itens_admin`, `op_itens_fornecedor_read` | Admin ALL; fornecedor SELECT se vinculado |
-| `entregas` | `entregas_admin`, `entregas_fornecedor_read`, `entregas_fornecedor_insert` | Admin ALL; fornecedor SELECT/INSERT próprio |
-| `entrega_itens` | `entrega_itens_admin`, `entrega_itens_fornecedor` | Admin ALL; fornecedor ALL via entrega própria |
-| `pedidos` | `pedidos_admin_all`, `pedidos_cliente_select`, `pedidos_cliente_insert` | Admin ALL; cliente SELECT próprio + INSERT em rascunho/recebido |
+| `ops` | `ops_admin`, `ops_fornecedor_read` | Admin ALL; fornecedor SELECT if linked |
+| `op_itens` | `op_itens_admin`, `op_itens_fornecedor_read` | Admin ALL; fornecedor SELECT if linked |
+| `entregas` | `entregas_admin`, `entregas_fornecedor_read`, `entregas_fornecedor_insert` | Admin ALL; fornecedor SELECT/INSERT own |
+| `entrega_itens` | `entrega_itens_admin`, `entrega_itens_fornecedor` | Admin ALL; fornecedor ALL via own delivery |
+| `pedidos` | `pedidos_admin_all`, `pedidos_cliente_select`, `pedidos_cliente_insert` | Admin ALL; cliente SELECT own + INSERT in rascunho/recebido |
 | `lotes` | `lotes_admin` | Admin ALL |
-| `pedido_parciais` | `pedido_parciais_admin_all`, `pedido_parciais_cliente_select` | Admin ALL; cliente SELECT se visível e dono |
-| `pedido_cliente_eventos` | `pedido_cliente_eventos_admin_all`, `pedido_cliente_eventos_cliente_select` | Admin ALL; cliente SELECT se visível e dono |
-| `op_eventos` | `op_eventos_admin`, `op_eventos_fornecedor_read` | Admin ALL; fornecedor SELECT se vinculado via `op_fornecedores` (db/21) |
+| `pedido_parciais` | `pedido_parciais_admin_all`, `pedido_parciais_cliente_select` | Admin ALL; cliente SELECT if visible and owner |
+| `pedido_cliente_eventos` | `pedido_cliente_eventos_admin_all`, `pedido_cliente_eventos_cliente_select` | Admin ALL; cliente SELECT if visible and owner |
+| `op_eventos` | `op_eventos_admin`, `op_eventos_fornecedor_read` | Admin ALL; fornecedor SELECT if linked via `op_fornecedores` (db/21) |
 
-### 1.7. Lacunas confirmadas
+### 1.7. Confirmed gaps
 
-| Lacuna | Severidade | Detalhe |
+| Gap | Severity | Detail |
 |---|---|---|
-| `lotes.pedido_id` nunca populado | **Alta** | FK existe, coluna existe, mas código JS nunca preenche. |
-| `op_itens.pedido_item_id` não existe | **Média** | Sem vínculo fino entre item comercial e item produtivo. |
-| `gerar_op_latex` não herda `pedido_id` no lote da OP filha | **Baixa** | O lote da OP de látex é o mesmo da OP de tecelagem (mesmo `lote_id`). Se `lotes.pedido_id` estiver populado, resolve-se automaticamente. |
-| `documentos_operacionais` não existe | **Média** | Tabela a ser criada na Fase G. |
-| `entrega_itens` não referencia pedido | **Baixa** | A rastreabilidade hoje é: `entrega_itens → entrega → (op_id) → ops → lote → pedido`. Bastante indireta, mas funcional. |
-| Sem constraint de saldo entre etapas | **Alta** (futura) | Fase J. |
+| `lotes.pedido_id` never populated | **High** | FK exists, column exists, but JS code never fills it in. |
+| `op_itens.pedido_item_id` does not exist | **Medium** | No fine-grained link between commercial item and productive item. |
+| `gerar_op_latex` does not inherit `pedido_id` in the child OP's lot | **Low** | The latex OP's lot is the same as the weaving OP's (same `lote_id`). If `lotes.pedido_id` is populated, it resolves automatically. |
+| `documentos_operacionais` does not exist | **Medium** | Table to be created in Phase G. |
+| `entrega_itens` does not reference pedido | **Low** | Traceability today is: `entrega_itens → entrega → (op_id) → ops → lote → pedido`. Quite indirect, but functional. |
+| No balance constraint between stages | **High** (future) | Phase J. |
 
 ---
 
-## 2. Vínculo Pedido → OP
+## 2. Pedido → OP Link
 
-### 2.1. Cadeia de rastreabilidade atual
+### 2.1. Current traceability chain
 
 ```
 pedidos.id
@@ -286,35 +289,35 @@ pedidos.id
                                 └── entrega_itens.op_item_id → op_itens.id
 ```
 
-### 2.2. Onde lotes.pedido_id deve ser populado
+### 2.2. Where lotes.pedido_id must be populated
 
-| Momento | Ação necessária |
+| Moment | Required action |
 |---|---|
-| **Criação de OP a partir do Pedido** (futuro) | Ao criar lote (ou vincular existente), preencher `lotes.pedido_id`. |
-| **Criação de OP avulsa** (atual) | `lotes.pedido_id` permanece NULL — comportamento correto para OPs sem pedido. |
-| **`gerar_op_latex`** | OP filha compartilha o mesmo `lote_id` da OP mãe. Se o lote já tiver `pedido_id`, a rastreabilidade se propaga automaticamente. |
-| **Edição de lote existente** | Se o lote for vinculado a um pedido posteriormente, atualizar `lotes.pedido_id`. |
+| **OP creation from the Pedido** (future) | When creating the lot (or linking an existing one), fill in `lotes.pedido_id`. |
+| **Standalone OP creation** (current) | `lotes.pedido_id` remains NULL — correct behavior for OPs without a pedido. |
+| **`gerar_op_latex`** | The child OP shares the same `lote_id` as the parent OP. If the lot already has `pedido_id`, traceability propagates automatically. |
+| **Editing an existing lot** | If the lot is linked to a pedido later, update `lotes.pedido_id`. |
 
-### 2.3. Contrato proposto para Fase C
+### 2.3. Proposed contract for Phase C
 
-1. **`lotes.pedido_id` como vínculo de agrupamento Pedido → Lote → OP.**
-   - Na criação de OP vinculada a pedido, preencher `lotes.pedido_id`.
-   - Na tela de Pedido Admin (Fase D), listar OPs via: `ops.lote_id → lotes.pedido_id = pedido.id`.
-   - OP avulsa (sem pedido) continua com `lotes.pedido_id = NULL`.
-2. **Não criar `ops.pedido_id`.** O vínculo via lote é suficiente e evita FK redundante.
-3. **Não criar `pedidos.op_id`.** Pedido pode ter zero, uma ou várias OPs. Vínculo N:1 no sentido errado.
+1. **`lotes.pedido_id` as the grouping link Pedido → Lot → OP.**
+   - When creating an OP linked to a pedido, fill in `lotes.pedido_id`.
+   - On the Pedido Admin screen (Phase D), list OPs via: `ops.lote_id → lotes.pedido_id = pedido.id`.
+   - Standalone OP (without pedido) continues with `lotes.pedido_id = NULL`.
+2. **Do not create `ops.pedido_id`.** The link via lot is sufficient and avoids a redundant FK.
+3. **Do not create `pedidos.op_id`.** A Pedido can have zero, one, or several OPs. N:1 link in the wrong direction.
 
-### 2.4. Contrato proposto para `op_itens.pedido_item_id` (Fase C)
+### 2.4. Proposed contract for `op_itens.pedido_item_id` (Phase C)
 
-**Recomendação: criar a coluna.**
+**Recommendation: create the column.**
 
-Justificativa:
-- `entrega_itens.op_item_id` → `op_itens.id` existe, mas `op_itens` não sabe de qual `pedido_item` veio.
-- `pedido_parcial_itens.pedido_item_id` → `pedido_itens.id` existe (camada comercial).
-- Sem `op_itens.pedido_item_id`, não é possível responder: "este item da OP corresponde a qual item do pedido?"
-- A coluna permite conciliar: "o pedido pedia 500m do modelo X; a OP produziu 480m; foram entregues 450m".
+Justification:
+- `entrega_itens.op_item_id` → `op_itens.id` exists, but `op_itens` does not know which `pedido_item` it came from.
+- `pedido_parcial_itens.pedido_item_id` → `pedido_itens.id` exists (commercial layer).
+- Without `op_itens.pedido_item_id`, it is not possible to answer: "which pedido item does this OP item correspond to?"
+- The column allows reconciling: "the pedido requested 500m of modelo X; the OP produced 480m; 450m were delivered".
 
-**Especificação:**
+**Specification:**
 
 ```sql
 ALTER TABLE public.op_itens
@@ -328,48 +331,47 @@ CREATE INDEX IF NOT EXISTS op_itens_pedido_item_idx
   ON public.op_itens(pedido_item_id);
 ```
 
-- **NULLABLE:** OPs avulsas não têm pedido_item.
-- **ON DELETE SET NULL:** Apagar pedido_item não cascateia OP item.
-- **Sem UNIQUE:** Um pedido_item pode gerar múltiplos op_itens (ex.: refação, complemento).
-- **População:** Na Fase C, ao criar OP vinculada a pedido, mapear `pedido_item → op_item` e preencher.
+- **NULLABLE:** Standalone OPs do not have a pedido_item.
+- **ON DELETE SET NULL:** Deleting the pedido_item does not cascade to the OP item.
+- **No UNIQUE:** A pedido_item can generate multiple op_itens (e.g., rework, complement).
+- **Population:** In Phase C, when creating an OP linked to a pedido, map `pedido_item → op_item` and fill it in.
 
 ---
 
-## 3. Vínculo OP de etapa → OP filha
+## 3. Stage-OP → Child-OP Link
 
-### 3.1. Estado atual
+### 3.1. Current state
 
-O encadeamento de OPs hoje funciona exclusivamente para o par **Tecelagem → Látex**:
+Today, OP chaining works exclusively for the **Weaving → Latex** pair:
 
-1. Entrega de tecelagem (`entregas.etapa = 'cima'`) é registrada com `destino_fornecedor_id`.
-2. `salvarEntregaCima` chama `gerar_op_latex(entrega_id)` via RPC.
+1. A weaving delivery (`entregas.etapa = 'cima'`) is recorded with `destino_fornecedor_id`.
+2. `salvarEntregaCima` calls `gerar_op_latex(entrega_id)` via RPC.
 3. `gerar_op_latex` (db/09):
-   - Encontra a OP de tecelagem via `entrega_itens.op_id`.
-   - Copia `lote_id` da OP de tecelagem para a nova OP de látex.
-   - Cria `op_itens` para a OP de látex agrupando por `modelo_id`, somando metros entregues sem defeito.
-   - Popula `origem_op_id` e `origem_entrega_id` na OP de látex.
-   - Cria `op_fornecedores` com o fornecedor de látex.
+   - Finds the weaving OP via `entrega_itens.op_id`.
+   - Copies `lote_id` from the weaving OP to the new latex OP.
+   - Creates `op_itens` for the latex OP, grouping by `modelo_id`, summing delivered meters without defect.
+   - Populates `origem_op_id` and `origem_entrega_id` in the latex OP.
+   - Creates `op_fornecedores` with the latex fornecedor.
 
-### 3.2. Lacuna no `gerar_op_latex`
+### 3.2. Gap in `gerar_op_latex`
 
-A função NÃO popula `lotes.pedido_id`. No entanto, como a OP filha herda o mesmo `lote_id` da OP mãe, se o lote já tiver `pedido_id`, a rastreabilidade Pedido → OP filha funciona automaticamente.
+The function does NOT populate `lotes.pedido_id`. However, since the child OP inherits the same `lote_id` from the parent OP, if the lot already has `pedido_id`, traceability from Pedido → child OP works automatically.
 
-**Ação na Fase C:** Garantir que `lotes.pedido_id` seja populado na criação da OP de tecelagem quando vinculada a pedido. Nenhuma alteração necessária em `gerar_op_latex`.
+**Action in Phase C:** Ensure that `lotes.pedido_id` is populated when creating the weaving OP when linked to a pedido. No change necessary in `gerar_op_latex`.
 
-### 3.3. Limitação: somente Tecelagem → Látex
+### 3.3. Limitation: Weaving → Latex only
 
-O encadeamento atual cobre apenas 1 transição (tecelagem → látex). Não há suporte nativo para:
-- Insumos → Tecelagem (fios não geram OP filha)
-- Acabamento → Expedição
-- Expedição → Entrega
+The current chaining covers only 1 transition (weaving → latex). There is no native support for:
+- Raw materials → Weaving (yarns do not generate a child OP)
+- Finishing → Expedição
+- Expedição → Delivery
 
-**Futuro (pós Fase C):** Se o negócio exigir mais etapas encadeadas com OPs dedicadas, o padrão `origem_op_id`/`origem_entrega_id` pode ser estendido. Para o MVP, tecelagem → látex é suficiente.
+**Future (post Phase C):** If the business requires more chained stages with dedicated OPs, the `origem_op_id`/`origem_entrega_id` pattern can be extended. For the MVP, weaving → latex is sufficient.
 
 ---
+## 4. Operational documents
 
-## 4. Documentos operacionais
-
-### 4.1. Desenho da tabela futura (Fase G)
+### 4.1. Design of the future table (Phase G)
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.documentos_operacionais (
@@ -405,99 +407,99 @@ CREATE TABLE IF NOT EXISTS public.documentos_operacionais (
 );
 ```
 
-### 4.2. Tipos de documento (`tipo_documento`)
+### 4.2. Document types (`tipo_documento`)
 
-| Tipo | Descrição |
+| Type | Description |
 |---|---|
-| `pedido_compra` | Pedido de compra emitido ao fornecedor |
-| `nf_entrada` | Nota fiscal de entrada (insumos) |
-| `nf_remessa` | Nota fiscal de remessa para terceirizada |
-| `nf_retorno` | Nota fiscal de retorno de terceirizada |
-| `nf_saida` | Nota fiscal de saída (expedição) |
-| `romaneio` | Romaneio de carga/entrega |
-| `cte` | Conhecimento de transporte eletrônico |
-| `contrato` | Contrato comercial |
-| `ordem_servico` | Ordem de serviço |
-| `outro` | Outro documento |
+| `pedido_compra` | Purchase order issued to the supplier |
+| `nf_entrada` | Incoming invoice (raw materials) |
+| `nf_remessa` | Outbound shipment invoice to subcontractor |
+| `nf_retorno` | Return invoice from subcontractor |
+| `nf_saida` | Outgoing invoice (Expedição) |
+| `romaneio` | Cargo/delivery packing list |
+| `cte` | Electronic bill of lading |
+| `contrato` | Commercial contract |
+| `ordem_servico` | Service order |
+| `outro` | Other document |
 
-### 4.3. Status do documento
+### 4.3. Document status
 
-| Status | Descrição |
+| Status | Description |
 |---|---|
-| `pendente` | Documento esperado, ainda não anexado |
-| `anexado` | Arquivo carregado, metadados completos |
-| `dispensado` | Documento não será necessário (admin dispensou) |
-| `erro` | Falha no upload/processamento |
+| `pendente` | Document expected, not yet attached |
+| `anexado` | File uploaded, metadata complete |
+| `dispensado` | Document will not be needed (admin waived it) |
+| `erro` | Upload/processing failure |
 
-### 4.4. Regras de negócio
+### 4.4. Business rules
 
-1. **Pendência documental começa NÃO bloqueante.** `obrigatorio` e `bloqueante` são flags que podem ser ativadas por regra de negócio futura.
-2. **Arquivo pesado fica fora do banco.** `provider` + `external_file_id`/`external_url` apontam para Drive/OneDrive. Banco guarda apenas metadados.
-3. **Pedido é índice central.** A tela de Pedido Admin consolida documentos de todos os níveis (pedido, OP, entrega).
-4. **Vínculo preferencial:** Documentos operacionais (NF, romaneio) devem ser vinculados ao nível mais granular possível (entrega > OP > pedido). Documentos comerciais podem ser vinculados diretamente ao pedido.
-5. **Vínculo múltiplo permitido.** Um mesmo `pedido_id` pode aparecer em vários registros (múltiplos documentos).
-6. **Provider:** `google_drive` ou `onedrive`. Campo `provider` identifica qual; `external_file_id` é o ID no provider; `external_url` é o link público (se aplicável); `external_path` é o caminho lógico.
+1. **Document pending status starts as NON-blocking.** `obrigatorio` and `bloqueante` are flags that can be activated by a future business rule.
+2. **Heavy files stay outside the database.** `provider` + `external_file_id`/`external_url` point to Drive/OneDrive. The database stores only metadata.
+3. **Pedido is the central index.** The Pedido Admin screen consolidates documents from all levels (pedido, OP, entrega).
+4. **Preferred linkage:** Operational documents (NF, packing list) should be linked to the most granular level possible (entrega > OP > pedido). Commercial documents may be linked directly to the pedido.
+5. **Multiple linkage allowed.** The same `pedido_id` can appear in several records (multiple documents).
+6. **Provider:** `google_drive` or `onedrive`. The `provider` field identifies which; `external_file_id` is the ID in the provider; `external_url` is the public link (if applicable); `external_path` is the logical path.
 
-### 4.5. RLS proposto (Fase G)
+### 4.5. Proposed RLS (Phase G)
 
 - Admin: ALL (`documentos_operacionais_admin_all`).
-- Fornecedor: SELECT nos documentos vinculados a entregas/OPs onde é fornecedor.
-- Cliente: SELECT nos documentos vinculados a pedidos próprios, apenas se `status = 'anexado'` e o admin marcou como visível (campo futuramente em `documentos_operacionais.visivel_cliente`).
-- Sem acesso anon.
+- Fornecedor: SELECT on documents linked to entregas/OPs where it is the fornecedor.
+- Cliente: SELECT on documents linked to its own pedidos, only if `status = 'anexado'` and the admin marked it as visible (field to be added later in `documentos_operacionais.visivel_cliente`).
+- No anon access.
 
 ---
 
-## 5. Movimento produtivo — decisão sobre fonte canônica
+## 5. Production movement — decision on canonical source
 
-### 5.1. Opções
+### 5.1. Options
 
-| Opção | Descrição | Prós | Contras |
+| Option | Description | Pros | Cons |
 |---|---|---|---|
-| **A)** Reforçar `entregas` / `entrega_itens` | Usar as tabelas existentes como fonte canônica de toda movimentação. | Nenhuma migração; schema já aplicado; fornecedores já escrevem aqui; RLS já cobre. | `entrega_itens` foi desenhada para entregas de terceirizadas (cima/látex). Entradas de insumo e saídas de expedição não se encaixam naturalmente. |
-| **B)** Nova tabela `op_movimentos_etapa` | Tabela genérica para qualquer movimentação de etapa. | Modelo limpo; suporta todas as etapas futuras (insumos, tecelagem, acabamento, expedição, entrega). | Nova migration; duplicação inicial de conceito com `entregas`; migração de dados se `entregas` for substituída. |
-| **C)** Transição híbrida | Manter `entregas`/`entrega_itens` para cima/látex (já funcionam); criar `op_movimentos_etapa` para novas etapas; unificar em fase posterior. | Sem disrupção; evolutivo. | Duas tabelas com semântica similar; complexidade de consulta (UNION ou view); inconsistência de API. |
+| **A)** Reinforce `entregas` / `entrega_itens` | Use the existing tables as the canonical source for all movement. | No migration; schema already applied; fornecedores already write here; RLS already covers it. | `entrega_itens` was designed for subcontractor deliveries (cima/látex). Raw-material inbound and expedição outbound don't naturally fit. |
+| **B)** New table `op_movimentos_etapa` | Generic table for any stage movement. | Clean model; supports all future stages (insumos, tecelagem, acabamento, expedição, entrega). | New migration; initial concept duplication with `entregas`; data migration if `entregas` is replaced. |
+| **C)** Hybrid transition | Keep `entregas`/`entrega_itens` for cima/látex (already working); create `op_movimentos_etapa` for new stages; unify in a later phase. | No disruption; evolutionary. | Two tables with similar semantics; query complexity (UNION or view); API inconsistency. |
 
-### 5.2. Recomendação
+### 5.2. Recommendation
 
-**Opção A (reforçar `entregas`/`entrega_itens`) para o MVP.**
+**Option A (reinforce `entregas`/`entrega_itens`) for the MVP.**
 
-Justificativa:
-- O schema já está aplicado em staging.
-- Fornecedores já usam `entregas`/`entrega_itens` para tecelagem e látex.
-- `entrega_itens` já tem `op_id`, `op_item_id`, `modelo_id`, `metros_entregues`, `defeito`, `observacao` — estrutura rica o suficiente.
-- Para novas etapas (expedição, entrega ao cliente), um novo valor em `entregas.etapa` (expandindo o CHECK constraint) ou um `tipo_movimento` adicional pode bastar.
-- Se no futuro a tabela ficar sobrecarregada, migrar para opção B com a experiência adquirida.
+Justification:
+- The schema is already applied in staging.
+- Fornecedores already use `entregas`/`entrega_itens` for tecelagem and látex.
+- `entrega_itens` already has `op_id`, `op_item_id`, `modelo_id`, `metros_entregues`, `defeito`, `observacao` — a rich enough structure.
+- For new stages (expedição, delivery to the cliente), a new value in `entregas.etapa` (expanding the CHECK constraint) or an additional `tipo_movimento` may suffice.
+- If the table becomes overloaded in the future, migrate to option B with the experience gained.
 
-**Ação imediata:** Nenhuma. Na Fase F (operação canônica), reavaliar. A função/módulo de movimentação deve ser desenhada para encapsular a escolha, permitindo trocar a implementação depois sem quebrar consumers.
+**Immediate action:** None. Reassess in Phase F (canonical operation). The movement function/module should be designed to encapsulate the choice, allowing the implementation to be swapped later without breaking consumers.
 
 ---
 
-## 6. Stepper do Pedido — contrato UI/dados
+## 6. Pedido stepper — UI/data contract
 
-### 6.1. Etapas do stepper
+### 6.1. Stepper stages
 
 ```
 INSUMOS → TECELAGEM → ACABAMENTO → EXPEDIÇÃO → ENTREGA
 ```
 
-### 6.2. Fonte de dados por etapa
+### 6.2. Data source per stage
 
-| Etapa | Fonte de verdade | Como derivar progresso |
+| Stage | Source of truth | How to derive progress |
 |---|---|---|
-| **INSUMOS** | `ordens_compra_fio` (fios) | `SUM(kg_recebido) / SUM(kg_pedido)` por OP vinculada ao pedido |
-| **TECELAGEM** | `entrega_itens` (etapa cima) | `SUM(metros_entregues sem defeito) / SUM(op_itens.metros_pedidos)` por OP vinculada |
-| **ACABAMENTO** | `entrega_itens` (etapa latex) | Idem, para entregas de látex |
-| **EXPEDIÇÃO** | A definir (futuro) | Movimentação de saída (nova etapa ou entrega com etapa=expedicao) |
-| **ENTREGA** | A definir (futuro) | Confirmação de recebimento pelo cliente ou transportadora |
+| **INSUMOS** | `ordens_compra_fio` (yarns) | `SUM(kg_recebido) / SUM(kg_pedido)` per OP linked to the pedido |
+| **TECELAGEM** | `entrega_itens` (cima stage) | `SUM(metros_entregues without defect) / SUM(op_itens.metros_pedidos)` per linked OP |
+| **ACABAMENTO** | `entrega_itens` (latex stage) | Same, for látex deliveries |
+| **EXPEDIÇÃO** | To be defined (future) | Outbound movement (new stage or entrega with etapa=expedicao) |
+| **ENTREGA** | To be defined (future) | Receipt confirmation by the cliente or carrier |
 
-### 6.3. Regras de UI
+### 6.3. UI rules
 
-1. **Pedido exibe preview consolidado** — cada etapa mostra % concluído calculado a partir das OPs vinculadas.
-2. **Botões do Pedido são atalhos** — "Lançar produção" no Pedido abre a tela de OP ou chama a operação canônica.
-3. **Atalhos chamam a mesma operação canônica da OP** — implementado na Fase F.
-4. **Pedido NÃO vira fonte paralela de movimentação** — todo write de produção passa pela OP.
+1. **Pedido displays a consolidated preview** — each stage shows % complete calculated from the linked OPs.
+2. **Pedido buttons are shortcuts** — "Lançar produção" on the Pedido opens the OP screen or calls the canonical operation.
+3. **Shortcuts call the same canonical operation as the OP** — implemented in Phase F.
+4. **Pedido does NOT become a parallel movement source** — every production write goes through the OP.
 
-### 6.4. Rastreabilidade pedido → progresso (query conceitual)
+### 6.4. Pedido → progress traceability (conceptual query)
 
 ```sql
 -- Progresso de tecelagem para um pedido
@@ -513,279 +515,191 @@ WHERE l.pedido_id = :pedido_id;
 
 ---
 
-## 7. Saldo por etapa — regra futura (Fase J)
+## 7. Balance per stage — future rule (Phase J)
 
-### 7.1. Conceito
+### 7.1. Concept
 
-- **Primeira etapa** (insumos/tecelagem): limitada por capacidade, metros planejados ou disponibilidade de fio.
-- **Etapas seguintes**: limitadas pelo saldo recebido da etapa anterior.
-  - Ex.: só pode enviar para acabamento o que foi efetivamente entregue pela tecelagem (sem defeito).
-  - Ex.: só pode expedir o que foi recebido do acabamento.
+- **First stage** (insumos/tecelagem): limited by capacity, planned meters, or yarn availability.
+- **Subsequent stages**: limited by the balance received from the previous stage.
+  - E.g.: can only send to acabamento what was actually delivered by tecelagem (without defect).
+  - E.g.: can only ship (expedir) what was received from acabamento.
 
-### 7.2. Implementação futura
+### 7.2. Future implementation
 
-- **Bloqueio real deve ser no backend** (RPC ou trigger).
-- **Frontend apenas melhora UX** (mostra saldo disponível, desabilita input se exceder).
-- Não implementar bloqueio só no frontend — risco alto de bypass.
+- **Real blocking must be in the backend** (RPC or trigger).
+- **Frontend only improves UX** (shows available balance, disables input if exceeded).
+- Do not implement blocking only on the frontend — high risk of bypass.
 
-### 7.3. Pré-requisitos
+### 7.3. Prerequisites
 
-- `lotes.pedido_id` populado (Fase C).
-- Operação canônica de movimentação (Fase F).
-- Rastreabilidade de itens (`op_itens.pedido_item_id` ou equivalente).
+- `lotes.pedido_id` populated (Phase C).
+- Canonical movement operation (Phase F).
+- Item traceability (`op_itens.pedido_item_id` or equivalent).
 
 ---
 
-## 8. RLS / RPC / Segurança
+## 8. RLS / RPC / Security
 
-### 8.1. Riscos mapeados
+### 8.1. Mapped risks
 
-| Risco | Mitigação |
+| Risk | Mitigation |
 |---|---|
-| Cliente vê dados de OP/lote/fornecedor | As políticas atuais já isolam: cliente só tem SELECT em `pedidos`/`pedido_itens`/`pedido_parciais`/`pedido_cliente_eventos` próprios. Sem acesso a `ops`, `lotes`, `entregas`, `entrega_itens`. |
-| Fornecedor vê pedidos de outros clientes | Fornecedor não tem policy em `pedidos`. Só acessa `ops`/`entregas` onde está vinculado via `op_fornecedores` ou `fornecedor_id`. |
-| Documento exposto a não autorizado | Quando `documentos_operacionais` for criada (Fase G), RLS deve seguir o mesmo padrão: admin ALL, fornecedor vê docs das suas entregas/OPs, cliente vê docs publicados dos seus pedidos. |
-| Automação Gmail/Drive/OneDrive com privilégio excessivo | Edge Functions futuras devem usar `service_role` apenas para operações necessárias e validar permissão do chamador. |
+| Cliente sees OP/lote/fornecedor data | Current policies already isolate this: cliente only has SELECT on its own `pedidos`/`pedido_itens`/`pedido_parciais`/`pedido_cliente_eventos`. No access to `ops`, `lotes`, `entregas`, `entrega_itens`. |
+| Fornecedor sees pedidos from other clientes | Fornecedor has no policy on `pedidos`. It only accesses `ops`/`entregas` where it is linked via `op_fornecedores` or `fornecedor_id`. |
+| Document exposed to unauthorized party | When `documentos_operacionais` is created (Phase G), RLS should follow the same pattern: admin ALL, fornecedor sees docs from its entregas/OPs, cliente sees published docs from its pedidos. |
+| Gmail/Drive/OneDrive automation with excessive privilege | Future Edge Functions must use `service_role` only for the necessary operations and validate the caller's permission. |
 
-### 8.2. Novas policies necessárias (fases futuras)
+### 8.2. New policies needed (future phases)
 
-| Fase | Policy |
+| Phase | Policy |
 |---|---|
 | G | `documentos_operacionais_admin_all`, `documentos_operacionais_fornecedor_select`, `documentos_operacionais_cliente_select` |
-| F | Se a operação canônica for uma RPC, garantir `SECURITY DEFINER` com validação de permissão do chamador. |
+| F | If the canonical operation is an RPC, ensure `SECURITY DEFINER` with caller permission validation. |
 
 ---
 
-## 9. Fases futuras — sequência atualizada
+## 9. Future phases — updated sequence
 
-> Baseado na Fase A §5, confirmado e detalhado por este contrato.
+> Based on Phase A §5, confirmed and detailed by this contract.
 
-| Fase | Descrição | Status |
+| Phase | Description | Status |
 |---|---|---|
-| **A** | Plano persistente Pedido ↔ OP ↔ Movimentação ↔ Documentos | **[x] Concluída** (`04613ee`) |
-| **B** | Contrato arquitetura/schema detalhado (este documento) | **[x] Concluída** (esta fase) |
-| **C** | Vínculo Pedido → OP: popular `lotes.pedido_id`; criar `op_itens.pedido_item_id` | **[x] Concluída** (Fase C: migration `db/20_*` + `op-persistir.js` + `op-nova.js` + `boot.js`) |
-| **D** | OPs vinculadas no detalhe do Pedido Admin | **Entregue** através do trabalho de fluxo produtivo aceito. O Pedido Detail Admin lista as OPs vinculadas com status, progresso e link para a OP. Ver `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` §1.2/§9.4 (§2 item H resolvido). |
-| **E** | Stepper/preview produtivo no Pedido Admin | **Entregue** através do trabalho de fluxo produtivo aceito. Stepper/preview com progresso real derivado das OPs via `derivePedidoChainState`. Ver `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` §9.4 (§2 item F) e §9.7 (hub R2). |
-| **F** | Operação canônica de movimentação | **Entregue** através do trabalho de fluxo produtivo aceito. O Pedido reutiliza as operações canônicas da OP (`salvarEntregaCima`, `liberar_expedicao_latex_parcial`, `registrar_entrega_expedicao`, `registrarRecebimentoOrdemFio`), sem write paralelo. Ver `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` §1.1 e §9.5. |
-| **G** | Pendência documental (`documentos_operacionais`) | **Superada** pela pipeline documental canônica G28. `documentos_operacionais` não foi criada; o vínculo documental usa `document_link_revisions`/`document_link_revision_ops` (db/51/52). Ver `DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`. |
-| **H** | Integração Drive/OneDrive | **Superada** pela pipeline documental canônica G28. Referências de arquivo externo passam pelo modelo de documentos G28 (Documents Ingestor + candidato/evidência); a camada de anexo Drive na UI permanece visual-only. Ver `DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`. |
-| **I** | Automação por e-mail/PDF/XML | **Superada** pela pipeline documental canônica G28: ingestão Gmail + detecção/classificação técnica + fila de validação humana (Documents Ingestor / G28-B1…C aceitos). Ver `DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`. |
-| **J** | Saldo inteligente por etapa e bloqueio transacional | **Futura / não sequenciada / não iniciada / não autorizada.** Bloqueio transacional de saldo por etapa (backend RPC/trigger; ver §7). Nenhuma implementação autorizada; `NEXT_AUTHORIZABLE_ACTION: NONE` até seleção explícita de arquiteto. |
-| **L** | Lifecycle de OP backend (status expandido, `op_eventos`, trigger, RPC `alterar_status_op` admin-only) | **[x] Concluída** (db/21, backend-only; R1 hardening) |
+| **A** | Persistent plan Pedido ↔ OP ↔ Movement ↔ Documents | **[x] Completed** (`04613ee`) |
+| **B** | Detailed architecture/schema contract (this document) | **[x] Completed** (this phase) |
+| **C** | Pedido → OP link: populate `lotes.pedido_id`; create `op_itens.pedido_item_id` | **[x] Completed** (Phase C: migration `db/20_*` + `op-persistir.js` + `op-nova.js` + `boot.js`) |
+| **D** | Linked OPs in the Pedido Admin detail | **Delivered** via the accepted production flow work. Pedido Detail Admin lists the linked OPs with status, progress, and a link to the OP. See `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` §1.2/§9.4 (§2 item H resolved). |
+| **E** | Production stepper/preview in the Pedido Admin | **Delivered** via the accepted production flow work. Stepper/preview with real progress derived from the OPs via `derivePedidoChainState`. See `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` §9.4 (§2 item F) and §9.7 (hub R2). |
+| **F** | Canonical movement operation | **Delivered** via the accepted production flow work. Pedido reuses the canonical OP operations (`salvarEntregaCima`, `liberar_expedicao_latex_parcial`, `registrar_entrega_expedicao`, `registrarRecebimentoOrdemFio`), with no parallel write. See `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` §1.1 and §9.5. |
+| **G** | Document pending status (`documentos_operacionais`) | **Superseded** by the canonical G28 documentation pipeline. `documentos_operacionais` was never created; the document link uses `document_link_revisions`/`document_link_revision_ops` (db/51/52). See `DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`. |
+| **H** | Drive/OneDrive integration | **Superseded** by the canonical G28 documentation pipeline. External file references go through the G28 document model (Documents Ingestor + candidate/evidence); the Drive attachment layer in the UI remains visual-only. See `DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`. |
+| **I** | Email/PDF/XML automation | **Superseded** by the canonical G28 documentation pipeline: Gmail ingestion + technical detection/classification + human validation queue (Documents Ingestor / G28-B1…C accepted). See `DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`. |
+| **J** | Smart balance per stage and transactional blocking | **Future / not sequenced / not started / not authorized.** Transactional balance blocking per stage (backend RPC/trigger; see §7). No implementation authorized; `NEXT_AUTHORIZABLE_ACTION: NONE` until explicit architect selection. |
+| **L** | Backend OP lifecycle (expanded status, `op_eventos`, trigger, admin-only `alterar_status_op` RPC) | **[x] Completed** (db/21, backend-only; R1 hardening) |
 
-> **Reconciliação `DOCS-PEDIDO-OP-LEGACY-PLAN-STATUS-CONSISTENCY-R1` (docs-only):** os status correntes das Fases D–J acima foram reconciliados com as autoridades correntes — D/E/F **entregues** via fluxo produtivo aceito; G/H/I **superadas** pela pipeline documental canônica G28 (`document_link_revisions`/`document_link_revision_ops`; `documentos_operacionais` nunca criada); J **futura/não sequenciada/não iniciada/não autorizada**. Nenhum código, runtime ou comportamento mudou. O desenho arquitetural original (§4 `documentos_operacionais`, §7 saldo por etapa) e as seções datadas históricas permanecem preservados como intenção/registro. `ACTIVE_PHASE: NONE`; `NEXT_AUTHORIZABLE_ACTION: NONE` pendente de seleção explícita de arquiteto.
+> **Reconciliation `DOCS-PEDIDO-OP-LEGACY-PLAN-STATUS-CONSISTENCY-R1` (docs-only):** the current statuses of Phases D–J above were reconciled with the current authorities — D/E/F **delivered** via the accepted production flow; G/H/I **superseded** by the canonical G28 documentation pipeline (`document_link_revisions`/`document_link_revision_ops`; `documentos_operacionais` never created); J **future/not sequenced/not started/not authorized**. No code, runtime, or behavior changed. The original architectural design (§4 `documentos_operacionais`, §7 balance per stage) and the historical dated sections remain preserved as intent/record. `ACTIVE_PHASE: NONE`; `NEXT_AUTHORIZABLE_ACTION: NONE` pending explicit architect selection.
 
 ---
 
-## 10. Decisões registradas nesta frente
+## 10. Decisions recorded in this effort
 
-### Fase B
+### Phase B
 
-| # | Decisão | Fundamentação |
+| # | Decision | Rationale |
 |---|---|---|
-| D-B01 | `lotes.pedido_id` é o vínculo de agrupamento Pedido → OP. Não criar `ops.pedido_id` nem `pedidos.op_id`. | Já existe; evita FK redundante; respeita cardinalidade N:1. |
-| D-B02 | Criar `op_itens.pedido_item_id` (NULLABLE, ON DELETE SET NULL, sem UNIQUE). | Permite rastreabilidade fina entre item comercial e produtivo, necessária para conciliação e saldo. |
-| D-B03 | `gerar_op_latex` não precisa de alteração para esta frente. | OP filha herda `lote_id` da mãe; se lote tiver `pedido_id`, resolve-se automaticamente. |
-| D-B04 | Reforçar `entregas`/`entrega_itens` como fonte canônica de movimentação para o MVP (Opção A). | Schema já aplicado; fornecedores já usam; evita nova migration agora. Reavaliar na Fase F. |
-| D-B05 | Tabela `documentos_operacionais` desenhada (§4). Implementação na Fase G. | Contrato pronto; sem migration agora. |
-| D-B06 | Stepper com 5 etapas: INSUMOS → TECELAGEM → ACABAMENTO → EXPEDIÇÃO → ENTREGA. | Alinhado ao plano Fase A. |
-| D-B07 | Saldo por etapa exige RPC/trigger no backend. Nunca só frontend. | Regra de segurança. Fase J. |
-| D-B08 | `pedido_parciais` permanece camada comercial. Não usar como fonte de movimentação produtiva. | Já decidido na Fase A; reforçado aqui. |
+| D-B01 | `lotes.pedido_id` is the Pedido → OP grouping link. Do not create `ops.pedido_id` or `pedidos.op_id`. | Already exists; avoids a redundant FK; respects N:1 cardinality. |
+| D-B02 | Create `op_itens.pedido_item_id` (NULLABLE, ON DELETE SET NULL, no UNIQUE). | Enables fine-grained traceability between the commercial and production item, needed for reconciliation and balance. |
+| D-B03 | `gerar_op_latex` does not need changes for this effort. | The child OP inherits `lote_id` from the parent; if the lote has `pedido_id`, it resolves automatically. |
+| D-B04 | Reinforce `entregas`/`entrega_itens` as the canonical movement source for the MVP (Option A). | Schema already applied; fornecedores already use it; avoids a new migration now. Reassess in Phase F. |
+| D-B05 | Table `documentos_operacionais` designed (§4). Implementation in Phase G. | Contract ready; no migration now. |
+| D-B06 | Stepper with 5 stages: INSUMOS → TECELAGEM → ACABAMENTO → EXPEDIÇÃO → ENTREGA. | Aligned with the Phase A plan. |
+| D-B07 | Balance per stage requires a backend RPC/trigger. Never frontend-only. | Security rule. Phase J. |
+| D-B08 | `pedido_parciais` remains a commercial layer. Do not use it as a production movement source. | Already decided in Phase A; reinforced here. |
 
-### Fase L
+### Phase L
 
-| # | Decisão | Fundamentação |
+| # | Decision | Rationale |
 |---|---|---|
-| D-L01 | `ops.status` CHECK expandido: `simulada\|aberta\|em_producao\|pausada\|concluida\|cancelada\|finalizada`. `concluida` = canônico, `finalizada` = legado. | Preserva OP de látex existente sem quebrar `op-latex-admin.js`. |
-| D-L02 | Tabela `op_eventos` criada para histórico de eventos da OP. Trigger `trg_op_evento` registra automaticamente toda mudança de `ops.status`. | Auditoria da OP. Fonte única de verdade. |
-| D-L03 | RPC `alterar_status_op` valida transições de status no backend. Estados finais (`concluida`, `cancelada`, `finalizada`) são terminais. | Bloqueio real no backend, não só no frontend. |
-| D-L03-R1 | `alterar_status_op` é **admin-only** nesta fase (`is_admin()`); fornecedor não tem WRITE em `ops` e não pode transitar status. | Hardening R1: alinhar ao padrão `gerar_op_latex` (db/08/09) e corrigir a imprecisão de D-L03, que não declarava o guard de caller. |
-| D-L03-R1b | `p_observacao` é vinculada ao evento `status_alterado` correspondente a `status_novo` (filtro por `status_novo = p_novo_status`, ordenação `criado_em DESC, id DESC`). | Hardening R1: reduzir risco de observação cair em evento errado sob concorrência. Não cria segundo evento; não implementa `SET LOCAL` nesta fase. |
-| D-L04 | `concluida` preenche `finalizada_em` se null. `cancelada` não preenche. | Semântica correta de conclusão vs cancelamento. |
-| D-L05 | `gerar_op_latex()` não foi alterado. OP de látex continua nascendo `em_producao`. | Compatibilidade; transição para `concluida` via RPC no frontend futuro. |
-| D-L06 | RLS de `op_eventos` segue padrão `ops`: admin ALL, fornecedor SELECT se vinculado via `op_fornecedores`. | Consistência com políticas existentes. |
-| D-L07 | Nenhum arquivo JS alterado nesta fase. UI virá em fase posterior. | Separação backend/UI. |
+| D-L01 | `ops.status` CHECK expanded: `simulada\|aberta\|em_producao\|pausada\|concluida\|cancelada\|finalizada`. `concluida` = canonical, `finalizada` = legacy. | Preserves the existing látex OP without breaking `op-latex-admin.js`. |
+| D-L02 | Table `op_eventos` created for OP event history. Trigger `trg_op_evento` automatically records every change to `ops.status`. | OP audit. Single source of truth. |
+| D-L03 | RPC `alterar_status_op` validates status transitions in the backend. Final states (`concluida`, `cancelada`, `finalizada`) are terminal. | Real blocking in the backend, not just the frontend. |
+| D-L03-R1 | `alterar_status_op` is **admin-only** in this phase (`is_admin()`); fornecedor has no WRITE on `ops` and cannot transition status. | R1 hardening: align with the `gerar_op_latex` pattern (db/08/09) and fix the imprecision in D-L03, which did not declare the caller guard. |
+| D-L03-R1b | `p_observacao` is linked to the `status_alterado` event corresponding to `status_novo` (filtered by `status_novo = p_novo_status`, ordered by `criado_em DESC, id DESC`). | R1 hardening: reduce the risk of the observation landing on the wrong event under concurrency. Does not create a second event; does not implement `SET LOCAL` in this phase. |
+| D-L04 | `concluida` fills `finalizada_em` if null. `cancelada` does not fill it. | Correct semantics of completion vs. cancellation. |
+| D-L05 | `gerar_op_latex()` was not changed. The látex OP still starts as `em_producao`. | Compatibility; transition to `concluida` via RPC in a future frontend. |
+| D-L06 | RLS on `op_eventos` follows the `ops` pattern: admin ALL, fornecedor SELECT if linked via `op_fornecedores`. | Consistency with existing policies. |
+| D-L07 | No JS file changed in this phase. UI will come in a later phase. | Backend/UI separation. |
 
-### Fase OP-OPERATIONAL-CODE-HELPER-B (display operacional, sem schema)
+### Phase OP-OPERATIONAL-CODE-HELPER-B (operational display, no schema)
 
-> Fase `RAVATEX-TAPETES-OP-OPERATIONAL-CODE-HELPER-B`. **Não altera schema, RPC,
-> `op_numeros`, `ops.id/numero/ano` nem dados.** Apenas display calculado.
+> Phase `RAVATEX-TAPETES-OP-OPERATIONAL-CODE-HELPER-B`. **Does not alter schema, RPC, `op_numeros`, `ops.id/numero/ano`, or data.** Calculated display only.
 
-| # | Decisão | Fundamentação |
+| # | Decision | Rationale |
 |---|---|---|
-| D-OC01 | Código operacional de OP é **display calculado**, não coluna. Formato `OP {pedido_numero}/{pedido_ano}-{tipo}{seq}`. Helper central `js/op-display.js` (`window.RAVATEX_OP_DISPLAY`). | Evita migration/backfill/trigger; `numero/ano` é display-only (navegação usa `ops.id`). |
-| D-OC02 | `pedido_ano = year(pedido.criado_em)`. `pedidos` não tem coluna `ano` (`numero` é IDENTITY global). | Contrato aprovado; deriva do único campo temporal do Pedido. |
-| D-OC03 | Letras `T=tecelagem`, `A=latex/acabamento`. O prefixo desambigua a colisão `numero/ano` entre tipos (UNIQUE é `(numero, ano, tipo)`; `op_numeros` conta por `(tipo, ano)`). | Fluxo do usuário chama a etapa de Acabamento; `A` aprovado. |
-| D-OC04 | `seq` = sequencial de 2 dígitos por **Pedido + Tipo**, ordenado por `ops.criado_em` asc, desempate `ops.id` asc. Independente do `numero` legado. | Ambos campos existem e são monotônicos por criação. |
-| D-OC05 | Fallback obrigatório ao legado `OP {numero}/{ano}` sem `pedido.numero`/`pedido.criado_em`/irmãs/tipo conhecido, e onde não há contexto de Pedido (PDF, fornecedor/RLS, toasts, `ops-list`, telas de OP standalone). | Não inventar código incompleto; respeitar RLS do fornecedor. |
-| D-OC06 | `pedido-detail-data.js` seleciona `ops.criado_em` (SELECT aditivo, sem write) para o sequencial. | Base de OPs já carregava por `lote_id`; só faltava o campo de ordenação. |
-| D-OC07 | Aplicado nesta fase apenas em telas com contexto de Pedido (Pedido Detail Admin). `painel.js`/`expedicao-admin.js` ficam para o próximo incremento (têm contexto, exigem resolver OP→Pedido sem query nova). | Escopo inicial obrigatório + gestão de risco. |
-| D-OC08 | **Aceite visual do usuário registrado (fase `RAVATEX-TAPETES-OP-OPERATIONAL-CODE-CLOSEOUT-C`):** OK no escopo com contexto de Pedido. A aparição "em poucos lugares" é esperada — o código operacional é intencionalmente **não-global**. | O código só aparece onde há contexto confiável de Pedido; fora disso, legado. |
-| D-OC09 | **Pendência controlada** — expandir a outras telas só quando: (1) houver contexto confiável de Pedido; (2) houver necessidade visual clara; (3) não exigir migration; (4) não criar query pesada; (5) não duplicar formatação fora de `js/op-display.js`. | Evita expansão global sem necessidade validada; formatação permanece central. |
+| D-OC01 | OP operational code is a **calculated display**, not a column. Format `OP {pedido_numero}/{pedido_ano}-{tipo}{seq}`. Central helper `js/op-display.js` (`window.RAVATEX_OP_DISPLAY`). | Avoids migration/backfill/trigger; `numero/ano` is display-only (navigation uses `ops.id`). |
+| D-OC02 | `pedido_ano = year(pedido.criado_em)`. `pedidos` has no `ano` column (`numero` is a global IDENTITY). | Contract approved; derives from the Pedido's only temporal field. |
+| D-OC03 | Letters `T=tecelagem`, `A=latex/acabamento`. The prefix disambiguates the `numero/ano` collision between types (UNIQUE is `(numero, ano, tipo)`; `op_numeros` counts per `(tipo, ano)`). | The user flow calls the stage "Acabamento"; `A` approved. |
+| D-OC04 | `seq` = 2-digit sequence per **Pedido + Tipo**, ordered by `ops.criado_em` asc, tiebreak `ops.id` asc. Independent of the legacy `numero`. | Both fields exist and are monotonic by creation. |
+| D-OC05 | Mandatory fallback to the legacy `OP {numero}/{ano}` without a known `pedido.numero`/`pedido.criado_em`/siblings/tipo, and wherever there is no Pedido context (PDF, fornecedor/RLS, toasts, `ops-list`, standalone OP screens). | Do not invent an incomplete code; respect the fornecedor's RLS. |
+| D-OC06 | `pedido-detail-data.js` selects `ops.criado_em` (additive SELECT, no write) for the sequence. | The OP base already loaded by `lote_id`; only the ordering field was missing. |
+| D-OC07 | Applied in this phase only to screens with Pedido context (Pedido Detail Admin). `painel.js`/`expedicao-admin.js` are left for the next increment (they have context, but require resolving OP→Pedido without a new query). | Mandatory initial scope + risk management. |
+| D-OC08 | **User visual acceptance recorded (phase `RAVATEX-TAPETES-OP-OPERATIONAL-CODE-CLOSEOUT-C`):** OK within the scope with Pedido context. Appearing "in few places" is expected — the operational code is intentionally **not global**. | The code only appears where there is reliable Pedido context; outside that, legacy. |
+| D-OC09 | **Controlled pending item** — expand to other screens only when: (1) there is reliable Pedido context; (2) there is a clear visual need; (3) it does not require a migration; (4) it does not create a heavy query; (5) it does not duplicate formatting outside `js/op-display.js`. | Avoids global expansion without a validated need; formatting remains centralized. |
 
-### Fase Controlled Delete — Expedição Cascade (db/37)
+### Phase Controlled Delete — Expedição Cascade (db/37)
 
-> Backfill documental (`DOCS-CANONICAL-CONSISTENCY-BACKFILL-A`, docs-only):
-> fecha a lacuna registrada em
-> `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` (fase
-> `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-GUARD-B`, nota junto às
-> decisões `D-DEL10`–`D-DEL13`), que identificou `db/37_controlled_delete_
-> expedicao_cascade.sql` sem entrada `D-DEL` própria. Numeração continua a
-> partir de `D-DEL13` (última existente) para não colidir com as decisões
-> já registradas naquele plano.
+> Documentation backfill (`DOCS-CANONICAL-CONSISTENCY-BACKFILL-A`, docs-only): closes the gap recorded in `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` (phase `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-GUARD-B`, note alongside decisions `D-DEL10`–`D-DEL13`), which identified `db/37_controlled_delete_expedicao_cascade.sql` without its own `D-DEL` entry. Numbering continues from `D-DEL13` (the last existing one) to avoid colliding with the decisions already recorded in that plan.
 
-| # | Decisão | Fundamentação |
+| # | Decision | Rationale |
 |---|---|---|
-| D-DEL14 | Em staging/teste, expedição deixa de ser bloqueador incondicional da exclusão física de Pedido/OP e passa a integrar a cascata `EXCLUIR TUDO`: `expedicao_movimento_itens` → `expedicao_movimentos` → `expedicao_itens` → `expedicoes` são removidos antes de OPs/entregas/lotes/pedido, sem alterar `op_numeros`. | `db/37_controlled_delete_expedicao_cascade.sql` (fase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-EXPEDICAO-CASCADE-E2`) substitui o bloqueio incondicional de expedição herdado de `db/34`–`db/36` (onde expedição sempre classificava `blocked`) por alvos FK explícitos (`expedicao_ids`, `expedicao_item_ids`, `expedicao_movimento_ids`), preservando a confirmação textual `EXCLUIR TUDO` e a ordem transacional corrigida pela `db/36`. Aplicada e validada somente em staging `ucrjtfswnfdlxwtmxnoo`; produção `bhgifjrfagkzubpyqpew` intocada. Desde `db/53`, as quatro funções desta migration foram renomeadas para `diagnosticar_impacto_pedido_pre53`/`diagnosticar_impacto_op_pre53`/`remover_pedido_pre53`/`remover_op_pre53` (sem `EXECUTE` público) e passaram a ser chamadas pelos wrappers públicos do guard documental (ver "Atualização 2026-07-15 — Controlled Delete Document Link Guard" abaixo) somente quando o diagnóstico documental classifica o alvo como elegível. |
+| D-DEL14 | In staging/test, expedição stops being an unconditional blocker for the physical deletion of Pedido/OP and starts to be part of the `EXCLUIR TUDO` cascade: `expedicao_movimento_itens` → `expedicao_movimentos` → `expedicao_itens` → `expedicoes` are removed before OPs/entregas/lotes/pedido, without altering `op_numeros`. | `db/37_controlled_delete_expedicao_cascade.sql` (phase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-EXPEDICAO-CASCADE-E2`) replaces the unconditional expedição block inherited from `db/34`–`db/36` (where expedição always classified as `blocked`) with explicit FK targets (`expedicao_ids`, `expedicao_item_ids`, `expedicao_movimento_ids`), preserving the `EXCLUIR TUDO` text confirmation and the transactional order fixed by `db/36`. Applied and validated only in staging `ucrjtfswnfdlxwtmxnoo`; production `bhgifjrfagkzubpyqpew` untouched. Since `db/53`, the four functions of this migration were renamed to `diagnosticar_impacto_pedido_pre53`/`diagnosticar_impacto_op_pre53`/`remover_pedido_pre53`/`remover_op_pre53` (no public `EXECUTE`) and are now called by the document guard's public wrappers (see "Update 2026-07-15 — Controlled Delete Document Link Guard" below) only when the document diagnosis classifies the target as eligible. |
 
 ###
 
 ---
 
-## 11. Lacunas que ainda exigem decisão do dono do projeto
+## 11. Gaps that still require a decision from the project owner
 
-| Lacuna | Contexto |
+| Gap | Context |
 |---|---|
-| Etapas "EXPEDIÇÃO" e "ENTREGA" não têm representação no schema atual | `entregas.etapa` aceita `cima`/`latex`. Para expedição/entrega, será necessário expandir o CHECK ou criar nova estrutura. |
-| Envio de fios para tecelagem não gera movimentação rastreável | Hoje `ordens_compra_fio` controla pedido/recebimento de fio, mas o envio físico para a tecelagem não é registrado como movimento. |
-| Documentos visíveis ao cliente | Definir quais tipos de documento o cliente pode ver (ex.: romaneio de entrega sim; NF de compra de fio não). Campo `visivel_cliente` precisa ser adicionado em `documentos_operacionais`. |
-| Múltiplos pedidos no mesmo lote | Hoje `lotes.pedido_id` é 1:1. Se um lote puder atender múltiplos pedidos, o modelo precisará de revisão (tabela `lote_pedidos` N:N). |
+| "EXPEDIÇÃO" and "ENTREGA" stages have no representation in the current schema | `entregas.etapa` accepts `cima`/`latex`. For expedição/entrega, it will be necessary to expand the CHECK or create a new structure. |
+| Sending yarns to tecelagem does not generate a traceable movement | Today `ordens_compra_fio` controls yarn ordering/receipt, but the physical shipment to tecelagem is not recorded as a movement. |
+| Documents visible to the cliente | Define which document types the cliente can see (e.g.: delivery packing list yes; yarn purchase NF no). Field `visivel_cliente` needs to be added to `documentos_operacionais`. |
+| Multiple pedidos in the same lote | Today `lotes.pedido_id` is 1:1. If a lote can serve multiple pedidos, the model will need revision (`lote_pedidos` N:N table). |
 
 ---
 
-> **Este contrato é fonte canônica para implementação das Fases C a J.**
-> Deve ser consultado antes de qualquer migration, RPC ou alteração de schema nesta frente.
-> Indexado em `docs/DOCUMENTATION_INDEX.md` §1.
-## Atualizacao 2026-07-06 - Pedido/OP Controlled Delete B
+> **This contract is the canonical source for implementing Phases C through J.**
+> Must be consulted before any migration, RPC, or schema change in this effort.
+> Indexed in `docs/DOCUMENTATION_INDEX.md` §1.
+## Update 2026-07-06 - Pedido/OP Controlled Delete B
 
-Fase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-B`: adiciona exclusao
-fisica controlada somente para testes/admin, concentrada em RPC transacional e
-helper JS unico.
+Phase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-B`: adds physical controlled deletion for tests/admin only, concentrated in a transactional RPC and a single JS helper.
 
-- Novas RPCs versionadas em `db/34_controlled_delete_pedido_op.sql`:
-  `diagnosticar_impacto_pedido`, `diagnosticar_impacto_op`, `remover_pedido`,
-  `remover_op`.
-- Aplicado e validado somente em staging `ucrjtfswnfdlxwtmxnoo`; producao
-  `bhgifjrfagkzubpyqpew` permanece intocada.
-- Diagnostico classifica `safe`, `requires_confirmation` e `blocked`, sempre
-  retornando relatorio de impacto antes da remocao.
-- Pedido seguro: sem OP/entrega/expedicao. Pedido com OP sem movimento exige
-  `EXCLUIR` e remove tambem lotes/OPs sem movimento vinculados ao Pedido.
-- Bloqueadores: entrega vinculada, expedicao vinculada, OP filha nao tratada e
-  FKs restritivas conhecidas do fluxo produtivo.
-- OP individual: bloqueia com entrega, expedicao ou OP filha; OP sem
-  bloqueadores pode ser removida com confirmacao quando ha dependencias
-  nao bloqueadoras.
-- `op_numeros` nao e alterado, numeros nao sao reciclados e OPs nao sao
-  renumeradas.
-- A exclusao fisica e temporaria para validacao; producao futura deve usar
-  senha/admin forte, soft-delete e auditoria permanente.
+- New versioned RPCs in `db/34_controlled_delete_pedido_op.sql`: `diagnosticar_impacto_pedido`, `diagnosticar_impacto_op`, `remover_pedido`, `remover_op`.
+- Applied and validated only in staging `ucrjtfswnfdlxwtmxnoo`; production `bhgifjrfagkzubpyqpew` remains untouched.
+- The diagnosis classifies as `safe`, `requires_confirmation`, and `blocked`, always returning an impact report before removal.
+- Safe Pedido: no OP/entrega/expedicao. Pedido with an OP without movement requires `EXCLUIR` and also removes lotes/OPs without movement linked to the Pedido.
+- Blockers: linked entrega, linked expedicao, unhandled child OP, and known restrictive FKs from the production flow.
+- Individual OP: blocks with entrega, expedicao, or child OP; an OP with no blockers can be removed with confirmation when there are non-blocking dependencies.
+- `op_numeros` is not altered, numbers are not recycled, and OPs are not renumbered.
+- The physical deletion is temporary for validation; future production must use a strong password/admin, soft-delete, and permanent audit.
 
-### Fix C - politica de OP numerada em staging/teste
+### Fix C - numbered OP policy in staging/test
 
-Para a fase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-POLICY-FIX-C`, a
-porta controlada de teste remove/bypassa o trigger legado
-`ops_numeradas_no_delete` da `db/26`. A regra atual do produto em staging e:
-OP numerada pode ser removida fisicamente pela RPC controlada quando nao possui
-entrega, expedicao ou OP filha e quando o usuario confirma `EXCLUIR` nos casos
-de impacto. O numero apagado nao e reciclado porque `op_numeros` continua
-high-water e nao e reduzido.
+For phase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-POLICY-FIX-C`, the controlled test gate removes/bypasses the legacy trigger `ops_numeradas_no_delete` from `db/26`. The current product rule in staging is: a numbered OP can be physically removed by the controlled RPC when it has no entrega, expedicao, or child OP, and when the user confirms `EXCLUIR` in impact cases. The deleted number is not recycled because `op_numeros` remains high-water and is not decreased.
 
-### Cascade Test D - cascata fisica controlada em staging
+### Cascade Test D - controlled physical cascade in staging
 
-Na fase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-CASCADE-TEST-D`, a
-politica de teste passa a permitir remover cadeia produtiva com entrega e OP
-filha quando nao houver expedicao. O diagnostico retorna
-`requires_cascade_confirmation`, `cascade_required=true`,
-`cascade_reason` e `confirmation_required='EXCLUIR TUDO'`.
+In phase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-CASCADE-TEST-D`, the test policy starts allowing removal of a production chain with entrega and child OP when there is no expedicao. The diagnosis returns `requires_cascade_confirmation`, `cascade_required=true`, `cascade_reason`, and `confirmation_required='EXCLUIR TUDO'`.
 
-Expedicao permanece bloqueador nesta fase. Producao futura deve substituir
-este modo por senha/admin forte, soft-delete e auditoria permanente. A regra de
-numeracao permanece invariavel: `op_numeros` nao muda, OPs nao sao renumeradas
-e numeros nao sao reciclados.
+Expedicao remains a blocker in this phase. Future production must replace this mode with a strong password/admin, soft-delete, and permanent audit. The numbering rule remains invariant: `op_numeros` does not change, OPs are not renumbered, and numbers are not recycled.
 
-### FK Order Fix E - ordem fisica da cascata de teste
+### FK Order Fix E - physical order of the test cascade
 
-Na fase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-FK-ORDER-FIX-E`, a
-cascata controlada deve considerar dois caminhos FK de `entrega_itens` antes de
-qualquer `DELETE FROM ops`: `entrega_itens.op_id -> ops.id` e
-`entrega_itens.op_item_id -> op_itens.id`. A RPC monta alvos explicitos
-(`target_ops`, `target_op_itens`, `target_entregas`,
-`target_op_latex_links`, `target_child_ops`, `target_child_op_itens`), remove
-`op_latex_entregas`, remove `entrega_itens` por `op_id` ou `op_item_id`,
-remove entregas vazias e so entao apaga OPs filhas antes das raizes.
+In phase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-FK-ORDER-FIX-E`, the controlled cascade must consider two `entrega_itens` FK paths before any `DELETE FROM ops`: `entrega_itens.op_id -> ops.id` and `entrega_itens.op_item_id -> op_itens.id`. The RPC assembles explicit targets (`target_ops`, `target_op_itens`, `target_entregas`, `target_op_latex_links`, `target_child_ops`, `target_child_op_itens`), removes `op_latex_entregas`, removes `entrega_itens` by `op_id` or `op_item_id`, removes empty entregas, and only then deletes child OPs before roots.
 
-A `db/36_controlled_delete_fk_order_fix.sql` tambem corrige os guards de
-entrega para retornar `OLD` em `DELETE` autorizado. Sem isso, um `BEFORE
-DELETE` que retorna `NEW` cancela silenciosamente a remocao. Expedicao segue
-bloqueador; `op_numeros` segue intocado.
+`db/36_controlled_delete_fk_order_fix.sql` also fixes the entrega guards to return `OLD` on an authorized `DELETE`. Without this, a `BEFORE DELETE` that returns `NEW` silently cancels the removal. Expedicao remains a blocker; `op_numeros` remains untouched.
 
-### Atualizacao 2026-07-15 - Controlled Delete Document Link Guard (CLOSED / ACCEPTED)
+### Update 2026-07-15 - Controlled Delete Document Link Guard (CLOSED / ACCEPTED)
 
-Fase `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-GUARD-B` (+ `-GRANTS-54`,
-`-POLICY-CAST-55`, `-DIAGNOSTICS-NULL-SAFE-56`). Commit tecnico `707a37bd...`.
-Registra o contrato permanente entre a exclusao fisica controlada de teste
-(Pedido/OP, `db/34`-`db/37`) e o historico documental canonico G28
-(`document_link_revisions` / `document_link_revision_ops`):
+Phase `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-GUARD-B` (+ `-GRANTS-54`, `-POLICY-CAST-55`, `-DIAGNOSTICS-NULL-SAFE-56`). Technical commit `707a37bd...`. Records the permanent contract between the physical controlled test deletion (Pedido/OP, `db/34`-`db/37`) and the canonical G28 document history (`document_link_revisions` / `document_link_revision_ops`):
 
-- Exclusao fisica de Pedido/OP e bloqueada quando existir historico
-  documental canonico vinculado a alguma OP da cadeia alvo (`document_link_
-  revision_ops.op_id`) ou, no caso de Pedido, vinculado diretamente ao Pedido
-  (`document_link_revisions.pedido_id`).
-- `document_link_revisions` e `document_link_revision_ops` nunca sao
-  apagados, alterados ou reativados pelo Controlled Delete, em nenhum
-  cenario, bloqueado ou nao.
-- As RPCs publicas (`diagnosticar_impacto_pedido`, `diagnosticar_impacto_op`,
-  `remover_pedido`, `remover_op`) sempre chamam a diagnostica documental
-  antes de qualquer delegacao destrutiva; a delegacao so ocorre quando o
-  diagnostico classifica como elegivel (`blocked=false`).
-- A logica destrutiva legada de `db/34`-`db/37` foi renomeada para
-  `diagnosticar_impacto_pedido_pre53`, `diagnosticar_impacto_op_pre53`,
-  `remover_pedido_pre53`, `remover_op_pre53`. Essas quatro funcoes nao
-  constituem API publica: `EXECUTE` e revogado de `PUBLIC`, `anon` e
-  `authenticated` (somente `postgres`/owner).
-- As quatro RPCs publicas mantem `EXECUTE` apenas para `authenticated`
-  (`PUBLIC` e `anon` sem `EXECUTE`).
-- Na ausencia de historico documental, a politica de exclusao fisica
-  anterior (`db/34`-`db/37`: bloqueio por entrega/expedicao/OP filha,
-  cascata com `EXCLUIR`/`EXCLUIR TUDO`, `op_numeros` intocado) permanece
-  vigente e inalterada.
-- Historico documental e append-only; este guard nao introduz nenhum
-  mecanismo de desvinculo automatico. Correcao de vinculo, quando
-  necessaria, ocorre pelo fluxo documental humano (`js/document-link-
-  admin-controller.js` / `document-link-admin-modal.js`), nunca pela
-  exclusao fisica de teste.
+- Physical deletion of Pedido/OP is blocked when there is canonical document history linked to any OP in the target chain (`document_link_revision_ops.op_id`) or, in the case of Pedido, linked directly to the Pedido (`document_link_revisions.pedido_id`).
+- `document_link_revisions` and `document_link_revision_ops` are never deleted, altered, or reactivated by the Controlled Delete, in any scenario, blocked or not.
+- The public RPCs (`diagnosticar_impacto_pedido`, `diagnosticar_impacto_op`, `remover_pedido`, `remover_op`) always call the document diagnosis before any destructive delegation; the delegation only occurs when the diagnosis classifies the target as eligible (`blocked=false`).
+- The legacy destructive logic from `db/34`-`db/37` was renamed to `diagnosticar_impacto_pedido_pre53`, `diagnosticar_impacto_op_pre53`, `remover_pedido_pre53`, `remover_op_pre53`. These four functions do not constitute a public API: `EXECUTE` is revoked from `PUBLIC`, `anon`, and `authenticated` (only `postgres`/owner).
+- The four public RPCs keep `EXECUTE` only for `authenticated` (`PUBLIC` and `anon` without `EXECUTE`).
+- In the absence of document history, the previous physical deletion policy (`db/34`-`db/37`: blocking by entrega/expedicao/child OP, cascade with `EXCLUIR`/`EXCLUIR TUDO`, `op_numeros` untouched) remains in effect and unchanged.
+- Document history is append-only; this guard does not introduce any automatic unlinking mechanism. Link correction, when necessary, occurs through the human document flow (`js/document-link-admin-controller.js` / `document-link-admin-modal.js`), never through physical test deletion.
 
-Validado em staging `ucrjtfswnfdlxwtmxnoo` com fixtures sinteticas
-(casos elegivel-OP, elegivel-Pedido e bloqueado-por-historico), cleanup
-zero e `op_numeros` preservado. Producao nao acessada; sem push. Ver
-`docs/ledgers/G28_LEDGER.md` para evidencia completa.
+Validated in staging `ucrjtfswnfdlxwtmxnoo` with synthetic fixtures (eligible-OP, eligible-Pedido, and blocked-by-history cases), zero cleanup, and `op_numeros` preserved. Production not accessed; no push. See `docs/ledgers/G28_LEDGER.md` for complete evidence.
 
-## Atualizacao 2026-07-15 - Docs Canonical Consistency Backfill A (CLOSED / ACCEPTED)
+## Update 2026-07-15 - Docs Canonical Consistency Backfill A (CLOSED / ACCEPTED)
 
-Fase `DOCS-CANONICAL-CONSISTENCY-BACKFILL-A`. Docs-only; sem codigo, teste,
-SQL, migration, staging ou producao alterados.
+Phase `DOCS-CANONICAL-CONSISTENCY-BACKFILL-A`. Docs-only; no code, test, SQL, migration, staging, or production changed.
 
-- Fecha a lacuna documental identificada em
-  `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` (nota junto
-  as decisoes `D-DEL10`-`D-DEL13`, fase Controlled Delete Document Link
-  Guard, 2026-07-15): `db/37_controlled_delete_expedicao_cascade.sql` nunca
-  havia recebido entrada `D-DEL` propria.
-- Adicionada `D-DEL14` (secao "Fase Controlled Delete - Expedicao Cascade
-  (db/37)", SS10 acima), derivada do arquivo `db/37` real e da sequencia
-  `db/34`-`db/36`: expedicao deixa de bloquear incondicionalmente e passa a
-  integrar a cascata `EXCLUIR TUDO` em staging/teste.
-- `docs/DOCUMENTATION_INDEX.md` SS4 recebeu as linhas ausentes de `db/34`-
-  `db/37` e `db/53`-`db/56`, e o status de `db/30` foi corrigido de "ainda
-  nao aplicado" para o estado preciso ja aceito em
-  `CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A` (aplicada e verificada
-  em staging, sem drift, nao registrada em
-  `supabase_migrations.schema_migrations`, ACL ao vivo mais ampla que o
-  contrato canonico, sem exposicao confirmada).
-- Nao normaliza nem resolve `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1`,
-  `DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY`, os debitos de smoke
-  autenticado ou `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`,
-  que seguem `ARCHITECT DECISION REQUIRED`/abertos.
-- Producao (`bhgifjrfagkzubpyqpew`) nao acessada; sem push. Ver
-  `docs/ledgers/G28_LEDGER.md` para a entrada append-only desta fase.
+- Closes the documentation gap identified in `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` (note alongside decisions `D-DEL10`-`D-DEL13`, Controlled Delete Document Link Guard phase, 2026-07-15): `db/37_controlled_delete_expedicao_cascade.sql` had never received its own `D-DEL` entry.
+- Added `D-DEL14` (section "Phase Controlled Delete - Expedicao Cascade (db/37)", SS10 above), derived from the actual `db/37` file and the `db/34`-`db/36` sequence: expedicao stops blocking unconditionally and starts being part of the `EXCLUIR TUDO` cascade in staging/test.
+- `docs/DOCUMENTATION_INDEX.md` SS4 received the missing lines for `db/34`-`db/37` and `db/53`-`db/56`, and the status of `db/30` was corrected from "not yet applied" to the precise state already accepted in `CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A` (applied and verified in staging, no drift, not recorded in `supabase_migrations.schema_migrations`, live ACL broader than the canonical contract, no confirmed exposure).
+- Does not normalize or resolve `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1`, `DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY`, the authenticated smoke debts, or `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`, which remain `ARCHITECT DECISION REQUIRED`/open.
+- Production (`bhgifjrfagkzubpyqpew`) not accessed; no push. See `docs/ledgers/G28_LEDGER.md` for the append-only entry of this phase.

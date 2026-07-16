@@ -1,545 +1,588 @@
 # Documentation Index — Ravatex Controle de Tapetes
 
-> Índice de documentação. Toda nova sessão de IA ou pessoa deve
-> começar pela **lista de autoridade** da §1, que é a única lista
-> ativa de autoridade documental do projeto. As **docs legadas**
-> foram preservadas como contexto histórico e **não devem guiar
-> execução** após o ciclo de refactor/hardening.
+> Documentation index. Every new AI session or person must
+> start from the **authority list** in §1, which is the sole
+> active list of documentary authority in the project. The
+> **legacy docs** have been preserved as historical context and
+> **must not guide execution** after the refactor/hardening cycle.
 >
-> **Convenção:** este diretório é docs-only. Nenhuma alteração de
-> código, teste ou `index.html` é feita aqui.
+> **Convention:** this directory is docs-only. No changes to
+> code, tests, or `index.html` are made here.
 
-## 0. Papel deste índice e contrato de governança documental
+## 0. Role of this index and documentary governance contract
 
-A partir de `G28-DOCS-B1` (fase aditiva, sem migração), este
-arquivo é formalmente reconhecido como o **árbitro único de
-autoridade documental e caminhos canônicos** do projeto. Ele
-responde a:
+As of `G28-DOCS-B1` (additive phase, no migration), this file
+is formally recognized as the project's **sole arbiter of
+documentary authority and canonical paths**. It answers:
 
-- qual é a **ordem de autoridade** entre documentos;
-- qual é a **classificação** de cada documento (canônico,
-  operacional, contrato, runbook, legado, diagnóstico,
-  governança);
-- quais são os **caminhos canônicos**;
-- quais documentos são **legados** a reconciliar;
-- qual é a **responsabilidade** de cada categoria de documento.
+- what is the **order of authority** among documents;
+- what is the **classification** of each document (canonical,
+  operational, contract, runbook, legacy, diagnostic,
+  governance);
+- what are the **canonical paths**;
+- which documents are **legacy** and pending reconciliation;
+- what is the **responsibility** of each document category.
 
-Este índice **não** é fonte de fase atual, próxima ação, HEAD,
-working tree, status operacional nem histórico de closeouts.
-Esses fatos pertencem a `PROJECT_STATE.md`, ao Git e ao ledger
-da frente, conforme o contrato em
+This index is **not** the source of the current phase, next
+action, HEAD, working tree, operational status, or closeout
+history. Those facts belong to `PROJECT_STATE.md`, Git, and the
+front ledger, per the contract in
 [`docs/governance/DOCUMENTATION_MODEL.md`](governance/DOCUMENTATION_MODEL.md).
 
-O **modelo de governança documental** que rege propriedade,
-duplicação, atualização por fase, transação documental mínima,
-compactação e tratamento de Git/migrations/HEAD é o
-`docs/governance/DOCUMENTATION_MODEL.md`. Em conflito entre
-qualquer documento do projeto e este modelo, prevalece o modelo,
-exceto se a revisão estiver registrada neste índice e no
-respectivo ledger.
+The **documentary governance model** that governs ownership,
+duplication, per-phase updates, minimum documentary transaction,
+compaction, and treatment of Git/migrations/HEAD is
+`docs/governance/DOCUMENTATION_MODEL.md`. In case of conflict
+between any project document and this model, the model prevails,
+unless the revision is recorded in this index and in the
+respective ledger.
 
-As listas concorrentes de "fontes canônicas", "precedência
-funcional" e "documentos obrigatórios" que existiam em outros
-arquivos (§2 deste índice, `docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md`,
-`Guide-and-governance-rules.stxt`) foram reconciliadas em
-`G28-DOCS-B3-E1`: passaram a apontar para a §1 deste índice como
-única lista ativa de autoridade. Nenhuma outra lista concorrente
-deve ser criada.
+The competing lists of "canonical sources (fontes canônicas)",
+"functional precedence", and "required documents" that existed
+in other files (§2 of this index,
+`docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md`,
+`Guide-and-governance-rules.stxt`) were reconciled in
+`G28-DOCS-B3-E1`: they now point to §1 of this index as the
+sole active list of authority. No other competing list should
+be created.
 
-## 1. Autoridade documental canônica (lista única)
+## 1. Canonical documentary authority (single list)
 
-Esta é a **única lista ativa de autoridade documental** do
-projeto. Qualquer outro documento que descreva autoridade,
-prevalência, precedência ou "documentos obrigatórios" deve
-apontar para esta seção, não repetir a lista.
+This is the **sole active list of documentary authority** in
+the project. Any other document describing authority,
+prevalence, precedence, or "required documents" must point to
+this section, not repeat the list.
 
-| Documento | Papel |
+| Document | Role |
 |---|---|
-| `docs/DOCUMENTATION_INDEX.md` (este arquivo) | Classifica os documentos e define seus papéis. |
-| `docs/governance/DOCUMENTATION_MODEL.md` | Define o modelo de governança e as regras de atualização documental por fase. Conteúdo em inglês desde `DOC-LANGUAGE-MIGRATION-L1`; original pt-BR arquivado em `docs/archive/pt-BR/` (ver §7). |
-| `docs/governance/SUPERVISION_PROTOCOL.md` | Define papéis do processo de supervisão (Arquiteto/Parecerista/Executor Residente), onboarding de parecerista novo, formato de ordem e gates (validação visual, mockup aprovado, migration como gate próprio, risco Auth separado). Não define estado nem regras de organização documental — isso é `DOCUMENTATION_MODEL.md`. Conteúdo em inglês desde `DOC-LANGUAGE-MIGRATION-L1`; original pt-BR arquivado em `docs/archive/pt-BR/` (ver §7). |
-| `PROJECT_STATE.md` (raiz) | Único proprietário do estado operacional atual por frente. Conteúdo em inglês desde `DOC-LANGUAGE-MIGRATION-L2`; original pt-BR arquivado em `docs/archive/pt-BR/PROJECT_STATE.md` (ver §7). |
-| `AGENT_HANDOFF.md` (raiz) | Único handoff operacional ativo. Conteúdo em inglês desde `DOC-LANGUAGE-MIGRATION-L2`; original pt-BR arquivado em `docs/archive/pt-BR/AGENT_HANDOFF.md` (ver §7). |
-| `docs/ledgers/G28_LEDGER.md` | Histórico estruturado append-only da frente G28. |
-| `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | Histórico exclusivo da frente de refactor. |
-| `docs/legacy/pre-model/MANIFEST.md` | Preservação imutável pré-modelo; não operacional. |
-| Git | Commits, diffs, manifestos, branch, HEAD, staging e divergência — consultar diretamente. |
+| `docs/DOCUMENTATION_INDEX.md` (this file) | Classifies the documents and defines their roles. |
+| `docs/governance/DOCUMENTATION_MODEL.md` | Defines the governance model and the rules for per-phase documentary updates. Content in English since `DOC-LANGUAGE-MIGRATION-L1`; pt-BR original archived at `docs/archive/pt-BR/` (see §7). |
+| `docs/governance/SUPERVISION_PROTOCOL.md` | Defines the roles of the supervision process (Architect/Reviewer/Resident Executor), onboarding of a new reviewer, order format, and gates (visual validation, approved mockup, migration as its own gate, Auth risk kept separate). Does not define state or documentary organization rules — that is `DOCUMENTATION_MODEL.md`. Content in English since `DOC-LANGUAGE-MIGRATION-L1`; pt-BR original archived at `docs/archive/pt-BR/` (see §7). |
+| `PROJECT_STATE.md` (root) | Sole owner of the current operational state per front. Content in English since `DOC-LANGUAGE-MIGRATION-L2`; pt-BR original archived at `docs/archive/pt-BR/PROJECT_STATE.md` (see §7). |
+| `AGENT_HANDOFF.md` (root) | Sole active operational handoff. Content in English since `DOC-LANGUAGE-MIGRATION-L2`; pt-BR original archived at `docs/archive/pt-BR/AGENT_HANDOFF.md` (see §7). |
+| `docs/ledgers/G28_LEDGER.md` | Structured append-only history of the G28 front. |
+| `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` | History exclusive to the refactor front. |
+| `docs/legacy/pre-model/MANIFEST.md` | Immutable pre-model preservation; not operational. |
+| Git | Commits, diffs, manifests, branch, HEAD, staging, and divergence — consult directly. |
 
-> Estes papéis **não se sobrepõem**. Em divergência entre
-> documentos de papéis distintos, resolve o documento cujo papel
-> corresponde à questão (estado → `PROJECT_STATE.md`; regra de
-> atualização → `DOCUMENTATION_MODEL.md`; autoridade/classificação
-> → este índice; commit/diff → Git). A matriz detalhada de
-> atualização por fase está em
+> These roles **do not overlap**. In divergence between
+> documents with distinct roles, the document whose role
+> matches the question resolves it (state → `PROJECT_STATE.md`;
+> update rule → `DOCUMENTATION_MODEL.md`; authority/classification
+> → this index; commit/diff → Git). The detailed per-phase update
+> matrix is in
 > [`docs/governance/DOCUMENTATION_MODEL.md`](governance/DOCUMENTATION_MODEL.md) §11.
 
-### Inventário classificatório (documentos por categoria)
+### Classificatory inventory (documents by category)
 
-Os documentos abaixo têm função classificatória ou contratual
-legítima; **não** são uma segunda lista de prevalência. Em
-divergência com a §1, resolve-se pelo papel de cada um.
+The documents below have a legitimate classificatory or
+contractual function; they are **not** a second prevalence
+list. In divergence with §1, resolve by the role of each one.
 
-| Documento | Categoria | Propósito |
+| Document | Category | Purpose |
 |---|---|---|
-| `docs/architecture/CODE_HEALTH_RULES.md` | Contrato arquitetural | 19 regras vinculantes de saúde arquitetural (18 de modularização + a regra 19, de idioma). Toda nova fase deve respeitar. Conteúdo em inglês desde `DOC-LANGUAGE-MIGRATION-L1`; original pt-BR arquivado em `docs/archive/pt-BR/` (ver §7). |
-| `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md` | Contrato arquitetural | Regras da frente Portal B2B/Pedidos: separa cliente/admin/fornecedor, status operacional vs. visual, componentes comuns, decomposição de fases. |
-| `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` | Plano persistente | Plano da frente Pedido ↔ OP ↔ Movimentação ↔ Documentos: estado de entrada, decisões, modelo alvo, papéis das telas, fases futuras (B a J), template de evidência. |
-| `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` | Contrato técnico | Contrato de schema para Pedido ↔ OP ↔ Movimentação ↔ Documentos: valida tabelas, FKs, RPCs, triggers, RLS; estabelece vínculo Pedido→OP, movimentação canônica, stepper, saldo por etapa. |
-| `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md` | Backlog | Backlog do fluxo produtivo do Pedido (§1-8) + backlog Admin (§9). 8 itens de produção (A-H) + 10 itens Admin (P1/P2). Leitura obrigatória antes de implementação no fluxo produtivo. |
-| `docs/architecture/AUTH_DELETE_USER_DESIGN.md` | Design | Semântica de exclusão/desativação de usuários: desativar (soft delete + ban Auth) em vez de deletar fisicamente. |
-| `docs/architecture/CAMADA2_USUARIOS_SPEC_PROPOSED.md` | Spec proposta (design) | Spec da Camada 2 (administração de usuários, A1-A7 + política de senha): comparação evidenciada Tapetes × SGAA_clean_baseline (referência funcional/visual externa, read-only), plano de módulos, classificação de risco Auth e ordem de subfases com gates. **Status: `PROPOSED`. Autoridade condicionada a aceite explícito do arquiteto por subfase** — não é fonte de implementação autorizada até que cada subfase individual seja aprovada. |
-| `docs/design/CAMADA2_A32_MOCKUP_APPROVED.md` | Design (aprovado) | Especificação visual aprovada de `A3.2` (cards-resumo/KPI, toolbar, badge de papel, opacidade de linha inativa): valores finais de cor/espaçamento/tipografia, implementados em `js/screens/admin-usuarios.js`. Documenta explicitamente o que ficou fora de escopo (coluna "Último acesso", bloqueada por HARD STOP de migration; ícones de A5; bulk actions de A3.3). **Status: `CLOSED / ACCEPTED`** (validação visual do arquiteto confirmada 2026-07-15). |
-| `docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md` | Inventário de ativos | Mapa de componentes, entrypoints, contratos e estrutura de `.claude`. **Não é fonte de estado atual nem árbitro de autoridade.** |
-| `Guide-and-governance-rules.stxt` (raiz) | Governança de agente | Regras operacionais estáveis para o agente Arquiteto/IAexec (Git, escopo, decomposição, roteamento). **Não repete esta lista de autoridade.** |
+| `docs/architecture/CODE_HEALTH_RULES.md` | Architectural contract | 19 binding architectural health rules (18 modularization + rule 19, on language). Every new phase must comply. Content in English since `DOC-LANGUAGE-MIGRATION-L1`; pt-BR original archived at `docs/archive/pt-BR/` (see §7). |
+| `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md` | Architectural contract | Rules for the Portal B2B/Pedidos front: separates client/admin/supplier, operational vs. visual status, common components, phase decomposition. |
+| `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` | Persistent plan | Plan for the Pedido ↔ OP ↔ Movimentação ↔ Documentos front: entry state, decisions, target model, screen roles, future phases (B through J), evidence template. |
+| `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` | Technical contract | Schema contract for Pedido ↔ OP ↔ Movimentação ↔ Documentos: validates tables, FKs, RPCs, triggers, RLS; establishes the Pedido→OP link, canonical movement, stepper, per-stage balance. |
+| `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md` | Backlog | Backlog of the Pedido production flow (§1-8) + Admin backlog (§9). 8 production items (A-H) + 10 Admin items (P1/P2). Mandatory reading before implementation in the production flow. |
+| `docs/architecture/AUTH_DELETE_USER_DESIGN.md` | Design | Semantics of user deletion/deactivation: deactivate (soft delete + Auth ban) instead of physically deleting. |
+| `docs/architecture/CAMADA2_USUARIOS_SPEC_PROPOSED.md` | Proposed spec (design) | Spec for Camada 2 (user administration, A1-A7 + password policy): evidenced comparison Tapetes × SGAA_clean_baseline (external functional/visual reference, read-only), module plan, Auth risk classification, and order of subphases with gates. **Status: `PROPOSED`. Authority conditioned on explicit architect acceptance per subphase** — not an authorized source of implementation until each individual subphase is approved. |
+| `docs/design/CAMADA2_A32_MOCKUP_APPROVED.md` | Design (approved) | Approved visual specification for `A3.2` (summary/KPI cards, toolbar, role badge, inactive-row opacity): final color/spacing/typography values, implemented in `js/screens/admin-usuarios.js`. Explicitly documents what was left out of scope ("Last access" column, blocked by migration HARD STOP; A5 icons; A3.3 bulk actions). **Status: `CLOSED / ACCEPTED`** (architect visual validation confirmed 2026-07-15). |
+| `docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md` | Asset inventory | Map of components, entry points, contracts, and `.claude` structure. **Not a source of current state nor an authority arbiter.** |
+| `Guide-and-governance-rules.stxt` (root) | Agent governance | Stable operational rules for the Architect/IAexec agent (Git, scope, decomposition, routing). **Does not repeat this authority list.** |
 
-### Runbooks operacionais (complementam, não substituem)
+### Operational runbooks (complement, do not replace)
 
-Runbooks descrevem **como executar** procedimentos aprovados. Não
-substituem a autoridade da §1; em divergência, a §1 prevalece.
+Runbooks describe **how to execute** approved procedures. They
+do not replace §1 authority; in divergence, §1 prevails.
 
-| Documento | Propósito |
+| Document | Purpose |
 |---|---|
-| `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md` | Procedimento operacional padrão para criação de usuários (admin/fornecedor) via Edge Function `admin-create-user` + UI `#/cadastros/usuarios`. Substitui o fluxo manual de criar Auth user no Studio e copiar UID. |
-| `docs/operations/AUTH_DISABLE_USER_PROD_RELEASE_PLAN.md` | Plano operacional de release para levar a cadeia Auth do staging para produção. Ordem obrigatória, critérios GO/NO-GO, rollback, validações read-only. |
-| `docs/operations/PARALLEL_ENVIRONMENT_RECONCILIATION.md` | Taxonomia oficial dos ambientes: `bhgifjrfagkzubpyqpew` = Legacy (não tocar), `ucrjtfswnfdlxwtmxnoo` = paralelo de trabalho. Estado de cada ambiente, decisão arquitetural, próximas etapas. |
+| `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md` | Standard operational procedure for creating users (admin/supplier) via Edge Function `admin-create-user` + UI `#/cadastros/usuarios`. Replaces the manual flow of creating an Auth user in Studio and copying the UID. |
+| `docs/operations/AUTH_DISABLE_USER_PROD_RELEASE_PLAN.md` | Operational release plan for taking the Auth chain from staging to production. Required order, GO/NO-GO criteria, rollback, read-only validations. |
+| `docs/operations/PARALLEL_ENVIRONMENT_RECONCILIATION.md` | Official taxonomy of the environments: `bhgifjrfagkzubpyqpew` = Legacy (do not touch), `ucrjtfswnfdlxwtmxnoo` = working parallel. State of each environment, architectural decision, next steps. |
 
-## 1b. Documentos de diagnóstico de UI (não normativos, não executáveis)
+## 1b. UI diagnostic documents (non-normative, non-executable)
 
-Documentos desta seção **comparam** mockups aprovados contra a
-implementação atual, para escopar fases futuras de ajuste visual.
-**Não são fonte canônica**, não autorizam implementação por si só e
-não substituem a lista de autoridade da §1.
+Documents in this section **compare** approved mockups against
+the current implementation, to scope future phases of visual
+adjustment. **Not a canonical source**, they do not by
+themselves authorize implementation and do not replace the §1
+authority list.
 
-| Documento | Propósito | Fase |
+| Document | Purpose | Phase |
 |---|---|---|
-| `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md` | Inventário read-only de divergências entre os 5 mockups do Portal Cliente B2B (Dashboard, Novo Pedido, Modal Adicionar Item, Detalhe do Pedido, Acompanhamento) e as telas `js/screens/cliente-*.js` atuais. Matriz por tela, gaps detalhados, particularidades operacionais ainda em TBD e proposta de fases futuras (`UI-GAP-FIX-*`, `UI-OPERATIONS-RULES-A`). Não implementa nem corrige nada. | `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-GAP-INVENTORY-A` |
-| `docs/ui/CLIENTE_PORTAL_UI_OPERATIONS_RULES.md` | Matriz operacional docs-only para a UI do Portal Cliente B2B. Consolida decisões já fechadas, registra as pendências `OP-001` a `OP-012`, recomendações técnicas, impacto por tela e a sequência futura (`UI-GAP-FIX-NOVO-PEDIDO-A` até `UI-GAP-FIX-SHELL-A`). Não implementa UI nem altera código/schema/Supabase. | `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-OPERATIONS-RULES-A` |
+| `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md` | Read-only inventory of divergences between the 5 mockups of the B2B Client Portal (Dashboard, Novo Pedido, Modal Adicionar Item, Detalhe do Pedido, Acompanhamento) and the current `js/screens/cliente-*.js` screens. Per-screen matrix, detailed gaps, operational particulars still TBD, and proposal of future phases (`UI-GAP-FIX-*`, `UI-OPERATIONS-RULES-A`). Implements or fixes nothing. | `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-GAP-INVENTORY-A` |
+| `docs/ui/CLIENTE_PORTAL_UI_OPERATIONS_RULES.md` | Docs-only operational matrix for the B2B Client Portal UI. Consolidates decisions already closed, records pending items `OP-001` through `OP-012`, technical recommendations, per-screen impact, and the future sequence (`UI-GAP-FIX-NOVO-PEDIDO-A` through `UI-GAP-FIX-SHELL-A`). Does not implement UI nor change code/schema/Supabase. | `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-OPERATIONS-RULES-A` |
 
-## 1c. Histórico estruturado e preservação por frente
+## 1c. Structured history and per-front preservation
 
-Detalhamento classificatório dos papéis de histórico e preservação
-declarados na §1. Não é uma segunda lista de autoridade.
+Classificatory detail of the history/preservation roles
+declared in §1. Not a second authority list.
 
-- `docs/ledgers/G28_LEDGER.md` — append-only; não é fonte do estado atual;
-  não substitui o Git; não reconstrói automaticamente o histórico pré-modelo.
-- `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` — ledger histórico
-  exclusivo da frente de refactor; permanece no caminho atual; não deve ser
-  copiado para `docs/legacy/`.
-- `docs/legacy/pre-model/MANIFEST.md` — índice dos snapshots completos e
-  imutáveis anteriores à compactação; snapshots não são fontes de estado
-  atual; snapshots não recebem novos closeouts; conteúdo preservado para
-  auditoria, não para roteamento operacional.
-- `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` — narrativas de closeout
-  de fases movidas de `PROJECT_STATE.md` por `PROJECT-STATE-COMPACTION-A`
-  (2026-07-16), verbatim e em ordem original. **Não é fonte do estado atual**
-  (esse é `PROJECT_STATE.md`, agora current-state-only); as fases arquivadas
-  estão indexadas na tabela "Closed phases" de `PROJECT_STATE.md`. Append-only
-  para este lote; as decisões de arquiteto ali registradas permanecem em vigor
-  e estão condensadas em `PROJECT_STATE.md` §"Binding decisions in force".
+- `docs/ledgers/G28_LEDGER.md` — append-only; not a source of current state;
+  does not replace Git; does not automatically reconstruct pre-model history.
+- `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` — history ledger
+  exclusive to the refactor front; stays at its current path; must not be
+  copied into `docs/legacy/`.
+- `docs/legacy/pre-model/MANIFEST.md` — index of the complete and
+  immutable snapshots prior to compaction; snapshots are not sources of
+  current state; snapshots receive no new closeouts; content preserved for
+  audit, not for operational routing.
+- `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` — closeout narratives
+  of phases moved from `PROJECT_STATE.md` by `PROJECT-STATE-COMPACTION-A`
+  (2026-07-16), verbatim and in original order. **Not a source of current
+  state** (that is `PROJECT_STATE.md`, now current-state-only); archived
+  phases are indexed in the "Closed phases" table of `PROJECT_STATE.md`.
+  Append-only for this batch; the architect decisions recorded there
+  remain in force and are condensed in `PROJECT_STATE.md` §"Binding
+  decisions in force".
 
-## 1d. Relatórios de diagnóstico e reconciliação, e artefatos de supervisão externa (não normativos)
+## 1d. Diagnostic and reconciliation reports, and external supervision artifacts (non-normative)
 
-Documentos desta seção registram diagnósticos read-only ou artefatos de
-supervisão externa. Não são fonte canônica de estado, não autorizam
-implementação por si só e não substituem a lista de autoridade da §1. As
-decisões do arquiteto derivadas destes documentos são registradas em
-`PROJECT_STATE.md` e no ledger da frente aplicável, não neles próprios.
+Documents in this section record read-only diagnostics or
+external supervision artifacts. They are not a canonical source
+of state, do not by themselves authorize implementation, and do
+not replace the §1 authority list. Architect decisions derived
+from these documents are recorded in `PROJECT_STATE.md` and in
+the ledger of the applicable front, not in the documents
+themselves.
 
-| Documento | Propósito | Fase |
+| Document | Purpose | Phase |
 |---|---|---|
-| `docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md` | Diagnóstico read-only do backlog geral: inventário no código real da Camada 2 (administração de usuários) e Camada 3 (backup), auditoria dos worktrees, evidência factual de validação da seção de Documentos (sem classificar aceite), tabela única de backlog remanescente e divergências entre canônicos/código/closeout do ChatGPT. Não altera estado; decisões derivadas registradas em `PROJECT_STATE.md` (`G28-RECONCILIATION-DECISIONS-A`). | `BACKLOG-RECONCILIATION-READONLY-R1` |
-| `docs/handoffs/CHATGPT_CLOSEOUT_2026-07-15.md` | Registro de encerramento da supervisão do ChatGPT: estado segundo seu próprio registro, ordens emitidas não fechadas, decisões discutidas fora dos arquivos canônicos e pendências aguardando decisão do arquiteto. Artefato externo, não canônico; seu relatório `PROJECT-CONTROL-BASELINE-R1` foi avaliado e rejeitado (`REJECTED / NOT RATIFIED`) em `PROJECT_STATE.md` (`G28-RECONCILIATION-DECISIONS-A`). | Handoff externo (ChatGPT), não numerado como fase do projeto |
-| `CLAUDE.md` (raiz) | Ponteiro de harness carregado automaticamente por agentes Claude Code. **Autoridade: NENHUMA** — não é fonte de estado, regra ou classificação; aponta para `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/architecture/CODE_HEALTH_RULES.md`, `docs/governance/DOCUMENTATION_MODEL.md` e este índice. Em conflito com qualquer canônico, o canônico prevalece. Conteúdo em inglês desde `DOC-LANGUAGE-MIGRATION-L1` (inclui resumo-ponteiro da política de idioma, apontando às casas canônicas); original pt-BR arquivado em `docs/archive/pt-BR/CLAUDE.md` (ver §7). | `Add CLAUDE.md agent entrypoint` |
-| `.claude/launch.json` | Config de harness para subir o servidor estático local (`python -m http.server 8765`) usada nos gates de validação visual do arquiteto (A3.1 e subfases futuras de Camada 2 que tocam UI: A3.2, A4.2, A6.3). **Autoridade: NENHUMA** — não é fonte de estado, regra ou classificação; não contém credencial, URL ou segredo (inspecionado antes do commit). Mesmo tratamento do `CLAUDE.md`: ponteiro de tooling, não canônico. | `Add local preview launch config` |
+| `docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md` | Read-only diagnostic of the general backlog: inventory in the actual code of Camada 2 (user administration) and Camada 3 (backup), worktree audit, factual evidence of the Documents section validation (without classifying acceptance), a single table of remaining backlog, and divergences between canonical/code/ChatGPT closeout. Does not change state; decisions derived are recorded in `PROJECT_STATE.md` (`G28-RECONCILIATION-DECISIONS-A`). | `BACKLOG-RECONCILIATION-READONLY-R1` |
+| `docs/handoffs/CHATGPT_CLOSEOUT_2026-07-15.md` | Closeout record of ChatGPT's supervision: state per its own record, orders issued but not closed, decisions discussed outside canonical files, and pending items awaiting architect decision. External, non-canonical artifact; its `PROJECT-CONTROL-BASELINE-R1` report was evaluated and rejected (`REJECTED / NOT RATIFIED`) in `PROJECT_STATE.md` (`G28-RECONCILIATION-DECISIONS-A`). | External handoff (ChatGPT), not numbered as a project phase |
+| `CLAUDE.md` (root) | Harness pointer automatically loaded by Claude Code agents. **Authority: NONE** — not a source of state, rule, or classification; points to `PROJECT_STATE.md`, `AGENT_HANDOFF.md`, `docs/architecture/CODE_HEALTH_RULES.md`, `docs/governance/DOCUMENTATION_MODEL.md`, and this index. In conflict with any canonical document, the canonical one prevails. Content in English since `DOC-LANGUAGE-MIGRATION-L1` (includes a pointer-summary of the language policy, pointing to the canonical homes); pt-BR original archived at `docs/archive/pt-BR/CLAUDE.md` (see §7). | `Add CLAUDE.md agent entrypoint` |
+| `.claude/launch.json` | Harness config to start the local static server (`python -m http.server 8765`) used in the architect's visual validation gates (A3.1 and future Camada 2 subphases touching UI: A3.2, A4.2, A6.3). **Authority: NONE** — not a source of state, rule, or classification; contains no credential, URL, or secret (inspected before commit). Same treatment as `CLAUDE.md`: tooling pointer, not canonical. | `Add local preview launch config` |
 
-## 2. Regra de prevalência
+## 2. Prevalence rule
 
-A única lista ativa de autoridade documental está na **§1** deste
-índice. A regra de prevalência é: resolve a questão pelo **papel**
-do documento (estado → `PROJECT_STATE.md`; regra de atualização →
-`docs/governance/DOCUMENTATION_MODEL.md`; classificação/autoridade
-→ §1 deste índice; commit/diff/HEAD/staging/divergência → Git).
+The sole active list of documentary authority is in **§1** of
+this index. The prevalence rule is: resolve the question by the
+document's **role** (state → `PROJECT_STATE.md`; update rule →
+`docs/governance/DOCUMENTATION_MODEL.md`; classification/authority
+→ §1 of this index; commit/diff/HEAD/staging/divergence → Git).
 
-A matriz detalhada de **qual documento atualizar por tipo de
-evento de fase** está em
+The detailed matrix of **which document to update per type of
+phase event** is in
 [`docs/governance/DOCUMENTATION_MODEL.md`](governance/DOCUMENTATION_MODEL.md)
-§11 ("Regra de atualização por fase") e §12 ("Transação documental
-mínima").
+§11 ("Update rule per phase") and §12 ("Minimum documentary
+transaction").
 
-A lista numerada de prevalência que existia nesta seção foi
-removida em `G28-DOCS-B3-E1` por ser concorrente da §1. Docs
-legadas (`docs/superpowers`, `docs/qa`, docs antigos na raiz de
-`docs/`) continuam **não** devendo guiar execução.
+The numbered prevalence list that existed in this section was
+removed in `G28-DOCS-B3-E1` for being a competitor of §1. Legacy
+docs (`docs/superpowers`, `docs/qa`, old docs at the root of
+`docs/`) continue to **not** guide execution.
 
-## 3. Runbooks operacionais atuais
+## 3. Current operational runbooks
 
-Pasta `docs/operations/`. Documentam **como executar** procedimentos
-aprovados pelas fontes canônicas. Quando houver divergência entre
-um runbook e uma fonte canônica, as fontes canônicas prevalecem.
+Folder `docs/operations/`. They document **how to execute**
+procedures approved by the canonical sources. When there is
+divergence between a runbook and a canonical source, the
+canonical sources prevail.
 
-| Arquivo | Procedimento | Fase |
+| File | Procedure | Phase |
 
-| Arquivo | Procedimento | Fase |
+| File | Procedure | Phase |
 |---|---|---|
-| `AUTH_USER_PROVISIONING_RUNBOOK.md` | Criação de usuários (admin/fornecedor) via Edge Function `admin-create-user` + UI `#/cadastros/usuarios`. Substitui o fluxo manual de criar Auth user no Studio e copiar UID. | `RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A` |
-| `AUTH_DISABLE_USER_PROD_RELEASE_PLAN.md` | Plano de release produção — schema, secrets, Edge Functions, frontend. Ordem obrigatória, rollback, GO/NO-GO. | `RAVATEX-TAPETES-AUTH-DISABLE-USER-PROD-RELEASE-PLAN-A` |
-| `PARALLEL_ENVIRONMENT_RECONCILIATION.md` | Taxonomia oficial de ambientes. Legacy vs paralelo, estado de cada, bloqueios. | `RAVATEX-TAPETES-PARALLEL-ENV-RECONCILIATION-A` |
+| `AUTH_USER_PROVISIONING_RUNBOOK.md` | Creation of users (admin/supplier) via Edge Function `admin-create-user` + UI `#/cadastros/usuarios`. Replaces the manual flow of creating an Auth user in Studio and copying the UID. | `RAVATEX-TAPETES-AUTH-PROVISIONING-DOCS-A` |
+| `AUTH_DISABLE_USER_PROD_RELEASE_PLAN.md` | Production release plan — schema, secrets, Edge Functions, frontend. Required order, rollback, GO/NO-GO. | `RAVATEX-TAPETES-AUTH-DISABLE-USER-PROD-RELEASE-PLAN-A` |
+| `PARALLEL_ENVIRONMENT_RECONCILIATION.md` | Official environment taxonomy. Legacy vs. parallel, state of each, blockers. | `RAVATEX-TAPETES-PARALLEL-ENV-RECONCILIATION-A` |
 
-Convenção: estes runbooks são **docs-only** e **operacionais**.
-Atualizações devem ser feitas em fases docs-only dedicadas.
+Convention: these runbooks are **docs-only** and
+**operational**. Updates must be made in dedicated docs-only
+phases.
 
-## 4. Schema / migrations versionadas (Supabase)
+## 4. Schema / versioned migrations (Supabase)
 
-A pasta `db/` contém o schema canônico e as migrations aplicadas
-(parcialmente) em staging e produção. As migrations
-**schema-only** (sem deletes destrutivos) são criadas em fases
-próprias e validadas por smoke tests antes de qualquer aplicação
-no Supabase. Quando uma migration ainda **não foi aplicada**,
-isso é registrado explicitamente no header do arquivo e em
-`PROJECT_STATE.md`.
+The `db/` folder contains the canonical schema and the
+migrations applied (partially) in staging and production.
+**Schema-only** migrations (no destructive deletes) are created
+in their own phases and validated by smoke tests before any
+application to Supabase. When a migration has **not yet been
+applied**, this is explicitly recorded in the file header and
+in `PROJECT_STATE.md`.
 
-| Arquivo | Propósito | Fase | Status |
+| File | Purpose | Phase | Status |
 |---|---|---|---|
-| `db/01_schema.sql` | Schema base das tabelas do app. | `RAVATEX-TAPETES-FASE-1` | aplicado em staging/produção |
-| `db/02_functions.sql` | Funções RLS auxiliares originais (`is_admin`, `meu_fornecedor_id`). | `RAVATEX-TAPETES-FASE-1` | aplicado (substituído em produção por `db/05_fix_pgrst.sql`) |
-| `db/03_policies.sql` | Policies RLS de todas as tabelas. | `RAVATEX-TAPETES-FASE-1` | aplicado em staging/produção |
-| `db/04_seed.sql` | Seeds de cadastro. | `RAVATEX-TAPETES-FASE-1` | aplicado em staging |
-| `db/05_fix_pgrst.sql` | Fix PGRST + recriação de `is_admin`/`meu_fornecedor_id` com `EXCEPTION`. | `RAVATEX-TAPETES-FASE-5A` | aplicado em staging/produção |
-| `db/06_fase5a_policies.sql` | Policies adicionais para entregas de fornecedor. | `RAVATEX-TAPETES-FASE-5A` | aplicado em staging/produção |
-| `db/07_fase5a_destino_latex.sql` | Colunas de destino de látex em entregas. | `RAVATEX-TAPETES-FASE-5A` | aplicado em staging |
-| `db/08_fase5b_latex.sql` | Suporte a OP de látex (tipo, origem, fornecedor de látex). | `RAVATEX-TAPETES-FASE-5B` | aplicado em staging |
-| `db/09_fase6_cliente_lote.sql` | Tabelas `clientes` e `lotes`, função `gerar_op_latex`. | `RAVATEX-TAPETES-FASE-6` | aplicado em staging |
-| `db/10_reset_producao.sql` | Reset destrutivo de produção (DELETE em massa). | — | **NÃO executar** sem autorização. |
-| `db/11_reset_ops.sql` | Reset destrutivo de OPs (DELETE em massa). | — | **NÃO executar** sem autorização. |
-| `db/12_auth_user_disable_schema.sql` | Suporte a desativação de usuários: colunas `ativo`, `desativado_em`, `desativado_por`, `motivo_desativacao`; recriação de `is_admin` e `meu_fornecedor_id` para exigir `ativo is true`; recriação de policies `usuarios_select`, `usuarios_admin_all`, `usuarios_self_update`. | `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A` (+ `...-SCHEMA-APPLY-A` + `...-SCHEMA-APPLY-EVIDENCE-A`) | **Aplicado em staging** (`ucrjtfswnfdlxwtmxnoo`) em `2026-06-24`, manualmente por HMNlead no SQL Editor. Validação pós-aplicação: `ativo = true, total = 3`; nenhuma coluna destrutiva rodada; `db/10_reset_producao.sql` e `db/11_reset_ops.sql` não foram executados; produção `bhgifjrfagkzubpyqpew` não foi tocada. Validado por `tests/auth-disable-user-schema.smoke.js` (20/20) **antes** da aplicação. |
-| `db/13_pedidos_schema.sql` | Schema/RLS de Pedidos do cliente: tabelas `pedidos`, `pedido_itens`, `pedido_eventos`; coluna `lotes.pedido_id` (nullable); RLS admin-only em todas as 3 tabelas; índices em `cliente_id`, `status`, `token_acesso`, `pedido_id`. **Não** cria `pedidos.op_id`. **Não** cria policy pública. | `RAVATEX-TAPETES-PEDIDOS-SCHEMA-RLS-A` (+ `...-SCHEMA-APPLY-UCR-A` + `...-SCHEMA-APPLY-RECORD-A`) | **Aplicado em ucr** (`ucrjtfswnfdlxwtmxnoo`) em `2026-06-24` via Management API. Validação pós-aplicação: 3 tabelas criadas, RLS habilitada, policies admin-only, índices OK, `pedidos.op_id` ausente, `lotes.pedido_id` presente. Validado por `tests/pedidos-schema.smoke.js` (41/41). Frontend implementado (C1 + C2 + C2-R1 + C3A): listagem `#/pedidos`, formulário `#/pedidos/novo` (criação admin como `rascunho`), correção do preview de cor (C2-R1) e detalhe read-only `#/pedidos/<uuid>` (C3A). Validação de frontend focada: `pedido-detail.smoke.js` 30/30, `pedido-form.smoke.js` 35/35, `pedido-ui.test.js` 18/18, `pedidos-list.smoke.js` 29/29. **Estritamente read-only** no detalhe (sem insert/update/delete/rpc, sem `functions.invoke`, sem `token_acesso`, sem rota pública, sem mutação em `lotes`/`pedido_eventos`). |
-| `db/14_cliente_perfil_schema.sql` | Perfil autenticado de cliente: role `cliente` em `usuarios.tipo` (constraint `usuarios_tipo_check`), coluna `usuarios.cliente_id` (FK → `public.clientes`), constraint `usuarios_vinculo_exclusivo_check` (admin/fornecedor/cliente com vínculos exclusivos), função `public.meu_cliente_id()` (SECURITY DEFINER, STABLE; exige `tipo='cliente' AND ativo=true AND cliente_id NOT NULL`; retorna NULL em falhas), policies RLS mínimas para cliente SELECT/INSERT em `clientes`, `pedidos` e `pedido_itens`. **Não** libera UPDATE/DELETE de cliente. **Não** expõe token público. **Não** cria policy anon. `pedido_eventos` permanece admin-only (auditoria interna). | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1` + `B2` + `B2-RECORD-A` | **Aplicado em staging** (`ucrjtfswnfdlxwtmxnoo`) via Management API em `2026-06-24` (fase B2). Status 201, 33 statements. Validações pós 23/23: `usuarios_tipo_check` com `cliente`, `usuarios.cliente_id` + FK, `usuarios_vinculo_exclusivo_check`, `meu_cliente_id()` (SECURITY DEFINER, grants OK), 5 policies cliente SELECT/INSERT, 0 policies UPDATE/DELETE cliente, 0 policies anon/token, 0 violações de constraint. **Lacuna:** `admin-create-user` e UI aceitam apenas `admin`/`fornecedor`; provisionamento de usuário cliente pendente. |
-| `db/15_status_cliente_visual.sql` | Base versionada do tracking visual do cliente B2B: novas colunas visuais em `public.pedidos` (`status_cliente_visual`, `status_cliente_excecao`, `status_cliente_mensagem`, `status_cliente_atualizado_em`, `referencia_cliente`, `prazo_desejado`, `tipo_recebimento`); checks TEXT + CHECK idempotentes; tabela `public.pedido_cliente_eventos`; RLS admin-only nessa nova tabela; trigger guard de INSERT para impedir cliente de publicar estado visual; trigger de touch para `status_cliente_atualizado_em` em updates visuais. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-SCHEMA-A` + `...-SCHEMA-B` | **Aplicado e validado em staging** (`ucrjtfswnfdlxwtmxnoo`) em `2026-06-26`. Validações estruturais concluídas: 7 colunas novas em `pedidos`, 10 colunas em `pedido_cliente_eventos`, 4 constraints, 2 triggers, 2 funções, 1 índice, `pedido_cliente_eventos = 0`. Frontend cliente já lê `status_cliente_visual` real, mas ainda não expõe `pedido_cliente_eventos`. |
-| `db/16_pedido_cliente_eventos_cliente_select.sql` | Policy RLS versionada para liberar somente `SELECT` do cliente em `public.pedido_cliente_eventos`, restrita a linhas com `visivel_cliente = true` e pertencentes a pedidos cujo `cliente_id = public.meu_cliente_id()`. Preserva a policy admin existente e não cria writes, view, RPC ou trigger. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-EVENTS-RLS-A` | **Versionado no repo, ainda não aplicado** em Supabase. Prepara a fase seguinte de apply em staging e a timeline read-only futura do cliente. |
-| `db/30_cliente_pedido_summary_readmodel.sql` | RPC publica `cliente_pedido_summary(UUID)` para o detalhe do pedido no Portal Cliente. Encapsula as tabelas operacionais internas atras de `SECURITY DEFINER`, autoriza admin ou cliente dono, retorna DTO JSONB simplificado (`pedido`, `itens`, `parciais`, `timeline`, `entregas`, `pendencias`, `etapas`, `chain_state`) e nao publica OP/lote/fornecedor/NF/romaneio/custo/margem/IDs de catalogo. | `RAVATEX-TAPETES-CLIENTE-ORDER-SUMMARY-READMODEL-A-B` (+ `...-APPLY-STAGING-A` + `...-ACL-GRANTS-R1`) | **Funcao aplicada e funcionalmente verificada em staging** (`ucrjtfswnfdlxwtmxnoo`), confirmado em `2026-07-15` (`CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A`, `CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBTS`). `public.cliente_pedido_summary(uuid)` existe com corpo equivalente byte a byte ao arquivo (**sem drift de schema**). **`db/30` em si permanece ausente** de `supabase_migrations.schema_migrations` (divida de proveniencia preservada, `DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY`, nao reparada). ACL de execucao **nao mais ampla que o contrato canonico**: remediada em `2026-07-15` pela migration grants-only `db/57_cliente_pedido_summary_acl_grants.sql` (ver linha propria abaixo, fase `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1`), que revogou `EXECUTE` de `PUBLIC`/`anon`/`service_role`, mantendo apenas `authenticated`. Smoke autenticado de browser continua divida nao bloqueante (`AUTHENTICATED_BROWSER_SMOKE_NOT_EXECUTED`, sem senha de cliente de teste). |
-| `db/34_controlled_delete_pedido_op.sql` | RPCs de exclusao fisica controlada de teste/staging para Pedido e OP: `diagnosticar_impacto_pedido`, `diagnosticar_impacto_op`, `remover_pedido`, `remover_op`. Remove o trigger legado `ops_numeradas_no_delete` (db/26) para permitir remover OP numerada sem bloqueadores reais. Bloqueia quando ha entrega, expedicao ou OP filha nao tratada; exige confirmacao `EXCLUIR` para dependencias nao bloqueadoras. `op_numeros` nunca e alterado. | `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-B` (+ `...-POLICY-FIX-C`) | **Aplicada e validada somente em staging** (`ucrjtfswnfdlxwtmxnoo`); producao `bhgifjrfagkzubpyqpew` intocada. Logica destrutiva renomeada `*_pre53` por `db/53` (ver abaixo); sem API publica sob o nome original desde entao. |
-| `db/35_controlled_delete_test_cascade.sql` | Substitui as quatro RPCs de `db/34` por versoes que aceitam cascata fisica controlada (entrega + OP filha) quando nao ha expedicao vinculada, exigindo confirmacao textual `EXCLUIR TUDO` (`requires_cascade_confirmation`). Expedicao permanece bloqueador nesta migration. `op_numeros` inalterado. | `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-CASCADE-TEST-D` | **Aplicada e validada somente em staging** (`ucrjtfswnfdlxwtmxnoo`); producao intocada. Substituida functionalmente por `db/36`/`db/37` na mesma fase de Controlled Delete; renomeada `*_pre53` por `db/53`. |
-| `db/36_controlled_delete_fk_order_fix.sql` | Corrige a ordem transacional da cascata de `db/35`: monta alvos FK explicitos (`target_ops`, `target_op_itens`, `target_entregas`, `target_op_latex_links`, `target_child_ops`, `target_child_op_itens`), zera `entrega_itens` por `op_id` e por `op_item_id` antes de remover OPs, e corrige os guards `entrega_cima_latex_guard_fn`/`entrega_itens_cima_latex_guard_fn` para retornar `OLD` em `DELETE` autorizado (evita cancelamento silencioso). Expedicao continua bloqueador. `op_numeros` inalterado. | `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-FK-ORDER-FIX-E` | **Aplicada e validada somente em staging** (`ucrjtfswnfdlxwtmxnoo`) com teste sintetico real (Pedido #29, OPs 45/46, entrega 21); producao intocada. Renomeada `*_pre53` por `db/53`. |
-| `db/37_controlled_delete_expedicao_cascade.sql` | Substitui as quatro RPCs de `db/36` (mesmos guards de entrega): expedicao deixa de ser bloqueador incondicional e passa a integrar a cascata `EXCLUIR TUDO` (`expedicao_movimento_itens` → `expedicao_movimentos` → `expedicao_itens` → `expedicoes`, removidos antes de OPs/entregas/lotes/pedido). `op_numeros` inalterado. Ver decisao `D-DEL14` em `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` SS10. | `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-EXPEDICAO-CASCADE-E2` | **Aplicada e validada somente em staging** (`ucrjtfswnfdlxwtmxnoo`); producao intocada. Desde `db/53`, renomeada para `diagnosticar_impacto_pedido_pre53`/`diagnosticar_impacto_op_pre53`/`remover_pedido_pre53`/`remover_op_pre53` (`EXECUTE` revogado de todos os papeis); logica preservada e chamada pelos wrappers publicos do guard documental somente quando elegivel. |
-| `db/53_controlled_delete_document_link_guard.sql` | Guarda documental permanente entre a exclusao fisica controlada de teste (Pedido/OP) e o historico documental canonico G28 (`document_link_revisions`/`document_link_revision_ops`). Renomeia as quatro funcoes legadas de `db/37` para `*_pre53` (revoga `EXECUTE` de `PUBLIC`/`anon`/`authenticated`/`service_role`) e recria as assinaturas publicas originais como wrappers `SECURITY DEFINER` que diagnosticam historico documental, bloqueiam quando ha vinculo canonico e delegam a `*_pre53` somente quando elegivel. Nunca apaga/altera `document_link_revisions`/`document_link_revision_ops`/`op_numeros`. | `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-GUARD-B` | **Aplicada e validada em staging** (`ucrjtfswnfdlxwtmxnoo`), commit tecnico `707a37bd1d2c4728ab2a17433b6441049bd88062`. `CLOSED / ACCEPTED`. Producao intocada. Ver `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` (decisoes `D-DEL10`-`D-DEL13`). |
-| `db/54_controlled_delete_document_link_grants.sql` | Correcao de seguranca emergencial staging-only: apos `db/53`, as quatro RPCs publicas mantinham `EXECUTE` concedido a `PUBLIC`/`anon` por grants anteriores/default. Revoga esses grants e restringe `EXECUTE` a `authenticated`, sem alterar corpo, `SECURITY DEFINER` ou tabelas. | `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-GRANTS-54` | **Aplicada e validada em staging** (`ucrjtfswnfdlxwtmxnoo`), parte do mesmo commit tecnico `707a37bd...`. `CLOSED / ACCEPTED`. Producao intocada. |
-| `db/55_controlled_delete_document_link_policy_cast.sql` | Correcao emergencial staging-only para `db/53` ja aplicada: `to_jsonb(<literal>)` sem cast explicito falhava com `could not determine polymorphic type`. Patch forward-only (`DO $repair$`) localiza e substitui o literal de politica documental por `to_jsonb(<literal>::TEXT)` nas duas diagnosticas publicas ja aplicadas. Nao altera regras, grants ou cascatas. | `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-POLICY-CAST-55` | **Aplicada e validada em staging** (`ucrjtfswnfdlxwtmxnoo`), parte do mesmo commit tecnico `707a37bd...`. `CLOSED / ACCEPTED`. Producao intocada. |
-| `db/56_controlled_delete_document_link_diagnostics_null_safe.sql` | Correcao emergencial staging-only para regressao de `db/53`: `jsonb_set(...)` e `STRICT`, entao o retorno inteiro das diagnosticas publicas colapsava para `NULL` sempre que o alvo nao estava bloqueado por historico documental (`reason` nulo). Corrigido com `COALESCE(to_jsonb(v_reason), 'null'::jsonb)` no `jsonb_set` final de cada diagnostica, preservando o schema JSON e sem alterar guard/ACL/`remover_*`/`*_pre53`. | `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-DIAGNOSTICS-NULL-SAFE-56` | **Aplicada e validada em staging** (`ucrjtfswnfdlxwtmxnoo`), parte do mesmo commit tecnico `707a37bd...`. `CLOSED / ACCEPTED`. Producao intocada. |
-| `db/57_cliente_pedido_summary_acl_grants.sql` | Migration grants-only, forward-only e idempotente para `public.cliente_pedido_summary(UUID)`: `REVOKE EXECUTE ... FROM PUBLIC, anon, service_role; GRANT EXECUTE ... TO authenticated`. Nao recria nem altera corpo, `SECURITY DEFINER`, volatilidade, `search_path`, owner, assinatura ou tipo de retorno da funcao. Resolve a divergencia de ACL registrada em `D-COS06` (`docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`), fechando-a em `D-COS07`. | `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` | **Aplicada e verificada somente em staging** (`ucrjtfswnfdlxwtmxnoo`), `2026-07-15`, via operacao de migration rastreada do Supabase MCP; registro `20260715190627 / 57_cliente_pedido_summary_acl_grants` confirmado no catalogo. `CLOSED / ACCEPTED`. ACL final verificada ao vivo: `PUBLIC` sem `EXECUTE`, `anon` sem `EXECUTE`, `authenticated` com `EXECUTE`, `service_role` sem `EXECUTE` explicito (owner `postgres` retem privilegio inerente). Contrato da funcao (assinatura `cliente_pedido_summary(uuid)`, retorno `jsonb`, `SECURITY DEFINER`, `STABLE`, `search_path=public`, owner `postgres`, corpo) confirmado byte a byte inalterado (hash de definicao identico antes/depois). Producao (`bhgifjrfagkzubpyqpew`) intocada; sem push. |
-| `db/58_admin_usuarios_senha_temporaria.sql` | Migration aditiva, forward-only, idempotente (`ADD COLUMN IF NOT EXISTS`) para a fase `A4.1` (`docs/architecture/CAMADA2_USUARIOS_SPEC_PROPOSED.md`): `usuarios.senha_temporaria BOOLEAN NOT NULL DEFAULT FALSE` + `usuarios.senha_gerada_em TIMESTAMPTZ NULL`. Base do caminho unico decidido para A4 (senha temporaria + troca forcada no primeiro login, A4.2 ainda `NOT AUTHORIZED`). | `A4.1` | **Aplicada e verificada em staging** (`ucrjtfswnfdlxwtmxnoo`), `2026-07-16`, via Supabase MCP; registro `20260716014338 / 58_admin_usuarios_senha_temporaria` confirmado no catalogo. `CLOSED / ACCEPTED`. Colunas confirmadas ao vivo com o tipo/nullability/default do arquivo; os 10 usuarios existentes preservados sem efeito retroativo (`senha_temporaria=false`, `senha_gerada_em=NULL` em todos). Producao intocada; sem push. |
-| `db/59_admin_last_sign_in_readmodel.sql` | RPC `public.admin_usuarios_last_sign_in()` — read model admin-only (`SECURITY DEFINER`, `STABLE`, `search_path=public,auth`), guarda `is_admin()` (padrao `db/12`) com `RAISE EXCEPTION ... ERRCODE 42501` para chamador nao-admin. Retorna apenas `id`+`last_sign_in_at` de `auth.users` para os usuarios visiveis em `public.usuarios` — nao expoe email/senha/metadata. Grants explicitos: `REVOKE FROM PUBLIC, anon, service_role; GRANT TO authenticated`. Fecha o HARD STOP da coluna "Ultimo acesso" registrado no closeout de `A3.2`. | `CAMADA2-LAST-ACCESS-RPC` | **Aplicada e verificada em staging** (`ucrjtfswnfdlxwtmxnoo`), `2026-07-16`, via Supabase MCP; registro `20260716014358 / 59_admin_last_sign_in_readmodel` confirmado no catalogo. `CLOSED / ACCEPTED`. Matriz de papeis empirica (`BEGIN...ROLLBACK`): `anon` → `42501` no limite de ACL (antes de executar); `authenticated` nao-admin → `42501` de negocio (RAISE EXCEPTION dentro da funcao); `authenticated` admin → `ok`, DTO minimo confirmado (so `id`+`last_sign_in_at`). Consumo na UI (coluna "Ultimo acesso" em `js/screens/admin-usuarios.js`) e micro-fase futura propria, `NOT AUTHORIZED` por este registro. Producao intocada; sem push. |
+| `db/01_schema.sql` | Base schema for the app's tables. | `RAVATEX-TAPETES-FASE-1` | applied in staging/production |
+| `db/02_functions.sql` | Original auxiliary RLS functions (`is_admin`, `meu_fornecedor_id`). | `RAVATEX-TAPETES-FASE-1` | applied (replaced in production by `db/05_fix_pgrst.sql`) |
+| `db/03_policies.sql` | RLS policies for all tables. | `RAVATEX-TAPETES-FASE-1` | applied in staging/production |
+| `db/04_seed.sql` | Registration seeds. | `RAVATEX-TAPETES-FASE-1` | applied in staging |
+| `db/05_fix_pgrst.sql` | PGRST fix + recreation of `is_admin`/`meu_fornecedor_id` with `EXCEPTION`. | `RAVATEX-TAPETES-FASE-5A` | applied in staging/production |
+| `db/06_fase5a_policies.sql` | Additional policies for supplier deliveries. | `RAVATEX-TAPETES-FASE-5A` | applied in staging/production |
+| `db/07_fase5a_destino_latex.sql` | Latex destination columns in deliveries. | `RAVATEX-TAPETES-FASE-5A` | applied in staging |
+| `db/08_fase5b_latex.sql` | Support for latex OP (type, origin, latex supplier). | `RAVATEX-TAPETES-FASE-5B` | applied in staging |
+| `db/09_fase6_cliente_lote.sql` | Tables `clientes` and `lotes`, function `gerar_op_latex`. | `RAVATEX-TAPETES-FASE-6` | applied in staging |
+| `db/10_reset_producao.sql` | Destructive production reset (bulk DELETE). | — | **DO NOT run** without authorization. |
+| `db/11_reset_ops.sql` | Destructive OP reset (bulk DELETE). | — | **DO NOT run** without authorization. |
+| `db/12_auth_user_disable_schema.sql` | Support for user deactivation: columns `ativo`, `desativado_em`, `desativado_por`, `motivo_desativacao`; recreation of `is_admin` and `meu_fornecedor_id` to require `ativo is true`; recreation of policies `usuarios_select`, `usuarios_admin_all`, `usuarios_self_update`. | `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A` (+ `...-SCHEMA-APPLY-A` + `...-SCHEMA-APPLY-EVIDENCE-A`) | **Applied in staging** (`ucrjtfswnfdlxwtmxnoo`) on `2026-06-24`, manually by HMNlead in the SQL Editor. Post-application validation: `ativo = true, total = 3`; no destructive column run; `db/10_reset_producao.sql` and `db/11_reset_ops.sql` were not executed; production `bhgifjrfagkzubpyqpew` was not touched. Validated by `tests/auth-disable-user-schema.smoke.js` (20/20) **before** application. |
+| `db/13_pedidos_schema.sql` | Client Pedido schema/RLS: tables `pedidos`, `pedido_itens`, `pedido_eventos`; column `lotes.pedido_id` (nullable); admin-only RLS on all 3 tables; indexes on `cliente_id`, `status`, `token_acesso`, `pedido_id`. **Does not** create `pedidos.op_id`. **Does not** create a public policy. | `RAVATEX-TAPETES-PEDIDOS-SCHEMA-RLS-A` (+ `...-SCHEMA-APPLY-UCR-A` + `...-SCHEMA-APPLY-RECORD-A`) | **Applied in ucr** (`ucrjtfswnfdlxwtmxnoo`) on `2026-06-24` via Management API. Post-application validation: 3 tables created, RLS enabled, admin-only policies, indexes OK, `pedidos.op_id` absent, `lotes.pedido_id` present. Validated by `tests/pedidos-schema.smoke.js` (41/41). Frontend implemented (C1 + C2 + C2-R1 + C3A): listing `#/pedidos`, form `#/pedidos/novo` (admin creation as `rascunho`), color-preview fix (C2-R1), and read-only detail `#/pedidos/<uuid>` (C3A). Focused frontend validation: `pedido-detail.smoke.js` 30/30, `pedido-form.smoke.js` 35/35, `pedido-ui.test.js` 18/18, `pedidos-list.smoke.js` 29/29. **Strictly read-only** in the detail view (no insert/update/delete/rpc, no `functions.invoke`, no `token_acesso`, no public route, no mutation on `lotes`/`pedido_eventos`). |
+| `db/14_cliente_perfil_schema.sql` | Authenticated client profile: role `cliente` in `usuarios.tipo` (constraint `usuarios_tipo_check`), column `usuarios.cliente_id` (FK → `public.clientes`), constraint `usuarios_vinculo_exclusivo_check` (admin/supplier/client with exclusive links), function `public.meu_cliente_id()` (SECURITY DEFINER, STABLE; requires `tipo='cliente' AND ativo=true AND cliente_id NOT NULL`; returns NULL on failure), minimal RLS policies for client SELECT/INSERT on `clientes`, `pedidos`, and `pedido_itens`. **Does not** grant client UPDATE/DELETE. **Does not** expose a public token. **Does not** create an anon policy. `pedido_eventos` remains admin-only (internal audit). | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-SCHEMA-RLS-B1` + `B2` + `B2-RECORD-A` | **Applied in staging** (`ucrjtfswnfdlxwtmxnoo`) via Management API on `2026-06-24` (phase B2). Status 201, 33 statements. Post validations 23/23: `usuarios_tipo_check` with `cliente`, `usuarios.cliente_id` + FK, `usuarios_vinculo_exclusivo_check`, `meu_cliente_id()` (SECURITY DEFINER, grants OK), 5 client SELECT/INSERT policies, 0 client UPDATE/DELETE policies, 0 anon/token policies, 0 constraint violations. **Gap:** `admin-create-user` and the UI accept only `admin`/`fornecedor`; client-user provisioning pending. |
+| `db/15_status_cliente_visual.sql` | Versioned base for B2B client visual tracking: new visual columns on `public.pedidos` (`status_cliente_visual`, `status_cliente_excecao`, `status_cliente_mensagem`, `status_cliente_atualizado_em`, `referencia_cliente`, `prazo_desejado`, `tipo_recebimento`); idempotent TEXT + CHECK checks; table `public.pedido_cliente_eventos`; admin-only RLS on this new table; INSERT guard trigger to prevent the client from publishing visual state; touch trigger for `status_cliente_atualizado_em` on visual updates. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-SCHEMA-A` + `...-SCHEMA-B` | **Applied and validated in staging** (`ucrjtfswnfdlxwtmxnoo`) on `2026-06-26`. Structural validations completed: 7 new columns in `pedidos`, 10 columns in `pedido_cliente_eventos`, 4 constraints, 2 triggers, 2 functions, 1 index, `pedido_cliente_eventos = 0`. Client frontend already reads the real `status_cliente_visual`, but does not yet expose `pedido_cliente_eventos`. |
+| `db/16_pedido_cliente_eventos_cliente_select.sql` | Versioned RLS policy to grant client-only `SELECT` on `public.pedido_cliente_eventos`, restricted to rows with `visivel_cliente = true` belonging to orders whose `cliente_id = public.meu_cliente_id()`. Preserves the existing admin policy and creates no writes, view, RPC, or trigger. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-EVENTS-RLS-A` | **Versioned in the repo, not yet applied** in Supabase. Prepares the following staging-apply phase and the client's future read-only timeline. |
+| `db/30_cliente_pedido_summary_readmodel.sql` | Public RPC `cliente_pedido_summary(UUID)` for the Pedido detail view in the Client Portal. Encapsulates the internal operational tables behind `SECURITY DEFINER`, authorizes admin or the owning client, returns a simplified JSONB DTO (`pedido`, `itens`, `parciais`, `timeline`, `entregas`, `pendencias`, `etapas`, `chain_state`) and does not publish OP/lot/supplier/invoice/waybill/cost/margin/catalog IDs. | `RAVATEX-TAPETES-CLIENTE-ORDER-SUMMARY-READMODEL-A-B` (+ `...-APPLY-STAGING-A` + `...-ACL-GRANTS-R1`) | **Function applied and functionally verified in staging** (`ucrjtfswnfdlxwtmxnoo`), confirmed on `2026-07-15` (`CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A`, `CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBTS`). `public.cliente_pedido_summary(uuid)` exists with a body byte-for-byte equivalent to the file (**no schema drift**). **`db/30` itself remains absent** from `supabase_migrations.schema_migrations` (provenance debt preserved, `DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY`, not repaired). Execution ACL **no broader than the canonical contract**: remediated on `2026-07-15` by the grants-only migration `db/57_cliente_pedido_summary_acl_grants.sql` (see its own row below, phase `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1`), which revoked `EXECUTE` from `PUBLIC`/`anon`/`service_role`, keeping only `authenticated`. Authenticated browser smoke remains a non-blocking debt (`AUTHENTICATED_BROWSER_SMOKE_NOT_EXECUTED`, no test client password). |
+| `db/34_controlled_delete_pedido_op.sql` | RPCs for controlled test/staging physical deletion of Pedido and OP: `diagnosticar_impacto_pedido`, `diagnosticar_impacto_op`, `remover_pedido`, `remover_op`. Removes the legacy trigger `ops_numeradas_no_delete` (db/26) to allow removing a numbered OP without real blockers. Blocks when there is an untreated delivery, Expedição, or child OP; requires `EXCLUIR` confirmation for non-blocking dependencies. `op_numeros` is never altered. | `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-B` (+ `...-POLICY-FIX-C`) | **Applied and validated only in staging** (`ucrjtfswnfdlxwtmxnoo`); production `bhgifjrfagkzubpyqpew` untouched. Destructive logic renamed to `*_pre53` by `db/53` (see below); no public API under the original name since then. |
+| `db/35_controlled_delete_test_cascade.sql` | Replaces the four `db/34` RPCs with versions that accept a controlled physical cascade (delivery + child OP) when there is no linked Expedição, requiring textual confirmation `EXCLUIR TUDO` (`requires_cascade_confirmation`). Expedição remains a blocker in this migration. `op_numeros` unchanged. | `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-CASCADE-TEST-D` | **Applied and validated only in staging** (`ucrjtfswnfdlxwtmxnoo`); production untouched. Functionally replaced by `db/36`/`db/37` in the same Controlled Delete phase; renamed to `*_pre53` by `db/53`. |
+| `db/36_controlled_delete_fk_order_fix.sql` | Fixes the transactional order of the `db/35` cascade: builds explicit FK targets (`target_ops`, `target_op_itens`, `target_entregas`, `target_op_latex_links`, `target_child_ops`, `target_child_op_itens`), zeroes `entrega_itens` by `op_id` and by `op_item_id` before removing OPs, and fixes the guards `entrega_cima_latex_guard_fn`/`entrega_itens_cima_latex_guard_fn` to return `OLD` on authorized `DELETE` (avoids silent cancellation). Expedição remains a blocker. `op_numeros` unchanged. | `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-FK-ORDER-FIX-E` | **Applied and validated only in staging** (`ucrjtfswnfdlxwtmxnoo`) with a real synthetic test (Pedido #29, OPs 45/46, delivery 21); production untouched. Renamed to `*_pre53` by `db/53`. |
+| `db/37_controlled_delete_expedicao_cascade.sql` | Replaces the four `db/36` RPCs (same delivery guards): Expedição stops being an unconditional blocker and becomes part of the `EXCLUIR TUDO` cascade (`expedicao_movimento_itens` → `expedicao_movimentos` → `expedicao_itens` → `expedicoes`, removed before OPs/deliveries/lots/Pedido). `op_numeros` unchanged. See decision `D-DEL14` in `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` §10. | `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-EXPEDICAO-CASCADE-E2` | **Applied and validated only in staging** (`ucrjtfswnfdlxwtmxnoo`); production untouched. Since `db/53`, renamed to `diagnosticar_impacto_pedido_pre53`/`diagnosticar_impacto_op_pre53`/`remover_pedido_pre53`/`remover_op_pre53` (`EXECUTE` revoked from all roles); logic preserved and called by the documentary guard's public wrappers only when eligible. |
+| `db/53_controlled_delete_document_link_guard.sql` | Permanent documentary guard between the controlled test physical deletion (Pedido/OP) and the G28 canonical documentary history (`document_link_revisions`/`document_link_revision_ops`). Renames the four `db/37` legacy functions to `*_pre53` (revokes `EXECUTE` from `PUBLIC`/`anon`/`authenticated`/`service_role`) and recreates the original public signatures as `SECURITY DEFINER` wrappers that diagnose documentary history, block when there is a canonical link, and delegate to `*_pre53` only when eligible. Never deletes/alters `document_link_revisions`/`document_link_revision_ops`/`op_numeros`. | `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-GUARD-B` | **Applied and validated in staging** (`ucrjtfswnfdlxwtmxnoo`), technical commit `707a37bd1d2c4728ab2a17433b6441049bd88062`. `CLOSED / ACCEPTED`. Production untouched. See `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` (decisions `D-DEL10`-`D-DEL13`). |
+| `db/54_controlled_delete_document_link_grants.sql` | Staging-only emergency security fix: after `db/53`, the four public RPCs still had `EXECUTE` granted to `PUBLIC`/`anon` from earlier/default grants. Revokes those grants and restricts `EXECUTE` to `authenticated`, without changing the body, `SECURITY DEFINER`, or tables. | `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-GRANTS-54` | **Applied and validated in staging** (`ucrjtfswnfdlxwtmxnoo`), part of the same technical commit `707a37bd...`. `CLOSED / ACCEPTED`. Production untouched. |
+| `db/55_controlled_delete_document_link_policy_cast.sql` | Staging-only emergency fix for the already-applied `db/53`: `to_jsonb(<literal>)` without an explicit cast failed with `could not determine polymorphic type`. Forward-only patch (`DO $repair$`) locates and replaces the documentary-policy literal with `to_jsonb(<literal>::TEXT)` in the two already-applied public diagnostic functions. Does not change rules, grants, or cascades. | `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-POLICY-CAST-55` | **Applied and validated in staging** (`ucrjtfswnfdlxwtmxnoo`), part of the same technical commit `707a37bd...`. `CLOSED / ACCEPTED`. Production untouched. |
+| `db/56_controlled_delete_document_link_diagnostics_null_safe.sql` | Staging-only emergency fix for a `db/53` regression: `jsonb_set(...)` is `STRICT`, so the entire return of the public diagnostic functions collapsed to `NULL` whenever the target was not blocked by documentary history (`reason` null). Fixed with `COALESCE(to_jsonb(v_reason), 'null'::jsonb)` in the final `jsonb_set` of each diagnostic function, preserving the JSON schema without changing the guard/ACL/`remover_*`/`*_pre53`. | `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-DIAGNOSTICS-NULL-SAFE-56` | **Applied and validated in staging** (`ucrjtfswnfdlxwtmxnoo`), part of the same technical commit `707a37bd...`. `CLOSED / ACCEPTED`. Production untouched. |
+| `db/57_cliente_pedido_summary_acl_grants.sql` | Grants-only, forward-only, idempotent migration for `public.cliente_pedido_summary(UUID)`: `REVOKE EXECUTE ... FROM PUBLIC, anon, service_role; GRANT EXECUTE ... TO authenticated`. Does not recreate or alter the function's body, `SECURITY DEFINER`, volatility, `search_path`, owner, signature, or return type. Resolves the ACL divergence recorded in `D-COS06` (`docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`), closing it in `D-COS07`. | `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` | **Applied and verified only in staging** (`ucrjtfswnfdlxwtmxnoo`), `2026-07-15`, via a tracked Supabase MCP migration operation; record `20260715190627 / 57_cliente_pedido_summary_acl_grants` confirmed in the catalog. `CLOSED / ACCEPTED`. Final ACL verified live: `PUBLIC` without `EXECUTE`, `anon` without `EXECUTE`, `authenticated` with `EXECUTE`, `service_role` without explicit `EXECUTE` (owner `postgres` retains inherent privilege). Function contract (signature `cliente_pedido_summary(uuid)`, return `jsonb`, `SECURITY DEFINER`, `STABLE`, `search_path=public`, owner `postgres`, body) confirmed byte-for-byte unchanged (identical definition hash before/after). Production (`bhgifjrfagkzubpyqpew`) untouched; no push. |
+| `db/58_admin_usuarios_senha_temporaria.sql` | Additive, forward-only, idempotent migration (`ADD COLUMN IF NOT EXISTS`) for phase `A4.1` (`docs/architecture/CAMADA2_USUARIOS_SPEC_PROPOSED.md`): `usuarios.senha_temporaria BOOLEAN NOT NULL DEFAULT FALSE` + `usuarios.senha_gerada_em TIMESTAMPTZ NULL`. Basis for the single path decided for A4 (temporary password + forced change on first login, A4.2 still `NOT AUTHORIZED`). | `A4.1` | **Applied and verified in staging** (`ucrjtfswnfdlxwtmxnoo`), `2026-07-16`, via Supabase MCP; record `20260716014338 / 58_admin_usuarios_senha_temporaria` confirmed in the catalog. `CLOSED / ACCEPTED`. Columns confirmed live with the file's type/nullability/default; the 10 existing users preserved with no retroactive effect (`senha_temporaria=false`, `senha_gerada_em=NULL` for all). Production untouched; no push. |
+| `db/59_admin_last_sign_in_readmodel.sql` | RPC `public.admin_usuarios_last_sign_in()` — admin-only read model (`SECURITY DEFINER`, `STABLE`, `search_path=public,auth`), guarded by `is_admin()` (`db/12` pattern) with `RAISE EXCEPTION ... ERRCODE 42501` for a non-admin caller. Returns only `id`+`last_sign_in_at` from `auth.users` for the users visible in `public.usuarios` — does not expose email/password/metadata. Explicit grants: `REVOKE FROM PUBLIC, anon, service_role; GRANT TO authenticated`. Closes the "Last access" column HARD STOP recorded in the `A3.2` closeout. | `CAMADA2-LAST-ACCESS-RPC` | **Applied and verified in staging** (`ucrjtfswnfdlxwtmxnoo`), `2026-07-16`, via Supabase MCP; record `20260716014358 / 59_admin_last_sign_in_readmodel` confirmed in the catalog. `CLOSED / ACCEPTED`. Empirical role matrix (`BEGIN...ROLLBACK`): `anon` → `42501` at the ACL boundary (before execution); non-admin `authenticated` → business `42501` (RAISE EXCEPTION inside the function); admin `authenticated` → `ok`, minimal DTO confirmed (only `id`+`last_sign_in_at`). UI consumption (the "Last access" column in `js/screens/admin-usuarios.js`) is its own future micro-phase, `NOT AUTHORIZED` by this record. Production untouched; no push. |
 
-### Smoke tests estáticos de schema versionado
+### Static smoke tests for versioned schema
 
-| Arquivo | Propósito | Fase |
+| File | Purpose | Phase |
 |---|---|---|
-| `tests/cliente-tracking-schema.smoke.js` | Validação estática de `db/15_status_cliente_visual.sql`: colunas novas, taxonomia visual, exceções, `pedido_cliente_eventos`, RLS admin-only, trigger guard de INSERT, trigger de touch em UPDATE e ausência de comandos destrutivos/secrets. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-SCHEMA-A` |
-| `tests/cliente-events-rls-schema.smoke.js` | Validação estática de `db/16_pedido_cliente_eventos_cliente_select.sql`: existência do arquivo, policy `pedido_cliente_eventos_cliente_select`, `FOR SELECT`, filtro `visivel_cliente = true`, ownership via `public.pedidos` + `public.meu_cliente_id()`, ausência de writes de cliente e ausência de escopo indevido. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-EVENTS-RLS-A` |
-| `tests/cliente-tracking-steps.smoke.js` | Validação estática e em sandbox de `js/pedido-tracking-ui.js`: namespace global, 8 etapas principais, 4 exceções, helpers puros, fallback para `recebido`, ausência de termos internos proibidos e ausência de query/write. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-STEPS-A` |
-| `tests/admin-pedido-tracking-control.smoke.js` | Validação estática do controle admin de publish do tracking visual: novo módulo `js/screens/pedido-tracking-admin.js`, integração com `pedido-detail.js`, uso da taxonomia compartilhada, writes em `pedidos.status_cliente_*` e `pedido_cliente_eventos`, separação do status operacional e ausência de mudanças funcionais nas telas cliente/fornecedor. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-ADMIN-A` |
-| `tests/pedido-parciais-admin-control.smoke.js` | Validação estática do controle admin manual de parciais: novo módulo `js/screens/pedido-parciais-admin.js`, integração com `pedido-detail.js`, SELECT explícito e insert controlado em `pedido_parciais`, reaproveitamento do catálogo compartilhado `CLIENTE_PARCIAL_SITUACOES`, ausência de uso obrigatório de `pedido_parcial_itens` e ausência de mudanças funcionais nas telas cliente. | `RAVATEX-TAPETES-CLIENTE-PARCIAIS-ADMIN-CONTROL-A` |
-| `tests/cliente-dashboard.smoke.js` | Validação estática do Dashboard Cliente read-only: existência do módulo `js/screens/cliente-dashboard.js`, rota `#/cliente/dashboard` (role cliente), menu "Início", SELECT explícito de pedidos restrito aos campos permitidos, `pedido_cliente_eventos` apenas com colunas seguras, ausência de `metadata`/`criado_por`/`origem`/`pedido_eventos`, uso da taxonomia `window.RavatexPedidoTracking`, render de KPIs/pedidos recentes/atualizações e ausência de writes/`service_role`/dados internos. | `RAVATEX-TAPETES-CLIENTE-DASHBOARD-A` |
-| `tests/cliente-pedido-summary-readmodel.smoke.js` | Validação estática da RPC publica `cliente_pedido_summary(UUID)`: permissão por admin ou cliente dono, `SECURITY DEFINER`, `search_path`, grant apenas para `authenticated`, DTO publico, ausência de chaves internas proibidas, parciais/timeline apenas com `visivel_cliente IS TRUE` e ausência de writes destrutivos. | `RAVATEX-TAPETES-CLIENTE-ORDER-SUMMARY-READMODEL-A-B` |
+| `tests/cliente-tracking-schema.smoke.js` | Static validation of `db/15_status_cliente_visual.sql`: new columns, visual taxonomy, exceptions, `pedido_cliente_eventos`, admin-only RLS, INSERT guard trigger, UPDATE touch trigger, and absence of destructive commands/secrets. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-SCHEMA-A` |
+| `tests/cliente-events-rls-schema.smoke.js` | Static validation of `db/16_pedido_cliente_eventos_cliente_select.sql`: file existence, policy `pedido_cliente_eventos_cliente_select`, `FOR SELECT`, filter `visivel_cliente = true`, ownership via `public.pedidos` + `public.meu_cliente_id()`, absence of client writes, and absence of improper scope. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-EVENTS-RLS-A` |
+| `tests/cliente-tracking-steps.smoke.js` | Static and sandboxed validation of `js/pedido-tracking-ui.js`: global namespace, 8 main steps, 4 exceptions, pure helpers, fallback to `recebido`, absence of forbidden internal terms, and absence of query/write. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-STEPS-A` |
+| `tests/admin-pedido-tracking-control.smoke.js` | Static validation of the admin control for publishing visual tracking: new module `js/screens/pedido-tracking-admin.js`, integration with `pedido-detail.js`, use of the shared taxonomy, writes to `pedidos.status_cliente_*` and `pedido_cliente_eventos`, separation from operational status, and absence of functional changes in the client/supplier screens. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-ADMIN-A` |
+| `tests/pedido-parciais-admin-control.smoke.js` | Static validation of the manual admin control for partials: new module `js/screens/pedido-parciais-admin.js`, integration with `pedido-detail.js`, explicit SELECT and controlled insert into `pedido_parciais`, reuse of the shared catalog `CLIENTE_PARCIAL_SITUACOES`, absence of mandatory use of `pedido_parcial_itens`, and absence of functional changes in the client screens. | `RAVATEX-TAPETES-CLIENTE-PARCIAIS-ADMIN-CONTROL-A` |
+| `tests/cliente-dashboard.smoke.js` | Static validation of the read-only Client Dashboard: existence of the module `js/screens/cliente-dashboard.js`, route `#/cliente/dashboard` (client role), "Início" menu, explicit SELECT on pedidos restricted to allowed fields, `pedido_cliente_eventos` with only safe columns, absence of `metadata`/`criado_por`/`origem`/`pedido_eventos`, use of the `window.RavatexPedidoTracking` taxonomy, rendering of KPIs/recent pedidos/updates, and absence of writes/`service_role`/internal data. | `RAVATEX-TAPETES-CLIENTE-DASHBOARD-A` |
+| `tests/cliente-pedido-summary-readmodel.smoke.js` | Static validation of the public RPC `cliente_pedido_summary(UUID)`: permission for admin or the owning client, `SECURITY DEFINER`, `search_path`, grant only to `authenticated`, public DTO, absence of forbidden internal keys, partials/timeline only with `visivel_cliente IS TRUE`, and absence of destructive writes. | `RAVATEX-TAPETES-CLIENTE-ORDER-SUMMARY-READMODEL-A-B` |
 
-### Módulos frontend de tracking visual
+### Frontend modules for visual tracking
 
-| Arquivo | Papel | Fase |
+| File | Role | Phase |
 |---|---|---|
-| `js/pedido-tracking-ui.js` | Camada compartilhada de taxonomia visual e helpers puros para status, mensagem e progresso do tracking cliente. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-STEPS-A` |
-| `js/screens/pedido-tracking-admin.js` | Card admin para publicar a situação visível ao cliente, com preview e writes auditáveis em `pedidos.status_cliente_*` e `pedido_cliente_eventos`. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-ADMIN-A` |
-| `js/screens/pedido-parciais-admin.js` | Card admin para listar e cadastrar manualmente parciais do pedido em `pedido_parciais`, reaproveitando o catálogo compartilhado `CLIENTE_PARCIAL_SITUACOES` e preview técnico simples por `buildPedidoAcompanhamentoParcial`, sem leitura cliente e sem ativar `pedido_parcial_itens`. | `RAVATEX-TAPETES-CLIENTE-PARCIAIS-ADMIN-CONTROL-A` |
-| `js/screens/cliente-dashboard.js` | Dashboard Cliente read-only (`#/cliente/dashboard`, `screenClienteDashboard`): página inicial do portal B2B. Cards/KPIs derivados localmente, pedidos recentes e últimas atualizações. SELECT explícito em `pedidos` (campos seguros) e `pedido_cliente_eventos` (`id, pedido_id, status, titulo, mensagem, criado_em`). Sem writes, sem `metadata`/`criado_por`/`origem`, sem `pedido_eventos`, sem expor `OP`/`lote`/`fornecedor`/`NF`/`romaneio`/`custo`/`margem`. | `RAVATEX-TAPETES-CLIENTE-DASHBOARD-A` |
-| `js/screens/cliente-pedido-detail.js` | Detalhe do pedido no Portal Cliente. A partir de `CLIENTE-ORDER-SUMMARY-READMODEL-A-B`, consome somente `supa.rpc('cliente_pedido_summary')` e nao consulta diretamente tabelas operacionais internas como `ops`, `lotes`, `op_itens`, `entregas`, `expedicoes` ou `ordens_compra_fio`. | `RAVATEX-TAPETES-CLIENTE-ORDER-SUMMARY-READMODEL-A-B` |
+| `js/pedido-tracking-ui.js` | Shared layer of visual taxonomy and pure helpers for status, message, and progress of client tracking. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-STEPS-A` |
+| `js/screens/pedido-tracking-admin.js` | Admin card to publish the status visible to the client, with preview and auditable writes to `pedidos.status_cliente_*` and `pedido_cliente_eventos`. | `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-ADMIN-A` |
+| `js/screens/pedido-parciais-admin.js` | Admin card to list and manually register Pedido partials in `pedido_parciais`, reusing the shared catalog `CLIENTE_PARCIAL_SITUACOES` and a simple technical preview via `buildPedidoAcompanhamentoParcial`, with no client read and without activating `pedido_parcial_itens`. | `RAVATEX-TAPETES-CLIENTE-PARCIAIS-ADMIN-CONTROL-A` |
+| `js/screens/cliente-dashboard.js` | Read-only Client Dashboard (`#/cliente/dashboard`, `screenClienteDashboard`): the B2B portal's home page. Locally derived cards/KPIs, recent pedidos, and latest updates. Explicit SELECT on `pedidos` (safe fields) and `pedido_cliente_eventos` (`id, pedido_id, status, titulo, mensagem, criado_em`). No writes, no `metadata`/`criado_por`/`origem`, no `pedido_eventos`, no exposure of `OP`/`lote`/`fornecedor`/`NF`/`romaneio`/`custo`/`margem`. | `RAVATEX-TAPETES-CLIENTE-DASHBOARD-A` |
+| `js/screens/cliente-pedido-detail.js` | Pedido detail view in the Client Portal. As of `CLIENTE-ORDER-SUMMARY-READMODEL-A-B`, consumes only `supa.rpc('cliente_pedido_summary')` and does not directly query internal operational tables such as `ops`, `lotes`, `op_itens`, `entregas`, `expedicoes`, or `ordens_compra_fio`. | `RAVATEX-TAPETES-CLIENTE-ORDER-SUMMARY-READMODEL-A-B` |
 
-> O design que justifica a migration de schema está em
-> `docs/architecture/AUTH_DELETE_USER_DESIGN.md` (fase
-> `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`). A migration
-> `db/12_auth_user_disable_schema.sql` foi aplicada em staging
-> (`ucrjtfswnfdlxwtmxnoo`) em `2026-06-24` — vide fases
-> `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A` (orientação,
-> commit `8fa924a`) e `...-SCHEMA-APPLY-EVIDENCE-A` (registro da
-> aplicação real, commit `1a35e1d`) no LEDGER. A Edge Function
-> `admin-disable-user` foi criada localmente no repo na fase
-> `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`, commit `eb5d2e0`
-> (ver `supabase/functions/admin-disable-user/README.md`);
-> deployada em staging `ucrjtfswnfdlxwtmxnoo` (fase
-> `...-EDGE-STAGING-DEPLOY-A`, ver LEDGER). Um **runner local
-> automatizado** de E2E foi criado em
-> `scripts/staging/admin-disable-user-e2e.mjs` (fase
-> `...-E2E-AUTO-RUNNER-A`) e o tratamento do login bloqueado
-> esperado foi corrigido em `...-E2E-RUNNER-FIX-A`. **E2E real
-> em staging já passou com `result: PASS`** (ver LEDGER §5k
-> para evidência sanitizada do descartável
+> The design justifying the schema migration is in
+> `docs/architecture/AUTH_DELETE_USER_DESIGN.md` (phase
+> `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`). The migration
+> `db/12_auth_user_disable_schema.sql` was applied in staging
+> (`ucrjtfswnfdlxwtmxnoo`) on `2026-06-24` — see phases
+> `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-APPLY-A` (guidance,
+> commit `8fa924a`) and `...-SCHEMA-APPLY-EVIDENCE-A` (record of
+> the actual application, commit `1a35e1d`) in the LEDGER. The Edge
+> Function `admin-disable-user` was created locally in the repo in
+> phase `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`, commit `eb5d2e0`
+> (see `supabase/functions/admin-disable-user/README.md`);
+> deployed to staging `ucrjtfswnfdlxwtmxnoo` (phase
+> `...-EDGE-STAGING-DEPLOY-A`, see LEDGER). An **automated local
+> runner** for E2E was created at
+> `scripts/staging/admin-disable-user-e2e.mjs` (phase
+> `...-E2E-AUTO-RUNNER-A`) and the handling of the expected blocked
+> login was fixed in `...-E2E-RUNNER-FIX-A`. **Real E2E in staging
+> already passed with `result: PASS`** (see LEDGER §5k for
+> sanitized evidence of the disposable
 > `disable-edge-e2e-20260624-115027@tapetes.test`,
 > user_id `d12b005e-d455-4f78-b401-59ebd9f971c5`,
-> desativado em staging, login bloqueado confirmado). A
-> **tela `#/cadastros/usuarios` foi integrada** com
-> `admin-disable-user` na fase `...-UI-A` (botão `Desativar`
-> substitui o placeholder `Em breve`; chama
+> deactivated in staging, blocked login confirmed). The
+> **`#/cadastros/usuarios` screen was integrated** with
+> `admin-disable-user` in phase `...-UI-A` (the `Desativar`
+> button replaces the `Em breve` placeholder; calls
 > `window.supa.functions.invoke('admin-disable-user', { body:
-> { user_id, reason } })`; modal com motivo opcional; mapeia
+> { user_id, reason } })`; modal with optional reason; maps
 > `FORBIDDEN`/`SELF_DISABLE_FORBIDDEN`/`LAST_ADMIN_FORBIDDEN`/
 > `NOT_FOUND`/`AUTH_BAN_FAILED`/`COMPENSATION_FAILED`/
-> `VALIDATION_ERROR`/`UNAUTHORIZED` para mensagens PT-BR;
-> guarda de UX para self/inativos). **Validação manual da UI
-> de desativação em staging registrada** na fase
+> `VALIDATION_ERROR`/`UNAUTHORIZED` to PT-BR messages;
+> UX guard for self/inactive). **Manual validation of the
+> deactivation UI in staging recorded** in phase
 > `RAVATEX-TAPETES-AUTH-DISABLE-USER-UI-VALIDATION-CLOSEOUT-A`
-> (HMNlead, app/staging `ucrjtfswnfdlxwtmxnoo`): tela
-> `#/cadastros/usuarios`, botão `Desativar`, guarda de
-> usuário já inativo, criação de fornecedor descartável
-> ativo e desativação via UI — fluxo real passou. Detalhes
-> em `PROJECT_STATE.md`. **Produção `bhgifjrfagkzubpyqpew` e
-> `origin/main` intocados.** Próxima etapa: decisão de
-> release para `origin/main`/produção, somente com
-> autorização explícita do HMNlead (em fase separada).
+> (HMNlead, app/staging `ucrjtfswnfdlxwtmxnoo`): screen
+> `#/cadastros/usuarios`, `Desativar` button, guard for an
+> already-inactive user, creation of a disposable active
+> supplier, and deactivation via the UI — the real flow passed.
+> Details in `PROJECT_STATE.md`. **Production `bhgifjrfagkzubpyqpew`
+> and `origin/main` untouched.** Next step: release decision
+> for `origin/main`/production, only with explicit
+> authorization from HMNlead (in a separate phase).
 
-> **A4.1 + `CAMADA2-LAST-ACCESS-RPC` (`2026-07-16`):** a Edge
-> Function `admin-create-user` foi estendida — política de senha
-> 6→8 caracteres + exigência de ≥1 dígito (`PASSWORD_MIN_LENGTH`,
-> `PASSWORD_DIGIT_RE`) e o insert em `public.usuarios` passou a
-> setar `senha_temporaria: true` / `senha_gerada_em: now()` (ver
-> `supabase/functions/admin-create-user/README.md`). **Deploy em
-> staging (`ucrjtfswnfdlxwtmxnoo`) executado pelo arquiteto.** Um
-> **runner local automatizado de E2E**, mesmo esqueleto e mesmas
-> garantias de segurança do `admin-disable-user-e2e.mjs` (login com
-> senha real feito por humano, nunca pelo agente IA; sanitização de
-> segredos; guarda de staging-only; config local gitignored), foi
-> criado em `scripts/staging/admin-create-user-password-policy-e2e.mjs`.
-> **E2E real em staging passou com `result: PASS` (9/9 passos)**,
-> cobrindo: senha de 7 caracteres rejeitada (mensagem de
-> comprimento), senha de 8 caracteres sem dígito rejeitada (mensagem
-> de dígito), senha válida aceita com `senha_temporaria=true` e
-> `senha_gerada_em` preenchido confirmados via REST, cleanup via
-> `admin-delete-user` (fluxo existente) com cleanup zero verificado.
-> Consumo da coluna "Último acesso" na UI (`js/screens/admin-usuarios.js`,
-> via `db/59`) e `A4.2` (guarda de boot + tela de troca obrigatória)
-> permanecem `NOT AUTHORIZED`, candidatas a `ARCHITECT DECISION`.
-> Produção `bhgifjrfagkzubpyqpew` não acessada; sem push.
+> **A4.1 + `CAMADA2-LAST-ACCESS-RPC` (`2026-07-16`):** the Edge
+> Function `admin-create-user` was extended — password policy
+> 6→8 characters + requirement of ≥1 digit (`PASSWORD_MIN_LENGTH`,
+> `PASSWORD_DIGIT_RE`), and the insert into `public.usuarios` now
+> sets `senha_temporaria: true` / `senha_gerada_em: now()` (see
+> `supabase/functions/admin-create-user/README.md`). **Deploy to
+> staging (`ucrjtfswnfdlxwtmxnoo`) executed by the architect.** An
+> **automated local E2E runner**, same skeleton and same security
+> guarantees as `admin-disable-user-e2e.mjs` (login with a real
+> password performed by a human, never by the AI agent; secret
+> sanitization; staging-only guard; gitignored local config), was
+> created at `scripts/staging/admin-create-user-password-policy-e2e.mjs`.
+> **Real E2E in staging passed with `result: PASS` (9/9 steps)**,
+> covering: 7-character password rejected (length message), 8-character
+> password without a digit rejected (digit message), valid password
+> accepted with `senha_temporaria=true` and `senha_gerada_em` filled
+> confirmed via REST, cleanup via `admin-delete-user` (existing flow)
+> with zero-cleanup verified. Consumption of the "Last access" column
+> in the UI (`js/screens/admin-usuarios.js`, via `db/59`) and `A4.2`
+> (boot guard + mandatory-change screen) remain `NOT AUTHORIZED`,
+> candidates for `ARCHITECT DECISION`. Production `bhgifjrfagkzubpyqpew`
+> not accessed; no push.
 >
-> **Atualização (`2026-07-16`, superada acima):** o consumo da coluna
-> "Último acesso" foi implementado e fechado (`CAMADA2-LAST-ACCESS-UI`
+> **Update (`2026-07-16`, superseded above):** consumption of the
+> "Last access" column was implemented and closed (`CAMADA2-LAST-ACCESS-UI`
 > — `CLOSED / ACCEPTED`, technical commit `0aff22f` — `Add last
-> sign-in column to user admin`; validação visual do arquiteto
-> confirmada em preview: coluna populada com dados reais, formato
-> correto, `"—"` nos nunca-logados, ordenação com nulos por último).
-> **`A4.2` (guarda de troca de
-> senha obrigatória) — `CLOSED / ACCEPTED` (2026-07-16).** `js/auth.js`
-> ganhou `senha_temporaria`/`senha_gerada_em` no `select` de
-> `loadCurrentUser()` (única mudança, decisão explícita do arquiteto —
-> Opção A de um hard stop levantado em sessão); `js/boot.js` ganhou a
-> guarda (`isSenhaTemporariaExpirada` + `guardedHandleRoute`, sem tocar
-> `js/router.js`); `js/trocar-senha-writes.js` (novo) faz o self-service
+> sign-in column to user admin`; architect visual validation
+> confirmed in preview: column populated with real data, correct
+> format, `"—"` for never-logged-in users, sorting with nulls last).
+> **`A4.2` (mandatory password-change guard) — `CLOSED / ACCEPTED`
+> (2026-07-16).** `js/auth.js` gained `senha_temporaria`/`senha_gerada_em`
+> in the `select` of `loadCurrentUser()` (the only change, explicit
+> architect decision — Option A of a hard stop raised in session);
+> `js/boot.js` gained the guard (`isSenhaTemporariaExpirada` +
+> `guardedHandleRoute`, without touching `js/router.js`);
+> `js/trocar-senha-writes.js` (new) does the self-service
 > `auth.updateUser({password})` + `UPDATE usuarios SET
 > senha_temporaria=false`; `js/screens/trocar-senha-obrigatoria.js`
-> (novo) é a tela (card sem shell, checklist vivo, modo `expired` após
-> 7 dias). Um **runner local automatizado de E2E**, mesmo esqueleto e
-> mesmas garantias de segurança dos runners anteriores (login com senha
-> real só por humano, nunca pelo agente IA; senha sintética gerada pelo
-> próprio script; sanitização de segredos; guarda de staging-only;
-> config local gitignored), foi criado em
-> `scripts/staging/trocar-senha-obrigatoria-e2e.mjs` — **não executado
-> nesta fase**; a evidência usada para o closeout foi a **validação
-> manual do arquiteto em staging**: usuário sintético criado, gate
-> exibido, checklist reagiu, troca efetuada, `senha_temporaria` zerada,
-> segundo login entrou direto sem gate, usuário removido. Débito
-> registrado (candidato a `CODE-HEALTH-AUDIT-§18-R1`, não corrigido
-> nesta fase): 6 testes pré-existentes de `tests/auth.smoke.js` com
-> regex desatualizado quanto a `?v=` de cache-busting em
-> `<script src="js/auth.js">`. `A4.3` (convite por e-mail) permanece
-> `NOT AUTHORIZED`. Produção `bhgifjrfagkzubpyqpew` não acessada; sem
-> push.
+> (new) is the screen (shell-less card, live checklist, `expired`
+> mode after 7 days). An **automated local E2E runner**, same
+> skeleton and same security guarantees as the previous runners
+> (login with a real password only by a human, never by the AI
+> agent; synthetic password generated by the script itself; secret
+> sanitization; staging-only guard; gitignored local config), was
+> created at `scripts/staging/trocar-senha-obrigatoria-e2e.mjs` —
+> **not run in this phase**; the evidence used for the closeout was
+> the **architect's manual validation in staging**: synthetic user
+> created, gate displayed, checklist reacted, change made,
+> `senha_temporaria` cleared, second login entered directly without
+> the gate, user removed. Debt recorded (candidate for
+> `CODE-HEALTH-AUDIT-§18-R1`, not fixed in this phase): 6 pre-existing
+> tests in `tests/auth.smoke.js` with an outdated regex regarding the
+> cache-busting `?v=` on `<script src="js/auth.js">`. `A4.3` (email
+> invitation) remains `NOT AUTHORIZED`. Production `bhgifjrfagkzubpyqpew`
+> not accessed; no push.
 >
-> **`A5.1-A5.2` (`2026-07-16`) — `CLOSED / ACCEPTED`:** Edge Function
-> nova `admin-reset-user-password` (espelho de `admin-disable-user`) —
-> `auth.admin.updateUserById(target, {password})` com senha temporária
-> gerada via `crypto.getRandomValues` (nunca `Math.random`, nunca valor
-> fixo), auto-reset **bloqueado** (`SELF_RESET_FORBIDDEN`, decisão do
-> arquiteto), marca `senha_temporaria=true`/`senha_gerada_em=now()`,
-> senha retornada uma única vez, nunca logada (ver
-> `supabase/functions/admin-reset-user-password/README.md`). UI:
-> botão de ícone chave em `js/screens/admin-usuarios.js` →
-> `confirmDialog` → modal "Senha gerada" (senha/copiar/aviso de
-> exibição única) em `js/screens/admin-usuarios-modal.js`. **Deploy em
-> staging (`ucrjtfswnfdlxwtmxnoo`) executado pelo arquiteto.** Um
-> **runner local automatizado de E2E**, 4º do mesmo padrão dos
-> anteriores (`admin-disable-user-e2e.mjs`,
+> **`A5.1-A5.2` (`2026-07-16`) — `CLOSED / ACCEPTED`:** new Edge
+> Function `admin-reset-user-password` (mirror of `admin-disable-user`)
+> — `auth.admin.updateUserById(target, {password})` with a temporary
+> password generated via `crypto.getRandomValues` (never `Math.random`,
+> never a fixed value), self-reset **blocked** (`SELF_RESET_FORBIDDEN`,
+> architect decision), sets `senha_temporaria=true`/`senha_gerada_em=now()`,
+> password returned only once, never logged (see
+> `supabase/functions/admin-reset-user-password/README.md`). UI: key-icon
+> button in `js/screens/admin-usuarios.js` →
+> `confirmDialog` → "Password generated" modal (password/copy/one-time
+> display warning) in `js/screens/admin-usuarios-modal.js`. **Deploy to
+> staging (`ucrjtfswnfdlxwtmxnoo`) executed by the architect.** An
+> **automated local E2E runner**, 4th of the same pattern as the
+> previous ones (`admin-disable-user-e2e.mjs`,
 > `admin-create-user-password-policy-e2e.mjs`,
-> `trocar-senha-obrigatoria-e2e.mjs` — login com senha real só por
-> humano, nunca pelo agente IA; senhas sintéticas geradas pelo próprio
-> script/pela Edge Function; sanitização de segredos; guarda de
-> staging-only; config local gitignored), foi criado em
-> `scripts/staging/admin-reset-password-e2e.mjs`. **E2E real em
-> staging passou com `result: PASS` (15/15 passos)**, cobrindo:
-> guardas `SELF_RESET_FORBIDDEN`/`NOT_FOUND` ao vivo, reset real com
-> flag+timestamp atualizados, senha antiga invalidada, login com a
-> temporária nova, self-service de `A4.2` encadeado (nova troca + flag
-> zerada), relogin sem gate ("próximo login entra direto"), cleanup
-> zero. Validação visual do arquiteto **dispensada por decisão
-> explícita**, coberta pela combinação e2e + verificação de fluxo em
-> navegador real pelo executor. Achados registrados como candidatos
-> `NOT AUTHORIZED`: `UI-EL-BOOLEAN-ATTR-FIX` (potencial bug de
-> `setAttribute` boolean em `js/ui.js`'s `el()`, severidade **não
-> confirmada** — pendente de verificação do arquiteto nos botões
-> Desativar/Excluir de `admin-usuarios.js`) e decomposição de
-> `admin-usuarios-modal.js` (576 linhas, candidato a
-> `CODE-HEALTH-AUDIT-§18-R1`). `A5.3-A5.4` (reativação) permanece
-> `NOT AUTHORIZED`, autorização própria futura. Produção
-> `bhgifjrfagkzubpyqpew` não acessada; sem push.
+> `trocar-senha-obrigatoria-e2e.mjs` — login with a real password only
+> by a human, never by the AI agent; synthetic passwords generated by
+> the script itself/by the Edge Function; secret sanitization;
+> staging-only guard; gitignored local config), was created at
+> `scripts/staging/admin-reset-password-e2e.mjs`. **Real E2E in
+> staging passed with `result: PASS` (15/15 steps)**, covering:
+> `SELF_RESET_FORBIDDEN`/`NOT_FOUND` guards live, real reset with
+> flag+timestamp updated, old password invalidated, login with the new
+> temporary password, `A4.2` self-service chained (new change + flag
+> cleared), re-login without the gate ("next login goes straight in"),
+> zero cleanup. Architect visual validation **waived by explicit
+> decision**, covered by the combination of e2e + real-browser flow
+> verification by the executor. Findings recorded as `NOT AUTHORIZED`
+> candidates: `UI-EL-BOOLEAN-ATTR-FIX` (potential boolean `setAttribute`
+> bug in `js/ui.js`'s `el()`, severity **not confirmed** — pending
+> architect verification on the Desativar/Excluir buttons of
+> `admin-usuarios.js`) and decomposition of `admin-usuarios-modal.js`
+> (576 lines, candidate for `CODE-HEALTH-AUDIT-§18-R1`). `A5.3-A5.4`
+> (reactivation) remains `NOT AUTHORIZED`, its own future authorization.
+> Production `bhgifjrfagkzubpyqpew` not accessed; no push.
+## 4. Legacy docs (DOES NOT GUIDE EXECUTION (NÃO GUIAM EXECUÇÃO))
 
-## 4. Docs legadas (NÃO GUIAM EXECUÇÃO)
-
-Preservadas para contexto histórico. Cada pasta ou arquivo carrega
-banner próprio. Em caso de uso, **adaptar à arquitetura atual** e
-confirmar com fontes canônicas.
+Preserved for historical context. Each folder or file carries its own
+banner. If used, **adapt to the current architecture** and confirm
+against canonical sources.
 
 ### `docs/superpowers/`
 
-Conteúdo das fases 1–7 do projeto. Inclui `STATUS.md`, `specs/` e
+Content from project phases 1-7. Includes `STATUS.md`, `specs/` and
 `plans/`.
 
-| Tipo | Classificação | Observação |
+| Type | Classification | Note |
 |---|---|---|
-| `STATUS.md` | Histórico | Fases 1–6 listadas; assume arquitetura pré-refactor. |
-| `specs/*.md` (9 arquivos) | Obsoleto | Designs escritos para `index.html` monolítico. A arquitetura foi modularizada. |
-| `plans/*.md` (9 arquivos) | **PERIGOSO PARA IA** | Instrui a modificar `index.html` diretamente, com writes Supabase inline e `git add .`. **Não seguir literalmente.** |
+| `STATUS.md` | Historical | Phases 1-6 listed; assumes pre-refactor architecture. |
+| `specs/*.md` (9 files) | Obsolete | Designs written for the monolithic `index.html`. The architecture has since been modularized. |
+| `plans/*.md` (9 files) | **DANGEROUS FOR AI (PERIGOSO PARA IA)** | Instructs modifying `index.html` directly, with inline Supabase writes and `git add .`. **Do not follow literally.** |
 
-> Antes de usar qualquer spec/plan daqui como requisito funcional,
-> adaptá-lo à arquitetura modular atual
+> Before using any spec/plan here as a functional requirement,
+> adapt it to the current modular architecture
 > (`js/boot.js`, `js/router.js`, `js/ui.js`, `js/screens/*`,
 > `js/calculo-op.js`).
-> Ver `docs/superpowers/README.md` para detalhes.
+> See `docs/superpowers/README.md` for details.
 
 ### `docs/qa/`
 
-Checklists e roteiros de QA das fases 1–6 + roteiro da Fase 6.
+QA checklists and scripts from phases 1-6 + Phase 6 script.
 
-| Tipo | Classificação | Observação |
+| Type | Classification | Note |
 |---|---|---|
-| `fase1-checklist.md`, `fase2-checklist.md` | Histórico + credenciais anonimizadas | Podiam conter senhas de teste; anonimizadas em `RAVATEX-TAPETES-DOCS-SANITIZE-A`. |
-| Demais checklists (`fase3`–`fase6`, `fase5a`, `fase5b`) | Histórico | Úteis como registro de QA, não como especificação técnica. |
-| `roteiro-teste-fase6.md` | Histórico | Roteiro manual para Vinícius. |
-| `fase2-bugs-pendentes.md` | Histórico | Bug pendente da Fase 2. Precisa de verificação atual antes de qualquer ação. |
+| `fase1-checklist.md`, `fase2-checklist.md` | Historical + anonymized credentials | Could contain test passwords; anonymized in `RAVATEX-TAPETES-DOCS-SANITIZE-A`. |
+| Remaining checklists (`fase3`-`fase6`, `fase5a`, `fase5b`) | Historical | Useful as a QA record, not as a technical specification. |
+| `roteiro-teste-fase6.md` | Historical | Manual script for Vinícius. |
+| `fase2-bugs-pendentes.md` | Historical | Pending bug from Phase 2. Needs current verification before any action. |
 
-> Ver `docs/qa/README.md` para detalhes.
+> See `docs/qa/README.md` for details.
 
-### `docs/` raiz (docs antigos)
+### `docs/` root (old docs)
 
-| Arquivo | Classificação | Observação |
+| File | Classification | Note |
 |---|---|---|
-| `DEPLOYMENT.md` | Parcialmente obsoleto | Foi escrito antes da separação staging/origin. Hoje há staging; `origin/main` é protegido. Ver banner no topo. |
-| `AI_AGENT_RULES.md` | Parcialmente legado | Algumas regras continuam úteis, mas o contexto D1/D1A/D2 não é a fase vigente. Ver banner no topo. |
-| `BACKUP_AND_RESTORE.md` | Parcialmente atual | Runbook correto, mas status de backup pode estar desatualizado. Ver nota no topo. |
-| `HANDOFF.md` | Histórico/parcialmente legado | Mistura arquitetura antiga com práticas pós-staging. Ver banner no topo. |
-| `STAGING_BASELINE.md` | **Atual** | Checkpoint de staging bem detalhado. Refs e regra de ambiente ainda valem. |
+| `DEPLOYMENT.md` | Partially obsolete | Written before the staging/origin split. Today there is staging; `origin/main` is protected. See banner at top. |
+| `AI_AGENT_RULES.md` | Partially legacy | Some rules remain useful, but the D1/D1A/D2 context is not the current phase. See banner at top. |
+| `BACKUP_AND_RESTORE.md` | Partially current | Runbook is correct, but backup status may be outdated. See note at top. |
+| `HANDOFF.md` | Historical/partially legacy | Mixes old architecture with post-staging practices. See banner at top. |
+| `STAGING_BASELINE.md` | **Current** | Well-detailed staging checkpoint. Refs and environment rule still apply. |
 
-## 5. Avisos críticos
+## 5. Critical warnings
 
-### Plans em `docs/superpowers/plans/`
+### Plans in `docs/superpowers/plans/`
 
-Os plans descrevem modificações diretas em `index.html`, writes
-Supabase inline, `git add .` e fluxo sem staging. **Segui-los
-literalmente reintroduziria o monólito pré-refactor**, violando
-`docs/architecture/CODE_HEALTH_RULES.md` §2 e §6.
+The plans describe direct modifications to `index.html`, inline
+Supabase writes, `git add .`, and a workflow without staging.
+**Following them literally would reintroduce the pre-refactor
+monolith**, violating `docs/architecture/CODE_HEALTH_RULES.md` §2
+and §6.
 
-> Trate os plans como **registro histórico da intenção** das fases
-> antigas, não como playbook executável.
+> Treat the plans as a **historical record of intent** from the old
+> phases, not as an executable playbook.
 
-### Credenciais antigas em `docs/qa/`
+### Old credentials in `docs/qa/`
 
-`docs/qa/fase1-checklist.md` e `docs/qa/fase2-checklist.md` continham
-senhas de teste (e.g. `Admin123!`, `Fornec123!`). Foram
-**anonimizadas** em `RAVATEX-TAPETES-DOCS-SANITIZE-A` substituídas
-por `[REDACTED_TEST_PASSWORD]`. Não confiar em nenhuma credencial
-encontrada em docs legadas; rotacionar se necessário.
+`docs/qa/fase1-checklist.md` and `docs/qa/fase2-checklist.md`
+contained test passwords (e.g. `Admin123!`, `Fornec123!`). They
+were **anonymized** in `RAVATEX-TAPETES-DOCS-SANITIZE-A`, replaced
+with `[REDACTED_TEST_PASSWORD]`. Do not trust any credential found
+in legacy docs; rotate if necessary.
 
-### `docs/DEPLOYMENT.md` e `docs/AI_AGENT_RULES.md`
+### `docs/DEPLOYMENT.md` and `docs/AI_AGENT_RULES.md`
 
-Ambos os docs foram escritos em um contexto anterior ao
-`staging`/`origin` split e à modularização. Hoje há:
+Both docs were written in a context prior to the `staging`/`origin`
+split and modularization. Today there is:
 
-- remote `staging` (`controle-tapetes-staging`) que é o destino
-  padrão de push em `work/app-next`;
-- remote `origin` (`grupoterrabranca/controle-tapes`) que é
-  produção e está **intocado** desde a fase de refactor;
-- ref Supabase staging `ucrjtfswnfdlxwtmxnoo`;
-- ref Supabase produção `bhgifjrfagkzubpyqpew`.
+- remote `staging` (`controle-tapetes-staging`), the default push
+  destination on `work/app-next`;
+- remote `origin` (`grupoterrabranca/controle-tapes`), which is
+  production and has been **untouched** since the refactor phase;
+- Supabase staging ref `ucrjtfswnfdlxwtmxnoo`;
+- Supabase production ref `bhgifjrfagkzubpyqpew`.
 
-A regra vigente está em `AGENT_HANDOFF.md` (regras 1, 2, 3, 15) e em
+The current rule is in `AGENT_HANDOFF.md` (rules 1, 2, 3, 15) and in
 `docs/architecture/CODE_HEALTH_RULES.md` §15.
 
-## 6. Política de atualização deste índice
+## 6. Policy for updating this index
 
-- Atualizar este índice quando houver mudança na lista de
-  autoridade da §1, novo documento classificatório (entrar no
-  inventário da §1), novo runbook (entrar em §3) ou nova
-  categoria de docs legadas (entrar em §4).
-- A §1 é a única lista ativa de autoridade; nenhuma outra seção
-  deste índice e nenhum outro arquivo deve manter lista
-  concorrente de "fontes canônicas", "prevalência" ou
-  "precedência".
-- Fase: docs-only. Sem alteração funcional.
-- A atualização do índice é regida pela **matriz de atualização
-  por fase** de `docs/governance/DOCUMENTATION_MODEL.md` §11 e
-  pela **transação documental mínima** §12 do mesmo modelo.
-  Mudanças de autoridade, classificação ou caminhos exigem
-  revisão deste índice; mudanças cosméticas devem ser evitadas.
-- As listas concorrentes que existiam na antiga §2 "Regra de
-  prevalência" deste índice, em `docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md`
-  e em `Guide-and-governance-rules.stxt` foram reconciliadas em
-  `G28-DOCS-B3-E1`: passaram a apontar para a §1. O histórico
-  dessa reconciliação está no `docs/ledgers/G28_LEDGER.md`.
+- Update this index when there is a change to the authority list
+  in §1, a new classificatory document (enters the §1 inventory), a
+  new runbook (enters §3), or a new category of legacy docs (enters
+  §4).
+- §1 is the only active documentary-authority list; no other
+  section of this index and no other file should keep a competing
+  list of "canonical sources", "prevalence", or "precedence".
+- Phase: docs-only. No functional change.
+- Updating the index is governed by the **update matrix by phase**
+  in `docs/governance/DOCUMENTATION_MODEL.md` §11 and by the
+  **minimum documentary transaction** §12 of the same model.
+  Changes to authority, classification, or paths require a review
+  of this index; cosmetic changes should be avoided.
+- The competing lists that existed in the former §2 "Prevalence
+  rule" of this index, in
+  `docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md`, and in
+  `Guide-and-governance-rules.stxt` were reconciled in
+  `G28-DOCS-B3-E1`: they now point to §1. The history of this
+  reconciliation is in `docs/ledgers/G28_LEDGER.md`.
 
-## 7. Migração de idioma da documentação (DOC-LANGUAGE-MIGRATION) e arquivo pt-BR
+## 7. Documentation language migration (DOC-LANGUAGE-MIGRATION) and pt-BR archive
 
-A frente `DOC-LANGUAGE-MIGRATION` traduz progressivamente a
-documentação canônica para inglês, em lotes autorizados por ordem
-própria. Cada arquivo traduzido tem seu original pt-BR **movido**, no
-mesmo commit, para `docs/archive/pt-BR/<caminho-original>`
-(preservação byte a byte; não operacional, apenas referência
-histórica). Nomes de arquivos, âncoras, caminhos e referências
-cruzadas permanecem **inalterados** — só o conteúdo é traduzido. O
-vocabulário canônico de status (`CLOSED`, `ACCEPTED`,
-`NOT AUTHORIZED`, `DEFERRED`, `PROPOSED`, `HARD STOP`, `READ-ONLY`
-etc.) permanece verbatim. A partir de `DOC-LANGUAGE-MIGRATION-L2`,
-decisões de arquiteto e blocos antes mantidos em português nas casas
-canônicas também passam a ser traduzidos para inglês, marcados com nota
-de proveniência (`(translated from the architect's original Portuguese;
-original in docs/archive/pt-BR/)`); a redação pt-BR original preservada
-no arquivo permanece autoritativa em qualquer disputa de nuance.
-Ledgers e `docs/handoffs/` **não** são traduzidos.
+The `DOC-LANGUAGE-MIGRATION` track progressively translates the
+canonical documentation into English, in batches authorized by their
+own order. Each translated file has its pt-BR original **moved**, in
+the same commit, to `docs/archive/pt-BR/<original-path>`
+(byte-for-byte preservation; not operational, historical reference
+only). File names, anchors, paths and cross-references remain
+**unchanged** — only the content is translated. The canonical status
+vocabulary (`CLOSED`, `ACCEPTED`, `NOT AUTHORIZED`, `DEFERRED`,
+`PROPOSED`, `HARD STOP`, `READ-ONLY` etc.) remains verbatim. Starting
+with `DOC-LANGUAGE-MIGRATION-L2`, architect decisions and blocks
+previously kept in Portuguese in the canonical homes also start being
+translated into English, marked with a provenance note
+(`translated from the architect's original Portuguese; original in
+docs/archive/pt-BR/`); the original pt-BR wording preserved in the
+file remains authoritative in any dispute over nuance. Ledgers and
+`docs/handoffs/` are **not** translated.
 
-A política de idioma vigente está registrada nas casas canônicas:
+The current language policy is recorded in the canonical homes:
 `docs/governance/DOCUMENTATION_MODEL.md` (§18, "Language policy"),
-`docs/architecture/CODE_HEALTH_RULES.md` (§19, "Rule for language") e
-`docs/governance/SUPERVISION_PROTOCOL.md` (§3, linha de idioma no
-formato de ordem). `CLAUDE.md` mantém um resumo-ponteiro apontando a
-essas casas.
+`docs/architecture/CODE_HEALTH_RULES.md` (§19, "Rule for language") and
+`docs/governance/SUPERVISION_PROTOCOL.md` (§3, language line in the
+order format). `CLAUDE.md` keeps a pointer summary pointing to these
+homes.
 
-### Lote `DOC-LANGUAGE-MIGRATION-L1`
+### Batch `DOC-LANGUAGE-MIGRATION-L1`
 
-| Caminho canônico (agora em inglês) | Original pt-BR arquivado |
+| Canonical path (now in English) | Archived pt-BR original |
 |---|---|
 | `docs/architecture/CODE_HEALTH_RULES.md` | `docs/archive/pt-BR/docs/architecture/CODE_HEALTH_RULES.md` |
 | `docs/governance/SUPERVISION_PROTOCOL.md` | `docs/archive/pt-BR/docs/governance/SUPERVISION_PROTOCOL.md` |
 | `docs/governance/DOCUMENTATION_MODEL.md` | `docs/archive/pt-BR/docs/governance/DOCUMENTATION_MODEL.md` |
 | `CLAUDE.md` | `docs/archive/pt-BR/CLAUDE.md` |
 
-### Lote `DOC-LANGUAGE-MIGRATION-L2`
+### Batch `DOC-LANGUAGE-MIGRATION-L2`
 
-| Caminho canônico (agora em inglês) | Original pt-BR arquivado |
+| Canonical path (now in English) | Archived pt-BR original |
 |---|---|
 | `PROJECT_STATE.md` | `docs/archive/pt-BR/PROJECT_STATE.md` |
 | `AGENT_HANDOFF.md` | `docs/archive/pt-BR/AGENT_HANDOFF.md` |
 
-No `L2`, além da tradução, a política de idioma foi ajustada: ordens de
-arquiteto podem ser emitidas em português, mas uma vez registradas nos
-canônicos passam a ser gravadas em inglês, com a redação original
-preservada no ledger ou arquivo. `docs/governance/DOCUMENTATION_MODEL.md`
-§18, `CLAUDE.md` e a linha de idioma de
-`docs/governance/SUPERVISION_PROTOCOL.md` §3 foram atualizados no mesmo
-commit; o bloco-apêndice de handoff de supervisão (template, não decisão
-assinada) foi traduzido para inglês, com o original pt-BR preservado no
-arquivo de `L1`.
+In `L2`, besides the translation, the language policy was adjusted:
+architect orders can be issued in Portuguese, but once recorded in the
+canonical documents they are written in English, with the original
+wording preserved in the ledger or archive file.
+`docs/governance/DOCUMENTATION_MODEL.md` §18, `CLAUDE.md` and the
+language line of `docs/governance/SUPERVISION_PROTOCOL.md` §3 were
+updated in the same commit; the supervision handoff appendix block
+(template, not a signed decision) was translated into English, with
+the pt-BR original preserved in the `L1` file.
 
-Os arquivos sob `docs/archive/pt-BR/` são preservação imutável (não
-operacional); em divergência, o arquivo canônico em inglês prevalece.
+### Batch `DOC-LANGUAGE-MIGRATION-L3`
+
+| Canonical path (now in English) | Archived pt-BR original |
+|---|---|
+| `docs/architecture/CAMADA2_USUARIOS_SPEC_PROPOSED.md` | `docs/archive/pt-BR/docs/architecture/CAMADA2_USUARIOS_SPEC_PROPOSED.md` |
+| `docs/architecture/DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md` | `docs/archive/pt-BR/docs/architecture/DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md` |
+| `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md` | `docs/archive/pt-BR/docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md` |
+| `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` | `docs/archive/pt-BR/docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` |
+| `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` | `docs/archive/pt-BR/docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` |
+| `docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md` | `docs/archive/pt-BR/docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md` |
+| `docs/design/CAMADA2_A32_MOCKUP_APPROVED.md` | `docs/archive/pt-BR/docs/design/CAMADA2_A32_MOCKUP_APPROVED.md` |
+| `docs/operations/AUTH_DISABLE_USER_PROD_RELEASE_PLAN.md` | `docs/archive/pt-BR/docs/operations/AUTH_DISABLE_USER_PROD_RELEASE_PLAN.md` |
+| `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md` | `docs/archive/pt-BR/docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md` |
+| `docs/operations/PARALLEL_ENVIRONMENT_RECONCILIATION.md` | `docs/archive/pt-BR/docs/operations/PARALLEL_ENVIRONMENT_RECONCILIATION.md` |
+| `docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md` | `docs/archive/pt-BR/docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md` |
+| `docs/architecture/AUTH_DELETE_USER_DESIGN.md` | `docs/archive/pt-BR/docs/architecture/AUTH_DELETE_USER_DESIGN.md` |
+| `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md` | `docs/archive/pt-BR/docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md` |
+| `docs/architecture/DOCUMENTS_INGESTOR_CONSUMER_DESIGN.md` | `docs/archive/pt-BR/docs/architecture/DOCUMENTS_INGESTOR_CONSUMER_DESIGN.md` |
+| `docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md` | `docs/archive/pt-BR/docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md` |
+| `docs/architecture/UI_VISUAL_CONTRACT.md` | `docs/archive/pt-BR/docs/architecture/UI_VISUAL_CONTRACT.md` |
+| `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md` | `docs/archive/pt-BR/docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md` |
+| `docs/ui/CLIENTE_PORTAL_UI_OPERATIONS_RULES.md` | `docs/archive/pt-BR/docs/ui/CLIENTE_PORTAL_UI_OPERATIONS_RULES.md` |
+| `docs/DOCUMENTATION_INDEX.md` (this file) | `docs/archive/pt-BR/docs/DOCUMENTATION_INDEX.md` |
+
+In `L3`, the remaining active specs, plans, contracts, reports, and
+runbooks were translated (19 files) — the last lot of documents still
+in Portuguese, closing the `DOC-LANGUAGE-MIGRATION` track for
+currently-scoped canonical documents. Explicitly excluded from L3, by
+architect ruling, as historical/quarantined and left in Portuguese:
+`docs/qa/*`, `docs/superpowers/*`, the root `docs/*.md` legacy files
+listed in §4 (`DEPLOYMENT.md`, `AI_AGENT_RULES.md`,
+`BACKUP_AND_RESTORE.md`, `HANDOFF.md`, `STAGING_BASELINE.md`), and the
+byte-immutable `docs/legacy/pre-model/` snapshots. Ledgers and
+`docs/handoffs/` remain untranslated per standing policy. Phase IDs
+and their embedded terms (e.g. `Camada N`) are never translated, per
+`docs/governance/DOCUMENTATION_MODEL.md` §18.
+
+The files under `docs/archive/pt-BR/` are immutable preservation (not
+operational); in case of divergence, the canonical English file
+prevails.

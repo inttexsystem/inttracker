@@ -1,137 +1,136 @@
 # Cliente Portal UI - Operational Rules Matrix
 
-> **Fase:** `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-OPERATIONS-RULES-A`
-> **Tipo:** diagnostico/documentacao de regras operacionais para UI.
-> **Escopo:** docs-only. Sem implementacao. Sem alteracao de UI.
-> **Producao:** permanece bloqueada.
+> **Phase:** `RAVATEX-TAPETES-CLIENTE-PORTAL-UI-OPERATIONS-RULES-A`
+> **Type:** diagnostic/documentation of operational rules for UI.
+> **Scope:** docs-only. No implementation. No UI changes.
+> **Production:** remains blocked.
 
-## 1. Estado base
+## 1. Base State
 
-- **HEAD analisado:** `a5377fc`.
+- **HEAD analyzed:** `a5377fc`.
 - **Branch:** `work/app-next`.
-- **Origem deste documento:** `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`.
-- **Staging:** funcional para o Portal Cliente B2B.
-- **UI:** funcional, mas **nao final**.
-- **Producao/original:** bloqueada; este documento nao autoriza merge,
-  deploy, promocao de ambiente ou mudanca funcional.
+- **Source of this document:** `docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md`.
+- **Staging:** functional for the B2B Client Portal.
+- **UI:** functional, but **not final**.
+- **Production/original:** blocked; this document does not authorize merge,
+  deploy, environment promotion, or functional change.
 
-## 2. Decisoes ja consolidadas
+## 2. Already Consolidated Decisions
 
-As regras abaixo ja estao fechadas e devem ser preservadas em qualquer
-fase futura:
+The rules below are already closed and must be preserved in any future
+phase:
 
-- cliente nao ve OP;
-- cliente nao ve lote;
-- cliente nao ve fornecedor;
-- cliente nao ve NF/romaneio;
-- cliente nao ve custo/margem;
-- cliente nao ve metadata/criado_por/origem;
-- portal cliente e read-only exceto criacao de pedido;
-- status operacional e status visual sao separados;
-- admin publica status visual;
-- fornecedor nao altera status visual diretamente nesta etapa;
-- timeline cliente le apenas eventos visiveis;
-- producao nao esta liberada.
+- client does not see OP;
+- client does not see batch;
+- client does not see supplier;
+- client does not see invoice/packing list;
+- client does not see cost/margin;
+- client does not see metadata/created_by/origin;
+- client portal is read-only except for order creation;
+- operational status and visual status are separate;
+- admin publishes visual status;
+- supplier does not change visual status directly at this stage;
+- client timeline reads only visible events;
+- production is not released.
 
-## 3. Matriz de decisoes pendentes
+## 3. Matrix of Pending Decisions
 
-| ID | Tema | Tela afetada | Pergunta para o dono do projeto | Opcao A | Opcao B | Recomendacao tecnica | Impacto se decidir A | Impacto se decidir B | Status |
+| ID | Topic | Affected Screen | Question for the Project Owner | Option A | Option B | Technical Recommendation | Impact if A is Decided | Impact if B is Decided | Status |
 |---|---|---|---|---|---|---|---|---|---|
-| OP-001 | Fluxo de Novo Pedido | Novo Pedido | O pedido cliente deve ser criado em uma etapa unica ou em duas etapas com revisao/finalizacao? | uma etapa, formulario direto | duas etapas, itens + revisao/finalizacao | **B**. O mockup ja separa itens, instrucoes e finalizacao, e isso reduz erro operacional. | Menor custo de UI agora; mantem o fluxo atual mais simples, mas com menor aderencia ao mockup. | Exige nova etapa de revisao, estados de navegacao e textos de confirmacao, mas alinha com o fluxo esperado. | PENDENTE |
-| OP-002 | Modal Adicionar Item | Novo Pedido / Modal Adicionar Item | Itens devem ser adicionados inline ou por modal? | inline | modal dedicado | **B**. Mantem aderencia ao mockup e reduz a complexidade visual da tela principal. | Mantem a implementacao atual mais curta, mas conflita com o mockup e dificulta campos extras por item. | Exige componente/modal e reorganizacao da tela, mas melhora clareza e escalabilidade. | PENDENTE |
-| OP-003 | Campos obrigatorios por item | Novo Pedido / Modal Adicionar Item | Quais campos sao obrigatorios para cada item? | obrigar so modelo + metragem | definir conjunto maior de obrigatorios (ex.: largura e cores) | **PENDENTE**. Falta decisao documentada; nao assumir obrigatoriedade de largura/cores/anexo sem confirmacao. | Menor friccao no preenchimento, mas pode gerar itens pouco especificados. | Maior qualidade operacional do pedido, com maior atrito na entrada. | PENDENTE |
-| OP-004 | Tipo de recebimento | Novo Pedido | `tipo_recebimento` deve aparecer no Novo Pedido? | sim, com padrao "Retirada" | nao exibir ainda | **A**. O mockup ja usa "Retirada" como padrao e o schema ja possui o campo. | Introduz campo novo na UI, mas sem exigir schema novo. | Mantem o form atual mais curto, porem deixa um dado operacional ja modelado sem uso. | PENDENTE |
-| OP-005 | Referencia do cliente | Novo Pedido / Dashboard / Detalhe | `referencia_cliente` deve ser campo visivel no Novo Pedido e no Dashboard/Detalhe? | visivel no Novo Pedido e Detalhe | apenas interno/admin | **A**, se o cliente usa numero interno ou OC propria. | Melhora rastreabilidade para o cliente, com impacto pequeno de UI e select. | Mantem a UI mais enxuta, mas pode dificultar conciliacao com processos do cliente. | PENDENTE |
-| OP-006 | Prazo desejado vs prazo entrega | Novo Pedido / Detalhe | Cliente deve informar `prazo_desejado` separado de `prazo_entrega`? | cliente informa prazo desejado; admin define prazo entrega | continuar usando apenas prazo_entrega | **A**. Separa solicitacao do cliente de compromisso operacional. | Exige ajuste de formulario e de leitura no detalhe; melhora semantica. | Mantem simplicidade, mas mistura pedido do cliente com promessa operacional. | PENDENTE |
-| OP-007 | Status operacional no detalhe cliente | Detalhe / Stepper | A tela cliente deve exibir `pedido.status` operacional junto com `status_cliente_visual`? | ocultar status operacional do cliente | exibir ambos | **C**. Exibir somente o status visual; qualquer fallback tecnico deve ficar invisivel ao cliente. | Reduz ambiguidade e aproxima a tela do mockup. | Mantem duas taxonomias simultaneas e pode confundir o cliente. | PENDENTE |
-| OP-008 | Dashboard: acoes rapidas | Dashboard Cliente | Dashboard deve ter acoes rapidas? | Novo pedido + Ver pedidos | somente links contextuais | **A**, se o fluxo de criacao estiver maduro apos os ajustes. | Exige area nova de CTA e ajuda a navegacao primaria. | Mantem dashboard mais seco, com menor aderencia ao mockup. | PENDENTE |
-| OP-009 | Menu cliente | Shell/Menu | Menu cliente deve ter 2 ou 4 itens? | Inicio + Meus pedidos | Inicio + Novo pedido + Meus pedidos + Suporte | **B**. Alinha com o mockup; "Suporte" pode ser placeholder nao funcional se houver autorizacao. | Menor risco e preserva shell atual. | Exige redesenho do menu e decisao sobre shell compartilhado; aproxima a UX do mockup. | PENDENTE |
-| OP-010 | Suporte | Shell/Menu | A opcao Suporte deve existir agora? | nao | sim, como link/contato simples | **B** somente se houver canal definido; caso contrario, adiar. | Evita placeholder vazio e reduz escopo. | Introduz novo ponto de contato, mas depende de dono/canal real. | PENDENTE |
-| OP-011 | Upload/imagem no item | Modal Adicionar Item | Cliente podera anexar imagem/referencia ao item? | nao nesta versao | sim, mas apenas visual/local futuro | **A** por enquanto. Storage/anexo abre novo bloco de schema, storage e policy. | Mantem escopo contido e sem novas superficies de seguranca. | Abre dependencia de storage e novas regras operacionais/tecnicas. | PENDENTE |
-| OP-012 | Cancelamento/edicao pelo cliente | Detalhe / Meus pedidos | Cliente pode editar/cancelar pedido apos envio? | nao | editar enquanto status recebido | **A** ou fluxo indireto de solicitacao futura; nao criar update direto sem regra operacional fechada. | Preserva o portal read-only apos criacao e reduz risco operacional. | Exige regra clara de janela de edicao, auditoria e impacto em admin/operacao. | PENDENTE |
+| OP-001 | New Order Flow | Novo Pedido | Should the client order be created in a single step or in two steps with review/finalization? | single step, direct form | two steps, items + review/finalization | **B**. The mockup already separates items, instructions, and finalization, and this reduces operational error. | Lower UI cost now; keeps the current flow simpler, but with less adherence to the mockup. | Requires a new review step, navigation states, and confirmation texts, but aligns with the expected flow. | PENDING |
+| OP-002 | Add Item Modal | Novo Pedido / Modal Adicionar Item | Should items be added inline or via modal? | inline | dedicated modal | **B**. Keeps adherence to the mockup and reduces the visual complexity of the main screen. | Keeps the current implementation shorter, but conflicts with the mockup and makes extra fields per item harder. | Requires a component/modal and screen reorganization, but improves clarity and scalability. | PENDING |
+| OP-003 | Required Fields per Item | Novo Pedido / Modal Adicionar Item | Which fields are required for each item? | require only model + meterage | define a larger set of required fields (e.g., width and colors) | **PENDING**. Documented decision is missing; do not assume width/colors/attachment are required without confirmation. | Less friction when filling in, but may generate under-specified items. | Higher operational quality of the order, with more friction on entry. | PENDING |
+| OP-004 | Receiving Type | Novo Pedido | Should `tipo_recebimento` appear in Novo Pedido? | yes, with "Retirada" as default | do not display yet | **A**. The mockup already uses "Retirada" as the default and the schema already has the field. | Introduces a new field in the UI, but without requiring a new schema. | Keeps the current form shorter, but leaves an already-modeled operational data point unused. | PENDING |
+| OP-005 | Client Reference | Novo Pedido / Dashboard / Detalhe | Should `referencia_cliente` be a visible field in Novo Pedido and in Dashboard/Detalhe? | visible in Novo Pedido and Detalhe | internal/admin only | **A**, if the client uses an internal number or their own PO. | Improves traceability for the client, with small UI and select impact. | Keeps the UI leaner, but may make reconciliation with the client's processes harder. | PENDING |
+| OP-006 | Desired Deadline vs. Delivery Deadline | Novo Pedido / Detalhe | Should the client provide `prazo_desejado` separately from `prazo_entrega`? | client provides desired deadline; admin sets delivery deadline | keep using only prazo_entrega | **A**. Separates the client's request from the operational commitment. | Requires a form adjustment and a read adjustment in the detail view; improves semantics. | Keeps things simple, but mixes the client's request with the operational promise. | PENDING |
+| OP-007 | Operational Status in the Client Detail View | Detalhe / Stepper | Should the client screen display the operational `pedido.status` together with `status_cliente_visual`? | hide the operational status from the client | display both | **C**. Display only the visual status; any technical fallback must remain invisible to the client. | Reduces ambiguity and brings the screen closer to the mockup. | Keeps two simultaneous taxonomies and may confuse the client. | PENDING |
+| OP-008 | Dashboard: Quick Actions | Dashboard Cliente | Should the dashboard have quick actions? | Novo pedido + Ver pedidos | contextual links only | **A**, if the creation flow is mature after the adjustments. | Requires a new CTA area and helps primary navigation. | Keeps the dashboard leaner, with less adherence to the mockup. | PENDING |
+| OP-009 | Client Menu | Shell/Menu | Should the client menu have 2 or 4 items? | Inicio + Meus pedidos | Inicio + Novo pedido + Meus pedidos + Suporte | **B**. Aligns with the mockup; "Suporte" can be a non-functional placeholder if authorized. | Lower risk and preserves the current shell. | Requires menu redesign and a decision about the shared shell; brings the UX closer to the mockup. | PENDING |
+| OP-010 | Suporte | Shell/Menu | Should the Suporte option exist now? | no | yes, as a simple link/contact | **B** only if a defined channel exists; otherwise, postpone. | Avoids an empty placeholder and reduces scope. | Introduces a new point of contact, but depends on a real owner/channel. | PENDING |
+| OP-011 | Upload/Image on the Item | Modal Adicionar Item | Will the client be able to attach an image/reference to the item? | not in this version | yes, but only visual/local in the future | **A** for now. Storage/attachment opens a new block of schema, storage, and policy. | Keeps scope contained and without new security surfaces. | Opens a storage dependency and new operational/technical rules. | PENDING |
+| OP-012 | Cancellation/Editing by the Client | Detalhe / Meus pedidos | Can the client edit/cancel an order after submission? | no | edit while status is recebido | **A**, or an indirect future request flow; do not create a direct update without a closed operational rule. | Preserves the read-only portal after creation and reduces operational risk. | Requires a clear rule for the editing window, audit, and impact on admin/operations. | PENDING |
 
-**Observacao sobre OP-007:** a matriz acima registra a recomendacao
-tecnica como opcao "C" (somente status visual com fallback tecnico
-invisivel), embora a tabela obrigatoria tenha as colunas de impacto A/B.
-Se o dono do projeto optar por expor ambos os status, sera necessario
-aceitar conscientemente duas taxonomias simultaneas na mesma tela.
+**Note on OP-007:** the matrix above records the technical recommendation
+as option "C" (visual status only, with an invisible technical fallback),
+even though the mandatory table only has impact columns for A/B.
+If the project owner chooses to expose both statuses, it will be necessary
+to consciously accept two simultaneous taxonomies on the same screen.
 
-**Observacao sobre OP-010:** a decisao completa possui tres caminhos
-reais:
+**Note on OP-010:** the full decision has three real paths:
 
-- A: nao;
-- B: sim, como link/contato simples;
-- C: sim, como formulario futuro.
+- A: no;
+- B: yes, as a simple link/contact;
+- C: yes, as a future form.
 
-Como a matriz obrigatoria pede apenas colunas de Opcao A e Opcao B, a
-alternativa "C" fica registrada aqui como possibilidade futura, mas nao
-recomendada para esta etapa.
+Since the mandatory matrix only asks for Option A and Option B columns, the
+alternative "C" is recorded here as a future possibility, but not
+recommended for this stage.
 
-**Campos a considerar em OP-003:** modelo, metragem, largura, cor 1,
-cor 2, observacao, imagem/anexo.
+**Fields to consider in OP-003:** model, meterage, width, color 1,
+color 2, notes, image/attachment.
 
-## 4. Impacto por tela
+## 4. Impact by Screen
 
 ### Dashboard Cliente
 
-- **Decisoes que afetam a tela:** OP-005, OP-008.
-- **Arquivos provaveis:** `js/screens/cliente-dashboard.js`.
-- **Risco:** baixo.
-- **Dependencia de decisao:** sem definir CTA/acoes rapidas e eventual
-  referencia do cliente, qualquer ajuste visual tende a ser retrabalho.
+- **Decisions affecting the screen:** OP-005, OP-008.
+- **Likely files:** `js/screens/cliente-dashboard.js`.
+- **Risk:** low.
+- **Decision dependency:** without defining CTA/quick actions and the
+  eventual client reference, any visual adjustment tends to be rework.
 
 ### Novo Pedido
 
-- **Decisoes que afetam a tela:** OP-001, OP-004, OP-005, OP-006.
-- **Arquivos provaveis:** `js/screens/cliente-pedido-form.js`.
-- **Risco:** medio, porque toca o unico write do portal cliente.
-- **Dependencia de decisao:** o fluxo de 1 ou 2 etapas muda a estrutura
-  base da tela; os campos `tipo_recebimento`, `referencia_cliente` e
-  `prazo_desejado` nao devem ser introduzidos sem decisao fechada.
+- **Decisions affecting the screen:** OP-001, OP-004, OP-005, OP-006.
+- **Likely files:** `js/screens/cliente-pedido-form.js`.
+- **Risk:** medium, because it touches the client portal's only write.
+- **Decision dependency:** the 1- or 2-step flow changes the screen's
+  base structure; the fields `tipo_recebimento`, `referencia_cliente`, and
+  `prazo_desejado` must not be introduced without a closed decision.
 
 ### Modal Adicionar Item
 
-- **Decisoes que afetam a tela:** OP-002, OP-003, OP-011.
-- **Arquivos provaveis:** `js/screens/cliente-pedido-form.js`,
-  possivelmente `js/ui.js` se houver modal reutilizavel.
-- **Risco:** medio.
-- **Dependencia de decisao:** o conjunto de campos obrigatorios e a
-  existencia ou nao de upload definem se a tela continua simples ou
-  vira um fluxo mais pesado.
+- **Decisions affecting the screen:** OP-002, OP-003, OP-011.
+- **Likely files:** `js/screens/cliente-pedido-form.js`,
+  possibly `js/ui.js` if there is a reusable modal.
+- **Risk:** medium.
+- **Decision dependency:** the set of required fields and whether or not
+  upload exists define whether the screen stays simple or becomes a
+  heavier flow.
 
 ### Detalhe
 
-- **Decisoes que afetam a tela:** OP-005, OP-006, OP-007, OP-012.
-- **Arquivos provaveis:** `js/screens/cliente-pedido-detail.js`.
-- **Risco:** baixo para reorganizacao visual; medio se a fase tentar
-  introduzir edicao/cancelamento.
-- **Dependencia de decisao:** a tela nao deve misturar duas taxonomias
-  nem expor botoes de alteracao sem regra fechada.
+- **Decisions affecting the screen:** OP-005, OP-006, OP-007, OP-012.
+- **Likely files:** `js/screens/cliente-pedido-detail.js`.
+- **Risk:** low for visual reorganization; medium if the phase attempts
+  to introduce editing/cancellation.
+- **Decision dependency:** the screen must not mix two taxonomies nor
+  expose change buttons without a closed rule.
 
 ### Stepper/Timeline
 
-- **Decisoes que afetam a tela:** OP-007.
-- **Arquivos provaveis:** `js/screens/cliente-pedido-tracking.js`,
+- **Decisions affecting the screen:** OP-007.
+- **Likely files:** `js/screens/cliente-pedido-tracking.js`,
   `js/pedido-tracking-ui.js`, `js/screens/cliente-pedido-detail.js`.
-- **Risco:** baixo a medio.
-- **Dependencia de decisao:** o status visual ja esta consolidado; a
-  pendencia principal e evitar reintroduzir o status operacional como
-  hierarquia paralela para o cliente.
+- **Risk:** low to medium.
+- **Decision dependency:** the visual status is already consolidated; the
+  main pending item is avoiding reintroducing the operational status as a
+  parallel hierarchy for the client.
 
 ### Shell/Menu
 
-- **Decisoes que afetam a tela:** OP-009, OP-010.
-- **Arquivos provaveis:** `js/screens/cliente-common.js`,
+- **Decisions affecting the screen:** OP-009, OP-010.
+- **Likely files:** `js/screens/cliente-common.js`,
   `js/screens/common.js`.
-- **Risco:** alto, porque `shellLayout` e compartilhado com admin e
-  fornecedor.
-- **Dependencia de decisao:** o shell deve ficar por ultimo; o risco
-  cross-role e maior que nas demais telas.
+- **Risk:** high, because `shellLayout` is shared with admin and
+  supplier.
+- **Decision dependency:** the shell must come last; the cross-role risk
+  is higher than on the other screens.
 
-## 5. Sequencia recomendada de implementacao
+## 5. Recommended Implementation Sequence
 
-A sequencia abaixo so deve comecar **depois** de o dono do projeto
-responder OP-001 a OP-012:
+The sequence below must only start **after** the project owner answers
+OP-001 through OP-012:
 
 1. `UI-GAP-FIX-NOVO-PEDIDO-A`
 2. `UI-GAP-FIX-MODAL-ITEM-A`
@@ -139,16 +138,16 @@ responder OP-001 a OP-012:
 4. `UI-GAP-FIX-DASHBOARD-A`
 5. `UI-GAP-FIX-SHELL-A`
 
-Registrar como regra:
+Record as a rule:
 
-- `UI-GAP-FIX-SHELL-A` deve ficar por ultimo, porque `shellLayout` e
-  compartilhado com admin/fornecedor e carrega risco cross-role.
+- `UI-GAP-FIX-SHELL-A` must come last, because `shellLayout` is shared
+  with admin/supplier and carries cross-role risk.
 
-## 6. Perguntas para o dono do projeto
+## 6. Questions for the Project Owner
 
 - OP-001: A/B?
 - OP-002: A/B?
-- OP-003: quais campos sao obrigatorios por item?
+- OP-003: which fields are required per item?
 - OP-004: A/B?
 - OP-005: A/B/C?
 - OP-006: A/B?
@@ -159,21 +158,21 @@ Registrar como regra:
 - OP-011: A/B/C?
 - OP-012: A/B/C?
 
-## 7. Fora de escopo
+## 7. Out of Scope
 
-- producao;
-- automacao;
-- fornecedor;
-- storage/anexos;
-- edicao/cancelamento;
-- suporte completo;
+- production;
+- automation;
+- supplier;
+- storage/attachments;
+- editing/cancellation;
+- full support;
 - merge `origin/main`.
 
-## 8. Confirmacoes finais
+## 8. Final Confirmations
 
-- Este documento **nao implementa UI**.
-- Este documento **nao altera codigo, schema, SQL ou Supabase**.
-- A UI cliente continua **nao final**.
-- A proxima etapa recomendada e o dono do projeto responder
-  `OP-001` a `OP-012` antes de qualquer implementacao de UI.
-- Producao/original segue **bloqueada**.
+- This document **does not implement UI**.
+- This document **does not change code, schema, SQL, or Supabase**.
+- The client UI remains **not final**.
+- The recommended next step is for the project owner to answer
+  `OP-001` through `OP-012` before any UI implementation.
+- Production/original remains **blocked**.

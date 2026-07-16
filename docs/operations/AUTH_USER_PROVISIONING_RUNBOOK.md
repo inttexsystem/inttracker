@@ -1,78 +1,79 @@
 # Auth User Provisioning Runbook
 
-> Documento operacional atual. Descreve como criar usuários do
-> **Ravatex Controle de Tapetes** de forma segura após a implantação
-> da Edge Function `admin-create-user` e da nova UI em
+> Current operational document. Describes how to create users of
+> **Ravatex Controle de Tapetes** safely after the deployment
+> of the `admin-create-user` Edge Function and the new UI at
 > `#/cadastros/usuarios`.
 >
-> **Convenção:** o fluxo manual antigo (criar `auth.users` no Supabase
-> Studio, copiar UID, vincular em `public.usuarios`) **não é mais o
-> fluxo operacional padrão**. Este runbook substitui aquele procedimento.
+> **Convention:** the old manual flow (create `auth.users` in the
+> Supabase Studio, copy the UID, link it in `public.usuarios`) **is no
+> longer the standard operational flow**. This runbook replaces that
+> procedure.
 
 ---
 
-## 1. Objetivo
+## 1. Objective
 
-Este runbook descreve o procedimento operacional padrão para criar
-usuários do app — incluindo admins e fornecedores — garantindo que:
+This runbook describes the standard operational procedure for creating
+app users — including admins and suppliers — ensuring that:
 
-* o vínculo `auth.users.id = public.usuarios.id` seja criado de forma
-  atômica;
-* o admin não precise acessar o Supabase Studio para provisionar
-  contas;
-* `service_role` nunca trafegue pelo browser;
-* validação de admin seja server-side, não client-side.
+* the `auth.users.id = public.usuarios.id` link is created atomically;
+* the admin does not need to access the Supabase Studio to provision
+  accounts;
+* `service_role` never crosses the browser;
+* admin validation is server-side, not client-side.
 
-Aplicabilidade: **staging** e, após autorização explícita,
-**produção**.
+Applicability: **staging** and, after explicit authorization,
+**production**.
 
 ---
 
-## 2. Arquitetura resumida
+## 2. Summarized architecture
 
-* **Supabase Auth (`auth.users`)** — guarda a conta de login (e-mail
-  + senha, JWT). É a fonte da autenticação.
-* **`public.usuarios`** — perfil de domínio do app, com
-  `nome`, `tipo` (`admin` | `fornecedor`) e `fornecedor_id` quando
-  aplicável. É a fonte da autorização e do roteamento por papel.
-* **Vínculo obrigatório:** `auth.users.id = public.usuarios.id`.
-  Sem perfil, o login Auth é considerado incompleto pelo app
-  (`loadCurrentUser()` retorna `null` e o usuário volta para
+* **Supabase Auth (`auth.users`)** — holds the login account (email
+  + password, JWT). It is the source of authentication.
+* **`public.usuarios`** — the app's domain profile, with
+  `nome`, `tipo` (`admin` | `fornecedor`) and `fornecedor_id` when
+  applicable. It is the source of authorization and role-based
+  routing.
+* **Mandatory link:** `auth.users.id = public.usuarios.id`.
+  Without a profile, the Auth login is considered incomplete by the app
+  (`loadCurrentUser()` returns `null` and the user is sent back to
   `#/login`).
-* **Edge Function `admin-create-user`** — função server-side
-  (Deno/TypeScript) implantada no Supabase. Cria, no mesmo fluxo
-  controlado, o registro em `auth.users` (via `auth.admin.createUser`)
-  e em `public.usuarios` (via `from('usuarios').insert(...)`). Se o
-  insert do perfil falhar, executa compensação
-  (`auth.admin.deleteUser`).
-* **Princípio de segurança:** o **browser nunca recebe
-  `service_role`**. O front-end apenas invoca a Edge Function via
-  `supabase.functions.invoke('admin-create-user', { body })`. A
-  `SUPABASE_SERVICE_ROLE_KEY` existe **apenas** como secret da Edge
+* **Edge Function `admin-create-user`** — server-side function
+  (Deno/TypeScript) deployed on Supabase. It creates, in the same
+  controlled flow, the record in `auth.users` (via
+  `auth.admin.createUser`) and in `public.usuarios` (via
+  `from('usuarios').insert(...)`). If the profile insert fails, it
+  runs compensation (`auth.admin.deleteUser`).
+* **Security principle:** the **browser never receives
+  `service_role`**. The front end only invokes the Edge Function via
+  `supabase.functions.invoke('admin-create-user', { body })`. The
+  `SUPABASE_SERVICE_ROLE_KEY` exists **only** as a secret of the Edge
   Function.
 
 ---
 
-## 3. Fluxo operacional principal
+## 3. Main operational flow
 
-**Pré-condição:** operador logado como `admin` no app.
+**Precondition:** operator logged in as `admin` in the app.
 
-1. Acessar `#/cadastros/usuarios`.
-2. Clicar em **+ Novo usuário**.
-3. Preencher o modal:
-   * **E-mail** — será usado para login no Supabase Auth.
-   * **Nome** — nome de exibição.
-   * **Tipo** — `admin` ou `fornecedor`.
-   * **Fornecedor (se tipo for "fornecedor")** — selecionar o
-     fornecedor correspondente. Deixar vazio se o tipo for `admin`.
-   * **Senha temporária** — mínimo 8 caracteres + ao menos 1 dígito
-     (política vigente desde `A4.1`, `db/58_admin_usuarios_senha_temporaria.sql`).
-     Definir conforme procedimento interno; ver seção 6.
-4. Clicar em **Salvar**.
-5. Aguardar o toast de sucesso (`Usuário criado`) e confirmar que o
-   novo usuário aparece na listagem.
+1. Go to `#/cadastros/usuarios`.
+2. Click **+ Novo usuário**.
+3. Fill in the modal:
+   * **E-mail** — will be used to log in to Supabase Auth.
+   * **Nome** — display name.
+   * **Tipo** — `admin` or `fornecedor`.
+   * **Fornecedor (se tipo for "fornecedor")** — select the
+     corresponding supplier. Leave empty if the type is `admin`.
+   * **Senha temporária** — minimum 8 characters + at least 1 digit
+     (policy in effect since `A4.1`, `db/58_admin_usuarios_senha_temporaria.sql`).
+     Set it according to the internal procedure; see section 6.
+4. Click **Salvar**.
+5. Wait for the success toast (`Usuário criado`) and confirm that the
+   new user appears in the listing.
 
-O app chama:
+The app calls:
 
 ```js
 const { data, error } = await window.supa.functions.invoke(
@@ -81,111 +82,111 @@ const { data, error } = await window.supa.functions.invoke(
 );
 ```
 
-Em sucesso, a função retorna `{ data: { user_id, email, tipo,
-fornecedor_id } }` e o modal fecha. Em erro, o modal permanece
-aberto e o toast mostra a mensagem da função (ver seção 7).
+On success, the function returns `{ data: { user_id, email, tipo,
+fornecedor_id } }` and the modal closes. On error, the modal stays
+open and the toast shows the function's message (see section 7).
 
 ---
 
-## 4. Regras por tipo de usuário
+## 4. Rules by user type
 
 ### Admin
 * `tipo = 'admin'`.
-* `fornecedor_id` **deve** ser `null`. O modal envia `null`
-  automaticamente quando o tipo é admin; o app bloqueia o envio
-  se um fornecedor for selecionado.
-* Não há amarração a fornecedor.
+* `fornecedor_id` **must** be `null`. The modal sends `null`
+  automatically when the type is admin; the app blocks the submission
+  if a supplier is selected.
+* There is no binding to a supplier.
 
 ### Fornecedor
 * `tipo = 'fornecedor'`.
-* `fornecedor_id` **obrigatório** e deve existir em
+* `fornecedor_id` **required** and must exist in
   `public.fornecedores`.
-* O fornecedor vinculado define as permissões de tela (ordens,
-  entregas, látex) via `CURRENT_USER.fornecedor_tipo`.
+* The linked supplier defines the screen permissions (orders,
+  deliveries, latex) via `CURRENT_USER.fornecedor_tipo`.
 
 ---
 
-## 5. O que **não** fazer
+## 5. What **not** to do
 
-* **Não** criar usuário manualmente no Supabase Auth como fluxo
-  padrão. O caminho manual existe apenas como contingência
-  documentada em incidente, e o usuário criado deve ser migrado para
-  o fluxo padrão imediatamente.
-* **Não** copiar UID manualmente.
-* **Não** inserir linha em `public.usuarios` sem auth user
-  correspondente (origem de login Auth OK com redirect para
+* **Do not** create a user manually in Supabase Auth as the standard
+  flow. The manual path exists only as a documented incident
+  contingency, and the user created that way must be migrated to
+  the standard flow immediately.
+* **Do not** copy the UID manually.
+* **Do not** insert a row into `public.usuarios` without a matching
+  auth user (origin of an OK Auth login with a redirect to
   `#/login`).
-* **Não** colocar `service_role` no front-end, em `js/config.js`,
-  `index.html`, `localStorage`, `sessionStorage` ou qualquer arquivo
-  versionado.
-* **Não** registrar senha temporária em chat, relatório, planilha
-  ou documentação. Tratar como informação sensível.
-* **Não** usar produção para testes. Staging é o ambiente de
-  homologação.
+* **Do not** place `service_role` in the front end, in `js/config.js`,
+  `index.html`, `localStorage`, `sessionStorage`, or any versioned
+  file.
+* **Do not** record the temporary password in chat, a report, a
+  spreadsheet, or documentation. Treat it as sensitive information.
+* **Do not** use production for tests. Staging is the homologation
+  environment.
 
 ---
 
-## 6. Senha temporária
+## 6. Temporary password
 
-* A senha temporária é definida pelo admin no momento da criação
-  (mínimo 8 caracteres + ao menos 1 dígito conforme a Edge Function,
-  política vigente desde `A4.1`).
-* Toda criação via `admin-create-user` marca o usuário com
-  `usuarios.senha_temporaria = TRUE` e `usuarios.senha_gerada_em =
-  now()` (`db/58_admin_usuarios_senha_temporaria.sql`). A troca
-  obrigatória no primeiro login (guarda de boot + tela de troca,
-  self-service `auth.updateUser`) é a subfase futura `A4.2` —
-  **não implementada ainda**; a flag hoje só marca o estado, sem
-  bloquear o app.
-* **Não** registrar a senha em nenhum artefato versionado ou
-  relatório.
-* O procedimento de comunicação ao usuário e troca da senha é
-  definido internamente pelo HMNlead (canal verbal, canal seguro,
-  etc.). Este runbook **não** normatiza o canal.
-* Não há, nesta fase, fluxo automatizado de convite por e-mail
-  ("magic link" / password reset) implementado como padrão. A
-  criação usa senha digitada pelo admin. A decisão entre
-  senha-digitada vs. invite-link é uma pergunta em aberto do
-  design (`docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`,
-  seção 12); `A4.3` (convite por e-mail/SMTP) permanece `NOT
-  AUTHORIZED`.
-* Recomenda-se orientar o usuário a trocar a senha no primeiro
-  login. O app **ainda não** força essa troca automaticamente —
-  ver `A4.2` acima.
+* The temporary password is set by the admin at creation time
+  (minimum 8 characters + at least 1 digit per the Edge Function,
+  policy in effect since `A4.1`).
+* Every creation via `admin-create-user` flags the user with
+  `usuarios.senha_temporaria = TRUE` and `usuarios.senha_gerada_em =
+  now()` (`db/58_admin_usuarios_senha_temporaria.sql`). The mandatory
+  change on first login (boot guard + change screen, self-service
+  `auth.updateUser`) is the future subphase `A4.2` —
+  **not implemented yet**; today the flag only marks the state, without
+  blocking the app.
+* **Do not** record the password in any versioned artifact or
+  report.
+* The procedure for communicating with the user and changing the
+  password is defined internally by the HMNlead (verbal channel,
+  secure channel, etc.). This runbook **does not** mandate the
+  channel.
+* At this stage, there is no automated email invite flow
+  ("magic link" / password reset) implemented as standard. Creation
+  uses a password typed by the admin. The choice between
+  typed-password vs. invite-link is an open design question
+  (`docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md`,
+  section 12); `A4.3` (email/SMTP invite) remains `NOT AUTHORIZED`.
+* It is recommended to instruct the user to change the password on
+  first login. The app **does not yet** enforce this change
+  automatically — see `A4.2` above.
 
 ---
 
-## 7. Mensagens de erro esperadas
+## 7. Expected error messages
 
-A Edge Function retorna JSON padronizado:
+The Edge Function returns standardized JSON:
 
 ```json
 { "error": { "code": "<CODE>", "message": "<mensagem segura>" } }
 ```
 
-| Código | HTTP típico | Causa | Ação do operador |
+| Code | Typical HTTP | Cause | Operator action |
 |---|---|---|---|
-| `VALIDATION_ERROR` | 400 | Payload inválido (e-mail malformado, senha < 8 caracteres ou sem dígito, tipo não permitido, fornecedor inválido/inexistente, admin com fornecedor_id). | Corrigir os campos conforme mensagem e reenviar. |
-| `UNAUTHORIZED` | 401 | Sessão expirada/ausente ou JWT inválido. | Pedir login novamente. |
-| `FORBIDDEN` | 403 | Usuário logado **não** é `admin` em `public.usuarios`. | Confirmar que a conta logada é admin; se necessário, promover via outro admin. |
-| `CONFLICT` | 409 | E-mail já cadastrado em `auth.users`. | Verificar se o usuário já existe; se for duplicata, não recriar. |
-| `AUTH_CREATE_FAILED` | 500 | Falha interna do Auth (inesperada). | Acionar suporte técnico com log da chamada. |
-| `PROFILE_INSERT_FAILED` | 500 | Auth user criado, mas insert em `public.usuarios` falhou; compensação automática removeu o auth user. | Tentar novamente; se persistir, acionar suporte. |
-| `COMPENSATION_FAILED` | 500 | Auth user criado, perfil falhou, **e** `auth.admin.deleteUser` também falhou. Há auth user órfão. | Acionar suporte técnico imediatamente; o `user_id` está na mensagem. Limpar manualmente no Supabase Studio. |
-| `UNKNOWN` | 500 | Erro não classificado. | Acionar suporte técnico. |
+| `VALIDATION_ERROR` | 400 | Invalid payload (malformed email, password < 8 characters or no digit, disallowed type, invalid/nonexistent supplier, admin with fornecedor_id). | Fix the fields per the message and resubmit. |
+| `UNAUTHORIZED` | 401 | Expired/missing session or invalid JWT. | Ask for a new login. |
+| `FORBIDDEN` | 403 | Logged-in user is **not** `admin` in `public.usuarios`. | Confirm the logged-in account is admin; promote via another admin if needed. |
+| `CONFLICT` | 409 | Email already registered in `auth.users`. | Check whether the user already exists; if it's a duplicate, do not recreate it. |
+| `AUTH_CREATE_FAILED` | 500 | Internal Auth failure (unexpected). | Escalate to technical support with the call log. |
+| `PROFILE_INSERT_FAILED` | 500 | Auth user created, but the insert into `public.usuarios` failed; automatic compensation removed the auth user. | Retry; if it persists, escalate to support. |
+| `COMPENSATION_FAILED` | 500 | Auth user created, profile failed, **and** `auth.admin.deleteUser` also failed. There is an orphan auth user. | Escalate to technical support immediately; the `user_id` is in the message. Clean up manually in the Supabase Studio. |
+| `UNKNOWN` | 500 | Unclassified error. | Escalate to technical support. |
 
-A UI mapeia os códigos mais prováveis para mensagens amigáveis em
-`js/screens/cadastros.js` (ver helper de tratamento de erro do
-`openModal` em `screenCadastrosUsuarios`).
+The UI maps the most likely codes to friendly messages in
+`js/screens/cadastros.js` (see the error-handling helper of
+`openModal` in `screenCadastrosUsuarios`).
 
 ---
 
-## 8. Validação técnica read-only
+## 8. Read-only technical validation
 
-Após uma criação, o operador/admin pode validar o vínculo executando
-o seguinte SQL **read-only** no SQL Editor do projeto Supabase
-(staging ou produção conforme contexto), substituindo `<EMAIL_DO_USUARIO>`
-pelo e-mail real:
+After a creation, the operator/admin can validate the link by running
+the following **read-only** SQL in the SQL Editor of the Supabase
+project (staging or production as appropriate), replacing
+`<EMAIL_DO_USUARIO>` with the real email:
 
 ```sql
 select
@@ -207,26 +208,26 @@ left join public.usuarios pu
 where au.email = '<EMAIL_DO_USUARIO>';
 ```
 
-**Esperado:** `status_vinculo = OK_AUTH_ID_IGUAL_PERFIL_ID`.
+**Expected:** `status_vinculo = OK_AUTH_ID_IGUAL_PERFIL_ID`.
 
-* `SEM_PERFIL` indica inconsistência crítica (login Auth sem
-  perfil): o usuário conseguirá autenticar mas o app o redirecionará
-  para `#/login`. Acionar suporte.
-* `ID_DIVERGENTE` indica divergência de UUID entre Auth e perfil;
-  inconsistência grave. Acionar suporte.
+* `SEM_PERFIL` indicates a critical inconsistency (Auth login without
+  a profile): the user will be able to authenticate but the app will
+  redirect them to `#/login`. Escalate to support.
+* `ID_DIVERGENTE` indicates a UUID mismatch between Auth and the
+  profile; a serious inconsistency. Escalate to support.
 
 ---
 
-## 9. Limpeza de usuário de teste
+## 9. Test-user cleanup
 
-Para testes descartáveis em **staging**:
+For disposable tests in **staging**:
 
-1. Apagar o usuário no **Supabase Dashboard** → projeto staging
+1. Delete the user in the **Supabase Dashboard** → staging project
    (`ucrjtfswnfdlxwtmxnoo`) → **Authentication** → **Users** →
-   localizar pelo e-mail → **Delete user**.
-   * A constraint `public.usuarios.id REFERENCES auth.users(id) ON
-     DELETE CASCADE` remove o perfil automaticamente.
-2. Validar a limpeza com SQL **read-only**:
+   locate by email → **Delete user**.
+   * The `public.usuarios.id REFERENCES auth.users(id) ON
+     DELETE CASCADE` constraint removes the profile automatically.
+2. Validate the cleanup with **read-only** SQL:
 
    ```sql
    select count(*) as auth_restante
@@ -240,35 +241,35 @@ Para testes descartáveis em **staging**:
    where email = '<EMAIL_TESTE>';
    ```
 
-   **Esperado:** `auth_restante = 0` **e** `perfil_restante = 0`.
+   **Expected:** `auth_restante = 0` **and** `perfil_restante = 0`.
 
-> **Este runbook não instrui `DELETE` SQL direto em `auth.users` ou
-> `public.usuarios` como procedimento padrão.** A exclusão pelo
-> Dashboard é o caminho recomendado; `DELETE` SQL deve ser usado
-> apenas por suporte técnico em incidente.
+> **This runbook does not instruct direct `DELETE` SQL against
+> `auth.users` or `public.usuarios` as a standard procedure.** Deletion
+> via the Dashboard is the recommended path; `DELETE` SQL should be
+> used only by technical support during an incident.
 
 ---
 
-## 10. Troubleshooting de cache / UI antiga
+## 10. Cache / old-UI troubleshooting
 
-**Incidente observado:** um perfil de navegador continuou mostrando a
-UI antiga (botão "Vincular usuário" e campo UID) enquanto outro
-perfil mostrava a UI nova ("+ Novo usuário") corretamente. Causa
-mais provável: cache de assets (`cadastros.js` antigo), `localStorage`
-ou Service Worker de uma versão anterior.
+**Observed incident:** one browser profile kept showing the old UI
+("Vincular usuário" button and UID field) while another profile
+correctly showed the new UI ("+ Novo usuário"). Most likely cause:
+asset caching (old `cadastros.js`), `localStorage`, or a Service
+Worker from a previous version.
 
-### Procedimento de diagnóstico
+### Diagnostic procedure
 
-1. **Hard refresh com cache desabilitado:**
-   * DevTools aberto (F12) → aba **Network** → marcar **Disable
+1. **Hard refresh with cache disabled:**
+   * DevTools open (F12) → **Network** tab → check **Disable
      cache**.
-   * `Ctrl + F5` (ou `Ctrl + Shift + R`).
+   * `Ctrl + F5` (or `Ctrl + Shift + R`).
 
-2. **Limpar storage do site:**
+2. **Clear site storage:**
    * DevTools → **Application** → **Storage** → **Clear site data**.
 
-3. **Confirmar a versão servida de `cadastros.js`:**
-   No console do navegador:
+3. **Confirm the served version of `cadastros.js`:**
+   In the browser console:
 
    ```js
    await fetch('/js/screens/cadastros.js?v=debug-' + Date.now())
@@ -281,82 +282,83 @@ ou Service Worker de uma versão anterior.
      }));
    ```
 
-   **Esperado:** `{ temEdgeFunction: true, temNovoUsuario: true,
+   **Expected:** `{ temEdgeFunction: true, temNovoUsuario: true,
    temVincular: false, temUid: false }`.
 
-   * Se `temVincular: true` ou `temUid: true`, o asset servido é a
-     versão antiga. Repetir o hard refresh / clear storage; se
-     persistir, acionar suporte técnico (pode ser proxy/CDN com
-     cache agressivo).
-   * Se `temEdgeFunction: false`, o `cadastros.js` atual não contém
-     a chamada à Edge Function — confirmar que a fase
-     `RAVATEX-TAPETES-AUTH-ADMIN-UI-A` foi deployada.
+   * If `temVincular: true` or `temUid: true`, the served asset is
+     the old version. Repeat the hard refresh / clear storage; if it
+     persists, escalate to technical support (may be a proxy/CDN with
+     aggressive caching).
+   * If `temEdgeFunction: false`, the current `cadastros.js` does not
+     contain the call to the Edge Function — confirm that phase
+     `RAVATEX-TAPETES-AUTH-ADMIN-UI-A` was deployed.
 
-4. **Confirmar que o app está apontando para o ambiente correto:**
-   * Banner de ambiente deve indicar `STAGING` ou `PRODUÇÃO` conforme
-     o esperado. Em caso de divergência, revisar `js/config.js`
-     (apenas leitura) e a flag de ambiente.
-
----
-
-## 11. Segurança e limites
-
-* **Validação de admin é server-side.** A Edge Function consulta
-  `public.usuarios` e exige `tipo = 'admin'` independentemente do
-  que o front-end envia.
-* **Teste de bloqueio (fornecedor) foi executado** e está
-  documentado: tentativa de chamada por usuário `fornecedor`
-  autenticado retornou `403 Forbidden`. O comportamento está
-  coberto pelos testes estáticos em `tests/cadastros-usuarios-auth-ui.smoke.js`
-  e pela Edge Function.
-* **RLS não substitui a validação da Edge Function.** A RLS continua
-  ativa e relevante para reads/writes diretos do app, mas a criação
-  de usuários via `service_role` ignora RLS — daí a checagem
-  explícita de admin ser obrigatória.
-* **Logs e segredos.** Logs da Edge Function **não devem** conter
-  `password`, `service_role` ou JWTs. Senhas temporárias **não**
-  devem aparecer em logs, relatórios, chat, planilhas ou docs
-  versionados.
-* **`service_role` é secret da Edge Function**, configurado via
-  Supabase Secrets. Não é e nunca deve ser lido pelo front-end.
+4. **Confirm the app is pointing to the correct environment:**
+   * The environment banner should indicate `STAGING` or `PRODUÇÃO` as
+     expected. In case of mismatch, review `js/config.js`
+     (read-only) and the environment flag.
 
 ---
 
-## 12. Pendências futuras
+## 11. Security and limits
 
-* **`RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`** — decidir se a
-  exclusão de usuários pelo app deve remover só `public.usuarios`
-  ou também `auth.users`, e se isso deve ser feito por outra Edge
-  Function. **Não implementado** nesta fase.
-* **Convite/reset por e-mail** — decidir entre senha digitada pelo
-  admin (atual) e fluxo de invite/magic-link. Pergunta em aberto no
-  design (seção 12 do `AUTH_PROVISIONING_EDGE_DESIGN.md`).
-* **Tailwind CDN warning** — pendência técnica separada, não
-  relacionada ao Auth provisioning.
-* **Favicon 404** — pendência cosmética separada.
-* **Teste em produção** — exige autorização própria e plano de
-  release; este runbook cobre o procedimento, mas a promoção para
-  produção depende de aprovação do HMNlead.
+* **Admin validation is server-side.** The Edge Function queries
+  `public.usuarios` and requires `tipo = 'admin'` regardless of
+  what the front end sends.
+* **The block test (supplier) was executed** and is documented: a
+  call attempt by an authenticated `fornecedor` user returned
+  `403 Forbidden`. The behavior is covered by the static tests in
+  `tests/cadastros-usuarios-auth-ui.smoke.js` and by the Edge
+  Function.
+* **RLS does not replace the Edge Function's validation.** RLS
+  remains active and relevant for direct reads/writes by the app, but
+  user creation via `service_role` bypasses RLS — hence the explicit
+  admin check being mandatory.
+* **Logs and secrets.** Edge Function logs **must not** contain
+  `password`, `service_role`, or JWTs. Temporary passwords **must
+  not** appear in logs, reports, chat, spreadsheets, or versioned
+  docs.
+* **`service_role` is an Edge Function secret**, configured via
+  Supabase Secrets. It is not and must never be read by the front
+  end.
 
 ---
 
-## 13. Histórico de validação (sanitizado)
+## 12. Future pending items
 
-* **Edge Function `admin-create-user` implantada no Supabase
+* **`RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`** — decide whether
+  user deletion by the app should remove only `public.usuarios`
+  or also `auth.users`, and whether this should be done via another
+  Edge Function. **Not implemented** in this phase.
+* **Email invite/reset** — decide between the admin-typed password
+  (current) and an invite/magic-link flow. Open question in the
+  design (section 12 of `AUTH_PROVISIONING_EDGE_DESIGN.md`).
+* **Tailwind CDN warning** — separate technical pending item, not
+  related to Auth provisioning.
+* **Favicon 404** — separate cosmetic pending item.
+* **Production test** — requires its own authorization and release
+  plan; this runbook covers the procedure, but promotion to
+  production depends on HMNlead approval.
+
+---
+
+## 13. Validation history (sanitized)
+
+* **Edge Function `admin-create-user` deployed on Supabase
   staging** (`ucrjtfswnfdlxwtmxnoo`).
-* **Função ACTIVE, versão 1.**
-* Chamada sem `Authorization` → `401` confirmado.
-* Chamada com payload inválido (admin com `fornecedor_id`) →
-  `400 VALIDATION_ERROR` confirmado.
-* Criação real via função (admin) → `201` confirmado.
-* **E2E UI em staging aprovado:** criação de fornecedor descartável
-  via `+ Novo usuário` confirmada; `auth.users.id =
-  public.usuarios.id` confirmado por SQL read-only; usuário teste
-  removido via Supabase Dashboard; pós-limpeza `auth_restante = 0`
-  e `perfil_restante = 0`.
-* **Bloqueio de fornecedor:** tentativa de chamada por usuário
-  fornecedor autenticado retornou `403 Forbidden` conforme esperado.
-* **Logs verificados** sem `password`, sem `service_role`, sem JWTs.
-* Senha temporária **não** foi registrada em nenhum artefato.
-* Nenhuma alteração de `db/**`, RLS, policies ou front-end foi
-  necessária para esta fase.
+* **Function ACTIVE, version 1.**
+* Call without `Authorization` → `401` confirmed.
+* Call with invalid payload (admin with `fornecedor_id`) →
+  `400 VALIDATION_ERROR` confirmed.
+* Real creation via the function (admin) → `201` confirmed.
+* **E2E UI in staging approved:** creation of a disposable supplier
+  via `+ Novo usuário` confirmed; `auth.users.id =
+  public.usuarios.id` confirmed by read-only SQL; test user
+  removed via the Supabase Dashboard; post-cleanup `auth_restante = 0`
+  and `perfil_restante = 0`.
+* **Supplier block:** a call attempt by an authenticated supplier
+  user returned `403 Forbidden` as expected.
+* **Logs verified** with no `password`, no `service_role`, no JWTs.
+* The temporary password was **not** recorded in any artifact.
+* No change to `db/**`, RLS, policies, or the front end was
+  necessary for this phase.

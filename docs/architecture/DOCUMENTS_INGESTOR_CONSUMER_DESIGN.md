@@ -1,156 +1,156 @@
-# Documents Ingestor — Consumer Design para Controle de Tapetes
+# Documents Ingestor — Consumer Design for Controle de Tapetes
 
-> **Fase:** `RAVATEX-TAPETES-G11-A-DOCUMENTS-CONSUMER-DESIGN` (docs-only)
-> **Tipo:** Diagnóstico + design de consumo read-only.
-> **HEAD base Controle de Tapetes:** `381506c` — `work/app-next`
-> **HEAD base Documents Ingestor:** `956682d` — `master`
-> **Data:** 2026-07-07
+> **Phase:** `RAVATEX-TAPETES-G11-A-DOCUMENTS-CONSUMER-DESIGN` (docs-only)
+> **Type:** Diagnosis + read-only consumption design.
+> **Controle de Tapetes base HEAD:** `381506c` — `work/app-next`
+> **Documents Ingestor base HEAD:** `956682d` — `master`
+> **Date:** 2026-07-07
 >
-> **Status atual (2026-07-09):** Este design foi **implementado** em G14 (HEAD Controle `fff052b`, HEAD Ingestor `bedbe909`).
-> O consumo do JSONL flat (`documentos-mapeados.jsonl`) ocorre via bridge `RAVATEX_DOCUMENTS_RECEIVED` → Pedido Detail,
-> conforme decisão de import manual sem polling. Ver `PROJECT_STATE.md` e `AGENT_HANDOFF.md` para o registro completo de G14.
+> **Current status (2026-07-09):** This design was **implemented** in G14 (Controle HEAD `fff052b`, Ingestor HEAD `bedbe909`).
+> Consumption of the flat JSONL (`documentos-mapeados.jsonl`) occurs via the `RAVATEX_DOCUMENTS_RECEIVED` bridge → Pedido Detail,
+> per the manual-import-without-polling decision. See `PROJECT_STATE.md` and `AGENT_HANDOFF.md` for the full G14 record.
 
 ---
 
-## 1. Contexto
+## 1. Context
 
-O Documents Ingestor (HEAD `956682d`) fechou o export package em G10-C. O Controle
-de Tapetes (HEAD `381506c`) é uma SPA vanilla JS com roteamento hash, sem
-framework, sem npm, sem Next.js, que gerencia Pedidos, Clientes, OPs, produção.
+The Documents Ingestor (HEAD `956682d`) closed the export package in G10-C. Controle
+de Tapetes (HEAD `381506c`) is a vanilla JS SPA with hash routing, no
+framework, no npm, no Next.js, that manages Pedidos, Clientes, OPs, production.
 
-A integração é **unidirecional**: Documents Ingestor produz eventos →
-Controle de Tapetes consome. Nenhum acoplamento direto entre os bancos.
+The integration is **unidirectional**: Documents Ingestor produces events →
+Controle de Tapetes consumes them. No direct coupling between the databases.
 
 ---
 
-## 2. Diagnóstico: Arquivos lidos
+## 2. Diagnosis: Files read
 
 ### Controle de Tapetes
 
-| Arquivo | Propósito | Achado |
+| File | Purpose | Finding |
 |---------|-----------|--------|
-| `js/screens/pedido-detail.js` | Orquestrador do detalhe do Pedido | Cria estado, coordena data/progress/render/events. Rota `#/pedidos/:uuid` |
-| `js/screens/pedido-detail-data.js` | Carregamento Supabase | `pedido.numero` é int sequencial. `pedido.criado_em` tem ano. |
-| `js/screens/pedido-detail-progress.js` | computeViewModel | `documentRowsPedido` e `documentRowsOperacionais` com placeholders hardcoded |
-| `js/screens/pedido-detail-render.js` | Render DOM | `buildDocuments()` card (linha 994) mostra documentos do pedido + operacionais. `buildDocumentRow()` + `buildDocumentStatusPill()` |
-| `js/screens/pedido-detail-events.js` | Handlers/modais | `buildHistoryBlock()` com timeline vertical. `Documentos esperados` no modal de transição |
-| `js/ui.js` | Primitivas UI | `el()`, `modal()`, `toast()`, `dataTable()` |
-| `js/pedido-ui.js` | Helpers de Pedido | `pedidoStatusBadge()`, `pedidoStatusLabel()` |
-| `js/badges.js` | Badges de OP | Padrão de pills coloridas |
-| `js/op-display.js` | Código operacional | Formato `OP {pedido.numero}/{ano}-{letra}{seq}` |
-| `js/screens/cliente-pedido-detail.js` | Detalhe do Pedido (cliente) | Timeline vertical com dots. `buildEventoItem()` |
-| `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` | Plano arquitetural | §2.5 Documentos: Google Drive como storage, metadados no banco. §4.2 Pedido Admin como índice central |
-| `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` | Contrato schema | §4 `documentos_operacionais` futura. Sem schema existente |
-| `PROJECT_STATE.md` | Estado do projeto | Última fase: Pedido/OP Controlled Delete. Sem menção a Documents Ingestor |
-| `AGENT_HANDOFF.md` | Handoff | Próximo passo recomendado: não menciona consumo de documentos |
+| `js/screens/pedido-detail.js` | Pedido detail orchestrator | Creates state, coordinates data/progress/render/events. Route `#/pedidos/:uuid` |
+| `js/screens/pedido-detail-data.js` | Supabase loading | `pedido.numero` is a sequential int. `pedido.criado_em` has the year. |
+| `js/screens/pedido-detail-progress.js` | computeViewModel | `documentRowsPedido` and `documentRowsOperacionais` with hardcoded placeholders |
+| `js/screens/pedido-detail-render.js` | DOM render | `buildDocuments()` card (line 994) shows Pedido documents + operational ones. `buildDocumentRow()` + `buildDocumentStatusPill()` |
+| `js/screens/pedido-detail-events.js` | Handlers/modals | `buildHistoryBlock()` with vertical timeline. `Documentos esperados` in the transition modal |
+| `js/ui.js` | UI primitives | `el()`, `modal()`, `toast()`, `dataTable()` |
+| `js/pedido-ui.js` | Pedido helpers | `pedidoStatusBadge()`, `pedidoStatusLabel()` |
+| `js/badges.js` | OP badges | Colored-pill pattern |
+| `js/op-display.js` | Operational code | Format `OP {pedido.numero}/{ano}-{letra}{seq}` |
+| `js/screens/cliente-pedido-detail.js` | Pedido detail (Cliente) | Vertical timeline with dots. `buildEventoItem()` |
+| `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md` | Architectural plan | §2.5 Documents: Google Drive as storage, metadata in the database. §4.2 Pedido Admin as the central index |
+| `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` | Schema contract | §4 future `documentos_operacionais`. No existing schema |
+| `PROJECT_STATE.md` | Project state | Last phase: Pedido/OP Controlled Delete. No mention of Documents Ingestor |
+| `AGENT_HANDOFF.md` | Handoff | Recommended next step: does not mention document consumption |
 
 ### Documents Ingestor
 
-| Arquivo | Propósito | Achado |
+| File | Purpose | Finding |
 |---------|-----------|--------|
-| `docs/CONTROL_TAPETES_DOCUMENTS_CONTRACT.md` | Contrato de integração | 12 campos mínimos para UI. `ingestion_event_id` canônico. `drive_web_view_link` abre nova aba |
-| `contracts/document-event.schema.json` | Schema do evento | V1 legado, V2 com taxonomia 3 eixos. `pedido_manual` = `PED-XX-YYYY` |
-| `contracts/examples/document-events.sample.jsonl` | 4 eventos exemplo | detected → linked → accepted/rejected |
-| `docs/architecture/G10_CONTROLE_TAPETES_INTEGRATION_DESIGN.md` | Design de integração | Watch outbox + pull commands. UI proposta: lista + badges + drive link. Sem Supabase |
-| `PROJECT_STATE.md` | Estado | G10-C concluído. 264 testes. Próxima fase: G11 watcher |
-| `AGENT_HANDOFF.md` | Handoff | Próxima fase no repositório do Controle de Tapetes |
+| `docs/CONTROL_TAPETES_DOCUMENTS_CONTRACT.md` | Integration contract | 12 minimum fields for the UI. Canonical `ingestion_event_id`. `drive_web_view_link` opens a new tab |
+| `contracts/document-event.schema.json` | Event schema | Legacy V1, V2 with 3-axis taxonomy. `pedido_manual` = `PED-XX-YYYY` |
+| `contracts/examples/document-events.sample.jsonl` | 4 sample events | detected → linked → accepted/rejected |
+| `docs/architecture/G10_CONTROLE_TAPETES_INTEGRATION_DESIGN.md` | Integration design | Watch outbox + pull commands. Proposed UI: list + badges + drive link. No Supabase |
+| `PROJECT_STATE.md` | State | G10-C complete. 264 tests. Next phase: G11 watcher |
+| `AGENT_HANDOFF.md` | Handoff | Next phase in the Controle de Tapetes repository |
 
 ---
 
-## 3. Respostas às perguntas obrigatórias
+## 3. Answers to the required questions
 
-### A) Onde exibir documentos no Controle de Tapetes?
+### A) Where to display documents in Controle de Tapetes?
 
-1. **Existe tela de detalhe do Pedido?** Sim — `#/pedidos/:uuid` renderizada por
-   `pedido-detail.js` → `pedido-detail-render.js`. É a tela mais complexa, com
-   header, stepper, itens, OPs, expedições, resumo, evolução do cliente e
-   **Documentos** (card existente).
+1. **Is there a Pedido detail screen?** Yes — `#/pedidos/:uuid` rendered by
+   `pedido-detail.js` → `pedido-detail-render.js`. It is the most complex screen, with
+   header, stepper, items, OPs, expedições, summary, customer evolution, and
+   **Documentos** (existing card).
 
-2. **Existe modal/aba/seção de documentos?** Sim — o card `buildDocuments()` no
-   final do detalhe do Pedido (linha 994-1031) já mostra "Documentos do Pedido"
-   e "Documentos Operacionais" com placeholders. Há também "Documentos esperados"
-   dentro do modal de transição (linha 2176-2192).
+2. **Is there a modal/tab/section for documents?** Yes — the card `buildDocuments()` at the
+   end of the Pedido detail (line 994-1031) already shows "Documentos do Pedido"
+   and "Documentos Operacionais" with placeholders. There is also "Documentos esperados"
+   inside the transition modal (line 2176-2192).
 
-3. **Existe timeline/histórico?** Sim — `buildHistoryBlock()` em
-   `pedido-detail-events.js` e `buildEventoItem()` em `cliente-pedido-detail.js`
-   com dot + linha vertical.
+3. **Is there a timeline/history?** Yes — `buildHistoryBlock()` in
+   `pedido-detail-events.js` and `buildEventoItem()` in `cliente-pedido-detail.js`
+   with dot + vertical line.
 
-4. **Melhor ponto:**
-   - **Card "Documentos" existente no detalhe do Pedido** — já consolidado,
-     posicionado em grid 2-col ao lado da evolução do cliente. Substituir
-     placeholders por dados reais do Ingestor.
-   - Timeline de eventos dentro do mesmo card ou abaixo como seção separada.
+4. **Best location:**
+   - **Existing "Documentos" card in the Pedido detail** — already consolidated,
+     positioned in a 2-col grid next to the customer evolution. Replace
+     placeholders with real data from the Ingestor.
+   - Event timeline inside the same card or below as a separate section.
 
-5. **Menor local seguro para G11-B:** O card `buildDocuments()` já existe e
-   aceita `view.documentRowsPedido` + `view.documentRowsOperacionais`. Adicionar
-   nova seção "Documentos do Ingestor" dentro do mesmo card, ou criar novo card
-   "Documentos Recebidos" abaixo. **Recomendação:** nova seção dentro do card
-   existente "Documentos" — alteração mínima no render.
+5. **Smallest safe spot for G11-B:** The `buildDocuments()` card already exists and
+   accepts `view.documentRowsPedido` + `view.documentRowsOperacionais`. Add a
+   new "Documentos do Ingestor" section inside the same card, or create a new card
+   "Documentos Recebidos" below. **Recommendation:** new section inside the
+   existing "Documentos" card — minimal render change.
 
-### B) Como mapear Pedido?
+### B) How to map Pedido?
 
-1. **Controle de Tapetes usa número sequencial:** `pedido.numero` = int (ex.: 25)
-   sem ano no formato. Display: `#25` via `fmtNumero()`. Ano extraído de
+1. **Controle de Tapetes uses a sequential number:** `pedido.numero` = int (e.g.: 25)
+   with no year in the format. Display: `#25` via `fmtNumero()`. Year extracted from
    `pedido.criado_em`.
 
-2. **Identificador canônico:** UUID do pedido (`pedidos.id`). Número é para
-   display humano.
+2. **Canonical identifier:** Pedido UUID (`pedidos.id`). The number is for
+   human display.
 
-3. **Mapeamento para `PED-XX-YYYY`:**
+3. **Mapping to `PED-XX-YYYY`:**
    ```
    pedido_manual = "PED-" + String(pedido.numero).padStart(2, "0") + "-" + ano
    ano = new Date(pedido.criado_em).getFullYear()
    ```
 
-4. **Risco de conflito:** O Ingestor usa `pedido_manual` digitado manualmente
-   pelo operador. Se o operador errar o número ou ano, o vínculo será
-   incorreto. **Mitigação:** o Controle de Tapetes deve derivar o
-   `pedido_manual` a partir dos dados canônicos (numero + criado_em) e filtrar
-   eventos apenas para esse padrão. Não deve aceitar `pedido_manual` arbitrário.
+4. **Conflict risk:** The Ingestor uses `pedido_manual` typed manually
+   by the operator. If the operator gets the number or year wrong, the link will be
+   incorrect. **Mitigation:** Controle de Tapetes must derive the
+   `pedido_manual` from the canonical data (numero + criado_em) and filter
+   events only for that pattern. It must not accept an arbitrary `pedido_manual`.
 
-5. **Tabela de mapeamento:** Não necessária inicialmente. Normalização simples
-   `PED-{numero}-{ano}` basta. Se houver conflitos (pedidos com mesmo número em
-   anos diferentes), o ano desambigua.
+5. **Mapping table:** Not necessary initially. Simple normalization
+   `PED-{numero}-{ano}` suffices. If there are conflicts (pedidos with the same number in
+   different years), the year disambiguates.
 
-### C) Como consumir dados?
+### C) How to consume data?
 
-| Opção | Custo | Risco | Arquivos prováveis | Schema necessário? | Fase |
+| Option | Cost | Risk | Likely files | Schema needed? | Phase |
 |-------|-------|-------|-------------------|-------------------|------|
-| **1. Import manual de pacote gerado por `export:package`** | Muito baixo — JSONL já existe | Mínimo — arquivo local, sem rede | `js/documents-ingestor.js` (parser), fixture `.jsonl` | Não | **G11-B** |
-| 2. Leitura de JSONL local em pasta configurável | Baixo | Baixo — path configurável | `js/documents-ingestor.js`, `config.js` | Não | G11-B+ |
-| 3. Watcher futuro do outbox | Médio | Médio — polling | Watcher dedicado | Não | Deferido |
-| 4. Pull por comando externo | Médio | Baixo | `exec` ou wrapper | Não | Deferido |
-| 5. Supabase/Postgres como índice | **Alto** | **Alto** — acoplamento direto | schema SQL, migrations | Sim | **Rejeitado** |
+| **1. Manual import of the package generated by `export:package`** | Very low — JSONL already exists | Minimal — local file, no network | `js/documents-ingestor.js` (parser), `.jsonl` fixture | No | **G11-B** |
+| 2. Reading a local JSONL in a configurable folder | Low | Low — configurable path | `js/documents-ingestor.js`, `config.js` | No | G11-B+ |
+| 3. Future outbox watcher | Medium | Medium — polling | Dedicated watcher | No | Deferred |
+| 4. Pull via external command | Medium | Low | `exec` or wrapper | No | Deferred |
+| 5. Supabase/Postgres as an index | **High** | **High** — direct coupling | SQL schema, migrations | Yes | **Rejected** |
 
-**Recomendação G11-B:** Opção 1. O Controle de Tapetes carrega um JSONL de
-eventos gerado por `export:package --pedido <PED-XX-YYYY>`. Nenhum acoplamento
-de rede, nenhum watcher, nenhum schema novo.
+**G11-B recommendation:** Option 1. Controle de Tapetes loads a JSONL of
+events generated by `export:package --pedido <PED-XX-YYYY>`. No network coupling,
+no watcher, no new schema.
 
-### D) Estado local no Controle de Tapetes
+### D) Local state in Controle de Tapetes
 
-1. **O app precisa persistir eventos importados?** Não estritamente. Pode ler
-   o pacote em memória a cada carregamento da tela.
+1. **Does the app need to persist imported events?** Not strictly. It can read
+   the package into memory on every screen load.
 
-2. **Pode ler pacote em memória?** Sim — o pacote é pequeno (dezenas de KB),
-   carregar via `fetch` local em cada render do detalhe do Pedido.
+2. **Can it read the package into memory?** Yes — the package is small (tens of KB),
+   load it via a local `fetch` on every render of the Pedido detail.
 
-3. **Precisa cache local?** Opcional — `sessionStorage` ou variável global
-   `window.RAVATEX_DOCUMENTS_CACHE` evitam re-leitura no mesmo carregamento.
+3. **Does it need a local cache?** Optional — `sessionStorage` or the global variable
+   `window.RAVATEX_DOCUMENTS_CACHE` avoid re-reading within the same load.
 
-4. **Se persistir, onde?** `localStorage` ou arquivo JSON em `.ravatex-local/`.
-   Não usar Supabase.
+4. **If it persists, where?** `localStorage` or a JSON file in `.ravatex-local/`.
+   Do not use Supabase.
 
-5. **Como garantir idempotência por `ingestion_event_id`?** Ao processar
-   eventos, usar `Map<ingestion_event_id, event>`. Ignorar duplicatas.
-   Ordenar por `created_at` ascendente.
+5. **How to guarantee idempotency by `ingestion_event_id`?** When processing
+   events, use `Map<ingestion_event_id, event>`. Ignore duplicates.
+   Sort by `created_at` ascending.
 
-6. **Como consolidar estado por `document_id`?** Para cada `document_id`,
-   manter o evento mais recente (maior `created_at`). O `status` do evento mais
-   recente é o estado atual do documento.
+6. **How to consolidate state by `document_id`?** For each `document_id`,
+   keep the most recent event (highest `created_at`). The `status` of the most
+   recent event is the document's current state.
 
-### E) UI mínima
+### E) Minimal UI
 
-Definição da UI mínima para G11-B:
+Definition of the minimal UI for G11-B:
 
 ```
 ┌────────────────────────────────────────┐
@@ -174,77 +174,77 @@ Definição da UI mínima para G11-B:
 └────────────────────────────────────────┘
 ```
 
-- **Badges:** tipo (NF/romaneio), formato (XML/PDF), direção (Entrada/Saída),
+- **Badges:** type (NF/romaneio), format (XML/PDF), direction (Entrada/Saída),
   status (Aceito/Pendente/Rejeitado)
-- **Botão "Ver":** abre `drive_web_view_link` em `window.open()` nova aba
-- **Reason:** exibir ao lado de badges quando `rejected`
-- **Timeline:** dots + linhas verticais, padrão já usado no app
+- **"Ver" button:** opens `drive_web_view_link` in `window.open()` new tab
+- **Reason:** display next to badges when `rejected`
+- **Timeline:** dots + vertical lines, pattern already used in the app
 
-### F) Segurança/privacidade
+### F) Security/privacy
 
-1. Não exibir `document_id`, `ingestion_event_id` ou `sha256` completos na UI
-2. Não armazenar PDF/XML no Supabase ou backend
-3. Não baixar arquivo — usar `drive_web_view_link`
-4. Não abrir iframe — `window.open()` em nova aba
-5. Documentar no contrato: permissão do Google Drive é pré-requisito
-   operacional (usuários precisam acesso à pasta compartilhada)
+1. Do not display full `document_id`, `ingestion_event_id`, or `sha256` in the UI
+2. Do not store PDF/XML in Supabase or the backend
+3. Do not download the file — use `drive_web_view_link`
+4. Do not open an iframe — `window.open()` in a new tab
+5. Document in the contract: Google Drive permission is an operational
+   prerequisite (users need access to the shared folder)
 
-### G) Próximo patch G11-B
+### G) Next G11-B patch
 
-**Menor patch seguro no Controle de Tapetes:**
+**Smallest safe patch in Controle de Tapetes:**
 
-1. Criar `js/documents-ingestor.js` com:
-   - `parseDocumentEvents(jsonlText)` — parser do JSONL
-   - `filterEventsByPedido(events, pedidoNumero, ano)` — filtra por `pedido_manual`
-   - `consolidateDocumentState(events)` — Map<document_id, último evento>
-   - `buildIngestorDocumentRows(docs)` — prepara dados para o render
+1. Create `js/documents-ingestor.js` with:
+   - `parseDocumentEvents(jsonlText)` — JSONL parser
+   - `filterEventsByPedido(events, pedidoNumero, ano)` — filters by `pedido_manual`
+   - `consolidateDocumentState(events)` — Map<document_id, most recent event>
+   - `buildIngestorDocumentRows(docs)` — prepares data for the render
    - Namespace: `window.RAVATEX_DOCUMENTS`
 
-2. Criar fixture `data/fixtures/document-events-sample.jsonl` (cópia do
-   sample do Ingestor)
+2. Create fixture `data/fixtures/document-events-sample.jsonl` (copy of the
+   Ingestor sample)
 
-3. Modificar `pedido-detail-progress.js`:
-   - `computeViewModel()` passa a chamar `window.RAVATEX_DOCUMENTS`
-     para obter `ingestorDocumentRows` quando disponível
+3. Modify `pedido-detail-progress.js`:
+   - `computeViewModel()` now calls `window.RAVATEX_DOCUMENTS`
+     to get `ingestorDocumentRows` when available
 
-4. Modificar `pedido-detail-render.js`:
-   - `buildDocuments()` passa a incluir seção "Documentos Recebidos"
-     com dados do Ingestor, mantendo placeholders legados
+4. Modify `pedido-detail-render.js`:
+   - `buildDocuments()` now includes a "Documentos Recebidos" section
+     with data from the Ingestor, keeping the legacy placeholders
 
-5. Testes:
-   - `tests/documents-ingestor.test.js` — parser, filtro, consolidação
-   - `tests/pedido-detail.smoke.js` — atualizar snapshot se necessário
-   (155 testes atuais)
+5. Tests:
+   - `tests/documents-ingestor.test.js` — parser, filter, consolidation
+   - `tests/pedido-detail.smoke.js` — update snapshot if necessary
+   (155 current tests)
 
-**Não fazer em G11-B:**
-- Não criar watcher
-- Não tocar Supabase
-- Não alterar schema
-- Não modificar Documents Ingestor
-- Não implementar accept/reject no Controle de Tapetes (aceitar/rejeitar
-  continua no Ingestor)
+**Not to do in G11-B:**
+- Do not create a watcher
+- Do not touch Supabase
+- Do not change the schema
+- Do not modify Documents Ingestor
+- Do not implement accept/reject in Controle de Tapetes (accept/reject
+  remains in the Ingestor)
 
 ---
 
-## 4. Matriz de decisão
+## 4. Decision matrix
 
-| Tema | Evidência no código | Decisão | Risco | Patch mínimo | Testes necessários | Fase |
+| Topic | Evidence in code | Decision | Risk | Minimal patch | Tests required | Phase |
 |------|--------------------|---------|-------|-------------|-------------------|------|
-| Local de UI | `pedido-detail-render.js:994` card `buildDocuments()` existe | Card "Documentos" existente recebe nova seção "Documentos Recebidos" | Muito baixo | Render: adicionar seção no card | Smoke pedido-detail | G11-B |
-| Mapeamento Pedido | `pedido.numero` int + `criado_em` ano | `PED-{numeroPad2}-{ano}` | Baixo — operador pode digitar errado no Ingestor | Helper de formatação + filtro | Teste unitário do mapper | G11-B |
-| Consumo de dados | Export package funcional (`export:package --pedido`) | Import manual de JSONL local (Opção 1) | Mínimo — arquivo local sem rede | Parser JSONL + loader | Teste unitário parser + filtro + consolidação | G11-B |
-| Estado local | App usa `window` global + Supabase direto | Cache em `window.RAVATEX_DOCUMENTS_CACHE` | Baixo | Variável global + sessionStorage opcional | Teste de idempotência | G11-B |
-| Idempotência | Contrato §6: `ingestion_event_id` canônico | Map por `ingestion_event_id`, ordenar por `created_at` | Nenhum | Lógica no consolidator | Teste unitário com eventos duplicados | G11-B |
-| Visualização | Contrato §2.3: `drive_web_view_link` | Botão "Ver" → `window.open(link, '_blank')` | Nenhum — link Drive | Botão no render | Teste de link (sem abrir) | G11-B |
-| Timeline eventos | `pedido-detail-events.js:2171` `buildHistoryBlock()` | Seção "Eventos" com dots + linhas | Muito baixo | Bloco de timeline reutilizando padrão existente | Smoke visual | G11-B deferido |
-| Supabase como índice | Contrato §9: sem Supabase | **Rejeitado** | Alto — acoplamento direto | Não fazer | N/A | — |
-| Watcher contínuo | G10 design: watch deferido | Deferido para G11-C | Médio — nova infra | Não fazer | N/A | G11-C |
-| Accept/reject no app | Funil operacional no Ingestor | Deferido — continua no Ingestor CLI | Médio — duplicação de estado | Não fazer | N/A | Futuro |
-| Alterar Documents Ingestor | HEAD 956682d fechado | Não alterar | Nenhum — contrato fechado | Não fazer | N/A | — |
+| UI location | `pedido-detail-render.js:994` card `buildDocuments()` exists | Existing "Documentos" card receives a new "Documentos Recebidos" section | Very low | Render: add section to the card | Pedido-detail smoke | G11-B |
+| Pedido mapping | `pedido.numero` int + `criado_em` year | `PED-{numeroPad2}-{ano}` | Low — operator can mistype it in the Ingestor | Formatting helper + filter | Mapper unit test | G11-B |
+| Data consumption | Functional export package (`export:package --pedido`) | Manual import of local JSONL (Option 1) | Minimal — local file, no network | JSONL parser + loader | Unit test for parser + filter + consolidation | G11-B |
+| Local state | App uses global `window` + direct Supabase | Cache in `window.RAVATEX_DOCUMENTS_CACHE` | Low | Global variable + optional sessionStorage | Idempotency test | G11-B |
+| Idempotency | Contract §6: canonical `ingestion_event_id` | Map by `ingestion_event_id`, sorted by `created_at` | None | Logic in the consolidator | Unit test with duplicate events | G11-B |
+| Viewing | Contract §2.3: `drive_web_view_link` | "Ver" button → `window.open(link, '_blank')` | None — Drive link | Button in the render | Link test (without opening) | G11-B |
+| Event timeline | `pedido-detail-events.js:2171` `buildHistoryBlock()` | "Eventos" section with dots + lines | Very low | Timeline block reusing the existing pattern | Visual smoke | G11-B deferred |
+| Supabase as an index | Contract §9: no Supabase | **Rejected** | High — direct coupling | Do not do | N/A | — |
+| Continuous watcher | G10 design: watch deferred | Deferred to G11-C | Medium — new infra | Do not do | N/A | G11-C |
+| Accept/reject in the app | Operational funnel in the Ingestor | Deferred — remains in the Ingestor CLI | Medium — state duplication | Do not do | N/A | Future |
+| Modify Documents Ingestor | HEAD 956682d closed | Do not modify | None — contract closed | Do not do | N/A | — |
 
 ---
 
-## 5. Ordem pronta para G11-B (próximo IAExecutor)
+## 5. Ready-to-issue order for G11-B (next IAExecutor)
 
 ```
 FASE: RAVATEX-TAPETES-G11-B-DOCUMENTS-CONSUMER-PATCH
@@ -299,32 +299,32 @@ node --check js/documents-ingestor.js
 
 ---
 
-## 6. Riscos
+## 6. Risks
 
-| Risco | Severidade | Mitigação |
+| Risk | Severity | Mitigation |
 |-------|-----------|-----------|
-| Operador digita `pedido_manual` errado no Ingestor | Média | App deriva `PED-{numero}-{ano}` canonicamente; não aceita pedido_manual arbitrário |
-| Arquivo JSONL não encontrado | Baixa | Tratar como "Nenhum documento importado" — não quebrar tela |
-| Número do pedido > 99 quebra formato `PED-XX` | Baixa | Se ocorrer, expandir padding ou ajustar mapeamento; contratos do Ingestor aceitam `\d{2,}` |
-| Dois pedidos com mesmo número em anos diferentes | Muito baixa | Ano desambigua no `pedido_manual` |
-| Cache local dessincronizado | Baixa | Sempre reler o JSONL; cache é apenas intra-sessão |
+| Operator types the wrong `pedido_manual` in the Ingestor | Medium | App derives `PED-{numero}-{ano}` canonically; does not accept an arbitrary pedido_manual |
+| JSONL file not found | Low | Treat as "Nenhum documento importado" — do not break the screen |
+| Pedido number > 99 breaks the `PED-XX` format | Low | If it occurs, expand padding or adjust the mapping; Ingestor contracts accept `\d{2,}` |
+| Two pedidos with the same number in different years | Very low | Year disambiguates in the `pedido_manual` |
+| Local cache out of sync | Low | Always reread the JSONL; cache is intra-session only |
 
 ---
 
-## 7. Confirmações
+## 7. Confirmations
 
-- [x] Nenhum Supabase foi tocado
-- [x] Nenhuma chamada Google/Drive foi feita
-- [x] Nenhum export real foi executado
-- [x] Controle de Tapetes não recebeu patch funcional
-- [x] Documents Ingestor não foi alterado
-- [x] Nenhum dado real foi commitado
-- [x] Leitura 100% read-only em ambos os projetos
-- [x] Design documenta consumo por `ingestion_event_id`
-- [x] Visualização usa `drive_web_view_link`
-- [x] Nenhum PDF/XML armazenado no Supabase/backend
+- [x] No Supabase was touched
+- [x] No Google/Drive call was made
+- [x] No real export was executed
+- [x] Controle de Tapetes received no functional patch
+- [x] Documents Ingestor was not modified
+- [x] No real data was committed
+- [x] 100% read-only reading in both projects
+- [x] Design documents consumption by `ingestion_event_id`
+- [x] Viewing uses `drive_web_view_link`
+- [x] No PDF/XML stored in Supabase/backend
 
 ---
 
-> **Este documento é a saída formal de G11-A.**
-> Deve ser consultado antes de G11-B e atualizado ao final de cada fase.
+> **This document is the formal output of G11-A.**
+> It must be consulted before G11-B and updated at the end of each phase.

@@ -1,56 +1,56 @@
 # Auth Delete User Design
 
-**Fase:** `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`  
-**Escopo:** docs-only / design-only — sem implementação, sem código, sem SQL, sem Supabase real.  
-**Data:** 2026-06-24  
-**HEAD de referência:** `3c9c424`
+**Phase:** `RAVATEX-TAPETES-AUTH-DELETE-USER-DESIGN-A`  
+**Scope:** docs-only / design-only — no implementation, no code, no SQL, no real Supabase.  
+**Date:** 2026-06-24  
+**Reference HEAD:** `3c9c424`
 
 ---
 
-## 1. Problema
+## 1. Problem
 
-A criação de usuários agora é consistente entre Auth e perfil — a Edge
-Function `admin-create-user` cria `auth.users` e `public.usuarios` no
-mesmo fluxo atômico e compensado, garantindo
+User creation is now consistent between Auth and profile — the Edge
+Function `admin-create-user` creates `auth.users` and `public.usuarios` in
+the same atomic and compensated flow, guaranteeing
 `auth.users.id = public.usuarios.id`.
 
-Porém, a exclusão/desativação de usuários pelo app ainda não tem
-semântica definida. O comportamento atual só remove o perfil de
-`public.usuarios`, deixando `auth.users` intacto. Isso pode gerar
-usuários Auth órfãos (com login válido, mas sem perfil no app),
-reintroduzindo a inconsistência operacional que a Edge Function de
-criação resolveu.
+However, user deletion/deactivation by the app still has no defined
+semantics. The current behavior only removes the profile from
+`public.usuarios`, leaving `auth.users` intact. This can generate
+orphaned Auth users (with valid login, but no profile in the app),
+reintroducing the operational inconsistency that the creation Edge
+Function solved.
 
-Esta fase define a semântica correta de exclusão/desativação para
-orientar a implementação futura, sem executar código ou deploy.
+This phase defines the correct deletion/deactivation semantics to
+guide future implementation, without executing code or deploy.
 
 ---
 
-## 2. Estado atual
+## 2. Current state
 
-### 2.1 Listagem de usuários (`screenCadastrosUsuarios`)
+### 2.1 User listing (`screenCadastrosUsuarios`)
 
-Arquivo: `js/screens/cadastros.js:481-649`
+File: `js/screens/cadastros.js:481-649`
 
-A tela `#/cadastros/usuarios`:
+The `#/cadastros/usuarios` screen:
 
-- **Listagem** (linhas 484-490): `SELECT id, email, nome, tipo,
-  fornecedor:fornecedor_id(id, nome, tipo)` em `public.usuarios` com
-  join em `fornecedores`, ordenado por e-mail.
-- **Colunas exibidas**: E-mail, Nome, Tipo, Fornecedor.
-- **Ações por linha**: "Editar" e "Excluir vínculo".
+- **Listing** (lines 484-490): `SELECT id, email, nome, tipo,
+  fornecedor:fornecedor_id(id, nome, tipo)` in `public.usuarios` with
+  a join on `fornecedores`, ordered by e-mail.
+- **Columns displayed**: E-mail, Nome, Tipo, Fornecedor.
+- **Row actions**: "Editar" and "Excluir vínculo".
 
-### 2.2 Edição de usuário
+### 2.2 User editing
 
-- **Chama** `window.supa.from('usuarios').update(...)` diretamente,
-  alterando `email`, `nome`, `tipo`, `fornecedor_id`.
-- **Não** altera `auth.users` (senha, e-mail Auth, etc.).
-- **Não** chama nenhuma Edge Function.
-- UID exibido como readonly (campo desabilitado).
+- **Calls** `window.supa.from('usuarios').update(...)` directly,
+  changing `email`, `nome`, `tipo`, `fornecedor_id`.
+- **Does not** change `auth.users` (password, Auth e-mail, etc.).
+- **Does not** call any Edge Function.
+- UID displayed as readonly (disabled field).
 
-### 2.3 Exclusão de usuário (comportamento atual)
+### 2.3 User deletion (current behavior)
 
-Arquivo: `js/screens/cadastros.js:633-645`
+File: `js/screens/cadastros.js:633-645`
 
 ```js
 function confirmExcluir(usr) {
@@ -68,40 +68,40 @@ function confirmExcluir(usr) {
 }
 ```
 
-Análise do comportamento atual:
+Analysis of the current behavior:
 
-| Aspecto | Estado |
+| Aspect | State |
 |---|---|
-| Rótulo do botão | "Excluir vínculo" (não "Excluir usuário") |
-| Rótulo do modal | "Excluir vínculo" |
-| Mensagem de confirmação | Avisa que Auth **não** será removido |
-| Ação efetiva | `.delete()` apenas em `public.usuarios` |
-| Auth user | **Preservado** — permanece ativo e pode autenticar |
-| Validação server-side | **Nenhuma** — apenas RLS (`usuarios_admin_all`) |
-| Bloqueio de autoexclusão | **Nenhum** — admin pode excluir a si mesmo |
-| Confirmação por e-mail | **Nenhuma** — apenas confirmDialog simples |
-| Auditoria | **Nenhuma** — delete físico, sem rastro |
+| Button label | "Excluir vínculo" (not "Excluir usuário") |
+| Modal label | "Excluir vínculo" |
+| Confirmation message | Warns that Auth will **not** be removed |
+| Effective action | `.delete()` only on `public.usuarios` |
+| Auth user | **Preserved** — remains active and can authenticate |
+| Server-side validation | **None** — only RLS (`usuarios_admin_all`) |
+| Self-deletion block | **None** — admin can delete themselves |
+| E-mail confirmation | **None** — only simple confirmDialog |
+| Auditing | **None** — physical delete, no trace |
 
-### 2.4 Chamadas a Auth Admin no front-end
+### 2.4 Calls to Auth Admin on the front-end
 
-**Nenhuma.** Confirmado por:
+**None.** Confirmed by:
 
-- `tests/cadastros-usuarios-auth-ui.smoke.js:77-79`: assert que
-  `cadastros.js` **não** chama `auth.admin`.
-- `js/screens/cadastros.js` não contém `auth.admin`, `service_role`,
-  `SUPABASE_SERVICE_ROLE_KEY` ou `supabase/functions` (além da chamada
-  `admin-create-user` para criação).
+- `tests/cadastros-usuarios-auth-ui.smoke.js:77-79`: asserts that
+  `cadastros.js` does **not** call `auth.admin`.
+- `js/screens/cadastros.js` does not contain `auth.admin`, `service_role`,
+  `SUPABASE_SERVICE_ROLE_KEY` or `supabase/functions` (besides the
+  `admin-create-user` call for creation).
 
-### 2.5 Edge Function de exclusão
+### 2.5 Deletion Edge Function
 
-**Não existe.** A única Edge Function implementada é `admin-create-user`
-(`supabase/functions/admin-create-user/index.ts`). Ela usa
-`auth.admin.deleteUser` apenas no fluxo de **compensação** (rollback
-quando `public.usuarios` insert falha), não como funcionalidade exposta.
+**Does not exist.** The only Edge Function implemented is `admin-create-user`
+(`supabase/functions/admin-create-user/index.ts`). It uses
+`auth.admin.deleteUser` only in the **compensation** flow (rollback
+when the `public.usuarios` insert fails), not as an exposed feature.
 
-### 2.6 Coluna de status/ativo/inativo
+### 2.6 Status/active/inactive column
 
-**Não existe** em `public.usuarios`. O schema atual (`db/01_schema.sql:26-33`):
+**Does not exist** in `public.usuarios`. The current schema (`db/01_schema.sql:26-33`):
 
 ```sql
 CREATE TABLE usuarios (
@@ -114,29 +114,30 @@ CREATE TABLE usuarios (
 );
 ```
 
-Não há coluna `ativo`, `status`, `bloqueado` ou `deleted_at`. A
-exclusão é sempre física (hard delete), sem soft delete possível.
+There is no `ativo`, `status`, `bloqueado` or `deleted_at` column. Deletion
+is always physical (hard delete), with no soft delete possible.
 
 ### 2.7 FK `public.usuarios.id → auth.users.id ON DELETE CASCADE`
 
-Arquivo: `db/01_schema.sql:27`
+File: `db/01_schema.sql:27`
 
 ```sql
 id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE
 ```
 
-Comportamento:
+Behavior:
 
-- **Deletar `auth.users`** → `public.usuarios` é removido automaticamente
-  por CASCADE.
-- **Deletar `public.usuarios`** → `auth.users` **não** é afetado
-  (FK é unidirecional).
-- A operação de delete em `auth.users` exige `service_role` ou ação
-  administrativa no Supabase Dashboard — não é possível via client anon.
+- **Deleting `auth.users`** → `public.usuarios` is automatically removed
+  by CASCADE.
+- **Deleting `public.usuarios`** → `auth.users` is **not** affected
+  (FK is unidirectional).
+- The delete operation on `auth.users` requires `service_role` or an
+  administrative action in the Supabase Dashboard — it is not possible
+  via anon client.
 
-### 2.8 RLS atual para `usuarios`
+### 2.8 Current RLS for `usuarios`
 
-Arquivo: `db/03_policies.sql:27-37`
+File: `db/03_policies.sql:27-37`
 
 ```sql
 -- Admin: tudo (SELECT, INSERT, UPDATE, DELETE)
@@ -153,19 +154,19 @@ CREATE POLICY usuarios_self_update ON usuarios FOR UPDATE
   WITH CHECK (id = auth.uid() AND tipo = (SELECT tipo FROM usuarios WHERE id = auth.uid()));
 ```
 
-Observações:
+Observations:
 
-- `usuarios_admin_all` cobre DELETE — qualquer admin pode deletar
-  qualquer usuário de `public.usuarios`.
-- **Não há política de DELETE para self.** Fornecedor não pode deletar
-  o próprio perfil via RLS (o que é desejável).
-- RLS **não valida** nada server-side quando o delete é feito via
-  `service_role` (Edge Function); por isso a checagem explícita é
-  necessária.
+- `usuarios_admin_all` covers DELETE — any admin can delete any
+  user from `public.usuarios`.
+- **There is no self DELETE policy.** A fornecedor cannot delete
+  their own profile via RLS (which is desirable).
+- RLS **does not validate** anything server-side when the delete is
+  performed via `service_role` (Edge Function); therefore the explicit
+  check is necessary.
 
-### 2.9 `loadCurrentUser` e impacto de perfil ausente
+### 2.9 `loadCurrentUser` and impact of a missing profile
 
-Arquivo: `js/auth.js:82-101`
+File: `js/auth.js:82-101`
 
 ```js
 async function loadCurrentUser() {
@@ -186,284 +187,285 @@ async function loadCurrentUser() {
 }
 ```
 
-Se `public.usuarios` for deletado mas `auth.users` continuar ativo:
+If `public.usuarios` is deleted but `auth.users` remains active:
 
-1. Usuário autentica normalmente (`signInWithPassword` funciona).
-2. `loadCurrentUser` tenta ler `public.usuarios` pelo `session.user.id`.
-3. `.single()` retorna erro (registro não encontrado).
+1. The user authenticates normally (`signInWithPassword` works).
+2. `loadCurrentUser` tries to read `public.usuarios` by `session.user.id`.
+3. `.single()` returns an error (record not found).
 4. `CURRENT_USER = null`.
-5. Boot interpreta como "não logado" → redirect para `#/login`.
-6. Resultado: **loop de login** — Auth OK, mas sem perfil.
+5. Boot interprets this as "not logged in" → redirect to `#/login`.
+6. Result: **login loop** — Auth OK, but no profile.
 
-Este é exatamente o bug que a Edge Function de criação resolveu para o
-fluxo de provisionamento. A exclusão atual reintroduz o mesmo sintoma
-pelo caminho inverso.
+This is exactly the bug that the creation Edge Function solved for the
+provisioning flow. The current deletion reintroduces the same symptom
+through the reverse path.
 
 ---
 
-## 3. Riscos do estado atual
+## 3. Risks of the current state
 
-### 3.1 Auth user órfão (risco ALTO)
+### 3.1 Orphaned Auth user (HIGH risk)
 
-**Cenário:** admin clica "Excluir vínculo" → `public.usuarios` é
-removido → `auth.users` permanece ativo.
+**Scenario:** admin clicks "Excluir vínculo" → `public.usuarios` is
+removed → `auth.users` remains active.
 
-**Consequências:**
+**Consequences:**
 
-- Usuário consegue autenticar (login/senha funcionam).
-- App redireciona para `#/login` por falta de perfil (loop).
-- Admin perde visibilidade do usuário na listagem (já foi removido de
-  `public.usuarios`), mas a conta Auth ainda existe.
-- Para corrigir: é necessário acesso ao Supabase Dashboard para deletar
-  manualmente em `auth.users`.
+- The user can authenticate (login/password work).
+- The app redirects to `#/login` due to missing profile (loop).
+- Admin loses visibility of the user in the listing (already removed
+  from `public.usuarios`), but the Auth account still exists.
+- To fix it: access to the Supabase Dashboard is required to manually
+  delete from `auth.users`.
 
-### 3.2 Hard delete do perfil sem hard delete do Auth (risco ALTO)
+### 3.2 Hard delete of the profile without hard delete of Auth (HIGH risk)
 
-Mesmo risco 3.1, agravado pelo fato de que a UI atual chama isso de
-"Excluir vínculo" e avisa que o Auth não será removido — mas o
-operador pode não entender a implicação prática (usuário fantasma que
-consegue logar mas não acessa o app).
+Same risk as 3.1, aggravated by the fact that the current UI calls this
+"Excluir vínculo" and warns that Auth will not be removed — but the
+operator may not understand the practical implication (a ghost user who
+can log in but cannot access the app).
 
-### 3.3 Delete em `public.usuarios` não cascateia para Auth (risco MÉDIO)
+### 3.3 Delete on `public.usuarios` does not cascade to Auth (MEDIUM risk)
 
-A FK `usuarios.id → auth.users(id) ON DELETE CASCADE` só funciona no
-sentido Auth → perfil. Deletar o perfil **não** propaga para o Auth.
+The FK `usuarios.id → auth.users(id) ON DELETE CASCADE` only works in
+the Auth → profile direction. Deleting the profile does **not**
+propagate to Auth.
 
-Para remover `auth.users` é necessário:
+To remove `auth.users` it is necessary to use:
 
-- `service_role` (Edge Function server-side), ou
-- Supabase Dashboard (manual), ou
+- `service_role` (server-side Edge Function), or
+- Supabase Dashboard (manual), or
 - SQL Admin (`DELETE FROM auth.users WHERE id = '...'`).
 
-Nenhum desses caminhos está disponível no fluxo atual do app.
+None of these paths is available in the current app flow.
 
-### 3.4 Deletar fisicamente prejudica auditoria (risco MÉDIO)
+### 3.4 Physically deleting harms auditing (MEDIUM risk)
 
-Hard delete remove permanentemente o registro. Não há:
+Hard delete permanently removes the record. There is no:
 
 - Soft delete (`ativo = false`).
-- Coluna `deleted_at`.
-- Log de quem excluiu, quando e por quê.
+- `deleted_at` column.
+- Log of who deleted, when and why.
 
-Se um usuário for excluído e depois for necessário auditar ações
-passadas (ex.: "quem criou a OP X?", "quem aprovou a entrega Y?"),
-o vínculo com `usuarios.id` se perde — outras tabelas referenciam
-`usuarios.id` mas a linha original some.
+If a user is deleted and it later becomes necessary to audit past
+actions (e.g. "who created OP X?", "who approved delivery Y?"),
+the link to `usuarios.id` is lost — other tables reference
+`usuarios.id` but the original row is gone.
 
-### 3.5 Admin pode se autoexcluir (risco ALTO)
+### 3.5 Admin can self-delete (HIGH risk)
 
-Não há nenhuma validação que impeça `CURRENT_USER.id === usr.id`.
-Se o único admin se excluir, o sistema perde capacidade administrativa
-até que outro admin seja criado manualmente no Supabase Studio.
+There is no validation that prevents `CURRENT_USER.id === usr.id`.
+If the only admin deletes themselves, the system loses administrative
+capacity until another admin is created manually in Supabase Studio.
 
-### 3.6 Fornecedor não pode excluir usuário (risco BAIXO)
+### 3.6 Fornecedor cannot delete a user (LOW risk)
 
-A RLS atual (`usuarios_admin_all`) impede fornecedor de deletar
-qualquer registro em `usuarios`. Isso é correto. O risco é apenas de o
-futuro design acidentalmente permitir.
+The current RLS (`usuarios_admin_all`) prevents fornecedor from
+deleting any record in `usuarios`. This is correct. The risk is only
+that the future design might accidentally allow it.
 
-### 3.7 Impacto indireto em outras tabelas (risco BAIXO)
+### 3.7 Indirect impact on other tables (LOW risk)
 
-`usuarios.fornecedor_id` referencia `fornecedores(id) ON DELETE SET NULL`.
-Se um fornecedor for deletado, `usuarios.fornecedor_id` vira NULL — o
-que quebraria o vínculo de fornecedor mas preservaria o login.
+`usuarios.fornecedor_id` references `fornecedores(id) ON DELETE SET NULL`.
+If a fornecedor is deleted, `usuarios.fornecedor_id` becomes NULL — which
+would break the fornecedor link but preserve the login.
 
-`usuarios.id` **não** é referenciado como FK por outras tabelas de
-domínio (OPs, entregas, etc.), então a exclusão do perfil não
-compromete a integridade referencial de dados operacionais. Porém,
-auditoria histórica (quem criou/alterou) pode ser afetada.
+`usuarios.id` is **not** referenced as an FK by other domain tables
+(OPs, entregas, etc.), so deleting the profile does not compromise the
+referential integrity of operational data. However, historical
+auditing (who created/changed what) may be affected.
 
-### 3.8 RLS não substitui validação server-side (risco MÉDIO)
+### 3.8 RLS does not replace server-side validation (MEDIUM risk)
 
-A Edge Function futura usará `service_role`, que **ignora RLS**.
-Toda validação de permissão (admin, não-autoexclusão, etc.) precisa
-ser explícita no código da função, não delegada ao RLS.
-
----
-
-## 4. Alternativas avaliadas
-
-### 4.1 Alternativa A — Hard delete só em `public.usuarios` (status quo)
-
-**Descrição:** manter o comportamento atual: deletar perfil, preservar
-Auth. Operador limpa Auth manualmente no Dashboard.
-
-**Vantagens:**
-
-- Nenhuma alteração necessária (já está implementado).
-- Simples.
-
-**Desvantagens:**
-
-- Gera Auth user órfão (login funciona, app redireciona).
-- Inconsistência operacional — mesmo problema que a Edge Function de
-  criação resolveu.
-- Exige acesso ao Supabase Dashboard para limpeza completa.
-- Não escala.
-
-**Conclusão:** não recomendado como fluxo principal. Pode permanecer
-como contingência de baixo nível, mas não deve ser o caminho padrão
-oferecido pela UI.
-
-### 4.2 Alternativa B — Hard delete de `auth.users` via Edge Function (`admin-delete-user`)
-
-**Descrição:** Edge Function server-side que chama
-`auth.admin.deleteUser(userId)`, e a FK `ON DELETE CASCADE` remove
-`public.usuarios` automaticamente.
-
-**Vantagens:**
-
-- Limpa Auth + perfil de forma atômica (cascade garante consistência).
-- Operação server-side com `service_role` — segura.
-- Não deixa órfãos em nenhuma direção.
-
-**Desvantagens:**
-
-- Operação **destrutiva e irreversível** — sem soft delete.
-- Remove permanentemente o histórico de auditoria do usuário.
-- Precisa de validações rigorosas:
-  - Bloquear autoexclusão.
-  - Confirmar e-mail digitado (dupla confirmação).
-  - Não permitir exclusão do último admin.
-- Exige deploy de nova Edge Function.
-- `auth.admin.deleteUser` é operação crítica — se falhar após o
-  cascade do perfil (improvável, mas possível), o estado fica
-  inconsistente.
-
-**Conclusão:** viável para cenários de limpeza definitiva (ex.: teste,
-staging, usuário nunca usado), mas **arriscado como fluxo padrão de
-produção** por ser irreversível e sem auditoria.
-
-### 4.3 Alternativa C — Soft delete / desativação no perfil
-
-**Descrição:** adicionar coluna `ativo BOOLEAN NOT NULL DEFAULT true`
-(ou `status TEXT`) em `public.usuarios`. A exclusão lógica marca
-`ativo = false` em vez de deletar.
-
-**Vantagens:**
-
-- Preserva rastreabilidade e auditoria.
-- Reversível (reativar usuário).
-- Fácil de implementar: uma coluna + filtro nas queries.
-- Não remove `auth.users` — mas impede o acesso ao app (ver
-  desvantagem).
-
-**Desvantagens:**
-
-- **Auth user ainda pode autenticar.** Marcar `ativo = false` em
-  `public.usuarios` impede `loadCurrentUser` de carregar o perfil, mas
-  o usuário ainda consegue fazer login no Auth. O app redireciona para
-  `#/login` (loop), mas a sessão Auth existe. Para bloquear
-  completamente o login, seria necessário também banir/desabilitar no
-  Auth.
-- Exige alteração de schema (migration).
-- Exige atualização de RLS (filtrar `ativo = true` nas policies).
-- Exige adaptação da UI (listagem deve mostrar/filtrar inativos).
-- Exige adaptação de `loadCurrentUser` (só carregar se `ativo = true`).
-
-**Conclusão:** boa para preservar histórico e permitir reativação, mas
-**insuficiente sozinha** — precisa ser combinada com bloqueio no Auth
-(alternativa D) ou complementada com Edge Function de ban.
-
-### 4.4 Alternativa D — Ban/desativação Auth server-side
-
-**Descrição:** Edge Function que usa `auth.admin.updateUserById` para
-banir o usuário (Supabase oferece `ban` como opção de
-`updateUserById`), impedindo login, combinado com soft delete no perfil
-(alternativa C).
-
-**Vantagens:**
-
-- Impede login sem apagar histórico.
-- Perfil permanece em `public.usuarios` para auditoria.
-- Combina segurança (sem login) com rastreabilidade.
-- Reversível (desbanir).
-
-**Desvantagens:**
-
-- Precisa confirmar disponibilidade e comportamento exato da API
-  `auth.admin.updateUserById` com `ban: true` na versão do Supabase
-  usada em staging (`ucrjtfswnfdlxwtmxnoo`).
-- Exige deploy de nova Edge Function.
-- Exige alteração de schema (coluna `ativo`/`status`).
-- Mais complexa que as alternativas A ou B.
-
-**Conclusão:** alternativa **mais completa** e **recomendada** para
-produção. Se a API de ban não estiver disponível ou for inadequada,
-usar `auth.admin.deleteUser` como fallback controlado.
-
-### 4.5 Alternativa E — Bloquear exclusão pelo app
-
-**Descrição:** remover ou desabilitar o botão "Excluir vínculo" da UI
-até que um fluxo seguro seja implementado. Manter criação e edição
-funcionando.
-
-**Vantagens:**
-
-- Risco zero imediato — nenhum usuário é excluído indevidamente.
-- Implementação trivial (remover botão ou esconder atrás de flag).
-- Dá tempo para projetar e testar a solução definitiva.
-
-**Desvantagens:**
-
-- Perda de funcionalidade (admin não consegue remover usuários pelo
-  app).
-- Limpeza de staging/produção fica dependente do Supabase Dashboard.
-- Não é solução definitiva — apenas contenção de risco.
-
-**Conclusão:** recomendada como **medida de curto prazo** enquanto o
-design final é implementado. Pode ser feita na mesma fase de UI da
-Edge Function de desativação.
+The future Edge Function will use `service_role`, which **ignores RLS**.
+All permission validation (admin, no self-deletion, etc.) needs to be
+explicit in the function's code, not delegated to RLS.
 
 ---
 
-## 5. Recomendação arquitetural
+## 4. Alternatives evaluated
 
-### Decisão: preferir DESATIVAR a DELETAR fisicamente
+### 4.1 Alternative A — Hard delete only on `public.usuarios` (status quo)
 
-**Recomendação em duas frentes:**
+**Description:** keep the current behavior: delete the profile,
+preserve Auth. The operator cleans up Auth manually in the Dashboard.
 
-#### Curto prazo (agora): Alternativa E
+**Advantages:**
 
-- Remover ou restringir o botão "Excluir vínculo" da UI
-  `#/cadastros/usuarios`.
-- Limpeza de usuários de teste/staging continua via **Supabase
-  Dashboard** (procedimento documentado em
-  `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md` seção 9).
-- Isso elimina o risco imediato de gerar Auth users órfãos pelo app.
+- No change necessary (already implemented).
+- Simple.
 
-#### Longo prazo (fase futura): Alternativa D + C (DESATIVAR)
+**Disadvantages:**
 
-- Implementar Edge Function `admin-disable-user` que:
-  - Marca `public.usuarios.ativo = false`.
-  - Aplica ban no Auth (`auth.admin.updateUserById` com `ban: true`),
-    se a API estiver disponível. Caso contrário, apenas o soft delete
-    no perfil já bloqueia o acesso ao app (com a ressalva documentada
-    de que o login Auth ainda funciona).
-- Adicionar coluna `ativo BOOLEAN NOT NULL DEFAULT true` em
+- Generates an orphaned Auth user (login works, app redirects).
+- Operational inconsistency — the same problem that the creation Edge
+  Function solved.
+- Requires access to the Supabase Dashboard for full cleanup.
+- Does not scale.
+
+**Conclusion:** not recommended as the main flow. It can remain as a
+low-level contingency, but should not be the default path offered by
+the UI.
+
+### 4.2 Alternative B — Hard delete of `auth.users` via Edge Function (`admin-delete-user`)
+
+**Description:** server-side Edge Function that calls
+`auth.admin.deleteUser(userId)`, and the `ON DELETE CASCADE` FK
+removes `public.usuarios` automatically.
+
+**Advantages:**
+
+- Cleans up Auth + profile atomically (cascade guarantees consistency).
+- Server-side operation with `service_role` — secure.
+- Leaves no orphans in either direction.
+
+**Disadvantages:**
+
+- **Destructive and irreversible** operation — no soft delete.
+- Permanently removes the user's audit history.
+- Needs rigorous validations:
+  - Block self-deletion.
+  - Confirm typed e-mail (double confirmation).
+  - Do not allow deletion of the last admin.
+- Requires deploying a new Edge Function.
+- `auth.admin.deleteUser` is a critical operation — if it fails after
+  the profile cascade (unlikely, but possible), the state becomes
+  inconsistent.
+
+**Conclusion:** viable for definitive cleanup scenarios (e.g. test,
+staging, never-used user), but **risky as the standard flow in
+production** because it is irreversible and lacks auditing.
+
+### 4.3 Alternative C — Soft delete / deactivation on the profile
+
+**Description:** add a column `ativo BOOLEAN NOT NULL DEFAULT true`
+(or `status TEXT`) to `public.usuarios`. Logical deletion marks
+`ativo = false` instead of deleting.
+
+**Advantages:**
+
+- Preserves traceability and auditing.
+- Reversible (reactivate user).
+- Easy to implement: one column + filter in the queries.
+- Does not remove `auth.users` — but prevents access to the app (see
+  disadvantage).
+
+**Disadvantages:**
+
+- **The Auth user can still authenticate.** Marking `ativo = false` in
+  `public.usuarios` prevents `loadCurrentUser` from loading the
+  profile, but the user can still log in to Auth. The app redirects to
+  `#/login` (loop), but the Auth session exists. To fully block login,
+  it would also be necessary to ban/disable in Auth.
+- Requires a schema change (migration).
+- Requires updating RLS (filter `ativo = true` in the policies).
+- Requires adapting the UI (listing should show/filter inactive users).
+- Requires adapting `loadCurrentUser` (only load if `ativo = true`).
+
+**Conclusion:** good for preserving history and allowing reactivation,
+but **insufficient on its own** — needs to be combined with a block on
+Auth (alternative D) or complemented with a ban Edge Function.
+
+### 4.4 Alternative D — Auth server-side ban/deactivation
+
+**Description:** Edge Function that uses `auth.admin.updateUserById`
+to ban the user (Supabase offers `ban` as an option of
+`updateUserById`), preventing login, combined with soft delete on the
+profile (alternative C).
+
+**Advantages:**
+
+- Prevents login without erasing history.
+- Profile remains in `public.usuarios` for auditing.
+- Combines security (no login) with traceability.
+- Reversible (unban).
+
+**Disadvantages:**
+
+- Need to confirm the availability and exact behavior of the
+  `auth.admin.updateUserById` API with `ban: true` in the Supabase
+  version used in staging (`ucrjtfswnfdlxwtmxnoo`).
+- Requires deploying a new Edge Function.
+- Requires a schema change (`ativo`/`status` column).
+- More complex than alternatives A or B.
+
+**Conclusion:** the **most complete** and **recommended** alternative
+for production. If the ban API is unavailable or inadequate, use
+`auth.admin.deleteUser` as a controlled fallback.
+
+### 4.5 Alternative E — Block deletion via the app
+
+**Description:** remove or disable the "Excluir vínculo" button from
+the UI until a safe flow is implemented. Keep creation and editing
+working.
+
+**Advantages:**
+
+- Zero immediate risk — no user is improperly deleted.
+- Trivial implementation (remove button or hide behind a flag).
+- Gives time to design and test the final solution.
+
+**Disadvantages:**
+
+- Loss of functionality (admin cannot remove users through the app).
+- Staging/production cleanup becomes dependent on the Supabase
+  Dashboard.
+- Not a definitive solution — only risk containment.
+
+**Conclusion:** recommended as a **short-term measure** while the
+final design is implemented. Can be done in the same UI phase as the
+deactivation Edge Function.
+
+---
+## 5. Architectural recommendation
+
+### Decision: prefer DEACTIVATING over physically DELETING
+
+**Recommendation on two fronts:**
+
+#### Short term (now): Alternative E
+
+- Remove or restrict the "Excluir vínculo" button in the
+  `#/cadastros/usuarios` UI.
+- Cleanup of test/staging users continues via the **Supabase
+  Dashboard** (procedure documented in
+  `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md` section 9).
+- This eliminates the immediate risk of generating orphaned Auth users
+  through the app.
+
+#### Long term (future phase): Alternative D + C (DEACTIVATE)
+
+- Implement the `admin-disable-user` Edge Function that:
+  - Marks `public.usuarios.ativo = false`.
+  - Applies a ban in Auth (`auth.admin.updateUserById` with
+    `ban: true`), if the API is available. Otherwise, only the soft
+    delete on the profile already blocks access to the app (with the
+    documented caveat that Auth login still works).
+- Add column `ativo BOOLEAN NOT NULL DEFAULT true` to
   `public.usuarios`.
-- Atualizar RLS e `loadCurrentUser` para respeitar `ativo`.
+- Update RLS and `loadCurrentUser` to respect `ativo`.
 
-### Justificativa técnica
+### Technical justification
 
-1. **Auditoria:** produção precisa de rastreabilidade. Hard delete
-   remove permanentemente o vínculo entre ações passadas e o usuário
-   que as executou.
-2. **Reversibilidade:** desativar permite reativar se houver erro
-   operacional. Deletar é irreversível sem backup.
-3. **Segurança:** desativar no perfil + banir no Auth impede tanto o
-   acesso ao app quanto o login, sem destruir dados.
-4. **Consistência com criação:** se o fluxo de criação é atômico e
-   compensado, o fluxo de desativação também deve ser — mas com
-   segurança adicional (sem destruição).
-5. **Staging:** usuários de teste podem continuar sendo removidos via
-   Dashboard com `ON DELETE CASCADE` (já documentado e funcional).
+1. **Auditability:** production needs traceability. Hard delete
+   permanently removes the link between past actions and the user who
+   performed them.
+2. **Reversibility:** deactivating allows reactivation if there is an
+   operational error. Deleting is irreversible without a backup.
+3. **Security:** deactivating the profile + banning in Auth blocks
+   both app access and login, without destroying data.
+4. **Consistency with creation:** if the creation flow is atomic and
+   compensated, the deactivation flow should be too — but with
+   additional safety (without destruction).
+5. **Staging:** test users can continue to be removed via the
+   Dashboard with `ON DELETE CASCADE` (already documented and
+   functional).
 
 ---
 
-## 6. Contrato proposto para fase futura
+## 6. Proposed contract for future phase
 
-### Opção recomendada: `admin-disable-user`
+### Recommended option: `admin-disable-user`
 
 **Edge Function:** `supabase/functions/admin-disable-user/index.ts`
 
@@ -476,21 +478,22 @@ Edge Function de desativação.
 }
 ```
 
-#### Comportamento
+#### Behavior
 
-1. **Validar JWT** — extrair `auth.uid()` do header `Authorization`.
-2. **Exigir admin** — consultar `public.usuarios` e confirmar
-   `tipo = 'admin'` para o chamador.
-3. **Bloquear autodesativação** — `user_id !== callerId`.
-4. **Validar se usuário alvo existe** — consultar `public.usuarios`
-   por `id`.
-5. **Marcar como inativo** — `UPDATE public.usuarios SET ativo = false
+1. **Validate JWT** — extract `auth.uid()` from the `Authorization`
+   header.
+2. **Require admin** — query `public.usuarios` and confirm
+   `tipo = 'admin'` for the caller.
+3. **Block self-deactivation** — `user_id !== callerId`.
+4. **Validate that the target user exists** — query `public.usuarios`
+   by `id`.
+5. **Mark as inactive** — `UPDATE public.usuarios SET ativo = false
    WHERE id = user_id`.
-6. **Banir no Auth** — `auth.admin.updateUserById(user_id, { ban: true })`
-   (se API disponível; caso contrário, pular com log).
-7. **Registrar log** (sem password, sem secrets):
-   - `callerId`, `targetUserId`, `reason` (se fornecida), timestamp.
-8. **Retornar estado final:**
+6. **Ban in Auth** — `auth.admin.updateUserById(user_id, { ban: true })`
+   (if the API is available; otherwise, skip with a log).
+7. **Record log** (no password, no secrets):
+   - `callerId`, `targetUserId`, `reason` (if provided), timestamp.
+8. **Return final state:**
    ```json
    {
      "data": {
@@ -502,28 +505,28 @@ Edge Function de desativação.
    }
    ```
 
-#### Códigos de erro
+#### Error codes
 
-| Código | HTTP | Significado |
+| Code | HTTP | Meaning |
 |---|---|---|
-| `UNAUTHORIZED` | 401 | JWT ausente/inválido. |
-| `FORBIDDEN` | 403 | Chamador não é admin. |
-| `SELF_DISABLE` | 403 | Admin tentou desativar a si mesmo. |
-| `USER_NOT_FOUND` | 404 | `user_id` não existe em `public.usuarios`. |
-| `ALREADY_DISABLED` | 409 | Usuário já está inativo. |
-| `VALIDATION_ERROR` | 400 | Payload inválido. |
-| `DISABLE_FAILED` | 500 | Falha ao atualizar perfil ou Auth. |
-| `UNKNOWN` | 500 | Erro não classificado. |
+| `UNAUTHORIZED` | 401 | Missing/invalid JWT. |
+| `FORBIDDEN` | 403 | Caller is not admin. |
+| `SELF_DISABLE` | 403 | Admin attempted to deactivate themselves. |
+| `USER_NOT_FOUND` | 404 | `user_id` does not exist in `public.usuarios`. |
+| `ALREADY_DISABLED` | 409 | User is already inactive. |
+| `VALIDATION_ERROR` | 400 | Invalid payload. |
+| `DISABLE_FAILED` | 500 | Failed to update profile or Auth. |
+| `UNKNOWN` | 500 | Unclassified error. |
 
-#### Segurança
+#### Security
 
-- `service_role` **apenas** server-side (variável de ambiente da Edge
-  Function, nunca no front).
-- Validação de admin server-side (não confia no client).
-- Bloqueio de autodesativação server-side.
-- Logs sem `password`, `service_role` ou JWTs.
+- `service_role` **only** server-side (Edge Function environment
+  variable, never on the front end).
+- Server-side admin validation (does not trust the client).
+- Server-side self-deactivation blocking.
+- Logs without `password`, `service_role`, or JWTs.
 
-### Opção secundária (se hard delete for necessário): `admin-delete-user`
+### Secondary option (if hard delete is necessary): `admin-delete-user`
 
 **Edge Function:** `supabase/functions/admin-delete-user/index.ts`
 
@@ -536,214 +539,217 @@ Edge Function de desativação.
 }
 ```
 
-#### Comportamento
+#### Behavior
 
-1. Validar JWT + exigir admin + bloquear autoexclusão (igual acima).
-2. **Confirmar e-mail:** o `confirm_email` deve ser igual ao e-mail do
-   usuário alvo (case-insensitive). Isso previne clique acidental.
-3. **Deletar Auth user:** `auth.admin.deleteUser(user_id)`.
-4. **Cascade remove perfil:** `ON DELETE CASCADE` em
-   `public.usuarios.id → auth.users.id` remove o perfil
-   automaticamente.
-5. **Retornar sucesso** (sem expor `service_role`).
-6. Se `deleteUser` falhar, retornar erro — **nunca** deletar perfil
-   manualmente antes do Auth.
+1. Validate JWT + require admin + block self-deletion (same as
+   above).
+2. **Confirm email:** the `confirm_email` must match the target
+   user's email (case-insensitive). This prevents accidental clicks.
+3. **Delete Auth user:** `auth.admin.deleteUser(user_id)`.
+4. **Cascade removes profile:** `ON DELETE CASCADE` on
+   `public.usuarios.id → auth.users.id` removes the profile
+   automatically.
+5. **Return success** (without exposing `service_role`).
+6. If `deleteUser` fails, return an error — **never** delete the
+   profile manually before Auth.
 
 ---
 
-## 7. Mudanças necessárias por camada
+## 7. Changes needed by layer
 
 ### 7.1 Database
 
-- **Nova coluna:** `public.usuarios.ativo BOOLEAN NOT NULL DEFAULT true`
-  (schema migration futura, fase própria).
-- **Nova coluna opcional:** `public.usuarios.desativado_em TIMESTAMPTZ`
-  e `public.usuarios.desativado_por UUID` (para auditoria).
-- **Novas policies RLS:**
-  - `usuarios_select`: filtrar `WHERE ativo = true OR is_admin()`
-    (admin vê todos, inclusive inativos).
-  - `usuarios_self_update`: adicionar `AND ativo = true` (usuário
-    inativo não pode se autoeditar).
-- **Impacto em `loadCurrentUser`:**
-  - Adicionar condição `AND ativo = true` na query do perfil.
-  - Se `ativo = false`, `loadCurrentUser` retorna `null` → redirect
-    para `#/login` (comportamento existente, sem alteração).
+- **New column:** `public.usuarios.ativo BOOLEAN NOT NULL DEFAULT true`
+  (future schema migration, own phase).
+- **New optional columns:** `public.usuarios.desativado_em TIMESTAMPTZ`
+  and `public.usuarios.desativado_por UUID` (for auditing).
+- **New RLS policies:**
+  - `usuarios_select`: filter `WHERE ativo = true OR is_admin()`
+    (admin sees everyone, including inactive users).
+  - `usuarios_self_update`: add `AND ativo = true` (an inactive user
+    cannot self-edit).
+- **Impact on `loadCurrentUser`:**
+  - Add condition `AND ativo = true` to the profile query.
+  - If `ativo = false`, `loadCurrentUser` returns `null` → redirect
+    to `#/login` (existing behavior, unchanged).
 
 ### 7.2 Edge Function
 
-- **Nova função:** `admin-disable-user` (recomendada) ou
-  `admin-delete-user` (secundária).
-- **Validação admin:** server-side, consultando `public.usuarios`.
-- **Bloqueio de auto-operação:** `user_id !== callerId`.
-- **Logs:** sem `password`, sem `service_role`, sem JWTs.
-- **Localização:** `supabase/functions/admin-disable-user/index.ts`.
-- **Deploy:** fase própria (`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`).
+- **New function:** `admin-disable-user` (recommended) or
+  `admin-delete-user` (secondary).
+- **Admin validation:** server-side, querying `public.usuarios`.
+- **Self-operation blocking:** `user_id !== callerId`.
+- **Logs:** without `password`, without `service_role`, without JWTs.
+- **Location:** `supabase/functions/admin-disable-user/index.ts`.
+- **Deploy:** own phase (`RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`).
 
 ### 7.3 Front-end (`js/screens/cadastros.js`)
 
-**Curto prazo (Alternativa E):**
+**Short term (Alternative E):**
 
-- Remover ou ocultar botão "Excluir vínculo" da tabela de usuários.
-- Opção: substituir por tooltip "Em breve" ou esconder completamente.
+- Remove or hide the "Excluir vínculo" button from the users table.
+- Option: replace with an "Em breve" tooltip or hide it completely.
 
-**Longo prazo (Alternativa D+C):**
+**Long term (Alternative D+C):**
 
-- Botão "Desativar usuário" (ou "Desativar") no lugar de "Excluir
+- "Desativar usuário" (or "Desativar") button in place of "Excluir
   vínculo".
-- Modal de confirmação forte:
-  - Título: "Desativar usuário".
-  - Mensagem: "O usuário `<email>` será desativado e perderá acesso ao
+- Strong confirmation modal:
+  - Title: "Desativar usuário".
+  - Message: "O usuário `<email>` será desativado e perderá acesso ao
     sistema. Esta ação pode ser revertida por outro admin."
-  - Opcional: campo de motivo.
-- Chamada à Edge Function:
+  - Optional: reason field.
+- Call to the Edge Function:
   ```js
   const { error } = await window.supa.functions.invoke('admin-disable-user', {
     body: { user_id: usr.id, reason: motivo }
   });
   ```
-- Tratamento de erros:
+- Error handling:
   - `SELF_DISABLE` → "Você não pode desativar a si mesmo."
   - `ALREADY_DISABLED` → "Usuário já está desativado."
   - `FORBIDDEN` → "Apenas admins podem desativar usuários."
-- **Nunca** chamar `auth.admin` no browser.
-- **Nunca** expor `service_role`.
+- **Never** call `auth.admin` in the browser.
+- **Never** expose `service_role`.
 
-### 7.4 Listagem de usuários
+### 7.4 User listing
 
-- **Admin:** vê todos, inclusive inativos (com indicador visual:
-  badge "Inativo" cinza).
-- **Fornecedor:** vê apenas o próprio perfil (RLS existente +
-  filtro `ativo = true`).
-- **Botão "Reativar":** disponível para admin reverter desativação
-  (fase futura).
+- **Admin:** sees everyone, including inactive users (with visual
+  indicator: gray "Inativo" badge).
+- **Fornecedor:** sees only their own profile (existing RLS +
+  `ativo = true` filter).
+- **"Reativar" button:** available for admin to reverse deactivation
+  (future phase).
 
 ### 7.5 Runbook
 
-- Atualizar `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md`:
-  - Seção de desativação (nova).
-  - Atualizar seção de limpeza (manter limpeza via Dashboard para
-    staging, mencionar Edge Function para produção).
-  - Incluir troubleshooting de usuário desativado que não consegue
-    logar.
+- Update `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md`:
+  - Deactivation section (new).
+  - Update the cleanup section (keep Dashboard cleanup for staging,
+    mention the Edge Function for production).
+  - Include troubleshooting for a deactivated user who cannot log in.
 
 ---
 
-## 8. Critérios de aceite para implementação futura
+## 8. Acceptance criteria for future implementation
 
-A fase de implementação (código) só será considerada concluída quando:
+The implementation (code) phase will only be considered complete
+when:
 
-- [ ] Nenhum `service_role` está presente no front-end, `js/config.js`,
-  `index.html`, `localStorage` ou qualquer arquivo versionado no
-  client.
-- [ ] Nenhum Auth user fica órfão após desativação (perfil fica
-  marcado `ativo = false`, Auth user é banido — ou permanece
-  consistente com o estado do perfil).
-- [ ] Nenhum perfil fica órfão (sem Auth user correspondente).
-- [ ] Fornecedor não pode desativar/excluir usuário (403 da Edge
+- [ ] No `service_role` is present in the front end, `js/config.js`,
+  `index.html`, `localStorage`, or any versioned file on the client.
+- [ ] No Auth user is left orphaned after deactivation (profile is
+  marked `ativo = false`, Auth user is banned — or remains consistent
+  with the profile state).
+- [ ] No profile is left orphaned (without a corresponding Auth
+  user).
+- [ ] Fornecedor cannot deactivate/delete a user (403 from the Edge
   Function + RLS).
-- [ ] Admin não pode desativar/excluir a si mesmo (403 `SELF_DISABLE`
-  da Edge Function).
-- [ ] Logs da Edge Function não contêm `password`, `service_role` ou
+- [ ] Admin cannot deactivate/delete themselves (403 `SELF_DISABLE`
+  from the Edge Function).
+- [ ] Edge Function logs contain no `password`, `service_role`, or
   JWTs.
-- [ ] Smoke tests cobrem:
-  - Validação de admin server-side.
-  - Bloqueio de autoexclusão.
-  - Bloqueio de fornecedor.
-  - Payload inválido.
-  - Ausência de `service_role` no front-end.
-- [ ] Teste E2E em staging com usuário descartável:
-  - Criar usuário de teste via `admin-create-user`.
-  - Desativar via `admin-disable-user`.
-  - Confirmar `ativo = false` em `public.usuarios` (SQL read-only).
-  - Confirmar que login do usuário desativado falha ou redireciona.
-  - Limpar via Dashboard após teste.
-- [ ] `loadCurrentUser` respeita `ativo = true` (usuário inativo não
-  carrega perfil).
-- [ ] Listagem de usuários (admin) mostra indicador de inativo.
+- [ ] Smoke tests cover:
+  - Server-side admin validation.
+  - Self-deletion blocking.
+  - Fornecedor blocking.
+  - Invalid payload.
+  - Absence of `service_role` on the front end.
+- [ ] E2E test in staging with a disposable user:
+  - Create a test user via `admin-create-user`.
+  - Deactivate via `admin-disable-user`.
+  - Confirm `ativo = false` in `public.usuarios` (read-only SQL).
+  - Confirm that login for the deactivated user fails or redirects.
+  - Clean up via Dashboard after the test.
+- [ ] `loadCurrentUser` respects `ativo = true` (inactive user does
+  not load a profile).
+- [ ] User listing (admin) shows an inactive indicator.
 
 ---
 
-## 9. Pendências e decisões para HMNlead
+## 9. Pending decisions for HMNlead
 
-As seguintes decisões precisam ser tomadas pelo dono do projeto antes
-da implementação:
+The following decisions need to be made by the project owner before
+implementation:
 
-1. **Excluir fisicamente ou desativar?**
-   - Desativar (recomendado): preserva auditoria, reversível.
-   - Excluir: remove permanentemente, útil apenas para staging/teste.
+1. **Physically delete or deactivate?**
+   - Deactivate (recommended): preserves auditability, reversible.
+   - Delete: permanently removes, useful only for staging/testing.
 
-2. **Precisa manter histórico/auditoria de quem fez o quê?**
-   - Se sim, soft delete + colunas `desativado_em` / `desativado_por`.
+2. **Does history/audit trail of who did what need to be kept?**
+   - If so, soft delete + `desativado_em` / `desativado_por` columns.
 
-3. **Usuários de teste/staging podem continuar sendo removidos
-   manualmente pelo Dashboard até a fase própria?**
-   - Recomendação: sim. Já é o procedimento documentado no runbook.
+3. **Can test/staging users continue to be removed manually via the
+   Dashboard until the dedicated phase?**
+   - Recommendation: yes. This is already the procedure documented in
+     the runbook.
 
-4. **Produção deve permitir exclusão física ou apenas desativação?**
-   - Recomendação: apenas desativação. Exclusão física somente via
-     Dashboard em incidente.
+4. **Should production allow physical deletion, or only
+   deactivation?**
+   - Recommendation: deactivation only. Physical deletion only via
+     the Dashboard during an incident.
 
-5. **Deve haver confirmação por e-mail digitado para excluir?**
-   - Para hard delete: sim (previne clique acidental).
-   - Para desativar: opcional (a ação é reversível).
+5. **Should there be a typed-email confirmation for deletion?**
+   - For hard delete: yes (prevents accidental clicks).
+   - For deactivation: optional (the action is reversible).
 
-6. **Deve bloquear exclusão/desativação do último admin?**
-   - Recomendação: sim. Sempre deve haver pelo menos 1 admin ativo.
+6. **Should deletion/deactivation of the last admin be blocked?**
+   - Recommendation: yes. There should always be at least 1 active
+     admin.
 
-7. **API `auth.admin.updateUserById` com `ban: true` está disponível
-   na versão do Supabase em staging?**
-   - Precisa de verificação técnica antes de implementar. Se não
-     estiver, usar apenas soft delete no perfil (com ressalva
-     documentada de que login Auth ainda funciona).
+7. **Is the `auth.admin.updateUserById` API with `ban: true`
+   available in the Supabase version used in staging?**
+   - Needs technical verification before implementation. If not
+     available, use only the soft delete on the profile (with the
+     documented caveat that Auth login still works).
 
 ---
 
-## 10. Próxima fase proposta
+## 10. Proposed next phase
 
-### Fase recomendada: `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`
+### Recommended phase: `RAVATEX-TAPETES-AUTH-DISABLE-USER-SCHEMA-A`
 
-**Escopo:** schema-only, docs-only.
+**Scope:** schema-only, docs-only.
 
-**Objetivo:** projetar e validar a alteração de schema necessária para
-suportar soft delete (`ativo`, `desativado_em`, `desativado_por`),
-antes de implementar código.
+**Objective:** design and validate the schema change needed to
+support soft delete (`ativo`, `desativado_em`, `desativado_por`),
+before implementing code.
 
-**Entregas:**
-- Proposta de migration SQL (read-only, não executar).
-- Impacto nas policies RLS.
-- Impacto em `loadCurrentUser` (filtro `ativo = true`).
-- Smoke tests estáticos para o novo schema.
+**Deliverables:**
+- Proposed SQL migration (read-only, not to be executed).
+- Impact on RLS policies.
+- Impact on `loadCurrentUser` (`ativo = true` filter).
+- Static smoke tests for the new schema.
 
-**Fase seguinte:** `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`
-(implementação da Edge Function `admin-disable-user`).
+**Next phase:** `RAVATEX-TAPETES-AUTH-DISABLE-USER-EDGE-A`
+(implementation of the `admin-disable-user` Edge Function).
 
-### Fase alternativa (se hard delete for a decisão):
+### Alternative phase (if hard delete is the decision):
 `RAVATEX-TAPETES-AUTH-DELETE-USER-EDGE-FUNCTION-A`
-(implementação da Edge Function `admin-delete-user`).
+(implementation of the `admin-delete-user` Edge Function).
 
-### Fase de contenção imediata (se quiser bloquear exclusão já):
+### Immediate containment phase (if you want to block deletion now):
 `RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A`
-(remover ou ocultar botão "Excluir vínculo" da UI).
+(remove or hide the "Excluir vínculo" button from the UI).
 
 ---
 
-## 11. Referências
+## 11. References
 
 - `js/screens/cadastros.js:481-649` — `screenCadastrosUsuarios`.
 - `js/auth.js:82-101` — `loadCurrentUser`.
 - `js/auth.js:59-67` — `login`.
-- `supabase/functions/admin-create-user/index.ts` — Edge Function de
-  criação (referência de arquitetura).
-- `db/01_schema.sql:26-33` — schema de `usuarios`.
+- `supabase/functions/admin-create-user/index.ts` — creation Edge
+  Function (architecture reference).
+- `db/01_schema.sql:26-33` — `usuarios` schema.
 - `db/02_functions.sql` — `is_admin()`, `meu_fornecedor_id()`.
-- `db/03_policies.sql:27-37` — RLS de `usuarios`.
-- `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md` — design da
-  Edge Function de criação.
-- `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md` — runbook
-  operacional (seção 9: limpeza de teste).
-- `docs/architecture/CODE_HEALTH_RULES.md` — regras de saúde
-  arquitetural.
-- `tests/cadastros-usuarios-auth-ui.smoke.js` — smoke da UI de
-  usuários.
-- `tests/admin-create-user.smoke.js` — smoke da Edge Function de
-  criação.
+- `db/03_policies.sql:27-37` — `usuarios` RLS.
+- `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md` — creation
+  Edge Function design.
+- `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md` — operational
+  runbook (section 9: test cleanup).
+- `docs/architecture/CODE_HEALTH_RULES.md` — architectural health
+  rules.
+- `tests/cadastros-usuarios-auth-ui.smoke.js` — user UI smoke test.
+- `tests/admin-create-user.smoke.js` — creation Edge Function smoke
+  test.

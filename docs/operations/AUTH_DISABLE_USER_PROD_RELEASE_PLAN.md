@@ -1,80 +1,80 @@
-# Plano de release produção — Auth user provisioning/disable
+# Production release plan — Auth user provisioning/disable
 
-**Fase:** `RAVATEX-TAPETES-AUTH-DISABLE-USER-PROD-RELEASE-PLAN-A`  
-**Escopo:** docs-only / planejamento de release — sem execução em produção, sem SQL, sem deploy, sem push origin, sem alteração de código.  
-**Data:** 2026-06-24  
-**HEAD de referência:** `b02a524`
-
----
-
-## 1. Escopo
-
-Este plano cobre a liberação controlada da cadeia Auth do staging para produção:
-
-- **Edge Function `admin-create-user`** — cria usuário em `auth.users` + `public.usuarios` de forma atômica e compensada.
-- **Edge Function `admin-disable-user`** — desativa usuário (soft delete no perfil + ban Auth), com bloqueios de auto-desativação, último admin ativo e idempotência.
-- **Schema `db/12_auth_user_disable_schema.sql`** — colunas `ativo`, `desativado_em`, `desativado_por`, `motivo_desativacao` em `public.usuarios`; funções `is_admin()` e `meu_fornecedor_id()` recriadas para exigir `ativo is true`; policies `usuarios_select`, `usuarios_admin_all`, `usuarios_self_update` recriadas.
-- **UI de criação/desativação** em `#/cadastros/usuarios` — botões `+ Novo usuário` e `Desativar`, modal de confirmação, mapeamento de erros PT-BR, coluna Status `Ativo`/`Inativo`.
-- **Frontend** — merge controlado de `work/app-next` para `origin/main` (GitHub Pages).
+**Phase:** `RAVATEX-TAPETES-AUTH-DISABLE-USER-PROD-RELEASE-PLAN-A`  
+**Scope:** docs-only / release planning — no execution in production, no SQL, no deploy, no push to origin, no code changes.  
+**Date:** 2026-06-24  
+**Reference HEAD:** `b02a524`
 
 ---
 
-## 2. Estado validado em staging
+## 1. Scope
+
+This plan covers the controlled release of the Auth chain from staging to production:
+
+- **Edge Function `admin-create-user`** — creates a user in `auth.users` + `public.usuarios` atomically, with compensation.
+- **Edge Function `admin-disable-user`** — disables a user (soft delete on the profile + Auth ban), with guards against self-disable, disabling the last active admin, and idempotency.
+- **Schema `db/12_auth_user_disable_schema.sql`** — columns `ativo`, `desativado_em`, `desativado_por`, `motivo_desativacao` on `public.usuarios`; functions `is_admin()` and `meu_fornecedor_id()` recreated to require `ativo is true`; policies `usuarios_select`, `usuarios_admin_all`, `usuarios_self_update` recreated.
+- **Creation/disable UI** at `#/cadastros/usuarios` — `+ Novo usuário` and `Desativar` buttons, confirmation modal, PT-BR error mapping, `Ativo`/`Inativo` Status column.
+- **Frontend** — controlled merge from `work/app-next` to `origin/main` (GitHub Pages).
+
+---
+
+## 2. State validated in staging
 
 | Item | Status |
 |---|---|
 | Supabase staging ref | `ucrjtfswnfdlxwtmxnoo` |
 | HEAD / staging/main | `b02a524` |
-| Schema `db/12_auth_user_disable_schema.sql` aplicado | ✅ manualmente por HMNlead (2026-06-24) |
-| Edge Function `admin-create-user` deployada | ✅ validada |
-| Edge Function `admin-disable-user` deployada | ✅ validada |
+| Schema `db/12_auth_user_disable_schema.sql` applied | ✅ manually by HMNlead (2026-06-24) |
+| Edge Function `admin-create-user` deployed | ✅ validated |
+| Edge Function `admin-disable-user` deployed | ✅ validated |
 | Backend E2E (runner) | ✅ `result: PASS` |
-| UI manual staging (HMNlead) | ✅ fluxo real passou |
-| Smokes (6 arquivos) | 163/163 PASS |
+| Manual staging UI (HMNlead) | ✅ real flow passed |
+| Smokes (6 files) | 163/163 PASS |
 
 ---
 
-## 3. Estado de produção antes do release
+## 3. Production state before the release
 
-Produção **ainda não foi tocada** por esta cadeia:
+Production **has not yet been touched** by this chain:
 
 | Item | Status |
 |---|---|
-| Supabase produção ref | `bhgifjrfagkzubpyqpew` |
-| origin/main | `1047181eba888242c6428de366cbd9fda2f1c72c` (anterior à cadeia Auth) |
-| Schema `db/12_auth_user_disable_schema.sql` | ❌ **Não aplicado** |
-| Colunas `ativo`/`desativado_*` em `public.usuarios` | ❌ **Não existem** |
-| `is_admin()` exige `ativo is true` | ❌ **Não** |
-| `meu_fornecedor_id()` verifica `ativo` | ❌ **Não** |
-| Edge Function `admin-create-user` | ❌ **Não deployado** |
-| Edge Function `admin-disable-user` | ❌ **Não deployado** |
-| Secrets (`SUPABASE_SERVICE_ROLE_KEY`, etc.) | ❌ **Não configurados** |
-| Frontend em GitHub Pages | ❌ **Versão pré-refactor** |
+| Supabase production ref | `bhgifjrfagkzubpyqpew` |
+| origin/main | `1047181eba888242c6428de366cbd9fda2f1c72c` (prior to the Auth chain) |
+| Schema `db/12_auth_user_disable_schema.sql` | ❌ **Not applied** |
+| Columns `ativo`/`desativado_*` on `public.usuarios` | ❌ **Do not exist** |
+| `is_admin()` requires `ativo is true` | ❌ **No** |
+| `meu_fornecedor_id()` checks `ativo` | ❌ **No** |
+| Edge Function `admin-create-user` | ❌ **Not deployed** |
+| Edge Function `admin-disable-user` | ❌ **Not deployed** |
+| Secrets (`SUPABASE_SERVICE_ROLE_KEY`, etc.) | ❌ **Not configured** |
+| Frontend on GitHub Pages | ❌ **Pre-refactor version** |
 
 ---
 
-## 4. Ordem obrigatória de release
+## 4. Mandatory release order
 
-A ordem é **sequencial e obrigatória**. Cada etapa deve ser validada antes de avançar.
+The order is **sequential and mandatory**. Each step must be validated before proceeding.
 
-### 4.1 Confirmar backup/snapshot operacional
+### 4.1 Confirm operational backup/snapshot
 
-Antes de qualquer mutação em produção:
-- Confirmar que o HMNlead tem acesso ao Supabase Dashboard de produção (`bhgifjrfagkzubpyqpew`).
-- Verificar se há backup automático (Point-in-Time Recovery) habilitado no projeto produção.
-- Documentar o estado atual: `select count(*)` das tabelas principais (`usuarios`, `fornecedores`, `ops`, etc.).
-- Anotar os 3 usuários atuais (admin + fornecedores) para validação pós-release.
+Before any mutation in production:
+- Confirm that HMNlead has access to the production Supabase Dashboard (`bhgifjrfagkzubpyqpew`).
+- Check whether automatic backup (Point-in-Time Recovery) is enabled on the production project.
+- Document the current state: `select count(*)` of the main tables (`usuarios`, `fornecedores`, `ops`, etc.).
+- Note the 3 current users (admin + suppliers) for post-release validation.
 
-### 4.2 Aplicar schema em produção
+### 4.2 Apply schema in production
 
-1. Abrir SQL Editor do Supabase Dashboard para `bhgifjrfagkzubpyqpew`.
-2. Copiar e executar o conteúdo de `db/12_auth_user_disable_schema.sql`.
-3. **Não** rodar `db/10_reset_producao.sql`, `db/11_reset_ops.sql` ou qualquer SQL destrutivo.
-4. O schema é **idempotente** (usa `IF NOT EXISTS` e `CREATE OR REPLACE`), pode ser reexecutado sem dano.
+1. Open the Supabase Dashboard SQL Editor for `bhgifjrfagkzubpyqpew`.
+2. Copy and execute the contents of `db/12_auth_user_disable_schema.sql`.
+3. **Do not** run `db/10_reset_producao.sql`, `db/11_reset_ops.sql`, or any destructive SQL.
+4. The schema is **idempotent** (uses `IF NOT EXISTS` and `CREATE OR REPLACE`); it can be re-run without harm.
 
-### 4.3 Validar schema produção
+### 4.3 Validate production schema
 
-Executar SQL **read-only** para confirmar:
+Run **read-only** SQL to confirm:
 
 ```sql
 -- Colunas novas existem
@@ -115,16 +115,16 @@ WHERE schemaname = 'public' AND tablename = 'usuarios'
 ORDER BY policyname;
 ```
 
-### 4.4 Configurar secrets das Edge Functions em produção
+### 4.4 Configure Edge Function secrets in production
 
-No Supabase Dashboard de produção (`bhgifjrfagkzubpyqpew`):
+In the production Supabase Dashboard (`bhgifjrfagkzubpyqpew`):
 
-**Settings → API** para obter:
+**Settings → API** to obtain:
 - `Project URL` → `SUPABASE_URL`
 - `anon public` → `SUPABASE_ANON_KEY`
 - `service_role secret` → `SUPABASE_SERVICE_ROLE_KEY`
 
-**Edge Functions → `admin-create-user`** (após deploy, ver 4.5) → **Secrets**:
+**Edge Functions → `admin-create-user`** (after deploy, see 4.5) → **Secrets**:
 ```bash
 # Referência apenas — não executar nesta fase
 supabase secrets set SUPABASE_URL=<prod_url> --project-ref bhgifjrfagkzubpyqpew
@@ -132,20 +132,20 @@ supabase secrets set SUPABASE_ANON_KEY=<prod_anon_key> --project-ref bhgifjrfagk
 supabase secrets set SUPABASE_SERVICE_ROLE_KEY=<prod_service_role> --project-ref bhgifjrfagkzubpyqpew
 ```
 
-Ou via Dashboard: **Edge Functions → [function] → Environment variables**.
+Or via Dashboard: **Edge Functions → [function] → Environment variables**.
 
-Verificar também que o deployment das funções puxou automaticamente as variáveis `SUPABASE_URL` e `SUPABASE_ANON_KEY` do projeto. Apenas `SUPABASE_SERVICE_ROLE_KEY` precisa ser configurada manualmente (não é exposta por padrão).
+Also verify that the function deployment automatically pulled the project's `SUPABASE_URL` and `SUPABASE_ANON_KEY` variables. Only `SUPABASE_SERVICE_ROLE_KEY` needs to be configured manually (it is not exposed by default).
 
-### 4.5 Deployar `admin-create-user` em produção
+### 4.5 Deploy `admin-create-user` in production
 
 ```bash
 # Referência apenas — não executar nesta fase
 supabase functions deploy admin-create-user --project-ref bhgifjrfagkzubpyqpew
 ```
 
-### 4.6 Validar `admin-create-user` em produção
+### 4.6 Validate `admin-create-user` in production
 
-Testes de API (curl ou Supabase CLI):
+API tests (curl or Supabase CLI):
 
 ```bash
 # Sem auth → 401
@@ -158,27 +158,27 @@ curl -X POST https://bhgifjrfagkzubpyqpew.supabase.co/functions/v1/admin-create-
 # (testar com admin JWT nas fases seguintes, se autorizado)
 ```
 
-Validações opcionais com usuário descartável (somente se autorizado pelo HMNlead):
-1. Login admin -> obter JWT.
-2. Chamar `admin-create-user` com payload válido.
-3. Confirmar `201` com `user_id`, `email`, `tipo`.
-4. Confirmar vínculo: `auth.users.id = public.usuarios.id` via SQL read-only.
-5. Cleanup: remover usuário via Dashboard (Delete user) para não poluir produção.
+Optional validations with a disposable user (only if authorized by HMNlead):
+1. Admin login -> obtain JWT.
+2. Call `admin-create-user` with a valid payload.
+3. Confirm `201` with `user_id`, `email`, `tipo`.
+4. Confirm the link: `auth.users.id = public.usuarios.id` via read-only SQL.
+5. Cleanup: remove the user via Dashboard (Delete user) to avoid polluting production.
 
-### 4.7 Deployar `admin-disable-user` em produção
+### 4.7 Deploy `admin-disable-user` in production
 
 ```bash
 # Referência apenas — não executar nesta fase
 supabase functions deploy admin-disable-user --project-ref bhgifjrfagkzubpyqpew
 ```
 
-Verificar secrets em `admin-disable-user` (as mesmas de `admin-create-user`):
+Verify secrets on `admin-disable-user` (the same as `admin-create-user`):
 ```bash
 supabase secrets list --project-ref bhgifjrfagkzubpyqpew
 ```
-Confirmar que `SUPABASE_SERVICE_ROLE_KEY` está presente.
+Confirm that `SUPABASE_SERVICE_ROLE_KEY` is present.
 
-### 4.8 Validar `admin-disable-user` em produção
+### 4.8 Validate `admin-disable-user` in production
 
 ```bash
 # Sem auth → 401
@@ -188,53 +188,53 @@ curl -X POST https://bhgifjrfagkzubpyqpew.supabase.co/functions/v1/admin-disable
 # Esperado: 401 UNAUTHORIZED
 ```
 
-Se autorizado, validar com descartável:
-1. Criar fornecedor descartável via `admin-create-user`.
-2. Tentar `admin-disable-user` com JWT de fornecedor → `403 FORBIDDEN`.
-3. Admin desativa descartável → `200 { ativo: false, auth_banned: true }`.
-4. Confirmar `ativo = false` via SQL read-only.
-5. Tentar login do descartável → falha (banned).
-6. Re-desativar → `200 { already_disabled: true }`.
-7. Self-disable (admin tenta desativar a si mesmo) → `403 SELF_DISABLE_FORBIDDEN`.
+If authorized, validate with a disposable user:
+1. Create a disposable supplier via `admin-create-user`.
+2. Attempt `admin-disable-user` with supplier JWT → `403 FORBIDDEN`.
+3. Admin disables the disposable user → `200 { ativo: false, auth_banned: true }`.
+4. Confirm `ativo = false` via read-only SQL.
+5. Attempt login of the disposable user → fails (banned).
+6. Disable again → `200 { already_disabled: true }`.
+7. Self-disable (admin attempts to disable themself) → `403 SELF_DISABLE_FORBIDDEN`.
 8. Cleanup via Dashboard.
 
-### 4.9 Liberar frontend para `origin/main`
+### 4.9 Release frontend to `origin/main`
 
-**Atenção: esta etapa só deve ser executada após as etapas 4.2 a 4.8 estarem concluídas e validadas.**
+**Attention: this step must only be executed after steps 4.2 through 4.8 are complete and validated.**
 
-Procedimento:
-1. Fazer merge ou push controlado de `work/app-next` para `origin/main`:
+Procedure:
+1. Perform a controlled merge or push from `work/app-next` to `origin/main`:
 
 ```bash
 # Referência apenas — não executar nesta fase
 git push origin work/app-next:main
 ```
 
-2. GitHub Pages publica automaticamente (push para `main` → deploy).
-3. Aguardar propagação (1-2 minutos).
-4. Hard refresh no navegador (Disable cache + Ctrl+F5).
+2. GitHub Pages publishes automatically (push to `main` → deploy).
+3. Wait for propagation (1-2 minutes).
+4. Hard refresh in the browser (Disable cache + Ctrl+F5).
 
-### 4.10 Validar UI produção
+### 4.10 Validate production UI
 
-1. Acessar `https://grupoterrabranca.github.io/controle-tapetes/`.
-2. Fazer login como admin.
-3. Navegar para `#/cadastros/usuarios`.
-4. Confirmar:
-   - Listagem carregando (colunas: E-mail, Nome, Tipo, Fornecedor, Status).
-   - Botão `+ Novo usuário` visível e funcional.
-   - Botão `Desativar` visível para usuários ativos.
-   - Status `Ativo`/`Inativo` correto.
-5. Se autorizado, criar usuário descartável e desativar via UI.
-6. Confirmar toasts de sucesso/erro em PT-BR.
-7. Confirmar que usuário já inativo exibe `"Usuário já está inativo."`.
+1. Access `https://grupoterrabranca.github.io/controle-tapetes/`.
+2. Log in as admin.
+3. Navigate to `#/cadastros/usuarios`.
+4. Confirm:
+   - The listing loads (columns: E-mail, Nome, Tipo, Fornecedor, Status).
+   - `+ Novo usuário` button visible and functional.
+   - `Desativar` button visible for active users.
+   - Status `Ativo`/`Inativo` correct.
+5. If authorized, create a disposable user and disable via the UI.
+6. Confirm success/error toasts in PT-BR.
+7. Confirm that an already-inactive user displays `"Usuário já está inativo."`.
 
 ---
 
-## 5. Comandos/SQL de validação (read-only)
+## 5. Validation commands/SQL (read-only)
 
-Apenas SQL **read-only** para verificação de estado. Nunca `DELETE`, `DROP`, `TRUNCATE`, `UPDATE` ou `INSERT` sem autorização explícita.
+Only **read-only** SQL for state verification. Never `DELETE`, `DROP`, `TRUNCATE`, `UPDATE`, or `INSERT` without explicit authorization.
 
-### 5.1 Verificar colunas de `public.usuarios`
+### 5.1 Verify columns of `public.usuarios`
 
 ```sql
 SELECT column_name, data_type, is_nullable, column_default
@@ -243,7 +243,7 @@ WHERE table_schema = 'public' AND table_name = 'usuarios'
 ORDER BY ordinal_position;
 ```
 
-### 5.2 Contagem por `ativo`
+### 5.2 Count by `ativo`
 
 ```sql
 SELECT ativo, count(*) AS quantidade
@@ -251,7 +251,7 @@ FROM public.usuarios
 GROUP BY ativo;
 ```
 
-### 5.3 Verificar órfãos (auth sem perfil / perfil sem auth)
+### 5.3 Verify orphans (auth without profile / profile without auth)
 
 ```sql
 SELECT
@@ -265,7 +265,7 @@ SELECT
    WHERE au.id IS NULL) AS perfil_sem_auth;
 ```
 
-### 5.4 Verificar função `is_admin()`
+### 5.4 Verify function `is_admin()`
 
 ```sql
 SELECT proname, prosrc
@@ -273,7 +273,7 @@ FROM pg_proc
 WHERE proname = 'is_admin' AND pronamespace = 'public'::regnamespace;
 ```
 
-### 5.5 Verificar função `meu_fornecedor_id()`
+### 5.5 Verify function `meu_fornecedor_id()`
 
 ```sql
 SELECT proname, prosrc
@@ -281,7 +281,7 @@ FROM pg_proc
 WHERE proname = 'meu_fornecedor_id' AND pronamespace = 'public'::regnamespace;
 ```
 
-### 5.6 Verificar policies de `public.usuarios`
+### 5.6 Verify policies of `public.usuarios`
 
 ```sql
 SELECT policyname, permissive, cmd, qual, with_check
@@ -292,115 +292,115 @@ ORDER BY policyname;
 
 ---
 
-## 6. Bloqueios
+## 6. Blockers
 
-- 🔴 **Não liberar frontend antes do backend produção.** Publicar `origin/main` antes das Edge Functions e schema estarem prontos quebra a UI (chama funções inexistentes, schema sem coluna `ativo`).
-- 🔴 **Não rodar `db/10_reset_producao.sql`** — DELETE em massa de produção sem autorização.
-- 🔴 **Não rodar `db/11_reset_ops.sql`** — DELETE em massa de OPs sem autorização.
-- 🔴 **Não usar SQL destrutivo** (DELETE, DROP, TRUNCATE) sem autorização explícita do HMNlead.
-- 🔴 **Não hard deletar usuários** — usar sempre soft delete (desativação) como fluxo padrão.
-- 🔴 **Não expor `service_role`** no front-end, `js/config.js`, `index.html`, localStorage ou logs.
-- 🔴 **Não tocar `origin/main` sem autorização explícita** do HMNlead.
-- 🔴 **Não pular etapas** — a ordem 4.1 → 4.10 é obrigatória e sequencial.
-- 🟡 **Não reaplicar schema em staging** — staging já está correto. Schema é idempotente, mas não há necessidade.
-- 🟡 **Não modificar `admin-create-user` ou `admin-disable-user`** nesta fase — o código já está validado em staging.
+- 🔴 **Do not release the frontend before the production backend.** Publishing `origin/main` before the Edge Functions and schema are ready breaks the UI (calls nonexistent functions, schema missing the `ativo` column).
+- 🔴 **Do not run `db/10_reset_producao.sql`** — mass DELETE of production without authorization.
+- 🔴 **Do not run `db/11_reset_ops.sql`** — mass DELETE of OPs without authorization.
+- 🔴 **Do not use destructive SQL** (DELETE, DROP, TRUNCATE) without explicit authorization from HMNlead.
+- 🔴 **Do not hard-delete users** — always use soft delete (disable) as the standard flow.
+- 🔴 **Do not expose `service_role`** in the front-end, `js/config.js`, `index.html`, localStorage, or logs.
+- 🔴 **Do not touch `origin/main` without explicit authorization** from HMNlead.
+- 🔴 **Do not skip steps** — the order 4.1 → 4.10 is mandatory and sequential.
+- 🟡 **Do not reapply the schema in staging** — staging is already correct. The schema is idempotent, but there is no need.
+- 🟡 **Do not modify `admin-create-user` or `admin-disable-user`** in this phase — the code is already validated in staging.
 
 ---
 
 ## 7. Rollback
 
-### 7.1 Se schema falhar (etapa 4.2)
+### 7.1 If the schema fails (step 4.2)
 
-- Parar antes de qualquer deploy de Edge Function.
-- O schema é idempotente — reexecutar não causa dano adicional.
-- Se houver erro de constraint ou conflito, cancelar e reportar ao HMNlead.
-- Não avançar para 4.4.
+- Stop before any Edge Function deploy.
+- The schema is idempotent — re-running it causes no additional harm.
+- If there is a constraint error or conflict, cancel and report to HMNlead.
+- Do not proceed to 4.4.
 
-### 7.2 Se Edge Function falhar (etapas 4.5-4.8)
+### 7.2 If an Edge Function fails (steps 4.5-4.8)
 
-- Não liberar frontend (etapa 4.9).
-- Corrigir, redeployar e revalidar em staging primeiro.
-- Se necessário, redeployar versão anterior da função (se houver).
+- Do not release the frontend (step 4.9).
+- Fix, redeploy, and revalidate in staging first.
+- If necessary, redeploy the previous version of the function (if one exists).
 
-### 7.3 Se frontend falhar após release (etapa 4.9)
+### 7.3 If the frontend fails after release (step 4.9)
 
-- Opção A: Reverter `origin/main` para o commit anterior (`1047181eba888242c6428de366cbd9fda2f1c72c`):
+- Option A: Revert `origin/main` to the previous commit (`1047181eba888242c6428de366cbd9fda2f1c72c`):
 
 ```bash
 # Referência apenas — não executar sem autorização
 git push origin --force <commit-anterior>:main
 ```
 
-- Opção B: Hotfix no `work/app-next`, revalidar em staging, push para `origin/main`.
-- GitHub Pages propaga a reversão imediatamente (push → deploy).
+- Option B: Hotfix on `work/app-next`, revalidate in staging, push to `origin/main`.
+- GitHub Pages propagates the revert immediately (push → deploy).
 
-### 7.4 Limpeza de usuário descartável em produção (se criado)
+### 7.4 Cleanup of disposable user in production (if created)
 
-- Usar **Authentication → Users → Delete user** no Supabase Dashboard de produção (`bhgifjrfagkzubpyqpew`).
-- A FK `ON DELETE CASCADE` remove o perfil de `public.usuarios` automaticamente.
-- **Nunca** improvisar SQL destrutivo. Seguir procedimento do runbook (`docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md` seção 9).
-
----
-
-## 8. Critérios de GO/NO-GO
-
-### GO (pode liberar) somente se TODOS:
-
-- [ ] Schema `db/12_auth_user_disable_schema.sql` aplicado em produção e validado (SQL read-only confirma colunas, funções, policies).
-- [ ] Contagens pós-schema: `auth_users_total = public_usuarios_total`, `auth_sem_perfil = 0`, `perfil_sem_auth = 0`.
-- [ ] Secrets configurados em produção (`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`).
-- [ ] Edge Function `admin-create-user` deployada em produção e responde 401 sem auth, 400/201 com payload válido.
-- [ ] Edge Function `admin-disable-user` deployada em produção e responde 401 sem auth, 403 para fornecedor.
-- [ ] Smokes backend produção passam (se executados).
-- [ ] Staging continua operacional (não foi degradado pelo release).
-- [ ] Autorização explícita do HMNlead para cada etapa.
-
-### NO-GO (não liberar) se QUALQUER:
-
-- [ ] Schema ausente ou incompleto em produção.
-- [ ] Edge Function `admin-create-user` ausente ou falhando.
-- [ ] Edge Function `admin-disable-user` ausente ou falhando.
-- [ ] Secrets `SUPABASE_SERVICE_ROLE_KEY` não confirmados.
-- [ ] Erro Auth/RLS/policy em produção.
-- [ ] Risco de quebrar login ou admin existente.
-- [ ] Sem autorização explícita do HMNlead.
+- Use **Authentication → Users → Delete user** in the production Supabase Dashboard (`bhgifjrfagkzubpyqpew`).
+- The `ON DELETE CASCADE` FK automatically removes the profile from `public.usuarios`.
+- **Never** improvise destructive SQL. Follow the runbook procedure (`docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md` section 9).
 
 ---
 
-## 9. Próximas fases de execução
+## 8. GO/NO-GO criteria
 
-### Fase A: `RAVATEX-TAPETES-AUTH-DISABLE-USER-PROD-BACKEND-RELEASE-A`
+### GO (may release) only if ALL:
 
-**Escopo:** executar apenas backend produção.
-- Aplicar schema (`db/12_auth_user_disable_schema.sql`) em `bhgifjrfagkzubpyqpew`.
-- Configurar secrets.
-- Deployar `admin-create-user` e `admin-disable-user`.
-- Validar com smokes backend (curl e SQL read-only).
-- **Não tocar frontend / origin/main.**
+- [ ] Schema `db/12_auth_user_disable_schema.sql` applied in production and validated (read-only SQL confirms columns, functions, policies).
+- [ ] Post-schema counts: `auth_users_total = public_usuarios_total`, `auth_sem_perfil = 0`, `perfil_sem_auth = 0`.
+- [ ] Secrets configured in production (`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`).
+- [ ] Edge Function `admin-create-user` deployed in production and responds 401 without auth, 400/201 with a valid payload.
+- [ ] Edge Function `admin-disable-user` deployed in production and responds 401 without auth, 403 for a supplier.
+- [ ] Backend production smokes pass (if executed).
+- [ ] Staging remains operational (was not degraded by the release).
+- [ ] Explicit authorization from HMNlead for each step.
 
-### Fase B: `RAVATEX-TAPETES-AUTH-DISABLE-USER-FRONTEND-RELEASE-A`
+### NO-GO (do not release) if ANY:
 
-**Escopo:** liberar frontend após backend produção confirmado.
-- Push/merge `work/app-next` para `origin/main`.
-- Validar UI produção.
-- **Executar somente após Fase A concluída e autorizada.**
-
-### Fase C (se aplicável): `RAVATEX-TAPETES-AUTH-DISABLE-USER-PROD-SMOKE-E2E-A`
-
-**Escopo:** validação E2E opcional em produção com usuário descartável, se autorizado pelo HMNlead.
-- Rodar runner adaptado para produção (ou versão manual do roteiro).
-- Limpeza controlada após teste.
+- [ ] Schema missing or incomplete in production.
+- [ ] Edge Function `admin-create-user` missing or failing.
+- [ ] Edge Function `admin-disable-user` missing or failing.
+- [ ] Secrets `SUPABASE_SERVICE_ROLE_KEY` not confirmed.
+- [ ] Auth/RLS/policy error in production.
+- [ ] Risk of breaking login or an existing admin.
+- [ ] No explicit authorization from HMNlead.
 
 ---
 
-## 10. Referências
+## 9. Next execution phases
 
-- `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md` — design da Edge Function de criação.
-- `docs/architecture/AUTH_DELETE_USER_DESIGN.md` — design de desativação.
-- `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md` — runbook operacional de criação.
-- `db/12_auth_user_disable_schema.sql` — schema versionado para desativação.
-- `supabase/functions/admin-create-user/README.md` — documentação da Edge Function de criação.
-- `supabase/functions/admin-disable-user/README.md` — documentação da Edge Function de desativação.
-- `scripts/staging/admin-disable-user-e2e.mjs` — runner E2E de staging (referência para produção).
-- `PROJECT_STATE.md` — snapshot canônico do projeto.
-- `AGENT_HANDOFF.md` — estado aceito para retomada.
+### Phase A: `RAVATEX-TAPETES-AUTH-DISABLE-USER-PROD-BACKEND-RELEASE-A`
+
+**Scope:** execute production backend only.
+- Apply schema (`db/12_auth_user_disable_schema.sql`) on `bhgifjrfagkzubpyqpew`.
+- Configure secrets.
+- Deploy `admin-create-user` and `admin-disable-user`.
+- Validate with backend smokes (curl and read-only SQL).
+- **Do not touch frontend / origin/main.**
+
+### Phase B: `RAVATEX-TAPETES-AUTH-DISABLE-USER-FRONTEND-RELEASE-A`
+
+**Scope:** release the frontend after production backend is confirmed.
+- Push/merge `work/app-next` to `origin/main`.
+- Validate production UI.
+- **Execute only after Phase A is completed and authorized.**
+
+### Phase C (if applicable): `RAVATEX-TAPETES-AUTH-DISABLE-USER-PROD-SMOKE-E2E-A`
+
+**Scope:** optional E2E validation in production with a disposable user, if authorized by HMNlead.
+- Run a runner adapted for production (or a manual version of the script).
+- Controlled cleanup after the test.
+
+---
+
+## 10. References
+
+- `docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md` — design of the creation Edge Function.
+- `docs/architecture/AUTH_DELETE_USER_DESIGN.md` — design of the disable feature.
+- `docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md` — operational runbook for creation.
+- `db/12_auth_user_disable_schema.sql` — versioned schema for disabling.
+- `supabase/functions/admin-create-user/README.md` — documentation of the creation Edge Function.
+- `supabase/functions/admin-disable-user/README.md` — documentation of the disable Edge Function.
+- `scripts/staging/admin-disable-user-e2e.mjs` — staging E2E runner (reference for production).
+- `PROJECT_STATE.md` — canonical project snapshot.
+- `AGENT_HANDOFF.md` — accepted state for resumption.

@@ -1,113 +1,114 @@
-# Plano Persistente — Pedido ↔ OP ↔ Movimentação ↔ Documentos
+# Persistent Plan — Pedido ↔ OP ↔ Movement ↔ Documentos
 
-> **Fase:** `RAVATEX-TAPETES-PEDIDO-OP-MOVEMENT-PLAN-A` (docs-only)
-> **Tipo:** Docs/architecture/state, sem patch funcional.
-> **HEAD base:** `3e8e78f` — `work/app-next`
-> **Data:** 2026-07-01
+> **Phase:** `RAVATEX-TAPETES-PEDIDO-OP-MOVEMENT-PLAN-A` (docs-only)
+> **Type:** Docs/architecture/state, no functional patch.
+> **Base HEAD:** `3e8e78f` — `work/app-next`
+> **Date:** 2026-07-01
 
 ---
 
-## Atualizacao 2026-07-06 - OP Create Requires Pedido Guard B
+## Update 2026-07-06 - OP Create Requires Pedido Guard B
 
-Fase `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-GUARD-B` atualiza a frente
-Pedido -> OP sem alterar schema: criar OP nova agora exige Pedido vinculado na
-UI e na persistencia JS.
+Phase `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-GUARD-B` updates the Pedido
+-> OP front without changing the schema: creating a new OP now requires a
+linked Pedido in the UI and in JS persistence.
 
-Decisoes novas:
+New decisions:
 
-| # | Decisao | Fundamentacao |
+| # | Decision | Rationale |
 |---|---|---|
-| D-GUARD01 | OP avulsa deixa de ser caminho de produto pela UI Admin. | A cadeia produtiva e o display operacional dependem de Pedido confiavel. |
-| D-GUARD02 | `persistirOP` deve recusar `pedidoId` ausente antes de consumir numeracao ou escrever em `ops`/`lotes`. | Evita criar novos orfaos e evita consumo indevido de `op_numeros`. |
-| D-GUARD03 | Dados historicos sem Pedido sao tratados como legado/alerta, nao corrigidos nesta fase. | Nao houve autorizacao para write SQL/backfill. |
-| D-GUARD04 | Guard backend em RPCs de Latex/split fica como proxima fase P1. | Frontend nao substitui bloqueio transacional. |
+| D-GUARD01 | Standalone OP is no longer a product path via the Admin UI. | The production chain and the operational display depend on a reliable Pedido. |
+| D-GUARD02 | `persistirOP` must refuse a missing `pedidoId` before consuming numbering or writing to `ops`/`lotes`. | Avoids creating new orphans and avoids improper consumption of `op_numeros`. |
+| D-GUARD03 | Historical data without a Pedido is treated as legacy/alert, not fixed in this phase. | There was no authorization for SQL write/backfill. |
+| D-GUARD04 | Backend guard in Latex/split RPCs is left as the next P1 phase. | Frontend does not replace a transactional lock. |
 
-Evidencia staging read-only: `scripts/staging/ops-without-pedido-diag.mjs`
-retornou ALERTA com 11 OPs cujo lote nao possui Pedido e 9 lotes sem Pedido
-vinculados a OPs; nenhum dado real foi alterado.
+Read-only staging evidence: `scripts/staging/ops-without-pedido-diag.mjs`
+returned an ALERT with 11 OPs whose batch has no Pedido and 9 batches without
+a Pedido linked to OPs; no real data was changed.
 
-Proximo passo recomendado desta frente: `OP-LATEX-RPC-REQUIRES-PEDIDO-GUARD-C`
-para bloquear em backend a geracao de OP filha quando a origem nao tiver
-`lotes.pedido_id`.
+Recommended next step for this front: `OP-LATEX-RPC-REQUIRES-PEDIDO-GUARD-C`
+to block, in the backend, the generation of a child OP when the origin does
+not have `lotes.pedido_id`.
 
-## Atualizacao 2026-07-06 - OP Create Requires Pedido RPC Guard C
+## Update 2026-07-06 - OP Create Requires Pedido RPC Guard C
 
-Fase `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-RPC-GUARD-C` prepara a guarda
-backend para impedir que movimentacao Tecelagem -> Acabamento/Latex propague OP
-orfa.
+Phase `RAVATEX-TAPETES-OP-CREATE-REQUIRES-PEDIDO-RPC-GUARD-C` prepares the
+backend guard to prevent Weaving -> Finishing/Latex movement from
+propagating an orphan OP.
 
-Decisoes novas:
+New decisions:
 
-| # | Decisao | Fundamentacao |
+| # | Decision | Rationale |
 |---|---|---|
-| D-GUARD05 | RPCs de Latex/split devem bloquear OP origem sem `lotes.pedido_id`. | O backend precisa proteger caminhos transacionais que nao passam pelo bloqueio visual. |
-| D-GUARD06 | A guarda roda antes de reservar numero em `op_numeros`. | Origem invalida nao deve consumir numeracao operacional. |
-| D-GUARD07 | Dados historicos orfaos seguem apenas diagnosticados. | Relacao com Pedido pode exigir decisao de produto; sem backfill nesta fase. |
-| D-GUARD08 | Constraint global fica fase posterior. | Primeiro e necessario triar as 11 OPs historicas e validar impacto. |
+| D-GUARD05 | Latex/split RPCs must block a source OP without `lotes.pedido_id`. | The backend needs to protect transactional paths that do not go through the visual lock. |
+| D-GUARD06 | The guard runs before reserving a number in `op_numeros`. | An invalid origin must not consume operational numbering. |
+| D-GUARD07 | Orphan historical data remains only diagnosed. | The relationship with Pedido may require a product decision; no backfill in this phase. |
+| D-GUARD08 | Global constraint is left for a later phase. | It is first necessary to triage the 11 historical OPs and validate the impact. |
 
-Artefatos: `db/33_op_latex_requires_pedido_guard.sql` e diagnostico ampliado
-`scripts/staging/ops-without-pedido-diag.mjs`. Classificacao staging das 11 OPs
-orfas: A=6 (`op_id` 1,2,3,4,9,15), B=4 (`op_id` 5,6,7,8), C=0, D=1 (`op_id`
-10). Aplicacao em staging pendente; producao intocada.
+Artifacts: `db/33_op_latex_requires_pedido_guard.sql` and the expanded
+diagnostic `scripts/staging/ops-without-pedido-diag.mjs`. Staging
+classification of the 11 orphan OPs: A=6 (`op_id` 1,2,3,4,9,15), B=4 (`op_id`
+5,6,7,8), C=0, D=1 (`op_id` 10). Application in staging pending; production
+untouched.
 
-## 1. Estado de entrada
+## 1. Entry state
 
-| Item | Valor |
+| Item | Value |
 |---|---|
 | **Branch** | `work/app-next` |
-| **HEAD base** | `3e8e78f` |
-| **Fase anterior fechada** | `RAVATEX-TAPETES-ADMIN-NOVO-PEDIDO-MATCH-CLIENTE-NOVA-VIEW-A-R1` |
-| **Commit anterior** | `3e8e78f` — "Record admin novo pedido visual alignment" |
-| **Residual conhecido** | `M js/screens/pedidos-list.js` — dirty diff preexistente da lista Admin `#/pedidos`, fora do escopo |
-| **Residual permitido** | `?? supabase/.temp/` — residual permitido, origem externa |
+| **Base HEAD** | `3e8e78f` |
+| **Previous phase closed** | `RAVATEX-TAPETES-ADMIN-NOVO-PEDIDO-MATCH-CLIENTE-NOVA-VIEW-A-R1` |
+| **Previous commit** | `3e8e78f` — "Record admin novo pedido visual alignment" |
+| **Known residual** | `M js/screens/pedidos-list.js` — pre-existing dirty diff of the Admin `#/pedidos` list, out of scope |
+| **Allowed residual** | `?? supabase/.temp/` — allowed residual, external origin |
 
-A fase **Admin → Novo Pedido** foi fechada e aprovada: o miolo visual de `#/pedidos/novo` está alinhado à base homologada de Cliente → Novo Pedido, sem transformar o fluxo em fluxo exclusivo do cliente. Comportamento admin preservado: seleção de cliente, status inicial `rascunho`, payload real `pedidos` + `pedido_itens`, validações, compensação, toast e navegação.
+The **Admin → Novo Pedido** phase was closed and approved: the visual core of `#/pedidos/novo` is aligned with the homologated Cliente → Novo Pedido base, without turning the flow into a Cliente-exclusive flow. Admin behavior preserved: Cliente selection, initial status `rascunho`, real payload `pedidos` + `pedido_itens`, validations, compensation, toast, and navigation.
 
-Antes de mexer em schema, RPC, telas, OPs, pedidos, movimentação, documentos ou integrações externas, este plano registra a arquitetura de destino e as decisões que guiarão toda a evolução desta frente.
+Before touching schema, RPC, screens, OPs, pedidos, movement, documentos, or external integrations, this plan records the target architecture and the decisions that will guide the entire evolution of this front.
 
 ---
 
-## 2. Decisões arquiteturais já tomadas
+## 2. Architectural decisions already made
 
-Estas decisões foram consolidadas durante a análise do modelo de negócio e homologadas para esta frente. Qualquer implementação futura deve respeitá-las. Se houver necessidade de revisão, o plano deve ser atualizado antes.
+These decisions were consolidated during the business model analysis and homologated for this front. Any future implementation must respect them. If a revision is needed, the plan must be updated beforehand.
 
-### 2.1. Hierarquia de domínio
+### 2.1. Domain hierarchy
 
-1. **Pedido é origem comercial.** O cliente solicita; o admin recebe, confirma e converte em produção.
-2. **OP é execução produtiva.** Cada OP representa uma etapa de fabricação (tecelagem, látex/acabamento).
-3. **Movimentação produtiva pertence à OP.** Lançamentos de produção (entradas, saídas, entregas parciais) são feitos dentro da tela de OP.
-4. **Pedido consolida a produção** e pode ter preview/atalhos para visualização rápida.
-5. **Cliente vê evolução simplificada** — nunca dados operacionais internos (OP, lote, fornecedor, NF, romaneio, custo, margem).
+1. **Pedido is the commercial origin.** The Cliente requests; the admin receives, confirms, and converts it into production.
+2. **OP is production execution.** Each OP represents a manufacturing stage (weaving, latex/finishing).
+3. **Production movement belongs to the OP.** Production entries (inflows, outflows, partial deliveries) are made inside the OP screen.
+4. **Pedido consolidates production** and may have a preview/shortcuts for quick viewing.
+5. **Cliente sees simplified progress** — never internal operational data (OP, batch, Fornecedor, NF, delivery note, cost, margin).
 
-### 2.2. Estrutura de OPs
+### 2.2. OP structure
 
-6. **OPs podem existir por etapa.** Exemplos: OP de tecelagem, OP de látex/acabamento.
-7. **OPs por etapa devem ser encadeadas.** A conclusão de uma etapa alimenta a próxima.
-8. **A cadeia de OPs deve ser atrelada ao Pedido.** Todo lote vinculado ao pedido (`lotes.pedido_id`) permite rastrear OPs → pedido.
-9. **O Pedido deve visualizar suas OPs vinculadas.** A tela de detalhe do Pedido Admin deve listar as OPs associadas.
+6. **OPs can exist per stage.** Examples: weaving OP, latex/finishing OP.
+7. **OPs per stage must be chained.** The completion of one stage feeds the next.
+8. **The chain of OPs must be tied to the Pedido.** Every batch linked to the pedido (`lotes.pedido_id`) allows tracing OPs → pedido.
+9. **The Pedido must display its linked OPs.** The Pedido Admin detail screen must list the associated OPs.
 
-### 2.3. Stepper / preview produtivo
+### 2.3. Stepper / production preview
 
-10. **Pedido pode ter stepper/preview** com etapas: `INSUMOS > TECELAGEM > ACABAMENTO > EXPEDIÇÃO > ENTREGA`.
-11. **Botões de atalho no Pedido devem chamar a mesma operação canônica da OP.** Ex.: "Lançar produção" no Pedido invoca a mesma função/RPC de movimentação da tela de OP.
-12. **Não pode haver dupla digitação.** Lançar na OP e relançar manualmente no Pedido é proibido. A fonte de verdade da movimentação produtiva é a OP.
+10. **Pedido can have a stepper/preview** with stages: `INSUMOS > TECELAGEM > ACABAMENTO > EXPEDIÇÃO > ENTREGA`.
+11. **Shortcut buttons in the Pedido must call the same canonical operation as the OP.** E.g.: "Lançar produção" in the Pedido invokes the same function/RPC for movement as the OP screen.
+12. **There can be no double entry.** Entering data in the OP and re-entering it manually in the Pedido is forbidden. The source of truth for production movement is the OP.
 
-### 2.4. Parciais
+### 2.4. Partials
 
-13. **`pedido_parciais` é camada comercial/cliente**, não fonte produtiva.
-14. Parciais servem para informar o cliente sobre o avanço (ex.: "Tecelagem: 300m de 500m concluídos"). Não substituem nem duplicam a movimentação real da OP.
+13. **`pedido_parciais` is a commercial/Cliente layer**, not a production source.
+14. Partials serve to inform the Cliente about progress (e.g., "Tecelagem: 300m de 500m concluídos"). They do not replace or duplicate the OP's real movement.
 
 ### 2.5. Documentos
 
-15. **Documentos fiscais/romaneios devem ser vinculáveis** a movimentos, OPs e ao Pedido.
-16. **Arquivos pesados devem ficar fora do banco**, preferencialmente Google Drive ou OneDrive.
-17. **Banco deve guardar metadados e ponteiros externos** (URL, nome, tipo, tamanho, hash, data de upload).
-18. **Anexo documental começa como pendência não bloqueante.** A movimentação produtiva não deve ser travada pela ausência de documento.
-19. **Futuramente, e-mails recebidos em `eddiravazio@gmail.com`** poderão alimentar automação de leitura/classificação de PDF/XML/romaneio, com revisão humana inicial.
+15. **Fiscal documentos/delivery notes must be linkable** to movements, OPs, and to the Pedido.
+16. **Heavy files must stay outside the database**, preferably Google Drive or OneDrive.
+17. **The database must store metadata and external pointers** (URL, name, type, size, hash, upload date).
+18. **A document attachment starts as a non-blocking pendency.** Production movement must not be locked by the absence of a document.
+19. **In the future, emails received at `eddiravazio@gmail.com`** may feed automated reading/classification of PDF/XML/delivery notes, with initial human review.
 
 ---
 
-## 3. Modelo alvo
+## 3. Target model
 
 ```
 Pedido
@@ -121,227 +122,227 @@ Pedido
   └── evolução cliente       (visão simplificada, read-only)
 ```
 
-### 3.1. Vínculos chave a estabelecer
+### 3.1. Key links to establish
 
-| Vínculo | Origem | Destino | Status atual |
+| Link | Source | Target | Current status |
 |---|---|---|---|
-| Lote → Pedido | `lotes.pedido_id` | `pedidos.id` | Coluna existe (nullable), preenchimento pendente |
-| OP Item → Pedido Item | `op_itens.pedido_item_id` | `pedido_itens.id` | A avaliar/criar se necessário |
-| Documento → Movimento | `documentos_operacionais.movimento_id` | tabela de movimentos | A criar |
-| Documento → OP | `documentos_operacionais.op_id` | `ops.id` | A criar |
-| Documento → Pedido | `documentos_operacionais.pedido_id` | `pedidos.id` | A criar |
+| Batch → Pedido | `lotes.pedido_id` | `pedidos.id` | Column exists (nullable), population pending |
+| OP Item → Pedido Item | `op_itens.pedido_item_id` | `pedido_itens.id` | To evaluate/create if necessary |
+| Documento → Movement | `documentos_operacionais.movimento_id` | movements table | To create |
+| Documento → OP | `documentos_operacionais.op_id` | `ops.id` | To create |
+| Documento → Pedido | `documentos_operacionais.pedido_id` | `pedidos.id` | To create |
 
 ---
 
-## 4. Papel das telas
+## 4. Role of the screens
 
-### 4.1. Tela de OP
-- **Bancada operacional** de movimentação produtiva.
-- Aqui se lança produção real: entradas, saídas, entregas parciais.
-- É a **fonte de verdade** da movimentação. Nenhuma outra tela duplica essa função.
+### 4.1. OP screen
+- **Operational workbench** for production movement.
+- Real production is entered here: inflows, outflows, partial deliveries.
+- It is the **source of truth** for movement. No other screen duplicates this function.
 
-### 4.2. Tela de Pedido Admin
-- **Visão consolidada** do pedido.
-- Lista OPs vinculadas com status e progresso.
-- **Preview/stepper** com atalhos para operações canônicas (que delegam à OP).
-- **Documentos consolidados:** índice central de todos os documentos vinculados ao pedido, suas OPs e movimentos.
+### 4.2. Pedido Admin screen
+- **Consolidated view** of the pedido.
+- Lists linked OPs with status and progress.
+- **Preview/stepper** with shortcuts to canonical operations (which delegate to the OP).
+- **Consolidated documentos:** central index of all documentos linked to the pedido, its OPs, and movements.
 
-### 4.3. Tela Cliente
-- **Evolução simplificada** (stepper, parciais, timeline).
-- **Nunca** vê OP, lote, fornecedor, NF, romaneio, custo ou margem.
-- O detalhe do pedido Cliente deve consumir um read model publico
-  (`cliente_pedido_summary`) e nao consultar diretamente tabelas
-  operacionais internas. A RPC pode consolidar a cadeia no backend, mas
-  seu payload deve publicar apenas dados simplificados e seguros.
-- Documentos visíveis apenas se o admin publicar (ex.: romaneio de entrega).
+### 4.3. Cliente screen
+- **Simplified progress** (stepper, partials, timeline).
+- **Never** sees OP, batch, Fornecedor, NF, delivery note, cost, or margin.
+- The Cliente pedido detail must consume a public read model
+  (`cliente_pedido_summary`) and must not query internal operational
+  tables directly. The RPC may consolidate the chain in the backend, but
+  its payload must publish only simplified and safe data.
+- Documentos visible only if the admin publishes them (e.g., delivery note).
 
 ### 4.4. Documentos
 
-| Contexto | Regra |
+| Context | Rule |
 |---|---|
-| Documentos comerciais gerais (ex.: pedido de compra, contrato) | Podem ser anexados diretamente ao **Pedido**. |
-| Documentos operacionais (ex.: NF de remessa, romaneio de entrega) | Devem preferencialmente ser vinculados ao **movimento/OP** e aparecer consolidados no **Pedido**. |
-| O Pedido é o **índice central** de documentos. | A tela de Pedido Admin deve exibir todos os documentos, independentemente do nível de vínculo. |
+| General commercial documentos (e.g., purchase order, contract) | Can be attached directly to the **Pedido**. |
+| Operational documentos (e.g., shipping NF, delivery note) | Should preferably be linked to the **movement/OP** and appear consolidated in the **Pedido**. |
+| The Pedido is the **central index** of documentos. | The Pedido Admin screen must display all documentos, regardless of link level. |
 
 ---
 
-## 5. Fases futuras sugeridas
+## 5. Suggested future phases
 
-> Ordem recomendada. Cada fase é atômica e rastreável.
+> Recommended order. Each phase is atomic and traceable.
 
-| Fase | Descrição | Dependência | Status |
+| Phase | Description | Dependency | Status |
 |---|---|---|---|
-| **B** | Contrato arquitetura/schema detalhado: validar colunas existentes, desenhar novas (`documentos_operacionais`, FK `op_itens.pedido_item_id`), validar índices e constraints. | Plano A (este doc) | **[x] Concluída** (`docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md`) |
-| **C** | Vínculo Pedido → OP: preencher `lotes.pedido_id` na criação/edição de lote; migration `op_itens.pedido_item_id`. | B | **[x] Concluída** (`bbc57b2`; migration `db/20_*` aplicada em staging `ucrjtfswnfdlxwtmxnoo`) |
-| **D** | OPs vinculadas no detalhe do Pedido Admin: listar OPs do pedido com status, progresso e link para a tela de OP. | C | **Entregue** via fluxo produtivo aceito (Pedido Detail lista OPs vinculadas; ver `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` §9.4 e `PEDIDO_OP_SCHEMA_CONTRACT.md` §9). |
-| **E** | Stepper/preview produtivo no Pedido Admin: visão gráfica das etapas com progresso real derivado das OPs. | D | **Entregue** via fluxo produtivo aceito (stepper/preview no Pedido Detail; `derivePedidoChainState`; ver §9.4/§9.7). |
-| **F** | Operação canônica de movimentação: módulo/função reaproveitada pela tela de OP e pelos atalhos do Pedido. | D | **Entregue** via fluxo produtivo aceito (Pedido reutiliza as operações canônicas da OP, sem write paralelo; ver §1.1/§9.5). |
-| **G** | Pendência documental por movimento: tabela `documentos_operacionais`, upload de metadados, vínculo com movimento/OP/Pedido. Sem upload de arquivo ainda. | B | **Superada** pela pipeline documental canônica G28 (`document_link_revisions`/`document_link_revision_ops`; `documentos_operacionais` não criada). |
-| **H** | Integração Drive/OneDrive: upload real de arquivos, storage externo, ponteiros no banco. | G | **Superada** pela pipeline documental canônica G28 (arquivo externo tratado no modelo de documentos G28; anexo Drive na UI é visual-only). |
-| **I** | Automação futura por e-mail/PDF/XML: leitura de `eddiravazio@gmail.com`, classificação, anexo automático com revisão humana. | H | **Superada** pela pipeline documental canônica G28 (ingestão Gmail + validação humana; ver `DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`). |
-| **J** | Saldo inteligente por etapa e bloqueio transacional: evitar que uma etapa consuma mais do que a anterior produziu. | F | **Futura / não sequenciada / não iniciada / não autorizada** (bloqueio transacional de saldo por etapa; ver `PEDIDO_OP_SCHEMA_CONTRACT.md` §7). |
-| **L** | Lifecycle de OP backend: status expandido (`pausada`/`concluida`/`cancelada`), tabela `op_eventos`, trigger de eventos, RPC `alterar_status_op` (admin-only, R1). Migration `db/21_op_lifecycle_status_eventos.sql` aplicada em staging `ucrjtfswnfdlxwtmxnoo`. | — | **[x] Concluída** (backend aplicado em staging; proximo: UI de lifecycle OP) |
+| **B** | Detailed architecture/schema contract: validate existing columns, design new ones (`documentos_operacionais`, FK `op_itens.pedido_item_id`), validate indexes and constraints. | Plan A (this doc) | **[x] Completed** (`docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md`) |
+| **C** | Pedido → OP link: populate `lotes.pedido_id` on batch creation/editing; migration `op_itens.pedido_item_id`. | B | **[x] Completed** (`bbc57b2`; migration `db/20_*` applied in staging `ucrjtfswnfdlxwtmxnoo`) |
+| **D** | OPs linked in the Pedido Admin detail: list the pedido's OPs with status, progress, and link to the OP screen. | C | **Delivered** via the accepted production flow (Pedido Detail lists linked OPs; see `PEDIDO_PRODUCTION_FLOW_BACKLOG.md` §9.4 and `PEDIDO_OP_SCHEMA_CONTRACT.md` §9). |
+| **E** | Production stepper/preview in the Pedido Admin: graphical view of the stages with real progress derived from the OPs. | D | **Delivered** via the accepted production flow (stepper/preview in the Pedido Detail; `derivePedidoChainState`; see §9.4/§9.7). |
+| **F** | Canonical movement operation: module/function reused by the OP screen and the Pedido shortcuts. | D | **Delivered** via the accepted production flow (Pedido reuses the OP's canonical operations, without a parallel write; see §1.1/§9.5). |
+| **G** | Document pendency per movement: `documentos_operacionais` table, metadata upload, link with movement/OP/Pedido. No file upload yet. | B | **Superseded** by the canonical G28 documentation pipeline (`document_link_revisions`/`document_link_revision_ops`; `documentos_operacionais` not created). |
+| **H** | Drive/OneDrive integration: real file upload, external storage, database pointers. | G | **Superseded** by the canonical G28 documentation pipeline (external file handled in the G28 documentos model; Drive attachment in the UI is visual-only). |
+| **I** | Future automation via email/PDF/XML: reading `eddiravazio@gmail.com`, classification, automatic attachment with human review. | H | **Superseded** by the canonical G28 documentation pipeline (Gmail ingestion + human validation; see `DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`). |
+| **J** | Smart balance per stage and transactional lock: prevent one stage from consuming more than the previous one produced. | F | **Future / not sequenced / not started / not authorized** (transactional balance lock per stage; see `PEDIDO_OP_SCHEMA_CONTRACT.md` §7). |
+| **L** | OP backend lifecycle: expanded status (`pausada`/`concluida`/`cancelada`), `op_eventos` table, event trigger, RPC `alterar_status_op` (admin-only, R1). Migration `db/21_op_lifecycle_status_eventos.sql` applied in staging `ucrjtfswnfdlxwtmxnoo`. | — | **[x] Completed** (backend applied in staging; next: OP lifecycle UI) |
 
-> **Reconciliação `DOCS-PEDIDO-OP-LEGACY-PLAN-STATUS-CONSISTENCY-R1` (docs-only):** a coluna Status das Fases D–J foi reconciliada com as autoridades correntes — D/E/F **entregues** via fluxo produtivo aceito; G/H/I **superadas** pela pipeline documental canônica G28; J **futura/não sequenciada/não iniciada/não autorizada**. Sem mudança de código, runtime ou comportamento; decisões e registros históricos datados permanecem preservados. `ACTIVE_PHASE: NONE`; `NEXT_AUTHORIZABLE_ACTION: NONE`.
+> **Reconciliation `DOCS-PEDIDO-OP-LEGACY-PLAN-STATUS-CONSISTENCY-R1` (docs-only):** the Status column of Phases D–J was reconciled with the current authorities — D/E/F **delivered** via the accepted production flow; G/H/I **superseded** by the canonical G28 documentation pipeline; J **future/not sequenced/not started/not authorized**. No change to code, runtime, or behavior; dated decisions and historical records remain preserved. `ACTIVE_PHASE: NONE`; `NEXT_AUTHORIZABLE_ACTION: NONE`.
 
 ---
 
-## 6. Obrigação permanente
+## 6. Permanent obligation
 
-> **REGRA VINCULANTE PARA TODA EVOLUÇÃO DESTA FRENTE.**
+> **BINDING RULE FOR ALL EVOLUTION OF THIS FRONT.**
 
-Sempre que houver evolução, decisão, bloqueio, conclusão parcial ou fechamento de etapa na frente **Pedido ↔ OP ↔ Movimentação ↔ Documentos**, o executor (humano ou IA) deve:
+Whenever there is evolution, a decision, a block, a partial conclusion, or the closing of a stage in the **Pedido ↔ OP ↔ Movement ↔ Documentos** front, the executor (human or AI) must:
 
-1. **Consultar este plano** antes de iniciar qualquer ação.
-2. **Atualizar este plano** ao final da etapa, registrando:
-   - Decisões novas tomadas.
-   - Fases concluídas (marcar `[x]`).
-   - Pendências identificadas.
-   - Riscos novos ou mitigados.
-   - Próximo passo recomendado.
-3. **Atualizar `PROJECT_STATE.md`** com o registro da fase concluída.
-4. **Atualizar `AGENT_HANDOFF.md`** com o resumo para a próxima sessão.
-5. **Expor no handoff** que o próximo chat deve consultar este plano antes de qualquer ação.
-6. **Nunca** implementar sem antes consultar este plano.
-7. **Nunca** fechar uma etapa sem atualizar este plano.
+1. **Consult this plan** before starting any action.
+2. **Update this plan** at the end of the stage, recording:
+   - New decisions made.
+   - Completed phases (mark `[x]`).
+   - Identified pendencies.
+   - New or mitigated risks.
+   - Recommended next step.
+3. **Update `PROJECT_STATE.md`** with the record of the completed phase.
+4. **Update `AGENT_HANDOFF.md`** with the summary for the next session.
+5. **Expose in the handoff** that the next chat must consult this plan before any action.
+6. **Never** implement without first consulting this plan.
+7. **Never** close a stage without updating this plan.
 
-### 6.1. Decisões da Fase L — Lifecycle de OP (backend)
+### 6.1. Phase L decisions — OP Lifecycle (backend)
 
-| # | Decisão | Fundamentação |
+| # | Decision | Rationale |
 |---|---|---|
-| D-L01 | `ops.status` expandido para aceitar `pausada`, `concluida`, `cancelada`. `finalizada` mantido como legado. | Não quebrar OP de látex existente; `concluida` é o novo canônico. |
-| D-L02 | Tabela `op_eventos` criada para histórico de eventos da OP. | Necessário para auditoria e timeline futura da OP. |
-| D-L03 | Trigger `trg_op_evento` registra automaticamente toda mudança de status. | Fonte única de verdade; evita duplicação com RPC. |
-| D-L04 | RPC `alterar_status_op` valida transições e aplica mudança. | Transições inválidas são rejeitadas no backend. |
-| D-L05 | `concluida` preenche `finalizada_em` se null. `cancelada` não preenche. | Semântica correta de conclusão vs cancelamento. |
-| D-L06 | `gerar_op_latex` não alterado nesta fase. OP de látex continua nascendo `em_producao`. | Preserva compatibilidade; transição para concluida virá depois via RPC. |
-| D-L07 | RLS de `op_eventos` segue padrão `ops`: admin ALL, fornecedor SELECT vinculado. | Consistência com o restante do projeto. |
-| D-L08-R1 | `alterar_status_op` é **admin-only** nesta fase (`is_admin()`). Fornecedor não tem WRITE em `ops` e não pode transitar status. | Hardening R1: guard de caller explícito, no padrão de `gerar_op_latex` (db/08/09). Não prometer permissão de fornecedor. |
-| D-L09-R1 | `p_observacao` da RPC é vinculada ao evento `status_alterado` correspondente a `status_novo` (filtro `status_novo = p_novo_status` + ordenação `criado_em DESC, id DESC`). Trigger segue como fonte única do evento (não há segundo `INSERT`). | Hardening R1: reduzir risco de observação cair em evento errado sob concorrência. `SET LOCAL/current_setting` fica para fase futura. |
+| D-L01 | `ops.status` expanded to accept `pausada`, `concluida`, `cancelada`. `finalizada` kept as legacy. | Not breaking existing latex OP; `concluida` is the new canonical value. |
+| D-L02 | `op_eventos` table created for the OP's event history. | Necessary for future OP audit and timeline. |
+| D-L03 | Trigger `trg_op_evento` automatically records every status change. | Single source of truth; avoids duplication with the RPC. |
+| D-L04 | RPC `alterar_status_op` validates transitions and applies the change. | Invalid transitions are rejected in the backend. |
+| D-L05 | `concluida` fills `finalizada_em` if null. `cancelada` does not fill it. | Correct semantics of completion vs. cancellation. |
+| D-L06 | `gerar_op_latex` not changed in this phase. Latex OP continues to be born `em_producao`. | Preserves compatibility; transition to concluida will come later via the RPC. |
+| D-L07 | RLS of `op_eventos` follows the `ops` pattern: admin ALL, Fornecedor SELECT on linked rows. | Consistency with the rest of the project. |
+| D-L08-R1 | `alterar_status_op` is **admin-only** in this phase (`is_admin()`). Fornecedor has no WRITE on `ops` and cannot transition status. | Hardening R1: explicit caller guard, following the `gerar_op_latex` pattern (db/08/09). Do not promise Fornecedor permission. |
+| D-L09-R1 | The RPC's `p_observacao` is linked to the `status_alterado` event corresponding to `status_novo` (filter `status_novo = p_novo_status` + ordering `criado_em DESC, id DESC`). The trigger remains the single source of the event (no second `INSERT`). | Hardening R1: reduce the risk of the observation landing on the wrong event under concurrency. `SET LOCAL/current_setting` is left for a future phase. |
 
-### 6.2. Decisões da Fase Cliente Order Summary Readmodel
+### 6.2. Cliente Order Summary Readmodel phase decisions
 
-| # | Decisão | Fundamentação |
+| # | Decision | Rationale |
 |---|---|---|
-| D-COS01 | O Portal Cliente deve ler o detalhe do pedido por `public.cliente_pedido_summary(UUID)`, nao por joins diretos em tabelas operacionais no frontend. | Mantem a fronteira Cliente/Admin e reduz acoplamento com OP, lote, fornecedor e documentos internos. |
-| D-COS02 | A RPC e `SECURITY DEFINER`, `STABLE`, `search_path = public`, com acesso para admin ou cliente dono e grant apenas para `authenticated`. | Permite consolidacao server-side sem abrir tabelas internas ao cliente ou a `anon`. |
-| D-COS03 | O payload publico nao inclui chaves internas como OP, lote, fornecedor, NF, romaneio, custo, margem, split ou IDs de catalogo. | Cumpre a regra de evolucao simplificada da tela Cliente. |
-| D-COS04 | `pedido_parciais` e `pedido_cliente_eventos` entram no resumo apenas quando `visivel_cliente IS TRUE`. | Preserva o papel comercial/cliente das parciais e evita publicar eventos administrativos. |
-| D-COS05 | Dashboard Cliente permaneceu fora da alteracao porque ja lia dados publicos; Admin/Pedido Detail tambem ficou fora do escopo. | Limita o blast radius da fase ao P1 de leitura interna no detalhe Cliente. |
-| D-COS06 | Verificacao de staging 2026-07-15 (`CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A`): `db/30` encontrada ja aplicada em `ucrjtfswnfdlxwtmxnoo` sem drift; contrato validado por RPC real (cliente dono `ok`, `anon` fail-closed, cross-tenant negado, admin `ok`). ACL ao vivo concede `EXECUTE` tambem a `PUBLIC`/`anon`/`service_role` alem de `authenticated` (divergindo de D-COS02); `db/30` nao registrada em `supabase_migrations.schema_migrations`. Divergencias retidas como divida (anon fail-closed, sem exposicao confirmada); remediacao candidata `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` (grants-only analoga a `db/54`) fica como `ARCHITECT DECISION REQUIRED`, nao autorizada. | Registra a validacao de staging sem normalizar silenciosamente a ACL nem reaplicar a migration. |
-| D-COS07 | Remediacao de ACL aplicada e verificada em staging 2026-07-15 (`CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1`, `CLOSED / ACCEPTED`): migration grants-only forward `db/57_cliente_pedido_summary_acl_grants.sql` (registro `20260715190627` em `ucrjtfswnfdlxwtmxnoo`) revoga `EXECUTE` de `PUBLIC`, `anon` e `service_role` e mantem apenas `authenticated` em `public.cliente_pedido_summary(uuid)`, resolvendo a divergencia de ACL registrada em `D-COS06`. Corpo, `SECURITY DEFINER`, `STABLE`, `search_path=public`, owner `postgres` e assinatura permanecem byte a byte inalterados (hash de definicao identico antes/depois da migration). `anon` agora e rejeitado no limite de ACL (`42501 permission denied for function cliente_pedido_summary`) antes de qualquer execucao da funcao — nao mais apenas fail-closed apos execucao. Comportamento `authenticated` dono/cross-tenant/admin inalterado (matriz empirica revalidada). `service_role` tambem e rejeitado no limite de ACL: seu atributo de plataforma `rolbypassrls` (bypass de RLS em tabelas) e um mecanismo distinto de `EXECUTE` de funcao e nao restaura acesso. | Fecha `ACL_GRANTS_BROADER_THAN_CANONICAL_CONTRACT` sem alterar contrato funcional da RPC. `db/30` permanece nao registrada em `supabase_migrations.schema_migrations` (divida de proveniencia separada, preservada, nao reparada) e o smoke autenticado de browser permanece pendente. Aplicada e verificada somente em staging `ucrjtfswnfdlxwtmxnoo`; producao `bhgifjrfagkzubpyqpew` nao acessada; sem push. |
+| D-COS01 | The Client Portal must read the pedido detail via `public.cliente_pedido_summary(UUID)`, not via direct joins on operational tables in the frontend. | Maintains the Cliente/Admin boundary and reduces coupling with OP, batch, Fornecedor, and internal documentos. |
+| D-COS02 | The RPC is `SECURITY DEFINER`, `STABLE`, `search_path = public`, with access for admin or the owning Cliente, and grants only to `authenticated`. | Allows server-side consolidation without opening internal tables to the Cliente or to `anon`. |
+| D-COS03 | The public payload does not include internal keys such as OP, batch, Fornecedor, NF, delivery note, cost, margin, split, or catalog IDs. | Complies with the Cliente screen's simplified-progress rule. |
+| D-COS04 | `pedido_parciais` and `pedido_cliente_eventos` enter the summary only when `visivel_cliente IS TRUE`. | Preserves the commercial/Cliente role of the partials and avoids publishing administrative events. |
+| D-COS05 | The Cliente Dashboard remained outside the change because it already read public data; Admin/Pedido Detail was also left out of scope. | Limits the phase's blast radius to the P1 internal-read issue in the Cliente detail. |
+| D-COS06 | Staging verification 2026-07-15 (`CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A`): `db/30` found already applied in `ucrjtfswnfdlxwtmxnoo` without drift; contract validated via real RPC (owning Cliente `ok`, `anon` fail-closed, cross-tenant denied, admin `ok`). The live ACL also grants `EXECUTE` to `PUBLIC`/`anon`/`service_role` besides `authenticated` (diverging from D-COS02); `db/30` not registered in `supabase_migrations.schema_migrations`. Divergences retained as debt (anon fail-closed, no confirmed exposure); candidate remediation `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` (grants-only, analogous to `db/54`) remains `ARCHITECT DECISION REQUIRED`, not authorized. | Records the staging validation without silently normalizing the ACL or reapplying the migration. |
+| D-COS07 | ACL remediation applied and verified in staging 2026-07-15 (`CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1`, `CLOSED / ACCEPTED`): forward grants-only migration `db/57_cliente_pedido_summary_acl_grants.sql` (record `20260715190627` in `ucrjtfswnfdlxwtmxnoo`) revokes `EXECUTE` from `PUBLIC`, `anon`, and `service_role` and keeps only `authenticated` on `public.cliente_pedido_summary(uuid)`, resolving the ACL divergence recorded in `D-COS06`. Body, `SECURITY DEFINER`, `STABLE`, `search_path=public`, owner `postgres`, and signature remain byte-for-byte unchanged (identical definition hash before/after the migration). `anon` is now rejected at the ACL boundary (`42501 permission denied for function cliente_pedido_summary`) before any function execution — no longer just fail-closed after execution. `authenticated` owner/cross-tenant/admin behavior unchanged (empirical matrix revalidated). `service_role` is also rejected at the ACL boundary: its platform attribute `rolbypassrls` (RLS bypass on tables) is a mechanism distinct from function `EXECUTE` and does not restore access. | Closes `ACL_GRANTS_BROADER_THAN_CANONICAL_CONTRACT` without changing the RPC's functional contract. `db/30` remains unregistered in `supabase_migrations.schema_migrations` (separate provenance debt, preserved, not repaired) and the authenticated browser smoke test remains pending. Applied and verified only in staging `ucrjtfswnfdlxwtmxnoo`; production `bhgifjrfagkzubpyqpew` not accessed; no push. |
 
 ---
 
-## 7. Riscos
+## 7. Risks
 
-| Risco | Severidade | Mitigação |
+| Risk | Severity | Mitigation |
 |---|---|---|
-| Duplicar movimentação em Pedido e OP | **Alta** | Operação canônica única (Fase F); Pedido apenas consome/atalha. |
-| Tratar `pedido_parciais` como fonte produtiva | **Alta** | Parciais = camada comercial; fonte produtiva = OP. |
-| Anexar documentos sem classificação | **Média** | Tabela `documentos_operacionais` com tipo, origem e vínculo obrigatórios. |
-| Armazenar arquivos pesados no banco | **Alta** | Metadados no banco; arquivos no Drive/OneDrive (Fase H). |
-| Criar integração Drive/Gmail/OneDrive antes do contrato | **Média** | Fase H só após contrato de schema (Fase B) e pendência documental (Fase G). |
-| Popular Pedido→OP errado (lote sem pedido_id) | **Alta** | Validar `lotes.pedido_id` na criação/edição de lote e OP. |
-| Criar bloqueio de saldo só no frontend | **Alta** | Bloqueio transacional deve ser no backend (RPC/trigger). |
-| Implementar RPC sem etapas canônicas | **Média** | Toda RPC de movimentação deve ser única e reutilizável. |
-| Ignorar dirty diff existente em `js/screens/pedidos-list.js` | **Baixa** | Residual conhecido; não incluir em commits desta frente. |
+| Duplicating movement in Pedido and OP | **High** | Single canonical operation (Phase F); Pedido only consumes/shortcuts. |
+| Treating `pedido_parciais` as a production source | **High** | Partials = commercial layer; production source = OP. |
+| Attaching documentos without classification | **Medium** | `documentos_operacionais` table with mandatory type, origin, and link. |
+| Storing heavy files in the database | **High** | Metadata in the database; files in Drive/OneDrive (Phase H). |
+| Creating Drive/Gmail/OneDrive integration before the contract | **Medium** | Phase H only after the schema contract (Phase B) and the document pendency (Phase G). |
+| Populating Pedido→OP incorrectly (batch without pedido_id) | **High** | Validate `lotes.pedido_id` on batch and OP creation/editing. |
+| Creating a balance lock only in the frontend | **High** | The transactional lock must be in the backend (RPC/trigger). |
+| Implementing an RPC without canonical steps | **Medium** | Every movement RPC must be unique and reusable. |
+| Ignoring the existing dirty diff in `js/screens/pedidos-list.js` | **Low** | Known residual; do not include in commits of this front. |
 
 ---
 
-## 8. Evidência obrigatória por fase
+## 8. Mandatory evidence per phase
 
-Toda fase desta frente deve registrar ao fechar:
+Every phase of this front must record upon closing:
 
-- Branch utilizada.
-- HEAD inicial e final.
-- `git status --short` inicial e final.
-- `git diff --stat` (se houver alterações).
-- Arquivos lidos.
-- Arquivos alterados/criados.
-- Decisões registradas.
-- Este plano atualizado.
-- `PROJECT_STATE.md` atualizado.
-- `AGENT_HANDOFF.md` atualizado.
-- Próximos passos recomendados.
+- Branch used.
+- Initial and final HEAD.
+- Initial and final `git status --short`.
+- `git diff --stat` (if there are changes).
+- Files read.
+- Files changed/created.
+- Decisions recorded.
+- This plan updated.
+- `PROJECT_STATE.md` updated.
+- `AGENT_HANDOFF.md` updated.
+- Recommended next steps.
 
 ---
 
-## 9. Próximo passo
+## 9. Next step
 
 **`CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A` — `CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBTS` (2026-07-15).**
 
-A `db/30_cliente_pedido_summary_readmodel.sql` foi encontrada **ja aplicada** em
-staging (`ucrjtfswnfdlxwtmxnoo`), sem drift: `public.cliente_pedido_summary(uuid)`
-existe com corpo equivalente byte a byte ao `db/30`. O Portal Cliente le o
-detalhe por `cliente_pedido_summary` com contrato validado por RPC real (cliente
-dono `ok`, `anon` fail-closed, cross-tenant negado, admin `ok`) e sem leituras
-diretas de OP/lote/fornecedor/documentos internos no frontend.
+`db/30_cliente_pedido_summary_readmodel.sql` was found **already applied** in
+staging (`ucrjtfswnfdlxwtmxnoo`), without drift: `public.cliente_pedido_summary(uuid)`
+exists with a body byte-for-byte equivalent to `db/30`. The Client Portal reads the
+detail via `cliente_pedido_summary` with contract validated via real RPC (owning
+Cliente `ok`, `anon` fail-closed, cross-tenant denied, admin `ok`) and without
+direct reads of internal OP/batch/Fornecedor/documentos in the frontend.
 
-Debitos identificados neste closeout (ver `D-COS06`): ACL ao vivo mais ampla que
-o contrato canonico (`PUBLIC`/`anon`/`service_role` com `EXECUTE`, anon
-fail-closed, sem exposicao confirmada), `db/30` nao registrada em
-`supabase_migrations.schema_migrations`, e smoke autenticado de browser nao
-executado.
+Debts identified in this closeout (see `D-COS06`): live ACL broader than
+the canonical contract (`PUBLIC`/`anon`/`service_role` with `EXECUTE`, anon
+fail-closed, no confirmed exposure), `db/30` not registered in
+`supabase_migrations.schema_migrations`, and the authenticated browser smoke
+test not executed.
 
 **`CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` — `CLOSED / ACCEPTED` (2026-07-15).**
 
-O debito de ACL acima foi fechado (ver `D-COS07`): `db/57_cliente_pedido_summary_acl_grants.sql`
-foi criada, aplicada e verificada em staging `ucrjtfswnfdlxwtmxnoo` (registro
-`20260715190627`), revogando `EXECUTE` de `PUBLIC`/`anon`/`service_role` e
-mantendo somente `authenticated`. Contrato funcional, corpo e assinatura da RPC
-permanecem inalterados; `anon` agora e rejeitado no limite de ACL antes da
-execucao. `ACL_GRANTS_BROADER_THAN_CANONICAL_CONTRACT` esta **resolvido**.
+The ACL debt above was closed (see `D-COS07`): `db/57_cliente_pedido_summary_acl_grants.sql`
+was created, applied, and verified in staging `ucrjtfswnfdlxwtmxnoo` (record
+`20260715190627`), revoking `EXECUTE` from `PUBLIC`/`anon`/`service_role` and
+keeping only `authenticated`. The RPC's functional contract, body, and signature
+remain unchanged; `anon` is now rejected at the ACL boundary before
+execution. `ACL_GRANTS_BROADER_THAN_CANONICAL_CONTRACT` is **resolved**.
 
-Debitos preservados como abertos (nao fechados por esta fase):
-`DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY` e
-`AUTHENTICATED_BROWSER_SMOKE_NOT_EXECUTED`. Nenhum registro de migration-history
-foi fabricado para `db/30`; `db/57` e classificado como aplicado somente em
-staging. Ver `PROJECT_STATE.md` e `docs/ledgers/G28_LEDGER.md`.
+Debts preserved as open (not closed by this phase):
+`DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY` and
+`AUTHENTICATED_BROWSER_SMOKE_NOT_EXECUTED`. No migration-history record
+was fabricated for `db/30`; `db/57` is classified as applied only in
+staging. See `PROJECT_STATE.md` and `docs/ledgers/G28_LEDGER.md`.
 
-**Proximo passo: `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION`** —
-apos remover a fase de ACL do backlog aberto, a reconciliacao do backlog geral
-remanescente segue pendente de decisao de arquiteto. Producao so deve ser
-discutida em fase separada, com autorizacao explicita.
+**Next step: `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION`** —
+after removing the ACL phase from the open backlog, the reconciliation of the
+remaining general backlog remains pending an architect decision. Production
+must only be discussed in a separate phase, with explicit authorization.
 
 ---
 
-> **Este plano é fonte canônica para a frente Pedido ↔ OP ↔ Movimentação ↔ Documentos.**
-> Deve ser consultado antes de qualquer ação e atualizado ao final de cada etapa.
-> Indexado em `docs/DOCUMENTATION_INDEX.md` §1.
-## Atualizacao 2026-07-06 - Pedido/OP Controlled Delete B
+> **This plan is the canonical source for the Pedido ↔ OP ↔ Movement ↔ Documentos front.**
+> Must be consulted before any action and updated at the end of each stage.
+> Indexed in `docs/DOCUMENTATION_INDEX.md` §1.
+## Update 2026-07-06 - Pedido/OP Controlled Delete B
 
-Fase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-B` cria uma porta
-controlada de limpeza para dados de teste sem alterar o contrato produtivo:
+Phase `RAVATEX-TAPETES-PEDIDO-OP-CONTROLLED-DELETE-B` creates a controlled
+cleanup gate for test data without changing the production contract:
 
-| # | Decisao | Fundamentacao |
+| # | Decision | Rationale |
 |---|---|---|
-| D-DEL01 | Exclusao de Pedido/OP fica centralizada em RPC transacional. | Evita deletes diretos espalhados na UI e respeita FKs/triggers. |
-| D-DEL02 | A UI sempre chama diagnostico e mostra impacto antes de remover. | O usuario ve OPs, lotes, entregas e expedicoes afetadas antes da acao final. |
-| D-DEL03 | Entrega/expedicao bloqueiam exclusao. | Dados produtivos e documentos operacionais nao podem ser apagados nesta fase. |
-| D-DEL04 | Pedido com OP sem movimento exige `EXCLUIR` e remove OPs/lotes vinculados. | Limpeza de teste nao deve deixar lote orfao nem OP vinculada a Pedido apagado. |
-| D-DEL05 | OP mae com filha bloqueia na exclusao individual. | Evita deixar OP de Acabamento orfa; o usuario deve excluir a filha primeiro. |
-| D-DEL06 | `op_numeros` nao e alterado. | Numeracao e historico operacional seguem monotonicamente preservados. |
-| D-DEL07 | Em staging/teste, OP numerada sem bloqueadores reais pode ser removida pela RPC controlada. | A `db/34` remove/bypassa o trigger legado `ops_numeradas_no_delete`; o numero nao e reciclado porque `op_numeros` permanece high-water. |
-| D-DEL08 | Em staging/teste, cadeia com entrega/OP filha sem expedicao exige `EXCLUIR TUDO` e pode ser removida em cascata transacional. | A `db/35` diferencia `requires_cascade_confirmation` de `blocked`; expedicao segue bloqueador e producao futura exige auditoria/soft-delete. |
-| D-DEL09 | Antes de apagar OP, a cascata deve zerar `entrega_itens` por `op_id` e por `op_item_id`, e guards de DELETE devem retornar `OLD`. | A `db/36` corrige a ordem FK e evita cancelamento silencioso por trigger `BEFORE DELETE`; teste sintetico real validou Pedido #29/OPs 45-46 em staging sem alterar `op_numeros`. |
-| D-DEL10 | Exclusao fisica de Pedido/OP e bloqueada quando existe historico documental canonico vinculado (`document_link_revisions`/`document_link_revision_ops`); a logica destrutiva legada e isolada em funcoes `_pre53` sem API publica. | A `db/53` renomeia as quatro RPCs legadas para `*_pre53` (revoga `EXECUTE` de todos os papeis) e recria wrappers `SECURITY DEFINER` que diagnosticam historico documental e bloqueiam antes de delegar; nunca apaga `document_link_revisions`/`document_link_revision_ops`/`op_numeros`. |
-| D-DEL11 | As quatro RPCs publicas mantem `EXECUTE` somente para `authenticated`. | Inspecao pos-`db/53` encontrou `anon_execute = true` nas RPCs publicas (achado de seguranca emergencial); a `db/54` revoga `PUBLIC`/`anon` mantendo `authenticated`, sem alterar corpo/cascata. |
-| D-DEL12 | O literal de politica documental no JSON de diagnostico usa cast explicito `::TEXT`. | Primeiro smoke de staging da `db/53` falhou com `could not determine polymorphic type` por `to_jsonb(<literal>)` sem cast; a `db/55` corrige via patch forward-only nas duas diagnosticas ja aplicadas. |
-| D-DEL13 | O diagnostico publico nunca retorna `NULL` bruto; `reason` ausente e serializado como `null` JSON. | `jsonb_set` e `STRICT` e colapsava todo o retorno para `NULL` em qualquer alvo elegivel (nao bloqueado); a `db/56` corrige com `COALESCE(to_jsonb(v_reason), 'null'::jsonb)` nas duas diagnosticas, sem alterar `remover_*`/`*_pre53`/grants. |
+| D-DEL01 | Pedido/OP deletion is centralized in a transactional RPC. | Avoids direct deletes scattered across the UI and respects FKs/triggers. |
+| D-DEL02 | The UI always calls diagnostics and shows the impact before removing. | The user sees the affected OPs, batches, deliveries, and expedições before the final action. |
+| D-DEL03 | Delivery/expedição block deletion. | Production data and operational documentos cannot be deleted in this phase. |
+| D-DEL04 | A Pedido with an OP without movement requires `EXCLUIR` and removes linked OPs/batches. | Test cleanup must not leave an orphan batch nor an OP linked to a deleted Pedido. |
+| D-DEL05 | A parent OP with a child blocks individual deletion. | Avoids leaving an orphan finishing OP; the user must delete the child first. |
+| D-DEL06 | `op_numeros` is not changed. | Numbering and operational history remain monotonically preserved. |
+| D-DEL07 | In staging/test, a numbered OP without real blockers can be removed via the controlled RPC. | `db/34` removes/bypasses the legacy trigger `ops_numeradas_no_delete`; the number is not recycled because `op_numeros` remains high-water. |
+| D-DEL08 | In staging/test, a chain with a delivery/child OP without expedição requires `EXCLUIR TUDO` and can be removed in a transactional cascade. | `db/35` distinguishes `requires_cascade_confirmation` from `blocked`; expedição remains a blocker and future production requires audit/soft-delete. |
+| D-DEL09 | Before deleting an OP, the cascade must zero out `entrega_itens` by `op_id` and by `op_item_id`, and DELETE guards must return `OLD`. | `db/36` fixes the FK order and avoids silent cancellation by the `BEFORE DELETE` trigger; a real synthetic test validated Pedido #29/OPs 45-46 in staging without changing `op_numeros`. |
+| D-DEL10 | Physical deletion of Pedido/OP is blocked when there is linked canonical document history (`document_link_revisions`/`document_link_revision_ops`); the legacy destructive logic is isolated in `_pre53` functions with no public API. | `db/53` renames the four legacy RPCs to `*_pre53` (revoking `EXECUTE` from all roles) and recreates `SECURITY DEFINER` wrappers that diagnose document history and block before delegating; it never deletes `document_link_revisions`/`document_link_revision_ops`/`op_numeros`. |
+| D-DEL11 | The four public RPCs keep `EXECUTE` only for `authenticated`. | A post-`db/53` inspection found `anon_execute = true` on the public RPCs (emergency security finding); `db/54` revokes `PUBLIC`/`anon`, keeping `authenticated`, without changing the body/cascade. |
+| D-DEL12 | The document policy literal in the diagnostic JSON uses an explicit `::TEXT` cast. | The first staging smoke test of `db/53` failed with `could not determine polymorphic type` due to `to_jsonb(<literal>)` without a cast; `db/55` fixes it via a forward-only patch on the two diagnostics already applied. |
+| D-DEL13 | The public diagnostic never returns raw `NULL`; a missing `reason` is serialized as JSON `null`. | `jsonb_set` is `STRICT` and collapsed the entire return to `NULL` for any eligible (not blocked) target; `db/56` fixes this with `COALESCE(to_jsonb(v_reason), 'null'::jsonb)` in the two diagnostics, without changing `remover_*`/`*_pre53`/grants. |
 
-Botao/fluxo adicionado nas telas principais de Pedido e OP por
-`window.RAVATEX_DELETE`. O antigo `excluirOpLatex` direto foi substituido pelo
-helper central. Senha admin, soft-delete e auditoria permanente ficam para a
-fase futura de producao.
+Button/flow added to the main Pedido and OP screens via
+`window.RAVATEX_DELETE`. The old direct `excluirOpLatex` was replaced by the
+central helper. Admin password, soft-delete, and permanent audit are left for
+the future production phase.
 
-Fase `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-GUARD-B` (+ `-GRANTS-54`,
-`-POLICY-CAST-55`, `-DIAGNOSTICS-NULL-SAFE-56`, decisoes D-DEL10-D-DEL13
-acima): `CLOSED / ACCEPTED`, commit tecnico
-`707a37bd1d2c4728ab2a17433b6441049bd88062`. Validado em staging
-`ucrjtfswnfdlxwtmxnoo` com fixtures sinteticas (casos elegivel-OP,
-elegivel-Pedido e bloqueado-por-historico), cleanup zero e `op_numeros`
-preservado; producao nao acessada; sem push. Ver
-`docs/ledgers/G28_LEDGER.md`. Nota: `db/37_controlled_delete_expedicao_
-cascade.sql` (Expedicao Cascade) nunca recebeu entrada `D-DEL` propria
-(lacuna pre-existente, fora do escopo deste closeout).
+Phase `RAVATEX-TAPETES-CONTROLLED-DELETE-DOCUMENT-LINK-GUARD-B` (+ `-GRANTS-54`,
+`-POLICY-CAST-55`, `-DIAGNOSTICS-NULL-SAFE-56`, decisions D-DEL10-D-DEL13
+above): `CLOSED / ACCEPTED`, technical commit
+`707a37bd1d2c4728ab2a17433b6441049bd88062`. Validated in staging
+`ucrjtfswnfdlxwtmxnoo` with synthetic fixtures (eligible-OP,
+eligible-Pedido, and blocked-by-history cases), zero cleanup, and `op_numeros`
+preserved; production not accessed; no push. See
+`docs/ledgers/G28_LEDGER.md`. Note: `db/37_controlled_delete_expedicao_
+cascade.sql` (Expedição Cascade) never received its own `D-DEL` entry
+(pre-existing gap, out of scope for this closeout).

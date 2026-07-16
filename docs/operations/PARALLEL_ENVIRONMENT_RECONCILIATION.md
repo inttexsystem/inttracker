@@ -1,126 +1,126 @@
-# Reconciliação de ambiente paralelo — Controle de Tapetes
+# Parallel environment reconciliation — Controle de Tapetes
 
-**Fase:** `RAVATEX-TAPETES-PARALLEL-ENV-RECONCILIATION-A`
-**Escopo:** docs-only / reconciliação de taxonomia de ambientes — sem SQL, sem deploy, sem push origin, sem alteração de código.
-**Data:** 2026-06-24
-**HEAD de referência:** `0be1745`
+**Phase:** `RAVATEX-TAPETES-PARALLEL-ENV-RECONCILIATION-A`
+**Scope:** docs-only / environment taxonomy reconciliation — no SQL, no deploy, no push to origin, no code changes.
+**Date:** 2026-06-24
+**Reference HEAD:** `0be1745`
 
 ---
 
-## 1. Taxonomia oficial
+## 1. Official taxonomy
 
-A nomenclatura anterior de "production" e "staging" era ambígua e levou a riscos operacionais. A classificação correta e definitiva é:
+The previous "production" and "staging" naming was ambiguous and led to operational risks. The correct and definitive classification is:
 
-### 1.1 App original online / Legacy / NÃO TOCAR
+### 1.1 Original online app / Legacy / DO NOT TOUCH
 
-| Atributo | Valor |
+| Attribute | Value |
 |---|---|
 | Supabase ref | `bhgifjrfagkzubpyqpew` |
-| Descrição | App original online, usado por usuários externos via Vercel |
-| Frontend | Vercel (não GitHub Pages) |
+| Description | Original online app, used by external users via Vercel |
+| Frontend | Vercel (not GitHub Pages) |
 | origin/main | `1047181eba888242c6428de366cbd9fda2f1c72c` |
 
-**Proibido nesta frente:**
-- SQL (nenhum tipo)
-- Deploy de Edge Functions
-- Configuração de secrets
-- Smoke/teste automatizado
-- Qualquer mutação
-- Push para `origin/main`
-- Push para Vercel
+**Prohibited in this workstream:**
+- SQL (any kind)
+- Edge Function deploys
+- Secret configuration
+- Smoke/automated testing
+- Any mutation
+- Push to `origin/main`
+- Push to Vercel
 
-**Se alguma ação for necessária aqui, requer fase separada com autorização especial.**
+**If any action is needed here, it requires a separate phase with special authorization.**
 
-### 1.2 Ambiente paralelo de trabalho
+### 1.2 Parallel work environment
 
-| Atributo | Valor |
+| Attribute | Value |
 |---|---|
 | Supabase ref | `ucrjtfswnfdlxwtmxnoo` |
-| Descrição | Backend paralelo novo, usado pelo frontend local e pela frente atual de evolução |
-| Aparece no Dashboard como | `main / Production` (rótulo do Supabase, não reflete a realidade deste projeto) |
+| Description | New parallel backend, used by the local frontend and by the current development workstream |
+| Appears in the Dashboard as | `main / Production` (Supabase label, does not reflect this project's reality) |
 | staging/main | `0be1745` |
 
-### 1.3 Frontend atual
+### 1.3 Current frontend
 
-| Atributo | Valor |
+| Attribute | Value |
 |---|---|
 | Branch | `work/app-next` |
 | HEAD | `0be1745` |
-| Execução | Local (`run-local.bat` → `http://localhost:8765/`) |
-| Backend apontado (local) | `ucrjtfswnfdlxwtmxnoo` (staging no `js/config.js`) |
-| Repo staging | `controle-tapetes-staging` |
+| Execution | Local (`run-local.bat` → `http://localhost:8765/`) |
+| Backend pointed to (local) | `ucrjtfswnfdlxwtmxnoo` (staging in `js/config.js`) |
+| Staging repo | `controle-tapetes-staging` |
 
-### 1.4 Origem oficial (intocada)
+### 1.4 Official origin (untouched)
 
-| Atributo | Valor |
+| Attribute | Value |
 |---|---|
 | Repo | `grupoterrabranca/controle-tapetes` |
 | origin/main | `1047181eba888242c6428de366cbd9fda2f1c72c` |
 | GitHub Pages | `grupoterrabranca.github.io/controle-tapetes` |
-| PR #2 | Intocado |
+| PR #2 | Untouched |
 
 ---
 
-## 2. Estado do backend paralelo (`ucrjtfswnfdlxwtmxnoo`)
+## 2. Parallel backend state (`ucrjtfswnfdlxwtmxnoo`)
 
 ### 2.1 Schema
 
 | Item | Status |
 |---|---|
-| `db/12_auth_user_disable_schema.sql` | ✅ Aplicado manualmente por HMNlead (2026-06-24) |
-| Colunas `ativo`/`desativado_em`/`desativado_por`/`motivo_desativacao` | ✅ Existem em `public.usuarios` |
-| `is_admin()` recriada com `ativo IS TRUE` | ✅ |
-| `meu_fornecedor_id()` recriada com `ativo IS TRUE` | ✅ |
-| Policies `usuarios_select`/`usuarios_admin_all`/`usuarios_self_update` recriadas | ✅ |
-| Órfãos (auth sem perfil / perfil sem auth) | ✅ 0/0 |
-| Todos os usuários com `ativo = true` | ✅ |
+| `db/12_auth_user_disable_schema.sql` | ✅ Manually applied by HMNlead (2026-06-24) |
+| Columns `ativo`/`desativado_em`/`desativado_por`/`motivo_desativacao` | ✅ Exist in `public.usuarios` |
+| `is_admin()` recreated with `ativo IS TRUE` | ✅ |
+| `meu_fornecedor_id()` recreated with `ativo IS TRUE` | ✅ |
+| Policies `usuarios_select`/`usuarios_admin_all`/`usuarios_self_update` recreated | ✅ |
+| Orphans (auth without profile / profile without auth) | ✅ 0/0 |
+| All users with `ativo = true` | ✅ |
 
 ### 2.2 Edge Functions
 
-| Função | Status |
+| Function | Status |
 |---|---|
-| `admin-create-user` | ✅ Deployada, ativa. Responde 401 sem auth. |
-| `admin-disable-user` | ✅ Deployada, ativa. Responde 401 sem auth. |
+| `admin-create-user` | ✅ Deployed, active. Responds 401 without auth. |
+| `admin-disable-user` | ✅ Deployed, active. Responds 401 without auth. |
 
 ### 2.3 Secrets
 
 | Secret | Status |
 |---|---|
-| `SUPABASE_URL` | ✅ Configurado |
-| `SUPABASE_ANON_KEY` | ✅ Configurado |
-| `SUPABASE_SERVICE_ROLE_KEY` | ✅ Configurado |
+| `SUPABASE_URL` | ✅ Configured |
+| `SUPABASE_ANON_KEY` | ✅ Configured |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ Configured |
 
-### 2.4 Validação
+### 2.4 Validation
 
-| Evidência | Status |
+| Evidence | Status |
 |---|---|
-| Smoke tests (6 arquivos) | ✅ 163/163 PASS |
+| Smoke tests (6 files) | ✅ 163/163 PASS |
 | E2E backend runner | ✅ `result: PASS` |
-| UI manual staging (HMNlead) | ✅ Fluxo real passou |
-| Bloqueio fornecedor (403) | ✅ Confirmado |
-| Self-disable bloqueado | ✅ Confirmado |
-| Último admin bloqueado | ✅ Confirmado |
-| Login bloqueado após desativação | ✅ Confirmado |
-| Idempotência | ✅ Confirmada |
+| Manual staging UI (HMNlead) | ✅ Real flow passed |
+| Supplier block (403) | ✅ Confirmed |
+| Self-disable blocked | ✅ Confirmed |
+| Last admin blocked | ✅ Confirmed |
+| Login blocked after deactivation | ✅ Confirmed |
+| Idempotency | ✅ Confirmed |
 
 ---
 
-## 3. Estado do app original (`bhgifjrfagkzubpyqpew`)
+## 3. Original app state (`bhgifjrfagkzubpyqpew`)
 
 | Item | Status |
 |---|---|
-| Schema `db/12_*` | ❌ Não aplicado |
-| Colunas `ativo`/`desativado_*` | ❌ Não existem |
-| Edge Functions `admin-create-user` / `admin-disable-user` | ❌ Não deployadas |
-| Secrets | ❌ Não configurados |
-| Frontend | ❌ Versão pré-refactor |
-| Ações realizadas nesta frente | ✅ Nenhuma mutação. Apenas 1 query read-only com anon key pública (`GET /rest/v1/usuarios?select=count` → `count: 0`). Projeto intacto. |
+| Schema `db/12_*` | ❌ Not applied |
+| Columns `ativo`/`desativado_*` | ❌ Do not exist |
+| Edge Functions `admin-create-user` / `admin-disable-user` | ❌ Not deployed |
+| Secrets | ❌ Not configured |
+| Frontend | ❌ Pre-refactor version |
+| Actions performed in this workstream | ✅ No mutation. Only 1 read-only query with public anon key (`GET /rest/v1/usuarios?select=count` → `count: 0`). Project intact. |
 
 ---
 
-## 4. Decisão arquitetural operacional
+## 4. Operational architectural decision
 
-O caminho correto para esta frente é evoluir o ambiente paralelo, **sem tocar o app original**:
+The correct path for this workstream is to evolve the parallel environment, **without touching the original app**:
 
 ```
 frontend local (work/app-next)
@@ -132,58 +132,58 @@ validação com backend ucrjtfswnfdlxwtmxnoo
 (somente depois, se desejado) plano de migração do original
 ```
 
-Nesta frente **não há release para o app original**. O original (`bhgifjrfagkzubpyqpew` + Vercel + `origin/main`) continua operando normalmente com sua versão atual.
+In this workstream **there is no release for the original app**. The original (`bhgifjrfagkzubpyqpew` + Vercel + `origin/main`) continues operating normally with its current version.
 
 ---
 
-## 5. Próxima etapa recomendada
+## 5. Recommended next step
 
-**Fase:** `RAVATEX-TAPETES-PARALLEL-FRONTEND-PUBLISH-PLAN-A`
+**Phase:** `RAVATEX-TAPETES-PARALLEL-FRONTEND-PUBLISH-PLAN-A`
 
-**Objetivo:** decidir e planejar onde publicar o frontend paralelo sem tocar o Vercel original nem `origin/main`.
+**Objective:** decide and plan where to publish the parallel frontend without touching the original Vercel nor `origin/main`.
 
-### Opções a avaliar:
+### Options to evaluate:
 
-1. **GitHub Pages no repo staging (`controle-tapetes-staging`)**
-   - Push para `staging/main` → GitHub Pages publica automaticamente.
-   - URL seria `ravatexapps-dotcom.github.io/controle-tapetes-staging/`.
-   - `js/config.js` detectaria hostname diferente de `grupoterrabranca.github.io` → usaria ambiente `staging` → apontaria para `ucrjtfswnfdlxwtmxnoo`.
-   - ✅ Simples, sem custo. Já está configurado como repo público.
+1. **GitHub Pages in the staging repo (`controle-tapetes-staging`)**
+   - Push to `staging/main` → GitHub Pages publishes automatically.
+   - The URL would be `ravatexapps-dotcom.github.io/controle-tapetes-staging/`.
+   - `js/config.js` would detect a hostname different from `grupoterrabranca.github.io` → would use the `staging` environment → would point to `ucrjtfswnfdlxwtmxnoo`.
+   - ✅ Simple, no cost. Already configured as a public repo.
 
-2. **Vercel separado conectado ao repo staging**
-   - Deploy separado, sem tocar o Vercel original.
-   - Domínio personalizado opcional.
-   - ⚠️ Requer configuração de projeto Vercel novo.
+2. **Separate Vercel connected to the staging repo**
+   - Separate deploy, without touching the original Vercel.
+   - Optional custom domain.
+   - ⚠️ Requires setting up a new Vercel project.
 
-3. **Outro host estático (Netlify, Cloudflare Pages, etc.)**
-   - Isolamento total do GitHub Pages e Vercel originais.
-   - ⚠️ Requer configuração adicional.
+3. **Another static host (Netlify, Cloudflare Pages, etc.)**
+   - Total isolation from the original GitHub Pages and Vercel.
+   - ⚠️ Requires additional configuration.
 
-### Critério obrigatório:
+### Mandatory criterion:
 
-O frontend publicado **deve** apontar para `ucrjtfswnfdlxwtmxnoo` e **nunca** para `bhgifjrfagkzubpyqpew`. Isso é garantido pelo `detectAppEnvironment()` em `js/config.js`: qualquer hostname que não seja `grupoterrabranca.github.io` resolve para o ambiente `staging` → `ucrjtfswnfdlxwtmxnoo`.
-
----
-
-## 6. Bloqueios permanentes
-
-- 🔴 **Não** chamar `ucrjtfswnfdlxwtmxnoo` de "produção original" — é o ambiente paralelo.
-- 🔴 **Não** tocar `bhgifjrfagkzubpyqpew` em nenhuma circunstância nesta frente.
-- 🔴 **Não** tocar Vercel original.
-- 🔴 **Não** tocar `origin/main`.
-- 🔴 **Não** tocar PR #2.
-- 🔴 **Não** rodar SQL destrutivo.
-- 🔴 **Não** usar o service_role key de `bhgifjrfagkzubpyqpew`.
+The published frontend **must** point to `ucrjtfswnfdlxwtmxnoo` and **never** to `bhgifjrfagkzubpyqpew`. This is guaranteed by `detectAppEnvironment()` in `js/config.js`: any hostname other than `grupoterrabranca.github.io` resolves to the `staging` environment → `ucrjtfswnfdlxwtmxnoo`.
 
 ---
 
-## 7. Nota sobre `js/config.js`
+## 6. Permanent blocks
 
-O arquivo `js/config.js` ainda usa os rótulos "production" e "staging" internamente para os ambientes. Esta taxonomia interna do código **não** deve ser confundida com a taxonomia operacional deste documento:
+- 🔴 **Do not** call `ucrjtfswnfdlxwtmxnoo` the "original production" — it is the parallel environment.
+- 🔴 **Do not** touch `bhgifjrfagkzubpyqpew` under any circumstance in this workstream.
+- 🔴 **Do not** touch the original Vercel.
+- 🔴 **Do not** touch `origin/main`.
+- 🔴 **Do not** touch PR #2.
+- 🔴 **Do not** run destructive SQL.
+- 🔴 **Do not** use the service_role key of `bhgifjrfagkzubpyqpew`.
 
-| Rótulo em `js/config.js` | Ref Supabase | Significado real |
+---
+
+## 7. Note on `js/config.js`
+
+The `js/config.js` file still internally uses the "production" and "staging" labels for the environments. This internal code taxonomy **must not** be confused with the operational taxonomy of this document:
+
+| Label in `js/config.js` | Supabase ref | Real meaning |
 |---|---|---|
-| `production` | `bhgifjrfagkzubpyqpew` | App original online / Legacy |
-| `staging` | `ucrjtfswnfdlxwtmxnoo` | Ambiente paralelo de trabalho |
+| `production` | `bhgifjrfagkzubpyqpew` | Original online app / Legacy |
+| `staging` | `ucrjtfswnfdlxwtmxnoo` | Parallel work environment |
 
-O `detectAppEnvironment()` decide qual usar pelo hostname. No ambiente local (`localhost`), sempre resolve para `staging` → `ucrjtfswnfdlxwtmxnoo`.
+`detectAppEnvironment()` decides which to use based on the hostname. In the local environment (`localhost`), it always resolves to `staging` → `ucrjtfswnfdlxwtmxnoo`.

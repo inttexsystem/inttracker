@@ -1,139 +1,140 @@
 # PORTAL_B2B_ARCHITECTURE_RULES.md
 
-> Fase `RAVATEX-TAPETES-PORTAL-B2B-GOVERNANCE-A`.
-> Escopo: **docs-only**.
-> Objetivo: fixar limites arquiteturais antes da retomada de
+> Phase `RAVATEX-TAPETES-PORTAL-B2B-GOVERNANCE-A`.
+> Scope: **docs-only**.
+> Objective: establish architectural boundaries before resuming
 > `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-SCHEMA-A`.
 
-## 1. Princípio geral
+## 1. General principle
 
-O Portal B2B deve crescer de forma modular. E proibido colar HTML
-standalone direto no app e tambem e proibido misturar, no mesmo fluxo,
-responsabilidades de cliente, admin e fornecedor.
+The B2B Portal must grow in a modular way. It is forbidden to paste
+standalone HTML directly into the app, and it is also forbidden to mix,
+within the same flow, client, admin, and supplier responsibilities.
 
-## 2. Separação de papéis
+## 2. Separation of roles
 
-### Cliente
+### Client
 
-- cria pedido;
-- visualiza pedidos proprios;
-- visualiza status visual sanitizado;
-- nunca ve OP, lote, fornecedor, custo, NF, romaneio ou dados internos.
+- creates an order;
+- views own orders;
+- views sanitized visual status;
+- never sees OP, batch, supplier, cost, invoice, packing list, or internal data.
 
 ### Admin
 
-- controla status operacional;
-- publica situacao visual para o cliente;
-- ve preview do que o cliente enxerga;
-- mantem autoridade sobre a comunicacao externa.
+- controls operational status;
+- publishes the visual status for the client;
+- sees a preview of what the client sees;
+- retains authority over external communication.
 
-### Fornecedor
+### Supplier
 
-- no futuro, alimenta status interno/operacional;
-- nao altera diretamente o status visual do cliente;
-- nao acessa dados comerciais do cliente B2B.
+- in the future, feeds internal/operational status;
+- does not directly alter the client's visual status;
+- does not access the B2B client's commercial data.
 
-## 3. Separação entre status operacional e status visual
+## 3. Separation between operational status and visual status
 
-Nunca reutilizar `pedidos.status` como fonte definitiva do
-acompanhamento do cliente. A comunicacao externa deve usar campo proprio,
-como `status_cliente_visual`. Eventos internos continuam separados dos
-eventos visiveis ao cliente.
+Never reuse `pedidos.status` as the definitive source for client
+tracking. External communication must use its own field, such as
+`status_cliente_visual`. Internal events remain separate from the
+events visible to the client.
 
-## 4. HTML standalone
+## 4. Standalone HTML
 
-Arquivos standalone vindos do Claude Design sao referencia visual.
-E proibido copiar HTML bruto para dentro do app. Todo mockup deve ser
-convertido para componentes compativeis com o padrao atual do app.
+Standalone files coming from Claude Design are visual reference. It is
+forbidden to copy raw HTML into the app. Every mockup must be
+converted into components compatible with the app's current standard.
 
-## 5. Componentes comuns
+## 5. Common components
 
-Elementos comuns devem ser compartilhaveis entre cliente, admin e
-fornecedor:
+Common elements must be shareable between client, admin, and
+supplier:
 
 - shell/base layout;
 - sidebar;
 - topbar;
 - cards;
-- metricas/KPIs;
+- metrics/KPIs;
 - badges;
-- tabelas;
-- modais;
-- formularios;
+- tables;
+- modals;
+- forms;
 - steppers;
 - empty states.
 
-Nao duplicar o mesmo componente visual em multiplas telas sem
-necessidade.
+Do not duplicate the same visual component across multiple screens
+without need.
 
-## 6. Padrão técnico atual
+## 6. Current technical standard
 
-Manter o padrao tecnico atual do app:
+Maintain the app's current technical standard:
 
-- SPA estatico;
-- JS classico;
+- static SPA;
+- classic JS;
 - `window.*`;
-- scripts ordenados em `index.html`;
-- sem introduzir bundler;
-- sem converter para framework;
-- sem refactor amplo oportunista.
+- scripts ordered in `index.html`;
+- no introducing a bundler;
+- no converting to a framework;
+- no broad opportunistic refactoring.
 
-## 7. Regra de decomposição
+## 7. Decomposition rule
 
-As proximas fases devem ser pequenas e separadas por responsabilidade:
+The next phases must be small and separated by responsibility:
 
-- diagnostico;
+- diagnosis;
 - schema;
-- aplicacao Supabase;
+- Supabase application;
 - admin UI;
-- cliente UI;
-- fornecedor UI;
+- client UI;
+- supplier UI;
 - dashboard;
-- automacao;
-- redesign shell.
+- automation;
+- shell redesign.
 
-Nao misturar schema + frontend na mesma fase.
-Nao misturar admin + cliente na mesma fase, salvo ajuste minimo
-explicitamente autorizado.
-Nao misturar fornecedor + cliente na mesma fase.
-Nao misturar automacao externa com UI.
+Do not mix schema + frontend in the same phase.
+Do not mix admin + client in the same phase, except for a minimal
+adjustment explicitly authorized.
+Do not mix supplier + client in the same phase.
+Do not mix external automation with UI.
 
-## 8. Segurança e RLS
+## 8. Security and RLS
 
-RLS controla linha, nao coluna. O cliente nao deve depender de
-`select('*')`. Telas de cliente devem usar SELECT explicito, view
-sanitizada ou RPC sanitizada quando necessario. Nunca expor
-`service_role`, token, OP, lote, fornecedor, custo, NF, romaneio ou
-metadados internos ao cliente.
+RLS controls the row, not the column. The client must not rely on
+`select('*')`. Client screens must use explicit SELECT, a sanitized
+view, or a sanitized RPC when necessary. Never expose `service_role`,
+token, OP, batch, supplier, cost, invoice, packing list, or internal
+metadata to the client.
 
 ## 9. Writes
 
-Renderizacao nao deve escrever dados. Writes devem ficar em funcoes ou
-modulos explicitos e auditaveis. Admin publica status visual. Cliente
-cria pedido, mas nao publica nem manipula status visual. Fornecedor
-futuro alimenta operacao interna, nao comunicacao externa direta.
+Rendering must not write data. Writes must stay in explicit,
+auditable functions or modules. Admin publishes the visual status.
+Client creates an order, but does not publish or manipulate the
+visual status. The future supplier feeds internal operations, not
+direct external communication.
 
-## 10. Mockups atuais
+## 10. Current mockups
 
-Os mockups atuais desta frente sao:
+The current mockups for this front are:
 
-- Dashboard Cliente;
-- Novo Pedido;
-- Modal Adicionar Item;
-- Detalhe do Pedido.
+- Client Dashboard;
+- New Order;
+- Add Item Modal;
+- Order Detail.
 
-Eles devem ser usados para extrair padroes visuais e de composicao, nao
-como implementacao direta.
+They must be used to extract visual and compositional patterns, not
+as a direct implementation.
 
-## 11. Próxima sequência
+## 11. Next sequence
 
-Apos esta governanca, a sequencia recomendada e:
+After this governance, the recommended sequence is:
 
 1. `RAVATEX-TAPETES-PEDIDOS-CLIENTE-TRACKING-SCHEMA-A`
-2. aplicacao do SQL em staging
-3. dropdown admin
-4. cliente lendo status visual real
-5. historico visivel
-6. dashboard cliente
-7. redesign shell/componentes comuns
-8. fornecedor e automacao apenas depois
+2. application of the SQL in staging
+3. admin dropdown
+4. client reading real visual status
+5. visible history
+6. client dashboard
+7. shell/common components redesign
+8. supplier and automation only afterward
