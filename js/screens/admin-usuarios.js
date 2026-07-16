@@ -57,6 +57,65 @@
     var ICON_SQUARE_PEN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>';
     var ICON_BAN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M5.7 5.7l12.6 12.6"></path></svg>';
     var ICON_TRASH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
+    // A3.2 — ícones dos cards-resumo (KPI).
+    var ICON_SHIELD = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a93a3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>';
+    var ICON_FACTORY = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a93a3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"></path><path d="M4 20V10l5 3V10l5 3V10l5 3v7"></path><path d="M4 10V6l2-2"></path></svg>';
+    var ICON_USERS = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a93a3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>';
+    var ICON_USER_OFF = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b06a6a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="17" y1="8" x2="22" y2="13"></line><line x1="22" y1="8" x2="17" y2="13"></line></svg>';
+
+    // A3.2 — estado da toolbar (ordenação/filtro por tipo). Client-side,
+    // sobre os dados já carregados por reload(); sem query nova.
+    let ordenarPor = 'nome-asc';
+    let filtroTipo = 'todos';
+
+    // A3.2 — card de resumo (KPI). tone='danger' estiliza o card de Inativos.
+    function kpiCard({ label, icon, value, subtitle, tone }) {
+      const danger = tone === 'danger';
+      const bg = danger ? '#fff8f8' : '#f4f6f9';
+      const border = danger ? '#f3dcdc' : '#e4e8ee';
+      const labelColor = danger ? '#b06a6a' : '#8a93a3';
+      const valueColor = danger ? '#d6403a' : '#16203a';
+      const card = window.el('div', { style: `background:${bg}; border:1px solid ${border}; border-radius:5px; padding:14px 16px;` });
+      card.appendChild(window.el('div', { style: 'display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;' },
+        window.el('span', { style: `font-size:12px; color:${labelColor};` }, label),
+        svgIcon(icon)
+      ));
+      card.appendChild(window.el('div', { style: `font-size:22px; font-weight:500; color:${valueColor};` }, String(value)));
+      card.appendChild(window.el('div', { style: `font-size:11.5px; color:${labelColor}; margin-top:2px;` }, subtitle));
+      return card;
+    }
+
+    // A3.2 — badge de papel colorido por tipo (coluna Tipo do grid).
+    function tipoBadge(tipo) {
+      const map = {
+        admin: { bg: '#e8eefc', color: '#2563eb', label: 'Admin' },
+        fornecedor: { bg: '#eceef1', color: '#5a6472', label: 'Fornecedor' },
+        cliente: { bg: '#f0edfc', color: '#6d5bd0', label: 'Cliente' },
+      };
+      const t = map[tipo] || { bg: '#eceef1', color: '#5a6472', label: tipo || '—' };
+      return window.el('span', {
+        style: `display:inline-flex; align-items:center; border-radius:4px; padding:2px 8px; font-size:11.5px; font-weight:600; white-space:nowrap; background:${t.bg}; color:${t.color};`
+      }, t.label);
+    }
+
+    // A3.2 — ordenação client-side sobre as linhas já filtradas.
+    // 'ultimo-acesso': sem dado disponível nesta fase (Item 4 da ordem
+    // A3.2 bloqueado por HARD STOP — leitura de auth.users.last_sign_in_at
+    // exige migration nova, reportado separadamente ao arquiteto). Sort
+    // estável/sem efeito visível até a coluna existir.
+    function sortRows(list, mode) {
+      const arr = list.slice();
+      if (mode === 'nome-desc') {
+        arr.sort((a, b) => String(b.nome || '').localeCompare(String(a.nome || '')));
+      } else if (mode === 'tipo') {
+        arr.sort((a, b) => String(a.tipo || '').localeCompare(String(b.tipo || '')));
+      } else if (mode === 'ultimo-acesso') {
+        // sem-op intencional — ver nota acima.
+      } else {
+        arr.sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || '')));
+      }
+      return arr;
+    }
 
     async function reload() {
       columnSupport = await W.detectOptionalColumns('usuarios', ['observacoes']);
@@ -70,10 +129,26 @@
 
     function renderStandalone() {
       const meId = (window.CURRENT_USER && window.CURRENT_USER.id) || null;
-      const baseRows = mostrarInativos ? allUsers : allUsers.filter((u) => u.ativo !== false);
-      const rows = busca
+      let baseRows = mostrarInativos ? allUsers : allUsers.filter((u) => u.ativo !== false);
+      if (filtroTipo !== 'todos') baseRows = baseRows.filter((u) => u.tipo === filtroTipo);
+      const filteredRows = busca
         ? baseRows.filter((u) => [u.email, u.nome, u.tipo, u.fornecedor?.nome, u.cliente?.nome, u.ativo === false ? 'inativo' : 'ativo'].join(' ').toLowerCase().includes(busca.trim().toLowerCase()))
         : baseRows;
+      const rows = sortRows(filteredRows, ordenarPor);
+
+      // A3.2 — contagens dos cards-resumo: sempre sobre allUsers (dados já
+      // carregados por reload(), sem query nova), independentes de busca/
+      // filtro/ordenação aplicados ao grid abaixo.
+      function porTipoESubtitulo(tipo) {
+        const doTipo = allUsers.filter((u) => u.tipo === tipo);
+        const ativos = doTipo.filter((u) => u.ativo !== false).length;
+        const inativos = doTipo.length - ativos;
+        return { total: doTipo.length, subtitle: `${ativos} ativos · ${inativos} inativos` };
+      }
+      const kAdmin = porTipoESubtitulo('admin');
+      const kFornecedor = porTipoESubtitulo('fornecedor');
+      const kCliente = porTipoESubtitulo('cliente');
+      const totalInativos = allUsers.filter((u) => u.ativo === false).length;
 
       const page = window.el('div', { style: 'display:flex; flex-direction:column;' });
       const header = window.el('div', {
@@ -89,19 +164,56 @@
         style: 'display:inline-flex; align-items:center; gap:7px; background:#2563eb; color:#fff; border:none; border-radius:4px; padding:9px 16px; font-weight:600; font-size:14px; font-family:inherit; cursor:pointer;'
       }, svgIcon(ICON_PLUS), window.el('span', {}, 'Novo usuario')));
 
+      // A3.2 — cards-resumo (KPI), acima da toolbar.
+      const kpiGrid = window.el('div', { style: 'display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-bottom:18px;' });
+      kpiGrid.appendChild(kpiCard({ label: 'Administradores', icon: ICON_SHIELD, value: kAdmin.total, subtitle: kAdmin.subtitle }));
+      kpiGrid.appendChild(kpiCard({ label: 'Fornecedores', icon: ICON_FACTORY, value: kFornecedor.total, subtitle: kFornecedor.subtitle }));
+      kpiGrid.appendChild(kpiCard({ label: 'Clientes', icon: ICON_USERS, value: kCliente.total, subtitle: kCliente.subtitle }));
+      kpiGrid.appendChild(kpiCard({ label: 'Inativos', icon: ICON_USER_OFF, value: totalInativos, subtitle: `de ${allUsers.length} no total`, tone: 'danger' }));
+
       const controls = window.el('div', { style: 'display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;' });
       const searchWrap = window.el('div', {
-        style: 'display:flex; align-items:center; gap:8px; flex:1 1 520px; min-width:280px; background:#fff; border:1px solid #d8dce2; border-radius:4px; padding:8px 13px;'
+        style: 'display:flex; align-items:center; gap:8px; flex:1 1 320px; min-width:220px; background:#fff; border:1px solid #d8dce2; border-radius:5px; padding:8px 13px;'
       });
       searchWrap.appendChild(svgIcon(ICON_SEARCH));
       searchWrap.appendChild(window.el('input', {
         type: 'search',
         value: busca,
-        placeholder: 'Buscar por e-mail, nome, tipo ou vinculo...',
+        placeholder: 'Buscar por nome ou e-mail',
         oninput: (e) => { busca = e.target.value || ''; renderStandalone(); },
         style: 'width:100%; border:0; outline:none; background:transparent; font-size:13px; color:#16203a; padding:0; font-family:inherit;'
       }));
       controls.appendChild(searchWrap);
+
+      const selectStyle = 'border:1px solid #d8dce2; border-radius:5px; padding:8px 11px; font-size:13px; color:#16203a; background:#fff; font-family:inherit; cursor:pointer;';
+      const ordenarSelect = window.el('select', {
+        value: ordenarPor,
+        onchange: (e) => { ordenarPor = e.target.value; renderStandalone(); },
+        style: selectStyle,
+        'aria-label': 'Ordenar'
+      },
+        window.el('option', { value: 'nome-asc' }, 'Nome A–Z'),
+        window.el('option', { value: 'nome-desc' }, 'Nome Z–A'),
+        window.el('option', { value: 'tipo' }, 'Tipo'),
+        window.el('option', { value: 'ultimo-acesso' }, 'Último acesso')
+      );
+      ordenarSelect.value = ordenarPor;
+      controls.appendChild(ordenarSelect);
+
+      const filtroTipoSelect = window.el('select', {
+        value: filtroTipo,
+        onchange: (e) => { filtroTipo = e.target.value; renderStandalone(); },
+        style: selectStyle,
+        'aria-label': 'Filtrar por tipo'
+      },
+        window.el('option', { value: 'todos' }, 'Todos'),
+        window.el('option', { value: 'admin' }, 'Admin'),
+        window.el('option', { value: 'fornecedor' }, 'Fornecedor'),
+        window.el('option', { value: 'cliente' }, 'Cliente')
+      );
+      filtroTipoSelect.value = filtroTipo;
+      controls.appendChild(filtroTipoSelect);
+
       const toggle = window.el('label', { style: 'display:inline-flex; align-items:center; gap:8px; font-size:13px; color:#5b6472; user-select:none; cursor:pointer; white-space:nowrap;' });
       toggle.appendChild(window.el('input', {
         type: 'checkbox',
@@ -125,16 +237,17 @@
       card.appendChild(headRow);
 
       rows.forEach((user, index) => {
-        const line = window.el('div', { style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid #f1f3f6'};` });
+        const inativo = user.ativo === false;
+        const line = window.el('div', { style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid #f1f3f6'}; opacity:${inativo ? '0.6' : '1'};` });
         line.appendChild(window.el('div', { style: 'font-size:13.5px; color:#3f4757;' }, user.email || ''));
         line.appendChild(window.el('div', { style: 'font-size:14px; font-weight:500; color:#16203a;' }, user.nome || '—'));
-        line.appendChild(window.el('div', { style: 'font-size:13.5px; color:#3f4757;' }, user.tipo || ''));
+        line.appendChild(window.el('div', {}, tipoBadge(user.tipo)));
         line.appendChild(window.el('div', { style: `font-size:13.5px; color:${user.fornecedor?.nome ? '#3f4757' : '#aab2bf'};` }, user.fornecedor?.nome || '—'));
         line.appendChild(window.el('div', { style: `font-size:13.5px; color:${user.cliente?.nome ? '#3f4757' : '#aab2bf'};` }, user.cliente?.nome || '—'));
         line.appendChild(window.el('div', {},
           window.el('span', {
-            style: `display:inline-flex; align-items:center; border-radius:4px; padding:3px 9px; font-size:12px; font-weight:600; white-space:nowrap; background:${user.ativo === false ? '#fff1f1' : '#e6f4ec'}; color:${user.ativo === false ? '#d6403a' : '#18794a'};`
-          }, user.ativo === false ? 'Inativo' : 'Ativo')
+            style: `display:inline-flex; align-items:center; border-radius:4px; padding:3px 9px; font-size:12px; font-weight:600; white-space:nowrap; background:${inativo ? '#fff1f1' : '#e6f4ec'}; color:${inativo ? '#d6403a' : '#18794a'};`
+          }, inativo ? 'Inativo' : 'Ativo')
         ));
         const actions = window.el('div', { style: 'display:flex; align-items:center; justify-content:center; gap:6px;' });
         actions.appendChild(window.el('button', { type: 'button', onclick: () => M.openUsuarioModal(user, allForns, allClients, columnSupport, { onSaved: reload }), title: 'Editar usuario', 'aria-label': 'Editar usuario', style: 'width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#8a93a3; cursor:pointer;' }, svgIcon(ICON_SQUARE_PEN)));
@@ -153,6 +266,7 @@
       tableWrap.appendChild(card);
       tableWrap.appendChild(footer);
       page.appendChild(header);
+      page.appendChild(kpiGrid);
       page.appendChild(controls);
       page.appendChild(tableWrap);
       container.replaceChildren(page);

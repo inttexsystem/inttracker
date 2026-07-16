@@ -135,6 +135,20 @@ function textOf(node) {
   return (node && node.textContent) || '';
 }
 
+// A3.2: com ordenação ativa por padrão (Nome A-Z), a posição das linhas no
+// grid não é mais previsível pela ordem do fixture. Localiza a linha de um
+// usuário pelo conteúdo (cada linha de dados tem exatamente 7 filhos diretos
+// DIV: email/nome/tipo/fornecedor/cliente/status/ações — mesmo formato do
+// headRow, mas o headRow nunca contém o texto procurado).
+function findRowByText(main, needle) {
+  const divs = findAll(main, (n) => n.tagName === 'DIV');
+  return divs.find((d) => d.children && d.children.length === 7 && textOf(d).includes(needle));
+}
+
+function findByAriaLabel(root, label) {
+  return findAll(root, (n) => n._attrs && n._attrs['aria-label'] === label)[0];
+}
+
 // Cliente Supabase fake com from().select()/update().eq()/insert() reais
 // (encadeáveis + thenable) e functions.invoke mockável por nome.
 function makeFakeSupabaseClient({ tableData = {}, invokeImpl = {} } = {}) {
@@ -350,15 +364,15 @@ test('11-13. cliques em Editar/Desativar/Excluir chamam os modais certos', async
   `, sandbox);
   const flex = node.children.find((c) => c.tagName === 'DIV');
   const main = flex.children.find((c) => c.tagName === 'MAIN');
-  const buttons = findAll(main, (n) => n.tagName === 'BUTTON');
-  // Linhas visíveis (mostrarInativos=false) preservam a ordem do fixture:
-  // [0]=me@ravatex.com, [1]=b@b.c (Carla/u-3 é inativa e fica oculta).
-  // O 2º botão "Editar usuario"/"Desativar usuario" em ordem de documento
-  // corresponde à linha de Bia.
-  const editBtn = buttons.filter((b) => b._attrs && b._attrs.title === 'Editar usuario')[1];
-  const disableBtn = buttons.filter((b) => b._attrs && b._attrs.title === 'Desativar usuario')[1];
-  assert.ok(editBtn, 'botão Editar da 2ª linha (Bia) não encontrado');
-  assert.ok(disableBtn, 'botão Desativar da 2ª linha (Bia) não encontrado');
+  // A3.2: ordenação padrão (Nome A-Z) reordena as linhas — não assumir
+  // posição fixa. Localiza a linha de Bia (b@b.c) pelo conteúdo.
+  const biaRow = findRowByText(main, 'b@b.c');
+  assert.ok(biaRow, 'linha de Bia (b@b.c) não encontrada');
+  const rowButtons = findAll(biaRow, (n) => n.tagName === 'BUTTON');
+  const editBtn = rowButtons.find((b) => b._attrs && b._attrs.title === 'Editar usuario');
+  const disableBtn = rowButtons.find((b) => b._attrs && b._attrs.title === 'Desativar usuario');
+  assert.ok(editBtn, 'botão Editar da linha de Bia não encontrado');
+  assert.ok(disableBtn, 'botão Desativar da linha de Bia não encontrado');
   editBtn._listeners.click();
   disableBtn._listeners.click();
   const editCalls = vm.runInContext('window.__editCalls', sandbox);
@@ -388,6 +402,127 @@ test('14. writes: createUsuario/updateUsuario/disableUsuario/deleteUsuario chama
   const updateCalls = fakeSupa._calls.filter((c) => c.op === 'update' && c.table === 'usuarios');
   assert.ok(updateCalls.some((c) => c.payload.nome === 'Bia 2'),
     'updateUsuario não chamou supa.from("usuarios").update com o payload certo');
+});
+
+// -----------------------------------------------------------------------------
+// Runtime — A3.2: cards-resumo, toolbar (ordenar/filtro), badges, opacidade
+// -----------------------------------------------------------------------------
+// Fixture USERS_FIXTURE: me-id (admin, ativo), u-2/Bia (fornecedor, ativo),
+// u-3/Carla (admin, inativo). Admin=2 (1 ativo+1 inativo), Fornecedor=1
+// (1 ativo), Cliente=0, Inativos=1 (de 3 no total).
+
+test('16. cards-resumo (KPI): 4 cards com contagens corretas', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const rendered = textOf(main);
+  assert.match(rendered, /Administradores/);
+  assert.match(rendered, /Fornecedores/);
+  assert.match(rendered, /Clientes/);
+  assert.match(rendered, /Inativos/);
+  // Contagens: Admin=2 (1 ativo+1 inativo), Fornecedor=1 (1 ativo+0 inativo),
+  // Cliente=0, Inativos=1 (de 3 no total).
+  assert.match(rendered, /1 ativos · 1 inativos/, 'card Administradores deveria mostrar 1 ativos · 1 inativos');
+  assert.match(rendered, /1 ativos · 0 inativos/, 'card Fornecedores deveria mostrar 1 ativos · 0 inativos');
+  assert.match(rendered, /de 3 no total/, 'card Inativos deveria mostrar "de 3 no total"');
+});
+
+test('17. toolbar: selects de ordenar e filtro de tipo presentes com as opções certas', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const ordenarSelect = findByAriaLabel(main, 'Ordenar');
+  const filtroSelect = findByAriaLabel(main, 'Filtrar por tipo');
+  assert.ok(ordenarSelect, 'select "Ordenar" não encontrado');
+  assert.ok(filtroSelect, 'select "Filtrar por tipo" não encontrado');
+  const ordenarLabels = findAll(ordenarSelect, (n) => n.tagName === 'OPTION').map(textOf);
+  assert.deepEqual(ordenarLabels, ['Nome A–Z', 'Nome Z–A', 'Tipo', 'Último acesso']);
+  const filtroLabels = findAll(filtroSelect, (n) => n.tagName === 'OPTION').map(textOf);
+  assert.deepEqual(filtroLabels, ['Todos', 'Admin', 'Fornecedor', 'Cliente']);
+});
+
+test('18. filtro por tipo (client-side, sem query nova): "Fornecedor" mostra só a linha da Bia', async () => {
+  const { sandbox, fakeSupa } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  const root = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const callsBefore = fakeSupa._calls.length;
+  const flex = root.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const filtroSelect = findByAriaLabel(main, 'Filtrar por tipo');
+  filtroSelect.value = 'fornecedor';
+  filtroSelect._listeners.change({ target: filtroSelect });
+  // renderStandalone() reconstrói o conteúdo de MAIN in-place; relê via flex.
+  const mainAfter = flex.children.find((c) => c.tagName === 'MAIN');
+  const renderedAfter = textOf(mainAfter);
+  assert.ok(renderedAfter.includes('b@b.c'), 'linha da Bia deveria continuar visível com filtro Fornecedor');
+  assert.ok(!renderedAfter.includes('me@ravatex.com'), 'linha do admin não deveria aparecer com filtro Fornecedor');
+  // Nenhuma query nova disparada pelo filtro (é client-side sobre allUsers já carregado).
+  assert.equal(fakeSupa._calls.length, callsBefore, 'filtro por tipo não deveria disparar nova chamada a supa');
+});
+
+test('19. ordenação "Nome Z–A" inverte a ordem das linhas visíveis', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  const root = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = root.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const ordenarSelect = findByAriaLabel(main, 'Ordenar');
+  ordenarSelect.value = 'nome-desc';
+  ordenarSelect._listeners.change({ target: ordenarSelect });
+  const mainAfter = flex.children.find((c) => c.tagName === 'MAIN');
+  // Nome Z-A: "Eu Mesmo" (E) deve vir antes de "Bia" (B) em ordem de documento.
+  // Linhas de dados têm exatamente 7 filhos diretos DIV (6 células + ações);
+  // o e-mail é sempre a 1ª célula, então basta checar o prefixo (textOf
+  // concatena células sem separador — não usar regex de e-mail aqui, o
+  // domínio "vazaria" para o texto da célula seguinte).
+  const rowDivs = findAll(mainAfter, (n) => n.tagName === 'DIV' && n.children && n.children.length === 7);
+  const idxEu = rowDivs.findIndex((d) => textOf(d).startsWith('me@ravatex.com'));
+  const idxBia = rowDivs.findIndex((d) => textOf(d).startsWith('b@b.c'));
+  assert.ok(idxEu !== -1 && idxBia !== -1, 'linhas de Eu Mesmo e Bia não encontradas');
+  assert.ok(idxEu < idxBia, 'com Nome Z–A, "Eu Mesmo" deveria vir antes de "Bia" em ordem de documento');
+});
+
+test('20. badge de papel: cores corretas por tipo (Admin azul, Fornecedor cinza)', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const meRow = findRowByText(main, 'me@ravatex.com');
+  const biaRow = findRowByText(main, 'b@b.c');
+  const meBadge = findAll(meRow, (n) => n.tagName === 'SPAN' && textOf(n) === 'Admin')[0];
+  const biaBadge = findAll(biaRow, (n) => n.tagName === 'SPAN' && textOf(n) === 'Fornecedor')[0];
+  assert.ok(meBadge, 'badge "Admin" não encontrado na linha do admin');
+  assert.ok(biaBadge, 'badge "Fornecedor" não encontrado na linha da Bia');
+  assert.match(meBadge._attrs.style, /#2563eb/, 'badge Admin deveria usar a cor #2563eb');
+  assert.match(biaBadge._attrs.style, /#5a6472/, 'badge Fornecedor deveria usar a cor #5a6472');
+});
+
+test('21. linha inativa (Carla) tem opacidade reduzida (~0.6) quando "Mostrar inativos" está ligado', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const toggleInput = findAll(main, (n) => n.tagName === 'INPUT' && n._attrs && n._attrs.type === 'checkbox')[0];
+  assert.ok(toggleInput, 'checkbox "Mostrar inativos" não encontrado');
+  toggleInput.checked = true;
+  toggleInput._listeners.change({ target: toggleInput });
+  const mainAfter = flex.children.find((c) => c.tagName === 'MAIN');
+  const carlaRow = findRowByText(mainAfter, 'c@c.c');
+  assert.ok(carlaRow, 'linha da Carla (inativa) deveria aparecer com "Mostrar inativos" ligado');
+  assert.match(carlaRow._attrs.style, /opacity:0\.6/, 'linha inativa deveria ter opacity:0.6');
+});
+
+test('22. coluna "Último acesso" NÃO foi adicionada nesta subfase (HARD STOP de migration, reportado separadamente)', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const rendered = textOf(main);
+  assert.equal(/ÚLTIMO ACESSO|Último acesso:/.test(rendered.replace('Último acesso', '')), false);
+  // Cabeçalho do grid continua com exatamente as mesmas 6 colunas + AÇÕES de A3.1.
+  for (const label of ['E-MAIL', 'NOME', 'TIPO', 'FORNECEDOR', 'CLIENTE', 'STATUS', 'ACOES']) {
+    assert.ok(rendered.includes(label), `cabeçalho "${label}" ausente`);
+  }
 });
 
 // -----------------------------------------------------------------------------
