@@ -1165,3 +1165,19 @@ risco residual e próxima fase indicada no fechamento.
 - **Production:** `bhgifjrfagkzubpyqpew` not accessed. **Push:** not executed.
 - **Final worktree state:** clean; staging by literal path only; `supabase/.temp/` remains pre-existing untracked (not staged).
 - **Next phase indicated at closeout:** `ARCHITECT DECISION` — subsequent DOC-LANGUAGE-MIGRATION batches (`L3`+) are not authorized by this entry.
+
+## 2026-07-16 — PROJECT-STATE-COMPACTION-A — Compact PROJECT_STATE to current-state-only
+
+- **Gate:** `CLOSED / ACCEPTED`. Docs-only structural reorganization — no code, SQL, migration, Supabase, staging, production or push. `PROJECT_STATE.md` rewritten to current-state-only with no content loss.
+- **Front:** living-state maintenance, authorized by explicit architect order "ORDER — PROJECT-STATE-COMPACTION-A" (paste-gated to run only after L2 was `CLOSED / ACCEPTED`).
+- **Preceding follow-up (same session, commit `e980265`):** applied the two L2-acceptance rulings — unified the documentation term (`documental` → `documentation`/`document`, including re-editing committed L1 `docs/governance/DOCUMENTATION_MODEL.md` as explicitly authorized for this one term) and recorded the phase-ID naming rule in `DOCUMENTATION_MODEL.md` §18 (`Camada N` ↔ `G28-CAMADA-N`, never translated).
+- **Result:** `PROJECT_STATE.md` **999 → 189 lines** (active phase / next action, binding decisions in force, live debts and candidates, environment/worktree standing facts, "Closed phases" index, mandatory links, historical-reference pointers).
+- **Archive (new):** the historical phase-closeout narratives (former `PROJECT_STATE.md` lines 7–954 — 18 phase sections) moved verbatim, in original order, to `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`. Binding rulings from the three Architect Decision sections are restated (condensed) in `PROJECT_STATE.md` §"Binding decisions in force"; their full verbatim records remain in the archive and in `docs/archive/pt-BR/PROJECT_STATE.md`.
+- **No content loss (block classification):** MOVE = former lines 7–954 → archive verbatim (948 lines); KEEP = former lines 1–6 (preamble) + 955–999 (Relevant debts, Historical reference, Mandatory links, legacy pre-model pointer) → carried into the new `PROJECT_STATE.md` (debts/links/reference near-verbatim; preamble and legacy pointer condensed with all facts preserved). Every former block accounted for.
+- **AGENT_HANDOFF.md:** not compacted (per order). Its 17 "Full detail" pointers to former `PROJECT_STATE.md` sections were redirected to `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`; a compaction note added at the top; the mandatory-reading `PROJECT_STATE.md` references left intact.
+- **Index:** `docs/DOCUMENTATION_INDEX.md` §1c registers the archive file as preservation (not a current-state source).
+- **Verification:** new `PROJECT_STATE.md` 189 lines (≤ ~300 target); archive 948 moved lines + header; canonical status tokens preserved; commit SHAs preserved; `git diff --check` clean; cross-references (mandatory links, archive pointer) resolve.
+- **Accepted commit:** this closeout (`Compact PROJECT_STATE to current-state-only`). Consult the actual HEAD with `git rev-parse HEAD`.
+- **Production:** `bhgifjrfagkzubpyqpew` not accessed. **Push:** not executed.
+- **Final worktree state:** clean; staging by literal path only; `supabase/.temp/` remains pre-existing untracked (not staged).
+- **Next phase indicated at closeout:** `ARCHITECT DECISION`. This phase satisfies the stated precondition for `DOC-LANGUAGE-MIGRATION-L3`, which remains `NOT AUTHORIZED` pending its own explicit order.

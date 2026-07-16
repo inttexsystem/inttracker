@@ -129,6 +129,13 @@ declarados na §1. Não é uma segunda lista de autoridade.
   imutáveis anteriores à compactação; snapshots não são fontes de estado
   atual; snapshots não recebem novos closeouts; conteúdo preservado para
   auditoria, não para roteamento operacional.
+- `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` — narrativas de closeout
+  de fases movidas de `PROJECT_STATE.md` por `PROJECT-STATE-COMPACTION-A`
+  (2026-07-16), verbatim e em ordem original. **Não é fonte do estado atual**
+  (esse é `PROJECT_STATE.md`, agora current-state-only); as fases arquivadas
+  estão indexadas na tabela "Closed phases" de `PROJECT_STATE.md`. Append-only
+  para este lote; as decisões de arquiteto ali registradas permanecem em vigor
+  e estão condensadas em `PROJECT_STATE.md` §"Binding decisions in force".
 
 ## 1d. Relatórios de diagnóstico e reconciliação, e artefatos de supervisão externa (não normativos)
 

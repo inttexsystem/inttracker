@@ -1,10 +1,11 @@
 # ACTIVE OPERATIONAL HANDOFF
 
-- **Staging-only execution boundary in force (`STAGING-ONLY-EXECUTION-BOUNDARY-A`, 2026-07-15):** explicit architect decision — the current operational environment is exclusively staging `ucrjtfswnfdlxwtmxnoo`; the protected/other Supabase project is out of scope; schema migration/promotion in production is postponed until the complete canonical backlog is finished; `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE` is no longer a current material blocker, it is `DEFERRED UNTIL GLOBAL BACKLOG COMPLETION / NOT A CURRENT STAGING BLOCKER`; G28-D publication is `DEFERRED / NOT AUTHORIZED / NOT A CURRENT BLOCKER`; Vercel is a future candidate only, with no decision and no authorization. See `PROJECT_STATE.md` ("Architect Decision — Staging-Only Execution Boundary") and its own section below.
+- **PROJECT_STATE compaction (`PROJECT-STATE-COMPACTION-A`, 2026-07-16):** `PROJECT_STATE.md` is now current-state-only (active phase, binding decisions in force, live debts, environment, and a "Closed phases" index). Historical phase-closeout narratives were moved verbatim to `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`. The "Full detail" pointers in this handoff now target that archive. This handoff itself was not compacted in that phase.
+- **Staging-only execution boundary in force (`STAGING-ONLY-EXECUTION-BOUNDARY-A`, 2026-07-15):** explicit architect decision — the current operational environment is exclusively staging `ucrjtfswnfdlxwtmxnoo`; the protected/other Supabase project is out of scope; schema migration/promotion in production is postponed until the complete canonical backlog is finished; `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE` is no longer a current material blocker, it is `DEFERRED UNTIL GLOBAL BACKLOG COMPLETION / NOT A CURRENT STAGING BLOCKER`; G28-D publication is `DEFERRED / NOT AUTHORIZED / NOT A CURRENT BLOCKER`; Vercel is a future candidate only, with no decision and no authorization. See `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` ("Architect Decision — Staging-Only Execution Boundary") and its own section below.
 - **No active functional phase.** G28-C is reclassified (2026-07-15, `G28-RECONCILIATION-DECISIONS-A`) as `CLOSED / TECHNICALLY ACCEPTED — ARCHITECT PRODUCT VALIDATION PENDING` — see `PROJECT_STATE.md`. G28-D discovery remains `RELEASE CONTRACT DISCOVERY COMPLETE` (evidence preserved); its publication is `DEFERRED BY ARCHITECT / NOT A CURRENT BLOCKER / NOT AUTHORIZED` and does not constitute an active phase. The canonical definition of the publication mapping and of the authorized procedure for migrations 51/52 remains absent from the repository, but this is no longer a current blocker by explicit decision; see `docs/releases/G28_D_RELEASE_CANDIDATE.md`.
 - **Last accepted phase:** `G28-CAMADA-2 / A5.1-A5.2 — Administrative Password Reset — CLOSED / ACCEPTED` (2026-07-16; real e2e in staging `result: PASS` 15/15; architect visual validation waived by explicit decision, covered by e2e + flow verification in a real browser by the executor; see its own section below and `PROJECT_STATE.md`). `A4.2` (mandatory password change guard) and `CAMADA2-LAST-ACCESS-UI` (consumption of RPC `db/59` in the UI, commit `0aff22f`) also `CLOSED / ACCEPTED` (2026-07-16). **No pending documentation closeout debt among these three phases.** `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` remains `CLOSED / ACCEPTED` (2026-07-15). `G28-C` remains the last functional phase of G28 proper, now `CLOSED / TECHNICALLY ACCEPTED — ARCHITECT PRODUCT VALIDATION PENDING` (reclassification `G28-RECONCILIATION-DECISIONS-A`, 2026-07-15; staging/projections matrix 16/16 technical PASS; historical closeout `a7d7caa`/acceptance `d5ec09f` not rewritten; explicit debt `AUTHENTICATED_BROWSER_SMOKE_NOT_EXECUTED`). G28-B8 is `TECHNICALLY COMPLETED / ACCEPTANCE SUBSUMED BY G28-C`.
 - **R1 commits completed:** `271761c3de20427b2cc9059d5ff7cc3727545e6d` — `G28: reconcile canonical phase state` (initial R1 documentation closeout); `edaf0b4d36f24aa7b9490e51a42624cc70d45963` — `G28: correct canonical reconciliation state` (correction of R1 textual defects). The current HEAD must be consulted directly with `git rev-parse HEAD`.
-- **Publication criterion (`G28-GOVERNANCE-CONSOLIDATION-A`, 2026-07-15):** binding architect decision — the system only enters production after `G28-CAMADA-2` (full scope `A1-A7`) and `G28-CAMADA-3` (automatic backup) are both `CLOSED / ACCEPTED` in staging. `PUBLICATION-TRACK-REVIEW` is a front conditioned on that criterion, not a current candidate. `G28-CAMADA-3` moves from deferred to `PUBLICATION CRITICAL PATH` (after Camada 2), pending its own spec (the `BK1-BK8` diagnosis is a future phase, `NOT AUTHORIZED`). Candidate front `CODE-HEALTH-AUDIT-§18-R1` (read-only §18 audit, input for decomposition of `cadastros.js`) also recorded `NOT AUTHORIZED`. See `PROJECT_STATE.md` (its own section) and the section below.
+- **Publication criterion (`G28-GOVERNANCE-CONSOLIDATION-A`, 2026-07-15):** binding architect decision — the system only enters production after `G28-CAMADA-2` (full scope `A1-A7`) and `G28-CAMADA-3` (automatic backup) are both `CLOSED / ACCEPTED` in staging. `PUBLICATION-TRACK-REVIEW` is a front conditioned on that criterion, not a current candidate. `G28-CAMADA-3` moves from deferred to `PUBLICATION CRITICAL PATH` (after Camada 2), pending its own spec (the `BK1-BK8` diagnosis is a future phase, `NOT AUTHORIZED`). Candidate front `CODE-HEALTH-AUDIT-§18-R1` (read-only §18 audit, input for decomposition of `cadastros.js`) also recorded `NOT AUTHORIZED`. See `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (its own section) and the section below.
 - **Next action:** `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` was implemented, applied and verified in staging — **it must not be routed again** as the next action; it is `CLOSED / ACCEPTED`. The read-only reconciliation of the general backlog (`BACKLOG-RECONCILIATION-READONLY-R1`), the documentation backfill `DOCS-CANONICAL-CONSISTENCY-BACKFILL-A` and the recording of the boundary `STAGING-ONLY-EXECUTION-BOUNDARY-A` have also already been completed. **Next front selected:** `G28-CAMADA-2`. The proposed spec was materialized in `docs/architecture/CAMADA2_USUARIOS_SPEC_PROPOSED.md` (`CAMADA2-USUARIOS-SPEC-MATERIALIZE-R1`). `A3.1` (1:1 extraction of the users screen), `A3.2` (summary cards + toolbar), `A4.1` + `CAMADA2-LAST-ACCESS-RPC`, `CAMADA2-LAST-ACCESS-UI`, `A4.2` (mandatory password change guard) and `A5.1-A5.2` (administrative password reset) are all `CLOSED / ACCEPTED` — see their own sections below. **None of these must be routed again as the next action.** `A5.3-A5.4` (reactivation) explicitly **not included** in `A5.1-A5.2` — own future authorization. **Next authorizable action (2026-07-16): `ARCHITECT DECISION`** among `A5.3-A5.4` (reactivation), `UI-EL-BOOLEAN-ATTR-FIX` (candidate `NOT AUTHORIZED`, severity `NOT CONFIRMED` — potential boolean `setAttribute` bug in `js/ui.js`'s `el()` affecting the Deactivate/Delete buttons of `admin-usuarios.js`, pending direct architect verification in staging), `A2.1` (schema `nivel_acesso`) and `A6.1` (audit schema/trigger). No subphase authorized by this record. The project's supervision protocol is formalized in `docs/governance/SUPERVISION_PROTOCOL.md` (Architect/Reviewer/Resident Executor roles). Hygiene of the `work/app-next` worktree (divergent/dirty) remains authorized as a parallel read-only task in a separate order. `OPEN_ARCHITECT_DECISIONS: NONE` for the current staging cycle. Remaining Client Portal debts are made explicit: `DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY` and `AUTHENTICATED_BROWSER_SMOKE_NOT_EXECUTED`. Recorded baseline/decomposition debts: 6 tests in `tests/auth.smoke.js` with outdated regex (`A4.2`) and `js/screens/admin-usuarios-modal.js` at 576 lines (`A5.1-A5.2`), both candidates for `CODE-HEALTH-AUDIT-§18-R1`. Publication is not the next action and no automatic implementation follows.
 - **Workspace / branch / previous HEAD:** `D:\OneDrive\Programação\Ravatex\controle-tapetes-g28` / `work/g28-document-qualification`. Previous technical/documentation HEAD: `b27e79fdba1ed8fb8a6232d8e0b8ca4b37ac3a2c` (historical G28-D discovery baseline; this documentation record succeeds it).
 - **Mandatory reading before routing any order:** `PROJECT_STATE.md`, this handoff, G28 master plan (`docs/architecture/DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md`), `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`, G28 ledger (`docs/ledgers/G28_LEDGER.md`) and applicable contracts/runtime.
@@ -34,7 +35,7 @@
 - **Production:** `bhgifjrfagkzubpyqpew` not accessed. **Push:** not executed.
 - **Final worktree state:** clean; staging empty; zero untracked.
 - **Next authorizable action (per `PROJECT_STATE.md`):** `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION`.
-- **Full detail:** `PROJECT_STATE.md` (section "Controlled Delete × Document History") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Controlled Delete × Document History") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 
 ## Admin/Pedido — Static Residue of the Completion Button (Expedição) — CLOSED / ACCEPTED
 
@@ -46,7 +47,7 @@
 - **Accesses:** no staging; no production (`bhgifjrfagkzubpyqpew` not accessed); no push.
 - **Final worktree state:** clean; staging empty; zero untracked.
 - **Next authorizable action:** `CLIENTE-ORDER-SUMMARY-READMODEL-APPLY-STAGING-A` — `READY FOR EXPLICIT ARCHITECT AUTHORIZATION` / `NOT STARTED`. This entry does not authorize its execution.
-- **Full detail:** `PROJECT_STATE.md` (section "Admin/Pedido — Static Residue of the Completion Button") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Admin/Pedido — Static Residue of the Completion Button") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 
 ## Client Portal — Order Detail Read Model — CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBTS
 
@@ -59,7 +60,7 @@
 - **Accesses:** Supabase MCP not exposed in the session; the authorized direct PostgreSQL fallback used only for verification (read-only, `BEGIN … ROLLBACK`, zero mutation); temporary tooling outside the repo removed; no secret echoed. Production (`bhgifjrfagkzubpyqpew`) not accessed; no push.
 - **Final worktree state:** clean; staging empty; zero untracked.
 - **Next authorizable action:** `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION` — no single unambiguous next action; the ACL remediation candidate must not be self-selected.
-- **Full detail:** `PROJECT_STATE.md` (section "Client Portal — Order Detail Read Model") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Client Portal — Order Detail Read Model") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 
 ## Canonical Documentation — Consistency Backfill — DOCS-CANONICAL-CONSISTENCY-BACKFILL-A — CLOSED / ACCEPTED
 
@@ -69,7 +70,7 @@
 - **Accesses:** no staging; no production (`bhgifjrfagkzubpyqpew` not accessed); no push.
 - **Final worktree state:** clean; staging empty; zero untracked.
 - **Next authorizable action:** `ARCHITECT DECISION REQUIRED` — `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`. This backfill does not authorize any technical phase.
-- **Full detail:** `PROJECT_STATE.md` (section "Canonical Documentation — Consistency Backfill") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Canonical Documentation — Consistency Backfill") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 - **Mandatory documentation continuity — relay in every future handoff:**
   1. `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`
   2. `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
@@ -92,7 +93,7 @@
 - **Next technical candidate:** `CLIENTE-ORDER-SUMMARY-READMODEL-ACL-GRANTS-R1` was authorized, implemented, applied and verified in staging on 2026-07-15 (`CLOSED / ACCEPTED` — see its own section below). There is no single subsequent technical candidate; `NEXT_AUTHORIZABLE_ACTION: NONE`.
 - **Accesses:** no Supabase/MCP/staging/production/Vercel access in this phase; no push.
 - **Final worktree state:** clean; staging empty; zero untracked.
-- **Full detail:** `PROJECT_STATE.md` (section "Architect Decision — Staging-Only Execution Boundary") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Architect Decision — Staging-Only Execution Boundary") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 - **Mandatory documentation continuity — relay in every future handoff:**
   1. `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`
   2. `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
@@ -119,7 +120,7 @@
 - **Authorized parallel task:** hygiene of the `work/app-next` worktree (11 commits behind `staging/work/app-next`, dirty worktree) — **read-only**, separate order.
 - **Accesses:** no Supabase/MCP/staging/production/Vercel access in this phase; no push.
 - **Final worktree state:** clean; staging empty; zero untracked.
-- **Full detail:** `PROJECT_STATE.md` (section "Architect Decision — Backlog Reconciliation and Supervision Governance") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Architect Decision — Backlog Reconciliation and Supervision Governance") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 - **Mandatory documentation continuity — relay in every future handoff:**
   1. `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`
   2. `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
@@ -141,7 +142,7 @@
 - **Next authorizable action:** `A3.1` was authorized, executed and accepted — see the section "Camada 2 — User Screen Extraction" below. The next subphase is `A3.2`, under a mockup gate.
 - **Accesses:** no Supabase/MCP/staging/production/Vercel access; strictly read-only reading of `D:\OneDrive\Programação\SGAA_clean_baseline` (unrelated external project, no file touched); no push.
 - **Final worktree state:** clean; staging empty; zero untracked.
-- **Full detail:** `PROJECT_STATE.md` (section "Camada 2 — User Administration — Proposed Spec") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Camada 2 — User Administration — Proposed Spec") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 - **Mandatory documentation continuity — relay in every future handoff:**
   1. `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`
   2. `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
@@ -167,7 +168,7 @@
 - **Production:** `bhgifjrfagkzubpyqpew` not accessed. **Push:** not executed.
 - **Final worktree state:** clean; staging empty; zero untracked.
 - **Next authorizable action:** `A3.2` was authorized and completed — see its own section below.
-- **Full detail:** `PROJECT_STATE.md` (section "Camada 2 — User Screen Extraction"), `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` (§4/§6) and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Camada 2 — User Screen Extraction"), `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` (§4/§6) and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 - **Mandatory documentation continuity — relay in every future handoff:**
   1. `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`
   2. `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
@@ -195,7 +196,7 @@
 - **Final worktree state:** clean; staging empty; zero untracked.
 - **Governance:** supervision protocol formalized in `docs/governance/SUPERVISION_PROTOCOL.md` in this phase (Architect/Reviewer/Resident Executor roles, onboarding, order format, gates).
 - **Next authorizable action:** `ARCHITECT DECISION REQUIRED` among `A4.1`, `A2.1`, `A6.1` (see the section above). `A3.3` `DEFERRED`. `A3.4` depends on the other A3.x subphases. This entry does not authorize its execution.
-- **Full detail:** `PROJECT_STATE.md` (section "Camada 2 — Summary Cards and Toolbar") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Camada 2 — Summary Cards and Toolbar") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 - **Mandatory documentation continuity — relay in every future handoff:**
   1. `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`
   2. `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
@@ -224,7 +225,7 @@
 - **Accesses:** Supabase MCP connected and used only for catalog reading and the tracked application of the migration in staging `ucrjtfswnfdlxwtmxnoo`; production (`bhgifjrfagkzubpyqpew`) not accessed; Vercel not accessed; no push.
 - **Final worktree state:** clean; staging empty; zero untracked.
 - **Next authorizable action:** `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION` — `NEXT_AUTHORIZABLE_ACTION: NONE` until a new reconciliation of the remaining general backlog.
-- **Full detail:** `PROJECT_STATE.md` (section "Client Portal — ACL Grants Hardening") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Client Portal — ACL Grants Hardening") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 - **Mandatory documentation continuity — relay in every future handoff:**
   1. `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`
   2. `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
@@ -244,7 +245,7 @@
 - **Mandatory routing for the next agent:** legacy Phases **D, E, F** were **delivered** through the accepted production-flow work and must **not** be routed as open implementation phases. Legacy Phases **G, H, I** were **superseded** by the canonical G28 documentation pipeline (`document_link_revisions`/`document_link_revision_ops`; `documentos_operacionais` never created) and also must **not** be routed as open phases. **Phase J** remains exclusively as `FUTURE / UNSEQUENCED / NOT STARTED / NOT AUTHORIZED`.
 - **State unchanged:** `ACTIVE_PHASE: NONE`; `NEXT_AUTHORIZABLE_ACTION: NONE` pending explicit architect selection. All open debts and deferred fronts remain unchanged (`DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY`, `AUTHENTICATED_BROWSER_SMOKE_NOT_EXECUTED`, production application of the staging-only stack, `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE`, G28-D/Vercel, `DELETE-PROD-GUARD-A`, `DELETE-AUDIT-LOG-A`, `G28-CAMADA-2/3/4`).
 - **Accesses:** no staging; no production (`bhgifjrfagkzubpyqpew` not accessed); no Supabase/MCP; no Vercel; no push.
-- **Full detail:** `PROJECT_STATE.md` (section "Canonical Documentation — Status Consistency of the Legacy Pedido↔OP Plans") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Canonical Documentation — Status Consistency of the Legacy Pedido↔OP Plans") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 - **Mandatory documentation continuity — relay in every future handoff:**
   1. `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`
   2. `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
@@ -270,7 +271,7 @@
 - **Accesses:** no staging; no production (`bhgifjrfagkzubpyqpew` not accessed); no Supabase/MCP; no Vercel; no push.
 - **Final worktree state:** clean; selective staging by literal path; zero untracked after the commit.
 - **Next authorizable action:** unchanged — `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION` among `A4.1`, `A2.1`, `A6.1` of `G28-CAMADA-2` (see their own sections above). This record does not authorize any subphase.
-- **Full detail:** `PROJECT_STATE.md` (section "Architect Decision — Publication Criterion and Candidate Fronts") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Architect Decision — Publication Criterion and Candidate Fronts") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 - **Mandatory documentation continuity — relay in every future handoff:**
   1. `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`
   2. `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
@@ -299,7 +300,7 @@
 - **Accesses:** Supabase MCP used to apply/verify the two migrations in staging; production (`bhgifjrfagkzubpyqpew`) not accessed; no push.
 - **Final worktree state:** clean; staging empty; zero untracked (`supabase/.temp/` is a local untracked cache of the Supabase CLI, generated by the architect's action).
 - **Next authorizable action:** `ARCHITECT DECISION` — candidates: micro-phase to consume the `db/59` RPC in the UI (the "Último acesso" column in `js/screens/admin-usuarios.js`, under a mockup gate if it involves a new visual element); `A4.2` (boot guard + mandatory change screen, visual gate); `A2.1`/`A6.1` of `G28-CAMADA-2` remain candidates with no unambiguous priority. This entry does not authorize its execution.
-- **Full detail:** `PROJECT_STATE.md` (section "Camada 2 — Temporary Password and Last Access Read Model") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Camada 2 — Temporary Password and Last Access Read Model") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 - **Mandatory documentation continuity — relay in every future handoff:**
   1. `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`
   2. `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
@@ -329,7 +330,7 @@
 - **Production:** `bhgifjrfagkzubpyqpew` not accessed. **Push:** not executed.
 - **Final worktree state:** clean; staging empty; zero untracked (`supabase/.temp/` pre-existing, not from this session).
 - **Next authorizable action:** `ARCHITECT DECISION` among `A2.1` (schema `nivel_acesso`), `A6.1` (audit schema/trigger) and `A5.1-A5.2` (admin password reset). This entry does not authorize its execution.
-- **Full detail:** `PROJECT_STATE.md` (section "Camada 2 — Mandatory Password Change Guard — A4.2") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Camada 2 — Mandatory Password Change Guard — A4.2") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 - **Mandatory documentation continuity — relay in every future handoff:**
   1. `docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md`
   2. `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md`
@@ -353,7 +354,7 @@
 - **Production:** `bhgifjrfagkzubpyqpew` not accessed. **Push:** not executed.
 - **Final worktree state:** clean; staging empty; zero untracked (`supabase/.temp/` pre-existing, not from this session).
 - **Next authorizable action:** already superseded — `A5.1-A5.2` authorized and in progress; see its own section.
-- **Full detail:** `PROJECT_STATE.md` (section "Camada 2 — Last Access RPC Consumption in the UI") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Camada 2 — Last Access RPC Consumption in the UI") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 
 ## Camada 2 — Administrative Password Reset — A5.1-A5.2 — CLOSED / ACCEPTED
 
@@ -370,7 +371,7 @@
 - **Production:** `bhgifjrfagkzubpyqpew` not accessed. **Push:** not executed.
 - **Final worktree state:** clean; staging empty; zero untracked (`supabase/.temp/` pre-existing, not from this session).
 - **Next authorizable action:** `ARCHITECT DECISION` among `A5.3-A5.4` (reactivation), `UI-EL-BOOLEAN-ATTR-FIX`, `A2.1` (access level) and `A6.1` (audit). This entry does not authorize its execution.
-- **Full detail:** `PROJECT_STATE.md` (section "Camada 2 — Administrative Password Reset — A5.1-A5.2") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
+- **Full detail:** `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (section "Camada 2 — Administrative Password Reset — A5.1-A5.2") and `docs/ledgers/G28_LEDGER.md` (append-only entry).
 
 # HANDOFF HISTORY — ARCHIVED
 
