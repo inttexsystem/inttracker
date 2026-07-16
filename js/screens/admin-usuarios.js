@@ -71,7 +71,9 @@
     // A3.2 — card de resumo (KPI). tone='danger' estiliza o card de Inativos.
     function kpiCard({ label, icon, value, subtitle, tone }) {
       const danger = tone === 'danger';
-      const bg = danger ? '#fff8f8' : '#f4f6f9';
+      // Cor padrão de fundo = branco, mesmo tom dos cards KPI do dashboard
+      // admin (.rv-adm-card em js/screens/painel.js: background:#fff).
+      const bg = danger ? '#fff8f8' : '#fff';
       const border = danger ? '#f3dcdc' : '#e4e8ee';
       const labelColor = danger ? '#b06a6a' : '#8a93a3';
       const valueColor = danger ? '#d6403a' : '#16203a';
