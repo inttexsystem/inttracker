@@ -80,7 +80,11 @@ Toda ordem emitida ao executor residente deve conter:
   decidir sozinho (ex.: necessidade de migration, acoplamento que
   exija tocar arquivo fora do manifesto, ambiguidade entre spec e
   código real).
-- **Relatório obrigatório:** formato esperado da resposta.
+- **Relatório obrigatório:** formato esperado da resposta. Toda fase de
+  implementação (não docs-only) inclui seção própria `STRUCTURAL POLICY
+  COMPLIANCE`: regras aplicáveis de `docs/architecture/CODE_HEALTH_RULES.md`
+  citadas por número, evidência de conformidade item a item e tamanho em
+  linhas de cada arquivo tocado (novo ou modificado).
 
 **Autorização é explícita por subfase — fases não se encadeiam
 automaticamente.** Uma ordem cobre exclusivamente o que autoriza.
@@ -107,3 +111,43 @@ automaticamente.** Uma ordem cobre exclusivamente o que autoriza.
 > Em conflito com qualquer documento canônico listado em
 > `docs/DOCUMENTATION_INDEX.md` §1, o canônico prevalece — este
 > protocolo rege o processo de supervisão, não o estado do projeto.
+
+---
+
+## Apêndice — Handoff de supervisão — bloco padrão
+
+Bloco genérico, sem contexto imediato, para abrir qualquer sessão nova de
+parecerista/supervisor (humano ou IA). Registrado verbatim pelo arquiteto em
+2026-07-15.
+
+```text
+HANDOFF DE SUPERVISÃO — RAVATEX CONTROLE DE TAPETES
+
+PAPEL DESIGNADO: PARECERISTA/SUPERVISOR conforme
+docs/governance/SUPERVISION_PROTOCOL.md. Você NÃO é o executor
+nesta sessão. Você NÃO custodia estado: tudo que propuser só
+existe quando registrado nos canônicos por ordem executada.
+
+INTEIRAR-SE AGORA, NESTA ORDEM:
+  1. PROJECT_STATE.md — estado vigente (único dono do estado
+     operacional)
+  2. AGENT_HANDOFF.md — continuidade e última fase aceita
+  3. docs/governance/SUPERVISION_PROTOCOL.md — papéis, formato
+     de ordem, gates
+  4. Demais canônicos listados no CLAUDE.md, conforme necessidade
+
+REGRAS DE SUPERVISÃO:
+  - Ordens que redigir seguem o formato do protocolo
+    (configuração de modelo/esforço, escopo, arquivos
+    permitidos, hard stops, relatório)
+  - Nenhuma fase se encadeia; cada subfase exige autorização
+    explícita do arquiteto (eu)
+  - Não alegar leitura/execução/verificação que não fez de fato
+  - Divergência entre sua conclusão e os canônicos: canônicos
+    vencem; citar e perguntar, nunca corrigir silenciosamente
+
+PRIMEIRA RESPOSTA OBRIGATÓRIA: fase ativa, última fase aceita,
+próxima ação autorizável e decisões de arquiteto pendentes —
+extraídos dos canônicos, com caminho citado. Nenhuma
+recomendação antes disso.
+```

@@ -4,6 +4,67 @@ Este bloco é a única fonte de estado operacional atual por frente.
 HEAD, working tree, staging e divergência devem ser consultados diretamente no Git.
 O conteúdo histórico abaixo não determina o estado atual.
 
+## Decisão de Arquiteto — Critério de Publicação e Frentes Candidatas — G28-GOVERNANCE-CONSOLIDATION-A
+
+Registro vivo e permanente das decisões do arquiteto (2026-07-15) que
+consolidam o protocolo de supervisão (`docs/governance/SUPERVISION_PROTOCOL.md`)
+e registram duas frentes candidatas `NOT AUTHORIZED`, mais o critério de
+arquiteto que condiciona a publicação em produção.
+
+```text
+CODE-HEALTH-AUDIT-§18-R1:
+NOT AUTHORIZED / CANDIDATE
+
+PUBLICATION-TRACK-REVIEW:
+NOT AUTHORIZED / CONDITIONED — NOT A CURRENT CANDIDATE
+
+PUBLICATION CRITERION (ARCHITECT DECISION 2026-07-15):
+PRODUCTION ENTRY REQUIRES G28-CAMADA-2 (FULL SCOPE A1-A7) AND
+G28-CAMADA-3 (AUTOMATED BACKUP) BOTH CLOSED / ACCEPTED IN STAGING
+
+G28-CAMADA-3:
+RECLASSIFIED FROM DEFERRED TO PUBLICATION CRITICAL PATH (AFTER CAMADA 2)
+PENDING OWN SPEC (BK1-BK8 DIAGNOSIS IS A FUTURE PHASE)
+
+STAGING-ONLY-EXECUTION-BOUNDARY-A:
+UNCHANGED / REMAINS IN FORCE
+```
+
+- **Frente candidata `NOT AUTHORIZED`: `CODE-HEALTH-AUDIT-§18-R1`** —
+  auditoria read-only pós-Camada 2 (`docs/architecture/CODE_HEALTH_RULES.md`
+  §18), insumo para decomposição incremental de `cadastros.js` (~2.200
+  linhas, 6 telas embutidas remanescentes após a extração de `A3.1`) e
+  triagem dos débitos de teste de baseline. Não iniciada; nenhuma
+  implementação autorizada por este registro.
+- **Frente condicionada `NOT AUTHORIZED`: `PUBLICATION-TRACK-REVIEW`** —
+  revisão da fronteira staging-only + `DEPLOYMENT_MAPPING_AND_PRODUCTION_
+  MIGRATION_PROCEDURE` + G28-D + aplicação em produção das migrations hoje
+  staging-only + `DELETE-PROD-GUARD-A`, como pré-requisito de usuários
+  reais. Passa a `CONDICIONADA` pelo critério de publicação abaixo — não é
+  candidata corrente, mesmo depois de o backlog geral remanescente ser
+  reconciliado.
+- **Decisão vinculante do arquiteto — critério de publicação (2026-07-15):**
+  o sistema só entra em produção após `G28-CAMADA-2` (escopo pleno `A1-A7`,
+  hoje apenas `CAPACIDADE PARCIAL PREEXISTENTE` + `ESCOPO PLENO DIFERIDO` —
+  ver `G28-RECONCILIATION-DECISIONS-A` abaixo) e `G28-CAMADA-3` (backup
+  automático) estarem ambas `CLOSED / ACCEPTED` em staging.
+  `PUBLICATION-TRACK-REVIEW` fica condicionada a esse critério. A fronteira
+  `STAGING-ONLY-EXECUTION-BOUNDARY-A` permanece vigente sem alteração.
+- **Consequência registrada:** `G28-CAMADA-3` deixa de ser tratada apenas
+  como frente diferida e passa a `CAMINHO CRÍTICO DE PUBLICAÇÃO` (após
+  `G28-CAMADA-2`), pendente de spec própria — o diagnóstico `BK1-BK8` é
+  fase futura, não autorizada por este registro.
+- **Protocolo de supervisão:** `docs/governance/SUPERVISION_PROTOCOL.md`
+  recebeu apêndice "Handoff de supervisão — bloco padrão" (texto verbatim
+  do arquiteto, para abrir sessões novas de parecerista/supervisor) e
+  passou a exigir seção `STRUCTURAL POLICY COMPLIANCE` no relatório de toda
+  fase de implementação (regras aplicáveis de `CODE_HEALTH_RULES.md`
+  citadas + evidência + tamanho em linhas dos arquivos tocados).
+- **Produção:** `bhgifjrfagkzubpyqpew` não acessada. **Push:** não
+  executado.
+- **Ledger:** `docs/ledgers/G28_LEDGER.md` (entrada append-only desta
+  decisão).
+
 ## Decisão de Arquiteto — Fronteira de Execução Staging-Only — STAGING-ONLY-EXECUTION-BOUNDARY-A
 
 Registro vivo e permanente do ciclo atual do projeto (2026-07-15). Este bloco

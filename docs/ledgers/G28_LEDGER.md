@@ -1010,3 +1010,22 @@ risco residual e próxima fase indicada no fechamento.
 - **Estado final do worktree:** limpo; staging vazio; zero untracked.
 - **Risco residual:** nenhum novo. Débitos preexistentes preservados. Novo débito registrado (não bloqueante): `CAMADA2-LAST-ACCESS-RPC` — `NOT AUTHORIZED`, candidata a agrupar com `A4.1`.
 - **Próxima fase indicada no fechamento:** `ARCHITECT DECISION REQUIRED` — candidatas sem prioridade inequívoca: `A4.1` (schema `senha_temporaria`/política de senha, possivelmente agrupada com `CAMADA2-LAST-ACCESS-RPC`), `A2.1` (schema `nivel_acesso`), `A6.1` (schema/trigger de auditoria). `A3.3` permanece `DEFERRED`. `A3.4` depende das demais subfases A3.x aceitas. Nenhuma subfase autorizada por esta entrada.
+
+---
+
+## 2026-07-15 — G28-GOVERNANCE-CONSOLIDATION-A — Consolidate supervision protocol and register publication criteria
+
+- **Gate:** `CLOSED / ACCEPTED`. Docs-only — sem código, teste, SQL, migration, Supabase, staging, produção ou Vercel acessados/alterados.
+- **Commit documental:** `Consolidate supervision protocol and register publication criteria`. O HEAD atual deve ser consultado com `git rev-parse HEAD`.
+- **Arquivos principais:**
+  - `docs/governance/SUPERVISION_PROTOCOL.md` — apêndice "Handoff de supervisão — bloco padrão" (texto verbatim do arquiteto); formato de relatório (§3) passou a exigir seção `STRUCTURAL POLICY COMPLIANCE` em toda fase de implementação.
+  - `PROJECT_STATE.md` — nova seção "Decisão de Arquiteto — Critério de Publicação e Frentes Candidatas".
+  - `AGENT_HANDOFF.md` — novo closeout + continuidade (11 caminhos obrigatórios, `SUPERVISION_PROTOCOL.md` adicionado).
+- **Frentes candidatas registradas (`NOT AUTHORIZED`):** `CODE-HEALTH-AUDIT-§18-R1` — auditoria read-only pós-Camada 2 (§18 `CODE_HEALTH_RULES.md`), insumo para decomposição incremental de `cadastros.js` (~2.200 linhas, 6 telas embutidas remanescentes) e triagem de débitos de teste de baseline; `PUBLICATION-TRACK-REVIEW` — revisão da fronteira staging-only + `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE` + G28-D + aplicação em produção das migrations staging-only + `DELETE-PROD-GUARD-A`, `NOT AUTHORIZED / CONDITIONED`.
+- **Decisão vinculante do arquiteto — critério de publicação:** produção só é autorizada após `G28-CAMADA-2` (escopo pleno `A1-A7`) e `G28-CAMADA-3` (backup automático) estarem ambas `CLOSED / ACCEPTED` em staging. `PUBLICATION-TRACK-REVIEW` condicionada a esse critério. `STAGING-ONLY-EXECUTION-BOUNDARY-A` permanece vigente sem alteração.
+- **Consequência registrada:** `G28-CAMADA-3` reclassificada de diferida para `CAMINHO CRÍTICO DE PUBLICAÇÃO` (após `G28-CAMADA-2`), pendente de spec própria; diagnóstico `BK1-BK8` fica como fase futura, `NOT AUTHORIZED`.
+- **Não alterado:** nenhum código, teste, SQL, migration, runtime tocado; nenhuma subfase de `G28-CAMADA-2`/`G28-CAMADA-3` autorizada; `git diff --check` limpo.
+- **Produção:** `bhgifjrfagkzubpyqpew` não acessada. **Push:** não executado.
+- **Estado final do worktree:** limpo; staging seletiva por caminho literal; zero untracked após o commit.
+- **Risco residual:** nenhum novo. Débitos preexistentes preservados.
+- **Próxima fase indicada no fechamento:** `ARCHITECT DECISION REQUIRED AFTER BACKLOG RECONCILIATION` — inalterada; candidatas de `G28-CAMADA-2` (`A4.1`, `A2.1`, `A6.1`) seguem sem prioridade inequívoca. Este registro não autoriza nenhuma subfase.
