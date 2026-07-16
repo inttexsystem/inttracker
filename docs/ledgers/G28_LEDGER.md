@@ -1378,3 +1378,15 @@ risco residual e próxima fase indicada no fechamento.
 - **Production:** `bhgifjrfagkzubpyqpew` not accessed. **Push:** not executed.
 - **Final worktree state:** clean after commit aside from pre-existing untracked `supabase/.temp/` and the stale `stash@{0}`.
 - **Next phase indicated at closeout:** `ARCHITECT DECISION` — architect visual gate on Lot A, then Lot B (`pedidos-list.js`/`ops-list.js` CLIENTE) or Lot C (`painel.js` cosmetic), both still `NOT AUTHORIZED`.
+
+## 2026-07-16 — Architect validation of Lot A + new findings registered + stash cleanup
+
+- **Gate:** `CLOSED / ACCEPTED` (docs-only; no code change).
+- **Architect visual validation:** `UI-GRID-TEXT-LOT-A` `CONFIRMED` — nome/email conformant on both grids (Clientes, Fornecedores).
+- **`stash@{0}` dropped:** explicitly authorized by the architect this turn; it had already been confirmed stale (predates the helper-phase commits) at the Lot A closeout, so no data was lost.
+- **New findings registered as `NOT AUTHORIZED` candidates, per architect instruction from the Lot A visual inspection:**
+  1. `UI-FIXED-FORMAT-COLUMN-WIDTHS` — Fornecedores grid's CNPJ column (`110px`) wraps an 18-char formatted CNPJ. The diagnosis correctly classified fixed-format fields as not overflow-prone (§7.1 does not apply — a CNPJ must never be truncated) but did not check width against content length; a §7 golden-rule sizing defect, not a §7.1 gap. Candidate scope: audit every fixed-format column (CNPJ, CPF, dates, phone) app-wide for wrap, size to content.
+  2. `UI-DOCUMENTOS-RECEBIDOS-LAYOUT-FIX` — **HIGH SEVERITY.** The diagnosis classified `documentos-recebidos.js` as already-compliant; the architect's live visual inspection found overlapping text on `#/documentos-recebidos` (PEDIDO cell's link overflows across DATAS; "Arquivo não disponível" collides with AÇÕES). Candidate scope: read-only diagnosis first (what overflows, why the grid tracks don't contain it), then a scoped fix.
+  3. `TEST-MOCK-FIDELITY-AUDIT` — suites that hand-mock `js/ui.js` primitives instead of loading the real module are structurally blind to primitive-level defects (precedent: `UI-EL-BOOLEAN-ATTR-FIX`; this chain's own `tests/direct-cnpj-screens.smoke.js` needed a `truncatedCell` mock patch during `UI-GRID-TEXT-LOT-A`). Candidate scope: inventory every test file that hand-mocks `ui.js` primitives, assess drift risk.
+- **Authorization for Lot B and C:** architect ordered execution of `UI-GRID-TEXT-LOT-B-AND-C` (`pedidos-list.js`/`ops-list.js` CLIENTE column; `painel.js` `.rv-adm-ref`/`.rv-adm-mini` cosmetic fix), per the scope already ratified at the original `UI-GRID-TEXT-OVERFLOW-DIAGNOSIS` phasing. Execution follows in this same chain — see the `UI-GRID-TEXT-LOT-B-AND-C` entry below.
+- **Production:** `bhgifjrfagkzubpyqpew` not accessed. **Push:** not executed.

@@ -177,9 +177,10 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   Fornecedores NOME/EMAIL, legacy Usuarios duplicate explicitly excluded)
   `CLOSED / ACCEPTED` (commit `0a1457b`; Fornecedores EMAIL widened
   `1fr`→`1.6fr`, Clientes fractions unchanged; architect visual gate
-  pending). Lot B (`pedidos-list.js` / `ops-list.js` CLIENTE column) and
-  Lot C (`painel.js` `.rv-adm-ref`/`.rv-adm-mini`) remain
-  `NOT AUTHORIZED`, each pending its own order.
+  `CONFIRMED` — nome/email conformant on both grids). Lot B
+  (`pedidos-list.js` / `ops-list.js` CLIENTE column) and Lot C
+  (`painel.js` `.rv-adm-ref`/`.rv-adm-mini`) authorized this order
+  (`UI-GRID-TEXT-LOT-B-AND-C`), execution follows in this same chain.
   **Finding registered:** the read-only diagnosis found the legacy
   `screenCadastrosUsuarios` duplicate in `cadastros.js` (lines ~2226-2381)
   carries the identical unconstrained-text-cell defect (NOME/FORNECEDOR/
@@ -189,6 +190,35 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   dead code pending removal. This confirms `A3.4` (legacy code removal in
   `cadastros.js`) is overdue: live defects are accumulating in code no
   longer reachable by routing but not yet deleted.
+  **New findings from the Lot A architect visual gate (`NOT AUTHORIZED`
+  candidates, registered per architect instruction):**
+  1. `UI-FIXED-FORMAT-COLUMN-WIDTHS` — the Fornecedores grid's CNPJ
+     column (`110px`) wraps an 18-char formatted CNPJ. The diagnosis
+     correctly classified fixed-format fields (CNPJ, dates, numerics) as
+     not overflow-prone (§7.1 does not apply — a CNPJ must never be
+     truncated), but did not check column width against actual content
+     length. This is a §7 golden-rule sizing defect, not a §7.1
+     truncation gap. Candidate scope: audit every fixed-format column
+     (CNPJ, CPF, dates, phone) app-wide for wrap, size to content.
+  2. `UI-DOCUMENTOS-RECEBIDOS-LAYOUT-FIX` — **HIGH SEVERITY.** The Lot A
+     diagnosis (`UI-GRID-TEXT-OVERFLOW-DIAGNOSIS`) classified
+     `documentos-recebidos.js` as already-compliant (filename ellipsis-
+     protected, remetente intentionally wraps); the architect's live
+     visual inspection found this wrong — on `#/documentos-recebidos`
+     the PEDIDO cell's link overflows across the DATAS column, and
+     "Arquivo não disponível" collides with AÇÕES. Candidate scope:
+     read-only diagnosis first (what overflows, why the grid tracks
+     don't contain it), then a scoped fix — do not fix blind.
+  3. `TEST-MOCK-FIDELITY-AUDIT` — suites that hand-mock `js/ui.js`
+     primitives instead of loading the real module are structurally
+     blind to primitive-level defects. Precedent: the
+     `UI-EL-BOOLEAN-ATTR-FIX` regression class, and this chain's own
+     `tests/direct-cnpj-screens.smoke.js`, whose hand-rolled mock had no
+     `truncatedCell` stand-in and broke silently-invisible (would have
+     stayed green with a stale/wrong mock had the gap not surfaced as an
+     immediate crash) until patched during `UI-GRID-TEXT-LOT-A`.
+     Candidate scope: inventory every test file that hand-mocks `ui.js`
+     primitives rather than loading the real source, assess drift risk.
 
 ## Environment and worktree standing facts
 
