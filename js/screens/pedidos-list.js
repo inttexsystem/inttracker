@@ -654,7 +654,7 @@
       });
       ['PEDIDO', 'CLIENTE', 'SIT. INTERNA', 'VISÍVEL AO CLIENTE', 'PARCIAL', 'PRAZO', 'RECEBIMENTO', 'ATUALIZADO', 'AÇÕES'].forEach(function (label, index) {
         row.appendChild(window.el('div', {
-          style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.04em;white-space:nowrap;' + (index === 8 ? 'text-align:center;' : '')
+          style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.04em;' + (index === 1 ? window.TRUNCATE_CELL_STYLE : 'white-space:nowrap;' + (index === 8 ? 'text-align:center;' : ''))
         }, label));
       });
       return row;
@@ -682,7 +682,10 @@
         window.el('div', { style: 'font-size:14px;font-weight:700;color:#2563eb;' }, '#' + (pedido.numero != null ? pedido.numero : '—')),
         window.el('div', { style: 'font-size:11px;color:#9aa2af;margin-top:1px;' }, created)
       ),
-      window.el('div', { style: 'font-size:13.5px;color:#3f4757;' }, clienteNome(pedido)),
+      (function () {
+        var nome = clienteNome(pedido);
+        return window.truncatedCell(nome, nome === '—' ? null : nome, 'font-size:13.5px;color:#3f4757;');
+      })(),
       window.el('div', {}, pill(internalTone(pedido.status))),
       window.el('div', {}, buildVisibleCell(visTone)),
       parcialCell(pedido),

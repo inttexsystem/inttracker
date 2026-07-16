@@ -471,7 +471,7 @@
       });
       ['OP / LOTE', 'TIPO', 'CLIENTE', 'STATUS', 'ENTREGUE', 'CRIADA EM', 'AÇÕES'].forEach(function (label, idx) {
         row.appendChild(window.el('div', {
-          style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.04em;white-space:nowrap;' + (idx === 6 ? 'text-align:center;justify-self:center;' : '')
+          style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.04em;' + (idx === 2 ? window.TRUNCATE_CELL_STYLE : 'white-space:nowrap;' + (idx === 6 ? 'text-align:center;justify-self:center;' : ''))
         }, label));
       });
       return row;
@@ -489,7 +489,10 @@
         window.el('div', { style: 'font-size:11px;color:#9aa2af;margin-top:1px;' }, legacyLabel + ' · ' + loteLabel)
       ),
       window.el('div', {}, window.badgeTipo(row.tipo || 'tecelagem')),
-      window.el('div', { style: 'font-size:13px;color:#3f4757;' }, clienteNome(row)),
+      (function () {
+        var nome = clienteNome(row);
+        return window.truncatedCell(nome, nome === '—' ? null : nome, 'font-size:13px;color:#3f4757;');
+      })(),
       window.el('div', {}, window.badgeStatus(row.status)),
       progressCell(entreguePct(row)),
       window.el('div', { style: 'font-size:13px;color:#5b6472;' }, fmtData(row.criado_em)),
