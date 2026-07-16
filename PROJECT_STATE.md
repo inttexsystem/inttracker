@@ -170,11 +170,13 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
 - **`UI-GRID-TEXT-OVERFLOW` track:** contract amendment (`UI_VISUAL_CONTRACT.md`
   §7.1, grid/list text-cell overflow rule — variable-length identifier-style
   fields single-line ellipsis + `title` tooltip, explicitly exempting
-  free-text notes/badges/dates/numerics) ratified and applied this commit
-  (docs-only). Helper promotion (`truncatedCell` → `js/ui.js`), Lot A
-  (`cadastros.js` Clientes + Fornecedores grids), Lot B (`pedidos-list.js` /
-  `ops-list.js` CLIENTE column), and Lot C (`painel.js` `.rv-adm-ref`/
-  `.rv-adm-mini`) are all `NOT AUTHORIZED`, each pending its own order.
+  free-text notes/badges/dates/numerics) `CLOSED / ACCEPTED` (docs-only).
+  Helper promotion (`truncatedCell`/`TRUNCATE_CELL_STYLE` → `js/ui.js`,
+  `admin-usuarios.js` migrated to the shared version, behavior-neutral)
+  `CLOSED / ACCEPTED`. Lot A (`cadastros.js` Clientes + Fornecedores
+  grids only), Lot B (`pedidos-list.js` / `ops-list.js` CLIENTE column),
+  and Lot C (`painel.js` `.rv-adm-ref`/`.rv-adm-mini`) are all
+  `NOT AUTHORIZED`, each pending its own order.
   **Finding registered:** the read-only diagnosis found the legacy
   `screenCadastrosUsuarios` duplicate in `cadastros.js` (lines ~2226-2381)
   carries the identical unconstrained-text-cell defect (NOME/FORNECEDOR/
