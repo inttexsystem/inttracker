@@ -136,10 +136,28 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   `f30aa0d`). Phase `ii` (`actionButton()` helper in `js/ui.js`,
   additive, zero screens migrated) `CLOSED / ACCEPTED` (commit
   `bbfd58c`). Phase `iii` lot `1` (`UI-ACTION-BUTTON-MIGRATION-1` —
-  `pedidos-list.js` + `cliente-pedidos-list.js`) `AUTHORIZED, IN
-  PROGRESS`. Phase `iii` lot `2` (`ops-list.js`) and any further lot —
-  `NOT AUTHORIZED`, each pending its own order. Registered candidates,
-  not started: `MODAL-BUTTON-CSS-CHECK` (read-only —
+  `pedidos-list.js` + `cliente-pedidos-list.js`) `CLOSED / ACCEPTED`
+  (commit `31b66af`; architect visual validation confirmed both
+  `#/pedidos` and `#/cliente/pedidos` against the Clients reference).
+  Two judgments ratified at this closeout, standing for all remaining
+  lots: existing domain-specific confirmation flows (e.g.
+  `excluirPedidoComFluxo`'s `showDeleteConfirmation`) satisfy the §8.1
+  destructive guard without a redundant `confirmDialog` wrapper; §8.1
+  dimension/sr-only/disabled correctness is proven once at the
+  `actionButton()` primitive level, screen-level tests assert call-site
+  routing only. Phase `iii` lot `2` (`UI-ACTION-BUTTON-MIGRATION-2` —
+  `admin-usuarios.js` users screen + `ops-list.js`, including the
+  `ops-list.js` sr-only `display:none` a11y fix) — explicit architect
+  order (full order text supplied after an initial ambiguous
+  "previously issued" reference that did not itself appear in this
+  session), `AUTHORIZED, IN PROGRESS`. Addendum honored from the
+  architect's preceding message (not repeated in the formal order
+  text, but not contradicted either): report the ACOES column's
+  resolved width on the users screen (4 buttons, ~138px at spec size);
+  a one-line grid-template fix is in scope only if the row compresses,
+  nothing else. Any further lot beyond `2` — `NOT AUTHORIZED`.
+  Registered candidates, not started:
+  `MODAL-BUTTON-CSS-CHECK` (read-only —
   `document-link-admin-modal.js`/`documentos-recebidos-decision-modal.js`
   render buttons with no inline style, deferred to external CSS classes
   not found in the repo); `fornecedor.js` visual redesign (separate
@@ -169,6 +187,7 @@ HEAD with `git rev-parse HEAD`.
 
 | Phase | Status | Date | Commit(s) |
 |---|---|---|---|
+| UI Action Button — Order Lists Migration — `UI-ACTION-BUTTON-MIGRATION-1` (phase iii, lot 1) | `CLOSED / ACCEPTED` | 2026-07-16 | `31b66af` |
 | UI Action Button — Helper Primitive — `UI-ACTION-BUTTON-HELPER` (phase ii) | `CLOSED / ACCEPTED` | 2026-07-16 | `bbfd58c` |
 | UI Visual Contract — Row-Level Icon Button Amendment — `UI-ACTION-BUTTON-CONTRACT-AMENDMENT` (phase i) | `CLOSED / ACCEPTED` | 2026-07-16 | (docs) |
 | `DOC-LANGUAGE-MIGRATION-L1` — Governance documents translated to English | `CLOSED / ACCEPTED` | 2026-07-16 | `cab741c`, `ce4b693` |
