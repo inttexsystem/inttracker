@@ -390,6 +390,43 @@ in `PROJECT_STATE.md`.
 > (576 lines, candidate for `CODE-HEALTH-AUDIT-§18-R1`). `A5.3-A5.4`
 > (reactivation) remains `NOT AUTHORIZED`, its own future authorization.
 > Production `bhgifjrfagkzubpyqpew` not accessed; no push.
+>
+> **`A5.3-A5.4` (`2026-07-16`) — `CLOSED / ACCEPTED`:** new Edge
+> Function `admin-reactivate-user` (symmetric counterpart of
+> `admin-disable-user`) — `ativo=true`, clears `desativado_em`/
+> `desativado_por`/`motivo_desativacao`,
+> `auth.admin.updateUserById(target, {ban_duration:'none'})`; guards the
+> target exists (`NOT_FOUND`) and is inactive (`REACTIVATE_NOT_INACTIVE`
+> otherwise — deliberately not idempotent, unlike `admin-disable-user`'s
+> `already_disabled`); compensates to the *exact* prior inactive state
+> (preserved before the update, not re-stamped) if the unban call fails
+> (see `supabase/functions/admin-reactivate-user/README.md`). UI:
+> inactive rows in `js/screens/admin-usuarios.js` swap the ban icon for
+> a refresh icon → `confirmDialog` (non-destructive) →
+> `reativarUsuario(userId)`. **Deploy to staging
+> (`ucrjtfswnfdlxwtmxnoo`) executed by the architect.** An **automated
+> local E2E runner**, 5th of the same pattern as the previous ones
+> (`admin-disable-user-e2e.mjs`,
+> `admin-create-user-password-policy-e2e.mjs`,
+> `trocar-senha-obrigatoria-e2e.mjs`, `admin-reset-password-e2e.mjs` —
+> login with a real password only by a human, never by the AI agent;
+> secret sanitization; staging-only guard; gitignored local config),
+> was created at `scripts/staging/admin-reactivate-e2e.mjs`. **Real E2E
+> in staging passed with `result: PASS` (13/13 steps)**, covering:
+> disable→login-blocked→reactivate→flags-cleared→login-restored chain,
+> plus the `REACTIVATE_NOT_INACTIVE` guard on the now-active target and
+> zero-cleanup verification. Architect visual validation confirmed the
+> Desativar button works on an active user. **Finding —
+> `UI-EL-BOOLEAN-ATTR-FIX` severity updated from `NOT CONFIRMED` to
+> `CONFIRMED — ACTIVE REGRESSION`:** the architect reproduced the
+> boolean-`setAttribute` bug live via the "Mostrar inativos" checkbox
+> in `admin-usuarios.js` (always renders checked regardless of the
+> actual toggle state, same root cause as the `expedicao-admin.js`
+> residue); the Excluir button in the same file carries the identical
+> vulnerable pattern and is unconfirmed but suspect; not fixed in this
+> phase, recorded as the priority `ARCHITECT DECISION` candidate. The
+> `A5` track (reset + reactivation) is now `COMPLETE`. Production
+> `bhgifjrfagkzubpyqpew` not accessed; no push.
 ## 4. Legacy docs (DOES NOT GUIDE EXECUTION (NÃO GUIAM EXECUÇÃO))
 
 Preserved for historical context. Each folder or file carries its own

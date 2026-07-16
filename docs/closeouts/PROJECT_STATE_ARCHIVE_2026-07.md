@@ -155,6 +155,125 @@
 - **Ledger:** `docs/ledgers/G28_LEDGER.md` (append-only entry for this
   phase).
 
+## Camada 2 — User Reactivation — A5.3-A5.4
+
+- **Front:** `G28-CAMADA-2`, subphase `A5.3-A5.4` of
+  `docs/architecture/CAMADA2_USUARIOS_SPEC_PROPOSED.md`, authorized in
+  parallel with `A5.1-A5.2` per the subphase/gate table (§ "Subphase\gate").
+  Completes the `A5` track (reset + reactivation).
+- **Classification: `CLOSED / ACCEPTED`** (real e2e in staging `result:
+  PASS`, 13/13 steps, executed by the architect; architect visual
+  validation confirmed the Desativar button works correctly on an
+  active user).
+- **Technical HEAD:** `f886e26` — `Add admin user reactivation`
+  (`supabase/functions/admin-reactivate-user/index.ts` (new),
+  `supabase/functions/admin-reactivate-user/README.md` (new),
+  `js/admin-usuarios-writes.js`, `js/screens/admin-usuarios.js`,
+  `js/screens/admin-usuarios-modal.js`,
+  `scripts/staging/admin-reactivate-e2e.mjs` (new),
+  `tests/admin-reactivate-user.smoke.js` (new),
+  `tests/admin-usuarios.smoke.js`). **Documentation commit:** this
+  closeout (`Close admin user reactivation phase`). The current HEAD
+  must be consulted with `git rev-parse HEAD`.
+- **Edge Function (`admin-reactivate-user`):** symmetric counterpart of
+  `admin-disable-user` — `ativo=true`, clears `desativado_em`/
+  `desativado_por`/`motivo_desativacao`,
+  `auth.admin.updateUserById(target, {ban_duration:'none'})`. Guards:
+  target must exist (`NOT_FOUND`) and be inactive
+  (`REACTIVATE_NOT_INACTIVE` otherwise — deliberately **not**
+  idempotent, unlike `admin-disable-user`'s `already_disabled`:
+  reactivating an already-active user is a caller error, there is no
+  ambiguous "already reactivated" state to collapse into);
+  self-reactivation guarded (`SELF_REACTIVATE_FORBIDDEN`) though
+  practically unreachable (an inactive target is banned and cannot
+  hold a session).
+- **Compensation-on-partial-failure design:** if the Auth unban call
+  fails after the profile has already been marked `ativo=true`, the
+  function reverts to the *exact* previous inactive state —
+  `desativado_em`/`desativado_por`/`motivo_desativacao` are read and
+  preserved **before** the update, not re-stamped with new values —
+  returning `AUTH_UNBAN_FAILED`; if the reversion itself fails,
+  `COMPENSATION_FAILED` (manual action required). Same pattern as
+  `admin-disable-user`'s compensation.
+- **UI:** inactive rows swap the ban icon for a refresh icon in the
+  same action slot (`js/screens/admin-usuarios.js`), wired to a new
+  `confirmDialog` (non-destructive blue button, `danger:false`) →
+  `reativarUsuario(userId)` → success/error toast. Active rows
+  unchanged. Safe boolean-attr pattern followed (no `disabled` key on
+  this button in either state).
+- **Deploy in staging (`ucrjtfswnfdlxwtmxnoo`) executed by the
+  architect** — outside the credential reach of this session (AI agent
+  does not enter password/token/API key in any field, permanent rule).
+- **Post-deploy verification — real E2E in staging, `result: PASS`
+  (13/13), executed by the architect** via
+  `scripts/staging/admin-reactivate-e2e.mjs`
+  (`test_user_id 860b6fea-ac9e-45b1-8b85-9cfa255020e4`): synthetic
+  fornecedor created; login confirmed before any deactivation; disabled
+  via the existing `admin-disable-user` flow (`ativo=false`,
+  `auth_banned=true`); login confirmed blocked (banned); reactivated via
+  the new Edge Function (`ativo=true`, `auth_banned=false`); flags
+  confirmed cleared in `public.usuarios`
+  (`desativado_em`/`desativado_por`/`motivo_desativacao` all `null`);
+  login confirmed restored; guard `REACTIVATE_NOT_INACTIVE` confirmed
+  on the now-active target; cleanup via `admin-delete-user`, zero
+  cleanup confirmed.
+- **Local tests:** `node --check` PASS on all touched/new files;
+  `tests/admin-reactivate-user.smoke.js` (new, static) **22/22**
+  (guards, symmetry with `admin-disable-user`, non-idempotent
+  `REACTIVATE_NOT_INACTIVE`, exact-state compensation, never logs a
+  secret — there is none to log here); `tests/admin-usuarios.smoke.js`
+  extended **35/35** (6 new tests: icon swap by `ativo` state,
+  `confirmDialog`, full success flow, error flow, isolated write);
+  consolidated regression across the touched suites (`admin-usuarios`,
+  `admin-reactivate-user`, `admin-disable-user`,
+  `admin-reset-user-password`, `boot`, `cadastros-screens`) **195/195**,
+  no regressions. `git diff --check` clean.
+- **Architect visual validation:** Desativar button on an active user
+  **CONFIRMED WORKING** in staging — this also clears, for this one
+  control, the risk flagged in the `A5.1-A5.2` finding below (the
+  `A5.3-A5.4` rewrite dropped the vulnerable `disabled: <boolean>` key
+  from the Desativar/Reativar button entirely, as a side effect of the
+  icon-swap logic — not a deliberate fix of `js/ui.js`). Icon-swap +
+  Reativar flow: issue found and diagnosed (see next finding) — not
+  itself a defect in the Reativar code delivered this phase; the
+  Reativar action, once discoverable, worked as designed in the e2e.
+- **Finding — `UI-EL-BOOLEAN-ATTR-FIX` severity updated from
+  `NOT CONFIRMED` to `CONFIRMED — ACTIVE REGRESSION`:** while validating
+  the Reativar flow, the architect found that a disabled user
+  disappears from the Usuários screen and stays gone even with
+  "Mostrar inativos" checked — the checkbox "persists marked when
+  clicking" (does not visually reflect its real state). Root cause
+  diagnosed: `js/screens/admin-usuarios.js`'s toggle passes `checked:
+  mostrarInativos` straight into `window.el()`, which calls
+  `node.setAttribute('checked', mostrarInativos)` unconditionally;
+  since `renderStandalone()` creates a brand-new `<input>` on every
+  re-render, the `checked` attribute is always present (`"true"` or
+  `"false"` as a string), and HTML boolean attributes are
+  true-by-presence regardless of value — so the fresh checkbox always
+  renders checked, independent of the actual `mostrarInativos` state.
+  Exact same root cause as the `disabled="null"` residue already fixed
+  once in `expedicao-admin.js`, now empirically reproduced via a second
+  control. The Excluir button in the same file (`disabled: !!(meId &&
+  user.id === meId)`) carries the identical pattern and is unconfirmed
+  but suspect by the same evidence. **Not fixed in this phase** —
+  outside the `A5.3-A5.4` manifest, and mixing this diagnosis with a
+  patch here would violate `CODE_HEALTH_RULES.md` §14 (do not mix
+  diagnosis with patch). Recorded as the priority `ARCHITECT DECISION`
+  candidate.
+- **Finding unchanged — decomposition candidate
+  (`CODE-HEALTH-AUDIT-§18-R1`):** `js/screens/admin-usuarios-modal.js`
+  grew from 576 to 604 lines accommodating the 5th modal
+  (`openReativarModal`); already a recorded candidate, no action taken.
+- **Production:** `bhgifjrfagkzubpyqpew` not accessed. **Push:** not
+  executed.
+- **Next authorizable action:** `ARCHITECT DECISION` — candidates:
+  `UI-EL-BOOLEAN-ATTR-FIX` (now `CONFIRMED — ACTIVE REGRESSION`,
+  recommended priority); `A2.1` (`nivel_acesso` schema); `A6.1` (audit
+  schema/trigger). `A3.4` unlocks once the remaining `A2`/`A6`
+  subphases close. No subphase authorized by this record.
+- **Ledger:** `docs/ledgers/G28_LEDGER.md` (append-only entry for this
+  phase).
+
 ## Camada 2 — Last Access RPC Consumption in the UI — CAMADA2-LAST-ACCESS-UI
 
 - **Front:** `G28-CAMADA-2`, micro-phase of consuming the `db/59` RPC

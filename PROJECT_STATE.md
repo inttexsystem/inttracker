@@ -13,13 +13,17 @@ HEAD, working tree, staging and divergence must be consulted directly in Git
 ## Active phase and next action
 
 - **Active functional phase:** `NONE`.
-- **Next authorizable action:** `ARCHITECT DECISION`. No single, unambiguous
+- **Next authorizable action:** `ARCHITECT DECISION`. `A5.3-A5.4` (user
+  reactivation) is `CLOSED / ACCEPTED` — see "Closed phases" below; the `A5`
+  track (reset + reactivation) is now `COMPLETE`. No single, unambiguous
   technical candidate for the current staging cycle. Candidates on the table
-  (none authorized by this file): `A5.3-A5.4` (user reactivation, own future
-  authorization); `UI-EL-BOOLEAN-ATTR-FIX` (severity `NOT CONFIRMED`, pending
-  architect verification); `A2.1` (schema `nivel_acesso`); `A6.1` (audit
-  schema/trigger); `DOC-LANGUAGE-MIGRATION-L3` (`NOT AUTHORIZED` pending
-  `PROJECT-STATE-COMPACTION-A`).
+  (none authorized by this file): `UI-EL-BOOLEAN-ATTR-FIX` (severity
+  `CONFIRMED — ACTIVE REGRESSION`, empirically reproduced by the architect in
+  staging via the "Mostrar inativos" checkbox in `js/screens/admin-usuarios.js`
+  — recommended as the priority candidate); `A2.1` (schema `nivel_acesso`);
+  `A6.1` (audit schema/trigger); `DOC-LANGUAGE-MIGRATION-L3` (`NOT AUTHORIZED`
+  pending `PROJECT-STATE-COMPACTION-A`). `A3.4` (legacy code removal in
+  `cadastros.js`) unlocks once the remaining `A2`/`A6` subphases close.
 - **Open architect decisions:** `NONE` blocking the current staging cycle. Two
   non-blocking naming/consistency points from `DOC-LANGUAGE-MIGRATION-L2` were
   ruled on and applied (documentation-term unification; phase-ID naming rule).
@@ -73,6 +77,24 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
 - **Admin password auto-reset BLOCKED (`A5.1-A5.2`):** an admin cannot reset
   their own password (`SELF_RESET_FORBIDDEN`) — they use the normal self-service
   change flow (`A4.2`).
+- **`UI-EL-BOOLEAN-ATTR-FIX` — CONFIRMED as an active regression (`A5.3-A5.4`
+  closeout, 2026-07-16):** `js/ui.js`'s `el()` calls `setAttribute(k, v)`
+  unconditionally, including for boolean attrs (`disabled`, `checked`) — the
+  attribute's mere presence makes it true in a real browser regardless of the
+  string value, so `setAttribute('checked', false)`/`setAttribute('disabled',
+  false)` still render as checked/disabled. The architect reproduced this live
+  in staging via the "Mostrar inativos" checkbox in
+  `js/screens/admin-usuarios.js` (`checked: mostrarInativos` passed
+  unconditionally): the checkbox always renders checked after each re-render
+  regardless of the actual toggle state, making inactive users effectively
+  undiscoverable through that control. The `A5.3-A5.4` rewrite of the
+  Desativar/Reativar button incidentally dropped the vulnerable `disabled:
+  <boolean>` pattern for that one control (confirmed working by the architect),
+  but the Excluir button in the same file (`disabled: !!(meId && user.id ===
+  meId)`) still carries the identical pattern and is unconfirmed but suspect.
+  Same root cause as the residue already fixed once in `expedicao-admin.js`.
+  Not fixed in this phase (outside every manifest to date) — recommended as
+  the priority `ARCHITECT DECISION` candidate.
 - **Controlled Delete × document history:** physical deletion of Pedido/OP is
   blocked when canonical document history exists (`document_link_revisions`/
   `document_link_revision_ops`, append-only, never deleted); the permanent
@@ -91,8 +113,9 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
 - **`NOT AUTHORIZED` candidate fronts:** `CODE-HEALTH-AUDIT-§18-R1` (read-only
   §18 audit; input for `cadastros.js` decomposition and baseline test-debt
   triage); `PUBLICATION-TRACK-REVIEW` (conditioned on the publication
-  criterion); `UI-EL-BOOLEAN-ATTR-FIX` (severity `NOT CONFIRMED`); `G28-D`
-  publication (`DEFERRED / NOT AUTHORIZED / NOT A CURRENT BLOCKER`);
+  criterion); `UI-EL-BOOLEAN-ATTR-FIX` (severity `CONFIRMED — ACTIVE
+  REGRESSION`, not yet fixed — see "Binding decisions in force" note below);
+  `G28-D` publication (`DEFERRED / NOT AUTHORIZED / NOT A CURRENT BLOCKER`);
   `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE` (`DEFERRED UNTIL
   GLOBAL BACKLOG COMPLETION`); `DELETE-PROD-GUARD-A`; `DELETE-AUDIT-LOG-A`;
   `G28-CAMADA-4`. `A4.3` (email/SMTP invites) remains `NOT AUTHORIZED`.
@@ -134,6 +157,7 @@ HEAD with `git rev-parse HEAD`.
 |---|---|---|---|
 | `DOC-LANGUAGE-MIGRATION-L1` — Governance documents translated to English | `CLOSED / ACCEPTED` | 2026-07-16 | `cab741c`, `ce4b693` |
 | Camada 2 — Administrative Password Reset — `A5.1-A5.2` | `CLOSED / ACCEPTED` | 2026-07-16 | `b726717` |
+| Camada 2 — User Reactivation — `A5.3-A5.4` | `CLOSED / ACCEPTED` | 2026-07-16 | `f886e26` |
 | Camada 2 — Last Access RPC Consumption in the UI — `CAMADA2-LAST-ACCESS-UI` | `CLOSED / ACCEPTED` | 2026-07-16 | `0aff22f` |
 | Camada 2 — Mandatory Password Change Guard — `A4.2` | `CLOSED / ACCEPTED` | 2026-07-16 | `6c624ef` |
 | Camada 2 — Temporary Password and Last Access Read Model — `A4.1 + CAMADA2-LAST-ACCESS-RPC` | `CLOSED / ACCEPTED` | 2026-07-16 | `bf0d522`, `c6289f8` |
