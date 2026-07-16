@@ -155,9 +155,13 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   addendum: the column was hardcoded `102px` but 4 `actionButton()`s
   need `30×4 + 6×3 = 138px` — widened via the one grid-template value.
   `ops-list.js`'s Excluir OP also gained `danger` (red) styling,
-  matching every other Excluir action (was neutral gray before). Any
-  further lot beyond `2` (`cadastros.js`, lot `3`) — `NOT AUTHORIZED`,
-  pending its own order. Registered candidates, not started:
+  matching every other Excluir action (was neutral gray before).
+  Separate follow-up `UI-USERS-GRID-TEXT-OVERFLOW` (users grid text
+  cells — E-MAIL/NOME/FORNECEDOR/CLIENTE — single-line ellipsis +
+  `title` tooltip; E-MAIL widened `1.3fr`→`2fr`) `CLOSED / ACCEPTED`
+  (commit `3e95e86`). Any further lot beyond `2` (`cadastros.js`, lot
+  `3`) — `NOT AUTHORIZED`, pending its own order. Registered
+  candidates, not started:
   `MODAL-BUTTON-CSS-CHECK` (read-only —
   `document-link-admin-modal.js`/`documentos-recebidos-decision-modal.js`
   render buttons with no inline style, deferred to external CSS classes
@@ -188,6 +192,7 @@ HEAD with `git rev-parse HEAD`.
 
 | Phase | Status | Date | Commit(s) |
 |---|---|---|---|
+| Users Grid — Text Overflow Ellipsis — `UI-USERS-GRID-TEXT-OVERFLOW` | `CLOSED / ACCEPTED` | 2026-07-16 | `3e95e86` |
 | UI Action Button — Users and Ops Screens Migration — `UI-ACTION-BUTTON-MIGRATION-2` (phase iii, lot 2) | `CLOSED / ACCEPTED` | 2026-07-16 | `abfb95e` |
 | UI Action Button — Order Lists Migration — `UI-ACTION-BUTTON-MIGRATION-1` (phase iii, lot 1) | `CLOSED / ACCEPTED` | 2026-07-16 | `31b66af` |
 | UI Action Button — Helper Primitive — `UI-ACTION-BUTTON-HELPER` (phase ii) | `CLOSED / ACCEPTED` | 2026-07-16 | `bbfd58c` |

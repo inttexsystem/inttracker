@@ -1312,3 +1312,19 @@ risco residual e próxima fase indicada no fechamento.
 - **Production:** `bhgifjrfagkzubpyqpew` not accessed. **Push:** not executed.
 - **Final worktree state:** clean; staging by literal path only; `supabase/.temp/` remains pre-existing untracked (not staged).
 - **Next phase indicated at closeout:** lot `3` (`cadastros.js`) — `NOT AUTHORIZED`, pending its own order. Registered candidates unchanged: `MODAL-BUTTON-CSS-CHECK` (read-only), `fornecedor.js` visual redesign (separate track).
+
+## 2026-07-16 — UI-USERS-GRID-TEXT-OVERFLOW — Add text overflow ellipsis to users grid
+
+- **Gate:** `CLOSED / ACCEPTED`. UI refinement, presentation-only (§14 — no refactor, no logic changes). Users screen only.
+- **Front:** follow-up to `UI-ACTION-BUTTON-MIGRATION-2` (users screen), documentation closeout folded into the same phase per explicit architect order (low-effort, mechanical CSS fix).
+- **Authorization:** explicit architect order ("ORDER — UI-USERS-GRID-TEXT-OVERFLOW"), session model / low effort.
+- **Technical + documentation commit:** `3e95e86` — `Add text overflow ellipsis to users grid` (`js/screens/admin-usuarios.js`, `tests/admin-usuarios.smoke.js`).
+- **Fix:** E-MAIL/NOME/FORNECEDOR/CLIENTE grid cells truncate to a single line with an ellipsis (`white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0`), consistent across header and data rows. Each truncated cell carries a `title` attribute with the full value — omitted when the displayed text is the `—` fallback, to avoid a useless tooltip. New local pure helper `truncatedCell(displayText, rawValue, colorStyle)` reused across the 4 cells.
+- **Resulting grid template (reported per order item 3):** `2fr 1fr 110px 1fr 1fr 90px 130px 138px` — E-MAIL widened `1.3fr`→`2fr`; NOME/FORNECEDOR/CLIENTE unchanged at `1fr`; TIPO/STATUS/ULTIMO ACESSO/ACOES (`138px`, from `UI-ACTION-BUTTON-MIGRATION-2`) unchanged.
+- **No data/handler/button change** — pure CSS + a `title` attribute.
+- **Local tests:** `node --check` PASS. `tests/admin-usuarios.smoke.js` extended with 4 new tests (exact grid-template match; E-MAIL nowrap/overflow/ellipsis/min-width + full-value title on a long synthetic address, full text confirmed still present in the DOM; NOME/FORNECEDOR/CLIENTE same treatment with title absent on `—` cells; header cells carry the same truncation treatment, TIPO/STATUS confirmed without ellipsis); one pre-existing test's grid-template filter regex updated (`1\.3fr`→`2fr`) to match the new leading fraction, no assertion semantics changed. All 42 pre-existing tests kept passing.
+- **Full regression — in-place stash-verified:** before `3668` tests / `3512` pass / `156` fail; after `3672` / `3516` / `156` — exactly the 4 new tests added, all passing; the 156 failing test names byte-identical before/after (`diff` confirmed).
+- **Architect visual gate:** not independently re-verified by the agent — no live/staging browser session available in this environment (standing limitation). The architect's own quick check (long synthetic email truncates with "…", hover shows the full address, no row-height jump, no horizontal scroll) is the operative verification for this phase.
+- **Production:** `bhgifjrfagkzubpyqpew` not accessed. **Push:** not executed.
+- **Final worktree state:** clean; staging by literal path only; `supabase/.temp/` remains pre-existing untracked (not staged).
+- **Next phase indicated at closeout:** `ARCHITECT DECISION` — no single unambiguous candidate; `UI-ACTION-BUTTON` lot `3` (`cadastros.js`), `A2.1`, `A6.1` remain on the table, none authorized by this record.
