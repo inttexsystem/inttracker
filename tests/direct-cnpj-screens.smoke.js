@@ -95,6 +95,17 @@ function createHarness(options = {}) {
   sandbox.ADMIN_MENU = [];
   sandbox.toast = (message, level) => toasts.push({ message, level });
   sandbox.confirmDialog = () => {};
+  // UI-GRID-TEXT-HELPER / UI-GRID-TEXT-LOT-A: cadastros.js's Clientes/
+  // Fornecedores grids now render NOME/CONTATO/EMAIL via
+  // window.truncatedCell() (js/ui.js). This harness hand-mocks the ui.js
+  // primitives instead of loading the real module, so it needs its own
+  // stand-in — same shape as the real one.
+  sandbox.TRUNCATE_CELL_STYLE = 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;';
+  sandbox.truncatedCell = (displayText, rawValue, colorStyle) => {
+    const attrs = { style: `${colorStyle} ${sandbox.TRUNCATE_CELL_STYLE}` };
+    if (rawValue) attrs.title = rawValue;
+    return sandbox.el('div', attrs, displayText);
+  };
   sandbox.supa = {
     from(table) {
       calls.push({ op: 'from', table });

@@ -856,9 +856,9 @@
         style: 'background:#fff; border:1px solid #eceef1; border-radius:6px 6px 0 0; overflow:hidden;'
       });
       const columns = [
-        { key: 'nome', label: 'NOME', width: '1.2fr' },
+        { key: 'nome', label: 'NOME', width: '1.2fr', truncate: true },
       ];
-      if (columnSupport.contato) columns.push({ key: 'contato', label: 'CONTATO', width: '1fr', optional: true });
+      if (columnSupport.contato) columns.push({ key: 'contato', label: 'CONTATO', width: '1fr', optional: true, truncate: true });
       if (columnSupport.telefone) columns.push({ key: 'telefone', label: 'TELEFONE', width: '1fr', optional: true });
       columns.push({ key: 'cnpj', label: 'CNPJ', width: '1.2fr' });
       columns.push({ key: 'id', label: 'ID', width: '70px' });
@@ -870,7 +870,7 @@
       });
       columns.forEach((column) => {
         const head = window.el('div', {
-          style: `font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;${column.align === 'center' ? ' text-align:center;' : ''}`
+          style: `font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; ${column.truncate ? window.TRUNCATE_CELL_STYLE : 'white-space:nowrap;'}${column.align === 'center' ? ' text-align:center;' : ''}`
         }, column.label + (column.optional ? ' ' : ''));
         if (column.optional) {
           head.appendChild(window.el('span', {
@@ -885,14 +885,10 @@
         const line = window.el('div', {
           style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid #f1f3f6'};`
         });
-        line.appendChild(window.el('div', {
-          style: 'font-size:14px; font-weight:500; color:#16203a;'
-        }, row.nome || ''));
+        line.appendChild(window.truncatedCell(row.nome || '', row.nome, 'font-size:14px; font-weight:500; color:#16203a;'));
         if (columnSupport.contato) {
           const contatoText = row.contato || '—';
-          line.appendChild(window.el('div', {
-            style: `font-size:13.5px; color:${contatoText === '—' ? '#aab2bf' : '#3f4757'};`
-          }, contatoText));
+          line.appendChild(window.truncatedCell(contatoText, row.contato, `font-size:13.5px; color:${contatoText === '—' ? '#aab2bf' : '#3f4757'};`));
         }
         if (columnSupport.telefone) {
           const telefoneText = row.telefone || '—';
@@ -1858,10 +1854,10 @@
         style: 'background:#fff; border:1px solid #eceef1; border-radius:6px 6px 0 0; overflow:hidden;'
       });
       const headRow = window.el('div', {
-        style: 'display:grid; grid-template-columns:1fr 1fr 110px 1fr 70px 100px; align-items:center; gap:16px; padding:10px 18px; background:#f8f9fb; border-bottom:1px solid #eceef1;'
+        style: 'display:grid; grid-template-columns:1fr 1.6fr 110px 1fr 70px 100px; align-items:center; gap:16px; padding:10px 18px; background:#f8f9fb; border-bottom:1px solid #eceef1;'
       });
-      headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;' }, 'NOME'));
-      const emailHead = window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;' }, 'EMAIL ');
+      headRow.appendChild(window.el('div', { style: `font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; ${window.TRUNCATE_CELL_STYLE}` }, 'NOME'));
+      const emailHead = window.el('div', { style: `font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; ${window.TRUNCATE_CELL_STYLE}` }, 'EMAIL ');
       emailHead.appendChild(window.el('span', {
         style: 'font-size:10px; font-weight:500; color:#b6bdc8; letter-spacing:0;'
       }, '(opcional)'));
@@ -1874,15 +1870,11 @@
 
       rows.forEach((row, index) => {
         const line = window.el('div', {
-          style: `display:grid; grid-template-columns:1fr 1fr 110px 1fr 70px 100px; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid #f1f3f6'};`
+          style: `display:grid; grid-template-columns:1fr 1.6fr 110px 1fr 70px 100px; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid #f1f3f6'};`
         });
-        line.appendChild(window.el('div', {
-          style: 'font-size:14px; font-weight:500; color:#16203a;'
-        }, row.nome || ''));
+        line.appendChild(window.truncatedCell(row.nome || '', row.nome, 'font-size:14px; font-weight:500; color:#16203a;'));
         const emailText = formatEmail(row.email);
-        line.appendChild(window.el('div', {
-          style: `font-size:13.5px; color:${emailText === '—' ? '#aab2bf' : '#3f4757'};`
-        }, emailText));
+        line.appendChild(window.truncatedCell(emailText, row.email, `font-size:13.5px; color:${emailText === '—' ? '#aab2bf' : '#3f4757'};`));
         line.appendChild(window.el('div', {
           style: 'font-size:13.5px; color:' + (row.cnpj ? '#3f4757' : '#aab2bf') + '; font-variant-numeric:tabular-nums;'
         }, row.cnpj ? formatarCnpj(row.cnpj) : '—'));
