@@ -988,11 +988,86 @@ test('44. coluna ACOES: grid-template widened to 138px (4 buttons × 30px + 3 ga
   const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
   const flex = node.children.find((c) => c.tagName === 'DIV');
   const main = flex.children.find((c) => c.tagName === 'MAIN');
-  const gridUsers = findAll(main, (n) => n._attrs && n._attrs.style && /grid-template-columns:1\.3fr/.test(n._attrs.style));
+  const gridUsers = findAll(main, (n) => n._attrs && n._attrs.style && /grid-template-columns:2fr/.test(n._attrs.style));
   assert.ok(gridUsers.length > 0, 'nenhum elemento com grid-template-columns encontrado');
   for (const el of gridUsers) {
     assert.match(el._attrs.style, /138px/, 'grid-template-columns deveria terminar em 138px (coluna ACOES)');
     assert.doesNotMatch(el._attrs.style, /102px/, 'a largura antiga (102px, insuficiente para 4 botões) não deveria mais aparecer');
+  }
+});
+
+// -----------------------------------------------------------------------------
+// Runtime — UI-USERS-GRID-TEXT-OVERFLOW: E-MAIL/NOME/FORNECEDOR/CLIENTE cells
+// truncate with an ellipsis instead of wrapping/overflowing, each carrying a
+// `title` tooltip with the full value. Grid template report:
+//   '2fr 1fr 110px 1fr 1fr 90px 130px 138px'
+//   (E-MAIL / NOME / TIPO / FORNECEDOR / CLIENTE / STATUS / ULTIMO ACESSO / ACOES)
+// -----------------------------------------------------------------------------
+
+test('45. grid-template report: E-MAIL widened to 2fr; NOME/FORNECEDOR/CLIENTE unchanged at 1fr', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const gridUsers = findAll(main, (n) => n._attrs && n._attrs.style && /grid-template-columns:2fr/.test(n._attrs.style));
+  assert.ok(gridUsers.length > 0, 'nenhum elemento com grid-template-columns encontrado');
+  for (const el of gridUsers) {
+    assert.match(el._attrs.style, /grid-template-columns:2fr 1fr 110px 1fr 1fr 90px 130px 138px/,
+      'grid-template-columns deveria ser exatamente "2fr 1fr 110px 1fr 1fr 90px 130px 138px"');
+  }
+});
+
+test('46. célula E-MAIL: nowrap + ellipsis + min-width:0 + title com o valor completo', async () => {
+  const longEmail = 'usuario.com.nome.bem.longo.para.testar.truncamento@empresa-exemplo.com.br';
+  const fixture = {
+    usuarios: [{ id: 'u-x', email: longEmail, nome: 'Longo', tipo: 'admin', ativo: true, fornecedor: null, cliente: null }],
+    fornecedores: [], clientes: [],
+  };
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: fixture });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const emailCell = findAll(main, (n) => n._attrs && n._attrs.title === longEmail)[0];
+  assert.ok(emailCell, 'célula E-MAIL com title completo não encontrada');
+  assert.match(emailCell._attrs.style, /white-space:nowrap/);
+  assert.match(emailCell._attrs.style, /overflow:hidden/);
+  assert.match(emailCell._attrs.style, /text-overflow:ellipsis/);
+  assert.match(emailCell._attrs.style, /min-width:0/);
+  assert.equal(textOf(emailCell), longEmail, 'o texto completo continua no DOM (o corte é só visual via CSS)');
+});
+
+test('47. células NOME/FORNECEDOR/CLIENTE: mesmo tratamento de truncamento; título ausente quando valor é "—"', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const meRow = findRowByText(main, 'me@ravatex.com');
+  // me-id (admin) tem nome "Eu Mesmo" mas fornecedor/cliente nulos ("—").
+  const nomeCell = findAll(meRow, (n) => n._attrs && n._attrs.title === 'Eu Mesmo')[0];
+  assert.ok(nomeCell, 'célula NOME com title não encontrada');
+  assert.match(nomeCell._attrs.style, /white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;/);
+  const dashCells = findAll(meRow, (n) => n.tagName === 'DIV' && textOf(n) === '—');
+  assert.ok(dashCells.length >= 2, 'deveria haver ao menos 2 células "—" (fornecedor/cliente) na linha do admin');
+  for (const cell of dashCells) {
+    assert.equal(cell._attrs.title, undefined, 'célula com valor "—" não deveria ter title (evita tooltip inútil)');
+  }
+});
+
+test('48. cabeçalho: E-MAIL/NOME/FORNECEDOR/CLIENTE usam o mesmo tratamento de truncamento; TIPO/STATUS/ULTIMO ACESSO permanecem sem ellipsis', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const headCells = findAll(main, (n) => n.tagName === 'DIV' && n._attrs && /font-weight:700/.test(n._attrs.style || '') && /letter-spacing:\.04em/.test(n._attrs.style || ''));
+  const byLabel = {};
+  headCells.forEach((c) => { byLabel[textOf(c)] = c; });
+  for (const label of ['E-MAIL', 'NOME', 'FORNECEDOR', 'CLIENTE']) {
+    assert.ok(byLabel[label], `cabeçalho "${label}" não encontrado`);
+    assert.match(byLabel[label]._attrs.style, /overflow:hidden; text-overflow:ellipsis; min-width:0;/, `cabeçalho "${label}" deveria ter o tratamento de truncamento`);
+  }
+  for (const label of ['TIPO', 'STATUS']) {
+    assert.ok(byLabel[label], `cabeçalho "${label}" não encontrado`);
+    assert.doesNotMatch(byLabel[label]._attrs.style, /text-overflow:ellipsis/, `cabeçalho "${label}" não deveria ter ellipsis`);
   }
 });
 

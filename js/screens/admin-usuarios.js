@@ -110,6 +110,20 @@
       }, t.label);
     }
 
+    // UI-USERS-GRID-TEXT-OVERFLOW: single-line ellipsis cell with a
+    // `title` tooltip carrying the full value (mandatory — ellipsis
+    // without a reveal trades one usability bug for another).
+    // `min-width:0` is required for ellipsis to work inside a CSS grid
+    // track (grid items default to min-width:auto, which ignores
+    // overflow:hidden). `title` is only set when there is a real value,
+    // so fallback dashes ("—") never show a useless "—" tooltip.
+    const TRUNCATE_CELL_STYLE = 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;';
+    function truncatedCell(displayText, rawValue, colorStyle) {
+      const attrs = { style: `${colorStyle} ${TRUNCATE_CELL_STYLE}` };
+      if (rawValue) attrs.title = rawValue;
+      return window.el('div', attrs, displayText);
+    }
+
     // CAMADA2-LAST-ACCESS-UI — dd/mm/aaaa hh:mm; "—" para nulo/inválido.
     function formatLastSignIn(value) {
       if (!value) return '—';
@@ -268,10 +282,17 @@
       // (30px) + 3 gaps (6px) = 138px. The previous 102px undersized the
       // column (architect-reported); widened to the exact math, one
       // grid-template value, no other layout change.
-      const gridTemplate = '1.3fr 1fr 110px 1fr 1fr 90px 130px 138px';
+      // UI-USERS-GRID-TEXT-OVERFLOW: E-MAIL widened 1.3fr→2fr so typical
+      // addresses fit before truncating; NOME/FORNECEDOR/CLIENTE unchanged
+      // at 1fr; TIPO/STATUS/ULTIMO ACESSO/ACOES fixed px unchanged.
+      const gridTemplate = '2fr 1fr 110px 1fr 1fr 90px 130px 138px';
+      const TRUNCATE_HEAD_LABELS = new Set(['E-MAIL', 'NOME', 'FORNECEDOR', 'CLIENTE']);
       const headRow = window.el('div', { style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:10px 18px; background:#f8f9fb; border-bottom:1px solid #eceef1;` });
       ['E-MAIL', 'NOME', 'TIPO', 'FORNECEDOR', 'CLIENTE', 'STATUS', 'ULTIMO ACESSO'].forEach((label) => {
-        headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;' }, label));
+        const headStyle = TRUNCATE_HEAD_LABELS.has(label)
+          ? `font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; ${TRUNCATE_CELL_STYLE}`
+          : 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;';
+        headRow.appendChild(window.el('div', { style: headStyle }, label));
       });
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; text-align:center; white-space:nowrap;' }, 'ACOES'));
       card.appendChild(headRow);
@@ -279,11 +300,11 @@
       rows.forEach((user, index) => {
         const inativo = user.ativo === false;
         const line = window.el('div', { style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid #f1f3f6'}; opacity:${inativo ? '0.6' : '1'};` });
-        line.appendChild(window.el('div', { style: 'font-size:13.5px; color:#3f4757;' }, user.email || ''));
-        line.appendChild(window.el('div', { style: 'font-size:14px; font-weight:500; color:#16203a;' }, user.nome || '—'));
+        line.appendChild(truncatedCell(user.email || '', user.email, 'font-size:13.5px; color:#3f4757;'));
+        line.appendChild(truncatedCell(user.nome || '—', user.nome, 'font-size:14px; font-weight:500; color:#16203a;'));
         line.appendChild(window.el('div', {}, tipoBadge(user.tipo)));
-        line.appendChild(window.el('div', { style: `font-size:13.5px; color:${user.fornecedor?.nome ? '#3f4757' : '#aab2bf'};` }, user.fornecedor?.nome || '—'));
-        line.appendChild(window.el('div', { style: `font-size:13.5px; color:${user.cliente?.nome ? '#3f4757' : '#aab2bf'};` }, user.cliente?.nome || '—'));
+        line.appendChild(truncatedCell(user.fornecedor?.nome || '—', user.fornecedor?.nome, `font-size:13.5px; color:${user.fornecedor?.nome ? '#3f4757' : '#aab2bf'};`));
+        line.appendChild(truncatedCell(user.cliente?.nome || '—', user.cliente?.nome, `font-size:13.5px; color:${user.cliente?.nome ? '#3f4757' : '#aab2bf'};`));
         line.appendChild(window.el('div', {},
           window.el('span', {
             style: `display:inline-flex; align-items:center; border-radius:4px; padding:3px 9px; font-size:12px; font-weight:600; white-space:nowrap; background:${inativo ? '#fff1f1' : '#e6f4ec'}; color:${inativo ? '#d6403a' : '#18794a'};`
