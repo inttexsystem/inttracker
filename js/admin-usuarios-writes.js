@@ -74,6 +74,15 @@
   }
 
   // -------------------------------------------------------------------
+  // Leitura — último acesso (RPC admin-only, db/59). Uma chamada por
+  // reload() da tela; merge por id fica a cargo do chamador.
+  // -------------------------------------------------------------------
+
+  async function fetchLastSignIn() {
+    return window.supa.rpc('admin_usuarios_last_sign_in');
+  }
+
+  // -------------------------------------------------------------------
   // Writes — criar / editar (PostgREST update em observações)
   // -------------------------------------------------------------------
 
@@ -185,6 +194,7 @@
   window.RAVATEX_ADMIN_USUARIOS_WRITES = window.RAVATEX_ADMIN_USUARIOS_WRITES || {};
   window.RAVATEX_ADMIN_USUARIOS_WRITES.detectOptionalColumns = detectOptionalColumns;
   window.RAVATEX_ADMIN_USUARIOS_WRITES.fetchUsuariosPageData = fetchUsuariosPageData;
+  window.RAVATEX_ADMIN_USUARIOS_WRITES.fetchLastSignIn = fetchLastSignIn;
   window.RAVATEX_ADMIN_USUARIOS_WRITES.createUsuario = createUsuario;
   window.RAVATEX_ADMIN_USUARIOS_WRITES.updateUsuario = updateUsuario;
   window.RAVATEX_ADMIN_USUARIOS_WRITES.updateUsuarioObservacoes = updateUsuarioObservacoes;

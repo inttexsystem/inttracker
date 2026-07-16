@@ -6,8 +6,10 @@
 // inativos", criar/editar (via modal), desativar, excluir.
 //
 // Escopo desta extração (A3.1): paridade 1:1 com a tela anterior.
-// Cards-resumo, toolbar busca/ordenar/filtro avançada e coluna "último
-// acesso" são A3.2 (gate de mockup próprio) — NÃO incluídos aqui.
+// Cards-resumo e toolbar busca/ordenar/filtro avançada são A3.2 (gate de
+// mockup próprio). Coluna "último acesso" (leitura via RPC db/59) é
+// CAMADA2-LAST-ACCESS-UI, subfase posterior a A3.2 — ambas já incluídas
+// neste módulo.
 //
 // Nota de escopo: a função `render()` original de cadastros.js
 // (dataTable() genérico, cadastros.js:2266-2317) nunca era chamada —
@@ -45,6 +47,9 @@
     let allClients = [];
     let busca = '';
     let columnSupport = { observacoes: false };
+    // CAMADA2-LAST-ACCESS-UI — último acesso por usuário (db/59), mergeado
+    // client-side por id a cada reload(); vazio/ausente = "—" na coluna.
+    let lastSignInById = {};
 
     function svgIcon(markup) {
       var tmp = document.createElement('div');
@@ -100,11 +105,18 @@
       }, t.label);
     }
 
+    // CAMADA2-LAST-ACCESS-UI — dd/mm/aaaa hh:mm; "—" para nulo/inválido.
+    function formatLastSignIn(value) {
+      if (!value) return '—';
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return '—';
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
     // A3.2 — ordenação client-side sobre as linhas já filtradas.
-    // 'ultimo-acesso': sem dado disponível nesta fase (Item 4 da ordem
-    // A3.2 bloqueado por HARD STOP — leitura de auth.users.last_sign_in_at
-    // exige migration nova, reportado separadamente ao arquiteto). Sort
-    // estável/sem efeito visível até a coluna existir.
+    // 'ultimo-acesso': mais recente primeiro; usuários sem acesso
+    // registrado (nulo) sempre por último, independente da direção.
     function sortRows(list, mode) {
       const arr = list.slice();
       if (mode === 'nome-desc') {
@@ -112,7 +124,14 @@
       } else if (mode === 'tipo') {
         arr.sort((a, b) => String(a.tipo || '').localeCompare(String(b.tipo || '')));
       } else if (mode === 'ultimo-acesso') {
-        // sem-op intencional — ver nota acima.
+        arr.sort((a, b) => {
+          const av = lastSignInById[a.id];
+          const bv = lastSignInById[b.id];
+          if (!av && !bv) return 0;
+          if (!av) return 1;
+          if (!bv) return -1;
+          return new Date(bv) - new Date(av);
+        });
       } else {
         arr.sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || '')));
       }
@@ -126,6 +145,16 @@
       allUsers = users;
       allForns = forns;
       allClients = clients;
+      // CAMADA2-LAST-ACCESS-UI — uma chamada por reload(); falha não
+      // derruba a tela (admin sempre vê a lista) — coluna inteira "—".
+      lastSignInById = {};
+      try {
+        const { data: lastSignInRows, error: lastSignInError } = await W.fetchLastSignIn();
+        if (lastSignInError) throw lastSignInError;
+        (lastSignInRows || []).forEach((row) => { lastSignInById[row.id] = row.last_sign_in_at; });
+      } catch (err) {
+        console.warn('Falha ao carregar último acesso dos usuários:', err);
+      }
       renderStandalone();
     }
 
@@ -230,9 +259,9 @@
 
       const tableWrap = window.el('div', { style: 'display:flex; flex-direction:column;' });
       const card = window.el('div', { style: 'background:#fff; border:1px solid #eceef1; border-radius:6px 6px 0 0; overflow:hidden;' });
-      const gridTemplate = '1.3fr 1fr 110px 1fr 1fr 90px 102px';
+      const gridTemplate = '1.3fr 1fr 110px 1fr 1fr 90px 130px 102px';
       const headRow = window.el('div', { style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:10px 18px; background:#f8f9fb; border-bottom:1px solid #eceef1;` });
-      ['E-MAIL', 'NOME', 'TIPO', 'FORNECEDOR', 'CLIENTE', 'STATUS'].forEach((label) => {
+      ['E-MAIL', 'NOME', 'TIPO', 'FORNECEDOR', 'CLIENTE', 'STATUS', 'ULTIMO ACESSO'].forEach((label) => {
         headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;' }, label));
       });
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; text-align:center; white-space:nowrap;' }, 'ACOES'));
@@ -251,6 +280,7 @@
             style: `display:inline-flex; align-items:center; border-radius:4px; padding:3px 9px; font-size:12px; font-weight:600; white-space:nowrap; background:${inativo ? '#fff1f1' : '#e6f4ec'}; color:${inativo ? '#d6403a' : '#18794a'};`
           }, inativo ? 'Inativo' : 'Ativo')
         ));
+        line.appendChild(window.el('div', { style: 'font-size:13.5px; color:#8a93a3;' }, formatLastSignIn(lastSignInById[user.id])));
         const actions = window.el('div', { style: 'display:flex; align-items:center; justify-content:center; gap:6px;' });
         actions.appendChild(window.el('button', { type: 'button', onclick: () => M.openUsuarioModal(user, allForns, allClients, columnSupport, { onSaved: reload }), title: 'Editar usuario', 'aria-label': 'Editar usuario', style: 'width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#8a93a3; cursor:pointer;' }, svgIcon(ICON_SQUARE_PEN)));
         actions.appendChild(window.el('button', { type: 'button', onclick: user.ativo === false ? undefined : () => handleDesativarClick(user, meId), disabled: user.ativo === false, title: user.ativo === false ? 'Usuario inativo' : 'Desativar usuario', 'aria-label': user.ativo === false ? 'Usuario inativo' : 'Desativar usuario', style: `width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #eceef1; border-radius:4px; background:#fff; color:#8a93a3; cursor:${user.ativo === false ? 'default' : 'pointer'}; opacity:${user.ativo === false ? '0.45' : '1'};` }, svgIcon(ICON_BAN)));

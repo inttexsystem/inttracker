@@ -39,6 +39,16 @@
 // Não-regressão (15):
 //  15. cadastros.js não foi alterado por esta fase (screenCadastrosUsuarios
 //      continua presente, intocado, até a remoção isolada em A3.4).
+//
+// CAMADA2-LAST-ACCESS-UI — coluna "Último acesso" (consumo de db/59) (22-25):
+//  22. coluna presente no grid: header, formato dd/mm/aaaa hh:mm, fallback
+//      "—" para last_sign_in_at nulo;
+//  23. RPC admin_usuarios_last_sign_in chamada exatamente 1 vez por
+//      reload() (merge client-side por id, nada de chamada por linha);
+//  24. falha da RPC não derruba a tela: coluna inteira em "—",
+//      console.warn chamado, lista de usuários continua visível;
+//  25. ordenação "Último acesso" ativa: mais recente primeiro, nulos
+//      (nunca acessou) sempre por último.
 
 'use strict';
 
@@ -137,12 +147,13 @@ function textOf(node) {
 
 // A3.2: com ordenação ativa por padrão (Nome A-Z), a posição das linhas no
 // grid não é mais previsível pela ordem do fixture. Localiza a linha de um
-// usuário pelo conteúdo (cada linha de dados tem exatamente 7 filhos diretos
-// DIV: email/nome/tipo/fornecedor/cliente/status/ações — mesmo formato do
-// headRow, mas o headRow nunca contém o texto procurado).
+// usuário pelo conteúdo (cada linha de dados tem exatamente 8 filhos diretos
+// DIV desde CAMADA2-LAST-ACCESS-UI: email/nome/tipo/fornecedor/cliente/
+// status/último acesso/ações — mesmo formato do headRow, mas o headRow
+// nunca contém o texto procurado).
 function findRowByText(main, needle) {
   const divs = findAll(main, (n) => n.tagName === 'DIV');
-  return divs.find((d) => d.children && d.children.length === 7 && textOf(d).includes(needle));
+  return divs.find((d) => d.children && d.children.length === 8 && textOf(d).includes(needle));
 }
 
 function findByAriaLabel(root, label) {
@@ -150,8 +161,9 @@ function findByAriaLabel(root, label) {
 }
 
 // Cliente Supabase fake com from().select()/update().eq()/insert() reais
-// (encadeáveis + thenable) e functions.invoke mockável por nome.
-function makeFakeSupabaseClient({ tableData = {}, invokeImpl = {} } = {}) {
+// (encadeáveis + thenable), functions.invoke mockável por nome e
+// rpc() mockável por nome (CAMADA2-LAST-ACCESS-UI — admin_usuarios_last_sign_in).
+function makeFakeSupabaseClient({ tableData = {}, invokeImpl = {}, rpcImpl = {} } = {}) {
   const calls = [];
   function makeChain(table) {
     const chain = {
@@ -183,11 +195,16 @@ function makeFakeSupabaseClient({ tableData = {}, invokeImpl = {} } = {}) {
         return { data: { user_id: 'new-user-id' }, error: null };
       },
     },
+    rpc: async (name, params) => {
+      calls.push({ op: 'rpc', name, params });
+      if (rpcImpl[name]) return rpcImpl[name](params);
+      return { data: [], error: null };
+    },
     _calls: calls,
   };
 }
 
-function makeAdminUsuariosSandbox({ tableData = {}, invokeImpl = {} } = {}) {
+function makeAdminUsuariosSandbox({ tableData = {}, invokeImpl = {}, rpcImpl = {} } = {}) {
   const toastsNode = new FakeNode('div');
   const document = {
     createElement: (t) => new FakeNode(t),
@@ -197,7 +214,7 @@ function makeAdminUsuariosSandbox({ tableData = {}, invokeImpl = {} } = {}) {
     addEventListener: () => {}, removeEventListener: () => {},
     body: new FakeNode('body'),
   };
-  const fakeSupa = makeFakeSupabaseClient({ tableData, invokeImpl });
+  const fakeSupa = makeFakeSupabaseClient({ tableData, invokeImpl, rpcImpl });
   const toasts = [];
   const sandbox = {
     document, console, setTimeout, clearTimeout, URL, URLSearchParams,
@@ -230,7 +247,7 @@ function makeAdminUsuariosSandbox({ tableData = {}, invokeImpl = {} } = {}) {
 test('3. window.RAVATEX_ADMIN_USUARIOS_WRITES expõe as funções esperadas', () => {
   const { sandbox } = makeAdminUsuariosSandbox();
   for (const fn of [
-    'detectOptionalColumns', 'fetchUsuariosPageData', 'createUsuario', 'updateUsuario',
+    'detectOptionalColumns', 'fetchUsuariosPageData', 'fetchLastSignIn', 'createUsuario', 'updateUsuario',
     'updateUsuarioObservacoes', 'disableUsuario', 'deleteUsuario', 'parseEdgeFunctionError',
     'friendlyDisableMessage', 'friendlyDeleteMessage',
   ]) {
@@ -285,7 +302,7 @@ test('6. render contém "+ Novo usuario", busca, toggle e cabeçalho de grid', a
   const rendered = textOf(main);
   assert.match(rendered, /Novo usuario/);
   assert.match(rendered, /Mostrar inativos/);
-  for (const label of ['E-MAIL', 'NOME', 'TIPO', 'FORNECEDOR', 'CLIENTE', 'STATUS', 'ACOES']) {
+  for (const label of ['E-MAIL', 'NOME', 'TIPO', 'FORNECEDOR', 'CLIENTE', 'STATUS', 'ULTIMO ACESSO', 'ACOES']) {
     assert.ok(rendered.includes(label), `cabeçalho de grid "${label}" ausente`);
   }
 });
@@ -471,11 +488,12 @@ test('19. ordenação "Nome Z–A" inverte a ordem das linhas visíveis', async 
   ordenarSelect._listeners.change({ target: ordenarSelect });
   const mainAfter = flex.children.find((c) => c.tagName === 'MAIN');
   // Nome Z-A: "Eu Mesmo" (E) deve vir antes de "Bia" (B) em ordem de documento.
-  // Linhas de dados têm exatamente 7 filhos diretos DIV (6 células + ações);
-  // o e-mail é sempre a 1ª célula, então basta checar o prefixo (textOf
-  // concatena células sem separador — não usar regex de e-mail aqui, o
-  // domínio "vazaria" para o texto da célula seguinte).
-  const rowDivs = findAll(mainAfter, (n) => n.tagName === 'DIV' && n.children && n.children.length === 7);
+  // Linhas de dados têm exatamente 8 filhos diretos DIV (7 células + ações,
+  // desde CAMADA2-LAST-ACCESS-UI); o e-mail é sempre a 1ª célula, então
+  // basta checar o prefixo (textOf concatena células sem separador — não
+  // usar regex de e-mail aqui, o domínio "vazaria" para o texto da célula
+  // seguinte).
+  const rowDivs = findAll(mainAfter, (n) => n.tagName === 'DIV' && n.children && n.children.length === 8);
   const idxEu = rowDivs.findIndex((d) => textOf(d).startsWith('me@ravatex.com'));
   const idxBia = rowDivs.findIndex((d) => textOf(d).startsWith('b@b.c'));
   assert.ok(idxEu !== -1 && idxBia !== -1, 'linhas de Eu Mesmo e Bia não encontradas');
@@ -512,17 +530,112 @@ test('21. linha inativa (Carla) tem opacidade reduzida (~0.6) quando "Mostrar in
   assert.match(carlaRow._attrs.style, /opacity:0\.6/, 'linha inativa deveria ter opacity:0.6');
 });
 
-test('22. coluna "Último acesso" NÃO foi adicionada nesta subfase (HARD STOP de migration, reportado separadamente)', async () => {
-  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+// -----------------------------------------------------------------------------
+// Runtime — CAMADA2-LAST-ACCESS-UI: consumo da RPC db/59 (coluna "Último
+// acesso"). Fixture USERS_FIXTURE: me-id (admin, ativo), u-2/Bia
+// (fornecedor, ativo), u-3/Carla (admin, inativo).
+// -----------------------------------------------------------------------------
+
+// Mesma lógica de formatação de js/screens/admin-usuarios.js (formatLastSignIn),
+// duplicada aqui só para calcular o valor esperado sem depender do fuso do
+// executor do teste divergir do fuso de execução do código sob teste — ambos
+// rodam no mesmo processo Node, então o resultado é sempre idêntico.
+function expectedLastSignIn(iso) {
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+test('22. coluna "Último acesso": header presente, formato dd/mm/aaaa hh:mm e fallback "—" para nulo', async () => {
+  const iso = '2026-07-16T01:43:00.000Z';
+  const { sandbox } = makeAdminUsuariosSandbox({
+    tableData: USERS_FIXTURE,
+    rpcImpl: {
+      admin_usuarios_last_sign_in: async () => ({
+        data: [
+          { id: 'me-id', last_sign_in_at: iso },
+          { id: 'u-2', last_sign_in_at: null },
+        ],
+        error: null,
+      }),
+    },
+  });
   const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
   const flex = node.children.find((c) => c.tagName === 'DIV');
   const main = flex.children.find((c) => c.tagName === 'MAIN');
   const rendered = textOf(main);
-  assert.equal(/ÚLTIMO ACESSO|Último acesso:/.test(rendered.replace('Último acesso', '')), false);
-  // Cabeçalho do grid continua com exatamente as mesmas 6 colunas + AÇÕES de A3.1.
-  for (const label of ['E-MAIL', 'NOME', 'TIPO', 'FORNECEDOR', 'CLIENTE', 'STATUS', 'ACOES']) {
-    assert.ok(rendered.includes(label), `cabeçalho "${label}" ausente`);
-  }
+  assert.ok(rendered.includes('ULTIMO ACESSO'), 'cabeçalho "ULTIMO ACESSO" ausente');
+  const meRow = findRowByText(main, 'me@ravatex.com');
+  const biaRow = findRowByText(main, 'b@b.c');
+  assert.ok(meRow && textOf(meRow).includes(expectedLastSignIn(iso)), 'linha do admin não mostra o último acesso formatado');
+  assert.ok(biaRow && textOf(biaRow).includes('—'), 'linha da Bia (last_sign_in_at nulo) deveria mostrar "—"');
+});
+
+test('23. RPC admin_usuarios_last_sign_in é chamada exatamente 1 vez por reload() (não por linha)', async () => {
+  const { sandbox, fakeSupa } = makeAdminUsuariosSandbox({
+    tableData: USERS_FIXTURE,
+    rpcImpl: { admin_usuarios_last_sign_in: async () => ({ data: [], error: null }) },
+  });
+  await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const rpcCalls = fakeSupa._calls.filter((c) => c.op === 'rpc' && c.name === 'admin_usuarios_last_sign_in');
+  assert.equal(rpcCalls.length, 1, 'RPC deveria ser chamada exatamente 1 vez (screenAdminUsuarios chama reload() 1x no boot), não 1x por linha');
+});
+
+test('24. falha da RPC não derruba a tela: coluna inteira em "—" e console.warn chamado', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({
+    tableData: USERS_FIXTURE,
+    rpcImpl: { admin_usuarios_last_sign_in: async () => ({ data: null, error: { message: 'RPC indisponível' } }) },
+  });
+  vm.runInContext(`
+    window.__warnCalls = [];
+    window.console = Object.assign({}, window.console, {
+      warn: function () { window.__warnCalls.push(Array.from(arguments)); }
+    });
+  `, sandbox);
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const warned = vm.runInContext('window.__warnCalls', sandbox);
+  assert.ok(warned && warned.length >= 1, 'console.warn deveria ser chamado quando a RPC falha');
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const rendered = textOf(main);
+  assert.ok(rendered.includes('me@ravatex.com'), 'lista de usuários deveria continuar visível mesmo com falha da RPC');
+  const meRow = findRowByText(main, 'me@ravatex.com');
+  assert.ok(textOf(meRow).includes('—'), 'coluna "Último acesso" deveria cair para "—" quando a RPC falha');
+});
+
+test('25. ordenação "Último acesso": mais recente primeiro, nulos (nunca acessou) por último', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({
+    tableData: USERS_FIXTURE,
+    rpcImpl: {
+      admin_usuarios_last_sign_in: async () => ({
+        data: [
+          { id: 'me-id', last_sign_in_at: '2026-07-16T10:00:00.000Z' },
+          { id: 'u-2', last_sign_in_at: '2026-07-15T10:00:00.000Z' },
+          // u-3 (Carla): sem linha na RPC — tratado como nulo/nunca acessou.
+        ],
+        error: null,
+      }),
+    },
+  });
+  const root = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = root.children.find((c) => c.tagName === 'DIV');
+  let main = flex.children.find((c) => c.tagName === 'MAIN');
+  // Precisa exibir Carla (u-3, inativa) para verificar que o nulo dela vai por último.
+  const toggleInput = findAll(main, (n) => n.tagName === 'INPUT' && n._attrs && n._attrs.type === 'checkbox')[0];
+  toggleInput.checked = true;
+  toggleInput._listeners.change({ target: toggleInput });
+  main = flex.children.find((c) => c.tagName === 'MAIN');
+  const ordenarSelect = findByAriaLabel(main, 'Ordenar');
+  ordenarSelect.value = 'ultimo-acesso';
+  ordenarSelect._listeners.change({ target: ordenarSelect });
+  main = flex.children.find((c) => c.tagName === 'MAIN');
+  const rowDivs = findAll(main, (n) => n.tagName === 'DIV' && n.children && n.children.length === 8);
+  const idxMe = rowDivs.findIndex((d) => textOf(d).startsWith('me@ravatex.com'));
+  const idxBia = rowDivs.findIndex((d) => textOf(d).startsWith('b@b.c'));
+  const idxCarla = rowDivs.findIndex((d) => textOf(d).startsWith('c@c.c'));
+  assert.ok(idxMe !== -1 && idxBia !== -1 && idxCarla !== -1, 'linhas não encontradas para verificar ordenação');
+  assert.ok(idxMe < idxBia, 'usuário com acesso mais recente (me-id) deveria vir antes de u-2 (Bia)');
+  assert.ok(idxBia < idxCarla, 'usuário sem acesso registrado (Carla, nulo) deveria vir por último');
 });
 
 // -----------------------------------------------------------------------------
