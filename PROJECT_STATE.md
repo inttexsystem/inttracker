@@ -130,6 +130,18 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
 - **Documentation candidate:** review of the legacy `docs/AI_AGENT_RULES.md`
   (partially legacy; contains stale counts/context — not authorized, not
   started).
+- **`UI-ACTION-BUTTON` track:** phase `i` (contract amendment —
+  `docs/architecture/UI_VISUAL_CONTRACT.md` §8.1 row-level compact icon
+  button carve-out, ratified values) `CLOSED / ACCEPTED`, this record.
+  Phase `ii` (`actionButton()` helper in `js/ui.js`, additive, zero
+  screens migrated) and phase `iii` (per-screen migrations, priority
+  order per the conformance diagnosis) — `NOT AUTHORIZED`, each pending
+  its own order. Registered candidates, not started:
+  `MODAL-BUTTON-CSS-CHECK` (read-only — `document-link-admin-modal.js`/
+  `documentos-recebidos-decision-modal.js` render buttons with no
+  inline style, deferred to external CSS classes not found in the
+  repo); `fornecedor.js` visual redesign (separate future track, out of
+  this one).
 
 ## Environment and worktree standing facts
 
@@ -155,6 +167,7 @@ HEAD with `git rev-parse HEAD`.
 
 | Phase | Status | Date | Commit(s) |
 |---|---|---|---|
+| UI Visual Contract — Row-Level Icon Button Amendment — `UI-ACTION-BUTTON-CONTRACT-AMENDMENT` (phase i) | `CLOSED / ACCEPTED` | 2026-07-16 | (docs) |
 | `DOC-LANGUAGE-MIGRATION-L1` — Governance documents translated to English | `CLOSED / ACCEPTED` | 2026-07-16 | `cab741c`, `ce4b693` |
 | Camada 2 — Administrative Password Reset — `A5.1-A5.2` | `CLOSED / ACCEPTED` | 2026-07-16 | `b726717` |
 | Camada 2 — User Reactivation — `A5.3-A5.4` | `CLOSED / ACCEPTED` | 2026-07-16 | `f886e26` |

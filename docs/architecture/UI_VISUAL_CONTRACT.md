@@ -67,6 +67,8 @@ check its class:
 - badge;
 - file chip;
 - destructive button;
+- row-level compact icon button (§8.1; exempt from the destructive
+  button's icon+text rule, entity-level header actions excluded);
 - modal;
 - table;
 - document slots.
@@ -177,6 +179,50 @@ with fixed px columns so the last column never disappears.
 - Positive (e.g.: Finalizar): soft greens.
 - **Destructive (Excluir): always icon + text**, discreet red — never icon only.
 - No redundancy: do not repeat at the top a shortcut/data that already exists as a link/section.
+
+### 8.1 Row-level compact icon button — `COMPONENT-SPECIFIC`
+
+Table/grid row actions (Editar, Ver, Ativar/Desativar, Resetar, Excluir,
+etc., inside a list row) are a distinct component from the entity-level
+header actions above and are **exempt** from the "destructive always
+icon + text" rule — an icon-only button is accepted here. Ratified
+against the Clients screen reference (`js/screens/cadastros.js`,
+`screenCadastrosClientes`'s `makeIconButton`).
+
+**The icon + text destructive rule remains binding for entity-level
+header actions** (e.g. Finalizar OP / Excluir OP, as built in the two
+approved pilots `op-latex-admin.js` / `op-tecelagem-producao-admin.js`)
+— this carve-out does not extend there.
+
+**Mandatory guards** — an icon-only row button is exempt from icon+text
+only when ALL three hold:
+
+1. **Title tooltip:** the native `title` attribute (and matching
+   `aria-label`) states the action in full (e.g. `"Excluir usuário"`,
+   never just an icon with no accessible name).
+2. **Screen-reader label:** a visually-hidden text label using the
+   clip-rect sr-only pattern — never `display:none` (which also hides
+   it from assistive tech, defeating the purpose).
+3. **Confirmation on destructive actions:** any destructive row action
+   (Excluir, Rejeitar, etc.) opens `confirmDialog` (`js/ui.js`) before
+   executing — never fires on a single click.
+
+**Ratified values:**
+
+- **Size:** 30×30px.
+- **Radius:** `--rv-radius-control` (4px).
+- **Border:** `1px solid #eceef1` (rest state).
+- **Background:** `#fff` (rest state).
+- **Color:** `#8a93a3` (neutral) / `#d6403a` (danger), rest state.
+- **Icon:** 14px, per §13 (Feather/Lucide, stroke 1.8–2).
+- **Gap** between buttons in the same row-actions group: **6px**.
+- **Hover — neutral:** `border-color:#d0d5de; color:#3f4757`.
+- **Hover — danger:** `border-color:#fca5a5; background:#fff1f1; color:#c53030`.
+- **Disabled:** the safe boolean pattern — the `disabled` key is present
+  in the attrs object **only when the condition is `true`**, never
+  `disabled: <boolean expression>` unconditionally (see
+  `UI-EL-BOOLEAN-ATTR-FIX`); opacity `0.45`, `cursor:default` while
+  disabled.
 
 ## 9. Forms
 
