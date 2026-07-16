@@ -179,8 +179,13 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   `1fr`→`1.6fr`, Clientes fractions unchanged; architect visual gate
   `CONFIRMED` — nome/email conformant on both grids). Lot B
   (`pedidos-list.js` / `ops-list.js` CLIENTE column) and Lot C
-  (`painel.js` `.rv-adm-ref`/`.rv-adm-mini`) authorized this order
-  (`UI-GRID-TEXT-LOT-B-AND-C`), execution follows in this same chain.
+  (`painel.js` `.rv-adm-ref`/`.rv-adm-mini`) `CLOSED / ACCEPTED`
+  (commit `cfa8b4b`; no width change on either grid — both already had
+  a horizontal-scroll fallback, judged not visibly starved; architect
+  visual gate pending). This closes the `UI-GRID-TEXT-OVERFLOW` track's
+  authorized scope; remaining candidates (`UI-FIXED-FORMAT-COLUMN-
+  WIDTHS`, `UI-DOCUMENTOS-RECEBIDOS-LAYOUT-FIX`) are separate fronts,
+  `NOT AUTHORIZED`, registered below.
   **Finding registered:** the read-only diagnosis found the legacy
   `screenCadastrosUsuarios` duplicate in `cadastros.js` (lines ~2226-2381)
   carries the identical unconstrained-text-cell defect (NOME/FORNECEDOR/
