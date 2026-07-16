@@ -146,17 +146,18 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   dimension/sr-only/disabled correctness is proven once at the
   `actionButton()` primitive level, screen-level tests assert call-site
   routing only. Phase `iii` lot `2` (`UI-ACTION-BUTTON-MIGRATION-2` —
-  `admin-usuarios.js` users screen + `ops-list.js`, including the
-  `ops-list.js` sr-only `display:none` a11y fix) — explicit architect
-  order (full order text supplied after an initial ambiguous
-  "previously issued" reference that did not itself appear in this
-  session), `AUTHORIZED, IN PROGRESS`. Addendum honored from the
-  architect's preceding message (not repeated in the formal order
-  text, but not contradicted either): report the ACOES column's
-  resolved width on the users screen (4 buttons, ~138px at spec size);
-  a one-line grid-template fix is in scope only if the row compresses,
-  nothing else. Any further lot beyond `2` — `NOT AUTHORIZED`.
-  Registered candidates, not started:
+  `admin-usuarios.js` users screen + `ops-list.js`) `CLOSED / ACCEPTED`
+  (commit `abfb95e`; architect visual validation confirmed the users
+  screen against the Clients reference — the original complaint's own
+  test — plus a spot-check of `#/ops`). Includes the `ops-list.js`
+  sr-only `display:none` a11y fix (now the correct clip-rect pattern)
+  and the users-screen ACOES column-width fix from the architect's
+  addendum: the column was hardcoded `102px` but 4 `actionButton()`s
+  need `30×4 + 6×3 = 138px` — widened via the one grid-template value.
+  `ops-list.js`'s Excluir OP also gained `danger` (red) styling,
+  matching every other Excluir action (was neutral gray before). Any
+  further lot beyond `2` (`cadastros.js`, lot `3`) — `NOT AUTHORIZED`,
+  pending its own order. Registered candidates, not started:
   `MODAL-BUTTON-CSS-CHECK` (read-only —
   `document-link-admin-modal.js`/`documentos-recebidos-decision-modal.js`
   render buttons with no inline style, deferred to external CSS classes
@@ -187,6 +188,7 @@ HEAD with `git rev-parse HEAD`.
 
 | Phase | Status | Date | Commit(s) |
 |---|---|---|---|
+| UI Action Button — Users and Ops Screens Migration — `UI-ACTION-BUTTON-MIGRATION-2` (phase iii, lot 2) | `CLOSED / ACCEPTED` | 2026-07-16 | `abfb95e` |
 | UI Action Button — Order Lists Migration — `UI-ACTION-BUTTON-MIGRATION-1` (phase iii, lot 1) | `CLOSED / ACCEPTED` | 2026-07-16 | `31b66af` |
 | UI Action Button — Helper Primitive — `UI-ACTION-BUTTON-HELPER` (phase ii) | `CLOSED / ACCEPTED` | 2026-07-16 | `bbfd58c` |
 | UI Visual Contract — Row-Level Icon Button Amendment — `UI-ACTION-BUTTON-CONTRACT-AMENDMENT` (phase i) | `CLOSED / ACCEPTED` | 2026-07-16 | (docs) |
