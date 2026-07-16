@@ -703,18 +703,29 @@
       meta.label);
   }
 
+  // UI-DOCUMENTOS-RECEBIDOS-LAYOUT-FIX: doc.pedido is a raw, unbounded
+  // identifier (pedido_manual/pedido/pedido_key) rendered directly as a
+  // flex item of pedidoCol (flex-direction:column). white-space:nowrap
+  // alone left the span's automatic min-content width uncapped, so long
+  // tokens painted past the PEDIDO column into DATAS. The full §7.1
+  // bundle (overflow:hidden;text-overflow:ellipsis;min-width:0) plus a
+  // title tooltip closes it, matching every other truncated identifier
+  // cell in the app.
   function pedidoCell(doc) {
     if (doc.pedido) {
       return window.el('span', {
         'data-field': 'pedido',
         'data-pedido': doc.pedido,
-        style: 'font-size:12.5px;font-weight:700;color:#2563eb;white-space:nowrap;',
+        title: doc.pedido,
+        style: 'font-size:12.5px;font-weight:700;color:#2563eb;white-space:nowrap;'
+          + 'overflow:hidden;text-overflow:ellipsis;min-width:0;',
       }, doc.pedido);
     }
     return window.el('span', {
       'data-field': 'pedido',
       'data-pedido': '',
-      style: 'font-size:12.5px;color:#aab2bf;font-style:italic;white-space:nowrap;',
+      style: 'font-size:12.5px;color:#aab2bf;font-style:italic;white-space:nowrap;'
+        + 'overflow:hidden;text-overflow:ellipsis;min-width:0;',
     }, 'Não mapeado');
   }
 
@@ -1226,8 +1237,17 @@
   }
 
   function buildActionButtons(doc) {
+    // UI-DOCUMENTOS-RECEBIDOS-LAYOUT-FIX: this cell can hold BOTH the
+    // source-file-unavailable label (below) AND up to 3 decision icon
+    // buttons (Desfazer/Rejeitar/Aceitar/Histórico, appended further
+    // down) — two independently-gated branches writing into the same
+    // flex row. Without flex-wrap, that combination overflows the
+    // fixed 148px AÇÕES track and collides with neighboring content;
+    // flex-wrap:wrap lets it stack onto a second line instead (a §7
+    // column-sizing fix, not a §7.1 truncation matter — nothing here
+    // should ever be cut).
     var wrap = window.el('div', {
-      style: 'display:flex;align-items:center;justify-content:center;gap:6px;',
+      style: 'display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;',
     });
 
     var qi = doc.queueItem;
@@ -2008,9 +2028,14 @@
       }, 'Remetente: indisponível'));
     }
 
+    // UI-DOCUMENTOS-RECEBIDOS-LAYOUT-FIX: defensive — labels are short,
+    // enum-mapped PT-BR strings today (queue-ui presentation helpers),
+    // but the same overflow class as pedidoCell() applies if that ever
+    // changes, so it gets the same §7.1 bundle.
     function stateSpan(label, ariaLabel, color) {
       return window.el('span', {
-        style: 'font-size:10.5px;color:' + (color || '#8a93a3') + ';white-space:nowrap;',
+        style: 'font-size:10.5px;color:' + (color || '#8a93a3') + ';white-space:nowrap;'
+          + 'overflow:hidden;text-overflow:ellipsis;min-width:0;',
         title: ariaLabel || label,
         'aria-label': ariaLabel || label,
       }, label);
