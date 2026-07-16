@@ -273,11 +273,75 @@ Higiene do worktree `work/app-next` — read-only, ordem separada
 - **Documentação atualizada:** `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md`
   (§16 — novo módulo estrutural + mudança de rota; nova linha na
   tabela de fases §4 e na lista canônica de módulos §6).
-- **Próxima ação autorizável:** `A3.2` — sob **gate de mockup**
-  (aprovação do arquiteto dos cards-resumo + toolbar antes de
-  implementar; ver spec). `A3.3` (bulk actions) permanece `DEFERRED`.
-  `A3.4` (remoção do código legado) depende de todas as subfases A3.x
-  aceitas. Nenhuma subfase autorizada por este registro.
+- **Próxima ação autorizável:** `A3.2` foi autorizada e concluída — ver
+  seção própria abaixo.
+- **Ledger:** `docs/ledgers/G28_LEDGER.md` (entrada append-only desta
+  fase).
+
+## Camada 2 — Cards-resumo e Toolbar — CAMADA2-USUARIOS-A3-2
+
+- **Frente:** `G28-CAMADA-2`, subfase `A3.2` de
+  `docs/architecture/CAMADA2_USUARIOS_SPEC_PROPOSED.md`.
+- **Fase:** `CAMADA2-USUARIOS-A3-2`. Feature aditiva de UI (§14
+  `CODE_HEALTH_RULES.md`) sobre o módulo extraído em `A3.1` — sem
+  refactor, sem write novo, sem Auth. **Classificação: `CLOSED /
+  ACCEPTED`** (gate de mockup satisfeito + validação visual manual
+  confirmada, incluindo ajuste pós-validação).
+- **Technical HEADs:** `b4a6238c34afb683ec7a973d230330b7266c99f2` —
+  `Add user admin summary cards and toolbar`; `3198570c04b08bef83605f64bc9ae1c5ece8b873`
+  — `Align summary card background with dashboard`.
+- **Gate de mockup:** `SATISFEITO` — aprovado pelo arquiteto em
+  2026-07-15 (cards-resumo com ícone KPI + toolbar + badge de papel por
+  cor); valores finais registrados em
+  `docs/design/CAMADA2_A32_MOCKUP_APPROVED.md`.
+- **Escopo implementado (itens 1, 2, 3, 5 da ordem):** cards-resumo (4:
+  Administradores/Fornecedores/Clientes/Inativos, contagens sobre
+  `allUsers` já carregado, sem query nova); toolbar (busca + select
+  Ordenar + select Filtrar por tipo + toggle "Mostrar inativos",
+  client-side); badge de papel colorido na coluna Tipo; opacidade
+  `0.6` em linhas inativas.
+- **Item 4 (coluna "Último acesso") — NÃO implementado, HARD STOP
+  confirmado:** `auth.users.last_sign_in_at` não é lido em lugar
+  nenhum do repositório e nenhuma RPC/view o expõe; qualquer via de
+  leitura exige migration nova. **Decisão do arquiteto: via escolhida
+  = RPC `SECURITY DEFINER` admin-only, padrão `is_admin()`.**
+  Registrada como micro-fase futura `CAMADA2-LAST-ACCESS-RPC` —
+  `NOT AUTHORIZED`, candidata a agrupar com a migration de `A4.1`. A
+  opção "Último acesso" existe no select Ordenar (UI, item 2) mas é
+  inerte até a RPC existir.
+- **Ajuste pós-validação:** fundo dos cards padrão (Administradores/
+  Fornecedores/Clientes) alterado de `#f4f6f9` para `#fff` — mesmo tom
+  de `.rv-adm-card` em `js/screens/painel.js` (dashboard admin). Card
+  de Inativos mantém `#fff8f8` (tom de alerta intencional, inalterado).
+- **Não alterado:** `index.html` (nenhum script novo); `js/admin-usuarios-writes.js`;
+  `js/screens/admin-usuarios-modal.js`; `js/screens/cadastros.js`;
+  `js/ui.js`; `js/auth.js`.
+  `docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md` **não recebeu
+  entrada nesta fase** — nenhum módulo estrutural novo, nenhuma
+  mudança de rota (§16 não se aplica).
+- **Testes:** `node --check` PASS; `tests/admin-usuarios.smoke.js`
+  **20/20** (7 testes novos); `tests/boot.smoke.js` + `tests/cadastros-screens.smoke.js`
+  **64/64** (sem regressão); `git diff --check` limpo.
+- **Validação visual:** confirmada pelo arquiteto na rota
+  `#/cadastros/usuarios`, app local (`http://localhost:8765`) apontando
+  para staging `ucrjtfswnfdlxwtmxnoo`, incluindo o ajuste de fundo dos
+  cards aplicado antes do fechamento.
+- **Produção:** `bhgifjrfagkzubpyqpew` não acessada. **Push:** não
+  executado.
+- **Documentação criada/atualizada:** `docs/design/CAMADA2_A32_MOCKUP_APPROVED.md`
+  (novo); `docs/governance/SUPERVISION_PROTOCOL.md` (novo, protocolo de
+  supervisão — papéis Arquiteto/Parecerista/Executor Residente,
+  onboarding, formato de ordem, gates); `docs/DOCUMENTATION_INDEX.md`
+  (2 entradas novas).
+- **Débito registrado (não bloqueante):** `CAMADA2-LAST-ACCESS-RPC` —
+  `NOT AUTHORIZED`, candidata a agrupar com `A4.1`.
+- **Próxima ação autorizável:** `ARCHITECT DECISION REQUIRED` —
+  candidatas sem prioridade inequívoca: `A4.1` (schema
+  `senha_temporaria`/política de senha, possivelmente agrupada com
+  `CAMADA2-LAST-ACCESS-RPC`), `A2.1` (schema `nivel_acesso`), `A6.1`
+  (schema/trigger de auditoria). `A3.3` (bulk actions) permanece
+  `DEFERRED`. `A3.4` (remoção do código legado) depende das demais
+  subfases A3.x aceitas. Nenhuma subfase autorizada por este registro.
 - **Ledger:** `docs/ledgers/G28_LEDGER.md` (entrada append-only desta
   fase).
 

@@ -57,6 +57,7 @@ apontar para esta seção, não repetir a lista.
 |---|---|
 | `docs/DOCUMENTATION_INDEX.md` (este arquivo) | Classifica os documentos e define seus papéis. |
 | `docs/governance/DOCUMENTATION_MODEL.md` | Define o modelo de governança e as regras de atualização documental por fase. |
+| `docs/governance/SUPERVISION_PROTOCOL.md` | Define papéis do processo de supervisão (Arquiteto/Parecerista/Executor Residente), onboarding de parecerista novo, formato de ordem e gates (validação visual, mockup aprovado, migration como gate próprio, risco Auth separado). Não define estado nem regras de organização documental — isso é `DOCUMENTATION_MODEL.md`. |
 | `PROJECT_STATE.md` (raiz) | Único proprietário do estado operacional atual por frente. |
 | `AGENT_HANDOFF.md` (raiz) | Único handoff operacional ativo. |
 | `docs/ledgers/G28_LEDGER.md` | Histórico estruturado append-only da frente G28. |
@@ -87,6 +88,7 @@ divergência com a §1, resolve-se pelo papel de cada um.
 | `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md` | Backlog | Backlog do fluxo produtivo do Pedido (§1-8) + backlog Admin (§9). 8 itens de produção (A-H) + 10 itens Admin (P1/P2). Leitura obrigatória antes de implementação no fluxo produtivo. |
 | `docs/architecture/AUTH_DELETE_USER_DESIGN.md` | Design | Semântica de exclusão/desativação de usuários: desativar (soft delete + ban Auth) em vez de deletar fisicamente. |
 | `docs/architecture/CAMADA2_USUARIOS_SPEC_PROPOSED.md` | Spec proposta (design) | Spec da Camada 2 (administração de usuários, A1-A7 + política de senha): comparação evidenciada Tapetes × SGAA_clean_baseline (referência funcional/visual externa, read-only), plano de módulos, classificação de risco Auth e ordem de subfases com gates. **Status: `PROPOSED`. Autoridade condicionada a aceite explícito do arquiteto por subfase** — não é fonte de implementação autorizada até que cada subfase individual seja aprovada. |
+| `docs/design/CAMADA2_A32_MOCKUP_APPROVED.md` | Design (aprovado) | Especificação visual aprovada de `A3.2` (cards-resumo/KPI, toolbar, badge de papel, opacidade de linha inativa): valores finais de cor/espaçamento/tipografia, implementados em `js/screens/admin-usuarios.js`. Documenta explicitamente o que ficou fora de escopo (coluna "Último acesso", bloqueada por HARD STOP de migration; ícones de A5; bulk actions de A3.3). **Status: `CLOSED / ACCEPTED`** (validação visual do arquiteto confirmada 2026-07-15). |
 | `docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md` | Inventário de ativos | Mapa de componentes, entrypoints, contratos e estrutura de `.claude`. **Não é fonte de estado atual nem árbitro de autoridade.** |
 | `Guide-and-governance-rules.stxt` (raiz) | Governança de agente | Regras operacionais estáveis para o agente Arquiteto/IAexec (Git, escopo, decomposição, roteamento). **Não repete esta lista de autoridade.** |
 
