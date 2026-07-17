@@ -1,5 +1,22 @@
 # ACTIVE OPERATIONAL HANDOFF
 
+- **`TEST-MOCK-FIDELITY-AUDIT` — `CLOSED / ACCEPTED` (read-only, architect
+  ratification 2026-07-17):** all 124 `tests/` suites audited; **zero confirmed
+  (c) structurally-blind doubles that mask a live bug** — the three triggering
+  defects are fixed and their doubles corrected into the faithful seed. Report:
+  `docs/reports/TEST_MOCK_FIDELITY_AUDIT_2026-07-17.md`. Substantive finding is
+  structural (residual classes `R1`/`R2`/`R3`, see the report and
+  `PROJECT_STATE.md`). Ratified: shared-double `tests/_doubles.js` APPROVED
+  (additive, opt-in, phased, mandatory meta-tests); `§20` (test-double fidelity)
+  added to `CODE_HEALTH_RULES.md`; the test-baseline "~87/11 failures" figures
+  re-grounded into two non-mock-fidelity buckets (fixed-port `:8765` +
+  stale inline-`<script>` assertions). **Next authorizable action:** Lot `L1`
+  (`TEST-DOUBLE-SHARED-MODULE`) — introduce `tests/_doubles.js` + meta-tests
+  (commit 1, additive), then adopt in the `R1` suites + fix the `R2` drift
+  (commit 2, same phase). Lot `L2` (stale inline-`<script>` cleanup, ephemeral
+  `listen(0)`) `AUTHORIZED` after `L1`. `L3` `NO ACTION` (subsumed by `A3.4`).
+  This audit itself changed no test/code; only docs (this closeout). See its own
+  dedicated section below.
 - **PROJECT_STATE compaction (`PROJECT-STATE-COMPACTION-A`, 2026-07-16):** `PROJECT_STATE.md` is now current-state-only (active phase, binding decisions in force, live debts, environment, and a "Closed phases" index). Historical phase-closeout narratives were moved verbatim to `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`. The "Full detail" pointers in this handoff now target that archive. This handoff itself was not compacted in that phase.
 - **Staging-only execution boundary in force (`STAGING-ONLY-EXECUTION-BOUNDARY-A`, 2026-07-15):** explicit architect decision — the current operational environment is exclusively staging `ucrjtfswnfdlxwtmxnoo`; the protected/other Supabase project is out of scope; schema migration/promotion in production is postponed until the complete canonical backlog is finished; `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE` is no longer a current material blocker, it is `DEFERRED UNTIL GLOBAL BACKLOG COMPLETION / NOT A CURRENT STAGING BLOCKER`; G28-D publication is `DEFERRED / NOT AUTHORIZED / NOT A CURRENT BLOCKER`; Vercel is a future candidate only, with no decision and no authorization. See `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` ("Architect Decision — Staging-Only Execution Boundary") and its own section below.
 - **No active functional phase.** G28-C is reclassified (2026-07-15, `G28-RECONCILIATION-DECISIONS-A`) as `CLOSED / TECHNICALLY ACCEPTED — ARCHITECT PRODUCT VALIDATION PENDING` — see `PROJECT_STATE.md`. G28-D discovery remains `RELEASE CONTRACT DISCOVERY COMPLETE` (evidence preserved); its publication is `DEFERRED BY ARCHITECT / NOT A CURRENT BLOCKER / NOT AUTHORIZED` and does not constitute an active phase. The canonical definition of the publication mapping and of the authorized procedure for migrations 51/52 remains absent from the repository, but this is no longer a current blocker by explicit decision; see `docs/releases/G28_D_RELEASE_CANDIDATE.md`.
@@ -22,6 +39,42 @@
   Every future handoff must relay these paths and expressly instruct the next chat to relay them again in any subsequent handoff. The continuity chain of the plan and of the backlog cannot be interrupted.
 - **Runtime boundaries:** Document→Pedido 0..1 and Document→OP 0..N contract; dedicated revision tables; Ingestor retains candidate/event fields; B5 preserved; no `statusOverrides`, dual write, backfill or production.
 - **Non-blocking debt:** `AUTHENTICATED_BROWSER_SMOKE_BLOCKED_BY_TOOLING` (the browser has no staging admin application/session).
+
+## Test Mock Fidelity Audit — TEST-MOCK-FIDELITY-AUDIT — CLOSED / ACCEPTED
+
+- **Phase:** `TEST-MOCK-FIDELITY-AUDIT` (read-only). **Documentation commit:**
+  this closeout (`Record test mock fidelity audit`; docs-only — no code, test,
+  SQL, migration, Supabase, staging, production or Vercel accessed/changed). The
+  current HEAD must be consulted with `git rev-parse HEAD`.
+- **Authorization:** explicit architect order ("ARCHITECT AUTHORIZATION —
+  TEST-MOCK-FIDELITY-AUDIT (read-only)"), session model / high effort; ratified
+  by the architect on 2026-07-17.
+- **Result:** all 124 `tests/` suites inventoried and classified against the
+  real behavior each double imitates (`js/ui.js` `el()` boolean coercion,
+  `functions.invoke()` double envelope, `.rpc()`/PostgREST `{data,error}`, real
+  ui.js primitives). **Zero confirmed (c) structurally-blind doubles that mask a
+  live bug.** The three triggering defects were genuine (c) at the time and are
+  fixed with their doubles corrected into the faithful seed; only
+  `admin-usuarios.smoke.js` runtime-fakes `functions.invoke` and it is faithful.
+- **Substantive finding (structural):** fidelity is accidental/per-suite — `R1`
+  quarantined boolean-blind hand-mock `el()` (`direct-cnpj-screens`,
+  `pedido-form`, `cliente-pedido-tracking`, `pedido-detail-linked-documents`,
+  `tec-to-acabamento-flow`), `R2` fail-unsafe raw-store `FakeNode` copy-drift
+  (`fornecedor-screens`, `painel-screen`), `R3` legacy-dead-code invoke coverage
+  gap (resolved by `A3.4`).
+- **Ratified rulings:** shared-double `tests/_doubles.js` `APPROVED as proposed`
+  (additive, opt-in, phased, mandatory meta-tests, seeded from the three
+  corrected doubles); `§20` (test-double fidelity) added to
+  `CODE_HEALTH_RULES.md`; lots `L1` (shared module + `R1` adoption + `R2` fix)
+  and `L2` (stale inline-`<script>` cleanup) `AUTHORIZED`; `L3` `NO ACTION`.
+- **Report:** `docs/reports/TEST_MOCK_FIDELITY_AUDIT_2026-07-17.md` (full
+  per-suite verdicts, evidence, shared-double assessment, prioritized lots,
+  known-debt classification).
+- **Accesses:** no Supabase/MCP/staging/production/Vercel; `bhgifjrfagkzubpyqpew`
+  not accessed; no push.
+- **Next authorizable action:** Lot `L1` (`TEST-DOUBLE-SHARED-MODULE`), then
+  `L2`, then `A2.1`/`A3.4`.
+- **Full detail:** `docs/ledgers/G28_LEDGER.md` (append-only entry).
 
 ## Controlled Delete × Document History (Pedido/OP) — CLOSED / ACCEPTED
 

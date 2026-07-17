@@ -4,8 +4,9 @@
 
 - `PROJECT_STATE.md` — current state; sole owner of the present operational state.
 - `AGENT_HANDOFF.md` — continuity for the next session.
-- `docs/architecture/CODE_HEALTH_RULES.md` — 19 binding architectural health
-  rules (18 modularization + 1 language, §19); no new code may violate them.
+- `docs/architecture/CODE_HEALTH_RULES.md` — 20 binding architectural health
+  rules (18 modularization + 1 language, §19 + 1 test-double fidelity, §20); no
+  new code may violate them.
 - `docs/governance/DOCUMENTATION_MODEL.md` and `docs/DOCUMENTATION_INDEX.md` —
   documental governance model and arbiter of authority/classification.
 

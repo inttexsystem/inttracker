@@ -360,3 +360,41 @@ The audit must conclude with:
 - User-facing UI strings: Portuguese (pt-BR).
 - Existing comments are not translated retroactively; convergence to English
   happens only when a file is touched for another reason.
+
+## 20. Rule for test doubles
+
+A test double that imitates external behavior — the DOM, the Supabase client,
+the network — must model the imitated system's **actual semantics on every axis
+the suite asserts**. A double that encodes the author's assumption instead of the
+imitated system's real behavior confirms any bug that assumption contains
+(`TEST-MOCK-FIDELITY-AUDIT`, 2026-07-17).
+
+Concrete axes that have already produced live defects, with the faithful shape:
+
+- **DOM boolean attributes** — an HTML boolean attribute (`disabled`, `checked`,
+  `selected`, ...) is true by mere presence, regardless of its string value; a
+  faithful DOM double tracks presence (`hasAttribute`/`removeAttribute`) and
+  coerces booleans, never stores the raw `setAttribute` value verbatim
+  (`UI-EL-BOOLEAN-ATTR-FIX`).
+- **`functions.invoke()` envelope** — the client returns the raw parsed body
+  verbatim as `data`; since Edge Functions wrap success in `{ data: <payload> }`,
+  a faithful `invoke` double returns `{ data: { data: <payload> }, error }` (the
+  double envelope), not the flat inner payload (`UI-INVOKE-ENVELOPE-FIX`).
+- **`.rpc()` / PostgREST reads** — resolve `{ data, error }`; `.single()`/
+  `.maybeSingle()` return an object (or null), a chain terminal returns an array;
+  `.rpc()` returns the raw function return under `data` (single level).
+
+Adoption:
+
+- **Prefer the shared `tests/_doubles.js`** (FaithfulNode + fake `supa`), which
+  is the single canonical source for these semantics and ships with its own
+  meta-tests proving it catches each class it exists to catch.
+- A **hand-rolled divergence** from the shared double (a simplified per-suite
+  stand-in) is allowed only with a **written justification comment in the suite**
+  stating which axis is simplified and why no asserted test can be fooled by the
+  simplification. A simplification that fails safe (the real code path crashes the
+  test rather than passing) is acceptable; a simplification that could pass green
+  on the real bug is not.
+- New shared-double adoption is additive and opt-in; convergence happens when a
+  suite is touched for another reason (§19 philosophy). No mandated big-bang
+  migration.

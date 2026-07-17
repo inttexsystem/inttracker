@@ -13,22 +13,35 @@ HEAD, working tree, staging and divergence must be consulted directly in Git
 ## Active phase and next action
 
 - **Active functional phase:** `NONE`.
-- **Next authorizable action:** `ARCHITECT DECISION` on a **read-only front**:
-  `TEST-MOCK-FIDELITY-AUDIT`, **promoted to priority candidate** at this
-  closeout (three defects from the same root class surfaced in one day —
-  boolean-attribute `setAttribute` coercion, hand-mocked `js/ui.js`
-  primitives, and the `functions.invoke()` double-envelope unwrap below —
-  each one a test double that diverged from the real behavior it imitated
-  and let a live bug through). Scope: inventory every test double in
-  `tests/` that hand-mocks or fakes a runtime boundary (Supabase client,
-  DOM/`ui.js` primitives, Edge Function envelopes) and diverges from the
-  real behavior; no code fix bundled with the inventory itself. `A2.1`
+- **Next authorizable action:** `TEST-DOUBLE-SHARED-MODULE` **Lot `L1`** —
+  `AUTHORIZED` (architect ratification of `TEST-MOCK-FIDELITY-AUDIT`,
+  2026-07-17). Introduce `tests/_doubles.js` (a shared `FaithfulNode` with real
+  DOM boolean-attr coercion + presence, and a fake `supa` with `{data,error}`,
+  single-vs-array, double-envelope `invoke`, single-level `rpc`) plus its own
+  meta-tests as commit 1 (additive, zero suites migrated); then adopt it in the
+  `R1` suites (`direct-cnpj-screens`, `pedido-form`, `cliente-pedido-tracking`,
+  `pedido-detail-linked-documents`, `tec-to-acabamento-flow`) and fix the `R2`
+  drift (`fornecedor-screens`, `painel-screen` `removeAttribute`/`hasAttribute`
+  parity) as commit 2, same phase — with a per-`R1`-suite demonstration test
+  proving the old double missed what the new one catches. `TEST-DOUBLE-STALE-
+  ASSERTION-CLEANUP` **Lot `L2`** is `AUTHORIZED` **after** `L1` (delete/rewrite
+  the stale inline-`<script>` assertions in `index-inline`/`config`/
+  `supabase-client`; ephemeral `listen(0)` replacing fixed `:8765`). `A2.1`
   (schema `nivel_acesso`) and `A3.4` (legacy code removal in `cadastros.js`)
-  are the next authorizable technical candidates **after** that audit — see
-  their own governance note below. `UI-EL-BOOLEAN-ATTR-FIX` (severity
-  `CONFIRMED — ACTIVE REGRESSION`, reproduced by the architect in staging)
-  remains an open candidate the audit should also cover, as the first
-  confirmed instance of this defect class.
+  remain the next authorizable candidates **after** the test-double lots.
+  - **`TEST-MOCK-FIDELITY-AUDIT` — `CLOSED / ACCEPTED`** (read-only audit,
+    architect ratification 2026-07-17; report
+    `docs/reports/TEST_MOCK_FIDELITY_AUDIT_2026-07-17.md`): all 124 `tests/`
+    suites inventoried; **zero confirmed (c) structurally-blind doubles that
+    mask a live bug** — the three triggering defects were fixed and their
+    doubles corrected into the faithful seed. Substantive finding is
+    structural: fidelity is accidental/per-suite (residual classes `R1`
+    quarantined boolean-blindness, `R2` fail-unsafe copy-drift, `R3` legacy
+    coverage gap). Shared-double module `APPROVED as proposed` (additive,
+    opt-in, phased, mandatory meta-tests). `§20` (test-double fidelity) added
+    to `CODE_HEALTH_RULES.md`. `UI-EL-BOOLEAN-ATTR-FIX` is subsumed: the live
+    regression it named is already fixed in `el()`; the audit confirms the
+    fix's doubles are faithful and locates the latent siblings (`R1`).
   - **`G28-CAMADA-2 / A6` track — COMPLETE** (`A6.1` + `A6.1-B` + `A6.2` +
     `A6.3`, all `CLOSED / ACCEPTED` — see "Closed phases" below). `A6.3`'s
     architect visual gate passed. Real E2E in staging
@@ -140,21 +153,30 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   Same root cause as the residue already fixed once in `expedicao-admin.js`.
   Not fixed in this phase (outside every manifest to date) — recommended as
   the priority `ARCHITECT DECISION` candidate.
-- **`TEST-MOCK-FIDELITY-AUDIT` — PROMOTED to priority read-only front
-  (consolidated `A6`/`UI-INVOKE-ENVELOPE-FIX` closeout, 2026-07-17):** three
-  defects surfaced in one day share the same root class — a test double that
-  diverges from the real behavior it imitates, letting a live bug pass green.
-  Instances: (1) `UI-EL-BOOLEAN-ATTR-FIX` above (`el()`'s unconditional
-  `setAttribute`, real DOM behavior not modeled by `FakeNode`); (2) hand-mocked
-  `js/ui.js` primitives in suites that build their own DOM stand-ins instead
-  of loading the real module; (3) `UI-INVOKE-ENVELOPE-FIX` (the fake Supabase
-  client's `functions.invoke()` mock returned the inner payload flat, one
-  level shallower than the real client's raw-body pass-through, masking the
-  `data.password`/`data.user_id` double-envelope bug through every prior
-  `A5`/`A6` phase). Scope for the audit: inventory every test double in
-  `tests/` that fakes a runtime boundary (Supabase client, DOM/`ui.js`
-  primitives, Edge Function envelopes) and diverges from the real behavior —
-  read-only, no code fix bundled with the inventory itself.
+- **`TEST-MOCK-FIDELITY-AUDIT` — `CLOSED / ACCEPTED` (read-only audit,
+  architect ratification 2026-07-17):** all 124 `tests/` suites inventoried and
+  classified against the real behavior each double imitates (report
+  `docs/reports/TEST_MOCK_FIDELITY_AUDIT_2026-07-17.md`). Result: **zero
+  confirmed (c) structurally-blind doubles that mask a live bug** — the three
+  triggering defects (`UI-EL-BOOLEAN-ATTR-FIX` boolean-`setAttribute`,
+  hand-mocked `js/ui.js` primitives, `UI-INVOKE-ENVELOPE-FIX` flat-`invoke()`)
+  were genuine (c) at the time and are now fixed with their doubles corrected
+  into the faithful seed (`admin-usuarios.smoke.js` is the crown jewel: real
+  `js/ui.js` + double-wrapped `invoke` + presence-tracking `FakeNode`; only that
+  one suite runtime-fakes `functions.invoke`). Substantive finding is
+  **structural** — fidelity is accidental/per-suite: `R1` (quarantined
+  boolean-blind hand-mock `el()` in `direct-cnpj-screens`/`pedido-form`/
+  `cliente-pedido-tracking`/`pedido-detail-linked-documents`/
+  `tec-to-acabamento-flow`, benign only because those screens have no
+  boolean/ternary attr today), `R2` (fail-unsafe raw-store `FakeNode`
+  copy-drift; loads real `el()`, so crashes rather than false-greens),
+  `R3` (legacy-dead-code invoke coverage gap, resolved by `A3.4`). **Ratified
+  rulings:** shared-double `tests/_doubles.js` `APPROVED as proposed` (additive,
+  opt-in, phased, mandatory meta-tests, seeded from the three corrected
+  doubles); `§20` (test-double fidelity) added to `CODE_HEALTH_RULES.md`; lots
+  `L1` (shared module + `R1` adoption + `R2` fix) and `L2` (stale inline-`<script>`
+  cleanup) `AUTHORIZED`; `L3` `NO ACTION` (subsumed by `A3.4`, its fourth
+  justification).
 - **Controlled Delete × document history:** physical deletion of Pedido/OP is
   blocked when canonical document history exists (`document_link_revisions`/
   `document_link_revision_ops`, append-only, never deleted); the permanent
@@ -187,6 +209,20 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   `tests/auth.smoke.js` with an outdated `<script src="js/auth.js">` regex
   (candidate for `CODE-HEALTH-AUDIT-§18-R1`); `js/screens/admin-usuarios-modal.js`
   at 576 lines (decomposition candidate).
+- **Test baseline re-grounded (`TEST-MOCK-FIDELITY-AUDIT`, 2026-07-17):** the
+  historical "~87 http.server/index.html failures" and "11 index-inline
+  failures" figures are **stale baseline artifacts** and must not be carried as
+  a fidelity count. They resolve into two non-mock-fidelity buckets, both slated
+  for `L2`: (1) **fixed-port `:8765` environment dependency** — `index-inline`
+  and `write-guard` `http.get` a hard-coded dev-server port (`ECONNREFUSED` when
+  down); other server-using suites (`config`/`auth`/`environment-banner`/
+  `supabase-client`) self-host on ephemeral `listen(0)` and are robust; (2)
+  **stale inline-`<script>` assertions** — a shared `extractInlineScript` helper
+  in `index-inline`/`config`/`supabase-client` asserts an inline block the
+  modularization tracks fully removed (`index.html` now 79/79 `<script src=…>`,
+  zero inline). Measured now: `tests/index-inline.smoke.js` = 6 fail / 7. Neither
+  bucket is mock-fidelity; the doubles inside those suites are adequate for their
+  purpose.
 - **Documentation candidate:** review of the legacy `docs/AI_AGENT_RULES.md`
   (partially legacy; contains stale counts/context — not authorized, not
   started).
@@ -316,6 +352,7 @@ HEAD with `git rev-parse HEAD`.
 
 | Phase | Status | Date | Commit(s) |
 |---|---|---|---|
+| Test Mock Fidelity Audit (read-only) — `TEST-MOCK-FIDELITY-AUDIT` | `CLOSED / ACCEPTED` | 2026-07-17 | (docs) |
 | Admin Edge Function Response Envelope Fix — `UI-INVOKE-ENVELOPE-FIX` | `CLOSED / ACCEPTED` | 2026-07-17 | `7b37e8e` |
 | Camada 2 — User Audit Panel (read-only) — `A6.3` | `CLOSED / ACCEPTED` | 2026-07-17 | `e31f269` |
 | Camada 2 — Audit Trail Wiring (Edge Functions) — `A6.2` | `CLOSED / ACCEPTED` | 2026-07-17 | `b67b126`, `7309349` |
