@@ -130,11 +130,43 @@
   }
 
   // -------------------------------------------------------------------
+  // Wire contract (UI-INVOKE-ENVELOPE-FIX): every admin-* Edge Function
+  // wraps its success body in { data: <payload> } via
+  // supabase/functions/_shared/response.ts jsonResponse(). The
+  // supabase-js client's functions.invoke() does NOT unwrap that — it
+  // returns the raw parsed JSON body verbatim as `data` (verified
+  // against @supabase/supabase-js FunctionsClient.invoke():
+  // `data = await response.json()`, no further processing). So
+  // invoke()'s own `data` is `{ data: <payload> }` — one level deeper
+  // than every call site in this codebase expects (data.password,
+  // createData.user_id, etc.).
+  //
+  // invokeAdminFunction() is the SINGLE unwrap point for this module:
+  // every write below returns the already-unwrapped payload as
+  // `data`, so js/screens/admin-usuarios-modal.js's existing reads
+  // stay correct unmodified. On error, the raw invoke() error is
+  // passed through unchanged (parseEdgeFunctionError already reads
+  // error.context.json() directly, unaffected by this unwrap).
+  //
+  // Root cause / history: this mismatch predates this fix (present
+  // since A5.1-A5.2, admin-reset-user-password's resetarSenha) — it
+  // was never a regression introduced by A6.2's audit_recorded field.
+  // -------------------------------------------------------------------
+  async function invokeAdminFunction(name, body) {
+    var res = await window.supa.functions.invoke(name, { body: body });
+    if (res.error) return { data: null, error: res.error };
+    var payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
+      ? res.data.data
+      : res.data;
+    return { data: payload, error: null };
+  }
+
+  // -------------------------------------------------------------------
   // Writes — criar / editar (PostgREST update em observações)
   // -------------------------------------------------------------------
 
   async function createUsuario(payload) {
-    return window.supa.functions.invoke('admin-create-user', { body: payload });
+    return invokeAdminFunction('admin-create-user', payload);
   }
 
   async function updateUsuario(id, payload) {
@@ -150,24 +182,24 @@
   // -------------------------------------------------------------------
 
   async function disableUsuario(user_id, reason) {
-    return window.supa.functions.invoke('admin-disable-user', { body: { user_id, reason } });
+    return invokeAdminFunction('admin-disable-user', { user_id: user_id, reason: reason });
   }
 
   async function deleteUsuario(user_id, confirm_email) {
-    return window.supa.functions.invoke('admin-delete-user', { body: { user_id, confirm_email } });
+    return invokeAdminFunction('admin-delete-user', { user_id: user_id, confirm_email: confirm_email });
   }
 
   // A5.1-A5.2 — reset de senha administrativo. Retorna a senha gerada
   // no envelope de sucesso (data.password) — o chamador exibe uma
   // única vez e nunca a persiste.
   async function resetarSenha(user_id) {
-    return window.supa.functions.invoke('admin-reset-user-password', { body: { user_id } });
+    return invokeAdminFunction('admin-reset-user-password', { user_id: user_id });
   }
 
   // A5.3-A5.4 — reativação administrativa. Contraparte simétrica de
   // disableUsuario: reverte ativo/ban no Auth via Edge Function própria.
   async function reativarUsuario(user_id) {
-    return window.supa.functions.invoke('admin-reactivate-user', { body: { user_id } });
+    return invokeAdminFunction('admin-reactivate-user', { user_id: user_id });
   }
 
   // -------------------------------------------------------------------

@@ -206,10 +206,23 @@ function makeFakeSupabaseClient({ tableData = {}, invokeImpl = {}, rpcImpl = {} 
   return {
     from(table) { calls.push({ op: 'from', table }); return makeChain(table); },
     functions: {
+      // Simulates the REAL supabase-js functions.invoke() boundary
+      // (UI-INVOKE-ENVELOPE-FIX): on success it returns the raw
+      // parsed HTTP JSON body verbatim, and every admin-* Edge
+      // Function wraps its payload in { data: <payload> } via
+      // jsonResponse() — so a correct fake here must itself return
+      // { data: { data: <payload> }, error: null }, mirroring the
+      // real double envelope. invokeImpl callbacks below return the
+      // INNER <payload> only; this wrapper adds the outer layer so
+      // js/admin-usuarios-writes.js's invokeAdminFunction() has a
+      // real single unwrap to perform, exactly as in production.
       invoke: async (name, opts) => {
         calls.push({ op: 'invoke', name, body: opts && opts.body });
-        if (invokeImpl[name]) return invokeImpl[name](opts && opts.body);
-        return { data: { user_id: 'new-user-id' }, error: null };
+        const inner = invokeImpl[name]
+          ? await invokeImpl[name](opts && opts.body)
+          : { data: { user_id: 'new-user-id' }, error: null };
+        if (inner.error) return { data: null, error: inner.error };
+        return { data: { data: inner.data }, error: null };
       },
     },
     rpc: async (name, params) => {
@@ -436,6 +449,84 @@ test('14. writes: createUsuario/updateUsuario/disableUsuario/deleteUsuario chama
   const updateCalls = fakeSupa._calls.filter((c) => c.op === 'update' && c.table === 'usuarios');
   assert.ok(updateCalls.some((c) => c.payload.nome === 'Bia 2'),
     'updateUsuario não chamou supa.from("usuarios").update com o payload certo');
+});
+
+// -----------------------------------------------------------------------------
+// UI-INVOKE-ENVELOPE-FIX — regression: functions.invoke() returns the raw
+// HTTP body verbatim ({ data: <payload> }, per jsonResponse()); the fake
+// supa client's invoke() wraps invokeImpl's return in that same extra
+// layer (see makeFakeSupabaseClient above), so these tests only pass if
+// invokeAdminFunction() in js/admin-usuarios-writes.js unwraps exactly
+// once — proving the fix without going through the full UI click flow.
+// -----------------------------------------------------------------------------
+
+test('14b. createUsuario desembrulha o envelope duplo: data.user_id é o valor real, não undefined', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({
+    tableData: USERS_FIXTURE,
+    invokeImpl: {
+      'admin-create-user': async (body) => ({
+        data: { user_id: 'novo-user-real', email: body.email, tipo: body.tipo, fornecedor_id: null, cliente_id: null, audit_recorded: true },
+        error: null,
+      }),
+    },
+  });
+  const result = await vm.runInContext(
+    `window.RAVATEX_ADMIN_USUARIOS_WRITES.createUsuario({ email: 'x@x.c', password: '12345678', nome: 'X', tipo: 'admin' })`,
+    sandbox,
+  );
+  assert.equal(result.error, null);
+  assert.equal(result.data.user_id, 'novo-user-real',
+    'createUsuario deveria retornar data.user_id desembrulhado (não data.data.user_id nem undefined)');
+});
+
+test('14c. disableUsuario/deleteUsuario desembrulham o envelope duplo (data correta) e propagam error sem desembrulhar', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({
+    tableData: USERS_FIXTURE,
+    invokeImpl: {
+      'admin-disable-user': async (body) => ({ data: { user_id: body.user_id, ativo: false, auth_banned: true, audit_recorded: true }, error: null }),
+      'admin-delete-user': async () => ({ data: null, error: { message: 'USER_HAS_REFERENCES' } }),
+    },
+  });
+  const disableResult = await vm.runInContext(`window.RAVATEX_ADMIN_USUARIOS_WRITES.disableUsuario('u-2', 'motivo')`, sandbox);
+  assert.equal(disableResult.error, null);
+  assert.equal(disableResult.data.ativo, false, 'disableUsuario deveria retornar data.ativo desembrulhado');
+
+  const deleteResult = await vm.runInContext(`window.RAVATEX_ADMIN_USUARIOS_WRITES.deleteUsuario('u-2', 'b@b.c')`, sandbox);
+  assert.equal(deleteResult.data, null);
+  assert.ok(deleteResult.error && deleteResult.error.message === 'USER_HAS_REFERENCES',
+    'deleteUsuario deveria propagar o error original sem tentar desembrulhá-lo');
+});
+
+test('31b. resetarSenha desembrulha o envelope duplo: data.password é o valor real, não undefined (bug relatado pelo arquiteto)', async () => {
+  const senhaGerada = 'Xk7pQ2rT9mLv';
+  const { sandbox } = makeAdminUsuariosSandbox({
+    tableData: USERS_FIXTURE,
+    invokeImpl: {
+      'admin-reset-user-password': async (body) => ({
+        data: { user_id: body.user_id, email: 'b@b.c', tipo: 'fornecedor', password: senhaGerada, senha_temporaria: true, audit_recorded: true },
+        error: null,
+      }),
+    },
+  });
+  const result = await vm.runInContext(`window.RAVATEX_ADMIN_USUARIOS_WRITES.resetarSenha('u-2')`, sandbox);
+  assert.equal(result.error, null);
+  assert.equal(result.data.password, senhaGerada,
+    'resetarSenha deveria retornar data.password desembrulhado — regressão do bug relatado (envelope duplo, data.data.password)');
+});
+
+test('32b. reativarUsuario desembrulha o envelope duplo: data.ativo é o valor real, não undefined', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({
+    tableData: USERS_FIXTURE,
+    invokeImpl: {
+      'admin-reactivate-user': async (body) => ({
+        data: { user_id: body.user_id, email: 'c@c.c', tipo: 'admin', ativo: true, auth_banned: false, audit_recorded: true },
+        error: null,
+      }),
+    },
+  });
+  const result = await vm.runInContext(`window.RAVATEX_ADMIN_USUARIOS_WRITES.reativarUsuario('u-3')`, sandbox);
+  assert.equal(result.error, null);
+  assert.equal(result.data.ativo, true, 'reativarUsuario deveria retornar data.ativo desembrulhado');
 });
 
 // -----------------------------------------------------------------------------
