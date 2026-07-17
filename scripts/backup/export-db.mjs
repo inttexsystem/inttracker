@@ -81,6 +81,37 @@ function envTrim(name) {
   return typeof v === 'string' ? v.trim() : v;
 }
 
+// Resolves the OAuth client id+secret. If BACKUP_GOOGLE_CLIENT_SECRETS_FILE
+// points at the JSON that Cloud Console lets you download per client
+// ("Download JSON" / "Baixar JSON"), both values are read from it as a
+// MATCHED PAIR — this is the robust path, since the #1 cause of
+// invalid_client is pairing an id and secret from two different clients.
+// Falls back to the individual BACKUP_GOOGLE_CLIENT_ID/SECRET env vars.
+function resolveGoogleClient() {
+  const file = envTrim('BACKUP_GOOGLE_CLIENT_SECRETS_FILE');
+  if (file) {
+    if (!existsSync(file)) {
+      fail(EXIT_CODES.USAGE, `BACKUP_GOOGLE_CLIENT_SECRETS_FILE not found: ${file}`);
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(readFileSync(file, 'utf-8'));
+    } catch (e) {
+      fail(EXIT_CODES.USAGE, `Could not parse BACKUP_GOOGLE_CLIENT_SECRETS_FILE as JSON: ${file}`);
+    }
+    // Cloud Console wraps the credentials under "installed" (Desktop app)
+    // or "web" (Web application); accept a flat shape too.
+    const node = parsed.installed || parsed.web || parsed;
+    const clientId = typeof node.client_id === 'string' ? node.client_id.trim() : undefined;
+    const clientSecret = typeof node.client_secret === 'string' ? node.client_secret.trim() : undefined;
+    if (!clientId || !clientSecret) {
+      fail(EXIT_CODES.USAGE, `${file} has no client_id/client_secret under "installed"/"web". Re-download it from Cloud Console.`);
+    }
+    return { clientId, clientSecret, fromFile: true };
+  }
+  return { clientId: envTrim('BACKUP_GOOGLE_CLIENT_ID'), clientSecret: envTrim('BACKUP_GOOGLE_CLIENT_SECRET'), fromFile: false };
+}
+
 // Best-effort browser open; the URL is always printed as a fallback.
 // rundll32 takes the URL as a plain argv entry — no cmd.exe quoting
 // hazards with the '&'s inside an OAuth URL.
@@ -114,9 +145,11 @@ function loginErrorHtml(err) {
 }
 
 async function runLogin() {
-  const clientId = envTrim('BACKUP_GOOGLE_CLIENT_ID');
-  const clientSecret = envTrim('BACKUP_GOOGLE_CLIENT_SECRET');
+  const { clientId, clientSecret, fromFile } = resolveGoogleClient();
   const tokenPath = process.env.BACKUP_GOOGLE_TOKEN_PATH || '.ravatex-local/backup-google-token.json';
+  if (fromFile) {
+    console.log(`Using client id+secret from BACKUP_GOOGLE_CLIENT_SECRETS_FILE (matched pair).`);
+  }
 
   if (!clientId || !clientSecret) {
     fail(EXIT_CODES.USAGE, 'login requires BACKUP_GOOGLE_CLIENT_ID and BACKUP_GOOGLE_CLIENT_SECRET.');
@@ -241,8 +274,7 @@ function assertNotProduction(pgHost, supabaseUrl) {
 }
 
 function loadDriveConfig() {
-  const clientId = envTrim('BACKUP_GOOGLE_CLIENT_ID');
-  const clientSecret = envTrim('BACKUP_GOOGLE_CLIENT_SECRET');
+  const { clientId, clientSecret } = resolveGoogleClient();
   const folderName = process.env.BACKUP_GOOGLE_DRIVE_ROOT_FOLDER_NAME || 'Ravatex Backups';
   let refreshToken = envTrim('BACKUP_GOOGLE_REFRESH_TOKEN');
   if (!refreshToken) {
