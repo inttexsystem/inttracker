@@ -15,20 +15,24 @@ are in `docs/ledgers/G28_LEDGER.md`. HEAD/working tree/divergence: consult Git d
   `docs/reports/PRODUCTION_READINESS_DIAGNOSIS_R1_2026-07-17.md`) and registered as
   the **active track** by the ratification order of the same date. **`M0` — `CLOSED
   / ACCEPTED`** (new repo landing, 2026-07-17), **`M1` — `CLOSED / ACCEPTED`**
-  (new Supabase project verification + sanction, 2026-07-17), and **`M2` — `CLOSED /
+  (new Supabase project verification + sanction, 2026-07-17), **`M2` — `CLOSED /
   ACCEPTED`** (schema replay `db/01→db/64` into `gqmpsxkxynrjvidfmojk`, 2026-07-17;
-  see "Migration governance" and `docs/reports/M2_SCHEMA_REPLAY_VERIFICATION_2026-07-17.md`).
-  `M3`-`M10` remain `NOT AUTHORIZED`, each pending its own individual order; phases do
+  see "Migration governance" and `docs/reports/M2_SCHEMA_REPLAY_VERIFICATION_2026-07-17.md`),
+  and **`M3` — `CLOSED / ACCEPTED`** (production data migration into
+  `gqmpsxkxynrjvidfmojk` + `parametros_largura` overwrite from legacy, 2026-07-17;
+  see "Migration governance" and `docs/ledgers/G28_LEDGER.md` `M3-DATA` entry).
+  `M4`-`M10` remain `NOT AUTHORIZED`, each pending its own individual order; phases do
   not chain automatically.
 - **`BACKLOG FREEZE` in force (2026-07-17):** **no NEW fronts** until after cutover
   (`M10`). Only the **`M0`-`M10` migration plan** and the **canonical residual risk
   register** (12 items, ranked — see "Live debts and candidates") are authorizable
   work. All pre-existing candidate fronts are frozen-in-place as `POST-LAUNCH DEBT`.
-- **Next authorizable action:** an individual order for `M3` or any other `M4`-`M10`
+- **Next authorizable action:** an individual order for `M4` or any other `M5`-`M10`
   phase. Target coordinates: GitHub `inttexsystem/inttracker` (production remote,
   pushed), Supabase `gqmpsxkxynrjvidfmojk` (schema replayed `db/01→64` at `M2` — 64
-  registry entries, 40 public tables), Vercel `vercel.com/inttex`. **Standing reminder:
-  flip the Supabase MCP back to read-only** now that `M2`'s write window is closed.
+  registry entries, 40 public tables; production data migrated at `M3`, see below),
+  Vercel `vercel.com/inttex`. **Standing reminder: flip the Supabase MCP back to
+  read-only** now that `M3`'s write window is closed.
 - **Post-launch debt pointer (frozen):** the former Camada-3 subphases (`BK5`-`BK8`,
   `CAMADA3-TRIGGER-SELECTION`), the two ex-`PRE-PUBLICATION` asterisks
   (`A2-SERVER-SIDE-ENFORCEMENT`, `A2-CREATE-NIVEL-ACESSO-WIRING`), and
@@ -153,6 +157,39 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   permission-denied on `ucrjtfswnfdlxwtmxnoo`; the parity diff must be run out-of-band
   or the token re-scoped (advisory, non-blocking). **No production access; staging
   only read-attempted for parity (denied), never written.** Next: `M3`.
+- **`M3` (production data migration) — `CLOSED / ACCEPTED` (2026-07-17):** production
+  data copied from legacy `ucrjtfswnfdlxwtmxnoo` into `gqmpsxkxynrjvidfmojk`.
+  **Verification (re-confirmed live at closeout):** auth remap — 24 rows, single
+  column (`document_scan_requests.requested_by_user_id`), all remapped to the single
+  surviving admin account; FK integrity — dynamic per-constraint orphan scan, **76
+  relationships checked, 0 orphans** (13 reference `auth.users` directly, all clean);
+  sequence resync — **10/10** populated sequences match `MAX(id)` of their owning
+  table exactly. **Exclusion set (test/synthetic data, by design):** `clientes`(2),
+  `fornecedores`(1), `lotes`(8), `op_fornecedores`(2), `op_itens`(2), `ops`(6),
+  `ordens_compra_fio`(8), `precos_terceirizada`(1), `usuarios`/`auth.users`(9),
+  `pedidos`(3), `pedido_itens`(2), `op_eventos`(1), `document_candidates`(3) — not
+  carried over; the new database is intentionally smaller than legacy, not
+  incompletely migrated. **Architect ruling (a) — `usuarios_eventos` excluded
+  entirely (binding):** remapping `ator_id` would fabricate audit history (actors
+  who never performed those actions in the new project); legacy retains the
+  original 9-row trail as the historical record, the new project's audit trail
+  starts empty and truthful from cutover. Same reasoning extends to
+  `document_link_revisions`/`document_link_revision_ops` (8/10 rows, also
+  actor-keyed canonical history) — excluded for the identical reason. **Architect
+  ruling (b) — `parametros_largura` overwritten from legacy (binding):** the `db/04`
+  seed (`peso_linear` 1.5000/2.2500, `valor_x` 1.0000) is a bootstrap default; the
+  legacy live-tuned configuration (`largura=1.40`→`peso_linear=0.3360`,
+  `algodao_por_ml=0.226000`, `poliester_por_ml=0.110000`, `valor_x=0.5000`;
+  `largura=2.10`→`peso_linear=0.5370`, `algodao_por_ml=0.366000`,
+  `poliester_por_ml=0.171000`, `valor_x=0.5000`) is real operationally-tuned data by
+  the same standard as `clientes`/`modelos` and supersedes the seed — applied via
+  `UPDATE` against `gqmpsxkxynrjvidfmojk`, matched by `largura`, this closeout.
+  **Legacy retention (binding):** `ucrjtfswnfdlxwtmxnoo` retains the original audit
+  trail (`usuarios_eventos`/`document_link_revisions`/`document_link_revision_ops`)
+  and the excluded test/synthetic rows above — it is the historical record for both
+  and **must not be deleted or pruned without a separate, explicit architect
+  decision.** Full detail: `docs/ledgers/G28_LEDGER.md` `M3-DATA` entry. **No
+  production access; legacy read-only, no writes.** Next: `M4`.
 - **Staging-only execution boundary (`STAGING-ONLY-EXECUTION-BOUNDARY-A`,
   2026-07-15, partially superseded):** operational environment is staging
   `ucrjtfswnfdlxwtmxnoo`; the protected project `bhgifjrfagkzubpyqpew` is `OUT OF
@@ -290,12 +327,15 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   empty (main = the full history, see "Migration governance" `M0` record); Supabase
   `gqmpsxkxynrjvidfmojk` — **`M2` schema replayed** (`db/01→64`, 64 registry entries,
   40 public tables / 53 functions / 67 policies / 9 triggers / 0 views / 0 buckets;
-  sole data residual `parametros_largura`=2 configuration; see "Migration governance"
-  `M2` record + `docs/reports/M2_SCHEMA_REPLAY_VERIFICATION_2026-07-17.md`), new-format
-  publishable key supplied, matching secret key still to be obtained out of band;
-  Vercel `vercel.com/inttex` (repo-linked, not wired). Remaining wiring `NOT
-  AUTHORIZED` until the relevant `M3`-`M10` order. **Supabase MCP:** flipped to write
-  for `M2` and now resolves to the **management-scoped** server (explicit `project_id`
+  see "Migration governance" `M2` record +
+  `docs/reports/M2_SCHEMA_REPLAY_VERIFICATION_2026-07-17.md`) and **`M3` production
+  data migrated** (auth remap 24 rows/1 column, FK integrity 76/76 relationships
+  clean, sequences 10/10 resynced, `parametros_largura` overwritten from legacy
+  live values — see "Migration governance" `M3` record), new-format publishable key
+  supplied, matching secret key still to be obtained out of band; Vercel
+  `vercel.com/inttex` (repo-linked, not wired). Remaining wiring `NOT AUTHORIZED`
+  until the relevant `M4`-`M10` order. **Supabase MCP:** flipped to write for `M2`/
+  `M3` and now resolves to the **management-scoped** server (explicit `project_id`
   per call); **to be flipped back to read-only** by the architect — standing reminder.
 - **Remotes:** `production` = `https://github.com/inttexsystem/inttracker.git`
   (fetch+push, added at `M0`); `origin` = `grupoterrabranca/controle-tapetes`;
@@ -337,6 +377,7 @@ technical commits; documentation-only phases show `(docs)`. Consult HEAD with
 
 | Phase | Status | Date | Commit(s) |
 |---|---|---|---|
+| Production Data Migration — `M3` (legacy `ucrjtfswnfdlxwtmxnoo` → `gqmpsxkxynrjvidfmojk` + `parametros_largura` overwrite) | `CLOSED / ACCEPTED` | 2026-07-17 | (Supabase writes: data migration + `parametros_largura` UPDATE + docs record) |
 | Schema Replay into Sanctioned Target — `M2` (`db/01→64` → `gqmpsxkxynrjvidfmojk`) | `CLOSED / ACCEPTED` | 2026-07-17 | (Supabase writes: 64 migrations + docs record) |
 | Supabase Target Verification + Sanction — `M1` (`gqmpsxkxynrjvidfmojk`) | `CLOSED / ACCEPTED` | 2026-07-17 | (docs, read-only verification) |
 | Repository Migration — `M0` (push to `inttexsystem/inttracker`) | `CLOSED / ACCEPTED` | 2026-07-17 | `7b2ab7d` pushed (git-only) + record commit |

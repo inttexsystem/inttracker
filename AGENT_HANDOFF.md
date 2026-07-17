@@ -1,5 +1,56 @@
 # ACTIVE OPERATIONAL HANDOFF
 
+- **`M3` (production data migration into `gqmpsxkxynrjvidfmojk`) — `CLOSED /
+  ACCEPTED` (2026-07-17):** production data copied from legacy
+  `ucrjtfswnfdlxwtmxnoo` into `gqmpsxkxynrjvidfmojk` (executed earlier in this
+  working session); this closeout re-verified everything live and applied one
+  architect-ordered data correction. **Re-verified at closeout:** auth remap —
+  **24 rows, single column** (`document_scan_requests.requested_by_user_id`,
+  all remapped to the single surviving admin `auth.users` row); FK integrity —
+  dynamic per-constraint orphan scan across every single-column FK in `public`,
+  **76 relationships checked, 0 orphans** (13 reference `auth.users` directly,
+  all clean); sequence resync — **10/10** populated sequences' `last_value`
+  matches `MAX(id)` of their owning table exactly. **Exclusion set (test/
+  synthetic data, by row-count diff legacy vs new):** `clientes`(2),
+  `fornecedores`(1), `lotes`(8), `op_fornecedores`(2), `op_itens`(2), `ops`(6),
+  `ordens_compra_fio`(8), `precos_terceirizada`(1), `usuarios`/`auth.users`(9),
+  `pedidos`(3), `pedido_itens`(2), `op_eventos`(1), `document_candidates`(3) —
+  not carried over; the new database is intentionally smaller than legacy, not
+  incompletely migrated. **Architect ruling (a), binding:**
+  `usuarios_eventos` excluded entirely (0 rows in the new project vs 9 in
+  legacy) — remapping `ator_id` would fabricate audit history, attributing
+  actions to an actor who never performed them in the new project; legacy
+  retains the original trail as the historical record, the new project's
+  audit trail starts empty and truthful from cutover. Same reasoning extends
+  to `document_link_revisions`/`document_link_revision_ops` (8/10 rows,
+  actor-keyed canonical history) — excluded for the identical reason.
+  **Architect ruling (b), binding:** `parametros_largura` overwritten from
+  legacy — the `db/04` seed (`peso_linear` 1.5000/2.2500, `valor_x` 1.0000)
+  is a bootstrap default, not real data; the legacy project's live-tuned
+  configuration is real operational data by the same standard as
+  `clientes`/`modelos` and supersedes the seed. **Applied this closeout**
+  via `UPDATE public.parametros_largura` against `gqmpsxkxynrjvidfmojk`,
+  matched by `largura`: `1.40`→`peso_linear=0.3360`,
+  `algodao_por_ml=0.226000`, `poliester_por_ml=0.110000`, `valor_x=0.5000`;
+  `2.10`→`peso_linear=0.5370`, `algodao_por_ml=0.366000`,
+  `poliester_por_ml=0.171000`, `valor_x=0.5000` (both previously the `db/04`
+  seed values). **Legacy retention (binding, registered this closeout):**
+  `ucrjtfswnfdlxwtmxnoo` retains the original audit trail
+  (`usuarios_eventos`/`document_link_revisions`/`document_link_revision_ops`)
+  and the excluded test/synthetic rows — it is the historical record for both
+  and **must not be deleted or pruned without a separate, explicit architect
+  decision.** **`backup_runs`/`backup_run_destinations` observation:** the new
+  project carries 2/4 rows in these tables even though legacy's (older)
+  schema never had them — this data originates from post-`M2` activity
+  against `gqmpsxkxynrjvidfmojk` itself, not a legacy migration; flagged for
+  completeness, no action taken. **Record (this commit):**
+  `PROJECT_STATE.md` (`M3` `CLOSED/ACCEPTED` in Active phase + Migration
+  governance entry + environment facts + Closed-phases row; next action →
+  `M4`); this handoff entry; `docs/ledgers/G28_LEDGER.md` `M3-DATA` entry
+  (full detail). **No production access; legacy read-only, no writes beyond
+  the ordered `parametros_largura` correction on the new project.** **Next
+  authorizable action:** an individual order for `M4` (or any `M5`-`M10`
+  phase).
 - **`M2` (schema replay `db/01→db/64` into `gqmpsxkxynrjvidfmojk`) —
   `CLOSED / ACCEPTED` (2026-07-17):** the ratified authoritative source (repo
   `db/`, ordered `db/01→db/64`, skipping `*.verify.sql`; `setup_completo.sql`

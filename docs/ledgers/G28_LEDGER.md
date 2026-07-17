@@ -1759,3 +1759,60 @@ risco residual e próxima fase indicada no fechamento.
 - **Production:** `bhgifjrfagkzubpyqpew` not accessed. **Push:** executed — `production/main`, M-track docs-commit authorization only.
 - **Standing reminder:** flip the Supabase MCP back to read-only now that M2's write window is closed (M3/M4/M9 re-authorize their own).
 - **Next phase indicated at closeout:** an individual order for `M3` — or any `M4`-`M10` phase per the architect's sequencing. Backlog freeze holds until after cutover (`M10`).
+
+## 2026-07-17 — M3-DATA (production data migration into gqmpsxkxynrjvidfmojk) — CLOSED / ACCEPTED
+
+- **Gate:** `CLOSED / ACCEPTED` — explicit architect order ("ARCHITECT RULING — parametros_largura" + "M3-DATA closeout", Sonnet 5 / low effort). Docs-only closeout for this record; the underlying data migration (row copy from `ucrjtfswnfdlxwtmxnoo` into `gqmpsxkxynrjvidfmojk`, auth remap, FK integrity pass, sequence resync) was executed earlier in the same working session; this entry is the documental closeout plus one live data correction (`parametros_largura`) ordered explicitly by the architect at closeout time.
+- **Front:** `PRODUCTION-MIGRATION-M0-M10`, phase `M3` (production data), fourth phase of the active migration track to execute.
+- **Verification table (row counts, legacy `ucrjtfswnfdlxwtmxnoo` vs new `gqmpsxkxynrjvidfmojk`, re-confirmed live at closeout via `list_tables`):**
+
+  | Table | Legacy | New | Note |
+  |---|---|---|---|
+  | `clientes` | 5 | 3 | 2 excluded (test/synthetic) |
+  | `cores` | 6 | 6 | full match |
+  | `fornecedores` | 5 | 4 | 1 excluded |
+  | `lotes` | 13 | 5 | 8 excluded |
+  | `modelos` | 12 | 12 | full match |
+  | `op_fornecedores` | 4 | 2 | 2 excluded |
+  | `op_itens` | 13 | 11 | 2 excluded |
+  | `ops` | 8 | 2 | 6 excluded |
+  | `ordens_compra_fio` | 19 | 11 | 8 excluded |
+  | `precos_terceirizada` | 1 | 0 | 1 excluded |
+  | `saldo_fios` | 5 | 5 | full match |
+  | `usuarios` | 10 | 1 | 9 excluded (non-production accounts) |
+  | `auth.users` | 10 | 1 | mirrors `usuarios`, single surviving admin |
+  | `pedidos` | 4 | 1 | 3 excluded |
+  | `pedido_itens` | 4 | 2 | 2 excluded |
+  | `op_eventos` | 1 | 0 | 1 excluded |
+  | `document_candidates` | 40 | 37 | 3 excluded |
+  | `document_scan_runs` | 30 | 30 | full match |
+  | `document_scan_requests` | 24 | 24 | full match, `requested_by_user_id` remapped (see below) |
+  | `document_link_revisions` | 8 | 0 | excluded entirely — audit trail, ruling (b)-adjacent, see below |
+  | `document_link_revision_ops` | 10 | 0 | excluded entirely — audit trail |
+  | `usuarios_eventos` | 9 | 0 | excluded entirely — architect ruling (a) |
+  | `parametros_largura` | 2 | 2 | seeded by `db/04`, **overwritten from legacy this closeout** — architect ruling (b) |
+
+- **Auth remap — 24 rows, single column (re-confirmed live):** `public.document_scan_requests.requested_by_user_id` — the only FK-bearing column found holding legacy `auth.users` ids across surviving rows — was remapped to the single surviving admin account in the new project. Live check at closeout: `24` total rows, `24` non-null `requested_by_user_id`, `1` distinct value (the new project's sole `auth.users` row) — consistent with the launch user model (full-trust admins only, single admin migrated).
+- **FK integrity — re-verified live at closeout:** dynamic per-constraint orphan scan across every single-column foreign key in `public` (`pg_constraint`-driven, one `NOT EXISTS` count per relationship) — **76 relationships checked, 0 orphans** (superset of the phase's original 16-relationship auth-touching scope, all of which pass). Of the 76, **13 reference `auth.users`** directly (`usuarios`×2, `pedido_eventos`, `pedido_cliente_eventos`, `pedido_parciais`, `op_eventos`, `expedicao_movimentos`, `document_decisions`×2, `document_scan_requests`, `document_link_revisions`×2, `usuarios_eventos`) — every one resolves cleanly to the single migrated admin account, zero dangling references.
+- **Sequence resync — re-verified live at closeout:** all 10 populated `BIGSERIAL`/`SERIAL` sequences in `public` (`clientes`, `cores`, `fornecedores`, `lotes`, `modelos`, `op_fornecedores`, `op_itens`, `ops`, `ordens_compra_fio`, `saldo_fios`) checked `last_value` against `MAX(id)` of their owning table — **10/10 exact match**, no gap, no collision risk on next insert.
+- **Architect ruling (a) — `usuarios_eventos` excluded entirely (binding):** remapping `ator_id` from legacy identities to the new project's single migrated admin would fabricate audit history — every event would appear to have been performed by an actor who, in the new project, never took that action. The legacy project (`ucrjtfswnfdlxwtmxnoo`) retains the original 9-row trail as the historical record; the new project's `usuarios_eventos` starts empty and truthful from cutover. The same reasoning extends to `document_link_revisions`/`document_link_revision_ops` (8/10 rows, canonical document-link history keyed on `created_by`/`revoked_by` actor columns) — excluded for the identical reason, not a separate decision.
+- **Architect ruling (b) — `parametros_largura` overwritten from legacy (binding):** the `db/04` seed values (`peso_linear` 1.5000/2.2500, `valor_x` 1.0000) are a bootstrap default, not real data. The legacy project's live-tuned configuration (`largura=1.40`: `peso_linear=0.3360`, `algodao_por_ml=0.226000`, `poliester_por_ml=0.110000`, `valor_x=0.5000`; `largura=2.10`: `peso_linear=0.5370`, `algodao_por_ml=0.366000`, `poliester_por_ml=0.171000`, `valor_x=0.5000`) is real operationally-tuned data by the same standard as `clientes`/`modelos`, and supersedes the seed. **Applied this closeout** via `UPDATE public.parametros_largura` against `gqmpsxkxynrjvidfmojk`, matched by `largura`, all four value columns + `atualizado_em` set from the legacy row. Before/after:
+
+  | `largura` | Column | Before (seed) | After (legacy live) |
+  |---|---|---|---|
+  | 1.40 | `peso_linear` | 1.5000 | 0.3360 |
+  | 1.40 | `algodao_por_ml` | 0.000350 | 0.226000 |
+  | 1.40 | `poliester_por_ml` | 0.000420 | 0.110000 |
+  | 1.40 | `valor_x` | 1.0000 | 0.5000 |
+  | 2.10 | `peso_linear` | 2.2500 | 0.5370 |
+  | 2.10 | `algodao_por_ml` | 0.000525 | 0.366000 |
+  | 2.10 | `poliester_por_ml` | 0.000630 | 0.171000 |
+  | 2.10 | `valor_x` | 1.0000 | 0.5000 |
+
+- **Exclusion set (test/synthetic data, counts per table — see verification table above):** `clientes`(2), `fornecedores`(1), `lotes`(8), `op_fornecedores`(2), `op_itens`(2), `ops`(6), `ordens_compra_fio`(8), `precos_terceirizada`(1), `usuarios`(9)/`auth.users`(9), `pedidos`(3), `pedido_itens`(2), `op_eventos`(1), `document_candidates`(3) — non-production/test rows not carried over. `usuarios_eventos`(9)/`document_link_revisions`(8)/`document_link_revision_ops`(10) excluded entirely per ruling (a), a distinct rationale from the row-level test-data exclusions above. The new database is **intentionally smaller than legacy by design** — not an incomplete migration.
+- **Legacy retention (binding, registered this closeout):** `ucrjtfswnfdlxwtmxnoo` retains the original `usuarios_eventos`/`document_link_revisions`/`document_link_revision_ops` audit trail and the excluded test/synthetic rows above — it is now the **historical record** for both, on top of its existing read-only-legacy status (`M1`). **Must not be deleted or pruned without a separate, explicit architect decision.**
+- **`backup_runs`/`backup_run_destinations` note (observation, not a defect):** the new project carries 2/4 rows in these tables even though legacy's schema (older, pre-`db/64`) never had them — this data originates from post-`M2` activity against `gqmpsxkxynrjvidfmojk` itself, not from a legacy migration; flagged for completeness, no action taken.
+- **Record (this commit):** `PROJECT_STATE.md` (`M3` marked `CLOSED / ACCEPTED` in Active phase + Migration governance entry + environment facts + Closed-phases row; rulings (a)/(b) added to "Binding decisions in force"; next action → `M4`); `AGENT_HANDOFF.md` top entry; this ledger entry.
+- **STRUCTURAL POLICY COMPLIANCE:** `§14` (single scope) — one live data correction (`parametros_largura`, 2 rows) + documentation, no schema/code/frontend/Edge Functions touched; `§15` (Git) — docs-record commit stages by literal path, pushed to `production/main` under the M-track authorization; `§19` — English throughout. Production `bhgifjrfagkzubpyqpew` not accessed; legacy `ucrjtfswnfdlxwtmxnoo` read-only (no writes, retained as historical record per this closeout).
+- **Production:** `bhgifjrfagkzubpyqpew` not accessed. **Push:** executed — `production/main`, M-track docs-commit authorization only.
+- **Next phase indicated at closeout:** an individual order for `M4` — or any `M5`-`M10` phase per the architect's sequencing. Backlog freeze holds until after cutover (`M10`).
