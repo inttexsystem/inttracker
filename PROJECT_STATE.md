@@ -13,16 +13,17 @@ are in `docs/ledgers/G28_LEDGER.md`. HEAD/working tree/divergence: consult Git d
   (new repo + new Supabase project + Vercel) proposed by
   `PRODUCTION-READINESS-DIAGNOSIS-R1` (`ACCEPTED`, 2026-07-17;
   `docs/reports/PRODUCTION_READINESS_DIAGNOSIS_R1_2026-07-17.md`) and registered as
-  the **active track** by the ratification order of the same date. All ten phases
-  (`M0`-`M10`) are `NOT AUTHORIZED`, each pending its own individual order; phases
-  do not chain automatically.
+  the **active track** by the ratification order of the same date. **`M0` — `CLOSED
+  / ACCEPTED`** (new repo landing, 2026-07-17; see "Binding decisions" and
+  "Environment standing facts"). `M1`-`M10` remain `NOT AUTHORIZED`, each pending its
+  own individual order; phases do not chain automatically.
 - **`BACKLOG FREEZE` in force (2026-07-17):** **no NEW fronts** until after cutover
   (`M10`). Only the **`M0`-`M10` migration plan** and the **canonical residual risk
   register** (12 items, ranked — see "Live debts and candidates") are authorizable
   work. All pre-existing candidate fronts are frozen-in-place as `POST-LAUNCH DEBT`.
-- **Next authorizable action:** an individual order for `M0` (new repo landing —
-  full-history push of 749 commits to `inttexsystem/inttracker`), or any other
-  `M0`-`M10` phase. Target coordinates: GitHub `inttexsystem/inttracker`, Supabase
+- **Next authorizable action:** an individual order for `M1` (new Supabase project
+  provisioning) or any other `M2`-`M10` phase. Target coordinates: GitHub
+  `inttexsystem/inttracker` (now the production remote, pushed), Supabase
   `gqmpsxkxynrjvidfmojk`, Vercel `vercel.com/inttex`.
 - **Post-launch debt pointer (frozen):** the former Camada-3 subphases (`BK5`-`BK8`,
   `CAMADA3-TRIGGER-SELECTION`), the two ex-`PRE-PUBLICATION` asterisks
@@ -84,7 +85,23 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
 - **`BACKLOG FREEZE` (2026-07-17, binding):** no NEW fronts authorizable until after
   cutover (`M10`); only the `M0`-`M10` plan and the residual register survive.
 - **Canon correction (2026-07-17):** branch `work/g28-document-qualification` commit
-  count is **749** (`git rev-list --count HEAD`), not "~555". Governs the `M0` push.
+  count was **749** at diagnosis time (not "~555"); **753** at the `M0` push
+  (2026-07-17, 4 subsequent docs commits) — see `M0` record below.
+- **`M0` (new repo landing) — `CLOSED / ACCEPTED` (2026-07-17, single-use push
+  authorization):** full-history push, no force/tags, HEAD `7b2ab7d7aaca44edf27
+  81b24eb5aeecf8ba63c50` (**753** commits) → `inttexsystem/inttracker`, branch
+  mapping `work/g28-document-qualification:main`. Pre-flight: clean tree; sensitive
+  paths ignored (`supabase/.temp`, `.ravatex-local`, `backups`; `.mcp.json` absent
+  from the tree entirely — not a gap); tracked-file secrets sweep clean (`sb_secret`/
+  `service_role`/connection-string patterns — one doc hit was a `[SENHA]` placeholder;
+  the only `eyJ` hits are the pre-existing public `anon`-role keys in `js/config.js`,
+  by design RLS-gated, not a secret). Destination confirmed empty before push
+  (`git fetch`/`ls-remote` → no branches). Post-push: `git rev-list --left-right
+  --count production/main...HEAD` = **`0 0`** (exact match). New remote `production`
+  = `https://github.com/inttexsystem/inttracker.git` (fetch+push). `origin`
+  (`grupoterrabranca/controle-tapetes`) and `staging`
+  (`ravatexapps-dotcom/controle-tapetes-staging`) **retained, unchanged** — `staging`
+  is now historical backup only, no longer a push target.
 - **Staging-only execution boundary (`STAGING-ONLY-EXECUTION-BOUNDARY-A`,
   2026-07-15, partially superseded):** operational environment is staging
   `ucrjtfswnfdlxwtmxnoo`; the protected project `bhgifjrfagkzubpyqpew` is `OUT OF
@@ -214,10 +231,16 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
 
 - **Staging Supabase:** `ucrjtfswnfdlxwtmxnoo` (authorized). **Protected/other:**
   `bhgifjrfagkzubpyqpew` (`OUT OF SCOPE`, never accessed).
-- **Migration targets (all newly created, empty):** GitHub `inttexsystem/inttracker`;
-  Supabase `gqmpsxkxynrjvidfmojk` (new-format publishable key supplied; matching
-  secret key to be obtained out of band); Vercel `vercel.com/inttex` (repo-linked).
-  Wiring `NOT AUTHORIZED` until the relevant `M0`-`M10` order.
+- **Migration targets:** GitHub `inttexsystem/inttracker` — **`M0` pushed**, no longer
+  empty (main = the full history, see "Migration governance" `M0` record); Supabase
+  `gqmpsxkxynrjvidfmojk` (empty, new-format publishable key supplied; matching secret
+  key to be obtained out of band); Vercel `vercel.com/inttex` (repo-linked, not wired).
+  Remaining wiring `NOT AUTHORIZED` until the relevant `M1`-`M10` order.
+- **Remotes:** `production` = `https://github.com/inttexsystem/inttracker.git`
+  (fetch+push, added at `M0`); `origin` = `grupoterrabranca/controle-tapetes`;
+  `staging` = `ravatexapps-dotcom/controle-tapetes-staging` (historical backup only,
+  no longer a push target). All three present on the local repo; no branch other than
+  `main` pushed to `production`.
 - **MCP (new project):** Supabase MCP is configured and verified against
   `gqmpsxkxynrjvidfmojk`, **read-only**, its token held **outside the repo**
   (`PROJECT-STATE-COMPACTION-B`, 2026-07-17). Read-only introspection of the new
@@ -225,14 +248,18 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   order.
 - **Publication provider:** **Vercel selected** (per the amended publication
   criterion, 2026-07-17); GitHub Pages remains the live provider until cutover.
-- **Branch commit count:** `work/g28-document-qualification` = **749** commits.
+- **Branch commit count:** `work/g28-document-qualification` = **753** commits
+  (749 at diagnosis time + 4 docs commits; pushed to `production/main` at `M0`).
 - **Migrations 49 and 50 (and the staging-only stack):** applied and verified in
   staging; not applied in production by this chain.
 - **Worktree topology:** `controle-tapetes-g28` is a linked worktree of
   `controle-tapetes/.git` (alongside `-g27`, `-controlled-delete-gate`, and main
   `work/app-next` — divergent from `staging/work/app-next` and dirty). Two stale
   registrations remain (see "Live debts").
-- **Push:** not authorized in this chain. **Production:** never accessed.
+- **Push:** the `M0` push to `production` (2026-07-17) was a single-use explicit
+  authorization for that order only; no further push is authorized by it. Push to
+  `origin`/`staging` remains not authorized in this chain. **Production Supabase
+  `bhgifjrfagkzubpyqpew`:** never accessed.
 - **`supabase/.temp/`:** local Supabase CLI cache, **gitignored** since commit
   `be6f081` (was leaking the project ref + pooler URL).
 
@@ -246,6 +273,7 @@ technical commits; documentation-only phases show `(docs)`. Consult HEAD with
 
 | Phase | Status | Date | Commit(s) |
 |---|---|---|---|
+| Repository Migration — `M0` (push to `inttexsystem/inttracker`) | `CLOSED / ACCEPTED` | 2026-07-17 | `7b2ab7d` pushed (git-only) + record commit |
 | Ratify Production Readiness Diagnosis + Backlog Freeze — `PRODUCTION-READINESS-DIAGNOSIS-R1` (ratification) | `CLOSED / ACCEPTED` | 2026-07-17 | `be6f081`, `9566837` (docs) |
 | Production Readiness Diagnosis (read-only) — `PRODUCTION-READINESS-DIAGNOSIS-R1` | `ACCEPTED` | 2026-07-17 | (report) |
 | Camada 3 — Exporter First Real Run + Restore-Smoke — `BK4.2` | `CLOSED / ACCEPTED` | 2026-07-17 | `4831ca3`, `75f8ff9`, `153b2a2`, `51c4633`, `e11d05e` |

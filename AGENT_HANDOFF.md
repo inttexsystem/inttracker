@@ -1,5 +1,19 @@
 # ACTIVE OPERATIONAL HANDOFF
 
+- **`M0` (repository migration — push to `inttexsystem/inttracker`) — `CLOSED /
+  ACCEPTED` (2026-07-17):** single-use explicit push authorization, git-only phase.
+  Pre-flight clean (tree clean; HEAD = the Compaction-B commit `7b2ab7d`; sensitive
+  paths ignored; tracked-file secrets sweep clean — the only `eyJ` hits are the
+  pre-existing public `anon` keys in `js/config.js`, confirmed via isolated
+  `role`-claim decode, not `service_role`/`sb_secret`). Added remote `production` =
+  `inttexsystem/inttracker`; `git fetch`/`ls-remote` confirmed it empty before push.
+  Pushed `work/g28-document-qualification:main`, no force/tags/other branches.
+  Post-push `git rev-list --left-right --count production/main...HEAD` = **`0 0`**.
+  **753 commits** pushed (749 at diagnosis time + 4 subsequent docs commits — canon
+  corrected). `origin`/`staging` remotes untouched; `staging` now historical backup
+  only. Recorded in `PROJECT_STATE.md` ("Migration governance" `M0` entry + updated
+  environment facts) and the ledger. **Next authorizable action: `M1`** (new Supabase
+  project provisioning), its own order.
 - **`PROJECT-STATE-COMPACTION-B` + pre-migration decisions — `CLOSED / ACCEPTED`
   (2026-07-17):** `PROJECT_STATE.md` recompacted to current-state-only
   (**803→301 lines**); the 2026-07-17 Camada-2/Camada-3 subphase closeout narratives,
