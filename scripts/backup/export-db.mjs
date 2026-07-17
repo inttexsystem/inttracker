@@ -71,7 +71,12 @@ function fail(code, message) {
 async function runLogin() {
   const clientId = process.env.BACKUP_GOOGLE_CLIENT_ID;
   const clientSecret = process.env.BACKUP_GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.BACKUP_GOOGLE_REDIRECT_URI || 'urn:ietf:wg:oauth:2.0:oob';
+  // "urn:ietf:wg:oauth:2.0:oob" (the old copy-paste flow) is deprecated
+  // and rejected by Google for new OAuth clients. http://localhost matches
+  // the Documents Ingestor's own documented convention (README.md) — the
+  // browser redirect fails to load (nothing is listening), but the code
+  // is still visible in the address bar's ?code= for manual paste.
+  const redirectUri = process.env.BACKUP_GOOGLE_REDIRECT_URI || 'http://localhost';
   const tokenPath = process.env.BACKUP_GOOGLE_TOKEN_PATH || '.ravatex-local/backup-google-token.json';
 
   if (!clientId || !clientSecret) {
