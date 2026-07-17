@@ -121,11 +121,40 @@ class FakeNode {
     this.checked = false;
     this.value = '';
     this._attrs = {};
+    this.style = {};
   }
-  appendChild(n) { this.children.push(n); return n; }
+  appendChild(n) {
+    this.children.push(n);
+    // Mirrors real-DOM <select> behavior: js/ui.js's selectInput() marks
+    // the matching <option> `.selected = true` BEFORE appending it — a
+    // real browser then reflects that option's value on the parent
+    // <select>.value automatically. Without this, .value stays stuck at
+    // the constructor default ('') regardless of which option the code
+    // actually preselected, which silently breaks any test that exercises
+    // a real save flow reading tipoSel.value/nivelAcessoSel.value (§20 —
+    // a double that doesn't model this axis would mask genuine bugs).
+    if (this.tagName === 'SELECT' && n && n.tagName === 'OPTION' && n.selected) {
+      this.value = (n._attrs && 'value' in n._attrs) ? n._attrs.value : n.value;
+    }
+    return n;
+  }
   setAttribute(k, v) {
     this._attrs[k] = v;
     if (FAKE_NODE_BOOLEAN_ATTRS.has(k)) this[k] = true;
+    // Mirrors real-DOM behavior (same pattern as tests/admin-usuarios-audit-
+    // panel.smoke.js's FakeNode): setAttribute('style', '...') keeps
+    // element.style.* in sync, since js/screens/admin-usuarios-modal.js's
+    // btnSave onclick mutates .style.opacity/.cursor/.textContent directly
+    // on the real DOM node, exactly like a real browser would.
+    if (k === 'style' && typeof v === 'string') {
+      v.split(';').forEach((decl) => {
+        const idx = decl.indexOf(':');
+        if (idx < 0) return;
+        const prop = decl.slice(0, idx).trim().replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        const val = decl.slice(idx + 1).trim();
+        if (prop) this.style[prop] = val;
+      });
+    }
   }
   removeAttribute(k) {
     delete this._attrs[k];
@@ -1160,6 +1189,189 @@ test('48. cabeçalho: E-MAIL/NOME/FORNECEDOR/CLIENTE usam o mesmo tratamento de 
     assert.ok(byLabel[label], `cabeçalho "${label}" não encontrado`);
     assert.doesNotMatch(byLabel[label]._attrs.style, /text-overflow:ellipsis/, `cabeçalho "${label}" não deveria ter ellipsis`);
   }
+});
+
+// -----------------------------------------------------------------------------
+// Runtime — A2.2/A2.3: nivel_acesso do admin (db/62) — select no modal,
+// payload de escrita, badge no grid e enforcement do piloto (esta tela).
+// -----------------------------------------------------------------------------
+
+function findSelectByOptionLabels(root, labels) {
+  const selects = findAll(root, (n) => n.tagName === 'SELECT');
+  return selects.find((s) => {
+    const opts = findAll(s, (n) => n.tagName === 'OPTION').map(textOf);
+    return labels.every((l) => opts.includes(l));
+  });
+}
+
+// The field's wrapper div holds [label, control, hint?] as direct children
+// (adminUsuariosModalField) — same "hidden via display, not removed"
+// treatment as the existing wrapperForn/wrapperCli fields (fornecedor/
+// cliente meaningless for the other tipo, still present in the DOM).
+function findWrapperOf(root, node) {
+  return findAll(root, (n) => n.tagName === 'DIV' && n.children && n.children.includes(node))[0];
+}
+
+test('49. select "Nível de acesso": visível ao editar um admin, presente-mas-oculto ao editar não-admin, ausente na criação (HARD STOP)', () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+
+  sandbox.__usr = { id: 'me-id', email: 'me@ravatex.com', nome: 'Eu Mesmo', tipo: 'admin', ativo: true, nivel_acesso: 'completo' };
+  vm.runInContext('window.RAVATEX_ADMIN_USUARIOS_MODAL.openUsuarioModal(window.__usr, [], [], { observacoes: false }, {})', sandbox);
+  let overlay = sandbox.document.body.children[sandbox.document.body.children.length - 1];
+  let nivelSelect = findSelectByOptionLabels(overlay, ['Completo', 'Somente leitura']);
+  assert.ok(nivelSelect, 'select de nível de acesso deveria aparecer ao editar um admin');
+  let wrapper = findWrapperOf(overlay, nivelSelect);
+  assert.equal(wrapper.style.display, 'flex', 'campo de nível de acesso deveria estar visível ao editar um admin');
+  overlay.remove();
+
+  sandbox.__usr = { id: 'u-2', email: 'b@b.c', nome: 'Bia', tipo: 'fornecedor', ativo: true, nivel_acesso: 'completo' };
+  vm.runInContext('window.RAVATEX_ADMIN_USUARIOS_MODAL.openUsuarioModal(window.__usr, [], [], { observacoes: false }, {})', sandbox);
+  overlay = sandbox.document.body.children[sandbox.document.body.children.length - 1];
+  nivelSelect = findSelectByOptionLabels(overlay, ['Completo', 'Somente leitura']);
+  assert.ok(nivelSelect, 'select de nível de acesso deveria continuar presente no DOM ao editar um fornecedor (mesmo tratamento de wrapperForn/wrapperCli)');
+  wrapper = findWrapperOf(overlay, nivelSelect);
+  assert.equal(wrapper.style.display, 'none', 'campo de nível de acesso deveria estar oculto (display:none) ao editar um fornecedor — meaningless para esse tipo');
+  overlay.remove();
+
+  vm.runInContext('window.RAVATEX_ADMIN_USUARIOS_MODAL.openUsuarioModal(null, [], [], { observacoes: false }, {})', sandbox);
+  overlay = sandbox.document.body.children[sandbox.document.body.children.length - 1];
+  assert.equal(findSelectByOptionLabels(overlay, ['Completo', 'Somente leitura']), undefined,
+    'select de nível de acesso não deveria existir de forma alguma na criação — admin-create-user (Edge Function) ignora o campo (HARD STOP)');
+});
+
+test('50. payload de escrita: edição de admin carrega nivel_acesso; criação NUNCA carrega (HARD STOP confirmado no wiring)', async () => {
+  const { sandbox, fakeSupa } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+
+  // Edição: muda o nível de acesso e salva — deve ir no payload do update.
+  sandbox.__usr = { id: 'me-id', email: 'me@ravatex.com', nome: 'Eu Mesmo', tipo: 'admin', ativo: true, nivel_acesso: 'completo' };
+  vm.runInContext('window.RAVATEX_ADMIN_USUARIOS_MODAL.openUsuarioModal(window.__usr, [], [], { observacoes: false }, {})', sandbox);
+  let overlay = sandbox.document.body.children[sandbox.document.body.children.length - 1];
+  const nivelSelect = findSelectByOptionLabels(overlay, ['Completo', 'Somente leitura']);
+  assert.ok(nivelSelect, 'select de nível de acesso ausente na edição');
+  nivelSelect.value = 'somente_leitura';
+  let salvarBtn = findAll(overlay, (n) => n.tagName === 'BUTTON' && textOf(n) === 'Salvar')[0];
+  assert.ok(salvarBtn, 'botão "Salvar" não encontrado no modal de edição');
+  await salvarBtn._listeners.click();
+  const updateCall = fakeSupa._calls.find((c) => c.op === 'update' && c.table === 'usuarios' && c.payload && c.payload.email === 'me@ravatex.com');
+  assert.ok(updateCall, 'update de usuarios (edição) não encontrado');
+  assert.equal(updateCall.payload.nivel_acesso, 'somente_leitura', 'payload de edição deveria carregar nivel_acesso');
+
+  // Criação: novo usuário tipo admin — payload NÃO deve carregar nivel_acesso.
+  vm.runInContext('window.RAVATEX_ADMIN_USUARIOS_MODAL.openUsuarioModal(null, [], [], { observacoes: false }, {})', sandbox);
+  overlay = sandbox.document.body.children[sandbox.document.body.children.length - 1];
+  const inputs = findAll(overlay, (n) => n.tagName === 'INPUT');
+  const emailInput = inputs.find((n) => n._attrs && n._attrs.type === 'email');
+  const passwordInput = inputs.find((n) => n._attrs && n._attrs.type === 'password');
+  const nomeInput = inputs.find((n) => n !== emailInput && n !== passwordInput);
+  emailInput.value = 'novo@x.com';
+  nomeInput.value = 'Novo Admin';
+  passwordInput.value = '123456';
+  const tipoSelect = findAll(overlay, (n) => n.tagName === 'SELECT')
+    .find((s) => findAll(s, (n2) => n2.tagName === 'OPTION').map(textOf).includes('Admin'));
+  assert.ok(tipoSelect, 'select "Tipo" não encontrado no modal de criação');
+  tipoSelect.value = 'admin';
+  salvarBtn = findAll(overlay, (n) => n.tagName === 'BUTTON' && textOf(n) === 'Salvar')[0];
+  await salvarBtn._listeners.click();
+  const invokeCall = fakeSupa._calls.filter((c) => c.op === 'invoke' && c.name === 'admin-create-user').pop();
+  assert.ok(invokeCall, 'createUsuario não invocou admin-create-user');
+  assert.equal('nivel_acesso' in invokeCall.body, false,
+    'payload de criação NÃO deveria carregar nivel_acesso — silenciosamente ignorado pelo Edge Function (HARD STOP)');
+});
+
+test('51. badge no grid: "Admin · leitura" para somente_leitura; "Admin" simples para completo', async () => {
+  const fixture = {
+    usuarios: [
+      { id: 'a-1', email: 'leitura@x.com', nome: 'Leitura', tipo: 'admin', ativo: true, nivel_acesso: 'somente_leitura', fornecedor: null, cliente: null },
+      { id: 'a-2', email: 'completo@x.com', nome: 'Completo', tipo: 'admin', ativo: true, nivel_acesso: 'completo', fornecedor: null, cliente: null },
+    ],
+    fornecedores: [], clientes: [],
+  };
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: fixture });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const leituraRow = findRowByText(main, 'leitura@x.com');
+  const completoRow = findRowByText(main, 'completo@x.com');
+  const leituraBadge = findAll(leituraRow, (n) => n.tagName === 'SPAN' && /Admin/.test(textOf(n)))[0];
+  const completoBadge = findAll(completoRow, (n) => n.tagName === 'SPAN' && /Admin/.test(textOf(n)))[0];
+  assert.ok(leituraBadge && completoBadge, 'badges de admin não encontrados');
+  assert.equal(textOf(leituraBadge), 'Admin · leitura');
+  assert.equal(textOf(completoBadge), 'Admin', 'admin completo deveria manter o badge quieto, sem sufixo');
+});
+
+const READONLY_PILOT_FIXTURE = {
+  usuarios: [
+    { id: 'me-id', email: 'me@ravatex.com', nome: 'Eu Mesmo', tipo: 'admin', ativo: true, nivel_acesso: 'somente_leitura', fornecedor: null, cliente: null },
+    { id: 'u-2', email: 'b@b.c', nome: 'Bia', tipo: 'fornecedor', ativo: true, nivel_acesso: 'completo',
+      fornecedor: { id: 'f-1', nome: 'Tec X', tipo: 'tecelagem' }, cliente: null },
+  ],
+  fornecedores: [{ id: 'f-1', nome: 'Tec X', tipo: 'tecelagem' }],
+  clientes: [],
+};
+
+test('52. piloto A2.3: admin somente_leitura vê "Novo usuario" e as 4 ações de linha desabilitadas, com título explicativo', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: READONLY_PILOT_FIXTURE });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+
+  const novoBtn = findAll(main, (n) => n.tagName === 'BUTTON' && /Novo usuario/.test(textOf(n)))[0];
+  assert.ok(novoBtn, 'botão "Novo usuario" não encontrado');
+  assert.equal(novoBtn.hasAttribute('disabled'), true, '"Novo usuario" deveria estar desabilitado para admin somente_leitura');
+  assert.match(novoBtn._attrs.title || '', /somente leitura/i, 'título do botão "Novo usuario" deveria explicar o motivo');
+
+  const biaRow = findRowByText(main, 'b@b.c');
+  const rowButtons = findAll(biaRow, (n) => n.tagName === 'BUTTON');
+  assert.equal(rowButtons.length, 4, 'deveria haver 4 botões de ação na linha');
+  for (const btn of rowButtons) {
+    assert.equal(btn.hasAttribute('disabled'), true, `botão "${btn._attrs.title}" deveria estar desabilitado para admin somente_leitura`);
+    assert.match(btn._attrs.title || '', /somente leitura/i, 'título do botão deveria explicar o motivo');
+  }
+});
+
+test('53. piloto A2.3: admin completo (regressão) continua com "Novo usuario" e ações de linha liberadas', async () => {
+  const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
+  const flex = node.children.find((c) => c.tagName === 'DIV');
+  const main = flex.children.find((c) => c.tagName === 'MAIN');
+  const novoBtn = findAll(main, (n) => n.tagName === 'BUTTON' && /Novo usuario/.test(textOf(n)))[0];
+  assert.equal(novoBtn.hasAttribute('disabled'), false, '"Novo usuario" não deveria estar desabilitado para admin completo');
+  const biaRow = findRowByText(main, 'b@b.c');
+  const editBtn = findAll(biaRow, (n) => n.tagName === 'BUTTON' && n._attrs.title === 'Editar usuario')[0];
+  assert.ok(editBtn, 'botão Editar deveria continuar com o título original (sem sufixo de somente leitura)');
+  assert.equal(editBtn.hasAttribute('disabled'), false);
+});
+
+test('54. write helpers recusam com CLIENT_READONLY_FORBIDDEN quando readOnly=true, sem chamar supa', async () => {
+  const { sandbox, fakeSupa } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
+  const callsBefore = fakeSupa._calls.length;
+
+  const updateResult = await vm.runInContext(
+    `window.RAVATEX_ADMIN_USUARIOS_WRITES.updateUsuario('u-2', { nome: 'X' }, true)`, sandbox);
+  assert.equal(updateResult.data, null);
+  assert.equal(updateResult.error.code, 'CLIENT_READONLY_FORBIDDEN');
+
+  const createResult = await vm.runInContext(
+    `window.RAVATEX_ADMIN_USUARIOS_WRITES.createUsuario({ email: 'x@x.c', password: '123456', nome: 'X', tipo: 'admin' }, true)`, sandbox);
+  assert.equal(createResult.error.code, 'CLIENT_READONLY_FORBIDDEN');
+
+  const disableResult = await vm.runInContext(
+    `window.RAVATEX_ADMIN_USUARIOS_WRITES.disableUsuario('u-2', 'motivo', true)`, sandbox);
+  assert.equal(disableResult.error.code, 'CLIENT_READONLY_FORBIDDEN');
+
+  const deleteResult = await vm.runInContext(
+    `window.RAVATEX_ADMIN_USUARIOS_WRITES.deleteUsuario('u-2', 'b@b.c', true)`, sandbox);
+  assert.equal(deleteResult.error.code, 'CLIENT_READONLY_FORBIDDEN');
+
+  const resetResult = await vm.runInContext(
+    `window.RAVATEX_ADMIN_USUARIOS_WRITES.resetarSenha('u-2', true)`, sandbox);
+  assert.equal(resetResult.error.code, 'CLIENT_READONLY_FORBIDDEN');
+
+  const reativarResult = await vm.runInContext(
+    `window.RAVATEX_ADMIN_USUARIOS_WRITES.reativarUsuario('u-2', true)`, sandbox);
+  assert.equal(reativarResult.error.code, 'CLIENT_READONLY_FORBIDDEN');
+
+  assert.equal(fakeSupa._calls.length, callsBefore, 'nenhuma chamada a supa deveria ter ocorrido com readOnly=true em qualquer helper');
 });
 
 // -----------------------------------------------------------------------------

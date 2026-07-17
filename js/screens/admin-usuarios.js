@@ -98,16 +98,21 @@
     }
 
     // A3.2 — badge de papel colorido por tipo (coluna Tipo do grid).
-    function tipoBadge(tipo) {
+    // A2.2 — para admin, sufixo discreto quando nivel_acesso='somente_leitura'
+    // ("Admin · leitura"); nenhum sufixo para 'completo' (mantém o badge
+    // igual ao de antes — não é uma coluna nova, só um dado a mais no
+    // mesmo badge, por instrução do arquiteto).
+    function tipoBadge(tipo, nivelAcesso) {
       const map = {
         admin: { bg: '#e8eefc', color: '#2563eb', label: 'Admin' },
         fornecedor: { bg: '#eceef1', color: '#5a6472', label: 'Fornecedor' },
         cliente: { bg: '#f0edfc', color: '#6d5bd0', label: 'Cliente' },
       };
       const t = map[tipo] || { bg: '#eceef1', color: '#5a6472', label: tipo || '—' };
+      const label = (tipo === 'admin' && nivelAcesso === 'somente_leitura') ? `${t.label} · leitura` : t.label;
       return window.el('span', {
         style: `display:inline-flex; align-items:center; border-radius:4px; padding:2px 8px; font-size:11.5px; font-weight:600; white-space:nowrap; background:${t.bg}; color:${t.color};`
-      }, t.label);
+      }, label);
     }
 
     // UI-GRID-TEXT-HELPER: truncatedCell()/TRUNCATE_CELL_STYLE promoted to
@@ -168,6 +173,16 @@
 
     function renderStandalone() {
       const meId = (window.CURRENT_USER && window.CURRENT_USER.id) || null;
+      // A2.3 — pilot enforcement route (this screen). Derived from the
+      // already-fetched allUsers (no new query) by matching the acting
+      // admin's own row — the same source that will feed the grid badge
+      // (A2.2). CLIENT-SIDE ONLY: a somente_leitura admin whose JWT
+      // still says tipo='admin' can bypass this via direct API calls;
+      // RLS (usuarios_admin_all) does not check nivel_acesso. Real
+      // server-side enforcement is registered as
+      // A2-SERVER-SIDE-ENFORCEMENT, NOT AUTHORIZED.
+      const meUser = meId ? allUsers.find((u) => u.id === meId) : null;
+      const meSomenteLeitura = !!(meUser && meUser.tipo === 'admin' && meUser.nivel_acesso === 'somente_leitura');
       let baseRows = mostrarInativos ? allUsers : allUsers.filter((u) => u.ativo !== false);
       if (filtroTipo !== 'todos') baseRows = baseRows.filter((u) => u.tipo === filtroTipo);
       const filteredRows = busca
@@ -197,11 +212,20 @@
         window.el('div', { style: 'font-size:22px; font-weight:800; color:#16203a; letter-spacing:-.01em;' }, 'Usuarios'),
         window.el('div', { style: 'font-size:13px; color:#8a93a3; margin-top:3px;' }, 'Gerencie acessos, vinculos e status de usuarios administrativos.')
       ));
-      header.appendChild(window.el('button', {
+      // A2.3 — "Novo usuario" disabled for a somente_leitura admin (safe
+      // boolean pattern: `disabled` key only set when true, never
+      // `disabled:false`, per UI-EL-BOOLEAN-ATTR-FIX).
+      const novoUsuarioAttrs = {
         type: 'button',
-        onclick: () => M.openUsuarioModal(null, allForns, allClients, columnSupport, { onSaved: reload }),
-        style: 'display:inline-flex; align-items:center; gap:7px; background:#2563eb; color:#fff; border:none; border-radius:4px; padding:9px 16px; font-weight:600; font-size:14px; font-family:inherit; cursor:pointer;'
-      }, svgIcon(ICON_PLUS), window.el('span', {}, 'Novo usuario')));
+        style: `display:inline-flex; align-items:center; gap:7px; background:#2563eb; color:#fff; border:none; border-radius:4px; padding:9px 16px; font-weight:600; font-size:14px; font-family:inherit; cursor:${meSomenteLeitura ? 'default' : 'pointer'}; opacity:${meSomenteLeitura ? '0.55' : '1'};`,
+      };
+      if (meSomenteLeitura) {
+        novoUsuarioAttrs.disabled = true;
+        novoUsuarioAttrs.title = 'Seu acesso é somente leitura — criação de usuário desabilitada';
+      } else {
+        novoUsuarioAttrs.onclick = () => M.openUsuarioModal(null, allForns, allClients, columnSupport, { onSaved: reload, readOnly: meSomenteLeitura });
+      }
+      header.appendChild(window.el('button', novoUsuarioAttrs, svgIcon(ICON_PLUS), window.el('span', {}, 'Novo usuario')));
 
       // A3.2 — cards-resumo (KPI), acima da toolbar.
       const kpiGrid = window.el('div', { style: 'display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-bottom:18px;' });
@@ -291,7 +315,7 @@
         const line = window.el('div', { style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid #f1f3f6'}; opacity:${inativo ? '0.6' : '1'};` });
         line.appendChild(window.truncatedCell(user.email || '', user.email, 'font-size:13.5px; color:#3f4757;'));
         line.appendChild(window.truncatedCell(user.nome || '—', user.nome, 'font-size:14px; font-weight:500; color:#16203a;'));
-        line.appendChild(window.el('div', {}, tipoBadge(user.tipo)));
+        line.appendChild(window.el('div', {}, tipoBadge(user.tipo, user.nivel_acesso)));
         line.appendChild(window.truncatedCell(user.fornecedor?.nome || '—', user.fornecedor?.nome, `font-size:13.5px; color:${user.fornecedor?.nome ? '#3f4757' : '#aab2bf'};`));
         line.appendChild(window.truncatedCell(user.cliente?.nome || '—', user.cliente?.nome, `font-size:13.5px; color:${user.cliente?.nome ? '#3f4757' : '#aab2bf'};`));
         line.appendChild(window.el('div', {},
@@ -306,35 +330,45 @@
         // disabled conditions and icon-swap logic; only the button
         // rendering changes.
         const actions = window.el('div', { style: 'display:flex; align-items:center; justify-content:center; gap:6px;' });
+        // A2.3 — every write action in this pilot route also merges in
+        // meSomenteLeitura (in addition to the existing self-protection
+        // guards), disabling the button and explaining why via title.
+        const readOnlySuffix = ' (acesso somente leitura)';
         actions.appendChild(window.actionButton({
-          title: 'Editar usuario',
+          title: meSomenteLeitura ? ('Editar usuario' + readOnlySuffix) : 'Editar usuario',
           icon: svgIcon(ICON_SQUARE_PEN),
-          onclick: () => M.openUsuarioModal(user, allForns, allClients, columnSupport, { onSaved: reload }),
+          disabled: meSomenteLeitura,
+          onclick: meSomenteLeitura ? undefined : () => M.openUsuarioModal(user, allForns, allClients, columnSupport, { onSaved: reload, readOnly: meSomenteLeitura }),
         }));
         // A5.1-A5.2 — reset de senha.
         const resetSelf = !!(meId && user.id === meId);
+        const resetDisabled = resetSelf || meSomenteLeitura;
         actions.appendChild(window.actionButton({
-          title: resetSelf ? 'Nao pode resetar a propria senha' : 'Resetar senha',
+          title: meSomenteLeitura ? ('Resetar senha' + readOnlySuffix) : (resetSelf ? 'Nao pode resetar a propria senha' : 'Resetar senha'),
           icon: svgIcon(ICON_KEY),
-          disabled: resetSelf,
-          onclick: resetSelf ? undefined : () => M.openResetarSenhaModal(user, { onDone: reload }),
+          disabled: resetDisabled,
+          onclick: resetDisabled ? undefined : () => M.openResetarSenhaModal(user, { onDone: reload, readOnly: meSomenteLeitura }),
         }));
         // A5.3-A5.4 — linhas inativas trocam a ação "Desativar" (ícone
         // ban) por "Reativar" (ícone refresh) na mesma posição; ambas
         // sempre acionáveis (sem `disabled`) nesta coluna. Neutral color
         // (not danger) — matches the pre-migration behavior verbatim.
         actions.appendChild(window.actionButton({
-          title: inativo ? 'Reativar usuario' : 'Desativar usuario',
+          title: meSomenteLeitura
+            ? ((inativo ? 'Reativar usuario' : 'Desativar usuario') + readOnlySuffix)
+            : (inativo ? 'Reativar usuario' : 'Desativar usuario'),
           icon: svgIcon(inativo ? ICON_REFRESH : ICON_BAN),
-          onclick: inativo ? () => handleReativarClick(user) : () => handleDesativarClick(user, meId),
+          disabled: meSomenteLeitura,
+          onclick: meSomenteLeitura ? undefined : (inativo ? () => handleReativarClick(user, meSomenteLeitura) : () => handleDesativarClick(user, meId, meSomenteLeitura)),
         }));
         const excluirSelf = !!(meId && user.id === meId);
+        const excluirDisabled = excluirSelf || meSomenteLeitura;
         actions.appendChild(window.actionButton({
-          title: excluirSelf ? 'Nao pode excluir o proprio usuario' : 'Excluir usuario',
+          title: meSomenteLeitura ? ('Excluir usuario' + readOnlySuffix) : (excluirSelf ? 'Nao pode excluir o proprio usuario' : 'Excluir usuario'),
           icon: svgIcon(ICON_TRASH),
           danger: true,
-          disabled: excluirSelf,
-          onclick: excluirSelf ? undefined : () => handleExcluirClick(user, meId),
+          disabled: excluirDisabled,
+          onclick: excluirDisabled ? undefined : () => handleExcluirClick(user, meId, meSomenteLeitura),
         }));
         line.appendChild(actions);
         card.appendChild(line);
@@ -355,7 +389,7 @@
       container.replaceChildren(page);
     }
 
-    function handleDesativarClick(r, meId) {
+    function handleDesativarClick(r, meId, readOnly) {
       // Guarda de UX (não substitui a checagem server-side).
       if (r.ativo === false) {
         window.toast('Usuário já está inativo.', 'info');
@@ -365,25 +399,25 @@
         window.toast('Você não pode desativar seu próprio usuário.', 'info');
         return;
       }
-      M.openDesativarModal(r, { onDone: reload });
+      M.openDesativarModal(r, { onDone: reload, readOnly });
     }
 
-    function handleExcluirClick(r, meId) {
+    function handleExcluirClick(r, meId, readOnly) {
       // Guarda de UX (não substitui a checagem server-side).
       if (meId && r.id === meId) {
         window.toast('Você não pode excluir seu próprio usuário.', 'info');
         return;
       }
-      M.openExcluirModal(r, { onDone: reload });
+      M.openExcluirModal(r, { onDone: reload, readOnly });
     }
 
-    function handleReativarClick(r) {
+    function handleReativarClick(r, readOnly) {
       // Guarda de UX (não substitui a checagem server-side).
       if (r.ativo !== false) {
         window.toast('Usuário já está ativo.', 'info');
         return;
       }
-      M.openReativarModal(r, { onDone: reload });
+      M.openReativarModal(r, { onDone: reload, readOnly });
     }
 
     await reload();

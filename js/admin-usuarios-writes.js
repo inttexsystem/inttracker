@@ -55,7 +55,7 @@
   // -------------------------------------------------------------------
 
   async function fetchUsuariosPageData(columnSupport) {
-    const usuariosSelect = 'id, email, nome, tipo, ativo, desativado_em, fornecedor:fornecedor_id(id, nome, tipo), cliente:cliente_id(id, nome)'
+    const usuariosSelect = 'id, email, nome, tipo, ativo, nivel_acesso, desativado_em, fornecedor:fornecedor_id(id, nome, tipo), cliente:cliente_id(id, nome)'
       + (columnSupport.observacoes ? ', observacoes' : '');
     const [usersRes, fornsRes, clientsRes] = await Promise.all([
       window.supa
@@ -162,14 +162,38 @@
   }
 
   // -------------------------------------------------------------------
+  // A2.3 client-side readOnly guard (pilot route: users screen). Every
+  // write helper below accepts a trailing `readOnly` boolean, sourced by
+  // the caller from the acting admin's own nivel_acesso (js/screens/
+  // admin-usuarios.js derives it from the already-fetched user list —
+  // see fetchUsuariosPageData above — no new query). When true, the
+  // helper refuses before touching window.supa, returning the same
+  // { data, error } shape every caller already handles.
+  //
+  // NOT server-enforced: this is a client-side-only refusal. A
+  // somente_leitura admin whose JWT still carries tipo='admin' can call
+  // the real Edge Functions / PostgREST directly, bypassing this guard —
+  // RLS (usuarios_admin_all, is_admin()-based) does not check
+  // nivel_acesso. Server-side enforcement is registered as
+  // A2-SERVER-SIDE-ENFORCEMENT, NOT AUTHORIZED.
+  // -------------------------------------------------------------------
+  var CLIENT_READONLY_ERROR_MESSAGE = 'Seu usuário tem acesso somente leitura — esta ação está desabilitada.';
+
+  function readOnlyRefusal() {
+    return { data: null, error: { code: 'CLIENT_READONLY_FORBIDDEN', message: CLIENT_READONLY_ERROR_MESSAGE } };
+  }
+
+  // -------------------------------------------------------------------
   // Writes — criar / editar (PostgREST update em observações)
   // -------------------------------------------------------------------
 
-  async function createUsuario(payload) {
+  async function createUsuario(payload, readOnly) {
+    if (readOnly) return readOnlyRefusal();
     return invokeAdminFunction('admin-create-user', payload);
   }
 
-  async function updateUsuario(id, payload) {
+  async function updateUsuario(id, payload, readOnly) {
+    if (readOnly) return readOnlyRefusal();
     return window.supa.from('usuarios').update(payload).eq('id', id);
   }
 
@@ -181,24 +205,28 @@
   // Writes — desativar / excluir (Edge Functions)
   // -------------------------------------------------------------------
 
-  async function disableUsuario(user_id, reason) {
+  async function disableUsuario(user_id, reason, readOnly) {
+    if (readOnly) return readOnlyRefusal();
     return invokeAdminFunction('admin-disable-user', { user_id: user_id, reason: reason });
   }
 
-  async function deleteUsuario(user_id, confirm_email) {
+  async function deleteUsuario(user_id, confirm_email, readOnly) {
+    if (readOnly) return readOnlyRefusal();
     return invokeAdminFunction('admin-delete-user', { user_id: user_id, confirm_email: confirm_email });
   }
 
   // A5.1-A5.2 — reset de senha administrativo. Retorna a senha gerada
   // no envelope de sucesso (data.password) — o chamador exibe uma
   // única vez e nunca a persiste.
-  async function resetarSenha(user_id) {
+  async function resetarSenha(user_id, readOnly) {
+    if (readOnly) return readOnlyRefusal();
     return invokeAdminFunction('admin-reset-user-password', { user_id: user_id });
   }
 
   // A5.3-A5.4 — reativação administrativa. Contraparte simétrica de
   // disableUsuario: reverte ativo/ban no Auth via Edge Function própria.
-  async function reativarUsuario(user_id) {
+  async function reativarUsuario(user_id, readOnly) {
+    if (readOnly) return readOnlyRefusal();
     return invokeAdminFunction('admin-reactivate-user', { user_id: user_id });
   }
 

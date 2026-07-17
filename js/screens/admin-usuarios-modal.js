@@ -274,6 +274,36 @@
     }));
     fields.push(adminUsuariosModalField({ label: 'Nome', input: nomeInput, fullWidth: true }));
     fields.push(adminUsuariosModalField({ label: 'Tipo', input: tipoSel, fullWidth: true }));
+    // A2.2 — nível de acesso do admin (db/62 usuarios.nivel_acesso).
+    // Hidden entirely (not merely disabled) for fornecedor/cliente — the
+    // field is meaningless for them, same treatment as wrapperForn/
+    // wrapperCli below. Rendered on EDIT only: admin-create-user's
+    // INSERT (supabase/functions/admin-create-user/index.ts) has no
+    // nivel_acesso column, so on CREATE any selection here would be
+    // silently discarded by the Edge Function — showing an interactive
+    // control whose value is dropped is worse than not showing it. A
+    // new admin is created at the schema default ('completo', db/62)
+    // and its level can be set right after, via this same field in a
+    // follow-up edit. HARD STOP registered at this phase: wiring
+    // nivel_acesso into admin-create-user's INSERT requires an Edge
+    // Function change, out of this order's scope
+    // (A2-CREATE-NIVEL-ACESSO-WIRING, NOT AUTHORIZED).
+    var nivelAcessoOptions = [
+      { value: 'completo', label: 'Completo' },
+      { value: 'somente_leitura', label: 'Somente leitura' },
+    ];
+    var nivelAcessoSel = isEdit
+      ? window.selectInput({ options: nivelAcessoOptions, value: usr?.nivel_acesso || 'completo' })
+      : null;
+    var wrapperNivel = isEdit
+      ? adminUsuariosModalField({
+        label: 'Nível de acesso',
+        input: nivelAcessoSel,
+        hint: 'Completo ou somente leitura. Relevante apenas para administradores.',
+        fullWidth: true
+      })
+      : null;
+    if (wrapperNivel) fields.push(wrapperNivel);
     var wrapperForn = adminUsuariosModalField({
       label: 'Fornecedor vinculado',
       input: fornSel,
@@ -291,6 +321,7 @@
       var t = tipoSel.value;
       setAdminUsuariosModalFieldVisibility(wrapperForn, t === 'fornecedor');
       setAdminUsuariosModalFieldVisibility(wrapperCli, t === 'cliente');
+      if (wrapperNivel) setAdminUsuariosModalFieldVisibility(wrapperNivel, t === 'admin');
     }
     tipoSel.addEventListener('change', updateVinculoVisibility);
     updateVinculoVisibility();
@@ -365,10 +396,18 @@
         }
         if (isEdit) {
           var updatePayload = { email, nome, tipo, fornecedor_id: fornecedor_id_raw, cliente_id: cliente_id_raw };
+          // A2.2 — direct PostgREST update (not an Edge Function): RLS
+          // (usuarios_admin_all, is_admin()-based) already allows any
+          // admin to write this column, so unlike create this actually
+          // persists. Only sent when the (possibly just-changed) tipo
+          // is 'admin' — meaningless otherwise, so a non-admin row's
+          // existing nivel_acesso (schema default 'completo') is left
+          // untouched by this modal.
+          if (tipo === 'admin' && nivelAcessoSel) updatePayload.nivel_acesso = nivelAcessoSel.value;
           if (columnSupport.observacoes) updatePayload.observacoes = observacoesField.input.value.trim() || null;
-          const { error } = await W.updateUsuario(usr.id, updatePayload);
+          const { error } = await W.updateUsuario(usr.id, updatePayload, options.readOnly);
           if (error) {
-            var msg = 'Erro ao salvar';
+            var msg = error.code === 'CLIENT_READONLY_FORBIDDEN' ? error.message : 'Erro ao salvar';
             if (error.message && error.message.includes('duplicate')) msg = 'E-mail já cadastrado';
             window.toast(msg, 'error');
             console.error(error);
@@ -385,7 +424,7 @@
         }
         var fornecedor_id = fornecedor_id_raw ? Number(fornecedor_id_raw) : null;
         var cliente_id = cliente_id_raw ? Number(cliente_id_raw) : null;
-        const { data: createData, error } = await W.createUsuario({ email, password, nome, tipo, fornecedor_id, cliente_id });
+        const { data: createData, error } = await W.createUsuario({ email, password, nome, tipo, fornecedor_id, cliente_id }, options.readOnly);
         if (error) {
           var parsed = await W.parseEdgeFunctionError(error, 'Erro ao criar usuário');
           var code = parsed.code;
@@ -443,7 +482,7 @@
       saveLabel: 'Desativar',
       onSave: async () => {
         var reason = (motivoInput.value || '').trim().slice(0, 500);
-        var { error } = await W.disableUsuario(usr.id, reason || 'Desativação via UI');
+        var { error } = await W.disableUsuario(usr.id, reason || 'Desativação via UI', options.readOnly);
         if (error) {
           var parsed = await W.parseEdgeFunctionError(error, 'Erro ao desativar usuário');
           var friendly = W.friendlyDisableMessage(parsed.code, parsed.message);
@@ -490,7 +529,7 @@
           window.toast('O e-mail digitado não confere com o e-mail do usuário.', 'error');
           return;
         }
-        var { error } = await W.deleteUsuario(usr.id, confirmEmail);
+        var { error } = await W.deleteUsuario(usr.id, confirmEmail, options.readOnly);
         if (error) {
           var parsed = await W.parseEdgeFunctionError(error, 'Erro ao excluir usuário');
           var friendly = W.friendlyDeleteMessage(parsed.code, parsed.message);
@@ -519,7 +558,7 @@
       confirmLabel: 'Resetar senha',
       danger: true,
       onConfirm: async () => {
-        var { data, error } = await W.resetarSenha(usr.id);
+        var { data, error } = await W.resetarSenha(usr.id, options.readOnly);
         if (error) {
           var parsed = await W.parseEdgeFunctionError(error, 'Erro ao resetar senha');
           var friendly = W.friendlyResetMessage(parsed.code, parsed.message);
@@ -591,7 +630,7 @@
       confirmLabel: 'Reativar',
       danger: false,
       onConfirm: async () => {
-        var { error } = await W.reativarUsuario(usr.id);
+        var { error } = await W.reativarUsuario(usr.id, options.readOnly);
         if (error) {
           var parsed = await W.parseEdgeFunctionError(error, 'Erro ao reativar usuário');
           var friendly = W.friendlyReactivateMessage(parsed.code, parsed.message);
