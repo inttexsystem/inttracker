@@ -488,15 +488,11 @@ test("admin-disable-user/index.ts: não foi alterado por esta fase", () => {
 });
 
 // ---------------------------------------------------------------------
-// 16. UI cadastros.js integra admin-delete-user
+// 16. cadastros.js: invariantes gerais (não integra mais admin-delete-user
+// — a tela de usuários foi removida deste arquivo em A3.4; a integração
+// real vive em js/admin-usuarios-writes.js, coberta por
+// tests/admin-usuarios.smoke.js)
 // ---------------------------------------------------------------------
-
-test("cadastros.js: chama functions.invoke('admin-delete-user')", () => {
-  assert.match(
-    cadastrosSrc,
-    /functions\.invoke\(\s*['"]admin-delete-user['"]/,
-  );
-});
 
 test("cadastros.js: NÃO usa auth.admin no front-end", () => {
   assert.doesNotMatch(
@@ -519,33 +515,6 @@ test("cadastros.js: NÃO contém service_role", () => {
     cadastrosSrc,
     /service_role/i,
     "service_role não pode aparecer em cadastros.js",
-  );
-});
-
-test("cadastros.js: payload de admin-delete-user contém user_id e confirm_email", () => {
-  // Localiza a chamada real (functions.invoke('admin-delete-user', ...))
-  // e pega o bloco correspondente.
-  const callIdx = cadastrosSrc.indexOf("functions.invoke('admin-delete-user'");
-  assert.ok(
-    callIdx > 0,
-    "chamada real admin-delete-user deve existir em cadastros.js",
-  );
-  const invokeEnd = cadastrosSrc.indexOf(");", callIdx);
-  assert.ok(invokeEnd > 0, "fechamento do invoke deve existir");
-  const block = cadastrosSrc.slice(callIdx, invokeEnd + 2);
-  assert.match(block, /user_id/, "payload deve conter user_id");
-  assert.match(block, /confirm_email/, "payload deve conter confirm_email");
-});
-
-test("cadastros.js: botão 'Excluir' existe (separado de 'Desativar')", () => {
-  const idx = cadastrosSrc.indexOf("function screenCadastrosUsuarios()");
-  assert.ok(idx > 0);
-  const nextFn = cadastrosSrc.indexOf("async function screenCadastros", idx + 1);
-  const bloco = cadastrosSrc.slice(idx, nextFn > 0 ? nextFn : cadastrosSrc.length);
-  assert.match(
-    bloco,
-    /'Excluir'/,
-    "rótulo 'Excluir' deve aparecer",
   );
 });
 

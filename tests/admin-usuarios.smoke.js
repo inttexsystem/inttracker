@@ -37,8 +37,8 @@
 //      payload certo (unit, sem passar pela UI do modal).
 //
 // Não-regressão (15):
-//  15. cadastros.js não foi alterado por esta fase (screenCadastrosUsuarios
-//      continua presente, intocado, até a remoção isolada em A3.4).
+//  15. cadastros.js: screenCadastrosUsuarios foi removida em A3.4 — este
+//      módulo é a única implementação restante da tela de usuários.
 //
 // CAMADA2-LAST-ACCESS-UI — coluna "Último acesso" (consumo de db/59) (22-25):
 //  22. coluna presente no grid: header, formato dd/mm/aaaa hh:mm, fallback
@@ -1378,9 +1378,9 @@ test('54. write helpers recusam com CLIENT_READONLY_FORBIDDEN quando readOnly=tr
 // Não-regressão
 // -----------------------------------------------------------------------------
 
-test('15. cadastros.js não foi alterado por esta fase (screenCadastrosUsuarios intocado)', () => {
-  assert.match(cadSrc, /function\s+screenCadastrosUsuarios\s*\(/,
-    'cadastros.js deveria continuar declarando screenCadastrosUsuarios (remoção é escopo de A3.4, não A3.1)');
-  assert.match(cadSrc, /window\.screenCadastrosUsuarios\s*=\s*screenCadastrosUsuarios/,
-    'window.screenCadastrosUsuarios deveria continuar exposto (remoção é escopo de A3.4)');
+test('15. cadastros.js: screenCadastrosUsuarios foi removida (A3.4) — a extração 1:1 para este módulo é a única implementação restante', () => {
+  assert.doesNotMatch(cadSrc, /function\s+screenCadastrosUsuarios\s*\(/,
+    'cadastros.js não deveria mais declarar screenCadastrosUsuarios (removida em A3.4)');
+  assert.doesNotMatch(cadSrc, /window\.screenCadastrosUsuarios\s*=/,
+    'window.screenCadastrosUsuarios não deveria mais ser exposto (removida em A3.4)');
 });

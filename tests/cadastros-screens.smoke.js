@@ -1,10 +1,18 @@
 // Smoke test do módulo js/screens/cadastros.js (CADASTROS-SCREENS-MODULE-A).
 //
-// Garante que a extração das 7 telas de cadastros (Cores, Clientes,
-// Modelos, Parametros, Fornecedores, Precos, Usuarios) + constantes
+// Garante que a extração das 6 telas de cadastros (Cores, Clientes,
+// Modelos, Parametros, Fornecedores, Precos) + constantes
 // (FORNECEDOR_TIPOS, labelFornecedorTipo) do <script> inline de
 // index.html para js/screens/cadastros.js preservou o comportamento
 // exato.
+//
+// A 7ª tela original (Usuarios, screenCadastrosUsuarios) foi extraída
+// 1:1 para js/screens/admin-usuarios.js em CAMADA2-USUARIOS-A3-1 e
+// removida deste arquivo como código morto em A3.4 (route cutover já
+// era antigo — #/cadastros/usuarios aponta para window.screenAdminUsuarios
+// desde A3.1). Os testes 20/20a/20b que a exercitavam diretamente foram
+// removidos junto; a cobertura equivalente vive em
+// tests/admin-usuarios.smoke.js.
 //
 // Estáticos:
 //   1. js/screens/cadastros.js existe e é script clássico;
@@ -13,15 +21,17 @@
 //   4. ordem common → cadastros → jspdf → inline (cadastros antes do
 //      inline, depois de common);
 //   5. inline NÃO contém mais: function screenCadastros{Cores,Clientes,
-//      Modelos,Parametros,Fornecedores,Precos,Usuarios}, const
+//      Modelos,Parametros,Fornecedores,Precos}, const
 //      FORNECEDOR_TIPOS, function labelFornecedorTipo;
 //   6. inline AINDA contém: screenPainel, screenFornecedorHome,
 //      screenFornecedorEntregas, screenFornecedorLatex,
 //      screenFornecedorOrdens, screenListaOPs, screenNovaOP,
 //      renderOPLatexAdmin, buildEntregaInlineForm, rotuloFio,
 //      OCF_STATUS_LABEL, setRoutes, main;
-//   7. setRoutes ainda registra as 7 rotas #/cadastros/*;
-//   8. js/screens/cadastros.js contém as 7 telas + FORNECEDOR_TIPOS +
+//   7. setRoutes ainda registra as 7 rotas #/cadastros/* (a rota
+//      /usuarios resolve para window.screenAdminUsuarios, não mais
+//      para uma tela definida neste arquivo);
+//   8. js/screens/cadastros.js contém as 6 telas + FORNECEDOR_TIPOS +
 //      labelFornecedorTipo;
 //   9. js/screens/cadastros.js NÃO contém supabase.createClient /
 //      _supaRaw / _LOCAL_HOSTS / _IS_LOCAL / _IS_PROD_URL /
@@ -36,18 +46,18 @@
 //      em js/screens/cadastros.js).
 //
 // Runtime (carrega ui.js + common.js + cadastros.js num vm.Context com
-// supa mockado e stubs para as 7 telas renderizarem):
-//  14. window.RAVATEX_SCREENS.cadastros existe e expõe as 7 telas +
+// supa mockado e stubs para as 6 telas renderizarem):
+//  14. window.RAVATEX_SCREENS.cadastros existe e expõe as 6 telas +
 //      FORNECEDOR_TIPOS + labelFornecedorTipo;
 //  15. window.FORNECEDOR_TIPOS é array com 4 itens canônicos;
 //  16. window.labelFornecedorTipo('tecelagem') retorna label PT-BR;
-//  17. As 7 funções globais window.screenCadastros* existem;
-//  18. Cada uma das 7 telas, quando chamada num sandbox com supa
+//  17. As 6 funções globais window.screenCadastros* existem;
+//      window.screenCadastrosUsuarios NÃO existe mais (removida em A3.4);
+//  18. Cada uma das 6 telas, quando chamada num sandbox com supa
 //      mockado, chama supa.from com a tabela esperada e devolve um nó
 //      renderizável (<div>) com header + main (via shellLayout);
 //  19. screenCadastrosFornecedores usa FORNECEDOR_TIPOS e
 //      labelFornecedorTipo (preserva call-sites bare);
-//  20. screenCadastrosUsuarios usa labelFornecedorTipo (preserva);
 //  21. CRUD methods (insert/update/delete) são chamados apenas contra
 //      o mock — zero acesso a Supabase real.
 //
@@ -157,8 +167,7 @@ class FakeNode {
   }
   appendChild(n) { this.children.push(n); return n; }
   setAttribute(k, v) { this['_attr_' + k] = v; }
-  // js/ui.js's el() calls this for a falsy boolean attr (UI-EL-BOOLEAN-ATTR-FIX)
-  // — screenCadastrosUsuarios' checked/disabled toggles exercise this path.
+  // js/ui.js's el() calls this for a falsy boolean attr (UI-EL-BOOLEAN-ATTR-FIX).
   removeAttribute(k) { delete this['_attr_' + k]; }
   addEventListener(type, fn) { this._listeners[type] = fn; }
   removeEventListener(type) { delete this._listeners[type]; }
@@ -328,14 +337,13 @@ test('4. index.html: ordem sane de scripts (common antes de cadastros; boot.js �
   assert.equal(inline, -1, 'index.html contém <script> inline inesperado');
 });
 
-test('5. index.html NÃO declara as 7 telas, FORNECEDOR_TIPOS nem labelFornecedorTipo', () => {
+test('5. index.html NÃO declara as 6 telas, FORNECEDOR_TIPOS nem labelFornecedorTipo', () => {
   // O refactor moveu as telas de cadastro e constantes para
   // js/screens/cadastros.js. index.html deve permanecer declarativo,
   // sem definições de função dessas telas nem das constantes.
   for (const fn of [
     'screenCadastrosCores', 'screenCadastrosClientes', 'screenCadastrosModelos',
     'screenCadastrosParametros', 'screenCadastrosFornecedores', 'screenCadastrosPrecos',
-    'screenCadastrosUsuarios',
   ]) {
     assert.equal(new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`).test(indexSrc), false,
       `index.html ainda declara function ${fn}`);
@@ -374,11 +382,10 @@ test('7. boot.js registra as 7 rotas #/cadastros/* via setRoutes', () => {
   }
 });
 
-test('8. js/screens/cadastros.js contém as 7 telas + FORNECEDOR_TIPOS + labelFornecedorTipo', () => {
+test('8. js/screens/cadastros.js contém as 6 telas + FORNECEDOR_TIPOS + labelFornecedorTipo', () => {
   for (const fn of [
     'screenCadastrosCores', 'screenCadastrosClientes', 'screenCadastrosModelos',
     'screenCadastrosParametros', 'screenCadastrosFornecedores', 'screenCadastrosPrecos',
-    'screenCadastrosUsuarios',
   ]) {
     assert.match(cadSrc, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `cadastros.js não define ${fn}`);
@@ -432,14 +439,13 @@ test('13. labelFornecedorTipo é declarado UMA única vez em cadastros.js e ause
 // 2. Runtime
 // -----------------------------------------------------------------------------
 
-test('14. runtime: window.RAVATEX_SCREENS.cadastros existe e expõe as 7 telas + helpers', () => {
+test('14. runtime: window.RAVATEX_SCREENS.cadastros existe e expõe as 6 telas + helpers', () => {
   const { sandbox } = makeCadastrosSandbox();
   const cad = vm.runInContext('window.RAVATEX_SCREENS.cadastros', sandbox);
   assert.ok(cad && typeof cad === 'object', 'RAVATEX_SCREENS.cadastros não é objeto');
   for (const fn of [
     'screenCadastrosCores', 'screenCadastrosClientes', 'screenCadastrosModelos',
     'screenCadastrosParametros', 'screenCadastrosFornecedores', 'screenCadastrosPrecos',
-    'screenCadastrosUsuarios',
   ]) {
     assert.equal(typeof cad[fn], 'function', `${fn} não é função`);
   }
@@ -472,19 +478,20 @@ test('16. runtime: labelFornecedorTipo preserva labels PT-BR', () => {
   assert.equal(out3, 'xyz');
 });
 
-test('17. runtime: 7 globais legados window.screenCadastros* existem', () => {
+test('17. runtime: 6 globais legados window.screenCadastros* existem; screenCadastrosUsuarios foi removida (A3.4)', () => {
   const { sandbox } = makeCadastrosSandbox();
   for (const fn of [
     'screenCadastrosCores', 'screenCadastrosClientes', 'screenCadastrosModelos',
     'screenCadastrosParametros', 'screenCadastrosFornecedores', 'screenCadastrosPrecos',
-    'screenCadastrosUsuarios',
   ]) {
     assert.equal(typeof vm.runInContext(`window.${fn}`, sandbox), 'function',
       `window.${fn} não é função`);
   }
+  assert.equal(vm.runInContext('window.screenCadastrosUsuarios', sandbox), undefined,
+    'window.screenCadastrosUsuarios deveria ter sido removida em A3.4');
 });
 
-// 18. Cada uma das 7 telas, com supa mockado, chama supa.from com a
+// 18. Cada uma das 6 telas, com supa mockado, chama supa.from com a
 // tabela esperada e devolve um nó renderizável via shellLayout.
 const CADASTROS_TABLES = [
   { fn: 'screenCadastrosCores',        table: 'cores' },
@@ -493,7 +500,6 @@ const CADASTROS_TABLES = [
   { fn: 'screenCadastrosParametros',   table: 'parametros_largura' },
   { fn: 'screenCadastrosFornecedores', table: 'fornecedores' },
   { fn: 'screenCadastrosPrecos',       table: 'precos_terceirizada' }, // também 'fornecedores'
-  { fn: 'screenCadastrosUsuarios',     table: 'usuarios' }, // também 'fornecedores'
 ];
 
 for (const { fn, table } of CADASTROS_TABLES) {
@@ -539,78 +545,6 @@ test('19. screenCadastrosFornecedores preserva uso de FORNECEDOR_TIPOS e labelFo
   // modal: o teste estático já garante; aqui validamos via calls que
   // a tabela 'fornecedores' foi tocada.
   assert.ok(fakeSupa._calls.some(c => c.op === 'from' && c.args[0] === 'fornecedores'));
-});
-
-test('20. screenCadastrosUsuarios preserva uso de labelFornecedorTipo', async () => {
-  const { sandbox } = makeCadastrosSandbox({
-    tableData: {
-      usuarios: [
-        { id: 'u-1', email: 'a@b.c', nome: 'Ana', tipo: 'admin', fornecedor: null },
-        { id: 'u-2', email: 'b@b.c', nome: 'Bia', tipo: 'fornecedor',
-          fornecedor: { id: 'f-1', nome: 'Tec X', tipo: 'tecelagem' } },
-      ],
-      fornecedores: [
-        { id: 'f-1', nome: 'Tec X', tipo: 'tecelagem' },
-      ],
-    },
-  });
-  const node = await vm.runInContext('window.screenCadastrosUsuarios()', sandbox);
-  assert.ok(node, 'render falhou');
-  // Botão principal deve ser "+ Novo usuário" (fluxo via Edge Function)
-  const flex = node.children.find((c) => c.tagName === 'DIV');
-  const main  = flex && flex.children.find((c) => c.tagName === 'MAIN');
-  const rendered = textOf(main);
-  assert.match(rendered, /\+ Novo usu[áa]rio/);
-  assert.doesNotMatch(rendered, /Como criar um usu[áa]rio novo/);
-  assert.doesNotMatch(rendered, /Supabase Studio/);
-  // O label PT-BR via labelFornecedorTipo deve aparecer (coluna
-  // "Fornecedor" do dataTable mostra "Tec X" para o usuário tipo
-  // fornecedor, mas como o join já devolve fornecedor.nome, o label
-  // PT-BR aparece só no modal — aqui validamos o banner e o render)
-  assert.ok(rendered.includes('Ana'));
-  assert.ok(rendered.includes('a@b.c'));
-});
-
-// =====================================================================
-// === RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A ==========================
-// Fase: RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A
-// Garante que a tela de usuários não oferece mais exclusão insegura
-// de perfil (que deixaria auth.users ativo e reintroduziria a
-// inconsistência que a Edge Function admin-create-user resolveu).
-// =====================================================================
-
-test('20a. screenCadastrosUsuarios: tem botão "Desativar" (não mais placeholder "Em breve")', async () => {
-  const { sandbox } = makeCadastrosSandbox({
-    tableData: {
-      usuarios: [
-        { id: 'u-1', email: 'a@b.c', nome: 'Ana', tipo: 'admin', ativo: true, fornecedor: null },
-      ],
-      fornecedores: [],
-    },
-  });
-  const node = await vm.runInContext('window.screenCadastrosUsuarios()', sandbox);
-  assert.ok(node, 'render falhou');
-  const flex = node.children.find((c) => c.tagName === 'DIV');
-  const main  = flex && flex.children.find((c) => c.tagName === 'MAIN');
-  const rendered = textOf(main);
-  // Botão Desativar deve aparecer como ação da linha.
-  assert.match(rendered, /Desativar/);
-  // Placeholder antigo não deve mais aparecer como ação primária.
-  assert.doesNotMatch(rendered, /Em breve/);
-  assert.doesNotMatch(rendered, /Excluir v[íi]nculo/);
-  // Coluna Status deve aparecer (Ativo/Inativo).
-  assert.match(rendered, /Ativo/);
-});
-
-test('20b. cadastros.js: fluxo de usuários não tem .from("usuarios").delete()', () => {
-  // Garante que nenhuma parte do source executa delete em public.usuarios
-  // (o caminho inseguro de exclusão foi removido na fase
-  // RAVATEX-TAPETES-AUTH-DELETE-UI-GUARD-A).
-  assert.equal(
-    /from\(\s*['"]usuarios['"]\s*\)\s*\.\s*delete\s*\(/.test(cadSrc),
-    false,
-    'cadastros.js ainda executa .from("usuarios").delete() — caminho inseguro de exclusão',
-  );
 });
 
 test('21. CRUD methods (insert/update/delete) chamados apenas no mock', async () => {
