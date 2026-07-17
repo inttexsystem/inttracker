@@ -13,25 +13,51 @@ HEAD, working tree, staging and divergence must be consulted directly in Git
 ## Active phase and next action
 
 - **Active functional phase:** `NONE`.
-- **Next authorizable action:** finish `TEST-DOUBLE-SHARED-MODULE` **Lot `L1`** —
-  `IN PROGRESS`. Commit 1 (`54ee8aa` — `tests/_doubles.js` shared `FaithfulNode`
-  + fake `supa` + 15 meta-tests, additive) and commit 2 (`4d2f304` — shared
-  double adopted in **4 of the 5** `R1` suites: `cliente-pedido-tracking`,
-  `pedido-detail-linked-documents`, `direct-cnpj-screens`, `pedido-form`, each
-  +1 demonstration test; `R2` drift fixed in `fornecedor-screens`/
-  `painel-screen`; `FaithfulNode` widened for select→value reflection) are done
-  and verified green (no assertion weakened; pre-existing failures unchanged).
-  **Single remaining `L1` item:** `tec-to-acabamento-flow` `R1` adoption — the
-  most complex of the set (interactive 2-sandbox form, event-dispatch
-  reconciliation, 2 pre-existing static failures to preserve; latent-only
-  blindness, its one boolean assertion already covered statically) — deferred to
-  a follow-up commit in this phase (three migration subagents were killed by a
-  session limit; this suite was not rushed under that constraint). After it,
-  `TEST-DOUBLE-STALE-ASSERTION-CLEANUP` **Lot `L2`** is `AUTHORIZED` (delete/
-  rewrite the stale inline-`<script>` assertions in `index-inline`/`config`/
-  `supabase-client`; ephemeral `listen(0)` replacing fixed `:8765`). `A2.1`
-  (schema `nivel_acesso`) and `A3.4` (legacy code removal in `cadastros.js`)
-  remain the next authorizable candidates **after** the test-double lots.
+- **Next authorizable action:** `A2.1` (schema `nivel_acesso`) — pending its own
+  architect order (the `TEST-MOCK-FIDELITY-AUDIT` follow-up lots `L1`+`L2` are
+  now `CLOSED`; `A3.4` — legacy code removal in `cadastros.js` — remains a
+  candidate after `A2.1`).
+  - **`TEST-DOUBLE-SHARED-MODULE` Lot `L1` — `CLOSED / ACCEPTED`:** shared
+    `tests/_doubles.js` (`FaithfulNode` with real DOM boolean coercion + fake
+    `supa` with double-envelope `invoke`/single-level `rpc`/single-vs-array) +
+    16 meta-tests (commit `54ee8aa`); adopted in **all 5** `R1` suites —
+    `cliente-pedido-tracking`, `pedido-detail-linked-documents`,
+    `direct-cnpj-screens`, `pedido-form` (commit `4d2f304`) and
+    `tec-to-acabamento-flow` (commit `520c9a6`) — each with a demonstration test
+    proving the old raw-store double would have masked a boolean-attr
+    regression; `R2` fail-unsafe drift fixed in `fornecedor-screens`/
+    `painel-screen`; `FaithfulNode` widened for select→value reflection. No
+    existing assertion weakened; the 2 pre-existing `tec-to-acabamento-flow`
+    static-slice failures preserved intact.
+  - **`TEST-DOUBLE-STALE-ASSERTION-CLEANUP` Lot `L2` — `CLOSED / ACCEPTED`**
+    (commit `2c9a4c2`): the stale inline-`<script>` assertions in
+    `index-inline`/`config`/`supabase-client` rewritten to the
+    post-modularization structure (no content-bearing inline script; extracted
+    logic asserted in its module; `?v=` cache-buster tolerated; `js/boot.js`
+    entrypoint as the ordering boundary); `index-inline`'s fixed `:8765` fetch
+    replaced by an ephemeral `listen(0)` server; `fornecedor-screens`'s stale
+    hardcoded menu-count (`10` vs the 11-item `ADMIN_MENU`) made dynamic. All
+    four suites green. **The historical "~87 / 11 failures" baseline debt is now
+    resolved.** Registered follow-up (`NOT AUTHORIZED`, same stale class, out of
+    L2's named scope): `tec-to-acabamento-flow`'s 2 static-slice assertions
+    (caso 9, MODAL caso 6) are false-red brittle `buildTecelagemTransferForm`
+    slice regexes — the source content they check (`comOpcaoSplit:true`,
+    `layout:'stacked'`) is present; a trivial regex-anchor fix.
+  - **`TEST-MOCK-FIDELITY-AUDIT` — `CLOSED / ACCEPTED`** (read-only audit,
+    architect ratification 2026-07-17; report
+    `docs/reports/TEST_MOCK_FIDELITY_AUDIT_2026-07-17.md`): all 124 `tests/`
+    suites inventoried; **zero confirmed (c) structurally-blind doubles that
+    mask a live bug** — the three triggering defects were fixed and their
+    doubles corrected into the faithful seed. Substantive finding is
+    structural: fidelity is accidental/per-suite (residual classes `R1`
+    quarantined boolean-blindness, `R2` fail-unsafe copy-drift, `R3` legacy
+    coverage gap) — `R1`/`R2` now closed by `L1`. Shared-double module
+    `APPROVED as proposed` (additive, opt-in, phased, mandatory meta-tests).
+    `§20` (test-double fidelity) added to `CODE_HEALTH_RULES.md`.
+    `UI-EL-BOOLEAN-ATTR-FIX` is subsumed: the live regression it named is
+    already fixed in `el()`; the audit confirms the fix's doubles are faithful
+    and the latent siblings (`R1`) are now converted to the shared faithful
+    double.
   - **`TEST-MOCK-FIDELITY-AUDIT` — `CLOSED / ACCEPTED`** (read-only audit,
     architect ratification 2026-07-17; report
     `docs/reports/TEST_MOCK_FIDELITY_AUDIT_2026-07-17.md`): all 124 `tests/`
@@ -212,20 +238,17 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   `tests/auth.smoke.js` with an outdated `<script src="js/auth.js">` regex
   (candidate for `CODE-HEALTH-AUDIT-§18-R1`); `js/screens/admin-usuarios-modal.js`
   at 576 lines (decomposition candidate).
-- **Test baseline re-grounded (`TEST-MOCK-FIDELITY-AUDIT`, 2026-07-17):** the
-  historical "~87 http.server/index.html failures" and "11 index-inline
-  failures" figures are **stale baseline artifacts** and must not be carried as
-  a fidelity count. They resolve into two non-mock-fidelity buckets, both slated
-  for `L2`: (1) **fixed-port `:8765` environment dependency** — `index-inline`
-  and `write-guard` `http.get` a hard-coded dev-server port (`ECONNREFUSED` when
-  down); other server-using suites (`config`/`auth`/`environment-banner`/
-  `supabase-client`) self-host on ephemeral `listen(0)` and are robust; (2)
-  **stale inline-`<script>` assertions** — a shared `extractInlineScript` helper
-  in `index-inline`/`config`/`supabase-client` asserts an inline block the
-  modularization tracks fully removed (`index.html` now 79/79 `<script src=…>`,
-  zero inline). Measured now: `tests/index-inline.smoke.js` = 6 fail / 7. Neither
-  bucket is mock-fidelity; the doubles inside those suites are adequate for their
-  purpose.
+- **Test baseline re-grounded then RESOLVED (`TEST-MOCK-FIDELITY-AUDIT` L0 +
+  `TEST-DOUBLE-STALE-ASSERTION-CLEANUP` L2, 2026-07-17):** the historical
+  "~87 http.server/index.html failures" and "11 index-inline failures" figures
+  were **stale baseline artifacts** resolving into two non-mock-fidelity buckets
+  — (1) fixed-port `:8765` environment dependency; (2) stale inline-`<script>`
+  assertions against a block the modularization removed (`index.html` now 79/79
+  `<script src=…>`, zero inline). **Both are now fixed by `L2`** (commit
+  `2c9a4c2`): `index-inline` 6/6, `config` 28/28, `supabase-client` 26/26,
+  `fornecedor-screens` 30/30. The only remaining pre-existing failures in the
+  touched set are `tec-to-acabamento-flow`'s 2 static-slice assertions
+  (false-red brittle regexes; registered follow-up, `NOT AUTHORIZED`).
 - **Documentation candidate:** review of the legacy `docs/AI_AGENT_RULES.md`
   (partially legacy; contains stale counts/context — not authorized, not
   started).
@@ -340,6 +363,17 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
 - **Worktree `work/app-next`:** divergent from `staging/work/app-next` and
   dirty; hygiene authorized only as a read-only parallel task in a separate
   order.
+- **Worktree topology (read-only finding, 2026-07-17):** `controle-tapetes-g28`
+  is a linked worktree of the main repo (`controle-tapetes/.git`, alongside
+  `controle-tapetes-g27` and `controle-tapetes-controlled-delete-gate`). A
+  **stale worktree registration `tapetes-baseline-check`** exists under
+  `controle-tapetes/.git/worktrees/` — not locked, empty `gitdir`, its target
+  directory **missing on disk** (prunable). Git's auto-prune on every commit
+  fails to delete that metadata folder (`Permission denied` — likely a OneDrive
+  sync lock), producing a harmless recurring warning that does **not** affect
+  commits. Cleanup (`git worktree prune`, or manual removal of the metadata
+  folder after freeing the OneDrive/AV lock) is a **candidate pending explicit
+  authorization** — NOT pruned unilaterally.
 - **Publication provider:** not selected (Vercel a future candidate only).
 - **Push:** not authorized in this chain. **Production:** never accessed.
 - **`supabase/.temp/`:** local untracked Supabase CLI cache; not part of any

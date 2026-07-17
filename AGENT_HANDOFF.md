@@ -9,19 +9,25 @@
   `PROJECT_STATE.md`). Ratified: shared-double `tests/_doubles.js` APPROVED
   (additive, opt-in, phased, mandatory meta-tests); `§20` (test-double fidelity)
   added to `CODE_HEALTH_RULES.md`; the test-baseline "~87/11 failures" figures
-  re-grounded into two non-mock-fidelity buckets (fixed-port `:8765` +
-  stale inline-`<script>` assertions). **`TEST-DOUBLE-SHARED-MODULE` Lot `L1` —
-  `IN PROGRESS`:** commit `54ee8aa` (`tests/_doubles.js` + 15 meta-tests,
-  additive) and commit `4d2f304` (shared double adopted in 4 of 5 `R1` suites,
-  each +1 demonstration test; `R2` drift fixed in `fornecedor-screens`/
-  `painel-screen`; `FaithfulNode` select→value reflection) are done and verified
-  green. **Single remaining `L1` item:** `tec-to-acabamento-flow` `R1` adoption
-  (the most complex — interactive 2-sandbox form, 2 pre-existing static
-  failures, latent-only blindness) as a follow-up commit in this phase, deferred
-  after a session limit killed three migration subagents. Then Lot `L2` (stale
-  inline-`<script>` cleanup, ephemeral `listen(0)`) `AUTHORIZED`; `L3` `NO
-  ACTION` (subsumed by `A3.4`). The audit itself changed no test/code; only docs.
-  See its own dedicated section below.
+  re-grounded and then RESOLVED. **`TEST-DOUBLE-SHARED-MODULE` Lot `L1` —
+  `CLOSED / ACCEPTED`:** `tests/_doubles.js` + 16 meta-tests (`54ee8aa`);
+  shared double adopted in **all 5** `R1` suites — 4 in `4d2f304`,
+  `tec-to-acabamento-flow` in `520c9a6` — each +1 demonstration test; `R2` drift
+  fixed (`fornecedor-screens`/`painel-screen`); `FaithfulNode` select→value
+  reflection. No assertion weakened; `tec-to-acabamento-flow`'s 2 pre-existing
+  static-slice failures preserved. **`TEST-DOUBLE-STALE-ASSERTION-CLEANUP`
+  Lot `L2` — `CLOSED / ACCEPTED`** (`2c9a4c2`): stale inline-`<script>`
+  assertions in `index-inline`/`config`/`supabase-client` rewritten to the
+  post-modularization structure (no inline script; module-content asserted; `?v=`
+  tolerated; `js/boot.js` ordering boundary); `index-inline` fixed `:8765` →
+  ephemeral `listen(0)`; `fornecedor-screens` menu-count made dynamic. All four
+  green; the "~87/11 failures" baseline debt resolved. **`L3` `NO ACTION`**
+  (subsumed by `A3.4`). **Read-only finding:** a stale git worktree registration
+  `tapetes-baseline-check` (target missing on disk, `Permission denied` on
+  auto-prune — likely OneDrive lock) — reported for authorized cleanup, NOT
+  pruned. **Next authorizable action: `A2.1` (own order).** Registered follow-up
+  (`NOT AUTHORIZED`): `tec-to-acabamento-flow`'s 2 false-red static-slice
+  regexes. See the audit's dedicated section below.
 - **PROJECT_STATE compaction (`PROJECT-STATE-COMPACTION-A`, 2026-07-16):** `PROJECT_STATE.md` is now current-state-only (active phase, binding decisions in force, live debts, environment, and a "Closed phases" index). Historical phase-closeout narratives were moved verbatim to `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`. The "Full detail" pointers in this handoff now target that archive. This handoff itself was not compacted in that phase.
 - **Staging-only execution boundary in force (`STAGING-ONLY-EXECUTION-BOUNDARY-A`, 2026-07-15):** explicit architect decision — the current operational environment is exclusively staging `ucrjtfswnfdlxwtmxnoo`; the protected/other Supabase project is out of scope; schema migration/promotion in production is postponed until the complete canonical backlog is finished; `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE` is no longer a current material blocker, it is `DEFERRED UNTIL GLOBAL BACKLOG COMPLETION / NOT A CURRENT STAGING BLOCKER`; G28-D publication is `DEFERRED / NOT AUTHORIZED / NOT A CURRENT BLOCKER`; Vercel is a future candidate only, with no decision and no authorization. See `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` ("Architect Decision — Staging-Only Execution Boundary") and its own section below.
 - **No active functional phase.** G28-C is reclassified (2026-07-15, `G28-RECONCILIATION-DECISIONS-A`) as `CLOSED / TECHNICALLY ACCEPTED — ARCHITECT PRODUCT VALIDATION PENDING` — see `PROJECT_STATE.md`. G28-D discovery remains `RELEASE CONTRACT DISCOVERY COMPLETE` (evidence preserved); its publication is `DEFERRED BY ARCHITECT / NOT A CURRENT BLOCKER / NOT AUTHORIZED` and does not constitute an active phase. The canonical definition of the publication mapping and of the authorized procedure for migrations 51/52 remains absent from the repository, but this is no longer a current blocker by explicit decision; see `docs/releases/G28_D_RELEASE_CANDIDATE.md`.
