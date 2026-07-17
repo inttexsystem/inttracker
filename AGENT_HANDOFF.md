@@ -1,5 +1,28 @@
 # ACTIVE OPERATIONAL HANDOFF
 
+- **`A2.1` (nivel_acesso schema) + `A2.1-B` (ACL correction) — `CLOSED /
+  ACCEPTED` (2026-07-17):** technical commit `f108c45`. `db/62` adds
+  `public.usuarios.nivel_acesso` (`TEXT NOT NULL DEFAULT 'completo'`, CHECK
+  `completo`/`somente_leitura`; 10 existing users defaulted `completo`) and the
+  `is_admin_full()` helper (`SECURITY DEFINER STABLE`; `ativo AND tipo='admin'
+  AND nivel_acesso='completo'`). `usuarios.tipo` and `is_admin()` untouched.
+  Applied+verified in staging (`ucrjtfswnfdlxwtmxnoo`, registry
+  `20260717093122 / 62_admin_nivel_acesso_schema`); role matrix all green
+  including the critical regression (**`is_admin()` stays true for a
+  `somente_leitura` admin**) and the `db/60` trigger recording a `nivel_acesso`
+  change with correct payload. **Hard stop:** `db/62` left `service_role` with
+  `EXECUTE` (Supabase default), diverging from the db/57 authenticated-only
+  standard; architect ruled **Option 3** → grants-only `db/63` (registry
+  `20260717101401 / 63_is_admin_full_grants`, precedent db/57), stating the
+  complete intended ACL. **Final ACL verified: `EXECUTE` for `authenticated`
+  only; PUBLIC/anon/service_role denied** (service_role runtime call → `42501`).
+  **Next authorizable action: `A2.2` (modal wiring), own order** (`A2.3` route
+  enforcement, `A3.4` legacy removal also own orders). Registered candidates
+  (`NOT AUTHORIZED`): `IS-ADMIN-ACL-REVIEW` (the anchor `is_admin()` grants
+  `EXECUTE` to PUBLIC/anon/authenticated/service_role — more permissive than the
+  db/57 standard; tightening it touches every RLS policy → needs its own
+  diagnosis) and the `tec-to-acabamento-flow` 2 stale static-slice assertions
+  (same class as `L2`, trivial regex-anchor fix). Ledger closeout below.
 - **`TEST-MOCK-FIDELITY-AUDIT` — `CLOSED / ACCEPTED` (read-only, architect
   ratification 2026-07-17):** all 124 `tests/` suites audited; **zero confirmed
   (c) structurally-blind doubles that mask a live bug** — the three triggering

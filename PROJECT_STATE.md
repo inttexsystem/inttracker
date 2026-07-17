@@ -13,10 +13,31 @@ HEAD, working tree, staging and divergence must be consulted directly in Git
 ## Active phase and next action
 
 - **Active functional phase:** `NONE`.
-- **Next authorizable action:** `A2.1` (schema `nivel_acesso`) — pending its own
-  architect order (the `TEST-MOCK-FIDELITY-AUDIT` follow-up lots `L1`+`L2` are
-  now `CLOSED`; `A3.4` — legacy code removal in `cadastros.js` — remains a
-  candidate after `A2.1`).
+- **Next authorizable action:** `A2.2` (modal wiring for `nivel_acesso`) —
+  pending its own architect order; `A2.3` (pilot route enforcement) and `A3.4`
+  (legacy code removal in `cadastros.js`) also require their own orders. `A2.1`
+  (+`A2.1-B`) is now `CLOSED / ACCEPTED`.
+  - **`A2.1` (nivel_acesso schema) + `A2.1-B` (ACL correction) — `CLOSED /
+    ACCEPTED`** (technical commit `f108c45`): `db/62` adds
+    `public.usuarios.nivel_acesso` (`TEXT NOT NULL DEFAULT 'completo'`, CHECK
+    `completo`/`somente_leitura`; all 10 existing users defaulted `completo`, no
+    silent privilege change) and the `is_admin_full()` helper (`SECURITY
+    DEFINER STABLE`; `ativo AND tipo='admin' AND nivel_acesso='completo'`).
+    `usuarios.tipo` and `is_admin()` untouched (ratified: `tipo` anchors all RLS).
+    Applied+verified in staging (registry `20260717093122 / 62_admin_nivel_acesso_schema`).
+    Role matrix all green — incl. the critical regression **`is_admin()` stays
+    true for a `somente_leitura` admin** — and the `db/60` trigger records a
+    `nivel_acesso` change with the correct `perfil_alterado` payload.
+    **Hard-stop encountered + ruled:** `db/62`'s ACL left `service_role` with
+    `EXECUTE` (Supabase default privilege), diverging from the db/57
+    authenticated-only standard; architect ruled **Option 3** → forward-only
+    grants-only correction **`db/63`** (registry `20260717101401 /
+    63_is_admin_full_grants`, precedent db/57), which states the complete
+    intended ACL. **Final ACL verified: `EXECUTE` for `authenticated` only;
+    PUBLIC/anon/service_role denied** (`has_function_privilege`: authenticated
+    true, anon/service_role false; service_role runtime call → `42501`
+    unreachable). `A2.2` (modal wiring) and `A2.3` (route enforcement) are
+    separate, `NOT AUTHORIZED`.
   - **`TEST-DOUBLE-SHARED-MODULE` Lot `L1` — `CLOSED / ACCEPTED`:** shared
     `tests/_doubles.js` (`FaithfulNode` with real DOM boolean coercion + fake
     `supa` with double-envelope `invoke`/single-level `rpc`/single-vs-array) +
@@ -230,6 +251,20 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE` (`DEFERRED UNTIL
   GLOBAL BACKLOG COMPLETION`); `DELETE-PROD-GUARD-A`; `DELETE-AUDIT-LOG-A`;
   `G28-CAMADA-4`. `A4.3` (email/SMTP invites) remains `NOT AUTHORIZED`.
+- **`IS-ADMIN-ACL-REVIEW` — `NOT AUTHORIZED` candidate (registered at the `A2.1-B`
+  closeout, 2026-07-17):** the RLS anchor `public.is_admin()` grants `EXECUTE`
+  to `PUBLIC`/`anon`/`authenticated`/`service_role` — more permissive than the
+  db/54/57 least-privilege standard (which `db/63` applied to `is_admin_full()`).
+  Tightening `is_admin()`'s ACL touches **every** RLS policy that calls it, so it
+  needs its own read-only diagnosis before any change. Not a current exposure
+  (`is_admin()` returns `false` for anon/unauthenticated via `auth.uid()`), but
+  registered for a dedicated review.
+- **`tec-to-acabamento-flow` stale static-slice assertions — follow-up (same
+  class as `L2`, out of its named scope):** the suite's 2 pre-existing failures
+  (caso 9, MODAL caso 6) are false-red brittle `buildTecelagemTransferForm` slice
+  regexes; the source content they check (`comOpcaoSplit:true`, `layout:'stacked'`,
+  `js/screens/pedido-detail-events.js:1691`) is present. A trivial regex-anchor
+  fix, `NOT AUTHORIZED`, folded here per the `A2.1-B` order.
 - **Open non-blocking debts:** `AUTHENTICATED_BROWSER_SMOKE_NOT_EXECUTED` /
   `AUTHENTICATED_BROWSER_SMOKE_BLOCKED_BY_TOOLING` (G28-C/D/B7/Client Portal);
   `DB30_NOT_RECORDED_IN_SUPABASE_MIGRATION_HISTORY` (object applied+verified in
@@ -389,6 +424,8 @@ HEAD with `git rev-parse HEAD`.
 
 | Phase | Status | Date | Commit(s) |
 |---|---|---|---|
+| Camada 2 — Admin Access Level Schema + ACL Correction — `A2.1` + `A2.1-B` | `CLOSED / ACCEPTED` | 2026-07-17 | `f108c45` |
+| Test-Double Shared Module + Stale-Assertion Cleanup — `L1` + `L2` | `CLOSED / ACCEPTED` | 2026-07-17 | `54ee8aa`,`4d2f304`,`520c9a6`,`2c9a4c2` |
 | Test Mock Fidelity Audit (read-only) — `TEST-MOCK-FIDELITY-AUDIT` | `CLOSED / ACCEPTED` | 2026-07-17 | (docs) |
 | Admin Edge Function Response Envelope Fix — `UI-INVOKE-ENVELOPE-FIX` | `CLOSED / ACCEPTED` | 2026-07-17 | `7b37e8e` |
 | Camada 2 — User Audit Panel (read-only) — `A6.3` | `CLOSED / ACCEPTED` | 2026-07-17 | `e31f269` |
