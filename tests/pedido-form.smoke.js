@@ -30,6 +30,14 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+// TEST-MOCK-FIDELITY-AUDIT R1 adoption: the runtime form is now rendered
+// through the REAL js/ui.js el() (which carries UI-EL-BOOLEAN-ATTR-FIX)
+// backed by the shared FaithfulNode double (tests/_doubles.js), so this suite
+// is no longer structurally blind to a boolean-attr defect
+// (CODE_HEALTH_RULES.md §20). The old hand-rolled runtimeEl/RuntimeNode set
+// node.disabled=true for ANY `disabled` key (regardless of value) and stored
+// the raw attribute, so a boolean-attr coercion bug rendered green.
+const { FaithfulNode, createDocument } = require('./_doubles.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const SCREEN = path.join(ROOT, 'js', 'screens', 'pedido-form.js');
@@ -38,6 +46,7 @@ const BOOT   = path.join(ROOT, 'js', 'boot.js');
 const LIST   = path.join(ROOT, 'js', 'screens', 'pedidos-list.js');
 const INDEX  = path.join(ROOT, 'index.html');
 const SCHEMA = path.join(ROOT, 'db', '13_pedidos_schema.sql');
+const UI     = path.join(ROOT, 'js', 'ui.js');
 
 function readOrFail(p) {
   assert.ok(fs.existsSync(p), 'arquivo não encontrado: ' + p);
@@ -50,104 +59,36 @@ const boot   = readOrFail(BOOT);
 const list   = readOrFail(LIST);
 const index  = readOrFail(INDEX);
 const schema = readOrFail(SCHEMA);
+const uiSrc  = readOrFail(UI);
 
-class RuntimeNode {
-  constructor(tag) {
-    this.tagName = String(tag || '').toUpperCase();
-    this.children = [];
-    this._attrs = {};
-    this._listeners = {};
-    this._text = null;
-    this.value = '';
-    this.disabled = false;
-    this.className = '';
-    this.style = {};
-    this.classList = {
-      add: (...names) => {
-        this.className = [this.className].concat(names).filter(Boolean).join(' ');
-      },
-    };
-  }
-  appendChild(node) {
-    if (node == null || node === false) return node;
-    const child = typeof node === 'string' ? textNode(node) : node;
-    child._parent = this;
-    this.children.push(child);
-    return child;
-  }
-  replaceChildren(...nodes) {
-    this.children.forEach((child) => { if (child) child._parent = null; });
-    this.children = [];
-    nodes.flat().forEach((node) => this.appendChild(node));
-  }
-  setAttribute(key, value) {
-    this._attrs[key] = value;
-    if (key === 'disabled') this.disabled = true;
-    if (key === 'style') this.style.cssText = String(value);
-  }
-  addEventListener(type, fn) { this._listeners[type] = fn; }
-  removeEventListener(type) { delete this._listeners[type]; }
-  remove() {
-    if (!this._parent) return;
-    this._parent.children = this._parent.children.filter((child) => child !== this);
-    this._parent = null;
-  }
-  querySelectorAll(selector) {
-    const attr = selector.match(/^\[([^=\]]+)(?:=['"]?([^'"\]]+)['"]?)?\]$/);
+// ---------------------------------------------------------------------
+// PedidoFormNode — the shared FaithfulNode widened with an attribute-aware
+// querySelectorAll. FaithfulNode ships a tag-only querySelectorAll (a
+// documented simplification); both this screen's updateItensSummary() and
+// this suite select nodes by [data-*] attribute, a capability every real
+// browser has. Widening the double toward real-DOM semantics is a
+// STRENGTHENING (never a weakening) and lives here so the shared module
+// stays untouched. Everything else — including the boolean-attr coercion
+// that makes this suite non-blind — is inherited from FaithfulNode.
+// ---------------------------------------------------------------------
+class PedidoFormNode extends FaithfulNode {
+  querySelectorAll(sel) {
+    const attr = typeof sel === 'string'
+      ? sel.match(/^\[([^=\]]+)(?:=['"]?([^'"\]]+)['"]?)?\]$/)
+      : null;
+    if (!attr) return super.querySelectorAll(sel);
     const out = [];
-    function walk(node) {
-      if (!node || !node.children) return;
-      if (attr) {
-        const actual = node._attrs ? node._attrs[attr[1]] : undefined;
-        if (actual != null && (attr[2] == null || String(actual) === attr[2])) out.push(node);
+    (function walk(node) {
+      for (const child of (node.children || [])) {
+        if (child && child._attrs) {
+          const actual = child._attrs[attr[1]];
+          if (actual != null && (attr[2] == null || String(actual) === attr[2])) out.push(child);
+        }
+        if (child && child.children) walk(child);
       }
-      node.children.forEach(walk);
-    }
-    walk(this);
+    })(this);
     return out;
   }
-  set innerHTML(value) {
-    this._innerHTML = value;
-    this._firstElementChild = new RuntimeNode('svg');
-  }
-  get firstElementChild() {
-    return this._firstElementChild || this.children.find((child) => child && child.tagName) || null;
-  }
-  get textContent() {
-    if (this._text != null) return this._text;
-    return this.children.map((child) => child && child.textContent ? child.textContent : '').join('');
-  }
-  set textContent(value) { this._text = String(value); }
-}
-
-function textNode(value) {
-  return {
-    tagName: '#TEXT',
-    textContent: String(value),
-    children: [],
-    setAttribute() {},
-    appendChild() {},
-  };
-}
-
-function runtimeEl(tag, attrs, ...children) {
-  const node = new RuntimeNode(tag);
-  Object.entries(attrs || {}).forEach(([key, value]) => {
-    if (key === 'style') {
-      node.setAttribute(key, value);
-    } else if (key === 'class') {
-      node.className = value;
-      node._attrs[key] = value;
-    } else if (key.startsWith('data-')) {
-      node.setAttribute(key, value);
-    } else {
-      node[key] = value;
-      node._attrs[key] = value;
-      if (key === 'disabled') node.disabled = true;
-    }
-  });
-  children.flat().forEach((child) => node.appendChild(child));
-  return node;
 }
 
 function allByTag(root, tag) {
@@ -174,13 +115,11 @@ function findButton(root, re) {
 
 function makePedidoFormRuntime() {
   const calls = { pedidoInsert: null, pedidoItensInsert: null };
-  const document = {
-    createElement: (tag) => new RuntimeNode(tag),
-    createTextNode: textNode,
-    body: new RuntimeNode('body'),
-    addEventListener() {},
-    removeEventListener() {},
-  };
+  // Document double from the shared module; createElement is widened to the
+  // attribute-aware PedidoFormNode (see above). createTextNode / body / the
+  // #toasts node all come straight from _doubles.js.
+  const document = createDocument();
+  document.createElement = (tag) => new PedidoFormNode(tag);
   function tableData(table) {
     if (table === 'clientes') return [{ id: 501, nome: 'Cliente Atlas' }];
     if (table === 'modelos') {
@@ -228,19 +167,29 @@ function makePedidoFormRuntime() {
     window: {},
     document,
     console,
+    Node: FaithfulNode,
     setTimeout,
     clearTimeout,
   };
   sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
   sandbox.supa = { from: (table) => chain(table) };
-  sandbox.el = runtimeEl;
+  // NOTE: no sandbox.el here — the REAL js/ui.js el() (loaded below) is the
+  // renderer, so the boolean-attr fix is exercised instead of a boolean-blind
+  // stub. Non-ui.js collaborators are kept exactly as before (rule 4).
   sandbox.ADMIN_MENU = [];
   sandbox.shellLayout = (_menu, content) => content;
-  sandbox.toast = () => {};
   sandbox.navigate = () => {};
   sandbox.requestAnimationFrame = (fn) => fn();
-  sandbox.corPreviewElement = () => new RuntimeNode('div');
+  sandbox.corPreviewElement = () => new FaithfulNode('div');
   vm.createContext(sandbox);
+  // Load real js/ui.js FIRST so window.el is the boolean-aware primitive, then
+  // the screen (proven pattern: tests/cliente-pedido-tracking.smoke.js).
+  vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
+  // js/ui.js also defines a real toast() that appends to #toasts and arms a
+  // setTimeout; the runtime test never asserts on toast, so re-override it with
+  // a no-op AFTER ui.js (representation translation, rule 4).
+  sandbox.toast = () => {};
   vm.runInContext(screen, sandbox, { filename: 'js/screens/pedido-form.js' });
   return { sandbox, calls };
 }
@@ -651,7 +600,9 @@ test('pedido-form runtime: digitar 1000 preserva o mesmo input e salva metragem 
   selects[2].value = '1';
   selects[2]._listeners.change();
 
-  const metrosInput = allByTag(root, 'input').find((input) => input.placeholder === '0,00');
+  // Real el() stores placeholder via setAttribute (a real DOM attribute), not
+  // as a reflected `.placeholder` property, so read it through getAttribute.
+  const metrosInput = allByTag(root, 'input').find((input) => input.getAttribute('placeholder') === '0,00');
   assert.ok(metrosInput, 'input de metragem do item inicial nao encontrado');
 
   for (const value of ['1', '10', '100', '1000']) {
@@ -668,10 +619,31 @@ test('pedido-form runtime: digitar 1000 preserva o mesmo input e salva metragem 
 
   const saveBtn = findButton(root, /^Salvar rascunho$/);
   assert.ok(saveBtn, 'botao Salvar rascunho nao encontrado');
-  saveBtn.onclick();
+  saveBtn._listeners.click();
   await flushRuntime();
   await flushRuntime();
 
   assert.ok(Array.isArray(calls.pedidoItensInsert), 'insert de pedido_itens nao chamado');
   assert.equal(calls.pedidoItensInsert[0].metros, 1000);
+});
+
+// TEST-MOCK-FIDELITY-AUDIT R1 demonstration: proves the faithful adoption
+// catches what the old runtimeEl would have masked. The old runtimeEl stored
+// attributes raw with no boolean coercion, so a disabled/checked coercion bug
+// in the form would have passed green; the real el() + FaithfulNode do not.
+test('pedido-form: FaithfulNode + real el() catch a boolean-attr regression the old runtimeEl masked (R1 demo)', () => {
+  const { sandbox } = makePedidoFormRuntime();
+  const el = sandbox.window.el;
+  // Fix path: real el() omits a falsy boolean attribute.
+  assert.equal(el('button', { disabled: false }).hasAttribute('disabled'), false,
+    'disabled:false must be ABSENT (the UI-EL-BOOLEAN-ATTR-FIX), verified through the faithful double');
+  assert.equal(el('button', { disabled: true }).hasAttribute('disabled'), true,
+    'disabled:true must be present');
+  // Regression path: a raw setAttribute(k,false) still renders PRESENT in a
+  // real-DOM-faithful node, so the bug class is caught — the old runtimeEl
+  // stored the raw value and could not distinguish present from absent.
+  const raw = new FaithfulNode('button');
+  raw.setAttribute('disabled', false);
+  assert.equal(raw.hasAttribute('disabled'), true,
+    'setAttribute(k,false) renders present in the faithful node — the double catches the bug class');
 });

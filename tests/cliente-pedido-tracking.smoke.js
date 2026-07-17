@@ -3,10 +3,17 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+// TEST-MOCK-FIDELITY-AUDIT R1 adoption: the card is now rendered through the
+// REAL js/ui.js el() backed by the shared FaithfulNode (tests/_doubles.js), so
+// this suite is no longer structurally blind to a boolean-attr defect
+// (CODE_HEALTH_RULES.md §20). The old makeElStub hand-mocked el() as a bare
+// text collector and would have masked any disabled/checked coercion bug.
+const { FaithfulNode, createDocument } = require('./_doubles.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const TRACKING_UI = path.join(ROOT, 'js', 'pedido-tracking-ui.js');
 const SCREEN = path.join(ROOT, 'js', 'screens', 'cliente-pedido-tracking.js');
+const UI = path.join(ROOT, 'js', 'ui.js');
 const INDEX = path.join(ROOT, 'index.html');
 
 function readOrFail(p) {
@@ -16,6 +23,7 @@ function readOrFail(p) {
 
 const trackingUi = readOrFail(TRACKING_UI);
 const screen = readOrFail(SCREEN);
+const uiSrc = readOrFail(UI);
 const index = readOrFail(INDEX);
 
 test('cliente-pedido-tracking: arquivo existe', () => {
@@ -93,63 +101,48 @@ test('cliente-pedido-tracking: nao usa rpc nem functions.invoke', () => {
   assert.equal(/functions\.invoke/.test(screen), false);
 });
 
-function makeElStub() {
-  function el(tag, attrs) {
-    const node = { tag, attrs: attrs || {}, children: [] };
-    const rest = Array.prototype.slice.call(arguments, 2);
-    const flat = [];
-    rest.forEach((c) => { if (Array.isArray(c)) flat.push(...c); else flat.push(c); });
-    flat.forEach((c) => {
-      if (c == null || c === false) return;
-      node.children.push(typeof c === 'string' ? { tag: '#text', text: c } : c);
-    });
-    node.appendChild = function (n) { if (n != null) node.children.push(n); return n; };
-    return node;
+// Walk the rendered FaithfulNode tree, joining leaf text with a single space
+// (preserving the space-separated collection the old stub produced, so the
+// existing content assertions keep the same strength).
+function collectText(node) {
+  if (node == null) return '';
+  if (node.children && node.children.length) {
+    return node.children.map(collectText).join(' ');
   }
-  function collectText(node) {
-    if (!node) return '';
-    if (node.tag === '#text') return node.text;
-    let out = '';
-    (node.children || []).forEach((c) => { out += collectText(c) + ' '; });
-    return out;
-  }
-  return { el, collectText };
+  return (node.textContent != null ? node.textContent : '') || '';
+}
+
+function makeTrackingSandbox() {
+  const document = createDocument();
+  const sandbox = {
+    document,
+    console,
+    Node: FaithfulNode,
+    // Non-ui.js collaborators the card reads (unchanged from the old stub).
+    fmtDataCurta: (value) => 'FMT(' + value + ')',
+    RAVATEX_PEDIDO_UI: {},
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+  // Real js/ui.js provides window.el (with the boolean-attr fix); the card is
+  // rendered through it instead of a hand-mocked stub.
+  vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
+  vm.runInContext(trackingUi, sandbox, { filename: 'js/pedido-tracking-ui.js' });
+  vm.runInContext(screen, sandbox, { filename: 'js/screens/cliente-pedido-tracking.js' });
+  return sandbox;
 }
 
 function renderCard(pedido) {
-  const stub = makeElStub();
-  const sandbox = {
-    window: {
-      el: stub.el,
-      fmtDataCurta: (value) => 'FMT(' + value + ')',
-      RAVATEX_PEDIDO_UI: {},
-    },
-    console,
-  };
-  sandbox.window.window = sandbox.window;
-  vm.createContext(sandbox);
-  vm.runInContext(trackingUi, sandbox, { filename: 'js/pedido-tracking-ui.js' });
-  vm.runInContext(screen, sandbox, { filename: 'js/screens/cliente-pedido-tracking.js' });
+  const sandbox = makeTrackingSandbox();
   const node = vm.runInContext('window.buildClientePedidoTrackingCard', sandbox)(pedido);
-  return stub.collectText(node);
+  return collectText(node);
 }
 
 function renderCardComCadeia(pedido, chainState) {
-  const stub = makeElStub();
-  const sandbox = {
-    window: {
-      el: stub.el,
-      fmtDataCurta: (value) => 'FMT(' + value + ')',
-      RAVATEX_PEDIDO_UI: {},
-    },
-    console,
-  };
-  sandbox.window.window = sandbox.window;
-  vm.createContext(sandbox);
-  vm.runInContext(trackingUi, sandbox, { filename: 'js/pedido-tracking-ui.js' });
-  vm.runInContext(screen, sandbox, { filename: 'js/screens/cliente-pedido-tracking.js' });
+  const sandbox = makeTrackingSandbox();
   const node = vm.runInContext('window.buildClientePedidoTrackingCard', sandbox)(pedido, [], [], chainState);
-  return stub.collectText(node);
+  return collectText(node);
 }
 
 const ETAPAS_ESPERADAS = [
@@ -255,4 +248,25 @@ test('index.html: cliente-pedido-tracking.js vem depois de cliente-pedidos-list.
   assert.ok(idxDetail > 0);
   assert.ok(idxList < idxTracking);
   assert.ok(idxTracking < idxDetail);
+});
+
+// TEST-MOCK-FIDELITY-AUDIT R1 demonstration: proves the faithful adoption
+// catches what the old bare text-collector stub would have masked. The old
+// makeElStub ignored attributes entirely, so a boolean-attr coercion bug in
+// the card would have passed green; the real el() + FaithfulNode do not.
+test('cliente-pedido-tracking: FaithfulNode + real el() catch a boolean-attr regression the old stub masked (R1 demo)', () => {
+  const sandbox = makeTrackingSandbox();
+  const el = vm.runInContext('window.el', sandbox);
+  // Fix path: real el() omits a falsy boolean attribute.
+  assert.equal(el('button', { disabled: false }).hasAttribute('disabled'), false,
+    'disabled:false must be ABSENT (the UI-EL-BOOLEAN-ATTR-FIX), verified through the faithful double');
+  assert.equal(el('button', { disabled: true }).hasAttribute('disabled'), true,
+    'disabled:true must be present');
+  // Regression path: a raw setAttribute(k,false) (the pre-fix bug shape) still
+  // renders PRESENT in a real-DOM-faithful node, so the bug class is caught —
+  // the old stub stored nothing and could not distinguish present from absent.
+  const raw = new FaithfulNode('button');
+  raw.setAttribute('disabled', false);
+  assert.equal(raw.hasAttribute('disabled'), true,
+    'setAttribute(k,false) renders present in the faithful node — the double catches the bug class');
 });

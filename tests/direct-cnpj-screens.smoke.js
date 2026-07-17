@@ -6,42 +6,28 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const cp = require('node:child_process');
+// TEST-MOCK-FIDELITY-AUDIT R1 adoption: the cadastros screens are now rendered
+// through the REAL js/ui.js el()/textInput()/selectInput()/truncatedCell()
+// backed by the shared FaithfulNode/createDocument doubles (tests/_doubles.js),
+// so this suite is no longer structurally blind to a boolean-attr defect
+// (CODE_HEALTH_RULES.md §20). The old hand-rolled Node/el stored
+// `node._attrs[key] = value` with no boolean-attr coercion and would have
+// masked a disabled/checked/... regression.
+const { FaithfulNode, createDocument } = require('./_doubles.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const CAD = path.join(ROOT, 'js', 'screens', 'cadastros.js');
+const UI = path.join(ROOT, 'js', 'ui.js');
 const BOOT = path.join(ROOT, 'js', 'boot.js');
 const COMMON = path.join(ROOT, 'js', 'screens', 'common.js');
 const cadSrc = fs.readFileSync(CAD, 'utf8');
+const uiSrc = fs.readFileSync(UI, 'utf8');
 const bootSrc = fs.readFileSync(BOOT, 'utf8');
 const commonSrc = fs.readFileSync(COMMON, 'utf8');
 
-class Node {
-  constructor(tag) {
-    this.tagName = String(tag).toUpperCase();
-    this.children = [];
-    this.style = {};
-    this.value = '';
-    this._attrs = {};
-    this._listeners = {};
-    this._text = '';
-    this.selectionStart = 0;
-    this.selectionEnd = 0;
-  }
-  setSelectionRange(start, end) {
-    this.selectionStart = start;
-    this.selectionEnd = end;
-  }
-  appendChild(node) { this.children.push(node); return node; }
-  replaceChildren(...nodes) { this.children = nodes.flat().filter(Boolean); }
-  addEventListener(type, handler) { this._listeners[type] = handler; }
-  removeEventListener(type) { delete this._listeners[type]; }
-  setAttribute(key, value) { this._attrs[key] = value; }
-  remove() { this.removed = true; }
-  set innerHTML(_value) { this.firstChild = new Node('svg'); }
-  get textContent() { return this.children.length ? this.children.map(textOf).join('') : this._text; }
-  set textContent(value) { this._text = String(value); }
-}
-
+// Aggregate the leaf text of a FaithfulNode tree. FaithfulNode's textContent
+// getter already walks children, so a bare read is enough (matches the DOM
+// textContent the old hand-rolled Node getter emulated).
 function textOf(node) {
   return node && node.textContent ? node.textContent : '';
 }
@@ -58,54 +44,19 @@ function createHarness(options = {}) {
   const toasts = [];
   const rows = options.rows || { clientes: [], fornecedores: [] };
   const writeError = options.writeError || (() => null);
-  const document = {
-    body: new Node('body'),
-    createElement: (tag) => new Node(tag),
-    createTextNode: (value) => ({ textContent: String(value), children: [] }),
-    addEventListener() {}, removeEventListener() {},
-  };
+  // Faithful document double: createElement yields FaithfulNodes that model
+  // real-DOM boolean-attr semantics (tests/_doubles.js), replacing the old
+  // hand-rolled boolean-blind Node/document.
+  const document = createDocument();
   const sandbox = { console: { error() {} }, document, innerWidth: 1024, setTimeout, clearTimeout };
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
-  sandbox.el = (tag, attrs, ...children) => {
-    const node = new Node(tag);
-    Object.entries(attrs || {}).forEach(([key, value]) => {
-      if (key.startsWith('on')) node[key] = value;
-      else if (key === 'innerHTML') node.innerHTML = value;
-      else if (key === 'style') node.style.cssText = value;
-      else node._attrs[key] = value;
-    });
-    children.flat().filter((child) => child !== undefined && child !== null && child !== false)
-      .forEach((child) => node.appendChild(typeof child === 'string' ? { textContent: child, children: [] } : child));
-    return node;
-  };
-  sandbox.textInput = (attrs = {}) => {
-    const node = new Node('input');
-    node.value = attrs.value || '';
-    node._attrs = attrs;
-    return node;
-  };
-  sandbox.selectInput = (attrs = {}) => {
-    const node = new Node('select');
-    node.value = attrs.value || '';
-    node._attrs = attrs;
-    return node;
-  };
+  // Non-ui.js collaborators the screens resolve at call time. shellLayout and
+  // ADMIN_MENU are app collaborators (not ui.js primitives), so they stay
+  // hand-stubbed; the `supa` fake stays as-is (migrating it to makeFakeSupa is
+  // out of scope for this DOM-double lot).
   sandbox.shellLayout = (_menu, content) => content;
   sandbox.ADMIN_MENU = [];
-  sandbox.toast = (message, level) => toasts.push({ message, level });
-  sandbox.confirmDialog = () => {};
-  // UI-GRID-TEXT-HELPER / UI-GRID-TEXT-LOT-A: cadastros.js's Clientes/
-  // Fornecedores grids now render NOME/CONTATO/EMAIL via
-  // window.truncatedCell() (js/ui.js). This harness hand-mocks the ui.js
-  // primitives instead of loading the real module, so it needs its own
-  // stand-in — same shape as the real one.
-  sandbox.TRUNCATE_CELL_STYLE = 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;';
-  sandbox.truncatedCell = (displayText, rawValue, colorStyle) => {
-    const attrs = { style: `${colorStyle} ${sandbox.TRUNCATE_CELL_STYLE}` };
-    if (rawValue) attrs.title = rawValue;
-    return sandbox.el('div', attrs, displayText);
-  };
   sandbox.supa = {
     from(table) {
       calls.push({ op: 'from', table });
@@ -126,6 +77,17 @@ function createHarness(options = {}) {
     },
   };
   vm.createContext(sandbox);
+  // Real js/ui.js FIRST: it defines window.el / textInput / selectInput /
+  // truncatedCell / TRUNCATE_CELL_STYLE / toast / confirmDialog. el() carries
+  // the UI-EL-BOOLEAN-ATTR-FIX, and the screens read every one of these via
+  // window.* at call time, so they now render through the real primitives.
+  vm.runInContext(uiSrc, sandbox, { filename: UI });
+  // Re-override toast/confirmDialog AFTER ui.js: the tests assert on the
+  // captured `toasts` array, so the real toast() (which appends to a #toasts
+  // DOM node) must be replaced by the spy; confirmDialog is stubbed to a no-op
+  // exactly as the old harness did.
+  sandbox.toast = (message, level) => toasts.push({ message, level });
+  sandbox.confirmDialog = () => {};
   vm.runInContext(cadSrc, sandbox, { filename: CAD });
   return { sandbox, calls, toasts, document };
 }
@@ -134,7 +96,9 @@ async function openForm(harness, screenName, buttonText) {
   const root = await harness.sandbox[screenName]();
   const button = findAll(root, (node) => node.tagName === 'BUTTON' && textOf(node) === buttonText)[0];
   assert.ok(button, 'botao do formulario ausente');
-  button.onclick();
+  // Real el() wires on* handlers via addEventListener, so the primary button's
+  // click lives at node._listeners.click (was button.onclick under the stub).
+  button._listeners.click();
   const inputs = findAll(harness.document.body, (node) => node.tagName === 'INPUT');
   const save = findAll(harness.document.body, (node) => node.tagName === 'BUTTON' && textOf(node) === 'Salvar')[0];
   assert.ok(save, 'botao Salvar ausente');
@@ -343,7 +307,7 @@ test('cliente cria e edita usando somente clientes.cnpj', async () => {
   const create = await openForm(createHarnessResult, 'screenCadastrosClientes', 'Novo cliente');
   inputByPlaceholder(create.inputs, 'Ex: LOJA CENTRAL').value = 'Cliente direto';
   inputByPlaceholder(create.inputs, '00.000.000/0000-00').value = '11.222.333/0001-81';
-  await create.save.onclick();
+  await create.save._listeners.click();
   const insert = createHarnessResult.calls.find((call) => call.op === 'insert');
   assert.equal(insert.table, 'clientes');
   assert.equal(insert.payload.nome, 'Cliente direto');
@@ -352,11 +316,11 @@ test('cliente cria e edita usando somente clientes.cnpj', async () => {
   const editHarness = createHarness({ rows: { clientes: [{ id: 7, nome: 'Cliente direto', cnpj: '11222333000181' }], fornecedores: [] } });
   const root = await editHarness.sandbox.screenCadastrosClientes();
   const edit = findAll(root, (node) => node.tagName === 'BUTTON' && node._attrs.title === 'Editar cliente')[0];
-  edit.onclick();
+  edit._listeners.click();
   const cnpj = inputByPlaceholder(findAll(editHarness.document.body, (node) => node.tagName === 'INPUT'), '00.000.000/0000-00');
   assert.equal(cnpj.value, '11.222.333/0001-81');
   cnpj.value = '11.444.777/0001-61';
-  await findAll(editHarness.document.body, (node) => node.tagName === 'BUTTON' && textOf(node) === 'Salvar')[0].onclick();
+  await findAll(editHarness.document.body, (node) => node.tagName === 'BUTTON' && textOf(node) === 'Salvar')[0]._listeners.click();
   const update = editHarness.calls.find((call) => call.op === 'update');
   assert.equal(update.table, 'clientes');
   assert.equal(update.payload.cnpj, '11444777000161');
@@ -369,7 +333,7 @@ test('fornecedor cria e edita usando somente fornecedores.cnpj', async () => {
   inputByPlaceholder(create.inputs, 'Ex: Tecelagem Fulano').value = 'Fornecedor direto';
   inputByPlaceholder(create.inputs, '00.000.000/0000-00').value = '11.222.333/0001-81';
   findAll(createHarnessResult.document.body, (node) => node.tagName === 'SELECT')[0].value = 'tecelagem';
-  await create.save.onclick();
+  await create.save._listeners.click();
   const insert = createHarnessResult.calls.find((call) => call.op === 'insert');
   assert.equal(insert.table, 'fornecedores');
   assert.equal(insert.payload.cnpj, '11222333000181');
@@ -377,10 +341,10 @@ test('fornecedor cria e edita usando somente fornecedores.cnpj', async () => {
   const editHarness = createHarness({ rows: { clientes: [], fornecedores: [{ id: 8, nome: 'Fornecedor direto', tipo: 'tecelagem', cnpj: '11222333000181' }] } });
   const root = await editHarness.sandbox.screenCadastrosFornecedores();
   const edit = findAll(root, (node) => node.tagName === 'BUTTON' && node._attrs.title === 'Editar fornecedor')[0];
-  edit.onclick();
+  edit._listeners.click();
   const inputs = findAll(editHarness.document.body, (node) => node.tagName === 'INPUT');
   inputByPlaceholder(inputs, '00.000.000/0000-00').value = '11.444.777/0001-61';
-  await findAll(editHarness.document.body, (node) => node.tagName === 'BUTTON' && textOf(node) === 'Salvar')[0].onclick();
+  await findAll(editHarness.document.body, (node) => node.tagName === 'BUTTON' && textOf(node) === 'Salvar')[0]._listeners.click();
   const update = editHarness.calls.find((call) => call.op === 'update');
   assert.equal(update.table, 'fornecedores');
   assert.equal(update.payload.cnpj, '11444777000161');
@@ -392,7 +356,7 @@ test('DV invalido bloqueia write e duplicidade e tratada por categoria', async (
   const form = await openForm(invalid, 'screenCadastrosClientes', 'Novo cliente');
   inputByPlaceholder(form.inputs, 'Ex: LOJA CENTRAL').value = 'Cliente invalido';
   inputByPlaceholder(form.inputs, '00.000.000/0000-00').value = '11.222.333/0001-80';
-  await form.save.onclick();
+  await form.save._listeners.click();
   assert.equal(invalid.calls.some((call) => call.op === 'insert'), false);
   assert.match(invalid.toasts.at(-1).message, /inválido/i);
 
@@ -400,7 +364,7 @@ test('DV invalido bloqueia write e duplicidade e tratada por categoria', async (
   const duplicateClientForm = await openForm(duplicateClient, 'screenCadastrosClientes', 'Novo cliente');
   inputByPlaceholder(duplicateClientForm.inputs, 'Ex: LOJA CENTRAL').value = 'Cliente duplicado';
   inputByPlaceholder(duplicateClientForm.inputs, '00.000.000/0000-00').value = '11.222.333/0001-81';
-  await duplicateClientForm.save.onclick();
+  await duplicateClientForm.save._listeners.click();
   assert.match(duplicateClient.toasts.at(-1).message, /outro Cliente/i);
 
   const duplicate = createHarness({ writeError: () => ({ code: '23505', message: 'duplicate key value violates unique constraint "fornecedores_cnpj_uidx"' }) });
@@ -408,7 +372,7 @@ test('DV invalido bloqueia write e duplicidade e tratada por categoria', async (
   inputByPlaceholder(duplicateForm.inputs, 'Ex: Tecelagem Fulano').value = 'Fornecedor duplicado';
   inputByPlaceholder(duplicateForm.inputs, '00.000.000/0000-00').value = '11.222.333/0001-81';
   findAll(duplicate.document.body, (node) => node.tagName === 'SELECT')[0].value = 'tecelagem';
-  await duplicateForm.save.onclick();
+  await duplicateForm.save._listeners.click();
   assert.match(duplicate.toasts.at(-1).message, /outro Fornecedor/i);
 });
 
@@ -416,14 +380,14 @@ test('CNPJ vazio envia null nos dois formulários', async () => {
   const client = createHarness();
   const clientForm = await openForm(client, 'screenCadastrosClientes', 'Novo cliente');
   inputByPlaceholder(clientForm.inputs, 'Ex: LOJA CENTRAL').value = 'Cliente sem CNPJ';
-  await clientForm.save.onclick();
+  await clientForm.save._listeners.click();
   assert.equal(client.calls.find((call) => call.op === 'insert').payload.cnpj, null);
 
   const supplier = createHarness();
   const supplierForm = await openForm(supplier, 'screenCadastrosFornecedores', 'Novo fornecedor');
   inputByPlaceholder(supplierForm.inputs, 'Ex: Tecelagem Fulano').value = 'Fornecedor sem CNPJ';
   findAll(supplier.document.body, (node) => node.tagName === 'SELECT')[0].value = 'tecelagem';
-  await supplierForm.save.onclick();
+  await supplierForm.save._listeners.click();
   assert.equal(supplier.calls.find((call) => call.op === 'insert').payload.cnpj, null);
 });
 
@@ -446,4 +410,28 @@ test('menu e rotas de cadastro permanecem coerentes; sintaxe valida', () => {
   assert.ok(bootSrc.includes("'#/cadastros/clientes'"));
   assert.ok(bootSrc.includes("'#/cadastros/fornecedores'"));
   cp.execSync(`node --check "${CAD}"`, { stdio: 'pipe' });
+});
+
+// TEST-MOCK-FIDELITY-AUDIT R1 demonstration: proves the faithful adoption
+// catches what the old hand-rolled el() would have masked. That stub stored
+// `node._attrs[key] = value` with no boolean-attr coercion, so disabled:false
+// and disabled:true — and a raw setAttribute(k, false) regression — all
+// rendered as an attribute present with a stringy value and could pass green
+// (CODE_HEALTH_RULES.md §20). The real js/ui.js el() + FaithfulNode do not.
+test('CNPJ screens: real el() + FaithfulNode catch a boolean-attr regression the old hand-mock masked (R1 demo)', () => {
+  const { sandbox } = createHarness();
+  const el = sandbox.el;
+  // Fix path: real el() omits a falsy boolean attribute (UI-EL-BOOLEAN-ATTR-FIX),
+  // verified through the faithful double.
+  assert.equal(el('button', { disabled: false }).hasAttribute('disabled'), false,
+    'disabled:false must be ABSENT');
+  assert.equal(el('button', { disabled: true }).hasAttribute('disabled'), true,
+    'disabled:true must be present');
+  // Regression path: a raw setAttribute(k, false) (the pre-fix bug shape) still
+  // renders PRESENT in a real-DOM-faithful node, so the bug class is caught —
+  // the old hand-mock stored `_attrs[k] = false` and could not model this.
+  const raw = new FaithfulNode('button');
+  raw.setAttribute('disabled', false);
+  assert.equal(raw.hasAttribute('disabled'), true,
+    'setAttribute(k, false) renders present in the faithful node — the double catches the bug class');
 });

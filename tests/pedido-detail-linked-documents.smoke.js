@@ -3,12 +3,21 @@
 // G28-B7 — Pedido detail surface consumes the canonical document-link read
 // model. Confirmed links come from the active revision only; pedido_manual
 // suggestions are shown separately and never as confirmed links.
+//
+// TEST-MOCK-FIDELITY-AUDIT R1 adoption (CODE_HEALTH_RULES.md §20): the
+// Documentos card is now rendered through the REAL js/ui.js el() backed by the
+// shared FaithfulNode (tests/_doubles.js), instead of the hand-rolled
+// boolean-blind `buildMockEl` (a text-flatten stub that ignored attributes and
+// pre-flattened text). The faithful double models real-DOM boolean-attr
+// semantics, so this suite is no longer structurally blind to a
+// disabled/checked coercion defect.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { FaithfulNode, createDocument } = require('./_doubles.js');
 
 const ROOT = path.resolve(__dirname, '..');
 
@@ -30,70 +39,51 @@ const BUNDLE = [
   readOrFail(path.join(ROOT, 'js', 'screens', 'pedido-detail-render.js')),
 ].join('\n\n');
 
-function flattenNodeText(children) {
-  var text = '';
-  for (var i = 0; i < children.length; i++) {
-    var c = children[i];
-    if (c === null || c === undefined) continue;
-    if (typeof c === 'string') text += c;
-    else if (typeof c === 'object' && typeof c.textContent === 'string') text += c.textContent;
+// Real UI primitives: js/ui.js defines the global el() (with the
+// UI-EL-BOOLEAN-ATTR-FIX) and toast(). Loaded FIRST into the sandbox so the
+// pedido-detail bundle renders through the true el(), not a stub.
+const uiSrc = readOrFail(path.join(ROOT, 'js', 'ui.js'));
+
+// Walk the rendered FaithfulNode tree and concatenate every leaf's textContent
+// with NO separator — exactly what the old buildMockEl's flattenNodeText
+// produced (`text += child.textContent`, fully recursive, separator-free). With
+// the real el() the leaf text now lives in TextDouble/FaithfulNode children
+// rather than on a pre-flattened `.textContent`, so we walk `node.children` and
+// read the leaves. Keeping the separator-free join preserves the SAME matching
+// strength: every substring that matched before still matches, and none is
+// newly split by an introduced separator.
+function collectText(node) {
+  if (node == null) return '';
+  if (typeof node === 'string') return node;
+  if (node.children && node.children.length) {
+    var out = '';
+    for (var i = 0; i < node.children.length; i++) out += collectText(node.children[i]);
+    return out;
   }
-  return text;
+  return node.textContent != null ? String(node.textContent) : '';
 }
 
-function buildMockEl() {
-  return function (tag, attrs) {
-    var children = [];
-    for (var i = 2; i < arguments.length; i++) {
-      if (arguments[i] === null || arguments[i] === undefined) continue;
-      children.push(arguments[i]);
-    }
-    var node = { tag: tag, attrs: attrs || {}, children: children };
-    node.textContent = flattenNodeText(children);
-    node.appendChild = function (child) {
-      if (child === null || child === undefined) return;
-      children.push(child);
-      node.children = children;
-      node.textContent = flattenNodeText(children);
-    };
-    if (attrs && typeof attrs.onclick === 'function') node.onclick = attrs.onclick;
-    return node;
-  };
-}
-
-function findTextInNode(node, search, visited) {
-  visited = visited || new Set();
-  if (!node || visited.has(node)) return false;
-  visited.add(node);
-  if (typeof node === 'string') return node.indexOf(search) >= 0;
-  if (node.textContent && node.textContent.indexOf(search) >= 0) return true;
-  if (Array.isArray(node.children)) {
-    for (var i = 0; i < node.children.length; i++) {
-      if (findTextInNode(node.children[i], search, visited)) return true;
-    }
-  }
-  return false;
+function findTextInNode(node, search) {
+  return collectText(node).indexOf(search) >= 0;
 }
 
 function makeRuntime() {
-  var docMock = {
-    createElement: function () {
-      var el = { innerHTML: '', firstChild: null };
-      return {
-        get firstChild() { return el.firstChild; },
-        set innerHTML(html) { el.innerHTML = html; el.firstChild = { tag: 'svg', textContent: '', children: [] }; },
-        get innerHTML() { return el.innerHTML; },
-      };
-    },
+  var sandbox = {
+    document: createDocument(),
+    console: { error: function () {}, log: function () {} },
+    Node: FaithfulNode,
   };
-  var sandbox = { window: {}, console: { error: function () {}, log: function () {} } };
-  sandbox.window.el = buildMockEl();
-  sandbox.window.toast = function () {};
-  sandbox.window.RavatexPedidoTracking = null;
-  sandbox.document = docMock;
-  sandbox.window.document = docMock;
+  // Single global object shared as `window`/`globalThis`, matching the browser
+  // and the reference migration (cliente-pedido-tracking.smoke.js).
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
-  vm.runInContext(BUNDLE, sandbox);
+  // Real js/ui.js FIRST: it installs the true el() (UI-EL-BOOLEAN-ATTR-FIX) and
+  // toast() as globals, so window.el resolves to the faithful factory.
+  vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
+  // Non-ui.js collaborator the bundle reads (unchanged from the old stub).
+  sandbox.window.RavatexPedidoTracking = null;
+  vm.runInContext(BUNDLE, sandbox, { filename: 'pedido-detail-bundle.js' });
   return sandbox;
 }
 
@@ -228,4 +218,27 @@ test('render: unavailable canonical state is explicit, not a silent empty', func
   var view = ns.computeViewModel(baseState(ns));
   var card = ns.buildDocuments(view);
   assert.ok(findTextInNode(card, 'indisponiveis nesta sessao'), 'explicit unavailable message');
+});
+
+// TEST-MOCK-FIDELITY-AUDIT R1 / §20 demonstration: proves the faithful
+// adoption catches what the old buildMockEl would have masked. That stub
+// flattened text and ignored attributes entirely (it only copied onclick), so
+// a boolean-attr coercion bug in the surface would have passed green. The real
+// el() + FaithfulNode model real-DOM boolean-attr semantics and do not.
+test('faithful double + real el() catch a boolean-attr regression the old buildMockEl masked (R1 demo)', function () {
+  var sandbox = makeRuntime();
+  var el = sandbox.window.el;
+  // Fix path: real el() omits a falsy boolean attribute entirely.
+  assert.equal(el('button', { disabled: false }).hasAttribute('disabled'), false,
+    'disabled:false must be ABSENT (UI-EL-BOOLEAN-ATTR-FIX), verified through the faithful double');
+  assert.equal(el('button', { disabled: true }).hasAttribute('disabled'), true,
+    'disabled:true must be present');
+  // Regression path: a raw setAttribute(k, false) (the pre-fix bug shape) still
+  // renders PRESENT in a real-DOM-faithful node, so the bug class is caught —
+  // the old buildMockEl stored nothing about attributes and could not
+  // distinguish present from absent.
+  var raw = new FaithfulNode('button');
+  raw.setAttribute('disabled', false);
+  assert.equal(raw.hasAttribute('disabled'), true,
+    'setAttribute(k, false) renders present in the faithful node — the double catches the bug class');
 });

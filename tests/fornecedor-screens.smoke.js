@@ -175,6 +175,13 @@ class FakeNode {
   }
   appendChild(n) { this.children.push(n); return n; }
   setAttribute(k, v) { this['_attr_' + k] = v; }
+  // js/ui.js's el() calls removeAttribute for a falsy boolean attr
+  // (UI-EL-BOOLEAN-ATTR-FIX); without it a falsy boolean attr would crash
+  // (fail-unsafe), not merely be dropped. hasAttribute reports presence so a
+  // boolean-attr regression is caught, not masked. R2 parity fix
+  // (TEST-MOCK-FIDELITY-AUDIT, CODE_HEALTH_RULES.md §20).
+  removeAttribute(k) { delete this['_attr_' + k]; }
+  hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this, '_attr_' + k); }
   addEventListener(type, fn) { this._listeners[type] = fn; }
   removeEventListener(type) { delete this._listeners[type]; }
   replaceChildren(...ns) {

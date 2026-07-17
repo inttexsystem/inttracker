@@ -124,6 +124,14 @@ test('real actionButton() + FaithfulNode: disabled:false yields no disabled attr
   assert.equal(btn.hasAttribute('disabled'), false, 'safe-disabled pattern: no disabled attribute when not disabled');
 });
 
+test('real selectInput() + FaithfulNode: a pre-selected option reflects into select.value (real-DOM behavior)', () => {
+  const sandbox = loadUi();
+  const sel = vm.runInContext(`window.selectInput({ options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }], value: 'b' })`, sandbox);
+  assert.equal(sel.value, 'b', 'select.value must reflect the pre-selected option — an edit form pre-populates through the faithful double');
+  const empty = vm.runInContext(`window.selectInput({ options: [{ value: 'a', label: 'A' }] })`, sandbox);
+  assert.equal(empty.value, '', 'no pre-selected option leaves select.value at the placeholder default');
+});
+
 // ---------------------------------------------------------------------
 // 3. functions.invoke() double envelope (makeFakeSupa)
 // ---------------------------------------------------------------------

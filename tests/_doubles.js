@@ -126,6 +126,14 @@ class FaithfulNode {
     if (node && typeof node === 'object') node.parentNode = this;
     if (this.firstChild == null) this.firstChild = node;
     if (this.firstElementChild == null && node && node.tagName) this.firstElementChild = node;
+    // Real <select> reflects the selected <option>'s value into select.value.
+    // js/ui.js selectInput() sets option.selected = true, then appends it — so
+    // an edit form pre-populates the select; a raw-store double masked this by
+    // never reflecting the option (TEST-MOCK-FIDELITY-AUDIT R1).
+    if (this.tagName === 'SELECT' && node && node.tagName === 'OPTION' && node.selected) {
+      const v = node.getAttribute('value');
+      this.value = v != null ? v : (node.value || '');
+    }
     return node;
   }
 
