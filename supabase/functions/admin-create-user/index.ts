@@ -325,6 +325,38 @@ serve(async (req: Request) => {
     );
   }
 
+  // -----------------------------------------------------------------
+  // 6. Audit trail (A6.2): explicit insert into public.usuarios_eventos.
+  //
+  // This function runs under service_role — trigger_usuario_evento()
+  // (db/60) is excluded by its auth.uid() IS NULL guard, so nothing
+  // records this action automatically. This insert is the sole
+  // recorder. ator_id is the caller resolved from the validated JWT
+  // above (callerId), never auth.uid() (NULL in this context anyway).
+  //
+  // Failure semantics: by this point auth user + profile have both
+  // committed successfully. An audit-insert failure is logged and
+  // flagged in the response (audit_recorded: false), but never
+  // reverses or blocks an already-successful admin action.
+  // -----------------------------------------------------------------
+  let auditRecorded = true;
+  const { error: auditErr } = await adminClient.from("usuarios_eventos").insert({
+    usuario_id: newUserId,
+    tipo_evento: "usuario_criado",
+    ator_id: callerId,
+    payload: { tipo, fornecedor_id: fornecedorId, cliente_id: clienteId },
+    usuario_email: email,
+    usuario_nome: nome,
+    usuario_tipo: tipo,
+  });
+  if (auditErr) {
+    auditRecorded = false;
+    console.error("admin-create-user: audit insert falhou (usuario ja criado, acao permanece valida)", {
+      newUserId,
+      auditErr: auditErr.message,
+    });
+  }
+
   return jsonResponse(
     {
       user_id: newUserId,
@@ -332,6 +364,7 @@ serve(async (req: Request) => {
       tipo,
       fornecedor_id: fornecedorId,
       cliente_id: clienteId,
+      audit_recorded: auditRecorded,
     },
     201,
   );

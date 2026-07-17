@@ -290,11 +290,46 @@ serve(async (req: Request) => {
     );
   }
 
+  // -----------------------------------------------------------------
+  // 8. Audit trail (A6.2): explicit insert into public.usuarios_eventos.
+  //
+  // Placed after both the profile update (step 6) and the Auth ban
+  // (step 7) have succeeded — i.e. only on this fully-committed
+  // success path. This function runs under service_role;
+  // trigger_usuario_evento() (db/60) is excluded by its
+  // auth.uid() IS NULL guard, and never fired for the earlier
+  // idempotent already-disabled return above either (no state
+  // change there, correctly no audit event). ator_id is the caller
+  // resolved from the validated JWT (callerId), never auth.uid().
+  //
+  // Failure semantics: by this point the disable has fully
+  // committed (profile + Auth ban). An audit-insert failure is
+  // logged and flagged in the response, never reversed/blocked.
+  // -----------------------------------------------------------------
+  let auditRecorded = true;
+  const { error: auditErr } = await adminClient.from("usuarios_eventos").insert({
+    usuario_id: targetProfile.id,
+    tipo_evento: "usuario_desativado",
+    ator_id: callerId,
+    payload: { ativo: { de: true, para: false }, motivo: reason },
+    usuario_email: targetProfile.email,
+    usuario_nome: targetProfile.nome,
+    usuario_tipo: targetProfile.tipo,
+  });
+  if (auditErr) {
+    auditRecorded = false;
+    console.error("admin-disable-user: audit insert falhou (usuario ja desativado, acao permanece valida)", {
+      targetId,
+      auditErr: auditErr.message,
+    });
+  }
+
   return jsonResponse({
     user_id: targetProfile.id,
     email: targetProfile.email,
     tipo: targetProfile.tipo,
     ativo: false,
     auth_banned: true,
+    audit_recorded: auditRecorded,
   }, 200);
 });

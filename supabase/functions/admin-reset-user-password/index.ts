@@ -254,6 +254,48 @@ serve(async (req: Request) => {
     );
   }
 
+  // -----------------------------------------------------------------
+  // 7. Audit trail (A6.2): explicit insert into public.usuarios_eventos.
+  //
+  // Placed after both the Auth password reset (step 5) and the
+  // profile flag update (step 6) have succeeded — only on this
+  // fully-committed success path. This function runs under
+  // service_role; trigger_usuario_evento() (db/60) is excluded by
+  // its auth.uid() IS NULL guard. ator_id is the caller resolved
+  // from the validated JWT (callerId), never auth.uid().
+  //
+  // payload is intentionally empty: the event type itself
+  // (senha_resetada) records that a reset happened, never what it
+  // produced — newPassword must NEVER reach usuarios_eventos.payload
+  // or any other persisted column, mirroring the function's own
+  // "never logged, never persisted in plain text" rule for the
+  // generated password.
+  //
+  // Failure semantics: by this point the reset has fully committed
+  // (Auth password changed + profile flagged). An audit-insert
+  // failure is logged and flagged in the response, never
+  // reversed/blocked — reverting an already-rotated Auth password is
+  // not a safe compensation, same reasoning already applied to the
+  // pre-existing PROFILE_UPDATE_FAILED path above.
+  // -----------------------------------------------------------------
+  let auditRecorded = true;
+  const { error: auditErr } = await adminClient.from("usuarios_eventos").insert({
+    usuario_id: targetProfile.id,
+    tipo_evento: "senha_resetada",
+    ator_id: callerId,
+    payload: {},
+    usuario_email: targetProfile.email,
+    usuario_nome: targetProfile.nome,
+    usuario_tipo: targetProfile.tipo,
+  });
+  if (auditErr) {
+    auditRecorded = false;
+    console.error("admin-reset-user-password: audit insert falhou (senha ja resetada, acao permanece valida)", {
+      targetId,
+      auditErr: auditErr.message,
+    });
+  }
+
   return jsonResponse(
     {
       user_id: targetProfile.id,
@@ -261,6 +303,7 @@ serve(async (req: Request) => {
       tipo: targetProfile.tipo,
       password: newPassword,
       senha_temporaria: true,
+      audit_recorded: auditRecorded,
     },
     200,
   );

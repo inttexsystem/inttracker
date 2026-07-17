@@ -221,3 +221,52 @@ test("README: documenta objetivo, contrato, guardas, compensação, deploy", () 
   assert.match(readmeSrc, /Compensa[çc][ãa]o/i);
   assert.match(readmeSrc, /Deploy/i);
 });
+
+// ---------------------------------------------------------------------
+// A6.2 — audit trail wiring (usuarios_eventos explicit insert)
+// ---------------------------------------------------------------------
+
+test("index.ts: insere evento de auditoria em usuarios_eventos", () => {
+  assert.match(indexSrc, /\.from\(["']usuarios_eventos["']\)\.insert/);
+});
+
+test("index.ts: evento de auditoria usa tipo_evento 'usuario_reativado'", () => {
+  const idx = indexSrc.indexOf('.from("usuarios_eventos").insert');
+  assert.ok(idx > 0, "insert em usuarios_eventos não encontrado");
+  const bloco = indexSrc.slice(idx, idx + 400);
+  assert.match(bloco, /tipo_evento:\s*["']usuario_reativado["']/);
+});
+
+test("index.ts: ator_id do evento vem de callerId (JWT validado), nunca auth.uid()", () => {
+  const idx = indexSrc.indexOf('.from("usuarios_eventos").insert');
+  const bloco = indexSrc.slice(idx, idx + 400);
+  assert.match(bloco, /ator_id:\s*callerId/);
+  assert.doesNotMatch(bloco, /ator_id:\s*.*auth\.uid\(\)/);
+});
+
+test("index.ts: evento de auditoria popula snapshot de identidade a partir de targetProfile", () => {
+  const idx = indexSrc.indexOf('.from("usuarios_eventos").insert');
+  const bloco = indexSrc.slice(idx, idx + 400);
+  assert.match(bloco, /usuario_email:\s*targetProfile\.email/);
+  assert.match(bloco, /usuario_nome:\s*targetProfile\.nome/);
+  assert.match(bloco, /usuario_tipo:\s*targetProfile\.tipo/);
+});
+
+test("index.ts: insert de auditoria fica após o unban Auth (só no caminho de sucesso total)", () => {
+  const auditIdx = indexSrc.indexOf('.from("usuarios_eventos").insert');
+  const unbanIdx = indexSrc.indexOf("auth.admin.updateUserById");
+  assert.ok(auditIdx > unbanIdx, "insert de auditoria deve ocorrer após o unban Auth ter sucesso");
+});
+
+test("index.ts: falha no insert de auditoria é logada e sinalizada, sem abortar a ação", () => {
+  const idx = indexSrc.indexOf('.from("usuarios_eventos").insert');
+  const bloco = indexSrc.slice(idx, idx + 900);
+  assert.match(bloco, /auditRecorded\s*=\s*false/);
+  assert.match(bloco, /console\.error/);
+});
+
+test("index.ts: response final inclui audit_recorded", () => {
+  const returnIdx = indexSrc.lastIndexOf("return jsonResponse");
+  const bloco = indexSrc.slice(returnIdx, returnIdx + 400);
+  assert.match(bloco, /audit_recorded:\s*auditRecorded/);
+});
