@@ -1,22 +1,26 @@
 # ACTIVE OPERATIONAL HANDOFF
 
 - **`PROJECT-STATE-COMPACTION-B` + pre-migration decisions — `CLOSED / ACCEPTED`
-  (2026-07-17):** `PROJECT_STATE.md` recompacted to current-state-only (803→357
-  lines); the 2026-07-17 Camada-2/Camada-3 subphase closeout narratives, the
-  superseded Publication Criterion (`G28-GOVERNANCE-CONSOLIDATION-A`), the
+  (2026-07-17):** `PROJECT_STATE.md` recompacted to current-state-only
+  (**803→301 lines**); the 2026-07-17 Camada-2/Camada-3 subphase closeout narratives,
+  the superseded Publication Criterion (`G28-GOVERNANCE-CONSOLIDATION-A`), the
   `UI-ACTION-BUTTON`/`UI-GRID-TEXT-OVERFLOW` track narratives, and the resolved
   test-baseline note were moved **verbatim** to
   `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md` (new `PROJECT-STATE-COMPACTION-B`
-  batch divider); condensed rulings + one-line pointers remain in `PROJECT_STATE.md`.
-  This handoff was **not** compacted. **Three architect decisions recorded** in
-  `PROJECT_STATE.md` "Binding decisions in force": (a) **key regime = new format**
+  batch divider); condensed rulings + one-line pointers remain in `PROJECT_STATE.md`,
+  and the "Closed phases" index collapses the 2026-07-16 / 2026-07-15-and-earlier eras
+  into two pointer rows (all SHAs retained). This handoff was **not** compacted.
+  **Four architect decisions recorded** in `PROJECT_STATE.md` "Binding decisions in
+  force" (a-c) and "Environment standing facts" (d): (a) **key regime = new format**
   (`sb_publishable_` + matching secret key, standardized across config/scripts/
   Ingestor/tests; secret key never in chat/repo); (b) **launch user model =
   full-trust admins only** (no `somente_leitura` admin in production until
   `A2-SERVER-SIDE-ENFORCEMENT` closes — the constraint IS the mitigation; A2 items
-  therefore rank FIRST-WEEK); (c) **standing pre-launch items** = `DELETE-PROD-GUARD-A`,
-  backup trigger via GitHub Actions + `BK7` runbook, and the auth-restore rehearsal
-  into a throwaway Supabase project before `M3`. Docs-only, single commit, no push.
+  rank FIRST-WEEK); (c) **standing pre-launch items** = `DELETE-PROD-GUARD-A`, backup
+  trigger via GitHub Actions + `BK7` runbook, and the auth-restore rehearsal into a
+  throwaway Supabase project before `M3`; (d) **MCP configured + verified against
+  `gqmpsxkxynrjvidfmojk`, read-only, token outside the repo** (environment fact).
+  Docs-only, single commit, no push.
 - **`PRODUCTION-READINESS-DIAGNOSIS-R1` ratified + `BACKLOG FREEZE` —
   `CLOSED / ACCEPTED` (2026-07-17):** the architect authorized a read-only
   whole-system migration diagnosis (move to a new repo + new Supabase project +
