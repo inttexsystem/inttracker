@@ -13,10 +13,52 @@ HEAD, working tree, staging and divergence must be consulted directly in Git
 ## Active phase and next action
 
 - **Active functional phase:** `NONE`.
-- **Next authorizable action:** `A2.2` (modal wiring for `nivel_acesso`) —
-  pending its own architect order; `A2.3` (pilot route enforcement) and `A3.4`
-  (legacy code removal in `cadastros.js`) also require their own orders. `A2.1`
-  (+`A2.1-B`) is now `CLOSED / ACCEPTED`.
+- **Next authorizable action:** `A3.4` (legacy code removal in `cadastros.js`)
+  — pending its own architect order. `G28-CAMADA-2 / A2` track (`A2.1` +
+  `A2.1-B` + `A2.2` + `A2.3`) is now `COMPLETE`.
+  - **`A2.2` (modal wiring) + `A2.3` (pilot route enforcement) — `CLOSED /
+    ACCEPTED`** (technical commit `09eb2a0` — `Wire admin access level into
+    user admin`; architect visual gate `CONFIRMED`): `js/screens/
+    admin-usuarios-modal.js` gained a "Nível de acesso" select, shown only
+    when editing an existing `tipo='admin'` row (hidden via `display:none`,
+    same convention as the existing `wrapperForn`/`wrapperCli` fields, for
+    fornecedor/cliente — never removed from the DOM, never sent). **HARD
+    STOP confirmed and honored:** `supabase/functions/admin-create-user/
+    index.ts`'s `INSERT` uses a fixed column list that does not carry
+    `nivel_acesso` — the field is never rendered on the create form and the
+    create payload never carries the key (a new admin lands at the schema
+    default `completo`; its level is set via a follow-up edit, which works
+    because `updateUsuario` is a raw PostgREST update, not an Edge Function,
+    and `usuarios_admin_all`/`is_admin()`-based RLS already allows it).
+    Grid badge (`js/screens/admin-usuarios.js`) gained a quiet suffix —
+    `"Admin · leitura"` for `somente_leitura`, plain `"Admin"` for
+    `completo` (no new column). **A2.3 pilot route = the users screen
+    itself:** "Novo usuário" and all 4 row `actionButton()`s render
+    `disabled` (safe boolean pattern) with an explanatory title when the
+    acting admin's own row (`tipo='admin' && nivel_acesso='somente_leitura'`)
+    is found in the already-fetched user list (no new query); every write
+    helper in `js/admin-usuarios-writes.js` also takes a trailing `readOnly`
+    boolean and refuses with `CLIENT_READONLY_FORBIDDEN` before touching
+    `window.supa`, threaded from the screen through the modal's
+    `options.readOnly` — defense-in-depth if a disabled control were ever
+    bypassed. **Explicitly client-side only:** a `somente_leitura` admin
+    whose JWT still says `tipo='admin'` can call the Edge Functions/
+    PostgREST directly — RLS does not check `nivel_acesso` (`is_admin_full()`
+    exists since `db/62` but is not consumed by any policy). Tests: +6 in
+    `tests/admin-usuarios.smoke.js` (56/56); fixed a `FakeNode` fidelity gap
+    in the same suite (`<select>.value` didn't follow a selected `<option>`,
+    `.style` wasn't mirrored) while touching it for this phase, per `§20`.
+    Full regression unchanged (138 pre-existing failures, identical before/
+    after via `git stash`/`pop`, zero new failures, +6 passing).
+  - **Registered candidates (`NOT AUTHORIZED`, both flagged
+    `PRE-PUBLICATION`):** `A2-SERVER-SIDE-ENFORCEMENT` — RLS/Edge Functions
+    still key exclusively on `tipo='admin'`; `somente_leitura` is UI-only and
+    bypassable via direct API calls; `is_admin_full()` (`db/62`) exists and is
+    unused by any policy — required before any real read-only admin is
+    trusted in production. `A2-CREATE-NIVEL-ACESSO-WIRING` —
+    `admin-create-user`'s fixed column list drops `nivel_acesso`; new admins
+    always land at `completo` and require a follow-up edit to set
+    `somente_leitura`.
   - **`A2.1` (nivel_acesso schema) + `A2.1-B` (ACL correction) — `CLOSED /
     ACCEPTED`** (technical commit `f108c45`): `db/62` adds
     `public.usuarios.nivel_acesso` (`TEXT NOT NULL DEFAULT 'completo'`, CHECK
@@ -36,8 +78,8 @@ HEAD, working tree, staging and divergence must be consulted directly in Git
     intended ACL. **Final ACL verified: `EXECUTE` for `authenticated` only;
     PUBLIC/anon/service_role denied** (`has_function_privilege`: authenticated
     true, anon/service_role false; service_role runtime call → `42501`
-    unreachable). `A2.2` (modal wiring) and `A2.3` (route enforcement) are
-    separate, `NOT AUTHORIZED`.
+    unreachable). `A2.2` (modal wiring) and `A2.3` (route enforcement) were
+    separate orders — now `CLOSED / ACCEPTED` (see above).
   - **`TEST-DOUBLE-SHARED-MODULE` Lot `L1` — `CLOSED / ACCEPTED`:** shared
     `tests/_doubles.js` (`FaithfulNode` with real DOM boolean coercion + fake
     `supa` with double-envelope `invoke`/single-level `rpc`/single-vs-array) +
@@ -251,6 +293,22 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   `DEPLOYMENT_MAPPING_AND_PRODUCTION_MIGRATION_PROCEDURE` (`DEFERRED UNTIL
   GLOBAL BACKLOG COMPLETION`); `DELETE-PROD-GUARD-A`; `DELETE-AUDIT-LOG-A`;
   `G28-CAMADA-4`. `A4.3` (email/SMTP invites) remains `NOT AUTHORIZED`.
+- **`A2-SERVER-SIDE-ENFORCEMENT` — `NOT AUTHORIZED` candidate, flagged
+  `PRE-PUBLICATION` (registered at the `A2.2`/`A2.3` closeout, 2026-07-17):**
+  RLS and the admin Edge Functions still key exclusively on `usuarios.tipo`;
+  `nivel_acesso='somente_leitura'` is enforced client-side only in
+  `js/screens/admin-usuarios.js`/`js/admin-usuarios-writes.js` and is
+  bypassable via direct API calls from a JWT that still carries
+  `tipo='admin'`. `is_admin_full()` (`db/62`) already exists and is unused by
+  any policy. **Required before any real read-only admin is trusted in
+  production.**
+- **`A2-CREATE-NIVEL-ACESSO-WIRING` — `NOT AUTHORIZED` candidate, flagged
+  `PRE-PUBLICATION` (registered at the `A2.2`/`A2.3` closeout, 2026-07-17):**
+  `admin-create-user`'s `INSERT` uses a fixed column list that does not carry
+  `nivel_acesso` — every new admin lands at the schema default (`completo`)
+  regardless of what the (edit-only) modal select would otherwise send;
+  setting `somente_leitura` on a newly created admin requires a follow-up
+  edit. Wiring the create path requires an Edge Function change.
 - **`IS-ADMIN-ACL-REVIEW` — `NOT AUTHORIZED` candidate (registered at the `A2.1-B`
   closeout, 2026-07-17):** the RLS anchor `public.is_admin()` grants `EXECUTE`
   to `PUBLIC`/`anon`/`authenticated`/`service_role` — more permissive than the
@@ -424,6 +482,7 @@ HEAD with `git rev-parse HEAD`.
 
 | Phase | Status | Date | Commit(s) |
 |---|---|---|---|
+| Camada 2 — Admin Access Level Modal Wiring + Pilot Enforcement — `A2.2` + `A2.3` | `CLOSED / ACCEPTED` | 2026-07-17 | `09eb2a0` |
 | Camada 2 — Admin Access Level Schema + ACL Correction — `A2.1` + `A2.1-B` | `CLOSED / ACCEPTED` | 2026-07-17 | `f108c45` |
 | Test-Double Shared Module + Stale-Assertion Cleanup — `L1` + `L2` | `CLOSED / ACCEPTED` | 2026-07-17 | `54ee8aa`,`4d2f304`,`520c9a6`,`2c9a4c2` |
 | Test Mock Fidelity Audit (read-only) — `TEST-MOCK-FIDELITY-AUDIT` | `CLOSED / ACCEPTED` | 2026-07-17 | (docs) |

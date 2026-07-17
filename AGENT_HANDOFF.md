@@ -1,5 +1,37 @@
 # ACTIVE OPERATIONAL HANDOFF
 
+- **`A2.2` (modal wiring) + `A2.3` (pilot route enforcement) — `CLOSED /
+  ACCEPTED` (2026-07-17):** technical commit `09eb2a0` — `Wire admin access
+  level into user admin`; architect visual gate `CONFIRMED`. Closes the
+  `G28-CAMADA-2 / A2` track (`A2.1` + `A2.1-B` + `A2.2` + `A2.3`) as
+  `COMPLETE`. `js/screens/admin-usuarios-modal.js` — "Nível de acesso" select,
+  edit-only (hidden via `display:none` for fornecedor/cliente, same
+  convention as `wrapperForn`/`wrapperCli`). **HARD STOP honored:**
+  `admin-create-user`'s fixed-column `INSERT` never carried `nivel_acesso`,
+  so the field is not rendered on create and never sent in the create
+  payload — a new admin lands at the schema default (`completo`) and its
+  level is set via a follow-up edit (`updateUsuario` is a raw PostgREST
+  update, allowed by `is_admin()`-based RLS). Grid badge
+  (`js/screens/admin-usuarios.js`): quiet `"Admin · leitura"` suffix for
+  `somente_leitura`, plain `"Admin"` for `completo`. **A2.3 pilot = the
+  users screen itself:** "Novo usuário" + all 4 row `actionButton()`s
+  disabled with an explanatory title for an acting `somente_leitura` admin
+  (derived from the already-fetched user list, no new query); every helper
+  in `js/admin-usuarios-writes.js` also takes a trailing `readOnly` and
+  refuses with `CLIENT_READONLY_FORBIDDEN` before touching `window.supa`.
+  **Client-side only** — RLS/Edge Functions still key on `tipo='admin'`
+  alone; a `somente_leitura` admin can bypass via direct API. Tests: +6 in
+  `tests/admin-usuarios.smoke.js` (56/56), plus a `FakeNode` fidelity fix
+  (`<select>.value` now follows a selected `<option>`, `.style` mirrored) in
+  the same suite per `§20`. Full regression unchanged (138 pre-existing
+  failures, identical before/after, zero new failures, +6 passing).
+  **Registered candidates (`NOT AUTHORIZED`, both `PRE-PUBLICATION`):**
+  `A2-SERVER-SIDE-ENFORCEMENT` (RLS/Edge Functions don't check
+  `nivel_acesso`; `is_admin_full()` from `db/62` exists and is unused —
+  required before trusting any real read-only admin in production);
+  `A2-CREATE-NIVEL-ACESSO-WIRING` (admin-create-user's fixed column list
+  drops the field; requires an Edge Function change). **Next authorizable
+  action: `A3.4`** (legacy screen removal in `cadastros.js`), own order.
 - **`A2.1` (nivel_acesso schema) + `A2.1-B` (ACL correction) — `CLOSED /
   ACCEPTED` (2026-07-17):** technical commit `f108c45`. `db/62` adds
   `public.usuarios.nivel_acesso` (`TEXT NOT NULL DEFAULT 'completo'`, CHECK
