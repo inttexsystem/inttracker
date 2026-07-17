@@ -105,6 +105,26 @@ test('CLI: BACKUP_ALLOW_PRODUCTION override is honored (guard skipped, falls thr
   assert.match(res.stderr, /Missing required input/);
 });
 
+test('CLI: credential env vars are trimmed — a trailing newline/space (common clipboard artifact) does not read as missing', async () => {
+  const { envTrim } = await import(pathToFileURL(CLI).href);
+  const original = process.env.BACKUP_GOOGLE_CLIENT_ID;
+  try {
+    process.env.BACKUP_GOOGLE_CLIENT_ID = '  some-client-id\r\n';
+    assert.equal(envTrim('BACKUP_GOOGLE_CLIENT_ID'), 'some-client-id');
+    process.env.BACKUP_GOOGLE_CLIENT_ID = '';
+    assert.equal(envTrim('BACKUP_GOOGLE_CLIENT_ID'), '');
+  } finally {
+    if (original === undefined) delete process.env.BACKUP_GOOGLE_CLIENT_ID;
+    else process.env.BACKUP_GOOGLE_CLIENT_ID = original;
+  }
+});
+
+test('CLI: production-ref guard still fires when PGHOST has trailing whitespace from a pasted value', () => {
+  const res = runCli(['export', '--confirm'], { PGHOST: 'db.bhgifjrfagkzubpyqpew.supabase.co \r\n' });
+  assert.equal(res.status, 1);
+  assert.match(res.stderr, /PRODUCTION ref/);
+});
+
 test('CLI: login without client id/secret fails USAGE (exit 1), no interactive prompt reached', () => {
   const res = runCli(['login']);
   assert.equal(res.status, 1);

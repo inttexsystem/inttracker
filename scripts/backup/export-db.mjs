@@ -68,9 +68,20 @@ function fail(code, message) {
   process.exit(code);
 }
 
+// Credential env vars are near-universally hand-pasted from a browser
+// (Google Cloud Console, the Supabase dashboard) into a terminal. A
+// trailing newline/space from the clipboard is invisible but makes the
+// value byte-for-byte wrong — Google's invalid_client is exactly that
+// failure mode with no hint that whitespace is the cause. Every
+// credential-shaped env var is trimmed at the single point it's read.
+function envTrim(name) {
+  const v = process.env[name];
+  return typeof v === 'string' ? v.trim() : v;
+}
+
 async function runLogin() {
-  const clientId = process.env.BACKUP_GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.BACKUP_GOOGLE_CLIENT_SECRET;
+  const clientId = envTrim('BACKUP_GOOGLE_CLIENT_ID');
+  const clientSecret = envTrim('BACKUP_GOOGLE_CLIENT_SECRET');
   // "urn:ietf:wg:oauth:2.0:oob" (the old copy-paste flow) is deprecated
   // and rejected by Google for new OAuth clients. http://localhost matches
   // the Documents Ingestor's own documented convention (README.md) — the
@@ -119,15 +130,15 @@ function assertNotProduction(pgHost, supabaseUrl) {
 }
 
 function loadDriveConfig() {
-  const clientId = process.env.BACKUP_GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.BACKUP_GOOGLE_CLIENT_SECRET;
+  const clientId = envTrim('BACKUP_GOOGLE_CLIENT_ID');
+  const clientSecret = envTrim('BACKUP_GOOGLE_CLIENT_SECRET');
   const folderName = process.env.BACKUP_GOOGLE_DRIVE_ROOT_FOLDER_NAME || 'Ravatex Backups';
-  let refreshToken = process.env.BACKUP_GOOGLE_REFRESH_TOKEN;
+  let refreshToken = envTrim('BACKUP_GOOGLE_REFRESH_TOKEN');
   if (!refreshToken) {
     const tokenPath = process.env.BACKUP_GOOGLE_TOKEN_PATH || '.ravatex-local/backup-google-token.json';
     if (existsSync(tokenPath)) {
       try {
-        refreshToken = JSON.parse(readFileSync(tokenPath, 'utf-8')).refresh_token;
+        refreshToken = JSON.parse(readFileSync(tokenPath, 'utf-8')).refresh_token?.trim();
       } catch {
         // fall through — caller reports missing refresh token
       }
@@ -137,8 +148,8 @@ function loadDriveConfig() {
 }
 
 async function runExportCommand(opts) {
-  const pgHost = process.env.PGHOST;
-  const supabaseUrl = process.env.SUPABASE_URL;
+  const pgHost = envTrim('PGHOST');
+  const supabaseUrl = envTrim('SUPABASE_URL');
 
   if (opts.triggeredBy && !['manual', 'scheduled'].includes(opts.triggeredBy)) {
     fail(EXIT_CODES.USAGE, `invalid --triggered-by: ${opts.triggeredBy} (expected manual|scheduled)`);
@@ -169,16 +180,16 @@ async function runExportCommand(opts) {
   const pgConn = {
     host: pgHost,
     port: process.env.PGPORT ? Number(process.env.PGPORT) : 5432,
-    database: process.env.PGDATABASE || 'postgres',
-    user: process.env.PGUSER || 'postgres',
-    password: process.env.PGPASSWORD,
-    sslmode: process.env.PGSSLMODE || 'require',
+    database: (process.env.PGDATABASE || 'postgres').trim(),
+    user: (process.env.PGUSER || 'postgres').trim(),
+    password: envTrim('PGPASSWORD'),
+    sslmode: (process.env.PGSSLMODE || 'require').trim(),
   };
   const missing = [];
   if (!pgConn.host) missing.push('PGHOST');
   if (!pgConn.password) missing.push('PGPASSWORD');
   if (!supabaseUrl) missing.push('SUPABASE_URL');
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+  if (!envTrim('SUPABASE_SERVICE_ROLE_KEY')) missing.push('SUPABASE_SERVICE_ROLE_KEY');
   const drive = loadDriveConfig();
   if (!drive.clientId) missing.push('BACKUP_GOOGLE_CLIENT_ID');
   if (!drive.clientSecret) missing.push('BACKUP_GOOGLE_CLIENT_SECRET');
@@ -189,7 +200,7 @@ async function runExportCommand(opts) {
   }
 
   config.pgConn = pgConn;
-  config.supabase = { url: supabaseUrl, serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY };
+  config.supabase = { url: supabaseUrl, serviceRoleKey: envTrim('SUPABASE_SERVICE_ROLE_KEY') };
   config.drive = drive;
 
   const redact = buildRedactor([pgConn.password, config.supabase.serviceRoleKey, drive.clientSecret, drive.refreshToken]);
@@ -223,4 +234,4 @@ if (isMain) {
   });
 }
 
-export { parseArgs, assertNotProduction, loadDriveConfig };
+export { parseArgs, assertNotProduction, loadDriveConfig, envTrim };
