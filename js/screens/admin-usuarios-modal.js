@@ -310,6 +310,21 @@
       fields.push(observacoesField.field);
     }
     var body = adminUsuariosModalStack(fields);
+    // A6.3 — read-only audit panel. Edit only (isEdit): a new user has
+    // no history yet. Panel failure must never break the modal — the
+    // render function itself is fail-closed (js/screens/
+    // admin-usuarios-audit-panel.js), so a missing/broken dependency
+    // here only degrades to no panel appended, form stays usable.
+    if (isEdit && usr && usr.id) {
+      var auditPanelApi = window.RAVATEX_ADMIN_USUARIOS_AUDIT_PANEL;
+      if (auditPanelApi && typeof auditPanelApi.renderUsuarioAuditPanel === 'function') {
+        try {
+          body.appendChild(auditPanelApi.renderUsuarioAuditPanel(usr.id));
+        } catch (auditErr) {
+          console.error('admin-usuarios-modal: falha ao montar painel de auditoria', auditErr);
+        }
+      }
+    }
     openAdminUsuariosFormModal({
       title: isEdit ? 'Editar usuário' : 'Novo usuário',
       maxWidth: 560,

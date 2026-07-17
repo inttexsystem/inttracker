@@ -83,6 +83,53 @@
   }
 
   // -------------------------------------------------------------------
+  // Leitura — audit trail de um usuário (A6.3). Plain SELECT,
+  // RLS-filtered (usuarios_eventos_admin_select, db/60), sem RPC, sem
+  // migration. Limitado às N linhas mais recentes solicitadas pelo
+  // chamador (js/screens/admin-usuarios-audit-panel.js controla o
+  // "ver todos"). Faz um segundo SELECT plano em usuarios para
+  // resolver email/nome dos ator_id distintos (mesma tabela, mesma
+  // policy admin-all já usada pela tela) — nenhuma RPC nova, nenhuma
+  // migration. usuario_id=eq.<id> naturalmente exclui eventos
+  // orfãos (usuario_id NULL, db/61) de outro usuário já excluído;
+  // esta tela só abre para perfis existentes (fluxo de edição).
+  // -------------------------------------------------------------------
+  async function fetchUsuarioEventos(userId, limit) {
+    var max = Number.isInteger(limit) && limit > 0 ? limit : 50;
+    var eventsRes = await window.supa
+      .from('usuarios_eventos')
+      .select('id, tipo_evento, ator_id, payload, criado_em, usuario_id, usuario_email, usuario_nome, usuario_tipo')
+      .eq('usuario_id', userId)
+      .order('criado_em', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(max);
+
+    if (eventsRes.error) return eventsRes;
+
+    var events = eventsRes.data || [];
+    var atorIds = Array.from(new Set(events.map(function (e) { return e.ator_id; }).filter(Boolean)));
+    if (atorIds.length === 0) return { data: events, error: null };
+
+    var atorsRes = await window.supa
+      .from('usuarios')
+      .select('id, email, nome')
+      .in('id', atorIds);
+
+    var atorsById = {};
+    (atorsRes.data || []).forEach(function (a) { atorsById[a.id] = a; });
+
+    var merged = events.map(function (e) {
+      var ator = e.ator_id ? atorsById[e.ator_id] : null;
+      return Object.assign({}, e, {
+        ator_email: ator ? ator.email : null,
+        ator_nome: ator ? ator.nome : null,
+      });
+    });
+
+    return { data: merged, error: null };
+  }
+
+  // -------------------------------------------------------------------
   // Writes — criar / editar (PostgREST update em observações)
   // -------------------------------------------------------------------
 
@@ -260,6 +307,7 @@
   window.RAVATEX_ADMIN_USUARIOS_WRITES.detectOptionalColumns = detectOptionalColumns;
   window.RAVATEX_ADMIN_USUARIOS_WRITES.fetchUsuariosPageData = fetchUsuariosPageData;
   window.RAVATEX_ADMIN_USUARIOS_WRITES.fetchLastSignIn = fetchLastSignIn;
+  window.RAVATEX_ADMIN_USUARIOS_WRITES.fetchUsuarioEventos = fetchUsuarioEventos;
   window.RAVATEX_ADMIN_USUARIOS_WRITES.createUsuario = createUsuario;
   window.RAVATEX_ADMIN_USUARIOS_WRITES.updateUsuario = updateUsuario;
   window.RAVATEX_ADMIN_USUARIOS_WRITES.updateUsuarioObservacoes = updateUsuarioObservacoes;

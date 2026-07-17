@@ -78,6 +78,10 @@ const CLI_FORM  = path.join(ROOT, 'js', 'screens', 'cliente-pedido-form.js');
 const ADMIN_USUARIOS_WRITES = path.join(ROOT, 'js', 'admin-usuarios-writes.js');
 const ADMIN_USUARIOS_MODAL = path.join(ROOT, 'js', 'screens', 'admin-usuarios-modal.js');
 const ADMIN_USUARIOS = path.join(ROOT, 'js', 'screens', 'admin-usuarios.js');
+// A6.3: audit trail read-model (pure) + read-only panel, wired into the
+// edit-user modal only.
+const ADMIN_USUARIOS_AUDIT_READ_MODEL = path.join(ROOT, 'js', 'admin-usuarios-audit-read-model.js');
+const ADMIN_USUARIOS_AUDIT_PANEL = path.join(ROOT, 'js', 'screens', 'admin-usuarios-audit-panel.js');
 // CAMADA2-A4.2: guarda de troca de senha obrigatória.
 const TROCAR_SENHA_WRITES = path.join(ROOT, 'js', 'trocar-senha-writes.js');
 const TROCAR_SENHA_SCREEN = path.join(ROOT, 'js', 'screens', 'trocar-senha-obrigatoria.js');
@@ -111,6 +115,8 @@ const cliFormSrc  = fs.readFileSync(CLI_FORM,  'utf8');
 const adminUsuariosWritesSrc = fs.readFileSync(ADMIN_USUARIOS_WRITES, 'utf8');
 const adminUsuariosModalSrc  = fs.readFileSync(ADMIN_USUARIOS_MODAL,  'utf8');
 const adminUsuariosSrc       = fs.readFileSync(ADMIN_USUARIOS,        'utf8');
+const adminUsuariosAuditReadModelSrc = fs.readFileSync(ADMIN_USUARIOS_AUDIT_READ_MODEL, 'utf8');
+const adminUsuariosAuditPanelSrc     = fs.readFileSync(ADMIN_USUARIOS_AUDIT_PANEL,      'utf8');
 const trocarSenhaWritesSrc   = fs.readFileSync(TROCAR_SENHA_WRITES,   'utf8');
 const trocarSenhaScreenSrc   = fs.readFileSync(TROCAR_SENHA_SCREEN,   'utf8');
 
@@ -376,7 +382,9 @@ function makeBootChainSandbox(opts) {
   vm.runInContext(trocarSenhaScreenSrc, sandbox, { filename: 'js/screens/trocar-senha-obrigatoria.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
+  vm.runInContext(adminUsuariosAuditReadModelSrc, sandbox, { filename: 'js/admin-usuarios-audit-read-model.js' });
   vm.runInContext(adminUsuariosWritesSrc, sandbox, { filename: 'js/admin-usuarios-writes.js' });
+  vm.runInContext(adminUsuariosAuditPanelSrc, sandbox, { filename: 'js/screens/admin-usuarios-audit-panel.js' });
   vm.runInContext(adminUsuariosModalSrc,  sandbox, { filename: 'js/screens/admin-usuarios-modal.js' });
   vm.runInContext(adminUsuariosSrc,       sandbox, { filename: 'js/screens/admin-usuarios.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
@@ -458,6 +466,27 @@ test('20. window.routes populado corretamente após o boot completo', () => {
     const tem = vm.runInContext(`!!window.routes['${rota}']`, sandbox);
     assert.equal(tem, true,
       `rota ${rota} não está em window.routes após boot`);
+  }
+});
+
+test('20a0. index.html carrega os 2 módulos novos de A6.3 (audit read-model + panel), na ordem read-model → writes → panel → modal, com cache-busting', () => {
+  const readModelIdx = findScriptIdx(indexSrc, 'js/admin-usuarios-audit-read-model.js');
+  const writesIdx = findScriptIdx(indexSrc, 'js/admin-usuarios-writes.js');
+  const panelIdx = findScriptIdx(indexSrc, 'js/screens/admin-usuarios-audit-panel.js');
+  const modalIdx = findScriptIdx(indexSrc, 'js/screens/admin-usuarios-modal.js');
+  assert.ok(readModelIdx > 0, 'js/admin-usuarios-audit-read-model.js não encontrado em index.html');
+  assert.ok(panelIdx > 0, 'js/screens/admin-usuarios-audit-panel.js não encontrado em index.html');
+  assert.ok(readModelIdx < writesIdx, 'audit-read-model.js deve vir antes de admin-usuarios-writes.js');
+  assert.ok(writesIdx < panelIdx, 'admin-usuarios-writes.js deve vir antes de admin-usuarios-audit-panel.js (fetchUsuarioEventos)');
+  assert.ok(panelIdx < modalIdx, 'admin-usuarios-audit-panel.js deve vir antes de admin-usuarios-modal.js (wiring no edit)');
+  for (const src of [
+    'js/admin-usuarios-audit-read-model.js', 'js/screens/admin-usuarios-audit-panel.js',
+  ]) {
+    const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}\\?v=[^"]+"\\s*></script>`);
+    assert.ok(re.test(indexSrc), `${src} deve ser carregado com query string de cache-busting (?v=)`);
+    const countRe = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}(?:\\?[^"]*)?"\\s*></script>`, 'g');
+    const matches = indexSrc.match(countRe) || [];
+    assert.equal(matches.length, 1, `esperado 1 <script src="${src}">, encontrado ${matches.length}`);
   }
 });
 

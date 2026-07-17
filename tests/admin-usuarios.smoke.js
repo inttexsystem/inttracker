@@ -264,7 +264,7 @@ function makeAdminUsuariosSandbox({ tableData = {}, invokeImpl = {}, rpcImpl = {
 test('3. window.RAVATEX_ADMIN_USUARIOS_WRITES expõe as funções esperadas', () => {
   const { sandbox } = makeAdminUsuariosSandbox();
   for (const fn of [
-    'detectOptionalColumns', 'fetchUsuariosPageData', 'fetchLastSignIn', 'createUsuario', 'updateUsuario',
+    'detectOptionalColumns', 'fetchUsuariosPageData', 'fetchLastSignIn', 'fetchUsuarioEventos', 'createUsuario', 'updateUsuario',
     'updateUsuarioObservacoes', 'disableUsuario', 'deleteUsuario', 'parseEdgeFunctionError',
     'friendlyDisableMessage', 'friendlyDeleteMessage',
   ]) {
