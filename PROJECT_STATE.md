@@ -13,26 +13,49 @@ HEAD, working tree, staging and divergence must be consulted directly in Git
 ## Active phase and next action
 
 - **Active functional phase:** `NONE`.
-- **Next authorizable action:** `ARCHITECT DECISION`. `A5.3-A5.4` (user
-  reactivation) is `CLOSED / ACCEPTED` — see "Closed phases" below; the `A5`
-  track (reset + reactivation) is now `COMPLETE`. `A6.1`, `A6.1-B`, and `A6.2`
-  (audit schema/trigger, delete-survival correction, Edge Function wiring) are
-  all `CLOSED / ACCEPTED` — see "Closed phases" below. Real E2E in staging
-  (`scripts/staging/usuarios-audit-e2e.mjs`) passed `15/15`,
-  `result: PASS`, `2026-07-17`: one event per action across all five admin
-  Edge Functions, no double-entry, password absent from the
-  `senha_resetada` payload, 5/5 accumulated events surviving profile
-  deletion with `usuario_id NULL` and identity snapshot intact. Five
-  functions deployed to staging by the architect. `A6.3` (read-only audit
-  panel) remains `NOT AUTHORIZED`. No single, unambiguous technical candidate
-  for the current staging cycle. Candidates on the table (none authorized by
-  this file): `UI-EL-BOOLEAN-ATTR-FIX` (severity `CONFIRMED — ACTIVE
-  REGRESSION`, empirically reproduced by the architect in staging via the
-  "Mostrar inativos" checkbox in `js/screens/admin-usuarios.js` — recommended
-  as the priority candidate); `A2.1` (schema `nivel_acesso`); `A6.3`
-  (read-only audit panel); `A3.4` (legacy code removal in `cadastros.js`,
-  unlocks once the remaining `A2`/`A6` subphases close); `DOC-LANGUAGE-
-  MIGRATION-L3` (`NOT AUTHORIZED` pending `PROJECT-STATE-COMPACTION-A`).
+- **Next authorizable action:** `ARCHITECT DECISION` on a **read-only front**:
+  `TEST-MOCK-FIDELITY-AUDIT`, **promoted to priority candidate** at this
+  closeout (three defects from the same root class surfaced in one day —
+  boolean-attribute `setAttribute` coercion, hand-mocked `js/ui.js`
+  primitives, and the `functions.invoke()` double-envelope unwrap below —
+  each one a test double that diverged from the real behavior it imitated
+  and let a live bug through). Scope: inventory every test double in
+  `tests/` that hand-mocks or fakes a runtime boundary (Supabase client,
+  DOM/`ui.js` primitives, Edge Function envelopes) and diverges from the
+  real behavior; no code fix bundled with the inventory itself. `A2.1`
+  (schema `nivel_acesso`) and `A3.4` (legacy code removal in `cadastros.js`)
+  are the next authorizable technical candidates **after** that audit — see
+  their own governance note below. `UI-EL-BOOLEAN-ATTR-FIX` (severity
+  `CONFIRMED — ACTIVE REGRESSION`, reproduced by the architect in staging)
+  remains an open candidate the audit should also cover, as the first
+  confirmed instance of this defect class.
+  - **`G28-CAMADA-2 / A6` track — COMPLETE** (`A6.1` + `A6.1-B` + `A6.2` +
+    `A6.3`, all `CLOSED / ACCEPTED` — see "Closed phases" below). `A6.3`'s
+    architect visual gate passed. Real E2E in staging
+    (`scripts/staging/usuarios-audit-e2e.mjs`) passed `15/15`,
+    `result: PASS`, `2026-07-17`, against the five Edge Functions deployed
+    by the architect.
+  - **`UI-INVOKE-ENVELOPE-FIX` — `CLOSED / ACCEPTED`** (root-cause fix,
+    `2026-07-17`): the A6.3 visual gate surfaced a live defect (reset
+    succeeded but the generated password wasn't shown) traced to a
+    pre-existing (since `A5.1-A5.2`) client-side double-unwrap of the
+    `functions.invoke()`/`jsonResponse()` envelope, invisible to tests
+    because the fake Supabase client's `invoke()` mock didn't model the
+    real double envelope. Fixed at the single central unwrap point
+    (`invokeAdminFunction()`, `js/admin-usuarios-writes.js`); the identical
+    bug in the frozen legacy `screenCadastrosUsuarios`
+    (`js/screens/cadastros.js`) was reported, not fixed — one more
+    justification for `A3.4`. Architect-confirmed working: reset shows the
+    password, create-with-observações saves correctly.
+  - **Candidates registered, `NOT AUTHORIZED`:** `A6-GLOBAL-AUDIT-VIEW`
+    (`usuario_excluido` events are unreachable from the per-user panel by
+    construction — the panel only opens for an existing profile, and a
+    deleted user has none; an admin-level, cross-user audit view is
+    recommended before publication); `AUDIT-ACTOR-SNAPSHOT` (the audit
+    panel resolves actor identity live via a join to `public.usuarios`; if
+    the acting admin is later deleted, the actor line goes blank while the
+    event subject's own identity snapshot — `db/61` — survives; proposed
+    fix mirrors `db/61`'s pattern onto `ator_email`/`ator_nome` columns).
 - **Open architect decisions:** `NONE` blocking the current staging cycle. Two
   non-blocking naming/consistency points from `DOC-LANGUAGE-MIGRATION-L2` were
   ruled on and applied (documentation-term unification; phase-ID naming rule).
@@ -117,6 +140,21 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   Same root cause as the residue already fixed once in `expedicao-admin.js`.
   Not fixed in this phase (outside every manifest to date) — recommended as
   the priority `ARCHITECT DECISION` candidate.
+- **`TEST-MOCK-FIDELITY-AUDIT` — PROMOTED to priority read-only front
+  (consolidated `A6`/`UI-INVOKE-ENVELOPE-FIX` closeout, 2026-07-17):** three
+  defects surfaced in one day share the same root class — a test double that
+  diverges from the real behavior it imitates, letting a live bug pass green.
+  Instances: (1) `UI-EL-BOOLEAN-ATTR-FIX` above (`el()`'s unconditional
+  `setAttribute`, real DOM behavior not modeled by `FakeNode`); (2) hand-mocked
+  `js/ui.js` primitives in suites that build their own DOM stand-ins instead
+  of loading the real module; (3) `UI-INVOKE-ENVELOPE-FIX` (the fake Supabase
+  client's `functions.invoke()` mock returned the inner payload flat, one
+  level shallower than the real client's raw-body pass-through, masking the
+  `data.password`/`data.user_id` double-envelope bug through every prior
+  `A5`/`A6` phase). Scope for the audit: inventory every test double in
+  `tests/` that fakes a runtime boundary (Supabase client, DOM/`ui.js`
+  primitives, Edge Function envelopes) and diverges from the real behavior —
+  read-only, no code fix bundled with the inventory itself.
 - **Controlled Delete × document history:** physical deletion of Pedido/OP is
   blocked when canonical document history exists (`document_link_revisions`/
   `document_link_revision_ops`, append-only, never deleted); the permanent
@@ -278,6 +316,8 @@ HEAD with `git rev-parse HEAD`.
 
 | Phase | Status | Date | Commit(s) |
 |---|---|---|---|
+| Admin Edge Function Response Envelope Fix — `UI-INVOKE-ENVELOPE-FIX` | `CLOSED / ACCEPTED` | 2026-07-17 | `7b37e8e` |
+| Camada 2 — User Audit Panel (read-only) — `A6.3` | `CLOSED / ACCEPTED` | 2026-07-17 | `e31f269` |
 | Camada 2 — Audit Trail Wiring (Edge Functions) — `A6.2` | `CLOSED / ACCEPTED` | 2026-07-17 | `b67b126`, `7309349` |
 | Camada 2 — Preserve User Audit Events on Profile Deletion — `A6.1-B` | `CLOSED / ACCEPTED` | 2026-07-16 | `fa8e1b9` |
 | Camada 2 — User Audit Trail Schema + Trigger — `A6.1` | `CLOSED / ACCEPTED` | 2026-07-16 | `ee0e77b` |
