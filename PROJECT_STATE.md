@@ -15,15 +15,18 @@ HEAD, working tree, staging and divergence must be consulted directly in Git
 - **Active functional phase:** `NONE`.
 - **Next authorizable action:** `ARCHITECT DECISION`. `A5.3-A5.4` (user
   reactivation) is `CLOSED / ACCEPTED` — see "Closed phases" below; the `A5`
-  track (reset + reactivation) is now `COMPLETE`. No single, unambiguous
-  technical candidate for the current staging cycle. Candidates on the table
-  (none authorized by this file): `UI-EL-BOOLEAN-ATTR-FIX` (severity
+  track (reset + reactivation) is now `COMPLETE`. `A6.1` (audit schema/trigger)
+  is now `CLOSED / ACCEPTED` — see "Closed phases" below; `A6.2` (Edge Function
+  wiring) and `A6.3` (read-only UI panel) remain `NOT AUTHORIZED`. No single,
+  unambiguous technical candidate for the current staging cycle. Candidates on
+  the table (none authorized by this file): `UI-EL-BOOLEAN-ATTR-FIX` (severity
   `CONFIRMED — ACTIVE REGRESSION`, empirically reproduced by the architect in
   staging via the "Mostrar inativos" checkbox in `js/screens/admin-usuarios.js`
   — recommended as the priority candidate); `A2.1` (schema `nivel_acesso`);
-  `A6.1` (audit schema/trigger); `DOC-LANGUAGE-MIGRATION-L3` (`NOT AUTHORIZED`
-  pending `PROJECT-STATE-COMPACTION-A`). `A3.4` (legacy code removal in
-  `cadastros.js`) unlocks once the remaining `A2`/`A6` subphases close.
+  `A6.2` (Edge Function wiring of `usuarios_eventos`); `DOC-LANGUAGE-MIGRATION-L3`
+  (`NOT AUTHORIZED` pending `PROJECT-STATE-COMPACTION-A`). `A3.4` (legacy code
+  removal in `cadastros.js`) unlocks once the remaining `A2`/`A6` subphases
+  close.
 - **Open architect decisions:** `NONE` blocking the current staging cycle. Two
   non-blocking naming/consistency points from `DOC-LANGUAGE-MIGRATION-L2` were
   ruled on and applied (documentation-term unification; phase-ID naming rule).
@@ -256,6 +259,7 @@ HEAD with `git rev-parse HEAD`.
 
 | Phase | Status | Date | Commit(s) |
 |---|---|---|---|
+| Camada 2 — User Audit Trail Schema + Trigger — `A6.1` | `CLOSED / ACCEPTED` | 2026-07-16 | `ee0e77b` |
 | Users Grid — Text Overflow Ellipsis — `UI-USERS-GRID-TEXT-OVERFLOW` | `CLOSED / ACCEPTED` | 2026-07-16 | `3e95e86` |
 | UI Action Button — Users and Ops Screens Migration — `UI-ACTION-BUTTON-MIGRATION-2` (phase iii, lot 2) | `CLOSED / ACCEPTED` | 2026-07-16 | `abfb95e` |
 | UI Action Button — Order Lists Migration — `UI-ACTION-BUTTON-MIGRATION-1` (phase iii, lot 1) | `CLOSED / ACCEPTED` | 2026-07-16 | `31b66af` |
