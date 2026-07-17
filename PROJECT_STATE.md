@@ -14,10 +14,11 @@ HEAD, working tree, staging and divergence must be consulted directly in Git
 
 - **Active functional phase:** `NONE`.
 - **Next authorizable action:** `ARCHITECT DECISION` — no single unambiguous
-  next technical phase. Candidates: `G28-CAMADA-3` subphase `BK4.1`
-  (`backup_runs` schema) per `docs/architecture/CAMADA3_BACKUP_CONTRACT.md`
-  (contract `CLOSED / ACCEPTED`, 2026-07-17 — see its own section below);
-  `CAMADA3-TRIGGER-SELECTION` (blocks the "automated" half of the
+  next technical phase. Candidates: `G28-CAMADA-3` subphase `BK4.2`
+  (the exporter — own risk gate, DB credential/`auth`-schema handling) per
+  `docs/architecture/CAMADA3_BACKUP_CONTRACT.md` (`BK4.1`, `backup_runs`
+  schema, `CLOSED / ACCEPTED` in staging, 2026-07-17 — see its own section
+  below); `CAMADA3-TRIGGER-SELECTION` (blocks the "automated" half of the
   publication criterion); the two `PRE-PUBLICATION` asterisks
   (`A2-SERVER-SIDE-ENFORCEMENT`, `A2-CREATE-NIVEL-ACESSO-WIRING`);
   `A6-GLOBAL-AUDIT-VIEW` / `AUDIT-ACTOR-SNAPSHOT`. **`G28-CAMADA-2` — TRACK
@@ -240,10 +241,11 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   before production**: `A2-SERVER-SIDE-ENFORCEMENT` and
   `A2-CREATE-NIVEL-ACESSO-WIRING` (both registered at the `A2.2`/`A2.3`
   closeout, listed under "Live debts and candidates"). Second half —
-  `G28-CAMADA-3` (automated backup) — diagnosis `ACCEPTED` and backup
-  contract (`BK3`) `CLOSED / ACCEPTED` in docs (2026-07-17, see below), but
-  the automated mechanism itself remains `NOT IMPLEMENTED` (`BK4.1`-`BK8`
-  and `CAMADA3-TRIGGER-SELECTION` all `NOT AUTHORIZED`) — still on the
+  `G28-CAMADA-3` (automated backup) — diagnosis `ACCEPTED`, backup
+  contract (`BK3`) `CLOSED / ACCEPTED` in docs, and `BK4.1` (`backup_runs`
+  schema) `CLOSED / ACCEPTED` in staging (2026-07-17, see below), but the
+  automated mechanism itself remains `NOT IMPLEMENTED` (`BK4.2`-`BK8` and
+  `CAMADA3-TRIGGER-SELECTION` all `NOT AUTHORIZED`) — still on the
   publication critical path.
 - **`G28-CAMADA-3`:** reclassified from `DEFERRED` to `PUBLICATION CRITICAL PATH`
   (after `G28-CAMADA-2`). Read-only diagnosis `G28-CAMADA-3-DIAGNOSIS-R1`
@@ -257,9 +259,12 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   trigger-agnostic exporter contract, and the restore-drill contract.
   **Trigger deferred by architect** — the exporter must be invokable by
   any future scheduler (GH Actions/Vercel cron/operator), with no
-  scheduling logic inside the exporter itself. `BK4.1` (`backup_runs`
-  schema) is the next candidate subphase, `NOT AUTHORIZED`; `BK4.2`
-  (exporter), `BK7` (restore runbook), and `BK8` (recovery drill) are each
+  scheduling logic inside the exporter itself. **`BK4.1` (`backup_runs`
+  schema) — `CLOSED / ACCEPTED`** (technical commit `d39a848` — `Add
+  backup runs schema`; applied+verified in staging, registry
+  `20260717125153 / 64_backup_runs_schema`; see its own section below).
+  `BK4.2` (the exporter) is the next candidate subphase, `NOT AUTHORIZED`;
+  `BK4.2`, `BK7` (restore runbook), and `BK8` (recovery drill) are each
   their own risk gate (DB credential/`auth`-schema handling; data-restore).
   `CAMADA3-TRIGGER-SELECTION` registered `NOT AUTHORIZED`, blocks the
   "automated" half of the publication criterion. Full detail:
@@ -583,6 +588,7 @@ HEAD with `git rev-parse HEAD`.
 
 | Phase | Status | Date | Commit(s) |
 |---|---|---|---|
+| Camada 3 — Backup Runs Schema — `BK4.1` | `CLOSED / ACCEPTED` | 2026-07-17 | `d39a848` |
 | Camada 3 — Backup Diagnosis (read-only) + Backup Contract — `G28-CAMADA-3-DIAGNOSIS-R1` + `BK3` | `CLOSED / ACCEPTED` | 2026-07-17 | (docs) |
 | Camada 2 — Legacy User Screen Removal — `A3.4` (closes `G28-CAMADA-2` track) | `CLOSED / ACCEPTED` | 2026-07-17 | `32e466a` |
 | Camada 2 — Admin Access Level Modal Wiring + Pilot Enforcement — `A2.2` + `A2.3` | `CLOSED / ACCEPTED` | 2026-07-17 | `09eb2a0` |

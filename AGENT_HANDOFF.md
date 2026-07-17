@@ -1,5 +1,87 @@
 # ACTIVE OPERATIONAL HANDOFF
 
+- **`BK4.1` (`backup_runs` schema) — `CLOSED / ACCEPTED` (2026-07-17):**
+  per `docs/architecture/CAMADA3_BACKUP_CONTRACT.md`. Technical commit
+  `d39a848` — `Add backup runs schema` (`db/64_backup_runs_schema.sql`,
+  `tests/backup-runs-schema.smoke.js`). **Two new tables:**
+  `public.backup_runs` (append-only run record — `started_at`,
+  `finished_at`, `status` `running|completed|failed`, `scope` locked to
+  the single ratified value `'public+auth'` via CHECK, `bytes`, `sha256`
+  format-checked, `row_count_manifest` JSONB object-checked,
+  `triggered_by` `scheduled|manual`, `retention_class` `gfs|manual` —
+  kept as a field distinct from `triggered_by` since a scheduled run can
+  still be pinned `manual` retention by operator decision) and
+  `public.backup_run_destinations` (child table, one row per
+  `(run_id, destination)`, `ON DELETE CASCADE`; `status`
+  `pending|ok|failed|skipped`; `ok` requires `uploaded_at`, `failed`
+  requires `error`). **Destination-model decision (per the order's
+  request for justification): child table, not a JSONB column** — makes
+  "Drive OK / OneDrive skipped" a first-class row rather than a parsed
+  blob, matches the contract's per-destination status/last-error
+  requirement directly. **`destination` is deliberately an open `TEXT`
+  field with only a non-empty/lowercase format check, no `CHECK` enum**
+  (contract §4 explicitly demands N-destination extensibility without
+  schema rework — adding OneDrive must never require a migration) — this
+  is the one deliberate asymmetry against `scope`, which IS `CHECK`-locked
+  to the single value `'public+auth'` (the contract treats any scope
+  change as its own gated revision event, unlike destinations). **Writer
+  path:** two `service_role`-only RPCs, `iniciar_backup_run`/
+  `finalizar_backup_run`, mirroring `db/38`'s
+  `iniciar_document_scan_run`/`finalizar_document_scan_run` two-phase
+  shape and `db/49`'s internal `auth.role() = 'service_role'` gate (not
+  relied upon via `GRANT` alone — the exporter has no JWT, same
+  authorization path as the admin Edge Functions).
+  `finalizar_backup_run` writes the terminal run row **and** every
+  `backup_run_destinations` row for that run in one call/transaction — a
+  malformed destination element aborts the whole call (intentional
+  fail-loud behavior; this writer is internal-only, its sole caller is
+  the future exporter). **RLS/ACL:** admin-only `SELECT` on both tables,
+  **no `INSERT`/`UPDATE`/`DELETE` policy for any client role on either
+  table** (append-only intent enforced structurally, stricter than
+  `db/38`'s admin-`FOR ALL` precedent — even an admin session cannot
+  write directly; only the `SECURITY DEFINER` RPCs, which write as table
+  owner and bypass RLS by ownership, not by a permissive policy). Full,
+  explicit ACL stated in the migration itself (`db/57`/`db/63` standard):
+  `REVOKE ALL` from `PUBLIC`/`anon`/`authenticated`/`service_role` on
+  both tables, `GRANT SELECT` to `authenticated` only (admin-gated by
+  RLS); `REVOKE ALL` from `PUBLIC`/`anon`/`authenticated` on both RPCs,
+  `GRANT EXECUTE` to `service_role` only. **Staging (`ucrjtfswnfdlxwtmxnoo`,
+  confirmed via `usuarios.nivel_acesso`/`db/62` fingerprint): applied and
+  verified.** Registry `20260717125153 / 64_backup_runs_schema`
+  (pre-state clean — neither table existed). **Role-matrix verification
+  (`BEGIN…ROLLBACK`, synthetic, cleanup zero — confirmed `0` rows in both
+  tables post-rollback):** anon `SELECT` → `42501`; non-admin
+  authenticated `SELECT` → `0` rows (RLS); admin authenticated `SELECT` →
+  reads correctly; anon/admin-authenticated calling either RPC directly →
+  `42501` (only `service_role` has `EXECUTE`); `service_role` DB role with
+  a **mismatched** JWT `role` claim → internal gate still fires
+  (`writer_required`) — proves the internal check is not redundant
+  dead code layered under the `GRANT`; `service_role` (DB role + aligned
+  JWT claim) opens a run, finalizes it `completed` with **two destination
+  rows in one call (`google_drive:ok` + `onedrive:skipped`)** — read back
+  correctly by an admin session, exact match; a second run finalized
+  `failed` with one `failed` destination — also correct; double-finalize
+  of an already-`completed` run → graceful `run_not_running_or_not_found`,
+  not a crash; `finalizar_backup_run`'s three graceful-error branches
+  (`error_required_when_failed`, `row_count_manifest_invalid`,
+  `destinations_invalid`) all fire correctly on malformed input;
+  `service_role` attempting a **raw** table write (bypassing the RPC) →
+  `42501` (service_role has zero direct table grant); admin authenticated
+  attempting `UPDATE`/`DELETE` on either table → `42501` (append-only
+  intent holds even for an admin session). **17/17 checks passed.**
+  **Tests:** `tests/backup-runs-schema.smoke.js`, 17/17 (static
+  assertions — columns/defaults, all `CHECK` constraints, the
+  `scope`-locked-vs-`destination`-open asymmetry, RLS/grants completeness,
+  both RPC signatures/gates/validation branches, no destructive DDL/no
+  secrets, `db/62`/`db/63` non-regression). Purely additive change (two
+  new files, zero existing files modified) — **134 pre-existing failures
+  unchanged by construction** (documented flakiness class, unrelated to
+  this phase), `+17` new tests all passing, full suite `3792` tests /
+  `3658` pass. **Forbidden and honored:** no exporter (`BK4.2`), no UI
+  (`BK5`), no retention pruning (`BK6`), no CI config, no production, no
+  push. **Next authorizable action:** `BK4.2` (the exporter), own order —
+  its own risk gate per the contract (DB credential + `auth`-schema
+  handling). Full detail: `docs/architecture/CAMADA3_BACKUP_CONTRACT.md`.
 - **`G28-CAMADA-3-DIAGNOSIS-R1` (read-only diagnosis) + `BK3` (backup
   contract) — `CLOSED / ACCEPTED` (2026-07-17):** the architect authorized
   a read-only diagnosis of `G28-CAMADA-3` (automated backup — the second
