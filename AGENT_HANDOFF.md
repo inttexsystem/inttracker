@@ -1,5 +1,64 @@
 # ACTIVE OPERATIONAL HANDOFF
 
+- **`M8` (Documents Ingestor repoint → `gqmpsxkxynrjvidfmojk`) — `CLOSED /
+  ACCEPTED` (2026-07-18, out of numeric sequence by direct architect order):**
+  the Documents Ingestor was still writing to legacy `ucrjtfswnfdlxwtmxnoo` while
+  the live production project received no documents. Configuration phase — no
+  schema changes, no Supabase writes issued by Claude, no production access.
+  **Two installations repointed** (both `.env` gitignored): the in-repo
+  `services/documents-ingestor/` copy and the standalone operational twin at
+  `D:\OneDrive\Programação\Ravatex\documents-ingestor\` (the copy the
+  `Ravatex-DocumentScanWatcher-Staging` Task Scheduler entry runs). **Surfaces
+  changed:** both `.env` (`SUPABASE_URL` + `SUPABASE_PROJECT_REF` → new project;
+  `SUPABASE_SERVICE_ROLE_KEY` → the new-format `sb_secret_` key **pasted by the
+  architect directly**, never seen/logged/committed by Claude — even a 3-char
+  key-prefix print was blocked by the auto-mode classifier and abandoned; the
+  twin's Google OAuth creds + `RAVATEX_CNPJS` preserved untouched via in-place
+  `.*`-pattern substitution that never echoed the old legacy or Google secrets);
+  both `Start-DocumentScanWatcher.ps1` guards (`$ExpectedProjectRef` → new project,
+  message "staging"→"target" — the guard self-refuses to start on mismatch, so
+  repointing `.env` alone would have bricked the scheduled watcher); both
+  `SUPABASE_WRITER_RUNBOOK.md` (reworded "Staging Only / `ucrjtfswnfdlxwtmxnoo`" →
+  "Sanctioned Target Project Only / `gqmpsxkxynrjvidfmojk`", cutover-durable).
+  Hermetic tests referencing the legacy ref left untouched (fixtures, `§20`).
+  **Schema compatibility verified live** (read-only): every table/RPC the Ingestor
+  writes exists in the new project with correct `service_role` grants — nothing
+  missing. **Repoint verified by a real watcher cycle** (`--once
+  --confirm-real-google --confirm-supabase-write`): the Ingestor authenticated to
+  the new project with the new key and **all five writes landed** (request
+  `f3c3647e` requested→claimed→running→failed, linked to scan run `e9287e0e`
+  `triggered_by=service_role_cli`), zero `migration_XX_required`/schema-cache
+  errors — Supabase-layer repoint **proven**. But the Gmail scan failed at
+  `invalid_grant` (expired Google OAuth token, 0 documents), so the full
+  Gmail→Drive→DB document demonstration is **deferred by architect decision**
+  (`INGESTOR-DOC-CYCLE-VERIFY-DEFERRED`, gated on the interactive Google token
+  refresh — architect's action, coupled to `CAMADA3-OAUTH-GRANT-COUPLING`, the same
+  OAuth client the backup exporter reuses; a fresh scan request must be seeded since
+  the migrated one was consumed as `failed`). **Two order claims corrected against
+  live evidence, both architect-withdrawn:** the named CI file
+  `.github/workflows/ingestor-ci.yml` does **not exist** in either repo (nothing
+  deleted); the `document_scan_runs` RLS-off/anon-INSERT hole (`PRODUCTION-SECURITY-01`)
+  was **disproven live** (RLS enabled, `is_admin()`-gated, zero anon grants; all
+  `document_*` siblings share the safe shape) and **not registered** (refused to
+  record a canonical entry on a false premise; the architect affirmed the refusal as
+  the standard). **The real finding, registered:** `ANON-GRANT-DEFENSE-IN-DEPTH` —
+  27 non-document `public` tables carry raw table-level `anon INSERT/UPDATE/DELETE`
+  grants, inert today only because RLS policies evaluate false for unauthenticated
+  sessions (grants and policies disagree — no second line of defence); pre-existing,
+  faithfully migrated; separate `NOT AUTHORIZED` first-week candidate cross-referenced
+  to `IS-ADMIN-ACL-REVIEW`, **not merged**. **Drive/OAuth unchanged** (ruling #4);
+  `CAMADA3-OAUTH-GRANT-COUPLING` stands. **Record (this commit):** `PROJECT_STATE.md`
+  (`M8` `CLOSED / ACCEPTED` in Active phase + Migration governance + environment facts
+  + Closed-phases row; `ANON-GRANT-DEFENSE-IN-DEPTH` + `INGESTOR-DOC-CYCLE-VERIFY-DEFERRED`
+  registered); this handoff entry; `docs/ledgers/G28_LEDGER.md` `M8` entry (full
+  detail). The two `.env` edits are gitignored (not committed); the standalone twin's
+  `.ps1`/runbook edits live in that separate repo. **No Supabase writes by Claude**
+  (the watcher wrote via the Ingestor's own service_role key; all Claude MCP calls
+  read-only); **no production access** (`bhgifjrfagkzubpyqpew` untouched); **no push**
+  (not authorized by this order — the standing MCP-write→read-only flip reminder also
+  persists). **Next authorizable action:** an individual order for `M4` (Edge Functions
+  + secrets) or any `M5`-`M10` phase; plus `INGESTOR-DOC-CYCLE-VERIFY-DEFERRED` once the
+  Google token is refreshed.
 - **`M3` (production data migration into `gqmpsxkxynrjvidfmojk`) — `CLOSED /
   ACCEPTED` (2026-07-17):** production data copied from legacy
   `ucrjtfswnfdlxwtmxnoo` into `gqmpsxkxynrjvidfmojk` (executed earlier in this

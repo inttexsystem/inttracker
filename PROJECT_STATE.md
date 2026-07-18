@@ -20,9 +20,12 @@ are in `docs/ledgers/G28_LEDGER.md`. HEAD/working tree/divergence: consult Git d
   see "Migration governance" and `docs/reports/M2_SCHEMA_REPLAY_VERIFICATION_2026-07-17.md`),
   and **`M3` — `CLOSED / ACCEPTED`** (production data migration into
   `gqmpsxkxynrjvidfmojk` + `parametros_largura` overwrite from legacy, 2026-07-17;
-  see "Migration governance" and `docs/ledgers/G28_LEDGER.md` `M3-DATA` entry).
-  `M4`-`M10` remain `NOT AUTHORIZED`, each pending its own individual order; phases do
-  not chain automatically.
+  see "Migration governance" and `docs/ledgers/G28_LEDGER.md` `M3-DATA` entry), and
+  **`M8` — `CLOSED / ACCEPTED`** (Documents Ingestor repoint into
+  `gqmpsxkxynrjvidfmojk`, 2026-07-18, executed out of numeric sequence by direct
+  architect order; see "Migration governance" and the `M8` ledger entry).
+  `M4`-`M7`, `M9`, `M10` remain `NOT AUTHORIZED`, each pending its own individual
+  order; phases do not chain automatically.
 - **`BACKLOG FREEZE` in force (2026-07-17):** **no NEW fronts** until after cutover
   (`M10`). Only the **`M0`-`M10` migration plan** and the **canonical residual risk
   register** (12 items, ranked — see "Live debts and candidates") are authorizable
@@ -190,6 +193,34 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   and **must not be deleted or pruned without a separate, explicit architect
   decision.** Full detail: `docs/ledgers/G28_LEDGER.md` `M3-DATA` entry. **No
   production access; legacy read-only, no writes.** Next: `M4`.
+- **`M8` (Documents Ingestor repoint) — `CLOSED / ACCEPTED` (2026-07-18, executed out
+  of numeric sequence by direct architect order):** configuration phase — the two
+  Ingestor installations (in-repo `services/documents-ingestor/` + standalone
+  operational twin at `D:\OneDrive\Programação\Ravatex\documents-ingestor\`, the copy
+  the `Ravatex-DocumentScanWatcher-Staging` scheduled task runs) were repointed from
+  legacy `ucrjtfswnfdlxwtmxnoo` to `gqmpsxkxynrjvidfmojk`. **Surfaces changed:** both
+  `.env` (URL + `PROJECT_REF` → new; `SERVICE_ROLE_KEY` → new-format `sb_secret_` key
+  pasted by the architect, never seen/logged/committed by Claude; twin's Google creds
+  preserved), both `Start-DocumentScanWatcher.ps1` guards (`$ExpectedProjectRef` → new,
+  else the watcher self-refuses to start), both `SUPABASE_WRITER_RUNBOOK.md` (reworded
+  to "Sanctioned Target Project Only", cutover-durable). Hermetic tests referencing the
+  legacy ref left untouched (fixtures, `§20`). **Schema compatibility verified live**
+  (read-only): every table/RPC the Ingestor writes exists in the new project with the
+  right `service_role` grants. **Repoint verified by a real watcher cycle:** the
+  Ingestor authenticated to the new project with the new key and all five writes landed
+  (request `f3c3647e` + scan run `e9287e0e`), zero schema-cache/missing-RPC errors — but
+  the Gmail scan failed at `invalid_grant` (expired Google OAuth token, 0 documents), so
+  the full Gmail→Drive→DB document demonstration is **deferred**
+  (`INGESTOR-DOC-CYCLE-VERIFY-DEFERRED`, gated on token refresh, tied to
+  `CAMADA3-OAUTH-GRANT-COUPLING`). **Two order claims corrected against live evidence,
+  both architect-withdrawn:** the named CI file `.github/workflows/ingestor-ci.yml` does
+  not exist (nothing deleted); the `document_scan_runs` anon-INSERT hole
+  (`PRODUCTION-SECURITY-01`) was disproven live and not registered — the real finding is
+  `ANON-GRANT-DEFENSE-IN-DEPTH` (27 non-document tables, registered). **Drive/OAuth
+  unchanged** (ruling #4). **No Supabase writes issued by Claude** (the watcher wrote via
+  the Ingestor's own service_role key; all Claude MCP calls read-only); **no production
+  access; no push.** Full detail: `docs/ledgers/G28_LEDGER.md` `M8` entry. Next: `M4`
+  (or any `M5`-`M10`), plus the deferred doc-cycle verification.
 - **Staging-only execution boundary (`STAGING-ONLY-EXECUTION-BOUNDARY-A`,
   2026-07-15, partially superseded):** operational environment is staging
   `ucrjtfswnfdlxwtmxnoo`; the protected project `bhgifjrfagkzubpyqpew` is `OUT OF
@@ -298,6 +329,44 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   least-privilege standard; tightening touches every RLS policy that calls it, so it
   needs its own read-only diagnosis. Not a current exposure (`is_admin()` is `false`
   for anon via `auth.uid()`).
+- **`ANON-GRANT-DEFENSE-IN-DEPTH` — `NOT AUTHORIZED`, first-week debt (registered
+  `M8`, 2026-07-18):** in `gqmpsxkxynrjvidfmojk` (verified live, read-only), **27
+  non-document `public` tables** carry raw table-level `anon`
+  `INSERT`/`UPDATE`/`DELETE` grants (`clientes`, `cores`, `entregas`, `entrega_itens`,
+  `expedicoes`, `expedicao_itens`, `expedicao_movimentos`, `expedicao_movimento_itens`,
+  `fornecedores`, `lotes`, `modelos`, `op_eventos`, `op_fornecedores`, `op_itens`,
+  `op_latex_entregas`, `op_numeros`, `ops`, `ordens_compra_fio`, `parametros_largura`,
+  `pedidos`, `pedido_itens`, `pedido_cliente_eventos`, `pedido_eventos`,
+  `pedido_parciais`, `pedido_parcial_itens`, `precos_terceirizada`, `saldo_fios`,
+  `saldo_fios_op`, `usuarios` — RLS enabled on all). **Not a live hole:** every write
+  is blocked today because the effective policies gate on
+  `is_admin()`/`meu_fornecedor_id()`/`meu_cliente_id()`, all of which evaluate
+  false/null for an unauthenticated `anon` session. The defect is that grants and
+  policies disagree: a table whose safety rests entirely on policy correctness has no
+  second line of defence — a future policy edit that widens a `USING`/`WITH CHECK`
+  clause would immediately become an anon write path. **Pre-existing, faithfully
+  migrated** from the `db/*` grant statements (same origin as the schema replay), not
+  introduced by any `M`-track phase. Fix (its own future order): revoke the anon DML
+  grants so grants agree with policies; verify the admin/cliente/fornecedor RLS paths
+  still function. **Related to but distinct from `IS-ADMIN-ACL-REVIEW`** (that concerns
+  the `is_admin()` anchor function's own `EXECUTE` ACL; this concerns table-level DML
+  grants) — cross-referenced, **not merged**. The `document_*` family does **not**
+  share this shape (checked: RLS on, `is_admin()`-gated, zero anon grants), so there is
+  no document-side sibling. Discovered during the `M8` sibling sweep after the
+  originally-suspected `document_scan_runs` anon-INSERT premise was disproven live
+  (that premise was withdrawn; `PRODUCTION-SECURITY-01` was not registered).
+- **`INGESTOR-DOC-CYCLE-VERIFY-DEFERRED` — `NOT AUTHORIZED`, follow-up (registered
+  `M8`, 2026-07-18):** `M8` proved the Ingestor repoint at the Supabase layer (new
+  `sb_secret_` key auth + schema compatibility + five real writes landed in
+  `gqmpsxkxynrjvidfmojk` — request `f3c3647e` + scan run `e9287e0e`, both finalized
+  `failed`), but the full Gmail→Drive→DB document cycle did **not** complete: the real
+  scan failed at `invalid_grant` (expired Google OAuth token, 0 documents). Deferred
+  by architect decision (M8 close, 2026-07-18). To close: refresh the Google OAuth
+  token (interactive login — architect action, coupled to
+  `CAMADA3-OAUTH-GRANT-COUPLING`, same client the backup exporter reuses), seed one
+  fresh `document_scan_requests` row (the migrated one was consumed as `failed` during
+  verification), run the watcher once, and confirm a real document lands with its Drive
+  file resolving. Tie to `CAMADA3-OAUTH-GRANT-COUPLING`.
 - **Small code-health debts (frozen, folded into `CODE-HEALTH-AUDIT-§18-R1`):**
   `cadastrosModalGrid` dead helper; `tests/auth.smoke.js` outdated `<script>` regex
   (6 tests); `admin-usuarios-modal.js` at 576 lines; `tec-to-acabamento-flow`'s 2
@@ -331,10 +400,15 @@ decisions (verbatim) are in `docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md`
   `docs/reports/M2_SCHEMA_REPLAY_VERIFICATION_2026-07-17.md`) and **`M3` production
   data migrated** (auth remap 24 rows/1 column, FK integrity 76/76 relationships
   clean, sequences 10/10 resynced, `parametros_largura` overwritten from legacy
-  live values — see "Migration governance" `M3` record), new-format publishable key
-  supplied, matching secret key still to be obtained out of band; Vercel
-  `vercel.com/inttex` (repo-linked, not wired). Remaining wiring `NOT AUTHORIZED`
-  until the relevant `M4`-`M10` order. **Supabase MCP:** flipped to write for `M2`/
+  live values — see "Migration governance" `M3` record) and **`M8` Ingestor
+  repointed** (both `.env` copies + both `.ps1` guards + both runbooks → new project;
+  new-format `sb_secret_` key pasted by the architect; Supabase-layer write verified
+  live, full doc cycle deferred on the expired Google token — see "Migration
+  governance" `M8` record). New-format publishable key supplied; the matching secret
+  key is now in use by the Ingestor (`.env`, gitignored, out of band). Vercel
+  `vercel.com/inttex` (repo-linked, not wired). Remaining wiring (`js/config.js`
+  client repoint, Edge Functions, Vercel) `NOT AUTHORIZED` until the relevant
+  `M4`-`M7`/`M9`/`M10` order. **Supabase MCP:** flipped to write for `M2`/
   `M3` and now resolves to the **management-scoped** server (explicit `project_id`
   per call); **to be flipped back to read-only** by the architect — standing reminder.
 - **Remotes:** `production` = `https://github.com/inttexsystem/inttracker.git`
@@ -377,6 +451,7 @@ technical commits; documentation-only phases show `(docs)`. Consult HEAD with
 
 | Phase | Status | Date | Commit(s) |
 |---|---|---|---|
+| Documents Ingestor Repoint — `M8` (legacy `ucrjtfswnfdlxwtmxnoo` → `gqmpsxkxynrjvidfmojk`; config only, out of sequence) | `CLOSED / ACCEPTED` | 2026-07-18 | (config: 2×`.env` gitignored + 2×`.ps1` + 2×runbook; docs record) |
 | Production Data Migration — `M3` (legacy `ucrjtfswnfdlxwtmxnoo` → `gqmpsxkxynrjvidfmojk` + `parametros_largura` overwrite) | `CLOSED / ACCEPTED` | 2026-07-17 | (Supabase writes: data migration + `parametros_largura` UPDATE + docs record) |
 | Schema Replay into Sanctioned Target — `M2` (`db/01→64` → `gqmpsxkxynrjvidfmojk`) | `CLOSED / ACCEPTED` | 2026-07-17 | (Supabase writes: 64 migrations + docs record) |
 | Supabase Target Verification + Sanction — `M1` (`gqmpsxkxynrjvidfmojk`) | `CLOSED / ACCEPTED` | 2026-07-17 | (docs, read-only verification) |

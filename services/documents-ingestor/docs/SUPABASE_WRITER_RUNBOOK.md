@@ -2,11 +2,11 @@
 
 This runbook is for the server-side Documents Ingestor CLI only. It never belongs in the Controle de Tapetes frontend.
 
-## Staging Only
+## Sanctioned Target Project Only
 
-Use only the staging project `ucrjtfswnfdlxwtmxnoo`. Before a confirmed write, the local ignored `.env` must contain the staging URL, matching project ref, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_WRITER_ENABLED=true`.
+Use only the sanctioned target project `gqmpsxkxynrjvidfmojk` (migrated from the legacy `ucrjtfswnfdlxwtmxnoo` at M8). Before a confirmed write, the local ignored `.env` must contain that project's URL, matching project ref, `SUPABASE_SERVICE_ROLE_KEY` (the new-format `sb_secret_` key per the ratified key regime — same env-var name, new value format), and `SUPABASE_WRITER_ENABLED=true`.
 
-Never use the production project, an anon key, a PostgreSQL password, or a frontend module as the writer credential. Never commit `.env`.
+Never use the legacy project `ucrjtfswnfdlxwtmxnoo`, the protected reference `bhgifjrfagkzubpyqpew`, an anon/publishable key, a PostgreSQL password, or a frontend module as the writer credential. Never commit `.env`.
 
 ## Generate Local Exports
 
