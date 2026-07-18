@@ -44,27 +44,45 @@
   );
 
   // -- 3. Banner vermelho do write-guard (topo) ---------------------------
+  // BANNER-HEAD-DEFER-FIX (2026-07-18): este script carrega em <head>,
+  // ANTES de <body> existir — document.body é `null` no momento em que
+  // este arquivo executa. Corrigido na raiz (mesmo padrão de
+  // js/environment-banner.js): renderiza na hora se document.body já
+  // existir, senão adia para 'DOMContentLoaded' — nunca falha em
+  // silêncio (sempre loga o que aconteceu).
+  function _renderWriteGuardBanner() {
+    const _banner = document.createElement('div');
+    _banner.id = 'write-guard-banner';
+    _banner.setAttribute('role', 'alert');
+    _banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;' +
+      'background:#dc2626;color:#fff;text-align:center;padding:6px 12px;' +
+      'font-family:Inter,system-ui,sans-serif;font-size:13px;font-weight:600;' +
+      'box-shadow:0 1px 4px rgba(0,0,0,.2);';
+    _banner.textContent =
+      'LOCAL APONTANDO PARA PRODUÇÃO — WRITES BLOQUEADOS (insert/update/delete/upsert/rpc). ' +
+      'Reads e login funcionam normalmente.';
+    document.body.prepend(_banner);
+    console.warn('[WRITE-GUARD] write-guard-banner renderizado.');
+    return _banner;
+  }
+
   if (_GUARD_BLOCK_WRITES) {
     console.warn(
       '%c[WRITE-GUARD] LOCAL + PRODUÇÃO — writes bloqueados (insert/update/delete/upsert/rpc).',
       'background:#dc2626;color:#fff;padding:2px 6px;border-radius:3px;font-weight:bold;'
     );
-    // Banner DOM (adicionado se o body existir; sem throw se não)
-    try {
-      if (typeof document !== 'undefined' && document.body) {
-        const _banner = document.createElement('div');
-        _banner.id = 'write-guard-banner';
-        _banner.setAttribute('role', 'alert');
-        _banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;' +
-          'background:#dc2626;color:#fff;text-align:center;padding:6px 12px;' +
-          'font-family:Inter,system-ui,sans-serif;font-size:13px;font-weight:600;' +
-          'box-shadow:0 1px 4px rgba(0,0,0,.2);';
-        _banner.textContent =
-          'LOCAL APONTANDO PARA PRODUÇÃO — WRITES BLOQUEADOS (insert/update/delete/upsert/rpc). ' +
-          'Reads e login funcionam normalmente.';
-        document.body.prepend(_banner);
-      }
-    } catch (_) { /* DOM pode não estar pronto; banner é best-effort */ }
+    if (typeof document === 'undefined') {
+      console.warn('[WRITE-GUARD] write-guard-banner não renderizado: sem `document` neste ambiente.');
+    } else if (document.body) {
+      _renderWriteGuardBanner();
+    } else if (typeof document.addEventListener !== 'function') {
+      console.warn('[WRITE-GUARD] write-guard-banner não renderizado: document.body ausente e document.addEventListener indisponível (não é possível adiar).');
+    } else {
+      console.warn('[WRITE-GUARD] write-guard-banner adiado até DOMContentLoaded (document.body ainda não existe).');
+      document.addEventListener('DOMContentLoaded', function () {
+        _renderWriteGuardBanner();
+      }, { once: true });
+    }
   }
 
   // -- 4. Wrap do query builder ------------------------------------------
@@ -117,6 +135,7 @@
     IS_PROD_URL: _IS_PROD_URL,
     GUARD_BLOCK_WRITES: _GUARD_BLOCK_WRITES,
     LOCAL_HOSTS: _LOCAL_HOSTS,
+    renderWriteGuardBanner: _renderWriteGuardBanner,
   };
 
   // Compatibilidade com o script inline atual.

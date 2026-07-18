@@ -141,6 +141,87 @@ function makeDomMock({ withWriteGuardBanner = false } = {}) {
   return { document, body, elementsById, created };
 }
 
+// Cria um DOM mock cujo `body` começa `null` (simula o script rodando em
+// <head>, antes do parser alcançar <body>) e que rastreia listeners de
+// 'DOMContentLoaded' para permitir disparar o "corpo ficou pronto" sob
+// controle do teste (BANNER-HEAD-DEFER-FIX).
+function makeDeferredDomMock({ withWriteGuardBanner = false } = {}) {
+  const created = [];
+  const domReadyListeners = [];
+  const elementsById = {};
+  let body = null;
+
+  function makeBody() {
+    const b = {
+      tagName: 'BODY',
+      children: [],
+      appendChild(n) { this.children.push(n); created.push(n); return n; },
+      prepend(n) { this.children.unshift(n); created.push(n); return n; },
+      insertBefore(n, ref) {
+        const i = this.children.indexOf(ref);
+        if (i < 0) { this.children.push(n); }
+        else { this.children.splice(i, 0, n); }
+        created.push(n);
+        return n;
+      },
+    };
+    if (withWriteGuardBanner) {
+      const wg = {
+        id: 'write-guard-banner',
+        tagName: 'DIV',
+        style: {},
+        textContent: 'WRITES BLOQUEADOS',
+        _parent: b,
+      };
+      Object.defineProperty(wg, 'parentNode', { get: () => wg._parent });
+      b.children.push(wg);
+      elementsById['write-guard-banner'] = wg;
+    }
+    return b;
+  }
+
+  const document = {
+    get body() { return body; },
+    createElement: (t) => {
+      const el = {
+        tagName: String(t).toUpperCase(),
+        style: { cssText: '' },
+        _attrs: {},
+        _text: null,
+        setAttribute(k, v) { this._attrs[k] = v; if (k === 'role') this._role = v; },
+        getAttribute(k) { return this._attrs[k]; },
+        get textContent() { return this._text == null ? '' : this._text; },
+        set textContent(v) { this._text = v; },
+      };
+      let _id = '';
+      Object.defineProperty(el, 'id', {
+        get() { return _id; },
+        set(v) { _id = String(v); if (_id) elementsById[_id] = el; },
+        configurable: true,
+        enumerable: true,
+      });
+      created.push(el);
+      return el;
+    },
+    getElementById: (id) => elementsById[id] || null,
+    addEventListener: (type, cb) => {
+      if (type === 'DOMContentLoaded') domReadyListeners.push(cb);
+    },
+  };
+
+  // Simula o parser alcançando <body> e o navegador disparando
+  // 'DOMContentLoaded' — dispara todos os listeners registrados.
+  function simulateDomReady() {
+    body = makeBody();
+    const listeners = domReadyListeners.slice();
+    domReadyListeners.length = 0;
+    listeners.forEach((cb) => cb());
+    return body;
+  }
+
+  return { document, get body() { return body; }, created, domReadyListeners, simulateDomReady };
+}
+
 // Faz um client Supabase FAKE que devolve Promises.
 function makeFakeSupabase() {
   const qb = () => {
@@ -195,6 +276,38 @@ function runSandbox({ hostname, forceProduction = false, withWriteGuardBanner = 
   vm.runInContext(envSrc,  sandbox, { filename: 'js/environment-banner.js' });
 
   return { sandbox, document, body, created };
+}
+
+// Como runSandbox, mas com document.body começando `null` (simula os
+// scripts carregando em <head>, ANTES do parser alcançar <body> —
+// BANNER-HEAD-DEFER-FIX). `forceProdUrlLocal` sobrescreve SUPABASE_URL
+// para o ref de produção logo após config.js, simulando "local apontando
+// para produção" (ativa o write-guard) sem depender de hostname real.
+function runDeferredSandbox({ hostname, withWriteGuardBanner = false, forceProdUrlLocal = false } = {}) {
+  const mock = makeDeferredDomMock({ withWriteGuardBanner });
+  const fakeSupabase = makeFakeSupabase();
+  const sandbox = {
+    console, URL, URLSearchParams, setTimeout, clearTimeout,
+    location: { hostname, href: 'http://' + hostname + '/index.html' },
+    document: mock.document,
+    supabase: fakeSupabase,
+    Promise, Reflect, Proxy, Set,
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+
+  vm.runInContext(cfgSrc, sandbox, { filename: 'js/config.js' });
+  if (forceProdUrlLocal) {
+    vm.runInContext(
+      'SUPABASE_URL = APP_ENVIRONMENTS.production.supabaseUrl;',
+      sandbox, { filename: 'force-prod-url.js' }
+    );
+  }
+  vm.runInContext(supaSrc, sandbox, { filename: 'js/supabase-client.js' });
+  vm.runInContext(envSrc,  sandbox, { filename: 'js/environment-banner.js' });
+
+  return { sandbox, mock };
 }
 
 // -----------------------------------------------------------------------------
@@ -390,6 +503,101 @@ test('runtime: env-banner é inserido relativo ao write-guard banner (sem sobres
   const envIdx = body.children.indexOf(env);
   assert.equal(envIdx, wgIdx + 1,
     `env-banner deveria estar em idx ${wgIdx + 1}, mas está em ${envIdx}`);
+});
+
+// -----------------------------------------------------------------------------
+// 3b. BANNER-HEAD-DEFER-FIX: document.body ainda não existe no momento em
+// que os scripts carregam (cenário real de <head>) — o banner deve adiar
+// para DOMContentLoaded em vez de desistir em silêncio, e renderizar
+// corretamente quando o corpo fica pronto.
+// -----------------------------------------------------------------------------
+
+test('DEFER-FIX staging: document.body null no load → env-banner NÃO existe ainda, mas fica agendado', () => {
+  const { mock } = runDeferredSandbox({ hostname: 'localhost' });
+  assert.equal(mock.document.getElementById('env-banner'), null,
+    'env-banner não deveria existir antes de DOMContentLoaded');
+  assert.equal(mock.domReadyListeners.length, 1,
+    'deveria haver exatamente 1 listener de DOMContentLoaded agendado para o env-banner');
+});
+
+test('DEFER-FIX staging: env-banner renderiza corretamente após DOMContentLoaded (document.body ficou pronto)', () => {
+  const { mock } = runDeferredSandbox({ hostname: 'localhost' });
+  const bodyAfter = mock.simulateDomReady();
+  const banner = mock.document.getElementById('env-banner');
+  assert.ok(banner, 'env-banner deveria existir após DOMContentLoaded');
+  assert.match(banner.textContent, /AMBIENTE STAGING — DADOS DE TESTE/);
+  assert.ok(bodyAfter.children.includes(banner), 'env-banner deveria estar no body após o render adiado');
+});
+
+test('DEFER-FIX produção: document.body null no load → NENHUM listener de DOMContentLoaded é agendado (early-return antes de tocar o DOM)', () => {
+  const mock = makeDeferredDomMock();
+  const fakeSupabase = makeFakeSupabase();
+  const sandbox = {
+    console, URL, URLSearchParams, setTimeout, clearTimeout,
+    location: { hostname: 'inttracker-jade.vercel.app', href: 'https://inttracker-jade.vercel.app/index.html' },
+    document: mock.document,
+    supabase: fakeSupabase,
+    Promise, Reflect, Proxy, Set,
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(cfgSrc, sandbox, { filename: 'js/config.js' });
+  vm.runInContext(supaSrc, sandbox, { filename: 'js/supabase-client.js' });
+  vm.runInContext(envSrc, sandbox, { filename: 'js/environment-banner.js' });
+
+  assert.equal(mock.domReadyListeners.length, 0,
+    'produção não deveria agendar nenhum listener — ensureEnvironmentBanner retorna antes de checar document.body');
+  mock.simulateDomReady();
+  assert.equal(mock.document.getElementById('env-banner'), null,
+    'env-banner não deveria existir em produção mesmo depois de DOMContentLoaded');
+});
+
+test('DEFER-FIX: banner de staging é best-effort observável, não silencioso (loga adiamento e render)', () => {
+  const logs = [];
+  const fakeConsole = Object.assign(Object.create(console), {
+    info: (...args) => logs.push(args.join(' ')),
+  });
+  const mock = makeDeferredDomMock();
+  const fakeSupabase = makeFakeSupabase();
+  const sandbox = {
+    console: fakeConsole, URL, URLSearchParams, setTimeout, clearTimeout,
+    location: { hostname: 'localhost', href: 'http://localhost/index.html' },
+    document: mock.document,
+    supabase: fakeSupabase,
+    Promise, Reflect, Proxy, Set,
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(cfgSrc, sandbox, { filename: 'js/config.js' });
+  vm.runInContext(supaSrc, sandbox, { filename: 'js/supabase-client.js' });
+  vm.runInContext(envSrc, sandbox, { filename: 'js/environment-banner.js' });
+
+  assert.ok(logs.some((l) => /adiado/i.test(l)),
+    'deveria logar que o env-banner foi adiado (nada de silêncio)');
+  mock.simulateDomReady();
+  assert.ok(logs.some((l) => /renderizado/i.test(l)),
+    'deveria logar quando o env-banner efetivamente renderiza após DOMContentLoaded');
+});
+
+test('DEFER-FIX write-guard: document.body null no load (local apontando para produção) → banner adiado e renderizado após DOMContentLoaded', () => {
+  const { mock, sandbox } = runDeferredSandbox({ hostname: 'localhost', forceProdUrlLocal: true });
+  assert.equal(vm.runInContext('window.RAVATEX_SUPABASE_CLIENT.GUARD_BLOCK_WRITES', sandbox), true,
+    'pré-condição: guard deveria estar ativo (local + URL de produção)');
+  assert.equal(mock.document.getElementById('write-guard-banner'), null,
+    'write-guard-banner não deveria existir antes de DOMContentLoaded');
+  mock.simulateDomReady();
+  const banner = mock.document.getElementById('write-guard-banner');
+  assert.ok(banner, 'write-guard-banner deveria existir após DOMContentLoaded');
+  assert.match(banner.textContent, /LOCAL APONTANDO PARA PRODUÇÃO/);
+});
+
+test('DEFER-FIX write-guard: guard inativo (staging normal) → nenhum listener de DOMContentLoaded é agendado para o write-guard-banner', () => {
+  const { mock, sandbox } = runDeferredSandbox({ hostname: 'localhost' });
+  assert.equal(vm.runInContext('window.RAVATEX_SUPABASE_CLIENT.GUARD_BLOCK_WRITES', sandbox), false);
+  // Só o env-banner deveria ter agendado listener (1); o write-guard não ativa.
+  assert.equal(mock.domReadyListeners.length, 1);
 });
 
 // -----------------------------------------------------------------------------
