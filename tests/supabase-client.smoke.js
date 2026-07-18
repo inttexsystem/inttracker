@@ -35,7 +35,7 @@ const INDEX = path.join(ROOT, 'index.html');
 const CFG   = path.join(ROOT, 'js', 'config.js');
 const SUPA  = path.join(ROOT, 'js', 'supabase-client.js');
 
-const PROD_REF    = 'bhgifjrfagkzubpyqpew';
+const PROD_REF    = 'gqmpsxkxynrjvidfmojk';
 const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
 
 const cfgSrc    = fs.readFileSync(CFG,  'utf8');
@@ -351,8 +351,8 @@ test('staging: 127.0.0.1 → guard OFF, writes passam', async () => {
   assert.ok(updCalls.length >= 1, 'update não chegou no fake client em 127.0.0.1');
 });
 
-test('produção (grupoterrabranca.github.io): guard OFF, writes passam', async () => {
-  const { sandbox, fakeSupa } = runSandbox({ hostname: 'grupoterrabranca.github.io' });
+test('produção (inttracker-jade.vercel.app): guard OFF, writes passam', async () => {
+  const { sandbox, fakeSupa } = runSandbox({ hostname: 'inttracker-jade.vercel.app' });
   assert.equal(vm.runInContext('window._GUARD_BLOCK_WRITES', sandbox), false);
   assert.equal(vm.runInContext('window._IS_LOCAL', sandbox), false);
   const qb = vm.runInContext(`supa.from('qualquer')`, sandbox);

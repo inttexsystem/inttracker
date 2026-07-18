@@ -8,10 +8,11 @@
 //   3. script inline NÃO contém mais as definições de
 //      APP_ENVIRONMENTS, detectAppEnvironment, APP_ENV, APP_CONFIG,
 //      SUPABASE_URL, SUPABASE_ANON_KEY;
-//   4. detectAppEnvironment retorna 'production' para
-//      grupoterrabranca.github.io e subdomínios;
+//   4. detectAppEnvironment retorna 'production' apenas para os domínios
+//      de produção Vercel exatos (inttracker-jade.vercel.app,
+//      inttracker-git-main-inttex.vercel.app);
 //   5. detectAppEnvironment retorna 'staging' para qualquer outro host
-//      (localhost, 127.0.0.1, ravatexapps-dotcom, example.com, vazio);
+//      (localhost, 127.0.0.1, previews *.vercel.app, example.com, vazio);
 //   6. refs canônicos de produção e staging aparecem no módulo;
 //   7. service_role e password literal NÃO aparecem em lugar nenhum;
 //   8. em runtime simulado, js/config.js cria window.RAVATEX_CONFIG
@@ -30,7 +31,7 @@ const ROOT  = path.resolve(__dirname, '..');
 const INDEX = path.join(ROOT, 'index.html');
 const CFG   = path.join(ROOT, 'js', 'config.js');
 
-const PROD_REF    = 'bhgifjrfagkzubpyqpew';
+const PROD_REF    = 'gqmpsxkxynrjvidfmojk';
 const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
 
 const cfgSrc     = fs.readFileSync(CFG, 'utf8');
@@ -219,15 +220,24 @@ test('runtime: globais legados continuam disponíveis', () => {
   assert.equal(vm.runInContext('typeof SUPABASE_ANON_KEY', sb),    'string');
 });
 
-test('runtime: detectAppEnvironment("grupoterrabranca.github.io") → production', () => {
-  const sb = runConfigInSandbox({ hostname: 'grupoterrabranca.github.io' });
+test('runtime: detectAppEnvironment("inttracker-jade.vercel.app") → production', () => {
+  const sb = runConfigInSandbox({ hostname: 'inttracker-jade.vercel.app' });
   assert.equal(vm.runInContext('APP_ENV', sb), 'production');
   assert.ok(vm.runInContext('SUPABASE_URL', sb).includes(PROD_REF));
 });
 
-test('runtime: detectAppEnvironment("x.grupoterrabranca.github.io") → production (subdomínio)', () => {
-  const sb = runConfigInSandbox({ hostname: 'x.grupoterrabranca.github.io' });
+test('runtime: detectAppEnvironment("inttracker-git-main-inttex.vercel.app") → production', () => {
+  const sb = runConfigInSandbox({ hostname: 'inttracker-git-main-inttex.vercel.app' });
   assert.equal(vm.runInContext('APP_ENV', sb), 'production');
+  assert.ok(vm.runInContext('SUPABASE_URL', sb).includes(PROD_REF));
+});
+
+test('runtime: detectAppEnvironment("random-preview.vercel.app") → staging (preview deploy, fail-safe)', () => {
+  // Match é exato contra os domínios de produção — qualquer outro *.vercel.app
+  // (incluindo preview deployments de PR/branch) cai em staging por padrão,
+  // para nunca escrever em produção a partir de um preview não revisado.
+  const sb = runConfigInSandbox({ hostname: 'random-preview.vercel.app' });
+  assert.equal(vm.runInContext('APP_ENV', sb), 'staging');
 });
 
 test('runtime: detectAppEnvironment("localhost") → staging', () => {
@@ -251,10 +261,10 @@ test('runtime: detectAppEnvironment("example.com") → staging (fallback seguro)
   assert.equal(vm.runInContext('APP_ENV', sb), 'staging');
 });
 
-test('runtime: detectAppEnvironment em MAIÚSCULAS também funciona ("Grupoterrabranca.GITHUB.io")', () => {
+test('runtime: detectAppEnvironment em MAIÚSCULAS também funciona ("Inttracker-Jade.VERCEL.app")', () => {
   // Sanity: o código usa .toLowerCase() antes de comparar. Garante que
   // o comportamento original (case-insensitive) foi preservado.
-  const sb = runConfigInSandbox({ hostname: 'Grupoterrabranca.GITHUB.io' });
+  const sb = runConfigInSandbox({ hostname: 'Inttracker-Jade.VERCEL.app' });
   assert.equal(vm.runInContext('APP_ENV', sb), 'production');
 });
 
@@ -265,7 +275,7 @@ test('runtime: detectAppEnvironment(undefined) → staging (sem hostname)', () =
 
 test('runtime: APP_CONFIG.isProduction bate com APP_ENV', () => {
   for (const [host, env] of [
-    ['grupoterrabranca.github.io', 'production'],
+    ['inttracker-jade.vercel.app', 'production'],
     ['localhost', 'staging'],
   ]) {
     const sb = runConfigInSandbox({ hostname: host });
@@ -275,7 +285,7 @@ test('runtime: APP_CONFIG.isProduction bate com APP_ENV', () => {
 });
 
 test('runtime: SUPABASE_URL em produção contém o ref de produção', () => {
-  const sb = runConfigInSandbox({ hostname: 'grupoterrabranca.github.io' });
+  const sb = runConfigInSandbox({ hostname: 'inttracker-jade.vercel.app' });
   const url = vm.runInContext('SUPABASE_URL', sb);
   assert.ok(url.startsWith('https://'));
   assert.ok(url.includes(PROD_REF));
@@ -293,7 +303,7 @@ test('runtime: SUPABASE_URL em staging contém o ref de staging', () => {
 test('runtime: SUPABASE_ANON_KEY é JWT com 3 segmentos (anon, não service_role)', () => {
   // service_role começa com eyJ...mas tem `role: "service_role"` no payload.
   // Aqui validamos que (a) tem 3 segmentos e (b) não menciona service_role.
-  for (const host of ['grupoterrabranca.github.io', 'localhost']) {
+  for (const host of ['inttracker-jade.vercel.app', 'localhost']) {
     const sb = runConfigInSandbox({ hostname: host });
     const key = vm.runInContext('SUPABASE_ANON_KEY', sb);
     assert.equal(typeof key, 'string');

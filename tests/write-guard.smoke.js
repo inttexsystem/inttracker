@@ -3,8 +3,8 @@
 // O que este teste garante:
 //
 //   1. Detecção de ambiente por hostname:
-//      - grupoterrabranca.github.io → production
-//      - localhost / 127.0.0.1 / ravatexapps-dotcom.github.io / unknown → staging
+//      - inttracker-jade.vercel.app / inttracker-git-main-inttex.vercel.app → production
+//      - localhost / 127.0.0.1 / preview *.vercel.app / unknown → staging
 //
 //   2. Write-guard (defesa em profundidade):
 //      - Ativa SÓ se APP_ENV === 'production' E hostname é local
@@ -12,7 +12,7 @@
 //      - Preserva select e auth.getSession
 //
 //   3. Refs e chaves:
-//      - produção usa bhgifjrfagkzubpyqpew
+//      - produção usa gqmpsxkxynrjvidfmojk
 //      - staging usa ucrjtfswnfdlxwtmxnoo
 //      - service_role não aparece no index.html
 //
@@ -37,7 +37,7 @@ const ROOT = path.resolve(__dirname, '..');
 const PORT = 8765;
 const HOST = '127.0.0.1';
 
-const PROD_REF = 'bhgifjrfagkzubpyqpew';
+const PROD_REF = 'gqmpsxkxynrjvidfmojk';
 const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
 
 function fetchIndexHtml() {
@@ -213,8 +213,17 @@ test('script inline NÃO contém mais o client Supabase nem o write-guard nem o 
   assert.match(inline, /=== BOOT NOTES/);
 });
 
-test('hostname grupoterrabranca.github.io → production (ref bhgifjrfagkzubpyqpew)', async () => {
-  const { env } = await runGuardInSandbox({ hostname: 'grupoterrabranca.github.io' });
+test('hostname inttracker-jade.vercel.app → production (ref gqmpsxkxynrjvidfmojk)', async () => {
+  const { env } = await runGuardInSandbox({ hostname: 'inttracker-jade.vercel.app' });
+  assert.equal(env.APP_ENV, 'production');
+  assert.ok(env.SUPABASE_URL.includes(PROD_REF), 'SUPABASE_URL não tem ref de produção');
+  assert.equal(env.IS_PROD_URL, true);
+  assert.equal(env.IS_LOCAL, false);
+  assert.equal(env.GUARD_BLOCK_WRITES, false, 'guard não deve ativar em produção real');
+});
+
+test('hostname inttracker-git-main-inttex.vercel.app → production (ref gqmpsxkxynrjvidfmojk)', async () => {
+  const { env } = await runGuardInSandbox({ hostname: 'inttracker-git-main-inttex.vercel.app' });
   assert.equal(env.APP_ENV, 'production');
   assert.ok(env.SUPABASE_URL.includes(PROD_REF), 'SUPABASE_URL não tem ref de produção');
   assert.equal(env.IS_PROD_URL, true);
@@ -253,10 +262,10 @@ test('hostname desconhecido → staging (fallback seguro)', async () => {
   assert.equal(env.GUARD_BLOCK_WRITES, false);
 });
 
-test('hostname *.grupoterrabranca.github.io → production (subdomínio)', async () => {
-  const { env } = await runGuardInSandbox({ hostname: 'x.grupoterrabranca.github.io' });
-  assert.equal(env.APP_ENV, 'production');
-  assert.ok(env.SUPABASE_URL.includes(PROD_REF));
+test('hostname preview *.vercel.app → staging (fail-safe, não é domínio de produção exato)', async () => {
+  const { env } = await runGuardInSandbox({ hostname: 'random-preview.vercel.app' });
+  assert.equal(env.APP_ENV, 'staging');
+  assert.ok(env.SUPABASE_URL.includes(STAGING_REF));
 });
 
 test('em staging: insert/update/delete/upsert/rpc NÃO são bloqueados', async () => {
@@ -286,8 +295,8 @@ test('em staging: select e auth.getSession funcionam', async () => {
   assert.equal(authSession && typeof authSession, 'object', 'auth.getSession deve devolver objeto');
 });
 
-test('em produção (grupoterrabranca.github.io): writes NÃO são bloqueados', async () => {
-  const { sandbox, fakeSupa } = await runGuardInSandbox({ hostname: 'grupoterrabranca.github.io' });
+test('em produção (inttracker-jade.vercel.app): writes NÃO são bloqueados', async () => {
+  const { sandbox, fakeSupa } = await runGuardInSandbox({ hostname: 'inttracker-jade.vercel.app' });
   fakeSupa._calls.length = 0;
   const qb = vm.runInContext(`supa.from('qualquer')`, sandbox);
   const res = await qb.insert({ foo: 'bar' });
@@ -307,8 +316,9 @@ test('defesa em profundidade: IS_LOCAL e IS_PROD_URL nunca são ambos true', asy
   const checks = [
     { hostname: 'localhost' },
     { hostname: '127.0.0.1' },
-    { hostname: 'grupoterrabranca.github.io' },
-    { hostname: 'x.grupoterrabranca.github.io' },
+    { hostname: 'inttracker-jade.vercel.app' },
+    { hostname: 'inttracker-git-main-inttex.vercel.app' },
+    { hostname: 'random-preview.vercel.app' },
     { hostname: 'ravatexapps-dotcom.github.io' },
     { hostname: 'example.com' },
   ];
@@ -319,16 +329,16 @@ test('defesa em profundidade: IS_LOCAL e IS_PROD_URL nunca são ambos true', asy
   }
 });
 
-test('produção ref bhgifjrfagkzubpyqpew aparece em js/config.js (production)', async () => {
+test('produção ref gqmpsxkxynrjvidfmojk aparece em js/config.js (production)', async () => {
   // A partir da CONFIG-MODULE-A, o ref vive em js/config.js, não mais
   // no script inline de index.html. Aqui validamos que o ref está em
   // config.js E sumiu do body do index.html.
   const { body } = await fetchIndexHtml();
   const cfgSrc = fs.readFileSync(path.join(ROOT, 'js', 'config.js'), 'utf8');
-  assert.match(cfgSrc, /supabaseUrl:\s*'https:\/\/bhgifjrfagkzubpyqpew\.supabase\.co'/);
+  assert.match(cfgSrc, /supabaseUrl:\s*'https:\/\/gqmpsxkxynrjvidfmojk\.supabase\.co'/);
   // O ref NÃO deve mais aparecer no body do index.html (que agora só
   // carrega config via <script src> e referencia SUPABASE_URL como global).
-  assert.equal(body.includes('bhgifjrfagkzubpyqpew'), false,
+  assert.equal(body.includes('gqmpsxkxynrjvidfmojk'), false,
     'ref de produção ainda aparece no body de index.html — config não foi totalmente extraída');
 });
 

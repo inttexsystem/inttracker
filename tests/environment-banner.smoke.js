@@ -36,7 +36,7 @@ const CFG   = path.join(ROOT, 'js', 'config.js');
 const SUPA  = path.join(ROOT, 'js', 'supabase-client.js');
 const ENV   = path.join(ROOT, 'js', 'environment-banner.js');
 
-const PROD_REF    = 'bhgifjrfagkzubpyqpew';
+const PROD_REF    = 'gqmpsxkxynrjvidfmojk';
 const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
 
 const cfgSrc   = fs.readFileSync(CFG, 'utf8');
@@ -351,13 +351,13 @@ test('runtime staging: cria #env-banner quando APP_ENV !== production', () => {
 });
 
 test('runtime produção: NÃO cria #env-banner quando APP_ENV === production', () => {
-  const { document, body } = runSandbox({ hostname: 'grupoterrabranca.github.io', forceProduction: true });
+  const { document, body } = runSandbox({ hostname: 'inttracker-jade.vercel.app', forceProduction: true });
   const banner = document.getElementById('env-banner');
   assert.equal(banner, null, '#env-banner não deveria existir em produção');
 });
 
 test('runtime produção: ensureEnvironmentBanner retorna null', () => {
-  const { sandbox } = runSandbox({ hostname: 'grupoterrabranca.github.io', forceProduction: true });
+  const { sandbox } = runSandbox({ hostname: 'inttracker-jade.vercel.app', forceProduction: true });
   const result = vm.runInContext('window.RAVATEX_ENV_BANNER.ensureEnvironmentBanner()', sandbox);
   assert.equal(result, null,
     'ensureEnvironmentBanner deveria retornar null em produção');
