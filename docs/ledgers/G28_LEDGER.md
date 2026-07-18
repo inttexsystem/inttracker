@@ -1867,3 +1867,89 @@ risco residual e próxima fase indicada no fechamento.
 - **STRUCTURAL POLICY COMPLIANCE:** `§14` (single scope) — documentation only, no code/schema/Supabase/Vercel action by Claude; `§15` (Git) — selective staging by literal path, push to `production/main` under M-track authorization; `§19` — English throughout. Production `bhgifjrfagkzubpyqpew` not accessed.
 - **Push:** authorized and executed — `production/main`, docs commit "Close migration track and lift backlog freeze".
 - **Next authorizable action:** any new front by its own order; the standing highest-priority item is `INGESTOR-DOC-CYCLE-VERIFY-DEFERRED` (active production blocker). Standing reminder: flip the Supabase MCP back to read-only.
+
+## 2026-07-18 — ORDEM-COMPRA-SPEC (Purchase Order Lifecycle Spec) — SPEC DELIVERED / PENDING RATIFICATION
+
+- **Gate:** docs-only phase, explicit architect order ("ARCHITECT AUTHORIZATION —
+  ORDEM-COMPRA-SPEC (docs-only)", Sonnet 5 / high effort), per the accepted
+  `PURCHASE-ORDER-FOUNDATION-AUDIT` and a consolidated set of architect decisions
+  carried in the order itself. No code, SQL, staging, or production action authorized
+  or taken.
+- **Front:** new track, `ORDEM-COMPRA-LIFECYCLE` (purchase-order / `ordens_compra_fio`
+  lifecycle rework).
+- **Deliverable:** `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md` —
+  `PROPOSED`, for architect ratification. Specifies, against an evidenced read-only
+  inventory of the current code (`ordens_compra_fio` schema in `db/01_schema.sql`,
+  generation at Abrir OP in `op-persistir.js:218-236`, the single shared receipt
+  writer `registrarRecebimentoOrdemFio` in `op-writes.js:29-43` called from
+  `op-nova.js`'s `buildBlocoFios`/`buildOrdemPendenteRow` and from
+  `pedido-detail-events.js`'s `buildInsumosTransferForm` inside the `insumos`
+  stepper-stage transition modal, and the unguarded client-side
+  `iniciarProducaoOP`/`snapshotSaldoEIniciarProducao` production-start writer in
+  `op-recalculo.js:108-163`):
+  - **Three orthogonal dimensions**, not a linear state machine — administrative
+    cycle (`rascunho`/`emitida`/`cancelada`), acceptance
+    (`nao_aplicavel`/`pendente`/`aceita`/`rejeitada`), and receipt (derived,
+    `nao_recebido`/`parcial`/`recebido`, computed from a new append-only
+    `ordem_compra_fio_lancamentos` physical-registration ledger against
+    `kg_pedido` — never set directly).
+  - **Schema (PROPOSED, additive only):** new columns on `ordens_compra_fio`
+    (`status_administrativo`, `status_aceite`, `aceite_exigido_na_emissao` snapshot,
+    `emitida_em`/`_por`, `cancelada_em`/`_por`, `aceite_decidida_em`/`_por`,
+    `aceite_motivo`, `status_recebimento`, `legado_recebimento_automatico`); new
+    tables `ordem_compra_fio_lancamentos` (receipt ledger), `ordem_compra_eventos`
+    (transition audit, `op_eventos`/`usuarios_eventos` pattern), and
+    `ordem_compra_config` (singleton, `exige_aceite BOOLEAN DEFAULT FALSE`,
+    deliberately not a generic config/feature-flag engine per the ratified Rule 7);
+    a one-time legacy-marking backfill for every pre-existing row
+    (`status_administrativo='emitida'`, `legado_recebimento_automatico=TRUE`, no
+    retroactive `kg_recebido` rewrite).
+  - **Config freeze rule:** emission snapshots the live `ordem_compra_config` value
+    into `aceite_exigido_na_emissao`; toggling the global config only affects orders
+    emitted afterward — no retroactive blocking/unblocking.
+  - **Production gate (Phase D, specified only):** two independent queries for
+    "Iniciar produção" — cotton per-OP, polyester per-pedido (shared PRETO/BRANCO
+    orders gate all the pedido's OPs together, per architect decision (a) in the
+    order), joined via `ordens_compra_fio.op_id → ops.lote_id → lotes.pedido_id`.
+    Flagged, not resolved: the current gate attach point
+    (`op-recalculo.js:108-163`) is a direct client-side `ops` update with no RPC in
+    front of it — wiring the gate only in the UI would repeat the shape of the
+    already-registered `A2-SERVER-SIDE-ENFORCEMENT` debt; Phase D should enforce
+    server-side.
+  - **7 open architect decisions** (a)-(g) — supplier-accepts-own-order precedence,
+    admin-accepts-on-behalf, admin-override-of-rejection, undo-acceptance,
+    acceptance-after-partial-receipt, order-modification-after-emission (recommended:
+    emission locks quantities), cancellation-with-partial-receipts (recommended:
+    ledger entries are never reversed) — each with a recommendation, none ratified
+    by this document.
+  - **UI surface (conceptual, no mockup):** new affordances render as a sub-panel
+    inside the existing `insumos` transition-modal host
+    (`buildInsumosTransferForm`/`buildBlocoFios`), reusing existing control-panel
+    visual tokens — not a new pedido stage, not a detached CRUD screen. Mockup gate
+    (Supervision Protocol) is explicitly deferred to after ratification, by the
+    architect's reviewer.
+  - **Phasing, each independently shippable:** `A` schema+config (additive,
+    zero behavior change) → `B` panel visibility + administrative writes
+    (behavior change flagged: newly opened OPs require explicit "Emitir" before
+    receipt) → `C` receipt rework via the single shared writer (internal
+    implementation swap behind an unchanged RPC signature) → `D` gate activation
+    (behavior change flagged: production-start can now block on insufficient yarn)
+    → `E` dormant-acceptance verification checkpoint (no code, read-only). Blast
+    radius stated per phase in the spec; none authorized by this record.
+- **Record (this commit):** `PROJECT_STATE.md` (`ORDEM-COMPRA-LIFECYCLE` track
+  `OPENED`, spec `PROPOSED`, all phases `NOT AUTHORIZED` — Active phase block,
+  `NOT AUTHORIZED` candidate fronts, Closed-phases row, Mandatory links); this
+  ledger entry. `AGENT_HANDOFF.md` not touched (not in this order's REGISTER scope).
+- **STRUCTURAL POLICY COMPLIANCE:** `§14` (single scope) — documentation only, no
+  code/schema/Supabase action; `§16` (documentation) — new architectural contract
+  doc, registered in `PROJECT_STATE.md` + this ledger per the order's explicit
+  REGISTER instruction (`docs/DOCUMENTATION_INDEX.md` classification not touched —
+  out of this order's scope); `§19` — English throughout, matching the canonical
+  state/report language policy. No staging/production access; no schema, RPC, or
+  frontend file created or modified.
+- **Push:** authorized by the order for this docs commit only ("Add purchase order
+  lifecycle spec").
+- **Next authorizable action:** architect ratification of
+  `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md`, including a ruling on
+  open decisions (a)-(g); then Phase `A` (schema + config), its own order, per the
+  phasing in §8 of the spec.
