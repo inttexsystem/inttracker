@@ -42,6 +42,17 @@
 //             E5 independent Manta OPs do not serialize.
 //             E6 Tapete regression under concurrency: a Tapete `cima` item
 //                INSERT and an unrelated Manta output run fully in parallel.
+//   Part F  distinct-session concurrency for db/86 (release writer):
+//             F1 two concurrent releases cannot overconsume (both serialize on
+//                the source ops row; the loser recomputes post-lock).
+//             F2a output correction wins: the release blocks on the corrected
+//                entrega_itens row and recomputes against the committed value.
+//             F2b release wins: the correction blocks on the release's row lock
+//                and db/81's consumption guard then refuses it.
+//             F3 two concurrent same-key requests mutate exactly ONCE (the
+//                loser blocks on the idempotency advisory lock BEFORE doing any
+//                work and replays the stored result).
+//             F4 different Manta OPs do not serialize.
 //   Part Z  mandatory full cluster destruction (pid absent, port closed, dir
 //           absent; no c3d-disposable-pg-* residue from this run).
 //
@@ -66,8 +77,9 @@ import {
 const REPO_ROOT = getRepoRoot();
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-const TERMINAL_MIGRATION = 85;
+const TERMINAL_MIGRATION = 86;
 const DB85_FILE = '85_manta_cima_route_conditional_delivery.sql';
+const DB86_FILE = '86_manta_expedition_release_writer.sql';
 
 // ---------------------------------------------------------------------------
 // Supabase-platform preamble a bare PG cluster lacks (applied before db/01).
@@ -193,6 +205,12 @@ DECLARE
   opE5a BIGINT; itE5a BIGINT; opE5b BIGINT; itE5b BIGINT;
   opE6t BIGINT; itE6t BIGINT; entE6 BIGINT;
   opE6m BIGINT; itE6m BIGINT;
+  opF1 BIGINT; itF1 BIGINT; entF1 BIGINT; eiF1 BIGINT;
+  opF2a BIGINT; itF2a BIGINT; entF2a BIGINT; eiF2a BIGINT;
+  opF2b BIGINT; itF2b BIGINT; entF2b BIGINT; eiF2b BIGINT;
+  opF3 BIGINT; itF3 BIGINT; entF3 BIGINT; eiF3 BIGINT;
+  opF4a BIGINT; itF4a BIGINT; entF4a BIGINT; eiF4a BIGINT;
+  opF4b BIGINT; itF4b BIGINT; entF4b BIGINT; eiF4b BIGINT;
 BEGIN
   INSERT INTO public.cores(nome) VALUES ('B2A-KRAFT') RETURNING id INTO c1;
   INSERT INTO public.cores(nome) VALUES ('B2A-CRU')   RETURNING id INTO c2;
@@ -246,7 +264,51 @@ BEGIN
   INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (987008,2026,'concluida','tecelagem',lote) RETURNING id INTO opE6m;
   INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opE6m,mm,100) RETURNING id INTO itE6m;
 
+  -- db/86 sources: each a homogeneous Manta weaving OP with 100 m of measured,
+  -- non-defect cima output already recorded (planted with triggers off).
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (987011,2026,'concluida','tecelagem',lote) RETURNING id INTO opF1;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opF1,mm,200) RETURNING id INTO itF1;
+  INSERT INTO public.entregas(fornecedor_id,etapa,data,destino_fornecedor_id) VALUES (forn,'cima',CURRENT_DATE,NULL) RETURNING id INTO entF1;
+  INSERT INTO public.entrega_itens(entrega_id,op_id,op_item_id,modelo_id,metros_entregues,defeito)
+    VALUES (entF1,opF1,itF1,mm,100,FALSE) RETURNING id INTO eiF1;
+
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (987012,2026,'concluida','tecelagem',lote) RETURNING id INTO opF2a;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opF2a,mm,200) RETURNING id INTO itF2a;
+  INSERT INTO public.entregas(fornecedor_id,etapa,data,destino_fornecedor_id) VALUES (forn,'cima',CURRENT_DATE,NULL) RETURNING id INTO entF2a;
+  INSERT INTO public.entrega_itens(entrega_id,op_id,op_item_id,modelo_id,metros_entregues,defeito)
+    VALUES (entF2a,opF2a,itF2a,mm,100,FALSE) RETURNING id INTO eiF2a;
+
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (987013,2026,'concluida','tecelagem',lote) RETURNING id INTO opF2b;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opF2b,mm,200) RETURNING id INTO itF2b;
+  INSERT INTO public.entregas(fornecedor_id,etapa,data,destino_fornecedor_id) VALUES (forn,'cima',CURRENT_DATE,NULL) RETURNING id INTO entF2b;
+  INSERT INTO public.entrega_itens(entrega_id,op_id,op_item_id,modelo_id,metros_entregues,defeito)
+    VALUES (entF2b,opF2b,itF2b,mm,100,FALSE) RETURNING id INTO eiF2b;
+
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (987014,2026,'concluida','tecelagem',lote) RETURNING id INTO opF3;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opF3,mm,200) RETURNING id INTO itF3;
+  INSERT INTO public.entregas(fornecedor_id,etapa,data,destino_fornecedor_id) VALUES (forn,'cima',CURRENT_DATE,NULL) RETURNING id INTO entF3;
+  INSERT INTO public.entrega_itens(entrega_id,op_id,op_item_id,modelo_id,metros_entregues,defeito)
+    VALUES (entF3,opF3,itF3,mm,100,FALSE) RETURNING id INTO eiF3;
+
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (987015,2026,'concluida','tecelagem',lote) RETURNING id INTO opF4a;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opF4a,mm,200) RETURNING id INTO itF4a;
+  INSERT INTO public.entregas(fornecedor_id,etapa,data,destino_fornecedor_id) VALUES (forn,'cima',CURRENT_DATE,NULL) RETURNING id INTO entF4a;
+  INSERT INTO public.entrega_itens(entrega_id,op_id,op_item_id,modelo_id,metros_entregues,defeito)
+    VALUES (entF4a,opF4a,itF4a,mm,100,FALSE) RETURNING id INTO eiF4a;
+
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (987016,2026,'concluida','tecelagem',lote) RETURNING id INTO opF4b;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opF4b,mm,200) RETURNING id INTO itF4b;
+  INSERT INTO public.entregas(fornecedor_id,etapa,data,destino_fornecedor_id) VALUES (forn,'cima',CURRENT_DATE,NULL) RETURNING id INTO entF4b;
+  INSERT INTO public.entrega_itens(entrega_id,op_id,op_item_id,modelo_id,metros_entregues,defeito)
+    VALUES (entF4b,opF4b,itF4b,mm,100,FALSE) RETURNING id INTO eiF4b;
+
   INSERT INTO public._b2a_ids(k,v) VALUES
+    ('opF1',opF1),('itF1',itF1),('eiF1',eiF1),
+    ('opF2a',opF2a),('itF2a',itF2a),('eiF2a',eiF2a),
+    ('opF2b',opF2b),('itF2b',itF2b),('eiF2b',eiF2b),
+    ('opF3',opF3),('itF3',itF3),('eiF3',eiF3),
+    ('opF4a',opF4a),('itF4a',itF4a),('eiF4a',eiF4a),
+    ('opF4b',opF4b),('itF4b',itF4b),('eiF4b',eiF4b),
     ('mm',mm),('mt',mt),('forn',forn),('dest',dest),('lote',lote),('cli',cli),
     ('opE1',opE1),('itE1',itE1),('entE1',entE1),
     ('opE2',opE2),('itE2',itE2),('entE2',entE2),
@@ -363,7 +425,15 @@ function openSession(handle, name) {
         waiters.push(waiter);
       });
     },
-    async close() { if (!closed) { try { child.stdin.end('\\q\n'); } catch { /* ignore */ } } return completion; },
+    // Bounded close: a backend still blocked on a lock cannot read `\q`, so the
+    // child is killed after a grace period rather than pinning the event loop
+    // (the harness must always reach Part Z and destroy its cluster).
+    async close(graceMs = 10000) {
+      if (closed) return completion;
+      try { child.stdin.end('\\q\n'); } catch { /* ignore */ }
+      const timer = setTimeout(() => { try { child.kill(); } catch { /* ignore */ } }, graceMs);
+      try { return await completion; } catch { return { lines, stderr }; } finally { clearTimeout(timer); }
+    },
   };
 }
 
@@ -426,6 +496,9 @@ async function schemaFingerprint(handle) {
         FROM pg_class c
         LEFT JOIN pg_policy pol ON pol.polrelid = c.oid
        WHERE c.relnamespace='public'::regnamespace AND c.relkind='r'
+      UNION ALL
+      SELECT 'IDX '||schemaname||'.'||tablename||' '||indexname||' '||indexdef
+        FROM pg_indexes WHERE schemaname='public'
     )
     SELECT md5(string_agg(line, E'\\n' ORDER BY line)) FROM t;`);
 }
@@ -465,6 +538,19 @@ async function partA(handle) {
   check(objs === '0/2/3',
     `db/85 terminal objects: dropped CHECK / 2 route triggers / 3 functions (got ${objs})`);
 
+  const db86 = await scalar(handle, `
+    SELECT (SELECT count(*) FROM pg_class WHERE oid='public.expedicao_comandos'::regclass) || '/' ||
+           (SELECT relrowsecurity::text FROM pg_class WHERE oid='public.expedicao_comandos'::regclass) || '/' ||
+           (SELECT count(*) FROM pg_constraint
+             WHERE conrelid='public.expedicao_comandos'::regclass AND conname='expedicao_comandos_idempotencia') || '/' ||
+           (SELECT count(*) FROM pg_trigger
+             WHERE NOT tgisinternal AND tgname='expedicao_comandos_immutable_guard') || '/' ||
+           (SELECT count(*) FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname IN (
+              'consultar_saldo_expedicao_manta','liberar_expedicao_manta_parcial',
+              'expedicao_comandos_immutable_guard_fn'));`);
+  check(db86 === '1/true/1/1/3',
+    `db/86 terminal objects: command table / RLS / unique key / immutability trigger / 3 functions (got ${db86})`);
+
   // Every db/81-84 guard survives untouched.
   const legacy = await scalar(handle, `
     SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname IN (
@@ -484,10 +570,16 @@ async function partA(handle) {
 async function partB(handle) {
   const before = await schemaFingerprint(handle);
   applyFile(handle, path.join(REPO_ROOT, 'db', DB85_FILE), 'db/85 re-apply');
-  const after = await schemaFingerprint(handle);
-  check(before === after,
-    `idempotent re-apply of db/85 must cause zero schema/constraint/trigger/function/grant/RLS drift (before=${before}, after=${after})`);
-  log('PART_B', { reapply: 'db/85', fingerprint: after, drift: 'none' });
+  const afterDb85 = await schemaFingerprint(handle);
+  check(before === afterDb85,
+    `idempotent re-apply of db/85 must cause zero schema/constraint/trigger/index/function/grant/RLS drift (before=${before}, after=${afterDb85})`);
+
+  applyFile(handle, path.join(REPO_ROOT, 'db', DB86_FILE), 'db/86 re-apply');
+  const afterDb86 = await schemaFingerprint(handle);
+  check(afterDb85 === afterDb86,
+    `idempotent re-apply of db/86 must cause zero schema/constraint/trigger/index/function/grant/RLS drift (before=${afterDb85}, after=${afterDb86})`);
+
+  log('PART_B', { reapply: 'db/85+db/86', fingerprint: afterDb86, drift: 'none' });
 }
 
 // ===========================================================================
@@ -560,7 +652,9 @@ async function partE(handle) {
   for (const k of ['mm', 'mt', 'forn', 'dest', 'lote', 'cli',
     'opE1', 'itE1', 'entE1', 'opE2', 'itE2', 'entE2', 'opE3', 'itE3', 'entE3',
     'opE4', 'itE4', 'opE5a', 'itE5a', 'opE5b', 'itE5b',
-    'opE6t', 'itE6t', 'entE6', 'opE6m', 'itE6m']) {
+    'opE6t', 'itE6t', 'entE6', 'opE6m', 'itE6m',
+    'opF1', 'itF1', 'eiF1', 'opF2a', 'itF2a', 'eiF2a', 'opF2b', 'itF2b', 'eiF2b',
+    'opF3', 'itF3', 'eiF3', 'opF4a', 'itF4a', 'eiF4a', 'opF4b', 'itF4b', 'eiF4b']) {
     id[k] = Number(await scalar(handle, `SELECT v FROM public._b2a_ids WHERE k='${k}';`));
     check(Number.isInteger(id[k]) && id[k] > 0, `fixture id ${k} must resolve (got ${id[k]})`);
   }
@@ -755,11 +849,203 @@ async function partE(handle) {
     log('E6', { tapete: tap, manta, rows, deadlock: false });
   }
 
-  // Global 40P01 sweep across every backend touched by Part E.
+  log('PART_E', { proofs: 'E1..E6' });
+  return { id, adm };
+}
+
+// ===========================================================================
+// PART F — distinct-session concurrency for db/86 (release writer).
+// ===========================================================================
+const RELEASE = (op, item, metros, key = null, obs = null) =>
+  `public.liberar_expedicao_manta_parcial(${op}, jsonb_build_array(jsonb_build_object('op_item_id',${item},'metros',${metros})), ${obs === null ? 'NULL' : `'${obs}'`}, ${key === null ? 'NULL' : `'${key}'`})`;
+
+async function partF(handle, ctx) {
+  const { id, adm } = ctx;
+
+  // ---- F1: two concurrent releases cannot overconsume ---------------------
+  // Both serialize on the source `ops` row taken FOR UPDATE before any balance
+  // is read; the loser recomputes availability post-lock and is rejected.
+  {
+    const a = openSession(handle, 'F1-a');
+    a.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    a.send('BEGIN;');
+    a.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pa = Number((await a.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    a.send(`SELECT 'A|' || ((${RELEASE(id.opF1, id.itF1, 60)})->>'ok');`);
+    await a.waitFor((l) => l.startsWith('A|'));
+
+    const b = openSession(handle, 'F1-b');
+    b.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    b.send('BEGIN;');
+    b.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pb = Number((await b.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    b.send(`SELECT 'B|' || COALESCE((${RELEASE(id.opF1, id.itF1, 60)})->>'codigo', 'ok');`);
+
+    const blockers = await waitForBlock(handle, pb, pa);
+    a.send(`COMMIT; SELECT 'CA';`); await a.waitFor((l) => l === 'CA');
+    const rb = await b.waitFor((l) => l.startsWith('B|'));
+    b.send(`COMMIT; SELECT 'CB';`); await b.waitFor((l) => l === 'CB');
+    const err = `${a.stderr}${b.stderr}`;
+    await a.close(); await b.close();
+
+    check(blockers.includes(String(pa)), `F1 the second release must serialize on the source ops row (blockers=${blockers})`);
+    check(rb === 'B|excede_disponivel', `F1 the loser must be rejected post-lock (got ${rb})`);
+    const total = await scalar(handle, `
+      SELECT coalesce(sum(xi.metros_liberados),0)::text FROM public.expedicao_itens xi
+        JOIN public.expedicoes ex ON ex.id = xi.expedicao_id WHERE ex.op_tecelagem_id=${id.opF1};`);
+    check(Number(total) === 60, `F1 exactly one release may persist, never overconsumption (got ${total} of 100 measured)`);
+    check(!/40P01|deadlock/i.test(err), `F1 must not deadlock (${err.slice(0, 300)})`);
+    log('F1', { serialized: true, blockers, loser: rb, total_released: total, deadlock: false });
+  }
+
+  // ---- F2a: output correction wins; the release recomputes post-lock ------
+  {
+    const corr = openSession(handle, 'F2a-correcao');
+    corr.send('BEGIN;');
+    corr.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pc = Number((await corr.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    corr.send(`UPDATE public.entrega_itens SET metros_entregues=50 WHERE id=${id.eiF2a}; SELECT 'C_DONE';`);
+    await corr.waitFor((l) => l === 'C_DONE');
+
+    const rel = openSession(handle, 'F2a-release');
+    rel.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    rel.send('BEGIN;');
+    rel.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pr = Number((await rel.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    rel.send(`SELECT 'R|' || COALESCE((${RELEASE(id.opF2a, id.itF2a, 80)})->>'codigo', 'ok');`);
+
+    const blockers = await waitForBlock(handle, pr, pc);
+    corr.send(`COMMIT; SELECT 'CC';`); await corr.waitFor((l) => l === 'CC');
+    const rr = await rel.waitFor((l) => l.startsWith('R|'));
+    rel.send(`COMMIT; SELECT 'CR';`); await rel.waitFor((l) => l === 'CR');
+    const err = `${corr.stderr}${rel.stderr}`;
+    await corr.close(); await rel.close();
+
+    check(blockers.includes(String(pc)),
+      `F2a the release must block on the correction's entrega_itens row lock (blockers=${blockers})`);
+    check(rr === 'R|excede_disponivel',
+      `F2a the release must recompute against the CORRECTED measured output and be rejected (got ${rr})`);
+    check(!/40P01|deadlock/i.test(err), `F2a must not deadlock (${err.slice(0, 300)})`);
+    // And 50 (the corrected quantity) is now releasable.
+    const ok = await attempt(handle, 'F2a-after', `PERFORM ${RELEASE(id.opF2a, id.itF2a, 50)}`, adm);
+    check(ok === 'OK', `F2a the corrected quantity must then be releasable (got ${ok})`);
+    log('F2a', { correction_wins: true, blockers, release: rr, deadlock: false });
+  }
+
+  // ---- F2b: release wins; the correction is then refused by db/81 ---------
+  {
+    const rel = openSession(handle, 'F2b-release');
+    rel.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    rel.send('BEGIN;');
+    rel.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pr = Number((await rel.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    rel.send(`SELECT 'R|' || ((${RELEASE(id.opF2b, id.itF2b, 60)})->>'ok');`);
+    await rel.waitFor((l) => l.startsWith('R|'));
+
+    const corr = openSession(handle, 'F2b-correcao');
+    corr.send('BEGIN;');
+    corr.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pc = Number((await corr.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    corr.send(`UPDATE public.entrega_itens SET metros_entregues=50 WHERE id=${id.eiF2b}; SELECT 'C_DONE';`);
+
+    const blockers = await waitForBlock(handle, pc, pr);
+    rel.send(`COMMIT; SELECT 'CR';`); await rel.waitFor((l) => l === 'CR');
+    await corr.waitFor((l) => l === 'C_DONE' || /ERRO|ERROR/i.test(l), 30000).catch(() => {});
+    corr.send(`ROLLBACK; SELECT 'CC';`); await corr.waitFor((l) => l === 'CC');
+    const corrErr = corr.stderr;
+    const err = `${rel.stderr}${corrErr}`;
+    await rel.close(); await corr.close();
+
+    check(blockers.includes(String(pr)),
+      `F2b the correction must block on the release's entrega_itens row lock (blockers=${blockers})`);
+    check(/ja consumida por expedicao/.test(corrErr),
+      `F2b db/81's consumption guard must refuse the correction after the release commits (stderr=${corrErr.slice(0, 400)})`);
+    check(!/40P01|deadlock/i.test(err), `F2b must not deadlock (${err.slice(0, 300)})`);
+    const measured = await scalar(handle, `SELECT metros_entregues::text FROM public.entrega_itens WHERE id=${id.eiF2b};`);
+    check(Number(measured) === 100, `F2b the measured output must be unchanged (got ${measured})`);
+    log('F2b', { release_wins: true, blockers, correction: 'REFUSED_BY_DB81', deadlock: false });
+  }
+
+  // ---- F3: two concurrent same-key requests create exactly ONE release ----
+  // The loser blocks on the idempotency advisory lock BEFORE performing any
+  // work, so it retains no mutation to discard; on wake-up it observes the
+  // committed command row and replays the stored result byte-for-byte.
+  {
+    const a = openSession(handle, 'F3-a');
+    a.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    a.send('BEGIN;');
+    a.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pa = Number((await a.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    a.send(`SELECT 'A|' || ((${RELEASE(id.opF3, id.itF3, 40, 'CONC-1')})->>'expedicao_id');`);
+    const ra = await a.waitFor((l) => l.startsWith('A|'));
+
+    const b = openSession(handle, 'F3-b');
+    b.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    b.send('BEGIN;');
+    b.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pb = Number((await b.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    b.send(`SELECT 'B|' || ((${RELEASE(id.opF3, id.itF3, 40, 'CONC-1')})->>'expedicao_id');`);
+
+    const blockers = await waitForBlock(handle, pb, pa);
+    a.send(`COMMIT; SELECT 'CA';`); await a.waitFor((l) => l === 'CA');
+    const rb = await b.waitFor((l) => l.startsWith('B|'));
+    b.send(`COMMIT; SELECT 'CB';`); await b.waitFor((l) => l === 'CB');
+    const err = `${a.stderr}${b.stderr}`;
+    await a.close(); await b.close();
+
+    check(blockers.includes(String(pa)),
+      `F3 the duplicate submission must block on the idempotency advisory lock (blockers=${blockers})`);
+    const expA = ra.split('|')[1];
+    const expB = rb.split('|')[1];
+    check(expA && expA === expB,
+      `F3 both submissions must resolve to the SAME expedition (a=${ra}, b=${rb})`);
+    const state = await scalar(handle, `
+      SELECT (SELECT coalesce(sum(xi.metros_liberados),0)::text FROM public.expedicao_itens xi
+                JOIN public.expedicoes ex ON ex.id = xi.expedicao_id WHERE ex.op_tecelagem_id=${id.opF3}) || '/' ||
+             (SELECT count(*)::text FROM public.expedicao_comandos
+               WHERE idempotency_namespace='manta_release_v1' AND idempotency_key='CONC-1') || '/' ||
+             (SELECT count(*)::text FROM public.op_eventos
+               WHERE op_id=${id.opF3} AND tipo_evento='expedicao_manta_liberada');`);
+    check(state === '40.00/1/1',
+      `F3 exactly one business mutation, one command row and one event (got ${state})`);
+    check(!/40P01|deadlock/i.test(err), `F3 must not deadlock (${err.slice(0, 300)})`);
+    log('F3', { blocked_on_advisory: true, blockers, same_expedition: true, state, deadlock: false });
+  }
+
+  // ---- F4: different Manta OPs do not serialize ---------------------------
+  {
+    const a = openSession(handle, 'F4-a');
+    a.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    a.send('BEGIN;');
+    a.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pa = Number((await a.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    a.send(`SELECT 'A|' || ((${RELEASE(id.opF4a, id.itF4a, 40, 'IND-A')})->>'ok');`);
+    await a.waitFor((l) => l.startsWith('A|'));
+
+    const b = openSession(handle, 'F4-b');
+    b.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    b.send('BEGIN;');
+    b.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pb = Number((await b.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    b.send(`SELECT 'B|' || ((${RELEASE(id.opF4b, id.itF4b, 40, 'IND-B')})->>'ok');`);
+    const rb = await b.waitFor((l) => l.startsWith('B|'), 15000);   // must NOT wait for a
+    const blockers = await scalar(handle, `SELECT array_to_string(pg_catalog.pg_blocking_pids(${pb}), ',');`);
+    a.send(`COMMIT; SELECT 'CA';`); await a.waitFor((l) => l === 'CA');
+    b.send(`COMMIT; SELECT 'CB';`); await b.waitFor((l) => l === 'CB');
+    const err = `${a.stderr}${b.stderr}`;
+    await a.close(); await b.close();
+
+    check(rb === 'B|true', `F4 the independent Manta OP must release without waiting (got ${rb})`);
+    check(!blockers.includes(String(pa)), `F4 different Manta OPs must not serialize (blockers=${blockers})`);
+    check(!/40P01|deadlock/i.test(err), `F4 must not deadlock (${err.slice(0, 300)})`);
+    log('F4', { independent: true, blockers: blockers || '(none)', deadlock: false });
+  }
+
+  // Global 40P01 sweep across every backend touched by Parts E and F.
   const deadlocks = await scalar(handle, `
-    SELECT count(*)::text FROM pg_stat_database WHERE datname = current_database() AND deadlocks > 0;`);
-  check(deadlocks === '0', `no deadlock may have been detected by the server (rows with deadlocks>0 = ${deadlocks})`);
-  log('PART_E', { proofs: 'E1..E6', deadlocks_reported_by_server: 0 });
+    SELECT deadlocks::text FROM pg_stat_database WHERE datname = current_database();`);
+  check(deadlocks === '0', `no deadlock may have been detected by the server (pg_stat_database.deadlocks = ${deadlocks})`);
+  log('PART_F', { proofs: 'F1,F2a,F2b,F3,F4', deadlocks_reported_by_server: deadlocks });
 }
 
 // ===========================================================================
@@ -794,7 +1080,8 @@ async function main() {
     await partB(handle);
     await partC(handle);
     await partD(handle);
-    await partE(handle);
+    const ctx = await partE(handle);
+    await partF(handle, ctx);
     await partZ(handle);
     stopped = true;
     console.log('MANTA_DIRECT_ROUTE_ACTIVATION_INVARIANT_PASS');

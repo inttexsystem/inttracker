@@ -54,6 +54,15 @@ DECLARE
   v_txt TEXT;
   v_ent_rpc BIGINT;
   v_evt JSONB;
+  -- db/86 fixtures
+  v_pi_a UUID; v_pi_b UUID;
+  v_op_rel BIGINT; v_it_r1 BIGINT; v_it_r2 BIGINT;
+  v_op_idem BIGINT; v_it_idem BIGINT;
+  v_exp_rel BIGINT; v_exp_idem BIGINT;
+  v_res2 JSONB;
+  v_item JSONB;
+  v_cmd_id BIGINT;
+  v_op_latex_gerada BIGINT;
 BEGIN
   -- ==========================================================================
   -- FIXTURES (triggers OFF: db/78-85 guards must be exercised live afterwards,
@@ -108,6 +117,25 @@ BEGIN
   -- Defensively-mixed OP (reachable only with triggers off; db/78-80 forbid it).
   INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_mixed, v_mod_manta,  60) RETURNING id INTO v_it_mixed_m;
   INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_mixed, v_mod_tapete, 60);
+
+  -- db/86: a Manta release source (2 items, commercial identity via pedido_itens)
+  -- and a dedicated idempotency source.
+  INSERT INTO public.pedido_itens (pedido_id, modelo_id, metros, largura)
+    VALUES (v_pedido, v_mod_manta, 100, 1.40) RETURNING id INTO v_pi_a;
+  INSERT INTO public.pedido_itens (pedido_id, modelo_id, metros, largura)
+    VALUES (v_pedido, v_mod_manta, 100, 1.40) RETURNING id INTO v_pi_b;
+
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985008, 2026, 'concluida', 'tecelagem', v_lote) RETURNING id INTO v_op_rel;
+  INSERT INTO public.op_itens (op_id, modelo_id, pedido_item_id, metros_pedidos)
+    VALUES (v_op_rel, v_mod_manta, v_pi_a, 100) RETURNING id INTO v_it_r1;
+  INSERT INTO public.op_itens (op_id, modelo_id, pedido_item_id, metros_pedidos)
+    VALUES (v_op_rel, v_mod_manta, v_pi_b, 100) RETURNING id INTO v_it_r2;
+
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985009, 2026, 'concluida', 'tecelagem', v_lote) RETURNING id INTO v_op_idem;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_idem, v_mod_manta, 100) RETURNING id INTO v_it_idem;
 
   -- Delivery headers planted without items (route rule is item-driven).
   INSERT INTO public.entregas (fornecedor_id, etapa, data, destino_fornecedor_id)
@@ -544,6 +572,385 @@ BEGIN
   END;
   IF v_ok THEN RAISE EXCEPTION 'not ok 58 - Manta nunca pode gerar OP de acabamento'; END IF;
   RAISE NOTICE 'ok 32 - rejeicao de acabamento para Manta intacta a partir da saida real da RPC';
+
+  -- ==========================================================================
+  -- J. db/86 -- Manta expedition balance and release.
+  --    Measured output for v_op_rel: item 1 = 60 valid + 10 defect (planned 100),
+  --    item 2 = 30 valid (planned 100). So `previsto` (100/100) is deliberately
+  --    ABOVE the measured authority (60/30) and the defect metres are excluded.
+  -- ==========================================================================
+  v_res := public.registrar_entrega_cima_manta(
+    v_op_rel, v_forn_tec, CURRENT_DATE,
+    jsonb_build_array(
+      jsonb_build_object('op_item_id', v_it_r1, 'metros_entregues', 60, 'defeito', FALSE),
+      jsonb_build_object('op_item_id', v_it_r1, 'metros_entregues', 10, 'defeito', TRUE),
+      jsonb_build_object('op_item_id', v_it_r2, 'metros_entregues', 30, 'defeito', FALSE)));
+  IF NOT (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 59 - a saida medida de apoio deveria ser registrada (got %)', v_res;
+  END IF;
+
+  -- J1 Balance read: exact per-item, defects excluded, planned display-only.
+  v_res := public.consultar_saldo_expedicao_manta(v_op_rel);
+  IF NOT (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 60 - consulta de saldo Manta deveria funcionar (got %)', v_res;
+  END IF;
+  IF (v_res->>'previsto_total')::NUMERIC <> 200
+     OR (v_res->>'recebido_total')::NUMERIC <> 90
+     OR (v_res->>'liberado_total')::NUMERIC <> 0
+     OR (v_res->>'disponivel_total')::NUMERIC <> 90 THEN
+    RAISE EXCEPTION 'not ok 61 - totais de saldo incorretos (got %)', v_res;
+  END IF;
+  v_item := v_res->'itens'->0;
+  IF (v_item->>'op_item_id')::BIGINT <> LEAST(v_it_r1, v_it_r2) THEN
+    RAISE EXCEPTION 'not ok 62 - ordenacao deveria ser deterministica por op_item_id (got %)', v_res->'itens';
+  END IF;
+  IF (v_item->>'previsto')::NUMERIC <> 100
+     OR (v_item->>'recebido')::NUMERIC <> 60
+     OR (v_item->>'disponivel')::NUMERIC <> 60
+     OR (v_item->>'pedido_item_id')::UUID <> v_pi_a THEN
+    RAISE EXCEPTION 'not ok 63 - saldo do item 1 incorreto; defeito deve ser excluido (got %)', v_item;
+  END IF;
+  RAISE NOTICE 'ok 33 - saldo Manta exato por op_item; metros com defeito excluidos; previsto apenas informativo';
+
+  -- J2 Planned quantity is NOT an authority: 100 was planned, 60 was measured.
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_rel, jsonb_build_array(jsonb_build_object('op_item_id', v_it_r1, 'metros', 100)));
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'excede_disponivel' THEN
+    RAISE EXCEPTION 'not ok 64 - liberar o planejado (100) acima do medido (60) deveria ser rejeitado (got %)', v_res;
+  END IF;
+  IF (v_res->>'disponivel')::NUMERIC <> 60 THEN
+    RAISE EXCEPTION 'not ok 65 - a rejeicao deveria informar o disponivel medido (got %)', v_res;
+  END IF;
+  RAISE NOTICE 'ok 34 - quantidade planejada nao e autoridade; liberacao acima do disponivel rejeitada';
+
+  -- J3 Invalid payloads.
+  v_res := public.liberar_expedicao_manta_parcial(v_op_rel, '[]'::jsonb);
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'payload_vazio' THEN
+    RAISE EXCEPTION 'not ok 66 - payload vazio deveria ser rejeitado (got %)', v_res;
+  END IF;
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_rel, jsonb_build_array(jsonb_build_object('op_item_id', v_it_r1, 'metros', 0)));
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'metros_invalidos' THEN
+    RAISE EXCEPTION 'not ok 67 - quantidade zero deveria ser rejeitada (got %)', v_res;
+  END IF;
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_rel, jsonb_build_array(jsonb_build_object('op_item_id', v_it_r1, 'metros', -10)));
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'metros_invalidos' THEN
+    RAISE EXCEPTION 'not ok 68 - quantidade negativa deveria ser rejeitada (got %)', v_res;
+  END IF;
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_rel, jsonb_build_array(jsonb_build_object('op_item_id', v_it_idem, 'metros', 5)));
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'item_fora_da_op' THEN
+    RAISE EXCEPTION 'not ok 69 - item de outra OP deveria ser rejeitado (got %)', v_res;
+  END IF;
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_tapete, jsonb_build_array(jsonb_build_object('op_item_id', v_it_tapete, 'metros', 5)));
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'op_nao_manta' THEN
+    RAISE EXCEPTION 'not ok 70 - OP Tapete nao pode liberar expedicao Manta (got %)', v_res;
+  END IF;
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_latex, jsonb_build_array(jsonb_build_object('op_item_id', v_it_latex, 'metros', 5)));
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'op_tipo_invalido' THEN
+    RAISE EXCEPTION 'not ok 71 - OP latex nao pode liberar expedicao Manta (got %)', v_res;
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.expedicoes WHERE op_tecelagem_id = v_op_rel) THEN
+    RAISE EXCEPTION 'not ok 72 - nenhuma rejeicao pode ter criado expedicao';
+  END IF;
+  RAISE NOTICE 'ok 35 - payload/fonte invalidos rejeitados sem qualquer mutacao';
+
+  -- J4 Partial release: expedition created with the exact identity and balances.
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_rel, jsonb_build_array(jsonb_build_object('op_item_id', v_it_r1, 'metros', 40)),
+    'primeira parcial');
+  IF NOT (v_res->>'ok')::BOOLEAN OR NOT (v_res->>'created')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 73 - liberacao parcial deveria criar a expedicao (got %)', v_res;
+  END IF;
+  v_exp_rel := (v_res->>'expedicao_id')::BIGINT;
+  IF (v_res->>'liberado_total')::NUMERIC <> 40 OR (v_res->>'saldo_restante')::NUMERIC <> 20 THEN
+    RAISE EXCEPTION 'not ok 74 - totais da parcial incorretos (got %)', v_res;
+  END IF;
+  v_item := v_res->'itens'->0;
+  IF (v_item->>'recebido')::NUMERIC <> 60
+     OR (v_item->>'liberado_antes')::NUMERIC <> 0
+     OR (v_item->>'liberar')::NUMERIC <> 40
+     OR (v_item->>'liberado_depois')::NUMERIC <> 40
+     OR (v_item->>'saldo_restante')::NUMERIC <> 20
+     OR NOT (v_item->>'created')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 75 - saldos antes/depois incorretos (got %)', v_item;
+  END IF;
+  IF (SELECT op_latex_id FROM public.expedicoes WHERE id = v_exp_rel) IS NOT NULL
+     OR (SELECT op_tecelagem_id FROM public.expedicoes WHERE id = v_exp_rel) <> v_op_rel THEN
+    RAISE EXCEPTION 'not ok 76 - a expedicao deveria ter fonte Manta com op_latex_id NULL';
+  END IF;
+  IF (SELECT pedido_id FROM public.expedicoes WHERE id = v_exp_rel) <> v_pedido
+     OR (SELECT lote_id FROM public.expedicoes WHERE id = v_exp_rel) <> v_lote
+     OR (SELECT cliente_id FROM public.expedicoes WHERE id = v_exp_rel) <> v_cli THEN
+    RAISE EXCEPTION 'not ok 77 - a linhagem deveria ser derivada da fonte';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.expedicao_itens
+                  WHERE expedicao_id = v_exp_rel AND op_item_id = v_it_r1
+                    AND modelo_id = v_mod_manta AND pedido_item_id = v_pi_a
+                    AND metros_liberados = 40) THEN
+    RAISE EXCEPTION 'not ok 78 - identidade (modelo_id/pedido_item_id) deveria ser copiada do op_item';
+  END IF;
+  RAISE NOTICE 'ok 36 - liberacao parcial aceita; expedicao Manta criada com identidade e linhagem exatas';
+
+  -- J5 Additive re-release on the SAME expedition.
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_rel, jsonb_build_array(
+      jsonb_build_object('op_item_id', v_it_r1, 'metros', 12),
+      jsonb_build_object('op_item_id', v_it_r1, 'metros', 8),
+      jsonb_build_object('op_item_id', v_it_r2, 'metros', 30)));
+  IF NOT (v_res->>'ok')::BOOLEAN OR (v_res->>'created')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 79 - a segunda liberacao deveria reutilizar a expedicao (got %)', v_res;
+  END IF;
+  IF (v_res->>'expedicao_id')::BIGINT <> v_exp_rel THEN
+    RAISE EXCEPTION 'not ok 80 - a expedicao fonte deveria ser reutilizada';
+  END IF;
+  IF (v_res->>'liberado_total')::NUMERIC <> 50 OR (v_res->>'saldo_restante')::NUMERIC <> 0 THEN
+    RAISE EXCEPTION 'not ok 81 - totais aditivos incorretos (got %)', v_res;
+  END IF;
+  SELECT SUM(metros_liberados) INTO v_num FROM public.expedicao_itens WHERE expedicao_id = v_exp_rel;
+  IF v_num <> 90 THEN RAISE EXCEPTION 'not ok 82 - total liberado deveria ser 90 (got %)', v_num; END IF;
+  RAISE NOTICE 'ok 37 - liberacao aditiva repetida aceita com duplicatas agregadas; expedicao reutilizada';
+
+  -- J6 Overconsumption after full release.
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_rel, jsonb_build_array(jsonb_build_object('op_item_id', v_it_r1, 'metros', 0.01)));
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'excede_disponivel' THEN
+    RAISE EXCEPTION 'not ok 83 - liberar acima do medido deveria ser rejeitado (got %)', v_res;
+  END IF;
+  v_res := public.consultar_saldo_expedicao_manta(v_op_rel);
+  IF (v_res->>'liberado_total')::NUMERIC <> 90 OR (v_res->>'disponivel_total')::NUMERIC <> 0 THEN
+    RAISE EXCEPTION 'not ok 84 - saldo apos liberacao total incorreto (got %)', v_res;
+  END IF;
+  RAISE NOTICE 'ok 38 - sobreconsumo rejeitado; saldo pos-liberacao exato';
+
+  -- J7 Release event.
+  SELECT payload INTO v_evt FROM public.op_eventos
+   WHERE op_id = v_op_rel AND tipo_evento = 'expedicao_manta_liberada' ORDER BY id DESC LIMIT 1;
+  IF v_evt IS NULL
+     OR (v_evt->>'expedicao_id')::BIGINT <> v_exp_rel
+     OR (v_evt->>'liberado_total')::NUMERIC <> 50
+     OR jsonb_array_length(v_evt->'itens') <> 2 THEN
+    RAISE EXCEPTION 'not ok 85 - evento expedicao_manta_liberada incompleto (got %)', v_evt;
+  END IF;
+  IF (SELECT count(*) FROM public.op_eventos
+       WHERE op_id = v_op_rel AND tipo_evento = 'expedicao_manta_liberada') <> 2 THEN
+    RAISE EXCEPTION 'not ok 86 - deveria haver exatamente 2 eventos de liberacao';
+  END IF;
+  RAISE NOTICE 'ok 39 - evento expedicao_manta_liberada com saldos antes/depois e restante';
+
+  -- ==========================================================================
+  -- K. db/86 -- idempotency (dedicated source so balances stay meaningful).
+  -- ==========================================================================
+  v_res := public.registrar_entrega_cima_manta(
+    v_op_idem, v_forn_tec, CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object('op_item_id', v_it_idem, 'metros_entregues', 80, 'defeito', FALSE)));
+  IF NOT (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 87 - saida medida de apoio (idempotencia) deveria ser registrada (got %)', v_res;
+  END IF;
+
+  -- K1 NULL key: legacy additive execution, NO command row.
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_idem, jsonb_build_array(jsonb_build_object('op_item_id', v_it_idem, 'metros', 10)));
+  IF NOT (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 88 - liberacao sem chave deveria executar (got %)', v_res;
+  END IF;
+  v_exp_idem := (v_res->>'expedicao_id')::BIGINT;
+  IF EXISTS (SELECT 1 FROM public.expedicao_comandos) THEN
+    RAISE EXCEPTION 'not ok 89 - uma chamada sem chave nao pode gravar linha de comando';
+  END IF;
+  RAISE NOTICE 'ok 40 - chave NULL: execucao aditiva legada, sem linha de comando';
+
+  -- K2 New key: executes once and persists the result atomically.
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_idem, jsonb_build_array(jsonb_build_object('op_item_id', v_it_idem, 'metros', 20)),
+    'com chave', 'K-1');
+  IF NOT (v_res->>'ok')::BOOLEAN OR (v_res->>'liberado_total')::NUMERIC <> 20 THEN
+    RAISE EXCEPTION 'not ok 90 - primeira execucao com chave deveria liberar 20 (got %)', v_res;
+  END IF;
+  SELECT id INTO v_cmd_id FROM public.expedicao_comandos
+   WHERE idempotency_namespace = 'manta_release_v1' AND ator_id = v_admin AND idempotency_key = 'K-1';
+  IF v_cmd_id IS NULL THEN RAISE EXCEPTION 'not ok 91 - a linha de comando deveria existir'; END IF;
+  IF (SELECT resultado FROM public.expedicao_comandos WHERE id = v_cmd_id) <> v_res THEN
+    RAISE EXCEPTION 'not ok 92 - o resultado armazenado deveria ser identico ao retornado';
+  END IF;
+
+  -- K3 Exact replay: stored result byte-for-byte, ZERO business mutation.
+  SELECT SUM(metros_liberados) INTO v_num FROM public.expedicao_itens WHERE expedicao_id = v_exp_idem;
+  SELECT count(*) INTO v_n FROM public.op_eventos
+   WHERE op_id = v_op_idem AND tipo_evento = 'expedicao_manta_liberada';
+  v_res2 := public.liberar_expedicao_manta_parcial(
+    v_op_idem, jsonb_build_array(jsonb_build_object('op_item_id', v_it_idem, 'metros', 20)),
+    'com chave', 'K-1');
+  IF v_res2 <> v_res THEN
+    RAISE EXCEPTION 'not ok 93 - o replay deveria devolver o resultado armazenado byte a byte (got %)', v_res2;
+  END IF;
+  IF (SELECT SUM(metros_liberados) FROM public.expedicao_itens WHERE expedicao_id = v_exp_idem) <> v_num THEN
+    RAISE EXCEPTION 'not ok 94 - o replay nao pode causar qualquer mutacao de negocio';
+  END IF;
+  IF (SELECT count(*) FROM public.op_eventos
+       WHERE op_id = v_op_idem AND tipo_evento = 'expedicao_manta_liberada') <> v_n THEN
+    RAISE EXCEPTION 'not ok 95 - o replay nao pode gravar um segundo evento';
+  END IF;
+  IF (SELECT count(*) FROM public.expedicao_comandos
+       WHERE idempotency_namespace = 'manta_release_v1' AND ator_id = v_admin AND idempotency_key = 'K-1') <> 1 THEN
+    RAISE EXCEPTION 'not ok 96 - o replay nao pode gravar uma segunda linha de comando';
+  END IF;
+  RAISE NOTICE 'ok 41 - replay exato: resultado armazenado byte a byte, zero mutacao de negocio';
+
+  -- K3b Numeric normalization: 20 and 20.00 are the SAME request, not a conflict.
+  v_res2 := public.liberar_expedicao_manta_parcial(
+    v_op_idem, jsonb_build_array(jsonb_build_object('op_item_id', v_it_idem, 'metros', 20.00)),
+    'com chave', 'K-1');
+  IF v_res2 <> v_res THEN
+    RAISE EXCEPTION 'not ok 97 - 20 e 20.00 deveriam normalizar para a mesma requisicao (got %)', v_res2;
+  END IF;
+  RAISE NOTICE 'ok 42 - normalizacao numerica da requisicao e deterministica';
+
+  -- K4 Same key, different request -> conflict with zero mutation.
+  v_res2 := public.liberar_expedicao_manta_parcial(
+    v_op_idem, jsonb_build_array(jsonb_build_object('op_item_id', v_it_idem, 'metros', 25)),
+    'com chave', 'K-1');
+  IF (v_res2->>'ok')::BOOLEAN OR v_res2->>'codigo' <> 'idempotencia_conflitante' THEN
+    RAISE EXCEPTION 'not ok 98 - chave reutilizada com comando diferente deveria conflitar (got %)', v_res2;
+  END IF;
+  IF (SELECT SUM(metros_liberados) FROM public.expedicao_itens WHERE expedicao_id = v_exp_idem) <> v_num THEN
+    RAISE EXCEPTION 'not ok 99 - o conflito nao pode causar mutacao';
+  END IF;
+  RAISE NOTICE 'ok 43 - mesma chave com requisicao diferente conflita, sem mutacao';
+
+  -- K5 A different key with the same target is a NEW additive command.
+  v_res2 := public.liberar_expedicao_manta_parcial(
+    v_op_idem, jsonb_build_array(jsonb_build_object('op_item_id', v_it_idem, 'metros', 20)),
+    'com chave', 'K-2');
+  IF NOT (v_res2->>'ok')::BOOLEAN OR (v_res2->>'liberado_total')::NUMERIC <> 20 THEN
+    RAISE EXCEPTION 'not ok 100 - uma nova chave deveria executar aditivamente (got %)', v_res2;
+  END IF;
+  IF (SELECT SUM(metros_liberados) FROM public.expedicao_itens WHERE expedicao_id = v_exp_idem) <> v_num + 20 THEN
+    RAISE EXCEPTION 'not ok 101 - a segunda chave deveria somar 20';
+  END IF;
+  IF (SELECT count(*) FROM public.expedicao_comandos WHERE idempotency_namespace = 'manta_release_v1') <> 2 THEN
+    RAISE EXCEPTION 'not ok 102 - deveriam existir exatamente 2 linhas de comando';
+  END IF;
+  RAISE NOTICE 'ok 44 - duas chaves distintas sao dois comandos aditivos';
+
+  -- K6 Failed validation writes NO command row.
+  v_res2 := public.liberar_expedicao_manta_parcial(
+    v_op_idem, jsonb_build_array(jsonb_build_object('op_item_id', v_it_idem, 'metros', 9999)),
+    NULL, 'K-3');
+  IF (v_res2->>'ok')::BOOLEAN OR v_res2->>'codigo' <> 'excede_disponivel' THEN
+    RAISE EXCEPTION 'not ok 103 - a liberacao excessiva deveria falhar (got %)', v_res2;
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.expedicao_comandos WHERE idempotency_key = 'K-3') THEN
+    RAISE EXCEPTION 'not ok 104 - uma validacao falha nao pode gravar linha de comando';
+  END IF;
+  RAISE NOTICE 'ok 45 - validacao falha nao grava linha de comando (retry revalida o estado vivo)';
+
+  -- K7 The command row is immutable.
+  BEGIN UPDATE public.expedicao_comandos SET resultado = '{}'::jsonb WHERE id = v_cmd_id; v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 105 - expedicao_comandos deveria ser imutavel (UPDATE)'; END IF;
+  BEGIN DELETE FROM public.expedicao_comandos WHERE id = v_cmd_id; v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 106 - expedicao_comandos deveria ser imutavel (DELETE)'; END IF;
+  -- Even the controlled technical escape does not open it.
+  PERFORM set_config('app.retificacao_autorizada', 'on', true);
+  BEGIN DELETE FROM public.expedicao_comandos WHERE id = v_cmd_id; v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  PERFORM set_config('app.retificacao_autorizada', 'off', true);
+  IF v_ok THEN RAISE EXCEPTION 'not ok 107 - nem retificacao autorizada pode apagar historico de comando'; END IF;
+  RAISE NOTICE 'ok 46 - linha de comando imutavel (UPDATE/DELETE rejeitados, sem bypass)';
+
+  -- ==========================================================================
+  -- L. db/86 -- authorization, RLS and grants.
+  -- ==========================================================================
+  PERFORM set_config('request.jwt.claim.sub', v_naoadmin::TEXT, true);
+  v_res2 := public.consultar_saldo_expedicao_manta(v_op_rel);
+  IF (v_res2->>'ok')::BOOLEAN OR v_res2->>'codigo' <> 'sem_permissao' THEN
+    RAISE EXCEPTION 'not ok 108 - consulta de saldo exige admin (got %)', v_res2;
+  END IF;
+  v_res2 := public.liberar_expedicao_manta_parcial(
+    v_op_rel, jsonb_build_array(jsonb_build_object('op_item_id', v_it_r1, 'metros', 1)));
+  IF (v_res2->>'ok')::BOOLEAN OR v_res2->>'codigo' <> 'sem_permissao' THEN
+    RAISE EXCEPTION 'not ok 109 - liberacao exige admin (got %)', v_res2;
+  END IF;
+  PERFORM set_config('request.jwt.claim.sub', v_admin::TEXT, true);
+  RAISE NOTICE 'ok 47 - RPCs de saldo/liberacao Manta sao admin-only';
+
+  IF NOT has_function_privilege('authenticated', 'public.consultar_saldo_expedicao_manta(bigint)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.consultar_saldo_expedicao_manta(bigint)', 'EXECUTE')
+     OR NOT has_function_privilege('authenticated', 'public.liberar_expedicao_manta_parcial(bigint,jsonb,text,text)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.liberar_expedicao_manta_parcial(bigint,jsonb,text,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'not ok 110 - grants das RPCs db/86 incorretos';
+  END IF;
+  SELECT count(*) INTO v_n
+    FROM pg_proc p, aclexplode(p.proacl) a
+   WHERE p.oid IN ('public.consultar_saldo_expedicao_manta(bigint)'::regprocedure,
+                   'public.liberar_expedicao_manta_parcial(bigint,jsonb,text,text)'::regprocedure)
+     AND a.grantee = 0;
+  IF v_n <> 0 THEN RAISE EXCEPTION 'not ok 111 - PUBLIC nao deveria constar nas ACLs db/86 (got %)', v_n; END IF;
+  IF (SELECT count(*) FROM pg_proc
+       WHERE oid IN ('public.consultar_saldo_expedicao_manta(bigint)'::regprocedure,
+                     'public.liberar_expedicao_manta_parcial(bigint,jsonb,text,text)'::regprocedure)
+         AND prosecdef AND 'search_path=public' = ANY(proconfig)) <> 2 THEN
+    RAISE EXCEPTION 'not ok 112 - as RPCs db/86 deveriam ser SECURITY DEFINER com search_path=public';
+  END IF;
+  IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.expedicao_comandos'::regclass) THEN
+    RAISE EXCEPTION 'not ok 113 - expedicao_comandos deveria ter RLS habilitado';
+  END IF;
+  IF has_table_privilege('authenticated', 'public.expedicao_comandos', 'INSERT')
+     OR has_table_privilege('authenticated', 'public.expedicao_comandos', 'UPDATE')
+     OR has_table_privilege('authenticated', 'public.expedicao_comandos', 'DELETE')
+     OR has_table_privilege('authenticated', 'public.expedicao_comandos', 'SELECT')
+     OR has_table_privilege('anon', 'public.expedicao_comandos', 'SELECT') THEN
+    RAISE EXCEPTION 'not ok 114 - expedicao_comandos nao pode ter caminho de DML/leitura de cliente';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_constraint
+              WHERE conrelid = 'public.expedicao_comandos'::regclass
+                AND contype = 'f'
+                AND confrelid IN ('public.expedicoes'::regclass, 'public.expedicao_itens'::regclass)) THEN
+    RAISE EXCEPTION 'not ok 115 - expedicao_comandos nao pode ter FK para linhas de expedicao';
+  END IF;
+  RAISE NOTICE 'ok 48 - expedicao_comandos: RLS on, sem grants de cliente, sem FK para linhas de expedicao';
+
+  -- ==========================================================================
+  -- M. Latex release and delivery unchanged (functional regression through the
+  --    real Tapete chain generated in section I).
+  -- ==========================================================================
+  SELECT id INTO v_op_latex_gerada FROM public.ops
+   WHERE tipo = 'latex' AND origem_entrega_id = v_ent_tap_com_dest ORDER BY id DESC LIMIT 1;
+  IF v_op_latex_gerada IS NULL THEN
+    RAISE EXCEPTION 'not ok 116 - a OP Latex gerada deveria existir';
+  END IF;
+  UPDATE public.ops SET status = 'em_producao' WHERE id = v_op_latex_gerada;
+
+  v_res2 := public.consultar_saldo_expedicao_latex(v_op_latex_gerada);
+  IF NOT (v_res2->>'ok')::BOOLEAN OR (v_res2->>'recebido_total')::NUMERIC <> 50 THEN
+    RAISE EXCEPTION 'not ok 117 - saldo Latex deveria continuar correto (got %)', v_res2;
+  END IF;
+  v_res2 := public.liberar_expedicao_latex_parcial(
+    v_op_latex_gerada,
+    jsonb_build_array(jsonb_build_object(
+      'op_item_id', (SELECT id FROM public.op_itens WHERE op_id = v_op_latex_gerada ORDER BY id LIMIT 1),
+      'metros', 30)));
+  IF NOT (v_res2->>'ok')::BOOLEAN OR (v_res2->>'liberado_total')::NUMERIC <> 30 THEN
+    RAISE EXCEPTION 'not ok 118 - a liberacao parcial Latex deveria continuar funcionando (got %)', v_res2;
+  END IF;
+  IF (SELECT op_tecelagem_id FROM public.expedicoes WHERE id = (v_res2->>'expedicao_id')::BIGINT) IS NOT NULL THEN
+    RAISE EXCEPTION 'not ok 119 - a expedicao Latex nao pode ganhar fonte Manta';
+  END IF;
+  v_res2 := public.registrar_entrega_expedicao(
+    (v_res2->>'expedicao_id')::BIGINT, 'entrega', CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object(
+      'expedicao_item_id', (SELECT id FROM public.expedicao_itens
+                             WHERE expedicao_id = (v_res2->>'expedicao_id')::BIGINT ORDER BY id LIMIT 1),
+      'metros', 30)));
+  IF NOT (v_res2->>'ok')::BOOLEAN OR v_res2->>'status' <> 'concluida' THEN
+    RAISE EXCEPTION 'not ok 120 - a entrega ao cliente Latex deveria continuar funcionando (got %)', v_res2;
+  END IF;
+  RAISE NOTICE 'ok 49 - fluxo Latex (saldo -> liberacao parcial -> entrega ao cliente) inalterado';
 
   RAISE NOTICE 'MANTA_DIRECT_ROUTE_ACTIVATION_INTEGRATION_PASS';
 END
