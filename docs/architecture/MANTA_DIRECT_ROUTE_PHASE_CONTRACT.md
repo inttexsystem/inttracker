@@ -603,3 +603,25 @@ was touched by this order.
 recreation remains paused. The next authorizable action is
 `PHASE-MANTA-B2-ACTIVATION-CONTRACT-R1`; PHASE-MANTA-B2 implementation remains
 unauthorized and no phase chains automatically.
+
+## 15. Forward pointer — PHASE-MANTA-B2 activation contract
+
+Order `PHASE-MANTA-B2-ACTIVATION-CONTRACT-R1` (read-only architectural
+reconciliation, documentation-only) produced
+`docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md`, which is now the
+**owner of PHASE-MANTA-B2 activation semantics**: the route-conditional `cima`
+delivery design, the Manta expedition release writer, the balance-preserving
+reversal design, route-aware progress and completion, the mixed-Pedido UI
+ruling, authorization/event/audit shapes, the lock order, and the B2A/B2B/B2C
+phasing with its per-phase acceptance gates.
+
+This contract (§1–§14) remains the owner of PHASE-MANTA-B1 and of the deployed
+db/81–db/84 guard semantics; the activation contract does not restate them and
+does not modify them. No database, migration, product code or test changed under
+that order; the shared-development terminal remains `84` and the Manta route
+remains dormant.
+
+The next authorizable action is `PHASE-MANTA-B2A-BACKEND-ACTIVATION-R1`
+(supersedes the §10 pointer, which is preserved as accepted history).
+PHASE-MANTA-B2 implementation remains unauthorized and no phase chains
+automatically.

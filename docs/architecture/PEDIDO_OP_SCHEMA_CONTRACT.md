@@ -1688,3 +1688,55 @@ exactly; all ten guard triggers are present and fire in the documented
 alphabetical order on `ops`/`op_itens`/`lotes`/`pedidos`; the operational
 corpus stayed empty throughout. No staging or production apply is authorized
 by this order.
+
+## Update 2026-07-24 — PHASE-MANTA-B2 activation contract (schema preview, nothing implemented)
+
+Order `PHASE-MANTA-B2-ACTIVATION-CONTRACT-R1` (documentation-only). Governing
+owner of the activation semantics:
+`docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md`. **No migration
+was created or applied**; shared development remains at terminal `84`. This
+section records only the schema shapes that PHASE-MANTA-B2A is contracted to
+create, so that the shapes have a canonical technical owner before
+implementation.
+
+**db/85 — route-conditional `cima` delivery.**
+
+| Object | Exact contract |
+|---|---|
+| `entregas_destino_cima_chk` | **Dropped.** The route is not derivable from an `entregas` row (no item exists at header INSERT), so no row CHECK can express it. |
+| `entrega_itens_cima_route_destino_guard` | BEFORE INSERT, and BEFORE UPDATE of `op_id`/`op_item_id`, on `public.entrega_itens`. `SECURITY DEFINER`, `SET search_path = public`. When the parent `entregas.etapa='cima'`: lock the item's `ops` row FOR UPDATE, resolve the route through `op_itens → modelos.tipo_produto` (never a name), then require `destino_fornecedor_id IS NOT NULL` for `tapete` and `IS NULL` for `manta`. No `app.retificacao_autorizada` bypass. |
+| `entregas_cima_destino_route_guard` | BEFORE UPDATE of `destino_fornecedor_id`/`etapa` on `public.entregas`. Re-derives the route from existing items under the same lock order and re-applies the same rule. No bypass. |
+| `registrar_entrega_cima_manta(BIGINT, BIGINT, DATE, JSONB, TEXT)` | New admin-only `SECURITY DEFINER` RPC; the only Manta `cima` writer. Locks the weaving OP FOR UPDATE, proves `ops.tipo='tecelagem'` and full Manta homogeneity, writes the header (`etapa='cima'`, `destino_fornecedor_id = NULL`) and its `entrega_itens` atomically, and never calls `gerar_op_latex`/`_split`. |
+
+`salvarEntregaCima`, `gerar_op_latex`, `gerar_op_latex_split`,
+`op_latex_entregas` and the whole Tapete `cima` path are unchanged; the guards,
+not the writer, make the invariant writer-agnostic.
+
+**db/86 — Manta expedition release.**
+
+| Object | Exact contract |
+|---|---|
+| `consultar_saldo_expedicao_manta(BIGINT)` | Read RPC mirroring `consultar_saldo_expedicao_latex`, per `op_item`: `previsto` (display only), `recebido`, `liberado`, `entregue`, `disponivel`. |
+| `liberar_expedicao_manta_parcial(BIGINT, JSONB, TEXT, TEXT)` | Admin-only writer. Availability = non-defect `entrega_itens.metros_entregues` on `entregas.etapa='cima'` joined **`op_item_id`-exact** (never `modelo_id`, unlike the Latex path) minus `SUM(expedicao_itens.metros_liberados)`. Planned `COALESCE(metros_ajustados, metros_pedidos)` is never an authority. Creates or reuses the unique expedition for the OP; upserts items additively on `(expedicao_id, op_item_id)`; copies `modelo_id`/`pedido_item_id` verbatim from the referenced `op_item` so db/83's identity alignment passes by construction; rejects overconsumption; returns per-item before/after balances. |
+| `public.expedicao_comandos` | Idempotency/replay table modelled byte-for-byte on §13.2: `id BIGSERIAL PK`; `idempotency_namespace TEXT NOT NULL CHECK (… IN ('manta_release_v1','manta_reversal_v1'))`; `ator_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT`; `idempotency_key TEXT NOT NULL` (trimmed 1–200); `comando_payload JSONB NOT NULL`; `comando_hash TEXT NOT NULL`; `resultado JSONB NOT NULL`; `criado_em TIMESTAMPTZ NOT NULL DEFAULT now()`; UNIQUE `(idempotency_namespace, ator_id, idempotency_key)`; RLS admin-only; no client DML; immutable after insert; **no FK to expedition rows**; permanent retention. A NULL key preserves the legacy additive behavior and writes no command row. |
+
+**db/87 — reversal and route-symmetric completion.**
+
+| Object | Exact contract |
+|---|---|
+| `estornar_expedicao_manta_parcial(BIGINT, JSONB, TEXT, TEXT)` | Admin-only. `p_motivo` **mandatory** (rejects NULL/blank, persists `btrim`), per the `db/70` `estornar_recebimento_ordem_compra` precedent. Locks source `ops` → `expedicoes` → `expedicao_itens` ascending. Rejects `requested > metros_liberados` and `metros_liberados - requested < metros_entregues` (the pre-existing `CHECK (metros_entregues <= metros_liberados)` is the storage backstop). Deletes an item reaching zero (the pre-existing `CHECK (metros_liberados > 0)` forbids a zero row); keeps the expedition header, whose source and lineage are immutable and one-per-OP. Never deletes `expedicao_movimentos`/`expedicao_movimento_itens`. |
+| `concluir_pedido_se_pronto(UUID)` | **Forward-corrected (mandatory).** Its `v_latex_sem_exp` check currently joins only `o.tipo='latex'` on `e.op_latex_id`, so a Manta-only Pedido with a terminal weaving OP and **no expedition at all** satisfies every pendency and is marked `entregue`. The corrected rule is route-symmetric: every terminal source OP — a `latex` OP for Tapete, a Manta `tecelagem` OP for Manta — must have an expedition through its matching source column, every expedition of the Pedido must be `concluida`, and unreleased non-defect measured Manta output is a pendency. Tapete pendency texts and behavior preserved verbatim. |
+
+No guard installed by db/81–db/84 is relaxed by any of the three migrations, and
+no `app.retificacao_autorizada` is granted to any authenticated writer: the
+db/81 consumption guards are inert at zero consumption by their own existing
+condition, which is what makes correction-after-full-reversal legal without a
+schema change.
+
+**Grants/RLS.** `GRANT EXECUTE … TO authenticated` plus `REVOKE EXECUTE … FROM
+PUBLIC, anon` on the new functions only (strictly narrower than the existing
+Latex RPCs, which are unchanged). RLS unchanged on `expedicoes`,
+`expedicao_itens`, `expedicao_movimentos`, `expedicao_movimento_itens`,
+`entregas` and `entrega_itens`. No table grant is broadened; no new direct table
+write is introduced. `tests/ordem-compra-c3d-deploy.smoke.js` advances
+84 → 85 → 86 → 87, one bump per migration commit.

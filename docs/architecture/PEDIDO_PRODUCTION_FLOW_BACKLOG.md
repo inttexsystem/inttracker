@@ -3502,3 +3502,47 @@ finishing regressions, and distinct-session concurrency (one expedition per Mant
 writes cannot cross sources or overtake a source change; deterministic lock order, no
 `40P01`); cluster destroyed with proof. Migration terminal advanced 80 → 81. No
 shared-development apply is authorized by this order.
+
+# Update 2026-07-24 — PHASE-MANTA-B2 activation contract (documentation-only)
+
+Order `PHASE-MANTA-B2-ACTIVATION-CONTRACT-R1` (read-only architectural
+reconciliation) produced the binding implementation contract
+`docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md` for activating the
+dormant db/81–db/84 foundation. STATUS: CLOSED / ACCEPTED / DOCUMENTED. No
+migration, product code or test changed; no environment was mutated; the
+shared-development terminal remains `84` and the Manta route remains dormant.
+
+**Sequence and dependencies introduced by this contract.**
+
+- `PHASE-MANTA-B2A-BACKEND-ACTIVATION-R1` — exactly three forward-only
+  migrations: `db/85` (route-conditional `cima` delivery: drop
+  `entregas_destino_cima_chk`, install the route-aware `entrega_itens` /
+  `entregas` destination guards, add the Manta-only `registrar_entrega_cima_manta`
+  RPC; Tapete path untouched), `db/86` (`consultar_saldo_expedicao_manta`,
+  `liberar_expedicao_manta_parcial`, `public.expedicao_comandos` idempotency
+  table), `db/87` (`estornar_expedicao_manta_parcial` plus the mandatory
+  route-symmetric correction of `concluir_pedido_se_pronto`). Local disposable
+  PostgreSQL only; no `js/**`; no shared-development apply.
+- `PHASE-MANTA-B2B-ROUTE-AWARE-UI-R1` — depends on B2A acceptance. Zero
+  migrations. Route sections per Pedido, Manta output action, direct expedition
+  navigation, dual-source expedition screen with available/released/delivered/
+  remaining balances and the reversal action, route-derived client tracking.
+- `PHASE-MANTA-B2C-SHARED-DEV-FLOW-AND-CLOSEOUT-R1` — depends on B2B acceptance.
+  Applies db/85–87 once each to shared development `ucrjtfswnfdlxwtmxnoo`
+  (terminal 84 → 87), live end-to-end validation, zero-residue cleanup,
+  documentary closeout.
+
+Each phase requires its own explicit order; no phase chains automatically.
+
+**Blocking defect recorded for B2A.** `concluir_pedido_se_pronto` (`db/23`)
+counts only `ops.tipo='latex'` OPs joined on `expedicoes.op_latex_id` when
+checking for a terminal source OP without an expedition. A Manta-only Pedido
+whose weaving OP is terminal and which has no expedition at all therefore
+satisfies every pendency today and would be marked `entregue`. Its
+route-symmetric correction is mandatory in `db/87` and is an acceptance gate of
+B2A, not an optional improvement.
+
+**Naming reconciliation.** No database object named
+`registrar_movimentacao_direta_expedicao` exists. The accepted direct-movement
+writer is the `db/32` redefinition of `liberar_expedicao_latex_parcial(BIGINT,
+JSONB, TEXT)`; references to the former name resolve to the latter.
