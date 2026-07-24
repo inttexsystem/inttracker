@@ -67,6 +67,12 @@
 // one further entry, so the expected terminal advances 83 -> 84 and the terminal
 // two become db/83/db/84. The fail-closed mechanism is unchanged (mechanism
 // preserved, only the terminal expectation advanced).
+//
+// PHASE-MANTA-B2A note (PHASE-MANTA-B2A-BACKEND-ACTIVATION-R1): the authorized
+// activation migration db/85_manta_cima_route_conditional_delivery.sql extends
+// this manifest by one further entry, so the expected terminal advances
+// 84 -> 85 and the terminal two become db/84/db/85. The fail-closed mechanism is
+// unchanged (mechanism preserved, only the terminal expectation advanced).
 //   - the accepted application artifact is an ancestor of the current
 //     branch;
 //   - scripts/c3d/bootstrap-disposable-cluster.mjs creates a fresh disposable
@@ -96,7 +102,7 @@ const BOOTSTRAP_SOURCE = fs.readFileSync(BOOTSTRAP_MODULE_PATH, 'utf8');
 
 const APPLICATION_ARTIFACT = '22bfb192c6c2ad10ccd2b2883d54c3a17e40cc9f';
 const EXPECTED_BRANCH = 'dev';
-const EXPECTED_TERMINAL = 84;
+const EXPECTED_TERMINAL = 85;
 const DB75_FILENAME = '75_ordem_compra_c3c_inactive_cutover.sql';
 const DB76_FILENAME = '76_ordem_compra_c3c_b_db_prerequisites.sql';
 const DB77_FILENAME = '77_ordem_compra_c5a_emission_readiness.sql';
@@ -107,6 +113,7 @@ const DB81_FILENAME = '81_manta_expedition_source_foundation.sql';
 const DB82_FILENAME = '82_manta_expedition_source_invariant_correction.sql';
 const DB83_FILENAME = '83_manta_expedition_source_identity_correction.sql';
 const DB84_FILENAME = '84_manta_expedition_source_lineage_correction.sql';
+const DB85_FILENAME = '85_manta_cima_route_conditional_delivery.sql';
 const DB75_PATH = path.join(DB_DIR, DB75_FILENAME);
 const DB76_PATH = path.join(DB_DIR, DB76_FILENAME);
 const DB77_PATH = path.join(DB_DIR, DB77_FILENAME);
@@ -117,6 +124,7 @@ const DB81_PATH = path.join(DB_DIR, DB81_FILENAME);
 const DB82_PATH = path.join(DB_DIR, DB82_FILENAME);
 const DB83_PATH = path.join(DB_DIR, DB83_FILENAME);
 const DB84_PATH = path.join(DB_DIR, DB84_FILENAME);
+const DB85_PATH = path.join(DB_DIR, DB85_FILENAME);
 
 const FORBIDDEN_HOST_PATTERNS = [
   /ucrjtfswnfdlxwtmxnoo/i,
@@ -263,7 +271,7 @@ function assertEnvironmentIdentity(actual, expected) {
 }
 
 // Assembles the deterministic C3D-A deployment manifest: application
-// artifact, ordered db/01..db/84 sequence, terminal two migrations with
+// artifact, ordered db/01..db/85 sequence, terminal two migrations with
 // stable path/byte-size/hash evidence, and the ancestry/identity proofs.
 // Fails closed on every condition listed in the C3D-A order (missing
 // migration, duplicate number, gap, unexpected trailing migration, changed
@@ -277,8 +285,8 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
   });
 
   const terminalTwo = migrations.slice(-2);
-  assert.equal(terminalTwo[0].filename, DB83_FILENAME);
-  assert.equal(terminalTwo[1].filename, DB84_FILENAME);
+  assert.equal(terminalTwo[0].filename, DB84_FILENAME);
+  assert.equal(terminalTwo[1].filename, DB85_FILENAME);
 
   for (const migration of terminalTwo) {
     const relPathPosix = `db/${migration.filename}`;
@@ -297,27 +305,27 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
 // Deployment manifest: happy path against the real repository
 // ---------------------------------------------------------------------------
 
-test('deployment manifest resolves exactly db/01..db/84, contiguous and unique', () => {
+test('deployment manifest resolves exactly db/01..db/85, contiguous and unique', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
-  assert.equal(entries.length, 84);
+  assert.equal(entries.length, 85);
   assert.deepEqual(
     entries.map((entry) => entry.number),
-    Array.from({ length: 84 }, (_, i) => i + 1)
+    Array.from({ length: 85 }, (_, i) => i + 1)
   );
 });
 
-test('db/83 and db/84 are the terminal two migrations', () => {
+test('db/84 and db/85 are the terminal two migrations', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
-  const [second83, first84] = entries.slice(-2);
-  assert.equal(second83.filename, DB83_FILENAME);
-  assert.equal(first84.filename, DB84_FILENAME);
+  const [second84, first85] = entries.slice(-2);
+  assert.equal(second84.filename, DB84_FILENAME);
+  assert.equal(first85.filename, DB85_FILENAME);
 });
 
 test('the full deployment manifest builds against the real repository', () => {
   const manifest = buildDeploymentManifest();
-  assert.equal(manifest.migrations.length, 84);
+  assert.equal(manifest.migrations.length, 85);
   assert.equal(manifest.applicationArtifact, APPLICATION_ARTIFACT);
   assert.equal(manifest.terminalTwo.length, 2);
   assert.ok(/^[0-9a-f]{40}$/.test(manifest.documentaryCheckpoint));
@@ -431,6 +439,10 @@ test('db/83 hash matches the committed HEAD checkpoint', () => {
   assert.equal(sha256OfFile(DB83_PATH), gitCheckpointHash(`db/${DB83_FILENAME}`));
 });
 
+test('db/85 hash matches the committed HEAD checkpoint', () => {
+  assert.equal(sha256OfFile(DB85_PATH), gitCheckpointHash(`db/${DB85_FILENAME}`));
+});
+
 test('db/84 hash matches the committed HEAD checkpoint', () => {
   assert.equal(sha256OfFile(DB84_PATH), gitCheckpointHash(`db/${DB84_FILENAME}`));
 });
@@ -445,6 +457,7 @@ let db81HashAtStart;
 let db82HashAtStart;
 let db83HashAtStart;
 let db84HashAtStart;
+let db85HashAtStart;
 before(() => {
   db75HashAtStart = sha256OfFile(DB75_PATH);
   db76HashAtStart = sha256OfFile(DB76_PATH);
@@ -456,6 +469,7 @@ before(() => {
   db82HashAtStart = sha256OfFile(DB82_PATH);
   db83HashAtStart = sha256OfFile(DB83_PATH);
   db84HashAtStart = sha256OfFile(DB84_PATH);
+  db85HashAtStart = sha256OfFile(DB85_PATH);
 });
 after(() => {
   assert.equal(sha256OfFile(DB75_PATH), db75HashAtStart, 'db/75 must remain byte-stable for the whole test run');
@@ -468,6 +482,7 @@ after(() => {
   assert.equal(sha256OfFile(DB82_PATH), db82HashAtStart, 'db/82 must remain byte-stable for the whole test run');
   assert.equal(sha256OfFile(DB83_PATH), db83HashAtStart, 'db/83 must remain byte-stable for the whole test run');
   assert.equal(sha256OfFile(DB84_PATH), db84HashAtStart, 'db/84 must remain byte-stable for the whole test run');
+  assert.equal(sha256OfFile(DB85_PATH), db85HashAtStart, 'db/85 must remain byte-stable for the whole test run');
 });
 
 // ---------------------------------------------------------------------------
