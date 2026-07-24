@@ -1,11 +1,14 @@
 // tests/manta-expedition-source-invariant.mjs
 //
-// PHASE-MANTA-B1 disposable-cluster proof of db/81 (Manta expedition source
-// foundation) — full-chain apply, idempotent re-apply, the focused schema/guard
-// integration test, regression, and distinct-session concurrency.
+// PHASE-MANTA-B1 disposable-cluster proof of db/81 + the db/82 source/membership/
+// lock-order correction — full-chain apply, idempotent re-apply, the (unchanged)
+// db/81 schema/guard integration test, regression, and distinct-session
+// concurrency (item-move-wins, membership-insert-wins, source-change no-deadlock,
+// source non-emptiness, plus the db/81 regressions).
 //
 // Governing contract: docs/architecture/MANTA_DIRECT_ROUTE_PHASE_CONTRACT.md.
-// Migration: db/81_manta_expedition_source_foundation.sql.
+// Migrations: db/81_manta_expedition_source_foundation.sql and
+// db/82_manta_expedition_source_invariant_correction.sql.
 //
 // ENVIRONMENT: disposable local PostgreSQL 18.4 ONLY
 // (scripts/c3d/bootstrap-disposable-cluster.mjs). This harness NEVER connects to
@@ -14,32 +17,35 @@
 // fixtures are rebuilt in OS temp files outside the repository and removed on exit.
 //
 // WHAT THIS PROVES, on ONE fresh disposable cluster (then destroyed, Part Z):
-//   Part A  full chain db/01..db/81 applies cleanly, in order (corpus injected
-//           after db/66 so db/67 reconciles); db/81 terminal objects all present
-//           (op_tecelagem_id nullable-latex + exactly-one-source CHECK + partial
-//           unique index + the six guard triggers).
-//   Part B  db/81 re-applies idempotently with a before/after schema fingerprint
+//   Part A  full chain db/01..db/82 applies cleanly, in order (corpus after db/66);
+//           db/81+db/82 terminal objects all present (op_tecelagem_id nullable-latex
+//           + exactly-one-source CHECK + partial unique index + the seven guard
+//           triggers incl. op_itens_source_nonempty_guard).
+//   Part B  db/82 re-applies idempotently with a before/after schema fingerprint
 //           proving zero schema/constraint/trigger/function/grant drift.
-//   Part C  tests/manta-expedition-source.integration.sql passes against db/01..81
-//           (exactly-one-source; route validation; membership; consumed-output
-//           immutability; retificacao escape; reopening; Tapete unchanged).
-//   Part D  regression: tests/manta-product-identity.integration.sql still passes
-//           (db/78-80 identity/route guards unchanged by db/81); the Manta
-//           finishing rejection is intact (gerar_op_latex / _split still reject a
-//           Manta origin — db/81 does not touch them); and the C5A purchase-order
-//           emission integration test still passes on the reconciled corpus.
-//   Part E  distinct-session concurrency (real psql backends, pg_blocking_pids
-//           evidence):
-//             E1 two sessions create an expedition for the SAME Manta OP -> exactly
-//                one commit + one controlled rejection (the partial unique index);
-//                the loser blocks on the source-OP FOR UPDATE lock held by the
-//                winner. Final state: one expedition.
-//             E2 concurrent expedicao_itens writes cannot cross sources or overtake
-//                a source change: a cross-OP item writer blocks on the source-OP
-//                lock held by a valid item writer, then is rejected against the
-//                committed source. No item overtakes the lock.
-//             E3 creations for DIFFERENT Manta OPs do NOT serialize (per-OP lock
-//                granularity) and complete with no deadlock (40P01).
+//   Part C  tests/manta-expedition-source.integration.sql passes UNCHANGED against
+//           db/01..82 (all db/81 guards; db/82 only strengthens them).
+//   Part D  regression: tests/manta-product-identity.integration.sql still passes;
+//           the Manta finishing rejection is intact; C5A emission still passes.
+//   Part E  distinct-session concurrency (real psql backends, pg_blocking_pids):
+//             A item-move-wins: a mover moves an op_item off the source and commits
+//               while a membership insert waits on the source-OP lock; the insert
+//               re-reads the committed ownership and rejects (no stale-read accept).
+//             B membership-insert-wins: an insert commits while a mover waits; the
+//               move is then rejected by the reference guard; membership valid.
+//             C source-change no-deadlock: a source-changing UPDATE is rejected
+//               WITHOUT taking any OP lock (does not block on a held source-OP
+//               lock), so it never inverts; a concurrent valid membership insert
+//               completes; no 40P01.
+//             D last-item move rejected; E last-item delete rejected (source stays
+//               non-empty).
+//             F concurrent removals from a 2-item source serialize on the source
+//               OP: at most one commits, >=1 item remains, no deadlock.
+//             G a non-last unreferenced removal is accepted; a referenced item stays
+//               FK-protected.
+//             H regressions: two creations for one Manta OP -> one commit + one
+//               rejection; cross-OP injection rejected; different source OPs do not
+//               serialize; a Tapete Latex expedition + item is accepted.
 //   Part Z  mandatory full cluster destruction (pid absent, port closed, dir
 //           absent; no c3d-disposable-pg-* residue from this run).
 //
@@ -66,8 +72,6 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 // ---------------------------------------------------------------------------
 // Supabase-platform preamble a bare PG 18.4 cluster lacks (applied before db/01).
-// Verbatim idiom from tests/manta-product-identity-invariant.mjs. No remote host,
-// credential or token.
 // ---------------------------------------------------------------------------
 const PREAMBLE_SQL = `
 DO $preamble$
@@ -100,11 +104,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 GRANT USAGE ON SCHEMA auth, extensions TO anon, authenticated, service_role;
 `;
 
-// Classification-faithful 64-row purchase-order corpus (after db/66, before db/67;
-// db/67 hard-asserts 64/27/12/13/12). Byte-for-byte the corpus from
-// tests/manta-product-identity-invariant.mjs. Inert for the Manta expedition
-// guards; lets the full chain apply and the C5A emission test run on the
-// reconciled 64/51/51/51/51 state.
+// Classification-faithful 64-row purchase-order corpus (after db/66, before db/67).
 const CORPUS_SQL = `
 INSERT INTO public.cores (id, nome) VALUES (930000201, 'C3D-CORPUS-COR-ALGODAO')
   ON CONFLICT (id) DO NOTHING;
@@ -176,50 +176,113 @@ END
 $corpus$;
 `;
 
-// Distinct-session concurrency fixtures (committed so concurrent backends share
-// them). Planted with triggers OFF (session_replication_role=replica) so the
-// db/78-81 guards do not fire during planting; the guards are exercised live by
-// the concurrent sessions. EXP_C is a pre-existing Manta expedition (no items yet)
-// used by the E2 cross-source item race.
+// Distinct-session concurrency fixtures (committed; planted with triggers OFF so
+// the db/78-82 guards do not fire during planting and are exercised live by the
+// concurrent sessions). One dedicated OP set per test avoids interference.
 const CONCURRENCY_FIXTURES_SQL = `
-CREATE TABLE IF NOT EXISTS public._b1_ids (k TEXT PRIMARY KEY, v BIGINT);
+CREATE TABLE IF NOT EXISTS public._b2_ids (k TEXT PRIMARY KEY, v BIGINT);
 SET session_replication_role = replica;
 DO $cf$
 DECLARE
-  c1 BIGINT; c2 BIGINT; mm BIGINT;
+  c1 BIGINT; c2 BIGINT; mm BIGINT; mt BIGINT; forn BIGINT; dest BIGINT;
   cli BIGINT; ped UUID; lote BIGINT;
-  opA BIGINT; opB BIGINT; opC BIGINT; opD BIGINT;
-  itA BIGINT; itB BIGINT; itC BIGINT; itD BIGINT;
-  expC BIGINT;
+  opA BIGINT; opAt BIGINT; iA1 BIGINT; iA2 BIGINT; expA BIGINT;
+  opB BIGINT; opBt BIGINT; iB1 BIGINT; iB2 BIGINT; expB BIGINT;
+  opC BIGINT; iC1 BIGINT; expC BIGINT;
+  opD BIGINT; opDt BIGINT; itD BIGINT; expD BIGINT;
+  opE BIGINT; iE BIGINT; expE BIGINT;
+  opF BIGINT; iF1 BIGINT; iF2 BIGINT; expF BIGINT;
+  opG BIGINT; iG1 BIGINT; iG2 BIGINT; expG BIGINT;
+  opH BIGINT; iH BIGINT;
+  opHx BIGINT; iHx BIGINT; expHx BIGINT;
+  opH3a BIGINT; iH3a BIGINT; opH3b BIGINT; iH3b BIGINT;
+  opLx BIGINT; iLx BIGINT;
 BEGIN
-  INSERT INTO public.cores(nome) VALUES ('B1-CONC-KRAFT') RETURNING id INTO c1;
-  INSERT INTO public.cores(nome) VALUES ('B1-CONC-CRU')   RETURNING id INTO c2;
-  INSERT INTO public.modelos(nome,cor_1_id,cor_2_id,largura,tipo_produto)
-    VALUES ('B1-CONC-MANTA', c1, c2, 1.40, 'manta') RETURNING id INTO mm;
+  INSERT INTO public.cores(nome) VALUES ('B2-KRAFT') RETURNING id INTO c1;
+  INSERT INTO public.cores(nome) VALUES ('B2-CRU')   RETURNING id INTO c2;
+  INSERT INTO public.fornecedores(nome,tipo) VALUES ('B2-TEC','tecelagem') RETURNING id INTO forn;
+  INSERT INTO public.fornecedores(nome,tipo) VALUES ('B2-LATEX','latex')   RETURNING id INTO dest;
+  INSERT INTO public.modelos(nome,cor_1_id,cor_2_id,largura,tipo_produto) VALUES ('B2-MANTA',  c1,c2,1.40,'manta')  RETURNING id INTO mm;
+  INSERT INTO public.modelos(nome,cor_1_id,cor_2_id,largura,tipo_produto) VALUES ('B2-TAPETE', c1,c2,2.10,'tapete') RETURNING id INTO mt;
+  INSERT INTO public.clientes(nome) VALUES ('B2-CLI') RETURNING id INTO cli;
+  INSERT INTO public.pedidos(cliente_id,numero,status) VALUES (cli,986001,'confirmado') RETURNING id INTO ped;
+  INSERT INTO public.lotes(numero,cliente_id,pedido_id) VALUES (986001,cli,ped) RETURNING id INTO lote;
 
-  INSERT INTO public.clientes(nome) VALUES ('B1-CONC-CLI') RETURNING id INTO cli;
-  INSERT INTO public.pedidos(cliente_id, numero, status) VALUES (cli, 985001, 'confirmado') RETURNING id INTO ped;
-  INSERT INTO public.lotes(numero, cliente_id, pedido_id) VALUES (985001, cli, ped) RETURNING id INTO lote;
+  -- A: source opA (2 items), empty target opAt, header expA (no items).
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986001,2026,'concluida','tecelagem',lote) RETURNING id INTO opA;
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986002,2026,'concluida','tecelagem',lote) RETURNING id INTO opAt;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opA,mm,50) RETURNING id INTO iA1;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opA,mm,50) RETURNING id INTO iA2;
+  INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES (ped,opA,lote,cli) RETURNING id INTO expA;
 
-  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (985001,2026,'concluida','tecelagem',lote) RETURNING id INTO opA;
-  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (985002,2026,'concluida','tecelagem',lote) RETURNING id INTO opB;
-  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (985003,2026,'concluida','tecelagem',lote) RETURNING id INTO opC;
-  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (985004,2026,'concluida','tecelagem',lote) RETURNING id INTO opD;
+  -- B: source opB (2 items), empty target opBt, header expB (no items).
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986003,2026,'concluida','tecelagem',lote) RETURNING id INTO opB;
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986004,2026,'concluida','tecelagem',lote) RETURNING id INTO opBt;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opB,mm,50) RETURNING id INTO iB1;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opB,mm,50) RETURNING id INTO iB2;
+  INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES (ped,opB,lote,cli) RETURNING id INTO expB;
 
-  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opA, mm, 100) RETURNING id INTO itA;
-  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opB, mm, 100) RETURNING id INTO itB;
-  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opC, mm, 100) RETURNING id INTO itC;
-  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opD, mm, 100) RETURNING id INTO itD;
+  -- C: source opC (1 item), header expC (no items).
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986005,2026,'concluida','tecelagem',lote) RETURNING id INTO opC;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opC,mm,50) RETURNING id INTO iC1;
+  INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES (ped,opC,lote,cli) RETURNING id INTO expC;
 
-  -- Pre-existing Manta expedition on opC (no items yet) for the E2 item race.
-  INSERT INTO public.expedicoes(pedido_id, op_tecelagem_id, lote_id, cliente_id)
-    VALUES (ped, opC, lote, cli) RETURNING id INTO expC;
+  -- D: source opD (1 item), empty target opDt, header expD.
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986006,2026,'concluida','tecelagem',lote) RETURNING id INTO opD;
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986007,2026,'concluida','tecelagem',lote) RETURNING id INTO opDt;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opD,mm,50) RETURNING id INTO itD;
+  INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES (ped,opD,lote,cli) RETURNING id INTO expD;
 
-  INSERT INTO public._b1_ids(k,v) VALUES
-    ('mm',mm),
-    ('opA',opA),('opB',opB),('opC',opC),('opD',opD),
-    ('itA',itA),('itB',itB),('itC',itC),('itD',itD),
-    ('expC',expC),('ped_lote', lote),('cli', cli);
+  -- E: source opE (1 item), header expE.
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986008,2026,'concluida','tecelagem',lote) RETURNING id INTO opE;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opE,mm,50) RETURNING id INTO iE;
+  INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES (ped,opE,lote,cli) RETURNING id INTO expE;
+
+  -- F: source opF (2 items), header expF.
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986009,2026,'concluida','tecelagem',lote) RETURNING id INTO opF;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opF,mm,50) RETURNING id INTO iF1;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opF,mm,50) RETURNING id INTO iF2;
+  INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES (ped,opF,lote,cli) RETURNING id INTO expF;
+
+  -- G: source opG (2 items), header expG referencing iG2.
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986010,2026,'concluida','tecelagem',lote) RETURNING id INTO opG;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opG,mm,50) RETURNING id INTO iG1;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opG,mm,50) RETURNING id INTO iG2;
+  INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES (ped,opG,lote,cli) RETURNING id INTO expG;
+  INSERT INTO public.expedicao_itens(expedicao_id,op_item_id,modelo_id,metros_liberados) VALUES (expG,iG2,mm,50);
+
+  -- H1: opH (1 item), no expedition yet (two sessions race to create).
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986011,2026,'concluida','tecelagem',lote) RETURNING id INTO opH;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opH,mm,50) RETURNING id INTO iH;
+
+  -- H2: opHx (1 item) with header expHx (cross-OP injection target).
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986012,2026,'concluida','tecelagem',lote) RETURNING id INTO opHx;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opHx,mm,50) RETURNING id INTO iHx;
+  INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES (ped,opHx,lote,cli) RETURNING id INTO expHx;
+
+  -- H3: two independent Manta OPs (different-OP non-serialization).
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986013,2026,'concluida','tecelagem',lote) RETURNING id INTO opH3a;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opH3a,mm,50) RETURNING id INTO iH3a;
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986014,2026,'concluida','tecelagem',lote) RETURNING id INTO opH3b;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opH3b,mm,50) RETURNING id INTO iH3b;
+
+  -- H4: a Latex OP + item for the Tapete Latex expedition regression.
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986015,2026,'finalizada','latex',lote) RETURNING id INTO opLx;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opLx,mt,50) RETURNING id INTO iLx;
+
+  INSERT INTO public._b2_ids(k,v) VALUES
+    ('mm',mm),('mt',mt),('lote',lote),('cli',cli),
+    ('opA',opA),('opAt',opAt),('iA1',iA1),('iA2',iA2),('expA',expA),
+    ('opB',opB),('opBt',opBt),('iB1',iB1),('iB2',iB2),('expB',expB),
+    ('opC',opC),('iC1',iC1),('expC',expC),
+    ('opD',opD),('opDt',opDt),('itD',itD),('expD',expD),
+    ('opE',opE),('iE',iE),('expE',expE),
+    ('opF',opF),('iF1',iF1),('iF2',iF2),('expF',expF),
+    ('opG',opG),('iG1',iG1),('iG2',iG2),('expG',expG),
+    ('opH',opH),('iH',iH),
+    ('opHx',opHx),('iHx',iHx),('expHx',expHx),
+    ('opH3a',opH3a),('iH3a',iH3a),('opH3b',opH3b),('iH3b',iH3b),
+    ('opLx',opLx),('iLx',iLx);
 END
 $cf$;
 SET session_replication_role = origin;
@@ -266,7 +329,6 @@ async function applySql(handle, name, sql, label) {
   return applyFile(handle, file, label || name);
 }
 
-// Interactive line-sentinel psql session (verbatim idiom from the identity harness).
 function openSession(handle, name) {
   const child = spawn(psqlBinary(handle), [...baseArgs(handle), '-v', 'ON_ERROR_STOP=0'], {
     env: process.env, stdio: ['pipe', 'pipe', 'pipe'],
@@ -342,7 +404,6 @@ async function query(handle, sql) {
 }
 async function scalar(handle, sql) { const [row = ''] = await query(handle, sql); return row; }
 
-// Poll pg_blocking_pids until `subjectPid` is blocked by `blockerPid`.
 async function waitForBlock(handle, subjectPid, blockerPid, attempts = 200) {
   for (let i = 0; i < attempts; i += 1) {
     const row = await scalar(handle,
@@ -356,8 +417,20 @@ async function blockingPids(handle, subjectPid) {
   return scalar(handle, `SELECT array_to_string(pg_catalog.pg_blocking_pids(${subjectPid}), ',');`);
 }
 
-// Order-stable schema fingerprint (columns, constraints, triggers, function
-// bodies, table + routine grants) — proves idempotent re-apply causes no drift.
+// Run a single autocommit statement inside a DO block and return 'OK' (the
+// statement committed) or 'REJECTED|<sqlerrm>' (it raised and rolled back). Unlike
+// a DO block that RAISEs after a successful op, this never rolls back a wrongly
+// accepted op — so an 'OK' outcome is a genuine, persisted acceptance.
+async function attempt(handle, name, opSql) {
+  const s = openSession(handle, name);
+  s.send(`CREATE TEMP TABLE _att(v text);`);
+  s.send(`DO $$ BEGIN ${opSql}; INSERT INTO _att VALUES ('OK'); EXCEPTION WHEN OTHERS THEN INSERT INTO _att VALUES ('REJECTED|'||SQLERRM); END $$;`);
+  s.send(`SELECT 'ATT|' || v FROM _att;`);
+  const r = await s.waitFor((l) => l.startsWith('ATT|'));
+  await s.close();
+  return r.slice(4);
+}
+
 async function schemaFingerprint(handle) {
   return scalar(handle, `
     WITH t AS (
@@ -392,12 +465,12 @@ async function resolveManifest() {
 }
 
 // ===========================================================================
-// PART A — full chain apply (db/01..81) + terminal-object presence.
+// PART A — full chain apply (db/01..82) + terminal-object presence.
 // ===========================================================================
 async function partA(handle) {
   const manifest = await resolveManifest();
-  check(manifest.length === 81, `manifest must be db/01..db/81 (got ${manifest.length})`);
-  check(manifest[manifest.length - 1].n === 81, `terminal migration must be db/81 (got ${manifest[manifest.length - 1].n})`);
+  check(manifest.length === 82, `manifest must be db/01..db/82 (got ${manifest.length})`);
+  check(manifest[manifest.length - 1].n === 82, `terminal migration must be db/82 (got ${manifest[manifest.length - 1].n})`);
 
   await applySql(handle, 'preamble.sql', PREAMBLE_SQL, 'preamble');
   for (const { n, file } of manifest) {
@@ -413,30 +486,30 @@ async function partA(handle) {
            (SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname IN (
               'expedicoes_source_validation_guard','expedicao_itens_membership_guard',
               'op_itens_expedicao_reference_guard','entrega_itens_manta_consumo_guard',
-              'entregas_manta_consumo_guard','ops_manta_reopen_guard'));`);
-  check(objs === '1/YES/1/1/6', `db/81 terminal objects must all exist (tec_col/latex_nullable/chk/uk/triggers = ${objs})`);
-  log('PART_A', { migrations: manifest.length, terminal: 81, objects: objs, clean_apply: true });
+              'entregas_manta_consumo_guard','ops_manta_reopen_guard','op_itens_source_nonempty_guard'));`);
+  check(objs === '1/YES/1/1/7', `db/81+db/82 terminal objects must all exist (tec_col/latex_nullable/chk/uk/triggers = ${objs})`);
+  log('PART_A', { migrations: manifest.length, terminal: 82, objects: objs, clean_apply: true });
 }
 
 // ===========================================================================
-// PART B — db/81 idempotent re-apply with zero drift.
+// PART B — db/82 idempotent re-apply with zero drift.
 // ===========================================================================
 async function partB(handle) {
   const before = await schemaFingerprint(handle);
-  applyFile(handle, path.join(REPO_ROOT, 'db', '81_manta_expedition_source_foundation.sql'), 'db/81 re-apply');
+  applyFile(handle, path.join(REPO_ROOT, 'db', '82_manta_expedition_source_invariant_correction.sql'), 'db/82 re-apply');
   const after = await schemaFingerprint(handle);
-  check(before === after, `idempotent re-apply of db/81 must cause zero schema drift (before=${before}, after=${after})`);
-  log('PART_B', { fingerprint_stable: true, reapply: 'db/81', drift: 'none' });
+  check(before === after, `idempotent re-apply of db/82 must cause zero schema drift (before=${before}, after=${after})`);
+  log('PART_B', { fingerprint_stable: true, reapply: 'db/82', drift: 'none' });
 }
 
 // ===========================================================================
-// PART C — the focused db/81 schema/guard integration test.
+// PART C — the (unchanged) db/81 schema/guard integration test against db/01..82.
 // ===========================================================================
 async function partC(handle) {
   const file = path.join(HERE, 'manta-expedition-source.integration.sql');
   const out = applyFile(handle, file, 'manta-expedition-source.integration.sql');
   check(/MANTA_EXPEDITION_SOURCE_INTEGRATION_PASS/.test(out),
-    `integration test must emit its PASS sentinel (got: ${out.trim().split(/\r?\n/).slice(-3).join(' / ')})`);
+    `db/81 integration test must still pass unchanged under db/82 (got: ${out.trim().split(/\r?\n/).slice(-3).join(' / ')})`);
   log('PART_C', { integration_test: 'manta-expedition-source.integration.sql', result: 'PASS' });
 }
 
@@ -444,24 +517,21 @@ async function partC(handle) {
 // PART D — regression: identity guards, finishing rejection, C5A emission.
 // ===========================================================================
 async function partD(handle) {
-  // D1: db/78-80 identity/route guards unchanged by db/81.
   const idOut = applyFile(handle, path.join(HERE, 'manta-product-identity.integration.sql'), 'manta-product-identity.integration.sql');
   check(/MANTA_PRODUCT_IDENTITY_INTEGRATION_PASS/.test(idOut),
     `db/78-80 identity integration test must still pass (got: ${idOut.trim().split(/\r?\n/).slice(-3).join(' / ')})`);
 
-  // D2: Manta finishing rejection intact — db/81 does not touch these functions.
   const fin = await scalar(handle, `
     SELECT (CASE WHEN pg_get_functiondef('public.gerar_op_latex(bigint)'::regprocedure) LIKE '%e de Manta%' THEN 'latex_ok' ELSE 'latex_MISSING' END)
         || '/' ||
            (CASE WHEN pg_get_functiondef('public.gerar_op_latex_split(bigint,text)'::regprocedure) LIKE '%e de Manta%' THEN 'split_ok' ELSE 'split_MISSING' END);`);
   check(fin === 'latex_ok/split_ok', `Manta finishing rejection must remain in gerar_op_latex/_split (got ${fin})`);
 
-  // D3: C5 purchase-order emission regression on the reconciled corpus.
   const recon = await scalar(handle, `
     SELECT (SELECT count(*) FROM public.ordens_compra_fio) || '/' ||
            (SELECT count(*) FROM public.ordem_compra) || '/' ||
            (SELECT count(*) FROM public.ordem_compra_item);`);
-  check(recon.startsWith('64/51/51'), `C5 corpus must be reconciled 64/51/51 before the emission test (got ${recon})`);
+  check(recon.startsWith('64/51/51'), `C5 corpus must be reconciled 64/51/51 (got ${recon})`);
   const c5 = applyFile(handle, path.join(HERE, 'ordem-compra-c5a-emission-readiness.integration.sql'), 'ordem-compra-c5a-emission-readiness.integration.sql');
   check(/C5A_EMISSION_READINESS_INTEGRATION_PASS/.test(c5),
     `C5A emission test must still pass (got: ${c5.trim().split(/\r?\n/).slice(-3).join(' / ')})`);
@@ -469,124 +539,274 @@ async function partD(handle) {
 }
 
 // ===========================================================================
-// PART E — distinct-session concurrency.
+// PART E — distinct-session concurrency (Tests A–H).
 // ===========================================================================
 async function partE(handle) {
   await applySql(handle, 'concurrency-fixtures.sql', CONCURRENCY_FIXTURES_SQL, 'concurrency fixtures');
   const id = {};
-  for (const k of ['mm', 'opA', 'opB', 'opC', 'opD', 'itA', 'itB', 'itC', 'itD', 'expC', 'ped_lote', 'cli']) {
-    id[k] = Number(await scalar(handle, `SELECT v FROM public._b1_ids WHERE k='${k}';`));
+  const keys = ['mm', 'mt', 'lote', 'cli', 'opA', 'opAt', 'iA1', 'iA2', 'expA', 'opB', 'opBt', 'iB1', 'iB2', 'expB',
+    'opC', 'iC1', 'expC', 'opD', 'opDt', 'itD', 'expD', 'opE', 'iE', 'expE', 'opF', 'iF1', 'iF2', 'expF',
+    'opG', 'iG1', 'iG2', 'expG', 'opH', 'iH', 'opHx', 'iHx', 'expHx', 'opH3a', 'iH3a', 'opH3b', 'iH3b', 'opLx', 'iLx'];
+  for (const k of keys) {
+    id[k] = Number(await scalar(handle, `SELECT v FROM public._b2_ids WHERE k='${k}';`));
     check(Number.isInteger(id[k]) && id[k] > 0, `fixture id ${k} must resolve (got ${id[k]})`);
   }
-  const pedC = await scalar(handle, `SELECT pedido_id FROM public.expedicoes WHERE id=${id.expC};`);
-  check(/^[0-9a-f-]{36}$/.test(pedC), `expedition C must resolve its pedido (got ${pedC})`);
+  const ped = await scalar(handle, `SELECT pedido_id FROM public.expedicoes WHERE id=${id.expA};`);
+  check(/^[0-9a-f-]{36}$/.test(ped), `fixture pedido must resolve (got ${ped})`);
 
-  // ---- E1: two sessions create an expedition for the SAME Manta OP (opA) -----
+  // ---- A: item move wins (post-lock ownership re-read; no stale accept) -------
   {
-    const s1 = openSession(handle, 'E1-S1');
-    s1.send('BEGIN;');
-    s1.send(`SELECT 'S1PID|' || pg_backend_pid();`);
-    const s1pid = Number((await s1.waitFor((l) => l.startsWith('S1PID|'))).split('|')[1]);
-    s1.send(`INSERT INTO public.expedicoes(pedido_id, op_tecelagem_id, lote_id, cliente_id) VALUES ('${pedC}', ${id.opA}, ${id.ped_lote}, ${id.cli}); SELECT 'S1INS_DONE';`);
-    await s1.waitFor((l) => l === 'S1INS_DONE');   // holds ops(opA) FOR UPDATE, uncommitted
+    const mover = openSession(handle, 'A-mover');
+    mover.send('BEGIN;');
+    mover.send(`SELECT 'MPID|' || pg_backend_pid();`);
+    const mpid = Number((await mover.waitFor((l) => l.startsWith('MPID|'))).split('|')[1]);
+    // Move the SECOND (unreferenced) item off opA -> opAt (opA keeps iA1: non-empty).
+    mover.send(`UPDATE public.op_itens SET op_id=${id.opAt} WHERE id=${id.iA2}; SELECT 'MOVE_DONE';`);
+    await mover.waitFor((l) => l === 'MOVE_DONE');   // holds opA (+opAt) locks, uncommitted
 
-    const s2 = openSession(handle, 'E1-S2');
-    s2.send('BEGIN;');
-    s2.send(`SELECT 'S2PID|' || pg_backend_pid();`);
-    const s2pid = Number((await s2.waitFor((l) => l.startsWith('S2PID|'))).split('|')[1]);
-    s2.send(`CREATE TEMP TABLE _o(v text);`);
-    s2.send(`DO $$ BEGIN
-        INSERT INTO public.expedicoes(pedido_id, op_tecelagem_id, lote_id, cliente_id) VALUES ('${pedC}', ${id.opA}, ${id.ped_lote}, ${id.cli});
-        INSERT INTO _o VALUES ('UNEXPECTED_OK');
-      EXCEPTION WHEN OTHERS THEN INSERT INTO _o VALUES ('REJECTED|'||SQLERRM); END $$;`);
-    s2.send(`SELECT 'S2RES|' || v FROM _o;`);
+    const ins = openSession(handle, 'A-ins');
+    ins.send('BEGIN;');
+    ins.send(`SELECT 'IPID|' || pg_backend_pid();`);
+    const ipid = Number((await ins.waitFor((l) => l.startsWith('IPID|'))).split('|')[1]);
+    ins.send(`CREATE TEMP TABLE _a(v text);`);
+    ins.send(`DO $$ BEGIN
+        INSERT INTO public.expedicao_itens(expedicao_id,op_item_id,modelo_id,metros_liberados) VALUES (${id.expA}, ${id.iA2}, ${id.mm}, 10);
+        INSERT INTO _a VALUES ('UNEXPECTED_OK');
+      EXCEPTION WHEN OTHERS THEN INSERT INTO _a VALUES ('REJECTED|'||SQLERRM); END $$;`);
+    ins.send(`SELECT 'IRES|' || v FROM _a;`);
+    await waitForBlock(handle, ipid, mpid);   // insert waits on opA lock held by the mover
+    log('A', { mover_pid: mpid, ins_pid: ipid, ins_blocked_by_mover: true });
 
-    await waitForBlock(handle, s2pid, s1pid);   // S2 blocks on opA source lock held by S1
-    log('E1', { s1pid, s2pid, s2_blocked_by_s1: true });
-
-    s1.send(`COMMIT; SELECT 'S1COMMIT';`);
-    await s1.waitFor((l) => l === 'S1COMMIT');
-    const res = await s2.waitFor((l) => l.startsWith('S2RES|'));
-    s2.send('ROLLBACK;');
-    check(/REJECTED\|/.test(res) && /(unique|duplicate|única|expedicoes_op_tecelagem_id_uk)/i.test(res),
-      `E1: the second creation for the same Manta OP must be rejected (got ${res})`);
-    check(!/deadlock|40P01/i.test(s1.stderr + s2.stderr), 'E1: no deadlock');
-    await s1.close();
-    await s2.close();
-
-    const ct = await scalar(handle, `SELECT count(*) FROM public.expedicoes WHERE op_tecelagem_id=${id.opA};`);
-    check(Number(ct) === 1, `E1: exactly one expedition must exist for opA (got ${ct})`);
-    log('E1', { outcome: 'one_commit_one_rejection', expeditions_for_opA: ct });
-  }
-
-  // ---- E2: concurrent item writes cannot cross sources / overtake source ------
-  {
-    // S1 inserts a VALID item (opC's item) into EXP_C; holds ops(opC) FOR UPDATE.
-    const s1 = openSession(handle, 'E2-S1');
-    s1.send('BEGIN;');
-    s1.send(`SELECT 'S1PID|' || pg_backend_pid();`);
-    const s1pid = Number((await s1.waitFor((l) => l.startsWith('S1PID|'))).split('|')[1]);
-    s1.send(`INSERT INTO public.expedicao_itens(expedicao_id, op_item_id, modelo_id, metros_liberados) VALUES (${id.expC}, ${id.itC}, ${id.mm}, 40); SELECT 'S1INS_DONE';`);
-    await s1.waitFor((l) => l === 'S1INS_DONE');
-
-    // S2 attempts a CROSS-OP item (opD's item) into EXP_C; must block on opC, then reject.
-    const s2 = openSession(handle, 'E2-S2');
-    s2.send('BEGIN;');
-    s2.send(`SELECT 'S2PID|' || pg_backend_pid();`);
-    const s2pid = Number((await s2.waitFor((l) => l.startsWith('S2PID|'))).split('|')[1]);
-    s2.send(`CREATE TEMP TABLE _o2(v text);`);
-    s2.send(`DO $$ BEGIN
-        INSERT INTO public.expedicao_itens(expedicao_id, op_item_id, modelo_id, metros_liberados) VALUES (${id.expC}, ${id.itD}, ${id.mm}, 10);
-        INSERT INTO _o2 VALUES ('UNEXPECTED_OK');
-      EXCEPTION WHEN OTHERS THEN INSERT INTO _o2 VALUES ('REJECTED|'||SQLERRM); END $$;`);
-    s2.send(`SELECT 'S2RES|' || v FROM _o2;`);
-
-    await waitForBlock(handle, s2pid, s1pid);   // S2 blocks on opC source lock held by S1
-    log('E2', { s1pid, s2pid, s2_blocked_on_source: true });
-
-    s1.send(`COMMIT; SELECT 'S1COMMIT';`);
-    await s1.waitFor((l) => l === 'S1COMMIT');
-    const res = await s2.waitFor((l) => l.startsWith('S2RES|'));
-    s2.send('ROLLBACK;');
+    mover.send(`COMMIT; SELECT 'MCOMMIT';`);
+    await mover.waitFor((l) => l === 'MCOMMIT');
+    const res = await ins.waitFor((l) => l.startsWith('IRES|'));
+    ins.send('ROLLBACK;');
     check(/REJECTED\|/.test(res) && /(cross-OP|nao pertence)/i.test(res),
-      `E2: the cross-OP item must be rejected against the committed source (got ${res})`);
-    check(!/deadlock|40P01/i.test(s1.stderr + s2.stderr), 'E2: no deadlock');
-    await s1.close();
-    await s2.close();
+      `A: after the move commits, the membership insert must re-read ownership and reject (got ${res})`);
+    check(!/deadlock|40P01/i.test(mover.stderr + ins.stderr), 'A: no deadlock');
+    await mover.close();
+    await ins.close();
 
-    const shape = await scalar(handle, `
-      SELECT count(*) || '/' || count(*) FILTER (WHERE op_item_id=${id.itC}) || '/' || count(*) FILTER (WHERE op_item_id=${id.itD})
-        FROM public.expedicao_itens WHERE expedicao_id=${id.expC};`);
-    check(shape === '1/1/0', `E2: EXP_C must hold exactly the valid opC item, no cross-OP item (got ${shape})`);
-    log('E2', { outcome: 'cross_source_rejected_under_concurrency', items: shape });
+    const invalid = await scalar(handle, `
+      SELECT count(*) FROM public.expedicao_itens xi JOIN public.op_itens oi ON oi.id=xi.op_item_id
+       WHERE xi.expedicao_id=${id.expA} AND oi.op_id <> ${id.opA};`);
+    check(Number(invalid) === 0, `A: zero invalid expedition item may remain (got ${invalid})`);
+    log('A', { outcome: 'item_move_wins__insert_rejected_post_lock', invalid_items: invalid });
   }
 
-  // ---- E3: creations for DIFFERENT Manta OPs do NOT serialize, no deadlock ----
+  // ---- B: membership insert wins; later move rejected by the reference guard --
   {
-    const s1 = openSession(handle, 'E3-S1');
+    const ins = openSession(handle, 'B-ins');
+    ins.send('BEGIN;');
+    ins.send(`SELECT 'IPID|' || pg_backend_pid();`);
+    const ipid = Number((await ins.waitFor((l) => l.startsWith('IPID|'))).split('|')[1]);
+    ins.send(`INSERT INTO public.expedicao_itens(expedicao_id,op_item_id,modelo_id,metros_liberados) VALUES (${id.expB}, ${id.iB2}, ${id.mm}, 10); SELECT 'INS_DONE';`);
+    await ins.waitFor((l) => l === 'INS_DONE');   // holds opB lock, uncommitted
+
+    const mover = openSession(handle, 'B-mover');
+    mover.send('BEGIN;');
+    mover.send(`SELECT 'MPID|' || pg_backend_pid();`);
+    const mpid = Number((await mover.waitFor((l) => l.startsWith('MPID|'))).split('|')[1]);
+    mover.send(`CREATE TEMP TABLE _b(v text);`);
+    mover.send(`DO $$ BEGIN
+        UPDATE public.op_itens SET op_id=${id.opBt} WHERE id=${id.iB2};
+        INSERT INTO _b VALUES ('UNEXPECTED_OK');
+      EXCEPTION WHEN OTHERS THEN INSERT INTO _b VALUES ('REJECTED|'||SQLERRM); END $$;`);
+    mover.send(`SELECT 'MRES|' || v FROM _b;`);
+    await waitForBlock(handle, mpid, ipid);   // mover waits on opB lock held by the insert
+    log('B', { ins_pid: ipid, mover_pid: mpid, mover_blocked_by_ins: true });
+
+    ins.send(`COMMIT; SELECT 'ICOMMIT';`);
+    await ins.waitFor((l) => l === 'ICOMMIT');
+    const res = await mover.waitFor((l) => l.startsWith('MRES|'));
+    mover.send('ROLLBACK;');
+    check(/REJECTED\|/.test(res) && /referenciad/i.test(res),
+      `B: the move of a now-referenced op_item must be rejected by the reference guard (got ${res})`);
+    check(!/deadlock|40P01/i.test(mover.stderr + ins.stderr), 'B: no deadlock');
+    await ins.close();
+    await mover.close();
+
+    const stillA = await scalar(handle, `SELECT op_id FROM public.op_itens WHERE id=${id.iB2};`);
+    check(Number(stillA) === id.opB, `B: membership must remain valid (item still in opB, got ${stillA})`);
+    log('B', { outcome: 'membership_insert_wins__move_rejected' });
+  }
+
+  // ---- C: source-change UPDATE takes no OP lock (no inversion), insert proceeds --
+  {
+    const holder = openSession(handle, 'C-holder');
+    holder.send('BEGIN;');
+    holder.send(`SELECT 'HPID|' || pg_backend_pid();`);
+    const hpid = Number((await holder.waitFor((l) => l.startsWith('HPID|'))).split('|')[1]);
+    holder.send(`SELECT 1 FROM public.ops WHERE id=${id.opC} FOR UPDATE; SELECT 'HOLD_READY';`);
+    await holder.waitFor((l) => l === 'HOLD_READY');   // holds opC FOR UPDATE
+
+    // A source-changing UPDATE must be rejected WITHOUT requesting the opC lock,
+    // so it does NOT block on the holder — it returns a rejection immediately.
+    const chg = openSession(handle, 'C-chg');
+    chg.send(`CREATE TEMP TABLE _c(v text);`);
+    chg.send(`DO $$ BEGIN
+        UPDATE public.expedicoes SET op_tecelagem_id=${id.opA} WHERE id=${id.expC};
+        INSERT INTO _c VALUES ('UNEXPECTED_OK');
+      EXCEPTION WHEN OTHERS THEN INSERT INTO _c VALUES ('REJECTED|'||SQLERRM); END $$;`);
+    chg.send(`SELECT 'CRES|' || v FROM _c;`);
+    const cres = await chg.waitFor((l) => l.startsWith('CRES|'), 8000);   // must NOT hang on opC
+    await chg.close();
+    check(/REJECTED\|/.test(cres) && /imutavel/i.test(cres),
+      `C: a source-changing UPDATE must be rejected as immutable without blocking (got ${cres})`);
+
+    // A real membership insert into expC DOES take the opC lock, so it blocks on
+    // the holder, then proceeds once released — proving the OP lock is the only
+    // contention and there is no deadlock.
+    const ins = openSession(handle, 'C-ins');
+    ins.send('BEGIN;');
+    ins.send(`SELECT 'IPID|' || pg_backend_pid();`);
+    const ipid = Number((await ins.waitFor((l) => l.startsWith('IPID|'))).split('|')[1]);
+    ins.send(`INSERT INTO public.expedicao_itens(expedicao_id,op_item_id,modelo_id,metros_liberados) VALUES (${id.expC}, ${id.iC1}, ${id.mm}, 10); SELECT 'INS_DONE';`);
+    await waitForBlock(handle, ipid, hpid);
+    holder.send(`ROLLBACK; SELECT 'HDONE';`);
+    await holder.waitFor((l) => l === 'HDONE');
+    await ins.waitFor((l) => l === 'INS_DONE');
+    ins.send(`COMMIT; SELECT 'ICOMMIT';`);
+    await ins.waitFor((l) => l === 'ICOMMIT');
+    check(!/deadlock|40P01/i.test(holder.stderr + chg.stderr + ins.stderr), 'C: no deadlock/40P01');
+    await holder.close();
+    await ins.close();
+    log('C', { source_change_rejected_no_block: true, membership_insert_completed: true, no_deadlock: true });
+  }
+
+  // ---- D: last-item move rejected; E: last-item delete rejected ---------------
+  {
+    const mv = await attempt(handle, 'D-move', `UPDATE public.op_itens SET op_id=${id.opDt} WHERE id=${id.itD}`);
+    check(/REJECTED\|/.test(mv) && /sem itens|nao pode ficar/i.test(mv), `D: last-item move must be rejected (got ${mv})`);
+    const remD = await scalar(handle, `SELECT count(*) FROM public.op_itens WHERE op_id=${id.opD};`);
+    const stillD = await scalar(handle, `SELECT op_id FROM public.op_itens WHERE id=${id.itD};`);
+    check(Number(remD) === 1 && Number(stillD) === id.opD, `D: source opD must remain non-empty with its item (items=${remD}, item_op=${stillD})`);
+    log('D', { last_item_move: 'rejected', opD_items: remD });
+
+    const del = await attempt(handle, 'E-del', `DELETE FROM public.op_itens WHERE id=${id.iE}`);
+    check(/REJECTED\|/.test(del) && /sem itens|nao pode ficar/i.test(del), `E: last-item delete must be rejected (got ${del})`);
+    const remE = await scalar(handle, `SELECT count(*) FROM public.op_itens WHERE op_id=${id.opE};`);
+    check(Number(remE) === 1, `E: source opE must remain non-empty (got ${remE})`);
+    log('E', { last_item_delete: 'rejected', opE_items: remE });
+  }
+
+  // ---- F: concurrent removals from a 2-item source serialize; >=1 remains -----
+  {
+    const s1 = openSession(handle, 'F-s1');
     s1.send('BEGIN;');
     s1.send(`SELECT 'S1PID|' || pg_backend_pid();`);
     const s1pid = Number((await s1.waitFor((l) => l.startsWith('S1PID|'))).split('|')[1]);
-    s1.send(`INSERT INTO public.expedicoes(pedido_id, op_tecelagem_id, lote_id, cliente_id) VALUES ('${pedC}', ${id.opB}, ${id.ped_lote}, ${id.cli}); SELECT 'S1INS_DONE';`);
-    await s1.waitFor((l) => l === 'S1INS_DONE');   // holds ops(opB), uncommitted
+    s1.send(`DELETE FROM public.op_itens WHERE id=${id.iF1}; SELECT 'S1DEL_DONE';`);
+    await s1.waitFor((l) => l === 'S1DEL_DONE');   // holds opF lock, uncommitted (leaves iF2)
 
-    const s2 = openSession(handle, 'E3-S2');
+    const s2 = openSession(handle, 'F-s2');
     s2.send('BEGIN;');
     s2.send(`SELECT 'S2PID|' || pg_backend_pid();`);
     const s2pid = Number((await s2.waitFor((l) => l.startsWith('S2PID|'))).split('|')[1]);
-    // Different OP (opD) — must NOT block on S1 (which holds opB).
-    s2.send(`INSERT INTO public.expedicoes(pedido_id, op_tecelagem_id, lote_id, cliente_id) VALUES ('${pedC}', ${id.opD}, ${id.ped_lote}, ${id.cli}); SELECT 'S2INS_DONE';`);
-    await s2.waitFor((l) => l === 'S2INS_DONE', 10000);
-    const blockers = await blockingPids(handle, s2pid);
-    check(!blockers.split(',').includes(String(s1pid)), `E3: creation for a different Manta OP must not block on S1 (blockers=${blockers})`);
+    s2.send(`CREATE TEMP TABLE _f(v text);`);
+    s2.send(`DO $$ BEGIN DELETE FROM public.op_itens WHERE id=${id.iF2};
+        INSERT INTO _f VALUES ('DELETED'); EXCEPTION WHEN OTHERS THEN INSERT INTO _f VALUES ('REJECTED|'||SQLERRM); END $$;`);
+    s2.send(`SELECT 'S2RES|' || v FROM _f;`);
+    await waitForBlock(handle, s2pid, s1pid);   // serialize on opF
+
+    s1.send(`COMMIT; SELECT 'S1COMMIT';`);
+    await s1.waitFor((l) => l === 'S1COMMIT');
+    const res = await s2.waitFor((l) => l.startsWith('S2RES|'));
     s2.send(`COMMIT; SELECT 'S2COMMIT';`);
     await s2.waitFor((l) => l === 'S2COMMIT');
-    s1.send(`COMMIT; SELECT 'S1COMMIT';`);
-    await s1.waitFor((l) => l === 'S1COMMIT');
-    check(!/deadlock|40P01/i.test(s1.stderr + s2.stderr), 'E3: no deadlock');
+    check(/REJECTED\|/.test(res) && /sem itens|nao pode ficar/i.test(res),
+      `F: the second removal must be rejected (would empty opF; got ${res})`);
+    check(!/deadlock|40P01/i.test(s1.stderr + s2.stderr), 'F: no deadlock');
     await s1.close();
     await s2.close();
-    log('E3', { different_ops_serialize: false, s1pid, s2pid, no_deadlock: true });
+    const remF = await scalar(handle, `SELECT count(*) FROM public.op_itens WHERE op_id=${id.opF};`);
+    check(Number(remF) >= 1, `F: source opF must retain >=1 item (got ${remF})`);
+    log('F', { outcome: 'serialized_one_commit', opF_items: remF, no_deadlock: true });
+  }
+
+  // ---- G: non-last unreferenced removal accepted; referenced item FK-protected -
+  {
+    // iG1 is unreferenced and non-last (opG also has iG2) -> delete accepted.
+    const g1res = await attempt(handle, 'G-del1', `DELETE FROM public.op_itens WHERE id=${id.iG1}`);
+    check(g1res === 'OK', `G: a non-last unreferenced item must be deletable (got ${g1res})`);
+    const g1 = await scalar(handle, `SELECT count(*) FROM public.op_itens WHERE id=${id.iG1};`);
+    check(Number(g1) === 0, `G: the unreferenced item must be gone (still present: ${g1})`);
+    // iG2 is referenced by expG's item -> delete rejected by the FK RESTRICT.
+    const g2res = await attempt(handle, 'G-del2', `DELETE FROM public.op_itens WHERE id=${id.iG2}`);
+    check(/REJECTED\|/.test(g2res), `G: a referenced item delete must be rejected (got ${g2res})`);
+    const remG = await scalar(handle, `SELECT count(*) FROM public.op_itens WHERE op_id=${id.opG};`);
+    check(Number(remG) === 1, `G: opG must retain the referenced item (got ${remG})`);
+    log('G', { non_last_unreferenced_delete: 'accepted', referenced_delete: 'rejected', opG_items: remG });
+  }
+
+  // ---- H: regressions --------------------------------------------------------
+  {
+    // H1 two creations for one Manta OP (opH) -> one commit + one rejection.
+    const s1 = openSession(handle, 'H1-s1');
+    s1.send('BEGIN;');
+    s1.send(`SELECT 'S1PID|' || pg_backend_pid();`);
+    const s1pid = Number((await s1.waitFor((l) => l.startsWith('S1PID|'))).split('|')[1]);
+    s1.send(`INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES ('${ped}', ${id.opH}, ${id.lote}, ${id.cli}); SELECT 'S1INS_DONE';`);
+    await s1.waitFor((l) => l === 'S1INS_DONE');
+    const s2 = openSession(handle, 'H1-s2');
+    s2.send('BEGIN;');
+    s2.send(`SELECT 'S2PID|' || pg_backend_pid();`);
+    const s2pid = Number((await s2.waitFor((l) => l.startsWith('S2PID|'))).split('|')[1]);
+    s2.send(`CREATE TEMP TABLE _h(v text);`);
+    s2.send(`DO $$ BEGIN INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES ('${ped}', ${id.opH}, ${id.lote}, ${id.cli});
+        INSERT INTO _h VALUES ('UNEXPECTED_OK'); EXCEPTION WHEN OTHERS THEN INSERT INTO _h VALUES ('REJECTED|'||SQLERRM); END $$;`);
+    s2.send(`SELECT 'HRES|' || v FROM _h;`);
+    await waitForBlock(handle, s2pid, s1pid);
+    s1.send(`COMMIT; SELECT 'S1COMMIT';`);
+    await s1.waitFor((l) => l === 'S1COMMIT');
+    const hres = await s2.waitFor((l) => l.startsWith('HRES|'));
+    s2.send('ROLLBACK;');
+    check(/REJECTED\|/.test(hres) && /(unique|duplicate|única|expedicoes_op_tecelagem_id_uk)/i.test(hres),
+      `H1: second creation for the same Manta OP must be rejected (got ${hres})`);
+    await s1.close();
+    await s2.close();
+    const ctH = await scalar(handle, `SELECT count(*) FROM public.expedicoes WHERE op_tecelagem_id=${id.opH};`);
+    check(Number(ctH) === 1, `H1: exactly one expedition for opH (got ${ctH})`);
+
+    // H2 cross-OP injection: an op_item of a different OP (itD in opD) into expHx.
+    const injRes = await attempt(handle, 'H2-inj', `INSERT INTO public.expedicao_itens(expedicao_id,op_item_id,modelo_id,metros_liberados) VALUES (${id.expHx}, ${id.itD}, ${id.mm}, 10)`);
+    check(/REJECTED\|/.test(injRes) && /(cross-OP|nao pertence)/i.test(injRes), `H2: cross-OP injection must be rejected (got ${injRes})`);
+    const inj = await scalar(handle, `SELECT count(*) FROM public.expedicao_itens WHERE expedicao_id=${id.expHx};`);
+    check(Number(inj) === 0, `H2: no cross-OP item may persist (got ${inj})`);
+
+    // H3 different Manta OPs do not serialize.
+    const t1 = openSession(handle, 'H3-t1');
+    t1.send('BEGIN;');
+    t1.send(`SELECT 'T1PID|' || pg_backend_pid();`);
+    const t1pid = Number((await t1.waitFor((l) => l.startsWith('T1PID|'))).split('|')[1]);
+    t1.send(`INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES ('${ped}', ${id.opH3a}, ${id.lote}, ${id.cli}); SELECT 'T1INS_DONE';`);
+    await t1.waitFor((l) => l === 'T1INS_DONE');
+    const t2 = openSession(handle, 'H3-t2');
+    t2.send('BEGIN;');
+    t2.send(`SELECT 'T2PID|' || pg_backend_pid();`);
+    const t2pid = Number((await t2.waitFor((l) => l.startsWith('T2PID|'))).split('|')[1]);
+    t2.send(`INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES ('${ped}', ${id.opH3b}, ${id.lote}, ${id.cli}); SELECT 'T2INS_DONE';`);
+    await t2.waitFor((l) => l === 'T2INS_DONE', 10000);
+    const blk = await blockingPids(handle, t2pid);
+    check(!blk.split(',').includes(String(t1pid)), `H3: different Manta OPs must not serialize (blockers=${blk})`);
+    t2.send(`COMMIT; SELECT 'T2COMMIT';`);
+    await t2.waitFor((l) => l === 'T2COMMIT');
+    t1.send(`COMMIT; SELECT 'T1COMMIT';`);
+    await t1.waitFor((l) => l === 'T1COMMIT');
+    await t1.close();
+    await t2.close();
+
+    // H4 Tapete Latex expedition + item still accepted.
+    const latex = await scalar(handle, `
+      WITH e AS (
+        INSERT INTO public.expedicoes(pedido_id,op_latex_id,lote_id,cliente_id) VALUES ('${ped}', ${id.opLx}, ${id.lote}, ${id.cli}) RETURNING id
+      ), i AS (
+        INSERT INTO public.expedicao_itens(expedicao_id,op_item_id,modelo_id,metros_liberados)
+          SELECT e.id, ${id.iLx}, ${id.mt}, 25 FROM e RETURNING id
+      )
+      SELECT (SELECT count(*) FROM i)::text;`);
+    check(Number(latex) === 1, `H4: a Tapete Latex expedition + item must still be accepted (got ${latex})`);
+    log('H', { two_expeditions_one_op: '1_commit_1_reject', cross_op_injection: 'rejected', different_ops_serialize: false, latex_expedition: 'accepted' });
   }
 }
 
@@ -614,7 +834,7 @@ async function partZ(handle) {
 // Runner.
 // ===========================================================================
 async function main() {
-  SCRATCH_DIR = await mkdtemp(path.join(tmpdir(), 'b1-expedition-scratch-'));
+  SCRATCH_DIR = await mkdtemp(path.join(tmpdir(), 'b2-expedition-scratch-'));
   let handle = null;
   try {
     handle = await bootstrapCluster({});

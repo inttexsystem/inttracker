@@ -1510,3 +1510,45 @@ re-apply with zero drift, all guards, C5/identity/finishing regressions, and
 distinct-session concurrency (one expedition per Manta OP; item writes cannot cross
 sources or overtake a source change; deterministic lock order, no `40P01`); cluster
 destroyed with proof.
+
+## Update 2026-07-24 — PHASE-MANTA-B1 correction (expedition source invariants, db/82)
+
+`db/82_manta_expedition_source_invariant_correction.sql` (order
+`PHASE-MANTA-B1-SOURCE-MEMBERSHIP-AND-LOCK-ORDER-CORRECTION-R1`) is a forward-only,
+idempotent correction of three db/81 defects, editing neither db/78–db/81 nor any
+schema shape (only three guard function bodies + one new trigger). Governing contract:
+`MANTA_DIRECT_ROUTE_PHASE_CONTRACT.md` §11. No shared-development apply is authorized
+(local disposable clusters only). Migration terminal advanced 81 → 82.
+
+- **Source immutable (A).** `expedicoes_source_validation_guard_fn` now rejects any
+  UPDATE that changes `op_latex_id`/`op_tecelagem_id` BEFORE taking any source-OP
+  lock, with no `app.retificacao_autorizada` bypass. This removes the
+  `expedicoes`-row → `ops`-row lock inversion a source-changing UPDATE caused (the
+  BEFORE-UPDATE target-row lock preceded the trigger's `ops` `FOR UPDATE`). The
+  INSERT validation (latex XOR homogeneous non-empty Manta tecelagem; lock source OP)
+  is unchanged. Status/timestamp/delivery UPDATEs take no lock.
+- **Post-lock membership (B).** `expedicao_itens_membership_guard_fn` now locks the
+  candidate source OP `FOR UPDATE` FIRST, then re-reads the (immutable) source and the
+  current `op_itens.op_id` for `NEW.op_item_id`, validating with post-lock values only
+  (an op_item that moved while the guard waited is rejected against its committed OP).
+  It no longer locks the `expedicoes` row (the source cannot change), removing that
+  row lock from the membership path.
+- **Source non-empty (C).** New `op_itens_source_nonempty_guard` (BEFORE DELETE / on
+  `op_id` change) locks the affected OP row(s) `FOR UPDATE` ascending, then, if
+  `OLD.op_id` is a selected expedition source (`op_latex_id` OR `op_tecelagem_id`),
+  rejects an operation that would leave that OP with zero items (counted under the
+  lock, excluding the moved/deleted row). No escape for emptying a source. The db/81
+  referenced-op_item protection (reference guard + FK `ON DELETE RESTRICT`) is
+  retained; the db/37 controlled-delete cascade is unaffected (expedicoes are removed
+  before the ops cascade).
+
+Effective lock order (implicit target-row lock reconciled): affected source OP rows
+ascending (`FOR UPDATE`) → immutable source read (no `expedicoes` row lock in the
+membership guard) → expedition-item write. No source-changing `expedicoes` UPDATE
+survives, so no `expedicoes`→`ops` path exists. Verified on a disposable PostgreSQL
+18.4 cluster (`tests/manta-expedition-source.integration.sql` run unchanged;
+`tests/manta-expedition-source-invariant.mjs` with distinct-session Tests A–H —
+item-move-wins post-lock rejection, membership-insert-wins, source-change no-deadlock,
+last-item move/delete rejected, concurrent-removal serialization, non-last removal
+accepted, and the db/81 regressions): full db/01..82 apply, db/82 idempotent re-apply
+zero drift, no `40P01`; cluster destroyed with proof.

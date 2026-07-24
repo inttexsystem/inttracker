@@ -4,11 +4,13 @@ STATUS: PHASE-MANTA-B1 IMPLEMENTED / LOCALLY AND CONCURRENTLY VERIFIED /
 AWAITING ARCHITECT REVIEW. PHASE-MANTA-B1 remains open. PHASE-MANTA-B2 (route
 activation) is NOT authorized and no phase chains automatically.
 
-Order (B1): `PHASE-MANTA-B1-EXPEDITION-SOURCE-FOUNDATION-R1`.
+Orders (B1): `PHASE-MANTA-B1-EXPEDITION-SOURCE-FOUNDATION-R1` (db/81) and
+`PHASE-MANTA-B1-SOURCE-MEMBERSHIP-AND-LOCK-ORDER-CORRECTION-R1` (db/82, §11).
 Predecessor: `MANTA_PRODUCT_VARIANT_PHASE_CONTRACT.md` (PHASE-MANTA-A, CLOSED /
 ACCEPTED — product identity + route homogeneity, db/78–db/80). This contract owns
 the Manta **direct weaving→client route** semantics; PHASE-MANTA-A remains the
-owner of Manta product identity.
+owner of Manta product identity. §11 records the db/82 forward correction; the
+db/81 sections below are preserved and read with §11 applied.
 
 ## 1. Objective and boundary
 
@@ -215,8 +217,74 @@ access was used; the baseline matched.
 ## 10. Status and next authorizable action
 
 PHASE-MANTA-B1 is IMPLEMENTED / LOCALLY AND CONCURRENTLY VERIFIED / AWAITING
-ARCHITECT REVIEW; it remains open. db/81 is versioned in the repository and applied
-only to disposable local clusters — **no shared-development, staging, or production
-apply** is authorized by this order. The next authorizable action is architect
-review of PHASE-MANTA-B1; PHASE-MANTA-B2 (route activation) requires a new explicit
-order and does not chain automatically.
+ARCHITECT REVIEW; it remains open. db/81 and db/82 are versioned in the repository
+and applied only to disposable local clusters — **no shared-development, staging, or
+production apply** is authorized by these orders. The next authorizable action is
+architect review of PHASE-MANTA-B1 (db/81 + the db/82 correction); PHASE-MANTA-B2
+(route activation) requires a new explicit order and does not chain automatically.
+
+## 11. Forward correction — db/82 (source immutability, post-lock membership, source non-emptiness)
+
+`db/82_manta_expedition_source_invariant_correction.sql` (order
+`PHASE-MANTA-B1-SOURCE-MEMBERSHIP-AND-LOCK-ORDER-CORRECTION-R1`) forward-corrects
+three defects in db/81 without editing db/78–db/81 (forward-only policy). The three
+db/81 guards it touches are read with these corrections applied; §3–§5 above stand
+otherwise unchanged. Migration terminal advanced 81 → 82.
+
+1. **Source identity immutability (lock-inversion removal).** db/81's
+   `expedicoes_source_validation_guard` permitted a source-changing UPDATE (rejecting
+   only an orphaning one). Such an UPDATE has PostgreSQL take the `expedicoes`
+   target-row lock BEFORE the trigger, which then acquired source-OP locks — an
+   `expedicoes`-row → `ops`-row inversion of the canonical order. db/82 makes the
+   selected source **immutable after INSERT**: any UPDATE changing `op_latex_id` or
+   `op_tecelagem_id` fails closed BEFORE any source-OP lock, with **no
+   `app.retificacao_autorizada` bypass**. A future source correction is a separately
+   designed atomic RPC + migration, never a direct UPDATE. No normal source-changing
+   UPDATE exists after db/82, so the inversion is structurally impossible. Ordinary
+   status/timestamp/delivery-progress UPDATEs are unaffected and take no lock.
+
+2. **Membership validated after lock acquisition (stale-read removal).** db/81's
+   `expedicao_itens_membership_guard` read `op_itens.op_id` for `NEW.op_item_id`
+   BEFORE waiting on the OP lock, so a concurrent op_item move that committed while
+   the guard waited was validated against stale ownership. db/82 resolves the source
+   as a candidate, locks the source OP `FOR UPDATE`, and only AFTER the lock re-reads
+   both the (now immutable) source and the CURRENT `op_itens.op_id`, validating with
+   post-lock values only — an item that moved is rejected against its newly committed
+   OP. Because the source is immutable, the guard no longer locks the `expedicoes`
+   row (removing that row lock from the membership path entirely).
+
+3. **Source OP must remain non-empty.** New `op_itens_source_nonempty_guard` (BEFORE
+   DELETE, and BEFORE UPDATE that changes `op_id`) locks the affected OP row(s) `FOR
+   UPDATE` ascending FIRST (serialising concurrent removals and concurrent expedition
+   creation on the same OP), then, if `OLD.op_id` is a selected expedition source
+   (`op_latex_id` OR `op_tecelagem_id` — uniform for Latex and Manta), rejects the
+   operation when it would leave that OP with zero items (counted under the lock,
+   excluding the row being moved/deleted). No `app.retificacao_autorizada` bypass for
+   emptying a source. The stronger db/81 rule (a referenced op_item cannot
+   move/delete) is retained (reference guard + FK ON DELETE RESTRICT). The
+   controlled-delete cascade (db/37) is unaffected: it removes the referencing
+   expedicoes before the ops cascade, so `OLD.op_id` is no longer a source when the
+   op_itens cascade-delete fires.
+
+**Effective lock order after db/82** (reconciling the implicit BEFORE-UPDATE
+target-row lock, not only explicit `FOR UPDATE`): affected source OP rows ascending
+(`FOR UPDATE`) → immutable source read (no `expedicoes` row lock in the membership
+guard) → expedition-item write. No source-changing `expedicoes` UPDATE survives, so
+no `expedicoes`-row → `ops`-row path exists; all op_itens guards (db/79/80/81/82) lock
+ops rows ascending; db/31/db/32 lock the owning ops row first. No path is reversed.
+
+**Tests (db/82).** `tests/manta-expedition-source.integration.sql` is run UNCHANGED
+against db/01..82 (its source-change and referenced-move/delete rejections now come
+from the stronger db/82 guards; still rejected). `tests/manta-expedition-source-invariant.mjs`
+applies db/01..82, re-applies db/82 idempotently (zero drift), runs that integration
+test + the db/78–80 / finishing / C5A regressions, and adds distinct-session Tests
+A–H: A item-move-wins (insert rejected post-lock, zero invalid items), B
+membership-insert-wins (later move rejected by the reference guard), C source-change
+rejected without taking an OP lock (no block on a held source-OP lock; concurrent
+membership insert completes; no `40P01`), D last-item move rejected, E last-item
+delete rejected, F concurrent 2-item-source removals serialize (one commits, ≥1
+remains), G non-last unreferenced removal accepted + referenced item FK-protected, H
+db/81 regressions (one-expedition-per-Manta-OP, cross-OP injection rejected,
+different-OP non-serialization, Tapete Latex expedition accepted) — cluster destroyed
+with PID/port/dir proof. `tests/ordem-compra-c3d-deploy.smoke.js` advanced 81 → 82
+(terminal two `db/81`/`db/82`).
