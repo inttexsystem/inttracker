@@ -3595,3 +3595,59 @@ is recorded and deliberately uncorrected:
 Part A and is outside this order's authorized manifest; its substantive payload
 runs unchanged and green inside the B2A harness, and realigning it is a separate
 authorizable action.
+
+# Update 2026-07-24 - PHASE-MANTA-B2A-MEASURED-OUTPUT-IDENTITY-AND-FK-LOCK-CORRECTION-R1 (IMPLEMENTED AND CORRECTED / LOCALLY AND CONCURRENTLY VERIFIED / AWAITING ARCHITECT REVIEW)
+
+One forward-only migration,
+`db/88_manta_measured_output_identity_and_fk_lock_correction.sql`, corrects
+three defects left by db/85–db/87 without editing them. `db/01`–`db/87` are
+byte-unchanged, no `js/**` file was touched, and no environment was accessed:
+shared development `ucrjtfswnfdlxwtmxnoo` remains at terminal `84`.
+
+- **Delivery-item model identity.** `modelo_id` becomes a trigger-relevant
+  identity field, so a modelo_id-only UPDATE no longer escapes the guard. The
+  rule is route-conditional: mandatory and exact for Manta, exact-when-supplied
+  for Tapete. That is deliberate — `entrega_itens.modelo_id` is nullable by
+  design and the live Tapete writer never sends it, so an unconditional non-null
+  match would have rejected every Tapete delivery, a forbidden Tapete behavior
+  change. Objective coverage is unaffected: the only Manta writer always copies
+  the model from the op_item, and direct Manta writes without it are now refused.
+- **Measured-output identity freeze.** New `op_itens_manta_output_reference_guard`
+  makes an op_item's `op_id`, `modelo_id` and `pedido_item_id` immutable while
+  Manta measured output references it, so a later identity change cannot
+  retro-actively rewrite what the recorded output means. Quantity and same-value
+  updates stay permitted; Tapete is unaffected; there is no
+  `app.retificacao_autorizada` bypass.
+- **Foreign-key lock order.** The accepted analysis now includes the implicit
+  `FOR KEY SHARE` lock the `op_item_id` foreign keys take. db/85–87 acquired the
+  OP first and then wrote the child rows (`OP -> op_item`) while every op_itens
+  guard runs after the row is already locked and then requests the OP
+  (`op_item -> OP`) — a real cycle. Every Manta path now pre-locks the referenced
+  op_items `FOR KEY SHARE` ascending **before** the source OP, the direction
+  PostgreSQL forces and cannot be reversed.
+
+A **pre-existing data gate** aborts the migration if any item-bearing `cima`
+delivery already violates the identity or route rules; nothing is repaired or
+reinterpreted.
+
+Evidence on one fresh disposable PostgreSQL 18.4 cluster: db/01..88 clean apply;
+80 sequential integration proofs; 21 distinct-session proofs — including both
+winner orders against a concurrent op_item DELETE and against a concurrent
+op_item identity change — with `pg_stat_database.deadlocks = 0`; re-applying
+db/85..db/88 in order returns the fingerprint (columns, constraints, triggers,
+indexes, function bodies, grants, RLS) exactly, and db/88 also re-applies
+standalone with zero drift; db/78–84, Tapete delivery, Latex expedition,
+release/reversal idempotency, the completion correction, Manta finishing
+rejection and C5A emission all green and unchanged; cluster destroyed with PID,
+port and directory proof.
+
+**B1 harness realignment.** `tests/manta-expedition-source-invariant.mjs` no
+longer hard-codes an eternal manifest length of 84: it applies the complete
+current chain, asserts `db/01..db/84` is a contiguous prefix, keeps every B1
+assertion unweakened, and passes under db/01..88. The consequence recorded in the
+previous entry is therefore closed.
+
+**Next.** Architect review of PHASE-MANTA-B2A (now including db/88).
+`PHASE-MANTA-B2B-ROUTE-AWARE-UI-R1` and
+`PHASE-MANTA-B2C-SHARED-DEV-FLOW-AND-CLOSEOUT-R1` remain unauthorized and each
+require their own explicit order; no phase chains automatically.

@@ -622,12 +622,27 @@ async function resolveManifest() {
 }
 
 // ===========================================================================
-// PART A — full chain apply (db/01..84) + terminal-object presence.
+// PART A — full chain apply + db/81..db/84 terminal-object presence.
+//
+// PHASE-MANTA-B2A realignment (db/88): this harness owns the PHASE-MANTA-B1
+// invariants, NOT the repository's migration terminal. It therefore applies the
+// COMPLETE current chain and asserts that db/01..db/84 is an unbroken, contiguous
+// PREFIX of it and that every db/81-84 object and invariant is still present.
+// It deliberately does not hard-code an eternal manifest length, so it stays
+// useful as later forward migrations are added; none of the B1 assertions below
+// is weakened by that change.
 // ===========================================================================
+const B1_TERMINAL = 84;
+
 async function partA(handle) {
   const manifest = await resolveManifest();
-  check(manifest.length === 84, `manifest must be db/01..db/84 (got ${manifest.length})`);
-  check(manifest[manifest.length - 1].n === 84, `terminal migration must be db/84 (got ${manifest[manifest.length - 1].n})`);
+  check(manifest.length >= B1_TERMINAL,
+    `manifest must contain at least db/01..db/${B1_TERMINAL} (got ${manifest.length})`);
+  const prefix = manifest.slice(0, B1_TERMINAL);
+  check(prefix.every((entry, i) => entry.n === i + 1),
+    `db/01..db/${B1_TERMINAL} must be a contiguous prefix of the manifest (got ${prefix.map((e) => e.n).join(',')})`);
+  check(manifest.every((entry, i) => entry.n === i + 1),
+    `the whole manifest must stay contiguous from db/01 (got terminal ${manifest[manifest.length - 1].n} over ${manifest.length} files)`);
 
   await applySql(handle, 'preamble.sql', PREAMBLE_SQL, 'preamble');
   for (const { n, file } of manifest) {
@@ -647,7 +662,13 @@ async function partA(handle) {
               'ops_source_type_immutability_guard','lotes_source_lineage_immutability_guard',
               'pedidos_source_lineage_immutability_guard'));`);
   check(objs === '1/YES/1/1/10', `db/81+db/82+db/83+db/84 terminal objects must all exist (tec_col/latex_nullable/chk/uk/triggers = ${objs})`);
-  log('PART_A', { migrations: manifest.length, terminal: 84, objects: objs, clean_apply: true });
+  log('PART_A', {
+    migrations: manifest.length,
+    b1_terminal: B1_TERMINAL,
+    repository_terminal: manifest[manifest.length - 1].n,
+    objects: objs,
+    clean_apply: true,
+  });
 }
 
 // ===========================================================================

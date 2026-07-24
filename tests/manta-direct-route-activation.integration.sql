@@ -80,6 +80,14 @@ DECLARE
   v_tmp_exp BIGINT;
   v_tmp_op BIGINT;
   v_tmp_ent BIGINT;
+  -- db/88 fixtures
+  v_op_id1 BIGINT; v_it_id1a BIGINT; v_it_id1b BIGINT;
+  v_op_id2 BIGINT; v_it_id2 BIGINT;
+  v_op_tapid BIGINT; v_it_tapid BIGINT;
+  v_ent_id_manta BIGINT; v_ei_id_manta BIGINT;
+  v_ent_id_tap BIGINT; v_ei_id_tap BIGINT;
+  v_pi_c UUID;
+  v_mod_manta2 BIGINT;
 BEGIN
   -- ==========================================================================
   -- FIXTURES (triggers OFF: db/78-85 guards must be exercised live afterwards,
@@ -1501,6 +1509,224 @@ BEGIN
     RAISE EXCEPTION 'not ok 184 - nenhum escritor db/85-87 pode referenciar app.retificacao_autorizada';
   END IF;
   RAISE NOTICE 'ok 68 - nenhum escritor autenticado recebe app.retificacao_autorizada';
+
+  -- ==========================================================================
+  -- S. db/88 fixtures — dedicated sources so only the db/88 guards apply
+  --    (no expedition consumption, so db/81 is not the acting guard).
+  -- ==========================================================================
+  PERFORM set_config('session_replication_role', 'replica', true);
+
+  INSERT INTO public.modelos (nome, cor_1_id, cor_2_id, largura, tipo_produto)
+    VALUES ('MDRA-MANTA-2', v_c1, v_c2, 1.40, 'manta') RETURNING id INTO v_mod_manta2;
+  INSERT INTO public.pedido_itens (pedido_id, modelo_id, metros, largura)
+    VALUES (v_pedido, v_mod_manta, 100, 1.40) RETURNING id INTO v_pi_c;
+
+  -- Manta source with TWO items, so moving one out cannot empty the OP.
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985020, 2026, 'concluida', 'tecelagem', v_lote) RETURNING id INTO v_op_id1;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_id1, v_mod_manta, 100) RETURNING id INTO v_it_id1a;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_id1, v_mod_manta, 100) RETURNING id INTO v_it_id1b;
+  -- A second Manta OP as a legal move target (same route, so db/80 permits it).
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985021, 2026, 'concluida', 'tecelagem', v_lote) RETURNING id INTO v_op_id2;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_id2, v_mod_manta, 100) RETURNING id INTO v_it_id2;
+  -- A Tapete weaving source for the NULL-modelo_id product-writer shape.
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985022, 2026, 'concluida', 'tecelagem', v_lote) RETURNING id INTO v_op_tapid;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_tapid, v_mod_tapete, 100) RETURNING id INTO v_it_tapid;
+
+  INSERT INTO public.entregas (fornecedor_id, etapa, data, destino_fornecedor_id)
+    VALUES (v_forn_tec, 'cima', CURRENT_DATE, NULL) RETURNING id INTO v_ent_id_manta;
+  INSERT INTO public.entregas (fornecedor_id, etapa, data, destino_fornecedor_id)
+    VALUES (v_forn_tec, 'cima', CURRENT_DATE, v_forn_latex) RETURNING id INTO v_ent_id_tap;
+
+  PERFORM set_config('session_replication_role', 'origin', true);  -- guards ON.
+
+  IF (SELECT count(*) FROM pg_trigger
+       WHERE NOT tgisinternal AND tgname = 'op_itens_manta_output_reference_guard') <> 1 THEN
+    RAISE EXCEPTION 'not ok 185 - o guard db/88 de identidade da saida medida deveria existir';
+  END IF;
+  RAISE NOTICE 'ok 69 - op_itens_manta_output_reference_guard instalado';
+
+  -- ==========================================================================
+  -- T. db/88 BLOCKER A — delivery-item exact model identity.
+  -- ==========================================================================
+  -- T1 Correct op_item, WRONG modelo_id -> rejected (Manta).
+  BEGIN
+    INSERT INTO public.entrega_itens (entrega_id, op_id, op_item_id, modelo_id, metros_entregues, defeito)
+      VALUES (v_ent_id_manta, v_op_id1, v_it_id1a, v_mod_manta2, 30, FALSE);
+    v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 186 - modelo_id divergente do op_item deveria ser rejeitado (Manta)'; END IF;
+
+  -- T1b Correct op_item, WRONG modelo_id -> rejected (Tapete).
+  BEGIN
+    INSERT INTO public.entrega_itens (entrega_id, op_id, op_item_id, modelo_id, metros_entregues, defeito)
+      VALUES (v_ent_id_tap, v_op_tapid, v_it_tapid, v_mod_manta, 30, FALSE);
+    v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 187 - modelo_id divergente do op_item deveria ser rejeitado (Tapete)'; END IF;
+  RAISE NOTICE 'ok 70 - item com modelo_id divergente do op_item rejeitado, sem reescrita silenciosa';
+
+  -- T2 Manta requires modelo_id; Tapete keeps the live product-writer shape
+  --    (salvarEntregaCima sends no modelo_id at all).
+  BEGIN
+    INSERT INTO public.entrega_itens (entrega_id, op_id, op_item_id, modelo_id, metros_entregues, defeito)
+      VALUES (v_ent_id_manta, v_op_id1, v_it_id1a, NULL, 30, FALSE);
+    v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 188 - item cima Manta sem modelo_id deveria ser rejeitado'; END IF;
+
+  INSERT INTO public.entrega_itens (entrega_id, op_id, op_item_id, modelo_id, metros_entregues, defeito)
+    VALUES (v_ent_id_tap, v_op_tapid, v_it_tapid, NULL, 30, FALSE)
+    RETURNING id INTO v_ei_id_tap;
+  IF v_ei_id_tap IS NULL THEN
+    RAISE EXCEPTION 'not ok 189 - o formato do escritor Tapete vivo (sem modelo_id) deve continuar aceito';
+  END IF;
+  RAISE NOTICE 'ok 71 - modelo_id obrigatorio na rota Manta; formato do escritor Tapete vivo (NULL) preservado';
+
+  -- T3 Correctly aligned item accepted.
+  INSERT INTO public.entrega_itens (entrega_id, op_id, op_item_id, modelo_id, metros_entregues, defeito)
+    VALUES (v_ent_id_manta, v_op_id1, v_it_id1a, v_mod_manta, 30, FALSE)
+    RETURNING id INTO v_ei_id_manta;
+  IF v_ei_id_manta IS NULL THEN
+    RAISE EXCEPTION 'not ok 190 - item alinhado deveria ser aceito';
+  END IF;
+  RAISE NOTICE 'ok 72 - item com identidade alinhada aceito';
+
+  -- T4 A modelo_id-ONLY UPDATE no longer escapes through the early return.
+  BEGIN
+    UPDATE public.entrega_itens SET modelo_id = v_mod_manta2 WHERE id = v_ei_id_manta;
+    v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 191 - UPDATE apenas de modelo_id deveria ser rejeitado'; END IF;
+  BEGIN
+    UPDATE public.entrega_itens SET modelo_id = NULL WHERE id = v_ei_id_manta;
+    v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 192 - remover modelo_id de um item Manta deveria ser rejeitado'; END IF;
+  IF (SELECT modelo_id FROM public.entrega_itens WHERE id = v_ei_id_manta) <> v_mod_manta THEN
+    RAISE EXCEPTION 'not ok 193 - o modelo do item nao pode ter mudado';
+  END IF;
+  -- A same-value modelo_id UPDATE, and a quantity-only UPDATE, stay permitted.
+  UPDATE public.entrega_itens SET modelo_id = v_mod_manta WHERE id = v_ei_id_manta;
+  UPDATE public.entrega_itens SET metros_entregues = 31 WHERE id = v_ei_id_manta;
+  UPDATE public.entrega_itens SET metros_entregues = 30 WHERE id = v_ei_id_manta;
+  RAISE NOTICE 'ok 73 - UPDATE somente de modelo_id nao escapa; mesmo valor e quantidade continuam permitidos';
+
+  -- ==========================================================================
+  -- U. db/88 BLOCKER B — measured Manta output freezes op_item identity.
+  -- ==========================================================================
+  -- v_it_id1a now carries Manta measured output; v_it_id1b does not.
+  BEGIN UPDATE public.op_itens SET op_id = v_op_id2 WHERE id = v_it_id1a; v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 194 - alterar op_id de um op_item com saida Manta deveria ser rejeitado'; END IF;
+
+  BEGIN UPDATE public.op_itens SET modelo_id = v_mod_manta2 WHERE id = v_it_id1a; v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 195 - alterar modelo_id de um op_item com saida Manta deveria ser rejeitado'; END IF;
+
+  BEGIN UPDATE public.op_itens SET pedido_item_id = v_pi_c WHERE id = v_it_id1a; v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 196 - alterar pedido_item_id de um op_item com saida Manta deveria ser rejeitado'; END IF;
+  RAISE NOTICE 'ok 74 - op_id/modelo_id/pedido_item_id congelados apos saida medida Manta';
+
+  -- Same-value updates and quantity-only updates remain permitted.
+  UPDATE public.op_itens SET op_id = v_op_id1, modelo_id = v_mod_manta WHERE id = v_it_id1a;
+  UPDATE public.op_itens SET metros_pedidos = 111 WHERE id = v_it_id1a;
+  IF (SELECT metros_pedidos FROM public.op_itens WHERE id = v_it_id1a) <> 111 THEN
+    RAISE EXCEPTION 'not ok 197 - alteracao de quantidade deveria continuar permitida';
+  END IF;
+  UPDATE public.op_itens SET metros_ajustados = 90 WHERE id = v_it_id1a;
+  UPDATE public.op_itens SET metros_pedidos = 100, metros_ajustados = NULL WHERE id = v_it_id1a;
+  RAISE NOTICE 'ok 75 - atualizacao de mesmo valor e alteracao de quantidade permanecem permitidas';
+
+  -- An unrelated op_item of the SAME OP is unaffected.
+  UPDATE public.op_itens SET pedido_item_id = v_pi_c WHERE id = v_it_id1b;
+  IF (SELECT pedido_item_id FROM public.op_itens WHERE id = v_it_id1b) <> v_pi_c THEN
+    RAISE EXCEPTION 'not ok 198 - op_item sem saida Manta nao pode ser afetado';
+  END IF;
+  UPDATE public.op_itens SET pedido_item_id = NULL WHERE id = v_it_id1b;
+  -- Tapete behavior unchanged: its op_item identity is not frozen by db/88.
+  UPDATE public.op_itens SET pedido_item_id = v_pi_c WHERE id = v_it_tapid;
+  IF (SELECT pedido_item_id FROM public.op_itens WHERE id = v_it_tapid) <> v_pi_c THEN
+    RAISE EXCEPTION 'not ok 199 - o comportamento Tapete nao pode mudar';
+  END IF;
+  UPDATE public.op_itens SET pedido_item_id = NULL WHERE id = v_it_tapid;
+  RAISE NOTICE 'ok 76 - op_itens sem saida Manta e a rota Tapete permanecem inalterados';
+
+  -- The freeze has no app.retificacao_autorizada escape.
+  PERFORM set_config('app.retificacao_autorizada', 'on', true);
+  BEGIN UPDATE public.op_itens SET modelo_id = v_mod_manta2 WHERE id = v_it_id1a; v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  PERFORM set_config('app.retificacao_autorizada', 'off', true);
+  IF v_ok THEN RAISE EXCEPTION 'not ok 200 - nem retificacao autorizada pode reescrever a identidade da saida medida'; END IF;
+  RAISE NOTICE 'ok 77 - congelamento de identidade sem bypass por app.retificacao_autorizada';
+
+  -- Removing the delivery reference first re-legalizes the identity change
+  -- (there is no expedition consumption on this OP, so db/81 stays inert).
+  DELETE FROM public.entrega_itens WHERE id = v_ei_id_manta;
+  UPDATE public.op_itens SET modelo_id = v_mod_manta2 WHERE id = v_it_id1a;
+  IF (SELECT modelo_id FROM public.op_itens WHERE id = v_it_id1a) <> v_mod_manta2 THEN
+    RAISE EXCEPTION 'not ok 201 - apos remover a referencia de entrega a identidade deveria ser corrigivel';
+  END IF;
+  UPDATE public.op_itens SET modelo_id = v_mod_manta WHERE id = v_it_id1a;
+  RAISE NOTICE 'ok 78 - corrigir/remover a entrega de origem primeiro re-legaliza a correcao de identidade';
+
+  -- ==========================================================================
+  -- V. db/88 — the RPC writes exact identity, and direct expedition items
+  --    keep every db/82/db/83 check under the corrected lock order.
+  -- ==========================================================================
+  v_res := public.registrar_entrega_cima_manta(
+    v_op_id2, v_forn_tec, CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object('op_item_id', v_it_id2, 'metros_entregues', 40, 'defeito', FALSE)));
+  IF NOT (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 202 - a RPC de saida Manta deveria continuar funcionando (got %)', v_res;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.entrega_itens ei
+      JOIN public.op_itens oi ON oi.id = ei.op_item_id
+     WHERE ei.entrega_id = (v_res->>'entrega_id')::BIGINT
+       AND (ei.modelo_id IS DISTINCT FROM oi.modelo_id OR ei.op_id IS DISTINCT FROM oi.op_id)) THEN
+    RAISE EXCEPTION 'not ok 203 - a RPC deve gravar a identidade exata do op_item';
+  END IF;
+  -- And the whole corpus of measured Manta output is identity-aligned.
+  IF EXISTS (
+    SELECT 1
+      FROM public.entrega_itens ei
+      JOIN public.entregas e ON e.id = ei.entrega_id
+      JOIN public.op_itens oi ON oi.id = ei.op_item_id
+      JOIN public.modelos m ON m.id = oi.modelo_id
+     WHERE e.etapa = 'cima' AND m.tipo_produto = 'manta'
+       AND (ei.modelo_id IS DISTINCT FROM oi.modelo_id OR ei.op_id IS DISTINCT FROM oi.op_id)) THEN
+    RAISE EXCEPTION 'not ok 204 - toda saida medida Manta deve ter a identidade exata do seu op_item';
+  END IF;
+  RAISE NOTICE 'ok 79 - toda linha de saida medida Manta carrega a identidade exata do op_item';
+
+  -- Direct expedition-item identity checks survive the lock-order correction.
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_id2, jsonb_build_array(jsonb_build_object('op_item_id', v_it_id2, 'metros', 10)));
+  IF NOT (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 205 - a liberacao Manta deveria continuar funcionando (got %)', v_res;
+  END IF;
+  v_tmp_exp := (v_res->>'expedicao_id')::BIGINT;
+  BEGIN
+    INSERT INTO public.expedicao_itens (expedicao_id, op_item_id, pedido_item_id, modelo_id, metros_liberados)
+      VALUES (v_tmp_exp, v_it_id1a, NULL, v_mod_manta, 5);
+    v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 206 - injecao cross-OP em expedicao_itens deveria continuar rejeitada'; END IF;
+  BEGIN
+    INSERT INTO public.expedicao_itens (expedicao_id, op_item_id, pedido_item_id, modelo_id, metros_liberados)
+      VALUES (v_tmp_exp, v_it_id2, NULL, v_mod_manta2, 5);
+    v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 207 - modelo_id divergente em expedicao_itens deveria continuar rejeitado'; END IF;
+  RAISE NOTICE 'ok 80 - checagens db/82/db/83 de expedicao_itens preservadas sob a ordem de travas corrigida';
 
   RAISE NOTICE 'MANTA_DIRECT_ROUTE_ACTIVATION_INTEGRATION_PASS';
 END

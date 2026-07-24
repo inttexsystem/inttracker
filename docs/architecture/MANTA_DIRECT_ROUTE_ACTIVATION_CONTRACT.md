@@ -782,16 +782,13 @@ even references the GUC.
 - `tests/ordem-compra-c3d-deploy.smoke.js` — terminal advanced 84 → 85 → 86 → 87,
   one bump per migration commit.
 
-### 15.8 Known consequence, deliberately not corrected here
+### 15.8 Known consequence, corrected by db/88
 
 `tests/manta-expedition-source-invariant.mjs` (the PHASE-MANTA-B1 harness) still
-asserts `manifest.length === 84` and terminal `84` in its Part A, so it now fails
-that assertion. It is **outside this order's authorized manifest** and was
-therefore left byte-unchanged; its substantive payload,
-`tests/manta-expedition-source.integration.sql`, is executed unchanged and green
-inside the B2A harness (Part D), which is exactly what §11 specifies as the
-B2A db/81–84 regression. Realigning that predecessor harness's terminal
-expectation is a separate authorizable action.
+asserted `manifest.length === 84` and terminal `84` in its Part A after db/85–87,
+so it failed that assertion. It was outside that order's authorized manifest and
+was left byte-unchanged at the time. `PHASE-MANTA-B2A-MEASURED-OUTPUT-IDENTITY-
+AND-FK-LOCK-CORRECTION-R1` realigned it — see §16.6. The harness is green again.
 
 ### 15.9 Environment and next authorizable action
 
@@ -800,3 +797,182 @@ remains at terminal `84` with the Manta route dormant; **no** environment was
 accessed or mutated. The next authorizable action is architect review of
 PHASE-MANTA-B2A, then a separate `PHASE-MANTA-B2B` order. No phase chains
 automatically.
+
+## 16. PHASE-MANTA-B2A forward correction — db/88
+
+STATUS: **PHASE-MANTA-B2A — IMPLEMENTED AND CORRECTED / LOCALLY AND
+CONCURRENTLY VERIFIED / AWAITING ARCHITECT REVIEW.**
+
+Order `PHASE-MANTA-B2A-MEASURED-OUTPUT-IDENTITY-AND-FK-LOCK-CORRECTION-R1`
+(bounded forward database correction; one migration; one commit; local
+disposable PostgreSQL only). `db/88_manta_measured_output_identity_and_fk_lock_correction.sql`
+forward-corrects db/85–db/87 without editing them. No shared-development,
+staging or production apply; no `js/**`; no business data; B2B remains
+unauthorized.
+
+### 16.1 Delivery-item exact model identity (Blocker A)
+
+`entrega_itens_cima_route_destino_guard_fn` now treats `modelo_id` as a
+trigger-relevant identity field, so a **modelo_id-only UPDATE no longer escapes
+through the early return**. On every INSERT or relevant UPDATE of a `cima` item
+it proves, from post-lock values only: the op_item exists, belongs to
+`NEW.op_id`, resolves to a model with a `tipo_produto`, and that the source OP is
+non-empty and route-homogeneous; then it applies the route-conditional
+destination rule. The model rule is **route-conditional**, and that is a
+deliberate, recorded decision rather than an omission:
+
+- **Manta** `cima` item — `modelo_id` is **mandatory** and must equal
+  `op_itens.modelo_id` exactly.
+- **Tapete** `cima` item — a **supplied** `modelo_id` must equal
+  `op_itens.modelo_id` exactly; a NULL remains valid.
+
+`public.entrega_itens.modelo_id` is nullable by design, with
+`CHECK (op_item_id IS NOT NULL OR modelo_id IS NOT NULL)`: it is the
+*alternative* identifier for legacy rows carrying no op_item, not a mandatory
+mirror. The live Tapete writer (`salvarEntregaCima` via
+`js/screens/entrega-form.js` `getPayload`) sends only
+`{op_item_id, metros_entregues, defeito, observacao}` and **never** sends
+`modelo_id`, so an unconditional non-null match would reject every Tapete
+delivery the product writes — a Tapete behavior change this order forbids and a
+listed hard stop. The route-conditional rule loses nothing: the only Manta writer
+always copies `modelo_id` from the op_item, so objective 1 is met with no gap,
+including against a direct table write. Nothing is ever silently rewritten and no
+name is ever inferred.
+
+A **pre-existing data gate** aborts the whole migration if any item-bearing
+`cima` delivery already violates any of this (divergent `op_id`, divergent
+supplied `modelo_id`, Manta without `modelo_id`, missing op_item or model,
+unresolved or mixed route, Tapete without destination, Manta with destination).
+No repair, no reinterpretation. The item-less-header residual stays accepted.
+
+### 16.2 Measured-output op_item identity freeze (Blocker B)
+
+New `op_itens_manta_output_reference_guard` (BEFORE UPDATE on `public.op_itens`,
+function `op_itens_manta_output_reference_guard_fn`). While an op_item is
+referenced by Manta measured output — an `entrega_itens` row whose parent has
+`etapa='cima'` and whose route derives from the op_item's own model — its
+`op_id`, `modelo_id` and `pedido_item_id` are immutable, so a later identity
+change can never retro-actively rewrite what the recorded output means.
+Same-value updates and quantity updates (`metros_pedidos`, `metros_ajustados`)
+remain permitted and governed by the pre-existing rules; unrelated op_items and
+the whole Tapete route are unaffected; there is **no**
+`app.retificacao_autorizada` bypass. Correction requires removing or correcting
+the delivery reference first, and after positive expedition consumption db/81
+remains the stronger guard and refuses even that. DELETE is not duplicated here —
+`entrega_itens.op_item_id → op_itens.id ON DELETE RESTRICT` already refuses it.
+
+The guard takes the affected OP rows `FOR UPDATE` (ascending) before inspecting
+the reference. That is required for correctness, not decoration: op_itens trigger
+functions fire alphabetically, so this guard runs *before*
+`op_itens_route_homogeneity_guard` would take that lock, and without taking it
+the reference check would read a pre-serialization snapshot and a concurrent
+output writer could commit its delivery row unseen.
+
+### 16.3 Foreign-key row-lock order (Blocker C)
+
+The accepted lock analysis now includes the **implicit** `FOR KEY SHARE` row lock
+that `entrega_itens.op_item_id → op_itens.id` and
+`expedicao_itens.op_item_id → op_itens.id` take on the referenced op_item.
+db/85–87 acquired the source `ops` row first and only then wrote those child
+rows, giving `OP → op_item`; every pre-existing op_itens guard (db/80, db/81,
+db/82) runs as a BEFORE-ROW trigger *after* the statement already owns the
+op_item's target-row lock and then requests the OP, giving `op_item → OP`. That
+was a real cycle. Corrected global order:
+
+```
+1. pg_advisory_xact_lock (idempotency identity), when a key is supplied
+2. public.op_itens rows, ascending id, FOR KEY SHARE
+3. source public.ops rows, ascending id, FOR UPDATE
+4. source public.lotes FOR SHARE, then source public.pedidos FOR SHARE
+5. public.modelos rows, ascending id, FOR SHARE (always a leaf)
+6. public.entregas / public.entrega_itens
+7. public.expedicoes
+8. public.expedicao_itens, ascending id
+```
+
+`FOR KEY SHARE` is the exact required mode: it conflicts with `FOR UPDATE` so a
+concurrent op_item DELETE blocks (and is then refused); it does **not** conflict
+with `FOR NO KEY UPDATE` so a non-key identity UPDATE continues to the shared
+`ops` serialization point instead of deadlocking; the post-OP-lock re-read then
+decides the winner; and it is the same lock the FK itself would take moments
+later, so taking it explicitly adds no edge — it only makes the acquisition
+deterministic and puts validation under the lock.
+
+Corrected paths: `entrega_itens_cima_route_destino_guard_fn` (op_item first;
+`ops` still only on INSERT, so db/85's rule R-I stands and the UPDATE path
+introduces no `entrega_item → OP` acquisition); `registrar_entrega_cima_manta`
+(parse and normalize without mutation → lock every distinct requested op_item
+ascending → lock the source OP → re-read every requested op_item and prove its
+exact `op_id`, `modelo_id`, `pedido_item_id` and Manta route → existing atomic
+write); `liberar_expedicao_manta_parcial` (advisory → op_items ascending → source
+OP → existing lineage/output/expedition locks → post-lock membership and identity
+re-read → unchanged release semantics); and
+`expedicao_itens_membership_guard_fn` (op_item before the source OP, preserving
+every db/82 membership and db/83 identity check), which also protects **direct**
+expedition-item writes.
+
+**Residual, explicitly recorded, not introduced here.** A direct
+`UPDATE entrega_itens SET op_item_id = …` (or the same on `expedicao_itens`)
+inherently holds its own row lock and then takes the FK's `FOR KEY SHARE` on the
+op_item — a descending acquisition PostgreSQL performs with or without db/88. It
+cannot cycle with the Manta writers, which hold the op_item only in
+`FOR KEY SHARE`, a mode compatible with the FK's own request, so neither waits on
+the other for that resource; and no product writer ever re-points `op_item_id`.
+Separately, the pre-existing Tapete writer `db/32`
+(`liberar_expedicao_latex_parcial`) takes `ops FOR UPDATE` and only then
+`op_itens … FOR UPDATE`. That is db/32's own accepted behavior on a non-Manta
+path, db/01–db/87 are frozen by this order, and db/88 adds no edge to it: the
+corrected membership guard re-enters locks db/32 already holds.
+
+### 16.4 Concurrency evidence
+
+Six new distinct-session proofs, on top of the fifteen from db/85–87 (21 total),
+all with `pg_stat_database.deadlocks = 0`:
+
+| Proof | Result |
+|---|---|
+| A output insert wins vs op_item DELETE | DELETE blocks on the writer's `FOR KEY SHARE` (`pg_blocking_pids`), output commits, DELETE then refused (`fk_on_delete_restrict`), op_item survives |
+| B op_item DELETE wins vs output insert | writer waits on the op_item **before** taking the OP, DELETE commits, writer re-reads and returns `item_fora_da_op`; no partial delivery (`0/0`) |
+| C release wins vs op_item DELETE | DELETE blocks, release commits exactly once (60.00), DELETE then refused (`db82_source_nonempty_guard`) |
+| D op_item DELETE wins vs release | release waits on the op_item, then returns `item_fora_da_op`; no expedition remains (`0/0`) |
+| E1 identity change wins | output insert waits on the OP, re-reads committed identity, rejects the stale payload; nothing persists |
+| E2 output insert wins | identity change waits on the OP, then refused by `op_itens_manta_output_reference_guard`; op_item identity unchanged |
+
+Which accepted rule refuses a DELETE is reported rather than asserted, because
+several fail-closed rules legitimately apply depending on fixture state; the
+proof is that the DELETE blocked on the pre-lock and was then refused.
+
+### 16.5 Idempotency
+
+Under a forward-only chain, idempotency is a property of the chain: db/88
+supersedes two objects db/85 also defines, so re-applying db/85 *alone* at the
+end would correctly reinstate the superseded bodies. The harness therefore
+re-applies `db/85 → db/86 → db/87 → db/88` **in order** and requires the
+fingerprint (columns, constraints, triggers, **indexes**, function bodies,
+grants, RLS) to return exactly to its pre-re-apply value, and additionally
+re-applies **db/88 standalone** — the terminal owner of every object it defines —
+with zero drift. Both are green.
+
+### 16.6 B1 harness realignment
+
+`tests/manta-expedition-source-invariant.mjs` no longer hard-codes an eternal
+manifest length of 84. It applies the **complete current chain**, asserts that
+`db/01..db/84` is a contiguous prefix and that the whole manifest stays
+contiguous from `db/01`, and keeps every db/81–84 object, invariant and
+concurrency assertion **unweakened**, still running the unchanged B1 substantive
+integration payload. It passes under db/01..88 (`failures=0`), and stays useful
+as later forward migrations are added.
+
+### 16.7 Regression and environment
+
+Full validation on one fresh disposable PostgreSQL 18.4 cluster: db/01..88 clean
+apply; the complete B2A integration test (80 sequential proofs) green; the
+corrected B1 invariant harness green; the B1 substantive integration payload
+green and unchanged; all previous B2A distinct-session proofs green; db/78–84
+identity and source regressions, Manta finishing rejection, the Tapete
+`cima → gerar_op_latex → op_latex_entregas` chain, the Latex saldo → partial
+release → client delivery flow, release/reversal idempotency, the completion
+correction and C5A emission all green and unchanged; cluster destroyed with PID,
+port and directory proof. Shared development `ucrjtfswnfdlxwtmxnoo` remains at
+terminal `84`; no environment was accessed. PHASE-MANTA-B2A remains **awaiting
+architect review**; B2B and B2C stay unauthorized.

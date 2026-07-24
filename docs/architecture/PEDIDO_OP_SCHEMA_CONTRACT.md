@@ -1787,3 +1787,62 @@ lock. Verified on a disposable PostgreSQL 18.4 cluster with fifteen
 distinct-session proofs and `pg_stat_database.deadlocks = 0`; all three
 migrations re-apply with zero schema, constraint, trigger, index, function-body,
 grant and RLS drift.
+
+## Update 2026-07-24 — PHASE-MANTA-B2A forward correction (db/88)
+
+Order `PHASE-MANTA-B2A-MEASURED-OUTPUT-IDENTITY-AND-FK-LOCK-CORRECTION-R1`.
+`db/88_manta_measured_output_identity_and_fk_lock_correction.sql` forward-corrects
+db/85–db/87 without editing them. **No migration was applied to any
+environment**; shared development `ucrjtfswnfdlxwtmxnoo` remains at terminal `84`.
+Owner of the full record: `MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md` §16.
+
+| Object | Corrected contract |
+|---|---|
+| `entrega_itens_cima_route_destino_guard_fn` | `modelo_id` becomes a trigger-relevant identity field, so a **modelo_id-only UPDATE no longer escapes the early return**. Route-conditional model rule: on a **Manta** `cima` item `modelo_id` is MANDATORY and must equal `op_itens.modelo_id` exactly; on a **Tapete** `cima` item a SUPPLIED `modelo_id` must equal it exactly while NULL stays valid. `public.entrega_itens.modelo_id` is nullable by design (`CHECK (op_item_id IS NOT NULL OR modelo_id IS NOT NULL)` — the alternative identifier for legacy item-less-op rows, not a mandatory mirror), and the live Tapete writer never sends it, so an unconditional non-null match would reject every Tapete delivery. Identity on `cima` is already fully determined by the `op_item_id` db/85 makes mandatory. Nothing is ever silently rewritten. |
+| `op_itens_manta_output_reference_guard` (NEW) | BEFORE UPDATE on `public.op_itens`. While the op_item is referenced by Manta measured output (`entrega_itens` under an `etapa='cima'` header, route derived from the op_item's own `modelos.tipo_produto`), `op_id`, `modelo_id` and `pedido_item_id` are immutable. Same-value and quantity updates stay permitted; unrelated op_items and Tapete are unaffected; no `app.retificacao_autorizada` bypass; DELETE stays covered by the FK `ON DELETE RESTRICT`. It takes the affected OP rows `FOR UPDATE` ascending before inspecting, because op_itens triggers fire alphabetically and it runs before the db/80 guard that would take that lock. |
+| `expedicao_itens_membership_guard_fn` | Unchanged db/82 membership and db/83 identity checks, now with the referenced op_item locked `FOR KEY SHARE` **before** the source OP. Protects direct `expedicao_itens` writes as well as the RPC path. |
+| `registrar_entrega_cima_manta` | Parses/normalizes without mutation, locks every distinct requested op_item `FOR KEY SHARE` ascending **before** the source OP, then re-reads each one post-OP-lock and proves its exact `op_id`, `modelo_id`, `pedido_item_id` and Manta route. Signature, grants, authorization, return shape and event semantics preserved; still never calls a finishing writer. |
+| `liberar_expedicao_manta_parcial` | Advisory lock → op_items `FOR KEY SHARE` ascending → source OP → existing lineage/output/expedition locks → post-lock membership and identity re-read → unchanged release semantics. Balance formula, `op_item_id`-exact measurement, idempotency behavior, return shape, event and grants preserved; Tapete writers untouched. |
+
+**Corrected global lock order (supersedes the db/86 list).** The analysis now
+includes the **implicit** `FOR KEY SHARE` row lock taken by
+`entrega_itens.op_item_id → op_itens.id` and
+`expedicao_itens.op_item_id → op_itens.id`:
+
+```
+1. pg_advisory_xact_lock (idempotency identity), when a key is supplied
+2. public.op_itens rows, ascending id, FOR KEY SHARE
+3. source public.ops rows, ascending id, FOR UPDATE
+4. source public.lotes FOR SHARE, then source public.pedidos FOR SHARE
+5. public.modelos rows, ascending id, FOR SHARE (always a leaf)
+6. public.entregas / public.entrega_itens
+7. public.expedicoes
+8. public.expedicao_itens, ascending id
+```
+
+- **R-III (new, binding)** — every Manta path must acquire the referenced
+  `op_itens` row(s) **before** the source `ops` row, in `FOR KEY SHARE`. A DELETE
+  or UPDATE of an op_item already owns that row's target lock before its
+  BEFORE-ROW triggers request the OP, so `op_item → OP` is fixed by PostgreSQL
+  and cannot be reversed; db/85–87 had the opposite direction and were cyclic.
+  `FOR KEY SHARE` is the exact mode: it conflicts with `FOR UPDATE` (a concurrent
+  DELETE blocks and is then refused) but not with `FOR NO KEY UPDATE` (a non-key
+  identity UPDATE proceeds to the shared `ops` serialization point instead of
+  deadlocking), and the post-OP-lock re-read decides the winner.
+- **R-I and R-II (db/85) stand unchanged**: the item guard still takes `ops` only
+  on INSERT, and the header guard still takes neither `ops` nor an
+  `entrega_itens` row lock.
+
+**Residual, recorded, not introduced by db/88.** A direct
+`UPDATE entrega_itens SET op_item_id = …` (or the same on `expedicao_itens`)
+inherently holds its own row lock and then takes the FK's `FOR KEY SHARE` on the
+op_item. It cannot cycle with the Manta writers, which hold the op_item only in
+`FOR KEY SHARE` — compatible with the FK's own request — and no product writer
+re-points `op_item_id`. The pre-existing Tapete writer `db/32` takes
+`ops FOR UPDATE` then `op_itens FOR UPDATE`; that is its own accepted behavior on
+a non-Manta path and db/88 adds no edge to it.
+
+Verified on a disposable PostgreSQL 18.4 cluster: db/01..88 clean apply; 80
+sequential proofs; 21 distinct-session proofs with
+`pg_stat_database.deadlocks = 0`; re-applying db/85..db/88 **in order** returns
+the fingerprint exactly, and db/88 also re-applies standalone with zero drift.
