@@ -1740,3 +1740,50 @@ Latex RPCs, which are unchanged). RLS unchanged on `expedicoes`,
 `entregas` and `entrega_itens`. No table grant is broadened; no new direct table
 write is introduced. `tests/ordem-compra-c3d-deploy.smoke.js` advances
 84 → 85 → 86 → 87, one bump per migration commit.
+
+## Update 2026-07-24 — PHASE-MANTA-B2A implemented (db/85, db/86, db/87)
+
+Order `PHASE-MANTA-B2A-BACKEND-ACTIVATION-R1` (bounded backend implementation;
+local disposable PostgreSQL only). The three shapes previewed in the preceding
+section are now **implemented and locally/concurrently verified**; the owner of
+the activation semantics and of the full implementation record is
+`docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md` §15. **No migration
+was applied to any environment**; shared development `ucrjtfswnfdlxwtmxnoo`
+remains at terminal `84`. This section records only the deltas between the
+preview and the created objects, so the technical owner stays exact.
+
+**Created exactly as previewed**, with these clarifications:
+
+| Object | Implemented detail worth recording |
+|---|---|
+| `entrega_itens_cima_route_destino_guard` | Coverage widened, per the B2A order, from `op_id`/`op_item_id` to **also** an `entrega_id`-changing UPDATE — moving an item into another delivery changes its parent route/destination context. It additionally proves the op_item exists, belongs to the declared `op_id`, and that the source OP is non-empty and route-homogeneous, and it rejects a NULL `op_item_id` on a `cima` parent (the route is not derivable without it). It requests an `ops` FOR UPDATE lock **only on INSERT** and an `entregas` FOR SHARE lock **only when the parent changes**; see R-I/R-II below. |
+| `entregas_cima_destino_route_guard` | Requests **no** `ops` lock and **no** `entrega_itens` row lock; it re-derives the route from every existing item under plain unlocked committed reads (the db/84 BLOCKER E/F idiom), relying on its own target-row lock conflicting with the item side's explicit FOR SHARE. |
+| `registrar_entrega_cima_manta` | Normalizes duplicate payload entries per **`(op_item_id, defeito)`**, not per `op_item_id` alone: the defect flag is part of the measured identity, so collapsing across it would destroy information. The weaving supplier is carried by the existing canonical `entregas.fornecedor_id`; `entrega_itens` has no `pedido_item_id` column, so commercial identity is preserved through `op_item_id` and echoed in the return and event payloads. |
+| `public.expedicao_comandos` | Created exactly as contracted, plus an `(ator_id, criado_em DESC, id DESC)` index, an admin-only `SELECT` policy, and `expedicao_comandos_immutable_guard` rejecting UPDATE and DELETE with **no** `app.retificacao_autorizada` bypass. |
+| `liberar_expedicao_manta_parcial` / `estornar_expedicao_manta_parcial` | The canonical request JSON is derived **only from the arguments** (namespace, target id, observacao/motivo, and per-`op_item_id` aggregated metres rendered as fixed 2-decimal text), so `20` and `20.00` are the same request. The `pg_advisory_xact_lock` over `(namespace, actor, key)` is taken **before any table row lock**, which is what makes a losing duplicate retain no mutation to discard. |
+| `concluir_pedido_se_pronto` | Corrected exactly as contracted and additionally takes the Pedido row `FOR UPDATE` for the completion mutation, locking nothing else. Two new pendency messages: `Ha tecelagem Manta finalizada sem expedicao` and `Ha saida de tecelagem Manta medida sem liberacao para expedicao`. Every existing Tapete message, the return shape, the signature, the authorization and the grants are preserved verbatim. |
+
+**New indexes** (db/86, access paths for the `op_item_id`-exact balance join):
+`entrega_itens_op_item_idx` on `public.entrega_itens(op_item_id)` and
+`expedicao_itens_op_item_idx` on `public.expedicao_itens(op_item_id)`.
+
+**Lock-order rules now binding on any future writer touching these tables.**
+PostgreSQL takes an UPDATE/DELETE target-row lock *before* the BEFORE-ROW trigger
+body runs, so a guard that then locks another table inverts the global order.
+
+- **R-I** — no path may hold a `public.entrega_itens` row lock and then request a
+  `public.ops` row lock. (This is why the item guard locks `ops` only on INSERT.)
+- **R-II** — no path may hold a `public.entregas` row lock and then request a
+  `public.ops` row lock.
+- Consequently the Manta expedition writers acquire the source `entrega_itens`
+  rows **while holding `ops`**, never the reverse, which is what serializes
+  release versus output correction in both directions without a cycle.
+
+Global order: `pedidos` FOR UPDATE (completion only, acquires nothing else) →
+`ops` asc FOR UPDATE → `lotes` FOR SHARE → `pedidos` FOR SHARE → `modelos` asc
+FOR SHARE (always a leaf) → `entregas`/`entrega_itens` → `expedicoes` →
+`expedicao_itens` asc; the idempotency advisory lock precedes every table row
+lock. Verified on a disposable PostgreSQL 18.4 cluster with fifteen
+distinct-session proofs and `pg_stat_database.deadlocks = 0`; all three
+migrations re-apply with zero schema, constraint, trigger, index, function-body,
+grant and RLS drift.

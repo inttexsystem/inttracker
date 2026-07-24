@@ -641,5 +641,162 @@ decision materially changes data ownership or user-visible behavior.
 ## 14. Status and next authorizable action
 
 PHASE-MANTA-B2-ACTIVATION-CONTRACT-R1 is CLOSED / ACCEPTED / DOCUMENTED. The
-next authorizable action is `PHASE-MANTA-B2A-BACKEND-ACTIVATION-R1`.
-PHASE-MANTA-B2A implementation remains unauthorized until a separate order.
+next authorizable action was `PHASE-MANTA-B2A-BACKEND-ACTIVATION-R1`, which has
+now been executed — see §15.
+
+## 15. PHASE-MANTA-B2A implementation record
+
+STATUS: **PHASE-MANTA-B2A — IMPLEMENTED / LOCALLY AND CONCURRENTLY VERIFIED /
+AWAITING ARCHITECT REVIEW.**
+
+Order `PHASE-MANTA-B2A-BACKEND-ACTIVATION-R1` (bounded backend implementation;
+local disposable PostgreSQL only). Exactly three forward-only migrations, three
+linear commits, one `staging/dev` publication. **No shared-development, staging
+or production apply. No product UI or JavaScript change. No business data.**
+PHASE-MANTA-B2B and PHASE-MANTA-B2C remain unauthorized.
+
+### 15.1 Migrations
+
+| Migration | Owns | Contract clause |
+|---|---|---|
+| `db/85_manta_cima_route_conditional_delivery.sql` | pre-existing data gate; `entregas_destino_cima_chk` dropped; the route-aware guard pair; `registrar_entrega_cima_manta` | §3 |
+| `db/86_manta_expedition_release_writer.sql` | `public.expedicao_comandos`; `consultar_saldo_expedicao_manta`; `liberar_expedicao_manta_parcial` | §4 |
+| `db/87_manta_expedition_reversal_and_route_completion.sql` | `estornar_expedicao_manta_parcial`; the `concluir_pedido_se_pronto` route-symmetric forward correction | §5, §6 |
+
+`db/01`–`db/84` are byte-unchanged. No fourth migration was required.
+
+### 15.2 Exact RPC signatures, guards and triggers
+
+```
+public.registrar_entrega_cima_manta(p_op_id BIGINT, p_fornecedor_id BIGINT,
+        p_data DATE, p_itens JSONB, p_observacao TEXT DEFAULT NULL) RETURNS JSONB
+public.consultar_saldo_expedicao_manta(p_op_tecelagem_id BIGINT) RETURNS JSONB
+public.liberar_expedicao_manta_parcial(p_op_tecelagem_id BIGINT, p_itens JSONB,
+        p_observacao TEXT DEFAULT NULL, p_idempotency_key TEXT DEFAULT NULL) RETURNS JSONB
+public.estornar_expedicao_manta_parcial(p_expedicao_id BIGINT, p_itens JSONB,
+        p_motivo TEXT, p_idempotency_key TEXT DEFAULT NULL) RETURNS JSONB
+public.concluir_pedido_se_pronto(p_pedido_id UUID) RETURNS JSONB   -- signature preserved
+```
+
+Guards/triggers created: `entrega_itens_cima_route_destino_guard`
+(`entrega_itens_cima_route_destino_guard_fn`, BEFORE INSERT OR UPDATE on
+`public.entrega_itens`), `entregas_cima_destino_route_guard`
+(`entregas_cima_destino_route_guard_fn`, BEFORE UPDATE on `public.entregas`) and
+`expedicao_comandos_immutable_guard`
+(`expedicao_comandos_immutable_guard_fn`, BEFORE UPDATE OR DELETE on
+`public.expedicao_comandos`). All ten db/81–84 guards survive unchanged.
+
+### 15.3 Lock-order reconciliation (the mandatory pre-edit proof)
+
+PostgreSQL acquires the target-row lock **before** a BEFORE-ROW trigger body
+runs (`GetTupleForTrigger`), so the naive design would have created both
+`OP → entrega` (item write) and `entrega → OP` (header UPDATE). Outcome **A** of
+the order was implemented — one globally compatible order — through two
+structural rules, recorded in the db/85 header:
+
+- **R-I.** `entrega_itens_cima_route_destino_guard` requests an `ops` FOR UPDATE
+  lock **only on INSERT** (the one path holding no pre-existing `entrega_itens`
+  row lock). On an `entrega_id`-changing UPDATE it locks only
+  `entregas(NEW.entrega_id)` FOR SHARE — by construction a different header from
+  the one whose `ON DELETE CASCADE` could compete for the item row. On an
+  `op_id`/`op_item_id`-only UPDATE it takes no lock at all. DELETE is not
+  covered (removing an item cannot create a route violation, and covering it
+  would put `entregas → entrega_itens → ops` on the cascade path).
+  ⇒ **no path holds an `entrega_itens` row lock and then requests an `ops` row.**
+- **R-II.** `entregas_cima_destino_route_guard` requests no `ops` lock and no
+  `entrega_itens` row lock (the db/84 BLOCKER E/F unlocked-EXISTS idiom).
+  ⇒ **no path holds an `entregas` row lock and then requests an `ops` row.**
+
+Correctness without the header-side OP lock is a **fail-closed serialization**
+argument, not an absence of protection: every route-changing item write takes
+`public.entregas(parent)` **FOR SHARE**, which conflicts with the FOR NO KEY
+UPDATE a header route/destination change holds (the FK's implicit FOR KEY SHARE
+would **not** — which is exactly why the guard takes an explicit lock). The two
+sides therefore strictly serialize on the parent row and the loser re-validates
+totally against committed state. For an `op_id`/`op_item_id`-only UPDATE the
+parent is necessarily non-empty and the two guards' accepting transitions are
+mutually exclusive, so no interleaving accepts a violating pair.
+
+The consequent obligation this places on db/86/db/87 — the Manta writers acquire
+the source `entrega_itens` rows **while holding `ops`**, never the reverse — is
+what makes `release vs. output correction` serialize in both directions with no
+cycle.
+
+Final global order: `pedidos` FOR UPDATE (completion only, acquires nothing
+else) → `ops` asc FOR UPDATE → `lotes` FOR SHARE → `pedidos` FOR SHARE →
+`modelos` asc FOR SHARE (always a leaf) → `entregas`/`entrega_itens` →
+`expedicoes` → `expedicao_itens` asc, with the idempotency
+`pg_advisory_xact_lock` taken **before any table row lock** in both idempotent
+writers.
+
+### 15.4 Idempotency
+
+`public.expedicao_comandos` implements §13.2 of `PEDIDO_OP_SCHEMA_CONTRACT.md`
+verbatim. Proved behavior: NULL key → legacy additive execution, no command row;
+new actor/key/request → executed once, result persisted atomically; identical
+replay → stored result returned byte-for-byte with zero business mutation
+(including numeric normalization, so `20` and `20.00` are the same request);
+same key with a changed request → `idempotencia_conflitante` with zero mutation;
+failed validation → no command row. Concurrency produces exactly one business
+mutation: the advisory lock is taken before any work, so a losing duplicate has
+nothing to discard.
+
+### 15.5 Completion correction
+
+Risk **R-2** is closed. `concluir_pedido_se_pronto` keeps its signature,
+authorization, grants, return shape and every existing Tapete pendency message
+verbatim, and adds two route-symmetric pendencies derived from
+`modelos.tipo_produto` (never `ops.tipo`): `Ha tecelagem Manta finalizada sem
+expedicao` and `Ha saida de tecelagem Manta medida sem liberacao para
+expedicao`. It now locks only the Pedido row, and nothing else.
+
+### 15.6 Authorization, RLS and grants
+
+Every new RPC is `SECURITY DEFINER`, `SET search_path = public`, `is_admin()`
+gated, with `REVOKE EXECUTE … FROM PUBLIC, anon` and `GRANT EXECUTE … TO
+authenticated` on the new functions only. No existing RPC grant, table grant or
+RLS policy changed. `public.expedicao_comandos` has RLS enabled, an admin-only
+read policy, every client table grant revoked, and an immutability trigger that
+rejects UPDATE and DELETE with no `app.retificacao_autorizada` bypass. **No
+authenticated writer receives `app.retificacao_autorizada`, and no db/81–84
+guard was relaxed** — proved directly by asserting that no db/85–87 writer body
+even references the GUC.
+
+### 15.7 Tests and concurrency evidence
+
+- `tests/manta-direct-route-activation.integration.sql` — 68 proofs in one
+  rolled-back transaction (route rule both ways, `entrega_id` bypass,
+  header-side add/remove, atomic Manta output with no Latex side effect, exact
+  balances, defect exclusion, plan-is-not-authority, partial and additive
+  release, expedition reuse, identity copy, overconsumption, every replay case,
+  command immutability, full reversal semantics, the output-correction and
+  OP-reopening boundaries, all six completion cases, and grants/RLS).
+- `tests/manta-direct-route-activation-invariant.mjs` — one disposable
+  PostgreSQL 18.4 cluster: db/01..87 clean apply; db/85, db/86 and db/87 each
+  re-applied with a fingerprint proving zero schema/constraint/trigger/index/
+  function-body/grant/RLS drift; db/78–80 and db/81–84 regressions unchanged;
+  Manta finishing rejection intact; Latex RPC surface unchanged; C5A emission
+  green; **fifteen distinct-session concurrency proofs** (E1–E6, F1–F4, G1–G4)
+  covering every §9 requirement, with `pg_stat_database.deadlocks = 0` and
+  proved cluster destruction (PID absent, port closed, directory removed).
+- `tests/ordem-compra-c3d-deploy.smoke.js` — terminal advanced 84 → 85 → 86 → 87,
+  one bump per migration commit.
+
+### 15.8 Known consequence, deliberately not corrected here
+
+`tests/manta-expedition-source-invariant.mjs` (the PHASE-MANTA-B1 harness) still
+asserts `manifest.length === 84` and terminal `84` in its Part A, so it now fails
+that assertion. It is **outside this order's authorized manifest** and was
+therefore left byte-unchanged; its substantive payload,
+`tests/manta-expedition-source.integration.sql`, is executed unchanged and green
+inside the B2A harness (Part D), which is exactly what §11 specifies as the
+B2A db/81–84 regression. Realigning that predecessor harness's terminal
+expectation is a separate authorizable action.
+
+### 15.9 Environment and next authorizable action
+
+Local disposable PostgreSQL only. Shared development `ucrjtfswnfdlxwtmxnoo`
+remains at terminal `84` with the Manta route dormant; **no** environment was
+accessed or mutated. The next authorizable action is architect review of
+PHASE-MANTA-B2A, then a separate `PHASE-MANTA-B2B` order. No phase chains
+automatically.

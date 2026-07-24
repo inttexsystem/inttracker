@@ -1,11 +1,15 @@
 // tests/manta-direct-route-activation-invariant.mjs
 //
 // PHASE-MANTA-B2A disposable-cluster proof of db/85 (route-conditional `cima`
-// delivery + the Manta output RPC).
+// delivery + the Manta output RPC), db/86 (Manta expedition balance and release
+// writer + the expedicao_comandos replay record) and db/87 (Manta expedition
+// reversal + the route-symmetric concluir_pedido_se_pronto correction).
 //
 // Governing contract: docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md
 // §3, §8, §9, §10 (B2A) and §11 (B2A test contract).
-// Migrations: db/85_manta_cima_route_conditional_delivery.sql.
+// Migrations: db/85_manta_cima_route_conditional_delivery.sql,
+// db/86_manta_expedition_release_writer.sql and
+// db/87_manta_expedition_reversal_and_route_completion.sql.
 //
 // ENVIRONMENT: disposable local PostgreSQL 18.x ONLY
 // (scripts/c3d/bootstrap-disposable-cluster.mjs). This harness NEVER connects to
@@ -14,10 +18,12 @@
 // fixtures are rebuilt in OS temp files outside the repository and removed on exit.
 //
 // WHAT THIS PROVES, on ONE fresh disposable cluster (then destroyed, Part Z):
-//   Part A  full chain db/01..db/85 applies cleanly, in order (corpus after db/66);
-//           every db/85 terminal object present and entregas_destino_cima_chk gone.
-//   Part B  db/85 re-applies idempotently with a before/after fingerprint proving
-//           zero schema/constraint/trigger/function-body/grant drift.
+//   Part A  full chain db/01..db/87 applies cleanly, in order (corpus after db/66);
+//           every db/85, db/86 and db/87 terminal object present,
+//           entregas_destino_cima_chk gone and all ten db/81-84 guards intact.
+//   Part B  db/85, db/86 and db/87 each re-apply idempotently with a before/after
+//           fingerprint proving zero schema, constraint, trigger, index,
+//           function-body, grant and RLS drift.
 //   Part C  tests/manta-direct-route-activation.integration.sql passes.
 //   Part D  regression: the db/78-80 identity and db/81-84 source integration
 //           tests still pass UNCHANGED; the Manta finishing rejection is intact;
@@ -53,6 +59,15 @@
 //                loser blocks on the idempotency advisory lock BEFORE doing any
 //                work and replays the stored result).
 //             F4 different Manta OPs do not serialize.
+//   Part G  distinct-session concurrency for db/87 (reversal + completion):
+//             G1 release versus reversal strictly serialize on the source ops
+//                row; totals reconcile exactly.
+//             G2 reversal versus client delivery cannot reduce below delivered:
+//                the reversal blocks on the delivery's expedicao_itens row and
+//                re-reads metros_entregues post-lock.
+//             G3 duplicate reversal submission mutates exactly once.
+//             G4 Pedido completion holds exactly one resource and creates no
+//                lock cycle with a concurrent release.
 //   Part Z  mandatory full cluster destruction (pid absent, port closed, dir
 //           absent; no c3d-disposable-pg-* residue from this run).
 //
@@ -77,9 +92,10 @@ import {
 const REPO_ROOT = getRepoRoot();
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-const TERMINAL_MIGRATION = 86;
+const TERMINAL_MIGRATION = 87;
 const DB85_FILE = '85_manta_cima_route_conditional_delivery.sql';
 const DB86_FILE = '86_manta_expedition_release_writer.sql';
+const DB87_FILE = '87_manta_expedition_reversal_and_route_completion.sql';
 
 // ---------------------------------------------------------------------------
 // Supabase-platform preamble a bare PG cluster lacks (applied before db/01).
@@ -211,6 +227,10 @@ DECLARE
   opF3 BIGINT; itF3 BIGINT; entF3 BIGINT; eiF3 BIGINT;
   opF4a BIGINT; itF4a BIGINT; entF4a BIGINT; eiF4a BIGINT;
   opF4b BIGINT; itF4b BIGINT; entF4b BIGINT; eiF4b BIGINT;
+  opG1 BIGINT; itG1 BIGINT; entG1 BIGINT;
+  opG2 BIGINT; itG2 BIGINT; entG2 BIGINT;
+  opG3 BIGINT; itG3 BIGINT; entG3 BIGINT;
+  opG4 BIGINT; itG4 BIGINT; entG4 BIGINT; pedG4 UUID; loteG4 BIGINT;
 BEGIN
   INSERT INTO public.cores(nome) VALUES ('B2A-KRAFT') RETURNING id INTO c1;
   INSERT INTO public.cores(nome) VALUES ('B2A-CRU')   RETURNING id INTO c2;
@@ -302,7 +322,40 @@ BEGIN
   INSERT INTO public.entrega_itens(entrega_id,op_id,op_item_id,modelo_id,metros_entregues,defeito)
     VALUES (entF4b,opF4b,itF4b,mm,100,FALSE) RETURNING id INTO eiF4b;
 
+  -- db/87 sources: measured 100 m each; the release that each proof starts from
+  -- is performed live through the real RPC by the harness, never planted.
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (987021,2026,'concluida','tecelagem',lote) RETURNING id INTO opG1;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opG1,mm,200) RETURNING id INTO itG1;
+  INSERT INTO public.entregas(fornecedor_id,etapa,data,destino_fornecedor_id) VALUES (forn,'cima',CURRENT_DATE,NULL) RETURNING id INTO entG1;
+  INSERT INTO public.entrega_itens(entrega_id,op_id,op_item_id,modelo_id,metros_entregues,defeito)
+    VALUES (entG1,opG1,itG1,mm,100,FALSE);
+
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (987022,2026,'concluida','tecelagem',lote) RETURNING id INTO opG2;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opG2,mm,200) RETURNING id INTO itG2;
+  INSERT INTO public.entregas(fornecedor_id,etapa,data,destino_fornecedor_id) VALUES (forn,'cima',CURRENT_DATE,NULL) RETURNING id INTO entG2;
+  INSERT INTO public.entrega_itens(entrega_id,op_id,op_item_id,modelo_id,metros_entregues,defeito)
+    VALUES (entG2,opG2,itG2,mm,100,FALSE);
+
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (987023,2026,'concluida','tecelagem',lote) RETURNING id INTO opG3;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opG3,mm,200) RETURNING id INTO itG3;
+  INSERT INTO public.entregas(fornecedor_id,etapa,data,destino_fornecedor_id) VALUES (forn,'cima',CURRENT_DATE,NULL) RETURNING id INTO entG3;
+  INSERT INTO public.entrega_itens(entrega_id,op_id,op_item_id,modelo_id,metros_entregues,defeito)
+    VALUES (entG3,opG3,itG3,mm,100,FALSE);
+
+  -- G4: an isolated Pedido/Lote/OP chain so completion runs against its own row.
+  INSERT INTO public.pedidos(cliente_id,numero,status) VALUES (cli,987004,'confirmado') RETURNING id INTO pedG4;
+  INSERT INTO public.lotes(numero,cliente_id,pedido_id) VALUES (987004,cli,pedG4) RETURNING id INTO loteG4;
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (987024,2026,'concluida','tecelagem',loteG4) RETURNING id INTO opG4;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opG4,mm,200) RETURNING id INTO itG4;
+  INSERT INTO public.entregas(fornecedor_id,etapa,data,destino_fornecedor_id) VALUES (forn,'cima',CURRENT_DATE,NULL) RETURNING id INTO entG4;
+  INSERT INTO public.entrega_itens(entrega_id,op_id,op_item_id,modelo_id,metros_entregues,defeito)
+    VALUES (entG4,opG4,itG4,mm,100,FALSE);
+
+  INSERT INTO public._b2a_uuids(k,v) VALUES ('pedG4',pedG4);
+
   INSERT INTO public._b2a_ids(k,v) VALUES
+    ('opG1',opG1),('itG1',itG1),('opG2',opG2),('itG2',itG2),
+    ('opG3',opG3),('itG3',itG3),('opG4',opG4),('itG4',itG4),('loteG4',loteG4),
     ('opF1',opF1),('itF1',itF1),('eiF1',eiF1),
     ('opF2a',opF2a),('itF2a',itF2a),('eiF2a',eiF2a),
     ('opF2b',opF2b),('itF2b',itF2b),('eiF2b',eiF2b),
@@ -551,6 +604,14 @@ async function partA(handle) {
   check(db86 === '1/true/1/1/3',
     `db/86 terminal objects: command table / RLS / unique key / immutability trigger / 3 functions (got ${db86})`);
 
+  const db87 = await scalar(handle, `
+    SELECT (SELECT count(*) FROM pg_proc
+             WHERE oid='public.estornar_expedicao_manta_parcial(bigint,jsonb,text,text)'::regprocedure) || '/' ||
+           (SELECT CASE WHEN pg_get_functiondef('public.concluir_pedido_se_pronto(uuid)'::regprocedure)
+                          LIKE '%op_tecelagem_id%' THEN 'corrigida' ELSE 'DEFEITUOSA' END);`);
+  check(db87 === '1/corrigida',
+    `db/87 terminal objects: reversal RPC present and concluir_pedido_se_pronto route-symmetrically corrected (got ${db87})`);
+
   // Every db/81-84 guard survives untouched.
   const legacy = await scalar(handle, `
     SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname IN (
@@ -579,7 +640,12 @@ async function partB(handle) {
   check(afterDb85 === afterDb86,
     `idempotent re-apply of db/86 must cause zero schema/constraint/trigger/index/function/grant/RLS drift (before=${afterDb85}, after=${afterDb86})`);
 
-  log('PART_B', { reapply: 'db/85+db/86', fingerprint: afterDb86, drift: 'none' });
+  applyFile(handle, path.join(REPO_ROOT, 'db', DB87_FILE), 'db/87 re-apply');
+  const afterDb87 = await schemaFingerprint(handle);
+  check(afterDb86 === afterDb87,
+    `idempotent re-apply of db/87 must cause zero schema/constraint/trigger/index/function/grant/RLS drift (before=${afterDb86}, after=${afterDb87})`);
+
+  log('PART_B', { reapply: 'db/85+db/86+db/87', fingerprint: afterDb87, drift: 'none' });
 }
 
 // ===========================================================================
@@ -654,7 +720,8 @@ async function partE(handle) {
     'opE4', 'itE4', 'opE5a', 'itE5a', 'opE5b', 'itE5b',
     'opE6t', 'itE6t', 'entE6', 'opE6m', 'itE6m',
     'opF1', 'itF1', 'eiF1', 'opF2a', 'itF2a', 'eiF2a', 'opF2b', 'itF2b', 'eiF2b',
-    'opF3', 'itF3', 'eiF3', 'opF4a', 'itF4a', 'eiF4a', 'opF4b', 'itF4b', 'eiF4b']) {
+    'opF3', 'itF3', 'eiF3', 'opF4a', 'itF4a', 'eiF4a', 'opF4b', 'itF4b', 'eiF4b',
+    'opG1', 'itG1', 'opG2', 'itG2', 'opG3', 'itG3', 'opG4', 'itG4', 'loteG4']) {
     id[k] = Number(await scalar(handle, `SELECT v FROM public._b2a_ids WHERE k='${k}';`));
     check(Number.isInteger(id[k]) && id[k] > 0, `fixture id ${k} must resolve (got ${id[k]})`);
   }
@@ -1041,11 +1108,190 @@ async function partF(handle, ctx) {
     log('F4', { independent: true, blockers: blockers || '(none)', deadlock: false });
   }
 
-  // Global 40P01 sweep across every backend touched by Parts E and F.
+  log('PART_F', { proofs: 'F1,F2a,F2b,F3,F4' });
+}
+
+// ===========================================================================
+// PART G — distinct-session concurrency for db/87 (reversal + completion).
+// ===========================================================================
+const REVERSE = (exp, item, metros, motivo, key = null) =>
+  `public.estornar_expedicao_manta_parcial(${exp}, jsonb_build_array(jsonb_build_object('op_item_id',${item},'metros',${metros})), '${motivo}', ${key === null ? 'NULL' : `'${key}'`})`;
+
+async function partG(handle, ctx) {
+  const { id, adm } = ctx;
+
+  // Seed each proof's starting release through the REAL writer (autocommit).
+  const expOf = {};
+  for (const k of ['opG1', 'opG2', 'opG3', 'opG4']) {
+    const item = id[k.replace('op', 'it')];
+    const seeded = await attempt(handle, `G-seed-${k}`,
+      `PERFORM ${RELEASE(id[k], item, 60)}`, adm);
+    check(seeded === 'OK', `G seed release for ${k} must succeed (got ${seeded})`);
+    expOf[k] = Number(await scalar(handle,
+      `SELECT id FROM public.expedicoes WHERE op_tecelagem_id=${id[k]};`));
+    check(expOf[k] > 0, `G seed expedition for ${k} must exist (got ${expOf[k]})`);
+  }
+
+  // ---- G1: release vs reversal strictly serialize on the source ops row ---
+  {
+    const rev = openSession(handle, 'G1-estorno');
+    rev.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    rev.send('BEGIN;');
+    rev.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pv = Number((await rev.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    rev.send(`SELECT 'V|' || ((${REVERSE(expOf.opG1, id.itG1, 20, 'serializacao')})->>'ok');`);
+    await rev.waitFor((l) => l.startsWith('V|'));
+
+    const rel = openSession(handle, 'G1-liberacao');
+    rel.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    rel.send('BEGIN;');
+    rel.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pr = Number((await rel.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    // 60 is releasable only AFTER the reversal of 20 commits (100 - 60 + 20).
+    rel.send(`SELECT 'R|' || ((${RELEASE(id.opG1, id.itG1, 60)})->>'ok');`);
+
+    const blockers = await waitForBlock(handle, pr, pv);
+    rev.send(`COMMIT; SELECT 'CV';`); await rev.waitFor((l) => l === 'CV');
+    const rr = await rel.waitFor((l) => l.startsWith('R|'));
+    rel.send(`COMMIT; SELECT 'CR';`); await rel.waitFor((l) => l === 'CR');
+    const err = `${rev.stderr}${rel.stderr}`;
+    await rev.close(); await rel.close();
+
+    check(blockers.includes(String(pv)),
+      `G1 the release must serialize on the source ops row held by the reversal (blockers=${blockers})`);
+    check(rr === 'R|true',
+      `G1 the release must succeed against the post-reversal balance (got ${rr})`);
+    const total = await scalar(handle, `
+      SELECT coalesce(sum(xi.metros_liberados),0)::text FROM public.expedicao_itens xi
+        JOIN public.expedicoes ex ON ex.id = xi.expedicao_id WHERE ex.op_tecelagem_id=${id.opG1};`);
+    check(Number(total) === 100, `G1 totals must reconcile exactly (60 - 20 + 60 = 100; got ${total})`);
+    check(!/40P01|deadlock/i.test(err), `G1 must not deadlock (${err.slice(0, 300)})`);
+    log('G1', { serialized: true, blockers, release: rr, total_released: total, deadlock: false });
+  }
+
+  // ---- G2: reversal vs client delivery cannot reduce below delivered -----
+  {
+    const xi = Number(await scalar(handle,
+      `SELECT id FROM public.expedicao_itens WHERE expedicao_id=${expOf.opG2};`));
+
+    const del = openSession(handle, 'G2-entrega');
+    del.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    del.send('BEGIN;');
+    del.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pd = Number((await del.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    del.send(`SELECT 'D|' || ((public.registrar_entrega_expedicao(${expOf.opG2}, 'entrega', CURRENT_DATE,
+              jsonb_build_array(jsonb_build_object('expedicao_item_id',${xi},'metros',40))))->>'ok');`);
+    await del.waitFor((l) => l.startsWith('D|'));
+
+    const rev = openSession(handle, 'G2-estorno');
+    rev.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    rev.send('BEGIN;');
+    rev.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pv = Number((await rev.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    rev.send(`SELECT 'V|' || COALESCE((${REVERSE(expOf.opG2, id.itG2, 60, 'tentativa')})->>'codigo', 'ok');`);
+
+    const blockers = await waitForBlock(handle, pv, pd);
+    del.send(`COMMIT; SELECT 'CD';`); await del.waitFor((l) => l === 'CD');
+    const rv = await rev.waitFor((l) => l.startsWith('V|'));
+    rev.send(`COMMIT; SELECT 'CV';`); await rev.waitFor((l) => l === 'CV');
+    const err = `${del.stderr}${rev.stderr}`;
+    await del.close(); await rev.close();
+
+    check(blockers.includes(String(pd)),
+      `G2 the reversal must block on the delivery's expedicao_itens row lock (blockers=${blockers})`);
+    check(rv === 'V|abaixo_do_entregue',
+      `G2 the reversal must re-read metros_entregues post-lock and refuse to go below it (got ${rv})`);
+    const state = await scalar(handle,
+      `SELECT metros_liberados::text || '/' || metros_entregues::text FROM public.expedicao_itens WHERE id=${xi};`);
+    check(state === '60.00/40.00', `G2 balances must be intact (got ${state})`);
+    check(!/40P01|deadlock/i.test(err), `G2 must not deadlock (${err.slice(0, 300)})`);
+    log('G2', { blocked_on_delivery: true, blockers, reversal: rv, state, deadlock: false });
+  }
+
+  // ---- G3: duplicate reversal submission mutates exactly ONCE -------------
+  {
+    const a = openSession(handle, 'G3-a');
+    a.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    a.send('BEGIN;');
+    a.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pa = Number((await a.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    a.send(`SELECT 'A|' || ((${REVERSE(expOf.opG3, id.itG3, 25, 'duplicado', 'REV-CONC-1')})->>'estornado_total');`);
+    const ra = await a.waitFor((l) => l.startsWith('A|'));
+
+    const b = openSession(handle, 'G3-b');
+    b.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    b.send('BEGIN;');
+    b.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pb = Number((await b.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    b.send(`SELECT 'B|' || ((${REVERSE(expOf.opG3, id.itG3, 25, 'duplicado', 'REV-CONC-1')})->>'estornado_total');`);
+
+    const blockers = await waitForBlock(handle, pb, pa);
+    a.send(`COMMIT; SELECT 'CA';`); await a.waitFor((l) => l === 'CA');
+    const rb = await b.waitFor((l) => l.startsWith('B|'));
+    b.send(`COMMIT; SELECT 'CB';`); await b.waitFor((l) => l === 'CB');
+    const err = `${a.stderr}${b.stderr}`;
+    await a.close(); await b.close();
+
+    check(blockers.includes(String(pa)),
+      `G3 the duplicate reversal must block on the idempotency advisory lock (blockers=${blockers})`);
+    check(ra.split('|')[1] === rb.split('|')[1],
+      `G3 both submissions must return the same stored result (a=${ra}, b=${rb})`);
+    const state = await scalar(handle, `
+      SELECT (SELECT metros_liberados::text FROM public.expedicao_itens WHERE expedicao_id=${expOf.opG3}) || '/' ||
+             (SELECT count(*)::text FROM public.expedicao_comandos
+               WHERE idempotency_namespace='manta_reversal_v1' AND idempotency_key='REV-CONC-1') || '/' ||
+             (SELECT count(*)::text FROM public.op_eventos
+               WHERE op_id=${id.opG3} AND tipo_evento='expedicao_manta_estornada');`);
+    check(state === '35.00/1/1',
+      `G3 exactly one business mutation (60-25), one command row and one event (got ${state})`);
+    check(!/40P01|deadlock/i.test(err), `G3 must not deadlock (${err.slice(0, 300)})`);
+    log('G3', { blocked_on_advisory: true, blockers, state, deadlock: false });
+  }
+
+  // ---- G4: Pedido completion creates no lock cycle ------------------------
+  // Completion holds ONLY the pedidos row and requests nothing; a concurrent
+  // release holds `ops` and requests that same pedidos row FOR SHARE (db/84).
+  // The chain terminates at completion, so no cycle can form in either order.
+  {
+    const ped = await scalar(handle, `SELECT v FROM public._b2a_uuids WHERE k='pedG4';`);
+    const done = openSession(handle, 'G4-conclusao');
+    done.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    done.send('BEGIN;');
+    done.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pd = Number((await done.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    done.send(`SELECT 'C|' || COALESCE((public.concluir_pedido_se_pronto('${ped}'::uuid))->>'ok', 'null');`);
+    await done.waitFor((l) => l.startsWith('C|'));
+
+    const rel = openSession(handle, 'G4-liberacao');
+    rel.send(`SELECT set_config('request.jwt.claim.sub', '${adm}', false);`);
+    rel.send('BEGIN;');
+    rel.send(`SELECT 'PID|' || pg_backend_pid();`);
+    const pr = Number((await rel.waitFor((l) => l.startsWith('PID|'))).split('|')[1]);
+    rel.send(`SELECT 'R|' || ((${RELEASE(id.opG4, id.itG4, 40)})->>'ok');`);
+
+    // The release requests the source pedidos row FOR SHARE (db/84 step 3),
+    // which the completion holds FOR UPDATE, so it waits — and completion,
+    // holding exactly one resource, always makes progress.
+    const blockers = await waitForBlock(handle, pr, pd);
+    done.send(`COMMIT; SELECT 'CC';`); await done.waitFor((l) => l === 'CC');
+    const rr = await rel.waitFor((l) => l.startsWith('R|'));
+    rel.send(`COMMIT; SELECT 'CR';`); await rel.waitFor((l) => l === 'CR');
+    const err = `${done.stderr}${rel.stderr}`;
+    await done.close(); await rel.close();
+
+    check(blockers.includes(String(pd)),
+      `G4 the release must wait on the Pedido row held by completion (blockers=${blockers})`);
+    check(rr === 'R|true', `G4 the release must complete once the Pedido row is free (got ${rr})`);
+    check(!/40P01|deadlock/i.test(err), `G4 completion must create no lock cycle (${err.slice(0, 300)})`);
+    log('G4', { completion_holds_one_resource: true, blockers, release: rr, deadlock: false });
+  }
+
+  // Global 40P01 sweep across every backend touched by Parts E, F and G.
   const deadlocks = await scalar(handle, `
     SELECT deadlocks::text FROM pg_stat_database WHERE datname = current_database();`);
-  check(deadlocks === '0', `no deadlock may have been detected by the server (pg_stat_database.deadlocks = ${deadlocks})`);
-  log('PART_F', { proofs: 'F1,F2a,F2b,F3,F4', deadlocks_reported_by_server: deadlocks });
+  check(deadlocks === '0',
+    `no deadlock may have been detected by the server (pg_stat_database.deadlocks = ${deadlocks})`);
+  log('PART_G', { proofs: 'G1,G2,G3,G4', deadlocks_reported_by_server: deadlocks });
 }
 
 // ===========================================================================
@@ -1082,6 +1328,7 @@ async function main() {
     await partD(handle);
     const ctx = await partE(handle);
     await partF(handle, ctx);
+    await partG(handle, ctx);
     await partZ(handle);
     stopped = true;
     console.log('MANTA_DIRECT_ROUTE_ACTIVATION_INVARIANT_PASS');

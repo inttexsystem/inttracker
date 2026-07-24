@@ -63,6 +63,23 @@ DECLARE
   v_item JSONB;
   v_cmd_id BIGINT;
   v_op_latex_gerada BIGINT;
+  -- db/87 fixtures
+  v_op_rev BIGINT; v_it_rev BIGINT; v_exp_rev BIGINT; v_xi_rev BIGINT;
+  v_op_rev2 BIGINT; v_it_rev2 BIGINT; v_exp_rev2 BIGINT;
+  v_op_corr BIGINT; v_it_corr BIGINT; v_ei_corr BIGINT; v_exp_corr BIGINT;
+  v_op_reab BIGINT; v_it_reab BIGINT;
+  v_ped_sem_exp UUID;  v_lote_sem_exp BIGINT;  v_op_sem_exp BIGINT;  v_it_sem_exp2 BIGINT;
+  v_ped_parcial UUID;  v_lote_parcial BIGINT;  v_op_parcial BIGINT;  v_it_parcial BIGINT;
+  v_ped_naolib UUID;   v_lote_naolib BIGINT;   v_op_naolib BIGINT;   v_it_naolib BIGINT;
+  v_ped_ok UUID;       v_lote_ok BIGINT;       v_op_ok BIGINT;       v_it_ok BIGINT;
+  v_ped_misto UUID;    v_lote_misto BIGINT;
+  v_op_misto_manta BIGINT; v_it_misto_manta BIGINT;
+  v_op_misto_tec BIGINT;   v_it_misto_tec BIGINT;
+  v_ped_tap UUID;      v_lote_tap BIGINT;      v_op_tap_tec BIGINT;  v_it_tap_tec BIGINT;
+  v_pend JSONB;
+  v_tmp_exp BIGINT;
+  v_tmp_op BIGINT;
+  v_tmp_ent BIGINT;
 BEGIN
   -- ==========================================================================
   -- FIXTURES (triggers OFF: db/78-85 guards must be exercised live afterwards,
@@ -951,6 +968,539 @@ BEGIN
     RAISE EXCEPTION 'not ok 120 - a entrega ao cliente Latex deveria continuar funcionando (got %)', v_res2;
   END IF;
   RAISE NOTICE 'ok 49 - fluxo Latex (saldo -> liberacao parcial -> entrega ao cliente) inalterado';
+
+  -- ==========================================================================
+  -- N. db/87 fixtures (triggers off only for the structural planting; every
+  --    balance below is produced by the real RPCs with the guards ON).
+  -- ==========================================================================
+  PERFORM set_config('session_replication_role', 'replica', true);
+
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985010, 2026, 'concluida', 'tecelagem', v_lote) RETURNING id INTO v_op_rev;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_rev, v_mod_manta, 200) RETURNING id INTO v_it_rev;
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985011, 2026, 'concluida', 'tecelagem', v_lote) RETURNING id INTO v_op_rev2;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_rev2, v_mod_manta, 200) RETURNING id INTO v_it_rev2;
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985012, 2026, 'concluida', 'tecelagem', v_lote) RETURNING id INTO v_op_corr;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_corr, v_mod_manta, 200) RETURNING id INTO v_it_corr;
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985013, 2026, 'concluida', 'tecelagem', v_lote) RETURNING id INTO v_op_reab;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_reab, v_mod_manta, 200) RETURNING id INTO v_it_reab;
+
+  -- Isolated Pedidos for the route-symmetric completion proofs.
+  INSERT INTO public.pedidos (cliente_id, numero, status) VALUES (v_cli, 985101, 'confirmado') RETURNING id INTO v_ped_sem_exp;
+  INSERT INTO public.lotes (numero, cliente_id, pedido_id) VALUES (985101, v_cli, v_ped_sem_exp) RETURNING id INTO v_lote_sem_exp;
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985101, 2026, 'concluida', 'tecelagem', v_lote_sem_exp) RETURNING id INTO v_op_sem_exp;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_sem_exp, v_mod_manta, 100) RETURNING id INTO v_it_sem_exp2;
+
+  INSERT INTO public.pedidos (cliente_id, numero, status) VALUES (v_cli, 985102, 'confirmado') RETURNING id INTO v_ped_parcial;
+  INSERT INTO public.lotes (numero, cliente_id, pedido_id) VALUES (985102, v_cli, v_ped_parcial) RETURNING id INTO v_lote_parcial;
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985102, 2026, 'concluida', 'tecelagem', v_lote_parcial) RETURNING id INTO v_op_parcial;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_parcial, v_mod_manta, 100) RETURNING id INTO v_it_parcial;
+
+  INSERT INTO public.pedidos (cliente_id, numero, status) VALUES (v_cli, 985103, 'confirmado') RETURNING id INTO v_ped_naolib;
+  INSERT INTO public.lotes (numero, cliente_id, pedido_id) VALUES (985103, v_cli, v_ped_naolib) RETURNING id INTO v_lote_naolib;
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985103, 2026, 'concluida', 'tecelagem', v_lote_naolib) RETURNING id INTO v_op_naolib;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_naolib, v_mod_manta, 100) RETURNING id INTO v_it_naolib;
+
+  INSERT INTO public.pedidos (cliente_id, numero, status) VALUES (v_cli, 985104, 'confirmado') RETURNING id INTO v_ped_ok;
+  INSERT INTO public.lotes (numero, cliente_id, pedido_id) VALUES (985104, v_cli, v_ped_ok) RETURNING id INTO v_lote_ok;
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985104, 2026, 'concluida', 'tecelagem', v_lote_ok) RETURNING id INTO v_op_ok;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_ok, v_mod_manta, 100) RETURNING id INTO v_it_ok;
+
+  -- Mixed Pedido: one Manta weaving OP plus one Tapete weaving OP that will
+  -- generate its own finishing OP through the real gerar_op_latex chain.
+  INSERT INTO public.pedidos (cliente_id, numero, status) VALUES (v_cli, 985105, 'confirmado') RETURNING id INTO v_ped_misto;
+  INSERT INTO public.lotes (numero, cliente_id, pedido_id) VALUES (985105, v_cli, v_ped_misto) RETURNING id INTO v_lote_misto;
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985105, 2026, 'concluida', 'tecelagem', v_lote_misto) RETURNING id INTO v_op_misto_manta;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_misto_manta, v_mod_manta, 100) RETURNING id INTO v_it_misto_manta;
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985106, 2026, 'concluida', 'tecelagem', v_lote_misto) RETURNING id INTO v_op_misto_tec;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_misto_tec, v_mod_tapete, 100) RETURNING id INTO v_it_misto_tec;
+
+  -- Tapete-only Pedido (existing behavior must be bit-identical).
+  INSERT INTO public.pedidos (cliente_id, numero, status) VALUES (v_cli, 985107, 'confirmado') RETURNING id INTO v_ped_tap;
+  INSERT INTO public.lotes (numero, cliente_id, pedido_id) VALUES (985107, v_cli, v_ped_tap) RETURNING id INTO v_lote_tap;
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (985107, 2026, 'concluida', 'tecelagem', v_lote_tap) RETURNING id INTO v_op_tap_tec;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos)
+    VALUES (v_op_tap_tec, v_mod_tapete, 100) RETURNING id INTO v_it_tap_tec;
+
+  PERFORM set_config('session_replication_role', 'origin', true);  -- guards ON.
+
+  -- ==========================================================================
+  -- O. db/87 -- reversal.
+  -- ==========================================================================
+  PERFORM public.registrar_entrega_cima_manta(
+    v_op_rev, v_forn_tec, CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev, 'metros_entregues', 100, 'defeito', FALSE)));
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_rev, jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev, 'metros', 80)));
+  v_exp_rev := (v_res->>'expedicao_id')::BIGINT;
+  SELECT id INTO v_xi_rev FROM public.expedicao_itens WHERE expedicao_id = v_exp_rev;
+  v_res := public.registrar_entrega_expedicao(
+    v_exp_rev, 'entrega', CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object('expedicao_item_id', v_xi_rev, 'metros', 30)));
+  IF NOT (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 121 - a entrega ao cliente de apoio deveria funcionar (got %)', v_res;
+  END IF;
+
+  -- O1 Mandatory reason.
+  v_res := public.estornar_expedicao_manta_parcial(
+    v_exp_rev, jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev, 'metros', 10)), NULL);
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'motivo_obrigatorio' THEN
+    RAISE EXCEPTION 'not ok 122 - motivo nulo deveria ser rejeitado (got %)', v_res;
+  END IF;
+  v_res := public.estornar_expedicao_manta_parcial(
+    v_exp_rev, jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev, 'metros', 10)), '   ');
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'motivo_obrigatorio' THEN
+    RAISE EXCEPTION 'not ok 123 - motivo em branco deveria ser rejeitado (got %)', v_res;
+  END IF;
+  RAISE NOTICE 'ok 50 - motivo obrigatorio e nao branco no estorno';
+
+  -- O2 Cannot reverse above released, nor below delivered.
+  v_res := public.estornar_expedicao_manta_parcial(
+    v_exp_rev, jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev, 'metros', 90)), 'motivo');
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'excede_liberado' THEN
+    RAISE EXCEPTION 'not ok 124 - estorno acima do liberado deveria ser rejeitado (got %)', v_res;
+  END IF;
+  v_res := public.estornar_expedicao_manta_parcial(
+    v_exp_rev, jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev, 'metros', 60)), 'motivo');
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'abaixo_do_entregue' THEN
+    RAISE EXCEPTION 'not ok 125 - estorno abaixo do entregue deveria ser rejeitado (got %)', v_res;
+  END IF;
+  IF (v_res->>'estornavel')::NUMERIC <> 50 THEN
+    RAISE EXCEPTION 'not ok 126 - a rejeicao deveria informar o estornavel (80-30=50) (got %)', v_res;
+  END IF;
+  v_res := public.estornar_expedicao_manta_parcial(
+    v_exp_rev, jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev, 'metros', 0)), 'motivo');
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'metros_invalidos' THEN
+    RAISE EXCEPTION 'not ok 127 - estorno zero deveria ser rejeitado (got %)', v_res;
+  END IF;
+  v_res := public.estornar_expedicao_manta_parcial(
+    v_exp_rev, jsonb_build_array(jsonb_build_object('op_item_id', v_it_idem, 'metros', 5)), 'motivo');
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'item_fora_da_expedicao' THEN
+    RAISE EXCEPTION 'not ok 128 - item de outra expedicao deveria ser rejeitado (got %)', v_res;
+  END IF;
+  SELECT ex.id INTO v_tmp_exp FROM public.expedicoes ex WHERE ex.op_latex_id IS NOT NULL LIMIT 1;
+  v_res := public.estornar_expedicao_manta_parcial(
+    v_tmp_exp, jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev, 'metros', 5)), 'motivo');
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'expedicao_nao_manta' THEN
+    RAISE EXCEPTION 'not ok 129 - uma expedicao de origem Latex nao pode ser estornada por esta rota (got %)', v_res;
+  END IF;
+  IF (SELECT metros_liberados FROM public.expedicao_itens WHERE id = v_xi_rev) <> 80 THEN
+    RAISE EXCEPTION 'not ok 130 - nenhuma rejeicao pode ter alterado o saldo';
+  END IF;
+  RAISE NOTICE 'ok 51 - estorno acima do liberado / abaixo do entregue / invalido rejeitado sem mutacao';
+
+  -- O3 Partial reversal accepted; history retained; status recalculated.
+  SELECT count(*) INTO v_n FROM public.expedicao_movimentos WHERE expedicao_id = v_exp_rev;
+  v_res := public.estornar_expedicao_manta_parcial(
+    v_exp_rev, jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev, 'metros', 20)),
+    '  correcao de medicao  ');
+  IF NOT (v_res->>'ok')::BOOLEAN OR (v_res->>'estornado_total')::NUMERIC <> 20 THEN
+    RAISE EXCEPTION 'not ok 131 - estorno parcial deveria ser aceito (got %)', v_res;
+  END IF;
+  IF v_res->>'motivo' <> 'correcao de medicao' THEN
+    RAISE EXCEPTION 'not ok 132 - o motivo deveria ser persistido com btrim (got %)', v_res->>'motivo';
+  END IF;
+  v_item := v_res->'itens'->0;
+  IF (v_item->>'liberado_antes')::NUMERIC <> 80
+     OR (v_item->>'entregue')::NUMERIC <> 30
+     OR (v_item->>'estornar')::NUMERIC <> 20
+     OR (v_item->>'liberado_depois')::NUMERIC <> 60
+     OR (v_item->>'item_removido')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 133 - saldos antes/depois do estorno incorretos (got %)', v_item;
+  END IF;
+  IF (SELECT metros_liberados FROM public.expedicao_itens WHERE id = v_xi_rev) <> 60
+     OR (SELECT metros_entregues FROM public.expedicao_itens WHERE id = v_xi_rev) <> 30 THEN
+    RAISE EXCEPTION 'not ok 134 - o item deveria ficar com 60 liberados e 30 entregues';
+  END IF;
+  IF (SELECT status FROM public.expedicoes WHERE id = v_exp_rev) <> 'parcial' THEN
+    RAISE EXCEPTION 'not ok 135 - o status da expedicao deveria ser recalculado para parcial';
+  END IF;
+  IF (SELECT count(*) FROM public.expedicao_movimentos WHERE expedicao_id = v_exp_rev) <> v_n
+     OR NOT EXISTS (SELECT 1 FROM public.expedicao_movimento_itens WHERE expedicao_item_id = v_xi_rev) THEN
+    RAISE EXCEPTION 'not ok 136 - o historico de movimento nunca pode ser apagado';
+  END IF;
+  SELECT payload INTO v_evt FROM public.op_eventos
+   WHERE op_id = v_op_rev AND tipo_evento = 'expedicao_manta_estornada' ORDER BY id DESC LIMIT 1;
+  IF v_evt IS NULL OR v_evt->>'motivo' <> 'correcao de medicao'
+     OR (v_evt->>'estornado_total')::NUMERIC <> 20
+     OR (v_evt->>'expedicao_id')::BIGINT <> v_exp_rev THEN
+    RAISE EXCEPTION 'not ok 137 - evento expedicao_manta_estornada incompleto (got %)', v_evt;
+  END IF;
+  RAISE NOTICE 'ok 52 - estorno parcial aceito; motivo persistido; historico e status corretos';
+
+  -- O4 Full reversal to zero deletes the item and retains the header.
+  PERFORM public.registrar_entrega_cima_manta(
+    v_op_rev2, v_forn_tec, CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev2, 'metros_entregues', 50, 'defeito', FALSE)));
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_rev2, jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev2, 'metros', 50)));
+  IF NOT (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 138 - a liberacao de apoio deveria funcionar (got %)', v_res;
+  END IF;
+  v_exp_rev2 := (v_res->>'expedicao_id')::BIGINT;
+
+  v_res := public.estornar_expedicao_manta_parcial(
+    v_exp_rev2, jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev2, 'metros', 50)),
+    'estorno total');
+  IF NOT (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 139 - estorno total deveria ser aceito (got %)', v_res;
+  END IF;
+  IF NOT (v_res->'itens'->0->>'item_removido')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 140 - o item que chega a zero deveria ser removido (got %)', v_res->'itens';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.expedicao_itens WHERE expedicao_id = v_exp_rev2) THEN
+    RAISE EXCEPTION 'not ok 141 - o item zerado deveria ter sido apagado';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.expedicoes WHERE id = v_exp_rev2) THEN
+    RAISE EXCEPTION 'not ok 142 - o cabecalho da expedicao deveria ser preservado';
+  END IF;
+  IF (SELECT status FROM public.expedicoes WHERE id = v_exp_rev2) <> 'aguardando_expedicao' THEN
+    RAISE EXCEPTION 'not ok 143 - o status deveria voltar a aguardando_expedicao';
+  END IF;
+  IF (SELECT op_tecelagem_id FROM public.expedicoes WHERE id = v_exp_rev2) <> v_op_rev2 THEN
+    RAISE EXCEPTION 'not ok 144 - a fonte imutavel do cabecalho deveria sobreviver';
+  END IF;
+  RAISE NOTICE 'ok 53 - estorno total apaga o item zerado, preserva o cabecalho e recalcula o status';
+
+  -- O5 Reversal idempotency (same contract as the release writer).
+  v_res := public.estornar_expedicao_manta_parcial(
+    v_exp_rev, jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev, 'metros', 10)),
+    'estorno com chave', 'R-1');
+  IF NOT (v_res->>'ok')::BOOLEAN OR (v_res->>'estornado_total')::NUMERIC <> 10 THEN
+    RAISE EXCEPTION 'not ok 145 - o primeiro estorno com chave deveria executar (got %)', v_res;
+  END IF;
+  SELECT metros_liberados INTO v_num FROM public.expedicao_itens WHERE id = v_xi_rev;
+  v_res2 := public.estornar_expedicao_manta_parcial(
+    v_exp_rev, jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev, 'metros', 10)),
+    'estorno com chave', 'R-1');
+  IF v_res2 <> v_res THEN
+    RAISE EXCEPTION 'not ok 146 - o replay do estorno deveria ser byte a byte (got %)', v_res2;
+  END IF;
+  IF (SELECT metros_liberados FROM public.expedicao_itens WHERE id = v_xi_rev) <> v_num THEN
+    RAISE EXCEPTION 'not ok 147 - o replay do estorno nao pode mutar o saldo';
+  END IF;
+  v_res2 := public.estornar_expedicao_manta_parcial(
+    v_exp_rev, jsonb_build_array(jsonb_build_object('op_item_id', v_it_rev, 'metros', 5)),
+    'estorno com chave', 'R-1');
+  IF (v_res2->>'ok')::BOOLEAN OR v_res2->>'codigo' <> 'idempotencia_conflitante' THEN
+    RAISE EXCEPTION 'not ok 148 - chave de estorno reutilizada com comando diferente deveria conflitar (got %)', v_res2;
+  END IF;
+  IF (SELECT metros_liberados FROM public.expedicao_itens WHERE id = v_xi_rev) <> v_num THEN
+    RAISE EXCEPTION 'not ok 149 - o conflito de estorno nao pode mutar o saldo';
+  END IF;
+  IF (SELECT count(*) FROM public.expedicao_comandos
+       WHERE idempotency_namespace = 'manta_reversal_v1' AND idempotency_key = 'R-1') <> 1 THEN
+    RAISE EXCEPTION 'not ok 150 - deveria existir exatamente 1 comando de estorno com a chave R-1';
+  END IF;
+  RAISE NOTICE 'ok 54 - replay e conflito de estorno deterministicos (namespace manta_reversal_v1)';
+
+  -- ==========================================================================
+  -- P. Output-correction boundary (no guard relaxed, no retificacao granted).
+  -- ==========================================================================
+  v_res := public.registrar_entrega_cima_manta(
+    v_op_corr, v_forn_tec, CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object('op_item_id', v_it_corr, 'metros_entregues', 100, 'defeito', FALSE)));
+  SELECT ei.id INTO v_ei_corr FROM public.entrega_itens ei
+   WHERE ei.entrega_id = (v_res->>'entrega_id')::BIGINT;
+
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_corr, jsonb_build_array(jsonb_build_object('op_item_id', v_it_corr, 'metros', 40)));
+  v_exp_corr := (v_res->>'expedicao_id')::BIGINT;
+
+  -- P1 Correction is REFUSED while positive consumption exists (db/81 guard).
+  BEGIN UPDATE public.entrega_itens SET metros_entregues = 70 WHERE id = v_ei_corr; v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 151 - a correcao da saida medida deveria ser recusada com consumo positivo'; END IF;
+  BEGIN DELETE FROM public.entrega_itens WHERE id = v_ei_corr; v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 152 - a exclusao da saida medida deveria ser recusada com consumo positivo'; END IF;
+  RAISE NOTICE 'ok 55 - correcao da saida medida recusada enquanto ha consumo positivo';
+
+  -- P2 Full reversal makes the db/81 consumption guards inert BY THEIR OWN
+  --    existing condition -- no guard was changed and nothing was granted.
+  v_res := public.estornar_expedicao_manta_parcial(
+    v_exp_corr, jsonb_build_array(jsonb_build_object('op_item_id', v_it_corr, 'metros', 40)),
+    'correcao de saida medida');
+  IF NOT (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 153 - o estorno total deveria ser aceito (got %)', v_res;
+  END IF;
+  IF COALESCE(current_setting('app.retificacao_autorizada', true), 'off') = 'on' THEN
+    RAISE EXCEPTION 'not ok 154 - nenhum escritor pode receber app.retificacao_autorizada';
+  END IF;
+  UPDATE public.entrega_itens SET metros_entregues = 70 WHERE id = v_ei_corr;
+  IF (SELECT metros_entregues FROM public.entrega_itens WHERE id = v_ei_corr) <> 70 THEN
+    RAISE EXCEPTION 'not ok 155 - apos o estorno total a correcao deveria ser aceita pelo fluxo existente';
+  END IF;
+  RAISE NOTICE 'ok 56 - apos estorno total a correcao autorizada existente e aceita, sem relaxar guard nem conceder retificacao';
+
+  -- P3 Re-release then uses the CORRECTED measured quantity as the authority.
+  v_res := public.consultar_saldo_expedicao_manta(v_op_corr);
+  IF (v_res->>'recebido_total')::NUMERIC <> 70 OR (v_res->>'disponivel_total')::NUMERIC <> 70 THEN
+    RAISE EXCEPTION 'not ok 156 - o saldo deveria refletir a medicao corrigida (got %)', v_res;
+  END IF;
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_corr, jsonb_build_array(jsonb_build_object('op_item_id', v_it_corr, 'metros', 71)));
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'codigo' <> 'excede_disponivel' THEN
+    RAISE EXCEPTION 'not ok 157 - a re-liberacao acima da medicao corrigida deveria ser rejeitada (got %)', v_res;
+  END IF;
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_corr, jsonb_build_array(jsonb_build_object('op_item_id', v_it_corr, 'metros', 70)));
+  IF NOT (v_res->>'ok')::BOOLEAN OR (v_res->>'expedicao_id')::BIGINT <> v_exp_corr THEN
+    RAISE EXCEPTION 'not ok 158 - a re-liberacao deveria reutilizar a mesma expedicao (got %)', v_res;
+  END IF;
+  RAISE NOTICE 'ok 57 - re-liberacao usa a quantidade medida corrigida e reutiliza a expedicao';
+
+  -- ==========================================================================
+  -- Q. OP reopening boundary (pre-existing db/81 state machine, unchanged).
+  -- ==========================================================================
+  PERFORM public.registrar_entrega_cima_manta(
+    v_op_reab, v_forn_tec, CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object('op_item_id', v_it_reab, 'metros_entregues', 100, 'defeito', FALSE)));
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_reab, jsonb_build_array(jsonb_build_object('op_item_id', v_it_reab, 'metros', 30)));
+  v_tmp_exp := (v_res->>'expedicao_id')::BIGINT;
+
+  BEGIN UPDATE public.ops SET status = 'em_producao' WHERE id = v_op_reab; v_ok := TRUE;
+  EXCEPTION WHEN OTHERS THEN v_ok := FALSE; END;
+  IF v_ok THEN RAISE EXCEPTION 'not ok 159 - reabrir a OP Manta consumida deveria ser rejeitado'; END IF;
+  RAISE NOTICE 'ok 58 - reabertura da OP rejeitada enquanto ha liberacao positiva';
+
+  v_res := public.estornar_expedicao_manta_parcial(
+    v_tmp_exp, jsonb_build_array(jsonb_build_object('op_item_id', v_it_reab, 'metros', 30)),
+    'reabertura para correcao');
+  IF NOT (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 160 - o estorno total deveria ser aceito (got %)', v_res;
+  END IF;
+  UPDATE public.ops SET status = 'em_producao' WHERE id = v_op_reab;
+  IF (SELECT status FROM public.ops WHERE id = v_op_reab) <> 'em_producao' THEN
+    RAISE EXCEPTION 'not ok 161 - apos consumo zero a reabertura deveria ser aceita pela maquina de estados pre-existente';
+  END IF;
+  UPDATE public.ops SET status = 'concluida' WHERE id = v_op_reab;
+  RAISE NOTICE 'ok 59 - reabertura aceita apos consumo zero, sem alterar ou contornar qualquer guard';
+
+  -- ==========================================================================
+  -- R. Route-symmetric Pedido completion (db/87 correction of db/23).
+  -- ==========================================================================
+  -- R1 Manta-only Pedido with NO expedition at all: the pre-existing defect.
+  v_res := public.concluir_pedido_se_pronto(v_ped_sem_exp);
+  IF (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 162 - um pedido Manta sem expedicao NUNCA pode ser concluido (got %)', v_res;
+  END IF;
+  v_pend := v_res->'pendencias';
+  IF NOT (v_pend @> '["Ha tecelagem Manta finalizada sem expedicao"]'::jsonb) THEN
+    RAISE EXCEPTION 'not ok 163 - deveria haver a pendencia de tecelagem Manta sem expedicao (got %)', v_pend;
+  END IF;
+  IF (SELECT status FROM public.pedidos WHERE id = v_ped_sem_exp) = 'entregue' THEN
+    RAISE EXCEPTION 'not ok 164 - o pedido nao pode ter sido marcado entregue';
+  END IF;
+  RAISE NOTICE 'ok 60 - pedido Manta-only sem expedicao nao e concluido (defeito pre-existente corrigido)';
+
+  -- R2 Manta-only Pedido with measured output NOT fully released.
+  PERFORM public.registrar_entrega_cima_manta(
+    v_op_naolib, v_forn_tec, CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object('op_item_id', v_it_naolib, 'metros_entregues', 100, 'defeito', FALSE)));
+  PERFORM public.liberar_expedicao_manta_parcial(
+    v_op_naolib, jsonb_build_array(jsonb_build_object('op_item_id', v_it_naolib, 'metros', 60)));
+  v_res := public.concluir_pedido_se_pronto(v_ped_naolib);
+  IF (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 165 - saida medida nao liberada deveria impedir a conclusao (got %)', v_res;
+  END IF;
+  IF NOT (v_res->'pendencias' @> '["Ha saida de tecelagem Manta medida sem liberacao para expedicao"]'::jsonb) THEN
+    RAISE EXCEPTION 'not ok 166 - deveria haver a pendencia de saida medida nao liberada (got %)', v_res->'pendencias';
+  END IF;
+  RAISE NOTICE 'ok 61 - pedido Manta-only com saida medida nao liberada nao e concluido';
+
+  -- R3 Manta-only Pedido with an INCOMPLETE expedition.
+  PERFORM public.registrar_entrega_cima_manta(
+    v_op_parcial, v_forn_tec, CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object('op_item_id', v_it_parcial, 'metros_entregues', 100, 'defeito', FALSE)));
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_parcial, jsonb_build_array(jsonb_build_object('op_item_id', v_it_parcial, 'metros', 100)));
+  v_tmp_exp := (v_res->>'expedicao_id')::BIGINT;
+  PERFORM public.registrar_entrega_expedicao(
+    v_tmp_exp, 'entrega', CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object(
+      'expedicao_item_id', (SELECT id FROM public.expedicao_itens WHERE expedicao_id = v_tmp_exp ORDER BY id LIMIT 1),
+      'metros', 40)));
+  v_res := public.concluir_pedido_se_pronto(v_ped_parcial);
+  IF (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 167 - uma expedicao Manta parcial deveria impedir a conclusao (got %)', v_res;
+  END IF;
+  IF NOT (v_res->'pendencias' @> '["Ha expedicao com saldo pendente"]'::jsonb) THEN
+    RAISE EXCEPTION 'not ok 168 - deveria haver a pendencia de expedicao com saldo (got %)', v_res->'pendencias';
+  END IF;
+  RAISE NOTICE 'ok 62 - pedido Manta-only com expedicao incompleta nao e concluido';
+
+  -- R4 Fully delivered Manta-only Pedido IS completed.
+  PERFORM public.registrar_entrega_cima_manta(
+    v_op_ok, v_forn_tec, CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object('op_item_id', v_it_ok, 'metros_entregues', 100, 'defeito', FALSE)));
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_ok, jsonb_build_array(jsonb_build_object('op_item_id', v_it_ok, 'metros', 100)));
+  v_tmp_exp := (v_res->>'expedicao_id')::BIGINT;
+  PERFORM public.registrar_entrega_expedicao(
+    v_tmp_exp, 'entrega', CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object(
+      'expedicao_item_id', (SELECT id FROM public.expedicao_itens WHERE expedicao_id = v_tmp_exp ORDER BY id LIMIT 1),
+      'metros', 100)));
+  v_res := public.concluir_pedido_se_pronto(v_ped_ok);
+  IF NOT (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 169 - um pedido Manta-only totalmente entregue deveria ser concluido (got %)', v_res;
+  END IF;
+  IF (SELECT status FROM public.pedidos WHERE id = v_ped_ok) <> 'entregue' THEN
+    RAISE EXCEPTION 'not ok 170 - o pedido deveria ficar entregue';
+  END IF;
+  RAISE NOTICE 'ok 63 - pedido Manta-only totalmente entregue e concluido';
+
+  -- R5 Mixed Pedido: the Manta route is complete, the Tapete route is not.
+  PERFORM public.registrar_entrega_cima_manta(
+    v_op_misto_manta, v_forn_tec, CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object('op_item_id', v_it_misto_manta, 'metros_entregues', 100, 'defeito', FALSE)));
+  v_res := public.liberar_expedicao_manta_parcial(
+    v_op_misto_manta, jsonb_build_array(jsonb_build_object('op_item_id', v_it_misto_manta, 'metros', 100)));
+  v_tmp_exp := (v_res->>'expedicao_id')::BIGINT;
+  PERFORM public.registrar_entrega_expedicao(
+    v_tmp_exp, 'entrega', CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object(
+      'expedicao_item_id', (SELECT id FROM public.expedicao_itens WHERE expedicao_id = v_tmp_exp ORDER BY id LIMIT 1),
+      'metros', 100)));
+
+  INSERT INTO public.entregas (fornecedor_id, etapa, data, destino_fornecedor_id)
+    VALUES (v_forn_tec, 'cima', CURRENT_DATE, v_forn_latex) RETURNING id INTO v_tmp_ent;
+  INSERT INTO public.entrega_itens (entrega_id, op_id, op_item_id, modelo_id, metros_entregues, defeito)
+    VALUES (v_tmp_ent, v_op_misto_tec, v_it_misto_tec, v_mod_tapete, 100, FALSE);
+  PERFORM public.gerar_op_latex(v_tmp_ent);
+  SELECT id INTO v_tmp_op FROM public.ops WHERE tipo = 'latex' AND origem_entrega_id = v_tmp_ent;
+  UPDATE public.ops SET status = 'finalizada' WHERE id = v_tmp_op;
+
+  v_res := public.concluir_pedido_se_pronto(v_ped_misto);
+  IF (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 171 - um pedido misto com rota Tapete aberta nao pode ser concluido (got %)', v_res;
+  END IF;
+  IF NOT (v_res->'pendencias' @> '["Ha acabamento finalizado sem expedicao"]'::jsonb) THEN
+    RAISE EXCEPTION 'not ok 172 - deveria haver a pendencia Tapete existente, textualmente preservada (got %)', v_res->'pendencias';
+  END IF;
+  IF v_res->'pendencias' @> '["Ha tecelagem Manta finalizada sem expedicao"]'::jsonb THEN
+    RAISE EXCEPTION 'not ok 173 - a rota Manta ja completa nao pode gerar pendencia (got %)', v_res->'pendencias';
+  END IF;
+  RAISE NOTICE 'ok 64 - pedido misto nao e concluido enquanto uma das rotas esta aberta';
+
+  -- R6 Mixed Pedido fully completed on BOTH routes.
+  v_res := public.liberar_expedicao_latex_parcial(
+    v_tmp_op,
+    jsonb_build_array(jsonb_build_object(
+      'op_item_id', (SELECT id FROM public.op_itens WHERE op_id = v_tmp_op ORDER BY id LIMIT 1),
+      'metros', 100)));
+  IF NOT (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 174 - a liberacao Latex do pedido misto deveria funcionar (got %)', v_res;
+  END IF;
+  v_tmp_exp := (v_res->>'expedicao_id')::BIGINT;
+  PERFORM public.registrar_entrega_expedicao(
+    v_tmp_exp, 'entrega', CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object(
+      'expedicao_item_id', (SELECT id FROM public.expedicao_itens WHERE expedicao_id = v_tmp_exp ORDER BY id LIMIT 1),
+      'metros', 100)));
+  v_res := public.concluir_pedido_se_pronto(v_ped_misto);
+  IF NOT (v_res->>'ok')::BOOLEAN THEN
+    RAISE EXCEPTION 'not ok 175 - o pedido misto totalmente concluido deveria ser concluido (got %)', v_res;
+  END IF;
+  RAISE NOTICE 'ok 65 - pedido misto e concluido quando ambas as rotas estao completas';
+
+  -- R7 Tapete-only completion behavior is unchanged (same messages, same shape).
+  INSERT INTO public.entregas (fornecedor_id, etapa, data, destino_fornecedor_id)
+    VALUES (v_forn_tec, 'cima', CURRENT_DATE, v_forn_latex) RETURNING id INTO v_tmp_ent;
+  INSERT INTO public.entrega_itens (entrega_id, op_id, op_item_id, modelo_id, metros_entregues, defeito)
+    VALUES (v_tmp_ent, v_op_tap_tec, v_it_tap_tec, v_mod_tapete, 100, FALSE);
+  PERFORM public.gerar_op_latex(v_tmp_ent);
+  SELECT id INTO v_tmp_op FROM public.ops WHERE tipo = 'latex' AND origem_entrega_id = v_tmp_ent;
+  UPDATE public.ops SET status = 'finalizada' WHERE id = v_tmp_op;
+
+  v_res := public.concluir_pedido_se_pronto(v_ped_tap);
+  IF (v_res->>'ok')::BOOLEAN
+     OR v_res->>'erro' <> 'Pedido ainda possui pendencias'
+     OR v_res->'pendencias' <> '["Ha acabamento finalizado sem expedicao"]'::jsonb THEN
+    RAISE EXCEPTION 'not ok 176 - o comportamento Tapete-only deveria ser identico ao anterior (got %)', v_res;
+  END IF;
+
+  v_res := public.liberar_expedicao_latex_parcial(
+    v_tmp_op,
+    jsonb_build_array(jsonb_build_object(
+      'op_item_id', (SELECT id FROM public.op_itens WHERE op_id = v_tmp_op ORDER BY id LIMIT 1),
+      'metros', 100)));
+  v_tmp_exp := (v_res->>'expedicao_id')::BIGINT;
+  PERFORM public.registrar_entrega_expedicao(
+    v_tmp_exp, 'entrega', CURRENT_DATE,
+    jsonb_build_array(jsonb_build_object(
+      'expedicao_item_id', (SELECT id FROM public.expedicao_itens WHERE expedicao_id = v_tmp_exp ORDER BY id LIMIT 1),
+      'metros', 100)));
+  v_res := public.concluir_pedido_se_pronto(v_ped_tap);
+  IF NOT (v_res->>'ok')::BOOLEAN OR v_res->>'status' <> 'entregue' THEN
+    RAISE EXCEPTION 'not ok 177 - o pedido Tapete-only completo deveria ser concluido (got %)', v_res;
+  END IF;
+  RAISE NOTICE 'ok 66 - comportamento e mensagens de conclusao Tapete-only inalterados';
+
+  -- R8 Authorization and grants of the completion RPC preserved.
+  PERFORM set_config('request.jwt.claim.sub', v_naoadmin::TEXT, true);
+  v_res := public.concluir_pedido_se_pronto(v_ped_ok);
+  IF (v_res->>'ok')::BOOLEAN OR v_res->>'erro' <> 'Sem permissao' THEN
+    RAISE EXCEPTION 'not ok 178 - a conclusao deveria continuar admin-only com a mesma mensagem (got %)', v_res;
+  END IF;
+  PERFORM set_config('request.jwt.claim.sub', v_admin::TEXT, true);
+  IF NOT has_function_privilege('authenticated', 'public.concluir_pedido_se_pronto(uuid)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'not ok 179 - o grant existente da RPC de conclusao deve ser preservado';
+  END IF;
+  IF NOT has_function_privilege('authenticated', 'public.estornar_expedicao_manta_parcial(bigint,jsonb,text,text)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.estornar_expedicao_manta_parcial(bigint,jsonb,text,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'not ok 180 - grants da RPC de estorno incorretos';
+  END IF;
+  SELECT count(*) INTO v_n
+    FROM pg_proc p, aclexplode(p.proacl) a
+   WHERE p.oid = 'public.estornar_expedicao_manta_parcial(bigint,jsonb,text,text)'::regprocedure
+     AND a.grantee = 0;
+  IF v_n <> 0 THEN RAISE EXCEPTION 'not ok 181 - PUBLIC nao deveria constar na ACL do estorno (got %)', v_n; END IF;
+  IF (SELECT count(*) FROM pg_proc
+       WHERE oid = 'public.estornar_expedicao_manta_parcial(bigint,jsonb,text,text)'::regprocedure
+         AND prosecdef AND 'search_path=public' = ANY(proconfig)) <> 1 THEN
+    RAISE EXCEPTION 'not ok 182 - a RPC de estorno deveria ser SECURITY DEFINER com search_path=public';
+  END IF;
+  RAISE NOTICE 'ok 67 - autorizacao/grants: conclusao preservada, estorno admin-only sem PUBLIC/anon';
+
+  -- R9 No authenticated writer ever receives app.retificacao_autorizada.
+  IF COALESCE(current_setting('app.retificacao_autorizada', true), 'off') = 'on' THEN
+    RAISE EXCEPTION 'not ok 183 - app.retificacao_autorizada nunca pode ficar ligado por estes escritores';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p
+     WHERE p.oid IN ('public.registrar_entrega_cima_manta(bigint,bigint,date,jsonb,text)'::regprocedure,
+                     'public.liberar_expedicao_manta_parcial(bigint,jsonb,text,text)'::regprocedure,
+                     'public.estornar_expedicao_manta_parcial(bigint,jsonb,text,text)'::regprocedure,
+                     'public.consultar_saldo_expedicao_manta(bigint)'::regprocedure,
+                     'public.concluir_pedido_se_pronto(uuid)'::regprocedure)
+       AND pg_get_functiondef(p.oid) LIKE '%retificacao_autorizada%'
+  ) THEN
+    RAISE EXCEPTION 'not ok 184 - nenhum escritor db/85-87 pode referenciar app.retificacao_autorizada';
+  END IF;
+  RAISE NOTICE 'ok 68 - nenhum escritor autenticado recebe app.retificacao_autorizada';
 
   RAISE NOTICE 'MANTA_DIRECT_ROUTE_ACTIVATION_INTEGRATION_PASS';
 END

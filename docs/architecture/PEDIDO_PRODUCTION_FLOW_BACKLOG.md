@@ -3546,3 +3546,52 @@ B2A, not an optional improvement.
 `registrar_movimentacao_direta_expedicao` exists. The accepted direct-movement
 writer is the `db/32` redefinition of `liberar_expedicao_latex_parcial(BIGINT,
 JSONB, TEXT)`; references to the former name resolve to the latter.
+
+# Update 2026-07-24 - PHASE-MANTA-B2A-BACKEND-ACTIVATION-R1 (IMPLEMENTED / LOCALLY AND CONCURRENTLY VERIFIED / AWAITING ARCHITECT REVIEW)
+
+PHASE-MANTA-B2A is implemented. Exactly three forward-only migrations were
+created and validated on a local disposable PostgreSQL 18.4 cluster:
+
+- `db/85_manta_cima_route_conditional_delivery.sql` — the pre-existing data gate,
+  the drop of `entregas_destino_cima_chk`, the route-aware
+  `entrega_itens_cima_route_destino_guard` / `entregas_cima_destino_route_guard`
+  pair, and `registrar_entrega_cima_manta` as the only Manta `cima` writer;
+- `db/86_manta_expedition_release_writer.sql` — `public.expedicao_comandos`,
+  `consultar_saldo_expedicao_manta` and `liberar_expedicao_manta_parcial`;
+- `db/87_manta_expedition_reversal_and_route_completion.sql` —
+  `estornar_expedicao_manta_parcial` and the route-symmetric forward correction
+  of `concluir_pedido_se_pronto`.
+
+`db/01`–`db/84` are byte-unchanged, no fourth migration was needed, no `js/**`
+file was touched, and no environment was accessed: shared development
+`ucrjtfswnfdlxwtmxnoo` remains at terminal `84` with the Manta route dormant.
+
+**The blocking defect recorded for B2A is closed.** `concluir_pedido_se_pronto`
+is route-symmetric: a terminal Manta weaving OP now requires an expedition
+through `op_tecelagem_id`, unreleased non-defect measured output is a pendency,
+and every expedition of the Pedido must be `concluida` — while every existing
+Tapete pendency message, the signature, the authorization and the grants are
+preserved verbatim.
+
+**Mandatory pre-edit lock-order reconciliation resolved as outcome A** (one
+globally compatible order; no architectural conflict, so no hard stop). The
+`OP → entrega` versus `entrega → OP` inversion is eliminated structurally: no
+path holds a delivery row lock and then requests an `ops` row lock. Item-versus-
+header races serialize on an explicit `entregas` FOR SHARE lock — the FK's
+implicit FOR KEY SHARE would not conflict with a header UPDATE — and the loser
+re-validates totally against committed state. Fifteen distinct-session proofs
+cover every §9 requirement with `pg_stat_database.deadlocks = 0`; all three
+migrations re-apply with zero drift; db/78–84, the Manta finishing rejection, the
+Latex expedition/delivery flow and C5A emission are all green and unchanged.
+
+Owner of the full implementation record:
+`docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md` §15.
+
+**Next.** Architect review of B2A. `PHASE-MANTA-B2B-ROUTE-AWARE-UI-R1` and
+`PHASE-MANTA-B2C-SHARED-DEV-FLOW-AND-CLOSEOUT-R1` remain unauthorized and each
+require their own explicit order; no phase chains automatically. One consequence
+is recorded and deliberately uncorrected:
+`tests/manta-expedition-source-invariant.mjs` still expects terminal `84` in its
+Part A and is outside this order's authorized manifest; its substantive payload
+runs unchanged and green inside the B2A harness, and realigning it is a separate
+authorizable action.
