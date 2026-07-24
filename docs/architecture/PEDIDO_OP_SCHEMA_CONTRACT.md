@@ -1552,3 +1552,60 @@ item-move-wins post-lock rejection, membership-insert-wins, source-change no-dea
 last-item move/delete rejected, concurrent-removal serialization, non-last removal
 accepted, and the db/81 regressions): full db/01..82 apply, db/82 idempotent re-apply
 zero drift, no `40P01`; cluster destroyed with proof.
+
+## Update 2026-07-24 — PHASE-MANTA-B1 correction (source route + item identity, db/83)
+
+`db/83_manta_expedition_source_identity_correction.sql` (order
+`PHASE-MANTA-B1-SOURCE-ROUTE-AND-ITEM-IDENTITY-CORRECTION-R1`) is a forward-only,
+idempotent correction completing the dormant B1 database foundation, editing
+neither db/78–db/82 nor any schema shape (four guard function bodies + one new
+trigger). Governing contract: `MANTA_DIRECT_ROUTE_PHASE_CONTRACT.md` §12. No
+shared-development apply is authorized (local disposable clusters only).
+Migration terminal advanced 82 → 83.
+
+- **Source OP type immutability (A).** New `ops_source_type_immutability_guard`
+  (BEFORE UPDATE on `public.ops`) rejects any `ops.tipo` change while the OP is
+  referenced by `expedicoes.op_latex_id` or `op_tecelagem_id`; same-value updates
+  permitted; `ops.status` transitions untouched; no `app.retificacao_autorizada`
+  bypass.
+- **Source product route immutability incl. single-item (B).**
+  `op_itens_route_homogeneity_guard_fn` now additionally requires every item of
+  an OP already selected as an expedition source to resolve to the source's
+  required `tipo_produto` (`op_latex_id`→tapete, `op_tecelagem_id`→manta),
+  catching a single-item OP's sole item flipping type — a case the db/78–80
+  mixing-only check could not catch (no "other" item to compare against). The
+  `expedicoes` read is unlocked and race-free (the destination ops row is
+  already held `FOR UPDATE`; a new source selection locks that same row first).
+- **Expedition item identity alignment (C).**
+  `expedicao_itens_membership_guard_fn`'s early-return now requires
+  `op_item_id`/`expedicao_id`/`modelo_id`/`pedido_item_id` all unchanged before
+  skipping validation (db/82 only checked the first two). When validation runs,
+  it additionally requires `NEW.modelo_id = op_itens.modelo_id` and
+  `NEW.pedido_item_id IS NOT DISTINCT FROM op_itens.pedido_item_id` against the
+  post-lock op_item re-read — the proven canonical rule per repository evidence
+  (every existing writer already sources both fields from the op_item's own
+  row).
+- **Referenced op_item identity immutability (D).**
+  `op_itens_expedicao_reference_guard_fn` now protects `modelo_id` and
+  `pedido_item_id` in addition to `op_id`; **no `app.retificacao_autorizada`
+  bypass** for these three fields (removed by this correction). The db/37
+  controlled-delete cascade is unaffected (it deletes `expedicao_itens` before
+  `op_itens` is ever touched; `op_itens` is otherwise only removed via the
+  `ops` `ON DELETE CASCADE`, never a direct UPDATE of a referenced row).
+
+Reconciled lock order: affected `ops` rows ascending (`FOR UPDATE`) → affected
+`modelos` rows ascending (`FOR SHARE`) → inspect selected expedition-source
+references (unlocked, race-free) → validate source route + item identity →
+continue the write. `op_itens` BEFORE-trigger firing order (alphabetical,
+unchanged): reference guard (D) → route-homogeneity guard (B) →
+source-nonempty guard (db/82 C). Blocker A takes no lock beyond the implicit
+target-row lock an UPDATE already holds; Blocker D reuses the db/79/80/82
+ops-ascending lock, so a concurrent Blocker-C membership insert and a
+concurrent Blocker-A/D identity write always serialize on a single ops row —
+no cross-guard deadlock is possible. Verified on a disposable PostgreSQL 18.4
+cluster (`tests/manta-expedition-source.integration.sql` extended with
+sequential proofs 20–36 for Blockers A–D; `tests/manta-expedition-source-invariant.mjs`
+with distinct-session Tests I–L — source-model-change-wins,
+membership-insert-wins, OP-type-change-vs-membership, two-identity-change
+no-deadlock — plus the unchanged db/82 Tests A–H): full db/01..83 apply, db/83
+idempotent re-apply zero drift, no `40P01`; cluster destroyed with proof.

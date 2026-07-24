@@ -1,14 +1,18 @@
 // tests/manta-expedition-source-invariant.mjs
 //
-// PHASE-MANTA-B1 disposable-cluster proof of db/81 + the db/82 source/membership/
-// lock-order correction — full-chain apply, idempotent re-apply, the (unchanged)
-// db/81 schema/guard integration test, regression, and distinct-session
-// concurrency (item-move-wins, membership-insert-wins, source-change no-deadlock,
-// source non-emptiness, plus the db/81 regressions).
+// PHASE-MANTA-B1 disposable-cluster proof of db/81 + db/82 (source/membership/
+// lock-order correction) + db/83 (source route + item identity correction) —
+// full-chain apply, idempotent re-apply, the (extended) db/81 schema/guard
+// integration test, regression, and distinct-session concurrency
+// (item-move-wins, membership-insert-wins, source-change no-deadlock, source
+// non-emptiness, source-model-change-wins, referenced-identity-change rejected
+// post-lock, OP-type-change-vs-membership, two-identity-change no-deadlock, plus
+// the db/81/db/82 regressions).
 //
 // Governing contract: docs/architecture/MANTA_DIRECT_ROUTE_PHASE_CONTRACT.md.
-// Migrations: db/81_manta_expedition_source_foundation.sql and
-// db/82_manta_expedition_source_invariant_correction.sql.
+// Migrations: db/81_manta_expedition_source_foundation.sql,
+// db/82_manta_expedition_source_invariant_correction.sql and
+// db/83_manta_expedition_source_identity_correction.sql.
 //
 // ENVIRONMENT: disposable local PostgreSQL 18.4 ONLY
 // (scripts/c3d/bootstrap-disposable-cluster.mjs). This harness NEVER connects to
@@ -46,6 +50,23 @@
 //             H regressions: two creations for one Manta OP -> one commit + one
 //               rejection; cross-OP injection rejected; different source OPs do not
 //               serialize; a Tapete Latex expedition + item is accepted.
+//             I source-model-change-wins (db/83 BLOCKER B): a raw source-type-
+//               violating UPDATE holds the source-OP lock in an aborted,
+//               uncommitted transaction; a concurrent valid membership insert
+//               blocks on it, then completes once rolled back, observing no
+//               route flip; no deadlock.
+//             J membership-insert-wins (db/83 BLOCKER D): an insert commits while
+//               a concurrent op_item.modelo_id change waits on the source-OP
+//               lock; the change is then rejected against the freshly committed
+//               reference; item and op_item stay aligned.
+//             K OP-type-change-vs-membership (db/83 BLOCKER A): a raw
+//               type-violating ops UPDATE holds the row lock in an aborted,
+//               uncommitted transaction; a concurrent valid membership insert
+//               blocks on it, then completes once rolled back; no deadlock/40P01.
+//             L two-identity-change no-deadlock (db/83 BLOCKER B): two sessions
+//               swap items between two Manta sources in opposing directions;
+//               deterministic ascending OP-id lock order serializes them without
+//               deadlock; both commit; both sources stay homogeneous Manta.
 //   Part Z  mandatory full cluster destruction (pid absent, port closed, dir
 //           absent; no c3d-disposable-pg-* residue from this run).
 //
@@ -197,6 +218,11 @@ DECLARE
   opHx BIGINT; iHx BIGINT; expHx BIGINT;
   opH3a BIGINT; iH3a BIGINT; opH3b BIGINT; iH3b BIGINT;
   opLx BIGINT; iLx BIGINT;
+  opI BIGINT; iI BIGINT; expI BIGINT;
+  opJ BIGINT; iJ BIGINT; expJ BIGINT;
+  opK BIGINT; iK BIGINT; expK BIGINT;
+  opM1 BIGINT; iM1a BIGINT; iM1b BIGINT; expM1 BIGINT;
+  opM2 BIGINT; iM2a BIGINT; iM2b BIGINT; expM2 BIGINT;
 BEGIN
   INSERT INTO public.cores(nome) VALUES ('B2-KRAFT') RETURNING id INTO c1;
   INSERT INTO public.cores(nome) VALUES ('B2-CRU')   RETURNING id INTO c2;
@@ -270,6 +296,36 @@ BEGIN
   INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986015,2026,'finalizada','latex',lote) RETURNING id INTO opLx;
   INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opLx,mt,50) RETURNING id INTO iLx;
 
+  -- I: db/83 source-model-change-wins -- Manta source opI (1 item iI), header
+  -- expI (no items yet).
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986016,2026,'concluida','tecelagem',lote) RETURNING id INTO opI;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opI,mm,50) RETURNING id INTO iI;
+  INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES (ped,opI,lote,cli) RETURNING id INTO expI;
+
+  -- J: db/83 membership-insert-wins -- Manta source opJ (1 item iJ), header
+  -- expJ (no items yet).
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986017,2026,'concluida','tecelagem',lote) RETURNING id INTO opJ;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opJ,mm,50) RETURNING id INTO iJ;
+  INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES (ped,opJ,lote,cli) RETURNING id INTO expJ;
+
+  -- K: db/83 OP-type-change-vs-membership -- Manta source opK (1 item iK),
+  -- header expK (no items yet).
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986018,2026,'concluida','tecelagem',lote) RETURNING id INTO opK;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opK,mm,50) RETURNING id INTO iK;
+  INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES (ped,opK,lote,cli) RETURNING id INTO expK;
+
+  -- M: db/83 two-identity-change no-deadlock -- two Manta sources, each with 2
+  -- items (opM1 < opM2, so the ascending lock order is identical for both
+  -- opposing item moves).
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986019,2026,'concluida','tecelagem',lote) RETURNING id INTO opM1;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opM1,mm,50) RETURNING id INTO iM1a;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opM1,mm,50) RETURNING id INTO iM1b;
+  INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES (ped,opM1,lote,cli) RETURNING id INTO expM1;
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986020,2026,'concluida','tecelagem',lote) RETURNING id INTO opM2;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opM2,mm,50) RETURNING id INTO iM2a;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opM2,mm,50) RETURNING id INTO iM2b;
+  INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES (ped,opM2,lote,cli) RETURNING id INTO expM2;
+
   INSERT INTO public._b2_ids(k,v) VALUES
     ('mm',mm),('mt',mt),('lote',lote),('cli',cli),
     ('opA',opA),('opAt',opAt),('iA1',iA1),('iA2',iA2),('expA',expA),
@@ -282,7 +338,12 @@ BEGIN
     ('opH',opH),('iH',iH),
     ('opHx',opHx),('iHx',iHx),('expHx',expHx),
     ('opH3a',opH3a),('iH3a',iH3a),('opH3b',opH3b),('iH3b',iH3b),
-    ('opLx',opLx),('iLx',iLx);
+    ('opLx',opLx),('iLx',iLx),
+    ('opI',opI),('iI',iI),('expI',expI),
+    ('opJ',opJ),('iJ',iJ),('expJ',expJ),
+    ('opK',opK),('iK',iK),('expK',expK),
+    ('opM1',opM1),('iM1a',iM1a),('iM1b',iM1b),('expM1',expM1),
+    ('opM2',opM2),('iM2a',iM2a),('iM2b',iM2b),('expM2',expM2);
 END
 $cf$;
 SET session_replication_role = origin;
@@ -465,12 +526,12 @@ async function resolveManifest() {
 }
 
 // ===========================================================================
-// PART A — full chain apply (db/01..82) + terminal-object presence.
+// PART A — full chain apply (db/01..83) + terminal-object presence.
 // ===========================================================================
 async function partA(handle) {
   const manifest = await resolveManifest();
-  check(manifest.length === 82, `manifest must be db/01..db/82 (got ${manifest.length})`);
-  check(manifest[manifest.length - 1].n === 82, `terminal migration must be db/82 (got ${manifest[manifest.length - 1].n})`);
+  check(manifest.length === 83, `manifest must be db/01..db/83 (got ${manifest.length})`);
+  check(manifest[manifest.length - 1].n === 83, `terminal migration must be db/83 (got ${manifest[manifest.length - 1].n})`);
 
   await applySql(handle, 'preamble.sql', PREAMBLE_SQL, 'preamble');
   for (const { n, file } of manifest) {
@@ -486,30 +547,32 @@ async function partA(handle) {
            (SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname IN (
               'expedicoes_source_validation_guard','expedicao_itens_membership_guard',
               'op_itens_expedicao_reference_guard','entrega_itens_manta_consumo_guard',
-              'entregas_manta_consumo_guard','ops_manta_reopen_guard','op_itens_source_nonempty_guard'));`);
-  check(objs === '1/YES/1/1/7', `db/81+db/82 terminal objects must all exist (tec_col/latex_nullable/chk/uk/triggers = ${objs})`);
-  log('PART_A', { migrations: manifest.length, terminal: 82, objects: objs, clean_apply: true });
+              'entregas_manta_consumo_guard','ops_manta_reopen_guard','op_itens_source_nonempty_guard',
+              'ops_source_type_immutability_guard'));`);
+  check(objs === '1/YES/1/1/8', `db/81+db/82+db/83 terminal objects must all exist (tec_col/latex_nullable/chk/uk/triggers = ${objs})`);
+  log('PART_A', { migrations: manifest.length, terminal: 83, objects: objs, clean_apply: true });
 }
 
 // ===========================================================================
-// PART B — db/82 idempotent re-apply with zero drift.
+// PART B — db/83 idempotent re-apply with zero drift.
 // ===========================================================================
 async function partB(handle) {
   const before = await schemaFingerprint(handle);
-  applyFile(handle, path.join(REPO_ROOT, 'db', '82_manta_expedition_source_invariant_correction.sql'), 'db/82 re-apply');
+  applyFile(handle, path.join(REPO_ROOT, 'db', '83_manta_expedition_source_identity_correction.sql'), 'db/83 re-apply');
   const after = await schemaFingerprint(handle);
-  check(before === after, `idempotent re-apply of db/82 must cause zero schema drift (before=${before}, after=${after})`);
-  log('PART_B', { fingerprint_stable: true, reapply: 'db/82', drift: 'none' });
+  check(before === after, `idempotent re-apply of db/83 must cause zero schema drift (before=${before}, after=${after})`);
+  log('PART_B', { fingerprint_stable: true, reapply: 'db/83', drift: 'none' });
 }
 
 // ===========================================================================
-// PART C — the (unchanged) db/81 schema/guard integration test against db/01..82.
+// PART C — the db/81/db/82 guards + the db/83 source-route/item-identity
+// proofs, in the same integration test, against db/01..83.
 // ===========================================================================
 async function partC(handle) {
   const file = path.join(HERE, 'manta-expedition-source.integration.sql');
   const out = applyFile(handle, file, 'manta-expedition-source.integration.sql');
   check(/MANTA_EXPEDITION_SOURCE_INTEGRATION_PASS/.test(out),
-    `db/81 integration test must still pass unchanged under db/82 (got: ${out.trim().split(/\r?\n/).slice(-3).join(' / ')})`);
+    `db/81/db/82/db/83 integration test must pass under db/83 (got: ${out.trim().split(/\r?\n/).slice(-3).join(' / ')})`);
   log('PART_C', { integration_test: 'manta-expedition-source.integration.sql', result: 'PASS' });
 }
 
@@ -546,7 +609,9 @@ async function partE(handle) {
   const id = {};
   const keys = ['mm', 'mt', 'lote', 'cli', 'opA', 'opAt', 'iA1', 'iA2', 'expA', 'opB', 'opBt', 'iB1', 'iB2', 'expB',
     'opC', 'iC1', 'expC', 'opD', 'opDt', 'itD', 'expD', 'opE', 'iE', 'expE', 'opF', 'iF1', 'iF2', 'expF',
-    'opG', 'iG1', 'iG2', 'expG', 'opH', 'iH', 'opHx', 'iHx', 'expHx', 'opH3a', 'iH3a', 'opH3b', 'iH3b', 'opLx', 'iLx'];
+    'opG', 'iG1', 'iG2', 'expG', 'opH', 'iH', 'opHx', 'iHx', 'expHx', 'opH3a', 'iH3a', 'opH3b', 'iH3b', 'opLx', 'iLx',
+    'opI', 'iI', 'expI', 'opJ', 'iJ', 'expJ', 'opK', 'iK', 'expK',
+    'opM1', 'iM1a', 'iM1b', 'expM1', 'opM2', 'iM2a', 'iM2b', 'expM2'];
   for (const k of keys) {
     id[k] = Number(await scalar(handle, `SELECT v FROM public._b2_ids WHERE k='${k}';`));
     check(Number.isInteger(id[k]) && id[k] > 0, `fixture id ${k} must resolve (got ${id[k]})`);
@@ -807,6 +872,205 @@ async function partE(handle) {
       SELECT (SELECT count(*) FROM i)::text;`);
     check(Number(latex) === 1, `H4: a Tapete Latex expedition + item must still be accepted (got ${latex})`);
     log('H', { two_expeditions_one_op: '1_commit_1_reject', cross_op_injection: 'rejected', different_ops_serialize: false, latex_expedition: 'accepted' });
+  }
+
+  // ---- I: db/83 source-model-change-wins (BLOCKER B) --------------------------
+  // Holder pattern (mirrors the proven db/82 Test C): a dedicated session
+  // holds the source-OP lock so both the model-change attempt and the
+  // membership insert genuinely queue behind it, instead of racing a raw
+  // failing statement's transaction-lifetime lock retention.
+  {
+    const holder = openSession(handle, 'I-holder');
+    holder.send('BEGIN;');
+    holder.send(`SELECT 'HPID|' || pg_backend_pid();`);
+    const hpid = Number((await holder.waitFor((l) => l.startsWith('HPID|'))).split('|')[1]);
+    holder.send(`SELECT 1 FROM public.ops WHERE id=${id.opI} FOR UPDATE; SELECT 'HOLD_READY';`);
+    await holder.waitFor((l) => l === 'HOLD_READY');
+
+    const chg = openSession(handle, 'I-chg');
+    chg.send(`SELECT 'CPID|' || pg_backend_pid();`);
+    const cpid = Number((await chg.waitFor((l) => l.startsWith('CPID|'))).split('|')[1]);
+    chg.send(`CREATE TEMP TABLE _i(v text);`);
+    chg.send(`DO $$ BEGIN
+        UPDATE public.op_itens SET modelo_id=${id.mt} WHERE id=${id.iI};
+        INSERT INTO _i VALUES ('UNEXPECTED_OK');
+      EXCEPTION WHEN OTHERS THEN INSERT INTO _i VALUES ('REJECTED|'||SQLERRM); END $$;`);
+    chg.send(`SELECT 'CRES|' || v FROM _i;`);
+    await waitForBlock(handle, cpid, hpid);
+
+    const ins = openSession(handle, 'I-ins');
+    ins.send('BEGIN;');
+    ins.send(`SELECT 'IPID|' || pg_backend_pid();`);
+    const ipid = Number((await ins.waitFor((l) => l.startsWith('IPID|'))).split('|')[1]);
+    ins.send(`INSERT INTO public.expedicao_itens(expedicao_id,op_item_id,modelo_id,metros_liberados) VALUES (${id.expI}, ${id.iI}, ${id.mm}, 10); SELECT 'INS_DONE';`);
+    // chg already queued for the same row lock (confirmed above), so per
+    // Postgres's FIFO same-mode wait-queue semantics ins reports as blocked
+    // by chg (its direct queue predecessor), not directly by holder.
+    await waitForBlock(handle, ipid, cpid);
+    log('I', { holder_pid: hpid, chg_pid: cpid, ins_pid: ipid, chg_and_ins_queued_on_holder: true });
+
+    holder.send(`ROLLBACK; SELECT 'HDONE';`);
+    await holder.waitFor((l) => l === 'HDONE');
+
+    const [cres] = await Promise.all([
+      chg.waitFor((l) => l.startsWith('CRES|'), 15000),
+      ins.waitFor((l) => l === 'INS_DONE', 15000),
+    ]);
+    ins.send(`COMMIT; SELECT 'ICOMMIT';`);
+    await ins.waitFor((l) => l === 'ICOMMIT');
+    check(/REJECTED\|/.test(cres) && /fonte de expedicao Manta/i.test(cres),
+      `I: the modelo_id change must be rejected by the db/83 BLOCKER B source-route check (got ${cres})`);
+    check(!/deadlock|40P01/i.test(holder.stderr + chg.stderr + ins.stderr), 'I: no deadlock');
+    await holder.close();
+    await chg.close();
+    await ins.close();
+
+    const tipoAfter = await scalar(handle, `SELECT tipo_produto FROM public.modelos m JOIN public.op_itens oi ON oi.modelo_id=m.id WHERE oi.id=${id.iI};`);
+    check(tipoAfter === 'manta', `I: iI must not have observed a route flip (got ${tipoAfter})`);
+    const inserted = await scalar(handle, `SELECT count(*) FROM public.expedicao_itens WHERE expedicao_id=${id.expI} AND op_item_id=${id.iI};`);
+    check(Number(inserted) === 1, `I: the concurrent membership insert must have completed (got ${inserted})`);
+    log('I', { outcome: 'source_model_change_rejected__membership_insert_completed', no_route_flip: true });
+  }
+
+  // ---- J: db/83 membership-insert-wins (BLOCKER D) -----------------------------
+  {
+    const ins = openSession(handle, 'J-ins');
+    ins.send('BEGIN;');
+    ins.send(`SELECT 'IPID|' || pg_backend_pid();`);
+    const ipid = Number((await ins.waitFor((l) => l.startsWith('IPID|'))).split('|')[1]);
+    ins.send(`INSERT INTO public.expedicao_itens(expedicao_id,op_item_id,modelo_id,metros_liberados) VALUES (${id.expJ}, ${id.iJ}, ${id.mm}, 10); SELECT 'INS_DONE';`);
+    await ins.waitFor((l) => l === 'INS_DONE');   // holds opJ lock, uncommitted
+
+    const chg = openSession(handle, 'J-chg');
+    chg.send('BEGIN;');
+    chg.send(`SELECT 'CPID|' || pg_backend_pid();`);
+    const cpid = Number((await chg.waitFor((l) => l.startsWith('CPID|'))).split('|')[1]);
+    chg.send(`CREATE TEMP TABLE _j(v text);`);
+    chg.send(`DO $$ BEGIN
+        UPDATE public.op_itens SET modelo_id=${id.mt} WHERE id=${id.iJ};
+        INSERT INTO _j VALUES ('UNEXPECTED_OK');
+      EXCEPTION WHEN OTHERS THEN INSERT INTO _j VALUES ('REJECTED|'||SQLERRM); END $$;`);
+    chg.send(`SELECT 'CRES|' || v FROM _j;`);
+    await waitForBlock(handle, cpid, ipid);   // change waits on opJ, held by the insert
+    log('J', { ins_pid: ipid, chg_pid: cpid, chg_blocked_by_ins: true });
+
+    ins.send(`COMMIT; SELECT 'ICOMMIT';`);
+    await ins.waitFor((l) => l === 'ICOMMIT');
+    const res = await chg.waitFor((l) => l.startsWith('CRES|'));
+    chg.send('ROLLBACK;');
+    check(/REJECTED\|/.test(res) && /referenciado por expedicao_itens/i.test(res),
+      `J: the modelo_id change on a now-referenced op_item must be rejected (got ${res})`);
+    check(!/deadlock|40P01/i.test(ins.stderr + chg.stderr), 'J: no deadlock');
+    await ins.close();
+    await chg.close();
+
+    const stillMM = await scalar(handle, `SELECT modelo_id FROM public.op_itens WHERE id=${id.iJ};`);
+    const xiModelo = await scalar(handle, `SELECT modelo_id FROM public.expedicao_itens WHERE expedicao_id=${id.expJ} AND op_item_id=${id.iJ};`);
+    check(Number(stillMM) === id.mm && Number(xiModelo) === id.mm,
+      `J: item and op_item must remain aligned (op_item=${stillMM}, expedicao_item=${xiModelo})`);
+    log('J', { outcome: 'membership_insert_wins__identity_change_rejected' });
+  }
+
+  // ---- K: db/83 OP-type-change-vs-membership (BLOCKER A) -----------------------
+  // Same holder pattern as Test I: the ops-row target-row lock a type-changing
+  // UPDATE needs is the same lock a membership insert needs, so both queue
+  // behind an explicit holder deterministically.
+  {
+    const holder = openSession(handle, 'K-holder');
+    holder.send('BEGIN;');
+    holder.send(`SELECT 'HPID|' || pg_backend_pid();`);
+    const hpid = Number((await holder.waitFor((l) => l.startsWith('HPID|'))).split('|')[1]);
+    holder.send(`SELECT 1 FROM public.ops WHERE id=${id.opK} FOR UPDATE; SELECT 'HOLD_READY';`);
+    await holder.waitFor((l) => l === 'HOLD_READY');
+
+    const chg = openSession(handle, 'K-chg');
+    chg.send(`SELECT 'CPID|' || pg_backend_pid();`);
+    const cpid = Number((await chg.waitFor((l) => l.startsWith('CPID|'))).split('|')[1]);
+    chg.send(`CREATE TEMP TABLE _k(v text);`);
+    chg.send(`DO $$ BEGIN
+        UPDATE public.ops SET tipo='latex' WHERE id=${id.opK};
+        INSERT INTO _k VALUES ('UNEXPECTED_OK');
+      EXCEPTION WHEN OTHERS THEN INSERT INTO _k VALUES ('REJECTED|'||SQLERRM); END $$;`);
+    chg.send(`SELECT 'CRES|' || v FROM _k;`);
+    await waitForBlock(handle, cpid, hpid);
+
+    const ins = openSession(handle, 'K-ins');
+    ins.send('BEGIN;');
+    ins.send(`SELECT 'IPID|' || pg_backend_pid();`);
+    const ipid = Number((await ins.waitFor((l) => l.startsWith('IPID|'))).split('|')[1]);
+    ins.send(`INSERT INTO public.expedicao_itens(expedicao_id,op_item_id,modelo_id,metros_liberados) VALUES (${id.expK}, ${id.iK}, ${id.mm}, 10); SELECT 'INS_DONE';`);
+    // chg already queued for the same row lock (confirmed above), so per
+    // Postgres's FIFO same-mode wait-queue semantics ins reports as blocked
+    // by chg (its direct queue predecessor), not directly by holder.
+    await waitForBlock(handle, ipid, cpid);
+    log('K', { holder_pid: hpid, chg_pid: cpid, ins_pid: ipid, chg_and_ins_queued_on_holder: true });
+
+    holder.send(`ROLLBACK; SELECT 'HDONE';`);
+    await holder.waitFor((l) => l === 'HDONE');
+
+    const [cres] = await Promise.all([
+      chg.waitFor((l) => l.startsWith('CRES|'), 15000),
+      ins.waitFor((l) => l === 'INS_DONE', 15000),
+    ]);
+    ins.send(`COMMIT; SELECT 'ICOMMIT';`);
+    await ins.waitFor((l) => l === 'ICOMMIT');
+    check(/REJECTED\|/.test(cres) && /tipo e imutavel/i.test(cres),
+      `K: the ops.tipo change must be rejected by db/83 BLOCKER A (got ${cres})`);
+    check(!/deadlock|40P01/i.test(holder.stderr + chg.stderr + ins.stderr), 'K: no deadlock');
+    await holder.close();
+    await chg.close();
+    await ins.close();
+
+    const tipoAfter = await scalar(handle, `SELECT tipo FROM public.ops WHERE id=${id.opK};`);
+    check(tipoAfter === 'tecelagem', `K: opK.tipo must remain tecelagem (got ${tipoAfter})`);
+    const inserted = await scalar(handle, `SELECT count(*) FROM public.expedicao_itens WHERE expedicao_id=${id.expK} AND op_item_id=${id.iK};`);
+    check(Number(inserted) === 1, `K: the concurrent membership insert must have completed (got ${inserted})`);
+    log('K', { outcome: 'op_type_change_rejected__membership_insert_completed' });
+  }
+
+  // ---- L: db/83 two-identity-change no-deadlock (BLOCKER B lock order) --------
+  {
+    const s1 = openSession(handle, 'L-s1');
+    s1.send('BEGIN;');
+    s1.send(`SELECT 'S1PID|' || pg_backend_pid();`);
+    const s1pid = Number((await s1.waitFor((l) => l.startsWith('S1PID|'))).split('|')[1]);
+    s1.send(`UPDATE public.op_itens SET op_id=${id.opM2} WHERE id=${id.iM1a}; SELECT 'S1MOVE_DONE';`);
+    await s1.waitFor((l) => l === 'S1MOVE_DONE');   // holds opM1 then opM2 locks, uncommitted
+
+    const s2 = openSession(handle, 'L-s2');
+    s2.send('BEGIN;');
+    s2.send(`SELECT 'S2PID|' || pg_backend_pid();`);
+    const s2pid = Number((await s2.waitFor((l) => l.startsWith('S2PID|'))).split('|')[1]);
+    s2.send(`CREATE TEMP TABLE _l(v text);`);
+    s2.send(`DO $$ BEGIN UPDATE public.op_itens SET op_id=${id.opM1} WHERE id=${id.iM2a};
+        INSERT INTO _l VALUES ('MOVED'); EXCEPTION WHEN OTHERS THEN INSERT INTO _l VALUES ('REJECTED|'||SQLERRM); END $$;`);
+    s2.send(`SELECT 'S2RES|' || v FROM _l;`);
+    // Both sessions compute the SAME ascending lock order [opM1, opM2] (opM1 <
+    // opM2), so s2 always waits on opM1 first -- never the opposite -- proving
+    // the deterministic order (not accidental luck) prevents the deadlock.
+    await waitForBlock(handle, s2pid, s1pid);
+
+    s1.send(`COMMIT; SELECT 'S1COMMIT';`);
+    await s1.waitFor((l) => l === 'S1COMMIT');
+    const res = await s2.waitFor((l) => l.startsWith('S2RES|'));
+    s2.send(`COMMIT; SELECT 'S2COMMIT';`);
+    await s2.waitFor((l) => l === 'S2COMMIT');
+    check(res === 'S2RES|MOVED', `L: the second (opposing) move must also commit once serialized (got ${res})`);
+    check(!/deadlock|40P01/i.test(s1.stderr + s2.stderr), 'L: no deadlock');
+    await s1.close();
+    await s2.close();
+
+    const m1 = await scalar(handle, `
+      SELECT string_agg(DISTINCT m.tipo_produto, ',') || '|' || count(*)
+        FROM public.op_itens oi JOIN public.modelos m ON m.id=oi.modelo_id
+       WHERE oi.op_id=${id.opM1};`);
+    const m2 = await scalar(handle, `
+      SELECT string_agg(DISTINCT m.tipo_produto, ',') || '|' || count(*)
+        FROM public.op_itens oi JOIN public.modelos m ON m.id=oi.modelo_id
+       WHERE oi.op_id=${id.opM2};`);
+    check(m1 === 'manta|2', `L: opM1 must stay homogeneous Manta with 2 items (got ${m1})`);
+    check(m2 === 'manta|2', `L: opM2 must stay homogeneous Manta with 2 items (got ${m2})`);
+    log('L', { outcome: 'opposing_moves_serialized_ascending__both_committed', opM1: m1, opM2: m2 });
   }
 }
 

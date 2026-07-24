@@ -1,7 +1,12 @@
 -- tests/manta-expedition-source.integration.sql
 --
--- PHASE-MANTA-B1 integration proof (db/81) — expedition-source foundation.
--- Governing contract: docs/architecture/MANTA_DIRECT_ROUTE_PHASE_CONTRACT.md.
+-- PHASE-MANTA-B1 integration proof (db/81, db/82) — expedition-source
+-- foundation, PLUS the db/83 forward correction (source OP type
+-- immutability; source product route immutability incl. single-item;
+-- expedition-item identity alignment to modelo_id/pedido_item_id; referenced
+-- op_item identity immutability incl. modelo_id/pedido_item_id, no
+-- retificacao bypass). Governing contract:
+-- docs/architecture/MANTA_DIRECT_ROUTE_PHASE_CONTRACT.md.
 --
 -- ENVIRONMENT: disposable local PostgreSQL ONLY. The external runner applies the
 -- Supabase-platform preamble, then db/01..db/81 in order, then this file. Never a
@@ -36,6 +41,14 @@ DECLARE
   v_xi BIGINT;
   v_tmp BIGINT;
   v_ok BOOLEAN;
+  -- db/83 fixtures
+  v_mod_tapete2 BIGINT;
+  v_op_manta_solo BIGINT; v_it_manta_solo BIGINT; v_exp_manta_solo BIGINT;
+  v_op_latex_solo BIGINT; v_it_latex_solo BIGINT; v_exp_latex_solo BIGINT;
+  v_op_manta_multi BIGINT; v_it_manta_multi_a BIGINT; v_it_manta_multi_b BIGINT; v_exp_manta_multi BIGINT;
+  v_pi_manta UUID; v_pi_manta_other UUID;
+  v_op_manta_c BIGINT; v_it_manta_c1 BIGINT; v_it_manta_c2 BIGINT; v_exp_manta_c BIGINT;
+  v_xi_c1 BIGINT;
 BEGIN
   -- ==========================================================================
   -- Fixtures (triggers off): a Manta and a Tapete model; a client/pedido/lote;
@@ -96,6 +109,49 @@ BEGIN
     VALUES (v_forn, 'cima', CURRENT_DATE, v_dest) RETURNING id INTO v_entrega_manta2;
   INSERT INTO public.entrega_itens (entrega_id, op_id, op_item_id, modelo_id, metros_entregues, defeito)
     VALUES (v_entrega_manta2, v_op_manta2, v_it_manta2, v_mod_manta, 80, FALSE) RETURNING id INTO v_ei_manta2;
+
+  -- db/83 fixtures: a second Tapete model; dedicated single-item Manta and
+  -- Latex sources (the mixing-only db/78-80 homogeneity check cannot catch a
+  -- single item flipping type -- BLOCKER B needs a source-aware check); a
+  -- multi-item Manta source; two Pedido-item origins; a dedicated Manta
+  -- source with one Pedido-origin item and one NULL-origin item for the
+  -- identity-alignment (BLOCKER C/D) tests. Selected sources are planted
+  -- with triggers off (their INSERT-time composition proof is already
+  -- covered by tests (2)/(3) above with triggers on).
+  INSERT INTO public.modelos (nome, cor_1_id, cor_2_id, largura, tipo_produto)
+    VALUES ('MES-BARCELONA-2', v_c1, v_c2, 2.10, 'tapete') RETURNING id INTO v_mod_tapete2;
+
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (980007, 2026, 'concluida', 'tecelagem', v_lote) RETURNING id INTO v_op_manta_solo;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_manta_solo, v_mod_manta, 40) RETURNING id INTO v_it_manta_solo;
+
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (980008, 2026, 'finalizada', 'latex', v_lote) RETURNING id INTO v_op_latex_solo;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_latex_solo, v_mod_tapete, 40) RETURNING id INTO v_it_latex_solo;
+
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (980009, 2026, 'concluida', 'tecelagem', v_lote) RETURNING id INTO v_op_manta_multi;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_manta_multi, v_mod_manta, 30) RETURNING id INTO v_it_manta_multi_a;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_manta_multi, v_mod_manta, 30) RETURNING id INTO v_it_manta_multi_b;
+
+  INSERT INTO public.pedido_itens (pedido_id, modelo_id, metros) VALUES (v_pedido, v_mod_manta, 40) RETURNING id INTO v_pi_manta;
+  INSERT INTO public.pedido_itens (pedido_id, modelo_id, metros) VALUES (v_pedido, v_mod_manta, 40) RETURNING id INTO v_pi_manta_other;
+
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (980010, 2026, 'concluida', 'tecelagem', v_lote) RETURNING id INTO v_op_manta_c;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos, pedido_item_id)
+    VALUES (v_op_manta_c, v_mod_manta, 40, v_pi_manta) RETURNING id INTO v_it_manta_c1;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos, pedido_item_id)
+    VALUES (v_op_manta_c, v_mod_manta, 20, NULL) RETURNING id INTO v_it_manta_c2;
+
+  INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id)
+    VALUES (v_pedido, v_op_manta_solo, v_lote, v_cli) RETURNING id INTO v_exp_manta_solo;
+  INSERT INTO public.expedicoes (pedido_id, op_latex_id, lote_id, cliente_id)
+    VALUES (v_pedido, v_op_latex_solo, v_lote, v_cli) RETURNING id INTO v_exp_latex_solo;
+  INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id)
+    VALUES (v_pedido, v_op_manta_multi, v_lote, v_cli) RETURNING id INTO v_exp_manta_multi;
+  INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id)
+    VALUES (v_pedido, v_op_manta_c, v_lote, v_cli) RETURNING id INTO v_exp_manta_c;
 
   PERFORM set_config('session_replication_role', 'origin', true);  -- guards ON.
 
@@ -296,6 +352,130 @@ BEGIN
     RAISE EXCEPTION 'FAIL(19): retificacao escape did not lift the reopening restriction';
   END IF;
   PERFORM set_config('app.retificacao_autorizada', 'off', true);
+
+  -- ==========================================================================
+  -- db/83 BLOCKER A — source OP type immutability.
+  -- (18) is covered by the still-unchanged tests above (11b/13-15 FK +
+  -- consumed-output rejection): db/83 touches none of those guards.
+  -- ==========================================================================
+  v_ok := FALSE;
+  BEGIN UPDATE public.ops SET tipo = 'latex' WHERE id = v_op_manta_solo;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(20): selected Manta source ops.tipo change accepted'; END IF;
+
+  v_ok := FALSE;
+  BEGIN UPDATE public.ops SET tipo = 'tecelagem' WHERE id = v_op_latex_solo;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(21): selected Latex source ops.tipo change accepted'; END IF;
+
+  UPDATE public.ops SET tipo = 'tecelagem' WHERE id = v_op_manta_solo;  -- same-value update
+  IF (SELECT tipo FROM public.ops WHERE id = v_op_manta_solo) <> 'tecelagem' THEN
+    RAISE EXCEPTION 'FAIL(22): same-value ops.tipo update was wrongly blocked';
+  END IF;
+
+  v_ok := FALSE;
+  PERFORM set_config('app.retificacao_autorizada', 'on', true);
+  BEGIN UPDATE public.ops SET tipo = 'latex' WHERE id = v_op_manta_solo;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  PERFORM set_config('app.retificacao_autorizada', 'off', true);
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(20b): retificacao escape wrongly lifted source-type immutability'; END IF;
+
+  -- ==========================================================================
+  -- db/83 BLOCKER B — source product route immutability (incl. single-item).
+  -- ==========================================================================
+  v_ok := FALSE;
+  BEGIN UPDATE public.op_itens SET modelo_id = v_mod_tapete WHERE id = v_it_manta_solo;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(23): single-item Manta source modelo_id -> Tapete accepted'; END IF;
+  IF (SELECT tipo_produto FROM public.modelos WHERE id = (SELECT modelo_id FROM public.op_itens WHERE id = v_it_manta_solo)) <> 'manta' THEN
+    RAISE EXCEPTION 'FAIL(23b): rejected single-item Manta source item was mutated anyway';
+  END IF;
+
+  v_ok := FALSE;
+  BEGIN INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_manta_multi, v_mod_tapete, 10);
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(24): multi-item Manta source received a Tapete item'; END IF;
+
+  v_ok := FALSE;
+  BEGIN UPDATE public.op_itens SET modelo_id = v_mod_manta WHERE id = v_it_latex_solo;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(25): single-item Latex source modelo_id -> Manta accepted'; END IF;
+
+  -- Unreferenced OP (v_op_tapete_tec never became a selected source): a
+  -- legal same-route (Tapete -> Tapete) model change stays permitted.
+  UPDATE public.op_itens SET modelo_id = v_mod_tapete2 WHERE id = v_it_tapete;
+  IF (SELECT modelo_id FROM public.op_itens WHERE id = v_it_tapete) <> v_mod_tapete2 THEN
+    RAISE EXCEPTION 'FAIL(26): unreferenced OP same-route model change was wrongly blocked';
+  END IF;
+
+  -- ==========================================================================
+  -- db/83 BLOCKER C — expedition item identity alignment.
+  -- ==========================================================================
+  INSERT INTO public.expedicao_itens (expedicao_id, op_item_id, pedido_item_id, modelo_id, metros_liberados)
+    VALUES (v_exp_manta_c, v_it_manta_c1, v_pi_manta, v_mod_manta, 40) RETURNING id INTO v_xi_c1;
+  IF v_xi_c1 IS NULL THEN RAISE EXCEPTION 'FAIL(27): correctly aligned expedition item rejected'; END IF;
+
+  v_ok := FALSE;
+  BEGIN
+    INSERT INTO public.expedicao_itens (expedicao_id, op_item_id, pedido_item_id, modelo_id, metros_liberados)
+      VALUES (v_exp_manta_c, v_it_manta_c2, NULL, v_mod_tapete, 10);  -- correct (NULL) pedido, wrong modelo
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(28): expedition item with wrong modelo_id accepted'; END IF;
+
+  v_ok := FALSE;
+  BEGIN UPDATE public.expedicao_itens SET pedido_item_id = v_pi_manta_other WHERE id = v_xi_c1;  -- correct op_item/model, wrong pedido_item_id
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(29): expedition item with wrong pedido_item_id (correct op_item/model) accepted'; END IF;
+
+  v_ok := FALSE;
+  BEGIN
+    INSERT INTO public.expedicao_itens (expedicao_id, op_item_id, pedido_item_id, modelo_id, metros_liberados)
+      VALUES (v_exp_manta_c, v_it_manta_c2, v_pi_manta, v_mod_manta, 10);  -- correct modelo, arbitrary non-null pedido on a NULL-origin item
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(30): NULL-origin op_item accepted an arbitrary non-null pedido_item_id'; END IF;
+
+  v_ok := FALSE;
+  BEGIN UPDATE public.expedicao_itens SET pedido_item_id = NULL WHERE id = v_xi_c1;  -- op_item has non-null origin
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(31): non-NULL-origin op_item accepted a NULL pedido_item_id'; END IF;
+
+  UPDATE public.expedicao_itens SET metros_entregues = 5 WHERE id = v_xi_c1;
+  IF (SELECT metros_entregues FROM public.expedicao_itens WHERE id = v_xi_c1) <> 5
+     OR (SELECT pedido_item_id FROM public.expedicao_itens WHERE id = v_xi_c1) <> v_pi_manta THEN
+    RAISE EXCEPTION 'FAIL(32): quantity-only expedition item update was wrongly blocked or identity drifted';
+  END IF;
+
+  -- ==========================================================================
+  -- db/83 BLOCKER D — referenced op_item identity immutability.
+  -- ==========================================================================
+  v_ok := FALSE;
+  BEGIN UPDATE public.op_itens SET modelo_id = v_mod_tapete WHERE id = v_it_manta_c1;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(33): referenced op_item modelo_id change accepted'; END IF;
+
+  v_ok := FALSE;
+  BEGIN UPDATE public.op_itens SET pedido_item_id = v_pi_manta_other WHERE id = v_it_manta_c1;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(34): referenced op_item pedido_item_id change accepted'; END IF;
+
+  v_ok := FALSE;
+  BEGIN UPDATE public.op_itens SET op_id = v_op_manta_multi WHERE id = v_it_manta_c1;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(35): referenced op_item op_id move accepted'; END IF;
+
+  v_ok := FALSE;
+  PERFORM set_config('app.retificacao_autorizada', 'on', true);
+  BEGIN UPDATE public.op_itens SET modelo_id = v_mod_tapete WHERE id = v_it_manta_c1;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  PERFORM set_config('app.retificacao_autorizada', 'off', true);
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(33b): retificacao escape wrongly lifted referenced op_item identity immutability'; END IF;
+
+  UPDATE public.op_itens
+     SET metros_pedidos = 45, op_id = v_op_manta_c, modelo_id = v_mod_manta, pedido_item_id = v_pi_manta
+   WHERE id = v_it_manta_c1;
+  IF (SELECT metros_pedidos FROM public.op_itens WHERE id = v_it_manta_c1) <> 45 THEN
+    RAISE EXCEPTION 'FAIL(36): non-identity column update on a referenced op_item was wrongly blocked';
+  END IF;
 
   RAISE NOTICE 'MANTA_EXPEDITION_SOURCE_INTEGRATION_PASS';
 END
