@@ -5,7 +5,10 @@
 -- immutability; source product route immutability incl. single-item;
 -- expedition-item identity alignment to modelo_id/pedido_item_id; referenced
 -- op_item identity immutability incl. modelo_id/pedido_item_id, no
--- retificacao bypass). Governing contract:
+-- retificacao bypass), PLUS the db/84 forward correction (symmetric Latex
+-- source route validation; authoritative source OP->Lote->Pedido->Cliente
+-- lineage derivation/match; expedition/OP/Lote/Pedido lineage immutability,
+-- no retificacao bypass). Governing contract:
 -- docs/architecture/MANTA_DIRECT_ROUTE_PHASE_CONTRACT.md.
 --
 -- ENVIRONMENT: disposable local PostgreSQL ONLY. The external runner applies the
@@ -49,6 +52,18 @@ DECLARE
   v_pi_manta UUID; v_pi_manta_other UUID;
   v_op_manta_c BIGINT; v_it_manta_c1 BIGINT; v_it_manta_c2 BIGINT; v_exp_manta_c BIGINT;
   v_xi_c1 BIGINT;
+  -- db/84 fixtures
+  v_cli2 BIGINT;
+  v_op_latex_empty BIGINT;
+  v_op_latex_manta BIGINT; v_it_latex_manta BIGINT;
+  v_op_latex_mixed BIGINT;
+  v_op_no_lote BIGINT; v_it_no_lote BIGINT;
+  v_lote_no_pedido BIGINT; v_op_lote_no_pedido BIGINT; v_it_lote_no_pedido BIGINT;
+  v_lote_mismatch BIGINT; v_op_lote_mismatch BIGINT; v_it_lote_mismatch BIGINT;
+  v_op_lineage_a BIGINT; v_it_lineage_a BIGINT; v_exp_lineage_a BIGINT;
+  v_lote2 BIGINT;
+  v_lote_unrelated BIGINT; v_op_unrelated BIGINT; v_it_unrelated BIGINT;
+  v_pedido_unrelated UUID;
 BEGIN
   -- ==========================================================================
   -- Fixtures (triggers off): a Manta and a Tapete model; a client/pedido/lote;
@@ -153,6 +168,56 @@ BEGIN
   INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id)
     VALUES (v_pedido, v_op_manta_c, v_lote, v_cli) RETURNING id INTO v_exp_manta_c;
 
+  -- db/84 fixtures: a second client; a Latex OP with zero items, one with a
+  -- Manta item, one defensively mixed (BLOCKER A symmetric Latex tests); a
+  -- source-less-Lote OP, a Lote-without-Pedido OP, and a Lote/Pedido
+  -- client-mismatch OP (BLOCKER B lineage-existence/consistency tests); a
+  -- fresh valid-lineage OP for the expedition-payload-mismatch and
+  -- immutability tests; a second Lote (BLOCKER D target); and a genuinely
+  -- unrelated Lote/OP/Pedido never selected as a source (BLOCKER D/E/F
+  -- inertness).
+  INSERT INTO public.clientes (nome) VALUES ('MES-CLI-2') RETURNING id INTO v_cli2;
+
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (980011, 2026, 'finalizada', 'latex', v_lote) RETURNING id INTO v_op_latex_empty;
+
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (980012, 2026, 'finalizada', 'latex', v_lote) RETURNING id INTO v_op_latex_manta;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_latex_manta, v_mod_manta, 40) RETURNING id INTO v_it_latex_manta;
+
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (980013, 2026, 'finalizada', 'latex', v_lote) RETURNING id INTO v_op_latex_mixed;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_latex_mixed, v_mod_tapete, 30);
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_latex_mixed, v_mod_manta, 30);
+
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (980014, 2026, 'concluida', 'tecelagem', NULL) RETURNING id INTO v_op_no_lote;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_no_lote, v_mod_manta, 40) RETURNING id INTO v_it_no_lote;
+
+  INSERT INTO public.lotes (numero, cliente_id, pedido_id) VALUES (980002, v_cli, NULL) RETURNING id INTO v_lote_no_pedido;
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (980015, 2026, 'concluida', 'tecelagem', v_lote_no_pedido) RETURNING id INTO v_op_lote_no_pedido;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_lote_no_pedido, v_mod_manta, 40) RETURNING id INTO v_it_lote_no_pedido;
+
+  -- Deliberately inconsistent (only reachable with triggers off): the Lote's
+  -- own cliente_id diverges from its Pedido's cliente_id.
+  INSERT INTO public.lotes (numero, cliente_id, pedido_id) VALUES (980003, v_cli2, v_pedido) RETURNING id INTO v_lote_mismatch;
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (980016, 2026, 'concluida', 'tecelagem', v_lote_mismatch) RETURNING id INTO v_op_lote_mismatch;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_lote_mismatch, v_mod_manta, 40) RETURNING id INTO v_it_lote_mismatch;
+
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (980017, 2026, 'concluida', 'tecelagem', v_lote) RETURNING id INTO v_op_lineage_a;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_lineage_a, v_mod_manta, 40) RETURNING id INTO v_it_lineage_a;
+
+  INSERT INTO public.lotes (numero, cliente_id, pedido_id) VALUES (980004, v_cli, v_pedido) RETURNING id INTO v_lote2;
+
+  INSERT INTO public.lotes (numero, cliente_id, pedido_id) VALUES (980005, v_cli, v_pedido) RETURNING id INTO v_lote_unrelated;
+  INSERT INTO public.ops (numero, ano, status, tipo, lote_id)
+    VALUES (980018, 2026, 'concluida', 'tecelagem', v_lote_unrelated) RETURNING id INTO v_op_unrelated;
+  INSERT INTO public.op_itens (op_id, modelo_id, metros_pedidos) VALUES (v_op_unrelated, v_mod_manta, 40) RETURNING id INTO v_it_unrelated;
+  INSERT INTO public.pedidos (cliente_id, numero, status) VALUES (v_cli, 980002, 'confirmado') RETURNING id INTO v_pedido_unrelated;
+
   PERFORM set_config('session_replication_role', 'origin', true);  -- guards ON.
 
   -- ==========================================================================
@@ -192,18 +257,20 @@ BEGIN
   -- (4) Tapete weaving source rejected. (5) empty OP rejected. (6) mixed OP
   --     rejected defensively.
   -- ==========================================================================
+  -- (lote_id/cliente_id supplied and correct throughout so rejection is
+  -- unambiguously attributable to the route guard, not to db/84 lineage.)
   v_ok := FALSE;
-  BEGIN INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id) VALUES (v_pedido, v_op_tapete_tec);
+  BEGIN INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id) VALUES (v_pedido, v_op_tapete_tec, v_lote, v_cli);
   EXCEPTION WHEN others THEN v_ok := TRUE; END;
   IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(4): Tapete weaving source accepted'; END IF;
 
   v_ok := FALSE;
-  BEGIN INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id) VALUES (v_pedido, v_op_empty);
+  BEGIN INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id) VALUES (v_pedido, v_op_empty, v_lote, v_cli);
   EXCEPTION WHEN others THEN v_ok := TRUE; END;
   IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(5): empty weaving OP source accepted'; END IF;
 
   v_ok := FALSE;
-  BEGIN INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id) VALUES (v_pedido, v_op_mixed);
+  BEGIN INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id) VALUES (v_pedido, v_op_mixed, v_lote, v_cli);
   EXCEPTION WHEN others THEN v_ok := TRUE; END;
   IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(6): mixed weaving OP source accepted'; END IF;
 
@@ -211,7 +278,7 @@ BEGIN
   -- (7) Duplicate Manta expedition source rejected (one expedition per OP).
   -- ==========================================================================
   v_ok := FALSE;
-  BEGIN INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id) VALUES (v_pedido, v_op_manta);
+  BEGIN INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id) VALUES (v_pedido, v_op_manta, v_lote, v_cli);
   EXCEPTION WHEN others THEN v_ok := TRUE; END;
   IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(7): duplicate Manta expedition source accepted'; END IF;
 
@@ -476,6 +543,174 @@ BEGIN
   IF (SELECT metros_pedidos FROM public.op_itens WHERE id = v_it_manta_c1) <> 45 THEN
     RAISE EXCEPTION 'FAIL(36): non-identity column update on a referenced op_item was wrongly blocked';
   END IF;
+
+  -- ==========================================================================
+  -- db/84 BLOCKER A — symmetric Latex source route validation.
+  -- ==========================================================================
+  v_ok := FALSE;
+  BEGIN INSERT INTO public.expedicoes (pedido_id, op_latex_id, lote_id, cliente_id) VALUES (v_pedido, v_op_latex_empty, v_lote, v_cli);
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(37): empty Latex OP source accepted'; END IF;
+
+  v_ok := FALSE;
+  BEGIN INSERT INTO public.expedicoes (pedido_id, op_latex_id, lote_id, cliente_id) VALUES (v_pedido, v_op_latex_manta, v_lote, v_cli);
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(38): Latex OP containing Manta accepted'; END IF;
+
+  v_ok := FALSE;
+  BEGIN INSERT INTO public.expedicoes (pedido_id, op_latex_id, lote_id, cliente_id) VALUES (v_pedido, v_op_latex_mixed, v_lote, v_cli);
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(39): mixed Latex source accepted'; END IF;
+
+  -- ==========================================================================
+  -- db/84 BLOCKER B — source lineage existence and consistency.
+  -- ==========================================================================
+  v_ok := FALSE;
+  BEGIN INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id) VALUES (v_pedido, v_op_no_lote, v_lote, v_cli);
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(40): source OP without Lote accepted'; END IF;
+
+  v_ok := FALSE;
+  BEGIN INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id) VALUES (v_pedido, v_op_lote_no_pedido, v_lote_no_pedido, v_cli);
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(41): Lote without Pedido accepted as source'; END IF;
+
+  v_ok := FALSE;
+  BEGIN INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id) VALUES (v_pedido, v_op_lote_mismatch, v_lote_mismatch, v_cli2);
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(42): Lote/Pedido client mismatch accepted as source'; END IF;
+
+  -- ==========================================================================
+  -- db/84 BLOCKER B — expedition payload must match the derived lineage.
+  -- ==========================================================================
+  v_ok := FALSE;
+  BEGIN INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id) VALUES (v_pedido_unrelated, v_op_lineage_a, v_lote, v_cli);
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(43): expedition pedido_id mismatch accepted'; END IF;
+
+  v_ok := FALSE;
+  BEGIN INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id) VALUES (v_pedido, v_op_lineage_a, v_lote2, v_cli);
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(44): expedition lote_id mismatch accepted'; END IF;
+
+  v_ok := FALSE;
+  BEGIN INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id) VALUES (v_pedido, v_op_lineage_a, v_lote, v_cli2);
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(45): expedition cliente_id mismatch accepted'; END IF;
+
+  -- (46) Valid exact lineage accepted.
+  INSERT INTO public.expedicoes (pedido_id, op_tecelagem_id, lote_id, cliente_id)
+    VALUES (v_pedido, v_op_lineage_a, v_lote, v_cli) RETURNING id INTO v_exp_lineage_a;
+  IF v_exp_lineage_a IS NULL THEN RAISE EXCEPTION 'FAIL(46): valid exact-lineage expedition rejected'; END IF;
+  IF (SELECT (lote_id, pedido_id, cliente_id) FROM public.expedicoes WHERE id = v_exp_lineage_a)
+     IS DISTINCT FROM (v_lote, v_pedido, v_cli) THEN
+    RAISE EXCEPTION 'FAIL(46b): accepted expedition lineage does not match the source-derived values';
+  END IF;
+
+  -- ==========================================================================
+  -- db/84 BLOCKER C — expedition lineage immutability (UPDATE rejected).
+  -- ==========================================================================
+  v_ok := FALSE;
+  BEGIN UPDATE public.expedicoes SET pedido_id = v_pedido_unrelated WHERE id = v_exp_lineage_a;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(47): expedition pedido_id change accepted'; END IF;
+
+  v_ok := FALSE;
+  BEGIN UPDATE public.expedicoes SET lote_id = v_lote2 WHERE id = v_exp_lineage_a;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(48): expedition lote_id change accepted'; END IF;
+
+  v_ok := FALSE;
+  BEGIN UPDATE public.expedicoes SET cliente_id = v_cli2 WHERE id = v_exp_lineage_a;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(49): expedition cliente_id change accepted'; END IF;
+
+  -- ==========================================================================
+  -- db/84 BLOCKER D — selected source OP lineage immutability (lote_id).
+  -- ==========================================================================
+  v_ok := FALSE;
+  BEGIN UPDATE public.ops SET lote_id = v_lote2 WHERE id = v_op_lineage_a;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(50): selected source ops.lote_id change accepted'; END IF;
+
+  -- ==========================================================================
+  -- db/84 BLOCKER E — Lote lineage immutability (v_lote is a selected-source
+  -- Lote via v_op_manta/v_exp_manta and v_op_lineage_a/v_exp_lineage_a).
+  -- ==========================================================================
+  v_ok := FALSE;
+  BEGIN UPDATE public.lotes SET pedido_id = v_pedido_unrelated WHERE id = v_lote;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(51): source lotes.pedido_id change accepted'; END IF;
+
+  v_ok := FALSE;
+  BEGIN UPDATE public.lotes SET cliente_id = v_cli2 WHERE id = v_lote;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(52): source lotes.cliente_id change accepted'; END IF;
+
+  -- ==========================================================================
+  -- db/84 BLOCKER F — Pedido client immutability (v_pedido participates via
+  -- v_lote in the lineage of the selected-source OPs above).
+  -- ==========================================================================
+  v_ok := FALSE;
+  BEGIN UPDATE public.pedidos SET cliente_id = v_cli2 WHERE id = v_pedido;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(53): source pedidos.cliente_id change accepted'; END IF;
+
+  -- ==========================================================================
+  -- (54) Unrelated OP/Lote/Pedido legal updates remain permitted (BLOCKER
+  --      D/E/F inert for entities never selected as an expedition source).
+  -- ==========================================================================
+  UPDATE public.ops SET lote_id = v_lote2 WHERE id = v_op_unrelated;
+  IF (SELECT lote_id FROM public.ops WHERE id = v_op_unrelated) <> v_lote2 THEN
+    RAISE EXCEPTION 'FAIL(54a): unrelated ops.lote_id update was wrongly blocked';
+  END IF;
+
+  UPDATE public.lotes SET pedido_id = v_pedido_unrelated WHERE id = v_lote_unrelated;
+  IF (SELECT pedido_id FROM public.lotes WHERE id = v_lote_unrelated) <> v_pedido_unrelated THEN
+    RAISE EXCEPTION 'FAIL(54b): unrelated lotes.pedido_id update was wrongly blocked';
+  END IF;
+
+  UPDATE public.pedidos SET cliente_id = v_cli2 WHERE id = v_pedido_unrelated;
+  IF (SELECT cliente_id FROM public.pedidos WHERE id = v_pedido_unrelated) <> v_cli2 THEN
+    RAISE EXCEPTION 'FAIL(54c): unrelated pedidos.cliente_id update was wrongly blocked';
+  END IF;
+
+  -- ==========================================================================
+  -- db/84 DELETE / FK EVIDENCE — no FK action was changed; the new UPDATE
+  -- guards cause the parent DELETE to fail closed instead (ops.lote_id and
+  -- expedicoes.lote_id are ON DELETE SET NULL from lotes; lotes.pedido_id is
+  -- ON DELETE SET NULL from pedidos; Postgres implements these as a real
+  -- UPDATE against the referencing table, which fires BLOCKER D/C/E).
+  -- ==========================================================================
+  -- (55) Deleting a source Lote must not silently null ops.lote_id /
+  --      expedicoes.lote_id: the cascade SET NULL on ops (v_op_manta is a
+  --      selected source) is rejected by BLOCKER D, failing the DELETE.
+  v_ok := FALSE;
+  BEGIN DELETE FROM public.lotes WHERE id = v_lote;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(55): deleting a source Lote (referenced by a selected-source OP) was accepted'; END IF;
+  IF (SELECT lote_id FROM public.ops WHERE id = v_op_manta) <> v_lote THEN
+    RAISE EXCEPTION 'FAIL(55b): source OP lote_id was silently nulled by a failed Lote delete';
+  END IF;
+
+  -- (56) Deleting/detaching a source Pedido must not silently null
+  --      lotes.pedido_id: the cascade SET NULL on lotes (v_lote is a
+  --      selected-source Lote) is rejected by BLOCKER E, failing the DELETE.
+  v_ok := FALSE;
+  BEGIN DELETE FROM public.pedidos WHERE id = v_pedido;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(56): deleting a source Pedido (referenced by a selected-source Lote) was accepted'; END IF;
+  IF (SELECT pedido_id FROM public.lotes WHERE id = v_lote) <> v_pedido THEN
+    RAISE EXCEPTION 'FAIL(56b): source Lote pedido_id was silently nulled by a failed Pedido delete';
+  END IF;
+
+  -- (57) Deleting the source client remains blocked outright by the
+  --      pre-existing lotes.cliente_id / pedidos.cliente_id ON DELETE
+  --      RESTRICT FKs (unchanged by this migration).
+  v_ok := FALSE;
+  BEGIN DELETE FROM public.clientes WHERE id = v_cli;
+  EXCEPTION WHEN others THEN v_ok := TRUE; END;
+  IF NOT v_ok THEN RAISE EXCEPTION 'FAIL(57): deleting the source client was accepted'; END IF;
 
   RAISE NOTICE 'MANTA_EXPEDITION_SOURCE_INTEGRATION_PASS';
 END

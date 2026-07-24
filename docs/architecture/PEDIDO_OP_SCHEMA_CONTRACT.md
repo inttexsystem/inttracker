@@ -1609,3 +1609,60 @@ with distinct-session Tests I–L — source-model-change-wins,
 membership-insert-wins, OP-type-change-vs-membership, two-identity-change
 no-deadlock — plus the unchanged db/82 Tests A–H): full db/01..83 apply, db/83
 idempotent re-apply zero drift, no `40P01`; cluster destroyed with proof.
+
+## Update 2026-07-24 — PHASE-MANTA-B1 correction (Latex route symmetry + source lineage, db/84)
+
+`db/84_manta_expedition_source_lineage_correction.sql` (order
+`PHASE-MANTA-B1-SOURCE-LINEAGE-AND-LATEX-ROUTE-CORRECTION-R1`) is a
+forward-only, idempotent correction completing PHASE-MANTA-B1, editing neither
+db/78–db/83 nor any schema shape (a pre-flight data-validation DO block + four
+guard function bodies + two new triggers). Governing contract:
+`MANTA_DIRECT_ROUTE_PHASE_CONTRACT.md` §13. No shared-development apply is
+authorized (local disposable clusters only). Migration terminal advanced 83 → 84.
+
+- **Pre-existing data gate.** Before installing the corrected guards, every
+  existing `expedicoes` row is validated against the widened invariants
+  (source OP existence/type, non-emptiness, required product type, source
+  lineage existence/consistency, header lineage match); any violation aborts
+  the migration with no repair. Trivial on an empty corpus.
+- **Symmetric Latex route (A).** `expedicoes_source_validation_guard_fn`'s
+  Latex branch now requires non-emptiness and homogeneous `tipo_produto=
+  'tapete'`, mirroring the Manta branch exactly.
+- **Source lineage (B).** For either source type, `ops.lote_id` →
+  `lotes.pedido_id`/`lotes.cliente_id` → `pedidos.cliente_id` must exist and
+  be mutually consistent, and the expedition payload
+  (`lote_id`/`pedido_id`/`cliente_id`) must match it exactly (NULL or
+  divergent lineage rejected, no silent rewrite).
+- **Expedition lineage immutability (C).** `pedido_id`/`lote_id`/`cliente_id`
+  join the db/82-immutable source columns: any UPDATE changing any of the five
+  is rejected before any lock, no retificacao bypass.
+- **Source OP lineage immutability (D).**
+  `ops_source_type_immutability_guard_fn` now also protects `ops.lote_id`
+  (previously `tipo` only) while the OP is a selected source.
+- **Lote lineage immutability (E).** New
+  `lotes_source_lineage_immutability_guard_fn` protects `pedido_id`/
+  `cliente_id` while the Lote is referenced by a selected-source OP; unlocked
+  `EXISTS`, no source-OP lock requested.
+- **Pedido client immutability (F).** New
+  `pedidos_source_lineage_immutability_guard_fn` protects `cliente_id` while
+  the Pedido participates (via a Lote) in a selected-source OP's lineage;
+  same unlocked design.
+
+DELETE/FK evidence: `ops.lote_id`/`expedicoes.lote_id` (`ON DELETE SET NULL`
+from `lotes`) and `lotes.pedido_id` (`ON DELETE SET NULL` from `pedidos`) are
+unchanged — Postgres implements `SET NULL` as a real UPDATE against the
+referencing table, so deleting a source Lote/Pedido now fails closed via
+D/C/E instead of silently nulling the lineage; the source client stays
+blocked by the pre-existing `ON DELETE RESTRICT` FKs. No FK action was
+altered. Reconciled lock order: source `ops` (`FOR UPDATE`) → source `lotes`
+(`FOR SHARE`) → source `pedidos` (`FOR SHARE`) → affected `modelos` ascending
+(`FOR SHARE`) → lineage/route reads → insert; the new Lote/Pedido guards take
+no source-OP lock, so no cross-guard deadlock is structurally possible.
+Verified on a disposable PostgreSQL 18.4 cluster
+(`tests/manta-expedition-source.integration.sql` extended with sequential
+proofs 37–57; `tests/manta-expedition-source-invariant.mjs` with
+distinct-session Tests M–R — lineage-insert-wins vs Lote/Pedido update,
+Lote/Pedido-update-wins, OP-lote-change-vs-insert, independent-source
+non-serialization — plus the unchanged db/82/db/83 Tests A–L): full db/01..84
+apply, db/84 idempotent re-apply zero drift, no `40P01`; cluster destroyed
+with proof.

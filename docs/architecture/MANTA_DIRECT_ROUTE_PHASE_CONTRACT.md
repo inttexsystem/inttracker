@@ -5,14 +5,15 @@ AWAITING ARCHITECT REVIEW. PHASE-MANTA-B1 remains open. PHASE-MANTA-B2 (route
 activation) is NOT authorized and no phase chains automatically.
 
 Orders (B1): `PHASE-MANTA-B1-EXPEDITION-SOURCE-FOUNDATION-R1` (db/81),
-`PHASE-MANTA-B1-SOURCE-MEMBERSHIP-AND-LOCK-ORDER-CORRECTION-R1` (db/82, §11) and
-`PHASE-MANTA-B1-SOURCE-ROUTE-AND-ITEM-IDENTITY-CORRECTION-R1` (db/83, §12).
+`PHASE-MANTA-B1-SOURCE-MEMBERSHIP-AND-LOCK-ORDER-CORRECTION-R1` (db/82, §11),
+`PHASE-MANTA-B1-SOURCE-ROUTE-AND-ITEM-IDENTITY-CORRECTION-R1` (db/83, §12) and
+`PHASE-MANTA-B1-SOURCE-LINEAGE-AND-LATEX-ROUTE-CORRECTION-R1` (db/84, §13).
 Predecessor: `MANTA_PRODUCT_VARIANT_PHASE_CONTRACT.md` (PHASE-MANTA-A, CLOSED /
 ACCEPTED — product identity + route homogeneity, db/78–db/80). This contract owns
 the Manta **direct weaving→client route** semantics; PHASE-MANTA-A remains the
 owner of Manta product identity. §11 records the db/82 forward correction, §12 the
-db/83 forward correction; the db/81 sections below are preserved and read with
-§11 and §12 applied.
+db/83 forward correction, §13 the db/84 forward correction; the db/81 sections
+below are preserved and read with §11, §12 and §13 applied.
 
 ## 1. Objective and boundary
 
@@ -219,12 +220,12 @@ access was used; the baseline matched.
 ## 10. Status and next authorizable action
 
 PHASE-MANTA-B1 is IMPLEMENTED / LOCALLY AND CONCURRENTLY VERIFIED / AWAITING
-ARCHITECT REVIEW; it remains open. db/81, db/82 and db/83 are versioned in the
-repository and applied only to disposable local clusters — **no shared-development,
-staging, or production apply** is authorized by these orders. The next
-authorizable action is architect review of PHASE-MANTA-B1 (db/81 + the db/82 and
-db/83 corrections); PHASE-MANTA-B2 (route activation) requires a new explicit
-order and does not chain automatically.
+ARCHITECT REVIEW; it remains open. db/81, db/82, db/83 and db/84 are versioned in
+the repository and applied only to disposable local clusters — **no
+shared-development, staging, or production apply** is authorized by these orders.
+The next authorizable action is architect review of PHASE-MANTA-B1 (db/81 + the
+db/82, db/83 and db/84 corrections); PHASE-MANTA-B2 (route activation) requires a
+new explicit order and does not chain automatically.
 
 ## 11. Forward correction — db/82 (source immutability, post-lock membership, source non-emptiness)
 
@@ -409,3 +410,107 @@ sources in opposing directions; deterministic ascending OP-id lock order
 serializes them without deadlock; both commit; both sources stay homogeneous
 Manta) — cluster destroyed with PID/port/dir proof. `tests/ordem-compra-c3d-deploy.smoke.js`
 advanced 82 → 83 (terminal two `db/82`/`db/83`).
+
+## 13. Forward correction — db/84 (symmetric Latex route + source lineage)
+
+`db/84_manta_expedition_source_lineage_correction.sql` (order
+`PHASE-MANTA-B1-SOURCE-LINEAGE-AND-LATEX-ROUTE-CORRECTION-R1`) completes
+PHASE-MANTA-B1 by forward-correcting db/81/db/82/db/83 without editing
+db/78–db/83. Migration terminal advanced 83 → 84.
+
+0. **Pre-existing data gate.** Before installing the corrected guards, every
+   existing `expedicoes` row is scanned against the widened invariants (source
+   OP existence/type, non-emptiness, required product type, source
+   OP→Lote→Pedido→Cliente lineage existence/consistency, expedition header
+   lineage match). Any violation aborts the whole migration; no repair, no
+   reinterpretation. Trivially compatible with an empty operational corpus.
+
+1. **Symmetric Latex source validation (A).**
+   `expedicoes_source_validation_guard_fn`'s Latex (`op_latex_id`) branch now
+   requires non-emptiness and homogeneous `modelos.tipo_produto='tapete'`,
+   mirroring the Manta branch exactly (a homogeneous-Manta or mixed Latex OP is
+   rejected). Derived strictly from `modelos.tipo_produto`, never a name.
+
+2. **Authoritative source lineage (B).** For either source type, the lineage
+   source OP → `ops.lote_id` → `lotes.pedido_id` / `lotes.cliente_id` →
+   `pedidos.cliente_id` must exist and be internally consistent
+   (`lotes.cliente_id = pedidos.cliente_id`); the expedition payload
+   (`lote_id`, `pedido_id`, `cliente_id`) must match it exactly. NULL or
+   divergent lineage is rejected; the payload is never rewritten. Existing
+   canonical writers (db/23/31/32) already derive these fields from the source
+   OP/Lote, so they remain compatible unchanged.
+
+3. **Expedition lineage immutability (C).** The db/82-immutable source columns
+   are joined by `pedido_id`/`lote_id`/`cliente_id`: any UPDATE changing any of
+   the five is rejected before any lock, no `app.retificacao_autorizada`
+   bypass — the same fail-closed-before-any-lock design as the source columns.
+
+4. **Source OP lineage immutability (D).** db/83's
+   `ops_source_type_immutability_guard_fn` (`tipo` only) now also protects
+   `ops.lote_id` while the OP is a selected expedition source. Same-value
+   updates permitted; `ops.status` transitions untouched; no retificacao
+   bypass.
+
+5. **Lote lineage immutability (E).** New
+   `lotes_source_lineage_immutability_guard` (BEFORE UPDATE on `public.lotes`):
+   while the Lote is referenced by a selected-source OP, `pedido_id`/
+   `cliente_id` are immutable. Inspects references with a plain unlocked
+   `EXISTS` — no source-OP lock requested. No retificacao bypass; unrelated
+   Lotes unaffected.
+
+6. **Pedido client immutability (F).** New
+   `pedidos_source_lineage_immutability_guard` (BEFORE UPDATE on
+   `public.pedidos`): while the Pedido participates (via a Lote) in a
+   selected-source OP's lineage, `cliente_id` is immutable. Same
+   unlocked-`EXISTS` design as E; no retificacao bypass; unrelated
+   Pedidos/fields unaffected.
+
+**DELETE / FK evidence (no FK semantics changed).** `ops.lote_id` and
+`expedicoes.lote_id` are `ON DELETE SET NULL` from `lotes`; `lotes.pedido_id`
+is `ON DELETE SET NULL` from `pedidos`. Postgres implements `ON DELETE SET
+NULL` as a real UPDATE against the referencing table, which fires that
+table's own BEFORE UPDATE triggers — so deleting a source Lote or Pedido
+fails closed via D/C or E respectively instead of silently nulling the
+lineage. Deleting the source client remains blocked outright by the
+pre-existing `lotes.cliente_id`/`pedidos.cliente_id` `ON DELETE RESTRICT`
+FKs. The db/34–37 controlled-delete cascade is unaffected: it always deletes
+the expedition graph and owning OPs before it ever deletes the Lote or
+Pedido row, so none of the new guards fire on that path. Proven by sequential
+tests 55–57 (`tests/manta-expedition-source.integration.sql`): deleting a
+selected-source Lote/Pedido is rejected with lineage unchanged; deleting the
+source client is rejected.
+
+**Reconciled lock order (INSERT validation path):** source `ops` row (`FOR
+UPDATE`) → source `lotes` row (`FOR SHARE`) → source `pedidos` row (`FOR
+SHARE`) → affected `modelos` rows ascending (`FOR SHARE`, when product type is
+inspected) → final post-lock lineage/route reads → insert. No path acquires
+an `expedicoes` row before an `ops` row; Lote/Pedido locks are never acquired
+before the source OP; model rows are never acquired before the source OP. The
+new Lote/Pedido UPDATE guards (E/F) request no source-OP lock at all (plain
+unlocked `EXISTS`), introducing no reverse path. Because every multi-resource
+acquisition (the INSERT path) always follows this fixed order, and every
+single-resource guard (D/E/F) never chains to a second resource, no
+cross-guard deadlock is structurally possible.
+
+**Tests (db/84).** `tests/manta-expedition-source.integration.sql` extended
+with sequential proofs 37–57: symmetric Latex route (empty/Manta/mixed
+rejected); source lineage existence (no Lote, Lote without Pedido, Lote/Pedido
+client mismatch, all rejected); expedition-payload lineage mismatch
+(pedido_id/lote_id/cliente_id, each rejected) and valid exact lineage
+accepted; expedition/OP/Lote/Pedido lineage immutability (rejected, incl. the
+db/83 `ops.tipo` re-proof); unrelated OP/Lote/Pedido legal updates permitted;
+DELETE/FK evidence. `tests/manta-expedition-source-invariant.mjs` applies
+db/01..84, re-applies db/84 idempotently (zero drift), runs the extended
+integration test + the db/78–83 regressions and the unchanged db/82/db/83
+distinct-session Tests A–L, and adds six more: M lineage-insert-wins vs Lote
+update (holds source Lote `FOR SHARE`; concurrent `pedido_id` change blocks,
+then rejected post-commit), N Lote-update-wins (a Lote change commits first;
+a stale-payload insert is rejected; a refreshed payload succeeds), O
+lineage-insert-wins vs Pedido update (same shape as M for `cliente_id`), P
+Pedido-update-wins (a Pedido `cliente_id` change commits first; the waiting
+insert is rejected against the now-inconsistent lineage), Q
+OP-lote-change-vs-insert (an `ops.lote_id` change commits first; the waiting
+insert holding a stale `lote_id` is rejected; no split lineage), R independent
+sources on fully separate OP/Lote/Pedido chains do not serialize — cluster
+destroyed with PID/port/dir proof. `tests/ordem-compra-c3d-deploy.smoke.js`
+advanced 83 → 84 (terminal two `db/83`/`db/84`).

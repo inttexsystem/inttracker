@@ -1,18 +1,22 @@
 // tests/manta-expedition-source-invariant.mjs
 //
 // PHASE-MANTA-B1 disposable-cluster proof of db/81 + db/82 (source/membership/
-// lock-order correction) + db/83 (source route + item identity correction) —
-// full-chain apply, idempotent re-apply, the (extended) db/81 schema/guard
-// integration test, regression, and distinct-session concurrency
-// (item-move-wins, membership-insert-wins, source-change no-deadlock, source
-// non-emptiness, source-model-change-wins, referenced-identity-change rejected
-// post-lock, OP-type-change-vs-membership, two-identity-change no-deadlock, plus
-// the db/81/db/82 regressions).
+// lock-order correction) + db/83 (source route + item identity correction) +
+// db/84 (symmetric Latex route + source lineage correction) — full-chain
+// apply, idempotent re-apply, the (extended) db/81 schema/guard integration
+// test, regression, and distinct-session concurrency (item-move-wins,
+// membership-insert-wins, source-change no-deadlock, source non-emptiness,
+// source-model-change-wins, referenced-identity-change rejected post-lock,
+// OP-type-change-vs-membership, two-identity-change no-deadlock,
+// lineage-insert-wins vs Lote/Pedido update, Lote/Pedido-update-wins,
+// OP-lote-change-vs-insert, independent-source non-serialization, plus the
+// db/81/db/82/db/83 regressions).
 //
 // Governing contract: docs/architecture/MANTA_DIRECT_ROUTE_PHASE_CONTRACT.md.
 // Migrations: db/81_manta_expedition_source_foundation.sql,
-// db/82_manta_expedition_source_invariant_correction.sql and
-// db/83_manta_expedition_source_identity_correction.sql.
+// db/82_manta_expedition_source_invariant_correction.sql,
+// db/83_manta_expedition_source_identity_correction.sql and
+// db/84_manta_expedition_source_lineage_correction.sql.
 //
 // ENVIRONMENT: disposable local PostgreSQL 18.4 ONLY
 // (scripts/c3d/bootstrap-disposable-cluster.mjs). This harness NEVER connects to
@@ -67,6 +71,28 @@
 //               swap items between two Manta sources in opposing directions;
 //               deterministic ascending OP-id lock order serializes them without
 //               deadlock; both commit; both sources stay homogeneous Manta.
+//             M lineage-insert-wins vs Lote update (db/84 BLOCKER B/E): a valid
+//               expedition INSERT holds the source Lote FOR SHARE uncommitted; a
+//               concurrent Lote pedido_id change blocks; once the INSERT commits
+//               the change is rejected; lineage stays aligned.
+//             N Lote-update-wins (db/84 BLOCKER B): a Lote pedido_id change
+//               commits before any source is selected; a waiting expedition
+//               INSERT (stale payload) re-reads the committed Lote and is
+//               rejected; a refreshed, correct payload then succeeds.
+//             O lineage-insert-wins vs Pedido update (db/84 BLOCKER B/F): same
+//               shape as M, one level up (source Pedido FOR SHARE vs a
+//               concurrent cliente_id change).
+//             P Pedido-update-wins (db/84 BLOCKER B): a Pedido cliente_id
+//               change commits before any source is selected; a waiting
+//               expedition INSERT is rejected once it re-reads the (now
+//               lineage-inconsistent) committed state.
+//             Q OP-lote-change-vs-insert (db/84 BLOCKER B/D): an ops.lote_id
+//               change (before selection) commits while a waiting expedition
+//               INSERT holds a stale lote_id payload; the insert is rejected
+//               post-lock; no split lineage.
+//             R independent sources do not serialize (db/84): two expeditions
+//               on fully independent OP/Lote/Pedido chains commit concurrently
+//               without blocking each other; no deadlock.
 //   Part Z  mandatory full cluster destruction (pid absent, port closed, dir
 //           absent; no c3d-disposable-pg-* residue from this run).
 //
@@ -202,6 +228,7 @@ $corpus$;
 // concurrent sessions). One dedicated OP set per test avoids interference.
 const CONCURRENCY_FIXTURES_SQL = `
 CREATE TABLE IF NOT EXISTS public._b2_ids (k TEXT PRIMARY KEY, v BIGINT);
+CREATE TABLE IF NOT EXISTS public._b2_uuids (k TEXT PRIMARY KEY, v UUID);
 SET session_replication_role = replica;
 DO $cf$
 DECLARE
@@ -223,6 +250,14 @@ DECLARE
   opK BIGINT; iK BIGINT; expK BIGINT;
   opM1 BIGINT; iM1a BIGINT; iM1b BIGINT; expM1 BIGINT;
   opM2 BIGINT; iM2a BIGINT; iM2b BIGINT; expM2 BIGINT;
+  cli2 BIGINT;
+  pedMv UUID; pedMaltv UUID; loteM BIGINT; opM BIGINT; iM BIGINT;
+  pedNav UUID; pedNbv UUID; loteN BIGINT; opN BIGINT; itN BIGINT;
+  pedOv UUID; loteO BIGINT; opO BIGINT; iO BIGINT;
+  pedPv UUID; loteP BIGINT; opP BIGINT; iP BIGINT;
+  pedQv UUID; loteQ BIGINT; loteQ2 BIGINT; opQ BIGINT; iQ BIGINT;
+  pedR1v UUID; loteR1 BIGINT; opR1 BIGINT; iR1 BIGINT;
+  pedR2v UUID; loteR2 BIGINT; opR2 BIGINT; iR2 BIGINT;
 BEGIN
   INSERT INTO public.cores(nome) VALUES ('B2-KRAFT') RETURNING id INTO c1;
   INSERT INTO public.cores(nome) VALUES ('B2-CRU')   RETURNING id INTO c2;
@@ -231,6 +266,7 @@ BEGIN
   INSERT INTO public.modelos(nome,cor_1_id,cor_2_id,largura,tipo_produto) VALUES ('B2-MANTA',  c1,c2,1.40,'manta')  RETURNING id INTO mm;
   INSERT INTO public.modelos(nome,cor_1_id,cor_2_id,largura,tipo_produto) VALUES ('B2-TAPETE', c1,c2,2.10,'tapete') RETURNING id INTO mt;
   INSERT INTO public.clientes(nome) VALUES ('B2-CLI') RETURNING id INTO cli;
+  INSERT INTO public.clientes(nome) VALUES ('B2-CLI-2') RETURNING id INTO cli2;
   INSERT INTO public.pedidos(cliente_id,numero,status) VALUES (cli,986001,'confirmado') RETURNING id INTO ped;
   INSERT INTO public.lotes(numero,cliente_id,pedido_id) VALUES (986001,cli,ped) RETURNING id INTO lote;
 
@@ -326,6 +362,48 @@ BEGIN
   INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opM2,mm,50) RETURNING id INTO iM2b;
   INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES (ped,opM2,lote,cli) RETURNING id INTO expM2;
 
+  -- db/84 lineage fixtures: each test gets its own isolated Pedido/Lote/OP
+  -- chain (source not yet selected -- no expedicoes row planted here) so
+  -- concurrent lineage mutation and expedition-insertion races are exercised
+  -- live, never pre-empted by the triggers-off planting itself.
+  INSERT INTO public.pedidos(cliente_id,numero,status) VALUES (cli,986002,'confirmado') RETURNING id INTO pedMv;
+  INSERT INTO public.pedidos(cliente_id,numero,status) VALUES (cli,986003,'confirmado') RETURNING id INTO pedMaltv;
+  INSERT INTO public.lotes(numero,cliente_id,pedido_id) VALUES (986002,cli,pedMv) RETURNING id INTO loteM;
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986021,2026,'concluida','tecelagem',loteM) RETURNING id INTO opM;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opM,mm,50) RETURNING id INTO iM;
+
+  INSERT INTO public.pedidos(cliente_id,numero,status) VALUES (cli,986004,'confirmado') RETURNING id INTO pedNav;
+  INSERT INTO public.pedidos(cliente_id,numero,status) VALUES (cli,986005,'confirmado') RETURNING id INTO pedNbv;
+  INSERT INTO public.lotes(numero,cliente_id,pedido_id) VALUES (986003,cli,pedNav) RETURNING id INTO loteN;
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986022,2026,'concluida','tecelagem',loteN) RETURNING id INTO opN;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opN,mm,50) RETURNING id INTO itN;
+
+  INSERT INTO public.pedidos(cliente_id,numero,status) VALUES (cli,986006,'confirmado') RETURNING id INTO pedOv;
+  INSERT INTO public.lotes(numero,cliente_id,pedido_id) VALUES (986004,cli,pedOv) RETURNING id INTO loteO;
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986023,2026,'concluida','tecelagem',loteO) RETURNING id INTO opO;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opO,mm,50) RETURNING id INTO iO;
+
+  INSERT INTO public.pedidos(cliente_id,numero,status) VALUES (cli,986007,'confirmado') RETURNING id INTO pedPv;
+  INSERT INTO public.lotes(numero,cliente_id,pedido_id) VALUES (986005,cli,pedPv) RETURNING id INTO loteP;
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986024,2026,'concluida','tecelagem',loteP) RETURNING id INTO opP;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opP,mm,50) RETURNING id INTO iP;
+
+  INSERT INTO public.pedidos(cliente_id,numero,status) VALUES (cli,986008,'confirmado') RETURNING id INTO pedQv;
+  INSERT INTO public.lotes(numero,cliente_id,pedido_id) VALUES (986006,cli,pedQv) RETURNING id INTO loteQ;
+  INSERT INTO public.lotes(numero,cliente_id,pedido_id) VALUES (986007,cli,pedQv) RETURNING id INTO loteQ2;
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986025,2026,'concluida','tecelagem',loteQ) RETURNING id INTO opQ;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opQ,mm,50) RETURNING id INTO iQ;
+
+  INSERT INTO public.pedidos(cliente_id,numero,status) VALUES (cli,986009,'confirmado') RETURNING id INTO pedR1v;
+  INSERT INTO public.lotes(numero,cliente_id,pedido_id) VALUES (986008,cli,pedR1v) RETURNING id INTO loteR1;
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986026,2026,'concluida','tecelagem',loteR1) RETURNING id INTO opR1;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opR1,mm,50) RETURNING id INTO iR1;
+
+  INSERT INTO public.pedidos(cliente_id,numero,status) VALUES (cli,986010,'confirmado') RETURNING id INTO pedR2v;
+  INSERT INTO public.lotes(numero,cliente_id,pedido_id) VALUES (986009,cli,pedR2v) RETURNING id INTO loteR2;
+  INSERT INTO public.ops(numero,ano,status,tipo,lote_id) VALUES (986027,2026,'concluida','tecelagem',loteR2) RETURNING id INTO opR2;
+  INSERT INTO public.op_itens(op_id,modelo_id,metros_pedidos) VALUES (opR2,mm,50) RETURNING id INTO iR2;
+
   INSERT INTO public._b2_ids(k,v) VALUES
     ('mm',mm),('mt',mt),('lote',lote),('cli',cli),
     ('opA',opA),('opAt',opAt),('iA1',iA1),('iA2',iA2),('expA',expA),
@@ -343,7 +421,25 @@ BEGIN
     ('opJ',opJ),('iJ',iJ),('expJ',expJ),
     ('opK',opK),('iK',iK),('expK',expK),
     ('opM1',opM1),('iM1a',iM1a),('iM1b',iM1b),('expM1',expM1),
-    ('opM2',opM2),('iM2a',iM2a),('iM2b',iM2b),('expM2',expM2);
+    ('opM2',opM2),('iM2a',iM2a),('iM2b',iM2b),('expM2',expM2),
+    ('cli2',cli2),
+    ('loteM',loteM),('opM',opM),('iM',iM),
+    ('loteN',loteN),('opN',opN),('iN',itN),
+    ('loteO',loteO),('opO',opO),('iO',iO),
+    ('loteP',loteP),('opP',opP),('iP',iP),
+    ('loteQ',loteQ),('loteQ2',loteQ2),('opQ',opQ),('iQ',iQ),
+    ('loteR1',loteR1),('opR1',opR1),('iR1',iR1),
+    ('loteR2',loteR2),('opR2',opR2),('iR2',iR2);
+
+  INSERT INTO public._b2_uuids(k,v) VALUES
+    ('ped',ped),
+    ('pedM',pedMv),('pedMalt',pedMaltv),
+    ('pedNa',pedNav),('pedNb',pedNbv),
+    ('pedO',pedOv),
+    ('pedP',pedPv),
+    ('pedQ',pedQv),
+    ('pedR1',pedR1v),
+    ('pedR2',pedR2v);
 END
 $cf$;
 SET session_replication_role = origin;
@@ -526,12 +622,12 @@ async function resolveManifest() {
 }
 
 // ===========================================================================
-// PART A — full chain apply (db/01..83) + terminal-object presence.
+// PART A — full chain apply (db/01..84) + terminal-object presence.
 // ===========================================================================
 async function partA(handle) {
   const manifest = await resolveManifest();
-  check(manifest.length === 83, `manifest must be db/01..db/83 (got ${manifest.length})`);
-  check(manifest[manifest.length - 1].n === 83, `terminal migration must be db/83 (got ${manifest[manifest.length - 1].n})`);
+  check(manifest.length === 84, `manifest must be db/01..db/84 (got ${manifest.length})`);
+  check(manifest[manifest.length - 1].n === 84, `terminal migration must be db/84 (got ${manifest[manifest.length - 1].n})`);
 
   await applySql(handle, 'preamble.sql', PREAMBLE_SQL, 'preamble');
   for (const { n, file } of manifest) {
@@ -548,31 +644,32 @@ async function partA(handle) {
               'expedicoes_source_validation_guard','expedicao_itens_membership_guard',
               'op_itens_expedicao_reference_guard','entrega_itens_manta_consumo_guard',
               'entregas_manta_consumo_guard','ops_manta_reopen_guard','op_itens_source_nonempty_guard',
-              'ops_source_type_immutability_guard'));`);
-  check(objs === '1/YES/1/1/8', `db/81+db/82+db/83 terminal objects must all exist (tec_col/latex_nullable/chk/uk/triggers = ${objs})`);
-  log('PART_A', { migrations: manifest.length, terminal: 83, objects: objs, clean_apply: true });
+              'ops_source_type_immutability_guard','lotes_source_lineage_immutability_guard',
+              'pedidos_source_lineage_immutability_guard'));`);
+  check(objs === '1/YES/1/1/10', `db/81+db/82+db/83+db/84 terminal objects must all exist (tec_col/latex_nullable/chk/uk/triggers = ${objs})`);
+  log('PART_A', { migrations: manifest.length, terminal: 84, objects: objs, clean_apply: true });
 }
 
 // ===========================================================================
-// PART B — db/83 idempotent re-apply with zero drift.
+// PART B — db/84 idempotent re-apply with zero drift.
 // ===========================================================================
 async function partB(handle) {
   const before = await schemaFingerprint(handle);
-  applyFile(handle, path.join(REPO_ROOT, 'db', '83_manta_expedition_source_identity_correction.sql'), 'db/83 re-apply');
+  applyFile(handle, path.join(REPO_ROOT, 'db', '84_manta_expedition_source_lineage_correction.sql'), 'db/84 re-apply');
   const after = await schemaFingerprint(handle);
-  check(before === after, `idempotent re-apply of db/83 must cause zero schema drift (before=${before}, after=${after})`);
-  log('PART_B', { fingerprint_stable: true, reapply: 'db/83', drift: 'none' });
+  check(before === after, `idempotent re-apply of db/84 must cause zero schema drift (before=${before}, after=${after})`);
+  log('PART_B', { fingerprint_stable: true, reapply: 'db/84', drift: 'none' });
 }
 
 // ===========================================================================
-// PART C — the db/81/db/82 guards + the db/83 source-route/item-identity
-// proofs, in the same integration test, against db/01..83.
+// PART C — the db/81/db/82/db/83 guards + the db/84 Latex-route/lineage
+// proofs, in the same integration test, against db/01..84.
 // ===========================================================================
 async function partC(handle) {
   const file = path.join(HERE, 'manta-expedition-source.integration.sql');
   const out = applyFile(handle, file, 'manta-expedition-source.integration.sql');
   check(/MANTA_EXPEDITION_SOURCE_INTEGRATION_PASS/.test(out),
-    `db/81/db/82/db/83 integration test must pass under db/83 (got: ${out.trim().split(/\r?\n/).slice(-3).join(' / ')})`);
+    `db/81/db/82/db/83/db/84 integration test must pass under db/84 (got: ${out.trim().split(/\r?\n/).slice(-3).join(' / ')})`);
   log('PART_C', { integration_test: 'manta-expedition-source.integration.sql', result: 'PASS' });
 }
 
@@ -611,13 +708,22 @@ async function partE(handle) {
     'opC', 'iC1', 'expC', 'opD', 'opDt', 'itD', 'expD', 'opE', 'iE', 'expE', 'opF', 'iF1', 'iF2', 'expF',
     'opG', 'iG1', 'iG2', 'expG', 'opH', 'iH', 'opHx', 'iHx', 'expHx', 'opH3a', 'iH3a', 'opH3b', 'iH3b', 'opLx', 'iLx',
     'opI', 'iI', 'expI', 'opJ', 'iJ', 'expJ', 'opK', 'iK', 'expK',
-    'opM1', 'iM1a', 'iM1b', 'expM1', 'opM2', 'iM2a', 'iM2b', 'expM2'];
+    'opM1', 'iM1a', 'iM1b', 'expM1', 'opM2', 'iM2a', 'iM2b', 'expM2',
+    'cli2', 'loteM', 'opM', 'iM', 'loteN', 'opN', 'iN', 'loteO', 'opO', 'iO',
+    'loteP', 'opP', 'iP', 'loteQ', 'loteQ2', 'opQ', 'iQ', 'loteR1', 'opR1', 'iR1', 'loteR2', 'opR2', 'iR2'];
   for (const k of keys) {
     id[k] = Number(await scalar(handle, `SELECT v FROM public._b2_ids WHERE k='${k}';`));
     check(Number.isInteger(id[k]) && id[k] > 0, `fixture id ${k} must resolve (got ${id[k]})`);
   }
   const ped = await scalar(handle, `SELECT pedido_id FROM public.expedicoes WHERE id=${id.expA};`);
   check(/^[0-9a-f-]{36}$/.test(ped), `fixture pedido must resolve (got ${ped})`);
+
+  const uid = {};
+  const uuidKeys = ['pedM', 'pedMalt', 'pedNa', 'pedNb', 'pedO', 'pedP', 'pedQ', 'pedR1', 'pedR2'];
+  for (const k of uuidKeys) {
+    uid[k] = await scalar(handle, `SELECT v FROM public._b2_uuids WHERE k='${k}';`);
+    check(/^[0-9a-f-]{36}$/.test(uid[k]), `fixture uuid ${k} must resolve (got ${uid[k]})`);
+  }
 
   // ---- A: item move wins (post-lock ownership re-read; no stale accept) -------
   {
@@ -1014,8 +1120,8 @@ async function partE(handle) {
     ]);
     ins.send(`COMMIT; SELECT 'ICOMMIT';`);
     await ins.waitFor((l) => l === 'ICOMMIT');
-    check(/REJECTED\|/.test(cres) && /tipo e imutavel/i.test(cres),
-      `K: the ops.tipo change must be rejected by db/83 BLOCKER A (got ${cres})`);
+    check(/REJECTED\|/.test(cres) && /imutave.*fonte de expedicao/i.test(cres),
+      `K: the ops.tipo change must be rejected by db/83 BLOCKER A (widened by db/84 BLOCKER D to also cover lote_id; got ${cres})`);
     check(!/deadlock|40P01/i.test(holder.stderr + chg.stderr + ins.stderr), 'K: no deadlock');
     await holder.close();
     await chg.close();
@@ -1071,6 +1177,215 @@ async function partE(handle) {
     check(m1 === 'manta|2', `L: opM1 must stay homogeneous Manta with 2 items (got ${m1})`);
     check(m2 === 'manta|2', `L: opM2 must stay homogeneous Manta with 2 items (got ${m2})`);
     log('L', { outcome: 'opposing_moves_serialized_ascending__both_committed', opM1: m1, opM2: m2 });
+  }
+
+  // ---- M: db/84 lineage-insert-wins vs Lote update (BLOCKER B/E) ---------------
+  {
+    const ins = openSession(handle, 'M-ins');
+    ins.send('BEGIN;');
+    ins.send(`SELECT 'IPID|' || pg_backend_pid();`);
+    const ipid = Number((await ins.waitFor((l) => l.startsWith('IPID|'))).split('|')[1]);
+    ins.send(`INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES ('${uid.pedM}', ${id.opM}, ${id.loteM}, ${id.cli}); SELECT 'INS_DONE';`);
+    await ins.waitFor((l) => l === 'INS_DONE');   // holds loteM FOR SHARE (+ opM/pedM), uncommitted
+
+    const chg = openSession(handle, 'M-chg');
+    chg.send(`SELECT 'CPID|' || pg_backend_pid();`);
+    const cpid = Number((await chg.waitFor((l) => l.startsWith('CPID|'))).split('|')[1]);
+    chg.send(`CREATE TEMP TABLE _m(v text);`);
+    chg.send(`DO $$ BEGIN
+        UPDATE public.lotes SET pedido_id='${uid.pedMalt}' WHERE id=${id.loteM};
+        INSERT INTO _m VALUES ('UNEXPECTED_OK');
+      EXCEPTION WHEN OTHERS THEN INSERT INTO _m VALUES ('REJECTED|'||SQLERRM); END $$;`);
+    chg.send(`SELECT 'CRES|' || v FROM _m;`);
+    await waitForBlock(handle, cpid, ipid);
+    log('M', { ins_pid: ipid, chg_pid: cpid, chg_blocked_by_ins: true });
+
+    ins.send(`COMMIT; SELECT 'ICOMMIT';`);
+    await ins.waitFor((l) => l === 'ICOMMIT');
+    const res = await chg.waitFor((l) => l.startsWith('CRES|'));
+    chg.send('ROLLBACK;');
+    check(/REJECTED\|/.test(res), `M: the Lote pedido_id change must be rejected once the expedition insert commits (got ${res})`);
+    check(!/deadlock|40P01/i.test(ins.stderr + chg.stderr), 'M: no deadlock');
+    await ins.close();
+    await chg.close();
+
+    const lotePedido = await scalar(handle, `SELECT pedido_id FROM public.lotes WHERE id=${id.loteM};`);
+    check(lotePedido === uid.pedM, `M: loteM.pedido_id must remain aligned (got ${lotePedido})`);
+    const expCt = await scalar(handle, `SELECT count(*) FROM public.expedicoes WHERE op_tecelagem_id=${id.opM};`);
+    check(Number(expCt) === 1, `M: exactly one expedition for opM (got ${expCt})`);
+    log('M', { outcome: 'expedition_insert_wins__lote_update_rejected' });
+  }
+
+  // ---- N: db/84 Lote-update-wins (BLOCKER B) -----------------------------------
+  {
+    const chg = openSession(handle, 'N-chg');
+    chg.send('BEGIN;');
+    chg.send(`SELECT 'CPID|' || pg_backend_pid();`);
+    const cpid = Number((await chg.waitFor((l) => l.startsWith('CPID|'))).split('|')[1]);
+    chg.send(`UPDATE public.lotes SET pedido_id='${uid.pedNb}' WHERE id=${id.loteN}; SELECT 'CHG_DONE';`);
+    await chg.waitFor((l) => l === 'CHG_DONE');   // holds loteN lock, uncommitted (Blocker E inert: no source yet)
+
+    const ins = openSession(handle, 'N-ins');
+    ins.send(`SELECT 'IPID|' || pg_backend_pid();`);
+    const ipid = Number((await ins.waitFor((l) => l.startsWith('IPID|'))).split('|')[1]);
+    ins.send(`CREATE TEMP TABLE _n(v text);`);
+    ins.send(`DO $$ BEGIN
+        INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES ('${uid.pedNa}', ${id.opN}, ${id.loteN}, ${id.cli});
+        INSERT INTO _n VALUES ('UNEXPECTED_OK');
+      EXCEPTION WHEN OTHERS THEN INSERT INTO _n VALUES ('REJECTED|'||SQLERRM); END $$;`);
+    ins.send(`SELECT 'IRES|' || v FROM _n;`);
+    await waitForBlock(handle, ipid, cpid);
+    log('N', { chg_pid: cpid, ins_pid: ipid, ins_blocked_by_chg: true });
+
+    chg.send(`COMMIT; SELECT 'CCOMMIT';`);
+    await chg.waitFor((l) => l === 'CCOMMIT');
+    const res = await ins.waitFor((l) => l.startsWith('IRES|'));
+    check(/REJECTED\|/.test(res), `N: the stale-payload expedition insert must be rejected against the committed Lote (got ${res})`);
+    check(!/deadlock|40P01/i.test(chg.stderr + ins.stderr), 'N: no deadlock');
+    await chg.close();
+    await ins.close();
+
+    const refreshed = await attempt(handle, 'N-refresh',
+      `INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES ('${uid.pedNb}', ${id.opN}, ${id.loteN}, ${id.cli})`);
+    check(refreshed === 'OK', `N: a correctly refreshed payload must succeed (got ${refreshed})`);
+    const expCt = await scalar(handle, `SELECT count(*) FROM public.expedicoes WHERE op_tecelagem_id=${id.opN};`);
+    check(Number(expCt) === 1, `N: exactly one expedition for opN (got ${expCt})`);
+    log('N', { outcome: 'lote_update_wins__stale_insert_rejected__refreshed_insert_accepted' });
+  }
+
+  // ---- O: db/84 lineage-insert-wins vs Pedido update (BLOCKER B/F) ------------
+  {
+    const ins = openSession(handle, 'O-ins');
+    ins.send('BEGIN;');
+    ins.send(`SELECT 'IPID|' || pg_backend_pid();`);
+    const ipid = Number((await ins.waitFor((l) => l.startsWith('IPID|'))).split('|')[1]);
+    ins.send(`INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES ('${uid.pedO}', ${id.opO}, ${id.loteO}, ${id.cli}); SELECT 'INS_DONE';`);
+    await ins.waitFor((l) => l === 'INS_DONE');
+
+    const chg = openSession(handle, 'O-chg');
+    chg.send(`SELECT 'CPID|' || pg_backend_pid();`);
+    const cpid = Number((await chg.waitFor((l) => l.startsWith('CPID|'))).split('|')[1]);
+    chg.send(`CREATE TEMP TABLE _o(v text);`);
+    chg.send(`DO $$ BEGIN
+        UPDATE public.pedidos SET cliente_id=${id.cli2} WHERE id='${uid.pedO}';
+        INSERT INTO _o VALUES ('UNEXPECTED_OK');
+      EXCEPTION WHEN OTHERS THEN INSERT INTO _o VALUES ('REJECTED|'||SQLERRM); END $$;`);
+    chg.send(`SELECT 'CRES|' || v FROM _o;`);
+    await waitForBlock(handle, cpid, ipid);
+    log('O', { ins_pid: ipid, chg_pid: cpid, chg_blocked_by_ins: true });
+
+    ins.send(`COMMIT; SELECT 'ICOMMIT';`);
+    await ins.waitFor((l) => l === 'ICOMMIT');
+    const res = await chg.waitFor((l) => l.startsWith('CRES|'));
+    chg.send('ROLLBACK;');
+    check(/REJECTED\|/.test(res), `O: the Pedido cliente_id change must be rejected once the expedition insert commits (got ${res})`);
+    check(!/deadlock|40P01/i.test(ins.stderr + chg.stderr), 'O: no deadlock');
+    await ins.close();
+    await chg.close();
+
+    const pedCliente = await scalar(handle, `SELECT cliente_id FROM public.pedidos WHERE id='${uid.pedO}';`);
+    check(Number(pedCliente) === id.cli, `O: pedO.cliente_id must remain aligned (got ${pedCliente})`);
+    log('O', { outcome: 'expedition_insert_wins__pedido_update_rejected' });
+  }
+
+  // ---- P: db/84 Pedido-update-wins (BLOCKER B) ---------------------------------
+  {
+    const chg = openSession(handle, 'P-chg');
+    chg.send('BEGIN;');
+    chg.send(`SELECT 'CPID|' || pg_backend_pid();`);
+    const cpid = Number((await chg.waitFor((l) => l.startsWith('CPID|'))).split('|')[1]);
+    chg.send(`UPDATE public.pedidos SET cliente_id=${id.cli2} WHERE id='${uid.pedP}'; SELECT 'CHG_DONE';`);
+    await chg.waitFor((l) => l === 'CHG_DONE');   // Blocker F inert: no source yet
+
+    const ins = openSession(handle, 'P-ins');
+    ins.send(`SELECT 'IPID|' || pg_backend_pid();`);
+    const ipid = Number((await ins.waitFor((l) => l.startsWith('IPID|'))).split('|')[1]);
+    ins.send(`CREATE TEMP TABLE _p(v text);`);
+    ins.send(`DO $$ BEGIN
+        INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES ('${uid.pedP}', ${id.opP}, ${id.loteP}, ${id.cli});
+        INSERT INTO _p VALUES ('UNEXPECTED_OK');
+      EXCEPTION WHEN OTHERS THEN INSERT INTO _p VALUES ('REJECTED|'||SQLERRM); END $$;`);
+    ins.send(`SELECT 'IRES|' || v FROM _p;`);
+    await waitForBlock(handle, ipid, cpid);
+    log('P', { chg_pid: cpid, ins_pid: ipid, ins_blocked_by_chg: true });
+
+    chg.send(`COMMIT; SELECT 'CCOMMIT';`);
+    await chg.waitFor((l) => l === 'CCOMMIT');
+    const res = await ins.waitFor((l) => l.startsWith('IRES|'));
+    check(/REJECTED\|/.test(res), `P: the expedition insert must be rejected once the Pedido client is committed (got ${res})`);
+    check(!/deadlock|40P01/i.test(chg.stderr + ins.stderr), 'P: no deadlock');
+    await chg.close();
+    await ins.close();
+
+    const expCt = await scalar(handle, `SELECT count(*) FROM public.expedicoes WHERE op_tecelagem_id=${id.opP};`);
+    check(Number(expCt) === 0, `P: no expedition may have been created for opP (got ${expCt})`);
+    log('P', { outcome: 'pedido_update_wins__stale_insert_rejected' });
+  }
+
+  // ---- Q: db/84 OP-lote-change-vs-insert (BLOCKER B/D) -------------------------
+  {
+    const mover = openSession(handle, 'Q-mover');
+    mover.send('BEGIN;');
+    mover.send(`SELECT 'MPID|' || pg_backend_pid();`);
+    const mpid = Number((await mover.waitFor((l) => l.startsWith('MPID|'))).split('|')[1]);
+    mover.send(`UPDATE public.ops SET lote_id=${id.loteQ2} WHERE id=${id.opQ}; SELECT 'MOVE_DONE';`);
+    await mover.waitFor((l) => l === 'MOVE_DONE');   // Blocker D inert: no source yet
+
+    const ins = openSession(handle, 'Q-ins');
+    ins.send(`SELECT 'IPID|' || pg_backend_pid();`);
+    const ipid = Number((await ins.waitFor((l) => l.startsWith('IPID|'))).split('|')[1]);
+    ins.send(`CREATE TEMP TABLE _q(v text);`);
+    ins.send(`DO $$ BEGIN
+        INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES ('${uid.pedQ}', ${id.opQ}, ${id.loteQ}, ${id.cli});
+        INSERT INTO _q VALUES ('UNEXPECTED_OK');
+      EXCEPTION WHEN OTHERS THEN INSERT INTO _q VALUES ('REJECTED|'||SQLERRM); END $$;`);
+    ins.send(`SELECT 'IRES|' || v FROM _q;`);
+    await waitForBlock(handle, ipid, mpid);
+    log('Q', { mover_pid: mpid, ins_pid: ipid, ins_blocked_by_mover: true });
+
+    mover.send(`COMMIT; SELECT 'MCOMMIT';`);
+    await mover.waitFor((l) => l === 'MCOMMIT');
+    const res = await ins.waitFor((l) => l.startsWith('IRES|'));
+    check(/REJECTED\|/.test(res), `Q: the stale-lote insert must be rejected against the committed ops.lote_id (got ${res})`);
+    check(!/deadlock|40P01/i.test(mover.stderr + ins.stderr), 'Q: no deadlock');
+    await mover.close();
+    await ins.close();
+
+    const opLote = await scalar(handle, `SELECT lote_id FROM public.ops WHERE id=${id.opQ};`);
+    check(Number(opLote) === id.loteQ2, `Q: opQ.lote_id must remain the committed value (got ${opLote})`);
+    const expCt = await scalar(handle, `SELECT count(*) FROM public.expedicoes WHERE op_tecelagem_id=${id.opQ};`);
+    check(Number(expCt) === 0, `Q: no split-lineage expedition may exist for opQ (got ${expCt})`);
+    log('Q', { outcome: 'op_lote_change_wins__stale_insert_rejected__no_split_lineage' });
+  }
+
+  // ---- R: db/84 independent sources do not serialize ---------------------------
+  {
+    const t1 = openSession(handle, 'R-t1');
+    t1.send('BEGIN;');
+    t1.send(`SELECT 'T1PID|' || pg_backend_pid();`);
+    const t1pid = Number((await t1.waitFor((l) => l.startsWith('T1PID|'))).split('|')[1]);
+    t1.send(`INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES ('${uid.pedR1}', ${id.opR1}, ${id.loteR1}, ${id.cli}); SELECT 'T1INS_DONE';`);
+    await t1.waitFor((l) => l === 'T1INS_DONE');
+
+    const t2 = openSession(handle, 'R-t2');
+    t2.send('BEGIN;');
+    t2.send(`SELECT 'T2PID|' || pg_backend_pid();`);
+    const t2pid = Number((await t2.waitFor((l) => l.startsWith('T2PID|'))).split('|')[1]);
+    t2.send(`INSERT INTO public.expedicoes(pedido_id,op_tecelagem_id,lote_id,cliente_id) VALUES ('${uid.pedR2}', ${id.opR2}, ${id.loteR2}, ${id.cli}); SELECT 'T2INS_DONE';`);
+    await t2.waitFor((l) => l === 'T2INS_DONE', 10000);
+    const blk = await blockingPids(handle, t2pid);
+    check(!blk.split(',').includes(String(t1pid)), `R: independent sources must not serialize (blockers=${blk})`);
+    t2.send(`COMMIT; SELECT 'T2COMMIT';`);
+    await t2.waitFor((l) => l === 'T2COMMIT');
+    t1.send(`COMMIT; SELECT 'T1COMMIT';`);
+    await t1.waitFor((l) => l === 'T1COMMIT');
+    await t1.close();
+    await t2.close();
+
+    const ct1 = await scalar(handle, `SELECT count(*) FROM public.expedicoes WHERE op_tecelagem_id=${id.opR1};`);
+    const ct2 = await scalar(handle, `SELECT count(*) FROM public.expedicoes WHERE op_tecelagem_id=${id.opR2};`);
+    check(Number(ct1) === 1 && Number(ct2) === 1, `R: both independent expeditions must commit (opR1=${ct1}, opR2=${ct2})`);
+    log('R', { outcome: 'independent_sources_no_serialization', no_deadlock: true });
   }
 }
 
