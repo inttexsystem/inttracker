@@ -1666,3 +1666,25 @@ Lote/Pedido-update-wins, OP-lote-change-vs-insert, independent-source
 non-serialization — plus the unchanged db/82/db/83 Tests A–L): full db/01..84
 apply, db/84 idempotent re-apply zero drift, no `40P01`; cluster destroyed
 with proof.
+
+## Update 2026-07-24 — PHASE-MANTA-B1 applied and verified in shared development (db/81–84)
+
+Order `PHASE-MANTA-B1-SHARED-DEV-APPLY-LIVE-VALIDATION-AND-CLOSEOUT-R1`:
+db/81_manta_expedition_source_foundation.sql, db/82_manta_expedition_source_invariant_correction.sql,
+db/83_manta_expedition_source_identity_correction.sql and
+db/84_manta_expedition_source_lineage_correction.sql were applied once, in
+order, to shared development `ucrjtfswnfdlxwtmxnoo` (versions `20260724194841`,
+`20260724195045`, `20260724195311`, `20260724195540`; terminal advanced
+80 → 84), through the dedicated project-scoped migration mechanism — no file
+combined or modified, no shared-dev DDL retry. Governing contract:
+`MANTA_DIRECT_ROUTE_PHASE_CONTRACT.md` §14, which owns the full live
+schema/guard/lineage evidence, the rolled-back distinct-session-equivalent
+validation (8 mandatory proofs), and the zero-business-data/dormant-foundation
+evidence. This section records only that the schema shapes and function
+bodies described in the db/81–84 update sections above (this file) are now
+live and byte-verified on shared development: `pg_get_functiondef` on
+`expedicoes_source_validation_guard_fn` matched the committed db/84 source
+exactly; all ten guard triggers are present and fire in the documented
+alphabetical order on `ops`/`op_itens`/`lotes`/`pedidos`; the operational
+corpus stayed empty throughout. No staging or production apply is authorized
+by this order.

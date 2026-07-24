@@ -1,19 +1,21 @@
 # Manta Direct Route — PHASE-MANTA-B Phase Contract
 
-STATUS: PHASE-MANTA-B1 IMPLEMENTED / LOCALLY AND CONCURRENTLY VERIFIED /
-AWAITING ARCHITECT REVIEW. PHASE-MANTA-B1 remains open. PHASE-MANTA-B2 (route
-activation) is NOT authorized and no phase chains automatically.
+STATUS: PHASE-MANTA-B1 CLOSED / ACCEPTED / APPLIED TO SHARED DEVELOPMENT / LIVE
+DATABASE VERIFIED. PHASE-MANTA-B2 (route activation) is NOT authorized and no
+phase chains automatically.
 
 Orders (B1): `PHASE-MANTA-B1-EXPEDITION-SOURCE-FOUNDATION-R1` (db/81),
 `PHASE-MANTA-B1-SOURCE-MEMBERSHIP-AND-LOCK-ORDER-CORRECTION-R1` (db/82, §11),
-`PHASE-MANTA-B1-SOURCE-ROUTE-AND-ITEM-IDENTITY-CORRECTION-R1` (db/83, §12) and
-`PHASE-MANTA-B1-SOURCE-LINEAGE-AND-LATEX-ROUTE-CORRECTION-R1` (db/84, §13).
+`PHASE-MANTA-B1-SOURCE-ROUTE-AND-ITEM-IDENTITY-CORRECTION-R1` (db/83, §12),
+`PHASE-MANTA-B1-SOURCE-LINEAGE-AND-LATEX-ROUTE-CORRECTION-R1` (db/84, §13) and
+`PHASE-MANTA-B1-SHARED-DEV-APPLY-LIVE-VALIDATION-AND-CLOSEOUT-R1` (§14).
 Predecessor: `MANTA_PRODUCT_VARIANT_PHASE_CONTRACT.md` (PHASE-MANTA-A, CLOSED /
 ACCEPTED — product identity + route homogeneity, db/78–db/80). This contract owns
 the Manta **direct weaving→client route** semantics; PHASE-MANTA-A remains the
 owner of Manta product identity. §11 records the db/82 forward correction, §12 the
-db/83 forward correction, §13 the db/84 forward correction; the db/81 sections
-below are preserved and read with §11, §12 and §13 applied.
+db/83 forward correction, §13 the db/84 forward correction, §14 the
+shared-development apply, live validation and closeout; the db/81 sections below
+are preserved and read with §11, §12, §13 and §14 applied.
 
 ## 1. Objective and boundary
 
@@ -219,13 +221,12 @@ access was used; the baseline matched.
 
 ## 10. Status and next authorizable action
 
-PHASE-MANTA-B1 is IMPLEMENTED / LOCALLY AND CONCURRENTLY VERIFIED / AWAITING
-ARCHITECT REVIEW; it remains open. db/81, db/82, db/83 and db/84 are versioned in
-the repository and applied only to disposable local clusters — **no
-shared-development, staging, or production apply** is authorized by these orders.
-The next authorizable action is architect review of PHASE-MANTA-B1 (db/81 + the
-db/82, db/83 and db/84 corrections); PHASE-MANTA-B2 (route activation) requires a
-new explicit order and does not chain automatically.
+PHASE-MANTA-B1 is CLOSED / ACCEPTED / APPLIED TO SHARED DEVELOPMENT / LIVE
+DATABASE VERIFIED (§14). db/81, db/82, db/83 and db/84 were applied once, in
+order, to shared development `ucrjtfswnfdlxwtmxnoo` and live-validated; no
+staging or production apply is authorized. The next authorizable action is
+`PHASE-MANTA-B2-ACTIVATION-CONTRACT-R1`; PHASE-MANTA-B2 (route activation)
+requires a new explicit order and does not chain automatically.
 
 ## 11. Forward correction — db/82 (source immutability, post-lock membership, source non-emptiness)
 
@@ -514,3 +515,91 @@ insert holding a stale `lote_id` is rejected; no split lineage), R independent
 sources on fully separate OP/Lote/Pedido chains do not serialize — cluster
 destroyed with PID/port/dir proof. `tests/ordem-compra-c3d-deploy.smoke.js`
 advanced 83 → 84 (terminal two `db/83`/`db/84`).
+
+## 14. Shared-development application, live validation and closeout (PHASE-MANTA-B1)
+
+Order `PHASE-MANTA-B1-SHARED-DEV-APPLY-LIVE-VALIDATION-AND-CLOSEOUT-R1` authorized
+the first (and only) shared-development apply of PHASE-MANTA-B1. db/81, db/82,
+db/83 and db/84 were applied once, in order, to shared development
+`ucrjtfswnfdlxwtmxnoo` through the dedicated project-scoped migration mechanism
+(each migration recorded independently in migration history; no file combined or
+modified). Production (`gqmpsxkxynrjvidfmojk`) and the forbidden project
+(`bhgifjrfagkzubpyqpew`) were not touched; no Vercel deployment occurred.
+
+**Precondition gate (proved before any mutation).** Repository at branch `dev`,
+HEAD `6665b125c290b9caad5ef0b3b9142ee21e0ac14b`, local and remote `staging/dev`
+equal, 0/0 divergence, empty index, exact protected residue. Shared-development
+migration history terminal was `80_manta_model_reference_concurrency_correction`
+before this apply, with db/81–84 absent and no partial db/81–84 objects present.
+The operational corpus (pedidos, lotes, ops, op_itens, entregas, entrega_itens,
+pedido_itens, expedicoes, expedicao_itens) was entirely empty; `clientes` held 4
+reference rows and `modelos` held 12 rows including the PHASE-MANTA-A ARABESCO
+Manta model (`id=13`, `tipo_produto='manta'`, `largura=1.40`), confirming
+PHASE-MANTA-A identity remained valid. The db/84 pre-existing-data gate therefore
+evaluated over zero `expedicoes` rows (trivially clean).
+
+**Migration history (recorded once, in order).**
+- `81_manta_expedition_source_foundation` — version `20260724194841`.
+- `82_manta_expedition_source_invariant_correction` — version `20260724195045`.
+- `83_manta_expedition_source_identity_correction` — version `20260724195311`.
+- `84_manta_expedition_source_lineage_correction` — version `20260724195540`.
+
+Terminal advanced 80 → 84 on shared development.
+
+**Live schema/guard evidence (read-only).** `expedicoes.op_tecelagem_id` exists
+(nullable); `expedicoes.op_latex_id` is nullable; `expedicoes_exactly_one_source_chk`
+and the partial unique index `expedicoes_op_tecelagem_id_uk` are present. All ten
+db/81–84 guard triggers are live and fire in the documented order:
+`op_itens` — `op_itens_expedicao_reference_guard`, `op_itens_route_homogeneity_guard`,
+`op_itens_source_nonempty_guard`; `ops` — `ops_manta_reopen_guard`,
+`ops_source_type_immutability_guard`; `lotes` — `lotes_source_lineage_immutability_guard`;
+`pedidos` — `pedidos_source_lineage_immutability_guard` (alongside the pre-existing
+db/15 triggers, unaffected). `pg_get_functiondef` on
+`expedicoes_source_validation_guard_fn` was fetched and compared byte-for-byte
+against the committed db/84 source: identical, including the symmetric Latex/Manta
+route validation (BLOCKER A), the OP→Lote→Pedido→Cliente lineage derivation/match
+(BLOCKER B) and the immutable-lineage UPDATE branch (BLOCKER C). All sixteen
+inspected functions (the ten new/corrected guards plus `gerar_op_latex`,
+`gerar_op_latex_split`, `liberar_expedicao`, `liberar_expedicao_latex_parcial`,
+`registrar_entrega_expedicao`) are `SECURITY DEFINER` with `search_path=public`.
+`gerar_op_latex`/`gerar_op_latex_split` still reject a Manta origin (unchanged
+db/78 body); their `EXECUTE` grants to `anon`/`authenticated`/`service_role`, and
+those of the three Latex expedition/delivery RPCs, are unchanged. No function
+anywhere in the schema references `op_tecelagem_id` except the two db/81
+consumption guards — confirming no Manta expedition writer exists.
+`entregas_destino_cima_chk` is unchanged: `CHECK ((etapa <> 'cima') OR
+(destino_fornecedor_id IS NOT NULL))`. `salvarEntregaCima` is a frontend function
+(not a database object) and was not touched by this order.
+
+**Rolled-back validation evidence.** One transaction, explicit sentinel IDs
+(`999990001`–`999990005` range; no business sequence consumed), ended in
+`ROLLBACK`, proved all eight mandatory behaviors: (1) a valid Manta source
+expedition header accepted; (2) a Tapete weaving OP rejected as
+`op_tecelagem_id`; (3) a Manta-typed Latex source rejected; (4) mismatched
+Pedido/Lote/Cliente lineage rejected; (5) a wrong expedition-item `modelo_id`
+rejected; (6) a wrong `pedido_item_id` rejected; (7) a source mutation
+(`op_tecelagem_id` change) rejected; (8) removal of a selected source OP's last
+item rejected. A follow-up read-only query proved zero sentinel rows remain in
+every touched table and `clientes` returned to its original 4 rows; migration
+history was re-checked and remained unchanged (still terminal `84`, 34 entries,
+no new rows from this transaction).
+
+**Zero-business-data evidence.** Before and after the full apply and the
+rolled-back validation, the entire operational corpus (pedidos, lotes, ops,
+op_itens, entregas, entrega_itens, pedido_itens, expedicoes, expedicao_itens,
+op_eventos) remained at zero rows. No Pedido, OP, Lote, entrega, expedição or
+event was created. No persistent fixture was planted.
+
+**Dormant-foundation evidence.** No current UI action creates a Manta
+expedition; no RPC creates an expedition through `op_tecelagem_id` (confirmed by
+the function-body sweep above); no route-aware progress or dynamic Manta
+stepper exists; `entregas_destino_cima_chk` was not relaxed; Tapete production
+and expedition behavior (RPC signatures, grants, and the rolled-back tests 1–3
+proving route separation) remain unchanged. No product UI or JavaScript file
+was touched by this order.
+
+**Status.** PHASE-MANTA-B1 is CLOSED / ACCEPTED / APPLIED TO SHARED DEVELOPMENT
+/ LIVE DATABASE VERIFIED. The Manta direct route remains dormant. Business-flow
+recreation remains paused. The next authorizable action is
+`PHASE-MANTA-B2-ACTIVATION-CONTRACT-R1`; PHASE-MANTA-B2 implementation remains
+unauthorized and no phase chains automatically.
