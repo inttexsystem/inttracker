@@ -48,25 +48,21 @@ const indexSrc = fs.readFileSync(INDEX, 'utf8');
 // Helpers estáticos
 // -----------------------------------------------------------------------------
 
+// index.html nao tem mais <script> inline: o bootstrap foi extraido para
+// js/boot.js. Os helpers abaixo enderecam o dono atual
+// (tests/_app-source.js) e toleram o cache-token `?v=` dos assets locais.
+const appSource = require('./_app-source.js');
+
 function extractInlineScript(html) {
-  const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
-  const matches = [];
-  let m;
-  while ((m = re.exec(html)) !== null) matches.push(m[1]);
-  if (matches.length === 0) throw new Error('nenhum <script> inline encontrado');
-  return matches.reduce((a, b) => (a.length >= b.length ? a : b));
+  return appSource.readBootScript(html);
 }
 
 function findScriptIdx(html, src) {
-  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}"\\s*><\\/script>`);
-  const m = re.exec(html);
-  return m ? m.index : -1;
+  return appSource.scriptIndex(html, src);
 }
 
 function firstInlineScriptIndex(html) {
-  const re = /<script(?![^>]*\bsrc=)[^>]*>/g;
-  const m = re.exec(html);
-  return m ? m.index : -1;
+  return appSource.bootScriptIndex(html);
 }
 
 function stripComments(src) {
@@ -327,10 +323,9 @@ test('js/environment-banner.js tem sintaxe JS válida (node --check)', () => {
 });
 
 test('index.html carrega js/environment-banner.js EXATAMENTE UMA VEZ no <head>', () => {
-  const re = /<script\s+src="js\/environment-banner\.js"\s*><\/script>/g;
-  const matches = indexSrc.match(re) || [];
-  assert.equal(matches.length, 1,
-    `esperado 1 <script src="js/environment-banner.js">, encontrado ${matches.length}`);
+  // Todos os assets locais carregam com cache-token `?v=...`.
+  assert.equal(appSource.countScriptTags(indexSrc, 'js/environment-banner.js'), 1,
+    'esperado exatamente 1 <script src="js/environment-banner.js">');
 });
 
 test('index.html: ordem dos scripts: config → supabase-client → environment-banner → inline', () => {
@@ -355,9 +350,9 @@ test('script inline NÃO contém mais o env-banner (extraído para js/environmen
     'script inline ainda referencia _envBanner');
   assert.equal(/AMBIENTE STAGING — DADOS DE TESTE/.test(inline), false,
     'script inline ainda tem texto do env-banner');
-  // Após ROUTER-MODULE-A, o inline começa em === BOOT NOTES === (router,
-  // auth e env-banner foram extraídos em fases anteriores).
-  assert.match(inline, /=== BOOT NOTES/);
+  // O bootstrap deixou de ser inline: virou js/boot.js (Seam C). O marcador
+  // que identificava o bloco de boot acompanhou a extração.
+  assert.match(inline, /=== BOOT \(Seam C\)/);
   // Garantia adicional via stripComments: nenhum identificador do
   // env-banner sobrevive à remoção de comentários.
   const noComments = stripComments(inline);
@@ -650,7 +645,9 @@ test('http.server: index.html servido contém js/environment-banner.js antes do 
           const cfgIdx   = body.indexOf('js/config.js');
           const supaIdx  = body.indexOf('js/supabase-client.js');
           const envIdx   = body.indexOf('js/environment-banner.js');
-          const inlineIdx = body.indexOf('<script>');
+          // O bootstrap virou js/boot.js — o marcador de "fim da cadeia de
+          // scripts" passou a ser a tag do boot, não uma tag inline.
+          const inlineIdx = appSource.bootScriptIndex(body);
           assert.ok(cfgIdx   > 0, 'js/config.js não encontrado');
           assert.ok(supaIdx  > 0, 'js/supabase-client.js não encontrado');
           assert.ok(envIdx   > 0, 'js/environment-banner.js não encontrado');

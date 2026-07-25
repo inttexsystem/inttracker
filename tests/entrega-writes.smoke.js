@@ -1770,8 +1770,14 @@ test('56. screenPainel renderiza via shellLayout com ADMIN_MENU atual', () => {
   const flex = root.children.find((c) => c.tagName === 'DIV');
   const aside = flex && flex.children.find((c) => c.tagName === 'ASIDE');
   const links = aside && aside.children.filter((c) => c.tagName === 'A');
-  assert.ok(links && links.length === 10,
-    `screenPainel nao renderizou 10 itens do ADMIN_MENU (renderizou ${links ? links.length : 0})`);
+  // O número era fixo em 10 e envelheceu quando "Ordens de compra" e
+  // "Documentos" entraram no menu por fases já aceitas. A guarda real é
+  // "o painel renderiza o menu canônico INTEIRO" — então compara com o
+  // dono único (ADMIN_MENU de js/screens/common.js), não com um literal.
+  const esperado = vm.runInContext('window.ADMIN_MENU.length', sandbox);
+  assert.ok(esperado > 0, 'ADMIN_MENU canônico não carregou no sandbox');
+  assert.ok(links && links.length === esperado,
+    `screenPainel nao renderizou os ${esperado} itens do ADMIN_MENU (renderizou ${links ? links.length : 0})`);
 });
 
 test('57. screenCadastrosCores (cadastros) ainda renderiza (regressão cadastros)', async () => {

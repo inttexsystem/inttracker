@@ -48,25 +48,21 @@ const indexSrc = fs.readFileSync(INDEX, 'utf8');
 // Helpers de validação estática
 // -----------------------------------------------------------------------------
 
+// index.html nao tem mais <script> inline: o bootstrap foi extraido para
+// js/boot.js. Os helpers abaixo enderecam o dono atual
+// (tests/_app-source.js) e toleram o cache-token `?v=` dos assets locais.
+const appSource = require('./_app-source.js');
+
 function extractInlineScript(html) {
-  const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
-  const matches = [];
-  let m;
-  while ((m = re.exec(html)) !== null) matches.push(m[1]);
-  if (matches.length === 0) throw new Error('nenhum <script> inline encontrado');
-  return matches.reduce((a, b) => (a.length >= b.length ? a : b));
+  return appSource.readBootScript(html);
 }
 
 function findScriptIdx(html, src) {
-  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}"\\s*><\\/script>`);
-  const m = re.exec(html);
-  return m ? m.index : -1;
+  return appSource.scriptIndex(html, src);
 }
 
 function firstInlineScriptIndex(html) {
-  const re = /<script(?![^>]*\bsrc=)[^>]*>/g;
-  const m = re.exec(html);
-  return m ? m.index : -1;
+  return appSource.bootScriptIndex(html);
 }
 
 // -----------------------------------------------------------------------------
@@ -211,10 +207,9 @@ test('js/auth.js: sintaxe JS válida (node --check)', () => {
 });
 
 test('index.html carrega js/auth.js EXATAMENTE UMA VEZ no <head>', () => {
-  const re = /<script\s+src="js\/auth\.js"\s*><\/script>/g;
-  const matches = indexSrc.match(re) || [];
-  assert.equal(matches.length, 1,
-    `esperado 1 <script src="js/auth.js">, encontrado ${matches.length}`);
+  // Todos os assets locais carregam com cache-token `?v=...`.
+  assert.equal(appSource.countScriptTags(indexSrc, 'js/auth.js'), 1,
+    'esperado exatamente 1 <script src="js/auth.js">');
 });
 
 test('index.html: ordem config → supabase-client → environment-banner → auth → inline', () => {
@@ -789,7 +784,9 @@ test('http.server: index.html servido contém js/auth.js antes do inline', (t, d
           const supaIdx  = body.indexOf('js/supabase-client.js');
           const envIdx   = body.indexOf('js/environment-banner.js');
           const authIdx  = body.indexOf('js/auth.js');
-          const inlineIdx = body.indexOf('<script>');
+          // O bootstrap virou js/boot.js — o marcador de "fim da cadeia de
+          // scripts" passou a ser a tag do boot, não uma tag inline.
+          const inlineIdx = appSource.bootScriptIndex(body);
           assert.ok(cfgIdx > 0);
           assert.ok(supaIdx > 0);
           assert.ok(envIdx > 0);

@@ -85,9 +85,14 @@ const ROUTER = path.join(ROOT, 'js', 'router.js');
 const INDEX  = path.join(ROOT, 'index.html');
 const SCHEMA = path.join(ROOT, 'db', '13_pedidos_schema.sql');
 
+// HARNESS: leitura normalizada em LF. O `codeOnly` abaixo remove comentarios
+// de linha com uma regex ancorada em fim de linha, e essa ancora NAO casa num
+// checkout CRLF (em JS o ponto nao casa CR, e a ancora sem flag multiline nao
+// casa antes de CR). Sem normalizar, os bans textuais passam a acusar o que o
+// modulo DOCUMENTA em vez do que ele contem. Ver tests/_app-source.js.
 function readOrFail(p) {
   assert.ok(fs.existsSync(p), 'arquivo não encontrado: ' + p);
-  return fs.readFileSync(p, 'utf8');
+  return require('./_app-source.js').toLf(fs.readFileSync(p, 'utf8'));
 }
 
 const screen = readOrFail(SCREEN);

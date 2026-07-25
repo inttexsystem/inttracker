@@ -28,15 +28,20 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+// HARNESS: leitura normalizada em LF — o checkout Windows (core.autocrlf,
+// sem .gitattributes) entrega parte da arvore em CRLF, e as fatias
+// estruturais multilinha abaixo casam quebra de linha literal.
+// Ver tests/_app-source.js.
+const appSource = require('./_app-source.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const EW = path.join(ROOT, 'js', 'screens', 'entrega-writes.js');
 const OTPA = path.join(ROOT, 'js', 'screens', 'op-tecelagem-producao-admin.js');
 
-const ewSrc = fs.readFileSync(EW, 'utf8');
-const otpaSrc = fs.readFileSync(OTPA, 'utf8');
+const ewSrc = appSource.readSource(EW, 'utf8');
+const otpaSrc = appSource.readSource(OTPA, 'utf8');
 const UI = path.join(ROOT, 'js', 'ui.js');
-const uiSrc = fs.readFileSync(UI, 'utf8');
+const uiSrc = appSource.readSource(UI, 'utf8');
 // TEST-MOCK-FIDELITY-AUDIT R1 adoption: the UI sandboxes below render through
 // the REAL js/ui.js el() backed by the shared FaithfulNode (tests/_doubles.js),
 // so this suite is no longer structurally blind to a boolean-attr defect
@@ -377,7 +382,7 @@ function makeEntregaFormSandbox() {
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
 
   var EF = path.join(ROOT, 'js', 'screens', 'entrega-form.js');
-  var efSrc = fs.readFileSync(EF, 'utf8');
+  var efSrc = appSource.readSource(EF, 'utf8');
   vm.runInContext(efSrc, sandbox, { filename: 'js/screens/entrega-form.js' });
 
   return {
@@ -575,7 +580,7 @@ test('split-UI-B caso 8: comOpcaoSplit=false getPayload continua identico ao flu
 
 test('split-UI-B caso 9: estático — pedido-detail-events.js buildTecelagemTransferForm passa comOpcaoSplit:true', () => {
   var PDE = path.join(ROOT, 'js', 'screens', 'pedido-detail-events.js');
-  var pdeSrc = fs.readFileSync(PDE, 'utf8');
+  var pdeSrc = appSource.readSource(PDE, 'utf8');
   var buildTecSlice = (pdeSrc.match(/function buildTecelagemTransferForm[\s\S]*?\n    \}\n\n    function buildAcabamentoTransferForm/) || [''])[0];
   assert.ok(buildTecSlice, 'trecho buildTecelagemTransferForm nao encontrado');
   assert.match(buildTecSlice, /comOpcaoSplit:\s*true/,
@@ -606,7 +611,7 @@ test('split-UI-B caso 11: estático — abrirEdicaoAdmin NÃO passa comOpcaoSpli
 
 test('split-UI-B caso 12: estático — pedido-detail-events.js NAO tem "Transferir restante" duplicado (unificado com "Preencher restante" no form)', () => {
   var PDE = path.join(ROOT, 'js', 'screens', 'pedido-detail-events.js');
-  var pdeSrc = fs.readFileSync(PDE, 'utf8');
+  var pdeSrc = appSource.readSource(PDE, 'utf8');
   assert.doesNotMatch(pdeSrc, /Transferir restante/,
     '"Transferir restante" foi removido — "Preencher restante" ja existe no form canonico');
   assert.match(pdeSrc, /Preencher restante/,
@@ -615,7 +620,7 @@ test('split-UI-B caso 12: estático — pedido-detail-events.js NAO tem "Transfe
 
 test('split-UI-B caso 13: estático — pedido-detail-events.js NAO referencia gerar_op_latex_split diretamente', () => {
   var PDE = path.join(ROOT, 'js', 'screens', 'pedido-detail-events.js');
-  var pdeSrc = fs.readFileSync(PDE, 'utf8');
+  var pdeSrc = appSource.readSource(PDE, 'utf8');
   assert.doesNotMatch(pdeSrc, /gerar_op_latex_split/,
     'pedido-detail-events.js nao deve chamar gerar_op_latex_split diretamente pela UI');
 });
@@ -627,7 +632,7 @@ test('split-UI-B caso 14: estático — op-tecelagem-producao-admin.js NAO refer
 
 test('split-UI-B caso 15: estático — entrega-form.js NAO referencia gerar_op_latex_split', () => {
   var EF = path.join(ROOT, 'js', 'screens', 'entrega-form.js');
-  var efSrc = fs.readFileSync(EF, 'utf8');
+  var efSrc = appSource.readSource(EF, 'utf8');
   assert.doesNotMatch(efSrc, /gerar_op_latex/,
     'entrega-form.js e apenas UI read, nao pode referenciar RPCs');
   assert.doesNotMatch(efSrc, /supa\.rpc/,
@@ -778,7 +783,7 @@ test('MODAL-LAYOUT-R1 caso 5c: stacked sem pendência não mostra link e marca p
 
 test('MODAL-LAYOUT-R1 caso 6: estático — buildTecelagemTransferForm passa layout stacked ao helper canônico', () => {
   const PDE = path.join(ROOT, 'js', 'screens', 'pedido-detail-events.js');
-  const pdeSrc = fs.readFileSync(PDE, 'utf8');
+  const pdeSrc = appSource.readSource(PDE, 'utf8');
   const buildTecSlice = (pdeSrc.match(/function buildTecelagemTransferForm[\s\S]*?\n    \}\n\n    function buildAcabamentoTransferForm/) || [''])[0];
   assert.ok(buildTecSlice, 'trecho buildTecelagemTransferForm não encontrado');
   assert.match(buildTecSlice, /layout:\s*['"]stacked['"]/,
@@ -794,9 +799,9 @@ test('MODAL-LAYOUT-R1 caso 7: estático — outras telas NÃO adotam o layout st
   const FORN = path.join(ROOT, 'js', 'screens', 'fornecedor.js');
   assert.doesNotMatch(otpaSrc, /layout:\s*['"]stacked['"]/,
     'op-tecelagem-producao-admin.js não deve mudar de layout (tela já validada)');
-  assert.doesNotMatch(fs.readFileSync(OLA, 'utf8'), /layout:\s*['"]stacked['"]/,
+  assert.doesNotMatch(appSource.readSource(OLA, 'utf8'), /layout:\s*['"]stacked['"]/,
     'op-latex-admin.js não deve mudar de layout (tela já validada)');
-  assert.doesNotMatch(fs.readFileSync(FORN, 'utf8'), /layout:\s*['"]stacked['"]/,
+  assert.doesNotMatch(appSource.readSource(FORN, 'utf8'), /layout:\s*['"]stacked['"]/,
     'fornecedor.js não deve mudar de layout (tela já validada)');
 });
 

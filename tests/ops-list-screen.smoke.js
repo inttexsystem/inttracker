@@ -97,25 +97,23 @@ const cadSrc    = fs.readFileSync(CAD,    'utf8');
 // Helpers de validação estática
 // -----------------------------------------------------------------------------
 
+// index.html não tem mais <script> inline: o bootstrap virou js/boot.js e
+// as telas viraram módulos próprios. Os helpers abaixo endereçam o dono
+// atual (tests/_app-source.js) e toleram o cache-token `?v=`.
+const appSource = require('./_app-source.js');
+const painelSrc = appSource.readSource(path.join('js', 'screens', 'painel.js'));
+const opNovaSrc = appSource.readSource(path.join('js', 'screens', 'op-nova.js'));
+
 function extractInlineScript(html) {
-  const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
-  const matches = [];
-  let m;
-  while ((m = re.exec(html)) !== null) matches.push(m[1]);
-  if (matches.length === 0) throw new Error('nenhum <script> inline encontrado');
-  return matches.reduce((a, b) => (a.length >= b.length ? a : b));
+  return appSource.readBootScript(html);
 }
 
 function findScriptIdx(html, src) {
-  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}"\\s*></script>`);
-  const m = re.exec(html);
-  return m ? m.index : -1;
+  return appSource.scriptIndex(html, src);
 }
 
 function firstInlineScriptIndex(html) {
-  const re = /<script(?![^>]*\bsrc=)[^>]*>/g;
-  const m = re.exec(html);
-  return m ? m.index : -1;
+  return appSource.bootScriptIndex(html);
 }
 
 // -----------------------------------------------------------------------------
@@ -239,6 +237,10 @@ function makeOpsSandbox({ tableData = {}, withRouter = false } = {}) {
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   vm.runInContext(fornSrc,   sandbox, { filename: 'js/screens/fornecedor.js' });
+  // screenPainel e screenNovaOP saíram do inline para módulos dedicados;
+  // o boot apenas as referencia pelo global, então precisam estar carregadas.
+  vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
+  vm.runInContext(opNovaSrc, sandbox, { filename: 'js/screens/op-nova.js' });
   // Stubs
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
@@ -267,11 +269,9 @@ test('2. ops-list.js: sintaxe JS válida (node --check)', () => {
 });
 
 test('3. index.html carrega js/screens/ops-list.js EXATAMENTE UMA VEZ, sem type=module', () => {
-  const re = /<script\s+src="js\/screens\/ops-list\.js"\s*><\/script>/g;
-  const matches = indexSrc.match(re) || [];
-  assert.equal(matches.length, 1,
-    `esperado 1 <script src="js/screens/ops-list.js">, encontrado ${matches.length}`);
-  assert.equal(/<script[^>]*src="js\/screens\/ops-list\.js"[^>]*type=/.test(indexSrc), false,
+  assert.equal(appSource.countScriptTags(indexSrc, 'js/screens/ops-list.js'), 1,
+    'esperado exatamente 1 <script src="js/screens/ops-list.js">');
+  assert.equal(/<script[^>]*src="js\/screens\/ops-list\.js[^"]*"[^>]*type=/.test(indexSrc), false,
     'ops-list.js está sendo carregado com type=module — deve ser script clássico');
 });
 
@@ -297,11 +297,18 @@ test('5. script inline NÃO contém mais function screenListaOPs', () => {
 
 test('6. script inline AINDA contém telas não relacionadas, helpers, setRoutes e main', () => {
   const inline = extractInlineScript(indexSrc);
-  for (const fn of [
-    'screenPainel', 'screenNovaOP', 'renderOPLatexAdmin',
-  ]) {
-    assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
-      `inline perdeu a função ${fn}`);
+  // As telas saíram do inline para módulos dedicados; a garantia é que
+  // continuam declaradas exatamente uma vez, no seu dono.
+  const DONOS = {
+    screenPainel: 'js/screens/painel.js',
+    screenNovaOP: 'js/screens/op-nova.js',
+    renderOPLatexAdmin: 'js/screens/op-latex-admin.js',
+  };
+  for (const [fn, dono] of Object.entries(DONOS)) {
+    assert.match(appSource.readSource(dono), new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
+      `${dono} deve declarar a função ${fn}`);
+    assert.equal(new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`).test(inline), false,
+      `o boot não pode voltar a declarar ${fn}`);
   }
   // Todos os writes foram extraídos para js/screens/entrega-writes.js
   // (Fases 2.1, 2.2 e 2.3 do DIAG). As 4 telas de fornecedor foram
@@ -530,11 +537,16 @@ test('22. runtime: botão "+ Nova OP" navega para "#/ops/nova"', async () => {
   const node = await vm.runInContext('window.screenListaOPs()', sandbox);
   const main = node.children.find((c) => c.tagName === 'DIV')
     .children.find((c) => c.tagName === 'MAIN');
-  const novaBtn = findAll(main, (n) => n.tagName === 'BUTTON' && textOf(n).trim() === '+ Nova OP')[0];
-  assert.ok(novaBtn, 'botão "+ Nova OP" ausente');
+  // O rótulo virou ícone + "Nova OP" (o "+" agora é o ICON_PLUS), então a
+  // busca por texto exato não acha mais o botão.
+  const novaBtn = findAll(main, (n) => n.tagName === 'BUTTON' && /Nova OP/.test(textOf(n)))[0];
+  assert.ok(novaBtn, 'botão "Nova OP" ausente');
   novaBtn._listeners.click();
-  assert.equal(sandbox._lastNavigate, '#/ops/nova',
-    `navegação após "+ Nova OP" deveria ir para #/ops/nova (foi ${sandbox._lastNavigate})`);
+  // A rota mudou por REGRA DE NEGÓCIO aceita: a OP nasce a partir de um
+  // Pedido, nunca solta. A tela leva o admin para a lista de Pedidos (e o
+  // próprio boot recusa #/ops/nova sem pedido_id, com o mesmo aviso).
+  assert.equal(sandbox._lastNavigate, '#/pedidos',
+    `"Nova OP" deve levar ao Pedido de origem (foi ${sandbox._lastNavigate})`);
 });
 
 test('23. runtime: lista vazia com filtro exibe mensagem "Nenhuma OP para este filtro."', async () => {
@@ -617,6 +629,10 @@ test('25. boot: ui + badges + router + system-screens + common + cadastros + ops
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   vm.runInContext(fornSrc,   sandbox, { filename: 'js/screens/fornecedor.js' });
+  // screenPainel e screenNovaOP saíram do inline para módulos dedicados;
+  // o boot apenas as referencia pelo global, então precisam estar carregadas.
+  vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
+  vm.runInContext(opNovaSrc, sandbox, { filename: 'js/screens/op-nova.js' });
 
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
@@ -624,7 +640,7 @@ test('25. boot: ui + badges + router + system-screens + common + cadastros + ops
   let threwSyntax = false;
   let otherErr = null;
   try {
-    vm.runInContext(inline, sandbox, { filename: 'index-inline.js' });
+    vm.runInContext(inline, sandbox, { filename: 'js/boot.js' });
   } catch (e) {
     if (e instanceof SyntaxError && /already been declared|Identifier .* has already/.test(e.message)) {
       threwSyntax = true;
@@ -678,9 +694,13 @@ test('26. setRoutes do inline: #/ops aponta para window.screenListaOPs', () => {
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   vm.runInContext(fornSrc,   sandbox, { filename: 'js/screens/fornecedor.js' });
+  // screenPainel e screenNovaOP saíram do inline para módulos dedicados;
+  // o boot apenas as referencia pelo global, então precisam estar carregadas.
+  vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
+  vm.runInContext(opNovaSrc, sandbox, { filename: 'js/screens/op-nova.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
-  vm.runInContext(inline, sandbox, { filename: 'index-inline.js' });
+  vm.runInContext(inline, sandbox, { filename: 'js/boot.js' });
 
   const match = vm.runInContext("matchRoute('#/ops')", sandbox);
   assert.ok(match && match.render, 'matchRoute não resolveu #/ops');
@@ -725,9 +745,13 @@ test('27. rota dinâmica #/ops/:id continua resolvendo para screenNovaOP(:id) (s
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   vm.runInContext(fornSrc,   sandbox, { filename: 'js/screens/fornecedor.js' });
+  // screenPainel e screenNovaOP saíram do inline para módulos dedicados;
+  // o boot apenas as referencia pelo global, então precisam estar carregadas.
+  vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
+  vm.runInContext(opNovaSrc, sandbox, { filename: 'js/screens/op-nova.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
-  vm.runInContext(inline, sandbox, { filename: 'index-inline.js' });
+  vm.runInContext(inline, sandbox, { filename: 'js/boot.js' });
 
   // matchRoute dinâmico: o router retorna um render que, quando
   // invocado, chama window.screenNovaOP(Number(id)). Validamos
@@ -795,11 +819,15 @@ test('29. screenPainel (inline) ainda renderiza via shellLayout (regressão comm
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   vm.runInContext(fornSrc,   sandbox, { filename: 'js/screens/fornecedor.js' });
+  // screenPainel e screenNovaOP saíram do inline para módulos dedicados;
+  // o boot apenas as referencia pelo global, então precisam estar carregadas.
+  vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
+  vm.runInContext(opNovaSrc, sandbox, { filename: 'js/screens/op-nova.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
 
   try {
-    vm.runInContext(inline, sandbox, { filename: 'index-inline.js' });
+    vm.runInContext(inline, sandbox, { filename: 'js/boot.js' });
   } catch (e) {
     if (e instanceof SyntaxError && /already been declared|Identifier .* has already/.test(e.message)) {
       throw new Error('duplicate-identifier SyntaxError no boot: ' + e.message);
@@ -811,8 +839,13 @@ test('29. screenPainel (inline) ainda renderiza via shellLayout (regressão comm
   const flex = root.children.find((c) => c.tagName === 'DIV');
   const aside = flex && flex.children.find((c) => c.tagName === 'ASIDE');
   const links = aside && aside.children.filter((c) => c.tagName === 'A');
-  assert.ok(links && links.length === 9,
-    `screenPainel não renderizou 9 itens do ADMIN_MENU (renderizou ${links ? links.length : 0})`);
+  // O número era fixo e envelheceu quando o menu admin cresceu por fases
+  // já aceitas. A guarda real é "o painel renderiza o menu canônico
+  // INTEIRO" — comparar com o dono único (ADMIN_MENU de common.js).
+  const esperado = vm.runInContext('window.ADMIN_MENU.length', sandbox);
+  assert.ok(esperado > 0, 'ADMIN_MENU canônico não carregou no sandbox');
+  assert.ok(links && links.length === esperado,
+    `screenPainel não renderizou os ${esperado} itens do ADMIN_MENU (renderizou ${links ? links.length : 0})`);
 });
 
 test('30. screenCadastrosCores (cadastros) ainda renderiza (regressão cadastros)', async () => {

@@ -33,9 +33,14 @@ const BOOT = path.join(ROOT, 'js', 'boot.js');
 const COMMON_CLI = path.join(ROOT, 'js', 'screens', 'cliente-common.js');
 const INDEX = path.join(ROOT, 'index.html');
 
+// HARNESS: leitura normalizada em LF. Sem isso, `codeOnly` abaixo falha em
+// silêncio num checkout CRLF: em JS, `.` não casa `\r` e `$` (sem flag `m`)
+// não casa antes de `\r`, então `/\/\/.*$/` simplesmente não remove o
+// comentário — e os bans textuais passam a acusar o que a tela DOCUMENTA
+// em vez do que ela expõe. Ver tests/_app-source.js.
 function readOrFail(p) {
   assert.ok(fs.existsSync(p), 'arquivo nao encontrado: ' + p);
-  return fs.readFileSync(p, 'utf8');
+  return require('./_app-source.js').toLf(fs.readFileSync(p, 'utf8'));
 }
 
 const screen = readOrFail(SCREEN);

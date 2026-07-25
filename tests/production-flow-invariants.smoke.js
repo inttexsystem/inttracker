@@ -139,8 +139,18 @@ test('Contrato 6: toast de entrega não afirma "OP de látex gerada" (pode ter a
 test('Contrato 4: lineage da OP Tecelagem não chama a OP de acabamento de "gerada por entrega parcial"', () => {
   assert.doesNotMatch(opTec, /gerada por entrega parcial/,
     'a OP de acabamento é consolidada por origem+fornecedor, não "gerada por entrega parcial"');
-  assert.match(opTec, /consolidada desta OP de tecelagem/,
-    'lineage deve descrever a OP de acabamento como consolidada da OP de tecelagem');
+  // O commit 134e806 ("Rework OP Tecelagem em producao to Inttex reference
+  // language") trocou o parêntese "(consolidada desta OP de tecelagem)" por
+  // um campo "Destino" explícito: link para a OP de Acabamento quando ela
+  // existe, "Ainda não consolidada" quando não. A semântica de lineage é a
+  // mesma — a consolidação continua sendo a relação declarada — só o
+  // vocabulário mudou. Asserir o vocabulário atual mantém a guarda viva.
+  assert.match(opTec, /campo\('Destino', destinoNode\)/,
+    'o card de dados deve declarar o Destino da OP de tecelagem');
+  assert.match(opTec, /Ainda não consolidada/,
+    'sem OP de acabamento, o destino deve dizer que ainda não há consolidação');
+  assert.match(opTec, /' · Acabamento'/,
+    'com OP de acabamento, o destino deve identificá-la como Acabamento');
 });
 
 // ---------------------------------------------------------------------

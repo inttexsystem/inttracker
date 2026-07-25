@@ -75,6 +75,16 @@ const BADGES  = path.join(ROOT, 'js', 'badges.js');
 const ROUTER  = path.join(ROOT, 'js', 'router.js');
 const SYSTEM_SCREENS = path.join(ROOT, 'js', 'screens', 'system-screens.js');
 
+// O <script> inline de index.html não existe mais: o bootstrap virou
+// js/boot.js e as telas viraram módulos próprios (js/screens/painel.js,
+// op-nova.js, ...). Os testes abaixo que falavam em "inline" descrevem o
+// BOOT SCRIPT do app e o CHAMADOR do shell — agora endereçados pelos donos
+// atuais. Nenhuma garantia foi afrouxada; só reapontada.
+const appSource  = require('./_app-source.js');
+const bootSrc    = appSource.readSource('js/boot.js');
+const painelSrc  = appSource.readSource(path.join('js', 'screens', 'painel.js'));
+const opNovaSrc  = appSource.readSource(path.join('js', 'screens', 'op-nova.js'));
+
 const indexSrc   = fs.readFileSync(INDEX,  'utf8');
 const commonSrc  = fs.readFileSync(COMMON, 'utf8');
 const cadSrc     = fs.readFileSync(CAD,    'utf8');
@@ -215,49 +225,64 @@ test('3. common.js: sintaxe JS válida (node --check)', () => {
 });
 
 test('4. index.html carrega js/screens/common.js EXATAMENTE UMA VEZ, sem type=module', () => {
-  const re = /<script\s+src="js\/screens\/common\.js"\s*><\/script>/g;
-  const matches = indexSrc.match(re) || [];
-  assert.equal(matches.length, 1,
-    `esperado 1 <script src="js/screens/common.js">, encontrado ${matches.length}`);
-  assert.equal(/<script[^>]*src="js\/screens\/common\.js"[^>]*type=/.test(indexSrc), false,
+  // Todos os assets locais de index.html carregam com cache-token `?v=...`;
+  // a contagem precisa enxergar a tag com o token.
+  assert.equal(appSource.countScriptTags(indexSrc, 'js/screens/common.js'), 1,
+    'esperado exatamente 1 <script src="js/screens/common.js">');
+  assert.equal(/<script[^>]*src="js\/screens\/common\.js[^"]*"[^>]*type=/.test(indexSrc), false,
     'common.js está sendo carregado com type=module — deve ser script clássico');
 });
 
-test('5. index.html: ordem router → common → inline (e common depois de system-screens, antes de jsPDF)', () => {
-  const routerIdx = findScriptIdx(indexSrc, 'js/router.js');
-  const sysIdx     = findScriptIdx(indexSrc, 'js/screens/system-screens.js');
-  const commonIdx  = findScriptIdx(indexSrc, 'js/screens/common.js');
-  const inlineIdx  = firstInlineScriptIndex(indexSrc);
+test('5. index.html: ordem router → system-screens → common → boot', () => {
+  const routerIdx = appSource.scriptIndex(indexSrc, 'js/router.js');
+  const sysIdx    = appSource.scriptIndex(indexSrc, 'js/screens/system-screens.js');
+  const commonIdx = appSource.scriptIndex(indexSrc, 'js/screens/common.js');
+  const bootIdx   = appSource.bootScriptIndex(indexSrc);
   assert.ok(routerIdx > 0, 'js/router.js não encontrado');
   assert.ok(sysIdx > 0, 'js/screens/system-screens.js não encontrado');
   assert.ok(commonIdx > 0, 'js/screens/common.js não encontrado');
-  assert.ok(inlineIdx > 0, 'tag inline não encontrada');
+  assert.ok(bootIdx > 0, 'js/boot.js (entrypoint, sucessor do inline) não encontrado');
   assert.ok(routerIdx < commonIdx, 'router antes de common');
   assert.ok(sysIdx < commonIdx, 'system-screens antes de common');
-  assert.ok(commonIdx < inlineIdx, 'common antes do inline');
+  assert.ok(commonIdx < bootIdx, 'common antes do boot');
+  // O boot continua sendo o ÚLTIMO script local — se deixar de ser, ele
+  // passa a rodar antes de módulos que o setRoutes referencia.
+  assert.equal(indexSrc.indexOf('<script src="js/', bootIdx + 1), -1,
+    'js/boot.js deve ser o último script local de index.html');
 });
 
-test('6. script inline NÃO contém mais function shellLayout nem const ADMIN_MENU', () => {
-  const inline = extractInlineScript(indexSrc);
-  assert.equal(/function\s+shellLayout\s*\(/.test(inline), false,
-    'inline ainda declara function shellLayout');
-  assert.equal(/const\s+ADMIN_MENU\s*=/.test(inline), false,
-    'inline ainda declara const ADMIN_MENU');
+test('6. o boot NÃO contém mais function shellLayout nem const ADMIN_MENU', () => {
+  assert.equal(/function\s+shellLayout\s*\(/.test(bootSrc), false,
+    'boot ainda declara function shellLayout');
+  assert.equal(/const\s+ADMIN_MENU\s*=/.test(bootSrc), false,
+    'boot ainda declara const ADMIN_MENU');
 });
 
-test('7. script inline ainda contém screenPainel, main, setRoutes e demais telas', () => {
-  const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /function\s+screenPainel\s*\(/);
-  assert.match(inline, /function\s+main\s*\(/);
-  assert.match(inline, /window\.RAVATEX_ROUTER\.setRoutes\(/);
-  assert.match(inline, /function\s+screenNovaOP\s*\(/);
+test('7. o boot ainda contém main + setRoutes; as telas viraram módulos próprios', () => {
+  assert.match(bootSrc, /function\s+main\s*\(/);
+  assert.match(bootSrc, /window\.RAVATEX_ROUTER\.setRoutes\(/);
+  // As telas saíram do inline para módulos dedicados; o boot passou a
+  // REFERENCIÁ-LAS pelo namespace global em vez de declará-las.
+  assert.match(painelSrc, /function\s+screenPainel\s*\(/,
+    'screenPainel deve ser declarada em js/screens/painel.js');
+  assert.match(opNovaSrc, /function\s+screenNovaOP\s*\(/,
+    'screenNovaOP deve ser declarada em js/screens/op-nova.js');
+  assert.match(bootSrc, /render:\s*window\.screenPainel/,
+    'o boot deve registrar a rota do painel pelo global window.screenPainel');
+  assert.equal(/function\s+screenPainel\s*\(/.test(bootSrc), false,
+    'o boot não pode voltar a declarar telas');
 });
 
-test('8. script inline continua chamando shellLayout(...)/ADMIN_MENU como identificador bare', () => {
-  const inline = extractInlineScript(indexSrc);
-  assert.match(inline, /\bshellLayout\(ADMIN_MENU,/);
-  assert.equal(/window\.shellLayout\(/.test(inline), false,
-    'inline foi reescrito para window.shellLayout sem necessidade comprovada');
+test('8. o chamador do shell usa shellLayout(ADMIN_MENU) pelo namespace global', () => {
+  // Enquanto tudo era um único inline, `shellLayout`/`ADMIN_MENU` eram
+  // identificadores bare do mesmo escopo. Com a extração em módulos
+  // clássicos independentes, cada um roda no seu próprio IIFE — o acesso
+  // PRECISA ser pelo global. O contrato preservado é o que importa: o
+  // painel renderiza pelo shell compartilhado, com o menu admin canônico.
+  assert.match(painelSrc, /window\.shellLayout\(\s*window\.ADMIN_MENU\s*,/,
+    'painel.js deve renderizar via shellLayout com o ADMIN_MENU canônico');
+  assert.equal(/const\s+ADMIN_MENU\s*=/.test(painelSrc), false,
+    'painel.js não pode declarar seu próprio ADMIN_MENU');
 });
 
 test('9-10. js/screens/common.js não contém chamadas Supabase nem createClient', () => {
@@ -282,10 +307,24 @@ test('13. index.html: nenhum service_role nem password literal (preservado)', ()
 });
 
 test('14. ADMIN_MENU é declarado uma única vez no projeto (js/screens/common.js)', () => {
-  const inline = extractInlineScript(indexSrc);
-  const declCount = (commonSrc.match(/const\s+ADMIN_MENU\s*=/g) || []).length
-    + (inline.match(/const\s+ADMIN_MENU\s*=/g) || []).length;
-  assert.equal(declCount, 1, `esperado 1 declaração de ADMIN_MENU no projeto, encontrado ${declCount}`);
+  // Varre o projeto inteiro em vez de só common.js + inline: agora que as
+  // telas são módulos, uma redeclaração poderia aparecer em qualquer um.
+  const dir = path.join(ROOT, 'js');
+  const arquivos = [];
+  (function walk(d) {
+    for (const nome of fs.readdirSync(d)) {
+      const p = path.join(d, nome);
+      if (fs.statSync(p).isDirectory()) walk(p);
+      else if (nome.endsWith('.js')) arquivos.push(p);
+    }
+  })(dir);
+  const declarantes = arquivos.filter((p) =>
+    /const\s+ADMIN_MENU\s*=/.test(appSource.readSource(p)));
+  assert.deepEqual(
+    declarantes.map((p) => path.relative(ROOT, p).replace(/\\/g, '/')),
+    ['js/screens/common.js'],
+    'ADMIN_MENU deve ser declarado exatamente uma vez, em js/screens/common.js'
+  );
 });
 
 // -----------------------------------------------------------------------------
@@ -403,9 +442,7 @@ test('27. runtime: shellLayout(menuItems, contentNode) insere o contentNode dent
 // 3. Integração: screenPainel() do inline ainda renderiza via shellLayout
 // -----------------------------------------------------------------------------
 
-test('28. integração: screenPainel() (inline) ainda renderiza via shellLayout num boot completo', () => {
-  const inline = extractInlineScript(indexSrc);
-
+test('28. integração: screenPainel() (painel.js) ainda renderiza via shellLayout num boot completo', () => {
   const toastsNode = new FakeNode('div');
   const document = {
     createElement: (t) => new FakeNode(t),
@@ -434,11 +471,12 @@ test('28. integração: screenPainel() (inline) ainda renderiza via shellLayout 
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
   vm.runInContext(fornSrc,   sandbox, { filename: 'js/screens/fornecedor.js' });
 
-  // Stubs necessários para o inline carregar (CURRENT_USER/logout vêm de auth.js no boot real).
+  // Stubs necessários (CURRENT_USER/logout vêm de auth.js no boot real).
   sandbox.CURRENT_USER = { nome: 'Eva', tipo: 'admin' };
   sandbox.logout = () => {};
 
-  vm.runInContext(inline, sandbox, { filename: 'index-inline.js' });
+  // A tela saiu do inline para o seu módulo dedicado.
+  vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
 
   const root = vm.runInContext('window.screenPainel()', sandbox);
   assert.ok(root && root.tagName === 'DIV', 'screenPainel não retornou um <div>');
@@ -456,9 +494,7 @@ test('28. integração: screenPainel() (inline) ainda renderiza via shellLayout 
 // 4. Boot: ui.js + badges.js + router.js + system-screens.js + common.js + inline coexistem
 // -----------------------------------------------------------------------------
 
-test('30. boot: ui.js + badges.js + router.js + system-screens.js + common.js + inline coexistem sem SyntaxError de duplicate identifier', () => {
-  const inline = extractInlineScript(indexSrc);
-
+test('30. boot: ui.js + badges.js + router.js + system-screens.js + common.js + painel.js + boot.js coexistem sem SyntaxError de duplicate identifier', () => {
   const toastsNode = new FakeNode('div');
   const document = {
     createElement: (t) => new FakeNode(t),
@@ -490,7 +526,8 @@ test('30. boot: ui.js + badges.js + router.js + system-screens.js + common.js + 
   let threwSyntax = false;
   let otherErr = null;
   try {
-    vm.runInContext(inline, sandbox, { filename: 'index-inline.js' });
+    vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
+    vm.runInContext(bootSrc, sandbox, { filename: 'js/boot.js' });
   } catch (e) {
     if (e instanceof SyntaxError && /already been declared|Identifier .* has already/.test(e.message)) {
       threwSyntax = true;

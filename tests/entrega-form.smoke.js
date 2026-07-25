@@ -111,25 +111,24 @@ const opsSrc    = fs.readFileSync(OPS,    'utf8');
 // Helpers estáticos
 // -----------------------------------------------------------------------------
 
+// index.html não tem mais <script> inline: o bootstrap virou js/boot.js e
+// as telas viraram módulos próprios. Os helpers abaixo passam a endereçar o
+// dono atual (tests/_app-source.js) e a tolerar o cache-token `?v=` que
+// todos os assets locais carregam.
+const appSource = require('./_app-source.js');
+const bootSrc = appSource.readSource('js/boot.js');
+const painelSrc = appSource.readSource(path.join('js', 'screens', 'painel.js'));
+
 function extractInlineScript(html) {
-  const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
-  const matches = [];
-  let m;
-  while ((m = re.exec(html)) !== null) matches.push(m[1]);
-  if (matches.length === 0) throw new Error('nenhum <script> inline encontrado');
-  return matches.reduce((a, b) => (a.length >= b.length ? a : b));
+  return appSource.readBootScript(html);
 }
 
 function findScriptIdx(html, src) {
-  const re = new RegExp(`<script\\s+src="${src.replace(/\//g, '\\/')}"\\s*></script>`);
-  const m = re.exec(html);
-  return m ? m.index : -1;
+  return appSource.scriptIndex(html, src);
 }
 
 function firstInlineScriptIndex(html) {
-  const re = /<script(?![^>]*\bsrc=)[^>]*>/g;
-  const m = re.exec(html);
-  return m ? m.index : -1;
+  return appSource.bootScriptIndex(html);
 }
 
 // -----------------------------------------------------------------------------
@@ -223,11 +222,9 @@ test('2. entrega-form.js: sintaxe JS válida (node --check)', () => {
 });
 
 test('3. index.html carrega js/screens/entrega-form.js EXATAMENTE UMA VEZ, sem type=module', () => {
-  const re = /<script\s+src="js\/screens\/entrega-form\.js"\s*><\/script>/g;
-  const matches = indexSrc.match(re) || [];
-  assert.equal(matches.length, 1,
-    `esperado 1 <script src="js/screens/entrega-form.js">, encontrado ${matches.length}`);
-  assert.equal(/<script[^>]*src="js\/screens\/entrega-form\.js"[^>]*type=/.test(indexSrc), false,
+  assert.equal(appSource.countScriptTags(indexSrc, 'js/screens/entrega-form.js'), 1,
+    'esperado exatamente 1 <script src="js/screens/entrega-form.js">');
+  assert.equal(/<script[^>]*src="js\/screens\/entrega-form\.js[^"]*"[^>]*type=/.test(indexSrc), false,
     'entrega-form.js está sendo carregado com type=module — deve ser script clássico');
 });
 
@@ -262,13 +259,19 @@ test('6. script inline AINDA contém telas, helpers, setRoutes, main', () => {
   // extraídas para js/screens/fornecedor.js
   // (FORNECEDOR-SCREENS-MODULE-A). O inline mantém: screenPainel,
   // screenNovaOP, renderOPLatexAdmin.
-  // telas
-  for (const fn of [
-    'screenPainel', 'screenNovaOP',
-    'renderOPLatexAdmin',
-  ]) {
-    assert.match(inline, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
-      `inline perdeu a função ${fn}`);
+  // As três telas que ainda moravam no inline saíram para módulos
+  // dedicados. A garantia — elas não desapareceram e continuam declaradas
+  // exatamente uma vez — vale agora contra o dono de cada uma.
+  const DONOS = {
+    screenPainel: 'js/screens/painel.js',
+    screenNovaOP: 'js/screens/op-nova.js',
+    renderOPLatexAdmin: 'js/screens/op-latex-admin.js',
+  };
+  for (const [fn, dono] of Object.entries(DONOS)) {
+    assert.match(appSource.readSource(dono), new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
+      `${dono} deve declarar a função ${fn}`);
+    assert.equal(new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`).test(inline), false,
+      `o boot não pode voltar a declarar ${fn}`);
   }
   // rotuloFioOrdem (clone local) foi unificado com rotuloFio
   // em OP-FORM-HELPERS-MODULE-A
@@ -628,11 +631,13 @@ test('31. screenPainel (inline) ainda renderiza via shellLayout (regressão comm
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
   vm.runInContext(efSrc,     sandbox, { filename: 'js/screens/entrega-form.js' });
   vm.runInContext(ewSrc,     sandbox, { filename: 'js/screens/entrega-writes.js' });
+  // A tela saiu do inline para o seu módulo dedicado.
+  vm.runInContext(painelSrc, sandbox, { filename: 'js/screens/painel.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
 
   try {
-    vm.runInContext(inline, sandbox, { filename: 'index-inline.js' });
+    vm.runInContext(inline, sandbox, { filename: 'js/boot.js' });
   } catch (e) {
     if (e instanceof SyntaxError && /already been declared|Identifier .* has already/.test(e.message)) {
       throw new Error('duplicate-identifier SyntaxError no boot: ' + e.message);
@@ -644,8 +649,13 @@ test('31. screenPainel (inline) ainda renderiza via shellLayout (regressão comm
   const flex = root.children.find((c) => c.tagName === 'DIV');
   const aside = flex && flex.children.find((c) => c.tagName === 'ASIDE');
   const links = aside && aside.children.filter((c) => c.tagName === 'A');
-  assert.ok(links && links.length === 9,
-    `screenPainel não renderizou 9 itens do ADMIN_MENU (renderizou ${links ? links.length : 0})`);
+  // O número era fixo e envelheceu quando o menu admin cresceu por fases
+  // já aceitas. A guarda real é "o painel renderiza o menu canônico
+  // INTEIRO" — comparar com o dono único (ADMIN_MENU de common.js).
+  const esperado = vm.runInContext('window.ADMIN_MENU.length', sandbox);
+  assert.ok(esperado > 0, 'ADMIN_MENU canônico não carregou no sandbox');
+  assert.ok(links && links.length === esperado,
+    `screenPainel não renderizou os ${esperado} itens do ADMIN_MENU (renderizou ${links ? links.length : 0})`);
 });
 
 test('32. screenCadastrosCores (cadastros) ainda renderiza (regressão cadastros)', () => {

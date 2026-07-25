@@ -63,11 +63,15 @@ const adminCreatePath = path.join(
   "admin-create-user",
   "index.ts",
 );
+// A administração de usuários saiu de cadastros.js para módulos próprios
+// (js/screens/admin-usuarios*.js + js/admin-usuarios-writes.js). O botão
+// "Desativar" e a chamada da Edge Function moraram em cadastros.js apenas
+// até essa extração; asserir o dono atual mantém a guarda viva.
 const cadastrosPath = path.join(
   ROOT,
   "js",
   "screens",
-  "cadastros.js",
+  "admin-usuarios-modal.js",
 );
 const indexHtmlPath = path.join(ROOT, "index.html");
 
@@ -83,6 +87,8 @@ const respSrc = readOrFail(respPath);
 const adminCreateSrc = readOrFail(adminCreatePath);
 const cadastrosSrc = readOrFail(cadastrosPath);
 const indexHtmlSrc = readOrFail(indexHtmlPath);
+// A chamada da Edge Function ficou no módulo de writes; o botão, no modal.
+const adminWritesSrc = readOrFail(path.join(ROOT, "js", "admin-usuarios-writes.js"));
 
 // ---------------------------------------------------------------------
 // 1. Existência
@@ -498,10 +504,17 @@ test("cadastros.js: UI agora integra admin-disable-user (fase AUTH-DISABLE-USER-
   // tocava UI; este teste foi atualizado para refletir o estado
   // pós-UI-A.
   assert.match(cadastrosSrc, /'Desativar'/, "botão Desativar deve existir");
+  // A UI não chama a Edge Function direto: delega ao módulo de writes, que
+  // é o dono único do acesso administrativo. A separação é o contrato.
   assert.match(
+    adminWritesSrc,
+    /invokeAdminFunction\(\s*['"]admin-disable-user['"]/,
+    "o módulo de writes deve chamar admin-disable-user",
+  );
+  assert.doesNotMatch(
     cadastrosSrc,
-    /functions\.invoke\(\s*['"]admin-disable-user['"]/,
-    "cadastros.js deve chamar admin-disable-user",
+    /functions\.invoke\(/,
+    "a UI não pode chamar Edge Function direto — deve passar pelo módulo de writes",
   );
   assert.doesNotMatch(
     cadastrosSrc,

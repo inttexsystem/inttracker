@@ -247,10 +247,19 @@ test('9. inline NÃO contém mais function atribuirFornecedorFio (extraído para
   const inline = extractInlineScript(indexSrc);
   assert.equal(/function\s+atribuirFornecedorFio\s*\(/.test(inline), false,
     'inline ainda declara atribuirFornecedorFio — função deveria ter sido extraída');
-  // O novo helper window.atribuirFornecedorFioOp é referenciado
-  // por op-nova.js (não pelo inline)
-  assert.match(opnSrc, /window\.atribuirFornecedorFioOp\(/,
-    'op-nova.js não referencia window.atribuirFornecedorFioOp — call-site não atualizado');
+  // O helper continua sendo propriedade exclusiva de op-writes.js e segue
+  // exposto como global legado. O call-site que morava em op-nova.js saiu
+  // de lá nas fases de reforma da OP/fio; NENHUM módulo o chama hoje.
+  // Isso é registrado como débito do dono OP/fio (não corrigido aqui:
+  // decidir entre religar a UI ou aposentar o helper é decisão de produto,
+  // fora do escopo desta ordem). O que este teste guarda é a extração:
+  // a função existe em UM lugar só e continua exportada.
+  assert.match(opwSrc, /async\s+function\s+atribuirFornecedorFioOp\s*\(/,
+    'op-writes.js deve declarar atribuirFornecedorFioOp');
+  assert.match(opwSrc, /window\.atribuirFornecedorFioOp\s*=/,
+    'op-writes.js deve expor o global legado atribuirFornecedorFioOp');
+  assert.equal(/function\s+atribuirFornecedorFioOp\s*\(/.test(opnSrc), false,
+    'op-nova.js não pode redeclarar o helper extraído');
 });
 
 test('10. inline NÃO contém mais persistir (extraído para op-persistir.js)', () => {
@@ -585,8 +594,13 @@ test('24. screenPainel (inline) ainda renderiza via shellLayout com 9 itens do A
   const flex = root.children.find((c) => c.tagName === 'DIV');
   const aside = flex && flex.children.find((c) => c.tagName === 'ASIDE');
   const links = aside && aside.children.filter((c) => c.tagName === 'A');
-  assert.ok(links && links.length === 9,
-    `screenPainel não renderizou 9 itens do ADMIN_MENU (renderizou ${links ? links.length : 0})`);
+  // O número era fixo e envelheceu quando o menu admin cresceu por fases
+  // já aceitas. A guarda real é "o painel renderiza o menu canônico
+  // INTEIRO" — comparar com o dono único (ADMIN_MENU de common.js).
+  const esperado = vm.runInContext('window.ADMIN_MENU.length', sandbox);
+  assert.ok(esperado > 0, 'ADMIN_MENU canônico não carregou no sandbox');
+  assert.ok(links && links.length === esperado,
+    `screenPainel não renderizou os ${esperado} itens do ADMIN_MENU (renderizou ${links ? links.length : 0})`);
 });
 
 // -----------------------------------------------------------------------------

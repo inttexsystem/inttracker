@@ -33,6 +33,7 @@ const vm     = require('node:vm');
 const http   = require('node:http');
 
 const ROOT = path.resolve(__dirname, '..');
+const appSource = require('./_app-source.js');
 
 const PORT = 8765;
 const HOST = '127.0.0.1';
@@ -134,9 +135,12 @@ function runGuardInSandbox({ hostname, forceLocal = true }) {
     }
 
     fetchIndexHtml().then(({ body }) => {
-      const inlineMatch = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g.exec(body);
-      if (!inlineMatch) return reject(new Error('nenhum <script> inline encontrado'));
-      const inline = inlineMatch[1];
+      // O comportamento da guarda ja vem dos modulos carregados acima; o
+      // trecho de boot e usado apenas pelas asserções de AUSENCIA. Como
+      // index.html nao tem mais <script> inline (o bootstrap virou
+      // js/boot.js), exigir a tag inline derrubava a suite inteira sem
+      // nada a ver com a guarda.
+      const inline = appSource.readBootScript(body);
       const env = {
         APP_ENV: vm.runInContext('APP_ENV', sandbox),
         SUPABASE_URL: vm.runInContext('SUPABASE_URL', sandbox),
@@ -157,21 +161,23 @@ test('http.server responde em :8765 e index.html contém o esperado', async () =
   const { body } = await fetchIndexHtml();
   assert.equal(typeof body, 'string');
   assert.ok(body.length > 1000, 'index.html muito curto');
-  // Após ROUTER-MODULE-A, todo o bootstrap (config, client, write-guard,
-  // env-banner, auth, router) vive em js/*.js. O script inline começa
-  // agora no bloco === BOOT NOTES ===.
+  // Todo o bootstrap (config, client, write-guard, env-banner, auth,
+  // router) vive em js/*.js — e o próprio entrypoint também: a última
+  // seção inline virou js/boot.js. index.html não tem mais <script>
+  // inline algum, então o marcador passa a ser a tag do boot.
   assert.match(body, /js\/config\.js/);
   assert.match(body, /js\/supabase-client\.js/);
   assert.match(body, /js\/environment-banner\.js/);
   assert.match(body, /js\/auth\.js/);
   assert.match(body, /js\/router\.js/);
-  assert.match(body, /=== BOOT NOTES/);
+  assert.match(body, /js\/boot\.js/);
+  assert.equal(appSource.extractInlineScripts(body).length, 0,
+    'index.html não deve ter <script> inline — o bootstrap é js/boot.js');
 });
 
 test('script inline NÃO contém mais o client Supabase nem o write-guard nem o env-banner nem o auth', async () => {
   const { body } = await fetchIndexHtml();
-  const inlineMatch = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g.exec(body);
-  const inline = inlineMatch[1];
+  const inline = appSource.readBootScript(body);
   // O client/write-guard foram extraídos para js/supabase-client.js.
   // O env-banner para js/environment-banner.js. O auth para js/auth.js.
   // O router para js/router.js. O inline agora começa em === BOOT NOTES ===.
@@ -209,8 +215,9 @@ test('script inline NÃO contém mais o client Supabase nem o write-guard nem o 
     'script inline ainda define `async function logout`');
   assert.equal(/async\s+function\s+loadCurrentUser\s*\(/.test(inline), false,
     'script inline ainda define `async function loadCurrentUser`');
-  // O inline deve começar com === BOOT NOTES === (router extraído).
-  assert.match(inline, /=== BOOT NOTES/);
+  // O bloco de boot agora é o módulo js/boot.js (Seam C); o marcador
+  // acompanhou a extração.
+  assert.match(inline, /=== BOOT \(Seam C\)/);
 });
 
 test('hostname inttracker-jade.vercel.app → production (ref gqmpsxkxynrjvidfmojk)', async () => {

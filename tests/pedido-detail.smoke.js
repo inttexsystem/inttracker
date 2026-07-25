@@ -42,6 +42,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const appSource = require('./_app-source.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const SCREEN = path.join(ROOT, 'js', 'screens', 'pedido-detail.js');
@@ -58,9 +59,15 @@ const BOOT   = path.join(ROOT, 'js', 'boot.js');
 const INDEX  = path.join(ROOT, 'index.html');
 const SCHEMA = path.join(ROOT, 'db', '13_pedidos_schema.sql');
 
+// HARNESS: as fatias estruturais abaixo casam blocos MULTILINHA da fonte.
+// O checkout Windows (core.autocrlf=true, sem .gitattributes) entrega parte
+// da árvore em CRLF e parte em LF, então um `\n` literal na regex passava
+// ou falhava conforme o arquivo — sem que o produto mudasse. A leitura
+// normaliza em LF (tests/_app-source.js) e as asserções voltam a medir só
+// o contrato.
 function readOrFail(p) {
   assert.ok(fs.existsSync(p), 'arquivo não encontrado: ' + p);
-  return fs.readFileSync(p, 'utf8');
+  return appSource.toLf(fs.readFileSync(p, 'utf8'));
 }
 
 const screen = readOrFail(SCREEN);
@@ -77,17 +84,17 @@ const index  = readOrFail(INDEX);
 const schema = readOrFail(SCHEMA);
 const OLA = path.join(ROOT, 'js', 'screens', 'op-latex-admin.js');
 const OPTP = path.join(ROOT, 'js', 'screens', 'op-tecelagem-producao-admin.js');
-const olaSrc = fs.readFileSync(OLA, 'utf8');
-const optpSrc = fs.readFileSync(OPTP, 'utf8');
-const opnSrc = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'op-nova.js'), 'utf8');
+const olaSrc = readOrFail(OLA);
+const optpSrc = readOrFail(OPTP);
+const opnSrc = readOrFail(path.join(ROOT, 'js', 'screens', 'op-nova.js'));
 // YARN-BUTTONS-FINAL-CONTRACT: builder de distribuição COMPARTILHADO
 // consumido pelo painel do Pedido (mesmo módulo da tela da OP).
-const oduSrc = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'op-distribuicao-ui.js'), 'utf8');
+const oduSrc = readOrFail(path.join(ROOT, 'js', 'screens', 'op-distribuicao-ui.js'));
 // PHASE-C3C-B §35 (Gate 2 runtime proof): carrega o adapter real e o
 // helper real de escrita para exercitar window.registrarRecebimentoOrdemFio
 // de ponta a ponta (sem stub) dentro do runtime hub do Pedido.
-const cutoverSrc = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'ordem-compra-receipt-cutover.js'), 'utf8');
-const opwSrc = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'op-writes.js'), 'utf8');
+const cutoverSrc = readOrFail(path.join(ROOT, 'js', 'screens', 'ordem-compra-receipt-cutover.js'));
+const opwSrc = readOrFail(path.join(ROOT, 'js', 'screens', 'op-writes.js'));
 const opDisplay = readOrFail(path.join(ROOT, 'js', 'op-display.js'));
 // PHASE-MANTA-B2B: a derivacao de rota e a forma das secoes por rota
 // sairam de pedido-detail-progress.js/pedido-detail-render.js para modulos
@@ -374,7 +381,7 @@ test('pedido-detail: conectores do progresso usam labels visuais curtos', () => 
     /function isConnectorDoneAction\s*\(action\)\s*\{[\s\S]*?\n  function buildStepper/
   ) || [''])[0];
   const connectorSlice = (detailRender.match(
-    /function buildTransferButton\s*\(stage,\s*handlers,\s*view\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
+    /function buildTransferButton\s*\(stage,\s*handlers,\s*view\)\s*\{[\s\S]*?\n  \}\n\n(?:  \/\/[^\n]*\n)*  function buildStepper/
   ) || [''])[0];
   assert.ok(connectorRegion, 'trecho dos helpers de conector nao encontrado');
   assert.ok(connectorSlice, 'trecho buildTransferButton nao encontrado');
@@ -383,9 +390,15 @@ test('pedido-detail: conectores do progresso usam labels visuais curtos', () => 
   assert.match(detailRender, /label:\s*['"]Transferir['"]/);
   assert.match(detailRender, /label:\s*['"]Aguardar['"]/);
   assert.match(detailRender, /connectorLabel/);
-  assert.match(detailProgress, /connectorLabel:\s*linkedOpCount\s*\?\s*['"]Receber['"]\s*:\s*['"]Iniciar['"]/);
-  assert.match(detailProgress, /connectorLabel:\s*['"]Movimentar['"]/);
-  assert.match(detailProgress, /connectorLabel:\s*['"]Entregar['"]/);
+  // PHASE-MANTA-B2B: a derivacao dos conectores saiu de
+  // pedido-detail-progress.js para pedido-route-sections.js (modulo por
+  // rota). O contrato — rotulos curtos, um por transicao — e o mesmo;
+  // muda so o dono. Asserir no dono atual mantem a guarda viva.
+  assert.match(routeSections, /connectorLabel:\s*[\w.]*linkedOpCount\s*\?\s*['"]Receber['"]\s*:\s*['"]Iniciar['"]/);
+  assert.match(routeSections, /connectorLabel:\s*['"]Movimentar['"]/);
+  assert.match(routeSections, /connectorLabel:\s*['"]Entregar['"]/);
+  assert.doesNotMatch(detailProgress, /connectorLabel:/,
+    'pedido-detail-progress.js nao pode voltar a duplicar a derivacao de conector');
   assert.doesNotMatch(connectorRegion, /['"](?:Ver|Editar|Entregar|Done|Waiting|View|Edit)['"]/);
   assert.doesNotMatch(connectorSlice, /var\s+label\s*=\s*action\.label/);
   assert.doesNotMatch(connectorSlice, /action\.label\s*\|\|/);
@@ -393,7 +406,7 @@ test('pedido-detail: conectores do progresso usam labels visuais curtos', () => 
 
 test('pedido-detail: pipeline nao renderiza textos longos da matriz nos conectores', () => {
   const connectorSlice = (detailRender.match(
-    /function buildTransferButton\s*\(stage,\s*handlers,\s*view\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
+    /function buildTransferButton\s*\(stage,\s*handlers,\s*view\)\s*\{[\s\S]*?\n  \}\n\n(?:  \/\/[^\n]*\n)*  function buildStepper/
   ) || [''])[0];
   assert.ok(connectorSlice, 'trecho buildTransferButton nao encontrado');
   assert.doesNotMatch(connectorSlice, /Insumos conclu[ií]dos/i);
@@ -409,7 +422,7 @@ test('pedido-detail: conectores continuam como setas integradas, nao badges solt
     /function isConnectorDoneAction\s*\(action\)\s*\{[\s\S]*?\n  function buildStepper/
   ) || [''])[0];
   const connectorSlice = (detailRender.match(
-    /function buildTransferButton\s*\(stage,\s*handlers,\s*view\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
+    /function buildTransferButton\s*\(stage,\s*handlers,\s*view\)\s*\{[\s\S]*?\n  \}\n\n(?:  \/\/[^\n]*\n)*  function buildStepper/
   ) || [''])[0];
   assert.ok(connectorRegion, 'trecho dos helpers de conector nao encontrado');
   assert.ok(connectorSlice, 'trecho buildTransferButton nao encontrado');
@@ -431,7 +444,7 @@ test('pedido-detail: setas de transicao abrem modal de movimento; bolinhas mante
     /function isConnectorDoneAction\s*\(action\)\s*\{[\s\S]*?\n  function buildStepper/
   ) || [''])[0];
   const connectorSlice = (detailRender.match(
-    /function buildTransferButton\s*\(stage,\s*handlers,\s*view\)\s*\{[\s\S]*?\n  \}\n\n  function buildStepper/
+    /function buildTransferButton\s*\(stage,\s*handlers,\s*view\)\s*\{[\s\S]*?\n  \}\n\n(?:  \/\/[^\n]*\n)*  function buildStepper/
   ) || [''])[0];
   assert.ok(connectorRegion, 'trecho dos helpers de conector nao encontrado');
   assert.ok(connectorSlice, 'trecho buildTransferButton nao encontrado');
@@ -1411,7 +1424,7 @@ test('transition-related-ops-R2: openMovementModal integra secao OPs relacionada
     'modal da seta deve compor a secao OPs relacionadas sem substituir o fluxo principal');
   assert.match(detailEvents, /function buildRelatedOpsSection/,
     'deve existir builder dedicado para OPs relacionadas');
-  const sectionSlice = (detailEvents.match(/function buildRelatedOpsSection[\s\S]*?\n    \}\n\n    function openTecAcceptanceModal/) || [''])[0];
+  const sectionSlice = (detailEvents.match(/function buildRelatedOpsSection[\s\S]*?\n    \}\n\n(?:    \/\/[^\n]*\n)*    function openTecAcceptanceModal/) || [''])[0];
   assert.ok(sectionSlice, 'trecho buildRelatedOpsSection nao encontrado');
   assert.match(sectionSlice, /OPs relacionadas/,
     'secao deve ter titulo OPs relacionadas');
@@ -1443,25 +1456,43 @@ test('ACABAMENTO-EXPEDICAO-MODAL-UX-PARITY-R2: formulario operacional vem antes 
   assert.ok(historyIndex > formIndex, 'historico deve ficar abaixo do formulario operacional');
 });
 
-test('transition-related-ops-R2: aceite Tecelagem usa slider/proposta e helper canonico', () => {
+// YARN-BUTTONS-FINAL-CONTRACT (ledger 2026-07-18, CLOSED / ACCEPTED):
+// existiam DOIS builders paralelos de distribuicao — op-nova.js e
+// pedido-detail-events.js — e o gemeo do Pedido ressuscitava o botao
+// "Aceitar proposta" (um caminho vivo de inicio de producao) toda vez que
+// so a tela da OP era corrigida. O contrato final unificou os dois no
+// modulo compartilhado js/screens/op-distribuicao-ui.js:
+//
+//   - rodape EXATAMENTE [Manter pedido, Salvar distribuicao], save-only;
+//   - "Iniciar producao" e o UNICO caminho de inicio de producao;
+//   - "Aceitar proposta" REMOVIDO das duas superficies.
+//
+// O teste abaixo congelava o desenho anterior. Agora guarda o contrato
+// aceito — inclusive a NAO-volta do gemeo duplicado, que foi a regressao
+// concreta registrada no ledger.
+test('transition-related-ops-R2: distribuicao Tecelagem usa o builder compartilhado (YARN-BUTTONS-FINAL-CONTRACT)', () => {
   const proposalSlice = (detailEvents.match(/function buildTecAcceptanceProposalBlock[\s\S]*?\n    \}\n\n    function relatedActionButton/) || [''])[0];
   assert.ok(proposalSlice, 'trecho buildTecAcceptanceProposalBlock nao encontrado');
-  assert.match(proposalSlice, /Proposta de aceite/,
-    'deve renderizar bloco de proposta');
-  assert.match(proposalSlice, /type:\s*['"]range['"]/,
-    'deve renderizar slider real');
-  assert.match(proposalSlice, /Aceitar proposta/,
-    'deve renderizar botao real Aceitar proposta');
-  assert.match(proposalSlice, /Voltar a proposta proporcional/,
-    'deve permitir voltar para proposta proporcional');
-  assert.match(proposalSlice, /window\.recalcularOP/,
-    'deve usar o recalculo canonico da proposta');
-  assert.match(proposalSlice, /window\.consumoPorOrdem/,
-    'deve recomputar consumo de fio ao vivo');
-  assert.match(proposalSlice, /window\.aplicarRecalculoOP/,
-    'aceite deve reutilizar o helper canonico');
+  assert.match(proposalSlice, /buildTecDistribuicaoBlock\(op, options\)/,
+    'deve compor o bloco de distribuicao compartilhado, nao um builder proprio');
+  assert.match(proposalSlice, /buildTecIniciarButton\(op, options\)/,
+    'inicio de producao deve vir do botao compartilhado');
+  assert.doesNotMatch(proposalSlice, /Aceitar proposta/,
+    'Aceitar proposta foi removido das DUAS superficies pelo contrato final');
+  assert.doesNotMatch(proposalSlice, /type:\s*['"]range['"]/,
+    'o slider mora no builder compartilhado, nao duplicado aqui');
   assert.doesNotMatch(proposalSlice, /\.from\(\s*['"]ops['"]\s*\)\.update/,
     'nao deve fazer update direto em ops.status no Pedido');
+  // O gemeo duplicado nao pode voltar: os builders reais sao do modulo
+  // compartilhado e o Pedido apenas os consome.
+  assert.match(oduSrc, /function buildDistribuicaoBlock/,
+    'op-distribuicao-ui.js deve continuar dono do bloco de distribuicao');
+  assert.match(oduSrc, /function buildIniciarProducaoButton/,
+    'op-distribuicao-ui.js deve continuar dono do inicio de producao');
+  // Banir o LITERAL renderizavel, nao a palavra: o modulo comenta a remocao
+  // ("Sem 'Aceitar proposta'"), e esse comentario e evidencia, nao regressao.
+  assert.doesNotMatch(detailEvents, /(?<!\/\/[^\n]*)['"]Aceitar proposta['"]/,
+    'nenhuma superficie do Pedido pode reintroduzir o botao Aceitar proposta');
 });
 
 test('modal-gaps-B: items do modal mostram moved/de/pendente por item', () => {
@@ -1549,7 +1580,7 @@ test('transfer-remaining-B: openMovementModal removeu "Transferir restante" dupl
 
 test('transfer-remaining-B: "Preencher restante" no form canonico NAO chama write, RPC, ou save automatico', () => {
   var efs = null;
-  try { efs = require('fs').readFileSync(require('path').resolve(__dirname, '..', 'js', 'screens', 'entrega-form.js'), 'utf8'); } catch (e) {}
+  try { efs = readOrFail(require('path').resolve(__dirname, '..', 'js', 'screens', 'entrega-form.js')); } catch (e) {}
   var preencherSlice = efs ? (efs.match(/fillRemaining[\s\S]*?window\.fmtMetros/) || [''])[0] : '';
   if (!preencherSlice || preencherSlice.length < 10) return;
   assert.doesNotMatch(preencherSlice, /salvarEntregaCima/,
@@ -1801,33 +1832,53 @@ test('tec-acceptance-B: buildPendingAcceptanceBlock oferece "Revisar distribuiç
     'botao deve abrir o modal de distribuição, nao apenas navegar');
 });
 
-test('tec-acceptance-B: modal de aceite mostra itens da OP', () => {
+// Os quatro testes tec-acceptance-B abaixo descreviam o modal de ACEITE
+// (Aceitar proposta / Manter como pedido / aplicarRecalculoOP), desenho
+// substituido pelo YARN-BUTTONS-FINAL-CONTRACT. Hoje o modal do Pedido e
+// SO distribuicao, save-only, montado a partir do builder compartilhado.
+test('tec-acceptance-B: modal do Pedido compoe o bloco de distribuicao compartilhado', () => {
   var accSlice = (detailEvents.match(/function openTecAcceptanceModal[\s\S]*?\n    \}\n\n    function buildPendingAcceptanceBlock/) || [''])[0];
   assert.ok(accSlice, 'trecho openTecAcceptanceModal nao encontrado');
-  assert.match(accSlice, /Itens da OP/,
-    'modal deve mostrar secao de itens da OP');
-  assert.match(accSlice, /Metros pedido/,
-    'modal deve mostrar coluna de metros pedido');
-});
-
-test('tec-acceptance-B: modal reutiliza aplicarRecalculoOP canonico', () => {
-  var accSlice = (detailEvents.match(/function openTecAcceptanceModal[\s\S]*?\n    \}\n\n    function buildPendingAcceptanceBlock/) || [''])[0];
-  assert.match(accSlice, /window\.aplicarRecalculoOP/,
-    'deve referenciar helper canonico aplicarRecalculoOP');
-  assert.match(accSlice, /window\.recalcularOP/,
-    'deve referenciar recalcularOP para modo aceitar proporcional');
-  assert.doesNotMatch(accSlice, /\.from\(\s*['"]ops['"]\s*\)\.update/,
-    'nao deve fazer write direto, apenas via helper canonico');
-});
-
-test('tec-acceptance-B: modal tem opcoes Aceitar e Manter', () => {
-  var accSlice = (detailEvents.match(/function openTecAcceptanceModal[\s\S]*?\n    \}\n\n    function buildPendingAcceptanceBlock/) || [''])[0];
-  assert.match(accSlice, /Aceitar proposta/,
-    'deve ter botao Aceitar proposta (proporcional)');
-  assert.match(accSlice, /Manter como pedido/,
-    'deve ter botao Manter como pedido');
+  assert.match(accSlice, /buildTecDistribuicaoBlock\(op, \{\}\)/,
+    'modal deve compor o bloco de distribuicao compartilhado');
   assert.match(accSlice, /Abrir na tela da OP/,
-    'deve ter botao para abrir na tela da OP como fallback');
+    'deve manter o fallback para a tela da OP');
+  // Os itens da OP passaram de tabela estatica a um slider por item, com
+  // consumo de fio ao vivo — tudo no builder compartilhado, dono unico.
+  assert.match(oduSrc, /type:\s*['"]range['"]/,
+    'op-distribuicao-ui.js deve renderizar um slider por item da OP');
+  assert.match(oduSrc, /CONSUMO DE FIO/,
+    'op-distribuicao-ui.js deve renderizar o consumo de fio ao vivo');
+});
+
+test('tec-acceptance-B: modal do Pedido nao escreve nem inicia producao', () => {
+  var accSlice = (detailEvents.match(/function openTecAcceptanceModal[\s\S]*?\n    \}\n\n    function buildPendingAcceptanceBlock/) || [''])[0];
+  assert.doesNotMatch(accSlice, /\.from\(\s*['"]ops['"]\s*\)\.update/,
+    'nao deve fazer write direto em ops');
+  assert.doesNotMatch(accSlice, /window\.iniciarProducaoOP/,
+    'o inicio de producao nao mora no modal — e do botao compartilhado');
+  assert.doesNotMatch(accSlice, /window\.aplicarRecalculoOP/,
+    'o wrapper aplicarRecalculoOP foi removido pelo contrato final');
+  // A persistencia da distribuicao e do modulo compartilhado.
+  assert.match(oduSrc, /window\.salvarDistribuicaoOP/,
+    'a persistencia da distribuicao e do builder compartilhado');
+});
+
+test('tec-acceptance-B: rodape e save-only, sem Aceitar proposta', () => {
+  var accSlice = (detailEvents.match(/function openTecAcceptanceModal[\s\S]*?\n    \}\n\n    function buildPendingAcceptanceBlock/) || [''])[0];
+  assert.doesNotMatch(accSlice, /Aceitar proposta/,
+    'Aceitar proposta foi removido das duas superficies');
+  assert.match(accSlice, /saveLabel:\s*null/,
+    'o modal nao tem CTA de salvar proprio — o rodape vive no bloco compartilhado');
+  assert.match(accSlice, /onSave:\s*null/,
+    'o modal nao registra onSave proprio');
+  // Rodape canonico: EXATAMENTE dois botoes, ambos save-only.
+  assert.match(oduSrc, /'Manter pedido'/,
+    'rodape compartilhado deve ter Manter pedido');
+  assert.match(oduSrc, /'Salvar distribuição'/,
+    'rodape compartilhado deve ter Salvar distribuicao');
+  assert.doesNotMatch(oduSrc, /Aceitar proposta/,
+    'o builder compartilhado nao pode reintroduzir Aceitar proposta');
 });
 
 test('tec-acceptance-B: parametros_largura carregado no Pedido Detail', () => {
@@ -1837,12 +1888,20 @@ test('tec-acceptance-B: parametros_largura carregado no Pedido Detail', () => {
     'createInitialState deve incluir parametrosLargura');
 });
 
-test('tec-acceptance-B: modal recarrega apos aceite com sucesso', () => {
-  var accSlice = (detailEvents.match(/function openTecAcceptanceModal[\s\S]*?\n    \}\n\n    function buildPendingAcceptanceBlock/) || [''])[0];
-  assert.match(accSlice, /await reload\(\)/,
-    'deve recarregar dados apos aceite');
-  assert.match(accSlice, /render\(\)/,
-    'deve re-renderizar apos aceite');
+test('tec-acceptance-B: recarrega apos sucesso (save-only e inicio de producao)', () => {
+  // O reload saiu do modal e virou o callback unico afterTecSuccess, ligado
+  // aos DOIS caminhos de sucesso do builder compartilhado. O contrato
+  // (recarregar + re-renderizar) e o mesmo; muda o ponto de amarracao.
+  var afterSlice = (detailEvents.match(/function afterTecSuccess[\s\S]*?\n    \}\n/) || [''])[0];
+  assert.ok(afterSlice, 'trecho afterTecSuccess nao encontrado');
+  assert.match(afterSlice, /await reload\(\)/,
+    'deve recarregar dados apos sucesso');
+  assert.match(afterSlice, /render\(\)/,
+    'deve re-renderizar apos sucesso');
+  assert.match(detailEvents, /onSaved:\s*afterTecSuccess\(op, options\)/,
+    'o save-only da distribuicao deve disparar o reload canonico');
+  assert.match(detailEvents, /onIniciado:\s*afterTecSuccess\(op, options\)/,
+    'o inicio de producao deve disparar o mesmo reload canonico');
 });
 
 // ---------------------------------------------------------------------
@@ -1895,7 +1954,7 @@ test('split-UI-B: "Transferir restante" removido — "Preencher restante" unific
 
 test('split-UI-B: "Preencher restante" permanece sem chamar writes ou RPC split', () => {
   var efs2 = null;
-  try { efs2 = require('fs').readFileSync(require('path').resolve(__dirname, '..', 'js', 'screens', 'entrega-form.js'), 'utf8'); } catch (e) {}
+  try { efs2 = readOrFail(require('path').resolve(__dirname, '..', 'js', 'screens', 'entrega-form.js')); } catch (e) {}
   var preencherSlice2 = efs2 ? (efs2.match(/fillRemaining[\s\S]*?window\.fmtMetros/) || [''])[0] : '';
   if (!preencherSlice2 || preencherSlice2.length < 10) return;
   assert.doesNotMatch(preencherSlice2, /salvarEntregaCima/);
@@ -2062,7 +2121,10 @@ test('HUB stacking: modais bespoke da seta e da etapa registram-se na pilha de o
 
 test('HUB: modal de etapa oferece acoes contextuais curtas por OP/expedicao', () => {
   assert.ok(stageBodySlice, 'trecho buildStageDetailBody nao encontrado');
-  for (const label of ['Ver OP', 'Aceitar OP', 'Finalizar OP', 'Movimentar', 'Entregar', 'Abrir Expedicao', 'Gerar primeira OP', 'Concluir']) {
+  // YARN-BUTTONS-FINAL-CONTRACT: a acao "Aceitar OP" do hub virou
+  // "Distribuição" (abre o modal save-only). O inicio de producao deixou de
+  // ser efeito colateral do aceite e passou a ser o botao dedicado.
+  for (const label of ['Ver OP', 'Distribuição', 'Finalizar OP', 'Movimentar', 'Entregar', 'Abrir Expedicao', 'Gerar primeira OP', 'Concluir']) {
     assert.ok(stageBodySlice.indexOf(label) !== -1, 'hub deve oferecer acao: ' + label);
   }
 });
@@ -2071,7 +2133,9 @@ test('BLOCKER: hub explica bloqueios com motivo e proxima acao fora da seta', ()
   assert.ok(stageBodySlice, 'trecho buildStageDetailBody nao encontrado');
   for (const text of [
     'Pedido ainda nao possui OP vinculada. Proxima acao: Gerar primeira OP neste hub.',
-    'OP de Tecelagem pendente de aceite. Proxima acao: Aceitar OP',
+    // Reescrito pelo YARN-BUTTONS-FINAL-CONTRACT: o bloqueio nao fala mais
+    // em "aceite", e sim em salvar a distribuicao + Iniciar producao.
+    'OP de Tecelagem pendente. Proxima acao: ajustar/salvar a distribuicao e Iniciar producao neste hub ou abrir a OP.',
     'Tecelagem entregue; finalizar OP.',
     'Saldo produtivo entregue. Proxima acao: Finalizar OP neste hub.',
     'Sem material recebido da Tecelagem.',

@@ -434,7 +434,14 @@ test('garantias: sem chamada Supabase', function () {
   var src = fs.readFileSync(MODULE, 'utf8');
   assert.ok(src.indexOf('window.supa') === -1, 'modulo referencia window.supa');
   assert.ok(src.indexOf('window.supabase') === -1, 'modulo referencia window.supabase');
-  assert.ok(src.indexOf('supabase') === -1, 'modulo referencia supabase');
+  // O ban era a substring 'supabase' em qualquer lugar. Ele passou a acusar
+  // o proprio contrato de PROVENIENCIA: o ingestor compara a etiqueta
+  // `_ravatex_source === 'supabase'` para distinguir documento vindo do
+  // servidor de documento local. Isso e classificacao de origem, nao
+  // chamada. O que precisa continuar proibido e o ACESSO ao cliente.
+  assert.ok(src.indexOf('createClient') === -1, 'modulo instancia cliente Supabase');
+  assert.ok(!/\.\s*(from|rpc)\s*\(/.test(src), 'modulo faz query Supabase');
+  assert.ok(src.indexOf('functions.invoke') === -1, 'modulo chama edge function');
 });
 
 test('garantias: sem chamada Google/Drive', function () {
@@ -649,7 +656,11 @@ test('received: parser NAO afeta isValidDocumentEvent (regressao)', function () 
 
 test('received: modulo continua sem chamada Supabase/Google/Drive', function () {
   var src = fs.readFileSync(MODULE, 'utf8');
-  assert.ok(src.indexOf('supabase') === -1);
+  // Mesma correcao do teste "garantias": a etiqueta de proveniencia
+  // 'supabase' e parte do contrato de origem, nao uma chamada.
+  assert.ok(src.indexOf('window.supa') === -1, 'modulo referencia window.supa');
+  assert.ok(src.indexOf('createClient') === -1, 'modulo instancia cliente Supabase');
+  assert.ok(!/\.\s*(from|rpc)\s*\(/.test(src), 'modulo faz query Supabase');
   assert.ok(src.indexOf('googleapis') === -1);
   assert.ok(src.indexOf('google-auth') === -1);
   assert.ok(src.indexOf('fetch(') === -1);

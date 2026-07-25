@@ -80,6 +80,8 @@ const PAINEL = path.join(ROOT, 'js', 'screens', 'painel.js');
 const indexSrc  = fs.readFileSync(INDEX, 'utf8');
 const ofhSrc    = fs.readFileSync(OFH,   'utf8');
 const opnSrc    = fs.readFileSync(OPN,   'utf8');
+// Builder de distribuição COMPARTILHADO (YARN-BUTTONS-FINAL-CONTRACT).
+const oduSrc    = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'op-distribuicao-ui.js'), 'utf8');
 const bootSrc   = fs.readFileSync(BOOT,  'utf8');
 const efSrc     = fs.readFileSync(EF,    'utf8');
 const uiSrc     = fs.readFileSync(UI,    'utf8');
@@ -243,12 +245,26 @@ test('10. screenNovaOP foi extraída para op-nova.js (NÃO está mais no inline)
   // persistir continua extraído em op-persistir.js
   assert.equal(/function\s+persistir\s*\(/.test(inline), false,
     'inline não deve mais declarar persistir (extraído para op-persistir.js)');
-  // aplicarRecalculo, buildOrdemPendenteRow, buildProposta, etc. foram todos
-  // movidos para op-nova.js junto com screenNovaOP
-  for (const fn of ['aplicarRecalculo', 'buildOrdemPendenteRow', 'buildProposta', 'buildBlocoFios', 'buildBlocoTecelagem']) {
+  // Estas continuam em op-nova.js, movidas junto com screenNovaOP.
+  for (const fn of ['buildOrdemPendenteRow', 'buildProposta', 'buildBlocoFios']) {
     assert.match(opnSrc, new RegExp(`(async\\s+)?function\\s+${fn}\\s*\\(`),
       `op-nova.js perdeu a função ${fn}`);
   }
+  // Duas saíram da lista por decisão registrada, não por perda:
+  //
+  //   - `aplicarRecalculo`: wrapper morto REMOVIDO pelo
+  //     YARN-BUTTONS-FINAL-CONTRACT (ledger 2026-07-18, CLOSED/ACCEPTED).
+  //     tests/op-writes.smoke.js caso 11 já guarda essa aposentadoria — este
+  //     arquivo exigia o oposto, e os dois não podiam estar certos.
+  //   - `buildBlocoTecelagem`: era o gêmeo duplicado do bloco de
+  //     distribuição; o mesmo contrato unificou os dois builders no módulo
+  //     compartilhado js/screens/op-distribuicao-ui.js.
+  assert.equal(/function\s+aplicarRecalculo\s*\(/.test(opnSrc), false,
+    'o wrapper morto aplicarRecalculo não pode voltar a op-nova.js');
+  assert.match(opnSrc, /window\.aplicarRecalculoOP/,
+    'op-nova.js deve usar o helper canônico window.aplicarRecalculoOP');
+  assert.match(oduSrc, /function buildDistribuicaoBlock/,
+    'o bloco de distribuição deve viver no módulo compartilhado');
 });
 
 test('11. op-nova.js usa window.rotuloFio (não rotuloFioOrdem local)', () => {
@@ -258,9 +274,16 @@ test('11. op-nova.js usa window.rotuloFio (não rotuloFioOrdem local)', () => {
     'op-nova.js ainda referencia rotuloFioOrdem (não window.rotuloFio)');
 });
 
-test('12. op-nova.js usa window.rotuloModelo nos call-sites (>= 4)', () => {
+test('12. op-nova.js consome o rotuloModelo compartilhado, sem clone local', () => {
+  // O número mínimo de call-sites era 4 e envelheceu: parte deles saiu de
+  // op-nova.js junto com os blocos que migraram para módulos próprios
+  // (op-latex-admin, op-tecelagem-producao-admin, op-distribuicao-ui). A
+  // garantia que importa não é a CONTAGEM, e sim que op-nova.js use o
+  // helper compartilhado e não redeclare o seu.
   const count = (opnSrc.match(/window\.rotuloModelo\(/g) || []).length;
-  assert.ok(count >= 4, `esperado >= 4 chamadas a window.rotuloModelo, encontrado ${count}`);
+  assert.ok(count >= 1, `op-nova.js deve consumir window.rotuloModelo, encontrado ${count}`);
+  assert.equal(/function\s+rotuloModelo\s*\(/.test(opnSrc), false,
+    'op-nova.js não pode declarar um clone local de rotuloModelo');
 });
 
 test('13. op-nova.js usa window.fmtKg e window.fmtMetros e disabledAttr(readOnly, ...)', () => {
@@ -629,8 +652,13 @@ test('34. screenPainel (inline) ainda renderiza via shellLayout com 9 itens do A
   const flex = root.children.find((c) => c.tagName === 'DIV');
   const aside = flex && flex.children.find((c) => c.tagName === 'ASIDE');
   const links = aside && aside.children.filter((c) => c.tagName === 'A');
-  assert.ok(links && links.length === 9,
-    `screenPainel não renderizou 9 itens do ADMIN_MENU (renderizou ${links ? links.length : 0})`);
+  // O número era fixo e envelheceu quando o menu admin cresceu por fases
+  // já aceitas. A guarda real é "o painel renderiza o menu canônico
+  // INTEIRO" — comparar com o dono único (ADMIN_MENU de common.js).
+  const esperado = vm.runInContext('window.ADMIN_MENU.length', sandbox);
+  assert.ok(esperado > 0, 'ADMIN_MENU canônico não carregou no sandbox');
+  assert.ok(links && links.length === esperado,
+    `screenPainel não renderizou os ${esperado} itens do ADMIN_MENU (renderizou ${links ? links.length : 0})`);
 });
 
 test('35. screenCadastrosCores (cadastros) ainda renderiza (regressão cadastros)', async () => {

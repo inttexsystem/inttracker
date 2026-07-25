@@ -156,10 +156,20 @@ test('pedido-parciais-admin nao contem termos internos proibidos no contexto cli
 });
 
 test('detalhe, lista e dashboard do cliente podem consultar pedido_parciais; tracking permanece componente puro', () => {
-  assert.match(codeOnly(clientDetailSrc), /pedido_parciais/);
+  // O detalhe do cliente deixou de ler `pedido_parciais` diretamente: a
+  // leitura foi consolidada no read model canonico `cliente_pedido_summary`,
+  // que ja devolve `parciais` sanitizado e com ACL aplicada no servidor. O
+  // direito de ver parciais — que e o que este teste guarda — continua
+  // valendo; muda o caminho pelo qual ele e exercido.
+  assert.match(codeOnly(clientDetailSrc), /rpc\(\s*['"]cliente_pedido_summary['"]/,
+    'o detalhe do cliente deve obter parciais pelo read model canonico');
+  assert.match(codeOnly(clientDetailSrc), /payload\.parciais/,
+    'o detalhe do cliente deve consumir as parciais do read model');
   assert.match(codeOnly(clientListSrc), /pedido_parciais/);
   assert.match(codeOnly(clientDashboardSrc), /pedido_parciais/);
   assert.doesNotMatch(codeOnly(clientTrackingSrc), /pedido_parciais/);
+  assert.doesNotMatch(codeOnly(clientTrackingSrc), /cliente_pedido_summary/,
+    'o tracking permanece componente puro, sem leitura propria');
 });
 
 test('telas cliente nao foram convertidas para writes ou leitura parcial', () => {
