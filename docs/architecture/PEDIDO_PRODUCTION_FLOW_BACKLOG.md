@@ -3823,9 +3823,13 @@ exactly: `pedido-detail-events.js` 2709 and `pedido-detail-progress.js` 918,
 neither enlarged. Ten visual captures from a disposable local fixture, packaged
 outside the repository and then destroyed.
 
-**Deferred.** The `index.html` `?v=` cache tokens for the two changed assets
-still read `20260725-manta-b2b-r2`; the order authorized `index.html` only for a
-new module, and none was introduced.
+**R3 cache-token blocker: CLOSED** by
+`PHASE-MANTA-B2B-R3-CACHE-BUST-CLOSEOUT-R1` (2026-07-25). Both assets R3
+changed now carry the single R3-specific token `20260725-manta-b2b-r3` in
+`index.html`, so a returning browser fetches the corrected assets. Declarative
+invalidation only: both JavaScript files are byte-identical to `4532f76`, no
+unrelated asset token moved, and the asset order is unchanged. No cache-bump
+decision remains pending for R3.
 
 Owner of the full technical record:
 `docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md`

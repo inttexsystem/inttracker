@@ -1469,9 +1469,22 @@ acceptance is **not** claimed. PHASE-MANTA-B2A (db/85–88) still awaits its
 own architect review; PHASE-MANTA-B2C requires a separate explicit order.
 No phase chains automatically.
 
-Recorded deferral, outside this order's authorized paths: the `?v=` cache
-tokens in `index.html` for the two changed assets still read
-`20260725-manta-b2b-r2`. §5 of the order authorizes `index.html` only when
-a new module is introduced, and none was, so the tokens were deliberately
-left untouched. A returning browser may serve the pre-R3 asset until the
-tokens are bumped by a separate order.
+### 19.6 R3 cache-token blocker — CLOSED
+
+`PHASE-MANTA-B2B-R3-CACHE-BUST-CLOSEOUT-R1` closed the one deferral R3 had
+recorded. Both assets R3 changed now carry a single R3-specific token in
+`index.html`:
+
+```
+<script src="js/pedido-tracking-ui.js?v=20260725-manta-b2b-r3"></script>
+<script src="js/screens/pedido-detail-render.js?v=20260725-manta-b2b-r3"></script>
+```
+
+Declarative invalidation only: both JavaScript files are byte-identical to
+`4532f76` (equal git blob ids), no other asset token moved, and the asset
+order and paths of `index.html` are unchanged. A returning browser now
+fetches the corrected assets. No behaviour, CSS, module, migration or `db/**`
+change. `tests/manta-route-ui.smoke.js` gained seven focused proofs
+(56 → 63 green), verified non-vacuous against a deliberately reverted token.
+
+**No cache-bump decision remains pending for R3.**

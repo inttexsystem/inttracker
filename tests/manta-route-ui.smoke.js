@@ -1128,3 +1128,101 @@ test('R3/19h. gates estruturais preservados (nenhum arquivo gated cresceu)', () 
   assert.ok(lines('js/screens/pedido-detail-progress.js') <= 918,
     'pedido-detail-progress.js deve permanecer <= 918 linhas');
 });
+
+// ---------------------------------------------------------------------
+// 20. PHASE-MANTA-B2B-R3-CACHE-BUST — invalidacao declarativa dos dois
+//     assets alterados por R3. Nenhuma mudanca de comportamento.
+// ---------------------------------------------------------------------
+
+// Os dois unicos assets que R3 alterou; ambos DEVEM compartilhar o mesmo
+// token novo, para que um browser que retorna nao sirva o asset pre-R3.
+const R3_ASSETS = ['js/pedido-tracking-ui.js', 'js/screens/pedido-detail-render.js'];
+const R2_TOKEN = '20260725-manta-b2b-r2';
+
+// Parsing literal, sem regex: um `?v=` num padrao escapado a mao e uma
+// fonte de erro silencioso (o `?` volta a ser quantificador e o teste
+// passa a nao encontrar nada).
+function assetRefs(src) {
+  const out = [];
+  const re = /(?:src|href)="([^"]+)"/g;
+  let m;
+  while ((m = re.exec(src)) !== null) {
+    const raw = m[1];
+    const at = raw.indexOf('?v=');
+    out.push({ path: at === -1 ? raw : raw.slice(0, at), token: at === -1 ? null : raw.slice(at + 3) });
+  }
+  return out;
+}
+
+function tokenFor(rel) {
+  const hit = assetRefs(indexHtml).filter((r) => r.path === rel);
+  assert.equal(hit.length, 1, rel + ' deve aparecer exatamente uma vez em index.html');
+  return hit[0].token;
+}
+
+test('R3/20a. os dois assets alterados por R3 usam o MESMO token novo', () => {
+  const tokens = R3_ASSETS.map(tokenFor);
+  for (let i = 0; i < R3_ASSETS.length; i++) {
+    assert.ok(tokens[i], R3_ASSETS[i] + ' deve ser carregado com ?v=');
+  }
+  assert.equal(tokens[0], tokens[1],
+    'os dois assets de R3 devem compartilhar um unico token de invalidacao');
+  assert.notEqual(tokens[0], R2_TOKEN,
+    'o token de R3 tem de diferir do token de R2, senao o cache nao e invalidado');
+  assert.match(tokens[0], /r3$/, 'o token deve ser especifico desta correcao');
+});
+
+test('R3/20b. nenhum dos dois assets retem o token de R2', () => {
+  for (const rel of R3_ASSETS) {
+    assert.notEqual(tokenFor(rel), R2_TOKEN, rel + ' nao pode continuar com o token de R2');
+  }
+});
+
+test('R3/20c. o token de R3 nao vaza para nenhum asset nao relacionado', () => {
+  const r3Token = tokenFor(R3_ASSETS[0]);
+  const carriers = assetRefs(indexHtml).filter((r) => r.token === r3Token).map((r) => r.path);
+  assert.deepEqual(carriers.sort(), R3_ASSETS.slice().sort(),
+    'exatamente os dois assets de R3 podem carregar o token de R3');
+});
+
+test('R3/20c2. todo asset nao relacionado conserva o token que tinha em 4532f76', () => {
+  const before = assetRefs(execFileSync('git', ['show', '4532f76:index.html'], { cwd: ROOT, encoding: 'utf8' }));
+  const after = assetRefs(indexHtml);
+  assert.equal(after.length, before.length, 'nenhum asset pode ser adicionado ou removido');
+  for (let i = 0; i < before.length; i++) {
+    assert.equal(after[i].path, before[i].path, 'ordem/caminho preservados na posicao ' + i);
+    if (R3_ASSETS.includes(before[i].path)) continue;
+    assert.equal(after[i].token, before[i].token,
+      before[i].path + ' e um asset nao relacionado e nao pode ter o token alterado');
+  }
+});
+
+test('R3/20d. o cache-bust nao alterou os dois arquivos JavaScript', () => {
+  // Autoridade de modificacao e o proprio git: o id de blob da arvore de
+  // trabalho (com o filtro clean aplicado) contra o blob commitado em
+  // 4532f76 — o commit da correcao R3 de comportamento.
+  for (const rel of R3_ASSETS) {
+    const committed = execFileSync('git', ['rev-parse', '4532f76:' + rel], { cwd: ROOT, encoding: 'utf8' }).trim();
+    const worktree = execFileSync('git', ['hash-object', '--', rel], { cwd: ROOT, encoding: 'utf8' }).trim();
+    assert.equal(worktree, committed, rel + ' deve permanecer byte-identico a 4532f76');
+  }
+});
+
+test('R3/20e. ordem e caminhos dos assets de index.html inalterados', () => {
+  const refs = (src) => (src.match(/(?:src|href)="[^"]+"/g) || [])
+    .map((s) => s.replace(/^(?:src|href)="/, '').replace(/"$/, '').replace(/\?v=.*$/, ''));
+  const before = refs(execFileSync('git', ['show', '4532f76:index.html'], { cwd: ROOT, encoding: 'utf8' }));
+  const after = refs(indexHtml);
+  assert.deepEqual(after, before,
+    'nenhum asset pode ser adicionado, removido ou reordenado por um cache-bust');
+});
+
+test('R3/20f. o cache-bust nao introduz delta de banco nem toca css', () => {
+  const changed = execFileSync('git', ['diff', '--name-only', '4532f76'], { cwd: ROOT, encoding: 'utf8' })
+    .split('\n').map((s) => s.trim()).filter(Boolean);
+  for (const rel of changed) {
+    assert.equal(/^db\//.test(rel), false, 'nenhum arquivo db/** pode mudar: ' + rel);
+    assert.equal(/\.sql$/.test(rel), false, 'nenhum .sql pode mudar: ' + rel);
+    assert.equal(/^css\//.test(rel), false, 'nenhum css pode mudar neste pedido: ' + rel);
+  }
+});
