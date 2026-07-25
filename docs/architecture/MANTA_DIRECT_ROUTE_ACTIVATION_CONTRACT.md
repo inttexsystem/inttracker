@@ -1642,3 +1642,249 @@ its own architect review. PHASE-MANTA-B2A is **not** accepted by this closeout.
 PHASE-MANTA-B2C (shared-development apply of db/85–db/88, live validation and
 closeout) remains unauthorized and requires its own separate explicit order. No
 phase chains automatically.
+
+## 21. PHASE-MANTA-B2A architect acceptance
+
+STATUS: **PHASE-MANTA-B2A — CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBT.**
+
+The architect reviewed the db/85–db/88 record of §15 and §16 and issued the
+binding ruling:
+
+```
+PHASE-MANTA-B2A:            ACCEPTED_WITH_NONBLOCKING_DEBT
+PHASE-MANTA-B2C:            AUTHORIZED FOR SHARED DEVELOPMENT ONLY
+TARGET:                     ucrjtfswnfdlxwtmxnoo
+EXPECTED START TERMINAL:    db/84
+AUTHORIZED FINAL TERMINAL:  db/88
+```
+
+§15 and §16 remain the untouched implementation and forward-correction records
+and are not rewritten. The acceptance carries the two nonblocking debts already
+recorded with PHASE-MANTA-B2B — `G14-C-BRIDGE-EXTERNAL-CORPUS-DEPENDENCY` and
+`DEBT-1-ATRIBUIR-FORNECEDOR-FIO-SEM-CHAMADOR` — neither of which was corrected
+here. The ruling authorized shared development only; it did not authorize
+production, Vercel, `main`, another Supabase project, or business-flow
+recreation.
+
+## 22. PHASE-MANTA-B2C shared-development activation, live validation and closeout
+
+STATUS: **PHASE-MANTA-B2C — CLOSED / ACCEPTED.**
+
+Order `PHASE-MANTA-B2C-SHARED-DEVELOPMENT-ACTIVATION-AND-LIVE-CLOSEOUT-R1`. The
+accepted Manta direct-route backend is now **active on shared development**.
+Exactly four forward-only migrations were applied, once each, in order, from
+their canonical files. No product, test, harness, `js/**`, `css/**`,
+`index.html` or `db/**` change was authorized or made. No production, staging
+database, Vercel, `main`, `origin` or tag action occurred.
+
+### 22.1 Target environment identity
+
+| Fact | Value |
+|---|---|
+| Project | `ucrjtfswnfdlxwtmxnoo` (shared development) |
+| Database / role | `postgres` / `postgres` |
+| PostgreSQL | 17.6 |
+| Positive identity proof | `inet_server_addr()` = `2600:1f18:38df:9501:5625:752d:c0e9:7c06` = AAAA of `db.ucrjtfswnfdlxwtmxnoo.supabase.co` |
+| Negative identity proof | production `gqmpsxkxynrjvidfmojk` resolves to `2600:1f11:c29:8b01:…`, forbidden `bhgifjrfagkzubpyqpew` to `2600:1f1e:dbb:f602:…` — both distinct, neither ever connected to |
+| Starting terminal | `db/84`; `db/85`–`db/88` absent; no partial B2A object set |
+| Final terminal | `db/88` |
+
+### 22.2 Pre-apply gates
+
+The db/85 route/destination gate and the db/88 identity gate were reproduced
+read-only before any mutation: **zero violations on every clause** — unresolved
+`op_item_id`, dangling `op_item_id`, cross-OP `op_item`, unresolved
+`modelos.tipo_produto`, mixed Tapete/Manta items, Tapete `cima` without
+destination, Manta `cima` with destination, `modelo_id` divergent from its
+`op_item`, and Manta `cima` with null `modelo_id`. Shared development held
+**zero** `entregas.etapa = 'cima'` rows, so both gates were satisfied vacuously
+and no row was repaired or reinterpreted.
+
+The accepted db/81–db/84 object baseline was present in full — expedition source
+exclusivity (`expedicoes_exactly_one_source_chk`,
+`expedicoes_op_tecelagem_id_uk`), source identity and lineage guards
+(`expedicoes_source_validation_guard`, `expedicao_itens_membership_guard`,
+`op_itens_expedicao_reference_guard`), the Manta consumption freeze guards
+(`entrega_itens_manta_consumo_guard`, `entregas_manta_consumo_guard`),
+route-homogeneity protection (`op_itens_route_homogeneity_guard`,
+`op_itens_source_nonempty_guard`) and the expected RLS and grants.
+`entregas_destino_cima_chk` was still in place. The DDL window was clean: 0
+blocked locks, 0 idle-in-transaction sessions, 0 other active sessions, 0
+deadlocks. No session was terminated.
+
+One benign pre-existing condition is recorded rather than treated as drift:
+`entrega_itens_op_item_idx` already existed from db/31 as
+`btree (op_id, op_item_id)`, so db/86's `CREATE INDEX IF NOT EXISTS … (op_item_id)`
+is a no-op by name. This is identical on the accepted local cluster, where db/31
+also precedes db/86, and the composite index still serves the
+`op_item_id`-exact join because `op_id` is always constrained alongside it.
+
+### 22.3 Apply mechanism and byte fidelity
+
+Applied through the repository's canonical mechanism — Supabase MCP
+`apply_migration`, one canonical file-stem per call, exactly once, stop-on-error,
+no retry, no reordering, no rewritten or combined migration, nothing marked
+applied without executing, and no `execute_sql` used for DDL.
+
+Because the tool takes SQL as a string, each payload was proved byte-identical to
+its canonical file **before** the apply (empty `diff` and identical SHA-256), and
+after each apply the server-stored
+`supabase_migrations.schema_migrations.statements` were whitespace-normalized and
+md5-compared against the same normalization of the canonical file.
+
+| Migration | Version | Result | Normalized md5 (stored = file) |
+|---|---|---|---|
+| `85_manta_cima_route_conditional_delivery` | `20260725145618` | SUCCESS | `d7950cc2a26c8ac9ff1508f4ecc37c65` |
+| `86_manta_expedition_release_writer` | `20260725150126` | SUCCESS | `35d9868579e7060de71ab78ce95f4e3c` |
+| `87_manta_expedition_reversal_and_route_completion` | `20260725150529` | SUCCESS | `28a8a17e11485e6c9ce8ed936b45fb22` |
+| `88_manta_measured_output_identity_and_fk_lock_correction` | `20260725151405` | SUCCESS | `2e21d988c6cb08bbc8363b461f39036f` |
+
+### 22.4 Post-apply object validation
+
+**db/85** — `entregas_destino_cima_chk` removed; both route-aware triggers
+(`entrega_itens_cima_route_destino_guard`, `entregas_cima_destino_route_guard`)
+installed; Manta `cima` requires no destination and Tapete `cima` still requires
+one; mixed and unresolved source rejected; the Manta output writer is atomic and
+creates no Latex state — its body contains no `gerar_op_latex`,
+`gerar_op_latex_split` or `op_latex_entregas` reference.
+
+**db/86** — `public.expedicao_comandos` exists; unique identity is
+`(idempotency_namespace, ator_id, idempotency_key)`; command rows are immutable
+via `expedicao_comandos_immutable_guard` (BEFORE UPDATE OR DELETE); RLS enabled;
+the admin read policy `expedicao_comandos_admin_read` is present; `anon`,
+`authenticated` and `PUBLIC` hold **no** table privilege;
+`consultar_saldo_expedicao_manta` installed; release authority is measured output
+by exact `op_item_id`; the plan is display-only; additive partial release and
+replay behavior preserved.
+
+**db/87** — `estornar_expedicao_manta_parcial(bigint, jsonb, text, text)`
+installed; blank reason rejected; reversal cannot go below delivered metres; the
+release and reversal command namespaces remain separate by CHECK;
+`concluir_pedido_se_pronto` retains its single `(p_pedido_id uuid)` overload,
+authorization and Tapete behavior with the pendency messages verbatim; Manta
+completion pendencies are route-symmetric.
+
+**db/88** — the terminal function bodies are the db/88 versions; Manta
+measured-output `modelo_id` is exact and mandatory; the referenced `op_item`
+identity is frozen after measured output by
+`op_itens_manta_output_reference_guard`; both Manta writers pre-lock the affected
+`op_itens` ascending `FOR KEY SHARE` and re-read identity post-lock; the direct
+expedition-item membership guard uses the corrected order.
+
+### 22.5 Security and authorization
+
+Every new public RPC is `SECURITY DEFINER` with `search_path = public` and an
+`is_admin()` gate; `EXECUTE` is held only by `authenticated` (plus the Supabase
+default `service_role`) with **no** `PUBLIC` and **no** `anon` grant. The
+`expedicao_comandos_immutable_guard_fn` uses `search_path = ''` and is revoked
+from every client role.
+
+No unrelated table grant or RLS policy changed: the `anon`/`authenticated`
+grants on `entregas`, `entrega_itens`, `op_itens`, `expedicoes` and
+`expedicao_itens` and the per-table policy counts are byte-identical to the
+pre-apply baseline, and `is_admin`, `recalcular_status_expedicao`,
+`entrega_itens_manta_consumo_guard_fn` and `op_itens_route_homogeneity_guard_fn`
+carry unchanged definition hashes. The Latex writers `gerar_op_latex`,
+`liberar_expedicao_latex_parcial` and `consultar_saldo_expedicao_latex` are not
+targeted by any statement in db/85–db/88 and are unchanged.
+
+No `app.retificacao_autorizada` path was granted to any writer: db/85–db/88
+contain **zero** `current_setting()` calls and every occurrence of that string is
+a comment or an error message asserting the absence of a bypass.
+
+`concluir_pedido_se_pronto` retains the broad pre-existing `EXECUTE` grants it
+has carried since db/23. db/87 issues no `GRANT`/`REVOKE` on it and
+`CREATE OR REPLACE` preserves privileges, so those grants are unchanged by
+construction and the function remains gated internally by `is_admin()`.
+
+### 22.6 Live synthetic validation
+
+One bounded validation ran inside an explicit transaction ending in `ROLLBACK`,
+using unique synthetic identifiers only (`B2C SYN …`, `numero` 900001–900005,
+`…@example.invalid`) and an authenticated admin actor simulated through a
+transaction-local `request.jwt.claims`. **20 of 20 required proofs passed**, with
+no fatal error:
+
+1. Manta measured output registered with no finishing destination (`ok=true`,
+   `destino_fornecedor_id` NULL).
+2. The Manta output created no Latex OP and no `op_latex_entregas` relationship.
+3. Tapete `cima` without finishing destination rejected by the item guard.
+4. Tapete's existing valid destination path still accepted.
+5. Manta balance computed by exact `op_item_id` (40.00 and 25.00 held separate).
+6. Defective measured output excluded (`+15` defect left `recebido` at 40.00).
+7. Planned metres did not raise the available balance (`previsto` 100.00 versus
+   `disponivel` 40.00).
+8. Partial release succeeded (`liberado_total` 10.00).
+9. A further release was additive (10.00 → 25.00 in the same expedition).
+10. Over-release rejected (`excede_disponivel`).
+11. An identical replay returned the byte-identical result with zero mutation
+    (command rows 1 → 1, released metres 30 → 30).
+12. The same key with a changed request rejected (`idempotencia_conflitante`).
+13. Blank reversal reason rejected (`motivo_obrigatorio`).
+14. Reversal below delivered metres rejected (`abaixo_do_entregue`).
+15. A valid reversal reconciled balances (`liberado` 15.00, `disponivel` 25.00).
+16. A Manta-only Pedido could not conclude and reported both Manta pendencies.
+17. Tapete completion behavior unchanged (`Ha acabamento finalizado sem
+    expedicao` verbatim).
+18. A mixed Pedido reported the Manta and Tapete pendencies independently.
+19. Non-admin calls rejected with `sem_permissao` on all four new RPCs.
+20. The rollback left zero synthetic business rows and zero command rows.
+
+Shared-development concurrency drills were **not** run — the accepted
+PHASE-MANTA-B2A disposable-cluster evidence owns concurrency validation — and no
+persistent fixture was created to reproduce the local concurrency suite.
+
+### 22.7 Zero-residue proof
+
+After the rollback, shared development holds **zero** rows in `entregas`,
+`entrega_itens`, `expedicoes`, `expedicao_itens`, `expedicao_comandos`,
+`pedidos`, `lotes`, `ops`, `op_itens`, `op_eventos` and `pedido_eventos`; the
+synthetic-identifier sweep returns zero on every pattern; and the reference data
+is unchanged (`modelos` 12, `fornecedores` 6, `clientes` 4, `usuarios` 10,
+`auth.users` 10). Deadlocks and blocked locks remain 0. No real business row was
+created, edited, migrated or repaired at any point, and no historical production
+flow was recreated.
+
+### 22.8 Regression validation
+
+| Command | Exit | Result |
+|---|---|---|
+| `node tests/manta-direct-route-activation-invariant.mjs` | 0 | `MANTA_DIRECT_ROUTE_ACTIVATION_INVARIANT_PASS` (proofs A, B, C, D, E1, E2; 0 server-reported deadlocks) |
+| `node tests/manta-expedition-source-invariant.mjs` | 0 | `failures=0 / ALL_PROOFS_PASSED` |
+| `node tests/ordem-compra-c3d-deploy.smoke.js` | 0 | 36/36 pass |
+| `node --test tests/**/*.js` | 1 | **4256 tests / 4255 pass / 1 fail** |
+
+The sole failure is `tests/g14-c-bridge-smoke.test.js`, the accepted
+`G14-C-BRIDGE-EXTERNAL-CORPUS-DEPENDENCY` Category-E external-repository
+dependency. **No new failure.** The documented local server prerequisite on port
+`8765` was active for the full sweep.
+
+### 22.9 Nonblocking debts
+
+Both debts accepted with PHASE-MANTA-B2B and carried by the PHASE-MANTA-B2A
+acceptance remain open and uncorrected:
+`G14-C-BRIDGE-EXTERNAL-CORPUS-DEPENDENCY` (documents-ingestor integration
+domain) and `DEBT-1-ATRIBUIR-FORNECEDOR-FIO-SEM-CHAMADOR` (OP / yarn procurement
+domain). Each requires its own separate order. The
+`docs/governance/catalog/documents.json` metadata drift remains a separate
+nonblocking governance debt and, per the order, did not delay activation and was
+not touched.
+
+### 22.10 Final phase status and next authorizable action
+
+```
+PHASE-MANTA-B2A:      CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBT
+PHASE-MANTA-B2C:      CLOSED / ACCEPTED
+SHARED DEVELOPMENT:   ucrjtfswnfdlxwtmxnoo at terminal db/88
+                      Manta direct-route backend ACTIVE
+PRODUCTION:           UNCHANGED / NOT ACCESSED
+NEXT ACTION:          KLEBER-APP-OPERATIONAL-REVIEW
+MODE:                 HUMAN PRODUCT REVIEW / DEFECT INTAKE
+```
+
+The next action is **not** a broad refactor. Kleber will use the application and
+report concrete operational defects; those defects will later be grouped into one
+bounded stabilization order rather than corrected through isolated microphases.
+Production, Vercel, `main`, `origin`, tags, any further migration and any
+additional publication each require a new explicit order. No phase chains
+automatically.

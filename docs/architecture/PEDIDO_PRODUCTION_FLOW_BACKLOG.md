@@ -3891,3 +3891,79 @@ phase chains automatically.
 Owner of the full technical and acceptance record:
 `docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md`
 §20 "PHASE-MANTA-B2B final architect acceptance and documentary closeout".
+
+# Update 2026-07-25 - PHASE-MANTA-B2A: CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBT and PHASE-MANTA-B2C: CLOSED / ACCEPTED (Manta direct-route backend ACTIVE on shared development at terminal db/88; next: KLEBER-APP-OPERATIONAL-REVIEW)
+
+**Status.** The architect accepted PHASE-MANTA-B2A as
+`CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBT` and authorized PHASE-MANTA-B2C for
+shared development only. PHASE-MANTA-B2C is now **COMPLETE** and closed as
+`CLOSED / ACCEPTED`. The Manta direct route is no longer dormant: its backend is
+**active** on shared development.
+
+**What was applied.** Exactly four forward-only migrations, once each, in order,
+from their canonical files, through the repository's canonical mechanism
+(Supabase MCP `apply_migration`, one file-stem per call, stop-on-error, no
+retry): `db/85` (route-conditional weaving delivery), `db/86` (expedition balance
+and release writers plus `expedicao_comandos`), `db/87` (balance-preserving
+reversal and route-symmetric Pedido completion) and `db/88` (measured-output
+identity, `op_item` identity freeze and the FK row-lock correction). Shared
+development moved from terminal `db/84` to terminal `db/88`.
+
+**Environment identity.** Target `ucrjtfswnfdlxwtmxnoo`, PostgreSQL 17.6, proved
+positively by `inet_server_addr()` matching the AAAA record of
+`db.ucrjtfswnfdlxwtmxnoo.supabase.co`, and negatively against production
+`gqmpsxkxynrjvidfmojk` and forbidden `bhgifjrfagkzubpyqpew`, which resolve
+elsewhere and were never connected to.
+
+**Pre-apply gates.** The db/85 route/destination gate and the db/88 identity gate
+were reproduced read-only with **zero violations on every clause**; shared
+development held zero `entregas.etapa='cima'` rows, so both gates were satisfied
+vacuously and no row was repaired or reinterpreted. The db/81-db/84 object
+baseline was present in full, `entregas_destino_cima_chk` was still in place, and
+the DDL window was clean (0 blocked locks, 0 idle-in-transaction, 0 deadlocks).
+
+**Byte fidelity.** Every apply payload was proved byte-identical to its canonical
+file before execution (empty `diff`, identical SHA-256), and after each apply the
+server-stored migration statements were whitespace-normalized and md5-matched
+against the same normalization of the file. All four matched.
+
+**Live validation.** One bounded synthetic transaction ending in `ROLLBACK`
+proved **20 of 20** required behaviours, including Manta measured output with no
+finishing destination, no Latex OP or `op_latex_entregas` created, Tapete `cima`
+still requiring a destination, exact per-`op_item_id` balance, defect exclusion,
+plan-is-not-authority, partial and additive release, over-release rejection,
+byte-identical idempotent replay with zero mutation, conflicting-key rejection,
+mandatory reversal reason, the delivered-metres floor, balance reconciliation,
+route-symmetric Pedido completion for Manta-only and mixed Pedidos, unchanged
+Tapete completion, and `sem_permissao` for non-admin callers on all four RPCs.
+After the rollback, zero synthetic business rows and zero command rows remain and
+the reference data is unchanged. No real business row was created, edited,
+migrated or repaired, and no historical production flow was recreated.
+
+**Regression.** `node tests/manta-direct-route-activation-invariant.mjs` (exit 0),
+`node tests/manta-expedition-source-invariant.mjs` (exit 0),
+`node tests/ordem-compra-c3d-deploy.smoke.js` (exit 0, 36/36) and
+`node --test tests/**/*.js` → **4256 tests / 4255 pass / 1 fail**. The sole
+failure is `tests/g14-c-bridge-smoke.test.js`, the accepted Category-E
+external-repository dependency. No new failure.
+
+**Nonblocking debts.** `G14-C-BRIDGE-EXTERNAL-CORPUS-DEPENDENCY` and
+`DEBT-1-ATRIBUIR-FORNECEDOR-FIO-SEM-CHAMADOR` remain open and uncorrected; each
+needs its own order. The `docs/governance/catalog/documents.json` metadata drift
+remains a separate nonblocking governance debt and was not touched.
+
+**Environment boundary.** Production `gqmpsxkxynrjvidfmojk` is UNCHANGED and was
+NOT ACCESSED. No staging database, Vercel, `main`, `origin` or tag action
+occurred, and no product, test, harness or `db/**` file changed in the closeout.
+
+**Next in sequence.** `KLEBER-APP-OPERATIONAL-REVIEW` — mode HUMAN PRODUCT
+REVIEW / DEFECT INTAKE. This is **not** a broad refactor. Kleber will use the
+application and report concrete operational defects, which will later be grouped
+into one bounded stabilization order rather than corrected through isolated
+microphases. Any production, Vercel, further migration or additional publication
+action requires a new explicit order. No phase chains automatically.
+
+Owner of the full technical and acceptance record:
+`docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md`
+§21 "PHASE-MANTA-B2A architect acceptance" and §22 "PHASE-MANTA-B2C
+shared-development activation, live validation and closeout".

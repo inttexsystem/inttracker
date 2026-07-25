@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "58ba6f529eb1540e60f829d4dd7163265351e2bb",
-      "sha256": "1c9c3d6bdad5796196f6898bc3ad3929829766630babe4bf96e2c77d85633e8c",
+      "git_object_id": "4ac415d6a493d320cb78dd496d76bdc47272c98c",
+      "sha256": "1c7ed80ad93037771915d9169416d563e14057d72296c2935741dffb5aba3427",
       "line_count": 34,
-      "byte_count": 5884,
+      "byte_count": 7062,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -22059,10 +22059,10 @@
     },
     {
       "path": "docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md",
-      "git_object_id": "a6fd3110ac1b431b8258a989eae906ea47a319ee",
-      "sha256": "7672c894d74b5c3df451ec6d169fb66296ad80561b63d4fa9d01cb86c427e342",
-      "line_count": 1644,
-      "byte_count": 99199,
+      "git_object_id": "4580036fbb8e233888498dda3245c3b8df9859fa",
+      "sha256": "47fe395e920056be4f0827513fc9f746810cc9f54fee2779ddcbeb8e874b35a8",
+      "line_count": 1890,
+      "byte_count": 112652,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -22132,8 +22132,22 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md",
+          "source_line": 3967,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
           "source_line": 9758,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 9777,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -22146,8 +22160,22 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
+          "source_line": 274,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 9754,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 9773,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -22585,6 +22613,78 @@
           "text": "20.10 Final phase status and next authorizable action",
           "anchor": "2010-final-phase-status-and-next-authorizable-action",
           "line": 1630
+        },
+        {
+          "level": 2,
+          "text": "21. PHASE-MANTA-B2A architect acceptance",
+          "anchor": "21-phase-manta-b2a-architect-acceptance",
+          "line": 1646
+        },
+        {
+          "level": 2,
+          "text": "22. PHASE-MANTA-B2C shared-development activation, live validation and closeout",
+          "anchor": "22-phase-manta-b2c-shared-development-activation-live-validation-and-closeout",
+          "line": 1669
+        },
+        {
+          "level": 3,
+          "text": "22.1 Target environment identity",
+          "anchor": "221-target-environment-identity",
+          "line": 1680
+        },
+        {
+          "level": 3,
+          "text": "22.2 Pre-apply gates",
+          "anchor": "222-pre-apply-gates",
+          "line": 1692
+        },
+        {
+          "level": 3,
+          "text": "22.3 Apply mechanism and byte fidelity",
+          "anchor": "223-apply-mechanism-and-byte-fidelity",
+          "line": 1722
+        },
+        {
+          "level": 3,
+          "text": "22.4 Post-apply object validation",
+          "anchor": "224-post-apply-object-validation",
+          "line": 1742
+        },
+        {
+          "level": 3,
+          "text": "22.5 Security and authorization",
+          "anchor": "225-security-and-authorization",
+          "line": 1774
+        },
+        {
+          "level": 3,
+          "text": "22.6 Live synthetic validation",
+          "anchor": "226-live-synthetic-validation",
+          "line": 1800
+        },
+        {
+          "level": 3,
+          "text": "22.7 Zero-residue proof",
+          "anchor": "227-zero-residue-proof",
+          "line": 1837
+        },
+        {
+          "level": 3,
+          "text": "22.8 Regression validation",
+          "anchor": "228-regression-validation",
+          "line": 1848
+        },
+        {
+          "level": 3,
+          "text": "22.9 Nonblocking debts",
+          "anchor": "229-nonblocking-debts",
+          "line": 1862
+        },
+        {
+          "level": 3,
+          "text": "22.10 Final phase status and next authorizable action",
+          "anchor": "2210-final-phase-status-and-next-authorizable-action",
+          "line": 1873
         }
       ]
     },
@@ -35294,10 +35394,10 @@
     },
     {
       "path": "docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md",
-      "git_object_id": "3511be2acd67983fbd93ec65f2b6ece071837dd6",
-      "sha256": "34af75cb4d1419089400882b0b6aa54f75230f6cc94f822d08a7db7feb51f6d4",
-      "line_count": 3893,
-      "byte_count": 240247,
+      "git_object_id": "4b6623cc90815ccd2a954fb45387cc0b1dfa34a7",
+      "sha256": "d082101f39f688c257e33949792fbb5a89109451a9b368c8ae2b565efd417350",
+      "line_count": 3969,
+      "byte_count": 245110,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -36235,6 +36335,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 3892
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md`",
+          "target_path": "docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 3967
         }
       ],
       "inbound_references": [
@@ -38586,6 +38694,12 @@
           "text": "Update 2026-07-25 - PHASE-MANTA-B2B: CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBT (architect technical AND visual acceptance recorded; next: PHASE-MANTA-B2A architect review)",
           "anchor": "update-2026-07-25---phase-manta-b2b-closed-accepted_with_nonblocking_debt-architect-technical-and-visual-acceptance-recorded-next-phase-manta-b2a-architect-review",
           "line": 3838
+        },
+        {
+          "level": 1,
+          "text": "Update 2026-07-25 - PHASE-MANTA-B2A: CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBT and PHASE-MANTA-B2C: CLOSED / ACCEPTED (Manta direct-route backend ACTIVE on shared development at terminal db/88; next: KLEBER-APP-OPERATIONAL-REVIEW)",
+          "anchor": "update-2026-07-25---phase-manta-b2a-closed-accepted_with_nonblocking_debt-and-phase-manta-b2c-closed-accepted-manta-direct-route-backend-active-on-shared-development-at-terminal-db88-next-kleber-app-operational-review",
+          "line": 3895
         }
       ]
     },
@@ -58262,10 +58376,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "f1f578059df67a32ab2b17e1db077be1028770c4",
-      "sha256": "7344b5d2cf8add7e4bf40b2ea101b4d8a7ac06ec7555deea85a796ddec7081a8",
-      "line_count": 9761,
-      "byte_count": 998810,
+      "git_object_id": "259ac01c965f99eafcff6ffa003dbef229e16c8d",
+      "sha256": "460d124c49df5a13f2d5e6606def20dc2b757d07f4e0722d366c3fbf67073b46",
+      "line_count": 9780,
+      "byte_count": 1008185,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -64931,6 +65045,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 9758
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md`",
+          "target_path": "docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9777
         }
       ],
       "inbound_references": [
@@ -66257,6 +66379,12 @@
           "text": "2026-07-25 — PHASE-MANTA-B2B-DOCUMENTARY-CLOSEOUT-R1 — docs: close accepted Manta B2B phase",
           "anchor": "2026-07-25-phase-manta-b2b-documentary-closeout-r1-docs-close-accepted-manta-b2b-phase",
           "line": 9747
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — PHASE-MANTA-B2C-SHARED-DEVELOPMENT-ACTIVATION-AND-LIVE-CLOSEOUT-R1 — docs: close Manta shared-development activation",
+          "anchor": "2026-07-25-phase-manta-b2c-shared-development-activation-and-live-closeout-r1-docs-close-manta-shared-development-activation",
+          "line": 9761
         }
       ]
     },
@@ -74395,10 +74523,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
-      "git_object_id": "3522afd734a5f051cd4b27228adaf475d1406b8f",
-      "sha256": "c1bd1b44e51cd4c9b24339215f45a2f2e5cd25c442cb670149409dcfc88d836f",
-      "line_count": 258,
-      "byte_count": 36204,
+      "git_object_id": "52f337ebde3b82747b7bfaff53ae6628c7d7b94a",
+      "sha256": "5979e33492ff485eeee664ddf18adf9299bb6a4a7b3f5695832ac78a7cc80569",
+      "line_count": 277,
+      "byte_count": 45580,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -74680,6 +74808,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 255
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md`",
+          "target_path": "docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 274
         }
       ],
       "inbound_references": [
@@ -74800,6 +74936,12 @@
           "text": "2026-07-25 — PHASE-MANTA-B2B-DOCUMENTARY-CLOSEOUT-R1 — docs: close accepted Manta B2B phase",
           "anchor": "2026-07-25-phase-manta-b2b-documentary-closeout-r1-docs-close-accepted-manta-b2b-phase",
           "line": 244
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — PHASE-MANTA-B2C-SHARED-DEVELOPMENT-ACTIVATION-AND-LIVE-CLOSEOUT-R1 — docs: close Manta shared-development activation",
+          "anchor": "2026-07-25-phase-manta-b2c-shared-development-activation-and-live-closeout-r1-docs-close-manta-shared-development-activation",
+          "line": 258
         }
       ]
     },
@@ -74887,10 +75029,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "c548bd627b8217976d6fb2dc6c236c19013c947d",
-      "sha256": "926c4916afc12aae606c8184a188752bf8f2eb9bbb80db71fe27978d73e79e9f",
-      "line_count": 9755,
-      "byte_count": 998509,
+      "git_object_id": "37f7c2282a52b8e5173bc84ca6495e4288b29d72",
+      "sha256": "4f8a42f0604697778fe6613b01bdc57c8db1454032d1426c0aa44b066fbd0816",
+      "line_count": 9774,
+      "byte_count": 1007884,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -81556,6 +81698,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 9754
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md`",
+          "target_path": "docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9773
         }
       ],
       "inbound_references": [
@@ -84814,6 +84964,12 @@
           "text": "2026-07-25 — PHASE-MANTA-B2B-DOCUMENTARY-CLOSEOUT-R1 — docs: close accepted Manta B2B phase",
           "anchor": "2026-07-25-phase-manta-b2b-documentary-closeout-r1-docs-close-accepted-manta-b2b-phase",
           "line": 9743
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — PHASE-MANTA-B2C-SHARED-DEVELOPMENT-ACTIVATION-AND-LIVE-CLOSEOUT-R1 — docs: close Manta shared-development activation",
+          "anchor": "2026-07-25-phase-manta-b2c-shared-development-activation-and-live-closeout-r1-docs-close-manta-shared-development-activation",
+          "line": 9757
         }
       ]
     },
