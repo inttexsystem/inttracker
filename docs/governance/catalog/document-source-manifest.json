@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "4ac415d6a493d320cb78dd496d76bdc47272c98c",
-      "sha256": "1c7ed80ad93037771915d9169416d563e14057d72296c2935741dffb5aba3427",
+      "git_object_id": "9c4c08e8aa74e3d452bb551899a4882c94640a5c",
+      "sha256": "87a5e5c7341df2512a5243668927cc16b3daec330be1aa4b1da37aa88aa2466d",
       "line_count": 34,
-      "byte_count": 7062,
+      "byte_count": 6374,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -20140,6 +20140,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 9794,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0001.md",
           "source_line": 948,
           "kind": "ROOT_REFERENCE",
@@ -20203,6 +20210,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
+          "source_line": 291,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 938,
           "kind": "ROOT_REFERENCE",
@@ -20261,6 +20275,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 8106,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 9790,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -33925,10 +33946,10 @@
     },
     {
       "path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
-      "git_object_id": "fb8ed63ee4167fb3830b737236f30e12683a69cf",
-      "sha256": "f8fc03a699c5fadd7cfc4c4b030ee542d45ba629ebb8650c89442675e331ff64",
-      "line_count": 1848,
-      "byte_count": 129879,
+      "git_object_id": "2b4a924607585575c715bd33feccb2ecd8b32586",
+      "sha256": "e567b1c53a863e78af6525ac803a3b804edc17ee4b09b6f37a6c3ad032fc5dd8",
+      "line_count": 1930,
+      "byte_count": 134459,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -35389,6 +35410,30 @@
           "text": "Update 2026-07-24 — PHASE-MANTA-B2A forward correction (db/88)",
           "anchor": "update-2026-07-24-phase-manta-b2a-forward-correction-db88",
           "line": 1791
+        },
+        {
+          "level": 2,
+          "text": "Update 2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-02 (Pedido commercial date and controlled numbering, db/89)",
+          "anchor": "update-2026-07-25-kleber-app-operational-stabilization-batch-02-pedido-commercial-date-and-controlled-numbering-db89",
+          "line": 1850
+        },
+        {
+          "level": 3,
+          "text": "public.pedidos.data_pedido — the commercial order date",
+          "anchor": "publicpedidosdata_pedido-the-commercial-order-date",
+          "line": 1856
+        },
+        {
+          "level": 3,
+          "text": "public.pedidos.numero — controlled commercial identity",
+          "anchor": "publicpedidosnumero-controlled-commercial-identity",
+          "line": 1883
+        },
+        {
+          "level": 3,
+          "text": "Application boundary",
+          "anchor": "application-boundary",
+          "line": 1920
         }
       ]
     },
@@ -58376,10 +58421,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "259ac01c965f99eafcff6ffa003dbef229e16c8d",
-      "sha256": "460d124c49df5a13f2d5e6606def20dc2b757d07f4e0722d366c3fbf67073b46",
-      "line_count": 9780,
-      "byte_count": 1008185,
+      "git_object_id": "da90a0bfd9bcabee2444f078b8f396de5985e507",
+      "sha256": "8101b3cc213733d1240b5510c8173bb7717e83e3a5d4f009e001ed20204dedf3",
+      "line_count": 9804,
+      "byte_count": 1021398,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -65053,6 +65098,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 9777
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/CODE_HEALTH_RULES.md`",
+          "target_path": "docs/architecture/CODE_HEALTH_RULES.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9794
         }
       ],
       "inbound_references": [
@@ -66385,6 +66438,12 @@
           "text": "2026-07-25 — PHASE-MANTA-B2C-SHARED-DEVELOPMENT-ACTIVATION-AND-LIVE-CLOSEOUT-R1 — docs: close Manta shared-development activation",
           "anchor": "2026-07-25-phase-manta-b2c-shared-development-activation-and-live-closeout-r1-docs-close-manta-shared-development-activation",
           "line": 9761
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-02-R1 — feat: add Pedido date and controlled numbering",
+          "anchor": "2026-07-25-kleber-app-operational-stabilization-batch-02-r1-feat-add-pedido-date-and-controlled-numbering",
+          "line": 9780
         }
       ]
     },
@@ -74523,10 +74582,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
-      "git_object_id": "52f337ebde3b82747b7bfaff53ae6628c7d7b94a",
-      "sha256": "5979e33492ff485eeee664ddf18adf9299bb6a4a7b3f5695832ac78a7cc80569",
-      "line_count": 277,
-      "byte_count": 45580,
+      "git_object_id": "c8f7388b430ffa1213e9a2e02edd8962f397df1a",
+      "sha256": "7e122540f06bc0eb0587235dc413bd713e88c241d0159d96a9a4a8b20cdd46dd",
+      "line_count": 301,
+      "byte_count": 58793,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -74816,6 +74875,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 274
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/CODE_HEALTH_RULES.md`",
+          "target_path": "docs/architecture/CODE_HEALTH_RULES.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 291
         }
       ],
       "inbound_references": [
@@ -74942,6 +75009,12 @@
           "text": "2026-07-25 — PHASE-MANTA-B2C-SHARED-DEVELOPMENT-ACTIVATION-AND-LIVE-CLOSEOUT-R1 — docs: close Manta shared-development activation",
           "anchor": "2026-07-25-phase-manta-b2c-shared-development-activation-and-live-closeout-r1-docs-close-manta-shared-development-activation",
           "line": 258
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-02-R1 — feat: add Pedido date and controlled numbering",
+          "anchor": "2026-07-25-kleber-app-operational-stabilization-batch-02-r1-feat-add-pedido-date-and-controlled-numbering",
+          "line": 277
         }
       ]
     },
@@ -75029,10 +75102,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "37f7c2282a52b8e5173bc84ca6495e4288b29d72",
-      "sha256": "4f8a42f0604697778fe6613b01bdc57c8db1454032d1426c0aa44b066fbd0816",
-      "line_count": 9774,
-      "byte_count": 1007884,
+      "git_object_id": "96442232dc252e638fe9fa61e053e4e5aab51786",
+      "sha256": "cbf2e6db13818320c85147709379225e79c01479501bb6aaf97a4175c915c398",
+      "line_count": 9798,
+      "byte_count": 1021097,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -81706,6 +81779,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 9773
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/CODE_HEALTH_RULES.md`",
+          "target_path": "docs/architecture/CODE_HEALTH_RULES.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9790
         }
       ],
       "inbound_references": [
@@ -84970,6 +85051,12 @@
           "text": "2026-07-25 — PHASE-MANTA-B2C-SHARED-DEVELOPMENT-ACTIVATION-AND-LIVE-CLOSEOUT-R1 — docs: close Manta shared-development activation",
           "anchor": "2026-07-25-phase-manta-b2c-shared-development-activation-and-live-closeout-r1-docs-close-manta-shared-development-activation",
           "line": 9757
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-02-R1 — feat: add Pedido date and controlled numbering",
+          "anchor": "2026-07-25-kleber-app-operational-stabilization-batch-02-r1-feat-add-pedido-date-and-controlled-numbering",
+          "line": 9776
         }
       ]
     },
