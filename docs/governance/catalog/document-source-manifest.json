@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "9c4c08e8aa74e3d452bb551899a4882c94640a5c",
-      "sha256": "87a5e5c7341df2512a5243668927cc16b3daec330be1aa4b1da37aa88aa2466d",
+      "git_object_id": "feab439b0e5cf62eef73eacfe546ef9fd4b30c8d",
+      "sha256": "7bad1f0417bb472f1a4b94701ffdf2d1c15c970ded57853d48a959c0114bf787",
       "line_count": 34,
-      "byte_count": 6374,
+      "byte_count": 8132,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -20147,6 +20147,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 9823,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0001.md",
           "source_line": 948,
           "kind": "ROOT_REFERENCE",
@@ -20217,6 +20224,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
+          "source_line": 320,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 938,
           "kind": "ROOT_REFERENCE",
@@ -20282,6 +20296,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 9790,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 9819,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -33946,10 +33967,10 @@
     },
     {
       "path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
-      "git_object_id": "2b4a924607585575c715bd33feccb2ecd8b32586",
-      "sha256": "e567b1c53a863e78af6525ac803a3b804edc17ee4b09b6f37a6c3ad032fc5dd8",
-      "line_count": 1930,
-      "byte_count": 134459,
+      "git_object_id": "b64bc96c8543e8704c0f7f5b4a78cd9f2a87da43",
+      "sha256": "0be8820c0c449d5d606734358e48b16c2f2bbd11072d4aef423be0fd00f31dca",
+      "line_count": 2025,
+      "byte_count": 138549,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -35434,6 +35455,54 @@
           "text": "Application boundary",
           "anchor": "application-boundary",
           "line": 1920
+        },
+        {
+          "level": 2,
+          "text": "Update 2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-03 (next Pedido number suggestion, db/90)",
+          "anchor": "update-2026-07-25-kleber-app-operational-stabilization-batch-03-next-pedido-number-suggestion-db90",
+          "line": 1932
+        },
+        {
+          "level": 3,
+          "text": "Added object",
+          "anchor": "added-object",
+          "line": 1937
+        },
+        {
+          "level": 3,
+          "text": "Semantics",
+          "anchor": "semantics",
+          "line": 1949
+        },
+        {
+          "level": 3,
+          "text": "`MAX(numero) + 1` is forbidden",
+          "anchor": "maxnumero-1-is-forbidden",
+          "line": 1967
+        },
+        {
+          "level": 3,
+          "text": "Observation only: no reservation, no consumption",
+          "anchor": "observation-only-no-reservation-no-consumption",
+          "line": 1982
+        },
+        {
+          "level": 3,
+          "text": "Required consumer behavior on conflict",
+          "anchor": "required-consumer-behavior-on-conflict",
+          "line": 1993
+        },
+        {
+          "level": 3,
+          "text": "Authorization",
+          "anchor": "authorization",
+          "line": 2007
+        },
+        {
+          "level": 3,
+          "text": "Fail-closed prerequisites",
+          "anchor": "fail-closed-prerequisites",
+          "line": 2021
         }
       ]
     },
@@ -57307,10 +57376,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-      "git_object_id": "2c8b8b2e16ac9efbe6cdee64ada17fe5f509e576",
-      "sha256": "667fd49163098b0dde54ac3188529a8d0fe7c1ca5fb05d0faf421cdd873824e8",
+      "git_object_id": "6b7115748f3236b047e3c5fa24af77a060caf6ae",
+      "sha256": "f8a5ae7e78da9f1e350c98a56d294f854669c36d2f61e5ac3998e36871ec613d",
       "line_count": 159,
-      "byte_count": 27650,
+      "byte_count": 27642,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -58421,10 +58490,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "da90a0bfd9bcabee2444f078b8f396de5985e507",
-      "sha256": "8101b3cc213733d1240b5510c8173bb7717e83e3a5d4f009e001ed20204dedf3",
-      "line_count": 9804,
-      "byte_count": 1021398,
+      "git_object_id": "307cf0100fa0eeff8061cba83bb3645b3d133986",
+      "sha256": "2a8507cee3d10cf9944e2579b58434526f671254c15d145999aebc1afd393457",
+      "line_count": 9835,
+      "byte_count": 1039920,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -65106,6 +65175,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 9794
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/CODE_HEALTH_RULES.md`",
+          "target_path": "docs/architecture/CODE_HEALTH_RULES.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9823
         }
       ],
       "inbound_references": [
@@ -66444,6 +66521,12 @@
           "text": "2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-02-R1 — feat: add Pedido date and controlled numbering",
           "anchor": "2026-07-25-kleber-app-operational-stabilization-batch-02-r1-feat-add-pedido-date-and-controlled-numbering",
           "line": 9780
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-03-R1 — fix: suggest Pedido number and compact creation layout",
+          "anchor": "2026-07-25-kleber-app-operational-stabilization-batch-03-r1-fix-suggest-pedido-number-and-compact-creation-layout",
+          "line": 9804
         }
       ]
     },
@@ -74582,10 +74665,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
-      "git_object_id": "c8f7388b430ffa1213e9a2e02edd8962f397df1a",
-      "sha256": "7e122540f06bc0eb0587235dc413bd713e88c241d0159d96a9a4a8b20cdd46dd",
-      "line_count": 301,
-      "byte_count": 58793,
+      "git_object_id": "34b266856bbb2744b2363ea8a8a365093efbaaa8",
+      "sha256": "829a727b83511ce801912a37c2b83d36bcf77ac9fdce938325703fcc91eee2b7",
+      "line_count": 332,
+      "byte_count": 77315,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -74883,6 +74966,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 291
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/CODE_HEALTH_RULES.md`",
+          "target_path": "docs/architecture/CODE_HEALTH_RULES.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 320
         }
       ],
       "inbound_references": [
@@ -75015,6 +75106,12 @@
           "text": "2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-02-R1 — feat: add Pedido date and controlled numbering",
           "anchor": "2026-07-25-kleber-app-operational-stabilization-batch-02-r1-feat-add-pedido-date-and-controlled-numbering",
           "line": 277
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-03-R1 — fix: suggest Pedido number and compact creation layout",
+          "anchor": "2026-07-25-kleber-app-operational-stabilization-batch-03-r1-fix-suggest-pedido-number-and-compact-creation-layout",
+          "line": 301
         }
       ]
     },
@@ -75102,10 +75199,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "96442232dc252e638fe9fa61e053e4e5aab51786",
-      "sha256": "cbf2e6db13818320c85147709379225e79c01479501bb6aaf97a4175c915c398",
-      "line_count": 9798,
-      "byte_count": 1021097,
+      "git_object_id": "d9aee6a68034ac9df12c9630b336603841e5362f",
+      "sha256": "32273135d9aa21e0efa5ecb486d27277ca506b8661f8d1837413a3e049c67915",
+      "line_count": 9829,
+      "byte_count": 1039619,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -81787,6 +81884,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 9790
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/CODE_HEALTH_RULES.md`",
+          "target_path": "docs/architecture/CODE_HEALTH_RULES.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9819
         }
       ],
       "inbound_references": [
@@ -85057,6 +85162,12 @@
           "text": "2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-02-R1 — feat: add Pedido date and controlled numbering",
           "anchor": "2026-07-25-kleber-app-operational-stabilization-batch-02-r1-feat-add-pedido-date-and-controlled-numbering",
           "line": 9776
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-03-R1 — fix: suggest Pedido number and compact creation layout",
+          "anchor": "2026-07-25-kleber-app-operational-stabilization-batch-03-r1-fix-suggest-pedido-number-and-compact-creation-layout",
+          "line": 9800
         }
       ]
     },

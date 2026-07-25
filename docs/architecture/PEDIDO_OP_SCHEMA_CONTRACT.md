@@ -1928,3 +1928,98 @@ Consumers must treat the absence of `modelos.tipo_produto` as **fail-closed**: a
 model whose type cannot be resolved belongs to no route and must not be offered.
 Degrading unknown models to Tapete is prohibited — it would place a Manta on the
 finishing route unnoticed.
+
+## Update 2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-03 (next Pedido number suggestion, db/90)
+
+Applied once to shared development `ucrjtfswnfdlxwtmxnoo`; terminal advanced
+`db/89 -> db/90`. Forward-only; `db/01`-`db/89` untouched.
+
+### Added object
+
+```
+public.consultar_proximo_numero_pedido() RETURNS BIGINT
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = public
+```
+
+This migration adds **only** this function. No table, column, constraint,
+trigger, policy, existing function, existing grant or row is changed.
+
+### Semantics
+
+The function answers exactly one question: *which number would the next
+automatic Pedido receive right now?* It exists so the admin creation screen can
+open with that number already visible and editable, instead of an empty
+`Automático` placeholder.
+
+The candidate is derived from the identity sequence state:
+
+- `pg_sequence_last_value(pg_get_serial_sequence('public.pedidos','numero'))`;
+- `seqincrement` and `seqstart` from `pg_catalog.pg_sequence`.
+
+`pg_catalog.pg_sequence` is read instead of the `pg_sequences` view because the
+view filters rows by caller privilege while the catalog returns the real
+definition. A sequence that has never been read returns `NULL` from
+`pg_sequence_last_value` (`is_called = false`); that case correctly yields
+`seqstart`, not `seqstart + seqincrement`.
+
+### `MAX(numero) + 1` is forbidden
+
+`MAX(pedidos.numero) + 1` is **not** authoritative and must never be used as a
+substitute, in this function or in any consumer. It is wrong on three paths this
+schema deliberately allows:
+
+1. an explicit HIGH manual number advances the sequence through the db/89
+   `pedidos_numero_sequence_sync` trigger, so the sequence can sit far ahead of
+   any surviving row;
+2. a rolled-back or compensated creation consumes a sequence value that no row
+   will ever carry, so `MAX(numero)` lags permanently;
+3. numbering gaps are accepted by design (db/89), so `MAX+1` would try to refill
+   a gap the sequence has already passed — colliding with nothing today and with
+   a real Pedido tomorrow.
+
+### Observation only: no reservation, no consumption
+
+The function never calls `nextval`, `setval` or `currval`. Reading the sequence
+state does not advance it, so opening the creation form consumes no Pedido
+number however many forms are abandoned. N consultations leave the sequence
+exactly where 0 consultations would.
+
+The returned value is an **advisory candidate**, not a reservation. Nothing is
+locked. `UNIQUE(pedidos.numero)` remains the authority, exactly as established
+by db/89, and resolves any race with `23505`.
+
+### Required consumer behavior on conflict
+
+A consumer that submits the suggested number and receives `23505` must not
+silently allocate a different one. Two distinct paths are required:
+
+- **the suggestion was not edited** — request a fresh candidate, display it, and
+  tell the operator which number became occupied and which replaced it. The
+  Pedido is not created; the operator submits again.
+- **the operator typed the number** — preserve the typed value and report
+  `Este número de pedido já está em uso.`
+
+If the function is unavailable, the consumer must degrade to an empty field and
+automatic identity allocation. Falling back to `MAX(numero)` is prohibited.
+
+### Authorization
+
+- `SECURITY DEFINER`, owner `postgres`, `SET search_path = public`;
+- the body requires `public.is_admin()` and otherwise raises `42501`;
+- `EXECUTE` revoked from `PUBLIC` and from `anon`, granted to `authenticated`.
+
+Applied ACL on shared development:
+`postgres=X/postgres | authenticated=X/postgres | service_role=X/postgres`.
+`service_role` retains `EXECUTE` from the Supabase project default; it is not an
+escape hatch, because the body still requires an admin JWT.
+
+The Pedido number is internal. No client-facing surface may display it or call
+this function.
+
+### Fail-closed prerequisites
+
+The migration refuses to install if `public.is_admin()` is absent, if
+`public.pedidos.numero` has no identity sequence, or if the db/89
+`pedidos_numero_positivo_chk` constraint is absent.
