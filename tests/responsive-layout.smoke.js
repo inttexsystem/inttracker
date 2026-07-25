@@ -254,7 +254,10 @@ test('18. a correcao responsiva nao introduz delta de banco nem migracao', () =>
   // POSTERIOR (BATCH-02: db/89) nao pertence a esse sujeito e nao pode ser
   // lida como delta desta correcao; a garantia original — a correcao
   // responsiva nao toca o banco — segue integral.
-  const POSTERIOR_AUTORIZADO = [/^db\/89_pedido_commercial_date_and_number_control\.sql$/];
+  const POSTERIOR_AUTORIZADO = [
+    /^db\/89_pedido_commercial_date_and_number_control\.sql$/,
+    /^db\/90_pedido_proximo_numero_suggestion_rpc\.sql$/,
+  ];
   for (const rel of all) {
     if (POSTERIOR_AUTORIZADO.some((re) => re.test(rel))) continue;
     assert.equal(/^db\//.test(rel), false, 'nenhum arquivo db/** pode mudar: ' + rel);
@@ -273,4 +276,166 @@ test('os arquivos protegidos nao cresceram em relacao a bbd5f85', () => {
     const physical = lines[lines.length - 1] === '' ? lines.length - 1 : lines.length;
     assert.ok(physical <= limit, rel + ' tem ' + physical + ' linhas, limite ' + limit);
   }
+});
+
+// ---------------------------------------------------------------------
+// BATCH-03 — layout operacional compacto de #/pedidos/novo.
+//
+// O sujeito destas provas e o CONTRATO estrutural: a grade base declarada
+// em js/screens/pedido-form.js e os breakpoints que a adaptam nesta folha.
+// Assim como o resto deste arquivo, um smoke Node nao tem engine de layout
+// e nao mede geometria real; ele prova o contrato que a produz.
+// ---------------------------------------------------------------------
+
+const pedidoForm = read('js/screens/pedido-form.js');
+const itemRow = read('js/screens/pedido-item-row-editor.js');
+
+// A grade base (sem media query) de `data-rv-pedido-dados`, lida do inline
+// style do proprio modulo — nunca de uma copia local.
+function pedidoDadosGridBase() {
+  const anchor = pedidoForm.indexOf("'data-rv-pedido-dados'");
+  assert.notEqual(anchor, -1, 'a grade Dados gerais deve declarar data-rv-pedido-dados');
+  const trecho = pedidoForm.slice(anchor, anchor + 600);
+  const m = trecho.match(/grid-template-columns:([^;']+)/);
+  assert.ok(m, 'grid-template-columns ausente na grade Dados gerais');
+  return m[1].trim();
+}
+
+test('B3/1. no desktop amplo os cinco campos de Dados gerais ficam em UMA linha', () => {
+  const base = pedidoDadosGridBase();
+  const tracks = base.match(/minmax\([^)]*\)/g) || [];
+  assert.equal(tracks.length, 5,
+    'a grade base deve ter exatamente 5 colunas (uma linha), got: ' + base);
+  // Nenhuma das cinco pode ser fixa em px: a linha tem de respirar com a tela.
+  assert.doesNotMatch(base, /\d+px/, 'nenhuma coluna pode ser fixa em px: ' + base);
+});
+
+test('B3/2. a proporcao privilegia Cliente e mantem os quatro curtos compactos', () => {
+  const pesos = (pedidoDadosGridBase().match(/(\d+)fr/g) || []).map((s) => parseInt(s, 10));
+  assert.equal(pesos.length, 5);
+  const total = pesos.reduce((a, b) => a + b, 0);
+  const pct = pesos.map((p) => (p / total) * 100);
+  assert.ok(pct[0] >= 28 && pct[0] <= 32, 'Cliente deve ficar perto de 30%: ' + pct[0].toFixed(1));
+  for (let i = 1; i <= 3; i += 1) {
+    assert.ok(pct[i] >= 16 && pct[i] <= 18.5,
+      'Numero/Data/Prazo devem ficar entre 16% e 18.5%: ' + pct[i].toFixed(1));
+  }
+  assert.ok(pct[4] > 0 && pct[4] <= 20, 'Status recebe a largura restante: ' + pct[4].toFixed(1));
+  // Cliente e o unico campo de texto livre longo: ele tem de ser o mais largo.
+  assert.ok(pesos[0] > Math.max(pesos[1], pesos[2], pesos[3], pesos[4]),
+    'Cliente deve ser a coluna mais larga');
+});
+
+test('B3/3. a ordem visual e Cliente -> Numero -> Data -> Prazo -> Status', () => {
+  const rotulos = ['Cliente', 'Número do pedido', 'Data do pedido', 'Prazo desejado', 'Status inicial'];
+  const posicoes = rotulos.map((r) => {
+    const i = pedidoForm.indexOf("buildFieldLabel('" + r + "'");
+    assert.notEqual(i, -1, 'rotulo ausente: ' + r);
+    return i;
+  });
+  for (let i = 1; i < posicoes.length; i += 1) {
+    assert.ok(posicoes[i] > posicoes[i - 1],
+      rotulos[i] + ' deve vir depois de ' + rotulos[i - 1]);
+  }
+});
+
+test('B3/4. a queda por largura e 5 -> 3 -> 2 -> 1, na ordem correta da cascata', () => {
+  const colunasEm = (condicao) => {
+    const bloco = mediaBlock(condicao);
+    const m = bloco.match(/\[data-rv-pedido-dados\]\s*\{[^}]*grid-template-columns:\s*([^;]+);/);
+    assert.ok(m, 'data-rv-pedido-dados ausente em @media ' + condicao);
+    return m[1].trim();
+  };
+  assert.match(colunasEm('(max-width: 1279px)'), /repeat\(3,/, 'medio deve ser 3 colunas (3 + 2)');
+  assert.match(colunasEm('(max-width: 1023px)'), /repeat\(2,/, 'estreito deve ser 2 colunas');
+  assert.match(colunasEm('(max-width: 767px)'), /minmax\(0,\s*1fr\)/, 'mobile deve ser 1 coluna');
+
+  // A cascata so funciona do mais largo para o mais estreito: se 1279 viesse
+  // depois de 1023, um viewport de 900px receberia 3 colunas.
+  const i1279 = css.indexOf('@media (max-width: 1279px)');
+  const i1023 = css.indexOf('@media (max-width: 1023px)');
+  const i767 = css.indexOf('@media (max-width: 767px)');
+  assert.ok(i1279 < i1023 && i1023 < i767,
+    'os breakpoints devem aparecer do mais largo para o mais estreito');
+});
+
+test('B3/5. um layout FIXO de duas linhas para todo desktop nao sobrevive', () => {
+  // As duas grades antigas (2 colunas + 3 colunas) somadas a margem entre elas
+  // eram a origem da faixa vertical vazia.
+  assert.doesNotMatch(pedidoForm, /grid-template-columns:1fr 1fr; gap:20px; margin-bottom:16px/,
+    'a grade fixa de 2 colunas do cabecalho nao pode voltar');
+  assert.doesNotMatch(pedidoForm, /grid-template-columns:1fr 1fr 1fr; gap:20px/,
+    'a grade fixa de 3 colunas do cabecalho nao pode voltar');
+  assert.equal((pedidoForm.match(/'data-pedido-header-grid'/g) || []).length, 1,
+    'deve existir exatamente UMA grade de Dados gerais');
+});
+
+test('B3/6. o contrato de densidade compacta e respeitado', () => {
+  // Os QUATRO cartoes de layout: Dados gerais e Itens (padding 16px + 12px de
+  // distancia entre cartoes), Instrucoes gerais e Salvar rascunho. Os cartoes
+  // transitorios de carregamento/erro nao sao layout e ficam fora.
+  assert.equal((pedidoForm.match(/padding:16px; margin-bottom:12px;/g) || []).length, 2,
+    'Dados gerais e Itens devem usar padding 16px e 12px entre cartoes');
+  assert.match(pedidoForm, /padding:16px;'\s*\},\s*\n\s*window\.el\('div', \{ style: 'font-size:16px; font-weight:700; color:#16203a; margin-bottom:10px;' \}, 'Instruções gerais'\)/,
+    'o cartao de Instrucoes gerais deve usar padding 16px');
+  assert.match(pedidoForm, /padding:16px; display:flex; flex-direction:column/,
+    'o cartao de Salvar rascunho deve usar padding 16px');
+  assert.doesNotMatch(pedidoForm, /padding:16px 20px/, 'nenhum cartao pode manter o padding largo antigo');
+  // Nenhum cartao de LAYOUT conserva a folga antiga de 14px. O resumo
+  // pos-salvamento e outro estado de tela e nao pertence a este sujeito.
+  assert.doesNotMatch(pedidoForm, /box-shadow:0 1px 2px rgba\(20,30,45,\.04\); padding:[^;]+; margin-bottom:14px/,
+    'a distancia entre os cartoes de layout caiu para 12px');
+
+  // Titulo -> campos: 12px.
+  assert.match(pedidoForm, /margin-bottom:12px;' \}, 'Dados gerais'/);
+
+  // Altura de campo ~40px e gap horizontal na faixa 12-16px.
+  assert.match(pedidoForm, /min-height:40px; box-sizing:border-box;/,
+    'os campos de Dados gerais devem declarar altura minima de 40px');
+  const gap = pedidoForm.match(/column-gap:(\d+)px; row-gap:(\d+)px/);
+  assert.ok(gap, 'a grade deve declarar column-gap/row-gap explicitos');
+  assert.ok(Number(gap[1]) >= 12 && Number(gap[1]) <= 16, 'gap horizontal entre 12 e 16px');
+  assert.ok(Number(gap[2]) <= 12, 'gap vertical compacto');
+
+  // Nenhuma faixa vazia reservada sob um unico campo.
+  assert.doesNotMatch(pedidoForm, /data-pedido-numero-erro': '1',[\s\S]{0,160}?min-height/,
+    'a linha de mensagem nao pode reservar altura quando esta vazia');
+});
+
+test('B3/7. o cartao de itens ficou compacto sem encolher alvo de clique', () => {
+  assert.match(itemRow, /padding:7px 14px; border-bottom/, 'a linha de item deve usar padding 7px 14px');
+  assert.match(itemRow, /padding:8px 14px; background:#f8f9fb/, 'o cabecalho da tabela deve usar padding 8px 14px');
+  assert.match(pedidoForm, /padding:8px 14px; background:#f8f9fb/, 'o resumo deve usar padding 8px 14px');
+  // Os CONTROLES continuam do mesmo tamanho: a densidade veio da folga, nao
+  // do alvo de clique.
+  assert.match(itemRow, /padding:6px 8px; font-size:13\.5px/, 'os selects mantem o tamanho de alvo');
+  assert.ok((itemRow.match(/padding:6px 8px/g) || []).length >= 3,
+    'select de tipo/modelo, metragem e observacao mantem o padding');
+});
+
+test('B3/8. a tabela de itens tem container PROPRIO de rolagem (sem clipping no estreito)', () => {
+  assert.match(pedidoForm, /'data-rv-table-scroll': '1', style: 'overflow-x:auto;'/,
+    'o wrapper da tabela deve ser o dono do overflow');
+  assert.match(itemRow, /min-width:920px/, 'a linha declara sua largura minima propria');
+});
+
+test('B3/9. Tipo continua antes de Modelo e nenhum modal de item voltou', () => {
+  const iTipo = itemRow.indexOf("'data-item-tipo-select'");
+  const iModelo = itemRow.indexOf("'data-item-modelo-select'");
+  assert.ok(iTipo > 0 && iModelo > iTipo, 'Tipo deve ser declarado antes de Modelo');
+  assert.match(itemRow, /row\.appendChild\(tipoSelect\);\s*\n\s*row\.appendChild\(modeloSelect\);/,
+    'na linha renderizada Tipo vem antes de Modelo');
+  for (const [nome, src] of [['pedido-form.js', pedidoForm], ['pedido-item-row-editor.js', itemRow]]) {
+    assert.doesNotMatch(src, /data-item-modal/, nome + ' nao pode reintroduzir o modal de item');
+    assert.doesNotMatch(src, /document\.body\.appendChild/, nome + ' nao pode montar overlay de item');
+  }
+});
+
+test('B3/10. pedido-form.js nao regride para o patamar excepcional de tamanho', () => {
+  const linhas = pedidoForm.split('\n');
+  const fisicas = linhas[linhas.length - 1] === '' ? linhas.length - 1 : linhas.length;
+  assert.ok(fisicas <= 900, 'pedido-form.js tem ' + fisicas + ' linhas, limite 900');
+  const rowLinhas = itemRow.split('\n');
+  const rowFisicas = rowLinhas[rowLinhas.length - 1] === '' ? rowLinhas.length - 1 : rowLinhas.length;
+  assert.ok(rowFisicas <= 500, 'a extracao de BATCH-02 continua no limite normal: ' + rowFisicas);
 });

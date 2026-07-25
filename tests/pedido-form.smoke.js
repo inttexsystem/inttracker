@@ -55,6 +55,10 @@ const PROUTE = path.join(ROOT, 'js', 'product-route.js');
 // BATCH-02: a linha de item e a regra Tipo-antes-de-Modelo migraram para
 // este modulo; as provas que antes liam `screen` agora leem `rowEditor`.
 const ROWEDIT = path.join(ROOT, 'js', 'screens', 'pedido-item-row-editor.js');
+// Pre-preenchimento do numero: o contrato de numeracao (candidato, deteccao de
+// ocupado, textos) foi extraido para este modulo, carregado no sandbox para que
+// as provas exercitem o codigo REAL e nao um duplo local.
+const NUMSUG = path.join(ROOT, 'js', 'screens', 'pedido-numero-sugestao.js');
 
 function readOrFail(p) {
   assert.ok(fs.existsSync(p), 'arquivo não encontrado: ' + p);
@@ -71,6 +75,7 @@ const uiSrc  = readOrFail(UI);
 const opDispSrc = readOrFail(OPDISP);
 const pRouteSrc = readOrFail(PROUTE);
 const rowEditor = readOrFail(ROWEDIT);
+const numSug = readOrFail(NUMSUG);
 
 // ---------------------------------------------------------------------
 // PedidoFormNode — the shared FaithfulNode widened with an attribute-aware
@@ -180,7 +185,13 @@ function optionValues(selectNode) {
 }
 
 function makePedidoFormRuntime() {
-  const calls = { pedidoInsert: null, pedidoItensInsert: null, pedidoDelete: 0, selects: [] };
+  const calls = {
+    pedidoInsert: null, pedidoItensInsert: null, pedidoDelete: 0, selects: [],
+    // Toda chamada de RPC, em ordem, e todo payload de INSERT em `pedidos`.
+    // A primeira prova que abrir a tela consulta a sugestao exatamente uma vez
+    // e nao escreve; a segunda prova que um conflito nao reinsere em silencio.
+    rpcs: [], pedidoInserts: [],
+  };
   const opts = (arguments.length && arguments[0]) || {};
   const failItensInsert = opts.failItensInsert;
   // BATCH-02: um numero manual ocupado chega como 23505 na constraint
@@ -188,6 +199,13 @@ function makePedidoFormRuntime() {
   const numeroDuplicado = opts.numeroDuplicado;
   // BATCH-02: ambiente onde `modelos.tipo_produto` nao pode ser lido.
   const failTipoProduto = opts.failTipoProduto;
+  // Pre-preenchimento: fila de respostas de `consultar_proximo_numero_pedido()`.
+  // A primeira e a sugestao da abertura; as seguintes sao renovacoes apos
+  // conflito. `null` representa a RPC indisponivel (sem permissao, offline, ou
+  // db/90 ainda nao aplicado) — nunca um numero.
+  const proximoNumeroFila = Object.prototype.hasOwnProperty.call(opts, 'proximoNumero')
+    ? [].concat(opts.proximoNumero)
+    : [69];
   // Document double from the shared module; createElement is widened to the
   // attribute-aware PedidoFormNode (see above). createTextNode / body / the
   // #toasts node all come straight from _doubles.js. addEventListener is
@@ -230,14 +248,20 @@ function makePedidoFormRuntime() {
       insert(value) {
         mutation = 'insert';
         payload = value;
-        if (table === 'pedidos') calls.pedidoInsert = value;
+        if (table === 'pedidos') { calls.pedidoInsert = value; calls.pedidoInserts.push(value); }
         if (table === 'pedido_itens') calls.pedidoItensInsert = value;
         return api;
       },
       delete() { mutation = 'delete'; if (table === 'pedidos') calls.pedidoDelete += 1; return api; },
       single() {
         if (table === 'pedidos' && mutation === 'insert') {
-          if (numeroDuplicado) {
+          // `numeroDuplicado` como NUMERO significa "as N primeiras insercoes
+          // colidem"; como `true`, todas colidem. Modela o numero tomado por
+          // outro Pedido entre a sugestao e o envio.
+          const aindaColide = typeof numeroDuplicado === 'number'
+            ? calls.pedidoInserts.length <= numeroDuplicado
+            : Boolean(numeroDuplicado);
+          if (aindaColide) {
             return Promise.resolve({
               data: null,
               error: {
@@ -279,7 +303,28 @@ function makePedidoFormRuntime() {
   };
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
-  sandbox.supa = { from: (table) => chain(table) };
+  // Faithful PostgREST RPC envelope. `consultar_proximo_numero_pedido()` is
+  // SECURITY DEFINER + is_admin()-gated in db/90, so a refused call arrives as
+  // an ERROR envelope (403/42501) and never as a number — modelled by a `null`
+  // entry in the queue. Once the queue is drained the last answer repeats, so a
+  // test only declares the values it actually reasons about.
+  sandbox.supa = {
+    from: (table) => chain(table),
+    rpc: (fn, params) => {
+      calls.rpcs.push({ fn, params });
+      if (fn !== 'consultar_proximo_numero_pedido') {
+        return Promise.resolve({ data: null, error: { message: 'rpc inesperada: ' + fn } });
+      }
+      const value = proximoNumeroFila.length > 1 ? proximoNumeroFila.shift() : proximoNumeroFila[0];
+      if (value === null || value === undefined) {
+        return Promise.resolve({
+          data: null,
+          error: { code: '42501', message: 'acesso negado: consultar_proximo_numero_pedido() exige admin' },
+        });
+      }
+      return Promise.resolve({ data: value, error: null });
+    },
+  };
   // NOTE: no sandbox.el here — the REAL js/ui.js el() (loaded below) is the
   // renderer, so the boolean-attr fix is exercised instead of a boolean-blind
   // stub. Non-ui.js collaborators are kept exactly as before (rule 4).
@@ -298,6 +343,7 @@ function makePedidoFormRuntime() {
   vm.runInContext(opDispSrc, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(pRouteSrc, sandbox, { filename: 'js/product-route.js' });
   vm.runInContext(rowEditor, sandbox, { filename: 'js/screens/pedido-item-row-editor.js' });
+  vm.runInContext(numSug, sandbox, { filename: 'js/screens/pedido-numero-sugestao.js' });
   // js/ui.js also defines a real toast() that appends to #toasts and arms a
   // setTimeout; the runtime test never asserts on toast, so re-override it with
   // a no-op AFTER ui.js (representation translation, rule 4).
@@ -947,14 +993,15 @@ test('batch2/1. o cabecalho e Número do pedido -> Data do pedido -> Prazo desej
   assert.ok(iData < iPrazo, 'Data do pedido deve vir imediatamente antes de Prazo desejado');
 });
 
-test('batch2/2+3. Número do pedido e OPCIONAL: em branco usa alocacao automatica', async () => {
-  const { root, calls } = await bootPedidoForm();
+// A sugestao so pode faltar quando a RPC nega/falha. Nesse caso o campo nasce
+// vazio e a alocacao volta a ser da coluna de identidade.
+test('batch2/2+3. sem sugestao disponivel o campo nasce vazio e usa alocacao automatica', async () => {
+  const { root, calls } = await bootPedidoForm({ proximoNumero: null });
   const numeroInput = findByAttr(root, 'data-pedido-numero')[0];
   assert.ok(numeroInput, 'input de numero ausente');
   assert.equal(numeroInput.getAttribute('type'), 'number');
   assert.equal(numeroInput.getAttribute('min'), '1');
-  assert.equal(numeroInput.getAttribute('placeholder'), 'Automático');
-  assert.equal(numeroInput.value, '', 'o numero nasce em branco');
+  assert.equal(numeroInput.value, '', 'sem sugestao o numero nasce em branco');
 
   await fillOneValidItem(root);
   findButton(root, /^Salvar rascunho$/)._listeners.click();
@@ -1010,6 +1057,203 @@ test('batch2/4. um Número ocupado mostra erro controlado em portugues e NAO ren
     'o valor digitado sobrevive: nunca e trocado por um automatico em silencio');
   assert.equal(calls.pedidoItensInsert, null, 'nenhum item pode ser inserido apos a recusa');
   assert.equal(calls.pedidoDelete, 0, 'a recusa do numero nao deve disparar compensacao');
+});
+
+// ---------------------------------------------------------------------
+// Pre-preenchimento do Número do pedido (db/90).
+// ---------------------------------------------------------------------
+
+test('prefill/1. abrir a tela exibe uma SUGESTAO NUMERICA dentro do input editavel', async () => {
+  const { root } = await bootPedidoForm({ proximoNumero: 69 });
+  const numeroInput = findByAttr(root, 'data-pedido-numero')[0];
+  assert.equal(numeroInput.value, '69', 'o input deve abrir com o candidato numerico');
+  assert.match(numeroInput.value, /^\d+$/, 'o valor exibido deve ser numerico');
+  assert.equal(numeroInput.getAttribute('disabled'), null, 'a sugestao tem de ser editavel');
+  assert.equal(numeroInput.getAttribute('readonly'), null, 'a sugestao tem de ser editavel');
+  assert.equal(numeroInput.getAttribute('data-pedido-numero-sugerido'), '1');
+});
+
+// A prosa dos cabecalhos CITA o placeholder removido; o sujeito aqui e o que a
+// tela EXIBE, entao a verificacao estatica corre sobre o codigo sem comentarios.
+const semComentarios = (src) => src.replace(/^\s*\/\/.*$/gm, '');
+
+test('prefill/2. a palavra "Automático" desapareceu do campo', async () => {
+  const { root } = await bootPedidoForm({ proximoNumero: 69 });
+  const numeroInput = findByAttr(root, 'data-pedido-numero')[0];
+  assert.equal(numeroInput.getAttribute('placeholder'), null,
+    'o placeholder "Automático" nao pode sobreviver');
+  assert.doesNotMatch(semComentarios(screen), /Automático/,
+    'a tela nao pode mais exibir a palavra Automático');
+  assert.doesNotMatch(semComentarios(numSug), /Automático/);
+});
+
+test('prefill/3. o texto de ajuda declara que a sugestao e alteravel', async () => {
+  const { root } = await bootPedidoForm({ proximoNumero: 69 });
+  const ajuda = findByAttr(root, 'data-pedido-numero-ajuda')[0];
+  assert.equal(ajuda.textContent, 'Sugestão automática. Você pode alterar antes de salvar.');
+});
+
+// A prova de que abrir a tela nao consome numero, no lado do cliente: a unica
+// coisa que a abertura faz e UMA leitura pela RPC declarada — nenhuma escrita,
+// nenhum nextval, nenhuma insercao especulativa. O lado SQL (a sequencia
+// realmente nao se move) e provado em
+// tests/pedido-proximo-numero-rpc-invariant.mjs.
+test('prefill/4. abrir a tela consulta a RPC uma unica vez e nao escreve nada', async () => {
+  const { root, calls } = await bootPedidoForm({ proximoNumero: 69 });
+  assert.ok(root, 'tela nao renderizou');
+  const consultas = calls.rpcs.filter((c) => c.fn === 'consultar_proximo_numero_pedido');
+  assert.equal(consultas.length, 1, 'a sugestao deve ser consultada exatamente uma vez na abertura');
+  assert.equal(calls.pedidoInsert, null, 'abrir a tela nao pode inserir Pedido algum');
+  assert.equal(calls.pedidoItensInsert, null, 'abrir a tela nao pode inserir item algum');
+  assert.equal(calls.pedidoDelete, 0, 'abrir a tela nao pode apagar nada');
+});
+
+test('prefill/5. uma sequencia cujo proximo valor e 2 exibe 2', async () => {
+  const { root } = await bootPedidoForm({ proximoNumero: 2 });
+  assert.equal(findByAttr(root, 'data-pedido-numero')[0].value, '2');
+});
+
+// A autoridade e a sequencia de identidade. MAX(numero)+1 e proibido porque um
+// numero manual alto ja avancou a sequencia, uma validacao revertida ja
+// consumiu valores, e as lacunas sao aceitas (db/89).
+test('prefill/6. a sugestao vem da RPC de sequencia, nunca de MAX(numero)+1', () => {
+  assert.match(numSug, /RPC_PROXIMO_NUMERO = 'consultar_proximo_numero_pedido'/,
+    'o modulo deve declarar a RPC autoritativa');
+  assert.match(numSug, /supa\.rpc\(RPC_PROXIMO_NUMERO\)/,
+    'o modulo deve consultar a RPC declarada');
+  for (const [nome, bruto] of [['pedido-form.js', screen], ['pedido-numero-sugestao.js', numSug]]) {
+    const src = semComentarios(bruto);
+    assert.doesNotMatch(src, /max\s*\(\s*['"]?numero/i, nome + ' nao pode derivar o numero de MAX');
+    assert.doesNotMatch(src, /order\(\s*'numero'[^)]*desc/i,
+      nome + ' nao pode derivar o numero do maior numero existente');
+    assert.doesNotMatch(src, /nextval/i, nome + ' nao pode consumir a sequencia');
+  }
+});
+
+// Conflito CONTROLADO: a sugestao NAO e reserva. Se outro Pedido tomar o numero
+// entre a abertura e o envio, a tela nao pode alocar outro numero em silencio —
+// ela pede uma sugestao nova, mostra-a, e avisa o operador.
+test('prefill/7. uma sugestao tomada por outro pedido e RENOVADA, nunca trocada em silencio', async () => {
+  const { root, calls } = await bootPedidoForm({ proximoNumero: [69, 70], numeroDuplicado: 1 });
+  assert.equal(findByAttr(root, 'data-pedido-numero')[0].value, '69');
+
+  await fillOneValidItem(root);
+  findButton(root, /^Salvar rascunho$/)._listeners.click();
+  await flushRuntime();
+  await flushRuntime();
+  await flushRuntime();
+
+  // O numero tentado foi EXATAMENTE o que estava visivel.
+  assert.equal(calls.pedidoInserts.length, 1, 'a tela nao pode reinserir sozinha apos o conflito');
+  assert.equal(calls.pedidoInserts[0].numero, 69);
+
+  // O campo passou a mostrar o candidato NOVO...
+  assert.equal(findByAttr(root, 'data-pedido-numero')[0].value, '70',
+    'o campo deve receber a sugestao nova');
+  // ...e o operador foi informado de qual numero se perdeu e qual entrou.
+  const aviso = findByAttr(root, 'data-pedido-numero-ajuda')[0];
+  assert.match(aviso.textContent, /69/, 'o aviso deve nomear o numero perdido');
+  assert.match(aviso.textContent, /Nova sugestão: 70\./, 'o aviso deve nomear a sugestao nova');
+  assert.equal(findByAttr(root, 'data-pedido-numero-erro')[0].textContent, '',
+    'uma sugestao renovada nao e erro do operador');
+  assert.equal(calls.pedidoItensInsert, null, 'nenhum item pode ser inserido apos o conflito');
+  assert.equal(calls.pedidoDelete, 0, 'o conflito nao dispara compensacao');
+});
+
+// Contraste com prefill/7: quando o numero foi DIGITADO, o valor do operador e
+// preservado e a mensagem e a de numero em uso — nao uma renovacao.
+test('prefill/8. um numero DIGITADO e ocupado preserva o valor e nao recebe sugestao nova', async () => {
+  const { root } = await bootPedidoForm({ proximoNumero: [69, 70], numeroDuplicado: true });
+  const numeroInput = findByAttr(root, 'data-pedido-numero')[0];
+  numeroInput.value = '4242';
+  numeroInput._listeners.input();
+
+  await fillOneValidItem(root);
+  findButton(root, /^Salvar rascunho$/)._listeners.click();
+  await flushRuntime();
+  await flushRuntime();
+  await flushRuntime();
+
+  assert.equal(findByAttr(root, 'data-pedido-numero')[0].value, '4242',
+    'o valor digitado tem de sobreviver ao conflito');
+  assert.equal(findByAttr(root, 'data-pedido-numero-erro')[0].textContent,
+    'Este número de pedido já está em uso.');
+  assert.doesNotMatch(findByAttr(root, 'data-pedido-numero-ajuda')[0].textContent, /Nova sugestão/,
+    'um numero digitado nao pode ser substituido por uma sugestao');
+});
+
+test('prefill/9. o numero VISIVEL e o numero tentado, mesmo sem o operador tocar no campo', async () => {
+  const { root, calls } = await bootPedidoForm({ proximoNumero: 69 });
+  await fillOneValidItem(root);
+  findButton(root, /^Salvar rascunho$/)._listeners.click();
+  await flushRuntime();
+  await flushRuntime();
+  assert.equal(calls.pedidoInsert.numero, 69,
+    'o numero exibido deve ir verbatim no payload');
+});
+
+test('prefill/10. o operador pode substituir a sugestao por outro numero livre', async () => {
+  const { root, calls } = await bootPedidoForm({ proximoNumero: 69 });
+  const numeroInput = findByAttr(root, 'data-pedido-numero')[0];
+  numeroInput.value = '1234';
+  numeroInput._listeners.input();
+  assert.equal(numeroInput.getAttribute('data-pedido-numero-sugerido'), '1',
+    'o atributo so e recalculado no proximo render; o estado interno e que muda');
+
+  await fillOneValidItem(root);
+  findButton(root, /^Salvar rascunho$/)._listeners.click();
+  await flushRuntime();
+  await flushRuntime();
+  assert.equal(calls.pedidoInsert.numero, 1234);
+});
+
+// A RPC e admin-only (db/90). Se ela negar, criar Pedido continua possivel: o
+// campo fica vazio, o texto explica, e a coluna de identidade aloca.
+test('prefill/11. sugestao negada nao bloqueia a criacao e nao reintroduz "Automático"', async () => {
+  const { root, calls } = await bootPedidoForm({ proximoNumero: null });
+  const ajuda = findByAttr(root, 'data-pedido-numero-ajuda')[0];
+  assert.match(ajuda.textContent, /Sugestão indisponível/);
+  assert.doesNotMatch(ajuda.textContent, /Automático/);
+
+  await fillOneValidItem(root);
+  findButton(root, /^Salvar rascunho$/)._listeners.click();
+  await flushRuntime();
+  await flushRuntime();
+  assert.equal(Object.prototype.hasOwnProperty.call(calls.pedidoInsert, 'numero'), false);
+});
+
+test('prefill/12. a superficie de cliente NAO expoe o numero interno nem a RPC', () => {
+  const clienteForm = fs.readFileSync(
+    path.join(ROOT, 'js', 'screens', 'cliente-pedido-form.js'), 'utf8');
+  assert.doesNotMatch(clienteForm, /consultar_proximo_numero_pedido/,
+    'a tela de cliente nao pode consultar o numero interno');
+  assert.doesNotMatch(clienteForm, /data-pedido-numero/,
+    'a tela de cliente nao pode ter o campo de numero');
+  assert.doesNotMatch(clienteForm, /RAVATEX_PEDIDO_NUMERO/);
+});
+
+test('prefill/13. db/90 cria a RPC admin-only, sem nextval e sem MAX', () => {
+  const db90 = readOrFail(path.join(ROOT, 'db', '90_pedido_proximo_numero_suggestion_rpc.sql'));
+  assert.match(db90, /CREATE OR REPLACE FUNCTION public\.consultar_proximo_numero_pedido\(\)/);
+  assert.match(db90, /RETURNS BIGINT/);
+  assert.match(db90, /SECURITY DEFINER/);
+  assert.match(db90, /SET search_path = public/);
+  assert.match(db90, /IF NOT public\.is_admin\(\) THEN/,
+    'a RPC tem de exigir is_admin()');
+  assert.match(db90, /REVOKE ALL\s+ON FUNCTION public\.consultar_proximo_numero_pedido\(\) FROM PUBLIC/);
+  assert.match(db90, /REVOKE ALL\s+ON FUNCTION public\.consultar_proximo_numero_pedido\(\) FROM anon/);
+  assert.match(db90, /GRANT\s+EXECUTE ON FUNCTION public\.consultar_proximo_numero_pedido\(\) TO\s+authenticated/);
+  assert.match(db90, /pg_sequence_last_value/, 'a leitura tem de ser de estado da sequencia');
+  // O CORPO da funcao — nao os comentarios nem o COMMENT ON, que citam
+  // nominalmente o que ela se proibe de fazer — nao pode consumir a sequencia
+  // nem derivar de MAX.
+  const corpo = (db90.match(/AS \$\$([\s\S]*?)\$\$;/) || [])[1];
+  assert.ok(corpo, 'corpo da funcao nao encontrado em db/90');
+  const exec = corpo.replace(/--.*$/gm, '');
+  assert.doesNotMatch(exec, /nextval/i, 'a consulta NAO pode consumir a sequencia');
+  assert.doesNotMatch(exec, /setval/i);
+  assert.doesNotMatch(exec, /currval/i);
+  assert.doesNotMatch(exec, /max\s*\(/i, 'MAX() nao e autoridade');
 });
 
 test('batch2/5+6. Data do pedido nasce hoje, e obrigatoria e vai no payload', async () => {
@@ -1200,18 +1444,26 @@ test('batch2/19. index.html carrega o modulo da linha antes de pedido-form.js', 
   assert.ok(iRoute < iRow, 'o modulo depende de product-route.js');
   assert.ok(iRow < iForm, 'o modulo deve vir antes de pedido-form.js');
   assert.ok(iForm < iBoot);
-  assert.match(index, /pedido-item-row-editor\.js\?v=20260725-pedido-operational-batch2/);
+  assert.match(index, /pedido-item-row-editor\.js\?v=20260725-pedido-operational-batch3/);
 });
 
-test('batch2/20. pedido-form.js NAO cresceu e o debito estrutural foi quitado', () => {
-  const { execFileSync } = require('node:child_process');
-  const before = execFileSync('git', ['show', 'HEAD:js/screens/pedido-form.js'], { cwd: ROOT, encoding: 'utf8' })
-    .split('\n').length;
+// O sujeito deste guard e a EXTRACAO de BATCH-02: a tela encolheu de 1089 para
+// ~708 linhas e o debito estrutural de BATCH-01 foi quitado. Medir contra um
+// HEAD movel converteria o guard em "nenhuma ordem futura pode acrescentar uma
+// linha a esta tela", que nao e o que BATCH-02 provou nem o que
+// CODE_HEALTH_RULES.md sec.7 exige. A medida passa a ser o teto declarado da
+// faixa excepcional (900), com a extracao provada pelo tamanho dos modulos
+// filhos e pela ausencia do marcador de debito.
+test('batch2/20. a extracao de BATCH-02 se mantem e o debito estrutural segue quitado', () => {
   const now = screen.split('\n').length;
-  assert.ok(now <= before,
-    `pedido-form.js nao pode crescer neste lote (antes ${before}, agora ${now})`);
+  assert.ok(now <= 900,
+    `pedido-form.js deve permanecer na faixa excepcional de code-health (<=900; atual ${now})`);
+  assert.ok(now < 1089,
+    `a extracao de BATCH-02 nao pode ser desfeita (pre-extracao 1089; atual ${now})`);
   assert.ok(rowEditor.split('\n').length <= 500,
-    'o novo modulo deve respeitar o limite normal de code-health');
+    'o modulo da linha de item deve respeitar o limite normal de code-health');
+  assert.ok(fs.readFileSync(NUMSUG, 'utf8').split('\n').length <= 500,
+    'o modulo de sugestao de numero deve respeitar o limite normal de code-health');
   assert.doesNotMatch(screen, /DEBITO ESTRUTURAL NAO BLOQUEANTE/,
     'o debito estrutural de BATCH-01 foi quitado pela extracao');
 });

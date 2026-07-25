@@ -1026,7 +1026,10 @@ test('R2/18. a correcao R2 nao introduz delta de banco nem migracao', () => {
   // AUTORIZADA POSTERIOR (BATCH-02: db/89) nao pertence a esse sujeito e nao
   // pode ser lida como delta desta correcao; a garantia original — esta
   // correcao nao toca o banco — segue integral.
-  const POSTERIOR_AUTORIZADO = [/^db\/89_pedido_commercial_date_and_number_control\.sql$/];
+  const POSTERIOR_AUTORIZADO = [
+    /^db\/89_pedido_commercial_date_and_number_control\.sql$/,
+    /^db\/90_pedido_proximo_numero_suggestion_rpc\.sql$/,
+  ];
   for (const rel of changed.concat(untracked)) {
     if (POSTERIOR_AUTORIZADO.some((re) => re.test(rel))) continue;
     assert.equal(/^db\//.test(rel), false, 'nenhum arquivo db/** pode mudar: ' + rel);
@@ -1125,7 +1128,10 @@ test('R3/19g. a correcao R3 nao introduz delta de banco nem migracao', () => {
   // AUTORIZADA POSTERIOR (BATCH-02: db/89) nao pertence a esse sujeito e nao
   // pode ser lida como delta desta correcao; a garantia original — esta
   // correcao nao toca o banco — segue integral.
-  const POSTERIOR_AUTORIZADO = [/^db\/89_pedido_commercial_date_and_number_control\.sql$/];
+  const POSTERIOR_AUTORIZADO = [
+    /^db\/89_pedido_commercial_date_and_number_control\.sql$/,
+    /^db\/90_pedido_proximo_numero_suggestion_rpc\.sql$/,
+  ];
   for (const rel of changed.concat(untracked)) {
     if (POSTERIOR_AUTORIZADO.some((re) => re.test(rel))) continue;
     assert.equal(/^db\//.test(rel), false, 'nenhum arquivo db/** pode mudar: ' + rel);
@@ -1176,7 +1182,31 @@ const BATCH2_RETOKENED_ASSETS = [
   'js/screens/pedido-itens-edit.js',
   'js/screens/cliente-pedido-form.js',
 ];
-const BATCH2_ASSETS = BATCH2_ADDED_ASSETS.concat(BATCH2_RETOKENED_ASSETS);
+// KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-03-R1 (sugestao de numero de
+// Pedido + layout operacional compacto) ADICIONOU um modulo novo (o contrato de
+// numeracao extraido) e retokenizou tres assets que ele realmente alterou:
+// pedido-form.js (sugestao + grade unica), pedido-item-row-editor.js (densidade
+// da linha) e css/responsive.css (breakpoints de `data-rv-pedido-dados`).
+// A intencao original de R3/20c2 e R3/20e continua valendo: os assets abaixo
+// saem da comparacao com 4532f76 apenas sob um token declarado, que R3/20c5
+// verifica literalmente e proibe em qualquer outro asset.
+const BATCH3_TOKEN = '20260725-pedido-operational-batch3';
+const BATCH3_ADDED_ASSETS = ['js/screens/pedido-numero-sugestao.js'];
+const BATCH3_RETOKENED_ASSETS = [
+  'js/screens/pedido-form.js',
+  'js/screens/pedido-item-row-editor.js',
+  'css/responsive.css',
+];
+const BATCH3_ASSETS = BATCH3_ADDED_ASSETS.concat(BATCH3_RETOKENED_ASSETS);
+
+// Os assets que o lote 3 retokenizou saem do conjunto do lote 2; eles continuam
+// listados em BATCH2_* porque, em relacao a 4532f76, seguem sendo assets
+// legitimamente retokenizados (R3/20c2).
+const BATCH2_ASSETS = BATCH2_ADDED_ASSETS.concat(BATCH2_RETOKENED_ASSETS)
+  .filter((asset) => !BATCH3_ASSETS.includes(asset));
+
+// Todo asset acrescentado depois de 4532f76 por uma ordem autorizada.
+const ADDED_SINCE_4532F76 = BATCH2_ADDED_ASSETS.concat(BATCH3_ADDED_ASSETS);
 
 // Parsing literal, sem regex: um `?v=` num padrao escapado a mao e uma
 // fonte de erro silencioso (o `?` volta a ser quantificador e o teste
@@ -1245,17 +1275,50 @@ test('R3/20c4. os assets do lote operacional 2 carregam exatamente o token decla
   assert.notEqual(BATCH2_TOKEN, BATCH1_TOKEN);
 });
 
+test('R3/20c5. os assets do lote operacional 3 carregam exatamente o token declarado, e ele nao vaza', () => {
+  for (const rel of BATCH3_ASSETS) {
+    assert.equal(tokenFor(rel), BATCH3_TOKEN,
+      rel + ' deve carregar exatamente o token declarado do lote operacional 3');
+  }
+  const carriers = assetRefs(indexHtml).filter((r) => r.token === BATCH3_TOKEN).map((r) => r.path);
+  assert.deepEqual(carriers.sort(), BATCH3_ASSETS.slice().sort(),
+    'exatamente os assets do lote 3 podem carregar o token do lote 3');
+  // Um cache-bust que reusa um token anterior nao invalida cache algum.
+  assert.notEqual(BATCH3_TOKEN, BATCH2_TOKEN);
+  assert.notEqual(BATCH3_TOKEN, BATCH1_TOKEN);
+  assert.notEqual(BATCH3_TOKEN, R2_TOKEN);
+  assert.notEqual(BATCH3_TOKEN, tokenFor(R3_ASSETS[0]));
+});
+
+// Todo asset que o lote 3 NAO tocou conserva o token que tinha: um cache-bust
+// nao pode se espalhar por arrasto.
+test('R3/20c6. o lote 3 nao retokenizou nenhum asset que nao alterou', () => {
+  const intocados = [
+    ['js/screens/pedido-detail-data.js', BATCH2_TOKEN],
+    ['js/screens/pedido-edit.js', BATCH2_TOKEN],
+    ['js/screens/pedido-itens-edit.js', BATCH2_TOKEN],
+    ['js/screens/cliente-pedido-form.js', BATCH2_TOKEN],
+    ['js/screens/common.js', R2_TOKEN],
+    ['js/product-route.js', R2_TOKEN],
+  ];
+  for (const [rel, esperado] of intocados) {
+    assert.equal(tokenFor(rel), esperado, rel + ' nao foi alterado pelo lote 3');
+  }
+});
+
 test('R3/20c2. todo asset nao relacionado conserva o token que tinha em 4532f76', () => {
   const before = assetRefs(execFileSync('git', ['show', '4532f76:index.html'], { cwd: ROOT, encoding: 'utf8' }));
-  // O lote 2 acrescentou um modulo declarado; ele sai da comparacao posicional
-  // e e verificado por R3/20c4. Todo o resto continua pinado a 4532f76.
-  const after = assetRefs(indexHtml).filter((r) => !BATCH2_ADDED_ASSETS.includes(r.path));
+  // Cada ordem autorizada acrescentou um modulo declarado; eles saem da
+  // comparacao posicional e sao verificados por R3/20c4 e R3/20c5. Todo o
+  // resto continua pinado a 4532f76.
+  const after = assetRefs(indexHtml).filter((r) => !ADDED_SINCE_4532F76.includes(r.path));
   assert.equal(after.length, before.length, 'nenhum asset pode ser adicionado ou removido');
   for (let i = 0; i < before.length; i++) {
     assert.equal(after[i].path, before[i].path, 'ordem/caminho preservados na posicao ' + i);
     if (R3_ASSETS.includes(before[i].path)) continue;
     if (BATCH1_ASSETS.includes(before[i].path)) continue;
     if (BATCH2_RETOKENED_ASSETS.includes(before[i].path)) continue;
+    if (BATCH3_RETOKENED_ASSETS.includes(before[i].path)) continue;
     assert.equal(after[i].token, before[i].token,
       before[i].path + ' e um asset nao relacionado e nao pode ter o token alterado');
   }
@@ -1276,9 +1339,10 @@ test('R3/20e. ordem e caminhos dos assets de index.html inalterados', () => {
   const refs = (src) => (src.match(/(?:src|href)="[^"]+"/g) || [])
     .map((s) => s.replace(/^(?:src|href)="/, '').replace(/"$/, '').replace(/\?v=.*$/, ''));
   const before = refs(execFileSync('git', ['show', '4532f76:index.html'], { cwd: ROOT, encoding: 'utf8' }));
-  // Excluida a adicao declarada do lote 2, a lista tem de bater exatamente:
-  // um CACHE-BUST continua proibido de adicionar, remover ou reordenar asset.
-  const after = refs(indexHtml).filter((r) => !BATCH2_ADDED_ASSETS.includes(r));
+  // Excluidas as adicoes declaradas das ordens posteriores, a lista tem de
+  // bater exatamente: um CACHE-BUST continua proibido de adicionar, remover
+  // ou reordenar asset.
+  const after = refs(indexHtml).filter((r) => !ADDED_SINCE_4532F76.includes(r));
   assert.deepEqual(after, before,
     'nenhum asset pode ser adicionado, removido ou reordenado por um cache-bust');
 });
@@ -1290,7 +1354,15 @@ test('R3/20f. o cache-bust nao introduz delta de banco nem toca css', () => {
   // AUTORIZADA POSTERIOR (BATCH-02: db/89) nao pertence a esse sujeito e nao
   // pode ser lida como delta desta correcao; a garantia original — esta
   // correcao nao toca o banco — segue integral.
-  const POSTERIOR_AUTORIZADO = [/^db\/89_pedido_commercial_date_and_number_control\.sql$/];
+  // BATCH-03 acrescentou os breakpoints de `data-rv-pedido-dados` a folha
+  // responsiva. Essa alteracao pertence ao lote 3, nao a correcao R3, e e
+  // provada por tests/responsive-layout.smoke.js (B3/4). A garantia original —
+  // o cache-bust de R3 nao toca css — segue integral.
+  const POSTERIOR_AUTORIZADO = [
+    /^db\/89_pedido_commercial_date_and_number_control\.sql$/,
+    /^db\/90_pedido_proximo_numero_suggestion_rpc\.sql$/,
+    /^css\/responsive\.css$/,
+  ];
   for (const rel of changed) {
     if (POSTERIOR_AUTORIZADO.some((re) => re.test(rel))) continue;
     assert.equal(/^db\//.test(rel), false, 'nenhum arquivo db/** pode mudar: ' + rel);

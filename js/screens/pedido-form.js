@@ -34,6 +34,22 @@
 //     oferece modelo algum, em vez de degradar tudo para Tapete.
 //   O payload de `pedido_itens` permanece semanticamente inalterado: o tipo
 //   NAO e persistido, continua sendo fato de `modelos.tipo_produto`.
+//
+// CORRECAO — PRE-PREENCHIMENTO DO NUMERO DO PEDIDO:
+//   - `Numero do pedido` NAO abre mais vazio com o placeholder `Automático`.
+//     Ao abrir, a tela consulta `public.consultar_proximo_numero_pedido()`
+//     (db/90) e mostra o CANDIDATO NUMERICO dentro do input editavel;
+//   - a sugestao vem do estado da sequencia de identidade, NUNCA de
+//     MAX(numero)+1, e consultar NAO consome nem avanca a sequencia;
+//   - o numero visivel e exatamente o numero tentado no salvamento;
+//   - a sugestao NAO e reserva. Se outro Pedido tomar o numero antes do
+//     envio, o UNIQUE do banco recusa (23505) e a tela pede uma sugestao
+//     NOVA e a exibe — jamais troca o numero em silencio;
+//   - se o operador digitou um numero proprio e ele estiver ocupado, o valor
+//     digitado e PRESERVADO e a mensagem e "Este número de pedido já está em
+//     uso.";
+//   - a superficie de cliente (`cliente-pedido-form.js`) continua sem expor
+//     este numero interno: ela nao tem o campo e nao chama a RPC.
 // =====================================================================
 
 (function (window) {
@@ -57,6 +73,12 @@
   // Dono UNICO da linha de item e da regra Tipo-antes-de-Modelo.
   function itemRowApi() {
     return window.RAVATEX_PEDIDO_ITEM_ROW || null;
+  }
+
+  // Dono UNICO do contrato de numeracao (candidato, deteccao de ocupado,
+  // textos). Ver js/screens/pedido-numero-sugestao.js.
+  function numeroApi() {
+    return window.RAVATEX_PEDIDO_NUMERO;
   }
 
   // Data local do NAVEGADOR em YYYY-MM-DD. Nao usar toISOString(): ela
@@ -91,6 +113,18 @@
     };
     var postSave = null;
     var numeroErro = null;
+    // Aviso NAO-erro: usado quando o numero sugerido foi tomado por outro
+    // Pedido entre a abertura da tela e o envio, e uma sugestao nova entrou
+    // no lugar.
+    var numeroAviso = null;
+    // `true` enquanto o valor do campo for a sugestao vinda da RPC e o
+    // operador nao o tiver editado. Distingue os dois tratamentos de conflito
+    // exigidos: sugestao tomada -> renovar; numero digitado ocupado -> manter.
+    var numeroEhSugestao = false;
+    // `true` quando a RPC nao pode ser consultada (sem permissao, offline,
+    // db/90 ainda nao aplicado). O campo fica vazio e o salvamento cai na
+    // alocacao automatica da coluna de identidade.
+    var numeroSugestaoIndisponivel = false;
 
 
 
@@ -169,6 +203,24 @@
         modelos = modRes.data || [];
         await carregarTipoProduto();
       }
+
+      await carregarProximoNumero();
+    }
+
+    // Sugestao numerica exibida na ABERTURA e renovada apos um conflito.
+    // Falhar aqui NAO impede criar Pedido: o campo fica vazio e a coluna de
+    // identidade aloca o numero no INSERT.
+    async function carregarProximoNumero() {
+      var candidato = await numeroApi().consultarProximoNumero(window.supa);
+      if (candidato === null) {
+        numeroSugestaoIndisponivel = true;
+        numeroEhSugestao = false;
+        state.numero = '';
+        return;
+      }
+      numeroSugestaoIndisponivel = false;
+      numeroEhSugestao = true;
+      state.numero = String(candidato);
     }
 
     // Carrega `modelos.tipo_produto`. FALHA FECHADA (BATCH-02): se o metadado
@@ -230,14 +282,21 @@
         children.push(window.el('span', { style: 'color:#d6403a;' }, '*'));
       }
       return window.el('label', {
-        style: 'display:block; font-size:13px; color:#5b6472; margin-bottom:6px;'
+        style: 'display:block; font-size:12.5px; color:#5b6472; margin-bottom:5px; white-space:nowrap;'
       }, children);
     }
 
+    // Altura UNICA de controle (~40px) para os cinco campos de Dados gerais.
+    // Um so dono da caixa impede que um campo fique visivelmente mais alto que
+    // o vizinho quando os cinco dividem a mesma linha do grid.
+    function fieldBoxStyle(erro) {
+      return 'display:flex; align-items:center; gap:8px; min-height:40px; box-sizing:border-box;'
+        + ' border:1px solid ' + (erro ? '#d6403a' : '#d8dce2')
+        + '; border-radius:4px; padding:8px 10px; background:#fff;';
+    }
+
     function buildSelectBox(selectEl) {
-      return window.el('div', {
-        style: 'display:flex; align-items:center; gap:8px; border:1px solid #d8dce2; border-radius:4px; padding:9px 12px; background:#fff;'
-      }, selectEl, svgEl(SVG_CHEVRON));
+      return window.el('div', { style: fieldBoxStyle(false) }, selectEl, svgEl(SVG_CHEVRON));
     }
 
     function buildDadosGeraisCard() {
@@ -253,30 +312,54 @@
         state.clienteId = clienteSelect.value;
       });
 
-      // Numero do pedido: campo ADMIN, apenas na criacao, OPCIONAL.
-      // Em branco => numeracao automatica. A checagem de disponibilidade que
-      // fazemos aqui e apenas consultiva: a autoridade e o UNIQUE do banco.
+      // Numero do pedido: campo ADMIN, apenas na criacao.
+      // ABRE PRE-PREENCHIDO com o candidato lido da sequencia de identidade
+      // (db/90). NAO existe placeholder `Automático`: o operador ve o numero
+      // real que sera tentado, e pode substitui-lo por qualquer positivo
+      // livre. A checagem de disponibilidade e apenas consultiva: a autoridade
+      // e o UNIQUE do banco.
       var numeroInput = window.el('input', {
         type: 'number',
         min: '1',
         step: '1',
         value: state.numero,
-        placeholder: 'Automático',
         'data-pedido-numero': '1',
+        'data-pedido-numero-sugerido': numeroEhSugestao ? '1' : '0',
         style: 'flex:1; border:none; outline:none; font-size:14px; color:#16203a; background:transparent; font-family:inherit; min-width:0;'
       });
       numeroInput.addEventListener('input', function () {
         state.numero = numeroInput.value;
+        // A partir da primeira edicao o valor e do operador, nao da sugestao:
+        // um conflito passa a ser tratado preservando o que ele digitou.
+        numeroEhSugestao = false;
         numeroErro = null;
+        numeroAviso = null;
         numeroMsg.textContent = '';
+        numeroAjuda.textContent = '';
       });
+      // Sem `min-height`: uma linha de mensagem vazia colapsa para 0px em vez
+      // de reservar uma faixa permanente sob um unico campo da linha.
       var numeroMsg = window.el('div', {
         'data-pedido-numero-erro': '1',
-        style: 'font-size:12.5px; color:#d6403a; margin-top:5px; min-height:16px;'
+        style: 'font-size:11.5px; line-height:1.35; color:#d6403a; margin-top:3px;'
       }, numeroErro || '');
-      var numeroWrap = window.el('div', {
-        style: 'display:flex; align-items:center; gap:8px; border:1px solid ' + (numeroErro ? '#d6403a' : '#d8dce2') + '; border-radius:4px; padding:9px 12px; background:#fff;'
-      }, numeroInput);
+      // Linha auxiliar: aviso de sugestao renovada (ambar) ou o texto de ajuda
+      // permanente (cinza). Nunca compete com a mensagem de erro acima.
+      var numeroAjudaTexto = '';
+      var numeroAjudaCor = '#8a93a3';
+      if (numeroAviso) {
+        numeroAjudaTexto = numeroAviso;
+        numeroAjudaCor = '#a2650a';
+      } else if (numeroEhSugestao) {
+        numeroAjudaTexto = numeroApi().MSG_AJUDA_SUGESTAO;
+      } else if (numeroSugestaoIndisponivel && String(state.numero).trim() === '') {
+        numeroAjudaTexto = numeroApi().MSG_SEM_SUGESTAO;
+      }
+      var numeroAjuda = window.el('div', {
+        'data-pedido-numero-ajuda': '1',
+        style: 'font-size:11.5px; line-height:1.35; color:' + numeroAjudaCor + '; margin-top:3px;'
+      }, numeroAjudaTexto);
+      var numeroWrap = window.el('div', { style: fieldBoxStyle(numeroErro) }, numeroInput);
 
       // Data do pedido: data COMERCIAL, obrigatoria, default hoje (local).
       // Persiste em pedidos.data_pedido; nunca derivada de criado_em.
@@ -289,9 +372,8 @@
       dataPedidoInput.addEventListener('change', function () {
         state.dataPedido = dataPedidoInput.value;
       });
-      var dataPedidoWrap = window.el('div', {
-        style: 'display:flex; align-items:center; gap:8px; border:1px solid #d8dce2; border-radius:4px; padding:9px 12px; background:#fff;'
-      }, dataPedidoInput, svgEl(SVG_CALENDAR));
+      var dataPedidoWrap = window.el('div', { style: fieldBoxStyle(false) },
+        dataPedidoInput, svgEl(SVG_CALENDAR));
 
       var prazoInput = window.el('input', {
         type: 'date',
@@ -302,23 +384,35 @@
       prazoInput.addEventListener('change', function () {
         state.prazoEntrega = prazoInput.value;
       });
-      var prazoWrap = window.el('div', {
-        style: 'display:flex; align-items:center; gap:8px; border:1px solid #d8dce2; border-radius:4px; padding:9px 12px; background:#fff;'
-      }, prazoInput, svgEl(SVG_CALENDAR));
+      var prazoWrap = window.el('div', { style: fieldBoxStyle(false) },
+        prazoInput, svgEl(SVG_CALENDAR));
 
       var statusSelect = window.el('select', {
         disabled: 'disabled',
         style: 'flex:1; border:none; outline:none; font-size:14px; color:#16203a; background:transparent; font-family:inherit; cursor:default; -webkit-appearance:none; appearance:none; min-width:0; opacity:1;'
       }, window.el('option', { value: 'rascunho', selected: 'selected' }, 'Rascunho'));
 
+      // UMA unica grade para os cinco campos. As duas grades fixas anteriores
+      // (2 colunas + 3 colunas) produziam uma faixa vertical vazia entre elas
+      // que nao carregava informacao alguma, e esticavam Numero/Data/Prazo/
+      // Status em blocos largos demais num monitor amplo.
+      //
+      // As proporcoes 30/17/17/17/19 dao a Cliente — o unico campo com texto
+      // livre longo — o dobro de qualquer outro, e mantem os quatro curtos
+      // compactos. A adaptacao por largura (5 -> 3 -> 2 -> 1 coluna) e do
+      // contrato `data-rv-pedido-dados` em css/responsive.css: um layout fixo
+      // de duas linhas para TODA largura de desktop foi rejeitado.
       return window.el('div', {
-        style: 'background:#fff; border:1px solid #eceef1; border-radius:4px; box-shadow:0 1px 2px rgba(20,30,45,.04); padding:16px 20px; margin-bottom:14px;'
+        style: 'background:#fff; border:1px solid #eceef1; border-radius:4px; box-shadow:0 1px 2px rgba(20,30,45,.04); padding:16px; margin-bottom:12px;'
       },
       window.el('div', { style: 'font-size:16px; font-weight:700; color:#16203a; margin-bottom:12px;' }, 'Dados gerais'),
-      // Ordem visual exigida: Numero do pedido -> Data do pedido -> Prazo desejado.
+      // Ordem visual exigida: Cliente -> Numero -> Data -> Prazo -> Status.
       window.el('div', {
         'data-pedido-header-grid': '1',
-        style: 'display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:16px;'
+        'data-rv-pedido-dados': '1',
+        style: 'display:grid;'
+          + ' grid-template-columns:minmax(0,30fr) minmax(0,17fr) minmax(0,17fr) minmax(0,17fr) minmax(0,19fr);'
+          + ' column-gap:14px; row-gap:12px; align-items:start;'
       },
       window.el('div', { style: 'min-width:0;' },
         buildFieldLabel('Cliente', true),
@@ -327,11 +421,9 @@
       window.el('div', { style: 'min-width:0;' },
         buildFieldLabel('Número do pedido'),
         numeroWrap,
-        numeroMsg
-      )),
-      window.el('div', {
-        style: 'display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px;'
-      },
+        numeroMsg,
+        numeroAjuda
+      ),
       window.el('div', { style: 'min-width:0;' },
         buildFieldLabel('Data do pedido', true),
         dataPedidoWrap
@@ -376,12 +468,16 @@
       var table = window.el('div', {
         style: 'border:1px solid #eceef1; border-radius:4px; overflow:hidden;'
       },
-      window.el('div', { style: 'overflow-x:auto;' },
+      // O container e o dono do overflow horizontal: a linha de item tem
+      // largura minima propria e nunca pode empurrar o documento num viewport
+      // estreito (contrato `data-rv-table-scroll`).
+      window.el('div', { 'data-rv-table-scroll': '1', style: 'overflow-x:auto;' },
         api.buildHeader(),
         rowsWrap
       ),
+      // O resumo fica colado a tabela, dentro da mesma moldura.
       window.el('div', {
-        style: 'display:flex; align-items:center; justify-content:space-between; gap:16px; padding:10px 18px; background:#f8f9fb; flex-wrap:wrap;'
+        style: 'display:flex; align-items:center; justify-content:space-between; gap:16px; padding:8px 14px; background:#f8f9fb; flex-wrap:wrap;'
       },
       window.el('span', { style: 'font-size:13.5px; color:#5b6472;' },
         'Total de itens: ',
@@ -399,7 +495,7 @@
       )));
 
       return window.el('div', {
-        style: 'background:#fff; border:1px solid #eceef1; border-radius:4px; box-shadow:0 1px 2px rgba(20,30,45,.04); padding:16px 20px; margin-bottom:14px;'
+        style: 'background:#fff; border:1px solid #eceef1; border-radius:4px; box-shadow:0 1px 2px rgba(20,30,45,.04); padding:16px; margin-bottom:12px;'
       },
       window.el('div', {
         style: 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap;'
@@ -427,7 +523,7 @@
       });
 
       var instrCard = window.el('div', {
-        style: 'background:#fff; border:1px solid #eceef1; border-radius:4px; box-shadow:0 1px 2px rgba(20,30,45,.04); padding:16px 20px;'
+        style: 'background:#fff; border:1px solid #eceef1; border-radius:4px; box-shadow:0 1px 2px rgba(20,30,45,.04); padding:16px;'
       },
       window.el('div', { style: 'font-size:16px; font-weight:700; color:#16203a; margin-bottom:10px;' }, 'Instruções gerais'),
       obsTextarea);
@@ -437,7 +533,7 @@
       });
 
       var checkoutCard = window.el('div', {
-        style: 'background:#fff; border:1px solid #eceef1; border-radius:4px; box-shadow:0 1px 2px rgba(20,30,45,.04); padding:16px 20px; display:flex; flex-direction:column; justify-content:center;'
+        style: 'background:#fff; border:1px solid #eceef1; border-radius:4px; box-shadow:0 1px 2px rgba(20,30,45,.04); padding:16px; display:flex; flex-direction:column; justify-content:center;'
       },
       window.el('div', { style: 'font-size:16px; font-weight:700; color:#16203a;' }, 'Salvar rascunho'),
       window.el('div', {
@@ -449,7 +545,8 @@
       saveBtn);
 
       return window.el('div', {
-        style: 'display:grid; grid-template-columns:3fr 1fr; gap:14px; align-items:stretch;'
+        'data-rv-2col': '1',
+        style: 'display:grid; grid-template-columns:3fr 1fr; gap:12px; align-items:stretch;'
       }, instrCard, checkoutCard);
     }
 
@@ -510,16 +607,6 @@
       );
     }
 
-    // Um numero manual ocupado chega como violacao de unicidade (23505) da
-    // constraint pedidos_numero_key. Detectar deterministicamente evita
-    // confundir esse caso com qualquer outra falha de insercao.
-    function isNumeroDuplicado(error) {
-      if (!error) return false;
-      if (String(error.code) === '23505') return true;
-      var texto = String(error.message || '') + ' ' + String(error.details || '');
-      return /pedidos_numero_key/i.test(texto);
-    }
-
     async function salvar(btn, status) {
       if (!state.clienteId) {
         window.toast('Selecione um cliente.', 'error');
@@ -533,15 +620,19 @@
         window.toast('Informe a data do pedido.', 'error');
         return;
       }
-      // Numero e OPCIONAL; quando informado tem de ser inteiro positivo.
-      var numeroManual = null;
-      if (String(state.numero).trim() !== '') {
-        numeroManual = Number(state.numero);
-        if (!Number.isInteger(numeroManual) || numeroManual <= 0) {
-          window.toast('Número do pedido deve ser um inteiro positivo.', 'error');
-          return;
-        }
+      // O numero VISIVEL e o numero tentado — venha ele da sugestao ou da
+      // digitacao. So fica em branco quando a sugestao esta indisponivel, e
+      // ai a coluna de identidade aloca.
+      var numeroDigitado = numeroApi().normalizarNumeroDigitado(state.numero);
+      if (!numeroDigitado.valido) {
+        window.toast('Número do pedido deve ser um inteiro positivo.', 'error');
+        return;
       }
+      var numeroEnviado = numeroDigitado.numero;
+      // Congelado ANTES do INSERT: `numeroEhSugestao` pode ser mexido por um
+      // evento de input durante o await, e o tratamento do conflito tem de
+      // corresponder ao valor efetivamente enviado.
+      var enviouSugestao = numeroEhSugestao && numeroEnviado !== null;
       for (var i = 0; i < state.itens.length; i++) {
         var item = state.itens[i];
         if (!item.modeloId) {
@@ -566,7 +657,7 @@
           data_pedido: state.dataPedido
         };
         // Em branco => a coluna de identidade aloca automaticamente.
-        if (numeroManual !== null) pedidoPayload.numero = numeroManual;
+        if (numeroEnviado !== null) pedidoPayload.numero = numeroEnviado;
         if (state.prazoEntrega) pedidoPayload.prazo_entrega = state.prazoEntrega;
         if (state.observacao) pedidoPayload.observacao = state.observacao;
 
@@ -577,10 +668,26 @@
           .single();
 
         if (pedidoRes.error || !pedidoRes.data) {
-          // Numero manual ja em uso: o UNIQUE do banco e a autoridade. O valor
-          // digitado NUNCA e trocado silenciosamente por um automatico.
-          if (numeroManual !== null && isNumeroDuplicado(pedidoRes.error)) {
-            numeroErro = 'Este número de pedido já está em uso.';
+          // Numero ja em uso: o UNIQUE do banco e a autoridade. Em NENHUM dos
+          // dois caminhos o numero e trocado silenciosamente por outro — o
+          // Pedido nao e criado e o operador decide.
+          if (numeroEnviado !== null && numeroApi().isNumeroDuplicado(pedidoRes.error)) {
+            if (enviouSugestao) {
+              // A sugestao foi tomada por outro Pedido entre a abertura e o
+              // envio. Conflito CONTROLADO: pedimos uma sugestao nova, ela
+              // aparece no campo, e o operador e avisado do que aconteceu.
+              await carregarProximoNumero();
+              numeroErro = null;
+              numeroAviso = numeroApi().mensagemSugestaoRenovada(
+                numeroEnviado,
+                numeroSugestaoIndisponivel ? null : state.numero
+              );
+              window.toast(numeroAviso, 'error');
+              render();
+              return;
+            }
+            // Numero digitado pelo operador: o valor digitado e PRESERVADO.
+            numeroErro = numeroApi().MSG_EM_USO;
             window.toast(numeroErro, 'error');
             render();
             return;

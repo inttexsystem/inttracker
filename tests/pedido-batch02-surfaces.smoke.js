@@ -223,13 +223,18 @@ test('db/89: é forward-only e não reescreve db/01..db/88', () => {
   assert.doesNotMatch(db89, /GRANT[^\n]*TO anon/i);
 });
 
-test('db/89: existe exatamente uma migração 89 e ela é a terminal', () => {
+// O sujeito deste guard é db/89: ela existe uma única vez e nada foi inserido
+// antes dela. Qual número é o TERMINAL do repositório é fato de
+// tests/ordem-compra-c3d-deploy.smoke.js, que avança a cada migração
+// autorizada — aqui isso seria um segundo dono do mesmo fato.
+test('db/89: existe exatamente uma migração 89 e nada foi inserido antes dela', () => {
   const migs = fs.readdirSync(path.join(ROOT, 'db'))
     .filter((f) => /^\d{2,}_.*\.sql$/.test(f) && !/\.verify\.sql$/.test(f) && f !== 'setup_completo.sql')
     .map((f) => Number(f.match(/^(\d+)_/)[1]))
     .sort((a, b) => a - b);
-  assert.equal(migs[migs.length - 1], 89, 'db/89 deve ser a migração terminal');
   assert.equal(migs.filter((n) => n === 89).length, 1, 'só pode existir uma db/89');
+  assert.equal(migs.filter((n) => n < 89).length, 88,
+    'db/01..db/88 devem permanecer intactas antes de db/89');
 });
 
 // ---------------------------------------------------------------------
@@ -238,8 +243,6 @@ test('db/89: existe exatamente uma migração 89 e ela é a terminal', () => {
 
 test('index.html: toda superfície alterada recebeu o token do lote 2', () => {
   for (const asset of [
-    'js/screens/pedido-item-row-editor.js',
-    'js/screens/pedido-form.js',
     'js/screens/pedido-detail-data.js',
     'js/screens/pedido-edit.js',
     'js/screens/pedido-itens-edit.js',
@@ -247,6 +250,23 @@ test('index.html: toda superfície alterada recebeu o token do lote 2', () => {
   ]) {
     const re = new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=20260725-pedido-operational-batch2');
     assert.match(index, re, asset + ' deve carregar o token do lote 2');
+  }
+});
+
+// pedido-form.js e pedido-item-row-editor.js foram retokenizados DE NOVO pelo
+// lote 3 (sugestão de número + layout compacto). Reter o token do lote 2 aqui
+// serviria um arquivo desatualizado ao browser; a garantia original — toda
+// superfície alterada é invalidada — segue integral, apenas sob o token da
+// ordem que a alterou por último.
+test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não o do lote 2', () => {
+  // Ancorado em `screens/`: sem isso o padrão também casaria
+  // `cliente-pedido-form.js`, que legitimamente conserva o token do lote 2.
+  for (const asset of ['screens/pedido-form.js', 'screens/pedido-item-row-editor.js']) {
+    const esc = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.match(index, new RegExp(esc + '\\?v=20260725-pedido-operational-batch3'),
+      asset + ' deve carregar o token do lote 3');
+    assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260725-pedido-operational-batch2'),
+      asset + ' não pode reter o token do lote 2');
   }
 });
 

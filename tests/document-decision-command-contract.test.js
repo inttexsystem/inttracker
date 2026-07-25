@@ -259,6 +259,9 @@ test('git baseline: B5-B1 technical-commit manifest (b247e435)', function () {
     // authorized migration is not misread as an unexpected db/ change by a
     // guard whose subject is B5-B1.
     'db/89_pedido_commercial_date_and_number_control.sql',
+    // The Pedido number prefill correction adds db/90 as the next authorized
+    // migration, for the same reason.
+    'db/90_pedido_proximo_numero_suggestion_rpc.sql',
   ];
   for (const line of dbStatus) {
     const file = line.trim().slice(3);

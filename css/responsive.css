@@ -31,6 +31,15 @@
      data-rv-route-stepper    stepper por rota (admin)
      data-rv-stepper-scroll   container de rolagem do stepper cliente
      data-rv-client-stepper   linha de etapas do cliente
+     data-rv-pedido-dados     grade "Dados gerais" do novo Pedido (5 campos)
+
+   KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-03-R1 acrescenta
+   `data-rv-pedido-dados`. O layout FIXO de duas linhas do formulario de
+   criacao de Pedido foi rejeitado: num monitor amplo ele esticava Numero,
+   Data, Prazo e Status em blocos largos demais e deixava uma faixa
+   vertical vazia entre as duas grades. A grade base (js/screens/
+   pedido-form.js) passa a ser UMA linha proporcional de cinco colunas, e
+   este arquivo e o dono da adaptacao por largura: 5 -> 3 -> 2 -> 1.
    ============================================================ */
 
 /* ---- Rolagem de tabela: o container e SEMPRE o dono do overflow.
@@ -47,6 +56,21 @@
 /* O <main> do shell nunca pode ser esticado por um filho largo. */
 [data-rv-shell-main] {
   min-width: 0;
+}
+
+/* ---- "Dados gerais" do novo Pedido: cinco campos numa linha proporcional
+   no desktop amplo (a grade base inline), degradando por LARGURA DISPONIVEL.
+   Os tres blocos abaixo vem do mais largo para o mais estreito, entao o
+   breakpoint mais restritivo sempre vence pela ordem da cascata.
+
+   1280px+ : 5 colunas  (30 / 17 / 17 / 17 / 19)  <- grade base inline
+   1024-1279: 3 colunas -> 3 + 2, a queda compacta declarada
+   768-1023 : 2 colunas
+   <=767    : 1 coluna                                                    */
+@media (max-width: 1279px) {
+  [data-rv-pedido-dados] {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
 }
 
 /* ---- Cockpit: abaixo de 1024px o rail direito (300px) nao cabe ao
@@ -73,6 +97,12 @@
     grid-template-columns: minmax(0, 1fr) !important;
     row-gap: 10px !important;
     justify-items: start !important;
+  }
+  /* Dados gerais do novo Pedido: de 3 para 2 colunas. Vive no MESMO bloco de
+     1023px do cockpit — dois blocos com a condicao identica romperiam a
+     resolucao por condicao que tests/responsive-layout.smoke.js usa. */
+  [data-rv-pedido-dados] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 
@@ -133,6 +163,11 @@
   /* Formularios operacionais com colunas fixas em px: empilham, para que
      nenhum controle fique inalcancavel. */
   [data-rv-form-grid] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  /* Cinco campos em 375px: um por linha. Dois dariam ~160px por controle,
+     e o seletor de cliente ficaria ilegivel. */
+  [data-rv-pedido-dados] {
     grid-template-columns: minmax(0, 1fr) !important;
   }
   /* Stepper do cliente: rola dentro do proprio container, mantendo os

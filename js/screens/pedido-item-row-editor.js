@@ -180,14 +180,19 @@
     if (modeloAtual) item.tipo = rotaDoModelo(modeloAtual);
     if (!item.tipo) item.tipo = item.tipo || '';
 
+    // BATCH-03 (densidade operacional): o padding vertical caiu de 9px para
+    // 7px e o horizontal de 18px para 14px. Os CONTROLES nao encolheram — os
+    // selects, o campo de metragem e o de observacao mantem os mesmos 6px/8px
+    // de padding e 13.5px de fonte, entao o alvo de clique continua o mesmo.
+    // O que saiu foi folga morta em volta deles.
     var row = window.el('div', {
-      style: 'display:grid; grid-template-columns:' + GRID_COLS + '; align-items:center; gap:12px; padding:9px 18px; border-bottom:1px solid #f1f3f6; min-width:920px;',
+      style: 'display:grid; grid-template-columns:' + GRID_COLS + '; align-items:center; gap:12px; padding:7px 14px; border-bottom:1px solid #f1f3f6; min-width:920px;',
       'data-uid': item.uid
     });
 
     var previewSlot = window.el('div', {
       'data-preview-slot': '1',
-      style: 'width:36px; height:36px; border-radius:4px; overflow:hidden; border:1px solid rgba(0,0,0,.08); background:#f5f2ea; flex-shrink:0; display:flex; align-items:center; justify-content:center;'
+      style: 'width:32px; height:32px; border-radius:4px; overflow:hidden; border:1px solid rgba(0,0,0,.08); background:#f5f2ea; flex-shrink:0; display:flex; align-items:center; justify-content:center;'
     });
 
     function updatePreview() {
@@ -301,7 +306,7 @@
   function buildHeader() {
     var header = window.el('div', {
       'data-itens-header': '1',
-      style: 'display:grid; grid-template-columns:' + GRID_COLS + '; align-items:center; gap:12px; padding:10px 18px; background:#f8f9fb; border-bottom:1px solid #eceef1; min-width:920px;'
+      style: 'display:grid; grid-template-columns:' + GRID_COLS + '; align-items:center; gap:12px; padding:8px 14px; background:#f8f9fb; border-bottom:1px solid #eceef1; min-width:920px;'
     });
     HEADER_LABELS.forEach(function (label) {
       header.appendChild(window.el('div', { style: 'font-size:13px; font-weight:600; color:#5b6472;' }, label));
