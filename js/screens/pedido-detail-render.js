@@ -1008,8 +1008,27 @@
       : null;
 
     var currentIndex = progress && progress.currentIndex >= 0 ? progress.currentIndex : 0;
-    var totalSteps = progress && progress.totalSteps ? progress.totalSteps : 8;
-    var percent = Math.round(((currentIndex + 1) / totalSteps) * 100);
+    // PHASE-MANTA-B2B-R3: a pre-visualizacao tem de exibir a MESMA posicao
+    // visivel que a apresentacao real do cliente — um Pedido Manta-only
+    // publica 7 etapas, logo "de 8" era falso. A traducao da posicao
+    // comercial canonica para a forma da rota vive no dono do vocabulario
+    // de tracking (js/pedido-tracking-ui.js); este modulo NAO reproduz
+    // nenhuma lista de etapas por rota. A rota vem do view, ja derivada de
+    // `modelos.tipo_produto`.
+    var preview = view.trackingApi && typeof view.trackingApi.getClienteTrackingPreviewPosition === 'function'
+      ? view.trackingApi.getClienteTrackingPreviewPosition(view.pedidoRoutes, currentIndex)
+      : null;
+    var totalSteps = preview ? preview.visibleTotal : (progress && progress.totalSteps ? progress.totalSteps : 8);
+    var percent = preview ? preview.percent : Math.round(((currentIndex + 1) / totalSteps) * 100);
+    var positionLabel = preview ? preview.label : ('Etapa ' + (currentIndex + 1) + ' de ' + totalSteps);
+    // Pedido misto: o ordinal exibido e declaradamente de nivel Pedido, e a
+    // posicao LOCAL de cada rota e resumida ao lado, sem inventar um total.
+    var routeNote = preview && preview.mode === 'pedido-level' && preview.routePositions.length
+      ? preview.routePositions.map(function (rp) {
+          return 'Rota ' + (rp.label || '—') + ': ' + (rp.reachedLabel || '—')
+            + (rp.nextLabel ? ' · próxima ' + rp.nextLabel : '');
+        }).join(' | ')
+      : null;
     var message = view.trackingSummary && view.trackingSummary.mensagemCliente
       ? view.trackingSummary.mensagemCliente
       : (state.pedido && state.pedido.status_cliente_mensagem)
@@ -1048,9 +1067,15 @@
         window.el('div', {
           style: 'display:flex;justify-content:space-between;font-size:11.5px;color:#9aa2af;',
         },
-          window.el('span', {}, 'Etapa ' + (currentIndex + 1) + ' de ' + totalSteps),
+          window.el('span', { 'data-rv-preview-position': preview ? preview.mode : 'legado' }, positionLabel),
           window.el('span', {}, percent + '%')
-        )
+        ),
+        routeNote
+          ? window.el('div', {
+              'data-rv-preview-route-note': '',
+              style: 'font-size:11.5px;color:#9aa2af;margin-top:6px;line-height:1.45;',
+            }, routeNote)
+          : null
       ),
       window.el('div', {
         style: 'display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:12px;',

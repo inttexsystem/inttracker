@@ -1027,3 +1027,104 @@ test('R2/18. a correcao R2 nao introduz delta de banco nem migracao', () => {
     assert.equal(/\.sql$/.test(rel), false, 'nenhum .sql pode mudar: ' + rel);
   }
 });
+
+// ---------------------------------------------------------------------
+// 19. PHASE-MANTA-B2B-R3 — pre-visualizacao administrativa do cliente
+//     ("O QUE O CLIENTE VE") alinhada a forma da rota.
+// ---------------------------------------------------------------------
+
+// Indice canonico de `tecelagem` na lista completa de etapas do cliente.
+function canonicalTecelagemIndex(api) {
+  return api.getClienteTrackingStepIndex('tecelagem');
+}
+
+test('R3/19a. Manta-only: a pre-visualizacao usa denominador SETE e ordinal local', () => {
+  const api = makeSandbox([opDisplay, productRoute, trackingUi]).window.RavatexPedidoTracking;
+  const idx = canonicalTecelagemIndex(api);
+  assert.equal(idx, 3, 'Tecelagem e a 4a etapa canonica');
+
+  const pos = api.getClienteTrackingPreviewPosition(['manta'], idx);
+  assert.equal(pos.mode, 'route-local');
+  assert.equal(pos.visibleTotal, 7, 'a Manta publica 7 etapas visiveis');
+  assert.equal(pos.visibleIndex, 4);
+  assert.equal(pos.label, 'Etapa 4 de 7');
+  assert.doesNotMatch(pos.label, /de 8/, 'o Acabamento omitido nao pode ficar no denominador');
+});
+
+test('R3/19b. Tapete-only: a pre-visualizacao permanece em OITO etapas', () => {
+  const api = makeSandbox([opDisplay, productRoute, trackingUi]).window.RavatexPedidoTracking;
+  const pos = api.getClienteTrackingPreviewPosition(['tapete'], canonicalTecelagemIndex(api));
+  assert.equal(pos.mode, 'route-local');
+  assert.equal(pos.visibleTotal, 8, 'o Tapete mantem 8 etapas visiveis');
+  assert.equal(pos.visibleIndex, 4);
+  assert.equal(pos.label, 'Etapa 4 de 8');
+});
+
+test('R3/19c. Pedido misto NAO afirma um total local unico', () => {
+  const api = makeSandbox([opDisplay, productRoute, trackingUi]).window.RavatexPedidoTracking;
+  const pos = api.getClienteTrackingPreviewPosition(['tapete', 'manta'], canonicalTecelagemIndex(api));
+  assert.equal(pos.mode, 'pedido-level');
+  assert.equal(pos.route, null, 'um Pedido misto nao tem uma rota unica');
+  assert.match(pos.label, /^Etapa comercial 4 de 8$/,
+    'o ordinal do misto e declaradamente de nivel Pedido');
+  // A posicao LOCAL de cada rota e resumida, sem virar denominador exibido.
+  assert.equal(pos.routePositions.length, 2);
+  const byRoute = Object.fromEntries(pos.routePositions.map((p) => [p.route, p]));
+  assert.equal(byRoute.manta.visibleTotal, 7);
+  assert.equal(byRoute.tapete.visibleTotal, 8);
+  assert.equal(byRoute.manta.nextLabel, 'Expedição', 'a proxima da Manta e Expedicao, nunca Acabamento');
+  assert.equal(byRoute.tapete.nextLabel, 'Acabamento');
+});
+
+test('R3/19d. sem rota confiavel a pre-visualizacao degrada para o nivel Pedido', () => {
+  const api = makeSandbox([opDisplay, productRoute, trackingUi]).window.RavatexPedidoTracking;
+  const pos = api.getClienteTrackingPreviewPosition([], canonicalTecelagemIndex(api));
+  assert.equal(pos.mode, 'pedido-level');
+  assert.equal(pos.visibleTotal, api.CLIENTE_TRACKING_STEPS.length);
+  assert.equal(pos.routePositions.length, 0, 'sem rota nao se resume rota nenhuma');
+});
+
+test('R3/19e. a Manta percorre a rota inteira sem lacuna no ordinal visivel', () => {
+  const api = makeSandbox([opDisplay, productRoute, trackingUi]).window.RavatexPedidoTracking;
+  const seen = api.getClienteTrackingStepsForRoutes(['manta']).map((entry) => {
+    const pos = api.getClienteTrackingPreviewPosition(['manta'], api.getClienteTrackingStepIndex(entry.key));
+    return pos.visibleIndex + '/' + pos.visibleTotal;
+  });
+  // D2: numeracao visivel contigua 1..7, sem repetir nem saltar.
+  assert.equal(seen.join(' '), '1/7 2/7 3/7 4/7 5/7 6/7 7/7');
+});
+
+test('R3/19f. o render consome o helper de rota e nao duplica listas de etapas', () => {
+  const src = codeOnly(detailRender);
+  assert.match(src, /getClienteTrackingPreviewPosition\(view\.pedidoRoutes, currentIndex\)/,
+    'a pre-visualizacao deve derivar a posicao pelo helper de rota');
+  assert.doesNotMatch(src, /'Etapa ' \+ \(currentIndex \+ 1\) \+ ' de ' \+ totalSteps,/,
+    'o rotulo canonico cru nao pode mais ser o exibido');
+  // O render nao pode reproduzir a forma da rota localmente.
+  assert.doesNotMatch(src, /ROUTE_CLIENT_STEP_KEYS/);
+  assert.doesNotMatch(src, /'recebido',\s*'confirmado'/);
+  // O helper vive no dono do vocabulario de tracking, nao no render.
+  assert.match(codeOnly(trackingUi), /function getClienteTrackingPreviewPosition/);
+  // Nada de posicao por rota persistida e nada de tocar status_cliente_visual.
+  assert.doesNotMatch(codeOnly(trackingUi).split('function getClienteTrackingPreviewPosition')[1].slice(0, 2600),
+    /status_cliente_visual\s*=/);
+});
+
+test('R3/19g. a correcao R3 nao introduz delta de banco nem migracao', () => {
+  const changed = execFileSync('git', ['diff', '--name-only', '3ed9c4a'], { cwd: ROOT, encoding: 'utf8' })
+    .split('\n').map((s) => s.trim()).filter(Boolean);
+  const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { cwd: ROOT, encoding: 'utf8' })
+    .split('\n').map((s) => s.trim()).filter(Boolean);
+  for (const rel of changed.concat(untracked)) {
+    assert.equal(/^db\//.test(rel), false, 'nenhum arquivo db/** pode mudar: ' + rel);
+    assert.equal(/\.sql$/.test(rel), false, 'nenhum .sql pode mudar: ' + rel);
+  }
+});
+
+test('R3/19h. gates estruturais preservados (nenhum arquivo gated cresceu)', () => {
+  const lines = (rel) => read(rel).split('\n').length - (read(rel).endsWith('\n') ? 1 : 0);
+  assert.ok(lines('js/screens/pedido-detail-events.js') <= 2709,
+    'pedido-detail-events.js deve permanecer <= 2709 linhas');
+  assert.ok(lines('js/screens/pedido-detail-progress.js') <= 918,
+    'pedido-detail-progress.js deve permanecer <= 918 linhas');
+});

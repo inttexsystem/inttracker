@@ -109,6 +109,72 @@
     return typeof idx === 'number' ? idx : -1;
   }
 
+  // PHASE-MANTA-B2B-R3. Posicao VISIVEL para a pre-visualizacao
+  // administrativa ("O QUE O CLIENTE VE"). A posicao comercial canonica
+  // continua sendo de nivel PEDIDO (`status_cliente_visual`, indice sobre
+  // CLIENTE_TRACKING_STEPS): este helper apenas a TRADUZ para a forma da
+  // rota realmente publicada ao cliente. Nao persiste posicao por rota e
+  // nao exige migracao.
+  //
+  //   - exatamente uma rota aplicavel -> ordinal LOCAL da rota. O
+  //     Acabamento omitido na Manta NAO pode permanecer no denominador
+  //     visivel ('Etapa 4 de 7'); o Tapete mantem 'Etapa 4 de 8'.
+  //   - zero ou duas rotas -> nao existe um ordinal local unico que seja
+  //     verdadeiro para as duas rotas. Declara-se explicitamente o nivel
+  //     Pedido ('Etapa comercial 4 de 8') e resume-se a posicao local de
+  //     cada rota pelos helpers de rota existentes. Nunca se fabrica um
+  //     denominador local para um Pedido misto.
+  //
+  // A rota chega ja derivada de `modelos.tipo_produto` (product-route.js);
+  // este helper nunca a adivinha. Puro: sem DOM, sem banco, sem dado
+  // administrativo.
+  function getClienteTrackingPreviewPosition(routes, canonicalIndex) {
+    var canonicalTotal = CLIENTE_TRACKING_STEPS.length;
+    var canonical = typeof canonicalIndex === 'number' && canonicalIndex >= 0 ? canonicalIndex : 0;
+    var applicable = Array.isArray(routes) ? routes.filter(Boolean) : [];
+
+    var routePositions = getClienteTrackingSectionsForRoutes(applicable).map(function (section) {
+      var entries = section.steps || [];
+      var pos = getClienteTrackingRoutePosition(entries, canonical);
+      var reached = pos.reachedDisplayIndex >= 0 ? entries[pos.reachedDisplayIndex] : null;
+      var next = pos.nextDisplayIndex >= 0 ? entries[pos.nextDisplayIndex] : null;
+      return {
+        route: section.route,
+        label: section.label,
+        visibleIndex: pos.reachedDisplayIndex >= 0 ? pos.reachedDisplayIndex + 1 : 0,
+        visibleTotal: entries.length,
+        reachedLabel: reached && reached.step ? reached.step.label : null,
+        nextLabel: next && next.step ? next.step.label : null,
+      };
+    });
+
+    var single = applicable.length === 1 && routePositions.length === 1
+      && routePositions[0].visibleTotal > 0 && routePositions[0].visibleIndex > 0;
+
+    if (single) {
+      var only = routePositions[0];
+      return {
+        mode: 'route-local',
+        route: only.route,
+        visibleIndex: only.visibleIndex,
+        visibleTotal: only.visibleTotal,
+        percent: Math.round(clampPercent((only.visibleIndex / only.visibleTotal) * 100)),
+        label: 'Etapa ' + only.visibleIndex + ' de ' + only.visibleTotal,
+        routePositions: routePositions,
+      };
+    }
+
+    return {
+      mode: 'pedido-level',
+      route: null,
+      visibleIndex: canonical + 1,
+      visibleTotal: canonicalTotal,
+      percent: Math.round(clampPercent(((canonical + 1) / canonicalTotal) * 100)),
+      label: 'Etapa comercial ' + (canonical + 1) + ' de ' + canonicalTotal,
+      routePositions: applicable.length > 1 ? routePositions : [],
+    };
+  }
+
   function normalizarTrackingKey(value) {
     if (typeof value !== 'string') return '';
     return value.trim().toLowerCase();
@@ -453,6 +519,7 @@
     getClienteTrackingStepsForRoutes: getClienteTrackingStepsForRoutes,
     getClienteTrackingSectionsForRoutes: getClienteTrackingSectionsForRoutes,
     getClienteTrackingRoutePosition: getClienteTrackingRoutePosition,
+    getClienteTrackingPreviewPosition: getClienteTrackingPreviewPosition,
     getClienteTrackingStepIndex: getClienteTrackingStepIndex,
     getClienteParcialSituacao: getClienteParcialSituacao,
     getClienteTrackingStep: getClienteTrackingStep,

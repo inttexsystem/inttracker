@@ -3788,3 +3788,45 @@ accessed**.
 Owner of the full technical record:
 `docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md`
 §18 "PHASE-MANTA-B2B route-semantics and responsive correction — R2".
+
+# Update 2026-07-25 - PHASE-MANTA-B2B-ADMIN-CLIENT-PREVIEW-ROUTE-POSITION-CORRECTION-R3
+
+**Status.** PHASE-MANTA-B2B: CORRECTED / LOCALLY VERIFIED / PUBLISHED /
+AWAITING ARCHITECT TECHNICAL AND VISUAL ACCEPTANCE. Not self-accepted.
+
+**Defect closed.** The administrative block `O QUE O CLIENTE VÊ` in the Pedido
+detail read its position and denominator from the canonical eight-step list and
+never consulted the route, so a Manta-only Pedido displayed `Etapa 4 de 8` while
+the actual client presentation publishes **seven** visible steps. It was the
+last open acceptance defect of PHASE-MANTA-B2B.
+
+**Correction.** The administrative preview now **translates** the Pedido-level
+canonical position (`status_cliente_visual`) into the applicable *visible* route
+shape, and refuses to fabricate a false local denominator for a mixed Pedido.
+One pure helper, `getClienteTrackingPreviewPosition`, was added to the tracking
+vocabulary owner `js/pedido-tracking-ui.js`, composing the pre-existing route
+helpers; the render duplicates no route-shape array. Manta-only reads
+`Etapa 4 de 7`, Tapete-only keeps `Etapa 4 de 8` verbatim, and a mixed Pedido
+reads `Etapa comercial 4 de 8` plus a per-route local reached/next summary.
+
+**Not changed.** No migration, no `db/**` delta, no SQL, no RPC, no ACL/RLS/Auth
+change, no persisted per-route position — the accepted limitation that a
+per-route *published* position does not exist still stands. The actual client
+route sections are untouched: the R3 client captures are byte-identical (equal
+SHA-256) to their R2 counterparts. D1-D4 behaviour unchanged.
+
+**Evidence.** `tests/manta-route-ui.smoke.js` 48 -> 56 green assertions. Full
+suite `node --test tests/**/*.js` failing-name set **identical** to the
+`3ed9c4a` baseline (126), and `pedido-detail.smoke.js` identical at 41 — zero
+introduced failures, no Tapete assertion weakened. Structural gates held
+exactly: `pedido-detail-events.js` 2709 and `pedido-detail-progress.js` 918,
+neither enlarged. Ten visual captures from a disposable local fixture, packaged
+outside the repository and then destroyed.
+
+**Deferred.** The `index.html` `?v=` cache tokens for the two changed assets
+still read `20260725-manta-b2b-r2`; the order authorized `index.html` only for a
+new module, and none was introduced.
+
+Owner of the full technical record:
+`docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md`
+§19 "PHASE-MANTA-B2B administrative client-preview route position — R3".

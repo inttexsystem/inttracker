@@ -1377,3 +1377,101 @@ next authorizable action is
 `PHASE-MANTA-B2B-ARCHITECT-TECHNICAL-AND-VISUAL-REVIEW`. PHASE-MANTA-B2A
 (db/85–88) still awaits its own architect review, and PHASE-MANTA-B2C
 requires a separate explicit order. No phase chains automatically.
+
+## 19. PHASE-MANTA-B2B administrative client-preview route position — R3
+
+STATUS: CORRECTED / LOCALLY VERIFIED / PUBLISHED / AWAITING ARCHITECT
+TECHNICAL AND VISUAL ACCEPTANCE. Not self-accepted.
+
+### 19.1 The defect
+
+The administrative block labelled `O QUE O CLIENTE VÊ`
+(`buildClienteEvolution`, `js/screens/pedido-detail-render.js`) read its
+position **and its denominator** straight from
+`getClienteTrackingProgress`, which is defined over the full canonical
+eight-step list. It never consulted the route. A Manta-only Pedido at
+Tecelagem therefore displayed `Etapa 4 de 8` while the actual client
+presentation for that same Pedido published **seven** visible steps — so
+the block did not show what the client sees, and the omitted Acabamento
+survived inside the visible denominator. The progress bar inherited the
+same wrong total.
+
+This was the last open acceptance defect of PHASE-MANTA-B2B, raised by the
+architect from the R2 visual evidence.
+
+### 19.2 The correction
+
+`js/pedido-tracking-ui.js` — the owner of the client tracking vocabulary —
+gains one pure function, `getClienteTrackingPreviewPosition(routes,
+canonicalIndex)`. It **translates** the Pedido-level canonical position
+into the applicable *visible* route shape by composing the helpers that
+already exist (`getClienteTrackingSectionsForRoutes`,
+`getClienteTrackingRoutePosition`, `getClienteTrackingStepIndex`):
+
+- **exactly one applicable route** → the route-local ordinal.
+  Manta reads `Etapa 4 de 7`; Tapete keeps `Etapa 4 de 8` verbatim.
+- **zero or two applicable routes** → no single route-local ordinal is
+  true for both routes, so none is fabricated. The reading is declared to
+  be Pedido-level: `Etapa comercial 4 de 8`, plus a per-route local
+  reached/next summary derived from the same existing helpers
+  (`Rota Tapete: Tecelagem · próxima Acabamento | Rota Manta: Tecelagem ·
+  próxima Expedição`).
+
+`buildClienteEvolution` consumes that result for the label, the
+denominator **and** the percentage, and reproduces no route-shape array of
+its own. The route arrives as `view.pedidoRoutes`, already derived from
+`modelos.tipo_produto`; the render never infers it from `ops.tipo`, names,
+width or suppliers. The position span carries
+`data-rv-preview-position="route-local|pedido-level"` and the mixed note
+carries `data-rv-preview-route-note`, so both are directly assertable.
+
+### 19.3 What did not change
+
+No migration, no `db/**` delta, no SQL, no RPC, no ACL/RLS/Auth change.
+`status_cliente_visual` remains the single Pedido-level authority and is
+neither written nor reinterpreted; **no per-route position is persisted**,
+so the accepted limitation of §18.2 stands unchanged. The actual client
+route sections are untouched — the R3 captures of the client Manta and
+client mixed surfaces are **byte-identical** (equal SHA-256) to their R2
+counterparts. No administrative datum is exposed to the client: the block
+is administrative and remains administrative. D1–D4 behaviour is
+unchanged. No new module and therefore no `index.html` change.
+
+### 19.4 Evidence
+
+`tests/manta-route-ui.smoke.js` extended with eight R3 proofs (48 → 56
+green): Manta denominator seven and `4 de 7`; Tapete retained at eight;
+mixed refusing a single route-local total while summarising each route;
+degradation to Pedido level without a reliable route; the whole Manta
+route walked as a contiguous `1/7…7/7` (D2 preserved); the render
+consuming the helper and duplicating no step list; no `db/**` delta; and
+the structural gates. `tests/pedido-detail.smoke.js` and the full
+`node --test tests/**/*.js` sweep show the failing-test-name set
+**identical** to the `3ed9c4a` baseline — 41 and 126 respectively, zero
+introduced failures, no Tapete assertion weakened.
+
+Structural gates held exactly: `pedido-detail-events.js` 2709 and
+`pedido-detail-progress.js` 918, neither enlarged. No DML in a render
+module.
+
+Visual evidence: ten captures from a disposable local fixture loading the
+real product modules with no network, no Supabase, no Vercel and no real
+business data — full pages plus close-ups of the corrected block at 1440px
+and 375px — packaged outside the repository as
+`PHASE-MANTA-B2B-R3-VISUAL-EVIDENCE.zip`. Document-level horizontal
+overflow is zero on every full-page capture and nothing is lost to a
+clipping container. The fixture and its browser profile were destroyed.
+
+### 19.5 Next authorizable action
+
+`PHASE-MANTA-B2B-ARCHITECT-TECHNICAL-AND-VISUAL-ACCEPTANCE`. Architect
+acceptance is **not** claimed. PHASE-MANTA-B2A (db/85–88) still awaits its
+own architect review; PHASE-MANTA-B2C requires a separate explicit order.
+No phase chains automatically.
+
+Recorded deferral, outside this order's authorized paths: the `?v=` cache
+tokens in `index.html` for the two changed assets still read
+`20260725-manta-b2b-r2`. §5 of the order authorizes `index.html` only when
+a new module is introduced, and none was, so the tokens were deliberately
+left untouched. A returning browser may serve the pre-R3 asset until the
+tokens are bumped by a separate order.
