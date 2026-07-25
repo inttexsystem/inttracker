@@ -254,6 +254,11 @@ test('git baseline: B5-B1 technical-commit manifest (b247e435)', function () {
     'db/59_admin_last_sign_in_readmodel.sql',
     'db/60_usuarios_auditoria_schema.sql',
     'db/61_usuarios_eventos_preserve_on_delete.sql',
+    // KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-02-R1 adds db/89 as the next
+    // authorized migration. This allowlist exists precisely so a later
+    // authorized migration is not misread as an unexpected db/ change by a
+    // guard whose subject is B5-B1.
+    'db/89_pedido_commercial_date_and_number_control.sql',
   ];
   for (const line of dbStatus) {
     const file = line.trim().slice(3);

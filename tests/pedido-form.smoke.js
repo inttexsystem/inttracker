@@ -52,6 +52,9 @@ const UI     = path.join(ROOT, 'js', 'ui.js');
 // a derivacao REAL de `modelos.tipo_produto` em vez de um duplo local.
 const OPDISP = path.join(ROOT, 'js', 'op-display.js');
 const PROUTE = path.join(ROOT, 'js', 'product-route.js');
+// BATCH-02: a linha de item e a regra Tipo-antes-de-Modelo migraram para
+// este modulo; as provas que antes liam `screen` agora leem `rowEditor`.
+const ROWEDIT = path.join(ROOT, 'js', 'screens', 'pedido-item-row-editor.js');
 
 function readOrFail(p) {
   assert.ok(fs.existsSync(p), 'arquivo não encontrado: ' + p);
@@ -67,6 +70,7 @@ const schema = readOrFail(SCHEMA);
 const uiSrc  = readOrFail(UI);
 const opDispSrc = readOrFail(OPDISP);
 const pRouteSrc = readOrFail(PROUTE);
+const rowEditor = readOrFail(ROWEDIT);
 
 // ---------------------------------------------------------------------
 // PedidoFormNode — the shared FaithfulNode widened with an attribute-aware
@@ -177,7 +181,13 @@ function optionValues(selectNode) {
 
 function makePedidoFormRuntime() {
   const calls = { pedidoInsert: null, pedidoItensInsert: null, pedidoDelete: 0, selects: [] };
-  const failItensInsert = arguments.length && arguments[0] && arguments[0].failItensInsert;
+  const opts = (arguments.length && arguments[0]) || {};
+  const failItensInsert = opts.failItensInsert;
+  // BATCH-02: um numero manual ocupado chega como 23505 na constraint
+  // pedidos_numero_key — exatamente o envelope que o PostgREST devolve.
+  const numeroDuplicado = opts.numeroDuplicado;
+  // BATCH-02: ambiente onde `modelos.tipo_produto` nao pode ser lido.
+  const failTipoProduto = opts.failTipoProduto;
   // Document double from the shared module; createElement is widened to the
   // attribute-aware PedidoFormNode (see above). createTextNode / body / the
   // #toasts node all come straight from _doubles.js. addEventListener is
@@ -227,13 +237,25 @@ function makePedidoFormRuntime() {
       delete() { mutation = 'delete'; if (table === 'pedidos') calls.pedidoDelete += 1; return api; },
       single() {
         if (table === 'pedidos' && mutation === 'insert') {
-          return Promise.resolve({ data: { id: 'ped-1', numero: 7, status: 'rascunho' }, error: null });
+          if (numeroDuplicado) {
+            return Promise.resolve({
+              data: null,
+              error: {
+                code: '23505',
+                message: 'duplicate key value violates unique constraint "pedidos_numero_key"',
+                details: 'Key (numero)=(5000) already exists.',
+              },
+            });
+          }
+          return Promise.resolve({ data: { id: 'ped-1', numero: 7, status: 'rascunho', data_pedido: '2026-07-25' }, error: null });
         }
         return Promise.resolve({ data: null, error: null });
       },
       then(resolve, reject) {
         let result;
-        if (table === 'pedido_itens' && mutation === 'insert') {
+        if (table === 'modelos' && failTipoProduto && /tipo_produto/.test(String(cols || ''))) {
+          result = { data: null, error: { message: 'column modelos.tipo_produto does not exist', code: '42703' } };
+        } else if (table === 'pedido_itens' && mutation === 'insert') {
           result = failItensInsert
             ? { data: null, error: { message: 'itens insert falhou' } }
             : { data: [{ id: 'pi-1' }], error: null };
@@ -275,6 +297,7 @@ function makePedidoFormRuntime() {
   // Tipo proofs exercise the accepted derivation, not a suite-local copy.
   vm.runInContext(opDispSrc, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(pRouteSrc, sandbox, { filename: 'js/product-route.js' });
+  vm.runInContext(rowEditor, sandbox, { filename: 'js/screens/pedido-item-row-editor.js' });
   // js/ui.js also defines a real toast() that appends to #toasts and arms a
   // setTimeout; the runtime test never asserts on toast, so re-override it with
   // a no-op AFTER ui.js (representation translation, rule 4).
@@ -596,13 +619,13 @@ test('pedido-form: NÃO chama generate_op / criar_lote / op_fornecedores', () =>
 // ---------------------------------------------------------------------
 
 test('pedido-form: usa window.corPreviewElement para preview 48x48', () => {
-  assert.match(screen, /window\.corPreviewElement/);
+  assert.match(rowEditor, /window\.corPreviewElement/);
 });
 
 test('pedido-form: usa helpers de pedido-ui (status)', () => {
   // Se o form usa badge de status (não estritamente necessário no form
   // de criação, mas é um sinal de que consome o helper).
-  const usaHelper = /window\.RAVATEX_PEDIDO_UI|window\.pedidoStatus|window\.corPreview/i.test(screen);
+  const usaHelper = /window\.RAVATEX_PEDIDO_UI|window\.pedidoStatus|window\.corPreview/i.test(screen + rowEditor);
   assert.ok(usaHelper, 'form deve consumir helpers de js/pedido-ui.js');
 });
 
@@ -612,7 +635,7 @@ test('pedido-form: NÃO usa row.insertBefore(previewSlot, metrosInput) (bug C2 c
   // O bug original usava row.insertBefore(previewSlot, metrosInput)
   // mas metrosInput está em wrapper, não é filho direto de row.
   assert.doesNotMatch(
-    screen,
+    rowEditor,
     /row\.insertBefore\s*\(\s*previewSlot\s*,\s*metrosInput\s*\)/,
     "não deve usar row.insertBefore(previewSlot, metrosInput) — bug C2"
   );
@@ -622,7 +645,7 @@ test('pedido-form: NÃO usa insertBefore genérico para o preview (slot fixo)', 
   // Garantia mais ampla: nenhum insertBefore envolvendo o previewSlot
   // e metrosInput (em qualquer ordem).
   assert.doesNotMatch(
-    screen,
+    rowEditor,
     /insertBefore\s*\(\s*previewSlot/,
     "previewSlot não deve ser alvo de insertBefore (deve ser slot fixo)"
   );
@@ -631,7 +654,7 @@ test('pedido-form: NÃO usa insertBefore genérico para o preview (slot fixo)', 
 test('pedido-form: usa slot fixo de preview (data-preview-slot)', () => {
   // Slot fixo deve ser criado UMA vez e permanecer no row.
   assert.match(
-    screen,
+    rowEditor,
     /window\.el\(\s*['"]div['"]\s*,\s*\{\s*['"]data-preview-slot['"]\s*:\s*['"]1['"]/,
     "deve criar slot fixo com atributo data-preview-slot"
   );
@@ -640,24 +663,32 @@ test('pedido-form: usa slot fixo de preview (data-preview-slot)', () => {
 test('pedido-form: usa updatePreview() para atualizar o slot de preview', () => {
   // Função updatePreview() deve ser definida e usada.
   assert.match(
-    screen,
+    rowEditor,
     /function\s+updatePreview\s*\(\s*\)\s*\{/,
     "deve definir função updatePreview()"
   );
   // updatePreview deve usar replaceChildren para limpar.
   assert.match(
-    screen,
+    rowEditor,
     /updatePreview\s*\(\s*\)\s*\{[\s\S]*?replaceChildren\s*\(/,
     "updatePreview deve usar replaceChildren para limpar o slot"
   );
   // updatePreview deve ser chamado no change do modelo.
+  // BATCH-02: o change do Modelo chama refreshDerived(), que atualiza cores,
+  // largura E preview de uma vez. Provamos a CADEIA inteira em vez de um
+  // literal adjacente — a garantia e a mesma, declarada explicitamente.
   assert.match(
-    screen,
-    /addEventListener\(\s*['"]change['"][\s\S]*?updatePreview\s*\(\s*\)/,
-    "updatePreview deve ser chamado no change do select de modelo"
+    rowEditor,
+    /modeloSelect\.addEventListener\(\s*['"]change['"][\s\S]*?refreshDerived\s*\(\s*\)/,
+    "o change do select de modelo deve disparar refreshDerived()"
+  );
+  assert.match(
+    rowEditor,
+    /function\s+refreshDerived\s*\(\s*\)\s*\{[\s\S]*?updatePreview\s*\(\s*\)/,
+    "refreshDerived() deve atualizar o preview"
   );
   // updatePreview deve ser chamado na inicialização (modelo pré-selecionado).
-  const updateCount = (screen.match(/updatePreview\s*\(\s*\)/g) || []).length;
+  const updateCount = (rowEditor.match(/updatePreview\s*\(\s*\)/g) || []).length;
   assert.ok(updateCount >= 2,
     'updatePreview deve ser chamado ao menos 2x (init + change); encontrado: ' + updateCount);
 });
@@ -665,7 +696,7 @@ test('pedido-form: usa updatePreview() para atualizar o slot de preview', () => 
 test('pedido-form: previewSlot é filho direto de row (appendChild, não insertBefore)', () => {
   // Slot fixo deve ser anexado com appendChild (não insertBefore).
   assert.match(
-    screen,
+    rowEditor,
     /row\.appendChild\s*\(\s*previewSlot\s*\)/,
     "previewSlot deve ser filho direto de row via appendChild"
   );
@@ -766,15 +797,16 @@ test('pedido-form: CTA post-save aceita pedido_id UUID sem Number/parseInt', () 
 });
 
 test('pedido-form: input de metragem atualiza resumo sem render global', () => {
-  // Ancora reapontada pelo lote 1: openAddItemModal virou openItemModal
-  // (dono unico do modal nos modos add/edit). A assercao segue identica.
-  const buildItemRow = (screen.match(/function\s+buildItemRow\s*\(item\)\s*\{[\s\S]*?\n    function openItemModal/) || [''])[0];
+  // Ancora reapontada pelo lote 2: buildItemRow virou buildRow(options) e
+  // mudou de arquivo (js/screens/pedido-item-row-editor.js). A assercao segue
+  // identica: digitar metragem nao pode reconstruir a tela.
+  const buildItemRow = (rowEditor.match(/function\s+buildRow\s*\(options\)\s*\{[\s\S]*?\n  function buildHeader/) || [''])[0];
   assert.ok(buildItemRow, 'trecho buildItemRow nao encontrado');
-  const inputHandler = (buildItemRow.match(/metrosInput\.addEventListener\(\s*['"]input['"]\s*,\s*function\s*\(\)\s*\{[\s\S]*?\n      \}\);/) || [''])[0];
+  const inputHandler = (buildItemRow.match(/metrosInput\.addEventListener\(\s*['"]input['"]\s*,\s*function\s*\(\)\s*\{[\s\S]*?\n    \}\);/) || [''])[0];
   assert.ok(inputHandler, 'handler input de metros nao encontrado');
   assert.match(inputHandler, /item\.metros\s*=\s*metrosInput\.value/);
-  assert.match(inputHandler, /updateItensSummary\s*\(\s*\)/,
-    'handler deve atualizar totais/resumo localmente');
+  assert.match(inputHandler, /onChange\s*\(\s*item\s*\)/,
+    'handler deve notificar a tela para recalcular totais/resumo localmente');
   assert.doesNotMatch(inputHandler, /render\s*\(\s*\)/,
     'handler de metragem nao pode reconstruir a tela a cada digito');
   assert.match(screen, /function\s+updateItensSummary\s*\(\)\s*\{/);
@@ -786,13 +818,21 @@ test('pedido-form runtime: digitar 1000 preserva o mesmo input e salva metragem 
   const { sandbox, calls } = makePedidoFormRuntime();
   const root = await vm.runInContext('window.screenPedidoNovo()', sandbox);
   await flushRuntime();
+  // BATCH-02 adiciona a segunda consulta de tipo_produto: o render final so
+  // acontece depois dela.
+  await flushRuntime();
 
   const selects = allByTag(root, 'select');
-  assert.ok(selects.length >= 3, 'selects de cliente/status/modelo nao renderizados');
+  assert.ok(selects.length >= 4, 'selects de cliente/status/tipo/modelo nao renderizados');
   selects[0].value = '501';
   selects[0]._listeners.change();
-  selects[2].value = '1';
-  selects[2]._listeners.change();
+  // BATCH-02: a linha exige Tipo ANTES de Modelo, e ambos sao inline.
+  const tipoSel = findByAttr(root, 'data-item-tipo-select')[0];
+  const modeloSel = findByAttr(root, 'data-item-modelo-select')[0];
+  tipoSel.value = 'tapete';
+  tipoSel._listeners.change();
+  modeloSel.value = '1';
+  modeloSel._listeners.change();
 
   // Real el() stores placeholder via setAttribute (a real DOM attribute), not
   // as a reflected `.placeholder` property, so read it through getAttribute.
@@ -843,493 +883,335 @@ test('pedido-form: FaithfulNode + real el() catch a boolean-attr regression the 
 });
 
 // =====================================================================
-// 17. KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-01-R1
+// 17. KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-02-R1
 //
-// Bounded operational defect batch on `#/pedidos/novo`:
-//   (1) Tipo column in the item table;
-//   (2) Tipo selector in the item modal, filtering the model list;
-//   (3) model options rendered as "<MODELO> – <COR1>/<COR2>";
-//   (4) the row pencil activated, editing the UNSAVED local item through
-//       the same modal.
+// Order date, optional order number, and INLINE product-type selection.
 //
-// Every proof below is BEHAVIOURAL (boot the screen, drive real controls)
-// except where a source-level invariant is the actual subject. The fixture
-// deliberately contains a Tapete model NAMED "Manta Legado" carrying the
-// same 1,40 m width as the real Manta, so a name-based or width-based
-// derivation cannot pass these tests.
+// The architect ruled that Tipo-before-Modelo inside a modal does NOT
+// satisfy the requested placement: on #/pedidos/novo both must be inline
+// in the item row, and the full item entity must not live in a modal.
+// These proofs are therefore behavioural — they boot the screen and drive
+// the real inline controls.
+//
+// The fixture keeps the Tapete model NAMED "Manta Legado" carrying the
+// Manta's 1,40 m width, so a name-based or width-based route derivation
+// cannot pass.
 // =====================================================================
 
-test('batch1/1. o tipo do modelo e carregado por augmentacao dedicada (a query base NAO traz tipo_produto)', async () => {
-  const { calls, root } = await bootPedidoForm();
-  const modelosSelects = calls.selects.filter((c) => c.table === 'modelos');
-  assert.equal(modelosSelects.length, 2,
-    'deve haver a query base de modelos MAIS a augmentacao de tipo_produto');
-  assert.doesNotMatch(String(modelosSelects[0].cols), /tipo_produto/,
-    'a query base de modelos nao seleciona tipo_produto');
-  assert.match(String(modelosSelects[1].cols), /^\s*id,\s*tipo_produto\s*$/,
-    'a augmentacao seleciona exatamente `id, tipo_produto`');
-  // E o dado realmente chega a tela: sem a augmentacao a celula seria Tapete.
-  const row = findByAttr(root, 'data-uid')[0];
-  const sel = allByTag(row, 'select')[0];
-  sel.value = '2';
-  sel._listeners.change();
-  assert.equal(findByAttr(row, 'data-item-tipo')[0].textContent, 'Manta',
-    'o tipo exibido so pode vir da augmentacao de modelos.tipo_produto');
-});
+function rowsOf(root) { return findByAttr(root, 'data-uid'); }
+function rowTipo(row) { return findByAttr(row, 'data-item-tipo-select')[0]; }
+function rowModelo(row) { return findByAttr(row, 'data-item-modelo-select')[0]; }
+function pick(select, value) { select.value = value; select._listeners.change(); }
 
-test('batch1/1b. a augmentacao de tipo_produto e best-effort: falhar nao derruba a tela', async () => {
-  // Reproduz um ambiente onde a coluna ainda nao e legivel: a query rejeita.
-  const rt = makePedidoFormRuntime();
-  const realFrom = rt.sandbox.supa.from;
-  rt.sandbox.supa.from = (table) => {
-    const chain = realFrom(table);
-    if (table !== 'modelos') return chain;
-    const select = chain.select;
-    chain.select = (cols) => {
-      const out = select(cols);
-      if (!/tipo_produto/.test(String(cols))) return out;
-      return {
-        then: (res, rej) => Promise.reject(
-          new Error('column modelos.tipo_produto does not exist')
-        ).then(res, rej),
-      };
-    };
-    return chain;
-  };
-  const root = await vm.runInContext('window.screenPedidoNovo()', rt.sandbox);
-  await flushRuntime();
-  await flushRuntime();
+function setRowMetragem(row, value) {
+  const input = allByTag(row, 'input').find((i) => i.getAttribute('placeholder') === '0,00');
+  input.value = value;
+  input._listeners.input();
+  return input;
+}
 
-  assert.ok(findByAttr(root, 'data-uid').length >= 1,
-    'a tela de Pedido deve continuar renderizando mesmo sem tipo_produto');
-  const row = findByAttr(root, 'data-uid')[0];
-  const sel = allByTag(row, 'select')[0];
-  sel.value = '2';
-  sel._listeners.change();
-  assert.equal(findByAttr(row, 'data-item-tipo')[0].textContent, 'Tapete',
-    'modelo legado sem tipo_produto resolve para Tapete (o default do banco)');
-});
+// Preenche o primeiro item com uma combinacao valida e escolhe o cliente.
+async function fillOneValidItem(root) {
+  const cliente = allByTag(root, 'select')[0];
+  cliente.value = '501';
+  cliente._listeners.change();
+  const row = rowsOf(root)[0];
+  pick(rowTipo(row), 'tapete');
+  pick(rowModelo(row), '1');
+  setRowMetragem(row, '10');
+}
 
-test('batch1/2. o Tipo vem de modelos.tipo_produto, nunca do nome do modelo nem da largura', async () => {
-  const { root } = await bootPedidoForm();
-  const row = findByAttr(root, 'data-uid')[0];
-  const sel = allByTag(row, 'select')[0];
-  const tipoCell = findByAttr(row, 'data-item-tipo')[0];
-
-  assert.equal(tipoCell.textContent, '-', 'linha sem modelo nao exibe um tipo fabricado');
-  sel.value = '1';
-  sel._listeners.change();
-  assert.equal(tipoCell.textContent, 'Tapete', 'Paris e Tapete');
-  sel.value = '2';
-  sel._listeners.change();
-  assert.equal(tipoCell.textContent, 'Manta', 'Manta Barcelona e Manta');
-  // Prova negativa: o nome comeca com "Manta" e a largura e a MESMA da Manta,
-  // mas tipo_produto e 'tapete'. Inferir do nome ou da largura falha aqui.
-  sel.value = '3';
-  sel._listeners.change();
-  assert.equal(tipoCell.textContent, 'Tapete',
-    'derivar o tipo do NOME do modelo ou da LARGURA produziria "Manta" e falharia');
-});
-
-test('batch1/3. a tabela tem a coluna Tipo ENTRE Largura e Metragem', async () => {
-  const { root } = await bootPedidoForm();
-  const header = itensHeader(root);
-  assert.ok(header, 'cabecalho da tabela de itens nao encontrado');
-  const labels = header.children.map((c) => c.textContent);
-  assert.deepEqual(labels,
-    ['Img', 'Modelo', 'Cores', 'Largura', 'Tipo', 'Metragem (m)', 'Observacao', 'Acoes'],
-    'ordem de colunas exigida pelo lote 1');
-  assert.equal(labels.indexOf('Tipo'), labels.indexOf('Largura') + 1);
-  assert.equal(labels.indexOf('Tipo'), labels.indexOf('Metragem (m)') - 1);
-});
-
-test('batch1/4. cabecalho e TODA linha de dado compartilham a mesma grade de 8 colunas', async () => {
-  const { root } = await bootPedidoForm();
-  const header = itensHeader(root);
-  const headerCols = gridTracks(header);
-  assert.ok(headerCols, 'grid-template-columns do cabecalho nao encontrado');
-  assert.equal(headerCols.length, 8, 'a tabela tem exatamente 8 colunas');
-
-  const rows = findByAttr(root, 'data-uid');
-  assert.ok(rows.length >= 1, 'nenhuma linha de item renderizada');
-  for (const row of rows) {
-    assert.deepEqual(gridTracks(row), headerCols,
-      'a linha de dado deve usar exatamente a mesma definicao de colunas do cabecalho');
-    assert.equal(row.children.length, 8, 'a linha deve ter 8 celulas, uma por coluna');
-  }
-  assert.equal(rows[0].children[4].getAttribute('data-item-tipo'), '1',
-    'a 5a celula da linha e a celula de Tipo, alinhada ao cabecalho');
-});
-
-test('batch1/5. a largura antiga de Metragem (1.1fr) foi DIVIDIDA em .55fr + .55fr', () => {
-  const { execFileSync } = require('node:child_process');
-  const before = execFileSync('git', ['show', 'HEAD:js/screens/pedido-form.js'], { cwd: ROOT, encoding: 'utf8' });
-  const beforeCols = (before.match(/grid-template-columns:(60px[^;']+)/) || [])[1].trim().split(/\s+/);
-  const afterCols = (screen.match(/ITENS_GRID_COLS\s*=\s*'([^']+)'/) || [])[1].trim().split(/\s+/);
-
-  assert.equal(beforeCols.length, 7, 'a tabela anterior tinha 7 colunas');
-  assert.equal(afterCols.length, 8, 'a tabela atual tem 8 colunas');
-  assert.equal(beforeCols[4], '1.1fr', 'a coluna Metragem anterior valia 1.1fr');
-  assert.equal(afterCols[4], '.55fr', 'Tipo recebe .55fr');
-  assert.equal(afterCols[5], '.55fr', 'Metragem passa a .55fr');
-  assert.equal(
-    Number(afterCols[4].replace('fr', '')) + Number(afterCols[5].replace('fr', '')),
-    Number(beforeCols[4].replace('fr', '')),
-    'Tipo + Metragem devem somar exatamente a largura anterior de Metragem'
-  );
-  assert.deepEqual(afterCols.slice(0, 4), beforeCols.slice(0, 4), 'colunas a esquerda inalteradas');
-  assert.deepEqual(afterCols.slice(6), beforeCols.slice(5), 'colunas a direita inalteradas');
-  assert.equal(afterCols.join(' '), '60px 1.1fr 1.1fr .8fr .55fr .55fr 1.2fr 84px');
-});
-
-test('batch1/7. o modal Adicionar item tem o dropdown Tipo obrigatorio, antes de Modelo', async () => {
-  const { root, document } = await bootPedidoForm();
-  const modal = openAddModal(root, document);
-  assert.ok(modal, 'modal de item nao abriu');
-
-  const tipo = modalTipoSelect(modal);
-  assert.ok(tipo, 'dropdown de Tipo ausente no modal');
-  assert.deepEqual(optionValues(tipo), ['', 'tapete', 'manta']);
-  assert.deepEqual(optionTexts(tipo), ['Selecione o tipo...', 'Tapete', 'Manta']);
-
-  const order = [];
+// Rotulos de campo na ordem do DOM, para que "X aparece antes de Y" seja uma
+// afirmacao sobre o que o operador VE, e nao sobre a ordem do codigo-fonte.
+function labelOrder(root) {
+  const out = [];
   (function walk(node) {
     for (const c of (node.children || [])) {
-      if (c.getAttribute && c.getAttribute('data-item-modal-tipo')) order.push('tipo');
-      if (c.getAttribute && c.getAttribute('data-item-modal-modelo')) order.push('modelo');
+      if (c.tagName === 'LABEL' && c.textContent) out.push(c.textContent.replace(/\s*\*\s*$/, '').trim());
       if (c.children) walk(c);
     }
-  })(modal);
-  assert.deepEqual(order, ['tipo', 'modelo'], 'Tipo deve preceder Modelo');
+  })(root);
+  return out;
+}
 
-  const labelTipo = allByTag(modal, 'label').find((l) => /^Tipo\s/.test(l.textContent));
-  assert.ok(labelTipo, 'rotulo "Tipo" nao encontrado');
-  assert.match(labelTipo.textContent, /\*/, 'Tipo deve ser marcado como obrigatorio');
+test('batch2/1. o cabecalho e Número do pedido -> Data do pedido -> Prazo desejado', async () => {
+  const { root } = await bootPedidoForm();
+  const labels = labelOrder(root);
+  const iNum = labels.indexOf('Número do pedido');
+  const iData = labels.indexOf('Data do pedido');
+  const iPrazo = labels.indexOf('Prazo desejado');
+  assert.ok(iNum >= 0, 'campo "Número do pedido" ausente');
+  assert.ok(iData >= 0, 'campo "Data do pedido" ausente');
+  assert.ok(iPrazo >= 0, 'campo "Prazo desejado" ausente');
+  assert.ok(iNum < iData, 'Número do pedido deve vir antes de Data do pedido');
+  assert.ok(iData < iPrazo, 'Data do pedido deve vir imediatamente antes de Prazo desejado');
 });
 
-test('batch1/8. o dropdown de Modelo comeca DESABILITADO enquanto nao ha Tipo', async () => {
-  const { root, document } = await bootPedidoForm();
-  const modal = openAddModal(root, document);
-  const modelo = modalModeloSelect(modal);
+test('batch2/2+3. Número do pedido e OPCIONAL: em branco usa alocacao automatica', async () => {
+  const { root, calls } = await bootPedidoForm();
+  const numeroInput = findByAttr(root, 'data-pedido-numero')[0];
+  assert.ok(numeroInput, 'input de numero ausente');
+  assert.equal(numeroInput.getAttribute('type'), 'number');
+  assert.equal(numeroInput.getAttribute('min'), '1');
+  assert.equal(numeroInput.getAttribute('placeholder'), 'Automático');
+  assert.equal(numeroInput.value, '', 'o numero nasce em branco');
+
+  await fillOneValidItem(root);
+  findButton(root, /^Salvar rascunho$/)._listeners.click();
+  await flushRuntime();
+  await flushRuntime();
+
+  assert.ok(calls.pedidoInsert, 'INSERT em pedidos nao ocorreu');
+  assert.equal(Object.prototype.hasOwnProperty.call(calls.pedidoInsert, 'numero'), false,
+    'numero em branco NAO pode ir no payload — a alocacao e da coluna de identidade');
+});
+
+test('batch2/2b. um Número informado e persistido EXATAMENTE como digitado', async () => {
+  const { root, calls } = await bootPedidoForm();
+  const numeroInput = findByAttr(root, 'data-pedido-numero')[0];
+  numeroInput.value = '5000';
+  numeroInput._listeners.input();
+
+  await fillOneValidItem(root);
+  findButton(root, /^Salvar rascunho$/)._listeners.click();
+  await flushRuntime();
+  await flushRuntime();
+
+  assert.equal(calls.pedidoInsert.numero, 5000, 'o numero digitado deve ir verbatim no payload');
+});
+
+test('batch2/2c. Número zero ou negativo e recusado antes de qualquer escrita', async () => {
+  for (const invalido of ['0', '-7']) {
+    const { root, calls } = await bootPedidoForm();
+    const numeroInput = findByAttr(root, 'data-pedido-numero')[0];
+    numeroInput.value = invalido;
+    numeroInput._listeners.input();
+    await fillOneValidItem(root);
+    findButton(root, /^Salvar rascunho$/)._listeners.click();
+    await flushRuntime();
+    assert.equal(calls.pedidoInsert, null, `numero ${invalido} nao pode chegar ao banco`);
+  }
+});
+
+test('batch2/4. um Número ocupado mostra erro controlado em portugues e NAO renumera', async () => {
+  const { root, calls } = await bootPedidoForm({ numeroDuplicado: true });
+  const numeroInput = findByAttr(root, 'data-pedido-numero')[0];
+  numeroInput.value = '5000';
+  numeroInput._listeners.input();
+
+  await fillOneValidItem(root);
+  findButton(root, /^Salvar rascunho$/)._listeners.click();
+  await flushRuntime();
+  await flushRuntime();
+
+  const erro = findByAttr(root, 'data-pedido-numero-erro')[0];
+  assert.equal(erro.textContent, 'Este número de pedido já está em uso.');
+  assert.equal(findByAttr(root, 'data-pedido-numero')[0].value, '5000',
+    'o valor digitado sobrevive: nunca e trocado por um automatico em silencio');
+  assert.equal(calls.pedidoItensInsert, null, 'nenhum item pode ser inserido apos a recusa');
+  assert.equal(calls.pedidoDelete, 0, 'a recusa do numero nao deve disparar compensacao');
+});
+
+test('batch2/5+6. Data do pedido nasce hoje, e obrigatoria e vai no payload', async () => {
+  const { root, calls } = await bootPedidoForm();
+  const dataInput = findByAttr(root, 'data-pedido-data')[0];
+  assert.ok(dataInput, 'input de data do pedido ausente');
+  const d = new Date();
+  const hoje = d.getFullYear() + '-'
+    + String(d.getMonth() + 1).padStart(2, '0') + '-'
+    + String(d.getDate()).padStart(2, '0');
+  assert.equal(dataInput.value, hoje, 'a data deve nascer com o dia LOCAL de hoje');
+
+  dataInput.value = '';
+  dataInput._listeners.change();
+  await fillOneValidItem(root);
+  findButton(root, /^Salvar rascunho$/)._listeners.click();
+  await flushRuntime();
+  assert.equal(calls.pedidoInsert, null, 'sem data do pedido nao pode salvar');
+
+  const dataAgora = findByAttr(root, 'data-pedido-data')[0];
+  dataAgora.value = '2026-01-15';
+  dataAgora._listeners.change();
+  findButton(root, /^Salvar rascunho$/)._listeners.click();
+  await flushRuntime();
+  await flushRuntime();
+  assert.equal(calls.pedidoInsert.data_pedido, '2026-01-15');
+  assert.equal(Object.prototype.hasOwnProperty.call(calls.pedidoInsert, 'criado_em'), false,
+    'criado_em jamais pode ser usado como data comercial');
+});
+
+test('batch2/7. a tabela e Img -> Tipo -> Modelo -> Cores -> Largura -> Metragem -> Observacao -> Acoes', async () => {
+  const { root } = await bootPedidoForm();
+  const header = findByAttr(root, 'data-itens-header')[0];
+  assert.ok(header, 'cabecalho da tabela de itens ausente');
+  assert.deepEqual(header.children.map((c) => c.textContent),
+    ['Img', 'Tipo', 'Modelo', 'Cores', 'Largura', 'Metragem (m)', 'Observacao', 'Acoes']);
+
+  const headerCols = gridTracks(header);
+  assert.equal(headerCols.length, 8);
+  for (const row of rowsOf(root)) {
+    assert.deepEqual(gridTracks(row), headerCols, 'linha e cabecalho devem usar a MESMA grade');
+    assert.equal(row.children.length, 8);
+  }
+  assert.equal(rowsOf(root)[0].children[1].getAttribute('data-item-tipo-select'), '1',
+    'a 2a celula e o Tipo, inline');
+  assert.equal(rowsOf(root)[0].children[2].getAttribute('data-item-modelo-select'), '1',
+    'a 3a celula e o Modelo, imediatamente depois do Tipo');
+});
+
+test('batch2/8+9. Tipo e um dropdown INLINE e Modelo comeca desabilitado', async () => {
+  const { root } = await bootPedidoForm();
+  const row = rowsOf(root)[0];
+  const tipo = rowTipo(row);
+  const modelo = rowModelo(row);
+
+  assert.equal(tipo.tagName, 'SELECT', 'Tipo deve ser um dropdown na propria linha');
+  assert.deepEqual(optionValues(tipo), ['', 'tapete', 'manta']);
+  assert.deepEqual(optionTexts(tipo), ['Tipo...', 'Tapete', 'Manta']);
+  assert.equal(tipo.value, '', 'Tipo nasce vazio');
 
   assert.equal(modelo.hasAttribute('disabled'), true, 'Modelo deve nascer desabilitado');
-  assert.equal(modelo.disabled, true, 'a propriedade refletida deve ser true');
-  assert.deepEqual(optionValues(modelo), [''], 'sem Tipo nao ha modelo algum listado');
+  assert.equal(modelo.disabled, true);
+  assert.deepEqual(optionValues(modelo), [''], 'sem Tipo nao ha modelo listado');
 
-  pickTipo(modal, 'tapete');
-  assert.equal(modalModeloSelect(modal).hasAttribute('disabled'), false,
-    'escolher o Tipo habilita o Modelo');
-  assert.equal(modalModeloSelect(modal).disabled, false);
+  pick(tipo, 'tapete');
+  assert.equal(rowModelo(rowsOf(root)[0]).hasAttribute('disabled'), false,
+    'escolher Tipo habilita Modelo');
 });
 
-test('batch1/9. Tipo=Tapete lista somente modelos tapete (exclui a Manta)', async () => {
-  const { root, document } = await bootPedidoForm();
-  const modal = openAddModal(root, document);
-  pickTipo(modal, 'tapete');
-
-  const values = optionValues(modalModeloSelect(modal)).filter(Boolean);
-  assert.deepEqual(values.slice().sort(), ['1', '3'], 'apenas Paris e Manta Legado (ambos tapete)');
-  const texts = optionTexts(modalModeloSelect(modal)).join(' | ');
-  assert.doesNotMatch(texts, /Manta Barcelona/, 'o modelo Manta nao pode aparecer sob Tapete');
-  assert.match(texts, /Manta Legado/,
-    'um tapete NOMEADO "Manta" deve continuar listado — o filtro e por tipo_produto, nao por nome');
-});
-
-test('batch1/10. Tipo=Manta lista somente modelos manta (exclui os tapetes)', async () => {
-  const { root, document } = await bootPedidoForm();
-  const modal = openAddModal(root, document);
-  pickTipo(modal, 'manta');
-
-  const values = optionValues(modalModeloSelect(modal)).filter(Boolean);
-  assert.deepEqual(values, ['2'], 'apenas Manta Barcelona');
-  const texts = optionTexts(modalModeloSelect(modal)).join(' | ');
-  assert.doesNotMatch(texts, /Paris/, 'Paris e tapete e nao pode aparecer sob Manta');
-  assert.doesNotMatch(texts, /Manta Legado/,
-    'Manta Legado e tapete: o nome nao pode coloca-lo na rota Manta');
-});
-
-test('batch1/11. a opcao do modal exibe "<MODELO> – <COR1>/<COR2>"', async () => {
-  const { root, document } = await bootPedidoForm();
-  const modal = openAddModal(root, document);
-
-  pickTipo(modal, 'tapete');
-  assert.ok(optionTexts(modalModeloSelect(modal)).includes('Paris – KRAFT/CRU'),
-    'esperado exatamente "Paris – KRAFT/CRU"');
-
-  pickTipo(modal, 'manta');
-  assert.ok(optionTexts(modalModeloSelect(modal)).includes('Manta Barcelona – PRETO/CRU'),
-    'esperado exatamente "Manta Barcelona – PRETO/CRU"');
-});
-
-test('batch1/11b. o formatador da opcao de modelo e UNICO (nao duplicado em varios lacos)', () => {
-  assert.match(screen, /function\s+modeloOptionLabel\s*\(/,
-    'deve existir um formatador reutilizavel modeloOptionLabel()');
-  const composicoes = (screen.match(/corNome\([^)]*cor_1\)\s*\+\s*'\/'/g) || []).length;
-  assert.equal(composicoes, 1,
-    'a composicao "COR1/COR2" pode aparecer uma unica vez, dentro do formatador');
-});
-
-test('batch1/12. trocar o Tipo limpa o modelo que deixou de pertencer a rota', async () => {
-  const { root, document } = await bootPedidoForm();
-  const modal = openAddModal(root, document);
-
-  pickTipo(modal, 'tapete');
-  pickModelo(modal, '1');
-  assert.equal(modalModeloSelect(modal).value, '1');
-  assert.equal(findByAttr(modal, 'data-item-modal-cor1')[0].textContent, 'KRAFT');
-  assert.equal(findByAttr(modal, 'data-item-modal-cor2')[0].textContent, 'CRU');
-  assert.equal(findByAttr(modal, 'data-item-modal-largura')[0].textContent, '1,40 m');
-
-  pickTipo(modal, 'manta');
-  assert.equal(modalModeloSelect(modal).value, '',
-    'Paris nao pertence a rota Manta: a selecao deve ser limpa');
-  assert.deepEqual(optionValues(modalModeloSelect(modal)).filter(Boolean), ['2']);
-  assert.equal(findByAttr(modal, 'data-item-modal-cor1')[0].textContent, '-');
-  assert.equal(findByAttr(modal, 'data-item-modal-cor2')[0].textContent, '-');
-  assert.equal(findByAttr(modal, 'data-item-modal-largura')[0].textContent, '-');
-  assert.ok(findByAttr(modal, 'data-item-modal-preview')[0], 'slot de preview ausente');
-});
-
-test('batch1/12b. confirmar sem Tipo ou sem Modelo e rejeitado (nenhum item e criado)', async () => {
-  const { root, document } = await bootPedidoForm();
-  const before = snapshotItens(root).length;
-
-  const modal = openAddModal(root, document);
-  setModalMetragem(modal, '10');
-  confirmModal(modal, /^Adicionar item$/);
-  assert.equal(currentModal(document), modal, 'o modal nao pode fechar sem Tipo');
-  assert.equal(snapshotItens(root).length, before, 'nenhum item pode ser adicionado sem Tipo');
-
-  pickTipo(modal, 'tapete');
-  confirmModal(modal, /^Adicionar item$/);
-  assert.equal(currentModal(document), modal, 'o modal nao pode fechar sem Modelo');
-  assert.equal(snapshotItens(root).length, before, 'nenhum item pode ser adicionado sem Modelo');
-
-  pickModelo(modal, '1');
-  setModalMetragem(modal, '0');
-  confirmModal(modal, /^Adicionar item$/);
-  assert.equal(snapshotItens(root).length, before, 'metragem <= 0 continua rejeitada');
-});
-
-test('batch1/13. o icone de edicao esta ATIVO e clicavel', async () => {
+test('batch2/10+11. Tapete lista so tapete e Manta lista so manta', async () => {
   const { root } = await bootPedidoForm();
-  const icon = editIconOf(root, 0);
-  assert.ok(icon, 'icone de edicao nao encontrado na linha');
-  assert.match(icon.style.cssText, /cursor:pointer/, 'cursor deve ser pointer');
-  assert.match(icon.style.cssText, /opacity:1/, 'opacidade deve ser 1');
-  assert.doesNotMatch(icon.style.cssText, /cursor:default/);
-  assert.equal(icon.getAttribute('title'), 'Editar item');
-  assert.equal(typeof icon._listeners.click, 'function', 'o icone deve ter acao de clique');
-  assert.doesNotMatch(screen, /em breve/i, 'o placeholder "em breve" deve ter sumido');
+  const row = rowsOf(root)[0];
+
+  pick(rowTipo(row), 'tapete');
+  let vals = optionValues(rowModelo(row)).filter(Boolean);
+  assert.deepEqual(vals.slice().sort(), ['1', '3'], 'Tapete = Paris + Manta Legado');
+  assert.doesNotMatch(optionTexts(rowModelo(row)).join('|'), /Manta Barcelona/);
+
+  pick(rowTipo(row), 'manta');
+  vals = optionValues(rowModelo(row)).filter(Boolean);
+  assert.deepEqual(vals, ['2'], 'Manta = apenas Manta Barcelona');
+  assert.doesNotMatch(optionTexts(rowModelo(row)).join('|'), /Paris|Manta Legado/);
 });
 
-test('batch1/14. o modal de edicao abre PREENCHIDO a partir do item correto', async () => {
-  const { root, document } = await bootPedidoForm();
+test('batch2/12. trocar o Tipo limpa Modelo e TODO derivado incompativel', async () => {
+  const { root } = await bootPedidoForm();
+  const row = rowsOf(root)[0];
 
-  let modal = openAddModal(root, document);
-  pickTipo(modal, 'manta');
-  pickModelo(modal, '2');
-  setModalMetragem(modal, '33');
-  setModalObservacao(modal, 'segunda entrada');
-  confirmModal(modal, /^Adicionar item$/);
+  pick(rowTipo(row), 'tapete');
+  pick(rowModelo(row), '1');
+  assert.equal(rowModelo(row).value, '1');
+  assert.equal(findByAttr(row, 'data-item-cores')[0].textContent, 'KRAFT / CRU');
+  assert.equal(findByAttr(row, 'data-item-largura')[0].textContent, '1,40 m');
+  assert.equal(findByAttr(row, 'data-preview-slot')[0].children.length, 1);
 
-  assert.equal(snapshotItens(root).length, 2, 'devem existir 2 itens locais');
-
-  modal = openEditModal(root, document, 1);
-  assert.ok(modal, 'modal de edicao nao abriu');
-  assert.equal(findByAttr(modal, 'data-item-modal-title')[0].textContent, 'Editar item');
-  assert.ok(findButton(modal, /^Salvar alterações$/), 'acao primaria deve ser "Salvar alterações"');
-  assert.equal(findButton(modal, /^Adicionar item$/), undefined,
-    'em modo de edicao nao existe acao "Adicionar item"');
-
-  assert.equal(modalTipoSelect(modal).value, 'manta', 'Tipo prefilled');
-  assert.equal(modalModeloSelect(modal).value, '2', 'Modelo prefilled');
-  assert.equal(modalModeloSelect(modal).hasAttribute('disabled'), false, 'Modelo habilitado em edicao');
-  assert.equal(findByAttr(modal, 'data-item-modal-cor1')[0].textContent, 'PRETO');
-  assert.equal(findByAttr(modal, 'data-item-modal-cor2')[0].textContent, 'CRU');
-  assert.equal(findByAttr(modal, 'data-item-modal-largura')[0].textContent, '1,40 m');
-  assert.equal(allByTag(modal, 'input').find((i) => i.getAttribute('placeholder') === '0,00').value, '33');
-  assert.equal(allByTag(modal, 'textarea')[0].value, 'segunda entrada');
-  assert.ok(findByAttr(modal, 'data-item-modal-preview')[0], 'preview prefilled');
+  pick(rowTipo(row), 'manta');
+  assert.equal(rowModelo(row).value, '', 'Paris nao pertence a Manta: a selecao e limpa');
+  assert.equal(findByAttr(row, 'data-item-cores')[0].textContent, '-', 'cores limpas');
+  assert.equal(findByAttr(row, 'data-item-largura')[0].textContent, '-', 'largura limpa');
+  assert.deepEqual(optionValues(rowModelo(row)).filter(Boolean), ['2']);
 });
 
-test('batch1/15+16. salvar a edicao altera EXATAMENTE um item local, sem duplicar nem reordenar', async () => {
-  const { root, document } = await bootPedidoForm();
+test('batch2/13+14. nem o NOME nem a LARGURA podem influenciar a rota', async () => {
+  const { root } = await bootPedidoForm();
+  const row = rowsOf(root)[0];
 
-  let modal = openAddModal(root, document);
-  pickTipo(modal, 'manta');
-  pickModelo(modal, '2');
-  setModalMetragem(modal, '33');
-  confirmModal(modal, /^Adicionar item$/);
+  pick(rowTipo(row), 'tapete');
+  assert.ok(optionTexts(rowModelo(row)).some((t) => /Manta Legado/.test(t)),
+    'um tapete NOMEADO "Manta" continua sob Tapete — o filtro e por tipo_produto');
+  pick(rowModelo(row), '3');
+  assert.equal(findByAttr(row, 'data-item-largura')[0].textContent, '1,40 m',
+    'mesma largura da Manta real, e ainda assim Tapete');
 
-  modal = openAddModal(root, document);
-  pickTipo(modal, 'tapete');
-  pickModelo(modal, '3');
-  setModalMetragem(modal, '44');
-  confirmModal(modal, /^Adicionar item$/);
-
-  const before = snapshotItens(root);
-  assert.equal(before.length, 3);
-
-  // Edita o item DO MEIO — o caso em que um remove+append apareceria.
-  modal = openEditModal(root, document, 1);
-  pickTipo(modal, 'tapete');
-  pickModelo(modal, '1');
-  setModalMetragem(modal, '77');
-  setModalObservacao(modal, 'editado');
-  confirmModal(modal, /^Salvar alterações$/);
-
-  const after = snapshotItens(root);
-  assert.equal(after.length, before.length, 'a edicao nao pode criar nem remover item');
-  assert.deepEqual(after.map((i) => i.uid), before.map((i) => i.uid),
-    'os uid devem ser preservados NA MESMA ORDEM (sem remove+append)');
-  assert.deepEqual(after[0], before[0], 'o item anterior fica intacto');
-  assert.deepEqual(after[2], before[2], 'o item posterior fica intacto');
-  assert.deepEqual(
-    { modeloId: after[1].modeloId, tipo: after[1].tipo, metros: after[1].metros, observacao: after[1].observacao },
-    { modeloId: '1', tipo: 'Tapete', metros: '77', observacao: 'editado' },
-    'exatamente o item editado mudou, inclusive a celula de Tipo'
-  );
+  pick(rowTipo(row), 'manta');
+  assert.equal(rowModelo(row).value, '', 'Manta Legado nao sobrevive a rota Manta');
+  assert.doesNotMatch(optionTexts(rowModelo(row)).join('|'), /Manta Legado/);
 });
 
-test('batch1/15b. confirmar a edicao NAO escreve no Supabase', async () => {
-  const { root, document, calls } = await bootPedidoForm();
-  const modal = openAddModal(root, document);
-  pickTipo(modal, 'tapete');
-  pickModelo(modal, '1');
-  setModalMetragem(modal, '5');
-  confirmModal(modal, /^Adicionar item$/);
-
-  const edit = openEditModal(root, document, 1);
-  setModalMetragem(edit, '6');
-  confirmModal(edit, /^Salvar alterações$/);
-
-  assert.equal(calls.pedidoInsert, null, 'nenhum INSERT em pedidos');
-  assert.equal(calls.pedidoItensInsert, null, 'nenhum INSERT em pedido_itens');
-  assert.equal(calls.pedidoDelete, 0, 'nenhum DELETE');
-});
-
-test('batch1/17. edicao cancelada por Cancelar / X / Escape / overlay deixa o item INTACTO', async () => {
-  const { root, document } = await bootPedidoForm();
-  const modal = openAddModal(root, document);
-  pickTipo(modal, 'manta');
-  pickModelo(modal, '2');
-  setModalMetragem(modal, '12');
-  setModalObservacao(modal, 'original');
-  confirmModal(modal, /^Adicionar item$/);
-
-  const pristine = JSON.stringify(snapshotItens(root));
-
-  function editAndAbort(abort) {
-    const m = openEditModal(root, document, 1);
-    pickTipo(m, 'tapete');
-    pickModelo(m, '1');
-    setModalMetragem(m, '999');
-    setModalObservacao(m, 'lixo descartado');
-    abort(m);
-    assert.equal(JSON.stringify(snapshotItens(root)), pristine,
-      'o item local deve permanecer byte-equivalente apos o cancelamento');
-  }
-
-  editAndAbort((m) => findButton(m, /^Cancelar$/)._listeners.click());
-  // X: o unico botao do cabecalho sem texto.
-  editAndAbort((m) => allByTag(m, 'button').find((b) => b.textContent === '')._listeners.click());
-  editAndAbort(() => (document._listeners.keydown || []).slice().forEach((fn) => fn({ key: 'Escape' })));
-  editAndAbort((m) => m._listeners.click({ target: m }));
-
-  assert.equal(currentModal(document), null, 'todo modal abortado deve ter sido fechado');
-});
-
-test('batch1/18. o payload de pedido_itens permanece semanticamente inalterado', async () => {
-  const { root, document, calls, sandbox } = await bootPedidoForm();
-
-  const selects = allByTag(root, 'select');
-  selects[0].value = '501';
-  selects[0]._listeners.change();
-
-  const modal = openAddModal(root, document);
-  pickTipo(modal, 'manta');
-  pickModelo(modal, '2');
-  setModalMetragem(modal, '25');
-  confirmModal(modal, /^Adicionar item$/);
-
-  // Remove a linha inicial vazia, deixando apenas o item valido.
-  removeRow(root, 0);
+test('batch2/15. modelo_id e a UNICA identidade de produto persistida', async () => {
+  const { root, calls } = await bootPedidoForm();
+  const cliente = allByTag(root, 'select')[0];
+  cliente.value = '501';
+  cliente._listeners.change();
+  const row = rowsOf(root)[0];
+  pick(rowTipo(row), 'manta');
+  pick(rowModelo(row), '2');
+  setRowMetragem(row, '25');
 
   findButton(root, /^Salvar rascunho$/)._listeners.click();
   await flushRuntime();
   await flushRuntime();
 
-  assert.ok(Array.isArray(calls.pedidoItensInsert), 'INSERT em pedido_itens nao ocorreu');
+  assert.ok(Array.isArray(calls.pedidoItensInsert));
   for (const linha of calls.pedidoItensInsert) {
     assert.deepEqual(Object.keys(linha).sort(),
       ['metros', 'modelo_id', 'observacao', 'ordem', 'pedido_id'],
-      'o payload de pedido_itens nao pode ganhar campo algum');
-    for (const proibido of ['tipo_produto', 'tipo', 'rota', 'cor', 'cor_1_id', 'cor_2_id', 'largura']) {
+      'pedido_itens nao pode ganhar campo algum');
+    for (const proibido of ['tipo_produto', 'tipo', 'rota', 'cor', 'largura']) {
       assert.equal(Object.prototype.hasOwnProperty.call(linha, proibido), false,
-        'o payload nao pode carregar `' + proibido + '`: o tipo permanece derivado de modelos.tipo_produto');
+        'o Tipo NAO pode ser persistido de forma redundante: ' + proibido);
     }
   }
   assert.equal(calls.pedidoItensInsert[0].modelo_id, 2);
-  assert.equal(calls.pedidoItensInsert[0].metros, 25);
-  assert.ok(sandbox.window.RAVATEX_PRODUCT_ROUTE, 'o helper de rota permanece o dono do fato');
 });
 
-test('batch1/19. a criacao de Pedido e a compensacao continuam inalteradas', async () => {
-  const { root, document, calls } = await bootPedidoForm({ failItensInsert: true });
-
-  const selects = allByTag(root, 'select');
-  selects[0].value = '501';
-  selects[0]._listeners.change();
-
-  const modal = openAddModal(root, document);
-  pickTipo(modal, 'tapete');
-  pickModelo(modal, '1');
-  setModalMetragem(modal, '9');
-  confirmModal(modal, /^Adicionar item$/);
-
-  removeRow(root, 0);
-
-  findButton(root, /^Salvar rascunho$/)._listeners.click();
-  await flushRuntime();
-  await flushRuntime();
-  await flushRuntime();
-
-  assert.ok(calls.pedidoInsert, 'o INSERT em pedidos deve ter ocorrido');
-  assert.equal(calls.pedidoInsert.status, 'rascunho', 'status inicial continua rascunho');
-  assert.ok(Array.isArray(calls.pedidoItensInsert), 'o INSERT em pedido_itens foi tentado');
-  assert.equal(calls.pedidoDelete, 1,
-    'falha nos itens deve compensar com exatamente um DELETE do pedido criado');
+test('batch2/16. nenhum editor de item completo sobrevive dentro de um modal', () => {
+  assert.doesNotMatch(screen, /function\s+openItemModal\s*\(/,
+    'o modal de item nao pode sobreviver em pedido-form.js');
+  assert.doesNotMatch(screen, /function\s+openAddItemModal\s*\(/);
+  assert.doesNotMatch(screen, /position:fixed; inset:0/,
+    'nenhum overlay de modal de item pode restar');
+  assert.doesNotMatch(screen, /Salvar altera/,
+    'a acao primaria do modal de item sumiu junto com ele');
+  assert.match(screen, /state\.itens\.push\(\{[\s\S]{0,200}?uid: novoUid\(\)/,
+    '"Adicionar item" deve acrescentar uma linha editavel');
+  assert.match(rowEditor, /function\s+buildRow\s*\(options\)/);
+  assert.doesNotMatch(screen, /function\s+buildItemRow\s*\(/,
+    'pedido-form.js nao pode manter uma segunda implementacao de linha');
 });
 
-test('batch1/20. o lote NAO introduz tabela nem RPC alguma', () => {
-  const tabelas = Array.from(new Set(
-    (screen.match(/\.from\(\s*['"]([a-z_]+)['"]\s*\)/g) || [])
-      .map((m) => m.replace(/^.*['"]([a-z_]+)['"].*$/, '$1'))
-  )).sort();
-  assert.deepEqual(tabelas, ['clientes', 'modelos', 'pedido_itens', 'pedidos'],
-    'o conjunto de tabelas lidas/escritas pela tela nao pode crescer');
-  assert.doesNotMatch(screen, /\.rpc\s*\(/, 'a tela nao pode passar a chamar RPC');
-  assert.doesNotMatch(screen, /functions\.invoke\s*\(/);
-  assert.doesNotMatch(screen, /tipo_produto\s*:/, 'nenhum payload pode carregar tipo_produto');
-  assert.doesNotMatch(screen, /\.update\s*\(|\.upsert\s*\(/, 'a tela nao faz update/upsert');
+test('batch2/17. carregar tipo_produto FALHA FECHADA: nada de degradar para Tapete', async () => {
+  const { root } = await bootPedidoForm({ failTipoProduto: true });
+  assert.match(root.textContent, /Erro ao carregar dados de tipo de produto dos modelos/,
+    'a falha de tipo_produto deve ser reportada, nao silenciada');
+  assert.equal(rowsOf(root).length, 0, 'nenhuma linha de item editavel sem metadado de tipo');
+  assert.match(rowEditor, /FALHA FECHADA/);
 });
 
-test('batch1/21. o modal de item tem UM unico dono, nos dois modos', () => {
-  assert.match(screen, /function\s+openItemModal\s*\(\s*options\s*\)/,
-    'deve existir um unico openItemModal({ mode, item })');
-  assert.doesNotMatch(screen, /function\s+openAddItemModal\s*\(/,
-    'a implementacao duplicada de "adicionar" nao pode sobreviver');
-  assert.equal((screen.match(/document\.body\.appendChild\(\s*overlay\s*\)/g) || []).length, 1,
-    'existe uma unica montagem de modal de item');
-  assert.match(screen, /maxlength:\s*'200'/, 'limite de 200 caracteres da observacao preservado');
-  assert.match(screen, /max-height:90vh/, 'altura maxima responsiva preservada');
-  assert.match(screen, /overflow-y:auto/, 'rolagem interna preservada');
+test('batch2/18. um modelo sem tipo_produto nao entra em NENHUMA das duas listas', async () => {
+  const { sandbox } = await bootPedidoForm();
+  const api = sandbox.window.RAVATEX_PEDIDO_ITEM_ROW;
+  const semTipo = { id: 99, nome: 'Sem Tipo', largura: 1.4 };
+  const lista = [semTipo, { id: 1, tipo_produto: 'tapete' }, { id: 2, tipo_produto: 'manta' }];
+  assert.equal(api.rotaDoModelo(semTipo), null, 'sem tipo_produto a rota e null, nunca tapete');
+  assert.deepEqual(api.modelosPorTipo(lista, 'tapete').map((m) => m.id), [1]);
+  assert.deepEqual(api.modelosPorTipo(lista, 'manta').map((m) => m.id), [2]);
+  assert.equal(api.tipoLabel(null), '-');
 });
 
-test('batch1/22. o arquivo permanece abaixo do limite duro de 1.200 linhas', () => {
-  const linhas = screen.split('\n').length;
-  assert.ok(linhas < 1200, 'pedido-form.js deve ficar abaixo de 1.200 linhas; atual: ' + linhas);
-  assert.match(screen, /DEBITO ESTRUTURAL NAO BLOQUEANTE/,
-    'o overrun do patamar de 900 linhas deve estar declarado no cabecalho');
+test('batch2/19. index.html carrega o modulo da linha antes de pedido-form.js', () => {
+  const iRoute = index.indexOf('js/product-route.js');
+  const iRow = index.indexOf('js/screens/pedido-item-row-editor.js');
+  const iForm = index.indexOf('js/screens/pedido-form.js');
+  const iBoot = index.indexOf('js/boot.js');
+  assert.ok(iRow > 0, 'pedido-item-row-editor.js deve ser carregado');
+  assert.equal((index.match(/js\/screens\/pedido-item-row-editor\.js/g) || []).length, 1,
+    'o modulo deve ser carregado exatamente uma vez');
+  assert.ok(iRoute < iRow, 'o modulo depende de product-route.js');
+  assert.ok(iRow < iForm, 'o modulo deve vir antes de pedido-form.js');
+  assert.ok(iForm < iBoot);
+  assert.match(index, /pedido-item-row-editor\.js\?v=20260725-pedido-operational-batch2/);
+});
+
+test('batch2/20. pedido-form.js NAO cresceu e o debito estrutural foi quitado', () => {
+  const { execFileSync } = require('node:child_process');
+  const before = execFileSync('git', ['show', 'HEAD:js/screens/pedido-form.js'], { cwd: ROOT, encoding: 'utf8' })
+    .split('\n').length;
+  const now = screen.split('\n').length;
+  assert.ok(now <= before,
+    `pedido-form.js nao pode crescer neste lote (antes ${before}, agora ${now})`);
+  assert.ok(rowEditor.split('\n').length <= 500,
+    'o novo modulo deve respeitar o limite normal de code-health');
+  assert.doesNotMatch(screen, /DEBITO ESTRUTURAL NAO BLOQUEANTE/,
+    'o debito estrutural de BATCH-01 foi quitado pela extracao');
 });

@@ -171,6 +171,7 @@
       modelos: [],
       coresById: {},
       loadingError: null,
+      tipoMetadataOk: false,
       blockedStatus: false,
       noItems: false,
     };
@@ -239,13 +240,25 @@
       // PHASE-MANTA-A: best-effort tipo_produto augmentation. Graceful before
       // the migration is applied (column absent => models stay type-less and
       // render as Tapete); never fatal.
+      // BATCH-02: FALHA FECHADA. Sem `modelos.tipo_produto` a tela nao pode
+      // oferecer modelo algum — degradar tudo para Tapete colocaria uma Manta
+      // na rota de acabamento sem ninguem perceber.
       try {
         const tpRes = await window.supa.from('modelos').select('id, tipo_produto');
-        if (!tpRes.error && Array.isArray(tpRes.data)) {
-          const tpById = Object.fromEntries(tpRes.data.map(function (r) { return [String(r.id), r.tipo_produto]; }));
-          state.modelos.forEach(function (m) { if (tpById[String(m.id)] != null) m.tipo_produto = tpById[String(m.id)]; });
+        if (tpRes.error || !Array.isArray(tpRes.data)) {
+          state.loadingError = 'tipo de produto dos modelos';
+          window.toast('Erro ao carregar o tipo de produto dos modelos.', 'error');
+          console.error(tpRes.error);
+          return;
         }
-      } catch (e) { /* coluna ausente: tratado como Tapete */ }
+        const tpById = Object.fromEntries(tpRes.data.map(function (r) { return [String(r.id), r.tipo_produto]; }));
+        state.modelos.forEach(function (m) { if (tpById[String(m.id)] != null) m.tipo_produto = tpById[String(m.id)]; });
+        state.tipoMetadataOk = true;
+      } catch (e) {
+        state.loadingError = 'tipo de produto dos modelos';
+        console.error('pedido-itens-edit: tipo_produto indisponivel', e);
+        return;
+      }
 
       // Coleta IDs de cor referenciadas (dos itens override + dos modelos)
       // para buscar nomes para o preview.
@@ -362,19 +375,59 @@
         ));
       }
 
-      // Select de modelo.
-      const modeloSel = window.selectInput({
-        options: state.modelos.map(function (m) {
-          return { value: String(m.id), label: modeloLabel(m) };
-        }),
-        value: item.modeloId,
-        placeholder: 'Modelo...',
+      // TIPO ANTES DE MODELO (BATCH-02). O Tipo corrente e DERIVADO do
+      // modelo_id autoritativo do item; o operador so o escolhe para trocar de
+      // rota. O Tipo nunca e persistido: pedido_itens grava apenas modelo_id.
+      const rowApi = window.RAVATEX_PEDIDO_ITEM_ROW;
+      const modeloAtual = modeloById(item.modeloId);
+      if (modeloAtual) item.tipo = rowApi.rotaDoModelo(modeloAtual);
+      if (!item.tipo) item.tipo = item.tipo || '';
+
+      const tipoSel = window.selectInput({
+        options: [
+          { value: rowApi.TAPETE, label: rowApi.tipoLabel(rowApi.TAPETE) },
+          { value: rowApi.MANTA, label: rowApi.tipoLabel(rowApi.MANTA) },
+        ],
+        value: item.tipo,
+        placeholder: 'Tipo...',
+      });
+      tipoSel.setAttribute('data-item-tipo-select', '1');
+      tipoSel.classList.add('w-40');
+      row.appendChild(window.el('div', { class: 'w-40' },
+        window.el('label', { class: 'block text-xs text-gray-500 mb-1' }, 'Tipo'),
+        tipoSel));
+
+      // Select de modelo — recorte estrito da rota escolhida.
+      const modeloSel = window.selectInput({ options: [], value: '', placeholder: 'Modelo...' });
+      modeloSel.setAttribute('data-item-modelo-select', '1');
+      function preencherModelos() {
+        const lista = rowApi.modelosPorTipo(state.modelos, item.tipo);
+        modeloSel.replaceChildren(window.el('option', { value: '' }, 'Modelo...'));
+        lista.forEach(function (m) {
+          const op = window.el('option', { value: String(m.id) }, modeloLabel(m));
+          if (String(m.id) === String(item.modeloId)) op.selected = true;
+          modeloSel.appendChild(op);
+        });
+        modeloSel.value = item.modeloId ? String(item.modeloId) : '';
+        if (item.tipo && state.tipoMetadataOk) modeloSel.removeAttribute('disabled');
+        else modeloSel.setAttribute('disabled', 'disabled');
+      }
+      tipoSel.addEventListener('change', function () {
+        item.tipo = tipoSel.value;
+        // Trocar o Tipo limpa o modelo que deixou de pertencer a rota.
+        const atual = modeloById(item.modeloId);
+        if (!item.tipo || (atual && rowApi.rotaDoModelo(atual) !== item.tipo)) item.modeloId = '';
+        preencherModelos();
       });
       modeloSel.classList.add('flex-1', 'min-w-64');
       modeloSel.addEventListener('change', function () {
+        // modelo_id continua sendo a UNICA identidade de produto persistida.
         item.modeloId = modeloSel.value;
       });
-      row.appendChild(window.el('div', { class: 'flex-1 min-w-64' }, modeloSel));
+      preencherModelos();
+      row.appendChild(window.el('div', { class: 'flex-1 min-w-64' },
+        window.el('label', { class: 'block text-xs text-gray-500 mb-1' }, 'Modelo'),
+        modeloSel));
 
       // Input de metros.
       const metrosInput = window.textInput({

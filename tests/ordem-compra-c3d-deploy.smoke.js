@@ -121,7 +121,7 @@ const BOOTSTRAP_SOURCE = fs.readFileSync(BOOTSTRAP_MODULE_PATH, 'utf8');
 
 const APPLICATION_ARTIFACT = '22bfb192c6c2ad10ccd2b2883d54c3a17e40cc9f';
 const EXPECTED_BRANCH = 'dev';
-const EXPECTED_TERMINAL = 88;
+const EXPECTED_TERMINAL = 89;
 const DB75_FILENAME = '75_ordem_compra_c3c_inactive_cutover.sql';
 const DB76_FILENAME = '76_ordem_compra_c3c_b_db_prerequisites.sql';
 const DB77_FILENAME = '77_ordem_compra_c5a_emission_readiness.sql';
@@ -136,6 +136,7 @@ const DB85_FILENAME = '85_manta_cima_route_conditional_delivery.sql';
 const DB86_FILENAME = '86_manta_expedition_release_writer.sql';
 const DB87_FILENAME = '87_manta_expedition_reversal_and_route_completion.sql';
 const DB88_FILENAME = '88_manta_measured_output_identity_and_fk_lock_correction.sql';
+const DB89_FILENAME = '89_pedido_commercial_date_and_number_control.sql';
 const DB75_PATH = path.join(DB_DIR, DB75_FILENAME);
 const DB76_PATH = path.join(DB_DIR, DB76_FILENAME);
 const DB77_PATH = path.join(DB_DIR, DB77_FILENAME);
@@ -150,6 +151,7 @@ const DB85_PATH = path.join(DB_DIR, DB85_FILENAME);
 const DB86_PATH = path.join(DB_DIR, DB86_FILENAME);
 const DB87_PATH = path.join(DB_DIR, DB87_FILENAME);
 const DB88_PATH = path.join(DB_DIR, DB88_FILENAME);
+const DB89_PATH = path.join(DB_DIR, DB89_FILENAME);
 
 const FORBIDDEN_HOST_PATTERNS = [
   /ucrjtfswnfdlxwtmxnoo/i,
@@ -310,8 +312,8 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
   });
 
   const terminalTwo = migrations.slice(-2);
-  assert.equal(terminalTwo[0].filename, DB87_FILENAME);
-  assert.equal(terminalTwo[1].filename, DB88_FILENAME);
+  assert.equal(terminalTwo[0].filename, DB88_FILENAME);
+  assert.equal(terminalTwo[1].filename, DB89_FILENAME);
 
   for (const migration of terminalTwo) {
     const relPathPosix = `db/${migration.filename}`;
@@ -330,27 +332,27 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
 // Deployment manifest: happy path against the real repository
 // ---------------------------------------------------------------------------
 
-test('deployment manifest resolves exactly db/01..db/88, contiguous and unique', () => {
+test('deployment manifest resolves exactly db/01..db/89, contiguous and unique', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
-  assert.equal(entries.length, 88);
+  assert.equal(entries.length, 89);
   assert.deepEqual(
     entries.map((entry) => entry.number),
-    Array.from({ length: 88 }, (_, i) => i + 1)
+    Array.from({ length: 89 }, (_, i) => i + 1)
   );
 });
 
-test('db/87 and db/88 are the terminal two migrations', () => {
+test('db/88 and db/89 are the terminal two migrations', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
-  const [second87, first88] = entries.slice(-2);
-  assert.equal(second87.filename, DB87_FILENAME);
-  assert.equal(first88.filename, DB88_FILENAME);
+  const [penultimate88, terminal89] = entries.slice(-2);
+  assert.equal(penultimate88.filename, DB88_FILENAME);
+  assert.equal(terminal89.filename, DB89_FILENAME);
 });
 
 test('the full deployment manifest builds against the real repository', () => {
   const manifest = buildDeploymentManifest();
-  assert.equal(manifest.migrations.length, 88);
+  assert.equal(manifest.migrations.length, 89);
   assert.equal(manifest.applicationArtifact, APPLICATION_ARTIFACT);
   assert.equal(manifest.terminalTwo.length, 2);
   assert.ok(/^[0-9a-f]{40}$/.test(manifest.documentaryCheckpoint));
@@ -464,6 +466,10 @@ test('db/83 hash matches the committed HEAD checkpoint', () => {
   assert.equal(sha256OfFile(DB83_PATH), gitCheckpointHash(`db/${DB83_FILENAME}`));
 });
 
+test('db/89 hash matches the committed HEAD checkpoint', () => {
+  assert.equal(sha256OfFile(DB89_PATH), gitCheckpointHash(`db/${DB89_FILENAME}`));
+});
+
 test('db/88 hash matches the committed HEAD checkpoint', () => {
   assert.equal(sha256OfFile(DB88_PATH), gitCheckpointHash(`db/${DB88_FILENAME}`));
 });
@@ -498,6 +504,7 @@ let db85HashAtStart;
 let db86HashAtStart;
 let db87HashAtStart;
 let db88HashAtStart;
+let db89HashAtStart;
 before(() => {
   db75HashAtStart = sha256OfFile(DB75_PATH);
   db76HashAtStart = sha256OfFile(DB76_PATH);
@@ -513,6 +520,7 @@ before(() => {
   db86HashAtStart = sha256OfFile(DB86_PATH);
   db87HashAtStart = sha256OfFile(DB87_PATH);
   db88HashAtStart = sha256OfFile(DB88_PATH);
+  db89HashAtStart = sha256OfFile(DB89_PATH);
 });
 after(() => {
   assert.equal(sha256OfFile(DB75_PATH), db75HashAtStart, 'db/75 must remain byte-stable for the whole test run');
@@ -529,6 +537,7 @@ after(() => {
   assert.equal(sha256OfFile(DB86_PATH), db86HashAtStart, 'db/86 must remain byte-stable for the whole test run');
   assert.equal(sha256OfFile(DB87_PATH), db87HashAtStart, 'db/87 must remain byte-stable for the whole test run');
   assert.equal(sha256OfFile(DB88_PATH), db88HashAtStart, 'db/88 must remain byte-stable for the whole test run');
+  assert.equal(sha256OfFile(DB89_PATH), db89HashAtStart, 'db/89 must remain byte-stable for the whole test run');
 });
 
 // ---------------------------------------------------------------------------

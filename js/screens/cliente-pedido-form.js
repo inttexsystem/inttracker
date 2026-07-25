@@ -60,9 +60,18 @@
     var modelos = [];
     var coresById = {};
     var loadingError = null;
+    var tipoMetadataOk = false;
 
     var state = {
       referencia: '',
+      // db/89: data COMERCIAL do Pedido. Default = hoje no fuso do NAVEGADOR
+      // (toISOString converteria para UTC e devolveria o dia seguinte a noite).
+      dataPedido: (function () {
+        var d = new Date();
+        var mes = String(d.getMonth() + 1);
+        var dia = String(d.getDate());
+        return d.getFullYear() + '-' + (mes.length < 2 ? '0' + mes : mes) + '-' + (dia.length < 2 ? '0' + dia : dia);
+      })(),
       prazoEntrega: '',
       recebimento: 'retirada',
       observacao: '',
@@ -84,6 +93,21 @@
         return;
       }
       modelos = modRes.data || [];
+
+      // Rota do produto: EXCLUSIVAMENTE modelos.tipo_produto. FALHA FECHADA —
+      // sem o metadado nenhum modelo pode ser oferecido, porque degradar tudo
+      // para Tapete colocaria uma Manta na rota de acabamento silenciosamente.
+      var tpRes = await window.supa.from('modelos').select('id, tipo_produto');
+      if (tpRes.error || !Array.isArray(tpRes.data)) {
+        loadingError = 'tipo de produto dos modelos';
+        window.toast('Erro ao carregar o tipo de produto dos modelos', 'error');
+        console.error('cliente-pedido-form: tipo_produto indisponivel', tpRes.error);
+        return;
+      }
+      var tpById = {};
+      tpRes.data.forEach(function (row) { if (row && row.id != null) tpById[String(row.id)] = row.tipo_produto; });
+      modelos.forEach(function (m) { if (tpById[String(m.id)] != null) m.tipo_produto = tpById[String(m.id)]; });
+      tipoMetadataOk = true;
 
       var corIds = [];
       for (var i = 0; i < modelos.length; i++) {
@@ -185,6 +209,17 @@
       });
       referenciaInput.addEventListener('input', function () { state.referencia = referenciaInput.value; });
 
+      var dataPedidoInput = window.el('input', {
+        type: 'date',
+        value: state.dataPedido,
+        'data-pedido-data': '1',
+        style: 'flex:1; border:none; outline:none; font-size:14px; color:#16203a; background:transparent; font-family:inherit; min-width:0;',
+      });
+      dataPedidoInput.addEventListener('change', function () { state.dataPedido = dataPedidoInput.value; });
+      var dataPedidoWrap = window.el('div', {
+        style: 'display:flex; align-items:center; gap:8px; border:1px solid #d8dce2; border-radius:4px; padding:9px 12px; background:#fff;'
+      }, dataPedidoInput, svgEl(SVG_CALENDAR));
+
       var prazoInput = window.el('input', {
         type: 'date',
         value: state.prazoEntrega,
@@ -215,6 +250,10 @@
           window.el('div', {},
             window.el('label', { style: 'display:block; font-size:13px; color:#5b6472; margin-bottom:6px;' }, 'Referência do cliente'),
             referenciaInput
+          ),
+          window.el('div', {},
+            window.el('label', { style: 'display:block; font-size:13px; color:#5b6472; margin-bottom:6px;' }, 'Data do pedido'),
+            dataPedidoWrap
           ),
           window.el('div', {},
             window.el('label', { style: 'display:block; font-size:13px; color:#5b6472; margin-bottom:6px;' }, 'Prazo desejado'),
@@ -331,7 +370,7 @@
     // Metragem e Observação usam as mesmas validações do formulário.
     // ------------------------------------------------------------------
     function openAddItemModal() {
-      var draft = { modeloId: '', metros: '', observacao: '' };
+      var draft = { tipo: '', modeloId: '', metros: '', observacao: '' };
 
       var overlay = window.el('div', {
         style: 'position:fixed; inset:0; background:rgba(22,32,58,.45); display:flex; align-items:center; justify-content:center; padding:40px; z-index:1000;',
@@ -378,17 +417,46 @@
         closeBtn
       );
 
-      // Modelo (select real)
-      var modeloSelect = window.el('select', {
+      // Tipo ANTES de Modelo — mesma regra binding da tela admin. O dono da
+      // derivacao e js/screens/pedido-item-row-editor.js; o Tipo e selecao de
+      // UI e filtro, nunca persistido (o item grava so modelo_id).
+      var rowApi = window.RAVATEX_PEDIDO_ITEM_ROW;
+      var tipoSelect = window.el('select', {
+        'data-item-modal-tipo': '1',
         style: 'flex:1; border:none; outline:none; font-size:14px; color:#16203a; background:transparent; font-family:inherit; cursor:pointer; -webkit-appearance:none; appearance:none; min-width:0;',
-      }, window.el('option', { value: '' }, 'Modelo…'));
-      for (var i = 0; i < modelos.length; i++) {
-        modeloSelect.appendChild(window.el('option', { value: modelos[i].id }, modelos[i].nome));
-      }
+      });
+      var tipoWrap = window.el('div', {
+        style: 'display:flex; align-items:center; justify-content:space-between; border:1px solid #d8dce2; border-radius:4px; padding:9px 12px; background:#fff;'
+      }, tipoSelect, svgEl(SVG_CHEVRON));
+      var tipoField = window.el('div', {}, requiredLabel('Tipo'), tipoWrap);
+
+      // Modelo (select real) — so e habilitado depois do Tipo.
+      var modeloSelect = window.el('select', {
+        'data-item-modal-modelo': '1',
+        style: 'flex:1; border:none; outline:none; font-size:14px; color:#16203a; background:transparent; font-family:inherit; cursor:pointer; -webkit-appearance:none; appearance:none; min-width:0;',
+      });
       var modeloWrap = window.el('div', {
         style: 'display:flex; align-items:center; justify-content:space-between; border:1px solid #d8dce2; border-radius:4px; padding:9px 12px; background:#fff;'
       }, modeloSelect, svgEl(SVG_CHEVRON));
       var modeloField = window.el('div', {}, requiredLabel('Modelo'), modeloWrap);
+
+      // Rotulo local: este arquivo carrega cores por id (coresById), nao o
+      // objeto cor_1 embutido que o formatador do modulo espera.
+      function opcaoModeloLabel(m) {
+        return String(m.nome == null ? '' : m.nome) + ' – ' + corNome(m.cor_1_id) + '/' + corNome(m.cor_2_id);
+      }
+      function preencherModelos() {
+        var lista = rowApi.modelosPorTipo(modelos, draft.tipo);
+        modeloSelect.replaceChildren(window.el('option', { value: '' }, 'Modelo…'));
+        for (var mi = 0; mi < lista.length; mi++) {
+          var item = window.el('option', { value: lista[mi].id }, opcaoModeloLabel(lista[mi]));
+          if (String(lista[mi].id) === String(draft.modeloId)) item.selected = true;
+          modeloSelect.appendChild(item);
+        }
+        modeloSelect.value = draft.modeloId ? String(draft.modeloId) : '';
+        if (draft.tipo) modeloSelect.removeAttribute('disabled');
+        else modeloSelect.setAttribute('disabled', 'disabled');
+      }
 
       // Cores (derivadas do modelo selecionado — somente leitura)
       var cor1Span = window.el('span', {}, '—');
@@ -428,13 +496,30 @@
         style: 'display:grid; grid-template-columns:1fr 1fr; gap:12px;'
       }, larguraField, metragemField);
 
-      modeloSelect.addEventListener('change', function () {
-        draft.modeloId = modeloSelect.value;
+      function refreshDerivados() {
         var mod = modeloById(draft.modeloId);
         larguraSpan.textContent = mod ? larguraStr(mod) : '—';
         cor1Span.textContent = mod ? corNome(mod.cor_1_id) : '—';
         cor2Span.textContent = mod ? corNome(mod.cor_2_id) : '—';
+      }
+
+      tipoSelect.addEventListener('change', function () {
+        draft.tipo = tipoSelect.value;
+        // Trocar o Tipo limpa o modelo incompativel e tudo que dele deriva.
+        var atual = modeloById(draft.modeloId);
+        if (!draft.tipo || (atual && rowApi.rotaDoModelo(atual) !== draft.tipo)) draft.modeloId = '';
+        preencherModelos();
+        refreshDerivados();
       });
+
+      modeloSelect.addEventListener('change', function () {
+        // modelo_id continua sendo a UNICA identidade de produto persistida.
+        draft.modeloId = modeloSelect.value;
+        refreshDerivados();
+      });
+
+      rowApi.fillTipoSelect(tipoSelect, draft.tipo, !tipoMetadataOk);
+      preencherModelos();
 
       // Referência visual (decorativo, estático — sem dado real associado)
       var referenciaField = window.el('div', {},
@@ -472,7 +557,7 @@
 
       var body = window.el('div', {
         style: 'padding:0 20px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; flex:1; min-height:0;'
-      }, modeloField, coresField, larguraMetragemRow, referenciaField, obsField);
+      }, tipoField, modeloField, coresField, larguraMetragemRow, referenciaField, obsField);
 
       var cancelBtn = window.el('button', {
         type: 'button',
@@ -484,6 +569,10 @@
         type: 'button',
         style: 'background:#2563eb; color:#fff; border:none; border-radius:4px; padding:9px 20px; font-weight:700; font-size:14px; font-family:inherit; cursor:pointer;',
         onclick: function () {
+          if (!draft.tipo) {
+            window.toast('Selecione o tipo do produto.', 'error');
+            return;
+          }
           if (!draft.modeloId) {
             window.toast('Selecione um modelo.', 'error');
             return;
@@ -693,6 +782,7 @@
           cliente_id: Number(clienteId),
           status: 'recebido',
         };
+        pedidoPayload.data_pedido = state.dataPedido;
         if (state.prazoEntrega) pedidoPayload.prazo_entrega = state.prazoEntrega;
         if (state.observacao) pedidoPayload.observacao = state.observacao;
 

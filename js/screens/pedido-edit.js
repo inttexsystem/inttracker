@@ -103,9 +103,10 @@
 
     // Estado da tela
     const state = {
-      pedido: null,        // { id, numero, status, cliente_id, prazo_entrega, observacao, criado_em, atualizado_em }
+      pedido: null,        // { id, numero, data_pedido, status, cliente_id, prazo_entrega, observacao, criado_em, atualizado_em }
       clientes: [],        // [{ id, nome }]
       clienteId: '',       // estado editável (cliente_id)
+      dataPedido: '',      // estado editável (data_pedido, YYYY-MM-DD) — db/89
       prazoEntrega: '',    // estado editável (prazo_entrega, YYYY-MM-DD)
       observacao: '',      // estado editável (observacao)
       loadingError: null,
@@ -119,7 +120,7 @@
       // SELECT do pedido (admin-only via RLS).
       const pedidoRes = await window.supa
         .from('pedidos')
-        .select('id, numero, status, cliente_id, prazo_entrega, observacao, criado_em, atualizado_em')
+        .select('id, numero, data_pedido, status, cliente_id, prazo_entrega, observacao, criado_em, atualizado_em')
         .eq('id', pedidoId)
         .maybeSingle();
 
@@ -133,6 +134,7 @@
       state.pedido = pedidoRes.data;
       state.clienteId = pedidoRes.data.cliente_id != null
         ? String(pedidoRes.data.cliente_id) : '';
+      state.dataPedido = pedidoRes.data.data_pedido || '';
       state.prazoEntrega = pedidoRes.data.prazo_entrega || '';
       state.observacao = pedidoRes.data.observacao || '';
 
@@ -216,6 +218,26 @@
       });
       cliSel.addEventListener('change', function () { state.clienteId = cliSel.value; });
 
+      // Data do pedido (db/89): data COMERCIAL, obrigatoria, editavel aqui.
+      const dataPedidoInput = window.textInput({
+        type: 'date',
+        value: state.dataPedido,
+        placeholder: '',
+      });
+      dataPedidoInput.setAttribute('data-pedido-data', '1');
+      dataPedidoInput.addEventListener('change', function () { state.dataPedido = dataPedidoInput.value; });
+
+      // Numero do pedido: CONTEXTO SOMENTE-LEITURA. Renumerar um Pedido ja
+      // criado e proibido e o banco recusa (db/89).
+      const numeroInput = window.textInput({
+        type: 'text',
+        value: state.pedido && state.pedido.numero != null ? String(state.pedido.numero) : '—',
+        placeholder: '',
+      });
+      numeroInput.setAttribute('data-pedido-numero-readonly', '1');
+      numeroInput.setAttribute('readonly', 'readonly');
+      numeroInput.disabled = true;
+
       // Prazo de entrega (opcional, date).
       const prazoInput = window.textInput({
         type: 'date',
@@ -250,6 +272,7 @@
       // Se bloqueado por status, desabilita campos e botão Salvar.
       if (state.blockedStatus) {
         cliSel.disabled = true;
+        dataPedidoInput.disabled = true;
         prazoInput.disabled = true;
         obsTextarea.disabled = true;
         saveBtn.disabled = true;
@@ -261,6 +284,16 @@
         window.el('h2', { class: 'text-sm font-semibold text-gray-700 mb-4' },
           'Dados gerais do pedido'),
         window.formField({ label: 'Cliente', input: cliSel }),
+        window.formField({
+          label: 'Número do pedido',
+          input: numeroInput,
+          hint: 'Identidade comercial do pedido. Não pode ser alterada após a criação.',
+        }),
+        window.formField({
+          label: 'Data do pedido',
+          input: dataPedidoInput,
+          hint: 'Data comercial do pedido. Obrigatória.',
+        }),
         window.formField({
           label: 'Prazo de entrega',
           input: prazoInput,
@@ -292,8 +325,9 @@
     // salvar: valida + aplica update restrito em `pedidos`.
     //   - Bloqueado se status não for editável.
     //   - Bloqueado se cliente não selecionado.
-    //   - Payload permitido: cliente_id, prazo_entrega, observacao.
-    //   - NÃO atualiza status, numero, item, lote, OP.
+    //   - Payload permitido: cliente_id, data_pedido, prazo_entrega, observacao.
+    //   - NÃO atualiza status, numero, item, lote, OP. `numero` e IMUTAVEL: o
+    //     banco recusa qualquer renumeracao (db/89 pedidos_numero_immutability_guard).
     //   - Após sucesso, navega de volta para o detalhe.
     // -----------------------------------------------------------------
     async function salvar(btn) {
@@ -314,9 +348,18 @@
       const oldLabel = btn.textContent;
       btn.textContent = 'Salvando...';
 
-      // Monta payload com EXATAMENTE os 3 campos editáveis.
+      // db/89: `data_pedido` e obrigatoria e NUNCA derivada de `criado_em`.
+      if (!state.dataPedido) {
+        window.toast('Informe a data do pedido.', 'error');
+        btn.disabled = false;
+        return;
+      }
+
+      // Monta payload com EXATAMENTE os 4 campos editáveis. `numero` jamais
+      // entra aqui: renumerar um Pedido existente e proibido.
       const payload = {
         cliente_id: Number(state.clienteId),
+        data_pedido: state.dataPedido,
       };
       if (state.prazoEntrega) {
         payload.prazo_entrega = state.prazoEntrega;

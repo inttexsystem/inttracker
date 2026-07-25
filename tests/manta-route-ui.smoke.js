@@ -1022,7 +1022,13 @@ test('R2/18. a correcao R2 nao introduz delta de banco nem migracao', () => {
     .split('\n').map((s) => s.trim()).filter(Boolean);
   const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { cwd: ROOT, encoding: 'utf8' })
     .split('\n').map((s) => s.trim()).filter(Boolean);
+  // O sujeito deste guard e a correcao que ele acompanha. Uma migracao
+  // AUTORIZADA POSTERIOR (BATCH-02: db/89) nao pertence a esse sujeito e nao
+  // pode ser lida como delta desta correcao; a garantia original — esta
+  // correcao nao toca o banco — segue integral.
+  const POSTERIOR_AUTORIZADO = [/^db\/89_pedido_commercial_date_and_number_control\.sql$/];
   for (const rel of changed.concat(untracked)) {
+    if (POSTERIOR_AUTORIZADO.some((re) => re.test(rel))) continue;
     assert.equal(/^db\//.test(rel), false, 'nenhum arquivo db/** pode mudar: ' + rel);
     assert.equal(/\.sql$/.test(rel), false, 'nenhum .sql pode mudar: ' + rel);
   }
@@ -1115,7 +1121,13 @@ test('R3/19g. a correcao R3 nao introduz delta de banco nem migracao', () => {
     .split('\n').map((s) => s.trim()).filter(Boolean);
   const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { cwd: ROOT, encoding: 'utf8' })
     .split('\n').map((s) => s.trim()).filter(Boolean);
+  // O sujeito deste guard e a correcao que ele acompanha. Uma migracao
+  // AUTORIZADA POSTERIOR (BATCH-02: db/89) nao pertence a esse sujeito e nao
+  // pode ser lida como delta desta correcao; a garantia original — esta
+  // correcao nao toca o banco — segue integral.
+  const POSTERIOR_AUTORIZADO = [/^db\/89_pedido_commercial_date_and_number_control\.sql$/];
   for (const rel of changed.concat(untracked)) {
+    if (POSTERIOR_AUTORIZADO.some((re) => re.test(rel))) continue;
     assert.equal(/^db\//.test(rel), false, 'nenhum arquivo db/** pode mudar: ' + rel);
     assert.equal(/\.sql$/.test(rel), false, 'nenhum .sql pode mudar: ' + rel);
   }
@@ -1148,6 +1160,23 @@ const R2_TOKEN = '20260725-manta-b2b-r2';
 // abaixo verifica literalmente e proibe de aparecer em qualquer outro asset.
 const BATCH1_ASSETS = ['js/screens/pedido-form.js'];
 const BATCH1_TOKEN = '20260725-pedido-operational-batch1';
+
+// KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-02-R1 retokenizou seis superficies
+// de Pedido e ADICIONOU um modulo novo (a linha de item extraida). A intencao
+// original de R3/20c2 e R3/20e — um CACHE-BUST nao pode vazar token nem
+// adicionar/remover/reordenar asset — continua valendo: os assets abaixo saem
+// da comparacao com 4532f76 apenas sob um token declarado, que R3/20c4 verifica
+// literalmente e proibe em qualquer outro asset.
+const BATCH2_TOKEN = '20260725-pedido-operational-batch2';
+const BATCH2_ADDED_ASSETS = ['js/screens/pedido-item-row-editor.js'];
+const BATCH2_RETOKENED_ASSETS = [
+  'js/screens/pedido-form.js',
+  'js/screens/pedido-detail-data.js',
+  'js/screens/pedido-edit.js',
+  'js/screens/pedido-itens-edit.js',
+  'js/screens/cliente-pedido-form.js',
+];
+const BATCH2_ASSETS = BATCH2_ADDED_ASSETS.concat(BATCH2_RETOKENED_ASSETS);
 
 // Parsing literal, sem regex: um `?v=` num padrao escapado a mao e uma
 // fonte de erro silencioso (o `?` volta a ser quantificador e o teste
@@ -1195,26 +1224,38 @@ test('R3/20c. o token de R3 nao vaza para nenhum asset nao relacionado', () => {
     'exatamente os dois assets de R3 podem carregar o token de R3');
 });
 
-test('R3/20c3. o asset do lote operacional 1 carrega exatamente o token declarado, e ele nao vaza', () => {
-  for (const rel of BATCH1_ASSETS) {
-    assert.equal(tokenFor(rel), BATCH1_TOKEN,
-      rel + ' deve carregar exatamente o token declarado do lote operacional 1');
-  }
+test('R3/20c3. o token do lote operacional 1 foi superseded e nao vaza para asset algum', () => {
+  // O lote 2 retokenizou pedido-form.js, entao NENHUM asset pode continuar
+  // carregando o token do lote 1 — senao um browser serviria o arquivo pre-lote-2.
   const carriers = assetRefs(indexHtml).filter((r) => r.token === BATCH1_TOKEN).map((r) => r.path);
-  assert.deepEqual(carriers.sort(), BATCH1_ASSETS.slice().sort(),
-    'exatamente os assets do lote operacional 1 podem carregar o token do lote');
-  assert.notEqual(BATCH1_TOKEN, tokenFor(R3_ASSETS[0]),
-    'o token do lote operacional 1 tem de diferir do token de R3');
+  assert.deepEqual(carriers, [],
+    'o token do lote 1 foi superseded pelo lote 2 e nao pode sobreviver em asset algum');
+});
+
+test('R3/20c4. os assets do lote operacional 2 carregam exatamente o token declarado, e ele nao vaza', () => {
+  for (const rel of BATCH2_ASSETS) {
+    assert.equal(tokenFor(rel), BATCH2_TOKEN,
+      rel + ' deve carregar exatamente o token declarado do lote operacional 2');
+  }
+  const carriers = assetRefs(indexHtml).filter((r) => r.token === BATCH2_TOKEN).map((r) => r.path);
+  assert.deepEqual(carriers.sort(), BATCH2_ASSETS.slice().sort(),
+    'exatamente os assets do lote operacional 2 podem carregar o token do lote');
+  assert.notEqual(BATCH2_TOKEN, tokenFor(R3_ASSETS[0]),
+    'o token do lote operacional 2 tem de diferir do token de R3');
+  assert.notEqual(BATCH2_TOKEN, BATCH1_TOKEN);
 });
 
 test('R3/20c2. todo asset nao relacionado conserva o token que tinha em 4532f76', () => {
   const before = assetRefs(execFileSync('git', ['show', '4532f76:index.html'], { cwd: ROOT, encoding: 'utf8' }));
-  const after = assetRefs(indexHtml);
+  // O lote 2 acrescentou um modulo declarado; ele sai da comparacao posicional
+  // e e verificado por R3/20c4. Todo o resto continua pinado a 4532f76.
+  const after = assetRefs(indexHtml).filter((r) => !BATCH2_ADDED_ASSETS.includes(r.path));
   assert.equal(after.length, before.length, 'nenhum asset pode ser adicionado ou removido');
   for (let i = 0; i < before.length; i++) {
     assert.equal(after[i].path, before[i].path, 'ordem/caminho preservados na posicao ' + i);
     if (R3_ASSETS.includes(before[i].path)) continue;
     if (BATCH1_ASSETS.includes(before[i].path)) continue;
+    if (BATCH2_RETOKENED_ASSETS.includes(before[i].path)) continue;
     assert.equal(after[i].token, before[i].token,
       before[i].path + ' e um asset nao relacionado e nao pode ter o token alterado');
   }
@@ -1235,7 +1276,9 @@ test('R3/20e. ordem e caminhos dos assets de index.html inalterados', () => {
   const refs = (src) => (src.match(/(?:src|href)="[^"]+"/g) || [])
     .map((s) => s.replace(/^(?:src|href)="/, '').replace(/"$/, '').replace(/\?v=.*$/, ''));
   const before = refs(execFileSync('git', ['show', '4532f76:index.html'], { cwd: ROOT, encoding: 'utf8' }));
-  const after = refs(indexHtml);
+  // Excluida a adicao declarada do lote 2, a lista tem de bater exatamente:
+  // um CACHE-BUST continua proibido de adicionar, remover ou reordenar asset.
+  const after = refs(indexHtml).filter((r) => !BATCH2_ADDED_ASSETS.includes(r));
   assert.deepEqual(after, before,
     'nenhum asset pode ser adicionado, removido ou reordenado por um cache-bust');
 });
@@ -1243,7 +1286,13 @@ test('R3/20e. ordem e caminhos dos assets de index.html inalterados', () => {
 test('R3/20f. o cache-bust nao introduz delta de banco nem toca css', () => {
   const changed = execFileSync('git', ['diff', '--name-only', '4532f76'], { cwd: ROOT, encoding: 'utf8' })
     .split('\n').map((s) => s.trim()).filter(Boolean);
+  // O sujeito deste guard e a correcao que ele acompanha. Uma migracao
+  // AUTORIZADA POSTERIOR (BATCH-02: db/89) nao pertence a esse sujeito e nao
+  // pode ser lida como delta desta correcao; a garantia original — esta
+  // correcao nao toca o banco — segue integral.
+  const POSTERIOR_AUTORIZADO = [/^db\/89_pedido_commercial_date_and_number_control\.sql$/];
   for (const rel of changed) {
+    if (POSTERIOR_AUTORIZADO.some((re) => re.test(rel))) continue;
     assert.equal(/^db\//.test(rel), false, 'nenhum arquivo db/** pode mudar: ' + rel);
     assert.equal(/\.sql$/.test(rel), false, 'nenhum .sql pode mudar: ' + rel);
     assert.equal(/^css\//.test(rel), false, 'nenhum css pode mudar neste pedido: ' + rel);

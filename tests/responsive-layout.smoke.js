@@ -250,7 +250,13 @@ test('18. a correcao responsiva nao introduz delta de banco nem migracao', () =>
     .split('\n').map((s) => s.trim()).filter(Boolean);
   const all = changed.concat(untracked);
   assert.ok(all.length > 0, 'deveria haver mudanca a inspecionar');
+  // O sujeito deste guard e a correcao responsiva. Uma migracao AUTORIZADA
+  // POSTERIOR (BATCH-02: db/89) nao pertence a esse sujeito e nao pode ser
+  // lida como delta desta correcao; a garantia original — a correcao
+  // responsiva nao toca o banco — segue integral.
+  const POSTERIOR_AUTORIZADO = [/^db\/89_pedido_commercial_date_and_number_control\.sql$/];
   for (const rel of all) {
+    if (POSTERIOR_AUTORIZADO.some((re) => re.test(rel))) continue;
     assert.equal(/^db\//.test(rel), false, 'nenhum arquivo db/** pode mudar: ' + rel);
     assert.equal(/\.sql$/.test(rel), false, 'nenhum .sql pode mudar: ' + rel);
   }
