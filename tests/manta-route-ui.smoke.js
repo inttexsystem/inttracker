@@ -1358,10 +1358,16 @@ test('R3/20f. o cache-bust nao introduz delta de banco nem toca css', () => {
   // responsiva. Essa alteracao pertence ao lote 3, nao a correcao R3, e e
   // provada por tests/responsive-layout.smoke.js (B3/4). A garantia original —
   // o cache-bust de R3 nao toca css — segue integral.
+  // UI-CONSOLIDATION-FOUNDATION-INTAKE-R1 promoveu os tokens canonicos em
+  // `css/tokens.css`. Essa alteracao pertence a esse lote separadamente
+  // autorizado, nao ao sujeito historico R3 (Manta responsivo) guardado aqui,
+  // e e provada por scripts/validate-ui-foundation.mjs. A garantia original —
+  // o cache-bust de R3 nao toca css — segue integral.
   const POSTERIOR_AUTORIZADO = [
     /^db\/89_pedido_commercial_date_and_number_control\.sql$/,
     /^db\/90_pedido_proximo_numero_suggestion_rpc\.sql$/,
     /^css\/responsive\.css$/,
+    /^css\/tokens\.css$/,
   ];
   for (const rel of changed) {
     if (POSTERIOR_AUTORIZADO.some((re) => re.test(rel))) continue;

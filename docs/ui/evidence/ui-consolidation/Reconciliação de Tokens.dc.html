@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="../../fixtures/op-detail-compacto/support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="../../../../assets/brand/inttex/inttex-favicon.svg">
+<template id="__bundler_thumbnail" data-bg-color="#003366">
+  <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+    <rect width="120" height="120" fill="#003366"/>
+    <rect x="30" y="34" width="24" height="24" rx="4" fill="#ffffff"/>
+    <rect x="66" y="34" width="24" height="24" rx="4" fill="#0369a1"/>
+    <rect x="30" y="62" width="24" height="24" rx="4" fill="#1296a8"/>
+    <rect x="66" y="62" width="24" height="24" rx="4" fill="#9ca3af"/>
+  </svg>
+</template>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#f3f4f6;color:#1f2937;-webkit-font-smoothing:antialiased;}
+  a{color:#0369a1;text-decoration:none;}
+  a:hover{color:#003366;}
+  .tnum{font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .mono{font-family:ui-monospace,Menlo,monospace;}
+</style>
+</helmet>
+
+<div style="min-height:100vh;padding-bottom:72px;">
+
+  <header style="background:#fff;border-bottom:1px solid #d4d8dd;padding:0 40px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <img src="../../../../assets/brand/inttex/inttex-logo.svg" alt="Inttex" style="height:20px;display:block;">
+      <span style="width:1px;height:18px;background:#cbd5e1;display:inline-block;"></span>
+      <span style="font-size:14px;font-weight:600;color:#1f2937;">Reconciliação de tokens</span>
+      <span style="font-size:12.5px;color:#9ca3af;">Fase 1 · medição, não desenho</span>
+    </div>
+    <span class="mono tnum" style="font-size:11.5px;color:#9ca3af;">Inttracker · jul 2026</span>
+  </header>
+
+  <div style="max-width:1180px;margin:0 auto;padding:30px 40px 0;display:flex;flex-direction:column;gap:14px;">
+
+    <div style="max-width:760px;margin-bottom:4px;">
+      <h1 style="margin:0 0 9px;font-size:22px;font-weight:800;letter-spacing:-.02em;color:#1f2937;">Onde as três fontes divergem</h1>
+      <p style="margin:0;font-size:13px;line-height:1.65;color:#6b7280;text-wrap:pretty;">Três origens de verdade: os <span class="mono">--rv-*</span> declarados no <span class="mono">UI_VISUAL_CONTRACT.md</span> §4, o fixture aprovado <span class="mono">OP Detail - Compacto</span>, e os tokens do SGAA. Nada aqui foi decidido por gosto — cada linha é um valor lido de um arquivo. As oito decisões da seção 2 são as únicas que precisam do seu martelo.</p>
+    </div>
+
+    <section style="background:#fff;border:1px solid #d4d8dd;border-radius:4px;padding:16px 19px 18px;border-left:3px solid #003366;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:9px;">Achado principal</div>
+      <p style="margin:0;font-size:13.5px;line-height:1.65;color:#1f2937;text-wrap:pretty;max-width:820px;">O contrato descreve a geração que ele deveria estar substituindo. O §4 fixa <span class="mono tnum">--rv-color-accent #2563eb</span> — o azul vibrante herdado do legado. O fixture aprovado <strong style="font-weight:600;">nunca usou esse valor</strong>: ele já estava em navy. Ou seja, a divergência não é entre o contrato e o SGAA; é entre o contrato e a própria tela que você aprovou. O SGAA só desempata.</p>
+      <p style="margin:11px 0 0;font-size:12.5px;line-height:1.6;color:#6b7280;max-width:820px;">Consequência prática: <strong style="color:#1f2937;font-weight:600;">a coluna do contrato pode ser descartada inteira</strong> nos itens de cor. Ela não descreve nem o aprovado nem o SGAA. O que sobra de real é a comparação fixture × SGAA — e ali a distância é pequena.</p>
+    </section>
+
+    <sc-if value="{{ mostrarCores }}" hint-placeholder-val="{{ true }}">
+    <section style="background:#fff;border:1px solid #d4d8dd;border-radius:4px;padding:17px 19px 20px;">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;">
+        <span style="width:20px;height:20px;border-radius:4px;background:#f1f5f9;display:inline-flex;align-items:center;justify-content:center;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="14" r="2.5"></circle><circle cx="8.5" cy="7.5" r="2.5"></circle><circle cx="6.5" cy="15" r="2.5"></circle><path d="M12 21a9 9 0 0 1 0-18"></path></svg>
+        </span>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;">1 · Divergências de cor</span>
+      </div>
+      <p style="margin:0 0 15px;font-size:12.5px;color:#6b7280;line-height:1.6;max-width:700px;">16 fatos de cor. Onde a coluna “Vence” diz SGAA, não há conflito real — é só o contrato estando velho. Onde diz <span style="color:#7b4b12;font-weight:600;">decisão</span>, o fixture e o SGAA discordam de verdade.</p>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;padding-bottom:8px;border-bottom:1px solid #cbd5e1;">
+        <span style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">Fato</span>
+        <span style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">Contrato --rv-*</span>
+        <span style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">Fixture aprovado</span>
+        <span style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">SGAA</span>
+        <span style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">Vence</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Ação primária</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#2563eb;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#2563eb</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#0A326D;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#0a326d</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#003366;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#003366</span></span>
+        <span style="font-size:11.5px;font-weight:600;color:#1f5a3c;">SGAA</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Link / texto interativo</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#2563eb;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#2563eb</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#14509E;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#14509e</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#0369a1;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#0369a1</span></span>
+        <span style="font-size:11.5px;font-weight:600;color:#1f5a3c;">SGAA</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Fundo de item ativo</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#eaf1fd;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#eaf1fd</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#EAF0F9;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#eaf0f9</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#ebf3f8;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">.08 blue</span></span>
+        <span style="font-size:11.5px;font-weight:600;color:#1f5a3c;">SGAA</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Título de página</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#16203a;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#16203a</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#16203a;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#16203a</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#1f2937;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#1f2937</span></span>
+        <span style="font-size:11.5px;font-weight:600;color:#1f5a3c;">SGAA</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Valor de célula (forte)</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#26303f;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#26303f</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#26303f;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#26303f</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#1f2937;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#1f2937</span></span>
+        <span style="font-size:11.5px;font-weight:600;color:#7b4b12;">decisão 3</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Texto secundário</span>
+        <span class="mono" style="font-size:11.5px;color:#9ca3af;">não declarado</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#5b6472;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#5b6472</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#6b7280;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#6b7280</span></span>
+        <span style="font-size:11.5px;font-weight:600;color:#1f5a3c;">SGAA</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Metadado / rótulo fraco</span>
+        <span class="mono" style="font-size:11.5px;color:#9ca3af;">não declarado</span>
+        <span style="display:flex;align-items:center;gap:5px;">
+          <span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#8a93a3;flex-shrink:0;"></span>
+          <span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#9aa2af;flex-shrink:0;"></span>
+          <span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#a2aab6;flex-shrink:0;"></span>
+          <span class="mono" style="font-size:11px;color:#8d2431;font-weight:600;">3 tons</span>
+        </span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#9ca3af;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#9ca3af</span></span>
+        <span style="font-size:11.5px;font-weight:600;color:#7b4b12;">decisão 3</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Fundo da aplicação</span>
+        <span class="mono" style="font-size:11.5px;color:#9ca3af;">não declarado</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#f4f6f8;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#f4f6f8</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#f3f4f6;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#f3f4f6</span></span>
+        <span style="font-size:11.5px;font-weight:600;color:#1f5a3c;">SGAA</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Borda de card</span>
+        <span class="mono" style="font-size:11.5px;color:#9ca3af;">line-200</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#e7eaee;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#e7eaee</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#d4d8dd;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#d4d8dd</span></span>
+        <span style="font-size:11.5px;font-weight:600;color:#7b4b12;">decisão 2</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Divisor interno de tabela</span>
+        <span class="mono" style="font-size:11.5px;color:#9ca3af;">line-100</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#eef0f3;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#eef0f3</span></span>
+        <span class="mono" style="font-size:11.5px;color:#9ca3af;">não existe</span>
+        <span style="font-size:11.5px;font-weight:600;color:#1d5a83;">fixture</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Chip de seção (fundo)</span>
+        <span class="mono" style="font-size:11.5px;color:#9ca3af;">chip-bg</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#eef2f7;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#eef2f7</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#f1f5f9;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#f1f5f9</span></span>
+        <span style="font-size:11.5px;font-weight:600;color:#1f5a3c;">SGAA</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Negativo (sinal solto)</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#d6403a;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#d6403a</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#dc2626;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#dc2626</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#8d2431;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#8d2431</span></span>
+        <span style="font-size:11.5px;font-weight:600;color:#7b4b12;">decisão 4</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Positivo (sinal solto)</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#18794a;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#18794a</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#15803d;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#15803d</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#1f5a3c;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#1f5a3c</span></span>
+        <span style="font-size:11.5px;font-weight:600;color:#7b4b12;">decisão 4</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Atenção (sinal solto)</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#c2610c;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#c2610c</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#c2660a;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#c2660a</span></span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#7b4b12;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#7b4b12</span></span>
+        <span style="font-size:11.5px;font-weight:600;color:#7b4b12;">decisão 4</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #e5e8ec;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Etapa Tecelagem</span>
+        <span class="mono" style="font-size:11.5px;color:#9ca3af;">stage-tecelagem</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#7c3aed;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#7c3aed</span></span>
+        <span class="mono" style="font-size:11.5px;color:#9ca3af;">não existe</span>
+        <span style="font-size:11.5px;font-weight:600;color:#1d5a83;">fixture</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 0.85fr;gap:10px;align-items:center;padding:8px 0;">
+        <span style="font-size:12.5px;color:#1f2937;font-weight:500;">Etapa Acabamento</span>
+        <span class="mono" style="font-size:11.5px;color:#9ca3af;">stage-acabamento</span>
+        <span style="display:flex;align-items:center;gap:7px;"><span style="width:16px;height:16px;border-radius:3px;border:1px solid #cbd5e1;background:#0f9488;flex-shrink:0;"></span><span class="mono tnum" style="font-size:11.5px;color:#6b7280;">#0f9488</span></span>
+        <span class="mono" style="font-size:11.5px;color:#9ca3af;">não existe</span>
+        <span style="font-size:11.5px;font-weight:600;color:#1d5a83;">fixture</span>
+      </div>
+
+      <div style="display:flex;gap:11px;align-items:flex-start;background:#f8fafc;border:1px solid #cbd5e1;border-radius:4px;padding:12px 15px;margin-top:14px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1296a8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+        <div style="font-size:12px;color:#6b7280;line-height:1.6;">Etapa e divisor de tabela <strong style="color:#1f2937;font-weight:600;">não existem no SGAA</strong> — são vocabulário próprio do Inttracker. Entram no contrato como acréscimo declarado, do mesmo jeito que o teal da marca: nome próprio, escopo escrito, e a nota de que o SGAA não os cobre.</div>
+      </div>
+    </section>
+    </sc-if>
+
+    <section style="background:#fff;border:1px solid #d4d8dd;border-radius:4px;padding:17px 19px 20px;">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;">
+        <span style="width:20px;height:20px;border-radius:4px;background:#f1f5f9;display:inline-flex;align-items:center;justify-content:center;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        </span>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;">2 · Oito decisões abertas</span>
+      </div>
+      <p style="margin:0 0 16px;font-size:12.5px;color:#6b7280;line-height:1.6;max-width:700px;">São os únicos pontos onde o fixture aprovado e o SGAA discordam de verdade. Cada um está renderizado nas duas opções, no tamanho real. A recomendação vem com o motivo e com a perda.</p>
+
+      <div style="display:flex;flex-direction:column;gap:12px;">
+
+        <div style="border:1px solid #e5e8ec;border-radius:4px;padding:14px 16px;">
+          <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:12px;">
+            <span class="tnum" style="font-size:11px;font-weight:700;color:#003366;">D1</span>
+            <span style="font-size:13.5px;font-weight:600;color:#1f2937;">Raio de card</span>
+            <span style="font-size:12px;color:#9ca3af;">— 6px em todas as três fontes antigas, 4px no SGAA</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <div style="background:#f3f4f6;padding:16px;border-radius:4px;display:flex;justify-content:center;">
+                <div style="background:#fff;border:1px solid #d4d8dd;border-radius:6px;padding:13px 15px;width:100%;max-width:230px;">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:7px;">Resumo desta OP</div>
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-size:12.5px;color:#6b7280;">Total ajustado</span><span class="tnum" style="font-size:15px;font-weight:700;color:#1f2937;">1000,00 m</span></div>
+                </div>
+              </div>
+              <div class="mono tnum" style="font-size:11.5px;color:#6b7280;margin-top:8px;">6px · fixture, contrato, skill</div>
+            </div>
+            <div>
+              <div style="background:#f3f4f6;padding:16px;border-radius:4px;display:flex;justify-content:center;">
+                <div style="background:#fff;border:1px solid #d4d8dd;border-radius:4px;padding:13px 15px;width:100%;max-width:230px;">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:7px;">Resumo desta OP</div>
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-size:12.5px;color:#6b7280;">Total ajustado</span><span class="tnum" style="font-size:15px;font-weight:700;color:#1f2937;">1000,00 m</span></div>
+                </div>
+              </div>
+              <div class="mono tnum" style="font-size:11.5px;color:#6b7280;margin-top:8px;">4px · SGAA</div>
+            </div>
+          </div>
+          <sc-if value="{{ mostrarRecomendacao }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:9px;align-items:flex-start;background:#ebf3f8;border:1px solid #b5d0e7;border-radius:4px;padding:11px 13px;margin-top:12px;">
+              <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#1d5a83;flex-shrink:0;padding-top:2px;">4px</span>
+              <div style="font-size:12px;color:#1f2937;line-height:1.6;">O 6px nunca existiu no código do app — veio da skill. O 4px é o <span class="mono">--radius</span> real. Adotar 4px deixa <strong style="font-weight:600;">um único raio no sistema</strong>, o que torna a regra trivial de verificar: qualquer valor diferente de 4px ou 999px é defeito. <span style="color:#6b7280;">Perda: os cards ficam um fio mais duros — imperceptível a 2px de diferença.</span></div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border:1px solid #e5e8ec;border-radius:4px;padding:14px 16px;">
+          <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:12px;">
+            <span class="tnum" style="font-size:11px;font-weight:700;color:#003366;">D2</span>
+            <span style="font-size:13.5px;font-weight:600;color:#1f2937;">Borda de card</span>
+            <span style="font-size:12px;color:#9ca3af;">— o fixture usa uma borda quase invisível</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <div style="background:#f3f4f6;padding:16px;border-radius:4px;display:flex;flex-direction:column;gap:8px;">
+                <div style="background:#fff;border:1px solid #e7eaee;border-radius:4px;padding:11px 13px;font-size:12.5px;color:#6b7280;">Dados da OP</div>
+                <div style="background:#fff;border:1px solid #e7eaee;border-radius:4px;padding:11px 13px;font-size:12.5px;color:#6b7280;">Itens da OP</div>
+              </div>
+              <div class="mono tnum" style="font-size:11.5px;color:#6b7280;margin-top:8px;">#e7eaee · fixture — 1,07:1 contra o fundo</div>
+            </div>
+            <div>
+              <div style="background:#f3f4f6;padding:16px;border-radius:4px;display:flex;flex-direction:column;gap:8px;">
+                <div style="background:#fff;border:1px solid #d4d8dd;border-radius:4px;padding:11px 13px;font-size:12.5px;color:#6b7280;">Dados da OP</div>
+                <div style="background:#fff;border:1px solid #d4d8dd;border-radius:4px;padding:11px 13px;font-size:12.5px;color:#6b7280;">Itens da OP</div>
+              </div>
+              <div class="mono tnum" style="font-size:11.5px;color:#6b7280;margin-top:8px;">#d4d8dd · SGAA — 1,20:1</div>
+            </div>
+          </div>
+          <sc-if value="{{ mostrarRecomendacao }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:9px;align-items:flex-start;background:#ebf3f8;border:1px solid #b5d0e7;border-radius:4px;padding:11px 13px;margin-top:12px;">
+              <span class="mono" style="font-size:10.5px;font-weight:700;color:#1d5a83;flex-shrink:0;padding-top:2px;">SGAA</span>
+              <div style="font-size:12px;color:#1f2937;line-height:1.6;"><span class="mono">#d4d8dd</span> na borda externa do card, <span class="mono">#e5e8ec</span> nos divisores internos. O <span class="mono">#e7eaee</span> do fixture praticamente desaparece sobre <span class="mono">#f3f4f6</span> — numa tela com 8 cards empilhados, o olho perde onde um termina. Dois níveis de linha resolvem: aresta forte fora, linha fina dentro.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border:1px solid #e5e8ec;border-radius:4px;padding:14px 16px;">
+          <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:6px;">
+            <span class="tnum" style="font-size:11px;font-weight:700;color:#003366;">D3</span>
+            <span style="font-size:13.5px;font-weight:600;color:#1f2937;">Quantos níveis de texto</span>
+            <span style="font-size:12px;color:#9ca3af;">— o fixture usa 7 cinzas distintos</span>
+          </div>
+          <p style="margin:0 0 12px;font-size:12px;color:#6b7280;line-height:1.6;max-width:640px;">Medidos no fixture: <span class="mono tnum">#16203a</span> <span class="mono tnum">#26303f</span> <span class="mono tnum">#3a4453</span> <span class="mono tnum">#5b6472</span> <span class="mono tnum">#8a93a3</span> <span class="mono tnum">#9aa2af</span> <span class="mono tnum">#a2aab6</span>. Sete tons para quatro papéis — os três últimos são indistinguíveis e a escolha entre eles foi aleatória. O SGAA oferece três.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="border:1px solid #e5e8ec;border-radius:4px;padding:12px 14px;">
+              <div class="mono" style="font-size:11px;color:#9ca3af;margin-bottom:9px;">3 níveis · SGAA puro</div>
+              <div style="display:flex;flex-direction:column;gap:5px;">
+                <span style="font-size:15px;font-weight:700;color:#1f2937;">OP 33/2026-T01</span>
+                <span style="font-size:13px;font-weight:600;color:#1f2937;">1000,00 m</span>
+                <span style="font-size:12.5px;color:#6b7280;">Saldo em tecelagem</span>
+                <span style="font-size:11.5px;color:#9ca3af;">Aberta em 06/07/2026</span>
+              </div>
+            </div>
+            <div style="border:1px solid #e5e8ec;border-radius:4px;padding:12px 14px;">
+              <div class="mono" style="font-size:11px;color:#9ca3af;margin-bottom:9px;">4 níveis · título separado</div>
+              <div style="display:flex;flex-direction:column;gap:5px;">
+                <span style="font-size:15px;font-weight:700;color:#111827;">OP 33/2026-T01</span>
+                <span style="font-size:13px;font-weight:600;color:#1f2937;">1000,00 m</span>
+                <span style="font-size:12.5px;color:#6b7280;">Saldo em tecelagem</span>
+                <span style="font-size:11.5px;color:#9ca3af;">Aberta em 06/07/2026</span>
+              </div>
+            </div>
+          </div>
+          <sc-if value="{{ mostrarRecomendacao }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:9px;align-items:flex-start;background:#ebf3f8;border:1px solid #b5d0e7;border-radius:4px;padding:11px 13px;margin-top:12px;">
+              <span class="tnum" style="font-size:10.5px;font-weight:700;color:#1d5a83;flex-shrink:0;padding-top:2px;">4</span>
+              <div style="font-size:12px;color:#1f2937;line-height:1.6;">Quatro, com <span class="mono">#111827</span> só no H1. O SGAA tem três porque não tem título de 22px — a tela densa tem, e ele precisa se destacar do valor de célula. <strong style="font-weight:600;">Quatro é o teto</strong>: os sete tons do fixture são deriva, não hierarquia.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border:1px solid #e5e8ec;border-radius:4px;padding:14px 16px;">
+          <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:12px;">
+            <span class="tnum" style="font-size:11px;font-weight:700;color:#003366;">D4</span>
+            <span style="font-size:13.5px;font-weight:600;color:#1f2937;">Tom dos semânticos</span>
+            <span style="font-size:12px;color:#9ca3af;">— o SGAA é bem mais surdo que o produto</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <div style="border:1px solid #e5e8ec;border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;gap:9px;">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;"><span style="font-size:12.5px;color:#6b7280;">Falta</span><span class="tnum" style="font-size:13px;font-weight:600;color:#dc2626;">1000,00 m</span></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;"><span style="font-size:12.5px;color:#6b7280;">Já enviado</span><span class="tnum" style="font-size:13px;font-weight:600;color:#15803d;">0,00 m</span></div>
+                <button style="display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;padding:0 13px;border-radius:4px;font-size:13px;font-weight:500;color:#dc2626;border:1px solid #f0d2d2;background:#fff;font-family:inherit;cursor:pointer;">Excluir OP</button>
+              </div>
+              <div class="mono tnum" style="font-size:11.5px;color:#6b7280;margin-top:8px;">vivo · #dc2626 / #15803d</div>
+            </div>
+            <div>
+              <div style="border:1px solid #e5e8ec;border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;gap:9px;">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;"><span style="font-size:12.5px;color:#6b7280;">Falta</span><span class="tnum" style="font-size:13px;font-weight:600;color:#8d2431;">1000,00 m</span></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;"><span style="font-size:12.5px;color:#6b7280;">Já enviado</span><span class="tnum" style="font-size:13px;font-weight:600;color:#1f5a3c;">0,00 m</span></div>
+                <button style="display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;padding:0 13px;border-radius:4px;font-size:13px;font-weight:500;color:#8d2431;border:1px solid #e3b0b8;background:#fff;font-family:inherit;cursor:pointer;">Excluir OP</button>
+              </div>
+              <div class="mono tnum" style="font-size:11.5px;color:#6b7280;margin-top:8px;">surdo · #8d2431 / #1f5a3c — SGAA</div>
+            </div>
+          </div>
+          <sc-if value="{{ mostrarRecomendacao }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:9px;align-items:flex-start;background:#ebf3f8;border:1px solid #b5d0e7;border-radius:4px;padding:11px 13px;margin-top:12px;">
+              <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#1d5a83;flex-shrink:0;padding-top:2px;">os dois</span>
+              <div style="font-size:12px;color:#1f2937;line-height:1.6;">Duas famílias com trabalho definido, não duas famílias por acidente. <strong style="font-weight:600;">Vivo para sinal solto</strong> (número “Falta”, botão destrutivo): a cor é o único portador do significado, então precisa gritar. <strong style="font-weight:600;">Surdo do SGAA dentro de pílula</strong>: ali fundo, borda e bolinha já carregam o estado — o texto vivo passa a competir. É a mesma lógica que separa o teal da marca dos badges.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border:1px solid #e5e8ec;border-radius:4px;padding:14px 16px;">
+          <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:12px;">
+            <span class="tnum" style="font-size:11px;font-weight:700;color:#003366;">D5</span>
+            <span style="font-size:13.5px;font-weight:600;color:#1f2937;">Alturas de controle</span>
+            <span style="font-size:12px;color:#9ca3af;">— SGAA tem uma só; o fixture usa três</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <div style="border:1px solid #e5e8ec;border-radius:4px;padding:14px;display:flex;flex-direction:column;gap:9px;align-items:flex-start;">
+                <button style="display:inline-flex;align-items:center;height:32px;padding:0 13px;border-radius:4px;font-size:13px;font-weight:500;color:#6b7280;border:1px solid #cbd5e1;background:#fff;font-family:inherit;cursor:pointer;">Pausar</button>
+                <button style="display:inline-flex;align-items:center;height:32px;padding:0 13px;border-radius:4px;font-size:13px;font-weight:600;color:#fff;border:none;background:#003366;font-family:inherit;cursor:pointer;">Transferir</button>
+              </div>
+              <div class="mono tnum" style="font-size:11.5px;color:#6b7280;margin-top:8px;">32px único · SGAA --btn-h</div>
+            </div>
+            <div>
+              <div style="border:1px solid #e5e8ec;border-radius:4px;padding:14px;display:flex;flex-direction:column;gap:9px;align-items:flex-start;">
+                <button style="display:inline-flex;align-items:center;height:32px;padding:0 11px;border-radius:4px;font-size:12px;font-weight:500;color:#6b7280;border:1px solid #cbd5e1;background:#fff;font-family:inherit;cursor:pointer;">Anexar</button>
+                <button style="display:inline-flex;align-items:center;height:34px;padding:0 13px;border-radius:4px;font-size:13px;font-weight:500;color:#6b7280;border:1px solid #cbd5e1;background:#fff;font-family:inherit;cursor:pointer;">Pausar</button>
+                <button style="display:inline-flex;align-items:center;height:38px;padding:0 15px;border-radius:4px;font-size:13.5px;font-weight:600;color:#fff;border:none;background:#003366;font-family:inherit;cursor:pointer;">Transferir</button>
+              </div>
+              <div class="mono tnum" style="font-size:11.5px;color:#6b7280;margin-top:8px;">32 / 34 / 38 · fixture</div>
+            </div>
+          </div>
+          <sc-if value="{{ mostrarRecomendacao }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:9px;align-items:flex-start;background:#ebf3f8;border:1px solid #b5d0e7;border-radius:4px;padding:11px 13px;margin-top:12px;">
+              <span class="tnum" style="font-size:10.5px;font-weight:700;color:#1d5a83;flex-shrink:0;padding-top:2px;">32/34/38</span>
+              <div style="font-size:12px;color:#1f2937;line-height:1.6;">A escada de três, com o 32px do SGAA virando o degrau <strong style="font-weight:600;">compacto</strong> (linha de tabela, anexar) em vez do único. Altura é o que carrega a hierarquia de ação na OP Detail — achatar tudo em 32px apaga a diferença entre “Pausar” e “Transferir p/ acabamento”, que é justamente a leitura que faz a tela funcionar. Três degraus, fechados, nada entre eles.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border:1px solid #e5e8ec;border-radius:4px;padding:14px 16px;">
+          <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:12px;">
+            <span class="tnum" style="font-size:11px;font-weight:700;color:#003366;">D6</span>
+            <span style="font-size:13.5px;font-weight:600;color:#1f2937;">Raio da pílula</span>
+            <span style="font-size:12px;color:#9ca3af;">— 20px na skill, 999px no SGAA</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:9px;">
+              <span style="display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:20px;background:#f2ecfd;color:#7c3aed;">Tecelagem</span>
+              <span class="mono tnum" style="font-size:11.5px;color:#6b7280;">20px</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;">
+              <span style="display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:#f2ecfd;color:#7c3aed;">Tecelagem</span>
+              <span class="mono tnum" style="font-size:11.5px;color:#6b7280;">999px</span>
+            </div>
+          </div>
+          <sc-if value="{{ mostrarRecomendacao }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:9px;align-items:flex-start;background:#ebf3f8;border:1px solid #b5d0e7;border-radius:4px;padding:11px 13px;margin-top:12px;">
+              <span class="mono tnum" style="font-size:10.5px;font-weight:700;color:#1d5a83;flex-shrink:0;padding-top:2px;">999px</span>
+              <div style="font-size:12px;color:#1f2937;line-height:1.6;">Idênticos na renderização a essa altura, mas 999px é o valor honesto — não depende da altura do elemento para continuar sendo uma pílula. E é o que o SGAA já usa. Decisão de custo zero; entra só para o detector ter um número exato para exigir.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border:1px solid #e5e8ec;border-radius:4px;padding:14px 16px;">
+          <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:6px;">
+            <span class="tnum" style="font-size:11px;font-weight:700;color:#003366;">D7</span>
+            <span style="font-size:13.5px;font-weight:600;color:#1f2937;">Cor do botão positivo</span>
+            <span style="font-size:12px;color:#9ca3af;">— os três valores atuais estão fora do SGAA</span>
+          </div>
+          <p style="margin:0 0 12px;font-size:12px;color:#6b7280;line-height:1.6;max-width:700px;">O “Finalizar OP” usa <span class="mono tnum">#f2fbf5</span> de fundo, <span class="mono tnum">#bfe6cd</span> de borda e <span class="mono tnum">#15803d</span> de texto — o bloco <span class="mono">--success-btn-*</span> da skill antiga. Nenhum dos três existe no SGAA. E o que incomoda não é transparência: o fundo tem <strong style="color:#1f2937;font-weight:600;">3% de croma verde</strong>, então sobre card branco ele lê como branco sujo, enquanto a borda é cerca de quatro vezes mais saturada. Fundo quase neutro com borda colorida = contorno vazio com uma mancha dentro.</p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+            <div>
+              <div style="background:#fff;border:1px solid #e5e8ec;border-radius:4px;padding:16px;display:flex;justify-content:center;">
+                <button style="display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:4px;font-size:13px;font-weight:600;color:#15803d;border:1px solid #bfe6cd;background:#f2fbf5;font-family:inherit;cursor:pointer;white-space:nowrap;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>Finalizar OP</button>
+              </div>
+              <div class="mono tnum" style="font-size:11px;color:#8d2431;font-weight:600;margin-top:8px;">atual · fora da paleta</div>
+            </div>
+            <div>
+              <div style="background:#fff;border:1px solid #e5e8ec;border-radius:4px;padding:16px;display:flex;justify-content:center;">
+                <button style="display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:4px;font-size:13px;font-weight:600;color:#1f5a3c;border:1px solid #b9d7b5;background:#e9f5e7;font-family:inherit;cursor:pointer;white-space:nowrap;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>Finalizar OP</button>
+              </div>
+              <div class="mono tnum" style="font-size:11px;color:#6b7280;margin-top:8px;">SGAA status-positive</div>
+            </div>
+            <div>
+              <div style="background:#fff;border:1px solid #e5e8ec;border-radius:4px;padding:16px;display:flex;justify-content:center;">
+                <button style="display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:4px;font-size:13px;font-weight:600;color:#1f5a3c;border:1px solid #cbd5e1;background:#fff;font-family:inherit;cursor:pointer;white-space:nowrap;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>Finalizar OP</button>
+              </div>
+              <div class="mono tnum" style="font-size:11px;color:#6b7280;margin-top:8px;">neutro + texto positivo</div>
+            </div>
+          </div>
+          <sc-if value="{{ mostrarRecomendacao }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:9px;align-items:flex-start;background:#ebf3f8;border:1px solid #b5d0e7;border-radius:4px;padding:11px 13px;margin-top:12px;">
+              <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#1d5a83;flex-shrink:0;padding-top:2px;">SGAA</span>
+              <div style="font-size:12px;color:#1f2937;line-height:1.6;">Os tons do <span class="mono">status-positive</span>: o fundo finalmente lê como verde e a borda para de brigar com ele. A regra que sai daqui é maior que este botão: <strong style="font-weight:600;">fundo, borda e texto de um botão vêm sempre da mesma família de status</strong> — croma descasado entre fundo e borda é o defeito real, e ele se repete no negativo e no neutro. <span style="color:#6b7280;">Manter o positivo como terceiro nível está certo: o navy fica reservado para a ação de fluxo no rail, e dois navys na mesma tela competiriam.</span></div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border:1px solid #e5e8ec;border-radius:4px;padding:14px 16px;">
+          <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:6px;">
+            <span class="tnum" style="font-size:11px;font-weight:700;color:#003366;">D8</span>
+            <span style="font-size:13.5px;font-weight:600;color:#1f2937;">Lista de dropdown</span>
+            <span style="font-size:12px;color:#9ca3af;">— a lista aberta não é estilizável por CSS</span>
+          </div>
+          <p style="margin:0 0 12px;font-size:12px;color:#6b7280;line-height:1.6;max-width:700px;">Todas as telas usam <span class="mono">&lt;select&gt;</span> com <span class="mono">appearance:none</span>. Isso estiliza <strong style="color:#1f2937;font-weight:600;">só o campo fechado</strong>. A lista que abre é desenhada pelo navegador e não aceita padding, raio, sombra, cor de item nem fundo de selecionado — é por isso que o painel expandido parece de outra década e os itens ficam colados na borda. Não há CSS que conserte; tem que virar popover próprio. O <span class="mono">Acompanhamento B2B</span> já tem um feito à mão, mas com um quarto valor de sombra.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
+            <div>
+              <div style="background:#f3f4f6;padding:16px;border-radius:4px;">
+                <div style="font-size:11.5px;color:#6b7280;margin-bottom:6px;">Fornecedor de tecelagem</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;height:32px;padding:0 10px;border:1px solid #cbd5e1;border-radius:4px;background:#fff;font-size:13px;color:#1f2937;">MASSIS
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+                <div style="margin-top:5px;border:1px solid #94a3b8;background:#fff;font-size:13px;color:#1f2937;">
+                  <div style="padding:1px 2px;">MASSIS</div>
+                  <div style="padding:1px 2px;background:#0060df;color:#fff;">Nure</div>
+                  <div style="padding:1px 2px;">Fiação São Carlos</div>
+                </div>
+              </div>
+              <div class="mono tnum" style="font-size:11px;color:#8d2431;font-weight:600;margin-top:8px;">&lt;select&gt; nativo · nada disso é editável</div>
+            </div>
+            <div>
+              <div style="background:#f3f4f6;padding:16px;border-radius:4px;">
+                <div style="font-size:11.5px;color:#6b7280;margin-bottom:6px;">Fornecedor de tecelagem</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;height:32px;padding:0 10px;border:1px solid #0369a1;border-radius:4px;background:#fff;font-size:13px;color:#1f2937;box-shadow:0 0 0 3px rgba(3,105,161,.22);">MASSIS
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0369a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+                <div style="margin-top:6px;border:1px solid #cbd5e1;border-radius:4px;background:#fff;box-shadow:0 12px 28px rgba(0,0,0,.10);padding:5px;">
+                  <div style="padding:5px 7px 4px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;">Tecelagem</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 8px;border-radius:4px;background:rgba(3,105,161,.08);font-size:13px;font-weight:600;color:#003366;">MASSIS
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#003366" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </div>
+                  <div style="padding:7px 8px;border-radius:4px;background:#f8fafc;font-size:13px;color:#1f2937;">Nure</div>
+                  <div style="padding:7px 8px;border-radius:4px;font-size:13px;color:#1f2937;">Fiação São Carlos</div>
+                </div>
+              </div>
+              <div class="mono tnum" style="font-size:11px;color:#6b7280;margin-top:8px;">popover próprio · spec do SGAA</div>
+            </div>
+          </div>
+          <sc-if value="{{ mostrarRecomendacao }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:9px;align-items:flex-start;background:#ebf3f8;border:1px solid #b5d0e7;border-radius:4px;padding:11px 13px;margin-top:12px;">
+              <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#1d5a83;flex-shrink:0;padding-top:2px;">popover</span>
+              <div style="font-size:12px;color:#1f2937;line-height:1.6;">O SGAA <strong style="font-weight:600;">já especifica popover</strong>: raio 4px, <span class="mono">box-shadow:0 12px 28px rgba(0,0,0,.10)</span>, fundo <span class="mono">--surface</span>, borda <span class="mono">--border-strong</span>, item selecionado em <span class="mono">rgba(3,105,161,.08)</span>. Falta só aplicar. Item com padding <span class="mono tnum">7px 8px</span> e raio 4px dentro de um painel com 5px de padding — a folga interna é o que mata a cara de legado. <span style="color:#6b7280;">Hoje existem quatro sombras de popover diferentes no projeto; vira uma.</span></div>
+            </div>
+          </sc-if>
+        </div>
+
+      </div>
+    </section>
+
+    <sc-if value="{{ mostrarGeometria }}" hint-placeholder-val="{{ true }}">
+    <section style="background:#fff;border:1px solid #d4d8dd;border-radius:4px;padding:17px 19px 20px;">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;">
+        <span style="width:20px;height:20px;border-radius:4px;background:#f1f5f9;display:inline-flex;align-items:center;justify-content:center;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"></path><path d="M6 8v8"></path><path d="M18 8v8"></path></svg>
+        </span>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;">3 · Geometria medida no fixture</span>
+      </div>
+      <p style="margin:0 0 15px;font-size:12.5px;color:#6b7280;line-height:1.6;max-width:700px;">Fatos lidos de <span class="mono">OP Detail - Compacto.dc.html</span>. Não há decisão aqui — o SGAA não fala de geometria de tela, então o fixture é a única fonte. Isto é o que entra no contrato como o arquétipo <strong style="color:#1f2937;font-weight:600;">cockpit de detalhe</strong>.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px 26px;">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:9px;">Shell</div>
+          <div style="display:flex;flex-direction:column;gap:0;">
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #e5e8ec;"><span style="font-size:12.5px;color:#6b7280;">Header</span><span class="mono tnum" style="font-size:12px;color:#1f2937;font-weight:500;">60px</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #e5e8ec;"><span style="font-size:12.5px;color:#6b7280;">Sidebar</span><span class="mono tnum" style="font-size:12px;color:#1f2937;font-weight:500;">190px</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #e5e8ec;"><span style="font-size:12.5px;color:#6b7280;">Rail direito</span><span class="mono tnum" style="font-size:12px;color:#1f2937;font-weight:500;">300px sticky</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #e5e8ec;"><span style="font-size:12.5px;color:#6b7280;">Conteúdo máx.</span><span class="mono tnum" style="font-size:12px;color:#1f2937;font-weight:500;">1600px</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #e5e8ec;"><span style="font-size:12.5px;color:#6b7280;">Padding do main</span><span class="mono tnum" style="font-size:12px;color:#1f2937;font-weight:500;">18px 32px 40px</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #e5e8ec;"><span style="font-size:12.5px;color:#6b7280;">Gap entre cards</span><span class="mono tnum" style="font-size:12px;color:#1f2937;font-weight:500;">14px</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;"><span style="font-size:12.5px;color:#6b7280;">Gap entre colunas</span><span class="mono tnum" style="font-size:12px;color:#1f2937;font-weight:500;">16px</span></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:9px;">Card e seção</div>
+          <div style="display:flex;flex-direction:column;gap:0;">
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #e5e8ec;"><span style="font-size:12.5px;color:#6b7280;">Padding · coluna esq.</span><span class="mono tnum" style="font-size:12px;color:#1f2937;font-weight:500;">15px 17px</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #e5e8ec;"><span style="font-size:12.5px;color:#6b7280;">Padding · rail</span><span class="mono tnum" style="font-size:12px;color:#1f2937;font-weight:500;">16px 17px</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #e5e8ec;"><span style="font-size:12.5px;color:#6b7280;">Chip de seção</span><span class="mono tnum" style="font-size:12px;color:#1f2937;font-weight:500;">20px · glifo 13px</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #e5e8ec;"><span style="font-size:12.5px;color:#6b7280;">Rótulo de seção</span><span class="mono tnum" style="font-size:12px;color:#1f2937;font-weight:500;">11px/700 · .06em</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #e5e8ec;"><span style="font-size:12.5px;color:#6b7280;">Cabeçalho de tabela</span><span class="mono tnum" style="font-size:12px;color:#1f2937;font-weight:500;">10,5px/600 · .04em</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #e5e8ec;"><span style="font-size:12.5px;color:#6b7280;">Grid de pares</span><span class="mono tnum" style="font-size:12px;color:#1f2937;font-weight:500;">3 col · gap 13/18px</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;"><span style="font-size:12.5px;color:#6b7280;">Linha de tabela</span><span class="mono tnum" style="font-size:12px;color:#1f2937;font-weight:500;">pad-y 9–10px</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin:20px 0 9px;">Barra de ações do header — alinhada ao bloco de título</div>
+      <div style="border:1px solid #e5e8ec;border-radius:4px;padding:16px 18px;background:#f8fafc;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+          <div style="min-width:0;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#9ca3af;font-weight:500;margin-bottom:6px;">
+              <span style="color:#9ca3af;">OPs</span><span style="color:#cbd5e1;">/</span><span style="color:#6b7280;">OP 33/2026-T01</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;">
+              <span style="font-size:22px;font-weight:800;letter-spacing:-.02em;color:#111827;">OP 33/2026-T01</span>
+              <span style="display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:#f2ecfd;color:#7c3aed;">Tecelagem</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:#faeed5;color:#7b4b12;"><span style="width:6px;height:6px;border-radius:50%;background:#c5801f;"></span>Em produção</span>
+            </div>
+            <div style="font-size:12.5px;color:#6b7280;margin-top:7px;">Nº interno 28/2026 · Pedido Nº 33 · Lote Nº 16 · Aberta em 06/07/2026</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <button style="display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:4px;font-size:13px;font-weight:500;color:#6b7280;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-family:inherit;white-space:nowrap;">Pausar</button>
+            <button style="display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:4px;font-size:13px;font-weight:600;color:#15803d;border:1px solid #bfe6cd;background:#f2fbf5;cursor:pointer;font-family:inherit;white-space:nowrap;">Finalizar OP</button>
+            <button style="display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:4px;font-size:13px;font-weight:500;color:#dc2626;border:1px solid #f0d2d2;background:#fff;cursor:pointer;font-family:inherit;white-space:nowrap;">Excluir</button>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11.5px;color:#6b7280;line-height:1.6;margin-top:10px;max-width:760px;">A regra medida: <span class="mono">align-items:flex-start</span> — a barra alinha com o <strong style="color:#1f2937;font-weight:600;">topo do bloco de título</strong>, não com o H1 nem com o centro. Gap 8px, altura 34px em todos, <span class="mono">flex-wrap</span> no container pai para a barra cair inteira em tela estreita. Só ações de estado da entidade entram aqui; ação de fluxo (“Transferir p/ acabamento”) vive no rail, a 38px.</div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin:20px 0 9px;">Ação dentro de bloco interno — sempre à direita</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <div style="background:#f3f4f6;padding:14px;border-radius:4px;">
+            <div style="background:#fff;border:1px solid #d4d8dd;border-radius:4px;padding:14px 16px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px;">
+                <span style="width:20px;height:20px;border-radius:4px;background:#f1f5f9;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg></span>
+                <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;">Entregas de tecelagem</span>
+              </div>
+              <div style="height:7px;background:#f1f5f9;border-radius:2px;margin-bottom:6px;"></div>
+              <div style="height:7px;background:#f1f5f9;border-radius:2px;width:64%;"></div>
+              <div style="display:flex;align-items:center;justify-content:flex-start;margin-top:12px;padding-top:11px;border-top:1px solid #e5e8ec;">
+                <button style="display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:4px;font-size:12.5px;font-weight:600;color:#0369a1;border:1px solid #cbd5e1;background:#fff;font-family:inherit;cursor:pointer;">+ Nova entrega</button>
+              </div>
+            </div>
+          </div>
+          <div class="mono tnum" style="font-size:11px;color:#8d2431;font-weight:600;margin-top:8px;">esquerda · defeito</div>
+        </div>
+        <div>
+          <div style="background:#f3f4f6;padding:14px;border-radius:4px;">
+            <div style="background:#fff;border:1px solid #d4d8dd;border-radius:4px;padding:14px 16px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px;">
+                <span style="width:20px;height:20px;border-radius:4px;background:#f1f5f9;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg></span>
+                <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;">Entregas de tecelagem</span>
+              </div>
+              <div style="height:7px;background:#f1f5f9;border-radius:2px;margin-bottom:6px;"></div>
+              <div style="height:7px;background:#f1f5f9;border-radius:2px;width:64%;"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding-top:11px;border-top:1px solid #e5e8ec;">
+                <span style="font-size:12.5px;color:#9ca3af;">Nenhuma entrega registrada ainda.</span>
+                <button style="display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:4px;font-size:12.5px;font-weight:600;color:#0369a1;border:1px solid #cbd5e1;background:#fff;font-family:inherit;cursor:pointer;flex-shrink:0;">+ Nova entrega</button>
+              </div>
+            </div>
+          </div>
+          <div class="mono tnum" style="font-size:11px;color:#6b7280;margin-top:8px;">direita · regra</div>
+        </div>
+      </div>
+      <div style="font-size:11.5px;color:#6b7280;line-height:1.65;margin-top:10px;max-width:800px;">Dentro de um card, ação vai no <strong style="color:#1f2937;font-weight:600;">rodapé do bloco, alinhada à direita</strong>, separada por <span class="mono">border-top:1px solid #e5e8ec</span> e <span class="mono tnum">padding-top:11px</span>. Quando o bloco tem estado vazio, o texto vazio fica à esquerda e a ação à direita na mesma linha (<span class="mono">justify-content:space-between</span>). <strong style="color:#1f2937;font-weight:600;">Duas exceções, e só duas:</strong> no rail todo controle é <span class="mono">width:100%</span>; e o botão tracejado de anexar é <span class="mono">width:100%</span> por tipo de documento. Fora dessas, botão à esquerda dentro de card é defeito — e é verificável pelo detector.</div>
+    </section>
+    </sc-if>
+
+    <section style="background:#fff;border:1px solid #d4d8dd;border-radius:4px;padding:17px 19px 20px;">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;">
+        <span style="width:20px;height:20px;border-radius:4px;background:#f1f5f9;display:inline-flex;align-items:center;justify-content:center;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        </span>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;">4 · Fora de disputa</span>
+      </div>
+      <p style="margin:0 0 14px;font-size:12.5px;color:#6b7280;line-height:1.6;max-width:700px;">As três fontes concordam nestes pontos. Entram no contrato sem discussão, e é o que já funciona — vale não mexer.</p>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px 22px;">
+        <div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#1f2937;line-height:1.55;"><span style="color:#1f5a3c;flex-shrink:0;font-weight:700;">·</span>Inter como única família</div>
+        <div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#1f2937;line-height:1.55;"><span style="color:#1f5a3c;flex-shrink:0;font-weight:700;">·</span>Escala densa, nada abaixo de 10,5px</div>
+        <div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#1f2937;line-height:1.55;"><span style="color:#1f5a3c;flex-shrink:0;font-weight:700;">·</span><span class="mono">tabular-nums</span> em todo número, vírgula decimal</div>
+        <div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#1f2937;line-height:1.55;"><span style="color:#1f5a3c;flex-shrink:0;font-weight:700;">·</span>Cards planos, sombra só em popover</div>
+        <div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#1f2937;line-height:1.55;"><span style="color:#1f5a3c;flex-shrink:0;font-weight:700;">·</span>Regra de ouro da tabela: header = valores</div>
+        <div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#1f2937;line-height:1.55;"><span style="color:#1f5a3c;flex-shrink:0;font-weight:700;">·</span>Chip de ícone por seção, ícone distinto</div>
+        <div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#1f2937;line-height:1.55;"><span style="color:#1f5a3c;flex-shrink:0;font-weight:700;">·</span>Lucide, stroke 1,8–2, sem ícone cheio</div>
+        <div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#1f2937;line-height:1.55;"><span style="color:#1f5a3c;flex-shrink:0;font-weight:700;">·</span>pt-BR, sem emoji, estado vazio honesto</div>
+        <div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#1f2937;line-height:1.55;"><span style="color:#1f5a3c;flex-shrink:0;font-weight:700;">·</span>Pílula só em badge, nunca em botão</div>
+        <div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#1f2937;line-height:1.55;"><span style="color:#1f5a3c;flex-shrink:0;font-weight:700;">·</span>Etapa ≠ status, nunca a mesma cor</div>
+      </div>
+    </section>
+
+    <section style="background:#003366;border-radius:4px;padding:19px 21px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.55);margin-bottom:10px;">Próximo passo</div>
+      <p style="margin:0;font-size:13.5px;line-height:1.65;color:#fff;max-width:800px;text-wrap:pretty;">Bata o martelo nas oito decisões (ou confirme as recomendações em bloco). Com elas fechadas, o contrato passa a ter enums fechados em vez de prosa, e o detector tem contra o quê medir. Nada aqui exige redesenho — a distância entre o fixture aprovado e o SGAA é de <strong style="font-weight:700;">oito decisões</strong> — nenhuma delas estrutural.</p>
+    </section>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;escopo&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;Tudo&quot;, &quot;Só as decisões abertas&quot;], &quot;default&quot;: &quot;Tudo&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Leitura&quot; },
+  &quot;mostrarRecomendacao&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Leitura&quot; },
+  &quot;mostrarGeometria&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Leitura&quot; }
+}">
+class Component extends DCLogic {
+  renderVals() {
+    const escopo = this.props.escopo ?? 'Tudo';
+    const soDecisoes = escopo === 'Só as decisões abertas';
+    return {
+      mostrarRecomendacao: this.props.mostrarRecomendacao ?? true,
+      mostrarCores: !soDecisoes,
+      mostrarGeometria: !soDecisoes && (this.props.mostrarGeometria ?? true),
+    };
+  }
+}
+</script>
+</body>
+</html>

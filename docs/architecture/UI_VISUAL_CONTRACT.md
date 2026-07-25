@@ -1,353 +1,378 @@
-# VERSIONED VISUAL CONTRACT — RAVATEX / CONTROLE DE TAPETES
+# VISUAL CONTRACT — INTTRACKER
 
-> **Phase:** `G28-P0` / fix `G28-P0-R1` — governance record and fix (docs-only).
-> **Origin:** consolidation of the `.claude/design-skill/` skill (`inttex-ui`:
-> `SKILL.md` + `README.md`), of the versioned tokens `css/tokens.css` (`--rv-*`), and
-> of the two real OP pilots. No new design was invented.
-> **Reason:** permanent UI rules **cannot** exist only in `.claude`
-> (which is untracked and absent from new worktrees — see `CLAUDE_PROJECT_ASSET_MAP.md` §13).
-> This document is the versioned source; the skill remains a generation tool.
-
-Precedence: this contract **prevails over the skill**. A skill can teach how to
-apply the pattern, but it cannot contradict the architecture nor this contract.
+> **Version** 2.0 · 2026-07-25 · fully replaces v1 (`G28-P0`).
+> **Precedence:** this contract prevails over any skill. A skill teaches how to apply
+> the pattern; it cannot contradict the contract.
+> **Values:** SGAA. **Geometry:** measured in the approved fixture. **Nothing invented.**
+>
+> **Language:** this document — and all project documentation — is English.
+> **All product UI copy is pt-BR.** See §7.
 
 ---
 
-## 0. Real sources
+## 0. How this document works
 
-- `css/tokens.css` — canonical versioned tokens (`--rv-*` prefix).
-- `.claude/design-skill/README.md` — complete guide (foundations, layout, components, table golden rule).
-- `.claude/design-skill/SKILL.md` — summarized non-negotiable rules.
-- `.claude/design-skill/tokens/*.css` and `.claude/tokens/*.css` — skill tokens (reference).
-- Approved pilots: `js/screens/op-latex-admin.js`, `js/screens/op-tecelagem-producao-admin.js`.
-- Verification harness: `.claude/preview/*.html`.
+Four layers, **one owning file each**. No value exists in two places.
 
-When a point does not have sufficient evidence in the sources above, it is marked
-as **OPEN — REQUIRES IALEAD DECISION**.
+| Layer | Owner | Holds |
+|---|---|---|
+| 1 · Tokens | `css/tokens.css` | every visual value in the product |
+| 2 · Primitives | this file, §2 | the 11 components and their states |
+| 3 · Archetypes | this file, §3 | the 6 screen families and their intent |
+| 4 · Conformance | `docs/architecture/UI_CONFORMANCE.md` | screen → archetype → state |
 
----
+Three writing rules, so the document cannot drift again:
 
-## 0.1 Rule taxonomy
-
-Each rule in this contract has a scope. Before applying or expanding a rule,
-check its class:
-
-- **GLOBAL** — general product rule; applies across the whole application.
-- **SCREEN-FAMILY** — rule for a family of screens, not the whole application.
-- **COMPONENT-SPECIFIC** — rule for a specific component.
-- **OBSERVED-PATTERN** — pattern observed in the pilots; needs validation before
-  being expanded as a norm.
-- **OPEN** — decision not yet closed.
-
-## 0.2 Rule classification
-
-**GLOBAL:**
-- `--rv-*` tokens;
-- low curvature (card 6px / control 4px);
-- avoid pills outside badges/status;
-- flat cards;
-- pt-BR;
-- honest empty states;
-- do not fabricate files or badges;
-- header/value alignment (table golden rule);
-- component reuse;
-- functional iconography;
-- do not hide the requirement with a simplified replica.
-
-**SCREEN-FAMILY** (administrative detail screens, when compatible):
-- two-column cockpit;
-- rail;
-- sticky rail;
-- full-width rail;
-- section chips;
-- administrative detail layout;
-- form pair grids.
-
-**COMPONENT-SPECIFIC:**
-- badge;
-- file chip;
-- destructive button;
-- row-level compact icon button (§8.1; exempt from the destructive
-  button's icon+text rule, entity-level header actions excluded);
-- modal;
-- table;
-- document slots.
-
-**OBSERVED-PATTERN** (pilot values; do not promote without validation):
-- 62px header;
-- 196px sidebar;
-- 300px rail;
-- 1600px width;
-- exact gaps;
-- exact pilot dimensions;
-- any value not confirmed as an applicable global token.
-
-**OPEN:**
-- complete modal;
-- breakpoints;
-- narrow-screen behavior;
-- formal accessibility target.
+1. **Prose is justification, never a source of value.** Every mandatory value lives in
+   `tokens.css` or in a §5 enum. If you must interpret a sentence to learn a number,
+   the number is in the wrong place.
+2. **A reference is a file, not a description.** Every primitive and archetype points
+   to a versioned **fixture**. Descriptions drift; files do not.
+3. **Facts here, reasons in the log.** This file says what IS. Why and history live in
+   `DESIGN_DECISIONS.md`, which is append-only and never rewritten.
 
 ---
 
-## 1. Visual language
+## 1. Layer 1 — Tokens
 
-Dense, clean and sober — "tool padding, not landing-page padding", but with breathing
-room (gap ~14–16px between cards). **Flat** cards (no shadow), hairline border.
-Portuguese (pt-BR), objective and operational. **Do not use emoji as a substitute for
-functional iconography** in operational interfaces — use the approved icon set
-(see §13). This does **not** create an absolute ban on emoji in future
-textual content.
+**Single source:** `css/tokens.css`. Prefix `--rv-*`, SGAA semantic names, SGAA values.
 
-## 2. Typography
+**Forbidden:**
+- literal hex in any screen — always `var(--rv-*)`;
+- a second token namespace (`.claude/design-skill/tokens/*` and
+  `Inttex UI Skill/tokens/*` are **historical reference**, not sources);
+- any shape, height, shadow or type value outside the §5 enums.
 
-**Inter** font. Dense scale (`--rv-font-size-*` tokens):
+**Re-theming** = edit only the `BRAND / ACTION` block of `tokens.css`.
 
-- Page title 22px/800, tracking `-.02em`;
-- Metric value 15px/700;
-- Cell/value 13–13,5px (`--rv-font-size-body` 13px, `--rv-color-value` #26303f);
-- Metric label ~12,5px (`--rv-font-size-value`);
-- Section label 11px/700 UPPERCASE, tracking `.06em` (`--rv-tracking-label`);
-- Table header 10,5px/600 UPPERCASE.
+Three colour families coexist with defined jobs — this is deliberate, not accidental:
 
-Nothing below 10,5px. **Every number** uses `font-variant-numeric: tabular-nums`
-(`.tnum`) and decimal comma with unit (`1000,00 m`, `183,000 kg`). Dates `DD/MM/AAAA`.
+| Family | Where | Why |
+|---|---|---|
+| **Bare signal** (`--rv-signal-*`, vivid) | number, icon, button | colour is the sole carrier of meaning |
+| **Status pill** (`--rv-pill-*`, muted) | state pill | background + border + dot already carry the state |
+| **Stage** (`--rv-stage-*`) | stage badge | stage ≠ status; never the same colour for both |
 
-## 3. Shape, corners and shadow
-
-- **Radii (low curvature):** card **6px** (`--rv-radius-card`), control
-  **4px** (`--rv-radius-control`), **pill** badge (`--rv-radius-pill` 999px).
-  Never round a button like a card.
-- **Pill is exclusive to badge/stage/status** — do not use in buttons, inputs or cards.
-- **Shadow** only in menus/popovers; cards are flat. Avoid heavy shadows.
-- Hairline border `1px solid var(--rv-color-line-200)`.
-
-## 4. Colors (semantic aliases — `css/tokens.css`)
-
-- Text: title/body `--rv-color-title`/`--rv-color-text` #16203a; muted `--rv-color-muted`; strong value `--rv-color-value`.
-- Accent (blue): `--rv-color-accent` #2563eb; soft background `--rv-color-subtle-bg` #eaf1fd.
-- Surfaces: `--rv-color-surface` #fff; header `--rv-color-bg-header`.
-- Lines: `--rv-color-line-100` (table), `--rv-color-line-200` (card), `--rv-color-input-border`.
-- Semantic: `--rv-color-danger` #d6403a, `--rv-color-success` #18794a, `--rv-color-warning` #c2610c — each reads as a status; use sparingly.
-- **Stage:** Tecelagem purple `--rv-stage-tecelagem`; Acabamento teal `--rv-stage-acabamento` (each with a `-bg`).
-- **Status:** Preparação blue `--rv-status-prep`; Em produção amber `--rv-status-prod` + dot `--rv-status-prod-dot`.
-- **Stage ≠ status:** never the same color for stage and status.
-
-Re-theming = edit only the base scale and the accent in the tokens; cards/buttons/badges/tables inherit.
-
-## 5. Layout (shell + cockpit)
-
-- **Shell:** fixed header ~62px (`--rv-header-h`) + sidebar ~196px (`--rv-sidebar-w`;
-  active item `bg-accent-soft text-accent`, radius 4px) + scrollable main.
-- **Content:** full width up to **1600px**, centered; padding `18px 32px 40px`.
-  Never a narrow central band with lateral leftover space.
-- **2-column cockpit — `SCREEN-FAMILY`** (administrative detail screens,
-  when compatible with the content): `grid-template-columns: minmax(0,1fr)
-  var(--rv-rail-w)` with a right rail **300px** (`--rv-rail-w`) `position:sticky;top:0`.
-  Content/tables on the left; summary, metrics and the dominant action in the rail. Do not
-  repeat the same data on both sides.
-- **The cockpit/rail is NOT mandatory** for the Documentos queue, listings,
-  modals, simple screens or portal surfaces — those choose the layout
-  suited to their content.
-- **Rail rule (when there is a rail):** everything in the rail is vertical/full-width
-  (stacked metrics, inputs and buttons `width:100%`). **Forbidden**: fixed-column
-  grid inside the rail.
-
-## 6. Cards and sections
-
-Every section opens with an **icon chip** 20–22px (radius 4px, `--rv-color-chip-bg`,
-glyph 13px `--rv-color-chip-glyph`) + 11px UPPERCASE label. Discreet icon,
-**distinct per section**. **Forbidden:** vertical blue bar, solid strip,
-border pseudo-icon, dominant numbered header ("1. Dados", "2. Itens").
-
-## 7. Tables — golden rule
-
-**The width and alignment of the HEADER of each column MUST be identical to
-those of the VALUES.** Ensure this via `<table style="table-layout:fixed">` + `<colgroup>`
-with `text-align` repeated on `th`/`td`, **or** a shared `grid-template-columns`
-between the header and all rows. Numeric columns `text-right` in the
-header and in the values; `.tnum` on every number; `overflow-x:auto` wrapper on tables
-with fixed px columns so the last column never disappears.
-
-### 7.1 Grid/list text-cell overflow
-
-Grid/list text cells holding free-form, variable-length values (names,
-emails, contact fields) that share a column with fixed-width siblings MUST
-render single-line with ellipsis overflow (`white-space:nowrap;
-overflow:hidden; text-overflow:ellipsis; min-width:0;`) and a `title`
-tooltip carrying the untruncated value, omitted when the displayed value
-is a fallback placeholder (`—`). Does not apply to multi-line free-text
-note fields (observação, mensagem), which should wrap.
-
-## 8. Buttons
-
-- **One dominant action per decision scope**, filled (`bg-accent text-white`,
-  radius 4px, ~38px), next to the context. A screen may contain independent
-  contexts, as long as there is no visual competition between primary actions in the
-  same decision block. The dominant action **does not need** to be in the rail.
-- Secondary: surface + border, discreet (~34px), icon + text.
-- Positive (e.g.: Finalizar): soft greens.
-- **Destructive (Excluir): always icon + text**, discreet red — never icon only.
-- No redundancy: do not repeat at the top a shortcut/data that already exists as a link/section.
-
-### 8.1 Row-level compact icon button — `COMPONENT-SPECIFIC`
-
-Table/grid row actions (Editar, Ver, Ativar/Desativar, Resetar, Excluir,
-etc., inside a list row) are a distinct component from the entity-level
-header actions above and are **exempt** from the "destructive always
-icon + text" rule — an icon-only button is accepted here. Ratified
-against the Clients screen reference (`js/screens/cadastros.js`,
-`screenCadastrosClientes`'s `makeIconButton`).
-
-**The icon + text destructive rule remains binding for entity-level
-header actions** (e.g. Finalizar OP / Excluir OP, as built in the two
-approved pilots `op-latex-admin.js` / `op-tecelagem-producao-admin.js`)
-— this carve-out does not extend there.
-
-**Mandatory guards** — an icon-only row button is exempt from icon+text
-only when ALL three hold:
-
-1. **Title tooltip:** the native `title` attribute (and matching
-   `aria-label`) states the action in full (e.g. `"Excluir usuário"`,
-   never just an icon with no accessible name).
-2. **Screen-reader label:** a visually-hidden text label using the
-   clip-rect sr-only pattern — never `display:none` (which also hides
-   it from assistive tech, defeating the purpose).
-3. **Confirmation on destructive actions:** any destructive row action
-   (Excluir, Rejeitar, etc.) opens `confirmDialog` (`js/ui.js`) before
-   executing — never fires on a single click.
-
-**Ratified values:**
-
-- **Size:** 30×30px.
-- **Radius:** `--rv-radius-control` (4px).
-- **Border:** `1px solid #eceef1` (rest state).
-- **Background:** `#fff` (rest state).
-- **Color:** `#8a93a3` (neutral) / `#d6403a` (danger), rest state.
-- **Icon:** 14px, per §13 (Feather/Lucide, stroke 1.8–2).
-- **Gap** between buttons in the same row-actions group: **6px**.
-- **Hover — neutral:** `border-color:#d0d5de; color:#3f4757`.
-- **Hover — danger:** `border-color:#fca5a5; background:#fff1f1; color:#c53030`.
-- **Disabled:** the safe boolean pattern — the `disabled` key is present
-  in the attrs object **only when the condition is `true`**, never
-  `disabled: <boolean expression>` unconditionally (see
-  `UI-EL-BOOLEAN-ATTR-FIX`); opacity `0.45`, `cursor:default` while
-  disabled.
-
-## 9. Forms
-
-- Label/value pair grid: `grid-cols-3`, gap `13px 18px`; 11,5px muted label
-  + strong 13,5px/600 value. Links in accent.
-- Inputs radius 4px (`--rv-radius-control`), border `--rv-color-input-border`.
-- In the rail, inputs `width:100%`.
-- Fields appear according to the selected type (e.g.: "Validar e vincular" modal,
-  fields per document type).
-
-## 10. Badges — status and stage
-
-Pill ~11,5px/600. **Status** with dot (Preparação blue; Em produção amber).
-**Stage** by color (Tecelagem purple; Acabamento teal), always in a soft pill.
-When the section header carries a badge on the right, use the chip variant **without
-`margin-bottom`** inside `flex align-items:center; justify-content:space-between`.
-
-## 11. Documentos / Attachments
-
-**`COMPONENT-SPECIFIC`** — the slots per type are the attachment component of the
-Pedido/OP surfaces (or compatible screens), **not** a requirement of the
-central Documentos queue, which chooses the presentation suited to review.
-
-Slots **per type** (Romaneio, NF de entrada, NF de saída — multiple files per
-type): label + count badge; full-width file chips (`--rv-color-subtle-bg`,
-border `--rv-color-line-100`, red PDF icon + name with ellipsis + size·date
-+ remove ×); dashed "Anexar" button per type, `width:100%`. Honest empty
-state ("Nenhum arquivo anexado.") — **no fabricated file names nor fake
-badges** when the backend does not exist yet; the "Anexar" only signals.
-
-## 12. Modals
-
-Layer above the content (`--rv-z-modal` 200; toast `--rv-z-toast` 250). They inherit
-typography, corners (card 6px / control 4px), flat cards and the dominant-action-per-scope
-rule. The "Validar e vincular" modal (phase G28-B6) must display
-**technical evidence** (read-only) separate from the **human fields**
-(editable), with conditional fields per type and explicit actions (validar e
-vincular / rejeitar / ignorar / cancelar).
-
-**OPEN — REQUIRES IALEAD DECISION:** exact dimensions, overlay behavior
-(scroll-lock, dismiss by outside click/ESC), maximum width and mobile responsiveness
-of the modal are not specified in the current sources and must be closed in the design
-of G28-B6. The modal's **focus management** is already mandatory (see §15).
-
-## 13. Iconography
-
-**Feather / Lucide** style (stroke 1.8–2, rounded corners). Sizes: nav
-16px, section chip 13px, actions 14–16px; default glyph `--rv-color-chip-glyph`.
-No heavy filled icons, no emoji, no PNG. Decorative icon is noise —
-every chip has a purposeful icon.
-
-## 14. Responsiveness
-
-Full width up to 1600px; cockpit occupies the monitor; fixed-column tables in
-`overflow-x:auto`. **OPEN — REQUIRES IALEAD DECISION:** formal breakpoints and
-cockpit/rail behavior on narrow screens (stacking the rail below the
-content) are not yet fixed.
-
-## 15. Accessibility
-
-Minimum **already mandatory** across the whole UI:
-
-- keyboard operation on the main actions;
-- visible focus;
-- programmatic labels on controls;
-- status not communicated by color alone (dot + label);
-- sufficient contrast for status text even in light palettes;
-- dark title (`--rv-color-title`) for legibility;
-- targets consistent with control height (34–38px);
-- the modal will have **focus management**, to be closed in the design of G28-B6.
-
-**OPEN — REQUIRES IALEAD DECISION:** only the **formal conformance target**
-(target WCAG level) and the final modal details.
-
-## 16. Terminology
-
-pt-BR. Short labels in Title Case ("Fornecedor de acabamento", "Saldo em
-tecelagem"); section labels in UPPERCASE. Short, neutral state messages
-("Nenhuma entrega registrada ainda."). Do not use emoji as a substitute for
-functional iconography (see §1 and §13).
-
-## 17. Component reuse and Documentos/Pedido/OP continuity
-
-New screens (Documentos, queue, modal, Pedido/OP surfaces) must be born with
-the same tokens, cards, tables, badges and the cockpit already used in the OP pilots —
-without reinventing color, type, spacing or component. The Documentos section and the
-display surfaces in Pedido and OP must consume the same patterns and the
-same canonical link.
-
-## 18. Visual validation (mandatory)
-
-All UI must pass through **real rendering in an authorized harness**, in addition to focused
-functional tests — do not rely only on screenshot nor only on tests. Rules:
-
-- when `.claude/preview` is available and applicable, use it;
-- when it is not available in the worktree, use a versioned harness or
-  an explicitly authorized equivalent, and **record the evidence**;
-- **no phase may depend exclusively on an untracked file absent from the
-  worktree** (see `CLAUDE_PROJECT_ASSET_MAP.md` §13).
-
-Smoke tests that encode the old visual (numbered headers, strips, fixed
-grids) must be updated to the new canonical, preserving the **functional**
-assertions.
-
-## 19. Prohibitions (simplified solutions)
-
-Any simplified replica that does not fulfill the real requirement is prohibited:
-bars/strips in place of icon chip; fixed-column grids in the rail;
-narrow `max-width` with lateral gaps; numbered header; pill on button; heavy
-shadow; fabricated badges/files without backend; table header misaligned
-with the values.
+**Cross-cutting rule:** background, border and text of one element always come from
+**the same family**. Mismatched chroma between fill and border is a defect.
 
 ---
 
-> **This is the versioned visual contract.** Consult before any UI phase,
-> together with `css/tokens.css` and (when present) the `.claude/design-skill` skill.
-> Update when an `OPEN` point is decided by the IAlead or when a new
-> pattern is approved in the pilots.
+## 2. Layer 2 — Primitives
+
+**Closed list.** A new component requires a new entry here and in the log.
+
+### 2.1 Button
+
+Three heights (`--rv-h-compact/default/primary`), radius `--rv-radius`,
+`font-family: inherit`. Icon on the left, 14–16px, gap 7px. Never a pill.
+
+| Variant | Background | Border | Text | Height |
+|---|---|---|---|---|
+| Primary | `--rv-brand` | none | `#fff` | 38px |
+| Secondary | `--rv-surface` | `--rv-border-strong` | `--rv-text-secondary` | 34px |
+| Positive | `--rv-signal-positive-bg` | `--rv-signal-positive-border` | `--rv-signal-positive` | 34px |
+| Destructive | `--rv-surface` | `--rv-signal-negative-border` | `--rv-signal-negative` | 34px |
+| Compact | `--rv-surface` | `--rv-border-strong` | `--rv-text-secondary` | 32px |
+| Attach (dashed) | `--rv-surface` | `1px dashed --rv-border-strong` | `--rv-text-secondary` | 32px, `width:100%` |
+
+- **One dominant action per decision scope.** A screen may hold independent scopes;
+  it may not hold two primaries competing in the same block.
+- **Entity-level destructive: icon + text**, always. Single exception: table-row
+  action (§2.9).
+- **Disabled:** the `disabled` key enters the attribute object **only when the
+  condition is `true`** — never as an unconditional boolean expression.
+  Opacity `.45`, `cursor: default`.
+
+**Alignment** — closed rule, checkable:
+- entity header: bar right-aligned, `align-items: flex-start` (aligns to the **top of
+  the title block**), gap 8px, `flex-wrap` on the parent;
+- inside a card: **block footer, right-aligned**, with
+  `border-top: 1px solid var(--rv-border-soft)` and `padding-top: 11px`;
+- card with an empty state: empty text left, action right, same row
+  (`justify-content: space-between`);
+- **two exceptions, only two:** in the rail every control is `width:100%`; the dashed
+  attach button is `width:100%` per document type.
+
+A left-aligned button inside a card is a defect.
+
+### 2.2 Field
+
+Height `--rv-h-compact`, radius `--rv-radius`, border `--rv-border-strong`,
+background `--rv-surface`. Hover: background `--rv-surface-subtle`, border
+`--rv-accent-blue`. Focus: border `--rv-accent-blue` +
+`box-shadow: 0 0 0 3px var(--rv-focus-ring)`. In the rail, `width:100%`.
+
+### 2.3 Popover / dropdown / menu
+
+**Native `<select>` is forbidden on product surfaces.** `appearance:none` styles only
+the closed field; the open list is browser-drawn and accepts no padding, radius,
+shadow, item colour or selected background. Use an own popover.
+
+Panel: background `--rv-surface`, border `--rv-border-strong`, radius `--rv-radius`,
+`box-shadow: var(--rv-shadow-popover)`, `padding: 5px`, `margin-top: 6px`.
+Group label: `--rv-fs-thead`/700 uppercase, `--rv-text-tertiary`, `padding: 5px 7px 4px`.
+Item: `padding: 7px 8px`, radius `--rv-radius`, `--rv-fs-body`.
+Hover: `--rv-surface-subtle`. Selected: `--rv-active-bg` + text `--rv-brand` + 13px check.
+
+The panel's inner inset is what separates this from the legacy look. An item flush
+against the panel edge is a defect.
+
+### 2.4 Card and section chip
+
+Card: background `--rv-surface`, border `1px solid --rv-border`, radius `--rv-radius`,
+**flat** (`--rv-shadow-none`), padding `--rv-pad-card` (`--rv-pad-card-rail` in the rail).
+
+Every section opens with a **20px icon chip** (radius `--rv-radius`, background
+`--rv-chip-bg`, 13px glyph `var(--rv-chip-glyph)`) + `--rv-fs-label`/700 uppercase
+`--rv-text-tertiary` label, gap 8px. **A distinct icon per section.**
+
+Forbidden in place of the chip: vertical coloured bar, solid strip, border
+pseudo-icon, numbered header ("1. Dados").
+
+### 2.5 Table — golden rule
+
+**The width and alignment of each column's HEADER must be identical to those of its
+VALUES.** Guarantee it with `table-layout: fixed` + `<colgroup>` and `text-align`
+repeated on `th`/`td`, **or** a `grid-template-columns` shared between header and rows.
+
+Header `--rv-fs-thead`/600 uppercase `--rv-text-tertiary`, `padding: 0 8px 8px`.
+Row `border-top: 1px solid --rv-border-soft`, `padding-y` 9–10px, cell `--rv-fs-body`.
+Numeric column: `text-align: right` **in the header and in the value**, `.tnum` on
+every number. `overflow-x: auto` wrapper whenever a column has a fixed px width.
+
+A free-text cell sharing a column with fixed-width siblings renders single-line with
+`white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0` plus a
+`title` carrying the untruncated value — omitted when the displayed value is the
+placeholder `—`. Long free-text fields (observação, mensagem) wrap; this does not apply.
+
+### 2.6 Status pill
+
+`height: 18px`, `padding: 0 6px`, radius `--rv-radius-pill`, border + background +
+text from the `--rv-pill-*` family, 5px dot before. `--rv-fs-2xs`/600.
+State is never communicated by colour alone — dot **and** label.
+
+Semantic mapping (single source; do not duplicate in templates):
+
+| Domain state | Family |
+|---|---|
+| Deferida, Ativo, Conectado, Resolvido, Concluído | `positive` |
+| Pendente, Em análise, Reconectar | `caution` |
+| Indeferida, Encerrada, Cancelado | `negative` |
+| Devolvida | `info` |
+| Inativo, Desconectado, Trancado, unknown | `neutral` |
+
+### 2.7 Stage badge
+
+Soft pill `--rv-stage-*-bg` + text `--rv-stage-*`, `padding: 3px 9px`,
+`--rv-fs-2xs`/600. No dot (the dot belongs to status).
+**Stage and status never share a colour.**
+
+### 2.8 File chip and document slots
+
+Slots **per type** (Romaneio, NF de entrada, NF de saída), multiple files per type:
+label + count badge, `width:100%` chips (background `--rv-surface-subtle`, border
+`--rv-border-soft`, PDF icon `--rv-signal-negative`, name with ellipsis, size·date,
+× to remove), dashed "Anexar" button per type.
+
+Honest empty state ("Nenhum arquivo anexado."). **A fabricated file name or fake
+badge without a backend is forbidden.**
+
+### 2.9 Table-row action
+
+A distinct component from entity-header actions. **Exempt** from
+"destructive always icon + text" — an icon-only button is accepted here, with three
+mandatory guards, all of them:
+
+1. `title` **and** `aria-label` stating the full action ("Excluir usuário");
+2. a visually-hidden label using the clip-rect pattern — never `display: none`;
+3. a destructive row action opens a confirmation before executing — never fires on a
+   single click.
+
+Values: 30×30px, radius `--rv-radius`, border `--rv-border-soft`, background
+`--rv-surface`, colour `--rv-text-secondary` (or `--rv-signal-negative`), 14px icon,
+6px gap between buttons in a group.
+
+### 2.10 Modal
+
+Layer `--rv-z-modal` (toast `--rv-z-toast`). Inherits typography, radius, flat cards
+and the one-dominant-action-per-scope rule. Shadow `--rv-shadow-popover`. Focus
+management mandatory.
+
+When technical evidence and human input appear in the same modal, the two blocks are
+**visually separated**: evidence read-only, human fields editable, conditional fields
+per type, explicit actions.
+
+### 2.11 Empty state and alert
+
+Empty: short honest sentence, `--rv-fs-sm` `--rv-text-tertiary`. Never invented data.
+
+Alert: `min-height: 26px`, `padding: 0 12px`, radius `--rv-radius`,
+`box-shadow: var(--rv-shadow-sm)`; background and border come **from the record**
+(`--rv-alert-*` or the user's free hex), never hardcoded in the template.
+Free colour → derived border: luminance `(0.299R + 0.587G + 0.114B) / 255`;
+`> 0.72` mixes 18% black, otherwise 26% white.
+
+---
+
+## 3. Layer 3 — Screen archetypes
+
+An archetype declares **intent**, not appearance. It is what prevents replicating the
+cockpit where it does not serve. Every screen belongs to exactly one.
+
+### A · Detail cockpit — `RATIFIED FIXTURE`
+
+**Fixture:** `docs/ui/fixtures/op-detail-compacto/OP Detail - Compacto.dc.html`
+**Intent:** operate a single entity. Read state and act on it in the same screen.
+**Density:** maximum. **Dominant action:** flow action, in the rail, 38px.
+**Layout:** `grid-template-columns: minmax(0,1fr) var(--rv-rail-w)`, rail
+`position: sticky; top: 0`. Content and tables on the left; summary, metrics and the
+flow action in the rail. **Never repeat the same datum on both sides.**
+**Rail rule:** everything vertical and `width:100%`. A fixed-column grid inside the
+rail is forbidden.
+**Header:** breadcrumb → H1 + stage badge + status pill → metadata line; state-action
+bar right-aligned, 34px.
+**Primitives:** 2.1 2.4 2.5 2.6 2.7 2.8 2.10
+
+### B · Work queue — `CANDIDATE`
+
+**Candidate fixture:** `Admin - Lista de OPs.dc.html` (conformance pending)
+**Intent:** triage volume and pick the next item. Read many rows, act little.
+**Density:** maximum. **Dominant action:** "new", in the header. **Rail: no.**
+**Layout:** full width up to `--rv-content-max`. Filters above the table; per-row
+action per §2.9. No cockpit — there is no single entity to summarise.
+**Primitives:** 2.1 2.2 2.3 2.5 2.6 2.9
+
+### C · Creation form — `CANDIDATE`
+
+**Candidate fixture:** `Novo Pedido.dc.html`
+**Intent:** compose a new record. Progress and validation, not reading.
+**Density:** medium — fields need air. **Dominant action:** confirm, at the end of the
+flow. **Rail:** optional, only for running totals.
+**Layout:** one card per logical block; label/value pairs in `repeat(3,1fr)`,
+gap `13px 18px`. Fields appear according to the selected type.
+**Primitives:** 2.1 2.2 2.3 2.4 2.5 2.11
+
+### D · Decision modal — `CANDIDATE`
+
+**Candidate fixture:** `Modal Movimentar Produção.dc.html`
+**Intent:** one decision, closed scope, without leaving context.
+**Density:** medium. **Dominant action:** footer, right. **Rail: no.**
+**Primitives:** 2.1 2.2 2.3 2.10 2.11
+
+### E · Client portal — `CANDIDATE`
+
+**Candidate fixture:** `Detalhe do Pedido v2.dc.html`
+**Intent:** inform someone who does not know the process. Reading, confidence, zero
+operation.
+**Density:** LOW — the only archetype that breathes. Type one rung larger.
+**Dominant action:** none, or exactly one. **Rail: no.**
+**Content restriction, not a style one:** never display OP, lot, supplier, latex
+company, purchase order, invoice, packing list, cost or margin. See
+`RELATORIO_COMPATIBILIZACAO.md` §3.1.
+**Primitives:** 2.4 2.6 2.11 (+ stepper, not yet promoted to a primitive)
+
+### F · Configuration — `CANDIDATE`
+
+**Candidate fixture:** `Admin - Parâmetros.dc.html`
+**Intent:** adjust the system. Low frequency, high consequence.
+**Density:** medium. **Dominant action:** save, per block. **Rail: no.**
+**Primitives:** 2.1 2.2 2.3 2.4 2.11
+
+> **An archetype becomes `RATIFIED` only when two of its screens pass the detector.**
+> Until then it is `CANDIDATE` and may not be cited as precedent.
+
+---
+
+## 4. Layer 4 — Conformance
+
+`docs/architecture/UI_CONFORMANCE.md`. Screen → archetype → state → fixture.
+State is filled **by the detector**, not by eye.
+
+**Remediate by property batch, never by screen.** One colour pass across all screens,
+then radius, then height, then alignment. Screen by screen turns every screen into a
+fresh judgment call — and fresh judgment calls are where the three visual generations
+came from.
+
+---
+
+## 5. Closed enums
+
+What the detector enforces. A value outside these lists is a defect, with no
+discretionary exception.
+
+```json
+{
+  "literal_hex_in_screen": "forbidden",
+  "radius":        ["4px", "999px"],
+  "control_h":     ["32px", "34px", "38px"],
+  "shadow":        ["none", "0 1px 3px rgba(0,0,0,.10)", "0 12px 28px rgba(0,0,0,.10)"],
+  "font_size":     ["22px","15px","14px","13.5px","13px","12.5px","12px","11.5px","11px","10.5px"],
+  "font_weight":   [400, 500, 600, 700, 800],
+  "text_color":    ["--rv-text-title","--rv-text-primary","--rv-text-secondary","--rv-text-tertiary"],
+  "gap":           { "stack": "14px", "cols": "16px", "actions": "8px", "row_actions": "6px" },
+  "card_padding":  ["15px 17px", "16px 17px"],
+  "shell":         { "header": "60px", "sidebar": "190px", "rail": "300px",
+                     "content_max": "1600px", "main_pad": "18px 32px 40px" },
+  "pill_radius_on_button": "forbidden",
+  "native_select":         "forbidden"
+}
+```
+
+---
+
+## 6. Prohibitions
+
+Any simplified replica that does not meet the real requirement is forbidden:
+
+- literal hex; a second token namespace;
+- native `<select>`; popover item flush against the panel edge;
+- bar or strip in place of the icon chip; numbered header;
+- fixed-column grid inside the rail;
+- narrow `max-width` leaving lateral gaps;
+- pill radius on a button; shadow on a card; any shadow outside the enum;
+- left-aligned button inside a card (outside the two exceptions);
+- mismatched chroma between an element's fill and border;
+- fabricated badge or file without a backend;
+- table header misaligned with its values;
+- emoji as a substitute for functional iconography;
+- brand teal in a state, badge, pill or indicator.
+
+---
+
+## 7. Language and lexicon
+
+**Documentation is English. Product UI copy is pt-BR.** Do not translate the interface.
+
+pt-BR copy: objective and operational. Short labels in Title Case ("Fornecedor de
+acabamento", "Saldo em tecelagem"); section labels UPPERCASE. Short neutral state
+messages ("Nenhuma entrega registrada ainda.").
+
+Numbers: decimal comma, explicit unit (`1.000,00 m`, `183,000 kg`), `.tnum` always.
+Dates `DD/MM/AAAA`. Icons: Lucide, stroke 1.8–2 — nav 16px, chip 13px, action 14–16px.
+No filled icons, no PNG, no emoji.
+
+---
+
+## 8. Accessibility
+
+Mandatory today: keyboard operation on the main actions; visible focus
+(`--rv-focus-ring`); programmatic labels on every control; state never conveyed by
+colour alone; target sizes consistent with control height; focus management in modals.
+
+**OPEN:** the formal WCAG conformance target. See `DESIGN_DECISIONS.md`.
+
+---
+
+## 9. Validation
+
+All UI passes through **real rendering in an authorised harness**, in addition to
+functional tests — do not rely on screenshots alone or tests alone. No phase may
+depend exclusively on an untracked file absent from the worktree. Smoke tests that
+encode the old visual (numbered headers, strips, fixed grids) are updated to the
+canonical form, preserving their **functional** assertions.
+
+---
+
+> Read alongside `css/tokens.css`, `UI_CONFORMANCE.md` and `DESIGN_DECISIONS.md`.
+> Update when a decision closes or an archetype is ratified — and record it in the log.

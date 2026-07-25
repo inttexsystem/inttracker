@@ -1,76 +1,172 @@
 /* ============================================================
-   RAVATEX — DESIGN TOKENS
-   Tokens visuais canônicos para a base do app Ravatex.
-   Fase: RAVATEX-TAPETES-DESIGN-TOKENS-TARGET-PILOT-B.
-   - Prefixo reservado: --rv- (não usar nomes genéricos).
-   - Origem visual: alinhamento Inttex/Claude ajustado para Ravatex.
-   - Não aplicar globalmente; consumo é feito pela tela piloto
-     OP Acabamento/Látex nesta fase.
-   - Não inclui resets, tipografia do body, ou regras de elementos.
-     Mantém comportamento/RPC/schema/fluxo intocados.
+   INTTRACKER — TOKENS
+   The ONLY source of visual value in the product.
+
+   Prefix: --rv-*  (namespace retained; app screens already
+   reference it). Names and values: SGAA. One namespace, SGAA
+   semantic names, the real values from product code.
+
+   Re-theming = edit ONLY the BRAND / ACTION block.
+   Literal hex in a screen is a DEFECT. See UI_VISUAL_CONTRACT.md §1.
    ============================================================ */
-
 :root {
-  /* ---- Texto / títulos ---- */
-  --rv-color-title: #16203a;
-  --rv-color-text: #16203a;
-  --rv-color-muted: #8a93a3;
 
-  /* ---- Acento (azul principal) ---- */
-  --rv-color-accent: #2563eb;
+  /* ---- Surfaces ---- */
+  --rv-bg:              #f3f4f6;  /* application background */
+  --rv-surface:         #ffffff;  /* card, topbar, sidebar, popover */
+  --rv-surface-subtle:  #f8fafc;  /* file chip, inset row, field hover */
 
-  /* ---- Superfícies ---- */
-  --rv-color-surface: #ffffff;
-  --rv-color-bg-header: #f8f9fb;
-  --rv-color-subtle-bg: #eaf1fd;
+  /* ---- Lines ---- */
+  --rv-border:          #d4d8dd;  /* outer card / section border      (D2) */
+  --rv-border-strong:   #cbd5e1;  /* field border, strong divider          */
+  --rv-border-soft:     #e5e8ec;  /* inner table / footer divider     (D2) */
 
-  /* ---- Linhas / bordas ---- */
-  --rv-color-line-100: #eef0f3;
-  --rv-color-line-200: #e7eaee;
-  --rv-color-input-border: #e2e6eb;
+  /* ---- Text — 4 levels, hard ceiling (D3) ---- */
+  --rv-text-title:      #111827;  /* the 22px H1 ONLY                       */
+  --rv-text-primary:    #1f2937;  /* cell value, strong text, card title    */
+  --rv-text-secondary:  #6b7280;  /* label, secondary line, caption         */
+  --rv-text-tertiary:   #9ca3af;  /* section label, metadata, placeholder   */
 
-  /* ---- Semânticas ---- */
-  --rv-color-danger: #d6403a;
-  --rv-color-success: #18794a;
-  --rv-color-warning: #c2610c;
+  /* ---- BRAND / ACTION (edit only here to re-theme) ---- */
+  --rv-brand:            #003366;             /* primary action, avatar, brand */
+  --rv-brand-strong:     #002244;             /* primary hover                 */
+  --rv-brand-light:      #335f8a;             /* primary disabled              */
+  --rv-accent-blue:      #0369a1;             /* link, interactive text        */
+  --rv-active-bg:        rgba(3,105,161,.08); /* selected item (+ brand border) */
+  --rv-active-bg-solid:  #ebf3f8;             /* when translucency is not possible */
+  --rv-chip-bg:          #f1f5f9;             /* section icon chip background   */
+  --rv-chip-glyph:       #64748b;             /* section icon chip glyph        */
+  --rv-focus-ring:       rgba(3,105,161,.22); /* focus ring */
 
-  /* ---- Etapas (stage) — cor da etapa, distinta do status ---- */
-  --rv-stage-tecelagem: #7c3aed;
-  --rv-stage-tecelagem-bg: #f3effe;
-  --rv-stage-acabamento: #0f9488;
-  --rv-stage-acabamento-bg: #e6f7f5;
+  /* ---- BRAND ADDITION — does NOT exist in SGAA ----
+     Scope locked: logo, login rule, printed-document rule.
+     Never in a state, badge, pill or indicator.                  */
+  --rv-brand-teal:       #1296a8;
+  --rv-brand-teal-ink:   #0f7f8e;  /* teal legible as text on white */
+  --rv-brand-teal-light: #4fc8d8;  /* teal on navy */
+  --rv-brand-graphite:   #20242a;  /* wordmark */
 
-  /* ---- Status da OP — visualmente distinto da etapa ---- */
-  --rv-status-prep: #2563eb;        /* Preparação (aberta) */
-  --rv-status-prep-bg: #eaf1fd;
-  --rv-status-prod: #c2610c;        /* Em produção */
-  --rv-status-prod-bg: #fff4e6;
-  --rv-status-prod-dot: #f0871e;
+  /* ---- BARE SIGNAL — number, icon, button (D4, vivid tone) ----
+     Vivid because colour is the sole carrier of meaning.          */
+  --rv-signal-negative:        #dc2626;
+  --rv-signal-negative-border: #f0d2d2;
+  --rv-signal-positive:        #1f5a3c;
+  --rv-signal-positive-bg:     #e9f5e7;  /* positive button: same family (D7) */
+  --rv-signal-positive-border: #b9d7b5;
+  --rv-signal-caution:         #7b4b12;
 
-  /* ---- Chip de ícone dos headers de seção ---- */
-  --rv-color-chip-bg: #eef2f7;
-  --rv-color-chip-glyph: #64748b;
-  --rv-color-section-label: #9aa2af;
-  --rv-color-value: #26303f;        /* valor forte de campo/tabela */
+  /* ---- STATUS PILL — SGAA, muted tone (D4) ----
+     Muted because background + border + dot already carry state.  */
+  --rv-pill-positive-bg: #e9f5e7; --rv-pill-positive-border: #b9d7b5; --rv-pill-positive-text: #1f5a3c; --rv-pill-positive-dot: #3e835a;
+  --rv-pill-neutral-bg:  #eef1f4; --rv-pill-neutral-border:  #c4ced8; --rv-pill-neutral-text:  #3a4755; --rv-pill-neutral-dot:  #667585;
+  --rv-pill-caution-bg:  #faeed5; --rv-pill-caution-border:  #e3c17b; --rv-pill-caution-text:  #7b4b12; --rv-pill-caution-dot:  #c5801f;
+  --rv-pill-negative-bg: #f9e3e6; --rv-pill-negative-border: #e3b0b8; --rv-pill-negative-text: #8d2431; --rv-pill-negative-dot: #cb4859;
+  --rv-pill-info-bg:     #e4eff9; --rv-pill-info-border:     #b5d0e7; --rv-pill-info-text:     #1d5a83; --rv-pill-info-dot:     #3e7fb0;
 
-  /* ---- Raios ---- */
-  --rv-radius-card: 6px;
-  --rv-radius-control: 4px;
-  --rv-radius-pill: 999px;
+  /* ---- STAGE — product vocabulary, not in SGAA ----
+     Stage != status. Never the same colour for both.              */
+  --rv-stage-tecelagem:       #7c3aed;  --rv-stage-tecelagem-bg:  #f2ecfd;
+  --rv-stage-acabamento:      #0f9488;  --rv-stage-acabamento-bg: #e2f4f0;
 
-  /* ---- Tipografia ---- */
-  --rv-font-size-label: 11px;
-  --rv-font-size-value: 12.5px;
-  --rv-font-size-body: 13px;
+  /* ---- ALERT PRESETS — the seven from SGAA ---- */
+  --rv-alert-azul-bg:     #e3eefd;  --rv-alert-azul-border:     #7e95b2;
+  --rv-alert-amarelo-bg:  #fef4c0;  --rv-alert-amarelo-border:  #c9a227;  /* system auto-alert */
+  --rv-alert-verde-bg:    #dcfaeb;  --rv-alert-verde-border:    #4ea86a;
+  --rv-alert-laranja-bg:  #ffecd4;  --rv-alert-laranja-border:  #c07a3a;
+  --rv-alert-vermelho-bg: #fee2e2;  --rv-alert-vermelho-border: #bb6464;
+  --rv-alert-roxo-bg:     #ede9fe;  --rv-alert-roxo-border:     #8872c4;
+  --rv-alert-ciano-bg:    #cffafe;  --rv-alert-ciano-border:    #3aaab8;
+
+  /* ---- SHAPE — closed enum ---- */
+  --rv-radius:        4px;    /* EVERY surface and control             (D1) */
+  --rv-radius-pill:   999px;  /* status / stage / count ONLY           (D6) */
+
+  /* ---- SHADOW — closed enum, 3 values ---- */
+  --rv-shadow-none:    none;                        /* cards: always this */
+  --rv-shadow-sm:      0 1px 3px rgba(0,0,0,.10);   /* alert, banner      */
+  --rv-shadow-popover: 0 12px 28px rgba(0,0,0,.10); /* popover, menu, modal (D8) */
+
+  /* ---- CONTROL HEIGHT — closed 3-rung ladder (D5) ---- */
+  --rv-h-compact: 32px;  /* table-row action, attach, field, filter    */
+  --rv-h-default: 34px;  /* secondary action in an entity header       */
+  --rv-h-primary: 38px;  /* dominant flow action (lives in the rail)   */
+
+  /* ---- TYPOGRAPHY ---- */
+  --rv-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --rv-fs-title:  22px;    /* H1 · 800 · tracking -.02em */
+  --rv-fs-metric: 15px;    /* emphasised metric · 700 */
+  --rv-fs-metric-rail: 14px;
+  --rv-fs-value:  13.5px;  /* label/value pair value · 600 */
+  --rv-fs-body:   13px;    /* cell, button, field */
+  --rv-fs-sm:     12.5px;  /* metric label, secondary line */
+  --rv-fs-xs:     12px;    /* file chip, compact control */
+  --rv-fs-2xs:    11.5px;  /* metadata, hint, badge */
+  --rv-fs-label:  11px;    /* SECTION LABEL · 700 · uppercase */
+  --rv-fs-thead:  10.5px;  /* TABLE HEADER · 600 · uppercase */
+  --rv-tracking-title: -.02em;
   --rv-tracking-label: .06em;
+  --rv-tracking-thead: .04em;
 
-  /* ---- Shell / layout ---- */
-  --rv-header-h: 62px;
-  --rv-sidebar-w: 196px;
-  --rv-rail-w: 300px;
-  --rv-gap-cols: 18px;
+  /* ---- SHELL AND RHYTHM — measured in the fixture ---- */
+  --rv-header-h:    60px;
+  --rv-sidebar-w:   190px;
+  --rv-rail-w:      300px;
+  --rv-content-max: 1600px;
+  --rv-main-pad:    18px 32px 40px;
+  --rv-gap-stack:   14px;   /* between cards in a column */
+  --rv-gap-cols:    16px;   /* between the two cockpit columns */
+  --rv-pad-card:    15px 17px;
+  --rv-pad-card-rail: 16px 17px;
+  --rv-cell-pad-x:  12px;
 
-  /* ---- Z-index ---- */
+  /* ---- LAYERS ---- */
   --rv-z-modal: 200;
   --rv-z-toast: 250;
+
+  /* ============================================================
+     LEGACY COMPATIBILITY — NONCONFORMING / DEPRECATED
+
+     These names exist only to keep current runtime consumers valid
+     during property-based remediation. New code must not use them.
+     The future conformance detector must report every reference.
+     Remove each alias only after repository usage reaches zero.
+     ============================================================ */
+
+  /* -- Semantic aliases: resolve to a canonical token -- */
+  --rv-color-accent:       var(--rv-brand);           /* was #2563eb */
+  --rv-color-subtle-bg:    var(--rv-active-bg-solid); /* was #eaf1fd */
+  --rv-color-title:        var(--rv-text-title);      /* was #16203a */
+  --rv-color-text:         var(--rv-text-primary);
+  --rv-color-value:        var(--rv-text-primary);    /* was #26303f */
+  --rv-color-muted:        var(--rv-text-secondary);
+  --rv-color-surface:      var(--rv-surface);
+  --rv-color-line-100:     var(--rv-border-soft);
+  --rv-color-line-200:     var(--rv-border);
+  --rv-color-input-border: var(--rv-border-strong);
+  --rv-color-danger:       var(--rv-signal-negative);
+  --rv-color-success:      var(--rv-signal-positive);
+  --rv-color-warning:      var(--rv-signal-caution);
+  --rv-radius-card:        var(--rv-radius);          /* was 6px */
+  --rv-radius-control:     var(--rv-radius);
+  --rv-font-size-label:    var(--rv-fs-label);
+  --rv-font-size-body:     var(--rv-fs-body);
+  --rv-color-chip-glyph:   var(--rv-chip-glyph);
+
+  /* -- Legacy values retained temporarily --
+     NOT ratified. These carry the pre-consolidation visual values and
+     are held only so current screens keep rendering. Their conforming
+     replacement is decided by the property-based remediation phase;
+     do not map, reinterpret or cite them as precedent.               */
+  --rv-color-section-label: #9aa2af;
+  --rv-color-bg-header:     #f8f9fb;
+  --rv-color-chip-bg:       #eef2f7;
+
+  --rv-status-prep:         #2563eb;
+  --rv-status-prep-bg:      #eaf1fd;
+  --rv-status-prod:         #c2610c;
+  --rv-status-prod-bg:      #fff4e6;
+  --rv-status-prod-dot:     #f0871e;
 }
+
+/* Every number uses tabular figures. */
+.tnum, [data-num] { font-variant-numeric: tabular-nums; white-space: nowrap; }
