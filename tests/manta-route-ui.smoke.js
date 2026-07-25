@@ -1139,6 +1139,16 @@ test('R3/19h. gates estruturais preservados (nenhum arquivo gated cresceu)', () 
 const R3_ASSETS = ['js/pedido-tracking-ui.js', 'js/screens/pedido-detail-render.js'];
 const R2_TOKEN = '20260725-manta-b2b-r2';
 
+// KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-01-R1: o lote de defeitos
+// operacionais alterou js/screens/pedido-form.js, entao esse asset PRECISA
+// receber um token novo — 4532f76 deixou de ser a referencia congelada para
+// ele. A intencao original de R3/20c2 ("um cache-bust nao pode vazar para
+// asset NAO relacionado") continua valendo e nao foi enfraquecida: o asset
+// so sai da comparacao com 4532f76 sob um token declarado, que R3/20c3
+// abaixo verifica literalmente e proibe de aparecer em qualquer outro asset.
+const BATCH1_ASSETS = ['js/screens/pedido-form.js'];
+const BATCH1_TOKEN = '20260725-pedido-operational-batch1';
+
 // Parsing literal, sem regex: um `?v=` num padrao escapado a mao e uma
 // fonte de erro silencioso (o `?` volta a ser quantificador e o teste
 // passa a nao encontrar nada).
@@ -1185,6 +1195,18 @@ test('R3/20c. o token de R3 nao vaza para nenhum asset nao relacionado', () => {
     'exatamente os dois assets de R3 podem carregar o token de R3');
 });
 
+test('R3/20c3. o asset do lote operacional 1 carrega exatamente o token declarado, e ele nao vaza', () => {
+  for (const rel of BATCH1_ASSETS) {
+    assert.equal(tokenFor(rel), BATCH1_TOKEN,
+      rel + ' deve carregar exatamente o token declarado do lote operacional 1');
+  }
+  const carriers = assetRefs(indexHtml).filter((r) => r.token === BATCH1_TOKEN).map((r) => r.path);
+  assert.deepEqual(carriers.sort(), BATCH1_ASSETS.slice().sort(),
+    'exatamente os assets do lote operacional 1 podem carregar o token do lote');
+  assert.notEqual(BATCH1_TOKEN, tokenFor(R3_ASSETS[0]),
+    'o token do lote operacional 1 tem de diferir do token de R3');
+});
+
 test('R3/20c2. todo asset nao relacionado conserva o token que tinha em 4532f76', () => {
   const before = assetRefs(execFileSync('git', ['show', '4532f76:index.html'], { cwd: ROOT, encoding: 'utf8' }));
   const after = assetRefs(indexHtml);
@@ -1192,6 +1214,7 @@ test('R3/20c2. todo asset nao relacionado conserva o token que tinha em 4532f76'
   for (let i = 0; i < before.length; i++) {
     assert.equal(after[i].path, before[i].path, 'ordem/caminho preservados na posicao ' + i);
     if (R3_ASSETS.includes(before[i].path)) continue;
+    if (BATCH1_ASSETS.includes(before[i].path)) continue;
     assert.equal(after[i].token, before[i].token,
       before[i].path + ' e um asset nao relacionado e nao pode ter o token alterado');
   }
