@@ -398,6 +398,93 @@
     return {
       sections: sections,
       stepper: sections.length ? sections[0].stepper : [],
+      summary: buildPedidoSummaryMetrics(routes, normalized.opSummaries),
+    };
+  }
+
+  // PHASE-MANTA-B2B-R2 (D4.4): semantica DOCUMENTAL por rota, extraida de
+  // pedido-detail-progress.js (que ja excede o limite excepcional e nao
+  // pode crescer — R-5). A regra: uma exigencia documental so pode citar
+  // uma transicao que a rota REALMENTE tem.
+  //   - Tapete/tecelagem: Tecelagem -> Acabamento (verbatim, inalterado).
+  //   - Manta/tecelagem:  a rota nao tem Acabamento. O contrato documental
+  //     existente nao define documento proprio para a saida medida, logo a
+  //     pendencia e OMITIDA em vez de fabricada; nenhum tipo de documento
+  //     novo e criado. A transicao real citada e Tecelagem -> Expedicao.
+  //   - Acabamento (latex): NF de expedicao (verbatim, inalterado).
+  function buildOpDocBanner(stageKey, route, done) {
+    var moved = toFiniteNumber(done) > 0;
+    if (stageKey !== 'tecelagem') {
+      return moved
+        ? { tone: 'danger', text: 'NF de expedicao pendente' }
+        : { tone: 'neutral', text: 'Sem saida para expedicao registrada ainda' };
+    }
+    if (route === 'manta') {
+      return moved
+        ? { tone: 'neutral', text: 'Saida medida registrada; a rota Manta nao tem movimento para acabamento' }
+        : { tone: 'neutral', text: 'Sem saida medida registrada ainda' };
+    }
+    return moved
+      ? { tone: 'warning', text: 'Romaneio tecelagem -> acabamento pendente' }
+      : { tone: 'neutral', text: 'Sem movimentacao para acabamento registrada ainda' };
+  }
+
+  // Linha documental operacional de uma OP, com a transicao correta da rota.
+  function buildOpDocumentRow(summary) {
+    var safe = summary || {};
+    var moved = toFiniteNumber(safe.done) > 0;
+    if (safe.stageKey === 'tecelagem' && safe.route === 'manta') {
+      return {
+        label: 'Movimento: Tecelagem -> Expedicao · ' + safe.label,
+        status: 'pendente',
+        meta: moved
+          ? 'Saida medida registrada; a documentacao de saida e consolidada na expedicao vinculada.'
+          : 'Sem saida medida registrada ainda.',
+      };
+    }
+    if (safe.stageKey === 'tecelagem') {
+      return {
+        label: 'Movimento: Tecelagem -> Acabamento · ' + safe.label,
+        status: 'pendente',
+        meta: moved ? 'Romaneio/NF ainda nao consolidados na tela de pedido.' : 'Sem transferencia registrada ainda.',
+      };
+    }
+    return {
+      label: 'Movimento: Acabamento -> Expedicao · ' + safe.label,
+      status: 'pendente',
+      meta: moved ? 'Documentacao de saida ainda nao consolidada.' : 'Sem saida para expedicao registrada ainda.',
+    };
+  }
+
+  // PHASE-MANTA-B2B-R2 (D4.2): metricas de nivel Pedido conscientes da
+  // rota, para que a superficie nao apresente uma metrica de Acabamento
+  // que nao se aplica.
+  //   - `hasAcabamento`: alguma rota aplicavel tem o estagio Acabamento.
+  //     Falso num Pedido Manta-only — a metrica agregada e SUPRIMIDA em
+  //     vez de exibida como zero (zero afirma "nada em acabamento", o que
+  //     implica que o estagio existe).
+  //   - `mantaMedido`: saida medida da rota Manta, que e a metrica
+  //     equivalente e VERDADEIRA daquela rota (nunca contada como
+  //     Acabamento).
+  // Num Pedido misto `hasAcabamento` e verdadeiro e o agregado de
+  // Acabamento continua vindo SO das OPs de acabamento (`stageKey ===
+  // 'acabamento'`, isto e, `ops.tipo='latex'`), portanto apenas de valores
+  // Tapete por construcao; nenhum metro Manta entra nele.
+  function buildPedidoSummaryMetrics(routes, opSummaries) {
+    var api = routeApi();
+    var list = Array.isArray(routes) && routes.length ? routes : [api ? api.TAPETE : 'tapete'];
+    var hasAcabamento = list.some(function (route) {
+      return api ? api.routeHasStage(route, 'acabamento') : route !== 'manta';
+    });
+    var mantaMedido = round2((opSummaries || []).reduce(function (acc, row) {
+      if (!row || row.stageKey !== 'tecelagem' || row.route !== 'manta') return acc;
+      return acc + toFiniteNumber(row.done);
+    }, 0));
+    return {
+      routes: list.slice(),
+      hasAcabamento: hasAcabamento,
+      hasManta: list.indexOf('manta') !== -1,
+      mantaMedido: mantaMedido,
     };
   }
 
@@ -440,6 +527,9 @@
   window.RAVATEX_SCREENS.pedidoRouteSections = {
     expedicaoLiberavelRows: expedicaoLiberavelRows,
     buildRouteSections: buildRouteSections,
+    buildPedidoSummaryMetrics: buildPedidoSummaryMetrics,
+    buildOpDocBanner: buildOpDocBanner,
+    buildOpDocumentRow: buildOpDocumentRow,
     buildStepperForRoute: buildStepperForRoute,
     computeRouteMetrics: computeRouteMetrics,
     stageState: stageState,

@@ -175,6 +175,64 @@
     });
   }
 
+  // Recorte POR ROTA — uma lista INDEPENDENTE por rota aplicavel, nunca
+  // a uniao. `filterClientSteps` acima devolve a uniao e serve apenas a
+  // consumidores que precisam do conjunto agregado; uma superficie que
+  // RENDERIZA etapas deve usar esta funcao, porque um Pedido misto tem
+  // duas rotas independentes e um stepper unico da uniao mostraria
+  // Acabamento tambem para a Manta (defeito D1).
+  //
+  // Cada entrada carrega `displayIndex`/`displayCount`: a posicao VISUAL
+  // dentro da propria rota, contigua por construcao. O indice canonico da
+  // etapa na lista completa continua sendo do consumidor (comparacao de
+  // progresso, lookup de DTO, semantica comercial) e NUNCA e o numero
+  // exibido depois de uma etapa ter sido filtrada (defeito D2).
+  function splitClientStepsByRoute(steps, routes) {
+    var applicable = (Array.isArray(routes) && routes.length) ? orderRoutes(routes) : [TAPETE];
+    if (!applicable.length) applicable = [TAPETE];
+    return applicable.map(function (route) {
+      var routeSteps = filterClientSteps(steps, [route]);
+      return {
+        route: route,
+        label: routeLabel(route),
+        steps: routeSteps.map(function (step, index) {
+          return {
+            step: step,
+            key: step.key,
+            displayIndex: index,
+            displayCount: routeSteps.length,
+          };
+        }),
+      };
+    });
+  }
+
+  // Posicao LOCAL da rota a partir de uma posicao canonica publicada
+  // (artefato comercial de nivel Pedido). Devolve o indice de exibicao da
+  // ultima etapa da rota ja alcancada e o da proxima, para que cada secao
+  // declare o seu proprio estado sem herdar uma etapa que nao possui.
+  // `stepIndexOf` traduz uma chave no indice canonico (injetado: este
+  // modulo nao conhece a lista canonica de etapas do cliente).
+  function routeLocalPosition(routeSteps, canonicalIndex, stepIndexOf) {
+    var list = Array.isArray(routeSteps) ? routeSteps : [];
+    var target = typeof canonicalIndex === 'number' ? canonicalIndex : -1;
+    var reached = -1;
+    var next = -1;
+    for (var i = 0; i < list.length; i++) {
+      var idx = typeof stepIndexOf === 'function' ? stepIndexOf(list[i].key) : i;
+      if (typeof idx !== 'number') idx = i;
+      if (target >= 0 && idx <= target) reached = i;
+      else if (next === -1) next = i;
+    }
+    return {
+      reachedDisplayIndex: reached,
+      nextDisplayIndex: next,
+      reachedKey: reached >= 0 ? list[reached].key : null,
+      nextKey: next >= 0 ? list[next].key : null,
+      count: list.length,
+    };
+  }
+
   // ===================================================================
   // Origem da expedicao (db/81..db/84): EXATAMENTE uma de op_latex_id
   // (Tapete, via OP de Acabamento) OU op_tecelagem_id (Manta, via OP de
@@ -229,6 +287,8 @@
     routeHasStage: routeHasStage,
     routeHasClientStep: routeHasClientStep,
     filterClientSteps: filterClientSteps,
+    splitClientStepsByRoute: splitClientStepsByRoute,
+    routeLocalPosition: routeLocalPosition,
     resolveExpedicaoSource: resolveExpedicaoSource,
     expedicaoSourceOpId: expedicaoSourceOpId,
     isMantaExpedicao: isMantaExpedicao,

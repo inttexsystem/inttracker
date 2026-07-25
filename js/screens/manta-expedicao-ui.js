@@ -294,7 +294,7 @@
           window.el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:3px;' },
             'Origem: Tecelagem (Manta) · saldo autoritativo do servidor')),
         acoes),
-      window.el('div', { style: 'display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;' },
+      window.el('div', { 'data-rv-metrics': '', style: 'display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;' },
         metric('PREVISTO', saldo.previsto_total, '#8a93a3'),
         metric('MEDIDO', saldo.recebido_total, '#16203a'),
         metric('LIBERADO', saldo.liberado_total, '#2563eb'),
@@ -302,7 +302,7 @@
         metric('SALDO', saldo.disponivel_total, num(saldo.disponivel_total) > 0 ? '#c2610c' : '#18794a')));
 
     var cols = 'minmax(0,1.4fr) 110px 110px 110px 110px 110px';
-    var tabela = window.el('div', { style: 'overflow-x:auto;' });
+    var tabela = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
     var inner = window.el('div', { style: 'min-width:760px;border:1px solid #eceef1;border-radius:4px;overflow:hidden;' });
     inner.appendChild(window.el('div', {
       style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;background:#f8f9fb;border-bottom:1px solid #eceef1;padding:9px 14px;',

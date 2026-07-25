@@ -1,0 +1,148 @@
+/* ============================================================
+   RAVATEX — RESPONSIVE CORRECTION (PHASE-MANTA-B2B, D3)
+   Correcao responsiva LIMITADA as superficies de validacao B2B
+   (OP de tecelagem Manta/Tapete, Expedicao, detalhe do Pedido nas
+   tres formas e as telas do cliente). NAO e um redesign global e
+   NAO redesenha a navegacao global.
+
+   Por que este arquivo existe e usa `!important`:
+   o chrome global (js/screens/common.js) e os cockpits das telas
+   sao montados com `style` INLINE pixel-exato — uma declaracao
+   inline vence qualquer regra de folha de estilo por especificidade.
+   A unica forma de aplicar um breakpoint sem reescrever o chrome
+   (proibido por este pedido) e uma media query com `!important`
+   ancorada em atributos `data-rv-*` estaveis. Os atributos sao o
+   contrato: cada um marca uma REGIAO, nunca um componente visual.
+
+   Nenhuma regra depende de rota, de produto ou de perfil: a
+   correcao e neutra de rota (D3 e um defeito de plataforma).
+
+   Contrato de atributos:
+     data-rv-shell            wrapper flex header+aside+main
+     data-rv-shell-aside      sidebar de navegacao (196px no desktop)
+     data-rv-shell-main       <main> do shell
+     data-rv-shell-header     topbar 62px
+     data-rv-nav-footer       rodape da sidebar ("Sair")
+     data-rv-cockpit          grade conteudo + rail direito
+     data-rv-rail             rail direito (sticky no desktop)
+     data-rv-2col             grade de 2 colunas de cartoes
+     data-rv-metrics          grade de metricas (repeat(N,1fr))
+     data-rv-table-scroll     container PROPRIO de rolagem de tabela
+     data-rv-route-stepper    stepper por rota (admin)
+     data-rv-stepper-scroll   container de rolagem do stepper cliente
+     data-rv-client-stepper   linha de etapas do cliente
+   ============================================================ */
+
+/* ---- Rolagem de tabela: o container e SEMPRE o dono do overflow.
+   Vale em qualquer largura, para que uma tabela larga nunca empurre
+   o documento (requisito: documentElement.scrollWidth <= clientWidth).
+   `min-width:0` impede que um filho de grid/flex force o container. */
+[data-rv-table-scroll] {
+  overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* O <main> do shell nunca pode ser esticado por um filho largo. */
+[data-rv-shell-main] {
+  min-width: 0;
+}
+
+/* ---- Cockpit: abaixo de 1024px o rail direito (300px) nao cabe ao
+   lado do conteudo. As duas regioes passam a ocupar a largura toda,
+   empilhadas, e o rail perde o comportamento sticky (que no mobile
+   apenas obstrui). ---- */
+@media (max-width: 1023px) {
+  [data-rv-cockpit] {
+    grid-template-columns: minmax(0, 1fr) !important;
+    row-gap: 14px !important;
+  }
+  [data-rv-rail] {
+    position: static !important;
+    top: auto !important;
+    width: auto !important;
+    max-width: 100% !important;
+  }
+  [data-rv-2col] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  /* Stepper por rota: 5 estagios + 4 conectores nao cabem. Vira uma
+     lista vertical — nenhum no e cortado nem se sobrepoe. */
+  [data-rv-route-stepper] {
+    grid-template-columns: minmax(0, 1fr) !important;
+    row-gap: 10px !important;
+    justify-items: start !important;
+  }
+}
+
+@media (max-width: 900px) {
+  [data-rv-metrics] {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+/* ---- Mobile (<=767px): o shell empilha. A sidebar de 196px deixa de
+   consumir o viewport e passa a ser uma faixa horizontal rolavel com
+   os MESMOS itens de navegacao — a infraestrutura de navegacao nao
+   muda, apenas a sua disposicao. ---- */
+@media (max-width: 767px) {
+  [data-rv-shell] {
+    flex-direction: column !important;
+  }
+  [data-rv-shell-aside] {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-shrink: 1 !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    border-right: none !important;
+    border-bottom: 1px solid #eceef1 !important;
+    padding: 8px 10px !important;
+    gap: 6px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  [data-rv-shell-aside] > * {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+  }
+  [data-rv-shell-aside] [data-rv-nav-footer],
+  [data-rv-shell-aside] > [data-rv-nav-footer] {
+    margin-top: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+  /* O separador vertical de 1px do rodape nao faz sentido na faixa. */
+  [data-rv-nav-footer] > div[style*="height:1px"] {
+    display: none !important;
+  }
+  [data-rv-shell-header] {
+    padding: 0 14px !important;
+    gap: 10px !important;
+  }
+  [data-rv-shell-main] {
+    padding: 14px !important;
+  }
+  /* Metricas: 6 colunas em 375px dariam ~50px por cartao. */
+  [data-rv-metrics] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  /* Formularios operacionais com colunas fixas em px: empilham, para que
+     nenhum controle fique inalcancavel. */
+  [data-rv-form-grid] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  /* Stepper do cliente: rola dentro do proprio container, mantendo os
+     rotulos legiveis em vez de quebrar uma palavra por linha. */
+  [data-rv-stepper-scroll] {
+    overflow-x: auto !important;
+    max-width: 100% !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  [data-rv-client-stepper] {
+    min-width: 560px !important;
+  }
+}

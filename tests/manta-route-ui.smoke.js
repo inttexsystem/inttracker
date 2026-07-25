@@ -774,9 +774,256 @@ test('14c. uma OP Manta terminal com saida medida nao liberada fica "pronto para
 });
 
 test('14d. o tracking do cliente casa o dto por CHAVE, nunca por posicao', () => {
-  assert.match(clienteTracking, /dtoByKey\[step\.key\]/,
+  assert.match(clienteTracking, /dtoByKey\[(?:step|entry)\.key\]/,
     'as listas podem ter tamanhos diferentes entre rotas');
-  assert.match(clienteTracking, /getClienteTrackingStepsForRoutes|applicableSteps/);
+  assert.match(clienteTracking, /getClienteTrackingStepsForRoutes|applicableSteps|applicableSections/);
   assert.match(clienteTracking, /getClienteTrackingStepIndex/,
     'o estado da etapa continua comparado pelo indice canonico');
+  assert.doesNotMatch(clienteTracking, /dtoByKey\[\s*i\s*\]|stepsComPercentual\[\s*i\s*\]/,
+    'o dto nunca pode ser casado por posicao');
+});
+
+// =====================================================================
+// PHASE-MANTA-B2B-ROUTE-SEMANTICS-AND-RESPONSIVE-VISUAL-CORRECTION-R2
+// Provas das correcoes D1 (secoes de rota do cliente), D2 (numeracao
+// contigua por rota) e D4 (vocabulario e pendencia documental de rota).
+// =====================================================================
+
+// Coleta nos por atributo atravessando a arvore do sandbox (o FakeNode
+// dos testes nao implementa querySelectorAll).
+function findByAttr(node, attr, acc) {
+  const out = acc || [];
+  if (!node || node.nodeType === 3) return out;
+  if (node.attrs && Object.prototype.hasOwnProperty.call(node.attrs, attr)) out.push(node);
+  (node.children || []).forEach((c) => findByAttr(c, attr, out));
+  return out;
+}
+
+function clientTrackingSandbox() {
+  return makeSandbox([opDisplay, productRoute, trackingUi, chainState,
+    read('js/screens/cliente-route-sections-ui.js'), clienteTracking]);
+}
+
+// Renderiza o card de acompanhamento do cliente para um conjunto de rotas
+// e devolve as secoes com as etapas realmente exibidas.
+function renderClientCard(routes, pedidoOver) {
+  const sandbox = clientTrackingSandbox();
+  const pedido = Object.assign({
+    id: 'p1', numero: 77, status: 'produzindo', metros_total: 100,
+    status_cliente_visual: 'tecelagem',
+  }, pedidoOver || {});
+  const card = sandbox.window.buildClientePedidoTrackingCard(pedido, [], [], null, routes);
+  const sections = findByAttr(card, 'data-rv-client-route-section').map((sec) => ({
+    route: sec.getAttribute('data-rv-client-route-section'),
+    steps: findByAttr(sec, 'data-rv-step-key').map((n) => ({
+      key: n.getAttribute('data-rv-step-key'),
+      shown: Number(n.getAttribute('data-rv-step-number')),
+      canonical: Number(n.getAttribute('data-rv-step-canonical')),
+    })),
+    steppers: findByAttr(sec, 'data-rv-client-stepper').length,
+  }));
+  return { sandbox, card, sections, text: textOf(card) };
+}
+
+test('R2/1. a rota Manta do cliente omite Acabamento', () => {
+  const { sections } = renderClientCard(['manta']);
+  assert.equal(sections.length, 1);
+  assert.equal(sections[0].route, 'manta');
+  assert.equal(sections[0].steps.some((s) => s.key === 'acabamento'), false,
+    'a rota Manta nao pode conter a etapa acabamento');
+  assert.deepEqual(sections[0].steps.map((s) => s.key),
+    ['recebido', 'confirmado', 'insumos', 'tecelagem', 'expedicao', 'transporte', 'concluido']);
+});
+
+test('R2/2. a numeracao visivel da Manta e CONTIGUA (sem buraco onde o Acabamento saiu)', () => {
+  const { sections } = renderClientCard(['manta']);
+  const shown = sections[0].steps.map((s) => s.shown);
+  assert.deepEqual(shown, [1, 2, 3, 4, 5, 6, 7], 'a Manta deve exibir 1..7 sem lacuna');
+  // O indice canonico continua saltando o acabamento (3 -> 5): o numero
+  // exibido e a posicao LOCAL da rota, nunca o indice canonico.
+  const canonical = sections[0].steps.map((s) => s.canonical);
+  assert.deepEqual(canonical, [0, 1, 2, 3, 5, 6, 7]);
+  assert.notDeepEqual(shown.map((n) => n - 1), canonical,
+    'a correcao D2 exige justamente que visivel divirja do canonico apos o filtro');
+});
+
+test('R2/3. a numeracao visivel do Tapete continua contigua e completa', () => {
+  const { sections } = renderClientCard(['tapete']);
+  assert.deepEqual(sections[0].steps.map((s) => s.shown), [1, 2, 3, 4, 5, 6, 7, 8]);
+  assert.deepEqual(sections[0].steps.map((s) => s.canonical), [0, 1, 2, 3, 4, 5, 6, 7]);
+});
+
+test('R2/4. um Pedido misto do cliente renderiza DUAS secoes de rota', () => {
+  const { sections } = renderClientCard(['tapete', 'manta']);
+  assert.equal(sections.length, 2, 'um Pedido misto tem duas rotas independentes');
+  assert.deepEqual(sections.map((s) => s.route), ['tapete', 'manta']);
+  assert.equal(sections[0].steppers, 1);
+  assert.equal(sections[1].steppers, 1);
+});
+
+test('R2/5. um Pedido misto NAO renderiza a uniao das rotas num stepper unico', () => {
+  const { card, sections } = renderClientCard(['tapete', 'manta']);
+  const steppers = findByAttr(card, 'data-rv-client-stepper');
+  assert.equal(steppers.length, 2, 'dois steppers, um por rota — nunca um so');
+  const total = sections.reduce((acc, s) => acc + s.steps.length, 0);
+  assert.equal(total, 15, 'Tapete 8 + Manta 7; a uniao num stepper unico daria 8');
+  assert.notEqual(sections[0].steps.length, sections[1].steps.length,
+    'as duas rotas tem formas diferentes e nao podem compartilhar um stepper');
+});
+
+test('R2/6. a secao Tapete do misto contem Acabamento', () => {
+  const { sections } = renderClientCard(['tapete', 'manta']);
+  const tapete = sections.find((s) => s.route === 'tapete');
+  assert.equal(tapete.steps.some((s) => s.key === 'acabamento'), true);
+});
+
+test('R2/7. a secao Manta do misto NAO contem Acabamento', () => {
+  const { sections } = renderClientCard(['tapete', 'manta']);
+  const manta = sections.find((s) => s.route === 'manta');
+  assert.equal(manta.steps.some((s) => s.key === 'acabamento'), false);
+  assert.deepEqual(manta.steps.map((s) => s.shown), [1, 2, 3, 4, 5, 6, 7]);
+});
+
+test('R2/8. a conclusao de uma rota nao completa nem avanca a outra', () => {
+  // Posicao publicada em `acabamento`: existe SO na rota Tapete. A secao
+  // Manta nao ganha nenhuma etapa de acabamento e conserva a sua propria
+  // forma e numeracao — o avanco do Tapete nao avanca a Manta.
+  const { sections } = renderClientCard(['tapete', 'manta'], { status_cliente_visual: 'acabamento' });
+  const tapete = sections.find((s) => s.route === 'tapete');
+  const manta = sections.find((s) => s.route === 'manta');
+  assert.equal(tapete.steps.some((s) => s.key === 'acabamento' && s.canonical === 4), true);
+  assert.equal(manta.steps.some((s) => s.key === 'acabamento'), false);
+  assert.deepEqual(manta.steps.map((s) => s.shown), [1, 2, 3, 4, 5, 6, 7]);
+  assert.equal(manta.steps.length, 7);
+  assert.equal(tapete.steps.length, 8);
+});
+
+test('R2/9. o dto de parciais e casado por CHAVE e so dentro da rota que possui a chave', () => {
+  const api = makeSandbox([opDisplay, productRoute]).window.RAVATEX_PRODUCT_ROUTE;
+  const steps = [{ key: 'tecelagem' }, { key: 'acabamento' }, { key: 'expedicao' }];
+  const split = api.splitClientStepsByRoute(steps, ['tapete', 'manta']);
+  const mantaKeys = split.find((s) => s.route === 'manta').steps.map((s) => s.key);
+  assert.equal(mantaKeys.indexOf('acabamento'), -1,
+    'a chave acabamento nunca entra na secao Manta, logo o seu dto nunca e casado la');
+  assert.deepEqual(split.find((s) => s.route === 'tapete').steps.map((s) => s.key),
+    ['tecelagem', 'acabamento', 'expedicao']);
+  // displayIndex e contiguo dentro de cada rota, por construcao.
+  split.forEach((sec) => {
+    sec.steps.forEach((entry, i) => { assert.equal(entry.displayIndex, i); });
+  });
+});
+
+test('R2/10. o resumo da OP de tecelagem Manta nao contem "Entregue p/ acabamento"', () => {
+  const src = codeOnly(opTecelagem);
+  assert.match(src, /RESUMO_LABELS/, 'os rotulos do resumo passam a ser por rota');
+  assert.match(src, /manta:[\s\S]{0,200}entregue: 'Sa[ií]da medida'/,
+    'a rota Manta usa vocabulario de saida medida');
+  assert.match(src, /buildResumo\(totais, isManta \? 'manta' : 'tapete'\)/,
+    'a rota e passada EXPLICITAMENTE — o builder nunca a adivinha');
+  assert.match(src, /function buildResumo\(totais, route\)/);
+});
+
+test('R2/11. o resumo da OP de tecelagem Tapete mantem o vocabulario de Acabamento', () => {
+  const src = codeOnly(opTecelagem);
+  assert.match(src, /tapete:[\s\S]{0,200}entregue: 'Entregue p\/ acabamento'/,
+    'o Tapete permanece verbatim');
+});
+
+test('R2/12. a pendencia documental da Manta nao cita a transicao Tecelagem -> Acabamento', () => {
+  const sandbox = makeSandbox([opDisplay, productRoute, routeSections]);
+  const api = sandbox.window.RAVATEX_SCREENS.pedidoRouteSections;
+
+  const mantaCom = api.buildOpDocBanner('tecelagem', 'manta', 210);
+  const mantaSem = api.buildOpDocBanner('tecelagem', 'manta', 0);
+  for (const b of [mantaCom, mantaSem]) {
+    assert.doesNotMatch(b.text, /romaneio/i, 'nenhum romaneio tecelagem->acabamento na Manta');
+    assert.doesNotMatch(b.text, /pendente/i, 'a Manta nao ganha uma pendencia fabricada');
+    assert.doesNotMatch(b.text, /Sem movimenta[çc][ãa]o para acabamento/i,
+      'afirmar "sem movimentacao para acabamento" implica que a etapa existe na rota');
+    assert.equal(b.tone, 'neutral', 'sem tom de alerta: nao ha exigencia documental a cobrar');
+    // O contrato (sec.7.3) permite citar Acabamento SO como nota explicativa
+    // de que a rota nao o contem; nunca como transicao aplicavel.
+    if (/acabamento/i.test(b.text)) {
+      assert.match(b.text, /n[ãa]o tem[^.]*acabamento/i,
+        'se o Acabamento e citado, tem de ser na forma negada e explicativa');
+    }
+  }
+  // Tapete verbatim.
+  assert.equal(api.buildOpDocBanner('tecelagem', 'tapete', 210).text,
+    'Romaneio tecelagem -> acabamento pendente');
+  assert.equal(api.buildOpDocBanner('tecelagem', 'tapete', 0).text,
+    'Sem movimentacao para acabamento registrada ainda');
+  assert.equal(api.buildOpDocBanner('acabamento', 'tapete', 210).text, 'NF de expedicao pendente');
+
+  // Linha documental: a transicao citada e a que a rota realmente tem.
+  const rowManta = api.buildOpDocumentRow({ stageKey: 'tecelagem', route: 'manta', label: 'OP X', done: 210 });
+  assert.match(rowManta.label, /Tecelagem -> Expedicao/);
+  assert.doesNotMatch(rowManta.label, /Acabamento/);
+  const rowTapete = api.buildOpDocumentRow({ stageKey: 'tecelagem', route: 'tapete', label: 'OP Y', done: 210 });
+  assert.equal(rowTapete.label, 'Movimento: Tecelagem -> Acabamento · OP Y');
+});
+
+test('R2/13. num Pedido misto o total de Acabamento contem SO valores Tapete', () => {
+  const sandbox = makeSandbox([opDisplay, productRoute, routeSections]);
+  const api = sandbox.window.RAVATEX_SCREENS.pedidoRouteSections;
+  const opSummaries = [
+    { stageKey: 'tecelagem', route: 'tapete', done: 400, remaining: 0 },
+    { stageKey: 'acabamento', route: 'tapete', done: 100, remaining: 300 },
+    { stageKey: 'tecelagem', route: 'manta', done: 180, remaining: 120 },
+  ];
+  const misto = plain(api.buildPedidoSummaryMetrics(['tapete', 'manta'], opSummaries));
+  assert.equal(misto.hasAcabamento, true, 'o misto mantem a metrica de Acabamento');
+  assert.equal(misto.hasManta, true);
+  assert.equal(misto.mantaMedido, 180, 'a saida medida da Manta vive na sua propria metrica');
+
+  // Manta-only: a metrica de Acabamento e SUPRIMIDA, nao exibida como zero.
+  const soManta = plain(api.buildPedidoSummaryMetrics(['manta'],
+    [{ stageKey: 'tecelagem', route: 'manta', done: 210, remaining: 90 }]));
+  assert.equal(soManta.hasAcabamento, false);
+  assert.equal(soManta.hasManta, true);
+  assert.equal(soManta.mantaMedido, 210);
+
+  // Tapete-only: inalterado.
+  const soTapete = plain(api.buildPedidoSummaryMetrics(['tapete'], opSummaries));
+  assert.equal(soTapete.hasAcabamento, true);
+  assert.equal(soTapete.hasManta, false);
+
+  // O agregado `emAcabamento` do view model soma SO OPs de acabamento
+  // (ops.tipo='latex'), onde nenhuma Manta pode existir por garantia do
+  // banco — portanto contem apenas valores Tapete por construcao.
+  const prog = codeOnly(detailProgress);
+  assert.match(prog, /acabamentoSummaries = opSummaries\.filter\(function \(row\) \{ return row\.stageKey === 'acabamento'; \}\)/);
+  assert.match(prog, /emAcabamento = ns\.round2\(acabamentoSummaries\.reduce/);
+  assert.match(prog, /function stageKeyForOp\(op\) \{\s*return op && op\.tipo === 'latex' \? 'acabamento' : 'tecelagem';/);
+});
+
+test('R2/14. linhas de item e cards de OP Manta usam vocabulario e valores de rota', () => {
+  const src = codeOnly(detailRender);
+  // Card de OP por rota.
+  assert.match(src, /OP_CARD_LABELS/);
+  assert.match(src, /manta:[\s\S]{0,240}entregue: 'Saida medida'/);
+  assert.match(src, /manta:[\s\S]{0,240}movTitle: 'Movimentar para Expedicao'/);
+  assert.match(src, /tapete:[\s\S]{0,240}entregue: 'Entregue p\/ acabamento'/);
+  assert.doesNotMatch(src, /summary\.stageKey === 'tecelagem' \? 'Transferir para Acabamento'/,
+    'o titulo do modal nao pode mais ser decidido por stageKey sozinho');
+  // Linha de item: a coluna Acabamento nao se aplica a Manta.
+  assert.match(src, /data-rv-item-acabamento/);
+  assert.match(src, /isManta \? '—' : ns\.fmtMetrosShort\(metrics\.acabamento\)/);
+  assert.match(src, /showAcabamento \? th\('ACABAMENTO'\) : null/);
+  // Valores de rota: o liberado/entregue da Manta vem do op_item da propria
+  // OP de tecelagem, nunca de uma OP de acabamento inexistente.
+  const prog = codeOnly(detailProgress);
+  assert.match(prog, /routeForOp\(row\.op, state\.modelosById\) === 'manta'[\s\S]{0,240}liberadoByLatexOpItem\[row\.opItem\.id\]/);
+  assert.match(prog, /route: routeApi\(\) \? routeApi\(\)\.routeForPedidoItem\(item, state\.modelosById\)/);
+});
+
+test('R2/18. a correcao R2 nao introduz delta de banco nem migracao', () => {
+  const changed = execFileSync('git', ['diff', '--name-only', 'bbd5f85'], { cwd: ROOT, encoding: 'utf8' })
+    .split('\n').map((s) => s.trim()).filter(Boolean);
+  const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { cwd: ROOT, encoding: 'utf8' })
+    .split('\n').map((s) => s.trim()).filter(Boolean);
+  for (const rel of changed.concat(untracked)) {
+    assert.equal(/^db\//.test(rel), false, 'nenhum arquivo db/** pode mudar: ' + rel);
+    assert.equal(/\.sql$/.test(rel), false, 'nenhum .sql pode mudar: ' + rel);
+  }
 });

@@ -293,7 +293,7 @@
     var cols = '1.4fr .8fr .8fr .8fr .8fr 1.2fr';
     var card = el('div', { style: CARD + 'overflow:hidden;' },
       el('div', { style: 'padding:15px 17px 12px;' }, rvSectionPill('Itens da OP', IC_ITENS)));
-    var table = el('div', { style: 'overflow-x:auto;' });
+    var table = el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
     var inner = el('div', { style: 'min-width:640px;' });
     inner.appendChild(thRow(cols, ['MODELO / CORES', 'PEDIDO', 'AJUSTADO', 'ENTREGUE', 'FALTA', 'ITEM DO PEDIDO']));
     for (var idx = 0; idx < ctx.opItensRaw.length; idx++) {
@@ -366,8 +366,12 @@
     });
     var totalPorItem = totalEntregueCimaPorItem(todosItens);
 
-    var tabela = el('div', { style: 'overflow-x:auto;' });
-    var tabelaInner = el('div', { style: 'min-width:560px;' });
+    var tabela = el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+    // D3: 4 colunas de 110px + gaps consomem 480px, entao 560px deixavam a
+    // coluna MODELO com ~48px e o rotulo quebrava uma palavra por linha.
+    // A tabela rola no seu proprio container, logo o minimo pode subir sem
+    // afetar o documento.
+    var tabelaInner = el('div', { style: 'min-width:700px;' });
     tabelaInner.appendChild(thRow('1fr 110px 110px 110px 110px', ['MODELO', 'PEDIDO', 'AJUSTADO', 'ENTREGUE', 'FALTA']));
     for (var i = 0; i < ctx.opItensRaw.length; i++) {
       var item = ctx.opItensRaw[i];
@@ -529,17 +533,36 @@
       el('span', { style: 'font-size:15px;font-weight:700;color:' + (color || 'var(--rv-color-title)') + ';white-space:nowrap;font-variant-numeric:tabular-nums;' }, value));
   }
 
-  function buildResumo(totais) {
+  // PHASE-MANTA-B2B-R2 (D4.1): o vocabulario do resumo e ROTA-EXPLICITO.
+  // A rota chega por parametro (`route`) — este builder NUNCA a adivinha
+  // (nem por `ops.tipo`, nem pelo nome do modelo, nem pela largura). Para
+  // a Manta, "Entregue p/ acabamento" era uma metrica FALSA: a rota Manta
+  // nao tem Acabamento; a saida medida vai direto para a Expedicao.
+  var RESUMO_LABELS = {
+    tapete: {
+      entregue: 'Entregue p/ acabamento',
+      pct: '% já entregue para a próxima etapa',
+      pctExcedente: '% entregue — acima do total ajustado (excedente).',
+    },
+    manta: {
+      entregue: 'Saída medida',
+      pct: '% da saída já medida (segue direto para a Expedição)',
+      pctExcedente: '% medido — acima do total ajustado (excedente).',
+    },
+  };
+
+  function buildResumo(totais, route) {
+    var labels = RESUMO_LABELS[route === 'manta' ? 'manta' : 'tapete'];
     var pctLabel = String(totais.pct).replace('.', ',');
     var saldoCor = totais.excedente ? 'var(--rv-color-danger)' : 'var(--rv-color-accent)';
     var pctTexto = totais.excedente
-      ? pctLabel + '% entregue — acima do total ajustado (excedente).'
-      : pctLabel + '% já entregue para a próxima etapa';
+      ? pctLabel + labels.pctExcedente
+      : pctLabel + labels.pct;
     return el('div', { style: CARD + 'padding:15px 17px;' },
       rvSectionPill('Resumo desta OP', IC_RESUMO),
       el('div', { style: 'display:flex;flex-direction:column;gap:11px;' },
         metricRow('Total ajustado da OP', window.fmtMetros(totais.totalAjustado), 'var(--rv-color-title)'),
-        metricRow('Entregue p/ acabamento', window.fmtMetros(totais.totalEntregue), totais.totalEntregue > 0 ? 'var(--rv-color-success)' : '#a2aab6'),
+        metricRow(labels.entregue, window.fmtMetros(totais.totalEntregue), totais.totalEntregue > 0 ? 'var(--rv-color-success)' : '#a2aab6'),
         metricRow('Saldo em tecelagem', window.fmtMetros(totais.saldo) + (totais.excedente ? ' (excedente)' : ''), saldoCor)),
       el('div', { style: 'margin-top:14px;' },
         el('div', { style: 'height:6px;border-radius:var(--rv-radius-pill);background:#eef1f5;overflow:hidden;' },
@@ -587,7 +610,7 @@
     var totalPorItem = totalEntregueCimaPorItem(todosItens);
 
     var cols = '1fr 110px 110px 110px';
-    var tabela = el('div', { style: 'overflow-x:auto;' });
+    var tabela = el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
     var inner = el('div', { style: 'min-width:520px;' });
     inner.appendChild(thRow(cols, ['MODELO', 'PREVISTO', 'MEDIDO', 'FALTA']));
     var pendingByOpItemId = {};
@@ -761,16 +784,18 @@
     }
     left.appendChild(buildBlocoHistorico(ctx));
 
-    var railKids = [buildResumo(totais)];
+    // A rota e passada EXPLICITAMENTE ao resumo (D4.1); nunca adivinhada
+    // la dentro. `isManta` vem de `modelos.tipo_produto` via opEhManta.
+    var railKids = [buildResumo(totais, isManta ? 'manta' : 'tapete')];
     if (ctx.cimaFornecedorId && !isManta) railKids.push(buildEnviarAcabamento(ctx, totais));
     if (ctx.cimaFornecedorId && isManta) railKids.push(buildEnviarExpedicaoManta(ctx, totais));
     railKids.push(buildDocumentos(ctx));
-    var right = el('div', { style: 'min-width:0;position:sticky;top:0;display:flex;flex-direction:column;gap:14px;' }, railKids);
+    var right = el('div', { 'data-rv-rail': '', style: 'min-width:0;position:sticky;top:0;display:flex;flex-direction:column;gap:14px;' }, railKids);
 
     var wrap = el('div', { style: 'display:block;' });
     wrap.appendChild(buildBreadcrumb(ctx));
     wrap.appendChild(buildHeader(ctx, totais));
-    wrap.appendChild(el('div', { style: 'display:grid;grid-template-columns:minmax(0,1fr) var(--rv-rail-w);gap:var(--rv-gap-cols);align-items:start;' }, left, right));
+    wrap.appendChild(el('div', { 'data-rv-cockpit': '', style: 'display:grid;grid-template-columns:minmax(0,1fr) var(--rv-rail-w);gap:var(--rv-gap-cols);align-items:start;' }, left, right));
     return wrap;
   }
 

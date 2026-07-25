@@ -219,17 +219,38 @@
     return window.el('div', {}, breadcrumb, titleRow);
   }
 
+  // PHASE-MANTA-B2B-R2 (D4.2): as metricas agregadas seguem as rotas
+  // APLICAVEIS do Pedido.
+  //   - Manta-only: a metrica "Em acabamento" e SUPRIMIDA (exibi-la como
+  //     zero afirmaria que o estagio existe na rota) e substituida pela
+  //     metrica verdadeira daquela rota, a saida medida.
+  //   - Misto: "Em acabamento" permanece e continua contendo SO valores
+  //     Tapete — `view.emAcabamento` soma apenas OPs de acabamento
+  //     (`ops.tipo='latex'`), onde nenhuma Manta pode existir; a saida
+  //     medida da Manta e exibida ao lado, na sua propria metrica.
+  //   - Tapete-only: identico ao comportamento anterior.
   function buildResumo(view) {
-    return window.el('div', {
-      style: 'display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:16px;',
-    },
+    var summary = view.routeSummary || null;
+    var hasAcabamento = summary ? summary.hasAcabamento !== false : true;
+    var hasManta = !!(summary && summary.hasManta);
+    var metrics = [
       buildSummaryMetric('Total do pedido', ns.fmtMetrosShort(view.totalPedido), '#16203a'),
       buildSummaryMetric('Em tecelagem', ns.fmtMetrosShort(view.emTecelagem), '#7c3aed'),
-      buildSummaryMetric('Em acabamento', ns.fmtMetrosShort(view.emAcabamento), '#c2610c'),
-      buildSummaryMetric('Pronto/expedicao', ns.fmtMetrosShort(view.prontoExpedicao), '#2563eb'),
-      buildSummaryMetric('Entregue', ns.fmtMetrosShort(view.entregue), '#18794a'),
-      buildSummaryMetric('Pendencias documentais', String(view.pendingDocs), '#d6403a')
-    );
+    ];
+    if (hasAcabamento) {
+      metrics.push(buildSummaryMetric('Em acabamento', ns.fmtMetrosShort(view.emAcabamento), '#c2610c'));
+    }
+    if (hasManta) {
+      metrics.push(buildSummaryMetric('Saida medida (Manta)', ns.fmtMetrosShort(summary.mantaMedido), '#7c3aed'));
+    }
+    metrics.push(buildSummaryMetric('Pronto/expedicao', ns.fmtMetrosShort(view.prontoExpedicao), '#2563eb'));
+    metrics.push(buildSummaryMetric('Entregue', ns.fmtMetrosShort(view.entregue), '#18794a'));
+    metrics.push(buildSummaryMetric('Pendencias documentais', String(view.pendingDocs), '#d6403a'));
+
+    return window.el('div', {
+      'data-rv-metrics': '',
+      style: 'display:grid;grid-template-columns:repeat(' + metrics.length + ',minmax(0,1fr));gap:10px;margin-bottom:16px;',
+    }, metrics);
   }
 
   function buildDadosGerais(state) {
@@ -255,6 +276,7 @@
         }, ns.svgEl(ns.SVG_LOCK), 'Bloqueado apos emissao')
       ),
       window.el('div', {
+        'data-rv-metrics': '',
         style: 'display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;',
       }, fields.map(function (field) {
         return window.el('div', {},
@@ -424,15 +446,34 @@
     );
   }
 
-  function buildItemRow(state, item, metrics, handlers) {
+  // D4.3: a coluna Acabamento so existe quando alguma rota do Pedido tem o
+  // estagio. Num Pedido misto ela permanece, mas a linha de um item MANTA
+  // mostra "—" (nao se aplica) em vez de 0 — zero afirmaria "nada em
+  // acabamento", implicando que o estagio existe naquela rota.
+  var ITEM_COLS_COM_ACAB = '44px 1.3fr .8fr .8fr .8fr .8fr .8fr 1.2fr 90px';
+  var ITEM_COLS_SEM_ACAB = '44px 1.3fr .8fr .8fr .8fr .8fr 1.2fr 90px';
+
+  function itemColsFor(showAcabamento) {
+    return showAcabamento ? ITEM_COLS_COM_ACAB : ITEM_COLS_SEM_ACAB;
+  }
+
+  function itemMinWidthFor(showAcabamento) {
+    return showAcabamento ? '980px' : '900px';
+  }
+
+  function buildItemRow(state, item, metrics, handlers, showAcabamento) {
     var ids = resolveItemColorIds(state, item);
     var c1Nome = corNomeById(state, ids.cor1);
     var c2Nome = corNomeById(state, ids.cor2);
     var c1Hex = c1Nome && window.corPreviewHex ? window.corPreviewHex(c1Nome) : '#e5e7eb';
     var c2Hex = c2Nome && window.corPreviewHex ? window.corPreviewHex(c2Nome) : '#e5e7eb';
+    var isManta = metrics.route === 'manta';
 
     return window.el('div', {
-      style: 'display:grid;grid-template-columns:44px 1.3fr .8fr .8fr .8fr .8fr .8fr 1.2fr 90px;gap:10px;padding:12px 20px;align-items:center;border-bottom:1px solid #f1f3f6;min-width:980px;',
+      'data-rv-item-route': metrics.route || '',
+      style: 'display:grid;grid-template-columns:' + itemColsFor(showAcabamento)
+        + ';gap:10px;padding:12px 20px;align-items:center;border-bottom:1px solid #f1f3f6;min-width:'
+        + itemMinWidthFor(showAcabamento) + ';',
     },
       window.el('div', {}, itemPreviewEl(state, item)),
       window.el('div', {},
@@ -453,7 +494,13 @@
       ),
       window.el('div', { style: 'font-size:13.5px;color:#16203a;font-weight:600;' }, ns.fmtMetrosShort(item.metros)),
       window.el('div', { style: 'font-size:13.5px;color:#7c3aed;font-weight:700;' }, ns.fmtMetrosShort(metrics.tecelagem)),
-      window.el('div', { style: 'font-size:13.5px;color:#c2610c;font-weight:700;' }, ns.fmtMetrosShort(metrics.acabamento)),
+      showAcabamento
+        ? window.el('div', {
+            'data-rv-item-acabamento': isManta ? 'nao-aplicavel' : 'aplicavel',
+            style: 'font-size:13.5px;color:' + (isManta ? '#9aa2af' : '#c2610c') + ';font-weight:700;',
+            title: isManta ? 'A rota Manta nao tem etapa de acabamento.' : '',
+          }, isManta ? '—' : ns.fmtMetrosShort(metrics.acabamento))
+        : null,
       window.el('div', { style: 'font-size:13.5px;color:#2563eb;font-weight:700;' }, ns.fmtMetrosShort(metrics.prontos)),
       window.el('div', { style: 'font-size:13.5px;color:#18794a;font-weight:700;' }, ns.fmtMetrosShort(metrics.entregues)),
       window.el('div', { style: 'font-size:12.5px;color:#2563eb;font-weight:600;' }, metrics.relatedOpsLabel),
@@ -483,32 +530,46 @@
       return card;
     }
 
+    // A coluna ACABAMENTO desaparece quando nenhuma rota aplicavel tem o
+    // estagio (Pedido Manta-only). Num Pedido misto ela fica, com "—" nas
+    // linhas Manta.
+    var showAcabamento = view.routeSummary ? view.routeSummary.hasAcabamento !== false : true;
     var head = window.el('div', {
+      'data-rv-table-scroll': '',
       style: 'overflow-x:auto;',
     });
 
+    function th(label, alignRight) {
+      return window.el('div', {
+        style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;' + (alignRight ? 'text-align:right;' : ''),
+      }, label);
+    }
+
     head.appendChild(window.el('div', {
-      style: 'display:grid;grid-template-columns:44px 1.3fr .8fr .8fr .8fr .8fr .8fr 1.2fr 90px;gap:10px;padding:9px 20px;background:#f8f9fb;border-top:1px solid #eceef1;border-bottom:1px solid #eceef1;min-width:980px;',
+      style: 'display:grid;grid-template-columns:' + itemColsFor(showAcabamento)
+        + ';gap:10px;padding:9px 20px;background:#f8f9fb;border-top:1px solid #eceef1;border-bottom:1px solid #eceef1;min-width:'
+        + itemMinWidthFor(showAcabamento) + ';',
     },
       window.el('div', {}),
-      window.el('div', { style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;' }, 'MODELO / CORES'),
-      window.el('div', { style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;' }, 'PEDIDO'),
-      window.el('div', { style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;' }, 'TECELAGEM'),
-      window.el('div', { style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;' }, 'ACABAMENTO'),
-      window.el('div', { style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;' }, 'PRONTOS'),
-      window.el('div', { style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;' }, 'ENTREGUES'),
-      window.el('div', { style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;' }, 'OPs RELACIONADAS'),
-      window.el('div', { style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;text-align:right;' }, 'ACAO')
+      th('MODELO / CORES'),
+      th('PEDIDO'),
+      th('TECELAGEM'),
+      showAcabamento ? th('ACABAMENTO') : null,
+      th('PRONTOS'),
+      th('ENTREGUES'),
+      th('OPs RELACIONADAS'),
+      th('ACAO', true)
     ));
 
     state.itens.forEach(function (item) {
       head.appendChild(buildItemRow(state, item, view.itemMetricsById[item.id] || {
+        route: null,
         tecelagem: 0,
         acabamento: 0,
         prontos: 0,
         entregues: 0,
         relatedOpsLabel: '-',
-      }, handlers));
+      }, handlers, showAcabamento));
     });
 
     card.appendChild(head);
@@ -545,7 +606,34 @@
     return window.el('button', attrs, label);
   }
 
+  // D4.3/D4.4: vocabulario do card de OP por rota. Uma OP de tecelagem
+  // MANTA nunca entrega "p/ acabamento" nem transita "Tecelagem ->
+  // Acabamento": a saida medida vai direto para a Expedicao. A rota vem de
+  // `summary.route` (`modelos.tipo_produto`), nunca de `ops.tipo`.
+  var OP_CARD_LABELS = {
+    manta: {
+      entregue: 'Saida medida',
+      movTitle: 'Movimentar para Expedicao',
+      movDestino: 'Expedicao',
+      movDocs: 'NF de expedicao',
+    },
+    tapete: {
+      entregue: 'Entregue p/ acabamento',
+      movTitle: 'Transferir para Acabamento',
+      movDestino: 'Acabamento',
+      movDocs: 'Romaneio e NF',
+    },
+  };
+
+  function opCardLabels(summary) {
+    if (summary.stageKey !== 'tecelagem') {
+      return { entregue: null, movTitle: 'Movimentar para Expedicao', movDestino: 'Expedicao', movDocs: 'NF de expedicao' };
+    }
+    return OP_CARD_LABELS[summary.route === 'manta' ? 'manta' : 'tapete'];
+  }
+
   function buildOpCard(state, summary, handlers) {
+    var labels = opCardLabels(summary);
     var typeTone = summary.stageKey === 'tecelagem'
       ? { bg: '#f3effe', text: '#7c3aed' }
       : { bg: '#fef9ec', text: '#b45309' };
@@ -572,7 +660,7 @@
         }, window.el('span', {}, 'Pedido total'), window.el('span', { style: 'color:#16203a;font-weight:600;' }, ns.fmtMetros(summary.target))),
         window.el('div', {
           style: 'display:flex;justify-content:space-between;font-size:13px;color:#5b6472;',
-        }, window.el('span', {}, 'Entregue p/ acabamento'), window.el('span', { style: 'color:#16203a;font-weight:600;' }, ns.fmtMetros(summary.done))),
+        }, window.el('span', {}, labels.entregue), window.el('span', { style: 'color:#16203a;font-weight:600;' }, ns.fmtMetros(summary.done))),
         window.el('div', {
           style: 'display:flex;justify-content:space-between;font-size:13px;color:#5b6472;',
         }, window.el('span', {}, 'Saldo em tecelagem'), window.el('span', { style: 'color:#2563eb;font-weight:700;' }, ns.fmtMetros(summary.remaining))),
@@ -660,12 +748,12 @@
             : null,
           buildFooterAction(movementLabel, function () {
             handlers.openMovementModal({
-              title: summary.stageKey === 'tecelagem' ? 'Transferir para Acabamento' : 'Movimentar para Expedicao',
+              title: labels.movTitle,
               origem: summary.stageLabel + ' - ' + summary.label,
-              destino: summary.stageKey === 'tecelagem' ? 'Acabamento' : 'Expedicao',
+              destino: labels.movDestino,
               detalhe: 'A movimentacao continua sendo registrada na OP vinculada.',
               op: summary.op,
-              docs: summary.stageKey === 'tecelagem' ? 'Romaneio e NF' : 'NF de expedicao',
+              docs: labels.movDocs,
               action: movementAction,
             });
           }, movementAction.mode === 'enabled', movementDisabled),
@@ -742,6 +830,7 @@
     }
 
     wrap.appendChild(window.el('div', {
+      'data-rv-2col': '',
       style: 'display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;',
     }, view.opSummaries.map(function (summary) {
       return buildOpCard(state, summary, handlers);
@@ -788,6 +877,7 @@
     }
 
     wrap.appendChild(window.el('div', {
+      'data-rv-2col': '',
       style: 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;',
     }, view.expedicaoSummaries.map(function (summary) {
       var concluida = summary.status === 'concluida' && summary.saldo <= 0;
@@ -1320,6 +1410,7 @@
       buildExpedicoes(state, view, handlers),
       buildConclusaoPedido(state, view, handlers),
       window.el('div', {
+        'data-rv-2col': '',
         style: 'display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;margin-bottom:14px;',
       },
         buildClienteEvolution(state, view, handlers),

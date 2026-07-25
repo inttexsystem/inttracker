@@ -73,7 +73,11 @@ test('expedicao flow: acabamento finalizado libera expedicao sem concluir pedido
 });
 
 test('expedicao flow: tela de expedicao registra entrega\/coleta e chama conclusao por RPC', () => {
-  assert.match(index, /js\/screens\/expedicao-admin\.js\?v=20260623-asset1/);
+  // O script continua carregado E cache-busted. A versao literal deixou de
+  // ser fixada: PHASE-MANTA-B2B-R2 exige bump de cache a cada alteracao, e
+  // congelar o valor tornava a assercao um falso negativo em todo bump. A
+  // exigencia real (presenca + `?v=` nao vazio) fica preservada.
+  assert.match(index, /js\/screens\/expedicao-admin\.js\?v=[^"'\s>]+/);
   assert.match(expedicao, /screenExpedicaoAdmin/);
   assert.match(expedicao, /registrar_entrega_expedicao/);
   assert.match(expedicao, /p_tipo\s*:\s*tipoInput\.value/);

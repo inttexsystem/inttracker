@@ -52,7 +52,11 @@
         columns.push('104px');
       }
     });
+    // `data-rv-route-stepper` e o ancoradouro do breakpoint: abaixo de
+    // 1024px a grade vira uma coluna e o stepper empilha, para que nenhum
+    // no de rota seja cortado ou se sobreponha (D3).
     return window.el('div', {
+      'data-rv-route-stepper': section.route || '',
       style: 'display:grid;grid-template-columns:' + columns.join(' ') + ';align-items:start;',
     }, children);
   }

@@ -3701,3 +3701,90 @@ is rendered-structure, computed-geometry and action-state evidence.
 **Next.** `PHASE-MANTA-B2B-ARCHITECT-TECHNICAL-AND-VISUAL-REVIEW`.
 `PHASE-MANTA-B2C-SHARED-DEV-FLOW-AND-CLOSEOUT-R1` remains unauthorized and
 requires its own explicit order; no phase chains automatically.
+
+# Update 2026-07-25 - PHASE-MANTA-B2B-ROUTE-SEMANTICS-AND-RESPONSIVE-VISUAL-CORRECTION-R2 (bounded correction of the published B2B implementation; D1/D2/D4 CLOSED, D3 CLOSED FOR THE REQUIRED B2B SURFACES; zero migrations; awaiting architect technical and visual acceptance)
+
+Phase: bounded product correction + local testing + visual validation of the
+already-published PHASE-MANTA-B2B implementation. `js/**`, `css/**`,
+`index.html`, `tests/*.smoke.js` and the affected documentation owners only.
+**Zero migrations; `db/**` byte-unchanged.** No shared-development, staging or
+production access; no Vercel; no real business data.
+
+**Sequence effect.** No sequence item is added, moved or closed. PHASE-MANTA-B2B
+remains the same backlog position and remains **awaiting architect technical and
+visual acceptance**; this update records that the four architect-identified
+acceptance blockers were corrected, not that the phase was accepted.
+PHASE-MANTA-B2A (db/85–88) still awaits its own architect review and
+PHASE-MANTA-B2C remains unauthorized. No phase chains automatically.
+
+**Blocker closure.**
+
+- **D1 — CLOSED.** A mixed Pedido no longer renders the union of its two routes
+  as one client stepper. `js/product-route.js` gained
+  `splitClientStepsByRoute`, and the new cohesive module
+  `js/screens/cliente-route-sections-ui.js` arranges one independent, visibly
+  identified section per applicable route ("Rota Tapete" / "Rota Manta"), each
+  with its own stepper, connectors and partial percentages. A Tapete-only Pedido
+  degenerates to one unlabelled section — its presentation is unchanged.
+- **D2 — CLOSED.** The visible step ordinal is now the route-local display
+  position, so Manta renders 1..7 with no gap where `acabamento` was filtered
+  out. The canonical index remains the authority for progress comparison, DTO
+  lookup and state resolution, and is no longer printed. No hidden Acabamento
+  node was fabricated.
+- **D3 — CLOSED FOR THE REQUIRED B2B SURFACES.** The repository gained its first
+  media-query infrastructure, `css/responsive.css`, anchored exclusively on
+  `data-rv-*` region attributes. The desktop sidebar no longer starves the
+  content at mobile width (the shell stacks and the same navigation becomes a
+  scrollable strip); the cockpits stack their right rail and drop `sticky`;
+  wide operational tables scroll inside containers they own — including the
+  expedition item table, which previously appended 720 px rows into a card with
+  `overflow:hidden` and was simply clipped. Measured in a real browser across
+  nine surfaces at 1440/785/375 px: `documentElement.scrollWidth ===
+  clientWidth` on every one, so the documented 19 px overflow at the 785 px
+  route boundary is gone. **The application is not claimed to be globally
+  responsive** — only the enumerated B2B surfaces were corrected and measured.
+- **D4 — CLOSED.** Manta surfaces no longer carry false Acabamento semantics.
+  The weaving-OP summary takes its route explicitly and reads "Saída medida" for
+  Manta while Tapete keeps "Entregue p/ acabamento" verbatim; the aggregate
+  "Em acabamento" metric is suppressed for a Manta-only Pedido rather than shown
+  as zero, and for a mixed Pedido it continues to contain Tapete values only by
+  construction, with the Manta measured output held in its own metric; the item
+  table's ACABAMENTO column disappears when no route has the stage and renders
+  "—" for a Manta row in a mixed Pedido; a Manta item's released and delivered
+  metres are now read from the weaving OP's own op_item instead of reading zero;
+  and a Manta weaving OP no longer emits the false
+  "Romaneio tecelagem -> acabamento pendente" pendency — the documentary row
+  cites the transition the route actually has, Tecelagem → Expedição, and where
+  the existing document contract defines no requirement the pendency is omitted
+  rather than manufactured. No new document type was invented and no Tapete
+  string changed.
+
+**Route identity.** Unchanged and still exclusively `modelos.tipo_produto`,
+reached through `op_itens.modelo_id` on administrative surfaces and
+`pedido_itens.modelo_id` on the client surface. Never `ops.tipo`, a model name,
+width alone, a screen name, a finishing supplier or the presence of a
+destination.
+
+**Structural policy.** `pedido-detail-events.js` 2709 → 2709 and
+`pedido-detail-progress.js` 919 → 918: neither protected file grew, because the
+route-aware documentary and summary derivations were **extracted** into
+`js/screens/pedido-route-sections.js` rather than appended.
+`CODE-HEALTH-AUDIT-18-R1` was not enlarged.
+
+**Evidence.** `tests/manta-route-ui.smoke.js` extended to 48 green assertions
+and new `tests/responsive-layout.smoke.js` with 21 green assertions cover all
+eighteen numbered requirements of the order's test contract. Full suite 4239
+tests with the failing-name set a strict subset of the `bbd5f85` baseline —
+**zero introduced failures**, proved by name-level diff against a clean detached
+worktree. No existing Tapete assertion was weakened; two static assertions whose
+subject moved were realigned and one was made stricter. Visual validation ran
+against a disposable untracked in-browser fixture with an in-memory read double,
+destroyed with zero residue.
+
+**Environment.** Local only. Shared development `ucrjtfswnfdlxwtmxnoo` remains
+at terminal migration `db/84` with the Manta backend dormant and was **not
+accessed**.
+
+Owner of the full technical record:
+`docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md`
+§18 "PHASE-MANTA-B2B route-semantics and responsive correction — R2".

@@ -168,16 +168,19 @@
           window.el('button', { class: 'text-sm text-red-600 hover:underline', onclick: window.logout }, 'Sair')
         )
       );
-      const aside = window.el('aside', { class: 'w-56 bg-white border-r p-4 hidden md:block' });
+      const aside = window.el('aside', {
+        class: 'w-56 bg-white border-r p-4 hidden md:block',
+        'data-rv-shell-aside': '',
+      });
       for (const item of (menuItems || [])) {
         aside.appendChild(window.el('a', {
           href: item.href,
           class: 'block py-2 px-3 rounded hover:bg-gray-100 text-gray-700'
         }, item.label));
       }
-      const main = window.el('main', { class: 'flex-1 p-6 bg-gray-100' }, contentNode);
+      const main = window.el('main', { class: 'flex-1 p-6 bg-gray-100', 'data-rv-shell-main': '' }, contentNode);
       root.appendChild(header);
-      root.appendChild(window.el('div', { class: 'flex flex-1' }, aside, main));
+      root.appendChild(window.el('div', { class: 'flex flex-1', 'data-rv-shell': '' }, aside, main));
       return root;
     }
 
@@ -238,12 +241,17 @@
     }, 'Sair');
 
     const header = window.el('header', {
+      'data-rv-shell-header': '',
       style: 'height:62px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;'
-        + 'padding:0 28px;border-bottom:1px solid #eceef1;background:#fff;',
+        + 'padding:0 28px;border-bottom:1px solid #eceef1;background:#fff;min-width:0;',
     }, brandLeft, userRight, legacySpan, legacyBtn);
 
     // Sidebar 196px (fonte: "Admin - Sidebar" standalone).
+    // `data-rv-shell-aside` e o ancoradouro do breakpoint mobile
+    // (css/responsive.css): abaixo de 768px esta mesma navegacao passa a
+    // ser uma faixa horizontal rolavel em vez de consumir o viewport.
     const aside = window.el('aside', {
+      'data-rv-shell-aside': '',
       style: 'width:196px;flex-shrink:0;border-right:1px solid #eceef1;background:#fff;'
         + 'padding:18px 10px;display:flex;flex-direction:column;gap:2px;',
     });
@@ -255,7 +263,7 @@
     }
 
     // Rodapé da sidebar: separador + item "Sair".
-    const footer = window.el('div', { style: 'margin-top:auto;' },
+    const footer = window.el('div', { 'data-rv-nav-footer': '', style: 'margin-top:auto;' },
       window.el('div', { style: 'height:1px;background:#eceef1;margin:6px 2px;' })
     );
     const sair = window.el('a', {
@@ -275,12 +283,14 @@
 
     const main = window.el('main', {
       class: 'flex-1 p-6 bg-gray-100',
+      'data-rv-shell-main': '',
       style: 'flex:1 1 0%;min-width:0;min-height:0;overflow-x:hidden;background:#f6f7f9;padding:24px;',
     }, contentNode);
 
     root.appendChild(header);
     root.appendChild(window.el('div', {
-      style: 'display:flex;flex:1 1 0%;min-height:0;',
+      'data-rv-shell': '',
+      style: 'display:flex;flex:1 1 0%;min-height:0;min-width:0;',
     }, aside, main));
     return root;
   }

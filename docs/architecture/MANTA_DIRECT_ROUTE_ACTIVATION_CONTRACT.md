@@ -1095,3 +1095,285 @@ evidence is rendered-structure, computed-geometry and action-state evidence.
 
 `PHASE-MANTA-B2B-ARCHITECT-TECHNICAL-AND-VISUAL-REVIEW`. PHASE-MANTA-B2C
 requires its own separate explicit order; no phase chains automatically.
+
+## 18. PHASE-MANTA-B2B route-semantics and responsive correction — R2
+
+STATUS: **PHASE-MANTA-B2B — CORRECTED / LOCALLY VERIFIED / PUBLISHED /
+AWAITING ARCHITECT TECHNICAL AND VISUAL ACCEPTANCE.**
+
+Order `PHASE-MANTA-B2B-ROUTE-SEMANTICS-AND-RESPONSIVE-VISUAL-CORRECTION-R2`
+(bounded product correction of the already-published B2B implementation;
+`js/**`, `css/**`, `index.html`, `tests/*.smoke.js` and the affected
+documentation owners only). **Zero migrations; `db/**` byte-unchanged. No
+shared-development, staging or production access. No Vercel. No real
+business data.** This record does not self-accept the phase, and
+PHASE-MANTA-B2C remains unauthorized.
+
+Defect closure recorded by the order:
+
+| Defect | State |
+|---|---|
+| D1 — client mixed Pedido rendered one merged stepper | **CLOSED** |
+| D2 — client Manta step numbering contained a gap | **CLOSED** |
+| D3 — mandatory 375 px surfaces clipped or unusable | **CLOSED FOR THE REQUIRED B2B SURFACES** |
+| D4 — Manta surfaces retained false Acabamento metrics, labels and documentary pendencies | **CLOSED** |
+
+### 18.1 Root cause of each defect
+
+1. **D1.** §17 made the *shape* of the client steps route-derived but kept
+   one stepper: `filterClientSteps` returns the **union** of the applicable
+   routes, and `cliente-pedido-tracking.js` rendered that union as a single
+   row. For a mixed Pedido the union necessarily contains `acabamento`, so
+   the Manta half of the order was shown a finishing step it does not have.
+   The union function was correct for consumers that need the aggregate set;
+   it was the wrong input for a surface that *renders* steps.
+2. **D2.** `buildStepNode` printed `String(index + 1)` where `index` is the
+   **canonical** position in the full eight-step list. After `acabamento`
+   was filtered out, a Manta route rendered 1, 2, 3, 4, **6**, 7, 8 — a
+   visible gap exactly where the filtered step used to be. The canonical
+   index is required for progress comparison and DTO lookup, but it is not
+   the visible ordinal.
+3. **D3.** Route-neutral platform defect. The global chrome
+   (`js/screens/common.js`) is built with **inline** `style` attributes — a
+   196 px sidebar, a 62 px topbar and a `flex` row — and the repository had
+   **no** media-query infrastructure at all (`css/tokens.css` holds only
+   custom properties). An inline declaration outranks any stylesheet rule by
+   specificity, so no breakpoint could exist. At 375 px the sidebar consumed
+   196 px of a 375 px viewport, leaving the cockpit grid
+   `minmax(0,1fr) var(--rv-rail-w)` a **131 px** content column; paragraphs
+   collapsed to ~1.2 words per line. Separately,
+   `expedicao-admin.js buildItens` appended 720 px-wide rows **directly into
+   a card with `overflow:hidden`**, so those columns were clipped with no
+   reachable scroll.
+4. **D4.** Four distinct false statements, all from conflating the
+   production **stage** (`ops.tipo`) with the product **route**
+   (`modelos.tipo_produto`) at the *presentation* layer, which §17 corrected
+   for structure but not for vocabulary:
+   - the weaving-OP rail summary labelled measured output
+     `Entregue p/ acabamento` for both routes;
+   - the Pedido summary always emitted an `Em acabamento` metric, so a
+     Manta-only Pedido asserted "0 m in a stage that does not exist";
+   - the item table always emitted an `ACABAMENTO` column, and a Manta
+     item's released/delivered metres were computed **only** from `latex`
+     op_items, so a released and delivered Manta item read `0`;
+   - the OP documentary banner and document row asserted
+     `Romaneio tecelagem -> acabamento pendente` /
+     `Movimento: Tecelagem -> Acabamento` for a Manta weaving OP — a
+     pendency for a transition the route does not contain.
+
+### 18.2 D1 — client route sections
+
+`js/product-route.js` gains `splitClientStepsByRoute(steps, routes)`, which
+returns one **independent** list per applicable route (ordered Tapete then
+Manta), each entry carrying `displayIndex`/`displayCount` — the route-local
+position, contiguous by construction. `filterClientSteps` is **retained
+unchanged** for the aggregate consumers; the rendering surfaces switch to
+the split.
+
+`js/pedido-tracking-ui.js` gains `getClienteTrackingSectionsForRoutes` and
+`getClienteTrackingRoutePosition`. New cohesive module
+`js/screens/cliente-route-sections-ui.js` (105 lines) owns **only the
+arrangement**: the route-identifying chip (`Rota Tapete` / `Rota Manta`),
+the route's real step shape as text, the per-section scroll container, and a
+route-local position note. The step nodes are still built by
+`cliente-pedido-tracking.js`, which owns the client stepper's visual
+vocabulary, and are injected — the same pattern already accepted for
+`pedido-route-sections-ui.js`.
+
+Boundaries preserved verbatim: `cliente-pedido-detail.js` performs **no**
+direct read and gained no new one; the routes still arrive from the
+dedicated reader `cliente-route-read.js`; no administrative datum is
+exposed; no permission is broadened. A Tapete-only Pedido renders **one**
+section with **no** header — its presentation is unchanged. A Manta-only
+Pedido renders one Manta section. Degradation without the arrangement module
+still emits one block per route, never the union.
+
+**Accepted limitation, explicitly recorded.** `status_cliente_visual` is a
+Pedido-level curated commercial artefact owned by `db/30`, and this order
+authorizes **no** migration, so a per-route *published position* does not
+exist. What is computed per route is therefore: the step set, the visible
+numbering, the per-step state, the connector colours (from route-local
+adjacency, never canonical adjacency), the partial-DTO match (by key, and
+only within the route that owns the key), and a route-local reached/next
+note. A per-route published position would require a new read-model column
+and is a separate order.
+
+### 18.3 D2 — route-local numbering
+
+`buildStepNode` now prints `pos + 1` — the route-local display position —
+in all three circle states, and receives an explicit `prevReached` computed
+inside the route so a connector is never coloured by canonical adjacency
+(which would join Tecelagem to Expedição *through* an Acabamento the route
+lacks). The canonical index is still passed and still decides
+`concluido` / `atual` / `futuro` and the DTO lookup. Each node carries
+`data-rv-step-key`, `data-rv-step-number` and `data-rv-step-canonical`, so
+the divergence is directly assertable. No hidden Acabamento node is
+fabricated anywhere. Proved live: Manta renders 1..7 with canonical
+`[0,1,2,3,5,6,7]`; Tapete renders 1..8 with canonical `[0..7]`.
+
+The administrative route sections were already route-sized
+(`pedido-route-sections-ui.js` builds the grid from the route's own stage
+count), and were confirmed to number 1..4 for Manta and 1..5 for Tapete.
+
+### 18.4 D4 — route-correct vocabulary, metrics and documentary logic
+
+- **Weaving-OP summary.** `buildResumo(totais, route)` takes the route
+  **explicitly** and selects from a `RESUMO_LABELS` table; it never guesses.
+  Manta reads `Saída medida` and "% da saída já medida (segue direto para a
+  Expedição)"; Tapete keeps `Entregue p/ acabamento` and its original
+  percentage sentence verbatim. The caller passes `isManta ? 'manta' :
+  'tapete'`, derived from `modelos.tipo_produto` via the pre-existing
+  `opEhManta`.
+- **Pedido summary metrics.** `buildPedidoSummaryMetrics(routes,
+  opSummaries)` (in `pedido-route-sections.js`) reports `hasAcabamento`,
+  `hasManta` and `mantaMedido`. For a Manta-only Pedido the `Em acabamento`
+  metric is **suppressed**, not rendered as zero, and is replaced by
+  `Saida medida (Manta)`. For a mixed Pedido both metrics appear side by
+  side. The aggregate `emAcabamento` is unchanged and continues to sum only
+  `stageKey === 'acabamento'` summaries — that is, `ops.tipo='latex'` — where
+  no Manta can exist by DB guarantee, so it contains **Tapete values only by
+  construction**. Proved on the mixed fixture: `emAcabamento = 300` (the
+  Tapete finishing balance) with `mantaMedido = 180` held separately.
+- **Item table.** The `ACABAMENTO` column is emitted only when an applicable
+  route has the stage; in a mixed Pedido a Manta row renders `—` with an
+  explanatory title, never `0`. `itemMetricsById` now carries the item's
+  `route`. The Manta released/delivered **values** were corrected: on the
+  Manta route the expedition references the op_item of the **weaving** OP,
+  so those metres are now accumulated there. Proved: a Manta item with 90 m
+  released and 30 m delivered reads `prontos 60 / entregues 30` instead of
+  `0 / 0`.
+- **OP cards and movement modal.** `OP_CARD_LABELS` selects by
+  `summary.route`: a Manta weaving card reads `Saida medida` and opens
+  `Movimentar para Expedicao` with destination `Expedicao` and
+  `NF de expedicao`; Tapete keeps `Entregue p/ acabamento`,
+  `Transferir para Acabamento`, `Acabamento` and `Romaneio e NF` verbatim.
+- **Documentary pendencies.** Extracted to `buildOpDocBanner(stageKey,
+  route, done)` and `buildOpDocumentRow(summary)` in
+  `pedido-route-sections.js`. A Manta weaving OP produces **no pendency**:
+  the tone is `neutral` and the text states that the route has no movement
+  to finishing — an explanatory note, permitted by §7.3 of the order,
+  rather than a manufactured requirement. **No new document type is
+  invented**, because the existing document contract defines none for the
+  Manta measured output; the false pendency is omitted instead. The
+  document row cites the transition the route actually has,
+  `Movimento: Tecelagem -> Expedicao`. Every Tapete banner and row string is
+  byte-identical to before.
+
+### 18.5 D3 — bounded responsive gate
+
+New `css/responsive.css`, the repository's first media-query
+infrastructure, cache-busted from `index.html`, which stays declarative.
+Every selector is anchored on a `data-rv-*` **region** attribute; nothing
+leaks to the rest of the application. `!important` is deliberate and
+necessary: the chrome's competing declarations are inline, so a plain rule
+would be inert — the responsive smoke test pins that reasoning.
+
+- **Shell (≤767 px).** `[data-rv-shell]` stacks; `[data-rv-shell-aside]`
+  becomes a full-width horizontally scrollable strip carrying the **same**
+  navigation items through the **same** `navItem` mechanism. The global
+  navigation is not redesigned: no drawer, no hamburger, no overlay. Proved
+  live: aside 375×55, main 375 wide, `flex-direction: column`.
+- **Cockpit (≤1023 px).** `[data-rv-cockpit]` collapses to one column,
+  `[data-rv-rail]` loses `sticky`, `[data-rv-2col]` collapses, and
+  `[data-rv-route-stepper]` stacks so no route node is clipped or
+  overlapped. Proved live at 375 px: content column 131 px → **347 px**,
+  rail `static` and laid out **below** the main column
+  (`railTop 1619` vs `mainColTop 305`); at 1440 px the cockpit remains
+  `862.8px 300px` with the rail `sticky`.
+- **Tables.** `[data-rv-table-scroll]` owns `overflow-x` at every width.
+  `expedicao-admin.js buildItens` now appends its rows into such a
+  container instead of into the `overflow:hidden` card — the substantive fix
+  for the clipped expedition table. The OP capacity table's `min-width` rose
+  560 → 700 px, because four 110 px columns plus gaps left the MODELO column
+  ~48 px and its label broke to one word per line.
+- **Text, controls and modals.** Metric grids drop to two columns and
+  fixed-px form grids stack, so no control is unreachable. The client
+  stepper scrolls inside `[data-rv-stepper-scroll]` with a legible
+  `min-width` instead of compressing labels. The generic modal already fit
+  the viewport (`max-w-lg max-h-[90vh]` with an internally scrolling body)
+  and was confirmed, not changed.
+
+### 18.6 Measured geometry
+
+Nine surfaces × three viewports (1440 / 785 / 375 px), real browser layout
+against a disposable in-browser fixture using the real product modules:
+**`documentElement.scrollWidth === clientWidth` on every one — document-level
+horizontal overflow 0 px throughout**, including the previously documented
+19 px overflow at the 785 px route boundary, which is gone. Every element
+still wider than the viewport is inside an owned
+`[data-rv-table-scroll]` / `[data-rv-stepper-scroll]` container, which is
+what §8.3 of the order permits. The narrowest multi-word text block improved
+from **1.2** to **≥2.3** words per line; the remaining minima are short
+labels in intentionally narrow table columns, not shell-starved paragraphs.
+
+### 18.7 Structural evidence
+
+`pedido-detail-events.js` 2709 → **2709**. `pedido-detail-progress.js`
+919 → **918**. Neither protected file grew; the route-aware documentary and
+summary derivations were **extracted** into `pedido-route-sections.js`
+(448 → 538) rather than appended. `pedido-detail-render.js` 1333 → 1424 and
+`op-tecelagem-producao-admin.js` 782 → 800 remain single cohesive screens
+below the exceptional limit. New modules: `css/responsive.css` and
+`js/screens/cliente-route-sections-ui.js` (105 lines), both under 500 lines.
+No DML in any render module, no new direct table write, every Manta write
+still in `manta-writes.js` through an authoritative RPC, `index.html` still
+declarative with every changed asset cache-bumped, and
+`CODE-HEALTH-AUDIT-18-R1` not enlarged.
+
+### 18.8 Test and validation evidence
+
+`tests/manta-route-ui.smoke.js` extended with fifteen R2 proofs (48
+assertions total, all green) covering requirements 1–14 and 18 of the
+order's test contract, including runtime rendering of the client card for
+Manta-only, Tapete-only and mixed route sets. New
+`tests/responsive-layout.smoke.js` — 21 green assertions covering
+requirements 15–17 plus the protected-file line ceilings and the
+"bounded, not a redesign" scope. Two static assertions were realigned to the
+subject that moved and **neither was weakened**:
+`tests/expedicao-flow.smoke.js` stopped freezing a literal `?v=` value (the
+order mandates a bump on every change) while still requiring the script to
+be present and cache-busted, and the `dtoByKey` assertion in
+`manta-route-ui` now also **forbids** positional matching outright.
+
+Full suite `node --test tests/**/*.js`: 4239 tests. The set of failing test
+names is a strict subset of the `bbd5f85` baseline set — **zero introduced
+failures**, verified by name-level diff against a clean detached worktree at
+`bbd5f85`. Per-file comparison in the canonical workspace: `pedido-detail`
+41 → 41, `tec-to-acabamento-flow` 2 → 2,
+`production-flow-invariants` 1 → 1, `screens-common` 8 → 8,
+`cliente-portal-visual` 9 → 9, `entrega-writes` 1 → 1 — identical failing
+names in every case. No existing Tapete assertion was weakened or removed.
+
+Visual validation used a disposable, untracked in-browser fixture loading
+the real product modules with a purely in-memory read double: no network, no
+Supabase project, no Vercel, no fabricated session, no real business data.
+The fixture and the local static server were destroyed after capture, with
+zero repository residue. Pixel captures were taken at 1440 / 785 / 375 px
+and directly inspected; they are not committed. **Architect visual and
+technical acceptance remains PENDING and is not self-accepted.**
+
+### 18.9 Deferred and out of boundary
+
+- `js/screens/op-nova.js` carries the same cockpit grid for the
+  **`aberta`** weaving-OP state and is **outside** this order's authorized
+  paths, so it received no `data-rv-cockpit` anchor. That state is not one of
+  the order's required B2B surfaces. Closing it needs an order naming that
+  file.
+- D3 is closed **only** for the surfaces the order enumerates. The
+  application is **not** claimed to be globally responsive; screens outside
+  that list were not measured and were not corrected.
+- A per-route *published* client position remains impossible without a
+  read-model change (§18.2).
+- No `Liberado para expedição` metric was added to the weaving-OP rail: the
+  screen does not load expedition balances, and fabricating the number was
+  refused. It is available one click away on the expedition screen.
+
+### 18.10 Environment and next authorizable action
+
+Local only. Shared development `ucrjtfswnfdlxwtmxnoo` remains at terminal
+migration `db/84` with the Manta backend dormant and **was not accessed**.
+Production `gqmpsxkxynrjvidfmojk` and `bhgifjrfagkzubpyqpew` untouched. The
+next authorizable action is
+`PHASE-MANTA-B2B-ARCHITECT-TECHNICAL-AND-VISUAL-REVIEW`. PHASE-MANTA-B2A
+(db/85–88) still awaits its own architect review, and PHASE-MANTA-B2C
+requires a separate explicit order. No phase chains automatically.

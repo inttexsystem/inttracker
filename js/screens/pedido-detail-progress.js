@@ -138,6 +138,11 @@
     return expedicao && expedicao.op_latex_id != null ? expedicao.op_latex_id : null;
   }
 
+  // Semantica documental/resumo POR ROTA (D4.2/D4.4): vive no modulo de rota.
+  function routeDocs() {
+    return (window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.pedidoRouteSections) || null;
+  }
+
   function isTerminalOpStatus(status) {
     return status === 'concluida' || status === 'finalizada' || status === 'cancelada';
   }
@@ -246,16 +251,11 @@
         finalizada: { bg: '#e6f4ec', text: '#18794a', dot: '#18794a', label: 'Finalizada' },
       }[op.status] || { bg: '#f1f3f6', text: '#5b6472', dot: '#9aa2af', label: ns.fmtTextoOuEmpty(op.status, 'Status') };
 
-      var docBanner;
-      if (stageKeyForOp(op) === 'tecelagem') {
-        docBanner = doneTarget > 0
-          ? { tone: 'warning', text: 'Romaneio tecelagem -> acabamento pendente' }
-          : { tone: 'neutral', text: 'Sem movimentacao para acabamento registrada ainda' };
-      } else {
-        docBanner = doneTarget > 0
-          ? { tone: 'danger', text: 'NF de expedicao pendente' }
-          : { tone: 'neutral', text: 'Sem saida para expedicao registrada ainda' };
-      }
+      // D4.4: semantica documental por rota extraida (R-5).
+      var opRoute = routeForOp(op, state.modelosById);
+      var docBanner = routeDocs()
+        ? routeDocs().buildOpDocBanner(stageKeyForOp(op), opRoute, doneTarget)
+        : { tone: 'neutral', text: 'Pendencia documental' };
 
       opSummaries.push({
         id: op.id,
@@ -264,7 +264,7 @@
         label: opCode(op),
         legacyLabel: opLabel(op),
         tipo: op.tipo,
-        route: routeForOp(op, state.modelosById),
+        route: opRoute,
         stageKey: stageKeyForOp(op),
         stageLabel: stageLabelForOp(op),
         status: op.status,
@@ -426,6 +426,12 @@
 
         if (stageKeyForOp(row.op) === 'tecelagem') {
           tecTotal += targetMetersForOpItem(row.opItem);
+          // D4.3: na Manta a expedicao referencia o op_item da propria OP de
+          // TECELAGEM; sem isto liberado/entregue da Manta ficava zerado.
+          if (routeForOp(row.op, state.modelosById) === 'manta') {
+            acabDoneItem += ns.toFiniteNumber(liberadoByLatexOpItem[row.opItem.id]);
+            acabEntregueItem += ns.toFiniteNumber(entregueByLatexOpItem[row.opItem.id]);
+          }
         } else {
           acabTotal += targetMetersForOpItem(row.opItem);
           // Acabamento: movido = ja movimentado para a Expedicao por op_item;
@@ -466,6 +472,8 @@
       }));
 
       itemMetricsById[item.id] = {
+        // Rota do item comercial (so `modelos.tipo_produto`) — D4.3.
+        route: routeApi() ? routeApi().routeForPedidoItem(item, state.modelosById) : null,
         tecelagem: ns.round2(Math.max(tecTotal - tecDoneItem, 0)),
         acabamento: ns.round2(Math.max(acabTotal - acabDoneItem, 0)),
         prontos: readyItem,
@@ -499,19 +507,7 @@
       });
     }
     opSummaries.forEach(function (summary) {
-      if (summary.stageKey === 'tecelagem') {
-        documentRowsOperacionais.push({
-          label: 'Movimento: Tecelagem -> Acabamento · ' + summary.label,
-          status: 'pendente',
-          meta: summary.done > 0 ? 'Romaneio/NF ainda nao consolidados na tela de pedido.' : 'Sem transferencia registrada ainda.',
-        });
-      } else {
-        documentRowsOperacionais.push({
-          label: 'Movimento: Acabamento -> Expedicao · ' + summary.label,
-          status: 'pendente',
-          meta: summary.done > 0 ? 'Documentacao de saida ainda nao consolidada.' : 'Sem saida para expedicao registrada ainda.',
-        });
-      }
+      if (routeDocs()) documentRowsOperacionais.push(routeDocs().buildOpDocumentRow(summary));
     });
     expedicaoSummaries.forEach(function (summary) {
       documentRowsOperacionais.push({
@@ -614,9 +610,11 @@
           releaseExpedicaoAction: releaseExpedicaoAction,
           fmt: { metros: ns.fmtMetros, kg: ns.fmtKg },
         })
-      : { sections: [], stepper: [] };
+      : { sections: [], stepper: [], summary: null };
     var routeSections = routeBuild.sections;
     var stepper = routeBuild.stepper;
+    // D4.2: resumo consciente da rota, derivado no modulo de rota (R-5).
+    var routeSummary = routeBuild.summary || null;
 
     if (chainState && chainState.actions) {
       opSummaries.forEach(function (summary) {
@@ -893,6 +891,7 @@
       insumoPedidoKg: insumoPedidoKg,
       insumoRecebidoKg: insumoRecebidoKg,
       pedidoRoutes: pedidoRoutes,
+      routeSummary: routeSummary,
       routeSections: routeSections,
       stepper: stepper,
       documentRowsPedido: documentRowsPedido,

@@ -275,6 +275,7 @@
     function buildResumo(totalLiberado, totalEntregue) {
       var saldo = round2(totalLiberado - totalEntregue);
       return window.el('div', {
+        'data-rv-metrics': '',
         style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px;',
       },
         window.el('div', { style: CARD + 'padding:14px 16px;' },
@@ -296,8 +297,13 @@
         card.appendChild(window.el('div', { style: 'padding:0 20px 18px;font-size:13px;color:#9aa2af;' }, 'Nenhum item liberado para expedicao.'));
         return card;
       }
+      // D3/req.17: a tabela de 720px passa a rolar dentro do SEU PROPRIO
+      // container. Antes as linhas eram anexadas direto no card, que tem
+      // `overflow:hidden` — em telas estreitas as colunas eram simplesmente
+      // cortadas, sem rolagem alcancavel.
       var cols = '1fr 140px 150px 130px';
-      card.appendChild(window.el('div', { style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;background:#f8f9fb;border-top:1px solid #eceef1;border-bottom:1px solid #eceef1;padding:9px 20px;min-width:720px;' },
+      var scroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+      scroll.appendChild(window.el('div', { style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;background:#f8f9fb;border-top:1px solid #eceef1;border-bottom:1px solid #eceef1;padding:9px 20px;min-width:720px;' },
         ['MODELO / CORES', 'LIBERADO', 'ENTREGUE', 'SALDO'].map(function (label) {
           return window.el('div', { style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;' }, label);
         })));
@@ -305,12 +311,13 @@
         var liberado = Number(item.metros_liberados || 0);
         var entregue = Number(item.metros_entregues || 0);
         var saldo = Math.max(round2(liberado - entregue), 0);
-        card.appendChild(window.el('div', { style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;padding:12px 20px;border-bottom:1px solid #f1f3f6;align-items:center;min-width:720px;' },
+        scroll.appendChild(window.el('div', { style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;padding:12px 20px;border-bottom:1px solid #f1f3f6;align-items:center;min-width:720px;' },
           value(modeloLabel(item), '700'),
           value(fmtMetros(liberado)),
           value(fmtMetros(entregue), '700', '#18794a'),
           value(fmtMetros(saldo), '700', saldo > 0 ? '#c2610c' : '#18794a')));
       });
+      card.appendChild(scroll);
       return card;
     }
 
@@ -342,7 +349,7 @@
         saldoTotal <= 0
           ? window.el('div', { style: 'font-size:13px;color:#18794a;font-weight:600;' }, 'Expedicao sem saldo pendente.')
           : window.el('div', {},
-              window.el('div', { style: 'display:grid;grid-template-columns:180px 180px 1fr;gap:12px;margin-bottom:12px;' },
+              window.el('div', { 'data-rv-form-grid': '', style: 'display:grid;grid-template-columns:180px 180px 1fr;gap:12px;margin-bottom:12px;' },
                 field('Tipo', tipoInput),
                 field('Data', dataInput),
                 field('Observacao', obsInput)),

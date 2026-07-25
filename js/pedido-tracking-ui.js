@@ -60,6 +60,50 @@
     return filtered.length ? filtered : CLIENTE_TRACKING_STEPS.slice();
   }
 
+  // PHASE-MANTA-B2B-R2 (D1): secoes POR ROTA. Um Pedido misto tem duas
+  // rotas independentes e nunca pode ser apresentado como um stepper unico
+  // da uniao. Cada secao recebe a sua propria lista de etapas, com
+  // `displayIndex` contiguo dentro da rota (D2) e o indice canonico
+  // preservado para comparacao de progresso e lookup de DTO.
+  // Sem rota conhecida devolve UMA secao com a lista canonica completa —
+  // a forma Tapete legada, nunca uma rota inventada.
+  function getClienteTrackingSectionsForRoutes(routes) {
+    var api = window.RAVATEX_PRODUCT_ROUTE;
+    if (!api || typeof api.splitClientStepsByRoute !== 'function'
+      || !Array.isArray(routes) || !routes.length) {
+      return [{
+        route: null,
+        label: null,
+        steps: CLIENTE_TRACKING_STEPS.map(function (step, index) {
+          return { step: step, key: step.key, displayIndex: index, displayCount: CLIENTE_TRACKING_STEPS.length };
+        }),
+      }];
+    }
+    var sections = api.splitClientStepsByRoute(CLIENTE_TRACKING_STEPS, routes);
+    return sections.length ? sections : [{
+      route: null,
+      label: null,
+      steps: CLIENTE_TRACKING_STEPS.map(function (step, index) {
+        return { step: step, key: step.key, displayIndex: index, displayCount: CLIENTE_TRACKING_STEPS.length };
+      }),
+    }];
+  }
+
+  // Posicao local da rota. A posicao publicada (`status_cliente_visual`)
+  // e um artefato comercial de nivel PEDIDO e continua sendo a unica
+  // autoridade de posicao — este pedido nao autoriza migracao, logo nao
+  // existe posicao publicada por rota. O que se calcula por rota e qual
+  // etapa DA ROTA foi alcancada e qual e a proxima, para que cada secao
+  // declare o seu proprio estado sem exibir uma etapa que nao possui.
+  function getClienteTrackingRoutePosition(sectionSteps, canonicalIndex) {
+    var api = window.RAVATEX_PRODUCT_ROUTE;
+    if (api && typeof api.routeLocalPosition === 'function') {
+      return api.routeLocalPosition(sectionSteps, canonicalIndex, getClienteTrackingStepIndex);
+    }
+    var list = Array.isArray(sectionSteps) ? sectionSteps : [];
+    return { reachedDisplayIndex: -1, nextDisplayIndex: list.length ? 0 : -1, reachedKey: null, nextKey: null, count: list.length };
+  }
+
   function getClienteTrackingStepIndex(key) {
     var idx = STEP_INDEX_BY_KEY[normalizarTrackingKey(key)];
     return typeof idx === 'number' ? idx : -1;
@@ -407,6 +451,8 @@
     CLIENTE_TRACKING_STEPS: CLIENTE_TRACKING_STEPS,
     CLIENTE_TRACKING_EXCECOES: CLIENTE_TRACKING_EXCECOES,
     getClienteTrackingStepsForRoutes: getClienteTrackingStepsForRoutes,
+    getClienteTrackingSectionsForRoutes: getClienteTrackingSectionsForRoutes,
+    getClienteTrackingRoutePosition: getClienteTrackingRoutePosition,
     getClienteTrackingStepIndex: getClienteTrackingStepIndex,
     getClienteParcialSituacao: getClienteParcialSituacao,
     getClienteTrackingStep: getClienteTrackingStep,

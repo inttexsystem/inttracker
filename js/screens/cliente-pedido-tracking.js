@@ -104,12 +104,21 @@
   // (comparada com progress.currentIndex); displayIndex/displayCount sao a
   // posicao visual dentro do recorte da rota — a Manta omite `acabamento`,
   // entao as duas podem divergir sem quebrar o estado das etapas.
-  function buildStepNode(step, index, progress, dtoStep, totalSteps, displayIndex, displayCount) {
+  //
+  // D2: o NUMERO EXIBIDO e sempre `pos + 1` — a posicao local da rota, que
+  // e contigua por construcao. Usar `index + 1` (o indice canonico) produzia
+  // 1,2,3,4,6,7,8 numa Manta, com um buraco onde o Acabamento foi filtrado.
+  // `prevReached` e calculado DENTRO da rota pelo chamador: o conector so e
+  // azul quando a etapa anterior DESTA rota foi alcancada, nunca por
+  // adjacencia canonica (que ligaria Tecelagem a Expedicao passando por um
+  // Acabamento que a rota nao tem).
+  function buildStepNode(step, index, progress, dtoStep, totalSteps, displayIndex, displayCount, prevReached) {
     var currentIndex = progress.currentIndex;
     var isException = progress.isException;
     var pos = typeof displayIndex === 'number' ? displayIndex : index;
     var total = typeof displayCount === 'number' ? displayCount : totalSteps;
     var isLastStep = pos === total - 1;
+    var visibleNumber = String(pos + 1);
 
     var hasParcial = dtoStep
       && dtoStep.state === 'parcial'
@@ -140,7 +149,9 @@
     // Conector horizontal que vem do step anterior (top:20px = centro do circulo 42px)
     var connectorEl = null;
     if (pos > 0) {
-      var connBlue = (index <= currentIndex + 1)
+      var connBlue = (typeof prevReached === 'boolean'
+        ? prevReached
+        : (index <= currentIndex + 1))
         || (dtoStep && dtoStep.state === 'parcial' && dtoStep.percentual > 0);
       var connColor = connBlue ? '#2563eb' : '#e2e5ea';
       if (isException && index === currentIndex) connColor = '#fbbf24';
@@ -157,7 +168,7 @@
         style: 'width:30px;height:30px;border-radius:50%;background:#fff;'
           + 'display:flex;align-items:center;justify-content:center;'
           + 'font-weight:700;font-size:13px;color:' + accentColor + ';',
-      }, String(index + 1));
+      }, visibleNumber);
     } else if (estado === 'concluido') {
       innerEl = window.el('div', {
         style: 'width:32px;height:32px;border-radius:50%;background:#2563eb;color:#fff;'
@@ -172,13 +183,13 @@
       innerEl = window.el('div', {
         style: 'width:32px;height:32px;border-radius:50%;background:#2563eb;color:#fff;'
           + 'display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;',
-      }, String(index + 1));
+      }, visibleNumber);
     } else {
       innerEl = window.el('div', {
         style: 'width:30px;height:30px;border-radius:50%;background:#fff;'
           + 'border:1.5px solid #dfe3e8;display:flex;align-items:center;justify-content:center;'
           + 'font-weight:600;font-size:13px;color:#9aa2af;',
-      }, String(index + 1));
+      }, visibleNumber);
     }
 
     // Wrapper 42px (serve de container para o conector ficar em top:20px)
@@ -228,6 +239,9 @@
     }
 
     return window.el('div', {
+      'data-rv-step-key': step.key,
+      'data-rv-step-number': visibleNumber,
+      'data-rv-step-canonical': String(index),
       style: 'flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;position:relative;padding:0 4px;',
     },
       connectorEl,
@@ -337,6 +351,35 @@
     return api.getClienteTrackingStepsForRoutes(routes);
   }
 
+  // D1: SECOES POR ROTA. Um Pedido misto rende duas secoes independentes,
+  // nunca a uniao das rotas num stepper unico. Degrada para uma unica
+  // secao (a lista canonica) quando a API de secoes nao esta disponivel,
+  // preservando exatamente a apresentacao legada do Tapete.
+  function applicableSections(api, routes) {
+    if (typeof api.getClienteTrackingSectionsForRoutes === 'function') {
+      return api.getClienteTrackingSectionsForRoutes(routes);
+    }
+    var steps = applicableSteps(api, routes);
+    return [{
+      route: null,
+      label: null,
+      steps: steps.map(function (step, index) {
+        return { step: step, key: step.key, displayIndex: index, displayCount: steps.length };
+      }),
+    }];
+  }
+
+  // Estado de uma etapa DENTRO da rota, para decidir a cor do conector
+  // seguinte. Espelha exatamente a precedencia de `buildStepNode`, sem
+  // duplicar a construcao do no.
+  function stepReached(entry, canonicalIndex, progress, dtoStep) {
+    if (dtoStep && dtoStep.state === 'parcial' && Number.isFinite(dtoStep.percentual) && dtoStep.percentual > 0) return true;
+    if (dtoStep && dtoStep.state === 'concluido') return true;
+    if (dtoStep && dtoStep.state === 'atual') return true;
+    if (dtoStep && dtoStep.state === 'futuro') return false;
+    return progress.currentIndex >= 0 && canonicalIndex <= progress.currentIndex;
+  }
+
   function buildStepsComPercentual(api, pedido, itens, parciais) {
     if (!Array.isArray(itens) || !Array.isArray(parciais)) return null;
     if (typeof api.buildPedidoAcompanhamentoParcial !== 'function') return null;
@@ -369,16 +412,58 @@
     var totalSteps = api.CLIENTE_TRACKING_STEPS.length;
 
     // PHASE-MANTA-B2B: a FORMA das etapas vem da rota derivada
-    // (`modelos.tipo_produto`): Manta omite `acabamento`, Tapete mantem, um
-    // Pedido misto apresenta a uniao das rotas aplicaveis. O dto de
-    // percentual e casado por CHAVE — nunca por posicao — porque as duas
-    // listas podem ter tamanhos diferentes.
-    var routeSteps = (chainState && Array.isArray(chainState.routes) && chainState.routes.length)
-      ? applicableSteps(api, chainState.routes)
-      : applicableSteps(api, routes);
+    // (`modelos.tipo_produto`): Manta omite `acabamento`, Tapete mantem.
+    // PHASE-MANTA-B2B-R2 (D1): um Pedido misto passa a render DUAS secoes
+    // independentes — a uniao num stepper unico era o defeito. O dto de
+    // percentual e casado por CHAVE, e apenas dentro da rota que possui
+    // aquela chave, nunca por posicao (as listas tem tamanhos diferentes).
+    var effectiveRoutes = (chainState && Array.isArray(chainState.routes) && chainState.routes.length)
+      ? chainState.routes
+      : routes;
+    var sections = applicableSections(api, effectiveRoutes);
     var dtoByKey = {};
     (stepsComPercentual || []).forEach(function (dto) {
       if (dto && dto.key != null) dtoByKey[dto.key] = dto;
+    });
+
+    function canonicalIndexOf(key, fallback) {
+      return typeof api.getClienteTrackingStepIndex === 'function'
+        ? api.getClienteTrackingStepIndex(key)
+        : fallback;
+    }
+
+    function buildStepperRow(section) {
+      var entries = section.steps || [];
+      var row = window.el('div', {
+        'data-rv-client-stepper': section.route || 'legado',
+        style: 'display:flex;align-items:flex-start;padding:0 4px;',
+      });
+      var prevReached = false;
+      for (var i = 0; i < entries.length; i++) {
+        var entry = entries[i];
+        var canonicalIndex = canonicalIndexOf(entry.key, i);
+        var dtoStep = dtoByKey[entry.key] || null;
+        row.appendChild(buildStepNode(
+          entry.step, canonicalIndex, progress, dtoStep, totalSteps,
+          i, entries.length, i === 0 ? false : prevReached
+        ));
+        prevReached = stepReached(entry, canonicalIndex, progress, dtoStep);
+      }
+      return row;
+    }
+
+    // Posicao LOCAL de cada rota, para que a secao declare o proprio
+    // estado sem exibir uma etapa que a rota nao possui.
+    sections.forEach(function (section) {
+      if (typeof api.getClienteTrackingRoutePosition !== 'function') return;
+      var pos = api.getClienteTrackingRoutePosition(section.steps, progress.currentIndex);
+      var entries = section.steps || [];
+      var reached = pos.reachedDisplayIndex >= 0 ? entries[pos.reachedDisplayIndex] : null;
+      var next = pos.nextDisplayIndex >= 0 ? entries[pos.nextDisplayIndex] : null;
+      section.position = {
+        reachedLabel: reached && reached.step ? reached.step.label : null,
+        nextLabel: next && next.step ? next.step.label : null,
+      };
     });
 
     var card = window.el('div', {
@@ -388,20 +473,19 @@
       style: 'font-size:16px;font-weight:700;color:#16203a;margin-bottom:18px;',
     }, 'Acompanhamento do pedido'));
 
-    var stepperRow = window.el('div', {
-      style: 'display:flex;align-items:flex-start;padding:0 4px;',
-    });
-    for (var i = 0; i < routeSteps.length; i++) {
-      var step = routeSteps[i];
-      var canonicalIndex = typeof api.getClienteTrackingStepIndex === 'function'
-        ? api.getClienteTrackingStepIndex(step.key)
-        : i;
-      stepperRow.appendChild(
-        buildStepNode(step, canonicalIndex, progress, dtoByKey[step.key] || null, totalSteps, i, routeSteps.length)
-      );
+    var sectionsUi = window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.clienteRouteSectionsUi;
+    if (sectionsUi && typeof sectionsUi.buildClienteRouteSectionsNode === 'function') {
+      card.appendChild(sectionsUi.buildClienteRouteSectionsNode(sections, {
+        buildStepperRow: buildStepperRow,
+      }));
+    } else {
+      // Degradacao sem o modulo de arranjo: uma secao por rota, ainda
+      // separada — nunca a uniao num stepper unico.
+      sections.forEach(function (section) {
+        card.appendChild(window.el('div', { 'data-rv-client-route-section': section.route || 'legado' },
+          buildStepperRow(section)));
+      });
     }
-
-    card.appendChild(stepperRow);
     card.appendChild(buildBanner(api, trackingPedido, progress, hasParciais, chainState));
     return card;
   }
