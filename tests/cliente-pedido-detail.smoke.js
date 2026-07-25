@@ -189,7 +189,10 @@ test('cliente-pedido-detail: renderiza o card de acompanhamento depois do resumo
 test('cliente-pedido-detail: tracking visual continua consumindo chainState publico', () => {
   const body = extractFunctionBody(screen, 'buildTracking');
   assert.match(body, /state\.chainState/);
-  assert.match(body, /buildClientePedidoTrackingCard\(state\.pedido,\s*state\.itens,\s*state\.parciais,\s*state\.chainState\)/);
+  // PHASE-MANTA-B2B: a chamada ganhou um 5o argumento (as rotas derivadas
+  // do Pedido, que decidem QUAIS etapas existem). Os quatro primeiros
+  // argumentos publicos seguem exatamente os mesmos.
+  assert.match(body, /buildClientePedidoTrackingCard\(state\.pedido,\s*state\.itens,\s*state\.parciais,\s*state\.chainState,\s*state\.routes\)/);
 });
 
 test('cliente-pedido-detail: itens do pedido usa layout local compacto', () => {

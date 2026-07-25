@@ -162,10 +162,14 @@ test('Contrato 9: card do acabamento separa Recebido / Finalizado / Saldo (semâ
 });
 
 test('Contrato 9: o estágio ACABAMENTO só vira "concluido" via adminStepper.done, não pelo recebido', () => {
-  // O sublabel exibe emAcabamento (recebido-não-finalizado) enquanto houver
-  // saldo; "concluido" só é forçado quando o adminStepper marca done.
-  assert.match(detailProgress, /sublabel:\s*emAcabamento\s*>\s*0\s*\?\s*ns\.fmtMetros\(emAcabamento\)/,
+  // PHASE-MANTA-B2B: o stepper passou a ser construído por rota em
+  // js/screens/pedido-route-sections.js (pedido-detail-progress.js não
+  // pode crescer). A garantia é a mesma, no novo dono: o sublabel exibe o
+  // saldo em acabamento (recebido-não-finalizado) enquanto houver saldo, e
+  // "concluido" só é forçado quando o adminStepper marca done.
+  const routeSections = read('js/screens/pedido-route-sections.js');
+  assert.match(routeSections, /sublabel:\s*m\.acabRemaining\s*>\s*0\s*\?\s*fmt\.metros\(m\.acabRemaining\)/,
     'sublabel de acabamento deve refletir metros em acabamento enquanto houver saldo');
-  assert.match(detailProgress, /nextState === 'done'[\s\S]{0,120}stage\.sublabel = 'concluido'/,
+  assert.match(routeSections, /nextState === 'done'[\s\S]{0,160}stage\.sublabel = 'concluido'/,
     '"concluido" no estágio só quando o adminStepper deriva done');
 });

@@ -100,10 +100,16 @@
   // Anatomia: wrapper 42px (contem conector em top:20px) →
   //   circulo interno (32px done/atual ou 30px parcial/futuro) →
   //   label → sublabel opcional.
-  function buildStepNode(step, index, progress, dtoStep, totalSteps) {
+  // `index` continua sendo a posicao CANONICA da etapa na lista completa
+  // (comparada com progress.currentIndex); displayIndex/displayCount sao a
+  // posicao visual dentro do recorte da rota — a Manta omite `acabamento`,
+  // entao as duas podem divergir sem quebrar o estado das etapas.
+  function buildStepNode(step, index, progress, dtoStep, totalSteps, displayIndex, displayCount) {
     var currentIndex = progress.currentIndex;
     var isException = progress.isException;
-    var isLastStep = index === totalSteps - 1;
+    var pos = typeof displayIndex === 'number' ? displayIndex : index;
+    var total = typeof displayCount === 'number' ? displayCount : totalSteps;
+    var isLastStep = pos === total - 1;
 
     var hasParcial = dtoStep
       && dtoStep.state === 'parcial'
@@ -133,7 +139,7 @@
 
     // Conector horizontal que vem do step anterior (top:20px = centro do circulo 42px)
     var connectorEl = null;
-    if (index > 0) {
+    if (pos > 0) {
       var connBlue = (index <= currentIndex + 1)
         || (dtoStep && dtoStep.state === 'parcial' && dtoStep.percentual > 0);
       var connColor = connBlue ? '#2563eb' : '#e2e5ea';
@@ -323,6 +329,14 @@
     );
   }
 
+  // Recorte das etapas do cliente aplicavel as rotas do Pedido. Sem rota
+  // conhecida a lista canonica completa e mantida (comportamento legado).
+  function applicableSteps(api, routes) {
+    if (typeof api.getClienteTrackingStepsForRoutes !== 'function') return api.CLIENTE_TRACKING_STEPS.slice();
+    if (!Array.isArray(routes) || !routes.length) return api.CLIENTE_TRACKING_STEPS.slice();
+    return api.getClienteTrackingStepsForRoutes(routes);
+  }
+
   function buildStepsComPercentual(api, pedido, itens, parciais) {
     if (!Array.isArray(itens) || !Array.isArray(parciais)) return null;
     if (typeof api.buildPedidoAcompanhamentoParcial !== 'function') return null;
@@ -330,7 +344,7 @@
     return acompanhamento && Array.isArray(acompanhamento.steps) ? acompanhamento.steps : null;
   }
 
-  function buildClientePedidoTrackingCard(pedido, itens, parciais, chainState) {
+  function buildClientePedidoTrackingCard(pedido, itens, parciais, chainState, routes) {
     if (!pedido) return window.el('div', {});
 
     var api = getTrackingApi();
@@ -354,6 +368,19 @@
     var hasParciais = Array.isArray(parciais) && parciais.length > 0;
     var totalSteps = api.CLIENTE_TRACKING_STEPS.length;
 
+    // PHASE-MANTA-B2B: a FORMA das etapas vem da rota derivada
+    // (`modelos.tipo_produto`): Manta omite `acabamento`, Tapete mantem, um
+    // Pedido misto apresenta a uniao das rotas aplicaveis. O dto de
+    // percentual e casado por CHAVE — nunca por posicao — porque as duas
+    // listas podem ter tamanhos diferentes.
+    var routeSteps = (chainState && Array.isArray(chainState.routes) && chainState.routes.length)
+      ? applicableSteps(api, chainState.routes)
+      : applicableSteps(api, routes);
+    var dtoByKey = {};
+    (stepsComPercentual || []).forEach(function (dto) {
+      if (dto && dto.key != null) dtoByKey[dto.key] = dto;
+    });
+
     var card = window.el('div', {
       style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:16px 20px;margin-bottom:14px;',
     });
@@ -364,10 +391,13 @@
     var stepperRow = window.el('div', {
       style: 'display:flex;align-items:flex-start;padding:0 4px;',
     });
-    for (var i = 0; i < api.CLIENTE_TRACKING_STEPS.length; i++) {
-      var dtoStep = stepsComPercentual ? stepsComPercentual[i] : null;
+    for (var i = 0; i < routeSteps.length; i++) {
+      var step = routeSteps[i];
+      var canonicalIndex = typeof api.getClienteTrackingStepIndex === 'function'
+        ? api.getClienteTrackingStepIndex(step.key)
+        : i;
       stepperRow.appendChild(
-        buildStepNode(api.CLIENTE_TRACKING_STEPS[i], i, progress, dtoStep, totalSteps)
+        buildStepNode(step, canonicalIndex, progress, dtoByKey[step.key] || null, totalSteps, i, routeSteps.length)
       );
     }
 

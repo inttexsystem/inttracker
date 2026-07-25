@@ -1271,6 +1271,24 @@
       );
     }
 
+    // PHASE-MANTA-B2B: na secao Manta a transicao produtiva e
+    // Tecelagem>Expedicao e registra SAIDA MEDIDA por
+    // `registrar_entrega_cima_manta` — nunca salvarEntregaCima, nunca
+    // destino de acabamento, nunca OP de latex. Composicao em
+    // `mantaMovimentoForm` (mesmo caminho de gravacao da tela da OP).
+    function buildMantaSaidaForm(ctxMovement) {
+      var api = (window.RAVATEX_SCREENS || {}).mantaMovimentoForm;
+      if (!api || !ctxMovement.op) return null;
+      var pendingByOpItemId = {};
+      computePendingByItem(ctxMovement).forEach(function (row) { pendingByOpItemId[row.opItemId] = row.pending; });
+      return api.buildMantaMovimentoForm({
+        op: ctxMovement.op,
+        modelosById: buildModelosForEntregaForm(),
+        pendingByOpItemId: pendingByOpItemId,
+        fornecedorId: opFornecedorId(ctxMovement.op, 'cima'),
+      });
+    }
+
     function buildInsumosTransferForm(ctxMovement) {
       if (!ctxMovement.op) {
         return {
@@ -1429,34 +1447,15 @@
       };
     }
 
+    // Recebido no acabamento = op_item da OP Latex; disponivel para
+    // movimentar = recebido - ja movimentado. Calculo puro extraido para
+    // `pedidoRouteSections` (R-5: este modulo nao pode crescer).
     function buildAcabamentoLiberavelRows(ctxMovement) {
-      if (!ctxMovement.op || !Array.isArray(ctxMovement.op.op_itens)) return [];
-
-      var expedicaoIds = {};
-      (state.expedicoes || []).forEach(function (expedicao) {
-        if (String(expedicao.op_latex_id) === String(ctxMovement.op.id)) expedicaoIds[expedicao.id] = true;
-      });
-
-      var liberadoByItem = {};
-      (state.expedicaoItens || []).forEach(function (item) {
-        if (!expedicaoIds[item.expedicao_id]) return;
-        liberadoByItem[item.op_item_id] = ns.round2((liberadoByItem[item.op_item_id] || 0) + ns.toFiniteNumber(item.metros_liberados));
-      });
-
-      // Recebido no acabamento = op_item da OP Latex (acumulado a partir das
-      // entregas Tecelagem->Acabamento). Sem premissa etapa='latex'.
-      // Disponivel para movimentar = recebido - ja movimentado para expedicao.
-      return ctxMovement.op.op_itens.map(function (opItem) {
-        var recebido = typeof ns.targetMetersForOpItem === 'function'
-          ? ns.targetMetersForOpItem(opItem)
-          : ns.round2(opItem && opItem.metros_ajustados != null ? opItem.metros_ajustados : opItem.metros_pedidos);
-        var liberado = ns.toFiniteNumber(liberadoByItem[opItem.id]);
-        return {
-          opItem: opItem,
-          recebido: ns.round2(recebido),
-          liberado: ns.round2(liberado),
-          saldo: ns.round2(Math.max(recebido - liberado, 0)),
-        };
+      var api = (window.RAVATEX_SCREENS || {}).pedidoRouteSections;
+      if (!api) return [];
+      return api.expedicaoLiberavelRows({
+        op: ctxMovement.op, expedicoes: state.expedicoes,
+        expedicaoItens: state.expedicaoItens, targetMeters: ns.targetMetersForOpItem,
       });
     }
 
@@ -1648,6 +1647,7 @@
       var key = transitionKey(ctxMovement);
       if (key === 'Insumos>Tecelagem') return buildInsumosTransferForm(ctxMovement);
       if (key === 'Tecelagem>Acabamento') return buildTecelagemTransferForm(ctxMovement);
+      if (key === 'Tecelagem>Expedicao') return buildMantaSaidaForm(ctxMovement);
       if (key === 'Acabamento>Expedicao') return buildAcabamentoTransferForm(ctxMovement);
       if (key === 'Expedicao>Entrega') return buildExpedicaoTransferForm(ctxMovement);
       return null;

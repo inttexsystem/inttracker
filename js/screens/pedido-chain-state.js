@@ -57,6 +57,24 @@
     return map[status] || (status ? String(status) : 'Recebido');
   }
 
+  // PHASE-MANTA-B2B: `ops.tipo` identifica a ETAPA produtiva; a ROTA vem
+  // so de `modelos.tipo_produto` (js/product-route.js). Os dois nunca
+  // podem ser confundidos de novo.
+  function routeApi() {
+    return window.RAVATEX_PRODUCT_ROUTE || null;
+  }
+
+  function routeForOp(op, modelosById) {
+    var api = routeApi();
+    return api ? api.routeForOp(op, modelosById) : null;
+  }
+
+  function expedicaoSourceOpId(expedicao) {
+    var api = routeApi();
+    if (api) return api.expedicaoSourceOpId(expedicao);
+    return expedicao && expedicao.op_latex_id != null ? expedicao.op_latex_id : null;
+  }
+
   function stageKeyForOp(row) {
     return row && row.tipo === 'latex' ? 'acabamento' : 'tecelagem';
   }
@@ -101,21 +119,23 @@
     var entregaItens = Array.isArray(input.entregaItens) ? input.entregaItens : [];
     var entregasById = input.entregasById || {};
     var expedicoesById = {};
-    var liberadoByLatexOp = {};
+    var liberadoBySourceOp = {};
 
     (Array.isArray(input.expedicoes) ? input.expedicoes : []).forEach(function (expedicao) {
       if (expedicao) expedicoesById[expedicao.id] = expedicao;
     });
     (Array.isArray(input.expedicaoItens) ? input.expedicaoItens : []).forEach(function (item) {
       var expedicao = expedicoesById[item.expedicao_id];
-      if (!expedicao || expedicao.op_latex_id == null) return;
-      liberadoByLatexOp[expedicao.op_latex_id] = round2((liberadoByLatexOp[expedicao.op_latex_id] || 0) + toFiniteNumber(item.metros_liberados));
+      var sourceOpId = expedicao ? expedicaoSourceOpId(expedicao) : null;
+      if (sourceOpId == null) return;
+      liberadoBySourceOp[sourceOpId] = round2((liberadoBySourceOp[sourceOpId] || 0) + toFiniteNumber(item.metros_liberados));
     });
 
     return (Array.isArray(input.ops) ? input.ops : []).map(function (op) {
       var target = 0;
       var done = 0;
       var stageKey = stageKeyForOp(op);
+      var route = routeForOp(op, input.modelosById);
       var deliveryStage = deliveryStageForOp(op);
       var itemIds = {};
 
@@ -133,7 +153,7 @@
       });
 
       if (stageKey === 'acabamento') {
-        done = Math.max(done, liberadoByLatexOp[op.id] || 0);
+        done = Math.max(done, liberadoBySourceOp[op.id] || 0);
       }
 
       target = round2(target);
@@ -142,9 +162,13 @@
         id: op.id,
         op: op,
         stageKey: stageKey,
+        route: route,
         status: op.status,
         target: target,
         done: done,
+        // Manta: a saida medida (`done`) menos o ja liberado por
+        // op_tecelagem_id e o que ainda pode ir para a Expedicao.
+        liberado: round2(liberadoBySourceOp[op.id] || 0),
         remaining: round2(Math.max(target - done, 0)),
       };
     });
@@ -156,9 +180,21 @@
     }, 0));
   }
 
-  function buildClientSteps(currentKey) {
+  // As etapas do cliente passam a ser DERIVADAS da rota: `acabamento` so
+  // existe no Tapete. Um Pedido misto mantem a uniao (cada rota e
+  // renderizada em sua propria secao pela superficie que consome isto).
+  function clientStepsForRoutes(routes) {
+    var api = routeApi();
+    if (!api || typeof api.filterClientSteps !== 'function') return CLIENT_STEPS.slice();
+    var filtered = api.filterClientSteps(CLIENT_STEPS, routes);
+    return filtered.length ? filtered : CLIENT_STEPS.slice();
+  }
+
+  function buildClientSteps(currentKey, routes) {
+    var steps = clientStepsForRoutes(routes);
     var currentIndex = STAGE_INDEX[currentKey] != null ? STAGE_INDEX[currentKey] : 0;
-    return CLIENT_STEPS.map(function (step, index) {
+    return steps.map(function (step) {
+      var index = STAGE_INDEX[step.key] != null ? STAGE_INDEX[step.key] : 0;
       var state = index < currentIndex ? 'concluido' : (index === currentIndex ? 'atual' : 'futuro');
       return {
         key: step.key,
@@ -176,6 +212,11 @@
     var opSummaries = buildOpSummaries(input);
     var tecelagem = opSummaries.filter(function (row) { return row.stageKey === 'tecelagem'; });
     var acabamento = opSummaries.filter(function (row) { return row.stageKey === 'acabamento'; });
+    var routeApiRef = routeApi();
+    var pedidoRoutes = routeApiRef
+      ? routeApiRef.routesForPedido({ ops: input.ops, itens: input.itens, modelosById: input.modelosById })
+      : [];
+    var mantaTec = tecelagem.filter(function (row) { return row.route === 'manta'; });
 
     var tecTarget = sum(tecelagem, 'target');
     var tecDone = sum(tecelagem, 'done');
@@ -216,13 +257,15 @@
     expedicoes.forEach(function (expedicao) {
       if (!expedicao) return;
       expedicoesById[expedicao.id] = expedicao;
-      if (expedicao.op_latex_id != null) expedicoesByOp[expedicao.op_latex_id] = expedicao;
+      var sourceOpId = expedicaoSourceOpId(expedicao);
+      if (sourceOpId != null) expedicoesByOp[sourceOpId] = expedicao;
     });
     var liberadoByLatexOp = {};
     expedicaoItens.forEach(function (item) {
       var expedicao = expedicoesById[item.expedicao_id];
-      if (!expedicao || expedicao.op_latex_id == null) return;
-      liberadoByLatexOp[expedicao.op_latex_id] = round2((liberadoByLatexOp[expedicao.op_latex_id] || 0) + toFiniteNumber(item.metros_liberados));
+      var itemSourceOpId = expedicao ? expedicaoSourceOpId(expedicao) : null;
+      if (itemSourceOpId == null) return;
+      liberadoByLatexOp[itemSourceOpId] = round2((liberadoByLatexOp[itemSourceOpId] || 0) + toFiniteNumber(item.metros_liberados));
     });
     // Paridade com Tecelagem: o material disponivel na OP de Acabamento e o
     // RECEBIDO da Tecelagem (op_itens acumulados = row.target), nao um
@@ -241,6 +284,25 @@
     var acabTerminalSemExpedicao = acabamento.some(function (row) {
       return (row.status === 'finalizada' || row.status === 'concluida') && !expedicoesByOp[row.id];
     });
+
+    // Rota Manta: a autoridade da saida e a entrega medida de tecelagem
+    // (`done`), nunca o planejado. O que ainda pode ir para a Expedicao e
+    // medido - ja liberado por op_tecelagem_id. Uma OP de tecelagem Manta
+    // terminal com saida medida nao liberada esta "pronta para expedicao"
+    // e NUNCA "aguardando acabamento".
+    var mantaLiberavel = round2(mantaTec.reduce(function (acc, row) {
+      return acc + Math.max(round2(toFiniteNumber(row.done) - toFiniteNumber(row.liberado)), 0);
+    }, 0));
+    var hasMantaLiberavel = mantaLiberavel > 0;
+    var mantaTerminalSemExpedicao = mantaTec.some(function (row) {
+      return (row.status === 'finalizada' || row.status === 'concluida') && !expedicoesByOp[row.id];
+    });
+    var mantaLiberavelSummary = mantaTec.find(function (row) {
+      return Math.max(round2(toFiniteNumber(row.done) - toFiniteNumber(row.liberado)), 0) > 0;
+    }) || mantaTec.find(function (row) {
+      return (row.status === 'finalizada' || row.status === 'concluida') && !expedicoesByOp[row.id];
+    }) || null;
+    var mantaOp = mantaLiberavelSummary ? mantaLiberavelSummary.op : (mantaTec.length ? mantaTec[0].op : null);
 
     var totalPedido = round2(toFiniteNumber(input.totalPedido || pedido.metros_total));
     // Conclusão formal depende exclusivamente do status gravado pela RPC
@@ -265,6 +327,13 @@
       clientStep = 'transporte';
       displayStatus = 'Expedicao em andamento';
       adminBadge = 'Expedicao';
+    } else if (hasMantaLiberavel || mantaTerminalSemExpedicao) {
+      // Ramo Manta antes de qualquer ramo de Acabamento: a rota direta
+      // nunca pode cair num estado "aguardando acabamento".
+      stage = 'pronto_expedicao';
+      clientStep = 'expedicao';
+      displayStatus = hasExpedicao ? 'Expedicao liberada' : 'Pronto para expedicao';
+      adminBadge = 'Pronto para expedicao';
     } else if (hasAcabLiberavel || acabTerminalSemExpedicao || acabFinished) {
       stage = 'pronto_expedicao';
       clientStep = 'expedicao';
@@ -314,6 +383,9 @@
       : 'OP pendente de aceite';
     var canMoveTecToAcab = hasTec && tecRemaining > 0 && (tecProduction || tecDone > 0 || tecFinished);
     var canReleaseExpedicao = hasAcabLiberavel || acabTerminalSemExpedicao;
+    var hasManta = mantaTec.length > 0;
+    var mantaTecRemaining = sum(mantaTec, 'remaining');
+    var canRegistrarSaidaManta = hasManta && mantaTecRemaining > 0;
     var canRegisterDelivery = hasExpedicao && expedicaoSaldo > 0;
 
     var actions = {
@@ -339,6 +411,20 @@
         : (acabOpen
           ? action('enabled', 'Confirmar entrada', { op: acabOp })
           : action('view', 'Ver OP Acabamento', { op: acabOp })),
+      // Rota Manta: a saida medida de tecelagem substitui a transferencia
+      // para acabamento. Nunca oferece acao de acabamento.
+      registrarSaidaManta: !hasManta
+        ? action('hidden')
+        : (canRegistrarSaidaManta
+          ? action('enabled', 'Registrar saida', { op: mantaOp, route: 'manta' })
+          : action('view', 'Saida registrada', { op: mantaOp, route: 'manta' })),
+      releaseExpedicaoManta: !hasManta
+        ? action('hidden')
+        : (hasMantaLiberavel || mantaTerminalSemExpedicao
+          ? action('enabled', 'Liberar exp.', { op: mantaOp, route: 'manta' })
+          : (hasExpedicao
+            ? action('view', 'Ver expedicao', { op: mantaOp, route: 'manta' })
+            : action('disabled', 'Aguardando saida medida', { op: mantaOp, route: 'manta' }))),
       releaseExpedicao: canReleaseExpedicao
         ? action('enabled', 'Liberar exp.', { op: acabOp })
         : (hasExpedicao ? action('view', 'Ver expedicao', { op: acabOp }) : action('disabled', 'Aguardando acabamento', { op: acabOp })),
@@ -366,7 +452,9 @@
       clientStep: clientStep,
       adminBadge: adminBadge,
       isOperationalOverride: hasTec || hasAcab || hasExpedicao || pedidoConcluido,
+      routes: pedidoRoutes,
       metrics: {
+        manta: { liberavel: mantaLiberavel, terminalSemExpedicao: mantaTerminalSemExpedicao, remaining: mantaTecRemaining, has: hasManta },
         tecelagem: { target: tecTarget, done: tecDone, remaining: tecRemaining, saldoEntregue: tecSaldoEntregue, terminal: tecFinished, formalPending: tecFormalPending },
         acabamento: { target: acabTarget, done: acabDone, remaining: acabRemaining, saldoEntregue: acabSaldoEntregue, terminal: acabFinished, formalPending: acabFormalPending },
         insumos: { pedidoKg: insumoPedidoKg, recebidoKg: insumoRecebidoKg, concluido: insumosConcluidos },
@@ -383,12 +471,13 @@
       } : null,
       actions: actions,
       adminStepper: adminStepper,
-      clientSteps: buildClientSteps(clientStep),
+      clientSteps: buildClientSteps(clientStep, pedidoRoutes),
       progressPercent: clampPercent(((STAGE_INDEX[clientStep] || 0) + 1) / CLIENT_STEPS.length * 100),
     };
   }
 
   window.RAVATEX_SCREENS.pedidoChainState = {
     derivePedidoChainState: derivePedidoChainState,
+    clientStepsForRoutes: clientStepsForRoutes,
   };
 })(window);

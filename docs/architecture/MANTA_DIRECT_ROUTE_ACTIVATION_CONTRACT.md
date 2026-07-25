@@ -976,3 +976,122 @@ correction and C5A emission all green and unchanged; cluster destroyed with PID,
 port and directory proof. Shared development `ucrjtfswnfdlxwtmxnoo` remains at
 terminal `84`; no environment was accessed. PHASE-MANTA-B2A remains **awaiting
 architect review**; B2B and B2C stay unauthorized.
+
+## 17. PHASE-MANTA-B2B implementation record
+
+STATUS: **PHASE-MANTA-B2B — IMPLEMENTED / LOCALLY VERIFIED / PUBLISHED /
+AWAITING ARCHITECT TECHNICAL AND VISUAL REVIEW.**
+
+Order `PHASE-MANTA-B2B-ROUTE-AWARE-UI-AND-READ-MODELS-R1` (route activation in
+the product surfaces; `js/**`, `index.html`, `tests/*.smoke.js` and the affected
+documentation owners only). **Zero migrations; `db/**` byte-unchanged. No
+shared-development, staging or production access. No Vercel. No real business
+data.** PHASE-MANTA-B2C remains unauthorized.
+
+### 17.1 Root cause of the previous fixed-route UI
+
+The route was never a first-class client fact. Five owners each carried their
+own Latex/Tapete premise:
+
+1. `pedido-detail-progress.js` derived the stage from `ops.tipo` and emitted a
+   fixed five-stage `stepper` array;
+2. `pedido-chain-state.js` carried the same premise plus an unconditional
+   `acabamento` in `CLIENT_STEPS` and in `adminStepper`;
+3. every expedition read-model attributed metres through `op_latex_id` only, so
+   a Manta expedition (`op_tecelagem_id`) was invisible;
+4. `expedicao-admin.js` selected and navigated `op_latex_id` only, producing
+   `#/ops/null` for a Manta expedition;
+5. `js/pedido-tracking-ui.js` published a constant eight-step client list.
+
+The correction makes the route an explicitly derived, shared fact
+(`js/product-route.js`, reusing the accepted `deriveProductType`) and makes the
+*shape* of the steps a function of that fact everywhere.
+
+### 17.2 New cohesive modules
+
+| Module | Responsibility | Lines |
+|---|---|---|
+| `js/product-route.js` | route derivation, per-route stage/client-step shapes, expedition-source resolution (pure; no `window.supa`) | 233 |
+| `js/screens/pedido-route-sections.js` | per-route section view models and stepper construction, plus the extracted release-availability calculation (pure) | 448 |
+| `js/screens/pedido-route-sections-ui.js` | route-section arrangement (stage/connector nodes injected by the render module) | 82 |
+| `js/screens/manta-writes.js` | the only Manta write module — the four db/85–87 RPCs, no direct table DML | 216 |
+| `js/screens/manta-output-form.js` | measured-output form (pure DOM; no destination selector, no split) | 205 |
+| `js/screens/manta-movimento-form.js` | one save path shared by the weaving-OP screen and the Pedido movement modal | 84 |
+| `js/screens/manta-expedicao-ui.js` | Manta expedition balances plus the release and reversal action modals | 320 |
+| `js/screens/cliente-route-read.js` | client-side route reader over already-readable data | 66 |
+
+### 17.3 Behaviour by surface
+
+- **Manta weaving OP** — records measured output through
+  `registrar_entrega_cima_manta` with `op_item_id`, measured metres and an
+  explicit defect state; exposes no finishing supplier, no finishing
+  destination selector and no `gerar_op_latex`/`_split`; the atomic backend
+  `codigo`/`erro` reaches the operator unrewritten; double submission is
+  blocked by a per-form latch. The rail offers "Abrir expedição da OP" instead
+  of "Enviar para acabamento". Tapete weaving is untouched.
+- **Expedition** — the dedicated screen at `#/expedicoes/:id` now selects both
+  source columns, states the origin explicitly ("Origem: Tecelagem (Manta)" /
+  "Acabamento (Tapete)"), and navigates "Ver OP" to whichever source is
+  non-null. For a Manta source it renders planned / measured / released /
+  delivered / available per item and in aggregate, with eligibility and
+  available balance taken **only** from `consultar_saldo_expedicao_manta`;
+  planned quantity is displayed as information and never enters a calculation.
+- **Release and reversal** — partial release, additional release and controlled
+  reversal call `liberar_expedicao_manta_parcial` and
+  `estornar_expedicao_manta_parcial`. Reversal requires a trimmed reason, caps
+  each item at `liberado - entregue`, and is hidden entirely when no release is
+  reversible. One idempotency key per operator attempt, reused across retries of
+  that attempt. Both modals contain the action form only.
+- **Pedido route sections** — the fixed five-stage stepper is gone. One section
+  per applicable route, each with its own stepper; a homogeneous Pedido
+  degenerates to exactly one section and to today's view. Expedition metres are
+  attributed by real origin, so neither route advances, completes or blocks the
+  other. Pedido completion pendencies became route-symmetric, matching db/87.
+- **Client surfaces** — the step *shape* is derived from the route and the
+  published *position* remains the curated commercial artefact. Manta omits
+  `Acabamento`; Tapete retains it; a mixed Pedido presents the union of its
+  applicable routes. `cliente_pedido_summary` (db/30) does not expose
+  `modelo_id`, and B2B authorizes no migration, so the route is read client-side
+  from `pedido_itens` (policy `pedido_itens_cliente_select`, db/14) joined to
+  `modelos` (policy `modelos_read`, db/03) — both already readable by the
+  client. No permission is broadened and no administrative control is exposed.
+  The reader is a dedicated module precisely because `cliente-pedido-detail.js`
+  has a deliberate no-direct-read boundary, which is preserved verbatim.
+
+### 17.4 Structural evidence
+
+`pedido-detail-events.js` 2709 → **2709**; `pedido-detail-progress.js` 988 →
+**919**. Neither protected file grew. `pedido-detail-render.js` 1330 → 1333
+(+3, a route-explaining comment; the route-section arrangement was extracted
+rather than added). `expedicao-admin.js` 462 → 522 and
+`op-tecelagem-producao-admin.js` 655 → 782 — both remain single cohesive screens
+with local closure, below the exceptional limit, with all route-specific
+calculation and action UI extracted to the modules in §17.2. Pure helpers never
+touch `window.supa`; render functions perform no insert/update/delete/upsert;
+every Manta write goes through `manta-writes.js` and every one of them is an
+authoritative RPC. `index.html` stays declarative and every new script carries
+cache-busting.
+
+### 17.5 Test and validation evidence
+
+New `tests/manta-route-ui.smoke.js` — 33 assertions, all green, covering every
+numbered requirement of §11. Extended without weakening any existing Tapete
+assertion: `tests/pedido-detail.smoke.js`, `tests/entrega-writes.smoke.js`,
+`tests/expedicao-flow.smoke.js`, `tests/tec-to-acabamento-flow.smoke.js`. Three
+static assertions whose subject moved to an extracted module were realigned to
+the new owner with identical semantics (two of them re-expressed as stronger
+runtime proofs), and `tests/cliente-pedido-detail.smoke.js` was updated for the
+fifth argument of the tracking card; the boundary assertions of that screen were
+preserved verbatim rather than relaxed. Full suite: 4203 tests, **zero new
+failures relative to `b266131`**, with 27 pre-existing failures incidentally
+resolved. Local visual validation was performed against an ephemeral, untracked
+in-browser fixture with an in-memory Supabase double — no network, no
+environment, no fabricated session — and the fixture was destroyed with proof.
+Pixel screenshots could not be captured in the executor's session; the visual
+evidence is rendered-structure, computed-geometry and action-state evidence.
+**Architect visual acceptance remains pending.**
+
+### 17.6 Next authorizable action
+
+`PHASE-MANTA-B2B-ARCHITECT-TECHNICAL-AND-VISUAL-REVIEW`. PHASE-MANTA-B2C
+requires its own separate explicit order; no phase chains automatically.

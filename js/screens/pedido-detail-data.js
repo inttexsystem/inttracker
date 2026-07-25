@@ -158,11 +158,22 @@
       });
     }
 
+    // PHASE-MANTA-B2B: a expedicao tem EXATAMENTE uma origem — op_latex_id
+    // (Tapete) ou op_tecelagem_id (Manta, db/81). Ler so op_latex_id perde
+    // toda expedicao Manta. Degrada com elegancia antes de db/81.
+    var EXPEDICAO_COLS = 'id, pedido_id, op_latex_id, op_tecelagem_id, lote_id, cliente_id, status, liberado_em, criado_em, atualizado_em';
     var expedicoesRes = await window.supa
       .from('expedicoes')
-      .select('id, pedido_id, op_latex_id, lote_id, cliente_id, status, liberado_em, criado_em, atualizado_em')
+      .select(EXPEDICAO_COLS)
       .eq('pedido_id', pedidoId)
       .order('id', { ascending: true });
+    if (expedicoesRes.error) {
+      expedicoesRes = await window.supa
+        .from('expedicoes')
+        .select(EXPEDICAO_COLS.replace(', op_tecelagem_id', ''))
+        .eq('pedido_id', pedidoId)
+        .order('id', { ascending: true });
+    }
 
     if (expedicoesRes.error) {
       state.expedicoes = [];

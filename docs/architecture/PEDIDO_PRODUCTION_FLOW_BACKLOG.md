@@ -3651,3 +3651,53 @@ previous entry is therefore closed.
 `PHASE-MANTA-B2B-ROUTE-AWARE-UI-R1` and
 `PHASE-MANTA-B2C-SHARED-DEV-FLOW-AND-CLOSEOUT-R1` remain unauthorized and each
 require their own explicit order; no phase chains automatically.
+
+# Update 2026-07-24 - PHASE-MANTA-B2B-ROUTE-AWARE-UI-AND-READ-MODELS-R1 (route activated in the product surfaces; zero migrations; awaiting architect technical and visual review)
+
+**Scope.** `js/**`, `index.html` (script tags with cache-busting),
+`tests/*.smoke.js` and the affected documentation owners. **`db/**` is
+byte-unchanged; migration count 0.** No shared-development, staging or
+production access; no Vercel; no real business data. One commit, one
+`staging/dev` publication.
+
+**What changed.** The Manta direct route is now represented end to end in the
+product: `Insumos → Tecelagem → Expedição → Entrega` for Manta and the
+unchanged `Insumos → Tecelagem → Acabamento → Expedição → Entrega` for Tapete.
+A mixed Pedido renders two independent route sections; the fixed five-stage
+stepper no longer exists for any Pedido. The Manta weaving OP records measured
+output through `registrar_entrega_cima_manta` with no finishing supplier, no
+destination selector and no Latex-OP generation; the expedition screen resolves
+its single real source (`op_latex_id` **or** `op_tecelagem_id`), states it
+explicitly and navigates "Ver OP" correctly instead of producing `#/ops/null`;
+Manta balances and release/reversal actions come from
+`consultar_saldo_expedicao_manta`, `liberar_expedicao_manta_parcial` and
+`estornar_expedicao_manta_parcial`, with planned quantity shown as information
+only. Client-facing progress derives which steps exist from the route while the
+published position stays the curated commercial artefact.
+
+**Route identity.** Derived exclusively from `modelos.tipo_produto` — through
+`op_itens.modelo_id` on administrative surfaces and through
+`pedido_itens.modelo_id` on the client surface, which cannot read `op_itens`.
+Never from `ops.tipo`, a model name, width alone, a screen name or the presence
+of a finishing supplier.
+
+**Structure.** Eight new cohesive modules (route derivation, route-section view
+models and arrangement, Manta writes, Manta output form, the shared Manta
+movement form, the Manta expedition UI, and the client route reader).
+`pedido-detail-events.js` stayed at 2709 lines and `pedido-detail-progress.js`
+fell from 988 to 919 — neither protected file grew; behaviour was extracted, not
+appended. `CODE-HEALTH-AUDIT-18-R1` was not enlarged.
+
+**Evidence.** New `tests/manta-route-ui.smoke.js` (33 assertions) proves every
+numbered requirement of the B2B test contract. Existing Tapete suites were
+extended, never weakened; three assertions whose subject moved to an extracted
+module were realigned to the new owner with identical semantics. Full suite:
+4203 tests, zero new failures relative to `b266131`. Local visual validation ran
+against an ephemeral in-browser fixture with an in-memory Supabase double — no
+network, no environment, no fabricated session — destroyed with proof; pixel
+screenshots were unavailable in the executor's session, so the visual evidence
+is rendered-structure, computed-geometry and action-state evidence.
+
+**Next.** `PHASE-MANTA-B2B-ARCHITECT-TECHNICAL-AND-VISUAL-REVIEW`.
+`PHASE-MANTA-B2C-SHARED-DEV-FLOW-AND-CLOSEOUT-R1` remains unauthorized and
+requires its own explicit order; no phase chains automatically.

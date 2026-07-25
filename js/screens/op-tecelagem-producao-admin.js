@@ -422,7 +422,7 @@
     return box;
   }
 
-  function buildEntregaHistorico(ctx, ent) {
+  function buildEntregaHistorico(ctx, ent, mantaMode) {
     var subcard = el('div', { style: 'border-bottom:1px solid var(--rv-color-line-100);padding:12px 0;' });
     var itensRow = (ent.entrega_itens || []).filter(function (x) { return x.op_id === ctx.op.id; }).map(function (ei) {
       var item = ctx.opItensRaw.find(function (i) { return i.id === ei.op_item_id; });
@@ -436,7 +436,16 @@
     // origem — edição/exclusão ficam bloqueadas; mantém o CTA "Ver OP".
     var vinculadaLatex = !!ctx.latexOpPorEntrega[ent.id];
     var acoes = el('div', { style: 'display:flex;align-items:center;gap:14px;' });
-    if (!vinculadaLatex) {
+    if (mantaMode) {
+      // Rota Manta: a edicao livre passaria pelo escritor Tapete
+      // (salvarEntregaCima/atualizarEntregaCima), que exige destino de
+      // acabamento e e recusado pelo guard de rota. A correcao canonica e
+      // o estorno da liberacao na tela de Expedicao.
+      acoes.appendChild(el('button', {
+        type: 'button', style: BTN_LINK + 'color:var(--rv-color-danger);',
+        onclick: function () { window.excluirEntrega(ent.id, ctx.reloadEntregasCima); },
+      }, 'Excluir'));
+    } else if (!vinculadaLatex) {
       acoes.appendChild(el('button', { type: 'button', style: BTN_LINK, onclick: function () { abrirEdicaoAdmin(ctx, ent); } }, 'Editar'));
       acoes.appendChild(el('button', { type: 'button', style: BTN_LINK + 'color:var(--rv-color-danger);', onclick: function () { window.excluirEntrega(ent.id, ctx.reloadEntregasCima); } }, 'Excluir'));
     } else {
@@ -554,15 +563,127 @@
         'Registre a transferência como uma nova entrega no bloco “Entregas de tecelagem”.'));
   }
 
-  // PHASE-MANTA-A: a Manta OP is weaving-only; no finishing action is offered
-  // and direct delivery is not yet active (deferred to PHASE-MANTA-B). This
-  // note replaces the cima-delivery / "Enviar para acabamento" surfaces.
+  // PHASE-MANTA-A / ativada em PHASE-MANTA-B2B: a OP de Manta e so de
+  // tecelagem; nenhuma acao de acabamento e oferecida. Esta nota explica a
+  // rota; o registro da saida medida vive em buildBlocoSaidaManta.
   function buildMantaRotaNote() {
     return el('div', { style: CARD + 'padding:15px 17px;' },
       rvSectionPill('Rota da Manta', IC_MOV),
       el('div', { style: 'font-size:12.5px;color:#5b6472;line-height:1.55;' },
         el('div', { style: 'font-weight:700;color:var(--rv-color-title);margin-bottom:6px;' }, 'Manta — rota tecelagem-direta'),
-        el('div', {}, 'Esta OP é de Manta: produzida somente por tecelagem e nunca enviada para acabamento/látex. A entrega direta ao cliente ainda não está ativa (PHASE-MANTA-B). Nenhuma ação de acabamento é oferecida aqui.')));
+        el('div', {}, 'Esta OP é de Manta: produzida somente por tecelagem e nunca enviada para acabamento/látex. A saída medida vai direto para a Expedição (PHASE-MANTA-B2B). Nenhuma ação de acabamento é oferecida aqui.')));
+  }
+
+  // Saida medida da rota Manta: sem fornecedor de destino, sem seletor de
+  // acabamento, sem gerar_op_latex/_split. Escreve por
+  // `registrar_entrega_cima_manta` (atomica) via o modulo de escrita.
+  function buildBlocoSaidaManta(ctx) {
+    var box = el('div', { id: 'saida-manta-op', style: CARD + 'padding:15px 17px;' });
+    box.appendChild(rvSectionPill('Saída medida (Manta)', IC_TRUCK));
+
+    var todosItens = ctx.entregasCima.flatMap(function (e) {
+      return (e.entrega_itens || []).filter(function (ei) { return ei.op_id === ctx.op.id; });
+    });
+    var totalPorItem = totalEntregueCimaPorItem(todosItens);
+
+    var cols = '1fr 110px 110px 110px';
+    var tabela = el('div', { style: 'overflow-x:auto;' });
+    var inner = el('div', { style: 'min-width:520px;' });
+    inner.appendChild(thRow(cols, ['MODELO', 'PREVISTO', 'MEDIDO', 'FALTA']));
+    var pendingByOpItemId = {};
+    for (var i = 0; i < ctx.opItensRaw.length; i++) {
+      var item = ctx.opItensRaw[i];
+      var previsto = item.metros_ajustados == null ? Number(item.metros_pedidos) : Number(item.metros_ajustados);
+      var medido = totalPorItem[item.id] || 0;
+      var falta = Math.round((previsto - medido) * 100) / 100;
+      pendingByOpItemId[item.id] = falta > 0 ? falta : 0;
+      inner.appendChild(gridRow(cols, [
+        el('div', { style: 'font-size:13px;font-weight:500;color:var(--rv-color-value);' }, window.rotuloModelo(ctx.modelosById[item.modelo_id])),
+        el('div', { class: 'num', style: 'font-size:13px;text-align:right;color:#8a93a3;' }, window.fmtMetros(previsto)),
+        el('div', { class: 'num', style: 'font-size:13px;text-align:right;font-weight:700;color:' + (medido > 0 ? 'var(--rv-color-success)' : '#a2aab6') + ';' }, window.fmtMetros(medido)),
+        el('span', { class: 'num', style: 'font-size:13px;text-align:right;font-weight:600;color:' + (falta > 0 ? 'var(--rv-color-danger)' : 'var(--rv-color-success)') + ';' }, falta > 0 ? window.fmtMetros(falta) : 'completo'),
+      ]));
+    }
+    tabela.appendChild(inner);
+    box.appendChild(tabela);
+    box.appendChild(el('div', { style: 'font-size:11.5px;color:#a2aab6;margin-top:8px;line-height:1.45;' },
+      'O previsto é o planejamento da OP e nunca autoriza expedição: só a saída medida sem defeito gera saldo.'));
+
+    var formHolder = el('div', {});
+    var btnNova = el('button', {
+      type: 'button', style: BTN_LINK + 'margin:14px 0 0;',
+      onclick: function () {
+        var mantaApi = window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.mantaMovimentoForm;
+        var form = mantaApi && mantaApi.buildMantaMovimentoForm({
+          op: { id: ctx.op.id, op_itens: ctx.opItensRaw },
+          modelosById: ctx.modelosById,
+          pendingByOpItemId: pendingByOpItemId,
+          fornecedorId: ctx.cimaFornecedorId,
+        });
+        if (!form) { toast('Módulo de saída Manta indisponível.', 'error'); return; }
+        var btnSalvar = el('button', {
+          type: 'button', style: BTN_SOLID_SM + 'margin-right:8px;',
+          onclick: async function () {
+            // Trava de submissao dupla: o form retem a sua propria trava e
+            // o botao fica desabilitado durante o await.
+            btnSalvar.disabled = true;
+            var ok = await form.onSave();
+            btnSalvar.disabled = false;
+            if (!ok) return;
+            formHolder.replaceChildren();
+            btnNova.style.display = '';
+            ctx.reloadEntregasCima();
+          },
+        }, 'Registrar saída');
+        var btnCancelar = el('button', {
+          type: 'button',
+          style: 'background:#fff;color:#3f4757;border:1px solid var(--rv-color-input-border);border-radius:var(--rv-radius-control);padding:8px 16px;font-weight:600;font-size:13px;font-family:inherit;cursor:pointer;',
+          onclick: function () { formHolder.replaceChildren(); btnNova.style.display = ''; },
+        }, 'Cancelar');
+        formHolder.replaceChildren(el('div', { style: 'padding:12px 0;' }, form.node, el('div', { style: 'margin-top:10px;' }, btnSalvar, btnCancelar)));
+        btnNova.style.display = 'none';
+      },
+    }, '+ Nova saída medida');
+    box.appendChild(btnNova);
+    box.appendChild(formHolder);
+
+    box.appendChild(el('div', { style: 'margin-top:16px;padding-top:14px;border-top:1px solid var(--rv-color-line-100);' },
+      el('div', { style: 'font-size:11px;font-weight:700;color:var(--rv-color-section-label);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;' }, 'Histórico de saídas'),
+      ctx.entregasCima.length === 0
+        ? el('div', { style: 'font-size:12.5px;color:#a2aab6;' }, 'Nenhuma saída medida registrada ainda.')
+        : el('div', {}, ctx.entregasCima.map(function (ent) { return buildEntregaHistorico(ctx, ent, true); }))));
+    return box;
+  }
+
+  // Rail da rota Manta: substitui "Enviar para acabamento". Nenhuma acao de
+  // acabamento e oferecida; a navegacao vai direto para a tela dedicada de
+  // Expedicao da propria OP de tecelagem (nunca expoe uma entidade de
+  // Acabamento nem uma transicao para ela).
+  function buildEnviarExpedicaoManta(ctx, totais) {
+    return el('div', { style: CARD + 'padding:15px 17px;' },
+      rvSectionPill('Enviar para expedição', IC_MOV),
+      el('div', { style: 'display:flex;flex-direction:column;gap:10px;margin-bottom:14px;' },
+        metricRow('Saída medida', window.fmtMetros(totais.totalEntregue), totais.totalEntregue > 0 ? 'var(--rv-color-success)' : '#a2aab6'),
+        metricRow('Saldo em tecelagem', window.fmtMetros(totais.saldo), totais.excedente ? 'var(--rv-color-danger)' : 'var(--rv-color-accent)'),
+        metricRow('Total previsto', window.fmtMetros(totais.totalAjustado), 'var(--rv-color-title)')),
+      el('button', {
+        type: 'button', style: BTN_PRIMARY,
+        onclick: async function (event) {
+          var btn = event && event.currentTarget ? event.currentTarget : null;
+          var api = window.RAVATEX_MANTA_WRITES;
+          if (!api) { toast('Módulo de escrita Manta indisponível.', 'error'); return; }
+          if (btn) btn.disabled = true;
+          var saldo = await api.consultarSaldoExpedicaoManta(ctx.op.id);
+          if (btn) btn.disabled = false;
+          if (!saldo.ok) { toast('Saldo indisponível: ' + saldo.erro, 'error'); return; }
+          if (saldo.expedicao_id != null) { window.navigate('#/expedicoes/' + saldo.expedicao_id); return; }
+          toast('Ainda não há expedição: registre a saída medida e libere pela Expedição.', 'info');
+          var alvo = document.getElementById('saida-manta-op');
+          if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+      }, svgEl(SVG_ARROW), 'Abrir expedição da OP'),
+      el('div', { style: 'font-size:11.5px;color:#a2aab6;margin-top:9px;line-height:1.45;' },
+        'A Manta vai da Tecelagem direto para a Expedição — não há etapa de acabamento.'));
   }
 
   function opEhManta(ctx) {
@@ -630,13 +751,19 @@
       ctx.buildBlocoFios(),
       buildBlocoCapacidade(ctx, totais));
     // PHASE-MANTA-A: never offer the finishing (cima -> latex) surface for a
-    // Manta OP; show the tecelagem-only note instead.
-    if (isManta) left.appendChild(buildMantaRotaNote());
-    else if (ctx.cimaFornecedorId) left.appendChild(buildBlocoEntregas(ctx));
+    // Manta OP. PHASE-MANTA-B2B: the route note is joined by the measured
+    // output block, which writes through registrar_entrega_cima_manta.
+    if (isManta) {
+      left.appendChild(buildMantaRotaNote());
+      if (ctx.cimaFornecedorId) left.appendChild(buildBlocoSaidaManta(ctx));
+    } else if (ctx.cimaFornecedorId) {
+      left.appendChild(buildBlocoEntregas(ctx));
+    }
     left.appendChild(buildBlocoHistorico(ctx));
 
     var railKids = [buildResumo(totais)];
     if (ctx.cimaFornecedorId && !isManta) railKids.push(buildEnviarAcabamento(ctx, totais));
+    if (ctx.cimaFornecedorId && isManta) railKids.push(buildEnviarExpedicaoManta(ctx, totais));
     railKids.push(buildDocumentos(ctx));
     var right = el('div', { style: 'min-width:0;position:sticky;top:0;display:flex;flex-direction:column;gap:14px;' }, railKids);
 

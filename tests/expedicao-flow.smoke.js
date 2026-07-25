@@ -113,3 +113,57 @@ test('expedicao flow: botao Concluir pedido nao renderiza disabled=null no DOM r
   assert.match(expedicao, /if\s*\(\s*!ready\s*\)\s*\{\s*buttonAttrs\.disabled\s*=\s*['"]disabled['"];\s*\}/,
     'disabled deve ser atribuido condicionalmente fora do objeto, nunca como null');
 });
+
+// =====================================================================
+// PHASE-MANTA-B2B — a tela dedicada de expedicao passou a resolver a
+// ORIGEM real (op_latex_id OU op_tecelagem_id). Todas as garantias
+// Tapete acima permanecem; o que se acrescenta e a prova de que a rota
+// Manta nao produz mais `#/ops/null` e ganha saldo e acoes proprias.
+// =====================================================================
+
+const MANTA_EXPEDICAO_UI = fs.readFileSync(
+  path.join(ROOT, 'js', 'screens', 'manta-expedicao-ui.js'), 'utf8');
+
+test('expedicao flow MANTA-B2B: a tela le as duas colunas de origem', () => {
+  assert.match(expedicao, /op_latex_id/, 'a origem Tapete continua sendo lida');
+  assert.match(expedicao, /op_tecelagem_id/, 'a origem Manta passa a ser lida');
+  assert.match(expedicao, /op_tecelagem:op_tecelagem_id\(/,
+    'a OP de origem Manta e embutida como a de Acabamento ja era');
+});
+
+test('expedicao flow MANTA-B2B: "Ver OP" usa a origem resolvida, nunca op_latex_id fixo', () => {
+  assert.match(expedicao, /function sourceOf/);
+  assert.match(expedicao, /navigate\('#\/ops\/' \+ src\.opId\)/);
+  assert.doesNotMatch(expedicao, /navigate\('#\/ops\/' \+ exp\.op_latex_id\)/,
+    'uma expedicao Manta produziria #/ops/null com op_latex_id fixo');
+});
+
+test('expedicao flow MANTA-B2B: a origem e declarada explicitamente ao operador', () => {
+  assert.match(expedicao, /Origem: /);
+  assert.match(MANTA_EXPEDICAO_UI, /Tecelagem \(Manta\)/);
+});
+
+test('expedicao flow MANTA-B2B: saldo e elegibilidade vem da RPC, nunca do planejado', () => {
+  assert.match(expedicao, /consultarSaldoExpedicaoManta/);
+  assert.match(MANTA_EXPEDICAO_UI, /saldo\.disponivel_total/);
+  assert.match(MANTA_EXPEDICAO_UI, /item\.disponivel/);
+  assert.doesNotMatch(MANTA_EXPEDICAO_UI, /previsto\s*[-+]\s*(recebido|liberado|entregue)/,
+    'o previsto e informativo e nunca entra no calculo de saldo');
+});
+
+test('expedicao flow MANTA-B2B: liberacao e estorno usam as RPCs Manta, sem DML direto', () => {
+  assert.match(MANTA_EXPEDICAO_UI, /liberarExpedicaoMantaParcial/);
+  assert.match(MANTA_EXPEDICAO_UI, /estornarExpedicaoMantaParcial/);
+  assert.doesNotMatch(MANTA_EXPEDICAO_UI, /\.from\(/,
+    'nenhuma escrita direta em tabela na superficie de expedicao Manta');
+  assert.match(MANTA_EXPEDICAO_UI, /Motivo do estorno \(obrigat/,
+    'o estorno exige motivo');
+});
+
+test('expedicao flow MANTA-B2B: a rota Tapete da tela permanece inalterada', () => {
+  // O registro de entrega/coleta continua na mesma RPC canonica e a
+  // conclusao do Pedido continua onde estava.
+  assert.match(expedicao, /rpc\('registrar_entrega_expedicao'/);
+  assert.match(expedicao, /rpc\('concluir_pedido_se_pronto'/);
+  assert.match(expedicao, /'Itens da expedicao'/);
+});

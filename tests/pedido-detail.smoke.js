@@ -89,9 +89,25 @@ const oduSrc = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'op-distribuicao
 const cutoverSrc = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'ordem-compra-receipt-cutover.js'), 'utf8');
 const opwSrc = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'op-writes.js'), 'utf8');
 const opDisplay = readOrFail(path.join(ROOT, 'js', 'op-display.js'));
+// PHASE-MANTA-B2B: a derivacao de rota e a forma das secoes por rota
+// sairam de pedido-detail-progress.js/pedido-detail-render.js para modulos
+// coesos proprios (R-5/R-6: nenhum dos dois pode crescer). O runtime hub
+// carrega os mesmos modulos que index.html, na mesma ordem.
+const productRoute = readOrFail(path.join(ROOT, 'js', 'product-route.js'));
+const routeSections = readOrFail(path.join(ROOT, 'js', 'screens', 'pedido-route-sections.js'));
+const routeSectionsUi = readOrFail(path.join(ROOT, 'js', 'screens', 'pedido-route-sections-ui.js'));
+const mantaWrites = readOrFail(path.join(ROOT, 'js', 'screens', 'manta-writes.js'));
+const mantaOutputForm = readOrFail(path.join(ROOT, 'js', 'screens', 'manta-output-form.js'));
+const mantaMovimentoForm = readOrFail(path.join(ROOT, 'js', 'screens', 'manta-movimento-form.js'));
 const detailBundle = [
   opDisplay,
+  productRoute,
   chainState,
+  routeSections,
+  routeSectionsUi,
+  mantaWrites,
+  mantaOutputForm,
+  mantaMovimentoForm,
   screen,
   detailData,
   detailProgress,
@@ -332,7 +348,9 @@ test('ACABAMENTO-EXPEDICAO-MODAL-MOVE-R1: OP Latex simulada com saldo nao habili
 test('TEC-STAGE-FINALIZATION-A-B: Pedido Detail diferencia saldo entregue de conclusao explicita', () => {
   assert.match(detailProgress, /var\s+tecTerminal\s*=/,
     'computeViewModel deve calcular terminalidade real da Tecelagem');
-  assert.match(detailProgress, /entregue; finalizar OP/,
+  // PHASE-MANTA-B2B: o sublabel passou a ser emitido por
+  // `pedidoRouteSections` (dono do stepper por rota). A garantia e a mesma.
+  assert.match(routeSections, /entregue; finalizar OP/,
     'saldo zerado sem status terminal deve pedir finalizacao explicita, nao "concluido"');
   assert.match(detailEvents, /Tecelagem entregue; finalizar OP\./,
     'modal da etapa deve explicar a diferenca entre saldo e terminalidade');
@@ -431,17 +449,54 @@ test('pedido-detail: setas de transicao abrem modal de movimento; bolinhas mante
   assert.doesNotMatch(connectorSlice, /action\.mode === ['"]hidden['"][\s\S]*?return window\.el\(['"]div['"],\s*\{\s*style:\s*['"]display:flex;align-items:center;justify-content:center;height:42px;['"]\s*\}\)/);
 });
 
-test('pedido-detail: stepper produtivo tem 5 etapas e 4 conectores fixos', () => {
-  const stepperSlice = (detailProgress.match(/var stepper = \[[\s\S]*?\n    \];/) || [''])[0];
-  assert.ok(stepperSlice, 'array stepper nao encontrado em pedido-detail-progress.js');
-  const keys = Array.from(stepperSlice.matchAll(/key:\s*['"]([^'"]+)['"]/g)).map(match => match[1]);
-  assert.deepEqual(keys, ['insumos', 'tecelagem', 'acabamento', 'expedicao', 'entrega']);
-  assert.equal((stepperSlice.match(/transfer:\s*\{/g) || []).length, 4,
-    '5 etapas exigem 4 conectores visuais');
-  assert.match(stepperSlice, /key:\s*['"]expedicao['"][\s\S]*?transfer:\s*\{[\s\S]*?origem:\s*['"]Expedicao['"][\s\S]*?destino:\s*['"]Entrega['"][\s\S]*?registerDelivery/,
-    'deve existir conector EXPEDICAO -> ENTREGA');
-  assert.match(stepperSlice, /key:\s*['"]entrega['"][\s\S]*?transfer:\s*null/,
+// PHASE-MANTA-B2B: a mesma garantia Tapete de antes (5 etapas, 4
+// conectores, EXPEDICAO -> ENTREGA, ENTREGA sem conector extra), agora
+// provada em RUNTIME sobre o modulo que passou a construir o stepper
+// (`pedidoRouteSections`) em vez do array literal que vivia em
+// pedido-detail-progress.js. Nenhuma assercao Tapete foi enfraquecida.
+function routeSectionsSandbox() {
+  const sandbox = { window: {}, console };
+  sandbox.window.window = sandbox.window;
+  vm.createContext(sandbox);
+  vm.runInContext([opDisplay, productRoute, routeSections].join('\n\n'), sandbox);
+  return sandbox.window.RAVATEX_SCREENS.pedidoRouteSections;
+}
+
+function stepperForRoute(route) {
+  const api = routeSectionsSandbox();
+  const built = api.buildRouteSections({
+    routes: [route],
+    opSummaries: [],
+    expedicoes: [],
+    expedicaoItens: [],
+    insumoOrdens: [],
+    totalPedido: 0,
+    deliveredExactTotal: 0,
+    chainState: null,
+    fmt: { metros: (v) => String(v), kg: (v) => String(v) },
+  });
+  return built.sections[0].stepper;
+}
+
+test('pedido-detail: stepper produtivo Tapete tem 5 etapas e 4 conectores fixos', () => {
+  const stepper = stepperForRoute('tapete');
+  assert.equal(stepper.map((s) => s.key).join(','), 'insumos,tecelagem,acabamento,expedicao,entrega');
+  assert.equal(stepper.filter((s) => s.transfer).length, 4, '5 etapas exigem 4 conectores visuais');
+  const expedicao = stepper.find((s) => s.key === 'expedicao');
+  assert.equal(expedicao.transfer.origem, 'Expedicao', 'deve existir conector EXPEDICAO -> ENTREGA');
+  assert.equal(expedicao.transfer.destino, 'Entrega');
+  assert.equal(stepper.find((s) => s.key === 'entrega').transfer, null,
     'ENTREGA e a ultima etapa e nao cria conector extra');
+});
+
+test('pedido-detail: stepper produtivo Manta tem 4 etapas, 3 conectores e nenhum Acabamento', () => {
+  const stepper = stepperForRoute('manta');
+  assert.equal(stepper.map((s) => s.key).join(','), 'insumos,tecelagem,expedicao,entrega');
+  assert.equal(stepper.filter((s) => s.transfer).length, 3, '4 etapas exigem 3 conectores visuais');
+  const tecelagem = stepper.find((s) => s.key === 'tecelagem');
+  assert.equal(tecelagem.transfer.destino, 'Expedicao',
+    'a Manta liga Tecelagem direto a Expedicao, sem Acabamento');
+  assert.equal(stepper.find((s) => s.key === 'entrega').transfer, null);
 });
 
 test('pedido-chain-state: ultima transicao preserva gates hidden/enabled/view', () => {
@@ -1043,7 +1098,9 @@ test('pedido-detail.js: OP aberta com insumos recebidos mostra CTA de distribui�
   assert.match(detailEvents, /ajuste e salve a distribuição, depois use "Iniciar produção"/);
   assert.match(detailEvents, /Revisar distribuição/);
   assert.doesNotMatch(detailEvents, /Revisar e aceitar OP/);
-  assert.match(detailProgress, /stage\.sublabel\s*=\s*['"]OP pendente de aceite['"]/);
+  // PHASE-MANTA-B2B: o pos-processamento do stepper acompanhou o stepper
+  // para `pedidoRouteSections`; a mesma garantia, no novo dono.
+  assert.match(routeSections, /stage\.sublabel\s*=\s*['"]OP pendente de aceite['"]/);
   assert.match(detailEvents, /function openTecAcceptanceModal/,
     'deve ter o modal de distribuição da OP Tecelagem pelo Pedido');
 });
@@ -3276,4 +3333,80 @@ test('G20-B-bridge-smoke: pedido-detail-progress nao referencia ingestion_event_
   const decisionSection = (detailProgress.match(/isLocalDecision[\s\S]{0,300}/) || [''])[0];
   assert.doesNotMatch(decisionSection || '', /ingestion_event_id\s*[:=]/,
     'decisao local deve usar document_id, nao ingestion_event_id');
+});
+
+// =====================================================================
+// PHASE-MANTA-B2B — secoes por rota no detalhe do Pedido. As garantias
+// Tapete acima permanecem inalteradas; o que se acrescenta e a prova de
+// que o Pedido misto renderiza DUAS secoes independentes e de que a
+// secao Manta nunca contem Acabamento.
+// =====================================================================
+
+function mixedRouteView() {
+  const sandbox = { window: {}, console };
+  sandbox.window.window = sandbox.window;
+  vm.createContext(sandbox);
+  vm.runInContext([opDisplay, productRoute, routeSections].join('\n\n'), sandbox);
+  return sandbox.window.RAVATEX_SCREENS.pedidoRouteSections.buildRouteSections({
+    routes: ['tapete', 'manta'],
+    opSummaries: [
+      { id: 1, route: 'tapete', stageKey: 'tecelagem', status: 'concluida', target: 60, done: 60, remaining: 0, op: { id: 1 } },
+      { id: 2, route: 'tapete', stageKey: 'acabamento', status: 'em_producao', target: 60, done: 0, remaining: 60, op: { id: 2 } },
+      { id: 3, route: 'manta', stageKey: 'tecelagem', status: 'em_producao', target: 40, done: 40, remaining: 0, op: { id: 3 } },
+    ],
+    expedicoes: [{ id: 900, op_tecelagem_id: 3 }],
+    expedicaoItens: [{ expedicao_id: 900, metros_liberados: 40, metros_entregues: 40 }],
+    insumoOrdens: [],
+    totalPedido: 100,
+    deliveredExactTotal: 40,
+    chainState: null,
+    fmt: { metros: (v) => String(v), kg: (v) => String(v) },
+  });
+}
+
+test('MANTA-B2B: Pedido misto emite duas secoes de rota, cada uma com o seu stepper', () => {
+  const built = mixedRouteView();
+  assert.equal(built.sections.length, 2);
+  assert.equal(built.sections.map((s) => s.route).join(','), 'tapete,manta');
+  assert.equal(built.sections[0].stepper.map((s) => s.key).join(','),
+    'insumos,tecelagem,acabamento,expedicao,entrega');
+  assert.equal(built.sections[1].stepper.map((s) => s.key).join(','),
+    'insumos,tecelagem,expedicao,entrega');
+});
+
+test('MANTA-B2B: uma rota concluida nao conclui nem bloqueia a outra', () => {
+  const built = mixedRouteView();
+  const tapete = built.sections[0];
+  const manta = built.sections[1];
+  assert.equal(manta.stepper.find((s) => s.key === 'entrega').state, 'done',
+    'a Manta entregou tudo e fecha a sua propria rota');
+  assert.equal(tapete.stepper.find((s) => s.key === 'entrega').state, 'future',
+    'o Tapete continua aberto, sem herdar a conclusao da Manta');
+  assert.equal(tapete.stepper.find((s) => s.key === 'acabamento').state, 'current');
+});
+
+test('MANTA-B2B: a transicao da secao Manta e Tecelagem -> Expedicao, nunca Acabamento', () => {
+  const manta = mixedRouteView().sections[1];
+  const tec = manta.stepper.find((s) => s.key === 'tecelagem');
+  assert.equal(tec.transfer.origem, 'Tecelagem');
+  assert.equal(tec.transfer.destino, 'Expedicao');
+  assert.doesNotMatch(tec.transfer.title, /Acabamento/);
+});
+
+test('MANTA-B2B: o modal de movimentacao roteia Tecelagem>Expedicao para o caminho Manta', () => {
+  assert.match(detailEvents, /key === 'Tecelagem>Expedicao'\) return buildMantaSaidaForm/);
+  assert.match(detailEvents, /key === 'Tecelagem>Acabamento'\) return buildTecelagemTransferForm/,
+    'o caminho Tapete permanece exatamente onde estava');
+  const slice = (detailEvents.match(/function buildMantaSaidaForm[\s\S]*?\r?\n    \}\r?\n/) || [''])[0];
+  assert.ok(slice, 'buildMantaSaidaForm nao encontrado');
+  assert.doesNotMatch(slice, /salvarEntregaCima/);
+  assert.doesNotMatch(slice, /latexOptions|comOpcaoSplit/);
+});
+
+test('MANTA-B2B: a atribuicao de expedicao no progresso usa a origem real', () => {
+  assert.match(detailProgress, /expedicaoSourceOpId/);
+  assert.doesNotMatch(detailProgress, /expedicao\.op_latex_id != null\) \{\n\s*liberadoByLatexOp/,
+    'a atribuicao nao pode continuar presa a op_latex_id');
+  assert.match(detailProgress, /op_tecelagem_id/,
+    'a pendencia de conclusao Manta usa op_tecelagem_id (simetria de db/87)');
 });

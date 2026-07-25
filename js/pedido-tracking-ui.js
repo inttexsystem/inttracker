@@ -47,6 +47,24 @@
     PARCIAL_SITUACAO_BY_KEY[item.key] = item;
   });
 
+  // PHASE-MANTA-B2B: quais etapas EXISTEM e um fato de produto derivado de
+  // `modelos.tipo_produto` — a Manta nao tem `acabamento`. A POSICAO e a
+  // mensagem publicadas continuam sendo o artefato comercial curado
+  // (`status_cliente_visual` / parciais), que esta lista nao substitui.
+  // `CLIENTE_TRACKING_STEPS` permanece a lista canonica completa; esta
+  // funcao devolve o recorte aplicavel ao conjunto de rotas do Pedido.
+  function getClienteTrackingStepsForRoutes(routes) {
+    var api = window.RAVATEX_PRODUCT_ROUTE;
+    if (!api || typeof api.filterClientSteps !== 'function') return CLIENTE_TRACKING_STEPS.slice();
+    var filtered = api.filterClientSteps(CLIENTE_TRACKING_STEPS, routes);
+    return filtered.length ? filtered : CLIENTE_TRACKING_STEPS.slice();
+  }
+
+  function getClienteTrackingStepIndex(key) {
+    var idx = STEP_INDEX_BY_KEY[normalizarTrackingKey(key)];
+    return typeof idx === 'number' ? idx : -1;
+  }
+
   function normalizarTrackingKey(value) {
     if (typeof value !== 'string') return '';
     return value.trim().toLowerCase();
@@ -388,6 +406,8 @@
     CLIENTE_PARCIAL_SITUACOES: CLIENTE_PARCIAL_SITUACOES,
     CLIENTE_TRACKING_STEPS: CLIENTE_TRACKING_STEPS,
     CLIENTE_TRACKING_EXCECOES: CLIENTE_TRACKING_EXCECOES,
+    getClienteTrackingStepsForRoutes: getClienteTrackingStepsForRoutes,
+    getClienteTrackingStepIndex: getClienteTrackingStepIndex,
     getClienteParcialSituacao: getClienteParcialSituacao,
     getClienteTrackingStep: getClienteTrackingStep,
     getClienteTrackingException: getClienteTrackingException,

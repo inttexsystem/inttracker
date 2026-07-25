@@ -111,7 +111,21 @@
       eventosError: false,
       entregasResumo: [],
       pendencias: [],
+      routes: [],
     };
+
+    // PHASE-MANTA-B2B: rotas aplicaveis do Pedido. Esta tela preserva a
+    // sua fronteira — nenhum select direto e nenhum ID de catalogo aqui;
+    // o leitor de rota e um modulo dedicado (`cliente-route-read.js`),
+    // que usa apenas dados que o cliente ja pode ler e deriva a rota
+    // exclusivamente de `modelos.tipo_produto`. Sem rota conhecida a
+    // forma Tapete legada e mantida.
+    async function carregarRotas() {
+      state.routes = [];
+      var reader = window.RAVATEX_CLIENTE_ROUTE;
+      if (!reader) return;
+      state.routes = await reader.carregarRotasDoPedido(pedidoId);
+    }
 
     function modelLabel(item) {
       if (!item) return '—';
@@ -306,7 +320,7 @@
 
     function buildTracking() {
       if (!state.pedido) return window.el('div', {});
-      return window.buildClientePedidoTrackingCard(state.pedido, state.itens, state.parciais, state.chainState);
+      return window.buildClientePedidoTrackingCard(state.pedido, state.itens, state.parciais, state.chainState, state.routes);
     }
 
     // Meta card com 3 colunas: Atualizado em | Prazo previsto | Recebimento.
@@ -779,6 +793,7 @@
     }
 
     await carregar();
+    await carregarRotas();
     render();
     return window.clienteShellLayout(container);
   }

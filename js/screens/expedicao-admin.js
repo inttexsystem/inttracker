@@ -102,16 +102,40 @@
       movimentos: [],
       movimentoItens: [],
       opSiblings: [],
+      mantaSaldo: null,
       loadingError: null,
     };
+
+    // PHASE-MANTA-B2B: a expedicao tem EXATAMENTE uma origem. Ambas as
+    // colunas sao lidas e embutidas; "Ver OP" navega para a que existe.
+    function sourceOf(expedicao) {
+      var api = window.RAVATEX_PRODUCT_ROUTE;
+      if (api && typeof api.resolveExpedicaoSource === 'function') return api.resolveExpedicaoSource(expedicao);
+      var opId = expedicao && expedicao.op_latex_id != null ? expedicao.op_latex_id : null;
+      return { opId: opId, column: opId != null ? 'op_latex_id' : null, route: opId != null ? 'tapete' : null, label: opId != null ? 'Acabamento (Tapete)' : null };
+    }
+
+    function sourceOp(expedicao) {
+      var src = sourceOf(expedicao);
+      if (src.column === 'op_tecelagem_id') return (expedicao && expedicao.op_tecelagem) || null;
+      return (expedicao && expedicao.op) || null;
+    }
 
     async function reload() {
       state.loadingError = null;
 
+      var SELECT_DUAL = 'id, pedido_id, op_latex_id, op_tecelagem_id, lote_id, cliente_id, status, liberado_em, criado_em, atualizado_em, pedido:pedido_id(id, numero, status, tipo_recebimento, criado_em), op:op_latex_id(id, numero, ano, status, tipo, criado_em, lote_id), op_tecelagem:op_tecelagem_id(id, numero, ano, status, tipo, criado_em, lote_id), lote:lote_id(id, numero), cliente:cliente_id(id, nome)';
+      var SELECT_LEGACY = 'id, pedido_id, op_latex_id, lote_id, cliente_id, status, liberado_em, criado_em, atualizado_em, pedido:pedido_id(id, numero, status, tipo_recebimento, criado_em), op:op_latex_id(id, numero, ano, status, tipo, criado_em, lote_id), lote:lote_id(id, numero), cliente:cliente_id(id, nome)';
       var expRes = await window.supa.from('expedicoes')
-        .select('id, pedido_id, op_latex_id, lote_id, cliente_id, status, liberado_em, criado_em, atualizado_em, pedido:pedido_id(id, numero, status, tipo_recebimento, criado_em), op:op_latex_id(id, numero, ano, status, tipo, criado_em, lote_id), lote:lote_id(id, numero), cliente:cliente_id(id, nome)')
+        .select(SELECT_DUAL)
         .eq('id', expedicaoId)
         .maybeSingle();
+      if (expRes.error) {
+        expRes = await window.supa.from('expedicoes')
+          .select(SELECT_LEGACY)
+          .eq('id', expedicaoId)
+          .maybeSingle();
+      }
 
       if (expRes.error || !expRes.data) {
         state.loadingError = 'expedicao';
@@ -180,6 +204,15 @@
         }
       }
 
+      // Rota Manta: o saldo (elegibilidade e disponivel) vem SOMENTE da
+      // RPC autoritativa. A formula do backend nunca e reproduzida aqui.
+      state.mantaSaldo = null;
+      var src = sourceOf(state.expedicao);
+      var mantaWrites = window.RAVATEX_MANTA_WRITES;
+      if (src.route === 'manta' && src.opId != null && mantaWrites) {
+        state.mantaSaldo = await mantaWrites.consultarSaldoExpedicaoManta(src.opId);
+      }
+
       render();
     }
 
@@ -187,9 +220,11 @@
       var exp = state.expedicao || {};
       var pedidoNumero = exp.pedido && exp.pedido.numero ? ('#' + exp.pedido.numero) : ('#' + exp.pedido_id);
       var opCtx = { pedido: exp.pedido || null, ops: state.opSiblings };
-      var opLabel = exp.op && exp.op.numero && exp.op.ano
-        ? formatOpDisplay(exp.op, opCtx)
-        : (exp.op_latex_id ? 'OP #' + exp.op_latex_id : null);
+      var src = sourceOf(exp);
+      var srcOp = sourceOp(exp);
+      var opLabel = srcOp && srcOp.numero && srcOp.ano
+        ? formatOpDisplay(srcOp, opCtx)
+        : (src.opId != null ? 'OP #' + src.opId : null);
 
       var lineageNodes = [];
       lineageNodes.push(window.el('span', { style: 'font-size:12.5px;color:#2c4a78;font-weight:600;' }, 'Cadeia:'));
@@ -199,11 +234,14 @@
         ? window.el('button', {
             type: 'button',
             style: 'font-size:12.5px;font-weight:700;color:#2563eb;background:#fff;border:none;border-radius:3px;padding:3px 7px;cursor:pointer;font-family:inherit;',
-            onclick: function () { window.navigate('#/ops/' + exp.op_latex_id); },
+            onclick: function () { window.navigate('#/ops/' + src.opId); },
           }, opLabel)
         : window.el('span', { style: 'font-size:12.5px;font-weight:700;color:#8a93a3;background:#fff;border-radius:3px;padding:3px 7px;' }, 'OP sem vinculo'));
-      if (exp.op) {
-        lineageNodes.push(window.el('span', { style: 'font-size:11.5px;color:#8a93a3;background:#fff;border-radius:3px;padding:3px 7px;' }, internalOpLabel(exp.op)));
+      if (src.label) {
+        lineageNodes.push(window.el('span', { style: 'font-size:11.5px;color:#5b6472;background:#fff;border-radius:3px;padding:3px 7px;font-weight:600;' }, 'Origem: ' + src.label));
+      }
+      if (srcOp) {
+        lineageNodes.push(window.el('span', { style: 'font-size:11.5px;color:#8a93a3;background:#fff;border-radius:3px;padding:3px 7px;' }, internalOpLabel(srcOp)));
       }
       lineageNodes.push(window.el('span', { style: 'font-size:12px;color:#9aa2af;' }, '→'));
       lineageNodes.push(window.el('span', { style: 'font-size:12.5px;font-weight:700;color:#c2610c;background:#fff;border-radius:3px;padding:3px 7px;' }, 'Expedicao (esta tela)'));
@@ -229,7 +267,7 @@
           window.el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;' },
             badge(exp.status),
             exp.pedido_id ? window.el('button', { type: 'button', style: BTN_SECONDARY, onclick: function () { window.navigate('#/pedidos/' + exp.pedido_id); } }, 'Ver pedido') : null,
-            exp.op_latex_id ? window.el('button', { type: 'button', style: BTN_SECONDARY, onclick: function () { window.navigate('#/ops/' + exp.op_latex_id); } }, 'Ver OP') : null)
+            src.opId != null ? window.el('button', { type: 'button', style: BTN_SECONDARY, onclick: function () { window.navigate('#/ops/' + src.opId); } }, 'Ver OP') : null)
         )
       );
     }
@@ -424,6 +462,27 @@
       );
     }
 
+    // Painel de saldos e ACOES da rota Manta (liberacao parcial/adicional
+    // e estorno). Renderizado apenas para uma expedicao com origem
+    // op_tecelagem_id; a rota Tapete permanece intocada.
+    function buildMantaPainel() {
+      var src = sourceOf(state.expedicao);
+      if (src.route !== 'manta') return null;
+      var ui = window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.mantaExpedicaoUi;
+      if (!ui || typeof ui.buildMantaExpedicaoPanel !== 'function') return null;
+      var modeloById = {};
+      state.itens.forEach(function (item) {
+        if (item && item.modelo_id != null && item.modelo) modeloById[item.modelo_id] = item.modelo;
+      });
+      return ui.buildMantaExpedicaoPanel({
+        saldo: state.mantaSaldo,
+        opTecelagemId: src.opId,
+        expedicaoId: state.expedicao.id,
+        modeloById: modeloById,
+        reload: reload,
+      });
+    }
+
     function render() {
       if (state.loadingError) {
         container.replaceChildren(
@@ -442,6 +501,7 @@
       container.replaceChildren(
         buildHeader(totalLiberado, totalEntregue),
         buildResumo(totalLiberado, totalEntregue),
+        buildMantaPainel(),
         buildItens(),
         buildRegistro(totalLiberado, totalEntregue),
         buildHistorico(),

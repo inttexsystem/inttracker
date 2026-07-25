@@ -1912,3 +1912,61 @@ test('61. Helper-B: salvarEntregaCima normaliza split already_linked/erro sem af
   assert.equal(successToasts[0].msg, 'Entrega ja vinculada a OP 7/2026. Nao foi criado split.');
   assert.doesNotMatch(successToasts[0].msg, /criada/i);
 });
+
+// =====================================================================
+// PHASE-MANTA-B2B — fronteira de rota do escritor de entrega.
+// O escritor Tapete continua intocado (assercoes acima, inalteradas); o
+// que se acrescenta aqui e a prova de que a rota Manta NAO passa por ele
+// e de que o modulo de escrita Manta e o unico caminho da saida medida.
+// =====================================================================
+
+const MANTA_WRITES_SRC = fs.readFileSync(
+  path.join(__dirname, '..', 'js', 'screens', 'manta-writes.js'), 'utf8');
+
+test('62. MANTA-B2B: entrega-writes.js segue sendo exclusivo do Tapete (nenhuma RPC Manta)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'screens', 'entrega-writes.js'), 'utf8');
+  assert.doesNotMatch(src, /registrar_entrega_cima_manta/,
+    'a rota Manta nao pode ser atendida pelo escritor Tapete');
+  assert.doesNotMatch(src, /liberar_expedicao_manta_parcial|estornar_expedicao_manta_parcial/);
+  // E o contrato Tapete permanece: destino obrigatorio + geracao de OP.
+  assert.match(src, /if \(!payload\.destino_fornecedor_id\)/);
+  assert.match(src, /forceSplit \? 'gerar_op_latex_split' : 'gerar_op_latex'/);
+});
+
+test('63. MANTA-B2B: manta-writes.js concentra as quatro RPCs e nao escreve em tabela', () => {
+  for (const rpc of [
+    'registrar_entrega_cima_manta',
+    'consultar_saldo_expedicao_manta',
+    'liberar_expedicao_manta_parcial',
+    'estornar_expedicao_manta_parcial',
+  ]) {
+    assert.match(MANTA_WRITES_SRC, new RegExp(rpc), 'falta a RPC ' + rpc);
+  }
+  assert.doesNotMatch(MANTA_WRITES_SRC, /\.from\(/,
+    'o escritor Manta nunca faz DML direto em tabela');
+  assert.doesNotMatch(MANTA_WRITES_SRC, /\.insert\(|\.update\(|\.delete\(|\.upsert\(/);
+});
+
+test('64. MANTA-B2B: a saida medida Manta nunca envia destino de acabamento', () => {
+  assert.doesNotMatch(MANTA_WRITES_SRC, /destino_fornecedor_id/,
+    'o guard de rota de db/85 recusa um destino numa entrega cima Manta');
+  assert.match(MANTA_WRITES_SRC, /p_itens: itens/);
+  assert.match(MANTA_WRITES_SRC, /defeito: !!\(linha && linha\.defeito\)/,
+    'o estado de defeito e explicito por item');
+});
+
+test('65. MANTA-B2B: o erro atomico do backend e repassado sem reescrita', async () => {
+  const sandbox = { console };
+  sandbox.window = sandbox;
+  vm.createContext(sandbox);
+  sandbox.window.supa = {
+    rpc: async () => ({ data: { ok: false, codigo: 'linhagem_invalida', erro: 'OP sem lote vinculado' } }),
+  };
+  vm.runInContext(MANTA_WRITES_SRC, sandbox);
+  const res = await sandbox.window.RAVATEX_MANTA_WRITES.registrarSaidaMantaCima({
+    opId: 10, fornecedorId: 5, itens: [{ op_item_id: 1, metros_entregues: 3 }],
+  });
+  assert.equal(res.ok, false);
+  assert.equal(res.codigo, 'linhagem_invalida');
+  assert.equal(res.erro, 'OP sem lote vinculado');
+});

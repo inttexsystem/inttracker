@@ -390,16 +390,21 @@
     );
   }
 
+  // PHASE-MANTA-B2B: o stepper fixo de 5 estagios deu lugar a uma SECAO
+  // por rota. O arranjo por rota vive em `pedidoRouteSectionsUi`; este
+  // modulo continua dono dos nos de estagio e conector e os injeta.
   function buildStepper(view, handlers) {
-    var gridChildren = [];
-    view.stepper.forEach(function (stage, index) {
-      gridChildren.push(buildStageNode(stage, index, typeof handlers.openStageDetailModal === 'function'
-        ? function () { handlers.openStageDetailModal(stage, view); }
-        : null));
-      if (index < view.stepper.length - 1) {
-        gridChildren.push(buildTransferButton(stage, handlers, view));
-      }
-    });
+    var sections = Array.isArray(view.routeSections) && view.routeSections.length
+      ? view.routeSections
+      : [{ route: null, label: null, stepper: view.stepper || [] }];
+    var sectionsUi = (window.RAVATEX_SCREENS || {}).pedidoRouteSectionsUi;
+    var body = sectionsUi ? sectionsUi.buildRouteSectionsNode(sections, {
+      buildStageNode: function (stage, index) {
+        return buildStageNode(stage, index, typeof handlers.openStageDetailModal === 'function'
+          ? function () { handlers.openStageDetailModal(stage, view); } : null);
+      },
+      buildTransferButton: function (stage) { return buildTransferButton(stage, handlers, view); },
+    }) : window.el('div', {});
 
     return window.el('div', {
       style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:18px 22px;margin-bottom:14px;',
@@ -407,9 +412,7 @@
       window.el('div', {
         style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:20px;',
       }, 'Progresso produtivo'),
-      window.el('div', {
-        style: 'display:grid;grid-template-columns:1fr 104px 1fr 104px 1fr 104px 1fr 104px 1fr;align-items:start;',
-      }, gridChildren),
+      body,
       window.el('div', {
         style: 'display:flex;align-items:flex-start;gap:10px;background:#f6f9ff;border:1px solid #d0e0fb;border-radius:4px;padding:12px 14px;margin-top:22px;',
       },

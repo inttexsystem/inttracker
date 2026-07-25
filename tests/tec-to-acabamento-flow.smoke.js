@@ -821,3 +821,51 @@ test('tec-to-acabamento: FaithfulNode + real el() catch a boolean-attr regressio
   assert.equal(raw.hasAttribute('disabled'), true,
     'setAttribute(k,false) renders present in the faithful node — the double catches the bug class');
 });
+
+// =====================================================================
+// PHASE-MANTA-B2B — o fluxo Tecelagem -> Acabamento e um fluxo da rota
+// TAPETE. Todas as garantias acima permanecem; o que se acrescenta e a
+// prova de que a rota Manta nunca entra nesse fluxo e de que a tela da
+// OP de tecelagem separa os dois caminhos por `modelos.tipo_produto`.
+// =====================================================================
+
+test('MANTA-B2B: a tela da OP de tecelagem deriva a rota so de tipo_produto', () => {
+  assert.match(otpaSrc, /function opEhManta/);
+  assert.match(otpaSrc, /deriveProductType/);
+  assert.match(otpaSrc, /tipo_produto/);
+  assert.doesNotMatch(otpaSrc, /opEhManta[\s\S]{0,400}?\bop\.tipo\b/,
+    'a rota nunca pode ser inferida de ops.tipo');
+});
+
+test('MANTA-B2B: a OP Manta nao recebe o bloco de entregas nem o rail de acabamento', () => {
+  assert.match(otpaSrc, /if \(ctx\.cimaFornecedorId && !isManta\) railKids\.push\(buildEnviarAcabamento/);
+  assert.match(otpaSrc, /if \(isManta\) \{/);
+  assert.match(otpaSrc, /buildBlocoSaidaManta/);
+  assert.match(otpaSrc, /buildEnviarExpedicaoManta/);
+});
+
+test('MANTA-B2B: o bloco de saida Manta nao chama o escritor cima do Tapete', () => {
+  const slice = (otpaSrc.match(/function buildBlocoSaidaManta[\s\S]*?\n  \}\n/) || [''])[0];
+  assert.ok(slice, 'bloco buildBlocoSaidaManta nao encontrado');
+  assert.doesNotMatch(slice, /salvarEntregaCima|atualizarEntregaCima/);
+  assert.doesNotMatch(slice, /gerar_op_latex/);
+  assert.doesNotMatch(slice, /latexOptions|destino_fornecedor_id/,
+    'nenhum seletor de destino de acabamento na rota Manta');
+  assert.match(slice, /mantaMovimentoForm/);
+});
+
+test('MANTA-B2B: o historico de uma OP Manta nao oferece a edicao pelo escritor Tapete', () => {
+  // `abrirEdicaoAdmin` usa atualizarEntregaCima, que exige destino e seria
+  // recusado pelo guard de rota; a correcao canonica da Manta e o estorno.
+  const slice = (otpaSrc.match(/function buildEntregaHistorico[\s\S]*?\n  \}\n/) || [''])[0];
+  assert.ok(slice);
+  assert.match(slice, /if \(mantaMode\) \{/);
+  assert.doesNotMatch(slice, /if \(mantaMode\)[\s\S]{0,400}?abrirEdicaoAdmin/);
+});
+
+test('MANTA-B2B: o fluxo Tapete Tecelagem -> Acabamento continua intacto', () => {
+  assert.match(otpaSrc, /buildBlocoEntregas/);
+  assert.match(otpaSrc, /window\.salvarEntregaCima\(/);
+  assert.match(otpaSrc, /Enviar para acabamento/);
+  assert.match(ewSrc, /forceSplit \? 'gerar_op_latex_split' : 'gerar_op_latex'/);
+});
