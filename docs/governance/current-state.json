@@ -31,10 +31,12 @@
     }
   ],
   "last_accepted": {
-    "product_phase": "PHASE-MANTA-B1",
+    "product_phase": "PHASE-MANTA-B2B",
+    "product_status": "CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBT",
+    "product_checkpoint_commit": "13f9dedc17da6324aa66a1271c3d07bbb7f11c11",
     "product_evidence": {
-      "path": "docs/architecture/MANTA_DIRECT_ROUTE_PHASE_CONTRACT.md",
-      "anchor": "## 14. Shared-development application, live validation and closeout (PHASE-MANTA-B1)"
+      "path": "docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md",
+      "anchor": "## 20. PHASE-MANTA-B2B final architect acceptance and documentary closeout"
     },
     "governance_checkpoint": "GOVERNANCE-EFFICIENCY-REFOUNDATION-COMPACT-BOOTSTRAP",
     "governance_checkpoint_commit": "76ce950a5cc244ca448120687cfd51391c8b63a7",
@@ -44,21 +46,21 @@
     }
   },
   "active_phase": {
-    "id": "PHASE-MANTA-B2B-ADMIN-CLIENT-PREVIEW-ROUTE-POSITION-CORRECTION-R3",
-    "status": "CORRECTED / LOCALLY VERIFIED / PUBLISHED / AWAITING ARCHITECT TECHNICAL AND VISUAL ACCEPTANCE",
+    "id": "PHASE-MANTA-B2A",
+    "status": "IMPLEMENTED AND CORRECTED / LOCALLY AND CONCURRENTLY VERIFIED / PUBLISHED / AWAITING ARCHITECT REVIEW",
     "contract": {
       "path": "docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md",
-      "anchor": "## 19. PHASE-MANTA-B2B administrative client-preview route position — R3"
+      "anchor": "## 16. PHASE-MANTA-B2A forward correction — db/88"
     },
-    "immediate_objective": "PHASE-MANTA-B2B-ADMIN-CLIENT-PREVIEW-ROUTE-POSITION-CORRECTION-R3 closed the LAST open acceptance defect of the already-published PHASE-MANTA-B2B, with ZERO migrations and db/** byte-unchanged; the phase now awaits architect technical AND visual ACCEPTANCE and is NOT accepted and NOT self-accepted. DEFECT: the administrative block labelled O QUE O CLIENTE VE (buildClienteEvolution in js/screens/pedido-detail-render.js) read BOTH its position and its denominator from getClienteTrackingProgress, which is defined over the full canonical eight-step list, and never consulted the route - so a Manta-only Pedido at Tecelagem displayed Etapa 4 de 8 while the actual client presentation for that same Pedido publishes SEVEN visible steps, leaving the omitted Acabamento inside the visible denominator and making the block fail its own label; the progress bar inherited the same wrong total. ROOT CAUSE: R2 made the CLIENT surface route-aware but left this ADMINISTRATIVE PREVIEW reading the canonical Pedido-level totals directly. CORRECTION: js/pedido-tracking-ui.js - the owner of the client tracking vocabulary - gained ONE pure function, getClienteTrackingPreviewPosition(routes, canonicalIndex), which TRANSLATES the Pedido-level canonical position into the applicable VISIBLE route shape by composing the helpers that already existed (getClienteTrackingSectionsForRoutes, getClienteTrackingRoutePosition, getClienteTrackingStepIndex); with exactly one applicable route it returns the route-local ordinal, so Manta reads Etapa 4 de 7 while Tapete keeps Etapa 4 de 8 verbatim, and with zero or two applicable routes it refuses to fabricate a single route-local ordinal that would be false for both routes and instead declares the reading to be Pedido-level (Etapa comercial 4 de 8) plus a per-route local reached/next summary from the same existing helpers (Rota Tapete: Tecelagem . proxima Acabamento | Rota Manta: Tecelagem . proxima Expedicao). buildClienteEvolution consumes that result for the label, the denominator AND the percentage and reproduces no route-shape array of its own; the route arrives as view.pedidoRoutes, already derived from modelos.tipo_produto, and is never inferred from ops.tipo, names, width or suppliers. The position span carries data-rv-preview-position=route-local|pedido-level and the mixed note carries data-rv-preview-route-note, so both are directly assertable. NOT CHANGED: no migration, no db/** delta, no SQL, no RPC, no ACL/RLS/Auth change; status_cliente_visual remains the single Pedido-level authority and is neither written nor reinterpreted; NO per-route position is persisted, so the accepted limitation recorded in contract 18.2 stands unchanged; no new module and therefore no index.html change; D1-D4 behaviour unchanged; no administrative datum exposed to the client. The ACTUAL client route sections are untouched, proved at byte level - the R3 captures of the client Manta and client mixed surfaces have SHA-256 IDENTICAL to their R2 counterparts. EVIDENCE: tests/manta-route-ui.smoke.js extended with eight R3 proofs (48 to 56 green) covering the Manta denominator of seven and the 4 de 7 ordinal, the Tapete retention of eight, the mixed refusal of a single route-local total together with its per-route summary and the Manta next step being Expedicao and never Acabamento, the degradation to Pedido level without a reliable route, the whole Manta route walked as a contiguous 1/7..7/7 (D2 preserved), the render consuming the helper while duplicating no step list, the absence of any db/** delta, and the structural gates; tests/pedido-detail.smoke.js failing-name set IDENTICAL to the 3ed9c4a baseline at 41, and the full node --test tests/**/*.js sweep IDENTICAL at 126 failing names - ZERO INTRODUCED FAILURES, proved by name-level diff after temporarily restoring the pristine 3ed9c4a content of the changed files by plain file copy (no stash, no reset, no restore) and then byte-verifying the restoration of the corrected files; no existing Tapete assertion was weakened. The 126 pre-existing failures include environment-dependent cases such as the local static server on port 8765 not running. STRUCTURE: pedido-detail-events.js held at exactly 2709 lines and pedido-detail-progress.js at exactly 918 - neither gated file enlarged - with no DML in any render module and no broad refactor. Visual validation used a DISPOSABLE local fixture loading the real product modules with no network, no Supabase project, no Vercel, no fabricated session and no real business data: ten captures (full pages plus close-ups of the corrected block at 1440px and 375px), zero console errors, 62 of 62 visual assertions green, document-level horizontal overflow zero on every full-page capture and nothing lost to a clipping container; the fixture and its browser profile were destroyed and no screenshot is committed. R3 CACHE-TOKEN BLOCKER: CLOSED by PHASE-MANTA-B2B-R3-CACHE-BUST-CLOSEOUT-R1 - both assets R3 changed now carry the single R3-specific token 20260725-manta-b2b-r3 in index.html, so a returning browser fetches the corrected assets; declarative invalidation ONLY, with both JavaScript files byte-identical to 4532f76 proved by equal git blob ids, no unrelated asset token moved, index.html asset order and paths unchanged, and tests/manta-route-ui.smoke.js extended with seven focused proofs (56 to 63 green) verified non-vacuous against a deliberately reverted token. No cache-bump decision remains pending for R3. Architect technical and visual acceptance remains PENDING. Shared development ucrjtfswnfdlxwtmxnoo was NOT accessed and remains at terminal 84 with the Manta backend dormant; PHASE-MANTA-B2A (db/85-88) still awaits its own architect review; PHASE-MANTA-B2C remains unauthorized. Business-flow recreation remains paused.",
+    "immediate_objective": "PHASE-MANTA-B2B IS CLOSED AND ACCEPTED. The architect recorded technical acceptance ACCEPTED and visual acceptance ACCEPTED and closed the phase as CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBT at the final accepted checkpoint 13f9dedc17da6324aa66a1271c3d07bbb7f11c11 (parent 0da96f0a333a194d2afb2c5c05470cf74ac97164). The accepted chain is bbd5f85 route-aware Manta UI, 3ed9c4a R2 route semantics and responsive correction, 4532f76 R3 administrative client-preview route position, 0da96f0 R3 declarative cache invalidation and 13f9ded final integrated quality sweep, the last of which was TEST AND HARNESS ONLY with js/**, css/**, index.html and db/** byte-identical to 0da96f0. ACCEPTED PRODUCT ROUTES: Tapete INSUMOS to TECELAGEM to ACABAMENTO to EXPEDICAO to ENTREGA; Manta INSUMOS to TECELAGEM to EXPEDICAO to ENTREGA; a mixed Pedido renders independent Tapete and Manta route sections, with the route derived from modelos.tipo_produto and never inferred from ops.tipo, names, width or suppliers. ACCEPTED EVIDENCE: 25 visual surfaces with 25 of 25 PNG hashes verified, 12 of 12 required visual proofs accepted, zero document-level horizontal overflow, zero console errors, zero unreachable controls or required information, zero B2B regressions, zero relevant unresolved product defects and 4255 passing tests with exactly one Category-E external-repository failure; the evidence archive, screenshots and external JSON evidence files are recorded by hash in the phase contract and are NOT committed. ACCEPTED CLIPPING RULING: [data-rv-table-scroll] and [data-rv-stepper-scroll] elements wider than their containers are accepted because their content stays reachable through owned horizontal scrolling, and local text-overflow ellipsis is accepted on the reviewed B2B surfaces because no required action, metric or route state becomes inaccessible; the accepted claim is exactly zero document-level overflow and zero unreachable required content, and the phase does NOT claim zero elements with scrollWidth greater than clientWidth and does NOT claim global responsiveness. D3 stays closed only for the B2B surfaces covered by the evidence contract, and no per-route published client position exists. TWO NONBLOCKING DEBTS were accepted with the phase and were NOT corrected: G14-C-BRIDGE-EXTERNAL-CORPUS-DEPENDENCY and DEBT-1-ATRIBUIR-FORNECEDOR-FIO-SEM-CHAMADOR. THE ACTIVE PHASE IS NOW PHASE-MANTA-B2A, which is implemented and forward-corrected by db/85-db/88, locally and concurrently verified on a disposable cluster, published, and STILL AWAITING ITS OWN ARCHITECT REVIEW; it is NOT accepted and NOT self-accepted, and this closeout did not review it. The only next action is the review action PHASE-MANTA-B2A-ARCHITECT-REVIEW. BOUNDARY: db/85-db/88 remain UNAPPLIED to shared development, shared development ucrjtfswnfdlxwtmxnoo remains at terminal db/84 with the Manta backend dormant, PHASE-MANTA-B2C remains UNAUTHORIZED, and no phase chains automatically. Business-flow recreation remains paused.",
     "self_accepted": false,
     "architect_accepted": false
   },
   "next_authorizable_action": {
-    "id": "PHASE-MANTA-B2B-ARCHITECT-TECHNICAL-AND-VISUAL-ACCEPTANCE",
+    "id": "PHASE-MANTA-B2A-ARCHITECT-REVIEW",
     "mode": "REVIEW",
-    "status": "AWAITING ARCHITECT TECHNICAL AND VISUAL ACCEPTANCE; NO FURTHER IMPLEMENTATION AUTHORIZED",
-    "authorization_boundary": "Architect technical and visual acceptance of PHASE-MANTA-B2B, as corrected by PHASE-MANTA-B2B-ROUTE-SEMANTICS-AND-RESPONSIVE-VISUAL-CORRECTION-R2 and then by PHASE-MANTA-B2B-ADMIN-CLIENT-PREVIEW-ROUTE-POSITION-CORRECTION-R3, is the only next action. D1, D2 and D4 are reported CLOSED, D3 is reported CLOSED ONLY FOR THE REQUIRED B2B SURFACES (the application is NOT claimed to be globally responsive), and the R3 administrative client-preview route-position defect is reported CLOSED. The R3 cache-token blocker is CLOSED by PHASE-MANTA-B2B-R3-CACHE-BUST-CLOSEOUT-R1 and no cache-bump decision remains pending. PHASE-MANTA-B2A (db/85-88) also still awaits its own architect review. PHASE-MANTA-B2C (shared-development apply of db/85-88, live validation and closeout) requires its own separate explicit order. Any shared-development, staging or production apply, any further product UI or JavaScript change, any deployment, any further migration and any second publication attempt each require a new explicit order; no phase chains automatically."
+    "status": "AWAITING ARCHITECT REVIEW OF PHASE-MANTA-B2A; NO IMPLEMENTATION, APPLY OR ACCEPTANCE AUTHORIZED",
+    "authorization_boundary": "Architect review of PHASE-MANTA-B2A - the db/85-db/88 backend activation and its forward correction, recorded in MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md sections 15 and 16 - is the only next action, and it is a REVIEW action only. PHASE-MANTA-B2B is already CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBT at 13f9dedc17da6324aa66a1271c3d07bbb7f11c11 and requires no further work; its two accepted nonblocking debts are owned by the documents-ingestor integration domain and the OP / yarn procurement domain respectively and each requires its own separate order. This review authorizes no apply: db/85-db/88 remain unapplied to shared development and shared development ucrjtfswnfdlxwtmxnoo remains at terminal db/84. PHASE-MANTA-B2C (shared-development apply of db/85-db/88, live validation and closeout) remains UNAUTHORIZED and requires its own separate explicit order. Any shared-development, staging or production apply, any product UI or JavaScript change, any test or harness change, any deployment, any further migration and any second publication attempt each require a new explicit order; no phase chains automatically."
   },
   "active_track": {
     "id": "PURCHASE_ORDER_PHASE_C",
@@ -121,18 +123,38 @@
       "id": "C3D-13-UNMAPPED-ROWS-COMPLETENESS-GATE",
       "status": "OPEN",
       "blocking": true
+    },
+    {
+      "id": "G14-C-BRIDGE-EXTERNAL-CORPUS-DEPENDENCY",
+      "status": "OPEN / NONBLOCKING FOR PHASE-MANTA-B2B",
+      "blocking": false,
+      "owner": "documents-ingestor integration domain",
+      "evidence": "tests/g14-c-bridge-smoke.test.js",
+      "cause": "requires the sibling-repository artifact D:\\Programação\\documents-ingestor\\data\\exports\\documentos-mapeados.jsonl",
+      "note": "Accepted with PHASE-MANTA-B2B. B2B impact: none. Do not fabricate a fixture and do not suppress the failure silently."
+    },
+    {
+      "id": "DEBT-1-ATRIBUIR-FORNECEDOR-FIO-SEM-CHAMADOR",
+      "status": "OPEN / NONBLOCKING FOR PHASE-MANTA-B2B",
+      "blocking": false,
+      "owner": "OP / yarn procurement domain",
+      "evidence": "js/screens/op-writes.js",
+      "cause": "window.atribuirFornecedorFioOp is declared and exported with no current application caller",
+      "note": "Accepted with PHASE-MANTA-B2B. Required future decision: retire the helper or restore a legitimate owner/caller. Neither reconnected nor deleted by the B2B closeout."
     }
   ],
   "open_architect_decisions": [
-    "Select the next product or governance phase after acceptance.",
+    "Review PHASE-MANTA-B2A (db/85-db/88) and then select the next product or governance phase; no phase chains automatically.",
     "Rule on historical saldo_fios provenance before any real receipt cutover.",
-    "Resolve native receipt compatibility for multiple purchase-order origins."
+    "Resolve native receipt compatibility for multiple purchase-order origins.",
+    "Decide whether to retire window.atribuirFornecedorFioOp or restore a legitimate owner/caller.",
+    "Decide how the documents-ingestor bridge corpus dependency is satisfied for tests/g14-c-bridge-smoke.test.js."
   ],
   "environment_boundaries": {
-    "this_checkpoint": "REPOSITORY_LOCAL_ONLY PLUS READ-ONLY SHARED-DEVELOPMENT CATALOG/DATA INSPECTION; NO MUTATION, MIGRATION, DDL OR DML AUTHORIZED",
+    "this_checkpoint": "REPOSITORY_LOCAL_ONLY; DOCUMENTATION AND GOVERNANCE STATE ONLY; NO PRODUCT, TEST, HARNESS, MUTATION, MIGRATION, DDL, DML OR ENVIRONMENT ACCESS AUTHORIZED",
     "shared_development": {
       "project_id": "ucrjtfswnfdlxwtmxnoo",
-      "access": "PHASE-MANTA-A db/78-db/80 APPLIED AND ACCEPTED (LIVE VALIDATED); PHASE-MANTA-B1 db/81-db/84 APPLIED AND ACCEPTED (LIVE VALIDATED); NO FURTHER APPLY AUTHORIZED WITHOUT A NEW ORDER"
+      "access": "PHASE-MANTA-A db/78-db/80 APPLIED AND ACCEPTED (LIVE VALIDATED); PHASE-MANTA-B1 db/81-db/84 APPLIED AND ACCEPTED (LIVE VALIDATED); TERMINAL MIGRATION IS db/84 AND db/85-db/88 REMAIN UNAPPLIED WITH THE MANTA BACKEND DORMANT; NO FURTHER APPLY AUTHORIZED WITHOUT A NEW ORDER"
     },
     "production": {
       "project_id": "gqmpsxkxynrjvidfmojk",

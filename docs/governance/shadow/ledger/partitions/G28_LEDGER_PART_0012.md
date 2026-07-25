@@ -1,10 +1,10 @@
 <!-- GENERATED NON-CANONICAL SHADOW LEDGER PARTITION — DO NOT EDIT -->
 <!-- partition_id: G28-LEDGER-PART-0012 -->
 <!-- canonical_source: docs/ledgers/G28_LEDGER.md -->
-<!-- source_unit_interval: G28-LEDGER-UNIT-0195..G28-LEDGER-UNIT-0210 -->
-<!-- canonical_byte_interval: 962903..994393 -->
-<!-- canonical_line_interval: 9510..9741 -->
-<!-- payload_sha256: 00282f041f1ac3a72b725fad166159de6b0ef5f828bd4cc06246ab80b36f5e4f -->
+<!-- source_unit_interval: G28-LEDGER-UNIT-0195..G28-LEDGER-UNIT-0211 -->
+<!-- canonical_byte_interval: 962903..998509 -->
+<!-- canonical_line_interval: 9510..9755 -->
+<!-- payload_sha256: 91ad3c41d6263cd93d38cd30b5509cf00553cf02330132b139b8b54f014e035f -->
 <!-- oversized_single_unit: false -->
 <!-- partition_status: OPEN -->
 <!-- G28_LEDGER_SHADOW_PAYLOAD_BEGIN_7b9d4e3a -->
@@ -240,5 +240,19 @@
 - **Next action.** Read-only diagnosis `GOVERNANCE-EFFICIENCY-REFOUNDATION-UNIT-5-LEGACY-DEPRECATION-AND-POST-CUTOVER-AUDIT-DIAGNOSIS-R2` remains required after direct review.
 - **Scope exclusions.** No Unit 5 diagnosis execution, Unit 5 implementation, cleanup, archival, deprecation, compaction, deletion, product work, database or environment access, deployment, production action, reset, rebase, force push, or history rewrite occurred.
 - **Commit subject.** `fix: decouple Unit 4 validator from Unit 5 lifecycle`.
+
+## 2026-07-25 — PHASE-MANTA-B2B-DOCUMENTARY-CLOSEOUT-R1 — docs: close accepted Manta B2B phase
+
+- **Gate.** Architect technical acceptance ACCEPTED and architect visual acceptance ACCEPTED. PHASE-MANTA-B2B is closed as `CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBT`. This closeout is documentation and governance-state only: no product, test, harness, CSS, JavaScript, `index.html`, migration, SQL, RPC, ACL/RLS, Auth or environment change.
+- **Accepted checkpoint.** `13f9dedc17da6324aa66a1271c3d07bbb7f11c11`, parent `0da96f0a333a194d2afb2c5c05470cf74ac97164`. Accepted chain: `bbd5f85` route-aware Manta UI, `3ed9c4a` R2 route semantics and responsive correction, `4532f76` R3 administrative client-preview route position, `0da96f0` R3 declarative cache invalidation, `13f9ded` final integrated quality sweep (test and harness only; `js/**`, `css/**`, `index.html` and `db/**` byte-identical to `0da96f0`).
+- **Accepted product behavior.** Tapete route `INSUMOS -> TECELAGEM -> ACABAMENTO -> EXPEDICAO -> ENTREGA`; Manta route `INSUMOS -> TECELAGEM -> EXPEDICAO -> ENTREGA`; a mixed Pedido renders independent Tapete and Manta route sections. The route is derived from `modelos.tipo_produto` and never inferred from `ops.tipo`, names, width or suppliers.
+- **Validation.** 25 visual surfaces with 25/25 PNG hashes verified, 12/12 required visual proofs accepted, zero document-level horizontal overflow, zero console errors, zero unreachable controls or required information, zero B2B regressions, zero relevant unresolved product defects, and 4255 passing tests with exactly one Category-E external-repository failure (`tests/g14-c-bridge-smoke.test.js`). Evidence hashes are recorded in the phase contract; no archive, screenshot or external JSON evidence file is committed.
+- **Accepted limitations.** The clipping ruling accepts `[data-rv-table-scroll]` and `[data-rv-stepper-scroll]` elements wider than their containers because their content stays reachable through owned horizontal scrolling, and accepts local `text-overflow: ellipsis` on the reviewed B2B surfaces. The claim is zero document-level overflow and zero unreachable required content only; zero `scrollWidth > clientWidth` and global responsiveness are NOT claimed, and D3 is closed only for the B2B surfaces covered by the evidence contract. No per-route published client position exists.
+- **Residual risk.** Two accepted nonblocking debts: `G14-C-BRIDGE-EXTERNAL-CORPUS-DEPENDENCY` (documents-ingestor integration domain; the smoke test requires a sibling-repository corpus export absent from this workspace; no B2B impact; no fabricated fixture and no silent suppression) and `DEBT-1-ATRIBUIR-FORNECEDOR-FIO-SEM-CHAMADOR` (OP / yarn procurement domain; `window.atribuirFornecedorFioOp` exported by `js/screens/op-writes.js` with no current application caller; retire or restore an owner in a future order). Neither was corrected here.
+- **Environment continuity.** Shared development `ucrjtfswnfdlxwtmxnoo` was never accessed by the B2B chain and remains at terminal `db/84` with the Manta backend dormant; `db/85`-`db/88` remain unapplied. No staging database, production, Supabase or Vercel action occurred. B2B introduced zero migrations.
+- **Next action.** `PHASE-MANTA-B2A-ARCHITECT-REVIEW`, a review action only over the db/85-db/88 record that still awaits architect review. PHASE-MANTA-B2A is NOT accepted by this entry. PHASE-MANTA-B2C remains UNAUTHORIZED and requires its own separate explicit order; no phase chains automatically.
+- **Scope exclusions.** No product implementation, test or harness change, database or environment access, deployment, activation, cutover, PONR, production action, evidence file committed, PHASE-MANTA-B2A acceptance, PHASE-MANTA-B2C authorization, stash, amend, rebase, merge, reset, restore, clean, force push, `origin`, `main`, tag or history rewrite occurred.
+- **Owner of the full record.** `docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md` §20 "PHASE-MANTA-B2B final architect acceptance and documentary closeout".
+- **Commit subject.** `docs: close accepted Manta B2B phase`.
 
 <!-- G28_LEDGER_SHADOW_PAYLOAD_END_7b9d4e3a -->

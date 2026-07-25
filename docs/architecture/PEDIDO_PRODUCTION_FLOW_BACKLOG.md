@@ -3834,3 +3834,60 @@ decision remains pending for R3.
 Owner of the full technical record:
 `docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md`
 §19 "PHASE-MANTA-B2B administrative client-preview route position — R3".
+
+# Update 2026-07-25 - PHASE-MANTA-B2B: CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBT (architect technical AND visual acceptance recorded; next: PHASE-MANTA-B2A architect review)
+
+**Status.** PHASE-MANTA-B2B is **COMPLETE**. The architect recorded technical
+acceptance ACCEPTED and visual acceptance ACCEPTED, and closed the phase as
+`CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBT`.
+
+**Final accepted checkpoint.** `13f9dedc17da6324aa66a1271c3d07bbb7f11c11`
+(parent `0da96f0a333a194d2afb2c5c05470cf74ac97164`). The chain accepted is
+`bbd5f85` (route-aware UI) -> `3ed9c4a` (R2 route semantics and responsive) ->
+`4532f76` (R3 administrative client preview) -> `0da96f0` (R3 cache-bust) ->
+`13f9ded` (final integrated quality sweep; test and harness only, with `js/**`,
+`css/**`, `index.html` and `db/**` byte-identical to `0da96f0`).
+
+**Accepted route semantics.** Tapete `INSUMOS -> TECELAGEM -> ACABAMENTO ->
+EXPEDICAO -> ENTREGA`; Manta `INSUMOS -> TECELAGEM -> EXPEDICAO -> ENTREGA`; a
+mixed Pedido presents independent Tapete and Manta route sections.
+
+**Accepted evidence.** 25 visual surfaces, 25/25 PNG hashes verified, 12/12
+required visual proofs accepted, zero document-level horizontal overflow, zero
+console errors, zero unreachable controls or required information, zero B2B
+regressions, zero relevant unresolved product defects, and 4255 passing tests
+with one Category-E external-repository failure. Evidence hashes are recorded in
+the phase contract; no archive, screenshot or external JSON evidence file is
+committed.
+
+**Clipping ruling.** `[data-rv-table-scroll]` and `[data-rv-stepper-scroll]`
+elements wider than their containers are accepted because their content stays
+reachable through owned horizontal scrolling, and local `text-overflow:
+ellipsis` is accepted for the reviewed B2B surfaces. The accepted claim is zero
+document-level overflow and zero unreachable required content; the phase does
+not claim zero `scrollWidth > clientWidth` elements and does not claim global
+responsiveness. D3 remains closed only for the B2B surfaces covered by the
+evidence contract.
+
+**Nonblocking debts accepted with the phase.**
+`G14-C-BRIDGE-EXTERNAL-CORPUS-DEPENDENCY` (documents-ingestor integration
+domain; `tests/g14-c-bridge-smoke.test.js` requires a sibling-repository
+corpus export; no B2B impact) and
+`DEBT-1-ATRIBUIR-FORNECEDOR-FIO-SEM-CHAMADOR` (OP / yarn procurement domain;
+`window.atribuirFornecedorFioOp` exported by `js/screens/op-writes.js` with no
+current application caller; retire or restore an owner in a future order).
+Neither was corrected by this closeout.
+
+**Environment.** Shared development `ucrjtfswnfdlxwtmxnoo` was never accessed by
+the B2B chain and remains at terminal `db/84`; `db/85`-`db/88` remain unapplied.
+B2B introduced zero migrations.
+
+**Next in sequence.** `PHASE-MANTA-B2A-ARCHITECT-REVIEW` — a review action only,
+over the db/85-db/88 record that still awaits architect review. PHASE-MANTA-B2A
+is NOT accepted. PHASE-MANTA-B2C (shared-development apply, live validation and
+closeout) remains UNAUTHORIZED and requires its own separate explicit order. No
+phase chains automatically.
+
+Owner of the full technical and acceptance record:
+`docs/architecture/MANTA_DIRECT_ROUTE_ACTIVATION_CONTRACT.md`
+§20 "PHASE-MANTA-B2B final architect acceptance and documentary closeout".

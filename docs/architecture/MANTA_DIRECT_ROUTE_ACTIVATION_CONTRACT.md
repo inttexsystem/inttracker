@@ -1488,3 +1488,157 @@ change. `tests/manta-route-ui.smoke.js` gained seven focused proofs
 (56 → 63 green), verified non-vacuous against a deliberately reverted token.
 
 **No cache-bump decision remains pending for R3.**
+
+## 20. PHASE-MANTA-B2B final architect acceptance and documentary closeout
+
+STATUS: **PHASE-MANTA-B2B — CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBT.**
+
+Order `PHASE-MANTA-B2B-DOCUMENTARY-CLOSEOUT-R1` (documentation-only acceptance
+closeout). The architect recorded **technical acceptance: ACCEPTED** and
+**visual acceptance: ACCEPTED**. This section is the single consolidated
+acceptance record of the phase; §17–§19 remain the untouched implementation and
+correction records and are not rewritten. No product, test, harness, CSS,
+JavaScript, `index.html`, migration, SQL, RPC, ACL/RLS, Auth or environment
+change was authorized or made by this closeout.
+
+### 20.1 Final accepted checkpoint
+
+| Fact | Value |
+|---|---|
+| Final accepted checkpoint | `13f9dedc17da6324aa66a1271c3d07bbb7f11c11` |
+| Parent | `0da96f0a333a194d2afb2c5c05470cf74ac97164` |
+| Branch / publication boundary | `dev` / `staging/dev` |
+
+### 20.2 B2B implementation and correction chain
+
+| Commit | Order | Record | Nature |
+|---|---|---|---|
+| `bbd5f85` | `PHASE-MANTA-B2B-ROUTE-AWARE-UI-AND-READ-MODELS-R1` | §17 | route activation in the product surfaces; zero migrations |
+| `3ed9c4a` | `PHASE-MANTA-B2B-ROUTE-SEMANTICS-AND-RESPONSIVE-VISUAL-CORRECTION-R2` | §18 | D1, D2, D4 closed; D3 closed for the required B2B surfaces |
+| `4532f76` | `PHASE-MANTA-B2B-ADMIN-CLIENT-PREVIEW-ROUTE-POSITION-CORRECTION-R3` | §19.1–§19.5 | administrative client-preview route position |
+| `0da96f0` | `PHASE-MANTA-B2B-R3-CACHE-BUST-CLOSEOUT-R1` | §19.6 | declarative asset invalidation only |
+| `13f9ded` | final integrated quality sweep | this section | **test and harness only**; `js/**`, `css/**`, `index.html` and `db/**` byte-identical to `0da96f0` |
+
+`13f9ded` carried no product change. It corrected the test corpus itself —
+CRLF-versus-LF source reading (new `tests/_app-source.js`), slice boundaries
+that required an adjacent sibling function, and ~50 assertions still calling
+`extractInlineScript` after the boot entrypoint moved to `js/boot.js` — and
+realigned stale contracts to their accepted owners by strengthening rather than
+relaxing them. Structural gates held: `pedido-detail-events.js` 2709 lines,
+`pedido-detail-progress.js` 918.
+
+### 20.3 Final accepted route semantics
+
+```
+TAPETE:        INSUMOS → TECELAGEM → ACABAMENTO → EXPEDIÇÃO → ENTREGA
+MANTA:         INSUMOS → TECELAGEM → EXPEDIÇÃO → ENTREGA
+MIXED PEDIDO:  independent Tapete and Manta route sections
+```
+
+The route is derived from `modelos.tipo_produto` through `js/product-route.js`
+and is never inferred from `ops.tipo`, names, width or suppliers. A homogeneous
+Pedido degenerates to exactly one section. Neither route advances, completes or
+blocks the other.
+
+### 20.4 Final evidence package
+
+Recorded by hash only. The archive, the screenshots and the external JSON
+evidence files are **not** committed to this repository.
+
+| Artefact | SHA-256 |
+|---|---|
+| `PHASE-MANTA-B2B-FINAL-VISUAL-EVIDENCE.zip` | `ca060772028040bf66e0187847ed7418bfaaa6999a7fa2098a69d4fe57ac7830` |
+| `manifest.json` | `04848f401098552ea2b8c3226f1cb10789201a8bc2e488ee7937f0a6c2e3c928` |
+| `failure-classification.json` | `a4e6e34645ce8926675bbb471b4e80fea3418e63fed2a997d9cf235fba8dd614` |
+
+Accepted evidence results:
+
+- 25 visual surfaces; 25/25 PNG hashes verified;
+- 12/12 required visual proofs accepted;
+- 0 document-level horizontal overflow;
+- 0 console errors;
+- 0 unreachable controls or required information;
+- 0 B2B regressions;
+- 0 relevant unresolved product defects.
+
+The full 25-screenshot manifest is not reproduced here; the manifest hash above
+is its identity.
+
+### 20.5 Test and harness sweep result
+
+`node --test tests/**/*.js` with the documented local static-server
+prerequisite active: **4255 passing tests, 1 failure**. The sole failure is
+`tests/g14-c-bridge-smoke.test.js`, classified **Category-E — external
+repository**: it asserts a sibling-repository artefact
+`D:\Programação\documents-ingestor\data\exports\documentos-mapeados.jsonl`
+that does not exist in this workspace. No fixture was fabricated and the
+failure is not suppressed. B2B impact: **none**.
+
+### 20.6 Architect ruling on clipping and owned horizontal scrolling
+
+`[data-rv-table-scroll]` and `[data-rv-stepper-scroll]` elements wider than
+their containers are **accepted**, because their content remains reachable
+through the scrolling those elements own. Local `text-overflow: ellipsis`
+occurrences are **accepted** for the reviewed B2B surfaces, because no required
+action, metric or route state is made inaccessible.
+
+The accepted claim is therefore exactly:
+
+- zero document-level overflow;
+- zero unreachable required content.
+
+The phase explicitly does **not** claim:
+
+- zero elements with `scrollWidth > clientWidth`;
+- global responsiveness across every application screen.
+
+### 20.7 Accepted limitations
+
+- **D3 is closed only for the B2B surfaces explicitly covered by the evidence
+  contract.** The application is not accepted as globally responsive.
+- **No per-route published position exists.** `status_cliente_visual` remains a
+  Pedido-level curated commercial artefact owned by `db/30`; the accepted
+  limitation recorded in §18.2 stands unchanged. A per-route *published*
+  position would require a new read-model column and a separate order.
+
+### 20.8 Nonblocking debts accepted with the phase
+
+Recorded, not corrected. Neither debt blocks PHASE-MANTA-B2B.
+
+**`G14-C-BRIDGE-EXTERNAL-CORPUS-DEPENDENCY`** — OPEN / NONBLOCKING FOR
+PHASE-MANTA-B2B. Owner: documents-ingestor integration domain. Evidence:
+`tests/g14-c-bridge-smoke.test.js`. Cause: requires the sibling-repository
+artefact `D:\Programação\documents-ingestor\data\exports\documentos-mapeados.jsonl`.
+B2B impact: none. No fixture may be fabricated and the failure may not be
+silently suppressed.
+
+**`DEBT-1-ATRIBUIR-FORNECEDOR-FIO-SEM-CHAMADOR`** — OPEN / NONBLOCKING FOR
+PHASE-MANTA-B2B. Owner: OP / yarn procurement domain. Symbol:
+`window.atribuirFornecedorFioOp`, declared and exported by
+`js/screens/op-writes.js` with no current application caller. Required future
+decision: retire the helper or restore a legitimate owner/caller. It was
+neither reconnected nor deleted by this closeout.
+
+### 20.9 Environment state
+
+Shared development `ucrjtfswnfdlxwtmxnoo` was **not accessed** at any point in
+the B2B chain and remains at terminal `db/84` with the Manta backend dormant.
+`db/85`–`db/88` remain **unapplied** to shared development. No staging
+database, no production, no Supabase and no Vercel action occurred. B2B
+introduced zero migrations and `db/**` is byte-unchanged across the whole chain.
+
+### 20.10 Final phase status and next authorizable action
+
+```
+PHASE-MANTA-B2B:            CLOSED / ACCEPTED_WITH_NONBLOCKING_DEBT
+FINAL ACCEPTED CHECKPOINT:  13f9dedc17da6324aa66a1271c3d07bbb7f11c11
+SHARED DEVELOPMENT:         ucrjtfswnfdlxwtmxnoo at terminal db/84
+PHASE-MANTA-B2C:            UNAUTHORIZED
+```
+
+The next authorizable action is `PHASE-MANTA-B2A-ARCHITECT-REVIEW` — a **review
+action only**, over the db/85–db/88 record of §15 and §16, which still awaits
+its own architect review. PHASE-MANTA-B2A is **not** accepted by this closeout.
+PHASE-MANTA-B2C (shared-development apply of db/85–db/88, live validation and
+closeout) remains unauthorized and requires its own separate explicit order. No
+phase chains automatically.
