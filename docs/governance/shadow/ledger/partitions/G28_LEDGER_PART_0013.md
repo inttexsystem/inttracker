@@ -2,11 +2,11 @@
 <!-- partition_id: G28-LEDGER-PART-0013 -->
 <!-- canonical_source: docs/ledgers/G28_LEDGER.md -->
 <!-- source_unit_interval: G28-LEDGER-UNIT-0218..G28-LEDGER-UNIT-0225 -->
-<!-- canonical_byte_interval: 1077618..1198563 -->
-<!-- canonical_line_interval: 9908..10107 -->
-<!-- payload_sha256: addc9c5e546a2883369a3c6f7f530f0c0c8799933226660109b0febdf8232272 -->
+<!-- canonical_byte_interval: 1077618..1198564 -->
+<!-- canonical_line_interval: 9908..10108 -->
+<!-- payload_sha256: 0162c45c06564513e8187462609fa7686faec90539206aa6f091977148771fc2 -->
 <!-- oversized_single_unit: false -->
-<!-- partition_status: OPEN -->
+<!-- partition_status: CLOSED -->
 <!-- G28_LEDGER_SHADOW_PAYLOAD_BEGIN_7b9d4e3a -->
 ## 2026-07-25 — UI-CONSOLIDATION-PHASE-3-OP-DETAIL-COMPACT-FIXTURE-CONFORMANCE-R1 — fix(ui): complete offline compact fixture conformance
 
@@ -208,5 +208,6 @@
 - **Scope exclusions.** No `data-card-actions` marker and no UIC-008 resolution, no pass-3 work, no new status or type family, no unrelated compatibility cleanup, no detector-semantics change, no change to `scripts/ui-conformance/**`, no token, visual-contract or design-decision change, no business-logic or product-copy change, no archetype ratification, no self-acceptance, no rewritten history, no manual edit of a generated view outside its renderer, no protected-residue access beyond path and status, no database, Supabase, migration, deployment, Vercel or production action, no `main`, no `origin`, no tag, no force, no amend, no rebase, no merge, no squash, no `git add .` or `git add -A`, and no second push attempt.
 - **Owner of the full record.** This ledger entry.
 - **Commit subject.** `fix(ui): align shared semantic badge geometry` (the two shared-runtime modules, `index.html` query-only changes, the three mechanically coupled tests) and `docs: record semantic badge closure` (closeout).
+
 
 <!-- G28_LEDGER_SHADOW_PAYLOAD_END_7b9d4e3a -->

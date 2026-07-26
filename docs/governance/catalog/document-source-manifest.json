@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "c8379cb19d6b6a8717e659029f98e98f243d16ef",
-      "sha256": "cc62f88b0a9c33ea09c4129df2884777b6769f48d0c1e26e676ad79169f406c4",
+      "git_object_id": "c63c32b96fd2664392ee0d6855a9e2bc26d7e3b2",
+      "sha256": "e22c3c35f4af7c22845cf75a300537d8aac08b6221658be0c353f5f29b0a77ba",
       "line_count": 34,
-      "byte_count": 16227,
+      "byte_count": 13690,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -76437,10 +76437,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0013.md",
-      "git_object_id": "c55a0df307a2e9a46706595125d4f629c03bcd19",
-      "sha256": "1ae496335da5197a41057ad1a833bc22ca675cc3ebfa5512ab36bc5fdb5968f7",
-      "line_count": 212,
-      "byte_count": 121546,
+      "git_object_id": "e34e2dce7463ae841984283703d64adeb48725db",
+      "sha256": "4c289d50243222c8bfbe9a5ed5f0fc115af3b3b42c45868c25e388c99631b6e0",
+      "line_count": 213,
+      "byte_count": 121549,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -76558,6 +76558,24 @@
       ]
     },
     {
+      "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0014.md",
+      "git_object_id": "e20f70dc0692b092915bf46983644c8965fd345b",
+      "sha256": "e5c2aaa670955dcbaba048b92af1a0dc95ecdadf83244ed0950852feae71b3a1",
+      "line_count": 38,
+      "byte_count": 13737,
+      "generated_status": "GENERATED",
+      "outbound_references": [],
+      "inbound_references": [],
+      "headings": [
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-3-CONTROL-HEIGHT-R1-A1 — fix(ui): close generic control height pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-3-control-height-r1-a1-fixui-close-generic-control-height-pass",
+          "line": 11
+        }
+      ]
+    },
+    {
       "path": "docs/handoffs/CHATGPT_CLOSEOUT_2026-07-15.md",
       "git_object_id": "d874ee48521bcc87c3f5597174fbf27196edfd31",
       "sha256": "1fc87686395cbbd17eb10c196fea174bc3c72f0782d7745a1990bb3586138975",
@@ -76641,10 +76659,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "8c56290eba83dcf923098f7580fac2180cf969b1",
-      "sha256": "0eead6aa1e0fa1944c56428c8eb79c60094c928c3bfa0dee7acd95efb973865b",
-      "line_count": 10107,
-      "byte_count": 1198563,
+      "git_object_id": "2f653fff4cda877d02f8cd68f694482c4356707d",
+      "sha256": "abc3bbf8a458cc082b3729ecbfb5742028e44420ad345065ad9b7408449c7b21",
+      "line_count": 10134,
+      "byte_count": 1211699,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86804,6 +86822,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1-A4 — fix(ui): align shared semantic badge geometry",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-a4-fixui-align-shared-semantic-badge-geometry",
           "line": 10086
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-3-CONTROL-HEIGHT-R1-A1 — fix(ui): close generic control height pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-3-control-height-r1-a1-fixui-close-generic-control-height-pass",
+          "line": 10109
         }
       ]
     },

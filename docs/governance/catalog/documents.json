@@ -3255,6 +3255,27 @@
       "role": "evidence",
       "status": "ACTIVE",
       "survival_destination": "docs/ui/fixtures/vendor/react-18.3.1/README.md"
+    },
+    {
+      "artifact_id": "DOC-DOCS_GOVERNANCE_SHADOW_LEDGER_PARTITIONS_G28_LEDGER_PART_0014_MD",
+      "authority": "DERIVED",
+      "bootstrap_tier": "TIER_3_REFERENCE",
+      "byte_count": 13737,
+      "classification": "DERIVED",
+      "compatibility_pointer": "docs/ledgers/G28_LEDGER.md",
+      "content_hash": "e5c2aaa670955dcbaba048b92af1a0dc95ecdadf83244ed0950852feae71b3a1",
+      "disposition": "DELETE_ONLY_IF_REGENERABLE_DERIVED_ARTIFACT",
+      "generated_status": "GENERATED",
+      "inbound_references": 4,
+      "line_count": 38,
+      "outbound_references": 4,
+      "owner": "docs/ledgers/G28_LEDGER.md",
+      "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0014.md",
+      "review_basis": "Unit 3 explicit review against the canonical ledger authority, generated provenance, raw payload hash, and mechanical regenerability. Emitted by the accepted partition builder when the UI-CONSOLIDATION-PHASE-5-PASS-3-CONTROL-HEIGHT-R1-A1 closeout append overflowed partition 13; it is derived, owns nothing, and regenerates from docs/ledgers/G28_LEDGER.md.",
+      "review_status": "REVIEWED",
+      "role": "derived",
+      "status": "GENERATED",
+      "survival_destination": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0014.md"
     }
   ],
   "authority": "CANONICAL_DOCUMENT_CLASSIFICATION_OWNER",
