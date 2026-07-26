@@ -312,9 +312,12 @@ enforced in CI without the other seven blocking it, and the JSON report still ca
 the full baseline. `UI_CONFORMANCE.md` § Execution order maps each pass to its rule ID,
 its current count and its exact command. Two caveats from the baseline:
 
-- **A gap closes before its rule does.** Pass 6 shows 0 blocking and 37 coverage gaps.
-  Reporting it as clean would be the false pass this whole structure exists to prevent;
-  the first step is marking the action rows so the rule can be evaluated at all.
+- **A gap closes before its rule does.** Pass 6 shows 0 blocking and, as of A2, **42**
+  coverage gaps — the table above is the phase-4 baseline column and reads 37, which was
+  correct then. Reporting the rule as clean would be the false pass this whole structure
+  exists to prevent; the first step is marking the action rows so it can be evaluated at
+  all. The dedicated alignment pass must reconcile the whole 42-gap corpus, not only the
+  five rows A2 made newly visible.
 - **Prototype-side remediation is blocked on access, not effort.** 25 of the 26
   conformance rows are not in this repository.
 

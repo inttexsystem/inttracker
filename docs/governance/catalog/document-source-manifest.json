@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "763b3b0f968f6eacc5baafe0e7d8bccd57d2854f",
-      "sha256": "c125c82665eba5d6050a8dc21c96e6eda951327677dacb49fc40cb2c244facbc",
+      "git_object_id": "6d3a091dff6d7341e2675c0fb08729671e75e7fd",
+      "sha256": "d33bbf7c6216f16e6bab973a23bbb0f7243c01b5bd9b367188742e5cd8d3aee4",
       "line_count": 34,
-      "byte_count": 10057,
+      "byte_count": 11624,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -5362,7 +5362,7 @@
       "inbound_references": [
         {
           "source_path": "docs/architecture/ARCHITECT_BRIEF.md",
-          "source_line": 432,
+          "source_line": 435,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -16333,10 +16333,10 @@
     },
     {
       "path": "docs/architecture/ARCHITECT_BRIEF.md",
-      "git_object_id": "ffd7a2fcba977ba6d3b96b2c20d750c986e69655",
-      "sha256": "3886b938c8b0cf31f740bf43f410fe63fa33bc851f7c1f7cfe87586e36824d13",
-      "line_count": 441,
-      "byte_count": 25533,
+      "git_object_id": "5df570def9c8490297b5073342b91e9264a1fd9a",
+      "sha256": "1099433a9b72e23883fc15317c284ca61ba6a2811f13a195a7baa0e588a9010b",
+      "line_count": 444,
+      "byte_count": 25757,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -16377,7 +16377,7 @@
           "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 350
+          "source_line": 353
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -16385,7 +16385,7 @@
           "target_path": "CLAUDE.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 432
+          "source_line": 435
         }
       ],
       "inbound_references": [
@@ -16525,61 +16525,61 @@
           "level": 2,
           "text": "6. Reconciling the `.claude` skill",
           "anchor": "6-reconciling-the-claude-skill",
-          "line": 323
+          "line": 326
         },
         {
           "level": 3,
           "text": "6.1 The structural argument",
           "anchor": "61-the-structural-argument",
-          "line": 328
+          "line": 331
         },
         {
           "level": 3,
           "text": "6.2 Required changes",
           "anchor": "62-required-changes",
-          "line": 337
+          "line": 340
         },
         {
           "level": 3,
           "text": "6.3 The precedence statement to paste into the skill",
           "anchor": "63-the-precedence-statement-to-paste-into-the-skill",
-          "line": 347
+          "line": 350
         },
         {
           "level": 3,
           "text": "6.4 Third-party skills",
           "anchor": "64-third-party-skills",
-          "line": 355
+          "line": 358
         },
         {
           "level": 2,
           "text": "7. Known weak spots — flag these to the executor",
           "anchor": "7-known-weak-spots-flag-these-to-the-executor",
-          "line": 373
+          "line": 376
         },
         {
           "level": 2,
           "text": "8. Language convention",
           "anchor": "8-language-convention",
-          "line": 392
+          "line": 395
         },
         {
           "level": 2,
           "text": "9. Naming",
           "anchor": "9-naming",
-          "line": 403
+          "line": 406
         },
         {
           "level": 2,
           "text": "10. Open items requiring an architect or owner decision",
           "anchor": "10-open-items-requiring-an-architect-or-owner-decision",
-          "line": 413
+          "line": 416
         },
         {
           "level": 2,
           "text": "11. What NOT to do",
           "anchor": "11-what-not-to-do",
-          "line": 428
+          "line": 431
         }
       ]
     },
@@ -39625,10 +39625,10 @@
     },
     {
       "path": "docs/architecture/UI_CONFORMANCE.md",
-      "git_object_id": "b2703cb186183f31d3e67b9907850cdedd4d2c4c",
-      "sha256": "0623cdb7ad63b12072dc2b1d675d21900286cd6ee34f2e3286d6e2ec8a6c6e97",
-      "line_count": 488,
-      "byte_count": 32383,
+      "git_object_id": "1bad3ca98cea639a7236178a41c9732d4093b107",
+      "sha256": "34ef9bd55ae8065aa5dbc7a153ec264d2f562246cbe662ab1312c5b6ea35ff76",
+      "line_count": 526,
+      "byte_count": 35299,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -39637,7 +39637,7 @@
           "target_path": "docs/ui/fixtures/vendor/react-18.3.1/README.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 456
+          "source_line": 494
         }
       ],
       "inbound_references": [
@@ -39708,91 +39708,91 @@
           "level": 3,
           "text": "UIC-002 and UIC-010 — closed",
           "anchor": "uic-002-and-uic-010-closed",
-          "line": 108
+          "line": 120
         },
         {
           "level": 3,
           "text": "UIC-001 — closed",
           "anchor": "uic-001-closed",
-          "line": 140
+          "line": 166
         },
         {
           "level": 2,
           "text": "Archetype A — Detail cockpit",
           "anchor": "archetype-a-detail-cockpit",
-          "line": 175
+          "line": 201
         },
         {
           "level": 2,
           "text": "Archetype B — Work queue",
           "anchor": "archetype-b-work-queue",
-          "line": 190
+          "line": 216
         },
         {
           "level": 2,
           "text": "Archetype C — Creation form",
           "anchor": "archetype-c-creation-form",
-          "line": 200
+          "line": 226
         },
         {
           "level": 2,
           "text": "Archetype D — Decision modal",
           "anchor": "archetype-d-decision-modal",
-          "line": 207
+          "line": 233
         },
         {
           "level": 2,
           "text": "Archetype E — Client portal",
           "anchor": "archetype-e-client-portal",
-          "line": 214
+          "line": 240
         },
         {
           "level": 2,
           "text": "Archetype F — Configuration",
           "anchor": "archetype-f-configuration",
-          "line": 223
+          "line": 249
         },
         {
           "level": 2,
           "text": "Application surface — `js/screens/*.js`",
           "anchor": "application-surface-jsscreensjs",
-          "line": 231
+          "line": 257
         },
         {
           "level": 2,
           "text": "Table review — the one manual pass",
           "anchor": "table-review-the-one-manual-pass",
-          "line": 346
+          "line": 384
         },
         {
           "level": 2,
           "text": "Outside the archetypes — chrome and documentation",
           "anchor": "outside-the-archetypes-chrome-and-documentation",
-          "line": 363
+          "line": 401
         },
         {
           "level": 2,
           "text": "Execution order — by property batch",
           "anchor": "execution-order-by-property-batch",
-          "line": 376
+          "line": 414
         },
         {
           "level": 2,
           "text": "Versioned fixture provenance",
           "anchor": "versioned-fixture-provenance",
-          "line": 430
+          "line": 468
         },
         {
           "level": 3,
           "text": "Vendored fixture runtime — immutable third-party assets",
           "anchor": "vendored-fixture-runtime-immutable-third-party-assets",
-          "line": 446
+          "line": 484
         },
         {
           "level": 2,
           "text": "Archetype ratification",
           "anchor": "archetype-ratification",
-          "line": 466
+          "line": 504
         }
       ]
     },
@@ -39831,7 +39831,7 @@
         },
         {
           "source_path": "docs/architecture/ARCHITECT_BRIEF.md",
-          "source_line": 350,
+          "source_line": 353,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -59502,10 +59502,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "745e3de9843b88cb24f833900e2e5cfb979512be",
-      "sha256": "efe362086a5bf5a6c26c85ea55ee0e7562823aa573b254acc5709b3b6ebfc485",
-      "line_count": 10041,
-      "byte_count": 1161905,
+      "git_object_id": "1fcb5c05d7537d3a725d8c2190c143b4155ecfc1",
+      "sha256": "26d6f7715b83451682f10a239db906c2a2ad6a30e825e41ae825b2924da532cc",
+      "line_count": 10066,
+      "byte_count": 1176499,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -67715,6 +67715,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1 — fix(ui): close radius and semantic pill pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-fixui-close-radius-and-semantic-pill-pass",
           "line": 10017
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1-A2-R1 — fix(ui): remove tailwind radius ownership",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-a2-r1-fixui-remove-tailwind-radius-ownership",
+          "line": 10041
         }
       ]
     },
@@ -76419,10 +76425,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0013.md",
-      "git_object_id": "f37d52560ce1648b628b9b97ba80088480d1b53b",
-      "sha256": "b49cef3a24afa9424d2182577aa462b8c8b7eb04caea9e1014055fa5dac709ff",
-      "line_count": 140,
-      "byte_count": 84587,
+      "git_object_id": "a48ec469d1314475cd802ddaeabf28ee2f3a11c3",
+      "sha256": "c8f8e35faa8f095c2a39247cb4b9b05cb38bc8a9ab3c1112c92679faedc7fdff",
+      "line_count": 165,
+      "byte_count": 99181,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -76518,6 +76524,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1 — fix(ui): close radius and semantic pill pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-fixui-close-radius-and-semantic-pill-pass",
           "line": 116
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1-A2-R1 — fix(ui): remove tailwind radius ownership",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-a2-r1-fixui-remove-tailwind-radius-ownership",
+          "line": 140
         }
       ]
     },
@@ -76605,10 +76617,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "2dfe1c16f66e2ba75d66c2f2ee8e159e480ac4b1",
-      "sha256": "ac9ce632390b2ed6ba84d8eb405329dfccd72c0bb5e53dd35fa08af730ff6595",
-      "line_count": 10035,
-      "byte_count": 1161604,
+      "git_object_id": "e502c4af3e844cbdbf9b6dcfa54c3037c65dc255",
+      "sha256": "7a26d4ac0fd83ea6a7b47a8edbe727c893222297cebb52f674941390fab83bec",
+      "line_count": 10060,
+      "byte_count": 1176198,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86750,6 +86762,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1 — fix(ui): close radius and semantic pill pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-fixui-close-radius-and-semantic-pill-pass",
           "line": 10013
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1-A2-R1 — fix(ui): remove tailwind radius ownership",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-a2-r1-fixui-remove-tailwind-radius-ownership",
+          "line": 10037
         }
       ]
     },
@@ -97495,7 +97513,7 @@
       "inbound_references": [
         {
           "source_path": "docs/architecture/UI_CONFORMANCE.md",
-          "source_line": 456,
+          "source_line": 494,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null

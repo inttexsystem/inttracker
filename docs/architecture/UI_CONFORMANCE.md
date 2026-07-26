@@ -77,16 +77,28 @@
 resolution or coverage is incomplete. No row below was set by looking at a screen.
 
 **Two source classes, one rule set.** The prototype front-end reads `.dc.html`; the
-application front-end reads `js/screens/*.js`. 67 files were scanned: 28 `FULL`, 39
-`PARTIAL`, 0 `UNSUPPORTED`. 1036 findings — 111 blocking, 322 declared debt, 603
+application front-end reads `js/screens/*.js`. 67 files were scanned: 23 `FULL`, 44
+`PARTIAL`, 0 `UNSUPPORTED`. 1041 findings — 111 blocking, 322 declared debt, 608
 coverage gaps.
 
 **Baseline by rule.** UIC-001 literal colour **0** (+**0** gaps) · UIC-002 radius **0**
 (+**0** gaps) · UIC-003 control height 13 (+9 gaps) · UIC-004 shadow 3 (+8 gaps) ·
 UIC-005 typography 80 · UIC-006 native `<select>` 15 · UIC-007 pill radius on a button
-**0** · UIC-008 card action alignment 0 (+37 gaps) · UIC-009 deprecated token 322 (debt) ·
+**0** · UIC-008 card action alignment 0 (+42 gaps) · UIC-009 deprecated token 322 (debt) ·
 UIC-010 semantic-radius misuse **0** (+**0** gaps) · UIC-011 unknown token **0**. Cards
 carrying a shadow: **0**. Plus 549 front-end decoding gaps under `UIC-000`.
+
+**Deltas against the A2 entry baseline** (`2114191`, blob `6d8b305` → `058f0fd` → the
+current blob): exactly **five findings added, none removed**, every one of them
+`UIC-008` / `coverage` / `ACTION_ROW_UNPROVEN`, on `pedido-edit.js`,
+`pedido-insumos-distribuicao.js`, `pedido-itens-edit.js`, `pedido-parciais-admin.js` and
+`pedido-tracking-admin.js`. `UIC-008` coverage **37 → 42**; **no other rule moved at
+all**. Blocking stays 111, debt stays 322, the inventory stays 66, `UNSUPPORTED` stays 0,
+the detector stays `1.0.3` and the contract hash is unchanged. Coverage `FULL` 28 → **23**,
+`PARTIAL` 39 → **44**. That movement is the *whole* delta and it is an observability
+increase — see the A2 note under the screen table. `tests/ui-conformance-phase5-pass2-radius.test.mjs`
+§21 pins it against `2114191` so a sixth gap, a different reason or any other rule
+movement fails rather than passing as coverage noise.
 
 **Deltas against the pass-2 entry baseline** (`cabd358`, blob `54ae97e` → `6d8b305`):
 UIC-002 93 blocking → **0**; UIC-010 16 blocking + 2 gaps → **0 + 0**. **Every other
@@ -129,13 +141,27 @@ which pass 2 was not authorized to remediate. A button is never a pill: `UIC-007
 at zero from entry to close, and 117 buttons rendered at 1440×900 measured `0px` or
 `4px` computed radius, none pill.
 
-**Residual, disclosed, not in scope.** Thirteen screens still carry **97 Tailwind
+**Residual, disclosed at pass 2 — closed by A2.** Thirteen screens carried **97 Tailwind
 utility classes** (`rounded`, `rounded-lg`, `rounded-xl`, `rounded-2xl`, `rounded-full`)
-that render radii outside the enum — `rounded-full` renders ≥ 20px. They are utility
-classes, not CSS radius declarations, so neither the detector nor this pass's source
-scan treats them as radius sites; the identical situation held for Tailwind colour
-utilities when pass 1 was accepted with `UIC-001 = 0`. Closing them is a separate
-authorization.
+that rendered radii outside the enum — `rounded-full` renders ≥ 20px. They were utility
+classes, not CSS radius declarations, so neither the detector nor pass 2's source scan
+treated them as radius sites, and Tailwind was in practice a **second application-radius
+owner** that no metric could see. **A2 removed all 97**, across all 13 screens:
+`TAILWIND_RADIUS_UTILITY_COUNT` and `TAILWIND_RADIUS_UTILITY_FILE_COUNT` are both **0**
+over all 66 screens, guarded by §20 of the pass-2 focused suite, which also proves itself
+non-vacuous against every utility spelling. The two named radius constants in
+`pedido-detail-events.js` — `MOVEMENT_MODAL_RADIUS` `'6px'` and `MOVEMENT_SURFACE_RADIUS`
+`'4px'` — were canonicalized to `var(--rv-radius)`, so a constant holds a token and never
+a literal. **`css/tokens.css` is now the only radius owner inside `js/screens/`.**
+
+**Still outside the enum, and outside every boundary so far: `js/ui.js`.** Measured in
+the live runtime at 1440 × 900, seven form controls rendered an **8px** computed radius.
+They come from five Tailwind `rounded-lg` / `rounded-xl` utilities in `js/ui.js`, the
+shared control factory (`textInput`, `selectInput`, `modal`, `dataTable`, `toast`).
+`js/ui.js` is **not** one of the 66 inventoried `js/screens/*.js` files, so no detector
+rule and no source scan in passes 1–2 or A2 has ever reached it, and it is outside the
+A2 path boundary — it is byte-identical to `2114191`. This is disclosed, not closed;
+closing it needs a separate authorization.
 
 ### UIC-001 — closed
 
@@ -239,24 +265,36 @@ had no Layer-4 record until the detector produced one.
 mapped an application module to one. Assigning archetypes here is an architect
 decision, not a detector output.
 
-**Read `conforming` here with care.** 25 of the 66 files are write, data, helper or
+**Read `conforming` here with care.** 22 of the 66 files are write, data, helper or
 routing modules that declare **no visual value at all**. They are `conforming` because
 the rule says zero blocking findings plus `FULL` coverage, and they satisfy it by
 absence, not by design. They are marked `— no visual declaration` and are not
 evidence that any screen is canonical.
 
-Totals: **27 conforming** (all by absence), **25 deviation**, **14 unaudited**.
+Totals: **22 conforming** (all by absence), **25 deviation**, **19 unaudited**.
 
-The fourteen `unaudited` files have **zero** blocking findings but incomplete coverage —
+The nineteen `unaudited` files have **zero** blocking findings but incomplete coverage —
 their remaining findings are declared debt or front-end decoding gaps. They are not
 clean; they are unmeasured. Six moved into this state during pass 1 because the only
 blocking findings they carried were literal colours, and **six more moved during pass 2**
 because the only blocking findings they carried were radius:
 `admin-usuarios-audit-panel.js`, `cliente-route-sections-ui.js`, `entrega-form.js`,
 `manta-output-form.js`, `ordem-compra-receipt-render.js`, `pedido-route-sections-ui.js`.
-No file moved the other way.
+**Five more moved during A2** — `pedido-edit.js`, `pedido-insumos-distribuicao.js`,
+`pedido-itens-edit.js`, `pedido-parciais-admin.js`, `pedido-tracking-admin.js` — for a
+different reason, recorded below. No file moved the other way.
 
-**`conforming` still means conforming by absence.** All 27 declare **no visual value at
+**A2 — five screens stopped being `conforming` by absence.** Those five held their whole
+geometry in Tailwind class tokens, so `declaration_sites` was **0** and the detector had
+nothing to evaluate. `FULL` there never meant conforming; it meant invisible. A2 moved
+that geometry into canonical declarations, the five now declare between 6 and 16 visual
+values each, and each honestly produces the one property that still cannot be evaluated:
+a single `UIC-008` `ACTION_ROW_UNPROVEN` coverage gap. **This is an increase in
+observability, not a product, detector or radius regression.** No blocking finding
+appeared, no rule other than `UIC-008` moved, and the geometry they now declare is
+inside the closed enum.
+
+**`conforming` still means conforming by absence.** All 22 declare **no visual value at
 all** (`declaration_sites: 0`) — they are write, data, helper or routing modules. Closing
 UIC-001 and then the two radius rules did **not** make any screen conforming by design:
 every screen that declares visual values and still deviates carries at least one blocking
@@ -318,16 +356,16 @@ are passes 3-8 and none of them has run.
 | `pedido-detail-progress.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `pedido-detail-render.js` | deviation | PARTIAL | 17 | 0 | 44 |
 | `pedido-detail.js` | unaudited | PARTIAL | 0 | 0 | 1 |
-| `pedido-edit.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
+| `pedido-edit.js` | unaudited | PARTIAL | 0 | 0 | 1 |
 | `pedido-form.js` | deviation | PARTIAL | 8 | 0 | 9 |
-| `pedido-insumos-distribuicao.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
+| `pedido-insumos-distribuicao.js` | unaudited | PARTIAL | 0 | 0 | 1 |
 | `pedido-item-row-editor.js` | deviation | PARTIAL | 2 | 0 | 8 |
-| `pedido-itens-edit.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
+| `pedido-itens-edit.js` | unaudited | PARTIAL | 0 | 0 | 1 |
 | `pedido-numero-sugestao.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `pedido-parciais-admin.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
+| `pedido-parciais-admin.js` | unaudited | PARTIAL | 0 | 0 | 1 |
 | `pedido-route-sections-ui.js` | unaudited | PARTIAL | 0 | 0 | 4 |
 | `pedido-route-sections.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `pedido-tracking-admin.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
+| `pedido-tracking-admin.js` | unaudited | PARTIAL | 0 | 0 | 1 |
 | `pedidos-list.js` | deviation | PARTIAL | 3 | 0 | 11 |
 | `system-screens.js` | deviation | PARTIAL | 1 | 0 | 12 |
 | `trocar-senha-obrigatoria.js` | deviation | PARTIAL | 1 | 0 | 10 |
@@ -410,7 +448,7 @@ this table demands:
 | 3 | `UIC-002`, `UIC-010` | 93 + 16 | `--rule UIC-002 --enforce`, then `--rule UIC-010 --enforce` |
 | 4 | `UIC-003` | 13 (+9 gaps) | `--rule UIC-003 --enforce` |
 | 5 | `UIC-004` | 3 (+8 gaps) | `--rule UIC-004 --enforce` |
-| 6 | `UIC-008` | 0 (+37 gaps) | `--rule UIC-008 --enforce` — the gaps must close first |
+| 6 | `UIC-008` | 0 (+42 gaps) | `--rule UIC-008 --enforce` — the gaps must close first |
 | 7 | `UIC-006` | 15 | `--rule UIC-006 --enforce` |
 | 8 | — | — | manual; the detector only inventories the eight tables |
 | type | `UIC-005` | 80 | `--rule UIC-005 --enforce` |
