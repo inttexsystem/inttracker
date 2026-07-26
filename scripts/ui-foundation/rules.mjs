@@ -65,7 +65,10 @@ const ARCHITECTURE_DOCS = [
   PATHS.brief,
 ];
 
-const HEX_RE = /#[0-9A-Fa-f]{6}\b/g;
+// Every CSS hex form, longest-first so #rrggbbaa is not truncated to #rrggbb.
+// Six-digit-only matching let the shorthand `#fff` sit in the contract's
+// primary-button row unnoticed.
+const HEX_RE = /#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{3})\b/g;
 const LOCAL_REF_RE = /(?:src|href)="([^"#][^"]*)"/g;
 
 const finding = (rule_id, severity, path, line_or_location, message) => ({

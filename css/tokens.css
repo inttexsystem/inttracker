@@ -38,6 +38,10 @@
   --rv-chip-glyph:       #64748b;             /* section icon chip glyph        */
   --rv-focus-ring:       rgba(3,105,161,.22); /* focus ring */
 
+  /* Contextual inverse text for brand-coloured surfaces.
+     It is not a fifth text-hierarchy level. */
+  --rv-text-on-brand:    var(--rv-surface);
+
   /* ---- BRAND ADDITION — does NOT exist in SGAA ----
      Scope locked: logo, login rule, printed-document rule.
      Never in a state, badge, pill or indicator.                  */

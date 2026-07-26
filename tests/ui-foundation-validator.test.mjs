@@ -153,6 +153,60 @@ test('UIF-007 — a contract literal where a token is required fails', () => {
   });
 });
 
+// The six-digit-only matcher let the shorthand `#fff` sit in the contract's
+// primary-button row unnoticed. Every CSS hex form must be rejected.
+for (const hex of ['#fff', '#ffff', '#ffffff', '#ffffffff']) {
+  test(`UIF-007 — contract literal ${hex} fails`, () => {
+    withScaffold((root) => {
+      edit(root, PATHS.contract, (md) => {
+        assert.ok(md.includes('--rv-text-on-brand'), 'contract anchor missing');
+        return md.replace('--rv-text-on-brand', hex);
+      });
+      const result = validate(root);
+      assert.equal(result.status, 'FAIL', `${hex} was not rejected`);
+      const hit = result.errors.find((f) => f.rule_id === 'UIF-007');
+      assert.ok(hit, `no UIF-007 finding for ${hex}`);
+      assert.ok(hit.message.includes(hex), `finding did not quote ${hex}`);
+      assert.equal(hit.path, PATHS.contract);
+      assert.match(hit.line_or_location, /^line \d+$/);
+    });
+  });
+}
+
+test('UIF-007 — var(--rv-text-on-brand) passes', () => {
+  withScaffold((root) => {
+    const md = readFileSync(join(root, PATHS.contract), 'utf8');
+    assert.ok(md.includes('--rv-text-on-brand'), 'contract must reference the token');
+    const result = validate(root);
+    assert.equal(result.status, 'PASS', JSON.stringify(result.errors, null, 2));
+    assert.ok(!result.errors.some((f) => f.rule_id === 'UIF-007'));
+  });
+});
+
+test('UIF-007 — literal colours stay legal inside css/tokens.css', () => {
+  withScaffold((root) => {
+    const css = readFileSync(join(root, PATHS.tokens), 'utf8');
+    assert.match(css, /#[0-9A-Fa-f]{6}/, 'tokens.css must still own literal values');
+    assert.ok(!validate(root).errors.some((f) => f.path === PATHS.tokens));
+  });
+});
+
+test('UIF-007 — contract scanning is not suppressed by the tests/** exclusion', () => {
+  withScaffold((root) => {
+    // The tests/** exclusion exists for UIF-001 ownership scanning only. A
+    // literal in the contract must still be reported even when an identical
+    // literal sits in an excluded test file.
+    mkdirSync(join(root, 'tests'), { recursive: true });
+    writeFileSync(join(root, 'tests/decoy.test.mjs'), "const sample = ':root{--rv-x:#abc}';\n");
+    edit(root, PATHS.contract, (md) => md.replace('--rv-text-on-brand', '#abc'));
+    const result = validate(root);
+    assert.equal(result.status, 'FAIL');
+    const hits = result.errors.filter((f) => f.rule_id === 'UIF-007');
+    assert.equal(hits.length, 1);
+    assert.equal(hits[0].path, PATHS.contract);
+  });
+});
+
 test('UIF-008 — two architecture documents with identical bytes fail', () => {
   withScaffold((root) => {
     cpSync(join(root, PATHS.contract), join(root, PATHS.brief));

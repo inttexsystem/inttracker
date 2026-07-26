@@ -69,7 +69,7 @@ Three heights (`--rv-h-compact/default/primary`), radius `--rv-radius`,
 
 | Variant | Background | Border | Text | Height |
 |---|---|---|---|---|
-| Primary | `--rv-brand` | none | `#fff` | 38px |
+| Primary | `--rv-brand` | none | `--rv-text-on-brand` | 38px |
 | Secondary | `--rv-surface` | `--rv-border-strong` | `--rv-text-secondary` | 34px |
 | Positive | `--rv-signal-positive-bg` | `--rv-signal-positive-border` | `--rv-signal-positive` | 34px |
 | Destructive | `--rv-surface` | `--rv-signal-negative-border` | `--rv-signal-negative` | 34px |
