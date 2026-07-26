@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "c39e097b597ab173ce8fb92c30df081b044b8e5a",
-      "sha256": "019bb47b12ad792be90fab70536e4100f593374f2e3e392f28c7d6b82dd74ac2",
+      "git_object_id": "763b3b0f968f6eacc5baafe0e7d8bccd57d2854f",
+      "sha256": "c125c82665eba5d6050a8dc21c96e6eda951327677dacb49fc40cb2c244facbc",
       "line_count": 34,
-      "byte_count": 14026,
+      "byte_count": 10057,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -39625,10 +39625,10 @@
     },
     {
       "path": "docs/architecture/UI_CONFORMANCE.md",
-      "git_object_id": "490042ffa0fec7d2d4fd48f0d68e63e1e81db349",
-      "sha256": "e4f6a9c546188e239168d975de84c917dfdcfe1e6cd3c49d81392bb13829d07a",
-      "line_count": 424,
-      "byte_count": 27933,
+      "git_object_id": "b2703cb186183f31d3e67b9907850cdedd4d2c4c",
+      "sha256": "0623cdb7ad63b12072dc2b1d675d21900286cd6ee34f2e3286d6e2ec8a6c6e97",
+      "line_count": 488,
+      "byte_count": 32383,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -39637,7 +39637,7 @@
           "target_path": "docs/ui/fixtures/vendor/react-18.3.1/README.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 392
+          "source_line": 456
         }
       ],
       "inbound_references": [
@@ -39702,91 +39702,97 @@
           "level": 2,
           "text": "Detector provenance",
           "anchor": "detector-provenance",
-          "line": 46
+          "line": 65
+        },
+        {
+          "level": 3,
+          "text": "UIC-002 and UIC-010 — closed",
+          "anchor": "uic-002-and-uic-010-closed",
+          "line": 108
         },
         {
           "level": 3,
           "text": "UIC-001 — closed",
           "anchor": "uic-001-closed",
-          "line": 80
+          "line": 140
         },
         {
           "level": 2,
           "text": "Archetype A — Detail cockpit",
           "anchor": "archetype-a-detail-cockpit",
-          "line": 115
+          "line": 175
         },
         {
           "level": 2,
           "text": "Archetype B — Work queue",
           "anchor": "archetype-b-work-queue",
-          "line": 130
+          "line": 190
         },
         {
           "level": 2,
           "text": "Archetype C — Creation form",
           "anchor": "archetype-c-creation-form",
-          "line": 140
+          "line": 200
         },
         {
           "level": 2,
           "text": "Archetype D — Decision modal",
           "anchor": "archetype-d-decision-modal",
-          "line": 147
+          "line": 207
         },
         {
           "level": 2,
           "text": "Archetype E — Client portal",
           "anchor": "archetype-e-client-portal",
-          "line": 154
+          "line": 214
         },
         {
           "level": 2,
           "text": "Archetype F — Configuration",
           "anchor": "archetype-f-configuration",
-          "line": 163
+          "line": 223
         },
         {
           "level": 2,
           "text": "Application surface — `js/screens/*.js`",
           "anchor": "application-surface-jsscreensjs",
-          "line": 171
+          "line": 231
         },
         {
           "level": 2,
           "text": "Table review — the one manual pass",
           "anchor": "table-review-the-one-manual-pass",
-          "line": 282
+          "line": 346
         },
         {
           "level": 2,
           "text": "Outside the archetypes — chrome and documentation",
           "anchor": "outside-the-archetypes-chrome-and-documentation",
-          "line": 299
+          "line": 363
         },
         {
           "level": 2,
           "text": "Execution order — by property batch",
           "anchor": "execution-order-by-property-batch",
-          "line": 312
+          "line": 376
         },
         {
           "level": 2,
           "text": "Versioned fixture provenance",
           "anchor": "versioned-fixture-provenance",
-          "line": 366
+          "line": 430
         },
         {
           "level": 3,
           "text": "Vendored fixture runtime — immutable third-party assets",
           "anchor": "vendored-fixture-runtime-immutable-third-party-assets",
-          "line": 382
+          "line": 446
         },
         {
           "level": 2,
           "text": "Archetype ratification",
           "anchor": "archetype-ratification",
-          "line": 402
+          "line": 466
         }
       ]
     },
@@ -59496,10 +59502,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "9a822952cd8977e80f80dc2167f65e0d71ded438",
-      "sha256": "425e63ed30b65e2e9bc6fc00fb039b16b7d8b52369404de5e3b2042209bff07e",
-      "line_count": 10017,
-      "byte_count": 1145455,
+      "git_object_id": "745e3de9843b88cb24f833900e2e5cfb979512be",
+      "sha256": "efe362086a5bf5a6c26c85ea55ee0e7562823aa573b254acc5709b3b6ebfc485",
+      "line_count": 10041,
+      "byte_count": 1161905,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -67703,6 +67709,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-1-LITERAL-COLOUR-OWNERSHIP-R1 — fix(ui): close literal colour ownership pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-1-literal-colour-ownership-r1-fixui-close-literal-colour-ownership-pass",
           "line": 9994
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1 — fix(ui): close radius and semantic pill pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-fixui-close-radius-and-semantic-pill-pass",
+          "line": 10017
         }
       ]
     },
@@ -76407,10 +76419,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0013.md",
-      "git_object_id": "e3e438c1b3ee622e338dc22f1fd1a4988cba1e32",
-      "sha256": "ff111c869565068cd1d108b11b9824852c81b04a2a8c58d1dd9c3d11d3705e64",
-      "line_count": 116,
-      "byte_count": 68137,
+      "git_object_id": "f37d52560ce1648b628b9b97ba80088480d1b53b",
+      "sha256": "b49cef3a24afa9424d2182577aa462b8c8b7eb04caea9e1014055fa5dac709ff",
+      "line_count": 140,
+      "byte_count": 84587,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -76500,6 +76512,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-1-LITERAL-COLOUR-OWNERSHIP-R1 — fix(ui): close literal colour ownership pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-1-literal-colour-ownership-r1-fixui-close-literal-colour-ownership-pass",
           "line": 93
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1 — fix(ui): close radius and semantic pill pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-fixui-close-radius-and-semantic-pill-pass",
+          "line": 116
         }
       ]
     },
@@ -76587,10 +76605,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "f737be799580cf14c794200403c250635857bf83",
-      "sha256": "087340dc7bdd423398499c0363d7826852b92fcb8d6e2c27e03defd7c340518c",
-      "line_count": 10011,
-      "byte_count": 1145154,
+      "git_object_id": "2dfe1c16f66e2ba75d66c2f2ee8e159e480ac4b1",
+      "sha256": "ac9ce632390b2ed6ba84d8eb405329dfccd72c0bb5e53dd35fa08af730ff6595",
+      "line_count": 10035,
+      "byte_count": 1161604,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86726,6 +86744,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-1-LITERAL-COLOUR-OWNERSHIP-R1 — fix(ui): close literal colour ownership pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-1-literal-colour-ownership-r1-fixui-close-literal-colour-ownership-pass",
           "line": 9990
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1 — fix(ui): close radius and semantic pill pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-fixui-close-radius-and-semantic-pill-pass",
+          "line": 10013
         }
       ]
     },
@@ -97471,7 +97495,7 @@
       "inbound_references": [
         {
           "source_path": "docs/architecture/UI_CONFORMANCE.md",
-          "source_line": 392,
+          "source_line": 456,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null

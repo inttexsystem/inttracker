@@ -3,10 +3,16 @@
 > Layer 4 of the contract. Screen → archetype → state → fixture.
 > **State is filled by the detector, not by eye.**
 >
-> **Status: PHASE-5 PASS 1 IMPLEMENTED / `UIC-001` CLOSED / LOCALLY AND VISUALLY
-> VERIFIED / PUBLISHED / AWAITING ARCHITECT ACCEPTANCE.** Every state below is a
+> **Status: PHASE-5 PASS 2 IMPLEMENTED / `UIC-002` AND `UIC-010` CLOSED / LOCALLY AND
+> VISUALLY VERIFIED / PUBLISHED / AWAITING ARCHITECT ACCEPTANCE.** Every state below is a
 > mechanical read of `tests/fixtures/ui-conformance-baseline.json` — see § Detector
 > provenance for the exact rule.
+>
+> **Pass 1 — `CLOSED / ACCEPTED_WITH_NONBLOCKING_PROCESS_DEBT`, checkpoint
+> `cabd358c006f692b3aec37d21cf279ab1e81927a`.** `UIC-001` is closed and stays closed.
+> The accepted nonblocking debt is `PROTECTED-RESIDUE-CONTENT-DISCLOSURE`: a protected
+> path's contents were displayed during an entry gate. It caused no repository mutation.
+> Future gates may inspect path, status and hash-equivalence metadata only.
 >
 > **Phase 4 — `CLOSED / ACCEPTED_WITH_NONBLOCKING_REPORT_SCHEMA_DEBT`, checkpoint
 > `9fbb84c1613ffc24f994ad053c812d724bf1ade0`.** The report-schema debt it was accepted
@@ -14,10 +20,23 @@
 > already carrying the corrected numbers — is **corrected forward in this pass**, not
 > reopened: the keys are now `literal_visual_colours_blocking` and
 > `literal_colour_context_unproven`, the predicates are unchanged, and the detector is
-> `1.0.2`.
+> `1.0.3`.
 >
-> **Pass 1 (literal colour ownership) is the only pass that has run.** Passes 2-8 are
-> not authorized. What pass 1 changed is recorded in `DESIGN_DECISIONS.md` D9.
+> **Passes 1 and 2 have run; passes 3-8 are not authorized.** Pass 1 closed literal
+> colour ownership (`UIC-001`) and is recorded in `DESIGN_DECISIONS.md` D9. Pass 2
+> closed the two radius rules (`UIC-002` `RADIUS_OUTSIDE_ENUM` and `UIC-010`
+> `SEMANTIC_PILL_RADIUS_MISUSE`) across all 66 application screens, with `UIC-007`
+> held at zero throughout. It changed no token, no enum, no colour and no rule
+> semantics.
+>
+> **Detector `1.0.3` — the one semantic change pass 2 made.** The js-screen front-end
+> now transports a statically declared `'data-ui-pill'` attribute into an element's
+> `attrMap`, exactly as the `.dc.html` front-end has always done from real markup.
+> Without it a JavaScript screen could not state a role at all, so a count badge on a
+> neutral surface was unprovable and D6.1 would have forced it to ordinary geometry.
+> `isSemanticPill()` is unchanged; no dynamic expression is evaluated; no other role is
+> inferred. Measured effect on the whole repository: six `UIC-010` findings removed,
+> none added, no other rule touched.
 >
 > **Read the three states literally.** `conforming` means the detector evaluated
 > every rule and found no blocking finding. `deviation` means it found one.
@@ -47,7 +66,7 @@
 
 | Fact | Value |
 |---|---|
-| Detector | `scripts/validate-ui-conformance.mjs` v1.0.2 |
+| Detector | `scripts/validate-ui-conformance.mjs` v1.0.3 |
 | Enum source | `UI_VISUAL_CONTRACT.md` §5, block at line 390 |
 | §5 blob hash | `f8349e6eeca291fef2edf4d6e30afd628732f00b6495d54eb9273860fa63f1c4` |
 | Baseline | `tests/fixtures/ui-conformance-baseline.json` |
@@ -59,23 +78,64 @@ resolution or coverage is incomplete. No row below was set by looking at a scree
 
 **Two source classes, one rule set.** The prototype front-end reads `.dc.html`; the
 application front-end reads `js/screens/*.js`. 67 files were scanned: 28 `FULL`, 39
-`PARTIAL`, 0 `UNSUPPORTED`. 1147 findings — 232 blocking, 322 declared debt, 593
+`PARTIAL`, 0 `UNSUPPORTED`. 1036 findings — 111 blocking, 322 declared debt, 603
 coverage gaps.
 
-**Baseline by rule.** UIC-001 literal colour **0** (+**0** gaps) · UIC-002 radius 93 ·
-UIC-003 control height 13 (+9 gaps) · UIC-004 shadow 3 (+8 gaps) · UIC-005
-typography 80 · UIC-006 native `<select>` 15 · UIC-007 pill radius on a button **0** ·
-UIC-008 card action alignment 0 (+37 gaps) · UIC-009 deprecated token 322 (debt) ·
-UIC-010 semantic-radius misuse 16 (+2 gaps) · UIC-011 unknown token **0**. Cards
+**Baseline by rule.** UIC-001 literal colour **0** (+**0** gaps) · UIC-002 radius **0**
+(+**0** gaps) · UIC-003 control height 13 (+9 gaps) · UIC-004 shadow 3 (+8 gaps) ·
+UIC-005 typography 80 · UIC-006 native `<select>` 15 · UIC-007 pill radius on a button
+**0** · UIC-008 card action alignment 0 (+37 gaps) · UIC-009 deprecated token 322 (debt) ·
+UIC-010 semantic-radius misuse **0** (+**0** gaps) · UIC-011 unknown token **0**. Cards
 carrying a shadow: **0**. Plus 549 front-end decoding gaps under `UIC-000`.
 
-**Deltas against the phase-4 entry baseline** (`9fbb84c`, blob `4fb639f` → `9291ce6`):
-UIC-001 2013 blocking + 771 gaps → **0 + 0**. Every other rule decreased or held:
-UIC-002 97 → 93, UIC-004 21 → 3 blocking and 21 → 8 gaps, UIC-009 323 → 322,
-UIC-000 552 → 549. UIC-003, UIC-005, UIC-006, UIC-008, UIC-010 unchanged. UIC-007 and
-UIC-011 stayed at zero. Coverage `FULL` 27 → 28, `PARTIAL` 40 → 39, `UNSUPPORTED` 0.
-**No rule increased.** The decreases outside UIC-001 are incidental — a card shadow or
-a radius that disappeared with the literal that carried it — and were not chased.
+**Deltas against the pass-2 entry baseline** (`cabd358`, blob `54ae97e` → `6d8b305`):
+UIC-002 93 blocking → **0**; UIC-010 16 blocking + 2 gaps → **0 + 0**. **Every other
+rule is byte-identical**: UIC-000 549, UIC-001 0, UIC-003 13 (+9), UIC-004 3 (+8),
+UIC-005 80, UIC-006 15, UIC-007 0, UIC-008 0 (+37), UIC-009 322 debt, UIC-011 0.
+Coverage `FULL` 28, `PARTIAL` 39, `UNSUPPORTED` 0 — all unchanged. **No rule increased
+and nothing outside the radius property moved**, so pass 2 has no incidental decrease
+to explain.
+
+**Deltas against the phase-4 entry baseline** (`9fbb84c`, blob `4fb639f` → `9291ce6`),
+recorded by pass 1 and kept for continuity: UIC-001 2013 blocking + 771 gaps → **0 + 0**.
+Every other rule decreased or held: UIC-002 97 → 93, UIC-004 21 → 3 blocking and 21 → 8
+gaps, UIC-009 323 → 322, UIC-000 552 → 549. UIC-003, UIC-005, UIC-006, UIC-008, UIC-010
+unchanged. UIC-007 and UIC-011 stayed at zero. Coverage `FULL` 27 → 28, `PARTIAL`
+40 → 39, `UNSUPPORTED` 0. **No rule increased.** The decreases outside UIC-001 are
+incidental — a card shadow or a radius that disappeared with the literal that carried
+it — and were not chased.
+
+### UIC-002 and UIC-010 — closed
+
+The closed enum is `[4px, 999px]`, spelled `var(--rv-radius)` and `var(--rv-radius-pill)`.
+Pass 2 resolved **107 detector-visible sites** across 26 screens and, because the
+front-end cannot decode an interpolated or concatenated style string, a further **28
+detector-invisible sites** in the same files and in three screens added to the boundary
+by the A1 amendment (`painel.js`, `op-distribuicao-ui.js`, `ordem-compra-render.js`).
+A full source scan of all 66 screens now finds **zero** out-of-enum radius declarations,
+so closure does not rest on detector visibility alone.
+
+| Role | Treatment | Sites |
+|---|---|---|
+| Ordinary surface or control — cards, panels, fields, buttons, chips, alerts, meter tracks, elongated bars, switch tracks | `var(--rv-radius)` | 62 |
+| Semantic pill — count and classification badges | `var(--rv-radius-pill)` + a static `data-ui-pill` role marker | 8 |
+| True circle — dots, avatars, swatches, medallions, step circles, knobs, rings | `var(--rv-radius-pill)`, with equal declared width and height | 53 |
+| Partial-corner or child geometry | canonical radius on the owning parent plus `overflow:hidden`, redundant child radius removed | 21 |
+
+**No literal survives as a fallback, and no alias was introduced.** The pre-existing
+`4px` literals are inside the enum and were left alone; the `--rv-radius-card` and
+`--rv-radius-control` aliases resolve to `var(--rv-radius)` and remain **UIC-009 debt**,
+which pass 2 was not authorized to remediate. A button is never a pill: `UIC-007` held
+at zero from entry to close, and 117 buttons rendered at 1440×900 measured `0px` or
+`4px` computed radius, none pill.
+
+**Residual, disclosed, not in scope.** Thirteen screens still carry **97 Tailwind
+utility classes** (`rounded`, `rounded-lg`, `rounded-xl`, `rounded-2xl`, `rounded-full`)
+that render radii outside the enum — `rounded-full` renders ≥ 20px. They are utility
+classes, not CSS radius declarations, so neither the detector nor this pass's source
+scan treats them as radius sites; the identical situation held for Tailwind colour
+utilities when pass 1 was accepted with `UIC-001 = 0`. Closing them is a separate
+authorization.
 
 ### UIC-001 — closed
 
@@ -185,88 +245,92 @@ the rule says zero blocking findings plus `FULL` coverage, and they satisfy it b
 absence, not by design. They are marked `— no visual declaration` and are not
 evidence that any screen is canonical.
 
-Totals: **27 conforming** (all by absence), **31 deviation**, **8 unaudited**.
+Totals: **27 conforming** (all by absence), **25 deviation**, **14 unaudited**.
 
-The eight `unaudited` files have **zero** blocking findings but incomplete coverage —
+The fourteen `unaudited` files have **zero** blocking findings but incomplete coverage —
 their remaining findings are declared debt or front-end decoding gaps. They are not
 clean; they are unmeasured. Six moved into this state during pass 1 because the only
-blocking findings they carried were literal colours.
+blocking findings they carried were literal colours, and **six more moved during pass 2**
+because the only blocking findings they carried were radius:
+`admin-usuarios-audit-panel.js`, `cliente-route-sections-ui.js`, `entrega-form.js`,
+`manta-output-form.js`, `ordem-compra-receipt-render.js`, `pedido-route-sections-ui.js`.
+No file moved the other way.
 
 **`conforming` still means conforming by absence.** All 27 declare **no visual value at
 all** (`declaration_sites: 0`) — they are write, data, helper or routing modules. Closing
-UIC-001 did **not** make any screen conforming by design: every screen that declares
-visual values still carries at least one blocking finding from radius, height, shadow,
-typography, native `<select>` or semantic-radius. That is expected — those are passes
-3-8 and none of them has run.
+UIC-001 and then the two radius rules did **not** make any screen conforming by design:
+every screen that declares visual values and still deviates carries at least one blocking
+finding from height, shadow, typography, or native `<select>`. That is expected — those
+are passes 3-8 and none of them has run.
 
 | Screen | State | Coverage | Blocking | Debt | Gaps |
 |---|---|---|---|---|---|
-| `admin-usuarios-audit-panel.js` | deviation | PARTIAL | 1 | 0 | 3 |
-| `admin-usuarios-modal.js` | deviation | PARTIAL | 8 | 0 | 11 |
-| `admin-usuarios.js` | deviation | PARTIAL | 6 | 0 | 17 |
-| `cadastros.js` | deviation | PARTIAL | 29 | 0 | 51 |
+| `admin-usuarios-audit-panel.js` | unaudited | PARTIAL | 0 | 0 | 3 |
+| `admin-usuarios-modal.js` | deviation | PARTIAL | 7 | 0 | 11 |
+| `admin-usuarios.js` | deviation | PARTIAL | 2 | 0 | 17 |
+| `cadastros.js` | deviation | PARTIAL | 12 | 0 | 51 |
 | `cliente-common.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `cliente-dashboard.js` | deviation | PARTIAL | 9 | 0 | 24 |
-| `cliente-pedido-detail.js` | deviation | PARTIAL | 10 | 0 | 18 |
+| `cliente-dashboard.js` | deviation | PARTIAL | 6 | 0 | 24 |
+| `cliente-pedido-detail.js` | deviation | PARTIAL | 2 | 0 | 18 |
 | `cliente-pedido-form.js` | deviation | PARTIAL | 11 | 0 | 9 |
-| `cliente-pedido-tracking.js` | deviation | PARTIAL | 7 | 0 | 14 |
-| `cliente-pedidos-list.js` | deviation | PARTIAL | 3 | 0 | 14 |
+| `cliente-pedido-tracking.js` | deviation | PARTIAL | 2 | 0 | 14 |
+| `cliente-pedidos-list.js` | deviation | PARTIAL | 2 | 0 | 14 |
 | `cliente-route-read.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `cliente-route-sections-ui.js` | deviation | PARTIAL | 1 | 0 | 4 |
-| `common.js` | deviation | PARTIAL | 4 | 0 | 6 |
+| `cliente-route-sections-ui.js` | unaudited | PARTIAL | 0 | 0 | 4 |
+| `common.js` | deviation | PARTIAL | 3 | 0 | 6 |
 | `document-link-admin-modal.js` | deviation | PARTIAL | 1 | 0 | 1 |
 | `documentos-recebidos-decision-modal.js` | deviation | PARTIAL | 1 | 0 | 3 |
 | `documentos-recebidos-queue-ui.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `documentos-recebidos.js` | deviation | PARTIAL | 15 | 0 | 51 |
-| `entrega-form.js` | deviation | PARTIAL | 1 | 0 | 14 |
+| `documentos-recebidos.js` | deviation | PARTIAL | 7 | 0 | 51 |
+| `entrega-form.js` | unaudited | PARTIAL | 0 | 0 | 13 |
 | `entrega-writes.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `expedicao-admin.js` | deviation | PARTIAL | 14 | 0 | 22 |
+| `expedicao-admin.js` | deviation | PARTIAL | 8 | 0 | 22 |
 | `fornecedor.js` | unaudited | PARTIAL | 0 | 0 | 1 |
 | `manta-expedicao-ui.js` | deviation | PARTIAL | 3 | 0 | 18 |
 | `manta-movimento-form.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `manta-output-form.js` | deviation | PARTIAL | 1 | 0 | 10 |
+| `manta-output-form.js` | unaudited | PARTIAL | 0 | 0 | 9 |
 | `manta-writes.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `op-compra-regime.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `op-distribuicao-ui.js` | unaudited | PARTIAL | 0 | 0 | 9 |
 | `op-form-helpers.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `op-latex-admin.js` | deviation | PARTIAL | 9 | 121 | 47 |
-| `op-nova.js` | deviation | PARTIAL | 10 | 54 | 52 |
+| `op-latex-admin.js` | deviation | PARTIAL | 2 | 121 | 47 |
+| `op-nova.js` | deviation | PARTIAL | 4 | 54 | 52 |
 | `op-pdf.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `op-persistir.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `op-recalculo.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `op-tecelagem-producao-admin.js` | deviation | PARTIAL | 6 | 95 | 44 |
+| `op-tecelagem-producao-admin.js` | deviation | PARTIAL | 1 | 95 | 44 |
 | `op-writes.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `ops-list.js` | deviation | PARTIAL | 7 | 0 | 8 |
+| `ops-list.js` | deviation | PARTIAL | 2 | 0 | 8 |
 | `ordem-compra-data.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `ordem-compra-distribuicao.js` | unaudited | PARTIAL | 0 | 0 | 3 |
 | `ordem-compra-events.js` | unaudited | PARTIAL | 0 | 2 | 1 |
 | `ordem-compra-receipt-cutover.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `ordem-compra-receipt-data.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `ordem-compra-receipt-events.js` | unaudited | PARTIAL | 0 | 5 | 2 |
-| `ordem-compra-receipt-render.js` | deviation | PARTIAL | 1 | 33 | 6 |
+| `ordem-compra-receipt-render.js` | unaudited | PARTIAL | 0 | 33 | 6 |
 | `ordem-compra-render.js` | unaudited | PARTIAL | 0 | 12 | 4 |
 | `ordem-compra.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `ordens-compra-list.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `painel.js` | unaudited | PARTIAL | 0 | 0 | 7 |
 | `pedido-chain-state.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `pedido-detail-data.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `pedido-detail-events.js` | deviation | PARTIAL | 8 | 0 | 32 |
+| `pedido-detail-events.js` | deviation | PARTIAL | 3 | 0 | 32 |
 | `pedido-detail-progress.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `pedido-detail-render.js` | deviation | PARTIAL | 28 | 0 | 44 |
+| `pedido-detail-render.js` | deviation | PARTIAL | 17 | 0 | 44 |
 | `pedido-detail.js` | unaudited | PARTIAL | 0 | 0 | 1 |
 | `pedido-edit.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `pedido-form.js` | deviation | PARTIAL | 8 | 0 | 9 |
 | `pedido-insumos-distribuicao.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `pedido-item-row-editor.js` | deviation | PARTIAL | 3 | 0 | 8 |
+| `pedido-item-row-editor.js` | deviation | PARTIAL | 2 | 0 | 8 |
 | `pedido-itens-edit.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `pedido-numero-sugestao.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `pedido-parciais-admin.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `pedido-route-sections-ui.js` | deviation | PARTIAL | 1 | 0 | 4 |
+| `pedido-route-sections-ui.js` | unaudited | PARTIAL | 0 | 0 | 4 |
 | `pedido-route-sections.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `pedido-tracking-admin.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `pedidos-list.js` | deviation | PARTIAL | 7 | 0 | 11 |
-| `system-screens.js` | deviation | PARTIAL | 3 | 0 | 12 |
-| `trocar-senha-obrigatoria.js` | deviation | PARTIAL | 4 | 0 | 10 |
+| `pedidos-list.js` | deviation | PARTIAL | 3 | 0 | 11 |
+| `system-screens.js` | deviation | PARTIAL | 1 | 0 | 12 |
+| `trocar-senha-obrigatoria.js` | deviation | PARTIAL | 1 | 0 | 10 |
 
 **Why 39 of the 66 application files are `PARTIAL`.** The application builds the DOM
 imperatively, so a style value is often a ternary, a concatenation or a template
