@@ -138,81 +138,128 @@ test('OP_TIPO_BADGE tem classes Tailwind para cada tipo', () => {
   assert.match(tipoB.latex,     /bg-amber-100/);
 });
 
-test('badgeStatus("em_producao") produz SPAN com classes e label corretos', () => {
+// ---------------------------------------------------------------------
+// A4 — badgeStatus / badgeTipo delegate to the canonical badge owner.
+//
+// These helpers used to build their own <span> from a local Tailwind
+// family map (OP_STATUS_BADGE / OP_TIPO_BADGE) at ordinary 4px geometry.
+// They are semantic badges, so they now delegate to rvStatusPill and
+// rvClassificationBadge and the canonical owner decides family, geometry
+// and dot. The maps survive for their compatibility consumers (asserted
+// above) but no longer reach rendering.
+//
+// What these tests assert changed FORM, not guarantee: the label, the
+// SPAN shape and the unknown-value fallback are still pinned exactly;
+// the family is now read from the canonical --rv-pill-<family>-* token
+// instead of from a Tailwind class name.
+// ---------------------------------------------------------------------
+
+/** The canonical family a rendered badge resolved to, or null. */
+function familyOf(span) {
+  const style = String((span && span._attrs && span._attrs.style) || '');
+  const m = style.match(/var\(--rv-pill-([a-z]+)-bg\)/);
+  return m ? m[1] : null;
+}
+/** The 5px status dots a rendered badge carries. */
+function dotsOf(span) {
+  return (span && span.children ? span.children : []).filter((c) => {
+    const s = String((c && c._attrs && c._attrs.style) || '');
+    return s.includes('width:5px') && s.includes('height:5px');
+  });
+}
+/** Every badge is a canonical pill, never ordinary geometry. */
+function assertCanonicalPill(span, label) {
+  const style = String(span._attrs.style || '');
+  assert.equal(span.tagName, 'SPAN', label + ': tagName');
+  assert.match(style, /border-radius:var\(--rv-radius-pill\)/, label + ': deve usar o raio canonico de pill');
+  assert.doesNotMatch(style, /border-radius:var\(--rv-radius\);/, label + ': nao pode voltar a geometria ordinaria');
+  assert.match(style, /height:18px/, label + ': deve usar a altura canonica de 18px');
+  assert.equal(span.className, '', label + ': nao pode carregar classe Tailwind de familia');
+}
+
+test('badgeStatus("em_producao") e uma pill de status caution com label correto', () => {
   const span = vm.runInContext("badgeStatus('em_producao')", sandbox, { filename: 'inline-render' });
   assert.ok(span instanceof FakeNode);
-  assert.equal(span.tagName, 'SPAN');
-  assert.match(span.className, /bg-amber-100/);
-  assert.match(span.className, /text-amber-700/);
+  assertCanonicalPill(span, 'badgeStatus("em_producao")');
+  assert.equal(familyOf(span), 'caution');
+  assert.equal(dotsOf(span).length, 1, 'um status de ciclo de vida carrega exatamente um ponto de 5px');
   assert.equal(span.textContent, 'Em produção');
 });
 
-test('badgeStatus("finalizada") produz SPAN verde com label "Finalizada"', () => {
+test('badgeStatus("finalizada") e uma pill positive com label "Finalizada"', () => {
   const span = vm.runInContext("badgeStatus('finalizada')", sandbox, { filename: 'inline-render' });
-  assert.equal(span.tagName, 'SPAN');
-  assert.match(span.className, /bg-green-100/);
+  assertCanonicalPill(span, 'badgeStatus("finalizada")');
+  assert.equal(familyOf(span), 'positive');
+  assert.equal(dotsOf(span).length, 1);
   assert.equal(span.textContent, 'Finalizada');
 });
 
-test('badgeStatus("simulada") produz SPAN cinza com label "Simulada"', () => {
+test('badgeStatus("simulada") e uma pill neutral com label "Simulada"', () => {
   const span = vm.runInContext("badgeStatus('simulada')", sandbox, { filename: 'inline-render' });
-  assert.equal(span.tagName, 'SPAN');
-  assert.match(span.className, /bg-gray-100/);
+  assertCanonicalPill(span, 'badgeStatus("simulada")');
+  assert.equal(familyOf(span), 'neutral');
+  assert.equal(dotsOf(span).length, 1);
   assert.equal(span.textContent, 'Simulada');
 });
 
-test('badgeStatus("aberta") produz SPAN azul com label "Aberta"', () => {
+test('badgeStatus("aberta") e uma pill info com label "Aberta"', () => {
   const span = vm.runInContext("badgeStatus('aberta')", sandbox, { filename: 'inline-render' });
-  assert.equal(span.tagName, 'SPAN');
-  assert.match(span.className, /bg-blue-100/);
+  assertCanonicalPill(span, 'badgeStatus("aberta")');
+  assert.equal(familyOf(span), 'info');
+  assert.equal(dotsOf(span).length, 1);
   assert.equal(span.textContent, 'Aberta');
 });
 
-test('badgeStatus cai no fallback cinza para status desconhecido', () => {
+test('badgeStatus cai no fallback neutral para status desconhecido', () => {
+  // A garantia original ("desconhecido nao ganha tratamento semantico") e a
+  // mesma; o fallback agora e a familia neutral e nao a classe cinza.
   const span = vm.runInContext("badgeStatus('xyz')", sandbox, { filename: 'inline-render' });
-  assert.equal(span.tagName, 'SPAN');
-  assert.match(span.className, /bg-gray-100/);
-  assert.match(span.className, /text-gray-700/);
+  assertCanonicalPill(span, 'badgeStatus("xyz")');
+  assert.equal(familyOf(span), 'neutral');
   assert.equal(span.textContent, 'xyz');
 });
 
-test('badgeTipo("latex") produz SPAN âmbar com label "Látex"', () => {
+test('badgeTipo("latex") e um badge de classificacao neutral, sem ponto, com label "Látex"', () => {
   const span = vm.runInContext("badgeTipo('latex')", sandbox, { filename: 'inline-render' });
-  assert.equal(span.tagName, 'SPAN');
-  assert.match(span.className, /bg-amber-100/);
-  assert.match(span.className, /text-amber-700/);
+  assertCanonicalPill(span, 'badgeTipo("latex")');
+  assert.equal(familyOf(span), 'neutral', 'tipo de OP e classificacao, nao estado semantico');
+  assert.equal(dotsOf(span).length, 0, 'uma classificacao nao carrega ponto de status');
+  assert.doesNotMatch(String(span._attrs.style), /--rv-stage-/, 'Látex nao e o estagio acabamento do contrato');
   assert.equal(span.textContent, 'Látex');
 });
 
-test('badgeTipo("tecelagem") produz SPAN indigo com label "Tecelagem"', () => {
+test('badgeTipo("tecelagem") e um badge de classificacao neutral, sem ponto', () => {
   const span = vm.runInContext("badgeTipo('tecelagem')", sandbox, { filename: 'inline-render' });
-  assert.equal(span.tagName, 'SPAN');
-  assert.match(span.className, /bg-indigo-100/);
-  assert.match(span.className, /text-indigo-700/);
+  assertCanonicalPill(span, 'badgeTipo("tecelagem")');
+  assert.equal(familyOf(span), 'neutral');
+  assert.equal(dotsOf(span).length, 0);
   assert.equal(span.textContent, 'Tecelagem');
 });
 
-test('badgeTipo cai no fallback cinza para tipo desconhecido', () => {
+test('badgeTipo cai no fallback neutral para tipo desconhecido', () => {
   const span = vm.runInContext("badgeTipo('xyz')", sandbox, { filename: 'inline-render' });
-  assert.equal(span.tagName, 'SPAN');
-  assert.match(span.className, /bg-gray-100/);
+  assertCanonicalPill(span, 'badgeTipo("xyz")');
+  assert.equal(familyOf(span), 'neutral');
   assert.equal(span.textContent, 'xyz');
 });
 
-test('todos os badges retornados têm a forma <span class="…">texto</span> esperada pelo HTML', () => {
-  // O call-site em index.html faz `el('span', { class: '…' }, label)` —
-  // aqui verificamos que o nó produzido é SPAN, com classe e com texto
-  // não-vazio. Isso é o que o DOM real precisa para renderizar.
+test('todos os badges retornados tem a forma <span style="…">texto</span> esperada pelo DOM', () => {
+  // O call-site renderiza o no retornado direto no DOM. A forma exigida
+  // continua sendo um SPAN com texto nao-vazio; o portador do estilo passou
+  // de `class` para `style`, porque a geometria e a familia agora vem do
+  // dono canonico e nao de utilitarios Tailwind.
   for (const input of ['em_producao', 'finalizada', 'simulada', 'aberta', 'xyz']) {
     const span = vm.runInContext(`badgeStatus(${JSON.stringify(input)})`, sandbox, { filename: 'inline-shape' });
     assert.equal(span.tagName, 'SPAN', `badgeStatus(${JSON.stringify(input)}).tagName`);
-    assert.ok(span.className && span.className.length > 0, `badgeStatus(${JSON.stringify(input)}).className vazio`);
+    assert.ok(span._attrs.style && span._attrs.style.length > 0, `badgeStatus(${JSON.stringify(input)}).style vazio`);
     assert.equal(span.textContent.length > 0, true, `badgeStatus(${JSON.stringify(input)}).textContent vazio`);
+    assert.equal(dotsOf(span).length, 1, `badgeStatus(${JSON.stringify(input)}) deve ter um ponto de status`);
   }
   for (const input of ['latex', 'tecelagem', 'xyz']) {
     const span = vm.runInContext(`badgeTipo(${JSON.stringify(input)})`, sandbox, { filename: 'inline-shape' });
     assert.equal(span.tagName, 'SPAN', `badgeTipo(${JSON.stringify(input)}).tagName`);
-    assert.ok(span.className && span.className.length > 0, `badgeTipo(${JSON.stringify(input)}).className vazio`);
+    assert.ok(span._attrs.style && span._attrs.style.length > 0, `badgeTipo(${JSON.stringify(input)}).style vazio`);
     assert.equal(span.textContent.length > 0, true, `badgeTipo(${JSON.stringify(input)}).textContent vazio`);
+    assert.equal(dotsOf(span).length, 0, `badgeTipo(${JSON.stringify(input)}) nao pode ter ponto de status`);
   }
 });

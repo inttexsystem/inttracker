@@ -178,14 +178,18 @@
     return PEDIDO_STATUS_BADGE[status] || 'bg-gray-100 text-gray-700';
   }
 
+  /**
+   * Pedido lifecycle status. Delegates to the canonical lifecycle-status
+   * constructor in js/badges.js, so family, 18px pill geometry, the 5px dot and
+   * the neutral fallback are decided by the one owner. `produzindo` resolves to
+   * caution through the accepted `em producao` key alias.
+   *
+   * `PEDIDO_STATUS_BADGE` and `pedidoStatusBadgeClass` are retained only for
+   * existing compatibility consumers; neither decides rendering any more.
+   */
   function pedidoStatusBadge(status) {
-    if (typeof window.el !== 'function') return null;
-    const label = pedidoStatusLabel(status);
-    const cls = pedidoStatusBadgeClass(status);
-    return window.el('span', {
-      style: 'border-radius:var(--rv-radius);',
-      class: 'px-2 py-1 text-xs font-semibold ' + cls,
-    }, label);
+    if (typeof window.rvStatusPill !== 'function') return null;
+    return window.rvStatusPill(pedidoStatusLabel(status), status);
   }
 
   function pedidoStatusTodos() {

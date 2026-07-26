@@ -1287,6 +1287,18 @@ const PASS2_A3_ASSETS = [
   'js/pedido-ui.js',
   'js/ui.js'
 ];
+// A4 fechou a geometria semantica dos tres construtores de badge compartilhados:
+// badgeStatus e pedidoStatusBadge passam a delegar a pill de status canonica e
+// badgeTipo ao badge de classificacao canonico. Isso alterou js/badges.js e
+// js/pedido-ui.js, que saem do conjunto da A3 sob um token proprio. A garantia
+// original nao muda: um asset alterado e invalidado exatamente uma vez, sob um
+// token declarado, e esse token nao vaza.
+const PASS2_A4_TOKEN = '20260726-ui-p5-pass2-a4';
+const PASS2_A4_ASSETS = [
+  'js/badges.js',
+  'js/pedido-ui.js'
+];
+const PASS2_A3_ASSETS_AINDA_EM_A3 = PASS2_A3_ASSETS.filter((a) => !PASS2_A4_ASSETS.includes(a));
 const PASS2_ASSETS_AINDA_EM_PASS2 = PASS2_ASSETS.filter((a) => !PASS2_A2_ASSETS.includes(a));
 const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS
   .filter((a) => !PASS2_ASSETS.includes(a))
@@ -1478,6 +1490,7 @@ test('R3/20c2. todo asset nao relacionado conserva o token que tinha em 4532f76'
     if (PASS2_ASSETS.includes(before[i].path)) continue;
     if (PASS2_A2_ASSETS.includes(before[i].path)) continue;
     if (PASS2_A3_ASSETS.includes(before[i].path)) continue;
+    if (PASS2_A4_ASSETS.includes(before[i].path)) continue;
     assert.equal(after[i].token, before[i].token,
       before[i].path + ' e um asset nao relacionado e nao pode ter o token alterado');
   }
@@ -1633,13 +1646,15 @@ test('A2/20c9. os assets da correcao A2 carregam exatamente o token declarado, e
 // estes assets NAO sao telas: sao o runtime compartilhado de primeira parte,
 // que renderiza controles em toda rota sem entrar no inventario de 66 telas.
 test('A3/20c10. os assets da correcao A3 carregam exatamente o token declarado, e ele nao vaza', () => {
-  for (const rel of PASS2_A3_ASSETS) {
+  // A A4 retokenizou dois deles; o token da A3 sobrevive apenas nos outros tres,
+  // e A4/20c11 verifica os dois restantes literalmente.
+  for (const rel of PASS2_A3_ASSETS_AINDA_EM_A3) {
     assert.equal(tokenFor(rel), PASS2_A3_TOKEN,
       rel + ' deve carregar exatamente o token declarado da correcao A3');
   }
   const carriers = assetRefs(indexHtml).filter((r) => r.token === PASS2_A3_TOKEN).map((r) => r.path);
-  assert.deepEqual(carriers.sort(), PASS2_A3_ASSETS.slice().sort(),
-    'exatamente os assets da A3 podem carregar o token da A3');
+  assert.deepEqual(carriers.sort(), PASS2_A3_ASSETS_AINDA_EM_A3.slice().sort(),
+    'exatamente os assets da A3 que a A4 nao tocou podem carregar o token da A3');
   for (const anterior of [PASS2_A2_TOKEN, PASS2_TOKEN, PASS1_TOKEN, BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN, R2_TOKEN]) {
     assert.notEqual(PASS2_A3_TOKEN, anterior,
       'reusar um token anterior nao invalidaria cache algum');
@@ -1652,7 +1667,7 @@ test('A3/20c10. os assets da correcao A3 carregam exatamente o token declarado, 
   }
   // E nenhum outro script local pode ter mudado: a A3 nao arrasta asset algum,
   // nem tela (fechada pela A2) nem modulo compartilhado que ela nao declarou.
-  const declarados = new Set(PASS2_A3_ASSETS);
+  const declarados = new Set(PASS2_A3_ASSETS.concat(PASS2_A4_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     // Runtime de terceiros (CDN) nao esta versionado aqui e nao e alvo da A3.
     if (/^https?:/.test(ref.path)) continue;
@@ -1660,5 +1675,36 @@ test('A3/20c10. os assets da correcao A3 carregam exatamente o token declarado, 
     const committed = execFileSync('git', ['rev-parse', '076be26:' + ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
     const worktree = execFileSync('git', ['hash-object', '--', ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
     assert.equal(worktree, committed, ref.path + ' nao foi declarado pela A3 e deve seguir byte-identico a 076be26');
+  }
+});
+// A correcao A4 declara os seus assets e o seu token; nenhum outro asset pode
+// carrega-lo, e ele tem de diferir de todo token anterior. Sao os dois modulos
+// compartilhados que passaram a delegar aos construtores canonicos de badge.
+test('A4/20c11. os assets da correcao A4 carregam exatamente o token declarado, e ele nao vaza', () => {
+  for (const rel of PASS2_A4_ASSETS) {
+    assert.equal(tokenFor(rel), PASS2_A4_TOKEN,
+      rel + ' deve carregar exatamente o token declarado da correcao A4');
+  }
+  const carriers = assetRefs(indexHtml).filter((r) => r.token === PASS2_A4_TOKEN).map((r) => r.path);
+  assert.deepEqual(carriers.sort(), PASS2_A4_ASSETS.slice().sort(),
+    'exatamente os assets da A4 podem carregar o token da A4');
+  for (const anterior of [PASS2_A3_TOKEN, PASS2_A2_TOKEN, PASS2_TOKEN, PASS1_TOKEN, BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN, R2_TOKEN]) {
+    assert.notEqual(PASS2_A4_TOKEN, anterior,
+      'reusar um token anterior nao invalidaria cache algum');
+  }
+  // Um asset retokenizado tem de ter mudado de fato desde o checkpoint publicado.
+  for (const rel of PASS2_A4_ASSETS) {
+    const committed = execFileSync('git', ['rev-parse', '2fa29d9:' + rel], { cwd: ROOT, encoding: 'utf8' }).trim();
+    const worktree = execFileSync('git', ['hash-object', '--', rel], { cwd: ROOT, encoding: 'utf8' }).trim();
+    assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 2fa29d9');
+  }
+  // E nenhum outro script local pode ter mudado: a A4 nao arrasta asset algum.
+  const declarados = new Set(PASS2_A4_ASSETS);
+  for (const ref of assetRefs(indexHtml)) {
+    if (/^https?:/.test(ref.path)) continue;
+    if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
+    const committed = execFileSync('git', ['rev-parse', '2fa29d9:' + ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
+    const worktree = execFileSync('git', ['hash-object', '--', ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
+    assert.equal(worktree, committed, ref.path + ' nao foi declarado pela A4 e deve seguir byte-identico a 2fa29d9');
   }
 });

@@ -20,14 +20,27 @@ const OP_STATUS_LABEL = {
 const OP_TIPO_LABEL = { tecelagem: 'Tecelagem', latex: 'Látex' };
 const OP_TIPO_BADGE = { tecelagem: 'bg-indigo-100 text-indigo-700', latex: 'bg-amber-100 text-amber-700' };
 
+/**
+ * OP type — `Tecelagem` or `Látex`. This is a CLASSIFICATION, not the current
+ * production stage, so it takes the neutral classification badge and carries its
+ * meaning in the label: no status dot, and no per-type semantic colour. `Látex`
+ * is deliberately NOT routed through `rvStageBadge` — it is not the contract's
+ * `acabamento` stage key.
+ *
+ * `OP_TIPO_BADGE` below is retained only for existing compatibility consumers.
+ * It no longer decides geometry, colour family or semantic role.
+ */
 function badgeTipo(tipo) {
-  return el('span', { style: 'border-radius:var(--rv-radius);', class: 'px-2 py-1 text-xs font-semibold ' + (OP_TIPO_BADGE[tipo] || 'bg-gray-100 text-gray-700') },
-    OP_TIPO_LABEL[tipo] || tipo);
+  return rvClassificationBadge(OP_TIPO_LABEL[tipo] || tipo);
 }
 
+/**
+ * OP lifecycle status. Delegates to the canonical lifecycle-status constructor,
+ * so family, 18px pill geometry, the 5px dot and the neutral fallback for an
+ * unknown state are all decided by the one owner rather than by a local map.
+ */
 function badgeStatus(status) {
-  return el('span', { style: 'border-radius:var(--rv-radius);', class: 'px-2 py-1 text-xs font-semibold ' + (OP_STATUS_BADGE[status] || 'bg-gray-100 text-gray-700') },
-    OP_STATUS_LABEL[status] || status);
+  return rvStatusPill(OP_STATUS_LABEL[status] || status, status);
 }
 
 // =====================================================================

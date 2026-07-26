@@ -17,6 +17,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -887,4 +888,166 @@ test('22f · the three console-styling radii are the only excluded sites, and th
   }
   assert.deepEqual(found, EXCLUDED,
     'only the declared DevTools console format strings may be excluded');
+});
+
+/* ============================================================
+   23 · A4 — THE THREE SHARED SEMANTIC BADGE CONSTRUCTORS
+
+   `badgeStatus` and `pedidoStatusBadge` render a LIFECYCLE STATUS;
+   `badgeTipo` renders an OP-TYPE CLASSIFICATION. All three used to
+   build their own span from a local Tailwind family map, at ordinary
+   4px geometry — which made them semantic badges that neither the
+   canonical badge owner nor D6.1 governed.
+
+   They now delegate to the canonical constructors in js/badges.js.
+   These guards execute the REAL modules and assert the rendered
+   result, so a return to a local map, to 4px, or to a missing or
+   spurious dot fails here rather than in review.
+   ============================================================ */
+
+const A4_BADGES_SRC = read('js/badges.js');
+const A4_PEDIDO_UI_SRC = read('js/pedido-ui.js');
+
+/** Minimal DOM good enough for `el()`, mirroring tests/badges.smoke.js. */
+function a4Sandbox({ withBadges = true } = {}) {
+  class FakeNode {
+    constructor(tag) {
+      this.tagName = String(tag).toUpperCase();
+      this.children = []; this._attrs = {}; this._text = null; this.className = '';
+    }
+    appendChild(n) { this.children.push(n); return n; }
+    setAttribute(k, v) { this._attrs[k] = v; if (k === 'class') this.className = v; if (k === 'style') this.style = v; }
+    addEventListener() {} removeEventListener() {}
+    replaceChildren(...nodes) {
+      this.children = [];
+      for (const n of nodes.flat()) { if (n == null || n === false) continue; this.children.push(typeof n === 'string' ? new FakeText(n) : n); }
+    }
+    get textContent() { return this._text != null ? this._text : this.children.map((c) => c.textContent).join(''); }
+    set textContent(v) { this._text = v; this.children = []; }
+  }
+  class FakeText extends FakeNode { constructor(t) { super('#text'); this._text = t; } }
+  const document = {
+    createElement: (t) => new FakeNode(t), createTextNode: (t) => new FakeText(t),
+    querySelector: () => null, querySelectorAll: () => [],
+    addEventListener: () => {}, removeEventListener: () => {}, body: new FakeNode('body'),
+  };
+  const sandbox = { document, setTimeout, clearTimeout, console };
+  sandbox.window = sandbox; sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(read('js/ui.js'), sandbox, { filename: 'js/ui.js' });
+  if (withBadges) vm.runInContext(A4_BADGES_SRC, sandbox, { filename: 'js/badges.js' });
+  vm.runInContext(A4_PEDIDO_UI_SRC, sandbox, { filename: 'js/pedido-ui.js' });
+  return sandbox;
+}
+
+const A4_SANDBOX = a4Sandbox();
+const a4Run = (expr) => vm.runInContext(expr, A4_SANDBOX, { filename: 'a4-probe' });
+
+/** The family a node's skin resolves to, read back from the pill token it used. */
+function a4FamilyOf(node) {
+  const style = String(node && node.style ? node.style : '');
+  const m = style.match(/var\(--rv-pill-([a-z]+)-bg\)/);
+  return m ? m[1] : null;
+}
+const a4Dots = (node) => (node && node.children ? node.children : [])
+  .filter((c) => String(c.style || '').includes('width:5px') && String(c.style || '').includes('height:5px'));
+
+test('23 · each constructor delegates to the canonical owner and declares no ordinary radius', () => {
+  // Source-level: the delegation IS the implementation, not a wrapper around the
+  // old span, and none of the three writes the ordinary radius any more.
+  assert.match(A4_BADGES_SRC, /function badgeStatus\(status\)\s*\{\s*return rvStatusPill\(/);
+  assert.match(A4_BADGES_SRC, /function badgeTipo\(tipo\)\s*\{\s*return rvClassificationBadge\(/);
+  assert.match(A4_PEDIDO_UI_SRC, /function pedidoStatusBadge\(status\)[\s\S]{0,240}?return window\.rvStatusPill\(/);
+
+  const badgeTipoBody = A4_BADGES_SRC.slice(A4_BADGES_SRC.indexOf('function badgeTipo'), A4_BADGES_SRC.indexOf('function badgeStatus'));
+  const afterStatus = A4_BADGES_SRC.indexOf('function badgeStatus');
+  const badgeStatusBody = A4_BADGES_SRC.slice(afterStatus, A4_BADGES_SRC.indexOf('// ====', afterStatus));
+  // `function pedidoStatusBadge(` — the trailing paren is what separates it from
+  // `pedidoStatusBadgeClass`, which is retained and legitimately reads the map.
+  const pedidoBadgeBody = A4_PEDIDO_UI_SRC.slice(A4_PEDIDO_UI_SRC.indexOf('function pedidoStatusBadge('), A4_PEDIDO_UI_SRC.indexOf('function pedidoStatusTodos'));
+  for (const [name, body] of [['badgeTipo', badgeTipoBody], ['badgeStatus', badgeStatusBody], ['pedidoStatusBadge', pedidoBadgeBody]]) {
+    assert.doesNotMatch(body, /var\(--rv-radius\)/, name + ' must not declare ordinary radius geometry');
+    assert.doesNotMatch(body, /bg-\w+-\d{3}|text-\w+-\d{3}/, name + ' must not consume a local Tailwind family class');
+  }
+  // The legacy maps survive for their compatibility consumers, but no rendered
+  // constructor may read them.
+  assert.doesNotMatch(badgeStatusBody, /OP_STATUS_BADGE/);
+  assert.doesNotMatch(badgeTipoBody, /OP_TIPO_BADGE\[/);
+  assert.doesNotMatch(pedidoBadgeBody, /PEDIDO_STATUS_BADGE\[|pedidoStatusBadgeClass\(/);
+  for (const legacy of ['OP_STATUS_BADGE', 'OP_TIPO_BADGE']) assert.ok(A4_BADGES_SRC.includes(legacy), legacy + ' stays for its compatibility consumer');
+  for (const legacy of ['PEDIDO_STATUS_BADGE', 'pedidoStatusBadgeClass']) assert.ok(A4_PEDIDO_UI_SRC.includes(legacy), legacy + ' stays for its compatibility consumer');
+});
+
+test('23b · every rendered badge resolves to the canonical pill radius', () => {
+  for (const expr of ["badgeStatus('em_producao')", "badgeTipo('tecelagem')", "window.pedidoStatusBadge('entregue')"]) {
+    const node = a4Run(expr);
+    assert.ok(node, expr + ' returned nothing');
+    assert.equal(node.tagName, 'SPAN');
+    assert.match(String(node.style), /border-radius:var\(--rv-radius-pill\)/, expr + ' must carry pill geometry');
+    assert.doesNotMatch(String(node.style), /border-radius:var\(--rv-radius\);/, expr + ' must not carry ordinary geometry');
+    assert.match(String(node.style), /height:18px/, expr + ' must use the canonical 18px pill');
+  }
+});
+
+test('23c · the OP lifecycle family matrix', () => {
+  const EXPECTED = { simulada: 'neutral', aberta: 'info', em_producao: 'caution', finalizada: 'positive' };
+  for (const [status, family] of Object.entries(EXPECTED)) {
+    const node = a4Run('badgeStatus(' + JSON.stringify(status) + ')');
+    assert.equal(a4FamilyOf(node), family, "badgeStatus('" + status + "')");
+    assert.equal(a4Dots(node).length, 1, "badgeStatus('" + status + "') must render exactly one 5px status dot");
+  }
+  // An unknown lifecycle state is neutral — never an invented family.
+  const unknown = a4Run("badgeStatus('xyz')");
+  assert.equal(a4FamilyOf(unknown), 'neutral');
+  assert.equal(unknown.textContent, 'xyz', 'the label still falls back to the raw key');
+});
+
+test('23d · the Pedido lifecycle family matrix', () => {
+  const EXPECTED = {
+    rascunho: 'neutral', recebido: 'positive', confirmado: 'neutral',
+    produzindo: 'caution', entregue: 'positive', cancelado: 'negative',
+  };
+  for (const [status, family] of Object.entries(EXPECTED)) {
+    const node = a4Run('window.pedidoStatusBadge(' + JSON.stringify(status) + ')');
+    assert.ok(node, "pedidoStatusBadge('" + status + "') returned nothing");
+    assert.equal(a4FamilyOf(node), family, "pedidoStatusBadge('" + status + "')");
+    assert.equal(a4Dots(node).length, 1, "pedidoStatusBadge('" + status + "') must render exactly one 5px status dot");
+  }
+  // `produzindo` is caution only through the accepted alias, not a new family.
+  assert.equal(a4Run("window.rvStatusFamily('produzindo')"), 'caution');
+  assert.equal(a4Run("window.RV_BADGES.RV_STATUS_KEY_ALIAS['produzindo']"), 'em producao');
+});
+
+test('23e · badgeTipo is a neutral classification badge with no status dot', () => {
+  for (const [tipo, label] of [['tecelagem', 'Tecelagem'], ['latex', 'Látex']]) {
+    const node = a4Run('badgeTipo(' + JSON.stringify(tipo) + ')');
+    assert.equal(a4FamilyOf(node), 'neutral', "badgeTipo('" + tipo + "') must be a neutral classification");
+    assert.equal(a4Dots(node).length, 0, "badgeTipo('" + tipo + "') must render NO status dot");
+    assert.equal(node.textContent, label, 'the meaning is carried by the label');
+    // The per-type indigo/amber treatment is gone, and Latex is not a stage.
+    assert.doesNotMatch(String(node.style), /--rv-stage-/, 'the OP type is not the contract acabamento stage');
+  }
+  assert.equal(a4FamilyOf(a4Run("badgeTipo('xyz')")), 'neutral');
+});
+
+test('23f · the guards are not vacuous — the pre-A4 shape fails them', () => {
+  // Reconstruct exactly what these helpers used to return and prove each
+  // assertion above rejects it.
+  const legacy = a4Run("el('span', { style: 'border-radius:var(--rv-radius);', class: 'px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-700' }, 'x')");
+  assert.equal(a4FamilyOf(legacy), null, 'a Tailwind-class badge resolves to no canonical family');
+  assert.equal(a4Dots(legacy).length, 0, 'a Tailwind-class status badge has no dot');
+  assert.doesNotMatch(String(legacy.style), /border-radius:var\(--rv-radius-pill\)/);
+  // …and the family reader really does distinguish the five families.
+  const seen = new Set(['simulada', 'aberta', 'em_producao', 'finalizada', 'cancelado']
+    .map((s) => a4FamilyOf(a4Run('badgeStatus(' + JSON.stringify(s) + ')'))));
+  assert.deepEqual([...seen].sort(), ['caution', 'info', 'negative', 'neutral', 'positive']);
+});
+
+test('23g · delegation degrades safely when the canonical owner is absent', () => {
+  // js/pedido-ui.js loads after js/badges.js; if the owner is missing the badge
+  // must be absent rather than silently rendered by a local fallback map.
+  const withoutBadges = a4Sandbox({ withBadges: false });
+  assert.equal(vm.runInContext("window.pedidoStatusBadge('entregue')", withoutBadges, { filename: 'a4-probe' }), null);
+  // The compatibility helper still answers, unchanged, for its own consumers.
+  assert.equal(vm.runInContext("window.pedidoStatusBadgeClass('entregue')", withoutBadges, { filename: 'a4-probe' }), 'bg-green-100 text-green-700');
 });
