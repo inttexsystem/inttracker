@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "80d4d6aadf2103c0dd60f56c18c1a97e475cb180",
-      "sha256": "7022a95e3f3598d983dd6da4bdee5e285a8589954efa7a4adbd6c09b43b0fbc1",
+      "git_object_id": "c8379cb19d6b6a8717e659029f98e98f243d16ef",
+      "sha256": "cc62f88b0a9c33ea09c4129df2884777b6769f48d0c1e26e676ad79169f406c4",
       "line_count": 34,
-      "byte_count": 14393,
+      "byte_count": 16227,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -39625,10 +39625,10 @@
     },
     {
       "path": "docs/architecture/UI_CONFORMANCE.md",
-      "git_object_id": "d7c11041c3737d905ce9f17c884662f033a5206c",
-      "sha256": "ff257eba50b64c9b450e2654105ecb84290227b4140ee25aa957c4881db85f05",
-      "line_count": 558,
-      "byte_count": 37734,
+      "git_object_id": "1b54a680f876b3da6ae155af6ca77e9f7b0ff7ec",
+      "sha256": "d8b9d1bf7dbfcbf7e163316aab55c8b54b3e1a0b5ce5a3ba5756ff274fba3ba9",
+      "line_count": 583,
+      "byte_count": 39500,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -39637,7 +39637,7 @@
           "target_path": "docs/ui/fixtures/vendor/react-18.3.1/README.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 526
+          "source_line": 551
         }
       ],
       "inbound_references": [
@@ -39714,85 +39714,85 @@
           "level": 3,
           "text": "UIC-001 — closed",
           "anchor": "uic-001-closed",
-          "line": 198
+          "line": 223
         },
         {
           "level": 2,
           "text": "Archetype A — Detail cockpit",
           "anchor": "archetype-a-detail-cockpit",
-          "line": 233
+          "line": 258
         },
         {
           "level": 2,
           "text": "Archetype B — Work queue",
           "anchor": "archetype-b-work-queue",
-          "line": 248
+          "line": 273
         },
         {
           "level": 2,
           "text": "Archetype C — Creation form",
           "anchor": "archetype-c-creation-form",
-          "line": 258
+          "line": 283
         },
         {
           "level": 2,
           "text": "Archetype D — Decision modal",
           "anchor": "archetype-d-decision-modal",
-          "line": 265
+          "line": 290
         },
         {
           "level": 2,
           "text": "Archetype E — Client portal",
           "anchor": "archetype-e-client-portal",
-          "line": 272
+          "line": 297
         },
         {
           "level": 2,
           "text": "Archetype F — Configuration",
           "anchor": "archetype-f-configuration",
-          "line": 281
+          "line": 306
         },
         {
           "level": 2,
           "text": "Application surface — `js/screens/*.js`",
           "anchor": "application-surface-jsscreensjs",
-          "line": 289
+          "line": 314
         },
         {
           "level": 2,
           "text": "Table review — the one manual pass",
           "anchor": "table-review-the-one-manual-pass",
-          "line": 416
+          "line": 441
         },
         {
           "level": 2,
           "text": "Outside the archetypes — chrome and documentation",
           "anchor": "outside-the-archetypes-chrome-and-documentation",
-          "line": 433
+          "line": 458
         },
         {
           "level": 2,
           "text": "Execution order — by property batch",
           "anchor": "execution-order-by-property-batch",
-          "line": 446
+          "line": 471
         },
         {
           "level": 2,
           "text": "Versioned fixture provenance",
           "anchor": "versioned-fixture-provenance",
-          "line": 500
+          "line": 525
         },
         {
           "level": 3,
           "text": "Vendored fixture runtime — immutable third-party assets",
           "anchor": "vendored-fixture-runtime-immutable-third-party-assets",
-          "line": 516
+          "line": 541
         },
         {
           "level": 2,
           "text": "Archetype ratification",
           "anchor": "archetype-ratification",
-          "line": 536
+          "line": 561
         }
       ]
     },
@@ -59502,10 +59502,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "a48d3a698bfdb33fa74c658d23277db1d8bc4d78",
-      "sha256": "d702cca1ea73d6d13174a600703519634ebbc349a775547a3262b3d48e9bfe18",
-      "line_count": 10090,
-      "byte_count": 1188425,
+      "git_object_id": "fb18b2c156448fc4f252df60e1e0f59576f2a283",
+      "sha256": "309aecac66269fa57f7b296b7309e9f8e42d0bad2bc56a82c219749796a7a5eb",
+      "line_count": 10113,
+      "byte_count": 1198864,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -67727,6 +67727,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1-A3 — fix(ui): close shared runtime radius ownership",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-a3-fixui-close-shared-runtime-radius-ownership",
           "line": 10066
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1-A4 — fix(ui): align shared semantic badge geometry",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-a4-fixui-align-shared-semantic-badge-geometry",
+          "line": 10090
         }
       ]
     },
@@ -76431,10 +76437,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0013.md",
-      "git_object_id": "1ca1f6b489263df7b2a181c385c3cb3fe5ab8f3d",
-      "sha256": "468b9f32c30eab5ad787e7dd7d3f1bfb47258f95703ff53b1eba928cf99f68ed",
-      "line_count": 189,
-      "byte_count": 111107,
+      "git_object_id": "c55a0df307a2e9a46706595125d4f629c03bcd19",
+      "sha256": "1ae496335da5197a41057ad1a833bc22ca675cc3ebfa5512ab36bc5fdb5968f7",
+      "line_count": 212,
+      "byte_count": 121546,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -76542,6 +76548,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1-A3 — fix(ui): close shared runtime radius ownership",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-a3-fixui-close-shared-runtime-radius-ownership",
           "line": 165
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1-A4 — fix(ui): align shared semantic badge geometry",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-a4-fixui-align-shared-semantic-badge-geometry",
+          "line": 189
         }
       ]
     },
@@ -76629,10 +76641,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "7f4dcd586548c3b9467072288848ef12f30d3b0f",
-      "sha256": "d6bbef15f29df6dc21e1fbe458500170dc4db1a23165148431524830664d2bfa",
-      "line_count": 10084,
-      "byte_count": 1188124,
+      "git_object_id": "8c56290eba83dcf923098f7580fac2180cf969b1",
+      "sha256": "0eead6aa1e0fa1944c56428c8eb79c60094c928c3bfa0dee7acd95efb973865b",
+      "line_count": 10107,
+      "byte_count": 1198563,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86786,6 +86798,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1-A3 — fix(ui): close shared runtime radius ownership",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-a3-fixui-close-shared-runtime-radius-ownership",
           "line": 10062
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1-A4 — fix(ui): align shared semantic badge geometry",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-a4-fixui-align-shared-semantic-badge-geometry",
+          "line": 10086
         }
       ]
     },
@@ -97531,7 +97549,7 @@
       "inbound_references": [
         {
           "source_path": "docs/architecture/UI_CONFORMANCE.md",
-          "source_line": 526,
+          "source_line": 551,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null

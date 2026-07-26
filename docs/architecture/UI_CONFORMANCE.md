@@ -189,11 +189,36 @@ canonicalize it. The guard excludes them by paren-balanced `console.*(…)` dete
 by path and never by an ignore list — and asserts that exact set of three, so the exclusion
 cannot quietly widen.
 
-**Left open, deliberately.** `badgeTipo`, `badgeStatus` and `pedidoStatusBadge` are
-classification badges whose geometry is **ordinary 4px**, not pill. D6.1 scopes
-`--rv-radius-pill` to semantic pills and true circles, so an argument exists that they
-should become pills. A3 closed *ownership* and preserved geometry exactly; whether these
-three become semantic pills is an architect decision and is **not** decided here.
+**A4 — the three shared badge constructors, closed.** A3 left `badgeTipo`, `badgeStatus`
+and `pedidoStatusBadge` at ordinary 4px and recorded the question as open. It was not
+open: the architect ruled that `badgeStatus` and `pedidoStatusBadge` are **lifecycle
+status pills** and `badgeTipo` is a **neutral OP-type classification badge**. All three
+now delegate to the canonical badge owner in `js/badges.js`:
+
+| Helper | Delegates to | Result |
+|---|---|---|
+| `badgeStatus(status)` | `rvStatusPill(OP_STATUS_LABEL[status] \|\| status, status)` | canonical pill, ruled family, 5px dot |
+| `pedidoStatusBadge(status)` | `window.rvStatusPill(pedidoStatusLabel(status), status)` | canonical pill, ruled family, 5px dot |
+| `badgeTipo(tipo)` | `rvClassificationBadge(OP_TIPO_LABEL[tipo] \|\| tipo)` | canonical pill, neutral, **no dot** |
+
+`Látex` is deliberately **not** routed through `rvStageBadge` — it is an OP *type*, not the
+contract's `acabamento` stage key, so it takes the neutral classification badge and carries
+its meaning in the label rather than in a per-type indigo or amber treatment.
+
+**No local map decides rendering any more.** `OP_STATUS_BADGE`, `OP_TIPO_BADGE`,
+`PEDIDO_STATUS_BADGE` and `pedidoStatusBadgeClass()` are retained **byte-identical** for
+their existing compatibility consumers, but no rendered constructor reads them, no new
+consumer was added and no new family map was created. Public names and call signatures are
+unchanged, so none of the six screen call sites was edited.
+
+Measured in the live runtime at 1440 × 900, DPR 1, cold and warm: every badge resolves to
+`999px` at **18px** height; every lifecycle status carries exactly **one 5 × 5** dot and
+every classification badge **none**; families resolve `simulada` neutral, `aberta` info,
+`em_producao` caution, `finalizada` positive, `rascunho` neutral, `recebido` positive,
+`confirmado` neutral, `produzindo` caution (through the accepted `em producao` alias),
+`entregue` positive, `cancelado` negative, both OP types neutral, and any unknown value
+neutral rather than an invented family. **The pass-2 semantic-pill property is now closed
+across both the 66 screens and the shared runtime.**
 
 ### UIC-001 — closed
 
