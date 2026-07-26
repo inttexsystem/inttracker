@@ -58,6 +58,56 @@ export class LexError extends Error {
 /** Element factories whose first argument names the tag. */
 const FACTORIES = new Set(['el', 'createElement', 'h']);
 
+/* ---------- colour-site classification ----------
+   A colour-shaped run in JavaScript is classified by the SYNTAX around it, never
+   by the value itself and never by path or line. Three outcomes only: a proven
+   visual site, a proven non-visual site, or neither — and "neither" is reported
+   as a coverage gap by the rule engine rather than counted as a defect. */
+
+/** CSS properties whose value carries a colour. Kebab-cased keys are matched. */
+const COLOUR_CSS_PROPERTIES = new Set([
+  'color', 'background', 'background-color', 'background-image',
+  'border', 'border-color', 'border-top', 'border-right', 'border-bottom',
+  'border-left', 'border-top-color', 'border-right-color',
+  'border-bottom-color', 'border-left-color', 'border-block-color',
+  'border-inline-color', 'outline', 'outline-color', 'box-shadow',
+  'text-shadow', 'text-decoration', 'text-decoration-color', 'caret-color',
+  'accent-color', 'column-rule', 'column-rule-color',
+  'fill', 'stroke', 'stop-color', 'flood-color', 'lighting-color',
+]);
+
+/**
+ * Object keys that are proven NOT to carry a colour. Deliberately conservative:
+ * an ambiguous key such as `text`, `value` or `bg` is left unclassified so the
+ * site becomes a coverage gap instead of being absolved or accused.
+ */
+const NONVISUAL_KEYS = new Set([
+  'placeholder', 'title', 'alt', 'href', 'src', 'srcset', 'id', 'name',
+  'type', 'for', 'html-for', 'target', 'rel', 'download', 'pattern',
+  'autocomplete', 'label', 'aria-label', 'aria-labelledby',
+  'aria-describedby', 'class-name', 'class', 'role', 'tab-index',
+  'view-box', 'points', 'd', 'transform', 'data-testid', 'key', 'route',
+  'hash', 'url', 'path', 'accept', 'lang', 'dir', 'inputmode',
+]);
+
+/** Markup and setAttribute attributes that carry a colour value directly. */
+const COLOUR_ATTRIBUTES = new Set([
+  'fill', 'stroke', 'color', 'bgcolor', 'stop-color',
+  'flood-color', 'lighting-color',
+]);
+
+/** Is this object key or attribute name a proven colour-bearing site? */
+function isVisualKey(rawKey) {
+  if (/colou?r$/i.test(rawKey)) return true;
+  const kebabKey = kebab(rawKey);
+  return COLOUR_CSS_PROPERTIES.has(kebabKey) || COLOUR_ATTRIBUTES.has(kebabKey);
+}
+
+/** Is this object key a proven non-colour site? */
+function isNonvisualKey(rawKey) {
+  return NONVISUAL_KEYS.has(kebab(rawKey).toLowerCase());
+}
+
 /* ---------- lexer ---------- */
 
 /**
@@ -304,6 +354,48 @@ function isName(token, value) {
   return Boolean(token) && token.type === 'name' && token.value === value;
 }
 
+/**
+ * The innermost call whose `(` is still open at token `k`.
+ * @returns {{openIndex: number, calleeIndex: number}|null}
+ */
+function enclosingCall(tokens, k) {
+  let depth = 0;
+  for (let j = k - 1; j >= 0; j -= 1) {
+    const t = tokens[j];
+    if (t.type !== 'punct') continue;
+    if (t.value === ')' || t.value === ']' || t.value === '}') depth += 1;
+    else if (t.value === '(' || t.value === '[' || t.value === '{') {
+      if (depth === 0) return t.value === '(' ? { openIndex: j, calleeIndex: j - 1 } : null;
+      depth -= 1;
+    }
+  }
+  return null;
+}
+
+/** Zero-based argument position of token `k` inside the call opened at `open`. */
+function argumentIndex(tokens, open, k) {
+  let depth = 0;
+  let index = 0;
+  for (let j = open + 1; j < k; j += 1) {
+    const t = tokens[j];
+    if (t.type !== 'punct') continue;
+    if (t.value === '(' || t.value === '[' || t.value === '{') depth += 1;
+    else if (t.value === ')' || t.value === ']' || t.value === '}') depth -= 1;
+    else if (t.value === ',' && depth === 0) index += 1;
+  }
+  return index;
+}
+
+/** The object-literal key immediately preceding a `key: <literal>` value. */
+function precedingKey(tokens, k) {
+  if (!isPunct(tokens[k - 1], ':')) return null;
+  const key = tokens[k - 2];
+  if (!key) return null;
+  if (key.type === 'name') return key.value;
+  if (key.type === 'string') return key.value;
+  return null;
+}
+
 /** Index of the `{` that directly encloses token `k`, or -1. */
 function enclosingObject(tokens, k) {
   let depth = 0;
@@ -396,6 +488,66 @@ function expressionEnd(tokens, from) {
 const LITERAL_TAG_STYLE_RE =
   /<([a-zA-Z][-a-zA-Z0-9]*)\b((?:[^>"']|"[^"]*"|'[^']*')*?)style\s*=\s*"([^"]*)"/g;
 
+const LITERAL_TAG_RE = /<([a-zA-Z][-a-zA-Z0-9]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
+const LITERAL_ATTR_RE =
+  /([-a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+
+/**
+ * Classify the colour-bearing regions inside one string or template literal that
+ * carries markup. Attribute values are classified by attribute name; the text
+ * between tags is copy. Literals with no markup at all get no text region, so a
+ * bare string stays unproven instead of being absolved.
+ */
+function markupRegions(content, base) {
+  const regions = [];
+  const tagRanges = [];
+  LITERAL_TAG_RE.lastIndex = 0;
+  for (const tag of content.matchAll(LITERAL_TAG_RE)) {
+    const tagName = tag[1].toLowerCase();
+    tagRanges.push([tag.index, tag.index + tag[0].length]);
+    const attrsOffset = tag.index + 1 + tag[1].length;
+    LITERAL_ATTR_RE.lastIndex = 0;
+    for (const attr of (tag[2] || '').matchAll(LITERAL_ATTR_RE)) {
+      const name = attr[1].toLowerCase();
+      const value = attr[2] ?? attr[3] ?? '';
+      if (value === '') continue;
+      const start = attrsOffset + attr.index + attr[0].length - value.length - 1;
+      regions.push({
+        start: base + start,
+        end: base + start + value.length,
+        kind: COLOUR_ATTRIBUTES.has(name) || name === 'style' ? 'visual' : 'nonvisual',
+        property: name,
+        context: `literal <${tagName}> attribute "${name}"`,
+      });
+    }
+  }
+  if (tagRanges.length === 0) return regions;
+
+  let cursor = 0;
+  for (const [start, end] of tagRanges) {
+    if (start > cursor) {
+      regions.push({
+        start: base + cursor,
+        end: base + start,
+        kind: 'nonvisual',
+        property: null,
+        context: 'literal markup text content',
+      });
+    }
+    cursor = Math.max(cursor, end);
+  }
+  if (cursor < content.length) {
+    regions.push({
+      start: base + cursor,
+      end: base + content.length,
+      kind: 'nonvisual',
+      property: null,
+      context: 'literal markup text content',
+    });
+  }
+  return regions;
+}
+
 /* ---------- main ---------- */
 
 /**
@@ -426,6 +578,7 @@ export function analyse(path, text) {
       tables: [],
       sources: [],
       expressionSites: [],
+      colourContexts: [],
       indeterminate: [],
       lexError: { message: err.message, line: at.line, column: at.column },
     };
@@ -441,6 +594,8 @@ export function analyse(path, text) {
   const sources = [];
   const literals = [];
   const expressionSites = [];
+  const colourContexts = [];
+  const setAttributeRoles = new Map();
   /** Attribute objects that carried a decodable `style`, keyed by their `{`. */
   const objectElements = new Map();
 
@@ -476,7 +631,24 @@ export function analyse(path, text) {
   for (let k = 0; k < tokens.length; k += 1) {
     const token = tokens[k];
 
-    if (token.type === 'string' || token.type === 'template') literals.push(token);
+    if (token.type === 'string' || token.type === 'template') {
+      literals.push({ token, index: k });
+    }
+
+    /* setAttribute('<name>', <literal>) — the attribute name proves the role */
+    if (
+      isName(token, 'setAttribute') &&
+      isPunct(tokens[k + 1], '(') &&
+      tokens[k + 2] &&
+      tokens[k + 2].type === 'string' &&
+      isPunct(tokens[k + 3], ',')
+    ) {
+      const attr = tokens[k + 2].value.toLowerCase();
+      const value = tokens[k + 4];
+      if (value && (value.type === 'string' || value.type === 'template')) {
+        setAttributeRoles.set(value.start, attr);
+      }
+    }
 
     /* style: '...' inside an element-factory attribute object */
     if (isName(token, 'style') && isPunct(tokens[k + 1], ':')) {
@@ -653,9 +825,48 @@ export function analyse(path, text) {
   }
 
   /* markup and colours carried inside string literals */
-  for (const token of literals) {
+  for (const { token, index } of literals) {
     const { content, start } = literalContent(text, token);
     sources.push({ text: content, offset: start, context: 'string literal' });
+
+    /* --- classify this literal as a colour site, by syntax only --- */
+    const attr = setAttributeRoles.get(token.start);
+    const key = attr === undefined ? precedingKey(tokens, index) : attr;
+    let kind = null;
+    let property = null;
+    let why = null;
+    if (key !== null && key !== undefined) {
+      if (isVisualKey(key)) {
+        kind = 'visual';
+        property = kebab(key);
+        why = attr === undefined ? `property "${key}"` : `setAttribute("${key}")`;
+      } else if (isNonvisualKey(key)) {
+        kind = 'nonvisual';
+        why = attr === undefined ? `property "${key}"` : `setAttribute("${key}")`;
+      }
+    }
+    if (kind === null) {
+      const call = enclosingCall(tokens, index);
+      const callee = call ? tokens[call.calleeIndex] : null;
+      if (
+        callee && callee.type === 'name' && FACTORIES.has(callee.value) &&
+        argumentIndex(tokens, call.openIndex, index) >= 2
+      ) {
+        kind = 'nonvisual';
+        why = `text child of ${callee.value}()`;
+      }
+    }
+    if (kind !== null) {
+      colourContexts.push({
+        start: token.contentStart,
+        end: token.contentEnd,
+        kind,
+        property,
+        context: `${kind === 'visual' ? 'visual' : 'non-visual'} ${why}`,
+      });
+    }
+
+    colourContexts.push(...markupRegions(content, start));
 
     for (const m of content.matchAll(/<select\b/gi)) {
       const at = locate(start + m.index);
@@ -712,6 +923,29 @@ export function analyse(path, text) {
     }
   }
 
+  // A decoded CSS declaration value, and a style expression bound to a CSS
+  // property, are both proven visual sites. They are narrower than any literal
+  // region, so they win wherever they overlap one.
+  for (const decl of declarations) {
+    if (decl.valueEnd === undefined) continue;
+    colourContexts.push({
+      start: decl.valueOffset,
+      end: decl.valueEnd,
+      kind: 'visual',
+      property: decl.property,
+      context: `style declaration "${decl.property}" on ${decl.element.context}`,
+    });
+  }
+  for (const site of expressionSites) {
+    colourContexts.push({
+      start: site.start,
+      end: site.end,
+      kind: 'visual',
+      property: site.property,
+      context: `${site.context} for "${site.property}"`,
+    });
+  }
+
   for (const decl of declarations) {
     if (!decl.interpolated) continue;
     const at = locate(decl.valueOffset);
@@ -736,6 +970,7 @@ export function analyse(path, text) {
     tables,
     sources,
     expressionSites,
+    colourContexts,
     indeterminate,
     lexError: null,
   };

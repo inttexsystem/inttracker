@@ -21,6 +21,16 @@ const VOID_TAGS = new Set([
   'link', 'meta', 'param', 'source', 'track', 'wbr',
 ]);
 
+/**
+ * Attributes that carry a colour value directly. Everything else in markup is a
+ * non-visual attribute, and the text between tags is copy — so a colour-shaped
+ * run in markup is classified by where it sits, never by what it looks like.
+ */
+export const COLOUR_ATTRIBUTES = new Set([
+  'fill', 'stroke', 'color', 'bgcolor', 'stop-color',
+  'flood-color', 'lighting-color', 'style', 'style-hover',
+]);
+
 const TAG_RE = /<(\/?)([a-zA-Z][-a-zA-Z0-9]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
 const ATTR_RE = /([-a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
 const RAW_TEXT_RE = /<(script|style)\b((?:[^>"']|"[^"]*"|'[^']*')*)>([\s\S]*?)<\/\1\s*>/gi;
@@ -137,6 +147,8 @@ export function analyse(path, text) {
   const selects = [];
   const actionRows = [];
   const cards = [];
+  const colourContexts = [];
+  const tagRanges = [];
   const stack = [];
 
   TAG_RE.lastIndex = 0;
@@ -144,6 +156,7 @@ export function analyse(path, text) {
     const closing = m[1] === '/';
     const tag = m[2].toLowerCase();
     const rawAttrs = m[3] || '';
+    tagRanges.push([m.index, m.index + m[0].length]);
 
     if (closing) {
       for (let k = stack.length - 1; k >= 0; k -= 1) {
@@ -177,10 +190,28 @@ export function analyse(path, text) {
       parents: stack.slice(),
     };
 
+    const attrsOffset = m.index + 1 + m[2].length;
+
+    // Every attribute value is a classified region: a colour-bearing attribute
+    // is a visual site, anything else in markup is not. Declaration values
+    // inside a style attribute are emitted below and, being narrower, win.
+    for (const [attrName, rawValue] of attrMap) {
+      if (rawValue === '') continue;
+      const base = attributeValueOffset(rawAttrs, attrsOffset, attrName);
+      if (base === null) continue;
+      colourContexts.push({
+        start: base,
+        end: base + rawValue.length,
+        kind: COLOUR_ATTRIBUTES.has(attrName) ? 'visual' : 'nonvisual',
+        property: attrName,
+        context: `<${tag}> attribute "${attrName}"`,
+      });
+    }
+
     for (const attrName of ['style', 'style-hover']) {
       const raw = attrMap.get(attrName);
       if (raw === undefined) continue;
-      const base = attributeValueOffset(rawAttrs, m.index + 1 + m[2].length, attrName);
+      const base = attributeValueOffset(rawAttrs, attrsOffset, attrName);
       const offset = base === null ? m.index : base;
       for (const decl of parseDeclarations(raw, offset)) {
         if (attrName === 'style') element.decls.set(decl.property, decl.value);
@@ -202,6 +233,47 @@ export function analyse(path, text) {
   }
 
   collectStyleRules(scannable, locate, declarations);
+
+  // A CSS declaration value is a proven visual site, wherever it came from.
+  for (const decl of declarations) {
+    colourContexts.push({
+      start: decl.valueOffset,
+      end: decl.valueEnd,
+      kind: 'visual',
+      property: decl.property,
+      context: `style declaration "${decl.property}" on ${decl.element.context}`,
+    });
+  }
+
+  // Text between tags is copy. `<script>`/`<style>` bodies are deliberately NOT
+  // covered: a hex run there is neither markup copy nor a decoded declaration,
+  // so it stays unproven rather than being silently absolved.
+  RAW_TEXT_RE.lastIndex = 0;
+  const covered = tagRanges.concat(
+    [...scannable.matchAll(RAW_TEXT_RE)].map((b) => [b.index, b.index + b[0].length]),
+  ).sort((a, b) => a[0] - b[0]);
+  let cursor = 0;
+  for (const [start, end] of covered) {
+    if (start > cursor) {
+      colourContexts.push({
+        start: cursor,
+        end: start,
+        kind: 'nonvisual',
+        property: null,
+        context: 'markup text content',
+      });
+    }
+    cursor = Math.max(cursor, end);
+  }
+  if (cursor < text.length) {
+    colourContexts.push({
+      start: cursor,
+      end: text.length,
+      kind: 'nonvisual',
+      property: null,
+      context: 'markup text content',
+    });
+  }
 
   for (const decl of declarations) {
     if (decl.interpolated) {
@@ -231,6 +303,7 @@ export function analyse(path, text) {
     sources: [{ text: scannable, offset: 0, context: 'markup' }],
     // Markup carries no expression sites: every declaration is literal.
     expressionSites: [],
+    colourContexts,
     indeterminate,
     lexError: null,
   };

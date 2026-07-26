@@ -34,7 +34,10 @@ import {
   readContract,
   readTokens,
 } from '../scripts/ui-conformance/contract.mjs';
-import { buildConformanceInventory } from '../scripts/ui-conformance/inventory.mjs';
+import {
+  buildConformanceInventory,
+  readConformanceRows,
+} from '../scripts/ui-conformance/inventory.mjs';
 import {
   DETECTOR_VERSION,
   RULE_IDS,
@@ -228,6 +231,254 @@ test('contextual colour keywords and a bare fragment stay legal', () => {
     "el('a', { href: '#', style: 'color:currentColor;fill:transparent;stroke:inherit;background:none;' });",
   );
   assert.deepEqual(byRule(js.findings, 'UIC-001'), []);
+});
+
+/* ---------- UIC-001 contextual classification ---------- */
+
+/**
+ * One value, three outcomes, decided only by the syntax around it. `#8431` is
+ * used throughout because it is both a valid `#rgba` shorthand and a plausible
+ * order number, so nothing but context can separate the two.
+ */
+const AMBIGUOUS = '#8431';
+
+test('a proven non-visual site produces no UIC-001 finding', () => {
+  const cases = [
+    ['placeholder property', 'p.js', `el('input', { placeholder: 'Ex.: Pedido ${AMBIGUOUS}' });`],
+    ['title property', 'p.js', `el('b', { title: 'Pedido ${AMBIGUOUS}' });`],
+    ['label property', 'p.js', `var m = { label: 'Pedido ${AMBIGUOUS}' };`],
+    ['href property', 'p.js', `el('a', { href: '/pedidos/${AMBIGUOUS}' });`],
+    ['text child of el()', 'p.js', `el('span', {}, 'Pedido ${AMBIGUOUS}');`],
+    ['markup copy in a literal', 'p.js', `var s = '<b class="x">Pedido ${AMBIGUOUS}</b>';`],
+    ['line comment', 'p.js', `// legacy ${AMBIGUOUS} was here\nvar a = 1;`],
+    ['block comment', 'p.js', `/* legacy ${AMBIGUOUS} */\nvar a = 1;`],
+    ['regular-expression literal', 'p.js', `var re = /${AMBIGUOUS}/i;`],
+    ['visible HTML copy', 'p.dc.html', `<div>Ex.: Pedido ${AMBIGUOUS}</div>`],
+    ['HTML title text', 'p.dc.html', `<svg><title>${AMBIGUOUS}</title></svg>`],
+    ['non-visual HTML attribute', 'p.dc.html', `<a href="#${AMBIGUOUS}" title="Pedido ${AMBIGUOUS}">x</a>`],
+    ['SVG geometry attribute', 'p.dc.html', `<svg viewBox="0 0 ${AMBIGUOUS} 24"><path d="M${AMBIGUOUS}"/></svg>`],
+    ['HTML comment', 'p.dc.html', `<!-- legacy ${AMBIGUOUS} --><div></div>`],
+  ];
+  for (const [label, name, source] of cases) {
+    const found = byRule(analyseSource(name, source).findings, 'UIC-001');
+    assert.deepEqual(found, [], `${label} must produce no UIC-001: ${JSON.stringify(found)}`);
+  }
+});
+
+test('a proven visual site is blocking, for the same value', () => {
+  const cases = [
+    ['HTML style declaration', 'p.dc.html', `<div style="color:${AMBIGUOUS}"></div>`],
+    ['HTML style-hover declaration', 'p.dc.html', `<div style-hover="color:${AMBIGUOUS}"></div>`],
+    ['HTML style rule block', 'p.dc.html', `<style>a{color:${AMBIGUOUS};}</style>`],
+    ['SVG fill attribute', 'p.dc.html', `<svg><rect fill="${AMBIGUOUS}"/></svg>`],
+    ['SVG stroke attribute', 'p.dc.html', `<svg><rect stroke="${AMBIGUOUS}"/></svg>`],
+    ['JS style declaration', 'p.js', `el('div', { style: 'color:${AMBIGUOUS};' });`],
+    ['JS style assignment', 'p.js', `node.style.borderColor = '${AMBIGUOUS}';`],
+    ['JS cssText', 'p.js', `node.style.cssText = 'color:${AMBIGUOUS};';`],
+    ['JS colour property', 'p.js', `var m = { color: '${AMBIGUOUS}' };`],
+    ['JS -Color suffixed property', 'p.js', `var m = { labelColor: '${AMBIGUOUS}' };`],
+    ['JS quoted CSS-property key', 'p.js', `var m = { 'background-color': '${AMBIGUOUS}' };`],
+    ['JS setAttribute on a colour attribute', 'p.js', `n.setAttribute('fill', '${AMBIGUOUS}');`],
+    ['SVG colour attribute inside a literal', 'p.js', `var s = '<svg stroke="${AMBIGUOUS}"></svg>';`],
+    ['style attribute inside a literal', 'p.js', `var s = '<div style="color:${AMBIGUOUS}"></div>';`],
+    ['style expression bound to a property', 'p.js', `el('div', { style: cond ? 'color:red' : 'color:${AMBIGUOUS}' });`],
+  ];
+  for (const [label, name, source] of cases) {
+    const found = byRule(analyseSource(name, source).findings, 'UIC-001');
+    assert.equal(found.length, 1, `${label} must produce exactly one UIC-001`);
+    assert.equal(found[0].severity, 'blocking', `${label} must be blocking`);
+    assert.equal(found[0].observed_value, AMBIGUOUS);
+  }
+});
+
+test('an unprovable site is a coverage gap, never a colour defect', () => {
+  const cases = [
+    ['bare variable initialiser', `var bg = '${AMBIGUOUS}';`],
+    ['ternary in a variable', `var bg = danger ? '${AMBIGUOUS}' : '#fff';`],
+    ['unclassified map key', `var m = { bg: '${AMBIGUOUS}' };`],
+    ['array element', `var palette = ['${AMBIGUOUS}'];`],
+    ['function argument', `paint('${AMBIGUOUS}');`],
+  ];
+  for (const [label, source] of cases) {
+    const found = byRule(analyseSource('p.js', source).findings, 'UIC-001');
+    assert.ok(found.length >= 1, `${label} must still be reported`);
+    for (const f of found) {
+      assert.equal(f.severity, 'coverage', `${label} must not be blocking`);
+      assert.match(f.message, /^COVERAGE_GAP \/ VISUAL_COLOUR_CONTEXT_UNPROVEN/);
+      assert.match(f.message, /not counted as a colour defect/);
+    }
+  }
+});
+
+test('the functional colour forms follow the same contextual rules', () => {
+  for (const form of ['rgb(1,2,3)', 'rgba(1,2,3,.5)', 'hsl(1,2%,3%)', 'hsla(1,2%,3%,.5)']) {
+    const visual = byRule(
+      analyseSource('p.js', `el('div', { style: 'color:${form};' });`).findings,
+      'UIC-001',
+    );
+    assert.equal(visual.length, 1, `${form} in a declaration must be reported`);
+    assert.equal(visual[0].severity, 'blocking', `${form} in a declaration must be blocking`);
+
+    const copy = byRule(
+      analyseSource('p.js', `el('i', { placeholder: 'valor ${form}' });`).findings,
+      'UIC-001',
+    );
+    assert.deepEqual(copy, [], `${form} in a placeholder must be silent`);
+
+    const unproven = byRule(analyseSource('p.js', `var v = '${form}';`).findings, 'UIC-001');
+    assert.equal(unproven.length, 1);
+    assert.equal(unproven[0].severity, 'coverage', `${form} unclassified must be a coverage gap`);
+
+    const html = byRule(
+      analyseSource('p.dc.html', `<div style="color:${form}"></div>`).findings,
+      'UIC-001',
+    );
+    assert.equal(html[0].severity, 'blocking');
+    assert.deepEqual(
+      byRule(analyseSource('p.dc.html', `<div>${form}</div>`).findings, 'UIC-001'),
+      [],
+      `${form} as HTML copy must be silent`,
+    );
+  }
+});
+
+test('UIC-001 classification is syntactic — no path, line or value suppression exists', () => {
+  for (const source of DETECTOR_SOURCES) {
+    const text = read(REPO, source);
+    assert.ok(!text.includes(AMBIGUOUS.slice(1)), `${source} references the literal 8431`);
+    // The inventory glob `js/screens/*.js` is discovery, not suppression. What
+    // must not exist is a rule naming an individual screen or line.
+    assert.ok(
+      !/js\/screens\/[a-z][a-z0-9-]*\.js/.test(text),
+      `${source} names an individual screen file`,
+    );
+    assert.ok(!/\.(?:js|html)\s*:\s*\d+/.test(text), `${source} carries a line-specific rule`);
+    // A binding, not the word: the CLI header legitimately states that no
+    // waiver mechanism exists, and prose must not fail this check.
+    assert.ok(
+      !/\b(?:const|let|var|function)\s+\w*(?:waiver|allowlist|whitelist|ignore|suppress|exempt)\w*/i.test(text),
+      `${source} declares a suppression structure`,
+    );
+  }
+  // The behavioural proof: one identical value, opposite verdicts, from syntax alone.
+  const blocking = byRule(
+    analyseSource('p.js', `el('div', { color: '${AMBIGUOUS}' });`).findings,
+    'UIC-001',
+  );
+  const silent = byRule(
+    analyseSource('p.js', `el('div', { placeholder: '${AMBIGUOUS}' });`).findings,
+    'UIC-001',
+  );
+  assert.equal(blocking.length, 1);
+  assert.equal(blocking[0].severity, 'blocking');
+  assert.deepEqual(silent, []);
+});
+
+test('an escaped-quote attribute is unproven rather than absolved', () => {
+  // Built with real escapes rather than shell quoting, so the literal genuinely
+  // contains \' inside a single-quoted string.
+  const source = "var s = '<svg stroke=\\'" + AMBIGUOUS + "\\'></svg>';";
+  const found = byRule(analyseSource('p.js', source).findings, 'UIC-001');
+  assert.equal(found.length, 1, 'the value must still be reported');
+  assert.equal(found[0].severity, 'coverage', 'an undecodable attribute must not be absolved');
+});
+
+/* ---------- archetype block boundary ---------- */
+
+const ARCHETYPE_DOC = [
+  '# Conformance',
+  '',
+  '## Archetype F — Configuration',
+  '',
+  '| Screen | Generation | State |',
+  '|---|---|---|',
+  '| `Inside F.dc.html` | G2 | unaudited |',
+  '',
+].join('\n');
+
+const LATER_SECTION = [
+  '## Application surface',
+  '',
+  '| Screen | State | Coverage |',
+  '|---|---|---|',
+  '| `painel.js` | deviation | PARTIAL |',
+  '',
+].join('\n');
+
+test('a screen table under a later level-two heading is not inventoried', () => {
+  const rows = readConformanceRows(ARCHETYPE_DOC + LATER_SECTION);
+  assert.deepEqual(rows.map((r) => r.name), ['Inside F.dc.html']);
+  assert.equal(rows[0].archetype, 'F');
+});
+
+test('a screen table inside the archetype section is still inventoried', () => {
+  const inside = [
+    '# Conformance',
+    '',
+    '## Archetype F — Configuration',
+    '',
+    '| Screen | Generation | State |',
+    '|---|---|---|',
+    '| `Inside F.dc.html` | G2 | unaudited |',
+    '',
+    '### A subsection that belongs to F',
+    '',
+    '| Screen | Generation | State |',
+    '|---|---|---|',
+    '| `Also F.dc.html` | G2 | unaudited |',
+    '',
+    '## Something else',
+    '',
+    '| Screen | State | Coverage |',
+    '|---|---|---|',
+    '| `painel.js` | deviation | PARTIAL |',
+    '',
+  ].join('\n');
+  const rows = readConformanceRows(inside);
+  assert.deepEqual(rows.map((r) => r.name), ['Inside F.dc.html', 'Also F.dc.html']);
+  assert.ok(rows.every((r) => r.archetype === 'F'));
+});
+
+test('inventory is invariant under moving unrelated level-two sections', () => {
+  const before = readConformanceRows(
+    ['# Conformance', '', LATER_SECTION, ARCHETYPE_DOC].join('\n'),
+  );
+  const after = readConformanceRows(ARCHETYPE_DOC + LATER_SECTION);
+  const shape = (rows) => rows.map((r) => `${r.archetype}:${r.name}:${r.state}`);
+  assert.deepEqual(shape(before), shape(after));
+  assert.deepEqual(shape(after), ['F:Inside F.dc.html:unaudited']);
+});
+
+test('the live conformance document resolves the same inventory whatever the section order', () => {
+  const doc = read(REPO, 'docs/architecture/UI_CONFORMANCE.md');
+  const baseRows = readConformanceRows(doc);
+  const applicationHeading = '## Application surface';
+  assert.ok(doc.includes(applicationHeading), 'the application section must exist');
+
+  // Relocate the whole application section to the very end of the document.
+  const start = doc.indexOf(applicationHeading);
+  const nextHeading = doc.indexOf('\n## ', start + 1);
+  const section = doc.slice(start, nextHeading + 1);
+  const moved = `${doc.slice(0, start)}${doc.slice(nextHeading + 1)}\n${section}`;
+  const movedRows = readConformanceRows(moved);
+
+  const shape = (rows) => rows.map((r) => `${r.archetype}:${r.name}`).sort();
+  assert.deepEqual(shape(movedRows), shape(baseRows), 'section order must not change inventory');
+  assert.ok(baseRows.length > 0);
+  assert.ok(
+    baseRows.every((r) => r.name.endsWith('.dc.html')),
+    'no application module may be inventoried as a prototype row',
+  );
+});
+
+test('line attribution survives the new block boundary', () => {
+  const rows = readConformanceRows(ARCHETYPE_DOC + LATER_SECTION);
+  assert.equal(rows[0].line, 7, 'the row must report its own line');
+  const live = readConformanceRows(read(REPO, 'docs/architecture/UI_CONFORMANCE.md'));
+  const doc = read(REPO, 'docs/architecture/UI_CONFORMANCE.md').split('\n');
+  for (const row of live) {
+    assert.ok(doc[row.line - 1].includes(row.name), `line ${row.line} must contain ${row.name}`);
+  }
 });
 
 /* ---------- 6 · every enum rule, positive and negative ---------- */

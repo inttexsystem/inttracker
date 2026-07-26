@@ -73,7 +73,15 @@ export function makeLocator(text) {
 
 /* ---------- conformance-document rows ---------- */
 
-const ARCHETYPE_HEADING_RE = /^##\s+Archetype\s+([A-F])\b[^\n]*$/gm;
+/**
+ * An archetype block runs from its own heading to the NEXT LEVEL-TWO HEADING of
+ * any kind — not to the next archetype heading. Bounding on the next archetype
+ * heading made the last archetype swallow every later section, so an unrelated
+ * `## Application surface` table was read as that archetype's screens and the
+ * inventory silently depended on section order.
+ */
+const H2_HEADING_RE = /^##\s+[^\n]*$/gm;
+const ARCHETYPE_HEADING_RE = /^##\s+Archetype\s+([A-F])\b/;
 const ROW_RE = /^\|(.+)\|\s*$/gm;
 
 function cells(rowText) {
@@ -93,14 +101,16 @@ function screenName(cell) {
  * @returns {{archetype: string, name: string, generation: string, state: string, line: number}[]}
  */
 export function readConformanceRows(text) {
-  const headings = [...text.matchAll(ARCHETYPE_HEADING_RE)];
+  const headings = [...text.matchAll(H2_HEADING_RE)];
   const rows = [];
 
   for (let i = 0; i < headings.length; i += 1) {
+    const archetypeMatch = ARCHETYPE_HEADING_RE.exec(headings[i][0]);
+    if (!archetypeMatch) continue;
     const start = headings[i].index + headings[i][0].length;
     const end = i + 1 < headings.length ? headings[i + 1].index : text.length;
     const block = text.slice(start, end);
-    const archetype = headings[i][1];
+    const archetype = archetypeMatch[1];
 
     ROW_RE.lastIndex = 0;
     for (const row of block.matchAll(ROW_RE)) {

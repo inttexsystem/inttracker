@@ -17,7 +17,7 @@
 import { classifyToken } from '../ui-foundation/token-parser.mjs';
 import { normalizeValue, resolveCssValue } from './contract.mjs';
 
-export const DETECTOR_VERSION = '1.0.0';
+export const DETECTOR_VERSION = '1.0.1';
 
 export const RULE_NAMES = {
   'UIC-001': 'LITERAL_VISUAL_COLOUR',
@@ -54,16 +54,9 @@ const FONT_WEIGHT_KEYWORDS = new Map([['normal', '400'], ['bold', '700']]);
 const CARD_DIVIDER = '1px solid var(--rv-border-soft)';
 const CARD_ACTION_PADDING_TOP = '11px';
 
-/** SVG/HTML presentation attributes that carry a colour value directly. */
-const COLOUR_ATTRIBUTE_RE =
-  /\b(fill|stroke|color|bgcolor|stop-color|flood-color|lighting-color)\s*=\s*["']?$/i;
-
-/** The colour-bearing attribute immediately preceding `index`, if any. */
-function colourAttributeBefore(text, index) {
-  const window = text.slice(Math.max(0, index - 24), index);
-  const match = COLOUR_ATTRIBUTE_RE.exec(window);
-  return match ? match[1].toLowerCase() : null;
-}
+/* Colour-site classification lives in the front-ends, where the grammar is
+   known. This module only reads the regions they produce — see
+   colourContextAt() and ruleLiteralColour() below. */
 
 /* ---------- element roles ---------- */
 
@@ -182,52 +175,75 @@ function makeFinding(unit, meta) {
 
 /* ---------- rules ---------- */
 
+/**
+ * The innermost classified region containing `offset`, or null.
+ *
+ * Innermost wins, so a colour-bearing attribute inside a markup string beats the
+ * string's own copy classification, and a decoded declaration value beats both.
+ */
+function colourContextAt(unit, offset) {
+  let best = null;
+  for (const region of unit.colourContexts ?? []) {
+    if (offset < region.start || offset >= region.end) continue;
+    if (best === null || region.end - region.start < best.end - best.start) best = region;
+  }
+  return best;
+}
+
+/**
+ * UIC-001 has three outcomes, decided by SYNTAX and nothing else.
+ *
+ * A colour-shaped run is blocking only where the front-end proved it is a visual
+ * value — a decoded CSS declaration, a style expression bound to a CSS property,
+ * a colour-bearing markup attribute, or a JavaScript key that carries a colour.
+ * It is silent where the front-end proved the opposite: copy, a placeholder, a
+ * label, an identifier, a route, a non-visual attribute, a comment. Where
+ * neither is proven it is a COVERAGE GAP, never a defect.
+ *
+ * There is no path, line or value suppression anywhere in this rule. A given
+ * value is silent in a placeholder because the placeholder is a proven
+ * non-visual site, and blocking inside `color:` because that is a proven
+ * visual one. The value itself never enters the decision.
+ */
 function ruleLiteralColour(unit, ctx, out) {
   if (!ctx.enums.literalHexForbidden) return;
-
-  // Whether a hit sits inside a decoded style declaration is not a severity
-  // question — a literal colour is a defect either way — but it is the
-  // difference between a value to retokenise and pt-BR copy that merely
-  // spells something hex-shaped. Recording it is evidence, not suppression:
-  // this phase may not create a waiver or ignore-list mechanism.
-  const declarationAt = (offset) =>
-    unit.declarations.find(
-      (d) => d.valueEnd !== undefined && offset >= d.valueOffset && offset < d.valueEnd,
-    );
-
-  // A colour inside a ternary or a concatenated style expression belongs to a
-  // known property even though the running value is undecidable.
-  const expressionAt = (offset) =>
-    (unit.expressionSites ?? []).find((e) => offset >= e.start && offset < e.end);
 
   for (const source of unit.sources) {
     for (const re of [HEX_RE, COLOUR_FN_RE]) {
       re.lastIndex = 0;
       for (const m of source.text.matchAll(re)) {
         const offset = source.offset + m.index;
+        const region = colourContextAt(unit, offset);
+
+        if (region && region.kind === 'nonvisual') continue;
+
         const at = unit.locate(offset);
-        const decl = declarationAt(offset);
-        const expression = decl ? null : expressionAt(offset);
-        const attribute =
-          decl || expression ? null : colourAttributeBefore(source.text, m.index);
+        if (!region) {
+          out.push(
+            makeFinding(unit, {
+              rule_id: 'UIC-001',
+              severity: 'coverage',
+              line: at.line,
+              column: at.column,
+              property: null,
+              observed_value: m[0],
+              element_or_context: source.context ?? 'screen source',
+              message: `COVERAGE_GAP / VISUAL_COLOUR_CONTEXT_UNPROVEN — "${m[0]}" is colour-shaped but the front-end could prove neither a visual nor a non-visual site for it. It is not counted as a colour defect.`,
+            }),
+          );
+          continue;
+        }
+
         out.push(
           makeFinding(unit, {
             rule_id: 'UIC-001',
             severity: 'blocking',
             line: at.line,
             column: at.column,
-            property: decl ? decl.property : expression ? expression.property : attribute,
+            property: region.property,
             observed_value: m[0],
-            element_or_context: decl
-              ? `style declaration "${decl.property}" on ${decl.element.context}`
-              : expression
-                ? `${expression.context} for "${expression.property}"`
-                : attribute
-                  ? `markup colour attribute "${attribute}"`
-                  : `${source.context ?? 'screen source'} (outside any style declaration or colour attribute)`,
-            message: decl || expression || attribute
-              ? `Literal visual colour "${m[0]}" in a screen. Values are owned by css/tokens.css; reference var(--rv-*).`
-              : `Literal visual colour "${m[0]}" in screen source, outside any style declaration or colour attribute. Confirm the site before retokenising: a hex-shaped run inside pt-BR copy is not a colour.`,
+            element_or_context: region.context,
+            message: `Literal visual colour "${m[0]}" in a screen. Values are owned by css/tokens.css; reference var(--rv-*).`,
           }),
         );
       }
@@ -759,7 +775,8 @@ export function sortFindings(findings) {
     String(f.observed_value ?? ''),
     String(f.property ?? ''),
     f.message,
-  ].join(' ');
+    // U+0000 cannot occur in any field, so it separates without colliding.
+  ].join('\u0000');
   return findings.slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
 }
 
