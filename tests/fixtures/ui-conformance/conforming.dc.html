@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<!-- ============================================================
+     DETECTOR FIXTURE — CONFORMING PROTOTYPE (negative case)
+
+     Synthetic. Not a product screen, not a precedent, and excluded
+     from the detector inventory (tests/** is never scanned as a
+     surface). It exists so the focused suite can prove the detector
+     stays silent on canonical values, which is the half of the proof
+     a violation fixture cannot give.
+     ============================================================ -->
+<html>
+<head>
+<link rel="stylesheet" href="../../../css/tokens.css">
+</head>
+<body>
+<div data-ui-archetype="detail-cockpit" style="background:var(--rv-bg);color:var(--rv-text-primary);">
+  <section style="background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:var(--rv-pad-card);">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="width:20px;height:20px;border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);"></span>
+      <span style="font-size:var(--rv-fs-label);font-weight:700;color:var(--rv-text-tertiary);">DADOS DA OP</span>
+      <span style="height:18px;padding:0 6px;border-radius:var(--rv-radius-pill);border:1px solid var(--rv-pill-positive-border);background:var(--rv-pill-positive-bg);color:var(--rv-pill-positive-text);font-size:var(--rv-fs-2xs);font-weight:600;">Ativo</span>
+      <span style="width:5px;height:5px;border-radius:var(--rv-radius-pill);background:var(--rv-pill-positive-dot);"></span>
+    </div>
+    <table style="width:100%;table-layout:fixed;border-collapse:collapse;">
+      <colgroup><col style="width:60%;"><col style="width:40%;"></colgroup>
+      <tr>
+        <th style="font-size:var(--rv-fs-thead);font-weight:600;color:var(--rv-text-tertiary);text-align:left;">ITEM</th>
+        <th style="font-size:var(--rv-fs-thead);font-weight:600;color:var(--rv-text-tertiary);text-align:right;">QTD</th>
+      </tr>
+      <tr>
+        <td style="font-size:var(--rv-fs-body);color:var(--rv-text-primary);text-align:left;">Tapete Classic</td>
+        <td style="font-size:var(--rv-fs-body);color:var(--rv-text-primary);text-align:right;">12</td>
+      </tr>
+    </table>
+    <div data-card-actions style="display:flex;align-items:center;justify-content:flex-end;padding-top:11px;border-top:1px solid var(--rv-border-soft);">
+      <button style="height:var(--rv-h-default);border-radius:var(--rv-radius);background:var(--rv-surface);border:1px solid var(--rv-border-strong);color:var(--rv-text-secondary);font-size:var(--rv-fs-body);font-weight:500;cursor:pointer;">Salvar</button>
+    </div>
+  </section>
+</div>
+</body>
+</html>

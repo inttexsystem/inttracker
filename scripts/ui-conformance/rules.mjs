@@ -1,0 +1,768 @@
+/* ============================================================
+   UI CONFORMANCE — SHARED RULE ENGINE
+
+   One rule set, two front-ends. Every rule below reads the neutral
+   unit a front-end produces and the closed enums the contract reader
+   parsed; none of them knows whether the screen was written as
+   markup or as JavaScript, and none of them contains a numeric enum.
+
+   Severity has three levels and they are not interchangeable:
+     · blocking — a contract defect; `--enforce` fails on it;
+     · debt     — the ratified transitional compatibility block;
+     · coverage — the detector could NOT decide. A coverage finding
+                  is the opposite of a pass and must never be read
+                  as one.
+   ============================================================ */
+
+import { classifyToken } from '../ui-foundation/token-parser.mjs';
+import { normalizeValue, resolveCssValue } from './contract.mjs';
+
+export const DETECTOR_VERSION = '1.0.0';
+
+export const RULE_NAMES = {
+  'UIC-001': 'LITERAL_VISUAL_COLOUR',
+  'UIC-002': 'RADIUS_OUTSIDE_ENUM',
+  'UIC-003': 'CONTROL_HEIGHT_OUTSIDE_ENUM',
+  'UIC-004': 'SHADOW_OUTSIDE_ENUM',
+  'UIC-005': 'TYPOGRAPHY_OUTSIDE_ENUM',
+  'UIC-006': 'NATIVE_SELECT',
+  'UIC-007': 'PILL_RADIUS_ON_BUTTON',
+  'UIC-008': 'CARD_ACTION_ALIGNMENT',
+  'UIC-009': 'DEPRECATED_TOKEN_REFERENCE',
+  'UIC-010': 'SEMANTIC_PILL_RADIUS_MISUSE',
+  'UIC-011': 'UNKNOWN_TOKEN_REFERENCE',
+};
+
+export const RULE_IDS = Object.keys(RULE_NAMES);
+
+/** Every hex form, longest-first so `#rrggbbaa` is not truncated. */
+const HEX_RE = /#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{3})\b/g;
+const COLOUR_FN_RE = /\b(?:rgba?|hsla?)\s*\(/g;
+const TOKEN_REF_RE = /var\(\s*(--rv-[a-z0-9-]+)/g;
+
+const CONTROL_TAGS = new Set(['button', 'input', 'select', 'textarea']);
+const RADIUS_PROPERTIES = new Set([
+  'border-radius',
+  'border-top-left-radius',
+  'border-top-right-radius',
+  'border-bottom-left-radius',
+  'border-bottom-right-radius',
+]);
+
+const FONT_WEIGHT_KEYWORDS = new Map([['normal', '400'], ['bold', '700']]);
+
+const CARD_DIVIDER = '1px solid var(--rv-border-soft)';
+const CARD_ACTION_PADDING_TOP = '11px';
+
+/** SVG/HTML presentation attributes that carry a colour value directly. */
+const COLOUR_ATTRIBUTE_RE =
+  /\b(fill|stroke|color|bgcolor|stop-color|flood-color|lighting-color)\s*=\s*["']?$/i;
+
+/** The colour-bearing attribute immediately preceding `index`, if any. */
+function colourAttributeBefore(text, index) {
+  const window = text.slice(Math.max(0, index - 24), index);
+  const match = COLOUR_ATTRIBUTE_RE.exec(window);
+  return match ? match[1].toLowerCase() : null;
+}
+
+/* ---------- element roles ---------- */
+
+function attr(element, name) {
+  return element.attrMap instanceof Map ? element.attrMap.get(name) : undefined;
+}
+
+function hasAttr(element, name) {
+  return element.attrMap instanceof Map ? element.attrMap.has(name) : false;
+}
+
+export function isControl(element) {
+  if (!element) return false;
+  if (CONTROL_TAGS.has(element.tag)) return true;
+  if (hasAttr(element, 'data-ui-control')) return true;
+  if (attr(element, 'role') === 'button') return true;
+  // An anchor is a control only when it is dressed as one: an explicit height
+  // plus a control surface. A plain link with a height is not a control.
+  if (element.tag === 'a' && element.decls.has('height')) {
+    return element.decls.has('border') || element.decls.has('background');
+  }
+  return false;
+}
+
+export function isButtonLike(element) {
+  if (!element) return false;
+  if (element.tag === 'button') return true;
+  if (attr(element, 'role') === 'button') return true;
+  if (hasAttr(element, 'data-ui-control')) return true;
+  if (element.tag === 'a' && element.decls.has('cursor') && element.decls.has('height')) return true;
+  return false;
+}
+
+function backgroundOf(element) {
+  return element.decls.get('background') || element.decls.get('background-color') || '';
+}
+
+export function isSemanticPill(element) {
+  if (/var\(\s*--rv-(?:pill|stage)-/.test(backgroundOf(element))) return true;
+  for (const cls of element.classes ?? []) {
+    if (/(?:^|[-_])(?:pill|badge|status|stage|chip-count)(?:[-_]|$)/i.test(cls)) return true;
+  }
+  return hasAttr(element, 'data-ui-pill');
+}
+
+export function isTrueCircle(element) {
+  const w = element.decls.get('width');
+  const h = element.decls.get('height');
+  return Boolean(w) && Boolean(h) && normalizeValue(w) === normalizeValue(h);
+}
+
+function isCardChip(element) {
+  return backgroundOf(element).includes('--rv-chip-bg');
+}
+
+/* ---------- value helpers ---------- */
+
+function resolve(tokens, value) {
+  return resolveCssValue(tokens, value);
+}
+
+function lengthsPx(value) {
+  return [...String(value).matchAll(/(-?\d*\.?\d+)px\b/g)].map((m) => Number(m[1]));
+}
+
+/** The token that owns pill geometry. Its VALUE is never written here. */
+const PILL_RADIUS_TOKEN = '--rv-radius-pill';
+
+/** Rule-7 threshold: a radius this large is pill geometry whatever it spells. */
+const PILL_MIN_PX = 20;
+
+/**
+ * Is this radius value pill geometry? Either the semantic token, its
+ * canonical value as declared in css/tokens.css, or any radius at or above
+ * the rule-7 threshold.
+ */
+function pillRadius(tokens, raw, resolvedValue) {
+  if (String(raw).includes(PILL_RADIUS_TOKEN)) return `token ${PILL_RADIUS_TOKEN}`;
+  const normalized = normalizeValue(resolvedValue);
+  const canonical = tokens.values.get(PILL_RADIUS_TOKEN);
+  if (canonical && valueParts(normalized).includes(normalizeValue(canonical))) {
+    return `literal ${canonical}`;
+  }
+  const big = lengthsPx(normalized).filter((n) => n >= PILL_MIN_PX);
+  if (big.length > 0) return `literal radius ${big[0]}px, at or above the ${PILL_MIN_PX}px threshold`;
+  return null;
+}
+
+function valueParts(value) {
+  return normalizeValue(value)
+    .split('/')
+    .join(' ')
+    .split(' ')
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+/* ---------- finding constructor ---------- */
+
+function makeFinding(unit, meta) {
+  return {
+    rule_id: meta.rule_id,
+    severity: meta.severity,
+    path: unit.path,
+    line: meta.line,
+    column: meta.column ?? null,
+    front_end: unit.frontEnd,
+    archetype: unit.archetype ?? null,
+    property: meta.property ?? null,
+    observed_value: meta.observed_value ?? null,
+    resolved_value: meta.resolved_value ?? null,
+    element_or_context: meta.element_or_context ?? null,
+    message: meta.message,
+  };
+}
+
+/* ---------- rules ---------- */
+
+function ruleLiteralColour(unit, ctx, out) {
+  if (!ctx.enums.literalHexForbidden) return;
+
+  // Whether a hit sits inside a decoded style declaration is not a severity
+  // question — a literal colour is a defect either way — but it is the
+  // difference between a value to retokenise and pt-BR copy that merely
+  // spells something hex-shaped. Recording it is evidence, not suppression:
+  // this phase may not create a waiver or ignore-list mechanism.
+  const declarationAt = (offset) =>
+    unit.declarations.find(
+      (d) => d.valueEnd !== undefined && offset >= d.valueOffset && offset < d.valueEnd,
+    );
+
+  // A colour inside a ternary or a concatenated style expression belongs to a
+  // known property even though the running value is undecidable.
+  const expressionAt = (offset) =>
+    (unit.expressionSites ?? []).find((e) => offset >= e.start && offset < e.end);
+
+  for (const source of unit.sources) {
+    for (const re of [HEX_RE, COLOUR_FN_RE]) {
+      re.lastIndex = 0;
+      for (const m of source.text.matchAll(re)) {
+        const offset = source.offset + m.index;
+        const at = unit.locate(offset);
+        const decl = declarationAt(offset);
+        const expression = decl ? null : expressionAt(offset);
+        const attribute =
+          decl || expression ? null : colourAttributeBefore(source.text, m.index);
+        out.push(
+          makeFinding(unit, {
+            rule_id: 'UIC-001',
+            severity: 'blocking',
+            line: at.line,
+            column: at.column,
+            property: decl ? decl.property : expression ? expression.property : attribute,
+            observed_value: m[0],
+            element_or_context: decl
+              ? `style declaration "${decl.property}" on ${decl.element.context}`
+              : expression
+                ? `${expression.context} for "${expression.property}"`
+                : attribute
+                  ? `markup colour attribute "${attribute}"`
+                  : `${source.context ?? 'screen source'} (outside any style declaration or colour attribute)`,
+            message: decl || expression || attribute
+              ? `Literal visual colour "${m[0]}" in a screen. Values are owned by css/tokens.css; reference var(--rv-*).`
+              : `Literal visual colour "${m[0]}" in screen source, outside any style declaration or colour attribute. Confirm the site before retokenising: a hex-shaped run inside pt-BR copy is not a colour.`,
+          }),
+        );
+      }
+    }
+  }
+}
+
+function ruleRadius(unit, ctx, out) {
+  for (const decl of unit.declarations) {
+    if (!RADIUS_PROPERTIES.has(decl.property)) continue;
+    if (decl.interpolated) continue;
+    const { value: resolved, unresolved } = resolve(ctx.tokens, decl.value);
+    const at = unit.locate(decl.valueOffset);
+    if (unresolved.length > 0) {
+      out.push(
+        makeFinding(unit, {
+          rule_id: 'UIC-002',
+          severity: 'blocking',
+          line: at.line,
+          column: at.column,
+          property: decl.property,
+          observed_value: decl.value,
+          resolved_value: null,
+          element_or_context: decl.element.context,
+          message: `Radius references ${unresolved.join(', ')}, which does not resolve in css/tokens.css, so it cannot be proved inside the enum.`,
+        }),
+      );
+      continue;
+    }
+    const bad = valueParts(resolved).filter((p) => !ctx.enums.radius.has(p));
+    if (bad.length === 0) continue;
+    out.push(
+      makeFinding(unit, {
+        rule_id: 'UIC-002',
+        severity: 'blocking',
+        line: at.line,
+        column: at.column,
+        property: decl.property,
+        observed_value: decl.value,
+        resolved_value: resolved,
+        element_or_context: decl.element.context,
+        message: `Radius ${bad.join(', ')} is outside the contract enum [${[...ctx.enums.radius].join(', ')}].`,
+      }),
+    );
+  }
+}
+
+function ruleControlHeight(unit, ctx, out) {
+  for (const decl of unit.declarations) {
+    if (decl.property !== 'height') continue;
+    if (decl.interpolated) continue;
+    if (!decl.element.roleResolved) {
+      // A height on an element whose tag the front-end could not recover may
+      // or may not be a control height. Reporting neither a pass nor a defect
+      // is the only honest answer.
+      const where = unit.locate(decl.valueOffset);
+      out.push(
+        makeFinding(unit, {
+          rule_id: 'UIC-003',
+          severity: 'coverage',
+          line: where.line,
+          column: where.column,
+          property: 'height',
+          observed_value: decl.value,
+          element_or_context: decl.element.context,
+          message: 'COVERAGE_GAP / CONTROL_ROLE_UNPROVEN — a height on an element whose role the detector could not resolve. This is not a pass.',
+        }),
+      );
+      continue;
+    }
+    if (!isControl(decl.element)) continue;
+    const { value: resolved, unresolved } = resolve(ctx.tokens, decl.value);
+    const at = unit.locate(decl.valueOffset);
+    if (unresolved.length > 0) {
+      out.push(
+        makeFinding(unit, {
+          rule_id: 'UIC-003',
+          severity: 'blocking',
+          line: at.line,
+          column: at.column,
+          property: 'height',
+          observed_value: decl.value,
+          element_or_context: decl.element.context,
+          message: `Control height references ${unresolved.join(', ')}, which does not resolve in css/tokens.css.`,
+        }),
+      );
+      continue;
+    }
+    if (ctx.enums.controlHeight.has(normalizeValue(resolved))) continue;
+    out.push(
+      makeFinding(unit, {
+        rule_id: 'UIC-003',
+        severity: 'blocking',
+        line: at.line,
+        column: at.column,
+        property: 'height',
+        observed_value: decl.value,
+        resolved_value: resolved,
+        element_or_context: decl.element.context,
+        message: `Control height ${resolved} is outside the contract ladder [${[...ctx.enums.controlHeight].join(', ')}].`,
+      }),
+    );
+  }
+}
+
+function ruleShadow(unit, ctx, out) {
+  for (const decl of unit.declarations) {
+    if (decl.property !== 'box-shadow') continue;
+    if (decl.interpolated) continue;
+    const { value: resolved, unresolved } = resolve(ctx.tokens, decl.value);
+    const at = unit.locate(decl.valueOffset);
+    const normalized = normalizeValue(resolved);
+
+    if (unresolved.length > 0) {
+      out.push(
+        makeFinding(unit, {
+          rule_id: 'UIC-004',
+          severity: 'blocking',
+          line: at.line,
+          column: at.column,
+          property: 'box-shadow',
+          observed_value: decl.value,
+          element_or_context: decl.element.context,
+          message: `Shadow references ${unresolved.join(', ')}, which does not resolve through a canonical token.`,
+        }),
+      );
+      continue;
+    }
+    if (!ctx.enums.shadow.has(normalized)) {
+      out.push(
+        makeFinding(unit, {
+          rule_id: 'UIC-004',
+          severity: 'blocking',
+          line: at.line,
+          column: at.column,
+          property: 'box-shadow',
+          observed_value: decl.value,
+          resolved_value: resolved,
+          element_or_context: decl.element.context,
+          message: `Shadow ${resolved} is outside the three-value contract enum.`,
+        }),
+      );
+    }
+
+    if (normalized === 'none') continue;
+
+    if (decl.element.isCard) {
+      out.push(
+        makeFinding(unit, {
+          rule_id: 'UIC-004',
+          severity: 'blocking',
+          line: at.line,
+          column: at.column,
+          property: 'box-shadow',
+          observed_value: decl.value,
+          resolved_value: resolved,
+          element_or_context: decl.element.context,
+          message: 'Cards are flat. A card may declare no shadow other than none.',
+        }),
+      );
+    } else if (decl.element.insideCard === null) {
+      out.push(
+        makeFinding(unit, {
+          rule_id: 'UIC-004',
+          severity: 'coverage',
+          line: at.line,
+          column: at.column,
+          property: 'box-shadow',
+          observed_value: decl.value,
+          resolved_value: resolved,
+          element_or_context: decl.element.context,
+          message: 'COVERAGE_GAP / CARD_MEMBERSHIP_UNPROVEN — a non-none shadow on an element the detector cannot prove is or is not a card. The "cards are flat" clause was not evaluated here.',
+        }),
+      );
+    }
+  }
+}
+
+function ruleTypography(unit, ctx, out) {
+  for (const decl of unit.declarations) {
+    if (decl.interpolated) continue;
+    if (decl.property === 'font-size') {
+      const { value: resolved, unresolved } = resolve(ctx.tokens, decl.value);
+      const at = unit.locate(decl.valueOffset);
+      if (unresolved.length > 0) {
+        out.push(
+          makeFinding(unit, {
+            rule_id: 'UIC-005',
+            severity: 'blocking',
+            line: at.line,
+            column: at.column,
+            property: 'font-size',
+            observed_value: decl.value,
+            element_or_context: decl.element.context,
+            message: `Font size references ${unresolved.join(', ')}, which does not resolve in css/tokens.css.`,
+          }),
+        );
+        continue;
+      }
+      if (ctx.enums.fontSize.has(normalizeValue(resolved))) continue;
+      out.push(
+        makeFinding(unit, {
+          rule_id: 'UIC-005',
+          severity: 'blocking',
+          line: at.line,
+          column: at.column,
+          property: 'font-size',
+          observed_value: decl.value,
+          resolved_value: resolved,
+          element_or_context: decl.element.context,
+          message: `Font size ${resolved} is outside the ten-value contract enum.`,
+        }),
+      );
+      continue;
+    }
+    if (decl.property !== 'font-weight') continue;
+    const { value: resolved } = resolve(ctx.tokens, decl.value);
+    const normalized = normalizeValue(resolved);
+    const weight = FONT_WEIGHT_KEYWORDS.get(normalized) ?? normalized;
+    if (ctx.enums.fontWeight.has(weight)) continue;
+    const at = unit.locate(decl.valueOffset);
+    out.push(
+      makeFinding(unit, {
+        rule_id: 'UIC-005',
+        severity: 'blocking',
+        line: at.line,
+        column: at.column,
+        property: 'font-weight',
+        observed_value: decl.value,
+        resolved_value: resolved,
+        element_or_context: decl.element.context,
+        message: `Font weight ${resolved} is outside the contract enum [${[...ctx.enums.fontWeight].join(', ')}].`,
+      }),
+    );
+  }
+}
+
+function ruleNativeSelect(unit, ctx, out) {
+  if (!ctx.enums.nativeSelectForbidden) return;
+  for (const hit of unit.selects) {
+    out.push(
+      makeFinding(unit, {
+        rule_id: 'UIC-006',
+        severity: 'blocking',
+        line: hit.line,
+        column: hit.column,
+        property: null,
+        observed_value: hit.context,
+        element_or_context: hit.context,
+        message: 'Native <select> on a product surface. The open list is browser-drawn; D8 requires an own popover.',
+      }),
+    );
+  }
+}
+
+function ruleRadiusRoles(unit, ctx, out) {
+  for (const decl of unit.declarations) {
+    if (decl.property !== 'border-radius') continue;
+    if (decl.interpolated) continue;
+    const { value: resolved } = resolve(ctx.tokens, decl.value);
+    const pill = pillRadius(ctx.tokens, decl.value, resolved);
+    if (!pill) continue;
+    const element = decl.element;
+    const at = unit.locate(decl.valueOffset);
+
+    if (ctx.enums.pillRadiusOnButtonForbidden && isButtonLike(element)) {
+      out.push(
+        makeFinding(unit, {
+          rule_id: 'UIC-007',
+          severity: 'blocking',
+          line: at.line,
+          column: at.column,
+          property: 'border-radius',
+          observed_value: decl.value,
+          resolved_value: resolved,
+          element_or_context: element.context,
+          message: `Pill radius (${pill}) on a button or button-equivalent control. Never a pill (§2.1, §6).`,
+        }),
+      );
+      continue;
+    }
+
+    if (!element.roleResolved) {
+      out.push(
+        makeFinding(unit, {
+          rule_id: 'UIC-010',
+          severity: 'coverage',
+          line: at.line,
+          column: at.column,
+          property: 'border-radius',
+          observed_value: decl.value,
+          resolved_value: resolved,
+          element_or_context: element.context,
+          message: 'COVERAGE_GAP / PILL_ROLE_UNPROVEN — pill radius on an element whose role the detector could not resolve. D6.1 cannot be decided here.',
+        }),
+      );
+      continue;
+    }
+
+    if (isSemanticPill(element) || isTrueCircle(element)) continue;
+
+    const why = isCardChip(element)
+      ? 'a section icon chip'
+      : element.isCard
+        ? 'a card'
+        : isControl(element)
+          ? 'a control'
+          : 'an ordinary rectangular container';
+    out.push(
+      makeFinding(unit, {
+        rule_id: 'UIC-010',
+        severity: 'blocking',
+        line: at.line,
+        column: at.column,
+        property: 'border-radius',
+        observed_value: decl.value,
+        resolved_value: resolved,
+        element_or_context: element.context,
+        message: `D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is ${why}.`,
+      }),
+    );
+  }
+}
+
+function ruleCardActions(unit, ctx, out) {
+  const allowed = ['flex-end', 'space-between'];
+
+  for (const row of unit.actionRows) {
+    const justify = row.decls.get('justify-content');
+    if (!justify) {
+      out.push(
+        makeFinding(unit, {
+          rule_id: 'UIC-008',
+          severity: 'blocking',
+          line: row.line,
+          column: row.column,
+          property: 'justify-content',
+          observed_value: null,
+          element_or_context: row.context,
+          message: 'A row marked data-card-actions declares no justify-content; alignment is undefined.',
+        }),
+      );
+      continue;
+    }
+    if (!allowed.includes(normalizeValue(justify))) {
+      out.push(
+        makeFinding(unit, {
+          rule_id: 'UIC-008',
+          severity: 'blocking',
+          line: row.line,
+          column: row.column,
+          property: 'justify-content',
+          observed_value: justify,
+          element_or_context: row.context,
+          message: `Card action row is ${justify}; the contract allows only flex-end or space-between.`,
+        }),
+      );
+    }
+
+    if (row.insideCard !== true) continue;
+
+    const divider = row.decls.get('border-top');
+    const dividerOk =
+      divider !== undefined &&
+      normalizeValue(resolve(ctx.tokens, divider).value) ===
+        normalizeValue(resolve(ctx.tokens, CARD_DIVIDER).value);
+    if (!dividerOk) {
+      out.push(
+        makeFinding(unit, {
+          rule_id: 'UIC-008',
+          severity: 'blocking',
+          line: row.line,
+          column: row.column,
+          property: 'border-top',
+          observed_value: divider ?? null,
+          element_or_context: row.context,
+          message: `An in-card action row must carry the canonical footer divider ${CARD_DIVIDER}.`,
+        }),
+      );
+    }
+    const padTop = row.decls.get('padding-top');
+    if (padTop === undefined || normalizeValue(padTop) !== normalizeValue(CARD_ACTION_PADDING_TOP)) {
+      out.push(
+        makeFinding(unit, {
+          rule_id: 'UIC-008',
+          severity: 'blocking',
+          line: row.line,
+          column: row.column,
+          property: 'padding-top',
+          observed_value: padTop ?? null,
+          element_or_context: row.context,
+          message: `An in-card action row must carry padding-top: ${CARD_ACTION_PADDING_TOP}.`,
+        }),
+      );
+    }
+  }
+
+  if (unit.actionRows.length === 0 && unit.declarations.length > 0) {
+    out.push(
+      makeFinding(unit, {
+        rule_id: 'UIC-008',
+        severity: 'coverage',
+        line: 1,
+        column: 1,
+        property: 'justify-content',
+        observed_value: null,
+        element_or_context: 'file',
+        message: 'COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass.',
+      }),
+    );
+  }
+}
+
+function ruleTokenReferences(unit, ctx, out) {
+  for (const source of unit.sources) {
+    TOKEN_REF_RE.lastIndex = 0;
+    for (const m of source.text.matchAll(TOKEN_REF_RE)) {
+      const token = m[1];
+      const kind = classifyToken(ctx.tokens.kinds, token);
+      if (kind === 'canonical') continue;
+      const at = unit.locate(source.offset + m.index);
+      if (kind === 'deprecated') {
+        out.push(
+          makeFinding(unit, {
+            rule_id: 'UIC-009',
+            severity: 'debt',
+            line: at.line,
+            column: at.column,
+            property: null,
+            observed_value: token,
+            element_or_context: source.context ?? 'screen source',
+            message: `var(${token}) references the approved deprecated compatibility block. Remove in the property-based remediation phase.`,
+          }),
+        );
+      } else {
+        out.push(
+          makeFinding(unit, {
+            rule_id: 'UIC-011',
+            severity: 'blocking',
+            line: at.line,
+            column: at.column,
+            property: null,
+            observed_value: token,
+            element_or_context: source.context ?? 'screen source',
+            message: `var(${token}) does not resolve to any declaration in css/tokens.css.`,
+          }),
+        );
+      }
+    }
+  }
+}
+
+/* ---------- coverage ---------- */
+
+/**
+ * FULL means every rule was fully evaluated for this file — not merely that
+ * the file parsed. A front-end construct that could not be decoded, or a rule
+ * that could not reach a verdict, degrades the file to PARTIAL.
+ *
+ * @param {object} unit
+ * @param {object[]} [findings] result of `runRules` for the same unit
+ */
+export function coverageOf(unit, findings = []) {
+  if (unit.lexError) return 'UNSUPPORTED';
+  if (unit.indeterminate.length > 0) return 'PARTIAL';
+  return findings.some((f) => f.severity === 'coverage') ? 'PARTIAL' : 'FULL';
+}
+
+/**
+ * Run every rule against one front-end unit.
+ *
+ * @param {object} unit output of a front-end `analyse()`
+ * @param {{tokens: object, enums: object}} ctx
+ */
+export function runRules(unit, ctx) {
+  const out = [];
+
+  if (unit.lexError) {
+    out.push(
+      makeFinding(unit, {
+        rule_id: 'UIC-000',
+        severity: 'coverage',
+        line: unit.lexError.line,
+        column: unit.lexError.column,
+        property: null,
+        observed_value: null,
+        element_or_context: 'file',
+        message: `UNSUPPORTED — ${unit.lexError.message} No rule was evaluated for this file; it is NOT conforming.`,
+      }),
+    );
+    return out;
+  }
+
+  ruleLiteralColour(unit, ctx, out);
+  ruleRadius(unit, ctx, out);
+  ruleControlHeight(unit, ctx, out);
+  ruleShadow(unit, ctx, out);
+  ruleTypography(unit, ctx, out);
+  ruleNativeSelect(unit, ctx, out);
+  ruleRadiusRoles(unit, ctx, out);
+  ruleCardActions(unit, ctx, out);
+  ruleTokenReferences(unit, ctx, out);
+
+  for (const gap of unit.indeterminate) {
+    out.push(
+      makeFinding(unit, {
+        rule_id: 'UIC-000',
+        severity: 'coverage',
+        line: gap.line,
+        column: gap.column,
+        property: null,
+        observed_value: null,
+        element_or_context: gap.context,
+        message: `COVERAGE_GAP / ${gap.reason} — this construct could not be decoded to a concrete value, so no rule was applied to it.`,
+      }),
+    );
+  }
+
+  return out;
+}
+
+/** Stable order: path, line, column, rule, observed value. */
+export function sortFindings(findings) {
+  const key = (f) => [
+    f.path,
+    String(f.line ?? 0).padStart(9, '0'),
+    String(f.column ?? 0).padStart(9, '0'),
+    f.rule_id,
+    String(f.observed_value ?? ''),
+    String(f.property ?? ''),
+    f.message,
+  ].join(' ');
+  return findings.slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
+}
+
+export function isBlocking(finding) {
+  return finding.severity === 'blocking';
+}

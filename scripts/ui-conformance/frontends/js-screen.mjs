@@ -1,0 +1,742 @@
+/* ============================================================
+   UI CONFORMANCE — APPLICATION FRONT-END (js/screens/*.js)
+
+   The application screens are classic `window.*` scripts that build
+   the DOM through `el(tag, attrs, ...)`. Every visual value therefore
+   lives inside a JavaScript string, and a text-only scan would read
+   values out of comments and regular expressions as readily as out
+   of markup. So this module lexes.
+
+   No npm parser is authorized and Node exposes none, so the lexer
+   below is deliberately narrow: it classifies comments, strings,
+   template literals and regular-expression literals, and nothing
+   more. It is written to FAIL rather than to guess — an unterminated
+   construct, a `/` it cannot classify with certainty, or a style
+   value it cannot decode marks the file PARTIAL or UNSUPPORTED. A
+   file the lexer could not fully read is never reported as
+   conforming.
+   ============================================================ */
+
+import { parseDeclarations } from '../contract.mjs';
+import { makeLocator } from '../inventory.mjs';
+
+export const FRONT_END = 'js-screen';
+
+/**
+ * Placeholder standing in for a `${...}` substitution. One character per
+ * source character, so every offset inside a template literal still maps to
+ * its real line and column.
+ */
+const INTERP = String.fromCharCode(1);
+const INTERP_RUN_RE = new RegExp(`${INTERP}+`, 'g');
+
+const ID_START = /[A-Za-z_$]/;
+const ID_PART = /[A-Za-z0-9_$]/;
+
+/** After these, a `/` opens a regular expression rather than dividing. */
+const REGEX_AFTER_KEYWORD = new Set([
+  'return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete',
+  'void', 'throw', 'case', 'do', 'else', 'yield', 'await',
+]);
+
+const NO_REGEX_AFTER_PUNCT = new Set([')', ']', '}', '++', '--']);
+
+const PUNCTUATORS = [
+  '>>>=', '...', '===', '!==', '**=', '<<=', '>>=', '>>>', '&&=', '||=', '??=',
+  '=>', '==', '!=', '<=', '>=', '&&', '||', '??', '?.', '++', '--', '+=', '-=',
+  '*=', '/=', '%=', '&=', '|=', '^=', '**', '<<', '>>',
+];
+
+export class LexError extends Error {
+  constructor(message, offset) {
+    super(message);
+    this.name = 'LexError';
+    this.offset = offset;
+  }
+}
+
+/** Element factories whose first argument names the tag. */
+const FACTORIES = new Set(['el', 'createElement', 'h']);
+
+/* ---------- lexer ---------- */
+
+/**
+ * @param {string} text
+ * @returns {{type: string, value?: string, start: number, end: number,
+ *            contentStart?: number, contentEnd?: number,
+ *            chunks?: {start: number, end: number}[]}[]}
+ */
+export function lex(text) {
+  const tokens = [];
+  const templates = [];
+  let braceDepth = 0;
+  let i = 0;
+  const n = text.length;
+
+  const previous = () => {
+    for (let k = tokens.length - 1; k >= 0; k -= 1) {
+      if (tokens[k].type !== 'comment') return tokens[k];
+    }
+    return null;
+  };
+
+  const regexAllowed = () => {
+    const p = previous();
+    if (!p) return true;
+    if (p.type === 'name') return REGEX_AFTER_KEYWORD.has(p.value);
+    if (p.type === 'punct') return !NO_REGEX_AFTER_PUNCT.has(p.value);
+    return false;
+  };
+
+  const scanRegexEnd = () => {
+    let j = i + 1;
+    let inClass = false;
+    while (j < n) {
+      const c = text[j];
+      if (c === '\\') {
+        j += 2;
+        continue;
+      }
+      if (c === '\n') return -1;
+      if (inClass) {
+        if (c === ']') inClass = false;
+      } else if (c === '[') inClass = true;
+      else if (c === '/') break;
+      j += 1;
+    }
+    if (j >= n || text[j] !== '/') return -1;
+    let k = j + 1;
+    while (k < n && ID_PART.test(text[k])) k += 1;
+    return k;
+  };
+
+  while (i < n) {
+    const open = templates[templates.length - 1];
+    if (open && open.scanning) {
+      let j = i;
+      let closed = false;
+      while (j < n) {
+        const c = text[j];
+        if (c === '\\') {
+          j += 2;
+          continue;
+        }
+        if (c === '`') {
+          open.chunks.push({ start: open.chunkStart, end: j });
+          tokens.push({
+            type: 'template',
+            start: open.start,
+            end: j + 1,
+            contentStart: open.start + 1,
+            contentEnd: j,
+            chunks: open.chunks,
+          });
+          templates.pop();
+          i = j + 1;
+          closed = true;
+          break;
+        }
+        if (c === '$' && text[j + 1] === '{') {
+          open.chunks.push({ start: open.chunkStart, end: j });
+          open.scanning = false;
+          open.exprBaseDepth = braceDepth;
+          i = j + 2;
+          closed = true;
+          break;
+        }
+        j += 1;
+      }
+      if (!closed) throw new LexError('Unterminated template literal.', open.start);
+      continue;
+    }
+
+    const c = text[i];
+
+    if (c === ' ' || c === '\t' || c === '\r' || c === '\n' || c === '\f' || c === '\v') {
+      i += 1;
+      continue;
+    }
+
+    if (c === '/' && text[i + 1] === '/') {
+      let j = i + 2;
+      while (j < n && text[j] !== '\n') j += 1;
+      tokens.push({ type: 'comment', start: i, end: j });
+      i = j;
+      continue;
+    }
+
+    if (c === '/' && text[i + 1] === '*') {
+      const j = text.indexOf('*/', i + 2);
+      if (j === -1) throw new LexError('Unterminated block comment.', i);
+      tokens.push({ type: 'comment', start: i, end: j + 2 });
+      i = j + 2;
+      continue;
+    }
+
+    if (c === '/' && regexAllowed()) {
+      const end = scanRegexEnd();
+      if (end === -1) {
+        throw new LexError(
+          'A "/" in regular-expression position has no same-line terminator; the grammar is ambiguous here.',
+          i,
+        );
+      }
+      tokens.push({ type: 'regex', start: i, end });
+      i = end;
+      continue;
+    }
+
+    if (c === '"' || c === "'") {
+      let j = i + 1;
+      let terminated = false;
+      while (j < n) {
+        const d = text[j];
+        if (d === '\\') {
+          j += 2;
+          continue;
+        }
+        if (d === '\n') break;
+        if (d === c) {
+          terminated = true;
+          break;
+        }
+        j += 1;
+      }
+      if (!terminated) throw new LexError('Unterminated string literal.', i);
+      tokens.push({
+        type: 'string',
+        start: i,
+        end: j + 1,
+        contentStart: i + 1,
+        contentEnd: j,
+        value: text.slice(i + 1, j),
+      });
+      i = j + 1;
+      continue;
+    }
+
+    if (c === '`') {
+      templates.push({ start: i, chunkStart: i + 1, chunks: [], scanning: true });
+      i += 1;
+      continue;
+    }
+
+    if (ID_START.test(c)) {
+      let j = i + 1;
+      while (j < n && ID_PART.test(text[j])) j += 1;
+      tokens.push({ type: 'name', value: text.slice(i, j), start: i, end: j });
+      i = j;
+      continue;
+    }
+
+    if (c >= '0' && c <= '9') {
+      let j = i + 1;
+      while (j < n && /[0-9a-zA-Z_.]/.test(text[j])) {
+        if (/[eE]/.test(text[j]) && /[+-]/.test(text[j + 1] || '')) j += 1;
+        j += 1;
+      }
+      tokens.push({ type: 'number', value: text.slice(i, j), start: i, end: j });
+      i = j;
+      continue;
+    }
+
+    if (c === '{') {
+      braceDepth += 1;
+      tokens.push({ type: 'punct', value: '{', start: i, end: i + 1 });
+      i += 1;
+      continue;
+    }
+
+    if (c === '}') {
+      const top = templates[templates.length - 1];
+      if (top && !top.scanning && braceDepth === top.exprBaseDepth) {
+        top.scanning = true;
+        top.chunkStart = i + 1;
+        i += 1;
+        continue;
+      }
+      braceDepth -= 1;
+      tokens.push({ type: 'punct', value: '}', start: i, end: i + 1 });
+      i += 1;
+      continue;
+    }
+
+    const punct = PUNCTUATORS.find((p) => text.startsWith(p, i)) ?? c;
+    tokens.push({ type: 'punct', value: punct, start: i, end: i + punct.length });
+    i += punct.length;
+  }
+
+  if (templates.length > 0) {
+    throw new LexError('Unterminated template literal.', templates[0].start);
+  }
+  tokens.sort((a, b) => a.start - b.start);
+  return tokens;
+}
+
+/* ---------- literal decoding ---------- */
+
+/** Literal content with `${...}` substitutions masked, offsets preserved. */
+function literalContent(text, token) {
+  if (token.type === 'string') {
+    return { content: token.value, start: token.contentStart };
+  }
+  const start = token.contentStart;
+  const chars = new Array(token.contentEnd - token.contentStart).fill(INTERP);
+  for (const chunk of token.chunks) {
+    for (let k = chunk.start; k < chunk.end; k += 1) {
+      chars[k - start] = text[k];
+    }
+  }
+  return { content: chars.join(''), start };
+}
+
+function displayValue(value) {
+  return value.replace(INTERP_RUN_RE, '${...}');
+}
+
+/* ---------- structural helpers ---------- */
+
+function isPunct(token, value) {
+  return Boolean(token) && token.type === 'punct' && token.value === value;
+}
+
+function isName(token, value) {
+  return Boolean(token) && token.type === 'name' && token.value === value;
+}
+
+/** Index of the `{` that directly encloses token `k`, or -1. */
+function enclosingObject(tokens, k) {
+  let depth = 0;
+  for (let j = k - 1; j >= 0; j -= 1) {
+    const t = tokens[j];
+    if (t.type !== 'punct') continue;
+    if (t.value === '}' || t.value === ')' || t.value === ']') depth += 1;
+    else if (t.value === '{' || t.value === '(' || t.value === '[') {
+      if (depth === 0) return t.value === '{' ? j : -1;
+      depth -= 1;
+    }
+  }
+  return -1;
+}
+
+/** `el('button', { ... })` -> "button". */
+function factoryTag(tokens, objectIndex) {
+  if (objectIndex < 4) return null;
+  if (!isPunct(tokens[objectIndex - 1], ',')) return null;
+  const literal = tokens[objectIndex - 2];
+  if (!literal || literal.type !== 'string') return null;
+  if (!isPunct(tokens[objectIndex - 3], '(')) return null;
+  const callee = tokens[objectIndex - 4];
+  if (!callee || callee.type !== 'name' || !FACTORIES.has(callee.value)) return null;
+  return literal.value.toLowerCase();
+}
+
+/** Map every `x = el('tag'...)` / `x = document.createElement('tag')` binding. */
+function bindingTags(tokens) {
+  const map = new Map();
+  for (let k = 0; k + 4 < tokens.length; k += 1) {
+    const target = tokens[k];
+    if (target.type !== 'name') continue;
+    if (!isPunct(tokens[k + 1], '=')) continue;
+    let c = k + 2;
+    if (isName(tokens[c], 'document') && isPunct(tokens[c + 1], '.')) c += 2;
+    const callee = tokens[c];
+    if (!callee || callee.type !== 'name' || !FACTORIES.has(callee.value)) continue;
+    if (!isPunct(tokens[c + 1], '(')) continue;
+    const literal = tokens[c + 2];
+    if (!literal || literal.type !== 'string') continue;
+    if (!map.has(target.value)) map.set(target.value, literal.value.toLowerCase());
+  }
+  return map;
+}
+
+function kebab(property) {
+  return property.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+}
+
+function makeElement(tag, context, at) {
+  return {
+    tag,
+    context,
+    line: at.line,
+    column: at.column,
+    attrMap: new Map(),
+    classes: new Set(),
+    decls: new Map(),
+    // `<section>` is the card element in the ratified fixture; the same
+    // meaning holds when a screen builds one imperatively. Containment
+    // (`insideCard`) stays unknown — a JavaScript screen does not expose a
+    // static ancestor chain, and guessing one would fabricate a verdict.
+    isCard: tag === 'section',
+    insideCard: null,
+    roleResolved: Boolean(tag),
+  };
+}
+
+/**
+ * End offset of the expression starting at token `from`: the first `;` or `,`
+ * at the expression's own nesting depth. Used to attribute a colour inside a
+ * ternary or a concatenation to the property it is assigned to, without
+ * pretending to know which branch runs.
+ */
+function expressionEnd(tokens, from) {
+  let depth = 0;
+  for (let j = from; j < tokens.length; j += 1) {
+    const t = tokens[j];
+    if (t.type !== 'punct') continue;
+    if (t.value === '(' || t.value === '[' || t.value === '{') depth += 1;
+    else if (t.value === ')' || t.value === ']' || t.value === '}') {
+      if (depth === 0) return t.start;
+      depth -= 1;
+    } else if ((t.value === ';' || t.value === ',') && depth === 0) return t.start;
+  }
+  return tokens.length > 0 ? tokens[tokens.length - 1].end : 0;
+}
+
+const LITERAL_TAG_STYLE_RE =
+  /<([a-zA-Z][-a-zA-Z0-9]*)\b((?:[^>"']|"[^"]*"|'[^']*')*?)style\s*=\s*"([^"]*)"/g;
+
+/* ---------- main ---------- */
+
+/**
+ * Analyse one application screen.
+ *
+ * @param {string} path repo-relative path, used only for attribution
+ * @param {string} text file contents
+ */
+export function analyse(path, text) {
+  const locate = makeLocator(text);
+
+  let tokens;
+  try {
+    tokens = lex(text);
+  } catch (err) {
+    if (!(err instanceof LexError)) throw err;
+    const at = locate(err.offset ?? 0);
+    return {
+      path,
+      frontEnd: FRONT_END,
+      archetype: null,
+      locate,
+      elements: [],
+      declarations: [],
+      selects: [],
+      actionRows: [],
+      cards: [],
+      tables: [],
+      sources: [],
+      expressionSites: [],
+      indeterminate: [],
+      lexError: { message: err.message, line: at.line, column: at.column },
+    };
+  }
+
+  const bindings = bindingTags(tokens);
+  const declarations = [];
+  const elements = [];
+  const indeterminate = [];
+  const selects = [];
+  const actionRows = [];
+  const tables = [];
+  const sources = [];
+  const literals = [];
+  const expressionSites = [];
+  /** Attribute objects that carried a decodable `style`, keyed by their `{`. */
+  const objectElements = new Map();
+
+  const noteExpression = (from, property, context) => {
+    if (from >= tokens.length) return;
+    expressionSites.push({
+      property,
+      context,
+      start: tokens[from].start,
+      end: expressionEnd(tokens, from),
+    });
+  };
+
+  const addDeclarations = (token, element, source) => {
+    const { content, start } = literalContent(text, token);
+    for (const decl of parseDeclarations(content, start)) {
+      const interpolated = decl.value.includes(INTERP);
+      const value = displayValue(decl.value);
+      element.decls.set(decl.property, value);
+      declarations.push({
+        property: decl.property,
+        value,
+        offset: decl.offset,
+        valueOffset: decl.valueOffset,
+        valueEnd: decl.valueEnd,
+        element,
+        source,
+        interpolated,
+      });
+    }
+  };
+
+  for (let k = 0; k < tokens.length; k += 1) {
+    const token = tokens[k];
+
+    if (token.type === 'string' || token.type === 'template') literals.push(token);
+
+    /* style: '...' inside an element-factory attribute object */
+    if (isName(token, 'style') && isPunct(tokens[k + 1], ':')) {
+      const before = tokens[k - 1];
+      if (!isPunct(before, '{') && !isPunct(before, ',')) continue;
+      const value = tokens[k + 2];
+      const objectIndex = enclosingObject(tokens, k);
+      const tag = objectIndex === -1 ? null : factoryTag(tokens, objectIndex);
+      const at = locate(token.start);
+      const element = makeElement(
+        tag,
+        tag ? `el('${tag}', { style })` : 'attribute object { style }',
+        at,
+      );
+      elements.push(element);
+      if (objectIndex !== -1) objectElements.set(objectIndex, element);
+
+      if (value && (value.type === 'string' || value.type === 'template')) {
+        addDeclarations(value, element, 'js-style-prop');
+        if (isPunct(tokens[k + 3], '+')) {
+          indeterminate.push({
+            line: at.line,
+            column: at.column,
+            reason: 'CONCATENATED_STYLE_EXPRESSION',
+            context: "style: '...' + <expression>",
+          });
+          noteExpression(k + 2, 'style', 'concatenated style expression');
+        }
+      } else {
+        indeterminate.push({
+          line: at.line,
+          column: at.column,
+          reason: 'NON_LITERAL_STYLE_VALUE',
+          context: 'style: <expression>',
+        });
+        noteExpression(k + 2, 'style', 'style expression');
+      }
+      continue;
+    }
+
+    /* node.style.prop = '...'  and  node.style.cssText = '...' */
+    if (isName(token, 'style') && isPunct(tokens[k - 1], '.') && isPunct(tokens[k + 1], '.')) {
+      const propToken = tokens[k + 2];
+      if (!propToken || propToken.type !== 'name') continue;
+      if (!isPunct(tokens[k + 3], '=')) continue;
+      const value = tokens[k + 4];
+      const receiver = tokens[k - 2];
+      const tag =
+        receiver && receiver.type === 'name' ? bindings.get(receiver.value) ?? null : null;
+      const at = locate(token.start);
+      const element = makeElement(
+        tag,
+        `${receiver && receiver.type === 'name' ? receiver.value : '<expression>'}.style`,
+        at,
+      );
+      elements.push(element);
+
+      if (!value || (value.type !== 'string' && value.type !== 'template')) {
+        indeterminate.push({
+          line: at.line,
+          column: at.column,
+          reason: 'NON_LITERAL_STYLE_ASSIGNMENT',
+          context: `.style.${propToken.value} = <expression>`,
+        });
+        noteExpression(
+          k + 4,
+          kebab(propToken.value),
+          `.style.${propToken.value} = <expression>`,
+        );
+        continue;
+      }
+
+      if (propToken.value === 'cssText') {
+        addDeclarations(value, element, 'js-css-text');
+      } else {
+        const { content, start } = literalContent(text, value);
+        const property = kebab(propToken.value);
+        const display = displayValue(content);
+        element.decls.set(property, display);
+        declarations.push({
+          property,
+          value: display,
+          offset: token.start,
+          valueOffset: start,
+          valueEnd: start + content.length,
+          element,
+          source: 'js-style-assign',
+          interpolated: content.includes(INTERP),
+        });
+      }
+      continue;
+    }
+
+    /* setAttribute('style', '...') */
+    if (
+      isName(token, 'setAttribute') &&
+      isPunct(tokens[k + 1], '(') &&
+      tokens[k + 2] &&
+      tokens[k + 2].type === 'string' &&
+      tokens[k + 2].value === 'style' &&
+      isPunct(tokens[k + 3], ',')
+    ) {
+      const value = tokens[k + 4];
+      const receiver = isPunct(tokens[k - 1], '.') ? tokens[k - 2] : null;
+      const tag =
+        receiver && receiver.type === 'name' ? bindings.get(receiver.value) ?? null : null;
+      const at = locate(token.start);
+      const element = makeElement(
+        tag,
+        `${receiver && receiver.type === 'name' ? receiver.value : '<expression>'}.setAttribute('style')`,
+        at,
+      );
+      elements.push(element);
+      if (value && (value.type === 'string' || value.type === 'template')) {
+        addDeclarations(value, element, 'js-set-attribute');
+      } else {
+        indeterminate.push({
+          line: at.line,
+          column: at.column,
+          reason: 'NON_LITERAL_STYLE_ASSIGNMENT',
+          context: "setAttribute('style', <expression>)",
+        });
+        noteExpression(k + 4, 'style', "setAttribute('style', <expression>)");
+      }
+      continue;
+    }
+
+    /* el('select') / createElement('select') / el('table') */
+    if (
+      token.type === 'name' &&
+      FACTORIES.has(token.value) &&
+      isPunct(tokens[k + 1], '(') &&
+      tokens[k + 2] &&
+      tokens[k + 2].type === 'string'
+    ) {
+      const tag = tokens[k + 2].value.toLowerCase();
+      const at = locate(token.start);
+      if (tag === 'select') {
+        selects.push({ line: at.line, column: at.column, context: `${token.value}('select')` });
+      }
+      if (tag === 'table') {
+        tables.push({
+          line: at.line,
+          column: at.column,
+          verdict: 'MANUAL_REVIEW_REQUIRED',
+          reason:
+            'Table built imperatively; header and value widths share no declared relationship the detector can read.',
+          context: `${token.value}('table')`,
+        });
+      }
+    }
+  }
+
+  /* `'data-card-actions': …` declared as an attribute-object key */
+  let markerKeys = 0;
+  for (let k = 0; k < tokens.length; k += 1) {
+    const token = tokens[k];
+    if (token.type !== 'string' || token.value !== 'data-card-actions') continue;
+    if (!isPunct(tokens[k + 1], ':')) continue;
+    markerKeys += 1;
+    const objectIndex = enclosingObject(tokens, k);
+    const element = objectIndex === -1 ? null : objectElements.get(objectIndex);
+    if (element) {
+      actionRows.push(element);
+    } else {
+      const at = locate(token.start);
+      indeterminate.push({
+        line: at.line,
+        column: at.column,
+        reason: 'CARD_ACTION_ROW_UNDECODED',
+        context: 'data-card-actions key whose row declares no decodable style',
+      });
+    }
+  }
+
+  /* markup and colours carried inside string literals */
+  for (const token of literals) {
+    const { content, start } = literalContent(text, token);
+    sources.push({ text: content, offset: start, context: 'string literal' });
+
+    for (const m of content.matchAll(/<select\b/gi)) {
+      const at = locate(start + m.index);
+      selects.push({ line: at.line, column: at.column, context: 'literal "<select"' });
+    }
+    for (const m of content.matchAll(/<table\b/gi)) {
+      const at = locate(start + m.index);
+      tables.push({
+        line: at.line,
+        column: at.column,
+        verdict: 'MANUAL_REVIEW_REQUIRED',
+        reason:
+          'Table emitted as markup inside a string literal; column parity is not machine-provable here.',
+        context: 'literal "<table"',
+      });
+    }
+    LITERAL_TAG_STYLE_RE.lastIndex = 0;
+    let markedRows = 0;
+    for (const m of content.matchAll(LITERAL_TAG_STYLE_RE)) {
+      const tag = m[1].toLowerCase();
+      const at = locate(start + m.index);
+      const element = makeElement(tag, `literal <${tag} style>`, at);
+      elements.push(element);
+      if (/\bdata-card-actions\b/.test(m[0])) {
+        actionRows.push(element);
+        markedRows += 1;
+      }
+      const valueStart = start + m.index + m[0].length - m[3].length - 1;
+      for (const decl of parseDeclarations(m[3], valueStart)) {
+        const interpolated = decl.value.includes(INTERP);
+        const value = displayValue(decl.value);
+        element.decls.set(decl.property, value);
+        declarations.push({
+          property: decl.property,
+          value,
+          offset: decl.offset,
+          valueOffset: decl.valueOffset,
+          valueEnd: decl.valueEnd,
+          element,
+          source: 'js-literal-markup',
+          interpolated,
+        });
+      }
+    }
+    const marker = content.indexOf('data-card-actions');
+    if (marker !== -1 && markedRows === 0 && markerKeys === 0) {
+      const at = locate(start + marker);
+      indeterminate.push({
+        line: at.line,
+        column: at.column,
+        reason: 'CARD_ACTION_ROW_UNDECODED',
+        context: 'data-card-actions marker with no decodable style declaration',
+      });
+    }
+  }
+
+  for (const decl of declarations) {
+    if (!decl.interpolated) continue;
+    const at = locate(decl.valueOffset);
+    indeterminate.push({
+      line: at.line,
+      column: at.column,
+      reason: 'TEMPLATE_INTERPOLATED_VALUE',
+      context: `${decl.property}: ${decl.value}`,
+    });
+  }
+
+  return {
+    path,
+    frontEnd: FRONT_END,
+    archetype: null,
+    locate,
+    elements,
+    declarations,
+    selects,
+    actionRows,
+    cards: [],
+    tables,
+    sources,
+    expressionSites,
+    indeterminate,
+    lexError: null,
+  };
+}

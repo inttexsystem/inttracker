@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!-- ============================================================
+     DETECTOR FIXTURE — VIOLATING PROTOTYPE (positive case)
+
+     Synthetic. One deliberate defect per rule, plus the contextual
+     colour keywords that must stay legal. Not a product screen, not
+     a precedent, excluded from the detector inventory.
+     ============================================================ -->
+<html>
+<body>
+<div data-ui-archetype="detail-cockpit">
+  <!-- UIC-001 — all four hex forms -->
+  <div style="color:#fff;background:#ffff;border-color:#ffffff;outline-color:#ffffffff;">hex</div>
+  <!-- UIC-001 — all four functional forms -->
+  <div style="color:rgb(1,2,3);background:rgba(1,2,3,.5);border-color:hsl(1,2%,3%);outline-color:hsla(1,2%,3%,.5);">functional</div>
+  <!-- contextual keywords and a bare fragment must NOT be flagged -->
+  <a href="#" style="color:currentColor;fill:transparent;stroke:inherit;box-shadow:none;">contextual</a>
+  <!-- UIC-002 -->
+  <div style="border-radius:6px;">radius outside the enum</div>
+  <!-- UIC-003 -->
+  <button style="height:40px;">control height outside the ladder</button>
+  <!-- UIC-004 — outside the enum AND a shadow on a card -->
+  <section style="box-shadow:0 2px 9px rgba(0,0,0,.30);">shadowed card</section>
+  <!-- UIC-005 -->
+  <div style="font-size:10px;font-weight:450;">typography outside the enum</div>
+  <!-- UIC-006 -->
+  <select><option>native</option></select>
+  <!-- UIC-007 -->
+  <button style="border-radius:var(--rv-radius-pill);">pill-shaped button</button>
+  <!-- UIC-009 -->
+  <div style="color:var(--rv-color-accent);">deprecated compatibility token</div>
+  <!-- UIC-010 -->
+  <div style="border-radius:999px;background:var(--rv-surface);">rectangular decorative box</div>
+  <!-- UIC-011 -->
+  <div style="color:var(--rv-does-not-exist);">unknown token</div>
+  <!-- table with a colgroup that contradicts its header -->
+  <table style="table-layout:fixed;">
+    <colgroup><col><col><col></colgroup>
+    <tr><th>A</th><th>B</th></tr>
+  </table>
+</div>
+</body>
+</html>
