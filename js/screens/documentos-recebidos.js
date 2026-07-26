@@ -1699,7 +1699,7 @@
       type: 'button',
       'data-action': 'toggle-varredura',
       title: ui.scanPlaying ? 'Pausar varredura' : 'Iniciar varredura',
-      style: 'width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;'
+      style: 'width:20px;height:var(--rv-h-compact);display:inline-flex;align-items:center;justify-content:center;'
         + 'background:transparent;border:none;color:var(--rv-text-secondary);padding:0;cursor:pointer;flex-shrink:0;',
       onclick: function () {
         ui.scanPlaying = !ui.scanPlaying;

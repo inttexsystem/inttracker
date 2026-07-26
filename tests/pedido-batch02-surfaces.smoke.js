@@ -282,9 +282,11 @@ test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não
   // deixam de compartilhar um token: cada um e verificado contra a ordem que o
   // alterou por ultimo. A garantia nao muda — nenhum dos dois pode reter o
   // token do lote 2, e nenhum pode ficar num token anterior ao seu.
+  // A passada 3 de altura alterou OS DOIS, entao ambos voltam a compartilhar um
+  // token — o da ordem que os alterou por ultimo. A garantia nao muda.
   const ULTIMA_ORDEM = {
-    'screens/pedido-form.js': '20260726-ui-p5-pass1',
-    'screens/pedido-item-row-editor.js': '20260726-ui-p5-pass2',
+    'screens/pedido-form.js': '20260726-ui-p5-pass3-a1',
+    'screens/pedido-item-row-editor.js': '20260726-ui-p5-pass3-a1',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
     const esc = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

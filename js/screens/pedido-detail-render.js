@@ -51,10 +51,8 @@
     var ids = resolveItemColorIds(state, item);
     var corNome = corNomeById(state, ids.cor1);
     if (corNome && window.corPreviewElement) {
-      var thumb = window.corPreviewElement(corNome);
+      var thumb = window.corPreviewElement(corNome, '32px');
       if (thumb) {
-        thumb.style.width = '32px';
-        thumb.style.height = '32px';
         thumb.style.borderRadius = '4px';
         thumb.style.border = '1px solid var(--rv-border)';
         thumb.style.flexShrink = '0';

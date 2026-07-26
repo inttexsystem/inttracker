@@ -431,7 +431,7 @@ function bindingTags(tokens) {
     if (target.type !== 'name') continue;
     if (!isPunct(tokens[k + 1], '=')) continue;
     let c = k + 2;
-    if (isName(tokens[c], 'document') && isPunct(tokens[c + 1], '.')) c += 2;
+    if ((isName(tokens[c], 'document') || isName(tokens[c], 'window')) && isPunct(tokens[c + 1], '.')) c += 2;
     const callee = tokens[c];
     if (!callee || callee.type !== 'name' || !FACTORIES.has(callee.value)) continue;
     if (!isPunct(tokens[c + 1], '(')) continue;
@@ -440,6 +440,91 @@ function bindingTags(tokens) {
     if (!map.has(target.value)) map.set(target.value, literal.value.toLowerCase());
   }
   return map;
+}
+
+/**
+ * Map every `x = [window.]el('input', { … type: '<literal>' … })` binding to that
+ * literal `type`.
+ *
+ * UIC-003 (phase-5 pass-3) asks whether a control is one of the specialized
+ * input primitives the generic height ladder does not govern. That question is
+ * answered by an attribute the source already states literally; a `.dc.html`
+ * prototype has always transported it, and a JavaScript screen had no path to
+ * it at all. This closes that front-end parity gap for exactly one attribute.
+ *
+ * Deliberately narrow: the tag must be the literal `input`, the key must be the
+ * bare name `type`, and the value must be a quoted static string. A computed,
+ * concatenated or otherwise non-literal type stays UNPROVEN — it is not guessed
+ * and it gets no exception. Nothing else is transported: no `role`, no
+ * `data-ui-control`, no ancestor and no interaction semantics, so no rule other
+ * than UIC-003 can observe this map.
+ *
+ * Unlike `bindingTags`, a leading `window.` is accepted here. That is safe
+ * because this map never resolves a tag or a role — it only reports an
+ * already-literal input type — whereas widening tag resolution would move
+ * findings across every rule.
+ */
+function bindingInputTypes(tokens) {
+  const map = new Map();
+  for (let k = 0; k + 6 < tokens.length; k += 1) {
+    const target = tokens[k];
+    if (target.type !== 'name') continue;
+    if (!isPunct(tokens[k + 1], '=')) continue;
+    let c = k + 2;
+    if (
+      (isName(tokens[c], 'document') || isName(tokens[c], 'window')) &&
+      isPunct(tokens[c + 1], '.')
+    ) {
+      c += 2;
+    }
+    const callee = tokens[c];
+    if (!callee || callee.type !== 'name' || !FACTORIES.has(callee.value)) continue;
+    if (!isPunct(tokens[c + 1], '(')) continue;
+    const literal = tokens[c + 2];
+    if (!literal || literal.type !== 'string') continue;
+    if (literal.value.toLowerCase() !== 'input') continue;
+    if (!isPunct(tokens[c + 3], ',')) continue;
+    if (!isPunct(tokens[c + 4], '{')) continue;
+    const type = literalTypeInObject(tokens, c + 4);
+    if (type && !map.has(target.value)) map.set(target.value, type);
+  }
+  return map;
+}
+
+/** `{ type: 'checkbox', … }` -> "checkbox", reading only the object's own depth. */
+function literalTypeInObject(tokens, openIndex) {
+  let depth = 0;
+  for (let j = openIndex; j < tokens.length; j += 1) {
+    const t = tokens[j];
+    if (t.type === 'punct') {
+      if (t.value === '{' || t.value === '(' || t.value === '[') depth += 1;
+      else if (t.value === '}' || t.value === ')' || t.value === ']') {
+        depth -= 1;
+        if (depth === 0) return null;
+      }
+      continue;
+    }
+    if (depth !== 1) continue;
+    if (t.type !== 'name' || t.value !== 'type') continue;
+    if (!isPunct(tokens[j + 1], ':')) continue;
+    const value = tokens[j + 2];
+    if (!value || value.type !== 'string') return null;
+    return value.value.toLowerCase();
+  }
+  return null;
+}
+
+/**
+ * Carry the literal input `type` of a statically bound factory element onto a
+ * later `.style.*` / `.style.cssText` / `setAttribute('style', …)` site on the
+ * same variable. Without this a hidden checkbox styled after construction would
+ * look like an anonymous element, and UIC-003 would have to treat a specialized
+ * primitive as an unproven generic control.
+ */
+function carryLiteralInputType(element, receiver, bindingTypes) {
+  if (!receiver || receiver.type !== 'name') return;
+  const type = bindingTypes.get(receiver.value);
+  if (type) element.attrMap.set('type', type);
 }
 
 function kebab(property) {
@@ -585,6 +670,7 @@ export function analyse(path, text) {
   }
 
   const bindings = bindingTags(tokens);
+  const bindingTypes = bindingInputTypes(tokens);
   const declarations = [];
   const elements = [];
   const indeterminate = [];
@@ -704,6 +790,7 @@ export function analyse(path, text) {
         `${receiver && receiver.type === 'name' ? receiver.value : '<expression>'}.style`,
         at,
       );
+      carryLiteralInputType(element, receiver, bindingTypes);
       elements.push(element);
 
       if (!value || (value.type !== 'string' && value.type !== 'template')) {
@@ -761,6 +848,7 @@ export function analyse(path, text) {
         `${receiver && receiver.type === 'name' ? receiver.value : '<expression>'}.setAttribute('style')`,
         at,
       );
+      carryLiteralInputType(element, receiver, bindingTypes);
       elements.push(element);
       if (value && (value.type === 'string' || value.type === 'template')) {
         addDeclarations(value, element, 'js-set-attribute');
@@ -864,6 +952,29 @@ export function analyse(path, text) {
         context: 'data-ui-pill key whose element declares no decodable style',
       });
     }
+  }
+
+  /* `type: '<literal>'` on an `el('input', { … })` attribute object.
+
+     The companion of `bindingInputTypes()` for the common case where the style
+     and the type are declared in the SAME attribute object, so no binding has
+     to be followed. Same three conditions: the factory tag must be the literal
+     `input`, the key must be the bare name `type`, and the value must be a
+     quoted static string. A non-literal type is left unproven rather than
+     guessed, and no other attribute is read. */
+  for (let k = 0; k + 2 < tokens.length; k += 1) {
+    const token = tokens[k];
+    if (token.type !== 'name' || token.value !== 'type') continue;
+    if (!isPunct(tokens[k + 1], ':')) continue;
+    const before = tokens[k - 1];
+    if (!isPunct(before, '{') && !isPunct(before, ',')) continue;
+    const value = tokens[k + 2];
+    if (!value || value.type !== 'string') continue;
+    const objectIndex = enclosingObject(tokens, k);
+    if (objectIndex === -1) continue;
+    if (factoryTag(tokens, objectIndex) !== 'input') continue;
+    const element = objectElements.get(objectIndex);
+    if (element) element.attrMap.set('type', value.value.toLowerCase());
   }
 
   /* markup and colours carried inside string literals */

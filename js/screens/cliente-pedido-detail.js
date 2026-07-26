@@ -146,11 +146,9 @@
     function itemPreviewEl(item) {
       var c1Nome = item && item.cor_1 ? item.cor_1 : null;
       if (c1Nome && window.corPreviewElement) {
-        var thumb = window.corPreviewElement(c1Nome);
+        // Ajusta tamanho sem sobrescrever background-image (textura do tapete).
+        var thumb = window.corPreviewElement(c1Nome, '32px');
         if (thumb) {
-          // Ajusta tamanho sem sobrescrever background-image (textura do tapete).
-          thumb.style.width = '32px';
-          thumb.style.height = '32px';
           thumb.style.borderRadius = '4px';
           thumb.style.border = '1px solid var(--rv-border)';
           thumb.style.flexShrink = '0';

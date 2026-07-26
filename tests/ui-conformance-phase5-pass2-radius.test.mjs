@@ -357,7 +357,7 @@ test('18 · repeated baseline generation is byte-identical and reproduces the co
   // 1.0.3 is the js-screen front-end amendment that made a static
   // `data-ui-pill` marker observable, so the six ruled badges could keep pill
   // geometry without a colour, contract or rule-semantics change.
-  assert.equal(BASELINE.detector_version, '1.0.3');
+  assert.equal(BASELINE.detector_version, '1.0.4');
   assert.equal(BASELINE.contract_blob_hash.length, 64, 'the contract is pinned by a sha-256');
 });
 
@@ -616,7 +616,29 @@ function multisetDelta(before, after) {
   return { added, removed };
 }
 
-const A2_DELTA = multisetDelta(ENTRY_BASELINE.findings, BASELINE.findings);
+/**
+ * Rules a LATER authorized pass owns, excluded from the A2 delta.
+ *
+ * Pass 2 owns the radius and semantic-pill properties. It must keep pinning
+ * its own exact result forever, but it may not freeze the whole repository:
+ * mechanically forbidding any other rule from ever moving would block every
+ * subsequent property pass — the same defect A2 itself corrected in the pass-1
+ * suite (see test 12b there). `UIC-003` is owned by phase-5 pass 3 and pinned
+ * exactly, at 0 blocking / 0 coverage, by
+ * tests/ui-conformance-phase5-pass3-control-height.test.mjs.
+ *
+ * This is a narrowing by RULE OWNERSHIP, not a threshold: every rule not named
+ * here is still compared finding-for-finding below.
+ */
+const RULES_OWNED_BY_A_LATER_PASS = new Set(['UIC-003']);
+
+const withoutLaterPasses = (findings) =>
+  findings.filter((f) => !RULES_OWNED_BY_A_LATER_PASS.has(f.rule_id));
+
+const A2_DELTA = multisetDelta(
+  withoutLaterPasses(ENTRY_BASELINE.findings),
+  withoutLaterPasses(BASELINE.findings),
+);
 
 test('21 · exactly five findings were added and none removed', () => {
   assert.equal(A2_DELTA.removed.length, 0,
@@ -662,12 +684,23 @@ test('21d · no rule moved except UIC-008 coverage 37 -> 42', () => {
       assert.equal(after.blocking, 0, 'A2 may not turn a coverage gap into a defect');
       continue;
     }
+    if (RULES_OWNED_BY_A_LATER_PASS.has(id)) {
+      // Not "anything goes": pass 3 closed UIC-003 completely, and this suite
+      // asserts that exact end state rather than pretending the rule vanished.
+      assert.equal(after.blocking, 0, `${id} is owned by a later pass and must be closed`);
+      assert.equal(after.coverage_gaps, 0, `${id} is owned by a later pass and must be closed`);
+      continue;
+    }
     assert.deepEqual(after, before, `${id} moved and A2 authorizes no movement outside UIC-008`);
   }
 });
 
 test('21e · blocking, debt, inventory and support are unchanged', () => {
-  const sum = (b, k) => Object.values(b.summary_by_rule).reduce((n, r) => n + r[k], 0);
+  // Summed over the rules A2 owns; UIC-003 is pinned separately by the pass-3
+  // suite, which requires it to reach exactly zero.
+  const sum = (b, k) => Object.entries(b.summary_by_rule)
+    .filter(([id]) => !RULES_OWNED_BY_A_LATER_PASS.has(id))
+    .reduce((n, [, r]) => n + r[k], 0);
   assert.equal(sum(BASELINE, 'blocking'), sum(ENTRY_BASELINE, 'blocking'),
     'A2 is a radius-ownership change; it may not move a blocking count');
   assert.equal(sum(BASELINE, 'debt'), sum(ENTRY_BASELINE, 'debt'));
@@ -676,8 +709,11 @@ test('21e · blocking, debt, inventory and support are unchanged', () => {
   assert.equal(BASELINE.inventory.application.count, APPLICATION_FILE_COUNT);
   assert.equal(BASELINE.coverage_summary.UNSUPPORTED, 0);
   assert.equal(ENTRY_BASELINE.coverage_summary.UNSUPPORTED, 0);
-  // Detector semantics did not move under A2 — only what the screens declare did.
-  assert.equal(BASELINE.detector_version, ENTRY_BASELINE.detector_version);
+  // Detector semantics did not move under A2 — only what the screens declare
+  // did. Phase-5 pass 3 later raised the version for its own UIC-003
+  // correction, so this pins both exact values rather than their equality.
+  assert.equal(ENTRY_BASELINE.detector_version, '1.0.3');
+  assert.equal(BASELINE.detector_version, '1.0.4');
   assert.equal(BASELINE.contract_blob_hash, ENTRY_BASELINE.contract_blob_hash);
 });
 

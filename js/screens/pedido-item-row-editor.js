@@ -200,10 +200,8 @@
       previewSlot.replaceChildren();
       var selectedModel = modeloById(modelos, item.modeloId);
       if (selectedModel && selectedModel.cor_1 && window.corPreviewElement) {
-        var previewNode = window.corPreviewElement(selectedModel.cor_1.nome);
+        var previewNode = window.corPreviewElement(selectedModel.cor_1.nome, '100%');
         if (previewNode) {
-          previewNode.style.width = '100%';
-          previewNode.style.height = '100%';
           previewNode.style.border = 'none';
           previewSlot.appendChild(previewNode);
           return;

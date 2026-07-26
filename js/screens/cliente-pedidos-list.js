@@ -527,8 +527,11 @@
 
       var prev = navBtn(ICON_CHEVRON_LEFT, ui.pagina <= 1, function () { ui.pagina -= 1; render(); }, 'Página anterior');
       var next = navBtn(ICON_CHEVRON_RIGHT, ui.pagina >= totalPaginas, function () { ui.pagina += 1; render(); }, 'Próxima página');
-      var pageNum = window.el('button', {
-        type: 'button',
+      // Pass-3 §5.5: the current-page element is a non-interactive indicator,
+      // not a control. It never had a handler or a keyboard action, so it is a
+      // span carrying aria-current="page".
+      var pageNum = window.el('span', {
+        'aria-current': 'page',
         style: 'width:30px;height:30px;display:flex;align-items:center;justify-content:center;'
           + 'border:none;border-radius:4px;background:var(--rv-brand);color:var(--rv-text-on-brand);font-size:13px;'
           + 'font-weight:700;cursor:default;font-family:inherit;',

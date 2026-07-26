@@ -847,7 +847,7 @@ test('the detector version was raised for the report-schema correction', () => {
   // front-end amendment that transports a static `data-ui-pill` marker. Every
   // change to what the detector can OBSERVE raises this number, so a baseline
   // can never be silently attributed to a different detector.
-  assert.equal(DETECTOR_VERSION, '1.0.3');
+  assert.equal(DETECTOR_VERSION, '1.0.4');
 });
 
 /* ---------- 17 · the ratified reference fixture ---------- */

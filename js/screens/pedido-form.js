@@ -506,9 +506,13 @@
     }
 
     function buildBottomSection(saveBtn) {
-      function syncTextareaHeight(textarea) {
-        textarea.style.height = 'auto';
-        textarea.style.height = Math.max(textarea.scrollHeight, 40) + 'px';
+      // Pass-3 §5.3: autosizing is preserved exactly. The helper now closes
+      // over the single textarea it has always been called with, so the
+      // multiline primitive it resizes is statically recoverable instead of
+      // anonymous. It is declared after obsTextarea and only ever runs later.
+      function syncTextareaHeight() {
+        obsTextarea.style.height = 'auto';
+        obsTextarea.style.height = Math.max(obsTextarea.scrollHeight, 40) + 'px';
       }
 
       var obsTextarea = window.el('textarea', {
@@ -519,7 +523,7 @@
       obsTextarea.value = state.observacao;
       obsTextarea.addEventListener('input', function () {
         state.observacao = obsTextarea.value;
-        syncTextareaHeight(obsTextarea);
+        syncTextareaHeight();
       });
 
       var instrCard = window.el('div', {
@@ -529,7 +533,7 @@
       obsTextarea);
 
       window.requestAnimationFrame(function () {
-        syncTextareaHeight(obsTextarea);
+        syncTextareaHeight();
       });
 
       var checkoutCard = window.el('div', {

@@ -127,10 +127,16 @@
     return COR_PREVIEW_LIGHT.indexOf(String(hex).toLowerCase()) !== -1;
   }
 
-  function corPreviewElement(nome) {
+  // Pass-3 §9: the swatch is a proven non-control, and its geometry now stays
+  // owned by this one statically tagged construction. Callers that need a
+  // different edge used to mutate `.style.height` on the returned node, which
+  // left an anonymous height the detector could not attribute to any tag.
+  // `size` is optional and defaults to the original 48px.
+  function corPreviewElement(nome, size) {
     if (typeof window.el !== 'function') return null;
+    var edge = size || '48px';
     return window.el('div', {
-      style: 'width:48px;height:48px;background:' + corPreviewHex(nome)
+      style: 'width:' + edge + ';height:' + edge + ';background:' + corPreviewHex(nome)
         + ';border-radius:var(--rv-radius);border:1px solid var(--rv-border);flex-shrink:0;',
       title: String(nome || ''),
     });

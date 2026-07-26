@@ -80,7 +80,15 @@
     const linhasState = opItens.map(it => {
       const existente = existentesPorItem[it.id];
       const metrosInput = window.textInput({ type: 'number', step: '0.01', value: existente ? String(existente.metros_entregues) : '', placeholder: '0,00' });
-      const defeitoChk = window.el('input', { type: 'checkbox', class: 'h-4 w-4' });
+      // Pass-3 §5.1: the real checkbox stays the state owner and keeps its
+      // specialized geometry (UI-SPECIALIZED-CONTROL-CONTRACT-GAP). Its
+      // visually hidden box moves to construction so the primitive is
+      // statically recoverable instead of anonymous.
+      const defeitoChk = window.el('input', {
+        type: 'checkbox',
+        class: 'h-4 w-4',
+        style: 'position:absolute;opacity:0;width:0;height:0;margin:0;',
+      });
       if (existente?.defeito) defeitoChk.checked = true;
       const obsLinha = window.textInput({ type: 'text', value: existente?.observacao || '', placeholder: 'obs (opcional)' });
       return { op_item_id: it.id, metrosInput, defeitoChk, obsLinha };
@@ -138,13 +146,18 @@
         var knob = window.el('span', {
           style: 'position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:var(--rv-radius-pill);background:var(--rv-surface);box-shadow:var(--rv-shadow-sm);transition:transform .15s ease;',
         });
-        var track = window.el('span', {}, knob);
+        // Pass-3 §5.2: the track is the non-control presentation of the
+        // checkbox state, so its static tag and geometry are declared at
+        // construction. paint() now updates only the dynamic background.
+        var track = window.el('span', {
+          style: 'position:relative;display:inline-block;width:40px;height:22px;border-radius:var(--rv-radius);transition:background .15s ease;',
+        }, knob);
         var paint = function () {
-          track.style.cssText = 'position:relative;display:inline-block;width:40px;height:22px;border-radius:var(--rv-radius);transition:background .15s ease;background:' + (chk.checked ? 'var(--rv-brand)' : 'var(--rv-surface-subtle)') + ';';
+          if (chk.checked) track.style.background = 'var(--rv-brand)';
+          else track.style.background = 'var(--rv-surface-subtle)';
           knob.style.transform = chk.checked ? 'translateX(18px)' : 'translateX(0)';
         };
         paint();
-        chk.style.cssText = 'position:absolute;opacity:0;width:0;height:0;margin:0;';
         chk.addEventListener('change', paint);
         return window.el('div', {},
           window.el('label', { style: LABEL_STYLE }, 'Defeito'),

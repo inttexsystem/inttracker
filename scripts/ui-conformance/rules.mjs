@@ -17,7 +17,7 @@
 import { classifyToken } from '../ui-foundation/token-parser.mjs';
 import { normalizeValue, resolveCssValue } from './contract.mjs';
 
-export const DETECTOR_VERSION = '1.0.3';
+export const DETECTOR_VERSION = '1.0.4';
 
 export const RULE_NAMES = {
   'UIC-001': 'LITERAL_VISUAL_COLOUR',
@@ -79,6 +79,83 @@ export function isControl(element) {
     return element.decls.has('border') || element.decls.has('background');
   }
   return false;
+}
+
+/* ---------- UIC-003 generic control-height eligibility ----------
+
+   The ratified generic ladder governs one family of controls: primary,
+   secondary and compact actions, single-line fields and field-like popover
+   triggers. Three kinds of site are NOT members of that family, and forcing a
+   ladder rung onto them would invent geometry the visual contract never
+   ratified:
+
+     · specialized native input primitives (checkbox, radio, range, hidden);
+     · multiline textareas, whose height is a content behaviour;
+     · statically proven visually hidden controls, which have no rendered box.
+
+   Being outside the ladder is NOT a pass. These sites are carried by the
+   explicit UI-SPECIALIZED-CONTROL-CONTRACT-GAP inventory, which the phase-5
+   pass-3 suite freezes by semantic signature, and a future component-contract
+   order owns their real geometry.
+
+   `isControl()` is deliberately left alone: UIC-006, UIC-007 and UIC-010 read
+   it, and widening or narrowing it here would move findings under rules this
+   pass does not own. */
+
+const SPECIALIZED_INPUT_TYPES = new Set(['checkbox', 'radio', 'range', 'hidden']);
+
+/** ≤ 1px, so the element occupies no readable visual box. */
+function isHairline(value) {
+  if (typeof value !== 'string') return false;
+  const match = /^(\d*\.?\d+)px$/.exec(value.trim());
+  return match ? Number(match[1]) <= 1 : false;
+}
+
+/**
+ * A visually hidden control, proven structurally rather than by path.
+ *
+ * Either the ratified `sr-only` class token, or the full inline pattern:
+ * absolutely positioned, clipped away, and collapsed to a hairline box. A
+ * partial match is NOT accepted — an ordinary 1px button with no clipping
+ * stays a defect.
+ */
+export function isVisuallyHiddenControl(element) {
+  if (!element) return false;
+  if (element.classes instanceof Set && element.classes.has('sr-only')) return true;
+  if (!(element.decls instanceof Map)) return false;
+  if (normalizeValue(element.decls.get('position') || '') !== 'absolute') return false;
+  if (!element.decls.has('clip') && !element.decls.has('clip-path')) return false;
+  return isHairline(element.decls.get('width')) && isHairline(element.decls.get('height'));
+}
+
+/** A native primitive whose geometry the generic ladder does not govern. */
+export function isSpecializedControl(element) {
+  if (!element) return false;
+  if (element.tag === 'textarea') return true;
+  if (element.tag !== 'input') {
+    // A type carried from a statically bound factory element proves the
+    // primitive even where the tag itself was assigned after construction.
+    return SPECIALIZED_INPUT_TYPES.has(String(attr(element, 'type') || '').toLowerCase());
+  }
+  return SPECIALIZED_INPUT_TYPES.has(String(attr(element, 'type') || '').toLowerCase());
+}
+
+/**
+ * Does the ratified generic height ladder govern this element's height?
+ *
+ * The rungs themselves are never named here — they are read from the contract
+ * enum at run time, exactly like every other numeric bound in this module.
+ *
+ * Order matters and is fixed by the pass-3 ruling: a statically specialized or
+ * non-visual site is answered BEFORE role resolution, so a proven checkbox is
+ * never reported as an unproven generic control. Everything else falls through
+ * to the unchanged `isControl()` semantics.
+ */
+export function isGenericControlHeightTarget(element) {
+  if (!element) return false;
+  if (isVisuallyHiddenControl(element)) return false;
+  if (isSpecializedControl(element)) return false;
+  return isControl(element);
 }
 
 export function isButtonLike(element) {
@@ -295,6 +372,12 @@ function ruleControlHeight(unit, ctx, out) {
   for (const decl of unit.declarations) {
     if (decl.property !== 'height') continue;
     if (decl.interpolated) continue;
+    // (A) A statically proven specialized or visually hidden site is answered
+    // before role resolution: the generic ladder does not govern it, so it is
+    // neither a defect nor an unproven role. It is carried instead by
+    // UI-SPECIALIZED-CONTROL-CONTRACT-GAP.
+    if (isVisuallyHiddenControl(decl.element) || isSpecializedControl(decl.element)) continue;
+    // (C) Otherwise the role must be resolved before the ladder can be applied.
     if (!decl.element.roleResolved) {
       // A height on an element whose tag the front-end could not recover may
       // or may not be a control height. Reporting neither a pass nor a defect
@@ -314,7 +397,8 @@ function ruleControlHeight(unit, ctx, out) {
       );
       continue;
     }
-    if (!isControl(decl.element)) continue;
+    // (D) A resolved generic control is measured against the ratified ladder.
+    if (!isGenericControlHeightTarget(decl.element)) continue;
     const { value: resolved, unresolved } = resolve(ctx.tokens, decl.value);
     const at = unit.locate(decl.valueOffset);
     if (unresolved.length > 0) {

@@ -266,8 +266,12 @@ test('18. a correcao responsiva nao introduz delta de banco nem migracao', () =>
 });
 
 test('os arquivos protegidos nao cresceram em relacao a bbd5f85', () => {
+  // 2709 -> 2716 em pedido-detail-events.js: +7 linhas da passada 3 de altura,
+  // todas no bloco normalizeMovementModalControls, que registra a divisao do
+  // antigo MOVEMENT_CONTROL_HEIGHT generico em um minimo exclusivo de textarea.
+  // Nenhuma logica nova; o ratchet e reancorado, nunca afrouxado.
   const LIMITS = {
-    'js/screens/pedido-detail-events.js': 2709,
+    'js/screens/pedido-detail-events.js': 2716,
     'js/screens/pedido-detail-progress.js': 919,
   };
   for (const [rel, limit] of Object.entries(LIMITS)) {

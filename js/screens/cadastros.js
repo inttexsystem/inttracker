@@ -142,8 +142,19 @@
     if (!control) return control;
 
     control.style.width = '100%';
-    control.style.minHeight = '44px';
-    control.style.padding = control.tagName === 'SELECT' ? '10px 38px 10px 13px' : '10px 13px';
+    // Pass-3 §8: the generic 44px minimum no longer reaches every control
+    // type. A single-line input or select resolves through the canonical
+    // compact rung declared by the shared primitive in js/ui.js, so this
+    // helper must not fight it with a competing minimum or with vertical
+    // padding that would clip the fixed height. A multiline textarea is
+    // outside the generic ladder and keeps its own minimum and padding
+    // (UI-SPECIALIZED-CONTROL-CONTRACT-GAP).
+    if (control.tagName === 'TEXTAREA') {
+      control.style.minHeight = '44px';
+      control.style.padding = '10px 13px';
+    } else {
+      control.style.padding = control.tagName === 'SELECT' ? '0 38px 0 13px' : '0 13px';
+    }
     control.style.border = '1px solid var(--rv-border-strong)';
     control.style.borderRadius = '4px';
     control.style.background = control.disabled ? 'var(--rv-surface-subtle)' : 'var(--rv-surface)';
@@ -329,7 +340,7 @@
     var btnCancel = window.el('button', {
       type: 'button',
       onclick: close,
-      style: 'height:40px; min-width:110px; padding:0 16px; border:1px solid var(--rv-border-strong); border-radius:4px; background:var(--rv-surface); color:var(--rv-text-secondary); font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; box-shadow:none;'
+      style: 'height:var(--rv-h-default); min-width:110px; padding:0 16px; border:1px solid var(--rv-border-strong); border-radius:4px; background:var(--rv-surface); color:var(--rv-text-secondary); font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; box-shadow:none;'
     }, 'Cancelar');
     btnCancel.addEventListener('mouseenter', function () {
       btnCancel.style.borderColor = 'var(--rv-border-strong)';
@@ -342,7 +353,7 @@
 
     var btnSave = window.el('button', {
       type: 'button',
-      style: 'height:40px; min-width:110px; padding:0 16px; border:none; border-radius:4px; background:var(--rv-brand); color:var(--rv-text-on-brand); font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; box-shadow:none; transition:background .18s ease, opacity .18s ease;',
+      style: 'height:var(--rv-h-primary); min-width:110px; padding:0 16px; border:none; border-radius:4px; background:var(--rv-brand); color:var(--rv-text-on-brand); font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; box-shadow:none; transition:background .18s ease, opacity .18s ease;',
       onclick: async function () {
         btnSave.disabled = true;
         btnSave.style.opacity = '0.78';
@@ -2000,20 +2011,21 @@
         line.appendChild(window.el('div', { style: 'font-size:13.5px; color:var(--rv-text-primary);' }, Number(row.largura).toFixed(2).replace('.', ',') + ' m'));
         line.appendChild(window.el('div', { style: 'font-size:13.5px; color:var(--rv-text-primary);' }, 'R$ ' + Number(row.preco_por_metro).toFixed(2).replace('.', ',')));
         const actions = window.el('div', { style: 'display:flex; align-items:center; justify-content:center; gap:6px;' });
-        actions.appendChild(window.el('button', {
-          type: 'button',
-          onclick: () => openModal(row, allForns),
+        // Pass-3 §5.6: the canonical 30x30 table-row action is owned by the
+        // shared actionButton primitive, which supplies the geometry, the
+        // title, the aria-label and the visually hidden label. Deletion stays
+        // gated by confirmExcluir().
+        actions.appendChild(window.actionButton({
           title: 'Editar preco',
-          'aria-label': 'Editar preco',
-          style: 'width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--rv-border); border-radius:4px; background:var(--rv-surface); color:var(--rv-text-tertiary); cursor:pointer;'
-        }, svgIcon(ICON_SQUARE_PEN)));
-        actions.appendChild(window.el('button', {
-          type: 'button',
-          onclick: () => confirmExcluir(row),
+          icon: svgIcon(ICON_SQUARE_PEN),
+          onclick: () => openModal(row, allForns)
+        }));
+        actions.appendChild(window.actionButton({
           title: 'Excluir preco',
-          'aria-label': 'Excluir preco',
-          style: 'width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--rv-signal-negative-border); border-radius:4px; background:var(--rv-surface); color:var(--rv-signal-negative); cursor:pointer;'
-        }, svgIcon(ICON_TRASH)));
+          icon: svgIcon(ICON_TRASH),
+          danger: true,
+          onclick: () => confirmExcluir(row)
+        }));
         line.appendChild(actions);
         card.appendChild(line);
       });

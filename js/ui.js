@@ -142,8 +142,14 @@ function formField({ label, input, hint }) {
 
 // --- Input texto/email/numero padrão ---
 function textInput({ type = 'text', value = '', placeholder = '', required = false, step }) {
-  const attrs = { type, placeholder, style: 'border-radius:var(--rv-radius);',
-    class: 'w-full border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500' };
+  // Pass-3 §8: this is the canonical shared owner of single-line field
+  // geometry, so the ratified compact rung is declared here rather than left
+  // to a screen-local override. `py-2` is removed because a fixed border-box
+  // height plus 8px of vertical padding clips the text; horizontal padding is
+  // unchanged. A native input centres its own value vertically.
+  const attrs = { type, placeholder,
+    style: 'height:var(--rv-h-compact); border-radius:var(--rv-radius);',
+    class: 'w-full border px-3 focus:outline-none focus:ring-2 focus:ring-blue-500' };
   if (required) attrs.required = 'required';
   if (step) attrs.step = step;
   const input = el('input', attrs);
@@ -153,9 +159,12 @@ function textInput({ type = 'text', value = '', placeholder = '', required = fal
 
 // --- Select padrão ---
 function selectInput({ options, value, placeholder = 'Selecione...' }) {
+  // Pass-3 §8: same canonical compact rung as textInput — a select is a
+  // single-line field. Option construction and selection coercion below are
+  // untouched.
   const sel = el('select', {
-    style: 'border-radius:var(--rv-radius);',
-    class: 'w-full border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+    style: 'height:var(--rv-h-compact); border-radius:var(--rv-radius);',
+    class: 'w-full border px-3 focus:outline-none focus:ring-2 focus:ring-blue-500'
   });
   sel.appendChild(el('option', { value: '' }, placeholder));
   // Comparação tolerante: o banco devolve numeric como 1.4, options podem ter '1.40' como string.

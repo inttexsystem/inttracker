@@ -398,14 +398,21 @@
     var MOVEMENT_MODAL_RADIUS = 'var(--rv-radius)';  // A2: css/tokens.css owns geometry
     var MOVEMENT_SURFACE_RADIUS = 'var(--rv-radius)';
     var MOVEMENT_MODAL_SHADOW = 'var(--rv-shadow-popover)';
-    var MOVEMENT_CONTROL_HEIGHT = '36px';
+    // Pass-3 §8: the single generic 36px constant reached inputs, selects AND
+    // textareas alike. It is split into role-specific ownership: a single-line
+    // control now resolves through the canonical compact rung declared by the
+    // shared primitive in js/ui.js, so this helper imposes no competing
+    // minimum on it, and only a multiline textarea keeps a specialized one
+    // (UI-SPECIALIZED-CONTROL-CONTRACT-GAP). No generic control-height
+    // constant holds a literal any more.
+    var MOVEMENT_TEXTAREA_MIN_HEIGHT = '36px';
 
     function normalizeMovementModalControls(root) {
       if (!root || typeof root.querySelectorAll !== 'function') return;
       root.querySelectorAll('input, select, textarea').forEach(function (control) {
         // A2 removed the Tailwind radius strip: nothing applies one any more.
         control.style.borderRadius = MOVEMENT_SURFACE_RADIUS;
-        control.style.minHeight = MOVEMENT_CONTROL_HEIGHT;
+        control.style.minHeight = control.tagName === 'TEXTAREA' ? MOVEMENT_TEXTAREA_MIN_HEIGHT : '';
         control.style.boxShadow = 'none';
       });
     }

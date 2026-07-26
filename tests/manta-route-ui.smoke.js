@@ -1141,8 +1141,14 @@ test('R3/19g. a correcao R3 nao introduz delta de banco nem migracao', () => {
 
 test('R3/19h. gates estruturais preservados (nenhum arquivo gated cresceu)', () => {
   const lines = (rel) => read(rel).split('\n').length - (read(rel).endsWith('\n') ? 1 : 0);
-  assert.ok(lines('js/screens/pedido-detail-events.js') <= 2709,
-    'pedido-detail-events.js deve permanecer <= 2709 linhas');
+  // 2709 -> 2716: +7 linhas da passada 3 de altura, todas no bloco
+  // normalizeMovementModalControls — o comentario que registra a divisao do
+  // antigo MOVEMENT_CONTROL_HEIGHT generico em MOVEMENT_TEXTAREA_MIN_HEIGHT
+  // (so multiline) mais a altura canonica que js/ui.js passa a declarar para os
+  // controles de linha unica. Nenhuma logica nova; o gate segue sendo um
+  // ratchet, apenas reancorado no bloco autorizado que o moveu.
+  assert.ok(lines('js/screens/pedido-detail-events.js') <= 2716,
+    'pedido-detail-events.js deve permanecer <= 2716 linhas');
   assert.ok(lines('js/screens/pedido-detail-progress.js') <= 918,
     'pedido-detail-progress.js deve permanecer <= 918 linhas');
 });
@@ -1298,12 +1304,45 @@ const PASS2_A4_ASSETS = [
   'js/badges.js',
   'js/pedido-ui.js'
 ];
-const PASS2_A3_ASSETS_AINDA_EM_A3 = PASS2_A3_ASSETS.filter((a) => !PASS2_A4_ASSETS.includes(a));
-const PASS2_ASSETS_AINDA_EM_PASS2 = PASS2_ASSETS.filter((a) => !PASS2_A2_ASSETS.includes(a));
+// UI-CONSOLIDATION-PHASE-5-PASS-3-CONTROL-HEIGHT-R1-A1 fechou a propriedade de
+// ALTURA GENERICA de controle. Ela alterou 15 assets de runtime: os dois donos
+// compartilhados (js/ui.js, que passa a declarar a altura canonica dos campos
+// de linha unica, e js/pedido-ui.js, cujo swatch passa a receber o tamanho por
+// parametro) e 13 telas. A garantia original nao muda: um asset alterado e
+// invalidado exatamente uma vez, sob um token declarado, e esse token nao vaza
+// para nenhum asset que a passada 3 nao tenha realmente alterado.
+const PASS3_TOKEN = '20260726-ui-p5-pass3-a1';
+const PASS3_ASSETS = [
+  'js/pedido-ui.js',
+  'js/screens/admin-usuarios-modal.js',
+  'js/screens/cadastros.js',
+  'js/screens/cliente-pedido-detail.js',
+  'js/screens/cliente-pedidos-list.js',
+  'js/screens/documentos-recebidos.js',
+  'js/screens/entrega-form.js',
+  'js/screens/manta-output-form.js',
+  'js/screens/ops-list.js',
+  'js/screens/pedido-detail-events.js',
+  'js/screens/pedido-detail-render.js',
+  'js/screens/pedido-form.js',
+  'js/screens/pedido-item-row-editor.js',
+  'js/screens/pedidos-list.js',
+  'js/ui.js'
+];
+
+const PASS2_A4_ASSETS_AINDA_EM_A4 = PASS2_A4_ASSETS.filter((a) => !PASS3_ASSETS.includes(a));
+const PASS2_A3_ASSETS_AINDA_EM_A3 = PASS2_A3_ASSETS
+  .filter((a) => !PASS2_A4_ASSETS.includes(a))
+  .filter((a) => !PASS3_ASSETS.includes(a));
+const PASS2_ASSETS_AINDA_EM_PASS2 = PASS2_ASSETS
+  .filter((a) => !PASS2_A2_ASSETS.includes(a))
+  .filter((a) => !PASS3_ASSETS.includes(a));
+const PASS2_A2_ASSETS_AINDA_EM_A2 = PASS2_A2_ASSETS.filter((a) => !PASS3_ASSETS.includes(a));
 const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS
   .filter((a) => !PASS2_ASSETS.includes(a))
   .filter((a) => !PASS2_A2_ASSETS.includes(a))
-  .filter((a) => !PASS2_A3_ASSETS.includes(a));
+  .filter((a) => !PASS2_A3_ASSETS.includes(a))
+  .filter((a) => !PASS3_ASSETS.includes(a));
 
 // R3 alterou dois assets. A passada 1 retokenizou UM deles
 // (pedido-detail-render.js), entao o token de R3 sobrevive apenas no outro —
@@ -1398,9 +1437,11 @@ test('R3/20a. os dois assets alterados por R3 seguem invalidados', () => {
     assert.match(tokenFor(rel), /r3$/, rel + ' deve manter o token especifico de R3');
   }
   // O asset que a passada 1 retokenizou carrega o token da ULTIMA passada que o
-  // alterou: a passada 2 tambem tocou pedido-detail-render.js.
+  // alterou: a passada 3 de altura tambem tocou pedido-detail-render.js.
   for (const rel of R3_ASSETS.filter((a) => PASS1_ASSETS.includes(a))) {
-    const esperado = PASS2_ASSETS.includes(rel) ? PASS2_TOKEN : PASS1_TOKEN;
+    const esperado = PASS3_ASSETS.includes(rel) ? PASS3_TOKEN
+      : PASS2_ASSETS.includes(rel) ? PASS2_TOKEN
+      : PASS1_TOKEN;
     assert.equal(tokenFor(rel), esperado,
       rel + ' deve carregar o token declarado da passada que o alterou por ultimo');
   }
@@ -1614,13 +1655,15 @@ test('PASS2/20c8. os assets da passada 2 de raio carregam exatamente o token dec
 // A correcao A2 declara os seus assets e o seu token; nenhum outro asset pode
 // carrega-lo, e ele tem de diferir de todo token anterior.
 test('A2/20c9. os assets da correcao A2 carregam exatamente o token declarado, e ele nao vaza', () => {
-  for (const rel of PASS2_A2_ASSETS) {
+  // A passada 3 retokenizou parte deles; o token da A2 sobrevive apenas nos
+  // demais, e PASS3/20c12 verifica os retokenizados literalmente.
+  for (const rel of PASS2_A2_ASSETS_AINDA_EM_A2) {
     assert.equal(tokenFor(rel), PASS2_A2_TOKEN,
       rel + ' deve carregar exatamente o token declarado da correcao A2');
   }
   const carriers = assetRefs(indexHtml).filter((r) => r.token === PASS2_A2_TOKEN).map((r) => r.path);
-  assert.deepEqual(carriers.sort(), PASS2_A2_ASSETS.slice().sort(),
-    'exatamente os assets da A2 podem carregar o token da A2');
+  assert.deepEqual(carriers.sort(), PASS2_A2_ASSETS_AINDA_EM_A2.slice().sort(),
+    'exatamente os assets da A2 que a passada 3 nao tocou podem carregar o token da A2');
   for (const anterior of [PASS2_TOKEN, PASS1_TOKEN, BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN, R2_TOKEN]) {
     assert.notEqual(PASS2_A2_TOKEN, anterior,
       'reusar um token anterior nao invalidaria cache algum');
@@ -1632,7 +1675,7 @@ test('A2/20c9. os assets da correcao A2 carregam exatamente o token declarado, e
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 2114191');
   }
   // E nenhum asset NAO declarado pela A2 pode ter mudado.
-  const declarados = new Set(PASS2_A2_ASSETS);
+  const declarados = new Set(PASS2_A2_ASSETS.concat(PASS3_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     if (!ref.path.startsWith('js/screens/') || declarados.has(ref.path)) continue;
     const committed = execFileSync('git', ['rev-parse', '2114191:' + ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
@@ -1667,7 +1710,7 @@ test('A3/20c10. os assets da correcao A3 carregam exatamente o token declarado, 
   }
   // E nenhum outro script local pode ter mudado: a A3 nao arrasta asset algum,
   // nem tela (fechada pela A2) nem modulo compartilhado que ela nao declarou.
-  const declarados = new Set(PASS2_A3_ASSETS.concat(PASS2_A4_ASSETS));
+  const declarados = new Set(PASS2_A3_ASSETS.concat(PASS2_A4_ASSETS).concat(PASS3_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     // Runtime de terceiros (CDN) nao esta versionado aqui e nao e alvo da A3.
     if (/^https?:/.test(ref.path)) continue;
@@ -1681,13 +1724,15 @@ test('A3/20c10. os assets da correcao A3 carregam exatamente o token declarado, 
 // carrega-lo, e ele tem de diferir de todo token anterior. Sao os dois modulos
 // compartilhados que passaram a delegar aos construtores canonicos de badge.
 test('A4/20c11. os assets da correcao A4 carregam exatamente o token declarado, e ele nao vaza', () => {
-  for (const rel of PASS2_A4_ASSETS) {
+  // A passada 3 retokenizou js/pedido-ui.js e js/ui.js; o token da A4 sobrevive
+  // apenas nos assets que ela nao tocou, e PASS3/20c12 verifica os demais.
+  for (const rel of PASS2_A4_ASSETS_AINDA_EM_A4) {
     assert.equal(tokenFor(rel), PASS2_A4_TOKEN,
       rel + ' deve carregar exatamente o token declarado da correcao A4');
   }
   const carriers = assetRefs(indexHtml).filter((r) => r.token === PASS2_A4_TOKEN).map((r) => r.path);
-  assert.deepEqual(carriers.sort(), PASS2_A4_ASSETS.slice().sort(),
-    'exatamente os assets da A4 podem carregar o token da A4');
+  assert.deepEqual(carriers.sort(), PASS2_A4_ASSETS_AINDA_EM_A4.slice().sort(),
+    'exatamente os assets da A4 que a passada 3 nao tocou podem carregar o token da A4');
   for (const anterior of [PASS2_A3_TOKEN, PASS2_A2_TOKEN, PASS2_TOKEN, PASS1_TOKEN, BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN, R2_TOKEN]) {
     assert.notEqual(PASS2_A4_TOKEN, anterior,
       'reusar um token anterior nao invalidaria cache algum');
@@ -1699,12 +1744,46 @@ test('A4/20c11. os assets da correcao A4 carregam exatamente o token declarado, 
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 2fa29d9');
   }
   // E nenhum outro script local pode ter mudado: a A4 nao arrasta asset algum.
-  const declarados = new Set(PASS2_A4_ASSETS);
+  const declarados = new Set(PASS2_A4_ASSETS.concat(PASS3_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
     const committed = execFileSync('git', ['rev-parse', '2fa29d9:' + ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
     const worktree = execFileSync('git', ['hash-object', '--', ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
     assert.equal(worktree, committed, ref.path + ' nao foi declarado pela A4 e deve seguir byte-identico a 2fa29d9');
+  }
+});
+
+// A passada 3 declara os seus assets e o seu token; nenhum outro asset pode
+// carrega-lo, e ele tem de diferir de todo token anterior. Sao os dois donos
+// compartilhados de geometria (js/ui.js e js/pedido-ui.js) mais as 13 telas que
+// a propriedade de altura generica realmente alterou.
+test('PASS3/20c12. os assets da passada 3 de altura carregam exatamente o token declarado, e ele nao vaza', () => {
+  for (const rel of PASS3_ASSETS) {
+    assert.equal(tokenFor(rel), PASS3_TOKEN,
+      rel + ' deve carregar exatamente o token declarado da passada 3');
+  }
+  const carriers = assetRefs(indexHtml).filter((r) => r.token === PASS3_TOKEN).map((r) => r.path);
+  assert.deepEqual(carriers.sort(), PASS3_ASSETS.slice().sort(),
+    'exatamente os assets da passada 3 podem carregar o token da passada 3');
+  for (const anterior of [PASS2_A4_TOKEN, PASS2_A3_TOKEN, PASS2_A2_TOKEN, PASS2_TOKEN, PASS1_TOKEN,
+    BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN, R2_TOKEN]) {
+    assert.notEqual(PASS3_TOKEN, anterior,
+      'reusar um token anterior nao invalidaria cache algum');
+  }
+  // Um asset retokenizado tem de ter mudado de fato desde o checkpoint publicado.
+  for (const rel of PASS3_ASSETS) {
+    const committed = execFileSync('git', ['rev-parse', '7577f93:' + rel], { cwd: ROOT, encoding: 'utf8' }).trim();
+    const worktree = execFileSync('git', ['hash-object', '--', rel], { cwd: ROOT, encoding: 'utf8' }).trim();
+    assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 7577f93');
+  }
+  // E nenhum outro script local pode ter mudado: a passada 3 nao arrasta asset algum.
+  const declarados = new Set(PASS3_ASSETS);
+  for (const ref of assetRefs(indexHtml)) {
+    if (/^https?:/.test(ref.path)) continue;
+    if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
+    const committed = execFileSync('git', ['rev-parse', '7577f93:' + ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
+    const worktree = execFileSync('git', ['hash-object', '--', ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
+    assert.equal(worktree, committed, ref.path + ' nao foi declarado pela passada 3 e deve seguir byte-identico a 7577f93');
   }
 });
