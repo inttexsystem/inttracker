@@ -91,7 +91,7 @@
   var SVG_OPEN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect></svg>';
   var SVG_HINT_LOCK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>';
 
-  var CARD = 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:6px;';
+  var CARD = 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);';
   var FIELD_LABEL = 'font-size:13px;font-weight:600;color:var(--rv-text-primary);margin-bottom:7px;display:block;';
   var INPUT_STYLE = 'width:100%;border:1px solid var(--rv-border-strong);border-radius:4px;padding:9px 12px;font-size:14px;font-family:inherit;color:var(--rv-text-primary);background:var(--rv-surface);outline:none;box-sizing:border-box;';
   var SELECT_STYLE = 'width:100%;border:1px solid var(--rv-border-strong);border-radius:4px;padding:9px 36px 9px 12px;font-size:14px;font-family:inherit;color:var(--rv-text-primary);background:var(--rv-surface);outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;box-sizing:border-box;';
@@ -103,7 +103,7 @@
   var BTN_BACK = 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-surface);color:var(--rv-text-secondary);border:1px solid var(--rv-border-strong);border-radius:4px;padding:8px 16px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;';
   var BTN_SOLID_SM = 'display:inline-flex;align-items:center;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:8px 16px;font-weight:600;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;';
   var BTN_LINK = 'display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--rv-accent-blue);background:none;border:none;padding:0;cursor:pointer;font-family:inherit;';
-  var SECTION_ICON = 'width:34px;height:34px;border-radius:6px;background:var(--rv-pill-info-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+  var SECTION_ICON = 'width:34px;height:34px;border-radius:var(--rv-radius);background:var(--rv-pill-info-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;';
   var RV_CARD = 'background:var(--rv-color-surface);border:1px solid var(--rv-color-line-200);border-radius:var(--rv-radius-card);';
   var RV_TH_STYLE = 'font-size:var(--rv-font-size-label);font-weight:700;color:var(--rv-color-muted);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;';
   var RV_FIELD_LABEL = 'display:block;font-size:11.5px;color:var(--rv-text-tertiary);margin-bottom:2px;';
@@ -143,7 +143,7 @@
 
   var PILL_BASE = 'display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:var(--rv-radius-pill);white-space:nowrap;';
   function rvDot(color) {
-    return el('span', { style: 'width:6px;height:6px;border-radius:50%;background:' + color + ';' });
+    return el('span', { style: 'width:6px;height:6px;border-radius:var(--rv-radius-pill);background:' + color + ';' });
   }
   function rvStageTecelagemBadge() {
     return el('span', { style: PILL_BASE + 'background:var(--rv-stage-tecelagem-bg);color:var(--rv-stage-tecelagem);' }, 'Tecelagem');
@@ -831,7 +831,7 @@
     } else if (isOpAbertaTecelagem()) {
       texto = 'Esta OP ja foi aberta e esta em preparacao — a producao nao e iniciada nesta fase.';
     }
-    return el('div', { style: 'margin-top:16px;display:flex;align-items:center;gap:10px;background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:6px;padding:12px 16px;' },
+    return el('div', { style: 'margin-top:16px;display:flex;align-items:center;gap:10px;background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);padding:12px 16px;' },
       svgEl(SVG_INFO_BAR),
       el('span', { style: 'font-size:13px;color:var(--rv-text-secondary);' }, texto),
     );
@@ -852,7 +852,7 @@
     clienteSelEl.addEventListener('change', () => { clienteSel = clienteSelEl.value ? Number(clienteSelEl.value) : ''; renderRight(); });
 
     const pedidoBlock = hasLinkedPedido()
-      ? el('div', { style: 'margin-bottom:16px;background:var(--rv-surface-subtle);border:1px solid var(--rv-border);border-radius:6px;padding:14px 16px;' },
+      ? el('div', { style: 'margin-bottom:16px;background:var(--rv-surface-subtle);border:1px solid var(--rv-border);border-radius:var(--rv-radius);padding:14px 16px;' },
           el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px;' },
             el('div', {},
               el('div', { style: 'font-size:12px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;' }, 'Pedido vinculado'),
@@ -953,7 +953,7 @@
       card.appendChild(el('div', { style: 'display:grid;grid-template-columns:2fr 1fr 80px;gap:10px;padding:10px 24px;border-top:1px solid var(--rv-border);border-bottom:1px solid var(--rv-border);background:var(--rv-surface-subtle);' },
         el('div', { style: TH_STYLE }, 'MODELO'), el('div', { style: TH_STYLE }, 'METROS'), el('div', { style: TH_STYLE + 'text-align:right;' }, 'AÇÕES')));
       card.appendChild(el('div', { style: 'padding:48px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;' },
-        el('div', { style: 'width:48px;height:48px;border-radius:50%;background:var(--rv-surface-subtle);display:flex;align-items:center;justify-content:center;' }, svgEl(SVG_EMPTY_BOX)),
+        el('div', { style: 'width:48px;height:48px;border-radius:var(--rv-radius-pill);background:var(--rv-surface-subtle);display:flex;align-items:center;justify-content:center;' }, svgEl(SVG_EMPTY_BOX)),
         el('div', { style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);' }, 'Nenhum item adicionado'),
         el('div', { style: 'font-size:13px;color:var(--rv-text-tertiary);' }, 'Adicione ao menos um item para calcular o fio necessário.'),
       ));
@@ -1454,7 +1454,7 @@
       card.appendChild(el('div', { style: idx > 0 ? 'border-top:1px solid var(--rv-color-line-100);margin-top:13px;padding-top:13px;' : '' },
         el('div', { style: 'display:flex;align-items:center;gap:7px;margin-bottom:8px;' },
           el('span', { style: 'font-size:12px;font-weight:600;color:var(--rv-color-value);' }, tipo),
-          el('span', { style: 'font-size:10px;font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);' }, '0')),
+          el('span', { 'data-ui-pill': '1', style: 'font-size:10px;font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);' }, '0')),
         el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-bottom:8px;' }, 'Nenhum arquivo anexado.'),
         el('button', {
           type: 'button',
@@ -1483,7 +1483,7 @@
 
     const children = [
       el('div', { style: 'display:flex;align-items:center;gap:12px;margin-bottom:16px;' },
-        el('div', { style: 'width:40px;height:40px;border-radius:8px;background:var(--rv-pill-info-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;' }, svgEl(SVG_ICON_SUMMARY)),
+        el('div', { style: 'width:40px;height:40px;border-radius:var(--rv-radius);background:var(--rv-pill-info-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;' }, svgEl(SVG_ICON_SUMMARY)),
         el('div', {},
           el('div', { style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);' }, 'Resumo da OP'),
           el('span', { style: 'display:inline-block;margin-top:4px;background:var(--rv-pill-info-bg);color:var(--rv-accent-blue);font-size:11.5px;font-weight:600;border-radius:4px;padding:2px 8px;' }, statusLabel),

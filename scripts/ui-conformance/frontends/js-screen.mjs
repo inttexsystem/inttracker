@@ -824,6 +824,48 @@ export function analyse(path, text) {
     }
   }
 
+  /* `'data-ui-pill': '…'` declared as an attribute-object key.
+
+     D6.1 asks the rules for an element's ROLE, and `isSemanticPill()` reads that
+     role from `attrMap`. A `.dc.html` prototype fills `attrMap` from real markup
+     attributes; a JavaScript screen had no path to it at all, so a screen could
+     not state "this span is a count badge" even when it plainly is.
+
+     This transports exactly one proven marker and nothing else. The key must be
+     a quoted static string and its value must be a literal: an expression is
+     unproven, so it is recorded as indeterminate rather than fabricated as
+     present. No tag, control, ancestor or runtime role is inferred here, and
+     `isSemanticPill()` itself is unchanged — it simply now sees a marker a
+     JavaScript screen was always allowed to declare. */
+  for (let k = 0; k < tokens.length; k += 1) {
+    const token = tokens[k];
+    if (token.type !== 'string' || token.value !== 'data-ui-pill') continue;
+    if (!isPunct(tokens[k + 1], ':')) continue;
+    const at = locate(token.start);
+    const value = tokens[k + 2];
+    if (!value || value.type !== 'string') {
+      indeterminate.push({
+        line: at.line,
+        column: at.column,
+        reason: 'PILL_MARKER_NOT_STATIC',
+        context: 'data-ui-pill whose value is not a literal; the role stays unproven',
+      });
+      continue;
+    }
+    const objectIndex = enclosingObject(tokens, k);
+    const element = objectIndex === -1 ? null : objectElements.get(objectIndex);
+    if (element) {
+      element.attrMap.set('data-ui-pill', value.value);
+    } else {
+      indeterminate.push({
+        line: at.line,
+        column: at.column,
+        reason: 'PILL_MARKER_UNDECODED',
+        context: 'data-ui-pill key whose element declares no decodable style',
+      });
+    }
+  }
+
   /* markup and colours carried inside string literals */
   for (const { token, index } of literals) {
     const { content, start } = literalContent(text, token);

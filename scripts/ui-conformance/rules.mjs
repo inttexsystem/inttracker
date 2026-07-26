@@ -17,7 +17,7 @@
 import { classifyToken } from '../ui-foundation/token-parser.mjs';
 import { normalizeValue, resolveCssValue } from './contract.mjs';
 
-export const DETECTOR_VERSION = '1.0.2';
+export const DETECTOR_VERSION = '1.0.3';
 
 export const RULE_NAMES = {
   'UIC-001': 'LITERAL_VISUAL_COLOUR',

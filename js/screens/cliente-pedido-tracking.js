@@ -165,35 +165,35 @@
     var innerEl;
     if (estado === 'parcial') {
       innerEl = window.el('div', {
-        style: 'width:30px;height:30px;border-radius:50%;background:var(--rv-surface);'
+        style: 'width:30px;height:30px;border-radius:var(--rv-radius-pill);background:var(--rv-surface);'
           + 'display:flex;align-items:center;justify-content:center;'
           + 'font-weight:700;font-size:13px;color:' + accentColor + ';',
       }, visibleNumber);
     } else if (estado === 'concluido') {
       innerEl = window.el('div', {
-        style: 'width:32px;height:32px;border-radius:50%;background:var(--rv-brand);color:var(--rv-text-on-brand);'
+        style: 'width:32px;height:32px;border-radius:var(--rv-radius-pill);background:var(--rv-brand);color:var(--rv-text-on-brand);'
           + 'display:flex;align-items:center;justify-content:center;',
       }, svgCheck());
     } else if (estado === 'atual-excecao') {
       innerEl = window.el('div', {
-        style: 'width:32px;height:32px;border-radius:50%;background:transparent;color:var(--rv-text-on-brand);'
+        style: 'width:32px;height:32px;border-radius:var(--rv-radius-pill);background:transparent;color:var(--rv-text-on-brand);'
           + 'display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;',
       }, '!');
     } else if (estado === 'atual') {
       innerEl = window.el('div', {
-        style: 'width:32px;height:32px;border-radius:50%;background:var(--rv-brand);color:var(--rv-text-on-brand);'
+        style: 'width:32px;height:32px;border-radius:var(--rv-radius-pill);background:var(--rv-brand);color:var(--rv-text-on-brand);'
           + 'display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;',
       }, visibleNumber);
     } else {
       innerEl = window.el('div', {
-        style: 'width:30px;height:30px;border-radius:50%;background:var(--rv-surface);'
+        style: 'width:30px;height:30px;border-radius:var(--rv-radius-pill);background:var(--rv-surface);'
           + 'border:1.5px solid var(--rv-border-soft);display:flex;align-items:center;justify-content:center;'
           + 'font-weight:600;font-size:13px;color:var(--rv-text-tertiary);',
       }, visibleNumber);
     }
 
     // Wrapper 42px (serve de container para o conector ficar em top:20px)
-    var circleWrapStyle = 'width:42px;height:42px;border-radius:50%;display:flex;align-items:center;'
+    var circleWrapStyle = 'width:42px;height:42px;border-radius:var(--rv-radius-pill);display:flex;align-items:center;'
       + 'justify-content:center;position:relative;z-index:1;box-shadow:0 0 0 4px var(--rv-surface);flex-shrink:0;';
     if (estado === 'parcial') {
       var pct2 = Math.min(Math.max(dtoStep.percentual, 0), 100);

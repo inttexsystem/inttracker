@@ -204,7 +204,6 @@
         if (previewNode) {
           previewNode.style.width = '100%';
           previewNode.style.height = '100%';
-          previewNode.style.borderRadius = '0';
           previewNode.style.border = 'none';
           previewSlot.appendChild(previewNode);
           return;

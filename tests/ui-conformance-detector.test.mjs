@@ -20,7 +20,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -843,7 +843,11 @@ test('the UIC-001 highlight keys name the three-state semantics they report', ()
 });
 
 test('the detector version was raised for the report-schema correction', () => {
-  assert.equal(DETECTOR_VERSION, '1.0.2');
+  // 1.0.2 recorded the report-schema correction; 1.0.3 records the js-screen
+  // front-end amendment that transports a static `data-ui-pill` marker. Every
+  // change to what the detector can OBSERVE raises this number, so a baseline
+  // can never be silently attributed to a different detector.
+  assert.equal(DETECTOR_VERSION, '1.0.3');
 });
 
 /* ---------- 17 · the ratified reference fixture ---------- */
@@ -1036,4 +1040,93 @@ test('enum comparison is spelling-insensitive but not value-insensitive', () => 
   assert.deepEqual(byRule(shadow.findings, 'UIC-004'), [], 'the same shadow spelled differently is the same shadow');
   const other = analyseSource('probe.dc.html', '<div style="box-shadow:0 1px 4px rgba(0,0,0,.1);"></div>');
   assert.equal(byRule(other.findings, 'UIC-004').length, 1);
+});
+
+/* ---------- 1.0.3 · static `data-ui-pill` transport in a JavaScript screen ----------
+
+   A `.dc.html` prototype fills `attrMap` from real markup attributes, so D6.1
+   could always read a role there. A JavaScript screen filled `attrMap` with
+   nothing at all, so `isSemanticPill()` could only ever see a pill/stage
+   BACKGROUND — a count badge on a neutral surface was unprovable, and the only
+   ways out were a colour change or a rule change. Detector 1.0.3 transports one
+   proven marker and nothing else. `isSemanticPill()` is unchanged.            */
+
+test('1.0.3 · a quoted static data-ui-pill marker is transported into attrMap', () => {
+  const marked = analyseSource(
+    'probe.js',
+    "el('span', { 'data-ui-pill': '1', style: 'border-radius:var(--rv-radius-pill);background:var(--rv-surface-subtle);padding:1px 8px;' }, String(n))",
+  );
+  const el = marked.unit.declarations[0].element;
+  assert.equal(el.attrMap.get('data-ui-pill'), '1', 'the marker must reach attrMap');
+  assert.deepEqual(byRule(marked.findings, 'UIC-010'), [],
+    'a declared semantic pill is not a D6.1 misuse');
+});
+
+test('1.0.3 · an absent marker stays absent — the same element is still a misuse', () => {
+  const plain = analyseSource(
+    'probe.js',
+    "el('span', { style: 'border-radius:var(--rv-radius-pill);background:var(--rv-surface-subtle);padding:1px 8px;' }, String(n))",
+  );
+  const el = plain.unit.declarations[0].element;
+  assert.equal(el.attrMap.has('data-ui-pill'), false, 'no marker may be invented');
+  assert.equal(byRule(plain.findings, 'UIC-010').length, 1);
+  assert.equal(byRule(plain.findings, 'UIC-010')[0].severity, 'blocking');
+});
+
+test('1.0.3 · a dynamic marker value is never fabricated as present', () => {
+  const dynamic = analyseSource(
+    'probe.js',
+    "el('span', { 'data-ui-pill': isPill ? '1' : null, style: 'border-radius:var(--rv-radius-pill);background:var(--rv-surface-subtle);' })",
+  );
+  const el = dynamic.unit.declarations[0].element;
+  assert.equal(el.attrMap.has('data-ui-pill'), false,
+    'an unproven expression must not become a proven role');
+  assert.equal(byRule(dynamic.findings, 'UIC-010').length, 1,
+    'an unproven marker leaves the misuse standing');
+  assert.ok(
+    dynamic.unit.indeterminate.some((i) => i.reason === 'PILL_MARKER_NOT_STATIC'),
+    'the unproven marker must be recorded, not silently dropped',
+  );
+});
+
+test('1.0.3 · the marker grants nothing but the pill role', () => {
+  // It must not turn an element into a control, a button or a card, and it must
+  // not license a radius outside the enum.
+  const button = analyseSource(
+    'probe.js',
+    "el('button', { 'data-ui-pill': '1', style: 'border-radius:var(--rv-radius-pill);background:var(--rv-brand);' }, 'Salvar')",
+  );
+  assert.equal(byRule(button.findings, 'UIC-007').length, 1,
+    'a button is never a pill, marker or not');
+  const outside = analyseSource(
+    'probe.js',
+    "el('span', { 'data-ui-pill': '1', style: 'border-radius:7px;background:var(--rv-surface-subtle);' }, 'x')",
+  );
+  assert.equal(byRule(outside.findings, 'UIC-002').length, 1,
+    'the marker does not widen the closed radius enum');
+});
+
+test('1.0.3 · exactly the six ruled sites carry the marker, and all six keep pill geometry', () => {
+  const SIX = [
+    'js/screens/admin-usuarios-audit-panel.js',
+    'js/screens/documentos-recebidos.js',
+    'js/screens/op-latex-admin.js',
+    'js/screens/op-nova.js',
+    'js/screens/op-tecelagem-producao-admin.js',
+    'js/screens/ordem-compra-receipt-render.js',
+  ];
+  const dir = join(REPO, 'js', 'screens');
+  const carriers = [];
+  for (const name of readdirSync(dir).filter((f) => f.endsWith('.js'))) {
+    const rel = `js/screens/${name}`;
+    const text = readFileSync(join(dir, name), 'utf8');
+    const hits = text.split("'data-ui-pill'").length - 1;
+    if (hits === 0) continue;
+    assert.equal(hits, 1, `${rel} must declare the marker once`);
+    carriers.push(rel);
+    assert.match(text, /'data-ui-pill': '1', style: '[^']*border-radius:var\(--rv-radius-pill\)/,
+      `${rel}: the marked element must keep pill geometry`);
+  }
+  assert.deepEqual(carriers.sort(), SIX.slice().sort(),
+    'the marker is a ruled exception, not a general-purpose escape');
 });

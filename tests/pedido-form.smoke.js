@@ -1444,7 +1444,7 @@ test('batch2/19. index.html carrega o modulo da linha antes de pedido-form.js', 
   assert.ok(iRoute < iRow, 'o modulo depende de product-route.js');
   assert.ok(iRow < iForm, 'o modulo deve vir antes de pedido-form.js');
   assert.ok(iForm < iBoot);
-  assert.match(index, /pedido-item-row-editor\.js\?v=20260726-ui-p5-pass1/);
+  assert.match(index, /pedido-item-row-editor\.js\?v=20260726-ui-p5-pass2/);
 });
 
 // O sujeito deste guard e a EXTRACAO de BATCH-02: a tela encolheu de 1089 para

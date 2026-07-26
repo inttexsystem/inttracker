@@ -122,13 +122,13 @@
     });
     const shell = window.el('div', { style: 'width:100%;max-width:400px;' });
     const card = window.el('div', {
-      style: 'background:var(--rv-surface);border:1px solid var(--rv-border-strong);border-radius:6px;padding:32px 32px 28px;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border-strong);border-radius:var(--rv-radius);padding:32px 32px 28px;',
     });
 
     card.appendChild(window.el('div', {
       style: 'display:flex;justify-content:center;margin-bottom:20px;',
     }, window.el('div', {
-      style: 'width:56px;height:56px;border-radius:8px;background:var(--rv-pill-info-bg);color:var(--rv-accent-blue);'
+      style: 'width:56px;height:56px;border-radius:var(--rv-radius);background:var(--rv-pill-info-bg);color:var(--rv-accent-blue);'
         + 'display:flex;align-items:center;justify-content:center;',
     }, svgIcon(ICON_LOCK, 'var(--rv-accent-blue)', 26))));
 
@@ -153,7 +153,7 @@
     const confirmField = passwordField('Confirmar nova senha');
 
     const checklistBlock = window.el('div', {
-      style: 'background:var(--rv-surface-subtle);border-radius:5px;padding:10px 14px;margin:14px 0 18px;',
+      style: 'background:var(--rv-surface-subtle);border-radius:var(--rv-radius);padding:10px 14px;margin:14px 0 18px;',
     });
     const rows = {};
     CHECKLIST_ITEMS.forEach(({ key, label }) => {

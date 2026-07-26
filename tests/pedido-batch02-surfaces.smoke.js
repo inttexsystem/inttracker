@@ -273,10 +273,18 @@ test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não
   // Ambos foram retokenizados MAIS UMA VEZ pela passada 1 de cor; a garantia
   // ("a superfície alterada é invalidada, sob o token da ordem que a alterou
   // por último") é a mesma, apenas um lote adiante.
-  for (const asset of ['screens/pedido-form.js', 'screens/pedido-item-row-editor.js']) {
+  // A passada 2 de raio alterou APENAS pedido-item-row-editor.js, entao os dois
+  // deixam de compartilhar um token: cada um e verificado contra a ordem que o
+  // alterou por ultimo. A garantia nao muda — nenhum dos dois pode reter o
+  // token do lote 2, e nenhum pode ficar num token anterior ao seu.
+  const ULTIMA_ORDEM = {
+    'screens/pedido-form.js': '20260726-ui-p5-pass1',
+    'screens/pedido-item-row-editor.js': '20260726-ui-p5-pass2',
+  };
+  for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
     const esc = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    assert.match(index, new RegExp(esc + '\\?v=20260726-ui-p5-pass1'),
-      asset + ' deve carregar o token da passada 1 de cor');
+    assert.match(index, new RegExp(esc + '\\?v=' + token),
+      asset + ' deve carregar o token da ordem que o alterou por ultimo');
     assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260725-pedido-operational-batch2'),
       asset + ' não pode reter o token do lote 2');
   }

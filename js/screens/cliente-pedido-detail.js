@@ -275,7 +275,7 @@
             + 'border-radius:4px;padding:5px 12px;font-size:13px;font-weight:700;',
         },
           window.el('span', {
-            style: 'width:7px;height:7px;border-radius:50%;background:var(--rv-brand);flex-shrink:0;display:inline-block;',
+            style: 'width:7px;height:7px;border-radius:var(--rv-radius-pill);background:var(--rv-brand);flex-shrink:0;display:inline-block;',
           }),
           state.chainState.displayStatus
         );
@@ -290,7 +290,7 @@
             + 'border-radius:4px;padding:5px 12px;font-size:13px;font-weight:700;',
         },
           window.el('span', {
-            style: 'width:7px;height:7px;border-radius:50%;background:var(--rv-brand);flex-shrink:0;display:inline-block;',
+            style: 'width:7px;height:7px;border-radius:var(--rv-radius-pill);background:var(--rv-brand);flex-shrink:0;display:inline-block;',
           }),
           badgeText
         );
@@ -415,7 +415,7 @@
       var tone = parcialSituacaoStyle(parcial.situacao);
       var badgeStyle = 'display:inline-flex;align-items:center;gap:6px;background:' + tone.bg
         + ';color:' + tone.color + ';border-radius:4px;padding:3px 9px;font-size:12.5px;font-weight:600;';
-      var dotStyle = 'width:6px;height:6px;border-radius:50%;background:' + tone.dot
+      var dotStyle = 'width:6px;height:6px;border-radius:var(--rv-radius-pill);background:' + tone.dot
         + ';flex-shrink:0;display:inline-block;';
 
       return window.el('div', {
@@ -505,12 +505,12 @@
         window.el('div', {},
           window.el('div', { style: 'display:flex;gap:5px;align-items:center;' },
             window.el('span', {
-              style: 'width:14px;height:14px;border-radius:50%;background:' + c1Hex
+              style: 'width:14px;height:14px;border-radius:var(--rv-radius-pill);background:' + c1Hex
                 + ';border:1px solid var(--rv-border);display:inline-block;flex-shrink:0;',
             }),
             c2Nome
               ? window.el('span', {
-                  style: 'width:14px;height:14px;border-radius:50%;background:' + c2Hex
+                  style: 'width:14px;height:14px;border-radius:var(--rv-radius-pill);background:' + c2Hex
                     + ';border:1px solid var(--rv-border-strong);display:inline-block;flex-shrink:0;',
                 })
               : null
@@ -591,10 +591,10 @@
             style: 'width:120px;font-size:13.5px;color:var(--rv-text-primary);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
           }, item.label),
           window.el('div', {
-            style: 'flex:1;height:6px;border-radius:99px;background:var(--rv-surface-subtle);overflow:hidden;',
+            style: 'flex:1;height:6px;border-radius:var(--rv-radius);background:var(--rv-surface-subtle);overflow:hidden;',
           },
             window.el('div', {
-              style: 'width:' + largura + '%;height:100%;background:' + barColor + ';border-radius:99px;',
+              style: 'width:' + largura + '%;height:100%;background:' + barColor + ';border-radius:var(--rv-radius);',
             })
           ),
           window.el('div', {
@@ -633,7 +633,7 @@
           style: 'display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--rv-text-secondary);margin-top:6px;',
         },
           window.el('span', {
-            style: 'width:7px;height:7px;border-radius:50%;background:var(--rv-signal-caution);display:inline-block;flex-shrink:0;',
+            style: 'width:7px;height:7px;border-radius:var(--rv-radius-pill);background:var(--rv-signal-caution);display:inline-block;flex-shrink:0;',
           }),
           String(item)
         ));
@@ -697,7 +697,7 @@
           style: 'display:flex;flex-direction:column;align-items:center;',
         },
           window.el('div', {
-            style: 'width:11px;height:11px;border-radius:50%;background:' + dotColor
+            style: 'width:11px;height:11px;border-radius:var(--rv-radius-pill);background:' + dotColor
               + ';margin-top:4px;flex-shrink:0;',
           }),
           isLast ? null : window.el('div', {

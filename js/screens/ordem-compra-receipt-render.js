@@ -170,7 +170,7 @@
   function tipoBadge(comandoTipo) {
     var isEstorno = comandoTipo === 'estorno';
     return el('span', {
-      style: 'display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:2px 8px;border-radius:var(--rv-radius-pill);white-space:nowrap;'
+      'data-ui-pill': '1', style: 'display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:2px 8px;border-radius:var(--rv-radius-pill);white-space:nowrap;'
         + (isEstorno ? 'background:var(--rv-surface);color:var(--rv-color-danger);' : 'background:var(--rv-signal-positive-bg);color:var(--rv-color-success);'),
     }, isEstorno ? 'Estorno' : 'Recebimento');
   }

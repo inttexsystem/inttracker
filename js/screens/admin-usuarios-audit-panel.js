@@ -126,7 +126,7 @@
       style: 'font-size:13px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--rv-text-secondary);',
     }, 'Histórico');
     var badge = window.el('span', {
-      style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); background:var(--rv-surface-subtle); border-radius:10px; padding:1px 8px;',
+      'data-ui-pill': '1', style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); background:var(--rv-surface-subtle); border-radius:var(--rv-radius-pill); padding:1px 8px;',
     }, String(count));
     var readonly = window.el('span', {
       style: 'font-size:11px; color:var(--rv-text-tertiary); font-style:italic;',

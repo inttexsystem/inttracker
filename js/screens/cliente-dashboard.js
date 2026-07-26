@@ -384,7 +384,7 @@
       );
       var iconWrap = window.el('div', {
         style: 'display:flex;align-items:center;justify-content:center;flex-shrink:0;'
-          + 'border-radius:50%;background:' + iconBg + ';width:44px;height:44px;',
+          + 'border-radius:var(--rv-radius-pill);background:' + iconBg + ';width:44px;height:44px;',
       });
       if (icon) iconWrap.appendChild(icon);
 
@@ -467,7 +467,7 @@
           + 'font-weight:600;white-space:nowrap;',
       },
         window.el('span', {
-          style: 'width:6px;height:6px;border-radius:50%;background:' + tone.dot
+          style: 'width:6px;height:6px;border-radius:var(--rv-radius-pill);background:' + tone.dot
             + ';flex-shrink:0;display:inline-block;',
         }),
         pedidoLabelVisual(pedido)
@@ -643,7 +643,7 @@
               + 'min-width:0;white-space:nowrap;',
           },
             window.el('span', {
-              style: 'width:8px;height:8px;border-radius:50%;background:' + color
+              style: 'width:8px;height:8px;border-radius:var(--rv-radius-pill);background:' + color
                 + ';flex-shrink:0;display:inline-block;',
             }),
             window.el('span', { style: 'white-space:nowrap;' }, label)),
@@ -739,7 +739,7 @@
             + (isLast ? '' : 'border-bottom:1px solid var(--rv-border-soft);'),
         },
           window.el('span', {
-            style: 'width:9px;height:9px;border-radius:50%;background:' + dotColor
+            style: 'width:9px;height:9px;border-radius:var(--rv-radius-pill);background:' + dotColor
               + ';flex-shrink:0;display:inline-block;',
           }),
           window.el('span', {

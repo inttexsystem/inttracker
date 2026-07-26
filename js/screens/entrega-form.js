@@ -136,11 +136,11 @@
       // segue sendo a fonte de verdade lida pelo getPayload).
       var defeitoToggle = function (chk) {
         var knob = window.el('span', {
-          style: 'position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--rv-surface);box-shadow:var(--rv-shadow-sm);transition:transform .15s ease;',
+          style: 'position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:var(--rv-radius-pill);background:var(--rv-surface);box-shadow:var(--rv-shadow-sm);transition:transform .15s ease;',
         });
         var track = window.el('span', {}, knob);
         var paint = function () {
-          track.style.cssText = 'position:relative;display:inline-block;width:40px;height:22px;border-radius:999px;transition:background .15s ease;background:' + (chk.checked ? 'var(--rv-brand)' : 'var(--rv-surface-subtle)') + ';';
+          track.style.cssText = 'position:relative;display:inline-block;width:40px;height:22px;border-radius:var(--rv-radius);transition:background .15s ease;background:' + (chk.checked ? 'var(--rv-brand)' : 'var(--rv-surface-subtle)') + ';';
           knob.style.transform = chk.checked ? 'translateX(18px)' : 'translateX(0)';
         };
         paint();

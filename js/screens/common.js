@@ -211,7 +211,7 @@
     if (bell) bellWrap.appendChild(bell);
 
     const avatar = window.el('div', {
-      style: 'width:32px;height:32px;border-radius:50%;background:var(--rv-brand);color:var(--rv-text-on-brand);'
+      style: 'width:32px;height:32px;border-radius:var(--rv-radius-pill);background:var(--rv-brand);color:var(--rv-text-on-brand);'
         + 'display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;',
     }, initials);
     const chev = svgIcon('<polyline points="6 9 12 15 18 9"></polyline>', 15);

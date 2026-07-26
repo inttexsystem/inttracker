@@ -384,7 +384,7 @@
             return function () { ui.tab = key; ui.pagina = 1; render(); };
           })(t.key),
         }, t.label + ' ', window.el('span', {
-          style: 'background:' + (active ? 'var(--rv-active-bg)' : 'var(--rv-surface-subtle)') + ';border-radius:99px;'
+          style: 'background:' + (active ? 'var(--rv-active-bg)' : 'var(--rv-surface-subtle)') + ';border-radius:var(--rv-radius);'
             + 'padding:1px 6px;font-size:11px;color:' + (active ? 'var(--rv-text-on-brand)' : 'var(--rv-text-tertiary)') + ';',
         }, String(count)));
         wrap.appendChild(btn);
@@ -406,7 +406,7 @@
           + ';color:' + tone.color + ';',
       },
         window.el('span', {
-          style: 'width:6px;height:6px;border-radius:50%;background:' + tone.dot
+          style: 'width:6px;height:6px;border-radius:var(--rv-radius-pill);background:' + tone.dot
             + ';flex-shrink:0;display:inline-block;',
         }),
         pedidoLabelVisual(pedido)
@@ -536,7 +536,7 @@
 
       return window.el('div', {
         style: 'display:flex;align-items:center;justify-content:space-between;background:var(--rv-surface);'
-          + 'border:1px solid var(--rv-border);border-top:none;border-radius:0 0 4px 4px;padding:11px 16px;'
+          + 'border:1px solid var(--rv-border);border-top:none;border-radius:var(--rv-radius);padding:11px 16px;'
           + 'margin-bottom:14px;',
       },
         window.el('span', { style: 'font-size:13px;color:var(--rv-text-tertiary);' },

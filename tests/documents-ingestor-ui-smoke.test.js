@@ -253,8 +253,13 @@ test('ingestor-ui-source: reason em vermelho', () => {
 test('ingestor-ui-source: timeline dots renderizadas', () => {
   assert.match(detailRenderSrc, /ingestorTimeline/,
     'deve renderizar timeline de eventos do ingestor');
-  assert.match(detailRenderSrc, /border-radius:\s*50%/,
-    'deve usar dots circulares (border-radius:50%)');
+  // UI-CONSOLIDATION-PHASE-5-PASS-2: a geometria circular continua exigida, mas
+  // agora e expressa pelo token canonico. O literal 50% esta fora do enum fechado
+  // de raio e nao pode voltar — nem como forma alternativa aceita aqui.
+  assert.match(detailRenderSrc, /border-radius:var\(--rv-radius-pill\)/,
+    'deve usar dots circulares (border-radius:var(--rv-radius-pill))');
+  assert.doesNotMatch(detailRenderSrc, /border-radius:\s*50%/,
+    'o literal 50% nao pode sobreviver ao fechamento do enum de raio');
   assert.match(detailRenderSrc, /EVENTOS/,
     'deve ter titulo EVENTOS para a timeline');
 });

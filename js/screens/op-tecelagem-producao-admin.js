@@ -73,7 +73,7 @@
     return el('span', { style: PILL_BASE + 'background:var(--rv-stage-tecelagem-bg);color:var(--rv-stage-tecelagem);' }, 'Tecelagem');
   }
   function rvDot(color) {
-    return el('span', { style: 'width:6px;height:6px;border-radius:50%;background:' + color + ';' });
+    return el('span', { style: 'width:6px;height:6px;border-radius:var(--rv-radius-pill);background:' + color + ';' });
   }
   function rvStatusBadge() {
     return el('span', { style: PILL_BASE + 'background:var(--rv-status-prod-bg);color:var(--rv-status-prod);' }, rvDot('var(--rv-status-prod-dot)'), 'Em produção');
@@ -324,7 +324,7 @@
     var box = el('div', { id: 'capacidade-ajuste-op', style: CARD + 'padding:15px 17px;' });
     box.appendChild(el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px;flex-wrap:wrap;' },
       chipLabel('Capacidade e ajuste', IC_GAUGE),
-      el('span', { style: 'background:var(--rv-color-subtle-bg);color:var(--rv-color-accent);border-radius:var(--rv-radius-pill);padding:3px 10px;font-size:11px;font-weight:600;' }, 'Ajustado')));
+      el('span', { style: 'background:var(--rv-color-subtle-bg);color:var(--rv-color-accent);border-radius:var(--rv-radius);padding:3px 10px;font-size:11px;font-weight:600;' }, 'Ajustado')));
 
     box.appendChild(el('div', { style: 'font-size:12.5px;color:var(--rv-text-secondary);margin-bottom:12px;line-height:1.5;' },
       'Capacidade liberada para produção nesta OP: ',
@@ -495,7 +495,7 @@
         : humanizeLabel(ev.tipo_evento);
       var isLast = idx === ctx.opEventos.length - 1;
       var trilha = el('div', { style: 'display:flex;flex-direction:column;align-items:center;' },
-        el('div', { style: 'width:9px;height:9px;border-radius:50%;background:' + (idx === 0 ? 'var(--rv-color-accent)' : 'var(--rv-surface-subtle)') + ';margin-top:4px;flex-shrink:0;' }),
+        el('div', { style: 'width:9px;height:9px;border-radius:var(--rv-radius-pill);background:' + (idx === 0 ? 'var(--rv-color-accent)' : 'var(--rv-surface-subtle)') + ';margin-top:4px;flex-shrink:0;' }),
         isLast ? '' : el('div', { style: 'width:2px;flex:1;background:var(--rv-color-line-200);' }));
       var conteudo = el('div', { style: 'padding-bottom:' + (isLast ? '0' : '16px') + ';' },
         el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);' }, fmtDateLabel(ev.criado_em)),
@@ -565,7 +565,7 @@
         metricRow(labels.entregue, window.fmtMetros(totais.totalEntregue), totais.totalEntregue > 0 ? 'var(--rv-color-success)' : 'var(--rv-text-tertiary)'),
         metricRow('Saldo em tecelagem', window.fmtMetros(totais.saldo) + (totais.excedente ? ' (excedente)' : ''), saldoCor)),
       el('div', { style: 'margin-top:14px;' },
-        el('div', { style: 'height:6px;border-radius:var(--rv-radius-pill);background:var(--rv-surface-subtle);overflow:hidden;' },
+        el('div', { style: 'height:6px;border-radius:var(--rv-radius);background:var(--rv-surface-subtle);overflow:hidden;' },
           el('div', { style: 'width:' + totais.pctClamped + '%;height:100%;background:' + totalsBarColor(totais) + ';' })),
         el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-top:6px;' }, pctTexto)));
   }
@@ -750,7 +750,7 @@
       card.appendChild(el('div', { style: (i > 0 ? 'border-top:1px solid var(--rv-color-line-100);margin-top:13px;padding-top:13px;' : '') },
         el('div', { style: 'display:flex;align-items:center;gap:7px;margin-bottom:8px;' },
           el('span', { style: 'font-size:12px;font-weight:600;color:var(--rv-color-value);' }, tipo),
-          el('span', { style: 'font-size:10px;font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);' }, '0')),
+          el('span', { 'data-ui-pill': '1', style: 'font-size:10px;font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);' }, '0')),
         el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-bottom:8px;' }, 'Nenhum arquivo anexado.'),
         el('button', {
           type: 'button', style: ANEXAR_BTN,

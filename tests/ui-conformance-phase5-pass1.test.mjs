@@ -141,9 +141,14 @@ test('6 · no waiver, ignore, suppression or path exception exists', () => {
 
 /* ---------- 7-9 · the corrected report schema ---------- */
 
-test('7 · detector version is 1.0.2', () => {
-  assert.equal(DETECTOR_VERSION, '1.0.2');
-  assert.equal(BASELINE.detector_version, '1.0.2');
+test('7 · the baseline is attributable to the detector that produced it', () => {
+  // Pass 1 pinned 1.0.2, the report-schema correction. Pass 2 raised it to
+  // 1.0.3 for the js-screen front-end amendment. What this guard owns is not a
+  // particular number but the pairing: the committed baseline must always name
+  // the detector it came from, so a report can never be read against a
+  // different engine than the one that measured it.
+  assert.equal(DETECTOR_VERSION, '1.0.3');
+  assert.equal(BASELINE.detector_version, DETECTOR_VERSION);
 });
 
 test('8 · the two corrected highlight keys exist', () => {

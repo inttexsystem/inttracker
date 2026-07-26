@@ -46,7 +46,7 @@
       style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;',
     },
       window.el('span', {
-        style: 'display:inline-flex;align-items:center;border-radius:999px;padding:3px 11px;'
+        style: 'display:inline-flex;align-items:center;border-radius:var(--rv-radius);padding:3px 11px;'
           + 'font-size:11.5px;font-weight:700;' + chipStyle(section.route),
       }, 'Rota ' + (section.label || '—')),
       window.el('span', {

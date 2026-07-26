@@ -155,7 +155,7 @@
     document.addEventListener('keydown', escListener);
 
     var card = window.el('div', {
-      style: `width:min(100%, ${maxWidth}px); max-height:min(92vh, 860px); display:flex; flex-direction:column; background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:6px; box-shadow:var(--rv-shadow-popover); overflow:hidden;`
+      style: `width:min(100%, ${maxWidth}px); max-height:min(92vh, 860px); display:flex; flex-direction:column; background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-popover); overflow:hidden;`
     });
     var titleWrap = window.el('div', {
       style: 'display:flex; flex-direction:column; gap:4px; min-width:0;'

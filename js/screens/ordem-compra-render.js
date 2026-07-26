@@ -57,7 +57,7 @@
   function badge(text, bg, fg) {
     return el('span', {
       style: 'display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;'
-        + 'padding:3px 10px;border-radius:999px;white-space:nowrap;background:' + bg + ';color:' + fg + ';',
+        + 'padding:3px 10px;border-radius:var(--rv-radius-pill);white-space:nowrap;background:' + bg + ';color:' + fg + ';',
     }, text);
   }
 

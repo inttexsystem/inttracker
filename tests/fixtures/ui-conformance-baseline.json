@@ -1,5 +1,5 @@
 {
-  "detector_version": "1.0.2",
+  "detector_version": "1.0.3",
   "rule_filter": null,
   "contract_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
   "contract_blob_hash": "f8349e6eeca291fef2edf4d6e30afd628732f00b6495d54eb9273860fa63f1c4",
@@ -674,20 +674,6 @@
       "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/admin-usuarios-audit-panel.js",
-      "line": 129,
-      "column": 130,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "10px",
-      "resolved_value": "10px",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 10px is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/admin-usuarios-audit-panel.js",
@@ -842,25 +828,11 @@
       "message": "COVERAGE_GAP / TEMPLATE_INTERPOLATED_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/admin-usuarios-modal.js",
-      "line": 158,
-      "column": 192,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px",
-      "resolved_value": "6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-004",
       "severity": "coverage",
       "path": "js/screens/admin-usuarios-modal.js",
       "line": 158,
-      "column": 208,
+      "column": 221,
       "front_end": "js-screen",
       "archetype": null,
       "property": "box-shadow",
@@ -1024,20 +996,6 @@
       "message": "COVERAGE_GAP / TEMPLATE_INTERPOLATED_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/admin-usuarios.js",
-      "line": 91,
-      "column": 107,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "5px",
-      "resolved_value": "5px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 5px is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/admin-usuarios.js",
@@ -1108,20 +1066,6 @@
       "message": "COVERAGE_GAP / TEMPLATE_INTERPOLATED_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/admin-usuarios.js",
-      "line": 236,
-      "column": 179,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "5px",
-      "resolved_value": "5px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 5px is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-006",
       "severity": "blocking",
       "path": "js/screens/admin-usuarios.js",
@@ -1176,20 +1120,6 @@
       "resolved_value": null,
       "element_or_context": "style: <expression>",
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/admin-usuarios.js",
-      "line": 290,
-      "column": 126,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px 6px 0 0",
-      "resolved_value": "6px 6px 0 0",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px, 6px, 0, 0 is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -1288,20 +1218,6 @@
       "resolved_value": null,
       "element_or_context": "color: ${...}",
       "message": "COVERAGE_GAP / TEMPLATE_INTERPOLATED_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/admin-usuarios.js",
-      "line": 378,
-      "column": 164,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "0 0 6px 6px",
-      "resolved_value": "0 0 6px 6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 0, 0, 6px, 6px is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-008",
@@ -1444,25 +1360,11 @@
       "message": "COVERAGE_GAP / TEMPLATE_INTERPOLATED_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 296,
-      "column": 192,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px",
-      "resolved_value": "6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-004",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
       "line": 296,
-      "column": 208,
+      "column": 221,
       "front_end": "js-screen",
       "archetype": null,
       "property": "box-shadow",
@@ -1556,20 +1458,6 @@
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_ASSIGNMENT — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 528,
-      "column": 96,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px 6px 0 0",
-      "resolved_value": "6px 6px 0 0",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px, 6px, 0, 0 is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
@@ -1584,25 +1472,11 @@
       "message": "COVERAGE_GAP / TEMPLATE_INTERPOLATED_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 548,
-      "column": 58,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
       "line": 548,
-      "column": 74,
+      "column": 92,
       "front_end": "js-screen",
       "archetype": null,
       "property": null,
@@ -1616,7 +1490,7 @@
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
       "line": 548,
-      "column": 105,
+      "column": 123,
       "front_end": "js-screen",
       "archetype": null,
       "property": null,
@@ -1624,20 +1498,6 @@
       "resolved_value": null,
       "element_or_context": "border: 1px solid ${...}",
       "message": "COVERAGE_GAP / TEMPLATE_INTERPOLATED_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 574,
-      "column": 132,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "0 0 6px 6px",
-      "resolved_value": "0 0 6px 6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 0, 0, 6px, 6px is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -1666,20 +1526,6 @@
       "resolved_value": null,
       "element_or_context": ".style.color = <expression>",
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_ASSIGNMENT — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 757,
-      "column": 96,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px 6px 0 0",
-      "resolved_value": "6px 6px 0 0",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px, 6px, 0, 0 is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -1766,20 +1612,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 822,
-      "column": 132,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "0 0 6px 6px",
-      "resolved_value": "0 0 6px 6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 0, 0, 6px, 6px is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
@@ -1812,7 +1644,7 @@
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
       "line": 1001,
-      "column": 70,
+      "column": 86,
       "front_end": "js-screen",
       "archetype": null,
       "property": null,
@@ -1826,7 +1658,7 @@
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
       "line": 1001,
-      "column": 152,
+      "column": 168,
       "front_end": "js-screen",
       "archetype": null,
       "property": null,
@@ -1850,20 +1682,6 @@
       "message": "COVERAGE_GAP / TEMPLATE_INTERPOLATED_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 1013,
-      "column": 56,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px",
-      "resolved_value": "6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
@@ -1878,20 +1696,6 @@
       "message": "COVERAGE_GAP / TEMPLATE_INTERPOLATED_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 1019,
-      "column": 67,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "999px",
-      "resolved_value": "999px",
-      "element_or_context": "el('div', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
-    },
-    {
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/cadastros.js",
@@ -1904,20 +1708,6 @@
       "resolved_value": "9px",
       "element_or_context": "el('div', { style })",
       "message": "Font size 9px is outside the ten-value contract enum."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 1084,
-      "column": 96,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px 6px 0 0",
-      "resolved_value": "6px 6px 0 0",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px, 6px, 0, 0 is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -1960,48 +1750,6 @@
       "resolved_value": null,
       "element_or_context": "border-bottom: ${...}",
       "message": "COVERAGE_GAP / TEMPLATE_INTERPOLATED_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 1156,
-      "column": 132,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "0 0 6px 6px",
-      "resolved_value": "0 0 6px 6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 0, 0, 6px, 6px is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 1326,
-      "column": 96,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px",
-      "resolved_value": "6px",
-      "element_or_context": "el('section', { style })",
-      "message": "Radius 6px is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 1336,
-      "column": 56,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px",
-      "resolved_value": "6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -2102,25 +1850,11 @@
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 1501,
-      "column": 121,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/cadastros.js",
       "line": 1501,
-      "column": 211,
+      "column": 229,
       "front_end": "js-screen",
       "archetype": null,
       "property": "font-size",
@@ -2256,20 +1990,6 @@
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_ASSIGNMENT — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 1743,
-      "column": 96,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px 6px 0 0",
-      "resolved_value": "6px 6px 0 0",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px, 6px, 0, 0 is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/cadastros.js",
@@ -2310,34 +2030,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 1792,
-      "column": 132,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "0 0 6px 6px",
-      "resolved_value": "0 0 6px 6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 0, 0, 6px, 6px is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 1982,
-      "column": 96,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px 6px 0 0",
-      "resolved_value": "6px 6px 0 0",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px, 6px, 0, 0 is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -2408,20 +2100,6 @@
       "resolved_value": "30px",
       "element_or_context": "el('button', { style })",
       "message": "Control height 30px is outside the contract ladder [32px, 34px, 38px]."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 2026,
-      "column": 132,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "0 0 6px 6px",
-      "resolved_value": "0 0 6px 6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 0, 0, 6px, 6px is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-008",
@@ -2534,20 +2212,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-dashboard.js",
-      "line": 470,
-      "column": 54,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -2690,20 +2354,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-dashboard.js",
-      "line": 646,
-      "column": 58,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cliente-dashboard.js",
@@ -2814,20 +2464,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-dashboard.js",
-      "line": 742,
-      "column": 56,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -2942,20 +2578,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-pedido-detail.js",
-      "line": 278,
-      "column": 56,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cliente-pedido-detail.js",
@@ -2968,20 +2590,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-pedido-detail.js",
-      "line": 293,
-      "column": 56,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-005",
@@ -3096,20 +2704,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-pedido-detail.js",
-      "line": 508,
-      "column": 60,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cliente-pedido-detail.js",
@@ -3122,20 +2716,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-pedido-detail.js",
-      "line": 513,
-      "column": 64,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -3152,34 +2732,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-pedido-detail.js",
-      "line": 594,
-      "column": 53,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "99px",
-      "resolved_value": "99px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 99px is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/cliente-pedido-detail.js",
-      "line": 594,
-      "column": 53,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "99px",
-      "resolved_value": "99px",
-      "element_or_context": "el('div', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cliente-pedido-detail.js",
@@ -3192,20 +2744,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-pedido-detail.js",
-      "line": 636,
-      "column": 56,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -3234,20 +2772,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-pedido-detail.js",
-      "line": 700,
-      "column": 58,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -3600,20 +3124,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-pedido-tracking.js",
-      "line": 168,
-      "column": 54,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cliente-pedido-tracking.js",
@@ -3626,20 +3136,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-pedido-tracking.js",
-      "line": 174,
-      "column": 54,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -3656,20 +3152,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-pedido-tracking.js",
-      "line": 179,
-      "column": 54,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cliente-pedido-tracking.js",
@@ -3684,20 +3166,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-pedido-tracking.js",
-      "line": 184,
-      "column": 54,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cliente-pedido-tracking.js",
@@ -3710,20 +3178,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-pedido-tracking.js",
-      "line": 189,
-      "column": 54,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -3978,20 +3432,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/cliente-pedidos-list.js",
-      "line": 409,
-      "column": 54,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cliente-pedidos-list.js",
@@ -4118,20 +3558,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/cliente-route-sections-ui.js",
-      "line": 49,
-      "column": 70,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "999px",
-      "resolved_value": "999px",
-      "element_or_context": "el('span', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cliente-route-sections-ui.js",
@@ -4228,20 +3654,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/common.js",
-      "line": 214,
-      "column": 52,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-003",
@@ -4480,20 +3892,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/documentos-recebidos.js",
-      "line": 701,
-      "column": 52,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -4804,20 +4202,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/documentos-recebidos.js",
-      "line": 1717,
-      "column": 57,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/documentos-recebidos.js",
@@ -4830,20 +4214,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/documentos-recebidos.js",
-      "line": 1721,
-      "column": 70,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -4920,7 +4290,7 @@
       "severity": "coverage",
       "path": "js/screens/documentos-recebidos.js",
       "line": 1775,
-      "column": 9,
+      "column": 30,
       "front_end": "js-screen",
       "archetype": null,
       "property": null,
@@ -4928,20 +4298,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/documentos-recebidos.js",
-      "line": 1775,
-      "column": 31,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "999px",
-      "resolved_value": "999px",
-      "element_or_context": "el('span', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
     },
     {
       "rule_id": "UIC-000",
@@ -5112,20 +4468,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/documentos-recebidos.js",
-      "line": 2061,
-      "column": 72,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "3px",
-      "resolved_value": "3px",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 3px is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/documentos-recebidos.js",
@@ -5140,20 +4482,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/documentos-recebidos.js",
-      "line": 2077,
-      "column": 72,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "3px",
-      "resolved_value": "3px",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 3px is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/documentos-recebidos.js",
@@ -5166,20 +4494,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/documentos-recebidos.js",
-      "line": 2084,
-      "column": 72,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "3px",
-      "resolved_value": "3px",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 3px is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-005",
@@ -5252,20 +4566,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/documentos-recebidos.js",
-      "line": 2146,
-      "column": 54,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/documentos-recebidos.js",
@@ -5336,25 +4636,11 @@
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/entrega-form.js",
-      "line": 139,
-      "column": 91,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-004",
       "severity": "coverage",
       "path": "js/screens/entrega-form.js",
       "line": 139,
-      "column": 135,
+      "column": 153,
       "front_end": "js-screen",
       "archetype": null,
       "property": "box-shadow",
@@ -5376,20 +4662,6 @@
       "resolved_value": null,
       "element_or_context": "track.style",
       "message": "COVERAGE_GAP / CONTROL_ROLE_UNPROVEN — a height on an element whose role the detector could not resolve. This is not a pass."
-    },
-    {
-      "rule_id": "UIC-010",
-      "severity": "coverage",
-      "path": "js/screens/entrega-form.js",
-      "line": 143,
-      "column": 110,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "999px",
-      "resolved_value": "999px",
-      "element_or_context": "track.style",
-      "message": "COVERAGE_GAP / PILL_ROLE_UNPROVEN — pill radius on an element whose role the detector could not resolve. D6.1 cannot be decided here."
     },
     {
       "rule_id": "UIC-000",
@@ -5572,90 +4844,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/expedicao-admin.js",
-      "line": 231,
-      "column": 158,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "3px",
-      "resolved_value": "3px",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 3px is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/expedicao-admin.js",
-      "line": 236,
-      "column": 137,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "3px",
-      "resolved_value": "3px",
-      "element_or_context": "el('button', { style })",
-      "message": "Radius 3px is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/expedicao-admin.js",
-      "line": 239,
-      "column": 145,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "3px",
-      "resolved_value": "3px",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 3px is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/expedicao-admin.js",
-      "line": 241,
-      "column": 146,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "3px",
-      "resolved_value": "3px",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 3px is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/expedicao-admin.js",
-      "line": 244,
-      "column": 145,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "3px",
-      "resolved_value": "3px",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 3px is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/expedicao-admin.js",
-      "line": 247,
-      "column": 160,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "3px",
-      "resolved_value": "3px",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 3px is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-005",
@@ -6358,25 +5546,11 @@
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/manta-output-form.js",
-      "line": 43,
-      "column": 87,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-004",
       "severity": "coverage",
       "path": "js/screens/manta-output-form.js",
       "line": 43,
-      "column": 131,
+      "column": 149,
       "front_end": "js-screen",
       "archetype": null,
       "property": "box-shadow",
@@ -6398,20 +5572,6 @@
       "resolved_value": null,
       "element_or_context": "track.style",
       "message": "COVERAGE_GAP / CONTROL_ROLE_UNPROVEN — a height on an element whose role the detector could not resolve. This is not a pass."
-    },
-    {
-      "rule_id": "UIC-010",
-      "severity": "coverage",
-      "path": "js/screens/manta-output-form.js",
-      "line": 47,
-      "column": 106,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "999px",
-      "resolved_value": "999px",
-      "element_or_context": "track.style",
-      "message": "COVERAGE_GAP / PILL_ROLE_UNPROVEN — pill radius on an element whose role the detector could not resolve. D6.1 cannot be decided here."
     },
     {
       "rule_id": "UIC-000",
@@ -7240,20 +6400,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/op-latex-admin.js",
-      "line": 98,
-      "column": 68,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/op-latex-admin.js",
@@ -8080,34 +7226,6 @@
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/op-latex-admin.js",
-      "line": 664,
-      "column": 58,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "99px",
-      "resolved_value": "99px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 99px is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/op-latex-admin.js",
-      "line": 664,
-      "column": 58,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "99px",
-      "resolved_value": "99px",
-      "element_or_context": "el('div', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/op-latex-admin.js",
@@ -8448,7 +7566,7 @@
       "severity": "blocking",
       "path": "js/screens/op-latex-admin.js",
       "line": 782,
-      "column": 48,
+      "column": 69,
       "front_end": "js-screen",
       "archetype": null,
       "property": "font-size",
@@ -8462,7 +7580,7 @@
       "severity": "debt",
       "path": "js/screens/op-latex-admin.js",
       "line": 782,
-      "column": 75,
+      "column": 96,
       "front_end": "js-screen",
       "archetype": null,
       "property": null,
@@ -8476,7 +7594,7 @@
       "severity": "debt",
       "path": "js/screens/op-latex-admin.js",
       "line": 782,
-      "column": 109,
+      "column": 130,
       "front_end": "js-screen",
       "archetype": null,
       "property": null,
@@ -8484,20 +7602,6 @@
       "resolved_value": null,
       "element_or_context": "string literal",
       "message": "var(--rv-color-subtle-bg) references the approved deprecated compatibility block. Remove in the property-based remediation phase."
-    },
-    {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/op-latex-admin.js",
-      "line": 782,
-      "column": 165,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "var(--rv-radius-pill)",
-      "resolved_value": "999px",
-      "element_or_context": "el('span', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
     },
     {
       "rule_id": "UIC-000",
@@ -8528,25 +7632,11 @@
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/op-latex-admin.js",
-      "line": 801,
-      "column": 74,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-009",
       "severity": "debt",
       "path": "js/screens/op-latex-admin.js",
       "line": 801,
-      "column": 89,
+      "column": 107,
       "front_end": "js-screen",
       "archetype": null,
       "property": null,
@@ -8582,20 +7672,6 @@
       "resolved_value": null,
       "element_or_context": "string literal",
       "message": "var(--rv-color-title) references the approved deprecated compatibility block. Remove in the property-based remediation phase."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/op-latex-admin.js",
-      "line": 808,
-      "column": 72,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-009",
@@ -9018,20 +8094,6 @@
       "message": "var(--rv-color-success) references the approved deprecated compatibility block. Remove in the property-based remediation phase."
     },
     {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/op-latex-admin.js",
-      "line": 1039,
-      "column": 58,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "var(--rv-radius-pill)",
-      "resolved_value": "999px",
-      "element_or_context": "el('div', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/op-latex-admin.js",
@@ -9394,20 +8456,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/op-nova.js",
-      "line": 146,
-      "column": 68,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -9844,34 +8892,6 @@
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/op-nova.js",
-      "line": 834,
-      "column": 166,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px",
-      "resolved_value": "6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/op-nova.js",
-      "line": 855,
-      "column": 132,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px",
-      "resolved_value": "6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/op-nova.js",
@@ -10066,20 +9086,6 @@
       "resolved_value": null,
       "element_or_context": "style: <expression>",
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/op-nova.js",
-      "line": 956,
-      "column": 66,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -10604,7 +9610,7 @@
       "severity": "blocking",
       "path": "js/screens/op-nova.js",
       "line": 1457,
-      "column": 42,
+      "column": 63,
       "front_end": "js-screen",
       "archetype": null,
       "property": "font-size",
@@ -10618,7 +9624,7 @@
       "severity": "debt",
       "path": "js/screens/op-nova.js",
       "line": 1457,
-      "column": 69,
+      "column": 90,
       "front_end": "js-screen",
       "archetype": null,
       "property": null,
@@ -10632,7 +9638,7 @@
       "severity": "debt",
       "path": "js/screens/op-nova.js",
       "line": 1457,
-      "column": 103,
+      "column": 124,
       "front_end": "js-screen",
       "archetype": null,
       "property": null,
@@ -10640,20 +9646,6 @@
       "resolved_value": null,
       "element_or_context": "string literal",
       "message": "var(--rv-color-subtle-bg) references the approved deprecated compatibility block. Remove in the property-based remediation phase."
-    },
-    {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/op-nova.js",
-      "line": 1457,
-      "column": 159,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "var(--rv-radius-pill)",
-      "resolved_value": "999px",
-      "element_or_context": "el('span', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
     },
     {
       "rule_id": "UIC-000",
@@ -10668,20 +9660,6 @@
       "resolved_value": null,
       "element_or_context": "style: <expression>",
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/op-nova.js",
-      "line": 1486,
-      "column": 66,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "8px",
-      "resolved_value": "8px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 8px is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -11060,20 +10038,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/op-tecelagem-producao-admin.js",
-      "line": 76,
-      "column": 68,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -11552,20 +10516,6 @@
       "message": "var(--rv-color-accent) references the approved deprecated compatibility block. Remove in the property-based remediation phase."
     },
     {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/op-tecelagem-producao-admin.js",
-      "line": 327,
-      "column": 108,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "var(--rv-radius-pill)",
-      "resolved_value": "999px",
-      "element_or_context": "el('span', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
-    },
-    {
       "rule_id": "UIC-009",
       "severity": "debt",
       "path": "js/screens/op-tecelagem-producao-admin.js",
@@ -11986,25 +10936,11 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/op-tecelagem-producao-admin.js",
-      "line": 498,
-      "column": 64,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-009",
       "severity": "debt",
       "path": "js/screens/op-tecelagem-producao-admin.js",
       "line": 498,
-      "column": 97,
+      "column": 115,
       "front_end": "js-screen",
       "archetype": null,
       "property": null,
@@ -12166,20 +11102,6 @@
       "resolved_value": null,
       "element_or_context": "string literal",
       "message": "var(--rv-color-success) references the approved deprecated compatibility block. Remove in the property-based remediation phase."
-    },
-    {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/op-tecelagem-producao-admin.js",
-      "line": 568,
-      "column": 54,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "var(--rv-radius-pill)",
-      "resolved_value": "999px",
-      "element_or_context": "el('div', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
     },
     {
       "rule_id": "UIC-000",
@@ -12676,7 +11598,7 @@
       "severity": "blocking",
       "path": "js/screens/op-tecelagem-producao-admin.js",
       "line": 753,
-      "column": 42,
+      "column": 63,
       "front_end": "js-screen",
       "archetype": null,
       "property": "font-size",
@@ -12690,7 +11612,7 @@
       "severity": "debt",
       "path": "js/screens/op-tecelagem-producao-admin.js",
       "line": 753,
-      "column": 69,
+      "column": 90,
       "front_end": "js-screen",
       "archetype": null,
       "property": null,
@@ -12704,7 +11626,7 @@
       "severity": "debt",
       "path": "js/screens/op-tecelagem-producao-admin.js",
       "line": 753,
-      "column": 103,
+      "column": 124,
       "front_end": "js-screen",
       "archetype": null,
       "property": null,
@@ -12712,20 +11634,6 @@
       "resolved_value": null,
       "element_or_context": "string literal",
       "message": "var(--rv-color-subtle-bg) references the approved deprecated compatibility block. Remove in the property-based remediation phase."
-    },
-    {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/op-tecelagem-producao-admin.js",
-      "line": 753,
-      "column": 159,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "var(--rv-radius-pill)",
-      "resolved_value": "999px",
-      "element_or_context": "el('span', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
     },
     {
       "rule_id": "UIC-000",
@@ -12756,20 +11664,6 @@
       "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/ops-list.js",
-      "line": 75,
-      "column": 92,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px",
-      "resolved_value": "6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/ops-list.js",
@@ -12782,20 +11676,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/ops-list.js",
-      "line": 78,
-      "column": 52,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -12838,20 +11718,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/ops-list.js",
-      "line": 448,
-      "column": 100,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "999px",
-      "resolved_value": "999px",
-      "element_or_context": "el('div', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is a section icon chip."
     },
     {
       "rule_id": "UIC-000",
@@ -12908,34 +11774,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/ops-list.js",
-      "line": 525,
-      "column": 94,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px",
-      "resolved_value": "6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/ops-list.js",
-      "line": 560,
-      "column": 172,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "0 0 6px 6px",
-      "resolved_value": "0 0 6px 6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 0, 0, 6px, 6px is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-003",
@@ -13418,7 +12256,7 @@
       "severity": "coverage",
       "path": "js/screens/ordem-compra-receipt-render.js",
       "line": 173,
-      "column": 7,
+      "column": 28,
       "front_end": "js-screen",
       "archetype": null,
       "property": null,
@@ -13426,20 +12264,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/ordem-compra-receipt-render.js",
-      "line": 173,
-      "column": 115,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "var(--rv-radius-pill)",
-      "resolved_value": "999px",
-      "element_or_context": "el('span', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
     },
     {
       "rule_id": "UIC-009",
@@ -14422,20 +13246,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-events.js",
-      "line": 2359,
-      "column": 58,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/pedido-detail-events.js",
@@ -14448,20 +13258,6 @@
       "resolved_value": "16px",
       "element_or_context": "el('div', { style })",
       "message": "Font size 16px is outside the ten-value contract enum."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-events.js",
-      "line": 2414,
-      "column": 58,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-005",
@@ -14518,48 +13314,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-events.js",
-      "line": 2547,
-      "column": 56,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-events.js",
-      "line": 2555,
-      "column": 44,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "99px",
-      "resolved_value": "99px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 99px is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-events.js",
-      "line": 2555,
-      "column": 44,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "99px",
-      "resolved_value": "99px",
-      "element_or_context": "el('div', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
     },
     {
       "rule_id": "UIC-000",
@@ -14630,34 +13384,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-render.js",
-      "line": 91,
-      "column": 52,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-render.js",
-      "line": 104,
-      "column": 52,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -14786,20 +13512,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-render.js",
-      "line": 305,
-      "column": 54,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
@@ -14926,20 +13638,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-render.js",
-      "line": 485,
-      "column": 58,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
@@ -14952,20 +13650,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-render.js",
-      "line": 488,
-      "column": 58,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -15092,34 +13776,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-render.js",
-      "line": 645,
-      "column": 52,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-render.js",
-      "line": 703,
-      "column": 136,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "3px",
-      "resolved_value": "3px",
-      "element_or_context": "el('button', { style })",
-      "message": "Radius 3px is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-005",
@@ -15304,20 +13960,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-render.js",
-      "line": 995,
-      "column": 52,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/pedido-detail-render.js",
@@ -15330,34 +13972,6 @@
       "resolved_value": "15.5px",
       "element_or_context": "el('div', { style })",
       "message": "Font size 15.5px is outside the ten-value contract enum."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-render.js",
-      "line": 1061,
-      "column": 44,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "99px",
-      "resolved_value": "99px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 99px is outside the contract enum [4px, 999px]."
-    },
-    {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-render.js",
-      "line": 1061,
-      "column": 44,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "99px",
-      "resolved_value": "99px",
-      "element_or_context": "el('div', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
     },
     {
       "rule_id": "UIC-000",
@@ -15540,20 +14154,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-detail-render.js",
-      "line": 1365,
-      "column": 60,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -15878,24 +14478,10 @@
       "message": "COVERAGE_GAP / CONTROL_ROLE_UNPROVEN — a height on an element whose role the detector could not resolve. This is not a pass."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedido-item-row-editor.js",
-      "line": 207,
-      "column": 45,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "0",
-      "resolved_value": "0",
-      "element_or_context": "previewNode.style",
-      "message": "Radius 0 is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-item-row-editor.js",
-      "line": 214,
+      "line": 213,
       "column": 9,
       "front_end": "js-screen",
       "archetype": null,
@@ -15909,7 +14495,7 @@
       "rule_id": "UIC-006",
       "severity": "blocking",
       "path": "js/screens/pedido-item-row-editor.js",
-      "line": 218,
+      "line": 217,
       "column": 29,
       "front_end": "js-screen",
       "archetype": null,
@@ -15923,7 +14509,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-item-row-editor.js",
-      "line": 220,
+      "line": 219,
       "column": 7,
       "front_end": "js-screen",
       "archetype": null,
@@ -15937,7 +14523,7 @@
       "rule_id": "UIC-006",
       "severity": "blocking",
       "path": "js/screens/pedido-item-row-editor.js",
-      "line": 222,
+      "line": 221,
       "column": 31,
       "front_end": "js-screen",
       "archetype": null,
@@ -15951,7 +14537,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-item-row-editor.js",
-      "line": 224,
+      "line": 223,
       "column": 7,
       "front_end": "js-screen",
       "archetype": null,
@@ -15965,7 +14551,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-item-row-editor.js",
-      "line": 232,
+      "line": 231,
       "column": 12,
       "front_end": "js-screen",
       "archetype": null,
@@ -15979,7 +14565,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-item-row-editor.js",
-      "line": 310,
+      "line": 309,
       "column": 7,
       "front_end": "js-screen",
       "archetype": null,
@@ -16016,20 +14602,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-010",
-      "severity": "blocking",
-      "path": "js/screens/pedido-route-sections-ui.js",
-      "line": 32,
-      "column": 70,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "999px",
-      "resolved_value": "999px",
-      "element_or_context": "el('span', { style })",
-      "message": "D6.1: --rv-radius-pill is limited to semantic pills and true circles; this is an ordinary rectangular container."
     },
     {
       "rule_id": "UIC-000",
@@ -16102,20 +14674,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedidos-list.js",
-      "line": 187,
-      "column": 50,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedidos-list.js",
@@ -16128,20 +14686,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedidos-list.js",
-      "line": 197,
-      "column": 52,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-005",
@@ -16228,20 +14772,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedidos-list.js",
-      "line": 669,
-      "column": 52,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "50%",
-      "resolved_value": "50%",
-      "element_or_context": "el('span', { style })",
-      "message": "Radius 50% is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedidos-list.js",
@@ -16282,20 +14812,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/pedidos-list.js",
-      "line": 735,
-      "column": 172,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "0 0 4px 4px",
-      "resolved_value": "0 0 4px 4px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 0, 0 is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-003",
@@ -16368,20 +14884,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/system-screens.js",
-      "line": 64,
-      "column": 92,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "8px",
-      "resolved_value": "8px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 8px is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/system-screens.js",
@@ -16394,20 +14896,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/system-screens.js",
-      "line": 71,
-      "column": 52,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "8px",
-      "resolved_value": "8px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 8px is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -16606,20 +15094,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/trocar-senha-obrigatoria.js",
-      "line": 125,
-      "column": 99,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "6px",
-      "resolved_value": "6px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 6px is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/trocar-senha-obrigatoria.js",
@@ -16634,20 +15108,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/trocar-senha-obrigatoria.js",
-      "line": 131,
-      "column": 52,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "8px",
-      "resolved_value": "8px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 8px is outside the contract enum [4px, 999px]."
-    },
-    {
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/trocar-senha-obrigatoria.js",
@@ -16660,20 +15120,6 @@
       "resolved_value": "19px",
       "element_or_context": "el('h1', { style })",
       "message": "Font size 19px is outside the ten-value contract enum."
-    },
-    {
-      "rule_id": "UIC-002",
-      "severity": "blocking",
-      "path": "js/screens/trocar-senha-obrigatoria.js",
-      "line": 156,
-      "column": 65,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "border-radius",
-      "observed_value": "5px",
-      "resolved_value": "5px",
-      "element_or_context": "el('div', { style })",
-      "message": "Radius 5px is outside the contract enum [4px, 999px]."
     },
     {
       "rule_id": "UIC-000",
@@ -16737,11 +15183,11 @@
     },
     "UIC-002": {
       "name": "RADIUS_OUTSIDE_ENUM",
-      "total": 93,
-      "blocking": 93,
+      "total": 0,
+      "blocking": 0,
       "debt": 0,
       "coverage_gaps": 0,
-      "files": 23
+      "files": 0
     },
     "UIC-003": {
       "name": "CONTROL_HEIGHT_OUTSIDE_ENUM",
@@ -16801,11 +15247,11 @@
     },
     "UIC-010": {
       "name": "SEMANTIC_PILL_RADIUS_MISUSE",
-      "total": 18,
-      "blocking": 16,
+      "total": 0,
+      "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 2,
-      "files": 14
+      "coverage_gaps": 0,
+      "files": 0
     },
     "UIC-011": {
       "name": "UNKNOWN_TOKEN_REFERENCE",
@@ -16834,8 +15280,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 2,
       "declaration_sites": 73,
-      "total": 4,
-      "blocking": 1,
+      "total": 3,
+      "blocking": 0,
       "debt": 0,
       "coverage_gaps": 3
     },
@@ -16845,8 +15291,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 8,
       "declaration_sites": 146,
-      "total": 19,
-      "blocking": 8,
+      "total": 18,
+      "blocking": 7,
       "debt": 0,
       "coverage_gaps": 11
     },
@@ -16856,8 +15302,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 16,
       "declaration_sites": 139,
-      "total": 23,
-      "blocking": 6,
+      "total": 19,
+      "blocking": 2,
       "debt": 0,
       "coverage_gaps": 17
     },
@@ -16867,8 +15313,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 47,
       "declaration_sites": 980,
-      "total": 80,
-      "blocking": 29,
+      "total": 63,
+      "blocking": 12,
       "debt": 0,
       "coverage_gaps": 51
     },
@@ -16889,8 +15335,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 23,
       "declaration_sites": 213,
-      "total": 33,
-      "blocking": 9,
+      "total": 30,
+      "blocking": 6,
       "debt": 0,
       "coverage_gaps": 24
     },
@@ -16900,8 +15346,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 16,
       "declaration_sites": 329,
-      "total": 28,
-      "blocking": 10,
+      "total": 20,
+      "blocking": 2,
       "debt": 0,
       "coverage_gaps": 18
     },
@@ -16922,8 +15368,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 13,
       "declaration_sites": 102,
-      "total": 21,
-      "blocking": 7,
+      "total": 16,
+      "blocking": 2,
       "debt": 0,
       "coverage_gaps": 14
     },
@@ -16933,8 +15379,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 13,
       "declaration_sites": 109,
-      "total": 17,
-      "blocking": 3,
+      "total": 16,
+      "blocking": 2,
       "debt": 0,
       "coverage_gaps": 14
     },
@@ -16955,8 +15401,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 3,
       "declaration_sites": 20,
-      "total": 5,
-      "blocking": 1,
+      "total": 4,
+      "blocking": 0,
       "debt": 0,
       "coverage_gaps": 4
     },
@@ -16966,8 +15412,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 5,
       "declaration_sites": 80,
-      "total": 10,
-      "blocking": 4,
+      "total": 9,
+      "blocking": 3,
       "debt": 0,
       "coverage_gaps": 6
     },
@@ -17009,9 +15455,9 @@
       "archetype": null,
       "coverage": "PARTIAL",
       "indeterminate_sites": 50,
-      "declaration_sites": 348,
-      "total": 66,
-      "blocking": 15,
+      "declaration_sites": 350,
+      "total": 58,
+      "blocking": 7,
       "debt": 0,
       "coverage_gaps": 51
     },
@@ -17021,10 +15467,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 9,
       "declaration_sites": 95,
-      "total": 15,
-      "blocking": 1,
+      "total": 13,
+      "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 14
+      "coverage_gaps": 13
     },
     "js/screens/entrega-writes.js": {
       "front_end": "js-screen",
@@ -17043,8 +15489,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 21,
       "declaration_sites": 199,
-      "total": 36,
-      "blocking": 14,
+      "total": 30,
+      "blocking": 8,
       "debt": 0,
       "coverage_gaps": 22
     },
@@ -17087,10 +15533,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 5,
       "declaration_sites": 96,
-      "total": 11,
-      "blocking": 1,
+      "total": 9,
+      "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 10
+      "coverage_gaps": 9
     },
     "js/screens/manta-writes.js": {
       "front_end": "js-screen",
@@ -17142,8 +15588,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 46,
       "declaration_sites": 496,
-      "total": 177,
-      "blocking": 9,
+      "total": 170,
+      "blocking": 2,
       "debt": 121,
       "coverage_gaps": 47
     },
@@ -17153,8 +15599,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 51,
       "declaration_sites": 618,
-      "total": 116,
-      "blocking": 10,
+      "total": 110,
+      "blocking": 4,
       "debt": 54,
       "coverage_gaps": 52
     },
@@ -17197,8 +15643,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 43,
       "declaration_sites": 354,
-      "total": 145,
-      "blocking": 6,
+      "total": 140,
+      "blocking": 1,
       "debt": 95,
       "coverage_gaps": 44
     },
@@ -17219,8 +15665,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 7,
       "declaration_sites": 222,
-      "total": 15,
-      "blocking": 7,
+      "total": 10,
+      "blocking": 2,
       "debt": 0,
       "coverage_gaps": 8
     },
@@ -17296,8 +15742,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 5,
       "declaration_sites": 47,
-      "total": 40,
-      "blocking": 1,
+      "total": 39,
+      "blocking": 0,
       "debt": 33,
       "coverage_gaps": 6
     },
@@ -17373,8 +15819,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 31,
       "declaration_sites": 1009,
-      "total": 40,
-      "blocking": 8,
+      "total": 35,
+      "blocking": 3,
       "debt": 0,
       "coverage_gaps": 32
     },
@@ -17395,8 +15841,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 42,
       "declaration_sites": 864,
-      "total": 72,
-      "blocking": 28,
+      "total": 61,
+      "blocking": 17,
       "debt": 0,
       "coverage_gaps": 44
     },
@@ -17449,9 +15895,9 @@
       "archetype": null,
       "coverage": "PARTIAL",
       "indeterminate_sites": 6,
-      "declaration_sites": 46,
-      "total": 11,
-      "blocking": 3,
+      "declaration_sites": 45,
+      "total": 10,
+      "blocking": 2,
       "debt": 0,
       "coverage_gaps": 8
     },
@@ -17494,8 +15940,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 3,
       "declaration_sites": 18,
-      "total": 5,
-      "blocking": 1,
+      "total": 4,
+      "blocking": 0,
       "debt": 0,
       "coverage_gaps": 4
     },
@@ -17527,8 +15973,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 10,
       "declaration_sites": 224,
-      "total": 18,
-      "blocking": 7,
+      "total": 14,
+      "blocking": 3,
       "debt": 0,
       "coverage_gaps": 11
     },
@@ -17538,8 +15984,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 11,
       "declaration_sites": 78,
-      "total": 15,
-      "blocking": 3,
+      "total": 13,
+      "blocking": 1,
       "debt": 0,
       "coverage_gaps": 12
     },
@@ -17549,8 +15995,8 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 9,
       "declaration_sites": 72,
-      "total": 14,
-      "blocking": 4,
+      "total": 11,
+      "blocking": 1,
       "debt": 0,
       "coverage_gaps": 10
     }
@@ -17570,10 +16016,10 @@
     },
     "unassigned": {
       "files": 66,
-      "total": 1147,
-      "blocking": 220,
+      "total": 1036,
+      "blocking": 111,
       "debt": 322,
-      "coverage_gaps": 605,
+      "coverage_gaps": 603,
       "coverage_states": {
         "FULL": 27,
         "PARTIAL": 39,

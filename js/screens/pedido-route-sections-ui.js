@@ -29,7 +29,7 @@
     var stageLabels = (section.stepper || []).map(function (stage) { return stage.label; }).join(' → ');
     return window.el('div', { style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;' },
       window.el('span', {
-        style: 'display:inline-flex;align-items:center;border-radius:999px;padding:3px 11px;font-size:11.5px;font-weight:700;'
+        style: 'display:inline-flex;align-items:center;border-radius:var(--rv-radius);padding:3px 11px;font-size:11.5px;font-weight:700;'
           + routeChipStyle(section.route),
       }, 'Rota ' + (section.label || '—')),
       window.el('span', {

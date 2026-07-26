@@ -2356,7 +2356,7 @@
       },
         window.el('div', { style: 'display:flex;align-items:center;gap:10px;' },
           window.el('div', {
-            style: 'width:10px;height:10px;border-radius:50%;background:' + (stage.color || 'var(--rv-brand)') + ';flex-shrink:0;',
+            style: 'width:10px;height:10px;border-radius:var(--rv-radius-pill);background:' + (stage.color || 'var(--rv-brand)') + ';flex-shrink:0;',
           }),
           window.el('div', { style: 'font-size:16px;font-weight:800;color:var(--rv-text-primary);' }, titleText)),
         window.el('button', {
@@ -2411,7 +2411,7 @@
           style: 'display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;',
         },
           window.el('div', {
-            style: 'width:36px;height:36px;border-radius:50%;background:var(--rv-signal-caution-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;',
+            style: 'width:36px;height:36px;border-radius:var(--rv-radius-pill);background:var(--rv-signal-caution-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;',
           }, ns.svgEl(ns.SVG_WARN)),
           window.el('div', {},
             window.el('div', {
@@ -2544,7 +2544,7 @@
           style: 'display:inline-flex;align-items:center;gap:7px;background:' + badgeBg + ';color:' + badgeColor + ';border-radius:4px;padding:5px 12px;font-size:13px;font-weight:700;margin-bottom:12px;',
         },
           window.el('span', {
-            style: 'width:7px;height:7px;border-radius:50%;background:' + badgeDot + ';display:inline-block;',
+            style: 'width:7px;height:7px;border-radius:var(--rv-radius-pill);background:' + badgeDot + ';display:inline-block;',
           }),
           label
         ),
@@ -2552,7 +2552,7 @@
           style: 'font-size:13.5px;color:var(--rv-pill-info-text);font-weight:500;line-height:1.5;margin-bottom:12px;',
         }, '"' + message + '"'),
         window.el('div', {
-          style: 'height:6px;border-radius:99px;background:var(--rv-surface-subtle);overflow:hidden;margin-bottom:6px;',
+          style: 'height:6px;border-radius:var(--rv-radius);background:var(--rv-surface-subtle);overflow:hidden;margin-bottom:6px;',
         },
           window.el('div', {
             style: 'width:' + percent + '%;height:100%;background:var(--rv-brand);',

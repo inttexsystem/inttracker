@@ -88,7 +88,7 @@
     if (actions.length) attrs.onclick = handlers.openStatusActions;
     return window.el('button', attrs,
       actions.length ? window.el('span', {
-        style: 'width:7px;height:7px;border-radius:50%;background:' + tone.text + ';display:inline-block;flex-shrink:0;',
+        style: 'width:7px;height:7px;border-radius:var(--rv-radius-pill);background:' + tone.text + ';display:inline-block;flex-shrink:0;',
       }) : null,
       label
     );
@@ -101,7 +101,7 @@
       title: 'Status operacional derivado das OPs vinculadas',
     },
       window.el('span', {
-        style: 'width:7px;height:7px;border-radius:50%;background:var(--rv-signal-caution);display:inline-block;flex-shrink:0;',
+        style: 'width:7px;height:7px;border-radius:var(--rv-radius-pill);background:var(--rv-signal-caution);display:inline-block;flex-shrink:0;',
       }),
       label
     );
@@ -296,13 +296,13 @@
     var inner;
 
     if (stage.state === 'done') {
-      outerStyle = 'width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px var(--rv-surface);background:' + stage.color + ';color:var(--rv-text-on-brand);';
+      outerStyle = 'width:42px;height:42px;border-radius:var(--rv-radius-pill);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px var(--rv-surface);background:' + stage.color + ';color:var(--rv-text-on-brand);';
       inner = ns.svgEl(ns.SVG_CHECK);
     } else {
       var pct = Math.max(0, Math.min(100, stage.percent || 0));
-      outerStyle = 'width:42px;height:42px;border-radius:50%;background:conic-gradient(from -90deg,' + stage.color + ' 0% ' + pct + '%,var(--rv-surface-subtle) ' + pct + '%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px var(--rv-surface);';
+      outerStyle = 'width:42px;height:42px;border-radius:var(--rv-radius-pill);background:conic-gradient(from -90deg,' + stage.color + ' 0% ' + pct + '%,var(--rv-surface-subtle) ' + pct + '%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px var(--rv-surface);';
       inner = window.el('div', {
-        style: 'width:32px;height:32px;border-radius:50%;background:var(--rv-surface);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:' + (stage.state === 'future' ? 'var(--rv-text-tertiary)' : stage.color) + ';',
+        style: 'width:32px;height:32px;border-radius:var(--rv-radius-pill);background:var(--rv-surface);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:' + (stage.state === 'future' ? 'var(--rv-text-tertiary)' : stage.color) + ';',
       }, String(index + 1));
     }
 
@@ -482,10 +482,10 @@
         }, modelLabel(state, item)),
         window.el('div', { style: 'display:flex;align-items:center;gap:5px;margin-bottom:4px;' },
           window.el('span', {
-            style: 'width:14px;height:14px;border-radius:50%;background:' + c1Hex + ';border:1px solid var(--rv-border);display:inline-block;flex-shrink:0;',
+            style: 'width:14px;height:14px;border-radius:var(--rv-radius-pill);background:' + c1Hex + ';border:1px solid var(--rv-border);display:inline-block;flex-shrink:0;',
           }),
           c2Nome ? window.el('span', {
-            style: 'width:14px;height:14px;border-radius:50%;background:' + c2Hex + ';border:1px solid var(--rv-border-strong);display:inline-block;flex-shrink:0;',
+            style: 'width:14px;height:14px;border-radius:var(--rv-radius-pill);background:' + c2Hex + ';border:1px solid var(--rv-border-strong);display:inline-block;flex-shrink:0;',
           }) : null
         ),
         window.el('div', {
@@ -642,7 +642,7 @@
       style: 'display:inline-flex;align-items:center;gap:6px;background:' + summary.statusTone.bg + ';color:' + summary.statusTone.text + ';border-radius:4px;padding:3px 9px;font-size:11.5px;font-weight:600;',
     },
       window.el('span', {
-        style: 'width:6px;height:6px;border-radius:50%;background:' + summary.statusTone.dot + ';display:inline-block;',
+        style: 'width:6px;height:6px;border-radius:var(--rv-radius-pill);background:' + summary.statusTone.dot + ';display:inline-block;',
       }),
       summary.statusTone.label
     );
@@ -700,7 +700,7 @@
     if (pedidoNumero) {
       lineageNodes.push(window.el('button', {
         type: 'button',
-        style: 'font-size:12px;font-weight:600;color:var(--rv-accent-blue);background:var(--rv-pill-info-bg);border:none;border-radius:3px;padding:3px 7px;cursor:pointer;font-family:inherit;white-space:nowrap;',
+        style: 'font-size:12px;font-weight:600;color:var(--rv-accent-blue);background:var(--rv-pill-info-bg);border:none;border-radius:var(--rv-radius);padding:3px 7px;cursor:pointer;font-family:inherit;white-space:nowrap;',
         onclick: function () { handlers.scrollToSection ? null : null; },
       }, 'Pedido ' + pedidoNumero));
       lineageNodes.push(ns.svgEl('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>'));
@@ -992,7 +992,7 @@
       style: 'display:inline-flex;align-items:center;gap:7px;background:' + bg + ';color:' + color + ';border-radius:4px;padding:5px 12px;font-size:13px;font-weight:700;margin-bottom:12px;',
     },
       window.el('span', {
-        style: 'width:7px;height:7px;border-radius:50%;background:' + dot + ';display:inline-block;',
+        style: 'width:7px;height:7px;border-radius:var(--rv-radius-pill);background:' + dot + ';display:inline-block;',
       }),
       label
     );
@@ -1058,7 +1058,7 @@
           style: 'font-size:13.5px;color:var(--rv-pill-info-text);font-weight:500;line-height:1.5;margin-bottom:12px;',
         }, '"' + message + '"'),
         window.el('div', {
-          style: 'height:6px;border-radius:99px;background:var(--rv-surface-subtle);overflow:hidden;margin-bottom:6px;',
+          style: 'height:6px;border-radius:var(--rv-radius);background:var(--rv-surface-subtle);overflow:hidden;margin-bottom:6px;',
         },
           window.el('div', {
             style: 'width:' + percent + '%;height:100%;background:var(--rv-brand);',
@@ -1362,7 +1362,7 @@
               style: 'display:flex;flex-direction:column;align-items:center;',
             },
               window.el('div', {
-                style: 'width:9px;height:9px;border-radius:50%;background:' + dotColor
+                style: 'width:9px;height:9px;border-radius:var(--rv-radius-pill);background:' + dotColor
                   + ';margin-top:3px;flex-shrink:0;',
               }),
               isLastTimeline ? null : window.el('div', {

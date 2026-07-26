@@ -289,7 +289,7 @@ test('3. op-nova.js é script clássico, sem import/export', () => {
 
 test('4. index.html carrega op-nova.js EXATAMENTE UMA VEZ, sem type=module', () => {
   // Aceita com ou sem query string (cache-busting ?v=...).
-  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260726-ui-p5-pass1"\s*><\/script>/g;
+  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260726-ui-p5-pass2"\s*><\/script>/g;
   const reNoQs   = /<script\s+src="js\/screens\/op-nova\.js"\s*><\/script>/g;
   const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
   assert.equal(total, 1,

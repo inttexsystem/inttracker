@@ -228,23 +228,23 @@
 
       var lineageNodes = [];
       lineageNodes.push(window.el('span', { style: 'font-size:12.5px;color:var(--rv-pill-info-text);font-weight:600;' }, 'Cadeia:'));
-      lineageNodes.push(window.el('span', { style: 'font-size:12.5px;font-weight:700;color:var(--rv-text-primary);background:var(--rv-surface);border-radius:3px;padding:3px 7px;' }, 'Pedido ' + pedidoNumero));
+      lineageNodes.push(window.el('span', { style: 'font-size:12.5px;font-weight:700;color:var(--rv-text-primary);background:var(--rv-surface);border-radius:var(--rv-radius);padding:3px 7px;' }, 'Pedido ' + pedidoNumero));
       lineageNodes.push(window.el('span', { style: 'font-size:12px;color:var(--rv-text-tertiary);' }, '→'));
       lineageNodes.push(opLabel
         ? window.el('button', {
             type: 'button',
-            style: 'font-size:12.5px;font-weight:700;color:var(--rv-accent-blue);background:var(--rv-surface);border:none;border-radius:3px;padding:3px 7px;cursor:pointer;font-family:inherit;',
+            style: 'font-size:12.5px;font-weight:700;color:var(--rv-accent-blue);background:var(--rv-surface);border:none;border-radius:var(--rv-radius);padding:3px 7px;cursor:pointer;font-family:inherit;',
             onclick: function () { window.navigate('#/ops/' + src.opId); },
           }, opLabel)
-        : window.el('span', { style: 'font-size:12.5px;font-weight:700;color:var(--rv-text-tertiary);background:var(--rv-surface);border-radius:3px;padding:3px 7px;' }, 'OP sem vinculo'));
+        : window.el('span', { style: 'font-size:12.5px;font-weight:700;color:var(--rv-text-tertiary);background:var(--rv-surface);border-radius:var(--rv-radius);padding:3px 7px;' }, 'OP sem vinculo'));
       if (src.label) {
-        lineageNodes.push(window.el('span', { style: 'font-size:11.5px;color:var(--rv-text-secondary);background:var(--rv-surface);border-radius:3px;padding:3px 7px;font-weight:600;' }, 'Origem: ' + src.label));
+        lineageNodes.push(window.el('span', { style: 'font-size:11.5px;color:var(--rv-text-secondary);background:var(--rv-surface);border-radius:var(--rv-radius);padding:3px 7px;font-weight:600;' }, 'Origem: ' + src.label));
       }
       if (srcOp) {
-        lineageNodes.push(window.el('span', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);background:var(--rv-surface);border-radius:3px;padding:3px 7px;' }, internalOpLabel(srcOp)));
+        lineageNodes.push(window.el('span', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);background:var(--rv-surface);border-radius:var(--rv-radius);padding:3px 7px;' }, internalOpLabel(srcOp)));
       }
       lineageNodes.push(window.el('span', { style: 'font-size:12px;color:var(--rv-text-tertiary);' }, '→'));
-      lineageNodes.push(window.el('span', { style: 'font-size:12.5px;font-weight:700;color:var(--rv-signal-caution);background:var(--rv-surface);border-radius:3px;padding:3px 7px;' }, 'Expedicao (esta tela)'));
+      lineageNodes.push(window.el('span', { style: 'font-size:12.5px;font-weight:700;color:var(--rv-signal-caution);background:var(--rv-surface);border-radius:var(--rv-radius);padding:3px 7px;' }, 'Expedicao (esta tela)'));
       var lineageStrip = window.el('div', {
         style: 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--rv-pill-info-bg);border:1px solid var(--rv-pill-info-border);border-radius:4px;padding:8px 14px;margin-bottom:12px;',
       }, lineageNodes);

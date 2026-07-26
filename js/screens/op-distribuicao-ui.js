@@ -219,7 +219,7 @@
     function trackBg(slider) {
       var max = Number(slider.max) || 1;
       var pct = Math.max(0, Math.min(100, (Number(slider.value) / max) * 100));
-      return '-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:99px;background:linear-gradient(to right,var(--rv-brand) ' + pct + '%,var(--rv-surface-subtle) ' + pct + '%);outline:none;border:none;cursor:pointer;';
+      return '-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:var(--rv-radius);background:linear-gradient(to right,var(--rv-brand) ' + pct + '%,var(--rv-surface-subtle) ' + pct + '%);outline:none;border:none;cursor:pointer;';
     }
 
     itensCalc.forEach(function (c) {

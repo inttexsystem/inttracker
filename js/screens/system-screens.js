@@ -61,14 +61,14 @@
     const shell = window.el('div', { style: 'width:100%;max-width:400px;' });
     const card = window.el('div', {
       class: 'login-card',
-      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:8px;'
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);'
         + 'padding:32px 32px 28px;box-shadow:var(--rv-shadow-none),'
         + 'var(--rv-shadow-none);',
     });
 
     const brandMark = window.el('div', {
       'aria-label': 'Inttex',
-      style: 'width:72px;height:72px;border-radius:8px;border:1px solid var(--rv-border-soft);'
+      style: 'width:72px;height:72px;border-radius:var(--rv-radius);border:1px solid var(--rv-border-soft);'
         + 'background:var(--rv-surface);display:flex;align-items:center;justify-content:center;'
         + 'box-shadow:var(--rv-shadow-none);font-size:18px;font-weight:800;'
         + 'color:var(--rv-text-primary);letter-spacing:0;',

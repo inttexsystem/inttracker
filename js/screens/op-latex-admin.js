@@ -95,7 +95,7 @@
     return el('span', { style: PILL_BASE + 'background:var(--rv-stage-acabamento-bg);color:var(--rv-stage-acabamento);' }, 'Acabamento');
   }
   function rvDot(color) {
-    return el('span', { style: 'width:6px;height:6px;border-radius:50%;background:' + color + ';' });
+    return el('span', { style: 'width:6px;height:6px;border-radius:var(--rv-radius-pill);background:' + color + ';' });
   }
   function rvStatusBadge(status) {
     if (status === 'em_producao') {
@@ -661,7 +661,7 @@
               linhaResumo('Disponivel para movimentar', window.fmtMetros(disponivelMovimentar), disponivelMovimentar > 0 ? 'var(--rv-accent-blue)' : 'var(--rv-text-tertiary)'),
               linhaResumo('Entregue ao Cliente', window.fmtMetros(entregueCliente), 'var(--rv-signal-positive)'),
               linhaResumo('Saldo em Acabamento', resumoSaldoTexto, resumoSaldoCor)),
-            el('div', { style: 'height:6px;border-radius:99px;background:var(--rv-surface-subtle);overflow:hidden;margin:12px 0 6px;' },
+            el('div', { style: 'height:6px;border-radius:var(--rv-radius);background:var(--rv-surface-subtle);overflow:hidden;margin:12px 0 6px;' },
               el('div', { style: 'width:' + percentualClamp + '%;height:100%;background:var(--rv-brand);' })),
             el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);' }, pctLabel + '% ja movimentado para expedicao'));
         }
@@ -779,7 +779,7 @@
             card.appendChild(el('div', { style: (i > 0 ? 'border-top:1px solid var(--rv-color-line-100);margin-top:13px;padding-top:13px;' : '') },
               el('div', { style: 'display:flex;align-items:center;gap:7px;margin-bottom:8px;' },
                 el('span', { style: 'font-size:12px;font-weight:600;color:var(--rv-color-value);' }, tipo),
-                el('span', { style: 'font-size:10px;font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);' }, '0')),
+                el('span', { 'data-ui-pill': '1', style: 'font-size:10px;font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);' }, '0')),
               el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-bottom:8px;' }, 'Nenhum arquivo anexado.'),
               el('button', {
                 type: 'button', style: ANEXAR_BTN,
@@ -798,14 +798,14 @@
             rvSectionPill('Histórico', IC_HIST),
             el('div', { style: 'display:flex;gap:12px;align-items:flex-start;' },
               el('div', { style: 'display:flex;flex-direction:column;align-items:center;' },
-                el('div', { style: 'width:11px;height:11px;border-radius:50%;background:var(--rv-color-accent);margin-top:4px;flex-shrink:0;' }),
+                el('div', { style: 'width:11px;height:11px;border-radius:var(--rv-radius-pill);background:var(--rv-color-accent);margin-top:4px;flex-shrink:0;' }),
                 el('div', { style: 'width:2px;flex:1;background:var(--rv-color-line-200);' })),
               el('div', { style: 'padding-bottom:16px;' },
                 el('div', { style: 'font-size:12px;color:var(--rv-text-tertiary);' }, dataBase),
                 el('div', { style: 'font-size:14px;font-weight:700;color:var(--rv-color-title);margin-top:2px;' }, 'Entrada consolidada da Tecelagem'),
                 el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);margin-top:1px;' }, resumoOrigem + ' em ' + formatOpDisplay(op, opDisplayContext) + ' (Acabamento). Romaneio marcado como pendente.'))),
             el('div', { style: 'display:flex;gap:12px;align-items:flex-start;' },
-              el('div', { style: 'width:11px;height:11px;border-radius:50%;background:var(--rv-surface-subtle);margin-top:4px;flex-shrink:0;' }),
+              el('div', { style: 'width:11px;height:11px;border-radius:var(--rv-radius-pill);background:var(--rv-surface-subtle);margin-top:4px;flex-shrink:0;' }),
               el('div', {},
                 el('div', { style: 'font-size:14px;font-weight:600;color:var(--rv-text-primary);margin-top:2px;' }, 'OP aberta'),
                 el('div', { style: 'font-size:12px;color:var(--rv-text-tertiary);' }, dataBase),
@@ -1036,7 +1036,7 @@
             metricRow('Recebido no acabamento', window.fmtMetros(totalRecebido), 'var(--rv-text-tertiary)'),
             metricRow('Saldo aguardando', window.fmtMetros(metrosAguardando), metrosAguardando > 0 ? 'var(--rv-color-accent)' : 'var(--rv-color-success)')),
           el('div', { style: 'margin-top:14px;' },
-            el('div', { style: 'height:6px;border-radius:var(--rv-radius-pill);background:var(--rv-surface-subtle);overflow:hidden;' },
+            el('div', { style: 'height:6px;border-radius:var(--rv-radius);background:var(--rv-surface-subtle);overflow:hidden;' },
               el('div', { style: 'height:100%;width:' + pctClamp + '%;background:var(--rv-color-accent);' })),
             el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-top:6px;' }, String(pct).replace('.', ',') + '% recebido no acabamento')));
       }

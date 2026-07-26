@@ -88,7 +88,7 @@
       const border = danger ? 'var(--rv-signal-negative-border)' : 'var(--rv-border-soft)';
       const labelColor = danger ? 'var(--rv-signal-negative)' : 'var(--rv-text-tertiary)';
       const valueColor = danger ? 'var(--rv-signal-negative)' : 'var(--rv-text-primary)';
-      const card = window.el('div', { style: `background:${bg}; border:1px solid ${border}; border-radius:5px; padding:14px 16px;` });
+      const card = window.el('div', { style: `background:${bg}; border:1px solid ${border}; border-radius:var(--rv-radius); padding:14px 16px;` });
       card.appendChild(window.el('div', { style: 'display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;' },
         window.el('span', { style: `font-size:12px; color:${labelColor};` }, label),
         svgIcon(icon)
@@ -233,7 +233,7 @@
 
       const controls = window.el('div', { style: 'display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;' });
       const searchWrap = window.el('div', {
-        style: 'display:flex; align-items:center; gap:8px; flex:1 1 320px; min-width:220px; background:var(--rv-surface); border:1px solid var(--rv-border-strong); border-radius:5px; padding:8px 13px;'
+        style: 'display:flex; align-items:center; gap:8px; flex:1 1 320px; min-width:220px; background:var(--rv-surface); border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); padding:8px 13px;'
       });
       searchWrap.appendChild(svgIcon(ICON_SEARCH));
       searchWrap.appendChild(window.el('input', {
@@ -245,7 +245,7 @@
       }));
       controls.appendChild(searchWrap);
 
-      const selectStyle = 'border:1px solid var(--rv-border-strong); border-radius:5px; padding:8px 11px; font-size:13px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; cursor:pointer;';
+      const selectStyle = 'border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); padding:8px 11px; font-size:13px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; cursor:pointer;';
       const ordenarSelect = window.el('select', {
         value: ordenarPor,
         onchange: (e) => { ordenarPor = e.target.value; renderStandalone(); },
@@ -286,8 +286,8 @@
         style: 'position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;'
       }, '+ Novo usuário Desativar'));
 
-      const tableWrap = window.el('div', { style: 'display:flex; flex-direction:column;' });
-      const card = window.el('div', { style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:6px 6px 0 0; overflow:hidden;' });
+      const tableWrap = window.el('div', { style: 'display:flex; flex-direction:column; border-radius:var(--rv-radius); overflow:hidden;' });
+      const card = window.el('div', { style: 'background:var(--rv-surface); border:1px solid var(--rv-border); overflow:hidden;' });
       // UI-ACTION-BUTTON-MIGRATION-2: ACOES holds 4 actionButton()s
       // (30px) + 3 gaps (6px) = 138px. The previous 102px undersized the
       // column (architect-reported); widened to the exact math, one
@@ -375,7 +375,7 @@
         card.appendChild(window.el('div', { style: 'padding:20px 18px; font-size:14px; color:var(--rv-text-secondary); text-align:center;' }, busca ? 'Nenhum usuario encontrado.' : (mostrarInativos ? 'Nenhum usuario cadastrado.' : 'Nenhum usuario ativo encontrado.')));
       }
 
-      const footer = window.el('div', { style: 'padding:11px 18px; background:var(--rv-surface); border:1px solid var(--rv-border); border-top:none; border-radius:0 0 6px 6px;' });
+      const footer = window.el('div', { style: 'padding:11px 18px; background:var(--rv-surface); border:1px solid var(--rv-border); border-top:none;' });
       footer.appendChild(window.el('span', { style: 'font-size:13px; color:var(--rv-text-tertiary);' }, `${rows.length} ${rows.length === 1 ? 'usuario listado' : 'usuarios listados'}`));
       tableWrap.appendChild(card);
       tableWrap.appendChild(footer);
