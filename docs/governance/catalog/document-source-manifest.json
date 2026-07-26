@@ -58262,10 +58262,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-      "git_object_id": "2cf8e9c3fd54091dc3388abdf294fccb411d5d1b",
-      "sha256": "92b02a83787a6ac55ead2885bf04254dec12bda20f68046906cd82a9aa55011e",
-      "line_count": 163,
-      "byte_count": 28246,
+      "git_object_id": "1da5bb476871fe0231a4f37f30dfce6bc27ade37",
+      "sha256": "9ea288a2761b7261966e8aa9320f5a19848aa186d818f23a1d771fdccb98fcc9",
+      "line_count": 165,
+      "byte_count": 28642,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -59379,6 +59379,22 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 146
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0013.md`",
+          "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0013.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 162
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/ui/fixtures/vendor/react-18.3.1/README.md`",
+          "target_path": "docs/ui/fixtures/vendor/react-18.3.1/README.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 163
         }
       ],
       "inbound_references": [
@@ -76324,7 +76340,15 @@
           "source_line": 27
         }
       ],
-      "inbound_references": [],
+      "inbound_references": [
+        {
+          "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
+          "source_line": 162,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        }
+      ],
       "headings": [
         {
           "level": 2,
@@ -97277,6 +97301,13 @@
         {
           "source_path": "docs/architecture/UI_CONFORMANCE.md",
           "source_line": 158,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
+          "source_line": 163,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null

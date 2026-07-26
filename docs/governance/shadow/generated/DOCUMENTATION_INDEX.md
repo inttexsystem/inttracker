@@ -159,5 +159,7 @@ Generated compatibility view: `docs/DOCUMENTATION_INDEX.md`. This shadow owns no
 | DOC-UNIT5-PRECONDITION-BUILDER | `scripts/governance/build-unit5-precondition-correction.mjs` | GOVERNANCE_TOOLING | IMPLEMENTATION | TIER_2_STRUCTURED | KEEP_CANONICAL |
 | DOC-UNIT5-PRECONDITION-VALIDATOR | `scripts/governance/validate-canonical-authority-consumers.mjs` | GOVERNANCE_TOOLING | IMPLEMENTATION | TIER_2_STRUCTURED | KEEP_CANONICAL |
 | DOC-UNIT5-PRECONDITION-TESTS | `tests/governance-canonical-authority-consumers.test.mjs` | GOVERNANCE_TEST | EVIDENCE_ONLY | TIER_2_STRUCTURED | KEEP_CANONICAL |
+| DOC-DOCS_GOVERNANCE_SHADOW_LEDGER_PARTITIONS_G28_LEDGER_PART_0013_MD | `docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0013.md` | DERIVED | DERIVED | TIER_3_REFERENCE | DELETE_ONLY_IF_REGENERABLE_DERIVED_ARTIFACT |
+| DOC-DOCS_UI_FIXTURES_VENDOR_REACT_18_3_1_README_MD | `docs/ui/fixtures/vendor/react-18.3.1/README.md` | EVIDENCE | EVIDENCE_ONLY | TIER_3_REFERENCE | KEEP_NORMATIVE |
 
-Artifacts: 153. Review status: all entries explicitly REVIEWED.
+Artifacts: 155. Review status: all entries explicitly REVIEWED.
