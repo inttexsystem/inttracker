@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "ac764114e71c770be0d9dad4226f585b524a4448",
-      "sha256": "c55f0a5af469644b9466627bc4c302ab9041c9bcfa6830404c2f056909f380e2",
+      "git_object_id": "e9e4c223ac76637851290367072eef5c791430e8",
+      "sha256": "6df8c520c6abf226cf18202146b01d6d4121e3cebeba5e79b137adf59f82ecf3",
       "line_count": 34,
-      "byte_count": 13070,
+      "byte_count": 12030,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -39625,10 +39625,10 @@
     },
     {
       "path": "docs/architecture/UI_CONFORMANCE.md",
-      "git_object_id": "1b54a680f876b3da6ae155af6ca77e9f7b0ff7ec",
-      "sha256": "d8b9d1bf7dbfcbf7e163316aab55c8b54b3e1a0b5ce5a3ba5756ff274fba3ba9",
-      "line_count": 583,
-      "byte_count": 39500,
+      "git_object_id": "6e04a8e4011227295ac476a22d010d170ea952bc",
+      "sha256": "c996a6a1c771cb4426c7c5dbadaa75df4a9d59c81dec916f3da0b1420827aef2",
+      "line_count": 591,
+      "byte_count": 40104,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -39637,7 +39637,7 @@
           "target_path": "docs/ui/fixtures/vendor/react-18.3.1/README.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 551
+          "source_line": 559
         }
       ],
       "inbound_references": [
@@ -39702,97 +39702,97 @@
           "level": 2,
           "text": "Detector provenance",
           "anchor": "detector-provenance",
-          "line": 65
+          "line": 68
         },
         {
           "level": 3,
           "text": "UIC-002 and UIC-010 — closed",
           "anchor": "uic-002-and-uic-010-closed",
-          "line": 120
+          "line": 128
         },
         {
           "level": 3,
           "text": "UIC-001 — closed",
           "anchor": "uic-001-closed",
-          "line": 223
+          "line": 231
         },
         {
           "level": 2,
           "text": "Archetype A — Detail cockpit",
           "anchor": "archetype-a-detail-cockpit",
-          "line": 258
+          "line": 266
         },
         {
           "level": 2,
           "text": "Archetype B — Work queue",
           "anchor": "archetype-b-work-queue",
-          "line": 273
+          "line": 281
         },
         {
           "level": 2,
           "text": "Archetype C — Creation form",
           "anchor": "archetype-c-creation-form",
-          "line": 283
+          "line": 291
         },
         {
           "level": 2,
           "text": "Archetype D — Decision modal",
           "anchor": "archetype-d-decision-modal",
-          "line": 290
+          "line": 298
         },
         {
           "level": 2,
           "text": "Archetype E — Client portal",
           "anchor": "archetype-e-client-portal",
-          "line": 297
+          "line": 305
         },
         {
           "level": 2,
           "text": "Archetype F — Configuration",
           "anchor": "archetype-f-configuration",
-          "line": 306
+          "line": 314
         },
         {
           "level": 2,
           "text": "Application surface — `js/screens/*.js`",
           "anchor": "application-surface-jsscreensjs",
-          "line": 314
+          "line": 322
         },
         {
           "level": 2,
           "text": "Table review — the one manual pass",
           "anchor": "table-review-the-one-manual-pass",
-          "line": 441
+          "line": 449
         },
         {
           "level": 2,
           "text": "Outside the archetypes — chrome and documentation",
           "anchor": "outside-the-archetypes-chrome-and-documentation",
-          "line": 458
+          "line": 466
         },
         {
           "level": 2,
           "text": "Execution order — by property batch",
           "anchor": "execution-order-by-property-batch",
-          "line": 471
+          "line": 479
         },
         {
           "level": 2,
           "text": "Versioned fixture provenance",
           "anchor": "versioned-fixture-provenance",
-          "line": 525
+          "line": 533
         },
         {
           "level": 3,
           "text": "Vendored fixture runtime — immutable third-party assets",
           "anchor": "vendored-fixture-runtime-immutable-third-party-assets",
-          "line": 541
+          "line": 549
         },
         {
           "level": 2,
           "text": "Archetype ratification",
           "anchor": "archetype-ratification",
-          "line": 561
+          "line": 569
         }
       ]
     },
@@ -59510,10 +59510,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "e5dce5e96bc4133680ab4d3813f3354ba9347ea6",
-      "sha256": "c8b34979d9f010c5f75ece191982992d6e57b0acfafdbb706109015c1b668b52",
-      "line_count": 10165,
-      "byte_count": 1225579,
+      "git_object_id": "fa6809e777727dc261798066695f45d8befaef4b",
+      "sha256": "687706299378694936205dcf75c98a97978c71fe5f3e2290ee6b9509d7e0a296",
+      "line_count": 10192,
+      "byte_count": 1239411,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -67753,6 +67753,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-4-SHADOW-R1-A1 — fix(ui): close elevation shadow pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-4-shadow-r1-a1-fixui-close-elevation-shadow-pass",
           "line": 10140
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-5-CARD-ACTION-ALIGNMENT-R1-A1 — fix(ui): close proven card action alignment pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-5-card-action-alignment-r1-a1-fixui-close-proven-card-action-alignment-pass",
+          "line": 10165
         }
       ]
     },
@@ -76579,10 +76585,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0014.md",
-      "git_object_id": "68dc149728b1770ccb50e4f76ff6dad00185ccd3",
-      "sha256": "f3d32604cc87979162ad35f04f0993452a08496800048ce85c93d30e6f3b8295",
-      "line_count": 63,
-      "byte_count": 27316,
+      "git_object_id": "dd7f6923ec5668432af57724651e09635d110120",
+      "sha256": "97dd65e5b5b73e78fe67b11f7ea2e82fc56073906f17e4afb3bc3600d5009d92",
+      "line_count": 90,
+      "byte_count": 41148,
       "generated_status": "GENERATED",
       "outbound_references": [],
       "inbound_references": [
@@ -76606,6 +76612,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-4-SHADOW-R1-A1 — fix(ui): close elevation shadow pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-4-shadow-r1-a1-fixui-close-elevation-shadow-pass",
           "line": 38
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-5-CARD-ACTION-ALIGNMENT-R1-A1 — fix(ui): close proven card action alignment pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-5-card-action-alignment-r1-a1-fixui-close-proven-card-action-alignment-pass",
+          "line": 63
         }
       ]
     },
@@ -76693,10 +76705,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "98f4f7a6406e059d271852c84d77297d70e31aba",
-      "sha256": "93873db8524a231ff7c052d4f3ef71e0dcedbd889f0878f28224312582cc4f96",
-      "line_count": 10159,
-      "byte_count": 1225278,
+      "git_object_id": "8b7749f27166c51641b7e1dc8fc9728bda27f7c9",
+      "sha256": "366d5eccfd58c6b82aaf1baa4ab0dac5b386d121d03649c99d5bb93bb6a37090",
+      "line_count": 10186,
+      "byte_count": 1239110,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86868,6 +86880,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-4-SHADOW-R1-A1 — fix(ui): close elevation shadow pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-4-shadow-r1-a1-fixui-close-elevation-shadow-pass",
           "line": 10136
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-5-CARD-ACTION-ALIGNMENT-R1-A1 — fix(ui): close proven card action alignment pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-5-card-action-alignment-r1-a1-fixui-close-proven-card-action-alignment-pass",
+          "line": 10161
         }
       ]
     },
@@ -97613,7 +97631,7 @@
       "inbound_references": [
         {
           "source_path": "docs/architecture/UI_CONFORMANCE.md",
-          "source_line": 551,
+          "source_line": 559,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
