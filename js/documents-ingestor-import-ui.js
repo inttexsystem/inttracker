@@ -224,7 +224,7 @@
     btn.textContent = 'Importar eventos';
     btn.style.cssText =
       'position:fixed;bottom:16px;right:16px;z-index:100;'
-      + 'background:#2563eb;color:#fff;border:none;border-radius:6px;'
+      + 'background:#2563eb;color:#fff;border:none;border-radius:var(--rv-radius);'
       + 'padding:8px 16px;font-size:13px;font-weight:600;'
       + 'font-family:inherit;cursor:pointer;box-shadow:0 2px 8px rgba(37,99,235,.35);'
       + 'transition:opacity .2s;opacity:.85;';

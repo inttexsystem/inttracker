@@ -709,3 +709,182 @@ test('21g · A2 added no data-card-actions marker — the 42 gaps stay open', ()
   assert.equal(rule('UIC-008').blocking, 0);
   assert.equal(BASELINE.highlights.action_alignment_coverage_gaps, UIC008_COVERAGE_AFTER);
 });
+
+/* ============================================================
+   22 · A3 — THE FIRST-PARTY PRODUCT RUNTIME, NOT JUST THE SCREENS
+
+   The radius property is evaluated over the RENDERED first-party
+   product surface. `js/screens/*.js` is the detector's inventory,
+   not the surface: a shared primitive that manufactures application
+   controls renders on every route while sitting outside all 66
+   files. `js/ui.js` did exactly that — `textInput` and `selectInput`
+   rendered at 8px from a `rounded-lg` no rule could see.
+
+   This guard is deliberately NOT the detector inventory and does not
+   redefine it. It walks every local script `index.html` actually
+   loads and holds the whole product runtime to the closed enum.
+   ============================================================ */
+
+/** Every local script the application really loads, screens included. */
+const INDEX_HTML = read('index.html');
+const RUNTIME_SCRIPTS = [...INDEX_HTML.matchAll(/src="([^"]+)"/g)]
+  .map((m) => m[1])
+  .filter((s) => !/^https?:/.test(s))
+  .map((s) => s.replace(/\?v=.*$/, ''));
+const SHARED_RUNTIME = RUNTIME_SCRIPTS.filter((s) => !s.startsWith('js/screens/'));
+
+/**
+ * Byte ranges covered by a `console.*(…)` call, by paren balancing.
+ *
+ * A `border-radius` inside one is a DevTools `%c` format string: it never
+ * reaches the DOM, and a CSS custom property does NOT resolve in console
+ * styling, so rewriting it to `var(--rv-radius)` would break the styling
+ * rather than canonicalize it. Excluded on that mechanical basis alone —
+ * never by path, never by an ignore list.
+ */
+function consoleCallRanges(src) {
+  const out = [];
+  for (const m of src.matchAll(/\bconsole\s*\.\s*[A-Za-z]+\s*\(/g)) {
+    let depth = 0;
+    let i = m.index + m[0].length - 1;
+    for (; i < src.length; i++) {
+      if (src[i] === '(') depth++;
+      else if (src[i] === ')') { depth--; if (depth === 0) break; }
+    }
+    out.push([m.index, i]);
+  }
+  return out;
+}
+
+/** Every radius a runtime file declares, however it is spelled. */
+function runtimeRadiusSites(text) {
+  const skip = commentRanges(text).concat(consoleCallRanges(text));
+  const blocked = (i) => skip.some(([a, b]) => i >= a && i <= b);
+  const out = { tailwind: [], values: [], constants: [] };
+
+  for (const m of text.matchAll(TAILWIND_RADIUS_UTILITY)) {
+    if (blocked(m.index)) continue;
+    out.tailwind.push({ token: m[0], line: text.slice(0, m.index).split('\n').length });
+  }
+  // Explicit style strings, static template fragments and concatenations.
+  for (const m of text.matchAll(/border-radius\s*:\s*([^;'"`\n}]*)/g)) {
+    if (blocked(m.index)) continue;
+    const value = m[1].trim();
+    if (value) out.values.push({ value, line: text.slice(0, m.index).split('\n').length });
+  }
+  // `.style.borderRadius = …` and `{ borderRadius: … }`.
+  for (const m of text.matchAll(/borderRadius\s*(?:=|:)\s*(['"`])([^'"`]*)\1/g)) {
+    if (blocked(m.index)) continue;
+    out.values.push({ value: m[2].trim(), line: text.slice(0, m.index).split('\n').length });
+  }
+  // A named constant holding geometry is still that file owning geometry.
+  // A property assignment is NOT one: `node.style.borderRadius = '4px'` is a
+  // declaration, already measured by the value rule above, and `borderRadius`
+  // is the DOM property name rather than a name this file invented.
+  for (const m of text.matchAll(/(^|[^.\w$])([A-Za-z_$][A-Za-z0-9_$]*(?:RADIUS|[Rr]adius)[A-Za-z0-9_$]*)\s*=\s*(['"`])([^'"`]*)\3/g)) {
+    if (blocked(m.index)) continue;
+    if (m[2] === 'borderRadius') continue;
+    out.constants.push({ name: m[2], value: m[4].trim(), line: text.slice(0, m.index).split('\n').length });
+  }
+  return out;
+}
+
+/** A constant may legally hold a radius only as a token, never a literal. */
+const isRadiusValued = (v) => RADIUS_IN_ENUM.has(v) || /^-?\d/.test(v) || v.endsWith('%');
+
+test('22 · the application really loads what this guard claims to cover', () => {
+  // If index.html stops loading a module, the guard must shrink loudly rather
+  // than silently pass over a file nobody serves any more.
+  assert.equal(RUNTIME_SCRIPTS.length, ALL_SCREENS.length + SHARED_RUNTIME.length);
+  assert.equal(RUNTIME_SCRIPTS.filter((s) => s.startsWith('js/screens/')).length, APPLICATION_FILE_COUNT);
+  assert.ok(SHARED_RUNTIME.includes('js/ui.js'), 'the shared control factory must be covered');
+  for (const rel of SHARED_RUNTIME) {
+    assert.ok(fs.existsSync(path.join(ROOT, rel)), `${rel} is loaded but absent from the worktree`);
+  }
+});
+
+test('22b · TAILWIND_RADIUS_UTILITY_COUNT_IN_PRODUCT_RUNTIME === 0', () => {
+  const offenders = [];
+  const files = new Set();
+  for (const rel of RUNTIME_SCRIPTS) {
+    for (const h of runtimeRadiusSites(read(rel)).tailwind) {
+      offenders.push(`${rel}:${h.line} ${h.token}`);
+      files.add(rel);
+    }
+  }
+  assert.equal(offenders.length, 0,
+    `css/tokens.css is the only radius owner in the product runtime:\n${offenders.join('\n')}`);
+  assert.equal(files.size, 0, 'TAILWIND_RADIUS_UTILITY_FILE_COUNT_IN_PRODUCT_RUNTIME must be 0');
+});
+
+test('22c · OUT_OF_ENUM_RUNTIME_RADIUS_COUNT === 0', () => {
+  const offenders = [];
+  for (const rel of RUNTIME_SCRIPTS) {
+    for (const h of runtimeRadiusSites(read(rel)).values) {
+      if (RADIUS_IN_ENUM.has(h.value)) continue;
+      offenders.push(`${rel}:${h.line} ${h.value}`);
+    }
+  }
+  assert.deepEqual(offenders, [],
+    `every runtime radius must resolve through the closed enum:\n${offenders.join('\n')}`);
+});
+
+test('22d · OUT_OF_ENUM_RUNTIME_RADIUS_CONSTANT_COUNT === 0', () => {
+  const offenders = [];
+  for (const rel of RUNTIME_SCRIPTS) {
+    for (const c of runtimeRadiusSites(read(rel)).constants) {
+      if (!isRadiusValued(c.value)) continue;          // not geometry at all
+      if (RADIUS_IN_ENUM.has(c.value) && c.value.startsWith('var(')) continue;
+      offenders.push(`${rel}:${c.line} ${c.name} = '${c.value}'`);
+    }
+  }
+  assert.deepEqual(offenders, [],
+    `a radius constant must hold a token, never a literal:\n${offenders.join('\n')}`);
+});
+
+test('22e · the runtime guard actually fires — it is not a vacuous zero', () => {
+  const tw = (probe) => runtimeRadiusSites(probe).tailwind.length;
+  const vals = (probe) => runtimeRadiusSites(probe).values.map((v) => v.value);
+  const consts = (probe) => runtimeRadiusSites(probe).constants.map((c) => c.value);
+
+  // Class tokens, in every shape the runtime writes them.
+  assert.equal(tw(`el('div', { class: 'bg-white rounded shadow' })`), 1);
+  assert.equal(tw(`el('div', { class: 'bg-white rounded-lg shadow' })`), 1);
+  assert.equal(tw(`el('div', { class: 'bg-white rounded-xl shadow' })`), 1);
+  assert.equal(tw(`el('span', { class: 'px-2 rounded-full ' + skin })`), 1);
+  assert.equal(tw('node.className = `card rounded-2xl ${extra}`;'), 1);
+  // Explicit style strings, concatenated fragments and JS assignments.
+  assert.deepEqual(vals(`x.style.cssText = 'color:#fff;' + 'border-radius:8px;'`), ['8px']);
+  assert.deepEqual(vals("node.style.borderRadius = '8px';"), ['8px']);
+  assert.deepEqual(vals('el("div", { style: `border-radius:8px;` })'), ['8px']);
+  // Named constants.
+  assert.deepEqual(consts("const SOME_RADIUS = '8px';"), ['8px']);
+  assert.deepEqual(consts("var cardRadius = '8px';"), ['8px']);
+
+  // …and prose, unrelated identifiers and console styling must NOT fire.
+  assert.equal(tw('// the old rounded-xl card is gone\n'), 0);
+  assert.equal(tw('/* rounded-full was removed by A3 */\n'), 0);
+  assert.equal(tw('var roundedValue = 1; surroundedBy(x);'), 0);
+  assert.equal(vals("console.warn('%c[X] hi', 'padding:2px;border-radius:3px;')").length, 0,
+    'a DevTools %c format string is not rendered product surface');
+  assert.equal(vals("console.info('%cA', 'border-radius:3px;'); el('i', { style: 'border-radius:8px;' })").length, 1,
+    'excluding the console call must not swallow the declaration after it');
+});
+
+test('22f · the three console-styling radii are the only excluded sites, and they are unchanged', () => {
+  // Named explicitly so the exclusion can never quietly widen: if a fourth
+  // appears, or one of these moves into real markup, this fails.
+  const EXCLUDED = { 'js/environment-banner.js': 2, 'js/supabase-client.js': 1 };
+  const found = {};
+  for (const rel of SHARED_RUNTIME) {
+    const text = read(rel);
+    const ranges = consoleCallRanges(text);
+    let n = 0;
+    for (const m of text.matchAll(/border-radius\s*:\s*([^;'"`\n}]*)/g)) {
+      if (ranges.some(([a, b]) => m.index >= a && m.index <= b)) n += 1;
+    }
+    if (n) found[rel] = n;
+  }
+  assert.deepEqual(found, EXCLUDED,
+    'only the declared DevTools console format strings may be excluded');
+});

@@ -1274,10 +1274,24 @@ const PASS2_A2_ASSETS = [
   'js/screens/pedido-tracking-admin.js',
   'js/screens/system-screens.js'
 ];
+// A3 fechou o ultimo dono de raio do runtime de primeira parte: os utilitarios
+// Tailwind `rounded*` do js/ui.js — a fabrica compartilhada de controles, que
+// renderiza em toda rota mas fica FORA das 66 telas do inventario — e mais dois
+// modulos compartilhados. A garantia original nao muda: um asset alterado e
+// invalidado exatamente uma vez, sob um token declarado, e esse token nao vaza.
+const PASS2_A3_TOKEN = '20260726-ui-p5-pass2-a3';
+const PASS2_A3_ASSETS = [
+  'js/badges.js',
+  'js/document-links-surface-ui.js',
+  'js/documents-ingestor-import-ui.js',
+  'js/pedido-ui.js',
+  'js/ui.js'
+];
 const PASS2_ASSETS_AINDA_EM_PASS2 = PASS2_ASSETS.filter((a) => !PASS2_A2_ASSETS.includes(a));
 const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS
   .filter((a) => !PASS2_ASSETS.includes(a))
-  .filter((a) => !PASS2_A2_ASSETS.includes(a));
+  .filter((a) => !PASS2_A2_ASSETS.includes(a))
+  .filter((a) => !PASS2_A3_ASSETS.includes(a));
 
 // R3 alterou dois assets. A passada 1 retokenizou UM deles
 // (pedido-detail-render.js), entao o token de R3 sobrevive apenas no outro —
@@ -1463,6 +1477,7 @@ test('R3/20c2. todo asset nao relacionado conserva o token que tinha em 4532f76'
     if (PASS1_ASSETS.includes(before[i].path)) continue;
     if (PASS2_ASSETS.includes(before[i].path)) continue;
     if (PASS2_A2_ASSETS.includes(before[i].path)) continue;
+    if (PASS2_A3_ASSETS.includes(before[i].path)) continue;
     assert.equal(after[i].token, before[i].token,
       before[i].path + ' e um asset nao relacionado e nao pode ter o token alterado');
   }
@@ -1574,6 +1589,8 @@ test('PASS2/20c8. os assets da passada 2 de raio carregam exatamente o token dec
   }
   // Todo asset da passada 1 que a passada 2 NAO declarou tem de estar
   // byte-identico a cabd358: a passada 2 nao pode arrastar asset algum.
+  // (Os assets que a A3 declarou saem desta lista e sao verificados
+  // literalmente por A3/20c10, contra o checkpoint publicado da A2.)
   for (const rel of PASS1_ASSETS_AINDA_EM_PASS1) {
     const committed = execFileSync('git', ['rev-parse', 'cabd358:' + rel], { cwd: ROOT, encoding: 'utf8' }).trim();
     const worktree = execFileSync('git', ['hash-object', '--', rel], { cwd: ROOT, encoding: 'utf8' }).trim();
@@ -1608,5 +1625,40 @@ test('A2/20c9. os assets da correcao A2 carregam exatamente o token declarado, e
     const committed = execFileSync('git', ['rev-parse', '2114191:' + ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
     const worktree = execFileSync('git', ['hash-object', '--', ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
     assert.equal(worktree, committed, ref.path + ' nao foi declarado pela A2 e deve seguir byte-identico a 2114191');
+  }
+});
+
+// A correcao A3 declara os seus assets e o seu token; nenhum outro asset pode
+// carrega-lo, e ele tem de diferir de todo token anterior. Diferente da A2,
+// estes assets NAO sao telas: sao o runtime compartilhado de primeira parte,
+// que renderiza controles em toda rota sem entrar no inventario de 66 telas.
+test('A3/20c10. os assets da correcao A3 carregam exatamente o token declarado, e ele nao vaza', () => {
+  for (const rel of PASS2_A3_ASSETS) {
+    assert.equal(tokenFor(rel), PASS2_A3_TOKEN,
+      rel + ' deve carregar exatamente o token declarado da correcao A3');
+  }
+  const carriers = assetRefs(indexHtml).filter((r) => r.token === PASS2_A3_TOKEN).map((r) => r.path);
+  assert.deepEqual(carriers.sort(), PASS2_A3_ASSETS.slice().sort(),
+    'exatamente os assets da A3 podem carregar o token da A3');
+  for (const anterior of [PASS2_A2_TOKEN, PASS2_TOKEN, PASS1_TOKEN, BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN, R2_TOKEN]) {
+    assert.notEqual(PASS2_A3_TOKEN, anterior,
+      'reusar um token anterior nao invalidaria cache algum');
+  }
+  // Um asset retokenizado tem de ter mudado de fato desde o checkpoint publicado.
+  for (const rel of PASS2_A3_ASSETS) {
+    const committed = execFileSync('git', ['rev-parse', '076be26:' + rel], { cwd: ROOT, encoding: 'utf8' }).trim();
+    const worktree = execFileSync('git', ['hash-object', '--', rel], { cwd: ROOT, encoding: 'utf8' }).trim();
+    assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 076be26');
+  }
+  // E nenhum outro script local pode ter mudado: a A3 nao arrasta asset algum,
+  // nem tela (fechada pela A2) nem modulo compartilhado que ela nao declarou.
+  const declarados = new Set(PASS2_A3_ASSETS);
+  for (const ref of assetRefs(indexHtml)) {
+    // Runtime de terceiros (CDN) nao esta versionado aqui e nao e alvo da A3.
+    if (/^https?:/.test(ref.path)) continue;
+    if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
+    const committed = execFileSync('git', ['rev-parse', '076be26:' + ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
+    const worktree = execFileSync('git', ['hash-object', '--', ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
+    assert.equal(worktree, committed, ref.path + ' nao foi declarado pela A3 e deve seguir byte-identico a 076be26');
   }
 });

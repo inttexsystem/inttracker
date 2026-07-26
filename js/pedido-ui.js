@@ -183,7 +183,8 @@
     const label = pedidoStatusLabel(status);
     const cls = pedidoStatusBadgeClass(status);
     return window.el('span', {
-      class: 'px-2 py-1 rounded text-xs font-semibold ' + cls,
+      style: 'border-radius:var(--rv-radius);',
+      class: 'px-2 py-1 text-xs font-semibold ' + cls,
     }, label);
   }
 

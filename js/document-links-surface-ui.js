@@ -134,7 +134,7 @@
       var isLast = idx === timeline.entries.length - 1;
       var dotColor = entry.confirmed ? 'var(--rv-color-accent)' : '#cfd5de';
       var trilha = el('div', { style: 'display:flex;flex-direction:column;align-items:center;' },
-        el('div', { style: 'width:9px;height:9px;border-radius:50%;background:' + dotColor + ';margin-top:4px;flex-shrink:0;' }),
+        el('div', { style: 'width:9px;height:9px;border-radius:var(--rv-radius-pill);background:' + dotColor + ';margin-top:4px;flex-shrink:0;' }),
         isLast ? '' : el('div', { style: 'width:2px;flex:1;background:var(--rv-color-line-200);' }));
       var titleParts = [KIND_LABEL[entry.kind] || 'Documento vinculado'];
       if (typeof rev.version === 'number') titleParts.push('v' + rev.version);

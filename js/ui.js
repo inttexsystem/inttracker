@@ -44,7 +44,8 @@ function el(tag, attrs = {}, ...children) {
 function toast(message, type = 'info') {
   const colors = { info: 'bg-blue-600', success: 'bg-green-600', error: 'bg-red-600' };
   const node = el('div', {
-    class: 'toast text-white px-4 py-2 rounded-lg shadow-lg ' + (colors[type] || colors.info)
+    style: 'border-radius:var(--rv-radius);',
+    class: 'toast text-white px-4 py-2 shadow-lg ' + (colors[type] || colors.info)
   }, message);
   $('#toasts').appendChild(node);
   setTimeout(() => node.remove(), 4000);
@@ -81,17 +82,17 @@ function modal({ title, body, onSave, saveLabel = 'Salvar', onClose, danger = fa
 
   // Padrao visual atual: cantos pouco arredondados, borda clara, espacamento
   // limpo e botoes consistentes com o restante da UI (#2563eb / borda #d8dce2).
-  const card = el('div', { class: 'bg-white rounded-lg shadow-xl border border-[#eceef1] w-full max-w-lg max-h-[90vh] flex flex-col' });
+  const card = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow-xl border border-[#eceef1] w-full max-w-lg max-h-[90vh] flex flex-col' });
   const header = el('div', { class: 'px-6 py-4 border-b border-[#eceef1] flex justify-between items-center' },
     el('h2', { class: 'text-base font-bold text-[#16203a]' }, title),
     el('button', { class: 'text-gray-400 hover:text-gray-700 text-2xl leading-none', onclick: close }, '×')
   );
   const content = el('div', { class: 'px-6 py-4 overflow-y-auto flex-1' }, body);
 
-  const btnCancel = el('button', { type: 'button',
-    class: 'px-4 py-2 rounded border border-[#d8dce2] text-[#3f4757] font-semibold hover:bg-gray-50', onclick: close }, 'Cancelar');
-  const btnSave = el('button', { type: 'button',
-    class: 'px-5 py-2 rounded text-white font-bold ' + (danger ? 'bg-red-600 hover:bg-red-700' : 'bg-[#2563eb] hover:bg-[#1e56d6]'),
+  const btnCancel = el('button', { type: 'button', style: 'border-radius:var(--rv-radius);',
+    class: 'px-4 py-2 border border-[#d8dce2] text-[#3f4757] font-semibold hover:bg-gray-50', onclick: close }, 'Cancelar');
+  const btnSave = el('button', { type: 'button', style: 'border-radius:var(--rv-radius);',
+    class: 'px-5 py-2 text-white font-bold ' + (danger ? 'bg-red-600 hover:bg-red-700' : 'bg-[#2563eb] hover:bg-[#1e56d6]'),
     onclick: async () => {
       btnSave.disabled = true;
       btnSave.textContent = 'Salvando...';
@@ -141,8 +142,8 @@ function formField({ label, input, hint }) {
 
 // --- Input texto/email/numero padrão ---
 function textInput({ type = 'text', value = '', placeholder = '', required = false, step }) {
-  const attrs = { type, placeholder,
-    class: 'w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500' };
+  const attrs = { type, placeholder, style: 'border-radius:var(--rv-radius);',
+    class: 'w-full border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500' };
   if (required) attrs.required = 'required';
   if (step) attrs.step = step;
   const input = el('input', attrs);
@@ -153,7 +154,8 @@ function textInput({ type = 'text', value = '', placeholder = '', required = fal
 // --- Select padrão ---
 function selectInput({ options, value, placeholder = 'Selecione...' }) {
   const sel = el('select', {
-    class: 'w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+    style: 'border-radius:var(--rv-radius);',
+    class: 'w-full border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
   });
   sel.appendChild(el('option', { value: '' }, placeholder));
   // Comparação tolerante: o banco devolve numeric como 1.4, options podem ter '1.40' como string.
@@ -174,7 +176,7 @@ function selectInput({ options, value, placeholder = 'Selecione...' }) {
 // --- Tabela de dados ---
 // Uso: dataTable({columns: [{key, label, render?}], rows, actions: [{label, onclick, class?}]})
 function dataTable({ columns, rows, actions = [] }) {
-  const wrap = el('div', { class: 'bg-white rounded-xl shadow overflow-hidden' });
+  const wrap = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow overflow-hidden' });
   if (rows.length === 0) {
     wrap.appendChild(el('div', { class: 'p-8 text-center text-gray-500' }, 'Nenhum registro ainda.'));
     return wrap;
@@ -301,7 +303,8 @@ function pageHeader(title, actions = []) {
   const actWrap = el('div', { class: 'flex gap-2' });
   for (const a of actions) {
     actWrap.appendChild(el('button', {
-      class: 'bg-blue-700 hover:bg-blue-800 text-white font-semibold px-4 py-2 rounded-lg',
+      style: 'border-radius:var(--rv-radius);',
+      class: 'bg-blue-700 hover:bg-blue-800 text-white font-semibold px-4 py-2',
       onclick: a.onclick
     }, a.label));
   }

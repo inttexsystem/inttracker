@@ -21,12 +21,12 @@ const OP_TIPO_LABEL = { tecelagem: 'Tecelagem', latex: 'Látex' };
 const OP_TIPO_BADGE = { tecelagem: 'bg-indigo-100 text-indigo-700', latex: 'bg-amber-100 text-amber-700' };
 
 function badgeTipo(tipo) {
-  return el('span', { class: 'px-2 py-1 rounded text-xs font-semibold ' + (OP_TIPO_BADGE[tipo] || 'bg-gray-100 text-gray-700') },
+  return el('span', { style: 'border-radius:var(--rv-radius);', class: 'px-2 py-1 text-xs font-semibold ' + (OP_TIPO_BADGE[tipo] || 'bg-gray-100 text-gray-700') },
     OP_TIPO_LABEL[tipo] || tipo);
 }
 
 function badgeStatus(status) {
-  return el('span', { class: 'px-2 py-1 rounded text-xs font-semibold ' + (OP_STATUS_BADGE[status] || 'bg-gray-100 text-gray-700') },
+  return el('span', { style: 'border-radius:var(--rv-radius);', class: 'px-2 py-1 text-xs font-semibold ' + (OP_STATUS_BADGE[status] || 'bg-gray-100 text-gray-700') },
     OP_STATUS_LABEL[status] || status);
 }
 
