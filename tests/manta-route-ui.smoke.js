@@ -1163,8 +1163,13 @@ const R2_TOKEN = '20260725-manta-b2b-r2';
 // R3/20c e R3/20e continua valendo e nao foi enfraquecida: estes assets saem da
 // comparacao com 4532f76 apenas sob um token declarado, verificado literalmente
 // por PASS1/20c7 e proibido em qualquer outro asset.
+// A correcao de coerencia de cache acrescentou `css/tokens.css` a esse conjunto:
+// D9 alterou a folha de tokens, e servi-la sem token de versao permitiria a um
+// browser combinar JavaScript novo com a folha pre-D9 em cache. Ela e um asset
+// que a passada 1 realmente alterou, entao entra pela mesma porta declarada.
 const PASS1_TOKEN = '20260726-ui-p5-pass1';
 const PASS1_ASSETS = [
+  'css/tokens.css',
   'js/badges.js',
   'js/pedido-ui.js',
   'js/screens/pedido-route-sections.js',
@@ -1461,4 +1466,10 @@ test('PASS1/20c7. os assets da passada 1 de cor carregam exatamente o token decl
     assert.notEqual(PASS1_TOKEN, anterior,
       'reusar um token anterior nao invalidaria cache algum');
   }
+  // A folha de tokens continua carregada antes da folha responsiva, que consome
+  // os tokens: o cache-bust nao pode reordenar a cascata.
+  const ordem = assetRefs(indexHtml).map((r) => r.path);
+  assert.ok(ordem.indexOf('css/tokens.css') !== -1 && ordem.indexOf('css/responsive.css') !== -1);
+  assert.ok(ordem.indexOf('css/tokens.css') < ordem.indexOf('css/responsive.css'),
+    'css/tokens.css tem de preceder css/responsive.css');
 });

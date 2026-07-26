@@ -23,8 +23,13 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
 const TOKENS_CSS = read('css/tokens.css');
+const INDEX_HTML = read('index.html');
 const CONTRACT = read('docs/architecture/UI_VISUAL_CONTRACT.md');
 const DECISIONS = read('docs/architecture/DESIGN_DECISIONS.md');
+
+/** The cache-busting token this pass stamps on every asset it changed. */
+const PASS1_TOKEN = '20260726-ui-p5-pass1';
+const TOKENS_LINK = `<link rel="stylesheet" href="css/tokens.css?v=${PASS1_TOKEN}">`;
 
 const SCREEN_DIR = path.join(ROOT, 'js', 'screens');
 const SCREENS = fs.readdirSync(SCREEN_DIR)
@@ -580,6 +585,40 @@ test('15b · --rv-text-on-brand stays scoped to brand surfaces', () => {
   assert.match(CONTRACT, /`--rv-text-on-brand` stays restricted to brand\/action surfaces/);
   const { window: w } = bootRuntime();
   assert.ok(w);
+});
+
+/* ============================================================
+   16 · the token stylesheet is delivered cache-coherently
+
+   D9 added nine tokens to `css/tokens.css`, and the pass stamped
+   the changed JavaScript with the pass-1 cache-busting token. A
+   bare `href="css/tokens.css"` would let a client hold a cached
+   pre-D9 stylesheet while receiving JavaScript that references
+   the new variables, so the ownership layer would resolve to
+   nothing at runtime. The token stylesheet carries the same
+   pass-1 token as the assets that depend on it.
+   ============================================================ */
+
+test('16 · index.html loads the token stylesheet under the pass-1 cache-busting token', () => {
+  assert.ok(INDEX_HTML.includes(TOKENS_LINK),
+    `index.html must load the token stylesheet as ${TOKENS_LINK}`);
+
+  const refs = INDEX_HTML.match(/href="css\/tokens\.css(?:\?[^"]*)?"/g) || [];
+  assert.deepEqual(refs, [`href="css/tokens.css?v=${PASS1_TOKEN}"`],
+    'the token stylesheet must be loaded exactly once, and only under the versioned URL');
+
+  // A bare URL anywhere would reintroduce the incoherent delivery.
+  assert.doesNotMatch(INDEX_HTML, /href="css\/tokens\.css"/,
+    'no bare token stylesheet URL may survive');
+});
+
+test('16b · the token stylesheet still precedes css/responsive.css', () => {
+  const tokensAt = INDEX_HTML.indexOf('href="css/tokens.css?v=');
+  const responsiveAt = INDEX_HTML.indexOf('href="css/responsive.css?v=');
+  assert.notEqual(tokensAt, -1, 'token stylesheet link not found');
+  assert.notEqual(responsiveAt, -1, 'responsive stylesheet link not found');
+  assert.ok(tokensAt < responsiveAt,
+    'the token stylesheet must be loaded before css/responsive.css, which consumes the tokens');
 });
 
 /* ============================================================
