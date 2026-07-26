@@ -139,7 +139,7 @@ Four different popover shadows coexisted (SGAA, skill, `Acompanhamento B2B`, tok
 
 ## 5. Phases 3–5 — what to direct
 
-### Phase 3 — bring the fixture into conformance — **IMPLEMENTED, AWAITING ARCHITECT ACCEPTANCE**
+### Phase 3 — bring the fixture into conformance — **CORRECTED, AWAITING ARCHITECT ACCEPTANCE**
 
 The contradiction this phase existed to remove is gone: the fixture
 `docs/ui/fixtures/op-detail-compacto/OP Detail - Compacto.dc.html` no longer carries
@@ -157,7 +157,24 @@ baseline now exists to diff against.
   `16px 17px`, stack gap 14, column gap 16 — all now expressed through their tokens.
   No layout, density, composition or copy change; the structural projection of the
   file differs only in the value-ownership edits listed above.
-- **Guard:** `tests/ui-op-detail-compacto-fixture.test.mjs` (fixture-specific, 21 tests).
+- **Guard:** `tests/ui-op-detail-compacto-fixture.test.mjs` (fixture-specific, 36 tests).
+- **Corrected after the first submission.** Three defects were found and fixed, and the
+  fixture's `conforming` classification only holds with them:
+  1. **It did not render offline.** `support.js` fetched React from a public CDN, so with
+     no internet the fixture was a blank page. React and ReactDOM 18.3.1 (MIT) are now
+     versioned at `docs/ui/fixtures/vendor/react-18.3.1/` and loaded first; `support.js`
+     short-circuits on the existing globals and was not modified. Custody and digests
+     live in that directory's `README.md`. They are immutable third-party assets, exempt
+     from `CODE_HEALTH_RULES.md` §7, and the product runtime must never import them.
+  2. **The status pill was not canonical.** It now follows §2.6 — `height: 18px`,
+     `padding: 0 6px`, bordered — because the normative component contract prevails over
+     a geometry freeze meant to protect layout.
+  3. **The count badge sat below the type floor.** `font-size: 10px` → the canonical
+     `var(--rv-fs-thead)` (10.5px), inside the §5 enum.
+  Two normative clarifications carry them: **D6.1** scopes `--rv-radius-pill` to semantic
+  pills *and* true circles, and `UI_VISUAL_CONTRACT.md` §2.5.1 rules that a non-mutating
+  contextual navigation link may stay in a section header. Neither invents a token or a
+  value.
 - **NOT delivered:** architect acceptance. The executor does not self-accept.
 
 ### Phase 4 — the detector — **BLOCKED, NOT AUTHORIZED**

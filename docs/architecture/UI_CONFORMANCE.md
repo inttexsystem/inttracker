@@ -4,11 +4,24 @@
 > **State is filled by the detector, not by eye.** Until the phase-4 detector runs,
 > anything not read line by line stays `unaudited`.
 >
-> **Status: PHASE-3 CONFORMED / PHASE-4 DETECTOR PENDING.**
-> The Archetype-A reference fixture now obeys the contract, so a green baseline
-> exists to diff against. The general detector does **not** exist yet; every
-> `unaudited` row below stays `unaudited` until it runs. One conforming screen
-> does **not** ratify an archetype — see § Archetype ratification.
+> **Status: PHASE-3 CONFORMED (CORRECTED) / PHASE-4 DETECTOR PENDING.**
+> The Archetype-A reference fixture obeys the contract **and renders with every
+> external origin blocked**, so a green baseline exists to diff against. The general
+> detector does **not** exist yet; every `unaudited` row below stays `unaudited` until
+> it runs. One conforming screen does **not** ratify an archetype — see § Archetype
+> ratification.
+>
+> **Forward correction of the classification recorded at `2641a44`.** That commit
+> already read `conforming`, and it was premature on three counts: the fixture booted
+> its React runtime from a public CDN and therefore rendered a **blank page** with no
+> internet access; its status pill kept a borderless `padding: 3px 9px` construction
+> instead of §2.6's `height: 18px` bordered form; and its document count badge used a
+> literal `font-size: 10px`, below the §5 type-enum floor of `10.5px`. All three are
+> corrected. The earlier text is not rewritten — this note supersedes it. The
+> classification now rests on four satisfied preconditions: a local offline runtime,
+> the canonical status pill, count typography inside the enum, and semantic-radius
+> validation (D6.1), with a complete four-image visual-evidence set held outside the
+> repository. Phase 3 itself is **not** accepted; that remains the architect's call.
 
 **Generation** (to size effort — see `DESIGN_DECISIONS.md`):
 `G1` legacy generic · rebuild — `G2` minimalist with vibrant colour · mechanical pass
@@ -22,7 +35,7 @@
 
 | Screen | Generation | State | Note |
 |---|---|---|---|
-| `docs/ui/fixtures/op-detail-compacto/OP Detail - Compacto.dc.html` | G3 | **fixture** · conforming | Geometry **and** value reference. Conformed in phase 3: loads `css/tokens.css`, 0 literal colours, radius ∈ {`--rv-radius`, `--rv-radius-pill`}, heights ∈ the 32/34/38 ladder, cards flat, in-card action row marked `data-card-actions`. Guarded by `tests/ui-op-detail-compacto-fixture.test.mjs`. State asserted by that focused test, not by the phase-4 detector. |
+| `docs/ui/fixtures/op-detail-compacto/OP Detail - Compacto.dc.html` | G3 | **fixture** · conforming | Geometry **and** value reference. Conformed in phase 3: loads `css/tokens.css`, 0 literal colours, radius ∈ {`--rv-radius`, `--rv-radius-pill`} scoped by D6.1, heights ∈ the 32/34/38 ladder, cards flat, in-card action row marked `data-card-actions`, status pill per §2.6, every font size inside the §5 enum. Renders offline: its React runtime is versioned at `docs/ui/fixtures/vendor/react-18.3.1/`, so no external origin is required. Guarded by `tests/ui-op-detail-compacto-fixture.test.mjs` (36 tests). State asserted by that focused test, not by the phase-4 detector. |
 | `OP Acabamento - Aberta.dc.html` | G3 | unaudited | Candidate second screen — this is what ratifies archetype A. |
 | `Admin - Detalhe da OP.dc.html` | unaudited | unaudited | Native `<select>` (D8). |
 | `Admin - Detalhe da OP (Acabamento).dc.html` | unaudited | unaudited | Native `<select>` (D8). |
@@ -131,6 +144,26 @@ untouched; it is not a precedent and must not be cited as one.
 One `support.js` is versioned, at `docs/ui/fixtures/op-detail-compacto/support.js`.
 The evidence document loads that same instance. It is fixture infrastructure only:
 no product bundle, no application file and no `index.html` entry may reference it.
+
+### Vendored fixture runtime — immutable third-party assets
+
+`support.js` boots with `loadReactUmd().then(init)`. While that runtime came from a
+public CDN the fixture rendered a blank page whenever the origin was unreachable, so
+the reference only existed with internet access. React **18.3.1** and ReactDOM
+**18.3.1** (MIT) are therefore versioned at
+`docs/ui/fixtures/vendor/react-18.3.1/`, promoted byte-for-byte from the official npm
+packages, and loaded before `support.js`, which short-circuits when the globals are
+already present. `support.js` itself was not modified. Custody — package, version,
+license, registry integrity, per-file digests and byte counts — is recorded in
+`docs/ui/fixtures/vendor/react-18.3.1/README.md`, and the digests also reproduce the
+Subresource Integrity values `support.js` already pinned for the CDN copies, which is
+independent proof nothing was substituted or rebuilt.
+
+They are **immutable third-party fixture runtime assets**: not project-authored
+source, exempt from the `CODE_HEALTH_RULES.md` §7 size thresholds, never edited, never
+imported by the product runtime, and no precedent for minified code as project source,
+for further vendored dependencies or for a version upgrade. Changing the versions
+requires a separate explicit order.
 
 ## Archetype ratification
 

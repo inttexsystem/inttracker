@@ -2,11 +2,11 @@
 <!-- partition_id: G28-LEDGER-PART-0012 -->
 <!-- canonical_source: docs/ledgers/G28_LEDGER.md -->
 <!-- source_unit_interval: G28-LEDGER-UNIT-0195..G28-LEDGER-UNIT-0217 -->
-<!-- canonical_byte_interval: 962903..1077617 -->
-<!-- canonical_line_interval: 9510..9906 -->
-<!-- payload_sha256: e1a83aec7905f00c0c413f64759decf5847435d47b21d9fda5f5d5f907fb46d0 -->
+<!-- canonical_byte_interval: 962903..1077618 -->
+<!-- canonical_line_interval: 9510..9907 -->
+<!-- payload_sha256: a48e89129b029a53bd266f40b6effd52377fbd4bcc88d2c232f0ce7b75a89413 -->
 <!-- oversized_single_unit: false -->
-<!-- partition_status: OPEN -->
+<!-- partition_status: CLOSED -->
 <!-- G28_LEDGER_SHADOW_PAYLOAD_BEGIN_7b9d4e3a -->
 ## 2026-07-22 — GOVERNANCE-EFFICIENCY-REFOUNDATION-SHADOW-STATE-HARDENING-R1 — Unit 1 equivalence correction
 
@@ -405,5 +405,6 @@
 - **Scope exclusions.** No phase-4 detector implementation or execution, no phase-5 screen remediation, no second screen conformance, no token addition or modification, no contract change, no design-decision change, no brand application to runtime surfaces, no deployment, no database or Supabase access, no production access, no Vercel, no `main`, no `origin`, no tag, no force, no amend, no rebase, no merge, no squash, no history rewrite, no `git add .` or `git add -A`, no second push attempt, and no continuation order emitted or executed.
 - **Owner of the full record.** This ledger entry.
 - **Commit subject.** `fix(ui): conform compact OP detail fixture` (implementation) and `docs: record compact fixture conformance checkpoint` (closeout).
+
 
 <!-- G28_LEDGER_SHADOW_PAYLOAD_END_7b9d4e3a -->

@@ -3,10 +3,10 @@
   "index_id": "G28-LEDGER-PARTITION-INDEX-R1",
   "authority": "NON-CANONICAL_SHADOW; CANONICAL_LEDGER_AUTHORITY_UNCHANGED",
   "canonical_source": "docs/ledgers/G28_LEDGER.md",
-  "canonical_source_git_object": "6c6ddc0f1db8dddc1950ed73c34d733ccc85b0f5",
-  "canonical_source_sha256": "937684ae89c891f09f688ae25b6de5b57364bda3d293df306661f0890a003379",
-  "canonical_byte_count": 1077617,
-  "canonical_line_count": 9906,
+  "canonical_source_git_object": "5087986bbd6b85ce62641aba84fc458a3f7bc992",
+  "canonical_source_sha256": "fe76aefd6d5b2308038f68e3abd5ebe00b5ad1adc7432908ad78d8649c4d49e8",
+  "canonical_byte_count": 1094981,
+  "canonical_line_count": 9931,
   "source_manifest_path": "docs/governance/ledger/g28-ledger-source-manifest.json",
   "preamble_unit_id": "G28-LEDGER-PREAMBLE",
   "thresholds": {
@@ -3277,12 +3277,27 @@
       "date": "2026-07-25",
       "phase_order_id": "UI-CONSOLIDATION-PHASE-3-OP-DETAIL-COMPACT-FIXTURE-CONFORMANCE-R1",
       "start_byte": 1058983,
-      "end_byte": 1077617,
+      "end_byte": 1077618,
       "start_line": 9876,
-      "end_line": 9906,
-      "raw_sha256": "c8dc98eaee8a292b034d3ea2d6ab5b043a0b0531427a85a29dc88783b0f4ba69",
-      "byte_count": 18634,
-      "line_count": 31
+      "end_line": 9907,
+      "raw_sha256": "e90ce58e252c08d41ece70e852d56ea7cb5f8cce9228a51a4600846173bc68b1",
+      "byte_count": 18635,
+      "line_count": 32
+    },
+    {
+      "unit_id": "G28-LEDGER-UNIT-0218",
+      "ordinal": 218,
+      "unit_kind": "ENTRY",
+      "heading": "## 2026-07-25 — UI-CONSOLIDATION-PHASE-3-OP-DETAIL-COMPACT-FIXTURE-CONFORMANCE-R1 — fix(ui): complete offline compact fixture conformance",
+      "date": "2026-07-25",
+      "phase_order_id": "UI-CONSOLIDATION-PHASE-3-OP-DETAIL-COMPACT-FIXTURE-CONFORMANCE-R1",
+      "start_byte": 1077618,
+      "end_byte": 1094981,
+      "start_line": 9908,
+      "end_line": 9931,
+      "raw_sha256": "d9c1a6ba6a2850caa9c79ac3d5d049c1147b36fa9e1f978523c0b18765ff6046",
+      "byte_count": 17363,
+      "line_count": 24
     }
   ],
   "partitions": [
@@ -3698,13 +3713,13 @@
       "first_unit_id": "G28-LEDGER-UNIT-0195",
       "last_unit_id": "G28-LEDGER-UNIT-0217",
       "start_byte": 962903,
-      "end_byte": 1077617,
+      "end_byte": 1077618,
       "start_line": 9510,
-      "end_line": 9906,
-      "byte_count": 114714,
-      "line_count": 397,
+      "end_line": 9907,
+      "byte_count": 114715,
+      "line_count": 398,
       "oversized_single_unit": false,
-      "status": "OPEN",
+      "status": "CLOSED",
       "unit_ids": [
         "G28-LEDGER-UNIT-0195",
         "G28-LEDGER-UNIT-0196",
@@ -3730,7 +3745,27 @@
         "G28-LEDGER-UNIT-0216",
         "G28-LEDGER-UNIT-0217"
       ],
-      "payload_sha256": "e1a83aec7905f00c0c413f64759decf5847435d47b21d9fda5f5d5f907fb46d0"
+      "payload_sha256": "a48e89129b029a53bd266f40b6effd52377fbd4bcc88d2c232f0ce7b75a89413"
+    },
+    {
+      "partition_id": "G28-LEDGER-PART-0013",
+      "file_name": "G28_LEDGER_PART_0013.md",
+      "first_unit_ordinal": 218,
+      "last_unit_ordinal": 218,
+      "first_unit_id": "G28-LEDGER-UNIT-0218",
+      "last_unit_id": "G28-LEDGER-UNIT-0218",
+      "start_byte": 1077618,
+      "end_byte": 1094981,
+      "start_line": 9908,
+      "end_line": 9931,
+      "byte_count": 17363,
+      "line_count": 24,
+      "oversized_single_unit": false,
+      "status": "OPEN",
+      "unit_ids": [
+        "G28-LEDGER-UNIT-0218"
+      ],
+      "payload_sha256": "d9c1a6ba6a2850caa9c79ac3d5d049c1147b36fa9e1f978523c0b18765ff6046"
     }
   ],
   "unit_to_partition": [
@@ -4605,6 +4640,10 @@
     {
       "unit_id": "G28-LEDGER-UNIT-0217",
       "partition_id": "G28-LEDGER-PART-0012"
+    },
+    {
+      "unit_id": "G28-LEDGER-UNIT-0218",
+      "partition_id": "G28-LEDGER-PART-0013"
     }
   ],
   "inbound_reference_survival_mappings": [
@@ -8226,7 +8265,7 @@
   "compatibility_view": {
     "path": "docs/governance/shadow/generated/G28_LEDGER.md",
     "reconstructed_from": "ORDERED_PARTITION_PAYLOADS",
-    "payload_sha256": "937684ae89c891f09f688ae25b6de5b57364bda3d293df306661f0890a003379"
+    "payload_sha256": "fe76aefd6d5b2308038f68e3abd5ebe00b5ad1adc7432908ad78d8649c4d49e8"
   },
-  "complete_reassembly_sha256": "937684ae89c891f09f688ae25b6de5b57364bda3d293df306661f0890a003379"
+  "complete_reassembly_sha256": "fe76aefd6d5b2308038f68e3abd5ebe00b5ad1adc7432908ad78d8649c4d49e8"
 }
