@@ -154,14 +154,46 @@ non-vacuous against every utility spelling. The two named radius constants in
 `'4px'` — were canonicalized to `var(--rv-radius)`, so a constant holds a token and never
 a literal. **`css/tokens.css` is now the only radius owner inside `js/screens/`.**
 
-**Still outside the enum, and outside every boundary so far: `js/ui.js`.** Measured in
-the live runtime at 1440 × 900, seven form controls rendered an **8px** computed radius.
-They come from five Tailwind `rounded-lg` / `rounded-xl` utilities in `js/ui.js`, the
-shared control factory (`textInput`, `selectInput`, `modal`, `dataTable`, `toast`).
-`js/ui.js` is **not** one of the 66 inventoried `js/screens/*.js` files, so no detector
-rule and no source scan in passes 1–2 or A2 has ever reached it, and it is outside the
-A2 path boundary — it is byte-identical to `2114191`. This is disclosed, not closed;
-closing it needs a separate authorization.
+**A3 — the shared runtime, and why `js/screens/` was never the surface.** The radius
+property is evaluated over the **rendered first-party product surface**, not over the
+detector's file inventory. `js/ui.js` is the shared control factory: it manufactures every
+`toast`, `modal`, `textInput`, `selectInput` and `dataTable` in the application and renders
+on every route, while sitting outside all 66 inventoried screens. Measured in the live
+runtime at 1440 × 900 immediately after A2, seven form controls still rendered at **8px**.
+No rule, no `--enforce` gate and no "all 66 screens" scan could ever have reached them.
+
+**A3 closed it.** A complete pre-write inventory of the whole first-party runtime — all
+100 local scripts `index.html` loads, plus `css/tokens.css`, `css/responsive.css` and
+`index.html` itself — found **11** Tailwind radius utilities across **3** shared files and
+**2** out-of-enum declarations in two more. All 13 sites were treated: eight in `js/ui.js`
+(toast, modal card, modal cancel, modal save, `textInput`, `selectInput`, `dataTable`
+wrapper, `pageHeader` action button) → `var(--rv-radius)`; three classification badges in
+`js/badges.js` and `js/pedido-ui.js` → `var(--rv-radius)`, **preserving their exact 4px
+geometry**; the floating import button in `js/documents-ingestor-import-ui.js`, `6px` →
+`var(--rv-radius)`; and the 9 × 9 timeline dot in `js/document-links-surface-ui.js`, a
+**true circle**, `50%` → `var(--rv-radius-pill)`. Both stylesheets and `index.html` hold
+**zero** `border-radius` declarations and zero utilities — they never were radius owners.
+
+`TAILWIND_RADIUS_UTILITY_COUNT_IN_PRODUCT_RUNTIME`, its file count,
+`OUT_OF_ENUM_RUNTIME_RADIUS_COUNT` and `OUT_OF_ENUM_RUNTIME_RADIUS_CONSTANT_COUNT` are all
+**0**, guarded by §22 of the pass-2 focused suite over every script the application really
+loads. **`css/tokens.css` is now the single application-radius owner.** The detector
+baseline is **byte-identical**: A3 changed no finding, no summary and no screen
+classification, because none of these files is in the 66-file inventory.
+
+**Three radii remain in the runtime and are deliberately excluded.** `js/environment-banner.js`
+(×2) and `js/supabase-client.js` (×1) carry `border-radius:3px` inside DevTools
+`console.%c` format strings. They never reach the DOM, and a CSS custom property does not
+resolve in console styling, so rewriting them would break the styling rather than
+canonicalize it. The guard excludes them by paren-balanced `console.*(…)` detection — never
+by path and never by an ignore list — and asserts that exact set of three, so the exclusion
+cannot quietly widen.
+
+**Left open, deliberately.** `badgeTipo`, `badgeStatus` and `pedidoStatusBadge` are
+classification badges whose geometry is **ordinary 4px**, not pill. D6.1 scopes
+`--rv-radius-pill` to semantic pills and true circles, so an argument exists that they
+should become pills. A3 closed *ownership* and preserved geometry exactly; whether these
+three become semantic pills is an architect decision and is **not** decided here.
 
 ### UIC-001 — closed
 
