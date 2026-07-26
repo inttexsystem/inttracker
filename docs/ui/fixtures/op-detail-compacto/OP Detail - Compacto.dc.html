@@ -10,47 +10,48 @@
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../../css/tokens.css">
 <link rel="icon" href="../../../../assets/brand/inttex/inttex-favicon.svg">
 <style>
   *{box-sizing:border-box;}
-  body{margin:0;font-family:'Inter',sans-serif;background:#f4f6f8;color:#26303f;}
-  a{color:#14509E;text-decoration:none;}
-  a:hover{color:#08285A;}
+  body{margin:0;font-family:'Inter',sans-serif;background:var(--rv-bg);color:var(--rv-text-primary);}
+  a{color:var(--rv-accent-blue);text-decoration:none;}
+  a:hover{color:var(--rv-brand-strong);}
   .num{font-variant-numeric:tabular-nums;white-space:nowrap;}
   .mainscroll::-webkit-scrollbar{width:10px;}
-  .mainscroll::-webkit-scrollbar-thumb{background:#d7dce2;border-radius:8px;border:3px solid #f4f6f8;}
+  .mainscroll::-webkit-scrollbar-thumb{background:var(--rv-border-strong);border-radius:var(--rv-radius);border:3px solid var(--rv-bg);}
 </style>
 </helmet>
-<template id="__bundler_thumbnail" data-bg-color="#f4f6f8">
+<template id="__bundler_thumbnail" data-bg-color="var(--rv-bg)">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
-    <rect x="360" y="180" width="480" height="440" rx="24" fill="#ffffff" stroke="#e2e6eb" stroke-width="6"/>
-    <rect x="360" y="180" width="480" height="90" rx="24" fill="#14509E"/>
-    <rect x="360" y="246" width="480" height="24" fill="#14509E"/>
-    <rect x="410" y="212" width="220" height="26" rx="8" fill="#ffffff"/>
-    <rect x="410" y="320" width="380" height="20" rx="8" fill="#e7eaee"/>
-    <rect x="410" y="366" width="300" height="20" rx="8" fill="#eef1f5"/>
-    <rect x="410" y="430" width="380" height="20" rx="8" fill="#e7eaee"/>
-    <rect x="410" y="476" width="240" height="20" rx="8" fill="#eef1f5"/>
-    <rect x="410" y="548" width="150" height="40" rx="8" fill="#14509E"/>
+    <rect x="360" y="180" width="480" height="440" rx="24" style="fill:var(--rv-surface);stroke:var(--rv-border);" stroke-width="6"/>
+    <rect x="360" y="180" width="480" height="90" rx="24" style="fill:var(--rv-brand);"/>
+    <rect x="360" y="246" width="480" height="24" style="fill:var(--rv-brand);"/>
+    <rect x="410" y="212" width="220" height="26" rx="8" style="fill:var(--rv-surface);"/>
+    <rect x="410" y="320" width="380" height="20" rx="8" style="fill:var(--rv-border-soft);"/>
+    <rect x="410" y="366" width="300" height="20" rx="8" style="fill:var(--rv-surface-subtle);"/>
+    <rect x="410" y="430" width="380" height="20" rx="8" style="fill:var(--rv-border-soft);"/>
+    <rect x="410" y="476" width="240" height="20" rx="8" style="fill:var(--rv-surface-subtle);"/>
+    <rect x="410" y="548" width="150" height="40" rx="8" style="fill:var(--rv-brand);"/>
   </svg>
 </template>
-<div style="min-height:100vh;display:flex;flex-direction:column;background:#f4f6f8;">
+<div data-ui-archetype="detail-cockpit" style="min-height:100vh;display:flex;flex-direction:column;background:var(--rv-bg);">
 
   <!-- ===== TOP APP HEADER (mantido) ===== -->
-  <header style="height:60px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid #eceef1;background:#fff;position:relative;z-index:20;">
+  <header style="height:var(--rv-header-h);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--rv-border);background:var(--rv-surface);position:relative;z-index:20;">
     <div style="display:flex;align-items:center;gap:13px;">
       <img src="../../../../assets/brand/inttex/inttex-logo.svg" alt="Inttex" style="height:20px;display:block;">
-      <span style="width:1px;height:18px;background:#dfe3e8;display:inline-block;"></span>
-      <span style="font-size:13.5px;color:#8a93a3;font-weight:500;">Admin</span>
+      <span style="width:1px;height:18px;background:var(--rv-border);display:inline-block;"></span>
+      <span style="font-size:13.5px;color:var(--rv-text-secondary);font-weight:500;">Admin</span>
     </div>
     <div style="display:flex;align-items:center;gap:16px;">
-      <span style="display:inline-flex;align-items:center;color:#9aa2af;cursor:pointer;" title="Notificações">
+      <span style="display:inline-flex;align-items:center;color:var(--rv-text-tertiary);cursor:pointer;" title="Notificações">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
       </span>
       <div style="display:flex;align-items:center;gap:9px;cursor:pointer;">
-        <div style="width:30px;height:30px;border-radius:50%;background:#0A326D;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;">AT</div>
-        <span style="font-size:13.5px;font-weight:600;color:#26303f;">Admin (teste)</span>
-        <span style="display:inline-flex;align-items:center;color:#9aa2af;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        <div style="width:30px;height:30px;border-radius:var(--rv-radius-pill);background:var(--rv-brand);color:var(--rv-text-on-brand);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;">AT</div>
+        <span style="font-size:13.5px;font-weight:600;color:var(--rv-text-primary);">Admin (teste)</span>
+        <span style="display:inline-flex;align-items:center;color:var(--rv-text-tertiary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
       </div>
     </div>
   </header>
@@ -58,54 +59,54 @@
   <div style="display:flex;flex:1 1 0%;min-height:0;">
 
     <!-- ===== SIDEBAR (mantido) ===== -->
-    <aside style="width:190px;flex-shrink:0;border-right:1px solid #eceef1;background:#fff;padding:16px 10px;display:flex;flex-direction:column;gap:1px;">
-      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:4px;padding:8px 11px;font-size:13px;color:#5b6472;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>Painel</a>
-      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:4px;padding:8px 11px;font-size:13px;background:#EAF0F9;color:#14509E;font-weight:600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect><line x1="9" y1="12" x2="15" y2="12"></line><line x1="9" y1="16" x2="13" y2="16"></line></svg>OPs</a>
-      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:4px;padding:8px 11px;font-size:13px;color:#5b6472;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>Pedidos</a>
-      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:4px;padding:8px 11px;font-size:13px;color:#5b6472;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle></svg>Cores</a>
-      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:4px;padding:8px 11px;font-size:13px;color:#5b6472;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M9 21V9"></path></svg>Modelos</a>
-      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:4px;padding:8px 11px;font-size:13px;color:#5b6472;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17 2 2 0 1 1-4 0 1.65 1.65 0 0 0-2.82-1.17l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9z"></path></svg>Parâmetros</a>
-      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:4px;padding:8px 11px;font-size:13px;color:#5b6472;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>Fornecedores</a>
-      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:4px;padding:8px 11px;font-size:13px;color:#5b6472;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>Clientes</a>
-      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:4px;padding:8px 11px;font-size:13px;color:#5b6472;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Preços</a>
-      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:4px;padding:8px 11px;font-size:13px;color:#5b6472;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Usuários</a>
+    <aside style="width:var(--rv-sidebar-w);flex-shrink:0;border-right:1px solid var(--rv-border);background:var(--rv-surface);padding:16px 10px;display:flex;flex-direction:column;gap:1px;">
+      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:var(--rv-radius);padding:8px 11px;font-size:13px;color:var(--rv-text-secondary);font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>Painel</a>
+      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:var(--rv-radius);padding:8px 11px;font-size:13px;background:var(--rv-active-bg);color:var(--rv-brand);font-weight:600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect><line x1="9" y1="12" x2="15" y2="12"></line><line x1="9" y1="16" x2="13" y2="16"></line></svg>OPs</a>
+      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:var(--rv-radius);padding:8px 11px;font-size:13px;color:var(--rv-text-secondary);font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>Pedidos</a>
+      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:var(--rv-radius);padding:8px 11px;font-size:13px;color:var(--rv-text-secondary);font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle></svg>Cores</a>
+      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:var(--rv-radius);padding:8px 11px;font-size:13px;color:var(--rv-text-secondary);font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M9 21V9"></path></svg>Modelos</a>
+      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:var(--rv-radius);padding:8px 11px;font-size:13px;color:var(--rv-text-secondary);font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17 2 2 0 1 1-4 0 1.65 1.65 0 0 0-2.82-1.17l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9z"></path></svg>Parâmetros</a>
+      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:var(--rv-radius);padding:8px 11px;font-size:13px;color:var(--rv-text-secondary);font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>Fornecedores</a>
+      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:var(--rv-radius);padding:8px 11px;font-size:13px;color:var(--rv-text-secondary);font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>Clientes</a>
+      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:var(--rv-radius);padding:8px 11px;font-size:13px;color:var(--rv-text-secondary);font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Preços</a>
+      <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:var(--rv-radius);padding:8px 11px;font-size:13px;color:var(--rv-text-secondary);font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Usuários</a>
       <div style="margin-top:auto;padding-top:14px;">
-        <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:4px;padding:8px 11px;font-size:13px;color:#9aa2af;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Sair</a>
+        <a href="#" style="display:flex;align-items:center;gap:11px;border-radius:var(--rv-radius);padding:8px 11px;font-size:13px;color:var(--rv-text-tertiary);font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Sair</a>
       </div>
     </aside>
 
     <!-- ===== MAIN SCROLL AREA ===== -->
-    <main class="mainscroll" style="flex:1 1 0%;min-width:0;overflow-y:auto;height:calc(100vh - 60px);">
-      <div style="max-width:1600px;margin:0 auto;padding:18px 32px 40px;">
+    <main class="mainscroll" style="flex:1 1 0%;min-width:0;overflow-y:auto;height:calc(100vh - var(--rv-header-h));">
+      <div style="max-width:var(--rv-content-max);margin:0 auto;padding:var(--rv-main-pad);">
 
         <!-- ===== PAGE HEADER (compacto) ===== -->
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
           <div style="min-width:0;">
-            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#9aa2af;font-weight:500;margin-bottom:6px;">
-              <a href="#" style="color:#9aa2af;">OPs</a>
-              <span style="color:#c8ced6;">/</span>
-              <span style="color:#5b6472;">OP 33/2026-T01</span>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--rv-text-tertiary);font-weight:500;margin-bottom:6px;">
+              <a href="#" style="color:var(--rv-text-tertiary);">OPs</a>
+              <span style="color:var(--rv-text-tertiary);">/</span>
+              <span style="color:var(--rv-text-secondary);">OP 33/2026-T01</span>
             </div>
             <div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;">
-              <h1 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em;color:#16203a;">OP 33/2026-T01</h1>
-              <span style="display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:20px;background:#f2ecfd;color:#7c3aed;">Tecelagem</span>
-              <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:20px;background:#fff3e3;color:#c2660a;"><span style="width:6px;height:6px;border-radius:50%;background:#f0871e;"></span>Em produção</span>
+              <h1 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--rv-text-title);">OP 33/2026-T01</h1>
+              <span style="display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:var(--rv-radius-pill);background:var(--rv-stage-tecelagem-bg);color:var(--rv-stage-tecelagem);">Tecelagem</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:var(--rv-radius-pill);background:var(--rv-pill-caution-bg);color:var(--rv-pill-caution-text);"><span style="width:6px;height:6px;border-radius:var(--rv-radius-pill);background:var(--rv-pill-caution-dot);"></span>Em produção</span>
             </div>
-            <div style="font-size:12.5px;color:#8a93a3;margin-top:7px;">Nº interno 28/2026 · Pedido Nº 33 · Teste · Lote Nº 16 · Aberta em 06/07/2026</div>
+            <div style="font-size:12.5px;color:var(--rv-text-tertiary);margin-top:7px;">Nº interno 28/2026 · Pedido Nº 33 · Teste · Lote Nº 16 · Aberta em 06/07/2026</div>
           </div>
 
           <!-- Action toolbar: segmented, discreet -->
           <!-- Action toolbar: só ações de estado da OP -->
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-            <button style="display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:4px;font-size:13px;font-weight:500;color:#4a5462;border:1px solid #e2e6eb;background:#fff;cursor:pointer;font-family:inherit;white-space:nowrap;" style-hover="background:#f6f8fa;border-color:#d6dbe1;">
+            <button style="display:inline-flex;align-items:center;gap:7px;height:var(--rv-h-default);padding:0 13px;border-radius:var(--rv-radius);font-size:13px;font-weight:500;color:var(--rv-text-secondary);border:1px solid var(--rv-border-strong);background:var(--rv-surface);cursor:pointer;font-family:inherit;white-space:nowrap;" style-hover="background:var(--rv-surface-subtle);border-color:var(--rv-accent-blue);">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>
               Pausar
             </button>
-            <button style="display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:4px;font-size:13px;font-weight:600;color:#15803d;border:1px solid #bfe6cd;background:#f2fbf5;cursor:pointer;font-family:inherit;white-space:nowrap;" style-hover="background:#e6f7ec;border-color:#9ed9b3;">
+            <button style="display:inline-flex;align-items:center;gap:7px;height:var(--rv-h-default);padding:0 14px;border-radius:var(--rv-radius);font-size:13px;font-weight:600;color:var(--rv-signal-positive);border:1px solid var(--rv-signal-positive-border);background:var(--rv-signal-positive-bg);cursor:pointer;font-family:inherit;white-space:nowrap;" style-hover="border-color:var(--rv-signal-positive);">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
               Finalizar OP
             </button>
-            <button style="display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:4px;font-size:13px;font-weight:500;color:#dc2626;border:1px solid #f0d2d2;background:#fff;cursor:pointer;font-family:inherit;white-space:nowrap;" style-hover="background:#fef2f2;border-color:#e9bcbc;">
+            <button style="display:inline-flex;align-items:center;gap:7px;height:var(--rv-h-default);padding:0 13px;border-radius:var(--rv-radius);font-size:13px;font-weight:500;color:var(--rv-signal-negative);border:1px solid var(--rv-signal-negative-border);background:var(--rv-surface);cursor:pointer;font-family:inherit;white-space:nowrap;" style-hover="background:var(--rv-surface-subtle);border-color:var(--rv-signal-negative);">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               Excluir
             </button>
@@ -113,116 +114,116 @@
         </div>
 
         <!-- ===== TWO-COLUMN COCKPIT ===== -->
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start;">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) var(--rv-rail-w);gap:var(--rv-gap-cols);align-items:start;">
 
           <!-- ---------- LEFT COLUMN ---------- -->
-          <div style="display:flex;flex-direction:column;gap:14px;min-width:0;">
+          <div style="display:flex;flex-direction:column;gap:var(--rv-gap-stack);min-width:0;">
 
             <!-- Dados da OP -->
-            <section style="background:#fff;border:1px solid #e7eaee;border-radius:6px;padding:15px 17px;">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;background:#eef2f7;color:#64748b;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1"></rect></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9aa2af;">Dados da OP</span></div>
+            <section style="background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:var(--rv-pad-card);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1"></rect></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--rv-text-tertiary);">Dados da OP</span></div>
               <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:13px 18px;">
-                <div><div style="font-size:11.5px;color:#9aa2af;margin-bottom:2px;">Cliente</div><div style="font-size:13.5px;font-weight:600;color:#26303f;">Teste</div></div>
-                <div><div style="font-size:11.5px;color:#9aa2af;margin-bottom:2px;">Lote</div><div style="font-size:13.5px;font-weight:600;color:#26303f;">Lote Nº 16</div></div>
-                <div><div style="font-size:11.5px;color:#9aa2af;margin-bottom:2px;">Etapa</div><div style="font-size:13.5px;font-weight:600;color:#26303f;">Tecelagem</div></div>
-                <div><div style="font-size:11.5px;color:#9aa2af;margin-bottom:2px;">Fornecedor de tecelagem</div><div style="font-size:13.5px;font-weight:600;color:#26303f;">MASSIS</div></div>
-                <div><div style="font-size:11.5px;color:#9aa2af;margin-bottom:2px;">Pedido vinculado</div><div style="font-size:13.5px;font-weight:600;"><a href="#">Pedido Nº 33</a></div></div>
-                <div><div style="font-size:11.5px;color:#9aa2af;margin-bottom:2px;">Item do pedido</div><div style="font-size:13.5px;font-weight:600;color:#26303f;">1 item</div></div>
+                <div><div style="font-size:11.5px;color:var(--rv-text-secondary);margin-bottom:2px;">Cliente</div><div style="font-size:13.5px;font-weight:600;color:var(--rv-text-primary);">Teste</div></div>
+                <div><div style="font-size:11.5px;color:var(--rv-text-secondary);margin-bottom:2px;">Lote</div><div style="font-size:13.5px;font-weight:600;color:var(--rv-text-primary);">Lote Nº 16</div></div>
+                <div><div style="font-size:11.5px;color:var(--rv-text-secondary);margin-bottom:2px;">Etapa</div><div style="font-size:13.5px;font-weight:600;color:var(--rv-text-primary);">Tecelagem</div></div>
+                <div><div style="font-size:11.5px;color:var(--rv-text-secondary);margin-bottom:2px;">Fornecedor de tecelagem</div><div style="font-size:13.5px;font-weight:600;color:var(--rv-text-primary);">MASSIS</div></div>
+                <div><div style="font-size:11.5px;color:var(--rv-text-secondary);margin-bottom:2px;">Pedido vinculado</div><div style="font-size:13.5px;font-weight:600;"><a href="#">Pedido Nº 33</a></div></div>
+                <div><div style="font-size:11.5px;color:var(--rv-text-secondary);margin-bottom:2px;">Item do pedido</div><div style="font-size:13.5px;font-weight:600;color:var(--rv-text-primary);">1 item</div></div>
               </div>
             </section>
 
             <!-- Itens da OP -->
-            <section style="background:#fff;border:1px solid #e7eaee;border-radius:6px;padding:15px 17px 6px;">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;background:#eef2f7;color:#64748b;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9aa2af;">Itens da OP</span></div>
+            <section style="background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:var(--rv-pad-card);padding-bottom:6px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--rv-text-tertiary);">Itens da OP</span></div>
               <div style="overflow-x:auto;"><table style="width:100%;min-width:340px;border-collapse:collapse;">
                 <thead>
                   <tr style="text-align:left;">
-                    <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a2aab6;padding:0 8px 8px 0;">Modelo / Cores</th>
-                    <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a2aab6;padding:0 8px 8px;text-align:right;">Pedido</th>
-                    <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a2aab6;padding:0 8px 8px;text-align:right;">Ajustado</th>
-                    <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a2aab6;padding:0 8px 8px;text-align:right;">Entregue</th>
-                    <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a2aab6;padding:0 0 8px 8px;text-align:right;">Falta</th>
+                    <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rv-text-tertiary);padding:0 8px 8px 0;">Modelo / Cores</th>
+                    <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rv-text-tertiary);padding:0 8px 8px;text-align:right;">Pedido</th>
+                    <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rv-text-tertiary);padding:0 8px 8px;text-align:right;">Ajustado</th>
+                    <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rv-text-tertiary);padding:0 8px 8px;text-align:right;">Entregue</th>
+                    <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rv-text-tertiary);padding:0 0 8px 8px;text-align:right;">Falta</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr style="border-top:1px solid #eef0f3;">
-                    <td style="padding:10px 8px 10px 0;font-size:13px;font-weight:600;color:#26303f;">Arabesco 2.10m · <span style="color:#5b6472;font-weight:500;">PRETO/CRU</span></td>
-                    <td class="num" style="padding:10px 8px;font-size:13px;text-align:right;color:#3a4453;">1000,00 m</td>
-                    <td class="num" style="padding:10px 8px;font-size:13px;text-align:right;color:#3a4453;">1000,00 m</td>
-                    <td class="num" style="padding:10px 8px;font-size:13px;text-align:right;color:#a2aab6;">0,00 m</td>
-                    <td class="num" style="padding:10px 0 10px 8px;font-size:13px;text-align:right;font-weight:600;color:#dc2626;">1000,00 m</td>
+                  <tr style="border-top:1px solid var(--rv-border-soft);">
+                    <td style="padding:10px 8px 10px 0;font-size:13px;font-weight:600;color:var(--rv-text-primary);">Arabesco 2.10m · <span style="color:var(--rv-text-secondary);font-weight:500;">PRETO/CRU</span></td>
+                    <td class="num" style="padding:10px 8px;font-size:13px;text-align:right;color:var(--rv-text-primary);">1000,00 m</td>
+                    <td class="num" style="padding:10px 8px;font-size:13px;text-align:right;color:var(--rv-text-primary);">1000,00 m</td>
+                    <td class="num" style="padding:10px 8px;font-size:13px;text-align:right;color:var(--rv-text-tertiary);">0,00 m</td>
+                    <td class="num" style="padding:10px 0 10px 8px;font-size:13px;text-align:right;font-weight:600;color:var(--rv-signal-negative);">1000,00 m</td>
                   </tr>
                 </tbody>
               </table></div>
             </section>
 
             <!-- Insumos / fios -->
-            <section style="background:#fff;border:1px solid #e7eaee;border-radius:6px;padding:15px 17px;">
+            <section style="background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:var(--rv-pad-card);">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px;">
-                <div style="display:flex;align-items:center;gap:8px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;background:#eef2f7;color:#64748b;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9aa2af;">Insumos — recebimento de fios</span></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--rv-text-tertiary);">Insumos — recebimento de fios</span></div>
                 <a href="#" style="font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>PDF de compra</a>
               </div>
               <div style="overflow-x:auto;"><table style="width:100%;min-width:340px;border-collapse:collapse;">
                 <thead><tr style="text-align:left;">
-                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a2aab6;padding:0 8px 8px 0;">Fio</th>
-                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a2aab6;padding:0 8px 8px;text-align:right;">Pedido</th>
-                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a2aab6;padding:0 8px 8px;text-align:right;">Recebido</th>
-                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a2aab6;padding:0 0 8px 12px;text-align:right;">Status</th>
+                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rv-text-tertiary);padding:0 8px 8px 0;">Fio</th>
+                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rv-text-tertiary);padding:0 8px 8px;text-align:right;">Pedido</th>
+                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rv-text-tertiary);padding:0 8px 8px;text-align:right;">Recebido</th>
+                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rv-text-tertiary);padding:0 0 8px 12px;text-align:right;">Status</th>
                 </tr></thead>
                 <tbody>
                   <sc-for list="{{ fios }}" as="f" hint-placeholder-count="4">
-                    <tr style="border-top:1px solid #eef0f3;">
-                      <td style="padding:9px 8px 9px 0;font-size:13px;color:#26303f;">{{ f.nome }}</td>
-                      <td class="num" style="padding:9px 8px;font-size:13px;text-align:right;color:#3a4453;">{{ f.pedido }}</td>
-                      <td class="num" style="padding:9px 8px;font-size:13px;text-align:right;color:#3a4453;">{{ f.recebido }}</td>
-                      <td style="padding:9px 0 9px 12px;text-align:right;"><span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:#15803d;"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;"></span>Recebido</span></td>
+                    <tr style="border-top:1px solid var(--rv-border-soft);">
+                      <td style="padding:9px 8px 9px 0;font-size:13px;color:var(--rv-text-primary);">{{ f.nome }}</td>
+                      <td class="num" style="padding:9px 8px;font-size:13px;text-align:right;color:var(--rv-text-primary);">{{ f.pedido }}</td>
+                      <td class="num" style="padding:9px 8px;font-size:13px;text-align:right;color:var(--rv-text-primary);">{{ f.recebido }}</td>
+                      <td style="padding:9px 0 9px 12px;text-align:right;"><span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--rv-signal-positive);"><span style="width:6px;height:6px;border-radius:var(--rv-radius-pill);background:var(--rv-signal-positive);"></span>Recebido</span></td>
                     </tr>
                   </sc-for>
                 </tbody>
               </table></div>
-              <div style="display:flex;align-items:center;gap:7px;margin-top:11px;padding:8px 11px;background:#f0fbf4;border:1px solid #d5f0df;border-radius:4px;font-size:12.5px;color:#15803d;font-weight:500;">
+              <div style="display:flex;align-items:center;gap:7px;margin-top:11px;padding:8px 11px;background:var(--rv-signal-positive-bg);border:1px solid var(--rv-signal-positive-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-sm);font-size:12.5px;color:var(--rv-signal-positive);font-weight:500;">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 Todos os fios desta OP já foram recebidos.
               </div>
             </section>
 
             <!-- Entregas -->
-            <section style="background:#fff;border:1px solid #e7eaee;border-radius:6px;padding:15px 17px;">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;background:#eef2f7;color:#64748b;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9aa2af;">Entregas de tecelagem</span></div>
+            <section style="background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:var(--rv-pad-card);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--rv-text-tertiary);">Entregas de tecelagem</span></div>
               <div style="overflow-x:auto;"><table style="width:100%;min-width:340px;border-collapse:collapse;">
                 <thead><tr style="text-align:left;">
-                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a2aab6;padding:0 8px 8px 0;">Modelo</th>
-                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a2aab6;padding:0 8px 8px;text-align:right;">Pedido</th>
-                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a2aab6;padding:0 8px 8px;text-align:right;">Ajustado</th>
-                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a2aab6;padding:0 8px 8px;text-align:right;">Entregue</th>
-                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a2aab6;padding:0 0 8px 8px;text-align:right;">Falta</th>
+                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rv-text-tertiary);padding:0 8px 8px 0;">Modelo</th>
+                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rv-text-tertiary);padding:0 8px 8px;text-align:right;">Pedido</th>
+                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rv-text-tertiary);padding:0 8px 8px;text-align:right;">Ajustado</th>
+                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rv-text-tertiary);padding:0 8px 8px;text-align:right;">Entregue</th>
+                  <th style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rv-text-tertiary);padding:0 0 8px 8px;text-align:right;">Falta</th>
                 </tr></thead>
                 <tbody>
-                  <tr style="border-top:1px solid #eef0f3;">
-                    <td style="padding:10px 8px 10px 0;font-size:13px;font-weight:600;color:#26303f;">Arabesco 2.10m · <span style="color:#5b6472;font-weight:500;">PRETO/CRU</span></td>
-                    <td class="num" style="padding:10px 8px;font-size:13px;text-align:right;color:#3a4453;">1000,00 m</td>
-                    <td class="num" style="padding:10px 8px;font-size:13px;text-align:right;color:#3a4453;">1000,00 m</td>
-                    <td class="num" style="padding:10px 8px;font-size:13px;text-align:right;color:#a2aab6;">0,00 m</td>
-                    <td class="num" style="padding:10px 0 10px 8px;font-size:13px;text-align:right;font-weight:600;color:#dc2626;">1000,00 m</td>
+                  <tr style="border-top:1px solid var(--rv-border-soft);">
+                    <td style="padding:10px 8px 10px 0;font-size:13px;font-weight:600;color:var(--rv-text-primary);">Arabesco 2.10m · <span style="color:var(--rv-text-secondary);font-weight:500;">PRETO/CRU</span></td>
+                    <td class="num" style="padding:10px 8px;font-size:13px;text-align:right;color:var(--rv-text-primary);">1000,00 m</td>
+                    <td class="num" style="padding:10px 8px;font-size:13px;text-align:right;color:var(--rv-text-primary);">1000,00 m</td>
+                    <td class="num" style="padding:10px 8px;font-size:13px;text-align:right;color:var(--rv-text-tertiary);">0,00 m</td>
+                    <td class="num" style="padding:10px 0 10px 8px;font-size:13px;text-align:right;font-weight:600;color:var(--rv-signal-negative);">1000,00 m</td>
                   </tr>
                 </tbody>
               </table></div>
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:11px;padding-top:11px;border-top:1px solid #eef0f3;">
-                <span style="font-size:12.5px;color:#a2aab6;">Nenhuma entrega registrada ainda.</span>
+              <div data-card-actions style="display:flex;align-items:center;justify-content:space-between;margin-top:11px;padding-top:11px;border-top:1px solid var(--rv-border-soft);">
+                <span style="font-size:12.5px;color:var(--rv-text-tertiary);">Nenhuma entrega registrada ainda.</span>
                 <a href="#" style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;">+ Nova entrega</a>
               </div>
             </section>
 
             <!-- Histórico -->
-            <section style="background:#fff;border:1px solid #e7eaee;border-radius:6px;padding:15px 17px;">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;background:#eef2f7;color:#64748b;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9aa2af;">Histórico</span></div>
+            <section style="background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:var(--rv-pad-card);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--rv-text-tertiary);">Histórico</span></div>
               <div style="display:flex;gap:11px;align-items:flex-start;">
                 <div style="display:flex;flex-direction:column;align-items:center;padding-top:3px;">
-                  <span style="width:8px;height:8px;border-radius:50%;background:#0A326D;flex-shrink:0;"></span>
+                  <span style="width:8px;height:8px;border-radius:var(--rv-radius-pill);background:var(--rv-brand);flex-shrink:0;"></span>
                 </div>
                 <div>
-                  <div style="font-size:13px;font-weight:600;color:#26303f;">Status alterado: Aberta → Em produção</div>
-                  <div style="font-size:11.5px;color:#a2aab6;margin-top:2px;">06/07/2026</div>
+                  <div style="font-size:13px;font-weight:600;color:var(--rv-text-primary);">Status alterado: Aberta → Em produção</div>
+                  <div style="font-size:11.5px;color:var(--rv-text-tertiary);margin-top:2px;">06/07/2026</div>
                 </div>
               </div>
             </section>
@@ -230,72 +231,72 @@
           </div>
 
           <!-- ---------- RIGHT STICKY PANEL ---------- -->
-          <div style="position:sticky;top:0;display:flex;flex-direction:column;gap:14px;">
+          <div style="position:sticky;top:0;display:flex;flex-direction:column;gap:var(--rv-gap-stack);">
 
             <!-- Resumo -->
-            <section style="background:#fff;border:1px solid #e7eaee;border-radius:6px;padding:16px 17px;">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:13px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;background:#eef2f7;color:#64748b;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9aa2af;">Resumo desta OP</span></div>
+            <section style="background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:var(--rv-pad-card-rail);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:13px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--rv-text-tertiary);">Resumo desta OP</span></div>
               <div style="display:flex;flex-direction:column;gap:11px;">
                 <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;">
-                  <span style="font-size:12.5px;color:#5b6472;flex:1;min-width:0;">Total ajustado</span>
-                  <span class="num" style="font-size:15px;font-weight:700;color:#16203a;">1000,00 m</span>
+                  <span style="font-size:12.5px;color:var(--rv-text-secondary);flex:1;min-width:0;">Total ajustado</span>
+                  <span class="num" style="font-size:15px;font-weight:700;color:var(--rv-text-primary);">1000,00 m</span>
                 </div>
                 <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;">
-                  <span style="font-size:12.5px;color:#5b6472;flex:1;min-width:0;">Entregue p/ acabamento</span>
-                  <span class="num" style="font-size:15px;font-weight:700;color:#a2aab6;">0,00 m</span>
+                  <span style="font-size:12.5px;color:var(--rv-text-secondary);flex:1;min-width:0;">Entregue p/ acabamento</span>
+                  <span class="num" style="font-size:15px;font-weight:700;color:var(--rv-text-tertiary);">0,00 m</span>
                 </div>
                 <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;">
-                  <span style="font-size:12.5px;color:#5b6472;flex:1;min-width:0;">Saldo em tecelagem</span>
-                  <span class="num" style="font-size:15px;font-weight:700;color:#14509E;">1000,00 m</span>
+                  <span style="font-size:12.5px;color:var(--rv-text-secondary);flex:1;min-width:0;">Saldo em tecelagem</span>
+                  <span class="num" style="font-size:15px;font-weight:700;color:var(--rv-text-primary);">1000,00 m</span>
                 </div>
               </div>
               <div style="margin-top:14px;">
-                <div style="height:6px;border-radius:4px;background:#eef1f5;overflow:hidden;"><div style="height:100%;width:0%;background:#0A326D;"></div></div>
-                <div style="font-size:11.5px;color:#a2aab6;margin-top:6px;">0% já entregue para a próxima etapa</div>
+                <div style="height:6px;border-radius:var(--rv-radius);background:var(--rv-surface-subtle);overflow:hidden;"><div style="height:100%;width:0%;background:var(--rv-brand);"></div></div>
+                <div style="font-size:11.5px;color:var(--rv-text-tertiary);margin-top:6px;">0% já entregue para a próxima etapa</div>
               </div>
             </section>
 
             <!-- Movimentação -->
-            <section style="background:#fff;border:1px solid #e7eaee;border-radius:6px;padding:16px 17px;">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:13px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;background:#eef2f7;color:#64748b;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9aa2af;">Enviar para acabamento</span></div>
+            <section style="background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:var(--rv-pad-card-rail);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:13px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--rv-text-tertiary);">Enviar para acabamento</span></div>
               <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:14px;">
-                <div style="display:flex;align-items:baseline;justify-content:space-between;"><span style="font-size:12.5px;color:#5b6472;flex:1;min-width:0;">Disponível</span><span class="num" style="font-size:14px;font-weight:700;color:#14509E;">1000,00 m</span></div>
-                <div style="display:flex;align-items:baseline;justify-content:space-between;"><span style="font-size:12.5px;color:#5b6472;flex:1;min-width:0;">Já enviado</span><span class="num" style="font-size:14px;font-weight:700;color:#15803d;">0,00 m</span></div>
-                <div style="display:flex;align-items:baseline;justify-content:space-between;"><span style="font-size:12.5px;color:#5b6472;flex:1;min-width:0;">Total ajustado</span><span class="num" style="font-size:14px;font-weight:700;color:#16203a;">1000,00 m</span></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;"><span style="font-size:12.5px;color:var(--rv-text-secondary);flex:1;min-width:0;">Disponível</span><span class="num" style="font-size:14px;font-weight:700;color:var(--rv-text-primary);">1000,00 m</span></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;"><span style="font-size:12.5px;color:var(--rv-text-secondary);flex:1;min-width:0;">Já enviado</span><span class="num" style="font-size:14px;font-weight:700;color:var(--rv-signal-positive);">0,00 m</span></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;"><span style="font-size:12.5px;color:var(--rv-text-secondary);flex:1;min-width:0;">Total ajustado</span><span class="num" style="font-size:14px;font-weight:700;color:var(--rv-text-primary);">1000,00 m</span></div>
               </div>
-              <button style="width:100%;height:38px;border:none;border-radius:4px;background:#0A326D;color:#fff;font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;">
+              <button style="width:100%;height:var(--rv-h-primary);border:none;border-radius:var(--rv-radius);background:var(--rv-brand);color:var(--rv-text-on-brand);font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                 Transferir p/ acabamento
               </button>
-              <div style="font-size:11.5px;color:#a2aab6;margin-top:9px;line-height:1.4;">Capacidade liberada: <span style="color:#5b6472;font-weight:600;">1000,00 m</span>. Sem sobra de fio registrada.</div>
+              <div style="font-size:11.5px;color:var(--rv-text-tertiary);margin-top:9px;line-height:1.4;">Capacidade liberada: <span style="color:var(--rv-text-secondary);font-weight:600;">1000,00 m</span>. Sem sobra de fio registrada.</div>
             </section>
 
             <!-- Documentos -->
-            <section style="background:#fff;border:1px solid #e7eaee;border-radius:6px;padding:16px 17px;">
-              <div style="display:flex;align-items:center;gap:8px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;background:#eef2f7;color:#64748b;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9aa2af;">Documentos</span></div>
+            <section style="background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:var(--rv-pad-card-rail);">
+              <div style="display:flex;align-items:center;gap:8px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--rv-text-tertiary);">Documentos</span></div>
               <sc-for list="{{ documentos }}" as="cat" hint-placeholder-count="3">
-                <div style="padding:11px 0 0;border-top:1px solid #eef0f3;margin-top:11px;">
+                <div style="padding:11px 0 0;border-top:1px solid var(--rv-border-soft);margin-top:11px;">
                   <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
-                    <span style="font-size:12px;font-weight:600;color:#26303f;">{{ cat.label }}</span>
+                    <span style="font-size:12px;font-weight:600;color:var(--rv-text-primary);">{{ cat.label }}</span>
                     <sc-if value="{{ cat.hasFiles }}" hint-placeholder-val="{{ false }}">
-                      <span style="font-size:10px;font-weight:600;color:#14509E;background:#EAF0F9;padding:1px 6px;border-radius:20px;">{{ cat.count }}</span>
+                      <span style="font-size:10px;font-weight:600;color:var(--rv-pill-info-text);background:var(--rv-pill-info-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);">{{ cat.count }}</span>
                     </sc-if>
                   </div>
                   <sc-if value="{{ cat.hasFiles }}" hint-placeholder-val="{{ false }}">
                     <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">
                       <sc-for list="{{ cat.files }}" as="f" hint-placeholder-count="0">
-                        <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;background:#f8fafc;border:1px solid #eef0f3;border-radius:4px;">
-                          <span style="display:inline-flex;color:#dc4b3e;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
+                        <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;background:var(--rv-surface-subtle);border:1px solid var(--rv-border-soft);border-radius:var(--rv-radius);">
+                          <span style="display:inline-flex;color:var(--rv-signal-negative);flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
                           <span style="display:flex;flex-direction:column;min-width:0;flex:1;">
-                            <span style="font-size:12px;font-weight:500;color:#26303f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ f.name }}</span>
-                            <span style="font-size:10.5px;color:#a2aab6;white-space:nowrap;">{{ f.meta }}</span>
+                            <span style="font-size:12px;font-weight:500;color:var(--rv-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ f.name }}</span>
+                            <span style="font-size:10.5px;color:var(--rv-text-tertiary);white-space:nowrap;">{{ f.meta }}</span>
                           </span>
-                          <button onClick="{{ f.onRemove }}" title="Remover" style="display:inline-flex;align-items:center;justify-content:center;border:none;background:none;padding:0;color:#c1c8d1;cursor:pointer;flex-shrink:0;" style-hover="color:#dc2626;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                          <button onClick="{{ f.onRemove }}" title="Remover" style="display:inline-flex;align-items:center;justify-content:center;border:none;background:none;padding:0;color:var(--rv-text-tertiary);cursor:pointer;flex-shrink:0;" style-hover="color:var(--rv-signal-negative);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                         </div>
                       </sc-for>
                     </div>
                   </sc-if>
-                  <button onClick="{{ cat.onPick }}" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;height:32px;border:1px dashed #cfd6de;border-radius:4px;background:#fff;color:#5b6472;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;white-space:nowrap;" style-hover="background:#f6f8fa;border-color:#adb7c3;color:#14509E;">
+                  <button onClick="{{ cat.onPick }}" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;height:var(--rv-h-compact);border:1px dashed var(--rv-border-strong);border-radius:var(--rv-radius);background:var(--rv-surface);color:var(--rv-text-secondary);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;white-space:nowrap;" style-hover="background:var(--rv-surface-subtle);border-color:var(--rv-accent-blue);color:var(--rv-accent-blue);">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
                     {{ cat.attachLabel }}
                   </button>
@@ -350,10 +351,10 @@ class Component extends DCLogic {
     return size + " · " + p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear();
   }
   navItem(label, active){
-    const base = "display:flex;align-items:center;gap:10px;border-radius:5px;padding:8px 11px;font-size:13px;cursor:pointer;text-decoration:none;font-weight:500;font-family:inherit;";
+    const base = "display:flex;align-items:center;gap:10px;border-radius:var(--rv-radius);padding:8px 11px;font-size:13px;cursor:pointer;text-decoration:none;font-weight:500;font-family:inherit;";
     return active
-      ? base + "background:#EAF0F9;color:#14509E;font-weight:600;"
-      : base + "color:#5b6472;";
+      ? base + "background:var(--rv-active-bg);color:var(--rv-brand);font-weight:600;"
+      : base + "color:var(--rv-text-secondary);";
   }
   renderVals(){
     const nav = [
@@ -384,7 +385,7 @@ class Component extends DCLogic {
     return {
       nav, fios, documentos,
       menuOpen: this.state.menuOpen,
-      menuBg: this.state.menuOpen ? "#eef2f7" : "#fff",
+      menuBg: this.state.menuOpen ? "var(--rv-chip-bg)" : "var(--rv-surface)",
       toggleMenu: () => this.setState(s => ({ menuOpen: !s.menuOpen })),
     };
   }
