@@ -83,12 +83,12 @@
     if (!UUID_RE.test(String(pedidoId || ''))) {
       window.toast('Identificador de pedido inválido.', 'error');
       var errWrap = window.el('div', {},
-        window.el('div', { class: 'bg-white rounded border border-gray-200 p-6 text-red-700' },
+        window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white border border-gray-200 p-6 text-red-700' },
           'Pedido inválido. Volte para a listagem e tente novamente.'),
         window.el('div', { class: 'mt-4' },
           window.el('button', {
             type: 'button',
-            class: 'px-4 py-2 rounded border border-gray-200 hover:bg-gray-50',
+            style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 border border-gray-200 hover:bg-gray-50',
             onclick: function () { window.navigate('#/cliente/pedidos'); },
           }, '← Voltar para lista')
         )
@@ -763,19 +763,19 @@
       var header = buildHeader();
       if (loadingError === 'pedido') {
         container.replaceChildren(header,
-          window.el('div', { class: 'bg-white rounded border border-gray-200 p-6 text-red-700' },
+          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white border border-gray-200 p-6 text-red-700' },
             'Pedido não encontrado ou sem permissão. Ele pode ter sido removido.'));
         return;
       }
       if (loadingError === 'summary') {
         container.replaceChildren(header,
-          window.el('div', { class: 'bg-white rounded border border-gray-200 p-6 text-red-700' },
+          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white border border-gray-200 p-6 text-red-700' },
             'Não foi possível carregar o resumo público do pedido. Tente recarregar a página.'));
         return;
       }
       if (loadingError) {
         container.replaceChildren(header,
-          window.el('div', { class: 'bg-white rounded border border-gray-200 p-6 text-red-700' },
+          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white border border-gray-200 p-6 text-red-700' },
             'Erro ao carregar dados do pedido. Tente recarregar a página.'));
         return;
       }

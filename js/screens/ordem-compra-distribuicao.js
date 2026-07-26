@@ -54,7 +54,7 @@
   // Render one item's distribution block (reconciliation + allocations + needs).
   function renderItem(it) {
     var completoItem = Number(it.kg_diferenca) === 0 && Number(it.kg_pedido) > 0;
-    var card = el('div', { class: 'border border-gray-100 rounded-lg p-4 mb-3', 'data-dist-item-id': String(it.item_id) });
+    var card = el('div', { style: 'border-radius:var(--rv-radius);', class: 'border border-gray-100 p-4 mb-3', 'data-dist-item-id': String(it.item_id) });
 
     card.appendChild(el('div', { class: 'flex justify-between items-center mb-2' },
       el('div', { class: 'text-sm font-semibold text-gray-800' }, fioLabelItem(it)),
@@ -100,7 +100,7 @@
     if ((it.acoes && it.acoes.alocar)) {
       var ctl = el('div', { class: 'mt-3' });
       var btn = el('button', {
-        class: 'text-sm font-semibold px-3 py-1.5 rounded-lg '
+        style: 'border-radius:var(--rv-radius);', class: 'text-sm font-semibold px-3 py-1.5 '
           + (ALLOCATION_ENABLED ? 'bg-blue-700 hover:bg-blue-800 text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'),
         title: ALLOCATION_ENABLED ? 'Distribuir necessidade' : 'Distribuição disponível após a Fase F2.',
         disabled: ALLOCATION_ENABLED ? null : true,
@@ -117,7 +117,7 @@
   // carries reload + sincronizarNecessidades.
   ns.renderSection = function (distrib, handlers) {
     ns._handlers = handlers || {};
-    var card = el('div', { id: 'oc-distribuicao', class: 'bg-white rounded-xl shadow overflow-hidden mb-4' });
+    var card = el('div', { id: 'oc-distribuicao', style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow overflow-hidden mb-4' });
     var heading = el('div', { class: 'px-5 py-3 border-b flex justify-between items-center gap-3' },
       el('div', { class: 'text-xs font-semibold text-gray-600 uppercase' }, 'Distribuição de necessidades'));
     if (ALLOCATION_ENABLED && distrib && distrib.ordem && distrib.ordem.pedido_id) {
@@ -154,7 +154,7 @@
     }
 
     if (!ALLOCATION_ENABLED) {
-      body.appendChild(el('div', { class: 'text-xs text-gray-500 mb-3 bg-gray-50 border border-gray-100 rounded-lg p-2' },
+      body.appendChild(el('div', { style: 'border-radius:var(--rv-radius);', class: 'text-xs text-gray-500 mb-3 bg-gray-50 border border-gray-100 p-2' },
         'Distribuição em modo somente leitura — a ativação dos controles ocorrerá na Fase F2.'));
     }
 

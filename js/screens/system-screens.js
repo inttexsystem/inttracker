@@ -197,7 +197,7 @@
     return window.el('div', { class: 'min-h-screen flex flex-col items-center justify-center p-4 text-center' },
       window.el('h1', { class: 'text-3xl font-bold text-red-600 mb-2' }, 'Acesso negado'),
       window.el('p', { class: 'text-gray-600 mb-4' }, 'Você não tem permissão pra essa tela.'),
-      window.el('button', { class: 'bg-blue-700 text-white px-4 py-2 rounded-lg', onclick: () => window.routeAfterLogin() }, 'Voltar pro início')
+      window.el('button', { style: 'border-radius:var(--rv-radius);', class: 'bg-blue-700 text-white px-4 py-2', onclick: () => window.routeAfterLogin() }, 'Voltar pro início')
     );
   }
 
@@ -205,7 +205,7 @@
     return window.el('div', { class: 'min-h-screen flex flex-col items-center justify-center p-4 text-center' },
       window.el('h1', { class: 'text-3xl font-bold mb-2' }, '404'),
       window.el('p', { class: 'text-gray-600 mb-4' }, 'Tela não encontrada.'),
-      window.el('button', { class: 'bg-blue-700 text-white px-4 py-2 rounded-lg', onclick: () => window.navigate('#/login') }, 'Ir pro login')
+      window.el('button', { style: 'border-radius:var(--rv-radius);', class: 'bg-blue-700 text-white px-4 py-2', onclick: () => window.navigate('#/login') }, 'Ir pro login')
     );
   }
 

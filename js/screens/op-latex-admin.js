@@ -859,7 +859,7 @@
         acoes.push({ label: 'Excluir OP', onclick: function () { excluirOpLatex(op.id); } });
 
         var header = pageHeader(formatOpDisplay(op, opDisplayContext) + ' · Látex', acoes);
-        var info = el('div', { class: 'bg-white rounded-xl shadow p-5 mb-4' },
+        var info = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5 mb-4' },
           el('div', { class: 'flex items-center gap-3 mb-2' }, badgeTipo('latex'), badgeStatus(op.status)),
           op.lote ? el('div', { class: 'text-sm text-gray-700 mb-1' }, 'Lote Nº ' + op.lote.numero + ' · ' + (op.lote.cliente?.nome || '—')) : el('span', {}),
           op.observacao ? el('div', { class: 'text-sm text-gray-600' }, op.observacao) : el('span', {}));
@@ -880,7 +880,7 @@
           rows: op.op_itens || [],
         });
 
-        var box = el('div', { class: 'bg-white rounded-xl shadow p-5' });
+        var box = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5' });
         box.appendChild(el('div', { class: 'font-semibold text-gray-700 mb-3' }, 'Movimentos de acabamento (informativo)'));
 
         if (movimentosLatex.length === 0) {

@@ -343,7 +343,7 @@
           "path": "js/screens/pedido-edit.js",
           "archetype": null,
           "declared_state": null,
-          "coverage": "FULL"
+          "coverage": "PARTIAL"
         },
         {
           "path": "js/screens/pedido-form.js",
@@ -355,7 +355,7 @@
           "path": "js/screens/pedido-insumos-distribuicao.js",
           "archetype": null,
           "declared_state": null,
-          "coverage": "FULL"
+          "coverage": "PARTIAL"
         },
         {
           "path": "js/screens/pedido-item-row-editor.js",
@@ -367,7 +367,7 @@
           "path": "js/screens/pedido-itens-edit.js",
           "archetype": null,
           "declared_state": null,
-          "coverage": "FULL"
+          "coverage": "PARTIAL"
         },
         {
           "path": "js/screens/pedido-numero-sugestao.js",
@@ -379,7 +379,7 @@
           "path": "js/screens/pedido-parciais-admin.js",
           "archetype": null,
           "declared_state": null,
-          "coverage": "FULL"
+          "coverage": "PARTIAL"
         },
         {
           "path": "js/screens/pedido-route-sections-ui.js",
@@ -397,7 +397,7 @@
           "path": "js/screens/pedido-tracking-admin.js",
           "archetype": null,
           "declared_state": null,
-          "coverage": "FULL"
+          "coverage": "PARTIAL"
         },
         {
           "path": "js/screens/pedidos-list.js",
@@ -607,13 +607,13 @@
         "UNSUPPORTED": 0
       },
       "js-screen": {
-        "FULL": 27,
-        "PARTIAL": 39,
+        "FULL": 22,
+        "PARTIAL": 44,
         "UNSUPPORTED": 0
       }
     },
-    "FULL": 28,
-    "PARTIAL": 39,
+    "FULL": 23,
+    "PARTIAL": 44,
     "UNSUPPORTED": 0,
     "partial_files": [
       "js/screens/admin-usuarios-audit-panel.js",
@@ -649,9 +649,14 @@
       "js/screens/pedido-detail-events.js",
       "js/screens/pedido-detail-render.js",
       "js/screens/pedido-detail.js",
+      "js/screens/pedido-edit.js",
       "js/screens/pedido-form.js",
+      "js/screens/pedido-insumos-distribuicao.js",
       "js/screens/pedido-item-row-editor.js",
+      "js/screens/pedido-itens-edit.js",
+      "js/screens/pedido-parciais-admin.js",
       "js/screens/pedido-route-sections-ui.js",
+      "js/screens/pedido-tracking-admin.js",
       "js/screens/pedidos-list.js",
       "js/screens/system-screens.js",
       "js/screens/trocar-senha-obrigatoria.js"
@@ -14200,6 +14205,20 @@
     {
       "rule_id": "UIC-008",
       "severity": "coverage",
+      "path": "js/screens/pedido-edit.js",
+      "line": 1,
+      "column": 1,
+      "front_end": "js-screen",
+      "archetype": null,
+      "property": "justify-content",
+      "observed_value": null,
+      "resolved_value": null,
+      "element_or_context": "file",
+      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
+    },
+    {
+      "rule_id": "UIC-008",
+      "severity": "coverage",
       "path": "js/screens/pedido-form.js",
       "line": 1,
       "column": 1,
@@ -14438,6 +14457,20 @@
     {
       "rule_id": "UIC-008",
       "severity": "coverage",
+      "path": "js/screens/pedido-insumos-distribuicao.js",
+      "line": 1,
+      "column": 1,
+      "front_end": "js-screen",
+      "archetype": null,
+      "property": "justify-content",
+      "observed_value": null,
+      "resolved_value": null,
+      "element_or_context": "file",
+      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
+    },
+    {
+      "rule_id": "UIC-008",
+      "severity": "coverage",
       "path": "js/screens/pedido-item-row-editor.js",
       "line": 1,
       "column": 1,
@@ -14578,6 +14611,34 @@
     {
       "rule_id": "UIC-008",
       "severity": "coverage",
+      "path": "js/screens/pedido-itens-edit.js",
+      "line": 1,
+      "column": 1,
+      "front_end": "js-screen",
+      "archetype": null,
+      "property": "justify-content",
+      "observed_value": null,
+      "resolved_value": null,
+      "element_or_context": "file",
+      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
+    },
+    {
+      "rule_id": "UIC-008",
+      "severity": "coverage",
+      "path": "js/screens/pedido-parciais-admin.js",
+      "line": 1,
+      "column": 1,
+      "front_end": "js-screen",
+      "archetype": null,
+      "property": "justify-content",
+      "observed_value": null,
+      "resolved_value": null,
+      "element_or_context": "file",
+      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
+    },
+    {
+      "rule_id": "UIC-008",
+      "severity": "coverage",
       "path": "js/screens/pedido-route-sections-ui.js",
       "line": 1,
       "column": 1,
@@ -14630,6 +14691,20 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
+    },
+    {
+      "rule_id": "UIC-008",
+      "severity": "coverage",
+      "path": "js/screens/pedido-tracking-admin.js",
+      "line": 1,
+      "column": 1,
+      "front_end": "js-screen",
+      "archetype": null,
+      "property": "justify-content",
+      "observed_value": null,
+      "resolved_value": null,
+      "element_or_context": "file",
+      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-008",
@@ -15231,11 +15306,11 @@
     },
     "UIC-008": {
       "name": "CARD_ACTION_ALIGNMENT",
-      "total": 37,
+      "total": 42,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 37,
-      "files": 37
+      "coverage_gaps": 42,
+      "files": 42
     },
     "UIC-009": {
       "name": "DEPRECATED_TOKEN_REFERENCE",
@@ -15345,7 +15420,7 @@
       "archetype": null,
       "coverage": "PARTIAL",
       "indeterminate_sites": 16,
-      "declaration_sites": 329,
+      "declaration_sites": 334,
       "total": 20,
       "blocking": 2,
       "debt": 0,
@@ -15411,7 +15486,7 @@
       "archetype": null,
       "coverage": "PARTIAL",
       "indeterminate_sites": 5,
-      "declaration_sites": 80,
+      "declaration_sites": 81,
       "total": 9,
       "blocking": 3,
       "debt": 0,
@@ -15499,7 +15574,7 @@
       "archetype": null,
       "coverage": "PARTIAL",
       "indeterminate_sites": 0,
-      "declaration_sites": 4,
+      "declaration_sites": 21,
       "total": 1,
       "blocking": 0,
       "debt": 0,
@@ -15587,7 +15662,7 @@
       "archetype": null,
       "coverage": "PARTIAL",
       "indeterminate_sites": 46,
-      "declaration_sites": 496,
+      "declaration_sites": 498,
       "total": 170,
       "blocking": 2,
       "debt": 121,
@@ -15686,7 +15761,7 @@
       "archetype": null,
       "coverage": "PARTIAL",
       "indeterminate_sites": 2,
-      "declaration_sites": 1,
+      "declaration_sites": 5,
       "total": 3,
       "blocking": 0,
       "debt": 0,
@@ -15752,7 +15827,7 @@
       "archetype": null,
       "coverage": "PARTIAL",
       "indeterminate_sites": 3,
-      "declaration_sites": 17,
+      "declaration_sites": 26,
       "total": 16,
       "blocking": 0,
       "debt": 12,
@@ -15860,13 +15935,13 @@
     "js/screens/pedido-edit.js": {
       "front_end": "js-screen",
       "archetype": null,
-      "coverage": "FULL",
+      "coverage": "PARTIAL",
       "indeterminate_sites": 0,
-      "declaration_sites": 0,
-      "total": 0,
+      "declaration_sites": 12,
+      "total": 1,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 0
+      "coverage_gaps": 1
     },
     "js/screens/pedido-form.js": {
       "front_end": "js-screen",
@@ -15882,13 +15957,13 @@
     "js/screens/pedido-insumos-distribuicao.js": {
       "front_end": "js-screen",
       "archetype": null,
-      "coverage": "FULL",
+      "coverage": "PARTIAL",
       "indeterminate_sites": 0,
-      "declaration_sites": 0,
-      "total": 0,
+      "declaration_sites": 10,
+      "total": 1,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 0
+      "coverage_gaps": 1
     },
     "js/screens/pedido-item-row-editor.js": {
       "front_end": "js-screen",
@@ -15904,13 +15979,13 @@
     "js/screens/pedido-itens-edit.js": {
       "front_end": "js-screen",
       "archetype": null,
-      "coverage": "FULL",
+      "coverage": "PARTIAL",
       "indeterminate_sites": 0,
-      "declaration_sites": 0,
-      "total": 0,
+      "declaration_sites": 16,
+      "total": 1,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 0
+      "coverage_gaps": 1
     },
     "js/screens/pedido-numero-sugestao.js": {
       "front_end": "js-screen",
@@ -15926,13 +16001,13 @@
     "js/screens/pedido-parciais-admin.js": {
       "front_end": "js-screen",
       "archetype": null,
-      "coverage": "FULL",
+      "coverage": "PARTIAL",
       "indeterminate_sites": 0,
-      "declaration_sites": 0,
-      "total": 0,
+      "declaration_sites": 9,
+      "total": 1,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 0
+      "coverage_gaps": 1
     },
     "js/screens/pedido-route-sections-ui.js": {
       "front_end": "js-screen",
@@ -15959,13 +16034,13 @@
     "js/screens/pedido-tracking-admin.js": {
       "front_end": "js-screen",
       "archetype": null,
-      "coverage": "FULL",
+      "coverage": "PARTIAL",
       "indeterminate_sites": 0,
-      "declaration_sites": 0,
-      "total": 0,
+      "declaration_sites": 6,
+      "total": 1,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 0
+      "coverage_gaps": 1
     },
     "js/screens/pedidos-list.js": {
       "front_end": "js-screen",
@@ -15983,7 +16058,7 @@
       "archetype": null,
       "coverage": "PARTIAL",
       "indeterminate_sites": 11,
-      "declaration_sites": 78,
+      "declaration_sites": 80,
       "total": 13,
       "blocking": 1,
       "debt": 0,
@@ -16016,13 +16091,13 @@
     },
     "unassigned": {
       "files": 66,
-      "total": 1036,
+      "total": 1041,
       "blocking": 111,
       "debt": 322,
-      "coverage_gaps": 603,
+      "coverage_gaps": 608,
       "coverage_states": {
-        "FULL": 27,
-        "PARTIAL": 39,
+        "FULL": 22,
+        "PARTIAL": 44,
         "UNSUPPORTED": 0
       }
     }
@@ -16209,7 +16284,7 @@
     "native_selects": 15,
     "cards_with_shadow": 0,
     "pill_shaped_buttons": 0,
-    "action_alignment_coverage_gaps": 37,
+    "action_alignment_coverage_gaps": 42,
     "literal_colours": 0,
     "literal_visual_colours_blocking": 0,
     "literal_colour_context_unproven": 0,

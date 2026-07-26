@@ -53,7 +53,7 @@
   function screenFornecedorHome() {
     const content = window.el('div', {},
       window.el('h1', { class: 'text-2xl font-bold mb-4' }, 'Área do Fornecedor'),
-      window.el('div', { class: 'bg-white rounded-xl p-6 shadow' },
+      window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white p-6 shadow' },
         window.el('p', { class: 'text-gray-700' }, 'Olá, ' + window.CURRENT_USER.nome + '. (Fase 1 — placeholder; suas entregas aparecem aqui a partir da Fase 4/5.)')
       )
     );
@@ -72,7 +72,7 @@
       if (!window.CURRENT_USER.fornecedor_id) {
         container.replaceChildren(
           window.pageHeader('Minhas entregas'),
-          window.el('div', { class: 'bg-white rounded-xl shadow p-8 text-center text-gray-500' },
+          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-8 text-center text-gray-500' },
             'Seu usuário não está vinculado a um fornecedor. Fale com o administrador.')
         );
         return;
@@ -169,7 +169,7 @@
       const blocos = [window.pageHeader('Minhas entregas')];
 
       if (ops.length === 0) {
-        blocos.push(window.el('div', { class: 'bg-white rounded-xl shadow p-8 text-center text-gray-500 mb-6' },
+        blocos.push(window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-8 text-center text-gray-500 mb-6' },
           'Nenhuma OP em produção atribuída a você no momento.'));
       } else {
         for (const op of ops) {
@@ -178,7 +178,7 @@
             .filter(ei => ei.op_id === op.id);
           const totalPorItem = window.totalEntregueCimaPorItem(itensEntreguesNaOP);
 
-          const card = window.el('div', { class: 'bg-white rounded-xl shadow p-5 mb-6' });
+          const card = window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5 mb-6' });
           card.appendChild(window.el('div', { class: 'flex items-center justify-between mb-3' },
             window.el('div', { class: 'font-semibold text-gray-800' }, `Lote Nº ${op.numero}/${op.ano}`),
             window.badgeStatus(op.status),
@@ -210,7 +210,7 @@
             onclick: () => {
               const form = window.buildEntregaInlineForm({ opItens: op.op_itens || [], modelosById, latexOptions });
               const btnSalvar = window.el('button', {
-                class: 'bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold rounded-lg px-3 py-2 mr-2',
+                style: 'border-radius:var(--rv-radius);', class: 'bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-3 py-2 mr-2',
                 onclick: async () => {
                   btnSalvar.disabled = true;
                   const ok = await window.salvarEntregaCima({ fornecedorId: window.CURRENT_USER.fornecedor_id, opId: op.id, payload: form.getPayload() });
@@ -219,7 +219,7 @@
                 },
               }, 'Salvar entrega');
               const btnCancelar = window.el('button', {
-                class: 'bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-semibold rounded-lg px-3 py-2',
+                style: 'border-radius:var(--rv-radius);', class: 'bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-semibold px-3 py-2',
                 onclick: () => { formHolder.replaceChildren(); btnNova.style.display = ''; },
               }, 'Cancelar');
               const wrap = window.el('div', {}, form.node, window.el('div', { class: 'mt-2' }, btnSalvar, btnCancelar));
@@ -234,7 +234,7 @@
         }
       }
 
-      blocos.push(window.el('div', { class: 'bg-white rounded-xl shadow p-5 mb-6' },
+      blocos.push(window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5 mb-6' },
         window.el('div', { class: 'font-semibold text-gray-700 mb-3' }, 'Histórico de entregas'),
         entregas.length === 0
           ? window.el('p', { class: 'text-sm text-gray-400' }, 'Nenhuma entrega registrada ainda.')
@@ -260,7 +260,7 @@
       if (!window.CURRENT_USER.fornecedor_id) {
         container.replaceChildren(
           window.pageHeader('Meus recebimentos de látex'),
-          window.el('div', { class: 'bg-white rounded-xl shadow p-8 text-center text-gray-500' },
+          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-8 text-center text-gray-500' },
             'Seu usuário não está vinculado a um fornecedor. Fale com o administrador.')
         );
         return;
@@ -314,14 +314,14 @@
       const blocos = [window.pageHeader('Meus recebimentos de látex')];
 
       if (ops.length === 0) {
-        blocos.push(window.el('div', { class: 'bg-white rounded-xl shadow p-8 text-center text-gray-500 mb-6' },
+        blocos.push(window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-8 text-center text-gray-500 mb-6' },
           'Nenhuma OP de látex em produção atribuída a você no momento.'));
       } else {
         for (const op of ops) {
           const recebidosNaOP = entregas.flatMap(e => e.entrega_itens || []).filter(ei => ei.op_id === op.id);
           const totalPorItem = window.totalEntregueCimaPorItem(recebidosNaOP);
 
-          const card = window.el('div', { class: 'bg-white rounded-xl shadow p-5 mb-6' });
+          const card = window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5 mb-6' });
           card.appendChild(window.el('div', { class: 'flex items-center justify-between mb-3' },
             window.el('div', { class: 'font-semibold text-gray-800' }, `OP de látex Nº ${op.numero}/${op.ano}`),
             window.badgeStatus(op.status),
@@ -351,7 +351,7 @@
             onclick: () => {
               const form = window.buildEntregaInlineForm({ opItens: op.op_itens || [], modelosById, comDestino: false });
               const btnSalvar = window.el('button', {
-                class: 'bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold rounded-lg px-3 py-2 mr-2',
+                style: 'border-radius:var(--rv-radius);', class: 'bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-3 py-2 mr-2',
                 onclick: async () => {
                   btnSalvar.disabled = true;
                   const ok = await window.salvarEntregaLatex({ fornecedorId: window.CURRENT_USER.fornecedor_id, opId: op.id, payload: form.getPayload() });
@@ -360,7 +360,7 @@
                 },
               }, 'Salvar recebimento');
               const btnCancelar = window.el('button', {
-                class: 'bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-semibold rounded-lg px-3 py-2',
+                style: 'border-radius:var(--rv-radius);', class: 'bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-semibold px-3 py-2',
                 onclick: () => { formHolder.replaceChildren(); btnNova.style.display = ''; },
               }, 'Cancelar');
               formHolder.replaceChildren(window.el('div', {}, form.node, window.el('div', { class: 'mt-2' }, btnSalvar, btnCancelar)));
@@ -376,7 +376,7 @@
       const opsById = {};
       for (const o of ops) opsById[o.id] = o;
       blocos.push(window.el('div', { class: 'font-semibold text-gray-700 mb-2 mt-2' }, 'Histórico de recebimentos'));
-      const histWrap = window.el('div', { class: 'bg-white rounded-xl shadow p-5' });
+      const histWrap = window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5' });
       if (entregas.length === 0) {
         histWrap.appendChild(window.el('p', { class: 'text-sm text-gray-400' }, 'Nenhum recebimento registrado ainda.'));
       } else {
@@ -432,7 +432,7 @@
       if (!window.CURRENT_USER.fornecedor_id) {
         container.replaceChildren(
           window.pageHeader('Minhas ordens'),
-          window.el('div', { class: 'bg-white rounded-xl shadow p-8 text-center text-gray-500' },
+          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-8 text-center text-gray-500' },
             'Seu usuário não está vinculado a um fornecedor. Fale com o administrador.')
         );
         return;
@@ -477,7 +477,7 @@
       const cutover = window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.ordemCompraReceiptCutover;
       const attemptTracker = cutover ? cutover.createAttemptTracker() : null;
       const btn = window.el('button', {
-        class: 'bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold rounded-lg px-3 py-2',
+        style: 'border-radius:var(--rv-radius);', class: 'bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-3 py-2',
         onclick: async () => {
           const kg = Number(kgInput.value);
           if (!(kg > 0)) { window.toast('Informe o kg recebido', 'error'); return; }
@@ -548,14 +548,14 @@
 
       const blocos = [window.pageHeader('Minhas ordens')];
 
-      blocos.push(window.el('div', { class: 'bg-white rounded-xl shadow p-5 mb-6' },
+      blocos.push(window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5 mb-6' },
         window.el('div', { class: 'font-semibold text-gray-700 mb-2' }, 'Pendentes'),
         pendentes.length === 0
           ? window.el('p', { class: 'text-sm text-gray-400' }, 'Nenhuma ordem pendente.')
           : window.el('div', {}, pendentes.map(linhaPendente)),
       ));
 
-      blocos.push(window.el('div', { class: 'bg-white rounded-xl shadow p-5' },
+      blocos.push(window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5' },
         window.el('div', { class: 'font-semibold text-gray-700 mb-2' }, 'Recebidas'),
         recebidas.length === 0
           ? window.el('p', { class: 'text-sm text-gray-400' }, 'Nenhuma ordem recebida ainda.')

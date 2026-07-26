@@ -411,7 +411,7 @@ test('2. fornecedor.js: sintaxe JS válida (node --check)', () => {
 
 test('3. index.html carrega js/screens/fornecedor.js EXATAMENTE UMA VEZ, sem type=module', () => {
   // Aceita com ou sem query string (cache-busting ?v=...).
-  const reWithQs = /<script\s+src="js\/screens\/fornecedor\.js\?v=20260623-asset1"\s*><\/script>/g;
+  const reWithQs = /<script\s+src="js\/screens\/fornecedor\.js\?v=20260726-ui-p5-pass2-a2"\s*><\/script>/g;
   const reNoQs   = /<script\s+src="js\/screens\/fornecedor\.js"\s*><\/script>/g;
   const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
   assert.equal(total, 1,

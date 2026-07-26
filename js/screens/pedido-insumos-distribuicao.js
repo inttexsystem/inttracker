@@ -76,16 +76,16 @@
 
   function renderNeed(need, openAllocation) {
     var remaining = Number(need.kg_necessario) - Number(need.kg_alocado);
-    var card = el('section', { class: 'bg-white rounded-xl shadow p-5 mb-4', 'data-necessidade-id': String(need.id) });
+    var card = el('section', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5 mb-4', 'data-necessidade-id': String(need.id) });
     card.appendChild(el('div', { class: 'flex items-start justify-between gap-3 flex-wrap' },
       el('div', {},
         el('h2', { class: 'font-semibold text-gray-900' }, materialLabel(need)),
         el('div', { class: 'text-xs text-gray-500 mt-1' }, needLabel(need) + ' · proveniência somente leitura')),
-      el('button', { type: 'button', class: 'bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-3 py-2 rounded-lg', onclick: function () { openAllocation(need, null); } }, 'Distribuir')));
+      el('button', { type: 'button', style: 'border-radius:var(--rv-radius);', class: 'bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-3 py-2', onclick: function () { openAllocation(need, null); } }, 'Distribuir')));
     card.appendChild(el('div', { class: 'grid grid-cols-3 gap-2 text-sm mt-4' },
-      el('div', { class: 'bg-gray-50 rounded p-2' }, 'Necessário: ' + kg(need.kg_necessario)),
-      el('div', { class: 'bg-gray-50 rounded p-2' }, 'Alocado: ' + kg(need.kg_alocado)),
-      el('div', { class: 'bg-gray-50 rounded p-2' }, 'Restante: ' + kg(remaining))));
+      el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-gray-50 p-2' }, 'Necessário: ' + kg(need.kg_necessario)),
+      el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-gray-50 p-2' }, 'Alocado: ' + kg(need.kg_alocado)),
+      el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-gray-50 p-2' }, 'Restante: ' + kg(remaining))));
     var allocations = need.alocacoes || [];
     card.appendChild(el('div', { class: 'mt-4 text-xs font-semibold text-gray-600 uppercase' }, 'Alocações atuais'));
     if (!allocations.length) card.appendChild(el('div', { class: 'text-sm text-gray-500 mt-1' }, 'Nenhuma alocação para esta necessidade.'));
@@ -108,13 +108,13 @@
     var supplierType = need.material === 'algodao' ? 'fio_algodao' : 'fio_poliester';
     var validSuppliers = suppliers.filter(function (supplier) { return supplier.tipo === supplierType; });
     var supplier = window.selectInput({ options: validSuppliers.map(function (item) { return { value: item.id, label: item.nome }; }), value: selectedSupplier, placeholder: 'Selecione o fornecedor...' });
-    var target = el('input', { type: 'number', min: '0', step: '0.001', value: allocation ? String(allocation.kg_alocado) : '', class: 'w-full border rounded px-3 py-2' });
+    var target = el('input', { type: 'number', min: '0', step: '0.001', value: allocation ? String(allocation.kg_alocado) : '', style: 'border-radius:var(--rv-radius);', class: 'w-full border px-3 py-2' });
     var current = allocation ? Number(allocation.kg_alocado) : 0;
     var body = el('div', { class: 'space-y-3' },
       el('div', { class: 'text-sm text-gray-700' }, materialLabel(need) + ' · ' + needLabel(need)),
       window.formField({ label: 'Fornecedor', input: supplier }),
       window.formField({ label: 'Quantidade alvo absoluta (kg)', input: target }),
-      el('div', { class: 'text-xs text-gray-500 bg-gray-50 rounded p-3' },
+      el('div', { style: 'border-radius:var(--rv-radius);', class: 'text-xs text-gray-500 bg-gray-50 p-3' },
         'Necessário: ' + kg(need.kg_necessario) + ' · total alocado: ' + kg(need.kg_alocado)
         + ' · neste fornecedor: ' + kg(current) + ' · restante atual: ' + kg(Number(need.kg_necessario) - Number(need.kg_alocado))
         + '. Use zero para remover esta alocação.'));
@@ -158,10 +158,11 @@
     var root = el('div', { id: 'pedido-insumos-distribuicao' });
     var notice = el('div', { id: 'pedido-insumos-distribuicao-notice', class: 'hidden mb-4' });
     function setNotice(kind, text) {
-      notice.className = 'mb-4 rounded p-3 text-sm ' + (kind === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700');
+      notice.className = 'mb-4 p-3 text-sm ' + (kind === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700');
+      notice.style.borderRadius = 'var(--rv-radius)';
       notice.textContent = text;
     }
-    function renderLoading() { root.replaceChildren(el('div', { class: 'bg-white rounded-xl shadow p-6 text-gray-500' }, 'Carregando necessidades de compra...')); }
+    function renderLoading() { root.replaceChildren(el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-gray-500' }, 'Carregando necessidades de compra...')); }
     async function reload() {
       renderLoading();
       try {
@@ -170,7 +171,7 @@
           el('div', { class: 'flex items-center justify-between gap-3 mb-4 flex-wrap' },
             el('div', {}, el('h1', { class: 'text-xl font-bold' }, 'Insumos — distribuição de compra'), el('div', { class: 'text-sm text-gray-500 mt-1' }, 'Defina fornecedores e quantidades alvo por necessidade do Pedido.')),
             el('button', { type: 'button', class: 'text-blue-700 font-semibold', onclick: function () { window.navigate('#/pedidos/' + pedidoId); } }, 'Voltar ao Pedido')));
-        if (!data.needs.length) body.appendChild(el('div', { class: 'bg-white rounded-xl shadow p-6 text-gray-500' }, 'Nenhuma necessidade nativa disponível para este Pedido.'));
+        if (!data.needs.length) body.appendChild(el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-gray-500' }, 'Nenhuma necessidade nativa disponível para este Pedido.'));
         data.needs.forEach(function (need) { body.appendChild(renderNeed(need, function (selected, allocation) { openModal(selected, allocation, data.suppliers, reload, setNotice); })); });
         root.replaceChildren(body);
       } catch (error) {

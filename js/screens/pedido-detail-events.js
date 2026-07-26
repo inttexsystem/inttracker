@@ -395,15 +395,15 @@
       );
     }
 
-    var MOVEMENT_MODAL_RADIUS = '6px';
-    var MOVEMENT_SURFACE_RADIUS = '4px';
+    var MOVEMENT_MODAL_RADIUS = 'var(--rv-radius)';  // A2: css/tokens.css owns geometry
+    var MOVEMENT_SURFACE_RADIUS = 'var(--rv-radius)';
     var MOVEMENT_MODAL_SHADOW = 'var(--rv-shadow-popover)';
     var MOVEMENT_CONTROL_HEIGHT = '36px';
 
     function normalizeMovementModalControls(root) {
       if (!root || typeof root.querySelectorAll !== 'function') return;
       root.querySelectorAll('input, select, textarea').forEach(function (control) {
-        control.classList.remove('rounded-lg', 'rounded-xl', 'rounded-2xl', 'rounded-full');
+        // A2 removed the Tailwind radius strip: nothing applies one any more.
         control.style.borderRadius = MOVEMENT_SURFACE_RADIUS;
         control.style.minHeight = MOVEMENT_CONTROL_HEIGHT;
         control.style.boxShadow = 'none';

@@ -67,14 +67,14 @@
     function backToListBtn() {
       return window.el('button', {
         type: 'button',
-        class: 'px-4 py-2 rounded-lg border hover:bg-gray-50',
+        style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 border hover:bg-gray-50',
         onclick: function () { window.navigate('#/pedidos'); },
       }, '← Voltar para lista');
     }
     function backToDetailBtn(id) {
       return window.el('button', {
         type: 'button',
-        class: 'px-4 py-2 rounded-lg border hover:bg-gray-50',
+        style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 border hover:bg-gray-50',
         onclick: function () { window.navigate('#/pedidos/' + id); },
       }, '← Voltar para o detalhe');
     }
@@ -82,7 +82,7 @@
       return window.shellLayout(window.ADMIN_MENU,
         window.el('div', {},
           errorHeader(headerTitle),
-          window.el('div', { class: 'bg-white rounded-xl shadow p-6 text-red-700' },
+          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-red-700' },
             message),
           window.el('div', { class: 'mt-4' }, backBtn)
         )
@@ -187,7 +187,7 @@
       const s = state.pedido.status;
       const label = window.pedidoStatusLabel ? window.pedidoStatusLabel(s) : s;
       const banner = window.el('div',
-        { class: 'bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap items-center gap-3' },
+        { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-4 mb-4 flex flex-wrap items-center gap-3' },
         window.el('div', { class: 'text-sm text-gray-600' }, 'Status atual:'),
         window.pedidoStatusBadge ? window.pedidoStatusBadge(s) : window.el('span', {}, s)
       );
@@ -249,7 +249,7 @@
       // Observação geral (opcional, textarea).
       const obsTextarea = window.el('textarea', {
         rows: 3,
-        class: 'w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500',
+        style: 'border-radius:var(--rv-radius);', class: 'w-full border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500',
         placeholder: 'Observação geral do pedido (opcional)',
       });
       obsTextarea.value = state.observacao;
@@ -258,14 +258,14 @@
       // Botão Salvar.
       const saveBtn = window.el('button', {
         type: 'button',
-        class: 'bg-blue-700 hover:bg-blue-800 text-white font-semibold px-6 py-2 rounded-lg',
+        style: 'border-radius:var(--rv-radius);', class: 'bg-blue-700 hover:bg-blue-800 text-white font-semibold px-6 py-2',
         onclick: function () { salvar(saveBtn); },
       }, 'Salvar alterações');
 
       // Botão Cancelar (volta para o detalhe).
       const cancelBtn = window.el('button', {
         type: 'button',
-        class: 'px-4 py-2 rounded-lg border hover:bg-gray-50',
+        style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 border hover:bg-gray-50',
         onclick: function () { window.navigate('#/pedidos/' + pedidoId); },
       }, 'Cancelar');
 
@@ -276,11 +276,12 @@
         prazoInput.disabled = true;
         obsTextarea.disabled = true;
         saveBtn.disabled = true;
-        saveBtn.className = 'px-6 py-2 rounded-lg border bg-gray-50 text-gray-400 cursor-not-allowed font-semibold';
+        saveBtn.className = 'px-6 py-2 border bg-gray-50 text-gray-400 cursor-not-allowed font-semibold';
+        saveBtn.style.borderRadius = 'var(--rv-radius)';
         saveBtn.textContent = 'Edição bloqueada';
       }
 
-      const form = window.el('div', { class: 'bg-white rounded-xl shadow p-6 max-w-3xl' },
+      const form = window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 max-w-3xl' },
         window.el('h2', { class: 'text-sm font-semibold text-gray-700 mb-4' },
           'Dados gerais do pedido'),
         window.formField({ label: 'Cliente', input: cliSel }),
@@ -315,7 +316,7 @@
     function buildItensAviso() {
       // Itens NÃO são editáveis nesta fase. Aviso simples.
       return window.el('div',
-        { class: 'bg-white rounded-xl shadow p-4 mb-4 text-sm text-gray-600' },
+        { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-4 mb-4 text-sm text-gray-600' },
         'Itens do pedido não são editáveis nesta fase (fica para C3C2). '
           + 'Esta tela altera apenas cliente, prazo de entrega e observação geral.'
       );
@@ -404,7 +405,7 @@
       if (state.loadingError === 'pedido') {
         container.replaceChildren(
           buildHeader(),
-          window.el('div', { class: 'bg-white rounded-xl shadow p-6 text-red-700' },
+          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-red-700' },
             'Pedido não encontrado. Ele pode ter sido removido.')
         );
         return;
@@ -412,7 +413,7 @@
       if (state.loadingError === 'clientes') {
         container.replaceChildren(
           buildHeader(),
-          window.el('div', { class: 'bg-white rounded-xl shadow p-6 text-red-700' },
+          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-red-700' },
             'Erro ao carregar clientes. Tente recarregar a página.')
         );
         return;

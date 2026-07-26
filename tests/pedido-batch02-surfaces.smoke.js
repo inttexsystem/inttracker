@@ -242,13 +242,18 @@ test('db/89: existe exatamente uma migração 89 e nada foi inserido antes dela'
 // ---------------------------------------------------------------------
 
 test('index.html: toda superfície alterada recebeu o token do lote 2', () => {
-  for (const asset of [
-    'js/screens/pedido-detail-data.js',
-    'js/screens/pedido-edit.js',
-    'js/screens/pedido-itens-edit.js',
-  ]) {
-    const re = new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=20260725-pedido-operational-batch2');
-    assert.match(index, re, asset + ' deve carregar o token do lote 2');
+  // A2 removeu a segunda fonte de raio (utilitarios Tailwind) de pedido-edit.js e
+  // pedido-itens-edit.js, entao cada um passa a ser verificado contra a ordem que
+  // o alterou por ultimo. A garantia nao muda: toda superficie alterada continua
+  // invalidada, e nenhuma delas pode reter um token anterior ao seu.
+  const ULTIMA_ORDEM = {
+    'js/screens/pedido-detail-data.js': '20260725-pedido-operational-batch2',
+    'js/screens/pedido-edit.js': '20260726-ui-p5-pass2-a2',
+    'js/screens/pedido-itens-edit.js': '20260726-ui-p5-pass2-a2',
+  };
+  for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
+    const re = new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=' + token);
+    assert.match(index, re, asset + ' deve carregar o token da ordem que o alterou por ultimo');
   }
 });
 

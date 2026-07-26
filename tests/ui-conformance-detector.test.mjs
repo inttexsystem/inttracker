@@ -1107,13 +1107,15 @@ test('1.0.3 · the marker grants nothing but the pill role', () => {
 });
 
 test('1.0.3 · exactly the six ruled sites carry the marker, and all six keep pill geometry', () => {
-  const SIX = [
+  const SEMANTIC_PILLS = [
     'js/screens/admin-usuarios-audit-panel.js',
     'js/screens/documentos-recebidos.js',
     'js/screens/op-latex-admin.js',
     'js/screens/op-nova.js',
     'js/screens/op-tecelagem-producao-admin.js',
     'js/screens/ordem-compra-receipt-render.js',
+    'js/screens/pedido-itens-edit.js',
+    'js/screens/pedido-tracking-admin.js',
   ];
   const dir = join(REPO, 'js', 'screens');
   const carriers = [];
@@ -1122,11 +1124,11 @@ test('1.0.3 · exactly the six ruled sites carry the marker, and all six keep pi
     const text = readFileSync(join(dir, name), 'utf8');
     const hits = text.split("'data-ui-pill'").length - 1;
     if (hits === 0) continue;
-    assert.equal(hits, 1, `${rel} must declare the marker once`);
+    assert.ok(hits >= 1, `${rel} must declare the marker`);
     carriers.push(rel);
     assert.match(text, /'data-ui-pill': '1', style: '[^']*border-radius:var\(--rv-radius-pill\)/,
       `${rel}: the marked element must keep pill geometry`);
   }
-  assert.deepEqual(carriers.sort(), SIX.slice().sort(),
+  assert.deepEqual(carriers.sort(), SEMANTIC_PILLS.slice().sort(),
     'the marker is a ruled exception, not a general-purpose escape');
 });

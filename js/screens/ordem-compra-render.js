@@ -122,18 +122,18 @@
     box.appendChild(header);
 
     if (state.indisponivel) {
-      box.appendChild(el('div', { class: 'bg-white rounded-xl shadow p-8 text-center text-gray-500' },
+      box.appendChild(el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-8 text-center text-gray-500' },
         'Administração de ordens de compra indisponível neste ambiente (migração db/68 não aplicada).'));
       return box;
     }
 
     if (!state.ordens.length) {
-      box.appendChild(el('div', { class: 'bg-white rounded-xl shadow p-8 text-center text-gray-500' },
+      box.appendChild(el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-8 text-center text-gray-500' },
         'Nenhuma ordem de compra ainda.'));
       return box;
     }
 
-    var wrap = el('div', { class: 'bg-white rounded-xl shadow overflow-hidden' });
+    var wrap = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow overflow-hidden' });
     var table = el('table', { class: 'w-full' });
     var thead = el('thead', { class: 'bg-gray-50 border-b' });
     thead.appendChild(el('tr', {},
@@ -171,21 +171,21 @@
       el('button', { class: 'text-sm text-blue-700 hover:underline', onclick: function () { handlers.voltar(); } }, '← Ordens de compra')));
 
     if (state.indisponivel) {
-      box.appendChild(el('div', { class: 'bg-white rounded-xl shadow p-8 text-center text-gray-500' },
+      box.appendChild(el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-8 text-center text-gray-500' },
         'Administração de ordens de compra indisponível neste ambiente (migração db/68 não aplicada).'));
       return box;
     }
 
     var o = state.ordem;
     if (!o) {
-      box.appendChild(el('div', { class: 'bg-white rounded-xl shadow p-8 text-center text-gray-500' }, 'Ordem de compra não encontrada.'));
+      box.appendChild(el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-8 text-center text-gray-500' }, 'Ordem de compra não encontrada.'));
       return box;
     }
 
     var acoes = o.acoes || {};
 
     // Header card
-    var head = el('div', { class: 'bg-white rounded-xl shadow p-5 mb-4' });
+    var head = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5 mb-4' });
     head.appendChild(el('div', { class: 'flex items-center gap-3 mb-3 flex-wrap' },
       el('h1', { class: 'text-xl font-bold' }, 'Ordem de compra #' + o.ordem_id),
       modeloBadge(o.modelo), statusBadge(o.status_administrativo),
@@ -202,7 +202,7 @@
     if (acoes.cancelar) {
       actions.appendChild(el('button', {
         id: 'oc-cancelar',
-        class: 'border border-red-300 text-red-600 hover:bg-red-50 text-sm font-semibold px-3 py-2 rounded-lg',
+        style: 'border-radius:var(--rv-radius);', class: 'border border-red-300 text-red-600 hover:bg-red-50 text-sm font-semibold px-3 py-2',
         onclick: function () { handlers.cancelar(o); },
       }, 'Cancelar ordem'));
     }
@@ -261,7 +261,7 @@
     box.appendChild(head);
 
     // Items
-    var itemsCard = el('div', { class: 'bg-white rounded-xl shadow overflow-hidden mb-4' });
+    var itemsCard = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow overflow-hidden mb-4' });
     itemsCard.appendChild(el('div', { class: 'px-5 py-3 border-b text-xs font-semibold text-gray-600 uppercase' }, 'Itens'));
     var items = o.itens || [];
     if (!items.length) {
@@ -292,7 +292,7 @@
     // Distribution of native needs (PRE-PROD-A, §R.23.10) — native orders only.
 
     // Event history
-    var evCard = el('div', { class: 'bg-white rounded-xl shadow overflow-hidden' });
+    var evCard = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow overflow-hidden' });
     evCard.appendChild(el('div', { class: 'px-5 py-3 border-b text-xs font-semibold text-gray-600 uppercase' }, 'Histórico'));
     var evs = state.eventos || [];
     if (!evs.length) {

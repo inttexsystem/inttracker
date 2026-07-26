@@ -117,14 +117,14 @@
     function backToListBtn() {
       return window.el('button', {
         type: 'button',
-        class: 'px-4 py-2 rounded-lg border hover:bg-gray-50',
+        style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 border hover:bg-gray-50',
         onclick: function () { window.navigate('#/pedidos'); },
       }, '← Voltar para lista');
     }
     function backToDetailBtn(id) {
       return window.el('button', {
         type: 'button',
-        class: 'px-4 py-2 rounded-lg border hover:bg-gray-50',
+        style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 border hover:bg-gray-50',
         onclick: function () { window.navigate('#/pedidos/' + id); },
       }, '← Voltar para o detalhe');
     }
@@ -132,7 +132,7 @@
       return window.shellLayout(window.ADMIN_MENU,
         window.el('div', {},
           errorHeader(headerTitle),
-          window.el('div', { class: 'bg-white rounded-xl shadow p-6 text-red-700' },
+          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-red-700' },
             message),
           window.el('div', { class: 'mt-4' }, backBtn)
         )
@@ -344,7 +344,7 @@
       const isNew = !!item.isNew;
       const isMarked = !!item.markedForDeletion;
       const row = window.el('div', {
-        class: 'flex flex-wrap items-end gap-2 mb-3 p-3 rounded-lg '
+        style: 'border-radius:var(--rv-radius);', class: 'flex flex-wrap items-end gap-2 mb-3 p-3 '
           + (isMarked
             ? 'bg-red-50 border border-dashed border-red-300 opacity-70'
             : (isNew
@@ -361,7 +361,7 @@
       if (isMarked) {
         row.appendChild(window.el('div', { class: 'w-full mb-1' },
           window.el('span',
-            { class: 'inline-block px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700' },
+            { 'data-ui-pill': '1', style: 'border-radius:var(--rv-radius-pill);', class: 'inline-block px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-700' },
             'Será removido ao salvar'
           )
         ));
@@ -369,7 +369,7 @@
         // Label "Novo" para itens ainda não salvos.
         row.appendChild(window.el('div', { class: 'w-full mb-1' },
           window.el('span',
-            { class: 'inline-block px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700' },
+            { 'data-ui-pill': '1', style: 'border-radius:var(--rv-radius-pill);', class: 'inline-block px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700' },
             'Novo (não salvo)'
           )
         ));
@@ -659,7 +659,7 @@
       const s = state.pedido.status;
       const label = window.pedidoStatusLabel ? window.pedidoStatusLabel(s) : s;
       const banner = window.el('div',
-        { class: 'bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap items-center gap-3' },
+        { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-4 mb-4 flex flex-wrap items-center gap-3' },
         window.el('div', { class: 'text-sm text-gray-600' }, 'Status atual:'),
         window.pedidoStatusBadge ? window.pedidoStatusBadge(s) : window.el('span', {}, s)
       );
@@ -684,7 +684,7 @@
     function buildItensAviso() {
       // Aviso simples: escopo desta fase (C3C2C3).
       return window.el('div',
-        { class: 'bg-white rounded-xl shadow p-4 mb-4 text-sm text-gray-600' },
+        { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-4 mb-4 text-sm text-gray-600' },
         'Nesta fase (C3C2C3) você pode editar modelo, metros e '
           + 'observação dos itens existentes, adicionar novos itens, '
           + 'remover itens existentes, e a ordem dos itens é '
@@ -696,7 +696,7 @@
 
     function buildNoItemsMessage() {
       return window.el('div',
-        { class: 'bg-white rounded-xl shadow p-6 text-center text-gray-500' },
+        { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-center text-gray-500' },
         'Pedido sem itens cadastrados.');
     }
 
@@ -934,25 +934,26 @@
       // Botão Salvar.
       const saveBtn = window.el('button', {
         type: 'button',
-        class: 'bg-blue-700 hover:bg-blue-800 text-white font-semibold px-6 py-2 rounded-lg',
+        style: 'border-radius:var(--rv-radius);', class: 'bg-blue-700 hover:bg-blue-800 text-white font-semibold px-6 py-2',
         onclick: function () { salvar(saveBtn); },
       }, 'Salvar alterações');
 
       // Botão Cancelar (volta para o detalhe).
       const cancelBtn = window.el('button', {
         type: 'button',
-        class: 'px-4 py-2 rounded-lg border hover:bg-gray-50',
+        style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 border hover:bg-gray-50',
         onclick: function () { window.navigate('#/pedidos/' + pedidoId); },
       }, 'Cancelar');
 
       // Se bloqueado por status, desabilita botão Salvar.
       if (state.blockedStatus) {
         saveBtn.disabled = true;
-        saveBtn.className = 'px-6 py-2 rounded-lg border bg-gray-50 text-gray-400 cursor-not-allowed font-semibold';
+        saveBtn.className = 'px-6 py-2 border bg-gray-50 text-gray-400 cursor-not-allowed font-semibold';
+        saveBtn.style.borderRadius = 'var(--rv-radius)';
         saveBtn.textContent = 'Edição bloqueada';
       }
 
-      const form = window.el('div', { class: 'bg-white rounded-xl shadow p-6 max-w-3xl' },
+      const form = window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 max-w-3xl' },
         buildItensList(),
         window.el('div', { class: 'flex justify-end gap-2 pt-4 border-t mt-4' },
           cancelBtn,
@@ -969,7 +970,7 @@
       if (state.loadingError === 'pedido') {
         container.replaceChildren(
           buildHeader(),
-          window.el('div', { class: 'bg-white rounded-xl shadow p-6 text-red-700' },
+          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-red-700' },
             'Pedido não encontrado. Ele pode ter sido removido.')
         );
         return;
@@ -977,7 +978,7 @@
       if (state.loadingError === 'itens') {
         container.replaceChildren(
           buildHeader(),
-          window.el('div', { class: 'bg-white rounded-xl shadow p-6 text-red-700' },
+          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-red-700' },
             'Erro ao carregar itens do pedido. Tente recarregar a página.')
         );
         return;
@@ -985,7 +986,7 @@
       if (state.loadingError === 'modelos') {
         container.replaceChildren(
           buildHeader(),
-          window.el('div', { class: 'bg-white rounded-xl shadow p-6 text-red-700' },
+          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-red-700' },
             'Erro ao carregar modelos. Tente recarregar a página.')
         );
         return;

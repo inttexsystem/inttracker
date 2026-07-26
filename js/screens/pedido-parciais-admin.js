@@ -59,7 +59,7 @@
     });
 
     var wrap = window.el('div', {
-      class: 'rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 mt-4',
+      style: 'border-radius:var(--rv-radius);', class: 'border border-dashed border-gray-300 bg-gray-50 p-4 mt-4',
     });
 
     wrap.appendChild(window.el('div', { class: 'text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3' },
@@ -85,7 +85,7 @@
       var percentual = fmtPercentual(item.percentual);
       var texto = item.label + ' · ' + fmtMetros(item.metros) + (percentual ? ' · ' + percentual : '');
       chips.appendChild(window.el('span', {
-        class: 'inline-flex items-center rounded-full bg-white border border-gray-200 px-3 py-1 text-xs text-gray-700',
+        style: 'border-radius:var(--rv-radius);', class: 'inline-flex items-center bg-white border border-gray-200 px-3 py-1 text-xs text-gray-700',
       }, texto));
     });
     wrap.appendChild(chips);
@@ -93,7 +93,7 @@
   }
 
   function metric(label, value) {
-    return window.el('div', { class: 'rounded-lg bg-white border border-gray-200 px-3 py-2' },
+    return window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white border border-gray-200 px-3 py-2' },
       window.el('div', { class: 'text-xs text-gray-500 mb-1' }, label),
       window.el('div', { class: 'text-sm font-semibold text-gray-900' }, value || '—')
     );
@@ -111,7 +111,7 @@
 
     var api = getTrackingApi();
     var situacaoOptions = buildSituacaoOptions(api);
-    var card = window.el('div', { class: 'bg-white rounded-xl shadow p-6 mb-4' });
+    var card = window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 mb-4' });
     var listWrap = window.el('div', { class: 'mt-4' });
 
     var dataHoje = new Date().toISOString().slice(0, 10);
@@ -124,13 +124,13 @@
     var dataInput = window.textInput({ type: 'date', value: dataHoje });
     var tituloInput = window.textInput({ type: 'text', value: '', placeholder: 'Titulo opcional' });
     var mensagemInput = window.el('textarea', {
-      class: 'w-full border rounded-lg px-3 py-2 min-h-[96px] focus:outline-none focus:ring-2 focus:ring-blue-500',
+      style: 'border-radius:var(--rv-radius);', class: 'w-full border px-3 py-2 min-h-[96px] focus:outline-none focus:ring-2 focus:ring-blue-500',
       placeholder: 'Mensagem opcional para o cliente',
     });
     var sequenciaInput = window.textInput({ type: 'number', value: '', placeholder: '1', step: '1' });
     var visivelInput = window.el('input', {
       type: 'checkbox',
-      class: 'h-4 w-4 rounded border-gray-300 text-blue-700 focus:ring-blue-500',
+      style: 'border-radius:var(--rv-radius);', class: 'h-4 w-4 border-gray-300 text-blue-700 focus:ring-blue-500',
     });
     visivelInput.checked = false;
 
@@ -146,7 +146,7 @@
 
       if (!Array.isArray(parciais) || parciais.length === 0) {
         listWrap.appendChild(window.el('div', {
-          class: 'rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm text-gray-500',
+          style: 'border-radius:var(--rv-radius);', class: 'border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm text-gray-500',
         }, 'Este pedido ainda nao possui parciais cadastradas.'));
         return;
       }
@@ -219,7 +219,7 @@
 
       if (res.error) {
         listWrap.replaceChildren(window.el('div', {
-          class: 'rounded-lg border border-red-200 bg-red-50 px-4 py-5 text-sm text-red-700',
+          style: 'border-radius:var(--rv-radius);', class: 'border border-red-200 bg-red-50 px-4 py-5 text-sm text-red-700',
         }, 'Erro ao carregar parciais: ' + (res.error.message || 'desconhecido')));
         console.error('pedido-parciais-admin: erro ao carregar pedido_parciais', res.error);
         return [];
@@ -279,7 +279,7 @@
 
     var btnSalvar = window.el('button', {
       type: 'button',
-      class: 'px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-semibold',
+      style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold',
     }, 'Cadastrar parcial');
 
     async function refreshAll() {

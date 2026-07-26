@@ -1093,8 +1093,12 @@ test('pedido-detail.js: modal usa resumo proprio para insumos e expedicao', () =
 });
 
 test('pedido-detail.js: modal de transicao usa contrato visual discreto', () => {
-  assert.match(detailEvents, /MOVEMENT_MODAL_RADIUS\s*=\s*['"]6px['"]/);
-  assert.match(detailEvents, /MOVEMENT_SURFACE_RADIUS\s*=\s*['"]4px['"]/);
+  // A2: geometry is owned by css/tokens.css. Both constants now resolve to the
+  // canonical radius instead of a literal the screen owns; what this guard keeps
+  // is that the modal panel and its surfaces are driven by named constants and
+  // that those constants are the ONLY radius the movement modal applies.
+  assert.match(detailEvents, /MOVEMENT_MODAL_RADIUS\s*=\s*['"]var\(--rv-radius\)['"]/);
+  assert.match(detailEvents, /MOVEMENT_SURFACE_RADIUS\s*=\s*['"]var\(--rv-radius\)['"]/);
   assert.match(detailEvents, /function normalizeMovementModalControls/);
   assert.match(movementModalSlice, /border:1px solid var\(--rv-border\);border-radius:' \+ MOVEMENT_MODAL_RADIUS/);
   assert.match(movementModalSlice, /box-shadow:' \+ MOVEMENT_MODAL_SHADOW/);

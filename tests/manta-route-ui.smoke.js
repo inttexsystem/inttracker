@@ -1253,7 +1253,31 @@ const PASS2_ASSETS = [
   'js/screens/system-screens.js',
   'js/screens/trocar-senha-obrigatoria.js'
 ];
-const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS.filter((a) => !PASS2_ASSETS.includes(a));
+// A2 removeu a SEGUNDA fonte de raio — os utilitarios Tailwind `rounded*` — das
+// telas abaixo, que passam a declarar a geometria canonica inline. Elas carregam o
+// token de correcao da A2; todas as demais conservam o token da ordem que as
+// alterou por ultimo. A garantia original nao muda: um asset alterado e invalidado
+// exatamente uma vez, sob um token declarado, e esse token nao vaza.
+const PASS2_A2_TOKEN = '20260726-ui-p5-pass2-a2';
+const PASS2_A2_ASSETS = [
+  'js/screens/cliente-pedido-detail.js',
+  'js/screens/common.js',
+  'js/screens/fornecedor.js',
+  'js/screens/op-latex-admin.js',
+  'js/screens/ordem-compra-distribuicao.js',
+  'js/screens/ordem-compra-render.js',
+  'js/screens/pedido-detail-events.js',
+  'js/screens/pedido-edit.js',
+  'js/screens/pedido-insumos-distribuicao.js',
+  'js/screens/pedido-itens-edit.js',
+  'js/screens/pedido-parciais-admin.js',
+  'js/screens/pedido-tracking-admin.js',
+  'js/screens/system-screens.js'
+];
+const PASS2_ASSETS_AINDA_EM_PASS2 = PASS2_ASSETS.filter((a) => !PASS2_A2_ASSETS.includes(a));
+const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS
+  .filter((a) => !PASS2_ASSETS.includes(a))
+  .filter((a) => !PASS2_A2_ASSETS.includes(a));
 
 // R3 alterou dois assets. A passada 1 retokenizou UM deles
 // (pedido-detail-render.js), entao o token de R3 sobrevive apenas no outro —
@@ -1308,6 +1332,7 @@ const BATCH3_ASSETS = BATCH3_ASSETS_DECLARADOS.filter((a) => !PASS1_ASSETS.inclu
 // listados em BATCH2_* porque, em relacao a 4532f76, seguem sendo assets
 // legitimamente retokenizados (R3/20c2).
 const BATCH2_ASSETS = BATCH2_ADDED_ASSETS.concat(BATCH2_RETOKENED_ASSETS)
+  .filter((asset) => !PASS2_A2_ASSETS.includes(asset))
   .filter((asset) => !BATCH3_ASSETS.includes(asset))
   .filter((asset) => !PASS1_ASSETS.includes(asset));
 
@@ -1411,10 +1436,10 @@ test('R3/20c6. o lote 3 nao retokenizou nenhum asset que nao alterou', () => {
   // continua proibido de arrastar assets, e a passada 1 declara os seus.
   const intocados = [
     ['js/screens/pedido-detail-data.js', BATCH2_TOKEN],
-    ['js/screens/pedido-edit.js', BATCH2_TOKEN],
-    ['js/screens/pedido-itens-edit.js', BATCH2_TOKEN],
+    ['js/screens/pedido-edit.js', PASS2_A2_TOKEN],
+    ['js/screens/pedido-itens-edit.js', PASS2_A2_TOKEN],
     ['js/screens/cliente-pedido-form.js', PASS1_TOKEN],
-    ['js/screens/common.js', PASS2_TOKEN],
+    ['js/screens/common.js', PASS2_A2_TOKEN],
     ['js/product-route.js', R2_TOKEN],
   ];
   for (const [rel, esperado] of intocados) {
@@ -1437,6 +1462,7 @@ test('R3/20c2. todo asset nao relacionado conserva o token que tinha em 4532f76'
     if (BATCH3_RETOKENED_ASSETS.includes(before[i].path)) continue;
     if (PASS1_ASSETS.includes(before[i].path)) continue;
     if (PASS2_ASSETS.includes(before[i].path)) continue;
+    if (PASS2_A2_ASSETS.includes(before[i].path)) continue;
     assert.equal(after[i].token, before[i].token,
       before[i].path + ' e um asset nao relacionado e nao pode ter o token alterado');
   }
@@ -1528,13 +1554,13 @@ test('PASS1/20c7. os assets da passada 1 de cor carregam exatamente o token decl
 // A passada 2 de raio declara os seus assets e o seu token; nenhum outro asset
 // pode carrega-lo, e ele tem de diferir de todo token anterior.
 test('PASS2/20c8. os assets da passada 2 de raio carregam exatamente o token declarado, e ele nao vaza', () => {
-  for (const rel of PASS2_ASSETS) {
+  for (const rel of PASS2_ASSETS_AINDA_EM_PASS2) {
     assert.equal(tokenFor(rel), PASS2_TOKEN,
       rel + ' deve carregar exatamente o token declarado da passada 2 de raio');
   }
   const carriers = assetRefs(indexHtml).filter((r) => r.token === PASS2_TOKEN).map((r) => r.path);
-  assert.deepEqual(carriers.sort(), PASS2_ASSETS.slice().sort(),
-    'exatamente os assets da passada 2 podem carregar o token da passada 2');
+  assert.deepEqual(carriers.sort(), PASS2_ASSETS_AINDA_EM_PASS2.slice().sort(),
+    'exatamente os assets da passada 2 que a A2 nao tocou podem carregar o token da passada 2');
   for (const anterior of [PASS1_TOKEN, BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN, R2_TOKEN]) {
     assert.notEqual(PASS2_TOKEN, anterior,
       'reusar um token anterior nao invalidaria cache algum');
@@ -1552,5 +1578,35 @@ test('PASS2/20c8. os assets da passada 2 de raio carregam exatamente o token dec
     const committed = execFileSync('git', ['rev-parse', 'cabd358:' + rel], { cwd: ROOT, encoding: 'utf8' }).trim();
     const worktree = execFileSync('git', ['hash-object', '--', rel], { cwd: ROOT, encoding: 'utf8' }).trim();
     assert.equal(worktree, committed, rel + ' nao foi declarado pela passada 2 e deve seguir byte-identico a cabd358');
+  }
+});
+
+// A correcao A2 declara os seus assets e o seu token; nenhum outro asset pode
+// carrega-lo, e ele tem de diferir de todo token anterior.
+test('A2/20c9. os assets da correcao A2 carregam exatamente o token declarado, e ele nao vaza', () => {
+  for (const rel of PASS2_A2_ASSETS) {
+    assert.equal(tokenFor(rel), PASS2_A2_TOKEN,
+      rel + ' deve carregar exatamente o token declarado da correcao A2');
+  }
+  const carriers = assetRefs(indexHtml).filter((r) => r.token === PASS2_A2_TOKEN).map((r) => r.path);
+  assert.deepEqual(carriers.sort(), PASS2_A2_ASSETS.slice().sort(),
+    'exatamente os assets da A2 podem carregar o token da A2');
+  for (const anterior of [PASS2_TOKEN, PASS1_TOKEN, BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN, R2_TOKEN]) {
+    assert.notEqual(PASS2_A2_TOKEN, anterior,
+      'reusar um token anterior nao invalidaria cache algum');
+  }
+  // Um asset retokenizado tem de ter mudado de fato desde o checkpoint publicado.
+  for (const rel of PASS2_A2_ASSETS) {
+    const committed = execFileSync('git', ['rev-parse', '2114191:' + rel], { cwd: ROOT, encoding: 'utf8' }).trim();
+    const worktree = execFileSync('git', ['hash-object', '--', rel], { cwd: ROOT, encoding: 'utf8' }).trim();
+    assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 2114191');
+  }
+  // E nenhum asset NAO declarado pela A2 pode ter mudado.
+  const declarados = new Set(PASS2_A2_ASSETS);
+  for (const ref of assetRefs(indexHtml)) {
+    if (!ref.path.startsWith('js/screens/') || declarados.has(ref.path)) continue;
+    const committed = execFileSync('git', ['rev-parse', '2114191:' + ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
+    const worktree = execFileSync('git', ['hash-object', '--', ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
+    assert.equal(worktree, committed, ref.path + ' nao foi declarado pela A2 e deve seguir byte-identico a 2114191');
   }
 });

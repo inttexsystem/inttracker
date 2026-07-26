@@ -175,7 +175,7 @@
       for (const item of (menuItems || [])) {
         aside.appendChild(window.el('a', {
           href: item.href,
-          class: 'block py-2 px-3 rounded hover:bg-gray-100 text-gray-700'
+          style: 'border-radius:var(--rv-radius);', class: 'block py-2 px-3 hover:bg-gray-100 text-gray-700'
         }, item.label));
       }
       const main = window.el('main', { class: 'flex-1 p-6 bg-gray-100', 'data-rv-shell-main': '' }, contentNode);

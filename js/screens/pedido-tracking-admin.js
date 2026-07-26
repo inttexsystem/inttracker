@@ -41,7 +41,7 @@
       : 'bg-blue-100 text-blue-700 border-blue-200';
 
     var wrap = window.el('div', {
-      class: 'rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4',
+      style: 'border-radius:var(--rv-radius);', class: 'border border-dashed border-gray-300 bg-gray-50 p-4',
     });
 
     wrap.appendChild(window.el('div', { class: 'text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2' },
@@ -50,7 +50,7 @@
 
     wrap.appendChild(window.el('div', { class: 'flex flex-wrap items-center gap-2 mb-2' },
       window.el('span', {
-        class: 'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ' + toneClass,
+        'data-ui-pill': '1', style: 'border-radius:var(--rv-radius-pill);', class: 'inline-flex items-center border px-3 py-1 text-xs font-semibold ' + toneClass,
       }, label),
       exception
         ? window.el('span', { class: 'text-xs text-gray-500' }, 'Excecao ativa')
@@ -101,7 +101,7 @@
     var api = getTrackingApi();
     if (!api) {
       return window.el('div', {
-        class: 'bg-white rounded-xl shadow p-6 mb-4 border border-amber-200 text-amber-700',
+        style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 mb-4 border border-amber-200 text-amber-700',
       }, 'Taxonomia visual do cliente indisponivel.');
     }
 
@@ -120,7 +120,7 @@
       return { value: item.key, label: item.label };
     });
 
-    var card = window.el('div', { class: 'bg-white rounded-xl shadow p-6 mb-4' });
+    var card = window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 mb-4' });
     card.appendChild(window.el('h2', { class: 'text-base font-bold text-gray-900 mb-1' },
       'Situacao visivel ao cliente'
     ));
@@ -141,7 +141,7 @@
     });
 
     var mensagemInput = window.el('textarea', {
-      class: 'w-full border rounded-lg px-3 py-2 min-h-[110px] focus:outline-none focus:ring-2 focus:ring-blue-500',
+      style: 'border-radius:var(--rv-radius);', class: 'w-full border px-3 py-2 min-h-[110px] focus:outline-none focus:ring-2 focus:ring-blue-500',
       placeholder: 'Mensagem opcional para o cliente',
     });
     mensagemInput.value = formState.status_cliente_mensagem;
@@ -176,7 +176,7 @@
 
     var btnSalvar = window.el('button', {
       type: 'button',
-      class: 'px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-semibold',
+      style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold',
     }, 'Salvar situacao visivel');
 
     async function handleSave() {
