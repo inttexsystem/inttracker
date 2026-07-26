@@ -154,6 +154,67 @@ to protect *layout*.
 
 ---
 
+## 2026-07-26 · D9 — Phase-5 colour ownership completion
+
+**Bounded completion of the token system. D1–D8 are not rewritten and no value they
+ratified changes.**
+
+**Context.** The phase-4 detector produced the first complete census of the application
+surface: 2,784 `UIC-001` colour sites. 2,267 mapped cleanly onto existing tokens. The
+remaining **517**, grouped into nine repeated patterns, had **no owner at all** — not a
+wrong owner, an absent one. The token system was extracted from SGAA plus one approved
+cockpit fixture (D1–D8); the application carries state vocabulary, business data,
+visualization and overlay roles that the fixture never contained, so no family was ever
+declared for them. Pass 1 was hard-stopped before its first write rather than closed by
+choosing colours by visual proximity — which is exactly how the three visual generations
+were produced.
+
+**Evidence.** `tests/fixtures/ui-conformance-baseline.json` at `9fbb84c`, and the
+2,784-row per-site census held outside the repository.
+
+### Ratified decisions
+
+| # | Decision | Choice | Reason | Accepted loss |
+|---|---|---|---|---|
+| D9.1 | Lifecycle status mapping (`UA`, 270 sites) | **§2.6 extended to the states the product actually has; unknown → `neutral`** | The table was already declared the single source but covered 15 states while the product persists ~25. An unlisted state silently became whatever the screen author picked that day. | `Recebido` moves blue → green and `Confirmado` becomes neutral: no family was ever ruled for it and inventing one is the failure mode this decision exists to stop. |
+| D9.2 | Classification badges (`UA`) | **Always `--rv-pill-neutral-*`, no dot** | A document type is not a state. Colouring types made a format chip look like a status and burned the semantic palette on data with no semantics. | Types lose their individual colours; label and icon carry the difference. |
+| D9.3 | Stage vs status (`UC`, 18 sites) | **`Em tecelagem` / `Em acabamento` are stages; `Em produção` stays a caution status** | §2.7 already said stage ≠ status. The screens used orange for acabamento, unrelated to `--rv-stage-acabamento`, while tecelagem already matched its token exactly. | Acabamento goes orange → teal. Visible, and the whole point: stage and status stop sharing a colour. |
+| D9.4 | Caution action surface (`UB`, 58 sites) | **Add `--rv-signal-caution-bg` / `-border` aliasing the pill-caution pair; add the §2.1 Caution button variant** | Caution had text but no fill or border, so a caution button had no legal dress and §1's same-family rule was unsatisfiable. Borrowing the muted pill tone beats inventing a second amber. | Two tokens that are aliases, not new values. Amber surfaces converge on one tone. |
+| D9.5 | Visualization (`UG`, 26 sites) | **`--rv-viz-track / -primary / -secondary / -series-3 / -series-4`, all composed from existing families** | Progress tracks and chart series are a real role with no owner. Composing them from brand/border/stage keeps re-theming to one block. | Five names for zero new values. |
+| D9.6 | Business colour data (`UD`, 113 sites) | **`js/pedido-ui.js` owns it; the richer `cadastros.js` palette is promoted byte-for-byte** | A product's colour is business data, not a design value. Two divergent palettes existed for the same domain fact; the 17-entry one is the real map and the 4-entry one was the accident. | `pedido-ui.js` values change (`PRETO` `#111111`→`#1a1a1a`, `CRU`, `KRAFT`, `CINZA`, default). Pinned tests were updated with it. |
+| D9.7 | Overlay scrim (`UF`, 10 sites) | **One `--rv-overlay-scrim`, modal backdrop only** | Four near-identical translucent darks existed. Hover, selection and focus already had owners and were being served by ad-hoc rgba. | None. The promoted value is the one the modals already used. |
+| D9.8 | Disabled state (`UI`, 4 sites) | **§2.1's opacity `.45` is binding; no disabled colour token** | A washed-out substitute value is a second palette by another name, and `op-nova.js` was deriving it by `String.replace` on the enabled style. | Disabled controls look slightly different, and the string-replace trick had to be rewritten as explicit declarations. |
+| D9.9 | Inverse text on signal (`UK`, 1 site) | **`--rv-text-on-signal`, aliasing `--rv-surface`** | `--rv-text-on-brand` is scoped to brand surfaces; text on a solid green button had no owner. | One more name. Not a fifth text level. |
+
+**Also ruled, without a new token.** The synthetic weave illustration in
+`cliente-pedido-form.js` (`UE`, 17 sites) is **retired**: it was a decorative gradient
+with no product data behind it, and keeping it would have established a decorative
+palette outside the token system. Its region now shows the real selected business
+swatches, or an honest neutral empty state.
+
+**Not granted.** No new literal design value entered `css/tokens.css` — every token added
+here resolves to an existing one, except `--rv-overlay-scrim`, whose value is promoted
+from the implementation it replaces. Business colour literals are legitimate **only** in
+`js/pedido-ui.js`. This is not permission to add a second palette anywhere else.
+
+### Revoked in this round
+
+- Per-screen status, type and tone colour maps, in all 18 files that carried one.
+- The duplicated `getSwatchTone` palette in `cadastros.js` and the synthetic per-model
+  palettes in `cliente-pedido-form.js` and `pedido-item-row-editor.js`.
+- The four-entry `COR_PREVIEW_MAP` in `js/pedido-ui.js` and its `#9ca3af` default.
+- Disabled-state colour substitutions (`#93b7f5`, `#9fb4d6`, `#e1e7f0`).
+- The synthetic product illustration and its tan gradient palette.
+
+### Still open after this round
+
+| Topic | State | Needs |
+|---|---|---|
+| `Confirmado` lifecycle family | resolved to `neutral` by the unknown-state rule | a product decision if a distinct family is wanted |
+| Whether `cores` should persist an explicit hex | open | schema decision; the precedence already accepts one |
+
+---
+
 ## How to record the next round
 
 Header with date and name. Context in two sentences. One line per decision with

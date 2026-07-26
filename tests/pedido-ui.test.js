@@ -47,11 +47,11 @@ test('pedido-ui: namespace expõe COR_PREVIEW_MAP, status e helpers', () => {
   const U = sandbox.window.RAVATEX_PEDIDO_UI;
   assert.ok(U, 'namespace ausente');
   // COR_PREVIEW_MAP é congelado; comparar valores individuais.
-  assert.equal(U.COR_PREVIEW_MAP.PRETO, '#111111');
-  assert.equal(U.COR_PREVIEW_MAP.CRU,   '#e8dfc8');
-  assert.equal(U.COR_PREVIEW_MAP.KRAFT, '#b08a55');
-  assert.equal(U.COR_PREVIEW_MAP.CINZA, '#8a8a8a');
-  assert.equal(U.COR_PREVIEW_FALLBACK, '#9ca3af');
+  assert.equal(U.COR_PREVIEW_MAP.PRETO, '#1a1a1a');
+  assert.equal(U.COR_PREVIEW_MAP.CRU,   '#e8dcc8');
+  assert.equal(U.COR_PREVIEW_MAP.KRAFT, '#b5722e');
+  assert.equal(U.COR_PREVIEW_MAP.CINZA, '#8a93a3');
+  assert.equal(U.COR_PREVIEW_FALLBACK, '#cbd5e1');
   for (const s of ['RASCUNHO','RECEBIDO','CONFIRMADO','PRODUZINDO','ENTREGUE','CANCELADO']) {
     assert.equal(typeof U.PEDIDO_STATUS[s], 'string', 'PEDIDO_STATUS.' + s);
   }
@@ -69,55 +69,99 @@ test('pedido-ui: namespace expõe COR_PREVIEW_MAP, status e helpers', () => {
   assert.equal(typeof U.fmtDataCurta, 'function');
 });
 
-test('pedido-ui: PRETO → #111111', () => {
+test('pedido-ui: paleta canonica de negocio tem as 17 entradas promovidas', () => {
   const src = fs.readFileSync(HELPER, 'utf8');
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
   vm.runInContext(src, sandbox);
-  assert.equal(sandbox.window.corPreviewHex('PRETO'), '#111111');
+  const U = sandbox.window.RAVATEX_PEDIDO_UI;
+  const esperado = {
+    AMARELO: '#facc15', AREIA: '#d6c3a1', AZUL: '#2563eb', AZUL_CLARO: '#60a5fa',
+    BEGE: '#d6b98c', BRANCO: '#f8fafc', CINZA: '#8a93a3', CRU: '#e8dcc8',
+    GRAFITE: '#4b5563', KRAFT: '#b5722e', LARANJA: '#f97316', MARINHO: '#1e3a5f',
+    PRETO: '#1a1a1a', ROSA: '#ec4899', ROXO: '#7c3aed', VERDE: '#16a34a',
+    VERMELHO: '#dc2626',
+  };
+  assert.deepEqual({ ...U.COR_PREVIEW_MAP }, esperado);
+  assert.equal(Object.keys(U.COR_PREVIEW_MAP).length, 17);
+  assert.equal(U.COR_PREVIEW_SUBSTRING.length, 13);
+  assert.equal(U.COR_PREVIEW_FALLBACK, '#cbd5e1');
 });
 
-test('pedido-ui: CRU → #e8dfc8', () => {
+test('pedido-ui: nomes exatos resolvem pela paleta canonica', () => {
   const src = fs.readFileSync(HELPER, 'utf8');
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
   vm.runInContext(src, sandbox);
-  assert.equal(sandbox.window.corPreviewHex('CRU'), '#e8dfc8');
+  const hex = sandbox.window.corPreviewHex;
+  assert.equal(hex('PRETO'), '#1a1a1a');
+  assert.equal(hex('CRU'), '#e8dcc8');
+  assert.equal(hex('KRAFT'), '#b5722e');
+  assert.equal(hex('CINZA'), '#8a93a3');
+  assert.equal(hex('VERMELHO'), '#dc2626');
+  assert.equal(hex('ROSA'), '#ec4899');
+  assert.equal(hex('AZUL_CLARO'), '#60a5fa');
 });
 
-test('pedido-ui: KRAFT → #b08a55', () => {
+test('pedido-ui: fallback por substring preserva a ordem promovida', () => {
   const src = fs.readFileSync(HELPER, 'utf8');
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
   vm.runInContext(src, sandbox);
-  assert.equal(sandbox.window.corPreviewHex('KRAFT'), '#b08a55');
+  const hex = sandbox.window.corPreviewHex;
+  // 'AZUL CLARO' com espaco nao casa a chave exata 'AZUL_CLARO' e cai no
+  // fragmento 'AZUL' — comportamento promovido byte a byte de cadastros.js.
+  assert.equal(hex('AZUL CLARO'), '#2563eb');
+  assert.equal(hex('VERDE MUSGO'), '#16a34a');
+  assert.equal(hex('CINZA CHUMBO'), '#8a93a3');
 });
 
-test('pedido-ui: CINZA → #8a8a8a', () => {
+test('pedido-ui: cor desconhecida cai no fallback canonico #cbd5e1', () => {
   const src = fs.readFileSync(HELPER, 'utf8');
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
   vm.runInContext(src, sandbox);
-  assert.equal(sandbox.window.corPreviewHex('CINZA'), '#8a8a8a');
+  assert.equal(sandbox.window.corPreviewHex('desconhecida'), '#cbd5e1');
+  assert.equal(sandbox.window.corPreviewHex(''), '#cbd5e1');
 });
 
-test('pedido-ui: cor desconhecida → #9ca3af (fallback)', () => {
+test('pedido-ui: valor explicito do registro tem precedencia sobre o nome', () => {
   const src = fs.readFileSync(HELPER, 'utf8');
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
   vm.runInContext(src, sandbox);
-  assert.equal(sandbox.window.corPreviewHex('VERMELHO'), '#9ca3af');
-  assert.equal(sandbox.window.corPreviewHex('rosa'), '#9ca3af');
+  const hex = sandbox.window.corPreviewHex;
+  assert.equal(hex('PRETO', '#ABCDEF'), '#abcdef');
+  assert.equal(hex({ nome: 'PRETO', cor_hex: '#123456' }), '#123456');
+  // um valor invalido nao sequestra a precedencia: cai para o nome.
+  assert.equal(hex('PRETO', 'nao-e-cor'), '#1a1a1a');
+  assert.equal(hex({ nome: 'KRAFT' }), '#b5722e');
 });
 
-test('pedido-ui: normalização (trim + UPPER) funciona', () => {
+test('pedido-ui: corPreviewIsLight marca apenas os tons claros promovidos', () => {
   const src = fs.readFileSync(HELPER, 'utf8');
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
   vm.runInContext(src, sandbox);
-  assert.equal(sandbox.window.corPreviewHex('  preto '), '#111111');
-  assert.equal(sandbox.window.corPreviewHex('Cru'), '#e8dfc8');
-  assert.equal(sandbox.window.corPreviewHex('kRaFt'), '#b08a55');
+  const isLight = sandbox.window.corPreviewIsLight;
+  for (const claro of ['BRANCO', 'CRU', 'AMARELO', 'AREIA', 'BEGE']) {
+    assert.equal(isLight(claro), true, claro);
+  }
+  for (const escuro of ['PRETO', 'MARINHO', 'VERMELHO', 'GRAFITE']) {
+    assert.equal(isLight(escuro), false, escuro);
+  }
+  assert.equal(isLight('#f8fafc'), true);
+  assert.equal(isLight('#1a1a1a'), false);
+});
+
+test('pedido-ui: normalizacao (trim + UPPER) funciona', () => {
+  const src = fs.readFileSync(HELPER, 'utf8');
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(src, sandbox);
+  assert.equal(sandbox.window.corPreviewHex('  preto '), '#1a1a1a');
+  assert.equal(sandbox.window.corPreviewHex('Cru'), '#e8dcc8');
+  assert.equal(sandbox.window.corPreviewHex('kRaFt'), '#b5722e');
 });
 
 test('pedido-ui: normalizarCorNome lida com null e não-string', () => {
@@ -210,7 +254,11 @@ test('pedido-ui: corPreviewElement retorna div quando window.el existe', () => {
   vm.runInContext(src, sandbox);
   const el = sandbox.window.corPreviewElement('PRETO');
   assert.ok(el, 'elemento não retornado');
-  assert.match(el.style, /background:#111111/);
+  assert.match(el.style, /background:#1a1a1a/);
+  // O chip de preview passou a usar tokens para raio e borda; apenas o valor
+  // de negocio permanece literal.
+  assert.match(el.style, /border-radius:var\(--rv-radius\)/);
+  assert.match(el.style, /border:1px solid var\(--rv-border\)/);
   assert.match(el.style, /width:48px/);
   assert.equal(el.title, 'PRETO');
 });
@@ -228,7 +276,7 @@ test('pedido-ui: globals bare expostos para compatibilidade', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
   vm.runInContext(src, sandbox);
-  for (const g of ['corPreviewHex','pedidoStatusLabel','pedidoStatusBadge','fmtDataCurta','pedidoStatusTodos']) {
+  for (const g of ['corPreviewHex','corPreviewIsLight','normalizarCorValor','pedidoStatusLabel','pedidoStatusBadge','fmtDataCurta','pedidoStatusTodos']) {
     assert.equal(typeof sandbox.window[g], 'function', 'global ' + g + ' não exposto');
   }
 });

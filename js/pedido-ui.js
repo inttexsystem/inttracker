@@ -20,30 +20,118 @@
   'use strict';
 
   // -------------------------------------------------------------------
-  // Mapeamento cor → hex para preview visual
+  // CANONICAL BUSINESS-COLOUR OWNER (D9)
+  //
+  // These are BUSINESS values — the real colour of a product — not design
+  // tokens. They are the one place in the runtime where a literal colour
+  // is legitimate. Screens consume `corPreviewHex` and MUST NOT declare
+  // their own palette or substring fallbacks.
+  //
+  // Precedence, in order:
+  //   1. an explicit valid colour value carried by the business record;
+  //   2. an exact normalized business-colour name;
+  //   3. the canonical substring fallback;
+  //   4. the canonical default fallback.
   // -------------------------------------------------------------------
   const COR_PREVIEW_MAP = Object.freeze({
-    'PRETO': '#111111',
-    'CRU':   '#e8dfc8',
-    'KRAFT': '#b08a55',
-    'CINZA': '#8a8a8a',
+    'AMARELO':    '#facc15',
+    'AREIA':      '#d6c3a1',
+    'AZUL':       '#2563eb',
+    'AZUL_CLARO': '#60a5fa',
+    'BEGE':       '#d6b98c',
+    'BRANCO':     '#f8fafc',
+    'CINZA':      '#8a93a3',
+    'CRU':        '#e8dcc8',
+    'GRAFITE':    '#4b5563',
+    'KRAFT':      '#b5722e',
+    'LARANJA':    '#f97316',
+    'MARINHO':    '#1e3a5f',
+    'PRETO':      '#1a1a1a',
+    'ROSA':       '#ec4899',
+    'ROXO':       '#7c3aed',
+    'VERDE':      '#16a34a',
+    'VERMELHO':   '#dc2626',
   });
-  const COR_PREVIEW_FALLBACK = '#9ca3af';
+
+  // Order is significant and is preserved from the promoted implementation:
+  // 'AZUL' is tested before 'AZUL_CLARO' would ever be reached by substring,
+  // so 'AZUL CLARO' (space, not underscore) resolves to the base blue.
+  const COR_PREVIEW_SUBSTRING = Object.freeze([
+    ['AZUL', '#2563eb'],
+    ['CINZA', '#8a93a3'],
+    ['CRU', '#e8dcc8'],
+    ['KRAFT', '#b5722e'],
+    ['MARINHO', '#1e3a5f'],
+    ['PRETO', '#1a1a1a'],
+    ['BRANCO', '#f8fafc'],
+    ['VERDE', '#16a34a'],
+    ['VERMELHO', '#dc2626'],
+    ['ROSA', '#ec4899'],
+    ['ROXO', '#7c3aed'],
+    ['AMARELO', '#facc15'],
+    ['LARANJA', '#f97316'],
+  ]);
+
+  const COR_PREVIEW_FALLBACK = '#cbd5e1';
+
+  // Swatches whose luminance is high enough that the chip needs a visible
+  // outline rather than relying on its own edge.
+  const COR_PREVIEW_LIGHT = Object.freeze([
+    '#f8fafc', '#e8dcc8', '#facc15', '#d6c3a1', '#d6b98c',
+  ]);
+
+  const COR_VALOR_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
   function normalizarCorNome(nome) {
     if (typeof nome !== 'string') return '';
     return nome.trim().toUpperCase();
   }
 
-  function corPreviewHex(nome) {
-    const key = normalizarCorNome(nome);
-    return COR_PREVIEW_MAP[key] || COR_PREVIEW_FALLBACK;
+  /** An explicit record value, normalized, or '' when it is not a colour. */
+  function normalizarCorValor(valor) {
+    if (typeof valor !== 'string') return '';
+    const v = valor.trim().toLowerCase();
+    return COR_VALOR_RE.test(v) ? v : '';
+  }
+
+  function corRegistroValor(entrada) {
+    if (!entrada || typeof entrada !== 'object') return '';
+    return normalizarCorValor(entrada.cor_hex || entrada.hex || entrada.valor || '');
+  }
+
+  /**
+   * Business preview colour for a product colour.
+   *
+   * @param {string|object} nome colour name, or a record carrying one
+   * @param {string} [valorExplicito] explicit record value, when the caller
+   *        holds it separately from the name
+   */
+  function corPreviewHex(nome, valorExplicito) {
+    const explicito = normalizarCorValor(valorExplicito) || corRegistroValor(nome);
+    if (explicito) return explicito;
+
+    const bruto = nome && typeof nome === 'object' ? nome.nome : nome;
+    const key = normalizarCorNome(bruto);
+    if (COR_PREVIEW_MAP[key]) return COR_PREVIEW_MAP[key];
+
+    for (const [fragmento, hex] of COR_PREVIEW_SUBSTRING) {
+      if (key.includes(fragmento)) return hex;
+    }
+    return COR_PREVIEW_FALLBACK;
+  }
+
+  /** Does this swatch need an explicit outline to stay visible? */
+  function corPreviewIsLight(nomeOuHex) {
+    const direto = normalizarCorValor(nomeOuHex);
+    const hex = direto || corPreviewHex(nomeOuHex);
+    return COR_PREVIEW_LIGHT.indexOf(String(hex).toLowerCase()) !== -1;
   }
 
   function corPreviewElement(nome) {
     if (typeof window.el !== 'function') return null;
     return window.el('div', {
-      style: `width:48px;height:48px;background:${corPreviewHex(nome)};border-radius:4px;border:1px solid #ddd;flex-shrink:0;`,
+      style: 'width:48px;height:48px;background:' + corPreviewHex(nome)
+        + ';border-radius:var(--rv-radius);border:1px solid var(--rv-border);flex-shrink:0;',
       title: String(nome || ''),
     });
   }
@@ -142,7 +230,11 @@
   // -------------------------------------------------------------------
   window.RAVATEX_PEDIDO_UI = {
     COR_PREVIEW_MAP,
+    COR_PREVIEW_SUBSTRING,
     COR_PREVIEW_FALLBACK,
+    COR_PREVIEW_LIGHT,
+    normalizarCorValor,
+    corPreviewIsLight,
     PEDIDO_STATUS,
     PEDIDO_STATUS_LABEL,
     PEDIDO_STATUS_BADGE,
@@ -164,7 +256,9 @@
   Object.assign(window, {
     corPreviewHex,
     corPreviewElement,
+    corPreviewIsLight,
     normalizarCorNome,
+    normalizarCorValor,
     pedidoStatusLabel,
     pedidoStatusBadgeClass,
     pedidoStatusBadge,

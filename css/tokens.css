@@ -58,6 +58,27 @@
   --rv-signal-positive-bg:     #e9f5e7;  /* positive button: same family (D7) */
   --rv-signal-positive-border: #b9d7b5;
   --rv-signal-caution:         #7b4b12;
+  /* Caution had text but no action surface, so a caution button had no legal
+     fill+border pair. It borrows the pill family's muted tone rather than
+     inventing a second amber (D9).                                          */
+  --rv-signal-caution-bg:      var(--rv-pill-caution-bg);
+  --rv-signal-caution-border:  var(--rv-pill-caution-border);
+
+  /* Text or glyph on a SOLID positive / caution / negative surface.
+     Not a fifth text-hierarchy level (D9).                         */
+  --rv-text-on-signal:         var(--rv-surface);
+
+  /* ---- VISUALIZATION — progress, range track, series (D9) ----
+     Composed from existing families; never an independent palette. */
+  --rv-viz-track:     var(--rv-border-soft);
+  --rv-viz-primary:   var(--rv-brand);
+  --rv-viz-secondary: var(--rv-accent-blue);
+  --rv-viz-series-3:  var(--rv-stage-tecelagem);
+  --rv-viz-series-4:  var(--rv-stage-acabamento);
+
+  /* ---- OVERLAY — full-screen modal backdrop ONLY (D9) ----
+     Never hover, selection, focus or a badge.                      */
+  --rv-overlay-scrim: rgba(15, 23, 42, .42);
 
   /* ---- STATUS PILL — SGAA, muted tone (D4) ----
      Muted because background + border + dot already carry state.  */

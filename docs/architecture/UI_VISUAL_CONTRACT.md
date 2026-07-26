@@ -16,8 +16,9 @@ Four layers, **one owning file each**. No value exists in two places.
 
 | Layer | Owner | Holds |
 |---|---|---|
-| 1 · Tokens | `css/tokens.css` | every visual value in the product |
-| 2 · Primitives | this file, §2 | the 11 components and their states |
+| 1 · Tokens | `css/tokens.css` | every **design** value in the product |
+| 1b · Business colour | `js/pedido-ui.js` | product-colour preview values (D9) |
+| 2 · Primitives | this file, §2 | the 13 components and their states |
 | 3 · Archetypes | this file, §3 | the 6 screen families and their intent |
 | 4 · Conformance | `docs/architecture/UI_CONFORMANCE.md` | screen → archetype → state |
 
@@ -56,6 +57,28 @@ Three colour families coexist with defined jobs — this is deliberate, not acci
 **Cross-cutting rule:** background, border and text of one element always come from
 **the same family**. Mismatched chroma between fill and border is a defect.
 
+Three further ownerships close the gaps the application surface exposed (D9):
+
+| Ownership | Tokens | Scope |
+|---|---|---|
+| **Visualization** | `--rv-viz-track`, `--rv-viz-primary`, `--rv-viz-secondary`, `--rv-viz-series-3/4` | progress bar, range track, gradient, chart series |
+| **Overlay** | `--rv-overlay-scrim` | full-screen modal backdrop **only** |
+| **Inverse on signal** | `--rv-text-on-signal` | text or glyph on a solid positive/caution/negative surface |
+
+`--rv-text-on-brand` stays restricted to brand/action surfaces; `--rv-text-on-signal` is
+its signal-surface counterpart. Neither is a fifth text-hierarchy level. The overlay
+scrim is never used for hover, selection, focus or a badge — those are `--rv-active-bg`
+and `--rv-focus-ring`. A gradient composes token references; it never carries a literal
+colour stop.
+
+**Business colour is not a design token.** The preview colour of a *product* is business
+data, owned by `js/pedido-ui.js` (`corPreviewHex`) with a fixed precedence: an explicit
+valid value on the record, then the exact colour name, then the canonical substring
+fallback, then the canonical default. Literal colour values may exist there and nowhere
+else in the runtime. A screen consumes the helper; it must never declare its own product
+palette, substring fallback or swatch literal. A screen must not render a **synthetic
+product illustration** that is not backed by real product data.
+
 ---
 
 ## 2. Layer 2 — Primitives
@@ -72,9 +95,16 @@ Three heights (`--rv-h-compact/default/primary`), radius `--rv-radius`,
 | Primary | `--rv-brand` | none | `--rv-text-on-brand` | 38px |
 | Secondary | `--rv-surface` | `--rv-border-strong` | `--rv-text-secondary` | 34px |
 | Positive | `--rv-signal-positive-bg` | `--rv-signal-positive-border` | `--rv-signal-positive` | 34px |
+| Caution | `--rv-signal-caution-bg` | `--rv-signal-caution-border` | `--rv-signal-caution` | 34px |
 | Destructive | `--rv-surface` | `--rv-signal-negative-border` | `--rv-signal-negative` | 34px |
 | Compact | `--rv-surface` | `--rv-border-strong` | `--rv-text-secondary` | 32px |
 | Attach (dashed) | `--rv-surface` | `1px dashed --rv-border-strong` | `--rv-text-secondary` | 32px, `width:100%` |
+
+The **Caution** variant (D9) also dresses an operational caution banner and a caution KPI
+surface — anywhere caution is the element's own semantic role. It is not for a persisted
+alert record: those take `--rv-alert-*` per §2.11. `--rv-pill-caution-*` is never applied
+directly to a non-pill element; `--rv-signal-caution-bg/-border` exist precisely so it
+does not have to be.
 
 - **One dominant action per decision scope.** A screen may hold independent scopes;
   it may not hold two primaries competing in the same block.
@@ -82,7 +112,10 @@ Three heights (`--rv-h-compact/default/primary`), radius `--rv-radius`,
   action (§2.9).
 - **Disabled:** the `disabled` key enters the attribute object **only when the
   condition is `true`** — never as an unconditional boolean expression.
-  Opacity `.45`, `cursor: default`.
+  Opacity `.45`, `cursor: default`. **A disabled control keeps its enabled colours**
+  — there is no disabled colour token and a washed-out substitute value is a defect
+  (D9). Build the enabled and disabled declarations explicitly; never derive one from
+  the other by string replacement.
 
 **Alignment** — closed rule, checkable:
 - entity header: bar right-aligned, `align-items: flex-start` (aligns to the **top of
@@ -159,21 +192,43 @@ not an action at all. A control that mutates state is an action and follows §2.
 text from the `--rv-pill-*` family, 5px dot before. `--rv-fs-2xs`/600.
 State is never communicated by colour alone — dot **and** label.
 
-Semantic mapping (single source; do not duplicate in templates):
+Semantic mapping — **single source, and its runtime owner is `js/badges.js`** (D9).
+Do not duplicate it in a template, a screen or a second helper.
 
 | Domain state | Family |
 |---|---|
-| Deferida, Ativo, Conectado, Resolvido, Concluído | `positive` |
-| Pendente, Em análise, Reconectar | `caution` |
-| Indeferida, Encerrada, Cancelado | `negative` |
-| Devolvida | `info` |
-| Inativo, Desconectado, Trancado, unknown | `neutral` |
+| Deferida, Ativo, Conectado, Resolvido, Concluído, Aceito, Recebido, Entregue, Finalizada, Pronto p/ retirada, Pronto p/ envio | `positive` |
+| Pendente, Em análise, Reconectar, Em produção, Em transporte, Parcial | `caution` |
+| Indeferida, Encerrada, Cancelado, Cancelada, Rejeitado, Atrasado | `negative` |
+| Devolvida, Emitida, Aberta, Atrelado | `info` |
+| Inativo, Desconectado, Trancado, Rascunho, Simulada, Não aplicável, unknown | `neutral` |
+
+Lookup normalizes case, whitespace, accents and underscore-separated keys, so
+`em_producao`, `Em produção` and `EM PRODUCAO` are one state. **An unrecognised state
+resolves to `neutral`** — it never receives an invented semantic family.
+
+### 2.6.1 Classification badge
+
+A **classification** is not a state: user type (Admin / Fornecedor / Cliente), document
+type (NF-e / Romaneio), direction (Entrada / Saída), format (PDF / XML / JSONL), route
+(Manta / Tapete), origin (Nativa / Legado).
+
+Always `--rv-pill-neutral-bg` + `--rv-pill-neutral-border` + `--rv-pill-neutral-text`,
+**and no status dot**. The difference between classifications is carried by the label and
+the icon, never by handing each one an arbitrary positive, negative or stage colour.
+Owner: `js/badges.js`.
 
 ### 2.7 Stage badge
 
 Soft pill `--rv-stage-*-bg` + text `--rv-stage-*`, `padding: 3px 9px`,
 `--rv-fs-2xs`/600. No dot (the dot belongs to status).
 **Stage and status never share a colour.**
+
+`Tecelagem` / `Em tecelagem` and `Acabamento` / `Em acabamento` are **production stages**,
+not lifecycle statuses (D9): they render as stage badges and are never mapped to a
+status-pill family. `Em produção` is the opposite case — it is a lifecycle status
+(`caution`) and is independent of whichever stage the item currently sits in.
+Owner: `js/badges.js`.
 
 ### 2.8 File chip and document slots
 
@@ -204,7 +259,8 @@ Values: 30×30px, radius `--rv-radius`, border `--rv-border-soft`, background
 
 Layer `--rv-z-modal` (toast `--rv-z-toast`). Inherits typography, radius, flat cards
 and the one-dominant-action-per-scope rule. Shadow `--rv-shadow-popover`. Focus
-management mandatory.
+management mandatory. The full-screen backdrop is `--rv-overlay-scrim` and nothing
+else; there is exactly one scrim value (D9).
 
 When technical evidence and human input appear in the same modal, the two blocks are
 **visually separated**: evidence read-only, human fields editable, conditional fields
@@ -219,6 +275,21 @@ Alert: `min-height: 26px`, `padding: 0 12px`, radius `--rv-radius`,
 (`--rv-alert-*` or the user's free hex), never hardcoded in the template.
 Free colour → derived border: luminance `(0.299R + 0.587G + 0.114B) / 255`;
 `> 0.72` mixes 18% black, otherwise 26% white.
+
+An **operational** caution banner — one computed from live state rather than read from a
+persisted alert record — is not an alert in this sense. It takes the §2.1 Caution family.
+
+### 2.12 Progress, range and chart
+
+Track `--rv-viz-track`. Primary fill `--rv-viz-primary`. A second generic series
+`--rv-viz-secondary`; further non-semantic series `--rv-viz-series-3`, `--rv-viz-series-4`.
+Where the value is genuinely positive, caution or negative, the matching `--rv-signal-*`
+token is used instead — colour then carries meaning and must agree with it.
+
+A gradient composes `var(--rv-*)` stops. A literal colour stop is a defect. There is no
+second chart palette, and a non-CSS consumer (canvas or similar) resolves a token by
+name through a helper that fails when the token is absent — never by hard-coding a
+fallback value.
 
 ---
 
@@ -351,7 +422,12 @@ Any simplified replica that does not meet the real requirement is forbidden:
 - fabricated badge or file without a backend;
 - table header misaligned with its values;
 - emoji as a substitute for functional iconography;
-- brand teal in a state, badge, pill or indicator.
+- brand teal in a state, badge, pill or indicator;
+- a product palette, substring fallback or swatch literal declared in a screen;
+- a synthetic product illustration with no real product data behind it;
+- a disabled-state replacement colour;
+- a literal colour stop inside a gradient;
+- the overlay scrim used for anything but a full-screen modal backdrop.
 
 ---
 
