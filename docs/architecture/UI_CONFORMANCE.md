@@ -3,11 +3,21 @@
 > Layer 4 of the contract. Screen → archetype → state → fixture.
 > **State is filled by the detector, not by eye.**
 >
-> **Status: PHASE-4 DETECTOR IMPLEMENTED / BASELINE GENERATED / AWAITING ARCHITECT
-> ACCEPTANCE.** Every state below is now a mechanical read of
-> `tests/fixtures/ui-conformance-baseline.json` — see § Detector provenance for the
-> exact rule. Nothing was remediated: phase 4 measures, phase 5 fixes, and phase 5 is
-> not authorized.
+> **Status: PHASE-5 PASS 1 IMPLEMENTED / `UIC-001` CLOSED / LOCALLY AND VISUALLY
+> VERIFIED / PUBLISHED / AWAITING ARCHITECT ACCEPTANCE.** Every state below is a
+> mechanical read of `tests/fixtures/ui-conformance-baseline.json` — see § Detector
+> provenance for the exact rule.
+>
+> **Phase 4 — `CLOSED / ACCEPTED_WITH_NONBLOCKING_REPORT_SCHEMA_DEBT`, checkpoint
+> `9fbb84c1613ffc24f994ad053c812d724bf1ade0`.** The report-schema debt it was accepted
+> with — two highlight keys whose names described the pre-correction semantics while
+> already carrying the corrected numbers — is **corrected forward in this pass**, not
+> reopened: the keys are now `literal_visual_colours_blocking` and
+> `literal_colour_context_unproven`, the predicates are unchanged, and the detector is
+> `1.0.2`.
+>
+> **Pass 1 (literal colour ownership) is the only pass that has run.** Passes 2-8 are
+> not authorized. What pass 1 changed is recorded in `DESIGN_DECISIONS.md` D9.
 >
 > **Read the three states literally.** `conforming` means the detector evaluated
 > every rule and found no blocking finding. `deviation` means it found one.
@@ -37,8 +47,8 @@
 
 | Fact | Value |
 |---|---|
-| Detector | `scripts/validate-ui-conformance.mjs` v1.0.1 |
-| Enum source | `UI_VISUAL_CONTRACT.md` §5, block at line 319 |
+| Detector | `scripts/validate-ui-conformance.mjs` v1.0.2 |
+| Enum source | `UI_VISUAL_CONTRACT.md` §5, block at line 390 |
 | §5 blob hash | `f8349e6eeca291fef2edf4d6e30afd628732f00b6495d54eb9273860fa63f1c4` |
 | Baseline | `tests/fixtures/ui-conformance-baseline.json` |
 | Determinism | independent regenerations produce a byte-identical blob |
@@ -48,22 +58,30 @@
 resolution or coverage is incomplete. No row below was set by looking at a screen.
 
 **Two source classes, one rule set.** The prototype front-end reads `.dc.html`; the
-application front-end reads `js/screens/*.js`. 67 files were scanned: 27 `FULL`, 40
-`PARTIAL`, 0 `UNSUPPORTED`. 3970 findings — 2255 blocking, 323 declared debt, 1392
+application front-end reads `js/screens/*.js`. 67 files were scanned: 28 `FULL`, 39
+`PARTIAL`, 0 `UNSUPPORTED`. 1147 findings — 232 blocking, 322 declared debt, 593
 coverage gaps.
 
-**Baseline by rule.** UIC-001 literal colour 2013 (+771 gaps) · UIC-002 radius 97 ·
-UIC-003 control height 13 (+9 gaps) · UIC-004 shadow 21 (+21 gaps) · UIC-005
+**Baseline by rule.** UIC-001 literal colour **0** (+**0** gaps) · UIC-002 radius 93 ·
+UIC-003 control height 13 (+9 gaps) · UIC-004 shadow 3 (+8 gaps) · UIC-005
 typography 80 · UIC-006 native `<select>` 15 · UIC-007 pill radius on a button **0** ·
-UIC-008 card action alignment 0 (+37 gaps) · UIC-009 deprecated token 323 (debt) ·
+UIC-008 card action alignment 0 (+37 gaps) · UIC-009 deprecated token 322 (debt) ·
 UIC-010 semantic-radius misuse 16 (+2 gaps) · UIC-011 unknown token **0**. Cards
-carrying a shadow: **0**. Plus 552 front-end decoding gaps under `UIC-000`.
+carrying a shadow: **0**. Plus 549 front-end decoding gaps under `UIC-000`.
 
-### UIC-001 — a colour-shaped run is classified by syntax, in three states
+**Deltas against the phase-4 entry baseline** (`9fbb84c`, blob `4fb639f` → `9291ce6`):
+UIC-001 2013 blocking + 771 gaps → **0 + 0**. Every other rule decreased or held:
+UIC-002 97 → 93, UIC-004 21 → 3 blocking and 21 → 8 gaps, UIC-009 323 → 322,
+UIC-000 552 → 549. UIC-003, UIC-005, UIC-006, UIC-008, UIC-010 unchanged. UIC-007 and
+UIC-011 stayed at zero. Coverage `FULL` 27 → 28, `PARTIAL` 40 → 39, `UNSUPPORTED` 0.
+**No rule increased.** The decreases outside UIC-001 are incidental — a card shadow or
+a radius that disappeared with the literal that carried it — and were not chased.
+
+### UIC-001 — closed
 
 A hex or functional colour form is **not** a defect because of how it looks. It is a
-defect only where the front-end can prove it is a visual value. There are exactly
-three outcomes, and the same value can reach any of them:
+defect only where the front-end can prove it is a visual value. The three-state model
+accepted at phase 4 is unchanged:
 
 | Outcome | When | Severity |
 |---|---|---|
@@ -71,16 +89,28 @@ three outcomes, and the same value can reach any of them:
 | Proven non-visual | copy and labels; a `placeholder`, `title`, `alt`, `label`, `href`, `class` or other non-visual attribute or key; markup text content; a text child of `el()`; a route fragment or identifier; a comment; a regular-expression literal | **no finding** |
 | Neither proven | a bare variable initialiser, an ambiguous map key such as `bg`, an array element, a call argument, an undecodable attribute | **coverage** — `COVERAGE_GAP / VISUAL_COLOUR_CONTEXT_UNPROVEN` |
 
-Counts: **2013** proven visual, **771** unproven, and one run proven non-visual.
-An unproven run is **not** counted as a colour defect; it is work phase 5 must
-classify before it can retokenise. There is no path, line or value suppression
-anywhere in the detector — asserted textually and proved behaviourally, since the
-identical value is blocking under `color:` and silent under `placeholder:`.
+**Counts: 0 proven visual, 0 unproven, 0 total.** The 771 unproven sites were **not**
+waived and the rule was **not** narrowed — reaching zero on `--enforce` alone would have
+left them, which is why the pass was not declared closed until the coverage count also
+reached zero. Each was resolved by removing the literal: into a token, into
+`js/badges.js`, or into `js/pedido-ui.js`. There is still no path, line or value
+suppression anywhere in the detector.
 
-The 2013 proven-visual sites break down as 1570 decoded CSS declarations, 255
-concatenated style expressions, 70 colour-bearing SVG attributes inside string
-literals, 67 JavaScript colour keys, 32 style expressions and 19 `.style.*`
-assignments.
+**Where the 2,784 sites went.** 2,267 mapped onto tokens that already existed. The other
+517 had no owner and were hard-stopped for an architect ruling before any write; D9
+supplied the owners and they were then resolved:
+
+| Group | Sites | Resolution |
+|---|---|---|
+| Status / type / route chips | 270 | `js/badges.js` — §2.6 mapping, §2.6.1 neutral classifications |
+| Product-colour swatch data | 113 | `js/pedido-ui.js` — 17-entry business palette |
+| Caution surfaces | 58 | `--rv-signal-caution-bg` / `-border`, §2.1 Caution variant |
+| Progress / track / series | 26 | `--rv-viz-*` |
+| Stage vs status | 18 | stage badges; acabamento orange → teal |
+| Synthetic illustration | 17 | retired; real swatches or an honest empty state |
+| Modal scrim / tint | 10 | `--rv-overlay-scrim` |
+| Disabled state | 4 | §2.1 opacity `.45` |
+| Text on a signal surface | 1 | `--rv-text-on-signal` |
 
 ## Archetype A — Detail cockpit
 
@@ -155,83 +185,88 @@ the rule says zero blocking findings plus `FULL` coverage, and they satisfy it b
 absence, not by design. They are marked `— no visual declaration` and are not
 evidence that any screen is canonical.
 
-Totals: **25 conforming** (all by absence), **36 deviation**, **5 unaudited**.
+Totals: **27 conforming** (all by absence), **31 deviation**, **8 unaudited**.
 
-The five `unaudited` files have **zero** blocking findings but incomplete coverage —
-every colour-shaped run in them is unproven, or their only findings are declared debt.
-They are not clean; they are unmeasured. `ordem-compra-render.js` and
-`pedido-detail-progress.js` moved from `deviation` to `unaudited` under the corrected
-`UIC-001` semantics, which is the honest outcome: what looked like a proven colour
-defect was a run the detector could not place.
+The eight `unaudited` files have **zero** blocking findings but incomplete coverage —
+their remaining findings are declared debt or front-end decoding gaps. They are not
+clean; they are unmeasured. Six moved into this state during pass 1 because the only
+blocking findings they carried were literal colours.
+
+**`conforming` still means conforming by absence.** All 27 declare **no visual value at
+all** (`declaration_sites: 0`) — they are write, data, helper or routing modules. Closing
+UIC-001 did **not** make any screen conforming by design: every screen that declares
+visual values still carries at least one blocking finding from radius, height, shadow,
+typography, native `<select>` or semantic-radius. That is expected — those are passes
+3-8 and none of them has run.
 
 | Screen | State | Coverage | Blocking | Debt | Gaps |
 |---|---|---|---|---|---|
-| `admin-usuarios-audit-panel.js` | deviation | PARTIAL | 22 | 0 | 4 |
-| `admin-usuarios-modal.js` | deviation | PARTIAL | 53 | 0 | 11 |
-| `admin-usuarios.js` | deviation | PARTIAL | 38 | 0 | 42 |
-| `cadastros.js` | deviation | PARTIAL | 312 | 0 | 136 |
+| `admin-usuarios-audit-panel.js` | deviation | PARTIAL | 1 | 0 | 3 |
+| `admin-usuarios-modal.js` | deviation | PARTIAL | 8 | 0 | 11 |
+| `admin-usuarios.js` | deviation | PARTIAL | 6 | 0 | 17 |
+| `cadastros.js` | deviation | PARTIAL | 29 | 0 | 51 |
 | `cliente-common.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `cliente-dashboard.js` | deviation | PARTIAL | 60 | 0 | 52 |
-| `cliente-pedido-detail.js` | deviation | PARTIAL | 115 | 0 | 49 |
-| `cliente-pedido-form.js` | deviation | PARTIAL | 179 | 0 | 20 |
-| `cliente-pedido-tracking.js` | deviation | PARTIAL | 32 | 0 | 40 |
-| `cliente-pedidos-list.js` | deviation | PARTIAL | 47 | 0 | 23 |
+| `cliente-dashboard.js` | deviation | PARTIAL | 9 | 0 | 24 |
+| `cliente-pedido-detail.js` | deviation | PARTIAL | 10 | 0 | 18 |
+| `cliente-pedido-form.js` | deviation | PARTIAL | 11 | 0 | 9 |
+| `cliente-pedido-tracking.js` | deviation | PARTIAL | 7 | 0 | 14 |
+| `cliente-pedidos-list.js` | deviation | PARTIAL | 3 | 0 | 14 |
 | `cliente-route-read.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `cliente-route-sections-ui.js` | deviation | PARTIAL | 4 | 0 | 10 |
-| `common.js` | deviation | PARTIAL | 24 | 0 | 6 |
-| `document-link-admin-modal.js` | deviation | PARTIAL | 1 | 0 | 4 |
-| `documentos-recebidos-decision-modal.js` | deviation | PARTIAL | 1 | 0 | 6 |
+| `cliente-route-sections-ui.js` | deviation | PARTIAL | 1 | 0 | 4 |
+| `common.js` | deviation | PARTIAL | 4 | 0 | 6 |
+| `document-link-admin-modal.js` | deviation | PARTIAL | 1 | 0 | 1 |
+| `documentos-recebidos-decision-modal.js` | deviation | PARTIAL | 1 | 0 | 3 |
 | `documentos-recebidos-queue-ui.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `documentos-recebidos.js` | deviation | PARTIAL | 87 | 0 | 154 |
-| `entrega-form.js` | deviation | PARTIAL | 17 | 0 | 18 |
+| `documentos-recebidos.js` | deviation | PARTIAL | 15 | 0 | 51 |
+| `entrega-form.js` | deviation | PARTIAL | 1 | 0 | 14 |
 | `entrega-writes.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `expedicao-admin.js` | deviation | PARTIAL | 74 | 0 | 36 |
+| `expedicao-admin.js` | deviation | PARTIAL | 14 | 0 | 22 |
 | `fornecedor.js` | unaudited | PARTIAL | 0 | 0 | 1 |
-| `manta-expedicao-ui.js` | deviation | PARTIAL | 34 | 0 | 40 |
+| `manta-expedicao-ui.js` | deviation | PARTIAL | 3 | 0 | 18 |
 | `manta-movimento-form.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `manta-output-form.js` | deviation | PARTIAL | 19 | 0 | 14 |
+| `manta-output-form.js` | deviation | PARTIAL | 1 | 0 | 10 |
 | `manta-writes.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `op-compra-regime.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `op-distribuicao-ui.js` | deviation | PARTIAL | 19 | 0 | 19 |
+| `op-distribuicao-ui.js` | unaudited | PARTIAL | 0 | 0 | 9 |
 | `op-form-helpers.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `op-latex-admin.js` | deviation | PARTIAL | 69 | 121 | 84 |
-| `op-nova.js` | deviation | PARTIAL | 138 | 55 | 108 |
+| `op-latex-admin.js` | deviation | PARTIAL | 9 | 121 | 47 |
+| `op-nova.js` | deviation | PARTIAL | 10 | 54 | 52 |
 | `op-pdf.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `op-persistir.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `op-recalculo.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `op-tecelagem-producao-admin.js` | deviation | PARTIAL | 46 | 95 | 59 |
+| `op-tecelagem-producao-admin.js` | deviation | PARTIAL | 6 | 95 | 44 |
 | `op-writes.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `ops-list.js` | deviation | PARTIAL | 58 | 0 | 18 |
+| `ops-list.js` | deviation | PARTIAL | 7 | 0 | 8 |
 | `ordem-compra-data.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `ordem-compra-distribuicao.js` | deviation | PARTIAL | 4 | 0 | 3 |
+| `ordem-compra-distribuicao.js` | unaudited | PARTIAL | 0 | 0 | 3 |
 | `ordem-compra-events.js` | unaudited | PARTIAL | 0 | 2 | 1 |
 | `ordem-compra-receipt-cutover.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `ordem-compra-receipt-data.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `ordem-compra-receipt-events.js` | unaudited | PARTIAL | 0 | 5 | 2 |
-| `ordem-compra-receipt-render.js` | deviation | PARTIAL | 3 | 33 | 6 |
-| `ordem-compra-render.js` | unaudited | PARTIAL | 0 | 12 | 19 |
+| `ordem-compra-receipt-render.js` | deviation | PARTIAL | 1 | 33 | 6 |
+| `ordem-compra-render.js` | unaudited | PARTIAL | 0 | 12 | 4 |
 | `ordem-compra.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `ordens-compra-list.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `painel.js` | deviation | PARTIAL | 8 | 0 | 103 |
+| `painel.js` | unaudited | PARTIAL | 0 | 0 | 7 |
 | `pedido-chain-state.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `pedido-detail-data.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `pedido-detail-events.js` | deviation | PARTIAL | 267 | 0 | 66 |
-| `pedido-detail-progress.js` | unaudited | PARTIAL | 0 | 0 | 18 |
-| `pedido-detail-render.js` | deviation | PARTIAL | 263 | 0 | 105 |
-| `pedido-detail.js` | deviation | PARTIAL | 14 | 0 | 1 |
+| `pedido-detail-events.js` | deviation | PARTIAL | 8 | 0 | 32 |
+| `pedido-detail-progress.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
+| `pedido-detail-render.js` | deviation | PARTIAL | 28 | 0 | 44 |
+| `pedido-detail.js` | unaudited | PARTIAL | 0 | 0 | 1 |
 | `pedido-edit.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `pedido-form.js` | deviation | PARTIAL | 88 | 0 | 21 |
+| `pedido-form.js` | deviation | PARTIAL | 8 | 0 | 9 |
 | `pedido-insumos-distribuicao.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `pedido-item-row-editor.js` | deviation | PARTIAL | 19 | 0 | 18 |
+| `pedido-item-row-editor.js` | deviation | PARTIAL | 3 | 0 | 8 |
 | `pedido-itens-edit.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `pedido-numero-sugestao.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `pedido-parciais-admin.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `pedido-route-sections-ui.js` | deviation | PARTIAL | 2 | 0 | 8 |
-| `pedido-route-sections.js` | deviation | FULL | 5 | 0 | 0 |
+| `pedido-route-sections-ui.js` | deviation | PARTIAL | 1 | 0 | 4 |
+| `pedido-route-sections.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
 | `pedido-tracking-admin.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
-| `pedidos-list.js` | deviation | PARTIAL | 77 | 0 | 39 |
-| `system-screens.js` | deviation | PARTIAL | 31 | 0 | 12 |
-| `trocar-senha-obrigatoria.js` | deviation | PARTIAL | 25 | 0 | 16 |
+| `pedidos-list.js` | deviation | PARTIAL | 7 | 0 | 11 |
+| `system-screens.js` | deviation | PARTIAL | 3 | 0 | 12 |
+| `trocar-senha-obrigatoria.js` | deviation | PARTIAL | 4 | 0 | 10 |
 
 **Why 39 of the 66 application files are `PARTIAL`.** The application builds the DOM
 imperatively, so a style value is often a ternary, a concatenation or a template
@@ -293,7 +328,7 @@ detector reports zero for its rule. Never screen by screen.
 Passes 1–7 are mechanical and verifiable. Pass 8 is the only one that needs eyes.
 Do not open a pass while the previous one is still failing.
 
-**None of these passes is closed.** Phase 3 applied passes 1–6 to the **reference
+**Pass 1 is closed; passes 3-8 are not.** Phase 3 applied passes 1–6 to the **reference
 fixture alone**, so that the detector has a green baseline instead of flagging the
 reference first. That is a single-file exception granted precisely because the
 reference cannot be remediated by batch — it is what the batch is measured against.
@@ -307,23 +342,24 @@ this table demands:
 
 | # | Rule | Baseline blocking | Close with |
 |---|---|---|---|
-| 1–2 | `UIC-001` | 2013 (+771 gaps) | `node scripts/validate-ui-conformance.mjs --rule UIC-001 --enforce` |
-| 3 | `UIC-002`, `UIC-010` | 97 + 16 | `--rule UIC-002 --enforce`, then `--rule UIC-010 --enforce` |
+| 1–2 | `UIC-001` | **CLOSED** — 0 (+0 gaps) | `node scripts/validate-ui-conformance.mjs --rule UIC-001 --enforce` exits 0 |
+| 3 | `UIC-002`, `UIC-010` | 93 + 16 | `--rule UIC-002 --enforce`, then `--rule UIC-010 --enforce` |
 | 4 | `UIC-003` | 13 (+9 gaps) | `--rule UIC-003 --enforce` |
-| 5 | `UIC-004` | 21 (+21 gaps) | `--rule UIC-004 --enforce` |
+| 5 | `UIC-004` | 3 (+8 gaps) | `--rule UIC-004 --enforce` |
 | 6 | `UIC-008` | 0 (+37 gaps) | `--rule UIC-008 --enforce` — the gaps must close first |
 | 7 | `UIC-006` | 15 | `--rule UIC-006 --enforce` |
 | 8 | — | — | manual; the detector only inventories the eight tables |
 | type | `UIC-005` | 80 | `--rule UIC-005 --enforce` |
-| alias deletion | `UIC-009` | 323 (debt) | `--rule UIC-009` reporting 0 unblocks deleting the aliases |
+| alias deletion | `UIC-009` | 322 (debt) | `--rule UIC-009` reporting 0 unblocks deleting the aliases |
 
-`UIC-007` (pill radius on a button) and `UIC-011` (unknown token) are already at zero
-repository-wide. **A coverage gap must be closed before its rule can close.** Pass 6
-cannot be declared clean while 37 screens cannot even be evaluated for it; the honest
-first step is marking the action rows, not reporting zero. The same holds for pass 1:
-`--rule UIC-001 --enforce` reaching zero would still leave **771** colour-shaped runs
-whose site the detector could not prove, and those must be classified — by moving the
-value into a declaration, a token or a clearly named key — not left unproven.
+`UIC-007` (pill radius on a button) and `UIC-011` (unknown token) are at zero
+repository-wide, and `UIC-001` now joins them. **A coverage gap must be closed before
+its rule can close.** Pass 6 cannot be declared clean while 37 screens cannot even be
+evaluated for it; the honest first step is marking the action rows, not reporting zero.
+Pass 1 was held to exactly that standard: `--rule UIC-001 --enforce` reaching zero would
+still have left 771 colour-shaped runs whose site the detector could not prove, so the
+pass was not closed until those were resolved too and the coverage count also reached
+zero.
 
 ---
 

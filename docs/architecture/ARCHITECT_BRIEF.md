@@ -2,9 +2,11 @@
 
 > **Audience:** the architect AI, which will direct the executor AI.
 > **Status:** plan approved by the product owner. Phases 1 and 2 are DONE (artifacts
-> listed in §3). Phase 3 is CLOSED / ACCEPTED at `ded162e`. Phase 4 is CORRECTED, its
-> baseline regenerated, and awaiting your acceptance (§5). Phase 5 is what you still
-> need to direct, and it is not authorized.
+> listed in §3). Phase 3 is CLOSED / ACCEPTED at `ded162e`. Phase 4 is CLOSED /
+> ACCEPTED_WITH_NONBLOCKING_REPORT_SCHEMA_DEBT at `9fbb84c`, and that debt is corrected
+> forward in phase 5 pass 1. **Phase 5 pass 1 (literal colour ownership) is IMPLEMENTED,
+> `UIC-001` is CLOSED at 0/0/0, and it awaits your acceptance.** Passes 2-8 are not
+> authorized.
 > **You do not need to re-derive anything.** Every value is already extracted and
 > ratified. Your job is sequencing, enforcement, and the skill reconciliation in §6.
 
@@ -215,10 +217,10 @@ radius on a box (`UIC-007` vs `UIC-010`, the latter applying D6.1 by element rol
 
 | Rule | Your item | Baseline blocking |
 |---|---|---|
-| `UIC-001` literal colour | 1 | 2013 (+771 gaps) |
-| `UIC-002` radius | 2 | 97 |
+| `UIC-001` literal colour | 1 | **0 (+0 gaps) — CLOSED** |
+| `UIC-002` radius | 2 | 93 |
 | `UIC-003` control height | 3 | 13 (+9 gaps) |
-| `UIC-004` shadow, incl. cards-are-flat | 4 | 21 (+21 gaps) |
+| `UIC-004` shadow, incl. cards-are-flat | 4 | 3 (+8 gaps) |
 | `UIC-005` typography | 5 | 80 |
 | `UIC-006` native `<select>` | 6 | 15 |
 | `UIC-007` pill radius on a button | 7 | **0** |
@@ -243,12 +245,18 @@ change while the six detector files stay byte-identical.
   `<colgroup>` whose column count matches the header, and fails it only when they
   contradict. Pass 8 stays manual, as you said.
 
-**What the baseline says.** 67 files, 27 `FULL`, 40 `PARTIAL`, 0 `UNSUPPORTED`; 2255
-blocking findings, 323 declared debt, 1392 coverage gaps. The good news you predicted in
-§2 holds: 0 pill-shaped buttons, 0 cards with a shadow, 0 unresolved tokens. The bulk
-is pass 1 — 2013 proven literal colours — which is find-and-replace, not redesign. A
-further 771 colour-shaped runs are unproven and must be classified before they can be
-retokenised; they are coverage gaps, not defects.
+**What the baseline says, after pass 1.** 67 files, 28 `FULL`, 39 `PARTIAL`, 0
+`UNSUPPORTED`; 232 blocking findings, 322 declared debt, 593 coverage gaps. The good news
+you predicted in §2 holds: 0 pill-shaped buttons, 0 cards with a shadow, 0 unresolved
+tokens — and now 0 literal colours.
+
+**Pass 1 was not find-and-replace.** 2,267 of the 2,784 sites were. The other 517, in
+nine repeated patterns, had **no owner in the token system at all** — caution surfaces,
+visualization, the overlay scrim, text on a signal fill, product-colour business data,
+and the status/stage/classification vocabulary the application persists but §2.6 never
+named. The executor hard-stopped before its first write rather than pick colours by
+visual proximity; you ruled the nine groups; D9 records them. That is why the pass
+touched `css/tokens.css`, `js/badges.js` and `js/pedido-ui.js` and not only screens.
 
 **Two things you should know before authorizing phase 5.**
 
@@ -260,10 +268,21 @@ retokenised; they are coverage gaps, not defects.
    the DOM imperatively — ternaries, concatenations and template substitutions whose
    running value is undecidable from source. A gap must close before its rule can.
 
-### Phase 4 — not delivered
+### Phase 4 — delivered and accepted
+
+`CLOSED / ACCEPTED_WITH_NONBLOCKING_REPORT_SCHEMA_DEBT` at `9fbb84c`. The debt was two
+highlight keys whose names described the pre-correction semantics while already carrying
+the corrected numbers; it is **corrected forward in pass 1**, not reopened — the keys are
+now `literal_visual_colours_blocking` and `literal_colour_context_unproven`, the
+predicates are unchanged, and the detector is `1.0.2`.
+
+### Phase 5 pass 1 — not delivered
 
 Architect acceptance. The executor does not self-accept. Archetype ratification is
-**not** advanced: one conforming screen is still one, and phase 5 is not authorized.
+**not** advanced: closing `UIC-001` made **no** screen conforming by design — all 27
+`conforming` application files still conform by absence, and every screen that declares
+visual values still carries a blocking finding from passes 3-8. One conforming screen is
+still one.
 
 ### Phase 5 — batch remediation, by property
 
@@ -273,8 +292,8 @@ judgment calls are precisely where the three generations came from.
 
 | # | Pass | Change | Verification |
 |---|---|---|---|
-| 1 | Token | literal hex → `var(--rv-*)` | detector: 0 literals |
-| 2 | Colour | `#2563eb` / `#14509E` / `#0A326D` → `--rv-brand` / `--rv-accent-blue`; text → 4 levels | detector: 0 out-of-enum colours |
+| 1 | Token | literal hex → `var(--rv-*)` | **DONE** — detector: 0 literals |
+| 2 | Colour | `#2563eb` → `--rv-brand` / `--rv-accent-blue`; text → 4 levels | **DONE** — folded into pass 1 |
 | 3 | Radius | all → `4px`; pills → `999px` | detector: radius ∈ enum |
 | 4 | Height | controls → 32 / 34 / 38 | detector: height ∈ enum |
 | 5 | Shadow | 4 popover values → 1; cards flat | detector: shadow ∈ enum |

@@ -424,175 +424,175 @@
         "name": "Acompanhamento B2B.dc.html",
         "archetype": "E",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 131,
+        "line": 161,
         "candidates": []
       },
       {
         "name": "Admin - Cores.dc.html",
         "archetype": "F",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 138,
+        "line": 168,
         "candidates": []
       },
       {
         "name": "Admin - Detalhe da OP (Acabamento).dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 92,
+        "line": 122,
         "candidates": []
       },
       {
         "name": "Admin - Detalhe da OP.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 91,
+        "line": 121,
         "candidates": []
       },
       {
         "name": "Admin - Detalhe do Pedido.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 93,
+        "line": 123,
         "candidates": []
       },
       {
         "name": "Admin - Documentos.dc.html",
         "archetype": "B",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 106,
+        "line": 136,
         "candidates": []
       },
       {
         "name": "Admin - Fornecedores.dc.html",
         "archetype": "B",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 107,
+        "line": 137,
         "candidates": []
       },
       {
         "name": "Admin - Lista de OPs.dc.html",
         "archetype": "B",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 104,
+        "line": 134,
         "candidates": []
       },
       {
         "name": "Admin - Lista de Pedidos.dc.html",
         "archetype": "B",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 105,
+        "line": 135,
         "candidates": []
       },
       {
         "name": "Admin - Login.dc.html",
         "archetype": "F",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 139,
+        "line": 169,
         "candidates": []
       },
       {
         "name": "Admin - Nova OP.dc.html",
         "archetype": "C",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 115,
+        "line": 145,
         "candidates": []
       },
       {
         "name": "Admin - Parâmetros.dc.html",
         "archetype": "F",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 137,
+        "line": 167,
         "candidates": []
       },
       {
         "name": "Cliente - Lista de Pedidos.dc.html",
         "archetype": "B",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 108,
+        "line": 138,
         "candidates": []
       },
       {
         "name": "Dashboard Cliente.dc.html",
         "archetype": "E",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 130,
+        "line": 160,
         "candidates": []
       },
       {
         "name": "Detalhe do Pedido v2.dc.html",
         "archetype": "E",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 128,
+        "line": 158,
         "candidates": []
       },
       {
         "name": "Detalhe do Pedido.dc.html",
         "archetype": "E",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 129,
+        "line": 159,
         "candidates": []
       },
       {
         "name": "Fase B - Ordens na Tela da OP.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 97,
+        "line": 127,
         "candidates": []
       },
       {
         "name": "Fase B - Tela da OP - Config OFF.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 95,
+        "line": 125,
         "candidates": []
       },
       {
         "name": "Fase B - Tela da OP - Config ON.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 94,
+        "line": 124,
         "candidates": []
       },
       {
         "name": "Fase B - Tela da OP - OFF e ON.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 96,
+        "line": 126,
         "candidates": []
       },
       {
         "name": "Fase B2 - Detalhe da Ordem de Compra.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 98,
+        "line": 128,
         "candidates": []
       },
       {
         "name": "Modal Adicionar Item.dc.html",
         "archetype": "D",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 122,
+        "line": 152,
         "candidates": []
       },
       {
         "name": "Modal Movimentar Produção.dc.html",
         "archetype": "D",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 121,
+        "line": 151,
         "candidates": []
       },
       {
         "name": "Novo Pedido.dc.html",
         "archetype": "C",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 114,
+        "line": 144,
         "candidates": []
       },
       {
         "name": "OP Acabamento - Aberta.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 90,
+        "line": 120,
         "candidates": []
       }
     ],
