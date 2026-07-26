@@ -58340,10 +58340,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-      "git_object_id": "1da5bb476871fe0231a4f37f30dfce6bc27ade37",
-      "sha256": "9ea288a2761b7261966e8aa9320f5a19848aa186d818f23a1d771fdccb98fcc9",
-      "line_count": 165,
-      "byte_count": 28642,
+      "git_object_id": "04ae2b96145a7353c5c3ebf2e9c451b800b74ab8",
+      "sha256": "336538a4458513735fd571a69e4bc8640fe2377137abbfab6724ce09e9464c4f",
+      "line_count": 166,
+      "byte_count": 28869,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -59473,6 +59473,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 163
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0014.md`",
+          "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0014.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 164
         }
       ],
       "inbound_references": [
@@ -59502,10 +59510,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "fb18b2c156448fc4f252df60e1e0f59576f2a283",
-      "sha256": "309aecac66269fa57f7b296b7309e9f8e42d0bad2bc56a82c219749796a7a5eb",
-      "line_count": 10113,
-      "byte_count": 1198864,
+      "git_object_id": "a6dbd186a0c37bfc9f850a4c0a7187ed50659469",
+      "sha256": "f57de07f1f340092c674d5503370c27a7bee03ad74f07ef04e9957cd6443bd3a",
+      "line_count": 10140,
+      "byte_count": 1212000,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -67733,6 +67741,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1-A4 — fix(ui): align shared semantic badge geometry",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-2-radius-and-semantic-pill-r1-a4-fixui-align-shared-semantic-badge-geometry",
           "line": 10090
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-3-CONTROL-HEIGHT-R1-A1 — fix(ui): close generic control height pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-3-control-height-r1-a1-fixui-close-generic-control-height-pass",
+          "line": 10113
         }
       ]
     },
@@ -76565,7 +76579,15 @@
       "byte_count": 13737,
       "generated_status": "GENERATED",
       "outbound_references": [],
-      "inbound_references": [],
+      "inbound_references": [
+        {
+          "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
+          "source_line": 164,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        }
+      ],
       "headings": [
         {
           "level": 2,
