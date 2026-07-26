@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "c63c32b96fd2664392ee0d6855a9e2bc26d7e3b2",
-      "sha256": "e22c3c35f4af7c22845cf75a300537d8aac08b6221658be0c353f5f29b0a77ba",
+      "git_object_id": "ac764114e71c770be0d9dad4226f585b524a4448",
+      "sha256": "c55f0a5af469644b9466627bc4c302ab9041c9bcfa6830404c2f056909f380e2",
       "line_count": 34,
-      "byte_count": 13690,
+      "byte_count": 13070,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -59510,10 +59510,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "a6dbd186a0c37bfc9f850a4c0a7187ed50659469",
-      "sha256": "f57de07f1f340092c674d5503370c27a7bee03ad74f07ef04e9957cd6443bd3a",
-      "line_count": 10140,
-      "byte_count": 1212000,
+      "git_object_id": "e5dce5e96bc4133680ab4d3813f3354ba9347ea6",
+      "sha256": "c8b34979d9f010c5f75ece191982992d6e57b0acfafdbb706109015c1b668b52",
+      "line_count": 10165,
+      "byte_count": 1225579,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -67747,6 +67747,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-3-CONTROL-HEIGHT-R1-A1 — fix(ui): close generic control height pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-3-control-height-r1-a1-fixui-close-generic-control-height-pass",
           "line": 10113
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-4-SHADOW-R1-A1 — fix(ui): close elevation shadow pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-4-shadow-r1-a1-fixui-close-elevation-shadow-pass",
+          "line": 10140
         }
       ]
     },
@@ -76573,10 +76579,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0014.md",
-      "git_object_id": "e20f70dc0692b092915bf46983644c8965fd345b",
-      "sha256": "e5c2aaa670955dcbaba048b92af1a0dc95ecdadf83244ed0950852feae71b3a1",
-      "line_count": 38,
-      "byte_count": 13737,
+      "git_object_id": "68dc149728b1770ccb50e4f76ff6dad00185ccd3",
+      "sha256": "f3d32604cc87979162ad35f04f0993452a08496800048ce85c93d30e6f3b8295",
+      "line_count": 63,
+      "byte_count": 27316,
       "generated_status": "GENERATED",
       "outbound_references": [],
       "inbound_references": [
@@ -76594,6 +76600,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-3-CONTROL-HEIGHT-R1-A1 — fix(ui): close generic control height pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-3-control-height-r1-a1-fixui-close-generic-control-height-pass",
           "line": 11
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-4-SHADOW-R1-A1 — fix(ui): close elevation shadow pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-4-shadow-r1-a1-fixui-close-elevation-shadow-pass",
+          "line": 38
         }
       ]
     },
@@ -76681,10 +76693,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "2f653fff4cda877d02f8cd68f694482c4356707d",
-      "sha256": "abc3bbf8a458cc082b3729ecbfb5742028e44420ad345065ad9b7408449c7b21",
-      "line_count": 10134,
-      "byte_count": 1211699,
+      "git_object_id": "98f4f7a6406e059d271852c84d77297d70e31aba",
+      "sha256": "93873db8524a231ff7c052d4f3ef71e0dcedbd889f0878f28224312582cc4f96",
+      "line_count": 10159,
+      "byte_count": 1225278,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86850,6 +86862,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-3-CONTROL-HEIGHT-R1-A1 — fix(ui): close generic control height pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-3-control-height-r1-a1-fixui-close-generic-control-height-pass",
           "line": 10109
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-4-SHADOW-R1-A1 — fix(ui): close elevation shadow pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-4-shadow-r1-a1-fixui-close-elevation-shadow-pass",
+          "line": 10136
         }
       ]
     },
