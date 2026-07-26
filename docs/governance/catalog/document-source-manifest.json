@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "feab439b0e5cf62eef73eacfe546ef9fd4b30c8d",
-      "sha256": "7bad1f0417bb472f1a4b94701ffdf2d1c15c970ded57853d48a959c0114bf787",
+      "git_object_id": "d986dd1ae88986d2b83fed1331086d0adec81ab3",
+      "sha256": "7fdd2bc18c577ffa86b5c800d61be9cb2c380761dda2bd5af3c06a5c0a1ed163",
       "line_count": 34,
-      "byte_count": 8132,
+      "byte_count": 8714,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -2867,6 +2867,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 9845,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0001.md",
           "source_line": 95,
           "kind": "ROOT_REFERENCE",
@@ -3793,6 +3800,13 @@
         {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
           "source_line": 176,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
+          "source_line": 342,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -4750,6 +4764,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 9841,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/legacy/pre-model/AGENT_HANDOFF_FULL_SNAPSHOT.md",
           "source_line": 19,
           "kind": "ROOT_REFERENCE",
@@ -5339,6 +5360,13 @@
         }
       ],
       "inbound_references": [
+        {
+          "source_path": "docs/architecture/ARCHITECT_BRIEF.md",
+          "source_line": 311,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
         {
           "source_path": "docs/architecture/ORDEM_COMPRA_C4_PHASE_CONTRACT.md",
           "source_line": 287,
@@ -16304,6 +16332,246 @@
       ]
     },
     {
+      "path": "docs/architecture/ARCHITECT_BRIEF.md",
+      "git_object_id": "1681af17e12be588569962e94680ea3840bfcb6e",
+      "sha256": "d341959609f4458108f996e572a3eec66db89fbaadefdfc37308f15abfc00e7c",
+      "line_count": 317,
+      "byte_count": 17205,
+      "generated_status": "MANUAL",
+      "outbound_references": [
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/SGAA_DESIGN_SYSTEM_REFERENCE.md`",
+          "target_path": "docs/architecture/SGAA_DESIGN_SYSTEM_REFERENCE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 18
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 73
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/DESIGN_DECISIONS.md`",
+          "target_path": "docs/architecture/DESIGN_DECISIONS.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 74
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_CONFORMANCE.md`",
+          "target_path": "docs/architecture/UI_CONFORMANCE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 75
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 230
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`CLAUDE.md`",
+          "target_path": "CLAUDE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 311
+        }
+      ],
+      "inbound_references": [
+        {
+          "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
+          "source_line": 19,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 9838,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
+          "source_line": 335,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 9834,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "text": "ARCHITECT BRIEF — UI CONSOLIDATION (INTTRACKER)",
+          "anchor": "architect-brief-ui-consolidation-inttracker",
+          "line": 1
+        },
+        {
+          "level": 2,
+          "text": "1. The problem, stated precisely",
+          "anchor": "1-the-problem-stated-precisely",
+          "line": 11
+        },
+        {
+          "level": 3,
+          "text": "1.1 The finding that reoriented the work",
+          "anchor": "11-the-finding-that-reoriented-the-work",
+          "line": 25
+        },
+        {
+          "level": 3,
+          "text": "1.2 Root cause",
+          "anchor": "12-root-cause",
+          "line": 35
+        },
+        {
+          "level": 2,
+          "text": "2. The four generations, and what each one costs",
+          "anchor": "2-the-four-generations-and-what-each-one-costs",
+          "line": 51
+        },
+        {
+          "level": 2,
+          "text": "3. What already exists (phases 1–2, done)",
+          "anchor": "3-what-already-exists-phases-12-done",
+          "line": 68
+        },
+        {
+          "level": 3,
+          "text": "3.1 The four architectural rules behind that structure",
+          "anchor": "31-the-four-architectural-rules-behind-that-structure",
+          "line": 78
+        },
+        {
+          "level": 3,
+          "text": "3.2 Archetypes replaced the old rule taxonomy",
+          "anchor": "32-archetypes-replaced-the-old-rule-taxonomy",
+          "line": 92
+        },
+        {
+          "level": 2,
+          "text": "4. The eight ratified decisions",
+          "anchor": "4-the-eight-ratified-decisions",
+          "line": 105
+        },
+        {
+          "level": 3,
+          "text": "4.1 Two cross-cutting rules derived from the above",
+          "anchor": "41-two-cross-cutting-rules-derived-from-the-above",
+          "line": 120
+        },
+        {
+          "level": 3,
+          "text": "4.2 Incidental consolidations",
+          "anchor": "42-incidental-consolidations",
+          "line": 132
+        },
+        {
+          "level": 2,
+          "text": "5. Phases 3–5 — what to direct",
+          "anchor": "5-phases-35-what-to-direct",
+          "line": 139
+        },
+        {
+          "level": 3,
+          "text": "Phase 3 — bring the fixture into conformance ← **do this first**",
+          "anchor": "phase-3-bring-the-fixture-into-conformance-do-this-first",
+          "line": 141
+        },
+        {
+          "level": 3,
+          "text": "Phase 4 — the detector",
+          "anchor": "phase-4-the-detector",
+          "line": 156
+        },
+        {
+          "level": 3,
+          "text": "Phase 5 — batch remediation, by property",
+          "anchor": "phase-5-batch-remediation-by-property",
+          "line": 179
+        },
+        {
+          "level": 2,
+          "text": "6. Reconciling the `.claude` skill",
+          "anchor": "6-reconciling-the-claude-skill",
+          "line": 203
+        },
+        {
+          "level": 3,
+          "text": "6.1 The structural argument",
+          "anchor": "61-the-structural-argument",
+          "line": 208
+        },
+        {
+          "level": 3,
+          "text": "6.2 Required changes",
+          "anchor": "62-required-changes",
+          "line": 217
+        },
+        {
+          "level": 3,
+          "text": "6.3 The precedence statement to paste into the skill",
+          "anchor": "63-the-precedence-statement-to-paste-into-the-skill",
+          "line": 227
+        },
+        {
+          "level": 3,
+          "text": "6.4 Third-party skills",
+          "anchor": "64-third-party-skills",
+          "line": 235
+        },
+        {
+          "level": 2,
+          "text": "7. Known weak spots — flag these to the executor",
+          "anchor": "7-known-weak-spots-flag-these-to-the-executor",
+          "line": 253
+        },
+        {
+          "level": 2,
+          "text": "8. Language convention",
+          "anchor": "8-language-convention",
+          "line": 272
+        },
+        {
+          "level": 2,
+          "text": "9. Naming",
+          "anchor": "9-naming",
+          "line": 283
+        },
+        {
+          "level": 2,
+          "text": "10. Open items requiring an architect or owner decision",
+          "anchor": "10-open-items-requiring-an-architect-or-owner-decision",
+          "line": 293
+        },
+        {
+          "level": 2,
+          "text": "11. What NOT to do",
+          "anchor": "11-what-not-to-do",
+          "line": 307
+        }
+      ]
+    },
+    {
       "path": "docs/architecture/AUTH_DELETE_USER_DESIGN.md",
       "git_object_id": "a44b1997e8e60218d9a36a45ca812929264cd01f",
       "sha256": "c1ef399dd2922e3fb4a61c39c1353232c7fdd845501b0ac47fc7cad50cd15470",
@@ -16383,7 +16651,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 19,
+          "source_line": 20,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -16806,7 +17074,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 20,
+          "source_line": 21,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -17505,7 +17773,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 21,
+          "source_line": 22,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -18189,7 +18457,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 22,
+          "source_line": 23,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -18744,7 +19012,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 23,
+          "source_line": 24,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -19071,7 +19339,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 24,
+          "source_line": 25,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -20071,7 +20339,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 25,
+          "source_line": 26,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -20483,6 +20751,96 @@
           "text": "20. Rule for test doubles",
           "anchor": "20-rule-for-test-doubles",
           "line": 368
+        }
+      ]
+    },
+    {
+      "path": "docs/architecture/DESIGN_DECISIONS.md",
+      "git_object_id": "1d77ad70748474fc6a4b6d0dd6f2b097f0b1702f",
+      "sha256": "5a820ccd5bf8e0f5181b2c516e74445319aa238124f504a8729f3abff0e120db",
+      "line_count": 125,
+      "byte_count": 7748,
+      "generated_status": "MANUAL",
+      "outbound_references": [],
+      "inbound_references": [
+        {
+          "source_path": "docs/architecture/ARCHITECT_BRIEF.md",
+          "source_line": 74,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
+          "source_line": 27,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 9838,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
+          "source_line": 335,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 9834,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "text": "DESIGN DECISION LOG — INTTRACKER",
+          "anchor": "design-decision-log-inttracker",
+          "line": 1
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 · Round 1 — reconciling the three namespaces",
+          "anchor": "2026-07-25-round-1-reconciling-the-three-namespaces",
+          "line": 9
+        },
+        {
+          "level": 3,
+          "text": "Ratified decisions",
+          "anchor": "ratified-decisions",
+          "line": 36
+        },
+        {
+          "level": 3,
+          "text": "Structural decisions from the same round",
+          "anchor": "structural-decisions-from-the-same-round",
+          "line": 64
+        },
+        {
+          "level": 3,
+          "text": "Revoked in this round",
+          "anchor": "revoked-in-this-round",
+          "line": 97
+        },
+        {
+          "level": 3,
+          "text": "Still open",
+          "anchor": "still-open",
+          "line": 106
+        },
+        {
+          "level": 2,
+          "text": "How to record the next round",
+          "anchor": "how-to-record-the-next-round",
+          "line": 121
         }
       ]
     },
@@ -20937,7 +21295,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 26,
+          "source_line": 28,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -21946,7 +22304,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 27,
+          "source_line": 29,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -23368,7 +23726,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 28,
+          "source_line": 30,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -24898,7 +25256,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 29,
+          "source_line": 31,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -26243,7 +26601,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 30,
+          "source_line": 32,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -27500,7 +27858,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 31,
+          "source_line": 33,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -29089,7 +29447,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 32,
+          "source_line": 34,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -29862,7 +30220,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 33,
+          "source_line": 35,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -30764,7 +31122,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 34,
+          "source_line": 36,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -31664,7 +32022,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 35,
+          "source_line": 37,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -33498,7 +33856,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 36,
+          "source_line": 38,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -34522,7 +34880,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 37,
+          "source_line": 39,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -36791,7 +37149,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 38,
+          "source_line": 40,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -38891,7 +39249,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 39,
+          "source_line": 41,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -39047,14 +39405,287 @@
       ]
     },
     {
-      "path": "docs/architecture/UI_VISUAL_CONTRACT.md",
-      "git_object_id": "06eedec05a811a80c2196cdadb7efe534562964f",
-      "sha256": "cdeb1ad66dced5c9b4534aac856874780ba1b75716fab844f56bec8bd15bfd56",
-      "line_count": 353,
-      "byte_count": 16108,
+      "path": "docs/architecture/SGAA_DESIGN_SYSTEM_REFERENCE.md",
+      "git_object_id": "ad259480498fa94c1f5375e9a5db6d67584f3ff8",
+      "sha256": "ef25bd5cbb21c1220307c3a8963faf0c512f0ddbc37fb8c6ca3eb8557decba40",
+      "line_count": 246,
+      "byte_count": 8398,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
+        {
+          "source_path": "docs/architecture/ARCHITECT_BRIEF.md",
+          "source_line": 18,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
+          "source_line": 42,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 9838,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
+          "source_line": 335,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 9834,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "text": "SGAA — Design System Reference",
+          "anchor": "sgaa-design-system-reference",
+          "line": 1
+        },
+        {
+          "level": 2,
+          "text": "1. Tokens (`:root` de modern-style.css)",
+          "anchor": "1-tokens-root-de-modern-stylecss",
+          "line": 12
+        },
+        {
+          "level": 2,
+          "text": "2. Status pills — o componente semântico principal",
+          "anchor": "2-status-pills-o-componente-semântico-principal",
+          "line": 71
+        },
+        {
+          "level": 3,
+          "text": "Mapeamento semântico em uso",
+          "anchor": "mapeamento-semântico-em-uso",
+          "line": 101
+        },
+        {
+          "level": 2,
+          "text": "3. Badge tonal (camada legada)",
+          "anchor": "3-badge-tonal-camada-legada",
+          "line": 119
+        },
+        {
+          "level": 2,
+          "text": "4. Badges quadrados",
+          "anchor": "4-badges-quadrados",
+          "line": 133
+        },
+        {
+          "level": 2,
+          "text": "5. Paleta de alertas configuráveis",
+          "anchor": "5-paleta-de-alertas-configuráveis",
+          "line": 174
+        },
+        {
+          "level": 3,
+          "text": "Cor livre e borda derivada",
+          "anchor": "cor-livre-e-borda-derivada",
+          "line": 191
+        },
+        {
+          "level": 3,
+          "text": "Renderização do alerta",
+          "anchor": "renderização-do-alerta",
+          "line": 205
+        },
+        {
+          "level": 2,
+          "text": "6. Convenções a seguir",
+          "anchor": "6-convenções-a-seguir",
+          "line": 222
+        },
+        {
+          "level": 2,
+          "text": "7. Inconsistências conhecidas — não replicar",
+          "anchor": "7-inconsistências-conhecidas-não-replicar",
+          "line": 235
+        }
+      ]
+    },
+    {
+      "path": "docs/architecture/UI_CONFORMANCE.md",
+      "git_object_id": "53401c770110b32fc9dc30cd3fc0fa092d0edf7d",
+      "sha256": "b07d88f523dfab92923727950b5a2668a9811c4a0eda545a7af2eae3b03d7c47",
+      "line_count": 125,
+      "byte_count": 6378,
+      "generated_status": "MANUAL",
+      "outbound_references": [],
+      "inbound_references": [
+        {
+          "source_path": "docs/architecture/ARCHITECT_BRIEF.md",
+          "source_line": 75,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "source_line": 22,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "source_line": 289,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
+          "source_line": 43,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 9838,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
+          "source_line": 335,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 9834,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        }
+      ],
+      "headings": [
+        {
+          "level": 1,
+          "text": "VISUAL CONFORMANCE — INTTRACKER",
+          "anchor": "visual-conformance-inttracker",
+          "line": 1
+        },
+        {
+          "level": 2,
+          "text": "Archetype A — Detail cockpit",
+          "anchor": "archetype-a-detail-cockpit",
+          "line": 15
+        },
+        {
+          "level": 2,
+          "text": "Archetype B — Work queue",
+          "anchor": "archetype-b-work-queue",
+          "line": 30
+        },
+        {
+          "level": 2,
+          "text": "Archetype C — Creation form",
+          "anchor": "archetype-c-creation-form",
+          "line": 40
+        },
+        {
+          "level": 2,
+          "text": "Archetype D — Decision modal",
+          "anchor": "archetype-d-decision-modal",
+          "line": 47
+        },
+        {
+          "level": 2,
+          "text": "Archetype E — Client portal",
+          "anchor": "archetype-e-client-portal",
+          "line": 54
+        },
+        {
+          "level": 2,
+          "text": "Archetype F — Configuration",
+          "anchor": "archetype-f-configuration",
+          "line": 63
+        },
+        {
+          "level": 2,
+          "text": "Outside the archetypes — chrome and documentation",
+          "anchor": "outside-the-archetypes-chrome-and-documentation",
+          "line": 71
+        },
+        {
+          "level": 2,
+          "text": "Execution order — by property batch",
+          "anchor": "execution-order-by-property-batch",
+          "line": 84
+        },
+        {
+          "level": 2,
+          "text": "Versioned fixture provenance",
+          "anchor": "versioned-fixture-provenance",
+          "line": 105
+        },
+        {
+          "level": 2,
+          "text": "Archetype ratification",
+          "anchor": "archetype-ratification",
+          "line": 121
+        }
+      ]
+    },
+    {
+      "path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+      "git_object_id": "6bca0327ffbf05bf078b76166ad3beb8e9ccf66c",
+      "sha256": "43d3c217e6bb8c9c2ee84a91ed6ef8750509dd5116d92d7bf95c8f92148381d1",
+      "line_count": 378,
+      "byte_count": 16746,
+      "generated_status": "MANUAL",
+      "outbound_references": [
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_CONFORMANCE.md`",
+          "target_path": "docs/architecture/UI_CONFORMANCE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 22
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_CONFORMANCE.md`",
+          "target_path": "docs/architecture/UI_CONFORMANCE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 289
+        }
+      ],
+      "inbound_references": [
+        {
+          "source_path": "docs/architecture/ARCHITECT_BRIEF.md",
+          "source_line": 73,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/architecture/ARCHITECT_BRIEF.md",
+          "source_line": 230,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
         {
           "source_path": "docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md",
           "source_line": 58,
@@ -39204,7 +39835,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 40,
+          "source_line": 44,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -39266,6 +39897,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 9838,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0002.md",
           "source_line": 297,
           "kind": "ROOT_REFERENCE",
@@ -39317,6 +39955,13 @@
         {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0010.md",
           "source_line": 452,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
+          "source_line": 335,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -39378,6 +40023,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 9834,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/legacy/pre-model/AGENT_HANDOFF_FULL_SNAPSHOT.md",
           "source_line": 331,
           "kind": "ROOT_REFERENCE",
@@ -39395,153 +40047,171 @@
       "headings": [
         {
           "level": 1,
-          "text": "VERSIONED VISUAL CONTRACT — RAVATEX / CONTROLE DE TAPETES",
-          "anchor": "versioned-visual-contract-ravatex-controle-de-tapetes",
+          "text": "VISUAL CONTRACT — INTTRACKER",
+          "anchor": "visual-contract-inttracker",
           "line": 1
         },
         {
           "level": 2,
-          "text": "0. Real sources",
-          "anchor": "0-real-sources",
-          "line": 16
+          "text": "0. How this document works",
+          "anchor": "0-how-this-document-works",
+          "line": 13
         },
         {
           "level": 2,
-          "text": "0.1 Rule taxonomy",
-          "anchor": "01-rule-taxonomy",
-          "line": 30
+          "text": "1. Layer 1 — Tokens",
+          "anchor": "1-layer-1-tokens",
+          "line": 36
         },
         {
           "level": 2,
-          "text": "0.2 Rule classification",
-          "anchor": "02-rule-classification",
-          "line": 42
-        },
-        {
-          "level": 2,
-          "text": "1. Visual language",
-          "anchor": "1-visual-language",
-          "line": 93
-        },
-        {
-          "level": 2,
-          "text": "2. Typography",
-          "anchor": "2-typography",
-          "line": 102
-        },
-        {
-          "level": 2,
-          "text": "3. Shape, corners and shadow",
-          "anchor": "3-shape-corners-and-shadow",
-          "line": 116
-        },
-        {
-          "level": 2,
-          "text": "4. Colors (semantic aliases — `css/tokens.css`)",
-          "anchor": "4-colors-semantic-aliases-csstokenscss",
-          "line": 125
-        },
-        {
-          "level": 2,
-          "text": "5. Layout (shell + cockpit)",
-          "anchor": "5-layout-shell-cockpit",
-          "line": 138
-        },
-        {
-          "level": 2,
-          "text": "6. Cards and sections",
-          "anchor": "6-cards-and-sections",
-          "line": 156
-        },
-        {
-          "level": 2,
-          "text": "7. Tables — golden rule",
-          "anchor": "7-tables-golden-rule",
-          "line": 163
+          "text": "2. Layer 2 — Primitives",
+          "anchor": "2-layer-2-primitives",
+          "line": 61
         },
         {
           "level": 3,
-          "text": "7.1 Grid/list text-cell overflow",
-          "anchor": "71-gridlist-text-cell-overflow",
-          "line": 172
-        },
-        {
-          "level": 2,
-          "text": "8. Buttons",
-          "anchor": "8-buttons",
-          "line": 182
+          "text": "2.1 Button",
+          "anchor": "21-button",
+          "line": 65
         },
         {
           "level": 3,
-          "text": "8.1 Row-level compact icon button — `COMPONENT-SPECIFIC`",
-          "anchor": "81-row-level-compact-icon-button-component-specific",
-          "line": 193
+          "text": "2.2 Field",
+          "anchor": "22-field",
+          "line": 99
+        },
+        {
+          "level": 3,
+          "text": "2.3 Popover / dropdown / menu",
+          "anchor": "23-popover-dropdown-menu",
+          "line": 106
+        },
+        {
+          "level": 3,
+          "text": "2.4 Card and section chip",
+          "anchor": "24-card-and-section-chip",
+          "line": 121
+        },
+        {
+          "level": 3,
+          "text": "2.5 Table — golden rule",
+          "anchor": "25-table-golden-rule",
+          "line": 133
+        },
+        {
+          "level": 3,
+          "text": "2.6 Status pill",
+          "anchor": "26-status-pill",
+          "line": 149
+        },
+        {
+          "level": 3,
+          "text": "2.7 Stage badge",
+          "anchor": "27-stage-badge",
+          "line": 165
+        },
+        {
+          "level": 3,
+          "text": "2.8 File chip and document slots",
+          "anchor": "28-file-chip-and-document-slots",
+          "line": 171
+        },
+        {
+          "level": 3,
+          "text": "2.9 Table-row action",
+          "anchor": "29-table-row-action",
+          "line": 181
+        },
+        {
+          "level": 3,
+          "text": "2.10 Modal",
+          "anchor": "210-modal",
+          "line": 196
+        },
+        {
+          "level": 3,
+          "text": "2.11 Empty state and alert",
+          "anchor": "211-empty-state-and-alert",
+          "line": 206
         },
         {
           "level": 2,
-          "text": "9. Forms",
-          "anchor": "9-forms",
+          "text": "3. Layer 3 — Screen archetypes",
+          "anchor": "3-layer-3-screen-archetypes",
+          "line": 218
+        },
+        {
+          "level": 3,
+          "text": "A · Detail cockpit — `RATIFIED FIXTURE`",
+          "anchor": "a-detail-cockpit-ratified-fixture",
+          "line": 223
+        },
+        {
+          "level": 3,
+          "text": "B · Work queue — `CANDIDATE`",
+          "anchor": "b-work-queue-candidate",
           "line": 237
         },
         {
-          "level": 2,
-          "text": "10. Badges — status and stage",
-          "anchor": "10-badges-status-and-stage",
+          "level": 3,
+          "text": "C · Creation form — `CANDIDATE`",
+          "anchor": "c-creation-form-candidate",
           "line": 246
         },
         {
-          "level": 2,
-          "text": "11. Documentos / Attachments",
-          "anchor": "11-documentos-attachments",
-          "line": 253
+          "level": 3,
+          "text": "D · Decision modal — `CANDIDATE`",
+          "anchor": "d-decision-modal-candidate",
+          "line": 256
+        },
+        {
+          "level": 3,
+          "text": "E · Client portal — `CANDIDATE`",
+          "anchor": "e-client-portal-candidate",
+          "line": 263
+        },
+        {
+          "level": 3,
+          "text": "F · Configuration — `CANDIDATE`",
+          "anchor": "f-configuration-candidate",
+          "line": 275
         },
         {
           "level": 2,
-          "text": "12. Modals",
-          "anchor": "12-modals",
-          "line": 266
-        },
-        {
-          "level": 2,
-          "text": "13. Iconography",
-          "anchor": "13-iconography",
-          "line": 280
-        },
-        {
-          "level": 2,
-          "text": "14. Responsiveness",
-          "anchor": "14-responsiveness",
+          "text": "4. Layer 4 — Conformance",
+          "anchor": "4-layer-4-conformance",
           "line": 287
         },
         {
           "level": 2,
-          "text": "15. Accessibility",
-          "anchor": "15-accessibility",
-          "line": 294
+          "text": "5. Closed enums",
+          "anchor": "5-closed-enums",
+          "line": 299
         },
         {
           "level": 2,
-          "text": "16. Terminology",
-          "anchor": "16-terminology",
-          "line": 310
+          "text": "6. Prohibitions",
+          "anchor": "6-prohibitions",
+          "line": 324
         },
         {
           "level": 2,
-          "text": "17. Component reuse and Documentos/Pedido/OP continuity",
-          "anchor": "17-component-reuse-and-documentospedidoop-continuity",
-          "line": 317
+          "text": "7. Language and lexicon",
+          "anchor": "7-language-and-lexicon",
+          "line": 343
         },
         {
           "level": 2,
-          "text": "18. Visual validation (mandatory)",
-          "anchor": "18-visual-validation-mandatory",
-          "line": 325
+          "text": "8. Accessibility",
+          "anchor": "8-accessibility",
+          "line": 357
         },
         {
           "level": 2,
-          "text": "19. Prohibitions (simplified solutions)",
-          "anchor": "19-prohibitions-simplified-solutions",
-          "line": 340
+          "text": "9. Validation",
+          "anchor": "9-validation",
+          "line": 367
         }
       ]
     },
@@ -41026,7 +41696,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 41,
+          "source_line": 45,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -41232,7 +41902,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 42,
+          "source_line": 46,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -41793,7 +42463,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 43,
+          "source_line": 47,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -42738,7 +43408,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 44,
+          "source_line": 48,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -42956,7 +43626,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 45,
+          "source_line": 49,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -43316,7 +43986,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 46,
+          "source_line": 50,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -43714,7 +44384,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 47,
+          "source_line": 51,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -44186,7 +44856,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 48,
+          "source_line": 52,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -44349,7 +45019,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 49,
+          "source_line": 53,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -44723,7 +45393,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 50,
+          "source_line": 54,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -45347,7 +46017,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 51,
+          "source_line": 55,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -45549,7 +46219,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 52,
+          "source_line": 56,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -45783,7 +46453,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 53,
+          "source_line": 57,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -46295,7 +46965,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 54,
+          "source_line": 58,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -46730,7 +47400,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 55,
+          "source_line": 59,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -46847,7 +47517,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 56,
+          "source_line": 60,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -47037,7 +47707,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 57,
+          "source_line": 61,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -47615,7 +48285,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 58,
+          "source_line": 62,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -47902,7 +48572,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 59,
+          "source_line": 63,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -48032,7 +48702,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 60,
+          "source_line": 64,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -48284,7 +48954,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 61,
+          "source_line": 65,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -48413,7 +49083,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 62,
+          "source_line": 66,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -48677,7 +49347,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 63,
+          "source_line": 67,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -48867,7 +49537,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 64,
+          "source_line": 68,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -49035,7 +49705,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 65,
+          "source_line": 69,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -51617,7 +52287,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 66,
+          "source_line": 70,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -52658,7 +53328,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 67,
+          "source_line": 71,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -53068,7 +53738,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 68,
+          "source_line": 72,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -53552,7 +54222,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 69,
+          "source_line": 73,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -54385,7 +55055,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 70,
+          "source_line": 74,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -54872,7 +55542,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 71,
+          "source_line": 75,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -55175,7 +55845,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 72,
+          "source_line": 76,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -55660,7 +56330,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 73,
+          "source_line": 77,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -55807,7 +56477,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 140,
+          "source_line": 144,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -56927,7 +57597,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 141,
+          "source_line": 145,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -57073,7 +57743,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 142,
+          "source_line": 146,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -57251,7 +57921,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 139,
+          "source_line": 143,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -57317,7 +57987,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 74,
+          "source_line": 78,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -57376,10 +58046,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-      "git_object_id": "6b7115748f3236b047e3c5fa24af77a060caf6ae",
-      "sha256": "f8a5ae7e78da9f1e350c98a56d294f854669c36d2f61e5ac3998e36871ec613d",
-      "line_count": 159,
-      "byte_count": 27642,
+      "git_object_id": "2cf8e9c3fd54091dc3388abdf294fccb411d5d1b",
+      "sha256": "92b02a83787a6ac55ead2885bf04254dec12bda20f68046906cd82a9aa55011e",
+      "line_count": 163,
+      "byte_count": 28246,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -57472,11 +58142,19 @@
         },
         {
           "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/ARCHITECT_BRIEF.md`",
+          "target_path": "docs/architecture/ARCHITECT_BRIEF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 19
+        },
+        {
+          "kind": "ROOT_REFERENCE",
           "raw": "`docs/architecture/AUTH_DELETE_USER_DESIGN.md`",
           "target_path": "docs/architecture/AUTH_DELETE_USER_DESIGN.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 19
+          "source_line": 20
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57484,7 +58162,7 @@
           "target_path": "docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 20
+          "source_line": 21
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57492,7 +58170,7 @@
           "target_path": "docs/architecture/CAMADA2_USUARIOS_SPEC_PROPOSED.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 21
+          "source_line": 22
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57500,7 +58178,7 @@
           "target_path": "docs/architecture/CAMADA3_BACKUP_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 22
+          "source_line": 23
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57508,7 +58186,7 @@
           "target_path": "docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 23
+          "source_line": 24
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57516,7 +58194,7 @@
           "target_path": "docs/architecture/CLEAN_SLATE_TRANSACTIONAL_RESET_PHASE_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 24
+          "source_line": 25
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57524,7 +58202,15 @@
           "target_path": "docs/architecture/CODE_HEALTH_RULES.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 25
+          "source_line": 26
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/DESIGN_DECISIONS.md`",
+          "target_path": "docs/architecture/DESIGN_DECISIONS.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 27
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57532,7 +58218,7 @@
           "target_path": "docs/architecture/DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 26
+          "source_line": 28
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57540,7 +58226,7 @@
           "target_path": "docs/architecture/DOCUMENTS_INGESTOR_CONSUMER_DESIGN.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 27
+          "source_line": 29
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57548,7 +58234,7 @@
           "target_path": "docs/architecture/ORDEM_COMPRA_C3C_B_DB_PREREQUISITES_PHASE_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 28
+          "source_line": 30
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57556,7 +58242,7 @@
           "target_path": "docs/architecture/ORDEM_COMPRA_C3C_B_PHASE_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 29
+          "source_line": 31
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57564,7 +58250,7 @@
           "target_path": "docs/architecture/ORDEM_COMPRA_C3D_PHASE_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 30
+          "source_line": 32
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57572,7 +58258,7 @@
           "target_path": "docs/architecture/ORDEM_COMPRA_C3_TRACEABILITY.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 31
+          "source_line": 33
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57580,7 +58266,7 @@
           "target_path": "docs/architecture/ORDEM_COMPRA_C4_PHASE_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 32
+          "source_line": 34
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57588,7 +58274,7 @@
           "target_path": "docs/architecture/ORDEM_COMPRA_C5A_DB_EMISSION_READINESS_PHASE_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 33
+          "source_line": 35
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57596,7 +58282,7 @@
           "target_path": "docs/architecture/ORDEM_COMPRA_C5_PHASE_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 34
+          "source_line": 36
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57604,7 +58290,7 @@
           "target_path": "docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 35
+          "source_line": 37
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57612,7 +58298,7 @@
           "target_path": "docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 36
+          "source_line": 38
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57620,7 +58306,7 @@
           "target_path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 37
+          "source_line": 39
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57628,7 +58314,7 @@
           "target_path": "docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 38
+          "source_line": 40
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57636,7 +58322,23 @@
           "target_path": "docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 39
+          "source_line": 41
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/SGAA_DESIGN_SYSTEM_REFERENCE.md`",
+          "target_path": "docs/architecture/SGAA_DESIGN_SYSTEM_REFERENCE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 42
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_CONFORMANCE.md`",
+          "target_path": "docs/architecture/UI_CONFORMANCE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 43
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57644,7 +58346,7 @@
           "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 40
+          "source_line": 44
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57652,7 +58354,7 @@
           "target_path": "docs/archive/pt-BR/AGENT_HANDOFF.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 41
+          "source_line": 45
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57660,7 +58362,7 @@
           "target_path": "docs/archive/pt-BR/CLAUDE.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 42
+          "source_line": 46
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57668,7 +58370,7 @@
           "target_path": "docs/archive/pt-BR/PROJECT_STATE.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 43
+          "source_line": 47
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57676,7 +58378,7 @@
           "target_path": "docs/archive/pt-BR/docs/DOCUMENTATION_INDEX.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 44
+          "source_line": 48
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57684,7 +58386,7 @@
           "target_path": "docs/archive/pt-BR/docs/architecture/AUTH_DELETE_USER_DESIGN.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 45
+          "source_line": 49
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57692,7 +58394,7 @@
           "target_path": "docs/archive/pt-BR/docs/architecture/AUTH_PROVISIONING_EDGE_DESIGN.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 46
+          "source_line": 50
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57700,7 +58402,7 @@
           "target_path": "docs/archive/pt-BR/docs/architecture/CAMADA2_USUARIOS_SPEC_PROPOSED.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 47
+          "source_line": 51
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57708,7 +58410,7 @@
           "target_path": "docs/archive/pt-BR/docs/architecture/CLAUDE_PROJECT_ASSET_MAP.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 48
+          "source_line": 52
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57716,7 +58418,7 @@
           "target_path": "docs/archive/pt-BR/docs/architecture/CODE_HEALTH_RULES.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 49
+          "source_line": 53
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57724,7 +58426,7 @@
           "target_path": "docs/archive/pt-BR/docs/architecture/DOCUMENTOS_VALIDACAO_VINCULOS_E_EVOLUCAO_PLANO.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 50
+          "source_line": 54
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57732,7 +58434,7 @@
           "target_path": "docs/archive/pt-BR/docs/architecture/DOCUMENTS_INGESTOR_CONSUMER_DESIGN.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 51
+          "source_line": 55
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57740,7 +58442,7 @@
           "target_path": "docs/archive/pt-BR/docs/architecture/PEDIDO_OP_MOVIMENTACAO_DOCUMENTOS_PLANO.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 52
+          "source_line": 56
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57748,7 +58450,7 @@
           "target_path": "docs/archive/pt-BR/docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 53
+          "source_line": 57
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57756,7 +58458,7 @@
           "target_path": "docs/archive/pt-BR/docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 54
+          "source_line": 58
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57764,7 +58466,7 @@
           "target_path": "docs/archive/pt-BR/docs/architecture/PORTAL_B2B_ARCHITECTURE_RULES.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 55
+          "source_line": 59
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57772,7 +58474,7 @@
           "target_path": "docs/archive/pt-BR/docs/architecture/UI_VISUAL_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 56
+          "source_line": 60
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57780,7 +58482,7 @@
           "target_path": "docs/archive/pt-BR/docs/design/CAMADA2_A32_MOCKUP_APPROVED.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 57
+          "source_line": 61
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57788,7 +58490,7 @@
           "target_path": "docs/archive/pt-BR/docs/governance/DOCUMENTATION_MODEL.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 58
+          "source_line": 62
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57796,7 +58498,7 @@
           "target_path": "docs/archive/pt-BR/docs/governance/SUPERVISION_PROTOCOL.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 59
+          "source_line": 63
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57804,7 +58506,7 @@
           "target_path": "docs/archive/pt-BR/docs/operations/AUTH_DISABLE_USER_PROD_RELEASE_PLAN.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 60
+          "source_line": 64
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57812,7 +58514,7 @@
           "target_path": "docs/archive/pt-BR/docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 61
+          "source_line": 65
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57820,7 +58522,7 @@
           "target_path": "docs/archive/pt-BR/docs/operations/PARALLEL_ENVIRONMENT_RECONCILIATION.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 62
+          "source_line": 66
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57828,7 +58530,7 @@
           "target_path": "docs/archive/pt-BR/docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 63
+          "source_line": 67
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57836,7 +58538,7 @@
           "target_path": "docs/archive/pt-BR/docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 64
+          "source_line": 68
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57844,7 +58546,7 @@
           "target_path": "docs/archive/pt-BR/docs/ui/CLIENTE_PORTAL_UI_OPERATIONS_RULES.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 65
+          "source_line": 69
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57852,7 +58554,7 @@
           "target_path": "docs/closeouts/AGENT_HANDOFF_ARCHIVE_2026-07.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 66
+          "source_line": 70
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57860,7 +58562,7 @@
           "target_path": "docs/closeouts/PROJECT_STATE_ARCHIVE_2026-07.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 67
+          "source_line": 71
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57868,7 +58570,7 @@
           "target_path": "docs/design/CAMADA2_A32_MOCKUP_APPROVED.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 68
+          "source_line": 72
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57876,7 +58578,7 @@
           "target_path": "docs/governance/AGENT_INSTRUCTIONS.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 69
+          "source_line": 73
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57884,7 +58586,7 @@
           "target_path": "docs/governance/DOCUMENTATION_MODEL.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 70
+          "source_line": 74
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57892,7 +58594,7 @@
           "target_path": "docs/governance/GOVERNANCE_EFFICIENCY_REFOUNDATION_PHASE_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 71
+          "source_line": 75
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57900,7 +58602,7 @@
           "target_path": "docs/governance/GOVERNANCE_EFFICIENCY_REFOUNDATION_UNIT_4_AUTHORITY_CUTOVER_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 72
+          "source_line": 76
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57908,7 +58610,7 @@
           "target_path": "docs/governance/SUPERVISION_PROTOCOL.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 73
+          "source_line": 77
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57916,7 +58618,7 @@
           "target_path": "docs/governance/shadow/generated/AGENT_HANDOFF.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 74
+          "source_line": 78
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57924,7 +58626,7 @@
           "target_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 75
+          "source_line": 79
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57932,7 +58634,7 @@
           "target_path": "docs/governance/shadow/generated/G28_LEDGER.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 76
+          "source_line": 80
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57940,7 +58642,7 @@
           "target_path": "docs/governance/shadow/generated/ORDEM_COMPRA_C3_TRACEABILITY.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 77
+          "source_line": 81
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57948,7 +58650,7 @@
           "target_path": "docs/governance/shadow/generated/PROJECT_STATE.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 78
+          "source_line": 82
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57956,7 +58658,7 @@
           "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0001.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 79
+          "source_line": 83
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57964,7 +58666,7 @@
           "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0002.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 80
+          "source_line": 84
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57972,7 +58674,7 @@
           "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0003.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 81
+          "source_line": 85
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57980,7 +58682,7 @@
           "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0004.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 82
+          "source_line": 86
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57988,7 +58690,7 @@
           "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0005.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 83
+          "source_line": 87
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -57996,7 +58698,7 @@
           "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0006.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 84
+          "source_line": 88
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58004,7 +58706,7 @@
           "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0007.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 85
+          "source_line": 89
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58012,7 +58714,7 @@
           "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0008.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 86
+          "source_line": 90
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58020,7 +58722,7 @@
           "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0009.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 87
+          "source_line": 91
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58028,7 +58730,7 @@
           "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0010.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 88
+          "source_line": 92
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58036,7 +58738,7 @@
           "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0011.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 89
+          "source_line": 93
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58044,7 +58746,7 @@
           "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 90
+          "source_line": 94
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58052,7 +58754,7 @@
           "target_path": "docs/handoffs/CHATGPT_CLOSEOUT_2026-07-15.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 91
+          "source_line": 95
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58060,7 +58762,7 @@
           "target_path": "docs/ledgers/G28_LEDGER.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 92
+          "source_line": 96
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58068,7 +58770,7 @@
           "target_path": "docs/legacy/pre-model/AGENT_HANDOFF_FULL_SNAPSHOT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 93
+          "source_line": 97
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58076,7 +58778,7 @@
           "target_path": "docs/legacy/pre-model/DOCUMENTS_INGESTOR_PROJECT_STATE_FULL_SNAPSHOT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 94
+          "source_line": 98
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58084,7 +58786,7 @@
           "target_path": "docs/legacy/pre-model/MANIFEST.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 95
+          "source_line": 99
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58092,7 +58794,7 @@
           "target_path": "docs/legacy/pre-model/PROJECT_STATE_FULL_SNAPSHOT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 96
+          "source_line": 100
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58100,7 +58802,7 @@
           "target_path": "docs/operations/AUTH_DISABLE_USER_PROD_RELEASE_PLAN.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 97
+          "source_line": 101
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58108,7 +58810,7 @@
           "target_path": "docs/operations/AUTH_USER_PROVISIONING_RUNBOOK.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 98
+          "source_line": 102
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58116,7 +58818,7 @@
           "target_path": "docs/operations/PARALLEL_ENVIRONMENT_RECONCILIATION.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 99
+          "source_line": 103
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58124,7 +58826,7 @@
           "target_path": "docs/qa/README.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 100
+          "source_line": 104
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58132,7 +58834,7 @@
           "target_path": "docs/qa/fase1-checklist.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 101
+          "source_line": 105
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58140,7 +58842,7 @@
           "target_path": "docs/qa/fase2-bugs-pendentes.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 102
+          "source_line": 106
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58148,7 +58850,7 @@
           "target_path": "docs/qa/fase2-checklist.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 103
+          "source_line": 107
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58156,7 +58858,7 @@
           "target_path": "docs/qa/fase3-checklist.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 104
+          "source_line": 108
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58164,7 +58866,7 @@
           "target_path": "docs/qa/fase4-checklist.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 105
+          "source_line": 109
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58172,7 +58874,7 @@
           "target_path": "docs/qa/fase5a-checklist.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 106
+          "source_line": 110
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58180,7 +58882,7 @@
           "target_path": "docs/qa/fase5b-checklist.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 107
+          "source_line": 111
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58188,7 +58890,7 @@
           "target_path": "docs/qa/fase6-checklist.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 108
+          "source_line": 112
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58196,7 +58898,7 @@
           "target_path": "docs/qa/roteiro-teste-fase6.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 109
+          "source_line": 113
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58204,7 +58906,7 @@
           "target_path": "docs/refactor/ARCHITECTURE_REFACTOR_LEDGER.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 110
+          "source_line": 114
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58212,7 +58914,7 @@
           "target_path": "docs/releases/G28_D_RELEASE_CANDIDATE.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 111
+          "source_line": 115
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58220,7 +58922,7 @@
           "target_path": "docs/reports/BACKLOG_RECONCILIATION_R1_2026-07-15.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 112
+          "source_line": 116
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58228,7 +58930,7 @@
           "target_path": "docs/reports/M2_SCHEMA_REPLAY_VERIFICATION_2026-07-17.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 113
+          "source_line": 117
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58236,7 +58938,7 @@
           "target_path": "docs/reports/ORDEM_COMPRA_LEGACY_DIAGNOSIS_2026-07-18.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 114
+          "source_line": 118
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58244,7 +58946,7 @@
           "target_path": "docs/reports/ORDEM_COMPRA_PHASE_A_2026-07-18.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 115
+          "source_line": 119
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58252,7 +58954,7 @@
           "target_path": "docs/reports/PRODUCTION_READINESS_DIAGNOSIS_R1_2026-07-17.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 116
+          "source_line": 120
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58260,7 +58962,7 @@
           "target_path": "docs/reports/TEST_MOCK_FIDELITY_AUDIT_2026-07-17.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 117
+          "source_line": 121
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58268,7 +58970,7 @@
           "target_path": "docs/superpowers/README.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 118
+          "source_line": 122
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58276,7 +58978,7 @@
           "target_path": "docs/superpowers/STATUS.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 119
+          "source_line": 123
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58284,7 +58986,7 @@
           "target_path": "docs/superpowers/plans/2026-05-16-fase1-fundacao.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 120
+          "source_line": 124
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58292,7 +58994,7 @@
           "target_path": "docs/superpowers/plans/2026-05-18-fase2-admin-cadastros.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 121
+          "source_line": 125
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58300,7 +59002,7 @@
           "target_path": "docs/superpowers/plans/2026-05-25-fase3-nova-op.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 122
+          "source_line": 126
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58308,7 +59010,7 @@
           "target_path": "docs/superpowers/plans/2026-05-27-fase4-recebimento-fios.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 123
+          "source_line": 127
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58316,7 +59018,7 @@
           "target_path": "docs/superpowers/plans/2026-05-28-fase5a-tecelagem.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 124
+          "source_line": 128
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58324,7 +59026,7 @@
           "target_path": "docs/superpowers/plans/2026-06-02-destino-latex-entrega-tecelagem.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 125
+          "source_line": 129
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58332,7 +59034,7 @@
           "target_path": "docs/superpowers/plans/2026-06-02-fase5b-op-latex.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 126
+          "source_line": 130
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58340,7 +59042,7 @@
           "target_path": "docs/superpowers/plans/2026-06-04-fase6-cliente-lote-op.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 127
+          "source_line": 131
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58348,7 +59050,7 @@
           "target_path": "docs/superpowers/plans/2026-06-15-corrigir-desfazer-recebimento-fio.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 128
+          "source_line": 132
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58356,7 +59058,7 @@
           "target_path": "docs/superpowers/specs/2026-05-16-controle-tapetes-design.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 129
+          "source_line": 133
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58364,7 +59066,7 @@
           "target_path": "docs/superpowers/specs/2026-05-25-fase3-nova-op.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 130
+          "source_line": 134
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58372,7 +59074,7 @@
           "target_path": "docs/superpowers/specs/2026-05-27-fase4-recebimento-fios-design.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 131
+          "source_line": 135
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58380,7 +59082,7 @@
           "target_path": "docs/superpowers/specs/2026-05-28-fase5a-tecelagem-design.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 132
+          "source_line": 136
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58388,7 +59090,7 @@
           "target_path": "docs/superpowers/specs/2026-06-02-destino-latex-entrega-tecelagem-design.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 133
+          "source_line": 137
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58396,7 +59098,7 @@
           "target_path": "docs/superpowers/specs/2026-06-02-fase5b-op-latex-design.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 134
+          "source_line": 138
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58404,7 +59106,7 @@
           "target_path": "docs/superpowers/specs/2026-06-04-fase6-cliente-lote-op-design.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 135
+          "source_line": 139
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58412,7 +59114,7 @@
           "target_path": "docs/superpowers/specs/2026-06-15-corrigir-desfazer-recebimento-fio-design.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 136
+          "source_line": 140
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58420,7 +59122,7 @@
           "target_path": "docs/ui/CLIENTE_PORTAL_UI_GAP_INVENTORY.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 137
+          "source_line": 141
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58428,7 +59130,7 @@
           "target_path": "docs/ui/CLIENTE_PORTAL_UI_OPERATIONS_RULES.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 138
+          "source_line": 142
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58436,7 +59138,7 @@
           "target_path": "docs/governance/candidate/generated/PROJECT_STATE.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 139
+          "source_line": 143
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58444,7 +59146,7 @@
           "target_path": "docs/governance/candidate/generated/AGENT_HANDOFF.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 140
+          "source_line": 144
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58452,7 +59154,7 @@
           "target_path": "docs/governance/candidate/generated/DOCUMENTATION_INDEX.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 141
+          "source_line": 145
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -58460,7 +59162,7 @@
           "target_path": "docs/governance/candidate/generated/ORDEM_COMPRA_C3_TRACEABILITY.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 142
+          "source_line": 146
         }
       ],
       "inbound_references": [
@@ -58473,7 +59175,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 75,
+          "source_line": 79,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -58490,10 +59192,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "307cf0100fa0eeff8061cba83bb3645b3d133986",
-      "sha256": "2a8507cee3d10cf9944e2579b58434526f671254c15d145999aebc1afd393457",
-      "line_count": 9835,
-      "byte_count": 1039920,
+      "git_object_id": "a4b75d524aadc4637f4d148a897795d099a08069",
+      "sha256": "cf3f9c2814911c8403c65ddf926c73177a43109065665a2589e2c1424c5a3ed3",
+      "line_count": 9860,
+      "byte_count": 1050976,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -65183,6 +65885,54 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 9823
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/ARCHITECT_BRIEF.md`",
+          "target_path": "docs/architecture/ARCHITECT_BRIEF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9838
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/DESIGN_DECISIONS.md`",
+          "target_path": "docs/architecture/DESIGN_DECISIONS.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9838
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/SGAA_DESIGN_SYSTEM_REFERENCE.md`",
+          "target_path": "docs/architecture/SGAA_DESIGN_SYSTEM_REFERENCE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9838
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_CONFORMANCE.md`",
+          "target_path": "docs/architecture/UI_CONFORMANCE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9838
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9838
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9845
         }
       ],
       "inbound_references": [
@@ -65195,7 +65945,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 76,
+          "source_line": 80,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -66527,6 +67277,12 @@
           "text": "2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-03-R1 — fix: suggest Pedido number and compact creation layout",
           "anchor": "2026-07-25-kleber-app-operational-stabilization-batch-03-r1-fix-suggest-pedido-number-and-compact-creation-layout",
           "line": 9804
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — UI-CONSOLIDATION-FOUNDATION-INTAKE-R1 — feat(ui): establish canonical visual foundation",
+          "anchor": "2026-07-25-ui-consolidation-foundation-intake-r1-featui-establish-canonical-visual-foundation",
+          "line": 9835
         }
       ]
     },
@@ -66669,7 +67425,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 77,
+          "source_line": 81,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -66702,7 +67458,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 78,
+          "source_line": 82,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -67928,7 +68684,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 79,
+          "source_line": 83,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -68820,7 +69576,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 80,
+          "source_line": 84,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -69496,7 +70252,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 81,
+          "source_line": 85,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -69972,7 +70728,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 82,
+          "source_line": 86,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -70440,7 +71196,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 83,
+          "source_line": 87,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -71042,7 +71798,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 84,
+          "source_line": 88,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -71762,7 +72518,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 85,
+          "source_line": 89,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -72364,7 +73120,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 86,
+          "source_line": 90,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -73014,7 +73770,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 87,
+          "source_line": 91,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -73726,7 +74482,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 88,
+          "source_line": 92,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -74558,7 +75314,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 89,
+          "source_line": 93,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -74665,10 +75421,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
-      "git_object_id": "34b266856bbb2744b2363ea8a8a365093efbaaa8",
-      "sha256": "829a727b83511ce801912a37c2b83d36bcf77ac9fdce938325703fcc91eee2b7",
-      "line_count": 332,
-      "byte_count": 77315,
+      "git_object_id": "a3b03bd35c0c650800591bc7786fc2b6b1f3a00c",
+      "sha256": "4e4a26c9e5a7c3d9cf65ecdae1b83bf0bef934ea132e4a69a753f7185fe222d4",
+      "line_count": 357,
+      "byte_count": 88371,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -74974,6 +75730,54 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 320
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/ARCHITECT_BRIEF.md`",
+          "target_path": "docs/architecture/ARCHITECT_BRIEF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 335
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/DESIGN_DECISIONS.md`",
+          "target_path": "docs/architecture/DESIGN_DECISIONS.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 335
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/SGAA_DESIGN_SYSTEM_REFERENCE.md`",
+          "target_path": "docs/architecture/SGAA_DESIGN_SYSTEM_REFERENCE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 335
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_CONFORMANCE.md`",
+          "target_path": "docs/architecture/UI_CONFORMANCE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 335
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 335
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 342
         }
       ],
       "inbound_references": [
@@ -74986,7 +75790,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 90,
+          "source_line": 94,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -75112,6 +75916,12 @@
           "text": "2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-03-R1 — fix: suggest Pedido number and compact creation layout",
           "anchor": "2026-07-25-kleber-app-operational-stabilization-batch-03-r1-fix-suggest-pedido-number-and-compact-creation-layout",
           "line": 301
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — UI-CONSOLIDATION-FOUNDATION-INTAKE-R1 — feat(ui): establish canonical visual foundation",
+          "anchor": "2026-07-25-ui-consolidation-foundation-intake-r1-featui-establish-canonical-visual-foundation",
+          "line": 332
         }
       ]
     },
@@ -75161,7 +75971,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 91,
+          "source_line": 95,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -75199,10 +76009,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "d9aee6a68034ac9df12c9630b336603841e5362f",
-      "sha256": "32273135d9aa21e0efa5ecb486d27277ca506b8661f8d1837413a3e049c67915",
-      "line_count": 9829,
-      "byte_count": 1039619,
+      "git_object_id": "8e72d4a30e22dce1fb3af3be55f45f86c25c1f32",
+      "sha256": "5201ce4f417f29976fd0b5270a514238c439d5df5046cf52c3b9089f770aa25b",
+      "line_count": 9854,
+      "byte_count": 1050675,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -81892,6 +82702,54 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 9819
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/ARCHITECT_BRIEF.md`",
+          "target_path": "docs/architecture/ARCHITECT_BRIEF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9834
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/DESIGN_DECISIONS.md`",
+          "target_path": "docs/architecture/DESIGN_DECISIONS.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9834
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/SGAA_DESIGN_SYSTEM_REFERENCE.md`",
+          "target_path": "docs/architecture/SGAA_DESIGN_SYSTEM_REFERENCE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9834
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_CONFORMANCE.md`",
+          "target_path": "docs/architecture/UI_CONFORMANCE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9834
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9834
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9841
         }
       ],
       "inbound_references": [
@@ -83430,7 +84288,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 92,
+          "source_line": 96,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -85168,6 +86026,12 @@
           "text": "2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-03-R1 — fix: suggest Pedido number and compact creation layout",
           "anchor": "2026-07-25-kleber-app-operational-stabilization-batch-03-r1-fix-suggest-pedido-number-and-compact-creation-layout",
           "line": 9800
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — UI-CONSOLIDATION-FOUNDATION-INTAKE-R1 — feat(ui): establish canonical visual foundation",
+          "anchor": "2026-07-25-ui-consolidation-foundation-intake-r1-featui-establish-canonical-visual-foundation",
+          "line": 9831
         }
       ]
     },
@@ -85332,7 +86196,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 93,
+          "source_line": 97,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -85800,7 +86664,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 94,
+          "source_line": 98,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -86262,7 +87126,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 95,
+          "source_line": 99,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -87303,7 +88167,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 96,
+          "source_line": 100,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -87969,7 +88833,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 97,
+          "source_line": 101,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -88333,7 +89197,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 98,
+          "source_line": 102,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -88525,7 +89389,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 99,
+          "source_line": 103,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -88707,7 +89571,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 100,
+          "source_line": 104,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -88835,7 +89699,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 101,
+          "source_line": 105,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -88944,7 +89808,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 102,
+          "source_line": 106,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -89037,7 +89901,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 103,
+          "source_line": 107,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -89145,7 +90009,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 104,
+          "source_line": 108,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -89245,7 +90109,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 105,
+          "source_line": 109,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -89344,7 +90208,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 106,
+          "source_line": 110,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -89476,7 +90340,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 107,
+          "source_line": 111,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -89573,7 +90437,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 108,
+          "source_line": 112,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -89683,7 +90547,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 109,
+          "source_line": 113,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -90609,7 +91473,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 110,
+          "source_line": 114,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -91250,7 +92114,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 111,
+          "source_line": 115,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -91617,7 +92481,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 112,
+          "source_line": 116,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -91766,7 +92630,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 113,
+          "source_line": 117,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -91921,7 +92785,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 114,
+          "source_line": 118,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -92094,7 +92958,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 115,
+          "source_line": 119,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -92314,7 +93178,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 116,
+          "source_line": 120,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -92487,7 +93351,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 117,
+          "source_line": 121,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -92779,7 +93643,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 118,
+          "source_line": 122,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -93003,7 +93867,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 119,
+          "source_line": 123,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -93274,7 +94138,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 120,
+          "source_line": 124,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -93471,7 +94335,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 121,
+          "source_line": 125,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -93631,7 +94495,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 122,
+          "source_line": 126,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -93789,7 +94653,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 123,
+          "source_line": 127,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -93929,7 +94793,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 124,
+          "source_line": 128,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -94027,7 +94891,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 125,
+          "source_line": 129,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -94125,7 +94989,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 126,
+          "source_line": 130,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -94247,7 +95111,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 127,
+          "source_line": 131,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -94355,7 +95219,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 128,
+          "source_line": 132,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -94418,7 +95282,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 129,
+          "source_line": 133,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -94701,7 +95565,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 130,
+          "source_line": 134,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -94828,7 +95692,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 131,
+          "source_line": 135,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -94943,7 +95807,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 132,
+          "source_line": 136,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -95064,7 +95928,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 133,
+          "source_line": 137,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -95148,7 +96012,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 134,
+          "source_line": 138,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -95244,7 +96108,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 135,
+          "source_line": 139,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -95337,7 +96201,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 136,
+          "source_line": 140,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -95565,7 +96429,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 137,
+          "source_line": 141,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -95796,7 +96660,7 @@
         },
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-          "source_line": 138,
+          "source_line": 142,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
