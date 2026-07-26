@@ -245,7 +245,7 @@
     btn.style.cssText =
       'background:#18794a;color:#fff;border:none;border-radius:4px;'
       + 'padding:8px 16px;font-size:13px;font-weight:600;'
-      + 'font-family:inherit;cursor:pointer;box-shadow:0 1px 3px rgba(24,121,74,.3);'
+      + 'font-family:inherit;cursor:pointer;box-shadow:var(--rv-shadow-none);'
       + 'transition:opacity .2s;opacity:.95;';
 
     btn.addEventListener('mouseenter', function () { btn.style.opacity = '1'; });

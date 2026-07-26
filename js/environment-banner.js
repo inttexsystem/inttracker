@@ -48,7 +48,7 @@
     _envBanner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99998;' +
       'background:#f59e0b;color:#000;text-align:center;padding:6px 12px;' +
       'font-family:Inter,system-ui,sans-serif;font-size:13px;font-weight:600;' +
-      'box-shadow:0 -1px 4px rgba(0,0,0,.2);';
+      'box-shadow:var(--rv-shadow-sm);';
     _envBanner.textContent = ENV_BANNER_TEXT;
     // Banner é independente do write-guard banner (que fica no topo e
     // é criado por js/supabase-client.js). Insere no body (append) —

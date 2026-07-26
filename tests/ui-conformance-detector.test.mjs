@@ -538,11 +538,13 @@ test('every enum rule fires on the violating application fixture', () => {
     assert.equal(hits.length, count, `${rule}: ${JSON.stringify(byRule(findings, rule), null, 2)}`);
   }
   assert.equal(byRule(findings, 'UIC-009').length, 1);
-  // An application screen exposes no static ancestor chain, so "cards are
-  // flat" and "in-card action alignment" degrade the file rather than pass.
+  // An application screen exposes no static ancestor chain, so "in-card action
+  // alignment" degrades the file rather than passing.
   assert.equal(coverage, 'PARTIAL');
-  assert.ok(byRule(findings, 'UIC-004').some((f) => f.severity === 'coverage'));
   assert.ok(byRule(findings, 'UIC-008').some((f) => f.severity === 'coverage'));
+  // 1.0.5: UIC-004 judges the element that CARRIES the shadow, so it no longer
+  // emits a containment coverage gap it could never resolve on this front-end.
+  assert.deepEqual(byRule(findings, 'UIC-004').filter((f) => f.severity === 'coverage'), []);
 });
 
 /* ---------- 7-8 · token classification ---------- */
@@ -844,10 +846,12 @@ test('the UIC-001 highlight keys name the three-state semantics they report', ()
 
 test('the detector version was raised for the report-schema correction', () => {
   // 1.0.2 recorded the report-schema correction; 1.0.3 records the js-screen
-  // front-end amendment that transports a static `data-ui-pill` marker. Every
-  // change to what the detector can OBSERVE raises this number, so a baseline
-  // can never be silently attributed to a different detector.
-  assert.equal(DETECTOR_VERSION, '1.0.4');
+  // front-end amendment that transports a static `data-ui-pill` marker; 1.0.4
+  // records the UIC-003 specialized-control exclusion; 1.0.5 records the
+  // UIC-004 correction to ELEVATION-only semantics. Every change to what the
+  // detector can OBSERVE raises this number, so a baseline can never be
+  // silently attributed to a different detector.
+  assert.equal(DETECTOR_VERSION, '1.0.5');
 });
 
 /* ---------- 17 · the ratified reference fixture ---------- */

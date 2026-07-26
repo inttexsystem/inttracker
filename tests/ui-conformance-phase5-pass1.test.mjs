@@ -147,7 +147,7 @@ test('7 · the baseline is attributable to the detector that produced it', () =>
   // particular number but the pairing: the committed baseline must always name
   // the detector it came from, so a report can never be read against a
   // different engine than the one that measured it.
-  assert.equal(DETECTOR_VERSION, '1.0.4');
+  assert.equal(DETECTOR_VERSION, '1.0.5');
   assert.equal(BASELINE.detector_version, DETECTOR_VERSION);
 });
 

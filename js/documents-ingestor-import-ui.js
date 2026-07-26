@@ -226,7 +226,7 @@
       'position:fixed;bottom:16px;right:16px;z-index:100;'
       + 'background:#2563eb;color:#fff;border:none;border-radius:var(--rv-radius);'
       + 'padding:8px 16px;font-size:13px;font-weight:600;'
-      + 'font-family:inherit;cursor:pointer;box-shadow:0 2px 8px rgba(37,99,235,.35);'
+      + 'font-family:inherit;cursor:pointer;box-shadow:var(--rv-shadow-none);'
       + 'transition:opacity .2s;opacity:.85;';
 
     btn.addEventListener('mouseenter', function () { btn.style.opacity = '1'; });

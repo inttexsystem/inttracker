@@ -1,5 +1,5 @@
 {
-  "detector_version": "1.0.4",
+  "detector_version": "1.0.5",
   "rule_filter": null,
   "contract_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
   "contract_blob_hash": "f8349e6eeca291fef2edf4d6e30afd628732f00b6495d54eb9273860fa63f1c4",
@@ -763,34 +763,6 @@
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_ASSIGNMENT — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-004",
-      "severity": "coverage",
-      "path": "js/screens/admin-usuarios-modal.js",
-      "line": 70,
-      "column": 36,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "box-shadow",
-      "observed_value": "0 0 0 3px var(--rv-focus-ring)",
-      "resolved_value": "0 0 0 3px rgba(3,105,161,.22)",
-      "element_or_context": "control.style",
-      "message": "COVERAGE_GAP / CARD_MEMBERSHIP_UNPROVEN — a non-none shadow on an element the detector cannot prove is or is not a card. The \"cards are flat\" clause was not evaluated here."
-    },
-    {
-      "rule_id": "UIC-004",
-      "severity": "blocking",
-      "path": "js/screens/admin-usuarios-modal.js",
-      "line": 70,
-      "column": 36,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "box-shadow",
-      "observed_value": "0 0 0 3px var(--rv-focus-ring)",
-      "resolved_value": "0 0 0 3px rgba(3,105,161,.22)",
-      "element_or_context": "control.style",
-      "message": "Shadow 0 0 0 3px rgba(3,105,161,.22) is outside the three-value contract enum."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/admin-usuarios-modal.js",
@@ -831,20 +803,6 @@
       "resolved_value": null,
       "element_or_context": "width: min(100%, ${...}px)",
       "message": "COVERAGE_GAP / TEMPLATE_INTERPOLATED_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-004",
-      "severity": "coverage",
-      "path": "js/screens/admin-usuarios-modal.js",
-      "line": 169,
-      "column": 221,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "box-shadow",
-      "observed_value": "var(--rv-shadow-popover)",
-      "resolved_value": "0 12px 28px rgba(0,0,0,.10)",
-      "element_or_context": "el('div', { style })",
-      "message": "COVERAGE_GAP / CARD_MEMBERSHIP_UNPROVEN — a non-none shadow on an element the detector cannot prove is or is not a card. The \"cards are flat\" clause was not evaluated here."
     },
     {
       "rule_id": "UIC-005",
@@ -1239,34 +1197,6 @@
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_ASSIGNMENT — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-004",
-      "severity": "coverage",
-      "path": "js/screens/cadastros.js",
-      "line": 180,
-      "column": 36,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "box-shadow",
-      "observed_value": "0 0 0 3px var(--rv-focus-ring)",
-      "resolved_value": "0 0 0 3px rgba(3,105,161,.22)",
-      "element_or_context": "control.style",
-      "message": "COVERAGE_GAP / CARD_MEMBERSHIP_UNPROVEN — a non-none shadow on an element the detector cannot prove is or is not a card. The \"cards are flat\" clause was not evaluated here."
-    },
-    {
-      "rule_id": "UIC-004",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 180,
-      "column": 36,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "box-shadow",
-      "observed_value": "0 0 0 3px var(--rv-focus-ring)",
-      "resolved_value": "0 0 0 3px rgba(3,105,161,.22)",
-      "element_or_context": "control.style",
-      "message": "Shadow 0 0 0 3px rgba(3,105,161,.22) is outside the three-value contract enum."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
@@ -1321,20 +1251,6 @@
       "resolved_value": null,
       "element_or_context": "width: min(100%, ${...}px)",
       "message": "COVERAGE_GAP / TEMPLATE_INTERPOLATED_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-004",
-      "severity": "coverage",
-      "path": "js/screens/cadastros.js",
-      "line": 307,
-      "column": 221,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "box-shadow",
-      "observed_value": "var(--rv-shadow-popover)",
-      "resolved_value": "0 12px 28px rgba(0,0,0,.10)",
-      "element_or_context": "el('div', { style })",
-      "message": "COVERAGE_GAP / CARD_MEMBERSHIP_UNPROVEN — a non-none shadow on an element the detector cannot prove is or is not a card. The \"cards are flat\" clause was not evaluated here."
     },
     {
       "rule_id": "UIC-005",
@@ -1811,34 +1727,6 @@
       "resolved_value": null,
       "element_or_context": "style: <expression>",
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-004",
-      "severity": "coverage",
-      "path": "js/screens/cadastros.js",
-      "line": 1543,
-      "column": 34,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "box-shadow",
-      "observed_value": "0 0 0 3px var(--rv-focus-ring)",
-      "resolved_value": "0 0 0 3px rgba(3,105,161,.22)",
-      "element_or_context": "input.style",
-      "message": "COVERAGE_GAP / CARD_MEMBERSHIP_UNPROVEN — a non-none shadow on an element the detector cannot prove is or is not a card. The \"cards are flat\" clause was not evaluated here."
-    },
-    {
-      "rule_id": "UIC-004",
-      "severity": "blocking",
-      "path": "js/screens/cadastros.js",
-      "line": 1543,
-      "column": 34,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "box-shadow",
-      "observed_value": "0 0 0 3px var(--rv-focus-ring)",
-      "resolved_value": "0 0 0 3px rgba(3,105,161,.22)",
-      "element_or_context": "input.style",
-      "message": "Shadow 0 0 0 3px rgba(3,105,161,.22) is outside the three-value contract enum."
     },
     {
       "rule_id": "UIC-000",
@@ -2861,20 +2749,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-004",
-      "severity": "coverage",
-      "path": "js/screens/cliente-pedido-form.js",
-      "line": 623,
-      "column": 123,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "box-shadow",
-      "observed_value": "var(--rv-shadow-popover)",
-      "resolved_value": "0 12px 28px rgba(0,0,0,.10)",
-      "element_or_context": "el('div', { style })",
-      "message": "COVERAGE_GAP / CARD_MEMBERSHIP_UNPROVEN — a non-none shadow on an element the detector cannot prove is or is not a card. The \"cards are flat\" clause was not evaluated here."
     },
     {
       "rule_id": "UIC-000",
@@ -4473,20 +4347,6 @@
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-004",
-      "severity": "coverage",
-      "path": "js/screens/entrega-form.js",
-      "line": 147,
-      "column": 153,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "box-shadow",
-      "observed_value": "var(--rv-shadow-sm)",
-      "resolved_value": "0 1px 3px rgba(0,0,0,.10)",
-      "element_or_context": "el('span', { style })",
-      "message": "COVERAGE_GAP / CARD_MEMBERSHIP_UNPROVEN — a non-none shadow on an element the detector cannot prove is or is not a card. The \"cards are flat\" clause was not evaluated here."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/entrega-form.js",
@@ -5353,20 +5213,6 @@
       "resolved_value": null,
       "element_or_context": "style: <expression>",
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-004",
-      "severity": "coverage",
-      "path": "js/screens/manta-output-form.js",
-      "line": 43,
-      "column": 149,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "box-shadow",
-      "observed_value": "var(--rv-shadow-sm)",
-      "resolved_value": "0 1px 3px rgba(0,0,0,.10)",
-      "element_or_context": "el('span', { style })",
-      "message": "COVERAGE_GAP / CARD_MEMBERSHIP_UNPROVEN — a non-none shadow on an element the detector cannot prove is or is not a card. The \"cards are flat\" clause was not evaluated here."
     },
     {
       "rule_id": "UIC-000",
@@ -14966,11 +14812,11 @@
     },
     "UIC-004": {
       "name": "SHADOW_OUTSIDE_ENUM",
-      "total": 11,
-      "blocking": 3,
+      "total": 0,
+      "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 8,
-      "files": 5
+      "coverage_gaps": 0,
+      "files": 0
     },
     "UIC-005": {
       "name": "TYPOGRAPHY_OUTSIDE_ENUM",
@@ -15058,10 +14904,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 8,
       "declaration_sites": 147,
-      "total": 15,
-      "blocking": 4,
+      "total": 12,
+      "blocking": 3,
       "debt": 0,
-      "coverage_gaps": 11
+      "coverage_gaps": 9
     },
     "js/screens/admin-usuarios.js": {
       "front_end": "js-screen",
@@ -15080,10 +14926,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 47,
       "declaration_sites": 961,
-      "total": 59,
-      "blocking": 8,
+      "total": 54,
+      "blocking": 6,
       "debt": 0,
-      "coverage_gaps": 51
+      "coverage_gaps": 48
     },
     "js/screens/cliente-common.js": {
       "front_end": "js-screen",
@@ -15124,10 +14970,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 6,
       "declaration_sites": 542,
-      "total": 19,
+      "total": 18,
       "blocking": 11,
       "debt": 0,
-      "coverage_gaps": 8
+      "coverage_gaps": 7
     },
     "js/screens/cliente-pedido-tracking.js": {
       "front_end": "js-screen",
@@ -15234,10 +15080,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 9,
       "declaration_sites": 97,
-      "total": 11,
+      "total": 10,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 11
+      "coverage_gaps": 10
     },
     "js/screens/entrega-writes.js": {
       "front_end": "js-screen",
@@ -15300,10 +15146,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 5,
       "declaration_sites": 98,
-      "total": 7,
+      "total": 6,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 7
+      "coverage_gaps": 6
     },
     "js/screens/manta-writes.js": {
       "front_end": "js-screen",
@@ -15783,10 +15629,10 @@
     },
     "unassigned": {
       "files": 66,
-      "total": 1019,
-      "blocking": 98,
+      "total": 1008,
+      "blocking": 95,
       "debt": 322,
-      "coverage_gaps": 599,
+      "coverage_gaps": 591,
       "coverage_states": {
         "FULL": 22,
         "PARTIAL": 44,

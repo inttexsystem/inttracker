@@ -57,7 +57,7 @@
     _banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;' +
       'background:#dc2626;color:#fff;text-align:center;padding:6px 12px;' +
       'font-family:Inter,system-ui,sans-serif;font-size:13px;font-weight:600;' +
-      'box-shadow:0 1px 4px rgba(0,0,0,.2);';
+      'box-shadow:var(--rv-shadow-sm);';
     _banner.textContent =
       'LOCAL APONTANDO PARA PRODUÇÃO — WRITES BLOQUEADOS (insert/update/delete/upsert/rpc). ' +
       'Reads e login funcionam normalmente.';

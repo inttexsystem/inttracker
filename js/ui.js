@@ -43,9 +43,11 @@ function el(tag, attrs = {}, ...children) {
 
 function toast(message, type = 'info') {
   const colors = { info: 'bg-blue-600', success: 'bg-green-600', error: 'bg-red-600' };
+  // Pass-4: the toast is a nonmodal banner, so it takes the canonical small
+  // elevation. Tailwind no longer owns any product shadow.
   const node = el('div', {
-    style: 'border-radius:var(--rv-radius);',
-    class: 'toast text-white px-4 py-2 shadow-lg ' + (colors[type] || colors.info)
+    style: 'border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-sm);',
+    class: 'toast text-white px-4 py-2 ' + (colors[type] || colors.info)
   }, message);
   $('#toasts').appendChild(node);
   setTimeout(() => node.remove(), 4000);
@@ -82,7 +84,9 @@ function modal({ title, body, onSave, saveLabel = 'Salvar', onClose, danger = fa
 
   // Padrao visual atual: cantos pouco arredondados, borda clara, espacamento
   // limpo e botoes consistentes com o restante da UI (#2563eb / borda #d8dce2).
-  const card = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow-xl border border-[#eceef1] w-full max-w-lg max-h-[90vh] flex flex-col' });
+  // Pass-4: the generic modal card takes the canonical popover elevation
+  // (contract §2.10). Tailwind no longer owns any product shadow.
+  const card = el('div', { style: 'border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-popover);', class: 'bg-white border border-[#eceef1] w-full max-w-lg max-h-[90vh] flex flex-col' });
   const header = el('div', { class: 'px-6 py-4 border-b border-[#eceef1] flex justify-between items-center' },
     el('h2', { class: 'text-base font-bold text-[#16203a]' }, title),
     el('button', { class: 'text-gray-400 hover:text-gray-700 text-2xl leading-none', onclick: close }, '×')

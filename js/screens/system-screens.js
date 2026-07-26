@@ -62,8 +62,8 @@
     const card = window.el('div', {
       class: 'login-card',
       style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);'
-        + 'padding:32px 32px 28px;box-shadow:var(--rv-shadow-none),'
-        + 'var(--rv-shadow-none);',
+        + 'padding:32px 32px 28px;'
+        + 'box-shadow:var(--rv-shadow-none);',
     });
 
     const brandMark = window.el('div', {

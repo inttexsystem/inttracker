@@ -60,8 +60,8 @@ const SCREENS = RUNTIME.filter((f) => f.rel.startsWith('js/screens/'));
    ============================================================ */
 
 test('1 · the detector version was raised for the pass-3 semantic correction', () => {
-  assert.equal(DETECTOR_VERSION, '1.0.4');
-  assert.equal(BASELINE.detector_version, '1.0.4');
+  assert.equal(DETECTOR_VERSION, '1.0.5');
+  assert.equal(BASELINE.detector_version, '1.0.5');
 });
 
 test('2 · UIC-003 reports zero blocking and zero coverage', () => {

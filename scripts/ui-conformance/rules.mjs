@@ -17,7 +17,7 @@
 import { classifyToken } from '../ui-foundation/token-parser.mjs';
 import { normalizeValue, resolveCssValue } from './contract.mjs';
 
-export const DETECTOR_VERSION = '1.0.4';
+export const DETECTOR_VERSION = '1.0.5';
 
 export const RULE_NAMES = {
   'UIC-001': 'LITERAL_VISUAL_COLOUR',
@@ -197,6 +197,87 @@ function resolve(tokens, value) {
 
 function lengthsPx(value) {
   return [...String(value).matchAll(/(-?\d*\.?\d+)px\b/g)].map((m) => Number(m[1]));
+}
+
+/* ---------- UIC-004: elevation versus non-elevation (A1 ruling) ---------- */
+
+/** A length that is zero, however it is spelled (`0`, `0px`, `0.00rem`). */
+const ZERO_LENGTH_RE = /^[+-]?0+(?:\.0+)?(?:px|em|rem)?$/;
+/** A strictly positive length. The unit is required, so a bare `3` is not one. */
+const POSITIVE_LENGTH_RE = /^\+?(?:\d+\.?\d*|\.\d+)(?:px|em|rem)$/;
+
+function isZeroLength(part) {
+  return ZERO_LENGTH_RE.test(part);
+}
+
+function isPositiveLength(part) {
+  return POSITIVE_LENGTH_RE.test(part) && Number.parseFloat(part) > 0;
+}
+
+function isLengthSlot(part) {
+  return isZeroLength(part) || isPositiveLength(part);
+}
+
+/**
+ * Split one `box-shadow` value into its top-level, whitespace-separated slots.
+ *
+ * Returns `null` when the value cannot be a SINGLE layer — a top-level comma
+ * means a second layer, and `inset` means an inner shadow. Commas inside a
+ * function (`rgba(0,0,0,.1)`) are at depth > 0 and do not split.
+ */
+function singleShadowLayerSlots(value) {
+  const text = String(value).trim();
+  if (!text) return null;
+  if (/(?:^|[\s(])inset(?:[\s)]|$)/i.test(text)) return null;
+
+  const slots = [];
+  let depth = 0;
+  let current = '';
+  for (const ch of text) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+
+    if (depth === 0 && ch === ',') return null;
+    if (depth === 0 && /\s/.test(ch)) {
+      if (current) slots.push(current);
+      current = '';
+      continue;
+    }
+    current += ch;
+  }
+  if (current) slots.push(current);
+  return slots;
+}
+
+/**
+ * A NON-ELEVATION SPREAD RING — a focus indicator or a connector knockout.
+ *
+ * UIC-004 governs ELEVATION only (A1 ruling §2), so a declaration that
+ * statically decodes to exactly one layer with zero horizontal offset, zero
+ * vertical offset, zero blur, a positive spread and one colour slot is not
+ * measured against the three-value elevation enum. It is carried instead by
+ * the exact non-elevation inventory, which is frozen by the focused suite.
+ *
+ * The test is structural and complete-or-nothing: it names no path, line,
+ * token, literal colour or filename, and it is not a suppression mechanism.
+ * Anything it cannot decode falls through to the elevation enum unchanged.
+ */
+function isNonElevationSpreadRing(value) {
+  const slots = singleShadowLayerSlots(value);
+  if (!slots || slots.length !== 5) return false;
+
+  // The four lengths are contiguous and in order; the single remaining slot
+  // is the colour or colour token, at the head or the tail as CSS allows.
+  let lengths = null;
+  if (!isLengthSlot(slots[4]) && slots.slice(0, 4).every(isLengthSlot)) {
+    lengths = slots.slice(0, 4);
+  } else if (!isLengthSlot(slots[0]) && slots.slice(1, 5).every(isLengthSlot)) {
+    lengths = slots.slice(1, 5);
+  }
+  if (!lengths) return false;
+
+  const [offsetX, offsetY, blur, spread] = lengths;
+  return isZeroLength(offsetX) && isZeroLength(offsetY) && isZeroLength(blur) && isPositiveLength(spread);
 }
 
 /** The token that owns pill geometry. Its VALUE is never written here. */
@@ -433,10 +514,32 @@ function ruleControlHeight(unit, ctx, out) {
   }
 }
 
+/**
+ * UIC-004 — SHADOW_OUTSIDE_ENUM, elevation only (detector 1.0.5, A1 ruling).
+ *
+ * Evaluation order:
+ *   A. a statically proven non-elevation spread ring is excluded and carried
+ *      by the non-elevation inventory;
+ *   B. otherwise the value is resolved through the canonical tokens;
+ *   C. an unresolved value is blocking;
+ *   D. a resolved value outside the three-value elevation enum is blocking;
+ *   E. a statically proven CARD carrying a non-none elevation shadow is
+ *      blocking — cards are flat;
+ *   F. otherwise there is no finding.
+ *
+ * The CARD_MEMBERSHIP_UNPROVEN coverage branch was REMOVED by the A1 ruling.
+ * It required every non-none shadow to prove card containment, which the
+ * JavaScript front-end can never do — it deliberately exposes no ancestor
+ * stack — so it made the rule unclosable rather than informative. "Cards are
+ * flat" now applies to the element CARRYING the shadow, not to every
+ * descendant that happens to sit inside a card.
+ */
 function ruleShadow(unit, ctx, out) {
   for (const decl of unit.declarations) {
     if (decl.property !== 'box-shadow') continue;
     if (decl.interpolated) continue;
+    // (A) Focus rings and connector knockouts are not elevation.
+    if (isNonElevationSpreadRing(decl.value)) continue;
     const { value: resolved, unresolved } = resolve(ctx.tokens, decl.value);
     const at = unit.locate(decl.valueOffset);
     const normalized = normalizeValue(resolved);
@@ -467,13 +570,14 @@ function ruleShadow(unit, ctx, out) {
           observed_value: decl.value,
           resolved_value: resolved,
           element_or_context: decl.element.context,
-          message: `Shadow ${resolved} is outside the three-value contract enum.`,
+          message: `Shadow ${resolved} is outside the three-value elevation enum.`,
         }),
       );
     }
 
     if (normalized === 'none') continue;
 
+    // (E) Cards are flat — judged on the element that CARRIES the shadow.
     if (decl.element.isCard) {
       out.push(
         makeFinding(unit, {
@@ -485,21 +589,7 @@ function ruleShadow(unit, ctx, out) {
           observed_value: decl.value,
           resolved_value: resolved,
           element_or_context: decl.element.context,
-          message: 'Cards are flat. A card may declare no shadow other than none.',
-        }),
-      );
-    } else if (decl.element.insideCard === null) {
-      out.push(
-        makeFinding(unit, {
-          rule_id: 'UIC-004',
-          severity: 'coverage',
-          line: at.line,
-          column: at.column,
-          property: 'box-shadow',
-          observed_value: decl.value,
-          resolved_value: resolved,
-          element_or_context: decl.element.context,
-          message: 'COVERAGE_GAP / CARD_MEMBERSHIP_UNPROVEN — a non-none shadow on an element the detector cannot prove is or is not a card. The "cards are flat" clause was not evaluated here.',
+          message: 'Cards are flat. A card may declare no elevation shadow other than none.',
         }),
       );
     }
