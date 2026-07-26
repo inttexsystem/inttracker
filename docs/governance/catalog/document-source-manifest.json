@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "d986dd1ae88986d2b83fed1331086d0adec81ab3",
-      "sha256": "7fdd2bc18c577ffa86b5c800d61be9cb2c380761dda2bd5af3c06a5c0a1ed163",
+      "git_object_id": "2ecb64e5aa72d6686a0e416fca598f67aa131e31",
+      "sha256": "485d02cd715417ab7824ded60dadcbc7dc8bcc3b75f3f311fd2dc0540a331759",
       "line_count": 34,
-      "byte_count": 8714,
+      "byte_count": 11349,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -39648,10 +39648,10 @@
     },
     {
       "path": "docs/architecture/UI_VISUAL_CONTRACT.md",
-      "git_object_id": "6bca0327ffbf05bf078b76166ad3beb8e9ccf66c",
-      "sha256": "43d3c217e6bb8c9c2ee84a91ed6ef8750509dd5116d92d7bf95c8f92148381d1",
+      "git_object_id": "2e5a886a39ad97f6cdb31580836e6f68275469ba",
+      "sha256": "7efc153e150ff31c62dcc0a065b0ae2015a339a902d05f93f5360793bdf7e7b9",
       "line_count": 378,
-      "byte_count": 16746,
+      "byte_count": 16760,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -39904,6 +39904,34 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 9864,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 9866,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 9868,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 9872,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0002.md",
           "source_line": 297,
           "kind": "ROOT_REFERENCE",
@@ -39967,6 +39995,34 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
+          "source_line": 361,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
+          "source_line": 363,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
+          "source_line": 365,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
+          "source_line": 369,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 1251,
           "kind": "ROOT_REFERENCE",
@@ -40025,6 +40081,34 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 9834,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 9860,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 9862,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 9864,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 9868,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -59192,10 +59276,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "a4b75d524aadc4637f4d148a897795d099a08069",
-      "sha256": "cf3f9c2814911c8403c65ddf926c73177a43109065665a2589e2c1424c5a3ed3",
-      "line_count": 9860,
-      "byte_count": 1050976,
+      "git_object_id": "493fbae9bb1ba2bd871fbec80150e6dd792b738e",
+      "sha256": "a390281954d80abefb6b32f3f140c6024272d4b5397dbb43d44d79b353d5ae61",
+      "line_count": 9880,
+      "byte_count": 1059283,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -65933,6 +66017,38 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 9845
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9864
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9866
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9868
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9872
         }
       ],
       "inbound_references": [
@@ -67283,6 +67399,12 @@
           "text": "2026-07-25 — UI-CONSOLIDATION-FOUNDATION-INTAKE-R1 — feat(ui): establish canonical visual foundation",
           "anchor": "2026-07-25-ui-consolidation-foundation-intake-r1-featui-establish-canonical-visual-foundation",
           "line": 9835
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — UI-CONSOLIDATION-FOUNDATION-INTAKE-R1 — fix(ui): close shorthand color ownership gap",
+          "anchor": "2026-07-25-ui-consolidation-foundation-intake-r1-fixui-close-shorthand-color-ownership-gap",
+          "line": 9860
         }
       ]
     },
@@ -75421,10 +75543,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
-      "git_object_id": "a3b03bd35c0c650800591bc7786fc2b6b1f3a00c",
-      "sha256": "4e4a26c9e5a7c3d9cf65ecdae1b83bf0bef934ea132e4a69a753f7185fe222d4",
-      "line_count": 357,
-      "byte_count": 88371,
+      "git_object_id": "29e6b42db6dd8732c8e045f3b224a21792a98b83",
+      "sha256": "c5c7be3cd0070902723961f374c65dc0c633974f570490b0e26f211f74b8eed5",
+      "line_count": 377,
+      "byte_count": 96678,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -75778,6 +75900,38 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 342
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 361
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 363
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 365
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 369
         }
       ],
       "inbound_references": [
@@ -75922,6 +76076,12 @@
           "text": "2026-07-25 — UI-CONSOLIDATION-FOUNDATION-INTAKE-R1 — feat(ui): establish canonical visual foundation",
           "anchor": "2026-07-25-ui-consolidation-foundation-intake-r1-featui-establish-canonical-visual-foundation",
           "line": 332
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — UI-CONSOLIDATION-FOUNDATION-INTAKE-R1 — fix(ui): close shorthand color ownership gap",
+          "anchor": "2026-07-25-ui-consolidation-foundation-intake-r1-fixui-close-shorthand-color-ownership-gap",
+          "line": 357
         }
       ]
     },
@@ -76009,10 +76169,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "8e72d4a30e22dce1fb3af3be55f45f86c25c1f32",
-      "sha256": "5201ce4f417f29976fd0b5270a514238c439d5df5046cf52c3b9089f770aa25b",
-      "line_count": 9854,
-      "byte_count": 1050675,
+      "git_object_id": "0e569c8cc137174251e1b93c62ec52919aa02813",
+      "sha256": "c0c37d03878f054304acd8b6bbf8222c936176915d39610539d72d45f649fe1a",
+      "line_count": 9874,
+      "byte_count": 1058982,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -82750,6 +82910,38 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 9841
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9860
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9862
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9864
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 9868
         }
       ],
       "inbound_references": [
@@ -86032,6 +86224,12 @@
           "text": "2026-07-25 — UI-CONSOLIDATION-FOUNDATION-INTAKE-R1 — feat(ui): establish canonical visual foundation",
           "anchor": "2026-07-25-ui-consolidation-foundation-intake-r1-featui-establish-canonical-visual-foundation",
           "line": 9831
+        },
+        {
+          "level": 2,
+          "text": "2026-07-25 — UI-CONSOLIDATION-FOUNDATION-INTAKE-R1 — fix(ui): close shorthand color ownership gap",
+          "anchor": "2026-07-25-ui-consolidation-foundation-intake-r1-fixui-close-shorthand-color-ownership-gap",
+          "line": 9856
         }
       ]
     },
