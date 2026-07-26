@@ -2,8 +2,9 @@
 
 > **Audience:** the architect AI, which will direct the executor AI.
 > **Status:** plan approved by the product owner. Phases 1 and 2 are DONE (artifacts
-> listed in §3). Phase 3 is IMPLEMENTED and awaiting your acceptance (§5). Phases 4
-> and 5 are what you still need to direct, and neither is authorized yet.
+> listed in §3). Phase 3 is IMPLEMENTED and awaiting your acceptance (§5). Phase 4 is
+> IMPLEMENTED with a deterministic baseline and awaiting your acceptance (§5). Phase 5
+> is what you still need to direct, and it is not authorized.
 > **You do not need to re-derive anything.** Every value is already extracted and
 > ratified. Your job is sequencing, enforcement, and the skill reconciliation in §6.
 
@@ -98,8 +99,13 @@ explaining where the cockpit does not apply — a symptom of the wrong axis.
 
 Six archetypes now exist, each declaring **intent, density, who owns the dominant
 action, and whether it has a rail**. Every screen belongs to exactly one.
-Only archetype **A (detail cockpit)** is ratified. B–F are `CANDIDATE` and
-**may not be cited as precedent** until two of their screens pass the detector.
+
+**Correction — no archetype is ratified.** An earlier version of this line said
+archetype A was. It never was: ratification requires **two** screens of an archetype
+passing the detector, and phase 4's baseline shows exactly **one** —
+`OP Detail - Compacto.dc.html`. A–F are all `CANDIDATE` and **may not be cited as
+precedent**. `UI_CONFORMANCE.md` § Archetype ratification owns this fact; if that file
+and this brief ever disagree again, that file wins.
 
 ---
 
@@ -177,32 +183,68 @@ baseline now exists to diff against.
   value.
 - **NOT delivered:** architect acceptance. The executor does not self-accept.
 
-### Phase 4 — the detector — **BLOCKED, NOT AUTHORIZED**
+### Phase 4 — the detector — **IMPLEMENTED, BASELINE GENERATED, AWAITING ACCEPTANCE**
 
-Phase 4 requires its own explicit order. Phase 3 being implemented does not authorize
-it, and the fixture being conforming is a precondition, not a trigger. Do not start
-the detector before the architect accepts phase 3.
+`scripts/validate-ui-conformance.mjs` v1.0.0. Deterministic: no network, no clock, no
+randomness, and three consecutive regenerations produced a byte-identical baseline at
+`tests/fixtures/ui-conformance-baseline.json`. Guarded by
+`tests/ui-conformance-detector.test.mjs` (32 tests). It reports only — no screen,
+token file or contract is touched, and **no waiver or ignore-list mechanism exists**.
 
-A deterministic script. It does **not** need design judgment; it reads the closed
-enums in `UI_VISUAL_CONTRACT.md` §5 and reports violations with file and line.
+The nine rules you specified were implemented as eleven, splitting two conflations
+that mattered: an unresolved `var(--rv-*)` is not the same defect as a deprecated one
+(`UIC-011` vs `UIC-009`), and pill radius on a button is not the same defect as pill
+radius on a box (`UIC-007` vs `UIC-010`, the latter applying D6.1 by element role).
 
-Rules to implement, in this priority order:
+| Rule | Your item | Baseline blocking |
+|---|---|---|
+| `UIC-001` literal colour | 1 | 2785 |
+| `UIC-002` radius | 2 | 97 |
+| `UIC-003` control height | 3 | 13 (+9 gaps) |
+| `UIC-004` shadow, incl. cards-are-flat | 4 | 21 (+21 gaps) |
+| `UIC-005` typography | 5 | 80 |
+| `UIC-006` native `<select>` | 6 | 15 |
+| `UIC-007` pill radius on a button | 7 | **0** |
+| `UIC-008` card action alignment | 8 | 0 (+37 gaps) |
+| `UIC-009` deprecated alias | 9 | 323 (debt) |
+| `UIC-010` D6.1 semantic-radius scope | — | 16 (+2 gaps) |
+| `UIC-011` unresolved token | — | **0** |
 
-1. literal hex in a screen (any `#rrggbb` outside `css/tokens.css`);
-2. `border-radius` not in {`4px`, `999px`};
-3. control `height` not in {`32px`, `34px`, `38px`};
-4. `box-shadow` not in the 3-value enum; any shadow on a card;
-5. `font-size` not in the 10-value enum; `font-weight` not in {400,500,600,700,800};
-6. a `<select>` element on a product surface;
-7. `border-radius: 999px` (or ≥ 20px) on a `<button>`;
-8. in-card action row whose `justify-content` is not `flex-end` / `space-between`;
-9. reference to a deprecated `--rv-color-*` alias (drives alias deletion).
+**Where it runs: both, as you directed.** One rule engine, one contract reader, two
+front-ends. The enums are read from §5 at run time and appear nowhere in detector
+source — the suite proves it by mutating a temporary contract and watching behaviour
+change while the six detector files stay byte-identical.
 
-**Decide with the owner where it runs.** The prototypes in the design project are
-`.dc.html`; the app is `js/screens/*.js`. The rule set is identical; only the parser
-differs. Write one detector with two front-ends rather than two detectors.
+**Your two weak spots held up, and both were answered by refusing to guess.**
 
-Rule 8 and table alignment are the weak spots — see §7.
+- **Rule 8.** Your `data-card-actions` suggestion is exactly what made it exact. The
+  fixture carries the marker and passes deterministically. No application module
+  carries it, so 37 screens report `COVERAGE_GAP / ACTION_ROW_UNPROVEN` — the rule was
+  not evaluated there, and that is reported as such rather than as a pass.
+- **Table alignment.** All eight tables inventoried are `MANUAL_REVIEW_REQUIRED`,
+  including the reference fixture's three. The detector proves parity only from a
+  `<colgroup>` whose column count matches the header, and fails it only when they
+  contradict. Pass 8 stays manual, as you said.
+
+**What the baseline says.** 67 files, 28 `FULL`, 39 `PARTIAL`, 0 `UNSUPPORTED`; 3027
+blocking findings, 323 declared debt, 621 coverage gaps. The good news you predicted in
+§2 holds: 0 pill-shaped buttons, 0 cards with a shadow, 0 unresolved tokens. The bulk
+is pass 1 — 2785 literal colours — which is find-and-replace, not redesign.
+
+**Two things you should know before authorizing phase 5.**
+
+1. **25 of the 26 conformance rows resolve to nothing in this repository.** Only
+   `OP Detail - Compacto.dc.html` is versioned here; the other prototypes live in the
+   external design project. They are reported `UNRESOLVED`, not silently skipped. Any
+   prototype-side remediation needs them versioned first.
+2. **`PARTIAL` is the normal state of the application front-end**, because it builds
+   the DOM imperatively — ternaries, concatenations and template substitutions whose
+   running value is undecidable from source. A gap must close before its rule can.
+
+### Phase 4 — not delivered
+
+Architect acceptance. The executor does not self-accept. Archetype ratification is
+**not** advanced: one conforming screen is still one, and phase 5 is not authorized.
 
 ### Phase 5 — batch remediation, by property
 
@@ -225,6 +267,18 @@ Passes 1–7 are mechanical and verifiable. Pass 8 is the only one that needs ey
 
 Each pass closes when the detector reports zero for that rule. Do not start the next
 pass with the previous one open — overlapping passes reintroduce judgment.
+
+**The detector now gives each pass its own gate.** `--rule <ID> --enforce` exits 1 while
+that one rule has a blocking finding and ignores every other rule, so a pass can be
+enforced in CI without the other seven blocking it, and the JSON report still carries
+the full baseline. `UI_CONFORMANCE.md` § Execution order maps each pass to its rule ID,
+its current count and its exact command. Two caveats from the baseline:
+
+- **A gap closes before its rule does.** Pass 6 shows 0 blocking and 37 coverage gaps.
+  Reporting it as clean would be the false pass this whole structure exists to prevent;
+  the first step is marking the action rows so the rule can be evaluated at all.
+- **Prototype-side remediation is blocked on access, not effort.** 25 of the 26
+  conformance rows are not in this repository.
 
 ---
 
@@ -322,7 +376,8 @@ subordinated to the contract. Do not adopt before the tokens are consolidated.
 
 | Item | Needs |
 |---|---|
-| Where the detector runs (prototypes, app, or both) | owner decision + repo access |
+| ~~Where the detector runs (prototypes, app, or both)~~ — **answered** | Both. One detector, two front-ends. 1 prototype and 66 application files scanned. |
+| **The 25 unresolved prototype rows** | decision: version them here, or accept that 25 of 26 conformance rows stay `unaudited` |
 | ~~Fate of `fixtures/OP Detail - Compacto copy.dc.html`~~ — **ruled** | Closed at foundation intake: byte-identical to the primary, so it was not versioned. See `UI_CONFORMANCE.md` § Versioned fixture provenance. |
 | Formal WCAG conformance target | product decision |
 | Breakpoints and rail behaviour on narrow screens | decision + prototype |
@@ -340,6 +395,9 @@ subordinated to the contract. Do not adopt before the tokens are consolidated.
   `tokens.css` only.
 - Do not remediate screen by screen.
 - Do not treat G2 screens as redesigns.
-- Do not run the detector before the fixture is conforming.
+- ~~Do not run the detector before the fixture is conforming.~~ Satisfied: the fixture
+  was conforming first, and the detector confirms it with zero findings.
+- Do not read a coverage gap as a pass, and do not close a rule while gaps remain open
+  for it.
 - Do not cite a `CANDIDATE` archetype as precedent.
 - Do not edit export derivatives.

@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "4fb8f8139eaacac5b6dcbf49c5f12b3e64a05e70",
-      "sha256": "c0ecac739b0c781876e4a28dc975b45d33ccd6a0eec41f74f4709e722cb10aa7",
+      "git_object_id": "0102a4068057fb119ccceb7e7fa6ec8f77d25a61",
+      "sha256": "2a63e7729e25bf293851d7c5dcdd57a2faa0236c9c9f733761de5fa37be0cc01",
       "line_count": 34,
-      "byte_count": 12999,
+      "byte_count": 15393,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -5362,7 +5362,7 @@
       "inbound_references": [
         {
           "source_path": "docs/architecture/ARCHITECT_BRIEF.md",
-          "source_line": 339,
+          "source_line": 394,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -16333,10 +16333,10 @@
     },
     {
       "path": "docs/architecture/ARCHITECT_BRIEF.md",
-      "git_object_id": "a2008a9bc33dc97e4f4c1cd33aaa359504de654b",
-      "sha256": "6acb3694d88ba551cf21243c32652b60d6fa4ef56ee6cb81f90c27a67f7df927",
-      "line_count": 345,
-      "byte_count": 19436,
+      "git_object_id": "3f6490a4994b1a954c0278cac387676efe3dd21b",
+      "sha256": "3fb86b6d6420668e0b361dfddf3db53d17262676425e352a8d981a573a370d51",
+      "line_count": 403,
+      "byte_count": 23242,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -16345,7 +16345,7 @@
           "target_path": "docs/architecture/SGAA_DESIGN_SYSTEM_REFERENCE.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 19
+          "source_line": 20
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -16353,7 +16353,7 @@
           "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 74
+          "source_line": 75
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -16361,7 +16361,7 @@
           "target_path": "docs/architecture/DESIGN_DECISIONS.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 75
+          "source_line": 76
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -16369,7 +16369,7 @@
           "target_path": "docs/architecture/UI_CONFORMANCE.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 76
+          "source_line": 77
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -16377,7 +16377,7 @@
           "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 258
+          "source_line": 312
         },
         {
           "kind": "ROOT_REFERENCE",
@@ -16385,7 +16385,7 @@
           "target_path": "CLAUDE.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 339
+          "source_line": 394
         }
       ],
       "inbound_references": [
@@ -16429,145 +16429,151 @@
           "level": 2,
           "text": "1. The problem, stated precisely",
           "anchor": "1-the-problem-stated-precisely",
-          "line": 12
+          "line": 13
         },
         {
           "level": 3,
           "text": "1.1 The finding that reoriented the work",
           "anchor": "11-the-finding-that-reoriented-the-work",
-          "line": 26
+          "line": 27
         },
         {
           "level": 3,
           "text": "1.2 Root cause",
           "anchor": "12-root-cause",
-          "line": 36
+          "line": 37
         },
         {
           "level": 2,
           "text": "2. The four generations, and what each one costs",
           "anchor": "2-the-four-generations-and-what-each-one-costs",
-          "line": 52
+          "line": 53
         },
         {
           "level": 2,
           "text": "3. What already exists (phases 1–2, done)",
           "anchor": "3-what-already-exists-phases-12-done",
-          "line": 69
+          "line": 70
         },
         {
           "level": 3,
           "text": "3.1 The four architectural rules behind that structure",
           "anchor": "31-the-four-architectural-rules-behind-that-structure",
-          "line": 79
+          "line": 80
         },
         {
           "level": 3,
           "text": "3.2 Archetypes replaced the old rule taxonomy",
           "anchor": "32-archetypes-replaced-the-old-rule-taxonomy",
-          "line": 93
+          "line": 94
         },
         {
           "level": 2,
           "text": "4. The eight ratified decisions",
           "anchor": "4-the-eight-ratified-decisions",
-          "line": 106
+          "line": 112
         },
         {
           "level": 3,
           "text": "4.1 Two cross-cutting rules derived from the above",
           "anchor": "41-two-cross-cutting-rules-derived-from-the-above",
-          "line": 121
+          "line": 127
         },
         {
           "level": 3,
           "text": "4.2 Incidental consolidations",
           "anchor": "42-incidental-consolidations",
-          "line": 133
+          "line": 139
         },
         {
           "level": 2,
           "text": "5. Phases 3–5 — what to direct",
           "anchor": "5-phases-35-what-to-direct",
-          "line": 140
+          "line": 146
         },
         {
           "level": 3,
           "text": "Phase 3 — bring the fixture into conformance — **CORRECTED, AWAITING ARCHITECT ACCEPTANCE**",
           "anchor": "phase-3-bring-the-fixture-into-conformance-corrected-awaiting-architect-acceptance",
-          "line": 142
+          "line": 148
         },
         {
           "level": 3,
-          "text": "Phase 4 — the detector — **BLOCKED, NOT AUTHORIZED**",
-          "anchor": "phase-4-the-detector-blocked-not-authorized",
-          "line": 180
+          "text": "Phase 4 — the detector — **IMPLEMENTED, BASELINE GENERATED, AWAITING ACCEPTANCE**",
+          "anchor": "phase-4-the-detector-implemented-baseline-generated-awaiting-acceptance",
+          "line": 186
+        },
+        {
+          "level": 3,
+          "text": "Phase 4 — not delivered",
+          "anchor": "phase-4-not-delivered",
+          "line": 244
         },
         {
           "level": 3,
           "text": "Phase 5 — batch remediation, by property",
           "anchor": "phase-5-batch-remediation-by-property",
-          "line": 207
+          "line": 249
         },
         {
           "level": 2,
           "text": "6. Reconciling the `.claude` skill",
           "anchor": "6-reconciling-the-claude-skill",
-          "line": 231
+          "line": 285
         },
         {
           "level": 3,
           "text": "6.1 The structural argument",
           "anchor": "61-the-structural-argument",
-          "line": 236
+          "line": 290
         },
         {
           "level": 3,
           "text": "6.2 Required changes",
           "anchor": "62-required-changes",
-          "line": 245
+          "line": 299
         },
         {
           "level": 3,
           "text": "6.3 The precedence statement to paste into the skill",
           "anchor": "63-the-precedence-statement-to-paste-into-the-skill",
-          "line": 255
+          "line": 309
         },
         {
           "level": 3,
           "text": "6.4 Third-party skills",
           "anchor": "64-third-party-skills",
-          "line": 263
+          "line": 317
         },
         {
           "level": 2,
           "text": "7. Known weak spots — flag these to the executor",
           "anchor": "7-known-weak-spots-flag-these-to-the-executor",
-          "line": 281
+          "line": 335
         },
         {
           "level": 2,
           "text": "8. Language convention",
           "anchor": "8-language-convention",
-          "line": 300
+          "line": 354
         },
         {
           "level": 2,
           "text": "9. Naming",
           "anchor": "9-naming",
-          "line": 311
+          "line": 365
         },
         {
           "level": 2,
           "text": "10. Open items requiring an architect or owner decision",
           "anchor": "10-open-items-requiring-an-architect-or-owner-decision",
-          "line": 321
+          "line": 375
         },
         {
           "level": 2,
           "text": "11. What NOT to do",
           "anchor": "11-what-not-to-do",
-          "line": 335
+          "line": 390
         }
       ]
     },
@@ -20786,7 +20792,7 @@
       "inbound_references": [
         {
           "source_path": "docs/architecture/ARCHITECT_BRIEF.md",
-          "source_line": 75,
+          "source_line": 76,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -39484,7 +39490,7 @@
       "inbound_references": [
         {
           "source_path": "docs/architecture/ARCHITECT_BRIEF.md",
-          "source_line": 19,
+          "source_line": 20,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -39589,10 +39595,10 @@
     },
     {
       "path": "docs/architecture/UI_CONFORMANCE.md",
-      "git_object_id": "a48c674bcf6af6fc09bfd934545ad124e72baaaf",
-      "sha256": "29bebccfdc89955b56727dce1d4936bd36e1837f8b6b04b319cc6866015ba0f9",
-      "line_count": 177,
-      "byte_count": 10414,
+      "git_object_id": "aca8ec6e0d5de8e6eb7cb96b0b130d3cf42aca18",
+      "sha256": "4abc567dcb48f599d12229dd04f9dc424e25facefade36390c15a8121b420e49",
+      "line_count": 386,
+      "byte_count": 25144,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -39601,13 +39607,13 @@
           "target_path": "docs/ui/fixtures/vendor/react-18.3.1/README.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 158
+          "source_line": 354
         }
       ],
       "inbound_references": [
         {
           "source_path": "docs/architecture/ARCHITECT_BRIEF.md",
-          "source_line": 76,
+          "source_line": 77,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -39664,69 +39670,93 @@
         },
         {
           "level": 2,
+          "text": "Detector provenance",
+          "anchor": "detector-provenance",
+          "line": 39
+        },
+        {
+          "level": 3,
+          "text": "Editing rule — this file is a detector input",
+          "anchor": "editing-rule-this-file-is-a-detector-input",
+          "line": 73
+        },
+        {
+          "level": 2,
+          "text": "Application surface — `js/screens/*.js`",
+          "anchor": "application-surface-jsscreensjs",
+          "line": 95
+        },
+        {
+          "level": 2,
+          "text": "Table review — the one manual pass",
+          "anchor": "table-review-the-one-manual-pass",
+          "line": 192
+        },
+        {
+          "level": 2,
           "text": "Archetype A — Detail cockpit",
           "anchor": "archetype-a-detail-cockpit",
-          "line": 34
+          "line": 209
         },
         {
           "level": 2,
           "text": "Archetype B — Work queue",
           "anchor": "archetype-b-work-queue",
-          "line": 49
+          "line": 224
         },
         {
           "level": 2,
           "text": "Archetype C — Creation form",
           "anchor": "archetype-c-creation-form",
-          "line": 59
+          "line": 234
         },
         {
           "level": 2,
           "text": "Archetype D — Decision modal",
           "anchor": "archetype-d-decision-modal",
-          "line": 66
+          "line": 241
         },
         {
           "level": 2,
           "text": "Archetype E — Client portal",
           "anchor": "archetype-e-client-portal",
-          "line": 73
+          "line": 248
         },
         {
           "level": 2,
           "text": "Archetype F — Configuration",
           "anchor": "archetype-f-configuration",
-          "line": 82
+          "line": 257
         },
         {
           "level": 2,
           "text": "Outside the archetypes — chrome and documentation",
           "anchor": "outside-the-archetypes-chrome-and-documentation",
-          "line": 90
+          "line": 265
         },
         {
           "level": 2,
           "text": "Execution order — by property batch",
           "anchor": "execution-order-by-property-batch",
-          "line": 103
+          "line": 278
         },
         {
           "level": 2,
           "text": "Versioned fixture provenance",
           "anchor": "versioned-fixture-provenance",
-          "line": 132
+          "line": 328
         },
         {
           "level": 3,
           "text": "Vendored fixture runtime — immutable third-party assets",
           "anchor": "vendored-fixture-runtime-immutable-third-party-assets",
-          "line": 148
+          "line": 344
         },
         {
           "level": 2,
           "text": "Archetype ratification",
           "anchor": "archetype-ratification",
-          "line": 168
+          "line": 364
         }
       ]
     },
@@ -39758,14 +39788,14 @@
       "inbound_references": [
         {
           "source_path": "docs/architecture/ARCHITECT_BRIEF.md",
-          "source_line": 74,
+          "source_line": 75,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
         },
         {
           "source_path": "docs/architecture/ARCHITECT_BRIEF.md",
-          "source_line": 258,
+          "source_line": 312,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -59424,10 +59454,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "ab47eccbc3a312a1c9081989661ef9405fd78cf1",
-      "sha256": "f282a8974cc27c6a0ebd8d8115bb089797ce16c78d5bdda5936f582dcd2c6b54",
-      "line_count": 9937,
-      "byte_count": 1095282,
+      "git_object_id": "ad56c397b151462ffb498534b23f823ba7b91794",
+      "sha256": "669ae209ea9f9fed0fc9c2adb7123a365e9ede6d1f2f958d4264a95c019a5b2f",
+      "line_count": 9969,
+      "byte_count": 1120409,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -67605,6 +67635,12 @@
           "text": "2026-07-25 — UI-CONSOLIDATION-PHASE-3-OP-DETAIL-COMPACT-FIXTURE-CONFORMANCE-R1 — fix(ui): complete offline compact fixture conformance",
           "anchor": "2026-07-25-ui-consolidation-phase-3-op-detail-compact-fixture-conformance-r1-fixui-complete-offline-compact-fixture-conformance",
           "line": 9912
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-4-DETERMINISTIC-CONFORMANCE-DETECTOR-R1 — feat(ui): add deterministic conformance detector",
+          "anchor": "2026-07-26-ui-consolidation-phase-4-deterministic-conformance-detector-r1-featui-add-deterministic-conformance-detector",
+          "line": 9937
         }
       ]
     },
@@ -76309,10 +76345,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0013.md",
-      "git_object_id": "808aebee76d98783cfe24590b3fb6a7c9e11f98e",
-      "sha256": "22ebd583f0f4816c14c43aadd125c7a9efb50e6f41aaa2ce3918c414ae87cc14",
-      "line_count": 36,
-      "byte_count": 17963,
+      "git_object_id": "aaa5fb5f8b3c8eb41449c952ca062428354249cb",
+      "sha256": "2d47745bf3a17eb6e24dcfa311af689fde2f67081c4eabe9bec6a2b8f9d35917",
+      "line_count": 68,
+      "byte_count": 43090,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -76355,6 +76391,12 @@
           "text": "2026-07-25 — UI-CONSOLIDATION-PHASE-3-OP-DETAIL-COMPACT-FIXTURE-CONFORMANCE-R1 — fix(ui): complete offline compact fixture conformance",
           "anchor": "2026-07-25-ui-consolidation-phase-3-op-detail-compact-fixture-conformance-r1-fixui-complete-offline-compact-fixture-conformance",
           "line": 11
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-4-DETERMINISTIC-CONFORMANCE-DETECTOR-R1 — feat(ui): add deterministic conformance detector",
+          "anchor": "2026-07-26-ui-consolidation-phase-4-deterministic-conformance-detector-r1-featui-add-deterministic-conformance-detector",
+          "line": 36
         }
       ]
     },
@@ -76442,10 +76484,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "5087986bbd6b85ce62641aba84fc458a3f7bc992",
-      "sha256": "fe76aefd6d5b2308038f68e3abd5ebe00b5ad1adc7432908ad78d8649c4d49e8",
-      "line_count": 9931,
-      "byte_count": 1094981,
+      "git_object_id": "e3bf94a2526da8ea1a7ba724fd420f858a58d9ae",
+      "sha256": "393cf4cbeb1576c20dc3957c861420a7d2924001978d68ddc91f722a65dbb885",
+      "line_count": 9963,
+      "byte_count": 1120108,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86555,6 +86597,12 @@
           "text": "2026-07-25 — UI-CONSOLIDATION-PHASE-3-OP-DETAIL-COMPACT-FIXTURE-CONFORMANCE-R1 — fix(ui): complete offline compact fixture conformance",
           "anchor": "2026-07-25-ui-consolidation-phase-3-op-detail-compact-fixture-conformance-r1-fixui-complete-offline-compact-fixture-conformance",
           "line": 9908
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-4-DETERMINISTIC-CONFORMANCE-DETECTOR-R1 — feat(ui): add deterministic conformance detector",
+          "anchor": "2026-07-26-ui-consolidation-phase-4-deterministic-conformance-detector-r1-featui-add-deterministic-conformance-detector",
+          "line": 9933
         }
       ]
     },
@@ -97300,7 +97348,7 @@
       "inbound_references": [
         {
           "source_path": "docs/architecture/UI_CONFORMANCE.md",
-          "source_line": 158,
+          "source_line": 354,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
