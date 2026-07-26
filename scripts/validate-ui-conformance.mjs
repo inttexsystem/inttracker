@@ -339,10 +339,14 @@ function buildHighlights(findings, files) {
       (f) => f.rule_id === 'UIC-008' && f.severity === 'coverage',
     ),
     literal_colours: count((f) => f.rule_id === 'UIC-001'),
-    literal_colours_attributed_to_a_site: count(
+    // Renamed to match the three-state UIC-001 semantics the names had lagged
+    // behind. The predicates are unchanged and equivalent: a proven-visual site
+    // always carries the property it was proved on, and an unproven one never
+    // does, so `property !== null` is exactly the blocking set.
+    literal_visual_colours_blocking: count(
       (f) => f.rule_id === 'UIC-001' && f.property !== null,
     ),
-    literal_colours_needing_site_confirmation: count(
+    literal_colour_context_unproven: count(
       (f) => f.rule_id === 'UIC-001' && f.property === null,
     ),
     unknown_token_references: count((f) => f.rule_id === 'UIC-011'),

@@ -820,6 +820,32 @@ test('the committed baseline matches the detector and contract it was generated 
   }
 });
 
+test('the UIC-001 highlight keys name the three-state semantics they report', () => {
+  const baseline = JSON.parse(read(REPO, BASELINE));
+  const h = baseline.highlights;
+  assert.ok(h, 'the report carries no highlights block');
+
+  // Corrected forward in phase 5 pass 1: the previous names described the
+  // pre-correction semantics while already carrying the corrected numbers.
+  assert.ok('literal_visual_colours_blocking' in h);
+  assert.ok('literal_colour_context_unproven' in h);
+  assert.ok(!('literal_colours_attributed_to_a_site' in h),
+    'the stale highlight key is still present');
+  assert.ok(!('literal_colours_needing_site_confirmation' in h),
+    'the stale highlight key is still present');
+
+  // The rename kept the predicates, so the keys must still agree with
+  // summary_by_rule, which reports the same two numbers unambiguously.
+  const uic001 = baseline.summary_by_rule['UIC-001'] || { blocking: 0, coverage_gaps: 0, total: 0 };
+  assert.equal(h.literal_visual_colours_blocking, uic001.blocking);
+  assert.equal(h.literal_colour_context_unproven, uic001.coverage_gaps);
+  assert.equal(h.literal_colours, uic001.total);
+});
+
+test('the detector version was raised for the report-schema correction', () => {
+  assert.equal(DETECTOR_VERSION, '1.0.2');
+});
+
 /* ---------- 17 · the ratified reference fixture ---------- */
 
 test('the phase-3 compact fixture produces zero blocking detector findings', () => {

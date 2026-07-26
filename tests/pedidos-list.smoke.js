@@ -279,13 +279,24 @@ test('pedidos-list.js: navega para #/pedidos/novo no botão Novo (após C2)', ()
 // 11. pedido-ui.js (helper) cobre map de cor e labels de status
 // ---------------------------------------------------------------------
 
-test('pedido-ui.js: expõe COR_PREVIEW_MAP com 4 cores + fallback', () => {
+// D9.6 promoveu a paleta de negócio de 4 para as 17 entradas canônicas, com
+// fallback por substring e default próprio. `js/pedido-ui.js` é o dono canônico
+// — é aqui, e só aqui, que os valores de negócio podem aparecer.
+test('pedido-ui.js: expõe a paleta de negócio canônica de 17 cores + fallbacks', () => {
   assert.match(helper, /COR_PREVIEW_MAP/);
-  assert.match(helper, /['"]PRETO['"]/);
-  assert.match(helper, /['"]CRU['"]/);
-  assert.match(helper, /['"]KRAFT['"]/);
-  assert.match(helper, /['"]CINZA['"]/);
-  assert.match(helper, /COR_PREVIEW_FALLBACK\s*=\s*['"]#9ca3af['"]/);
+  for (const nome of [
+    'AMARELO', 'AREIA', 'AZUL', 'AZUL_CLARO', 'BEGE', 'BRANCO', 'CINZA', 'CRU',
+    'GRAFITE', 'KRAFT', 'LARANJA', 'MARINHO', 'PRETO', 'ROSA', 'ROXO', 'VERDE',
+    'VERMELHO',
+  ]) {
+    assert.match(helper, new RegExp("['\"]" + nome + "['\"]"),
+      nome + ' deve estar na paleta canônica de negócio');
+  }
+  assert.match(helper, /COR_PREVIEW_SUBSTRING/);
+  assert.match(helper, /COR_PREVIEW_FALLBACK\s*=\s*['"]#cbd5e1['"]/);
+  // O valor explícito do registro tem precedência sobre o nome.
+  assert.match(helper, /normalizarCorValor/);
+  assert.match(helper, /function corPreviewHex\(nome, valorExplicito\)/);
 });
 
 test('pedido-ui.js: expõe 6 status conhecidos com label e badge', () => {

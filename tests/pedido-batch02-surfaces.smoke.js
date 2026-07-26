@@ -246,11 +246,20 @@ test('index.html: toda superfície alterada recebeu o token do lote 2', () => {
     'js/screens/pedido-detail-data.js',
     'js/screens/pedido-edit.js',
     'js/screens/pedido-itens-edit.js',
-    'js/screens/cliente-pedido-form.js',
   ]) {
     const re = new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=20260725-pedido-operational-batch2');
     assert.match(index, re, asset + ' deve carregar o token do lote 2');
   }
+});
+
+// cliente-pedido-form.js foi retokenizado DE NOVO pela passada 1 de cor
+// (UI-CONSOLIDATION-PHASE-5-PASS-1). Vale aqui a mesma regra ja documentada
+// abaixo para o lote 3: a superfície alterada segue invalidada, sob o token da
+// ordem que a alterou por último.
+test('index.html: a superfície tocada pela passada 1 de cor carrega o token dela', () => {
+  const asset = 'js/screens/cliente-pedido-form.js';
+  const re = new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=20260726-ui-p5-pass1');
+  assert.match(index, re, asset + ' deve carregar o token da passada 1 de cor');
 });
 
 // pedido-form.js e pedido-item-row-editor.js foram retokenizados DE NOVO pelo
@@ -261,10 +270,13 @@ test('index.html: toda superfície alterada recebeu o token do lote 2', () => {
 test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não o do lote 2', () => {
   // Ancorado em `screens/`: sem isso o padrão também casaria
   // `cliente-pedido-form.js`, que legitimamente conserva o token do lote 2.
+  // Ambos foram retokenizados MAIS UMA VEZ pela passada 1 de cor; a garantia
+  // ("a superfície alterada é invalidada, sob o token da ordem que a alterou
+  // por último") é a mesma, apenas um lote adiante.
   for (const asset of ['screens/pedido-form.js', 'screens/pedido-item-row-editor.js']) {
     const esc = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    assert.match(index, new RegExp(esc + '\\?v=20260725-pedido-operational-batch3'),
-      asset + ' deve carregar o token do lote 3');
+    assert.match(index, new RegExp(esc + '\\?v=20260726-ui-p5-pass1'),
+      asset + ' deve carregar o token da passada 1 de cor');
     assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260725-pedido-operational-batch2'),
       asset + ' não pode reter o token do lote 2');
   }

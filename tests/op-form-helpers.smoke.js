@@ -508,6 +508,8 @@ test('32. boot: ui + calculo-op + entrega-form + op-form-helpers + inline coexis
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
@@ -576,6 +578,8 @@ test('33. runtime: screenNovaOP ainda é função e acessível via window', () =
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
@@ -626,6 +630,8 @@ test('34. screenPainel (inline) ainda renderiza via shellLayout com 9 itens do A
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
@@ -679,6 +685,8 @@ test('35. screenCadastrosCores (cadastros) ainda renderiza (regressão cadastros
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
@@ -712,6 +720,8 @@ test('36. screenListaOPs (ops-list) ainda renderiza (regressão ops-list)', asyn
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });

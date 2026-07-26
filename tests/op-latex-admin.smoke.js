@@ -210,7 +210,7 @@ test('2. op-latex-admin.js: sintaxe JS válida (node --check)', () => {
 
 test('3. index.html carrega op-latex-admin.js EXATAMENTE UMA VEZ, sem type=module', () => {
   // Aceita com ou sem query string (cache-busting ?v=...).
-  const reWithQs = /<script\s+src="js\/screens\/op-latex-admin\.js\?v=20260623-asset1"\s*><\/script>/g;
+  const reWithQs = /<script\s+src="js\/screens\/op-latex-admin\.js\?v=20260726-ui-p5-pass1"\s*><\/script>/g;
   const reNoQs   = /<script\s+src="js\/screens\/op-latex-admin\.js"\s*><\/script>/g;
   const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
   assert.equal(total, 1,

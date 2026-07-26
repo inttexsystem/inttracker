@@ -48,7 +48,7 @@
     return window.el('span', {
       class: 'login-field-icon',
       style: 'position:absolute;left:13px;top:50%;transform:translateY(-50%);'
-        + 'display:flex;align-items:center;justify-content:center;color:#9aa2af;pointer-events:none;',
+        + 'display:flex;align-items:center;justify-content:center;color:var(--rv-text-tertiary);pointer-events:none;',
     }, loginIcon(name, 16));
   }
 
@@ -56,22 +56,22 @@
     const root = window.el('div', {
       class: 'login-screen',
       style: 'min-height:100vh;display:flex;align-items:center;justify-content:center;'
-        + 'padding:24px;background:#f6f7f9;color:#16203a;font-family:inherit;',
+        + 'padding:24px;background:var(--rv-surface-subtle);color:var(--rv-text-primary);font-family:inherit;',
     });
     const shell = window.el('div', { style: 'width:100%;max-width:400px;' });
     const card = window.el('div', {
       class: 'login-card',
-      style: 'background:#fff;border:1px solid #eceef1;border-radius:8px;'
-        + 'padding:32px 32px 28px;box-shadow:0 1px 2px rgba(16,24,40,.04),'
-        + '0 8px 24px rgba(16,24,40,.06);',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:8px;'
+        + 'padding:32px 32px 28px;box-shadow:var(--rv-shadow-none),'
+        + 'var(--rv-shadow-none);',
     });
 
     const brandMark = window.el('div', {
       'aria-label': 'Inttex',
-      style: 'width:72px;height:72px;border-radius:8px;border:1px solid #e3e7ee;'
-        + 'background:#fff;display:flex;align-items:center;justify-content:center;'
-        + 'box-shadow:0 1px 2px rgba(16,24,40,.04);font-size:18px;font-weight:800;'
-        + 'color:#16203a;letter-spacing:0;',
+      style: 'width:72px;height:72px;border-radius:8px;border:1px solid var(--rv-border-soft);'
+        + 'background:var(--rv-surface);display:flex;align-items:center;justify-content:center;'
+        + 'box-shadow:var(--rv-shadow-none);font-size:18px;font-weight:800;'
+        + 'color:var(--rv-text-primary);letter-spacing:0;',
     }, 'In');
     card.appendChild(window.el('div', {
       style: 'display:flex;justify-content:center;margin-bottom:20px;',
@@ -79,10 +79,10 @@
 
     card.appendChild(window.el('h1', {
       style: 'margin:0 0 6px;font-size:22px;font-weight:800;letter-spacing:0;'
-        + 'color:#16203a;text-align:center;line-height:1.2;',
+        + 'color:var(--rv-text-primary);text-align:center;line-height:1.2;',
     }, 'Inttex OptiControl'));
     card.appendChild(window.el('p', {
-      style: 'font-size:13.5px;color:#8a93a3;margin:0 0 26px;text-align:center;',
+      style: 'font-size:13.5px;color:var(--rv-text-tertiary);margin:0 0 26px;text-align:center;',
     }, 'Entre com seu e-mail e senha'));
 
     const emailInput = window.el('input', {
@@ -90,22 +90,22 @@
       placeholder: 'seu@email.com',
       required: 'required',
       autocomplete: 'email',
-      style: 'width:100%;border:1px solid #d8dce2;border-radius:4px;'
+      style: 'width:100%;border:1px solid var(--rv-border-strong);border-radius:4px;'
         + 'padding:10px 14px 10px 38px;font-size:14px;font-family:inherit;'
-        + 'color:#16203a;outline:none;background:#fff;',
+        + 'color:var(--rv-text-primary);outline:none;background:var(--rv-surface);',
     });
     const senhaInput = window.el('input', {
       type: 'password',
       placeholder: 'senha',
       required: 'required',
       autocomplete: 'current-password',
-      style: 'width:100%;border:1px solid #d8dce2;border-radius:4px;'
+      style: 'width:100%;border:1px solid var(--rv-border-strong);border-radius:4px;'
         + 'padding:10px 42px 10px 38px;font-size:14px;font-family:inherit;'
-        + 'color:#16203a;outline:none;background:#fff;',
+        + 'color:var(--rv-text-primary);outline:none;background:var(--rv-surface);',
     });
 
     const btn = window.el('button', { type: 'submit',
-      style: 'width:100%;background:#2563eb;color:#fff;border:none;border-radius:4px;'
+      style: 'width:100%;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;'
         + 'padding:12px 16px;font-weight:700;font-size:14.5px;font-family:inherit;'
         + 'cursor:pointer;',
     }, 'Entrar');
@@ -114,7 +114,7 @@
       type: 'button',
       'aria-label': 'Mostrar senha',
       style: 'position:absolute;right:9px;top:50%;transform:translateY(-50%);'
-        + 'background:none;border:none;cursor:pointer;padding:5px;color:#9aa2af;'
+        + 'background:none;border:none;cursor:pointer;padding:5px;color:var(--rv-text-tertiary);'
         + 'display:flex;align-items:center;justify-content:center;',
       onclick: () => {
         const visible = senhaInput.type === 'text';
@@ -127,7 +127,7 @@
     const forgotPassword = window.el('button', {
       type: 'button',
       style: 'background:none;border:none;padding:0;font-size:12.5px;font-weight:600;'
-        + 'color:#2563eb;text-decoration:none;white-space:nowrap;cursor:pointer;font-family:inherit;',
+        + 'color:var(--rv-accent-blue);text-decoration:none;white-space:nowrap;cursor:pointer;font-family:inherit;',
       onclick: () => window.toast('Recuperação de senha ainda não configurada.', 'info'),
     }, 'Esqueceu a senha?');
 
@@ -152,7 +152,7 @@
     },
       window.el('div', { style: 'margin-bottom:16px;' },
         window.el('label', {
-          style: 'display:block;font-size:12.5px;font-weight:600;color:#3f4757;margin-bottom:7px;',
+          style: 'display:block;font-size:12.5px;font-weight:600;color:var(--rv-text-primary);margin-bottom:7px;',
         }, 'E-mail'),
         window.el('div', { style: 'position:relative;' }, fieldIcon('email'), emailInput)
       ),
@@ -161,7 +161,7 @@
           style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px;',
         },
           window.el('label', {
-            style: 'font-size:12.5px;font-weight:600;color:#3f4757;flex-shrink:0;',
+            style: 'font-size:12.5px;font-weight:600;color:var(--rv-text-primary);flex-shrink:0;',
           }, 'Senha'),
           forgotPassword
         ),
@@ -172,12 +172,12 @@
         )
       ),
       window.el('label', {
-        style: 'display:flex;align-items:center;gap:8px;font-size:13px;color:#5b6472;'
+        style: 'display:flex;align-items:center;gap:8px;font-size:13px;color:var(--rv-text-secondary);'
           + 'margin-bottom:20px;cursor:pointer;',
       },
         window.el('input', {
           type: 'checkbox',
-          style: 'accent-color:#2563eb;width:15px;height:15px;',
+          style: 'accent-color:var(--rv-accent-blue);width:15px;height:15px;',
         }),
         'Lembrar-me neste dispositivo'
       ),
@@ -187,7 +187,7 @@
     card.appendChild(form);
     shell.appendChild(card);
     shell.appendChild(window.el('div', {
-      style: 'text-align:center;margin-top:22px;font-size:12.5px;color:#9aa2af;',
+      style: 'text-align:center;margin-top:22px;font-size:12.5px;color:var(--rv-text-tertiary);',
     }, '© 2026 Inttex · Controle de Tapetes'));
     root.appendChild(shell);
     return root;

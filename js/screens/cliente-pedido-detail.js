@@ -152,42 +152,42 @@
           thumb.style.width = '32px';
           thumb.style.height = '32px';
           thumb.style.borderRadius = '4px';
-          thumb.style.border = '1px solid rgba(0,0,0,0.08)';
+          thumb.style.border = '1px solid var(--rv-border)';
           thumb.style.flexShrink = '0';
           return thumb;
         }
       }
       return window.el('div', {
-        style: 'width:32px;height:32px;border-radius:4px;border:1px solid #eceef1;background:#f3f4f6;flex-shrink:0;',
+        style: 'width:32px;height:32px;border-radius:4px;border:1px solid var(--rv-border);background:var(--rv-bg);flex-shrink:0;',
       });
     }
 
     // Estilos do badge de situacao da parcial (inline, exatos do standalone).
     function parcialSituacaoStyle(situacao) {
       var map = {
-        em_tecelagem:   { bg: '#eef3ff', color: '#3b5bdb', dot: '#5b9df0' },
-        em_acabamento:  { bg: '#fff4e6', color: '#c05c1a', dot: '#e07b39' },
-        pronto_retirada:{ bg: '#eaf1fd', color: '#2563eb', dot: '#2563eb' },
-        pronto_envio:   { bg: '#eaf1fd', color: '#2563eb', dot: '#2563eb' },
-        em_transporte:  { bg: '#f3e8ff', color: '#7c3aed', dot: '#8b5cf6' },
-        entregue:       { bg: '#e6f4ec', color: '#18794a', dot: '#18794a' },
-        cancelado:      { bg: '#fee2e2', color: '#b91c1c', dot: '#ef4444' },
+        em_tecelagem:   { bg: 'var(--rv-pill-info-bg)', color: 'var(--rv-accent-blue)', dot: 'var(--rv-pill-info-dot)' },
+        em_acabamento:  { bg: 'var(--rv-pill-caution-bg)', color: 'var(--rv-signal-caution)', dot: 'var(--rv-signal-caution)' },
+        pronto_retirada:{ bg: 'var(--rv-pill-info-bg)', color: 'var(--rv-accent-blue)', dot: 'var(--rv-accent-blue)' },
+        pronto_envio:   { bg: 'var(--rv-pill-info-bg)', color: 'var(--rv-accent-blue)', dot: 'var(--rv-accent-blue)' },
+        em_transporte:  { bg: 'var(--rv-stage-tecelagem-bg)', color: 'var(--rv-stage-tecelagem)', dot: 'var(--rv-stage-tecelagem)' },
+        entregue:       { bg: 'var(--rv-pill-positive-bg)', color: 'var(--rv-signal-positive)', dot: 'var(--rv-signal-positive)' },
+        cancelado:      { bg: 'var(--rv-pill-negative-bg)', color: 'var(--rv-signal-negative)', dot: 'var(--rv-signal-negative)' },
       };
-      return map[situacao] || { bg: '#f3f4f6', color: '#4b5563', dot: '#9ca3af' };
+      return map[situacao] || { bg: 'var(--rv-pill-neutral-bg)', color: 'var(--rv-text-primary)', dot: 'var(--rv-text-tertiary)' };
     }
 
     // Cor da barra na secao Distribuicao atual por situacao da parcial.
     function distribuicaoBarColor(situacao) {
       var map = {
-        em_tecelagem:    '#5b9df0',
-        em_acabamento:   '#e07b39',
-        pronto_retirada: '#2563eb',
-        pronto_envio:    '#2563eb',
-        em_transporte:   '#8b5cf6',
-        entregue:        '#18794a',
-        concluido:       '#18794a',
+        em_tecelagem:    'var(--rv-accent-blue)',
+        em_acabamento:   'var(--rv-signal-caution)',
+        pronto_retirada: 'var(--rv-accent-blue)',
+        pronto_envio:    'var(--rv-accent-blue)',
+        em_transporte:   'var(--rv-stage-tecelagem)',
+        entregue:        'var(--rv-signal-positive)',
+        concluido:       'var(--rv-signal-positive)',
       };
-      return map[situacao] || '#5b9df0';
+      return map[situacao] || 'var(--rv-accent-blue)';
     }
 
     async function carregar() {
@@ -239,8 +239,8 @@
 
       var backBtn = window.el('button', {
         type: 'button',
-        style: 'display:flex;align-items:center;gap:8px;border:1px solid #d8dce2;background:#fff;'
-          + 'color:#3f4757;border-radius:4px;padding:8px 14px;font-size:13.5px;font-weight:600;'
+        style: 'display:flex;align-items:center;gap:8px;border:1px solid var(--rv-border-strong);background:var(--rv-surface);'
+          + 'color:var(--rv-text-primary);border-radius:4px;padding:8px 14px;font-size:13.5px;font-weight:600;'
           + 'cursor:pointer;font-family:inherit;',
         onclick: function () { window.navigate('#/cliente/pedidos'); },
       },
@@ -255,10 +255,10 @@
       var breadcrumb = window.el('div', {
         style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;',
       },
-        window.el('div', { style: 'font-size:14px;color:#9aa2af;' },
+        window.el('div', { style: 'font-size:14px;color:var(--rv-text-tertiary);' },
           'Meus pedidos ',
-          window.el('span', { style: 'margin:0 4px;color:#d0d5dc;' }, '/'),
-          window.el('span', { style: 'color:#5b6472;font-weight:600;' }, ' ' + numero)
+          window.el('span', { style: 'margin:0 4px;color:var(--rv-text-tertiary);' }, '/'),
+          window.el('span', { style: 'color:var(--rv-text-secondary);font-weight:600;' }, ' ' + numero)
         ),
         backBtn
       );
@@ -271,11 +271,11 @@
       var statusBadge;
       if (state.chainState && state.chainState.isOperationalOverride) {
         statusBadge = window.el('span', {
-          style: 'display:inline-flex;align-items:center;gap:7px;background:#eaf1fd;color:#2563eb;'
+          style: 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-pill-info-bg);color:var(--rv-accent-blue);'
             + 'border-radius:4px;padding:5px 12px;font-size:13px;font-weight:700;',
         },
           window.el('span', {
-            style: 'width:7px;height:7px;border-radius:50%;background:#2563eb;flex-shrink:0;display:inline-block;',
+            style: 'width:7px;height:7px;border-radius:50%;background:var(--rv-brand);flex-shrink:0;display:inline-block;',
           }),
           state.chainState.displayStatus
         );
@@ -286,11 +286,11 @@
         var hasParciais = state.parciais && state.parciais.length > 0;
         var badgeText = trackingLabel + (hasParciais ? ' · parcial' : '');
         statusBadge = window.el('span', {
-          style: 'display:inline-flex;align-items:center;gap:7px;background:#eaf1fd;color:#2563eb;'
+          style: 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-pill-info-bg);color:var(--rv-accent-blue);'
             + 'border-radius:4px;padding:5px 12px;font-size:13px;font-weight:700;',
         },
           window.el('span', {
-            style: 'width:7px;height:7px;border-radius:50%;background:#2563eb;flex-shrink:0;display:inline-block;',
+            style: 'width:7px;height:7px;border-radius:50%;background:var(--rv-brand);flex-shrink:0;display:inline-block;',
           }),
           badgeText
         );
@@ -304,13 +304,13 @@
           style: 'display:flex;align-items:center;gap:12px;flex-wrap:wrap;',
         },
           window.el('h1', {
-            style: 'margin:0;font-size:23px;font-weight:800;color:#16203a;letter-spacing:-.01em;line-height:1.1;',
+            style: 'margin:0;font-size:23px;font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;line-height:1.1;',
           }, numero),
           statusBadge
         ),
         updatedAt
           ? window.el('div', {
-              style: 'font-size:13px;color:#9aa2af;margin-top:5px;',
+              style: 'font-size:13px;color:var(--rv-text-tertiary);margin-top:5px;',
             }, 'Atualizado em ' + window.fmtDataCurta(updatedAt))
           : null
       );
@@ -334,9 +334,9 @@
         },
           svgEl(iconMarkup),
           window.el('div', {},
-            window.el('div', { style: 'font-size:12px;color:#9aa2af;' }, labelText),
+            window.el('div', { style: 'font-size:12px;color:var(--rv-text-tertiary);' }, labelText),
             window.el('div', {
-              style: 'font-size:14.5px;font-weight:700;color:#16203a;',
+              style: 'font-size:14.5px;font-weight:700;color:var(--rv-text-primary);',
             }, valueText)
           )
         );
@@ -351,19 +351,19 @@
         : 'Retirada';
 
       var iconClock = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        + ' stroke="#c2c8d0" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
+        + ' stroke="var(--rv-text-tertiary)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
         + '<circle cx="12" cy="12" r="9"></circle>'
         + '<polyline points="12 7 12 12 15 14"></polyline>'
         + '</svg>';
       var iconCalendar = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        + ' stroke="#c2c8d0" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
+        + ' stroke="var(--rv-text-tertiary)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
         + '<rect x="3" y="5" width="18" height="16" rx="2"></rect>'
         + '<line x1="3" y1="9" x2="21" y2="9"></line>'
         + '<line x1="8" y1="3" x2="8" y2="6"></line>'
         + '<line x1="16" y1="3" x2="16" y2="6"></line>'
         + '</svg>';
       var iconBox = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        + ' stroke="#c2c8d0" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
+        + ' stroke="var(--rv-text-tertiary)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
         + '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"></path>'
         + '<path d="M3 8l9 5 9-5"></path>'
         + '<line x1="12" y1="13" x2="12" y2="21"></line>'
@@ -372,11 +372,11 @@
       var col1 = metaCol(iconClock, 'Atualizado em', updatedStr);
       var col2 = metaCol(iconCalendar, 'Prazo previsto', prazoStr);
       var col3 = metaCol(iconBox, 'Recebimento', recebimentoStr);
-      col2.style.borderLeft = '1px solid #eceef1';
-      col3.style.borderLeft = '1px solid #eceef1';
+      col2.style.borderLeft = '1px solid var(--rv-border)';
+      col3.style.borderLeft = '1px solid var(--rv-border)';
 
       return window.el('div', {
-        style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;display:flex;margin-bottom:14px;overflow:hidden;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;display:flex;margin-bottom:14px;overflow:hidden;',
       }, col1, col2, col3);
     }
 
@@ -386,27 +386,27 @@
       var obs = fmtTextoOuEmpty(p.observacao, '');
       if (!obs || obs === '—') return window.el('div', {});
       return window.el('div', {
-        style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:16px 20px;margin-bottom:14px;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;margin-bottom:14px;',
       },
         window.el('div', {
-          style: 'font-size:15px;font-weight:700;color:#16203a;margin-bottom:10px;',
+          style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);margin-bottom:10px;',
         }, 'Observação geral'),
-        window.el('p', { style: 'font-size:14px;color:#3f4757;white-space:pre-line;' }, obs),
+        window.el('p', { style: 'font-size:14px;color:var(--rv-text-primary);white-space:pre-line;' }, obs),
       );
     }
 
     function buildParciaisHeaderRow() {
       return window.el('div', {
         style: 'display:grid;grid-template-columns:.8fr 1.6fr .9fr .8fr;gap:12px;'
-          + 'padding:10px 20px;background:#f8f9fb;border-bottom:1px solid #eceef1;',
+          + 'padding:10px 20px;background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);',
       },
-        window.el('div', { style: 'font-size:11.5px;font-weight:600;color:#9aa2af;' }, 'Parcial'),
-        window.el('div', { style: 'font-size:11.5px;font-weight:600;color:#9aa2af;' }, 'Situação'),
+        window.el('div', { style: 'font-size:11.5px;font-weight:600;color:var(--rv-text-tertiary);' }, 'Parcial'),
+        window.el('div', { style: 'font-size:11.5px;font-weight:600;color:var(--rv-text-tertiary);' }, 'Situação'),
         window.el('div', {
-          style: 'font-size:11.5px;font-weight:600;color:#9aa2af;text-align:right;',
+          style: 'font-size:11.5px;font-weight:600;color:var(--rv-text-tertiary);text-align:right;',
         }, 'Metragem'),
         window.el('div', {
-          style: 'font-size:11.5px;font-weight:600;color:#9aa2af;text-align:right;',
+          style: 'font-size:11.5px;font-weight:600;color:var(--rv-text-tertiary);text-align:right;',
         }, 'Atualizado em')
       );
     }
@@ -421,28 +421,28 @@
       return window.el('div', {
         style: 'display:grid;grid-template-columns:.8fr 1.6fr .9fr .8fr;gap:12px;'
           + 'padding:11px 20px;align-items:center;'
-          + (isLast ? '' : 'border-bottom:1px solid #f1f3f6;'),
+          + (isLast ? '' : 'border-bottom:1px solid var(--rv-border-soft);'),
       },
         window.el('div', {
-          style: 'font-size:14px;font-weight:600;color:#16203a;',
+          style: 'font-size:14px;font-weight:600;color:var(--rv-text-primary);',
         }, parcial.codigo || 'Parcial'),
         window.el('div', {},
           parcial.label
             ? window.el('span', { style: badgeStyle },
                 window.el('span', { style: dotStyle }),
                 parcial.label)
-            : window.el('span', { style: 'font-size:12px;color:#9aa2af;' }, '—'),
+            : window.el('span', { style: 'font-size:12px;color:var(--rv-text-tertiary);' }, '—'),
           parcial.titulo
             ? window.el('div', {
-                style: 'font-size:11.5px;color:#9aa2af;margin-top:3px;',
+                style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-top:3px;',
               }, parcial.titulo)
             : null
         ),
         window.el('div', {
-          style: 'text-align:right;font-size:14px;font-weight:600;color:#16203a;',
+          style: 'text-align:right;font-size:14px;font-weight:600;color:var(--rv-text-primary);',
         }, fmtMetros(parcial.metros)),
         window.el('div', {
-          style: 'text-align:right;font-size:13px;color:#9aa2af;',
+          style: 'text-align:right;font-size:13px;color:var(--rv-text-tertiary);',
         }, parcial.dataReferencia ? fmtEventoData(parcial.dataReferencia) : '—')
       );
     }
@@ -451,15 +451,15 @@
       if (!state.pedido) return window.el('div', {});
 
       var card = window.el('div', {
-        style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;overflow:hidden;margin-bottom:14px;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;overflow:hidden;margin-bottom:14px;',
       });
       card.appendChild(window.el('div', {
-        style: 'padding:14px 20px 12px;font-size:15px;font-weight:700;color:#16203a;border-bottom:1px solid #eceef1;',
+        style: 'padding:14px 20px 12px;font-size:15px;font-weight:700;color:var(--rv-text-primary);border-bottom:1px solid var(--rv-border);',
       }, 'Parciais do pedido'));
 
       if (state.parciaisError) {
         card.appendChild(window.el('p', {
-          style: 'padding:14px 20px;font-size:14px;color:#b45309;',
+          style: 'padding:14px 20px;font-size:14px;color:var(--rv-signal-caution);',
         }, 'Nao foi possivel carregar as parciais agora.'));
         return card;
       }
@@ -474,7 +474,7 @@
 
       if (parciais.length === 0) {
         card.appendChild(window.el('p', {
-          style: 'padding:14px 20px;font-size:14px;color:#9aa2af;',
+          style: 'padding:14px 20px;font-size:14px;color:var(--rv-text-tertiary);',
         }, 'Este pedido ainda nao possui parciais publicadas.'));
         return card;
       }
@@ -490,37 +490,37 @@
     function buildItemRow(item, isLast) {
       var c1Nome = item && item.cor_1 ? item.cor_1 : null;
       var c2Nome = item && item.cor_2 ? item.cor_2 : null;
-      var c1Hex = c1Nome && window.corPreviewHex ? window.corPreviewHex(c1Nome) : '#e5e7eb';
-      var c2Hex = c2Nome && window.corPreviewHex ? window.corPreviewHex(c2Nome) : '#e5e7eb';
+      var c1Hex = window.corPreviewHex(c1Nome);
+      var c2Hex = window.corPreviewHex(c2Nome);
 
       return window.el('div', {
         style: 'display:grid;grid-template-columns:40px 1fr 1fr 1fr;gap:10px;'
           + 'padding:11px 0;align-items:center;'
-          + (isLast ? '' : 'border-bottom:1px solid #f1f3f6;'),
+          + (isLast ? '' : 'border-bottom:1px solid var(--rv-border-soft);'),
       },
         itemPreviewEl(item),
         window.el('div', {
-          style: 'font-size:13.5px;font-weight:600;color:#16203a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
+          style: 'font-size:13.5px;font-weight:600;color:var(--rv-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
         }, modelLabel(item)),
         window.el('div', {},
           window.el('div', { style: 'display:flex;gap:5px;align-items:center;' },
             window.el('span', {
               style: 'width:14px;height:14px;border-radius:50%;background:' + c1Hex
-                + ';border:1px solid rgba(0,0,0,0.08);display:inline-block;flex-shrink:0;',
+                + ';border:1px solid var(--rv-border);display:inline-block;flex-shrink:0;',
             }),
             c2Nome
               ? window.el('span', {
                   style: 'width:14px;height:14px;border-radius:50%;background:' + c2Hex
-                    + ';border:1px solid rgba(0,0,0,0.12);display:inline-block;flex-shrink:0;',
+                    + ';border:1px solid var(--rv-border-strong);display:inline-block;flex-shrink:0;',
                 })
               : null
           ),
           window.el('div', {
-            style: 'font-size:11px;color:#9aa2af;margin-top:4px;',
+            style: 'font-size:11px;color:var(--rv-text-tertiary);margin-top:4px;',
           }, itemCoresLabel(item))
         ),
         window.el('div', {
-          style: 'text-align:right;font-size:13.5px;font-weight:600;color:#16203a;',
+          style: 'text-align:right;font-size:13.5px;font-weight:600;color:var(--rv-text-primary);',
         }, fmtMetros(item.metros))
       );
     }
@@ -528,14 +528,14 @@
     function buildItens() {
       var itens = state.itens;
       var card = window.el('div', {
-        style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:16px 20px;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;',
       });
       card.appendChild(window.el('div', {
-        style: 'font-size:15px;font-weight:700;color:#16203a;margin-bottom:14px;',
+        style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);margin-bottom:14px;',
       }, 'Itens do pedido'));
 
       if (itens.length === 0) {
-        card.appendChild(window.el('p', { style: 'font-size:14px;color:#9aa2af;' },
+        card.appendChild(window.el('p', { style: 'font-size:14px;color:var(--rv-text-tertiary);' },
           'Este pedido não possui itens.'));
         return card;
       }
@@ -543,13 +543,13 @@
       // Cabecalho da grade
       card.appendChild(window.el('div', {
         style: 'display:grid;grid-template-columns:40px 1fr 1fr 1fr;gap:10px;'
-          + 'padding:8px 0;border-bottom:1px solid #eceef1;',
+          + 'padding:8px 0;border-bottom:1px solid var(--rv-border);',
       },
         window.el('div', {}),
-        window.el('div', { style: 'font-size:11.5px;font-weight:600;color:#9aa2af;' }, 'Modelo'),
-        window.el('div', { style: 'font-size:11.5px;font-weight:600;color:#9aa2af;' }, 'Cores'),
+        window.el('div', { style: 'font-size:11.5px;font-weight:600;color:var(--rv-text-tertiary);' }, 'Modelo'),
+        window.el('div', { style: 'font-size:11.5px;font-weight:600;color:var(--rv-text-tertiary);' }, 'Cores'),
         window.el('div', {
-          style: 'font-size:11.5px;font-weight:600;color:#9aa2af;text-align:right;',
+          style: 'font-size:11.5px;font-weight:600;color:var(--rv-text-tertiary);text-align:right;',
         }, 'Metragem')
       ));
 
@@ -562,10 +562,10 @@
     function buildDistribuicaoAtual() {
       if (!state.pedido) return window.el('div', {});
       var card = window.el('div', {
-        style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:16px 20px;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;',
       });
       card.appendChild(window.el('div', {
-        style: 'font-size:15px;font-weight:700;color:#16203a;margin-bottom:14px;',
+        style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);margin-bottom:14px;',
       }, 'Distribuição atual'));
 
       var trackingApi = window.RavatexPedidoTracking;
@@ -577,7 +577,7 @@
         : [];
 
       if (distribuicao.length === 0) {
-        card.appendChild(window.el('p', { style: 'font-size:14px;color:#9aa2af;' },
+        card.appendChild(window.el('p', { style: 'font-size:14px;color:var(--rv-text-tertiary);' },
           'Sem distribuição parcial publicada para este pedido.'));
         return card;
       }
@@ -588,33 +588,33 @@
         var barColor = distribuicaoBarColor(item.situacao);
         barsWrap.appendChild(window.el('div', { style: 'display:flex;align-items:center;gap:12px;' },
           window.el('div', {
-            style: 'width:120px;font-size:13.5px;color:#3f4757;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
+            style: 'width:120px;font-size:13.5px;color:var(--rv-text-primary);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
           }, item.label),
           window.el('div', {
-            style: 'flex:1;height:6px;border-radius:99px;background:#eef1f5;overflow:hidden;',
+            style: 'flex:1;height:6px;border-radius:99px;background:var(--rv-surface-subtle);overflow:hidden;',
           },
             window.el('div', {
               style: 'width:' + largura + '%;height:100%;background:' + barColor + ';border-radius:99px;',
             })
           ),
           window.el('div', {
-            style: 'width:90px;text-align:right;font-size:13.5px;font-weight:600;color:#16203a;flex-shrink:0;',
+            style: 'width:90px;text-align:right;font-size:13.5px;font-weight:600;color:var(--rv-text-primary);flex-shrink:0;',
           }, fmtMetros(item.metros))
         ));
       });
       card.appendChild(barsWrap);
 
       card.appendChild(window.el('div', {
-        style: 'height:1px;background:#eceef1;margin:14px 0 12px;',
+        style: 'height:1px;background:var(--rv-surface-subtle);margin:14px 0 12px;',
       }));
       card.appendChild(window.el('div', {
         style: 'display:flex;justify-content:space-between;align-items:center;',
       },
         window.el('span', {
-          style: 'font-size:13.5px;font-weight:700;color:#16203a;',
+          style: 'font-size:13.5px;font-weight:700;color:var(--rv-text-primary);',
         }, 'Total do pedido'),
         window.el('span', {
-          style: 'font-size:14px;font-weight:800;color:#16203a;',
+          style: 'font-size:14px;font-weight:800;color:var(--rv-text-primary);',
         }, fmtMetros(acompanhamento.totais.pedido))
       ));
       return card;
@@ -623,17 +623,17 @@
     function buildAvisos() {
       if (!state.pedido || !state.pendencias.length) return window.el('div', {});
       var card = window.el('div', {
-        style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:14px 18px;margin-bottom:14px;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:14px 18px;margin-bottom:14px;',
       });
       card.appendChild(window.el('div', {
-        style: 'font-size:15px;font-weight:700;color:#16203a;margin-bottom:8px;',
+        style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);margin-bottom:8px;',
       }, 'Pendências'));
       state.pendencias.forEach(function (item) {
         card.appendChild(window.el('div', {
-          style: 'display:flex;align-items:center;gap:8px;font-size:13.5px;color:#5b6472;margin-top:6px;',
+          style: 'display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--rv-text-secondary);margin-top:6px;',
         },
           window.el('span', {
-            style: 'width:7px;height:7px;border-radius:50%;background:#d99a2b;display:inline-block;flex-shrink:0;',
+            style: 'width:7px;height:7px;border-radius:50%;background:var(--rv-signal-caution);display:inline-block;flex-shrink:0;',
           }),
           String(item)
         ));
@@ -644,43 +644,43 @@
     function buildEntregasResumo() {
       if (!state.pedido) return window.el('div', {});
       var card = window.el('div', {
-        style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;overflow:hidden;margin-bottom:14px;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;overflow:hidden;margin-bottom:14px;',
       });
       card.appendChild(window.el('div', {
-        style: 'padding:14px 20px 12px;font-size:15px;font-weight:700;color:#16203a;border-bottom:1px solid #eceef1;',
+        style: 'padding:14px 20px 12px;font-size:15px;font-weight:700;color:var(--rv-text-primary);border-bottom:1px solid var(--rv-border);',
       }, 'Entrega e expedição'));
 
       if (!state.entregasResumo.length) {
         card.appendChild(window.el('p', {
-          style: 'padding:14px 20px;font-size:14px;color:#9aa2af;',
+          style: 'padding:14px 20px;font-size:14px;color:var(--rv-text-tertiary);',
         }, 'Ainda não há entrega registrada para este pedido.'));
         return card;
       }
 
       card.appendChild(window.el('div', {
-        style: 'display:grid;grid-template-columns:1fr 130px;gap:12px;padding:10px 20px;background:#f8f9fb;border-bottom:1px solid #eceef1;',
+        style: 'display:grid;grid-template-columns:1fr 130px;gap:12px;padding:10px 20px;background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);',
       },
-        window.el('div', { style: 'font-size:11.5px;font-weight:600;color:#9aa2af;' }, 'Atualização'),
+        window.el('div', { style: 'font-size:11.5px;font-weight:600;color:var(--rv-text-tertiary);' }, 'Atualização'),
         window.el('div', {
-          style: 'font-size:11.5px;font-weight:600;color:#9aa2af;text-align:right;',
+          style: 'font-size:11.5px;font-weight:600;color:var(--rv-text-tertiary);text-align:right;',
         }, 'Quantidade')
       ));
 
       state.entregasResumo.forEach(function (row, idx) {
         card.appendChild(window.el('div', {
           style: 'display:grid;grid-template-columns:1fr 130px;gap:12px;padding:11px 20px;align-items:center;'
-            + (idx === state.entregasResumo.length - 1 ? '' : 'border-bottom:1px solid #f1f3f6;'),
+            + (idx === state.entregasResumo.length - 1 ? '' : 'border-bottom:1px solid var(--rv-border-soft);'),
         },
           window.el('div', {},
             window.el('div', {
-              style: 'font-size:14px;font-weight:600;color:#16203a;',
+              style: 'font-size:14px;font-weight:600;color:var(--rv-text-primary);',
             }, fmtTextoOuEmpty(row.descricao, 'Entrega registrada')),
             window.el('div', {
-              style: 'font-size:12.5px;color:#9aa2af;margin-top:2px;',
+              style: 'font-size:12.5px;color:var(--rv-text-tertiary);margin-top:2px;',
             }, fmtEventoData(row.data))
           ),
           window.el('div', {
-            style: 'text-align:right;font-size:13.5px;font-weight:700;color:#16203a;',
+            style: 'text-align:right;font-size:13.5px;font-weight:700;color:var(--rv-text-primary);',
           }, fmtMetros(row.quantidade))
         ));
       });
@@ -689,7 +689,7 @@
 
     // Item do historico: ponto + linha vertical + conteudo.
     function buildEventoItem(evento, isLast, isFirst) {
-      var dotColor = isFirst ? '#2563eb' : '#cfd5de';
+      var dotColor = isFirst ? 'var(--rv-accent-blue)' : 'var(--rv-text-tertiary)';
       return window.el('div', {
         style: 'display:flex;gap:14px;',
       },
@@ -701,20 +701,20 @@
               + ';margin-top:4px;flex-shrink:0;',
           }),
           isLast ? null : window.el('div', {
-            style: 'width:2px;flex:1;background:#eceef1;margin-top:4px;',
+            style: 'width:2px;flex:1;background:var(--rv-surface-subtle);margin-top:4px;',
           })
         ),
         window.el('div', { style: 'padding-bottom:' + (isLast ? '0' : '14px') + ';' },
           window.el('div', {
-            style: 'font-size:12px;color:#9aa2af;',
+            style: 'font-size:12px;color:var(--rv-text-tertiary);',
           }, fmtEventoData(evento.criado_em)),
           window.el('div', {
             style: 'font-size:14px;font-weight:' + (isFirst ? '700' : '600') + ';color:'
-              + (isFirst ? '#16203a' : '#475065') + ';margin-top:2px;',
+              + (isFirst ? 'var(--rv-text-primary)' : 'var(--rv-text-primary)') + ';margin-top:2px;',
           }, fmtTextoOuEmpty(evento.titulo, 'Atualização')),
           evento.mensagem
             ? window.el('div', {
-                style: 'font-size:13px;color:#7b8494;margin-top:1px;',
+                style: 'font-size:13px;color:var(--rv-text-secondary);margin-top:1px;',
               }, evento.mensagem)
             : null
         )
@@ -728,22 +728,22 @@
       var wrap = window.el('div', {});
 
       wrap.appendChild(window.el('div', {
-        style: 'font-size:15px;font-weight:700;color:#16203a;margin-bottom:10px;',
+        style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);margin-bottom:10px;',
       }, 'Histórico'));
 
       var card = window.el('div', {
-        style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:16px 20px;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;',
       });
 
       if (state.eventosError) {
-        card.appendChild(window.el('p', { style: 'font-size:14px;color:#b45309;' },
+        card.appendChild(window.el('p', { style: 'font-size:14px;color:var(--rv-signal-caution);' },
           'Não foi possível carregar as atualizações agora.'));
         wrap.appendChild(card);
         return wrap;
       }
 
       if (state.eventos.length === 0) {
-        card.appendChild(window.el('p', { style: 'font-size:14px;color:#9aa2af;' },
+        card.appendChild(window.el('p', { style: 'font-size:14px;color:var(--rv-text-tertiary);' },
           'Assim que houver novas atualizações, elas aparecerão aqui.'));
         wrap.appendChild(card);
         return wrap;

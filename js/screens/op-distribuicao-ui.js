@@ -195,20 +195,20 @@
 
     var wrap = el('div', {
       style: compact
-        ? 'border:1px solid #d0e0fb;border-radius:4px;background:#f8fbff;padding:12px 14px;margin-top:10px;'
-        : 'border-top:2px solid #eceef1;padding:18px 24px 0;',
+        ? 'border:1px solid var(--rv-pill-info-border);border-radius:4px;background:var(--rv-surface-subtle);padding:12px 14px;margin-top:10px;'
+        : 'border-top:2px solid var(--rv-border);padding:18px 24px 0;',
     });
 
     var semFio = ordens.some(function (o) { return Number(o.kg_recebido) <= 0; });
     if (semFio) {
-      wrap.appendChild(el('p', { style: 'font-size:13px;color:#d6403a;margin-bottom:8px;' },
+      wrap.appendChild(el('p', { style: 'font-size:13px;color:var(--rv-signal-negative);margin-bottom:8px;' },
         'Atenção: alguma ordem foi recebida com 0 kg.'));
     }
 
-    wrap.appendChild(el('div', { style: 'font-size:13px;color:#3f4757;margin-bottom:2px;' },
+    wrap.appendChild(el('div', { style: 'font-size:13px;color:var(--rv-text-primary);margin-bottom:2px;' },
       el('strong', {}, 'Fator proporcional (cor mais escassa): '),
       Number(resultado.fator).toFixed(2).replace('.', ',')));
-    wrap.appendChild(el('div', { style: 'font-size:12px;color:#8a93a3;margin-bottom:18px;' },
+    wrap.appendChild(el('div', { style: 'font-size:12px;color:var(--rv-text-tertiary);margin-bottom:18px;' },
       'Arraste os sliders para redistribuir os metros entre os modelos. O consumo de fio é recalculado ao vivo. ' +
       'Salve a distribuição aqui; depois use "Iniciar produção". Salvar apenas persiste — nunca inicia produção.'));
 
@@ -219,7 +219,7 @@
     function trackBg(slider) {
       var max = Number(slider.max) || 1;
       var pct = Math.max(0, Math.min(100, (Number(slider.value) / max) * 100));
-      return '-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:99px;background:linear-gradient(to right,#2563eb ' + pct + '%,#d8dce2 ' + pct + '%);outline:none;border:none;cursor:pointer;';
+      return '-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:99px;background:linear-gradient(to right,var(--rv-brand) ' + pct + '%,var(--rv-surface-subtle) ' + pct + '%);outline:none;border:none;cursor:pointer;';
     }
 
     itensCalc.forEach(function (c) {
@@ -231,7 +231,7 @@
       var slider = el('input', { type: 'range', min: '0', max: String(maxCalc), step: '1' });
       slider.value = String(Math.round(metrosOverride[c.op_item_id] || 0));
       slider.setAttribute('style', trackBg(slider));
-      var valorLabel = el('span', { style: 'font-size:13.5px;font-weight:700;color:#16203a;white-space:nowrap;' }, fmtMetros(Number(slider.value)));
+      var valorLabel = el('span', { style: 'font-size:13.5px;font-weight:700;color:var(--rv-text-primary);white-space:nowrap;' }, fmtMetros(Number(slider.value)));
       slider.addEventListener('input', function () {
         metrosOverride[c.op_item_id] = Number(slider.value);
         valorLabel.textContent = fmtMetros(Number(slider.value));
@@ -241,12 +241,12 @@
       var modelo = modelosById[c.modelo_id];
       sliders.appendChild(el('div', { style: 'margin-bottom:18px;' },
         el('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px;' },
-          el('span', { style: 'font-size:13px;font-weight:600;color:#16203a;' }, rotuloModelo(modelo) + ' · pedido ' + fmtMetros(c.metros_pedidos)),
+          el('span', { style: 'font-size:13px;font-weight:600;color:var(--rv-text-primary);' }, rotuloModelo(modelo) + ' · pedido ' + fmtMetros(c.metros_pedidos)),
           valorLabel),
         slider,
         el('div', { style: 'display:flex;justify-content:space-between;margin-top:4px;' },
-          el('span', { style: 'font-size:11px;color:#aab2bf;' }, '0 m'),
-          el('span', { style: 'font-size:11px;color:#aab2bf;' }, 'máx individual: ' + fmtMetros(maxCalc)))
+          el('span', { style: 'font-size:11px;color:var(--rv-text-tertiary);' }, '0 m'),
+          el('span', { style: 'font-size:11px;color:var(--rv-text-tertiary);' }, 'máx individual: ' + fmtMetros(maxCalc)))
       ));
       itemRowState[c.op_item_id] = { slider: slider, valorLabel: valorLabel };
     });
@@ -258,7 +258,7 @@
 
     var btnReset = el('button', {
       type: 'button',
-      style: 'display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#2563eb;background:none;border:none;padding:0;margin-bottom:14px;cursor:pointer;font-family:inherit;',
+      style: 'display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--rv-accent-blue);background:none;border:none;padding:0;margin-bottom:14px;cursor:pointer;font-family:inherit;',
       onclick: function () {
         resultado.itens.forEach(function (it) {
           var v = Math.round(it.metros_ajustados);
@@ -274,18 +274,18 @@
     var btnManter = el('button', { type: 'button' }, 'Manter pedido');
     var btnSalvar = el('button', { type: 'button' }, 'Salvar distribuição');
 
-    wrap.appendChild(el('div', { style: 'padding:14px 0 ' + (compact ? '4px' : '20px') + ';border-top:1px solid #eceef1;margin-top:0;' },
+    wrap.appendChild(el('div', { style: 'padding:14px 0 ' + (compact ? '4px' : '20px') + ';border-top:1px solid var(--rv-border);margin-top:0;' },
       btnReset,
       el('div', { style: 'display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:wrap;' }, btnManter, btnSalvar)
     ));
 
     function styleSecondary(btn, disabled) {
       btn.disabled = disabled;
-      btn.setAttribute('style', 'display:inline-flex;align-items:center;gap:7px;background:#fff;color:' + (disabled ? '#9fb4d6' : '#2563eb') + ';border:1px solid ' + (disabled ? '#e1e7f0' : '#cfe0fb') + ';border-radius:4px;padding:10px 20px;font-weight:700;font-size:14px;font-family:inherit;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';');
+      btn.setAttribute('style', 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-surface);color:var(--rv-accent-blue);border:1px solid var(--rv-pill-info-border);border-radius:4px;padding:10px 20px;font-weight:700;font-size:14px;font-family:inherit;' + (disabled ? 'opacity:.45;cursor:default;' : 'cursor:pointer;') + '');
     }
     function styleManter(btn, disabled) {
       btn.disabled = disabled;
-      btn.setAttribute('style', 'display:inline-flex;align-items:center;gap:7px;background:#fff;color:' + (disabled ? '#aab2bf' : '#3f4757') + ';border:1px solid ' + (disabled ? '#eceef1' : '#d8dce2') + ';border-radius:4px;padding:10px 20px;font-weight:600;font-size:14px;font-family:inherit;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';');
+      btn.setAttribute('style', 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-surface);color:' + (disabled ? 'var(--rv-text-tertiary)' : 'var(--rv-text-primary)') + ';border:1px solid ' + (disabled ? 'var(--rv-border)' : 'var(--rv-border-strong)') + ';border-radius:4px;padding:10px 20px;font-weight:600;font-size:14px;font-family:inherit;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';');
     }
 
     function itensComMetros(map) {
@@ -299,16 +299,16 @@
       var infoAtual = calcSobras(atual, opItens, ordens, modelosById, parametrosByLargura);
       var infoPedido = calcSobras(pedidoMap, opItens, ordens, modelosById, parametrosByLargura);
 
-      var linhas = [el('div', { style: 'font-size:10.5px;font-weight:700;color:#8a93a3;letter-spacing:.06em;margin-bottom:10px;' }, 'CONSUMO DE FIO')];
+      var linhas = [el('div', { style: 'font-size:10.5px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.06em;margin-bottom:10px;' }, 'CONSUMO DE FIO')];
       (infoAtual.consumos || []).forEach(function (c) {
         var o = ordens.find(function (x) { return x.id === c.ordem_id; }) || {};
         var nome = o.tipo === 'algodao'
           ? 'Algodão — ' + ((o.cores && o.cores.nome) || '?')
           : 'Poliéster — ' + o.cor_poliester;
         var sobraTxt = c.sobra >= 0 ? ('sobra ' + fmtKg(c.sobra)) : ('EXCEDE em ' + fmtKg(-c.sobra));
-        linhas.push(el('div', { style: 'display:flex;justify-content:space-between;font-size:12.5px;color:' + (c.sobra < 0 ? '#d6403a' : '#3f4757') + ';margin-bottom:6px;' },
+        linhas.push(el('div', { style: 'display:flex;justify-content:space-between;font-size:12.5px;color:' + (c.sobra < 0 ? 'var(--rv-signal-negative)' : 'var(--rv-text-primary)') + ';margin-bottom:6px;' },
           el('span', {}, nome + ': ' + fmtKg(c.kg_consumido) + ' / ' + fmtKg(c.kg_recebido)),
-          el('span', { style: 'font-weight:600;color:' + (c.sobra < 0 ? '#d6403a' : '#18794a') + ';' }, sobraTxt)));
+          el('span', { style: 'font-weight:600;color:' + (c.sobra < 0 ? 'var(--rv-signal-negative)' : 'var(--rv-signal-positive)') + ';' }, sobraTxt)));
       });
       consumoBox.replaceChildren.apply(consumoBox, linhas);
 

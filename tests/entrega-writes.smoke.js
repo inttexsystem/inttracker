@@ -275,6 +275,8 @@ function makeEWSandbox({ deleteResult = { data: null, error: null } } = {}) {
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   // Stubs
@@ -679,6 +681,8 @@ function makeEWLatexSandbox({
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
@@ -1036,6 +1040,8 @@ function makeEWCimaSandbox({
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
@@ -1467,6 +1473,8 @@ test('52.2 D-C-C: atualizarEntregaCima delete entrega_itens falhando no trigger 
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(calcSrc, sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
@@ -1570,6 +1578,8 @@ test('52.4 D-C-C: excluirEntrega delete entregas falhando no trigger → toast a
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(calcSrc, sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
@@ -1701,6 +1711,8 @@ test('55. boot: ui + router + system-screens + common + cadastros + ops-list + e
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
@@ -1749,6 +1761,8 @@ test('56. screenPainel renderiza via shellLayout com ADMIN_MENU atual', () => {
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
@@ -1807,6 +1821,8 @@ test('57. screenCadastrosCores (cadastros) ainda renderiza (regressão cadastros
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
   vm.runInContext(opsSrc,    sandbox, { filename: 'js/screens/ops-list.js' });
@@ -1846,6 +1862,8 @@ test('58. screenListaOPs (ops-list) ainda renderiza (regressão ops-list)', asyn
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });

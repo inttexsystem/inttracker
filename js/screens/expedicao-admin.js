@@ -6,10 +6,10 @@
 (function (window) {
   'use strict';
 
-  var CARD = 'background:#fff;border:1px solid #eceef1;border-radius:4px;';
-  var BTN_PRIMARY = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:9px 14px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;';
-  var BTN_SECONDARY = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;';
-  var LABEL = 'display:block;font-size:12px;color:#8a93a3;font-weight:600;margin-bottom:6px;';
+  var CARD = 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;';
+  var BTN_PRIMARY = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:9px 14px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;';
+  var BTN_SECONDARY = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-border-strong);border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;';
+  var LABEL = 'display:block;font-size:12px;color:var(--rv-text-tertiary);font-weight:600;margin-bottom:6px;';
 
   function fmtMetros(value) {
     if (window.fmtMetros) return window.fmtMetros(value);
@@ -54,9 +54,9 @@
   }
 
   function statusTone(status) {
-    if (status === 'concluida') return { bg: '#e6f4ec', color: '#18794a' };
-    if (status === 'parcial') return { bg: '#fff4e6', color: '#c2610c' };
-    return { bg: '#eaf1fd', color: '#2563eb' };
+    if (status === 'concluida') return { bg: 'var(--rv-signal-positive-bg)', color: 'var(--rv-signal-positive)' };
+    if (status === 'parcial') return { bg: 'var(--rv-signal-caution-bg)', color: 'var(--rv-signal-caution)' };
+    return { bg: 'var(--rv-pill-info-bg)', color: 'var(--rv-accent-blue)' };
   }
 
   function badge(status) {
@@ -84,7 +84,7 @@
 
   function value(text, weight, color) {
     return window.el('div', {
-      style: 'font-size:13.5px;color:' + (color || '#16203a') + ';font-weight:' + (weight || '600') + ';',
+      style: 'font-size:13.5px;color:' + (color || 'var(--rv-text-primary)') + ';font-weight:' + (weight || '600') + ';',
     }, text);
   }
 
@@ -227,26 +227,26 @@
         : (src.opId != null ? 'OP #' + src.opId : null);
 
       var lineageNodes = [];
-      lineageNodes.push(window.el('span', { style: 'font-size:12.5px;color:#2c4a78;font-weight:600;' }, 'Cadeia:'));
-      lineageNodes.push(window.el('span', { style: 'font-size:12.5px;font-weight:700;color:#16203a;background:#fff;border-radius:3px;padding:3px 7px;' }, 'Pedido ' + pedidoNumero));
-      lineageNodes.push(window.el('span', { style: 'font-size:12px;color:#9aa2af;' }, '→'));
+      lineageNodes.push(window.el('span', { style: 'font-size:12.5px;color:var(--rv-pill-info-text);font-weight:600;' }, 'Cadeia:'));
+      lineageNodes.push(window.el('span', { style: 'font-size:12.5px;font-weight:700;color:var(--rv-text-primary);background:var(--rv-surface);border-radius:3px;padding:3px 7px;' }, 'Pedido ' + pedidoNumero));
+      lineageNodes.push(window.el('span', { style: 'font-size:12px;color:var(--rv-text-tertiary);' }, '→'));
       lineageNodes.push(opLabel
         ? window.el('button', {
             type: 'button',
-            style: 'font-size:12.5px;font-weight:700;color:#2563eb;background:#fff;border:none;border-radius:3px;padding:3px 7px;cursor:pointer;font-family:inherit;',
+            style: 'font-size:12.5px;font-weight:700;color:var(--rv-accent-blue);background:var(--rv-surface);border:none;border-radius:3px;padding:3px 7px;cursor:pointer;font-family:inherit;',
             onclick: function () { window.navigate('#/ops/' + src.opId); },
           }, opLabel)
-        : window.el('span', { style: 'font-size:12.5px;font-weight:700;color:#8a93a3;background:#fff;border-radius:3px;padding:3px 7px;' }, 'OP sem vinculo'));
+        : window.el('span', { style: 'font-size:12.5px;font-weight:700;color:var(--rv-text-tertiary);background:var(--rv-surface);border-radius:3px;padding:3px 7px;' }, 'OP sem vinculo'));
       if (src.label) {
-        lineageNodes.push(window.el('span', { style: 'font-size:11.5px;color:#5b6472;background:#fff;border-radius:3px;padding:3px 7px;font-weight:600;' }, 'Origem: ' + src.label));
+        lineageNodes.push(window.el('span', { style: 'font-size:11.5px;color:var(--rv-text-secondary);background:var(--rv-surface);border-radius:3px;padding:3px 7px;font-weight:600;' }, 'Origem: ' + src.label));
       }
       if (srcOp) {
-        lineageNodes.push(window.el('span', { style: 'font-size:11.5px;color:#8a93a3;background:#fff;border-radius:3px;padding:3px 7px;' }, internalOpLabel(srcOp)));
+        lineageNodes.push(window.el('span', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);background:var(--rv-surface);border-radius:3px;padding:3px 7px;' }, internalOpLabel(srcOp)));
       }
-      lineageNodes.push(window.el('span', { style: 'font-size:12px;color:#9aa2af;' }, '→'));
-      lineageNodes.push(window.el('span', { style: 'font-size:12.5px;font-weight:700;color:#c2610c;background:#fff;border-radius:3px;padding:3px 7px;' }, 'Expedicao (esta tela)'));
+      lineageNodes.push(window.el('span', { style: 'font-size:12px;color:var(--rv-text-tertiary);' }, '→'));
+      lineageNodes.push(window.el('span', { style: 'font-size:12.5px;font-weight:700;color:var(--rv-signal-caution);background:var(--rv-surface);border-radius:3px;padding:3px 7px;' }, 'Expedicao (esta tela)'));
       var lineageStrip = window.el('div', {
-        style: 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#eaf1fd;border:1px solid #d7e6fb;border-radius:4px;padding:8px 14px;margin-bottom:12px;',
+        style: 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--rv-pill-info-bg);border:1px solid var(--rv-pill-info-border);border-radius:4px;padding:8px 14px;margin-bottom:12px;',
       }, lineageNodes);
 
       return window.el('div', { style: 'margin-bottom:14px;' },
@@ -255,11 +255,11 @@
           style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;',
         },
           window.el('div', {},
-            window.el('div', { style: 'font-size:13.5px;color:#9aa2af;margin-bottom:6px;' },
-              'Expedicoes / ', window.el('span', { style: 'color:#5b6472;font-weight:600;' }, 'Pedido ' + pedidoNumero)),
-            window.el('h1', { style: 'margin:0;font-size:24px;font-weight:800;color:#16203a;letter-spacing:-.01em;' },
+            window.el('div', { style: 'font-size:13.5px;color:var(--rv-text-tertiary);margin-bottom:6px;' },
+              'Expedicoes / ', window.el('span', { style: 'color:var(--rv-text-secondary);font-weight:600;' }, 'Pedido ' + pedidoNumero)),
+            window.el('h1', { style: 'margin:0;font-size:24px;font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;' },
               'Expedicao do Pedido ' + pedidoNumero),
-            window.el('div', { style: 'font-size:13px;color:#8a93a3;margin-top:6px;' },
+            window.el('div', { style: 'font-size:13px;color:var(--rv-text-tertiary);margin-top:6px;' },
               (exp.cliente && exp.cliente.nome ? exp.cliente.nome : 'Cliente') + ' - ' +
               (exp.lote && exp.lote.numero ? 'Lote ' + exp.lote.numero : 'Lote') + ' - ' +
               fmtMetros(totalEntregue) + ' de ' + fmtMetros(totalLiberado))
@@ -279,22 +279,22 @@
         style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px;',
       },
         window.el('div', { style: CARD + 'padding:14px 16px;' },
-          window.el('div', { style: 'font-size:11px;color:#8a93a3;font-weight:700;margin-bottom:6px;' }, 'LIBERADO'),
-          window.el('div', { style: 'font-size:20px;font-weight:800;color:#16203a;' }, fmtMetros(totalLiberado))),
+          window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);font-weight:700;margin-bottom:6px;' }, 'LIBERADO'),
+          window.el('div', { style: 'font-size:20px;font-weight:800;color:var(--rv-text-primary);' }, fmtMetros(totalLiberado))),
         window.el('div', { style: CARD + 'padding:14px 16px;' },
-          window.el('div', { style: 'font-size:11px;color:#8a93a3;font-weight:700;margin-bottom:6px;' }, 'ENTREGUE / COLETADO'),
-          window.el('div', { style: 'font-size:20px;font-weight:800;color:#18794a;' }, fmtMetros(totalEntregue))),
+          window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);font-weight:700;margin-bottom:6px;' }, 'ENTREGUE / COLETADO'),
+          window.el('div', { style: 'font-size:20px;font-weight:800;color:var(--rv-signal-positive);' }, fmtMetros(totalEntregue))),
         window.el('div', { style: CARD + 'padding:14px 16px;' },
-          window.el('div', { style: 'font-size:11px;color:#8a93a3;font-weight:700;margin-bottom:6px;' }, 'SALDO'),
-          window.el('div', { style: 'font-size:20px;font-weight:800;color:' + (saldo > 0 ? '#c2610c' : '#18794a') + ';' }, fmtMetros(Math.max(saldo, 0))))
+          window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);font-weight:700;margin-bottom:6px;' }, 'SALDO'),
+          window.el('div', { style: 'font-size:20px;font-weight:800;color:' + (saldo > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)') + ';' }, fmtMetros(Math.max(saldo, 0))))
       );
     }
 
     function buildItens() {
       var card = window.el('div', { style: CARD + 'overflow:hidden;margin-bottom:14px;' },
-        window.el('div', { style: 'padding:16px 20px;font-size:15.5px;font-weight:700;color:#16203a;' }, 'Itens da expedicao'));
+        window.el('div', { style: 'padding:16px 20px;font-size:15.5px;font-weight:700;color:var(--rv-text-primary);' }, 'Itens da expedicao'));
       if (!state.itens.length) {
-        card.appendChild(window.el('div', { style: 'padding:0 20px 18px;font-size:13px;color:#9aa2af;' }, 'Nenhum item liberado para expedicao.'));
+        card.appendChild(window.el('div', { style: 'padding:0 20px 18px;font-size:13px;color:var(--rv-text-tertiary);' }, 'Nenhum item liberado para expedicao.'));
         return card;
       }
       // D3/req.17: a tabela de 720px passa a rolar dentro do SEU PROPRIO
@@ -303,19 +303,19 @@
       // cortadas, sem rolagem alcancavel.
       var cols = '1fr 140px 150px 130px';
       var scroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
-      scroll.appendChild(window.el('div', { style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;background:#f8f9fb;border-top:1px solid #eceef1;border-bottom:1px solid #eceef1;padding:9px 20px;min-width:720px;' },
+      scroll.appendChild(window.el('div', { style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;background:var(--rv-surface-subtle);border-top:1px solid var(--rv-border);border-bottom:1px solid var(--rv-border);padding:9px 20px;min-width:720px;' },
         ['MODELO / CORES', 'LIBERADO', 'ENTREGUE', 'SALDO'].map(function (label) {
-          return window.el('div', { style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;' }, label);
+          return window.el('div', { style: 'font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.03em;' }, label);
         })));
       state.itens.forEach(function (item) {
         var liberado = Number(item.metros_liberados || 0);
         var entregue = Number(item.metros_entregues || 0);
         var saldo = Math.max(round2(liberado - entregue), 0);
-        scroll.appendChild(window.el('div', { style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;padding:12px 20px;border-bottom:1px solid #f1f3f6;align-items:center;min-width:720px;' },
+        scroll.appendChild(window.el('div', { style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;padding:12px 20px;border-bottom:1px solid var(--rv-border-soft);align-items:center;min-width:720px;' },
           value(modeloLabel(item), '700'),
           value(fmtMetros(liberado)),
-          value(fmtMetros(entregue), '700', '#18794a'),
-          value(fmtMetros(saldo), '700', saldo > 0 ? '#c2610c' : '#18794a')));
+          value(fmtMetros(entregue), '700', 'var(--rv-signal-positive)'),
+          value(fmtMetros(saldo), '700', saldo > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)')));
       });
       card.appendChild(scroll);
       return card;
@@ -332,7 +332,7 @@
       });
       var dataInput = window.textInput({ type: 'date', value: new Date().toISOString().slice(0, 10) });
       var obsInput = window.el('textarea', {
-        style: 'width:100%;min-height:56px;border:1px solid #d8dce2;border-radius:4px;padding:9px 12px;font-size:13.5px;font-family:inherit;color:#16203a;resize:none;outline:none;',
+        style: 'width:100%;min-height:56px;border:1px solid var(--rv-border-strong);border-radius:4px;padding:9px 12px;font-size:13.5px;font-family:inherit;color:var(--rv-text-primary);resize:none;outline:none;',
         placeholder: 'Observacao opcional',
       });
       var linhas = state.itens.map(function (item) {
@@ -344,21 +344,21 @@
 
       return window.el('div', { style: CARD + 'padding:16px 20px;margin-bottom:14px;' },
         window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;' },
-          window.el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, 'Registrar entrega/coleta'),
-          saldoTotal <= 0 ? badge('concluida') : window.el('span', { style: 'font-size:12.5px;color:#8a93a3;' }, 'Saldo disponivel: ' + fmtMetros(saldoTotal))),
+          window.el('div', { style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);' }, 'Registrar entrega/coleta'),
+          saldoTotal <= 0 ? badge('concluida') : window.el('span', { style: 'font-size:12.5px;color:var(--rv-text-tertiary);' }, 'Saldo disponivel: ' + fmtMetros(saldoTotal))),
         saldoTotal <= 0
-          ? window.el('div', { style: 'font-size:13px;color:#18794a;font-weight:600;' }, 'Expedicao sem saldo pendente.')
+          ? window.el('div', { style: 'font-size:13px;color:var(--rv-signal-positive);font-weight:600;' }, 'Expedicao sem saldo pendente.')
           : window.el('div', {},
               window.el('div', { 'data-rv-form-grid': '', style: 'display:grid;grid-template-columns:180px 180px 1fr;gap:12px;margin-bottom:12px;' },
                 field('Tipo', tipoInput),
                 field('Data', dataInput),
                 field('Observacao', obsInput)),
-              window.el('div', { style: 'border:1px solid #eceef1;border-radius:4px;overflow:hidden;margin-bottom:12px;' },
+              window.el('div', { style: 'border:1px solid var(--rv-border);border-radius:4px;overflow:hidden;margin-bottom:12px;' },
                 linhas.map(function (linha, index) {
-                  return window.el('div', { style: 'display:grid;grid-template-columns:1fr 150px;gap:12px;align-items:center;padding:10px 12px;' + (index < linhas.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : '') },
+                  return window.el('div', { style: 'display:grid;grid-template-columns:1fr 150px;gap:12px;align-items:center;padding:10px 12px;' + (index < linhas.length - 1 ? 'border-bottom:1px solid var(--rv-border-soft);' : '') },
                     window.el('div', {},
-                      window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;' }, modeloLabel(linha.item)),
-                      window.el('div', { style: 'font-size:11.5px;color:#8a93a3;margin-top:2px;' }, 'Saldo: ' + fmtMetros(linha.saldo))),
+                      window.el('div', { style: 'font-size:13px;font-weight:700;color:var(--rv-text-primary);' }, modeloLabel(linha.item)),
+                      window.el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-top:2px;' }, 'Saldo: ' + fmtMetros(linha.saldo))),
                     linha.input);
                 })),
               window.el('button', {
@@ -413,22 +413,22 @@
       });
 
       var card = window.el('div', { style: CARD + 'padding:16px 20px;margin-bottom:14px;' },
-        window.el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:12px;' }, 'Historico'));
+        window.el('div', { style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:12px;' }, 'Historico'));
       if (!state.movimentos.length) {
-        card.appendChild(window.el('div', { style: 'font-size:13px;color:#9aa2af;' }, 'Nenhuma entrega/coleta registrada ainda.'));
+        card.appendChild(window.el('div', { style: 'font-size:13px;color:var(--rv-text-tertiary);' }, 'Nenhuma entrega/coleta registrada ainda.'));
         return card;
       }
       state.movimentos.forEach(function (mov) {
         var linhas = movItensByMov[mov.id] || [];
-        card.appendChild(window.el('div', { style: 'border-top:1px solid #f1f3f6;padding:12px 0;' },
+        card.appendChild(window.el('div', { style: 'border-top:1px solid var(--rv-border-soft);padding:12px 0;' },
           window.el('div', { style: 'display:flex;justify-content:space-between;gap:12px;align-items:center;' },
-            window.el('div', { style: 'font-size:13.5px;font-weight:700;color:#16203a;' }, statusLabel(mov.tipo) + ' - ' + fmtData(mov.data)),
-            window.el('div', { style: 'font-size:12px;color:#8a93a3;font-weight:600;' }, fmtData(mov.criado_em))),
-          mov.observacao ? window.el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:3px;' }, mov.observacao) : null,
+            window.el('div', { style: 'font-size:13.5px;font-weight:700;color:var(--rv-text-primary);' }, statusLabel(mov.tipo) + ' - ' + fmtData(mov.data)),
+            window.el('div', { style: 'font-size:12px;color:var(--rv-text-tertiary);font-weight:600;' }, fmtData(mov.criado_em))),
+          mov.observacao ? window.el('div', { style: 'font-size:12px;color:var(--rv-text-tertiary);margin-top:3px;' }, mov.observacao) : null,
           window.el('div', { style: 'margin-top:7px;display:flex;flex-direction:column;gap:4px;' },
             linhas.map(function (linha) {
               var item = itensById[linha.expedicao_item_id];
-              return window.el('div', { style: 'font-size:13px;color:#3f4757;' }, modeloLabel(item) + ': ' + fmtMetros(linha.metros));
+              return window.el('div', { style: 'font-size:13px;color:var(--rv-text-primary);' }, modeloLabel(item) + ': ' + fmtMetros(linha.metros));
             }))));
       });
       return card;
@@ -440,7 +440,7 @@
       var ready = saldo <= 0 && exp.status === 'concluida';
       var buttonAttrs = {
         type: 'button',
-        style: ready ? BTN_PRIMARY : (BTN_SECONDARY + 'color:#9aa2af;cursor:not-allowed;'),
+        style: ready ? BTN_PRIMARY : (BTN_SECONDARY + 'color:var(--rv-text-tertiary);cursor:not-allowed;'),
         onclick: async function (event) {
           if (!ready) return;
           var btn = event && event.currentTarget ? event.currentTarget : null;
@@ -460,8 +460,8 @@
         buttonAttrs.disabled = 'disabled';
       }
       return window.el('div', { style: CARD + 'padding:16px 20px;' },
-        window.el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:10px;' }, 'Conclusao'),
-        window.el('div', { style: 'font-size:13px;color:#5b6472;line-height:1.5;margin-bottom:12px;' },
+        window.el('div', { style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:10px;' }, 'Conclusao'),
+        window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;margin-bottom:12px;' },
           ready
             ? 'Toda a expedicao desta OP esta entregue/coletada. O pedido pode ser validado para conclusao.'
             : 'O pedido ainda nao pode ser concluido enquanto houver saldo pendente nesta expedicao.'),
@@ -493,14 +493,14 @@
     function render() {
       if (state.loadingError) {
         container.replaceChildren(
-          window.el('div', { style: CARD + 'padding:18px 20px;color:#b42318;' }, 'Erro ao carregar expedicao (' + state.loadingError + ').'),
+          window.el('div', { style: CARD + 'padding:18px 20px;color:var(--rv-signal-negative);' }, 'Erro ao carregar expedicao (' + state.loadingError + ').'),
           window.el('div', { style: 'margin-top:12px;' },
             window.el('button', { type: 'button', style: BTN_SECONDARY, onclick: function () { window.navigate('#/pedidos'); } }, 'Voltar'))
         );
         return;
       }
       if (!state.expedicao) {
-        container.replaceChildren(window.el('div', { style: CARD + 'padding:18px 20px;color:#8a93a3;' }, 'Carregando expedicao...'));
+        container.replaceChildren(window.el('div', { style: CARD + 'padding:18px 20px;color:var(--rv-text-tertiary);' }, 'Carregando expedicao...'));
         return;
       }
       var totalLiberado = sum(state.itens, 'metros_liberados');

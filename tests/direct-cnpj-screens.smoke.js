@@ -82,6 +82,9 @@ function createHarness(options = {}) {
   // the UI-EL-BOOLEAN-ATTR-FIX, and the screens read every one of these via
   // window.* at call time, so they now render through the real primitives.
   vm.runInContext(uiSrc, sandbox, { filename: UI });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'badges.js'), 'utf8'), sandbox, { filename: 'js/badges.js' });
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   // Re-override toast/confirmDialog AFTER ui.js: the tests assert on the
   // captured `toasts` array, so the real toast() (which appends to a #toasts
   // DOM node) must be replaced by the spy; confirmDialog is stubbed to a no-op

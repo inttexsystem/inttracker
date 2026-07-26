@@ -149,14 +149,14 @@
   };
 
   ns.SVG_BACK = ns.SVG_BACK || '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>';
-  ns.SVG_CAL = ns.SVG_CAL || '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="8" y1="3" x2="8" y2="6"></line><line x1="16" y1="3" x2="16" y2="6"></line></svg>';
+  ns.SVG_CAL = ns.SVG_CAL || '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="8" y1="3" x2="8" y2="6"></line><line x1="16" y1="3" x2="16" y2="6"></line></svg>';
   ns.SVG_DOC = ns.SVG_DOC || '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
   ns.SVG_EDIT = ns.SVG_EDIT || '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>';
-  ns.SVG_LOCK = ns.SVG_LOCK || '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>';
+  ns.SVG_LOCK = ns.SVG_LOCK || '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>';
   ns.SVG_CHECK = ns.SVG_CHECK || '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-  ns.SVG_INFO = ns.SVG_INFO || '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="11" x2="12" y2="16"></line><line x1="12" y1="8" x2="12" y2="8"></line></svg>';
-  ns.SVG_WARN = ns.SVG_WARN || '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e07b39" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
-  ns.SVG_FILE = ns.SVG_FILE || '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
+  ns.SVG_INFO = ns.SVG_INFO || '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--rv-accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="11" x2="12" y2="16"></line><line x1="12" y1="8" x2="12" y2="8"></line></svg>';
+  ns.SVG_WARN = ns.SVG_WARN || '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-signal-caution)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+  ns.SVG_FILE = ns.SVG_FILE || '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
 
   ns.createInitialState = ns.createInitialState || function createInitialState() {
     return {
@@ -190,12 +190,12 @@
       window.toast('Identificador de pedido invalido.', 'error');
       var invalidNode = window.el('div', {},
         window.el('div', {
-          style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:18px 20px;color:#b42318;',
+          style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;color:var(--rv-signal-negative);',
         }, 'Pedido invalido. Volte para a listagem e tente novamente.'),
         window.el('div', { style: 'margin-top:14px;' },
           window.el('button', {
             type: 'button',
-            style: 'display:inline-flex;align-items:center;gap:8px;border:1px solid #d8dce2;background:#fff;color:#3f4757;border-radius:4px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;',
+            style: 'display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rv-border-strong);background:var(--rv-surface);color:var(--rv-text-primary);border-radius:4px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;',
             onclick: function () { window.navigate('#/pedidos'); },
           }, ns.svgEl(ns.SVG_BACK), 'Voltar para pedidos')
         )
@@ -210,7 +210,7 @@
     function render() {
       if (typeof ns.renderPedidoDetailScreen !== 'function') {
         container.replaceChildren(window.el('div', {
-          style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:18px 20px;color:#b42318;',
+          style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;color:var(--rv-signal-negative);',
         }, 'Modulo de render do pedido-detail indisponivel.'));
         return;
       }

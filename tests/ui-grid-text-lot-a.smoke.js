@@ -143,6 +143,8 @@ function makeSandbox({ tableData = {} } = {}) {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'badges.js'), 'utf8'), sandbox, { filename: 'js/badges.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};

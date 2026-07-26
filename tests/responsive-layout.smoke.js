@@ -376,8 +376,10 @@ test('B3/6. o contrato de densidade compacta e respeitado', () => {
   // transitorios de carregamento/erro nao sao layout e ficam fora.
   assert.equal((pedidoForm.match(/padding:16px; margin-bottom:12px;/g) || []).length, 2,
     'Dados gerais e Itens devem usar padding 16px e 12px entre cartoes');
-  assert.match(pedidoForm, /padding:16px;'\s*\},\s*\n\s*window\.el\('div', \{ style: 'font-size:16px; font-weight:700; color:#16203a; margin-bottom:10px;' \}, 'Instruções gerais'\)/,
+  assert.match(pedidoForm, /padding:16px;'\s*\},\s*\n\s*window\.el\('div', \{ style: 'font-size:16px; font-weight:700; color:[^;]+; margin-bottom:10px;' \}, 'Instruções gerais'\)/,
     'o cartao de Instrucoes gerais deve usar padding 16px');
+  assert.match(pedidoForm, /'font-size:16px; font-weight:700; color:var\(--rv-text-primary\); margin-bottom:10px;' \}, 'Instruções gerais'/,
+    'o titulo de Instrucoes gerais usa o token canonico de texto');
   assert.match(pedidoForm, /padding:16px; display:flex; flex-direction:column/,
     'o cartao de Salvar rascunho deve usar padding 16px');
   assert.doesNotMatch(pedidoForm, /padding:16px 20px/, 'nenhum cartao pode manter o padding largo antigo');
@@ -404,8 +406,10 @@ test('B3/6. o contrato de densidade compacta e respeitado', () => {
 
 test('B3/7. o cartao de itens ficou compacto sem encolher alvo de clique', () => {
   assert.match(itemRow, /padding:7px 14px; border-bottom/, 'a linha de item deve usar padding 7px 14px');
-  assert.match(itemRow, /padding:8px 14px; background:#f8f9fb/, 'o cabecalho da tabela deve usar padding 8px 14px');
-  assert.match(pedidoForm, /padding:8px 14px; background:#f8f9fb/, 'o resumo deve usar padding 8px 14px');
+  assert.match(itemRow, /padding:8px 14px; background:/, 'o cabecalho da tabela deve usar padding 8px 14px');
+  assert.match(itemRow, /padding:8px 14px; background:var\(--rv-surface-subtle\);/, 'o cabecalho usa a superficie sutil canonica');
+  assert.match(pedidoForm, /padding:8px 14px; background:/, 'o resumo deve usar padding 8px 14px');
+  assert.match(pedidoForm, /padding:8px 14px; background:var\(--rv-surface-subtle\);/, 'o resumo usa a superficie sutil canonica');
   // Os CONTROLES continuam do mesmo tamanho: a densidade veio da folga, nao
   // do alvo de clique.
   assert.match(itemRow, /padding:6px 8px; font-size:13\.5px/, 'os selects mantem o tamanho de alvo');

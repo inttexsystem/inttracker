@@ -21,8 +21,8 @@
 
   function routeChipStyle(route) {
     return route === 'manta'
-      ? 'background:#f3e8ff;color:#7c3aed;'
-      : 'background:#eaf1fd;color:#2563eb;';
+      ? 'background:var(--rv-stage-tecelagem-bg);color:var(--rv-stage-tecelagem);'
+      : 'background:var(--rv-pill-info-bg);color:var(--rv-accent-blue);';
   }
 
   function buildSectionHeader(section) {
@@ -33,7 +33,7 @@
           + routeChipStyle(section.route),
       }, 'Rota ' + (section.label || '—')),
       window.el('span', {
-        style: 'font-size:11.5px;color:#8a93a3;font-weight:600;letter-spacing:.02em;',
+        style: 'font-size:11.5px;color:var(--rv-text-tertiary);font-weight:600;letter-spacing:.02em;',
       }, stageLabels));
   }
 

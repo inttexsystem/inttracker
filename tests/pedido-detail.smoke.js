@@ -1096,7 +1096,7 @@ test('pedido-detail.js: modal de transicao usa contrato visual discreto', () => 
   assert.match(detailEvents, /MOVEMENT_MODAL_RADIUS\s*=\s*['"]6px['"]/);
   assert.match(detailEvents, /MOVEMENT_SURFACE_RADIUS\s*=\s*['"]4px['"]/);
   assert.match(detailEvents, /function normalizeMovementModalControls/);
-  assert.match(movementModalSlice, /border:1px solid #eceef1;border-radius:' \+ MOVEMENT_MODAL_RADIUS/);
+  assert.match(movementModalSlice, /border:1px solid var\(--rv-border\);border-radius:' \+ MOVEMENT_MODAL_RADIUS/);
   assert.match(movementModalSlice, /box-shadow:' \+ MOVEMENT_MODAL_SHADOW/);
   assert.match(movementModalSlice, /border-radius:' \+ MOVEMENT_SURFACE_RADIUS/);
   assert.doesNotMatch(movementModalSlice, /border-radius:999px/);
@@ -2204,6 +2204,10 @@ function makeHubRuntime() {
     addEventListener() {}, removeEventListener() {},
   };
   vm.createContext(sandbox);
+  // Dono canonico da cor de preview de produto (index.html carrega pedido-ui.js
+  // antes de qualquer tela). Carregado ANTES dos stubs abaixo para que os
+  // overrides deliberados desta harness continuem prevalecendo.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   sandbox.window.el = function el(tag, attrs) {
     const n = node(tag); attrs = attrs || {};
     Object.keys(attrs).forEach((k) => {

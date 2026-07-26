@@ -56,26 +56,26 @@
         thumb.style.width = '32px';
         thumb.style.height = '32px';
         thumb.style.borderRadius = '4px';
-        thumb.style.border = '1px solid rgba(0,0,0,0.08)';
+        thumb.style.border = '1px solid var(--rv-border)';
         thumb.style.flexShrink = '0';
         return thumb;
       }
     }
     return window.el('div', {
-      style: 'width:32px;height:32px;border-radius:4px;border:1px solid #eceef1;background:#f3f4f6;flex-shrink:0;',
+      style: 'width:32px;height:32px;border-radius:4px;border:1px solid var(--rv-border);background:var(--rv-bg);flex-shrink:0;',
     });
   }
 
   function buildStatusPill(statusKey, handlers) {
     var map = {
-      rascunho: { bg: '#f1f3f6', text: '#5b6472' },
-      recebido: { bg: '#eaf1fd', text: '#2563eb' },
-      confirmado: { bg: '#eef3ff', text: '#3b5bdb' },
-      produzindo: { bg: '#fff4e6', text: '#c2610c' },
-      entregue: { bg: '#e6f4ec', text: '#18794a' },
-      cancelado: { bg: '#fdecec', text: '#a23434' },
+      rascunho: { bg: 'var(--rv-surface-subtle)', text: 'var(--rv-text-secondary)' },
+      recebido: { bg: 'var(--rv-pill-info-bg)', text: 'var(--rv-accent-blue)' },
+      confirmado: { bg: 'var(--rv-pill-info-bg)', text: 'var(--rv-accent-blue)' },
+      produzindo: { bg: 'var(--rv-signal-caution-bg)', text: 'var(--rv-signal-caution)' },
+      entregue: { bg: 'var(--rv-signal-positive-bg)', text: 'var(--rv-signal-positive)' },
+      cancelado: { bg: 'var(--rv-surface)', text: 'var(--rv-signal-negative)' },
     };
-    var tone = map[statusKey] || { bg: '#f1f3f6', text: '#5b6472' };
+    var tone = map[statusKey] || { bg: 'var(--rv-surface-subtle)', text: 'var(--rv-text-secondary)' };
     var actions = ns.nextActionsForStatus(statusKey);
     var label = window.pedidoStatusLabel
       ? window.pedidoStatusLabel(statusKey)
@@ -97,11 +97,11 @@
   function buildOperationalPill(chainState) {
     var label = chainState && chainState.displayStatus ? chainState.displayStatus : 'Pedido';
     return window.el('span', {
-      style: 'display:inline-flex;align-items:center;gap:7px;background:#fff4e6;color:#c2610c;border-radius:4px;padding:5px 12px;font-size:13px;font-weight:700;',
+      style: 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-signal-caution-bg);color:var(--rv-signal-caution);border-radius:4px;padding:5px 12px;font-size:13px;font-weight:700;',
       title: 'Status operacional derivado das OPs vinculadas',
     },
       window.el('span', {
-        style: 'width:7px;height:7px;border-radius:50%;background:#e07b39;display:inline-block;flex-shrink:0;',
+        style: 'width:7px;height:7px;border-radius:50%;background:var(--rv-signal-caution);display:inline-block;flex-shrink:0;',
       }),
       label
     );
@@ -109,10 +109,10 @@
 
   function buildSummaryMetric(title, value, color) {
     return window.el('div', {
-      style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:13px 15px;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:13px 15px;',
     },
       window.el('div', {
-        style: 'font-size:11.5px;color:#8a93a3;font-weight:600;margin-bottom:6px;',
+        style: 'font-size:11.5px;color:var(--rv-text-tertiary);font-weight:600;margin-bottom:6px;',
       }, title),
       window.el('div', {
         style: 'font-size:19px;font-weight:800;color:' + color + ';',
@@ -127,11 +127,11 @@
         style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;',
       },
         window.el('div', {
-          style: 'font-size:23px;font-weight:800;color:#16203a;letter-spacing:-.01em;',
+          style: 'font-size:23px;font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;',
         }, 'Pedido'),
         window.el('button', {
           type: 'button',
-          style: 'display:inline-flex;align-items:center;gap:8px;border:1px solid #d8dce2;background:#fff;color:#3f4757;border-radius:4px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;',
+          style: 'display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rv-border-strong);background:var(--rv-surface);color:var(--rv-text-primary);border-radius:4px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;',
           onclick: handlers.navigateToPedidos,
         }, ns.svgEl(ns.SVG_BACK), 'Voltar')
       );
@@ -148,20 +148,20 @@
     var breadcrumb = window.el('div', {
       style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;',
     },
-      window.el('div', { style: 'font-size:14px;color:#9aa2af;' },
+      window.el('div', { style: 'font-size:14px;color:var(--rv-text-tertiary);' },
         'Pedidos',
-        window.el('span', { style: 'margin:0 4px;color:#d0d5dc;' }, '/'),
-        window.el('span', { style: 'color:#5b6472;font-weight:600;' }, ' Pedido ' + numero)
+        window.el('span', { style: 'margin:0 4px;color:var(--rv-text-tertiary);' }, '/'),
+        window.el('span', { style: 'color:var(--rv-text-secondary);font-weight:600;' }, ' Pedido ' + numero)
       ),
       window.el('button', {
         type: 'button',
-        style: 'display:inline-flex;align-items:center;gap:8px;border:1px solid #d8dce2;background:#fff;color:#3f4757;border-radius:4px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;',
+        style: 'display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rv-border-strong);background:var(--rv-surface);color:var(--rv-text-primary);border-radius:4px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;',
         onclick: handlers.navigateToPedidos,
       }, ns.svgEl(ns.SVG_BACK), 'Voltar')
     );
 
     var titleRow = window.el('div', {
-      style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:18px 20px 16px;margin-bottom:16px;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px 16px;margin-bottom:16px;',
     },
       window.el('div', {
         style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;',
@@ -171,18 +171,18 @@
             style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;',
           },
             window.el('h1', {
-              style: 'margin:0;font-size:23px;font-weight:800;color:#16203a;letter-spacing:-.01em;line-height:1.1;',
+              style: 'margin:0;font-size:23px;font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;line-height:1.1;',
             }, 'Pedido ' + numero),
             showOperationalStatus ? buildOperationalPill(chainState) : buildStatusPill(pedido.status, handlers),
             showOperationalStatus ? window.el('span', {
-              style: 'display:inline-flex;align-items:center;gap:6px;background:#f1f3f6;color:#5b6472;border-radius:4px;padding:4px 11px;font-size:12px;font-weight:600;',
+              style: 'display:inline-flex;align-items:center;gap:6px;background:var(--rv-surface-subtle);color:var(--rv-text-secondary);border-radius:4px;padding:4px 11px;font-size:12px;font-weight:600;',
             }, 'Comercial: ' + (window.pedidoStatusLabel ? window.pedidoStatusLabel(pedido.status) : ns.fmtTextoOuEmpty(pedido.status, 'Status'))) : null,
             window.el('span', {
-              style: 'display:inline-flex;align-items:center;gap:6px;background:#f1f3f6;color:#8a93a3;border-radius:4px;padding:4px 11px;font-size:12px;font-weight:600;',
+              style: 'display:inline-flex;align-items:center;gap:6px;background:var(--rv-surface-subtle);color:var(--rv-text-tertiary);border-radius:4px;padding:4px 11px;font-size:12px;font-weight:600;',
             }, 'Origem: Cliente')
           ),
           window.el('div', {
-            style: 'font-size:13px;color:#8a93a3;margin-top:6px;',
+            style: 'font-size:13px;color:var(--rv-text-tertiary);margin-top:6px;',
           }, ns.fmtTextoOuEmpty((state.cliente && state.cliente.nome) || 'Pedido', 'Pedido') + ' · Atualizado em ' + updatedAt)
         ),
         window.el('div', {
@@ -194,10 +194,10 @@
             ns.svgEl(ns.SVG_CAL),
             window.el('div', {},
               window.el('div', {
-                style: 'font-size:11.5px;color:#9aa2af;',
+                style: 'font-size:11.5px;color:var(--rv-text-tertiary);',
               }, 'Prazo previsto'),
               window.el('div', {
-                style: 'font-size:14.5px;font-weight:700;color:#16203a;',
+                style: 'font-size:14.5px;font-weight:700;color:var(--rv-text-primary);',
               }, prazo)
             )
           ),
@@ -208,7 +208,7 @@
             deleteBtn,
             window.el('button', {
               type: 'button',
-              style: 'display:inline-flex;align-items:center;gap:7px;background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
+              style: 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-border-strong);border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
               onclick: function () { handlers.scrollToSection('documentos'); },
             }, ns.svgEl(ns.SVG_DOC), 'Documentos')
           )
@@ -234,18 +234,18 @@
     var hasAcabamento = summary ? summary.hasAcabamento !== false : true;
     var hasManta = !!(summary && summary.hasManta);
     var metrics = [
-      buildSummaryMetric('Total do pedido', ns.fmtMetrosShort(view.totalPedido), '#16203a'),
-      buildSummaryMetric('Em tecelagem', ns.fmtMetrosShort(view.emTecelagem), '#7c3aed'),
+      buildSummaryMetric('Total do pedido', ns.fmtMetrosShort(view.totalPedido), 'var(--rv-text-primary)'),
+      buildSummaryMetric('Em tecelagem', ns.fmtMetrosShort(view.emTecelagem), 'var(--rv-stage-tecelagem)'),
     ];
     if (hasAcabamento) {
-      metrics.push(buildSummaryMetric('Em acabamento', ns.fmtMetrosShort(view.emAcabamento), '#c2610c'));
+      metrics.push(buildSummaryMetric('Em acabamento', ns.fmtMetrosShort(view.emAcabamento), 'var(--rv-signal-caution)'));
     }
     if (hasManta) {
-      metrics.push(buildSummaryMetric('Saida medida (Manta)', ns.fmtMetrosShort(summary.mantaMedido), '#7c3aed'));
+      metrics.push(buildSummaryMetric('Saida medida (Manta)', ns.fmtMetrosShort(summary.mantaMedido), 'var(--rv-stage-tecelagem)'));
     }
-    metrics.push(buildSummaryMetric('Pronto/expedicao', ns.fmtMetrosShort(view.prontoExpedicao), '#2563eb'));
-    metrics.push(buildSummaryMetric('Entregue', ns.fmtMetrosShort(view.entregue), '#18794a'));
-    metrics.push(buildSummaryMetric('Pendencias documentais', String(view.pendingDocs), '#d6403a'));
+    metrics.push(buildSummaryMetric('Pronto/expedicao', ns.fmtMetrosShort(view.prontoExpedicao), 'var(--rv-accent-blue)'));
+    metrics.push(buildSummaryMetric('Entregue', ns.fmtMetrosShort(view.entregue), 'var(--rv-signal-positive)'));
+    metrics.push(buildSummaryMetric('Pendencias documentais', String(view.pendingDocs), 'var(--rv-signal-negative)'));
 
     return window.el('div', {
       'data-rv-metrics': '',
@@ -263,16 +263,16 @@
     ];
 
     return window.el('div', {
-      style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:16px 20px;margin-bottom:14px;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;margin-bottom:14px;',
     },
       window.el('div', {
         style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;',
       },
         window.el('div', {
-          style: 'font-size:15.5px;font-weight:700;color:#16203a;',
+          style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);',
         }, 'Dados gerais'),
         window.el('div', {
-          style: 'display:flex;align-items:center;gap:6px;font-size:12px;color:#9aa2af;font-weight:600;',
+          style: 'display:flex;align-items:center;gap:6px;font-size:12px;color:var(--rv-text-tertiary);font-weight:600;',
         }, ns.svgEl(ns.SVG_LOCK), 'Bloqueado apos emissao')
       ),
       window.el('div', {
@@ -281,10 +281,10 @@
       }, fields.map(function (field) {
         return window.el('div', {},
           window.el('label', {
-            style: 'display:block;font-size:12px;color:#9aa2af;margin-bottom:6px;',
+            style: 'display:block;font-size:12px;color:var(--rv-text-tertiary);margin-bottom:6px;',
           }, field.label),
           window.el('div', {
-            style: 'border:1px solid #e2e5ea;background:#f8f9fb;border-radius:4px;padding:9px 12px;font-size:13.5px;color:#3f4757;' + (field.strong ? 'font-weight:600;' : ''),
+            style: 'border:1px solid var(--rv-border-soft);background:var(--rv-surface-subtle);border-radius:4px;padding:9px 12px;font-size:13.5px;color:var(--rv-text-primary);' + (field.strong ? 'font-weight:600;' : ''),
           }, field.value)
         );
       }))
@@ -296,13 +296,13 @@
     var inner;
 
     if (stage.state === 'done') {
-      outerStyle = 'width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px #fff;background:' + stage.color + ';color:#fff;';
+      outerStyle = 'width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px var(--rv-surface);background:' + stage.color + ';color:var(--rv-text-on-brand);';
       inner = ns.svgEl(ns.SVG_CHECK);
     } else {
       var pct = Math.max(0, Math.min(100, stage.percent || 0));
-      outerStyle = 'width:42px;height:42px;border-radius:50%;background:conic-gradient(from -90deg,' + stage.color + ' 0% ' + pct + '%,#e8eaee ' + pct + '%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px #fff;';
+      outerStyle = 'width:42px;height:42px;border-radius:50%;background:conic-gradient(from -90deg,' + stage.color + ' 0% ' + pct + '%,var(--rv-surface-subtle) ' + pct + '%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px var(--rv-surface);';
       inner = window.el('div', {
-        style: 'width:32px;height:32px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:' + (stage.state === 'future' ? '#9aa2af' : stage.color) + ';',
+        style: 'width:32px;height:32px;border-radius:50%;background:var(--rv-surface);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:' + (stage.state === 'future' ? 'var(--rv-text-tertiary)' : stage.color) + ';',
       }, String(index + 1));
     }
 
@@ -322,10 +322,10 @@
     },
       circleNode,
       window.el('div', {
-        style: 'margin-top:10px;font-size:12.5px;color:' + (stage.state === 'future' ? '#475065' : '#16203a') + ';font-weight:700;text-align:center;',
+        style: 'margin-top:10px;font-size:12.5px;color:' + (stage.state === 'future' ? 'var(--rv-text-primary)' : 'var(--rv-text-primary)') + ';font-weight:700;text-align:center;',
       }, stage.label),
       window.el('div', {
-        style: 'font-size:11px;color:' + (stage.state === 'future' ? '#9aa2af' : stage.color) + ';margin-top:2px;' + (stage.state === 'current' ? 'font-weight:600;' : ''),
+        style: 'font-size:11px;color:' + (stage.state === 'future' ? 'var(--rv-text-tertiary)' : stage.color) + ';margin-top:2px;' + (stage.state === 'current' ? 'font-weight:600;' : ''),
       }, stage.sublabel)
     );
   }
@@ -368,9 +368,9 @@
 
   function buildConnectorStyle(visual, clickable) {
     var tones = {
-      done: { bg: '#e7f4ec', color: '#2f8256' },
-      waiting: { bg: '#eef0f3', color: '#9aa2af' },
-      active: { bg: '#2563eb', color: '#fff' },
+      done: { bg: 'var(--rv-signal-positive-bg)', color: 'var(--rv-signal-positive)' },
+      waiting: { bg: 'var(--rv-surface-subtle)', color: 'var(--rv-text-tertiary)' },
+      active: { bg: 'var(--rv-accent-blue)', color: 'var(--rv-text-on-brand)' },
     };
     var tone = tones[visual.state] || tones.waiting;
     return 'min-width:100px;height:30px;padding:0 14px;display:flex;align-items:center;justify-content:center;gap:5px;'
@@ -378,7 +378,7 @@
       + 'font-size:11px;font-weight:700;font-family:inherit;line-height:1;letter-spacing:.02em;white-space:nowrap;box-sizing:border-box;'
       + 'clip-path:polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%, 13px 50%);'
       + 'cursor:' + (clickable ? 'pointer' : 'default') + ';'
-      + (visual.state === 'active' && clickable ? 'filter:drop-shadow(0 1.5px 1.5px rgba(37,99,235,.35));' : '');
+      + (visual.state === 'active' && clickable ? '' : '');
   }
 
   function buildTransferButton(stage, handlers, view) {
@@ -429,18 +429,18 @@
     }) : window.el('div', {});
 
     return window.el('div', {
-      style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:18px 22px;margin-bottom:14px;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 22px;margin-bottom:14px;',
     },
       window.el('div', {
-        style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:20px;',
+        style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:20px;',
       }, 'Progresso produtivo'),
       body,
       window.el('div', {
-        style: 'display:flex;align-items:flex-start;gap:10px;background:#f6f9ff;border:1px solid #d0e0fb;border-radius:4px;padding:12px 14px;margin-top:22px;',
+        style: 'display:flex;align-items:flex-start;gap:10px;background:var(--rv-surface-subtle);border:1px solid var(--rv-pill-info-border);border-radius:4px;padding:12px 14px;margin-top:22px;',
       },
         ns.svgEl(ns.SVG_INFO),
         window.el('span', {
-          style: 'font-size:13px;color:#2c4a78;font-weight:500;line-height:1.5;',
+          style: 'font-size:13px;color:var(--rv-pill-info-text);font-weight:500;line-height:1.5;',
         }, 'Estes numeros refletem as OPs vinculadas ao pedido. Cada botao "Transferir" abre a mesma operacao canonica da OP de origem - nao existe lancamento paralelo no Pedido.')
       )
     );
@@ -465,49 +465,49 @@
     var ids = resolveItemColorIds(state, item);
     var c1Nome = corNomeById(state, ids.cor1);
     var c2Nome = corNomeById(state, ids.cor2);
-    var c1Hex = c1Nome && window.corPreviewHex ? window.corPreviewHex(c1Nome) : '#e5e7eb';
-    var c2Hex = c2Nome && window.corPreviewHex ? window.corPreviewHex(c2Nome) : '#e5e7eb';
+    var c1Hex = window.corPreviewHex(c1Nome);
+    var c2Hex = window.corPreviewHex(c2Nome);
     var isManta = metrics.route === 'manta';
 
     return window.el('div', {
       'data-rv-item-route': metrics.route || '',
       style: 'display:grid;grid-template-columns:' + itemColsFor(showAcabamento)
-        + ';gap:10px;padding:12px 20px;align-items:center;border-bottom:1px solid #f1f3f6;min-width:'
+        + ';gap:10px;padding:12px 20px;align-items:center;border-bottom:1px solid var(--rv-border-soft);min-width:'
         + itemMinWidthFor(showAcabamento) + ';',
     },
       window.el('div', {}, itemPreviewEl(state, item)),
       window.el('div', {},
         window.el('div', {
-          style: 'font-size:13.5px;font-weight:700;color:#16203a;margin-bottom:4px;',
+          style: 'font-size:13.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:4px;',
         }, modelLabel(state, item)),
         window.el('div', { style: 'display:flex;align-items:center;gap:5px;margin-bottom:4px;' },
           window.el('span', {
-            style: 'width:14px;height:14px;border-radius:50%;background:' + c1Hex + ';border:1px solid rgba(0,0,0,0.08);display:inline-block;flex-shrink:0;',
+            style: 'width:14px;height:14px;border-radius:50%;background:' + c1Hex + ';border:1px solid var(--rv-border);display:inline-block;flex-shrink:0;',
           }),
           c2Nome ? window.el('span', {
-            style: 'width:14px;height:14px;border-radius:50%;background:' + c2Hex + ';border:1px solid rgba(0,0,0,0.12);display:inline-block;flex-shrink:0;',
+            style: 'width:14px;height:14px;border-radius:50%;background:' + c2Hex + ';border:1px solid var(--rv-border-strong);display:inline-block;flex-shrink:0;',
           }) : null
         ),
         window.el('div', {
-          style: 'font-size:12px;color:#8a93a3;',
+          style: 'font-size:12px;color:var(--rv-text-tertiary);',
         }, itemCoresLabel(state, item))
       ),
-      window.el('div', { style: 'font-size:13.5px;color:#16203a;font-weight:600;' }, ns.fmtMetrosShort(item.metros)),
-      window.el('div', { style: 'font-size:13.5px;color:#7c3aed;font-weight:700;' }, ns.fmtMetrosShort(metrics.tecelagem)),
+      window.el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);font-weight:600;' }, ns.fmtMetrosShort(item.metros)),
+      window.el('div', { style: 'font-size:13.5px;color:var(--rv-stage-tecelagem);font-weight:700;' }, ns.fmtMetrosShort(metrics.tecelagem)),
       showAcabamento
         ? window.el('div', {
             'data-rv-item-acabamento': isManta ? 'nao-aplicavel' : 'aplicavel',
-            style: 'font-size:13.5px;color:' + (isManta ? '#9aa2af' : '#c2610c') + ';font-weight:700;',
+            style: 'font-size:13.5px;color:' + (isManta ? 'var(--rv-text-tertiary)' : 'var(--rv-signal-caution)') + ';font-weight:700;',
             title: isManta ? 'A rota Manta nao tem etapa de acabamento.' : '',
           }, isManta ? '—' : ns.fmtMetrosShort(metrics.acabamento))
         : null,
-      window.el('div', { style: 'font-size:13.5px;color:#2563eb;font-weight:700;' }, ns.fmtMetrosShort(metrics.prontos)),
-      window.el('div', { style: 'font-size:13.5px;color:#18794a;font-weight:700;' }, ns.fmtMetrosShort(metrics.entregues)),
-      window.el('div', { style: 'font-size:12.5px;color:#2563eb;font-weight:600;' }, metrics.relatedOpsLabel),
+      window.el('div', { style: 'font-size:13.5px;color:var(--rv-accent-blue);font-weight:700;' }, ns.fmtMetrosShort(metrics.prontos)),
+      window.el('div', { style: 'font-size:13.5px;color:var(--rv-signal-positive);font-weight:700;' }, ns.fmtMetrosShort(metrics.entregues)),
+      window.el('div', { style: 'font-size:12.5px;color:var(--rv-accent-blue);font-weight:600;' }, metrics.relatedOpsLabel),
       window.el('div', { style: 'text-align:right;' },
         window.el('button', {
           type: 'button',
-          style: 'font-size:12.5px;color:#2563eb;font-weight:600;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;',
+          style: 'font-size:12.5px;color:var(--rv-accent-blue);font-weight:600;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;',
           onclick: function () { handlers.scrollToSection('ops-vinculadas'); },
         }, 'Ver cadeia')
       )
@@ -516,16 +516,16 @@
 
   function buildItens(state, view, handlers) {
     var card = window.el('div', {
-      style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;margin-bottom:14px;overflow:hidden;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;margin-bottom:14px;overflow:hidden;',
     });
 
     card.appendChild(window.el('div', {
-      style: 'padding:16px 20px 12px;font-size:15.5px;font-weight:700;color:#16203a;',
+      style: 'padding:16px 20px 12px;font-size:15.5px;font-weight:700;color:var(--rv-text-primary);',
     }, 'Itens do pedido'));
 
     if (state.itens.length === 0) {
       card.appendChild(window.el('div', {
-        style: 'padding:18px 20px;font-size:14px;color:#9aa2af;',
+        style: 'padding:18px 20px;font-size:14px;color:var(--rv-text-tertiary);',
       }, 'Este pedido nao possui itens.'));
       return card;
     }
@@ -541,13 +541,13 @@
 
     function th(label, alignRight) {
       return window.el('div', {
-        style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.03em;' + (alignRight ? 'text-align:right;' : ''),
+        style: 'font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.03em;' + (alignRight ? 'text-align:right;' : ''),
       }, label);
     }
 
     head.appendChild(window.el('div', {
       style: 'display:grid;grid-template-columns:' + itemColsFor(showAcabamento)
-        + ';gap:10px;padding:9px 20px;background:#f8f9fb;border-top:1px solid #eceef1;border-bottom:1px solid #eceef1;min-width:'
+        + ';gap:10px;padding:9px 20px;background:var(--rv-surface-subtle);border-top:1px solid var(--rv-border);border-bottom:1px solid var(--rv-border);min-width:'
         + itemMinWidthFor(showAcabamento) + ';',
     },
       window.el('div', {}),
@@ -578,10 +578,10 @@
 
   function buildDocBanner(banner) {
     var tone = banner && banner.tone === 'danger'
-      ? { bg: '#fdecec', border: '#f7d4d2', text: '#a23434', stroke: '#b23b3b' }
+      ? { bg: 'var(--rv-surface)', border: 'var(--rv-signal-negative-border)', text: 'var(--rv-signal-negative)', stroke: 'var(--rv-signal-negative)' }
       : banner && banner.tone === 'warning'
-        ? { bg: '#fff9ee', border: '#fbe8c6', text: '#8a5a15', stroke: '#c2610c' }
-        : { bg: '#f6f7f9', border: '#eceef1', text: '#6b7280', stroke: '#9aa2af' };
+        ? { bg: 'var(--rv-signal-caution-bg)', border: 'var(--rv-signal-caution-border)', text: 'var(--rv-signal-caution)', stroke: 'var(--rv-signal-caution)' }
+        : { bg: 'var(--rv-surface-subtle)', border: 'var(--rv-border)', text: 'var(--rv-text-secondary)', stroke: 'var(--rv-text-tertiary)' };
 
     return window.el('div', {
       style: 'display:flex;align-items:center;gap:7px;background:' + tone.bg + ';border:1px solid ' + tone.border + ';border-radius:4px;padding:8px 10px;margin-top:2px;',
@@ -596,7 +596,7 @@
   function buildFooterAction(label, onclick, primary, disabled) {
     var attrs = {
       type: 'button',
-      style: 'min-width:72px;min-height:34px;box-sizing:border-box;background:' + (disabled ? '#f1f3f6' : (primary ? '#2563eb' : '#fff')) + ';color:' + (disabled ? '#9aa2af' : (primary ? '#fff' : '#3f4757')) + ';border:' + (primary && !disabled ? 'none' : '1px solid #d8dce2') + ';border-radius:4px;padding:7px 12px;font-size:12.5px;font-weight:' + (primary ? '700' : '600') + ';font-family:inherit;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';white-space:nowrap;line-height:1.3;display:inline-flex;align-items:center;justify-content:center;',
+      style: 'min-width:72px;min-height:34px;box-sizing:border-box;background:' + (disabled ? 'var(--rv-surface-subtle)' : (primary ? 'var(--rv-brand)' : 'var(--rv-surface)')) + ';color:' + (disabled ? 'var(--rv-text-tertiary)' : (primary ? 'var(--rv-text-on-brand)' : 'var(--rv-text-primary)')) + ';border:' + (primary && !disabled ? 'none' : '1px solid var(--rv-border-strong)') + ';border-radius:4px;padding:7px 12px;font-size:12.5px;font-weight:' + (primary ? '700' : '600') + ';font-family:inherit;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';white-space:nowrap;line-height:1.3;display:inline-flex;align-items:center;justify-content:center;',
     };
     if (disabled) {
       attrs.disabled = 'disabled';
@@ -635,8 +635,8 @@
   function buildOpCard(state, summary, handlers) {
     var labels = opCardLabels(summary);
     var typeTone = summary.stageKey === 'tecelagem'
-      ? { bg: '#f3effe', text: '#7c3aed' }
-      : { bg: '#fef9ec', text: '#b45309' };
+      ? { bg: 'var(--rv-stage-tecelagem-bg)', text: 'var(--rv-stage-tecelagem)' }
+      : { bg: 'var(--rv-signal-caution-bg)', text: 'var(--rv-signal-caution)' };
 
     var statusPill = window.el('span', {
       style: 'display:inline-flex;align-items:center;gap:6px;background:' + summary.statusTone.bg + ';color:' + summary.statusTone.text + ';border-radius:4px;padding:3px 9px;font-size:11.5px;font-weight:600;',
@@ -653,38 +653,38 @@
         style: 'padding:14px 18px;display:flex;flex-direction:column;gap:9px;',
       },
         window.el('div', {
-          style: 'display:flex;justify-content:space-between;font-size:13px;color:#5b6472;',
-        }, window.el('span', {}, 'Itens'), window.el('span', { style: 'color:#16203a;font-weight:600;' }, summary.modelNames.length + (summary.modelNames.length ? ' (' + summary.modelNames.join(', ') + ')' : ''))),
+          style: 'display:flex;justify-content:space-between;font-size:13px;color:var(--rv-text-secondary);',
+        }, window.el('span', {}, 'Itens'), window.el('span', { style: 'color:var(--rv-text-primary);font-weight:600;' }, summary.modelNames.length + (summary.modelNames.length ? ' (' + summary.modelNames.join(', ') + ')' : ''))),
         window.el('div', {
-          style: 'display:flex;justify-content:space-between;font-size:13px;color:#5b6472;',
-        }, window.el('span', {}, 'Pedido total'), window.el('span', { style: 'color:#16203a;font-weight:600;' }, ns.fmtMetros(summary.target))),
+          style: 'display:flex;justify-content:space-between;font-size:13px;color:var(--rv-text-secondary);',
+        }, window.el('span', {}, 'Pedido total'), window.el('span', { style: 'color:var(--rv-text-primary);font-weight:600;' }, ns.fmtMetros(summary.target))),
         window.el('div', {
-          style: 'display:flex;justify-content:space-between;font-size:13px;color:#5b6472;',
-        }, window.el('span', {}, labels.entregue), window.el('span', { style: 'color:#16203a;font-weight:600;' }, ns.fmtMetros(summary.done))),
+          style: 'display:flex;justify-content:space-between;font-size:13px;color:var(--rv-text-secondary);',
+        }, window.el('span', {}, labels.entregue), window.el('span', { style: 'color:var(--rv-text-primary);font-weight:600;' }, ns.fmtMetros(summary.done))),
         window.el('div', {
-          style: 'display:flex;justify-content:space-between;font-size:13px;color:#5b6472;',
-        }, window.el('span', {}, 'Saldo em tecelagem'), window.el('span', { style: 'color:#2563eb;font-weight:700;' }, ns.fmtMetros(summary.remaining))),
+          style: 'display:flex;justify-content:space-between;font-size:13px;color:var(--rv-text-secondary);',
+        }, window.el('span', {}, 'Saldo em tecelagem'), window.el('span', { style: 'color:var(--rv-accent-blue);font-weight:700;' }, ns.fmtMetros(summary.remaining))),
         buildDocBanner(summary.docBanner)
       );
     } else {
       metricsBlock = window.el('div', {},
         summary.origemOp
           ? window.el('div', {
-              style: 'padding:12px 18px 0;font-size:11.5px;color:#9aa2af;',
-            }, 'Origem: entrega parcial de ', window.el('span', { style: 'color:#2563eb;font-weight:600;' }, summary.origemOpLabel || ns.opLabel(summary.origemOp)))
+              style: 'padding:12px 18px 0;font-size:11.5px;color:var(--rv-text-tertiary);',
+            }, 'Origem: entrega parcial de ', window.el('span', { style: 'color:var(--rv-accent-blue);font-weight:600;' }, summary.origemOpLabel || ns.opLabel(summary.origemOp)))
           : null,
         window.el('div', {
           style: 'padding:10px 18px 14px;display:flex;flex-direction:column;gap:9px;',
         },
           window.el('div', {
-            style: 'display:flex;justify-content:space-between;font-size:13px;color:#5b6472;',
-          }, window.el('span', {}, 'Recebido da tecelagem'), window.el('span', { style: 'color:#16203a;font-weight:600;' }, ns.fmtMetros(summary.target))),
+            style: 'display:flex;justify-content:space-between;font-size:13px;color:var(--rv-text-secondary);',
+          }, window.el('span', {}, 'Recebido da tecelagem'), window.el('span', { style: 'color:var(--rv-text-primary);font-weight:600;' }, ns.fmtMetros(summary.target))),
           window.el('div', {
-            style: 'display:flex;justify-content:space-between;font-size:13px;color:#5b6472;',
-          }, window.el('span', {}, 'Finalizado (pronto + entregue)'), window.el('span', { style: 'color:#16203a;font-weight:600;' }, ns.fmtMetros(summary.done))),
+            style: 'display:flex;justify-content:space-between;font-size:13px;color:var(--rv-text-secondary);',
+          }, window.el('span', {}, 'Finalizado (pronto + entregue)'), window.el('span', { style: 'color:var(--rv-text-primary);font-weight:600;' }, ns.fmtMetros(summary.done))),
           window.el('div', {
-            style: 'display:flex;justify-content:space-between;font-size:13px;color:#5b6472;',
-          }, window.el('span', {}, 'Saldo em acabamento'), window.el('span', { style: 'color:#c2610c;font-weight:700;' }, ns.fmtMetros(summary.remaining))),
+            style: 'display:flex;justify-content:space-between;font-size:13px;color:var(--rv-text-secondary);',
+          }, window.el('span', {}, 'Saldo em acabamento'), window.el('span', { style: 'color:var(--rv-signal-caution);font-weight:700;' }, ns.fmtMetros(summary.remaining))),
           buildDocBanner(summary.docBanner)
         )
       );
@@ -700,36 +700,36 @@
     if (pedidoNumero) {
       lineageNodes.push(window.el('button', {
         type: 'button',
-        style: 'font-size:12px;font-weight:600;color:#2563eb;background:#eaf1fd;border:none;border-radius:3px;padding:3px 7px;cursor:pointer;font-family:inherit;white-space:nowrap;',
+        style: 'font-size:12px;font-weight:600;color:var(--rv-accent-blue);background:var(--rv-pill-info-bg);border:none;border-radius:3px;padding:3px 7px;cursor:pointer;font-family:inherit;white-space:nowrap;',
         onclick: function () { handlers.scrollToSection ? null : null; },
       }, 'Pedido ' + pedidoNumero));
-      lineageNodes.push(ns.svgEl('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>'));
+      lineageNodes.push(ns.svgEl('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>'));
     }
     lineageNodes.push(window.el('span', {
-      style: 'font-size:12.5px;font-weight:700;color:#16203a;',
+      style: 'font-size:12.5px;font-weight:700;color:var(--rv-text-primary);',
     }, summary.label));
     if (summary.origemOp) {
-      lineageNodes.push(ns.svgEl('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>'));
+      lineageNodes.push(ns.svgEl('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>'));
       lineageNodes.push(window.el('button', {
         type: 'button',
-        style: 'font-size:11.5px;font-weight:600;color:#2563eb;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;',
+        style: 'font-size:11.5px;font-weight:600;color:var(--rv-accent-blue);background:none;border:none;padding:0;cursor:pointer;font-family:inherit;',
         onclick: function () { handlers.navigateToOp(summary.origemOp.id); },
       }, summary.origemOpLabel || ns.opLabel(summary.origemOp)));
     }
     var lineageStrip = window.el('div', {
-      style: 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 18px;background:#f6f9ff;border-bottom:1px solid #f1f3f6;',
+      style: 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 18px;background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border-soft);',
     }, lineageNodes);
 
     return window.el('div', {
-      style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;overflow:hidden;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;overflow:hidden;',
     },
       lineageStrip,
       window.el('div', {
-        style: 'padding:14px 18px;border-bottom:1px solid #f1f3f6;display:flex;align-items:center;justify-content:space-between;',
+        style: 'padding:14px 18px;border-bottom:1px solid var(--rv-border-soft);display:flex;align-items:center;justify-content:space-between;',
       },
         window.el('div', { style: 'display:flex;align-items:center;gap:9px;' },
           window.el('span', {
-            style: 'font-size:14.5px;font-weight:700;color:#2563eb;',
+            style: 'font-size:14.5px;font-weight:700;color:var(--rv-accent-blue);',
           }, summary.label),
           window.el('span', {
             style: 'background:' + typeTone.bg + ';color:' + typeTone.text + ';border-radius:4px;padding:3px 9px;font-size:11.5px;font-weight:600;',
@@ -739,7 +739,7 @@
       ),
       metricsBlock,
       window.el('div', {
-        style: 'display:flex;gap:8px;padding:12px 18px;border-top:1px solid #f1f3f6;flex-wrap:wrap;align-items:center;justify-content:space-between;',
+        style: 'display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--rv-border-soft);flex-wrap:wrap;align-items:center;justify-content:space-between;',
       },
         window.el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;' },
           buildFooterAction('Ver OP', function () { handlers.navigateToOp(summary.id); }, false),
@@ -763,7 +763,7 @@
           ? window.el('button', {
               type: 'button',
               title: 'Excluir OP (controlado, exige confirmacao forte)',
-              style: 'display:inline-flex;align-items:center;justify-content:center;min-height:34px;box-sizing:border-box;background:#fff;color:#d6403a;border:1px solid #f1c7c5;border-radius:4px;padding:7px 12px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;',
+              style: 'display:inline-flex;align-items:center;justify-content:center;min-height:34px;box-sizing:border-box;background:var(--rv-surface);color:var(--rv-signal-negative);border:1px solid var(--rv-signal-negative-border);border-radius:4px;padding:7px 12px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;',
               onclick: function () { handlers.excluirOpRelacionada(summary.op); },
             }, 'Excluir OP')
           : null
@@ -780,7 +780,7 @@
     var firstOpButton = function () {
       return window.el('button', {
         type: 'button',
-        style: 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:9px 14px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;white-space:nowrap;',
+        style: 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:9px 14px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;white-space:nowrap;',
         onclick: handlers.navigateToNovaOp,
       }, 'Gerar primeira OP');
     };
@@ -789,7 +789,7 @@
       style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;',
     },
       window.el('div', {
-        style: 'font-size:15.5px;font-weight:700;color:#16203a;',
+        style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);',
       }, 'OPs vinculadas'),
       semOps ? firstOpButton() : null
     ));
@@ -800,21 +800,21 @@
     // aviso restrito abaixo, mantendo as OPs base visíveis.
     if (state.opsLoadError) {
       wrap.appendChild(window.el('div', {
-        style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:18px 20px;font-size:14px;color:#b45309;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;font-size:14px;color:var(--rv-signal-caution);',
       }, 'Nao foi possivel consolidar as OPs vinculadas agora.'));
       return wrap;
     }
 
     if (view.opSummaries.length === 0) {
       wrap.appendChild(window.el('div', {
-        style: 'background:#fff;border:1px solid #d0e0fb;border-radius:4px;padding:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-pill-info-border);border-radius:4px;padding:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;',
       },
         window.el('div', { style: 'min-width:240px;flex:1;' },
           window.el('div', {
-            style: 'font-size:14.5px;font-weight:700;color:#16203a;margin-bottom:6px;',
+            style: 'font-size:14.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:6px;',
           }, 'Nenhuma OP vinculada ainda.'),
           window.el('div', {
-            style: 'font-size:13px;color:#5b6472;line-height:1.5;',
+            style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;',
           }, 'Proxima acao: gerar a primeira OP de Tecelagem. A cadeia produtiva passa a ser refletida aqui depois disso.'))
       ));
       return wrap;
@@ -825,7 +825,7 @@
     // continuam visíveis; só alguns detalhes de produção podem faltar.
     if (state.opsEnrichError) {
       wrap.appendChild(window.el('div', {
-        style: 'background:#fff;border:1px solid #f5e3c3;border-radius:4px;padding:10px 14px;font-size:12.5px;color:#b45309;margin-bottom:10px;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-signal-caution-border);border-radius:4px;padding:10px 14px;font-size:12.5px;color:var(--rv-signal-caution);margin-bottom:10px;',
       }, 'Alguns detalhes de producao nao puderam ser carregados.'));
     }
 
@@ -841,11 +841,11 @@
   function buildPurchaseDistributionEntry(state) {
     var pedidoId = state.pedido && state.pedido.id;
     if (!pedidoId) return null;
-    return window.el('div', { id: 'pedido-insumos-distribuicao-entry', style: 'background:#fff;border:1px solid #dbeafe;border-radius:4px;padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;' },
+    return window.el('div', { id: 'pedido-insumos-distribuicao-entry', style: 'background:var(--rv-surface);border:1px solid var(--rv-pill-info-border);border-radius:4px;padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;' },
       window.el('div', {},
-        window.el('div', { style: 'font-size:15px;font-weight:700;color:#16203a;' }, 'Insumos — distribuição de compra'),
-        window.el('div', { style: 'font-size:13px;color:#5b6472;margin-top:4px;' }, 'Defina fornecedores e quantidades alvo das necessidades deste Pedido.')),
-      window.el('button', { type: 'button', style: 'background:#2563eb;color:#fff;border:none;border-radius:4px;padding:9px 14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;', onclick: function () { window.navigate('#/pedidos/' + pedidoId + '/insumos'); } }, 'Abrir distribuição'));
+        window.el('div', { style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);' }, 'Insumos — distribuição de compra'),
+        window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);margin-top:4px;' }, 'Defina fornecedores e quantidades alvo das necessidades deste Pedido.')),
+      window.el('button', { type: 'button', style: 'background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:9px 14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;', onclick: function () { window.navigate('#/pedidos/' + pedidoId + '/insumos'); } }, 'Abrir distribuição'));
   }
 
   function buildExpedicoes(state, view, handlers) {
@@ -855,22 +855,22 @@
     });
 
     wrap.appendChild(window.el('div', {
-      style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:10px;',
+      style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:10px;',
     }, 'Expedicoes vinculadas'));
 
     if (state.expedicoesLoadError) {
       wrap.appendChild(window.el('div', {
-        style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:18px 20px;font-size:14px;color:#b45309;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;font-size:14px;color:var(--rv-signal-caution);',
       }, 'Nao foi possivel validar as expedicoes vinculadas agora.'));
       return wrap;
     }
 
     if (!view.expedicaoSummaries.length) {
       wrap.appendChild(window.el('div', {
-        style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:18px 20px;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;',
       },
-        window.el('div', { style: 'font-size:14.5px;font-weight:700;color:#16203a;margin-bottom:6px;' }, 'Nenhuma expedicao liberada'),
-        window.el('div', { style: 'font-size:13px;color:#5b6472;line-height:1.5;' },
+        window.el('div', { style: 'font-size:14.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:6px;' }, 'Nenhuma expedicao liberada'),
+        window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;' },
           'A expedicao aparece aqui depois que uma OP de acabamento finalizada for liberada para entrega/coleta.')
       ));
       return wrap;
@@ -882,27 +882,27 @@
     }, view.expedicaoSummaries.map(function (summary) {
       var concluida = summary.status === 'concluida' && summary.saldo <= 0;
       return window.el('div', {
-        style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;overflow:hidden;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;overflow:hidden;',
       },
         window.el('div', {
-          style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #f1f3f6;',
+          style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--rv-border-soft);',
         },
-          window.el('div', { style: 'font-size:14.5px;font-weight:700;color:#2563eb;' }, 'Expedicao #' + summary.id),
+          window.el('div', { style: 'font-size:14.5px;font-weight:700;color:var(--rv-accent-blue);' }, 'Expedicao #' + summary.id),
           window.el('span', {
-            style: 'background:' + (concluida ? '#e6f4ec' : '#fff4e6') + ';color:' + (concluida ? '#18794a' : '#c2610c') + ';border-radius:4px;padding:3px 9px;font-size:11.5px;font-weight:700;',
+            style: 'background:' + (concluida ? 'var(--rv-signal-positive-bg)' : 'var(--rv-signal-caution-bg)') + ';color:' + (concluida ? 'var(--rv-signal-positive)' : 'var(--rv-signal-caution)') + ';border-radius:4px;padding:3px 9px;font-size:11.5px;font-weight:700;',
           }, summary.status)
         ),
         window.el('div', { style: 'padding:13px 18px;display:flex;flex-direction:column;gap:8px;' },
-          window.el('div', { style: 'display:flex;justify-content:space-between;font-size:13px;color:#5b6472;' },
-            window.el('span', {}, 'Liberado'), window.el('span', { style: 'color:#16203a;font-weight:700;' }, ns.fmtMetros(summary.liberado))),
-          window.el('div', { style: 'display:flex;justify-content:space-between;font-size:13px;color:#5b6472;' },
-            window.el('span', {}, 'Entregue/coletado'), window.el('span', { style: 'color:#18794a;font-weight:700;' }, ns.fmtMetros(summary.entregue))),
-          window.el('div', { style: 'display:flex;justify-content:space-between;font-size:13px;color:#5b6472;' },
-            window.el('span', {}, 'Saldo'), window.el('span', { style: 'color:' + (summary.saldo > 0 ? '#c2610c' : '#18794a') + ';font-weight:700;' }, ns.fmtMetros(summary.saldo))),
-          window.el('div', { style: 'font-size:12px;color:#8a93a3;' },
+          window.el('div', { style: 'display:flex;justify-content:space-between;font-size:13px;color:var(--rv-text-secondary);' },
+            window.el('span', {}, 'Liberado'), window.el('span', { style: 'color:var(--rv-text-primary);font-weight:700;' }, ns.fmtMetros(summary.liberado))),
+          window.el('div', { style: 'display:flex;justify-content:space-between;font-size:13px;color:var(--rv-text-secondary);' },
+            window.el('span', {}, 'Entregue/coletado'), window.el('span', { style: 'color:var(--rv-signal-positive);font-weight:700;' }, ns.fmtMetros(summary.entregue))),
+          window.el('div', { style: 'display:flex;justify-content:space-between;font-size:13px;color:var(--rv-text-secondary);' },
+            window.el('span', {}, 'Saldo'), window.el('span', { style: 'color:' + (summary.saldo > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)') + ';font-weight:700;' }, ns.fmtMetros(summary.saldo))),
+          window.el('div', { style: 'font-size:12px;color:var(--rv-text-tertiary);' },
             summary.movimentos.length ? summary.movimentos.length + ' movimento(s) registrado(s)' : 'Sem entrega/coleta registrada')
         ),
-        window.el('div', { style: 'padding:12px 18px;border-top:1px solid #f1f3f6;' },
+        window.el('div', { style: 'padding:12px 18px;border-top:1px solid var(--rv-border-soft);' },
           buildFooterAction('Abrir expedicao', function () { handlers.navigateToExpedicao(summary.id); }, true))
       );
     })));
@@ -918,7 +918,7 @@
     var pendencias = conclusao.pendencias || [];
     var buttonAttrs = {
       type: 'button',
-      style: 'display:inline-flex;align-items:center;justify-content:center;background:' + (actionable ? '#18794a' : '#f1f3f6') + ';color:' + (actionable ? '#fff' : '#9aa2af') + ';border:none;border-radius:4px;padding:10px 16px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:' + (actionable ? 'pointer' : 'not-allowed') + ';',
+      style: 'display:inline-flex;align-items:center;justify-content:center;background:' + (actionable ? 'var(--rv-signal-positive)' : 'var(--rv-surface-subtle)') + ';color:' + (actionable ? 'var(--rv-text-on-brand)' : 'var(--rv-text-tertiary)') + ';border:none;border-radius:4px;padding:10px 16px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:' + (actionable ? 'pointer' : 'not-allowed') + ';',
     };
     if (actionable) {
       buttonAttrs.onclick = function (event) {
@@ -929,18 +929,18 @@
     }
 
     return window.el('div', {
-      style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:16px 20px;margin-bottom:14px;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;margin-bottom:14px;',
     },
       window.el('div', {
         style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;',
       },
         window.el('div', { style: 'min-width:260px;max-width:720px;' },
-          window.el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:6px;' }, 'Conclusao do pedido'),
-          window.el('div', { style: 'font-size:13px;color:#5b6472;line-height:1.5;' },
+          window.el('div', { style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:6px;' }, 'Conclusao do pedido'),
+          window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;' },
             jaEntregue ? 'Pedido ja concluido no fluxo operacional.' : conclusao.label),
           pendencias.length ? window.el('div', { style: 'margin-top:10px;display:flex;flex-direction:column;gap:5px;' },
             pendencias.map(function (pendencia) {
-              return window.el('div', { style: 'font-size:12.5px;color:#b45309;line-height:1.4;' }, '- ' + pendencia);
+              return window.el('div', { style: 'font-size:12.5px;color:var(--rv-signal-caution);line-height:1.4;' }, '- ' + pendencia);
             })) : null
         ),
         window.el('button', buttonAttrs, jaEntregue ? 'Pedido concluido' : 'Concluir pedido')
@@ -950,9 +950,9 @@
 
   function buildClienteStatusBadge(state, view) {
     var label = 'Recebido';
-    var dot = '#2563eb';
-    var bg = '#eaf1fd';
-    var color = '#2563eb';
+    var dot = 'var(--rv-pill-info-dot)';
+    var bg = 'var(--rv-pill-info-bg)';
+    var color = 'var(--rv-accent-blue)';
 
     if (view.trackingApi) {
       var statusKey = view.trackingSummary && view.trackingSummary.statusVisual
@@ -967,17 +967,17 @@
       if (exception) {
         label = exception.label;
         if (exception.tom === 'danger') {
-          dot = '#b23b3b';
-          bg = '#fdecec';
-          color = '#a23434';
+          dot = 'var(--rv-pill-negative-dot)';
+          bg = 'var(--rv-surface)';
+          color = 'var(--rv-signal-negative)';
         } else if (exception.tom === 'warning') {
-          dot = '#e07b39';
-          bg = '#fff4e6';
-          color = '#c2610c';
+          dot = 'var(--rv-pill-caution-dot)';
+          bg = 'var(--rv-signal-caution-bg)';
+          color = 'var(--rv-signal-caution)';
         } else {
-          dot = '#6b7280';
-          bg = '#f1f3f6';
-          color = '#5b6472';
+          dot = 'var(--rv-text-secondary)';
+          bg = 'var(--rv-surface-subtle)';
+          color = 'var(--rv-text-secondary)';
         }
       } else if (step) {
         label = step.label;
@@ -1035,37 +1035,37 @@
         || 'A visao do cliente sera atualizada a partir das OPs vinculadas.';
 
     return window.el('div', {
-      style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:16px 20px;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;',
     },
       window.el('div', {
         style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;',
       },
         window.el('div', {
-          style: 'font-size:15.5px;font-weight:700;color:#16203a;',
+          style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);',
         }, 'Evolucao do Cliente'),
         window.el('span', {
-          style: 'background:#f1f3f6;color:#8a93a3;border-radius:4px;padding:3px 9px;font-size:11px;font-weight:600;',
+          style: 'background:var(--rv-surface-subtle);color:var(--rv-text-tertiary);border-radius:4px;padding:3px 9px;font-size:11px;font-weight:600;',
         }, 'Pre-visualizacao')
       ),
       window.el('div', {
-        style: 'background:#f6f7f9;border:1px solid #eceef1;border-radius:4px;padding:14px 16px;',
+        style: 'background:var(--rv-surface-subtle);border:1px solid var(--rv-border);border-radius:4px;padding:14px 16px;',
       },
         window.el('div', {
-          style: 'font-size:10.5px;font-weight:700;color:#8a93a3;letter-spacing:.05em;margin-bottom:10px;',
+          style: 'font-size:10.5px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.05em;margin-bottom:10px;',
         }, 'O QUE O CLIENTE VE'),
         buildClienteStatusBadge(state, view),
         window.el('div', {
-          style: 'font-size:13.5px;color:#2c4a78;font-weight:500;line-height:1.5;margin-bottom:12px;',
+          style: 'font-size:13.5px;color:var(--rv-pill-info-text);font-weight:500;line-height:1.5;margin-bottom:12px;',
         }, '"' + message + '"'),
         window.el('div', {
-          style: 'height:6px;border-radius:99px;background:#e2e5ea;overflow:hidden;margin-bottom:6px;',
+          style: 'height:6px;border-radius:99px;background:var(--rv-surface-subtle);overflow:hidden;margin-bottom:6px;',
         },
           window.el('div', {
-            style: 'width:' + percent + '%;height:100%;background:#2563eb;',
+            style: 'width:' + percent + '%;height:100%;background:var(--rv-brand);',
           })
         ),
         window.el('div', {
-          style: 'display:flex;justify-content:space-between;font-size:11.5px;color:#9aa2af;',
+          style: 'display:flex;justify-content:space-between;font-size:11.5px;color:var(--rv-text-tertiary);',
         },
           window.el('span', { 'data-rv-preview-position': preview ? preview.mode : 'legado' }, positionLabel),
           window.el('span', {}, percent + '%')
@@ -1073,7 +1073,7 @@
         routeNote
           ? window.el('div', {
               'data-rv-preview-route-note': '',
-              style: 'font-size:11.5px;color:#9aa2af;margin-top:6px;line-height:1.45;',
+              style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-top:6px;line-height:1.45;',
             }, routeNote)
           : null
       ),
@@ -1081,11 +1081,11 @@
         style: 'display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:12px;',
       },
         window.el('span', {
-          style: 'font-size:11.5px;color:#9aa2af;',
+          style: 'font-size:11.5px;color:var(--rv-text-tertiary);',
         }, 'Atualiza a partir das OPs. Edite apenas a mensagem.'),
         window.el('button', {
           type: 'button',
-          style: 'display:inline-flex;align-items:center;gap:6px;background:#fff;color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:7px 13px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;',
+          style: 'display:inline-flex;align-items:center;gap:6px;background:var(--rv-surface);color:var(--rv-accent-blue);border:1px solid var(--rv-brand);border-radius:4px;padding:7px 13px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;',
           onclick: handlers.openTrackingModal,
         }, ns.svgEl(ns.SVG_EDIT), 'Editar mensagem')
       )
@@ -1094,8 +1094,8 @@
 
   function buildDocumentStatusPill(status) {
     var tones = {
-      anexado: { bg: '#e6f4ec', text: '#18794a', label: 'Anexado' },
-      pendente: { bg: '#fff4e6', text: '#c2610c', label: 'Pendente' },
+      anexado: { bg: 'var(--rv-signal-positive-bg)', text: 'var(--rv-signal-positive)', label: 'Anexado' },
+      pendente: { bg: 'var(--rv-signal-caution-bg)', text: 'var(--rv-signal-caution)', label: 'Pendente' },
     };
     var tone = tones[status] || tones.pendente;
     return window.el('span', {
@@ -1105,7 +1105,7 @@
 
   function buildDocumentRow(row, withBorder) {
     return window.el('div', {
-      style: 'padding:9px 0;' + (withBorder ? 'border-bottom:1px solid #f1f3f6;' : ''),
+      style: 'padding:9px 0;' + (withBorder ? 'border-bottom:1px solid var(--rv-border-soft);' : ''),
     },
       window.el('div', {
         style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;',
@@ -1115,13 +1115,13 @@
         },
           ns.svgEl(ns.SVG_FILE),
           window.el('span', {
-            style: 'font-size:13px;color:#3f4757;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
+            style: 'font-size:13px;color:var(--rv-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
           }, row.label)
         ),
         buildDocumentStatusPill(row.status)
       ),
       window.el('div', {
-        style: 'font-size:11px;color:#9aa2af;margin-top:3px;',
+        style: 'font-size:11px;color:var(--rv-text-tertiary);margin-top:3px;',
       }, row.meta)
     );
   }
@@ -1131,7 +1131,7 @@
   // suggestions by an explicit "Vinculo confirmado" pill.
   function buildLinkedDocumentRow(row, withBorder) {
     var docRow = window.el('div', {
-      style: 'padding:9px 0;' + (withBorder ? 'border-bottom:1px solid #f1f3f6;' : ''),
+      style: 'padding:9px 0;' + (withBorder ? 'border-bottom:1px solid var(--rv-border-soft);' : ''),
     });
 
     var leftGroup = window.el('div', {
@@ -1139,7 +1139,7 @@
     },
       ns.svgEl(ns.SVG_FILE),
       window.el('span', {
-        style: 'font-size:13px;color:#3f4757;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
+        style: 'font-size:13px;color:var(--rv-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
       }, row.label)
     );
 
@@ -1154,7 +1154,7 @@
     });
 
     rightGroup.appendChild(window.el('span', {
-      style: 'background:#e6f4ec;color:#18794a;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap;',
+      style: 'background:var(--rv-signal-positive-bg);color:var(--rv-signal-positive);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap;',
     }, 'Vinculo confirmado'));
 
     if (row.statusMeta) {
@@ -1166,14 +1166,14 @@
     if (row.driveLink) {
       rightGroup.appendChild(window.el('button', {
         type: 'button',
-        style: 'display:inline-flex;align-items:center;gap:6px;background:#fff;color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;',
+        style: 'display:inline-flex;align-items:center;gap:6px;background:var(--rv-surface);color:var(--rv-accent-blue);border:1px solid var(--rv-brand);border-radius:4px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;',
         onclick: function () {
           window.open(row.driveLink, '_blank', 'noopener,noreferrer');
         },
       }, 'Ver'));
     } else {
       rightGroup.appendChild(window.el('span', {
-        style: 'color:#9aa2af;font-size:11px;font-style:italic;',
+        style: 'color:var(--rv-text-tertiary);font-size:11px;font-style:italic;',
       }, 'Link indisponivel'));
     }
 
@@ -1185,12 +1185,12 @@
     if (typeof row.linkVersion === 'number') metaParts.push('Revisao v' + row.linkVersion);
     if (row.opIds && row.opIds.length > 0) metaParts.push('OPs vinculadas: ' + row.opIds.join(', '));
     docRow.appendChild(window.el('div', {
-      style: 'font-size:11px;color:#9aa2af;margin-top:3px;',
+      style: 'font-size:11px;color:var(--rv-text-tertiary);margin-top:3px;',
     }, metaParts.join(' · ')));
 
     if (row.targetCancelled) {
       docRow.appendChild(window.el('div', {
-        style: 'font-size:11px;color:#a23434;margin-top:2px;',
+        style: 'font-size:11px;color:var(--rv-signal-negative);margin-top:2px;',
       }, 'Atencao: alvo vinculado esta cancelado.'));
     }
 
@@ -1200,15 +1200,15 @@
   function buildDocuments(view) {
     var card = window.el('div', {
       id: 'documentos',
-      style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:16px 20px;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;',
     });
 
     card.appendChild(window.el('div', {
-      style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:12px;',
+      style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:12px;',
     }, 'Documentos'));
 
     card.appendChild(window.el('div', {
-      style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.04em;margin-bottom:8px;',
+      style: 'font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.04em;margin-bottom:8px;',
     }, 'DOCUMENTOS DO PEDIDO'));
 
     view.documentRowsPedido.forEach(function (row, index) {
@@ -1216,12 +1216,12 @@
     });
 
     card.appendChild(window.el('div', {
-      style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.04em;margin:14px 0 8px;',
+      style: 'font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.04em;margin:14px 0 8px;',
     }, 'DOCUMENTOS OPERACIONAIS'));
 
     if (view.documentRowsOperacionais.length === 0) {
       card.appendChild(window.el('div', {
-        style: 'font-size:13px;color:#9aa2af;padding:9px 0;',
+        style: 'font-size:13px;color:var(--rv-text-tertiary);padding:9px 0;',
       }, 'Nenhum documento operacional esperado ainda.'));
     } else {
       view.documentRowsOperacionais.forEach(function (row, index) {
@@ -1233,7 +1233,7 @@
     // Consumes the same canonical revision every surface reads. Explicit
     // empty / unavailable states — never a silent "no documents".
     card.appendChild(window.el('div', {
-      style: 'font-size:11px;font-weight:700;color:#18794a;letter-spacing:.04em;margin:14px 0 8px;',
+      style: 'font-size:11px;font-weight:700;color:var(--rv-signal-positive);letter-spacing:.04em;margin:14px 0 8px;',
     }, 'DOCUMENTOS VINCULADOS'));
 
     if (view.linkedDocumentsState === 'available'
@@ -1243,15 +1243,15 @@
       });
     } else if (view.linkedDocumentsState === 'empty') {
       card.appendChild(window.el('div', {
-        style: 'font-size:13px;color:#9aa2af;padding:9px 0;',
+        style: 'font-size:13px;color:var(--rv-text-tertiary);padding:9px 0;',
       }, 'Nenhum documento vinculado a este pedido.'));
     } else if (view.linkedDocumentsState === 'loading') {
       card.appendChild(window.el('div', {
-        style: 'font-size:13px;color:#9aa2af;padding:9px 0;',
+        style: 'font-size:13px;color:var(--rv-text-tertiary);padding:9px 0;',
       }, 'Carregando vinculos de documentos...'));
     } else {
       card.appendChild(window.el('div', {
-        style: 'font-size:13px;color:#9aa2af;padding:9px 0;',
+        style: 'font-size:13px;color:var(--rv-text-tertiary);padding:9px 0;',
       }, 'Vinculos canonicos de documentos indisponiveis nesta sessao.'));
     }
 
@@ -1262,7 +1262,7 @@
         { el: window.el }, view.linkedDocumentTimeline, {});
       if (tlBuilt.nodes.length > 0) {
         card.appendChild(window.el('div', {
-          style: 'font-size:11px;font-weight:700;color:#18794a;letter-spacing:.04em;margin:14px 0 8px;',
+          style: 'font-size:11px;font-weight:700;color:var(--rv-signal-positive);letter-spacing:.04em;margin:14px 0 8px;',
         }, 'LINHA DO TEMPO DOS VINCULOS'));
         tlBuilt.nodes.forEach(function (n) { card.appendChild(n); });
       }
@@ -1270,16 +1270,16 @@
 
     if (view.ingestorDocsLoaded && view.ingestorDocumentRows && view.ingestorDocumentRows.length > 0) {
       card.appendChild(window.el('div', {
-        style: 'font-size:11px;font-weight:700;color:#2563eb;letter-spacing:.04em;margin:14px 0 8px;',
+        style: 'font-size:11px;font-weight:700;color:var(--rv-accent-blue);letter-spacing:.04em;margin:14px 0 8px;',
       }, 'DOCUMENTOS RECEBIDOS (INGESTOR)'));
       card.appendChild(window.el('div', {
-        style: 'font-size:11px;color:#9aa2af;margin:-4px 0 8px;',
+        style: 'font-size:11px;color:var(--rv-text-tertiary);margin:-4px 0 8px;',
       }, 'Sugestoes do Ingestor (nao confirmadas). Somente a secao Documentos vinculados representa vinculo canonico.'));
 
       view.ingestorDocumentRows.forEach(function (row, index) {
         var isLast = index === view.ingestorDocumentRows.length - 1;
         var docRow = window.el('div', {
-          style: 'padding:9px 0;' + (isLast && view.ingestorTimeline.length === 0 ? '' : 'border-bottom:1px solid #f1f3f6;'),
+          style: 'padding:9px 0;' + (isLast && view.ingestorTimeline.length === 0 ? '' : 'border-bottom:1px solid var(--rv-border-soft);'),
         });
 
         // Linha superior: filename + badges + status pill + botao Ver
@@ -1292,7 +1292,7 @@
         },
           ns.svgEl(ns.SVG_FILE),
           window.el('span', {
-            style: 'font-size:13px;color:#3f4757;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
+            style: 'font-size:13px;color:var(--rv-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
           }, row.label)
         );
 
@@ -1316,14 +1316,14 @@
         if (row.driveLink) {
           rightGroup.appendChild(window.el('button', {
             type: 'button',
-            style: 'display:inline-flex;align-items:center;gap:6px;background:#fff;color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;',
+            style: 'display:inline-flex;align-items:center;gap:6px;background:var(--rv-surface);color:var(--rv-accent-blue);border:1px solid var(--rv-brand);border-radius:4px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;',
             onclick: function () {
               window.open(row.driveLink, '_blank', 'noopener,noreferrer');
             },
           }, 'Ver'));
         } else {
           rightGroup.appendChild(window.el('span', {
-            style: 'color:#9aa2af;font-size:11px;font-style:italic;',
+            style: 'color:var(--rv-text-tertiary);font-size:11px;font-style:italic;',
           }, 'Link indisponivel'));
         }
 
@@ -1336,7 +1336,7 @@
         if (row.reason) {
           bottomLine = (bottomLine ? bottomLine + ' · ' : '') + 'Rejeitado: ' + row.reason;
         }
-        var bottomColor = row.reason ? '#a23434' : '#9aa2af';
+        var bottomColor = row.reason ? 'var(--rv-signal-negative)' : 'var(--rv-text-tertiary)';
         docRow.appendChild(window.el('div', {
           style: 'font-size:11px;color:' + bottomColor + ';margin-top:3px;',
         }, bottomLine));
@@ -1347,13 +1347,13 @@
       // Timeline de eventos
       if (view.ingestorTimeline && view.ingestorTimeline.length > 0) {
         card.appendChild(window.el('div', {
-          style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.04em;margin:14px 0 8px;',
+          style: 'font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.04em;margin:14px 0 8px;',
         }, 'EVENTOS'));
 
         view.ingestorTimeline.forEach(function (item, idx) {
           var isLastTimeline = idx === view.ingestorTimeline.length - 1;
           var isFirst = idx === 0;
-          var dotColor = isFirst ? '#2563eb' : '#cfd5de';
+          var dotColor = isFirst ? 'var(--rv-accent-blue)' : 'var(--rv-text-tertiary)';
 
           var timelineItem = window.el('div', {
             style: 'display:flex;gap:12px;',
@@ -1366,19 +1366,19 @@
                   + ';margin-top:3px;flex-shrink:0;',
               }),
               isLastTimeline ? null : window.el('div', {
-                style: 'width:2px;flex:1;background:#eceef1;margin-top:3px;',
+                style: 'width:2px;flex:1;background:var(--rv-surface-subtle);margin-top:3px;',
               })
             ),
             window.el('div', { style: 'padding-bottom:' + (isLastTimeline ? '0' : '10px') + ';' },
               window.el('div', {
-                style: 'font-size:11px;color:#9aa2af;',
+                style: 'font-size:11px;color:var(--rv-text-tertiary);',
               }, item.formattedTime),
               window.el('div', {
                 style: 'font-size:12px;font-weight:' + (isFirst ? '700' : '500') + ';color:'
-                  + (isFirst ? '#16203a' : '#5b6472') + ';margin-top:1px;',
+                  + (isFirst ? 'var(--rv-text-primary)' : 'var(--rv-text-secondary)') + ';margin-top:1px;',
               }, item.label),
               item.docLabel ? window.el('div', {
-                style: 'font-size:11px;color:#7b8494;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
+                style: 'font-size:11px;color:var(--rv-text-secondary);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
               }, item.docLabel) : null
             )
           );
@@ -1389,7 +1389,7 @@
     }
 
     card.appendChild(window.el('div', {
-      style: 'margin-top:12px;font-size:11.5px;color:#9aa2af;line-height:1.5;',
+      style: 'margin-top:12px;font-size:11.5px;color:var(--rv-text-tertiary);line-height:1.5;',
     }, 'A tabela de anexos operacionais ainda nao existe no schema atual. A tela ja consolida as pendencias e preserva o layout do fluxo final.'));
 
     return card;
@@ -1405,7 +1405,7 @@
     if (loadingError === 'pedido') {
       container.replaceChildren(header,
         window.el('div', {
-          style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:18px 20px;color:#b42318;',
+          style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;color:var(--rv-signal-negative);',
         }, 'Pedido nao encontrado. Ele pode ter sido removido.'));
       return;
     }
@@ -1413,7 +1413,7 @@
     if (loadingError) {
       container.replaceChildren(header,
         window.el('div', {
-          style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:18px 20px;color:#b42318;',
+          style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;color:var(--rv-signal-negative);',
         }, 'Erro ao carregar dados do pedido (' + loadingError + '). Tente recarregar a pagina.'));
       return;
     }

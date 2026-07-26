@@ -54,13 +54,13 @@
   // throwing — reuses the same trash/pencil icons already established
   // for those actions elsewhere in this screen (admin-usuarios.js).
   var ICON_MARKUP = {
-    created: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#18794a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="16" y1="11" x2="22" y2="11"></line></svg>',
-    disabled: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d6403a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M5.7 5.7l12.6 12.6"></path></svg>',
-    reactivated: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a93a3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>',
-    reset: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a93a3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>',
-    excluded: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d6403a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>',
-    changed: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a93a3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>',
-    unknown: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a93a3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="13"></line><circle cx="12" cy="16.5" r="0.6" fill="#8a93a3"></circle></svg>',
+    created: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--rv-signal-positive)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="16" y1="11" x2="22" y2="11"></line></svg>',
+    disabled: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--rv-signal-negative)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M5.7 5.7l12.6 12.6"></path></svg>',
+    reactivated: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>',
+    reset: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>',
+    excluded: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--rv-signal-negative)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>',
+    changed: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>',
+    unknown: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="13"></line><circle cx="12" cy="16.5" r="0.6" fill="var(--rv-text-tertiary)"></circle></svg>',
   };
 
   function iconFor(iconKey) {
@@ -76,14 +76,14 @@
     if (icon) iconCol.appendChild(icon);
 
     var actionLine = window.el('div', {
-      style: 'font-size:13px; font-weight:600; color:#1f2937; line-height:1.35;',
+      style: 'font-size:13px; font-weight:600; color:var(--rv-text-primary); line-height:1.35;',
     }, entry.actionLabel);
 
     var detailText = entry.actorLine + (entry.detailLine ? ' — ' + entry.detailLine : '');
-    var detailEl = window.truncatedCell(detailText, detailText, 'font-size:12px; color:#5b6472; line-height:1.35;');
+    var detailEl = window.truncatedCell(detailText, detailText, 'font-size:12px; color:var(--rv-text-secondary); line-height:1.35;');
     if (entry.subjectOrphaned) {
       var orphanNote = window.el('span', {
-        style: 'font-size:11px; color:#b06a6a; margin-left:6px;',
+        style: 'font-size:11px; color:var(--rv-signal-negative); margin-left:6px;',
         title: 'O perfil deste usuário foi excluído; este evento sobrevive apenas com o registro de identidade.',
       }, '(perfil removido)');
       detailEl.appendChild(orphanNote);
@@ -94,42 +94,42 @@
     }, actionLine, detailEl);
 
     var timeCol = window.el('div', {
-      style: 'flex:0 0 auto; font-size:11px; color:#9aa2af; white-space:nowrap; padding-top:1px;',
+      style: 'flex:0 0 auto; font-size:11px; color:var(--rv-text-tertiary); white-space:nowrap; padding-top:1px;',
     }, entry.timestampLabel || '—');
 
     return window.el('div', {
-      style: 'display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid #f1f3f6;',
+      style: 'display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid var(--rv-border-soft);',
       'data-audit-row': entry.tipoEvento,
     }, iconCol, textCol, timeCol);
   }
 
   function emptyState() {
     return window.el('p', {
-      style: 'margin:6px 0 0; font-size:12.5px; color:#9aa2af; font-style:italic;',
+      style: 'margin:6px 0 0; font-size:12.5px; color:var(--rv-text-tertiary); font-style:italic;',
     }, 'Nenhum evento registrado');
   }
 
   function unavailableState() {
     return window.el('p', {
-      style: 'margin:6px 0 0; font-size:12.5px; color:#9aa2af; font-style:italic;',
+      style: 'margin:6px 0 0; font-size:12.5px; color:var(--rv-text-tertiary); font-style:italic;',
     }, 'Histórico indisponível');
   }
 
   function loadingState() {
     return window.el('p', {
-      style: 'margin:6px 0 0; font-size:12.5px; color:#9aa2af;',
+      style: 'margin:6px 0 0; font-size:12.5px; color:var(--rv-text-tertiary);',
     }, 'Carregando histórico…');
   }
 
   function header(count) {
     var title = window.el('span', {
-      style: 'font-size:13px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:#5b6472;',
+      style: 'font-size:13px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--rv-text-secondary);',
     }, 'Histórico');
     var badge = window.el('span', {
-      style: 'font-size:11px; font-weight:700; color:#8a93a3; background:#f1f3f6; border-radius:10px; padding:1px 8px;',
+      style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); background:var(--rv-surface-subtle); border-radius:10px; padding:1px 8px;',
     }, String(count));
     var readonly = window.el('span', {
-      style: 'font-size:11px; color:#9aa2af; font-style:italic;',
+      style: 'font-size:11px; color:var(--rv-text-tertiary); font-style:italic;',
     }, 'somente leitura');
     return window.el('div', {
       style: 'display:flex; align-items:center; gap:8px; margin-bottom:6px;',
@@ -154,7 +154,7 @@
 
       var toggle = window.el('button', {
         type: 'button',
-        style: 'margin-top:8px; padding:0; border:none; background:none; color:#2563eb; font-size:12.5px; font-weight:600; font-family:inherit; cursor:pointer;',
+        style: 'margin-top:8px; padding:0; border:none; background:none; color:var(--rv-accent-blue); font-size:12.5px; font-weight:600; font-family:inherit; cursor:pointer;',
         onclick: function () {
           var expanded = expandedList.style.display !== 'none';
           expandedList.style.display = expanded ? 'none' : 'block';
@@ -177,7 +177,7 @@
     var readModel = window.RAVATEX_ADMIN_USUARIOS_AUDIT;
 
     var divider = window.el('div', {
-      style: 'border-top:1px solid #edf1f5; margin:6px 0 2px;',
+      style: 'border-top:1px solid var(--rv-border-soft); margin:6px 0 2px;',
     });
 
     var bodySlot = window.el('div', { style: 'min-height:20px;' }, loadingState());

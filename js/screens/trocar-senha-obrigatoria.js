@@ -68,32 +68,32 @@
       type: 'password',
       placeholder,
       autocomplete: 'new-password',
-      style: 'width:100%;border:1px solid #d8dce2;border-radius:4px;padding:10px 42px 10px 14px;'
-        + 'font-size:14px;font-family:inherit;color:#16203a;outline:none;background:#fff;',
+      style: 'width:100%;border:1px solid var(--rv-border-strong);border-radius:4px;padding:10px 42px 10px 14px;'
+        + 'font-size:14px;font-family:inherit;color:var(--rv-text-primary);outline:none;background:var(--rv-surface);',
     });
     const toggleBtn = window.el('button', {
       type: 'button',
       'aria-label': 'Mostrar senha',
       style: 'position:absolute;right:9px;top:50%;transform:translateY(-50%);background:none;border:none;'
-        + 'cursor:pointer;padding:5px;color:#8a93a3;display:flex;align-items:center;justify-content:center;',
+        + 'cursor:pointer;padding:5px;color:var(--rv-text-tertiary);display:flex;align-items:center;justify-content:center;',
       onclick: () => {
         const visible = input.type === 'text';
         input.type = visible ? 'password' : 'text';
         toggleBtn.setAttribute('aria-label', visible ? 'Mostrar senha' : 'Ocultar senha');
-        toggleBtn.replaceChildren(svgIcon(visible ? ICON_EYE : ICON_EYE_OFF, '#8a93a3', 17));
+        toggleBtn.replaceChildren(svgIcon(visible ? ICON_EYE : ICON_EYE_OFF, 'var(--rv-text-tertiary)', 17));
       },
-    }, svgIcon(ICON_EYE, '#8a93a3', 17));
+    }, svgIcon(ICON_EYE, 'var(--rv-text-tertiary)', 17));
     const wrap = window.el('div', { style: 'position:relative;' }, input, toggleBtn);
     return { input, wrap };
   }
 
   function checklistRow(label) {
     const icon = window.el('span', { style: 'display:flex;align-items:center;justify-content:center;flex-shrink:0;' },
-      svgIcon(ICON_CHECK, '#8a93a3', 14));
-    const text = window.el('span', { style: 'font-size:12.5px;color:#8a93a3;' }, label);
+      svgIcon(ICON_CHECK, 'var(--rv-text-tertiary)', 14));
+    const text = window.el('span', { style: 'font-size:12.5px;color:var(--rv-text-tertiary);' }, label);
     const row = window.el('div', { style: 'display:flex;align-items:center;gap:8px;padding:3px 0;' }, icon, text);
     function setSatisfied(ok) {
-      const color = ok ? '#18794a' : '#8a93a3';
+      const color = ok ? 'var(--rv-signal-positive)' : 'var(--rv-text-tertiary)';
       icon.replaceChildren(svgIcon(ICON_CHECK, color, 14));
       text.style.color = color;
     }
@@ -104,10 +104,10 @@
     return window.el('button', {
       type: 'button',
       style: primary
-        ? 'width:100%;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:12px 16px;'
+        ? 'width:100%;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:12px 16px;'
           + 'font-weight:700;font-size:14.5px;font-family:inherit;cursor:pointer;'
         : 'display:block;width:100%;background:none;border:none;padding:0;margin-top:16px;'
-          + 'font-size:12.5px;color:#8a93a3;text-align:center;cursor:pointer;font-family:inherit;'
+          + 'font-size:12.5px;color:var(--rv-text-tertiary);text-align:center;cursor:pointer;font-family:inherit;'
           + 'text-decoration:underline;',
       onclick: async () => { await window.logout(); },
     }, 'Sair da conta');
@@ -118,26 +118,26 @@
 
     const root = window.el('div', {
       style: 'min-height:100vh;display:flex;align-items:center;justify-content:center;'
-        + 'padding:24px;background:#eceef1;color:#16203a;font-family:inherit;',
+        + 'padding:24px;background:var(--rv-surface-subtle);color:var(--rv-text-primary);font-family:inherit;',
     });
     const shell = window.el('div', { style: 'width:100%;max-width:400px;' });
     const card = window.el('div', {
-      style: 'background:#fff;border:1px solid #d8dce2;border-radius:6px;padding:32px 32px 28px;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border-strong);border-radius:6px;padding:32px 32px 28px;',
     });
 
     card.appendChild(window.el('div', {
       style: 'display:flex;justify-content:center;margin-bottom:20px;',
     }, window.el('div', {
-      style: 'width:56px;height:56px;border-radius:8px;background:#e8eefc;color:#2563eb;'
+      style: 'width:56px;height:56px;border-radius:8px;background:var(--rv-pill-info-bg);color:var(--rv-accent-blue);'
         + 'display:flex;align-items:center;justify-content:center;',
-    }, svgIcon(ICON_LOCK, '#2563eb', 26))));
+    }, svgIcon(ICON_LOCK, 'var(--rv-accent-blue)', 26))));
 
     card.appendChild(window.el('h1', {
-      style: 'margin:0 0 8px;font-size:19px;font-weight:800;color:#16203a;text-align:center;line-height:1.3;',
+      style: 'margin:0 0 8px;font-size:19px;font-weight:800;color:var(--rv-text-primary);text-align:center;line-height:1.3;',
     }, expired ? 'Senha expirada' : 'Troca de senha obrigatória'));
 
     card.appendChild(window.el('p', {
-      style: 'font-size:13.5px;color:#8a93a3;margin:0 0 24px;text-align:center;line-height:1.5;',
+      style: 'font-size:13.5px;color:var(--rv-text-tertiary);margin:0 0 24px;text-align:center;line-height:1.5;',
     }, expired
       ? 'Sua senha temporária expirou. Contate um administrador para receber um novo reset.'
       : 'Sua senha atual é temporária. Defina uma nova senha para continuar usando o sistema.'));
@@ -153,7 +153,7 @@
     const confirmField = passwordField('Confirmar nova senha');
 
     const checklistBlock = window.el('div', {
-      style: 'background:#f4f6f9;border-radius:5px;padding:10px 14px;margin:14px 0 18px;',
+      style: 'background:var(--rv-surface-subtle);border-radius:5px;padding:10px 14px;margin:14px 0 18px;',
     });
     const rows = {};
     CHECKLIST_ITEMS.forEach(({ key, label }) => {
@@ -165,7 +165,7 @@
     const submitBtn = window.el('button', {
       type: 'submit',
       disabled: 'disabled',
-      style: 'width:100%;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:12px 16px;'
+      style: 'width:100%;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:12px 16px;'
         + 'font-weight:700;font-size:14.5px;font-family:inherit;cursor:pointer;opacity:0.5;',
     }, 'Definir nova senha');
 
@@ -218,13 +218,13 @@
     },
       window.el('div', { style: 'margin-bottom:14px;' },
         window.el('label', {
-          style: 'display:block;font-size:12.5px;font-weight:600;color:#3f4757;margin-bottom:7px;',
+          style: 'display:block;font-size:12.5px;font-weight:600;color:var(--rv-text-primary);margin-bottom:7px;',
         }, 'Nova senha'),
         novaField.wrap
       ),
       window.el('div', { style: 'margin-bottom:4px;' },
         window.el('label', {
-          style: 'display:block;font-size:12.5px;font-weight:600;color:#3f4757;margin-bottom:7px;',
+          style: 'display:block;font-size:12.5px;font-weight:600;color:var(--rv-text-primary);margin-bottom:7px;',
         }, 'Confirmar nova senha'),
         confirmField.wrap
       ),

@@ -21,11 +21,11 @@
 (function (window) {
   'use strict';
 
-  var CARD = 'background:#fff;border:1px solid #eceef1;border-radius:4px;';
-  var BTN_PRIMARY = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:9px 14px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;';
-  var BTN_WARN = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#fff;color:#c2610c;border:1px solid #f0d9bd;border-radius:4px;padding:9px 14px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;';
-  var BTN_OFF = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#fff;color:#9aa2af;border:1px solid #eceef1;border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:not-allowed;';
-  var LABEL = 'display:block;font-size:12px;color:#8a93a3;font-weight:600;margin-bottom:6px;';
+  var CARD = 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;';
+  var BTN_PRIMARY = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:9px 14px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;';
+  var BTN_WARN = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--rv-surface);color:var(--rv-signal-caution);border:1px solid var(--rv-signal-caution-border);border-radius:4px;padding:9px 14px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;';
+  var BTN_OFF = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--rv-surface);color:var(--rv-text-tertiary);border:1px solid var(--rv-border);border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:not-allowed;';
+  var LABEL = 'display:block;font-size:12px;color:var(--rv-text-tertiary);font-weight:600;margin-bottom:6px;';
 
   function writes() {
     return window.RAVATEX_MANTA_WRITES || null;
@@ -51,13 +51,13 @@
 
   function metric(label, value, color) {
     return window.el('div', { style: CARD + 'padding:12px 14px;' },
-      window.el('div', { style: 'font-size:10.5px;color:#8a93a3;font-weight:700;letter-spacing:.03em;margin-bottom:5px;' }, label),
-      window.el('div', { style: 'font-size:18px;font-weight:800;color:' + (color || '#16203a') + ';' }, fmtMetros(value)));
+      window.el('div', { style: 'font-size:10.5px;color:var(--rv-text-tertiary);font-weight:700;letter-spacing:.03em;margin-bottom:5px;' }, label),
+      window.el('div', { style: 'font-size:18px;font-weight:800;color:' + (color || 'var(--rv-text-primary)') + ';' }, fmtMetros(value)));
   }
 
   function cell(text, weight, color) {
     return window.el('div', {
-      style: 'font-size:13px;color:' + (color || '#16203a') + ';font-weight:' + (weight || '600') + ';',
+      style: 'font-size:13px;color:' + (color || 'var(--rv-text-primary)') + ';font-weight:' + (weight || '600') + ';',
     }, text);
   }
 
@@ -93,14 +93,14 @@
     var enviando = false;
 
     var body = window.el('div', {},
-      window.el('div', { style: 'font-size:12.5px;color:#5b6472;line-height:1.5;margin-bottom:12px;' },
+      window.el('div', { style: 'font-size:12.5px;color:var(--rv-text-secondary);line-height:1.5;margin-bottom:12px;' },
         'Libere para expedição a saída medida disponível. O saldo abaixo vem do cálculo autoritativo do servidor.'),
-      window.el('div', { style: 'border:1px solid #eceef1;border-radius:4px;overflow:hidden;margin-bottom:12px;' },
+      window.el('div', { style: 'border:1px solid var(--rv-border);border-radius:4px;overflow:hidden;margin-bottom:12px;' },
         linhas.map(function (linha, index) {
-          return window.el('div', { style: 'padding:10px 12px;' + (index < linhas.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : '') },
+          return window.el('div', { style: 'padding:10px 12px;' + (index < linhas.length - 1 ? 'border-bottom:1px solid var(--rv-border-soft);' : '') },
             window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap;' },
-              window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;min-width:0;' }, itemLabel(linha.item, ctx.modeloById)),
-              window.el('span', { style: 'font-size:11.5px;color:#8a5a15;background:#fff9ee;border:1px solid #fbe8c6;border-radius:4px;padding:2px 8px;font-weight:700;white-space:nowrap;' },
+              window.el('div', { style: 'font-size:13px;font-weight:700;color:var(--rv-text-primary);min-width:0;' }, itemLabel(linha.item, ctx.modeloById)),
+              window.el('span', { style: 'font-size:11.5px;color:var(--rv-signal-caution);background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);border-radius:4px;padding:2px 8px;font-weight:700;white-space:nowrap;' },
                 fmtMetros(num(linha.item.disponivel)) + ' disponível')),
             window.el('label', { style: LABEL }, 'Liberar'),
             linha.input);
@@ -172,14 +172,14 @@
     var enviando = false;
 
     var body = window.el('div', {},
-      window.el('div', { style: 'font-size:12.5px;color:#8a5a15;background:#fff9ee;border:1px solid #fbe8c6;border-radius:4px;padding:10px 12px;line-height:1.5;margin-bottom:12px;' },
+      window.el('div', { style: 'font-size:12.5px;color:var(--rv-signal-caution);background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);border-radius:4px;padding:10px 12px;line-height:1.5;margin-bottom:12px;' },
         'O estorno reduz o liberado desta expedição. O limite por item é o liberado menos o já entregue ao cliente — o servidor recusa qualquer valor acima disso.'),
-      window.el('div', { style: 'border:1px solid #eceef1;border-radius:4px;overflow:hidden;margin-bottom:12px;' },
+      window.el('div', { style: 'border:1px solid var(--rv-border);border-radius:4px;overflow:hidden;margin-bottom:12px;' },
         linhas.map(function (linha, index) {
-          return window.el('div', { style: 'padding:10px 12px;' + (index < linhas.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : '') },
+          return window.el('div', { style: 'padding:10px 12px;' + (index < linhas.length - 1 ? 'border-bottom:1px solid var(--rv-border-soft);' : '') },
             window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap;' },
-              window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;min-width:0;' }, itemLabel(linha.item, ctx.modeloById)),
-              window.el('span', { style: 'font-size:11.5px;color:#c2610c;background:#fff4e6;border:1px solid #f0d9bd;border-radius:4px;padding:2px 8px;font-weight:700;white-space:nowrap;' },
+              window.el('div', { style: 'font-size:13px;font-weight:700;color:var(--rv-text-primary);min-width:0;' }, itemLabel(linha.item, ctx.modeloById)),
+              window.el('span', { style: 'font-size:11.5px;color:var(--rv-signal-caution);background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);border-radius:4px;padding:2px 8px;font-weight:700;white-space:nowrap;' },
                 'até ' + fmtMetros(linha.teto))),
             window.el('label', { style: LABEL }, 'Estornar'),
             linha.input);
@@ -243,13 +243,13 @@
     var saldo = safe.saldo;
 
     if (!saldo) {
-      return window.el('div', { style: CARD + 'padding:16px 20px;margin-bottom:14px;font-size:13px;color:#8a93a3;' },
+      return window.el('div', { style: CARD + 'padding:16px 20px;margin-bottom:14px;font-size:13px;color:var(--rv-text-tertiary);' },
         'Carregando saldo da expedição Manta...');
     }
     if (saldo.ok !== true) {
       return window.el('div', { style: CARD + 'padding:16px 20px;margin-bottom:14px;' },
-        window.el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;margin-bottom:8px;' }, 'Expedição Manta'),
-        window.el('div', { style: 'font-size:13px;color:#b42318;line-height:1.5;' },
+        window.el('div', { style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:8px;' }, 'Expedição Manta'),
+        window.el('div', { style: 'font-size:13px;color:var(--rv-signal-negative);line-height:1.5;' },
           'Não foi possível obter o saldo autoritativo (' + (saldo.codigo || 'erro') + '): ' + (saldo.erro || '—')));
     }
 
@@ -290,44 +290,44 @@
     var card = window.el('div', { style: CARD + 'padding:16px 20px;margin-bottom:14px;' },
       window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;' },
         window.el('div', {},
-          window.el('div', { style: 'font-size:15.5px;font-weight:700;color:#16203a;' }, 'Saldo da expedição Manta'),
-          window.el('div', { style: 'font-size:12px;color:#8a93a3;margin-top:3px;' },
+          window.el('div', { style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);' }, 'Saldo da expedição Manta'),
+          window.el('div', { style: 'font-size:12px;color:var(--rv-text-tertiary);margin-top:3px;' },
             'Origem: Tecelagem (Manta) · saldo autoritativo do servidor')),
         acoes),
       window.el('div', { 'data-rv-metrics': '', style: 'display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;' },
-        metric('PREVISTO', saldo.previsto_total, '#8a93a3'),
-        metric('MEDIDO', saldo.recebido_total, '#16203a'),
-        metric('LIBERADO', saldo.liberado_total, '#2563eb'),
-        metric('ENTREGUE', saldo.entregue_total, '#18794a'),
-        metric('SALDO', saldo.disponivel_total, num(saldo.disponivel_total) > 0 ? '#c2610c' : '#18794a')));
+        metric('PREVISTO', saldo.previsto_total, 'var(--rv-text-tertiary)'),
+        metric('MEDIDO', saldo.recebido_total, 'var(--rv-text-primary)'),
+        metric('LIBERADO', saldo.liberado_total, 'var(--rv-accent-blue)'),
+        metric('ENTREGUE', saldo.entregue_total, 'var(--rv-signal-positive)'),
+        metric('SALDO', saldo.disponivel_total, num(saldo.disponivel_total) > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)')));
 
     var cols = 'minmax(0,1.4fr) 110px 110px 110px 110px 110px';
     var tabela = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
-    var inner = window.el('div', { style: 'min-width:760px;border:1px solid #eceef1;border-radius:4px;overflow:hidden;' });
+    var inner = window.el('div', { style: 'min-width:760px;border:1px solid var(--rv-border);border-radius:4px;overflow:hidden;' });
     inner.appendChild(window.el('div', {
-      style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;background:#f8f9fb;border-bottom:1px solid #eceef1;padding:9px 14px;',
+      style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);padding:9px 14px;',
     }, ['ITEM', 'PREVISTO', 'MEDIDO', 'LIBERADO', 'ENTREGUE', 'SALDO'].map(function (label) {
-      return window.el('div', { style: 'font-size:10.5px;font-weight:700;color:#8a93a3;letter-spacing:.03em;' }, label);
+      return window.el('div', { style: 'font-size:10.5px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.03em;' }, label);
     })));
     ctx.saldo.itens.forEach(function (item, index) {
       var disponivel = num(item.disponivel);
       inner.appendChild(window.el('div', {
         style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;padding:11px 14px;align-items:center;'
-          + (index < ctx.saldo.itens.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : ''),
+          + (index < ctx.saldo.itens.length - 1 ? 'border-bottom:1px solid var(--rv-border-soft);' : ''),
       },
         cell(itemLabel(item, ctx.modeloById), '700'),
-        cell(fmtMetros(item.previsto), '500', '#8a93a3'),
+        cell(fmtMetros(item.previsto), '500', 'var(--rv-text-tertiary)'),
         cell(fmtMetros(item.recebido), '700'),
-        cell(fmtMetros(item.liberado), '700', '#2563eb'),
-        cell(fmtMetros(item.entregue), '700', '#18794a'),
-        cell(fmtMetros(disponivel), '700', disponivel > 0 ? '#c2610c' : '#18794a')));
+        cell(fmtMetros(item.liberado), '700', 'var(--rv-accent-blue)'),
+        cell(fmtMetros(item.entregue), '700', 'var(--rv-signal-positive)'),
+        cell(fmtMetros(disponivel), '700', disponivel > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)')));
     });
     if (!ctx.saldo.itens.length) {
-      inner.appendChild(window.el('div', { style: 'padding:14px;font-size:13px;color:#9aa2af;' }, 'OP de tecelagem sem itens.'));
+      inner.appendChild(window.el('div', { style: 'padding:14px;font-size:13px;color:var(--rv-text-tertiary);' }, 'OP de tecelagem sem itens.'));
     }
     tabela.appendChild(inner);
     card.appendChild(tabela);
-    card.appendChild(window.el('div', { style: 'font-size:11.5px;color:#a2aab6;margin-top:10px;line-height:1.45;' },
+    card.appendChild(window.el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-top:10px;line-height:1.45;' },
       'O previsto é o planejamento da OP e nunca autoriza liberação. Só a saída medida sem defeito gera saldo.'));
     return card;
   }

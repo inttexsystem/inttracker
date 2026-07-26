@@ -224,6 +224,8 @@ function makeOpsSandbox({ tableData = {}, withRouter = false } = {}) {
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   // calculo-op.js é script clássico; a função percentualEntregueOP
   // vira global do vm.Context (sandbox.window.percentualEntregueOP).
@@ -619,6 +621,8 @@ test('25. boot: ui + badges + router + system-screens + common + cadastros + ops
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
@@ -684,6 +688,8 @@ test('26. setRoutes do inline: #/ops aponta para window.screenListaOPs', () => {
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
@@ -735,6 +741,8 @@ test('27. rota dinâmica #/ops/:id continua resolvendo para screenNovaOP(:id) (s
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
@@ -809,6 +817,8 @@ test('29. screenPainel (inline) ainda renderiza via shellLayout (regressão comm
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });

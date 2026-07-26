@@ -65,10 +65,10 @@
     return tmp.firstElementChild;
   }
 
-  var SVG_BACK = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3f4757" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>';
+  var SVG_BACK = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>';
   var SVG_PLUS = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
-  var SVG_CALENDAR = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="8" y1="3" x2="8" y2="6"></line><line x1="16" y1="3" x2="16" y2="6"></line></svg>';
-  var SVG_CHEVRON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+  var SVG_CALENDAR = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="8" y1="3" x2="8" y2="6"></line><line x1="16" y1="3" x2="16" y2="6"></line></svg>';
+  var SVG_CHEVRON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
 
   // Dono UNICO da linha de item e da regra Tipo-antes-de-Modelo.
   function itemRowApi() {
@@ -256,21 +256,21 @@
       },
       window.el('div', { style: 'display:flex; align-items:flex-start; gap:16px;' },
         window.el('div', {
-          style: 'width:36px; height:36px; border:1px solid #e2e5ea; border-radius:4px; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;',
+          style: 'width:36px; height:36px; border:1px solid var(--rv-border-soft); border-radius:4px; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;',
           onclick: function () { window.navigate('#/pedidos'); }
         }, svgEl(SVG_BACK)),
         window.el('div', {},
           window.el('h1', {
-            style: 'margin:0; font-size:23px; font-weight:800; color:#16203a; letter-spacing:-.01em;'
+            style: 'margin:0; font-size:23px; font-weight:800; color:var(--rv-text-primary); letter-spacing:-.01em;'
           }, 'Novo pedido'),
           window.el('div', {
-            style: 'font-size:13.5px; color:#8a93a3; margin-top:4px; max-width:760px;'
+            style: 'font-size:13.5px; color:var(--rv-text-tertiary); margin-top:4px; max-width:760px;'
           }, 'Preencha os itens do pedido. Após o salvamento, ele ficará como Rascunho.')
         )
       ),
       window.el('button', {
         type: 'button',
-        style: 'background:#fff; color:#3f4757; border:1px solid #d8dce2; border-radius:4px; padding:8px 18px; font-weight:600; font-size:14px; cursor:pointer; white-space:nowrap;',
+        style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:4px; padding:8px 18px; font-weight:600; font-size:14px; cursor:pointer; white-space:nowrap;',
         onclick: function () { window.navigate('#/pedidos'); }
       }, 'Cancelar'));
     }
@@ -279,10 +279,10 @@
       var children = [text];
       if (required) {
         children.push(' ');
-        children.push(window.el('span', { style: 'color:#d6403a;' }, '*'));
+        children.push(window.el('span', { style: 'color:var(--rv-signal-negative);' }, '*'));
       }
       return window.el('label', {
-        style: 'display:block; font-size:12.5px; color:#5b6472; margin-bottom:5px; white-space:nowrap;'
+        style: 'display:block; font-size:12.5px; color:var(--rv-text-secondary); margin-bottom:5px; white-space:nowrap;'
       }, children);
     }
 
@@ -291,8 +291,8 @@
     // o vizinho quando os cinco dividem a mesma linha do grid.
     function fieldBoxStyle(erro) {
       return 'display:flex; align-items:center; gap:8px; min-height:40px; box-sizing:border-box;'
-        + ' border:1px solid ' + (erro ? '#d6403a' : '#d8dce2')
-        + '; border-radius:4px; padding:8px 10px; background:#fff;';
+        + ' border:1px solid ' + (erro ? 'var(--rv-signal-negative-border)' : 'var(--rv-border-strong)')
+        + '; border-radius:4px; padding:8px 10px; background:var(--rv-surface);';
     }
 
     function buildSelectBox(selectEl) {
@@ -301,7 +301,7 @@
 
     function buildDadosGeraisCard() {
       var clienteSelect = window.el('select', {
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:#16203a; background:transparent; font-family:inherit; cursor:pointer; -webkit-appearance:none; appearance:none; min-width:0;'
+        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; cursor:pointer; -webkit-appearance:none; appearance:none; min-width:0;'
       }, window.el('option', { value: '' }, 'Selecione o cliente...'));
       for (var i = 0; i < clientes.length; i++) {
         var option = window.el('option', { value: clientes[i].id }, clientes[i].nome);
@@ -325,7 +325,7 @@
         value: state.numero,
         'data-pedido-numero': '1',
         'data-pedido-numero-sugerido': numeroEhSugestao ? '1' : '0',
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:#16203a; background:transparent; font-family:inherit; min-width:0;'
+        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; min-width:0;'
       });
       numeroInput.addEventListener('input', function () {
         state.numero = numeroInput.value;
@@ -341,15 +341,15 @@
       // de reservar uma faixa permanente sob um unico campo da linha.
       var numeroMsg = window.el('div', {
         'data-pedido-numero-erro': '1',
-        style: 'font-size:11.5px; line-height:1.35; color:#d6403a; margin-top:3px;'
+        style: 'font-size:11.5px; line-height:1.35; color:var(--rv-signal-negative); margin-top:3px;'
       }, numeroErro || '');
       // Linha auxiliar: aviso de sugestao renovada (ambar) ou o texto de ajuda
       // permanente (cinza). Nunca compete com a mensagem de erro acima.
       var numeroAjudaTexto = '';
-      var numeroAjudaCor = '#8a93a3';
+      var numeroAjudaCor = 'var(--rv-text-tertiary)';
       if (numeroAviso) {
         numeroAjudaTexto = numeroAviso;
-        numeroAjudaCor = '#a2650a';
+        numeroAjudaCor = 'var(--rv-signal-caution)';
       } else if (numeroEhSugestao) {
         numeroAjudaTexto = numeroApi().MSG_AJUDA_SUGESTAO;
       } else if (numeroSugestaoIndisponivel && String(state.numero).trim() === '') {
@@ -367,7 +367,7 @@
         type: 'date',
         value: state.dataPedido,
         'data-pedido-data': '1',
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:#16203a; background:transparent; font-family:inherit; min-width:0;'
+        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; min-width:0;'
       });
       dataPedidoInput.addEventListener('change', function () {
         state.dataPedido = dataPedidoInput.value;
@@ -379,7 +379,7 @@
         type: 'date',
         value: state.prazoEntrega,
         'data-pedido-prazo': '1',
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:#16203a; background:transparent; font-family:inherit; min-width:0;'
+        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; min-width:0;'
       });
       prazoInput.addEventListener('change', function () {
         state.prazoEntrega = prazoInput.value;
@@ -389,7 +389,7 @@
 
       var statusSelect = window.el('select', {
         disabled: 'disabled',
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:#16203a; background:transparent; font-family:inherit; cursor:default; -webkit-appearance:none; appearance:none; min-width:0; opacity:1;'
+        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; cursor:default; -webkit-appearance:none; appearance:none; min-width:0; opacity:1;'
       }, window.el('option', { value: 'rascunho', selected: 'selected' }, 'Rascunho'));
 
       // UMA unica grade para os cinco campos. As duas grades fixas anteriores
@@ -403,9 +403,9 @@
       // contrato `data-rv-pedido-dados` em css/responsive.css: um layout fixo
       // de duas linhas para TODA largura de desktop foi rejeitado.
       return window.el('div', {
-        style: 'background:#fff; border:1px solid #eceef1; border-radius:4px; box-shadow:0 1px 2px rgba(20,30,45,.04); padding:16px; margin-bottom:12px;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px;'
       },
-      window.el('div', { style: 'font-size:16px; font-weight:700; color:#16203a; margin-bottom:12px;' }, 'Dados gerais'),
+      window.el('div', { style: 'font-size:16px; font-weight:700; color:var(--rv-text-primary); margin-bottom:12px;' }, 'Dados gerais'),
       // Ordem visual exigida: Cliente -> Numero -> Data -> Prazo -> Status.
       window.el('div', {
         'data-pedido-header-grid': '1',
@@ -458,7 +458,7 @@
       // mais um modal dono do item.
       var addBtn = window.el('button', {
         type: 'button',
-        style: 'display:inline-flex; align-items:center; gap:8px; background:#fff; color:#2563eb; border:1px solid #2563eb; border-radius:4px; padding:7px 13px; font-weight:600; font-size:13.5px; font-family:inherit; cursor:pointer; white-space:nowrap;',
+        style: 'display:inline-flex; align-items:center; gap:8px; background:var(--rv-surface); color:var(--rv-accent-blue); border:1px solid var(--rv-brand); border-radius:4px; padding:7px 13px; font-weight:600; font-size:13.5px; font-family:inherit; cursor:pointer; white-space:nowrap;',
         onclick: function () {
           state.itens.push({ uid: novoUid(), tipo: '', modeloId: '', metros: '', observacao: '' });
           render();
@@ -466,7 +466,7 @@
       }, svgEl(SVG_PLUS), 'Adicionar item');
 
       var table = window.el('div', {
-        style: 'border:1px solid #eceef1; border-radius:4px; overflow:hidden;'
+        style: 'border:1px solid var(--rv-border); border-radius:4px; overflow:hidden;'
       },
       // O container e o dono do overflow horizontal: a linha de item tem
       // largura minima propria e nunca pode empurrar o documento num viewport
@@ -477,30 +477,30 @@
       ),
       // O resumo fica colado a tabela, dentro da mesma moldura.
       window.el('div', {
-        style: 'display:flex; align-items:center; justify-content:space-between; gap:16px; padding:8px 14px; background:#f8f9fb; flex-wrap:wrap;'
+        style: 'display:flex; align-items:center; justify-content:space-between; gap:16px; padding:8px 14px; background:var(--rv-surface-subtle); flex-wrap:wrap;'
       },
-      window.el('span', { style: 'font-size:13.5px; color:#5b6472;' },
+      window.el('span', { style: 'font-size:13.5px; color:var(--rv-text-secondary);' },
         'Total de itens: ',
         window.el('strong', {
-          style: 'color:#16203a; font-weight:700;',
+          style: 'color:var(--rv-text-primary); font-weight:700;',
           'data-pedido-total-itens': '1'
         }, String(state.itens.length))
       ),
-      window.el('span', { style: 'font-size:13.5px; color:#5b6472;' },
+      window.el('span', { style: 'font-size:13.5px; color:var(--rv-text-secondary);' },
         'Metragem total: ',
         window.el('strong', {
-          style: 'color:#16203a; font-weight:700;',
+          style: 'color:var(--rv-text-primary); font-weight:700;',
           'data-pedido-total-metros': '1'
         }, totalMetrosStr())
       )));
 
       return window.el('div', {
-        style: 'background:#fff; border:1px solid #eceef1; border-radius:4px; box-shadow:0 1px 2px rgba(20,30,45,.04); padding:16px; margin-bottom:12px;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px;'
       },
       window.el('div', {
         style: 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap;'
       },
-      window.el('div', { style: 'font-size:16px; font-weight:700; color:#16203a;' }, 'Itens do pedido'),
+      window.el('div', { style: 'font-size:16px; font-weight:700; color:var(--rv-text-primary);' }, 'Itens do pedido'),
       addBtn),
       table);
     }
@@ -514,7 +514,7 @@
       var obsTextarea = window.el('textarea', {
         rows: 1,
         placeholder: 'Informações adicionais sobre conferência, prazo ou observações internas...',
-        style: 'width:100%; min-height:40px; border:1px solid #d8dce2; border-radius:4px; padding:9px 12px; font-size:14px; color:#16203a; background:#fff; font-family:inherit; outline:none; resize:none; line-height:1.5; box-sizing:border-box; overflow-y:hidden;'
+        style: 'width:100%; min-height:40px; border:1px solid var(--rv-border-strong); border-radius:4px; padding:9px 12px; font-size:14px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; outline:none; resize:none; line-height:1.5; box-sizing:border-box; overflow-y:hidden;'
       });
       obsTextarea.value = state.observacao;
       obsTextarea.addEventListener('input', function () {
@@ -523,9 +523,9 @@
       });
 
       var instrCard = window.el('div', {
-        style: 'background:#fff; border:1px solid #eceef1; border-radius:4px; box-shadow:0 1px 2px rgba(20,30,45,.04); padding:16px;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px;'
       },
-      window.el('div', { style: 'font-size:16px; font-weight:700; color:#16203a; margin-bottom:10px;' }, 'Instruções gerais'),
+      window.el('div', { style: 'font-size:16px; font-weight:700; color:var(--rv-text-primary); margin-bottom:10px;' }, 'Instruções gerais'),
       obsTextarea);
 
       window.requestAnimationFrame(function () {
@@ -533,11 +533,11 @@
       });
 
       var checkoutCard = window.el('div', {
-        style: 'background:#fff; border:1px solid #eceef1; border-radius:4px; box-shadow:0 1px 2px rgba(20,30,45,.04); padding:16px; display:flex; flex-direction:column; justify-content:center;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px; display:flex; flex-direction:column; justify-content:center;'
       },
-      window.el('div', { style: 'font-size:16px; font-weight:700; color:#16203a;' }, 'Salvar rascunho'),
+      window.el('div', { style: 'font-size:16px; font-weight:700; color:var(--rv-text-primary);' }, 'Salvar rascunho'),
       window.el('div', {
-        style: 'font-size:13px; color:#8a93a3; line-height:1.5; margin-top:10px; margin-bottom:14px;',
+        style: 'font-size:13px; color:var(--rv-text-tertiary); line-height:1.5; margin-top:10px; margin-bottom:14px;',
         'data-pedido-checkout-summary': '1'
       },
         'Resumo: ' + String(state.itens.length) + ' item(ns) | ' + totalMetrosStr()
@@ -562,15 +562,15 @@
       ];
 
       return window.el('div', {
-        style: 'background:#fff;border:1px solid #d7e6fb;border-radius:4px;box-shadow:0 1px 2px rgba(20,30,45,.04);padding:18px 20px;margin-bottom:14px;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-pill-info-border);border-radius:4px;box-shadow:var(--rv-shadow-none);padding:18px 20px;margin-bottom:14px;',
         'data-post-save-summary': 'admin',
       },
         window.el('div', {
           style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;',
         },
           window.el('div', { style: 'min-width:240px;' },
-            window.el('div', { style: 'font-size:18px;font-weight:800;color:#16203a;margin-bottom:5px;' }, 'Pedido salvo com sucesso'),
-            window.el('div', { style: 'font-size:13px;color:#5b6472;line-height:1.5;' },
+            window.el('div', { style: 'font-size:18px;font-weight:800;color:var(--rv-text-primary);margin-bottom:5px;' }, 'Pedido salvo com sucesso'),
+            window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;' },
               'O pedido foi salvo. Abra a OP de tecelagem quando estiver pronto para iniciar a producao.')
           )
         ),
@@ -578,10 +578,10 @@
           style: 'display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px;',
         }, fields.map(function (field) {
           return window.el('div', {
-            style: 'background:#f8f9fb;border:1px solid #eceef1;border-radius:4px;padding:10px 12px;',
+            style: 'background:var(--rv-surface-subtle);border:1px solid var(--rv-border);border-radius:4px;padding:10px 12px;',
           },
-            window.el('div', { style: 'font-size:11.5px;color:#8a93a3;font-weight:600;margin-bottom:5px;' }, field.label),
-            window.el('div', { style: 'font-size:14px;color:#16203a;font-weight:700;' }, field.value)
+            window.el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);font-weight:600;margin-bottom:5px;' }, field.label),
+            window.el('div', { style: 'font-size:14px;color:var(--rv-text-primary);font-weight:700;' }, field.value)
           );
         })),
         window.el('div', {
@@ -590,17 +590,17 @@
         },
           window.el('button', {
             type: 'button',
-            style: 'background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
+            style: 'background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-border-strong);border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
             onclick: function () { window.navigate('#/pedidos/' + pedido.id); },
           }, 'Ver pedido'),
           window.el('button', {
             type: 'button',
-            style: 'background:#fff;color:#3f4757;border:1px solid #d8dce2;border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
+            style: 'background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-border-strong);border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
             onclick: function () { window.navigate('#/pedidos/novo'); },
           }, 'Novo pedido'),
           window.el('button', {
             type: 'button',
-            style: 'background:#2563eb;color:#fff;border:none;border-radius:4px;padding:9px 16px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;',
+            style: 'background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:9px 16px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;',
             onclick: function () { window.location.hash = '#/ops/nova?pedido_id=' + pedido.id; },
           }, 'Abrir OP de Tecelagem')
         )
@@ -748,20 +748,20 @@
 
     function buildLoadingCard() {
       return window.el('div', {
-        style: 'background:#fff; border:1px solid #eceef1; border-radius:4px; box-shadow:0 1px 2px rgba(20,30,45,.04); padding:24px; color:#5b6472;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:24px; color:var(--rv-text-secondary);'
       }, 'Carregando dados do formulario...');
     }
 
     function buildErrorCard() {
       return window.el('div', {
-        style: 'background:#fff; border:1px solid #eceef1; border-radius:4px; box-shadow:0 1px 2px rgba(20,30,45,.04); padding:24px; color:#d6403a;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:24px; color:var(--rv-signal-negative);'
       }, 'Erro ao carregar dados de ' + loadingError + '. Tente recarregar a pagina.');
     }
 
     function render() {
       var saveBtn = window.el('button', {
         type: 'button',
-        style: 'background:#2563eb; color:#fff; border:none; border-radius:4px; padding:10px 0; width:100%; font-weight:700; font-size:14px; font-family:inherit; cursor:pointer;',
+        style: 'background:var(--rv-brand); color:var(--rv-text-on-brand); border:none; border-radius:4px; padding:10px 0; width:100%; font-weight:700; font-size:14px; font-family:inherit; cursor:pointer;',
         onclick: function () { salvar(saveBtn, 'rascunho'); }
       }, 'Salvar rascunho');
 

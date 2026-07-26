@@ -63,17 +63,17 @@
 
   function modeloBadge(modelo) {
     return modelo === 'nativo'
-      ? badge('Nativa', '#eaf1fd', '#2563eb')
-      : badge('Legado', '#f3f4f6', '#8a93a3');
+      ? badge('Nativa', 'var(--rv-pill-info-bg)', 'var(--rv-accent-blue)')
+      : badge('Legado', 'var(--rv-surface-subtle)', 'var(--rv-text-tertiary)');
   }
 
   function statusBadge(status) {
     var map = {
-      rascunho: ['#fff5e6', '#b7791f'],
-      emitida: ['#eaf1fd', '#2563eb'],
-      cancelada: ['#f3f4f6', '#8a93a3'],
+      rascunho: ['var(--rv-signal-caution-bg)', 'var(--rv-signal-caution)'],
+      emitida: ['var(--rv-pill-info-bg)', 'var(--rv-accent-blue)'],
+      cancelada: ['var(--rv-surface-subtle)', 'var(--rv-text-tertiary)'],
     };
-    var c = map[status] || ['#f3f4f6', '#8a93a3'];
+    var c = map[status] || ['var(--rv-surface-subtle)', 'var(--rv-text-tertiary)'];
     return badge(STATUS_LABEL[status] || status, c[0], c[1]);
   }
 
@@ -85,9 +85,9 @@
   function statusAceiteBadge(statusAceite) {
     var colors = {
       nao_aplicavel: ['var(--rv-color-chip-bg)', 'var(--rv-color-muted)'],
-      pendente: ['#fff5e6', 'var(--rv-color-warning)'],
-      aceita: ['#e7f3ec', 'var(--rv-color-success)'],
-      rejeitada: ['#fbeaea', 'var(--rv-color-danger)'],
+      pendente: ['var(--rv-signal-caution-bg)', 'var(--rv-color-warning)'],
+      aceita: ['var(--rv-signal-positive-bg)', 'var(--rv-color-success)'],
+      rejeitada: ['var(--rv-surface)', 'var(--rv-color-danger)'],
     };
     var c = colors[statusAceite];
     if (!c) return null;

@@ -1157,6 +1157,62 @@ test('R3/19h. gates estruturais preservados (nenhum arquivo gated cresceu)', () 
 const R3_ASSETS = ['js/pedido-tracking-ui.js', 'js/screens/pedido-detail-render.js'];
 const R2_TOKEN = '20260725-manta-b2b-r2';
 
+// UI-CONSOLIDATION-PHASE-5-PASS-1-LITERAL-COLOUR-OWNERSHIP-R1 retokenizou os
+// assets que a passada de cor realmente alterou, mais os dois donos canonicos
+// promovidos (js/badges.js e js/pedido-ui.js). A intencao original de R3/20c2,
+// R3/20c e R3/20e continua valendo e nao foi enfraquecida: estes assets saem da
+// comparacao com 4532f76 apenas sob um token declarado, verificado literalmente
+// por PASS1/20c7 e proibido em qualquer outro asset.
+const PASS1_TOKEN = '20260726-ui-p5-pass1';
+const PASS1_ASSETS = [
+  'js/badges.js',
+  'js/pedido-ui.js',
+  'js/screens/pedido-route-sections.js',
+  'js/screens/pedido-route-sections-ui.js',
+  'js/screens/system-screens.js',
+  'js/screens/trocar-senha-obrigatoria.js',
+  'js/screens/common.js',
+  'js/screens/cadastros.js',
+  'js/screens/admin-usuarios-audit-panel.js',
+  'js/screens/admin-usuarios-modal.js',
+  'js/screens/admin-usuarios.js',
+  'js/screens/ops-list.js',
+  'js/screens/pedidos-list.js',
+  'js/screens/documentos-recebidos-decision-modal.js',
+  'js/screens/document-link-admin-modal.js',
+  'js/screens/documentos-recebidos.js',
+  'js/screens/pedido-item-row-editor.js',
+  'js/screens/pedido-form.js',
+  'js/screens/pedido-detail.js',
+  'js/screens/pedido-detail-progress.js',
+  'js/screens/pedido-detail-events.js',
+  'js/screens/pedido-detail-render.js',
+  'js/screens/ordem-compra-render.js',
+  'js/screens/ordem-compra-distribuicao.js',
+  'js/screens/ordem-compra-receipt-render.js',
+  'js/screens/cliente-dashboard.js',
+  'js/screens/cliente-pedidos-list.js',
+  'js/screens/cliente-route-sections-ui.js',
+  'js/screens/cliente-pedido-tracking.js',
+  'js/screens/cliente-pedido-detail.js',
+  'js/screens/cliente-pedido-form.js',
+  'js/screens/entrega-form.js',
+  'js/screens/op-latex-admin.js',
+  'js/screens/manta-output-form.js',
+  'js/screens/manta-expedicao-ui.js',
+  'js/screens/expedicao-admin.js',
+  'js/screens/painel.js',
+  'js/screens/op-distribuicao-ui.js',
+  'js/screens/op-tecelagem-producao-admin.js',
+  'js/screens/op-nova.js'
+];
+
+// R3 alterou dois assets. A passada 1 retokenizou UM deles
+// (pedido-detail-render.js), entao o token de R3 sobrevive apenas no outro —
+// o mesmo padrao que R3/20c3 ja aplicou ao token do lote 1.
+const R3_ASSETS_AINDA_EM_R3 = R3_ASSETS.filter((a) => !PASS1_ASSETS.includes(a));
+
+
 // KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-01-R1: o lote de defeitos
 // operacionais alterou js/screens/pedido-form.js, entao esse asset PRECISA
 // receber um token novo — 4532f76 deixou de ser a referencia congelada para
@@ -1197,13 +1253,15 @@ const BATCH3_RETOKENED_ASSETS = [
   'js/screens/pedido-item-row-editor.js',
   'css/responsive.css',
 ];
-const BATCH3_ASSETS = BATCH3_ADDED_ASSETS.concat(BATCH3_RETOKENED_ASSETS);
+const BATCH3_ASSETS_DECLARADOS = BATCH3_ADDED_ASSETS.concat(BATCH3_RETOKENED_ASSETS);
+const BATCH3_ASSETS = BATCH3_ASSETS_DECLARADOS.filter((a) => !PASS1_ASSETS.includes(a));
 
 // Os assets que o lote 3 retokenizou saem do conjunto do lote 2; eles continuam
 // listados em BATCH2_* porque, em relacao a 4532f76, seguem sendo assets
 // legitimamente retokenizados (R3/20c2).
 const BATCH2_ASSETS = BATCH2_ADDED_ASSETS.concat(BATCH2_RETOKENED_ASSETS)
-  .filter((asset) => !BATCH3_ASSETS.includes(asset));
+  .filter((asset) => !BATCH3_ASSETS.includes(asset))
+  .filter((asset) => !PASS1_ASSETS.includes(asset));
 
 // Todo asset acrescentado depois de 4532f76 por uma ordem autorizada.
 const ADDED_SINCE_4532F76 = BATCH2_ADDED_ASSETS.concat(BATCH3_ADDED_ASSETS);
@@ -1229,16 +1287,22 @@ function tokenFor(rel) {
   return hit[0].token;
 }
 
-test('R3/20a. os dois assets alterados por R3 usam o MESMO token novo', () => {
+test('R3/20a. os dois assets alterados por R3 seguem invalidados', () => {
   const tokens = R3_ASSETS.map(tokenFor);
   for (let i = 0; i < R3_ASSETS.length; i++) {
     assert.ok(tokens[i], R3_ASSETS[i] + ' deve ser carregado com ?v=');
+    assert.notEqual(tokens[i], R2_TOKEN,
+      R3_ASSETS[i] + ' nao pode voltar ao token de R2, senao o cache nao e invalidado');
   }
-  assert.equal(tokens[0], tokens[1],
-    'os dois assets de R3 devem compartilhar um unico token de invalidacao');
-  assert.notEqual(tokens[0], R2_TOKEN,
-    'o token de R3 tem de diferir do token de R2, senao o cache nao e invalidado');
-  assert.match(tokens[0], /r3$/, 'o token deve ser especifico desta correcao');
+  // O asset que a passada 1 nao tocou conserva o token especifico de R3.
+  for (const rel of R3_ASSETS_AINDA_EM_R3) {
+    assert.match(tokenFor(rel), /r3$/, rel + ' deve manter o token especifico de R3');
+  }
+  // O asset que a passada 1 retokenizou carrega o token declarado dela.
+  for (const rel of R3_ASSETS.filter((a) => PASS1_ASSETS.includes(a))) {
+    assert.equal(tokenFor(rel), PASS1_TOKEN,
+      rel + ' deve carregar o token declarado da passada 1');
+  }
 });
 
 test('R3/20b. nenhum dos dois assets retem o token de R2', () => {
@@ -1248,10 +1312,10 @@ test('R3/20b. nenhum dos dois assets retem o token de R2', () => {
 });
 
 test('R3/20c. o token de R3 nao vaza para nenhum asset nao relacionado', () => {
-  const r3Token = tokenFor(R3_ASSETS[0]);
+  const r3Token = tokenFor(R3_ASSETS_AINDA_EM_R3[0]);
   const carriers = assetRefs(indexHtml).filter((r) => r.token === r3Token).map((r) => r.path);
-  assert.deepEqual(carriers.sort(), R3_ASSETS.slice().sort(),
-    'exatamente os dois assets de R3 podem carregar o token de R3');
+  assert.deepEqual(carriers.sort(), R3_ASSETS_AINDA_EM_R3.slice().sort(),
+    'exatamente os assets de R3 que a passada 1 nao tocou podem carregar o token de R3');
 });
 
 test('R3/20c3. o token do lote operacional 1 foi superseded e nao vaza para asset algum', () => {
@@ -1293,12 +1357,14 @@ test('R3/20c5. os assets do lote operacional 3 carregam exatamente o token decla
 // Todo asset que o lote 3 NAO tocou conserva o token que tinha: um cache-bust
 // nao pode se espalhar por arrasto.
 test('R3/20c6. o lote 3 nao retokenizou nenhum asset que nao alterou', () => {
+  // Cada asset e comparado ao token do lote que o alterou POR ULTIMO: o lote 3
+  // continua proibido de arrastar assets, e a passada 1 declara os seus.
   const intocados = [
     ['js/screens/pedido-detail-data.js', BATCH2_TOKEN],
     ['js/screens/pedido-edit.js', BATCH2_TOKEN],
     ['js/screens/pedido-itens-edit.js', BATCH2_TOKEN],
-    ['js/screens/cliente-pedido-form.js', BATCH2_TOKEN],
-    ['js/screens/common.js', R2_TOKEN],
+    ['js/screens/cliente-pedido-form.js', PASS1_TOKEN],
+    ['js/screens/common.js', PASS1_TOKEN],
     ['js/product-route.js', R2_TOKEN],
   ];
   for (const [rel, esperado] of intocados) {
@@ -1319,6 +1385,7 @@ test('R3/20c2. todo asset nao relacionado conserva o token que tinha em 4532f76'
     if (BATCH1_ASSETS.includes(before[i].path)) continue;
     if (BATCH2_RETOKENED_ASSETS.includes(before[i].path)) continue;
     if (BATCH3_RETOKENED_ASSETS.includes(before[i].path)) continue;
+    if (PASS1_ASSETS.includes(before[i].path)) continue;
     assert.equal(after[i].token, before[i].token,
       before[i].path + ' e um asset nao relacionado e nao pode ter o token alterado');
   }
@@ -1328,7 +1395,10 @@ test('R3/20d. o cache-bust nao alterou os dois arquivos JavaScript', () => {
   // Autoridade de modificacao e o proprio git: o id de blob da arvore de
   // trabalho (com o filtro clean aplicado) contra o blob commitado em
   // 4532f76 — o commit da correcao R3 de comportamento.
-  for (const rel of R3_ASSETS) {
+  // A passada 1 de cor alterou pedido-detail-render.js sob ordem explicita, entao
+  // a invariante "um cache-bust nao altera o JS" vale para o asset que ela nao tocou.
+  assert.ok(R3_ASSETS_AINDA_EM_R3.length > 0, 'ao menos um asset de R3 deve seguir intocado');
+  for (const rel of R3_ASSETS_AINDA_EM_R3) {
     const committed = execFileSync('git', ['rev-parse', '4532f76:' + rel], { cwd: ROOT, encoding: 'utf8' }).trim();
     const worktree = execFileSync('git', ['hash-object', '--', rel], { cwd: ROOT, encoding: 'utf8' }).trim();
     assert.equal(worktree, committed, rel + ' deve permanecer byte-identico a 4532f76');
@@ -1374,5 +1444,21 @@ test('R3/20f. o cache-bust nao introduz delta de banco nem toca css', () => {
     assert.equal(/^db\//.test(rel), false, 'nenhum arquivo db/** pode mudar: ' + rel);
     assert.equal(/\.sql$/.test(rel), false, 'nenhum .sql pode mudar: ' + rel);
     assert.equal(/^css\//.test(rel), false, 'nenhum css pode mudar neste pedido: ' + rel);
+  }
+});
+
+// A passada 1 de cor declara os seus assets e o seu token; nenhum outro asset
+// pode carrega-lo, e ele tem de diferir de todo token anterior.
+test('PASS1/20c7. os assets da passada 1 de cor carregam exatamente o token declarado, e ele nao vaza', () => {
+  for (const rel of PASS1_ASSETS) {
+    assert.equal(tokenFor(rel), PASS1_TOKEN,
+      rel + ' deve carregar exatamente o token declarado da passada 1 de cor');
+  }
+  const carriers = assetRefs(indexHtml).filter((r) => r.token === PASS1_TOKEN).map((r) => r.path);
+  assert.deepEqual(carriers.sort(), PASS1_ASSETS.slice().sort(),
+    'exatamente os assets da passada 1 podem carregar o token da passada 1');
+  for (const anterior of [BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN, R2_TOKEN]) {
+    assert.notEqual(PASS1_TOKEN, anterior,
+      'reusar um token anterior nao invalidaria cache algum');
   }
 });

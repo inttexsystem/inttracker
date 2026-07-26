@@ -15,17 +15,17 @@
 
   var TABLE_GRID = 'minmax(260px,1.45fr) minmax(175px,.9fr) minmax(112px,.7fr) minmax(130px,.75fr) minmax(270px,1.45fr) 148px';
   var TABLE_MIN_WIDTH = '1180px';
-  var CARD = 'background:#fff;border:1px solid #eceef1;border-radius:6px;';
+  var CARD = 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:6px;';
   var BTN_PRIMARY = 'height:34px;display:inline-flex;align-items:center;gap:7px;'
-    + 'background:#2563eb;color:#fff;border:none;border-radius:4px;padding:0 14px;'
+    + 'background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:0 14px;'
     + 'font-weight:600;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;';
   var BTN_SECONDARY = 'height:34px;display:inline-flex;align-items:center;gap:7px;'
-    + 'background:#fff;color:#5b6472;border:1px solid #d8dce2;border-radius:4px;'
+    + 'background:var(--rv-surface);color:var(--rv-text-secondary);border:1px solid var(--rv-border-strong);border-radius:4px;'
     + 'padding:0 13px;font-weight:600;font-size:13px;font-family:inherit;'
     + 'cursor:pointer;white-space:nowrap;';
   var ICON_BUTTON = 'width:28px;height:28px;display:inline-flex;align-items:center;'
-    + 'justify-content:center;border:1px solid #eceef1;border-radius:4px;'
-    + 'background:#fff;color:#8a93a3;cursor:pointer;padding:0;flex-shrink:0;';
+    + 'justify-content:center;border:1px solid var(--rv-border);border-radius:4px;'
+    + 'background:var(--rv-surface);color:var(--rv-text-tertiary);cursor:pointer;padding:0;flex-shrink:0;';
 
   var ui = {
     tab: 'todos',
@@ -205,7 +205,7 @@
 
   function fileIcon(formato, filename) {
     var meta = fileTypeIconMeta(formato, filename);
-    return tablerIcon(meta.icon, 'arquivo-' + meta.kind, 20, 'color:#8a93a3;');
+    return tablerIcon(meta.icon, 'arquivo-' + meta.kind, 20, 'color:var(--rv-text-tertiary);');
   }
 
   function inferTipo(doc, filename) {
@@ -238,35 +238,35 @@
 
   function statusMeta(status) {
     var map = {
-      pending: { label: 'Pendente', bg: '#fff4e6', fg: '#c2610c', dot: '#e07b39' },
-      assigned: { label: 'Atrelado', bg: '#eaf1fd', fg: '#2563eb', dot: '#2563eb' },
-      accepted: { label: 'Aceito', bg: '#e6f4ec', fg: '#18794a', dot: '#18794a' },
-      rejected: { label: 'Rejeitado', bg: '#fdecec', fg: '#d6403a', dot: '#d6403a' },
+      pending: { label: 'Pendente', bg: 'var(--rv-pill-caution-bg)', fg: 'var(--rv-pill-caution-text)', dot: 'var(--rv-pill-caution-dot)' },
+      assigned: { label: 'Atrelado', bg: 'var(--rv-pill-info-bg)', fg: 'var(--rv-pill-info-text)', dot: 'var(--rv-pill-info-dot)' },
+      accepted: { label: 'Aceito', bg: 'var(--rv-pill-positive-bg)', fg: 'var(--rv-pill-positive-text)', dot: 'var(--rv-pill-positive-dot)' },
+      rejected: { label: 'Rejeitado', bg: 'var(--rv-pill-negative-bg)', fg: 'var(--rv-pill-negative-text)', dot: 'var(--rv-pill-negative-dot)' },
     };
     return map[status] || map.pending;
   }
 
   function tipoMeta(tipo) {
     var map = {
-      nf: { label: 'NF-e', bg: '#eaf1fd', fg: '#2563eb' },
-      romaneio: { label: 'Romaneio', bg: '#f3effd', fg: '#6a3db8' },
-      desconhecido: { label: 'Desconhecido', bg: '#f1f3f6', fg: '#8a93a3' },
+      nf: { label: 'NF-e', bg: 'var(--rv-pill-info-bg)', fg: 'var(--rv-accent-blue)' },
+      romaneio: { label: 'Romaneio', bg: 'var(--rv-stage-tecelagem-bg)', fg: 'var(--rv-stage-tecelagem)' },
+      desconhecido: { label: 'Desconhecido', bg: 'var(--rv-surface-subtle)', fg: 'var(--rv-text-tertiary)' },
     };
-    return map[tipo] || { label: tipo || 'Doc', bg: '#f1f3f6', fg: '#5b6472' };
+    return map[tipo] || { label: tipo || 'Doc', bg: 'var(--rv-surface-subtle)', fg: 'var(--rv-text-secondary)' };
   }
 
   function direcaoMeta(direcao) {
-    if (direcao === 'entrada') return { label: 'Entrada', bg: '#e6f4ec', fg: '#18794a' };
-    if (direcao === 'saida') return { label: 'Saida', bg: '#fdf0e6', fg: '#b65630' };
+    if (direcao === 'entrada') return { label: 'Entrada', bg: 'var(--rv-signal-positive-bg)', fg: 'var(--rv-signal-positive)' };
+    if (direcao === 'saida') return { label: 'Saida', bg: 'var(--rv-signal-caution-bg)', fg: 'var(--rv-signal-caution)' };
     return null;
   }
 
   function formatoMeta(formato) {
-    if (formato === 'pdf') return { label: 'PDF', bg: '#fdeee6', fg: '#b65630' };
-    if (formato === 'xml') return { label: 'XML', bg: '#e6f1fd', fg: '#2563eb' };
-    if (formato === 'json') return { label: 'JSONL', bg: '#f1f3f6', fg: '#5b6472' };
+    if (formato === 'pdf') return { label: 'PDF', bg: 'var(--rv-signal-caution-bg)', fg: 'var(--rv-signal-caution)' };
+    if (formato === 'xml') return { label: 'XML', bg: 'var(--rv-pill-info-bg)', fg: 'var(--rv-accent-blue)' };
+    if (formato === 'json') return { label: 'JSONL', bg: 'var(--rv-surface-subtle)', fg: 'var(--rv-text-secondary)' };
     if (formato === 'desconhecido') return null;
-    return formato ? { label: String(formato).toUpperCase(), bg: '#f1f3f6', fg: '#5b6472' } : null;
+    return formato ? { label: String(formato).toUpperCase(), bg: 'var(--rv-surface-subtle)', fg: 'var(--rv-text-secondary)' } : null;
   }
 
   function fmtDataHoraCurta(isoOrDate) {
@@ -717,14 +717,14 @@
         'data-field': 'pedido',
         'data-pedido': doc.pedido,
         title: doc.pedido,
-        style: 'font-size:12.5px;font-weight:700;color:#2563eb;white-space:nowrap;'
+        style: 'font-size:12.5px;font-weight:700;color:var(--rv-accent-blue);white-space:nowrap;'
           + 'overflow:hidden;text-overflow:ellipsis;min-width:0;',
       }, doc.pedido);
     }
     return window.el('span', {
       'data-field': 'pedido',
       'data-pedido': '',
-      style: 'font-size:12.5px;color:#aab2bf;font-style:italic;white-space:nowrap;'
+      style: 'font-size:12.5px;color:var(--rv-text-tertiary);font-style:italic;white-space:nowrap;'
         + 'overflow:hidden;text-overflow:ellipsis;min-width:0;',
     }, 'Não mapeado');
   }
@@ -1284,7 +1284,7 @@
         'data-document-id': doc.id,
         title: ariaLabel,
         'aria-label': ariaLabel,
-        style: 'color:#9aa2af;font-size:11px;font-style:italic;white-space:normal;line-height:1.3;text-align:center;max-width:100%;overflow-wrap:break-word;',
+        style: 'color:var(--rv-text-tertiary);font-size:11px;font-style:italic;white-space:normal;line-height:1.3;text-align:center;max-width:100%;overflow-wrap:break-word;',
       }, label));
     } else {
       wrap.appendChild(window.el('span', {
@@ -1292,7 +1292,7 @@
         'data-document-id': doc.id,
         title: 'Ação indisponível',
         'aria-label': 'Ação indisponível',
-        style: 'color:#9aa2af;font-size:11.5px;font-style:italic;white-space:nowrap;',
+        style: 'color:var(--rv-text-tertiary);font-size:11.5px;font-style:italic;white-space:nowrap;',
       }, 'Indisponível'));
     }
 
@@ -1301,7 +1301,7 @@
         var desfazerNuvemBtn;
         desfazerNuvemBtn = iconButton('Desfazer decisão', SVG_UNDO, function () {
           runCloudUndo(desfazerNuvemBtn, doc);
-        }, 'color:#687385;border-color:#cfd5dd;', {
+        }, 'color:var(--rv-text-secondary);border-color:var(--rv-border-strong);', {
           'data-action': 'desfazer-decisao-nuvem',
           'data-document-id': doc.id,
         });
@@ -1311,7 +1311,7 @@
         var rejeitarNuvemBtn;
         rejeitarNuvemBtn = iconButton('Rejeitar', SVG_X, function () {
           handleCloudDecision(doc);
-        }, 'color:#d6403a;border-color:#f0cfcd;', {
+        }, 'color:var(--rv-signal-negative);border-color:var(--rv-signal-negative-border);', {
           'data-action': 'rejeitar-documento-nuvem',
           'data-document-id': doc.id,
         });
@@ -1320,7 +1320,7 @@
         var aceitarNuvemBtn;
         aceitarNuvemBtn = iconButton('Aceitar', SVG_CHECK, function () {
           handleCloudDecision(doc);
-        }, 'color:#18794a;border-color:#a7d8bd;', {
+        }, 'color:var(--rv-signal-positive);border-color:var(--rv-signal-positive-border);', {
           'data-action': 'aceitar-documento-nuvem',
           'data-document-id': doc.id,
         });
@@ -1330,7 +1330,7 @@
         // B8 admin surface: inspect history + correct / unlink / restore links.
         wrap.appendChild(iconButton('Histórico e vínculos', SVG_LINK, function () {
           handleLinkAdmin(doc);
-        }, 'color:#687385;border-color:#cfd5dd;', {
+        }, 'color:var(--rv-text-secondary);border-color:var(--rv-border-strong);', {
           'data-action': 'administrar-vinculos-nuvem',
           'data-document-id': doc.id,
         }));
@@ -1354,7 +1354,7 @@
           if (typeof window.toast === 'function') window.toast('Não foi possível salvar a decisão local. O status do documento não foi alterado.', 'error');
         }
         rerender();
-      }, 'color:#d6403a;border-color:#f0cfcd;', {
+      }, 'color:var(--rv-signal-negative);border-color:var(--rv-signal-negative-border);', {
         'data-action': 'rejeitar-documento',
         'data-document-id': doc.id,
       }));
@@ -1369,7 +1369,7 @@
           if (typeof window.toast === 'function') window.toast('Não foi possível salvar a decisão local. O status do documento não foi alterado.', 'error');
         }
         rerender();
-      }, 'color:#18794a;border-color:#a7d8bd;', {
+      }, 'color:var(--rv-signal-positive);border-color:var(--rv-signal-positive-border);', {
         'data-action': 'aceitar-documento',
         'data-document-id': doc.id,
       }));
@@ -1379,7 +1379,7 @@
         'data-document-id': doc.id,
         role: 'status',
         'aria-label': 'Origem do documento n\u00e3o identificada. Decis\u00e3o indispon\u00edvel at\u00e9 a origem ser normalizada.',
-        style: 'color:#9aa2af;font-size:11.5px;font-style:italic;white-space:normal;line-height:1.3;text-align:center;max-width:150px;overflow-wrap:break-word;',
+        style: 'color:var(--rv-text-tertiary);font-size:11.5px;font-style:italic;white-space:normal;line-height:1.3;text-align:center;max-width:150px;overflow-wrap:break-word;',
       }, 'Origem do documento n\u00e3o identificada. Decis\u00e3o indispon\u00edvel at\u00e9 a origem ser normalizada.'));
     }
 
@@ -1396,7 +1396,7 @@
           if (typeof window.toast === 'function') window.toast('Não foi possível desfazer a decisão local. O estado persistido foi mantido.', 'error');
         }
         rerender();
-      }, 'color:#8a93a3;border-color:#d0d3d8;font-size:11px;', {
+      }, 'color:var(--rv-text-tertiary);border-color:var(--rv-border-soft);font-size:11px;', {
         'data-action': 'desfazer-decisao-documento',
         'data-document-id': doc.id,
       }));
@@ -1489,16 +1489,16 @@
       window.el('div', {
         style: 'display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:3px;',
       },
-        window.el('div', { style: 'font-size:22px;font-weight:800;color:#16203a;letter-spacing:-.01em;white-space:nowrap;' }, 'Documentos Mapeados'),
+        window.el('div', { style: 'font-size:22px;font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;white-space:nowrap;' }, 'Documentos Mapeados'),
         actions),
       ui.scanFeedback ? window.el('div', {
         'data-section': 'document-scan-feedback',
         'data-kind': ui.scanFeedback.kind,
         style: 'margin-top:8px;font-size:12.5px;font-weight:600;color:'
-          + (ui.scanFeedback.kind === 'error' ? '#b42318' : ui.scanFeedback.kind === 'success' ? '#18794a' : '#2563eb') + ';',
+          + (ui.scanFeedback.kind === 'error' ? 'var(--rv-signal-negative)' : ui.scanFeedback.kind === 'success' ? 'var(--rv-signal-positive)' : 'var(--rv-accent-blue)') + ';',
       }, ui.scanFeedback.message) : null,
       window.el('div', {
-        style: 'font-size:13px;color:#8a93a3;line-height:1.45;white-space:nowrap;',
+        style: 'font-size:13px;color:var(--rv-text-tertiary);line-height:1.45;white-space:nowrap;',
       }, 'Importe a lista gerada pelo Documents Ingestor para revisar os documentos mapeados.'));
   }
 
@@ -1542,8 +1542,8 @@
     var statusOrder = ['pending', 'assigned', 'accepted', 'rejected', 'unknown'];
     var statusLabelSingle = { pending: 'Pendente', assigned: 'Atribuído', accepted: 'Aceito', rejected: 'Rejeitado', unknown: 'Desconhecido' };
     var statusLabelPlural = { pending: 'Pendentes', assigned: 'Atribuídos', accepted: 'Aceitos', rejected: 'Rejeitados', unknown: 'Desconhecidos' };
-    var statusColors = { pending: '#c2610c', assigned: '#2563eb', accepted: '#18794a', rejected: '#d6403a', unknown: '#8a93a3' };
-    var statusBg = { pending: '#fff4e6', assigned: '#eaf1fd', accepted: '#e6f4ec', rejected: '#fdecec', unknown: '#f1f3f6' };
+    var statusColors = { pending: 'var(--rv-signal-caution)', assigned: 'var(--rv-accent-blue)', accepted: 'var(--rv-signal-positive)', rejected: 'var(--rv-signal-negative)', unknown: 'var(--rv-text-tertiary)' };
+    var statusBg = { pending: 'var(--rv-signal-caution-bg)', assigned: 'var(--rv-pill-info-bg)', accepted: 'var(--rv-signal-positive-bg)', rejected: 'var(--rv-surface)', unknown: 'var(--rv-surface-subtle)' };
     for (var si = 0; si < statusOrder.length; si++) {
       var key = statusOrder[si];
       var val = sc[key];
@@ -1555,8 +1555,8 @@
       }, String(val) + ' ' + (val === 1 ? statusLabelSingle[key] : statusLabelPlural[key])));
     }
 
-    var chipBg = isStale ? '#fdf0e6' : '#eaf1fd';
-    var chipFg = isStale ? '#b65630' : '#2563eb';
+    var chipBg = isStale ? 'var(--rv-signal-caution-bg)' : 'var(--rv-pill-info-bg)';
+    var chipFg = isStale ? 'var(--rv-signal-caution)' : 'var(--rv-accent-blue)';
     var chipLabel = isStale ? 'Defasado' : 'Atualizado';
 
     var chip = window.el('span', {
@@ -1567,11 +1567,11 @@
 
     var hashDisplay = hash ? hash.slice(0, 8) : '';
     var hashChip = hashDisplay ? window.el('span', {
-      style: 'font-size:10.5px;font-weight:500;color:#9aa2af;white-space:nowrap;font-family:monospace;',
+      style: 'font-size:10.5px;font-weight:500;color:var(--rv-text-tertiary);white-space:nowrap;font-family:monospace;',
     }, '#' + hashDisplay) : null;
 
     var fileDisplay = fileName ? window.el('span', {
-      style: 'font-size:12px;font-weight:600;color:#3f4757;white-space:nowrap;max-width:260px;'
+      style: 'font-size:12px;font-weight:600;color:var(--rv-text-primary);white-space:nowrap;max-width:260px;'
         + 'overflow:hidden;text-overflow:ellipsis;',
       title: fileName,
     }, fileName) : null;
@@ -1580,12 +1580,12 @@
       style: 'display:flex;align-items:center;gap:14px;flex-wrap:wrap;',
     },
       window.el('span', {
-        style: 'font-size:11.5px;color:#8a93a3;white-space:nowrap;',
-      }, window.el('span', { style: 'font-weight:600;color:#5b6472;' }, 'Último import: '), when));
+        style: 'font-size:11.5px;color:var(--rv-text-tertiary);white-space:nowrap;',
+      }, window.el('span', { style: 'font-weight:600;color:var(--rv-text-secondary);' }, 'Último import: '), when));
 
     if (fileDisplay) infoRow.appendChild(fileDisplay);
     if (count != null) infoRow.appendChild(window.el('span', {
-      style: 'font-size:12px;color:#5b6472;font-weight:500;white-space:nowrap;',
+      style: 'font-size:12px;color:var(--rv-text-secondary);font-weight:500;white-space:nowrap;',
     }, String(count) + ' documento(s)'));
     infoRow.appendChild(chip);
 
@@ -1599,7 +1599,7 @@
           detailRow.appendChild(statusPills[pi]);
         }
         if (hashChip) {
-          detailRow.appendChild(window.el('span', { style: 'color:#d8dce2;font-size:10px;' }, '·'));
+          detailRow.appendChild(window.el('span', { style: 'color:var(--rv-text-tertiary);font-size:10px;' }, '·'));
         }
       }
       if (hashChip) detailRow.appendChild(hashChip);
@@ -1609,7 +1609,7 @@
     var autoSyncChip = autoSyncSession ? window.el('span', {
       style: 'display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;'
         + 'letter-spacing:.05em;text-transform:uppercase;padding:1px 6px;border-radius:3px;'
-        + 'white-space:nowrap;background:#e6f4ec;color:#18794a;margin-left:6px;',
+        + 'white-space:nowrap;background:var(--rv-signal-positive-bg);color:var(--rv-signal-positive);margin-left:6px;',
     }, 'Auto-sync') : null;
 
     var warningMsg;
@@ -1621,8 +1621,8 @@
       warningMsg = 'Snapshot manual — pode estar defasado. Reimporte para dados atuais.';
     }
 
-    var warnColor = autoSyncSession ? '#18794a' : (isStale ? '#b65630' : '#8a93a3');
-    var warnBg = autoSyncSession ? '#e6f4ec' : (isStale ? '#fde0ce' : '#f1f3f6');
+    var warnColor = autoSyncSession ? 'var(--rv-signal-positive)' : (isStale ? 'var(--rv-signal-caution)' : 'var(--rv-text-tertiary)');
+    var warnBg = autoSyncSession ? 'var(--rv-signal-positive-bg)' : (isStale ? 'var(--rv-signal-caution-bg)' : 'var(--rv-surface-subtle)');
 
     var warningRow = window.el('div', {
       style: 'display:flex;align-items:flex-start;gap:4px;margin-top:4px;font-size:11px;'
@@ -1639,7 +1639,7 @@
     return window.el('div', {
       'data-section': 'documentos-recebidos-import-metadata',
       style: CARD + 'margin-bottom:10px;padding:10px 14px;'
-        + 'font-size:12px;' + (isStale ? 'border-color:#ebc8a6;' : ''),
+        + 'font-size:12px;' + (isStale ? 'border-color:var(--rv-signal-caution-border);' : ''),
     }, infoRow, detailRow, warningRow);
   }
 
@@ -1667,8 +1667,8 @@
       + 'cursor:pointer;white-space:nowrap;flex-shrink:0;'
       + 'transition:color .12s ease,opacity .12s ease;'
       + (active
-        ? 'color:#3f4757;'
-        : 'color:#aeb6c2;opacity:.62;');
+        ? 'color:var(--rv-text-primary);'
+        : 'color:var(--rv-text-tertiary);opacity:.62;');
     return window.el('button', {
       type: 'button',
       'data-action': 'toggle-tipo-mapeado',
@@ -1689,7 +1689,7 @@
       style: 'display:inline-flex;align-items:center;gap:6px;min-width:0;flex:0 0 auto;flex-wrap:nowrap;',
     },
       window.el('span', {
-        style: 'font-size:12.5px;color:#8a93a3;font-weight:600;white-space:nowrap;',
+        style: 'font-size:12.5px;color:var(--rv-text-tertiary);font-weight:600;white-space:nowrap;',
       }, 'Tipos mapeados:'),
       MAPPED_SCAN_TYPES.map(mappedTypeButton));
   }
@@ -1700,7 +1700,7 @@
       'data-action': 'toggle-varredura',
       title: ui.scanPlaying ? 'Pausar varredura' : 'Iniciar varredura',
       style: 'width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;'
-        + 'background:transparent;border:none;color:#64748b;padding:0;cursor:pointer;flex-shrink:0;',
+        + 'background:transparent;border:none;color:var(--rv-text-secondary);padding:0;cursor:pointer;flex-shrink:0;',
       onclick: function () {
         ui.scanPlaying = !ui.scanPlaying;
         rerender();
@@ -1714,16 +1714,16 @@
       style: 'position:relative;display:inline-flex;width:8px;height:8px;flex-shrink:0;',
     },
       ui.scanPlaying ? window.el('span', {
-        style: 'position:absolute;inset:0;border-radius:50%;background:#1e9e57;'
+        style: 'position:absolute;inset:0;border-radius:50%;background:var(--rv-signal-positive);'
           + 'animation:rv-doc-ping 1.9s cubic-bezier(0,0,.2,1) infinite;',
       }) : null,
       window.el('span', {
         style: 'position:relative;width:8px;height:8px;border-radius:50%;background:'
-          + (ui.scanPlaying ? '#1e9e57' : '#b6bdc8') + ';',
+          + (ui.scanPlaying ? 'var(--rv-signal-positive)' : 'var(--rv-text-tertiary)') + ';',
       }));
 
     var divider = function () {
-      return window.el('span', { style: 'width:1px;height:16px;background:#e6e9ee;flex-shrink:0;' });
+      return window.el('span', { style: 'width:1px;height:16px;background:var(--rv-surface-subtle);flex-shrink:0;' });
     };
 
     return window.el('div', {
@@ -1733,24 +1733,24 @@
     },
       window.el('span', {
         style: 'display:inline-flex;align-items:center;gap:8px;font-size:13px;'
-          + 'font-weight:600;color:#16203a;white-space:nowrap;',
+          + 'font-weight:600;color:var(--rv-text-primary);white-space:nowrap;',
       }, dot, 'Varredura', playBtn),
       divider(),
       buildMappedTypesControls(),
       window.el('span', {
-        style: 'display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#8a93a3;'
+        style: 'display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--rv-text-tertiary);'
           + 'white-space:nowrap;margin-left:auto;',
       }, 'Origem:',
         window.el('span', {
-          style: 'display:inline-flex;align-items:center;gap:5px;background:#f6f7f9;'
-            + 'border:1px solid #eceef1;border-radius:4px;padding:2px 8px;'
-            + 'font-size:12px;font-weight:600;color:#3f4757;',
+          style: 'display:inline-flex;align-items:center;gap:5px;background:var(--rv-surface-subtle);'
+            + 'border:1px solid var(--rv-border);border-radius:4px;padding:2px 8px;'
+            + 'font-size:12px;font-weight:600;color:var(--rv-text-primary);',
         }, svgEl(SVG_MAIL, 12, 'Gmail'), 'Gmail')),
       divider(),
       window.el('span', {
-        style: 'font-size:13px;color:#8a93a3;white-space:nowrap;',
+        style: 'font-size:13px;color:var(--rv-text-tertiary);white-space:nowrap;',
       }, 'Última execução: ', window.el('span', {
-        style: 'color:#3f4757;font-weight:500;',
+        style: 'color:var(--rv-text-primary);font-weight:500;',
       }, latestRunLabel(docs))));
   }
 
@@ -1763,8 +1763,8 @@
         + 'padding:6px 12px;font-size:13px;cursor:pointer;white-space:nowrap;'
         + 'font-family:inherit;'
         + (active
-          ? 'font-weight:600;border:1px solid #2563eb;background:#2563eb;color:#fff;'
-          : 'font-weight:500;border:1px solid #d8dce2;background:#fff;color:#5b6472;'),
+          ? 'font-weight:600;border:1px solid var(--rv-brand);background:var(--rv-brand);color:var(--rv-text-on-brand);'
+          : 'font-weight:500;border:1px solid var(--rv-border-strong);background:var(--rv-surface);color:var(--rv-text-secondary);'),
       onclick: function () {
         ui.tab = key;
         rerender();
@@ -1774,8 +1774,8 @@
       window.el('span', {
         style: 'border-radius:999px;padding:1px 7px;font-size:11px;font-weight:600;'
           + (active
-            ? 'background:rgba(255,255,255,.24);color:#fff;'
-            : 'background:#f1f3f6;color:#8a93a3;'),
+            ? 'background:var(--rv-active-bg);color:var(--rv-text-on-brand);'
+            : 'background:var(--rv-surface-subtle);color:var(--rv-text-tertiary);'),
       }, String(count)));
   }
 
@@ -1783,15 +1783,15 @@
     var counts = countsByStatus(docs);
     var searchBox = window.el('div', {
       style: 'flex:1;min-width:260px;display:flex;align-items:center;gap:8px;'
-        + 'background:#fff;border:1px solid #d8dce2;border-radius:4px;padding:7px 13px;',
-    }, svgEl(SVG_SEARCH, 14, 'Buscar', 'color:#9aa2af;'));
+        + 'background:var(--rv-surface);border:1px solid var(--rv-border-strong);border-radius:4px;padding:7px 13px;',
+    }, svgEl(SVG_SEARCH, 14, 'Buscar', 'color:var(--rv-text-tertiary);'));
 
     var input = window.el('input', {
       id: 'rv-docs-search',
       type: 'text',
       placeholder: 'Buscar por nome do arquivo ou pedido...',
       style: 'border:none;outline:none;background:transparent;flex:1;min-width:0;'
-        + 'font-size:13px;color:#16203a;font-family:inherit;',
+        + 'font-size:13px;color:var(--rv-text-primary);font-family:inherit;',
     });
     input.value = ui.busca;
     input.addEventListener('focus', function () { ui.searchHasFocus = true; });
@@ -1825,7 +1825,7 @@
 
   function selectControl(label, value, options, onChange) {
     var sel = window.el('select', {
-      style: 'width:100%;border:none;outline:none;background:transparent;color:#16203a;'
+      style: 'width:100%;border:none;outline:none;background:transparent;color:var(--rv-text-primary);'
         + 'font-size:13px;font-family:inherit;font-weight:500;appearance:none;'
         + '-webkit-appearance:none;-moz-appearance:none;cursor:pointer;',
     });
@@ -1839,14 +1839,14 @@
     });
 
     return window.el('label', {
-      style: 'flex:1;min-width:150px;background:#fff;border:1px solid #d8dce2;'
+      style: 'flex:1;min-width:150px;background:var(--rv-surface);border:1px solid var(--rv-border-strong);'
         + 'border-radius:4px;padding:6px 10px;display:flex;align-items:center;'
         + 'justify-content:space-between;gap:8px;cursor:pointer;',
     },
       window.el('span', { style: 'display:flex;flex-direction:column;gap:1px;min-width:0;flex:1;' },
-        window.el('span', { style: 'font-size:10.5px;font-weight:700;color:#8a93a3;' }, label),
+        window.el('span', { style: 'font-size:10.5px;font-weight:700;color:var(--rv-text-tertiary);' }, label),
         sel),
-      svgEl(SVG_CHEVRON, 13, 'Abrir filtro', 'color:#9aa2af;'));
+      svgEl(SVG_CHEVRON, 13, 'Abrir filtro', 'color:var(--rv-text-tertiary);'));
   }
 
   function uniquePedidos(docs) {
@@ -1953,9 +1953,9 @@
     var isError = state.state === 'remote-unavailable';
     var isWarning = isRemote && !isError;
 
-    var bg = isError ? '#fdecec' : (isWarning ? '#fdf0e6' : (state.state === 'loading' ? '#f1f3f6' : '#eaf1fd'));
-    var fg = isError ? '#d6403a' : (isWarning ? '#b65630' : (state.state === 'loading' ? '#5b6472' : '#2563eb'));
-    var border = isError ? '#f0cfcd' : (isWarning ? '#ebc8a6' : '#d8dce2');
+    var bg = isError ? 'var(--rv-surface)' : (isWarning ? 'var(--rv-signal-caution-bg)' : (state.state === 'loading' ? 'var(--rv-surface-subtle)' : 'var(--rv-pill-info-bg)'));
+    var fg = isError ? 'var(--rv-signal-negative)' : (isWarning ? 'var(--rv-signal-caution)' : (state.state === 'loading' ? 'var(--rv-text-secondary)' : 'var(--rv-accent-blue)'));
+    var border = isError ? 'var(--rv-signal-negative-border)' : (isWarning ? 'var(--rv-signal-caution-border)' : 'var(--rv-border-strong)');
 
     return window.el('div', {
       'data-section': 'queue-ui-state',
@@ -1973,14 +1973,14 @@
   function buildColumnsLegend() {
     function head(label, align) {
       return window.el('div', {
-        style: 'font-size:11px;font-weight:700;color:#8a93a3;letter-spacing:.04em;'
+        style: 'font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.04em;'
           + 'text-transform:uppercase;' + (align ? 'text-align:' + align + ';' : ''),
       }, label.toUpperCase());
     }
     return window.el('div', {
       'data-section': 'documentos-recebidos-columns',
       style: 'display:grid;grid-template-columns:' + TABLE_GRID + ';align-items:center;'
-        + 'gap:12px;padding:9px 16px;background:#f8f9fb;border-bottom:1px solid #eceef1;',
+        + 'gap:12px;padding:9px 16px;background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);',
     },
       head('Documento'),
       head('Tipo'),
@@ -2015,16 +2015,16 @@
 
     var nameBlock = window.el('div', { style: 'min-width:0;' },
       window.el('div', {
-        style: 'font-size:13.5px;font-weight:600;color:#16203a;white-space:nowrap;'
+        style: 'font-size:13.5px;font-weight:600;color:var(--rv-text-primary);white-space:nowrap;'
           + 'overflow:hidden;text-overflow:ellipsis;',
       }, doc.filename));
     if (doc.from) {
       nameBlock.appendChild(window.el('div', {
-        style: 'font-size:11px;color:#9aa2af;margin-top:1px;min-width:0;overflow-wrap:anywhere;',
+        style: 'font-size:11px;color:var(--rv-text-tertiary);margin-top:1px;min-width:0;overflow-wrap:anywhere;',
       }, 'Remetente: ' + doc.from));
     } else {
       nameBlock.appendChild(window.el('div', {
-        style: 'font-size:11px;color:#9aa2af;margin-top:1px;overflow-wrap:anywhere;',
+        style: 'font-size:11px;color:var(--rv-text-tertiary);margin-top:1px;overflow-wrap:anywhere;',
       }, 'Remetente: indisponível'));
     }
 
@@ -2034,7 +2034,7 @@
     // changes, so it gets the same §7.1 bundle.
     function stateSpan(label, ariaLabel, color) {
       return window.el('span', {
-        style: 'font-size:10.5px;color:' + (color || '#8a93a3') + ';white-space:nowrap;'
+        style: 'font-size:10.5px;color:' + (color || 'var(--rv-text-tertiary)') + ';white-space:nowrap;'
           + 'overflow:hidden;text-overflow:ellipsis;min-width:0;',
         title: ariaLabel || label,
         'aria-label': ariaLabel || label,
@@ -2042,9 +2042,9 @@
     }
 
     function toneColor(tone) {
-      if (tone === 'warning') return '#b65630';
-      if (tone === 'info') return '#2563eb';
-      return '#8a93a3';
+      if (tone === 'warning') return 'var(--rv-signal-caution)';
+      if (tone === 'info') return 'var(--rv-accent-blue)';
+      return 'var(--rv-text-tertiary)';
     }
 
     var col1 = window.el('div', { style: 'display:flex;flex-direction:column;gap:4px;min-width:0;' },
@@ -2055,8 +2055,8 @@
       var alertsEl = window.el('div', { style: 'display:flex;align-items:center;gap:4px;flex-wrap:wrap;' });
       for (var ai = 0; ai < pres.alerts.length; ai++) {
         var a = pres.alerts[ai];
-        var alertBg = a.severity === 'warning' ? '#fdf0e6' : '#eaf1fd';
-        var alertFg = a.severity === 'warning' ? '#b65630' : '#2563eb';
+        var alertBg = a.severity === 'warning' ? 'var(--rv-signal-caution-bg)' : 'var(--rv-pill-info-bg)';
+        var alertFg = a.severity === 'warning' ? 'var(--rv-signal-caution)' : 'var(--rv-accent-blue)';
         alertsEl.appendChild(window.el('span', {
           style: 'display:inline-flex;align-items:center;border-radius:3px;padding:1px 5px;'
             + 'font-size:10px;font-weight:600;white-space:nowrap;'
@@ -2076,18 +2076,18 @@
           'data-decisao': 'divergente',
           style: 'display:inline-flex;align-items:center;border-radius:3px;padding:1px 6px;'
             + 'font-size:10px;font-weight:700;white-space:nowrap;'
-            + 'background:#fef4e6;color:#b65630;letter-spacing:.03em;text-transform:uppercase;',
+            + 'background:var(--rv-signal-caution-bg);color:var(--rv-signal-caution);letter-spacing:.03em;text-transform:uppercase;',
         }, 'Divergente') : null,
         doc.hasLocalDecision && !doc.isDivergent ? window.el('span', {
           'data-field': 'decisao-local',
           'data-decisao': 'local',
           style: 'display:inline-flex;align-items:center;border-radius:3px;padding:1px 6px;'
             + 'font-size:10px;font-weight:700;white-space:nowrap;'
-            + 'background:#eaf1fd;color:#2563eb;letter-spacing:.03em;text-transform:uppercase;',
+            + 'background:var(--rv-pill-info-bg);color:var(--rv-accent-blue);letter-spacing:.03em;text-transform:uppercase;',
         }, 'Decisão local') : null));
     if (pres) {
       if (pres.review.label) {
-        statusCol.appendChild(stateSpan(pres.review.label, pres.review.ariaLabel, '#5b6472'));
+        statusCol.appendChild(stateSpan(pres.review.label, pres.review.ariaLabel, 'var(--rv-text-secondary)'));
       }
       if (pres.evidence.label) {
         statusCol.appendChild(stateSpan(pres.evidence.label, pres.evidence.ariaLabel, toneColor(pres.evidence.tone)));
@@ -2095,7 +2095,7 @@
       if (q && doc.queueItem) {
         var valPres = q.getValidationPresentation(doc.queueItem);
         if (valPres.label) {
-          statusCol.appendChild(stateSpan(valPres.label, valPres.ariaLabel, '#8a93a3'));
+          statusCol.appendChild(stateSpan(valPres.label, valPres.ariaLabel, 'var(--rv-text-tertiary)'));
         }
       }
     }
@@ -2104,30 +2104,30 @@
     pedidoCol.appendChild(pedidoCell(doc));
     if (pres) {
       if (pres.pedido.label) {
-        pedidoCol.appendChild(stateSpan(pres.pedido.label, pres.pedido.ariaLabel, '#8a93a3'));
+        pedidoCol.appendChild(stateSpan(pres.pedido.label, pres.pedido.ariaLabel, 'var(--rv-text-tertiary)'));
       }
       if (pres.source.label) {
-        pedidoCol.appendChild(stateSpan(pres.source.label, pres.source.ariaLabel, '#9aa2af'));
+        pedidoCol.appendChild(stateSpan(pres.source.label, pres.source.ariaLabel, 'var(--rv-text-tertiary)'));
       }
     }
 
     var datesCol = window.el('div', { style: 'display:flex;flex-direction:column;gap:3px;min-width:0;' },
-      window.el('div', { 'data-field': 'recebido-no-email', style: 'font-size:11.5px;color:#5b6472;white-space:nowrap;' },
+      window.el('div', { 'data-field': 'recebido-no-email', style: 'font-size:11.5px;color:var(--rv-text-secondary);white-space:nowrap;' },
         'Recebido: ', doc.emailReceivedAt ? fmtDataHoraCurta(doc.emailReceivedAt) : 'indisponível',
         doc.raw.email_received_at_estimated === true ? window.el('span', {
-          'data-badge': 'data-estimada', style: 'margin-left:5px;font-size:10px;font-weight:700;color:#a16207;',
+          'data-badge': 'data-estimada', style: 'margin-left:5px;font-size:10px;font-weight:700;color:var(--rv-signal-caution);',
         }, 'data estimada') : null,
         !doc.emailReceivedAt ? window.el('span', {
-          'data-badge': 'documento-legado', style: 'margin-left:5px;font-size:10px;font-weight:700;color:#7c3aed;',
+          'data-badge': 'documento-legado', style: 'margin-left:5px;font-size:10px;font-weight:700;color:var(--rv-stage-tecelagem);',
         }, 'documento legado') : null),
-      window.el('div', { 'data-field': 'processado-pelo-ingestor', style: 'font-size:11.5px;color:#7b8492;white-space:nowrap;' },
+      window.el('div', { 'data-field': 'processado-pelo-ingestor', style: 'font-size:11.5px;color:var(--rv-text-secondary);white-space:nowrap;' },
         'Processado: ', doc.processedAt ? fmtDataHoraCurta(doc.processedAt) : 'indisponível'));
 
     return window.el('div', {
       'data-document-id': doc.id,
       'data-row': 'documento-recebido',
       style: 'display:grid;grid-template-columns:' + TABLE_GRID + ';align-items:start;'
-        + 'gap:12px;padding:10px 16px;border-bottom:' + (isLast ? 'none' : '1px solid #f1f3f6') + ';',
+        + 'gap:12px;padding:10px 16px;border-bottom:' + (isLast ? 'none' : '1px solid var(--rv-border-soft)') + ';',
     },
       col1,
       badges,
@@ -2143,14 +2143,14 @@
         + 'gap:9px;padding:52px 18px;text-align:center;',
     },
       window.el('div', {
-        style: 'width:46px;height:46px;border-radius:50%;background:#f1f3f6;'
-          + 'display:flex;align-items:center;justify-content:center;color:#b6bdc8;',
+        style: 'width:46px;height:46px;border-radius:50%;background:var(--rv-surface-subtle);'
+          + 'display:flex;align-items:center;justify-content:center;color:var(--rv-text-tertiary);',
       }, svgEl(SVG_INBOX, 22, 'Documentos')),
       window.el('div', {
-        style: 'font-size:14px;font-weight:600;color:#5b6472;',
+        style: 'font-size:14px;font-weight:600;color:var(--rv-text-secondary);',
       }, total ? 'Nenhum documento neste filtro' : 'Nenhum documento recebido'),
       window.el('div', {
-        style: 'font-size:13px;color:#9aa2af;',
+        style: 'font-size:13px;color:var(--rv-text-tertiary);',
       }, total ? 'Ajuste os filtros ou aguarde a próxima varredura.'
         : 'Use o botão Importar documentos acima para carregar o export do Documents Ingestor.'));
   }
@@ -2172,13 +2172,13 @@
       window.el('div', { style: 'overflow-x:auto;' }, inner),
       window.el('div', {
         style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;'
-          + 'padding:12px 18px;border-top:1px solid #eceef1;flex-wrap:wrap;',
+          + 'padding:12px 18px;border-top:1px solid var(--rv-border);flex-wrap:wrap;',
       },
         window.el('span', {
-          style: 'font-size:13px;color:#9aa2af;',
+          style: 'font-size:13px;color:var(--rv-text-tertiary);',
         }, 'Mostrando ' + visible.length + ' de ' + docs.length + ' documento' + (docs.length === 1 ? '' : 's')),
         window.el('span', {
-          style: 'font-size:12.5px;color:#b6bdc8;',
+          style: 'font-size:12.5px;color:var(--rv-text-tertiary);',
         }, 'Sincronizado via Documents Ingestor')));
   }
 

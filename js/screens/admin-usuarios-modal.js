@@ -34,15 +34,15 @@
     control.style.width = '100%';
     control.style.minHeight = '44px';
     control.style.padding = control.tagName === 'SELECT' ? '10px 38px 10px 13px' : '10px 13px';
-    control.style.border = '1px solid #d8dce2';
+    control.style.border = '1px solid var(--rv-border-strong)';
     control.style.borderRadius = '4px';
-    control.style.background = control.disabled ? '#f4f6f8' : '#fff';
+    control.style.background = control.disabled ? 'var(--rv-surface-subtle)' : 'var(--rv-surface)';
     control.style.boxShadow = 'none';
     control.style.outline = 'none';
     control.style.fontSize = '14px';
     control.style.fontFamily = 'inherit';
     control.style.lineHeight = '1.45';
-    control.style.color = control.disabled ? '#97a0af' : '#2f3642';
+    control.style.color = control.disabled ? 'var(--rv-text-tertiary)' : 'var(--rv-text-primary)';
     control.style.transition = 'border-color .18s ease, box-shadow .18s ease, background .18s ease';
 
     if (control.tagName === 'SELECT') {
@@ -55,11 +55,11 @@
 
     if (!control.disabled) {
       control.addEventListener('focus', function () {
-        control.style.borderColor = '#2563eb';
-        control.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)';
+        control.style.borderColor = 'var(--rv-brand)';
+        control.style.boxShadow = '0 0 0 3px var(--rv-focus-ring)';
       });
       control.addEventListener('blur', function () {
-        control.style.borderColor = '#d8dce2';
+        control.style.borderColor = 'var(--rv-border-strong)';
         control.style.boxShadow = 'none';
       });
     }
@@ -79,13 +79,13 @@
     if (fullWidth) wrap.style.gridColumn = '1 / -1';
 
     wrap.appendChild(window.el('label', {
-      style: 'font-size:12px; line-height:1.2; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#5b6472;'
+      style: 'font-size:12px; line-height:1.2; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--rv-text-secondary);'
     }, label));
     wrap.appendChild(applyAdminUsuariosControlStyle(input));
 
     if (hint) {
       wrap.appendChild(window.el('p', {
-        style: 'margin:0; font-size:12px; line-height:1.45; color:#8a93a3;'
+        style: 'margin:0; font-size:12px; line-height:1.45; color:var(--rv-text-tertiary);'
       }, hint));
     }
 
@@ -136,7 +136,7 @@
     var onClose = options.onClose;
     var maxWidth = options.maxWidth || 680;
     var overlay = window.el('div', {
-      style: 'position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; padding:24px 18px; background:rgba(15, 23, 42, 0.42); backdrop-filter:blur(2px);',
+      style: 'position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; padding:24px 18px; background:var(--rv-overlay-scrim); backdrop-filter:blur(2px);',
       onclick: function (e) {
         if (e.target === overlay) close();
       }
@@ -155,34 +155,34 @@
     document.addEventListener('keydown', escListener);
 
     var card = window.el('div', {
-      style: `width:min(100%, ${maxWidth}px); max-height:min(92vh, 860px); display:flex; flex-direction:column; background:#fff; border:1px solid #eceef1; border-radius:6px; box-shadow:0 20px 54px rgba(15, 23, 42, 0.18); overflow:hidden;`
+      style: `width:min(100%, ${maxWidth}px); max-height:min(92vh, 860px); display:flex; flex-direction:column; background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:6px; box-shadow:var(--rv-shadow-popover); overflow:hidden;`
     });
     var titleWrap = window.el('div', {
       style: 'display:flex; flex-direction:column; gap:4px; min-width:0;'
     });
     titleWrap.appendChild(window.el('h2', {
-      style: 'margin:0; font-size:20px; line-height:1.2; font-weight:700; color:#1f2937;'
+      style: 'margin:0; font-size:20px; line-height:1.2; font-weight:700; color:var(--rv-text-primary);'
     }, title));
 
     var closeButton = window.el('button', {
       type: 'button',
       'aria-label': 'Fechar',
       onclick: close,
-      style: 'width:32px; height:32px; flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; border:1px solid #e5e7eb; border-radius:4px; background:#fff; color:#8a93a3; font-size:20px; line-height:1; cursor:pointer;'
+      style: 'width:32px; height:32px; flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--rv-border-soft); border-radius:4px; background:var(--rv-surface); color:var(--rv-text-tertiary); font-size:20px; line-height:1; cursor:pointer;'
     }, '×');
     closeButton.addEventListener('mouseenter', function () {
-      closeButton.style.borderColor = '#d0d5de';
-      closeButton.style.color = '#475569';
-      closeButton.style.background = '#f8fafc';
+      closeButton.style.borderColor = 'var(--rv-border-strong)';
+      closeButton.style.color = 'var(--rv-text-primary)';
+      closeButton.style.background = 'var(--rv-surface-subtle)';
     });
     closeButton.addEventListener('mouseleave', function () {
-      closeButton.style.borderColor = '#e5e7eb';
-      closeButton.style.color = '#8a93a3';
-      closeButton.style.background = '#fff';
+      closeButton.style.borderColor = 'var(--rv-border-soft)';
+      closeButton.style.color = 'var(--rv-text-tertiary)';
+      closeButton.style.background = 'var(--rv-surface)';
     });
 
     var header = window.el('div', {
-      style: 'display:flex; align-items:flex-start; justify-content:space-between; gap:18px; padding:18px 20px 16px; border-bottom:1px solid #edf1f5;'
+      style: 'display:flex; align-items:flex-start; justify-content:space-between; gap:18px; padding:18px 20px 16px; border-bottom:1px solid var(--rv-border-soft);'
     }, titleWrap, closeButton);
     var content = window.el('div', {
       style: 'padding:18px 20px 20px; overflow-y:auto;'
@@ -191,20 +191,20 @@
     var btnCancel = window.el('button', {
       type: 'button',
       onclick: close,
-      style: 'height:40px; min-width:110px; padding:0 16px; border:1px solid #d8dce2; border-radius:4px; background:#fff; color:#5b6472; font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; box-shadow:none;'
+      style: 'height:40px; min-width:110px; padding:0 16px; border:1px solid var(--rv-border-strong); border-radius:4px; background:var(--rv-surface); color:var(--rv-text-secondary); font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; box-shadow:none;'
     }, 'Cancelar');
     btnCancel.addEventListener('mouseenter', function () {
-      btnCancel.style.borderColor = '#c8d0db';
-      btnCancel.style.background = '#f8fafc';
+      btnCancel.style.borderColor = 'var(--rv-border-strong)';
+      btnCancel.style.background = 'var(--rv-surface-subtle)';
     });
     btnCancel.addEventListener('mouseleave', function () {
-      btnCancel.style.borderColor = '#d8dce2';
-      btnCancel.style.background = '#fff';
+      btnCancel.style.borderColor = 'var(--rv-border-strong)';
+      btnCancel.style.background = 'var(--rv-surface)';
     });
 
     var btnSave = window.el('button', {
       type: 'button',
-      style: 'height:40px; min-width:110px; padding:0 16px; border:none; border-radius:4px; background:#2563eb; color:#fff; font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; box-shadow:none; transition:background .18s ease, opacity .18s ease;',
+      style: 'height:40px; min-width:110px; padding:0 16px; border:none; border-radius:4px; background:var(--rv-brand); color:var(--rv-text-on-brand); font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; box-shadow:none; transition:background .18s ease, opacity .18s ease;',
       onclick: async function () {
         btnSave.disabled = true;
         btnSave.style.opacity = '0.78';
@@ -223,15 +223,15 @@
     }, saveLabel);
     btnSave.addEventListener('mouseenter', function () {
       if (btnSave.disabled) return;
-      btnSave.style.background = '#1d4ed8';
+      btnSave.style.background = 'var(--rv-brand-strong)';
     });
     btnSave.addEventListener('mouseleave', function () {
       if (btnSave.disabled) return;
-      btnSave.style.background = '#2563eb';
+      btnSave.style.background = 'var(--rv-brand)';
     });
 
     var footer = window.el('div', {
-      style: 'display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:14px 20px; border-top:1px solid #edf1f5; background:#fff;'
+      style: 'display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:14px 20px; border-top:1px solid var(--rv-border-soft); background:var(--rv-surface);'
     }, btnCancel, btnSave);
 
     card.appendChild(header);
@@ -584,13 +584,13 @@
     }
     var passwordBox = window.el('div', {
       style: 'font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:16px; font-weight:700; '
-        + 'letter-spacing:.03em; background:#f4f6f9; border:1px solid #d8dce2; border-radius:4px; '
+        + 'letter-spacing:.03em; background:var(--rv-surface-subtle); border:1px solid var(--rv-border-strong); border-radius:4px; '
         + 'padding:12px 14px; user-select:all; word-break:break-all;',
     }, password);
     var copyBtn = window.el('button', {
       type: 'button',
-      style: 'margin-top:10px; height:36px; padding:0 14px; border:1px solid #d8dce2; border-radius:4px; '
-        + 'background:#fff; color:#2563eb; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer;',
+      style: 'margin-top:10px; height:36px; padding:0 14px; border:1px solid var(--rv-border-strong); border-radius:4px; '
+        + 'background:var(--rv-surface); color:var(--rv-accent-blue); font-size:13px; font-weight:600; font-family:inherit; cursor:pointer;',
       onclick: async () => {
         try {
           await navigator.clipboard.writeText(password);
@@ -606,7 +606,7 @@
         'Nova senha temporária para "' + email + '":'),
       passwordBox,
       copyBtn,
-      window.el('p', { style: 'margin-top:14px; font-size:12.5px; color:#b06a6a; font-weight:600;' },
+      window.el('p', { style: 'margin-top:14px; font-size:12.5px; color:var(--rv-signal-negative); font-weight:600;' },
         'Esta senha não será exibida novamente. Copie e repasse ao usuário agora.')
     );
     window.modal({

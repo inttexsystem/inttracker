@@ -244,12 +244,12 @@
         : 0;
 
       var statusTone = {
-        simulada: { bg: '#f1f3f6', text: '#5b6472', dot: '#9aa2af', label: 'Simulada' },
-        aberta: { bg: '#eaf1fd', text: '#2563eb', dot: '#2563eb', label: 'Aberta' },
-        em_producao: { bg: '#fff4e6', text: '#c2610c', dot: '#e07b39', label: 'Em producao' },
-        concluida: { bg: '#e6f4ec', text: '#18794a', dot: '#18794a', label: 'Concluida' },
-        finalizada: { bg: '#e6f4ec', text: '#18794a', dot: '#18794a', label: 'Finalizada' },
-      }[op.status] || { bg: '#f1f3f6', text: '#5b6472', dot: '#9aa2af', label: ns.fmtTextoOuEmpty(op.status, 'Status') };
+        simulada: { bg: 'var(--rv-pill-neutral-bg)', text: 'var(--rv-text-secondary)', dot: 'var(--rv-pill-neutral-dot)', label: 'Simulada' },
+        aberta: { bg: 'var(--rv-pill-info-bg)', text: 'var(--rv-pill-info-text)', dot: 'var(--rv-pill-info-dot)', label: 'Aberta' },
+        em_producao: { bg: 'var(--rv-pill-caution-bg)', text: 'var(--rv-pill-caution-text)', dot: 'var(--rv-pill-caution-dot)', label: 'Em producao' },
+        concluida: { bg: 'var(--rv-pill-positive-bg)', text: 'var(--rv-pill-positive-text)', dot: 'var(--rv-pill-positive-dot)', label: 'Concluida' },
+        finalizada: { bg: 'var(--rv-pill-positive-bg)', text: 'var(--rv-pill-positive-text)', dot: 'var(--rv-pill-positive-dot)', label: 'Finalizada' },
+      }[op.status] || { bg: 'var(--rv-pill-neutral-bg)', text: 'var(--rv-text-secondary)', dot: 'var(--rv-pill-neutral-dot)', label: ns.fmtTextoOuEmpty(op.status, 'Status') };
 
       // D4.4: semantica documental por rota extraida (R-5).
       var opRoute = routeForOp(op, state.modelosById);

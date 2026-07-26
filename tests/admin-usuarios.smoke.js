@@ -284,6 +284,8 @@ function makeAdminUsuariosSandbox({ tableData = {}, invokeImpl = {}, rpcImpl = {
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'badges.js'), 'utf8'), sandbox, { filename: 'js/badges.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   sandbox.CURRENT_USER = { id: 'me-id', nome: 'Tester', tipo: 'admin' };
   sandbox.logout = () => {};
@@ -637,7 +639,10 @@ test('19. ordenação "Nome Z–A" inverte a ordem das linhas visíveis', async 
   assert.ok(idxEu < idxBia, 'com Nome Z–A, "Eu Mesmo" deveria vir antes de "Bia" em ordem de documento');
 });
 
-test('20. badge de papel: cores corretas por tipo (Admin azul, Fornecedor cinza)', async () => {
+// D9.2: o tipo de usuário é uma CLASSIFICAÇÃO, não um estado de ciclo de vida.
+// Todas usam a família neutra e a diferença é carregada pelo rótulo — dar a
+// cada tipo uma cor própria era exatamente o que a decisão revogou.
+test('20. badge de papel: classificação neutra e rótulo correto por tipo', async () => {
   const { sandbox } = makeAdminUsuariosSandbox({ tableData: USERS_FIXTURE });
   const node = await vm.runInContext('window.screenAdminUsuarios()', sandbox);
   const flex = node.children.find((c) => c.tagName === 'DIV');
@@ -648,8 +653,19 @@ test('20. badge de papel: cores corretas por tipo (Admin azul, Fornecedor cinza)
   const biaBadge = findAll(biaRow, (n) => n.tagName === 'SPAN' && textOf(n) === 'Fornecedor')[0];
   assert.ok(meBadge, 'badge "Admin" não encontrado na linha do admin');
   assert.ok(biaBadge, 'badge "Fornecedor" não encontrado na linha da Bia');
-  assert.match(meBadge._attrs.style, /#2563eb/, 'badge Admin deveria usar a cor #2563eb');
-  assert.match(biaBadge._attrs.style, /#5a6472/, 'badge Fornecedor deveria usar a cor #5a6472');
+  for (const [nome, badge] of [['Admin', meBadge], ['Fornecedor', biaBadge]]) {
+    assert.match(badge._attrs.style, /background:var\(--rv-pill-neutral-bg\)/,
+      'badge ' + nome + ' deve usar o fundo da família neutra');
+    assert.match(badge._attrs.style, /color:var\(--rv-pill-neutral-text\)/,
+      'badge ' + nome + ' deve usar o texto da família neutra');
+    assert.doesNotMatch(badge._attrs.style, /#[0-9a-f]{3,8}/i,
+      'badge ' + nome + ' não pode carregar cor literal');
+  }
+  // Uma classificação não é um estado: nunca ganha ponto de status.
+  assert.equal(meBadge.children.filter((c) => c.tagName === 'SPAN').length, 0,
+    'badge de classificação não pode carregar ponto de status');
+  assert.equal(meBadge._attrs.style, biaBadge._attrs.style,
+    'todas as classificações compartilham exatamente a mesma pele neutra');
 });
 
 test('21. linha inativa (Carla) tem opacidade reduzida (~0.6) quando "Mostrar inativos" está ligado', async () => {

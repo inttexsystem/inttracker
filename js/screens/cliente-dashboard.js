@@ -78,19 +78,21 @@
 
   // Paleta de tons dos badges do destaque (extraída do standalone).
   var TONE = {
-    green:  { bg: '#e6f4ec', color: '#18794a', dot: '#1ea05a' },
-    amber:  { bg: '#fdf3e0', color: '#9a6b15', dot: '#d99a2b' },
-    gray:   { bg: '#f4f5f7', color: '#5b6472', dot: '#aab2bf' },
-    red:    { bg: '#fee2e2', color: '#b91c1c', dot: '#ef4444' },
+    green:  { bg: 'var(--rv-pill-positive-bg)', color: 'var(--rv-signal-positive)', dot: 'var(--rv-signal-positive)' },
+    amber:  { bg: 'var(--rv-pill-caution-bg)', color: 'var(--rv-signal-caution)', dot: 'var(--rv-signal-caution)' },
+    gray:   { bg: 'var(--rv-pill-neutral-bg)', color: 'var(--rv-text-secondary)', dot: 'var(--rv-text-tertiary)' },
+    red:    { bg: 'var(--rv-pill-negative-bg)', color: 'var(--rv-signal-negative)', dot: 'var(--rv-signal-negative)' },
   };
 
-  // Cores fixas do donut de resumo (extraídas do standalone).
+  // Series do donut de resumo. Onde o valor tem significado (em producao,
+  // concluido, atrasado) a familia de sinal carrega esse significado; o resto
+  // usa a familia de visualizacao (D9, §2.12).
   var DONUT = {
-    emProducao: '#2563eb',
-    concluido:  '#1ea05a',
-    atrasado:   '#ef4444',
-    rascunho:   '#d1d5db',
-    track:      '#eef0f3',
+    emProducao: 'var(--rv-signal-caution)',
+    concluido:  'var(--rv-signal-positive)',
+    atrasado:   'var(--rv-signal-negative)',
+    rascunho:   'var(--rv-viz-secondary)',
+    track:      'var(--rv-viz-track)',
   };
 
   function getTrackingApi() {
@@ -149,7 +151,7 @@
   function eventoDotTone(evento) {
     var api = getTrackingApi();
     var status = normalizarKey(evento && evento.status);
-    if (!api || !status) return '#cfd5de';
+    if (!api || !status) return 'var(--rv-pill-neutral-dot)';
     var step = api.getClienteTrackingStep ? api.getClienteTrackingStep(status) : null;
     if (step) return destaqueEstadoTone(step.key).dot;
     var excecao = api.getClienteTrackingException ? api.getClienteTrackingException(status) : null;
@@ -158,7 +160,7 @@
       if (excecao.tom === 'warning') return TONE.amber.dot;
       if (excecao.tom === 'neutral') return TONE.gray.dot;
     }
-    return '#cfd5de';
+    return 'var(--rv-pill-neutral-dot)';
   }
 
   function fmtData(v) {
@@ -371,9 +373,9 @@
     // -----------------------------------------------------------------
     // Card primitives
     // -----------------------------------------------------------------
-    var CARD = 'background:#fff;border:1px solid #eceef1;border-radius:4px;'
-      + 'box-shadow:0 1px 2px rgba(20,30,45,.04);';
-    var LINK_BLUE = 'color:#2563eb;text-decoration:none;cursor:pointer;';
+    var CARD = 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;'
+      + 'box-shadow:var(--rv-shadow-none);';
+    var LINK_BLUE = 'color:var(--rv-accent-blue);text-decoration:none;cursor:pointer;';
 
     function kpiCard(iconSvg, iconBg, iconStroke, label, valor, sub) {
       var icon = svgEl(
@@ -390,11 +392,11 @@
         style: CARD + 'display:flex;align-items:center;gap:14px;padding:14px 16px;',
       }, iconWrap,
         window.el('div', {},
-          window.el('div', { style: 'font-size:14px;color:#8a93a3;' }, label),
+          window.el('div', { style: 'font-size:14px;color:var(--rv-text-tertiary);' }, label),
           window.el('div', {
-            style: 'font-size:24px;font-weight:800;color:#16203a;line-height:1;margin:1px 0;',
+            style: 'font-size:24px;font-weight:800;color:var(--rv-text-primary);line-height:1;margin:1px 0;',
           }, String(valor)),
-          window.el('div', { style: 'font-size:11px;color:#aab2bf;white-space:nowrap;' }, sub)
+          window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);white-space:nowrap;' }, sub)
         )
       );
     }
@@ -402,7 +404,7 @@
     function buildHeader() {
       var novoBtn = window.el('button', {
         type: 'button',
-        style: 'display:inline-flex;align-items:center;gap:9px;background:#2563eb;color:#fff;'
+        style: 'display:inline-flex;align-items:center;gap:9px;background:var(--rv-brand);color:var(--rv-text-on-brand);'
           + 'border:none;border-radius:4px;padding:9px 16px;font-size:14px;font-weight:600;'
           + 'font-family:inherit;cursor:pointer;white-space:nowrap;',
         onclick: function () { window.navigate('#/cliente/pedidos/novo'); },
@@ -418,10 +420,10 @@
       },
         window.el('div', {},
           window.el('h1', {
-            style: 'margin:0;font-size:23px;font-weight:700;color:#16203a;line-height:1.15;letter-spacing:-.01em;',
+            style: 'margin:0;font-size:23px;font-weight:700;color:var(--rv-text-primary);line-height:1.15;letter-spacing:-.01em;',
           }, 'Dashboard'),
           window.el('div', {
-            style: 'font-size:13.5px;color:#8a93a3;margin-top:5px;',
+            style: 'font-size:13.5px;color:var(--rv-text-tertiary);margin-top:5px;',
           }, 'Visão geral dos seus pedidos e atualizações')
         ),
         novoBtn
@@ -444,10 +446,10 @@
       return window.el('div', {
         style: 'display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;',
       },
-        kpiCard(iconPedido, '#eaf1fd', '#2563eb', 'Meus pedidos', k.meusPedidos, 'Total de pedidos'),
-        kpiCard(iconProd, '#fdf3e0', '#d99a2b', 'Em produção', k.emProducao, 'Pedidos em andamento'),
-        kpiCard(iconOk, '#e6f4ec', '#18794a', 'Concluído', k.concluido, 'Pedidos finalizados'),
-        kpiCard(iconAtraso, '#fdecec', '#d6403a', 'Atrasado', k.atrasado, 'Pedidos fora do prazo')
+        kpiCard(iconPedido, 'var(--rv-pill-info-bg)', 'var(--rv-accent-blue)', 'Meus pedidos', k.meusPedidos, 'Total de pedidos'),
+        kpiCard(iconProd, 'var(--rv-signal-caution-bg)', 'var(--rv-signal-caution)', 'Em produção', k.emProducao, 'Pedidos em andamento'),
+        kpiCard(iconOk, 'var(--rv-signal-positive-bg)', 'var(--rv-signal-positive)', 'Concluído', k.concluido, 'Pedidos finalizados'),
+        kpiCard(iconAtraso, 'var(--rv-surface)', 'var(--rv-signal-negative)', 'Atrasado', k.atrasado, 'Pedidos fora do prazo')
       );
     }
 
@@ -475,16 +477,16 @@
     function destaqueAvanco(pedido) {
       var ac = state.acompanhamentoByPedido[pedido.id];
       if (!ac || !ac.totais || !(Number(ac.totais.pedido) > 0)) {
-        return window.el('div', { style: 'font-size:13.5px;color:#aab2bf;' }, '—');
+        return window.el('div', { style: 'font-size:13.5px;color:var(--rv-text-tertiary);' }, '—');
       }
       var total = ac.totais.pedido;
       if (ac.parcialHabilitado && Number(ac.totais.parcialVisivel) > 0) {
         return window.el('div', {
-          style: 'font-size:13.5px;font-weight:500;color:#2563eb;white-space:nowrap;',
+          style: 'font-size:13.5px;font-weight:500;color:var(--rv-accent-blue);white-space:nowrap;',
         }, 'Parcial · ' + fmtMetros(ac.totais.parcialVisivel) + ' / ' + fmtMetros(total));
       }
       return window.el('div', {
-        style: 'font-size:13.5px;font-weight:500;color:#1ea05a;white-space:nowrap;',
+        style: 'font-size:13.5px;font-weight:500;color:var(--rv-signal-positive);white-space:nowrap;',
       }, 'Total · ' + fmtMetros(total));
     }
 
@@ -494,7 +496,7 @@
 
       var eyeBtn = window.el('button', {
         type: 'button',
-        style: 'background:none;border:none;cursor:pointer;color:#9aa2af;padding:0;display:inline-flex;',
+        style: 'background:none;border:none;cursor:pointer;color:var(--rv-text-tertiary);padding:0;display:inline-flex;',
         title: 'Ver pedido',
         onclick: function () { window.navigate('#/cliente/pedidos/' + pedido.id); },
       }, svgEl('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
@@ -504,16 +506,16 @@
 
       return window.el('div', {
         style: 'display:grid;grid-template-columns:' + DESTAQUE_COLS + ';align-items:center;gap:12px;'
-          + 'padding:13px 0;' + (isLast ? '' : 'border-bottom:1px solid #f1f3f6;'),
+          + 'padding:13px 0;' + (isLast ? '' : 'border-bottom:1px solid var(--rv-border-soft);'),
       },
         window.el('div', {
-          style: 'font-size:15px;font-weight:700;color:#16203a;',
+          style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);',
         }, fmtNumero(pedido.numero)),
         window.el('div', {}, destaqueBadge(pedido)),
         destaqueAvanco(pedido),
-        window.el('div', { style: 'font-size:13.5px;color:#3f4757;white-space:nowrap;' }, atualizado),
+        window.el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);white-space:nowrap;' }, atualizado),
         window.el('div', {
-          style: 'font-size:13.5px;color:' + (prazo ? '#3f4757' : '#aab2bf') + ';white-space:nowrap;',
+          style: 'font-size:13.5px;color:' + (prazo ? 'var(--rv-text-primary)' : 'var(--rv-text-tertiary)') + ';white-space:nowrap;',
         }, prazo || '—'),
         window.el('div', { style: 'display:flex;justify-content:center;' }, eyeBtn)
       );
@@ -536,9 +538,9 @@
         style: 'display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:3px;',
       },
         window.el('div', {},
-          window.el('div', { style: 'font-size:16px;font-weight:700;color:#16203a;' }, 'Pedidos em destaque'),
+          window.el('div', { style: 'font-size:16px;font-weight:700;color:var(--rv-text-primary);' }, 'Pedidos em destaque'),
           window.el('div', {
-            style: 'font-size:13px;color:#8a93a3;margin-top:3px;',
+            style: 'font-size:13px;color:var(--rv-text-tertiary);margin-top:3px;',
           }, 'Pedidos que precisam da sua atenção ou estão em etapas avançadas.')
         ),
         verTodos
@@ -547,19 +549,19 @@
       // Cabeçalho da tabela
       var head = window.el('div', {
         style: 'display:grid;grid-template-columns:' + DESTAQUE_COLS + ';gap:12px;'
-          + 'padding-bottom:12px;border-bottom:1px solid #eceef1;margin-top:18px;',
+          + 'padding-bottom:12px;border-bottom:1px solid var(--rv-border);margin-top:18px;',
       });
       [['Pedido', ''], ['Situação', ''], ['Avanço', ''], ['Atualizado', ''],
        ['Prazo previsto', ''], ['Ação', 'center']].forEach(function (c) {
         head.appendChild(window.el('div', {
-          style: 'font-size:12.5px;color:#9aa2af;' + (c[1] === 'center' ? 'text-align:center;' : ''),
+          style: 'font-size:12.5px;color:var(--rv-text-tertiary);' + (c[1] === 'center' ? 'text-align:center;' : ''),
         }, c[0]));
       });
       card.appendChild(head);
 
       if (state.pedidosError) {
         card.appendChild(window.el('p', {
-          style: 'font-size:14px;color:#b45309;padding:18px 0;',
+          style: 'font-size:14px;color:var(--rv-signal-caution);padding:18px 0;',
         }, 'Não foi possível carregar seus pedidos agora. Tente recarregar a página.'));
         return card;
       }
@@ -570,7 +572,7 @@
 
       if (visiveis.length === 0) {
         card.appendChild(window.el('p', {
-          style: 'font-size:14px;color:#9aa2af;padding:18px 0;',
+          style: 'font-size:14px;color:var(--rv-text-tertiary);padding:18px 0;',
         }, 'Você ainda não tem pedidos em destaque.'));
       } else {
         visiveis.forEach(function (p, idx) {
@@ -579,7 +581,7 @@
       }
 
       card.appendChild(window.el('div', {
-        style: 'border-top:1px solid #eceef1;margin-top:6px;padding-top:18px;',
+        style: 'border-top:1px solid var(--rv-border);margin-top:6px;padding-top:18px;',
       },
         window.el('a', {
           style: 'display:inline-flex;align-items:center;gap:7px;' + LINK_BLUE
@@ -637,7 +639,7 @@
           style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;',
         },
           window.el('div', {
-            style: 'display:flex;align-items:center;gap:8px;font-size:13.5px;color:#3f4757;'
+            style: 'display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--rv-text-primary);'
               + 'min-width:0;white-space:nowrap;',
           },
             window.el('span', {
@@ -646,7 +648,7 @@
             }),
             window.el('span', { style: 'white-space:nowrap;' }, label)),
           window.el('span', {
-            style: 'font-size:12.5px;color:#8a93a3;white-space:nowrap;flex-shrink:0;',
+            style: 'font-size:12.5px;color:var(--rv-text-tertiary);white-space:nowrap;flex-shrink:0;',
           }, pct(n) + '% (' + n + ')')
         );
       }
@@ -667,16 +669,16 @@
         style: CARD + 'padding:16px 20px;display:flex;flex-direction:column;width:100%;',
       },
         window.el('div', {
-          style: 'font-size:16px;font-weight:700;color:#16203a;margin-bottom:20px;',
+          style: 'font-size:16px;font-weight:700;color:var(--rv-text-primary);margin-bottom:20px;',
         }, 'Resumo dos pedidos'),
         donutWrap,
         window.el('div', {
-          style: 'border-top:1px solid #eceef1;margin-top:20px;padding-top:16px;'
+          style: 'border-top:1px solid var(--rv-border);margin-top:20px;padding-top:16px;'
             + 'display:flex;align-items:center;justify-content:space-between;',
         },
-          window.el('span', { style: 'font-size:13px;color:#5b6472;' }, 'Total de pedidos'),
+          window.el('span', { style: 'font-size:13px;color:var(--rv-text-secondary);' }, 'Total de pedidos'),
           window.el('span', {
-            style: 'font-size:15px;font-weight:700;color:#16203a;',
+            style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);',
           }, String(resumo.total))
         )
       );
@@ -701,9 +703,9 @@
         style: 'display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:3px;',
       },
         window.el('div', {},
-          window.el('div', { style: 'font-size:16px;font-weight:700;color:#16203a;' }, 'Últimas atualizações'),
+          window.el('div', { style: 'font-size:16px;font-weight:700;color:var(--rv-text-primary);' }, 'Últimas atualizações'),
           window.el('div', {
-            style: 'font-size:13px;color:#8a93a3;margin-top:3px;',
+            style: 'font-size:13px;color:var(--rv-text-tertiary);margin-top:3px;',
           }, 'Acompanhe as movimentações e atualizações mais recentes dos seus pedidos.')
         ),
         verTodas
@@ -712,14 +714,14 @@
       var body = window.el('div', { style: 'margin-top:16px;' });
 
       if (state.eventosError) {
-        body.appendChild(window.el('p', { style: 'font-size:14px;color:#b45309;padding:13px 0;' },
+        body.appendChild(window.el('p', { style: 'font-size:14px;color:var(--rv-signal-caution);padding:13px 0;' },
           'Não foi possível carregar as atualizações agora.'));
         card.appendChild(body);
         return card;
       }
 
       if (state.eventos.length === 0) {
-        body.appendChild(window.el('p', { style: 'font-size:14px;color:#9aa2af;padding:13px 0;' },
+        body.appendChild(window.el('p', { style: 'font-size:14px;color:var(--rv-text-tertiary);padding:13px 0;' },
           'Suas atualizações aparecerão aqui.'));
         card.appendChild(body);
         return card;
@@ -734,20 +736,20 @@
 
         var row = window.el('div', {
           style: 'display:flex;align-items:center;gap:16px;padding:13px 0;'
-            + (isLast ? '' : 'border-bottom:1px solid #f1f3f6;'),
+            + (isLast ? '' : 'border-bottom:1px solid var(--rv-border-soft);'),
         },
           window.el('span', {
             style: 'width:9px;height:9px;border-radius:50%;background:' + dotColor
               + ';flex-shrink:0;display:inline-block;',
           }),
           window.el('span', {
-            style: 'font-size:14px;font-weight:600;color:#16203a;flex-shrink:0;width:100px;',
+            style: 'font-size:14px;font-weight:600;color:var(--rv-text-primary);flex-shrink:0;width:100px;',
           }, labelPedido),
           window.el('span', {
-            style: 'flex:1;font-size:13.5px;color:#3f4757;min-width:0;',
+            style: 'flex:1;font-size:13.5px;color:var(--rv-text-primary);min-width:0;',
           }, msg || '—'),
           window.el('span', {
-            style: 'font-size:12.5px;color:#aab2bf;white-space:nowrap;',
+            style: 'font-size:12.5px;color:var(--rv-text-tertiary);white-space:nowrap;',
           }, fmtDataHora(ev.criado_em))
         );
         if (ev.pedido_id) {
@@ -769,10 +771,10 @@
     function buildPrazos() {
       var card = window.el('div', { style: CARD + 'padding:16px 20px;' });
       card.appendChild(window.el('div', {
-        style: 'font-size:16px;font-weight:700;color:#16203a;',
+        style: 'font-size:16px;font-weight:700;color:var(--rv-text-primary);',
       }, 'Prazos próximos'));
       card.appendChild(window.el('div', {
-        style: 'font-size:13px;color:#8a93a3;margin-top:3px;margin-bottom:16px;',
+        style: 'font-size:13px;color:var(--rv-text-tertiary);margin-top:3px;margin-bottom:16px;',
       }, 'Pedidos com vencimento nos próximos dias.'));
 
       // Ordena por prazo asc (sem prazo por último), exclui concluído/cancelado.
@@ -787,7 +789,7 @@
       }).slice(0, PRAZOS_LIMIT);
 
       if (state.pedidosError || lista.length === 0) {
-        card.appendChild(window.el('p', { style: 'font-size:14px;color:#9aa2af;padding:8px 0;' },
+        card.appendChild(window.el('p', { style: 'font-size:14px;color:var(--rv-text-tertiary);padding:8px 0;' },
           state.pedidosError
             ? 'Não foi possível carregar seus prazos agora.'
             : 'Nenhum prazo próximo.'));
@@ -800,20 +802,20 @@
         var atras = isAtrasado(p, resolveEstadoVisual(p));
         card.appendChild(window.el('div', {
           style: 'display:flex;align-items:flex-start;justify-content:space-between;padding:12px 0;'
-            + (isLast ? '' : 'border-bottom:1px solid #f1f3f6;') + 'cursor:pointer;',
+            + (isLast ? '' : 'border-bottom:1px solid var(--rv-border-soft);') + 'cursor:pointer;',
           onclick: function () { window.navigate('#/cliente/pedidos/' + p.id); },
         },
           window.el('div', {},
             window.el('div', {
-              style: 'font-size:14px;font-weight:600;color:#16203a;',
+              style: 'font-size:14px;font-weight:600;color:var(--rv-text-primary);',
             }, fmtNumero(p.numero)),
             window.el('div', {
-              style: 'font-size:12.5px;color:#8a93a3;margin-top:2px;',
+              style: 'font-size:12.5px;color:var(--rv-text-tertiary);margin-top:2px;',
             }, pedidoLabelVisual(p))
           ),
           window.el('span', {
             style: 'font-size:13px;font-weight:' + (prazo ? '600' : '500')
-              + ';color:' + (prazo ? (atras ? '#d6403a' : '#d6403a') : '#aab2bf')
+              + ';color:' + (prazo ? (atras ? 'var(--rv-signal-negative)' : 'var(--rv-signal-negative)') : 'var(--rv-text-tertiary)')
               + ';white-space:nowrap;',
           }, prazo || 'Sem prazo definido')
         ));
@@ -823,8 +825,8 @@
         style: 'display:flex;align-items:center;justify-content:space-between;padding-top:14px;cursor:pointer;',
         onclick: function () { window.navigate('#/cliente/pedidos'); },
       },
-        window.el('span', { style: 'font-size:14px;font-weight:600;color:#3f4757;' }, 'Ver todos os pedidos'),
-        svgEl('<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9aa2af"'
+        window.el('span', { style: 'font-size:14px;font-weight:600;color:var(--rv-text-primary);' }, 'Ver todos os pedidos'),
+        svgEl('<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)"'
           + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
           + '<polyline points="9 6 15 12 9 18"></polyline></svg>')
       ));

@@ -58,7 +58,7 @@
 
     card.appendChild(el('div', { class: 'flex justify-between items-center mb-2' },
       el('div', { class: 'text-sm font-semibold text-gray-800' }, fioLabelItem(it)),
-      el('div', { class: 'text-xs', style: 'font-variant-numeric:tabular-nums;color:' + (completoItem ? '#15803d' : '#b7791f') + ';' },
+      el('div', { class: 'text-xs', style: 'font-variant-numeric:tabular-nums;color:' + (completoItem ? 'var(--rv-signal-positive)' : 'var(--rv-signal-caution)') + ';' },
         'Pedido ' + fmtKg(it.kg_pedido) + ' · Alocado ' + fmtKg(it.kg_alocado) + ' · Diferença ' + fmtKg(it.kg_diferenca))));
 
     // Current allocations (with OP attribution)
@@ -143,7 +143,7 @@
 
     // Completeness + emission-block reason (server-derived; never authorizes emission).
     var completa = distrib.distribuicao_completa === true;
-    body.appendChild(el('div', { id: 'oc-dist-status', class: 'text-sm font-semibold mb-1', style: 'color:' + (completa ? '#15803d' : '#b7791f') + ';' },
+    body.appendChild(el('div', { id: 'oc-dist-status', class: 'text-sm font-semibold mb-1', style: 'color:' + (completa ? 'var(--rv-signal-positive)' : 'var(--rv-signal-caution)') + ';' },
       completa ? 'Distribuição completa' : 'Distribuição incompleta'));
     if (distrib.bloqueio_emissao === 'recebimento_nativo_ainda_inativo') {
       body.appendChild(el('div', { class: 'text-xs text-amber-700 mb-3' },

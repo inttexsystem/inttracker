@@ -102,7 +102,7 @@
         value: 'acumular',
       });
       motivoInput = window.textInput({ type: 'text', value: '', placeholder: 'Ex.: amostra separada, retrabalho...' });
-      avisoEl = window.el('div', { style: 'display:none;font-size:12px;color:#b08b3a;margin-top:4px;line-height:1.4;' },
+      avisoEl = window.el('div', { style: 'display:none;font-size:12px;color:var(--rv-signal-caution);margin-top:4px;line-height:1.4;' },
         'A exceção cria uma OP de acabamento separada e registra o motivo no histórico.');
       _resolveSplit = function () {
         if (splitSelect.value === 'split') {
@@ -116,11 +116,11 @@
     if (stacked) {
       // --- Layout 'stacked' (modal Movimentar Tecelagem → Acabamento) ------
       // Reescrito para o vocabulário inline do modal de movimentação do
-      // Pedido: bordas #eceef1/#f1f3f6, raio 4px, labels 12px/600/#5b6472,
-      // headers de seção uppercase #8a93a3, foco/links azul #2563eb.
+      // Pedido: bordas var(--rv-surface-subtle)/var(--rv-surface-subtle), raio 4px, labels 12px/600/var(--rv-text-secondary),
+      // headers de seção uppercase var(--rv-text-tertiary), foco/links azul var(--rv-accent-blue).
       // Inputs e getPayload/getSplitOption inalterados.
-      var LABEL_STYLE = 'display:block;font-size:12px;font-weight:600;color:#5b6472;margin-bottom:5px;';
-      var SECTION_HEAD_STYLE = 'font-size:12px;font-weight:700;letter-spacing:.03em;color:#8a93a3;text-transform:uppercase;';
+      var LABEL_STYLE = 'display:block;font-size:12px;font-weight:600;color:var(--rv-text-secondary);margin-bottom:5px;';
+      var SECTION_HEAD_STYLE = 'font-size:12px;font-weight:700;letter-spacing:.03em;color:var(--rv-text-tertiary);text-transform:uppercase;';
 
       var fieldBlock = function (labelText, input) {
         return window.el('div', {},
@@ -136,11 +136,11 @@
       // segue sendo a fonte de verdade lida pelo getPayload).
       var defeitoToggle = function (chk) {
         var knob = window.el('span', {
-          style: 'position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(20,30,45,.25);transition:transform .15s ease;',
+          style: 'position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--rv-surface);box-shadow:var(--rv-shadow-sm);transition:transform .15s ease;',
         });
         var track = window.el('span', {}, knob);
         var paint = function () {
-          track.style.cssText = 'position:relative;display:inline-block;width:40px;height:22px;border-radius:999px;transition:background .15s ease;background:' + (chk.checked ? '#2563eb' : '#cfd5df') + ';';
+          track.style.cssText = 'position:relative;display:inline-block;width:40px;height:22px;border-radius:999px;transition:background .15s ease;background:' + (chk.checked ? 'var(--rv-brand)' : 'var(--rv-surface-subtle)') + ';';
           knob.style.transform = chk.checked ? 'translateX(18px)' : 'translateX(0)';
         };
         paint();
@@ -179,11 +179,11 @@
           : ('#' + it.modelo_id);
         var pend = pendingOf(it.id);
         var pill = (pend != null && pend > 0)
-          ? window.el('span', { style: 'display:inline-flex;align-items:center;border:1px solid #fbe8c6;background:#fff9ee;color:#8a5a15;border-radius:4px;padding:3px 9px;font-size:11px;font-weight:700;white-space:nowrap;' }, fmtPend(pend) + ' m pendente')
-          : window.el('span', { style: 'display:inline-flex;align-items:center;border:1px solid #eceef1;background:#f7f8fa;color:#8a93a3;border-radius:4px;padding:3px 9px;font-size:11px;font-weight:700;white-space:nowrap;' }, 'sem pendência');
-        return window.el('div', { style: 'padding:12px 14px;' + (idx < linhasState.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : '') },
+          ? window.el('span', { style: 'display:inline-flex;align-items:center;border:1px solid var(--rv-signal-caution-border);background:var(--rv-signal-caution-bg);color:var(--rv-signal-caution);border-radius:4px;padding:3px 9px;font-size:11px;font-weight:700;white-space:nowrap;' }, fmtPend(pend) + ' m pendente')
+          : window.el('span', { style: 'display:inline-flex;align-items:center;border:1px solid var(--rv-border);background:var(--rv-surface-subtle);color:var(--rv-text-tertiary);border-radius:4px;padding:3px 9px;font-size:11px;font-weight:700;white-space:nowrap;' }, 'sem pendência');
+        return window.el('div', { style: 'padding:12px 14px;' + (idx < linhasState.length - 1 ? 'border-bottom:1px solid var(--rv-border-soft);' : '') },
           window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;' },
-            window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;line-height:1.35;' }, rotulo),
+            window.el('div', { style: 'font-size:13px;font-weight:700;color:var(--rv-text-primary);line-height:1.35;' }, rotulo),
             pill),
           window.el('div', { style: 'display:grid;grid-template-columns:130px auto 1fr;gap:12px;align-items:end;' },
             fieldBlock('Metros', ls.metrosInput),
@@ -195,13 +195,13 @@
       if (hasRemaining) {
         preencherLink = window.el('button', {
           type: 'button',
-          style: 'background:none;border:none;padding:0;color:#2563eb;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;',
+          style: 'background:none;border:none;padding:0;color:var(--rv-accent-blue);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;',
         }, 'Preencher restante');
         preencherLink.addEventListener('click', fillRemaining);
       }
 
-      var productsCard = window.el('div', { style: 'border:1px solid #eceef1;border-radius:4px;background:#fff;overflow:hidden;' },
-        window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:1px solid #f1f3f6;' },
+      var productsCard = window.el('div', { style: 'border:1px solid var(--rv-border);border-radius:4px;background:var(--rv-surface);overflow:hidden;' },
+        window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:1px solid var(--rv-border-soft);' },
           window.el('span', { style: SECTION_HEAD_STYLE }, 'Produtos a transferir'),
           preencherLink || window.el('span', {})),
         stackedRows);

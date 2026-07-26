@@ -42,7 +42,7 @@
   var GRID_COLS = '60px .62fr 1.28fr 1.1fr .8fr .55fr 1.2fr 84px';
   var HEADER_LABELS = ['Img', 'Tipo', 'Modelo', 'Cores', 'Largura', 'Metragem (m)', 'Observacao', 'Acoes'];
 
-  var SVG_TRASH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d6403a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
+  var SVG_TRASH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-signal-negative)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
 
   function svgEl(markup) {
     var tmp = window.document.createElement('div');
@@ -114,14 +114,15 @@
     return null;
   }
 
-  function swatchColor(modeloId) {
-    var palette = ['#cfc6b4', '#8f8a80', '#c8a87a', '#7a8fa6', '#b0a898', '#a8b8c8', '#c4b8a0'];
-    var idx = Math.abs(parseInt(String(modeloId), 10) || 0) % palette.length;
-    return palette[idx];
+  // A cor do swatch e a cor real do modelo: dado de negocio, dono canonico
+  // js/pedido-ui.js. Sem modelo selecionado nao ha cor a mostrar (D9).
+  function swatchColor(modelo) {
+    var nome = modelo && typeof modelo === 'object' ? (modelo.cor_1 && modelo.cor_1.nome) || modelo.nome : modelo;
+    return window.corPreviewHex(nome);
   }
 
   function selectStyle() {
-    return 'width:100%; border:1px solid #d8dce2; border-radius:4px; padding:6px 8px; font-size:13.5px; color:#16203a; background:#fff; font-family:inherit; cursor:pointer; outline:none;';
+    return 'width:100%; border:1px solid var(--rv-border-strong); border-radius:4px; padding:6px 8px; font-size:13.5px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; cursor:pointer; outline:none;';
   }
 
   // Preenche o select de Tipo. `disabled` cobre a falha fechada: sem metadado
@@ -186,13 +187,13 @@
     // de padding e 13.5px de fonte, entao o alvo de clique continua o mesmo.
     // O que saiu foi folga morta em volta deles.
     var row = window.el('div', {
-      style: 'display:grid; grid-template-columns:' + GRID_COLS + '; align-items:center; gap:12px; padding:7px 14px; border-bottom:1px solid #f1f3f6; min-width:920px;',
+      style: 'display:grid; grid-template-columns:' + GRID_COLS + '; align-items:center; gap:12px; padding:7px 14px; border-bottom:1px solid var(--rv-border-soft); min-width:920px;',
       'data-uid': item.uid
     });
 
     var previewSlot = window.el('div', {
       'data-preview-slot': '1',
-      style: 'width:32px; height:32px; border-radius:4px; overflow:hidden; border:1px solid rgba(0,0,0,.08); background:#f5f2ea; flex-shrink:0; display:flex; align-items:center; justify-content:center;'
+      style: 'width:32px; height:32px; border-radius:4px; overflow:hidden; border:1px solid var(--rv-border); background:var(--rv-signal-caution-bg); flex-shrink:0; display:flex; align-items:center; justify-content:center;'
     });
 
     function updatePreview() {
@@ -210,7 +211,7 @@
         }
       }
       previewSlot.appendChild(window.el('div', {
-        style: 'width:100%; height:100%; background:' + (selectedModel ? swatchColor(item.modeloId) : '#d8d0c0') + ';'
+        style: 'width:100%; height:100%; background:' + (selectedModel ? swatchColor(selectedModel) : 'var(--rv-surface-subtle)') + ';'
       }));
     }
 
@@ -228,7 +229,7 @@
 
     function paint(cell, value, filled) {
       cell.textContent = value;
-      cell.style.color = filled ? '#3f4757' : '#aab2bf';
+      cell.style.color = filled ? 'var(--rv-text-primary)' : 'var(--rv-text-tertiary)';
     }
 
     // Reflete no DOM tudo que depende do modelo escolhido.
@@ -263,7 +264,7 @@
       placeholder: '0,00',
       step: '0.01',
       min: '0.01',
-      style: 'width:100%; border:1px solid #d8dce2; border-radius:4px; padding:6px 8px; font-size:13.5px; font-weight:600; color:#16203a; background:#fff; font-family:inherit; outline:none;'
+      style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:4px; padding:6px 8px; font-size:13.5px; font-weight:600; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; outline:none;'
     });
     metrosInput.addEventListener('input', function () {
       item.metros = metrosInput.value;
@@ -275,7 +276,7 @@
       value: item.observacao,
       placeholder: '-',
       maxlength: '200',
-      style: 'width:100%; border:1px solid #d8dce2; border-radius:4px; padding:6px 8px; font-size:13.5px; color:#3f4757; background:#fff; font-family:inherit; outline:none;'
+      style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:4px; padding:6px 8px; font-size:13.5px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; outline:none;'
     });
     obsInput.addEventListener('input', function () {
       item.observacao = obsInput.value;
@@ -306,10 +307,10 @@
   function buildHeader() {
     var header = window.el('div', {
       'data-itens-header': '1',
-      style: 'display:grid; grid-template-columns:' + GRID_COLS + '; align-items:center; gap:12px; padding:8px 14px; background:#f8f9fb; border-bottom:1px solid #eceef1; min-width:920px;'
+      style: 'display:grid; grid-template-columns:' + GRID_COLS + '; align-items:center; gap:12px; padding:8px 14px; background:var(--rv-surface-subtle); border-bottom:1px solid var(--rv-border); min-width:920px;'
     });
     HEADER_LABELS.forEach(function (label) {
-      header.appendChild(window.el('div', { style: 'font-size:13px; font-weight:600; color:#5b6472;' }, label));
+      header.appendChild(window.el('div', { style: 'font-size:13px; font-weight:600; color:var(--rv-text-secondary);' }, label));
     });
     return header;
   }

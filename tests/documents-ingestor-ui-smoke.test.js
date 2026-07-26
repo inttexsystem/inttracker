@@ -244,8 +244,8 @@ test('ingestor-ui-source: botao Ver com window.open seguro', () => {
 });
 
 test('ingestor-ui-source: reason em vermelho', () => {
-  assert.match(detailRenderSrc, /row\.reason\s*\?\s*['"]#a23434/,
-    'reason deve usar cor vermelha #a23434');
+  assert.match(detailRenderSrc, /row\.reason \? 'var\(--rv-signal-negative\)'/,
+    'reason deve usar o tom negativo canonico');
   assert.match(detailRenderSrc, /Rejeitado:/,
     'deve prefixar reason com "Rejeitado:"');
 });

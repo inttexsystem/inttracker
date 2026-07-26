@@ -271,6 +271,6 @@ test('AÇÕES cell wrap: renders with flex-wrap:wrap at runtime for a document w
 test('stateSpan(): gained the defensive §7.1 bundle alongside its existing white-space:nowrap', () => {
   assert.match(
     screen,
-    /function stateSpan\(label, ariaLabel, color\) \{\s*\n\s*return window\.el\('span', \{\s*\n\s*style: 'font-size:10\.5px;color:' \+ \(color \|\| '#8a93a3'\) \+ ';white-space:nowrap;'\s*\n\s*\+ 'overflow:hidden;text-overflow:ellipsis;min-width:0;',/,
+    /function stateSpan\(label, ariaLabel, color\) \{\s*\n\s*return window\.el\('span', \{\s*\n\s*style: 'font-size:10\.5px;color:' \+ \(color \|\| 'var\(--rv-text-tertiary\)'\) \+ ';white-space:nowrap;'\s*\n\s*\+ 'overflow:hidden;text-overflow:ellipsis;min-width:0;',/,
   );
 });

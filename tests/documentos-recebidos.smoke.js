@@ -2189,7 +2189,8 @@ test('G28-B4-B2: state bar renderiza remote-unavailable quando remoto indisponiv
   assert.equal(stateBars[0]._attrs.role, 'status');
   assert.ok(textOf(stateBars[0]).indexOf('Conexão remota indisponível') >= 0);
   assert.ok(textOf(stateBars[0]).indexOf('fallback') === -1, 'nao menciona fallback quando nao ha');
-  assert.ok(stateBars[0]._attrs.style.indexOf('background:#fdecec') >= 0, 'erro remoto usa tom de erro');
+  assert.ok(stateBars[0]._attrs.style.indexOf('background:var(--rv-surface)') >= 0, 'erro remoto usa a superficie da familia negativa (D9)');
+  assert.ok(stateBars[0]._attrs.style.indexOf('var(--rv-signal-negative)') >= 0, 'erro remoto usa o tom negativo canonico');
 });
 
 test('G28-B4-B2: state bar renderiza remote-unavailable-legacy-fallback quando ha registros legacy', function () {
@@ -2205,7 +2206,7 @@ test('G28-B4-B2: state bar renderiza remote-unavailable-legacy-fallback quando h
   assert.equal(stateBars.length, 1, 'state bar presente com legacy fallback');
   assert.equal(stateBars[0]._attrs['data-marker'], 'queue-ui-state-remote-unavailable-legacy-fallback');
   assert.ok(textOf(stateBars[0]).indexOf('fallback local') >= 0);
-  assert.ok(stateBars[0]._attrs.style.indexOf('background:#fdf0e6') >= 0, 'fallback usa tom de aviso distinto');
+  assert.ok(stateBars[0]._attrs.style.indexOf('background:var(--rv-signal-caution-bg)') >= 0, 'fallback usa o tom de aviso canonico, distinto do de erro (D9)');
 });
 
 test('G28-B4-B2: state bar distingue remote-unavailable de remote-unavailable-legacy-fallback', function () {
@@ -2257,7 +2258,10 @@ test('G28-B4-B2: state bar usa aria-live="polite" e role="status" para acessibil
   var src = readOrFail(SCREEN);
   var barIdx = src.indexOf('buildQueueUIStateBar');
   assert.ok(barIdx >= 0);
-  var barSection = src.slice(barIdx, barIdx + 1400);
+  // A janela e dimensionada pela propria funcao, nao por um deslocamento fixo:
+  // tokenizar a cor alongou o corpo e um 1400 cravado passou a cortar o trecho.
+  var barEnd = src.indexOf('\n  }', barIdx);
+  var barSection = src.slice(barIdx, barEnd === -1 ? barIdx + 4000 : barEnd);
   assert.ok(barSection.indexOf("role: 'status'") >= 0, 'role status presente');
   assert.ok(barSection.indexOf("'aria-live': 'polite'") >= 0, 'aria-live polite presente');
   assert.ok(barSection.indexOf("'aria-label'") >= 0, 'aria-label presente');

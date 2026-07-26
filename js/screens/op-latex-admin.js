@@ -15,24 +15,24 @@
   }
 
   var SVG_BACK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
-  var SVG_ICON_OP = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect><line x1="9" y1="12" x2="15" y2="12"></line><line x1="9" y1="16" x2="13" y2="16"></line></svg>';
-  var SVG_ICON_GRID = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M3 15h18M9 3v18"></path></svg>';
-  var SVG_ICON_LINES = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10H3M21 6H3M21 14H3M21 18H3"></path></svg>';
-  var SVG_ICON_SUMMARY = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="18" rx="2"></rect><path d="M8 7h8M8 11h8M8 15h5"></path></svg>';
-  var SVG_INFO_BAR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+  var SVG_ICON_OP = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-accent-blue)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect><line x1="9" y1="12" x2="15" y2="12"></line><line x1="9" y1="16" x2="13" y2="16"></line></svg>';
+  var SVG_ICON_GRID = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-accent-blue)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M3 15h18M9 3v18"></path></svg>';
+  var SVG_ICON_LINES = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-accent-blue)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10H3M21 6H3M21 14H3M21 18H3"></path></svg>';
+  var SVG_ICON_SUMMARY = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--rv-accent-blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="18" rx="2"></rect><path d="M8 7h8M8 11h8M8 15h5"></path></svg>';
+  var SVG_INFO_BAR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--rv-accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
   var SVG_OPEN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>';
-  var SVG_HINT_LOCK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>';
+  var SVG_HINT_LOCK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>';
 
   var CARD = 'background:var(--rv-color-surface);border:1px solid var(--rv-color-line-200);border-radius:var(--rv-radius-card);';
-  var FIELD_LABEL = 'font-size:var(--rv-font-size-body);font-weight:600;color:#3f4757;margin-bottom:7px;display:block;';
+  var FIELD_LABEL = 'font-size:var(--rv-font-size-body);font-weight:600;color:var(--rv-text-primary);margin-bottom:7px;display:block;';
   var TH_STYLE = 'font-size:var(--rv-font-size-label);font-weight:700;color:var(--rv-color-muted);letter-spacing:.04em;white-space:nowrap;';
-  var BTN_PRIMARY = 'display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:38px;background:var(--rv-color-accent);color:#fff;border:none;border-radius:var(--rv-radius-control);padding:0 16px;font-weight:600;font-size:13.5px;font-family:inherit;white-space:nowrap;cursor:pointer;';
-  var BTN_BACK = 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-color-surface);color:#5b6472;border:1px solid var(--rv-color-input-border);border-radius:var(--rv-radius-control);padding:8px 16px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;';
+  var BTN_PRIMARY = 'display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:38px;background:var(--rv-color-accent);color:var(--rv-text-on-brand);border:none;border-radius:var(--rv-radius-control);padding:0 16px;font-weight:600;font-size:13.5px;font-family:inherit;white-space:nowrap;cursor:pointer;';
+  var BTN_BACK = 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-color-surface);color:var(--rv-text-secondary);border:1px solid var(--rv-color-input-border);border-radius:var(--rv-radius-control);padding:8px 16px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;';
   var BTN_LINK = 'display:inline-flex;align-items:center;gap:6px;font-size:var(--rv-font-size-body);font-weight:600;color:var(--rv-color-accent);background:none;border:none;padding:0;cursor:pointer;font-family:inherit;';
   var BTN_DANGER_LINK = 'display:inline-flex;align-items:center;gap:6px;font-size:var(--rv-font-size-body);font-weight:600;color:var(--rv-color-danger);background:none;border:none;padding:0;cursor:pointer;font-family:inherit;';
-  var BTN_SOLID_SM = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--rv-color-accent);color:#fff;border:none;border-radius:var(--rv-radius-control);padding:8px 14px;font-weight:700;font-size:var(--rv-font-size-body);font-family:inherit;cursor:pointer;white-space:nowrap;';
-  var BTN_SOFT_SM = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#fff;color:var(--rv-color-accent);border:1px solid #cfe0fb;border-radius:var(--rv-radius-control);padding:8px 14px;font-weight:700;font-size:var(--rv-font-size-body);font-family:inherit;cursor:pointer;white-space:nowrap;';
-  var BTN_DANGER_SM = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#fff;color:var(--rv-color-danger);border:1px solid #f1c7c5;border-radius:var(--rv-radius-control);padding:8px 14px;font-weight:700;font-size:var(--rv-font-size-body);font-family:inherit;cursor:pointer;white-space:nowrap;';
+  var BTN_SOLID_SM = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--rv-color-accent);color:var(--rv-text-on-brand);border:none;border-radius:var(--rv-radius-control);padding:8px 14px;font-weight:700;font-size:var(--rv-font-size-body);font-family:inherit;cursor:pointer;white-space:nowrap;';
+  var BTN_SOFT_SM = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--rv-surface);color:var(--rv-color-accent);border:1px solid var(--rv-pill-info-border);border-radius:var(--rv-radius-control);padding:8px 14px;font-weight:700;font-size:var(--rv-font-size-body);font-family:inherit;cursor:pointer;white-space:nowrap;';
+  var BTN_DANGER_SM = 'display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--rv-surface);color:var(--rv-color-danger);border:1px solid var(--rv-signal-negative-border);border-radius:var(--rv-radius-control);padding:8px 14px;font-weight:700;font-size:var(--rv-font-size-body);font-family:inherit;cursor:pointer;white-space:nowrap;';
   var SECTION_ICON = 'width:34px;height:34px;border-radius:var(--rv-radius-card);background:var(--rv-color-subtle-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;';
 
   // Header de seção estilo Inttex: quadradinho (chip) 22px com fundo claro,
@@ -82,9 +82,9 @@
 
   // Botões do cabeçalho da página (leves, altura 34px) — secundário,
   // sucesso (Finalizar) e destrutivo discreto (Excluir, sempre ícone+texto).
-  var BTN_HDR_SECONDARY = 'display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:var(--rv-radius-control);font-size:13px;font-weight:500;color:#4a5462;border:1px solid var(--rv-color-input-border);background:#fff;cursor:pointer;font-family:inherit;white-space:nowrap;';
-  var BTN_HDR_SUCCESS = 'display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:var(--rv-radius-control);font-size:13px;font-weight:600;color:#15803d;border:1px solid #bfe6cd;background:#f2fbf5;cursor:pointer;font-family:inherit;white-space:nowrap;';
-  var BTN_HDR_DANGER = 'display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:var(--rv-radius-control);font-size:13px;font-weight:500;color:var(--rv-color-danger);border:1px solid #f0d2d2;background:#fff;cursor:pointer;font-family:inherit;white-space:nowrap;';
+  var BTN_HDR_SECONDARY = 'display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:var(--rv-radius-control);font-size:13px;font-weight:500;color:var(--rv-text-primary);border:1px solid var(--rv-color-input-border);background:var(--rv-surface);cursor:pointer;font-family:inherit;white-space:nowrap;';
+  var BTN_HDR_SUCCESS = 'display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:var(--rv-radius-control);font-size:13px;font-weight:600;color:var(--rv-signal-positive);border:1px solid var(--rv-signal-positive-border);background:var(--rv-signal-positive-bg);cursor:pointer;font-family:inherit;white-space:nowrap;';
+  var BTN_HDR_DANGER = 'display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:var(--rv-radius-control);font-size:13px;font-weight:500;color:var(--rv-color-danger);border:1px solid var(--rv-signal-negative-border);background:var(--rv-surface);cursor:pointer;font-family:inherit;white-space:nowrap;';
   var SVG_TRASH = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
   var SVG_FLAG_CHECK = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
 
@@ -105,7 +105,7 @@
       return el('span', { style: PILL_BASE + 'background:var(--rv-status-prep-bg);color:var(--rv-status-prep);' }, rvDot('var(--rv-status-prep)'), 'Preparação');
     }
     var map = { concluida: 'Concluída', finalizada: 'Finalizada' };
-    return el('span', { style: PILL_BASE + 'background:#eef4ec;color:var(--rv-color-success);' }, rvDot('var(--rv-color-success)'), map[status] || status);
+    return el('span', { style: PILL_BASE + 'background:var(--rv-signal-positive-bg);color:var(--rv-color-success);' }, rvDot('var(--rv-color-success)'), map[status] || status);
   }
 
   function fieldBlock(label, valueNode, style) {
@@ -416,9 +416,9 @@
 
       function saldoLabel(valorBase, recebidoBase) {
         var falta = Math.round((Number(valorBase || 0) - Number(recebidoBase || 0)) * 100) / 100;
-        if (falta > 0) return { text: window.fmtMetros(falta), color: '#d6403a' };
-        if (falta < 0) return { text: 'Excedente ' + window.fmtMetros(Math.abs(falta)), color: '#c2610c' };
-        return { text: 'Completo', color: '#18794a' };
+        if (falta > 0) return { text: window.fmtMetros(falta), color: 'var(--rv-signal-negative)' };
+        if (falta < 0) return { text: 'Excedente ' + window.fmtMetros(Math.abs(falta)), color: 'var(--rv-signal-caution)' };
+        return { text: 'Completo', color: 'var(--rv-signal-positive)' };
       }
 
       function smallBadge(label, bg, color) {
@@ -452,22 +452,22 @@
           chipLabel('Expedição', IC_MOV),
           expedicaoArg
             ? smallBadge('Expedicao ' + expedicaoArg.status, 'var(--rv-color-subtle-bg)', 'var(--rv-color-accent)')
-            : smallBadge(saldoTotal > 0 ? 'Saldo movimentavel' : (statusOk ? 'Fluxo total disponivel' : 'Sem saldo'), saldoTotal > 0 ? '#e6f4ec' : (statusOk ? '#fff4e6' : 'var(--rv-color-line-100)'), saldoTotal > 0 ? '#18794a' : (statusOk ? '#c2610c' : '#6b7280'))));
+            : smallBadge(saldoTotal > 0 ? 'Saldo movimentavel' : (statusOk ? 'Fluxo total disponivel' : 'Sem saldo'), saldoTotal > 0 ? 'var(--rv-signal-positive-bg)' : (statusOk ? 'var(--rv-signal-caution-bg)' : 'var(--rv-color-line-100)'), saldoTotal > 0 ? 'var(--rv-signal-positive)' : (statusOk ? 'var(--rv-signal-caution)' : 'var(--rv-text-secondary)'))));
 
         // Métricas empilhadas (rail-friendly): nada de grid de 3 colunas, que
         // estoura os 300px do rail. Rótulo à esquerda, valor tabular à direita.
         function expMetric(label, value, color) {
           return el('div', { style: 'display:flex;align-items:baseline;justify-content:space-between;gap:12px;' },
-            el('span', { style: 'font-size:12.5px;color:#5b6472;flex:1;min-width:0;' }, label),
+            el('span', { style: 'font-size:12.5px;color:var(--rv-text-secondary);flex:1;min-width:0;' }, label),
             el('span', { style: 'font-size:14px;font-weight:700;color:' + (color || 'var(--rv-color-title)') + ';white-space:nowrap;font-variant-numeric:tabular-nums;' }, value));
         }
 
         if (expedicaoArg) {
-          card.appendChild(el('div', { style: 'font-size:12.5px;color:#5b6472;line-height:1.5;margin-bottom:13px;' },
+          card.appendChild(el('div', { style: 'font-size:12.5px;color:var(--rv-text-secondary);line-height:1.5;margin-bottom:13px;' },
             'Expedicao criada. Registre entrega/coleta na tela operacional de expedicao.'));
           card.appendChild(el('div', { style: 'display:flex;flex-direction:column;gap:10px;margin-bottom:14px;' },
             expMetric('Recebido', window.fmtMetros(recebidoTotal), 'var(--rv-color-title)'),
-            expMetric('Movimentado', window.fmtMetros(liberadoTotal), '#18794a'),
+            expMetric('Movimentado', window.fmtMetros(liberadoTotal), 'var(--rv-signal-positive)'),
             expMetric('Disponivel', window.fmtMetros(saldoTotal), saldoTotal > 0 ? 'var(--rv-color-accent)' : 'var(--rv-color-muted)')));
           if (saldoTotal > 0) {
             card.appendChild(el('div', { style: 'font-size:11.5px;color:var(--rv-color-muted);line-height:1.5;margin-bottom:12px;' },
@@ -488,7 +488,7 @@
           });
           card.appendChild(el('div', { style: 'display:flex;flex-direction:column;gap:10px;margin-bottom:14px;' },
             expMetric('Recebido', window.fmtMetros(recebidoTotal), 'var(--rv-color-title)'),
-            expMetric('Movimentado', window.fmtMetros(liberadoTotal), '#18794a'),
+            expMetric('Movimentado', window.fmtMetros(liberadoTotal), 'var(--rv-signal-positive)'),
             expMetric('Disponivel', window.fmtMetros(saldoTotal), 'var(--rv-color-accent)')));
           // Cada item movimentável empilhado (nome, contexto, campo Mover full-width) —
           // sem grid de colunas fixas que estouraria a largura do rail.
@@ -529,12 +529,12 @@
         }
 
         if (!statusOk) {
-          card.appendChild(el('div', { style: 'font-size:12.5px;color:#5b6472;line-height:1.5;' },
+          card.appendChild(el('div', { style: 'font-size:12.5px;color:var(--rv-text-secondary);line-height:1.5;' },
             'Sem saldo recebido disponivel para movimentar.'));
           return card;
         }
 
-        card.appendChild(el('div', { style: 'font-size:12.5px;color:#5b6472;line-height:1.5;margin-bottom:12px;' },
+        card.appendChild(el('div', { style: 'font-size:12.5px;color:var(--rv-text-secondary);line-height:1.5;margin-bottom:12px;' },
           'OP terminal sem saldo parcial calculado. Use a liberacao total legada para criar a expedicao desta OP.'));
         card.appendChild(el('button', {
           type: 'button',
@@ -555,16 +555,16 @@
 
       function renderOPLatexProducao() {
         var CARD_PROD = 'background:var(--rv-color-surface);border:1px solid var(--rv-color-line-200);border-radius:var(--rv-radius-card);';
-        var BTN_ACTION = 'display:inline-flex;align-items:center;gap:6px;background:#fff;color:#3f4757;border:1px solid var(--rv-color-input-border);border-radius:var(--rv-radius-control);padding:7px 12px;font-weight:600;font-size:12.5px;font-family:inherit;cursor:pointer;';
+        var BTN_ACTION = 'display:inline-flex;align-items:center;gap:6px;background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-color-input-border);border-radius:var(--rv-radius-control);padding:7px 12px;font-weight:600;font-size:12.5px;font-family:inherit;cursor:pointer;';
         var SVG_ARROW_RIGHT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>';
         var SVG_PAUSE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
         var SVG_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
         var SVG_DOC = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
         var SVG_CLOCK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>';
-        var SVG_LINEAGE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect></svg>';
+        var SVG_LINEAGE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--rv-accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect></svg>';
 
         var resumoSaldoTexto = window.fmtMetros(saldoEmAcabamento);
-        var resumoSaldoCor = saldoEmAcabamento > 0 ? '#c2610c' : '#18794a';
+        var resumoSaldoCor = saldoEmAcabamento > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)';
         var percentualClamp = Math.max(0, Math.min(100, movimentadoPercent));
         var pctLabel = String(movimentadoPercent).replace('.', ',');
         var pedidoId = op.lote && op.lote.pedido_id ? op.lote.pedido_id : null;
@@ -591,18 +591,18 @@
 
         function campo(label, node) {
           return el('div', {},
-            el('label', { style: 'display:block;font-size:12px;color:#9aa2af;margin-bottom:6px;' }, label),
+            el('label', { style: 'display:block;font-size:12px;color:var(--rv-text-tertiary);margin-bottom:6px;' }, label),
             node);
         }
 
         function valor(text, color, weight) {
-          return el('div', { style: 'font-size:13.5px;color:' + (color || '#16203a') + ';font-weight:' + (weight || '600') + ';' }, text);
+          return el('div', { style: 'font-size:13.5px;color:' + (color || 'var(--rv-text-primary)') + ';font-weight:' + (weight || '600') + ';' }, text);
         }
 
         function linhaResumo(label, value, color) {
-          return el('div', { style: 'display:flex;justify-content:space-between;font-size:13px;color:#5b6472;gap:12px;' },
+          return el('div', { style: 'display:flex;justify-content:space-between;font-size:13px;color:var(--rv-text-secondary);gap:12px;' },
             el('span', {}, label),
-            el('span', { style: 'color:' + (color || '#16203a') + ';font-weight:700;white-space:nowrap;' }, value));
+            el('span', { style: 'color:' + (color || 'var(--rv-text-primary)') + ';font-weight:700;white-space:nowrap;' }, value));
         }
 
         function toastOperacional(msg) {
@@ -610,10 +610,10 @@
         }
 
         function buildBreadcrumb() {
-          return el('div', { style: 'display:flex;align-items:center;gap:6px;font-size:12px;color:#9aa2af;font-weight:500;margin-bottom:8px;' },
-            el('button', { type: 'button', style: 'background:none;border:none;padding:0;font:inherit;color:#9aa2af;cursor:pointer;', onclick: function () { navigate('#/ops'); } }, 'OPs'),
-            el('span', { style: 'color:#c8ced6;' }, '/'),
-            el('span', { style: 'color:#5b6472;' }, formatOpDisplay(op, opDisplayContext)));
+          return el('div', { style: 'display:flex;align-items:center;gap:6px;font-size:12px;color:var(--rv-text-tertiary);font-weight:500;margin-bottom:8px;' },
+            el('button', { type: 'button', style: 'background:none;border:none;padding:0;font:inherit;color:var(--rv-text-tertiary);cursor:pointer;', onclick: function () { navigate('#/ops'); } }, 'OPs'),
+            el('span', { style: 'color:var(--rv-text-tertiary);' }, '/'),
+            el('span', { style: 'color:var(--rv-text-secondary);' }, formatOpDisplay(op, opDisplayContext)));
         }
 
         function buildHeaderProducao() {
@@ -637,10 +637,10 @@
         function buildDados() {
           var origemNode = op.origem_op_id
             ? el('button', { type: 'button', style: 'background:none;border:none;padding:0;font:inherit;color:var(--rv-color-accent);font-weight:600;cursor:pointer;text-align:left;', onclick: function () { navigate('#/ops/' + op.origem_op_id); } }, origemProdLabel)
-            : valor(origemLabel, '#8a93a3');
+            : valor(origemLabel, 'var(--rv-text-tertiary)');
           var pedidoNode = pedidoId
             ? el('button', { type: 'button', style: 'background:none;border:none;padding:0;font:inherit;color:var(--rv-color-accent);font-weight:700;cursor:pointer;text-align:left;', onclick: function () { navigate('#/pedidos/' + pedidoId); } }, pedidoCodigo)
-            : valor(pedidoCodigo, '#8a93a3');
+            : valor(pedidoCodigo, 'var(--rv-text-tertiary)');
           return el('div', { style: CARD_PROD + 'padding:15px 17px;' },
             rvSectionPill('Dados da OP', IC_DADOS),
             el('div', { style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px 18px;' },
@@ -657,13 +657,13 @@
             rvSectionPill('Resumo desta OP', IC_RESUMO),
             el('div', { style: 'display:flex;flex-direction:column;gap:9px;' },
               linhaResumo('Recebido da Tecelagem', window.fmtMetros(recebidoTecelagem)),
-              linhaResumo('Ja movimentado para Expedicao', window.fmtMetros(movimentadoExpedicao), '#18794a'),
-              linhaResumo('Disponivel para movimentar', window.fmtMetros(disponivelMovimentar), disponivelMovimentar > 0 ? '#2563eb' : '#8a93a3'),
-              linhaResumo('Entregue ao Cliente', window.fmtMetros(entregueCliente), '#18794a'),
+              linhaResumo('Ja movimentado para Expedicao', window.fmtMetros(movimentadoExpedicao), 'var(--rv-signal-positive)'),
+              linhaResumo('Disponivel para movimentar', window.fmtMetros(disponivelMovimentar), disponivelMovimentar > 0 ? 'var(--rv-accent-blue)' : 'var(--rv-text-tertiary)'),
+              linhaResumo('Entregue ao Cliente', window.fmtMetros(entregueCliente), 'var(--rv-signal-positive)'),
               linhaResumo('Saldo em Acabamento', resumoSaldoTexto, resumoSaldoCor)),
-            el('div', { style: 'height:6px;border-radius:99px;background:#e2e5ea;overflow:hidden;margin:12px 0 6px;' },
-              el('div', { style: 'width:' + percentualClamp + '%;height:100%;background:#2563eb;' })),
-            el('div', { style: 'font-size:11.5px;color:#9aa2af;' }, pctLabel + '% ja movimentado para expedicao'));
+            el('div', { style: 'height:6px;border-radius:99px;background:var(--rv-surface-subtle);overflow:hidden;margin:12px 0 6px;' },
+              el('div', { style: 'width:' + percentualClamp + '%;height:100%;background:var(--rv-brand);' })),
+            el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);' }, pctLabel + '% ja movimentado para expedicao'));
         }
 
         function buildItens() {
@@ -680,7 +680,7 @@
           var card = el('div', { style: CARD_PROD + 'overflow:hidden;' },
             el('div', { style: 'padding:16px 20px 12px;' }, rvSectionPill('Itens da OP', IC_ITENS)));
           if (!(op.op_itens || []).length) {
-            card.appendChild(el('div', { style: 'padding:0 20px 18px;font-size:13px;color:#aab2bf;' }, 'Nenhum item vinculado a esta OP.'));
+            card.appendChild(el('div', { style: 'padding:0 20px 18px;font-size:13px;color:var(--rv-text-tertiary);' }, 'Nenhum item vinculado a esta OP.'));
             return card;
           }
           var table = el('div', { style: 'overflow-x:auto;' });
@@ -695,11 +695,11 @@
             var entregueItem = Number(saldoItem.entregue || 0);
             table.appendChild(tableRow([
               el('div', { style: 'font-size:13.5px;font-weight:700;color:var(--rv-color-title);' }, modeloLabel(item)),
-              el('div', { style: 'font-size:13.5px;color:#3f4757;font-weight:600;' }, window.fmtMetros(recebidoItem)),
-              el('div', { style: 'font-size:13.5px;color:#2563eb;font-weight:700;' }, window.fmtMetros(movimentadoItem)),
-              el('div', { style: 'font-size:13.5px;color:' + (disponivelItem > 0 ? '#c2610c' : '#18794a') + ';font-weight:700;' }, window.fmtMetros(disponivelItem)),
-              el('div', { style: 'font-size:13.5px;color:#18794a;font-weight:700;' }, window.fmtMetros(entregueItem)),
-              el('div', { style: 'font-size:12.5px;color:#2563eb;font-weight:600;' }, item.pedido_item_id ? (pedidoId ? ('Pedido #' + pedidoId + ' · item ' + item.pedido_item_id) : ('Item #' + item.pedido_item_id)) : '---'),
+              el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);font-weight:600;' }, window.fmtMetros(recebidoItem)),
+              el('div', { style: 'font-size:13.5px;color:var(--rv-accent-blue);font-weight:700;' }, window.fmtMetros(movimentadoItem)),
+              el('div', { style: 'font-size:13.5px;color:' + (disponivelItem > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)') + ';font-weight:700;' }, window.fmtMetros(disponivelItem)),
+              el('div', { style: 'font-size:13.5px;color:var(--rv-signal-positive);font-weight:700;' }, window.fmtMetros(entregueItem)),
+              el('div', { style: 'font-size:12.5px;color:var(--rv-accent-blue);font-weight:600;' }, item.pedido_item_id ? (pedidoId ? ('Pedido #' + pedidoId + ' · item ' + item.pedido_item_id) : ('Item #' + item.pedido_item_id)) : '---'),
             ]));
           });
           card.appendChild(table);
@@ -723,26 +723,26 @@
                 el('div', { style: 'display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;' },
                   el('span', { style: 'font-size:13.5px;font-weight:700;color:var(--rv-color-title);' }, 'Entrega #' + ent.id),
                   el('span', { style: 'font-size:12px;color:var(--rv-color-muted);' }, fmtData(ent.data))),
-                el('div', { style: 'font-size:12.5px;color:#5b6472;margin-top:3px;' },
+                el('div', { style: 'font-size:12.5px;color:var(--rv-text-secondary);margin-top:3px;' },
                   forn + ' → ' + dest),
                 itens.map(function (ei) {
-                  return el('div', { style: 'font-size:13.5px;color:#3f4757;margin-top:5px;' },
+                  return el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);margin-top:5px;' },
                     origemItemLabel(ei) + ': ' + window.fmtMetros(ei.metros_entregues));
                 }));
             })
-            : [el('div', { style: 'font-size:13px;color:#aab2bf;border-top:1px solid var(--rv-color-line-100);padding-top:11px;margin-top:11px;' },
+            : [el('div', { style: 'font-size:13px;color:var(--rv-text-tertiary);border-top:1px solid var(--rv-color-line-100);padding-top:11px;margin-top:11px;' },
               'Vinculos de origem nao encontrados; usando total consolidado da OP.')];
 
           return el('div', { style: CARD_PROD + 'padding:15px 17px;' },
             rvSectionPill('Material recebido da tecelagem', IC_MATERIAL),
             el('div', { style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px 18px;margin-bottom:14px;' },
               campo('OP origem',
-                op.origem_op_id ? el('button', { type: 'button', style: 'font-size:13.5px;color:#2563eb;font-weight:700;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;text-align:left;', onclick: function () { navigate('#/ops/' + op.origem_op_id); } }, origemProdLabel)
-                  : valor(origemLabel, '#8a93a3')),
+                op.origem_op_id ? el('button', { type: 'button', style: 'font-size:13.5px;color:var(--rv-accent-blue);font-weight:700;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;text-align:left;', onclick: function () { navigate('#/ops/' + op.origem_op_id); } }, origemProdLabel)
+                  : valor(origemLabel, 'var(--rv-text-tertiary)')),
               campo('Fornecedor de origem', valor(fornecedorOrigemLabel)),
               campo('Metros recebidos', valor(window.fmtMetros(totalOrigemTecelagem || totalEnviado))),
               campo('Entregas vinculadas', valor(String(origemEntregas.length || 0))),
-              campo('Saldo em acabamento', valor(window.fmtMetros(saldoEmAcabamento), '#c2610c', '700'))),
+              campo('Saldo em acabamento', valor(window.fmtMetros(saldoEmAcabamento), 'var(--rv-signal-caution)', '700'))),
             el('div', { style: 'font-size:11px;font-weight:700;color:var(--rv-color-section-label);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px;' }, 'Entradas da tecelagem'),
             el('div', {}, listaEntregasOrigem));
         }
@@ -753,7 +753,7 @@
           // arquivos fabricados: cada tipo nasce vazio e o Anexar so sinaliza que
           // a integracao ainda entra. Layout rail-friendly (tudo full-width).
           var SVG_CLIP = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>';
-          var ANEXAR_BTN = 'width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;border:1px dashed var(--rv-color-input-border);border-radius:var(--rv-radius-control);background:#fff;color:#5b6472;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;';
+          var ANEXAR_BTN = 'width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;border:1px dashed var(--rv-color-input-border);border-radius:var(--rv-radius-control);background:var(--rv-surface);color:var(--rv-text-secondary);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;';
           var tipos = ['Romaneio', 'NF de entrada', 'NF de saida'];
           var card = el('div', { id: 'documentos-op', style: CARD_PROD + 'padding:15px 17px;' },
             rvSectionPill('Documentos', IC_DOC));
@@ -765,7 +765,7 @@
               && typeof window.RAVATEX_DOCUMENT_LINKS_UI !== 'undefined'
               && op && op.id != null) {
             card.appendChild(el('div', {
-              style: 'font-size:11px;font-weight:700;color:#18794a;letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;',
+              style: 'font-size:11px;font-weight:700;color:var(--rv-signal-positive);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;',
             }, 'Documentos vinculados'));
             var opLinkRes = window.RAVATEX_DOCUMENT_SURFACE_LINKS.buildLinkedDocumentsForOp(op.id);
             var opLinkBuilt = window.RAVATEX_DOCUMENT_LINKS_UI.buildLinkedDocumentNodes(
@@ -780,7 +780,7 @@
               el('div', { style: 'display:flex;align-items:center;gap:7px;margin-bottom:8px;' },
                 el('span', { style: 'font-size:12px;font-weight:600;color:var(--rv-color-value);' }, tipo),
                 el('span', { style: 'font-size:10px;font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);' }, '0')),
-              el('div', { style: 'font-size:11.5px;color:#a2aab6;margin-bottom:8px;' }, 'Nenhum arquivo anexado.'),
+              el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-bottom:8px;' }, 'Nenhum arquivo anexado.'),
               el('button', {
                 type: 'button', style: ANEXAR_BTN,
                 onclick: function () { toast('Anexo de documentos sera integrado (Google Drive) em breve.', 'info'); },
@@ -801,15 +801,15 @@
                 el('div', { style: 'width:11px;height:11px;border-radius:50%;background:var(--rv-color-accent);margin-top:4px;flex-shrink:0;' }),
                 el('div', { style: 'width:2px;flex:1;background:var(--rv-color-line-200);' })),
               el('div', { style: 'padding-bottom:16px;' },
-                el('div', { style: 'font-size:12px;color:#9aa2af;' }, dataBase),
+                el('div', { style: 'font-size:12px;color:var(--rv-text-tertiary);' }, dataBase),
                 el('div', { style: 'font-size:14px;font-weight:700;color:var(--rv-color-title);margin-top:2px;' }, 'Entrada consolidada da Tecelagem'),
-                el('div', { style: 'font-size:13px;color:#7b8494;margin-top:1px;' }, resumoOrigem + ' em ' + formatOpDisplay(op, opDisplayContext) + ' (Acabamento). Romaneio marcado como pendente.'))),
+                el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);margin-top:1px;' }, resumoOrigem + ' em ' + formatOpDisplay(op, opDisplayContext) + ' (Acabamento). Romaneio marcado como pendente.'))),
             el('div', { style: 'display:flex;gap:12px;align-items:flex-start;' },
-              el('div', { style: 'width:11px;height:11px;border-radius:50%;background:#cfd5de;margin-top:4px;flex-shrink:0;' }),
+              el('div', { style: 'width:11px;height:11px;border-radius:50%;background:var(--rv-surface-subtle);margin-top:4px;flex-shrink:0;' }),
               el('div', {},
-                el('div', { style: 'font-size:14px;font-weight:600;color:#475065;margin-top:2px;' }, 'OP aberta'),
-                el('div', { style: 'font-size:12px;color:#9aa2af;' }, dataBase),
-                el('div', { style: 'font-size:13px;color:#7b8494;margin-top:1px;' }, formatOpDisplay(op, opDisplayContext) + ' acompanha a origem consolidada da ' + origemProdLabel + '.'))));
+                el('div', { style: 'font-size:14px;font-weight:600;color:var(--rv-text-primary);margin-top:2px;' }, 'OP aberta'),
+                el('div', { style: 'font-size:12px;color:var(--rv-text-tertiary);' }, dataBase),
+                el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);margin-top:1px;' }, formatOpDisplay(op, opDisplayContext) + ' acompanha a origem consolidada da ' + origemProdLabel + '.'))));
 
           // G28-B7: canonical document-link entries for this OP timeline.
           appendOpLinkTimeline(histCard, op);
@@ -826,7 +826,7 @@
           var built = window.RAVATEX_DOCUMENT_LINKS_UI.buildLinkTimelineNodes({ el: el }, tl, {});
           if (built.nodes.length === 0) return;
           histCard.appendChild(el('div', {
-            style: 'font-size:11px;font-weight:700;color:#18794a;letter-spacing:.04em;text-transform:uppercase;margin:12px 0 8px;border-top:1px solid var(--rv-color-line-100);padding-top:12px;',
+            style: 'font-size:11px;font-weight:700;color:var(--rv-signal-positive);letter-spacing:.04em;text-transform:uppercase;margin:12px 0 8px;border-top:1px solid var(--rv-color-line-100);padding-top:12px;',
           }, 'Documentos vinculados'));
           built.nodes.forEach(function (n) { histCard.appendChild(n); });
         }
@@ -932,10 +932,10 @@
         if (op.lote && op.lote.cliente && op.lote.cliente.nome) meta.push(op.lote.cliente.nome);
         if (abertaEmH) meta.push('Aberta em ' + abertaEmH);
         return el('div', {},
-          el('div', { style: 'display:flex;align-items:center;gap:6px;font-size:12px;color:#9aa2af;font-weight:500;margin-bottom:8px;' },
-            el('button', { type: 'button', style: 'background:none;border:none;padding:0;font:inherit;color:#9aa2af;cursor:pointer;', onclick: function () { navigate('#/ops'); } }, 'OPs'),
-            el('span', { style: 'color:#c8ced6;' }, '/'),
-            el('span', { style: 'color:#5b6472;' }, formatOpDisplay(op, opDisplayContext))),
+          el('div', { style: 'display:flex;align-items:center;gap:6px;font-size:12px;color:var(--rv-text-tertiary);font-weight:500;margin-bottom:8px;' },
+            el('button', { type: 'button', style: 'background:none;border:none;padding:0;font:inherit;color:var(--rv-text-tertiary);cursor:pointer;', onclick: function () { navigate('#/ops'); } }, 'OPs'),
+            el('span', { style: 'color:var(--rv-text-tertiary);' }, '/'),
+            el('span', { style: 'color:var(--rv-text-secondary);' }, formatOpDisplay(op, opDisplayContext))),
           el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:16px;' },
             el('div', { style: 'min-width:0;' },
               el('div', { style: 'display:flex;align-items:center;gap:11px;flex-wrap:wrap;' },
@@ -959,7 +959,7 @@
           el('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:16px;' },
             fieldBlock('Fornecedor de acabamento', el('div', { style: 'font-size:14px;font-weight:600;color:var(--rv-color-title);' }, latexFornecedorNome)),
             fieldBlock('Lote', el('div', { style: 'font-size:14px;font-weight:600;color:var(--rv-color-title);' }, loteLabel))),
-          op.observacao ? el('div', { style: 'margin-top:16px;font-size:12.5px;color:#5b6472;line-height:1.5;' }, op.observacao) : '');
+          op.observacao ? el('div', { style: 'margin-top:16px;font-size:12.5px;color:var(--rv-text-secondary);line-height:1.5;' }, op.observacao) : '');
       }
 
       function buildCardItens() {
@@ -969,7 +969,7 @@
             el('span', { style: 'font-size:11.5px;color:var(--rv-color-muted);font-weight:400;margin-bottom:14px;' }, 'modelo × metros')));
 
         if (!(op.op_itens || []).length) {
-          card.appendChild(el('div', { style: 'padding:0 24px 20px;font-size:13px;color:#aab2bf;' }, 'Nenhum item vinculado a esta OP.'));
+          card.appendChild(el('div', { style: 'padding:0 24px 20px;font-size:13px;color:var(--rv-text-tertiary);' }, 'Nenhum item vinculado a esta OP.'));
           return card;
         }
 
@@ -978,8 +978,8 @@
           var modelo = modelosById[item.modelo_id];
           card.appendChild(gridRow('1fr 140px 140px', [
             el('div', { style: 'font-size:13.5px;font-weight:500;color:var(--rv-color-title);' }, modelo ? window.rotuloModelo(modelo) : ('#' + item.modelo_id)),
-            el('div', { style: 'font-size:13.5px;color:#3f4757;' }, window.fmtMetros(item.metros_pedidos)),
-            el('div', { style: 'font-size:13.5px;color:#3f4757;' }, window.fmtMetros(totalPorItem[item.id] || 0)),
+            el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);' }, window.fmtMetros(item.metros_pedidos)),
+            el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);' }, window.fmtMetros(totalPorItem[item.id] || 0)),
           ]));
         });
         return card;
@@ -999,7 +999,7 @@
 
         box.appendChild(el('div', { style: 'font-size:13px;font-weight:700;color:var(--rv-color-title);margin-bottom:8px;' }, 'Historico'));
         if (!origemEntregas.length) {
-          box.appendChild(el('div', { style: 'font-size:13px;color:#aab2bf;' }, 'Nenhuma entrega de Tecelagem vinculada encontrada.'));
+          box.appendChild(el('div', { style: 'font-size:13px;color:var(--rv-text-tertiary);' }, 'Nenhuma entrega de Tecelagem vinculada encontrada.'));
           return box;
         }
 
@@ -1010,7 +1010,7 @@
               el('div', { style: 'font-size:14px;font-weight:600;color:var(--rv-color-title);' }, new Date(ent.data + 'T00:00:00').toLocaleDateString('pt-BR'))));
             if (ent.observacao) sub.appendChild(el('div', { style: 'font-size:12px;color:var(--rv-color-muted);margin-top:2px;' }, ent.observacao));
             origemEntregaItens(ent).forEach(function (ei) {
-              sub.appendChild(el('div', { style: 'font-size:13.5px;color:#3f4757;margin-top:4px;' },
+              sub.appendChild(el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);margin-top:4px;' },
                 origemItemLabel(ei) + ': ' + window.fmtMetros(ei.metros_entregues),
                 ei.defeito ? el('span', { style: 'margin-left:8px;color:var(--rv-color-danger);font-weight:600;font-size:12.5px;' }, 'DEFEITO') : '',
                 ei.observacao ? el('span', { style: 'margin-left:8px;font-size:12px;color:var(--rv-color-muted);' }, '(' + ei.observacao + ')') : ''));
@@ -1022,7 +1022,7 @@
 
       function metricRow(label, value, color) {
         return el('div', { style: 'display:flex;align-items:baseline;justify-content:space-between;gap:12px;' },
-          el('span', { style: 'font-size:12.5px;color:#5b6472;flex:1;min-width:0;' }, label),
+          el('span', { style: 'font-size:12.5px;color:var(--rv-text-secondary);flex:1;min-width:0;' }, label),
           el('span', { style: 'font-size:15px;font-weight:700;color:' + (color || 'var(--rv-color-title)') + ';white-space:nowrap;font-variant-numeric:tabular-nums;' }, value));
       }
 
@@ -1033,12 +1033,12 @@
           rvSectionPill('Movimentação da OP', IC_RESUMO),
           el('div', { style: 'display:flex;flex-direction:column;gap:11px;' },
             metricRow('Recebido da tecelagem', window.fmtMetros(totalEnviado), 'var(--rv-color-title)'),
-            metricRow('Recebido no acabamento', window.fmtMetros(totalRecebido), '#a2aab6'),
+            metricRow('Recebido no acabamento', window.fmtMetros(totalRecebido), 'var(--rv-text-tertiary)'),
             metricRow('Saldo aguardando', window.fmtMetros(metrosAguardando), metrosAguardando > 0 ? 'var(--rv-color-accent)' : 'var(--rv-color-success)')),
           el('div', { style: 'margin-top:14px;' },
-            el('div', { style: 'height:6px;border-radius:var(--rv-radius-pill);background:#eef1f5;overflow:hidden;' },
+            el('div', { style: 'height:6px;border-radius:var(--rv-radius-pill);background:var(--rv-surface-subtle);overflow:hidden;' },
               el('div', { style: 'height:100%;width:' + pctClamp + '%;background:var(--rv-color-accent);' })),
-            el('div', { style: 'font-size:11.5px;color:#a2aab6;margin-top:6px;' }, String(pct).replace('.', ',') + '% recebido no acabamento')));
+            el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-top:6px;' }, String(pct).replace('.', ',') + '% recebido no acabamento')));
       }
 
       function buildConfirmarRail() {
@@ -1054,7 +1054,7 @@
               if (!ok && btn) btn.disabled = false;
             },
           }, svgEl(SVG_FLAG_CHECK), 'Confirmar'),
-          el('div', { style: 'font-size:11.5px;color:#a2aab6;margin-top:9px;line-height:1.45;' }, 'Confirma o recebimento do material vindo da Tecelagem e libera o início do acabamento.'));
+          el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-top:9px;line-height:1.45;' }, 'Confirma o recebimento do material vindo da Tecelagem e libera o início do acabamento.'));
       }
 
       container.replaceChildren(

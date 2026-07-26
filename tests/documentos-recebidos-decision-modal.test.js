@@ -577,11 +577,11 @@ describe('error and outcome', function () {
     var outcomeEl = doc.body.querySelector('#r8x-dm-outcome');
     modal.setOutcome('Sucesso', 'success');
     assert.equal(outcomeEl.textContent, 'Sucesso');
-    assert.equal(outcomeEl.style.color, '#2e7d32');
+    assert.equal(outcomeEl.style.color, 'var(--rv-signal-positive)');
     modal.setOutcome('Aviso', 'warning');
-    assert.equal(outcomeEl.style.color, '#f57f17');
+    assert.equal(outcomeEl.style.color, 'var(--rv-signal-caution)');
     modal.setOutcome('Erro', 'error');
-    assert.equal(outcomeEl.style.color, '#d32f2f');
+    assert.equal(outcomeEl.style.color, 'var(--rv-signal-negative)');
     modal.close();
   });
 });

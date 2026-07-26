@@ -86,7 +86,7 @@
   function svgInfo(color) {
     return svgEl(
       '<svg width="17" height="17" viewBox="0 0 24 24" fill="none"'
-      + ' stroke="' + (color || '#2563eb') + '" stroke-width="2"'
+      + ' stroke="' + (color || 'var(--rv-accent-blue)') + '" stroke-width="2"'
       + ' stroke-linecap="round" stroke-linejoin="round"'
       + ' style="flex-shrink:0;">'
       + '<circle cx="12" cy="12" r="9"></circle>'
@@ -144,7 +144,7 @@
       estado = 'futuro';
     }
 
-    var accentColor = isLastStep ? '#18794a' : '#2563eb';
+    var accentColor = isLastStep ? 'var(--rv-signal-positive)' : 'var(--rv-accent-blue)';
 
     // Conector horizontal que vem do step anterior (top:20px = centro do circulo 42px)
     var connectorEl = null;
@@ -153,8 +153,8 @@
         ? prevReached
         : (index <= currentIndex + 1))
         || (dtoStep && dtoStep.state === 'parcial' && dtoStep.percentual > 0);
-      var connColor = connBlue ? '#2563eb' : '#e2e5ea';
-      if (isException && index === currentIndex) connColor = '#fbbf24';
+      var connColor = connBlue ? 'var(--rv-accent-blue)' : 'var(--rv-text-tertiary)';
+      if (isException && index === currentIndex) connColor = 'var(--rv-signal-caution)';
       connectorEl = window.el('div', {
         style: 'position:absolute;top:20px;left:-50%;width:100%;height:2px;background:'
           + connColor + ';z-index:0;',
@@ -165,57 +165,57 @@
     var innerEl;
     if (estado === 'parcial') {
       innerEl = window.el('div', {
-        style: 'width:30px;height:30px;border-radius:50%;background:#fff;'
+        style: 'width:30px;height:30px;border-radius:50%;background:var(--rv-surface);'
           + 'display:flex;align-items:center;justify-content:center;'
           + 'font-weight:700;font-size:13px;color:' + accentColor + ';',
       }, visibleNumber);
     } else if (estado === 'concluido') {
       innerEl = window.el('div', {
-        style: 'width:32px;height:32px;border-radius:50%;background:#2563eb;color:#fff;'
+        style: 'width:32px;height:32px;border-radius:50%;background:var(--rv-brand);color:var(--rv-text-on-brand);'
           + 'display:flex;align-items:center;justify-content:center;',
       }, svgCheck());
     } else if (estado === 'atual-excecao') {
       innerEl = window.el('div', {
-        style: 'width:32px;height:32px;border-radius:50%;background:transparent;color:#fff;'
+        style: 'width:32px;height:32px;border-radius:50%;background:transparent;color:var(--rv-text-on-brand);'
           + 'display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;',
       }, '!');
     } else if (estado === 'atual') {
       innerEl = window.el('div', {
-        style: 'width:32px;height:32px;border-radius:50%;background:#2563eb;color:#fff;'
+        style: 'width:32px;height:32px;border-radius:50%;background:var(--rv-brand);color:var(--rv-text-on-brand);'
           + 'display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;',
       }, visibleNumber);
     } else {
       innerEl = window.el('div', {
-        style: 'width:30px;height:30px;border-radius:50%;background:#fff;'
-          + 'border:1.5px solid #dfe3e8;display:flex;align-items:center;justify-content:center;'
-          + 'font-weight:600;font-size:13px;color:#9aa2af;',
+        style: 'width:30px;height:30px;border-radius:50%;background:var(--rv-surface);'
+          + 'border:1.5px solid var(--rv-border-soft);display:flex;align-items:center;justify-content:center;'
+          + 'font-weight:600;font-size:13px;color:var(--rv-text-tertiary);',
       }, visibleNumber);
     }
 
     // Wrapper 42px (serve de container para o conector ficar em top:20px)
     var circleWrapStyle = 'width:42px;height:42px;border-radius:50%;display:flex;align-items:center;'
-      + 'justify-content:center;position:relative;z-index:1;box-shadow:0 0 0 4px #fff;flex-shrink:0;';
+      + 'justify-content:center;position:relative;z-index:1;box-shadow:0 0 0 4px var(--rv-surface);flex-shrink:0;';
     if (estado === 'parcial') {
       var pct2 = Math.min(Math.max(dtoStep.percentual, 0), 100);
       circleWrapStyle += 'background:conic-gradient(from -90deg, ' + accentColor
-        + ' 0% ' + pct2 + '%, #dbeafe ' + pct2 + '%);';
+        + ' 0% ' + pct2 + '%, var(--rv-pill-info-bg) ' + pct2 + '%);';
     } else if (estado === 'atual-excecao') {
-      circleWrapStyle += 'background:#f59e0b;';
+      circleWrapStyle += 'background:var(--rv-signal-caution);';
     }
     var circleWrap = window.el('div', { style: circleWrapStyle }, innerEl);
 
     // Label
     var labelColor, labelWeight;
     if (estado === 'concluido') {
-      labelColor = '#475065'; labelWeight = '600';
+      labelColor = 'var(--rv-text-primary)'; labelWeight = '600';
     } else if (estado === 'parcial') {
       labelColor = accentColor; labelWeight = '700';
     } else if (estado === 'atual-excecao') {
-      labelColor = '#b45309'; labelWeight = '700';
+      labelColor = 'var(--rv-signal-caution)'; labelWeight = '700';
     } else if (estado === 'atual') {
-      labelColor = '#2563eb'; labelWeight = '700';
+      labelColor = 'var(--rv-accent-blue)'; labelWeight = '700';
     } else {
-      labelColor = '#aab2bf'; labelWeight = '500';
+      labelColor = 'var(--rv-text-tertiary)'; labelWeight = '500';
     }
     var labelEl = window.el('div', {
       style: 'margin-top:9px;font-size:12px;color:' + labelColor
@@ -230,11 +230,11 @@
       }, 'parcial');
     } else if (estado === 'atual') {
       sublabelEl = window.el('div', {
-        style: 'font-size:11px;color:#2563eb;font-weight:600;margin-top:2px;',
+        style: 'font-size:11px;color:var(--rv-accent-blue);font-weight:600;margin-top:2px;',
       }, 'em andamento');
     } else if (estado === 'atual-excecao') {
       sublabelEl = window.el('div', {
-        style: 'font-size:11px;color:#d97706;font-weight:600;margin-top:2px;',
+        style: 'font-size:11px;color:var(--rv-signal-caution);font-weight:600;margin-top:2px;',
       }, 'excecao ativa');
     }
 
@@ -263,18 +263,18 @@
       : (chainState && chainState.displayStatus
         ? 'Seu pedido esta em ' + chainState.displayStatus.toLowerCase() + '.'
         : api.getClienteTrackingMensagem(pedido));
-    var bgColor = '#f1f6fe';
-    var borderColor = '#d7e6fb';
-    var iconColor = '#2563eb';
-    var textColor = '#2c4a78';
+    var bgColor = 'var(--rv-pill-info-bg)';
+    var borderColor = 'var(--rv-pill-info-border)';
+    var iconColor = 'var(--rv-accent-blue)';
+    var textColor = 'var(--rv-accent-blue)';
 
     if (progress.exception) {
       if (progress.exception.tom === 'danger') {
-        bgColor = '#fee2e2'; borderColor = '#fca5a5';
-        iconColor = '#dc2626'; textColor = '#7f1d1d';
+        bgColor = 'var(--rv-surface)'; borderColor = 'var(--rv-signal-negative-border)';
+        iconColor = 'var(--rv-signal-negative)'; textColor = 'var(--rv-signal-negative)';
       } else if (progress.exception.tom === 'warning') {
-        bgColor = '#fef3c7'; borderColor = '#fcd34d';
-        iconColor = '#d97706'; textColor = '#78350f';
+        bgColor = 'var(--rv-signal-caution-bg)'; borderColor = 'var(--rv-signal-caution-border)';
+        iconColor = 'var(--rv-signal-caution)'; textColor = 'var(--rv-signal-caution)';
       }
     }
 
@@ -317,27 +317,27 @@
       ? 'Atualizado em ' + window.fmtDataCurta(pedido.status_cliente_atualizado_em)
       : null;
     return window.el('div', {
-      style: 'background:#fff;border:1px solid #fca5a5;border-radius:4px;padding:16px 20px;margin-bottom:14px;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-signal-negative-border);border-radius:4px;padding:16px 20px;margin-bottom:14px;',
     },
       window.el('div', {
-        style: 'font-size:16px;font-weight:700;color:#16203a;margin-bottom:12px;',
+        style: 'font-size:16px;font-weight:700;color:var(--rv-text-primary);margin-bottom:12px;',
       }, 'Acompanhamento do pedido'),
       window.el('div', {
-        style: 'display:flex;align-items:center;gap:10px;background:#fee2e2;border:1px solid #fca5a5;border-radius:4px;padding:11px 16px;',
+        style: 'display:flex;align-items:center;gap:10px;background:var(--rv-surface);border:1px solid var(--rv-signal-negative-border);border-radius:4px;padding:11px 16px;',
       },
-        svgInfo('#dc2626'),
+        svgInfo('var(--rv-signal-negative)'),
         window.el('span', {
-          style: 'font-size:13.5px;color:#7f1d1d;font-weight:500;',
+          style: 'font-size:13.5px;color:var(--rv-signal-negative);font-weight:500;',
         }, api.getClienteTrackingMensagem(pedido))
       ),
       updatedLabel
         ? window.el('p', {
-            style: 'font-size:12px;color:#ef4444;margin:12px 0 0;',
+            style: 'font-size:12px;color:var(--rv-signal-negative);margin:12px 0 0;',
           }, updatedLabel)
         : null,
       progress.fallbackToRecebido
         ? window.el('p', {
-            style: 'font-size:12px;color:#ef4444;opacity:0.8;margin:8px 0 0;',
+            style: 'font-size:12px;color:var(--rv-signal-negative);opacity:0.8;margin:8px 0 0;',
           }, 'Sem status visual principal publicado antes do cancelamento.')
         : null
     );
@@ -394,7 +394,7 @@
     var exceptions = api && api.CLIENTE_TRACKING_EXCECOES;
     if (!api || !api.CLIENTE_TRACKING_STEPS || !exceptions) {
       return window.el('div', {
-        style: 'background:#fff;border:1px solid #fef3c7;border-radius:4px;padding:16px 20px;margin-bottom:14px;color:#92400e;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-signal-caution-border);border-radius:4px;padding:16px 20px;margin-bottom:14px;color:var(--rv-signal-caution);',
       }, 'Tracking visual indisponivel no momento.');
     }
 
@@ -467,10 +467,10 @@
     });
 
     var card = window.el('div', {
-      style: 'background:#fff;border:1px solid #eceef1;border-radius:4px;padding:16px 20px;margin-bottom:14px;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;margin-bottom:14px;',
     });
     card.appendChild(window.el('div', {
-      style: 'font-size:16px;font-weight:700;color:#16203a;margin-bottom:18px;',
+      style: 'font-size:16px;font-weight:700;color:var(--rv-text-primary);margin-bottom:18px;',
     }, 'Acompanhamento do pedido'));
 
     var sectionsUi = window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.clienteRouteSectionsUi;

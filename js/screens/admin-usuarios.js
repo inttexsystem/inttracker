@@ -58,7 +58,7 @@
     }
 
     var ICON_PLUS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
-    var ICON_SEARCH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9aa2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
+    var ICON_SEARCH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
     var ICON_SQUARE_PEN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>';
     var ICON_BAN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M5.7 5.7l12.6 12.6"></path></svg>';
     var ICON_TRASH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
@@ -68,10 +68,10 @@
     // ícone de ban (proibido) na mesma posição de ação.
     var ICON_REFRESH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>';
     // A3.2 — ícones dos cards-resumo (KPI).
-    var ICON_SHIELD = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a93a3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>';
-    var ICON_FACTORY = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a93a3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"></path><path d="M4 20V10l5 3V10l5 3V10l5 3v7"></path><path d="M4 10V6l2-2"></path></svg>';
-    var ICON_USERS = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a93a3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>';
-    var ICON_USER_OFF = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b06a6a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="17" y1="8" x2="22" y2="13"></line><line x1="22" y1="8" x2="17" y2="13"></line></svg>';
+    var ICON_SHIELD = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>';
+    var ICON_FACTORY = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"></path><path d="M4 20V10l5 3V10l5 3V10l5 3v7"></path><path d="M4 10V6l2-2"></path></svg>';
+    var ICON_USERS = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>';
+    var ICON_USER_OFF = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--rv-signal-negative)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="17" y1="8" x2="22" y2="13"></line><line x1="22" y1="8" x2="17" y2="13"></line></svg>';
 
     // A3.2 — estado da toolbar (ordenação/filtro por tipo). Client-side,
     // sobre os dados já carregados por reload(); sem query nova.
@@ -82,11 +82,12 @@
     function kpiCard({ label, icon, value, subtitle, tone }) {
       const danger = tone === 'danger';
       // Cor padrão de fundo = branco, mesmo tom dos cards KPI do dashboard
-      // admin (.rv-adm-card em js/screens/painel.js: background:#fff).
-      const bg = danger ? '#fff8f8' : '#fff';
-      const border = danger ? '#f3dcdc' : '#e4e8ee';
-      const labelColor = danger ? '#b06a6a' : '#8a93a3';
-      const valueColor = danger ? '#d6403a' : '#16203a';
+      // admin (.rv-adm-card em js/screens/painel.js: background:var(--rv-surface)).
+      // §2.1 Destructive: superficie branca, borda e texto da familia negativa.
+      const bg = 'var(--rv-surface)';
+      const border = danger ? 'var(--rv-signal-negative-border)' : 'var(--rv-border-soft)';
+      const labelColor = danger ? 'var(--rv-signal-negative)' : 'var(--rv-text-tertiary)';
+      const valueColor = danger ? 'var(--rv-signal-negative)' : 'var(--rv-text-primary)';
       const card = window.el('div', { style: `background:${bg}; border:1px solid ${border}; border-radius:5px; padding:14px 16px;` });
       card.appendChild(window.el('div', { style: 'display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;' },
         window.el('span', { style: `font-size:12px; color:${labelColor};` }, label),
@@ -102,17 +103,13 @@
     // ("Admin · leitura"); nenhum sufixo para 'completo' (mantém o badge
     // igual ao de antes — não é uma coluna nova, só um dado a mais no
     // mesmo badge, por instrução do arquiteto).
+    // O tipo de usuario e uma CLASSIFICACAO, nao um estado: familia neutra,
+    // sem ponto, diferenca carregada pelo rotulo. Dono: js/badges.js (D9).
     function tipoBadge(tipo, nivelAcesso) {
-      const map = {
-        admin: { bg: '#e8eefc', color: '#2563eb', label: 'Admin' },
-        fornecedor: { bg: '#eceef1', color: '#5a6472', label: 'Fornecedor' },
-        cliente: { bg: '#f0edfc', color: '#6d5bd0', label: 'Cliente' },
-      };
-      const t = map[tipo] || { bg: '#eceef1', color: '#5a6472', label: tipo || '—' };
-      const label = (tipo === 'admin' && nivelAcesso === 'somente_leitura') ? `${t.label} · leitura` : t.label;
-      return window.el('span', {
-        style: `display:inline-flex; align-items:center; border-radius:4px; padding:2px 8px; font-size:11.5px; font-weight:600; white-space:nowrap; background:${t.bg}; color:${t.color};`
-      }, label);
+      const LABEL = { admin: 'Admin', fornecedor: 'Fornecedor', cliente: 'Cliente' };
+      const base = LABEL[tipo] || tipo || '—';
+      const label = (tipo === 'admin' && nivelAcesso === 'somente_leitura') ? `${base} · leitura` : base;
+      return window.rvClassificationBadge(label);
     }
 
     // UI-GRID-TEXT-HELPER: truncatedCell()/TRUNCATE_CELL_STYLE promoted to
@@ -209,15 +206,15 @@
         style: 'display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px;'
       });
       header.appendChild(window.el('div', {},
-        window.el('div', { style: 'font-size:22px; font-weight:800; color:#16203a; letter-spacing:-.01em;' }, 'Usuarios'),
-        window.el('div', { style: 'font-size:13px; color:#8a93a3; margin-top:3px;' }, 'Gerencie acessos, vinculos e status de usuarios administrativos.')
+        window.el('div', { style: 'font-size:22px; font-weight:800; color:var(--rv-text-primary); letter-spacing:-.01em;' }, 'Usuarios'),
+        window.el('div', { style: 'font-size:13px; color:var(--rv-text-tertiary); margin-top:3px;' }, 'Gerencie acessos, vinculos e status de usuarios administrativos.')
       ));
       // A2.3 — "Novo usuario" disabled for a somente_leitura admin (safe
       // boolean pattern: `disabled` key only set when true, never
       // `disabled:false`, per UI-EL-BOOLEAN-ATTR-FIX).
       const novoUsuarioAttrs = {
         type: 'button',
-        style: `display:inline-flex; align-items:center; gap:7px; background:#2563eb; color:#fff; border:none; border-radius:4px; padding:9px 16px; font-weight:600; font-size:14px; font-family:inherit; cursor:${meSomenteLeitura ? 'default' : 'pointer'}; opacity:${meSomenteLeitura ? '0.55' : '1'};`,
+        style: `display:inline-flex; align-items:center; gap:7px; background:var(--rv-brand); color:var(--rv-text-on-brand); border:none; border-radius:4px; padding:9px 16px; font-weight:600; font-size:14px; font-family:inherit; cursor:${meSomenteLeitura ? 'default' : 'pointer'}; opacity:${meSomenteLeitura ? '0.55' : '1'};`,
       };
       if (meSomenteLeitura) {
         novoUsuarioAttrs.disabled = true;
@@ -236,7 +233,7 @@
 
       const controls = window.el('div', { style: 'display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;' });
       const searchWrap = window.el('div', {
-        style: 'display:flex; align-items:center; gap:8px; flex:1 1 320px; min-width:220px; background:#fff; border:1px solid #d8dce2; border-radius:5px; padding:8px 13px;'
+        style: 'display:flex; align-items:center; gap:8px; flex:1 1 320px; min-width:220px; background:var(--rv-surface); border:1px solid var(--rv-border-strong); border-radius:5px; padding:8px 13px;'
       });
       searchWrap.appendChild(svgIcon(ICON_SEARCH));
       searchWrap.appendChild(window.el('input', {
@@ -244,11 +241,11 @@
         value: busca,
         placeholder: 'Buscar por nome ou e-mail',
         oninput: (e) => { busca = e.target.value || ''; renderStandalone(); },
-        style: 'width:100%; border:0; outline:none; background:transparent; font-size:13px; color:#16203a; padding:0; font-family:inherit;'
+        style: 'width:100%; border:0; outline:none; background:transparent; font-size:13px; color:var(--rv-text-primary); padding:0; font-family:inherit;'
       }));
       controls.appendChild(searchWrap);
 
-      const selectStyle = 'border:1px solid #d8dce2; border-radius:5px; padding:8px 11px; font-size:13px; color:#16203a; background:#fff; font-family:inherit; cursor:pointer;';
+      const selectStyle = 'border:1px solid var(--rv-border-strong); border-radius:5px; padding:8px 11px; font-size:13px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; cursor:pointer;';
       const ordenarSelect = window.el('select', {
         value: ordenarPor,
         onchange: (e) => { ordenarPor = e.target.value; renderStandalone(); },
@@ -277,7 +274,7 @@
       filtroTipoSelect.value = filtroTipo;
       controls.appendChild(filtroTipoSelect);
 
-      const toggle = window.el('label', { style: 'display:inline-flex; align-items:center; gap:8px; font-size:13px; color:#5b6472; user-select:none; cursor:pointer; white-space:nowrap;' });
+      const toggle = window.el('label', { style: 'display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--rv-text-secondary); user-select:none; cursor:pointer; white-space:nowrap;' });
       toggle.appendChild(window.el('input', {
         type: 'checkbox',
         checked: mostrarInativos,
@@ -290,7 +287,7 @@
       }, '+ Novo usuário Desativar'));
 
       const tableWrap = window.el('div', { style: 'display:flex; flex-direction:column;' });
-      const card = window.el('div', { style: 'background:#fff; border:1px solid #eceef1; border-radius:6px 6px 0 0; overflow:hidden;' });
+      const card = window.el('div', { style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:6px 6px 0 0; overflow:hidden;' });
       // UI-ACTION-BUTTON-MIGRATION-2: ACOES holds 4 actionButton()s
       // (30px) + 3 gaps (6px) = 138px. The previous 102px undersized the
       // column (architect-reported); widened to the exact math, one
@@ -300,30 +297,30 @@
       // at 1fr; TIPO/STATUS/ULTIMO ACESSO/ACOES fixed px unchanged.
       const gridTemplate = '2fr 1fr 110px 1fr 1fr 90px 130px 138px';
       const TRUNCATE_HEAD_LABELS = new Set(['E-MAIL', 'NOME', 'FORNECEDOR', 'CLIENTE']);
-      const headRow = window.el('div', { style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:10px 18px; background:#f8f9fb; border-bottom:1px solid #eceef1;` });
+      const headRow = window.el('div', { style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:10px 18px; background:var(--rv-surface-subtle); border-bottom:1px solid var(--rv-border);` });
       ['E-MAIL', 'NOME', 'TIPO', 'FORNECEDOR', 'CLIENTE', 'STATUS', 'ULTIMO ACESSO'].forEach((label) => {
         const headStyle = TRUNCATE_HEAD_LABELS.has(label)
-          ? `font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; ${window.TRUNCATE_CELL_STYLE}`
-          : 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; white-space:nowrap;';
+          ? `font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; ${window.TRUNCATE_CELL_STYLE}`
+          : 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; white-space:nowrap;';
         headRow.appendChild(window.el('div', { style: headStyle }, label));
       });
-      headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:#8a93a3; letter-spacing:.04em; text-align:center; white-space:nowrap;' }, 'ACOES'));
+      headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; text-align:center; white-space:nowrap;' }, 'ACOES'));
       card.appendChild(headRow);
 
       rows.forEach((user, index) => {
         const inativo = user.ativo === false;
-        const line = window.el('div', { style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid #f1f3f6'}; opacity:${inativo ? '0.6' : '1'};` });
-        line.appendChild(window.truncatedCell(user.email || '', user.email, 'font-size:13.5px; color:#3f4757;'));
-        line.appendChild(window.truncatedCell(user.nome || '—', user.nome, 'font-size:14px; font-weight:500; color:#16203a;'));
+        const line = window.el('div', { style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:13px 18px; border-bottom:${index === rows.length - 1 ? '0' : '1px solid var(--rv-border-soft)'}; opacity:${inativo ? '0.6' : '1'};` });
+        line.appendChild(window.truncatedCell(user.email || '', user.email, 'font-size:13.5px; color:var(--rv-text-primary);'));
+        line.appendChild(window.truncatedCell(user.nome || '—', user.nome, 'font-size:14px; font-weight:500; color:var(--rv-text-primary);'));
         line.appendChild(window.el('div', {}, tipoBadge(user.tipo, user.nivel_acesso)));
-        line.appendChild(window.truncatedCell(user.fornecedor?.nome || '—', user.fornecedor?.nome, `font-size:13.5px; color:${user.fornecedor?.nome ? '#3f4757' : '#aab2bf'};`));
-        line.appendChild(window.truncatedCell(user.cliente?.nome || '—', user.cliente?.nome, `font-size:13.5px; color:${user.cliente?.nome ? '#3f4757' : '#aab2bf'};`));
+        line.appendChild(window.truncatedCell(user.fornecedor?.nome || '—', user.fornecedor?.nome, `font-size:13.5px; color:${user.fornecedor?.nome ? 'var(--rv-text-primary)' : 'var(--rv-text-tertiary)'};`));
+        line.appendChild(window.truncatedCell(user.cliente?.nome || '—', user.cliente?.nome, `font-size:13.5px; color:${user.cliente?.nome ? 'var(--rv-text-primary)' : 'var(--rv-text-tertiary)'};`));
         line.appendChild(window.el('div', {},
           window.el('span', {
-            style: `display:inline-flex; align-items:center; border-radius:4px; padding:3px 9px; font-size:12px; font-weight:600; white-space:nowrap; background:${inativo ? '#fff1f1' : '#e6f4ec'}; color:${inativo ? '#d6403a' : '#18794a'};`
+            style: `display:inline-flex; align-items:center; border-radius:4px; padding:3px 9px; font-size:12px; font-weight:600; white-space:nowrap; background:${inativo ? 'var(--rv-surface)' : 'var(--rv-signal-positive-bg)'}; color:${inativo ? 'var(--rv-signal-negative)' : 'var(--rv-signal-positive)'};`
           }, inativo ? 'Inativo' : 'Ativo')
         ));
-        line.appendChild(window.el('div', { style: 'font-size:13.5px; color:#8a93a3;' }, formatLastSignIn(lastSignInById[user.id])));
+        line.appendChild(window.el('div', { style: 'font-size:13.5px; color:var(--rv-text-tertiary);' }, formatLastSignIn(lastSignInById[user.id])));
         // UI-ACTION-BUTTON-MIGRATION-2: all 4 row actions now built via
         // the shared actionButton() primitive (UI_VISUAL_CONTRACT.md
         // §8.1) — same handlers, same confirmDialog/modal gating, same
@@ -375,11 +372,11 @@
       });
 
       if (!rows.length) {
-        card.appendChild(window.el('div', { style: 'padding:20px 18px; font-size:14px; color:#6b7280; text-align:center;' }, busca ? 'Nenhum usuario encontrado.' : (mostrarInativos ? 'Nenhum usuario cadastrado.' : 'Nenhum usuario ativo encontrado.')));
+        card.appendChild(window.el('div', { style: 'padding:20px 18px; font-size:14px; color:var(--rv-text-secondary); text-align:center;' }, busca ? 'Nenhum usuario encontrado.' : (mostrarInativos ? 'Nenhum usuario cadastrado.' : 'Nenhum usuario ativo encontrado.')));
       }
 
-      const footer = window.el('div', { style: 'padding:11px 18px; background:#fff; border:1px solid #eceef1; border-top:none; border-radius:0 0 6px 6px;' });
-      footer.appendChild(window.el('span', { style: 'font-size:13px; color:#9aa2af;' }, `${rows.length} ${rows.length === 1 ? 'usuario listado' : 'usuarios listados'}`));
+      const footer = window.el('div', { style: 'padding:11px 18px; background:var(--rv-surface); border:1px solid var(--rv-border); border-top:none; border-radius:0 0 6px 6px;' });
+      footer.appendChild(window.el('span', { style: 'font-size:13px; color:var(--rv-text-tertiary);' }, `${rows.length} ${rows.length === 1 ? 'usuario listado' : 'usuarios listados'}`));
       tableWrap.appendChild(card);
       tableWrap.appendChild(footer);
       page.appendChild(header);

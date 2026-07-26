@@ -476,9 +476,9 @@
     function setOutcome(message, tone) {
       _elements.outcomeEl.textContent = message || '';
       var color = '';
-      if (tone === 'success') color = '#2e7d32';
-      else if (tone === 'warning') color = '#f57f17';
-      else if (tone === 'error') color = '#d32f2f';
+      if (tone === 'success') color = 'var(--rv-signal-positive)';
+      else if (tone === 'warning') color = 'var(--rv-signal-caution)';
+      else if (tone === 'error') color = 'var(--rv-signal-negative)';
       _elements.outcomeEl.style.color = color;
     }
 

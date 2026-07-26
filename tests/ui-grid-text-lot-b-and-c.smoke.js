@@ -70,7 +70,7 @@ test('node --check passes on pedidos-list.js, ops-list.js, painel.js', () => {
 test('pedidos-list.js: CLIENTE data cell renders via window.truncatedCell', () => {
   assert.match(
     pedidosSrc,
-    /var nome = clienteNome\(pedido\);\s*\n\s*return window\.truncatedCell\(nome, nome === '—' \? null : nome, 'font-size:13\.5px;color:#3f4757;'\);/,
+    /var nome = clienteNome\(pedido\);\s*\n\s*return window\.truncatedCell\(nome, nome === '—' \? null : nome, 'font-size:13\.5px;color:var\(--rv-text-primary\);'\);/,
   );
 });
 
@@ -274,20 +274,20 @@ test('ops-list.js: CLIENTE header cell uses the §7.1 truncation CSS; TIPO/STATU
 test('painel.js: .rv-adm-ref keeps white-space:nowrap and gains overflow:hidden/text-overflow:ellipsis', () => {
   assert.match(
     painelSrc,
-    /\.rv-adm-ref\{font-size:13\.5px;font-weight:700;color:#2563eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;\}/,
+    /\.rv-adm-ref\{font-size:13\.5px;font-weight:700;color:var\(--rv-accent-blue\);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;\}/,
   );
 });
 
 test('painel.js: .rv-adm-mini keeps white-space:nowrap and gains overflow:hidden/text-overflow:ellipsis', () => {
   assert.match(
     painelSrc,
-    /\.rv-adm-mini\{font-size:13px;color:#3f4757;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;\}/,
+    /\.rv-adm-mini\{font-size:13px;color:var\(--rv-text-primary\);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;\}/,
   );
 });
 
 test('painel.js: no other CSS rule was touched (only the two ratified selectors changed)', () => {
   // Sanity check that neighboring rules (untouched) still have their
   // original exact shape — guards against an over-broad find/replace.
-  assert.match(painelSrc, /\.rv-adm-action-title\{font-size:13\.5px;font-weight:600;color:#16203a;min-width:0;\}/);
-  assert.match(painelSrc, /\.rv-adm-cta\{flex-shrink:0;border-radius:4px;border:1px solid #bcd3f7;/);
+  assert.match(painelSrc, /\.rv-adm-action-title\{font-size:13\.5px;font-weight:600;color:var\(--rv-text-primary\);min-width:0;\}/);
+  assert.match(painelSrc, /\.rv-adm-cta\{flex-shrink:0;border-radius:4px;border:1px solid var\(--rv-pill-info-border\);/);
 });

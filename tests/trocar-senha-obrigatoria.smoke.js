@@ -282,9 +282,9 @@ test('8. checklist reage por tecla: senha forte mas confirmação diferente → 
   const lengthRow = rows.find((r) => /caracteres/.test(textOf(r)));
   const digitRow = rows.find((r) => /dígito/.test(textOf(r)));
   const matchRow = rows.find((r) => /coincidem/.test(textOf(r)));
-  assert.equal(lengthRow.style.color, '#18794a', '"Mínimo de 8 caracteres" deveria estar satisfeito (verde)');
-  assert.equal(digitRow.style.color, '#18794a', '"Ao menos 1 dígito" deveria estar satisfeito (verde)');
-  assert.equal(matchRow.style.color, '#8a93a3', '"As duas senhas coincidem" deveria continuar pendente (cinza)');
+  assert.equal(lengthRow.style.color, 'var(--rv-signal-positive)', '"Mínimo de 8 caracteres" deveria estar satisfeito (verde)');
+  assert.equal(digitRow.style.color, 'var(--rv-signal-positive)', '"Ao menos 1 dígito" deveria estar satisfeito (verde)');
+  assert.equal(matchRow.style.color, 'var(--rv-text-tertiary)', '"As duas senhas coincidem" deveria continuar pendente (cinza)');
 });
 
 test('9. senhas coincidindo + 8+ caracteres + dígito → os 3 critérios satisfeitos, botão habilitado', () => {
@@ -299,7 +299,7 @@ test('9. senhas coincidindo + 8+ caracteres + dígito → os 3 critérios satisf
   const submitBtn = findAll(root, (n) => n.tagName === 'BUTTON' && n._attrs.type === 'submit')[0];
   assert.equal(submitBtn.disabled, false, 'botão deveria estar habilitado com os 3 critérios satisfeitos');
   const rows = findAll(root, (n) => n.tagName === 'SPAN' && /caracteres|dígito|coincidem/.test(textOf(n)));
-  for (const r of rows) assert.equal(r.style.color, '#18794a', `"${textOf(r)}" deveria estar satisfeito (verde)`);
+  for (const r of rows) assert.equal(r.style.color, 'var(--rv-signal-positive)', `"${textOf(r)}" deveria estar satisfeito (verde)`);
 });
 
 test('10. toggle de visibilidade alterna type password↔text', () => {

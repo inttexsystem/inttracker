@@ -276,6 +276,9 @@ function makeCadastrosSandbox({ tableData = {} } = {}) {
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'badges.js'), 'utf8'), sandbox, { filename: 'js/badges.js' });
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   // Stubs que common.js espera
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };
@@ -592,6 +595,8 @@ test('22. boot: módulos coexistem sem SyntaxError e setRoutes registra as 7 rot
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
   vm.runInContext(sysSrc,    sandbox, { filename: 'js/screens/system-screens.js' });
@@ -673,6 +678,8 @@ test('23. setRoutes: as globais legadas resolvem (não há ReferenceError em run
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
   vm.runInContext(sysSrc,    sandbox, { filename: 'js/screens/system-screens.js' });
@@ -725,6 +732,9 @@ test('24. screenPainel (módulo) renderiza via shellLayout com os itens do ADMIN
   vm.createContext(sandbox);
 
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
+  // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'badges.js'), 'utf8'), sandbox, { filename: 'js/badges.js' });
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   vm.runInContext(cadSrc,    sandbox, { filename: 'js/screens/cadastros.js' });
   sandbox.CURRENT_USER = { nome: 'Tester', tipo: 'admin' };

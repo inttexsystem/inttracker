@@ -18,8 +18,8 @@
 (function (window) {
   'use strict';
 
-  var LABEL_STYLE = 'display:block;font-size:12px;font-weight:600;color:#5b6472;margin-bottom:5px;';
-  var SECTION_HEAD_STYLE = 'font-size:12px;font-weight:700;letter-spacing:.03em;color:#8a93a3;text-transform:uppercase;';
+  var LABEL_STYLE = 'display:block;font-size:12px;font-weight:600;color:var(--rv-text-secondary);margin-bottom:5px;';
+  var SECTION_HEAD_STYLE = 'font-size:12px;font-weight:700;letter-spacing:.03em;color:var(--rv-text-tertiary);text-transform:uppercase;';
 
   function hoje() {
     return new Date().toISOString().slice(0, 10);
@@ -40,11 +40,11 @@
   // Tapete stacked para nao criar uma segunda linguagem visual.
   function defeitoToggle(chk) {
     var knob = window.el('span', {
-      style: 'position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(20,30,45,.25);transition:transform .15s ease;',
+      style: 'position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--rv-surface);box-shadow:var(--rv-shadow-sm);transition:transform .15s ease;',
     });
     var track = window.el('span', {}, knob);
     var paint = function () {
-      track.style.cssText = 'position:relative;display:inline-block;width:40px;height:22px;border-radius:999px;transition:background .15s ease;background:' + (chk.checked ? '#c2610c' : '#cfd5df') + ';';
+      track.style.cssText = 'position:relative;display:inline-block;width:40px;height:22px;border-radius:999px;transition:background .15s ease;background:' + (chk.checked ? 'var(--rv-signal-caution)' : 'var(--rv-surface-subtle)') + ';';
       knob.style.transform = chk.checked ? 'translateX(18px)' : 'translateX(0)';
     };
     paint();
@@ -110,11 +110,11 @@
     var rows = linhasState.map(function (ls, idx) {
       var pend = pendingOf(ls.op_item_id);
       var pill = (pend != null && pend > 0)
-        ? window.el('span', { style: 'display:inline-flex;align-items:center;border:1px solid #fbe8c6;background:#fff9ee;color:#8a5a15;border-radius:4px;padding:3px 9px;font-size:11px;font-weight:700;white-space:nowrap;' }, fmtNum(pend) + ' m pendente')
-        : window.el('span', { style: 'display:inline-flex;align-items:center;border:1px solid #eceef1;background:#f7f8fa;color:#8a93a3;border-radius:4px;padding:3px 9px;font-size:11px;font-weight:700;white-space:nowrap;' }, 'sem pendência');
-      return window.el('div', { style: 'padding:12px 14px;' + (idx < linhasState.length - 1 ? 'border-bottom:1px solid #f1f3f6;' : '') },
+        ? window.el('span', { style: 'display:inline-flex;align-items:center;border:1px solid var(--rv-signal-caution-border);background:var(--rv-signal-caution-bg);color:var(--rv-signal-caution);border-radius:4px;padding:3px 9px;font-size:11px;font-weight:700;white-space:nowrap;' }, fmtNum(pend) + ' m pendente')
+        : window.el('span', { style: 'display:inline-flex;align-items:center;border:1px solid var(--rv-border);background:var(--rv-surface-subtle);color:var(--rv-text-tertiary);border-radius:4px;padding:3px 9px;font-size:11px;font-weight:700;white-space:nowrap;' }, 'sem pendência');
+      return window.el('div', { style: 'padding:12px 14px;' + (idx < linhasState.length - 1 ? 'border-bottom:1px solid var(--rv-border-soft);' : '') },
         window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;' },
-          window.el('div', { style: 'font-size:13px;font-weight:700;color:#16203a;line-height:1.35;min-width:0;' },
+          window.el('div', { style: 'font-size:13px;font-weight:700;color:var(--rv-text-primary);line-height:1.35;min-width:0;' },
             modeloRotulo(modelosById[ls.modelo_id], ls.modelo_id)),
           pill),
         window.el('div', { style: 'display:grid;grid-template-columns:130px auto minmax(0,1fr);gap:12px;align-items:end;' },
@@ -127,13 +127,13 @@
     if (hasRemaining) {
       preencherLink = window.el('button', {
         type: 'button',
-        style: 'background:none;border:none;padding:0;color:#2563eb;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;',
+        style: 'background:none;border:none;padding:0;color:var(--rv-accent-blue);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;',
       }, 'Preencher restante');
       preencherLink.addEventListener('click', fillRemaining);
     }
 
-    var productsCard = window.el('div', { style: 'border:1px solid #eceef1;border-radius:4px;background:#fff;overflow:hidden;' },
-      window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:1px solid #f1f3f6;' },
+    var productsCard = window.el('div', { style: 'border:1px solid var(--rv-border);border-radius:4px;background:var(--rv-surface);overflow:hidden;' },
+      window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:1px solid var(--rv-border-soft);' },
         window.el('span', { style: SECTION_HEAD_STYLE }, 'Saída medida de tecelagem'),
         preencherLink || window.el('span', {})),
       rows);
@@ -141,7 +141,7 @@
     // A rota Manta vai direto para a Expedicao; a ausencia de destino e
     // uma regra de produto, nao um campo faltando — declarada ao operador.
     var rotaNota = window.el('div', {
-      style: 'display:flex;align-items:flex-start;gap:8px;background:#f6f9ff;border:1px solid #d0e0fb;border-radius:4px;padding:10px 12px;font-size:12.5px;color:#2c4a78;line-height:1.5;',
+      style: 'display:flex;align-items:flex-start;gap:8px;background:var(--rv-surface-subtle);border:1px solid var(--rv-pill-info-border);border-radius:4px;padding:10px 12px;font-size:12.5px;color:var(--rv-pill-info-text);line-height:1.5;',
     }, 'Rota Manta: a saída medida vai direto para a Expedição. Não há destino de acabamento a informar.');
 
     var node = window.el('div', { style: 'display:flex;flex-direction:column;gap:14px;width:100%;' },

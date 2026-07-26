@@ -25,12 +25,12 @@
   'use strict';
 
   var ROUTE_CHIP = {
-    manta: 'background:#f3e8ff;color:#7c3aed;',
-    tapete: 'background:#eaf1fd;color:#2563eb;',
+    manta: 'background:var(--rv-stage-tecelagem-bg);color:var(--rv-stage-tecelagem);',
+    tapete: 'background:var(--rv-pill-info-bg);color:var(--rv-accent-blue);',
   };
 
   function chipStyle(route) {
-    return ROUTE_CHIP[route] || 'background:#f1f3f6;color:#5b6472;';
+    return ROUTE_CHIP[route] || 'background:var(--rv-surface-subtle);color:var(--rv-text-secondary);';
   }
 
   // Cabecalho da secao: identifica a rota de forma visivel e lista a
@@ -50,7 +50,7 @@
           + 'font-size:11.5px;font-weight:700;' + chipStyle(section.route),
       }, 'Rota ' + (section.label || '—')),
       window.el('span', {
-        style: 'font-size:11.5px;color:#8a93a3;font-weight:600;letter-spacing:.02em;',
+        style: 'font-size:11.5px;color:var(--rv-text-tertiary);font-weight:600;letter-spacing:.02em;',
       }, labels)
     );
   }
@@ -67,7 +67,7 @@
     if (!parts.length) return null;
     return window.el('div', {
       'data-rv-route-section-position': section.route || '',
-      style: 'font-size:11.5px;color:#8a93a3;margin-top:8px;line-height:1.45;',
+      style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-top:8px;line-height:1.45;',
     }, parts.join(' · '));
   }
 
@@ -85,7 +85,7 @@
     }, list.map(function (section) {
       var block = window.el('div', {
         'data-rv-client-route-section': section.route || 'legado',
-        style: multi ? 'border-top:1px solid #f1f3f6;padding-top:14px;' : '',
+        style: multi ? 'border-top:1px solid var(--rv-border-soft);padding-top:14px;' : '',
       });
       // Um Pedido Tapete-only nao ganha cabecalho: a tela nao muda de
       // forma. Manta e misto declaram a rota explicitamente.

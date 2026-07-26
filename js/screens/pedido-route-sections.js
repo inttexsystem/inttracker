@@ -167,7 +167,7 @@
     return {
       key: 'insumos',
       label: 'INSUMOS',
-      color: '#2563eb',
+      color: 'var(--rv-accent-blue)',
       percent: m.insumoPercent,
       state: stageState(m.insumoPercent, m.insumoPedidoKg, Math.max(m.insumoPedidoKg - m.insumoRecebidoKg, 0), m.insumoRecebidoKg, false),
       sublabel: m.insumoPercent >= 100 ? 'concluido' : (m.insumoPedidoKg > 0 ? fmt.kg(m.insumoRecebidoKg) : 'aguardando'),
@@ -194,7 +194,7 @@
     return {
       key: 'tecelagem',
       label: 'TECELAGEM',
-      color: '#2563eb',
+      color: 'var(--rv-accent-blue)',
       percent: percent,
       state: stageState(percent, m.tecMeta, m.tecRemaining, m.tecDone, false),
       sublabel: m.tecRemaining > 0
@@ -233,7 +233,7 @@
     return {
       key: 'acabamento',
       label: 'ACABAMENTO',
-      color: '#e07b39',
+      color: 'var(--rv-signal-caution)',
       percent: percent,
       state: stageState(percent, m.acabMeta, m.acabRemaining, m.acabDone, false),
       sublabel: m.acabRemaining > 0
@@ -265,7 +265,7 @@
     return {
       key: 'expedicao',
       label: 'EXPEDICAO',
-      color: '#2563eb',
+      color: 'var(--rv-accent-blue)',
       percent: m.totalRota > 0 ? clampPercent((base / m.totalRota) * 100) : 0,
       state: m.hasExpedicaoData && m.expedicaoSaldo <= 0 && m.expedicaoLiberado > 0 && prontoExpedicao <= 0
         ? 'done'
@@ -295,7 +295,7 @@
     return {
       key: 'entrega',
       label: 'ENTREGA',
-      color: '#18794a',
+      color: 'var(--rv-signal-positive)',
       percent: m.totalRota > 0 ? clampPercent((m.entregueRota / m.totalRota) * 100) : 0,
       state: m.entregueRota >= m.totalRota && m.totalRota > 0
         ? 'done'

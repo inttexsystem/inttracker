@@ -137,13 +137,13 @@
       style: 'display:flex;align-items:center;gap:11px;border-radius:4px;'
         + 'padding:9px 12px;font-size:13.5px;cursor:pointer;text-decoration:none;'
         + (active
-          ? 'background:#eaf1fd;color:#2563eb;font-weight:600;'
-          : 'color:#5b6472;font-weight:500;')
+          ? 'background:var(--rv-pill-info-bg);color:var(--rv-accent-blue);font-weight:600;'
+          : 'color:var(--rv-text-secondary);font-weight:500;')
         + 'font-family:inherit;',
     });
     // Hover via JS (inline style não suporta :hover).
     if (!active) {
-      a.addEventListener('mouseenter', function () { a.style.background = '#f6f7f9'; });
+      a.addEventListener('mouseenter', function () { a.style.background = 'var(--rv-surface-subtle)'; });
       a.addEventListener('mouseleave', function () { a.style.background = 'transparent'; });
     }
     var icon = MENU_ICONS[item.href] ? svgIcon(MENU_ICONS[item.href], 17) : null;
@@ -195,28 +195,28 @@
     // Topbar 62px (fonte: "Admin - Topbar" standalone).
     const brandLeft = window.el('div', { style: 'display:flex;align-items:center;gap:14px;' },
       window.el('span', {
-        style: 'font-weight:800;font-size:20px;letter-spacing:-.01em;color:#16203a;',
+        style: 'font-weight:800;font-size:20px;letter-spacing:-.01em;color:var(--rv-text-primary);',
       }, 'Inttex'),
-      window.el('span', { style: 'width:1px;height:20px;background:#dfe3e8;display:inline-block;' }),
+      window.el('span', { style: 'width:1px;height:20px;background:var(--rv-surface-subtle);display:inline-block;' }),
       window.el('span', {
-        style: 'font-size:14.5px;color:#8a93a3;font-weight:500;',
+        style: 'font-size:14.5px;color:var(--rv-text-tertiary);font-weight:500;',
       }, sectionLabel)
     );
 
     const bell = svgIcon('<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path>', 20);
     const bellWrap = window.el('span', {
-      style: 'display:inline-flex;align-items:center;color:#9aa2af;cursor:pointer;',
+      style: 'display:inline-flex;align-items:center;color:var(--rv-text-tertiary);cursor:pointer;',
       title: 'Notificações',
     });
     if (bell) bellWrap.appendChild(bell);
 
     const avatar = window.el('div', {
-      style: 'width:32px;height:32px;border-radius:50%;background:#2563eb;color:#fff;'
+      style: 'width:32px;height:32px;border-radius:50%;background:var(--rv-brand);color:var(--rv-text-on-brand);'
         + 'display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;',
     }, initials);
     const chev = svgIcon('<polyline points="6 9 12 15 18 9"></polyline>', 15);
     const chevWrap = window.el('span', {
-      style: 'display:inline-flex;align-items:center;color:#9aa2af;',
+      style: 'display:inline-flex;align-items:center;color:var(--rv-text-tertiary);',
     });
     if (chev) chevWrap.appendChild(chev);
 
@@ -224,7 +224,7 @@
       bellWrap,
       window.el('div', { style: 'display:flex;align-items:center;gap:9px;cursor:pointer;' },
         avatar,
-        window.el('span', { style: 'font-size:14px;font-weight:600;color:#26303f;' }, userName),
+        window.el('span', { style: 'font-size:14px;font-weight:600;color:var(--rv-text-primary);' }, userName),
         chevWrap
       )
     );
@@ -243,7 +243,7 @@
     const header = window.el('header', {
       'data-rv-shell-header': '',
       style: 'height:62px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;'
-        + 'padding:0 28px;border-bottom:1px solid #eceef1;background:#fff;min-width:0;',
+        + 'padding:0 28px;border-bottom:1px solid var(--rv-border);background:var(--rv-surface);min-width:0;',
     }, brandLeft, userRight, legacySpan, legacyBtn);
 
     // Sidebar 196px (fonte: "Admin - Sidebar" standalone).
@@ -252,7 +252,7 @@
     // ser uma faixa horizontal rolavel em vez de consumir o viewport.
     const aside = window.el('aside', {
       'data-rv-shell-aside': '',
-      style: 'width:196px;flex-shrink:0;border-right:1px solid #eceef1;background:#fff;'
+      style: 'width:196px;flex-shrink:0;border-right:1px solid var(--rv-border);background:var(--rv-surface);'
         + 'padding:18px 10px;display:flex;flex-direction:column;gap:2px;',
     });
     for (const item of (menuItems || [])) {
@@ -264,16 +264,16 @@
 
     // Rodapé da sidebar: separador + item "Sair".
     const footer = window.el('div', { 'data-rv-nav-footer': '', style: 'margin-top:auto;' },
-      window.el('div', { style: 'height:1px;background:#eceef1;margin:6px 2px;' })
+      window.el('div', { style: 'height:1px;background:var(--rv-surface-subtle);margin:6px 2px;' })
     );
     const sair = window.el('a', {
       href: '#/login',
       style: 'display:flex;align-items:center;gap:11px;border-radius:4px;'
-        + 'padding:9px 12px;font-size:13.5px;font-weight:500;color:#5b6472;'
+        + 'padding:9px 12px;font-size:13.5px;font-weight:500;color:var(--rv-text-secondary);'
         + 'cursor:pointer;text-decoration:none;font-family:inherit;',
       onclick: function (e) { if (e && e.preventDefault) e.preventDefault(); if (window.logout) window.logout(); },
     });
-    sair.addEventListener('mouseenter', function () { sair.style.background = '#f6f7f9'; });
+    sair.addEventListener('mouseenter', function () { sair.style.background = 'var(--rv-surface-subtle)'; });
     sair.addEventListener('mouseleave', function () { sair.style.background = 'transparent'; });
     const sairIcon = svgIcon('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>', 17);
     if (sairIcon) sair.appendChild(sairIcon);
@@ -284,7 +284,7 @@
     const main = window.el('main', {
       class: 'flex-1 p-6 bg-gray-100',
       'data-rv-shell-main': '',
-      style: 'flex:1 1 0%;min-width:0;min-height:0;overflow-x:hidden;background:#f6f7f9;padding:24px;',
+      style: 'flex:1 1 0%;min-width:0;min-height:0;overflow-x:hidden;background:var(--rv-surface-subtle);padding:24px;',
     }, contentNode);
 
     root.appendChild(header);
