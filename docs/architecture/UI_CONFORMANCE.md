@@ -3,6 +3,12 @@
 > Layer 4 of the contract. Screen → archetype → state → fixture.
 > **State is filled by the detector, not by eye.** Until the phase-4 detector runs,
 > anything not read line by line stays `unaudited`.
+>
+> **Status: PHASE-3 CONFORMED / PHASE-4 DETECTOR PENDING.**
+> The Archetype-A reference fixture now obeys the contract, so a green baseline
+> exists to diff against. The general detector does **not** exist yet; every
+> `unaudited` row below stays `unaudited` until it runs. One conforming screen
+> does **not** ratify an archetype — see § Archetype ratification.
 
 **Generation** (to size effort — see `DESIGN_DECISIONS.md`):
 `G1` legacy generic · rebuild — `G2` minimalist with vibrant colour · mechanical pass
@@ -16,7 +22,7 @@
 
 | Screen | Generation | State | Note |
 |---|---|---|---|
-| `docs/ui/fixtures/op-detail-compacto/OP Detail - Compacto.dc.html` | G3 | **fixture** · deviations D1–D8 | Geometry reference. Still on the old palette — needs the colour, radius and height passes. |
+| `docs/ui/fixtures/op-detail-compacto/OP Detail - Compacto.dc.html` | G3 | **fixture** · conforming | Geometry **and** value reference. Conformed in phase 3: loads `css/tokens.css`, 0 literal colours, radius ∈ {`--rv-radius`, `--rv-radius-pill`}, heights ∈ the 32/34/38 ladder, cards flat, in-card action row marked `data-card-actions`. Guarded by `tests/ui-op-detail-compacto-fixture.test.mjs`. State asserted by that focused test, not by the phase-4 detector. |
 | `OP Acabamento - Aberta.dc.html` | G3 | unaudited | Candidate second screen — this is what ratifies archetype A. |
 | `Admin - Detalhe da OP.dc.html` | unaudited | unaudited | Native `<select>` (D8). |
 | `Admin - Detalhe da OP (Acabamento).dc.html` | unaudited | unaudited | Native `<select>` (D8). |
@@ -100,6 +106,14 @@ detector reports zero for its rule. Never screen by screen.
 Passes 1–7 are mechanical and verifiable. Pass 8 is the only one that needs eyes.
 Do not open a pass while the previous one is still failing.
 
+**None of these passes is closed.** Phase 3 applied passes 1–6 to the **reference
+fixture alone**, so that the detector has a green baseline instead of flagging the
+reference first. That is a single-file exception granted precisely because the
+reference cannot be remediated by batch — it is what the batch is measured against.
+Every pass still has to run across all screens in phase 5, and a pass closes only
+when the phase-4 detector reports zero for its rule repository-wide. The fixture's
+conformance is **not** precedent for remediating any other screen individually.
+
 ---
 
 ## Versioned fixture provenance
@@ -123,3 +137,8 @@ no product bundle, no application file and no `index.html` entry may reference i
 `CANDIDATE` → `RATIFIED` when **two** screens of that archetype pass the detector with
 no deviation. Until then the archetype may not be cited as precedent for a new screen.
 Record the ratification in `DESIGN_DECISIONS.md`.
+
+**Archetype A is NOT fully ratified by phase 3.** Exactly one conforming screen
+exists, and it was verified by a fixture-specific test rather than by the general
+detector, which does not exist yet. The second conforming screen — the candidate is
+`OP Acabamento - Aberta.dc.html` — and a detector run are both still required.

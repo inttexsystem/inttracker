@@ -2,7 +2,8 @@
 
 > **Audience:** the architect AI, which will direct the executor AI.
 > **Status:** plan approved by the product owner. Phases 1 and 2 are DONE (artifacts
-> listed in §3). Phases 3–5 are what you need to direct.
+> listed in §3). Phase 3 is IMPLEMENTED and awaiting your acceptance (§5). Phases 4
+> and 5 are what you still need to direct, and neither is authorized yet.
 > **You do not need to re-derive anything.** Every value is already extracted and
 > ratified. Your job is sequencing, enforcement, and the skill reconciliation in §6.
 
@@ -138,22 +139,32 @@ Four different popover shadows coexisted (SGAA, skill, `Acompanhamento B2B`, tok
 
 ## 5. Phases 3–5 — what to direct
 
-### Phase 3 — bring the fixture into conformance ← **do this first**
+### Phase 3 — bring the fixture into conformance — **IMPLEMENTED, AWAITING ARCHITECT ACCEPTANCE**
 
-There is a contradiction in the repo right now: the contract declares archetype A
-ratified, but its fixture `docs/ui/fixtures/op-detail-compacto/OP Detail - Compacto.dc.html`
-still carries deviations D1–D8. **The
-reference does not obey the contract.** If the detector runs in that state, the first
-thing it flags is the reference itself, and there is no green baseline to diff against.
+The contradiction this phase existed to remove is gone: the fixture
+`docs/ui/fixtures/op-detail-compacto/OP Detail - Compacto.dc.html` no longer carries
+deviations D1–D8, so the detector will not flag the reference first and a green
+baseline now exists to diff against.
 
-- **Scope:** one file. Passes 2–6 (colour, radius, height, shadow, alignment).
-- **Do not** change layout, density, composition, or copy. Geometry is already ratified.
-- **Acceptance:** the file uses `var(--rv-*)` exclusively; radius ∈ {4px, 999px};
-  control heights ∈ {32, 34, 38}; one shadow value; every in-card action
-  right-aligned in a bordered footer.
-- **Output:** the first provably correct screen in the product.
+- **Scope:** one file, plus its focused test. Passes 1–6 applied to that file only.
+- **Delivered:** loads `css/tokens.css` as the single token owner and declares none of
+  its own; 201 literal colours → 0; radius ∈ {`--rv-radius`, `--rv-radius-pill`};
+  control heights ∈ {`--rv-h-compact`, `--rv-h-default`, `--rv-h-primary`}; cards flat
+  via `--rv-shadow-none`; the in-card action row carries `data-card-actions` and is
+  `space-between`; the root carries `data-ui-archetype="detail-cockpit"`.
+- **Preserved:** the ratified geometry is byte-exact — header 60, sidebar 190, rail 300,
+  content max 1600, main padding `18px 32px 40px`, card padding `15px 17px` /
+  `16px 17px`, stack gap 14, column gap 16 — all now expressed through their tokens.
+  No layout, density, composition or copy change; the structural projection of the
+  file differs only in the value-ownership edits listed above.
+- **Guard:** `tests/ui-op-detail-compacto-fixture.test.mjs` (fixture-specific, 21 tests).
+- **NOT delivered:** architect acceptance. The executor does not self-accept.
 
-### Phase 4 — the detector
+### Phase 4 — the detector — **BLOCKED, NOT AUTHORIZED**
+
+Phase 4 requires its own explicit order. Phase 3 being implemented does not authorize
+it, and the fixture being conforming is a precondition, not a trigger. Do not start
+the detector before the architect accepts phase 3.
 
 A deterministic script. It does **not** need design judgment; it reads the closed
 enums in `UI_VISUAL_CONTRACT.md` §5 and reports violations with file and line.
