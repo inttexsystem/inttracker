@@ -118,6 +118,42 @@ English on the same day to match the convention.
 
 ---
 
+## 2026-07-25 · D6.1 — what `--rv-radius-pill` owns
+
+**Bounded clarification of D6. The original D6 entry above is not rewritten and its
+value `999px` does not change.**
+
+**Context.** Conforming the Archetype-A reference fixture exposed a gap D6 never
+answered. D6 was written for the status pill and says `999px`; the closed enum then
+allows only `4px` or `999px`. But the screen also contains elements that are round by
+nature and are not pills — a 5px status dot, an 8px timeline dot, a 30px avatar. Under
+a literal reading of "status / stage / count ONLY" those had **no legal value**:
+`--rv-radius` would render them as rounded squares, which is a redesign of an approved
+screen, and no third radius may exist.
+
+| # | Decision | Choice | Reason | Accepted loss |
+|---|---|---|---|---|
+| D6.1 | Scope of `--rv-radius-pill` | **Semantic pills *and* true circles** | D6's own rationale is "identical rendering; honest value (does not depend on element height)". That rationale is about expressing *circular* without a literal, and it applies to a 5px dot exactly as it applies to an 18px pill. Splitting the two would force either a third radius or a visual regression. | The rule now names two categories instead of one, so the detector needs the element's role, not only its radius value. |
+
+**In force.** Canonical for: status pill, stage badge, count badge, status dot,
+timeline dot, avatar. Forbidden for: ordinary button, card, control, section chip,
+rectangular decorative box. Everything else takes `--rv-radius`.
+
+**Not granted.** This is not permission to introduce arbitrary pill geometry. A
+pill-shaped *button* remains a defect (§6), and a rectangular element does not become
+eligible by being small or decorative.
+
+**Also settled in this round, without a new decision.** Two questions were raised
+against the same fixture and both resolved to *existing* contract text rather than to
+new choices, so they are recorded as clarifications in `UI_VISUAL_CONTRACT.md` (§2.5.1
+and §5) and not as ratified decisions here: a non-mutating contextual navigation link
+may stay in a section header and must not carry `data-card-actions`; and the status
+pill follows §2.6's `height: 18px` / `padding: 0 6px` / bordered form, because the
+normative component contract prevails over a geometry freeze that was only ever meant
+to protect *layout*.
+
+---
+
 ## How to record the next round
 
 Header with date and name. Context in two sentences. One line per decision with

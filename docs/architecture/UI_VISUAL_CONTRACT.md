@@ -146,6 +146,13 @@ A free-text cell sharing a column with fixed-width siblings renders single-line 
 `title` carrying the untruncated value — omitted when the displayed value is the
 placeholder `—`. Long free-text fields (observação, mensagem) wrap; this does not apply.
 
+### 2.5.1 Contextual navigation link
+
+A **non-mutating contextual navigation link** may remain in a section header. It is
+not a decision action, does not require a card-action footer, and must not carry
+`data-card-actions`. This is not a third exception to §2.1's `width:100%` rule — it is
+not an action at all. A control that mutates state is an action and follows §2.1.
+
 ### 2.6 Status pill
 
 `height: 18px`, `padding: 0 6px`, radius `--rv-radius-pill`, border + background +
@@ -300,6 +307,14 @@ came from.
 
 What the detector enforces. A value outside these lists is a defect, with no
 discretionary exception.
+
+**`--rv-radius-pill` — what it owns (D6.1).** The `999px` value is canonical for
+exactly two things: **semantic pills** (status pill, stage badge, count badge) and
+**true circular geometry** (status dot, timeline dot, avatar). It is forbidden on an
+ordinary button, card, control, section chip or rectangular decorative box; everything
+else takes `--rv-radius`. A round indicator is not a pill-shaped control, and `999px`
+is how the system expresses "circular" without a literal. See `DESIGN_DECISIONS.md`
+D6.1.
 
 ```json
 {

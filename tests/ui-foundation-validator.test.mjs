@@ -43,6 +43,8 @@ const COPY = [
   PATHS.fixture,
   PATHS.support,
   PATHS.evidence,
+  'docs/ui/fixtures/vendor/react-18.3.1/react.production.min.js',
+  'docs/ui/fixtures/vendor/react-18.3.1/react-dom.production.min.js',
 ];
 
 /** Build a minimal but genuinely conforming foundation in a temp root. */

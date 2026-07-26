@@ -22,7 +22,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { PATHS, exists, read } from '../scripts/ui-foundation/inventory.mjs';
+import { PATHS, buildInventory, exists, read } from '../scripts/ui-foundation/inventory.mjs';
 import {
   classifyToken,
   parseTokenDeclarations,
@@ -56,11 +56,12 @@ export function declaredValues(text, property) {
   return [...text.matchAll(re)].map((m) => m[1].trim());
 }
 
-/** Open tags of one element name, with their `style` declarations parsed. */
+/** Open tags of one element name (or `*`), with their `style` declarations parsed. */
 export function elements(text, tagName) {
   const out = [];
   for (const m of text.matchAll(OPEN_TAG_RE)) {
-    if (m[1].toLowerCase() !== tagName) continue;
+    if (tagName !== '*' && m[1].toLowerCase() !== tagName) continue;
+    const tag = m[1].toLowerCase();
     const attrs = m[2] || '';
     const style = /(?:^|\s)style\s*=\s*"([^"]*)"/.exec(attrs);
     const decls = new Map();
@@ -68,9 +69,15 @@ export function elements(text, tagName) {
       const i = d.indexOf(':');
       if (i > 0) decls.set(d.slice(0, i).trim(), d.slice(i + 1).trim());
     }
-    out.push({ attrs, decls });
+    out.push({ tag, attrs, decls });
   }
   return out;
+}
+
+/** The single element whose style carries an exact declaration. */
+export function elementWith(text, property, value) {
+  const hits = elements(text, '*').filter((el) => el.decls.get(property) === value);
+  return hits;
 }
 
 /** Open tags carrying a bare marker attribute, with parsed declarations. */
@@ -275,4 +282,193 @@ test('every section opens with a canonical icon chip', () => {
 
 test('the fixture carries no emoji in place of functional iconography', () => {
   assert.equal((FIXTURE.match(/\p{Extended_Pictographic}/gu) || []).length, 0);
+});
+
+/* ---------- vendored offline runtime ---------- */
+
+const VENDOR_DIR = 'docs/ui/fixtures/vendor/react-18.3.1';
+const REACT_FILE = `${VENDOR_DIR}/react.production.min.js`;
+const REACT_DOM_FILE = `${VENDOR_DIR}/react-dom.production.min.js`;
+const VENDOR_README = `${VENDOR_DIR}/README.md`;
+
+const REACT_TAG = '<script src="../vendor/react-18.3.1/react.production.min.js"></script>';
+const REACT_DOM_TAG = '<script src="../vendor/react-18.3.1/react-dom.production.min.js"></script>';
+
+test('the local React runtime files are versioned', () => {
+  assert.ok(exists(REPO, REACT_FILE), `${REACT_FILE} is not versioned`);
+  assert.ok(exists(REPO, REACT_DOM_FILE), `${REACT_DOM_FILE} is not versioned`);
+  assert.ok(exists(REPO, `${VENDOR_DIR}/LICENSE`), 'vendor LICENSE is not versioned');
+});
+
+test('the fixture references each local runtime exactly once', () => {
+  assert.equal(FIXTURE.split(REACT_TAG).length - 1, 1);
+  assert.equal(FIXTURE.split(REACT_DOM_TAG).length - 1, 1);
+  assert.equal((FIXTURE.match(/react\.production\.min\.js/g) || []).length, 1);
+  assert.equal((FIXTURE.match(/react-dom\.production\.min\.js/g) || []).length, 1);
+});
+
+test('the runtime load order is React then ReactDOM then support.js', () => {
+  const react = FIXTURE.indexOf(REACT_TAG);
+  const reactDom = FIXTURE.indexOf(REACT_DOM_TAG);
+  const support = FIXTURE.indexOf(SUPPORT_LINK);
+  assert.ok(react > -1 && reactDom > -1 && support > -1, 'a runtime script tag is missing');
+  assert.ok(react < reactDom, 'React must load before ReactDOM');
+  assert.ok(reactDom < support, 'both runtimes must load before support.js');
+});
+
+test('no external React or ReactDOM script tag exists in the fixture', () => {
+  const remote = [...FIXTURE.matchAll(/<script\b[^>]*src="([^"]+)"/g)]
+    .map((m) => m[1])
+    .filter((src) => /^(https?:)?\/\//.test(src));
+  assert.deepEqual(remote, [], 'the fixture must load no script from an external origin');
+  assert.equal((FIXTURE.match(/unpkg\.com|cdn\.jsdelivr|cdnjs/gi) || []).length, 0);
+});
+
+test('the vendor README documents versions, hashes and license', () => {
+  const readme = read(REPO, VENDOR_README);
+  for (const needle of [
+    'react',
+    'react-dom',
+    '18.3.1',
+    'MIT',
+    'd949f1c3687aedadcedac85261865f29b17cd273997e7f6b2bfc53b2f9d4c4dd',
+    '35f4f974f4b2bcd44da73963347f8952e341f83909e4498227d4e26b98f66f0d',
+  ]) {
+    assert.ok(readme.includes(needle), `vendor README does not document: ${needle}`);
+  }
+});
+
+test('no product runtime path references the fixture vendor directory', () => {
+  for (const file of buildInventory(REPO).runtimeFiles) {
+    const text = read(REPO, file);
+    for (const marker of ['fixtures/vendor', 'react-18.3.1', 'react.production.min.js']) {
+      assert.ok(!text.includes(marker), `${file} references fixture runtime "${marker}"`);
+    }
+  }
+});
+
+// The offline guarantee itself is proved by rendering the fixture in a real
+// browser with every external origin blocked. This test deliberately does NOT
+// assert that result — a static file scan cannot observe a network fetch, and
+// encoding a "pass" here would be exactly the kind of claim the gate exists to
+// prevent. It asserts only the structural preconditions that make the gate
+// winnable, and fails if anyone smuggles a self-declared offline verdict in.
+test('offline conformance is not self-declared inside the fixture', () => {
+  assert.equal(
+    (FIXTURE.match(/SUPPORT_RUNTIME_OFFLINE_PASS|OFFLINE[_ ]PASS|offline[- ]verified/gi) || []).length,
+    0,
+    'the fixture must not carry a static claim of offline conformance',
+  );
+  assert.ok(exists(REPO, REACT_FILE) && exists(REPO, REACT_DOM_FILE));
+  assert.ok(FIXTURE.indexOf(REACT_DOM_TAG) < FIXTURE.indexOf(SUPPORT_LINK));
+});
+
+/* ---------- canonical status pill and count badge ---------- */
+
+test('the status pill uses the canonical §2.6 construction', () => {
+  const pills = elementWith(FIXTURE, 'background', 'var(--rv-pill-caution-bg)');
+  assert.equal(pills.length, 1, 'exactly one caution status pill');
+  const d = pills[0].decls;
+  assert.equal(d.get('height'), '18px');
+  assert.equal(d.get('padding'), '0 6px');
+  assert.equal(d.get('border-radius'), 'var(--rv-radius-pill)');
+  assert.equal(d.get('border'), '1px solid var(--rv-pill-caution-border)');
+  assert.equal(d.get('color'), 'var(--rv-pill-caution-text)');
+  assert.equal(d.get('font-size'), 'var(--rv-fs-2xs)');
+  assert.equal(d.get('font-weight'), '600');
+  assert.ok(FIXTURE.includes('Em produção'), 'the pill label must survive');
+});
+
+test('the status dot is exactly 5x5 and uses the caution-dot token', () => {
+  const dots = elementWith(FIXTURE, 'background', 'var(--rv-pill-caution-dot)');
+  assert.equal(dots.length, 1);
+  const d = dots[0].decls;
+  assert.equal(d.get('width'), '5px');
+  assert.equal(d.get('height'), '5px');
+  assert.equal(d.get('border-radius'), 'var(--rv-radius-pill)');
+});
+
+test('the document count badge uses a canonical font-size token', () => {
+  const badges = elementWith(FIXTURE, 'background', 'var(--rv-pill-info-bg)');
+  assert.equal(badges.length, 1);
+  assert.equal(badges[0].decls.get('font-size'), 'var(--rv-fs-thead)');
+  assert.equal(badges[0].decls.get('border-radius'), 'var(--rv-radius-pill)');
+  assert.equal(badges[0].decls.get('color'), 'var(--rv-pill-info-text)');
+  assert.ok(FIXTURE.includes('{{ cat.count }}'), 'the count data must survive');
+});
+
+/* ---------- typography enum ---------- */
+
+const FONT_SIZE_ENUM = new Set([
+  '22px', '15px', '14px', '13.5px', '13px', '12.5px', '12px', '11.5px', '11px', '10.5px',
+]);
+const FONT_SIZE_TOKENS = new Set([
+  'var(--rv-fs-title)', 'var(--rv-fs-metric)', 'var(--rv-fs-metric-rail)',
+  'var(--rv-fs-value)', 'var(--rv-fs-body)', 'var(--rv-fs-sm)', 'var(--rv-fs-xs)',
+  'var(--rv-fs-2xs)', 'var(--rv-fs-label)', 'var(--rv-fs-thead)',
+]);
+
+test('every fixture font size is in the closed enum or a canonical token', () => {
+  const used = declaredValues(FIXTURE, 'font-size');
+  assert.ok(used.length > 0);
+  const bad = [...new Set(used)].filter(
+    (v) => !FONT_SIZE_ENUM.has(v) && !FONT_SIZE_TOKENS.has(v),
+  );
+  assert.deepEqual(bad, [], `font sizes outside the contract: ${bad.join(', ')}`);
+});
+
+test('the out-of-enum 10px font size is absent', () => {
+  assert.equal((FIXTURE.match(/font-size\s*:\s*10px/g) || []).length, 0);
+});
+
+/* ---------- semantic radius (D6.1) ---------- */
+
+test('every --rv-radius-pill use is a semantic pill or a true circle', () => {
+  const users = elements(FIXTURE, '*').filter(
+    (el) => el.decls.get('border-radius') === 'var(--rv-radius-pill)',
+  );
+  assert.ok(users.length > 0, 'the fixture must exercise the pill radius');
+
+  const unclassified = [];
+  for (const el of users) {
+    const bg = el.decls.get('background') || '';
+    const semanticPill = /var\(--rv-(pill|stage)-/.test(bg);
+    const w = el.decls.get('width');
+    const h = el.decls.get('height');
+    const trueCircle = Boolean(w) && w === h;
+    if (!semanticPill && !trueCircle) {
+      unclassified.push(`${el.tag}: ${[...el.decls].map(([k, v]) => `${k}:${v}`).join(';')}`);
+    }
+  }
+  assert.deepEqual(unclassified, [], 'pill radius on an element that is neither a semantic pill nor a circle');
+});
+
+test('no ordinary card, button, control or section chip uses --rv-radius-pill', () => {
+  const offenders = elements(FIXTURE, '*')
+    .filter((el) => el.decls.get('border-radius') === 'var(--rv-radius-pill)')
+    .filter((el) =>
+      ['button', 'section', 'input', 'select', 'textarea', 'a'].includes(el.tag) ||
+      el.decls.get('background') === 'var(--rv-chip-bg)' ||
+      el.decls.get('background') === 'var(--rv-surface)');
+  assert.deepEqual(
+    offenders.map((el) => el.tag),
+    [],
+    'pill radius leaked onto a control, card or section chip',
+  );
+  for (const card of elements(FIXTURE, 'section')) {
+    assert.equal(card.decls.get('border-radius'), 'var(--rv-radius)');
+  }
+});
+
+/* ---------- contextual navigation ---------- */
+
+test('the PDF de compra link stays in the Insumos header without a card-action marker', () => {
+  const insumos = FIXTURE.indexOf('Insumos — recebimento de fios');
+  const table = FIXTURE.indexOf('<table', insumos);
+  const link = FIXTURE.indexOf('PDF de compra');
+  assert.ok(insumos > -1 && link > -1, 'the contextual link must survive');
+  assert.ok(link > insumos && link < table, 'the link must remain in the section header');
+  const header = FIXTURE.slice(insumos, table);
+  assert.equal((header.match(/data-card-actions/g) || []).length, 0);
+  assert.equal((FIXTURE.match(/data-card-actions/g) || []).length, 1);
 });

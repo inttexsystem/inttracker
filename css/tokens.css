@@ -83,7 +83,12 @@
 
   /* ---- SHAPE — closed enum ---- */
   --rv-radius:        4px;    /* EVERY surface and control             (D1) */
-  --rv-radius-pill:   999px;  /* status / stage / count ONLY           (D6) */
+  /* Owns TWO things, and only these two (D6 + D6.1):
+     1. semantic pills — status pill, stage badge, count badge;
+     2. true circular geometry — status dot, timeline dot, avatar.
+     Never an ordinary button, card, control, section chip or
+     rectangular decorative box.                                            */
+  --rv-radius-pill:   999px;
 
   /* ---- SHADOW — closed enum, 3 values ---- */
   --rv-shadow-none:    none;                        /* cards: always this */
