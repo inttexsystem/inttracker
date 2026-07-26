@@ -120,8 +120,8 @@ function isNonElevationSpreadRing(value) {
    ============================================================ */
 
 test('1 · the detector version was raised for the pass-4 semantic correction', () => {
-  assert.equal(DETECTOR_VERSION, '1.0.5');
-  assert.equal(BASELINE.detector_version, '1.0.5');
+  assert.equal(DETECTOR_VERSION, '1.0.6');
+  assert.equal(BASELINE.detector_version, '1.0.6');
 });
 
 test('2 · UIC-004 reports zero blocking and zero coverage', () => {
@@ -135,8 +135,8 @@ test('2 · UIC-004 reports zero blocking and zero coverage', () => {
 test('3 · the inventory the pass was measured over is unchanged', () => {
   assert.equal(BASELINE.inventory.application.count, 66);
   assert.equal(BASELINE.coverage_summary.UNSUPPORTED, 0);
-  assert.equal(BASELINE.coverage_summary.FULL, 23);
-  assert.equal(BASELINE.coverage_summary.PARTIAL, 44);
+  assert.equal(BASELINE.coverage_summary.FULL, 31);
+  assert.equal(BASELINE.coverage_summary.PARTIAL, 36);
 });
 
 /* ============================================================
@@ -589,7 +589,7 @@ test('32 · no rule outside UIC-004 moved in this pass', () => {
   assert.equal(rule('UIC-005').blocking, 80);
   assert.equal(rule('UIC-006').blocking, 15);
   assert.equal(rule('UIC-008').blocking, 0);
-  assert.equal(rule('UIC-008').coverage_gaps, 42);
+  assert.equal(rule('UIC-008').coverage_gaps, 0);
   assert.equal(rule('UIC-009').debt, 322);
-  assert.equal(BASELINE.findings.length, 1008);
+  assert.equal(BASELINE.findings.length, 966);
 });

@@ -3,10 +3,13 @@
 > Layer 4 of the contract. Screen → archetype → state → fixture.
 > **State is filled by the detector, not by eye.**
 >
-> **Status: PHASE-5 PASS 2 IMPLEMENTED / `UIC-002` AND `UIC-010` CLOSED / LOCALLY AND
-> VISUALLY VERIFIED / PUBLISHED / AWAITING ARCHITECT ACCEPTANCE.** Every state below is a
-> mechanical read of `tests/fixtures/ui-conformance-baseline.json` — see § Detector
-> provenance for the exact rule.
+> **Status: PHASE-5 PASS 5 IMPLEMENTED / `UIC-008` CLOSED OVER THE MARKED FOOTER
+> POPULATION / PUBLISHED / AWAITING ARCHITECT ACCEPTANCE.** Passes 1-5 have closed
+> `UIC-001`, `UIC-002`, `UIC-003`, `UIC-004`, `UIC-008` and `UIC-010`. The aggregate
+> counts under § Detector provenance are a mechanical read of
+> `tests/fixtures/ui-conformance-baseline.json`. **The per-screen state column below
+> has not been re-derived since pass 2** and is stale for passes 3-5; it is a separate
+> documentary concern and no pass so far has been authorized to rewrite it.
 >
 > **Pass 1 — `CLOSED / ACCEPTED_WITH_NONBLOCKING_PROCESS_DEBT`, checkpoint
 > `cabd358c006f692b3aec37d21cf279ab1e81927a`.** `UIC-001` is closed and stays closed.
@@ -22,7 +25,7 @@
 > `literal_colour_context_unproven`, the predicates are unchanged, and the detector is
 > `1.0.3`.
 >
-> **Passes 1 and 2 have run; passes 3-8 are not authorized.** Pass 1 closed literal
+> **Passes 1-5 have run; the remaining passes are not authorized.** Pass 1 closed literal
 > colour ownership (`UIC-001`) and is recorded in `DESIGN_DECISIONS.md` D9. Pass 2
 > closed the two radius rules (`UIC-002` `RADIUS_OUTSIDE_ENUM` and `UIC-010`
 > `SEMANTIC_PILL_RADIUS_MISUSE`) across all 66 application screens, with `UIC-007`
@@ -66,7 +69,7 @@
 
 | Fact | Value |
 |---|---|
-| Detector | `scripts/validate-ui-conformance.mjs` v1.0.3 |
+| Detector | `scripts/validate-ui-conformance.mjs` v1.0.6 |
 | Enum source | `UI_VISUAL_CONTRACT.md` §5, block at line 390 |
 | §5 blob hash | `f8349e6eeca291fef2edf4d6e30afd628732f00b6495d54eb9273860fa63f1c4` |
 | Baseline | `tests/fixtures/ui-conformance-baseline.json` |
@@ -77,16 +80,21 @@
 resolution or coverage is incomplete. No row below was set by looking at a screen.
 
 **Two source classes, one rule set.** The prototype front-end reads `.dc.html`; the
-application front-end reads `js/screens/*.js`. 67 files were scanned: 23 `FULL`, 44
-`PARTIAL`, 0 `UNSUPPORTED`. 1041 findings — 111 blocking, 322 declared debt, 608
+application front-end reads `js/screens/*.js`. 67 files were scanned: 31 `FULL`, 36
+`PARTIAL`, 0 `UNSUPPORTED`. 966 findings — 95 blocking, 322 declared debt, 549
 coverage gaps.
 
 **Baseline by rule.** UIC-001 literal colour **0** (+**0** gaps) · UIC-002 radius **0**
-(+**0** gaps) · UIC-003 control height 13 (+9 gaps) · UIC-004 shadow 3 (+8 gaps) ·
-UIC-005 typography 80 · UIC-006 native `<select>` 15 · UIC-007 pill radius on a button
-**0** · UIC-008 card action alignment 0 (+42 gaps) · UIC-009 deprecated token 322 (debt) ·
-UIC-010 semantic-radius misuse **0** (+**0** gaps) · UIC-011 unknown token **0**. Cards
-carrying a shadow: **0**. Plus 549 front-end decoding gaps under `UIC-000`.
+(+**0** gaps) · UIC-003 control height **0** (+**0** gaps) · UIC-004 shadow **0**
+(+**0** gaps) · UIC-005 typography 80 · UIC-006 native `<select>` 15 · UIC-007 pill
+radius on a button **0** · UIC-008 card action alignment **0** (+**0** gaps) · UIC-009
+deprecated token 322 (debt) · UIC-010 semantic-radius misuse **0** (+**0** gaps) ·
+UIC-011 unknown token **0**. Cards carrying a shadow: **0**. Plus 549 front-end
+decoding gaps under `UIC-000`.
+
+`UIC-008` closure covers the **explicitly marked** footer population — four product
+rows — and not the absence of every possible unmarked footer in imperative runtime
+code. That capability limit is the open debt `UI-ACTION-CONTAINER-CONTAINMENT-GAP`.
 
 **Deltas against the A2 entry baseline** (`2114191`, blob `6d8b305` → `058f0fd` → the
 current blob): exactly **five findings added, none removed**, every one of them
@@ -503,9 +511,9 @@ this table demands:
 |---|---|---|---|
 | 1–2 | `UIC-001` | **CLOSED** — 0 (+0 gaps) | `node scripts/validate-ui-conformance.mjs --rule UIC-001 --enforce` exits 0 |
 | 3 | `UIC-002`, `UIC-010` | 93 + 16 | `--rule UIC-002 --enforce`, then `--rule UIC-010 --enforce` |
-| 4 | `UIC-003` | 13 (+9 gaps) | `--rule UIC-003 --enforce` |
-| 5 | `UIC-004` | 3 (+8 gaps) | `--rule UIC-004 --enforce` |
-| 6 | `UIC-008` | 0 (+42 gaps) | `--rule UIC-008 --enforce` — the gaps must close first |
+| 4 | `UIC-003` | **CLOSED** — 0 (+0 gaps) | `--rule UIC-003 --enforce` exits 0 |
+| 5 | `UIC-004` | **CLOSED** — 0 (+0 gaps) | `--rule UIC-004 --enforce` exits 0 |
+| 6 | `UIC-008` | **CLOSED** — 0 (+0 gaps) | `--rule UIC-008 --enforce` exits 0 — marked rows only |
 | 7 | `UIC-006` | 15 | `--rule UIC-006 --enforce` |
 | 8 | — | — | manual; the detector only inventories the eight tables |
 | type | `UIC-005` | 80 | `--rule UIC-005 --enforce` |

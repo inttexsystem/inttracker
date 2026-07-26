@@ -736,8 +736,12 @@
         statusPill
       ),
       metricsBlock,
+      // Pass-5 SPLIT_RISK_FOOTER: the non-destructive action group stays on
+      // the left and the destructive "Excluir OP" stays isolated on the
+      // right. The separation is intentional and is preserved.
       window.el('div', {
-        style: 'display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--rv-border-soft);flex-wrap:wrap;align-items:center;justify-content:space-between;',
+        'data-card-actions': '',
+        style: 'display:flex;gap:8px;padding-top:11px;padding-right:18px;padding-bottom:12px;padding-left:18px;border-top:1px solid var(--rv-border-soft);flex-wrap:wrap;align-items:center;justify-content:space-between;',
       },
         window.el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;' },
           buildFooterAction('Ver OP', function () { handlers.navigateToOp(summary.id); }, false),

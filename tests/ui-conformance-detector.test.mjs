@@ -538,10 +538,13 @@ test('every enum rule fires on the violating application fixture', () => {
     assert.equal(hits.length, count, `${rule}: ${JSON.stringify(byRule(findings, rule), null, 2)}`);
   }
   assert.equal(byRule(findings, 'UIC-009').length, 1);
-  // An application screen exposes no static ancestor chain, so "in-card action
-  // alignment" degrades the file rather than passing.
-  assert.equal(coverage, 'PARTIAL');
-  assert.ok(byRule(findings, 'UIC-008').some((f) => f.severity === 'coverage'));
+  // 1.0.6: the fixture marks no data-card-actions row, and the blanket
+  // per-file UIC-008 gap is withdrawn, so every rule that applies here was
+  // evaluated. The file is a `deviation` on its blocking findings, not an
+  // unaudited one — FULL coverage never means "no defect".
+  assert.equal(coverage, 'FULL');
+  assert.deepEqual(byRule(findings, 'UIC-008'), []);
+  assert.ok(findings.some((f) => f.severity === 'blocking'), 'FULL must not imply clean');
   // 1.0.5: UIC-004 judges the element that CARRIES the shadow, so it no longer
   // emits a containment coverage gap it could never resolve on this front-end.
   assert.deepEqual(byRule(findings, 'UIC-004').filter((f) => f.severity === 'coverage'), []);
@@ -694,13 +697,20 @@ test('card-action alignment passes and fails deterministically', () => {
     'padding-top',
   );
 
-  // An unmarked row is a coverage gap, never a pass.
+  // 1.0.6: the marker is the contract declaration, so an UNMARKED element is
+  // simply out of scope — the blanket per-file coverage branch is withdrawn and
+  // nothing replaces it. Containment is never inferred for unmarked elements;
+  // the capability limit is UI-ACTION-CONTAINER-CONTAINMENT-GAP.
   const unmarked = analyseSource('probe.dc.html', '<section style="background:var(--rv-surface);"></section>');
-  const gap = byRule(unmarked.findings, 'UIC-008');
-  assert.equal(gap.length, 1);
-  assert.equal(gap[0].severity, 'coverage');
-  assert.match(gap[0].message, /COVERAGE_GAP \/ ACTION_ROW_UNPROVEN/);
-  assert.match(gap[0].message, /not a pass/);
+  assert.deepEqual(byRule(unmarked.findings, 'UIC-008'), []);
+
+  // A misaligned row without the marker is likewise not reported.
+  const unmarkedMisaligned = analyseSource(
+    'probe.dc.html',
+    '<section style="background:var(--rv-surface);">' +
+      '<div style="justify-content:flex-start;"></div></section>',
+  );
+  assert.deepEqual(byRule(unmarkedMisaligned.findings, 'UIC-008'), []);
 });
 
 /* ---------- 13 · unsupported syntax cannot pass silently ---------- */
@@ -851,7 +861,7 @@ test('the detector version was raised for the report-schema correction', () => {
   // UIC-004 correction to ELEVATION-only semantics. Every change to what the
   // detector can OBSERVE raises this number, so a baseline can never be
   // silently attributed to a different detector.
-  assert.equal(DETECTOR_VERSION, '1.0.5');
+  assert.equal(DETECTOR_VERSION, '1.0.6');
 });
 
 /* ---------- 17 · the ratified reference fixture ---------- */

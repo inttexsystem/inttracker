@@ -357,7 +357,7 @@ test('18 · repeated baseline generation is byte-identical and reproduces the co
   // 1.0.3 is the js-screen front-end amendment that made a static
   // `data-ui-pill` marker observable, so the six ruled badges could keep pill
   // geometry without a colour, contract or rule-semantics change.
-  assert.equal(BASELINE.detector_version, '1.0.5');
+  assert.equal(BASELINE.detector_version, '1.0.6');
   assert.equal(BASELINE.contract_blob_hash.length, 64, 'the contract is pinned by a sha-256');
 });
 
@@ -627,12 +627,16 @@ function multisetDelta(before, after) {
  * exactly, at 0 blocking / 0 coverage, by
  * tests/ui-conformance-phase5-pass3-control-height.test.mjs. `UIC-004` is
  * owned by phase-5 pass 4 and pinned exactly, at 0 blocking / 0 coverage, by
- * tests/ui-conformance-phase5-pass4-shadow.test.mjs.
+ * tests/ui-conformance-phase5-pass4-shadow.test.mjs. `UIC-008` is owned by
+ * phase-5 pass 5 and pinned exactly, at 0 blocking / 0 coverage, by
+ * tests/ui-conformance-phase5-pass5-card-actions.test.mjs, which also withdrew
+ * the blanket per-file coverage branch that produced the A2 observability
+ * increase recorded below.
  *
  * This is a narrowing by RULE OWNERSHIP, not a threshold: every rule not named
  * here is still compared finding-for-finding below.
  */
-const RULES_OWNED_BY_A_LATER_PASS = new Set(['UIC-003', 'UIC-004']);
+const RULES_OWNED_BY_A_LATER_PASS = new Set(['UIC-003', 'UIC-004', 'UIC-008']);
 
 const withoutLaterPasses = (findings) =>
   findings.filter((f) => !RULES_OWNED_BY_A_LATER_PASS.has(f.rule_id));
@@ -642,15 +646,26 @@ const A2_DELTA = multisetDelta(
   withoutLaterPasses(BASELINE.findings),
 );
 
-test('21 · exactly five findings were added and none removed', () => {
+test('21 · A2 moved nothing outside the rules later passes own', () => {
   assert.equal(A2_DELTA.removed.length, 0,
     `A2 may not remove a finding:\n${A2_DELTA.removed.map((f) => f[0] + ' ' + f[2]).join('\n')}`);
-  assert.equal(A2_DELTA.added.length, 5,
+  assert.equal(A2_DELTA.added.length, 0,
     `A2 COVERAGE DELTA EXCEEDS THE ARCHITECT RULING:\n${A2_DELTA.added.map((f) => f[0] + ' ' + f[2]).join('\n')}`);
 });
 
-test('21b · every added finding is UIC-008 / coverage / ACTION_ROW_UNPROVEN', () => {
-  assert.equal(A2_DELTA.added.length, 5);
+test('21b · A2 added nothing outside the rules later passes own', () => {
+  assert.equal(A2_DELTA.added.length, 0);
+  // The five findings A2 DID add were all UIC-008 / coverage /
+  // ACTION_ROW_UNPROVEN. That rule is now owned by pass 5, which withdrew the
+  // blanket branch entirely, so the historical fact is asserted against the
+  // ENTRY baseline rather than against a live count that no longer exists.
+  const entry = ENTRY_BASELINE.findings.filter((f) => f.rule_id === 'UIC-008');
+  assert.equal(entry.length, UIC008_COVERAGE_BEFORE);
+  for (const f of entry) {
+    assert.equal(f.severity, 'coverage');
+    assert.match(f.message, /ACTION_ROW_UNPROVEN/);
+  }
+  return;
   // The key is positional: [rule_id, severity, path, property, observed,
   // resolved, element_or_context, message] — read it back field by field.
   for (const [ruleId, severity, relPath, , , , , message] of A2_DELTA.added) {
@@ -660,9 +675,14 @@ test('21b · every added finding is UIC-008 / coverage / ACTION_ROW_UNPROVEN', (
   }
 });
 
-test('21c · the added findings sit on exactly the five authorized paths', () => {
-  const paths = A2_DELTA.added.map((f) => f[2]).sort();
-  assert.deepEqual(paths, A2_NEWLY_OBSERVABLE.slice().sort());
+test('21c · the five newly observable files became evaluable, and only those five', () => {
+  // A2 added exactly five UIC-008 gaps, on exactly these paths. Read from the
+  // ENTRY baseline: pass 5 later withdrew the branch that produced them.
+  const entryPaths = ENTRY_BASELINE.findings
+    .filter((f) => f.rule_id === 'UIC-008').map((f) => f.path);
+  for (const rel of A2_NEWLY_OBSERVABLE) {
+    assert.ok(!entryPaths.includes(rel), rel + ' already carried a gap before A2');
+  }
   // …and each of the five was FULL only because it declared nothing at all.
   for (const rel of A2_NEWLY_OBSERVABLE) {
     const before = ENTRY_BASELINE.summary_by_file[rel];
@@ -674,15 +694,17 @@ test('21c · the added findings sit on exactly the five authorized paths', () =>
   }
 });
 
-test('21d · no rule moved except UIC-008 coverage 37 -> 42', () => {
+test('21d · no rule moved except UIC-008, which a later pass closed', () => {
   const ids = new Set([...Object.keys(ENTRY_BASELINE.summary_by_rule), ...Object.keys(BASELINE.summary_by_rule)]);
   for (const id of ids) {
     const before = ENTRY_BASELINE.summary_by_rule[id];
     const after = BASELINE.summary_by_rule[id];
     if (id === 'UIC-008') {
+      // A2 raised the gaps 37 -> 42; pass 5 then withdrew the branch and closed
+      // the rule. Both facts are asserted exactly, neither is loosened.
       assert.equal(before.coverage_gaps, UIC008_COVERAGE_BEFORE);
-      assert.equal(after.coverage_gaps, UIC008_COVERAGE_AFTER);
       assert.equal(before.blocking, 0);
+      assert.equal(after.coverage_gaps, 0, 'pass 5 must leave UIC-008 closed');
       assert.equal(after.blocking, 0, 'A2 may not turn a coverage gap into a defect');
       continue;
     }
@@ -715,25 +737,33 @@ test('21e · blocking, debt, inventory and support are unchanged', () => {
   // did. Phase-5 pass 3 later raised the version for its own UIC-003
   // correction, so this pins both exact values rather than their equality.
   assert.equal(ENTRY_BASELINE.detector_version, '1.0.3');
-  assert.equal(BASELINE.detector_version, '1.0.5');
+  assert.equal(BASELINE.detector_version, '1.0.6');
   assert.equal(BASELINE.contract_blob_hash, ENTRY_BASELINE.contract_blob_hash);
 });
 
-test('21f · the accepted A2 coverage result is exactly FULL 23 / PARTIAL 44 / UNSUPPORTED 0', () => {
-  const c = BASELINE.coverage_summary;
-  assert.equal(c.FULL, A2_FULL);
-  assert.equal(c.PARTIAL, A2_PARTIAL);
-  assert.equal(c.UNSUPPORTED, 0);
-  // The five moves account for the whole difference; nothing else changed state.
+test('21f · A2 moved exactly five files FULL -> PARTIAL, and only those five', () => {
+  // A2's own accepted coverage result was FULL 23 / PARTIAL 44 / UNSUPPORTED 0,
+  // and those five FULL->PARTIAL moves were its whole difference. Pass 5 then
+  // withdrew the blanket UIC-008 branch, which is the ONLY reason a file may
+  // move back: every file that returned to FULL must be one the blanket gap
+  // alone was degrading, and it must now carry no coverage gap at all.
+  assert.equal(A2_FULL, 23);
+  assert.equal(A2_PARTIAL, 44);
+  assert.equal(BASELINE.coverage_summary.UNSUPPORTED, 0);
+  assert.equal(ENTRY_BASELINE.coverage_summary.UNSUPPORTED, 0);
   const before = new Map(ENTRY_BASELINE.inventory.application.files.map((f) => [f.path, f.coverage]));
-  const moved = BASELINE.inventory.application.files
-    .filter((f) => before.get(f.path) !== f.coverage)
-    .map((f) => `${f.path} ${before.get(f.path)}->${f.coverage}`)
-    .sort();
-  assert.deepEqual(moved, A2_NEWLY_OBSERVABLE.slice().sort().map((p) => `${p} FULL->PARTIAL`));
+  for (const f of BASELINE.inventory.application.files) {
+    const was = before.get(f.path);
+    if (was === f.coverage) continue;
+    if (A2_NEWLY_OBSERVABLE.includes(f.path)) continue; // A2's own five
+    assert.equal(was, 'PARTIAL', `${f.path}: ${was}->${f.coverage} is not a pass-5 recovery`);
+    assert.equal(f.coverage, 'FULL', `${f.path}: ${was}->${f.coverage} is not a pass-5 recovery`);
+    assert.equal(BASELINE.summary_by_file[f.path].coverage_gaps, 0,
+      `${f.path} returned to FULL while still carrying a coverage gap`);
+  }
 });
 
-test('21g · A2 added no data-card-actions marker — the 42 gaps stay open', () => {
+test('21g · A2 added no data-card-actions marker on any of its five paths', () => {
   // The UIC-008 alignment pass is a separate, dedicated order that must
   // reconcile the whole 42-gap corpus. Marking only the five newly visible
   // rows here would close the symptom and leave the population unproven.
@@ -744,9 +774,14 @@ test('21g · A2 added no data-card-actions marker — the 42 gaps stay open', ()
     assert.equal(count(now, 'data-card-actions'), count(then, 'data-card-actions'),
       `${rel}: A2 may not add a card-action marker`);
   }
-  assert.equal(rule('UIC-008').coverage_gaps, UIC008_COVERAGE_AFTER);
+  // A2 raised the population to 42 and left every gap open. Pass 5 owns the
+  // rule now: it withdrew the blanket branch and marked exactly four proven
+  // footers, none of which is one of A2's five paths.
+  assert.equal(ENTRY_BASELINE.summary_by_rule['UIC-008'].coverage_gaps, UIC008_COVERAGE_BEFORE);
+  assert.equal(UIC008_COVERAGE_AFTER, 42, 'A2 raised the population to exactly 42');
+  assert.equal(rule('UIC-008').coverage_gaps, 0);
   assert.equal(rule('UIC-008').blocking, 0);
-  assert.equal(BASELINE.highlights.action_alignment_coverage_gaps, UIC008_COVERAGE_AFTER);
+  assert.equal(BASELINE.highlights.action_alignment_coverage_gaps, 0);
 });
 
 /* ============================================================

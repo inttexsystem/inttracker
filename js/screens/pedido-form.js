@@ -588,9 +588,11 @@
             window.el('div', { style: 'font-size:14px;color:var(--rv-text-primary);font-weight:700;' }, field.value)
           );
         })),
+        // Pass-5 STANDARD_ACTION_FOOTER: actions only, right aligned.
         window.el('div', {
-          style: 'display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;',
+          style: 'display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;border-top:1px solid var(--rv-border-soft);padding-top:11px;',
           'data-post-save-actions': 'right',
+          'data-card-actions': '',
         },
           window.el('button', {
             type: 'button',

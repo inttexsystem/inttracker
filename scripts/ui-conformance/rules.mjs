@@ -17,7 +17,7 @@
 import { classifyToken } from '../ui-foundation/token-parser.mjs';
 import { normalizeValue, resolveCssValue } from './contract.mjs';
 
-export const DETECTOR_VERSION = '1.0.5';
+export const DETECTOR_VERSION = '1.0.6';
 
 export const RULE_NAMES = {
   'UIC-001': 'LITERAL_VISUAL_COLOUR',
@@ -742,6 +742,37 @@ function ruleRadiusRoles(unit, ctx, out) {
   }
 }
 
+/**
+ * UIC-008 — CARD_ACTION_ALIGNMENT (detector 1.0.6, A1 ruling).
+ *
+ * The rule evaluates EXPLICITLY MARKED card-footer action rows. A static
+ * `data-card-actions` marker is a contract declaration by the author — "this
+ * element is an in-card footer action row" — so the marker itself, not an
+ * inferred ancestor chain, is what brings a row into scope.
+ *
+ * Three footer layouts are ratified (A1 §2.3), all sharing the same divider,
+ * padding-top and gap:
+ *   · STANDARD_ACTION_FOOTER    — actions only, `flex-end`;
+ *   · SPLIT_INFORMATION_FOOTER  — card metadata or empty-state copy left,
+ *                                 actions right, `space-between`;
+ *   · SPLIT_RISK_FOOTER         — non-destructive group left, destructive
+ *                                 action isolated right, `space-between`.
+ *
+ * Two things were WITHDRAWN by the A1 ruling:
+ *   · the blanket per-file ACTION_ROW_UNPROVEN coverage branch, which reported
+ *     files with no in-card action row at all and could be falsely silenced by
+ *     one arbitrary marker. It keyed on decodable declarations, not on action
+ *     rows, so its silence never meant "no footer here";
+ *   · the `insideCard === true` prerequisite on the divider and padding
+ *     checks. `insideCard` is structurally unavailable in the JavaScript
+ *     front-end, so that prerequisite silently disabled both checks for every
+ *     JavaScript screen.
+ *
+ * Containment is still never inferred for UNMARKED elements: the limitation is
+ * carried by the open debt UI-ACTION-CONTAINER-CONTAINMENT-GAP, and closure
+ * here proves the marked-and-guarded population, not the absence of every
+ * possible unmarked footer in imperative runtime code.
+ */
 function ruleCardActions(unit, ctx, out) {
   const allowed = ['flex-end', 'space-between'];
 
@@ -777,8 +808,9 @@ function ruleCardActions(unit, ctx, out) {
       );
     }
 
-    if (row.insideCard !== true) continue;
-
+    // (C) The marker is the declaration of in-card footer status, so the
+    // divider and padding contract applies on both front-ends. It is NOT
+    // gated on `insideCard`, which the JavaScript front-end never resolves.
     const divider = row.decls.get('border-top');
     const dividerOk =
       divider !== undefined &&
@@ -814,21 +846,7 @@ function ruleCardActions(unit, ctx, out) {
       );
     }
   }
-
-  if (unit.actionRows.length === 0 && unit.declarations.length > 0) {
-    out.push(
-      makeFinding(unit, {
-        rule_id: 'UIC-008',
-        severity: 'coverage',
-        line: 1,
-        column: 1,
-        property: 'justify-content',
-        observed_value: null,
-        element_or_context: 'file',
-        message: 'COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass.',
-      }),
-    );
-  }
+  // (D/E) No blanket per-file coverage finding, and no replacement for it.
 }
 
 function ruleTokenReferences(unit, ctx, out) {

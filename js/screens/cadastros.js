@@ -1410,8 +1410,12 @@
       tableWrap.appendChild(grid);
       card.appendChild(tableWrap);
 
+      // Pass-5 SPLIT_INFORMATION_FOOTER: operational metadata on the left,
+      // the action group on the right. The marker declares this row as the
+      // card's in-card footer; the divider, padding-top and gap are canonical.
       const footer = window.el('div', {
-        style: 'display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 24px; border-top:1px solid var(--rv-border); margin-top:4px; flex-wrap:wrap;'
+        'data-card-actions': '',
+        style: 'display:flex; align-items:center; justify-content:space-between; gap:8px; padding-top:11px; padding-right:24px; padding-bottom:16px; padding-left:24px; border-top:1px solid var(--rv-border-soft); margin-top:4px; flex-wrap:wrap;'
       });
       footer.appendChild(buildFooterMeta(latestMeta));
 

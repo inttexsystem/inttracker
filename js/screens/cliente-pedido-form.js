@@ -756,9 +756,11 @@
           style: 'background:var(--rv-surface-subtle);border:1px solid var(--rv-pill-info-border);border-radius:4px;padding:12px 14px;font-size:13px;color:var(--rv-pill-info-text);line-height:1.5;margin-bottom:14px;',
           'data-next-steps': 'cliente',
         }, 'Proximos passos: acompanhe o andamento em Meus pedidos ou envie outro pedido quando precisar.'),
+        // Pass-5 STANDARD_ACTION_FOOTER: actions only, right aligned.
         window.el('div', {
-          style: 'display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;',
+          style: 'display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;border-top:1px solid var(--rv-border-soft);padding-top:11px;',
           'data-post-save-actions': 'cliente',
+          'data-card-actions': '',
         },
           window.el('button', {
             type: 'button',

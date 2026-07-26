@@ -1,5 +1,5 @@
 {
-  "detector_version": "1.0.5",
+  "detector_version": "1.0.6",
   "rule_filter": null,
   "contract_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
   "contract_blob_hash": "f8349e6eeca291fef2edf4d6e30afd628732f00b6495d54eb9273860fa63f1c4",
@@ -145,7 +145,7 @@
           "path": "js/screens/fornecedor.js",
           "archetype": null,
           "declared_state": null,
-          "coverage": "PARTIAL"
+          "coverage": "FULL"
         },
         {
           "path": "js/screens/manta-expedicao-ui.js",
@@ -253,7 +253,7 @@
           "path": "js/screens/ordem-compra-events.js",
           "archetype": null,
           "declared_state": null,
-          "coverage": "PARTIAL"
+          "coverage": "FULL"
         },
         {
           "path": "js/screens/ordem-compra-receipt-cutover.js",
@@ -337,13 +337,13 @@
           "path": "js/screens/pedido-detail.js",
           "archetype": null,
           "declared_state": null,
-          "coverage": "PARTIAL"
+          "coverage": "FULL"
         },
         {
           "path": "js/screens/pedido-edit.js",
           "archetype": null,
           "declared_state": null,
-          "coverage": "PARTIAL"
+          "coverage": "FULL"
         },
         {
           "path": "js/screens/pedido-form.js",
@@ -355,7 +355,7 @@
           "path": "js/screens/pedido-insumos-distribuicao.js",
           "archetype": null,
           "declared_state": null,
-          "coverage": "PARTIAL"
+          "coverage": "FULL"
         },
         {
           "path": "js/screens/pedido-item-row-editor.js",
@@ -367,7 +367,7 @@
           "path": "js/screens/pedido-itens-edit.js",
           "archetype": null,
           "declared_state": null,
-          "coverage": "PARTIAL"
+          "coverage": "FULL"
         },
         {
           "path": "js/screens/pedido-numero-sugestao.js",
@@ -379,7 +379,7 @@
           "path": "js/screens/pedido-parciais-admin.js",
           "archetype": null,
           "declared_state": null,
-          "coverage": "PARTIAL"
+          "coverage": "FULL"
         },
         {
           "path": "js/screens/pedido-route-sections-ui.js",
@@ -397,7 +397,7 @@
           "path": "js/screens/pedido-tracking-admin.js",
           "archetype": null,
           "declared_state": null,
-          "coverage": "PARTIAL"
+          "coverage": "FULL"
         },
         {
           "path": "js/screens/pedidos-list.js",
@@ -424,175 +424,175 @@
         "name": "Acompanhamento B2B.dc.html",
         "archetype": "E",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 304,
+        "line": 312,
         "candidates": []
       },
       {
         "name": "Admin - Cores.dc.html",
         "archetype": "F",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 311,
+        "line": 319,
         "candidates": []
       },
       {
         "name": "Admin - Detalhe da OP (Acabamento).dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 265,
+        "line": 273,
         "candidates": []
       },
       {
         "name": "Admin - Detalhe da OP.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 264,
+        "line": 272,
         "candidates": []
       },
       {
         "name": "Admin - Detalhe do Pedido.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 266,
+        "line": 274,
         "candidates": []
       },
       {
         "name": "Admin - Documentos.dc.html",
         "archetype": "B",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 279,
+        "line": 287,
         "candidates": []
       },
       {
         "name": "Admin - Fornecedores.dc.html",
         "archetype": "B",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 280,
+        "line": 288,
         "candidates": []
       },
       {
         "name": "Admin - Lista de OPs.dc.html",
         "archetype": "B",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 277,
+        "line": 285,
         "candidates": []
       },
       {
         "name": "Admin - Lista de Pedidos.dc.html",
         "archetype": "B",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 278,
+        "line": 286,
         "candidates": []
       },
       {
         "name": "Admin - Login.dc.html",
         "archetype": "F",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 312,
+        "line": 320,
         "candidates": []
       },
       {
         "name": "Admin - Nova OP.dc.html",
         "archetype": "C",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 288,
+        "line": 296,
         "candidates": []
       },
       {
         "name": "Admin - Parâmetros.dc.html",
         "archetype": "F",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 310,
+        "line": 318,
         "candidates": []
       },
       {
         "name": "Cliente - Lista de Pedidos.dc.html",
         "archetype": "B",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 281,
+        "line": 289,
         "candidates": []
       },
       {
         "name": "Dashboard Cliente.dc.html",
         "archetype": "E",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 303,
+        "line": 311,
         "candidates": []
       },
       {
         "name": "Detalhe do Pedido v2.dc.html",
         "archetype": "E",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 301,
+        "line": 309,
         "candidates": []
       },
       {
         "name": "Detalhe do Pedido.dc.html",
         "archetype": "E",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 302,
+        "line": 310,
         "candidates": []
       },
       {
         "name": "Fase B - Ordens na Tela da OP.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 270,
+        "line": 278,
         "candidates": []
       },
       {
         "name": "Fase B - Tela da OP - Config OFF.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 268,
+        "line": 276,
         "candidates": []
       },
       {
         "name": "Fase B - Tela da OP - Config ON.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 267,
+        "line": 275,
         "candidates": []
       },
       {
         "name": "Fase B - Tela da OP - OFF e ON.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 269,
+        "line": 277,
         "candidates": []
       },
       {
         "name": "Fase B2 - Detalhe da Ordem de Compra.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 271,
+        "line": 279,
         "candidates": []
       },
       {
         "name": "Modal Adicionar Item.dc.html",
         "archetype": "D",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 295,
+        "line": 303,
         "candidates": []
       },
       {
         "name": "Modal Movimentar Produção.dc.html",
         "archetype": "D",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 294,
+        "line": 302,
         "candidates": []
       },
       {
         "name": "Novo Pedido.dc.html",
         "archetype": "C",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 287,
+        "line": 295,
         "candidates": []
       },
       {
         "name": "OP Acabamento - Aberta.dc.html",
         "archetype": "A",
         "reason": "NOT_PRESENT_IN_WORKTREE",
-        "line": 263,
+        "line": 271,
         "candidates": []
       }
     ],
@@ -607,13 +607,13 @@
         "UNSUPPORTED": 0
       },
       "js-screen": {
-        "FULL": 22,
-        "PARTIAL": 44,
+        "FULL": 30,
+        "PARTIAL": 36,
         "UNSUPPORTED": 0
       }
     },
-    "FULL": 23,
-    "PARTIAL": 44,
+    "FULL": 31,
+    "PARTIAL": 36,
     "UNSUPPORTED": 0,
     "partial_files": [
       "js/screens/admin-usuarios-audit-panel.js",
@@ -632,7 +632,6 @@
       "js/screens/documentos-recebidos.js",
       "js/screens/entrega-form.js",
       "js/screens/expedicao-admin.js",
-      "js/screens/fornecedor.js",
       "js/screens/manta-expedicao-ui.js",
       "js/screens/manta-output-form.js",
       "js/screens/op-distribuicao-ui.js",
@@ -641,22 +640,15 @@
       "js/screens/op-tecelagem-producao-admin.js",
       "js/screens/ops-list.js",
       "js/screens/ordem-compra-distribuicao.js",
-      "js/screens/ordem-compra-events.js",
       "js/screens/ordem-compra-receipt-events.js",
       "js/screens/ordem-compra-receipt-render.js",
       "js/screens/ordem-compra-render.js",
       "js/screens/painel.js",
       "js/screens/pedido-detail-events.js",
       "js/screens/pedido-detail-render.js",
-      "js/screens/pedido-detail.js",
-      "js/screens/pedido-edit.js",
       "js/screens/pedido-form.js",
-      "js/screens/pedido-insumos-distribuicao.js",
       "js/screens/pedido-item-row-editor.js",
-      "js/screens/pedido-itens-edit.js",
-      "js/screens/pedido-parciais-admin.js",
       "js/screens/pedido-route-sections-ui.js",
-      "js/screens/pedido-tracking-admin.js",
       "js/screens/pedidos-list.js",
       "js/screens/system-screens.js",
       "js/screens/trocar-senha-obrigatoria.js"
@@ -664,20 +656,6 @@
     "unsupported_files": []
   },
   "findings": [
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/admin-usuarios-audit-panel.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
     {
       "rule_id": "UIC-000",
       "severity": "coverage",
@@ -705,20 +683,6 @@
       "resolved_value": null,
       "element_or_context": ".style.display = <expression>",
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_ASSIGNMENT — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/admin-usuarios-modal.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-000",
@@ -873,20 +837,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/admin-usuarios.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-000",
@@ -1139,20 +1089,6 @@
       "resolved_value": null,
       "element_or_context": "color: ${...}",
       "message": "COVERAGE_GAP / TEMPLATE_INTERPOLATED_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/cadastros.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-000",
@@ -1620,7 +1556,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1471,
+      "line": 1475,
       "column": 23,
       "front_end": "js-screen",
       "archetype": null,
@@ -1634,7 +1570,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1471,
+      "line": 1475,
       "column": 41,
       "front_end": "js-screen",
       "archetype": null,
@@ -1648,7 +1584,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1476,
+      "line": 1480,
       "column": 29,
       "front_end": "js-screen",
       "archetype": null,
@@ -1662,7 +1598,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1477,
+      "line": 1481,
       "column": 30,
       "front_end": "js-screen",
       "archetype": null,
@@ -1676,7 +1612,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1485,
+      "line": 1489,
       "column": 9,
       "front_end": "js-screen",
       "archetype": null,
@@ -1690,7 +1626,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1500,
+      "line": 1504,
       "column": 9,
       "front_end": "js-screen",
       "archetype": null,
@@ -1704,7 +1640,7 @@
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/cadastros.js",
-      "line": 1512,
+      "line": 1516,
       "column": 229,
       "front_end": "js-screen",
       "archetype": null,
@@ -1718,7 +1654,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1520,
+      "line": 1524,
       "column": 9,
       "front_end": "js-screen",
       "archetype": null,
@@ -1732,7 +1668,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1572,
+      "line": 1576,
       "column": 17,
       "front_end": "js-screen",
       "archetype": null,
@@ -1746,7 +1682,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1573,
+      "line": 1577,
       "column": 15,
       "front_end": "js-screen",
       "archetype": null,
@@ -1760,7 +1696,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1574,
+      "line": 1578,
       "column": 17,
       "front_end": "js-screen",
       "archetype": null,
@@ -1774,7 +1710,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1575,
+      "line": 1579,
       "column": 15,
       "front_end": "js-screen",
       "archetype": null,
@@ -1788,7 +1724,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1670,
+      "line": 1674,
       "column": 9,
       "front_end": "js-screen",
       "archetype": null,
@@ -1802,7 +1738,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1696,
+      "line": 1700,
       "column": 18,
       "front_end": "js-screen",
       "archetype": null,
@@ -1816,7 +1752,7 @@
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/cadastros.js",
-      "line": 1762,
+      "line": 1766,
       "column": 27,
       "front_end": "js-screen",
       "archetype": null,
@@ -1830,7 +1766,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1773,
+      "line": 1777,
       "column": 150,
       "front_end": "js-screen",
       "archetype": null,
@@ -1844,7 +1780,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1779,
+      "line": 1783,
       "column": 11,
       "front_end": "js-screen",
       "archetype": null,
@@ -1858,7 +1794,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 1997,
+      "line": 2001,
       "column": 53,
       "front_end": "js-screen",
       "archetype": null,
@@ -1872,7 +1808,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 2007,
+      "line": 2011,
       "column": 55,
       "front_end": "js-screen",
       "archetype": null,
@@ -1886,7 +1822,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cadastros.js",
-      "line": 2007,
+      "line": 2011,
       "column": 135,
       "front_end": "js-screen",
       "archetype": null,
@@ -1895,20 +1831,6 @@
       "resolved_value": null,
       "element_or_context": "border-bottom: ${...}",
       "message": "COVERAGE_GAP / TEMPLATE_INTERPOLATED_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/cliente-dashboard.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-000",
@@ -2317,20 +2239,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/cliente-pedido-detail.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cliente-pedido-detail.js",
@@ -2583,20 +2491,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/cliente-pedido-form.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/cliente-pedido-form.js",
@@ -2835,20 +2729,6 @@
       "message": "Font size 18px is outside the ten-value contract enum."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/cliente-pedido-tracking.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cliente-pedido-tracking.js",
@@ -3059,20 +2939,6 @@
       "message": "Font size 16px is outside the ten-value contract enum."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/cliente-pedidos-list.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cliente-pedidos-list.js",
@@ -3269,20 +3135,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/cliente-route-sections-ui.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/cliente-route-sections-ui.js",
@@ -3323,20 +3175,6 @@
       "resolved_value": null,
       "element_or_context": "style: <expression>",
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/common.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-000",
@@ -3519,20 +3357,6 @@
       "resolved_value": null,
       "element_or_context": ".style.color = <expression>",
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_ASSIGNMENT — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/documentos-recebidos.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-000",
@@ -4319,20 +4143,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/entrega-form.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/entrega-form.js",
@@ -4457,20 +4267,6 @@
       "resolved_value": null,
       "element_or_context": ".style.display = <expression>",
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_ASSIGNMENT — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/expedicao-admin.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-000",
@@ -4879,34 +4675,6 @@
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/fornecedor.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/manta-expedicao-ui.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/manta-expedicao-ui.js",
@@ -5187,20 +4955,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/manta-output-form.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/manta-output-form.js",
@@ -5269,20 +5023,6 @@
       "resolved_value": null,
       "element_or_context": "style: <expression>",
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/op-distribuicao-ui.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-000",
@@ -5395,20 +5135,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/op-latex-admin.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-009",
@@ -7777,20 +7503,6 @@
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/op-nova.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-009",
       "severity": "debt",
       "path": "js/screens/op-nova.js",
@@ -9315,20 +9027,6 @@
       "resolved_value": null,
       "element_or_context": "style: <expression>",
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/op-tecelagem-producao-admin.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-009",
@@ -11277,20 +10975,6 @@
       "message": "COVERAGE_GAP / NON_LITERAL_STYLE_VALUE — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/ops-list.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/ops-list.js",
@@ -11403,20 +11087,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/ordem-compra-distribuicao.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/ordem-compra-distribuicao.js",
@@ -11445,20 +11115,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/ordem-compra-events.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-009",
       "severity": "debt",
       "path": "js/screens/ordem-compra-events.js",
@@ -11485,20 +11141,6 @@
       "resolved_value": null,
       "element_or_context": "string literal",
       "message": "var(--rv-color-muted) references the approved deprecated compatibility block. Remove in the property-based remediation phase."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/ordem-compra-receipt-events.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-000",
@@ -11583,20 +11225,6 @@
       "resolved_value": null,
       "element_or_context": "string literal",
       "message": "var(--rv-radius-control) references the approved deprecated compatibility block. Remove in the property-based remediation phase."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/ordem-compra-receipt-render.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-009",
@@ -12131,20 +11759,6 @@
       "message": "var(--rv-color-muted) references the approved deprecated compatibility block. Remove in the property-based remediation phase."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/ordem-compra-render.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/ordem-compra-render.js",
@@ -12355,20 +11969,6 @@
       "message": "var(--rv-color-warning) references the approved deprecated compatibility block. Remove in the property-based remediation phase."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/painel.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/painel.js",
@@ -12451,20 +12051,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/pedido-detail-events.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-000",
@@ -12943,20 +12529,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/pedido-detail-render.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
@@ -13408,7 +12980,7 @@
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 790,
+      "line": 794,
       "column": 27,
       "front_end": "js-screen",
       "archetype": null,
@@ -13422,7 +12994,7 @@
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 812,
+      "line": 816,
       "column": 31,
       "front_end": "js-screen",
       "archetype": null,
@@ -13436,7 +13008,7 @@
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 856,
+      "line": 860,
       "column": 25,
       "front_end": "js-screen",
       "archetype": null,
@@ -13450,7 +13022,7 @@
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 870,
+      "line": 874,
       "column": 46,
       "front_end": "js-screen",
       "archetype": null,
@@ -13464,7 +13036,7 @@
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 888,
+      "line": 892,
       "column": 48,
       "front_end": "js-screen",
       "archetype": null,
@@ -13478,7 +13050,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 890,
+      "line": 894,
       "column": 13,
       "front_end": "js-screen",
       "archetype": null,
@@ -13492,7 +13064,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 899,
+      "line": 903,
       "column": 65,
       "front_end": "js-screen",
       "archetype": null,
@@ -13506,7 +13078,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 919,
+      "line": 923,
       "column": 7,
       "front_end": "js-screen",
       "archetype": null,
@@ -13520,7 +13092,7 @@
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 936,
+      "line": 940,
       "column": 48,
       "front_end": "js-screen",
       "archetype": null,
@@ -13534,7 +13106,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 990,
+      "line": 994,
       "column": 7,
       "front_end": "js-screen",
       "archetype": null,
@@ -13548,7 +13120,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 993,
+      "line": 997,
       "column": 9,
       "front_end": "js-screen",
       "archetype": null,
@@ -13562,7 +13134,7 @@
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1042,
+      "line": 1046,
       "column": 29,
       "front_end": "js-screen",
       "archetype": null,
@@ -13576,7 +13148,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1062,
+      "line": 1066,
       "column": 13,
       "front_end": "js-screen",
       "archetype": null,
@@ -13590,7 +13162,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1100,
+      "line": 1104,
       "column": 7,
       "front_end": "js-screen",
       "archetype": null,
@@ -13604,7 +13176,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1106,
+      "line": 1110,
       "column": 7,
       "front_end": "js-screen",
       "archetype": null,
@@ -13618,7 +13190,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1132,
+      "line": 1136,
       "column": 7,
       "front_end": "js-screen",
       "archetype": null,
@@ -13632,7 +13204,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1146,
+      "line": 1150,
       "column": 9,
       "front_end": "js-screen",
       "archetype": null,
@@ -13646,7 +13218,7 @@
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1155,
+      "line": 1159,
       "column": 131,
       "front_end": "js-screen",
       "archetype": null,
@@ -13660,7 +13232,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1160,
+      "line": 1164,
       "column": 9,
       "front_end": "js-screen",
       "archetype": null,
@@ -13674,7 +13246,7 @@
       "rule_id": "UIC-005",
       "severity": "blocking",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1205,
+      "line": 1209,
       "column": 25,
       "front_end": "js-screen",
       "archetype": null,
@@ -13688,7 +13260,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1280,
+      "line": 1284,
       "column": 11,
       "front_end": "js-screen",
       "archetype": null,
@@ -13702,7 +13274,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1300,
+      "line": 1304,
       "column": 15,
       "front_end": "js-screen",
       "archetype": null,
@@ -13716,7 +13288,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1311,
+      "line": 1315,
       "column": 11,
       "front_end": "js-screen",
       "archetype": null,
@@ -13730,7 +13302,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1339,
+      "line": 1343,
       "column": 11,
       "front_end": "js-screen",
       "archetype": null,
@@ -13744,7 +13316,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1363,
+      "line": 1367,
       "column": 17,
       "front_end": "js-screen",
       "archetype": null,
@@ -13758,7 +13330,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1370,
+      "line": 1374,
       "column": 32,
       "front_end": "js-screen",
       "archetype": null,
@@ -13772,7 +13344,7 @@
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-detail-render.js",
-      "line": 1375,
+      "line": 1379,
       "column": 17,
       "front_end": "js-screen",
       "archetype": null,
@@ -13781,48 +13353,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/pedido-detail.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/pedido-edit.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/pedido-form.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-005",
@@ -14035,34 +13565,6 @@
       "message": "Font size 18px is outside the ten-value contract enum."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/pedido-insumos-distribuicao.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/pedido-item-row-editor.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-item-row-editor.js",
@@ -14175,48 +13677,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/pedido-itens-edit.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/pedido-parciais-admin.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/pedido-route-sections-ui.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/pedido-route-sections-ui.js",
@@ -14257,34 +13717,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/pedido-tracking-admin.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/pedidos-list.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-000",
@@ -14455,20 +13887,6 @@
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
     },
     {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/system-screens.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
-    },
-    {
       "rule_id": "UIC-000",
       "severity": "coverage",
       "path": "js/screens/system-screens.js",
@@ -14621,20 +14039,6 @@
       "resolved_value": null,
       "element_or_context": "style: '...' + <expression>",
       "message": "COVERAGE_GAP / CONCATENATED_STYLE_EXPRESSION — this construct could not be decoded to a concrete value, so no rule was applied to it."
-    },
-    {
-      "rule_id": "UIC-008",
-      "severity": "coverage",
-      "path": "js/screens/trocar-senha-obrigatoria.js",
-      "line": 1,
-      "column": 1,
-      "front_end": "js-screen",
-      "archetype": null,
-      "property": "justify-content",
-      "observed_value": null,
-      "resolved_value": null,
-      "element_or_context": "file",
-      "message": "COVERAGE_GAP / ACTION_ROW_UNPROVEN — this screen declares visual values but marks no data-card-actions row, so in-card action alignment could not be evaluated. This is not a pass."
     },
     {
       "rule_id": "UIC-000",
@@ -14844,11 +14248,11 @@
     },
     "UIC-008": {
       "name": "CARD_ACTION_ALIGNMENT",
-      "total": 42,
+      "total": 0,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 42,
-      "files": 42
+      "coverage_gaps": 0,
+      "files": 0
     },
     "UIC-009": {
       "name": "DEPRECATED_TOKEN_REFERENCE",
@@ -14893,10 +14297,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 2,
       "declaration_sites": 73,
-      "total": 3,
+      "total": 2,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 3
+      "coverage_gaps": 2
     },
     "js/screens/admin-usuarios-modal.js": {
       "front_end": "js-screen",
@@ -14904,10 +14308,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 8,
       "declaration_sites": 147,
-      "total": 12,
+      "total": 11,
       "blocking": 3,
       "debt": 0,
-      "coverage_gaps": 9
+      "coverage_gaps": 8
     },
     "js/screens/admin-usuarios.js": {
       "front_end": "js-screen",
@@ -14915,21 +14319,21 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 16,
       "declaration_sites": 139,
-      "total": 19,
+      "total": 18,
       "blocking": 2,
       "debt": 0,
-      "coverage_gaps": 17
+      "coverage_gaps": 16
     },
     "js/screens/cadastros.js": {
       "front_end": "js-screen",
       "archetype": null,
       "coverage": "PARTIAL",
       "indeterminate_sites": 47,
-      "declaration_sites": 961,
-      "total": 54,
+      "declaration_sites": 964,
+      "total": 53,
       "blocking": 6,
       "debt": 0,
-      "coverage_gaps": 48
+      "coverage_gaps": 47
     },
     "js/screens/cliente-common.js": {
       "front_end": "js-screen",
@@ -14948,10 +14352,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 23,
       "declaration_sites": 213,
-      "total": 30,
+      "total": 29,
       "blocking": 6,
       "debt": 0,
-      "coverage_gaps": 24
+      "coverage_gaps": 23
     },
     "js/screens/cliente-pedido-detail.js": {
       "front_end": "js-screen",
@@ -14959,21 +14363,21 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 16,
       "declaration_sites": 332,
-      "total": 19,
+      "total": 18,
       "blocking": 2,
       "debt": 0,
-      "coverage_gaps": 17
+      "coverage_gaps": 16
     },
     "js/screens/cliente-pedido-form.js": {
       "front_end": "js-screen",
       "archetype": null,
       "coverage": "PARTIAL",
       "indeterminate_sites": 6,
-      "declaration_sites": 542,
-      "total": 18,
+      "declaration_sites": 544,
+      "total": 17,
       "blocking": 11,
       "debt": 0,
-      "coverage_gaps": 7
+      "coverage_gaps": 6
     },
     "js/screens/cliente-pedido-tracking.js": {
       "front_end": "js-screen",
@@ -14981,10 +14385,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 13,
       "declaration_sites": 102,
-      "total": 16,
+      "total": 15,
       "blocking": 2,
       "debt": 0,
-      "coverage_gaps": 14
+      "coverage_gaps": 13
     },
     "js/screens/cliente-pedidos-list.js": {
       "front_end": "js-screen",
@@ -14992,10 +14396,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 13,
       "declaration_sites": 109,
-      "total": 15,
+      "total": 14,
       "blocking": 1,
       "debt": 0,
-      "coverage_gaps": 14
+      "coverage_gaps": 13
     },
     "js/screens/cliente-route-read.js": {
       "front_end": "js-screen",
@@ -15014,10 +14418,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 3,
       "declaration_sites": 20,
-      "total": 4,
+      "total": 3,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 4
+      "coverage_gaps": 3
     },
     "js/screens/common.js": {
       "front_end": "js-screen",
@@ -15025,10 +14429,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 5,
       "declaration_sites": 81,
-      "total": 8,
+      "total": 7,
       "blocking": 2,
       "debt": 0,
-      "coverage_gaps": 6
+      "coverage_gaps": 5
     },
     "js/screens/document-link-admin-modal.js": {
       "front_end": "js-screen",
@@ -15069,10 +14473,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 50,
       "declaration_sites": 350,
-      "total": 57,
+      "total": 56,
       "blocking": 6,
       "debt": 0,
-      "coverage_gaps": 51
+      "coverage_gaps": 50
     },
     "js/screens/entrega-form.js": {
       "front_end": "js-screen",
@@ -15080,10 +14484,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 9,
       "declaration_sites": 97,
-      "total": 10,
+      "total": 9,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 10
+      "coverage_gaps": 9
     },
     "js/screens/entrega-writes.js": {
       "front_end": "js-screen",
@@ -15102,21 +14506,21 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 21,
       "declaration_sites": 199,
-      "total": 30,
+      "total": 29,
       "blocking": 8,
       "debt": 0,
-      "coverage_gaps": 22
+      "coverage_gaps": 21
     },
     "js/screens/fornecedor.js": {
       "front_end": "js-screen",
       "archetype": null,
-      "coverage": "PARTIAL",
+      "coverage": "FULL",
       "indeterminate_sites": 0,
       "declaration_sites": 21,
-      "total": 1,
+      "total": 0,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 1
+      "coverage_gaps": 0
     },
     "js/screens/manta-expedicao-ui.js": {
       "front_end": "js-screen",
@@ -15124,10 +14528,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 17,
       "declaration_sites": 111,
-      "total": 21,
+      "total": 20,
       "blocking": 3,
       "debt": 0,
-      "coverage_gaps": 18
+      "coverage_gaps": 17
     },
     "js/screens/manta-movimento-form.js": {
       "front_end": "js-screen",
@@ -15146,10 +14550,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 5,
       "declaration_sites": 98,
-      "total": 6,
+      "total": 5,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 6
+      "coverage_gaps": 5
     },
     "js/screens/manta-writes.js": {
       "front_end": "js-screen",
@@ -15179,10 +14583,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 8,
       "declaration_sites": 72,
-      "total": 9,
+      "total": 8,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 9
+      "coverage_gaps": 8
     },
     "js/screens/op-form-helpers.js": {
       "front_end": "js-screen",
@@ -15201,10 +14605,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 46,
       "declaration_sites": 498,
-      "total": 170,
+      "total": 169,
       "blocking": 2,
       "debt": 121,
-      "coverage_gaps": 47
+      "coverage_gaps": 46
     },
     "js/screens/op-nova.js": {
       "front_end": "js-screen",
@@ -15212,10 +14616,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 51,
       "declaration_sites": 618,
-      "total": 110,
+      "total": 109,
       "blocking": 4,
       "debt": 54,
-      "coverage_gaps": 52
+      "coverage_gaps": 51
     },
     "js/screens/op-pdf.js": {
       "front_end": "js-screen",
@@ -15256,10 +14660,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 43,
       "declaration_sites": 354,
-      "total": 140,
+      "total": 139,
       "blocking": 1,
       "debt": 95,
-      "coverage_gaps": 44
+      "coverage_gaps": 43
     },
     "js/screens/op-writes.js": {
       "front_end": "js-screen",
@@ -15278,10 +14682,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 7,
       "declaration_sites": 222,
-      "total": 9,
+      "total": 8,
       "blocking": 1,
       "debt": 0,
-      "coverage_gaps": 8
+      "coverage_gaps": 7
     },
     "js/screens/ordem-compra-data.js": {
       "front_end": "js-screen",
@@ -15300,21 +14704,21 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 2,
       "declaration_sites": 5,
-      "total": 3,
+      "total": 2,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 3
+      "coverage_gaps": 2
     },
     "js/screens/ordem-compra-events.js": {
       "front_end": "js-screen",
       "archetype": null,
-      "coverage": "PARTIAL",
+      "coverage": "FULL",
       "indeterminate_sites": 0,
       "declaration_sites": 4,
-      "total": 3,
+      "total": 2,
       "blocking": 0,
       "debt": 2,
-      "coverage_gaps": 1
+      "coverage_gaps": 0
     },
     "js/screens/ordem-compra-receipt-cutover.js": {
       "front_end": "js-screen",
@@ -15344,10 +14748,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 1,
       "declaration_sites": 6,
-      "total": 7,
+      "total": 6,
       "blocking": 0,
       "debt": 5,
-      "coverage_gaps": 2
+      "coverage_gaps": 1
     },
     "js/screens/ordem-compra-receipt-render.js": {
       "front_end": "js-screen",
@@ -15355,10 +14759,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 5,
       "declaration_sites": 47,
-      "total": 39,
+      "total": 38,
       "blocking": 0,
       "debt": 33,
-      "coverage_gaps": 6
+      "coverage_gaps": 5
     },
     "js/screens/ordem-compra-render.js": {
       "front_end": "js-screen",
@@ -15366,10 +14770,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 3,
       "declaration_sites": 26,
-      "total": 16,
+      "total": 15,
       "blocking": 0,
       "debt": 12,
-      "coverage_gaps": 4
+      "coverage_gaps": 3
     },
     "js/screens/ordem-compra.js": {
       "front_end": "js-screen",
@@ -15399,10 +14803,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 6,
       "declaration_sites": 13,
-      "total": 7,
+      "total": 6,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 7
+      "coverage_gaps": 6
     },
     "js/screens/pedido-chain-state.js": {
       "front_end": "js-screen",
@@ -15432,10 +14836,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 31,
       "declaration_sites": 1009,
-      "total": 35,
+      "total": 34,
       "blocking": 3,
       "debt": 0,
-      "coverage_gaps": 32
+      "coverage_gaps": 31
     },
     "js/screens/pedido-detail-progress.js": {
       "front_end": "js-screen",
@@ -15453,55 +14857,55 @@
       "archetype": null,
       "coverage": "PARTIAL",
       "indeterminate_sites": 42,
-      "declaration_sites": 862,
-      "total": 60,
+      "declaration_sites": 865,
+      "total": 59,
       "blocking": 17,
       "debt": 0,
-      "coverage_gaps": 43
+      "coverage_gaps": 42
     },
     "js/screens/pedido-detail.js": {
       "front_end": "js-screen",
       "archetype": null,
-      "coverage": "PARTIAL",
+      "coverage": "FULL",
       "indeterminate_sites": 0,
       "declaration_sites": 25,
-      "total": 1,
+      "total": 0,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 1
+      "coverage_gaps": 0
     },
     "js/screens/pedido-edit.js": {
       "front_end": "js-screen",
       "archetype": null,
-      "coverage": "PARTIAL",
+      "coverage": "FULL",
       "indeterminate_sites": 0,
       "declaration_sites": 12,
-      "total": 1,
+      "total": 0,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 1
+      "coverage_gaps": 0
     },
     "js/screens/pedido-form.js": {
       "front_end": "js-screen",
       "archetype": null,
       "coverage": "PARTIAL",
       "indeterminate_sites": 7,
-      "declaration_sites": 291,
-      "total": 16,
+      "declaration_sites": 293,
+      "total": 15,
       "blocking": 8,
       "debt": 0,
-      "coverage_gaps": 8
+      "coverage_gaps": 7
     },
     "js/screens/pedido-insumos-distribuicao.js": {
       "front_end": "js-screen",
       "archetype": null,
-      "coverage": "PARTIAL",
+      "coverage": "FULL",
       "indeterminate_sites": 0,
       "declaration_sites": 10,
-      "total": 1,
+      "total": 0,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 1
+      "coverage_gaps": 0
     },
     "js/screens/pedido-item-row-editor.js": {
       "front_end": "js-screen",
@@ -15509,21 +14913,21 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 6,
       "declaration_sites": 43,
-      "total": 9,
+      "total": 8,
       "blocking": 2,
       "debt": 0,
-      "coverage_gaps": 7
+      "coverage_gaps": 6
     },
     "js/screens/pedido-itens-edit.js": {
       "front_end": "js-screen",
       "archetype": null,
-      "coverage": "PARTIAL",
+      "coverage": "FULL",
       "indeterminate_sites": 0,
       "declaration_sites": 16,
-      "total": 1,
+      "total": 0,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 1
+      "coverage_gaps": 0
     },
     "js/screens/pedido-numero-sugestao.js": {
       "front_end": "js-screen",
@@ -15539,13 +14943,13 @@
     "js/screens/pedido-parciais-admin.js": {
       "front_end": "js-screen",
       "archetype": null,
-      "coverage": "PARTIAL",
+      "coverage": "FULL",
       "indeterminate_sites": 0,
       "declaration_sites": 9,
-      "total": 1,
+      "total": 0,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 1
+      "coverage_gaps": 0
     },
     "js/screens/pedido-route-sections-ui.js": {
       "front_end": "js-screen",
@@ -15553,10 +14957,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 3,
       "declaration_sites": 18,
-      "total": 4,
+      "total": 3,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 4
+      "coverage_gaps": 3
     },
     "js/screens/pedido-route-sections.js": {
       "front_end": "js-screen",
@@ -15572,13 +14976,13 @@
     "js/screens/pedido-tracking-admin.js": {
       "front_end": "js-screen",
       "archetype": null,
-      "coverage": "PARTIAL",
+      "coverage": "FULL",
       "indeterminate_sites": 0,
       "declaration_sites": 6,
-      "total": 1,
+      "total": 0,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 1
+      "coverage_gaps": 0
     },
     "js/screens/pedidos-list.js": {
       "front_end": "js-screen",
@@ -15586,10 +14990,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 10,
       "declaration_sites": 224,
-      "total": 13,
+      "total": 12,
       "blocking": 2,
       "debt": 0,
-      "coverage_gaps": 11
+      "coverage_gaps": 10
     },
     "js/screens/system-screens.js": {
       "front_end": "js-screen",
@@ -15597,10 +15001,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 11,
       "declaration_sites": 80,
-      "total": 12,
+      "total": 11,
       "blocking": 0,
       "debt": 0,
-      "coverage_gaps": 12
+      "coverage_gaps": 11
     },
     "js/screens/trocar-senha-obrigatoria.js": {
       "front_end": "js-screen",
@@ -15608,10 +15012,10 @@
       "coverage": "PARTIAL",
       "indeterminate_sites": 9,
       "declaration_sites": 72,
-      "total": 11,
+      "total": 10,
       "blocking": 1,
       "debt": 0,
-      "coverage_gaps": 10
+      "coverage_gaps": 9
     }
   },
   "summary_by_archetype": {
@@ -15629,13 +15033,13 @@
     },
     "unassigned": {
       "files": 66,
-      "total": 1008,
+      "total": 966,
       "blocking": 95,
       "debt": 322,
-      "coverage_gaps": 591,
+      "coverage_gaps": 549,
       "coverage_states": {
-        "FULL": 22,
-        "PARTIAL": 44,
+        "FULL": 30,
+        "PARTIAL": 36,
         "UNSUPPORTED": 0
       }
     }
@@ -15822,7 +15226,7 @@
     "native_selects": 15,
     "cards_with_shadow": 0,
     "pill_shaped_buttons": 0,
-    "action_alignment_coverage_gaps": 42,
+    "action_alignment_coverage_gaps": 0,
     "literal_colours": 0,
     "literal_visual_colours_blocking": 0,
     "literal_colour_context_unproven": 0,

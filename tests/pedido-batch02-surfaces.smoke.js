@@ -261,10 +261,17 @@ test('index.html: toda superfície alterada recebeu o token do lote 2', () => {
 // (UI-CONSOLIDATION-PHASE-5-PASS-1). Vale aqui a mesma regra ja documentada
 // abaixo para o lote 3: a superfície alterada segue invalidada, sob o token da
 // ordem que a alterou por último.
+// A passada 5 de alinhamento marcou o rodape de acoes pos-salvamento deste
+// arquivo, entao ele e retokenizado mais uma vez. A garantia nao muda: a
+// superficie alterada segue invalidada, sob o token da ordem que a alterou por
+// ultimo, e nunca sob um token anterior ao seu.
 test('index.html: a superfície tocada pela passada 1 de cor carrega o token dela', () => {
   const asset = 'js/screens/cliente-pedido-form.js';
-  const re = new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=20260726-ui-p5-pass1');
-  assert.match(index, re, asset + ' deve carregar o token da passada 1 de cor');
+  const esc = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  assert.match(index, new RegExp(esc + '\\?v=20260726-ui-p5-pass5-card-actions-a1'),
+    asset + ' deve carregar o token da ordem que o alterou por ultimo');
+  assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260726-ui-p5-pass1'),
+    asset + ' não pode reter o token da passada 1 de cor');
 });
 
 // pedido-form.js e pedido-item-row-editor.js foram retokenizados DE NOVO pelo
@@ -284,8 +291,11 @@ test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não
   // token do lote 2, e nenhum pode ficar num token anterior ao seu.
   // A passada 3 de altura alterou OS DOIS, entao ambos voltam a compartilhar um
   // token — o da ordem que os alterou por ultimo. A garantia nao muda.
+  // A passada 5 de alinhamento alterou APENAS pedido-form.js (o rodape de acoes
+  // pos-salvamento), entao os dois voltam a divergir. Cada um continua sendo
+  // verificado contra a ordem que o alterou por ultimo.
   const ULTIMA_ORDEM = {
-    'screens/pedido-form.js': '20260726-ui-p5-pass3-a1',
+    'screens/pedido-form.js': '20260726-ui-p5-pass5-card-actions-a1',
     'screens/pedido-item-row-editor.js': '20260726-ui-p5-pass3-a1',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
