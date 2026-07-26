@@ -2,9 +2,9 @@
 
 > **Audience:** the architect AI, which will direct the executor AI.
 > **Status:** plan approved by the product owner. Phases 1 and 2 are DONE (artifacts
-> listed in §3). Phase 3 is IMPLEMENTED and awaiting your acceptance (§5). Phase 4 is
-> IMPLEMENTED with a deterministic baseline and awaiting your acceptance (§5). Phase 5
-> is what you still need to direct, and it is not authorized.
+> listed in §3). Phase 3 is CLOSED / ACCEPTED at `ded162e`. Phase 4 is CORRECTED, its
+> baseline regenerated, and awaiting your acceptance (§5). Phase 5 is what you still
+> need to direct, and it is not authorized.
 > **You do not need to re-derive anything.** Every value is already extracted and
 > ratified. Your job is sequencing, enforcement, and the skill reconciliation in §6.
 
@@ -100,12 +100,14 @@ explaining where the cockpit does not apply — a symptom of the wrong axis.
 Six archetypes now exist, each declaring **intent, density, who owns the dominant
 action, and whether it has a rail**. Every screen belongs to exactly one.
 
-**Correction — no archetype is ratified.** An earlier version of this line said
-archetype A was. It never was: ratification requires **two** screens of an archetype
-passing the detector, and phase 4's baseline shows exactly **one** —
-`OP Detail - Compacto.dc.html`. A–F are all `CANDIDATE` and **may not be cited as
-precedent**. `UI_CONFORMANCE.md` § Archetype ratification owns this fact; if that file
-and this brief ever disagree again, that file wins.
+**NO ARCHETYPE IS RATIFIED.**
+
+Archetype A has one detector-passing reference screen. It still requires a second
+detector-passing screen and an explicit architect ruling.
+
+Archetypes B–F are `CANDIDATE` with zero detector-passing screens. No archetype may be
+cited as precedent. `UI_CONFORMANCE.md` § Archetype ratification owns this fact; if
+that file and this brief ever disagree, that file wins.
 
 ---
 
@@ -145,7 +147,7 @@ Four different popover shadows coexisted (SGAA, skill, `Acompanhamento B2B`, tok
 
 ## 5. Phases 3–5 — what to direct
 
-### Phase 3 — bring the fixture into conformance — **CORRECTED, AWAITING ARCHITECT ACCEPTANCE**
+### Phase 3 — bring the fixture into conformance — **CLOSED / ACCEPTED at `ded162e`**
 
 The contradiction this phase existed to remove is gone: the fixture
 `docs/ui/fixtures/op-detail-compacto/OP Detail - Compacto.dc.html` no longer carries
@@ -183,13 +185,28 @@ baseline now exists to diff against.
   value.
 - **NOT delivered:** architect acceptance. The executor does not self-accept.
 
-### Phase 4 — the detector — **IMPLEMENTED, BASELINE GENERATED, AWAITING ACCEPTANCE**
+### Phase 4 — the detector — **CORRECTED, BASELINE REGENERATED, AWAITING ACCEPTANCE**
 
-`scripts/validate-ui-conformance.mjs` v1.0.0. Deterministic: no network, no clock, no
-randomness, and three consecutive regenerations produced a byte-identical baseline at
+`scripts/validate-ui-conformance.mjs` v1.0.1. Deterministic: no network, no clock, no
+randomness, and independent regenerations produce a byte-identical baseline at
 `tests/fixtures/ui-conformance-baseline.json`. Guarded by
-`tests/ui-conformance-detector.test.mjs` (32 tests). It reports only — no screen,
+`tests/ui-conformance-detector.test.mjs` (43 tests). It reports only — no screen,
 token file or contract is touched, and **no waiver or ignore-list mechanism exists**.
+
+**Corrected after the first submission**, against two blocking defects you found:
+
+1. **`UIC-001` counted non-visual copy as a colour defect.** It now classifies every
+   colour-shaped run by syntax into three states: proven visual → blocking, proven
+   non-visual → no finding, neither → `COVERAGE_GAP / VISUAL_COLOUR_CONTEXT_UNPROVEN`.
+   Blocking colour findings fell 2785 → **2013**; 771 became coverage gaps and one —
+   `placeholder: 'Ex.: Pedido #8431'` — is now correctly silent. The classification is
+   syntactic: no path, line or value suppression exists, and the identical value is
+   blocking under `color:` and silent under `placeholder:`.
+2. **Archetype inventory depended on section order.** `readConformanceRows` now bounds
+   each archetype block at the next level-two heading, so an unrelated `## Application
+   surface` table can never be read as Archetype F. The document-layout workaround the
+   first submission relied on is deleted, and section-order invariance is asserted
+   against the live document.
 
 The nine rules you specified were implemented as eleven, splitting two conflations
 that mattered: an unresolved `var(--rv-*)` is not the same defect as a deprecated one
@@ -198,7 +215,7 @@ radius on a box (`UIC-007` vs `UIC-010`, the latter applying D6.1 by element rol
 
 | Rule | Your item | Baseline blocking |
 |---|---|---|
-| `UIC-001` literal colour | 1 | 2785 |
+| `UIC-001` literal colour | 1 | 2013 (+771 gaps) |
 | `UIC-002` radius | 2 | 97 |
 | `UIC-003` control height | 3 | 13 (+9 gaps) |
 | `UIC-004` shadow, incl. cards-are-flat | 4 | 21 (+21 gaps) |
@@ -226,10 +243,12 @@ change while the six detector files stay byte-identical.
   `<colgroup>` whose column count matches the header, and fails it only when they
   contradict. Pass 8 stays manual, as you said.
 
-**What the baseline says.** 67 files, 28 `FULL`, 39 `PARTIAL`, 0 `UNSUPPORTED`; 3027
-blocking findings, 323 declared debt, 621 coverage gaps. The good news you predicted in
+**What the baseline says.** 67 files, 27 `FULL`, 40 `PARTIAL`, 0 `UNSUPPORTED`; 2255
+blocking findings, 323 declared debt, 1392 coverage gaps. The good news you predicted in
 §2 holds: 0 pill-shaped buttons, 0 cards with a shadow, 0 unresolved tokens. The bulk
-is pass 1 — 2785 literal colours — which is find-and-replace, not redesign.
+is pass 1 — 2013 proven literal colours — which is find-and-replace, not redesign. A
+further 771 colour-shaped runs are unproven and must be classified before they can be
+retokenised; they are coverage gaps, not defects.
 
 **Two things you should know before authorizing phase 5.**
 
