@@ -117,12 +117,24 @@
       correctionSection.className = 'r8x-linkadmin-correction';
 
       var pedidoLabel = doc.createElement('label');
+      pedidoLabel.id = prefix + '-pedido-label';
+      pedidoLabel.setAttribute('id', prefix + '-pedido-label');
       pedidoLabel.setAttribute('for', prefix + '-pedido');
       pedidoLabel.textContent = 'Pedido confirmado';
       correctionSection.appendChild(pedidoLabel);
 
-      var pedidoSelect = doc.createElement('select');
+      // Pass-7 (UIC-006): the canonical select popover, driven with THIS
+      // modal's injected document/window — no native <select>, and no
+      // modal-local select implementation.
+      var pedidoSelect = window.createSelectPopover({
+        options: [],
+        value: '',
+        placeholder: 'Nenhum pedido',
+        labelledBy: prefix + '-pedido-label',
+        document: doc,
+      });
       pedidoSelect.id = prefix + '-pedido';
+      pedidoSelect.setAttribute('id', prefix + '-pedido');
       correctionSection.appendChild(pedidoSelect);
 
       var opLabel = doc.createElement('div');
@@ -385,24 +397,17 @@
     }
 
     function populatePedidoSelect() {
-      var sel = _elements.pedidoSelect;
-      if (typeof sel.replaceChildren === 'function') sel.replaceChildren();
-      else sel.children = [];
-      var noneOpt = doc.createElement('option');
-      noneOpt.value = '';
-      noneOpt.textContent = 'Nenhum pedido';
-      sel.appendChild(noneOpt);
       var pedidos = _targets.pedidos || [];
+      var pedidoOptions = [];
       for (var i = 0; i < pedidos.length; i++) {
         var p = pedidos[i];
-        var opt = doc.createElement('option');
-        opt.value = String(p.id);
         var label = 'Pedido' + (p.numero != null ? (' #' + p.numero) : (' ' + p.id));
         if (p.status) label += ' · ' + p.status;
-        opt.textContent = label;
-        sel.appendChild(opt);
+        pedidoOptions.push({ value: String(p.id), label: label });
       }
-      sel.value = '';
+      // Repopulating never emits a change; the explicit '' keeps the
+      // "Nenhum pedido" default.
+      _elements.pedidoSelect.setOptions(pedidoOptions, { value: '', placeholder: 'Nenhum pedido' });
     }
 
     function setActionsEnabled(enabled) {

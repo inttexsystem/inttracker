@@ -149,11 +149,17 @@ class FakeNode {
     this.className = '';
     this._text = null;
     this._listeners = {};
+    // Pass-7 (§14.1) DOM fidelity: every real element exposes `.style`.
+    this.style = {};
     this.disabled = false;
     this.value = '';
   }
   appendChild(n) { this.children.push(n); return n; }
   setAttribute(k, v) { this['_attr_' + k] = v; }
+  // Pass-7 (§14.1) DOM fidelity: every real element exposes these.
+  getAttribute(k) { return Object.prototype.hasOwnProperty.call(this, '_attr_' + k) ? this['_attr_' + k] : null; }
+  hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this, '_attr_' + k); }
+  removeAttribute(k) { delete this['_attr_' + k]; }
   addEventListener(type, fn) { this._listeners[type] = fn; }
   removeEventListener(type) { delete this._listeners[type]; }
   replaceChildren() { this.children = []; }
@@ -196,6 +202,9 @@ function makeCommonSandbox(currentUser) {
   vm.createContext(sandbox);
 
   // js/ui.js fornece el() real.
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
 
   // Stubs que normalmente vêm de js/auth.js, presentes antes de carregar common.js.
@@ -460,6 +469,9 @@ test('28. integração: screenPainel() (painel.js) ainda renderiza via shellLayo
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
@@ -512,6 +524,9 @@ test('30. boot: ui.js + badges.js + router.js + system-screens.js + common.js + 
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });

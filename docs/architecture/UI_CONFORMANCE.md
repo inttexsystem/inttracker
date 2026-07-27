@@ -70,7 +70,7 @@
 | Fact | Value |
 |---|---|
 | Detector | `scripts/validate-ui-conformance.mjs` v1.0.6 |
-| Enum source | `UI_VISUAL_CONTRACT.md` §5, block at line 390 |
+| Enum source | `UI_VISUAL_CONTRACT.md` §5, block at line 463 |
 | §5 blob hash | `f8349e6eeca291fef2edf4d6e30afd628732f00b6495d54eb9273860fa63f1c4` |
 | Baseline | `tests/fixtures/ui-conformance-baseline.json` |
 | Determinism | independent regenerations produce a byte-identical blob |
@@ -81,16 +81,24 @@ resolution or coverage is incomplete. No row below was set by looking at a scree
 
 **Two source classes, one rule set.** The prototype front-end reads `.dc.html`; the
 application front-end reads `js/screens/*.js`. 67 files were scanned: 31 `FULL`, 36
-`PARTIAL`, 0 `UNSUPPORTED`. 886 findings — 15 blocking, 322 declared debt, 549
+`PARTIAL`, 0 `UNSUPPORTED`. 865 findings — **0 blocking**, 322 declared debt, 543
 coverage gaps.
 
 **Baseline by rule.** UIC-001 literal colour **0** (+**0** gaps) · UIC-002 radius **0**
 (+**0** gaps) · UIC-003 control height **0** (+**0** gaps) · UIC-004 shadow **0**
-(+**0** gaps) · UIC-005 typography **0** (+**0** gaps) · UIC-006 native `<select>` 15 · UIC-007 pill
+(+**0** gaps) · UIC-005 typography **0** (+**0** gaps) · UIC-006 native `<select>` **0** · UIC-007 pill
 radius on a button **0** · UIC-008 card action alignment **0** (+**0** gaps) · UIC-009
 deprecated token 322 (debt) · UIC-010 semantic-radius misuse **0** (+**0** gaps) ·
-UIC-011 unknown token **0**. Cards carrying a shadow: **0**. Plus 549 front-end
+UIC-011 unknown token **0**. Cards carrying a shadow: **0**. Plus 543 front-end
 decoding gaps under `UIC-000`.
+
+**Pass 7 closed the last blocking rule.** `UIC-006` went 15 → **0**: every native
+`<select>` on a product surface was replaced by the application-owned select popover
+(`js/select-popover.js`), and `js/ui.js::selectInput()` became a thin adapter over it.
+Six `UIC-000` gaps disappeared with them — each was an unresolved style expression
+attached to a native select or to the facade wrapper around one — so the total moved
+886 → **865** and coverage 549 → **543**. No detector source byte changed and no
+finding was suppressed. **Every blocking rule is now closed.**
 
 `UIC-008` closure covers the **explicitly marked** footer population — four product
 rows — and not the absence of every possible unmarked footer in imperative runtime

@@ -81,6 +81,9 @@ function createHarness(options = {}) {
   // truncatedCell / TRUNCATE_CELL_STYLE / toast / confirmDialog. el() carries
   // the UI-EL-BOOLEAN-ATTR-FIX, and the screens read every one of these via
   // window.* at call time, so they now render through the real primitives.
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc, sandbox, { filename: UI });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'badges.js'), 'utf8'), sandbox, { filename: 'js/badges.js' });
@@ -335,7 +338,9 @@ test('fornecedor cria e edita usando somente fornecedores.cnpj', async () => {
   const create = await openForm(createHarnessResult, 'screenCadastrosFornecedores', 'Novo fornecedor');
   inputByPlaceholder(create.inputs, 'Ex: Tecelagem Fulano').value = 'Fornecedor direto';
   inputByPlaceholder(create.inputs, '00.000.000/0000-00').value = '11.222.333/0001-81';
-  findAll(createHarnessResult.document.body, (node) => node.tagName === 'SELECT')[0].value = 'tecelagem';
+  // Pass-7 (UIC-006): o Tipo do fornecedor e um popover canonico.
+  findAll(createHarnessResult.document.body, (node) => node.getAttribute
+    && node.getAttribute('data-rv-select-popover') === '1')[0].value = 'tecelagem';
   await create.save._listeners.click();
   const insert = createHarnessResult.calls.find((call) => call.op === 'insert');
   assert.equal(insert.table, 'fornecedores');
@@ -374,7 +379,9 @@ test('DV invalido bloqueia write e duplicidade e tratada por categoria', async (
   const duplicateForm = await openForm(duplicate, 'screenCadastrosFornecedores', 'Novo fornecedor');
   inputByPlaceholder(duplicateForm.inputs, 'Ex: Tecelagem Fulano').value = 'Fornecedor duplicado';
   inputByPlaceholder(duplicateForm.inputs, '00.000.000/0000-00').value = '11.222.333/0001-81';
-  findAll(duplicate.document.body, (node) => node.tagName === 'SELECT')[0].value = 'tecelagem';
+  // Pass-7 (UIC-006): o Tipo do fornecedor e um popover canonico.
+  findAll(duplicate.document.body, (node) => node.getAttribute
+    && node.getAttribute('data-rv-select-popover') === '1')[0].value = 'tecelagem';
   await duplicateForm.save._listeners.click();
   assert.match(duplicate.toasts.at(-1).message, /outro Fornecedor/i);
 });
@@ -389,7 +396,9 @@ test('CNPJ vazio envia null nos dois formulários', async () => {
   const supplier = createHarness();
   const supplierForm = await openForm(supplier, 'screenCadastrosFornecedores', 'Novo fornecedor');
   inputByPlaceholder(supplierForm.inputs, 'Ex: Tecelagem Fulano').value = 'Fornecedor sem CNPJ';
-  findAll(supplier.document.body, (node) => node.tagName === 'SELECT')[0].value = 'tecelagem';
+  // Pass-7 (UIC-006): o Tipo do fornecedor e um popover canonico.
+  findAll(supplier.document.body, (node) => node.getAttribute
+    && node.getAttribute('data-rv-select-popover') === '1')[0].value = 'tecelagem';
   await supplierForm.save._listeners.click();
   assert.equal(supplier.calls.find((call) => call.op === 'insert').payload.cnpj, null);
 });

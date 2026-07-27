@@ -203,8 +203,37 @@
     if (extra) kids.push(extra);
     return el('div', { style: 'display:flex;align-items:center;gap:10px;margin-bottom:18px;' }, kids);
   }
+  // PASS-7-A4: a <label> rendered as a SIBLING names nothing, and
+  // role="combobox" — unlike a plain button — does not take its accessible
+  // name from its own content. fieldBlock() is often handed `wrapSelect(ctrl)`
+  // rather than the control itself, so the binding walks to the actual
+  // descendant carrying the canonical marker. The wrapper never receives
+  // combobox semantics.
+  var opNovaLabelSeq = 0;
+  function findSelectPopover(node) {
+    if (!node || typeof node.getAttribute !== 'function') return null;
+    if (node.getAttribute('data-rv-select-popover') === '1') return node;
+    var kids = node.children || [];
+    for (var i = 0; i < kids.length; i++) {
+      var found = findSelectPopover(kids[i]);
+      if (found) return found;
+    }
+    return null;
+  }
+  function bindSelectPopoverLabel(labelNode, node) {
+    var control = findSelectPopover(node);
+    if (!control) return;
+    if (control.getAttribute('aria-label') || control.getAttribute('aria-labelledby')) return;
+    opNovaLabelSeq += 1;
+    var id = 'rv-op-nova-field-label-' + opNovaLabelSeq;
+    labelNode.setAttribute('id', id);
+    control.setAttribute('aria-labelledby', id);
+  }
+
   function fieldBlock(label, control, style) {
-    return el('div', { style: style || '' }, el('label', { style: FIELD_LABEL }, label), control);
+    var labelNode = el('label', { style: FIELD_LABEL }, label);
+    bindSelectPopoverLabel(labelNode, control);
+    return el('div', { style: style || '' }, labelNode, control);
   }
   function selectChevron(small) {
     return el('div', { style: 'position:absolute;right:' + (small ? '10px' : '12px') + ';top:50%;transform:translateY(-50%);pointer-events:none;' },
@@ -213,7 +242,17 @@
   function wrapSelect(selectNode, small) {
     return el('div', { style: 'position:relative;' }, selectNode, selectChevron(small));
   }
+  // PASS-7-A4 (§10): SELECT_STYLE describes a NATIVE <select> — a fixed
+  // padding box with `appearance:none` so the browser chevron disappears.
+  // Applying it to the canonical select popover replaced the trigger's whole
+  // inline style and broke the ratified Pass-7 geometry (41px instead of 32px,
+  // 14px text, 9px vertical padding, inline-block instead of inline-flex).
+  // js/select-popover.js is the SOLE owner of combobox geometry, so a
+  // canonical trigger is returned untouched — before any class or style
+  // mutation. Legacy non-popover controls keep the previous behaviour exactly.
   function styleSelect(sel, extra) {
+    if (sel && typeof sel.getAttribute === 'function'
+      && sel.getAttribute('data-rv-select-popover') === '1') return sel;
     sel.className = '';
     sel.setAttribute('style', SELECT_STYLE + (extra || ''));
     return sel;
@@ -225,8 +264,15 @@
   }
   function thRow(colsTemplate, labels, options) {
     var alignLastRight = options && options.alignLast === 'right';
+    // PASS-7-A4 §9: `firstCellId` lets the table give its FIRST column header
+    // a stable id so a row-level combobox — which has no individual label —
+    // can be named by the column it belongs to. No visible copy, no layout
+    // and no style change; only an id attribute is added.
+    var firstCellId = options && options.firstCellId;
     var cells = labels.map(function (l, i) {
-      return el('div', { style: TH_STYLE + (alignLastRight && i === labels.length - 1 ? 'text-align:right;' : '') }, l);
+      var attrs = { style: TH_STYLE + (alignLastRight && i === labels.length - 1 ? 'text-align:right;' : '') };
+      if (i === 0 && firstCellId) attrs.id = firstCellId;
+      return el('div', attrs, l);
     });
     return el('div', { style: 'display:grid;grid-template-columns:' + colsTemplate + ';gap:10px;padding:10px 24px;background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);' }, cells);
   }
@@ -244,12 +290,16 @@
       var escolhido = tiposDisponiveis[0];
       sel.onchange = function () { escolhido = sel.value; };
       var done = false;
+      // PASS-7-A4: this modal owns its label directly, so it binds directly.
+      // The hierarchy and copy are unchanged.
+      var produtoLabel = el('label', { style: 'display:block;font-size:13px;font-weight:600;color:var(--rv-text-primary);margin-bottom:6px;' }, 'Produto desta OP');
+      bindSelectPopoverLabel(produtoLabel, sel);
       modal({
         title: 'Tipo de produto desta OP',
         body: el('div', {},
           el('p', { style: 'font-size:13px;color:var(--rv-text-secondary);margin-bottom:12px;line-height:1.5;' },
             'Este Pedido tem itens de Tapete e Manta. Uma OP de tecelagem contém um único tipo de produto. Escolha qual esta OP vai conter; os itens do outro tipo permanecem disponíveis para outra OP.'),
-          el('label', { style: 'display:block;font-size:13px;font-weight:600;color:var(--rv-text-primary);margin-bottom:6px;' }, 'Produto desta OP'),
+          produtoLabel,
           sel
         ),
         saveLabel: 'Confirmar',
@@ -958,17 +1008,28 @@
         el('div', { style: 'font-size:13px;color:var(--rv-text-tertiary);' }, 'Adicione ao menos um item para calcular o fio necessário.'),
       ));
     } else {
-      card.appendChild(thRow('2fr 1fr 80px', ['MODELO', 'METROS', 'AÇÕES'], { alignLast: 'right' }));
+      // PASS-7-A4 §9: the row Modelo combobox has no individual visible label
+      // — it is a grid cell. Its accessible name is the real column header of
+      // the table it lives in, minted fresh per render so no stale id survives.
+      opNovaLabelSeq += 1;
+      const modeloColumnId = 'rv-op-nova-col-modelo-' + opNovaLabelSeq;
+      card.appendChild(thRow('2fr 1fr 80px', ['MODELO', 'METROS', 'AÇÕES'],
+        { alignLast: 'right', firstCellId: modeloColumnId }));
       const rows = el('div', { style: 'padding-bottom:6px;' });
-      itens.forEach((item, idx) => rows.appendChild(buildItemRow(item, idx, modeloOptions)));
+      itens.forEach((item, idx) => rows.appendChild(buildItemRow(item, idx, modeloOptions, modeloColumnId)));
       card.appendChild(rows);
     }
     return card;
   }
 
-  function buildItemRow(item, idx, modeloOptions) {
+  function buildItemRow(item, idx, modeloOptions, modeloColumnId) {
     const modeloSel = disabledAttr(readOnly, selectInput({ options: modeloOptions, value: item.modeloId, placeholder: 'Modelo...' }));
     styleSelect(modeloSel, 'padding:7px 30px 7px 10px;font-size:13.5px;');
+    // PASS-7-A4 §9: named by the column it belongs to; many rows may share it.
+    if (modeloColumnId && !modeloSel.getAttribute('aria-labelledby')
+      && !modeloSel.getAttribute('aria-label')) {
+      modeloSel.setAttribute('aria-labelledby', modeloColumnId);
+    }
     modeloSel.addEventListener('change', () => { item.modeloId = modeloSel.value ? Number(modeloSel.value) : ''; renderRight(); });
 
     const metrosInput = disabledAttr(readOnly, textInput({ type: 'number', value: item.metros === '' ? '' : String(item.metros), placeholder: 'metros' }));

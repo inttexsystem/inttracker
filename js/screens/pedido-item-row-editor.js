@@ -121,41 +121,32 @@
     return window.corPreviewHex(nome);
   }
 
-  function selectStyle() {
-    return 'width:100%; border:1px solid var(--rv-border-strong); border-radius:4px; padding:6px 8px; font-size:13.5px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; cursor:pointer; outline:none;';
-  }
-
-  // Preenche o select de Tipo. `disabled` cobre a falha fechada: sem metadado
-  // de tipo nao ha o que escolher.
-  function fillTipoSelect(select, current, disabled) {
-    select.replaceChildren();
-    [
-      { value: '', label: 'Tipo...' },
+  // Preenche o controle de Tipo. `disabled` cobre a falha fechada: sem
+  // metadado de tipo nao ha o que escolher.
+  // Pass-7 (UIC-006): o alvo e o popover canonico, nao um <select> nativo,
+  // entao a repopulacao passa por setOptions() — nunca por replaceChildren()
+  // ou option.selected. setOptions sozinho nao emite change.
+  function fillTipoSelect(control, current, disabled) {
+    control.setOptions([
       { value: TAPETE, label: tipoLabel(TAPETE) },
       { value: MANTA, label: tipoLabel(MANTA) }
-    ].forEach(function (spec) {
-      var option = window.el('option', { value: spec.value }, spec.label);
-      if (spec.value === current) option.selected = true;
-      select.appendChild(option);
-    });
-    select.value = current || '';
-    if (disabled) select.setAttribute('disabled', 'disabled');
-    else select.removeAttribute('disabled');
+    ], { value: current || '', placeholder: 'Tipo...' });
+    control.disabled = !!disabled;
   }
 
-  // Preenche o select de Modelo com o recorte da rota. Sem Tipo o campo fica
-  // desabilitado e vazio.
-  function fillModeloSelect(select, modelos, tipo, currentId) {
+  // Preenche o controle de Modelo com o recorte da rota. Sem Tipo o campo
+  // fica desabilitado e vazio.
+  function fillModeloSelect(control, modelos, tipo, currentId) {
     var disponiveis = modelosPorTipo(modelos, tipo);
-    select.replaceChildren(window.el('option', { value: '' }, 'Modelo...'));
+    var opcoes = [];
     for (var i = 0; i < disponiveis.length; i++) {
-      var option = window.el('option', { value: disponiveis[i].id }, modeloOptionLabel(disponiveis[i]));
-      if (String(disponiveis[i].id) === String(currentId)) option.selected = true;
-      select.appendChild(option);
+      opcoes.push({ value: disponiveis[i].id, label: modeloOptionLabel(disponiveis[i]) });
     }
-    select.value = currentId ? String(currentId) : '';
-    if (tipo) select.removeAttribute('disabled');
-    else select.setAttribute('disabled', 'disabled');
+    control.setOptions(opcoes, {
+      value: currentId ? String(currentId) : '',
+      placeholder: 'Modelo...'
+    });
+    control.disabled = !tipo;
   }
 
   // ===================================================================
@@ -212,14 +203,10 @@
       }));
     }
 
-    var tipoSelect = window.el('select', {
-      'data-item-tipo-select': '1',
-      style: selectStyle()
-    });
-    var modeloSelect = window.el('select', {
-      'data-item-modelo-select': '1',
-      style: selectStyle()
-    });
+    var tipoSelect = window.createSelectPopover({ options: [], value: '', ariaLabel: 'Tipo' });
+    tipoSelect.setAttribute('data-item-tipo-select', '1');
+    var modeloSelect = window.createSelectPopover({ options: [], value: '', ariaLabel: 'Modelo' });
+    modeloSelect.setAttribute('data-item-modelo-select', '1');
 
     var coresCell = window.el('div', { 'data-item-cores': '1', style: 'font-size:13.5px;' });
     var larguraCell = window.el('div', { 'data-item-largura': '1', style: 'font-size:13.5px;' });

@@ -252,9 +252,29 @@ const FOCUS_RINGS = [
     signature: /input\.addEventListener\('focus',[\s\S]{0,200}?input\.style\.boxShadow = '0 0 0 3px var\(--rv-focus-ring\)'/,
     blur: /input\.addEventListener\('blur',[\s\S]{0,200}?input\.style\.boxShadow = 'none'/,
   },
+  /*
+   * PASS-4-FOCUS-RING-INVENTORY-FORWARD-CORRECTION-A2
+   *
+   * Phase-5 pass 7 replaced every native <select> with the application-owned
+   * select popover. A native select carried the browser's own focus
+   * indicator; a <button role="combobox"> does not, so the canonical trigger
+   * must declare the ratified field focus ring itself.
+   *
+   * This is a FIELD FOCUS RING under contract §2.2. It is not elevation, not
+   * UIC-004 debt, not a knockout halo, and it is not a precedent for an
+   * arbitrary button shadow: it exists because the trigger IS a field.
+   */
+  {
+    id: 'select-popover-combobox-trigger',
+    path: 'js/select-popover.js',
+    helper: 'createSelectPopover',
+    role: 'application-owned single-choice field / filter combobox trigger',
+    signature: /on\(trigger, 'focus',[\s\S]{0,300}?trigger\.style\.boxShadow = '0 0 0 3px var\(--rv-focus-ring\)'/,
+    blur: /on\(trigger, 'blur',[\s\S]{0,300}?trigger\.style\.boxShadow = 'none'/,
+  },
 ];
 
-test('10 · RATIFIED_FIELD_FOCUS_RING_COUNT = 3, each site exact', () => {
+test('10 · RATIFIED_FIELD_FOCUS_RING_COUNT = 4, each site exact', () => {
   for (const site of FOCUS_RINGS) {
     const text = read(site.path);
     assert.match(text, new RegExp(`function ${site.helper}\\b`), `${site.id}: helper ${site.helper} disappeared`);
@@ -265,7 +285,19 @@ test('10 · RATIFIED_FIELD_FOCUS_RING_COUNT = 3, each site exact', () => {
     (n, { text }) => n + text.split(FOCUS_RING_SPELLING).length - 1,
     0,
   );
-  assert.equal(total, 3, `RATIFIED_FIELD_FOCUS_RING_COUNT = ${total}`);
+  assert.equal(total, FOCUS_RINGS.length, `RATIFIED_FIELD_FOCUS_RING_COUNT = ${total}`);
+  assert.equal(total, 4, 'the ratified field focus-ring population is exactly four');
+  // Every occurrence is accounted for by a named site — a fifth ring in an
+  // unlisted file still fails, and so does a ring on a non-field control.
+  const byFile = new Map();
+  for (const { rel, text } of RUNTIME) {
+    const n = text.split(FOCUS_RING_SPELLING).length - 1;
+    if (n) byFile.set(rel, n);
+  }
+  const expected = new Map();
+  for (const site of FOCUS_RINGS) expected.set(site.path, (expected.get(site.path) || 0) + 1);
+  assert.deepEqual([...byFile.entries()].sort(), [...expected.entries()].sort(),
+    'a field focus ring appeared outside the ratified inventory');
 });
 
 test('11 · the focus ring is the contract spelling, read from the contract', () => {
@@ -392,9 +424,14 @@ test('15 · the three non-elevation and specialized inventories are disjoint', (
   assert.notEqual(FOCUS_RING_SPELLING, HALO_SPELLING);
   assert.ok(!ELEVATION_TOKENS.includes(FOCUS_RING_SPELLING));
   assert.ok(!ELEVATION_TOKENS.includes(HALO_SPELLING));
-  assert.equal(focus.size, 3);
-  assert.equal(halo.size, 3);
+  // A2: the focus-ring inventory grew to four with the pass-7 combobox
+  // trigger. The knockout-halo and switch-knob inventories did NOT move.
+  assert.equal(focus.size, 4);
+  assert.equal(halo.size, 3, 'OPEN_KNOCKOUT_HALO_COUNT must not move');
   assert.equal(knob.size, 2);
+  // The three inventories remain mutually disjoint by site.
+  for (const id of focus) assert.ok(!halo.has(id) && !knob.has(id), `${id} is in two inventories`);
+  for (const id of halo) assert.ok(!knob.has(id), `${id} is in two inventories`);
   // The knob is an ELEVATION member; the other two are not.
   assert.ok(isNonElevationSpreadRing(FOCUS_RING_SPELLING));
   assert.ok(isNonElevationSpreadRing(HALO_SPELLING));
@@ -586,15 +623,23 @@ test('32 · no rule outside UIC-004 moved in this pass', () => {
   // The exact multiset the pass-4 order authorizes: UIC-004 to zero, and the
   // rest of the repository byte-identical to the 42ce915 entry baseline.
   //
-  // Two numbers below are LATER-PASS state, not pass-4 state, and are carried
-  // forward mechanically as each authorized pass closes its own rule. Pass 5
-  // took UIC-008 to 0/0 (1008 -> 966) and pass 6 took UIC-005 to 0 (966 -> 886).
+  // Several numbers below are LATER-PASS state, not pass-4 state, and are
+  // carried forward mechanically as each authorized pass closes its own rule.
+  // Pass 5 took UIC-008 to 0/0 (1008 -> 966), pass 6 took UIC-005 to 0
+  // (966 -> 886), and pass 7 took UIC-006 to 0 while incidentally removing the
+  // six UIC-000 gaps that described style expressions ON the deleted native
+  // selects (886 -> 865, coverage 549 -> 543).
   // Everything pass 4 actually owns is unchanged.
-  assert.equal(rule('UIC-000').coverage_gaps, 549);
+  assert.equal(rule('UIC-000').coverage_gaps, 543);
   assert.equal(rule('UIC-005').blocking, 0);   // pass 6 closed typography
-  assert.equal(rule('UIC-006').blocking, 15);
+  assert.equal(rule('UIC-006').blocking, 0);   // pass 7 closed native select
+  assert.equal(rule('UIC-006').total, 0);
   assert.equal(rule('UIC-008').blocking, 0);
   assert.equal(rule('UIC-008').coverage_gaps, 0);
   assert.equal(rule('UIC-009').debt, 322);
-  assert.equal(BASELINE.findings.length, 886);
+  assert.equal(BASELINE.findings.length, 865);
+  // Pass 4's own rule is still exactly closed, which is the point of the test.
+  assert.equal(rule('UIC-004').blocking, 0);
+  assert.equal(rule('UIC-004').coverage_gaps, 0);
+  assert.equal(rule('UIC-004').total, 0);
 });

@@ -95,6 +95,22 @@
   // mas esta defesa evita queries inúteis com lixo na URL.
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+  // PASS-7-A4: um <label> IRMAO nao nomeia nada, e role="combobox" — ao
+  // contrario de um botao comum — nao herda nome do proprio conteudo. O
+  // popover canonico precisa do rotulo visivel ligado explicitamente, senao
+  // chega sem nome na tecnologia assistiva. So liga um trigger canonico ainda
+  // sem nome; nenhum outro controle e tocado.
+  let pedidoItensLabelSeq = 0;
+  function bindSelectPopoverLabel(labelNode, control) {
+    if (!control || typeof control.getAttribute !== 'function') return;
+    if (control.getAttribute('data-rv-select-popover') !== '1') return;
+    if (control.getAttribute('aria-label') || control.getAttribute('aria-labelledby')) return;
+    pedidoItensLabelSeq += 1;
+    const id = 'rv-pedido-itens-edit-field-label-' + pedidoItensLabelSeq;
+    labelNode.setAttribute('id', id);
+    control.setAttribute('aria-labelledby', id);
+  }
+
   // Gera uid local para controle de UI (não usado para update — o
   // update usa item.dbId, o UUID real do banco).
   function novoUid() {
@@ -393,24 +409,26 @@
       });
       tipoSel.setAttribute('data-item-tipo-select', '1');
       tipoSel.classList.add('w-40');
-      row.appendChild(window.el('div', { class: 'w-40' },
-        window.el('label', { class: 'block text-xs text-gray-500 mb-1' }, 'Tipo'),
-        tipoSel));
+      const tipoLabelNode = window.el('label', { class: 'block text-xs text-gray-500 mb-1' }, 'Tipo');
+      bindSelectPopoverLabel(tipoLabelNode, tipoSel);
+      row.appendChild(window.el('div', { class: 'w-40' }, tipoLabelNode, tipoSel));
 
       // Select de modelo — recorte estrito da rota escolhida.
       const modeloSel = window.selectInput({ options: [], value: '', placeholder: 'Modelo...' });
       modeloSel.setAttribute('data-item-modelo-select', '1');
       function preencherModelos() {
         const lista = rowApi.modelosPorTipo(state.modelos, item.tipo);
-        modeloSel.replaceChildren(window.el('option', { value: '' }, 'Modelo...'));
-        lista.forEach(function (m) {
-          const op = window.el('option', { value: String(m.id) }, modeloLabel(m));
-          if (String(m.id) === String(item.modeloId)) op.selected = true;
-          modeloSel.appendChild(op);
+        // Pass-7 (UIC-006): a repopulacao passa por setOptions(); nao existe
+        // mais option nativa, replaceChildren nem option.selected. setOptions
+        // preserva o valor quando uma opcao equivalente sobrevive e o limpa
+        // quando ela some — e nunca emite change por si.
+        modeloSel.setOptions(lista.map(function (m) {
+          return { value: String(m.id), label: modeloLabel(m) };
+        }), {
+          value: item.modeloId ? String(item.modeloId) : '',
+          placeholder: 'Modelo...',
         });
-        modeloSel.value = item.modeloId ? String(item.modeloId) : '';
-        if (item.tipo && state.tipoMetadataOk) modeloSel.removeAttribute('disabled');
-        else modeloSel.setAttribute('disabled', 'disabled');
+        modeloSel.disabled = !(item.tipo && state.tipoMetadataOk);
       }
       tipoSel.addEventListener('change', function () {
         item.tipo = tipoSel.value;
@@ -425,9 +443,9 @@
         item.modeloId = modeloSel.value;
       });
       preencherModelos();
-      row.appendChild(window.el('div', { class: 'flex-1 min-w-64' },
-        window.el('label', { class: 'block text-xs text-gray-500 mb-1' }, 'Modelo'),
-        modeloSel));
+      const modeloLabelNode = window.el('label', { class: 'block text-xs text-gray-500 mb-1' }, 'Modelo');
+      bindSelectPopoverLabel(modeloLabelNode, modeloSel);
+      row.appendChild(window.el('div', { class: 'flex-1 min-w-64' }, modeloLabelNode, modeloSel));
 
       // Input de metros.
       const metrosInput = window.textInput({

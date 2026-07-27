@@ -162,6 +162,8 @@ class FakeNode {
     return n;
   }
   setAttribute(k, v) { this._attrs[k] = v; if (k === 'disabled') this.disabled = v; }
+  hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k); }
+  removeAttribute(k) { delete this._attrs[k]; }
   getAttribute(k) { return this._attrs[k]; }
   addEventListener(type, fn) { this._listeners[type] = fn; }
   removeEventListener(type) { delete this._listeners[type]; }
@@ -456,6 +458,9 @@ function makeFullBootSandbox({
   sandbox.handleRoute = () => {};
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
@@ -691,6 +696,9 @@ test('27. boot chain: ui + router + system-screens + common + cadastros + ops-li
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });

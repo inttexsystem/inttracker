@@ -295,19 +295,19 @@
         + '; border-radius:4px; padding:8px 10px; background:var(--rv-surface);';
     }
 
-    function buildSelectBox(selectEl) {
-      return window.el('div', { style: fieldBoxStyle(false) }, selectEl, svgEl(SVG_CHEVRON));
-    }
-
     function buildDadosGeraisCard() {
-      var clienteSelect = window.el('select', {
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; cursor:pointer; -webkit-appearance:none; appearance:none; min-width:0;'
-      }, window.el('option', { value: '' }, 'Selecione o cliente...'));
+      // Pass-7 (UIC-006): canonical select popover. It owns its own box and
+      // chevron, so the former buildSelectBox facade is gone.
+      var clienteOpcoes = [];
       for (var i = 0; i < clientes.length; i++) {
-        var option = window.el('option', { value: clientes[i].id }, clientes[i].nome);
-        if (String(clientes[i].id) === String(state.clienteId)) option.selected = true;
-        clienteSelect.appendChild(option);
+        clienteOpcoes.push({ value: clientes[i].id, label: clientes[i].nome });
       }
+      var clienteSelect = window.createSelectPopover({
+        options: clienteOpcoes,
+        value: state.clienteId,
+        placeholder: 'Selecione o cliente...',
+        ariaLabel: 'Cliente'
+      });
       clienteSelect.addEventListener('change', function () {
         state.clienteId = clienteSelect.value;
       });
@@ -387,10 +387,14 @@
       var prazoWrap = window.el('div', { style: fieldBoxStyle(false) },
         prazoInput, svgEl(SVG_CALENDAR));
 
-      var statusSelect = window.el('select', {
-        disabled: 'disabled',
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; cursor:default; -webkit-appearance:none; appearance:none; min-width:0; opacity:1;'
-      }, window.el('option', { value: 'rascunho', selected: 'selected' }, 'Rascunho'));
+      // Pass-7 (UIC-006) §12: Status inicial offered exactly ONE permanently
+      // disabled option, so it was never a selection decision — it is a
+      // read-only statement of the state a new Pedido opens in. It is now a
+      // static compact field: no combobox role, no popup, no tab stop and no
+      // native select. The persisted state and payload are unchanged; the
+      // screen never read this control's value.
+      var statusSelect = window.createReadonlyFieldValue({ text: 'Rascunho' });
+      statusSelect.setAttribute('data-pedido-status-readonly', '1');
 
       // UMA unica grade para os cinco campos. As duas grades fixas anteriores
       // (2 colunas + 3 colunas) produziam uma faixa vertical vazia entre elas
@@ -416,7 +420,7 @@
       },
       window.el('div', { style: 'min-width:0;' },
         buildFieldLabel('Cliente', true),
-        buildSelectBox(clienteSelect)
+        clienteSelect
       ),
       window.el('div', { style: 'min-width:0;' },
         buildFieldLabel('Número do pedido'),
@@ -434,7 +438,7 @@
       ),
       window.el('div', { style: 'min-width:0;' },
         buildFieldLabel('Status inicial'),
-        buildSelectBox(statusSelect)
+        statusSelect
       )));
     }
 

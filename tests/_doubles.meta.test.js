@@ -97,6 +97,9 @@ function loadUi() {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
   return sandbox;
 }
@@ -124,12 +127,65 @@ test('real actionButton() + FaithfulNode: disabled:false yields no disabled attr
   assert.equal(btn.hasAttribute('disabled'), false, 'safe-disabled pattern: no disabled attribute when not disabled');
 });
 
-test('real selectInput() + FaithfulNode: a pre-selected option reflects into select.value (real-DOM behavior)', () => {
+// Pass-7 forward correction. The previous assertion proved that a
+// pre-selected native <option> reflected into select.value through the
+// FaithfulNode double. selectInput() no longer builds a native select, so
+// that shape is obsolete — but the BEHAVIOUR it protected (an edit form
+// pre-populates its field) is not. It is re-proved below against the
+// canonical popover, and strengthened: the visible label, the tolerant
+// numeric matching and the no-event-on-programmatic-write rule are now
+// covered too. The generic FakeNode SELECT/OPTION fidelity remains
+// asserted separately, immediately after, so the double keeps modelling
+// real-DOM select semantics for detector fixtures.
+test('real selectInput() + FaithfulNode: delegates to the canonical popover and pre-populates', () => {
   const sandbox = loadUi();
   const sel = vm.runInContext(`window.selectInput({ options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }], value: 'b' })`, sandbox);
-  assert.equal(sel.value, 'b', 'select.value must reflect the pre-selected option — an edit form pre-populates through the faithful double');
+
+  // Delegation: a button trigger with combobox semantics, not a select.
+  assert.equal(sel.tagName, 'BUTTON', 'selectInput must return the canonical trigger');
+  assert.equal(sel.getAttribute('role'), 'combobox');
+  assert.equal(sel.getAttribute('data-rv-select-popover'), '1');
+
+  // The initial value is reflected, and so is the visible label.
+  assert.equal(sel.value, 'b', 'the initial value must be reflected — an edit form pre-populates');
+  assert.equal(sel.textContent, 'B', 'the visible label must show the selected option');
+
   const empty = vm.runInContext(`window.selectInput({ options: [{ value: 'a', label: 'A' }] })`, sandbox);
-  assert.equal(empty.value, '', 'no pre-selected option leaves select.value at the placeholder default');
+  assert.equal(empty.value, '', 'no matching value leaves the control at the placeholder default');
+  assert.equal(empty.textContent, 'Selecione...', 'the placeholder label is shown when nothing is selected');
+
+  // Tolerant numeric equivalence survives the migration: the database
+  // returns numeric 1.4 while the option spells it '1.40'.
+  const numeric = vm.runInContext(`window.selectInput({ options: [{ value: '1.40', label: '1,40 m' }], value: 1.4 })`, sandbox);
+  assert.equal(numeric.value, '1.40', 'numeric-equivalent values must still resolve to the same option');
+
+  // A programmatic write updates the control and emits nothing.
+  let changes = 0;
+  sel.addEventListener('change', () => { changes += 1; });
+  sel.value = 'a';
+  assert.equal(sel.value, 'a');
+  assert.equal(sel.textContent, 'A', 'the visible label follows a programmatic write');
+  assert.equal(changes, 0, 'a programmatic value assignment must not emit change');
+
+  // An unmatched programmatic value falls back to the empty state.
+  sel.value = 'does-not-exist';
+  assert.equal(sel.value, '', 'an unmatched value resolves to the empty placeholder state');
+  assert.equal(changes, 0);
+});
+
+test('FaithfulNode still models native SELECT/OPTION value reflection (fixture-level fidelity)', () => {
+  // The product no longer builds native selects, but the double must keep
+  // modelling them: detector fixtures and any future non-product markup
+  // still rely on a real <select> reflecting its selected <option>.
+  const sel = new FaithfulNode('select');
+  const a = new FaithfulNode('option');
+  a.setAttribute('value', 'a');
+  const b = new FaithfulNode('option');
+  b.setAttribute('value', 'b');
+  b.selected = true;
+  sel.appendChild(a);
+  sel.appendChild(b);
+  assert.equal(sel.value, 'b', 'a selected option must reflect into select.value');
 });
 
 // ---------------------------------------------------------------------

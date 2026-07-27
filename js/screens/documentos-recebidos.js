@@ -92,7 +92,9 @@
   var SVG_UNDO = '<path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-1"></path>';
   var SVG_INBOX = '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>'
     + '<path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>';
-  var SVG_CHEVRON = '<polyline points="6 9 12 15 18 9"></polyline>';
+  // Pass-7: the filter chevron now belongs to the canonical select popover;
+  // this counter only mints the stable caption ids the triggers point at.
+  var filterSeq = 0;
   var SVG_LINK = '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>'
     + '<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>';
 
@@ -1817,36 +1819,32 @@
     }, searchBox, tabs);
   }
 
-  function optionNode(value, label, selected) {
-    var opt = window.el('option', { value: value }, label);
-    if (selected) opt.selected = true;
-    return opt;
-  }
-
+  // Pass-7 (UIC-006): the borderless native <select> inside a bordered
+  // <label> facade is gone. The canonical popover owns the box, the chevron
+  // and the value; the caption stays visible and names the trigger through
+  // aria-labelledby (a <label> cannot implicitly name a button).
   function selectControl(label, value, options, onChange) {
-    var sel = window.el('select', {
-      style: 'width:100%;border:none;outline:none;background:transparent;color:var(--rv-text-primary);'
-        + 'font-size:13px;font-family:inherit;font-weight:500;appearance:none;'
-        + '-webkit-appearance:none;-moz-appearance:none;cursor:pointer;',
+    filterSeq += 1;
+    var captionId = 'rv-docrec-filter-' + filterSeq;
+    var control = window.createSelectPopover({
+      options: options,
+      value: value,
+      labelledBy: captionId,
     });
-    options.forEach(function (opt) {
-      sel.appendChild(optionNode(opt.value, opt.label, opt.value === value));
-    });
-    sel.value = value;
-    sel.addEventListener('change', function () {
-      onChange(sel.value);
+    control.addEventListener('change', function () {
+      onChange(control.value);
       rerender();
     });
 
-    return window.el('label', {
-      style: 'flex:1;min-width:150px;background:var(--rv-surface);border:1px solid var(--rv-border-strong);'
-        + 'border-radius:4px;padding:6px 10px;display:flex;align-items:center;'
-        + 'justify-content:space-between;gap:8px;cursor:pointer;',
+    return window.el('div', {
+      style: 'flex:1;min-width:150px;display:flex;flex-direction:column;gap:3px;',
     },
-      window.el('span', { style: 'display:flex;flex-direction:column;gap:1px;min-width:0;flex:1;' },
-        window.el('span', { style: 'font-size:10.5px;font-weight:700;color:var(--rv-text-tertiary);' }, label),
-        sel),
-      svgEl(SVG_CHEVRON, 13, 'Abrir filtro', 'color:var(--rv-text-tertiary);'));
+      window.el('span', {
+        id: captionId,
+        style: 'font-size:10.5px;font-weight:700;color:var(--rv-text-tertiary);'
+          + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;',
+      }, label),
+      control);
   }
 
   function uniquePedidos(docs) {

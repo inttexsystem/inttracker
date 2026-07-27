@@ -420,9 +420,31 @@ test('B3/7. o cartao de itens ficou compacto sem encolher alvo de clique', () =>
   assert.match(pedidoForm, /padding:8px 14px; background:var\(--rv-surface-subtle\);/, 'o resumo usa a superficie sutil canonica');
   // Os CONTROLES continuam do mesmo tamanho: a densidade veio da folga, nao
   // do alvo de clique.
-  assert.match(itemRow, /padding:6px 8px; font-size:13\.5px/, 'os selects mantem o tamanho de alvo');
-  assert.ok((itemRow.match(/padding:6px 8px/g) || []).length >= 3,
-    'select de tipo/modelo, metragem e observacao mantem o padding');
+  //
+  // BATCH-03-SELECT-TRIGGER-GEOMETRY-FORWARD-CORRECTION-A2
+  // A passada 7 (UIC-006) substituiu os dois selects nativos da linha pelo
+  // trigger canonico do select-popover, que declara a propria geometria de
+  // campo: 32px de altura (--rv-h-compact) com padding 0/12px e box-sizing
+  // border-box. O alvo de clique NAO encolheu — 32px de altura contra os
+  // ~30px do select nativo anterior (13.5px de texto + 6px acima e abaixo).
+  // A correcao vale SO para o trigger; metragem e observacao continuam
+  // declarando 6px 8px, e sao verificados literalmente aqui.
+  assert.ok((itemRow.match(/padding:6px 8px/g) || []).length >= 2,
+    'metragem e observacao mantem o padding de 6px 8px');
+  assert.match(itemRow, /padding:6px 8px; font-size:13\.5px/,
+    'os campos de texto da linha mantem o tamanho de alvo');
+  // Tipo e Modelo sao o trigger canonico, cuja geometria e do dono unico.
+  assert.match(itemRow, /createSelectPopover\(\{[^}]*ariaLabel: 'Tipo'/);
+  assert.match(itemRow, /createSelectPopover\(\{[^}]*ariaLabel: 'Modelo'/);
+  const popover = read('js/select-popover.js');
+  assert.match(popover, /height:var\(--rv-h-compact\)/,
+    'o trigger declara a altura canonica de campo');
+  assert.match(popover, /padding-top:0; padding-bottom:0;/,
+    'nenhum padding vertical compete com a altura fixa');
+  assert.match(popover, /padding-left:12px; padding-right:12px;/,
+    'o trigger declara o padding horizontal canonico de 12px');
+  assert.match(popover, /box-sizing:border-box/,
+    'a altura fixa so nao corta o texto com box-sizing:border-box');
 });
 
 test('B3/8. a tabela de itens tem container PROPRIO de rolagem (sem clipping no estreito)', () => {

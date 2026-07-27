@@ -116,12 +116,16 @@ class FakeNode {
     this.className = '';
     this._text = null;
     this._listeners = {};
+    // Pass-7 (§14.1) DOM fidelity: every real element exposes `.style`.
+    this.style = {};
     this.disabled = false;
     this.value = '';
     this._attrs = {};
   }
   appendChild(n) { this.children.push(n); return n; }
   setAttribute(k, v) { this._attrs[k] = v; if (k === 'disabled') this.disabled = v; }
+  // Pass-7 (§14.1) DOM fidelity: every real element exposes these.
+  getAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k) ? this._attrs[k] : null; }
   // js/ui.js's el() calls removeAttribute for a falsy boolean attr
   // (UI-EL-BOOLEAN-ATTR-FIX); without it a falsy boolean attr would crash
   // (fail-unsafe), not merely be dropped. hasAttribute reports presence so a
@@ -269,6 +273,9 @@ function makeFullBootSandbox() {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });

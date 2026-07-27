@@ -127,11 +127,15 @@ class FakeNode {
     this.className = '';
     this._text = null;
     this._listeners = {};
+    // Pass-7 (§14.1) DOM fidelity: every real element exposes `.style`.
+    this.style = {};
     this.disabled = false;
     this.value = '';
   }
   appendChild(n) { this.children.push(n); return n; }
   setAttribute(k, v) { this['_attr_' + k] = v; }
+  // Pass-7 (§14.1) DOM fidelity: every real element exposes these.
+  getAttribute(k) { return Object.prototype.hasOwnProperty.call(this, '_attr_' + k) ? this['_attr_' + k] : null; }
   // js/ui.js's el() calls this for a falsy boolean attr (UI-EL-BOOLEAN-ATTR-FIX)
   // — defense-in-depth, matching the fix applied to the other FakeNode
   // mocks; the current actionButton() call sites in ops-list.js never
@@ -223,6 +227,9 @@ function makeOpsSandbox({ tableData = {}, withRouter = false } = {}) {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
@@ -620,6 +627,9 @@ test('25. boot: ui + badges + router + system-screens + common + cadastros + ops
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
@@ -687,6 +697,9 @@ test('26. setRoutes do inline: #/ops aponta para window.screenListaOPs', () => {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
@@ -740,6 +753,9 @@ test('27. rota dinâmica #/ops/:id continua resolvendo para screenNovaOP(:id) (s
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
@@ -816,6 +832,9 @@ test('29. screenPainel (inline) ainda renderiza via shellLayout (regressão comm
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });

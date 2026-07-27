@@ -245,33 +245,41 @@
       }));
       controls.appendChild(searchWrap);
 
-      const selectStyle = 'border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); padding:8px 11px; font-size:13px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; cursor:pointer;';
-      const ordenarSelect = window.el('select', {
+      // Pass-7 (UIC-006): both toolbar filters are canonical select popovers.
+      // They carry no visible label, so the explicit aria-label IS their
+      // accessible name. `auto` width keeps the previous intrinsic sizing.
+      const ordenarSelect = window.createSelectPopover({
+        options: [
+          { value: 'nome-asc', label: 'Nome A–Z' },
+          { value: 'nome-desc', label: 'Nome Z–A' },
+          { value: 'tipo', label: 'Tipo' },
+          { value: 'ultimo-acesso', label: 'Último acesso' }
+        ],
         value: ordenarPor,
-        onchange: (e) => { ordenarPor = e.target.value; renderStandalone(); },
-        style: selectStyle,
-        'aria-label': 'Ordenar'
-      },
-        window.el('option', { value: 'nome-asc' }, 'Nome A–Z'),
-        window.el('option', { value: 'nome-desc' }, 'Nome Z–A'),
-        window.el('option', { value: 'tipo' }, 'Tipo'),
-        window.el('option', { value: 'ultimo-acesso' }, 'Último acesso')
-      );
-      ordenarSelect.value = ordenarPor;
+        ariaLabel: 'Ordenar',
+        widthMode: 'auto'
+      });
+      ordenarSelect.addEventListener('change', () => {
+        ordenarPor = ordenarSelect.value;
+        renderStandalone();
+      });
       controls.appendChild(ordenarSelect);
 
-      const filtroTipoSelect = window.el('select', {
+      const filtroTipoSelect = window.createSelectPopover({
+        options: [
+          { value: 'todos', label: 'Todos' },
+          { value: 'admin', label: 'Admin' },
+          { value: 'fornecedor', label: 'Fornecedor' },
+          { value: 'cliente', label: 'Cliente' }
+        ],
         value: filtroTipo,
-        onchange: (e) => { filtroTipo = e.target.value; renderStandalone(); },
-        style: selectStyle,
-        'aria-label': 'Filtrar por tipo'
-      },
-        window.el('option', { value: 'todos' }, 'Todos'),
-        window.el('option', { value: 'admin' }, 'Admin'),
-        window.el('option', { value: 'fornecedor' }, 'Fornecedor'),
-        window.el('option', { value: 'cliente' }, 'Cliente')
-      );
-      filtroTipoSelect.value = filtroTipo;
+        ariaLabel: 'Filtrar por tipo',
+        widthMode: 'auto'
+      });
+      filtroTipoSelect.addEventListener('change', () => {
+        filtroTipo = filtroTipoSelect.value;
+        renderStandalone();
+      });
       controls.appendChild(filtroTipoSelect);
 
       const toggle = window.el('label', { style: 'display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--rv-text-secondary); user-select:none; cursor:pointer; white-space:nowrap;' });

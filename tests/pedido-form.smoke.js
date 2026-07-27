@@ -176,13 +176,39 @@ function findByAttr(root, name, value) {
   return out;
 }
 
-function optionTexts(selectNode) {
-  return (selectNode.children || []).filter((c) => c.tagName === 'OPTION').map((c) => c.textContent);
+// Pass-7 (UIC-006): the option inventory of a canonical select popover
+// lives in the portaled listbox panel, which exists only while the control
+// is open. Opening and closing is a pure read — neither emits a change
+// event — so these helpers report exactly what the operator would see.
+// The assertions built on them are unchanged: same values, same labels,
+// same order.
+let popoverProbeDocument = null;
+
+function popoverItems(control) {
+  const doc = popoverProbeDocument;
+  assert.ok(doc, 'popoverProbeDocument must be set by the boot helper');
+  assert.equal(control.getAttribute('data-rv-select-popover'), '1',
+    'the control under test is not a canonical select popover');
+  control.open();
+  const out = [];
+  (function walk(node) {
+    for (const c of (node.children || [])) {
+      if (c && c.getAttribute && c.getAttribute('role') === 'option') {
+        out.push({ value: c.getAttribute('data-rv-option-value'), text: c.textContent });
+      }
+      if (c && c.children) walk(c);
+    }
+  })(doc.body);
+  control.close({ focus: false });
+  return out;
 }
 
-function optionValues(selectNode) {
-  return (selectNode.children || []).filter((c) => c.tagName === 'OPTION').map((c) => c.getAttribute('value'));
-}
+function optionTexts(control) { return popoverItems(control).map((o) => o.text); }
+
+function optionValues(control) { return popoverItems(control).map((o) => o.value); }
+
+// Every canonical select popover under a root, in DOM order.
+function selectPopovers(root) { return findByAttr(root, 'data-rv-select-popover'); }
 
 function makePedidoFormRuntime() {
   const calls = {
@@ -336,6 +362,9 @@ function makePedidoFormRuntime() {
   vm.createContext(sandbox);
   // Load real js/ui.js FIRST so window.el is the boolean-aware primitive, then
   // the screen (proven pattern: tests/cliente-pedido-tracking.smoke.js).
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
   // The REAL route helpers, in their index.html order (op-display owns
   // deriveProductType; product-route delegates to it). Loading them means the
@@ -359,6 +388,7 @@ function makePedidoFormRuntime() {
 // ---------------------------------------------------------------------
 async function bootPedidoForm(options) {
   const rt = makePedidoFormRuntime(options);
+  popoverProbeDocument = rt.document;
   const root = await vm.runInContext('window.screenPedidoNovo()', rt.sandbox);
   await flushRuntime();
   await flushRuntime();
@@ -442,7 +472,7 @@ function snapshotItens(root) {
     const inputs = allByTag(row, 'input');
     return {
       uid: row.getAttribute('data-uid'),
-      modeloId: allByTag(row, 'select')[0].value,
+      modeloId: selectPopovers(row)[1].value,
       tipo: findByAttr(row, 'data-item-tipo')[0].textContent,
       metros: inputs.find((i) => i.getAttribute('placeholder') === '0,00').value,
       observacao: inputs.find((i) => i.getAttribute('placeholder') === '-').value,
@@ -868,8 +898,10 @@ test('pedido-form runtime: digitar 1000 preserva o mesmo input e salva metragem 
   // acontece depois dela.
   await flushRuntime();
 
-  const selects = allByTag(root, 'select');
-  assert.ok(selects.length >= 4, 'selects de cliente/status/tipo/modelo nao renderizados');
+  // Pass-7: Cliente, Tipo and Modelo are canonical select popovers; Status
+  // is now a read-only field presentation and is asserted separately.
+  const selects = selectPopovers(root);
+  assert.ok(selects.length >= 3, 'popovers de cliente/tipo/modelo nao renderizados');
   selects[0].value = '501';
   selects[0]._listeners.change();
   // BATCH-02: a linha exige Tipo ANTES de Modelo, e ambos sao inline.
@@ -958,7 +990,9 @@ function setRowMetragem(row, value) {
 
 // Preenche o primeiro item com uma combinacao valida e escolhe o cliente.
 async function fillOneValidItem(root) {
-  const cliente = allByTag(root, 'select')[0];
+  // Pass-7: Cliente is a canonical select popover, located by its
+  // accessible name rather than by a native tag.
+  const cliente = findByAttr(root, 'aria-label', 'Cliente')[0];
   cliente.value = '501';
   cliente._listeners.change();
   const row = rowsOf(root)[0];
@@ -1309,14 +1343,21 @@ test('batch2/8+9. Tipo e um dropdown INLINE e Modelo comeca desabilitado', async
   const tipo = rowTipo(row);
   const modelo = rowModelo(row);
 
-  assert.equal(tipo.tagName, 'SELECT', 'Tipo deve ser um dropdown na propria linha');
+  assert.equal(tipo.getAttribute('role'), 'combobox',
+    'Tipo deve ser um dropdown na propria linha');
+  assert.equal(tipo.tagName, 'BUTTON', 'o dropdown canonico e um trigger de botao');
   assert.deepEqual(optionValues(tipo), ['', 'tapete', 'manta']);
   assert.deepEqual(optionTexts(tipo), ['Tipo...', 'Tapete', 'Manta']);
   assert.equal(tipo.value, '', 'Tipo nasce vazio');
 
   assert.equal(modelo.hasAttribute('disabled'), true, 'Modelo deve nascer desabilitado');
   assert.equal(modelo.disabled, true);
-  assert.deepEqual(optionValues(modelo), [''], 'sem Tipo nao ha modelo listado');
+  // Pass-7: o controle desabilitado NAO abre, entao "sem Tipo nao ha modelo
+  // listado" fica mais forte do que na versao nativa — antes o placeholder
+  // ainda existia como <option>; agora nenhuma opcao e alcancavel.
+  assert.equal(modelo.value, '', 'sem Tipo o Modelo nasce vazio');
+  assert.equal(modelo.textContent, 'Modelo...', 'sem Tipo o Modelo mostra so o placeholder');
+  assert.deepEqual(optionValues(modelo), [], 'sem Tipo nao ha modelo listado');
 
   pick(tipo, 'tapete');
   assert.equal(rowModelo(rowsOf(root)[0]).hasAttribute('disabled'), false,
@@ -1374,7 +1415,9 @@ test('batch2/13+14. nem o NOME nem a LARGURA podem influenciar a rota', async ()
 
 test('batch2/15. modelo_id e a UNICA identidade de produto persistida', async () => {
   const { root, calls } = await bootPedidoForm();
-  const cliente = allByTag(root, 'select')[0];
+  // Pass-7: Cliente is a canonical select popover, located by its
+  // accessible name rather than by a native tag.
+  const cliente = findByAttr(root, 'aria-label', 'Cliente')[0];
   cliente.value = '501';
   cliente._listeners.change();
   const row = rowsOf(root)[0];
@@ -1444,9 +1487,10 @@ test('batch2/19. index.html carrega o modulo da linha antes de pedido-form.js', 
   assert.ok(iRoute < iRow, 'o modulo depende de product-route.js');
   assert.ok(iRow < iForm, 'o modulo deve vir antes de pedido-form.js');
   assert.ok(iForm < iBoot);
-  // A passada 3 de altura retokenizou o modulo; a prova de ordem/carga unica
-  // acima e o sujeito deste guard, e o token segue sendo verificado literalmente.
-  assert.match(index, /pedido-item-row-editor\.js\?v=20260726-ui-p5-pass3-a1/);
+  // A passada 7 (select nativo -> popover canonico) retokenizou o modulo pela
+  // ultima vez; a prova de ordem/carga unica acima e o sujeito deste guard, e
+  // o token segue sendo verificado literalmente.
+  assert.match(index, /pedido-item-row-editor\.js\?v=20260727-ui-p5-pass7-native-select-a1/);
 });
 
 // O sujeito deste guard e a EXTRACAO de BATCH-02: a tela encolheu de 1089 para

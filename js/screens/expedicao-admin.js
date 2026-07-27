@@ -76,10 +76,25 @@
     return [modelo.nome, largura, cores.join(' / ')].filter(Boolean).join(' - ');
   }
 
+  // PASS-7-A4: a <label> rendered as a SIBLING names nothing, and
+  // role="combobox" — unlike a plain button — does not take its accessible
+  // name from its own content. Bind the visible label to an unnamed canonical
+  // select-popover trigger; every other control stays untouched.
+  var expedicaoLabelSeq = 0;
+  function bindSelectPopoverLabel(labelNode, control) {
+    if (!control || typeof control.getAttribute !== 'function') return;
+    if (control.getAttribute('data-rv-select-popover') !== '1') return;
+    if (control.getAttribute('aria-label') || control.getAttribute('aria-labelledby')) return;
+    expedicaoLabelSeq += 1;
+    var id = 'rv-expedicao-field-label-' + expedicaoLabelSeq;
+    labelNode.setAttribute('id', id);
+    control.setAttribute('aria-labelledby', id);
+  }
+
   function field(label, node) {
-    return window.el('div', {},
-      window.el('label', { style: LABEL }, label),
-      node);
+    var labelNode = window.el('label', { style: LABEL }, label);
+    bindSelectPopoverLabel(labelNode, node);
+    return window.el('div', {}, labelNode, node);
   }
 
   function value(text, weight, color) {

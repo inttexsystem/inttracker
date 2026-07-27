@@ -176,8 +176,16 @@
   --rv-cell-pad-x:  12px;
 
   /* ---- LAYERS ---- */
+  /* The select popover sits ABOVE the modal because it is portaled to
+     document.body: a field inside a modal must render its list over the
+     modal card, never behind it. The toast still wins over everything (P7). */
   --rv-z-modal: 200;
+  --rv-z-popover: 225;
   --rv-z-toast: 250;
+
+  /* Tallest a select popover list may become before it scrolls. The real
+     ceiling is always the smaller of this and the free viewport space (P7). */
+  --rv-select-popover-max-h: 320px;
 
   /* ============================================================
      LEGACY COMPATIBILITY — NONCONFORMING / DEPRECATED

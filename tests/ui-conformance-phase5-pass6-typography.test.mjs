@@ -101,9 +101,17 @@ test('2 · UIC-005 reports zero', () => {
 test('3 · all 80 entry findings were removed and none were added', () => {
   // Entry state at checkpoint 212972d: 966 findings, of which exactly 80 were
   // UIC-005. 966 - 80 = 886, with every other rule multiset unchanged.
-  assert.equal(BASELINE.findings.length, 886);
-  assert.equal(rule('UIC-000').coverage_gaps, 549);
-  assert.equal(rule('UIC-006').blocking, 15);
+  //
+  // A2 (PASS-6-RUNTIME-INVENTORY-FORWARD-CORRECTION-A2): the numbers below are
+  // CURRENT repository state, not pass-6 state. Phase-5 pass 7 closed UIC-006
+  // (15 -> 0) and incidentally removed the six UIC-000 gaps that described
+  // style expressions ON the deleted native selects (549 -> 543), so the total
+  // is 886 - 21 = 865. Pass 6's own result — UIC-005 at zero — is unchanged and
+  // is asserted separately.
+  assert.equal(BASELINE.findings.length, 865);
+  assert.equal(rule('UIC-005').total, 0, 'pass 6 must stay closed');
+  assert.equal(rule('UIC-000').coverage_gaps, 543);
+  assert.equal(rule('UIC-006').blocking, 0);
   assert.equal(rule('UIC-009').debt, 322);
   assert.equal(BASELINE.coverage_summary.FULL, 31);
   assert.equal(BASELINE.coverage_summary.PARTIAL, 36);
@@ -605,27 +613,55 @@ test('34 · the deprecated typography aliases stay UIC-009 debt, untouched', () 
 test('35 · every asset pass 6 changed is invalidated under a pass-6 or later token', () => {
   const PASS6 = '20260726-ui-p5-pass6-typography-r1';
   const A1 = '20260726-ui-p5-pass6-typography-a1-kpi';
-  // The seven assets correction A1 changed again carry the A1 token; the rest
-  // keep the pass-6 token. Both are invalidated against the pass-5 checkpoint,
-  // which is what this test exists to guarantee.
-  const A1_CHANGED = [
+  /*
+   * PASS-6-RUNTIME-INVENTORY-FORWARD-CORRECTION-A2
+   *
+   * The guarantee this test owns is unchanged: EVERY asset pass 6 touched is
+   * still invalidated against the pass-5 checkpoint. What moved is only WHICH
+   * later token does the invalidating — phase-5 pass 7 changed six of these
+   * files again and retokenised them, and a pass-7 token is strictly later
+   * than a pass-6 or A1 one. No asset lost its cache-busting.
+   */
+  const PASS7 = '20260727-ui-p5-pass7-native-select-a1';
+  const PASS7_A4 = '20260727-ui-p5-pass7-native-select-a4-a11y-geometry';
+  const PASS7_CHANGED = [
     'css/tokens.css', 'js/ui.js',
-    'js/screens/cliente-dashboard.js', 'js/screens/expedicao-admin.js',
+    'js/screens/cliente-pedido-form.js', 'js/screens/documentos-recebidos.js',
+    'js/screens/pedido-form.js', 'js/screens/pedidos-list.js',
+  ];
+  // Pass-7 correction A4 bound the visible label of nineteen comboboxes and
+  // restored the ratified trigger geometry at three op-nova sites. It touched
+  // four assets pass 6 had also changed, so those carry the A4 token.
+  const PASS7_A4_CHANGED = [
+    'js/screens/admin-usuarios-modal.js', 'js/screens/cadastros.js',
+    'js/screens/expedicao-admin.js', 'js/screens/op-nova.js',
+  ];
+  const A1_CHANGED = [
+    'js/screens/cliente-dashboard.js',
     'js/screens/manta-expedicao-ui.js', 'js/screens/painel.js',
     'js/screens/pedido-detail-render.js',
   ];
   const PASS6_ONLY = [
     'js/document-links-surface-ui.js',
-    'js/screens/admin-usuarios-modal.js', 'js/screens/cadastros.js',
-    'js/screens/cliente-pedido-detail.js', 'js/screens/cliente-pedido-form.js',
+    'js/screens/cliente-pedido-detail.js',
     'js/screens/cliente-pedido-tracking.js', 'js/screens/cliente-pedidos-list.js',
-    'js/screens/common.js', 'js/screens/documentos-recebidos.js',
-    'js/screens/fornecedor.js', 'js/screens/op-latex-admin.js', 'js/screens/op-nova.js',
+    'js/screens/common.js',
+    'js/screens/fornecedor.js', 'js/screens/op-latex-admin.js',
     'js/screens/op-tecelagem-producao-admin.js', 'js/screens/ordem-compra-render.js',
-    'js/screens/pedido-detail-events.js', 'js/screens/pedido-form.js',
-    'js/screens/pedido-insumos-distribuicao.js', 'js/screens/pedidos-list.js',
+    'js/screens/pedido-detail-events.js',
+    'js/screens/pedido-insumos-distribuicao.js',
     'js/screens/system-screens.js', 'js/screens/trocar-senha-obrigatoria.js',
   ];
+  // The pass-6 population is unchanged in SIZE — 27 assets — only redistributed
+  // across the four tokens. That is what proves nothing silently dropped out.
+  assert.equal(PASS7_CHANGED.length + PASS7_A4_CHANGED.length
+    + A1_CHANGED.length + PASS6_ONLY.length, 27);
+  for (const rel of PASS7_CHANGED) {
+    assert.ok(INDEX.includes(`"${rel}?v=${PASS7}"`), `${rel} must carry the pass-7 token`);
+  }
+  for (const rel of PASS7_A4_CHANGED) {
+    assert.ok(INDEX.includes(`"${rel}?v=${PASS7_A4}"`), `${rel} must carry the pass-7 A4 token`);
+  }
   for (const rel of A1_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${A1}"`), `${rel} must carry the A1 token`);
   }
@@ -636,6 +672,11 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     'an asset A1 did not change was retokenised');
   assert.equal((INDEX.match(new RegExp(`${PASS6}(?!-)`, 'g')) || []).length, PASS6_ONLY.length,
     'the pass-6 token leaked or was dropped');
+  // Every asset pass 6 touched still carries a token LATER than the pass-5 one.
+  for (const rel of [...PASS7_CHANGED, ...PASS7_A4_CHANGED, ...A1_CHANGED, ...PASS6_ONLY]) {
+    assert.ok(!INDEX.includes(`"${rel}?v=20260726-ui-p5-pass5`),
+      `${rel} fell back to the pass-5 token`);
+  }
   // css/responsive.css changed in neither pass and must keep its own token.
   assert.ok(!INDEX.includes(`css/responsive.css?v=${PASS6}`));
   assert.ok(!INDEX.includes(`css/responsive.css?v=${A1}`));

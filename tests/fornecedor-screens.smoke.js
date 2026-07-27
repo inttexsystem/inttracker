@@ -170,11 +170,15 @@ class FakeNode {
     this.className = '';
     this._text = null;
     this._listeners = {};
+    // Pass-7 (§14.1) DOM fidelity: every real element exposes `.style`.
+    this.style = {};
     this.disabled = false;
     this.value = '';
   }
   appendChild(n) { this.children.push(n); return n; }
   setAttribute(k, v) { this['_attr_' + k] = v; }
+  // Pass-7 (§14.1) DOM fidelity: every real element exposes these.
+  getAttribute(k) { return Object.prototype.hasOwnProperty.call(this, '_attr_' + k) ? this['_attr_' + k] : null; }
   // js/ui.js's el() calls removeAttribute for a falsy boolean attr
   // (UI-EL-BOOLEAN-ATTR-FIX); without it a falsy boolean attr would crash
   // (fail-unsafe), not merely be dropped. hasAttribute reports presence so a
@@ -359,6 +363,9 @@ function makeFornSandbox({
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
@@ -814,6 +821,9 @@ test('33. boot: ui + badges + calculo-op + common + cadastros + ops-list + entre
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
@@ -891,6 +901,9 @@ test('34. screenPainel renderiza via shellLayout com ADMIN_MENU atual', () => {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
@@ -957,6 +970,9 @@ test('35. screenCadastrosCores (cadastros) ainda renderiza (regressão cadastros
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
@@ -998,6 +1014,9 @@ test('36. screenListaOPs (ops-list) ainda renderiza (regressão ops-list)', asyn
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });
@@ -1086,6 +1105,9 @@ function makeFornCutoverSandbox({ readRpcResult, writeRpcResult, ocfData = [] } 
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'pedido-ui.js'), 'utf8'), sandbox, { filename: 'js/pedido-ui.js' });

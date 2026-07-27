@@ -37,7 +37,17 @@ const DECISIONS = read('docs/architecture/DESIGN_DECISIONS.md');
  * old stylesheet — the exact defect pass 1 was corrected for. Pass 6 added the
  * four typography role tokens, so the value moves with it.
  */
-const PASS1_TOKEN = '20260726-ui-p5-pass6-typography-a1-kpi';
+/*
+ * The cache token css/tokens.css is currently delivered under. It advances
+ * every time an authorized pass changes the stylesheet — pass 6 A1 last, and
+ * now phase-5 pass 7, which added --rv-z-popover and
+ * --rv-select-popover-max-h for the application-owned select popover.
+ *
+ * What this constant guards has never been the token's VALUE: it is that the
+ * stylesheet is delivered exactly once, only under a versioned URL, and never
+ * bare. Those three assertions are unchanged below.
+ */
+const PASS1_TOKEN = '20260727-ui-p5-pass7-native-select-a1';
 const TOKENS_LINK = `<link rel="stylesheet" href="css/tokens.css?v=${PASS1_TOKEN}">`;
 
 const SCREEN_DIR = path.join(ROOT, 'js', 'screens');
@@ -72,6 +82,16 @@ const PASS6_NEW_TOKENS = [
   '--rv-fs-kpi-hero',          // KPI_HERO · 30px
   '--rv-fs-kpi-card',          // KPI_CARD · 24px
   '--rv-fs-summary-total',     // SUMMARY_TOTAL · 20px, distinct from the heading
+];
+
+/**
+ * The two tokens the phase-5 pass-7 order ratified for the application-owned
+ * select popover. Held apart from the pass-6 list for the same reason: each
+ * addition stays attributable to the order that authorized it.
+ */
+const PASS7_NEW_TOKENS = [
+  '--rv-z-popover',              // layer 225 — above the modal, below the toast
+  '--rv-select-popover-max-h',   // 320px list ceiling before it scrolls
 ];
 
 /** Canonical token set at the phase-4 checkpoint 9fbb84c, before D9. */
@@ -118,6 +138,10 @@ class FakeNode {
   }
   appendChild(n) { this.children.push(n); return n; }
   setAttribute(k, v) { this.attrs[k] = v; if (k === 'style') this.style = v; }
+  // Pass-7 (§14.1) DOM fidelity: every real element exposes these.
+  getAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k) ? this._attrs[k] : null; }
+  hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k); }
+  removeAttribute(k) { delete this._attrs[k]; }
   addEventListener() {}
   removeEventListener() {}
   replaceChildren(...nodes) {
@@ -156,6 +180,9 @@ function bootRuntime() {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(read('js/ui.js'), sandbox, { filename: 'js/ui.js' });
   vm.runInContext(read('js/badges.js'), sandbox, { filename: 'js/badges.js' });
   vm.runInContext(read('js/pedido-ui.js'), sandbox, { filename: 'js/pedido-ui.js' });
@@ -218,7 +245,7 @@ test('1b · the composed tokens resolve to the family they claim', () => {
 
 test('2 · no canonical token exists beyond the phase-4 baseline plus the D9 list', () => {
   const { canonical, deprecated } = parseTokenDeclarations(TOKENS_CSS);
-  const allowed = new Set([...BASELINE_CANONICAL, ...AUTHORIZED_NEW_TOKENS, ...PASS6_NEW_TOKENS]);
+  const allowed = new Set([...BASELINE_CANONICAL, ...AUTHORIZED_NEW_TOKENS, ...PASS6_NEW_TOKENS, ...PASS7_NEW_TOKENS]);
   const unexpected = canonical.filter((t) => !allowed.has(t));
   assert.deepEqual(unexpected, [], `unauthorized canonical token(s): ${unexpected.join(', ')}`);
 
@@ -227,7 +254,8 @@ test('2 · no canonical token exists beyond the phase-4 baseline plus the D9 lis
 
   assert.equal(
     canonical.length,
-    BASELINE_CANONICAL.length + AUTHORIZED_NEW_TOKENS.length + PASS6_NEW_TOKENS.length,
+    BASELINE_CANONICAL.length + AUTHORIZED_NEW_TOKENS.length + PASS6_NEW_TOKENS.length
+      + PASS7_NEW_TOKENS.length,
   );
   // The deprecated compatibility block is untouched by this pass.
   assert.equal(deprecated.length, 26, 'the LEGACY COMPATIBILITY block changed size');

@@ -139,9 +139,23 @@ function confirmDialog({ title, message, confirmLabel = 'Confirmar', danger = tr
 }
 
 // --- Campo de formulário (label + input/select/etc) ---
+let formFieldSeq = 0;
 function formField({ label, input, hint }) {
   const wrap = el('div', { class: 'mb-4' });
-  wrap.appendChild(el('label', { class: 'block text-sm font-medium text-gray-700 mb-1' }, label));
+  const labelNode = el('label', { class: 'block text-sm font-medium text-gray-700 mb-1' }, label);
+  // Pass-7: a select popover is a <button role="combobox">, so the visible
+  // label cannot name it implicitly the way a wrapping <label> names a
+  // native control. When the caller supplied no explicit name, bind the
+  // visible label to the trigger — no interactive trigger may be unnamed.
+  if (input && typeof input.getAttribute === 'function'
+      && input.getAttribute('data-rv-select-popover')
+      && !input.getAttribute('aria-labelledby') && !input.getAttribute('aria-label')) {
+    formFieldSeq += 1;
+    const labelId = 'rv-field-label-' + formFieldSeq;
+    labelNode.setAttribute('id', labelId);
+    input.setAttribute('aria-labelledby', labelId);
+  }
+  wrap.appendChild(labelNode);
   wrap.appendChild(input);
   if (hint) wrap.appendChild(el('p', { class: 'text-xs text-gray-500 mt-1' }, hint));
   return wrap;
@@ -165,28 +179,22 @@ function textInput({ type = 'text', value = '', placeholder = '', required = fal
 }
 
 // --- Select padrão ---
-function selectInput({ options, value, placeholder = 'Selecione...' }) {
-  // Pass-3 §8: same canonical compact rung as textInput — a select is a
-  // single-line field. Option construction and selection coercion below are
-  // untouched.
-  const sel = el('select', {
-    style: 'height:var(--rv-h-compact); border-radius:var(--rv-radius);',
-    class: 'w-full border px-3 focus:outline-none focus:ring-2 focus:ring-blue-500'
+// Pass-7 (UIC-006): this is now a THIN COMPATIBILITY ADAPTER. It keeps the
+// external argument shape every existing caller already passes and returns
+// the canonical select-popover trigger. It builds no native <select>, no
+// native <option> and no hidden native value owner — js/select-popover.js
+// is the single owner of the control, its geometry (--rv-h-compact), its
+// accessibility contract and its tolerant numeric value matching.
+function selectInput({ options, value, placeholder = 'Selecione...', ariaLabel, labelledBy, disabled }) {
+  return createSelectPopover({
+    options,
+    value,
+    placeholder,
+    ariaLabel,
+    labelledBy,
+    disabled,
+    widthMode: 'block',
   });
-  sel.appendChild(el('option', { value: '' }, placeholder));
-  // Comparação tolerante: o banco devolve numeric como 1.4, options podem ter '1.40' como string.
-  const valStr = value == null ? '' : String(value);
-  const valNum = valStr === '' ? null : Number(valStr);
-  for (const opt of options) {
-    const o = el('option', { value: opt.value }, opt.label);
-    const optStr = String(opt.value);
-    const optNum = optStr === '' ? null : Number(optStr);
-    const matches = optStr === valStr
-      || (valNum !== null && optNum !== null && !Number.isNaN(valNum) && !Number.isNaN(optNum) && valNum === optNum);
-    if (matches) o.selected = true;
-    sel.appendChild(o);
-  }
-  return sel;
 }
 
 // --- Tabela de dados ---

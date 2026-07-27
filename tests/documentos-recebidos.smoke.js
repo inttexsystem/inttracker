@@ -306,6 +306,8 @@ class FakeNode {
   }
   appendChild(n) { if (n != null) { this.children.push(n); n.parentNode = this; } return n; }
   setAttribute(k, v) { this._attrs[k] = v; }
+  hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k); }
+  removeAttribute(k) { delete this._attrs[k]; }
   getAttribute(k) { return this._attrs[k]; }
   addEventListener(type, fn) { (this._listeners[type] = this._listeners[type] || []).push(fn); }
   removeEventListener() {}
@@ -385,6 +387,9 @@ function makeScreenSandbox(received) {
 
   vm.createContext(sandbox);
   // Carrega ui.js (window.el real)
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(ui, sandbox, { filename: 'js/ui.js' });
   // Carrega ingestor + loader (para garantir que RAVATEX_DOCUMENTS existe)
   vm.runInContext(ingestor, sandbox, { filename: 'js/documents-ingestor.js' });
@@ -785,12 +790,21 @@ test('redesign: filtros nao duplicam chevron e Limpar acompanha a altura da linh
   sb.container = container;
   const result = vm.runInContext('window.screenDocumentosRecebidos(container)', sb);
 
-  const selects = findAll(result, (n) => n.tagName === 'SELECT');
-  assert.equal(selects.length, 5, 'cinco selects de filtro esperados (tipo, pedido, periodo, origem, evidencia)');
-  selects.forEach(function (selectNode) {
-    const style = selectNode._attrs.style || '';
-    assert.ok(style.indexOf('appearance:none') >= 0, 'select deve esconder chevron nativo: ' + style);
-    assert.ok(style.indexOf('-webkit-appearance:none') >= 0, 'select deve esconder chevron nativo no WebKit: ' + style);
+  // Pass-7 (UIC-006): os cinco filtros sao popovers canonicos. O chevron
+  // duplicado era consequencia de um <select> nativo dentro de uma fachada
+  // com chevron proprio; agora existe UM controle com UM chevron. A
+  // assercao original (esconder o chevron nativo) perdeu objeto e e
+  // substituida pela garantia mais forte: nenhum select nativo sobra, cada
+  // filtro tem exatamente um chevron, e todos tem nome acessivel.
+  const selects = findAll(result, (n) => n.getAttribute && n.getAttribute('data-rv-select-popover') === '1');
+  assert.equal(selects.length, 5, 'cinco filtros esperados (tipo, pedido, periodo, origem, evidencia)');
+  assert.equal(findAll(result, (n) => n.tagName === 'SELECT').length, 0,
+    'nenhum select nativo pode sobrar na tela');
+  selects.forEach(function (control) {
+    assert.equal(control.getAttribute('role'), 'combobox');
+    assert.ok(control.getAttribute('aria-labelledby'), 'todo filtro precisa de nome acessivel');
+    const chevrons = findAll(control, (n) => n.getAttribute && n.getAttribute('data-rv-icon') === 'chevron');
+    assert.equal(chevrons.length, 1, 'exatamente um chevron por filtro');
   });
 
   const clearBtns = findAll(result, findAction('limpar-filtros'));
@@ -2013,9 +2027,18 @@ test('G25-B1-UX-A: mostra remetente e compacta labels e acoes sem perder acessib
 // 10. G28-B4-B2: integracao com queue-ui
 // ---------------------------------------------------------------------
 
-function findSelectByOptionValue(tree, value) {
-  return findAll(tree, (n) => n.tagName === 'SELECT').find(function (s) {
-    return (s.children || []).some(function (opt) { return opt._attrs && opt._attrs.value === value; });
+// Pass-7: os filtros sao popovers canonicos, entao a busca por "o select que
+// oferece este valor" passa a inspecionar o inventario real do controle em
+// vez de <option> nativas. Abrir e fechar e leitura pura: nao emite change.
+function findSelectByOptionValue(sb, tree, value) {
+  const controls = findAll(tree, (n) => n.getAttribute && n.getAttribute('data-rv-select-popover') === '1');
+  return controls.find(function (control) {
+    control.open();
+    const found = findAll(sb.document.body, (n) => n.getAttribute
+      && n.getAttribute('role') === 'option'
+      && n.getAttribute('data-rv-option-value') === value).length > 0;
+    control.close({ focus: false });
+    return found;
   });
 }
 
@@ -2030,7 +2053,7 @@ test('G28-B4-B2: sandbox com queue-ui expoe namespace e filtra por origem (canon
   var rows = findAll(tree, findRow);
   assert.equal(rows.length, 3, 'tres documentos renderizados');
 
-  var sourceSelect = findSelectByOptionValue(tree, 'canonical_remote');
+  var sourceSelect = findSelectByOptionValue(sb, tree, 'canonical_remote');
   assert.ok(sourceSelect, 'select de origem presente com canonical_remote');
   sourceSelect.value = 'canonical_remote';
   sourceSelect._listeners.change[0]();
@@ -2049,7 +2072,7 @@ test('G28-B4-B2: filtro por evidencia tecnica', function () {
   ]);
   sb.window.setApp = function () {};
   var tree = vm.runInContext('window.screenDocumentosRecebidos()', sb);
-  var evidenceSelect = findSelectByOptionValue(tree, 'remote_unavailable');
+  var evidenceSelect = findSelectByOptionValue(sb, tree, 'remote_unavailable');
   assert.ok(evidenceSelect, 'select de evidencia presente');
   evidenceSelect.value = 'available';
   evidenceSelect._listeners.change[0]();

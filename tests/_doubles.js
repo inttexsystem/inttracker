@@ -214,7 +214,12 @@ class TextDouble {
   get textContent() { return this._text; }
   set textContent(v) { this._text = String(v); }
   appendChild(n) { return n; }
+  // A text node carries no attributes; these exist only so a walk that
+  // probes any child uniformly does not throw.
   setAttribute() {}
+  getAttribute() { return null; }
+  hasAttribute() { return false; }
+  removeAttribute() {}
 }
 
 // ---------------------------------------------------------------------

@@ -6,6 +6,7 @@ const vm = require('node:vm');
 
 const ROOT = path.resolve(__dirname, '..');
 const MODAL_PATH = path.join(ROOT, 'js', 'screens', 'documentos-recebidos-decision-modal.js');
+const SELECT_POPOVER_PATH = path.join(ROOT, 'js', 'select-popover.js');
 
 var src;
 
@@ -56,7 +57,16 @@ class FakeNode {
   replaceChildren() {
     this.children = [];
   }
-  setAttribute(k, v) { this._attrs[k] = v; if (k === 'class') this.className = v; if (k === 'id') this.id = v; }
+  // Real DOM reflects these content attributes into IDL properties. The
+  // double previously reflected only class/id, so a correctly built
+  // <button type="button"> still read `.type === ''` (Pass-7 §15 fidelity).
+  setAttribute(k, v) {
+    this._attrs[k] = v;
+    if (k === 'class') this.className = v;
+    if (k === 'id') this.id = v;
+    if (k === 'type') this.type = v;
+    if (k === 'name') this.name = v;
+  }
   getAttribute(k) { return this._attrs[k]; }
   get textContent() {
     if (this._text != null) return this._text;
@@ -145,6 +155,62 @@ class FakeNode {
     return out;
   }
   cloneNode() { return new FakeNode(this.tagName); }
+
+  // --- Pass-7 harness fidelity (§15) ---------------------------------
+  // The modal now drives the REAL js/select-popover.js with its injected
+  // document, so the double must expose the browser capabilities that
+  // primitive actually uses. Nothing here weakens an assertion: these are
+  // additive DOM behaviours the previous double simply did not model.
+  removeAttribute(k) {
+    delete this._attrs[k];
+    if (k === 'class') this.className = '';
+    if (k === 'id') this.id = '';
+  }
+
+  hasAttribute(k) { return _hasAttr(this, k); }
+
+  contains(node) {
+    if (node === this) return true;
+    for (var i = 0; i < this.children.length; i++) {
+      var c = this.children[i];
+      if (c && typeof c.contains === 'function' && c.contains(node)) return true;
+      if (c === node) return true;
+    }
+    return false;
+  }
+
+  get isConnected() {
+    var n = this;
+    while (n.parentNode) n = n.parentNode;
+    return n.tagName === 'BODY';
+  }
+
+  // Geometry is configurable per node via `_rect` so a suite can place a
+  // trigger anywhere in the viewport and assert the resulting placement.
+  getBoundingClientRect() {
+    var r = this._rect || { top: 100, left: 100, width: 200, height: 32 };
+    return {
+      top: r.top, left: r.left, width: r.width, height: r.height,
+      bottom: r.top + r.height, right: r.left + r.width,
+    };
+  }
+
+  dispatchEvent(ev) {
+    var event = ev || {};
+    var type = event.type;
+    var node = this;
+    event.target = event.target || this;
+    while (node) {
+      event.currentTarget = node;
+      var list = node._listeners && node._listeners[type];
+      if (list) {
+        var snapshot = list.slice();
+        for (var i = 0; i < snapshot.length; i++) snapshot[i].call(node, event);
+      }
+      node = event.bubbles ? node.parentNode : null;
+    }
+    return true;
+  }
 }
 
 function makeFakeDocument() {
@@ -180,14 +246,33 @@ before(function () {
 function createModal(options) {
   options = options || {};
   var doc = options.document || makeFakeDocument();
+  var winListeners = {};
   var sandbox = {
     document: doc,
-    window: { document: doc, RAVATEX_DOCUMENTS: {} },
+    // Pass-7 (§15): the modal drives the canonical select popover, which
+    // needs a real event-target window and viewport measurements. This is
+    // the minimum supplied-document environment the primitive uses.
+    window: {
+      document: doc,
+      RAVATEX_DOCUMENTS: {},
+      innerWidth: 1440,
+      innerHeight: 900,
+      addEventListener: function (t, fn) { (winListeners[t] = winListeners[t] || []).push(fn); },
+      removeEventListener: function (t, fn) {
+        var l = winListeners[t]; if (!l) return;
+        var i = l.indexOf(fn); if (i !== -1) l.splice(i, 1);
+      },
+      _listeners: winListeners,
+    },
     setTimeout: setTimeout,
     console: console,
   };
   sandbox.window.window = sandbox.window;
+  doc.defaultView = sandbox.window;
   vm.createContext(sandbox);
+  // The modal must reach the CANONICAL primitive — never a modal-local
+  // implementation and never a stub.
+  vm.runInContext(fs.readFileSync(SELECT_POPOVER_PATH, 'utf8'), sandbox, { filename: SELECT_POPOVER_PATH });
   vm.runInContext(src, sandbox, { filename: MODAL_PATH });
   var factory = sandbox.window.RAVATEX_DOCUMENTS.createDocumentDecisionModal;
   var modal = factory({ document: doc });
@@ -789,11 +874,23 @@ describe('link section (G28-B6)', function () {
     modal.close();
   });
 
+  // Pass-7: the option inventory is asserted through the canonical popover
+  // instead of native <option> children. Same exact expectation — three
+  // entries, the first being the empty "Nenhum pedido" — plus the labels,
+  // which the native-node count never checked.
   test('pedido select offers Nenhum + one option per pedido', function () {
     var { modal, doc } = openWithLinks();
-    var opts = doc.body._findAllByPred(function (n) { return n.tagName === 'OPTION'; });
+    var sel = doc.body.querySelector('#r8x-dm-pedido');
+    sel.open();
+    var opts = doc.body._findAllByPred(function (n) {
+      return n._attrs && n._attrs.role === 'option';
+    });
     assert.equal(opts.length, 3, 'Nenhum + 2 pedidos');
-    assert.equal(opts[0].value, '');
+    assert.equal(opts[0].getAttribute('data-rv-option-value'), '');
+    assert.equal(opts[0].textContent, 'Nenhum pedido');
+    assert.equal(opts[1].getAttribute('data-rv-option-value'), 'ped-1');
+    assert.equal(opts[2].getAttribute('data-rv-option-value'), 'ped-2');
+    sel.close();
     modal.close();
   });
 

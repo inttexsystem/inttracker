@@ -156,6 +156,8 @@ class FakeNode {
       });
     }
   }
+  // Pass-7 (§14.1) DOM fidelity: every real element exposes these.
+  getAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k) ? this._attrs[k] : null; }
   removeAttribute(k) {
     delete this._attrs[k];
     if (FAKE_NODE_BOOLEAN_ATTRS.has(k)) this[k] = false;
@@ -283,6 +285,9 @@ function makeAdminUsuariosSandbox({ tableData = {}, invokeImpl = {}, rpcImpl = {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'badges.js'), 'utf8'), sandbox, { filename: 'js/badges.js' });
@@ -593,9 +598,9 @@ test('17. toolbar: selects de ordenar e filtro de tipo presentes com as opções
   const filtroSelect = findByAriaLabel(main, 'Filtrar por tipo');
   assert.ok(ordenarSelect, 'select "Ordenar" não encontrado');
   assert.ok(filtroSelect, 'select "Filtrar por tipo" não encontrado');
-  const ordenarLabels = findAll(ordenarSelect, (n) => n.tagName === 'OPTION').map(textOf);
+  const ordenarLabels = popoverOptionLabels(sandbox.document, ordenarSelect);
   assert.deepEqual(ordenarLabels, ['Nome A–Z', 'Nome Z–A', 'Tipo', 'Último acesso']);
-  const filtroLabels = findAll(filtroSelect, (n) => n.tagName === 'OPTION').map(textOf);
+  const filtroLabels = popoverOptionLabels(sandbox.document, filtroSelect);
   assert.deepEqual(filtroLabels, ['Todos', 'Admin', 'Fornecedor', 'Cliente']);
 });
 
@@ -1212,10 +1217,26 @@ test('48. cabeçalho: E-MAIL/NOME/FORNECEDOR/CLIENTE usam o mesmo tratamento de 
 // payload de escrita, badge no grid e enforcement do piloto (esta tela).
 // -----------------------------------------------------------------------------
 
-function findSelectByOptionLabels(root, labels) {
-  const selects = findAll(root, (n) => n.tagName === 'SELECT');
-  return selects.find((s) => {
-    const opts = findAll(s, (n) => n.tagName === 'OPTION').map(textOf);
+// Pass-7 (UIC-006): a canonical select popover keeps its option inventory in
+// a listbox panel portaled to document.body, present only while the control
+// is open. Opening and closing is a pure read: neither emits a change event,
+// so these helpers observe exactly what the operator would see.
+function popoverOptionLabels(doc, control) {
+  control.open();
+  const labels = findAll(doc.body, (n) => n.getAttribute
+    && n.getAttribute('role') === 'option').map(textOf);
+  control.close({ focus: false });
+  return labels;
+}
+
+function selectPopoversIn(root) {
+  return findAll(root, (n) => n.getAttribute
+    && n.getAttribute('data-rv-select-popover') === '1');
+}
+
+function findSelectByOptionLabels(doc, root, labels) {
+  return selectPopoversIn(root).find((control) => {
+    const opts = popoverOptionLabels(doc, control);
     return labels.every((l) => opts.includes(l));
   });
 }
@@ -1234,7 +1255,7 @@ test('49. select "Nível de acesso": visível ao editar um admin, presente-mas-o
   sandbox.__usr = { id: 'me-id', email: 'me@ravatex.com', nome: 'Eu Mesmo', tipo: 'admin', ativo: true, nivel_acesso: 'completo' };
   vm.runInContext('window.RAVATEX_ADMIN_USUARIOS_MODAL.openUsuarioModal(window.__usr, [], [], { observacoes: false }, {})', sandbox);
   let overlay = sandbox.document.body.children[sandbox.document.body.children.length - 1];
-  let nivelSelect = findSelectByOptionLabels(overlay, ['Completo', 'Somente leitura']);
+  let nivelSelect = findSelectByOptionLabels(sandbox.document, overlay, ['Completo', 'Somente leitura']);
   assert.ok(nivelSelect, 'select de nível de acesso deveria aparecer ao editar um admin');
   let wrapper = findWrapperOf(overlay, nivelSelect);
   assert.equal(wrapper.style.display, 'flex', 'campo de nível de acesso deveria estar visível ao editar um admin');
@@ -1243,7 +1264,7 @@ test('49. select "Nível de acesso": visível ao editar um admin, presente-mas-o
   sandbox.__usr = { id: 'u-2', email: 'b@b.c', nome: 'Bia', tipo: 'fornecedor', ativo: true, nivel_acesso: 'completo' };
   vm.runInContext('window.RAVATEX_ADMIN_USUARIOS_MODAL.openUsuarioModal(window.__usr, [], [], { observacoes: false }, {})', sandbox);
   overlay = sandbox.document.body.children[sandbox.document.body.children.length - 1];
-  nivelSelect = findSelectByOptionLabels(overlay, ['Completo', 'Somente leitura']);
+  nivelSelect = findSelectByOptionLabels(sandbox.document, overlay, ['Completo', 'Somente leitura']);
   assert.ok(nivelSelect, 'select de nível de acesso deveria continuar presente no DOM ao editar um fornecedor (mesmo tratamento de wrapperForn/wrapperCli)');
   wrapper = findWrapperOf(overlay, nivelSelect);
   assert.equal(wrapper.style.display, 'none', 'campo de nível de acesso deveria estar oculto (display:none) ao editar um fornecedor — meaningless para esse tipo');
@@ -1251,7 +1272,7 @@ test('49. select "Nível de acesso": visível ao editar um admin, presente-mas-o
 
   vm.runInContext('window.RAVATEX_ADMIN_USUARIOS_MODAL.openUsuarioModal(null, [], [], { observacoes: false }, {})', sandbox);
   overlay = sandbox.document.body.children[sandbox.document.body.children.length - 1];
-  assert.equal(findSelectByOptionLabels(overlay, ['Completo', 'Somente leitura']), undefined,
+  assert.equal(findSelectByOptionLabels(sandbox.document, overlay, ['Completo', 'Somente leitura']), undefined,
     'select de nível de acesso não deveria existir de forma alguma na criação — admin-create-user (Edge Function) ignora o campo (HARD STOP)');
 });
 
@@ -1262,7 +1283,7 @@ test('50. payload de escrita: edição de admin carrega nivel_acesso; criação 
   sandbox.__usr = { id: 'me-id', email: 'me@ravatex.com', nome: 'Eu Mesmo', tipo: 'admin', ativo: true, nivel_acesso: 'completo' };
   vm.runInContext('window.RAVATEX_ADMIN_USUARIOS_MODAL.openUsuarioModal(window.__usr, [], [], { observacoes: false }, {})', sandbox);
   let overlay = sandbox.document.body.children[sandbox.document.body.children.length - 1];
-  const nivelSelect = findSelectByOptionLabels(overlay, ['Completo', 'Somente leitura']);
+  const nivelSelect = findSelectByOptionLabels(sandbox.document, overlay, ['Completo', 'Somente leitura']);
   assert.ok(nivelSelect, 'select de nível de acesso ausente na edição');
   nivelSelect.value = 'somente_leitura';
   let salvarBtn = findAll(overlay, (n) => n.tagName === 'BUTTON' && textOf(n) === 'Salvar')[0];
@@ -1282,8 +1303,7 @@ test('50. payload de escrita: edição de admin carrega nivel_acesso; criação 
   emailInput.value = 'novo@x.com';
   nomeInput.value = 'Novo Admin';
   passwordInput.value = '123456';
-  const tipoSelect = findAll(overlay, (n) => n.tagName === 'SELECT')
-    .find((s) => findAll(s, (n2) => n2.tagName === 'OPTION').map(textOf).includes('Admin'));
+  const tipoSelect = findSelectByOptionLabels(sandbox.document, overlay, ['Admin']);
   assert.ok(tipoSelect, 'select "Tipo" não encontrado no modal de criação');
   tipoSelect.value = 'admin';
   salvarBtn = findAll(overlay, (n) => n.tagName === 'BUTTON' && textOf(n) === 'Salvar')[0];

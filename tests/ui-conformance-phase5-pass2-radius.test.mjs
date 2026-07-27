@@ -639,7 +639,42 @@ function multisetDelta(before, after) {
  * This is a narrowing by RULE OWNERSHIP, not a threshold: every rule not named
  * here is still compared finding-for-finding below.
  */
-const RULES_OWNED_BY_A_LATER_PASS = new Set(['UIC-003', 'UIC-004', 'UIC-005', 'UIC-008']);
+/*
+ * PASS-2-LATER-PASS-RULE-OWNERSHIP-FORWARD-CORRECTION-A2
+ *
+ * `UIC-006` joined the set with phase-5 pass 7, which replaced every native
+ * <select> with the application-owned select popover and is pinned exactly,
+ * at 0, by tests/ui-conformance-phase5-pass7-native-select.test.mjs. This is
+ * the same documented extension the set already received for UIC-005 in
+ * pass 6 — rule ownership, not a threshold.
+ */
+const RULES_OWNED_BY_A_LATER_PASS = new Set(['UIC-003', 'UIC-004', 'UIC-005', 'UIC-006', 'UIC-008']);
+
+/*
+ * Pass 7 also removed SIX `UIC-000` coverage gaps. They are NOT a widening of
+ * the ruling above: each was an unresolved style expression attached to a
+ * native select, or to the facade wrapper around one, so deleting the control
+ * deleted the construct the gap described. No detector branch changed and
+ * nothing was suppressed — keeping them would mean keeping dead code purely
+ * to preserve a count.
+ *
+ * They are enumerated EXACTLY, by path + construct + code, so this stays a
+ * finding-for-finding comparison. A seventh removal, or a removal at any
+ * other site, still fails.
+ */
+const PASS7_INCIDENTAL_UIC000_REMOVALS = [
+  // ordenar / filtrar-por-tipo toolbar selects — `style: selectStyle`
+  ['js/screens/admin-usuarios.js', 'style: <expression>', 'NON_LITERAL_STYLE_VALUE', 2],
+  // selectControl's borderless native select — concatenated style string
+  ['js/screens/documentos-recebidos.js', "style: '...' + <expression>", 'CONCATENATED_STYLE_EXPRESSION', 1],
+  // buildSelectBox facade — `style: fieldBoxStyle(false)`
+  ['js/screens/pedido-form.js', 'style: <expression>', 'NON_LITERAL_STYLE_VALUE', 1],
+  // inline Tipo / Modelo row selects — `style: selectStyle()`
+  ['js/screens/pedido-item-row-editor.js', 'style: <expression>', 'NON_LITERAL_STYLE_VALUE', 2],
+];
+
+const PASS7_UIC000_REMOVED_COUNT = PASS7_INCIDENTAL_UIC000_REMOVALS
+  .reduce((n, r) => n + r[3], 0);
 
 const withoutLaterPasses = (findings) =>
   findings.filter((f) => !RULES_OWNED_BY_A_LATER_PASS.has(f.rule_id));
@@ -650,8 +685,22 @@ const A2_DELTA = multisetDelta(
 );
 
 test('21 · A2 moved nothing outside the rules later passes own', () => {
-  assert.equal(A2_DELTA.removed.length, 0,
-    `A2 may not remove a finding:\n${A2_DELTA.removed.map((f) => f[0] + ' ' + f[2]).join('\n')}`);
+  // The only removals permitted outside rule ownership are the six pass-7
+  // incidental UIC-000 gaps, matched site by site.
+  const expectedRemovals = [];
+  for (const [relPath, context, code, n] of PASS7_INCIDENTAL_UIC000_REMOVALS) {
+    for (let i = 0; i < n; i += 1) expectedRemovals.push(`UIC-000|${relPath}|${context}|${code}`);
+  }
+  const actualRemovals = A2_DELTA.removed.map((f) => {
+    const code = /COVERAGE_GAP \/ ([A-Z_]+)/.exec(f[7]);
+    return `${f[0]}|${f[2]}|${f[6]}|${code ? code[1] : '?'}`;
+  });
+  assert.deepEqual(actualRemovals.slice().sort(), expectedRemovals.slice().sort(),
+    `A2 may only lose the six authorized pass-7 UIC-000 gaps:\n${
+      A2_DELTA.removed.map((f) => f[0] + ' ' + f[2]).join('\n')}`);
+  assert.equal(A2_DELTA.removed.length, PASS7_UIC000_REMOVED_COUNT);
+  assert.equal(PASS7_UIC000_REMOVED_COUNT, 6);
+
   assert.equal(A2_DELTA.added.length, 0,
     `A2 COVERAGE DELTA EXCEEDS THE ARCHITECT RULING:\n${A2_DELTA.added.map((f) => f[0] + ' ' + f[2]).join('\n')}`);
 });
@@ -718,6 +767,16 @@ test('21d · no rule moved except UIC-008, which a later pass closed', () => {
       assert.equal(after.coverage_gaps, 0, `${id} is owned by a later pass and must be closed`);
       continue;
     }
+    if (id === 'UIC-000') {
+      // Pass 7 removed exactly six gaps together with the native selects that
+      // carried them. Both endpoints are pinned; neither is a threshold.
+      assert.equal(before.coverage_gaps, 549);
+      assert.equal(after.coverage_gaps, 549 - PASS7_UIC000_REMOVED_COUNT);
+      assert.equal(after.coverage_gaps, 543);
+      assert.equal(after.blocking, 0, 'a coverage gap may never become a defect');
+      assert.equal(after.debt, 0);
+      continue;
+    }
     assert.deepEqual(after, before, `${id} moved and A2 authorizes no movement outside UIC-008`);
   }
 });
@@ -731,6 +790,15 @@ test('21e · blocking, debt, inventory and support are unchanged', () => {
   assert.equal(sum(BASELINE, 'blocking'), sum(ENTRY_BASELINE, 'blocking'),
     'A2 is a radius-ownership change; it may not move a blocking count');
   assert.equal(sum(BASELINE, 'debt'), sum(ENTRY_BASELINE, 'debt'));
+  // The coverage sum moved by exactly the six authorized pass-7 removals, and
+  // the current repository totals are pinned to their post-pass-7 values.
+  const coverageSum = (b) => Object.entries(b.summary_by_rule)
+    .filter(([id]) => !RULES_OWNED_BY_A_LATER_PASS.has(id))
+    .reduce((n, [, r]) => n + r.coverage_gaps, 0);
+  assert.equal(coverageSum(ENTRY_BASELINE) - coverageSum(BASELINE), PASS7_UIC000_REMOVED_COUNT);
+  assert.equal(BASELINE.findings.length, 865, 'current repository total after pass 7');
+  assert.equal(BASELINE.coverage_summary.FULL, 31);
+  assert.equal(BASELINE.coverage_summary.PARTIAL, 36);
   assert.equal(rule('UIC-009').debt, UIC009_ENTRY_CEILING);
   assert.equal(BASELINE.inventory.application.count, ENTRY_BASELINE.inventory.application.count);
   assert.equal(BASELINE.inventory.application.count, APPLICATION_FILE_COUNT);
@@ -999,6 +1067,10 @@ function a4Sandbox({ withBadges = true } = {}) {
     }
     appendChild(n) { this.children.push(n); return n; }
     setAttribute(k, v) { this._attrs[k] = v; if (k === 'class') this.className = v; if (k === 'style') this.style = v; }
+    // Pass-7 (§14.1) DOM fidelity: every real element exposes these.
+    getAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k) ? this._attrs[k] : null; }
+    hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k); }
+    removeAttribute(k) { delete this._attrs[k]; }
     addEventListener() {} removeEventListener() {}
     replaceChildren(...nodes) {
       this.children = [];
@@ -1016,6 +1088,9 @@ function a4Sandbox({ withBadges = true } = {}) {
   const sandbox = { document, setTimeout, clearTimeout, console };
   sandbox.window = sandbox; sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(read('js/ui.js'), sandbox, { filename: 'js/ui.js' });
   if (withBadges) vm.runInContext(A4_BADGES_SRC, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(A4_PEDIDO_UI_SRC, sandbox, { filename: 'js/pedido-ui.js' });

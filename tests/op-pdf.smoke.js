@@ -96,12 +96,18 @@ class FakeNode {
     this.className = '';
     this._text = null;
     this._listeners = {};
+    // Pass-7 (§14.1) DOM fidelity: every real element exposes `.style`.
+    this.style = {};
     this.disabled = false;
     this.value = '';
     this._attrs = {};
   }
   appendChild(n) { this.children.push(n); return n; }
   setAttribute(k, v) { this._attrs[k] = v; if (k === 'disabled') this.disabled = v; }
+  // Pass-7 (§14.1) DOM fidelity: every real element exposes these.
+  getAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k) ? this._attrs[k] : null; }
+  hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k); }
+  removeAttribute(k) { delete this._attrs[k]; }
   addEventListener(type, fn) { this._listeners[type] = fn; }
   removeEventListener(type) { delete this._listeners[type]; }
   replaceChildren(...ns) {
@@ -402,6 +408,9 @@ test('18. runtime: gerarPdfCompraFios NÃO acessa closure de op-nova.js (recebe 
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiOnly, sandbox, { filename: 'js/ui.js' });
   vm.runInContext(calcOnly, sandbox, { filename: 'js/calculo-op.js' });
   vm.runInContext(opPdfSrc, sandbox, { filename: 'js/screens/op-pdf.js' });

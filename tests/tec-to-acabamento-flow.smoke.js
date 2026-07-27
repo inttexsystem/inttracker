@@ -288,6 +288,9 @@ function makeUISandbox() {
   sandbox.navigate = () => {};
   sandbox.excluirEntrega = () => {};
   vm.createContext(sandbox);
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
   vm.runInContext(otpaSrc, sandbox, { filename: 'js/screens/op-tecelagem-producao-admin.js' });
   return { sandbox, collectText };
@@ -379,6 +382,9 @@ function makeEntregaFormSandbox() {
   // Real js/ui.js provides el/textInput/selectInput/formField (with the
   // boolean-attr fix); the form renders through them instead of hand-rolled
   // boolean-blind stand-ins.
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
 
   var EF = path.join(ROOT, 'js', 'screens', 'entrega-form.js');
@@ -387,10 +393,40 @@ function makeEntregaFormSandbox() {
 
   return {
     sandbox: sandbox,
+    document: document,
     collectText: collectText,
     findChildByText: findChildByText,
     dispatch: dispatch,
   };
+}
+
+// Pass-7 (UIC-006): o controle de "Tipo de lançamento" e um popover canonico.
+// O inventario de opcoes vive no painel listbox portado para document.body e
+// so existe enquanto o controle esta aberto. Abrir e fechar e leitura pura:
+// nao emite change.
+function allSelectPopovers(node, out) {
+  out = out || [];
+  if (!node) return out;
+  if (node.getAttribute && node.getAttribute('data-rv-select-popover') === '1') out.push(node);
+  for (var i = 0; i < (node.children || []).length; i++) allSelectPopovers(node.children[i], out);
+  return out;
+}
+
+// O painel aberto e sempre o unico listbox no body (§ um popover aberto por
+// vez), entao o texto coletado ali e exatamente o inventario do controle.
+function popoverOptionText(h, control) {
+  control.open();
+  var text = h.collectText(h.document.body);
+  control.close({ focus: false });
+  return text;
+}
+
+// O formulario tem mais de um popover (latex, destino, tipo de lancamento);
+// o de split e o unico que oferece 'acumular'.
+function findSplitControl(h, node) {
+  return allSelectPopovers(node).find(function (control) {
+    return /Acumular na OP existente quando possível/.test(popoverOptionText(h, control));
+  }) || null;
 }
 
 test('split-UI-B caso 1: formulário com comOpcaoSplit=true renderiza select com default "Acumular..."', () => {
@@ -409,11 +445,17 @@ test('split-UI-B caso 1: formulário com comOpcaoSplit=true renderiza select com
 
   var text = h.collectText(result.node);
   assert.match(text, /Acumular na OP existente quando possível/,
-    'deve conter a opcao default de acumular');
-  assert.match(text, /Criar nova OP para esta parcial/,
-    'deve conter a opcao de split');
+    'o valor selecionado deve estar visivel no trigger');
   assert.match(text, /Tipo de lançamento/,
     'deve conter o label do select');
+
+  var control = findSplitControl(h, result.node);
+  assert.ok(control, 'deve encontrar o controle de tipo de lancamento');
+  var optionText = popoverOptionText(h, control);
+  assert.match(optionText, /Acumular na OP existente quando possível/,
+    'deve conter a opcao default de acumular');
+  assert.match(optionText, /Criar nova OP para esta parcial/,
+    'deve conter a opcao de split');
 });
 
 test('split-UI-B caso 2: formulário sem comOpcaoSplit não renderiza select nem label de split', () => {
@@ -502,19 +544,8 @@ test('split-UI-B caso 6: getSplitOption retorna motivo trimado', () => {
     comOpcaoSplit: true,
   });
 
-  // Procura o <select> na árvore (FaithfulNode com tagName 'SELECT')
-  function findSelect(node) {
-    if (!node) return null;
-    if (node.tagName === 'SELECT') return node;
-    for (var i = 0; i < (node.children || []).length; i++) {
-      var found = findSelect(node.children[i]);
-      if (found) return found;
-    }
-    return null;
-  }
-
-  var selectEl = findSelect(result.node);
-  assert.ok(selectEl, 'deve encontrar o elemento select no form');
+  var selectEl = findSplitControl(h, result.node);
+  assert.ok(selectEl, 'deve encontrar o controle de tipo de lancamento no form');
 
   // Seta para 'split'
   selectEl.value = 'split';

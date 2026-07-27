@@ -1410,46 +1410,110 @@ const PASS6_A1_ASSETS = [
   'js/screens/pedido-detail-render.js'
 ];
 
-const PASS6_ASSETS_AINDA_EM_PASS6 = PASS6_ASSETS.filter((a) => !PASS6_A1_ASSETS.includes(a));
+// PASS-7-RUNTIME-ASSET-MANIFEST-EXTENSION-A2
+// UI-CONSOLIDATION-PHASE-5-PASS-7-NATIVE-SELECT fechou a propriedade SELECT
+// NATIVO (UIC-006). Ela e a primeira passada de consolidacao a ADICIONAR um
+// asset de runtime: js/select-popover.js, o dono canonico do controle de
+// escolha unica, carregado imediatamente ANTES de js/ui.js porque o adaptador
+// selectInput() delega a ele. Alem disso retokenizou 11 assets existentes.
+// Ela e a ULTIMA passada a toca-los, entao todos saem dos conjuntos anteriores
+// pelo mesmo mecanismo que as passadas 2-6 ja usaram. A garantia original nao
+// muda: um asset alterado e invalidado exatamente uma vez, sob um token
+// declarado, e esse token nao vaza para nenhum asset que a passada 7 nao tenha
+// realmente alterado.
+const PASS7_TOKEN = '20260727-ui-p5-pass7-native-select-a1';
+const PASS7_ADDED_ASSETS = ['js/select-popover.js'];
+const PASS7_RETOKENED_ASSETS = [
+  'css/tokens.css',
+  'js/ui.js',
+  'js/screens/admin-usuarios.js',
+  'js/screens/pedido-itens-edit.js',
+  'js/screens/cliente-pedido-form.js',
+  'js/screens/document-link-admin-modal.js',
+  'js/screens/documentos-recebidos-decision-modal.js',
+  'js/screens/documentos-recebidos.js',
+  'js/screens/ops-list.js',
+  'js/screens/pedido-form.js',
+  'js/screens/pedido-item-row-editor.js',
+  'js/screens/pedidos-list.js'
+];
+const PASS7_ASSETS = PASS7_ADDED_ASSETS.concat(PASS7_RETOKENED_ASSETS);
+
+// A correcao A4 da passada 7 ligou o rotulo visivel de dezenove comboboxes ao
+// seu trigger canonico e devolveu a geometria ratificada aos tres controles que
+// styleSelect() de op-nova sobrescrevia. Ela alterou cinco telas — quatro delas
+// entram no conjunto da passada 7 pela PRIMEIRA vez — e e a ULTIMA a toca-las.
+const PASS7_A4_TOKEN = '20260727-ui-p5-pass7-native-select-a4-a11y-geometry';
+const PASS7_A4_ASSETS = [
+  'js/screens/admin-usuarios-modal.js',
+  'js/screens/cadastros.js',
+  'js/screens/expedicao-admin.js',
+  'js/screens/op-nova.js',
+  'js/screens/pedido-itens-edit.js'
+];
+
+const PASS7_ASSETS_AINDA_EM_PASS7 = PASS7_ASSETS.filter((a) => !PASS7_A4_ASSETS.includes(a));
+
+const PASS6_A1_ASSETS_AINDA_EM_A1 = PASS6_A1_ASSETS
+  .filter((a) => !PASS7_ASSETS.includes(a))
+  .filter((a) => !PASS7_A4_ASSETS.includes(a));
+const PASS6_ASSETS_AINDA_EM_PASS6 = PASS6_ASSETS
+  .filter((a) => !PASS6_A1_ASSETS.includes(a))
+  .filter((a) => !PASS7_ASSETS.includes(a))
+  .filter((a) => !PASS7_A4_ASSETS.includes(a));
 const PASS5_ASSETS_AINDA_EM_PASS5 = PASS5_ASSETS
   .filter((a) => !PASS6_ASSETS.includes(a))
-  .filter((a) => !PASS6_A1_ASSETS.includes(a));
+  .filter((a) => !PASS6_A1_ASSETS.includes(a))
+  .filter((a) => !PASS7_ASSETS.includes(a))
+  .filter((a) => !PASS7_A4_ASSETS.includes(a));
 const PASS4_ASSETS_AINDA_EM_PASS4 = PASS4_ASSETS
   .filter((a) => !PASS5_ASSETS.includes(a))
   .filter((a) => !PASS6_ASSETS.includes(a))
-  .filter((a) => !PASS6_A1_ASSETS.includes(a));
+  .filter((a) => !PASS6_A1_ASSETS.includes(a))
+  .filter((a) => !PASS7_ASSETS.includes(a))
+  .filter((a) => !PASS7_A4_ASSETS.includes(a));
 
 const PASS3_ASSETS_AINDA_EM_PASS3 = PASS3_ASSETS
   .filter((a) => !PASS4_ASSETS.includes(a))
   .filter((a) => !PASS5_ASSETS.includes(a))
   .filter((a) => !PASS6_ASSETS.includes(a))
-  .filter((a) => !PASS6_A1_ASSETS.includes(a));
+  .filter((a) => !PASS6_A1_ASSETS.includes(a))
+  .filter((a) => !PASS7_ASSETS.includes(a))
+  .filter((a) => !PASS7_A4_ASSETS.includes(a));
 const PASS2_A4_ASSETS_AINDA_EM_A4 = PASS2_A4_ASSETS
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
   .filter((a) => !PASS5_ASSETS.includes(a))
   .filter((a) => !PASS6_ASSETS.includes(a))
-  .filter((a) => !PASS6_A1_ASSETS.includes(a));
+  .filter((a) => !PASS6_A1_ASSETS.includes(a))
+  .filter((a) => !PASS7_ASSETS.includes(a))
+  .filter((a) => !PASS7_A4_ASSETS.includes(a));
 const PASS2_A3_ASSETS_AINDA_EM_A3 = PASS2_A3_ASSETS
   .filter((a) => !PASS2_A4_ASSETS.includes(a))
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
   .filter((a) => !PASS5_ASSETS.includes(a))
   .filter((a) => !PASS6_ASSETS.includes(a))
-  .filter((a) => !PASS6_A1_ASSETS.includes(a));
+  .filter((a) => !PASS6_A1_ASSETS.includes(a))
+  .filter((a) => !PASS7_ASSETS.includes(a))
+  .filter((a) => !PASS7_A4_ASSETS.includes(a));
 const PASS2_ASSETS_AINDA_EM_PASS2 = PASS2_ASSETS
   .filter((a) => !PASS2_A2_ASSETS.includes(a))
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
   .filter((a) => !PASS5_ASSETS.includes(a))
   .filter((a) => !PASS6_ASSETS.includes(a))
-  .filter((a) => !PASS6_A1_ASSETS.includes(a));
+  .filter((a) => !PASS6_A1_ASSETS.includes(a))
+  .filter((a) => !PASS7_ASSETS.includes(a))
+  .filter((a) => !PASS7_A4_ASSETS.includes(a));
 const PASS2_A2_ASSETS_AINDA_EM_A2 = PASS2_A2_ASSETS
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
   .filter((a) => !PASS5_ASSETS.includes(a))
   .filter((a) => !PASS6_ASSETS.includes(a))
-  .filter((a) => !PASS6_A1_ASSETS.includes(a));
+  .filter((a) => !PASS6_A1_ASSETS.includes(a))
+  .filter((a) => !PASS7_ASSETS.includes(a))
+  .filter((a) => !PASS7_A4_ASSETS.includes(a));
 const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS
   .filter((a) => !PASS2_ASSETS.includes(a))
   .filter((a) => !PASS2_A2_ASSETS.includes(a))
@@ -1458,12 +1522,17 @@ const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS
   .filter((a) => !PASS4_ASSETS.includes(a))
   .filter((a) => !PASS5_ASSETS.includes(a))
   .filter((a) => !PASS6_ASSETS.includes(a))
-  .filter((a) => !PASS6_A1_ASSETS.includes(a));
+  .filter((a) => !PASS6_A1_ASSETS.includes(a))
+  .filter((a) => !PASS7_ASSETS.includes(a))
+  .filter((a) => !PASS7_A4_ASSETS.includes(a));
 
 // R3 alterou dois assets. A passada 1 retokenizou UM deles
 // (pedido-detail-render.js), entao o token de R3 sobrevive apenas no outro —
 // o mesmo padrao que R3/20c3 ja aplicou ao token do lote 1.
-const R3_ASSETS_AINDA_EM_R3 = R3_ASSETS.filter((a) => !PASS1_ASSETS.includes(a));
+const R3_ASSETS_AINDA_EM_R3 = R3_ASSETS
+  .filter((a) => !PASS1_ASSETS.includes(a))
+  .filter((a) => !PASS7_ASSETS.includes(a))
+  .filter((a) => !PASS7_A4_ASSETS.includes(a));
 
 
 // KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-01-R1: o lote de defeitos
@@ -1518,7 +1587,9 @@ const BATCH2_ASSETS = BATCH2_ADDED_ASSETS.concat(BATCH2_RETOKENED_ASSETS)
   .filter((asset) => !PASS1_ASSETS.includes(asset));
 
 // Todo asset acrescentado depois de 4532f76 por uma ordem autorizada.
-const ADDED_SINCE_4532F76 = BATCH2_ADDED_ASSETS.concat(BATCH3_ADDED_ASSETS);
+const ADDED_SINCE_4532F76 = BATCH2_ADDED_ASSETS
+  .concat(BATCH3_ADDED_ASSETS)
+  .concat(PASS7_ADDED_ASSETS);
 
 // Parsing literal, sem regex: um `?v=` num padrao escapado a mao e uma
 // fonte de erro silencioso (o `?` volta a ser quantificador e o teste
@@ -1621,11 +1692,15 @@ test('R3/20c5. os assets do lote operacional 3 carregam exatamente o token decla
 test('R3/20c6. o lote 3 nao retokenizou nenhum asset que nao alterou', () => {
   // Cada asset e comparado ao token do lote que o alterou POR ULTIMO: o lote 3
   // continua proibido de arrastar assets, e a passada 1 declara os seus.
+  // A passada 7 passou a ser a ULTIMA a alterar dois deles — pedido-itens-edit
+  // (repopulacao de Modelo via setOptions) e cliente-pedido-form (quatro
+  // controles canonicos) — entao carregam o token da passada 7. O sujeito do
+  // guard nao muda: o lote 3 continua proibido de arrastar asset algum.
   const intocados = [
     ['js/screens/pedido-detail-data.js', BATCH2_TOKEN],
     ['js/screens/pedido-edit.js', PASS2_A2_TOKEN],
-    ['js/screens/pedido-itens-edit.js', PASS2_A2_TOKEN],
-    ['js/screens/cliente-pedido-form.js', PASS6_TOKEN],
+    ['js/screens/pedido-itens-edit.js', PASS7_A4_TOKEN],
+    ['js/screens/cliente-pedido-form.js', PASS7_TOKEN],
     ['js/screens/common.js', PASS6_TOKEN],
     ['js/product-route.js', R2_TOKEN],
   ];
@@ -1741,8 +1816,10 @@ test('PASS1/20c7. os assets da passada 1 de cor carregam exatamente o token decl
   // A passada 2 nao tocou a folha de tokens. A passada 6 tocou — ela acrescentou
   // os quatro tokens de papel tipografico — entao a folha carrega o token da
   // passada 6, verificado literalmente por PASS6/20c15.
-  assert.equal(tokenFor('css/tokens.css'), PASS6_A1_TOKEN,
-    'css/tokens.css foi alterado pela passada 6 e carrega o token dela');
+  // A passada 7 tocou a folha de tokens de novo (--rv-z-popover e
+  // --rv-select-popover-max-h), entao ela carrega o token da passada 7.
+  assert.equal(tokenFor('css/tokens.css'), PASS7_TOKEN,
+    'css/tokens.css foi alterado pela passada 7 e carrega o token dela');
 });
 
 // A passada 2 de raio declara os seus assets e o seu token; nenhum outro asset
@@ -1800,7 +1877,7 @@ test('A2/20c9. os assets da correcao A2 carregam exatamente o token declarado, e
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 2114191');
   }
   // E nenhum asset NAO declarado pela A2 pode ter mudado.
-  const declarados = new Set(PASS2_A2_ASSETS.concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS));
+  const declarados = new Set(PASS2_A2_ASSETS.concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     if (!ref.path.startsWith('js/screens/') || declarados.has(ref.path)) continue;
     const committed = execFileSync('git', ['rev-parse', '2114191:' + ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
@@ -1835,7 +1912,7 @@ test('A3/20c10. os assets da correcao A3 carregam exatamente o token declarado, 
   }
   // E nenhum outro script local pode ter mudado: a A3 nao arrasta asset algum,
   // nem tela (fechada pela A2) nem modulo compartilhado que ela nao declarou.
-  const declarados = new Set(PASS2_A3_ASSETS.concat(PASS2_A4_ASSETS).concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS));
+  const declarados = new Set(PASS2_A3_ASSETS.concat(PASS2_A4_ASSETS).concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     // Runtime de terceiros (CDN) nao esta versionado aqui e nao e alvo da A3.
     if (/^https?:/.test(ref.path)) continue;
@@ -1869,7 +1946,7 @@ test('A4/20c11. os assets da correcao A4 carregam exatamente o token declarado, 
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 2fa29d9');
   }
   // E nenhum outro script local pode ter mudado: a A4 nao arrasta asset algum.
-  const declarados = new Set(PASS2_A4_ASSETS.concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS));
+  const declarados = new Set(PASS2_A4_ASSETS.concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
@@ -1905,7 +1982,7 @@ test('PASS3/20c12. os assets da passada 3 de altura carregam exatamente o token 
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 7577f93');
   }
   // E nenhum outro script local pode ter mudado: a passada 3 nao arrasta asset algum.
-  const declarados = new Set(PASS3_ASSETS.concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS));
+  const declarados = new Set(PASS3_ASSETS.concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
@@ -1941,7 +2018,7 @@ test('PASS4/20c13. os assets da passada 4 de elevacao carregam exatamente o toke
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 42ce915');
   }
   // E nenhum outro script local pode ter mudado: a passada 4 nao arrasta asset algum.
-  const declarados = new Set(PASS4_ASSETS.concat(PASS5_ASSETS).concat(PASS6_ASSETS));
+  const declarados = new Set(PASS4_ASSETS.concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
@@ -1976,7 +2053,7 @@ test('PASS5/20c14. os assets da passada 5 de alinhamento carregam exatamente o t
   // E nenhum outro script local pode ter mudado NA PASSADA 5: os assets que a
   // passada 6 declarou sao verificados literalmente por PASS6/20c15, contra o
   // checkpoint publicado da passada 5.
-  const declarados = new Set([...PASS5_ASSETS, ...PASS6_ASSETS]);
+  const declarados = new Set([...PASS5_ASSETS, ...PASS6_ASSETS, ...PASS7_ASSETS, ...PASS7_A4_ASSETS]);
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
@@ -2010,7 +2087,7 @@ test('PASS6/20c15. os assets da passada 6 de tipografia carregam exatamente o to
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 212972d');
   }
   // E nenhum outro script local pode ter mudado: a passada 6 nao arrasta asset algum.
-  const declarados = new Set([...PASS6_ASSETS, ...PASS6_A1_ASSETS]);
+  const declarados = new Set([...PASS6_ASSETS, ...PASS6_A1_ASSETS, ...PASS7_ASSETS, ...PASS7_A4_ASSETS]);
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;

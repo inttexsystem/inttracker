@@ -83,6 +83,8 @@ class FakeNode {
   }
   appendChild(n) { if (n != null) { this.children.push(n); n.parentNode = this; } return n; }
   setAttribute(k, v) { this._attrs[k] = v; }
+  hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k); }
+  removeAttribute(k) { delete this._attrs[k]; }
   getAttribute(k) { return this._attrs[k]; }
   addEventListener(type, fn) { (this._listeners[type] = this._listeners[type] || []).push(fn); }
   removeEventListener() {}
@@ -155,6 +157,9 @@ function makeSandbox(received) {
   sandbox.logout = () => {};
 
   vm.createContext(sandbox);
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(ui, sandbox, { filename: 'js/ui.js' });
   vm.runInContext(ingestor, sandbox, { filename: 'js/documents-ingestor.js' });
   vm.runInContext(loader, sandbox, { filename: 'js/documents-ingestor-loader.js' });

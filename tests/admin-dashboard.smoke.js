@@ -36,6 +36,8 @@ class FakeNode {
     this._text = '';
     this._attrs = {};
     this._listeners = {};
+    // Pass-7 (§14.1) DOM fidelity: every real element exposes `.style`.
+    this.style = {};
   }
   appendChild(node) {
     if (node == null) return node;
@@ -53,6 +55,10 @@ class FakeNode {
     this._attrs[key] = value;
     if (key === 'class') this.className = value;
   }
+  // Pass-7 (§14.1) DOM fidelity: every real element exposes these.
+  getAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k) ? this._attrs[k] : null; }
+  hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k); }
+  removeAttribute(k) { delete this._attrs[k]; }
   addEventListener(type, fn) {
     this._listeners[type] = fn;
   }
@@ -251,6 +257,9 @@ function makeSandbox() {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
   vm.runInContext(routerSrc, sandbox, { filename: 'js/router.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });

@@ -238,6 +238,8 @@ class FakeNode {
     return n;
   }
   setAttribute(k, v) { this._attrs[k] = v; if (k === 'disabled') this.disabled = v; }
+  hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k); }
+  removeAttribute(k) { delete this._attrs[k]; }
   getAttribute(k) { return this._attrs[k]; }
   addEventListener(type, fn) { this._listeners[type] = fn; }
   removeEventListener(type) { delete this._listeners[type]; }
@@ -289,7 +291,9 @@ test('3. op-nova.js é script clássico, sem import/export', () => {
 
 test('4. index.html carrega op-nova.js EXATAMENTE UMA VEZ, sem type=module', () => {
   // Aceita com ou sem query string (cache-busting ?v=...).
-  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260726-ui-p5-pass6-typography-r1"\s*><\/script>/g;
+  // A passada 7 A4 (nome acessivel + geometria do trigger) foi a ultima a
+  // alterar op-nova.js, entao ele carrega o token dela.
+  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260727-ui-p5-pass7-native-select-a4-a11y-geometry"\s*><\/script>/g;
   const reNoQs   = /<script\s+src="js\/screens\/op-nova\.js"\s*><\/script>/g;
   const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
   assert.equal(total, 1,
@@ -390,6 +394,9 @@ function makeOpNovaBootSandbox() {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc,   sandbox, { filename: 'js/calculo-op.js' });
@@ -764,6 +771,9 @@ function makeRenderSandbox(db, rpcImpl, opts) {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   vm.runInContext(calcSrc, sandbox, { filename: 'js/calculo-op.js' });

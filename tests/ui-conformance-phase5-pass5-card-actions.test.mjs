@@ -27,6 +27,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -76,8 +77,10 @@ test('2 · UIC-008 reports zero blocking and zero coverage', () => {
 test('3 · the inventory the pass was measured over is unchanged', () => {
   assert.equal(BASELINE.inventory.application.count, 66);
   assert.equal(BASELINE.coverage_summary.UNSUPPORTED, 0);
-  // 966 at the pass-5 checkpoint; pass 6 removed its own 80 UIC-005 findings.
-  assert.equal(BASELINE.findings.length, 886);
+  // 966 at the pass-5 checkpoint; pass 6 removed its own 80 UIC-005 findings
+  // (966 -> 886) and pass 7 removed 15 UIC-006 plus the 6 UIC-000 gaps that
+  // described style expressions ON the deleted native selects (886 -> 865).
+  assert.equal(BASELINE.findings.length, 865);
 });
 
 test('4 · the blanket ACTION_ROW_UNPROVEN branch no longer exists', () => {
@@ -307,6 +310,32 @@ test('11 · no page-header, table-row, pagination, rail or inline action is mark
    4 · coarse runtime inventory, preserved by this pass
    ============================================================ */
 
+/*
+ * PASS-5-CARD-SHAPED-INVENTORY-FORWARD-CORRECTION-A2
+ *
+ * Phase-5 pass 7 deleted EIGHT card-shaped declarations. Every one was a
+ * visual facade wrapped around a native <select>, or the shared style constant
+ * feeding such a facade — never a business card. The canonical select popover
+ * now owns that box itself, and it declares its border, radius and background
+ * on separate lines, so it contributes none.
+ *
+ * The action inventory is the invariant that matters here and it did NOT move:
+ * ACTION_CONSTRUCTION_COUNT and ACTION_BEARING_FILE_COUNT are unchanged, so no
+ * business action was added or removed.
+ */
+const PASS7_REMOVED_SELECT_FACADES = [
+  ['js/screens/admin-usuarios.js', 248, 1, 'selectStyle const shared by both toolbar filters'],
+  ['js/screens/ops-list.js', 88, 1, 'buildSelectLike facade over the hidden native select'],
+  ['js/screens/pedidos-list.js', 209, 1, 'buildSelectLike facade over the hidden native select'],
+  ['js/screens/pedido-item-row-editor.js', 125, 1, 'selectStyle() return for the inline Tipo/Modelo selects'],
+  ['js/screens/cliente-pedido-form.js', 242, 1, 'recebimentoWrap bordered facade'],
+  ['js/screens/cliente-pedido-form.js', 283, 1, 'inline Modelo cell select style'],
+  ['js/screens/cliente-pedido-form.js', 430, 2, 'tipoWrap + modeloWrap bordered facades'],
+];
+
+const PASS7_FACADE_REMOVED_COUNT = PASS7_REMOVED_SELECT_FACADES
+  .reduce((n, r) => n + r[2], 0);
+
 test('12 · the coarse action inventory is unchanged by this pass', () => {
   const ACTION = /(?:window\.)?el\(\s*'button'|(?:window\.)?actionButton\s*\(|onclick\s*:/g;
   let constructions = 0;
@@ -323,10 +352,37 @@ test('12 · the coarse action inventory is unchanged by this pass', () => {
     }
   }
   // A change here must be explained exactly and must never represent a new or
-  // removed business action. Pass 5 added no control and removed none.
+  // removed business action. Pass 5 added no control and removed none, and
+  // pass 7 added none either: it replaced controls one for one.
   assert.equal(constructions, 485, `ACTION_CONSTRUCTION_COUNT = ${constructions}`);
   assert.equal(bearingFiles, 39, `ACTION_BEARING_FILE_COUNT = ${bearingFiles}`);
-  assert.equal(cardShaped, 133, `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`);
+  // A2: 133 at the pass-5 checkpoint, minus the eight pass-7 select facades.
+  assert.equal(PASS7_FACADE_REMOVED_COUNT, 8);
+  assert.equal(cardShaped, 133 - PASS7_FACADE_REMOVED_COUNT,
+    `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`);
+  assert.equal(cardShaped, 125, `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`);
+});
+
+test('12b · every removed card-shaped declaration was a select facade, not a card', () => {
+  // Each removal is proved at its exact entry site: the declaration existed at
+  // 41655c6, it is gone now, and the file still renders its selects through
+  // the canonical owner. A card removed anywhere else still fails test 12.
+  const isCardShaped = (ln) => /background:\s*var\(--rv-surface\)/.test(ln)
+    && /border:\s*1px solid var\(--rv-border\b/.test(ln)
+    && /border-radius/.test(ln);
+  const byFile = new Map();
+  for (const [rel, , n] of PASS7_REMOVED_SELECT_FACADES) {
+    byFile.set(rel, (byFile.get(rel) || 0) + n);
+  }
+  for (const [rel, expectedDrop] of byFile) {
+    const entry = execFileSync('git', ['show', `41655c6:${rel}`],
+      { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    const before = entry.split(/\r?\n/).filter(isCardShaped).length;
+    const after = read(rel).split(/\r?\n/).filter(isCardShaped).length;
+    assert.equal(before - after, expectedDrop, `${rel}: card-shaped drop`);
+    // The file still builds single-choice controls — through the owner.
+    assert.match(read(rel), /createSelectPopover\(/, `${rel} lost its select entirely`);
+  }
 });
 
 /* ============================================================
@@ -475,11 +531,16 @@ test('24 · passes 1, 2, 3 and 4 remain closed', () => {
 });
 
 test('25 · no rule outside UIC-008 moved in this pass', () => {
-  assert.equal(rule('UIC-000').coverage_gaps, 549);
+  assert.equal(rule('UIC-000').coverage_gaps, 543);
   // UIC-005 was 80 at the pass-5 checkpoint; the authorized pass-6 typography
-  // order took it to 0 and moved nothing else. Carried forward mechanically.
+  // order took it to 0 and moved nothing else. Pass 7 then took UIC-006 to 0.
+  // Both are carried forward mechanically.
   assert.equal(rule('UIC-005').blocking, 0);
-  assert.equal(rule('UIC-006').blocking, 15);
+  assert.equal(rule('UIC-006').blocking, 0);
+  assert.equal(rule('UIC-006').total, 0);
+  // Pass 5's own rule is still exactly closed.
+  assert.equal(rule('UIC-008').blocking, 0);
+  assert.equal(rule('UIC-008').coverage_gaps, 0);
   assert.equal(rule('UIC-009').debt, 322);
   assert.equal(BASELINE.coverage_summary.FULL, 31);
   assert.equal(BASELINE.coverage_summary.PARTIAL, 36);

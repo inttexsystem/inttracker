@@ -9,6 +9,9 @@
 (function (window) {
   'use strict';
 
+  // Pass-7: the filter chevron now belongs to the canonical select popover;
+  // this counter only mints the stable caption ids the triggers point at.
+  var filterSeq = 0;
   var PAGE_SIZE = 10;
   var ITENS_LIMIT = 1000;
   var TABS = [
@@ -31,7 +34,6 @@
 
   var ICON_PLUS = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
   var ICON_SEARCH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
-  var ICON_CHEVRON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
   var ICON_X = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
   // UI-ACTION-BUTTON-MIGRATION-1: 14px per UI_VISUAL_CONTRACT.md §8.1
   // (was 17px before conformance).
@@ -202,19 +204,6 @@
       }, label),
       window.el('div', { style: 'font-size:22px;font-weight:800;color:var(--rv-text-primary);line-height:1;' }, String(value))
     ));
-  }
-
-  function buildSelectLike(label, value) {
-    return window.el('div', {
-      style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--rv-surface);border:1px solid var(--rv-border-strong);border-radius:4px;padding:8px 12px;min-width:0;flex:1;'
-    },
-    window.el('div', { style: 'min-width:0;' },
-      window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);margin-bottom:2px;' }, label),
-      window.el('div', {
-        style: 'font-size:13px;color:var(--rv-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
-      }, value)
-    ),
-    svgEl(ICON_CHEVRON));
   }
 
   // UI-ACTION-BUTTON-MIGRATION-1: pagination nav button, now built via
@@ -532,23 +521,26 @@
         style: 'display:grid;grid-template-columns:repeat(4,minmax(168px,1fr)) auto;gap:8px;margin-bottom:16px;align-items:stretch;'
       });
 
+      // Pass-7 (UIC-006): the filter was a visible facade with a hidden
+      // opacity-zero native <select> stretched over it owning the value.
+      // Both are gone: the canonical popover IS the visible control and the
+      // single value owner. The filter caption stays visible above it and
+      // names the trigger through aria-labelledby.
       function buildSelect(label, value, options, onChange) {
-        var holder = window.el('div', { style: 'position:relative;' });
-        var select = window.el('select', {
-          style: 'width:100%;border:1px solid transparent;background:transparent;color:transparent;position:absolute;inset:0;cursor:pointer;opacity:0;',
-          onchange: function () {
-            onChange(select.value);
-          }
+        filterSeq += 1;
+        var captionId = 'rv-pedidos-filter-' + filterSeq;
+        var holder = window.el('div', { style: 'display:flex;flex-direction:column;gap:3px;min-width:0;' });
+        holder.appendChild(window.el('div', {
+          id: captionId,
+          style: 'font-size:11px;color:var(--rv-text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
+        }, label));
+        var control = window.createSelectPopover({
+          options: options,
+          value: value,
+          labelledBy: captionId
         });
-        options.forEach(function (optionData) {
-          var option = window.el('option', { value: optionData.value }, optionData.label);
-          if (optionData.value === value) option.selected = 'selected';
-          select.appendChild(option);
-        });
-        holder.appendChild(buildSelectLike(label, (options.find(function (optionData) {
-          return optionData.value === value;
-        }) || options[0]).label));
-        holder.appendChild(select);
+        control.addEventListener('change', function () { onChange(control.value); });
+        holder.appendChild(control);
         return holder;
       }
 

@@ -36,6 +36,9 @@ function makeSandbox() {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
   vm.runInContext(helpersSrc, sandbox, { filename: 'js/screens/op-form-helpers.js' });
   vm.runInContext(renderSrc, sandbox, { filename: 'js/screens/ordem-compra-receipt-render.js' });

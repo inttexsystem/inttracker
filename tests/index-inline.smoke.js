@@ -118,6 +118,9 @@ test('js/badges.js declara as funções badgeStatus / badgeTipo (fonte única)',
 
 test('coexistência ui.js + badges.js não lança SyntaxError de duplicate-const', () => {
   const sandbox = setupSandbox();
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
   assert.equal(typeof vm.runInContext('typeof el', sandbox), 'string');

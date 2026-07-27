@@ -78,6 +78,23 @@
     return control;
   }
 
+  // PASS-7-A4: a <label> rendered as a SIBLING names nothing, and
+  // role="combobox" — unlike a plain button — does not take its accessible
+  // name from its own content. The canonical select popover therefore needs
+  // the visible label bound explicitly, or it reaches assistive technology
+  // unnamed. Binding is applied ONLY to an unnamed canonical trigger; every
+  // other control this helper renders is untouched.
+  var adminUsuariosLabelSeq = 0;
+  function bindSelectPopoverLabel(labelNode, control) {
+    if (!control || typeof control.getAttribute !== 'function') return;
+    if (control.getAttribute('data-rv-select-popover') !== '1') return;
+    if (control.getAttribute('aria-label') || control.getAttribute('aria-labelledby')) return;
+    adminUsuariosLabelSeq += 1;
+    var id = 'rv-admin-usuarios-field-label-' + adminUsuariosLabelSeq;
+    labelNode.setAttribute('id', id);
+    control.setAttribute('aria-labelledby', id);
+  }
+
   function adminUsuariosModalField(options) {
     var label = options.label;
     var input = options.input;
@@ -89,9 +106,11 @@
 
     if (fullWidth) wrap.style.gridColumn = '1 / -1';
 
-    wrap.appendChild(window.el('label', {
+    var labelNode = window.el('label', {
       style: 'font-size:12px; line-height:1.2; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--rv-text-secondary);'
-    }, label));
+    }, label);
+    bindSelectPopoverLabel(labelNode, input);
+    wrap.appendChild(labelNode);
     wrap.appendChild(applyAdminUsuariosControlStyle(input));
 
     if (hint) {

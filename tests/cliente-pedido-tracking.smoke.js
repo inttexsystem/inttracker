@@ -127,6 +127,9 @@ function makeTrackingSandbox() {
   vm.createContext(sandbox);
   // Real js/ui.js provides window.el (with the boolean-attr fix); the card is
   // rendered through it instead of a hand-mocked stub.
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
   vm.runInContext(trackingUi, sandbox, { filename: 'js/pedido-tracking-ui.js' });
   vm.runInContext(screen, sandbox, { filename: 'js/screens/cliente-pedido-tracking.js' });

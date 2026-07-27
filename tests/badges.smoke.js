@@ -41,6 +41,10 @@ class FakeNode {
   }
   appendChild(n) { this.children.push(n); return n; }
   setAttribute(k, v) { this._attrs[k] = v; if (k === 'class') this.className = v; }
+  // Pass-7 (§14.1) DOM fidelity: every real element exposes these.
+  getAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k) ? this._attrs[k] : null; }
+  hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k); }
+  removeAttribute(k) { delete this._attrs[k]; }
   addEventListener() {}
   removeEventListener() {}
   replaceChildren(...nodes) {
@@ -76,6 +80,9 @@ vm.createContext(sandbox);
 
 // Carrega os dois scripts no MESMO contexto, na ordem do <head> de
 // index.html. Esta ordem é parte do contrato testado.
+// Pass-7: js/ui.js::selectInput() delegates to the canonical select
+// popover, so the owner must exist in the sandbox before ui.js runs.
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
 vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
 vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
 

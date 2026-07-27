@@ -230,17 +230,18 @@
         style: 'display:flex; align-items:center; gap:8px; border:1px solid var(--rv-border-strong); border-radius:4px; padding:9px 12px; background:var(--rv-surface);'
       }, prazoInput, svgEl(SVG_CALENDAR));
 
-      var recebimentoSelect = window.el('select', {
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; cursor:pointer; -webkit-appearance:none; appearance:none; min-width:0;',
-      },
-        window.el('option', { value: 'retirada' }, 'Retirada'),
-        window.el('option', { value: 'entrega' }, 'Entrega')
-      );
-      recebimentoSelect.value = state.recebimento;
+      // Pass-7 (UIC-006): the canonical select popover owns its own border,
+      // padding and chevron, so the former facade wrapper is gone. No
+      // placeholder: Recebimento always holds one of the two real values.
+      var recebimentoSelect = window.createSelectPopover({
+        options: [
+          { value: 'retirada', label: 'Retirada' },
+          { value: 'entrega', label: 'Entrega' }
+        ],
+        value: state.recebimento,
+        ariaLabel: 'Recebimento'
+      });
       recebimentoSelect.addEventListener('change', function () { state.recebimento = recebimentoSelect.value; });
-      var recebimentoWrap = window.el('div', {
-        style: 'display:flex; align-items:center; gap:8px; border:1px solid var(--rv-border-strong); border-radius:4px; padding:9px 12px; background:var(--rv-surface);'
-      }, recebimentoSelect, svgEl(SVG_CHEVRON));
 
       return window.el('div', {
         style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px 20px; margin-bottom:14px;'
@@ -261,7 +262,7 @@
           ),
           window.el('div', {},
             window.el('label', { style: 'display:block; font-size:13px; color:var(--rv-text-secondary); margin-bottom:6px;' }, 'Recebimento'),
-            recebimentoWrap
+            recebimentoSelect
           )
         )
       );
@@ -278,16 +279,17 @@
         style: 'width:36px; height:36px; border-radius:4px; border:1px solid var(--rv-border); background:var(--rv-surface-subtle); flex-shrink:0;'
       });
 
-      // Modelo select (compact, inside cell)
-      var selectEl = window.el('select', {
-        style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:4px; padding:6px 8px; font-size:13.5px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; cursor:pointer; outline:none;',
-      }, window.el('option', { value: '' }, 'Modelo…'));
+      // Modelo select (compact, inside cell) — Pass-7 canonical popover.
+      var modeloOpcoes = [];
       for (var i = 0; i < modelos.length; i++) {
-        var m = modelos[i];
-        var opt = window.el('option', { value: m.id }, m.nome);
-        if (String(m.id) === String(item.modeloId)) opt.selected = true;
-        selectEl.appendChild(opt);
+        modeloOpcoes.push({ value: modelos[i].id, label: modelos[i].nome });
       }
+      var selectEl = window.createSelectPopover({
+        options: modeloOpcoes,
+        value: item.modeloId,
+        placeholder: 'Modelo…',
+        ariaLabel: 'Modelo'
+      });
       selectEl.addEventListener('change', function () {
         item.modeloId = selectEl.value;
         // update largura cell
@@ -422,24 +424,17 @@
       // derivacao e js/screens/pedido-item-row-editor.js; o Tipo e selecao de
       // UI e filtro, nunca persistido (o item grava so modelo_id).
       var rowApi = window.RAVATEX_PEDIDO_ITEM_ROW;
-      var tipoSelect = window.el('select', {
-        'data-item-modal-tipo': '1',
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; cursor:pointer; -webkit-appearance:none; appearance:none; min-width:0;',
-      });
-      var tipoWrap = window.el('div', {
-        style: 'display:flex; align-items:center; justify-content:space-between; border:1px solid var(--rv-border-strong); border-radius:4px; padding:9px 12px; background:var(--rv-surface);'
-      }, tipoSelect, svgEl(SVG_CHEVRON));
-      var tipoField = window.el('div', {}, requiredLabel('Tipo'), tipoWrap);
+      // Pass-7 (UIC-006): canonical popovers. The former borderless select
+      // inside a bordered facade is gone — the trigger owns its own box and
+      // chevron. The data-* markers are preserved for the existing guards.
+      var tipoSelect = window.createSelectPopover({ options: [], value: '', ariaLabel: 'Tipo' });
+      tipoSelect.setAttribute('data-item-modal-tipo', '1');
+      var tipoField = window.el('div', {}, requiredLabel('Tipo'), tipoSelect);
 
-      // Modelo (select real) — so e habilitado depois do Tipo.
-      var modeloSelect = window.el('select', {
-        'data-item-modal-modelo': '1',
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; cursor:pointer; -webkit-appearance:none; appearance:none; min-width:0;',
-      });
-      var modeloWrap = window.el('div', {
-        style: 'display:flex; align-items:center; justify-content:space-between; border:1px solid var(--rv-border-strong); border-radius:4px; padding:9px 12px; background:var(--rv-surface);'
-      }, modeloSelect, svgEl(SVG_CHEVRON));
-      var modeloField = window.el('div', {}, requiredLabel('Modelo'), modeloWrap);
+      // Modelo — so e habilitado depois do Tipo.
+      var modeloSelect = window.createSelectPopover({ options: [], value: '', ariaLabel: 'Modelo' });
+      modeloSelect.setAttribute('data-item-modal-modelo', '1');
+      var modeloField = window.el('div', {}, requiredLabel('Modelo'), modeloSelect);
 
       // Rotulo local: este arquivo carrega cores por id (coresById), nao o
       // objeto cor_1 embutido que o formatador do modulo espera.
@@ -448,15 +443,18 @@
       }
       function preencherModelos() {
         var lista = rowApi.modelosPorTipo(modelos, draft.tipo);
-        modeloSelect.replaceChildren(window.el('option', { value: '' }, 'Modelo…'));
+        var opcoes = [];
         for (var mi = 0; mi < lista.length; mi++) {
-          var item = window.el('option', { value: lista[mi].id }, opcaoModeloLabel(lista[mi]));
-          if (String(lista[mi].id) === String(draft.modeloId)) item.selected = true;
-          modeloSelect.appendChild(item);
+          opcoes.push({ value: lista[mi].id, label: opcaoModeloLabel(lista[mi]) });
         }
-        modeloSelect.value = draft.modeloId ? String(draft.modeloId) : '';
-        if (draft.tipo) modeloSelect.removeAttribute('disabled');
-        else modeloSelect.setAttribute('disabled', 'disabled');
+        // setOptions preserves the current value when an equivalent option
+        // survives and clears it to the placeholder when it does not. It
+        // never emits: the Tipo handler decides what changed.
+        modeloSelect.setOptions(opcoes, {
+          value: draft.modeloId ? String(draft.modeloId) : '',
+          placeholder: 'Modelo…'
+        });
+        modeloSelect.disabled = !draft.tipo;
       }
 
       // Cores (derivadas do modelo selecionado — somente leitura)

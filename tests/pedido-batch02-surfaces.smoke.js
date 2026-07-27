@@ -62,8 +62,18 @@ test('itens-edit: trocar o Tipo limpa o modelo incompatível', () => {
 });
 
 test('itens-edit: Modelo permanece desabilitado sem Tipo ou sem metadado', () => {
-  assert.match(itensEdit, /if \(item\.tipo && state\.tipoMetadataOk\) modeloSel\.removeAttribute\('disabled'\);/);
-  assert.match(itensEdit, /else modeloSel\.setAttribute\('disabled', 'disabled'\);/);
+  // A passada 7 (UIC-006) trocou o select nativo pelo popover canonico, cuja
+  // propriedade `disabled` e o dono unico do estado. A regra de negocio e
+  // identica — sem Tipo, ou sem metadado de tipo, o Modelo fica desabilitado —
+  // e agora e afirmada como UMA expressao em vez de um par if/else de
+  // atributos, que era apenas a forma antiga de escreve-la.
+  assert.match(itensEdit, /modeloSel\.disabled = !\(item\.tipo && state\.tipoMetadataOk\);/);
+  // A falha fechada continua: nenhum caminho pode habilitar o Modelo sem os
+  // dois pre-requisitos.
+  assert.doesNotMatch(itensEdit, /modeloSel\.disabled = false/,
+    'o Modelo nao pode ser habilitado incondicionalmente');
+  assert.doesNotMatch(itensEdit, /modeloSel\.removeAttribute\('disabled'\)/,
+    'o estado desabilitado passou a ser propriedade do controle canonico');
 });
 
 test('itens-edit: tipo_produto FALHA FECHADA (sem degradar para Tapete)', () => {
@@ -246,10 +256,14 @@ test('index.html: toda superfície alterada recebeu o token do lote 2', () => {
   // pedido-itens-edit.js, entao cada um passa a ser verificado contra a ordem que
   // o alterou por ultimo. A garantia nao muda: toda superficie alterada continua
   // invalidada, e nenhuma delas pode reter um token anterior ao seu.
+  // A passada 7 (UIC-006) alterou pedido-itens-edit.js — a repopulacao de
+  // Modelo passou a usar setOptions() no controle canonico — entao ele e
+  // retokenizado mais uma vez. Mesma regra: cada superficie carrega o token da
+  // ordem que a alterou por ultimo, e nenhuma retem um token anterior ao seu.
   const ULTIMA_ORDEM = {
     'js/screens/pedido-detail-data.js': '20260725-pedido-operational-batch2',
     'js/screens/pedido-edit.js': '20260726-ui-p5-pass2-a2',
-    'js/screens/pedido-itens-edit.js': '20260726-ui-p5-pass2-a2',
+    'js/screens/pedido-itens-edit.js': '20260727-ui-p5-pass7-native-select-a4-a11y-geometry',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
     const re = new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=' + token);
@@ -270,7 +284,9 @@ test('index.html: toda superfície alterada recebeu o token do lote 2', () => {
 test('index.html: a superfície tocada pela passada 1 de cor carrega o token dela', () => {
   const asset = 'js/screens/cliente-pedido-form.js';
   const esc = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  assert.match(index, new RegExp(esc + '\\?v=20260726-ui-p5-pass6-typography-r1'),
+  // A passada 7 substituiu os quatro selects nativos deste arquivo pelo
+  // controle canonico, entao ele e retokenizado mais uma vez. Mesma regra.
+  assert.match(index, new RegExp(esc + '\\?v=20260727-ui-p5-pass7-native-select-a1'),
     asset + ' deve carregar o token da ordem que o alterou por ultimo');
   assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260726-ui-p5-pass1'),
     asset + ' não pode reter o token da passada 1 de cor');
@@ -298,9 +314,13 @@ test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não
   // verificado contra a ordem que o alterou por ultimo.
   // A passada 6 de tipografia alterou APENAS pedido-form.js (os titulos de
   // secao e o resumo pos-salvamento), entao os dois seguem divergindo.
+  // A passada 7 alterou OS DOIS — Cliente e o Status somente-leitura em
+  // pedido-form.js, e os dois controles inline em pedido-item-row-editor.js —
+  // entao voltam a compartilhar um token, o da ordem que os alterou por
+  // ultimo. A garantia nao muda.
   const ULTIMA_ORDEM = {
-    'screens/pedido-form.js': '20260726-ui-p5-pass6-typography-r1',
-    'screens/pedido-item-row-editor.js': '20260726-ui-p5-pass3-a1',
+    'screens/pedido-form.js': '20260727-ui-p5-pass7-native-select-a1',
+    'screens/pedido-item-row-editor.js': '20260727-ui-p5-pass7-native-select-a1',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
     const esc = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

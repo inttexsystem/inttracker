@@ -151,6 +151,39 @@ Hover: `--rv-surface-subtle`. Selected: `--rv-active-bg` + text `--rv-brand` + 1
 The panel's inner inset is what separates this from the legacy look. An item flush
 against the panel edge is a defect.
 
+**The owner is `js/select-popover.js` (phase-5 pass 7).** `window.createSelectPopover()`
+is the ONE implementation of a single-choice control; `js/ui.js::selectInput()` is a
+thin adapter over it. The trigger is a `<button type="button" role="combobox">` with
+`height: var(--rv-h-compact)`, border `--rv-border-strong`, background `--rv-surface`,
+radius `--rv-radius`, `--rv-fs-body`, `padding: 0 12px`, left-aligned text and a 14px
+chevron; hover takes `--rv-surface-subtle` + `--rv-accent-blue`, and focus takes the
+ratified field ring `0 0 0 3px var(--rv-focus-ring)`. A placeholder renders in
+`--rv-text-tertiary`.
+
+The panel is **portaled to `document.body`** with `position: fixed` and
+`z-index: var(--rv-z-popover)` (225 — above the modal at 200, below the toast at 250),
+so a modal, a scroll container or a local stacking context can never clip it. It opens
+below by default, above when below is insufficient and above has more room, stays at
+least 8px from every viewport edge, is never narrower than its trigger, and scrolls at
+`var(--rv-select-popover-max-h)`.
+
+Accessibility is part of the contract, not an extra. The trigger carries
+`aria-haspopup="listbox"`, `aria-expanded`, `aria-controls` and — while open —
+`aria-activedescendant`; DOM focus never leaves it and there is no focus trap. The
+panel is `role="listbox"` and every item is `role="option"` with `aria-selected`.
+
+**`role="combobox"` does NOT take its accessible name from its own content** — unlike a
+plain button. Every trigger must therefore be named explicitly: `aria-labelledby`
+pointing at the real visible label, or `aria-label` for a filter that has none. A
+`<label>` rendered as a SIBLING binds nothing. A row-level control inside a grid may be
+named by its own column header. No interactive trigger may be unnamed.
+
+**A wrapper may not restyle the trigger.** Screen-local helpers that used to style a
+native `<select>` must leave a canonical trigger untouched: the primitive owns its
+geometry, and overwriting the inline style silently breaks this contract.
+
+No search input, no option grouping and no multi-selection.
+
 ### 2.4 Card and section chip
 
 Card: background `--rv-surface`, border `1px solid --rv-border`, radius `--rv-radius`,

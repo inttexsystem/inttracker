@@ -16,6 +16,8 @@ const vm = require('node:vm');
 const ROOT = path.resolve(__dirname, '..');
 const MODAL_PATH = path.join(ROOT, 'js', 'screens', 'document-link-admin-modal.js');
 const SRC = fs.readFileSync(MODAL_PATH, 'utf8');
+const SELECT_POPOVER_PATH = path.join(ROOT, 'js', 'select-popover.js');
+const SELECT_POPOVER_SRC = fs.readFileSync(SELECT_POPOVER_PATH, 'utf8');
 
 const PED = '96ed4f0e-26b2-4c2f-9186-65f72bf5fb18';
 
@@ -41,8 +43,45 @@ class FakeNode {
   appendChild(n) { if (typeof n === 'string') n = { textContent: n }; this.children.push(n); if (n && typeof n === 'object') n.parentNode = this; return n; }
   removeChild(n) { var i = this.children.indexOf(n); if (i !== -1) this.children.splice(i, 1); return n; }
   replaceChildren() { this.children = []; }
-  setAttribute(k, v) { this._attrs[k] = v; if (k === 'class') this.className = v; if (k === 'id') this.id = v; }
+  // Real DOM reflects these content attributes into IDL properties
+  // (Pass-7 §15 harness fidelity).
+  setAttribute(k, v) {
+    this._attrs[k] = v;
+    if (k === 'class') this.className = v;
+    if (k === 'id') this.id = v;
+    if (k === 'type') this.type = v;
+    if (k === 'name') this.name = v;
+  }
   getAttribute(k) { return this._attrs[k]; }
+  removeAttribute(k) { delete this._attrs[k]; if (k === 'class') this.className = ''; if (k === 'id') this.id = ''; }
+  hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k); }
+  contains(node) {
+    if (node === this) return true;
+    for (var i = 0; i < this.children.length; i++) {
+      var c = this.children[i];
+      if (c === node) return true;
+      if (c && typeof c.contains === 'function' && c.contains(node)) return true;
+    }
+    return false;
+  }
+  get isConnected() { var n = this; while (n.parentNode) n = n.parentNode; return n.tagName === 'BODY'; }
+  getBoundingClientRect() {
+    var r = this._rect || { top: 100, left: 100, width: 200, height: 32 };
+    return { top: r.top, left: r.left, width: r.width, height: r.height,
+      bottom: r.top + r.height, right: r.left + r.width };
+  }
+  dispatchEvent(ev) {
+    var event = ev || {};
+    var node = this;
+    event.target = event.target || this;
+    while (node) {
+      event.currentTarget = node;
+      var list = node._listeners && node._listeners[event.type];
+      if (list) { var snap = list.slice(); for (var i = 0; i < snap.length; i++) snap[i].call(node, event); }
+      node = event.bubbles ? node.parentNode : null;
+    }
+    return true;
+  }
   get textContent() {
     if (this._text != null) return this._text;
     return this.children.map(function (c) { return typeof c === 'string' ? c : (c && c.textContent) || ''; }).join('');
@@ -82,9 +121,31 @@ function makeDoc() {
 
 function loadModal() {
   var doc = makeDoc();
-  var sandbox = { document: doc, window: { document: doc, RAVATEX_DOCUMENTS: {} }, setTimeout: function (fn) { return fn && fn(); }, console: console };
+  // Pass-7 (§15): the modal drives the canonical select popover, which needs
+  // a real event-target window and viewport measurements.
+  var winListeners = {};
+  var sandbox = {
+    document: doc,
+    window: {
+      document: doc,
+      RAVATEX_DOCUMENTS: {},
+      innerWidth: 1440,
+      innerHeight: 900,
+      addEventListener: function (t, fn) { (winListeners[t] = winListeners[t] || []).push(fn); },
+      removeEventListener: function (t, fn) {
+        var l = winListeners[t]; if (!l) return;
+        var i = l.indexOf(fn); if (i !== -1) l.splice(i, 1);
+      },
+      _listeners: winListeners,
+    },
+    setTimeout: function (fn) { return fn && fn(); },
+    console: console,
+  };
   sandbox.window.window = sandbox.window;
+  doc.defaultView = sandbox.window;
   vm.createContext(sandbox);
+  // The modal must reach the CANONICAL primitive — never a stub.
+  vm.runInContext(SELECT_POPOVER_SRC, sandbox, { filename: SELECT_POPOVER_PATH });
   vm.runInContext(SRC, sandbox, { filename: MODAL_PATH });
   var factory = sandbox.window.RAVATEX_DOCUMENTS.createDocumentLinkAdminModal;
   return { modal: factory({ document: doc }), doc: doc };

@@ -80,6 +80,9 @@ function makeRuntime() {
   vm.createContext(sandbox);
   // Real js/ui.js FIRST: it installs the true el() (UI-EL-BOOLEAN-ATTR-FIX) and
   // toast() as globals, so window.el resolves to the faithful factory.
+  // Pass-7: js/ui.js::selectInput() delegates to the canonical select
+  // popover, so the owner must exist in the sandbox before ui.js runs.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
   // Non-ui.js collaborator the bundle reads (unchanged from the old stub).
   sandbox.window.RavatexPedidoTracking = null;

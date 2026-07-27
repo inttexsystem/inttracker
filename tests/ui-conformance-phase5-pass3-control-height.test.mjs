@@ -522,22 +522,92 @@ test('13 · both cadastros price-row actions delegate to the canonical primitive
   assert.match(ui, /srLabel \|\| title/);
 });
 
+/* ------------------------------------------------------------
+   PASS-3-CONTROL-HEIGHT-GUARD-FORWARD-CORRECTION-A1
+
+   Pass 3 remains CLOSED / ACCEPTED. Two of its assertions were
+   written against the SHAPE of the then-current implementation
+   rather than against the contract, and Pass 7 (UIC-006)
+   intentionally replaced that implementation: the native
+   <select> owner is gone and js/select-popover.js is the single
+   owner of the single-choice control.
+
+   Test 14 asserted the compact rung was declared INSIDE
+   selectInput; test 15 asserted selectInput contained
+   `const sel = el('select', {`. Both are now obsolete SOURCE
+   SHAPE facts. They are replaced below by SEMANTIC ownership
+   assertions that prove the same Pass-3 contract — one compact
+   rung, one owner per primitive, no specialized control — over
+   the new structure. The generic compact-height contract, the
+   closed 32/34/38 ladder and the Pass-3 specialized-control
+   exclusions are unchanged, and no coverage is weakened: every
+   dropped assertion is replaced by a strictly stronger one.
+   ------------------------------------------------------------ */
+
 test('14 · the shared single-line field primitives own the canonical compact rung', () => {
   const ui = read('js/ui.js');
+  const popover = read('js/select-popover.js');
+
+  // textInput still declares the rung DIRECTLY — unchanged by Pass 7.
   assert.match(ui, /function textInput\(\{[\s\S]{0,900}?height:var\(--rv-h-compact\);/);
-  assert.match(ui, /function selectInput\(\{[\s\S]{0,900}?height:var\(--rv-h-compact\);/);
-  // Horizontal padding preserved, vertical padding removed so the fixed
-  // border-box height cannot clip the value.
+
+  // selectInput remains the shared compatibility entry point and delegates
+  // to the canonical owner instead of declaring geometry of its own.
+  assert.match(ui, /function selectInput\(\{/);
+  assert.match(ui, /function selectInput\(\{[\s\S]{0,600}?createSelectPopover\(/);
+
+  // The canonical select-popover TRIGGER owns the compact rung.
+  assert.match(popover, /height:var\(--rv-h-compact\)/);
+  assert.match(popover, /TRIGGER_STYLE[\s\S]{0,600}?height:var\(--rv-h-compact\);/);
+
+  // Neither primitive carries vertical padding competing with the explicit
+  // border-box height.
   assert.ok(!/w-full border px-3 py-2/.test(ui), 'py-2 still fights the explicit height');
   assert.match(ui, /w-full border px-3 focus:outline-none/);
+  assert.match(popover, /padding-top:0; padding-bottom:0;/);
+
+  // The read-only field presentation shares the same compact geometry.
+  assert.match(popover, /createReadonlyFieldValue[\s\S]{0,900}?height:var\(--rv-h-compact\)/);
+
+  // The closed ladder is still exactly three rungs, declared once.
+  const tokens = read('css/tokens.css');
+  assert.match(tokens, /--rv-h-compact: 32px;/);
+  assert.match(tokens, /--rv-h-default: 34px;/);
+  assert.match(tokens, /--rv-h-primary: 38px;/);
+  assert.equal((tokens.match(/--rv-h-(compact|default|primary):/g) || []).length, 3,
+    'the control-height ladder gained or lost a rung');
 });
 
 test('15 · neither shared field primitive can build a specialized control', () => {
   const ui = read('js/ui.js');
+  const popover = read('js/select-popover.js');
+
   assert.match(ui, /function textInput\(\{ type = 'text'/);
   assert.match(ui, /const input = el\('input', attrs\)/);
-  assert.match(ui, /const sel = el\('select', \{/);
-  // Every type any consumer passes is a single-line field type.
+
+  // Pass 7: selectInput must NOT create, contain or hide a native select.
+  assert.ok(!/el\('select'/.test(ui), 'js/ui.js still constructs a native select');
+  assert.ok(!/el\('option'/.test(ui), 'js/ui.js still constructs a native option');
+  assert.ok(!/createElement\('select'\)/.test(ui), 'js/ui.js still creates a native select');
+
+  // The canonical owner builds a button trigger with combobox semantics —
+  // never a native select and never a hidden native value owner.
+  assert.match(popover, /createElement\('button'\)/);
+  assert.match(popover, /setAttribute\('role', 'combobox'\)/);
+  assert.ok(!/createElement\('select'\)/.test(popover), 'the primitive creates a native select');
+  assert.ok(!/createElement\('option'\)/.test(popover), 'the primitive creates a native option');
+
+  // Neither shared primitive may build a specialized control. This is the
+  // Pass-3 exclusion set, unchanged.
+  for (const forbidden of ['checkbox', 'radio', 'range', 'file', 'color']) {
+    assert.ok(!new RegExp(`createElement\\('${forbidden}'\\)`).test(popover));
+  }
+  assert.ok(!/createElement\('textarea'\)/.test(popover), 'the primitive builds a textarea');
+  assert.ok(!/type:\s*'hidden'/.test(popover), 'the primitive builds a hidden input');
+  assert.ok(!/createElement\('input'\)/.test(popover),
+    'the primitive builds an input — there is no search box in a select popover');
+
+  // Every type any consumer passes to textInput is a single-line field type.
   const allowed = new Set(['text', 'email', 'password', 'number', 'date']);
   const seen = new Set();
   for (const { text } of RUNTIME) {
