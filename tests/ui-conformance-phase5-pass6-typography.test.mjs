@@ -110,11 +110,16 @@ test('3 · all 80 entry findings were removed and none were added', () => {
   // is asserted separately.
   // Phase-5 pass 8 then added two UIC-000 gaps for the Cadastros »
   // Parâmetros derived width owner: 865 -> 867.
-  assert.equal(BASELINE.findings.length, 867);
+  // SPECIALIZED-CONTROLS-B1 FORWARD CORRECTION. B1 moved the specialized
+  // controls' inline styles into css/tokens.css, which the detector does not
+  // read, so nine UIC-000 coverage gaps and two UIC-009 references stopped
+  // existing as JavaScript declarations: 867 -> 856, coverage 545 -> 536,
+  // debt 322 -> 320. B1 ADDED no finding to any rule.
+  assert.equal(BASELINE.findings.length, 856);
   assert.equal(rule('UIC-005').total, 0, 'pass 6 must stay closed');
-  assert.equal(rule('UIC-000').coverage_gaps, 545);
+  assert.equal(rule('UIC-000').coverage_gaps, 536);
   assert.equal(rule('UIC-006').blocking, 0);
-  assert.equal(rule('UIC-009').debt, 322);
+  assert.equal(rule('UIC-009').debt, 320);
   assert.equal(BASELINE.coverage_summary.FULL, 31);
   assert.equal(BASELINE.coverage_summary.PARTIAL, 36);
   assert.equal(BASELINE.coverage_summary.UNSUPPORTED, 0);
@@ -609,7 +614,11 @@ test('34 · the deprecated typography aliases stay UIC-009 debt, untouched', () 
   const tokens = readTokens(ROOT);
   assert.equal(tokens.values.get('--rv-font-size-body'), 'var(--rv-fs-body)');
   assert.equal(tokens.values.get('--rv-font-size-label'), 'var(--rv-fs-label)');
-  assert.equal(rule('UIC-009').debt, 322, 'unrelated deprecated-token debt moved');
+  // SPECIALIZED-CONTROLS-B1 retired the two --rv-color-input-border /
+  // --rv-radius-control references the reversal-reason textarea carried, by
+  // moving that textarea's border to css/tokens.css. Both aliases still exist
+  // and still resolve; the general deprecated-token pass is still not open.
+  assert.equal(rule('UIC-009').debt, 320, 'unrelated deprecated-token debt moved');
 });
 
 test('35 · every asset pass 6 changed is invalidated under a pass-6 or later token', () => {
@@ -627,9 +636,8 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   const PASS7 = '20260727-ui-p5-pass7-native-select-a1';
   const PASS7_A4 = '20260727-ui-p5-pass7-native-select-a4-a11y-geometry';
   const PASS7_CHANGED = [
-    'css/tokens.css',
     'js/screens/documentos-recebidos.js',
-    'js/screens/pedido-form.js', 'js/screens/pedidos-list.js',
+    'js/screens/pedidos-list.js',
   ];
   // Pass-7 correction A4 bound the visible label of nineteen comboboxes and
   // restored the ratified trigger geometry at three op-nova sites. It touched
@@ -657,7 +665,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   const PASS8 = '20260727-ui-p5-pass8-table-r1';
   const PASS8_CHANGED = [
     'js/screens/cliente-dashboard.js',
-    'js/screens/expedicao-admin.js', 'js/screens/fornecedor.js',
+    'js/screens/fornecedor.js',
     'js/screens/manta-expedicao-ui.js', 'js/screens/op-tecelagem-producao-admin.js',
     'js/screens/ordem-compra-render.js', 'js/screens/pedido-detail-render.js',
   ];
@@ -685,23 +693,38 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
    */
   const CONTAINMENT_A1 = '20260727-ui-action-containment-a1';
   const CONTAINMENT_A1_CHANGED = [
-    'js/ui.js',
+    'js/screens/op-latex-admin.js', 'js/screens/op-nova.js',
+  ];
+  /*
+   * SPECIALIZED-CONTROLS-B1 FORWARD CORRECTION
+   *
+   * B1 created the five role-specific shared primitives and migrated their 22
+   * runtime constructions, changing TEN of the assets pass 6 had also changed
+   * — the token stylesheet, the shared owner and eight screens. A B1 token is
+   * strictly later than a pass-6, A1, pass-7, pass-8 or containment one, so
+   * every asset pass 6 touched is still invalidated against the pass-5
+   * checkpoint; only WHICH later token does the invalidating moved. The
+   * population below still sums to the same 27.
+   */
+  const B1 = '20260727-ui-specialized-controls-b1';
+  const B1_CHANGED = [
+    'css/tokens.css', 'js/ui.js',
     'js/screens/admin-usuarios-modal.js', 'js/screens/cadastros.js',
-    'js/screens/cliente-pedido-form.js', 'js/screens/op-latex-admin.js',
-    'js/screens/op-nova.js', 'js/screens/pedido-detail-events.js',
+    'js/screens/cliente-pedido-form.js', 'js/screens/common.js',
+    'js/screens/expedicao-admin.js', 'js/screens/pedido-detail-events.js',
+    'js/screens/pedido-form.js', 'js/screens/system-screens.js',
   ];
   const PASS6_ONLY = [
     'js/document-links-surface-ui.js',
     'js/screens/cliente-pedido-tracking.js', 'js/screens/cliente-pedidos-list.js',
-    'js/screens/common.js',
     'js/screens/pedido-insumos-distribuicao.js',
-    'js/screens/system-screens.js', 'js/screens/trocar-senha-obrigatoria.js',
+    'js/screens/trocar-senha-obrigatoria.js',
   ];
   // The pass-6 population is unchanged in SIZE — 27 assets — only redistributed
   // across the tokens. That is what proves nothing silently dropped out.
   assert.equal(PASS7_CHANGED.length + PASS7_A4_CHANGED.length + PASS7_A5_CHANGED.length
     + A1_CHANGED.length + PASS8_CHANGED.length + PASS8_A1_CHANGED.length
-    + CONTAINMENT_A1_CHANGED.length + PASS6_ONLY.length, 27);
+    + CONTAINMENT_A1_CHANGED.length + B1_CHANGED.length + PASS6_ONLY.length, 27);
   for (const rel of PASS7_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS7}"`), `${rel} must carry the pass-7 token`);
   }
@@ -724,6 +747,10 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     assert.ok(INDEX.includes(`"${rel}?v=${CONTAINMENT_A1}"`),
       `${rel} must carry the action-containment A1 token`);
   }
+  for (const rel of B1_CHANGED) {
+    assert.ok(INDEX.includes(`"${rel}?v=${B1}"`),
+      `${rel} must carry the specialized-controls B1 token`);
+  }
   for (const rel of PASS6_ONLY) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS6}"`), `${rel} must keep the pass-6 token`);
   }
@@ -733,7 +760,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     'the pass-6 token leaked or was dropped');
   // Every asset pass 6 touched still carries a token LATER than the pass-5 one.
   for (const rel of [...PASS7_CHANGED, ...PASS7_A4_CHANGED, ...PASS7_A5_CHANGED, ...A1_CHANGED,
-    ...PASS8_CHANGED, ...PASS8_A1_CHANGED, ...PASS6_ONLY]) {
+    ...PASS8_CHANGED, ...PASS8_A1_CHANGED, ...B1_CHANGED, ...PASS6_ONLY]) {
     assert.ok(!INDEX.includes(`"${rel}?v=20260726-ui-p5-pass5`),
       `${rel} fell back to the pass-5 token`);
   }

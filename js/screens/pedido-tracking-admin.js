@@ -140,11 +140,15 @@
       placeholder: 'Sem excecao',
     });
 
-    var mensagemInput = window.el('textarea', {
-      style: 'border-radius:var(--rv-radius);', class: 'w-full border px-3 py-2 min-h-[110px] focus:outline-none focus:ring-2 focus:ring-blue-500',
+    // B1: the 110px Tailwind minimum becomes the canonical `tracking` role;
+    // the border, radius, padding and focus ring move to css/tokens.css. The
+    // value, the placeholder and syncFormState are unchanged.
+    var mensagemInput = window.textArea({
+      role: 'tracking',
+      value: formState.status_cliente_mensagem,
       placeholder: 'Mensagem opcional para o cliente',
+      ariaLabel: 'Mensagem',
     });
-    mensagemInput.value = formState.status_cliente_mensagem;
 
     var previewWrap = window.el('div', { class: 'mt-2' });
     var helperText = window.el('p', { class: 'text-xs text-gray-500 mt-2' },

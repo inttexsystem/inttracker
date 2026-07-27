@@ -398,21 +398,17 @@
     var MOVEMENT_MODAL_RADIUS = 'var(--rv-radius)';  // A2: css/tokens.css owns geometry
     var MOVEMENT_SURFACE_RADIUS = 'var(--rv-radius)';
     var MOVEMENT_MODAL_SHADOW = 'var(--rv-shadow-popover)';
-    // Pass-3 §8: the single generic 36px constant reached inputs, selects AND
-    // textareas alike. It is split into role-specific ownership: a single-line
-    // control now resolves through the canonical compact rung declared by the
-    // shared primitive in js/ui.js, so this helper imposes no competing
-    // minimum on it, and only a multiline textarea keeps a specialized one
-    // (UI-SPECIALIZED-CONTROL-CONTRACT-GAP). No generic control-height
-    // constant holds a literal any more.
-    var MOVEMENT_TEXTAREA_MIN_HEIGHT = '36px';
-
+    // Pass-3 §8 split the single generic 36px constant into role-specific
+    // ownership; B1 removes the last piece, the residual textarea minimum. A
+    // multiline textarea is now a role-specific primitive whose minimum
+    // belongs to its declared role in css/tokens.css, so this normalizer must
+    // impose no competing minimum on any control. No screen-local textarea
+    // geometry survives here.
     function normalizeMovementModalControls(root) {
       if (!root || typeof root.querySelectorAll !== 'function') return;
       root.querySelectorAll('input, select, textarea').forEach(function (control) {
         // A2 removed the Tailwind radius strip: nothing applies one any more.
         control.style.borderRadius = MOVEMENT_SURFACE_RADIUS;
-        control.style.minHeight = control.tagName === 'TEXTAREA' ? MOVEMENT_TEXTAREA_MIN_HEIGHT : '';
         control.style.boxShadow = 'none';
       });
     }
@@ -2610,11 +2606,16 @@
         value: state.pedido.status_cliente_excecao || '',
         placeholder: 'Sem excecao',
       });
-      var messageInput = window.el('textarea', {
-        style: 'width:100%;min-height:92px;border:1px solid var(--rv-border-strong);border-radius:4px;padding:9px 12px;font-size:13.5px;font-family:inherit;color:var(--rv-text-primary);resize:none;outline:none;',
+      // B1: the 92px inline minimum becomes the canonical `message` role and
+      // the non-resizable grip becomes the bounded `resize: 'none'` option.
+      // The value, the placeholder and the live preview binding are unchanged.
+      var messageInput = window.textArea({
+        role: 'message',
+        resize: 'none',
+        value: state.pedido.status_cliente_mensagem || '',
         placeholder: 'Mensagem opcional ao cliente',
+        ariaLabel: 'Mensagem ao cliente',
       });
-      messageInput.value = state.pedido.status_cliente_mensagem || '';
 
       var previewWrap = window.el('div', { style: 'margin-top:4px;' });
       function renderPreview() {

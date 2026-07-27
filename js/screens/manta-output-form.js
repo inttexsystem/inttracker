@@ -38,26 +38,13 @@
   // Toggle visual ligado ao checkbox real (a fonte de verdade lida pelo
   // getPayload continua sendo chk.checked), no mesmo vocabulario do form
   // Tapete stacked para nao criar uma segunda linguagem visual.
+  // B1: track and knob are ONE shared component owned by switchToggle(), with
+  // css/tokens.css owning geometry and states. The Manta defect toggle keeps
+  // its own tone — it has always painted caution rather than brand — through a
+  // bounded two-member enum, not a style escape hatch. chk.checked remains the
+  // single source of truth read by getPayload.
   function defeitoToggle(chk) {
-    var knob = window.el('span', {
-      style: 'position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:var(--rv-radius-pill);background:var(--rv-surface);box-shadow:var(--rv-shadow-sm);transition:transform .15s ease;',
-    });
-    // Pass-3 §5.2: the track is the non-control presentation of the checkbox
-    // state, so its static tag and geometry are declared at construction.
-    // paint() now updates only the dynamic background.
-    var track = window.el('span', {
-      style: 'position:relative;display:inline-block;width:40px;height:22px;border-radius:var(--rv-radius);transition:background .15s ease;',
-    }, knob);
-    var paint = function () {
-      if (chk.checked) track.style.background = 'var(--rv-signal-caution)';
-      else track.style.background = 'var(--rv-surface-subtle)';
-      knob.style.transform = chk.checked ? 'translateX(18px)' : 'translateX(0)';
-    };
-    paint();
-    chk.addEventListener('change', paint);
-    return window.el('div', {},
-      window.el('label', { style: LABEL_STYLE }, 'Defeito'),
-      window.el('label', { style: 'position:relative;display:inline-flex;align-items:center;height:36px;cursor:pointer;' }, chk, track));
+    return window.switchToggle({ input: chk, label: 'Defeito', tone: 'caution' });
   }
 
   function modeloRotulo(modelo, modeloId) {
@@ -89,15 +76,10 @@
         op_item_id: it.id,
         modelo_id: it.modelo_id,
         metrosInput: window.textInput({ type: 'number', step: '0.01', value: '', placeholder: '0,00' }),
-        // Pass-3 §5.1: the real checkbox stays the state owner and keeps its
-        // specialized geometry (UI-SPECIALIZED-CONTROL-CONTRACT-GAP). Its
-        // visually hidden box moves to construction so the primitive is
-        // statically recoverable instead of anonymous.
-        defeitoChk: window.el('input', {
-          type: 'checkbox',
-          class: 'h-4 w-4',
-          style: 'position:absolute;opacity:0;width:0;height:0;margin:0;',
-        }),
+        // B1: the real checkbox stays the STATE OWNER and resolves through the
+        // canonical collapsed primitive — a zero-size state carrier, never a
+        // second visible control. getPayload still reads .checked.
+        defeitoChk: window.checkboxInput({ collapsed: true, ariaLabel: 'Defeito' }),
         obsLinha: window.textInput({ type: 'text', value: '', placeholder: 'obs (opcional)' }),
       };
     });

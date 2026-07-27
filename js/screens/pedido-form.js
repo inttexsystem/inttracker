@@ -510,24 +510,26 @@
     }
 
     function buildBottomSection(saveBtn) {
-      // Pass-3 §5.3: autosizing is preserved exactly. The helper now closes
-      // over the single textarea it has always been called with, so the
-      // multiline primitive it resizes is statically recoverable instead of
-      // anonymous. It is declared after obsTextarea and only ever runs later.
+      // B1: autosizing is preserved exactly, but it is now CONTENT-DRIVEN by
+      // the shared owner: window.textArea({ autosize: true }) binds the sync
+      // and window.autosizeTextarea() performs it. The 40px floor moves to the
+      // canonical `autosize` role as a CSS min-height, which is why the old
+      // Math.max() clamp is no longer needed — a min-height cannot be
+      // undercut by an explicit height. The state binding is unchanged.
       function syncTextareaHeight() {
-        obsTextarea.style.height = 'auto';
-        obsTextarea.style.height = Math.max(obsTextarea.scrollHeight, 40) + 'px';
+        window.autosizeTextarea(obsTextarea);
       }
 
-      var obsTextarea = window.el('textarea', {
+      var obsTextarea = window.textArea({
+        role: 'autosize',
+        autosize: true,
         rows: 1,
+        value: state.observacao,
         placeholder: 'Informações adicionais sobre conferência, prazo ou observações internas...',
-        style: 'width:100%; min-height:40px; border:1px solid var(--rv-border-strong); border-radius:4px; padding:9px 12px; font-size:14px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; outline:none; resize:none; line-height:1.5; box-sizing:border-box; overflow-y:hidden;'
+        ariaLabel: 'Instruções gerais',
       });
-      obsTextarea.value = state.observacao;
       obsTextarea.addEventListener('input', function () {
         state.observacao = obsTextarea.value;
-        syncTextareaHeight();
       });
 
       var instrCard = window.el('div', {

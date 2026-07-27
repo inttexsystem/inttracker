@@ -703,6 +703,49 @@ const PASS8_INCIDENTAL_UIC000_ADDITIONS = [
 const PASS8_UIC000_ADDED_COUNT = PASS8_INCIDENTAL_UIC000_ADDITIONS
   .reduce((n, r) => n + r[3], 0);
 
+/*
+ * SPECIALIZED-CONTROLS-B1 moved the specialized controls' geometry out of the
+ * screens and into css/tokens.css, which the detector does not read. Fourteen
+ * findings therefore stopped existing as JavaScript declarations, and three
+ * reappeared under a different construct name in the same file.
+ *
+ * This is NOT a suppression and NOT a widening of the ruling above: no
+ * detector branch changed, no rule was silenced, and every one of the
+ * seventeen movements is enumerated EXACTLY by rule + path + construct +
+ * code. An eighteenth movement, or a movement at any other site, still fails.
+ *
+ * The three additions are the SAME three range-gradient repaints as the three
+ * op-distribuicao-ui removals. They moved from a whole-style-attribute
+ * rewrite to a background-only assignment so the shared range geometry can no
+ * longer be clobbered; the detector reports the identical rule, severity and
+ * cause, only under the new construct name.
+ */
+const B1_INCIDENTAL_REMOVALS = [
+  ['UIC-000', 'js/screens/admin-usuarios-modal.js', '.style.minHeight = <expression>', 'NON_LITERAL_STYLE_ASSIGNMENT', 1],
+  ['UIC-000', 'js/screens/cadastros.js', '.style.minHeight = <expression>', 'NON_LITERAL_STYLE_ASSIGNMENT', 1],
+  ['UIC-000', 'js/screens/cliente-pedido-form.js', '.style.height = <expression>', 'NON_LITERAL_STYLE_ASSIGNMENT', 1],
+  ['UIC-000', 'js/screens/entrega-form.js', '.style.transform = <expression>', 'NON_LITERAL_STYLE_ASSIGNMENT', 1],
+  ['UIC-000', 'js/screens/entrega-form.js', 'style: <expression>', 'NON_LITERAL_STYLE_VALUE', 1],
+  ['UIC-000', 'js/screens/manta-output-form.js', '.style.transform = <expression>', 'NON_LITERAL_STYLE_ASSIGNMENT', 1],
+  ['UIC-000', 'js/screens/manta-output-form.js', 'style: <expression>', 'NON_LITERAL_STYLE_VALUE', 1],
+  ['UIC-000', 'js/screens/op-distribuicao-ui.js', "setAttribute('style', <expression>)", 'NON_LITERAL_STYLE_ASSIGNMENT', 3],
+  ['UIC-000', 'js/screens/pedido-detail-events.js', '.style.minHeight = <expression>', 'NON_LITERAL_STYLE_ASSIGNMENT', 1],
+  ['UIC-000', 'js/screens/pedido-form.js', '.style.height = <expression>', 'NON_LITERAL_STYLE_ASSIGNMENT', 1],
+  ['UIC-009', 'js/screens/ordem-compra-receipt-events.js', 'string literal', 'DEPRECATED_TOKEN_REFERENCE', 2],
+];
+
+const B1_INCIDENTAL_ADDITIONS = [
+  ['UIC-000', 'js/screens/op-distribuicao-ui.js', '.style.background = <expression>', 'NON_LITERAL_STYLE_ASSIGNMENT', 3],
+];
+
+const B1_REMOVED_COUNT = B1_INCIDENTAL_REMOVALS.reduce((n, r) => n + r[4], 0);
+const B1_ADDED_COUNT = B1_INCIDENTAL_ADDITIONS.reduce((n, r) => n + r[4], 0);
+const B1_UIC000_NET = B1_INCIDENTAL_REMOVALS
+  .filter((r) => r[0] === 'UIC-000').reduce((n, r) => n + r[4], 0)
+  - B1_ADDED_COUNT;
+const B1_UIC009_REMOVED = B1_INCIDENTAL_REMOVALS
+  .filter((r) => r[0] === 'UIC-009').reduce((n, r) => n + r[4], 0);
+
 const withoutLaterPasses = (findings) =>
   findings.filter((f) => !RULES_OWNED_BY_A_LATER_PASS.has(f.rule_id));
 
@@ -718,15 +761,23 @@ test('21 · A2 moved nothing outside the rules later passes own', () => {
   for (const [relPath, context, code, n] of PASS7_INCIDENTAL_UIC000_REMOVALS) {
     for (let i = 0; i < n; i += 1) expectedRemovals.push(`UIC-000|${relPath}|${context}|${code}`);
   }
-  const actualRemovals = A2_DELTA.removed.map((f) => {
-    const code = /COVERAGE_GAP \/ ([A-Z_]+)/.exec(f[7]);
-    return `${f[0]}|${f[2]}|${f[6]}|${code ? code[1] : '?'}`;
-  });
+  for (const [ruleId, relPath, context, code, n] of B1_INCIDENTAL_REMOVALS) {
+    for (let i = 0; i < n; i += 1) expectedRemovals.push(`${ruleId}|${relPath}|${context}|${code}`);
+  }
+  // UIC-009 carries no COVERAGE_GAP code, so name it by its rule instead of
+  // letting it collapse to an unidentifiable '?'.
+  const codeOf = (f) => {
+    const m = /COVERAGE_GAP \/ ([A-Z_]+)/.exec(f[7]);
+    if (m) return m[1];
+    return f[0] === 'UIC-009' ? 'DEPRECATED_TOKEN_REFERENCE' : '?';
+  };
+  const actualRemovals = A2_DELTA.removed.map((f) => `${f[0]}|${f[2]}|${f[6]}|${codeOf(f)}`);
   assert.deepEqual(actualRemovals.slice().sort(), expectedRemovals.slice().sort(),
     `A2 may only lose the six authorized pass-7 UIC-000 gaps:\n${
       A2_DELTA.removed.map((f) => f[0] + ' ' + f[2]).join('\n')}`);
-  assert.equal(A2_DELTA.removed.length, PASS7_UIC000_REMOVED_COUNT);
+  assert.equal(A2_DELTA.removed.length, PASS7_UIC000_REMOVED_COUNT + B1_REMOVED_COUNT);
   assert.equal(PASS7_UIC000_REMOVED_COUNT, 6);
+  assert.equal(B1_REMOVED_COUNT, 14);
 
   // The only additions permitted outside rule ownership are the two pass-8
   // Parâmetros gaps, matched site by site exactly as the removals are.
@@ -734,21 +785,23 @@ test('21 · A2 moved nothing outside the rules later passes own', () => {
   for (const [relPath, context, code, n] of PASS8_INCIDENTAL_UIC000_ADDITIONS) {
     for (let i = 0; i < n; i += 1) expectedAdditions.push(`UIC-000|${relPath}|${context}|${code}`);
   }
-  const actualAdditions = A2_DELTA.added.map((f) => {
-    const code = /COVERAGE_GAP \/ ([A-Z_]+)/.exec(f[7]);
-    return `${f[0]}|${f[2]}|${f[6]}|${code ? code[1] : '?'}`;
-  });
+  for (const [ruleId, relPath, context, code, n] of B1_INCIDENTAL_ADDITIONS) {
+    for (let i = 0; i < n; i += 1) expectedAdditions.push(`${ruleId}|${relPath}|${context}|${code}`);
+  }
+  const actualAdditions = A2_DELTA.added.map((f) => `${f[0]}|${f[2]}|${f[6]}|${codeOf(f)}`);
   assert.deepEqual(actualAdditions.slice().sort(), expectedAdditions.slice().sort(),
     `A2 COVERAGE DELTA EXCEEDS THE ARCHITECT RULING:\n${A2_DELTA.added.map((f) => f[0] + ' ' + f[2]).join('\n')}`);
 });
 
 test('21b · A2 added nothing outside the rules later passes own', () => {
-  assert.equal(A2_DELTA.added.length, PASS8_UIC000_ADDED_COUNT);
+  assert.equal(A2_DELTA.added.length, PASS8_UIC000_ADDED_COUNT + B1_ADDED_COUNT);
   assert.equal(PASS8_UIC000_ADDED_COUNT, 2);
+  assert.equal(B1_ADDED_COUNT, 3);
   for (const [ruleId, severity, relPath, , , , , message] of A2_DELTA.added) {
-    assert.equal(ruleId, 'UIC-000', `${relPath}: only the pass-8 coverage gaps may appear`);
+    assert.equal(ruleId, 'UIC-000', `${relPath}: only a coverage gap may appear`);
     assert.equal(severity, 'coverage', `${relPath}: only a coverage gap may appear`);
-    assert.match(message, /TEMPLATE_INTERPOLATED_VALUE/, `${relPath}: unexpected coverage code`);
+    assert.match(message, /TEMPLATE_INTERPOLATED_VALUE|NON_LITERAL_STYLE_ASSIGNMENT/,
+      `${relPath}: unexpected coverage code`);
   }
   // The five findings A2 DID add were all UIC-008 / coverage /
   // ACTION_ROW_UNPROVEN. That rule is now owned by pass 5, which withdrew the
@@ -815,10 +868,25 @@ test('21d · no rule moved except UIC-008, which a later pass closed', () => {
       // carried them. Both endpoints are pinned; neither is a threshold.
       // …and pass 8 added exactly the two Parâmetros gaps enumerated above.
       assert.equal(before.coverage_gaps, 549);
-      assert.equal(after.coverage_gaps, 549 - PASS7_UIC000_REMOVED_COUNT + PASS8_UIC000_ADDED_COUNT);
-      assert.equal(after.coverage_gaps, 545);
+      // …and SPECIALIZED-CONTROLS-B1 removed a further nine, net of the three
+      // range repaints it restated under a new construct name.
+      assert.equal(after.coverage_gaps, 549 - PASS7_UIC000_REMOVED_COUNT + PASS8_UIC000_ADDED_COUNT
+        - B1_UIC000_NET);
+      assert.equal(B1_UIC000_NET, 9);
+      assert.equal(after.coverage_gaps, 536);
       assert.equal(after.blocking, 0, 'a coverage gap may never become a defect');
       assert.equal(after.debt, 0);
+      continue;
+    }
+    if (id === 'UIC-009') {
+      // SPECIALIZED-CONTROLS-B1 retired exactly two deprecated references by
+      // moving the reversal-reason textarea's border to css/tokens.css. Both
+      // endpoints are pinned; neither is a threshold, and debt only ever falls.
+      assert.equal(before.debt, UIC009_ENTRY_CEILING);
+      assert.equal(after.debt, UIC009_ENTRY_CEILING - B1_UIC009_REMOVED);
+      assert.equal(B1_UIC009_REMOVED, 2);
+      assert.equal(after.blocking, 0);
+      assert.equal(after.coverage_gaps, 0);
       continue;
     }
     assert.deepEqual(after, before, `${id} moved and A2 authorizes no movement outside UIC-008`);
@@ -833,18 +901,25 @@ test('21e · blocking, debt, inventory and support are unchanged', () => {
     .reduce((n, [, r]) => n + r[k], 0);
   assert.equal(sum(BASELINE, 'blocking'), sum(ENTRY_BASELINE, 'blocking'),
     'A2 is a radius-ownership change; it may not move a blocking count');
-  assert.equal(sum(BASELINE, 'debt'), sum(ENTRY_BASELINE, 'debt'));
+  assert.equal(sum(BASELINE, 'debt'),
+    sum(ENTRY_BASELINE, 'debt') - B1_UIC009_REMOVED,
+    'debt may only fall, and only by the two B1 retired references');
   // The coverage sum moved by exactly the six authorized pass-7 removals, and
   // the current repository totals are pinned to their post-pass-7 values.
   const coverageSum = (b) => Object.entries(b.summary_by_rule)
     .filter(([id]) => !RULES_OWNED_BY_A_LATER_PASS.has(id))
     .reduce((n, [, r]) => n + r.coverage_gaps, 0);
   assert.equal(coverageSum(ENTRY_BASELINE) - coverageSum(BASELINE),
-    PASS7_UIC000_REMOVED_COUNT - PASS8_UIC000_ADDED_COUNT);
-  assert.equal(BASELINE.findings.length, 867, 'current repository total after pass 8');
+    PASS7_UIC000_REMOVED_COUNT - PASS8_UIC000_ADDED_COUNT + B1_UIC000_NET);
+  // SPECIALIZED-CONTROLS-B1 FORWARD CORRECTION. B1 moved the specialized
+  // controls' inline styles into css/tokens.css, which the detector does not
+  // read, so nine UIC-000 coverage gaps and two UIC-009 references stopped
+  // existing as JavaScript declarations: 867 -> 856, coverage 545 -> 536,
+  // debt 322 -> 320. B1 ADDED no finding to any rule.
+  assert.equal(BASELINE.findings.length, 856, 'current repository total after B1');
   assert.equal(BASELINE.coverage_summary.FULL, 31);
   assert.equal(BASELINE.coverage_summary.PARTIAL, 36);
-  assert.equal(rule('UIC-009').debt, UIC009_ENTRY_CEILING);
+  assert.equal(rule('UIC-009').debt, UIC009_ENTRY_CEILING - B1_UIC009_REMOVED);
   assert.equal(BASELINE.inventory.application.count, ENTRY_BASELINE.inventory.application.count);
   assert.equal(BASELINE.inventory.application.count, APPLICATION_FILE_COUNT);
   assert.equal(BASELINE.coverage_summary.UNSUPPORTED, 0);

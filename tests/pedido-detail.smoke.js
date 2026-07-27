@@ -1849,8 +1849,15 @@ test('tec-acceptance-B: modal do Pedido compoe o bloco de distribuicao compartil
     'deve manter o fallback para a tela da OP');
   // Os itens da OP passaram de tabela estatica a um slider por item, com
   // consumo de fio ao vivo — tudo no builder compartilhado, dono unico.
-  assert.match(oduSrc, /type:\s*['"]range['"]/,
+  // SPECIALIZED-CONTROLS-B1: o slider deixou de ser um `el('input', { type:
+  // 'range' })' local e passou a resolver pelo primitivo compartilhado
+  // window.rangeInput(), dono unico da geometria de trilho e polegar. O
+  // controle e o mesmo — um slider por item da OP, com min/max/step e o
+  // gradiente de progresso calculado em tempo de execucao.
+  assert.match(oduSrc, /window\.rangeInput\(\{/,
     'op-distribuicao-ui.js deve renderizar um slider por item da OP');
+  assert.match(oduSrc, /max:\s*String\(maxCalc\)/,
+    'o slider deve continuar limitado ao maximo calculado do item');
   assert.match(oduSrc, /CONSUMO DE FIO/,
     'op-distribuicao-ui.js deve renderizar o consumo de fio ao vivo');
 });
@@ -2260,6 +2267,35 @@ function makeHubRuntime() {
       bar.appendChild(c);
     });
     return bar;
+  };
+  // SPECIALIZED-CONTROLS-B1: js/ui.js gained the five role-specific control
+  // primitives. This harness stubs the shared UI layer instead of loading
+  // js/ui.js, so the two this screen reaches are stubbed here exactly like
+  // textInput / selectInput / modalActionBar above. Each reproduces the real
+  // contract the runtime assertions depend on: the caller keeps min/max/step,
+  // the value and the input listener, and the progress fill stays a plain
+  // `style.background` assignment the primitive never touches.
+  sandbox.window.rangeInput = (opts = {}) => {
+    const input = node('input');
+    input.setAttribute('type', 'range');
+    input.className = 'rv-range';
+    if (opts.min != null) input.setAttribute('min', String(opts.min));
+    if (opts.max != null) input.setAttribute('max', String(opts.max));
+    if (opts.step != null) input.setAttribute('step', String(opts.step));
+    if (opts.ariaLabel) input.setAttribute('aria-label', opts.ariaLabel);
+    if (opts.value != null) input.value = String(opts.value);
+    if (typeof opts.oninput === 'function') input.addEventListener('input', opts.oninput);
+    return input;
+  };
+  sandbox.window.textArea = (opts = {}) => {
+    const area = node('textarea');
+    area.className = 'rv-textarea';
+    area.setAttribute('data-rv-textarea', opts.role || 'standard');
+    if (opts.rows != null) area.setAttribute('rows', String(opts.rows));
+    if (opts.placeholder) area.placeholder = opts.placeholder;
+    if (opts.ariaLabel) area.setAttribute('aria-label', opts.ariaLabel);
+    area.value = opts.value || '';
+    return area;
   };
   sandbox.window.buildEntregaInlineForm = () => ({ node: node('div'), getPayload: () => [], getSplitOption: () => ({ forceSplit: false, motivo: null }) });
   sandbox.window.salvarEntregaCima = async () => true;

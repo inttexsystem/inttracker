@@ -209,11 +209,16 @@ test('2 · UIC-005 remains zero and no rule moved', () => {
   // zero with the KPI hierarchy intact, is asserted above and unchanged.
   // Phase-5 pass 8 then added two UIC-000 gaps for the Cadastros »
   // Parâmetros derived width owner: 865 -> 867.
-  assert.equal(BASELINE.findings.length, 867);
-  assert.equal(rule('UIC-000').coverage_gaps, 545);
+  // SPECIALIZED-CONTROLS-B1 FORWARD CORRECTION. B1 moved the specialized
+  // controls' inline styles into css/tokens.css, which the detector does not
+  // read, so nine UIC-000 coverage gaps and two UIC-009 references stopped
+  // existing as JavaScript declarations: 867 -> 856, coverage 545 -> 536,
+  // debt 322 -> 320. B1 ADDED no finding to any rule.
+  assert.equal(BASELINE.findings.length, 856);
+  assert.equal(rule('UIC-000').coverage_gaps, 536);
   assert.equal(rule('UIC-006').blocking, 0);
   assert.equal(rule('UIC-006').total, 0);
-  assert.equal(rule('UIC-009').debt, 322);
+  assert.equal(rule('UIC-009').debt, 320);
   assert.equal(BASELINE.coverage_summary.FULL, 31);
   assert.equal(BASELINE.coverage_summary.PARTIAL, 36);
   assert.equal(BASELINE.coverage_summary.UNSUPPORTED, 0);
@@ -574,7 +579,7 @@ test('27 · every changed runtime asset carries the A1 cache token', () => {
   // became the select adapter — so those two now carry the LATER pass-7 token.
   // The invariant this test owns is intact: every asset A1 changed is still
   // invalidated, and no asset A1 left alone was retokenised by A1.
-  const CHANGED_BY_A1_THEN_PASS7 = ['css/tokens.css'];
+  const CHANGED_BY_A1_THEN_PASS7 = [];
   // Pass-7 correction A4 bound expedicao-admin's visible label to its combobox,
   // so that asset moved on again — to the A4 token.
   const PASS7_A4 = '20260727-ui-p5-pass7-native-select-a4-a11y-geometry';
@@ -590,8 +595,7 @@ test('27 · every changed runtime asset carries the A1 cache token', () => {
    */
   const PASS8 = '20260727-ui-p5-pass8-table-r1';
   const CHANGED_BY_A1_THEN_PASS8 = [
-    'js/screens/cliente-dashboard.js',
-    'js/screens/expedicao-admin.js', 'js/screens/manta-expedicao-ui.js',
+    'js/screens/cliente-dashboard.js', 'js/screens/manta-expedicao-ui.js',
     'js/screens/pedido-detail-render.js',
   ];
   /*
@@ -604,11 +608,25 @@ test('27 · every changed runtime asset carries the A1 cache token', () => {
    * was retokenised BY A1. Only which later token invalidates js/ui.js moved.
    */
   const CONTAINMENT_A1 = '20260727-ui-action-containment-a1';
-  const CHANGED_BY_A1_THEN_CONTAINMENT_A1 = ['js/ui.js'];
+  const CHANGED_BY_A1_THEN_CONTAINMENT_A1 = [];
+  /*
+   * SPECIALIZED-CONTROLS-B1 FORWARD CORRECTION
+   *
+   * B1 added the specialized-control role geometry to css/tokens.css, made
+   * js/ui.js the owner of the five role primitives and migrated the
+   * expedicao observation textarea, so three of A1's seven assets changed
+   * again. A B1 token is strictly LATER than an A1, pass-7, pass-8 or
+   * containment one, so A1's invariant is intact: every asset A1 changed is
+   * still invalidated, and no asset A1 left alone was retokenised BY A1.
+   */
+  const B1 = '20260727-ui-specialized-controls-b1';
+  const CHANGED_BY_A1_THEN_B1 = [
+    'css/tokens.css', 'js/ui.js', 'js/screens/expedicao-admin.js',
+  ];
   const CHANGED = ['js/screens/painel.js'];
   assert.equal(CHANGED.length + CHANGED_BY_A1_THEN_PASS7.length
     + CHANGED_BY_A1_THEN_PASS7_A4.length + CHANGED_BY_A1_THEN_PASS8.length
-    + CHANGED_BY_A1_THEN_CONTAINMENT_A1.length, 7,
+    + CHANGED_BY_A1_THEN_CONTAINMENT_A1.length + CHANGED_BY_A1_THEN_B1.length, 7,
     'the A1 changed-asset population must stay seven');
   for (const rel of CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${TOKEN}"`), `${rel} was not retokenised`);
@@ -627,6 +645,10 @@ test('27 · every changed runtime asset carries the A1 cache token', () => {
   for (const rel of CHANGED_BY_A1_THEN_CONTAINMENT_A1) {
     assert.ok(INDEX.includes(`"${rel}?v=${CONTAINMENT_A1}"`),
       `${rel} must carry the later action-containment A1 token`);
+  }
+  for (const rel of CHANGED_BY_A1_THEN_B1) {
+    assert.ok(INDEX.includes(`"${rel}?v=${B1}"`),
+      `${rel} must carry the later specialized-controls B1 token`);
   }
   assert.equal((INDEX.match(new RegExp(TOKEN, 'g')) || []).length, CHANGED.length,
     'an asset that did not change was retokenised');

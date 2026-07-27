@@ -283,9 +283,13 @@
       controls.appendChild(filtroTipoSelect);
 
       const toggle = window.el('label', { style: 'display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--rv-text-secondary); user-select:none; cursor:pointer; white-space:nowrap;' });
-      toggle.appendChild(window.el('input', {
-        type: 'checkbox',
+      // B1: the inactive-user filter resolves through the canonical visible
+      // checkbox instead of the user-agent default box, which declared no
+      // size, no focus treatment and no disabled state. The handler, the
+      // filter semantics and the re-render are unchanged.
+      toggle.appendChild(window.checkboxInput({
         checked: mostrarInativos,
+        ariaLabel: 'Mostrar inativos',
         onchange: (ev) => { mostrarInativos = !!ev.target.checked; renderStandalone(); }
       }));
       toggle.appendChild(window.el('span', {}, 'Mostrar inativos'));

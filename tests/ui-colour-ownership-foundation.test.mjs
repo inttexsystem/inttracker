@@ -47,7 +47,7 @@ const DECISIONS = read('docs/architecture/DESIGN_DECISIONS.md');
  * stylesheet is delivered exactly once, only under a versioned URL, and never
  * bare. Those three assertions are unchanged below.
  */
-const PASS1_TOKEN = '20260727-ui-p5-pass7-native-select-a1';
+const PASS1_TOKEN = '20260727-ui-specialized-controls-b1';
 const TOKENS_LINK = `<link rel="stylesheet" href="css/tokens.css?v=${PASS1_TOKEN}">`;
 
 const SCREEN_DIR = path.join(ROOT, 'js', 'screens');
@@ -92,6 +92,43 @@ const PASS6_NEW_TOKENS = [
 const PASS7_NEW_TOKENS = [
   '--rv-z-popover',              // layer 225 — above the modal, below the toast
   '--rv-select-popover-max-h',   // 320px list ceiling before it scrolls
+];
+
+/**
+ * The role geometry SPECIALIZED-CONTROLS-B1 ratified for the five role-specific
+ * primitives. Held apart from every earlier list for the same reason: each
+ * addition stays attributable to the order that authorized it.
+ *
+ * None of these is a colour. They are the geometry a multiline textarea, a
+ * checkbox, a switch and a range need and that the generic 32/34/38px control
+ * ladder deliberately does not define. Every value is one the product already
+ * rendered before the pass; nothing here is a new visual invention.
+ */
+const B1_NEW_TOKENS = [
+  // multiline textarea — shared box plus a bounded minimum-height enum
+  '--rv-textarea-pad',
+  '--rv-textarea-line-height',
+  '--rv-textarea-min-autosize',
+  '--rv-textarea-min-compact',
+  '--rv-textarea-min-standard',
+  '--rv-textarea-min-medium',
+  '--rv-textarea-min-message',
+  '--rv-textarea-min-notice',
+  '--rv-textarea-min-large',
+  '--rv-textarea-min-tracking',
+  '--rv-textarea-counter-pad',
+  // checkbox
+  '--rv-checkbox-size',
+  // switch — track and knob are one component
+  '--rv-switch-track-w',
+  '--rv-switch-track-h',
+  '--rv-switch-knob',
+  '--rv-switch-knob-inset',
+  '--rv-switch-knob-travel',
+  '--rv-switch-field-h',
+  // range
+  '--rv-range-track-h',
+  '--rv-range-thumb',
 ];
 
 /** Canonical token set at the phase-4 checkpoint 9fbb84c, before D9. */
@@ -245,7 +282,8 @@ test('1b · the composed tokens resolve to the family they claim', () => {
 
 test('2 · no canonical token exists beyond the phase-4 baseline plus the D9 list', () => {
   const { canonical, deprecated } = parseTokenDeclarations(TOKENS_CSS);
-  const allowed = new Set([...BASELINE_CANONICAL, ...AUTHORIZED_NEW_TOKENS, ...PASS6_NEW_TOKENS, ...PASS7_NEW_TOKENS]);
+  const allowed = new Set([...BASELINE_CANONICAL, ...AUTHORIZED_NEW_TOKENS, ...PASS6_NEW_TOKENS,
+    ...PASS7_NEW_TOKENS, ...B1_NEW_TOKENS]);
   const unexpected = canonical.filter((t) => !allowed.has(t));
   assert.deepEqual(unexpected, [], `unauthorized canonical token(s): ${unexpected.join(', ')}`);
 
@@ -255,7 +293,7 @@ test('2 · no canonical token exists beyond the phase-4 baseline plus the D9 lis
   assert.equal(
     canonical.length,
     BASELINE_CANONICAL.length + AUTHORIZED_NEW_TOKENS.length + PASS6_NEW_TOKENS.length
-      + PASS7_NEW_TOKENS.length,
+      + PASS7_NEW_TOKENS.length + B1_NEW_TOKENS.length,
   );
   // The deprecated compatibility block is untouched by this pass.
   assert.equal(deprecated.length, 26, 'the LEGACY COMPATIBILITY block changed size');

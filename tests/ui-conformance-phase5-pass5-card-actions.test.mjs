@@ -82,7 +82,12 @@ test('3 · the inventory the pass was measured over is unchanged', () => {
   // described style expressions ON the deleted native selects (886 -> 865);
   // phase-5 pass 8 then added two UIC-000 gaps for the Cadastros » Parâmetros
   // derived width owner (865 -> 867, coverage 543 -> 545).
-  assert.equal(BASELINE.findings.length, 867);
+  // SPECIALIZED-CONTROLS-B1 FORWARD CORRECTION. B1 moved the specialized
+  // controls' inline styles into css/tokens.css, which the detector does not
+  // read, so nine UIC-000 coverage gaps and two UIC-009 references stopped
+  // existing as JavaScript declarations: 867 -> 856, coverage 545 -> 536,
+  // debt 322 -> 320. B1 ADDED no finding to any rule.
+  assert.equal(BASELINE.findings.length, 856);
 });
 
 test('4 · the blanket ACTION_ROW_UNPROVEN branch no longer exists', () => {
@@ -511,6 +516,31 @@ const PASS7_REMOVED_SELECT_FACADES = [
 const PASS7_FACADE_REMOVED_COUNT = PASS7_REMOVED_SELECT_FACADES
   .reduce((n, r) => n + r[2], 0);
 
+/*
+ * SPECIALIZED-CONTROLS-B1 FORWARD CORRECTION
+ *
+ * B1 deleted THREE more card-shaped declarations. Every one was a multiline
+ * TEXTAREA's inline style, which satisfies this coarse heuristic only because
+ * it declares a surface background, a 1px --rv-border-strong border and a
+ * radius on one line. None was a business card: css/tokens.css now owns that
+ * box through the canonical `.rv-textarea` role.
+ *
+ * The action inventory moved by exactly ONE construction, for a mechanical
+ * reason rather than a behavioural one: the shell's visually hidden
+ * compatibility logout is no longer spelled as a literal `el('button', ...)`
+ * in the screen because window.visuallyHidden() builds it, so this coarse
+ * counter still sees the `onclick:` and no longer sees the `el('button'`. The
+ * action is unchanged and tests/screens-common.smoke.js still proves the click
+ * reaches window.logout.
+ */
+const B1_REMOVED_TEXTAREA_BOXES = [
+  ['js/screens/cliente-pedido-form.js', 2, 'item observation + general instructions textarea boxes'],
+  ['js/screens/pedido-form.js', 1, 'general instructions autosizing textarea box'],
+];
+
+const B1_TEXTAREA_REMOVED_COUNT = B1_REMOVED_TEXTAREA_BOXES
+  .reduce((n, r) => n + r[1], 0);
+
 test('12 · the coarse action inventory is unchanged by this pass', () => {
   const ACTION = /(?:window\.)?el\(\s*'button'|(?:window\.)?actionButton\s*\(|onclick\s*:/g;
   let constructions = 0;
@@ -529,13 +559,18 @@ test('12 · the coarse action inventory is unchanged by this pass', () => {
   // A change here must be explained exactly and must never represent a new or
   // removed business action. Pass 5 added no control and removed none, and
   // pass 7 added none either: it replaced controls one for one.
-  assert.equal(constructions, 485, `ACTION_CONSTRUCTION_COUNT = ${constructions}`);
+  // B1: 485 minus the ONE literal el('button') the shell's visually hidden
+  // logout no longer spells itself. The action is not gone: its `onclick:` is
+  // still counted here and the click still reaches window.logout.
+  assert.equal(constructions, 484, `ACTION_CONSTRUCTION_COUNT = ${constructions}`);
   assert.equal(bearingFiles, 39, `ACTION_BEARING_FILE_COUNT = ${bearingFiles}`);
-  // A2: 133 at the pass-5 checkpoint, minus the eight pass-7 select facades.
+  // A2: 133 at the pass-5 checkpoint, minus the eight pass-7 select facades,
+  // minus the three B1 textarea boxes.
   assert.equal(PASS7_FACADE_REMOVED_COUNT, 8);
-  assert.equal(cardShaped, 133 - PASS7_FACADE_REMOVED_COUNT,
+  assert.equal(B1_TEXTAREA_REMOVED_COUNT, 3);
+  assert.equal(cardShaped, 133 - PASS7_FACADE_REMOVED_COUNT - B1_TEXTAREA_REMOVED_COUNT,
     `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`);
-  assert.equal(cardShaped, 125, `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`);
+  assert.equal(cardShaped, 122, `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`);
 });
 
 test('12b · every removed card-shaped declaration was a select facade, not a card', () => {
@@ -546,8 +581,16 @@ test('12b · every removed card-shaped declaration was a select facade, not a ca
     && /border:\s*1px solid var\(--rv-border\b/.test(ln)
     && /border-radius/.test(ln);
   const byFile = new Map();
+  const selectFiles = new Set();
   for (const [rel, , n] of PASS7_REMOVED_SELECT_FACADES) {
     byFile.set(rel, (byFile.get(rel) || 0) + n);
+    selectFiles.add(rel);
+  }
+  // B1's three removals are textarea boxes, proved at the same entry commit.
+  const textareaFiles = new Set();
+  for (const [rel, n] of B1_REMOVED_TEXTAREA_BOXES) {
+    byFile.set(rel, (byFile.get(rel) || 0) + n);
+    textareaFiles.add(rel);
   }
   for (const [rel, expectedDrop] of byFile) {
     const entry = execFileSync('git', ['show', `41655c6:${rel}`],
@@ -555,8 +598,14 @@ test('12b · every removed card-shaped declaration was a select facade, not a ca
     const before = entry.split(/\r?\n/).filter(isCardShaped).length;
     const after = read(rel).split(/\r?\n/).filter(isCardShaped).length;
     assert.equal(before - after, expectedDrop, `${rel}: card-shaped drop`);
-    // The file still builds single-choice controls — through the owner.
-    assert.match(read(rel), /createSelectPopover\(/, `${rel} lost its select entirely`);
+    // The file still builds the control whose box was removed, through the
+    // canonical owner, instead of reacquiring the box locally.
+    if (selectFiles.has(rel)) {
+      assert.match(read(rel), /createSelectPopover\(/, `${rel} lost its select entirely`);
+    }
+    if (textareaFiles.has(rel)) {
+      assert.match(read(rel), /window\.textArea\(/, `${rel} lost its textarea entirely`);
+    }
   }
 });
 
@@ -706,7 +755,7 @@ test('24 · passes 1, 2, 3 and 4 remain closed', () => {
 });
 
 test('25 · no rule outside UIC-008 moved in this pass', () => {
-  assert.equal(rule('UIC-000').coverage_gaps, 545);
+  assert.equal(rule('UIC-000').coverage_gaps, 536);
   // UIC-005 was 80 at the pass-5 checkpoint; the authorized pass-6 typography
   // order took it to 0 and moved nothing else. Pass 7 then took UIC-006 to 0.
   // Both are carried forward mechanically.
@@ -716,7 +765,7 @@ test('25 · no rule outside UIC-008 moved in this pass', () => {
   // Pass 5's own rule is still exactly closed.
   assert.equal(rule('UIC-008').blocking, 0);
   assert.equal(rule('UIC-008').coverage_gaps, 0);
-  assert.equal(rule('UIC-009').debt, 322);
+  assert.equal(rule('UIC-009').debt, 320);
   assert.equal(BASELINE.coverage_summary.FULL, 31);
   assert.equal(BASELINE.coverage_summary.PARTIAL, 36);
 });

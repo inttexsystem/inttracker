@@ -787,13 +787,38 @@ const SUPERSEDED_BY_CONTAINMENT_A1 = [
   'js/screens/op-nova.js',
   'js/screens/pedido-detail-events.js',
 ];
-const superseded = (rel) => SUPERSEDED_BY_CONTAINMENT_A1.includes(rel);
+/**
+ * SPECIALIZED-CONTROLS-B1 (a LATER, separately authorized order) changed seven
+ * of the seventeen files again when the five role-specific control primitives
+ * landed and their 22 constructions migrated. Four of those seven had already
+ * been superseded by ACTION-CONTAINMENT-A1, so their token moves strictly
+ * forward once more.
+ *
+ * The pass-8 population is UNCHANGED at seventeen. A file only ever moves
+ * FORWARD to a strictly later token, which is exactly what the guards prove.
+ */
+const B1_TOKEN = '20260727-ui-specialized-controls-b1';
+const SUPERSEDED_BY_B1 = [
+  'js/ui.js',
+  'js/screens/admin-usuarios.js',
+  'js/screens/cadastros.js',
+  'js/screens/cliente-pedido-form.js',
+  'js/screens/expedicao-admin.js',
+  'js/screens/pedido-detail-events.js',
+  'js/screens/pedido-parciais-admin.js',
+];
+const supersededByB1 = (rel) => SUPERSEDED_BY_B1.includes(rel);
+const superseded = (rel) => SUPERSEDED_BY_CONTAINMENT_A1.includes(rel)
+  || supersededByB1(rel);
 
 test('10.1 every changed script carries a Pass-8 token exactly once', () => {
   assert.equal(RETOKENIZED.length, 17, 'the pass-8 changed-asset population must stay seventeen');
   // Every superseded file must really be one of the seventeen — a later order
   // may move a pass-8 token forward, never invent membership in this set.
   for (const rel of SUPERSEDED_BY_CONTAINMENT_A1) {
+    assert.ok(RETOKENIZED.includes(rel), `${rel} was never a pass-8 asset`);
+  }
+  for (const rel of SUPERSEDED_BY_B1) {
     assert.ok(RETOKENIZED.includes(rel), `${rel} was never a pass-8 asset`);
   }
   for (const rel of RETOKENIZED_R1) {
@@ -808,10 +833,20 @@ test('10.1 every changed script carries a Pass-8 token exactly once', () => {
   // A superseded file carries the containment token and NEITHER pass-8 token:
   // a stale token would let a warm cache keep pre-A1 JavaScript.
   for (const rel of SUPERSEDED_BY_CONTAINMENT_A1) {
+    if (supersededByB1(rel)) continue;
     assert.ok(INDEX.includes(`"${rel}?v=${CONTAINMENT_A1_TOKEN}"`),
       `${rel} was not retokenised for ACTION-CONTAINMENT-A1`);
     assert.ok(!INDEX.includes(`"${rel}?v=${PASS8_TOKEN}"`), `${rel} kept the superseded pass-8 R1 token`);
     assert.ok(!INDEX.includes(`"${rel}?v=${PASS8_A1_TOKEN}"`), `${rel} kept the superseded pass-8 A1 token`);
+  }
+  // A B1 arrival carries the B1 token and NO earlier one.
+  for (const rel of SUPERSEDED_BY_B1) {
+    assert.ok(INDEX.includes(`"${rel}?v=${B1_TOKEN}"`),
+      `${rel} was not retokenised for SPECIALIZED-CONTROLS-B1`);
+    assert.ok(!INDEX.includes(`"${rel}?v=${PASS8_TOKEN}"`), `${rel} kept the superseded pass-8 R1 token`);
+    assert.ok(!INDEX.includes(`"${rel}?v=${PASS8_A1_TOKEN}"`), `${rel} kept the superseded pass-8 A1 token`);
+    assert.ok(!INDEX.includes(`"${rel}?v=${CONTAINMENT_A1_TOKEN}"`),
+      `${rel} kept the superseded containment token`);
   }
   // Still exactly one reference per file, superseded or not.
   for (const rel of RETOKENIZED) {
@@ -832,17 +867,27 @@ test('10.1b the containment token lands only on the files that order changed', (
   // but must still carry the token exactly once.
   const CONTAINMENT_A1_ASSETS = [...SUPERSEDED_BY_CONTAINMENT_A1, 'js/screens/admin-usuarios-modal.js'];
   assert.equal(CONTAINMENT_A1_ASSETS.length, 7);
+  // SPECIALIZED-CONTROLS-B1 moved FIVE of those seven forward again, so they
+  // now carry the strictly later B1 token. The containment population is
+  // unchanged at seven; only which token invalidates five of them moved.
+  const MOVED_ON_BY_B1 = CONTAINMENT_A1_ASSETS.filter((rel) => supersededByB1(rel)
+    || rel === 'js/screens/admin-usuarios-modal.js');
+  assert.equal(MOVED_ON_BY_B1.length, 5);
   for (const rel of CONTAINMENT_A1_ASSETS) {
-    assert.ok(INDEX.includes(`"${rel}?v=${CONTAINMENT_A1_TOKEN}"`), `${rel} missing the containment token`);
+    const expected = MOVED_ON_BY_B1.includes(rel) ? B1_TOKEN : CONTAINMENT_A1_TOKEN;
+    assert.ok(INDEX.includes(`"${rel}?v=${expected}"`), `${rel} missing its containment-or-later token`);
   }
-  assert.equal((INDEX.match(new RegExp(CONTAINMENT_A1_TOKEN, 'g')) || []).length, 7,
+  assert.equal((INDEX.match(new RegExp(CONTAINMENT_A1_TOKEN, 'g')) || []).length,
+    CONTAINMENT_A1_ASSETS.length - MOVED_ON_BY_B1.length,
     'the containment token appears on a file that order did not change');
 });
 
 test('10.2 UNCHANGED assets keep their previous tokens', () => {
-  // css/tokens.css and css/responsive.css were not touched, so retokenising
-  // them would invalidate a warm cache for no reason.
-  assert.match(INDEX, /css\/tokens\.css\?v=20260727-ui-p5-pass7-native-select-a1/);
+  // css/responsive.css was not touched, so retokenising it would invalidate a
+  // warm cache for no reason. css/tokens.css was NOT touched by pass 8 either,
+  // but SPECIALIZED-CONTROLS-B1 later added the specialized-control role
+  // geometry to it, so it correctly carries that strictly later token.
+  assert.match(INDEX, /css\/tokens\.css\?v=20260727-ui-specialized-controls-b1/);
   assert.match(INDEX, /css\/responsive\.css\?v=20260725-pedido-operational-batch3/);
   assert.match(INDEX, /js\/select-popover\.js\?v=20260727-ui-p5-pass7-native-select-a1/);
   assert.match(INDEX, /js\/screens\/pedido-item-row-editor\.js\?v=20260727-ui-p5-pass7-native-select-a1/);

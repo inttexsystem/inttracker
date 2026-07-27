@@ -195,7 +195,15 @@ test('reversal flow: modal payload (lancamento_id + motivo), confirmDialog gate,
   const modal = overlayByTitle(env.sandbox, /Estornar recebimento/);
   assert.ok(modal, 'reversal modal open');
   const motivoEl = findAll(modal, (n) => n.tagName === 'TEXTAREA')[0];
-  assert.match(motivoEl.getAttribute('style') || '', /border-radius:var\(--rv-radius-control\)/, 'reversal motivo textarea uses --rv-radius-control (VISUAL-GATE-R1)');
+  // VISUAL-GATE-R1, forward-corrected by SPECIALIZED-CONTROLS-B1. The gate's
+  // intent is that the reversal reason is a real multiline control with a
+  // canonical, owned box — not that it spells its radius inline through the
+  // DEPRECATED --rv-radius-control alias. It now resolves through the shared
+  // textarea primitive, whose radius css/tokens.css declares once as the
+  // canonical var(--rv-radius); the deprecated reference is retired with it.
+  assert.match(motivoEl.className || '', /\brv-textarea\b/, 'reversal motivo textarea is not the canonical primitive');
+  assert.equal(motivoEl.getAttribute('data-rv-textarea'), 'rows', 'reversal motivo textarea lost its declared role');
+  assert.doesNotMatch(motivoEl.getAttribute('style') || '', /--rv-radius-control/, 'a deprecated radius alias survived');
   inputByAttr(modal, 'data-reversal-kg', 800).value = '8';
   // motivo textarea
   findAll(modal, (n) => n.tagName === 'TEXTAREA')[0].value = 'devolução parcial';

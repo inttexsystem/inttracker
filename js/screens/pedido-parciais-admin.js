@@ -123,16 +123,18 @@
     var metrosInput = window.textInput({ type: 'number', value: '', placeholder: '0,00', step: '0.01' });
     var dataInput = window.textInput({ type: 'date', value: dataHoje });
     var tituloInput = window.textInput({ type: 'text', value: '', placeholder: 'Titulo opcional' });
-    var mensagemInput = window.el('textarea', {
-      style: 'border-radius:var(--rv-radius);', class: 'w-full border px-3 py-2 min-h-[96px] focus:outline-none focus:ring-2 focus:ring-blue-500',
+    // B1: the 96px Tailwind minimum becomes the canonical `notice` textarea
+    // role; the border, radius, padding and focus ring move to css/tokens.css.
+    var mensagemInput = window.textArea({
+      role: 'notice',
       placeholder: 'Mensagem opcional para o cliente',
+      ariaLabel: 'Mensagem',
     });
     var sequenciaInput = window.textInput({ type: 'number', value: '', placeholder: '1', step: '1' });
-    var visivelInput = window.el('input', {
-      type: 'checkbox',
-      style: 'border-radius:var(--rv-radius);', class: 'h-4 w-4 border-gray-300 text-blue-700 focus:ring-blue-500',
-    });
-    visivelInput.checked = false;
+    // B1: the partial-shipment visibility flag resolves through the canonical
+    // visible checkbox. Its unchecked default and the `.checked` read on submit
+    // are unchanged.
+    var visivelInput = window.checkboxInput({ checked: false, ariaLabel: 'Visivel para o cliente' });
 
     card.appendChild(window.el('h2', { class: 'text-base font-bold text-gray-900 mb-1' },
       'Parciais do pedido'

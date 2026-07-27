@@ -121,6 +121,51 @@
   --rv-h-default: 34px;  /* secondary action in an entity header       */
   --rv-h-primary: 38px;  /* dominant flow action (lives in the rail)   */
 
+  /* ============================================================
+     SPECIALIZED CONTROLS — role geometry OUTSIDE the 3-rung ladder
+
+     SPECIALIZED-CONTROLS-B1. A multiline textarea, a checkbox, a
+     switch and a range have no single-line box, so none of them is a
+     rung of the ladder above and none may be forced onto one. Each is
+     its own role with its own declared geometry, owned here.
+
+     Every value below is a value the product ALREADY rendered; this
+     block promotes existing geometry to a single owner, it does not
+     invent a new visual language.
+     ============================================================ */
+
+  /* -- multiline textarea -- */
+  --rv-textarea-pad:          9px 12px;
+  --rv-textarea-line-height:  1.5;
+  /* A bounded MINIMUM-HEIGHT enum. Each rung is a distinct use case that
+     already existed; collapsing them onto one value would change intent.
+     The `rows` role declares no minimum at all — the rows attribute is
+     the geometry there.                                               */
+  --rv-textarea-min-autosize:  40px;  /* content-driven, grows on input   */
+  --rv-textarea-min-compact:   44px;  /* modal field floor               */
+  --rv-textarea-min-standard:  56px;  /* short optional note             */
+  --rv-textarea-min-medium:    80px;  /* counted item note               */
+  --rv-textarea-min-message:   92px;  /* inline customer message         */
+  --rv-textarea-min-notice:    96px;  /* partial-shipment message        */
+  --rv-textarea-min-large:    104px;  /* modal observations              */
+  --rv-textarea-min-tracking: 110px;  /* tracking message                */
+  --rv-textarea-counter-pad:   24px;  /* bottom gutter for an inline counter */
+
+  /* -- checkbox -- */
+  --rv-checkbox-size:  16px;
+
+  /* -- switch (track + knob are ONE component) -- */
+  --rv-switch-track-w:     40px;
+  --rv-switch-track-h:     22px;
+  --rv-switch-knob:        18px;
+  --rv-switch-knob-inset:   2px;
+  --rv-switch-knob-travel: 18px;
+  --rv-switch-field-h:     36px;
+
+  /* -- range -- */
+  --rv-range-track-h:   4px;
+  --rv-range-thumb:    16px;
+
   /* ---- TYPOGRAPHY ---- */
   --rv-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   /* Numeric emphasis has THREE levels above the compact metric, and they are
@@ -234,3 +279,228 @@
 
 /* Every number uses tabular figures. */
 .tnum, [data-num] { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ============================================================
+   SPECIALIZED CONTROLS — the five role primitives
+
+   SPECIALIZED-CONTROLS-B1. js/ui.js builds these controls and NEVER
+   declares their geometry; this stylesheet is their single owner.
+   A screen that needs one calls the primitive — it does not restyle
+   the result, and there is no per-call style escape hatch.
+
+   Each role declares its states explicitly: rest, hover,
+   focus-visible, disabled, invalid and (where it exists) checked.
+   ============================================================ */
+
+/* ---------- 1 · multiline textarea ---------- */
+
+.rv-textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--rv-textarea-pad);
+  border: 1px solid var(--rv-border-strong);
+  border-radius: var(--rv-radius);
+  background: var(--rv-surface);
+  color: var(--rv-text-primary);
+  font-family: inherit;
+  font-size: var(--rv-fs-body);
+  line-height: var(--rv-textarea-line-height);
+  outline: none;
+  resize: vertical;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.rv-textarea::placeholder { color: var(--rv-text-tertiary); }
+.rv-textarea:hover:not(:disabled):not(:focus) { border-color: var(--rv-brand-light); }
+.rv-textarea:focus,
+.rv-textarea:focus-visible {
+  border-color: var(--rv-brand);
+  box-shadow: 0 0 0 3px var(--rv-focus-ring);
+}
+.rv-textarea:disabled {
+  background: var(--rv-surface-subtle);
+  color: var(--rv-text-tertiary);
+  cursor: not-allowed;
+  resize: none;
+}
+.rv-textarea[aria-invalid="true"] { border-color: var(--rv-signal-negative); }
+.rv-textarea[aria-invalid="true"]:focus,
+.rv-textarea[aria-invalid="true"]:focus-visible {
+  box-shadow: 0 0 0 3px var(--rv-signal-negative-border);
+}
+
+/* The bounded minimum-height enum. `rows` is deliberately absent: that
+   role sizes from its rows attribute and declares no minimum. */
+.rv-textarea[data-rv-textarea="autosize"] { min-height: var(--rv-textarea-min-autosize); }
+.rv-textarea[data-rv-textarea="compact"]  { min-height: var(--rv-textarea-min-compact); }
+.rv-textarea[data-rv-textarea="standard"] { min-height: var(--rv-textarea-min-standard); }
+.rv-textarea[data-rv-textarea="medium"]   { min-height: var(--rv-textarea-min-medium); }
+.rv-textarea[data-rv-textarea="message"]  { min-height: var(--rv-textarea-min-message); }
+.rv-textarea[data-rv-textarea="notice"]   { min-height: var(--rv-textarea-min-notice); }
+.rv-textarea[data-rv-textarea="large"]    { min-height: var(--rv-textarea-min-large); }
+.rv-textarea[data-rv-textarea="tracking"] { min-height: var(--rv-textarea-min-tracking); }
+
+/* Autosizing stays CONTENT-DRIVEN: the shared primitive writes
+   style.height from scrollHeight. The stylesheet only removes the
+   scrollbar and the manual grip that would fight it. */
+.rv-textarea[data-rv-textarea-autosize] { resize: none; overflow-y: hidden; }
+.rv-textarea[data-rv-textarea-resize="none"] { resize: none; }
+/* A textarea with an inline character counter reserves the gutter the
+   counter is absolutely positioned into. */
+.rv-textarea[data-rv-textarea-counter] { padding-bottom: var(--rv-textarea-counter-pad); }
+
+/* ---------- 2 · visible checkbox ---------- */
+
+.rv-checkbox {
+  width: var(--rv-checkbox-size);
+  height: var(--rv-checkbox-size);
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--rv-accent-blue);
+  cursor: pointer;
+}
+.rv-checkbox:hover:not(:disabled) { filter: brightness(.96); }
+.rv-checkbox:checked { accent-color: var(--rv-accent-blue); }
+.rv-checkbox:focus-visible {
+  outline: 2px solid var(--rv-accent-blue);
+  outline-offset: 2px;
+}
+.rv-checkbox:disabled { cursor: not-allowed; opacity: .5; }
+.rv-checkbox[aria-invalid="true"] {
+  outline: 2px solid var(--rv-signal-negative);
+  outline-offset: 1px;
+}
+
+/* The COLLAPSED checkbox is a zero-size state carrier, never a second
+   visible control. It stays focusable on purpose: it is what makes the
+   switch below keyboard-operable. */
+.rv-checkbox-collapsed {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+}
+
+/* ---------- 3 · switch (track and knob are ONE component) ---------- */
+
+.rv-switch-field { display: block; }
+.rv-switch-label {
+  display: block;
+  font-size: var(--rv-fs-xs);
+  font-weight: 600;
+  color: var(--rv-text-secondary);
+  margin-bottom: 5px;
+}
+.rv-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: var(--rv-switch-field-h);
+  cursor: pointer;
+}
+.rv-switch[data-rv-switch-disabled] { cursor: not-allowed; }
+.rv-switch-track {
+  position: relative;
+  display: inline-block;
+  width: var(--rv-switch-track-w);
+  height: var(--rv-switch-track-h);
+  border-radius: var(--rv-radius);
+  background: var(--rv-surface-subtle);
+  transition: background .15s ease, box-shadow .15s ease;
+}
+.rv-switch-knob {
+  position: absolute;
+  top: var(--rv-switch-knob-inset);
+  left: var(--rv-switch-knob-inset);
+  width: var(--rv-switch-knob);
+  height: var(--rv-switch-knob);
+  border-radius: var(--rv-radius-pill);
+  background: var(--rv-surface);
+  box-shadow: var(--rv-shadow-sm);
+  transition: transform .15s ease;
+}
+/* CHECKED is declarative: the collapsed checkbox owns the state and the
+   track/knob follow it, so a programmatic `.checked = true` repaints
+   without any repaint handler. */
+.rv-switch .rv-checkbox-collapsed:checked ~ .rv-switch-track { background: var(--rv-viz-primary); }
+.rv-switch[data-rv-switch-tone="caution"] .rv-checkbox-collapsed:checked ~ .rv-switch-track {
+  background: var(--rv-signal-caution);
+}
+.rv-switch .rv-checkbox-collapsed:checked ~ .rv-switch-track .rv-switch-knob {
+  transform: translateX(var(--rv-switch-knob-travel));
+}
+.rv-switch .rv-checkbox-collapsed:focus-visible ~ .rv-switch-track {
+  box-shadow: 0 0 0 3px var(--rv-focus-ring);
+}
+.rv-switch .rv-checkbox-collapsed:disabled ~ .rv-switch-track { opacity: .5; }
+
+/* ---------- 4 · range ---------- */
+
+/* The PROGRESS FILL is runtime state, not geometry: the consumer computes
+   it on every input event and assigns it to `style.background`. An inline
+   background always beats this rule, so the declaration below is the rest
+   fallback only and can never overwrite the computed gradient. */
+.rv-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: var(--rv-range-track-h);
+  border: none;
+  border-radius: var(--rv-radius);
+  background: var(--rv-viz-track);
+  outline: none;
+  cursor: pointer;
+}
+.rv-range:disabled { cursor: not-allowed; opacity: .5; }
+.rv-range::-webkit-slider-runnable-track {
+  height: var(--rv-range-track-h);
+  border-radius: var(--rv-radius);
+  background: transparent;
+}
+.rv-range::-moz-range-track {
+  height: var(--rv-range-track-h);
+  border-radius: var(--rv-radius);
+  background: transparent;
+}
+.rv-range::-moz-range-progress { height: var(--rv-range-track-h); background: transparent; }
+.rv-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--rv-range-thumb);
+  height: var(--rv-range-thumb);
+  margin-top: calc((var(--rv-range-track-h) - var(--rv-range-thumb)) / 2);
+  border: 2px solid var(--rv-viz-primary);
+  border-radius: var(--rv-radius-pill);
+  background: var(--rv-surface);
+  box-shadow: var(--rv-shadow-sm);
+  cursor: inherit;
+}
+.rv-range::-moz-range-thumb {
+  width: var(--rv-range-thumb);
+  height: var(--rv-range-thumb);
+  border: 2px solid var(--rv-viz-primary);
+  border-radius: var(--rv-radius-pill);
+  background: var(--rv-surface);
+  box-shadow: var(--rv-shadow-sm);
+  cursor: inherit;
+}
+.rv-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--rv-focus-ring); }
+.rv-range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px var(--rv-focus-ring); }
+
+/* ---------- 5 · visually hidden content / control ---------- */
+
+/* Removed from the visual layer, kept in the accessibility tree. Never
+   display:none, which would hide it from assistive technology too. */
+.rv-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

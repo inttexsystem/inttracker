@@ -80,16 +80,16 @@
     const linhasState = opItens.map(it => {
       const existente = existentesPorItem[it.id];
       const metrosInput = window.textInput({ type: 'number', step: '0.01', value: existente ? String(existente.metros_entregues) : '', placeholder: '0,00' });
-      // Pass-3 §5.1: the real checkbox stays the state owner and keeps its
-      // specialized geometry (UI-SPECIALIZED-CONTROL-CONTRACT-GAP). Its
-      // visually hidden box moves to construction so the primitive is
-      // statically recoverable instead of anonymous.
-      const defeitoChk = window.el('input', {
-        type: 'checkbox',
-        class: 'h-4 w-4',
-        style: 'position:absolute;opacity:0;width:0;height:0;margin:0;',
+      // B1: the real checkbox stays the STATE OWNER and resolves through the
+      // canonical collapsed primitive. It is a zero-size state carrier in both
+      // layouts — the stacked one paints it as a switch, the inline one labels
+      // it with the word "defeito" — and it is never a second visible control.
+      // getPayload still reads .checked and nothing else changed.
+      const defeitoChk = window.checkboxInput({
+        collapsed: true,
+        checked: !!existente?.defeito,
+        ariaLabel: 'Defeito',
       });
-      if (existente?.defeito) defeitoChk.checked = true;
       const obsLinha = window.textInput({ type: 'text', value: existente?.observacao || '', placeholder: 'obs (opcional)' });
       return { op_item_id: it.id, metrosInput, defeitoChk, obsLinha };
     });
@@ -140,28 +140,15 @@
         return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       };
 
-      // Toggle visual ligado ao checkbox real de defeito (defeitoChk.checked
-      // segue sendo a fonte de verdade lida pelo getPayload).
+      // B1: track and knob are no longer two anonymous spans with their own
+      // geometry — they are ONE shared component owned by switchToggle(), and
+      // css/tokens.css owns its geometry, its tone and its
+      // checked/disabled/focus states. defeitoChk.checked remains the single
+      // source of truth read by getPayload; the repaint handler is gone
+      // because the stylesheet follows `:checked` declaratively, so even a
+      // programmatic assignment now repaints.
       var defeitoToggle = function (chk) {
-        var knob = window.el('span', {
-          style: 'position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:var(--rv-radius-pill);background:var(--rv-surface);box-shadow:var(--rv-shadow-sm);transition:transform .15s ease;',
-        });
-        // Pass-3 §5.2: the track is the non-control presentation of the
-        // checkbox state, so its static tag and geometry are declared at
-        // construction. paint() now updates only the dynamic background.
-        var track = window.el('span', {
-          style: 'position:relative;display:inline-block;width:40px;height:22px;border-radius:var(--rv-radius);transition:background .15s ease;',
-        }, knob);
-        var paint = function () {
-          if (chk.checked) track.style.background = 'var(--rv-brand)';
-          else track.style.background = 'var(--rv-surface-subtle)';
-          knob.style.transform = chk.checked ? 'translateX(18px)' : 'translateX(0)';
-        };
-        paint();
-        chk.addEventListener('change', paint);
-        return window.el('div', {},
-          window.el('label', { style: LABEL_STYLE }, 'Defeito'),
-          window.el('label', { style: 'position:relative;display:inline-flex;align-items:center;height:36px;cursor:pointer;' }, chk, track));
+        return window.switchToggle({ input: chk, label: 'Defeito', tone: 'brand' });
       };
 
       // 1) Dados gerais da transferência inteira: Data + Destino (látex).

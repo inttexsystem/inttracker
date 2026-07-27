@@ -558,10 +558,18 @@
       );
 
       // Observação do item
-      var obsTextarea = window.el('textarea', {
+      // B1: the 80px inline minimum becomes the canonical `medium` role. The
+      // extra bottom padding that reserves room for the character counter is
+      // the named `counter` modifier, not a padding escape hatch, and the
+      // non-resizable grip is the bounded `resize: 'none'` option. maxlength,
+      // the counter and the draft binding are unchanged.
+      var obsTextarea = window.textArea({
+        role: 'medium',
+        counter: true,
+        resize: 'none',
+        maxlength: 200,
         placeholder: 'Ex.: prioridade vitrine, embalagem separada, atenção na largura...',
-        maxlength: '200',
-        style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:4px; padding:9px 12px 24px; font-size:14px; font-family:inherit; color:var(--rv-text-primary); background:var(--rv-surface); resize:none; outline:none; min-height:80px; line-height:1.5; box-sizing:border-box;',
+        ariaLabel: 'Observação do item',
       });
       var counterSpan = window.el('span', {
         style: 'position:absolute; right:12px; bottom:10px; font-size:12px; color:var(--rv-text-tertiary);'
@@ -702,16 +710,20 @@
     // Section: Instruções + Finalizar
     // ------------------------------------------------------------------
     function buildBottomSection(saveBtn) {
-      var obsTextarea = window.el('textarea', {
+      // B1: autosizing is preserved exactly and becomes content-driven by the
+      // shared owner. This textarea never declared a minimum — it is sized by
+      // rows=1 and then by its content — so it keeps the `rows` role, which
+      // declares none. The state binding is unchanged.
+      var obsTextarea = window.textArea({
+        role: 'rows',
+        autosize: true,
         rows: 1,
+        value: state.observacao,
         placeholder: 'Informações adicionais sobre entrega, conferência ou prioridade…',
-        style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:4px; padding:9px 12px; font-size:14px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; outline:none; resize:none; line-height:1.5; box-sizing:border-box; overflow-y:hidden;',
+        ariaLabel: 'Instruções gerais',
       });
-      obsTextarea.value = state.observacao;
       obsTextarea.addEventListener('input', function () {
         state.observacao = obsTextarea.value;
-        obsTextarea.style.height = 'auto';
-        obsTextarea.style.height = obsTextarea.scrollHeight + 'px';
       });
 
       var instrCard = window.el('div', {

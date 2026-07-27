@@ -195,11 +195,17 @@
 
       var kgInput = window.textInput({ value: '', placeholder: '0,000' });
       kgInput.setAttribute('data-reversal-kg', String(lanc.id));
-      var motivoInput = el('textarea', {
-        class: 'w-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500',
-        style: 'border:1px solid var(--rv-color-input-border);border-radius:var(--rv-radius-control);',
+      // B1: a row-sized textarea declares no minimum — the rows attribute is
+      // its geometry — so it takes the canonical `rows` role. The reversal
+      // reason itself, its placeholder and the submit handling that reads it
+      // are unchanged; the two deprecated compatibility tokens it used to
+      // reference (--rv-color-input-border, --rv-radius-control) are retired
+      // with the inline style, because css/tokens.css now owns the border.
+      var motivoInput = window.textArea({
+        role: 'rows',
+        rows: 3,
         placeholder: 'Motivo do estorno',
-        rows: '3',
+        ariaLabel: 'Motivo do estorno',
       });
 
       var body = el('div', {});

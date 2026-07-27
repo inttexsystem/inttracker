@@ -390,11 +390,26 @@ test('13 · the knockout halo is not ratified as an elevation role', () => {
 });
 
 /* ============================================================
-   5 · UI-SPECIALIZED-CONTROL-CONTRACT-GAP — the two switch knobs
+   5 · the two switch knobs
 
    Their var(--rv-shadow-sm) is a member of the canonical elevation enum, but
    this pass does NOT ratify the switch component, its geometry or its shadow
    as precedent for any other component.
+
+   PASS-4-SHADOW-GUARD-FORWARD-CORRECTION-B1
+   Pass 4 remains CLOSED / ACCEPTED. Its knob assertion was written against the
+   SHAPE of the then-current implementation — two anonymous `el('span')` calls,
+   one per screen, each carrying the full geometry as inline style text — and
+   SPECIALIZED-CONTROLS-B1 intentionally replaced that implementation: the
+   switch is now ONE shared component owned by js/ui.js, and css/tokens.css
+   owns its geometry and its elevation.
+
+   The assertion below proves the SAME pass-4 contract — the knob carries
+   exactly one canonical elevation value, that value is var(--rv-shadow-sm),
+   the knob population is exactly two, and neither knob acquired a second
+   elevation — over the new structure. No coverage is weakened: the elevation
+   claim is now proved against a single owner instead of two copies, and the
+   two consumers are still asserted to exist.
    ============================================================ */
 
 const SWITCH_KNOBS = [
@@ -402,18 +417,42 @@ const SWITCH_KNOBS = [
   { id: 'manta-defeito-knob', path: 'js/screens/manta-output-form.js', helper: 'defeitoToggle' },
 ];
 
+/** The knob's elevation, declared once, in the single geometry owner. */
 const KNOB_SIGNATURE =
-  /el\('span', \{\s*\n?\s*style: 'position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:var\(--rv-radius-pill\);background:var\(--rv-surface\);box-shadow:var\(--rv-shadow-sm\);transition:transform \.15s ease;',/;
+  /^\.rv-switch-knob \{[^}]*border-radius:\s*var\(--rv-radius-pill\);[^}]*box-shadow:\s*var\(--rv-shadow-sm\);/m;
 
 test('14 · SPECIALIZED_SWITCH_KNOB_SHADOW_COUNT = 2, geometry and shadow preserved', () => {
+  const tokens = read('css/tokens.css');
+  const ui = read('js/ui.js');
+
+  // ONE declaration of the knob's elevation, in css/tokens.css.
+  assert.match(tokens, KNOB_SIGNATURE, 'the switch knob geometry or shadow changed');
+  assert.equal(
+    (tokens.match(/^\.rv-switch-knob \{/gm) || []).length,
+    1,
+    'the switch knob is declared more than once',
+  );
+  // ONE constructor, in js/ui.js, and it declares no elevation of its own.
+  assert.equal((ui.match(/class: 'rv-switch-knob'/g) || []).length, 1);
+  assert.ok(!/box-shadow/.test(ui.slice(ui.indexOf('function switchToggle'), ui.indexOf('function rangeInput'))),
+    'the switch constructor declares an elevation in JavaScript');
+
+  // Exactly two consumers, and neither carries a knob shadow of its own.
   let total = 0;
   for (const knob of SWITCH_KNOBS) {
     const text = read(knob.path);
     assert.match(text, new RegExp(`${knob.helper}\\b`), `${knob.id}: helper disappeared`);
-    assert.match(text, KNOB_SIGNATURE, `${knob.id}: the knob geometry or shadow changed`);
-    total += (text.match(new RegExp(KNOB_SIGNATURE.source, 'g')) || []).length;
+    assert.match(text, /window\.switchToggle\(/, `${knob.id}: the switch stopped resolving through its owner`);
+    assert.ok(!/box-shadow:var\(--rv-shadow-sm\)/.test(text), `${knob.id}: a screen-local knob shadow survived`);
+    total += (text.match(/window\.switchToggle\(/g) || []).length;
   }
   assert.equal(total, 2, `SPECIALIZED_SWITCH_KNOB_SHADOW_COUNT = ${total}`);
+
+  // The knob's elevation is still a member of the canonical enum, and only that.
+  const knobRule = /^\.rv-switch-knob \{([^}]*)\}/m.exec(tokens)[1];
+  const shadows = knobRule.match(/box-shadow:\s*([^;]+);/g) || [];
+  assert.equal(shadows.length, 1, 'the knob declares more than one elevation');
+  assert.ok(ELEVATION_TOKENS.includes('var(--rv-shadow-sm)'));
 });
 
 test('15 · the three non-elevation and specialized inventories are disjoint', () => {
@@ -630,16 +669,19 @@ test('32 · no rule outside UIC-004 moved in this pass', () => {
   // six UIC-000 gaps that described style expressions ON the deleted native
   // selects (886 -> 865, coverage 549 -> 543); phase-5 pass 8 then added two
   // UIC-000 gaps for the Cadastros » Parâmetros derived width owner
-  // (865 -> 867, coverage 543 -> 545).
+  // (865 -> 867, coverage 543 -> 545); and SPECIALIZED-CONTROLS-B1 removed
+  // nine UIC-000 gaps and two UIC-009 references by moving the specialized
+  // controls' inline styles into css/tokens.css, which the detector does not
+  // read (867 -> 856, coverage 545 -> 536, debt 322 -> 320). B1 ADDED nothing.
   // Everything pass 4 actually owns is unchanged.
-  assert.equal(rule('UIC-000').coverage_gaps, 545);
+  assert.equal(rule('UIC-000').coverage_gaps, 536);
   assert.equal(rule('UIC-005').blocking, 0);   // pass 6 closed typography
   assert.equal(rule('UIC-006').blocking, 0);   // pass 7 closed native select
   assert.equal(rule('UIC-006').total, 0);
   assert.equal(rule('UIC-008').blocking, 0);
   assert.equal(rule('UIC-008').coverage_gaps, 0);
-  assert.equal(rule('UIC-009').debt, 322);
-  assert.equal(BASELINE.findings.length, 867);
+  assert.equal(rule('UIC-009').debt, 320);
+  assert.equal(BASELINE.findings.length, 856);
   // Pass 4's own rule is still exactly closed, which is the point of the test.
   assert.equal(rule('UIC-004').blocking, 0);
   assert.equal(rule('UIC-004').coverage_gaps, 0);

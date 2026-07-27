@@ -234,7 +234,12 @@ test('10 · every other blocking rule stays closed and the debt is untouched', (
     assert.equal(rule(id).blocking, 0, `${id} must stay at zero blocking`);
     assert.equal(rule(id).total, 0, `${id} must stay empty`);
   }
-  assert.equal(rule('UIC-009').debt, 322, 'the deprecated-token debt must not move');
+  // SPECIALIZED-CONTROLS-B1 FORWARD CORRECTION. B1 moved the specialized
+  // controls' inline styles into css/tokens.css, which the detector does not
+  // read, so nine UIC-000 coverage gaps and two UIC-009 references stopped
+  // existing as JavaScript declarations: 867 -> 856, coverage 545 -> 536,
+  // debt 322 -> 320. B1 ADDED no finding to any rule.
+  assert.equal(rule('UIC-009').debt, 320, 'the deprecated-token debt must not move');
   assert.equal(BASELINE.coverage_summary.FULL, 31);
   assert.equal(BASELINE.coverage_summary.PARTIAL, 36);
   assert.equal(BASELINE.coverage_summary.UNSUPPORTED, 0);
@@ -871,7 +876,7 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
     'js/select-popover.js',
     'js/screens/document-link-admin-modal.js',
     'js/screens/documentos-recebidos-decision-modal.js', 'js/screens/documentos-recebidos.js',
-    'js/screens/ops-list.js', 'js/screens/pedido-form.js',
+    'js/screens/ops-list.js',
     'js/screens/pedido-item-row-editor.js', 'js/screens/pedidos-list.js',
   ];
   /*
@@ -886,9 +891,7 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
    * three of them moved.
    */
   const PASS8 = '20260727-ui-p5-pass8-table-r1';
-  const CHANGED_BY_PASS7_THEN_PASS8 = [
-    'js/screens/admin-usuarios.js',
-  ];
+  const CHANGED_BY_PASS7_THEN_PASS8 = [];
   /*
    * ACTION-CONTAINMENT-A1 FORWARD CORRECTION
    *
@@ -901,11 +904,26 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
    * moved.
    */
   const CONTAINMENT_A1 = '20260727-ui-action-containment-a1';
-  const CHANGED_BY_PASS7_THEN_CONTAINMENT_A1 = [
-    'js/ui.js', 'js/screens/cliente-pedido-form.js',
+  const CHANGED_BY_PASS7_THEN_CONTAINMENT_A1 = [];
+  /*
+   * SPECIALIZED-CONTROLS-B1 FORWARD CORRECTION
+   *
+   * B1 made js/ui.js the owner of the five role-specific control
+   * primitives and migrated the checkbox in admin-usuarios.js and the
+   * three textareas in cliente-pedido-form.js and pedido-form.js, so four
+   * of the pass-7 assets moved on once more. A B1 token is strictly LATER
+   * than a pass-7, pass-8 or containment one, so pass 7's invariant is
+   * intact: every asset it changed is still invalidated against the
+   * pass-6 checkpoint. The population is still eleven; only which later
+   * token invalidates four of them moved.
+   */
+  const B1 = '20260727-ui-specialized-controls-b1';
+  const CHANGED_BY_PASS7_THEN_B1 = [
+    'js/ui.js', 'js/screens/admin-usuarios.js',
+    'js/screens/cliente-pedido-form.js', 'js/screens/pedido-form.js',
   ];
   assert.equal(changed.length + CHANGED_BY_PASS7_THEN_PASS8.length
-    + CHANGED_BY_PASS7_THEN_CONTAINMENT_A1.length, 11,
+    + CHANGED_BY_PASS7_THEN_CONTAINMENT_A1.length + CHANGED_BY_PASS7_THEN_B1.length, 11,
     'the pass-7 changed-asset population must stay eleven');
   for (const rel of changed) {
     assert.ok(INDEX.includes(`${rel}?v=${TOKEN}`), `${rel} must carry the pass-7 token`);
@@ -919,7 +937,13 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
       `${rel} must carry the later action-containment A1 token`);
     assert.ok(!INDEX.includes(`${rel}?v=20260726-ui-p5-pass6`), `${rel} fell back to a pass-6 token`);
   }
-  assert.match(INDEX, new RegExp(`css/tokens\\.css\\?v=${TOKEN}`));
+  for (const rel of CHANGED_BY_PASS7_THEN_B1) {
+    assert.ok(INDEX.includes(`${rel}?v=${B1}`),
+      `${rel} must carry the later specialized-controls B1 token`);
+    assert.ok(!INDEX.includes(`${rel}?v=20260726-ui-p5-pass6`), `${rel} fell back to a pass-6 token`);
+  }
+  // B1 changed the token stylesheet again, so it carries the later B1 token.
+  assert.match(INDEX, new RegExp(`css/tokens\\.css\\?v=${B1}`));
   // Unchanged assets keep their prior token.
   assert.match(INDEX, /js\/badges\.js\?v=20260726-ui-p5-pass2-a4/);
   assert.match(INDEX, /js\/calculo-op\.js\?v=20260623-asset1/);

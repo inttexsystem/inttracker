@@ -248,6 +248,238 @@ function selectInput({ options, value, placeholder = 'Selecione...', ariaLabel, 
   });
 }
 
+// =====================================================================
+// === SPECIALIZED CONTROLS (SPECIALIZED-CONTROLS-B1) ==================
+//
+// Five role-specific primitives. None of them is a rung of the generic
+// 32/34/38px control ladder (UIC-003) and none may be forced onto one:
+// a multiline textarea, a checkbox, a switch and a range have no
+// single-line box to measure, and a visually hidden control has no
+// rendered box at all.
+//
+// Ownership split, identical for all five:
+//   · css/tokens.css owns EVERY value — geometry, colour, typography
+//     and the rest/hover/focus-visible/disabled/invalid/checked states;
+//   · this file owns CONSTRUCTION — the tag, the class, the role
+//     attribute and the accessibility name;
+//   · the CALLER keeps its values, its handlers, its validation and its
+//     payload. No primitive holds business state.
+//
+// There is deliberately NO style escape hatch. A caller that needs a
+// different geometry asks for a different ROLE; it cannot pass one in.
+// =====================================================================
+
+/** Bounded minimum-height enum. `rows` declares no minimum: that role
+    sizes from its rows attribute. Every other member maps 1:1 onto a
+    minimum the product already rendered. */
+const TEXTAREA_ROLES = new Set([
+  'rows', 'autosize', 'compact', 'standard', 'medium', 'message', 'notice', 'large', 'tracking',
+]);
+
+/** Bounded resize enum. A textarea either offers the vertical grip or it
+    does not; nothing else is expressible. */
+const TEXTAREA_RESIZE = new Set(['vertical', 'none']);
+
+// --- Textarea multilinha (dono canônico) ---
+// Uso: textArea({ value, rows, role, autosize, counter, resize,
+//                 placeholder, disabled, required, ariaLabel, invalid,
+//                 maxlength })
+//   - role: a member of TEXTAREA_ROLES. An unknown role throws rather
+//     than silently rendering an unowned height.
+//   - autosize: content-driven growth. The primitive binds the sync; the
+//     caller keeps its own input handler and its own state.
+//   - counter: reserves the bottom gutter an inline character counter is
+//     positioned into. It is a named role modifier, not a padding hatch.
+function textArea({
+  value = '',
+  rows,
+  role = 'standard',
+  autosize = false,
+  counter = false,
+  resize = 'vertical',
+  placeholder = '',
+  disabled = false,
+  required = false,
+  ariaLabel,
+  labelledBy,
+  invalid = false,
+  maxlength,
+} = {}) {
+  if (!TEXTAREA_ROLES.has(role)) {
+    throw new Error('textArea: unknown role "' + role + '"');
+  }
+  if (!TEXTAREA_RESIZE.has(resize)) {
+    throw new Error('textArea: unknown resize "' + resize + '"');
+  }
+
+  const attrs = { class: 'rv-textarea', 'data-rv-textarea': role };
+  if (rows != null) attrs.rows = String(rows);
+  if (placeholder) attrs.placeholder = placeholder;
+  if (maxlength != null) attrs.maxlength = String(maxlength);
+  if (ariaLabel) attrs['aria-label'] = ariaLabel;
+  if (labelledBy) attrs['aria-labelledby'] = labelledBy;
+  if (required) attrs.required = true;
+  if (disabled) attrs.disabled = true;
+  if (invalid) attrs['aria-invalid'] = 'true';
+  if (autosize) attrs['data-rv-textarea-autosize'] = '';
+  if (counter) attrs['data-rv-textarea-counter'] = '';
+  if (resize === 'none') attrs['data-rv-textarea-resize'] = 'none';
+
+  const node = el('textarea', attrs);
+  node.value = value;
+
+  if (autosize) {
+    node.addEventListener('input', () => autosizeTextarea(node));
+  }
+  return node;
+}
+
+// Content-driven height sync for an autosizing textarea. The rendered box
+// never falls below the role's declared minimum, because that minimum is a
+// CSS `min-height` and this only writes `height`.
+function autosizeTextarea(node) {
+  if (!node || !node.style) return;
+  node.style.height = 'auto';
+  node.style.height = node.scrollHeight + 'px';
+}
+
+// --- Checkbox (dono canônico) ---
+// Uso: checkboxInput({ checked, disabled, ariaLabel, onchange, collapsed })
+//   - collapsed: the zero-size STATE CARRIER behind a switch. It stays
+//     focusable so the switch is keyboard-operable, and it never becomes
+//     a second visible control.
+//   - the caller owns `checked` and `onchange`; this reads no state and
+//     writes none back.
+function checkboxInput({
+  checked = false,
+  disabled = false,
+  ariaLabel,
+  labelledBy,
+  invalid = false,
+  onchange,
+  collapsed = false,
+} = {}) {
+  const attrs = {
+    type: 'checkbox',
+    class: collapsed ? 'rv-checkbox-collapsed' : 'rv-checkbox',
+  };
+  if (ariaLabel) attrs['aria-label'] = ariaLabel;
+  if (labelledBy) attrs['aria-labelledby'] = labelledBy;
+  if (disabled) attrs.disabled = true;
+  if (invalid) attrs['aria-invalid'] = 'true';
+  if (typeof onchange === 'function') attrs.onchange = onchange;
+  // The ATTRIBUTE is declared through el()'s boolean-attribute contract, so a
+  // re-rendered node still serialises as `checked` — that is what a caller
+  // rebuilding its subtree observes. The PROPERTY is then set explicitly so the
+  // live state is right even when the element is never re-parsed.
+  if (checked) attrs.checked = true;
+
+  const input = el('input', attrs);
+  input.checked = !!checked;
+  return input;
+}
+
+/** Bounded tone enum for the switch. Two members, each one a colour the
+    product already painted: the transfer toggle is brand, the Manta
+    defect toggle is caution. */
+const SWITCH_TONES = new Set(['brand', 'caution']);
+
+// --- Switch (dono canônico: track + knob são UM componente) ---
+// Uso: switchToggle({ checked, disabled, label, tone, onchange, input })
+//   - the switch has exactly ONE state owner, the collapsed checkbox. The
+//     track and the knob are presentation and follow `:checked` in CSS, so
+//     a programmatic `input.checked = true` repaints with no handler.
+//   - input: an EXISTING collapsed checkbox the caller already owns and
+//     already reads in its payload builder. When absent the primitive
+//     builds one from `checked` / `disabled` / `onchange`.
+//   - clicking anywhere on the visual switch toggles that checkbox,
+//     because the whole control is a <label> wrapping it.
+function switchToggle({
+  checked = false,
+  disabled = false,
+  label,
+  tone = 'brand',
+  onchange,
+  input,
+} = {}) {
+  if (!SWITCH_TONES.has(tone)) {
+    throw new Error('switchToggle: unknown tone "' + tone + '"');
+  }
+
+  const box = input || checkboxInput({ checked, disabled, onchange, collapsed: true });
+  box.className = 'rv-checkbox-collapsed';
+  // No interactive control may be unnamed. A wrapping <label> with no text
+  // names nothing, so the visible label text becomes the accessible name
+  // unless the caller already supplied one.
+  if (label && !box.getAttribute('aria-label') && !box.getAttribute('aria-labelledby')) {
+    box.setAttribute('aria-label', label);
+  }
+
+  const control = el('label', { class: 'rv-switch' });
+  if (tone !== 'brand') control.setAttribute('data-rv-switch-tone', tone);
+  if (box.disabled) control.setAttribute('data-rv-switch-disabled', '');
+  control.appendChild(box);
+  control.appendChild(el('span', { class: 'rv-switch-track' }, el('span', { class: 'rv-switch-knob' })));
+
+  const wrap = el('div', { class: 'rv-switch-field' });
+  if (label) wrap.appendChild(el('span', { class: 'rv-switch-label' }, label));
+  wrap.appendChild(control);
+  return wrap;
+}
+
+// --- Range (dono canônico) ---
+// Uso: rangeInput({ min, max, step, value, ariaLabel, disabled, oninput })
+// The primitive owns the track and thumb geometry and the focus treatment.
+// It does NOT own the progress fill: that is runtime state the consumer
+// recomputes on every input event and assigns to `style.background`, which
+// always wins over the stylesheet's rest declaration.
+function rangeInput({
+  min = '0',
+  max = '100',
+  step = '1',
+  value,
+  ariaLabel,
+  labelledBy,
+  disabled = false,
+  oninput,
+} = {}) {
+  const attrs = {
+    type: 'range',
+    class: 'rv-range',
+    min: String(min),
+    max: String(max),
+    step: String(step),
+  };
+  if (ariaLabel) attrs['aria-label'] = ariaLabel;
+  if (labelledBy) attrs['aria-labelledby'] = labelledBy;
+  if (disabled) attrs.disabled = true;
+
+  const input = el('input', attrs);
+  if (value != null) input.value = String(value);
+  if (typeof oninput === 'function') input.addEventListener('input', oninput);
+  return input;
+}
+
+// --- Conteúdo/controle visualmente oculto (dono canônico) ---
+// Uso: visuallyHidden(content, { tag, onclick, type, ariaLabel, extraClass })
+// Removed from the visual layer, kept in the accessibility tree. The single
+// owner of the clip-rect pattern; `display:none` would hide it from
+// assistive technology as well and is never used here.
+//   - extraClass: a COMPATIBILITY hook only, for a marker class an existing
+//     contract already asserts (`sr-only`). It carries no geometry: the
+//     geometry is `.rv-visually-hidden` in css/tokens.css either way.
+function visuallyHidden(content, options) {
+  const opts = options || {};
+  const tag = opts.tag || 'span';
+  const attrs = {
+    class: opts.extraClass ? 'rv-visually-hidden ' + opts.extraClass : 'rv-visually-hidden',
+  };
+  if (tag === 'button') attrs.type = opts.type || 'button';
+  if (opts.ariaLabel) attrs['aria-label'] = opts.ariaLabel;
+  if (typeof opts.onclick === 'function') attrs.onclick = opts.onclick;
+  return el(tag, attrs, content);
+}
+
 // --- Tabela de dados ---
 // UI_VISUAL_CONTRACT.md §2.5 — golden rule. The width and alignment of a
 // column's HEADER must be identical to those of its VALUES. This helper is the

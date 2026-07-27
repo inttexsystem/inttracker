@@ -503,17 +503,28 @@ test('11 · A4 retokenised exactly five assets, and the pass-7 set is set-derive
   // unchanged: "moved on by a later pass" simply now spans one more token, and
   // a containment token is strictly later than any pass-8 one.
   const CONTAINMENT_A1_TOKEN = '20260727-ui-action-containment-a1';
-  const LATER_TOKENS = [PASS8_TOKEN, PASS8_A1_TOKEN, CONTAINMENT_A1_TOKEN];
+  // SPECIALIZED-CONTROLS-B1 moved several of these assets on once more when the
+  // five role-specific control primitives landed and their 22 constructions
+  // migrated. The set arithmetic below is unchanged: "moved on by a later pass"
+  // simply now spans one more token, and a B1 token is strictly later than any
+  // pass-8 or containment one.
+  const B1_TOKEN = '20260727-ui-specialized-controls-b1';
+  const LATER_TOKENS = [PASS8_TOKEN, PASS8_A1_TOKEN, CONTAINMENT_A1_TOKEN, B1_TOKEN];
   const onPass8 = refs.filter((u) => LATER_TOKENS.includes(tokenOf(u))).map(pathOf);
   // Pass-7 assets that a LATER pass moved on (pass 8, pass-8 A1, or
   // ACTION-CONTAINMENT-A1). admin-usuarios-modal.js is the containment-A1
   // arrival: its modal action bar now comes from the canonical owner, so it
   // left the A4 token for a strictly later one. It stays inside the A4
   // population below, which is why that count is still five.
+  // SPECIALIZED-CONTROLS-B1 added two more arrivals to this "moved on by a
+  // later pass" set: css/tokens.css gained the specialized-control role
+  // geometry, and pedido-form.js migrated its autosizing textarea. Both left
+  // the A1 token for a strictly later one, so the union below is unchanged.
   const PASS7_ASSETS_MOVED_BY_PASS8 = [
     'js/ui.js', 'js/screens/admin-usuarios.js', 'js/screens/cadastros.js',
     'js/screens/cliente-pedido-form.js', 'js/screens/expedicao-admin.js',
     'js/screens/op-nova.js', 'js/screens/admin-usuarios-modal.js',
+    'css/tokens.css', 'js/screens/pedido-form.js',
   ];
   for (const rel of PASS7_ASSETS_MOVED_BY_PASS8) {
     assert.ok(onPass8.includes(rel), `${rel} must now carry the pass-8 token`);
@@ -606,11 +617,16 @@ test('13 · the detector result is unchanged by A4', () => {
   assert.equal(baseline.detector_version, '1.0.6');
   // Phase-5 pass 8 then added two UIC-000 gaps for the Cadastros »
   // Parâmetros derived width owner: 865 -> 867.
-  assert.equal(baseline.findings.length, 867);
+  // SPECIALIZED-CONTROLS-B1 FORWARD CORRECTION. B1 moved the specialized
+  // controls' inline styles into css/tokens.css, which the detector does not
+  // read, so nine UIC-000 coverage gaps and two UIC-009 references stopped
+  // existing as JavaScript declarations: 867 -> 856, coverage 545 -> 536,
+  // debt 322 -> 320. B1 ADDED no finding to any rule.
+  assert.equal(baseline.findings.length, 856);
   const rule = (id) => baseline.summary_by_rule[id] || { blocking: 0, coverage_gaps: 0, total: 0 };
   assert.equal(rule('UIC-006').total, 0);
-  assert.equal(rule('UIC-000').coverage_gaps, 545);
-  assert.equal(rule('UIC-009').debt, 322);
+  assert.equal(rule('UIC-000').coverage_gaps, 536);
+  assert.equal(rule('UIC-009').debt, 320);
   assert.equal(baseline.coverage_summary.FULL, 31);
   assert.equal(baseline.coverage_summary.PARTIAL, 36);
 });

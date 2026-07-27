@@ -216,10 +216,17 @@
     var sliders = el('div', {});
     var itemRowState = {};
 
+    // B1: the slider's TRACK AND THUMB GEOMETRY moved to the canonical range
+    // primitive (css/tokens.css). What stays here is the PROGRESS FILL, which
+    // is runtime state rather than geometry: it is recomputed on every input
+    // event from the live value. It is now assigned to `style.background`
+    // alone, so it can no longer overwrite the shared geometry the way the
+    // previous whole-`style`-attribute rewrite did. The gradient, its stops
+    // and the percentage arithmetic are byte-for-byte the same.
     function trackBg(slider) {
       var max = Number(slider.max) || 1;
       var pct = Math.max(0, Math.min(100, (Number(slider.value) / max) * 100));
-      return '-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:var(--rv-radius);background:linear-gradient(to right,var(--rv-brand) ' + pct + '%,var(--rv-surface-subtle) ' + pct + '%);outline:none;border:none;cursor:pointer;';
+      return 'linear-gradient(to right,var(--rv-brand) ' + pct + '%,var(--rv-surface-subtle) ' + pct + '%)';
     }
 
     itensCalc.forEach(function (c) {
@@ -228,17 +235,22 @@
         try { maxCalc = Math.max(window.maxMetrosItem(c, modelosById, parametrosByLargura, ordens), c.metros_pedidos); }
         catch (e) { maxCalc = c.metros_pedidos; }
       }
-      var slider = el('input', { type: 'range', min: '0', max: String(maxCalc), step: '1' });
-      slider.value = String(Math.round(metrosOverride[c.op_item_id] || 0));
-      slider.setAttribute('style', trackBg(slider));
+      var modelo = modelosById[c.modelo_id];
+      var slider = window.rangeInput({
+        min: '0',
+        max: String(maxCalc),
+        step: '1',
+        value: String(Math.round(metrosOverride[c.op_item_id] || 0)),
+        ariaLabel: 'Metros — ' + rotuloModelo(modelo),
+      });
+      slider.style.background = trackBg(slider);
       var valorLabel = el('span', { style: 'font-size:13.5px;font-weight:700;color:var(--rv-text-primary);white-space:nowrap;' }, fmtMetros(Number(slider.value)));
       slider.addEventListener('input', function () {
         metrosOverride[c.op_item_id] = Number(slider.value);
         valorLabel.textContent = fmtMetros(Number(slider.value));
-        slider.setAttribute('style', trackBg(slider));
+        slider.style.background = trackBg(slider);
         recompute();
       });
-      var modelo = modelosById[c.modelo_id];
       sliders.appendChild(el('div', { style: 'margin-bottom:18px;' },
         el('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px;' },
           el('span', { style: 'font-size:13px;font-weight:600;color:var(--rv-text-primary);' }, rotuloModelo(modelo) + ' · pedido ' + fmtMetros(c.metros_pedidos)),
@@ -264,7 +276,7 @@
           var v = Math.round(it.metros_ajustados);
           metrosOverride[it.op_item_id] = v;
           var row = itemRowState[it.op_item_id];
-          if (row) { row.slider.value = String(v); row.valorLabel.textContent = fmtMetros(v); row.slider.setAttribute('style', trackBg(row.slider)); }
+          if (row) { row.slider.value = String(v); row.valorLabel.textContent = fmtMetros(v); row.slider.style.background = trackBg(row.slider); }
         });
         recompute();
       },

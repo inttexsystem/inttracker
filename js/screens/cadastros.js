@@ -146,15 +146,12 @@
     // type. A single-line input or select resolves through the canonical
     // compact rung declared by the shared primitive in js/ui.js, so this
     // helper must not fight it with a competing minimum or with vertical
-    // padding that would clip the fixed height. A multiline textarea is
-    // outside the generic ladder and keeps its own minimum and padding
-    // (UI-SPECIALIZED-CONTROL-CONTRACT-GAP).
-    if (control.tagName === 'TEXTAREA') {
-      control.style.minHeight = '44px';
-      control.style.padding = '10px 13px';
-    } else {
-      control.style.padding = control.tagName === 'SELECT' ? '0 38px 0 13px' : '0 13px';
-    }
+    // padding that would clip the fixed height.
+    // B1: the TEXTAREA branch is GONE. A multiline textarea is a role-specific
+    // primitive owned by window.textArea() and css/tokens.css, and no longer
+    // passes through this helper at all, so no screen-local textarea geometry
+    // survives here.
+    control.style.padding = control.tagName === 'SELECT' ? '0 38px 0 13px' : '0 13px';
     control.style.border = '1px solid var(--rv-border-strong)';
     control.style.borderRadius = '4px';
     control.style.background = control.disabled ? 'var(--rv-surface-subtle)' : 'var(--rv-surface)';
@@ -270,16 +267,20 @@
     return wrap;
   }
 
+  // B1: the modal textarea resolves through the canonical primitive. The
+  // effective rendered minimum here has always been 104px — the helper's
+  // TEXTAREA branch set 44px and this line immediately overrode it — so the
+  // `large` role carries 104px and no visible minimum changes. Geometry,
+  // padding, border, focus and disabled states now live in css/tokens.css;
+  // applyCadastrosModalControlStyle no longer reaches a textarea at all.
   function cadastrosTextarea(options) {
-    var textarea = window.el('textarea', {
-      rows: String(options.rows || 4),
-      placeholder: options.placeholder || ''
+    return window.textArea({
+      role: options.role || 'large',
+      rows: options.rows || 4,
+      value: options.value || '',
+      placeholder: options.placeholder || '',
+      ariaLabel: options.ariaLabel,
     });
-    textarea.value = options.value || '';
-    applyCadastrosModalControlStyle(textarea);
-    textarea.style.minHeight = options.minHeight || '104px';
-    textarea.style.resize = 'vertical';
-    return textarea;
   }
 
   function cadastrosObservacoesField(value) {

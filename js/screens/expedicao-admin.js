@@ -367,9 +367,14 @@
         value: 'entrega',
       });
       var dataInput = window.textInput({ type: 'date', value: new Date().toISOString().slice(0, 10) });
-      var obsInput = window.el('textarea', {
-        style: 'width:100%;min-height:56px;border:1px solid var(--rv-border-strong);border-radius:4px;padding:9px 12px;font-size:13.5px;font-family:inherit;color:var(--rv-text-primary);resize:none;outline:none;',
+      // B1: the 56px inline minimum becomes the canonical `standard` role and
+      // the non-resizable grip becomes the bounded `resize: 'none'` option.
+      // The placeholder and the value read on submit are unchanged.
+      var obsInput = window.textArea({
+        role: 'standard',
+        resize: 'none',
         placeholder: 'Observacao opcional',
+        ariaLabel: 'Observacao',
       });
       var linhas = state.itens.map(function (item) {
         var saldo = Math.max(round2(Number(item.metros_liberados || 0) - Number(item.metros_entregues || 0)), 0);

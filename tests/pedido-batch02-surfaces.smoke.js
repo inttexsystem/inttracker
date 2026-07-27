@@ -260,9 +260,12 @@ test('index.html: toda superfície alterada recebeu o token do lote 2', () => {
   // Modelo passou a usar setOptions() no controle canonico — entao ele e
   // retokenizado mais uma vez. Mesma regra: cada superficie carrega o token da
   // ordem que a alterou por ultimo, e nenhuma retem um token anterior ao seu.
+  // SPECIALIZED-CONTROLS-B1 migrou a observacao geral de pedido-edit.js para
+  // o primitivo de textarea compartilhado, entao esse asset passa a carregar o
+  // token dessa ordem. Mesma regra de sempre.
   const ULTIMA_ORDEM = {
     'js/screens/pedido-detail-data.js': '20260725-pedido-operational-batch2',
-    'js/screens/pedido-edit.js': '20260726-ui-p5-pass2-a2',
+    'js/screens/pedido-edit.js': '20260727-ui-specialized-controls-b1',
     'js/screens/pedido-itens-edit.js': '20260727-ui-p5-pass7-native-select-a4-a11y-geometry',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
@@ -290,7 +293,9 @@ test('index.html: a superfície tocada pela passada 1 de cor carrega o token del
   // ACTION-CONTAINMENT-A1 passou a barra de acoes do modal de adicionar item
   // para o dono canonico modalActionBar(), entao ele e retokenizado mais uma
   // vez. Mesma regra: sempre o token da ordem que o alterou por ultimo.
-  assert.match(index, new RegExp(esc + '\\?v=20260727-ui-action-containment-a1'),
+  // SPECIALIZED-CONTROLS-B1 migrou as duas textareas deste arquivo para o
+  // primitivo compartilhado, entao ele e retokenizado mais uma vez.
+  assert.match(index, new RegExp(esc + '\\?v=20260727-ui-specialized-controls-b1'),
     asset + ' deve carregar o token da ordem que o alterou por ultimo');
   assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260726-ui-p5-pass1'),
     asset + ' não pode reter o token da passada 1 de cor');
@@ -322,8 +327,12 @@ test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não
   // pedido-form.js, e os dois controles inline em pedido-item-row-editor.js —
   // entao voltam a compartilhar um token, o da ordem que os alterou por
   // ultimo. A garantia nao muda.
+  // SPECIALIZED-CONTROLS-B1 alterou APENAS pedido-form.js (a textarea de
+  // instrucoes gerais, agora com autosize pelo dono compartilhado), entao os
+  // dois voltam a divergir. Cada um segue verificado contra a ordem que o
+  // alterou por ultimo.
   const ULTIMA_ORDEM = {
-    'screens/pedido-form.js': '20260727-ui-p5-pass7-native-select-a1',
+    'screens/pedido-form.js': '20260727-ui-specialized-controls-b1',
     'screens/pedido-item-row-editor.js': '20260727-ui-p5-pass7-native-select-a1',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {

@@ -1,19 +1,38 @@
 /* ============================================================
    UI CONSOLIDATION — PHASE 5, PASS 3 (UIC-003)
+   + SPECIALIZED-CONTROLS-B1 population guard
 
    Proves the GENERIC control-height property closed: every control the
    ratified ladder governs resolves through --rv-h-compact / --rv-h-default /
    --rv-h-primary, and `UIC-003` reports zero blocking and zero coverage.
 
-   The pass did NOT ratify checkbox, radio, range, switch-track or multiline
-   textarea geometry. Those primitives are EXCLUDED from the generic ladder and
-   carried instead by the frozen UI-SPECIALIZED-CONTROL-CONTRACT-GAP inventory
-   below. Excluded is not conforming: section 3 asserts each one is still
-   present, still owns its geometry and is still unratified, so the debt cannot
-   quietly evaporate and cannot quietly widen.
+   Pass 3 did NOT ratify checkbox, radio, range, switch-track or multiline
+   textarea geometry. It EXCLUDED those primitives from the generic ladder and
+   froze 21 sites under UI-SPECIALIZED-CONTROL-CONTRACT-GAP, pinned here by the
+   inline style text each site happened to carry.
 
-   Two front-end transport amendments made the exclusion decidable at all, and
-   section 5 pins both to their exact authorized envelope.
+   SPECIALIZED-CONTROLS-B1 CLOSES THAT GAP AND REPLACES THAT GUARD. Five
+   role-specific shared primitives now exist — textarea, checkbox, switch,
+   range and visually-hidden — js/ui.js is their single constructor and
+   css/tokens.css is their single geometry owner. A guard anchored on
+   screen-local inline style text is therefore not merely stale, it asserts the
+   opposite of the contract: the styles it demanded are exactly what B1
+   removed.
+
+   Section 2 below is the replacement. It is CONSTRUCTION-SCOPED rather than
+   file-scoped: it pins the exact runtime population — 5 checkboxes, 1 range,
+   11 textareas, 2 switch components and 1 visually hidden compatibility
+   control, 22 constructions in all — proves each one resolves through the
+   correct primitive, and fails both when a construction disappears AND when a
+   new one appears, including inside a file the population already knows.
+
+   The old documentary population said "21 sites". That number counted a switch
+   as its two presentation spans in one file and undercounted the textareas; it
+   is superseded here, not contradicted — every one of the 21 frozen sites is
+   still present, and B1 simply counts the runtime rather than the prose.
+
+   Two front-end transport amendments made the pass-3 exclusion decidable at
+   all, and section 5 pins both to their exact authorized envelope.
    ============================================================ */
 
 import test from 'node:test';
@@ -80,268 +99,428 @@ test('3 · the inventory the pass was measured over is unchanged', () => {
 });
 
 /* ============================================================
-   2 · UI-SPECIALIZED-CONTROL-CONTRACT-GAP — the frozen inventory
+   2 · SPECIALIZED-CONTROLS-B1 — the construction-scoped population
 
-   Pinned by SEMANTIC SIGNATURE, never by line number: a source edit that
-   moves one of these sites must not silently break the guard, but a site that
-   DISAPPEARS or a NEW specialized site that appears must.
+   UI-SPECIALIZED-CONTROL-CONTRACT-GAP is closed by five role-specific shared
+   primitives. This section is the guard over that closure and it is pinned by
+   CONSTRUCTION, never by file and never by inline style text:
+
+     · a construction that DISAPPEARS fails;
+     · a construction that appears in a NEW file fails;
+     · a construction that appears in an ALREADY-KNOWN file fails, because the
+       per-file counts are exact, not lower bounds;
+     · a construction that stops resolving through its primitive fails;
+     · a screen that reacquires local geometry for one of these roles fails.
    ============================================================ */
 
-const SPECIALIZED_CONTROLS = [
+/** Line comments discuss these primitives by name. Counting raw textual hits
+    is exactly the error the A1 call-site rederivation corrected, so every
+    count below runs over code with comments removed. */
+const stripComments = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+const CODE = RUNTIME.map(({ rel, text }) => ({ rel, code: stripComments(text) }));
+const codeOf = (rel) => CODE.find((f) => f.rel === rel).code;
+
+/** js/ui.js is the OWNER of all five primitives, not a consumer of any. */
+const OWNER = 'js/ui.js';
+const CONSUMERS = CODE.filter((f) => f.rel !== OWNER);
+
+const countCalls = (code, name) =>
+  (code.match(new RegExp(`window\\.${name}\\(`, 'g')) || []).length;
+
+/* ---------- the declared population ---------- */
+
+const CHECKBOX_CONSTRUCTIONS = [
   {
-    id: 'login-remember-checkbox',
+    id: 'login-remember',
     path: 'js/screens/system-screens.js',
-    constructor: "el('input', { type: 'checkbox', style })",
-    controlType: 'input[type=checkbox]',
-    geometryOwner: 'inline style width/height on the factory attribute object',
-    behaviourOwner: 'native checkbox; the login form reads .checked',
-    reason: 'a native checkbox is not a member of the generic action/field ladder',
-    signature: /type:\s*'checkbox'[\s\S]{0,120}?height:15px/,
+    collapsed: false,
+    name: 'Lembrar-me neste dispositivo',
+    behaviour: 'login "remember me"; the login form reads .checked',
   },
   {
-    id: 'entrega-defeito-hidden-checkbox',
+    id: 'entrega-defeito',
     path: 'js/screens/entrega-form.js',
-    constructor: "el('input', { type: 'checkbox', class: 'h-4 w-4', style })",
-    controlType: 'input[type=checkbox], visually collapsed',
-    geometryOwner: 'inline style at construction (position/opacity/width/height)',
-    behaviourOwner: 'state owner read by getPayload; drives the visual toggle',
-    reason: 'a checkbox backing a toggle is a specialized primitive, not a field',
-    signature: /type:\s*'checkbox'[\s\S]{0,200}?position:absolute;opacity:0;width:0;height:0/,
+    collapsed: true,
+    name: 'Defeito',
+    behaviour: 'state owner read by getPayload; drives the transfer switch',
   },
   {
-    id: 'manta-defeito-hidden-checkbox',
+    id: 'manta-defeito',
     path: 'js/screens/manta-output-form.js',
-    constructor: "el('input', { type: 'checkbox', class: 'h-4 w-4', style })",
-    controlType: 'input[type=checkbox], visually collapsed',
-    geometryOwner: 'inline style at construction (position/opacity/width/height)',
-    behaviourOwner: 'state owner read by getPayload; drives the visual toggle',
-    reason: 'a checkbox backing a toggle is a specialized primitive, not a field',
-    signature: /type:\s*'checkbox'[\s\S]{0,200}?position:absolute;opacity:0;width:0;height:0/,
+    collapsed: true,
+    name: 'Defeito',
+    behaviour: 'state owner read by getPayload; drives the Manta switch',
   },
   {
-    id: 'entrega-defeito-toggle-track',
-    path: 'js/screens/entrega-form.js',
-    constructor: "el('span', { style }) wrapping the knob",
-    controlType: 'switch track (non-control presentation)',
-    geometryOwner: 'inline style at construction: 40x22',
-    behaviourOwner: 'paint() repaints background only; the checkbox owns state',
-    reason: 'a switch track has independent geometry the contract never ratified',
-    signature: /display:inline-block;width:40px;height:22px/,
-  },
-  {
-    id: 'manta-defeito-toggle-track',
-    path: 'js/screens/manta-output-form.js',
-    constructor: "el('span', { style }) wrapping the knob",
-    controlType: 'switch track (non-control presentation)',
-    geometryOwner: 'inline style at construction: 40x22',
-    behaviourOwner: 'paint() repaints background only; the checkbox owns state',
-    reason: 'a switch track has independent geometry the contract never ratified',
-    signature: /display:inline-block;width:40px;height:22px/,
-  },
-  {
-    id: 'entrega-defeito-toggle-knob',
-    path: 'js/screens/entrega-form.js',
-    constructor: "el('span', { style })",
-    controlType: 'switch knob (non-control presentation)',
-    geometryOwner: 'inline style at construction: 18x18',
-    behaviourOwner: 'paint() sets transform only',
-    reason: 'the knob belongs to the unratified switch primitive',
-    signature: /width:18px;height:18px;border-radius:var\(--rv-radius-pill\)/,
-  },
-  {
-    id: 'manta-defeito-toggle-knob',
-    path: 'js/screens/manta-output-form.js',
-    constructor: "el('span', { style })",
-    controlType: 'switch knob (non-control presentation)',
-    geometryOwner: 'inline style at construction: 18x18',
-    behaviourOwner: 'paint() sets transform only',
-    reason: 'the knob belongs to the unratified switch primitive',
-    signature: /width:18px;height:18px;border-radius:var\(--rv-radius-pill\)/,
-  },
-  {
-    id: 'pedido-form-autosize-textarea',
-    path: 'js/screens/pedido-form.js',
-    constructor: "el('textarea', { rows: 1, style })",
-    controlType: 'textarea, autosizing',
-    geometryOwner: 'syncTextareaHeight() — height:auto then scrollHeight, min 40px',
-    behaviourOwner: 'input listener; resize:none; overflow-y:hidden',
-    reason: 'a multiline height is content behaviour, not a ladder rung',
-    signature: /function syncTextareaHeight\(\)[\s\S]{0,200}?scrollHeight/,
-  },
-  {
-    id: 'cliente-pedido-form-autosize-textarea',
-    path: 'js/screens/cliente-pedido-form.js',
-    constructor: "el('textarea', { rows: 1, style })",
-    controlType: 'textarea, autosizing',
-    geometryOwner: 'input listener — height:auto then scrollHeight',
-    behaviourOwner: 'input listener; resize:none; overflow-y:hidden',
-    reason: 'a multiline height is content behaviour, not a ladder rung',
-    signature: /obsTextarea\.style\.height = 'auto'/,
-  },
-  {
-    id: 'cadastros-modal-textarea-minimum',
-    path: 'js/screens/cadastros.js',
-    constructor: "cadastrosTextarea() -> el('textarea', { rows, placeholder })",
-    controlType: 'textarea, fixed minimum height',
-    geometryOwner: 'applyCadastrosModalControlStyle TEXTAREA branch + options.minHeight',
-    behaviourOwner: 'resize:vertical',
-    reason: 'a multiline minimum is outside the single-line field rung',
-    signature: /if \(control\.tagName === 'TEXTAREA'\)[\s\S]{0,160}?minHeight = '44px'/,
-  },
-  {
-    id: 'admin-usuarios-modal-textarea-minimum',
-    path: 'js/screens/admin-usuarios-modal.js',
-    constructor: "adminUsuariosTextarea() -> el('textarea', { rows, placeholder })",
-    controlType: 'textarea, fixed minimum height',
-    geometryOwner: 'applyAdminUsuariosControlStyle TEXTAREA branch + options.minHeight',
-    behaviourOwner: 'resize:vertical',
-    reason: 'a multiline minimum is outside the single-line field rung',
-    signature: /if \(control\.tagName === 'TEXTAREA'\)[\s\S]{0,160}?minHeight = '44px'/,
-  },
-  {
-    id: 'movement-modal-textarea-minimum',
-    path: 'js/screens/pedido-detail-events.js',
-    constructor: 'normalizeMovementModalControls()',
-    controlType: 'textarea, fixed minimum height',
-    geometryOwner: "MOVEMENT_TEXTAREA_MIN_HEIGHT applied only when tagName === 'TEXTAREA'",
-    behaviourOwner: 'the transfer form that owns the modal',
-    reason: 'a multiline minimum is outside the single-line field rung',
-    signature: /MOVEMENT_TEXTAREA_MIN_HEIGHT/,
-  },
-  {
-    id: 'parciais-mensagem-textarea',
+    id: 'parciais-visivel',
     path: 'js/screens/pedido-parciais-admin.js',
-    constructor: "el('textarea', { style, class })",
-    controlType: 'textarea, Tailwind minimum height',
-    geometryOwner: 'class token min-h-[96px]',
-    behaviourOwner: 'plain textarea',
-    reason: 'a multiline minimum is outside the single-line field rung',
-    signature: /min-h-\[96px\]/,
+    collapsed: false,
+    name: 'Visivel para o cliente',
+    behaviour: 'partial-shipment visibility; .checked read on submit',
   },
   {
-    id: 'tracking-mensagem-textarea',
-    path: 'js/screens/pedido-tracking-admin.js',
-    constructor: "el('textarea', { style, class })",
-    controlType: 'textarea, Tailwind minimum height',
-    geometryOwner: 'class token min-h-[110px]',
-    behaviourOwner: 'plain textarea',
-    reason: 'a multiline minimum is outside the single-line field rung',
-    signature: /min-h-\[110px\]/,
-  },
-  {
-    id: 'parciais-visivel-checkbox',
-    path: 'js/screens/pedido-parciais-admin.js',
-    constructor: "el('input', { type: 'checkbox', style, class })",
-    controlType: 'input[type=checkbox]',
-    geometryOwner: 'Tailwind class tokens h-4 w-4',
-    behaviourOwner: 'native checkbox; .checked read on submit',
-    reason: 'a native checkbox is not a member of the generic ladder',
-    signature: /type:\s*'checkbox'[\s\S]{0,140}?h-4 w-4/,
-  },
-  {
-    id: 'admin-usuarios-mostrar-inativos-checkbox',
+    id: 'admin-usuarios-mostrar-inativos',
     path: 'js/screens/admin-usuarios.js',
-    constructor: "el('input', { type: 'checkbox', checked, onchange })",
-    controlType: 'input[type=checkbox]',
-    geometryOwner: 'native user-agent default — the screen declares none',
-    behaviourOwner: 'onchange toggles the inactive-rows filter',
-    reason: 'a native checkbox is not a member of the generic ladder',
-    signature: /type:\s*'checkbox',\s*\n\s*checked: mostrarInativos/,
-  },
-  {
-    id: 'op-distribuicao-metros-range',
-    path: 'js/screens/op-distribuicao-ui.js',
-    constructor: "el('input', { type: 'range', min, max, step })",
-    controlType: 'input[type=range]',
-    geometryOwner: "setAttribute('style', trackBg(slider)) — a computed gradient track",
-    behaviourOwner: 'input listener writing metrosOverride',
-    reason: 'a range track has independent geometry the contract never ratified',
-    signature: /type:\s*'range',\s*min:\s*'0'/,
-  },
-  {
-    id: 'pedido-edit-observacao-textarea',
-    path: 'js/screens/pedido-edit.js',
-    constructor: "el('textarea', { rows: 3, style, class })",
-    controlType: 'textarea, row-sized',
-    geometryOwner: 'rows=3 plus Tailwind px-3 py-2',
-    behaviourOwner: 'plain textarea bound to state.observacao',
-    reason: 'a multiline height is content behaviour, not a ladder rung',
-    signature: /el\('textarea', \{\s*\n\s*rows: 3,/,
-  },
-  {
-    id: 'receipt-estorno-motivo-textarea',
-    path: 'js/screens/ordem-compra-receipt-events.js',
-    constructor: "el('textarea', { class, style, rows: '3' })",
-    controlType: 'textarea, row-sized',
-    geometryOwner: "rows='3' plus Tailwind px-3 py-2",
-    behaviourOwner: 'reversal reason captured on submit',
-    reason: 'a multiline height is content behaviour, not a ladder rung',
-    signature: /placeholder: 'Motivo do estorno'/,
-  },
-  {
-    id: 'expedicao-observacao-textarea',
-    path: 'js/screens/expedicao-admin.js',
-    constructor: "el('textarea', { style, placeholder })",
-    controlType: 'textarea, fixed minimum height',
-    geometryOwner: 'inline min-height:56px',
-    behaviourOwner: 'plain textarea; resize:none',
-    reason: 'a multiline minimum is outside the single-line field rung',
-    signature: /min-height:56px[\s\S]{0,200}?Observacao opcional/,
-  },
-  {
-    id: 'shell-sr-only-logout',
-    path: 'js/screens/common.js',
-    constructor: "el('button', { class: 'sr-only', style, onclick: window.logout })",
-    controlType: 'visually hidden compatibility button',
-    geometryOwner: 'inline style: absolute + clip + 1px box',
-    behaviourOwner: 'window.logout; kept for the screens-common smoke contract',
-    reason: 'a visually hidden control has no rendered box to measure',
-    signature: /class:\s*'sr-only'[\s\S]{0,160}?clip:rect\(0 0 0 0\)/,
+    collapsed: false,
+    name: 'Mostrar inativos',
+    behaviour: 'onchange toggles the inactive-rows filter',
   },
 ];
 
-test('4 · every frozen specialized control is still present and still owns its geometry', () => {
-  for (const entry of SPECIALIZED_CONTROLS) {
-    const text = read(entry.path);
-    assert.match(
-      text,
-      entry.signature,
-      `${entry.id}: the specialized control disappeared from ${entry.path}. ` +
-        'UI-SPECIALIZED-CONTROL-CONTRACT-GAP must be closed by a component-contract ' +
-        'order, never by deleting the control or its geometry.',
-    );
-  }
+const RANGE_CONSTRUCTIONS = [
+  {
+    id: 'op-distribuicao-metros',
+    path: 'js/screens/op-distribuicao-ui.js',
+    behaviour: 'input listener writing metrosOverride; live gradient progress',
+  },
+];
+
+/** Every textarea, with the bounded ROLE that carries its minimum height.
+    `rows` declares no minimum on purpose: the rows attribute is the geometry
+    there. Collapsing these onto one height is precisely what B1 forbids. */
+const TEXTAREA_CONSTRUCTIONS = [
+  { id: 'admin-usuarios-observacoes', path: 'js/screens/admin-usuarios-modal.js', role: 'large' },
+  { id: 'cadastros-observacoes', path: 'js/screens/cadastros.js', role: 'large' },
+  { id: 'cliente-pedido-item-observacao', path: 'js/screens/cliente-pedido-form.js', role: 'medium' },
+  { id: 'cliente-pedido-instrucoes', path: 'js/screens/cliente-pedido-form.js', role: 'rows' },
+  { id: 'expedicao-observacao', path: 'js/screens/expedicao-admin.js', role: 'standard' },
+  { id: 'receipt-estorno-motivo', path: 'js/screens/ordem-compra-receipt-events.js', role: 'rows' },
+  { id: 'pedido-tracking-mensagem-inline', path: 'js/screens/pedido-detail-events.js', role: 'message' },
+  { id: 'pedido-edit-observacao', path: 'js/screens/pedido-edit.js', role: 'rows' },
+  { id: 'pedido-form-instrucoes', path: 'js/screens/pedido-form.js', role: 'autosize' },
+  { id: 'parciais-mensagem', path: 'js/screens/pedido-parciais-admin.js', role: 'notice' },
+  { id: 'tracking-mensagem', path: 'js/screens/pedido-tracking-admin.js', role: 'tracking' },
+];
+
+/** A switch is ONE component. Before B1 each was two anonymous presentation
+    spans — a track and a knob — with independent geometry in the screen. */
+const SWITCH_COMPONENTS = [
+  { id: 'entrega-defeito-switch', path: 'js/screens/entrega-form.js', tone: 'brand', label: 'Defeito' },
+  { id: 'manta-defeito-switch', path: 'js/screens/manta-output-form.js', tone: 'caution', label: 'Defeito' },
+];
+
+const VISUALLY_HIDDEN_CONSTRUCTIONS = [
+  {
+    id: 'shell-compat-logout',
+    path: 'js/screens/common.js',
+    behaviour: 'window.logout; kept for the screens-common smoke contract',
+  },
+];
+
+/** The five roles and the primitive that owns each. */
+const PRIMITIVES = [
+  { role: 'textarea', fn: 'textArea', population: TEXTAREA_CONSTRUCTIONS, expected: 11 },
+  { role: 'checkbox', fn: 'checkboxInput', population: CHECKBOX_CONSTRUCTIONS, expected: 5 },
+  { role: 'switch', fn: 'switchToggle', population: SWITCH_COMPONENTS, expected: 2 },
+  { role: 'range', fn: 'rangeInput', population: RANGE_CONSTRUCTIONS, expected: 1 },
+  { role: 'visually-hidden', fn: 'visuallyHidden', population: VISUALLY_HIDDEN_CONSTRUCTIONS, expected: 1 },
+];
+
+const TOKENS = read('css/tokens.css');
+const UI = read('js/ui.js');
+
+test('4 · the runtime population is exactly the declared 22 constructions', () => {
+  // The five pinned counts, stated as literals so a silent drift in the
+  // declaration arrays cannot move them.
+  assert.equal(CHECKBOX_CONSTRUCTIONS.length, 5, 'checkbox constructions');
+  assert.equal(RANGE_CONSTRUCTIONS.length, 1, 'range constructions');
+  assert.equal(TEXTAREA_CONSTRUCTIONS.length, 11, 'textarea constructions');
+  assert.equal(SWITCH_COMPONENTS.length, 2, 'switch components');
+  assert.equal(VISUALLY_HIDDEN_CONSTRUCTIONS.length, 1, 'visually hidden compatibility controls');
+
+  // 22 runtime constructions: a switch component contributes its track AND its
+  // knob, which is the pair the old 21-entry inventory counted separately.
+  const constructions =
+    CHECKBOX_CONSTRUCTIONS.length
+    + RANGE_CONSTRUCTIONS.length
+    + TEXTAREA_CONSTRUCTIONS.length
+    + SWITCH_COMPONENTS.length * 2
+    + VISUALLY_HIDDEN_CONSTRUCTIONS.length;
+  assert.equal(constructions, 22);
 });
 
-test('5 · no frozen specialized control is declared conforming by UIC-003', () => {
-  const paths = new Set(SPECIALIZED_CONTROLS.map((e) => e.path));
-  for (const p of paths) {
+test('5 · every construction resolves through the correct shared primitive', () => {
+  for (const { role, fn, population, expected } of PRIMITIVES) {
+    // Per-FILE exactness is what stops a new construction hiding in a file the
+    // population already knows: a sixth checkbox in admin-usuarios.js would
+    // move that file's count from 1 to 2 and fail here.
+    const wanted = new Map();
+    for (const site of population) wanted.set(site.path, (wanted.get(site.path) || 0) + 1);
+
+    const seen = new Map();
+    for (const { rel, code } of CONSUMERS) {
+      const n = countCalls(code, fn);
+      if (n > 0) seen.set(rel, n);
+    }
+    assert.deepEqual(
+      [...seen].sort(),
+      [...wanted].sort(),
+      `${role}: the ${fn}() call-site map moved. HARD STOP — SPECIALIZED-CONTROL POPULATION CHANGED.`,
+    );
+
+    const total = [...seen.values()].reduce((a, b) => a + b, 0);
+    assert.equal(total, expected, `${role}: expected ${expected} construction(s), found ${total}`);
+
+    // The owner defines it exactly once and no consumer redefines it.
     assert.equal(
-      BASELINE.findings.filter((f) => f.rule_id === 'UIC-003' && f.path === p).length,
-      0,
-      `${p} still reports UIC-003; a specialized control must be EXCLUDED, not measured.`,
+      (UI.match(new RegExp(`^function ${fn}\\(`, 'gm')) || []).length,
+      1,
+      `${fn} is not defined exactly once in js/ui.js`,
     );
+    for (const { rel, code } of CONSUMERS) {
+      assert.ok(
+        !new RegExp(`function ${fn}\\(`).test(code),
+        `${rel} redefines the shared primitive ${fn}`,
+      );
+    }
   }
-  // Excluded is not ratified: the debt identifier must remain discoverable.
-  assert.ok(SPECIALIZED_CONTROLS.length >= 21);
 });
 
-test('6 · the specialized inventory has not silently widened', () => {
-  // A checkbox/radio/range or a textarea anywhere in the rendered runtime must
-  // correspond to a frozen entry's file. A new specialized surface is a real
-  // event that needs an architect ruling, not an automatic exemption.
-  const known = new Set(SPECIALIZED_CONTROLS.map((e) => e.path));
+test('6 · no screen-local checkbox, switch, range or textarea geometry remains', () => {
   const offenders = [];
-  for (const { rel, text } of RUNTIME) {
-    const hasSpecial =
-      /type:\s*'(checkbox|radio|range)'/.test(text) || /el\(\s*'textarea'/.test(text);
-    if (hasSpecial && !known.has(rel)) offenders.push(rel);
+  for (const { rel, code } of CONSUMERS) {
+    // The raw constructions the primitives replaced.
+    if (/el\(\s*['"]textarea['"]/.test(code)) offenders.push(`${rel}: builds a raw textarea`);
+    if (/type:\s*'(checkbox|radio|range)'/.test(code)) offenders.push(`${rel}: builds a raw ${/type:\s*'(checkbox|radio|range)'/.exec(code)[1]}`);
+    // The switch track and knob geometry, in any spelling.
+    if (/width:40px;\s*height:22px/.test(code)) offenders.push(`${rel}: declares switch track geometry`);
+    if (/width:18px;\s*height:18px/.test(code)) offenders.push(`${rel}: declares switch knob geometry`);
+    // Checkbox and range paint owned by the stylesheet.
+    if (/accent-color/.test(code)) offenders.push(`${rel}: declares checkbox accent paint`);
+    // Only the SLIDER pseudo-elements. A bare `-webkit-appearance:none` is
+    // also how a native select suppresses its chrome, which is a different
+    // role and not what this counter governs.
+    if (/::-webkit-slider|::-moz-range/.test(code)) offenders.push(`${rel}: declares range track/thumb geometry`);
+    // A multiline minimum height, inline or as a Tailwind utility.
+    for (const m of code.matchAll(/min-h-\[[^\]]*\]/g)) offenders.push(`${rel}: ${m[0]}`);
+  }
+  assert.deepEqual(offenders, [], `screen-local specialized geometry survived:\n${offenders.join('\n')}`);
+
+  // Every role minimum, the checkbox size and the switch/range geometry are
+  // declared once, in the single owner.
+  for (const decl of [
+    /--rv-textarea-min-autosize:\s*40px;/, /--rv-textarea-min-compact:\s*44px;/,
+    /--rv-textarea-min-standard:\s*56px;/, /--rv-textarea-min-medium:\s*80px;/,
+    /--rv-textarea-min-message:\s*92px;/, /--rv-textarea-min-notice:\s*96px;/,
+    /--rv-textarea-min-large:\s*104px;/, /--rv-textarea-min-tracking:\s*110px;/,
+    /--rv-checkbox-size:\s*16px;/,
+    /--rv-switch-track-w:\s*40px;/, /--rv-switch-track-h:\s*22px;/,
+    /--rv-switch-knob:\s*18px;/, /--rv-switch-knob-travel:\s*18px;/,
+    /--rv-range-track-h:\s*4px;/, /--rv-range-thumb:\s*16px;/,
+  ]) {
+    assert.match(TOKENS, decl, 'a specialized-control value left css/tokens.css');
+  }
+});
+
+test('7 · each textarea keeps the role that carries its own minimum height', () => {
+  // The eight distinct minima are real use cases. Collapsing them onto one
+  // value would be a visual regression the population guard must catch.
+  for (const site of TEXTAREA_CONSTRUCTIONS) {
+    const code = codeOf(site.path);
+    assert.ok(
+      new RegExp(`role:\\s*'${site.role}'`).test(code)
+        || new RegExp(`options\\.role\\s*\\|\\|\\s*'${site.role}'`).test(code),
+      `${site.id}: the '${site.role}' role is not declared in ${site.path}`,
+    );
+  }
+  const roles = new Set(TEXTAREA_CONSTRUCTIONS.map((s) => s.role));
+  assert.ok(roles.size >= 6, 'the textarea roles collapsed onto too few heights');
+
+  // The role enum is CLOSED and lives in the owner; an unknown role throws
+  // rather than rendering an unowned height.
+  assert.match(UI, /const TEXTAREA_ROLES = new Set\(\[/);
+  assert.match(UI, /textArea: unknown role/);
+  for (const role of roles) {
+    assert.ok(
+      new RegExp(`data-rv-textarea="${role}"`).test(TOKENS) || role === 'rows',
+      `css/tokens.css declares no geometry for the '${role}' textarea role`,
+    );
+  }
+  // `rows` deliberately declares NO minimum.
+  assert.ok(!/data-rv-textarea="rows"/.test(TOKENS),
+    'the rows role acquired a minimum height; its geometry is the rows attribute');
+});
+
+test('8 · the collapsed checkboxes stay collapsed and keep owning the state', () => {
+  const collapsed = CHECKBOX_CONSTRUCTIONS.filter((c) => c.collapsed);
+  assert.equal(collapsed.length, 2, 'the collapsed state-carrier population changed');
+
+  for (const site of collapsed) {
+    assert.match(codeOf(site.path), /collapsed:\s*true/,
+      `${site.id}: the collapsed state carrier became a visible control`);
+  }
+  // Zero-size, invisible, and still in the accessibility tree — never
+  // display:none, and never a second visible box.
+  const rule = /\.rv-checkbox-collapsed\s*\{([^}]*)\}/.exec(TOKENS);
+  assert.ok(rule, '.rv-checkbox-collapsed is not declared');
+  assert.match(rule[1], /position:\s*absolute/);
+  assert.match(rule[1], /opacity:\s*0/);
+  assert.match(rule[1], /width:\s*0/);
+  assert.match(rule[1], /height:\s*0/);
+  assert.ok(!/display:\s*none/.test(rule[1]), 'the collapsed carrier was hidden from assistive tech');
+
+  // The two switches read that carrier and nothing else.
+  for (const s of SWITCH_COMPONENTS) {
+    assert.match(codeOf(s.path), /switchToggle\(\{\s*input:\s*chk/,
+      `${s.id}: the switch stopped consuming the caller-owned checkbox`);
+    assert.match(codeOf(s.path), /defeitoChk\.checked/,
+      `${s.id}: getPayload no longer reads the checkbox state`);
+  }
+});
+
+test('9 · the switch is one component: track and knob geometry are centralized', () => {
+  for (const s of SWITCH_COMPONENTS) {
+    assert.match(codeOf(s.path), new RegExp(`tone:\\s*'${s.tone}'`), `${s.id}: tone changed`);
+    assert.match(codeOf(s.path), new RegExp(`label:\\s*'${s.label}'`), `${s.id}: label changed`);
+  }
+  // Exactly two tones, and they are the two the product already painted.
+  assert.match(UI, /const SWITCH_TONES = new Set\(\['brand', 'caution'\]\)/);
+  assert.match(UI, /switchToggle: unknown tone/);
+
+  // One owner builds both parts.
+  assert.match(UI, /class: 'rv-switch-track'/);
+  assert.match(UI, /class: 'rv-switch-knob'/);
+  assert.equal((UI.match(/class: 'rv-switch-track'/g) || []).length, 1);
+  assert.equal((UI.match(/class: 'rv-switch-knob'/g) || []).length, 1);
+
+  // Checked / unchecked / disabled are declarative, so a programmatic
+  // `.checked = true` repaints with no handler at all.
+  assert.match(TOKENS, /\.rv-switch \.rv-checkbox-collapsed:checked ~ \.rv-switch-track \{[^}]*background:\s*var\(--rv-viz-primary\)/);
+  assert.match(TOKENS, /\.rv-switch\[data-rv-switch-tone="caution"\] \.rv-checkbox-collapsed:checked ~ \.rv-switch-track \{[^}]*background:\s*var\(--rv-signal-caution\)/);
+  assert.match(TOKENS, /\.rv-switch-track \{[^}]*background:\s*var\(--rv-surface-subtle\)/);
+  assert.match(TOKENS, /\.rv-switch \.rv-checkbox-collapsed:disabled ~ \.rv-switch-track/);
+  assert.match(TOKENS, /translateX\(var\(--rv-switch-knob-travel\)\)/);
+  // No screen repaints the switch any more.
+  for (const s of SWITCH_COMPONENTS) {
+    assert.ok(!/track\.style\.background/.test(codeOf(s.path)), `${s.id}: a repaint handler survived`);
+  }
+});
+
+test('10 · the runtime-computed range gradient is still active and still owned by the screen', () => {
+  const range = RANGE_CONSTRUCTIONS[0];
+  const code = codeOf(range.path);
+
+  // The gradient itself: same stops, same arithmetic, recomputed per event.
+  assert.match(code, /linear-gradient\(to right,var\(--rv-brand\) ' \+ pct \+ '%,var\(--rv-surface-subtle\) ' \+ pct \+ '%\)/);
+  assert.match(code, /Math\.max\(0, Math\.min\(100, \(Number\(slider\.value\) \/ max\) \* 100\)\)/);
+
+  // It is assigned to `background` ONLY, so it can never overwrite the shared
+  // geometry the way the old whole-style-attribute rewrite did.
+  const assignments = code.match(/\.style\.background = trackBg\(/g) || [];
+  assert.equal(assignments.length, 3, 'the three gradient repaint sites changed');
+  assert.ok(!/setAttribute\('style', trackBg/.test(code),
+    'the slider style attribute is being rewritten wholesale again');
+
+  // min / max / step and the input listener survive.
+  assert.match(code, /min:\s*'0'/);
+  assert.match(code, /max:\s*String\(maxCalc\)/);
+  assert.match(code, /step:\s*'1'/);
+  assert.match(code, /slider\.addEventListener\('input'/);
+
+  // The stylesheet's own background is only the REST fallback: an inline
+  // background always wins over it.
+  assert.match(TOKENS, /\.rv-range \{[^}]*background:\s*var\(--rv-viz-track\)/);
+  assert.match(TOKENS, /\.rv-range::-webkit-slider-thumb/);
+  assert.match(TOKENS, /\.rv-range::-moz-range-thumb/);
+});
+
+test('11 · every construction carries a label or an accessible name', () => {
+  const named = [
+    ...CHECKBOX_CONSTRUCTIONS.map((c) => ({ id: c.id, path: c.path, needle: c.name })),
+    ...SWITCH_COMPONENTS.map((s) => ({ id: s.id, path: s.path, needle: s.label })),
+    ...TEXTAREA_CONSTRUCTIONS.map((t) => ({ id: t.id, path: t.path, needle: null })),
+  ];
+  for (const site of named) {
+    const code = codeOf(site.path);
+    if (site.needle) {
+      assert.ok(
+        code.includes(site.needle),
+        `${site.id}: the accessible name "${site.needle}" disappeared from ${site.path}`,
+      );
+    }
+  }
+  // Every textarea and checkbox construction supplies a name.
+  for (const site of [...TEXTAREA_CONSTRUCTIONS, ...CHECKBOX_CONSTRUCTIONS]) {
+    const code = codeOf(site.path);
+    assert.match(code, /ariaLabel:/, `${site.id}: ${site.path} passes no accessible name`);
+  }
+  // The range names itself from the model it distributes.
+  assert.match(codeOf(RANGE_CONSTRUCTIONS[0].path), /ariaLabel:\s*'Metros — ' \+ rotuloModelo\(modelo\)/);
+  // The switch names its own state carrier from the visible label.
+  assert.match(UI, /box\.setAttribute\('aria-label', label\)/);
+  // The visually hidden control keeps its text in the accessibility tree.
+  assert.match(codeOf(VISUALLY_HIDDEN_CONSTRUCTIONS[0].path), /visuallyHidden\('Sair'/);
+  assert.match(TOKENS, /\.rv-visually-hidden \{[^}]*clip:\s*rect\(0, 0, 0, 0\)/);
+  assert.ok(!/\.rv-visually-hidden \{[^}]*display:\s*none/.test(TOKENS),
+    'the visually hidden utility was removed from the accessibility tree');
+});
+
+test('12 · every primitive declares a focus-visible and a disabled owner', () => {
+  for (const selector of ['.rv-textarea', '.rv-checkbox', '.rv-range']) {
+    assert.ok(
+      new RegExp(`\\${selector}:focus-visible`).test(TOKENS),
+      `${selector} declares no focus-visible state`,
+    );
+    assert.ok(
+      new RegExp(`\\${selector}:disabled`).test(TOKENS),
+      `${selector} declares no disabled state`,
+    );
+  }
+  // The switch focuses and disables through its collapsed state carrier.
+  assert.match(TOKENS, /\.rv-switch \.rv-checkbox-collapsed:focus-visible ~ \.rv-switch-track/);
+  assert.match(TOKENS, /\.rv-switch\[data-rv-switch-disabled\]/);
+  // Invalid is declared where a value can be invalid.
+  assert.match(TOKENS, /\.rv-textarea\[aria-invalid="true"\]/);
+  assert.match(TOKENS, /\.rv-checkbox\[aria-invalid="true"\]/);
+  // Hover and rest exist too.
+  assert.match(TOKENS, /\.rv-textarea:hover:not\(:disabled\)/);
+  assert.match(TOKENS, /\.rv-checkbox:hover:not\(:disabled\)/);
+});
+
+test('13 · no specialized primitive joined the generic UIC-003 ladder', () => {
+  // The detector proves it for the 66 screens; this proves the STYLESHEET
+  // never places a specialized role on a rung of the generic ladder.
+  const specializedBlock = TOKENS.slice(TOKENS.indexOf('SPECIALIZED CONTROLS — the five role primitives'));
+  assert.ok(specializedBlock.length > 0, 'the specialized-control stylesheet block disappeared');
+  assert.ok(
+    !/--rv-h-(compact|default|primary)/.test(specializedBlock),
+    'a specialized control resolves through a generic control-height rung',
+  );
+  // And the constructors declare no height at all.
+  const primitiveSource = UI.slice(
+    UI.indexOf('SPECIALIZED CONTROLS (SPECIALIZED-CONTROLS-B1)'),
+    UI.indexOf('// --- Tabela de dados ---'),
+  );
+  assert.ok(primitiveSource.length > 0, 'the specialized-control primitives disappeared from js/ui.js');
+  assert.ok(!/height:/.test(primitiveSource), 'a specialized primitive declares a height in JavaScript');
+  assert.ok(!/style:/.test(primitiveSource), 'a specialized primitive carries a style escape hatch');
+  assert.equal(
+    BASELINE.findings.filter((f) => f.rule_id === 'UIC-003').length,
+    0,
+    'a specialized construction is being measured by the generic ladder',
+  );
+});
+
+test('14 · no new specialized construction can hide anywhere in the runtime', () => {
+  // A raw specialized construction may exist ONLY in the owner. Anywhere else
+  // it is a new unowned surface and needs an architect ruling, not an
+  // automatic exemption.
+  const offenders = [];
+  for (const { rel, code } of CONSUMERS) {
+    if (/type:\s*'(checkbox|radio|range)'/.test(code)) offenders.push(`${rel}: raw specialized input`);
+    if (/el\(\s*['"]textarea['"]/.test(code)) offenders.push(`${rel}: raw textarea`);
   }
   assert.deepEqual(
     offenders,
     [],
-    'HARD STOP — SPECIALIZED-CONTROL INVENTORY EXPANDED: ' + offenders.join(', '),
+    `HARD STOP — SPECIALIZED-CONTROL POPULATION EXPANDED: ${offenders.join(', ')}`,
   );
+
+  // And the owner builds each of them exactly once.
+  assert.equal((stripComments(UI).match(/type:\s*'checkbox'/g) || []).length, 1);
+  assert.equal((stripComments(UI).match(/type:\s*'range'/g) || []).length, 1);
+  assert.equal((stripComments(UI).match(/el\('textarea',/g) || []).length, 1);
 });
 
 /* ============================================================
@@ -351,14 +530,14 @@ test('6 · the specialized inventory has not silently widened', () => {
 /** Tailwind height utilities that would make a class token the geometry owner. */
 const TW_HEIGHT_RE = /(?<![\w-])(h-\d+(?:\.\d+)?|h-\[[^\]]*\]|min-h-\[[^\]]*\]|max-h-\[[^\]]*\]|min-h-\w+|max-h-\w+)/g;
 
-/** Is this Tailwind height utility carried by a frozen specialized control? */
-function isSpecializedUtility(rel, utility) {
-  return SPECIALIZED_CONTROLS.some(
-    (e) => e.path === rel && e.geometryOwner.includes(utility),
-  );
-}
+/* B1 removed the `isSpecializedUtility()` allowance entirely. It existed so a
+   frozen specialized site could keep a Tailwind height utility as its geometry
+   owner (`h-4 w-4`, `min-h-[96px]`, `min-h-[110px]`). No specialized control
+   carries a class-token height any more — section 2 proves that directly — so
+   the exemption has nothing left to exempt and its removal makes the counter
+   below STRICTLY stronger, never weaker. */
 
-test('7 · OUT_OF_LADDER_GENERIC_CONTROL_HEIGHT_COUNT = 0', () => {
+test('15 · OUT_OF_LADDER_GENERIC_CONTROL_HEIGHT_COUNT = 0', () => {
   // Every explicit height on a control the generic ladder governs must be one
   // of the three canonical tokens. The detector proves this for the 66 screens;
   // this asserts it over the WHOLE loaded runtime, shared primitives included.
@@ -388,7 +567,7 @@ test('7 · OUT_OF_LADDER_GENERIC_CONTROL_HEIGHT_COUNT = 0', () => {
   assert.deepEqual(offenders, [], `OUT_OF_LADDER_GENERIC_CONTROL_HEIGHT_COUNT = ${offenders.length}`);
 });
 
-test('8 · TAILWIND_GENERIC_CONTROL_HEIGHT_UTILITY_COUNT = 0', () => {
+test('16 · TAILWIND_GENERIC_CONTROL_HEIGHT_UTILITY_COUNT = 0', () => {
   const offenders = [];
   for (const { rel, text } of RUNTIME) {
     // Bind each class list to its OWN element by matching the whole factory
@@ -407,10 +586,12 @@ test('8 · TAILWIND_GENERIC_CONTROL_HEIGHT_UTILITY_COUNT = 0', () => {
       const specialized =
         tag === 'textarea' || /type:\s*'(checkbox|radio|range|hidden)'/.test(attrs);
       for (const u of utilities) {
-        // Carried by the frozen inventory in section 2, which asserts each one
-        // is still present and still unratified.
+        // A specialized control is outside the GENERIC ladder this counter
+        // measures. Section 2 proves separately that no specialized control
+        // owns a class-token height any more, so this branch is now
+        // unreachable in the real runtime and is kept only as the semantic
+        // statement of what the counter does not govern.
         if (specialized) continue;
-        if (isSpecializedUtility(rel, u)) continue;
         offenders.push(`${rel}: ${u} on a generic control`);
       }
     }
@@ -422,7 +603,7 @@ test('8 · TAILWIND_GENERIC_CONTROL_HEIGHT_UTILITY_COUNT = 0', () => {
   );
 });
 
-test('9 · UNRESOLVED_GENERIC_CONTROL_ROLE_COUNT = 0', () => {
+test('17 · UNRESOLVED_GENERIC_CONTROL_ROLE_COUNT = 0', () => {
   // Reuse the real front-end rather than a second grammar: a height whose role
   // the detector cannot resolve is exactly what UIC-003 reports as coverage.
   let unresolved = 0;
@@ -441,7 +622,7 @@ test('9 · UNRESOLVED_GENERIC_CONTROL_ROLE_COUNT = 0', () => {
   assert.equal(unresolved, 0, `UNRESOLVED_GENERIC_CONTROL_ROLE_COUNT = ${unresolved}\n${offenders.join('\n')}`);
 });
 
-test('10 · GENERIC_CONTROL_HEIGHT_LITERAL_CONSTANT_COUNT = 0', () => {
+test('18 · GENERIC_CONTROL_HEIGHT_LITERAL_CONSTANT_COUNT = 0', () => {
   // A named constant may hold a canonical TOKEN; it may never hold a bare
   // literal that a generic control's height resolves through.
   const offenders = [];
@@ -450,7 +631,13 @@ test('10 · GENERIC_CONTROL_HEIGHT_LITERAL_CONSTANT_COUNT = 0', () => {
     for (const m of text.matchAll(re)) {
       const [, name, value] = m;
       if (!/height/i.test(name)) continue;
-      if (/TEXTAREA|MULTILINE|MIN_HEIGHT|MAX_HEIGHT/i.test(name)) continue; // specialized, inventoried
+      // B1 narrowed this exemption. The TEXTAREA / MULTILINE / MIN_HEIGHT
+      // spellings are gone together with the last constants that used them
+      // (MOVEMENT_TEXTAREA_MIN_HEIGHT and the two modal 44px minima): a
+      // multiline minimum is now a CSS token behind a declared role. What
+      // survives is MAX_HEIGHT alone, which is a scroll-container ceiling —
+      // never a height a control resolves through.
+      if (/MAX_HEIGHT/i.test(name)) continue;
       if (!/^\d+(\.\d+)?px$/.test(value)) continue;
       offenders.push(`${rel}: ${name} = '${value}'`);
     }
@@ -462,7 +649,7 @@ test('10 · GENERIC_CONTROL_HEIGHT_LITERAL_CONSTANT_COUNT = 0', () => {
   );
 });
 
-test('11 · the guard carries no path-only ignore list', () => {
+test('19 · the guard carries no path-only ignore list', () => {
   // Every exclusion above is expressed as a semantic predicate. A "skip this
   // file" list is the mechanism this whole structure exists to prevent, so
   // assert the detector carries none — reading CODE only, since the modules
@@ -488,7 +675,7 @@ test('11 · the guard carries no path-only ignore list', () => {
    4 · role rulings the detector cannot restate
    ============================================================ */
 
-test('12 · the three pagination current-page nodes are non-interactive indicators', () => {
+test('20 · the three pagination current-page nodes are non-interactive indicators', () => {
   for (const rel of [
     'js/screens/ops-list.js',
     'js/screens/pedidos-list.js',
@@ -507,7 +694,7 @@ test('12 · the three pagination current-page nodes are non-interactive indicato
   }
 });
 
-test('13 · both cadastros price-row actions delegate to the canonical primitive', () => {
+test('21 · both cadastros price-row actions delegate to the canonical primitive', () => {
   const text = read('js/screens/cadastros.js');
   assert.match(text, /window\.actionButton\(\{\s*\n?\s*title: 'Editar preco'/);
   assert.match(text, /window\.actionButton\(\{\s*\n?\s*title: 'Excluir preco'/);
@@ -544,7 +731,7 @@ test('13 · both cadastros price-row actions delegate to the canonical primitive
    dropped assertion is replaced by a strictly stronger one.
    ------------------------------------------------------------ */
 
-test('14 · the shared single-line field primitives own the canonical compact rung', () => {
+test('22 · the shared single-line field primitives own the canonical compact rung', () => {
   const ui = read('js/ui.js');
   const popover = read('js/select-popover.js');
 
@@ -578,7 +765,7 @@ test('14 · the shared single-line field primitives own the canonical compact ru
     'the control-height ladder gained or lost a rung');
 });
 
-test('15 · neither shared field primitive can build a specialized control', () => {
+test('23 · neither shared field primitive can build a specialized control', () => {
   const ui = read('js/ui.js');
   const popover = read('js/select-popover.js');
 
@@ -625,7 +812,7 @@ test('15 · neither shared field primitive can build a specialized control', () 
 const probe = (src) => jsScreen.analyse('probe.js', src);
 const heightDecls = (unit) => unit.declarations.filter((d) => d.property === 'height');
 
-test('16 · literal input type is transported, and only literally', () => {
+test('24 · literal input type is transported, and only literally', () => {
   const u = probe([
     "var a = window.el('input', { type: 'checkbox', style: 'height:15px;' });",
     "var b = el('input', { type: 'text', style: 'height:40px;' });",
@@ -639,7 +826,7 @@ test('16 · literal input type is transported, and only literally', () => {
   assert.equal(d.element.attrMap.get('type'), undefined, 'type is transported for inputs only');
 });
 
-test('17 · a factory-bound checkbox keeps its type when styled after construction', () => {
+test('25 · a factory-bound checkbox keeps its type when styled after construction', () => {
   const u = probe([
     "var chk = window.el('input', { type: 'checkbox', class: 'h-4 w-4' });",
     "chk.style.cssText = 'position:absolute;opacity:0;width:0;height:0;margin:0;';",
@@ -648,7 +835,7 @@ test('17 · a factory-bound checkbox keeps its type when styled after constructi
   assert.equal(h.element.attrMap.get('type'), 'checkbox');
 });
 
-test('18 · the window.el binding amendment stays inside its authorized envelope', () => {
+test('26 · the window.el binding amendment stays inside its authorized envelope', () => {
   const accepted = probe([
     "var i = window.el('input', { type: 'text' });  i.style.height = '40px';",
     "var s = window.el('select', {});               s.style.height = '40px';",
@@ -671,7 +858,7 @@ test('18 · the window.el binding amendment stays inside its authorized envelope
   }
 });
 
-test('19 · no role, ancestry or interaction is inferred by either amendment', () => {
+test('27 · no role, ancestry or interaction is inferred by either amendment', () => {
   const u = probe([
     "var a = window.el('div', { role: 'button', 'data-ui-control': '1', style: 'height:40px;' });",
   ].join('\n'));
@@ -692,7 +879,7 @@ const CONTRACT = readContract(ROOT);
 const CTX = { tokens: readTokens(ROOT), enums: buildEnums(CONTRACT) };
 const uic003Of = (src) => runRules(probe(src), CTX).filter((f) => f.rule_id === 'UIC-003');
 
-test('20 · an ordinary control outside the ladder is still rejected', () => {
+test('28 · an ordinary control outside the ladder is still rejected', () => {
   const cases = [
     ["el('button', { style: 'height:30px;' })", 'blocking', 'ordinary 30px button'],
     ["el('button', { style: 'height:36px;' })", 'blocking', 'ordinary 36px button'],
@@ -708,7 +895,7 @@ test('20 · an ordinary control outside the ladder is still rejected', () => {
   }
 });
 
-test('21 · a specialized or hidden control is excluded, never reported', () => {
+test('29 · a specialized or hidden control is excluded, never reported', () => {
   const cases = [
     ["el('input', { type: 'checkbox', style: 'height:16px;' })", 'checkbox'],
     ["el('input', { type: 'radio', style: 'height:16px;' })", 'radio'],
@@ -723,7 +910,7 @@ test('21 · a specialized or hidden control is excluded, never reported', () => 
   }
 });
 
-test('22 · a control merely dressed as a track or a hidden node is still rejected', () => {
+test('30 · a control merely dressed as a track or a hidden node is still rejected', () => {
   // A button is a control however it is styled: the track exemption is about
   // the span the toggle really uses, not about any 40x22 box.
   const masquerade = uic003Of("el('button', { style: 'display:inline-block;width:40px;height:22px;' })");
@@ -740,13 +927,13 @@ test('22 · a control merely dressed as a track or a hidden node is still reject
   assert.equal(notHairline.length, 1, 'a clipped but full-size button was excused');
 });
 
-test('23 · a canonical ladder value on a real control passes', () => {
+test('31 · a canonical ladder value on a real control passes', () => {
   for (const token of LADDER_TOKENS) {
     assert.deepEqual(uic003Of(`el('button', { style: 'height:${token};' })`), [], token);
   }
   assert.deepEqual(uic003Of("el('input', { type: 'text', style: 'height:var(--rv-h-compact);' })"), []);
 });
 
-test('24 · comments and prose do not fire the rule', () => {
+test('32 · comments and prose do not fire the rule', () => {
   assert.deepEqual(uic003Of("// height:40px on a button\n/* height:30px */\nvar s = 'height:40px';"), []);
 });

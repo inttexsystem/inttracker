@@ -175,10 +175,12 @@
         style: 'display:flex;align-items:center;gap:8px;font-size:13px;color:var(--rv-text-secondary);'
           + 'margin-bottom:20px;cursor:pointer;',
       },
-        window.el('input', {
-          type: 'checkbox',
-          style: 'accent-color:var(--rv-accent-blue);width:15px;height:15px;',
-        }),
+        // B1: the visible checkbox resolves through the canonical primitive,
+        // which owns its one ratified size and its focus/disabled states. The
+        // wrapping label already reads "Lembrar-me neste dispositivo"; the
+        // explicit accessible name states it rather than relying on the
+        // implicit association.
+        window.checkboxInput({ ariaLabel: 'Lembrar-me neste dispositivo' }),
         'Lembrar-me neste dispositivo'
       ),
       btn

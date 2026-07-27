@@ -234,11 +234,16 @@
     const legacySpan = window.el('span', {
       style: 'display:none;',
     }, window.CURRENT_USER ? (window.CURRENT_USER.nome + ' (' + window.CURRENT_USER.tipo + ')') : '');
-    const legacyBtn = window.el('button', {
-      class: 'sr-only',
-      style: 'position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);',
+    // B1: the visually hidden compatibility control resolves through the
+    // canonical primitive, which owns the clip-rect pattern in
+    // css/tokens.css. The `sr-only` marker class is kept because the
+    // screens-common contract asserts it; it carries no geometry. The label,
+    // the logout handler and the click behaviour are unchanged.
+    const legacyBtn = window.visuallyHidden('Sair', {
+      tag: 'button',
+      extraClass: 'sr-only',
       onclick: window.logout,
-    }, 'Sair');
+    });
 
     const header = window.el('header', {
       'data-rv-shell-header': '',
