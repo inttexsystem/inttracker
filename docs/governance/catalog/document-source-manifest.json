@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "3694c4f8ef27e870d48ad8feaf97d1003bf57d37",
-      "sha256": "c695da7bd612eeb0ef85839d2c8a61d898ca488794379d77a46cf7365df35f95",
+      "git_object_id": "6efe0050503be8c2386dc9c3113eea5b7d42d9ba",
+      "sha256": "e0af9586bc17d764416b8a03bdfe90c2c6a2c2413da0a9f53ffd4569ab71af47",
       "line_count": 34,
-      "byte_count": 13997,
+      "byte_count": 15474,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -59602,10 +59602,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "de34c694fb9450a20fcfe26a7869e3efa674c548",
-      "sha256": "19583e69e976c9d1dea2e507fbe75647ea5faf79800cad46e83c4413c213e976",
-      "line_count": 10421,
-      "byte_count": 1351996,
+      "git_object_id": "79270b6c112955bdc4cfac7a17cb54151d47965c",
+      "sha256": "878fefa7cb03da46dfbb41f66917e3aa759b8c22d6081abacbae980d813044f4",
+      "line_count": 10448,
+      "byte_count": 1367147,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -67929,6 +67929,12 @@
           "text": "2026-07-27 — PEDIDO-SCREEN-GROUP-1-CREATION-AND-EDITING — refactor(ui): consolidate pedido creation and editing screens",
           "anchor": "2026-07-27-pedido-screen-group-1-creation-and-editing-refactorui-consolidate-pedido-creation-and-editing-screens",
           "line": 10391
+        },
+        {
+          "level": 2,
+          "text": "2026-07-27 — PEDIDO-SCREEN-GROUP-2-DETAIL-AND-MODAL-SURFACES — refactor(ui): consolidate pedido detail and modal surfaces",
+          "anchor": "2026-07-27-pedido-screen-group-2-detail-and-modal-surfaces-refactorui-consolidate-pedido-detail-and-modal-surfaces",
+          "line": 10421
         }
       ]
     },
@@ -76852,10 +76858,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md",
-      "git_object_id": "26274a460e61acdde22d62b1f4dc63ac9e7b4696",
-      "sha256": "bc331c9ff5a2c09c7a6d1c3eee770e20c61e518ff857647727ab21645d7a28b6",
-      "line_count": 68,
-      "byte_count": 32957,
+      "git_object_id": "f0c1cfa5e98daee1f2821dcbc8e09d6755c1066a",
+      "sha256": "d3dfc3d8c77b9b1e27920fb52e1c7f6cbcf5aabad7e8abfb8039dd8bc5229977",
+      "line_count": 95,
+      "byte_count": 48108,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -76888,6 +76894,12 @@
           "text": "2026-07-27 — PEDIDO-SCREEN-GROUP-1-CREATION-AND-EDITING — refactor(ui): consolidate pedido creation and editing screens",
           "anchor": "2026-07-27-pedido-screen-group-1-creation-and-editing-refactorui-consolidate-pedido-creation-and-editing-screens",
           "line": 38
+        },
+        {
+          "level": 2,
+          "text": "2026-07-27 — PEDIDO-SCREEN-GROUP-2-DETAIL-AND-MODAL-SURFACES — refactor(ui): consolidate pedido detail and modal surfaces",
+          "anchor": "2026-07-27-pedido-screen-group-2-detail-and-modal-surfaces-refactorui-consolidate-pedido-detail-and-modal-surfaces",
+          "line": 68
         }
       ]
     },
@@ -76975,10 +76987,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "12cb5210d2e262a6de61d797e8a8e3f4c155408b",
-      "sha256": "fefd3b76e0554148f8780bdb8713505d153a782d1b12e8ba306efa6b607bd82a",
-      "line_count": 10415,
-      "byte_count": 1351695,
+      "git_object_id": "fa4cb53de531e9b0ba5eebdace5721010839d2cd",
+      "sha256": "c35174b46bd1263b0daee2439f4f165e212ee7b6f4d76c0340555f0db3c982b6",
+      "line_count": 10442,
+      "byte_count": 1366846,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -87255,6 +87267,12 @@
           "text": "2026-07-27 — PEDIDO-SCREEN-GROUP-1-CREATION-AND-EDITING — refactor(ui): consolidate pedido creation and editing screens",
           "anchor": "2026-07-27-pedido-screen-group-1-creation-and-editing-refactorui-consolidate-pedido-creation-and-editing-screens",
           "line": 10387
+        },
+        {
+          "level": 2,
+          "text": "2026-07-27 — PEDIDO-SCREEN-GROUP-2-DETAIL-AND-MODAL-SURFACES — refactor(ui): consolidate pedido detail and modal surfaces",
+          "anchor": "2026-07-27-pedido-screen-group-2-detail-and-modal-surfaces-refactorui-consolidate-pedido-detail-and-modal-surfaces",
+          "line": 10417
         }
       ]
     },
