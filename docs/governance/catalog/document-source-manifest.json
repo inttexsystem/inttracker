@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "68f77c060f528b42002c15a0559be9c7405e6042",
-      "sha256": "f6113c523564fb2951ffa1fee6d55a50543f65d5665bc7592fe4dbc8ca4c27de",
+      "git_object_id": "7048d4bce0fbf3f398542818d116aced9365ae7a",
+      "sha256": "758d90cdcf90bf1571bb1af0fbed780503dbe59b327d3df71b0d2213a0958774",
       "line_count": 34,
-      "byte_count": 12914,
+      "byte_count": 10806,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -20789,10 +20789,10 @@
     },
     {
       "path": "docs/architecture/DESIGN_DECISIONS.md",
-      "git_object_id": "0975c74454ea739d75e6d11358e6addc04885c8e",
-      "sha256": "e580dffaed8bcca17c9c5914968cad8ddc4b46815d08e8b9a5fa9fc869647763",
-      "line_count": 222,
-      "byte_count": 16093,
+      "git_object_id": "776930ca95707e80781459ef7dfce8c96424deb6",
+      "sha256": "1ef13c6a966359759e486957c1b3b92a869bfb9d3d90a65c5a1b9d3e4e55ea5a",
+      "line_count": 275,
+      "byte_count": 20479,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -20943,9 +20943,27 @@
         },
         {
           "level": 2,
+          "text": "2026-07-27 · D10 — the application owns the single-choice control",
+          "anchor": "2026-07-27-d10-the-application-owns-the-single-choice-control",
+          "line": 218
+        },
+        {
+          "level": 3,
+          "text": "D10.1 — naming is part of the control, not a later polish",
+          "anchor": "d101-naming-is-part-of-the-control-not-a-later-polish",
+          "line": 235
+        },
+        {
+          "level": 3,
+          "text": "D10.2 — a wrapper may not restyle the trigger",
+          "anchor": "d102-a-wrapper-may-not-restyle-the-trigger",
+          "line": 253
+        },
+        {
+          "level": 2,
           "text": "How to record the next round",
           "anchor": "how-to-record-the-next-round",
-          "line": 218
+          "line": 271
         }
       ]
     },
@@ -39625,10 +39643,10 @@
     },
     {
       "path": "docs/architecture/UI_CONFORMANCE.md",
-      "git_object_id": "0938bc7cceab0f725e81e54c8c5c8249765e59ad",
-      "sha256": "0f8763aadf361866450929a6de42942d53b18cffd1d6f55ddb5bdbad39492768",
-      "line_count": 644,
-      "byte_count": 44089,
+      "git_object_id": "2a6e3cd1ddd0a1e1f6ddc2c3c8f07cff306cfa3b",
+      "sha256": "edfda04cc0b611cd9b4caca8be346f0807c64a1d5d14b75c0707235675beb41d",
+      "line_count": 652,
+      "byte_count": 44672,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -39637,7 +39655,7 @@
           "target_path": "docs/ui/fixtures/vendor/react-18.3.1/README.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 612
+          "source_line": 620
         }
       ],
       "inbound_references": [
@@ -39657,7 +39675,7 @@
         },
         {
           "source_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
-          "source_line": 367,
+          "source_line": 400,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -39708,100 +39726,100 @@
           "level": 3,
           "text": "UIC-002 and UIC-010 — closed",
           "anchor": "uic-002-and-uic-010-closed",
-          "line": 174
+          "line": 182
         },
         {
           "level": 3,
           "text": "UIC-001 — closed",
           "anchor": "uic-001-closed",
-          "line": 277
+          "line": 285
         },
         {
           "level": 2,
           "text": "Archetype A — Detail cockpit",
           "anchor": "archetype-a-detail-cockpit",
-          "line": 312
+          "line": 320
         },
         {
           "level": 2,
           "text": "Archetype B — Work queue",
           "anchor": "archetype-b-work-queue",
-          "line": 327
+          "line": 335
         },
         {
           "level": 2,
           "text": "Archetype C — Creation form",
           "anchor": "archetype-c-creation-form",
-          "line": 337
+          "line": 345
         },
         {
           "level": 2,
           "text": "Archetype D — Decision modal",
           "anchor": "archetype-d-decision-modal",
-          "line": 344
+          "line": 352
         },
         {
           "level": 2,
           "text": "Archetype E — Client portal",
           "anchor": "archetype-e-client-portal",
-          "line": 351
+          "line": 359
         },
         {
           "level": 2,
           "text": "Archetype F — Configuration",
           "anchor": "archetype-f-configuration",
-          "line": 360
+          "line": 368
         },
         {
           "level": 2,
           "text": "Application surface — `js/screens/*.js`",
           "anchor": "application-surface-jsscreensjs",
-          "line": 368
+          "line": 376
         },
         {
           "level": 2,
           "text": "Table review — the one manual pass",
           "anchor": "table-review-the-one-manual-pass",
-          "line": 499
+          "line": 507
         },
         {
           "level": 2,
           "text": "Outside the archetypes — chrome and documentation",
           "anchor": "outside-the-archetypes-chrome-and-documentation",
-          "line": 516
+          "line": 524
         },
         {
           "level": 2,
           "text": "Execution order — by property batch",
           "anchor": "execution-order-by-property-batch",
-          "line": 529
+          "line": 537
         },
         {
           "level": 2,
           "text": "Versioned fixture provenance",
           "anchor": "versioned-fixture-provenance",
-          "line": 586
+          "line": 594
         },
         {
           "level": 3,
           "text": "Vendored fixture runtime — immutable third-party assets",
           "anchor": "vendored-fixture-runtime-immutable-third-party-assets",
-          "line": 602
+          "line": 610
         },
         {
           "level": 2,
           "text": "Archetype ratification",
           "anchor": "archetype-ratification",
-          "line": 622
+          "line": 630
         }
       ]
     },
     {
       "path": "docs/architecture/UI_VISUAL_CONTRACT.md",
-      "git_object_id": "8deb8e822ee7883671f5afa543ad46f727231cfb",
-      "sha256": "c76b88ecf535c247b650a79c25c3a4e75c55b2207b67442071e3d74c36d6b534",
-      "line_count": 509,
-      "byte_count": 25503,
+      "git_object_id": "b3cc7387eebc6fc25dbaeaf23e2efbe2ce6648cf",
+      "sha256": "986f8f38ca39aea060c860d81ef431033e97b66cf3ead75c86d999dd56eb79e3",
+      "line_count": 542,
+      "byte_count": 27617,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -39818,7 +39836,7 @@
           "target_path": "docs/architecture/UI_CONFORMANCE.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 367
+          "source_line": 400
         }
       ],
       "inbound_references": [
@@ -40367,145 +40385,145 @@
           "level": 3,
           "text": "2.4 Card and section chip",
           "anchor": "24-card-and-section-chip",
-          "line": 154
+          "line": 187
         },
         {
           "level": 3,
           "text": "2.5 Table — golden rule",
           "anchor": "25-table-golden-rule",
-          "line": 166
+          "line": 199
         },
         {
           "level": 3,
           "text": "2.5.1 Contextual navigation link",
           "anchor": "251-contextual-navigation-link",
-          "line": 182
+          "line": 215
         },
         {
           "level": 3,
           "text": "2.6 Status pill",
           "anchor": "26-status-pill",
-          "line": 189
+          "line": 222
         },
         {
           "level": 3,
           "text": "2.6.1 Classification badge",
           "anchor": "261-classification-badge",
-          "line": 210
+          "line": 243
         },
         {
           "level": 3,
           "text": "2.7 Stage badge",
           "anchor": "27-stage-badge",
-          "line": 221
+          "line": 254
         },
         {
           "level": 3,
           "text": "2.8 File chip and document slots",
           "anchor": "28-file-chip-and-document-slots",
-          "line": 233
+          "line": 266
         },
         {
           "level": 3,
           "text": "2.9 Table-row action",
           "anchor": "29-table-row-action",
-          "line": 243
+          "line": 276
         },
         {
           "level": 3,
           "text": "2.10 Modal",
           "anchor": "210-modal",
-          "line": 258
+          "line": 291
         },
         {
           "level": 3,
           "text": "2.11 Empty state and alert",
           "anchor": "211-empty-state-and-alert",
-          "line": 269
+          "line": 302
         },
         {
           "level": 3,
           "text": "2.12 Progress, range and chart",
           "anchor": "212-progress-range-and-chart",
-          "line": 282
+          "line": 315
         },
         {
           "level": 2,
           "text": "3. Layer 3 — Screen archetypes",
           "anchor": "3-layer-3-screen-archetypes",
-          "line": 296
+          "line": 329
         },
         {
           "level": 3,
           "text": "A · Detail cockpit — `RATIFIED FIXTURE`",
           "anchor": "a-detail-cockpit-ratified-fixture",
-          "line": 301
+          "line": 334
         },
         {
           "level": 3,
           "text": "B · Work queue — `CANDIDATE`",
           "anchor": "b-work-queue-candidate",
-          "line": 315
+          "line": 348
         },
         {
           "level": 3,
           "text": "C · Creation form — `CANDIDATE`",
           "anchor": "c-creation-form-candidate",
-          "line": 324
+          "line": 357
         },
         {
           "level": 3,
           "text": "D · Decision modal — `CANDIDATE`",
           "anchor": "d-decision-modal-candidate",
-          "line": 334
+          "line": 367
         },
         {
           "level": 3,
           "text": "E · Client portal — `CANDIDATE`",
           "anchor": "e-client-portal-candidate",
-          "line": 341
+          "line": 374
         },
         {
           "level": 3,
           "text": "F · Configuration — `CANDIDATE`",
           "anchor": "f-configuration-candidate",
-          "line": 353
+          "line": 386
         },
         {
           "level": 2,
           "text": "4. Layer 4 — Conformance",
           "anchor": "4-layer-4-conformance",
-          "line": 365
+          "line": 398
         },
         {
           "level": 2,
           "text": "5. Closed enums",
           "anchor": "5-closed-enums",
-          "line": 377
+          "line": 410
         },
         {
           "level": 2,
           "text": "6. Prohibitions",
           "anchor": "6-prohibitions",
-          "line": 450
+          "line": 483
         },
         {
           "level": 2,
           "text": "7. Language and lexicon",
           "anchor": "7-language-and-lexicon",
-          "line": 474
+          "line": 507
         },
         {
           "level": 2,
           "text": "8. Accessibility",
           "anchor": "8-accessibility",
-          "line": 488
+          "line": 521
         },
         {
           "level": 2,
           "text": "9. Validation",
           "anchor": "9-validation",
-          "line": 498
+          "line": 531
         }
       ]
     },
@@ -76597,10 +76615,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0014.md",
-      "git_object_id": "906319e12770b5d5066510e565eb23f5652b9190",
-      "sha256": "5cd20f94eb6d7e7a21bec021dc66825a1d7d8a982378eb07711166e80a73d893",
-      "line_count": 149,
-      "byte_count": 72836,
+      "git_object_id": "c6cb8d702d25e0ccd0701dd9ed2a480160a0cdd4",
+      "sha256": "4e1664577a9ef5f16b4f53ddca780957c189e647fa537d2dae4c54bdd29ca16d",
+      "line_count": 172,
+      "byte_count": 80889,
       "generated_status": "GENERATED",
       "outbound_references": [],
       "inbound_references": [
@@ -76639,9 +76657,15 @@
         },
         {
           "level": 2,
+          "text": "2026-07-27 — UI-CONSOLIDATION-PHASE-5-PASS-7-NATIVE-SELECT-R1 (A1 · A2 · A3 · A4) — fix(ui): replace native selects with owned popovers",
+          "anchor": "2026-07-27-ui-consolidation-phase-5-pass-7-native-select-r1-a1-a2-a3-a4-fixui-replace-native-selects-with-owned-popovers",
+          "line": 123
+        },
+        {
+          "level": 2,
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-6-TYPOGRAPHY-R1-A1 — fix(ui): restore semantic kpi typography hierarchy",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-6-typography-r1-a1-fixui-restore-semantic-kpi-typography-hierarchy",
-          "line": 123
+          "line": 146
         }
       ]
     },
@@ -76729,10 +76753,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "d9f0e6a603acfad98abccb1557a4876c81cff168",
-      "sha256": "55a25b787c170990c99b44c74a281ef44d9d7a03a309e4ef048659203df823c6",
-      "line_count": 10245,
-      "byte_count": 1270798,
+      "git_object_id": "9c4061a8582f695f3bab9d095eb84604c2d443e0",
+      "sha256": "8e36781637180e53c68424ab83af159aba964277ec14ed264f2166bfc55ac67c",
+      "line_count": 10268,
+      "byte_count": 1278851,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86919,9 +86943,15 @@
         },
         {
           "level": 2,
+          "text": "2026-07-27 — UI-CONSOLIDATION-PHASE-5-PASS-7-NATIVE-SELECT-R1 (A1 · A2 · A3 · A4) — fix(ui): replace native selects with owned popovers",
+          "anchor": "2026-07-27-ui-consolidation-phase-5-pass-7-native-select-r1-a1-a2-a3-a4-fixui-replace-native-selects-with-owned-popovers",
+          "line": 10221
+        },
+        {
+          "level": 2,
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-6-TYPOGRAPHY-R1-A1 — fix(ui): restore semantic kpi typography hierarchy",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-6-typography-r1-a1-fixui-restore-semantic-kpi-typography-hierarchy",
-          "line": 10221
+          "line": 10244
         }
       ]
     },
@@ -97667,7 +97697,7 @@
       "inbound_references": [
         {
           "source_path": "docs/architecture/UI_CONFORMANCE.md",
-          "source_line": 612,
+          "source_line": 620,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null

@@ -215,6 +215,59 @@ from the implementation it replaces. Business colour literals are legitimate **o
 
 ---
 
+## 2026-07-27 · D10 — the application owns the single-choice control
+
+Phase-5 pass 7 closed `UIC-006`. The product had 44 single-choice sites: 15 native
+`<select>` constructions the detector could see, and 29 call sites of the shared
+`js/ui.js::selectInput()`. Two of them hid a native `<select>` at `opacity:0` behind a
+styled facade — the facade drew the field, the invisible control owned the value.
+
+| Decision | Reason | Accepted loss |
+|---|---|---|
+| ONE owner, `js/select-popover.js`, exporting `window.createSelectPopover()`; `selectInput()` becomes a thin adapter | a native `<select>` can style its closed field and nothing else — the open list is browser-drawn and refuses padding, radius, shadow, item colour and selected background | we now own keyboard, focus and positioning behaviour the browser used to give us free |
+| The trigger is a `<button role="combobox">`, not a styled `<select>` | a facade over a hidden native control means two elements disagree about the truth; one element now owns the value and the presentation | `role="combobox"` does not take its name from content, so every trigger needs an explicit name — see D10.1 |
+| No `options` collection, no `selectedIndex`, no `add()`/`remove()`/`replaceChildren()` | emulating `HTMLSelectElement` would invite callers to depend on a DOM we do not own; the repository only ever used `.value` and repopulation | dynamic callers had to move to `setOptions()`, which is a real (small) migration |
+| The panel is portaled to `document.body` at `--rv-z-popover` 225 | a list rendered inside a modal, a scroll container or any local stacking context gets clipped; layering it between the modal (200) and the toast (250) is the only arrangement where a field inside a modal works | positioning becomes our problem: we measure, flip and clamp on open, resize and capturing scroll |
+| One popover open globally | two open lists is never a state a user asked for | a module-level registry, which is shared mutable state |
+| Exactly one site became read-only presentation | Pedido "Status inicial" offered one permanently disabled option — a statement, not a decision | a disabled combobox would have been the lazy answer and would have kept a fake control |
+| No search box, no grouping, no multi-select | the proven population needs none of the three, and each would be a contract with no consumer | a future searchable variant is a new decision, not an extension |
+
+### D10.1 — naming is part of the control, not a later polish
+
+Replacing `<select>` with `role="combobox"` moved a burden the browser used to carry.
+A `<button>` takes its accessible name from its text; **a combobox does not**. Five
+screens rendered their visible label as a SIBLING `<label>` with no `for` and no id —
+which named nothing before either, but a native select at least announced its value.
+Nineteen triggers therefore reached assistive technology unnamed.
+
+**Choice.** Bind the existing visible label through `aria-labelledby`, at the owning
+field helper, using a deterministic per-module id sequence. Never overwrite an explicit
+name. Never bind a non-combobox.
+**Accepted loss.** Five screen helpers now know about the canonical marker — a small,
+explicit coupling we preferred to nineteen one-off patches.
+
+One row-level control had no individual label at all: it is a grid cell. **Choice.**
+name it by its own column header, the same real node the table already renders.
+**Accepted loss.** many rows share one id, so the id must be minted per render.
+
+### D10.2 — a wrapper may not restyle the trigger
+
+`op-nova.js styleSelect()` replaced the whole inline style with a native-`<select>`
+padding box. Applied to the canonical trigger it produced 41px instead of 32px, 14px
+text, 9px vertical padding and `inline-block` — silently, at three real sites, while
+every static guard stayed green.
+
+**Choice.** the primitive is the sole owner of combobox geometry; `styleSelect()`
+returns a canonical trigger untouched before any mutation, and keeps its previous
+behaviour for legacy controls.
+**Accepted loss.** the rule is a guard inside a screen helper rather than something the
+type system or the detector can enforce — so it is written down here.
+
+**Revoked.** The hidden-native-`<select>`-behind-a-facade pattern (`ops-list.js`,
+`pedidos-list.js`). No product surface may carry a native `<select>` again.
+
+---
+
 ## How to record the next round
 
 Header with date and name. Context in two sentences. One line per decision with
