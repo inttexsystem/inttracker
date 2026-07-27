@@ -113,7 +113,7 @@
         style: 'font-size:11.5px;color:var(--rv-text-tertiary);font-weight:600;margin-bottom:6px;',
       }, title),
       window.el('div', {
-        style: 'font-size:var(--rv-fs-metric);font-weight:800;color:' + color + ';',
+        style: 'font-size:var(--rv-fs-summary-total);font-weight:800;color:' + color + ';',
       }, value)
     );
   }

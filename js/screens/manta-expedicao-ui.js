@@ -52,7 +52,7 @@
   function metric(label, value, color) {
     return window.el('div', { style: CARD + 'padding:12px 14px;' },
       window.el('div', { style: 'font-size:10.5px;color:var(--rv-text-tertiary);font-weight:700;letter-spacing:.03em;margin-bottom:5px;' }, label),
-      window.el('div', { style: 'font-size:var(--rv-fs-metric);font-weight:800;color:' + (color || 'var(--rv-text-primary)') + ';' }, fmtMetros(value)));
+      window.el('div', { style: 'font-size:var(--rv-fs-summary-total);font-weight:800;color:' + (color || 'var(--rv-text-primary)') + ';' }, fmtMetros(value)));
   }
 
   function cell(text, weight, color) {

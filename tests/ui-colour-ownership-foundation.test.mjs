@@ -37,7 +37,7 @@ const DECISIONS = read('docs/architecture/DESIGN_DECISIONS.md');
  * old stylesheet — the exact defect pass 1 was corrected for. Pass 6 added the
  * four typography role tokens, so the value moves with it.
  */
-const PASS1_TOKEN = '20260726-ui-p5-pass6-typography-r1';
+const PASS1_TOKEN = '20260726-ui-p5-pass6-typography-a1-kpi';
 const TOKENS_LINK = `<link rel="stylesheet" href="css/tokens.css?v=${PASS1_TOKEN}">`;
 
 const SCREEN_DIR = path.join(ROOT, 'js', 'screens');
@@ -68,6 +68,10 @@ const PASS6_NEW_TOKENS = [
   '--rv-fs-component-heading', // COMPONENT_HEADING · 16px
   '--rv-fs-micro',             // MICRO_COPY · 10px, floor of the scale
   '--rv-icon-glyph-lg',        // icon-only text glyph · 20px
+  // Correction A1 restored the numeric hierarchy pass 6 collapsed onto 15px.
+  '--rv-fs-kpi-hero',          // KPI_HERO · 30px
+  '--rv-fs-kpi-card',          // KPI_CARD · 24px
+  '--rv-fs-summary-total',     // SUMMARY_TOTAL · 20px, distinct from the heading
 ];
 
 /** Canonical token set at the phase-4 checkpoint 9fbb84c, before D9. */

@@ -46,6 +46,12 @@ const rule = (id) => BASELINE.summary_by_rule[id] || { blocking: 0, debt: 0, cov
 
 /** role → [token, computed value]. This IS the contract, in test form. */
 const ROLES = {
+  // A1 ratified three numeric-emphasis levels above the compact metric. They
+  // are owned and asserted in detail by the A1 suite; they appear here so this
+  // suite's enum and counter checks stay complete.
+  KPI_HERO: ['--rv-fs-kpi-hero', '30px'],
+  KPI_CARD: ['--rv-fs-kpi-card', '24px'],
+  SUMMARY_TOTAL: ['--rv-fs-summary-total', '20px'],
   PAGE_TITLE: ['--rv-fs-title', '22px'],
   SECTION_HEADING: ['--rv-fs-section-heading', '20px'],
   COMPONENT_HEADING: ['--rv-fs-component-heading', '16px'],
@@ -109,15 +115,17 @@ test('3 · all 80 entry findings were removed and none were added', () => {
    2 · the revised enum and the role tokens
    ============================================================ */
 
-test('4 · the closed font-size enum is exactly the thirteen ratified values', () => {
+test('4 · the closed font-size enum is exactly the fifteen ratified values', () => {
+  // Thirteen at the pass-6 checkpoint; A1 ratified KPI_HERO 30px and
+  // KPI_CARD 24px on top, restoring the numeric hierarchy pass 6 collapsed.
   const contract = readContract(ROOT);
   assert.deepEqual(
     contract.enums.font_size,
-    ['22px', '20px', '16px', '15px', '14px', '13.5px', '13px',
+    ['30px', '24px', '22px', '20px', '16px', '15px', '14px', '13.5px', '13px',
       '12.5px', '12px', '11.5px', '11px', '10.5px', '10px'],
   );
-  assert.equal(contract.enums.font_size.length, 13);
-  assert.equal(new Set(contract.enums.font_size).size, 13, 'a value is declared twice');
+  assert.equal(contract.enums.font_size.length, 15);
+  assert.equal(new Set(contract.enums.font_size).size, 15, 'a value is declared twice');
 });
 
 test('5 · every role token resolves to its ratified value in css/tokens.css', () => {
@@ -147,10 +155,14 @@ test('6 · 22px is the page-title role and nothing else owns it', () => {
   assert.deepEqual(typographyOwnersAt('22px'), ['--rv-fs-title']);
 });
 
-test('7 · 20px supports section heading AND icon glyph through DISTINCT tokens', () => {
-  assert.deepEqual(typographyOwnersAt('20px'), ['--rv-fs-section-heading', '--rv-icon-glyph-lg']);
-  assert.notEqual(ROLES.SECTION_HEADING[0], ICON_GLYPH[0],
-    'the icon glyph must remain a separate semantic owner');
+test('7 · 20px supports section heading, summary total AND icon glyph through DISTINCT tokens', () => {
+  assert.deepEqual(typographyOwnersAt('20px'),
+    ['--rv-fs-section-heading', '--rv-fs-summary-total', '--rv-icon-glyph-lg']);
+  // Three roles, three owners, no aliasing: a heading is not a total and
+  // neither is a glyph, however equal their computed values.
+  assert.notEqual(ROLES.SECTION_HEADING[0], ICON_GLYPH[0]);
+  assert.notEqual(ROLES.SECTION_HEADING[0], ROLES.SUMMARY_TOTAL[0]);
+  assert.notEqual(ROLES.SUMMARY_TOTAL[0], ICON_GLYPH[0]);
 });
 
 test('8 · 16px is the component-heading role and nothing else owns it', () => {
@@ -223,10 +235,16 @@ const site = (over) => ({
 });
 
 test('11 · an h1 at 23px or 24px fails the role guard', () => {
+  // 23px is out of the enum AND not the page-title role.
   assert.deepEqual(roleViolations(site({ tag: 'h1', value: '23px' })),
     ['OUT_OF_ENUM', 'H1_NOT_PAGE_TITLE']);
+  // 24px is now IN the enum as KPI_CARD — and still fails, because the guard
+  // enforces ROLE, not enum membership. This is the sharper case: a legal value
+  // in the wrong role is exactly what a nearest-number pass would let through.
   assert.deepEqual(roleViolations(site({ tag: 'h1', value: '24px' })),
-    ['OUT_OF_ENUM', 'H1_NOT_PAGE_TITLE']);
+    ['H1_NOT_PAGE_TITLE']);
+  assert.deepEqual(roleViolations(site({ tag: 'h1', value: '30px', token: '--rv-fs-kpi-hero' })),
+    ['H1_NOT_PAGE_TITLE']);
   assert.deepEqual(roleViolations(site({ tag: 'h1', value: '22px', token: '--rv-fs-title' })), []);
 });
 
@@ -264,9 +282,12 @@ test('16 · 15.5px and 14.5px fail', () => {
   assert.ok(roleViolations(site({ value: '14.5px' })).includes('OUT_OF_ENUM'));
   assert.ok(!ENUM.has('15.5px'));
   assert.ok(!ENUM.has('14.5px'));
-  for (const dead of ['9px', '14.5px', '15.5px', '18px', '19px', '21px', '23px', '24px', '30px']) {
+  // 24px and 30px were dead at the pass-6 checkpoint and were RE-ADMITTED by A1
+  // as KPI_CARD and KPI_HERO. Everything else stays dead.
+  for (const dead of ['9px', '14.5px', '15.5px', '18px', '19px', '21px', '23px']) {
     assert.ok(!ENUM.has(dead), `${dead} must not be in the revised enum`);
   }
+  assert.ok(ENUM.has('24px') && ENUM.has('30px'), 'the A1 KPI levels must be admitted');
 });
 
 test('17 · arbitrary 10px body copy fails the runtime role guard', () => {
@@ -581,28 +602,41 @@ test('34 · the deprecated typography aliases stay UIC-009 debt, untouched', () 
   assert.equal(rule('UIC-009').debt, 322, 'unrelated deprecated-token debt moved');
 });
 
-test('35 · every changed runtime asset carries the pass-6 cache token', () => {
-  const TOKEN = '20260726-ui-p5-pass6-typography-r1';
-  const CHANGED = [
-    'css/tokens.css', 'js/ui.js', 'js/document-links-surface-ui.js',
+test('35 · every asset pass 6 changed is invalidated under a pass-6 or later token', () => {
+  const PASS6 = '20260726-ui-p5-pass6-typography-r1';
+  const A1 = '20260726-ui-p5-pass6-typography-a1-kpi';
+  // The seven assets correction A1 changed again carry the A1 token; the rest
+  // keep the pass-6 token. Both are invalidated against the pass-5 checkpoint,
+  // which is what this test exists to guarantee.
+  const A1_CHANGED = [
+    'css/tokens.css', 'js/ui.js',
+    'js/screens/cliente-dashboard.js', 'js/screens/expedicao-admin.js',
+    'js/screens/manta-expedicao-ui.js', 'js/screens/painel.js',
+    'js/screens/pedido-detail-render.js',
+  ];
+  const PASS6_ONLY = [
+    'js/document-links-surface-ui.js',
     'js/screens/admin-usuarios-modal.js', 'js/screens/cadastros.js',
-    'js/screens/cliente-dashboard.js', 'js/screens/cliente-pedido-detail.js',
-    'js/screens/cliente-pedido-form.js', 'js/screens/cliente-pedido-tracking.js',
-    'js/screens/cliente-pedidos-list.js', 'js/screens/common.js',
-    'js/screens/documentos-recebidos.js', 'js/screens/expedicao-admin.js',
-    'js/screens/fornecedor.js', 'js/screens/manta-expedicao-ui.js',
-    'js/screens/op-latex-admin.js', 'js/screens/op-nova.js',
+    'js/screens/cliente-pedido-detail.js', 'js/screens/cliente-pedido-form.js',
+    'js/screens/cliente-pedido-tracking.js', 'js/screens/cliente-pedidos-list.js',
+    'js/screens/common.js', 'js/screens/documentos-recebidos.js',
+    'js/screens/fornecedor.js', 'js/screens/op-latex-admin.js', 'js/screens/op-nova.js',
     'js/screens/op-tecelagem-producao-admin.js', 'js/screens/ordem-compra-render.js',
-    'js/screens/painel.js', 'js/screens/pedido-detail-events.js',
-    'js/screens/pedido-detail-render.js', 'js/screens/pedido-form.js',
+    'js/screens/pedido-detail-events.js', 'js/screens/pedido-form.js',
     'js/screens/pedido-insumos-distribuicao.js', 'js/screens/pedidos-list.js',
     'js/screens/system-screens.js', 'js/screens/trocar-senha-obrigatoria.js',
   ];
-  for (const rel of CHANGED) {
-    assert.ok(INDEX.includes(`"${rel}?v=${TOKEN}"`), `${rel} was not retokenised`);
+  for (const rel of A1_CHANGED) {
+    assert.ok(INDEX.includes(`"${rel}?v=${A1}"`), `${rel} must carry the A1 token`);
   }
-  assert.equal((INDEX.match(new RegExp(TOKEN, 'g')) || []).length, CHANGED.length,
-    'an asset that did not change was retokenised');
-  // css/responsive.css did not change and must keep its own token.
-  assert.ok(!INDEX.includes(`css/responsive.css?v=${TOKEN}`));
+  for (const rel of PASS6_ONLY) {
+    assert.ok(INDEX.includes(`"${rel}?v=${PASS6}"`), `${rel} must keep the pass-6 token`);
+  }
+  assert.equal((INDEX.match(new RegExp(A1, 'g')) || []).length, A1_CHANGED.length,
+    'an asset A1 did not change was retokenised');
+  assert.equal((INDEX.match(new RegExp(`${PASS6}(?!-)`, 'g')) || []).length, PASS6_ONLY.length,
+    'the pass-6 token leaked or was dropped');
+  // css/responsive.css changed in neither pass and must keep its own token.
+  assert.ok(!INDEX.includes(`css/responsive.css?v=${PASS6}`));
+  assert.ok(!INDEX.includes(`css/responsive.css?v=${A1}`));
 });

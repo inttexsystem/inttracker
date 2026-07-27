@@ -280,13 +280,13 @@
       },
         window.el('div', { style: CARD + 'padding:14px 16px;' },
           window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);font-weight:700;margin-bottom:6px;' }, 'LIBERADO'),
-          window.el('div', { style: 'font-size:var(--rv-fs-metric);font-weight:800;color:var(--rv-text-primary);' }, fmtMetros(totalLiberado))),
+          window.el('div', { style: 'font-size:var(--rv-fs-summary-total);font-weight:800;color:var(--rv-text-primary);' }, fmtMetros(totalLiberado))),
         window.el('div', { style: CARD + 'padding:14px 16px;' },
           window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);font-weight:700;margin-bottom:6px;' }, 'ENTREGUE / COLETADO'),
-          window.el('div', { style: 'font-size:var(--rv-fs-metric);font-weight:800;color:var(--rv-signal-positive);' }, fmtMetros(totalEntregue))),
+          window.el('div', { style: 'font-size:var(--rv-fs-summary-total);font-weight:800;color:var(--rv-signal-positive);' }, fmtMetros(totalEntregue))),
         window.el('div', { style: CARD + 'padding:14px 16px;' },
           window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);font-weight:700;margin-bottom:6px;' }, 'SALDO'),
-          window.el('div', { style: 'font-size:var(--rv-fs-metric);font-weight:800;color:' + (saldo > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)') + ';' }, fmtMetros(Math.max(saldo, 0))))
+          window.el('div', { style: 'font-size:var(--rv-fs-summary-total);font-weight:800;color:' + (saldo > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)') + ';' }, fmtMetros(Math.max(saldo, 0))))
       );
     }
 

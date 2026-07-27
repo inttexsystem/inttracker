@@ -123,6 +123,16 @@
 
   /* ---- TYPOGRAPHY ---- */
   --rv-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Numeric emphasis has THREE levels above the compact metric, and they are
+     a real hierarchy, not three spellings of one size (P6-A1):
+       KPI_HERO      dashboard primary KPI, dominant content of its card
+       KPI_CARD      card-level KPI, prominent but subordinate to the hero
+       SUMMARY_TOTAL operational aggregate or total — emphasis, not a heading
+     SUMMARY_TOTAL shares 20px with SECTION_HEADING and must stay a separate
+     semantic owner: a total is not a heading.                              */
+  --rv-fs-kpi-hero:      30px;
+  --rv-fs-kpi-card:      24px;
+  --rv-fs-summary-total: 20px;
   --rv-fs-title:  22px;    /* PAGE_TITLE — H1 · 800 · tracking -.02em */
   --rv-fs-section-heading: 20px;    /* SECTION_HEADING — real H2, major section
                                        heading below a page title, large card

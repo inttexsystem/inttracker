@@ -747,7 +747,7 @@ test('21e · blocking, debt, inventory and support are unchanged', () => {
   assert.equal(ENTRY_BASELINE.contract_blob_hash,
     'f8349e6eeca291fef2edf4d6e30afd628732f00b6495d54eb9273860fa63f1c4');
   assert.equal(BASELINE.contract_blob_hash,
-    '2a4fb0efe2518cb6faad6867dc37c0d9f96c0b003b21b81c080e4ab48c1762ab');
+    'dbb686c85a4cd0c96d9ca857738f4081460b2e56e94289f5d56d19f21cc732ac');
 });
 
 test('21f · A2 moved exactly five files FULL -> PARTIAL, and only those five', () => {

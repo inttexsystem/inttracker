@@ -394,7 +394,10 @@ tag alone and never by numeric proximity to the value already written.
 
 | Role | Token | Value |
 | --- | --- | --- |
+| `KPI_HERO` — dashboard primary KPI, the dominant content of its card | `--rv-fs-kpi-hero` | 30px |
+| `KPI_CARD` — card-level KPI, prominent but subordinate to `KPI_HERO` | `--rv-fs-kpi-card` | 24px |
 | `PAGE_TITLE` — page-level H1 | `--rv-fs-title` | 22px |
+| `SUMMARY_TOTAL` — operational aggregate or total; numeric emphasis, not a heading | `--rv-fs-summary-total` | 20px |
 | `SECTION_HEADING` — real H2, major section heading below a page title, large structural card heading | `--rv-fs-section-heading` | 20px |
 | `COMPONENT_HEADING` — modal/dialog title, form-section heading, component-local or subsection heading | `--rv-fs-component-heading` | 16px |
 | `EMPHASISED_METRIC` — numeric or operational metric emphasis | `--rv-fs-metric` | 15px |
@@ -413,6 +416,12 @@ runtime.** `--rv-fs-thead` is forbidden outside a table-header role, and 16px is
 forbidden for anything but `COMPONENT_HEADING` — a 16px metric belongs at 15px and a
 16px ordinary body or control value belongs at 13px.
 
+The three numeric-emphasis levels are **not interchangeable with headings**. A KPI token
+never carries a heading or body copy, a heading never carries a KPI token, and no
+ordinary compact metric reaches 24px or 30px. `EMPHASISED_METRIC` (15px) remains the
+right role for a supporting readout — a modal-local metric card, a stage counter, a
+one-time operational value — that is not a screen-level aggregate.
+
 An **icon-only text glyph** (a modal close `×`, a mark rendered as letters) is not body
 copy and not a heading. It takes `--rv-icon-glyph-lg` (20px), which shares the
 `SECTION_HEADING` value but stays a separate semantic owner. It does not authorize
@@ -424,7 +433,7 @@ emoji, new text icons or replacing a Lucide icon.
   "radius":        ["4px", "999px"],
   "control_h":     ["32px", "34px", "38px"],
   "shadow":        ["none", "0 1px 3px rgba(0,0,0,.10)", "0 12px 28px rgba(0,0,0,.10)"],
-  "font_size":     ["22px","20px","16px","15px","14px","13.5px","13px","12.5px","12px","11.5px","11px","10.5px","10px"],
+  "font_size":     ["30px","24px","22px","20px","16px","15px","14px","13.5px","13px","12.5px","12px","11.5px","11px","10.5px","10px"],
   "font_weight":   [400, 500, 600, 700, 800],
   "text_color":    ["--rv-text-title","--rv-text-primary","--rv-text-secondary","--rv-text-tertiary"],
   "gap":           { "stack": "14px", "cols": "16px", "actions": "8px", "row_actions": "6px" },

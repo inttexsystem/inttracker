@@ -394,7 +394,7 @@
         window.el('div', {},
           window.el('div', { style: 'font-size:14px;color:var(--rv-text-tertiary);' }, label),
           window.el('div', {
-            style: 'font-size:var(--rv-fs-metric);font-weight:800;color:var(--rv-text-primary);line-height:1;margin:1px 0;',
+            style: 'font-size:var(--rv-fs-kpi-card);font-weight:800;color:var(--rv-text-primary);line-height:1;margin:1px 0;',
           }, String(valor)),
           window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);white-space:nowrap;' }, sub)
         )

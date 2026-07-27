@@ -319,9 +319,16 @@ function pageHeader(title, actions = []) {
   wrap.appendChild(el('h1', { style: 'font-size:var(--rv-fs-title);', class: 'font-bold' }, title));
   const actWrap = el('div', { class: 'flex gap-2' });
   for (const a of actions) {
+    // Pass-6 A1: the PRIMARY PAGE ACTION owns its own typography and height.
+    // It used to declare neither, so it inherited the 16px document default and
+    // took its height from `py-2` — 40px, off the canonical ladder. The vertical
+    // Tailwind padding is removed because it competes with the explicit height;
+    // `px-4` keeps the horizontal 16px exactly as it was.
     actWrap.appendChild(el('button', {
-      style: 'border-radius:var(--rv-radius);',
-      class: 'bg-blue-700 hover:bg-blue-800 text-white font-semibold px-4 py-2',
+      style: 'border-radius:var(--rv-radius); font-size:var(--rv-fs-body);'
+        + ' height:var(--rv-h-primary); padding-top:0; padding-bottom:0;'
+        + ' display:inline-flex; align-items:center; justify-content:center;',
+      class: 'bg-blue-700 hover:bg-blue-800 text-white font-semibold px-4',
       onclick: a.onclick
     }, a.label));
   }

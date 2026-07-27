@@ -1396,37 +1396,60 @@ const PASS6_ASSETS = [
   'js/screens/trocar-senha-obrigatoria.js'
 ];
 
-const PASS5_ASSETS_AINDA_EM_PASS5 = PASS5_ASSETS.filter((a) => !PASS6_ASSETS.includes(a));
+// A correcao A1 de hierarquia de KPI alterou sete assets: a folha de tokens, o
+// dono compartilhado js/ui.js e cinco telas cujos numeros operacionais passaram
+// a declarar KPI_HERO, KPI_CARD ou SUMMARY_TOTAL. Ela e a ULTIMA a toca-los.
+const PASS6_A1_TOKEN = '20260726-ui-p5-pass6-typography-a1-kpi';
+const PASS6_A1_ASSETS = [
+  'css/tokens.css',
+  'js/ui.js',
+  'js/screens/cliente-dashboard.js',
+  'js/screens/expedicao-admin.js',
+  'js/screens/manta-expedicao-ui.js',
+  'js/screens/painel.js',
+  'js/screens/pedido-detail-render.js'
+];
+
+const PASS6_ASSETS_AINDA_EM_PASS6 = PASS6_ASSETS.filter((a) => !PASS6_A1_ASSETS.includes(a));
+const PASS5_ASSETS_AINDA_EM_PASS5 = PASS5_ASSETS
+  .filter((a) => !PASS6_ASSETS.includes(a))
+  .filter((a) => !PASS6_A1_ASSETS.includes(a));
 const PASS4_ASSETS_AINDA_EM_PASS4 = PASS4_ASSETS
   .filter((a) => !PASS5_ASSETS.includes(a))
-  .filter((a) => !PASS6_ASSETS.includes(a));
+  .filter((a) => !PASS6_ASSETS.includes(a))
+  .filter((a) => !PASS6_A1_ASSETS.includes(a));
 
 const PASS3_ASSETS_AINDA_EM_PASS3 = PASS3_ASSETS
   .filter((a) => !PASS4_ASSETS.includes(a))
   .filter((a) => !PASS5_ASSETS.includes(a))
-  .filter((a) => !PASS6_ASSETS.includes(a));
+  .filter((a) => !PASS6_ASSETS.includes(a))
+  .filter((a) => !PASS6_A1_ASSETS.includes(a));
 const PASS2_A4_ASSETS_AINDA_EM_A4 = PASS2_A4_ASSETS
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
   .filter((a) => !PASS5_ASSETS.includes(a))
-  .filter((a) => !PASS6_ASSETS.includes(a));
+  .filter((a) => !PASS6_ASSETS.includes(a))
+  .filter((a) => !PASS6_A1_ASSETS.includes(a));
 const PASS2_A3_ASSETS_AINDA_EM_A3 = PASS2_A3_ASSETS
   .filter((a) => !PASS2_A4_ASSETS.includes(a))
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
   .filter((a) => !PASS5_ASSETS.includes(a))
-  .filter((a) => !PASS6_ASSETS.includes(a));
+  .filter((a) => !PASS6_ASSETS.includes(a))
+  .filter((a) => !PASS6_A1_ASSETS.includes(a));
 const PASS2_ASSETS_AINDA_EM_PASS2 = PASS2_ASSETS
   .filter((a) => !PASS2_A2_ASSETS.includes(a))
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
   .filter((a) => !PASS5_ASSETS.includes(a))
-  .filter((a) => !PASS6_ASSETS.includes(a));
+  .filter((a) => !PASS6_ASSETS.includes(a))
+  .filter((a) => !PASS6_A1_ASSETS.includes(a));
 const PASS2_A2_ASSETS_AINDA_EM_A2 = PASS2_A2_ASSETS
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
   .filter((a) => !PASS5_ASSETS.includes(a))
-  .filter((a) => !PASS6_ASSETS.includes(a));
+  .filter((a) => !PASS6_ASSETS.includes(a))
+  .filter((a) => !PASS6_A1_ASSETS.includes(a));
 const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS
   .filter((a) => !PASS2_ASSETS.includes(a))
   .filter((a) => !PASS2_A2_ASSETS.includes(a))
@@ -1434,7 +1457,8 @@ const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
   .filter((a) => !PASS5_ASSETS.includes(a))
-  .filter((a) => !PASS6_ASSETS.includes(a));
+  .filter((a) => !PASS6_ASSETS.includes(a))
+  .filter((a) => !PASS6_A1_ASSETS.includes(a));
 
 // R3 alterou dois assets. A passada 1 retokenizou UM deles
 // (pedido-detail-render.js), entao o token de R3 sobrevive apenas no outro —
@@ -1531,7 +1555,8 @@ test('R3/20a. os dois assets alterados por R3 seguem invalidados', () => {
   // O asset que a passada 1 retokenizou carrega o token da ULTIMA passada que o
   // alterou: a passada 3 de altura tambem tocou pedido-detail-render.js.
   for (const rel of R3_ASSETS.filter((a) => PASS1_ASSETS.includes(a))) {
-    const esperado = PASS6_ASSETS.includes(rel) ? PASS6_TOKEN
+    const esperado = PASS6_A1_ASSETS.includes(rel) ? PASS6_A1_TOKEN
+      : PASS6_ASSETS.includes(rel) ? PASS6_TOKEN
       : PASS5_ASSETS.includes(rel) ? PASS5_TOKEN
       : PASS4_ASSETS.includes(rel) ? PASS4_TOKEN
       : PASS3_ASSETS.includes(rel) ? PASS3_TOKEN
@@ -1716,7 +1741,7 @@ test('PASS1/20c7. os assets da passada 1 de cor carregam exatamente o token decl
   // A passada 2 nao tocou a folha de tokens. A passada 6 tocou — ela acrescentou
   // os quatro tokens de papel tipografico — entao a folha carrega o token da
   // passada 6, verificado literalmente por PASS6/20c15.
-  assert.equal(tokenFor('css/tokens.css'), PASS6_TOKEN,
+  assert.equal(tokenFor('css/tokens.css'), PASS6_A1_TOKEN,
     'css/tokens.css foi alterado pela passada 6 e carrega o token dela');
 });
 
@@ -1966,12 +1991,12 @@ test('PASS5/20c14. os assets da passada 5 de alinhamento carregam exatamente o t
 // folha de tokens, os dois donos compartilhados de runtime e as 24 telas cujos
 // tamanhos de fonte passaram a ser propriedade de um token de papel.
 test('PASS6/20c15. os assets da passada 6 de tipografia carregam exatamente o token declarado, e ele nao vaza', () => {
-  for (const rel of PASS6_ASSETS) {
+  for (const rel of PASS6_ASSETS_AINDA_EM_PASS6) {
     assert.equal(tokenFor(rel), PASS6_TOKEN,
       rel + ' deve carregar exatamente o token declarado da passada 6');
   }
   const carriers = assetRefs(indexHtml).filter((r) => r.token === PASS6_TOKEN).map((r) => r.path);
-  assert.deepEqual(carriers.sort(), PASS6_ASSETS.slice().sort(),
+  assert.deepEqual(carriers.sort(), PASS6_ASSETS_AINDA_EM_PASS6.slice().sort(),
     'exatamente os assets da passada 6 podem carregar o token da passada 6');
   for (const anterior of [PASS5_TOKEN, PASS4_TOKEN, PASS3_TOKEN, PASS2_A4_TOKEN, PASS2_A3_TOKEN,
     PASS2_A2_TOKEN, PASS2_TOKEN, PASS1_TOKEN, BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN, R2_TOKEN]) {
@@ -1985,7 +2010,7 @@ test('PASS6/20c15. os assets da passada 6 de tipografia carregam exatamente o to
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 212972d');
   }
   // E nenhum outro script local pode ter mudado: a passada 6 nao arrasta asset algum.
-  const declarados = new Set(PASS6_ASSETS);
+  const declarados = new Set([...PASS6_ASSETS, ...PASS6_A1_ASSETS]);
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;

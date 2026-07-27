@@ -255,7 +255,7 @@ test('15 · the contract §5 enum block was not touched by this pass', () => {
   // is asserted value-by-value by the pass-6 suite, not by this hash.
   assert.equal(
     BASELINE.contract_blob_hash,
-    '2a4fb0efe2518cb6faad6867dc37c0d9f96c0b003b21b81c080e4ab48c1762ab',
+    'dbb686c85a4cd0c96d9ca857738f4081460b2e56e94289f5d56d19f21cc732ac',
     'the closed enums changed; this pass was not authorized to change them',
   );
 });

@@ -109,9 +109,24 @@ semantic change. The detector stays `1.0.6`; the contract hash moves
 `f8349e6e` → `2a4fb0ef` because pass 6 was authorized to revise the `font_size` enum
 from ten values to thirteen.
 
+**Correction A1 — the numeric hierarchy.** Pass 6 routed every large operational number
+to one role, `EMPHASISED_METRIC` at 15px. That was rejected: it erased three real levels.
+`KPI_HERO` (`--rv-fs-kpi-hero`, 30px), `KPI_CARD` (`--rv-fs-kpi-card`, 24px) and
+`SUMMARY_TOTAL` (`--rv-fs-summary-total`, 20px) are ratified, and the enum grows to
+**fifteen** values. `SUMMARY_TOTAL` shares 20px with `SECTION_HEADING` and stays a
+separate owner — a total is not a heading. The ten sites pass 6 collapsed are reconciled
+as **1 hero · 1 card KPI · 5 summary totals · 3 compact metrics**; eight were
+detector-visible and two live in an injected CSS string no rule reaches. A1 carries **no
+detector delta at all**: 886 findings, zero semantic and zero location movement.
+
+A1 also gave the shared `pageHeader()` primary action the typography and height it never
+owned — it inherited the 16px document default and took a 40px height from `py-2`. It now
+declares `--rv-fs-body` and `--rv-h-primary`, computing to **13px × 38px**, a real rung on
+the ratified ladder. That is the only control-height movement A1 authorizes.
+
 Typography is **role-based**, not nearest-number replacement. The revised enum admits
-`22 · 20 · 16 · 15 · 14 · 13.5 · 13 · 12.5 · 12 · 11.5 · 11 · 10.5 · 10px`, with 10px a
-hard floor. Three roles were ratified — `SECTION_HEADING` (`--rv-fs-section-heading`,
+`30 · 24 · 22 · 20 · 16 · 15 · 14 · 13.5 · 13 · 12.5 · 12 · 11.5 · 11 · 10.5 · 10px`,
+with 10px a hard floor. Three roles were ratified — `SECTION_HEADING` (`--rv-fs-section-heading`,
 20px), `COMPONENT_HEADING` (`--rv-fs-component-heading`, 16px) and `MICRO_COPY`
 (`--rv-fs-micro`, 10px) — plus a separate owner for an icon-only text glyph,
 `--rv-icon-glyph-lg` (20px), which shares the `SECTION_HEADING` value but is neither a
