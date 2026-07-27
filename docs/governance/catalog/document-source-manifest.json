@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "a81f29629881de2fe8383d3123b18beff46d4975",
-      "sha256": "a436c84ec5427a7029ab45d693a744f350dea4c926a0e216fba975434945b0f6",
+      "git_object_id": "81718e3b662c651bcb13b431fae9d791d07b0138",
+      "sha256": "e81fec729123bed9e1381f4aff40fae68299feb1d9142486eb88c512dce08f86",
       "line_count": 34,
-      "byte_count": 10992,
+      "byte_count": 11575,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -39664,10 +39664,10 @@
     },
     {
       "path": "docs/architecture/UI_CONFORMANCE.md",
-      "git_object_id": "70ea1df09103208f4372347859317943b3e61ae1",
-      "sha256": "7fc60725e4a868139631025dd2c89f1818f37db268284a32ba0a2d757480c420",
-      "line_count": 753,
-      "byte_count": 51098,
+      "git_object_id": "e20e1d957bb7756d6576bb4a4042358db4068b90",
+      "sha256": "f3448062cf0597e89f08937910d6d7c518576277c7bda391ab6b06760b3787a4",
+      "line_count": 810,
+      "byte_count": 54897,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -39676,7 +39676,7 @@
           "target_path": "docs/ui/fixtures/vendor/react-18.3.1/README.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 721
+          "source_line": 778
         }
       ],
       "inbound_references": [
@@ -39816,34 +39816,46 @@
           "line": 585
         },
         {
+          "level": 3,
+          "text": "CLOSED by ACTION-CONTAINMENT-A1 — and it was never OP Látex only",
+          "anchor": "closed-by-action-containment-a1-and-it-was-never-op-látex-only",
+          "line": 624
+        },
+        {
+          "level": 3,
+          "text": "`UIC-008` — what A1 declared, and what it did not",
+          "anchor": "uic-008-what-a1-declared-and-what-it-did-not",
+          "line": 662
+        },
+        {
           "level": 2,
           "text": "Outside the archetypes — chrome and documentation",
           "anchor": "outside-the-archetypes-chrome-and-documentation",
-          "line": 624
+          "line": 681
         },
         {
           "level": 2,
           "text": "Execution order — by property batch",
           "anchor": "execution-order-by-property-batch",
-          "line": 637
+          "line": 694
         },
         {
           "level": 2,
           "text": "Versioned fixture provenance",
           "anchor": "versioned-fixture-provenance",
-          "line": 695
+          "line": 752
         },
         {
           "level": 3,
           "text": "Vendored fixture runtime — immutable third-party assets",
           "anchor": "vendored-fixture-runtime-immutable-third-party-assets",
-          "line": 711
+          "line": 768
         },
         {
           "level": 2,
           "text": "Archetype ratification",
           "anchor": "archetype-ratification",
-          "line": 731
+          "line": 788
         }
       ]
     },
@@ -59561,10 +59573,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "85011692857cc4951ade59b4da89574175b7ee4f",
-      "sha256": "fe78ad894c660d48e91f413be9f71d1ab007e1d6eb6b49845dc5efe8e841fd12",
-      "line_count": 10336,
-      "byte_count": 1305782,
+      "git_object_id": "74cab447749fee87036f3dae57a1a8810220fdb1",
+      "sha256": "3a43b74708012e83c437adbb5755706d55a0f395710cce5bca70fd70dc744dd7",
+      "line_count": 10364,
+      "byte_count": 1319640,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -67862,6 +67874,12 @@
           "text": "2026-07-27 — UI-CONSOLIDATION-PHASE-5-PASS-8-TABLE-CONTRACT-R1-A1 — docs: record pass 8 overflow correction",
           "anchor": "2026-07-27-ui-consolidation-phase-5-pass-8-table-contract-r1-a1-docs-record-pass-8-overflow-correction",
           "line": 10311
+        },
+        {
+          "level": 2,
+          "text": "2026-07-27 — UI-ACTION-CONTAINMENT-A1-SHARED-OWNERS-AND-COCKPIT-MEMBERSHIP — refactor(ui): declare shared action owners and cockpit membership",
+          "anchor": "2026-07-27-ui-action-containment-a1-shared-owners-and-cockpit-membership-refactorui-declare-shared-action-owners-and-cockpit-membership",
+          "line": 10335
         }
       ]
     },
@@ -76688,10 +76706,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0014.md",
-      "git_object_id": "57951ab0857c4c049ec59736a4745086f2f24d8c",
-      "sha256": "07230a65842ccf238e85e55ac691866f431a75af68bb299499ca8772b4b6acb5",
-      "line_count": 233,
-      "byte_count": 106172,
+      "git_object_id": "d4d508ad9ca5bb3572723357d8de1e220e4b9254",
+      "sha256": "dba7b1ab7c5c237a75b0417dd47f893b0e87858589613712cf5ff89c0b6dc610",
+      "line_count": 261,
+      "byte_count": 120030,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -76774,6 +76792,12 @@
           "text": "2026-07-27 — UI-CONSOLIDATION-PHASE-5-PASS-8-TABLE-CONTRACT-R1-A1 — docs: record pass 8 overflow correction",
           "anchor": "2026-07-27-ui-consolidation-phase-5-pass-8-table-contract-r1-a1-docs-record-pass-8-overflow-correction",
           "line": 208
+        },
+        {
+          "level": 2,
+          "text": "2026-07-27 — UI-ACTION-CONTAINMENT-A1-SHARED-OWNERS-AND-COCKPIT-MEMBERSHIP — refactor(ui): declare shared action owners and cockpit membership",
+          "anchor": "2026-07-27-ui-action-containment-a1-shared-owners-and-cockpit-membership-refactorui-declare-shared-action-owners-and-cockpit-membership",
+          "line": 232
         }
       ]
     },
@@ -76861,10 +76885,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "60ac37acf00f8cc750efa242bb680149e48be303",
-      "sha256": "dcfc5e5c528bdfc584e83428fdc45ce5838ca995045b915915166d9f0531de6b",
-      "line_count": 10330,
-      "byte_count": 1305481,
+      "git_object_id": "a9e5371b9615578634883272b9b79c8b8f4e5f54",
+      "sha256": "fb0803fc2e96a4a4259b1e7240d186c7b049b478851d63cd22136b0f479bcef5",
+      "line_count": 10358,
+      "byte_count": 1319339,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -87115,6 +87139,12 @@
           "text": "2026-07-27 — UI-CONSOLIDATION-PHASE-5-PASS-8-TABLE-CONTRACT-R1-A1 — docs: record pass 8 overflow correction",
           "anchor": "2026-07-27-ui-consolidation-phase-5-pass-8-table-contract-r1-a1-docs-record-pass-8-overflow-correction",
           "line": 10307
+        },
+        {
+          "level": 2,
+          "text": "2026-07-27 — UI-ACTION-CONTAINMENT-A1-SHARED-OWNERS-AND-COCKPIT-MEMBERSHIP — refactor(ui): declare shared action owners and cockpit membership",
+          "anchor": "2026-07-27-ui-action-containment-a1-shared-owners-and-cockpit-membership-refactorui-declare-shared-action-owners-and-cockpit-membership",
+          "line": 10331
         }
       ]
     },
@@ -97860,7 +97890,7 @@
       "inbound_references": [
         {
           "source_path": "docs/architecture/UI_CONFORMANCE.md",
-          "source_line": 721,
+          "source_line": 778,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null

@@ -3,14 +3,14 @@
   "manifest_id": "G28-LEDGER-SOURCE-MANIFEST-R1",
   "authority": "NON-CANONICAL_DERIVED_FROM_CANONICAL_LEDGER",
   "canonical_source": "docs/ledgers/G28_LEDGER.md",
-  "canonical_source_git_object": "60ac37acf00f8cc750efa242bb680149e48be303",
-  "canonical_source_sha256": "dcfc5e5c528bdfc584e83428fdc45ce5838ca995045b915915166d9f0531de6b",
-  "canonical_byte_count": 1305481,
-  "canonical_line_count": 10330,
+  "canonical_source_git_object": "a9e5371b9615578634883272b9b79c8b8f4e5f54",
+  "canonical_source_sha256": "fb0803fc2e96a4a4259b1e7240d186c7b049b478851d63cd22136b0f479bcef5",
+  "canonical_byte_count": 1319339,
+  "canonical_line_count": 10358,
   "encoding": "UTF-8",
   "line_endings": {
     "crlf": 0,
-    "lf_only": 10330,
+    "lf_only": 10358,
     "bare_cr": 0,
     "mixed": false
   },
@@ -3541,14 +3541,29 @@
       "raw_sha256": "a2357064f3afac8ef32c948cb2e1910f084e118059267370cf434fd8cfc96380",
       "byte_count": 10437,
       "line_count": 24
+    },
+    {
+      "unit_id": "G28-LEDGER-UNIT-0235",
+      "unit_kind": "ENTRY",
+      "ordinal": 235,
+      "heading": "## 2026-07-27 — UI-ACTION-CONTAINMENT-A1-SHARED-OWNERS-AND-COCKPIT-MEMBERSHIP — refactor(ui): declare shared action owners and cockpit membership",
+      "date": "2026-07-27",
+      "phase_order_id": "UI-ACTION-CONTAINMENT-A1-SHARED-OWNERS-AND-COCKPIT-MEMBERSHIP",
+      "start_byte": 1305481,
+      "end_byte": 1319339,
+      "start_line": 10331,
+      "end_line": 10358,
+      "raw_sha256": "cf05c4d65ba4f555ae991feeaca6f6528fa1433da7f582b46dc29e154102fdeb",
+      "byte_count": 13858,
+      "line_count": 28
     }
   ],
   "coverage": {
     "model": "EXHAUSTIVE_NON_OVERLAPPING_RAW_UTF8_BYTE_AND_SOURCE_LINE_RANGES",
     "first_byte": 0,
-    "last_byte_exclusive": 1305481,
+    "last_byte_exclusive": 1319339,
     "first_line": 1,
-    "last_line": 10330,
+    "last_line": 10358,
     "uncovered_bytes": 0,
     "overlapping_ranges": 0
   },

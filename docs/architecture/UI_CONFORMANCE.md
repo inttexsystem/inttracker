@@ -621,6 +621,63 @@ applies there and `G18` renders inside a 45px column at 390px. The table scrolls
 locally as required; the cockpit is a separate responsive-layout gap needing its own
 order.
 
+### CLOSED by ACTION-CONTAINMENT-A1 — and it was never OP Látex only
+
+The gap above is closed, and it was **wider than disclosed**. Sweeping every
+first-party script `index.html` loads for the ratified Archetype-A signature
+(`grid-template-columns: minmax(0,1fr) var(--rv-rail-w)` plus a `position:sticky;top:0`
+rail, §3A) finds **four** cockpits, of which only one owned the contract:
+
+| Cockpit | Reached when | Before A1 | After A1 |
+| --- | --- | --- | --- |
+| OP Tecelagem em produção — `op-tecelagem-producao-admin.js` | `#/ops/:id`, tecelagem in production | `data-rv-cockpit` + `data-rv-rail` | unchanged |
+| OP Látex em produção — `op-latex-admin.js` | `#/ops/:id`, `status === 'em_producao'` | **neither attribute** | both |
+| OP Látex aberta — `op-latex-admin.js` | `#/ops/:id`, `status === 'aberta'` | **neither attribute** | both |
+| OP Tecelagem aberta — `op-nova.js` | `#/ops/:id`, `isOpAbertaTecelagem()` | **neither attribute** | both |
+
+`op-nova.js` had the identical defect and was **not** named by the pass-8 disclosure.
+So this was a **cockpit-owner gap**, not an OP Látex gap: 1 of 4 ratified cockpits
+owned the responsive contract.
+
+The correction is six attribute insertions across two files. `css/responsive.css` is
+**unchanged** and remains the sole owner of the breakpoint — every declaration in its
+`max-width: 1023px` block is `!important`, so it overrides the inline grid and the
+inline `position:sticky` without either being edited. The separate `1fr 288px` layout
+in `op-nova.js` is **not** Archetype A and is deliberately left unmarked; marking it
+would enrol a layout the visual contract never ratified.
+
+**Measured.** At 1440 × 900 all four remain two-column (`1076.8px 300px`) with a sticky
+rail — desktop rendering is unchanged. At 390 × 844 all four collapse to one column
+(`358.4px`), the rail becomes `position: static` and sits below the content at full
+width, and the document does not overflow. The negative control settles it: the same
+markup *without* the attributes still resolves to `74.4px 300px` with a sticky rail at
+390px — the collapsed column the pass-8 disclosure described.
+
+**The guard is now populational.** `responsive-layout.smoke.js` previously asserted one
+file, which is why three identical cockpits went unnoticed. It now derives the
+population structurally from the whole loaded runtime and pins
+`ARCHETYPE_A_COCKPIT_COUNT = 4`, `MARKED_COCKPIT_COUNT = 4`, `MARKED_RAIL_COUNT = 4`,
+`UNMARKED_ARCHETYPE_A_COCKPIT_COUNT = 0`. A fifth unmarked cockpit fails the suite.
+
+### `UIC-008` — what A1 declared, and what it did not
+
+A1 declared the **shared owners** of three action-container roles in `js/ui.js`:
+`modalActionBar()` (`data-rv-modal-actions`), `pageHeader()` (`data-rv-page-actions`)
+and `dataTable()` (`data-rv-table-actions`). The modal action-bar population is
+**six**, not the five phase-5 pass 5 froze: the generic `modal()` bar declared its
+geometry through Tailwind utilities, so an inventory anchored on inline style text
+could not see it — although it is reached from more call sites than the other five
+combined and is what every `confirmDialog()` renders. That inventory is now
+**role-based** and cannot be escaped that way again.
+
+`UIC-008` itself is untouched at **0 blocking / 0 coverage**, the four
+`data-card-actions` footers remain exactly four, and the two post-save footers whose
+card ancestor is not statically provable were **not** reclassified. The screen-local
+population — 30 card-contained action rows, 9 card-contained inline actions, 82
+page-level containers and 21 containers no static analysis resolves — is **not**
+implemented and **not** claimed conforming. It is deferred to Action Containment A2,
+and `UI-ACTION-CONTAINER-CONTAINMENT-GAP` stays open, narrowed.
+
 ## Outside the archetypes — chrome and documentation
 
 | File | Role |
