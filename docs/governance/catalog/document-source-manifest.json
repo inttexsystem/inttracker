@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "e9e4c223ac76637851290367072eef5c791430e8",
-      "sha256": "6df8c520c6abf226cf18202146b01d6d4121e3cebeba5e79b137adf59f82ecf3",
+      "git_object_id": "1d529257d3d725913d28b0a5ca250c350297100a",
+      "sha256": "b135a9468040a9d83c3c436264c350bf3a9896113b2ab0106a524ceb49fecd22",
       "line_count": 34,
-      "byte_count": 12030,
+      "byte_count": 13149,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -39625,10 +39625,10 @@
     },
     {
       "path": "docs/architecture/UI_CONFORMANCE.md",
-      "git_object_id": "6e04a8e4011227295ac476a22d010d170ea952bc",
-      "sha256": "c996a6a1c771cb4426c7c5dbadaa75df4a9d59c81dec916f3da0b1420827aef2",
-      "line_count": 591,
-      "byte_count": 40104,
+      "git_object_id": "26590185b3de4ea6e9fe346c9b3460da7dc8dbe3",
+      "sha256": "a9aed93fe598fc0be6ac6c91f45cd22ecf31da42006e9c4acb895272ec4ea840",
+      "line_count": 629,
+      "byte_count": 42955,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -39637,7 +39637,7 @@
           "target_path": "docs/ui/fixtures/vendor/react-18.3.1/README.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 559
+          "source_line": 597
         }
       ],
       "inbound_references": [
@@ -39708,100 +39708,100 @@
           "level": 3,
           "text": "UIC-002 and UIC-010 — closed",
           "anchor": "uic-002-and-uic-010-closed",
-          "line": 128
+          "line": 159
         },
         {
           "level": 3,
           "text": "UIC-001 — closed",
           "anchor": "uic-001-closed",
-          "line": 231
+          "line": 262
         },
         {
           "level": 2,
           "text": "Archetype A — Detail cockpit",
           "anchor": "archetype-a-detail-cockpit",
-          "line": 266
+          "line": 297
         },
         {
           "level": 2,
           "text": "Archetype B — Work queue",
           "anchor": "archetype-b-work-queue",
-          "line": 281
+          "line": 312
         },
         {
           "level": 2,
           "text": "Archetype C — Creation form",
           "anchor": "archetype-c-creation-form",
-          "line": 291
+          "line": 322
         },
         {
           "level": 2,
           "text": "Archetype D — Decision modal",
           "anchor": "archetype-d-decision-modal",
-          "line": 298
+          "line": 329
         },
         {
           "level": 2,
           "text": "Archetype E — Client portal",
           "anchor": "archetype-e-client-portal",
-          "line": 305
+          "line": 336
         },
         {
           "level": 2,
           "text": "Archetype F — Configuration",
           "anchor": "archetype-f-configuration",
-          "line": 314
+          "line": 345
         },
         {
           "level": 2,
           "text": "Application surface — `js/screens/*.js`",
           "anchor": "application-surface-jsscreensjs",
-          "line": 322
+          "line": 353
         },
         {
           "level": 2,
           "text": "Table review — the one manual pass",
           "anchor": "table-review-the-one-manual-pass",
-          "line": 449
+          "line": 484
         },
         {
           "level": 2,
           "text": "Outside the archetypes — chrome and documentation",
           "anchor": "outside-the-archetypes-chrome-and-documentation",
-          "line": 466
+          "line": 501
         },
         {
           "level": 2,
           "text": "Execution order — by property batch",
           "anchor": "execution-order-by-property-batch",
-          "line": 479
+          "line": 514
         },
         {
           "level": 2,
           "text": "Versioned fixture provenance",
           "anchor": "versioned-fixture-provenance",
-          "line": 533
+          "line": 571
         },
         {
           "level": 3,
           "text": "Vendored fixture runtime — immutable third-party assets",
           "anchor": "vendored-fixture-runtime-immutable-third-party-assets",
-          "line": 549
+          "line": 587
         },
         {
           "level": 2,
           "text": "Archetype ratification",
           "anchor": "archetype-ratification",
-          "line": 569
+          "line": 607
         }
       ]
     },
     {
       "path": "docs/architecture/UI_VISUAL_CONTRACT.md",
-      "git_object_id": "fbdaa293d1530fbd2339241001b470673078393b",
-      "sha256": "e49d70a595cc7048da431f8b21e0263ff6917ce483e9331a6776f8c97938e486",
-      "line_count": 469,
-      "byte_count": 22592,
+      "git_object_id": "d8b44695c24c70151159b329cf0025a66cec6a14",
+      "sha256": "82b9a07e292207923dff0417b3d6b7a05e6ac50e46cfed5c294c3d735b276046",
+      "line_count": 500,
+      "byte_count": 24750,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -40487,25 +40487,25 @@
           "level": 2,
           "text": "6. Prohibitions",
           "anchor": "6-prohibitions",
-          "line": 410
+          "line": 441
         },
         {
           "level": 2,
           "text": "7. Language and lexicon",
           "anchor": "7-language-and-lexicon",
-          "line": 434
+          "line": 465
         },
         {
           "level": 2,
           "text": "8. Accessibility",
           "anchor": "8-accessibility",
-          "line": 448
+          "line": 479
         },
         {
           "level": 2,
           "text": "9. Validation",
           "anchor": "9-validation",
-          "line": 458
+          "line": 489
         }
       ]
     },
@@ -59510,10 +59510,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "fa6809e777727dc261798066695f45d8befaef4b",
-      "sha256": "687706299378694936205dcf75c98a97978c71fe5f3e2290ee6b9509d7e0a296",
-      "line_count": 10192,
-      "byte_count": 1239411,
+      "git_object_id": "14dc868e77e81b207625ad8ab8564e096a7ccfc7",
+      "sha256": "17ce6f5fe8dd5e4db2c31eef98e75503ef0ca441227ba25c218c07b25c1bafbe",
+      "line_count": 10225,
+      "byte_count": 1258932,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -67759,6 +67759,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-5-CARD-ACTION-ALIGNMENT-R1-A1 — fix(ui): close proven card action alignment pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-5-card-action-alignment-r1-a1-fixui-close-proven-card-action-alignment-pass",
           "line": 10165
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-6-TYPOGRAPHY-R1 — fix(ui): close typography conformance pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-6-typography-r1-fixui-close-typography-conformance-pass",
+          "line": 10192
         }
       ]
     },
@@ -76585,10 +76591,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0014.md",
-      "git_object_id": "dd7f6923ec5668432af57724651e09635d110120",
-      "sha256": "97dd65e5b5b73e78fe67b11f7ea2e82fc56073906f17e4afb3bc3600d5009d92",
-      "line_count": 90,
-      "byte_count": 41148,
+      "git_object_id": "f69f46d6b6f15d9adfaa5bd9b1807fcab9e1ba78",
+      "sha256": "3767a40cc1e8632036e4d95ad7da4fd40c3fed8bf1cefa5af210ad0489e03d4f",
+      "line_count": 123,
+      "byte_count": 60669,
       "generated_status": "GENERATED",
       "outbound_references": [],
       "inbound_references": [
@@ -76618,6 +76624,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-5-CARD-ACTION-ALIGNMENT-R1-A1 — fix(ui): close proven card action alignment pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-5-card-action-alignment-r1-a1-fixui-close-proven-card-action-alignment-pass",
           "line": 63
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-6-TYPOGRAPHY-R1 — fix(ui): close typography conformance pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-6-typography-r1-fixui-close-typography-conformance-pass",
+          "line": 90
         }
       ]
     },
@@ -76705,10 +76717,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "8b7749f27166c51641b7e1dc8fc9728bda27f7c9",
-      "sha256": "366d5eccfd58c6b82aaf1baa4ab0dac5b386d121d03649c99d5bb93bb6a37090",
-      "line_count": 10186,
-      "byte_count": 1239110,
+      "git_object_id": "a52e665b388f37195dbb519f7e082a69382b4b1b",
+      "sha256": "96f5e997b051d6a59942a6cce58790ae2cf24bc1b471f8ce7dd6be7bbb5e9335",
+      "line_count": 10219,
+      "byte_count": 1258631,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -86886,6 +86898,12 @@
           "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-5-CARD-ACTION-ALIGNMENT-R1-A1 — fix(ui): close proven card action alignment pass",
           "anchor": "2026-07-26-ui-consolidation-phase-5-pass-5-card-action-alignment-r1-a1-fixui-close-proven-card-action-alignment-pass",
           "line": 10161
+        },
+        {
+          "level": 2,
+          "text": "2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-6-TYPOGRAPHY-R1 — fix(ui): close typography conformance pass",
+          "anchor": "2026-07-26-ui-consolidation-phase-5-pass-6-typography-r1-fixui-close-typography-conformance-pass",
+          "line": 10188
         }
       ]
     },
@@ -97631,7 +97649,7 @@
       "inbound_references": [
         {
           "source_path": "docs/architecture/UI_CONFORMANCE.md",
-          "source_line": 559,
+          "source_line": 597,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null

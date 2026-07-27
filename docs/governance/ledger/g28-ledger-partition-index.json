@@ -3,10 +3,10 @@
   "index_id": "G28-LEDGER-PARTITION-INDEX-R1",
   "authority": "NON-CANONICAL_SHADOW; CANONICAL_LEDGER_AUTHORITY_UNCHANGED",
   "canonical_source": "docs/ledgers/G28_LEDGER.md",
-  "canonical_source_git_object": "8b7749f27166c51641b7e1dc8fc9728bda27f7c9",
-  "canonical_source_sha256": "366d5eccfd58c6b82aaf1baa4ab0dac5b386d121d03649c99d5bb93bb6a37090",
-  "canonical_byte_count": 1239110,
-  "canonical_line_count": 10186,
+  "canonical_source_git_object": "a52e665b388f37195dbb519f7e082a69382b4b1b",
+  "canonical_source_sha256": "96f5e997b051d6a59942a6cce58790ae2cf24bc1b471f8ce7dd6be7bbb5e9335",
+  "canonical_byte_count": 1258631,
+  "canonical_line_count": 10219,
   "source_manifest_path": "docs/governance/ledger/g28-ledger-source-manifest.json",
   "preamble_unit_id": "G28-LEDGER-PREAMBLE",
   "thresholds": {
@@ -3442,12 +3442,27 @@
       "date": "2026-07-26",
       "phase_order_id": "UI-CONSOLIDATION-PHASE-5-PASS-5-CARD-ACTION-ALIGNMENT-R1-A1",
       "start_byte": 1225279,
-      "end_byte": 1239110,
+      "end_byte": 1239111,
       "start_line": 10161,
-      "end_line": 10186,
-      "raw_sha256": "82a054efeae0364efd9270d0c3b9ec12873cde246b82eabbc6a9221944ee3203",
-      "byte_count": 13831,
-      "line_count": 26
+      "end_line": 10187,
+      "raw_sha256": "5e0eb47011372d1f9f93d055627f13324148142c6196572cffe46b5315c83e16",
+      "byte_count": 13832,
+      "line_count": 27
+    },
+    {
+      "unit_id": "G28-LEDGER-UNIT-0229",
+      "ordinal": 229,
+      "unit_kind": "ENTRY",
+      "heading": "## 2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-6-TYPOGRAPHY-R1 — fix(ui): close typography conformance pass",
+      "date": "2026-07-26",
+      "phase_order_id": "UI-CONSOLIDATION-PHASE-5-PASS-6-TYPOGRAPHY-R1",
+      "start_byte": 1239111,
+      "end_byte": 1258631,
+      "start_line": 10188,
+      "end_line": 10219,
+      "raw_sha256": "b2e479294ee12f4969a3a3e202eb190153efee71536eab1488e310f73d02f878",
+      "byte_count": 19520,
+      "line_count": 32
     }
   ],
   "partitions": [
@@ -3928,23 +3943,24 @@
       "partition_id": "G28-LEDGER-PART-0014",
       "file_name": "G28_LEDGER_PART_0014.md",
       "first_unit_ordinal": 226,
-      "last_unit_ordinal": 228,
+      "last_unit_ordinal": 229,
       "first_unit_id": "G28-LEDGER-UNIT-0226",
-      "last_unit_id": "G28-LEDGER-UNIT-0228",
+      "last_unit_id": "G28-LEDGER-UNIT-0229",
       "start_byte": 1198564,
-      "end_byte": 1239110,
+      "end_byte": 1258631,
       "start_line": 10109,
-      "end_line": 10186,
-      "byte_count": 40546,
-      "line_count": 78,
+      "end_line": 10219,
+      "byte_count": 60067,
+      "line_count": 111,
       "oversized_single_unit": false,
       "status": "OPEN",
       "unit_ids": [
         "G28-LEDGER-UNIT-0226",
         "G28-LEDGER-UNIT-0227",
-        "G28-LEDGER-UNIT-0228"
+        "G28-LEDGER-UNIT-0228",
+        "G28-LEDGER-UNIT-0229"
       ],
-      "payload_sha256": "0a307940eea2d6d9f06da3b206770bea696d98828fc908acf5ecae651c3aaf08"
+      "payload_sha256": "3acefd32436e03cf6a14c5e8d3f1b5c54969013e53ae814c74e76008da6d3119"
     }
   ],
   "unit_to_partition": [
@@ -4862,6 +4878,10 @@
     },
     {
       "unit_id": "G28-LEDGER-UNIT-0228",
+      "partition_id": "G28-LEDGER-PART-0014"
+    },
+    {
+      "unit_id": "G28-LEDGER-UNIT-0229",
       "partition_id": "G28-LEDGER-PART-0014"
     }
   ],
@@ -8484,7 +8504,7 @@
   "compatibility_view": {
     "path": "docs/governance/shadow/generated/G28_LEDGER.md",
     "reconstructed_from": "ORDERED_PARTITION_PAYLOADS",
-    "payload_sha256": "366d5eccfd58c6b82aaf1baa4ab0dac5b386d121d03649c99d5bb93bb6a37090"
+    "payload_sha256": "96f5e997b051d6a59942a6cce58790ae2cf24bc1b471f8ce7dd6be7bbb5e9335"
   },
-  "complete_reassembly_sha256": "366d5eccfd58c6b82aaf1baa4ab0dac5b386d121d03649c99d5bb93bb6a37090"
+  "complete_reassembly_sha256": "96f5e997b051d6a59942a6cce58790ae2cf24bc1b471f8ce7dd6be7bbb5e9335"
 }
