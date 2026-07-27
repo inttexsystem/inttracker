@@ -30,10 +30,9 @@
 
   var SVG_BACK = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>';
   var SVG_PLUS = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
-  var SVG_EDIT = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-accent-blue)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>';
-  var SVG_TRASH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-signal-negative)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
+  var SVG_EDIT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--rv-accent-blue)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>';
+  var SVG_TRASH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--rv-signal-negative)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
   var SVG_CALENDAR = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="8" y1="3" x2="8" y2="6"></line><line x1="16" y1="3" x2="16" y2="6"></line></svg>';
-  var SVG_CHEVRON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-tertiary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
   var SVG_CLOSE = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
 
   async function screenClientePedidoNovo() {
@@ -42,12 +41,12 @@
     if (clienteId == null) {
       window.toast('Conta de cliente sem cliente_id vinculado. Contate o suporte.', 'error');
       var errNode = window.el('div', { style: 'padding:24px;' },
-        window.el('div', { style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; padding:24px; color:var(--rv-signal-negative);' },
+        window.el('div', { style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); padding:24px; color:var(--rv-signal-negative);' },
           'Sua conta não está vinculada a um cliente. Contate o suporte.'),
         window.el('div', { style: 'margin-top:12px;' },
           window.el('button', {
             type: 'button',
-            style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:4px; padding:8px 18px; font-weight:600; font-size:14px; cursor:pointer;',
+            style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); height:var(--rv-h-default); padding:0 18px; display:inline-flex; align-items:center; justify-content:center; font-weight:600; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
             onclick: function () { window.navigate('#/cliente/pedidos'); },
           }, '← Voltar para lista')
         )
@@ -172,12 +171,15 @@
     // Header
     // ------------------------------------------------------------------
     function buildHeader() {
+      // SCREEN-GROUP-1: `gap` + `flex-wrap` vêm da tela admin equivalente. Sem
+      // eles, em 390px o botão Cancelar era espremido contra o título em vez de
+      // descer para a linha seguinte.
       return window.el('div', {
-        style: 'display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px;'
+        style: 'display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px; flex-wrap:wrap;'
       },
         window.el('div', { style: 'display:flex; align-items:flex-start; gap:16px;' },
           window.el('div', {
-            style: 'width:36px; height:36px; border:1px solid var(--rv-border-soft); border-radius:4px; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;',
+            style: 'width:36px; height:36px; border:1px solid var(--rv-border-soft); border-radius:var(--rv-radius); display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;',
             onclick: function () { window.navigate('#/cliente/pedidos'); },
           }, svgEl(SVG_BACK)),
           window.el('div', {},
@@ -185,13 +187,13 @@
               style: 'margin:0; font-size:var(--rv-fs-title); font-weight:800; color:var(--rv-text-primary); letter-spacing:-.01em;'
             }, 'Novo pedido'),
             window.el('div', {
-              style: 'font-size:13.5px; color:var(--rv-text-tertiary); margin-top:4px;'
+              style: 'font-size:var(--rv-fs-value); color:var(--rv-text-tertiary); margin-top:4px;'
             }, 'Preencha os itens do pedido. Após o envio, ele ficará como Recebido para conferência.')
           )
         ),
         window.el('button', {
           type: 'button',
-          style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:4px; padding:8px 18px; font-weight:600; font-size:14px; cursor:pointer; white-space:nowrap;',
+          style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); height:var(--rv-h-default); padding:0 18px; display:inline-flex; align-items:center; justify-content:center; font-weight:600; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer; white-space:nowrap;',
           onclick: function () { window.navigate('#/cliente/pedidos'); },
         }, 'Cancelar')
       );
@@ -200,12 +202,19 @@
     // ------------------------------------------------------------------
     // Card: Dados gerais
     // ------------------------------------------------------------------
+    // SCREEN-GROUP-1 — ALTURA UNICA DE CONTROLE NOS QUATRO CAMPOS.
+    // Os tres campos proprios desta tela declaravam a caixa por `padding:9px
+    // 12px` (~38px renderizados) enquanto o quarto — Recebimento — e o trigger
+    // canonico do select-popover, que declara `height:var(--rv-h-compact)`
+    // (32px). A mesma linha do grid renderizava 38, 38, 38, 32.
+    // A caixa passa a ser declarada pelo mesmo degrau canonico e pelo mesmo
+    // padding horizontal de 12px do trigger, exatamente como `#/pedidos/novo`.
     function buildDadosGeraisCard() {
       var referenciaInput = window.el('input', {
         type: 'text',
         placeholder: 'Ex.: Pedido #8431',
         value: state.referencia,
-        style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:4px; padding:9px 12px; font-size:14px; color:var(--rv-text-primary); background:var(--rv-surface); outline:none; font-family:inherit; box-sizing:border-box;',
+        style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); height:var(--rv-h-compact); padding:0 12px; font-size:var(--rv-fs-body); color:var(--rv-text-primary); background:var(--rv-surface); outline:none; font-family:inherit; box-sizing:border-box;',
       });
       referenciaInput.addEventListener('input', function () { state.referencia = referenciaInput.value; });
 
@@ -213,22 +222,20 @@
         type: 'date',
         value: state.dataPedido,
         'data-pedido-data': '1',
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; min-width:0;',
+        style: 'flex:1; border:none; outline:none; font-size:var(--rv-fs-body); color:var(--rv-text-primary); background:transparent; font-family:inherit; min-width:0;',
       });
       dataPedidoInput.addEventListener('change', function () { state.dataPedido = dataPedidoInput.value; });
-      var dataPedidoWrap = window.el('div', {
-        style: 'display:flex; align-items:center; gap:8px; border:1px solid var(--rv-border-strong); border-radius:4px; padding:9px 12px; background:var(--rv-surface);'
-      }, dataPedidoInput, svgEl(SVG_CALENDAR));
+      var dataPedidoWrap = window.el('div', { style: 'box-sizing:border-box; display:flex; align-items:center; gap:8px; height:var(--rv-h-compact); border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); padding:0 12px; background:var(--rv-surface);' },
+        dataPedidoInput, svgEl(SVG_CALENDAR));
 
       var prazoInput = window.el('input', {
         type: 'date',
         value: state.prazoEntrega,
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; min-width:0;',
+        style: 'flex:1; border:none; outline:none; font-size:var(--rv-fs-body); color:var(--rv-text-primary); background:transparent; font-family:inherit; min-width:0;',
       });
       prazoInput.addEventListener('change', function () { state.prazoEntrega = prazoInput.value; });
-      var prazoWrap = window.el('div', {
-        style: 'display:flex; align-items:center; gap:8px; border:1px solid var(--rv-border-strong); border-radius:4px; padding:9px 12px; background:var(--rv-surface);'
-      }, prazoInput, svgEl(SVG_CALENDAR));
+      var prazoWrap = window.el('div', { style: 'box-sizing:border-box; display:flex; align-items:center; gap:8px; height:var(--rv-h-compact); border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); padding:0 12px; background:var(--rv-surface);' },
+        prazoInput, svgEl(SVG_CALENDAR));
 
       // Pass-7 (UIC-006): the canonical select popover owns its own border,
       // padding and chevron, so the former facade wrapper is gone. No
@@ -244,24 +251,36 @@
       recebimentoSelect.addEventListener('change', function () { state.recebimento = recebimentoSelect.value; });
 
       return window.el('div', {
-        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px 20px; margin-bottom:14px;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px;'
       },
         window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:12px;' }, 'Dados gerais'),
-        window.el('div', { style: 'display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px;' },
-          window.el('div', {},
-            window.el('label', { style: 'display:block; font-size:13px; color:var(--rv-text-secondary); margin-bottom:6px;' }, 'Referência do cliente'),
+        // SCREEN-GROUP-1 — A GRADE TINHA TRES COLUNAS E QUATRO CAMPOS.
+        // `1fr 1fr 1fr` com quatro filhos jogava Recebimento sozinho para uma
+        // segunda linha, ocupando um terco da largura e deixando dois tercos
+        // vazios logo abaixo dos outros tres campos. A grade base passa a
+        // declarar as QUATRO colunas que realmente existem.
+        // A adaptacao por largura e do contrato `data-rv-pedido-dados`, ja
+        // aceito e ja implementado em css/responsive.css (5 -> 3 -> 2 -> 1);
+        // esta tela passa a consumi-lo em vez de manter uma grade fixa. Nenhum
+        // arquivo de folha de estilo e alterado.
+        window.el('div', {
+          'data-rv-pedido-dados': '1',
+          style: 'display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); column-gap:14px; row-gap:12px; align-items:start;'
+        },
+          window.el('div', { style: 'min-width:0;' },
+            window.el('label', { style: 'display:block; font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin-bottom:5px;' }, 'Referência do cliente'),
             referenciaInput
           ),
-          window.el('div', {},
-            window.el('label', { style: 'display:block; font-size:13px; color:var(--rv-text-secondary); margin-bottom:6px;' }, 'Data do pedido'),
+          window.el('div', { style: 'min-width:0;' },
+            window.el('label', { style: 'display:block; font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin-bottom:5px;' }, 'Data do pedido'),
             dataPedidoWrap
           ),
-          window.el('div', {},
-            window.el('label', { style: 'display:block; font-size:13px; color:var(--rv-text-secondary); margin-bottom:6px;' }, 'Prazo desejado'),
+          window.el('div', { style: 'min-width:0;' },
+            window.el('label', { style: 'display:block; font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin-bottom:5px;' }, 'Prazo desejado'),
             prazoWrap
           ),
-          window.el('div', {},
-            window.el('label', { style: 'display:block; font-size:13px; color:var(--rv-text-secondary); margin-bottom:6px;' }, 'Recebimento'),
+          window.el('div', { style: 'min-width:0;' },
+            window.el('label', { style: 'display:block; font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin-bottom:5px;' }, 'Recebimento'),
             recebimentoSelect
           )
         )
@@ -276,7 +295,7 @@
 
       // Swatch placeholder
       var swatch = window.el('div', {
-        style: 'width:36px; height:36px; border-radius:4px; border:1px solid var(--rv-border); background:var(--rv-surface-subtle); flex-shrink:0;'
+        style: 'width:36px; height:36px; border-radius:var(--rv-radius); border:1px solid var(--rv-border); background:var(--rv-surface-subtle); flex-shrink:0;'
       });
 
       // Modelo select (compact, inside cell) — Pass-7 canonical popover.
@@ -300,10 +319,10 @@
       });
 
       // Cores cell (placeholder)
-      var coresCell = window.el('div', { style: 'font-size:14px; color:var(--rv-text-tertiary);' }, '—');
+      var coresCell = window.el('div', { style: 'font-size:var(--rv-fs-body); color:var(--rv-text-tertiary);' }, '—');
 
       // Largura cell (auto from modelo)
-      var larguraCell = window.el('div', { style: 'font-size:14px; color:var(--rv-text-primary);' }, modelo ? larguraStr(modelo) : '—');
+      var larguraCell = window.el('div', { style: 'font-size:var(--rv-fs-body); color:var(--rv-text-primary);' }, modelo ? larguraStr(modelo) : '—');
 
       // Update swatch if model already selected
       if (modelo) swatch.style.background = swatchColor(modelo);
@@ -315,7 +334,7 @@
         placeholder: '0,00',
         step: '0.01',
         min: '0.01',
-        style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:4px; padding:6px 8px; font-size:13.5px; font-weight:600; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; outline:none;',
+        style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); padding:6px 8px; font-size:var(--rv-fs-value); font-weight:600; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; outline:none;',
       });
       metrosInput.addEventListener('input', function () { item.metros = metrosInput.value; });
 
@@ -324,25 +343,43 @@
         type: 'text',
         value: item.observacao,
         placeholder: '—',
-        style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:4px; padding:6px 8px; font-size:13.5px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; outline:none;',
+        style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); padding:6px 8px; font-size:var(--rv-fs-value); color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; outline:none;',
       });
       obsInput.addEventListener('input', function () { item.observacao = obsInput.value; });
 
       // Ações
-      var editBtn = window.el('span', {
-        style: 'cursor:default; opacity:.5;',
+      //
+      // SCREEN-GROUP-1 — ACAO DE LINHA PELO DONO CANONICO.
+      // As duas acoes eram <span> com um SVG dentro. Um span nao e focavel, nao
+      // responde a Enter/Espaco e nao tem nome acessivel: a acao DESTRUTIVA de
+      // remover um item do pedido so existia para quem usa mouse e chegava sem
+      // nome na tecnologia assistiva. `window.actionButton` e o dono ratificado
+      // da acao de linha 30x30 (UI_VISUAL_CONTRACT.md §8.1) e ja resolve os
+      // tres pontos: <button> real, `title` + `aria-label` e rotulo de leitor
+      // de tela. O comportamento nao muda — remover continua removendo do
+      // estado local e re-renderizando, e Editar continua desabilitado.
+      var editBtn = window.actionButton({
         title: 'Edição via modal (em breve)',
-      }, svgEl(SVG_EDIT));
+        icon: svgEl(SVG_EDIT),
+        disabled: true,
+      });
 
-      var removeBtn = window.el('span', {
-        style: 'cursor:pointer;',
+      var removeBtn = window.actionButton({
+        title: 'Remover item',
+        icon: svgEl(SVG_TRASH),
+        danger: true,
         onclick: function () {
           state.itens = state.itens.filter(function (it) { return it.uid !== item.uid; });
           render();
         },
-      }, svgEl(SVG_TRASH));
+      });
 
-      var acoesCell = window.el('div', { style: 'display:flex; align-items:center; gap:16px;' }, editBtn, removeBtn);
+      // `position:relative`: mesmo motivo documentado em
+      // js/screens/pedido-item-row-editor.js — o rotulo de leitor de tela que
+      // actionButton() anexa e `position:absolute` e, sem um ancestral
+      // posicionado, escapa do container de rolagem de 880px e empurra o
+      // documento num viewport estreito.
+      var acoesCell = window.el('div', { style: 'position:relative; display:flex; align-items:center; gap:8px;' }, editBtn, removeBtn);
 
       return window.el('div', {
         style: 'display:grid; grid-template-columns:60px 1.1fr 1.1fr .8fr 1.1fr 1.2fr 84px; align-items:center; gap:12px; padding:9px 18px; border-bottom:1px solid var(--rv-border-soft);',
@@ -389,18 +426,28 @@
 
       function requiredLabel(text) {
         return window.el('label', {
-          style: 'display:block; font-size:13px; font-weight:600; color:var(--rv-text-primary); margin-bottom:6px;'
+          style: 'display:block; font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-primary); margin-bottom:6px;'
         }, text + ' ', window.el('span', { style: 'color:var(--rv-signal-negative);' }, '*'));
       }
       function plainLabel(text) {
         return window.el('div', {
-          style: 'font-size:13px; font-weight:600; color:var(--rv-text-primary); margin-bottom:6px;'
+          style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-primary); margin-bottom:6px;'
         }, text);
       }
+      // SCREEN-GROUP-1 — AFORDANCIA FALSA REMOVIDA.
+      // Cor 1, Cor 2 e Largura sao DERIVADOS do modelo escolhido e sao somente
+      // leitura, mas a caixa desenhava um chevron — o mesmo glifo do gatilho de
+      // selecao que aparece logo acima, no mesmo modal. Ela parecia um seletor,
+      // nao abria nada e nao respondia ao clique.
+      // O chevron sai. A geometria passa a ser a MESMA do campo somente-leitura
+      // canonico que a passada 7 §12 ratificou para "Status inicial" em
+      // `#/pedidos/novo`: degrau --rv-h-compact, padding horizontal de 12px e
+      // --rv-fs-body, sem papel de combobox, sem popup e sem parada de tabulacao.
       function staticBox(span) {
         return window.el('div', {
-          style: 'display:flex; align-items:center; justify-content:space-between; border:1px solid var(--rv-border-strong); border-radius:4px; padding:9px 12px; font-size:14px; color:var(--rv-text-primary); background:var(--rv-surface);'
-        }, span, svgEl(SVG_CHEVRON));
+          'data-rv-static-value': '1',
+          style: 'box-sizing:border-box; display:flex; align-items:center; height:var(--rv-h-compact); padding:0 12px; border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); font-size:var(--rv-fs-body); color:var(--rv-text-primary); background:var(--rv-surface);'
+        }, span);
       }
 
       var closeBtn = window.el('button', {
@@ -414,7 +461,7 @@
       },
         window.el('div', {},
           window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary);' }, 'Adicionar item'),
-          window.el('div', { style: 'font-size:13px; color:var(--rv-text-tertiary); margin-top:3px;' },
+          window.el('div', { style: 'font-size:var(--rv-fs-body); color:var(--rv-text-tertiary); margin-top:3px;' },
             'Informe os dados do item que será incluído no pedido.')
         ),
         closeBtn
@@ -464,11 +511,11 @@
         requiredLabel('Cores'),
         window.el('div', { style: 'display:grid; grid-template-columns:1fr 1fr; gap:12px;' },
           window.el('div', {},
-            window.el('div', { style: 'font-size:12.5px; color:var(--rv-text-tertiary); margin-bottom:6px;' }, 'Cor 1'),
+            window.el('div', { style: 'font-size:var(--rv-fs-sm); color:var(--rv-text-tertiary); margin-bottom:6px;' }, 'Cor 1'),
             staticBox(cor1Span)
           ),
           window.el('div', {},
-            window.el('div', { style: 'font-size:12.5px; color:var(--rv-text-tertiary); margin-bottom:6px;' }, 'Cor 2'),
+            window.el('div', { style: 'font-size:var(--rv-fs-sm); color:var(--rv-text-tertiary); margin-bottom:6px;' }, 'Cor 2'),
             staticBox(cor2Span)
           )
         )
@@ -483,12 +530,12 @@
         step: '0.01',
         min: '0.01',
         placeholder: '0,00',
-        style: 'flex:1; border:none; outline:none; padding:9px 12px; font-size:14px; font-family:inherit; color:var(--rv-text-primary); background:transparent; min-width:0;',
+        style: 'flex:1; border:none; outline:none; padding:0 12px; font-size:var(--rv-fs-body); font-family:inherit; color:var(--rv-text-primary); background:transparent; min-width:0;',
       });
       metragemInput.addEventListener('input', function () { draft.metros = metragemInput.value; });
       var metragemWrap = window.el('div', {
-        style: 'display:flex; align-items:center; border:1px solid var(--rv-border-strong); border-radius:4px; overflow:hidden; background:var(--rv-surface);'
-      }, metragemInput, window.el('span', { style: 'padding:9px 12px 9px 0; color:var(--rv-text-tertiary); font-size:14px;' }, 'm'));
+        style: 'box-sizing:border-box; display:flex; align-items:center; height:var(--rv-h-compact); border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); overflow:hidden; background:var(--rv-surface);'
+      }, metragemInput, window.el('span', { style: 'padding:0 12px 0 0; color:var(--rv-text-tertiary); font-size:var(--rv-fs-body);' }, 'm'));
       var metragemField = window.el('div', {}, requiredLabel('Metragem'), metragemWrap);
 
       var larguraMetragemRow = window.el('div', {
@@ -525,9 +572,7 @@
       // dado de produto por trás dela e foi retirada (D9): o que aparece aqui
       // são as cores reais do modelo selecionado, ou um estado vazio honesto.
       var referenciaBox = window.el('div', {
-        style: 'height:120px; border-radius:4px; overflow:hidden; position:relative;'
-          + 'border:1px solid var(--rv-border); background:var(--rv-surface-subtle);'
-          + 'display:flex; align-items:center; justify-content:center;',
+        style: 'height:120px; border-radius:var(--rv-radius); overflow:hidden; position:relative;border:1px solid var(--rv-border); background:var(--rv-surface-subtle);display:flex; align-items:center; justify-content:center;',
       });
 
       function renderReferencia() {
@@ -572,7 +617,7 @@
         ariaLabel: 'Observação do item',
       });
       var counterSpan = window.el('span', {
-        style: 'position:absolute; right:12px; bottom:10px; font-size:12px; color:var(--rv-text-tertiary);'
+        style: 'position:absolute; right:12px; bottom:10px; font-size:var(--rv-fs-xs); color:var(--rv-text-tertiary);'
       }, '0/200');
       obsTextarea.addEventListener('input', function () {
         draft.observacao = obsTextarea.value;
@@ -589,13 +634,13 @@
 
       var cancelBtn = window.el('button', {
         type: 'button',
-        style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:4px; padding:9px 18px; font-weight:600; font-size:14px; font-family:inherit; cursor:pointer;',
+        style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); height:var(--rv-h-default); padding:0 18px; display:inline-flex; align-items:center; justify-content:center; font-weight:600; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
         onclick: close,
       }, 'Cancelar');
 
       var confirmBtn = window.el('button', {
         type: 'button',
-        style: 'background:var(--rv-brand); color:var(--rv-text-on-brand); border:none; border-radius:4px; padding:9px 20px; font-weight:700; font-size:14px; font-family:inherit; cursor:pointer;',
+        style: 'background:var(--rv-brand); color:var(--rv-text-on-brand); border:none; border-radius:var(--rv-radius); height:var(--rv-h-primary); padding:0 20px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
         onclick: function () {
           if (!draft.tipo) {
             window.toast('Selecione o tipo do produto.', 'error');
@@ -630,7 +675,7 @@
       var footer = window.modalActionBar([cancelBtn, confirmBtn], { marginTop: '14px' });
 
       var card = window.el('div', {
-        style: 'background:var(--rv-surface); border-radius:4px; width:460px; max-width:100%; max-height:90vh; box-shadow:var(--rv-shadow-popover); overflow:hidden; display:flex; flex-direction:column;'
+        style: 'background:var(--rv-surface); border-radius:var(--rv-radius); width:460px; max-width:100%; max-height:90vh; box-shadow:var(--rv-shadow-popover); overflow:hidden; display:flex; flex-direction:column;'
       }, header, body, footer);
 
       overlay.appendChild(card);
@@ -645,20 +690,20 @@
 
       var addBtn = window.el('button', {
         type: 'button',
-        style: 'display:inline-flex; align-items:center; gap:8px; background:var(--rv-surface); color:var(--rv-accent-blue); border:1px solid var(--rv-brand); border-radius:4px; padding:7px 13px; font-weight:600; font-size:13.5px; font-family:inherit; cursor:pointer; white-space:nowrap;',
+        style: 'display:inline-flex; align-items:center; justify-content:center; gap:8px; background:var(--rv-surface); color:var(--rv-accent-blue); border:1px solid var(--rv-brand); border-radius:var(--rv-radius); height:var(--rv-h-default); padding:0 13px; font-weight:600; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer; white-space:nowrap;',
         onclick: function () { openAddItemModal(); },
       }, svgEl(SVG_PLUS), 'Adicionar item');
 
       var tableHeader = window.el('div', {
         style: 'display:grid; grid-template-columns:' + COLS + '; align-items:center; gap:12px; padding:10px 18px; background:var(--rv-surface-subtle); border-bottom:1px solid var(--rv-border);'
       },
-        window.el('div', { style: 'font-size:13px; font-weight:600; color:var(--rv-text-secondary);' }, 'Img'),
-        window.el('div', { style: 'font-size:13px; font-weight:600; color:var(--rv-text-secondary);' }, 'Modelo'),
-        window.el('div', { style: 'font-size:13px; font-weight:600; color:var(--rv-text-secondary);' }, 'Cores'),
-        window.el('div', { style: 'font-size:13px; font-weight:600; color:var(--rv-text-secondary);' }, 'Largura'),
-        window.el('div', { style: 'font-size:13px; font-weight:600; color:var(--rv-text-secondary);' }, 'Metragem (m)'),
-        window.el('div', { style: 'font-size:13px; font-weight:600; color:var(--rv-text-secondary);' }, 'Observação'),
-        window.el('div', { style: 'font-size:13px; font-weight:600; color:var(--rv-text-secondary);' }, 'Ações')
+        window.el('div', { style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-secondary);' }, 'Img'),
+        window.el('div', { style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-secondary);' }, 'Modelo'),
+        window.el('div', { style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-secondary);' }, 'Cores'),
+        window.el('div', { style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-secondary);' }, 'Largura'),
+        window.el('div', { style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-secondary);' }, 'Metragem (m)'),
+        window.el('div', { style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-secondary);' }, 'Observação'),
+        window.el('div', { style: 'font-size:var(--rv-fs-body); font-weight:600; color:var(--rv-text-secondary);' }, 'Ações')
       );
 
       var rowsWrap = window.el('div', {});
@@ -674,11 +719,11 @@
       var tableFooter = window.el('div', {
         style: 'display:flex; align-items:center; justify-content:space-between; padding:10px 18px; background:var(--rv-surface-subtle);'
       },
-        window.el('span', { style: 'font-size:13.5px; color:var(--rv-text-secondary);' },
+        window.el('span', { style: 'font-size:var(--rv-fs-value); color:var(--rv-text-secondary);' },
           'Total de itens: ',
           window.el('strong', { style: 'color:var(--rv-text-primary); font-weight:700;' }, String(state.itens.length))
         ),
-        window.el('span', { style: 'font-size:13.5px; color:var(--rv-text-secondary);' },
+        window.el('span', { style: 'font-size:var(--rv-fs-value); color:var(--rv-text-secondary);' },
           'Metragem total: ',
           window.el('strong', { style: 'color:var(--rv-text-primary); font-weight:700;' }, totalStr)
         )
@@ -692,11 +737,11 @@
       var tableScroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' },
         window.el('div', { style: 'min-width:880px;' }, tableHeader, rowsWrap));
       var tableWrap = window.el('div', {
-        style: 'border:1px solid var(--rv-border); border-radius:4px; overflow:hidden;'
+        style: 'border:1px solid var(--rv-border); border-radius:var(--rv-radius); overflow:hidden;'
       }, tableScroll, tableFooter);
 
       return window.el('div', {
-        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px 20px; margin-bottom:14px;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px;'
       },
         window.el('div', { style: 'display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;' },
           window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary);' }, 'Itens do pedido'),
@@ -727,21 +772,22 @@
       });
 
       var instrCard = window.el('div', {
-        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px 20px;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px;'
       },
         window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:10px;' }, 'Instruções gerais'),
         obsTextarea
       );
 
       var checkoutCard = window.el('div', {
-        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px 20px; display:flex; flex-direction:column; justify-content:center;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; display:flex; flex-direction:column; justify-content:center;'
       },
         window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:10px;' }, 'Ir para checkout'),
         saveBtn
       );
 
       return window.el('div', {
-        style: 'display:grid; grid-template-columns:3fr 1fr; gap:14px; align-items:stretch;'
+        'data-rv-2col': '1',
+        style: 'display:grid; grid-template-columns:3fr 1fr; gap:12px; align-items:stretch;'
       }, instrCard, checkoutCard);
     }
 
@@ -757,24 +803,24 @@
       ];
 
       return window.el('div', {
-        style: 'background:var(--rv-surface);border:1px solid var(--rv-pill-info-border);border-radius:4px;box-shadow:var(--rv-shadow-none);padding:18px 20px;margin-bottom:14px;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-pill-info-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:18px 20px;margin-bottom:14px;',
         'data-post-save-summary': 'cliente',
       },
         window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:800;color:var(--rv-text-primary);margin-bottom:6px;' }, 'Pedido enviado'),
-        window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;margin-bottom:14px;' },
+        window.el('div', { style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);line-height:1.5;margin-bottom:14px;' },
           'Recebemos seu pedido. A equipe da Ravatex fara a conferencia e atualizara o acompanhamento.'),
         window.el('div', {
           style: 'display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px;',
         }, fields.map(function (field) {
           return window.el('div', {
-            style: 'background:var(--rv-surface-subtle);border:1px solid var(--rv-border);border-radius:4px;padding:10px 12px;',
+            style: 'background:var(--rv-surface-subtle);border:1px solid var(--rv-border);border-radius:var(--rv-radius);padding:10px 12px;',
           },
-            window.el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);font-weight:600;margin-bottom:5px;' }, field.label),
-            window.el('div', { style: 'font-size:14px;color:var(--rv-text-primary);font-weight:700;' }, field.value)
+            window.el('div', { style: 'font-size:var(--rv-fs-2xs);color:var(--rv-text-tertiary);font-weight:600;margin-bottom:5px;' }, field.label),
+            window.el('div', { style: 'font-size:var(--rv-fs-metric-rail);color:var(--rv-text-primary);font-weight:700;' }, field.value)
           );
         })),
         window.el('div', {
-          style: 'background:var(--rv-surface-subtle);border:1px solid var(--rv-pill-info-border);border-radius:4px;padding:12px 14px;font-size:13px;color:var(--rv-pill-info-text);line-height:1.5;margin-bottom:14px;',
+          style: 'background:var(--rv-surface-subtle);border:1px solid var(--rv-pill-info-border);border-radius:var(--rv-radius);padding:12px 14px;font-size:var(--rv-fs-body);color:var(--rv-pill-info-text);line-height:1.5;margin-bottom:14px;',
           'data-next-steps': 'cliente',
         }, 'Proximos passos: acompanhe o andamento em Meus pedidos ou envie outro pedido quando precisar.'),
         // Pass-5 STANDARD_ACTION_FOOTER: actions only, right aligned.
@@ -785,12 +831,12 @@
         },
           window.el('button', {
             type: 'button',
-            style: 'background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-border-strong);border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
+            style: 'background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-border-strong);border-radius:var(--rv-radius);padding:9px 14px;font-weight:600;font-size:var(--rv-fs-value);font-family:inherit;cursor:pointer;',
             onclick: function () { window.navigate('#/cliente/pedidos'); },
           }, 'Ver meus pedidos'),
           window.el('button', {
             type: 'button',
-            style: 'background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:9px 16px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;',
+            style: 'background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:var(--rv-radius);padding:9px 16px;font-weight:700;font-size:var(--rv-fs-value);font-family:inherit;cursor:pointer;',
             onclick: function () { window.navigate('#/cliente/pedidos/novo'); },
           }, 'Criar novo pedido')
         )
@@ -910,7 +956,7 @@
     function render() {
       var saveBtn = window.el('button', {
         type: 'button',
-        style: 'background:var(--rv-brand); color:var(--rv-text-on-brand); border:none; border-radius:4px; padding:10px 0; width:100%; font-weight:700; font-size:14px; font-family:inherit; cursor:pointer;',
+        style: 'background:var(--rv-brand); color:var(--rv-text-on-brand); border:none; border-radius:var(--rv-radius); height:var(--rv-h-primary); padding:0; width:100%; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
         onclick: function () { salvar(saveBtn); },
       }, 'Finalizar pedido');
 
@@ -918,7 +964,7 @@
         container.replaceChildren(
           buildHeader(),
           window.el('div', {
-            style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; padding:24px; color:var(--rv-signal-negative);'
+            style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); padding:24px; color:var(--rv-signal-negative);'
           }, 'Erro ao carregar dados de ' + loadingError + '. Tente recarregar a página.')
         );
         return;

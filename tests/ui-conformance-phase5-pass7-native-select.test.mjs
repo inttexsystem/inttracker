@@ -877,7 +877,7 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
     'js/screens/document-link-admin-modal.js',
     'js/screens/documentos-recebidos-decision-modal.js', 'js/screens/documentos-recebidos.js',
     'js/screens/ops-list.js',
-    'js/screens/pedido-item-row-editor.js', 'js/screens/pedidos-list.js',
+    'js/screens/pedidos-list.js',
   ];
   /*
    * PASS-8-TABLE-CONTRACT-FORWARD-CORRECTION
@@ -920,10 +920,27 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
   const B1 = '20260727-ui-specialized-controls-b1';
   const CHANGED_BY_PASS7_THEN_B1 = [
     'js/ui.js', 'js/screens/admin-usuarios.js',
+  ];
+  /*
+   * PEDIDO-SCREEN-GROUP-1 FORWARD CORRECTION
+   *
+   * That order consolidated the five Pedido creation and editing screens.
+   * THREE of them are pass-7 assets — the two form screens that had already
+   * moved on to the B1 token, and the item row editor that still carried the
+   * pass-7 one — so all three move on once more. A screen-group-1 token is
+   * strictly LATER than a pass-7, pass-8, containment or B1 one, so pass 7's
+   * invariant is intact: every asset it changed is still invalidated against
+   * the pass-6 checkpoint. The population is still eleven; only which later
+   * token invalidates three of them moved.
+   */
+  const SCREEN_GROUP_1 = '20260727-ui-pedido-screen-group-1';
+  const CHANGED_BY_PASS7_THEN_SCREEN_GROUP_1 = [
     'js/screens/cliente-pedido-form.js', 'js/screens/pedido-form.js',
+    'js/screens/pedido-item-row-editor.js',
   ];
   assert.equal(changed.length + CHANGED_BY_PASS7_THEN_PASS8.length
-    + CHANGED_BY_PASS7_THEN_CONTAINMENT_A1.length + CHANGED_BY_PASS7_THEN_B1.length, 11,
+    + CHANGED_BY_PASS7_THEN_CONTAINMENT_A1.length + CHANGED_BY_PASS7_THEN_B1.length
+    + CHANGED_BY_PASS7_THEN_SCREEN_GROUP_1.length, 11,
     'the pass-7 changed-asset population must stay eleven');
   for (const rel of changed) {
     assert.ok(INDEX.includes(`${rel}?v=${TOKEN}`), `${rel} must carry the pass-7 token`);
@@ -941,6 +958,12 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
     assert.ok(INDEX.includes(`${rel}?v=${B1}`),
       `${rel} must carry the later specialized-controls B1 token`);
     assert.ok(!INDEX.includes(`${rel}?v=20260726-ui-p5-pass6`), `${rel} fell back to a pass-6 token`);
+  }
+  for (const rel of CHANGED_BY_PASS7_THEN_SCREEN_GROUP_1) {
+    assert.ok(INDEX.includes(`${rel}?v=${SCREEN_GROUP_1}`),
+      `${rel} must carry the later Pedido screen-group-1 token`);
+    assert.ok(!INDEX.includes(`${rel}?v=${TOKEN}`), `${rel} kept the superseded pass-7 token`);
+    assert.ok(!INDEX.includes(`${rel}?v=${B1}`), `${rel} kept the superseded B1 token`);
   }
   // B1 changed the token stylesheet again, so it carries the later B1 token.
   assert.match(INDEX, new RegExp(`css/tokens\\.css\\?v=${B1}`));

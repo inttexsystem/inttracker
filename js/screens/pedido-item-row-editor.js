@@ -42,7 +42,7 @@
   var GRID_COLS = '60px .62fr 1.28fr 1.1fr .8fr .55fr 1.2fr 84px';
   var HEADER_LABELS = ['Img', 'Tipo', 'Modelo', 'Cores', 'Largura', 'Metragem (m)', 'Observacao', 'Acoes'];
 
-  var SVG_TRASH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-signal-negative)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
+  var SVG_TRASH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--rv-signal-negative)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
 
   function svgEl(markup) {
     var tmp = window.document.createElement('div');
@@ -184,7 +184,7 @@
 
     var previewSlot = window.el('div', {
       'data-preview-slot': '1',
-      style: 'width:32px; height:32px; border-radius:4px; overflow:hidden; border:1px solid var(--rv-border); background:var(--rv-signal-caution-bg); flex-shrink:0; display:flex; align-items:center; justify-content:center;'
+      style: 'width:32px; height:32px; border-radius:var(--rv-radius); overflow:hidden; border:1px solid var(--rv-border); background:var(--rv-signal-caution-bg); flex-shrink:0; display:flex; align-items:center; justify-content:center;'
     });
 
     function updatePreview() {
@@ -248,7 +248,7 @@
       placeholder: '0,00',
       step: '0.01',
       min: '0.01',
-      style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:4px; padding:6px 8px; font-size:13.5px; font-weight:600; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; outline:none;'
+      style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); padding:6px 8px; font-size:13.5px; font-weight:600; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; outline:none;'
     });
     metrosInput.addEventListener('input', function () {
       item.metros = metrosInput.value;
@@ -260,18 +260,27 @@
       value: item.observacao,
       placeholder: '-',
       maxlength: '200',
-      style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:4px; padding:6px 8px; font-size:13.5px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; outline:none;'
+      style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); padding:6px 8px; font-size:13.5px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; outline:none;'
     });
     obsInput.addEventListener('input', function () {
       item.observacao = obsInput.value;
       onChange(item);
     });
 
-    var removeBtn = window.el('span', {
-      style: 'cursor:pointer;',
+    // SCREEN-GROUP-1 — ACAO DESTRUTIVA PELO DONO CANONICO.
+    // Remover um item era um <span> com um SVG: nao focavel, sem resposta a
+    // Enter/Espaco e sem nome acessivel — a unica acao destrutiva da linha
+    // existia apenas para quem usa mouse. `window.actionButton` e o dono
+    // ratificado da acao de linha 30x30 (UI_VISUAL_CONTRACT.md §8.1) e fornece
+    // <button> real, `title` + `aria-label` e rotulo de leitor de tela, alem do
+    // tratamento `danger` que separa visualmente a acao destrutiva. O
+    // comportamento nao muda: continua chamando onRemove(item).
+    var removeBtn = window.actionButton({
       title: 'Remover item',
+      icon: svgEl(SVG_TRASH),
+      danger: true,
       onclick: function () { onRemove(item); }
-    }, svgEl(SVG_TRASH));
+    });
 
     fillTipoSelect(tipoSelect, item.tipo, !typeMetadata);
     fillModeloSelect(modeloSelect, modelos, typeMetadata ? item.tipo : '', item.modeloId);
@@ -284,7 +293,16 @@
     row.appendChild(larguraCell);
     row.appendChild(metrosInput);
     row.appendChild(obsInput);
-    row.appendChild(window.el('div', { style: 'display:flex; align-items:center; gap:16px;' }, removeBtn));
+    // `position:relative` NAO e decoracao. actionButton() anexa o rotulo de
+    // leitor de tela como um <span position:absolute>, e o proprio botao nao
+    // declara contexto de posicionamento. Sem um ancestral posicionado esse
+    // span resolve contra o BLOCO CONTENDOR INICIAL — e como esta linha vive
+    // dentro de um container de rolagem de 920px, ele era colocado em x~890 no
+    // documento e empurrava `documentElement.scrollWidth` para 870 num viewport
+    // de 390px, mesmo com a linha corretamente contida pelo `data-rv-table-scroll`.
+    // Medido: 870 -> 390 em 390x844. O contexto e do CHAMADOR porque
+    // js/ui.js e o dono compartilhado e esta fora do escopo deste lote.
+    row.appendChild(window.el('div', { style: 'position:relative; display:flex; align-items:center; gap:16px;' }, removeBtn));
     return row;
   }
 

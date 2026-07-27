@@ -509,7 +509,14 @@ test('11 · A4 retokenised exactly five assets, and the pass-7 set is set-derive
   // simply now spans one more token, and a B1 token is strictly later than any
   // pass-8 or containment one.
   const B1_TOKEN = '20260727-ui-specialized-controls-b1';
-  const LATER_TOKENS = [PASS8_TOKEN, PASS8_A1_TOKEN, CONTAINMENT_A1_TOKEN, B1_TOKEN];
+  // PEDIDO-SCREEN-GROUP-1 consolidated the five Pedido creation and editing
+  // screens and moved four of these assets on once more — the two form screens,
+  // the item row editor and the items editor. The set arithmetic below is again
+  // unchanged: "moved on by a later pass" now spans one more token, and a
+  // screen-group-1 token is strictly later than any B1 one.
+  const SCREEN_GROUP_1_TOKEN = '20260727-ui-pedido-screen-group-1';
+  const LATER_TOKENS = [PASS8_TOKEN, PASS8_A1_TOKEN, CONTAINMENT_A1_TOKEN, B1_TOKEN,
+    SCREEN_GROUP_1_TOKEN];
   const onPass8 = refs.filter((u) => LATER_TOKENS.includes(tokenOf(u))).map(pathOf);
   // Pass-7 assets that a LATER pass moved on (pass 8, pass-8 A1, or
   // ACTION-CONTAINMENT-A1). admin-usuarios-modal.js is the containment-A1
@@ -525,6 +532,11 @@ test('11 · A4 retokenised exactly five assets, and the pass-7 set is set-derive
     'js/screens/cliente-pedido-form.js', 'js/screens/expedicao-admin.js',
     'js/screens/op-nova.js', 'js/screens/admin-usuarios-modal.js',
     'css/tokens.css', 'js/screens/pedido-form.js',
+    // PEDIDO-SCREEN-GROUP-1 arrivals: the item row editor left the pass-7 A1
+    // token and the items editor left the A4 token, both for a strictly later
+    // one. Neither leaves the pass-7 population; only its invalidating token
+    // moved, which is exactly what the union arithmetic below proves.
+    'js/screens/pedido-item-row-editor.js', 'js/screens/pedido-itens-edit.js',
   ];
   for (const rel of PASS7_ASSETS_MOVED_BY_PASS8) {
     assert.ok(onPass8.includes(rel), `${rel} must now carry the pass-8 token`);
@@ -622,10 +634,16 @@ test('13 · the detector result is unchanged by A4', () => {
   // read, so nine UIC-000 coverage gaps and two UIC-009 references stopped
   // existing as JavaScript declarations: 867 -> 856, coverage 545 -> 536,
   // debt 322 -> 320. B1 ADDED no finding to any rule.
-  assert.equal(baseline.findings.length, 856);
+  // PEDIDO-SCREEN-GROUP-1 FORWARD CORRECTION. That order ADDED no finding to
+  // any rule and REMOVED two UIC-000 coverage gaps: 856 -> 854, coverage
+  // 536 -> 534. Both are the same mechanical cause — a pre-existing style
+  // WRAPPED across source lines as `'a' + ' b'`, which the js-screen front-end
+  // reports as CONCATENATED_STYLE_EXPRESSION, became a single decodable
+  // literal, so two declarations no rule could see are now seen by every rule.
+  assert.equal(baseline.findings.length, 854);
   const rule = (id) => baseline.summary_by_rule[id] || { blocking: 0, coverage_gaps: 0, total: 0 };
   assert.equal(rule('UIC-006').total, 0);
-  assert.equal(rule('UIC-000').coverage_gaps, 536);
+  assert.equal(rule('UIC-000').coverage_gaps, 534);
   assert.equal(rule('UIC-009').debt, 320);
   assert.equal(baseline.coverage_summary.FULL, 31);
   assert.equal(baseline.coverage_summary.PARTIAL, 36);

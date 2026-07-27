@@ -1490,7 +1490,9 @@ test('batch2/19. index.html carrega o modulo da linha antes de pedido-form.js', 
   // A passada 7 (select nativo -> popover canonico) retokenizou o modulo pela
   // ultima vez; a prova de ordem/carga unica acima e o sujeito deste guard, e
   // o token segue sendo verificado literalmente.
-  assert.match(index, /pedido-item-row-editor\.js\?v=20260727-ui-p5-pass7-native-select-a1/);
+  // PEDIDO-SCREEN-GROUP-1 passou a acao destrutiva da linha para o dono
+  // canonico actionButton(), entao o modulo carrega o token dessa ordem.
+  assert.match(index, /pedido-item-row-editor\.js\?v=20260727-ui-pedido-screen-group-1/);
 });
 
 // O sujeito deste guard e a EXTRACAO de BATCH-02: a tela encolheu de 1089 para

@@ -56,6 +56,22 @@
   // mas esta defesa evita queries inúteis com lixo na URL.
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+  // -------------------------------------------------------------------
+  // SCREEN-GROUP-1 — linguagem de cartao do grupo Pedido.
+  //
+  // Esta tela declarava seus cartoes por utilitarios Tailwind
+  // (`bg-white shadow p-6`), enquanto as duas telas de CRIACAO do mesmo
+  // grupo ja declaravam a superficie, a borda, o raio e a elevacao pelos
+  // tokens canonicos. O resultado eram duas linguagens visuais para o
+  // mesmo objeto: cartao branco com elevacao Tailwind de um lado, cartao
+  // com borda `--rv-border` e `--rv-shadow-none` do outro.
+  //
+  // A densidade adotada e a MESMA que BATCH-03 aceitou para `#/pedidos/novo`
+  // (padding 16px, 12px entre cartoes). Nenhum valor novo e inventado: cada
+  // um ja e renderizado pela tela de criacao do mesmo grupo.
+  // Acao secundaria (Cancelar, Voltar) e acao dominante (Salvar), nos degraus
+  // canonicos --rv-h-default e --rv-h-primary.
+
   async function screenPedidoEditar(pedidoId) {
     // -----------------------------------------------------------------
     // Helpers de UI de erro (UUID inválido, pedido não encontrado,
@@ -67,24 +83,28 @@
     function backToListBtn() {
       return window.el('button', {
         type: 'button',
-        style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 border hover:bg-gray-50',
+        style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); height:var(--rv-h-default); padding:0 18px; display:inline-flex; align-items:center; justify-content:center; font-weight:600; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
         onclick: function () { window.navigate('#/pedidos'); },
       }, '← Voltar para lista');
     }
     function backToDetailBtn(id) {
       return window.el('button', {
         type: 'button',
-        style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 border hover:bg-gray-50',
+        style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); height:var(--rv-h-default); padding:0 18px; display:inline-flex; align-items:center; justify-content:center; font-weight:600; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
         onclick: function () { window.navigate('#/pedidos/' + id); },
       }, '← Voltar para o detalhe');
+    }
+    function errorCard(message) {
+      return window.el('div', {
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px; color:var(--rv-signal-negative); font-size:var(--rv-fs-body);',
+      }, message);
     }
     function errorShell(headerTitle, message, backBtn) {
       return window.shellLayout(window.ADMIN_MENU,
         window.el('div', {},
           errorHeader(headerTitle),
-          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-red-700' },
-            message),
-          window.el('div', { class: 'mt-4' }, backBtn)
+          errorCard(message),
+          window.el('div', {}, backBtn)
         )
       );
     }
@@ -186,21 +206,22 @@
       if (!state.pedido) return window.el('div', {});
       const s = state.pedido.status;
       const label = window.pedidoStatusLabel ? window.pedidoStatusLabel(s) : s;
-      const banner = window.el('div',
-        { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-4 mb-4 flex flex-wrap items-center gap-3' },
-        window.el('div', { class: 'text-sm text-gray-600' }, 'Status atual:'),
+      const banner = window.el('div', {
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px; display:flex; flex-wrap:wrap; align-items:center; gap:12px;',
+      },
+        window.el('div', { style: 'font-size:var(--rv-fs-body); color:var(--rv-text-secondary);' }, 'Status atual:'),
         window.pedidoStatusBadge ? window.pedidoStatusBadge(s) : window.el('span', {}, s)
       );
       if (state.blockedStatus) {
         banner.appendChild(window.el('div',
-          { class: 'text-sm text-red-700 ml-auto' },
+          { style: 'font-size:var(--rv-fs-body); color:var(--rv-signal-negative); margin-left:auto;' },
           'Este pedido está em status "' + label + '". '
             + 'A edição dos dados gerais é permitida apenas para '
             + '"Rascunho" e "Recebido".'
         ));
       } else {
         banner.appendChild(window.el('div',
-          { class: 'text-sm text-gray-500 ml-auto' },
+          { style: 'font-size:var(--rv-fs-body); color:var(--rv-text-tertiary); margin-left:auto;' },
           'Edição permitida neste status.'
         ));
       }
@@ -261,17 +282,18 @@
       });
       obsTextarea.addEventListener('input', function () { state.observacao = obsTextarea.value; });
 
-      // Botão Salvar.
+      // Botão Salvar — acao dominante do fluxo, degrau --rv-h-primary e a
+      // mesma cor de marca que a tela de criacao do grupo ja usa.
       const saveBtn = window.el('button', {
         type: 'button',
-        style: 'border-radius:var(--rv-radius);', class: 'bg-blue-700 hover:bg-blue-800 text-white font-semibold px-6 py-2',
+        style: 'background:var(--rv-brand); color:var(--rv-text-on-brand); border:none; border-radius:var(--rv-radius); height:var(--rv-h-primary); padding:0 20px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
         onclick: function () { salvar(saveBtn); },
       }, 'Salvar alterações');
 
       // Botão Cancelar (volta para o detalhe).
       const cancelBtn = window.el('button', {
         type: 'button',
-        style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 border hover:bg-gray-50',
+        style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); height:var(--rv-h-default); padding:0 18px; display:inline-flex; align-items:center; justify-content:center; font-weight:600; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
         onclick: function () { window.navigate('#/pedidos/' + pedidoId); },
       }, 'Cancelar');
 
@@ -282,13 +304,12 @@
         prazoInput.disabled = true;
         obsTextarea.disabled = true;
         saveBtn.disabled = true;
-        saveBtn.className = 'px-6 py-2 border bg-gray-50 text-gray-400 cursor-not-allowed font-semibold';
-        saveBtn.style.borderRadius = 'var(--rv-radius)';
+        saveBtn.setAttribute('style', 'background:var(--rv-surface-subtle); color:var(--rv-text-tertiary); border:1px solid var(--rv-border-soft); border-radius:var(--rv-radius); height:var(--rv-h-primary); padding:0 20px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:var(--rv-fs-body); font-family:inherit; cursor:not-allowed;');
         saveBtn.textContent = 'Edição bloqueada';
       }
 
-      const form = window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 max-w-3xl' },
-        window.el('h2', { class: 'text-sm font-semibold text-gray-700 mb-4' },
+      const form = window.el('div', { style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px; max-width:768px;' },
+        window.el('h2', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:12px;' },
           'Dados gerais do pedido'),
         window.formField({ label: 'Cliente', input: cliSel }),
         window.formField({
@@ -311,7 +332,22 @@
           input: obsTextarea,
           hint: 'Texto livre para o pedido como um todo.',
         }),
-        window.el('div', { class: 'flex justify-end gap-2 pt-4 border-t mt-4' },
+        // SCREEN-GROUP-1 — CONTENCAO LOCAL DE ACAO.
+        // Esta linha sempre foi um rodape de acoes DENTRO do cartao, mas nao se
+        // declarava como tal: sua geometria vinha de utilitarios Tailwind
+        // (`justify-end gap-2 pt-4 border-t mt-4`), com um divisor de cor
+        // herdada e um gap de 8px que so coincidia com o canonico por acaso.
+        // A ordem ACTION-CONTAINMENT-A1 cancelou a fase global A2 e determinou
+        // que a contencao local fosse corrigida DENTRO de cada lote de telas —
+        // este e o lote desta tela. O marcador `data-card-actions` e a propria
+        // declaracao de contrato: STANDARD_ACTION_FOOTER, so acoes, alinhado a
+        // direita. `padding-top` e longhand de proposito: um shorthand
+        // `padding` deixaria o valor indecodificavel para a regra UIC-008.
+        window.el('div', {
+          style: 'display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;border-top:1px solid var(--rv-border-soft);padding-top:11px;margin-top:16px;',
+          'data-pedido-edit-actions': 'geral',
+          'data-card-actions': '',
+        },
           cancelBtn,
           saveBtn,
         ),
@@ -322,7 +358,7 @@
     function buildItensAviso() {
       // Itens NÃO são editáveis nesta fase. Aviso simples.
       return window.el('div',
-        { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-4 mb-4 text-sm text-gray-600' },
+        { style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px; font-size:var(--rv-fs-body); color:var(--rv-text-secondary);' },
         'Itens do pedido não são editáveis nesta fase (fica para C3C2). '
           + 'Esta tela altera apenas cliente, prazo de entrega e observação geral.'
       );
@@ -411,16 +447,14 @@
       if (state.loadingError === 'pedido') {
         container.replaceChildren(
           buildHeader(),
-          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-red-700' },
-            'Pedido não encontrado. Ele pode ter sido removido.')
+          errorCard('Pedido não encontrado. Ele pode ter sido removido.')
         );
         return;
       }
       if (state.loadingError === 'clientes') {
         container.replaceChildren(
           buildHeader(),
-          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-red-700' },
-            'Erro ao carregar clientes. Tente recarregar a página.')
+          errorCard('Erro ao carregar clientes. Tente recarregar a página.')
         );
         return;
       }

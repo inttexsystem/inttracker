@@ -214,8 +214,15 @@ test('2 · UIC-005 remains zero and no rule moved', () => {
   // read, so nine UIC-000 coverage gaps and two UIC-009 references stopped
   // existing as JavaScript declarations: 867 -> 856, coverage 545 -> 536,
   // debt 322 -> 320. B1 ADDED no finding to any rule.
-  assert.equal(BASELINE.findings.length, 856);
-  assert.equal(rule('UIC-000').coverage_gaps, 536);
+  // PEDIDO-SCREEN-GROUP-1 FORWARD CORRECTION. The Pedido creation and editing
+  // screen group ADDED no finding to any rule and REMOVED two UIC-000 coverage
+  // gaps: 856 -> 854, coverage 536 -> 534. Both are the same mechanical cause —
+  // a pre-existing style WRAPPED across source lines as `'a' + ' b'`, which the
+  // js-screen front-end reports as CONCATENATED_STYLE_EXPRESSION, became a
+  // single decodable literal. Nothing was suppressed: two declarations no rule
+  // could see are now seen by every rule, and both conform.
+  assert.equal(BASELINE.findings.length, 854);
+  assert.equal(rule('UIC-000').coverage_gaps, 534);
   assert.equal(rule('UIC-006').blocking, 0);
   assert.equal(rule('UIC-006').total, 0);
   assert.equal(rule('UIC-009').debt, 320);

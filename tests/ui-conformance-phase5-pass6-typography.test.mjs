@@ -115,9 +115,16 @@ test('3 · all 80 entry findings were removed and none were added', () => {
   // read, so nine UIC-000 coverage gaps and two UIC-009 references stopped
   // existing as JavaScript declarations: 867 -> 856, coverage 545 -> 536,
   // debt 322 -> 320. B1 ADDED no finding to any rule.
-  assert.equal(BASELINE.findings.length, 856);
+  // PEDIDO-SCREEN-GROUP-1 FORWARD CORRECTION. The Pedido creation and editing
+  // screen group ADDED no finding to any rule and REMOVED two UIC-000 coverage
+  // gaps: 856 -> 854, coverage 536 -> 534. Both are the same mechanical cause —
+  // a pre-existing style WRAPPED across source lines as `'a' + ' b'`, which the
+  // js-screen front-end reports as CONCATENATED_STYLE_EXPRESSION, became a
+  // single decodable literal. Nothing was suppressed: two declarations no rule
+  // could see are now seen by every rule, and both conform.
+  assert.equal(BASELINE.findings.length, 854);
   assert.equal(rule('UIC-005').total, 0, 'pass 6 must stay closed');
-  assert.equal(rule('UIC-000').coverage_gaps, 536);
+  assert.equal(rule('UIC-000').coverage_gaps, 534);
   assert.equal(rule('UIC-006').blocking, 0);
   assert.equal(rule('UIC-009').debt, 320);
   assert.equal(BASELINE.coverage_summary.FULL, 31);
@@ -710,9 +717,24 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   const B1_CHANGED = [
     'css/tokens.css', 'js/ui.js',
     'js/screens/admin-usuarios-modal.js', 'js/screens/cadastros.js',
-    'js/screens/cliente-pedido-form.js', 'js/screens/common.js',
+    'js/screens/common.js',
     'js/screens/expedicao-admin.js', 'js/screens/pedido-detail-events.js',
-    'js/screens/pedido-form.js', 'js/screens/system-screens.js',
+    'js/screens/system-screens.js',
+  ];
+  /*
+   * PEDIDO-SCREEN-GROUP-1 FORWARD CORRECTION
+   *
+   * That order consolidated the five Pedido creation and editing screens and
+   * retokenised them. TWO of them are also pass-6 assets, so they move out of
+   * the B1 tier and into this one. A screen-group-1 token is strictly later
+   * than a pass-6, A1, pass-7, pass-8, containment or B1 one, so every asset
+   * pass 6 touched is still invalidated against the pass-5 checkpoint — only
+   * WHICH later token does the invalidating moved. The population below still
+   * sums to the same 27.
+   */
+  const SCREEN_GROUP_1 = '20260727-ui-pedido-screen-group-1';
+  const SCREEN_GROUP_1_CHANGED = [
+    'js/screens/cliente-pedido-form.js', 'js/screens/pedido-form.js',
   ];
   const PASS6_ONLY = [
     'js/document-links-surface-ui.js',
@@ -724,7 +746,8 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   // across the tokens. That is what proves nothing silently dropped out.
   assert.equal(PASS7_CHANGED.length + PASS7_A4_CHANGED.length + PASS7_A5_CHANGED.length
     + A1_CHANGED.length + PASS8_CHANGED.length + PASS8_A1_CHANGED.length
-    + CONTAINMENT_A1_CHANGED.length + B1_CHANGED.length + PASS6_ONLY.length, 27);
+    + CONTAINMENT_A1_CHANGED.length + B1_CHANGED.length + SCREEN_GROUP_1_CHANGED.length
+    + PASS6_ONLY.length, 27);
   for (const rel of PASS7_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS7}"`), `${rel} must carry the pass-7 token`);
   }
@@ -751,6 +774,12 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     assert.ok(INDEX.includes(`"${rel}?v=${B1}"`),
       `${rel} must carry the specialized-controls B1 token`);
   }
+  for (const rel of SCREEN_GROUP_1_CHANGED) {
+    assert.ok(INDEX.includes(`"${rel}?v=${SCREEN_GROUP_1}"`),
+      `${rel} must carry the Pedido screen-group-1 token`);
+    assert.ok(!INDEX.includes(`"${rel}?v=${B1}"`),
+      `${rel} kept the superseded specialized-controls B1 token`);
+  }
   for (const rel of PASS6_ONLY) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS6}"`), `${rel} must keep the pass-6 token`);
   }
@@ -760,7 +789,8 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     'the pass-6 token leaked or was dropped');
   // Every asset pass 6 touched still carries a token LATER than the pass-5 one.
   for (const rel of [...PASS7_CHANGED, ...PASS7_A4_CHANGED, ...PASS7_A5_CHANGED, ...A1_CHANGED,
-    ...PASS8_CHANGED, ...PASS8_A1_CHANGED, ...B1_CHANGED, ...PASS6_ONLY]) {
+    ...PASS8_CHANGED, ...PASS8_A1_CHANGED, ...B1_CHANGED, ...SCREEN_GROUP_1_CHANGED,
+    ...PASS6_ONLY]) {
     assert.ok(!INDEX.includes(`"${rel}?v=20260726-ui-p5-pass5`),
       `${rel} fell back to the pass-5 token`);
   }

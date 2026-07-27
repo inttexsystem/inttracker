@@ -674,14 +674,21 @@ test('32 · no rule outside UIC-004 moved in this pass', () => {
   // controls' inline styles into css/tokens.css, which the detector does not
   // read (867 -> 856, coverage 545 -> 536, debt 322 -> 320). B1 ADDED nothing.
   // Everything pass 4 actually owns is unchanged.
-  assert.equal(rule('UIC-000').coverage_gaps, 536);
+  // PEDIDO-SCREEN-GROUP-1 FORWARD CORRECTION. The Pedido creation and editing
+  // screen group ADDED no finding to any rule and REMOVED two UIC-000 coverage
+  // gaps: 856 -> 854, coverage 536 -> 534. Both are the same mechanical cause —
+  // a pre-existing style WRAPPED across source lines as `'a' + ' b'`, which the
+  // js-screen front-end reports as CONCATENATED_STYLE_EXPRESSION, became a
+  // single decodable literal. Nothing was suppressed: two declarations no rule
+  // could see are now seen by every rule, and both conform.
+  assert.equal(rule('UIC-000').coverage_gaps, 534);
   assert.equal(rule('UIC-005').blocking, 0);   // pass 6 closed typography
   assert.equal(rule('UIC-006').blocking, 0);   // pass 7 closed native select
   assert.equal(rule('UIC-006').total, 0);
   assert.equal(rule('UIC-008').blocking, 0);
   assert.equal(rule('UIC-008').coverage_gaps, 0);
   assert.equal(rule('UIC-009').debt, 320);
-  assert.equal(BASELINE.findings.length, 856);
+  assert.equal(BASELINE.findings.length, 854);
   // Pass 4's own rule is still exactly closed, which is the point of the test.
   assert.equal(rule('UIC-004').blocking, 0);
   assert.equal(rule('UIC-004').coverage_gaps, 0);

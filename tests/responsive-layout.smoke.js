@@ -520,9 +520,44 @@ test('B3/6. o contrato de densidade compacta e respeitado', () => {
   // Titulo -> campos: 12px.
   assert.match(pedidoForm, /margin-bottom:12px;' \}, 'Dados gerais'/);
 
-  // Altura de campo ~40px e gap horizontal na faixa 12-16px.
-  assert.match(pedidoForm, /min-height:40px; box-sizing:border-box;/,
-    'os campos de Dados gerais devem declarar altura minima de 40px');
+  // ALTURA DE CAMPO — CORRECAO PROGRESSIVA DE PEDIDO-SCREEN-GROUP-1.
+  //
+  // O fato que BATCH-03 possui, e que este teste existe para proteger, e UMA
+  // ALTURA UNICA para os cinco campos de Dados gerais — nao o numero 40. Em
+  // BATCH-03 os cinco compartilhavam a mesma caixa, entao um literal servia
+  // como prova.
+  //
+  // A passada 7 (UIC-006) quebrou a invariante em silencio: Cliente virou o
+  // trigger canonico do select-popover e Status virou o campo somente-leitura
+  // canonico, e ambos declaram `height:var(--rv-h-compact)` (32px). A linha
+  // passou a renderizar 32, 40, 40, 40, 32 e nenhum teste percebeu, porque o
+  // literal continuava presente nos tres campos que sobraram.
+  //
+  // A invariante e restaurada no degrau canonico. O sujeito deste teste deixa
+  // de ser um literal e passa a ser a PROPRIEDADE: os cinco campos resolvem
+  // para a MESMA altura, e essa altura pertence ao enum de controle. 40px nao
+  // pertencia — o enum e 32/34/38.
+  const fieldBox = /function fieldBoxStyle\([\s\S]*?\n    \}/.exec(pedidoForm);
+  assert.ok(fieldBox, 'a caixa de campo de Dados gerais deve ter um dono unico');
+  assert.match(fieldBox[0], /height:var\(--rv-h-compact\)/,
+    'a caixa propria deve declarar o degrau canonico de campo');
+  assert.match(fieldBox[0], /box-sizing:border-box/,
+    'a altura fixa so nao corta o conteudo com box-sizing:border-box');
+  assert.doesNotMatch(fieldBox[0], /min-height:40px/,
+    '40px nao pertence ao enum de altura de controle (32/34/38)');
+  // Os dois campos que NAO usam a caixa propria sao donos compartilhados, e
+  // ambos declaram o mesmo degrau — e isso que fecha a invariante.
+  const popover = read('js/select-popover.js');
+  assert.equal((popover.match(/height:var\(--rv-h-compact\)/g) || []).length, 2,
+    'o trigger de selecao e o campo somente-leitura declaram o mesmo degrau');
+  assert.match(pedidoForm, /createSelectPopover\(\{[\s\S]{0,200}?ariaLabel: 'Cliente'/,
+    'Cliente e o trigger canonico');
+  assert.match(pedidoForm, /createReadonlyFieldValue\(\{ text: 'Rascunho' \}\)/,
+    'Status inicial e o campo somente-leitura canonico');
+  // E o padding horizontal tambem coincide, senao o texto dos cinco campos nao
+  // se alinharia verticalmente mesmo com a altura igual.
+  assert.match(fieldBox[0], /padding:0 12px/,
+    'a caixa propria usa o mesmo padding horizontal de 12px do trigger');
   const gap = pedidoForm.match(/column-gap:(\d+)px; row-gap:(\d+)px/);
   assert.ok(gap, 'a grade deve declarar column-gap/row-gap explicitos');
   assert.ok(Number(gap[1]) >= 12 && Number(gap[1]) <= 16, 'gap horizontal entre 12 e 16px');

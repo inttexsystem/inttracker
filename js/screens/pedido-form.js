@@ -256,7 +256,7 @@
       },
       window.el('div', { style: 'display:flex; align-items:flex-start; gap:16px;' },
         window.el('div', {
-          style: 'width:36px; height:36px; border:1px solid var(--rv-border-soft); border-radius:4px; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;',
+          style: 'width:36px; height:36px; border:1px solid var(--rv-border-soft); border-radius:var(--rv-radius); display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;',
           onclick: function () { window.navigate('#/pedidos'); }
         }, svgEl(SVG_BACK)),
         window.el('div', {},
@@ -264,13 +264,18 @@
             style: 'margin:0; font-size:var(--rv-fs-title); font-weight:800; color:var(--rv-text-primary); letter-spacing:-.01em;'
           }, 'Novo pedido'),
           window.el('div', {
-            style: 'font-size:13.5px; color:var(--rv-text-tertiary); margin-top:4px; max-width:760px;'
+            style: 'font-size:var(--rv-fs-value); color:var(--rv-text-tertiary); margin-top:4px; max-width:760px;'
           }, 'Preencha os itens do pedido. Após o salvamento, ele ficará como Rascunho.')
         )
       ),
+      // SCREEN-GROUP-1: a secondary action in an entity header is the
+      // --rv-h-default rung (34px). It used to take its height from `padding:8px`
+      // (~37px, off the ladder) and to spell 14px, a size the typography enum
+      // does not own. The vertical padding goes because it competes with an
+      // explicit height; the horizontal 18px is unchanged.
       window.el('button', {
         type: 'button',
-        style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:4px; padding:8px 18px; font-weight:600; font-size:14px; cursor:pointer; white-space:nowrap;',
+        style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); height:var(--rv-h-default); padding:0 18px; display:inline-flex; align-items:center; justify-content:center; font-weight:600; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer; white-space:nowrap;',
         onclick: function () { window.navigate('#/pedidos'); }
       }, 'Cancelar'));
     }
@@ -282,17 +287,29 @@
         children.push(window.el('span', { style: 'color:var(--rv-signal-negative);' }, '*'));
       }
       return window.el('label', {
-        style: 'display:block; font-size:12.5px; color:var(--rv-text-secondary); margin-bottom:5px; white-space:nowrap;'
+        style: 'display:block; font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin-bottom:5px; white-space:nowrap;'
       }, children);
     }
 
-    // Altura UNICA de controle (~40px) para os cinco campos de Dados gerais.
-    // Um so dono da caixa impede que um campo fique visivelmente mais alto que
-    // o vizinho quando os cinco dividem a mesma linha do grid.
+    // Altura UNICA de controle para os CINCO campos de Dados gerais.
+    //
+    // SCREEN-GROUP-1 — CORRECAO PROGRESSIVA DA INVARIANTE DE BATCH-03.
+    // BATCH-03 declarou uma altura unica e a fixou em 40px porque, naquele
+    // momento, os cinco campos usavam esta mesma caixa: Cliente e Status eram
+    // <select> nativos dentro dela. A passada 7 (UIC-006) tirou os dois da
+    // caixa — Cliente virou o trigger canonico do select-popover e Status virou
+    // o campo somente-leitura canonico —, e ambos declaram
+    // `height:var(--rv-h-compact)` (32px). A INVARIANTE quebrou em silencio:
+    // desde entao a mesma linha do grid renderiza 32px, 40px, 40px, 40px, 32px.
+    //
+    // A invariante de BATCH-03 e "uma altura para os cinco", nao "40px". Ela e
+    // restaurada aqui no degrau canonico que os dois donos compartilhados ja
+    // usam, com o mesmo padding horizontal de 12px do trigger. O valor 40px
+    // nunca pertenceu ao enum de altura de controle (32/34/38).
     function fieldBoxStyle(erro) {
-      return 'display:flex; align-items:center; gap:8px; min-height:40px; box-sizing:border-box;'
+      return 'display:flex; align-items:center; gap:8px; height:var(--rv-h-compact); box-sizing:border-box;'
         + ' border:1px solid ' + (erro ? 'var(--rv-signal-negative-border)' : 'var(--rv-border-strong)')
-        + '; border-radius:4px; padding:8px 10px; background:var(--rv-surface);';
+        + '; border-radius:var(--rv-radius); padding:0 12px; background:var(--rv-surface);';
     }
 
     function buildDadosGeraisCard() {
@@ -325,7 +342,7 @@
         value: state.numero,
         'data-pedido-numero': '1',
         'data-pedido-numero-sugerido': numeroEhSugestao ? '1' : '0',
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; min-width:0;'
+        style: 'flex:1; border:none; outline:none; font-size:var(--rv-fs-body); color:var(--rv-text-primary); background:transparent; font-family:inherit; min-width:0;'
       });
       numeroInput.addEventListener('input', function () {
         state.numero = numeroInput.value;
@@ -341,7 +358,7 @@
       // de reservar uma faixa permanente sob um unico campo da linha.
       var numeroMsg = window.el('div', {
         'data-pedido-numero-erro': '1',
-        style: 'font-size:11.5px; line-height:1.35; color:var(--rv-signal-negative); margin-top:3px;'
+        style: 'font-size:var(--rv-fs-2xs); line-height:1.35; color:var(--rv-signal-negative); margin-top:3px;'
       }, numeroErro || '');
       // Linha auxiliar: aviso de sugestao renovada (ambar) ou o texto de ajuda
       // permanente (cinza). Nunca compete com a mensagem de erro acima.
@@ -357,7 +374,7 @@
       }
       var numeroAjuda = window.el('div', {
         'data-pedido-numero-ajuda': '1',
-        style: 'font-size:11.5px; line-height:1.35; color:' + numeroAjudaCor + '; margin-top:3px;'
+        style: 'font-size:var(--rv-fs-2xs); line-height:1.35; color:' + numeroAjudaCor + '; margin-top:3px;'
       }, numeroAjudaTexto);
       var numeroWrap = window.el('div', { style: fieldBoxStyle(numeroErro) }, numeroInput);
 
@@ -367,7 +384,7 @@
         type: 'date',
         value: state.dataPedido,
         'data-pedido-data': '1',
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; min-width:0;'
+        style: 'flex:1; border:none; outline:none; font-size:var(--rv-fs-body); color:var(--rv-text-primary); background:transparent; font-family:inherit; min-width:0;'
       });
       dataPedidoInput.addEventListener('change', function () {
         state.dataPedido = dataPedidoInput.value;
@@ -379,7 +396,7 @@
         type: 'date',
         value: state.prazoEntrega,
         'data-pedido-prazo': '1',
-        style: 'flex:1; border:none; outline:none; font-size:14px; color:var(--rv-text-primary); background:transparent; font-family:inherit; min-width:0;'
+        style: 'flex:1; border:none; outline:none; font-size:var(--rv-fs-body); color:var(--rv-text-primary); background:transparent; font-family:inherit; min-width:0;'
       });
       prazoInput.addEventListener('change', function () {
         state.prazoEntrega = prazoInput.value;
@@ -407,16 +424,14 @@
       // contrato `data-rv-pedido-dados` em css/responsive.css: um layout fixo
       // de duas linhas para TODA largura de desktop foi rejeitado.
       return window.el('div', {
-        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px;'
       },
       window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:12px;' }, 'Dados gerais'),
       // Ordem visual exigida: Cliente -> Numero -> Data -> Prazo -> Status.
       window.el('div', {
         'data-pedido-header-grid': '1',
         'data-rv-pedido-dados': '1',
-        style: 'display:grid;'
-          + ' grid-template-columns:minmax(0,30fr) minmax(0,17fr) minmax(0,17fr) minmax(0,17fr) minmax(0,19fr);'
-          + ' column-gap:14px; row-gap:12px; align-items:start;'
+        style: 'display:grid; grid-template-columns:minmax(0,30fr) minmax(0,17fr) minmax(0,17fr) minmax(0,17fr) minmax(0,19fr); column-gap:14px; row-gap:12px; align-items:start;'
       },
       window.el('div', { style: 'min-width:0;' },
         buildFieldLabel('Cliente', true),
@@ -462,7 +477,7 @@
       // mais um modal dono do item.
       var addBtn = window.el('button', {
         type: 'button',
-        style: 'display:inline-flex; align-items:center; gap:8px; background:var(--rv-surface); color:var(--rv-accent-blue); border:1px solid var(--rv-brand); border-radius:4px; padding:7px 13px; font-weight:600; font-size:13.5px; font-family:inherit; cursor:pointer; white-space:nowrap;',
+        style: 'display:inline-flex; align-items:center; gap:8px; background:var(--rv-surface); color:var(--rv-accent-blue); border:1px solid var(--rv-brand); border-radius:var(--rv-radius); height:var(--rv-h-default); padding:0 13px; font-weight:600; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer; white-space:nowrap;',
         onclick: function () {
           state.itens.push({ uid: novoUid(), tipo: '', modeloId: '', metros: '', observacao: '' });
           render();
@@ -470,7 +485,7 @@
       }, svgEl(SVG_PLUS), 'Adicionar item');
 
       var table = window.el('div', {
-        style: 'border:1px solid var(--rv-border); border-radius:4px; overflow:hidden;'
+        style: 'border:1px solid var(--rv-border); border-radius:var(--rv-radius); overflow:hidden;'
       },
       // O container e o dono do overflow horizontal: a linha de item tem
       // largura minima propria e nunca pode empurrar o documento num viewport
@@ -483,14 +498,14 @@
       window.el('div', {
         style: 'display:flex; align-items:center; justify-content:space-between; gap:16px; padding:8px 14px; background:var(--rv-surface-subtle); flex-wrap:wrap;'
       },
-      window.el('span', { style: 'font-size:13.5px; color:var(--rv-text-secondary);' },
+      window.el('span', { style: 'font-size:var(--rv-fs-value); color:var(--rv-text-secondary);' },
         'Total de itens: ',
         window.el('strong', {
           style: 'color:var(--rv-text-primary); font-weight:700;',
           'data-pedido-total-itens': '1'
         }, String(state.itens.length))
       ),
-      window.el('span', { style: 'font-size:13.5px; color:var(--rv-text-secondary);' },
+      window.el('span', { style: 'font-size:var(--rv-fs-value); color:var(--rv-text-secondary);' },
         'Metragem total: ',
         window.el('strong', {
           style: 'color:var(--rv-text-primary); font-weight:700;',
@@ -499,7 +514,7 @@
       )));
 
       return window.el('div', {
-        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px;'
       },
       window.el('div', {
         style: 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap;'
@@ -533,7 +548,7 @@
       });
 
       var instrCard = window.el('div', {
-        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px;'
       },
       window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:10px;' }, 'Instruções gerais'),
       obsTextarea);
@@ -543,11 +558,11 @@
       });
 
       var checkoutCard = window.el('div', {
-        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px; display:flex; flex-direction:column; justify-content:center;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; display:flex; flex-direction:column; justify-content:center;'
       },
       window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary);' }, 'Salvar rascunho'),
       window.el('div', {
-        style: 'font-size:13px; color:var(--rv-text-tertiary); line-height:1.5; margin-top:10px; margin-bottom:14px;',
+        style: 'font-size:var(--rv-fs-body); color:var(--rv-text-tertiary); line-height:1.5; margin-top:10px; margin-bottom:14px;',
         'data-pedido-checkout-summary': '1'
       },
         'Resumo: ' + String(state.itens.length) + ' item(ns) | ' + totalMetrosStr()
@@ -572,7 +587,7 @@
       ];
 
       return window.el('div', {
-        style: 'background:var(--rv-surface);border:1px solid var(--rv-pill-info-border);border-radius:4px;box-shadow:var(--rv-shadow-none);padding:18px 20px;margin-bottom:14px;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-pill-info-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:18px 20px;margin-bottom:14px;',
         'data-post-save-summary': 'admin',
       },
         window.el('div', {
@@ -580,7 +595,7 @@
         },
           window.el('div', { style: 'min-width:240px;' },
             window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:800;color:var(--rv-text-primary);margin-bottom:5px;' }, 'Pedido salvo com sucesso'),
-            window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;' },
+            window.el('div', { style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);line-height:1.5;' },
               'O pedido foi salvo. Abra a OP de tecelagem quando estiver pronto para iniciar a producao.')
           )
         ),
@@ -588,10 +603,10 @@
           style: 'display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px;',
         }, fields.map(function (field) {
           return window.el('div', {
-            style: 'background:var(--rv-surface-subtle);border:1px solid var(--rv-border);border-radius:4px;padding:10px 12px;',
+            style: 'background:var(--rv-surface-subtle);border:1px solid var(--rv-border);border-radius:var(--rv-radius);padding:10px 12px;',
           },
-            window.el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);font-weight:600;margin-bottom:5px;' }, field.label),
-            window.el('div', { style: 'font-size:14px;color:var(--rv-text-primary);font-weight:700;' }, field.value)
+            window.el('div', { style: 'font-size:var(--rv-fs-2xs);color:var(--rv-text-tertiary);font-weight:600;margin-bottom:5px;' }, field.label),
+            window.el('div', { style: 'font-size:var(--rv-fs-metric-rail);color:var(--rv-text-primary);font-weight:700;' }, field.value)
           );
         })),
         // Pass-5 STANDARD_ACTION_FOOTER: actions only, right aligned.
@@ -602,17 +617,17 @@
         },
           window.el('button', {
             type: 'button',
-            style: 'background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-border-strong);border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
+            style: 'background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-border-strong);border-radius:var(--rv-radius);height:var(--rv-h-default);padding:0 14px;display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:var(--rv-fs-body);font-family:inherit;cursor:pointer;',
             onclick: function () { window.navigate('#/pedidos/' + pedido.id); },
           }, 'Ver pedido'),
           window.el('button', {
             type: 'button',
-            style: 'background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-border-strong);border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
+            style: 'background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-border-strong);border-radius:var(--rv-radius);height:var(--rv-h-default);padding:0 14px;display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:var(--rv-fs-body);font-family:inherit;cursor:pointer;',
             onclick: function () { window.navigate('#/pedidos/novo'); },
           }, 'Novo pedido'),
           window.el('button', {
             type: 'button',
-            style: 'background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:9px 16px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;',
+            style: 'background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:var(--rv-radius);height:var(--rv-h-default);padding:0 16px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:var(--rv-fs-body);font-family:inherit;cursor:pointer;',
             onclick: function () { window.location.hash = '#/ops/nova?pedido_id=' + pedido.id; },
           }, 'Abrir OP de Tecelagem')
         )
@@ -760,20 +775,20 @@
 
     function buildLoadingCard() {
       return window.el('div', {
-        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:24px; color:var(--rv-text-secondary);'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:24px; color:var(--rv-text-secondary);'
       }, 'Carregando dados do formulario...');
     }
 
     function buildErrorCard() {
       return window.el('div', {
-        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:24px; color:var(--rv-signal-negative);'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:24px; color:var(--rv-signal-negative);'
       }, 'Erro ao carregar dados de ' + loadingError + '. Tente recarregar a pagina.');
     }
 
     function render() {
       var saveBtn = window.el('button', {
         type: 'button',
-        style: 'background:var(--rv-brand); color:var(--rv-text-on-brand); border:none; border-radius:4px; padding:10px 0; width:100%; font-weight:700; font-size:14px; font-family:inherit; cursor:pointer;',
+        style: 'background:var(--rv-brand); color:var(--rv-text-on-brand); border:none; border-radius:var(--rv-radius); height:var(--rv-h-primary); padding:0; width:100%; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
         onclick: function () { salvar(saveBtn, 'rascunho'); }
       }, 'Salvar rascunho');
 

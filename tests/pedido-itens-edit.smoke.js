@@ -564,9 +564,25 @@ test('pedido-itens-edit.js: tem botão "Descartar novo item" para itens com isNe
   assert.match(screen, /Descartar novo item/,
     'deve existir label "Descartar novo item"');
   // Deve ser mostrado apenas em itens com isNew.
+  //
+  // PEDIDO-SCREEN-GROUP-1: a prova deixa de ser por PROXIMIDADE e passa a ser
+  // ESTRUTURAL. A versao anterior exigia que o rotulo estivesse a menos de 300
+  // caracteres de um `isNew`, o que media o comprimento da declaracao de estilo
+  // do botao, nao a sua condicao de render — e quebrou quando o botao passou a
+  // declarar a tipografia e a cor canonicas em vez de classes Tailwind curtas.
+  // A versao abaixo recorta a branch `else if (isNew)` do bloco de ACOES e
+  // exige o rotulo DENTRO dela, o que e mais forte: nenhuma distancia a
+  // satisfaz por acaso, e o rotulo em qualquer outra branch reprova.
   const co = codeOnly(screen);
-  assert.match(co, /isNew[\s\S]{0,300}?Descartar novo item/,
+  const acoes = co.slice(co.indexOf("'undo-delete'"));
+  const branch = /\}\s*else if \(isNew\) \{([\s\S]*?)\n      \} else \{/.exec(acoes);
+  assert.ok(branch, 'a branch de acao para item novo deve existir');
+  assert.match(branch[1], /Descartar novo item/,
     'label "Descartar novo item" deve aparecer apenas em itens com isNew');
+  assert.doesNotMatch(branch[1], /Remover item/,
+    'a branch de item novo nao pode oferecer "Remover item"');
+  assert.match(branch[1], /'data-action': 'discard-new'/,
+    'a branch de item novo e a dona da acao discard-new');
 });
 
 // ---------------------------------------------------------------------

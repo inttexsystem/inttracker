@@ -95,6 +95,15 @@
   // mas esta defesa evita queries inúteis com lixo na URL.
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+  // -------------------------------------------------------------------
+  // SCREEN-GROUP-1 — a mesma linguagem de cartao de js/screens/pedido-edit.js
+  // e das duas telas de criacao do grupo. Ver o bloco equivalente naquele
+  // arquivo: nenhum valor novo, apenas a densidade que BATCH-03 ja aceitou.
+  // Acao de linha, NAO destrutiva (Desfazer remocao) e acao de linha
+  // DESTRUTIVA (Remover item / Descartar novo item). As duas eram o mesmo
+  // link sublinhado, distinguidas so pela cor; agora a destrutiva e separada
+  // do grupo de campos por um divisor proprio (ver buildItemRow).
+
   // PASS-7-A4: um <label> IRMAO nao nomeia nada, e role="combobox" — ao
   // contrario de um botao comum — nao herda nome do proprio conteudo. O
   // popover canonico precisa do rotulo visivel ligado explicitamente, senao
@@ -133,24 +142,28 @@
     function backToListBtn() {
       return window.el('button', {
         type: 'button',
-        style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 border hover:bg-gray-50',
+        style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); height:var(--rv-h-default); padding:0 18px; display:inline-flex; align-items:center; justify-content:center; font-weight:600; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
         onclick: function () { window.navigate('#/pedidos'); },
       }, '← Voltar para lista');
     }
     function backToDetailBtn(id) {
       return window.el('button', {
         type: 'button',
-        style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 border hover:bg-gray-50',
+        style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); height:var(--rv-h-default); padding:0 18px; display:inline-flex; align-items:center; justify-content:center; font-weight:600; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
         onclick: function () { window.navigate('#/pedidos/' + id); },
       }, '← Voltar para o detalhe');
+    }
+    function errorCard(message) {
+      return window.el('div', {
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px; color:var(--rv-signal-negative); font-size:var(--rv-fs-body);',
+      }, message);
     }
     function errorShell(headerTitle, message, backBtn) {
       return window.shellLayout(window.ADMIN_MENU,
         window.el('div', {},
           errorHeader(headerTitle),
-          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-red-700' },
-            message),
-          window.el('div', { class: 'mt-4' }, backBtn)
+          errorCard(message),
+          window.el('div', {}, backBtn)
         )
       );
     }
@@ -359,33 +372,45 @@
       // mostram label "Será removido ao salvar".
       const isNew = !!item.isNew;
       const isMarked = !!item.markedForDeletion;
+      // SCREEN-GROUP-1: os tres estados da linha passam a ser declarados pelos
+      // tokens que ja carregam esses papeis — a superficie sutil canonica para
+      // a linha normal, e as familias `pill` info/negative para "novo" e "sera
+      // removido". As tres tonalidades Tailwind (`bg-gray-50` / `bg-blue-50` /
+      // `bg-red-50`) nao tinham dono e nao correspondiam a nenhuma familia do
+      // contrato. A distincao por borda tracejada e a opacidade do estado
+      // marcado sao PRESERVADAS: elas e que carregam o significado.
+      // Os tres estados sao tres declaracoes COMPLETAS e LITERAIS. O detector
+      // so decodifica um style que seja UM literal: um prefixo comum
+      // concatenado com um sufixo variavel, ou uma variavel de estilo, viraria
+      // um COVERAGE_GAP e tiraria a linha de item da analise de conformidade
+      // justamente na tela que este lote consolida. A repeticao e deliberada.
       const row = window.el('div', {
-        style: 'border-radius:var(--rv-radius);', class: 'flex flex-wrap items-end gap-2 mb-3 p-3 '
-          + (isMarked
-            ? 'bg-red-50 border border-dashed border-red-300 opacity-70'
-            : (isNew
-              ? 'bg-blue-50 border border-dashed border-blue-300'
-              : 'bg-gray-50')),
+        style: 'border-radius:var(--rv-radius); display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px; margin-bottom:12px; padding:12px; background:var(--rv-surface-subtle); border:1px solid var(--rv-border-soft);',
         'data-uid': item.uid,
         'data-db-id': item.dbId,
         'data-is-new': isNew ? '1' : '0',
         'data-marked-deletion': isMarked ? '1' : '0',
       });
+      if (isMarked) {
+        row.setAttribute('style', 'border-radius:var(--rv-radius); display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px; margin-bottom:12px; padding:12px; background:var(--rv-pill-negative-bg); border:1px dashed var(--rv-pill-negative-border); opacity:.7;');
+      } else if (isNew) {
+        row.setAttribute('style', 'border-radius:var(--rv-radius); display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px; margin-bottom:12px; padding:12px; background:var(--rv-pill-info-bg); border:1px dashed var(--rv-pill-info-border);');
+      }
 
       // Label "Será removido ao salvar" para itens existentes
       // marcados (C3C2C2).
       if (isMarked) {
-        row.appendChild(window.el('div', { class: 'w-full mb-1' },
+        row.appendChild(window.el('div', { style: 'width:100%;' },
           window.el('span',
-            { 'data-ui-pill': '1', style: 'border-radius:var(--rv-radius-pill);', class: 'inline-block px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-700' },
+            { 'data-ui-pill': '1', style: 'display:inline-block; border-radius:var(--rv-radius-pill); padding:2px 8px; font-size:var(--rv-fs-xs); font-weight:600; background:var(--rv-pill-negative-bg); color:var(--rv-pill-negative-text); border:1px solid var(--rv-pill-negative-border);' },
             'Será removido ao salvar'
           )
         ));
       } else if (isNew) {
         // Label "Novo" para itens ainda não salvos.
-        row.appendChild(window.el('div', { class: 'w-full mb-1' },
+        row.appendChild(window.el('div', { style: 'width:100%;' },
           window.el('span',
-            { 'data-ui-pill': '1', style: 'border-radius:var(--rv-radius-pill);', class: 'inline-block px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700' },
+            { 'data-ui-pill': '1', style: 'display:inline-block; border-radius:var(--rv-radius-pill); padding:2px 8px; font-size:var(--rv-fs-xs); font-weight:600; background:var(--rv-pill-info-bg); color:var(--rv-pill-info-text); border:1px solid var(--rv-pill-info-border);' },
             'Novo (não salvo)'
           )
         ));
@@ -408,10 +433,9 @@
         placeholder: 'Tipo...',
       });
       tipoSel.setAttribute('data-item-tipo-select', '1');
-      tipoSel.classList.add('w-40');
-      const tipoLabelNode = window.el('label', { class: 'block text-xs text-gray-500 mb-1' }, 'Tipo');
+      const tipoLabelNode = window.el('label', { style: 'display:block; font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin-bottom:5px;' }, 'Tipo');
       bindSelectPopoverLabel(tipoLabelNode, tipoSel);
-      row.appendChild(window.el('div', { class: 'w-40' }, tipoLabelNode, tipoSel));
+      row.appendChild(window.el('div', { style: 'flex:0 0 160px; min-width:0;' }, tipoLabelNode, tipoSel));
 
       // Select de modelo — recorte estrito da rota escolhida.
       const modeloSel = window.selectInput({ options: [], value: '', placeholder: 'Modelo...' });
@@ -437,15 +461,14 @@
         if (!item.tipo || (atual && rowApi.rotaDoModelo(atual) !== item.tipo)) item.modeloId = '';
         preencherModelos();
       });
-      modeloSel.classList.add('flex-1', 'min-w-64');
       modeloSel.addEventListener('change', function () {
         // modelo_id continua sendo a UNICA identidade de produto persistida.
         item.modeloId = modeloSel.value;
       });
       preencherModelos();
-      const modeloLabelNode = window.el('label', { class: 'block text-xs text-gray-500 mb-1' }, 'Modelo');
+      const modeloLabelNode = window.el('label', { style: 'display:block; font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin-bottom:5px;' }, 'Modelo');
       bindSelectPopoverLabel(modeloLabelNode, modeloSel);
-      row.appendChild(window.el('div', { class: 'flex-1 min-w-64' }, modeloLabelNode, modeloSel));
+      row.appendChild(window.el('div', { style: 'flex:1 1 256px; min-width:0;' }, modeloLabelNode, modeloSel));
 
       // Input de metros.
       const metrosInput = window.textInput({
@@ -454,12 +477,11 @@
         placeholder: '0',
         step: '0.01',
       });
-      metrosInput.classList.add('w-32');
       metrosInput.addEventListener('input', function () {
         item.metros = metrosInput.value;
       });
-      row.appendChild(window.el('div', {},
-        window.el('label', { class: 'block text-xs text-gray-500 mb-1' }, 'Metros'),
+      row.appendChild(window.el('div', { style: 'flex:0 0 128px; min-width:0;' },
+        window.el('label', { style: 'display:block; font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin-bottom:5px;' }, 'Metros'),
         metrosInput));
 
       // Observação do item (opcional).
@@ -470,8 +492,8 @@
       obsInput.addEventListener('input', function () {
         item.observacao = obsInput.value;
       });
-      row.appendChild(window.el('div', { class: 'flex-1 min-w-48' },
-        window.el('label', { class: 'block text-xs text-gray-500 mb-1' }, 'Observação'),
+      row.appendChild(window.el('div', { style: 'flex:1 1 192px; min-width:0;' },
+        window.el('label', { style: 'display:block; font-size:var(--rv-fs-sm); color:var(--rv-text-secondary); margin-bottom:5px;' }, 'Observação'),
         obsInput));
 
       // Botões de descarte/remoção/desfazer — distinguem 3 casos:
@@ -481,31 +503,47 @@
       //     para remoção local; DELETE só no `salvar()`).
       //  3. !isNew && markedForDeletion: "Desfazer remoção"
       //     (limpa a flag local; item volta a ser normal).
+      //
+      // SCREEN-GROUP-1 — SEPARACAO DA ACAO DESTRUTIVA.
+      // As tres acoes ficavam soltas logo depois do campo Observacao, na mesma
+      // linha de campos e com o mesmo peso visual de um link. Duas delas
+      // ("Remover item", "Descartar novo item") sao DESTRUTIVAS e ficavam a um
+      // clique de distancia do campo de texto vizinho.
+      // Agora a acao mora num container proprio, empurrado para a direita e
+      // separado do grupo de campos por um divisor vertical. A acao NAO
+      // destrutiva ("Desfazer remocao") usa o azul interativo canonico; as
+      // destrutivas usam o sinal negativo canonico. O contrato de confirmacao
+      // nao muda: `marcarParaRemocao` continua abrindo confirmDialog.
+      const acoesCell = window.el('div', {
+        'data-item-actions': '1',
+        style: 'flex:0 0 auto; margin-left:auto; align-self:flex-end; display:flex; align-items:center; gap:12px; padding-left:12px; border-left:1px solid var(--rv-border-soft); min-height:var(--rv-h-compact);',
+      });
       if (isMarked) {
         const undoBtn = window.el('button', {
           type: 'button',
-          class: 'text-blue-600 hover:underline text-sm px-2 py-1',
+          style: 'background:none; border:none; height:var(--rv-h-compact); padding:0; display:inline-flex; align-items:center; font-size:var(--rv-fs-body); font-weight:600; font-family:inherit; cursor:pointer; text-decoration:underline; color:var(--rv-accent-blue);',
           'data-action': 'undo-delete',
           onclick: function () { desfazerRemocao(item.uid); },
         }, 'Desfazer remoção');
-        row.appendChild(undoBtn);
+        acoesCell.appendChild(undoBtn);
       } else if (isNew) {
         const discardBtn = window.el('button', {
           type: 'button',
-          class: 'text-red-600 hover:underline text-sm px-2 py-1',
+          style: 'background:none; border:none; height:var(--rv-h-compact); padding:0; display:inline-flex; align-items:center; font-size:var(--rv-fs-body); font-weight:600; font-family:inherit; cursor:pointer; text-decoration:underline; color:var(--rv-signal-negative);',
           'data-action': 'discard-new',
           onclick: function () { descartarItemNovo(item.uid); },
         }, 'Descartar novo item');
-        row.appendChild(discardBtn);
+        acoesCell.appendChild(discardBtn);
       } else {
         const removeBtn = window.el('button', {
           type: 'button',
-          class: 'text-red-600 hover:underline text-sm px-2 py-1',
+          style: 'background:none; border:none; height:var(--rv-h-compact); padding:0; display:inline-flex; align-items:center; font-size:var(--rv-fs-body); font-weight:600; font-family:inherit; cursor:pointer; text-decoration:underline; color:var(--rv-signal-negative);',
           'data-action': 'remove-existing',
           onclick: function () { marcarParaRemocao(item.uid); },
         }, 'Remover item');
-        row.appendChild(removeBtn);
+        acoesCell.appendChild(removeBtn);
       }
+      row.appendChild(acoesCell);
 
       // Se bloqueado por status, desabilita campos (read-only).
       // Para itens novos, desabilitar é defensivo (não deveriam existir
@@ -635,9 +673,8 @@
     }
 
     function buildItensList() {
-      const wrap = window.el('div', { class: 'mb-4' });
-      wrap.appendChild(window.el('h2',
-        { class: 'text-sm font-semibold text-gray-700 mb-2' },
+      const wrap = window.el('div', {});
+      wrap.appendChild(window.el('h2', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:12px;' },
         'Itens do pedido (' + state.itens.length + ') — edite modelo, metros e observação; ou adicione um novo item.'));
       for (let i = 0; i < state.itens.length; i++) {
         wrap.appendChild(buildItemRow(state.itens[i]));
@@ -645,10 +682,15 @@
       // Botão "+ Adicionar item" — visível apenas se status editável.
       // Em status bloqueado, não permite criar novos itens nesta
       // sessão (decisão defensiva de C3C2C1).
+      //
+      // SCREEN-GROUP-1: e a MESMA acao que `#/pedidos/novo` oferece, entao usa
+      // a mesma forma — botao delineado na marca, degrau --rv-h-default — em
+      // vez de um link sublinhado. As duas telas de item deixam de discordar
+      // sobre o que "Adicionar item" parece.
       if (!state.blockedStatus) {
         const addBtn = window.el('button', {
           type: 'button',
-          class: 'text-blue-700 hover:underline text-sm font-semibold',
+          style: 'display:inline-flex; align-items:center; justify-content:center; gap:8px; background:var(--rv-surface); color:var(--rv-accent-blue); border:1px solid var(--rv-brand); border-radius:var(--rv-radius); height:var(--rv-h-default); padding:0 13px; font-weight:600; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer; white-space:nowrap;',
           'data-action': 'add-item',
           onclick: function () { adicionarItem(); },
         }, '+ Adicionar item');
@@ -676,20 +718,21 @@
       if (!state.pedido) return window.el('div', {});
       const s = state.pedido.status;
       const label = window.pedidoStatusLabel ? window.pedidoStatusLabel(s) : s;
-      const banner = window.el('div',
-        { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-4 mb-4 flex flex-wrap items-center gap-3' },
-        window.el('div', { class: 'text-sm text-gray-600' }, 'Status atual:'),
+      const banner = window.el('div', {
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px; display:flex; flex-wrap:wrap; align-items:center; gap:12px;',
+      },
+        window.el('div', { style: 'font-size:var(--rv-fs-body); color:var(--rv-text-secondary);' }, 'Status atual:'),
         window.pedidoStatusBadge ? window.pedidoStatusBadge(s) : window.el('span', {}, s)
       );
       if (state.blockedStatus) {
         banner.appendChild(window.el('div',
-          { class: 'text-sm text-red-700 ml-auto' },
+          { style: 'font-size:var(--rv-fs-body); color:var(--rv-signal-negative); margin-left:auto;' },
           'Este pedido está em status "' + label + '". '
             + 'A edição de itens é permitida apenas para "Rascunho" e "Recebido".'
         ));
       } else {
         banner.appendChild(window.el('div',
-          { class: 'text-sm text-gray-500 ml-auto' },
+          { style: 'font-size:var(--rv-fs-body); color:var(--rv-text-tertiary); margin-left:auto;' },
           'Edição permitida neste status. Você pode alterar modelo, '
             + 'metros e observação dos itens existentes, adicionar '
             + 'novos itens, remover itens existentes e a ordem é '
@@ -702,7 +745,7 @@
     function buildItensAviso() {
       // Aviso simples: escopo desta fase (C3C2C3).
       return window.el('div',
-        { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-4 mb-4 text-sm text-gray-600' },
+        { style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px; font-size:var(--rv-fs-body); color:var(--rv-text-secondary);' },
         'Nesta fase (C3C2C3) você pode editar modelo, metros e '
           + 'observação dos itens existentes, adicionar novos itens, '
           + 'remover itens existentes, e a ordem dos itens é '
@@ -714,7 +757,7 @@
 
     function buildNoItemsMessage() {
       return window.el('div',
-        { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-center text-gray-500' },
+        { style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px; text-align:center; font-size:var(--rv-fs-body); color:var(--rv-text-tertiary);' },
         'Pedido sem itens cadastrados.');
     }
 
@@ -949,31 +992,37 @@
     function buildForm() {
       if (!state.pedido) return window.el('div', {});
 
-      // Botão Salvar.
+      // Botão Salvar — acao dominante do fluxo, degrau --rv-h-primary.
       const saveBtn = window.el('button', {
         type: 'button',
-        style: 'border-radius:var(--rv-radius);', class: 'bg-blue-700 hover:bg-blue-800 text-white font-semibold px-6 py-2',
+        style: 'background:var(--rv-brand); color:var(--rv-text-on-brand); border:none; border-radius:var(--rv-radius); height:var(--rv-h-primary); padding:0 20px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
         onclick: function () { salvar(saveBtn); },
       }, 'Salvar alterações');
 
       // Botão Cancelar (volta para o detalhe).
       const cancelBtn = window.el('button', {
         type: 'button',
-        style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 border hover:bg-gray-50',
+        style: 'background:var(--rv-surface); color:var(--rv-text-primary); border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); height:var(--rv-h-default); padding:0 18px; display:inline-flex; align-items:center; justify-content:center; font-weight:600; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
         onclick: function () { window.navigate('#/pedidos/' + pedidoId); },
       }, 'Cancelar');
 
       // Se bloqueado por status, desabilita botão Salvar.
       if (state.blockedStatus) {
         saveBtn.disabled = true;
-        saveBtn.className = 'px-6 py-2 border bg-gray-50 text-gray-400 cursor-not-allowed font-semibold';
-        saveBtn.style.borderRadius = 'var(--rv-radius)';
+        saveBtn.setAttribute('style', 'background:var(--rv-surface-subtle); color:var(--rv-text-tertiary); border:1px solid var(--rv-border-soft); border-radius:var(--rv-radius); height:var(--rv-h-primary); padding:0 20px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:var(--rv-fs-body); font-family:inherit; cursor:not-allowed;');
         saveBtn.textContent = 'Edição bloqueada';
       }
 
-      const form = window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 max-w-3xl' },
+      const form = window.el('div', { style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px; max-width:768px;' },
         buildItensList(),
-        window.el('div', { class: 'flex justify-end gap-2 pt-4 border-t mt-4' },
+        // SCREEN-GROUP-1 — CONTENCAO LOCAL DE ACAO. Mesmo contrato de rodape
+        // da tela de dados gerais: STANDARD_ACTION_FOOTER, so acoes, alinhado
+        // a direita, divisor e padding-top canonicos (longhand).
+        window.el('div', {
+          style: 'display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;border-top:1px solid var(--rv-border-soft);padding-top:11px;margin-top:16px;',
+          'data-pedido-itens-edit-actions': 'itens',
+          'data-card-actions': '',
+        },
           cancelBtn,
           saveBtn,
         ),
@@ -988,7 +1037,7 @@
       if (state.loadingError === 'pedido') {
         container.replaceChildren(
           buildHeader(),
-          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-red-700' },
+          errorCard(
             'Pedido não encontrado. Ele pode ter sido removido.')
         );
         return;
@@ -996,7 +1045,7 @@
       if (state.loadingError === 'itens') {
         container.replaceChildren(
           buildHeader(),
-          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-red-700' },
+          errorCard(
             'Erro ao carregar itens do pedido. Tente recarregar a página.')
         );
         return;
@@ -1004,7 +1053,7 @@
       if (state.loadingError === 'modelos') {
         container.replaceChildren(
           buildHeader(),
-          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-red-700' },
+          errorCard(
             'Erro ao carregar modelos. Tente recarregar a página.')
         );
         return;

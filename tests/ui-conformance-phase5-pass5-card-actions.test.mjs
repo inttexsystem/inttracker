@@ -87,7 +87,23 @@ test('3 · the inventory the pass was measured over is unchanged', () => {
   // read, so nine UIC-000 coverage gaps and two UIC-009 references stopped
   // existing as JavaScript declarations: 867 -> 856, coverage 545 -> 536,
   // debt 322 -> 320. B1 ADDED no finding to any rule.
-  assert.equal(BASELINE.findings.length, 856);
+  //
+  // PEDIDO-SCREEN-GROUP-1 FORWARD CORRECTION. The Pedido creation and editing
+  // screen group ADDED no finding to any rule and REMOVED two UIC-000 coverage
+  // gaps: 856 -> 854, coverage 536 -> 534. Both removals are the same
+  // mechanical cause — a pre-existing style that was WRAPPED across lines as
+  // `'a' + ' b'`, which the js-screen front-end reports as
+  // CONCATENATED_STYLE_EXPRESSION, became a single decodable literal (the
+  // "Dados gerais" grid in pedido-form.js and cliente-pedido-form.js). Nothing
+  // was suppressed: two declarations that were invisible to every rule are now
+  // visible to every rule, and both are conforming.
+  // Debt (320), inventory (66), coverage FULL 31 / PARTIAL 36 and every
+  // per-rule blocking count are unchanged.
+  assert.equal(BASELINE.findings.length, 854);
+  assert.equal(BASELINE.summary_by_rule['UIC-000'].total, 534);
+  assert.equal(BASELINE.summary_by_rule['UIC-009'].debt, 320);
+  assert.equal(BASELINE.coverage_summary.FULL, 31);
+  assert.equal(BASELINE.coverage_summary.PARTIAL, 36);
 });
 
 test('4 · the blanket ACTION_ROW_UNPROVEN branch no longer exists', () => {
@@ -155,12 +171,54 @@ const PROVEN_FOOTERS = [
     align: 'flex-end',
     controls: 2,
     signature:
-      /style: '([^']*)',\s*\n\s*'data-post-save-actions': 'cliente',\s*\n\s*'data-card-actions': '',/,
+      /style: '([^']*)',\s*\r?\n\s*'data-post-save-actions': 'cliente',\s*\r?\n\s*'data-card-actions': '',/,
+  },
+  /*
+   * PEDIDO-SCREEN-GROUP-1 — TWO NEW MARKED FOOTERS.
+   *
+   * These are not newly built rows: both existed as the save/cancel row at the
+   * bottom of an editing card and both declared their geometry through Tailwind
+   * utilities (`flex justify-end gap-2 pt-4 border-t mt-4`), with an inherited
+   * divider colour and a `pt-4` the UIC-008 rule cannot decode. They were part
+   * of the screen-local population that UI-ACTION-CONTAINER-CONTAINMENT-GAP
+   * records as OPEN and unclaimed.
+   *
+   * The ACTION-CONTAINMENT-A1 order CANCELLED the global A2 closure phase and
+   * ruled that local action containment is corrected INSIDE each future screen
+   * batch. This is that correction for the Pedido editing screens: the two rows
+   * now declare the contract with `data-card-actions` and carry the canonical
+   * STANDARD_ACTION_FOOTER geometry, so they are proved here rather than left
+   * unproven. The open debt shrinks by exactly these two rows; every other
+   * screen-local container it names stays open and stays unclaimed.
+   */
+  {
+    id: 'pedido-edit-dados-gerais-footer',
+    path: 'js/screens/pedido-edit.js',
+    owner: 'buildForm(), last child of the "Dados gerais do pedido" card',
+    kind: 'STANDARD_ACTION_FOOTER',
+    left: null,
+    right: 'action group: Cancelar + Salvar alterações',
+    align: 'flex-end',
+    controls: 2,
+    signature:
+      /style: '([^']*)',\s*\r?\n\s*'data-pedido-edit-actions': 'geral',\s*\r?\n\s*'data-card-actions': '',/,
+  },
+  {
+    id: 'pedido-itens-edit-itens-footer',
+    path: 'js/screens/pedido-itens-edit.js',
+    owner: 'buildForm(), last child of the items card',
+    kind: 'STANDARD_ACTION_FOOTER',
+    left: null,
+    right: 'action group: Cancelar + Salvar alterações',
+    align: 'flex-end',
+    controls: 2,
+    signature:
+      /style: '([^']*)',\s*\r?\n\s*'data-pedido-itens-edit-actions': 'itens',\s*\r?\n\s*'data-card-actions': '',/,
   },
 ];
 
-test('5 · PROVEN_CARD_FOOTER_COUNT = 4 and MARKED_PROVEN_CARD_FOOTER_COUNT = 4', () => {
-  assert.equal(PROVEN_FOOTERS.length, 4);
+test('5 · PROVEN_CARD_FOOTER_COUNT = 6 and MARKED_PROVEN_CARD_FOOTER_COUNT = 6', () => {
+  assert.equal(PROVEN_FOOTERS.length, 6);
   for (const f of PROVEN_FOOTERS) {
     const text = read(f.path);
     assert.match(text, f.signature, `${f.id}: the marked footer disappeared or changed shape`);
@@ -177,7 +235,7 @@ test('5 · PROVEN_CARD_FOOTER_COUNT = 4 and MARKED_PROVEN_CARD_FOOTER_COUNT = 4'
     'the marked footer population changed (HARD STOP — CARD FOOTER POPULATION CHANGED)',
   );
   const total = [...perFile.values()].reduce((a, b) => a + b, 0);
-  assert.equal(total, 4, `MARKED_PROVEN_CARD_FOOTER_COUNT = ${total}`);
+  assert.equal(total, 6, `MARKED_PROVEN_CARD_FOOTER_COUNT = ${total}`);
 });
 
 test('6 · NONCONFORMING_PROVEN_CARD_FOOTER_COUNT = 0', () => {
@@ -481,7 +539,7 @@ test('11 · no page-header, table-row, pagination, rail or inline action is mark
   }
   assert.equal(
     [...RUNTIME].filter((f) => f.text.includes("'data-card-actions'")).length,
-    4,
+    6,
     'FALSELY_MARKED_PROVEN_NONFOOTER_COUNT must be 0',
   );
 });
@@ -541,12 +599,65 @@ const B1_REMOVED_TEXTAREA_BOXES = [
 const B1_TEXTAREA_REMOVED_COUNT = B1_REMOVED_TEXTAREA_BOXES
   .reduce((n, r) => n + r[1], 0);
 
+/*
+ * PEDIDO-SCREEN-GROUP-1 FORWARD CORRECTION — the counter moves by THREE, and
+ * NO business action was added or removed.
+ *
+ * The batch converted three row actions from a bare `<span>` carrying an SVG
+ * and (for two of them) an `onclick:` into `window.actionButton(...)`, the
+ * ratified 30x30 row-action owner. A span is not focusable, does not respond
+ * to Enter/Space and reaches assistive technology unnamed — so the DESTRUCTIVE
+ * "remove this item from the order" action existed for mouse users only. The
+ * click behaviour is byte-for-byte the same function.
+ *
+ * The counter is coarse and matches THREE alternatives, so the same action can
+ * be counted once or twice depending only on how it is SPELLED:
+ *
+ *   before                                            matches
+ *     el('span', { onclick: fn })                     onclick:                  1
+ *     el('span', { title })            (edit, no handler, decorative)           0
+ *   after
+ *     actionButton({ onclick: fn })    actionButton( + onclick:                 2
+ *     actionButton({ disabled: true }) actionButton(                            1
+ *
+ * cliente-pedido-form.js: remove 1 -> 2 (+1), edit 0 -> 1 (+1).
+ * pedido-item-row-editor.js: remove 1 -> 2 (+1).
+ * Total +3. ACTION_BEARING_FILE_COUNT is unchanged: all three files already
+ * bore actions.
+ */
+const SCREEN_GROUP_1_ACTION_BUTTON_MIGRATIONS = [
+  ['js/screens/cliente-pedido-form.js', 'remove item (destructive)', 1, 2],
+  ['js/screens/cliente-pedido-form.js', 'edit item (disabled placeholder)', 0, 1],
+  ['js/screens/pedido-item-row-editor.js', 'remove item (destructive)', 1, 2],
+];
+const SCREEN_GROUP_1_ACTION_DELTA = SCREEN_GROUP_1_ACTION_MIGRATION_DELTA();
+function SCREEN_GROUP_1_ACTION_MIGRATION_DELTA() {
+  return SCREEN_GROUP_1_ACTION_BUTTON_MIGRATIONS.reduce((n, r) => n + (r[3] - r[2]), 0);
+}
+
+/**
+ * PEDIDO-SCREEN-GROUP-1 FORWARD CORRECTION — this counter is measured over
+ * COMMENT-STRIPPED code.
+ *
+ * A1 already established this discipline for the pageHeader / dataTable
+ * call-site counts, precisely because prose that NAMES a primitive was
+ * inflating them. Test 12 was never given the same treatment, so a comment
+ * explaining why a row action moved to `actionButton()` counted as two extra
+ * actions — the guard was measuring documentation, not the product.
+ *
+ * Stripping comments does not weaken the guard: it still fails on any real
+ * action added or removed anywhere in the first-party runtime. It removes a
+ * false signal, and it is what makes the +3 arithmetic below the REAL delta.
+ */
+const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
 test('12 · the coarse action inventory is unchanged by this pass', () => {
   const ACTION = /(?:window\.)?el\(\s*'button'|(?:window\.)?actionButton\s*\(|onclick\s*:/g;
   let constructions = 0;
   let bearingFiles = 0;
   let cardShaped = 0;
-  for (const { text } of RUNTIME) {
+  for (const { text: raw } of RUNTIME) {
+    const text = stripComments(raw);
     ACTION.lastIndex = 0;
     const n = (text.match(ACTION) || []).length;
     if (n) { bearingFiles += 1; constructions += n; }
@@ -562,15 +673,81 @@ test('12 · the coarse action inventory is unchanged by this pass', () => {
   // B1: 485 minus the ONE literal el('button') the shell's visually hidden
   // logout no longer spells itself. The action is not gone: its `onclick:` is
   // still counted here and the click still reaches window.logout.
-  assert.equal(constructions, 484, `ACTION_CONSTRUCTION_COUNT = ${constructions}`);
+  //
+  // SCREEN-GROUP-1 REDERIVATION. The figure this guard carried, 484, was a RAW
+  // text count that included TWELVE prose matches — comments across the runtime
+  // that spell `onclick:` or `el('button'` while explaining something. Measured
+  // over comment-stripped code, the same entry tree (f6986bb) yields 472. This
+  // is the identical correction A1 applied to the pageHeader and dataTable
+  // call-site counts, for the identical reason, and it changes no product fact:
+  // it removes documentation from a product measurement.
+  const ENTRY_CONSTRUCTIONS_REDERIVED = 472;
+  // SCREEN-GROUP-1's own delta is +3, entirely from SPELLING — three row
+  // actions moved from `el('span', …)` to the canonical `actionButton(…)`
+  // owner. See SCREEN_GROUP_1_ACTION_BUTTON_MIGRATIONS for the per-site
+  // arithmetic. No business action was added or removed.
+  assert.equal(SCREEN_GROUP_1_ACTION_DELTA, 3);
+  assert.equal(constructions, ENTRY_CONSTRUCTIONS_REDERIVED + SCREEN_GROUP_1_ACTION_DELTA,
+    `ACTION_CONSTRUCTION_COUNT = ${constructions}`);
+  assert.equal(constructions, 475, `ACTION_CONSTRUCTION_COUNT = ${constructions}`);
   assert.equal(bearingFiles, 39, `ACTION_BEARING_FILE_COUNT = ${bearingFiles}`);
   // A2: 133 at the pass-5 checkpoint, minus the eight pass-7 select facades,
-  // minus the three B1 textarea boxes.
+  // minus the three B1 textarea boxes, plus the fifteen SCREEN-GROUP-1 cards.
   assert.equal(PASS7_FACADE_REMOVED_COUNT, 8);
   assert.equal(B1_TEXTAREA_REMOVED_COUNT, 3);
-  assert.equal(cardShaped, 133 - PASS7_FACADE_REMOVED_COUNT - B1_TEXTAREA_REMOVED_COUNT,
-    `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`);
-  assert.equal(cardShaped, 122, `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`);
+  assert.equal(SCREEN_GROUP_1_CARD_ADDED_COUNT, 15);
+  assert.equal(
+    cardShaped,
+    133 - PASS7_FACADE_REMOVED_COUNT - B1_TEXTAREA_REMOVED_COUNT + SCREEN_GROUP_1_CARD_ADDED_COUNT,
+    `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`,
+  );
+  assert.equal(cardShaped, 137, `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`);
+});
+
+/*
+ * PEDIDO-SCREEN-GROUP-1 — why this counter RISES, and why every added line is
+ * a real card rather than a heuristic false positive.
+ *
+ * The two Pedido editing screens declared every card through Tailwind
+ * utilities (`bg-white shadow p-6`, `bg-white shadow p-4 mb-4`). Tailwind
+ * classes are invisible to this heuristic, so those cards were never counted —
+ * and, more importantly, they were never governed: `shadow` is a Tailwind
+ * elevation that the ratified three-value enum does not contain, and the card
+ * had no `--rv-border`. Declaring them with the canonical tokens makes them
+ * visible to this counter for the first time.
+ *
+ * So the rise is the OPPOSITE of a regression: it is previously ungoverned
+ * surface entering the governed population. Nothing was added to the product —
+ * each of the fifteen lines is a card that already rendered on one of these two
+ * screens before this batch, spelled in Tailwind.
+ */
+const SCREEN_GROUP_1_ADDED_CARDS = [
+  ['js/screens/pedido-edit.js', 7],
+  ['js/screens/pedido-itens-edit.js', 8],
+];
+const SCREEN_GROUP_1_CARD_ADDED_COUNT = SCREEN_GROUP_1_ADDED_CARDS
+  .reduce((n, r) => n + r[1], 0);
+
+test('12c · every card SCREEN-GROUP-1 added replaced a Tailwind-declared card', () => {
+  const isCardShaped = (ln) => /background:\s*var\(--rv-surface\)/.test(ln)
+    && /border:\s*1px solid var\(--rv-border\b/.test(ln)
+    && /border-radius/.test(ln);
+  // Tailwind card utilities are gone from both files, and the rise in this
+  // counter is accounted for file by file. A card appearing anywhere else
+  // still fails test 12.
+  for (const [rel, expectedRise] of SCREEN_GROUP_1_ADDED_CARDS) {
+    const entry = execFileSync('git', ['show', `f6986bb:${rel}`],
+      { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    const before = entry.split(/\r?\n/).filter(isCardShaped).length;
+    const after = read(rel).split(/\r?\n/).filter(isCardShaped).length;
+    assert.equal(after - before, expectedRise, `${rel}: card-shaped rise`);
+    // The Tailwind card language they replaced may not come back. Measured over
+    // COMMENT-STRIPPED code, so the prose that records what was removed cannot
+    // be mistaken for the thing itself.
+    const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    assert.match(strip(entry), /bg-white shadow/, `${rel}: had no Tailwind card at entry`);
+    assert.ok(!/bg-white shadow/.test(strip(read(rel))), `${rel}: a Tailwind card survived`);
+  }
 });
 
 test('12b · every removed card-shaped declaration was a select facade, not a card', () => {
@@ -755,7 +932,9 @@ test('24 · passes 1, 2, 3 and 4 remain closed', () => {
 });
 
 test('25 · no rule outside UIC-008 moved in this pass', () => {
-  assert.equal(rule('UIC-000').coverage_gaps, 536);
+  // SCREEN-GROUP-1 removed two coverage gaps and added none: two wrapped
+  // style concatenations became single decodable literals. See section 3.
+  assert.equal(rule('UIC-000').coverage_gaps, 534);
   // UIC-005 was 80 at the pass-5 checkpoint; the authorized pass-6 typography
   // order took it to 0 and moved nothing else. Pass 7 then took UIC-006 to 0.
   // Both are carried forward mechanically.

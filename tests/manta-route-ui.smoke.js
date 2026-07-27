@@ -1847,11 +1847,18 @@ test('R3/20c6. o lote 3 nao retokenizou nenhum asset que nao alterou', () => {
   // ACTION-CONTAINMENT-A1 passou a ser a ULTIMA ordem a alterar
   // cliente-pedido-form (barra de acoes do modal de item pelo dono canonico).
   const CONTAINMENT_A1_TOKEN = '20260727-ui-action-containment-a1';
+  // PEDIDO-SCREEN-GROUP-1 passou a ser a ULTIMA ordem a alterar tres deles:
+  // pedido-edit e pedido-itens-edit (linguagem de cartao, alinhamento de campos
+  // e rotulos, contencao local de acao, separacao da acao destrutiva) e
+  // cliente-pedido-form (grade de Dados gerais, degrau de campo, caixas
+  // somente-leitura do modal e acoes de linha pelo dono canonico). O sujeito
+  // do guard segue o mesmo: o lote 3 continua proibido de arrastar asset algum.
+  const SCREEN_GROUP_1_TOKEN = '20260727-ui-pedido-screen-group-1';
   const intocados = [
     ['js/screens/pedido-detail-data.js', BATCH2_TOKEN],
-    ['js/screens/pedido-edit.js', B1_TOKEN],
-    ['js/screens/pedido-itens-edit.js', PASS7_A4_TOKEN],
-    ['js/screens/cliente-pedido-form.js', B1_TOKEN],
+    ['js/screens/pedido-edit.js', SCREEN_GROUP_1_TOKEN],
+    ['js/screens/pedido-itens-edit.js', SCREEN_GROUP_1_TOKEN],
+    ['js/screens/cliente-pedido-form.js', SCREEN_GROUP_1_TOKEN],
     ['js/screens/common.js', B1_TOKEN],
     ['js/product-route.js', R2_TOKEN],
   ];
