@@ -3,13 +3,21 @@
 > Layer 4 of the contract. Screen → archetype → state → fixture.
 > **State is filled by the detector, not by eye.**
 >
-> **Status: PHASE-5 PASS 5 IMPLEMENTED / `UIC-008` CLOSED OVER THE MARKED FOOTER
-> POPULATION / PUBLISHED / AWAITING ARCHITECT ACCEPTANCE.** Passes 1-5 have closed
-> `UIC-001`, `UIC-002`, `UIC-003`, `UIC-004`, `UIC-008` and `UIC-010`. The aggregate
-> counts under § Detector provenance are a mechanical read of
+> **Status: PHASE-5 PASS 8 IMPLEMENTED / THE §2.5 TABLE CONTRACT CLOSED OVER THE
+> ACCEPTED 41-SURFACE RUNTIME POPULATION / PUBLISHED / AWAITING ARCHITECT
+> ACCEPTANCE.** Passes 1-8 have closed `UIC-001`, `UIC-002`, `UIC-003`, `UIC-004`,
+> `UIC-005`, `UIC-006`, `UIC-008` and `UIC-010` — **every blocking conformance rule
+> is closed** — and pass 8 has now closed the table property, which no rule can
+> observe. The aggregate counts under § Detector provenance are a mechanical read of
 > `tests/fixtures/ui-conformance-baseline.json`. **The per-screen state column below
-> has not been re-derived since pass 2** and is stale for passes 3-5; it is a separate
+> has not been re-derived since pass 2** and is stale for passes 3-8; it is a separate
 > documentary concern and no pass so far has been authorized to rewrite it.
+>
+> **Pass 7 — `CLOSED / ACCEPTED_WITH_NONBLOCKING_VISUAL_EVIDENCE_LIMITATION`,
+> checkpoint `52af3c9e34d84472d2138b177b20876265f554f5`.** `UIC-006` is closed and
+> stays closed over the 44-site population. The accepted nonblocking limitation is the
+> absence of per-route screenshots: no authenticated route could be reached, so naming
+> evidence is DOM-level reference integrity plus target text.
 >
 > **Pass 1 — `CLOSED / ACCEPTED_WITH_NONBLOCKING_PROCESS_DEBT`, checkpoint
 > `cabd358c006f692b3aec37d21cf279ab1e81927a`.** `UIC-001` is closed and stays closed.
@@ -81,7 +89,7 @@ resolution or coverage is incomplete. No row below was set by looking at a scree
 
 **Two source classes, one rule set.** The prototype front-end reads `.dc.html`; the
 application front-end reads `js/screens/*.js`. 67 files were scanned: 31 `FULL`, 36
-`PARTIAL`, 0 `UNSUPPORTED`. 865 findings — **0 blocking**, 322 declared debt, 543
+`PARTIAL`, 0 `UNSUPPORTED`. 867 findings — **0 blocking**, 322 declared debt, 545
 coverage gaps.
 
 **Baseline by rule.** UIC-001 literal colour **0** (+**0** gaps) · UIC-002 radius **0**
@@ -89,7 +97,7 @@ coverage gaps.
 (+**0** gaps) · UIC-005 typography **0** (+**0** gaps) · UIC-006 native `<select>` **0** · UIC-007 pill
 radius on a button **0** · UIC-008 card action alignment **0** (+**0** gaps) · UIC-009
 deprecated token 322 (debt) · UIC-010 semantic-radius misuse **0** (+**0** gaps) ·
-UIC-011 unknown token **0**. Cards carrying a shadow: **0**. Plus 543 front-end
+UIC-011 unknown token **0**. Cards carrying a shadow: **0**. Plus 545 front-end
 decoding gaps under `UIC-000`.
 
 **Pass 7 closed the last blocking rule.** `UIC-006` went 15 → **0**: every native
@@ -99,6 +107,16 @@ Six `UIC-000` gaps disappeared with them — each was an unresolved style expres
 attached to a native select or to the facade wrapper around one — so the total moved
 886 → **865** and coverage 549 → **543**. No detector source byte changed and no
 finding was suppressed. **Every blocking rule is now closed.**
+
+**Pass 8 closed the table property, which no rule can observe.** It added exactly two
+`UIC-000` coverage gaps and removed none: both are the Cadastros » Parâmetros derived
+width owner, whose track count depends on how many larguras exist and which the
+detector therefore cannot decode to a concrete value. Total 865 → **867**, coverage
+543 → **545**. Blocking stayed **0**, `UIC-009` debt stayed **322**, coverage `FULL`
+31 / `PARTIAL` 36 / `UNSUPPORTED` 0 unchanged, and `table_review_summary` stayed at 8
+`MANUAL_REVIEW_REQUIRED` — the five application tables now declare a `<colgroup>`, but
+the js-screen front-end never reads one, so its verdict cannot move. Detector `1.0.6`
+byte-identical; no rule added, no waiver, no suppression.
 
 `UIC-008` closure covers the **explicitly marked** footer population — four product
 rows — and not the absence of every possible unmarked footer in imperative runtime
@@ -504,22 +522,68 @@ partial pass.
 **Zero `UNSUPPORTED`.** Every one of the 66 files lexed completely. Had any failed,
 the file would report zero rules evaluated — never zero defects.
 
-## Table review — the one manual pass
+## Table review — the one manual pass, now CLOSED
 
-Eight tables were inventoried. **None** is machine-proven and none is machine-failed:
-all eight are `MANUAL_REVIEW_REQUIRED`, which is what §2.5's golden rule always
-implied. Pass 8 stays manual, exactly as `ARCHITECT_BRIEF.md` §7 predicted.
+Eight tables are inventoried by the detector. **None** is machine-proven and none is
+machine-failed: all eight remain `MANUAL_REVIEW_REQUIRED`, which is what §2.5's golden
+rule always implied. Pass 8 was manual, exactly as `ARCHITECT_BRIEF.md` §7 predicted.
 
-| File | Lines | Why manual |
+| File | Lines | Why still manual |
 |---|---|---|
 | `docs/ui/fixtures/op-detail-compacto/OP Detail - Compacto.dc.html` | 140, 168, 195 | No `<colgroup>` and no shared `grid-template-columns`; header/value width parity is not machine-provable. |
-| `js/screens/ordem-compra-receipt-render.js` | 138, 156, 226 | Built imperatively; header and value widths share no declared relationship. |
-| `js/screens/ordem-compra-render.js` | 137, 270 | Built imperatively; same reason. |
+| `js/screens/ordem-compra-receipt-render.js` | 3 tables | Built imperatively. These now DO declare a `<colgroup>`, but the js-screen front-end never reads one, so its verdict cannot move. |
+| `js/screens/ordem-compra-render.js` | 2 tables | Built imperatively; same reason. |
 
 The detector reports `AUTOMATICALLY_PROVEN` only when a `<colgroup>` column count
 matches the header cell count, and `AUTOMATICALLY_FAILED` when they contradict each
 other. It never reports a pass it cannot demonstrate — including for the reference
 fixture, whose three tables are as unproven as the application's.
+
+### What pass 8 actually closed
+
+**The detector's eight-table inventory is not the product surface.** Independent
+verification found **41** reachable runtime table surfaces, and only five of them are
+`<table>` elements the detector can even see:
+
+| Category | Count | What it is |
+|---|---|---|
+| Direct semantic | **5** | `el('table')` in the two purchase-order render modules |
+| Shared-helper instances | **5** | `dataTable()` call sites; the helper in `js/ui.js` is the owner and is counted apart |
+| Simulated grids | **31** | CSS-Grid tables — a header row and value rows sharing one `grid-template-columns` |
+| **Total** | **41** | |
+
+Dispositions at entry, one primary per surface: `PROVEN_STRUCTURE_GAP` **10**,
+`PROVEN_NUMERIC_ALIGNMENT_GAP` **16**, `PROVEN_OVERFLOW_GAP` **8**,
+`MANUAL_VISUAL_EVIDENCE_REQUIRED` **1**, `STRUCTURALLY_CONFORMING` **6**.
+
+`js/ui.js::dataTable()` is now the single width and numeric owner for its five
+instances: one resolved layout list drives the `<colgroup>`, the header and the values,
+`table-layout:fixed` is declared, alignment is repeated on `th` and `td`, and
+`numeric: true` implies right/right plus `data-num` — the tabular-numeral owner in
+`css/tokens.css`. Nothing infers numeric-ness from label text and nothing measures
+content to choose a width.
+
+Two defects were invisible to source reading and only a real read exposed them:
+`op-tecelagem-producao-admin.js` gave eleven value cells `class:'num'`, for which **no
+CSS rule exists anywhere** — right-aligned in source, never tabular in the browser; and
+`op-latex-admin.js::thRow()` right-aligned the LAST header whatever its value cell did.
+A third, `G05` Cadastros » Parâmetros, was only provable by rendering: its transposed
+matrix hardcoded three tracks and wrapped onto an implicit second grid row past two
+larguras.
+
+**Ruled NOT numeric columns** (architect, pass-8 order §6): entity IDs, sequence
+identifiers, CNPJ and lot/OP/Pedido numbers; dates and timestamps; editable numeric
+`<input>`s; composite progress cells such as a bar with `45%` or `300 / 500`; and a
+catalog width rendered as a badge.
+
+Pass 8 raised `UIC-000` by exactly **two** coverage gaps — both the G05 derived
+template, both `TEMPLATE_INTERPOLATED_VALUE` in `js/screens/cadastros.js` — and removed
+none. Blocking stayed 0 and `UIC-009` debt stayed 322. The property is pinned by
+`tests/ui-conformance-phase5-pass8-table.test.mjs` (43 tests), not by a rule.
+
+**Residual, disclosed:** nine surfaces whose primary disposition was numeric still carry
+an unaddressed fixed-pixel overflow gap — `G07`, `G09`–`G11`, `G18`, `G20`–`G22`, `G28`.
+Closing them needs its own bounded order.
 
 ## Outside the archetypes — chrome and documentation
 
@@ -548,12 +612,13 @@ detector reports zero for its rule. Never screen by screen.
 | 5 | Shadow | 4 popover values → 1; cards flat | detector: shadow ∈ enum |
 | 6 | Alignment | in-card action → right-aligned footer | detector rule 8 |
 | 7 | Popover | native `<select>` → own popover | detector: 0 `<select>` |
-| 8 | Tables | header width/alignment identical to values | **manual review** |
+| 8 | Tables | header width/alignment identical to values | **manual review** — CLOSED over 41 surfaces |
 
-Passes 1–7 are mechanical and verifiable. Pass 8 is the only one that needs eyes.
-Do not open a pass while the previous one is still failing.
+Passes 1–7 are mechanical and verifiable. Pass 8 was the only one that needed eyes,
+and it is now closed — by rendering, not by rule. Do not open a pass while the
+previous one is still failing.
 
-**Pass 1 is closed; passes 3-8 are not.** Phase 3 applied passes 1–6 to the **reference
+**Passes 1-8 are closed.** Phase 3 applied passes 1–6 to the **reference
 fixture alone**, so that the detector has a green baseline instead of flagging the
 reference first. That is a single-file exception granted precisely because the
 reference cannot be remediated by batch — it is what the batch is measured against.
@@ -572,8 +637,8 @@ this table demands:
 | 4 | `UIC-003` | **CLOSED** — 0 (+0 gaps) | `--rule UIC-003 --enforce` exits 0 |
 | 5 | `UIC-004` | **CLOSED** — 0 (+0 gaps) | `--rule UIC-004 --enforce` exits 0 |
 | 6 | `UIC-008` | **CLOSED** — 0 (+0 gaps) | `--rule UIC-008 --enforce` exits 0 — marked rows only |
-| 7 | `UIC-006` | 15 | `--rule UIC-006 --enforce` |
-| 8 | — | — | manual; the detector only inventories the eight tables |
+| 7 | `UIC-006` | **CLOSED** — 0 (+0 gaps) | `--rule UIC-006 --enforce` exits 0 |
+| 8 | — | **CLOSED** — manual | the detector only inventories eight tables; the real population is 41 runtime surfaces, pinned by `tests/ui-conformance-phase5-pass8-table.test.mjs` |
 | type | `UIC-005` | **CLOSED** — 0 (+0 gaps) | `--rule UIC-005 --enforce` exits 0 |
 | alias deletion | `UIC-009` | 322 (debt) | `--rule UIC-009` reporting 0 unblocks deleting the aliases |
 
