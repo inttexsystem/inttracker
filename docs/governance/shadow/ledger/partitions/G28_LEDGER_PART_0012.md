@@ -2,9 +2,9 @@
 <!-- partition_id: G28-LEDGER-PART-0012 -->
 <!-- canonical_source: docs/ledgers/G28_LEDGER.md -->
 <!-- source_unit_interval: G28-LEDGER-UNIT-0195..G28-LEDGER-UNIT-0217 -->
-<!-- canonical_byte_interval: 962903..1077618 -->
-<!-- canonical_line_interval: 9510..9907 -->
-<!-- payload_sha256: a48e89129b029a53bd266f40b6effd52377fbd4bcc88d2c232f0ce7b75a89413 -->
+<!-- canonical_byte_interval: 962903..1078965 -->
+<!-- canonical_line_interval: 9510..9908 -->
+<!-- payload_sha256: f0c004db4174d1a63468397634be28ff655aac3a576c177531913d7678797f8b -->
 <!-- oversized_single_unit: false -->
 <!-- partition_status: CLOSED -->
 <!-- G28_LEDGER_SHADOW_PAYLOAD_BEGIN_7b9d4e3a -->
@@ -295,6 +295,7 @@
 - **Environment continuity.** Shared development `ucrjtfswnfdlxwtmxnoo` is now at terminal `db/89`. Production `gqmpsxkxynrjvidfmojk` is UNCHANGED and was NOT ACCESSED; forbidden project `bhgifjrfagkzubpyqpew` was NOT ACCESSED. No staging database, Vercel, `main`, `origin` or tag action occurred.
 - **Next action.** `KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-02-ARCHITECT-REVIEW`. The executor does not self-accept. Kleber may continue the operational review and report further defects, to be grouped into a further bounded stabilization order rather than corrected through isolated microphases. Any production, Vercel, further migration or additional publication action requires a new explicit order; no phase chains automatically.
 - **Scope exclusions.** No production access, no `gqmpsxkxynrjvidfmojk`, no `bhgifjrfagkzubpyqpew`, no Vercel, no `main`, no `origin`, no tag, no force, no second apply attempt, no migration rewrite, no reverse migration, no real business data mutation, no `db/01`-`db/88` change, no `css/**` change, no stash, amend, rebase, merge, reset, restore, clean, `git add .` or `git add -A`, and no history rewrite occurred.
+- **A5 — duplicate legacy chevrons removed.** Direct architect review of the published checkpoint found that op-nova's legacy `wrapSelect()` still appended `selectChevron()` over the canonical trigger, which already renders its own 14px chevron: two chevrons on Cliente, on the row Modelo cell and on Fornecedor de tecelagem. The wrapper existed ONLY to anchor that absolutely-positioned chevron, so for a canonical trigger both were dead — `wrapSelect()` now returns the trigger unchanged and keeps the legacy path intact for a real native control. Measured at all three sites through the real helper chain: exactly one `data-rv-icon="chevron"` per field, zero absolutely-positioned chevron nodes, 32px / 13px / `padding: 0 12px` / `inline-flex`, accessible names `Cliente`, `MODELO` and `Fornecedor de tecelagem`, correct options and value, exactly one change event on commitment and zero on programmatic update, panel portaled to `document.body` at `z-index 225` with a 6px gap and inside the viewport, no orphan panel, no native select. `js/screens/op-nova.js` is the only product file changed; it moves to `20260727-ui-p5-pass7-native-select-a5-chevron`. The retokenised population stays **16** — a union across the pass, never 12 + 5, because `pedido-itens-edit.js` belongs to both groups and `js/select-popover.js` is an ADDED asset.
 - **Owner of the full record.** This ledger entry.
 - **Commit subject.** `feat: add Pedido date and controlled numbering` (implementation) and `docs: close Pedido creation stabilization batch 02` (closeout).
 

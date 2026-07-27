@@ -634,8 +634,12 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   // four assets pass 6 had also changed, so those carry the A4 token.
   const PASS7_A4_CHANGED = [
     'js/screens/admin-usuarios-modal.js', 'js/screens/cadastros.js',
-    'js/screens/expedicao-admin.js', 'js/screens/op-nova.js',
+    'js/screens/expedicao-admin.js',
   ];
+  // A5 removed the duplicate legacy chevron op-nova's wrapSelect() drew over
+  // the canonical trigger, so op-nova.js moved on once more.
+  const PASS7_A5 = '20260727-ui-p5-pass7-native-select-a5-chevron';
+  const PASS7_A5_CHANGED = ['js/screens/op-nova.js'];
   const A1_CHANGED = [
     'js/screens/cliente-dashboard.js',
     'js/screens/manta-expedicao-ui.js', 'js/screens/painel.js',
@@ -654,13 +658,16 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   ];
   // The pass-6 population is unchanged in SIZE — 27 assets — only redistributed
   // across the four tokens. That is what proves nothing silently dropped out.
-  assert.equal(PASS7_CHANGED.length + PASS7_A4_CHANGED.length
+  assert.equal(PASS7_CHANGED.length + PASS7_A4_CHANGED.length + PASS7_A5_CHANGED.length
     + A1_CHANGED.length + PASS6_ONLY.length, 27);
   for (const rel of PASS7_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS7}"`), `${rel} must carry the pass-7 token`);
   }
   for (const rel of PASS7_A4_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS7_A4}"`), `${rel} must carry the pass-7 A4 token`);
+  }
+  for (const rel of PASS7_A5_CHANGED) {
+    assert.ok(INDEX.includes(`"${rel}?v=${PASS7_A5}"`), `${rel} must carry the pass-7 A5 token`);
   }
   for (const rel of A1_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${A1}"`), `${rel} must carry the A1 token`);
@@ -673,7 +680,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   assert.equal((INDEX.match(new RegExp(`${PASS6}(?!-)`, 'g')) || []).length, PASS6_ONLY.length,
     'the pass-6 token leaked or was dropped');
   // Every asset pass 6 touched still carries a token LATER than the pass-5 one.
-  for (const rel of [...PASS7_CHANGED, ...PASS7_A4_CHANGED, ...A1_CHANGED, ...PASS6_ONLY]) {
+  for (const rel of [...PASS7_CHANGED, ...PASS7_A4_CHANGED, ...PASS7_A5_CHANGED, ...A1_CHANGED, ...PASS6_ONLY]) {
     assert.ok(!INDEX.includes(`"${rel}?v=20260726-ui-p5-pass5`),
       `${rel} fell back to the pass-5 token`);
   }

@@ -2,9 +2,9 @@
 <!-- partition_id: G28-LEDGER-PART-0014 -->
 <!-- canonical_source: docs/ledgers/G28_LEDGER.md -->
 <!-- source_unit_interval: G28-LEDGER-UNIT-0226..G28-LEDGER-UNIT-0231 -->
-<!-- canonical_byte_interval: 1198564..1278851 -->
-<!-- canonical_line_interval: 10109..10268 -->
-<!-- payload_sha256: edd27c6150a68725084777805d3ff0d7f3a68f9963a54e9d30656ae914d76102 -->
+<!-- canonical_byte_interval: 1199911..1280204 -->
+<!-- canonical_line_interval: 10110..10269 -->
+<!-- payload_sha256: 713774172a4aea73b37fed4cbf75c8bb64491aff1f606ede3b6fdec0739d86e1 -->
 <!-- oversized_single_unit: false -->
 <!-- partition_status: OPEN -->
 <!-- G28_LEDGER_SHADOW_PAYLOAD_BEGIN_7b9d4e3a -->
@@ -120,7 +120,7 @@
 - **Owner of the full record.** This ledger entry.
 - **Commit subject.** `fix(ui): close typography conformance pass` (the implementation, the ratified contract, the focused Pass-6 suite and the mechanically coupled test reconciliation) and `docs: record typography conformance checkpoint` (closeout). `UI_CONFORMANCE.md` rides in the implementation commit rather than the closeout because it is detector INPUT: the committed baseline must reproduce from the tree at every commit.
 
-## 2026-07-27 — UI-CONSOLIDATION-PHASE-5-PASS-7-NATIVE-SELECT-R1 (A1 · A2 · A3 · A4) — fix(ui): replace native selects with owned popovers
+## 2026-07-27 — UI-CONSOLIDATION-PHASE-5-PASS-7-NATIVE-SELECT-R1 (A1 · A2 · A3 · A4 · A5) — fix(ui): replace native selects with owned popovers
 
 - **Objective.** Close `UIC-006` `NATIVE_SELECT`, the last blocking conformance rule. Replace every native `<select>` on a product surface with ONE application-owned select popover.
 - **Entry checkpoint.** `41655c68b578ac29555d3c9dfdada77673671316` — phase-5 pass 6 as corrected by A1, CLOSED / ARCHITECT ACCEPTED. Detector `1.0.6`, total 886, `UIC-006` 15 blocking, baseline `f49c609b`.

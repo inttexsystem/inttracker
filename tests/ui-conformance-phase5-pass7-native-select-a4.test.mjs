@@ -34,6 +34,7 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
 const INDEX = read('index.html');
 const A4_TOKEN = '20260727-ui-p5-pass7-native-select-a4-a11y-geometry';
+const A5_TOKEN = '20260727-ui-p5-pass7-native-select-a5-chevron';
 const A1_TOKEN = '20260727-ui-p5-pass7-native-select-a1';
 
 /** The five product files A4 is allowed to touch, and their label-id prefix. */
@@ -303,6 +304,90 @@ test('7 · exactly three op-nova controls pass through styleSelect', () => {
   assert.equal(calls, 3, 'a fourth styleSelect site would be an unproven geometry site');
 });
 
+/* ------------------------------------------------------------
+   A5 — no canonical trigger may be given a SECOND chevron
+
+   The popover renders its own 14px chevron inside the trigger. op-nova's
+   legacy wrapSelect() existed only to anchor an absolutely-positioned
+   chevron over a native <select>; applied to a canonical trigger it drew a
+   visible duplicate and wrapped it in a position:relative box that anchored
+   nothing. Both are now skipped for a canonical trigger.
+   ------------------------------------------------------------ */
+
+test('7b · wrapSelect returns a canonical trigger unwrapped and un-chevroned', () => {
+  const src = read('js/screens/op-nova.js');
+  const fn = /function wrapSelect\(selectNode, small\) \{[\s\S]*?\n  \}/.exec(src)[0];
+
+  // The guard is the FIRST statement, before any wrapper or chevron is built.
+  const firstStatement = fn.slice(fn.indexOf('{') + 1).split('\n')
+    .map((l) => l.trim()).filter((l) => l && !l.startsWith('//'))[0];
+  assert.match(firstStatement, /^if \(selectNode && typeof selectNode\.getAttribute === 'function'$/,
+    'the canonical-popover guard must run before the wrapper is constructed');
+  assert.match(fn, /data-rv-select-popover'\) === '1'\) return selectNode;/);
+  // The legacy path is intact for a real native control.
+  assert.match(fn, /return el\('div', \{ style: 'position:relative;' \}, selectNode, selectChevron\(small\)\);/);
+});
+
+test('7c · a canonical trigger is never given a second chevron', () => {
+  const sb = sandboxWithPrimitive();
+  const el = (tag, attrs, ...kids) => {
+    const n = sb.document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v);
+    for (const c of kids.flat()) if (c) n.appendChild(c);
+    return n;
+  };
+  const selectChevron = () => el('div', { style: 'position:absolute;right:12px;' }, el('svg', {}));
+  // The corrected helper, executed verbatim.
+  const wrapSelect = (selectNode, small) => {
+    if (selectNode && typeof selectNode.getAttribute === 'function'
+      && selectNode.getAttribute('data-rv-select-popover') === '1') return selectNode;
+    return el('div', { style: 'position:relative;' }, selectNode, selectChevron(small));
+  };
+
+  const countChevrons = (node, n = 0) => {
+    if (node && typeof node.getAttribute === 'function'
+      && node.getAttribute('data-rv-icon') === 'chevron') n += 1;
+    for (const c of (node.children || [])) n = countChevrons(c, n);
+    return n;
+  };
+
+  const trigger = sb.selectInput({ options: [{ value: 'a', label: 'A' }], value: 'a' });
+  const wrapped = wrapSelect(trigger, true);
+  assert.equal(wrapped, trigger, 'a canonical trigger must not be wrapped at all');
+  assert.equal(countChevrons(wrapped), 1, 'exactly one chevron per canonical field');
+  // …and nothing absolutely positioned was added alongside it.
+  const abs = [];
+  (function walk(n) {
+    if (n && typeof n.getAttribute === 'function' && /position:absolute/.test(n.getAttribute('style') || '')) abs.push(n);
+    for (const c of (n.children || [])) walk(c);
+  })(wrapped);
+  assert.deepEqual(abs, [], 'no legacy absolutely-positioned chevron may survive');
+
+  // A legacy native control still gets the wrapper AND the chevron.
+  const legacy = sb.document.createElement('select');
+  const legacyWrapped = wrapSelect(legacy, true);
+  assert.notEqual(legacyWrapped, legacy, 'a native control must still be wrapped');
+  assert.equal(legacyWrapped.children.length, 2, 'wrapper keeps control + chevron for legacy');
+});
+
+test('7d · every op-nova wrapSelect call site now carries a canonical trigger', () => {
+  const src = read('js/screens/op-nova.js');
+  // Prose may NAME the helper; only real call sites count.
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '')
+    .split(/\r?\n/).filter((l) => !/^\s*\/\//.test(l)).join('\n');
+  // The three real call sites, each handed a control built by selectInput().
+  const sites = [...code.matchAll(/wrapSelect\(([A-Za-z0-9_]+)/g)]
+    .map((m) => m[1])
+    .filter((v) => v !== 'selectNode');
+  assert.deepEqual(sites, ['clienteSelEl', 'modeloSel', 'sel'],
+    'the wrapSelect population changed — re-prove the chevron count');
+  assert.equal(sites.length, 3);
+  for (const v of new Set(sites)) {
+    assert.match(src, new RegExp(`${v}\\s*=\\s*disabledAttr\\(readOnly, selectInput\\(|${v}\\s*=\\s*selectInput\\(`),
+      `${v} must be a canonical popover, otherwise it would still take a legacy chevron`);
+  }
+});
+
 test('8 · the row Modelo combobox is named by its own column header', () => {
   const src = read('js/screens/op-nova.js');
   // The id lands on the FIRST header cell of the table that contains the rows.
@@ -394,20 +479,50 @@ test('11 · A4 retokenised exactly five assets, and the pass-7 set is set-derive
   const tokenOf = (u) => (u.includes('?v=') ? u.slice(u.indexOf('?v=') + 3) : null);
 
   const onA4 = refs.filter((u) => tokenOf(u) === A4_TOKEN).map(pathOf);
+  const onA5 = refs.filter((u) => tokenOf(u) === A5_TOKEN).map(pathOf);
   const onA1 = refs.filter((u) => tokenOf(u) === A1_TOKEN).map(pathOf);
 
-  assert.equal(onA4.length, 5, 'A4_RETOKENED_ASSET_COUNT');
-  assert.deepEqual(onA4.slice().sort(), A4_FILES.map(([r]) => r).slice().sort());
+  // A5 removed the duplicate legacy chevron in op-nova.js, so that one file
+  // moved on from the A4 token to its own. The A4 POPULATION is unchanged at
+  // five — it is only spread across two tokens now.
+  assert.equal(onA5.length, 1, 'A5_RETOKENED_ASSET_COUNT');
+  assert.deepEqual(onA5, ['js/screens/op-nova.js']);
+  assert.equal(onA4.length + onA5.length, 5, 'A4_RETOKENED_ASSET_COUNT');
+  assert.deepEqual([...onA4, ...onA5].sort(), A4_FILES.map(([r]) => r).slice().sort());
 
   // The pass-7 population is a UNION, not a sum: one of the five A4 files was
   // already a pass-7 member, and the other four join it now.
   const ADDED = ['js/select-popover.js'];
-  const union = [...new Set([...onA1, ...onA4])];
+  const union = [...new Set([...onA1, ...onA4, ...onA5])];
   const retokenised = union.filter((u) => !ADDED.includes(u));
   assert.equal(union.length, 17);
   assert.equal(retokenised.length, 16, 'PASS7_UNIQUE_RETOKENED_ASSET_COUNT is set-derived');
-  assert.ok(retokenised.length !== onA1.length + onA4.length,
-    'the count must never be computed additively');
+  // Every asset carries exactly ONE live token, so the current index has no
+  // overlap: 12 + 4 + 1 = 17 distinct paths.
+  const seenTwice = [...onA1, ...onA4, ...onA5].filter((u, i, a) => a.indexOf(u) !== i);
+  assert.deepEqual(seenTwice, [], 'no asset may carry two tokens simultaneously');
+  assert.equal(union.length, onA1.length + onA4.length + onA5.length);
+
+  // The count that must NOT be computed additively is the RETOKENISED one.
+  // Two corrections make the naive arithmetic wrong: js/select-popover.js is
+  // an ADDED asset rather than a retokenised one, and pedido-itens-edit.js
+  // belongs to both the original twelve and the five A4/A5 files, so it must
+  // be counted once across the pass, not twice.
+  const A2_TWELVE = [
+    'css/tokens.css', 'js/ui.js', 'js/screens/admin-usuarios.js',
+    'js/screens/cliente-pedido-form.js', 'js/screens/document-link-admin-modal.js',
+    'js/screens/documentos-recebidos-decision-modal.js', 'js/screens/documentos-recebidos.js',
+    'js/screens/ops-list.js', 'js/screens/pedido-form.js',
+    'js/screens/pedido-item-row-editor.js', 'js/screens/pedidos-list.js',
+    'js/screens/pedido-itens-edit.js',
+  ];
+  const A4A5_FIVE = A4_FILES.map(([r]) => r);
+  const historicalOverlap = A4A5_FIVE.filter((u) => A2_TWELVE.includes(u));
+  assert.deepEqual(historicalOverlap, ['js/screens/pedido-itens-edit.js']);
+  assert.equal(retokenised.length,
+    A2_TWELVE.length + A4A5_FIVE.length - historicalOverlap.length,
+    'the retokenised count is a union across the pass, never 12 + 5');
+  assert.notEqual(retokenised.length, A2_TWELVE.length + A4A5_FIVE.length);
   assert.deepEqual(ADDED.filter((u) => union.includes(u)), ADDED,
     'js/select-popover.js remains the only newly ADDED runtime asset');
 

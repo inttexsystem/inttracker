@@ -239,7 +239,16 @@
     return el('div', { style: 'position:absolute;right:' + (small ? '10px' : '12px') + ';top:50%;transform:translateY(-50%);pointer-events:none;' },
       svgEl(small ? SVG_CHEVRON_SM : SVG_CHEVRON));
   }
+  // PASS-7-A5: the canonical select popover renders its OWN 14px chevron
+  // inside the trigger. The legacy wrapper existed only to anchor an
+  // absolutely-positioned chevron over a native <select>, so for a canonical
+  // trigger BOTH are dead: the chevron would be a visible duplicate and the
+  // `position:relative` box would anchor nothing. Return the trigger as-is —
+  // it already declares its own width — and keep the legacy path untouched
+  // for any real native control.
   function wrapSelect(selectNode, small) {
+    if (selectNode && typeof selectNode.getAttribute === 'function'
+      && selectNode.getAttribute('data-rv-select-popover') === '1') return selectNode;
     return el('div', { style: 'position:relative;' }, selectNode, selectChevron(small));
   }
   // PASS-7-A4 (§10): SELECT_STYLE describes a NATIVE <select> — a fixed
