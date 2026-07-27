@@ -453,7 +453,7 @@
       },
       window.el('div', {},
         window.el('div', {
-          style: 'font-size:21px;font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;line-height:1.1;'
+          style: 'font-size:var(--rv-fs-title);font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;line-height:1.1;'
         }, 'Pedidos'),
         window.el('div', {
           style: 'font-size:12.5px;color:var(--rv-text-tertiary);margin-top:3px;'

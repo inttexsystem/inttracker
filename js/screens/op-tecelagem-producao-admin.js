@@ -182,7 +182,7 @@
     var podeConcluir = totais.totalAjustado > 0 && totais.saldo <= 0;
 
     var titleRow = el('div', { style: 'display:flex;align-items:center;gap:11px;flex-wrap:wrap;' },
-      el('h1', { style: 'margin:0;font-size:22px;font-weight:800;color:var(--rv-color-title);letter-spacing:-.02em;' }, formatOpDisplay(ctx.op, ctx)),
+      el('h1', { style: 'margin:0;font-size:var(--rv-fs-title);font-weight:800;color:var(--rv-color-title);letter-spacing:-.02em;' }, formatOpDisplay(ctx.op, ctx)),
       rvStageBadge(), rvStatusBadge());
 
     var metaParts = [internalOpLabel(ctx.op)];
@@ -750,7 +750,7 @@
       card.appendChild(el('div', { style: (i > 0 ? 'border-top:1px solid var(--rv-color-line-100);margin-top:13px;padding-top:13px;' : '') },
         el('div', { style: 'display:flex;align-items:center;gap:7px;margin-bottom:8px;' },
           el('span', { style: 'font-size:12px;font-weight:600;color:var(--rv-color-value);' }, tipo),
-          el('span', { 'data-ui-pill': '1', style: 'font-size:10px;font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);' }, '0')),
+          el('span', { 'data-ui-pill': '1', style: 'font-size:var(--rv-fs-micro);font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);' }, '0')),
         el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-bottom:8px;' }, 'Nenhum arquivo anexado.'),
         el('button', {
           type: 'button', style: ANEXAR_BTN,

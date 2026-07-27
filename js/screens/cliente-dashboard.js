@@ -394,7 +394,7 @@
         window.el('div', {},
           window.el('div', { style: 'font-size:14px;color:var(--rv-text-tertiary);' }, label),
           window.el('div', {
-            style: 'font-size:24px;font-weight:800;color:var(--rv-text-primary);line-height:1;margin:1px 0;',
+            style: 'font-size:var(--rv-fs-metric);font-weight:800;color:var(--rv-text-primary);line-height:1;margin:1px 0;',
           }, String(valor)),
           window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);white-space:nowrap;' }, sub)
         )
@@ -420,7 +420,7 @@
       },
         window.el('div', {},
           window.el('h1', {
-            style: 'margin:0;font-size:23px;font-weight:700;color:var(--rv-text-primary);line-height:1.15;letter-spacing:-.01em;',
+            style: 'margin:0;font-size:var(--rv-fs-title);font-weight:700;color:var(--rv-text-primary);line-height:1.15;letter-spacing:-.01em;',
           }, 'Dashboard'),
           window.el('div', {
             style: 'font-size:13.5px;color:var(--rv-text-tertiary);margin-top:5px;',
@@ -538,7 +538,7 @@
         style: 'display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:3px;',
       },
         window.el('div', {},
-          window.el('div', { style: 'font-size:16px;font-weight:700;color:var(--rv-text-primary);' }, 'Pedidos em destaque'),
+          window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);' }, 'Pedidos em destaque'),
           window.el('div', {
             style: 'font-size:13px;color:var(--rv-text-tertiary);margin-top:3px;',
           }, 'Pedidos que precisam da sua atenção ou estão em etapas avançadas.')
@@ -585,7 +585,7 @@
       },
         window.el('a', {
           style: 'display:inline-flex;align-items:center;gap:7px;' + LINK_BLUE
-            + 'font-size:14.5px;font-weight:600;',
+            + 'font-size:var(--rv-fs-body);font-weight:600;',
           onclick: function () { window.navigate('#/cliente/pedidos'); },
         },
           'Ver todos os pedidos ',
@@ -669,7 +669,7 @@
         style: CARD + 'padding:16px 20px;display:flex;flex-direction:column;width:100%;',
       },
         window.el('div', {
-          style: 'font-size:16px;font-weight:700;color:var(--rv-text-primary);margin-bottom:20px;',
+          style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:20px;',
         }, 'Resumo dos pedidos'),
         donutWrap,
         window.el('div', {
@@ -703,7 +703,7 @@
         style: 'display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:3px;',
       },
         window.el('div', {},
-          window.el('div', { style: 'font-size:16px;font-weight:700;color:var(--rv-text-primary);' }, 'Últimas atualizações'),
+          window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);' }, 'Últimas atualizações'),
           window.el('div', {
             style: 'font-size:13px;color:var(--rv-text-tertiary);margin-top:3px;',
           }, 'Acompanhe as movimentações e atualizações mais recentes dos seus pedidos.')
@@ -771,7 +771,7 @@
     function buildPrazos() {
       var card = window.el('div', { style: CARD + 'padding:16px 20px;' });
       card.appendChild(window.el('div', {
-        style: 'font-size:16px;font-weight:700;color:var(--rv-text-primary);',
+        style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);',
       }, 'Prazos próximos'));
       card.appendChild(window.el('div', {
         style: 'font-size:13px;color:var(--rv-text-tertiary);margin-top:3px;margin-bottom:16px;',

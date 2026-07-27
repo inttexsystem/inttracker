@@ -585,11 +585,16 @@ test('31 · passes 1, 2 and 3 remain closed', () => {
 test('32 · no rule outside UIC-004 moved in this pass', () => {
   // The exact multiset the pass-4 order authorizes: UIC-004 to zero, and the
   // rest of the repository byte-identical to the 42ce915 entry baseline.
+  //
+  // Two numbers below are LATER-PASS state, not pass-4 state, and are carried
+  // forward mechanically as each authorized pass closes its own rule. Pass 5
+  // took UIC-008 to 0/0 (1008 -> 966) and pass 6 took UIC-005 to 0 (966 -> 886).
+  // Everything pass 4 actually owns is unchanged.
   assert.equal(rule('UIC-000').coverage_gaps, 549);
-  assert.equal(rule('UIC-005').blocking, 80);
+  assert.equal(rule('UIC-005').blocking, 0);   // pass 6 closed typography
   assert.equal(rule('UIC-006').blocking, 15);
   assert.equal(rule('UIC-008').blocking, 0);
   assert.equal(rule('UIC-008').coverage_gaps, 0);
   assert.equal(rule('UIC-009').debt, 322);
-  assert.equal(BASELINE.findings.length, 966);
+  assert.equal(BASELINE.findings.length, 886);
 });

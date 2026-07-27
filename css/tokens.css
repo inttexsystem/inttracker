@@ -123,16 +123,32 @@
 
   /* ---- TYPOGRAPHY ---- */
   --rv-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --rv-fs-title:  22px;    /* H1 · 800 · tracking -.02em */
-  --rv-fs-metric: 15px;    /* emphasised metric · 700 */
-  --rv-fs-metric-rail: 14px;
-  --rv-fs-value:  13.5px;  /* label/value pair value · 600 */
-  --rv-fs-body:   13px;    /* cell, button, field */
-  --rv-fs-sm:     12.5px;  /* metric label, secondary line */
-  --rv-fs-xs:     12px;    /* file chip, compact control */
-  --rv-fs-2xs:    11.5px;  /* metadata, hint, badge */
-  --rv-fs-label:  11px;    /* SECTION LABEL · 700 · uppercase */
-  --rv-fs-thead:  10.5px;  /* TABLE HEADER · 600 · uppercase */
+  --rv-fs-title:  22px;    /* PAGE_TITLE — H1 · 800 · tracking -.02em */
+  --rv-fs-section-heading: 20px;    /* SECTION_HEADING — real H2, major section
+                                       heading below a page title, large card
+                                       heading whose role is structural (P6) */
+  --rv-fs-component-heading: 16px;  /* COMPONENT_HEADING — modal/dialog title,
+                                       form-section heading, component-local or
+                                       subsection heading (P6)               */
+  --rv-fs-metric: 15px;    /* EMPHASISED_METRIC — numeric/operational · 700 */
+  --rv-fs-metric-rail: 14px;  /* RAIL_METRIC */
+  --rv-fs-value:  13.5px;  /* PAIR_VALUE — label/value pair value · 600 */
+  --rv-fs-body:   13px;    /* BODY_CONTROL_CELL — cell, button, field */
+  --rv-fs-sm:     12.5px;  /* SECONDARY_LINE — metric label, secondary line */
+  --rv-fs-xs:     12px;    /* COMPACT_CONTENT — file chip, compact control */
+  --rv-fs-2xs:    11.5px;  /* METADATA_BADGE — metadata, hint, badge */
+  --rv-fs-label:  11px;    /* SECTION_LABEL · 700 · uppercase */
+  --rv-fs-thead:  10.5px;  /* TABLE_HEADER · 600 · uppercase */
+  --rv-fs-micro:  10px;    /* MICRO_COPY — dense status/badge text, compact
+                              timeline or document metadata, micro labels that
+                              are NOT interactive control text. Floor of the
+                              scale: no value below 10px is permitted (P6). */
+
+  /* Icon-only textual glyph (e.g. a modal close "×"). Shares the 20px value
+     with SECTION_HEADING but must remain a separate semantic owner: this is
+     not body copy and not a heading. Does not authorize emoji, new text
+     icons or replacing a Lucide icon (P6 §5.3).                            */
+  --rv-icon-glyph-lg: 20px;
   --rv-tracking-title: -.02em;
   --rv-tracking-label: .06em;
   --rv-tracking-thead: .04em;

@@ -52,7 +52,7 @@
   // screenFornecedorHome — placeholder Fase 1.
   function screenFornecedorHome() {
     const content = window.el('div', {},
-      window.el('h1', { class: 'text-2xl font-bold mb-4' }, 'Área do Fornecedor'),
+      window.el('h1', { style: 'font-size:var(--rv-fs-title);', class: 'font-bold mb-4' }, 'Área do Fornecedor'),
       window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white p-6 shadow' },
         window.el('p', { class: 'text-gray-700' }, 'Olá, ' + window.CURRENT_USER.nome + '. (Fase 1 — placeholder; suas entregas aparecem aqui a partir da Fase 4/5.)')
       )

@@ -261,7 +261,7 @@
         }, svgEl(SVG_BACK)),
         window.el('div', {},
           window.el('h1', {
-            style: 'margin:0; font-size:23px; font-weight:800; color:var(--rv-text-primary); letter-spacing:-.01em;'
+            style: 'margin:0; font-size:var(--rv-fs-title); font-weight:800; color:var(--rv-text-primary); letter-spacing:-.01em;'
           }, 'Novo pedido'),
           window.el('div', {
             style: 'font-size:13.5px; color:var(--rv-text-tertiary); margin-top:4px; max-width:760px;'
@@ -405,7 +405,7 @@
       return window.el('div', {
         style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px;'
       },
-      window.el('div', { style: 'font-size:16px; font-weight:700; color:var(--rv-text-primary); margin-bottom:12px;' }, 'Dados gerais'),
+      window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:12px;' }, 'Dados gerais'),
       // Ordem visual exigida: Cliente -> Numero -> Data -> Prazo -> Status.
       window.el('div', {
         'data-pedido-header-grid': '1',
@@ -500,7 +500,7 @@
       window.el('div', {
         style: 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap;'
       },
-      window.el('div', { style: 'font-size:16px; font-weight:700; color:var(--rv-text-primary);' }, 'Itens do pedido'),
+      window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary);' }, 'Itens do pedido'),
       addBtn),
       table);
     }
@@ -529,7 +529,7 @@
       var instrCard = window.el('div', {
         style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px;'
       },
-      window.el('div', { style: 'font-size:16px; font-weight:700; color:var(--rv-text-primary); margin-bottom:10px;' }, 'Instruções gerais'),
+      window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:10px;' }, 'Instruções gerais'),
       obsTextarea);
 
       window.requestAnimationFrame(function () {
@@ -539,7 +539,7 @@
       var checkoutCard = window.el('div', {
         style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px; display:flex; flex-direction:column; justify-content:center;'
       },
-      window.el('div', { style: 'font-size:16px; font-weight:700; color:var(--rv-text-primary);' }, 'Salvar rascunho'),
+      window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary);' }, 'Salvar rascunho'),
       window.el('div', {
         style: 'font-size:13px; color:var(--rv-text-tertiary); line-height:1.5; margin-top:10px; margin-bottom:14px;',
         'data-pedido-checkout-summary': '1'
@@ -573,7 +573,7 @@
           style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;',
         },
           window.el('div', { style: 'min-width:240px;' },
-            window.el('div', { style: 'font-size:18px;font-weight:800;color:var(--rv-text-primary);margin-bottom:5px;' }, 'Pedido salvo com sucesso'),
+            window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:800;color:var(--rv-text-primary);margin-bottom:5px;' }, 'Pedido salvo com sucesso'),
             window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;' },
               'O pedido foi salvo. Abra a OP de tecelagem quando estiver pronto para iniciar a producao.')
           )

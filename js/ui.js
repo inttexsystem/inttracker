@@ -88,8 +88,11 @@ function modal({ title, body, onSave, saveLabel = 'Salvar', onClose, danger = fa
   // (contract §2.10). Tailwind no longer owns any product shadow.
   const card = el('div', { style: 'border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-popover);', class: 'bg-white border border-[#eceef1] w-full max-w-lg max-h-[90vh] flex flex-col' });
   const header = el('div', { class: 'px-6 py-4 border-b border-[#eceef1] flex justify-between items-center' },
-    el('h2', { class: 'text-base font-bold text-[#16203a]' }, title),
-    el('button', { class: 'text-gray-400 hover:text-gray-700 text-2xl leading-none', onclick: close }, '×')
+    // Pass-6: css/tokens.css owns typography. The modal title is a
+    // COMPONENT_HEADING and the close "×" is an icon-only text glyph, so each
+    // takes its own semantic token instead of a Tailwind size utility.
+    el('h2', { style: 'font-size:var(--rv-fs-component-heading);', class: 'font-bold text-[#16203a]' }, title),
+    el('button', { style: 'font-size:var(--rv-icon-glyph-lg);', class: 'text-gray-400 hover:text-gray-700 leading-none', onclick: close }, '×')
   );
   const content = el('div', { class: 'px-6 py-4 overflow-y-auto flex-1' }, body);
 
@@ -312,7 +315,8 @@ function truncatedCell(displayText, rawValue, colorStyle) {
 // --- Page header padrão (título + botão de ação) ---
 function pageHeader(title, actions = []) {
   const wrap = el('div', { class: 'flex justify-between items-center mb-4' });
-  wrap.appendChild(el('h1', { class: 'text-2xl font-bold' }, title));
+  // Pass-6: the page-header title is a PAGE_TITLE; Tailwind no longer owns it.
+  wrap.appendChild(el('h1', { style: 'font-size:var(--rv-fs-title);', class: 'font-bold' }, title));
   const actWrap = el('div', { class: 'flex gap-2' });
   for (const a of actions) {
     actWrap.appendChild(el('button', {

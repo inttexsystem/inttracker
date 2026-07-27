@@ -182,7 +182,7 @@
           }, svgEl(SVG_BACK)),
           window.el('div', {},
             window.el('h1', {
-              style: 'margin:0; font-size:23px; font-weight:800; color:var(--rv-text-primary); letter-spacing:-.01em;'
+              style: 'margin:0; font-size:var(--rv-fs-title); font-weight:800; color:var(--rv-text-primary); letter-spacing:-.01em;'
             }, 'Novo pedido'),
             window.el('div', {
               style: 'font-size:13.5px; color:var(--rv-text-tertiary); margin-top:4px;'
@@ -245,7 +245,7 @@
       return window.el('div', {
         style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px 20px; margin-bottom:14px;'
       },
-        window.el('div', { style: 'font-size:16px; font-weight:700; color:var(--rv-text-primary); margin-bottom:12px;' }, 'Dados gerais'),
+        window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:12px;' }, 'Dados gerais'),
         window.el('div', { style: 'display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px;' },
           window.el('div', {},
             window.el('label', { style: 'display:block; font-size:13px; color:var(--rv-text-secondary); margin-bottom:6px;' }, 'Referência do cliente'),
@@ -411,7 +411,7 @@
         style: 'display:flex; align-items:flex-start; justify-content:space-between; padding:18px 20px 12px;'
       },
         window.el('div', {},
-          window.el('div', { style: 'font-size:16px; font-weight:700; color:var(--rv-text-primary);' }, 'Adicionar item'),
+          window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary);' }, 'Adicionar item'),
           window.el('div', { style: 'font-size:13px; color:var(--rv-text-tertiary); margin-top:3px;' },
             'Informe os dados do item que será incluído no pedido.')
         ),
@@ -682,7 +682,7 @@
         style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px 20px; margin-bottom:14px;'
       },
         window.el('div', { style: 'display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;' },
-          window.el('div', { style: 'font-size:16px; font-weight:700; color:var(--rv-text-primary);' }, 'Itens do pedido'),
+          window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary);' }, 'Itens do pedido'),
           addBtn
         ),
         tableWrap
@@ -708,14 +708,14 @@
       var instrCard = window.el('div', {
         style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px 20px;'
       },
-        window.el('div', { style: 'font-size:16px; font-weight:700; color:var(--rv-text-primary); margin-bottom:10px;' }, 'Instruções gerais'),
+        window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:10px;' }, 'Instruções gerais'),
         obsTextarea
       );
 
       var checkoutCard = window.el('div', {
         style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px 20px; display:flex; flex-direction:column; justify-content:center;'
       },
-        window.el('div', { style: 'font-size:16px; font-weight:700; color:var(--rv-text-primary); margin-bottom:10px;' }, 'Ir para checkout'),
+        window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:10px;' }, 'Ir para checkout'),
         saveBtn
       );
 
@@ -739,7 +739,7 @@
         style: 'background:var(--rv-surface);border:1px solid var(--rv-pill-info-border);border-radius:4px;box-shadow:var(--rv-shadow-none);padding:18px 20px;margin-bottom:14px;',
         'data-post-save-summary': 'cliente',
       },
-        window.el('div', { style: 'font-size:18px;font-weight:800;color:var(--rv-text-primary);margin-bottom:6px;' }, 'Pedido enviado'),
+        window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:800;color:var(--rv-text-primary);margin-bottom:6px;' }, 'Pedido enviado'),
         window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;margin-bottom:14px;' },
           'Recebemos seu pedido. A equipe da Ravatex fara a conferencia e atualizara o acompanhamento.'),
         window.el('div', {

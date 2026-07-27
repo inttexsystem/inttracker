@@ -257,7 +257,7 @@
           window.el('div', {},
             window.el('div', { style: 'font-size:13.5px;color:var(--rv-text-tertiary);margin-bottom:6px;' },
               'Expedicoes / ', window.el('span', { style: 'color:var(--rv-text-secondary);font-weight:600;' }, 'Pedido ' + pedidoNumero)),
-            window.el('h1', { style: 'margin:0;font-size:24px;font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;' },
+            window.el('h1', { style: 'margin:0;font-size:var(--rv-fs-title);font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;' },
               'Expedicao do Pedido ' + pedidoNumero),
             window.el('div', { style: 'font-size:13px;color:var(--rv-text-tertiary);margin-top:6px;' },
               (exp.cliente && exp.cliente.nome ? exp.cliente.nome : 'Cliente') + ' - ' +
@@ -280,19 +280,19 @@
       },
         window.el('div', { style: CARD + 'padding:14px 16px;' },
           window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);font-weight:700;margin-bottom:6px;' }, 'LIBERADO'),
-          window.el('div', { style: 'font-size:20px;font-weight:800;color:var(--rv-text-primary);' }, fmtMetros(totalLiberado))),
+          window.el('div', { style: 'font-size:var(--rv-fs-metric);font-weight:800;color:var(--rv-text-primary);' }, fmtMetros(totalLiberado))),
         window.el('div', { style: CARD + 'padding:14px 16px;' },
           window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);font-weight:700;margin-bottom:6px;' }, 'ENTREGUE / COLETADO'),
-          window.el('div', { style: 'font-size:20px;font-weight:800;color:var(--rv-signal-positive);' }, fmtMetros(totalEntregue))),
+          window.el('div', { style: 'font-size:var(--rv-fs-metric);font-weight:800;color:var(--rv-signal-positive);' }, fmtMetros(totalEntregue))),
         window.el('div', { style: CARD + 'padding:14px 16px;' },
           window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);font-weight:700;margin-bottom:6px;' }, 'SALDO'),
-          window.el('div', { style: 'font-size:20px;font-weight:800;color:' + (saldo > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)') + ';' }, fmtMetros(Math.max(saldo, 0))))
+          window.el('div', { style: 'font-size:var(--rv-fs-metric);font-weight:800;color:' + (saldo > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)') + ';' }, fmtMetros(Math.max(saldo, 0))))
       );
     }
 
     function buildItens() {
       var card = window.el('div', { style: CARD + 'overflow:hidden;margin-bottom:14px;' },
-        window.el('div', { style: 'padding:16px 20px;font-size:15.5px;font-weight:700;color:var(--rv-text-primary);' }, 'Itens da expedicao'));
+        window.el('div', { style: 'padding:16px 20px;font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);' }, 'Itens da expedicao'));
       if (!state.itens.length) {
         card.appendChild(window.el('div', { style: 'padding:0 20px 18px;font-size:13px;color:var(--rv-text-tertiary);' }, 'Nenhum item liberado para expedicao.'));
         return card;
@@ -344,7 +344,7 @@
 
       return window.el('div', { style: CARD + 'padding:16px 20px;margin-bottom:14px;' },
         window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;' },
-          window.el('div', { style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);' }, 'Registrar entrega/coleta'),
+          window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);' }, 'Registrar entrega/coleta'),
           saldoTotal <= 0 ? badge('concluida') : window.el('span', { style: 'font-size:12.5px;color:var(--rv-text-tertiary);' }, 'Saldo disponivel: ' + fmtMetros(saldoTotal))),
         saldoTotal <= 0
           ? window.el('div', { style: 'font-size:13px;color:var(--rv-signal-positive);font-weight:600;' }, 'Expedicao sem saldo pendente.')
@@ -413,7 +413,7 @@
       });
 
       var card = window.el('div', { style: CARD + 'padding:16px 20px;margin-bottom:14px;' },
-        window.el('div', { style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:12px;' }, 'Historico'));
+        window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:12px;' }, 'Historico'));
       if (!state.movimentos.length) {
         card.appendChild(window.el('div', { style: 'font-size:13px;color:var(--rv-text-tertiary);' }, 'Nenhuma entrega/coleta registrada ainda.'));
         return card;
@@ -460,7 +460,7 @@
         buttonAttrs.disabled = 'disabled';
       }
       return window.el('div', { style: CARD + 'padding:16px 20px;' },
-        window.el('div', { style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:10px;' }, 'Conclusao'),
+        window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:10px;' }, 'Conclusao'),
         window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;margin-bottom:12px;' },
           ready
             ? 'Toda a expedicao desta OP esta entregue/coletada. O pedido pode ser validado para conclusao.'

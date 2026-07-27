@@ -81,12 +81,12 @@ resolution or coverage is incomplete. No row below was set by looking at a scree
 
 **Two source classes, one rule set.** The prototype front-end reads `.dc.html`; the
 application front-end reads `js/screens/*.js`. 67 files were scanned: 31 `FULL`, 36
-`PARTIAL`, 0 `UNSUPPORTED`. 966 findings — 95 blocking, 322 declared debt, 549
+`PARTIAL`, 0 `UNSUPPORTED`. 886 findings — 15 blocking, 322 declared debt, 549
 coverage gaps.
 
 **Baseline by rule.** UIC-001 literal colour **0** (+**0** gaps) · UIC-002 radius **0**
 (+**0** gaps) · UIC-003 control height **0** (+**0** gaps) · UIC-004 shadow **0**
-(+**0** gaps) · UIC-005 typography 80 · UIC-006 native `<select>` 15 · UIC-007 pill
+(+**0** gaps) · UIC-005 typography **0** (+**0** gaps) · UIC-006 native `<select>` 15 · UIC-007 pill
 radius on a button **0** · UIC-008 card action alignment **0** (+**0** gaps) · UIC-009
 deprecated token 322 (debt) · UIC-010 semantic-radius misuse **0** (+**0** gaps) ·
 UIC-011 unknown token **0**. Cards carrying a shadow: **0**. Plus 549 front-end
@@ -95,6 +95,37 @@ decoding gaps under `UIC-000`.
 `UIC-008` closure covers the **explicitly marked** footer population — four product
 rows — and not the absence of every possible unmarked footer in imperative runtime
 code. That capability limit is the open debt `UI-ACTION-CONTAINER-CONTAINMENT-GAP`.
+
+**Deltas against the pass-6 entry baseline** (`212972d`, blob `86ef82b` → `702c8a7`):
+UIC-005 80 blocking → **0**. Measured semantically — rule, severity, path, property,
+values, context and message, with line and column attribution ignored — the delta is
+**exactly 80 findings removed and 0 added, all `UIC-005`**; every other rule multiset is
+identical: UIC-000 549, UIC-001 0/0, UIC-002 0/0, UIC-003 0/0, UIC-004 0/0, UIC-006 15,
+UIC-007 0, UIC-008 0/0, UIC-009 322 debt, UIC-010 0/0, UIC-011 0. Total 966 → **886**.
+Coverage `FULL` 31, `PARTIAL` 36, `UNSUPPORTED` 0 — unchanged. Seven surviving
+`UIC-009` findings moved COLUMN only, on their own unchanged lines, because a role token
+is a longer string than the literal it replaced; that is location movement, not a
+semantic change. The detector stays `1.0.6`; the contract hash moves
+`f8349e6e` → `2a4fb0ef` because pass 6 was authorized to revise the `font_size` enum
+from ten values to thirteen.
+
+Typography is **role-based**, not nearest-number replacement. The revised enum admits
+`22 · 20 · 16 · 15 · 14 · 13.5 · 13 · 12.5 · 12 · 11.5 · 11 · 10.5 · 10px`, with 10px a
+hard floor. Three roles were ratified — `SECTION_HEADING` (`--rv-fs-section-heading`,
+20px), `COMPONENT_HEADING` (`--rv-fs-component-heading`, 16px) and `MICRO_COPY`
+(`--rv-fs-micro`, 10px) — plus a separate owner for an icon-only text glyph,
+`--rv-icon-glyph-lg` (20px), which shares the `SECTION_HEADING` value but is neither a
+heading nor body copy. `9px`, `14.5px`, `15.5px`, `18px`, `19px`, `21px`, `23px`, `24px`
+and `30px` no longer exist in first-party rendered runtime.
+
+`UIC-005` closure is **wider than the detector inventory**. The runtime ownership guard
+in `tests/ui-conformance-phase5-pass6-typography.test.mjs` covers `index.html` and every
+local asset it loads — 103 files, including `js/ui.js` and
+`js/document-links-surface-ui.js`, which no detector rule reaches — and reports
+`OUT_OF_ENUM_RUNTIME_FONT_SIZE_COUNT` **0**, `OUT_OF_ENUM_RUNTIME_FONT_WEIGHT_COUNT`
+**0**, `TAILWIND_OUT_OF_ENUM_FONT_SIZE_UTILITY_COUNT` **0**,
+`UNRESOLVED_RUNTIME_TYPOGRAPHY_COUNT` **0**, `FONT_SIZE_LITERAL_BELOW_10PX_COUNT` **0**
+and `UNKNOWN_TYPOGRAPHY_TOKEN_COUNT` **0**.
 
 **Deltas against the A2 entry baseline** (`2114191`, blob `6d8b305` → `058f0fd` → the
 current blob): exactly **five findings added, none removed**, every one of them
@@ -363,8 +394,12 @@ inside the closed enum.
 all** (`declaration_sites: 0`) — they are write, data, helper or routing modules. Closing
 UIC-001 and then the two radius rules did **not** make any screen conforming by design:
 every screen that declares visual values and still deviates carries at least one blocking
-finding from height, shadow, typography, or native `<select>`. That is expected — those
-are passes 3-8 and none of them has run.
+finding from native `<select>`. Height (pass 3), shadow (pass 4), card action alignment
+(pass 5) and typography (pass 6) have since run and are closed; `UIC-006` is the only
+blocking rule left. The per-screen rows below are **not** re-derived by this pass — no
+order has authorized that — so a row may still show a blocking count that predates a
+later pass's closure. The aggregate figures above and the detector are the current
+owners of that number.
 
 | Screen | State | Coverage | Blocking | Debt | Gaps |
 |---|---|---|---|---|---|
@@ -516,13 +551,16 @@ this table demands:
 | 6 | `UIC-008` | **CLOSED** — 0 (+0 gaps) | `--rule UIC-008 --enforce` exits 0 — marked rows only |
 | 7 | `UIC-006` | 15 | `--rule UIC-006 --enforce` |
 | 8 | — | — | manual; the detector only inventories the eight tables |
-| type | `UIC-005` | 80 | `--rule UIC-005 --enforce` |
+| type | `UIC-005` | **CLOSED** — 0 (+0 gaps) | `--rule UIC-005 --enforce` exits 0 |
 | alias deletion | `UIC-009` | 322 (debt) | `--rule UIC-009` reporting 0 unblocks deleting the aliases |
 
 `UIC-007` (pill radius on a button) and `UIC-011` (unknown token) are at zero
-repository-wide, and `UIC-001` now joins them. **A coverage gap must be closed before
-its rule can close.** Pass 6 cannot be declared clean while 37 screens cannot even be
-evaluated for it; the honest first step is marking the action rows, not reporting zero.
+repository-wide, and `UIC-001`, `UIC-002`, `UIC-003`, `UIC-004`, `UIC-005`, `UIC-008` and
+`UIC-010` now join them. **A coverage gap must be closed before its rule can close.**
+That standard was applied to `UIC-008`: its 42 `ACTION_ROW_UNPROVEN` gaps were resolved
+before the rule was allowed to report zero, not reported around. `UIC-005` never carried
+a coverage gap of its own, and pass 6 nonetheless proved the property over the whole
+loaded runtime rather than over the detector inventory alone.
 Pass 1 was held to exactly that standard: `--rule UIC-001 --enforce` reaching zero would
 still have left 771 colour-shaped runs whose site the detector could not prove, so the
 pass was not closed until those were resolved too and the coverage count also reached

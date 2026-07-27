@@ -77,7 +77,7 @@
   function sectionHead(svgMarkup, title) {
     return el('div', { style: 'display:flex;align-items:center;gap:10px;margin-bottom:18px;' },
       sectionIcon(svgMarkup),
-      el('span', { style: 'font-size:16px;font-weight:700;color:var(--rv-color-title);' }, title));
+      el('span', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-color-title);' }, title));
   }
 
   // Botões do cabeçalho da página (leves, altura 34px) — secundário,
@@ -625,7 +625,7 @@
           return el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:16px;' },
             el('div', { style: 'min-width:0;' },
               el('div', { style: 'display:flex;align-items:center;gap:11px;flex-wrap:wrap;' },
-                el('h1', { style: 'margin:0;font-size:22px;font-weight:800;color:var(--rv-color-title);letter-spacing:-.02em;' }, formatOpDisplay(op, opDisplayContext)),
+                el('h1', { style: 'margin:0;font-size:var(--rv-fs-title);font-weight:800;color:var(--rv-color-title);letter-spacing:-.02em;' }, formatOpDisplay(op, opDisplayContext)),
                 rvStageBadge(),
                 rvStatusBadge('em_producao')),
               el('div', { style: 'font-size:12.5px;color:var(--rv-color-muted);margin-top:7px;line-height:1.5;' }, meta.join(' · '))),
@@ -779,7 +779,7 @@
             card.appendChild(el('div', { style: (i > 0 ? 'border-top:1px solid var(--rv-color-line-100);margin-top:13px;padding-top:13px;' : '') },
               el('div', { style: 'display:flex;align-items:center;gap:7px;margin-bottom:8px;' },
                 el('span', { style: 'font-size:12px;font-weight:600;color:var(--rv-color-value);' }, tipo),
-                el('span', { 'data-ui-pill': '1', style: 'font-size:10px;font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);' }, '0')),
+                el('span', { 'data-ui-pill': '1', style: 'font-size:var(--rv-fs-micro);font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);' }, '0')),
               el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-bottom:8px;' }, 'Nenhum arquivo anexado.'),
               el('button', {
                 type: 'button', style: ANEXAR_BTN,
@@ -939,7 +939,7 @@
           el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:16px;' },
             el('div', { style: 'min-width:0;' },
               el('div', { style: 'display:flex;align-items:center;gap:11px;flex-wrap:wrap;' },
-                el('h1', { style: 'margin:0;font-size:22px;font-weight:800;color:var(--rv-color-title);letter-spacing:-.02em;' }, formatOpDisplay(op, opDisplayContext)),
+                el('h1', { style: 'margin:0;font-size:var(--rv-fs-title);font-weight:800;color:var(--rv-color-title);letter-spacing:-.02em;' }, formatOpDisplay(op, opDisplayContext)),
                 rvStageBadge(),
                 rvStatusBadge('aberta')),
               el('div', { style: 'font-size:12.5px;color:var(--rv-color-muted);margin-top:7px;line-height:1.5;' }, meta.join(' · '))),

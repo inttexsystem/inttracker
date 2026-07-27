@@ -76,7 +76,8 @@ test('2 · UIC-008 reports zero blocking and zero coverage', () => {
 test('3 · the inventory the pass was measured over is unchanged', () => {
   assert.equal(BASELINE.inventory.application.count, 66);
   assert.equal(BASELINE.coverage_summary.UNSUPPORTED, 0);
-  assert.equal(BASELINE.findings.length, 966);
+  // 966 at the pass-5 checkpoint; pass 6 removed its own 80 UIC-005 findings.
+  assert.equal(BASELINE.findings.length, 886);
 });
 
 test('4 · the blanket ACTION_ROW_UNPROVEN branch no longer exists', () => {
@@ -475,7 +476,9 @@ test('24 · passes 1, 2, 3 and 4 remain closed', () => {
 
 test('25 · no rule outside UIC-008 moved in this pass', () => {
   assert.equal(rule('UIC-000').coverage_gaps, 549);
-  assert.equal(rule('UIC-005').blocking, 80);
+  // UIC-005 was 80 at the pass-5 checkpoint; the authorized pass-6 typography
+  // order took it to 0 and moved nothing else. Carried forward mechanically.
+  assert.equal(rule('UIC-005').blocking, 0);
   assert.equal(rule('UIC-006').blocking, 15);
   assert.equal(rule('UIC-009').debt, 322);
   assert.equal(BASELINE.coverage_summary.FULL, 31);

@@ -118,7 +118,7 @@
     var box = el('div', { id: 'ordens-compra-list' });
 
     var header = el('div', { class: 'flex justify-between items-center mb-4' },
-      el('h1', { class: 'text-2xl font-bold' }, 'Ordens de compra'));
+      el('h1', { style: 'font-size:var(--rv-fs-title);', class: 'font-bold' }, 'Ordens de compra'));
     box.appendChild(header);
 
     if (state.indisponivel) {
@@ -187,7 +187,7 @@
     // Header card
     var head = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5 mb-4' });
     head.appendChild(el('div', { class: 'flex items-center gap-3 mb-3 flex-wrap' },
-      el('h1', { class: 'text-xl font-bold' }, 'Ordem de compra #' + o.ordem_id),
+      el('h1', { style: 'font-size:var(--rv-fs-title);', class: 'font-bold' }, 'Ordem de compra #' + o.ordem_id),
       modeloBadge(o.modelo), statusBadge(o.status_administrativo),
       o.modelo === 'nativo' ? statusAceiteBadge(o.status_aceite) : null));
     head.appendChild(el('div', { class: 'text-sm text-gray-600' },

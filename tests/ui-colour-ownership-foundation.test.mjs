@@ -27,8 +27,17 @@ const INDEX_HTML = read('index.html');
 const CONTRACT = read('docs/architecture/UI_VISUAL_CONTRACT.md');
 const DECISIONS = read('docs/architecture/DESIGN_DECISIONS.md');
 
-/** The cache-busting token this pass stamps on every asset it changed. */
-const PASS1_TOKEN = '20260726-ui-p5-pass1';
+/**
+ * The cache-busting token css/tokens.css currently carries.
+ *
+ * What test 16 guards is the DELIVERY INVARIANT, not a particular string: the
+ * token stylesheet is loaded exactly once, only under a versioned URL, never
+ * bare, and before css/responsive.css. Every later pass that edits the sheet
+ * must move this token, or a browser could pair new JavaScript with a cached
+ * old stylesheet — the exact defect pass 1 was corrected for. Pass 6 added the
+ * four typography role tokens, so the value moves with it.
+ */
+const PASS1_TOKEN = '20260726-ui-p5-pass6-typography-r1';
 const TOKENS_LINK = `<link rel="stylesheet" href="css/tokens.css?v=${PASS1_TOKEN}">`;
 
 const SCREEN_DIR = path.join(ROOT, 'js', 'screens');
@@ -47,6 +56,18 @@ const AUTHORIZED_NEW_TOKENS = [
   '--rv-viz-series-3',
   '--rv-viz-series-4',
   '--rv-overlay-scrim',
+];
+
+/**
+ * The typography roles the phase-5 pass-6 order ratified. Held apart from the
+ * D9 list so `AUTHORIZED_NEW_TOKENS` keeps meaning exactly "what D9 authorized"
+ * — these are a later, separately authorized addition, not a widening of D9.
+ */
+const PASS6_NEW_TOKENS = [
+  '--rv-fs-section-heading',   // SECTION_HEADING · 20px
+  '--rv-fs-component-heading', // COMPONENT_HEADING · 16px
+  '--rv-fs-micro',             // MICRO_COPY · 10px, floor of the scale
+  '--rv-icon-glyph-lg',        // icon-only text glyph · 20px
 ];
 
 /** Canonical token set at the phase-4 checkpoint 9fbb84c, before D9. */
@@ -193,14 +214,17 @@ test('1b · the composed tokens resolve to the family they claim', () => {
 
 test('2 · no canonical token exists beyond the phase-4 baseline plus the D9 list', () => {
   const { canonical, deprecated } = parseTokenDeclarations(TOKENS_CSS);
-  const allowed = new Set([...BASELINE_CANONICAL, ...AUTHORIZED_NEW_TOKENS]);
+  const allowed = new Set([...BASELINE_CANONICAL, ...AUTHORIZED_NEW_TOKENS, ...PASS6_NEW_TOKENS]);
   const unexpected = canonical.filter((t) => !allowed.has(t));
   assert.deepEqual(unexpected, [], `unauthorized canonical token(s): ${unexpected.join(', ')}`);
 
   const missing = BASELINE_CANONICAL.filter((t) => !canonical.includes(t));
   assert.deepEqual(missing, [], `phase-4 token(s) removed: ${missing.join(', ')}`);
 
-  assert.equal(canonical.length, BASELINE_CANONICAL.length + AUTHORIZED_NEW_TOKENS.length);
+  assert.equal(
+    canonical.length,
+    BASELINE_CANONICAL.length + AUTHORIZED_NEW_TOKENS.length + PASS6_NEW_TOKENS.length,
+  );
   // The deprecated compatibility block is untouched by this pass.
   assert.equal(deprecated.length, 26, 'the LEGACY COMPATIBILITY block changed size');
 });

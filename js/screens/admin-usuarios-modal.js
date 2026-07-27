@@ -172,14 +172,14 @@
       style: 'display:flex; flex-direction:column; gap:4px; min-width:0;'
     });
     titleWrap.appendChild(window.el('h2', {
-      style: 'margin:0; font-size:20px; line-height:1.2; font-weight:700; color:var(--rv-text-primary);'
+      style: 'margin:0; font-size:var(--rv-fs-component-heading); line-height:1.2; font-weight:700; color:var(--rv-text-primary);'
     }, title));
 
     var closeButton = window.el('button', {
       type: 'button',
       'aria-label': 'Fechar',
       onclick: close,
-      style: 'width:32px; height:32px; flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--rv-border-soft); border-radius:4px; background:var(--rv-surface); color:var(--rv-text-tertiary); font-size:20px; line-height:1; cursor:pointer;'
+      style: 'width:32px; height:32px; flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--rv-border-soft); border-radius:4px; background:var(--rv-surface); color:var(--rv-text-tertiary); font-size:var(--rv-icon-glyph-lg); line-height:1; cursor:pointer;'
     }, '×');
     closeButton.addEventListener('mouseenter', function () {
       closeButton.style.borderColor = 'var(--rv-border-strong)';
@@ -594,7 +594,7 @@
       return;
     }
     var passwordBox = window.el('div', {
-      style: 'font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:16px; font-weight:700; '
+      style: 'font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:var(--rv-fs-metric); font-weight:700; '
         + 'letter-spacing:.03em; background:var(--rv-surface-subtle); border:1px solid var(--rv-border-strong); border-radius:4px; '
         + 'padding:12px 14px; user-select:all; word-break:break-all;',
     }, password);

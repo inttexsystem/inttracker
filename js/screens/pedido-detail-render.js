@@ -113,7 +113,7 @@
         style: 'font-size:11.5px;color:var(--rv-text-tertiary);font-weight:600;margin-bottom:6px;',
       }, title),
       window.el('div', {
-        style: 'font-size:19px;font-weight:800;color:' + color + ';',
+        style: 'font-size:var(--rv-fs-metric);font-weight:800;color:' + color + ';',
       }, value)
     );
   }
@@ -125,7 +125,7 @@
         style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;',
       },
         window.el('div', {
-          style: 'font-size:23px;font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;',
+          style: 'font-size:var(--rv-fs-title);font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;',
         }, 'Pedido'),
         window.el('button', {
           type: 'button',
@@ -169,7 +169,7 @@
             style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;',
           },
             window.el('h1', {
-              style: 'margin:0;font-size:23px;font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;line-height:1.1;',
+              style: 'margin:0;font-size:var(--rv-fs-title);font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;line-height:1.1;',
             }, 'Pedido ' + numero),
             showOperationalStatus ? buildOperationalPill(chainState) : buildStatusPill(pedido.status, handlers),
             showOperationalStatus ? window.el('span', {
@@ -195,7 +195,7 @@
                 style: 'font-size:11.5px;color:var(--rv-text-tertiary);',
               }, 'Prazo previsto'),
               window.el('div', {
-                style: 'font-size:14.5px;font-weight:700;color:var(--rv-text-primary);',
+                style: 'font-size:var(--rv-fs-metric-rail);font-weight:700;color:var(--rv-text-primary);',
               }, prazo)
             )
           ),
@@ -267,7 +267,7 @@
         style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;',
       },
         window.el('div', {
-          style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);',
+          style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);',
         }, 'Dados gerais'),
         window.el('div', {
           style: 'display:flex;align-items:center;gap:6px;font-size:12px;color:var(--rv-text-tertiary);font-weight:600;',
@@ -430,7 +430,7 @@
       style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 22px;margin-bottom:14px;',
     },
       window.el('div', {
-        style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:20px;',
+        style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:20px;',
       }, 'Progresso produtivo'),
       body,
       window.el('div', {
@@ -518,7 +518,7 @@
     });
 
     card.appendChild(window.el('div', {
-      style: 'padding:16px 20px 12px;font-size:15.5px;font-weight:700;color:var(--rv-text-primary);',
+      style: 'padding:16px 20px 12px;font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);',
     }, 'Itens do pedido'));
 
     if (state.itens.length === 0) {
@@ -727,7 +727,7 @@
       },
         window.el('div', { style: 'display:flex;align-items:center;gap:9px;' },
           window.el('span', {
-            style: 'font-size:14.5px;font-weight:700;color:var(--rv-accent-blue);',
+            style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-accent-blue);',
           }, summary.label),
           window.el('span', {
             style: 'background:' + typeTone.bg + ';color:' + typeTone.text + ';border-radius:4px;padding:3px 9px;font-size:11.5px;font-weight:600;',
@@ -791,7 +791,7 @@
       style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;',
     },
       window.el('div', {
-        style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);',
+        style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);',
       }, 'OPs vinculadas'),
       semOps ? firstOpButton() : null
     ));
@@ -813,7 +813,7 @@
       },
         window.el('div', { style: 'min-width:240px;flex:1;' },
           window.el('div', {
-            style: 'font-size:14.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:6px;',
+            style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:6px;',
           }, 'Nenhuma OP vinculada ainda.'),
           window.el('div', {
             style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;',
@@ -857,7 +857,7 @@
     });
 
     wrap.appendChild(window.el('div', {
-      style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:10px;',
+      style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:10px;',
     }, 'Expedicoes vinculadas'));
 
     if (state.expedicoesLoadError) {
@@ -871,7 +871,7 @@
       wrap.appendChild(window.el('div', {
         style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;',
       },
-        window.el('div', { style: 'font-size:14.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:6px;' }, 'Nenhuma expedicao liberada'),
+        window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:6px;' }, 'Nenhuma expedicao liberada'),
         window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;' },
           'A expedicao aparece aqui depois que uma OP de acabamento finalizada for liberada para entrega/coleta.')
       ));
@@ -889,7 +889,7 @@
         window.el('div', {
           style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--rv-border-soft);',
         },
-          window.el('div', { style: 'font-size:14.5px;font-weight:700;color:var(--rv-accent-blue);' }, 'Expedicao #' + summary.id),
+          window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-accent-blue);' }, 'Expedicao #' + summary.id),
           window.el('span', {
             style: 'background:' + (concluida ? 'var(--rv-signal-positive-bg)' : 'var(--rv-signal-caution-bg)') + ';color:' + (concluida ? 'var(--rv-signal-positive)' : 'var(--rv-signal-caution)') + ';border-radius:4px;padding:3px 9px;font-size:11.5px;font-weight:700;',
           }, summary.status)
@@ -937,7 +937,7 @@
         style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;',
       },
         window.el('div', { style: 'min-width:260px;max-width:720px;' },
-          window.el('div', { style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:6px;' }, 'Conclusao do pedido'),
+          window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:6px;' }, 'Conclusao do pedido'),
           window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;' },
             jaEntregue ? 'Pedido ja concluido no fluxo operacional.' : conclusao.label),
           pendencias.length ? window.el('div', { style: 'margin-top:10px;display:flex;flex-direction:column;gap:5px;' },
@@ -1043,7 +1043,7 @@
         style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;',
       },
         window.el('div', {
-          style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);',
+          style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);',
         }, 'Evolucao do Cliente'),
         window.el('span', {
           style: 'background:var(--rv-surface-subtle);color:var(--rv-text-tertiary);border-radius:4px;padding:3px 9px;font-size:11px;font-weight:600;',
@@ -1147,7 +1147,7 @@
 
     (row.badges || []).forEach(function (b) {
       leftGroup.appendChild(window.el('span', {
-        style: 'background:' + b.bg + ';color:' + b.text + ';border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap;',
+        style: 'background:' + b.bg + ';color:' + b.text + ';border-radius:4px;padding:1px 6px;font-size:var(--rv-fs-micro);font-weight:700;flex-shrink:0;white-space:nowrap;',
       }, b.label));
     });
 
@@ -1156,7 +1156,7 @@
     });
 
     rightGroup.appendChild(window.el('span', {
-      style: 'background:var(--rv-signal-positive-bg);color:var(--rv-signal-positive);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap;',
+      style: 'background:var(--rv-signal-positive-bg);color:var(--rv-signal-positive);border-radius:4px;padding:2px 8px;font-size:var(--rv-fs-micro);font-weight:700;flex-shrink:0;white-space:nowrap;',
     }, 'Vinculo confirmado'));
 
     if (row.statusMeta) {
@@ -1206,7 +1206,7 @@
     });
 
     card.appendChild(window.el('div', {
-      style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:12px;',
+      style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:12px;',
     }, 'Documentos'));
 
     card.appendChild(window.el('div', {
@@ -1301,7 +1301,7 @@
         if (row.badges && row.badges.length > 0) {
           row.badges.forEach(function (b) {
             leftGroup.appendChild(window.el('span', {
-              style: 'background:' + b.bg + ';color:' + b.text + ';border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap;',
+              style: 'background:' + b.bg + ';color:' + b.text + ';border-radius:4px;padding:1px 6px;font-size:var(--rv-fs-micro);font-weight:700;flex-shrink:0;white-space:nowrap;',
             }, b.label));
           });
         }

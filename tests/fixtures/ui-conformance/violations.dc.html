@@ -22,7 +22,9 @@
   <!-- UIC-004 — outside the enum AND a shadow on a card -->
   <section style="box-shadow:0 2px 9px rgba(0,0,0,.30);">shadowed card</section>
   <!-- UIC-005 -->
-  <div style="font-size:10px;font-weight:450;">typography outside the enum</div>
+  <!-- 9px is below the pass-6 floor; 10px became MICRO_COPY and is now legal,
+       so the fixture states an illegal size rather than a legalised one. -->
+  <div style="font-size:9px;font-weight:450;">typography outside the enum</div>
   <!-- UIC-006 -->
   <select><option>native</option></select>
   <!-- UIC-007 -->

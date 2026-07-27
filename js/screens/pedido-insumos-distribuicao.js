@@ -169,7 +169,7 @@
         var data = await loadData(pedidoId);
         var body = el('div', {},
           el('div', { class: 'flex items-center justify-between gap-3 mb-4 flex-wrap' },
-            el('div', {}, el('h1', { class: 'text-xl font-bold' }, 'Insumos — distribuição de compra'), el('div', { class: 'text-sm text-gray-500 mt-1' }, 'Defina fornecedores e quantidades alvo por necessidade do Pedido.')),
+            el('div', {}, el('h1', { style: 'font-size:var(--rv-fs-title);', class: 'font-bold' }, 'Insumos — distribuição de compra'), el('div', { class: 'text-sm text-gray-500 mt-1' }, 'Defina fornecedores e quantidades alvo por necessidade do Pedido.')),
             el('button', { type: 'button', class: 'text-blue-700 font-semibold', onclick: function () { window.navigate('#/pedidos/' + pedidoId); } }, 'Voltar ao Pedido')));
         if (!data.needs.length) body.appendChild(el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-gray-500' }, 'Nenhuma necessidade nativa disponível para este Pedido.'));
         data.needs.forEach(function (need) { body.appendChild(renderNeed(need, function (selected, allocation) { openModal(selected, allocation, data.suppliers, reload, setNotice); })); });

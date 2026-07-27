@@ -633,10 +633,13 @@ function multisetDelta(before, after) {
  * the blanket per-file coverage branch that produced the A2 observability
  * increase recorded below.
  *
+ * UIC-005 joined the set with phase-5 pass 6, which closed typography and is
+ * pinned exactly, at 0, by tests/ui-conformance-phase5-pass6-typography.test.mjs.
+ *
  * This is a narrowing by RULE OWNERSHIP, not a threshold: every rule not named
  * here is still compared finding-for-finding below.
  */
-const RULES_OWNED_BY_A_LATER_PASS = new Set(['UIC-003', 'UIC-004', 'UIC-008']);
+const RULES_OWNED_BY_A_LATER_PASS = new Set(['UIC-003', 'UIC-004', 'UIC-005', 'UIC-008']);
 
 const withoutLaterPasses = (findings) =>
   findings.filter((f) => !RULES_OWNED_BY_A_LATER_PASS.has(f.rule_id));
@@ -738,7 +741,13 @@ test('21e · blocking, debt, inventory and support are unchanged', () => {
   // correction, so this pins both exact values rather than their equality.
   assert.equal(ENTRY_BASELINE.detector_version, '1.0.3');
   assert.equal(BASELINE.detector_version, '1.0.6');
-  assert.equal(BASELINE.contract_blob_hash, ENTRY_BASELINE.contract_blob_hash);
+  // A2 did not touch the closed enums. Phase-5 pass 6 was authorized to revise
+  // the font_size enum, so the two hashes now differ by that authorized change
+  // alone; both are pinned exactly instead of merely being compared.
+  assert.equal(ENTRY_BASELINE.contract_blob_hash,
+    'f8349e6eeca291fef2edf4d6e30afd628732f00b6495d54eb9273860fa63f1c4');
+  assert.equal(BASELINE.contract_blob_hash,
+    '2a4fb0efe2518cb6faad6867dc37c0d9f96c0b003b21b81c080e4ab48c1762ab');
 });
 
 test('21f · A2 moved exactly five files FULL -> PARTIAL, and only those five', () => {

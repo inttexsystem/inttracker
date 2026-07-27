@@ -70,7 +70,7 @@
       'aria-label': 'Inttex',
       style: 'width:72px;height:72px;border-radius:var(--rv-radius);border:1px solid var(--rv-border-soft);'
         + 'background:var(--rv-surface);display:flex;align-items:center;justify-content:center;'
-        + 'box-shadow:var(--rv-shadow-none);font-size:18px;font-weight:800;'
+        + 'box-shadow:var(--rv-shadow-none);font-size:var(--rv-icon-glyph-lg);font-weight:800;'
         + 'color:var(--rv-text-primary);letter-spacing:0;',
     }, 'In');
     card.appendChild(window.el('div', {
@@ -78,7 +78,7 @@
     }, brandMark));
 
     card.appendChild(window.el('h1', {
-      style: 'margin:0 0 6px;font-size:22px;font-weight:800;letter-spacing:0;'
+      style: 'margin:0 0 6px;font-size:var(--rv-fs-title);font-weight:800;letter-spacing:0;'
         + 'color:var(--rv-text-primary);text-align:center;line-height:1.2;',
     }, 'Inttex OptiControl'));
     card.appendChild(window.el('p', {
@@ -106,7 +106,7 @@
 
     const btn = window.el('button', { type: 'submit',
       style: 'width:100%;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;'
-        + 'padding:12px 16px;font-weight:700;font-size:14.5px;font-family:inherit;'
+        + 'padding:12px 16px;font-weight:700;font-size:var(--rv-fs-body);font-family:inherit;'
         + 'cursor:pointer;',
     }, 'Entrar');
 
@@ -195,7 +195,7 @@
 
   function screenForbidden() {
     return window.el('div', { class: 'min-h-screen flex flex-col items-center justify-center p-4 text-center' },
-      window.el('h1', { class: 'text-3xl font-bold text-red-600 mb-2' }, 'Acesso negado'),
+      window.el('h1', { style: 'font-size:var(--rv-fs-title);', class: 'font-bold text-red-600 mb-2' }, 'Acesso negado'),
       window.el('p', { class: 'text-gray-600 mb-4' }, 'Você não tem permissão pra essa tela.'),
       window.el('button', { style: 'border-radius:var(--rv-radius);', class: 'bg-blue-700 text-white px-4 py-2', onclick: () => window.routeAfterLogin() }, 'Voltar pro início')
     );
@@ -203,7 +203,7 @@
 
   function screenNotFound() {
     return window.el('div', { class: 'min-h-screen flex flex-col items-center justify-center p-4 text-center' },
-      window.el('h1', { class: 'text-3xl font-bold mb-2' }, '404'),
+      window.el('h1', { style: 'font-size:var(--rv-fs-title);', class: 'font-bold mb-2' }, '404'),
       window.el('p', { class: 'text-gray-600 mb-4' }, 'Tela não encontrada.'),
       window.el('button', { style: 'border-radius:var(--rv-radius);', class: 'bg-blue-700 text-white px-4 py-2', onclick: () => window.navigate('#/login') }, 'Ir pro login')
     );

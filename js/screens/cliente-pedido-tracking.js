@@ -320,7 +320,7 @@
       style: 'background:var(--rv-surface);border:1px solid var(--rv-signal-negative-border);border-radius:4px;padding:16px 20px;margin-bottom:14px;',
     },
       window.el('div', {
-        style: 'font-size:16px;font-weight:700;color:var(--rv-text-primary);margin-bottom:12px;',
+        style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:12px;',
       }, 'Acompanhamento do pedido'),
       window.el('div', {
         style: 'display:flex;align-items:center;gap:10px;background:var(--rv-surface);border:1px solid var(--rv-signal-negative-border);border-radius:4px;padding:11px 16px;',
@@ -470,7 +470,7 @@
       style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;margin-bottom:14px;',
     });
     card.appendChild(window.el('div', {
-      style: 'font-size:16px;font-weight:700;color:var(--rv-text-primary);margin-bottom:18px;',
+      style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:18px;',
     }, 'Acompanhamento do pedido'));
 
     var sectionsUi = window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.clienteRouteSectionsUi;

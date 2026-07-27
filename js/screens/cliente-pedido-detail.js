@@ -302,7 +302,7 @@
           style: 'display:flex;align-items:center;gap:12px;flex-wrap:wrap;',
         },
           window.el('h1', {
-            style: 'margin:0;font-size:23px;font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;line-height:1.1;',
+            style: 'margin:0;font-size:var(--rv-fs-title);font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;line-height:1.1;',
           }, numero),
           statusBadge
         ),
@@ -334,7 +334,7 @@
           window.el('div', {},
             window.el('div', { style: 'font-size:12px;color:var(--rv-text-tertiary);' }, labelText),
             window.el('div', {
-              style: 'font-size:14.5px;font-weight:700;color:var(--rv-text-primary);',
+              style: 'font-size:var(--rv-fs-metric-rail);font-weight:700;color:var(--rv-text-primary);',
             }, valueText)
           )
         );

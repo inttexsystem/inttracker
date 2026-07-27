@@ -105,7 +105,7 @@
       type: 'button',
       style: primary
         ? 'width:100%;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:12px 16px;'
-          + 'font-weight:700;font-size:14.5px;font-family:inherit;cursor:pointer;'
+          + 'font-weight:700;font-size:var(--rv-fs-body);font-family:inherit;cursor:pointer;'
         : 'display:block;width:100%;background:none;border:none;padding:0;margin-top:16px;'
           + 'font-size:12.5px;color:var(--rv-text-tertiary);text-align:center;cursor:pointer;font-family:inherit;'
           + 'text-decoration:underline;',
@@ -133,7 +133,7 @@
     }, svgIcon(ICON_LOCK, 'var(--rv-accent-blue)', 26))));
 
     card.appendChild(window.el('h1', {
-      style: 'margin:0 0 8px;font-size:19px;font-weight:800;color:var(--rv-text-primary);text-align:center;line-height:1.3;',
+      style: 'margin:0 0 8px;font-size:var(--rv-fs-title);font-weight:800;color:var(--rv-text-primary);text-align:center;line-height:1.3;',
     }, expired ? 'Senha expirada' : 'Troca de senha obrigatória'));
 
     card.appendChild(window.el('p', {
@@ -166,7 +166,7 @@
       type: 'submit',
       disabled: 'disabled',
       style: 'width:100%;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:12px 16px;'
-        + 'font-weight:700;font-size:14.5px;font-family:inherit;cursor:pointer;opacity:0.5;',
+        + 'font-weight:700;font-size:var(--rv-fs-body);font-family:inherit;cursor:pointer;opacity:0.5;',
     }, 'Definir nova senha');
 
     function updateChecklist() {

@@ -199,7 +199,7 @@
     return el('div', { style: SECTION_ICON }, svgEl(svgMarkup));
   }
   function sectionHead(svgMarkup, title, extra) {
-    var kids = [sectionIcon(svgMarkup), el('span', { style: 'font-size:16px;font-weight:700;color:var(--rv-text-primary);' }, title)];
+    var kids = [sectionIcon(svgMarkup), el('span', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);' }, title)];
     if (extra) kids.push(extra);
     return el('div', { style: 'display:flex;align-items:center;gap:10px;margin-bottom:18px;' }, kids);
   }
@@ -302,7 +302,7 @@
         el('div', { style: 'display:flex;align-items:flex-start;gap:12px;' },
           svgEl(SVG_INFO),
           el('div', {},
-            el('div', { style: 'font-size:16px;font-weight:800;color:var(--rv-text-primary);margin-bottom:8px;' }, 'Nao e possivel abrir OP sem Pedido vinculado.'),
+            el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:800;color:var(--rv-text-primary);margin-bottom:8px;' }, 'Nao e possivel abrir OP sem Pedido vinculado.'),
             el('div', { style: 'font-size:13.5px;color:var(--rv-text-secondary);line-height:1.55;margin-bottom:4px;' }, 'Acesse um Pedido e use Gerar primeira OP.'),
             el('div', { style: 'font-size:13px;color:var(--rv-text-tertiary);line-height:1.55;' }, 'Sem Pedido, a OP nao pode ser salva, aberta ou usada para movimentacao de material.')
           )
@@ -816,7 +816,7 @@
       el('div', { style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:16px;' },
         el('div', { style: 'min-width:0;' },
           el('div', { style: 'display:flex;align-items:center;gap:11px;flex-wrap:wrap;' },
-            el('h1', { style: 'margin:0;font-size:22px;font-weight:800;color:var(--rv-color-title);letter-spacing:-.02em;' }, formatOpDisplay(op)),
+            el('h1', { style: 'margin:0;font-size:var(--rv-fs-title);font-weight:800;color:var(--rv-color-title);letter-spacing:-.02em;' }, formatOpDisplay(op)),
             rvStageTecelagemBadge(),
             rvStatusPrepBadge()),
           el('div', { style: 'font-size:12.5px;color:var(--rv-color-muted);margin-top:7px;line-height:1.5;' }, meta.join(' \u00b7 '))),
@@ -937,7 +937,7 @@
     const header = el('div', { style: 'display:flex;align-items:center;justify-content:space-between;padding:0 24px 18px;' },
       el('div', { style: 'display:flex;align-items:center;gap:10px;' },
         sectionIcon(SVG_ICON_GRID),
-        el('span', { style: 'font-size:16px;font-weight:700;color:var(--rv-text-primary);' }, '2. Itens da OP'),
+        el('span', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);' }, '2. Itens da OP'),
         el('span', { style: 'font-size:13px;color:var(--rv-text-tertiary);font-weight:400;' }, '(modelo × metros)'),
       ),
       !readOnly ? addBtn : '',
@@ -1454,7 +1454,7 @@
       card.appendChild(el('div', { style: idx > 0 ? 'border-top:1px solid var(--rv-color-line-100);margin-top:13px;padding-top:13px;' : '' },
         el('div', { style: 'display:flex;align-items:center;gap:7px;margin-bottom:8px;' },
           el('span', { style: 'font-size:12px;font-weight:600;color:var(--rv-color-value);' }, tipo),
-          el('span', { 'data-ui-pill': '1', style: 'font-size:10px;font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);' }, '0')),
+          el('span', { 'data-ui-pill': '1', style: 'font-size:var(--rv-fs-micro);font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);' }, '0')),
         el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-bottom:8px;' }, 'Nenhum arquivo anexado.'),
         el('button', {
           type: 'button',

@@ -49,11 +49,11 @@
 
     var right = el('div', { style: 'display:flex;align-items:center;gap:6px;flex-shrink:0;' },
       el('span', {
-        style: 'font-size:10px;font-weight:700;color:#18794a;background:#e6f4ec;border-radius:var(--rv-radius-pill);padding:1px 7px;white-space:nowrap;',
+        style: 'font-size:var(--rv-fs-micro);font-weight:700;color:#18794a;background:#e6f4ec;border-radius:var(--rv-radius-pill);padding:1px 7px;white-space:nowrap;',
       }, 'Vinculo confirmado'));
 
     right.appendChild(el('span', {
-      style: 'font-size:10px;font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);white-space:nowrap;',
+      style: 'font-size:var(--rv-fs-micro);font-weight:600;color:var(--rv-color-accent);background:var(--rv-color-subtle-bg);padding:1px 6px;border-radius:var(--rv-radius-pill);white-space:nowrap;',
     }, statusLabel(doc.status)));
 
     if (doc.drive_web_view_link) {

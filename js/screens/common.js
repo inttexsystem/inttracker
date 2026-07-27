@@ -162,7 +162,7 @@
       // smoke tests (header + div flex > aside + main) com o span
       // "nome (tipo)" e o botão "Sair" no header.
       const header = window.el('header', { class: 'bg-white border-b px-4 py-3 flex justify-between items-center' },
-        window.el('div', { class: 'font-bold text-lg' }, 'Controle de Tapetes'),
+        window.el('div', { style: 'font-size:var(--rv-fs-section-heading);', class: 'font-bold' }, 'Controle de Tapetes'),
         window.el('div', { class: 'flex items-center gap-3' },
           window.el('span', { class: 'text-sm text-gray-600' }, window.CURRENT_USER ? (window.CURRENT_USER.nome + ' (' + window.CURRENT_USER.tipo + ')') : ''),
           window.el('button', { class: 'text-sm text-red-600 hover:underline', onclick: window.logout }, 'Sair')
@@ -195,11 +195,11 @@
     // Topbar 62px (fonte: "Admin - Topbar" standalone).
     const brandLeft = window.el('div', { style: 'display:flex;align-items:center;gap:14px;' },
       window.el('span', {
-        style: 'font-weight:800;font-size:20px;letter-spacing:-.01em;color:var(--rv-text-primary);',
+        style: 'font-weight:800;font-size:var(--rv-fs-section-heading);letter-spacing:-.01em;color:var(--rv-text-primary);',
       }, 'Inttex'),
       window.el('span', { style: 'width:1px;height:20px;background:var(--rv-surface-subtle);display:inline-block;' }),
       window.el('span', {
-        style: 'font-size:14.5px;color:var(--rv-text-tertiary);font-weight:500;',
+        style: 'font-size:var(--rv-fs-body);color:var(--rv-text-tertiary);font-weight:500;',
       }, sectionLabel)
     );
 

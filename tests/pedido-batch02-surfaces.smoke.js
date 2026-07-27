@@ -265,10 +265,12 @@ test('index.html: toda superfície alterada recebeu o token do lote 2', () => {
 // arquivo, entao ele e retokenizado mais uma vez. A garantia nao muda: a
 // superficie alterada segue invalidada, sob o token da ordem que a alterou por
 // ultimo, e nunca sob um token anterior ao seu.
+// A passada 6 de tipografia levou os titulos de secao deste arquivo para o token
+// de papel COMPONENT_HEADING, entao ele e retokenizado mais uma vez. Mesma regra.
 test('index.html: a superfície tocada pela passada 1 de cor carrega o token dela', () => {
   const asset = 'js/screens/cliente-pedido-form.js';
   const esc = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  assert.match(index, new RegExp(esc + '\\?v=20260726-ui-p5-pass5-card-actions-a1'),
+  assert.match(index, new RegExp(esc + '\\?v=20260726-ui-p5-pass6-typography-r1'),
     asset + ' deve carregar o token da ordem que o alterou por ultimo');
   assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260726-ui-p5-pass1'),
     asset + ' não pode reter o token da passada 1 de cor');
@@ -294,8 +296,10 @@ test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não
   // A passada 5 de alinhamento alterou APENAS pedido-form.js (o rodape de acoes
   // pos-salvamento), entao os dois voltam a divergir. Cada um continua sendo
   // verificado contra a ordem que o alterou por ultimo.
+  // A passada 6 de tipografia alterou APENAS pedido-form.js (os titulos de
+  // secao e o resumo pos-salvamento), entao os dois seguem divergindo.
   const ULTIMA_ORDEM = {
-    'screens/pedido-form.js': '20260726-ui-p5-pass5-card-actions-a1',
+    'screens/pedido-form.js': '20260726-ui-p5-pass6-typography-r1',
     'screens/pedido-item-row-editor.js': '20260726-ui-p5-pass3-a1',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {

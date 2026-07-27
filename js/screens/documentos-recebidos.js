@@ -1560,7 +1560,7 @@
     var chipLabel = isStale ? 'Defasado' : 'Atualizado';
 
     var chip = window.el('span', {
-      style: 'display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;'
+      style: 'display:inline-flex;align-items:center;gap:3px;font-size:var(--rv-fs-micro);font-weight:700;'
         + 'letter-spacing:.05em;text-transform:uppercase;padding:1px 6px;border-radius:var(--rv-radius);'
         + 'white-space:nowrap;background:' + chipBg + ';color:' + chipFg + ';',
     }, chipLabel);
@@ -1599,7 +1599,7 @@
           detailRow.appendChild(statusPills[pi]);
         }
         if (hashChip) {
-          detailRow.appendChild(window.el('span', { style: 'color:var(--rv-text-tertiary);font-size:10px;' }, '·'));
+          detailRow.appendChild(window.el('span', { style: 'color:var(--rv-text-tertiary);font-size:var(--rv-fs-micro);' }, '·'));
         }
       }
       if (hashChip) detailRow.appendChild(hashChip);
@@ -1607,7 +1607,7 @@
 
     var autoSyncSession = window.RAVATEX_DOCUMENTS_AUTO_LOADED_SESSION === true;
     var autoSyncChip = autoSyncSession ? window.el('span', {
-      style: 'display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;'
+      style: 'display:inline-flex;align-items:center;gap:3px;font-size:var(--rv-fs-micro);font-weight:700;'
         + 'letter-spacing:.05em;text-transform:uppercase;padding:1px 6px;border-radius:var(--rv-radius);'
         + 'white-space:nowrap;background:var(--rv-signal-positive-bg);color:var(--rv-signal-positive);margin-left:6px;',
     }, 'Auto-sync') : null;
@@ -1631,7 +1631,7 @@
       window.el('span', {
         style: 'flex-shrink:0;width:13px;height:13px;display:inline-flex;align-items:center;justify-content:center;'
           + 'border-radius:var(--rv-radius-pill);background:' + warnBg + ';'
-          + 'font-size:9px;font-weight:700;color:' + warnColor + ';',
+          + 'font-size:var(--rv-fs-micro);font-weight:700;color:' + warnColor + ';',
       }, 'i'),
       window.el('span', {}, warningMsg),
       autoSyncChip);
@@ -2059,7 +2059,7 @@
         var alertFg = a.severity === 'warning' ? 'var(--rv-signal-caution)' : 'var(--rv-accent-blue)';
         alertsEl.appendChild(window.el('span', {
           style: 'display:inline-flex;align-items:center;border-radius:var(--rv-radius);padding:1px 5px;'
-            + 'font-size:10px;font-weight:600;white-space:nowrap;'
+            + 'font-size:var(--rv-fs-micro);font-weight:600;white-space:nowrap;'
             + 'background:' + alertBg + ';color:' + alertFg + ';',
           title: a.ariaLabel || a.text,
           'aria-label': a.ariaLabel || a.text,
@@ -2075,14 +2075,14 @@
           'data-field': 'decisao-local',
           'data-decisao': 'divergente',
           style: 'display:inline-flex;align-items:center;border-radius:var(--rv-radius);padding:1px 6px;'
-            + 'font-size:10px;font-weight:700;white-space:nowrap;'
+            + 'font-size:var(--rv-fs-micro);font-weight:700;white-space:nowrap;'
             + 'background:var(--rv-signal-caution-bg);color:var(--rv-signal-caution);letter-spacing:.03em;text-transform:uppercase;',
         }, 'Divergente') : null,
         doc.hasLocalDecision && !doc.isDivergent ? window.el('span', {
           'data-field': 'decisao-local',
           'data-decisao': 'local',
           style: 'display:inline-flex;align-items:center;border-radius:var(--rv-radius);padding:1px 6px;'
-            + 'font-size:10px;font-weight:700;white-space:nowrap;'
+            + 'font-size:var(--rv-fs-micro);font-weight:700;white-space:nowrap;'
             + 'background:var(--rv-pill-info-bg);color:var(--rv-accent-blue);letter-spacing:.03em;text-transform:uppercase;',
         }, 'Decisão local') : null));
     if (pres) {
@@ -2115,10 +2115,10 @@
       window.el('div', { 'data-field': 'recebido-no-email', style: 'font-size:11.5px;color:var(--rv-text-secondary);white-space:nowrap;' },
         'Recebido: ', doc.emailReceivedAt ? fmtDataHoraCurta(doc.emailReceivedAt) : 'indisponível',
         doc.raw.email_received_at_estimated === true ? window.el('span', {
-          'data-badge': 'data-estimada', style: 'margin-left:5px;font-size:10px;font-weight:700;color:var(--rv-signal-caution);',
+          'data-badge': 'data-estimada', style: 'margin-left:5px;font-size:var(--rv-fs-micro);font-weight:700;color:var(--rv-signal-caution);',
         }, 'data estimada') : null,
         !doc.emailReceivedAt ? window.el('span', {
-          'data-badge': 'documento-legado', style: 'margin-left:5px;font-size:10px;font-weight:700;color:var(--rv-stage-tecelagem);',
+          'data-badge': 'documento-legado', style: 'margin-left:5px;font-size:var(--rv-fs-micro);font-weight:700;color:var(--rv-stage-tecelagem);',
         }, 'documento legado') : null),
       window.el('div', { 'data-field': 'processado-pelo-ingestor', style: 'font-size:11.5px;color:var(--rv-text-secondary);white-space:nowrap;' },
         'Processado: ', doc.processedAt ? fmtDataHoraCurta(doc.processedAt) : 'indisponível'));

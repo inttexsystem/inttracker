@@ -387,13 +387,44 @@ else takes `--rv-radius`. A round indicator is not a pill-shaped control, and `9
 is how the system expresses "circular" without a literal. See `DESIGN_DECISIONS.md`
 D6.1.
 
+**`font_size` — role-based, never nearest-number (D10, phase-5 pass 6).** Each value in
+the enum belongs to exactly one role; a site is classified by visible copy, component
+role, parent structure, neighbouring hierarchy, call site and rendered result — never by
+tag alone and never by numeric proximity to the value already written.
+
+| Role | Token | Value |
+| --- | --- | --- |
+| `PAGE_TITLE` — page-level H1 | `--rv-fs-title` | 22px |
+| `SECTION_HEADING` — real H2, major section heading below a page title, large structural card heading | `--rv-fs-section-heading` | 20px |
+| `COMPONENT_HEADING` — modal/dialog title, form-section heading, component-local or subsection heading | `--rv-fs-component-heading` | 16px |
+| `EMPHASISED_METRIC` — numeric or operational metric emphasis | `--rv-fs-metric` | 15px |
+| `RAIL_METRIC` | `--rv-fs-metric-rail` | 14px |
+| `PAIR_VALUE` — label/value pair value | `--rv-fs-value` | 13.5px |
+| `BODY_CONTROL_CELL` — ordinary copy, button label, field value, table cell | `--rv-fs-body` | 13px |
+| `SECONDARY_LINE` | `--rv-fs-sm` | 12.5px |
+| `COMPACT_CONTENT` | `--rv-fs-xs` | 12px |
+| `METADATA_BADGE` — metadata or ordinary badge | `--rv-fs-2xs` | 11.5px |
+| `SECTION_LABEL` — uppercase | `--rv-fs-label` | 11px |
+| `TABLE_HEADER` — uppercase, table-header role only | `--rv-fs-thead` | 10.5px |
+| `MICRO_COPY` — proven dense status/badge text, compact timeline or document metadata, micro labels that are not interactive control text | `--rv-fs-micro` | 10px |
+
+`--rv-fs-micro` is the floor: **no value below 10px may exist in first-party rendered
+runtime.** `--rv-fs-thead` is forbidden outside a table-header role, and 16px is
+forbidden for anything but `COMPONENT_HEADING` — a 16px metric belongs at 15px and a
+16px ordinary body or control value belongs at 13px.
+
+An **icon-only text glyph** (a modal close `×`, a mark rendered as letters) is not body
+copy and not a heading. It takes `--rv-icon-glyph-lg` (20px), which shares the
+`SECTION_HEADING` value but stays a separate semantic owner. It does not authorize
+emoji, new text icons or replacing a Lucide icon.
+
 ```json
 {
   "literal_hex_in_screen": "forbidden",
   "radius":        ["4px", "999px"],
   "control_h":     ["32px", "34px", "38px"],
   "shadow":        ["none", "0 1px 3px rgba(0,0,0,.10)", "0 12px 28px rgba(0,0,0,.10)"],
-  "font_size":     ["22px","15px","14px","13.5px","13px","12.5px","12px","11.5px","11px","10.5px"],
+  "font_size":     ["22px","20px","16px","15px","14px","13.5px","13px","12.5px","12px","11.5px","11px","10.5px","10px"],
   "font_weight":   [400, 500, 600, 700, 800],
   "text_color":    ["--rv-text-title","--rv-text-primary","--rv-text-secondary","--rv-text-tertiary"],
   "gap":           { "stack": "14px", "cols": "16px", "actions": "8px", "row_actions": "6px" },

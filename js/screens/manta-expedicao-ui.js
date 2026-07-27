@@ -52,7 +52,7 @@
   function metric(label, value, color) {
     return window.el('div', { style: CARD + 'padding:12px 14px;' },
       window.el('div', { style: 'font-size:10.5px;color:var(--rv-text-tertiary);font-weight:700;letter-spacing:.03em;margin-bottom:5px;' }, label),
-      window.el('div', { style: 'font-size:18px;font-weight:800;color:' + (color || 'var(--rv-text-primary)') + ';' }, fmtMetros(value)));
+      window.el('div', { style: 'font-size:var(--rv-fs-metric);font-weight:800;color:' + (color || 'var(--rv-text-primary)') + ';' }, fmtMetros(value)));
   }
 
   function cell(text, weight, color) {
@@ -248,7 +248,7 @@
     }
     if (saldo.ok !== true) {
       return window.el('div', { style: CARD + 'padding:16px 20px;margin-bottom:14px;' },
-        window.el('div', { style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);margin-bottom:8px;' }, 'Expedição Manta'),
+        window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:8px;' }, 'Expedição Manta'),
         window.el('div', { style: 'font-size:13px;color:var(--rv-signal-negative);line-height:1.5;' },
           'Não foi possível obter o saldo autoritativo (' + (saldo.codigo || 'erro') + '): ' + (saldo.erro || '—')));
     }
@@ -290,7 +290,7 @@
     var card = window.el('div', { style: CARD + 'padding:16px 20px;margin-bottom:14px;' },
       window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;' },
         window.el('div', {},
-          window.el('div', { style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);' }, 'Saldo da expedição Manta'),
+          window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);' }, 'Saldo da expedição Manta'),
           window.el('div', { style: 'font-size:12px;color:var(--rv-text-tertiary);margin-top:3px;' },
             'Origem: Tecelagem (Manta) · saldo autoritativo do servidor')),
         acoes),

@@ -247,9 +247,15 @@ test('14 · repeated baseline generation is byte-identical', () => {
 /* ---------- 15 · only the authorized token and contract additions ---------- */
 
 test('15 · the contract §5 enum block was not touched by this pass', () => {
+  // f8349e6e… was the block at the pass-1 checkpoint. Phase-5 pass 6 was
+  // explicitly authorized to revise the font_size enum — 10 values -> 13, adding
+  // 20px, 16px and 10px for SECTION_HEADING, COMPONENT_HEADING and MICRO_COPY —
+  // so the hash is carried forward. What this test guards is unchanged: the
+  // enums may only move under an order that names them, and the CHANGE ITSELF
+  // is asserted value-by-value by the pass-6 suite, not by this hash.
   assert.equal(
     BASELINE.contract_blob_hash,
-    'f8349e6eeca291fef2edf4d6e30afd628732f00b6495d54eb9273860fa63f1c4',
+    '2a4fb0efe2518cb6faad6867dc37c0d9f96c0b003b21b81c080e4ab48c1762ab',
     'the closed enums changed; this pass was not authorized to change them',
   );
 });

@@ -380,9 +380,13 @@ test('B3/6. o contrato de densidade compacta e respeitado', () => {
   // transitorios de carregamento/erro nao sao layout e ficam fora.
   assert.equal((pedidoForm.match(/padding:16px; margin-bottom:12px;/g) || []).length, 2,
     'Dados gerais e Itens devem usar padding 16px e 12px entre cartoes');
-  assert.match(pedidoForm, /padding:16px;'\s*\},\s*\n\s*window\.el\('div', \{ style: 'font-size:16px; font-weight:700; color:[^;]+; margin-bottom:10px;' \}, 'Instruções gerais'\)/,
+  // O tamanho de fonte deste titulo passou a ser propriedade de um token de
+  // papel na passada 6 de tipografia (COMPONENT_HEADING, o mesmo 16px). O
+  // sujeito deste teste continua sendo a DENSIDADE: padding 16px e a folga de
+  // 10px entre titulo e conteudo.
+  assert.match(pedidoForm, /padding:16px;'\s*\},\s*\n\s*window\.el\('div', \{ style: 'font-size:var\(--rv-fs-component-heading\); font-weight:700; color:[^;]+; margin-bottom:10px;' \}, 'Instruções gerais'\)/,
     'o cartao de Instrucoes gerais deve usar padding 16px');
-  assert.match(pedidoForm, /'font-size:16px; font-weight:700; color:var\(--rv-text-primary\); margin-bottom:10px;' \}, 'Instruções gerais'/,
+  assert.match(pedidoForm, /'font-size:var\(--rv-fs-component-heading\); font-weight:700; color:var\(--rv-text-primary\); margin-bottom:10px;' \}, 'Instruções gerais'/,
     'o titulo de Instrucoes gerais usa o token canonico de texto');
   assert.match(pedidoForm, /padding:16px; display:flex; flex-direction:column/,
     'o cartao de Salvar rascunho deve usar padding 16px');

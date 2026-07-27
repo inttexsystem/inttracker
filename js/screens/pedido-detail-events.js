@@ -390,7 +390,7 @@
           style: 'font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--rv-text-tertiary);text-transform:uppercase;margin-bottom:6px;',
         }, label),
         window.el('div', {
-          style: 'font-size:16px;font-weight:800;color:' + (accent || 'var(--rv-text-primary)') + ';',
+          style: 'font-size:var(--rv-fs-metric);font-weight:800;color:' + (accent || 'var(--rv-text-primary)') + ';',
         }, ns.fmtTextoOuEmpty(value, '-'))
       );
     }
@@ -2365,7 +2365,7 @@
           window.el('div', {
             style: 'width:10px;height:10px;border-radius:var(--rv-radius-pill);background:' + (stage.color || 'var(--rv-brand)') + ';flex-shrink:0;',
           }),
-          window.el('div', { style: 'font-size:16px;font-weight:800;color:var(--rv-text-primary);' }, titleText)),
+          window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:800;color:var(--rv-text-primary);' }, titleText)),
         window.el('button', {
           type: 'button',
           style: 'background:none;border:none;cursor:pointer;padding:4px;color:var(--rv-text-tertiary);line-height:0;',
@@ -2422,7 +2422,7 @@
           }, ns.svgEl(ns.SVG_WARN)),
           window.el('div', {},
             window.el('div', {
-              style: 'font-size:15.5px;font-weight:700;color:var(--rv-text-primary);',
+              style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);',
             }, 'Este pedido ja tem OPs vinculadas'),
             window.el('div', {
               style: 'font-size:13px;color:var(--rv-text-secondary);margin-top:6px;line-height:1.5;',

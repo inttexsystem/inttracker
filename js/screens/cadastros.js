@@ -310,14 +310,14 @@
       style: 'display:flex; flex-direction:column; gap:4px; min-width:0;'
     });
     titleWrap.appendChild(window.el('h2', {
-      style: 'margin:0; font-size:20px; line-height:1.2; font-weight:700; color:var(--rv-text-primary);'
+      style: 'margin:0; font-size:var(--rv-fs-component-heading); line-height:1.2; font-weight:700; color:var(--rv-text-primary);'
     }, title));
 
     var closeButton = window.el('button', {
       type: 'button',
       'aria-label': 'Fechar',
       onclick: close,
-      style: 'width:32px; height:32px; flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--rv-border-soft); border-radius:4px; background:var(--rv-surface); color:var(--rv-text-tertiary); font-size:20px; line-height:1; cursor:pointer;'
+      style: 'width:32px; height:32px; flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--rv-border-soft); border-radius:4px; background:var(--rv-surface); color:var(--rv-text-tertiary); font-size:var(--rv-icon-glyph-lg); line-height:1; cursor:pointer;'
     }, '×');
     closeButton.addEventListener('mouseenter', function () {
       closeButton.style.borderColor = 'var(--rv-border-strong)';
@@ -786,7 +786,7 @@
         }, column.label + (column.optional ? ' ' : ''));
         if (column.optional) {
           head.appendChild(window.el('span', {
-            style: 'font-size:10px; font-weight:500; color:var(--rv-text-tertiary); letter-spacing:0;'
+            style: 'font-size:var(--rv-fs-micro); font-weight:500; color:var(--rv-text-tertiary); letter-spacing:0;'
           }, '(opcional)'));
         }
         headRow.appendChild(head);
@@ -1030,7 +1030,7 @@
         style: 'position:absolute; inset:10px 12px; border-radius:var(--rv-radius); border:2px solid var(--rv-surface);'
       }));
       preview.appendChild(window.el('div', {
-        style: 'position:absolute; left:0; right:0; bottom:0; padding:3px 6px; background:var(--rv-brand); color:var(--rv-text-on-brand); font-size:9px; font-weight:700; letter-spacing:.04em; text-align:center;'
+        style: 'position:absolute; left:0; right:0; bottom:0; padding:3px 6px; background:var(--rv-brand); color:var(--rv-text-on-brand); font-size:var(--rv-fs-micro); font-weight:700; letter-spacing:.04em; text-align:center;'
       }, widthLabel));
       return preview;
     }
@@ -1513,7 +1513,7 @@
       wrap.appendChild(window.el('span', {}, label));
       wrap.appendChild(window.el('span', {
         title: label,
-        style: 'display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:var(--rv-radius-pill); border:1.5px solid var(--rv-border-strong); color:var(--rv-text-tertiary); font-size:10px; font-weight:700; cursor:help; flex-shrink:0; margin-left:6px;'
+        style: 'display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:var(--rv-radius-pill); border:1.5px solid var(--rv-border-strong); color:var(--rv-text-tertiary); font-size:var(--rv-fs-micro); font-weight:700; cursor:help; flex-shrink:0; margin-left:6px;'
       }, '?'));
       td.appendChild(wrap);
       return td;
@@ -1763,7 +1763,7 @@
       headRow.appendChild(window.el('div', { style: `font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; ${window.TRUNCATE_CELL_STYLE}` }, 'NOME'));
       const emailHead = window.el('div', { style: `font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; ${window.TRUNCATE_CELL_STYLE}` }, 'EMAIL ');
       emailHead.appendChild(window.el('span', {
-        style: 'font-size:10px; font-weight:500; color:var(--rv-text-tertiary); letter-spacing:0;'
+        style: 'font-size:var(--rv-fs-micro); font-weight:500; color:var(--rv-text-tertiary); letter-spacing:0;'
       }, '(opcional)'));
       headRow.appendChild(emailHead);
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; white-space:nowrap;' }, 'CNPJ'));
