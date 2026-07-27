@@ -114,10 +114,15 @@
       valueNode);
   }
 
-  function thRow(colsTemplate, labels) {
+  // Pass-8 §2.5: `numericCols` is the explicit list of column indexes whose
+  // VALUES are quantities. It replaces the previous "right-align the last
+  // label" heuristic, which right-aligned a header whose value cell was left —
+  // the exact header/value contradiction the golden rule forbids.
+  function thRow(colsTemplate, labels, numericCols) {
+    var numeric = numericCols || [];
     return el('div', { style: 'display:grid;grid-template-columns:' + colsTemplate + ';gap:10px;padding:10px 24px;background:var(--rv-color-bg-header);border-bottom:1px solid var(--rv-color-line-200);' },
       labels.map(function (label, idx) {
-        return el('div', { style: TH_STYLE + (idx === labels.length - 1 ? 'text-align:right;' : '') }, label);
+        return el('div', { style: TH_STYLE + (numeric.indexOf(idx) >= 0 ? 'text-align:right;' : '') }, label);
       }));
   }
 
@@ -668,10 +673,22 @@
 
         function buildItens() {
           var cols = '1.3fr .8fr .8fr .8fr .8fr 1.3fr';
+          // Pass-8 §2.5: columns 1..4 (RECEBIDO, MOVIMENTADO, DISPONIVEL,
+          // ENTREGUE) are metre quantities; column 0 (MODELO / CORES) and
+          // column 5 (ITEM DO PEDIDO) are free text. NUMERIC_ITEM_COLS is the
+          // single declaration the header and the value rows both read.
+          var NUMERIC_ITEM_COLS = [1, 2, 3, 4];
           function tableHead(labels) {
             return el('div', { style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;padding:9px 20px;background:var(--rv-color-bg-header);border-top:1px solid var(--rv-color-line-200);border-bottom:1px solid var(--rv-color-line-200);min-width:820px;' },
-              labels.map(function (label) {
-                return el('div', { style: 'font-size:var(--rv-font-size-label);font-weight:700;color:var(--rv-color-muted);letter-spacing:.03em;' }, label);
+              labels.map(function (label, idx) {
+                // The style attribute stays the one LITERAL string it always
+                // was, and the conditional alignment is applied as a literal
+                // property. Concatenating it, or hoisting it to a variable,
+                // would make the whole declaration undecodable to the
+                // conformance detector and open a UIC-000 coverage gap.
+                var node = el('div', { style: 'font-size:var(--rv-font-size-label);font-weight:700;color:var(--rv-color-muted);letter-spacing:.03em;' }, label);
+                if (NUMERIC_ITEM_COLS.indexOf(idx) >= 0) node.style.textAlign = 'right';
+                return node;
               }));
           }
           function tableRow(cells) {
@@ -695,10 +712,10 @@
             var entregueItem = Number(saldoItem.entregue || 0);
             table.appendChild(tableRow([
               el('div', { style: 'font-size:13.5px;font-weight:700;color:var(--rv-color-title);' }, modeloLabel(item)),
-              el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);font-weight:600;' }, window.fmtMetros(recebidoItem)),
-              el('div', { style: 'font-size:13.5px;color:var(--rv-accent-blue);font-weight:700;' }, window.fmtMetros(movimentadoItem)),
-              el('div', { style: 'font-size:13.5px;color:' + (disponivelItem > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)') + ';font-weight:700;' }, window.fmtMetros(disponivelItem)),
-              el('div', { style: 'font-size:13.5px;color:var(--rv-signal-positive);font-weight:700;' }, window.fmtMetros(entregueItem)),
+              el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);font-weight:600;text-align:right;' }, window.fmtMetros(recebidoItem)),
+              el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-accent-blue);font-weight:700;text-align:right;' }, window.fmtMetros(movimentadoItem)),
+              el('div', { 'data-num': '1', style: 'font-size:13.5px;color:' + (disponivelItem > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)') + ';font-weight:700;text-align:right;' }, window.fmtMetros(disponivelItem)),
+              el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-signal-positive);font-weight:700;text-align:right;' }, window.fmtMetros(entregueItem)),
               el('div', { style: 'font-size:12.5px;color:var(--rv-accent-blue);font-weight:600;' }, item.pedido_item_id ? (pedidoId ? ('Pedido #' + pedidoId + ' · item ' + item.pedido_item_id) : ('Item #' + item.pedido_item_id)) : '---'),
             ]));
           });
@@ -864,15 +881,16 @@
           op.lote ? el('div', { class: 'text-sm text-gray-700 mb-1' }, 'Lote Nº ' + op.lote.numero + ' · ' + (op.lote.cliente?.nome || '—')) : el('span', {}),
           op.observacao ? el('div', { class: 'text-sm text-gray-600' }, op.observacao) : el('span', {}));
 
+        // Pass-8 §2.5: three metre quantities behind one declared width owner.
         var tabela = dataTable({
           columns: [
-            { key: 'modelo', label: 'Modelo', render: function (item) {
+            { key: 'modelo', label: 'Modelo', width: '46%', render: function (item) {
                 var modelo = modelosById[item.modelo_id];
                 return modelo ? window.rotuloModelo(modelo) : ('#' + item.modelo_id);
               } },
-            { key: 'enviado', label: 'Enviado', render: function (item) { return window.fmtMetros(item.metros_pedidos); } },
-            { key: 'recebido', label: 'Recebido', render: function (item) { return window.fmtMetros(totalPorItem[item.id] || 0); } },
-            { key: 'falta', label: 'Falta', render: function (item) {
+            { key: 'enviado', label: 'Enviado', width: '18%', numeric: true, render: function (item) { return window.fmtMetros(item.metros_pedidos); } },
+            { key: 'recebido', label: 'Recebido', width: '18%', numeric: true, render: function (item) { return window.fmtMetros(totalPorItem[item.id] || 0); } },
+            { key: 'falta', label: 'Falta', width: '18%', numeric: true, render: function (item) {
                 var falta = Math.round((Number(item.metros_pedidos) - (totalPorItem[item.id] || 0)) * 100) / 100;
                 return el('span', { class: falta <= 0 ? 'text-green-700' : 'text-gray-800' }, falta <= 0 ? '✅ completo' : window.fmtMetros(falta));
               } },
@@ -973,13 +991,16 @@
           return card;
         }
 
-        card.appendChild(thRow('1fr 140px 140px', ['MODELO', 'ENVIADO', 'RECEBIDO']));
+        // Pass-8 §2.5: ENVIADO and RECEBIDO are metre quantities — both headers
+        // and both value cells are right-aligned, and the values own the
+        // tabular numerals.
+        card.appendChild(thRow('1fr 140px 140px', ['MODELO', 'ENVIADO', 'RECEBIDO'], [1, 2]));
         (op.op_itens || []).forEach(function (item) {
           var modelo = modelosById[item.modelo_id];
           card.appendChild(gridRow('1fr 140px 140px', [
             el('div', { style: 'font-size:13.5px;font-weight:500;color:var(--rv-color-title);' }, modelo ? window.rotuloModelo(modelo) : ('#' + item.modelo_id)),
-            el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);' }, window.fmtMetros(item.metros_pedidos)),
-            el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);' }, window.fmtMetros(totalPorItem[item.id] || 0)),
+            el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, window.fmtMetros(item.metros_pedidos)),
+            el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, window.fmtMetros(totalPorItem[item.id] || 0)),
           ]));
         });
         return card;

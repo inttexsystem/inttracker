@@ -273,13 +273,18 @@
   }
   function thRow(colsTemplate, labels, options) {
     var alignLastRight = options && options.alignLast === 'right';
+    // Pass-8 §2.5: `numericCols` names the column indexes whose VALUES are
+    // quantities, so their headers take the same right alignment the value
+    // cells declare. It is explicit — never inferred from the label text.
+    var numericCols = (options && options.numericCols) || [];
     // PASS-7-A4 §9: `firstCellId` lets the table give its FIRST column header
     // a stable id so a row-level combobox — which has no individual label —
     // can be named by the column it belongs to. No visible copy, no layout
     // and no style change; only an id attribute is added.
     var firstCellId = options && options.firstCellId;
     var cells = labels.map(function (l, i) {
-      var attrs = { style: TH_STYLE + (alignLastRight && i === labels.length - 1 ? 'text-align:right;' : '') };
+      var right = (alignLastRight && i === labels.length - 1) || numericCols.indexOf(i) >= 0;
+      var attrs = { style: TH_STYLE + (right ? 'text-align:right;' : '') };
       if (i === 0 && firstCellId) attrs.id = firstCellId;
       return el('div', attrs, l);
     });
@@ -1022,11 +1027,20 @@
       // the table it lives in, minted fresh per render so no stale id survives.
       opNovaLabelSeq += 1;
       const modeloColumnId = 'rv-op-nova-col-modelo-' + opNovaLabelSeq;
-      card.appendChild(thRow('2fr 1fr 80px', ['MODELO', 'METROS', 'AÇÕES'],
+      // Pass-8 §2.5: AÇÕES is a fixed 80px column, so the editable item table
+      // scrolls inside its OWN canonical `data-rv-table-scroll` container.
+      // METROS holds a numeric <input>, which architect ruling 6.3 keeps out of
+      // the read-only numeric contract — its geometry and alignment are
+      // untouched here.
+      const scroll = el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+      const grid = el('div', { style: 'min-width:560px;' });
+      scroll.appendChild(grid);
+      grid.appendChild(thRow('2fr 1fr 80px', ['MODELO', 'METROS', 'AÇÕES'],
         { alignLast: 'right', firstCellId: modeloColumnId }));
       const rows = el('div', { style: 'padding-bottom:6px;' });
       itens.forEach((item, idx) => rows.appendChild(buildItemRow(item, idx, modeloOptions, modeloColumnId)));
-      card.appendChild(rows);
+      grid.appendChild(rows);
+      card.appendChild(scroll);
     }
     return card;
   }
@@ -1265,13 +1279,17 @@
       return box;
     }
     const cols = 'minmax(120px,1.3fr) minmax(110px,1fr) 120px minmax(230px,1.7fr)';
-    box.appendChild(thRow(cols, ['FIO', 'FORNECEDOR', 'QTD (KG)', 'SITUAÇÃO']));
+    // Pass-8 §2.5: QTD (KG) is the only quantity column here; SITUAÇÃO renders
+    // badges and stays left.
+    box.appendChild(thRow(cols, ['FIO', 'FORNECEDOR', 'QTD (KG)', 'SITUAÇÃO'], { numericCols: [2] }));
     ordens.forEach(function (o) {
       const forn = ocfFornecedorNome(o);
       box.appendChild(gridRow(cols, [
         el('div', { style: 'font-size:13.5px;font-weight:500;color:var(--rv-text-primary);' }, window.rotuloFio(o)),
         el('div', { style: 'font-size:13px;color:' + (forn ? 'var(--rv-text-primary)' : 'var(--rv-text-tertiary)') + ';' }, forn || '— não atribuído'),
-        el('div', { class: 'num', style: 'font-size:13px;color:var(--rv-text-primary);font-variant-numeric:tabular-nums;' }, ocfQtd(o)),
+        // This cell already owned its tabular numerals inline; only the
+        // alignment half of the contract was missing.
+        el('div', { class: 'num', style: 'font-size:13px;color:var(--rv-text-primary);font-variant-numeric:tabular-nums;text-align:right;' }, ocfQtd(o)),
         ocfBadges(o),
       ]));
     });
@@ -1329,12 +1347,13 @@
       if (recebidas.length) {
         box.appendChild(el('div', { style: 'padding:14px 24px 0;' },
           el('div', { style: 'font-size:10.5px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.06em;margin-bottom:10px;' }, 'RECEBIDAS')));
-        box.appendChild(thRow('1fr 140px 140px 120px', ['FIO', 'PEDIDO', 'RECEBIDO', 'STATUS']));
+        // Pass-8 §2.5: PEDIDO and RECEBIDO are kg quantities; STATUS is a label.
+        box.appendChild(thRow('1fr 140px 140px 120px', ['FIO', 'PEDIDO', 'RECEBIDO', 'STATUS'], { numericCols: [1, 2] }));
         for (const o of recebidas) {
           box.appendChild(gridRow('1fr 140px 140px 120px', [
             el('div', { style: 'font-size:13.5px;font-weight:500;color:var(--rv-text-primary);' }, window.rotuloFio(o)),
-            el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);' }, window.fmtKg(o.kg_pedido)),
-            el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);' }, window.fmtKg(o.kg_recebido)),
+            el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, window.fmtKg(o.kg_pedido)),
+            el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, window.fmtKg(o.kg_recebido)),
             el('div', { style: 'font-size:13px;color:var(--rv-signal-positive);font-weight:600;' }, OCF_STATUS_LABEL[o.status] || o.status),
           ]));
         }
@@ -1350,12 +1369,14 @@
       box.appendChild(buildProposta());
     } else {
       box.appendChild(el('div', { style: 'border-top:1px solid var(--rv-border);' }));
-      box.appendChild(thRow('1fr 140px 140px 120px', ['FIO', 'PEDIDO', 'RECEBIDO', 'STATUS']));
+      box.appendChild(thRow('1fr 140px 140px 120px', ['FIO', 'PEDIDO', 'RECEBIDO', 'STATUS'], { numericCols: [1, 2] }));
       for (const o of ordens) {
         box.appendChild(gridRow('1fr 140px 140px 120px', [
           el('div', { style: 'font-size:13.5px;font-weight:500;color:var(--rv-text-primary);' }, window.rotuloFio(o)),
-          el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);' }, window.fmtKg(o.kg_pedido)),
-          el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);' }, o.kg_recebido == null ? '—' : window.fmtKg(o.kg_recebido)),
+          el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, window.fmtKg(o.kg_pedido)),
+          // The em dash placeholder is preserved exactly; it simply inherits
+          // the column's alignment.
+          el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, o.kg_recebido == null ? '—' : window.fmtKg(o.kg_recebido)),
           el('div', { style: 'font-size:13px;color:var(--rv-text-primary);font-weight:600;' }, OCF_STATUS_LABEL[o.status] || o.status),
         ]));
       }
@@ -1368,12 +1389,13 @@
 
       box.appendChild(el('div', { style: 'padding:16px 24px 0;' },
         el('div', { style: 'font-size:13px;font-weight:700;color:var(--rv-text-primary);margin-bottom:4px;' }, 'Metros de produção')));
-      box.appendChild(thRow('1fr 140px 140px', ['MODELO', 'PEDIDO', 'PRODUÇÃO']));
+      // Pass-8 §2.5: PEDIDO and PRODUÇÃO are metre quantities.
+      box.appendChild(thRow('1fr 140px 140px', ['MODELO', 'PEDIDO', 'PRODUÇÃO'], { numericCols: [1, 2] }));
       for (const i of opItensRaw) {
         box.appendChild(gridRow('1fr 140px 140px', [
           el('div', { style: 'font-size:13.5px;font-weight:500;color:var(--rv-text-primary);' }, window.rotuloModelo(modelosById[i.modelo_id])),
-          el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);' }, window.fmtMetros(i.metros_pedidos)),
-          el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);' }, i.metros_ajustados == null ? window.fmtMetros(i.metros_pedidos) : window.fmtMetros(i.metros_ajustados)),
+          el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, window.fmtMetros(i.metros_pedidos)),
+          el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, i.metros_ajustados == null ? window.fmtMetros(i.metros_pedidos) : window.fmtMetros(i.metros_ajustados)),
         ]));
       }
       box.appendChild(el('div', { style: 'height:8px;' }));

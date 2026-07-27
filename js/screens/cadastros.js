@@ -557,13 +557,20 @@
       const card = window.el('div', {
         style: 'background:var(--rv-surface); border:1px solid var(--rv-border); overflow:hidden;'
       });
+      // Pass-8 §2.5: ID (80px) and AÇÕES (66px) are fixed-pixel columns, so the
+      // table owns its own horizontal scroll instead of being clipped by the
+      // card's `overflow:hidden`.
+      const scroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+      const grid = window.el('div', { style: 'min-width:480px;' });
+      scroll.appendChild(grid);
+      card.appendChild(scroll);
       const headRow = window.el('div', {
         style: 'display:grid; grid-template-columns:1fr 80px 66px; align-items:center; gap:16px; padding:10px 18px; background:var(--rv-surface-subtle); border-bottom:1px solid var(--rv-border);'
       });
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em;' }, 'NOME'));
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em;' }, 'ID'));
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; text-align:center;' }, 'AÇÕES'));
-      card.appendChild(headRow);
+      grid.appendChild(headRow);
 
       rows.forEach((row, index) => {
         const line = window.el('div', {
@@ -591,7 +598,7 @@
         line.appendChild(nameCell);
         line.appendChild(idCell);
         line.appendChild(actions);
-        card.appendChild(line);
+        grid.appendChild(line);
       });
 
       if (!rows.length) {
@@ -796,6 +803,33 @@
       columns.push({ key: 'acoes', label: 'ACOES', width: '100px', align: 'center' });
       const gridTemplate = columns.map((column) => column.width).join(' ');
 
+      // Pass-8 §2.5: ID (70px) and ACOES (100px) are fixed in pixels, so this
+      // table owns its horizontal scroll. The minimum is derived from the
+      // DECLARED column set — never from rendered content — because CONTATO and
+      // TELEFONE are present only when the schema supports them, which makes the
+      // contract 4, 5 or 6 columns wide.
+      const COLUMN_MIN_PX = { nome: 220, contato: 150, telefone: 130, cnpj: 170, id: 70, acoes: 100 };
+      const tableMinWidth = columns.reduce((sum, column) => sum + (COLUMN_MIN_PX[column.key] || 120), 0)
+        + (columns.length - 1) * 16   // the declared 16px column gap
+        + 36;                          // the declared 18px horizontal padding, both sides
+      const scroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+      // Four literal minimums, one per reachable column set, instead of one
+      // computed string: the arithmetic above is the source of truth and the
+      // focused suite asserts these four literals against it, but a computed
+      // style — whether interpolated or assigned — would be undecodable for the
+      // conformance detector and would open a UIC-000 coverage gap.
+      //   6 columns  840 + 80 + 36 = 956    5 (+contato)  710 + 64 + 36 = 810
+      //   5 (+telefone) 690 + 64 + 36 = 790  4 columns     560 + 48 + 36 = 644
+      const grid = tableMinWidth >= 956
+        ? window.el('div', { style: 'min-width:956px;' })
+        : tableMinWidth >= 810
+          ? window.el('div', { style: 'min-width:810px;' })
+          : tableMinWidth >= 790
+            ? window.el('div', { style: 'min-width:790px;' })
+            : window.el('div', { style: 'min-width:644px;' });
+      scroll.appendChild(grid);
+      card.appendChild(scroll);
+
       const headRow = window.el('div', {
         style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:10px 18px; background:var(--rv-surface-subtle); border-bottom:1px solid var(--rv-border);`
       });
@@ -810,7 +844,7 @@
         }
         headRow.appendChild(head);
       });
-      card.appendChild(headRow);
+      grid.appendChild(headRow);
 
       rows.forEach((row, index) => {
         const line = window.el('div', {
@@ -839,7 +873,7 @@
         actions.appendChild(makeIconButton('Editar cliente', svgIcon(ICON_SQUARE_PEN), () => openModal(row), false));
         actions.appendChild(makeIconButton('Excluir cliente', svgIcon(ICON_TRASH), () => confirmExcluir(row), true));
         line.appendChild(actions);
-        card.appendChild(line);
+        grid.appendChild(line);
       });
 
       if (!rows.length) {
@@ -1114,6 +1148,12 @@
         style: 'background:var(--rv-surface); border:1px solid var(--rv-border); overflow:hidden;'
       });
       const gridTemplate = '92px 1.25fr 1.2fr 100px 66px';
+      // Pass-8 §2.5: PREVIEW (92px), LARGURA (100px) and ACOES (66px) are fixed
+      // in pixels, so the table owns its horizontal scroll.
+      const scroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+      const grid = window.el('div', { style: 'min-width:760px;' });
+      scroll.appendChild(grid);
+      card.appendChild(scroll);
       const headRow = window.el('div', {
         style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:10px 18px; background:var(--rv-surface-subtle); border-bottom:1px solid var(--rv-border);`
       });
@@ -1125,7 +1165,7 @@
       headRow.appendChild(window.el('div', {
         style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; text-align:center; white-space:nowrap;'
       }, 'ACOES'));
-      card.appendChild(headRow);
+      grid.appendChild(headRow);
 
       rows.forEach((row, index) => {
         const line = window.el('div', {
@@ -1173,7 +1213,7 @@
         actions.appendChild(makeIconButton('Editar modelo', svgIcon(ICON_SQUARE_PEN), () => openModal(row, allCores), false));
         actions.appendChild(makeIconButton('Excluir modelo', svgIcon(ICON_TRASH), () => confirmExcluir(row), true));
         line.appendChild(actions);
-        card.appendChild(line);
+        grid.appendChild(line);
       });
 
       if (!rows.length) {
@@ -1391,8 +1431,18 @@
         style: 'border-top:1px solid var(--rv-border); overflow-x:auto;'
       });
       const grid = window.el('div', {});
+      // Pass-8 §2.5. This table is TRANSPOSED: one PARÂMETRO label column plus
+      // one column per registered largura. The template was hardcoded to three
+      // tracks, which is only correct while exactly two larguras exist. Rendered
+      // with five larguras the six cells wrapped onto an implicit SECOND grid
+      // row — header and values wrapped together, so parity survived, but the
+      // width owner no longer described the rendered column contract and the
+      // extra larguras appeared under the wrong headers. The owner is now
+      // derived from the actual column count, and header and rows read the same
+      // `paramGridTemplate`, so the two can never diverge.
+      const paramGridTemplate = `repeat(${1 + orderedRows.length}, minmax(0, 1fr))`;
       const headRow = window.el('div', {
-        style: 'display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; background:var(--rv-surface-subtle); border-bottom:1px solid var(--rv-border);'
+        style: `display:grid; grid-template-columns:${paramGridTemplate}; gap:0; background:var(--rv-surface-subtle); border-bottom:1px solid var(--rv-border);`
       });
       headRow.appendChild(headerCell('PAR\u00c2METRO', true));
       for (const row of orderedRows) headRow.appendChild(headerCell(`LARGURA ${formatWidth(row.largura)} m`, false));
@@ -1408,7 +1458,7 @@
       for (let index = 0; index < fieldDefs.length; index += 1) {
         const field = fieldDefs[index];
         const rowNode = window.el('div', {
-          style: `display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; align-items:center; border-bottom:${index === fieldDefs.length - 1 ? 'none' : '1px solid var(--rv-border-soft)'};`
+          style: `display:grid; grid-template-columns:${paramGridTemplate}; gap:0; align-items:center; border-bottom:${index === fieldDefs.length - 1 ? 'none' : '1px solid var(--rv-border-soft)'};`
         });
         rowNode.appendChild(paramLabelCell(field.label, index === fieldDefs.length - 1));
         for (const row of orderedRows) {
@@ -1776,6 +1826,12 @@
       const card = window.el('div', {
         style: 'background:var(--rv-surface); border:1px solid var(--rv-border); overflow:hidden;'
       });
+      // Pass-8 §2.5: CNPJ (110px), ID (70px) and AÇÕES (100px) are fixed in
+      // pixels, so the table owns its horizontal scroll.
+      const scroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+      const grid = window.el('div', { style: 'min-width:900px;' });
+      scroll.appendChild(grid);
+      card.appendChild(scroll);
       const headRow = window.el('div', {
         style: 'display:grid; grid-template-columns:1fr 1.6fr 110px 1fr 70px 100px; align-items:center; gap:16px; padding:10px 18px; background:var(--rv-surface-subtle); border-bottom:1px solid var(--rv-border);'
       });
@@ -1789,7 +1845,7 @@
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; white-space:nowrap;' }, 'TIPO'));
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; white-space:nowrap;' }, 'ID'));
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; text-align:center; white-space:nowrap;' }, 'AÇÕES'));
-      card.appendChild(headRow);
+      grid.appendChild(headRow);
 
       rows.forEach((row, index) => {
         const line = window.el('div', {
@@ -1813,7 +1869,7 @@
         actions.appendChild(makeIconButton('Editar fornecedor', svgIcon(ICON_SQUARE_PEN), () => openModal(row), false));
         actions.appendChild(makeIconButton('Excluir fornecedor', svgIcon(ICON_TRASH), () => confirmExcluir(row), true));
         line.appendChild(actions);
-        card.appendChild(line);
+        grid.appendChild(line);
       });
 
       if (!rows.length) {
@@ -2019,8 +2075,17 @@
       const headRow = window.el('div', {
         style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:10px 18px; background:var(--rv-surface-subtle); border-bottom:1px solid var(--rv-border);`
       });
+      // Pass-8 §2.5: `R$ / METRO` is the only quantity column on this screen —
+      // LARGURA is a catalog product attribute (architect ruling 6.5) and stays
+      // left. The header alignment declared here is repeated on the value cell.
+      // The style attribute keeps its original LITERAL string; the conditional
+      // alignment is a literal property assignment, so the declaration stays
+      // decodable for the conformance detector.
+      const PRECO_NUMERIC_HEADS = new Set(['R$ / METRO']);
       ['FORNECEDOR', 'ETAPA', 'LARGURA', 'R$ / METRO'].forEach((label) => {
-        headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; white-space:nowrap;' }, label));
+        const head = window.el('div', { style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; white-space:nowrap;' }, label);
+        if (PRECO_NUMERIC_HEADS.has(label)) head.style.textAlign = 'right';
+        headRow.appendChild(head);
       });
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; text-align:center; white-space:nowrap;' }, 'ACOES'));
       card.appendChild(headRow);
@@ -2032,7 +2097,7 @@
         line.appendChild(window.el('div', { style: 'font-size:14px; font-weight:500; color:var(--rv-text-primary);' }, row.fornecedor?.nome || ''));
         line.appendChild(window.el('div', { style: 'font-size:13.5px; color:var(--rv-text-primary);' }, row.etapa === 'cima' ? 'Parte de cima' : 'Latex'));
         line.appendChild(window.el('div', { style: 'font-size:13.5px; color:var(--rv-text-primary);' }, Number(row.largura).toFixed(2).replace('.', ',') + ' m'));
-        line.appendChild(window.el('div', { style: 'font-size:13.5px; color:var(--rv-text-primary);' }, 'R$ ' + Number(row.preco_por_metro).toFixed(2).replace('.', ',')));
+        line.appendChild(window.el('div', { 'data-num': '1', style: 'font-size:13.5px; color:var(--rv-text-primary); text-align:right;' }, 'R$ ' + Number(row.preco_por_metro).toFixed(2).replace('.', ',')));
         const actions = window.el('div', { style: 'display:flex; align-items:center; justify-content:center; gap:6px;' });
         // Pass-3 §5.6: the canonical 30x30 table-row action is owned by the
         // shared actionButton primitive, which supplies the geometry, the

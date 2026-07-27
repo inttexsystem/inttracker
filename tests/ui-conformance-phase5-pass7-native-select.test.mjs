@@ -868,14 +868,35 @@ test('41 · the Pass-3 forward correction is recorded and its guards still bind'
 test('42 · the cache token was applied to exactly the changed runtime assets', () => {
   const TOKEN = '20260727-ui-p5-pass7-native-select-a1';
   const changed = [
-    'js/select-popover.js', 'js/ui.js', 'js/screens/admin-usuarios.js',
-    'js/screens/cliente-pedido-form.js', 'js/screens/document-link-admin-modal.js',
+    'js/select-popover.js',
+    'js/screens/document-link-admin-modal.js',
     'js/screens/documentos-recebidos-decision-modal.js', 'js/screens/documentos-recebidos.js',
     'js/screens/ops-list.js', 'js/screens/pedido-form.js',
     'js/screens/pedido-item-row-editor.js', 'js/screens/pedidos-list.js',
   ];
+  /*
+   * PASS-8-TABLE-CONTRACT-FORWARD-CORRECTION
+   *
+   * Phase-5 pass 8 changed js/ui.js (the dataTable() width and numeric
+   * contract), js/screens/admin-usuarios.js and js/screens/cliente-pedido-form.js
+   * (their tables' scroll owners), so all three moved on to the pass-8 token. A
+   * pass-8 token is strictly LATER than the pass-7 one, so pass 7's invariant —
+   * every asset it changed is invalidated against the pass-6 checkpoint — is
+   * intact. The population is still eleven; only which later token invalidates
+   * three of them moved.
+   */
+  const PASS8 = '20260727-ui-p5-pass8-table-r1';
+  const CHANGED_BY_PASS7_THEN_PASS8 = [
+    'js/ui.js', 'js/screens/admin-usuarios.js', 'js/screens/cliente-pedido-form.js',
+  ];
+  assert.equal(changed.length + CHANGED_BY_PASS7_THEN_PASS8.length, 11,
+    'the pass-7 changed-asset population must stay eleven');
   for (const rel of changed) {
     assert.ok(INDEX.includes(`${rel}?v=${TOKEN}`), `${rel} must carry the pass-7 token`);
+  }
+  for (const rel of CHANGED_BY_PASS7_THEN_PASS8) {
+    assert.ok(INDEX.includes(`${rel}?v=${PASS8}`), `${rel} must carry the later pass-8 token`);
+    assert.ok(!INDEX.includes(`${rel}?v=20260726-ui-p5-pass6`), `${rel} fell back to a pass-6 token`);
   }
   assert.match(INDEX, new RegExp(`css/tokens\\.css\\?v=${TOKEN}`));
   // Unchanged assets keep their prior token.

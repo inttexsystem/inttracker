@@ -184,16 +184,19 @@
             window.badgeStatus(op.status),
           ));
 
+          // Pass-8 §2.5: four metre quantities, so the width owner is declared
+          // here and the four numeric columns carry the alignment + tabular
+          // numeral contract. Modelo is free text and stays left.
           card.appendChild(window.dataTable({
             columns: [
-              { key: 'modelo', label: 'Modelo', render: (i) => {
+              { key: 'modelo', label: 'Modelo', width: '40%', render: (i) => {
                   const m = modelosById[i.modelo_id];
                   return m ? `${m.nome} ${window.larguraKey(m.largura)}m · ${m.cor_1?.nome || '?'}/${m.cor_2?.nome || '?'}` : ('#' + i.modelo_id);
                 } },
-              { key: 'metros_pedidos', label: 'Pedido', render: (i) => fmtMetros(i.metros_pedidos) },
-              { key: 'metros_ajustados', label: 'Ajustado', render: (i) => i.metros_ajustados == null ? fmtMetros(i.metros_pedidos) : fmtMetros(i.metros_ajustados) },
-              { key: 'entregue', label: 'Entregue', render: (i) => fmtMetros(totalPorItem[i.id] || 0) },
-              { key: 'falta', label: 'Falta', render: (i) => {
+              { key: 'metros_pedidos', label: 'Pedido', width: '15%', numeric: true, render: (i) => fmtMetros(i.metros_pedidos) },
+              { key: 'metros_ajustados', label: 'Ajustado', width: '15%', numeric: true, render: (i) => i.metros_ajustados == null ? fmtMetros(i.metros_pedidos) : fmtMetros(i.metros_ajustados) },
+              { key: 'entregue', label: 'Entregue', width: '15%', numeric: true, render: (i) => fmtMetros(totalPorItem[i.id] || 0) },
+              { key: 'falta', label: 'Falta', width: '15%', numeric: true, render: (i) => {
                   const ajustado = i.metros_ajustados == null ? Number(i.metros_pedidos) : Number(i.metros_ajustados);
                   const falta = Math.round((ajustado - (totalPorItem[i.id] || 0)) * 100) / 100;
                   const cor = falta <= 0 ? 'text-green-700' : 'text-gray-800';
@@ -328,15 +331,16 @@
           ));
           if (op.observacao) card.appendChild(window.el('div', { class: 'text-xs text-gray-500 mb-2' }, op.observacao));
 
+          // Pass-8 §2.5: three metre quantities behind one declared width owner.
           card.appendChild(window.dataTable({
             columns: [
-              { key: 'modelo', label: 'Modelo', render: (i) => {
+              { key: 'modelo', label: 'Modelo', width: '46%', render: (i) => {
                   const m = modelosById[i.modelo_id];
                   return m ? `${m.nome} ${window.larguraKey(m.largura)}m · ${m.cor_1?.nome || '?'}/${m.cor_2?.nome || '?'}` : ('#' + i.modelo_id);
                 } },
-              { key: 'enviado', label: 'Enviado', render: (i) => fmtMetros(i.metros_pedidos) },
-              { key: 'recebido', label: 'Recebido', render: (i) => fmtMetros(totalPorItem[i.id] || 0) },
-              { key: 'falta', label: 'Falta', render: (i) => {
+              { key: 'enviado', label: 'Enviado', width: '18%', numeric: true, render: (i) => fmtMetros(i.metros_pedidos) },
+              { key: 'recebido', label: 'Recebido', width: '18%', numeric: true, render: (i) => fmtMetros(totalPorItem[i.id] || 0) },
+              { key: 'falta', label: 'Falta', width: '18%', numeric: true, render: (i) => {
                   const falta = Math.round((Number(i.metros_pedidos) - (totalPorItem[i.id] || 0)) * 100) / 100;
                   const cor = falta <= 0 ? 'text-green-700' : 'text-gray-800';
                   return window.el('span', { class: cor }, falta <= 0 ? '✅ completo' : fmtMetros(falta));
@@ -559,14 +563,17 @@
         window.el('div', { class: 'font-semibold text-gray-700 mb-2' }, 'Recebidas'),
         recebidas.length === 0
           ? window.el('p', { class: 'text-sm text-gray-400' }, 'Nenhuma ordem recebida ainda.')
+          // Pass-8 §2.5: only the two kg columns are quantities. Lote is a
+          // categorical identifier and Data is a temporal label (architect
+          // rulings 6.1 / 6.2), so both stay left-aligned.
           : window.dataTable({
               columns: [
-                { key: 'lote', label: 'Lote', render: lote },
-                { key: 'fio', label: 'Fio', render: window.rotuloFio },
-                { key: 'kg_pedido', label: 'Pedido', render: (r) => fmtKg(r.kg_pedido) },
-                { key: 'kg_recebido', label: 'Recebido', render: (r) => fmtKg(r.kg_recebido) },
-                { key: 'data', label: 'Data', render: (r) => new Date(r.data_recebimento + 'T00:00:00').toLocaleDateString('pt-BR') },
-                { key: 'status', label: 'Status', render: (r) => window.OCF_STATUS_LABEL[r.status] || r.status },
+                { key: 'lote', label: 'Lote', width: '16%', render: lote },
+                { key: 'fio', label: 'Fio', width: '26%', render: window.rotuloFio },
+                { key: 'kg_pedido', label: 'Pedido', width: '13%', numeric: true, render: (r) => fmtKg(r.kg_pedido) },
+                { key: 'kg_recebido', label: 'Recebido', width: '13%', numeric: true, render: (r) => fmtKg(r.kg_recebido) },
+                { key: 'data', label: 'Data', width: '16%', render: (r) => new Date(r.data_recebimento + 'T00:00:00').toLocaleDateString('pt-BR') },
+                { key: 'status', label: 'Status', width: '16%', render: (r) => window.OCF_STATUS_LABEL[r.status] || r.status },
               ],
               rows: recebidas,
             }),

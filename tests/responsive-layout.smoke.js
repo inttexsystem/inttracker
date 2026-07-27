@@ -270,8 +270,14 @@ test('os arquivos protegidos nao cresceram em relacao a bbd5f85', () => {
   // todas no bloco normalizeMovementModalControls, que registra a divisao do
   // antigo MOVEMENT_CONTROL_HEIGHT generico em um minimo exclusivo de textarea.
   // Nenhuma logica nova; o ratchet e reancorado, nunca afrouxado.
+  //
+  // 2716 -> 2720: +4 linhas da passada 8 de tabela, todas em
+  // buildTransitionPendingTable. As tres colunas de quantidade passaram de
+  // centralizadas para alinhadas a direita no cabecalho E no valor, e cada
+  // celula de valor ganhou `data-num`, o dono canonico dos algarismos
+  // tabulares (css/tokens.css). Nenhuma logica nova, nenhum calculo alterado.
   const LIMITS = {
-    'js/screens/pedido-detail-events.js': 2716,
+    'js/screens/pedido-detail-events.js': 2720,
     'js/screens/pedido-detail-progress.js': 919,
   };
   for (const [rel, limit] of Object.entries(LIMITS)) {

@@ -436,7 +436,10 @@
               }, parcial.titulo)
             : null
         ),
+        // Pass-8 §2.5: Metragem was already right-aligned in header and value;
+        // the missing half of the contract was the tabular-numeral owner.
         window.el('div', {
+          'data-num': '1',
           style: 'text-align:right;font-size:14px;font-weight:600;color:var(--rv-text-primary);',
         }, fmtMetros(parcial.metros)),
         window.el('div', {
@@ -518,6 +521,7 @@
           }, itemCoresLabel(item))
         ),
         window.el('div', {
+          'data-num': '1',
           style: 'text-align:right;font-size:13.5px;font-weight:600;color:var(--rv-text-primary);',
         }, fmtMetros(item.metros))
       );
@@ -678,6 +682,7 @@
             }, fmtEventoData(row.data))
           ),
           window.el('div', {
+            'data-num': '1',
             style: 'text-align:right;font-size:13.5px;font-weight:700;color:var(--rv-text-primary);',
           }, fmtMetros(row.quantidade))
         ));

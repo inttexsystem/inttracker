@@ -136,6 +136,18 @@
   // Per-item saldos: Kg pedido / recebido / restante / excesso (item totals).
   function itensTable(itens) {
     var t = el('table', { class: 'w-full', style: 'table-layout:fixed;' });
+    // Pass-8 §2.5: `table-layout:fixed` alone left the column widths to the
+    // browser. The <colgroup> is the missing width owner; its five <col>s match
+    // the five header cells and the five value cells exactly. Every width is a
+    // LITERAL style — a computed `'width:' + w` would be undecodable for the
+    // conformance detector and would open a UIC-000 coverage gap for a value
+    // that is entirely static.
+    t.appendChild(el('colgroup', {},
+      el('col', { style: 'width:36%;' }),
+      el('col', { style: 'width:16%;' }),
+      el('col', { style: 'width:16%;' }),
+      el('col', { style: 'width:16%;' }),
+      el('col', { style: 'width:16%;' })));
     t.appendChild(theadRow([th('Fio'), th('Kg pedido', true), th('Kg recebido', true), th('Kg restante', true), th('Kg excesso', true)]));
     var body = el('tbody', {});
     itens.forEach(function (it) {
@@ -154,6 +166,12 @@
       return el('div', { class: 'px-5 py-4 text-sm', style: 'color:var(--rv-color-muted);' }, 'Nenhuma alocação neste item.');
     }
     var t = el('table', { class: 'w-full', style: 'table-layout:fixed;' });
+    t.appendChild(el('colgroup', {},
+      el('col', { style: 'width:28%;' }),
+      el('col', { style: 'width:24%;' }),
+      el('col', { style: 'width:16%;' }),
+      el('col', { style: 'width:16%;' }),
+      el('col', { style: 'width:16%;' })));
     t.appendChild(theadRow([th('Fio'), th('Origem'), th('Kg alocado', true), th('Kg recebido', true), th('Kg restante', true)]));
     var body = el('tbody', {});
     itens.forEach(function (it) {
@@ -223,7 +241,17 @@
       block.appendChild(meta);
 
       var showActions = c.comando_tipo === 'recebimento';
+      // Pass-8 §2.5: this history table renders SIX columns — Fio, Origem, Kg,
+      // Kg excesso, Reversível and the Ações cell that carries the row-level
+      // reversal control. The <colgroup> declares all six.
       var t = el('table', { class: 'w-full', style: 'table-layout:fixed;' });
+      t.appendChild(el('colgroup', {},
+        el('col', { style: 'width:24%;' }),
+        el('col', { style: 'width:20%;' }),
+        el('col', { style: 'width:14%;' }),
+        el('col', { style: 'width:14%;' }),
+        el('col', { style: 'width:14%;' }),
+        el('col', { style: 'width:14%;' })));
       t.appendChild(theadRow([th('Fio'), th('Origem'), th('Kg', true), th('Kg excesso', true), th('Reversível', true),
         el('th', { class: 'px-4 py-2 text-xs font-semibold uppercase text-right', style: 'color:var(--rv-color-muted);' }, showActions ? 'Ações' : '')]));
       var body = el('tbody', {});

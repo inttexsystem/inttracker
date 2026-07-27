@@ -79,6 +79,11 @@
     return el('span', { style: PILL_BASE + 'background:var(--rv-status-prod-bg);color:var(--rv-status-prod);' }, rvDot('var(--rv-status-prod-dot)'), 'Em produção');
   }
 
+  // Every table on this screen is MODELO + N quantity columns, so header
+  // alignment follows the index directly. Pass-8 §2.5: the value cells matched
+  // this alignment already, but carried `class:'num'`, which resolves to NO
+  // rule anywhere in css/. They now carry the canonical `.tnum` owner declared
+  // in css/tokens.css, so the numbers are finally tabular.
   function thRow(colsTemplate, labels) {
     var cells = labels.map(function (l, i) {
       return el('div', { style: TH_STYLE + (i > 0 ? 'text-align:right;' : '') }, l);
@@ -308,10 +313,10 @@
       else { faltaCor = 'var(--rv-color-warning)'; faltaTxt = 'excedente ' + window.fmtMetros(-falta); }
       inner.appendChild(gridRow(cols, [
         el('div', { style: 'font-size:13px;font-weight:600;color:var(--rv-color-value);' }, window.rotuloModelo(ctx.modelosById[item.modelo_id])),
-        el('div', { class: 'num', style: 'font-size:13px;text-align:right;color:var(--rv-text-primary);' }, window.fmtMetros(item.metros_pedidos)),
-        el('div', { class: 'num', style: 'font-size:13px;text-align:right;color:var(--rv-text-primary);' }, window.fmtMetros(ajustado)),
-        el('div', { class: 'num', style: 'font-size:13px;text-align:right;font-weight:700;color:' + (entregue > 0 ? 'var(--rv-color-success)' : 'var(--rv-text-tertiary)') + ';' }, window.fmtMetros(entregue)),
-        el('div', { class: 'num', style: 'font-size:13px;text-align:right;font-weight:700;color:' + faltaCor + ';' }, faltaTxt),
+        el('div', { class: 'tnum', style: 'font-size:13px;text-align:right;color:var(--rv-text-primary);' }, window.fmtMetros(item.metros_pedidos)),
+        el('div', { class: 'tnum', style: 'font-size:13px;text-align:right;color:var(--rv-text-primary);' }, window.fmtMetros(ajustado)),
+        el('div', { class: 'tnum', style: 'font-size:13px;text-align:right;font-weight:700;color:' + (entregue > 0 ? 'var(--rv-color-success)' : 'var(--rv-text-tertiary)') + ';' }, window.fmtMetros(entregue)),
+        el('div', { class: 'tnum', style: 'font-size:13px;text-align:right;font-weight:700;color:' + faltaCor + ';' }, faltaTxt),
         el('div', { style: 'font-size:12.5px;text-align:right;color:var(--rv-color-accent);font-weight:600;' }, itemPedidoLabel),
       ]));
     }
@@ -383,10 +388,10 @@
       else { faltaCor = 'var(--rv-color-warning)'; faltaTxt = 'excedente ' + window.fmtMetros(-falta); }
       tabelaInner.appendChild(gridRow('1fr 110px 110px 110px 110px', [
         el('div', { style: 'font-size:13px;font-weight:500;color:var(--rv-color-value);' }, window.rotuloModelo(ctx.modelosById[item.modelo_id])),
-        el('div', { class: 'num', style: 'font-size:13px;text-align:right;color:var(--rv-text-primary);' }, window.fmtMetros(item.metros_pedidos)),
-        el('div', { class: 'num', style: 'font-size:13px;text-align:right;color:var(--rv-text-primary);' }, item.metros_ajustados == null ? window.fmtMetros(item.metros_pedidos) : window.fmtMetros(item.metros_ajustados)),
-        el('div', { class: 'num', style: 'font-size:13px;text-align:right;color:var(--rv-text-primary);' }, window.fmtMetros(totalPorItem[item.id] || 0)),
-        el('span', { class: 'num', style: 'font-size:13px;text-align:right;font-weight:600;color:' + faltaCor + ';' }, faltaTxt),
+        el('div', { class: 'tnum', style: 'font-size:13px;text-align:right;color:var(--rv-text-primary);' }, window.fmtMetros(item.metros_pedidos)),
+        el('div', { class: 'tnum', style: 'font-size:13px;text-align:right;color:var(--rv-text-primary);' }, item.metros_ajustados == null ? window.fmtMetros(item.metros_pedidos) : window.fmtMetros(item.metros_ajustados)),
+        el('div', { class: 'tnum', style: 'font-size:13px;text-align:right;color:var(--rv-text-primary);' }, window.fmtMetros(totalPorItem[item.id] || 0)),
+        el('span', { class: 'tnum', style: 'font-size:13px;text-align:right;font-weight:600;color:' + faltaCor + ';' }, faltaTxt),
       ]));
     }
     tabela.appendChild(tabelaInner);
@@ -622,9 +627,9 @@
       pendingByOpItemId[item.id] = falta > 0 ? falta : 0;
       inner.appendChild(gridRow(cols, [
         el('div', { style: 'font-size:13px;font-weight:500;color:var(--rv-color-value);' }, window.rotuloModelo(ctx.modelosById[item.modelo_id])),
-        el('div', { class: 'num', style: 'font-size:13px;text-align:right;color:var(--rv-text-tertiary);' }, window.fmtMetros(previsto)),
-        el('div', { class: 'num', style: 'font-size:13px;text-align:right;font-weight:700;color:' + (medido > 0 ? 'var(--rv-color-success)' : 'var(--rv-text-tertiary)') + ';' }, window.fmtMetros(medido)),
-        el('span', { class: 'num', style: 'font-size:13px;text-align:right;font-weight:600;color:' + (falta > 0 ? 'var(--rv-color-danger)' : 'var(--rv-color-success)') + ';' }, falta > 0 ? window.fmtMetros(falta) : 'completo'),
+        el('div', { class: 'tnum', style: 'font-size:13px;text-align:right;color:var(--rv-text-tertiary);' }, window.fmtMetros(previsto)),
+        el('div', { class: 'tnum', style: 'font-size:13px;text-align:right;font-weight:700;color:' + (medido > 0 ? 'var(--rv-color-success)' : 'var(--rv-text-tertiary)') + ';' }, window.fmtMetros(medido)),
+        el('span', { class: 'tnum', style: 'font-size:13px;text-align:right;font-weight:600;color:' + (falta > 0 ? 'var(--rv-color-danger)' : 'var(--rv-color-success)') + ';' }, falta > 0 ? window.fmtMetros(falta) : 'completo'),
       ]));
     }
     tabela.appendChild(inner);

@@ -557,7 +557,16 @@
           style: 'font-size:12.5px;color:var(--rv-text-tertiary);' + (c[1] === 'center' ? 'text-align:center;' : ''),
         }, c[0]));
       });
-      card.appendChild(head);
+      // Pass-8 §2.5: five of the six columns are fixed in pixels
+      // (52+140+100+108+44 = 444px), so the table owns its horizontal scroll
+      // instead of overflowing the dashboard card. `scroll` is the canonical
+      // `data-rv-table-scroll` owner from css/responsive.css; `grid` carries the
+      // declared minimum (444px fixed + 60px gaps + 186px for the Avanço track).
+      var scroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+      var grid = window.el('div', { style: 'min-width:690px;' });
+      scroll.appendChild(grid);
+      card.appendChild(scroll);
+      grid.appendChild(head);
 
       if (state.pedidosError) {
         card.appendChild(window.el('p', {
@@ -576,7 +585,7 @@
         }, 'Você ainda não tem pedidos em destaque.'));
       } else {
         visiveis.forEach(function (p, idx) {
-          card.appendChild(destaqueRow(p, idx === visiveis.length - 1));
+          grid.appendChild(destaqueRow(p, idx === visiveis.length - 1));
         });
       }
 

@@ -667,20 +667,24 @@
         window.el('div', {
           style: 'display:grid;grid-template-columns:minmax(0,1fr) 80px 80px 80px;gap:10px;padding:10px 14px;border-bottom:1px solid var(--rv-border-soft);background:var(--rv-surface-subtle);font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.03em;',
         },
+          // Pass-8 §2.5 (architect ruling 6.6): these three columns carry
+          // standalone quantities, so centred alignment is rejected — header
+          // and value are both right-aligned and the values own the numerals.
           window.el('span', {}, 'Produto'),
-          window.el('span', { style: 'text-align:center;' }, key === 'Insumos>Tecelagem' ? 'Pedido' : 'Alocado'),
-          window.el('span', { style: 'text-align:center;' }, 'Transferido'),
-          window.el('span', { style: 'text-align:center;' }, 'Pendente')
+          window.el('span', { style: 'text-align:right;' }, key === 'Insumos>Tecelagem' ? 'Pedido' : 'Alocado'),
+          window.el('span', { style: 'text-align:right;' }, 'Transferido'),
+          window.el('span', { style: 'text-align:right;' }, 'Pendente')
         ),
         rows.map(function (row, index) {
           return window.el('div', {
             style: 'display:grid;grid-template-columns:minmax(0,1fr) 80px 80px 80px;gap:10px;padding:11px 14px;align-items:center;' + (index < rows.length - 1 ? 'border-bottom:1px solid var(--rv-border-soft);' : ''),
           },
             window.el('div', { style: 'font-size:13px;color:var(--rv-text-primary);line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', title: row.label }, row.label),
-            window.el('div', { style: 'font-size:12.5px;font-weight:600;color:var(--rv-text-primary);text-align:center;' }, row.target),
-            window.el('div', { style: 'font-size:12.5px;font-weight:600;color:var(--rv-accent-blue);text-align:center;' }, row.moved),
+            window.el('div', { 'data-num': '1', style: 'font-size:12.5px;font-weight:600;color:var(--rv-text-primary);text-align:right;' }, row.target),
+            window.el('div', { 'data-num': '1', style: 'font-size:12.5px;font-weight:600;color:var(--rv-accent-blue);text-align:right;' }, row.moved),
             window.el('div', {
-              style: 'font-size:12.5px;font-weight:700;color:' + row.remainingColor + ';text-align:center;white-space:nowrap;',
+              'data-num': '1',
+              style: 'font-size:12.5px;font-weight:700;color:' + row.remainingColor + ';text-align:right;white-space:nowrap;',
             }, row.remaining)
           );
         })

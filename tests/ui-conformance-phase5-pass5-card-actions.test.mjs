@@ -79,8 +79,10 @@ test('3 · the inventory the pass was measured over is unchanged', () => {
   assert.equal(BASELINE.coverage_summary.UNSUPPORTED, 0);
   // 966 at the pass-5 checkpoint; pass 6 removed its own 80 UIC-005 findings
   // (966 -> 886) and pass 7 removed 15 UIC-006 plus the 6 UIC-000 gaps that
-  // described style expressions ON the deleted native selects (886 -> 865).
-  assert.equal(BASELINE.findings.length, 865);
+  // described style expressions ON the deleted native selects (886 -> 865);
+  // phase-5 pass 8 then added two UIC-000 gaps for the Cadastros » Parâmetros
+  // derived width owner (865 -> 867, coverage 543 -> 545).
+  assert.equal(BASELINE.findings.length, 867);
 });
 
 test('4 · the blanket ACTION_ROW_UNPROVEN branch no longer exists', () => {
@@ -531,7 +533,7 @@ test('24 · passes 1, 2, 3 and 4 remain closed', () => {
 });
 
 test('25 · no rule outside UIC-008 moved in this pass', () => {
-  assert.equal(rule('UIC-000').coverage_gaps, 543);
+  assert.equal(rule('UIC-000').coverage_gaps, 545);
   // UIC-005 was 80 at the pass-5 checkpoint; the authorized pass-6 typography
   // order took it to 0 and moved nothing else. Pass 7 then took UIC-006 to 0.
   // Both are carried forward mechanically.

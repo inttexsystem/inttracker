@@ -151,16 +151,21 @@
         return;
       }
 
+      // Pass-8 §2.5: `metros` is the only quantity here. `sequencia` is a
+      // sequence identifier and the three date columns are temporal labels
+      // (architect rulings 6.1 / 6.2), so none of them is right-aligned.
       listWrap.appendChild(window.dataTable({
         columns: [
           {
             key: 'sequencia',
             label: 'Seq.',
+            width: '6%',
             render: function (row) { return row.sequencia != null ? String(row.sequencia) : '—'; },
           },
           {
             key: 'situacao',
             label: 'Situacao',
+            width: '12%',
             render: function (row) {
               var situacao = api && api.getClienteParcialSituacao
                 ? api.getClienteParcialSituacao(row.situacao)
@@ -171,36 +176,44 @@
           {
             key: 'metros',
             label: 'Metros',
+            width: '9%',
+            numeric: true,
             render: function (row) { return fmtMetros(row.metros); },
           },
           {
             key: 'data_referencia',
             label: 'Data ref.',
+            width: '10%',
             render: function (row) { return row.data_referencia ? fmtData(row.data_referencia) : '—'; },
           },
           {
             key: 'titulo',
             label: 'Titulo',
+            width: '14%',
             render: function (row) { return row.titulo || '—'; },
           },
           {
             key: 'mensagem_cliente',
             label: 'Mensagem cliente',
+            width: '19%',
             render: function (row) { return row.mensagem_cliente || '—'; },
           },
           {
             key: 'visivel_cliente',
             label: 'Visivel ao cliente',
+            width: '9%',
             render: function (row) { return row.visivel_cliente ? 'Sim' : 'Nao'; },
           },
           {
             key: 'criado_em',
             label: 'Criado em',
+            width: '10.5%',
             render: function (row) { return fmtData(row.criado_em); },
           },
           {
             key: 'atualizado_em',
             label: 'Atualizado em',
+            width: '10.5%',
             render: function (row) { return fmtData(row.atualizado_em); },
           },
         ],

@@ -61,6 +61,18 @@
     }, text);
   }
 
+  // Pass-8 §2.5 numeric value cell: right-aligned to match its header, with
+  // `data-num` as the tabular-numeral owner (css/tokens.css). It DELEGATES to
+  // cell() and decorates the node rather than building a second element with
+  // its own concatenated style, which would add another construct the
+  // conformance detector cannot decode. Typography and colour follow cell().
+  function numCell(text, weight, color) {
+    var node = cell(text, weight, color);
+    node.style.textAlign = 'right';
+    node.setAttribute('data-num', '1');
+    return node;
+  }
+
   // Rotulo do item pela lineage ja carregada pela tela (expedicao_itens
   // embute o modelo). Cai no op_item quando o item ainda nao foi liberado.
   function itemLabel(saldoItem, modeloById) {
@@ -306,8 +318,15 @@
     var inner = window.el('div', { style: 'min-width:760px;border:1px solid var(--rv-border);border-radius:4px;overflow:hidden;' });
     inner.appendChild(window.el('div', {
       style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);padding:9px 14px;',
-    }, ['ITEM', 'PREVISTO', 'MEDIDO', 'LIBERADO', 'ENTREGUE', 'SALDO'].map(function (label) {
-      return window.el('div', { style: 'font-size:10.5px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.03em;' }, label);
+    }, ['ITEM', 'PREVISTO', 'MEDIDO', 'LIBERADO', 'ENTREGUE', 'SALDO'].map(function (label, idx) {
+      // Pass-8 §2.5: every column after ITEM is a metre quantity, so its header
+      // is right-aligned to match the numCell() values below. The style
+      // attribute keeps its original LITERAL string and the conditional
+      // alignment is a literal property assignment, so the declaration stays
+      // decodable for the conformance detector.
+      var node = window.el('div', { style: 'font-size:10.5px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.03em;' }, label);
+      if (idx > 0) node.style.textAlign = 'right';
+      return node;
     })));
     ctx.saldo.itens.forEach(function (item, index) {
       var disponivel = num(item.disponivel);
@@ -316,11 +335,11 @@
           + (index < ctx.saldo.itens.length - 1 ? 'border-bottom:1px solid var(--rv-border-soft);' : ''),
       },
         cell(itemLabel(item, ctx.modeloById), '700'),
-        cell(fmtMetros(item.previsto), '500', 'var(--rv-text-tertiary)'),
-        cell(fmtMetros(item.recebido), '700'),
-        cell(fmtMetros(item.liberado), '700', 'var(--rv-accent-blue)'),
-        cell(fmtMetros(item.entregue), '700', 'var(--rv-signal-positive)'),
-        cell(fmtMetros(disponivel), '700', disponivel > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)')));
+        numCell(fmtMetros(item.previsto), '500', 'var(--rv-text-tertiary)'),
+        numCell(fmtMetros(item.recebido), '700'),
+        numCell(fmtMetros(item.liberado), '700', 'var(--rv-accent-blue)'),
+        numCell(fmtMetros(item.entregue), '700', 'var(--rv-signal-positive)'),
+        numCell(fmtMetros(disponivel), '700', disponivel > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)')));
     });
     if (!ctx.saldo.itens.length) {
       inner.appendChild(window.el('div', { style: 'padding:14px;font-size:13px;color:var(--rv-text-tertiary);' }, 'OP de tecelagem sem itens.'));

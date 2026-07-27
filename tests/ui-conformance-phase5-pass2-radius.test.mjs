@@ -676,6 +676,33 @@ const PASS7_INCIDENTAL_UIC000_REMOVALS = [
 const PASS7_UIC000_REMOVED_COUNT = PASS7_INCIDENTAL_UIC000_REMOVALS
   .reduce((n, r) => n + r[3], 0);
 
+/*
+ * Phase-5 pass 8 (table contract) ADDED exactly two `UIC-000` coverage gaps,
+ * and nothing else outside the rules a later pass owns.
+ *
+ * Both are the same construct in the same file: the Cadastros » Parâmetros
+ * matrix is TRANSPOSED — one label column plus one column per registered
+ * largura — and its width owner was hardcoded to three tracks, which is only
+ * correct while exactly two larguras exist. Rendered with five larguras the six
+ * cells wrapped onto an implicit second grid row, so the declared owner no
+ * longer described the rendered contract. The correction derives the template
+ * from the real column count, which the detector cannot decode to a concrete
+ * value — hence one gap on the header and one on the value rows.
+ *
+ * This is an observability cost knowingly accepted to close a proven layout
+ * defect, not a suppression: no detector branch changed, and the two gaps are
+ * enumerated EXACTLY, by path + construct + code. A third addition, or an
+ * addition anywhere else, still fails.
+ */
+const PASS8_INCIDENTAL_UIC000_ADDITIONS = [
+  // Cadastros » Parâmetros — `grid-template-columns:${paramGridTemplate}`,
+  // once on the header row and once on every value row.
+  ['js/screens/cadastros.js', 'grid-template-columns: ${...}', 'TEMPLATE_INTERPOLATED_VALUE', 2],
+];
+
+const PASS8_UIC000_ADDED_COUNT = PASS8_INCIDENTAL_UIC000_ADDITIONS
+  .reduce((n, r) => n + r[3], 0);
+
 const withoutLaterPasses = (findings) =>
   findings.filter((f) => !RULES_OWNED_BY_A_LATER_PASS.has(f.rule_id));
 
@@ -701,12 +728,28 @@ test('21 · A2 moved nothing outside the rules later passes own', () => {
   assert.equal(A2_DELTA.removed.length, PASS7_UIC000_REMOVED_COUNT);
   assert.equal(PASS7_UIC000_REMOVED_COUNT, 6);
 
-  assert.equal(A2_DELTA.added.length, 0,
+  // The only additions permitted outside rule ownership are the two pass-8
+  // Parâmetros gaps, matched site by site exactly as the removals are.
+  const expectedAdditions = [];
+  for (const [relPath, context, code, n] of PASS8_INCIDENTAL_UIC000_ADDITIONS) {
+    for (let i = 0; i < n; i += 1) expectedAdditions.push(`UIC-000|${relPath}|${context}|${code}`);
+  }
+  const actualAdditions = A2_DELTA.added.map((f) => {
+    const code = /COVERAGE_GAP \/ ([A-Z_]+)/.exec(f[7]);
+    return `${f[0]}|${f[2]}|${f[6]}|${code ? code[1] : '?'}`;
+  });
+  assert.deepEqual(actualAdditions.slice().sort(), expectedAdditions.slice().sort(),
     `A2 COVERAGE DELTA EXCEEDS THE ARCHITECT RULING:\n${A2_DELTA.added.map((f) => f[0] + ' ' + f[2]).join('\n')}`);
 });
 
 test('21b · A2 added nothing outside the rules later passes own', () => {
-  assert.equal(A2_DELTA.added.length, 0);
+  assert.equal(A2_DELTA.added.length, PASS8_UIC000_ADDED_COUNT);
+  assert.equal(PASS8_UIC000_ADDED_COUNT, 2);
+  for (const [ruleId, severity, relPath, , , , , message] of A2_DELTA.added) {
+    assert.equal(ruleId, 'UIC-000', `${relPath}: only the pass-8 coverage gaps may appear`);
+    assert.equal(severity, 'coverage', `${relPath}: only a coverage gap may appear`);
+    assert.match(message, /TEMPLATE_INTERPOLATED_VALUE/, `${relPath}: unexpected coverage code`);
+  }
   // The five findings A2 DID add were all UIC-008 / coverage /
   // ACTION_ROW_UNPROVEN. That rule is now owned by pass 5, which withdrew the
   // blanket branch entirely, so the historical fact is asserted against the
@@ -770,9 +813,10 @@ test('21d · no rule moved except UIC-008, which a later pass closed', () => {
     if (id === 'UIC-000') {
       // Pass 7 removed exactly six gaps together with the native selects that
       // carried them. Both endpoints are pinned; neither is a threshold.
+      // …and pass 8 added exactly the two Parâmetros gaps enumerated above.
       assert.equal(before.coverage_gaps, 549);
-      assert.equal(after.coverage_gaps, 549 - PASS7_UIC000_REMOVED_COUNT);
-      assert.equal(after.coverage_gaps, 543);
+      assert.equal(after.coverage_gaps, 549 - PASS7_UIC000_REMOVED_COUNT + PASS8_UIC000_ADDED_COUNT);
+      assert.equal(after.coverage_gaps, 545);
       assert.equal(after.blocking, 0, 'a coverage gap may never become a defect');
       assert.equal(after.debt, 0);
       continue;
@@ -795,8 +839,9 @@ test('21e · blocking, debt, inventory and support are unchanged', () => {
   const coverageSum = (b) => Object.entries(b.summary_by_rule)
     .filter(([id]) => !RULES_OWNED_BY_A_LATER_PASS.has(id))
     .reduce((n, [, r]) => n + r.coverage_gaps, 0);
-  assert.equal(coverageSum(ENTRY_BASELINE) - coverageSum(BASELINE), PASS7_UIC000_REMOVED_COUNT);
-  assert.equal(BASELINE.findings.length, 865, 'current repository total after pass 7');
+  assert.equal(coverageSum(ENTRY_BASELINE) - coverageSum(BASELINE),
+    PASS7_UIC000_REMOVED_COUNT - PASS8_UIC000_ADDED_COUNT);
+  assert.equal(BASELINE.findings.length, 867, 'current repository total after pass 8');
   assert.equal(BASELINE.coverage_summary.FULL, 31);
   assert.equal(BASELINE.coverage_summary.PARTIAL, 36);
   assert.equal(rule('UIC-009').debt, UIC009_ENTRY_CEILING);

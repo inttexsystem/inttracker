@@ -207,8 +207,10 @@ test('2 · UIC-005 remains zero and no rule moved', () => {
   // the six UIC-000 gaps that described style expressions ON the deleted
   // native selects (549 -> 543): 886 - 21 = 865. A1's own result, UIC-005 at
   // zero with the KPI hierarchy intact, is asserted above and unchanged.
-  assert.equal(BASELINE.findings.length, 865);
-  assert.equal(rule('UIC-000').coverage_gaps, 543);
+  // Phase-5 pass 8 then added two UIC-000 gaps for the Cadastros »
+  // Parâmetros derived width owner: 865 -> 867.
+  assert.equal(BASELINE.findings.length, 867);
+  assert.equal(rule('UIC-000').coverage_gaps, 545);
   assert.equal(rule('UIC-006').blocking, 0);
   assert.equal(rule('UIC-006').total, 0);
   assert.equal(rule('UIC-009').debt, 322);
@@ -572,18 +574,29 @@ test('27 · every changed runtime asset carries the A1 cache token', () => {
   // became the select adapter — so those two now carry the LATER pass-7 token.
   // The invariant this test owns is intact: every asset A1 changed is still
   // invalidated, and no asset A1 left alone was retokenised by A1.
-  const CHANGED_BY_A1_THEN_PASS7 = ['css/tokens.css', 'js/ui.js'];
+  const CHANGED_BY_A1_THEN_PASS7 = ['css/tokens.css'];
   // Pass-7 correction A4 bound expedicao-admin's visible label to its combobox,
   // so that asset moved on again — to the A4 token.
   const PASS7_A4 = '20260727-ui-p5-pass7-native-select-a4-a11y-geometry';
-  const CHANGED_BY_A1_THEN_PASS7_A4 = ['js/screens/expedicao-admin.js'];
-  const CHANGED = [
-    'js/screens/cliente-dashboard.js',
-    'js/screens/manta-expedicao-ui.js', 'js/screens/painel.js',
+  const CHANGED_BY_A1_THEN_PASS7_A4 = [];
+  /*
+   * PASS-8-TABLE-CONTRACT-FORWARD-CORRECTION
+   *
+   * Phase-5 pass 8 changed four of A1's seven assets again — js/ui.js for the
+   * dataTable() contract, and the three screens whose tables gained a numeral,
+   * alignment or scroll owner. A pass-8 token is strictly LATER than an A1 or
+   * pass-7 one, so A1's invariant is intact: every asset A1 changed is still
+   * invalidated, and no asset A1 left alone was retokenised BY A1.
+   */
+  const PASS8 = '20260727-ui-p5-pass8-table-r1';
+  const CHANGED_BY_A1_THEN_PASS8 = [
+    'js/ui.js', 'js/screens/cliente-dashboard.js',
+    'js/screens/expedicao-admin.js', 'js/screens/manta-expedicao-ui.js',
     'js/screens/pedido-detail-render.js',
   ];
+  const CHANGED = ['js/screens/painel.js'];
   assert.equal(CHANGED.length + CHANGED_BY_A1_THEN_PASS7.length
-    + CHANGED_BY_A1_THEN_PASS7_A4.length, 7,
+    + CHANGED_BY_A1_THEN_PASS7_A4.length + CHANGED_BY_A1_THEN_PASS8.length, 7,
     'the A1 changed-asset population must stay seven');
   for (const rel of CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${TOKEN}"`), `${rel} was not retokenised`);
@@ -595,6 +608,9 @@ test('27 · every changed runtime asset carries the A1 cache token', () => {
   for (const rel of CHANGED_BY_A1_THEN_PASS7_A4) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS7_A4}"`),
       `${rel} must carry the later pass-7 A4 token`);
+  }
+  for (const rel of CHANGED_BY_A1_THEN_PASS8) {
+    assert.ok(INDEX.includes(`"${rel}?v=${PASS8}"`), `${rel} must carry the later pass-8 token`);
   }
   assert.equal((INDEX.match(new RegExp(TOKEN, 'g')) || []).length, CHANGED.length,
     'an asset that did not change was retokenised');

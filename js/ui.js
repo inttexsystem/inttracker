@@ -198,30 +198,85 @@ function selectInput({ options, value, placeholder = 'Selecione...', ariaLabel, 
 }
 
 // --- Tabela de dados ---
-// Uso: dataTable({columns: [{key, label, render?}], rows, actions: [{label, onclick, class?}]})
-function dataTable({ columns, rows, actions = [] }) {
+// UI_VISUAL_CONTRACT.md §2.5 — golden rule. The width and alignment of a
+// column's HEADER must be identical to those of its VALUES. This helper is the
+// single owner of that guarantee for every dataTable() surface, so no call site
+// may reimplement it (phase-5 pass 8):
+//
+//   - `table-layout: fixed` plus ONE <colgroup> whose <col> order matches the
+//     rendered column order exactly, including the actions column;
+//   - alignment declared once per column and repeated on `th` and `td`;
+//   - `numeric: true` implies right-aligned header AND value plus `data-num`
+//     on the value cell, which is the canonical tabular-numeral owner in
+//     css/tokens.css (`.tnum, [data-num]`).
+//
+// The contract is DECLARATIVE. Nothing here inspects label text to guess that a
+// column is numeric, and nothing measures runtime content to guess a width: a
+// column is numeric only when the call site says so, and is only as wide as the
+// call site declares. Columns with no declared width share the remaining space
+// equally, which `table-layout: fixed` resolves deterministically.
+//
+// When the resulting contract declares any FIXED-PIXEL column the table gains
+// the canonical `data-rv-table-scroll` owner (css/responsive.css) rather than a
+// second overflow system, so a wide table scrolls locally and never pushes the
+// document.
+//
+// Uso: dataTable({
+//   columns: [{ key, label, render?, width?, align?, numeric? }],
+//   rows,
+//   actions: [{ label, onclick, class? }],
+//   actionsWidth?, minWidth?
+// })
+function dataTable({ columns, rows, actions = [], actionsWidth, minWidth }) {
   const wrap = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow overflow-hidden' });
   if (rows.length === 0) {
     wrap.appendChild(el('div', { class: 'p-8 text-center text-gray-500' }, 'Nenhum registro ainda.'));
     return wrap;
   }
-  const table = el('table', { class: 'w-full' });
+
+  // One resolved descriptor per RENDERED column, actions included. Everything
+  // below — colgroup, header, values — walks this single list, so the three can
+  // never disagree about the count, the order or the alignment.
+  const hasActions = actions.length > 0;
+  const layout = columns.map((col) => ({
+    width: col.width || null,
+    align: col.align || (col.numeric ? 'right' : 'left'),
+    numeric: col.numeric === true,
+  }));
+  if (hasActions) layout.push({ width: actionsWidth || null, align: 'right', numeric: false });
+
+  const table = el('table', { class: 'w-full', style: 'table-layout:fixed;' });
+
+  const colgroup = el('colgroup', {});
+  for (const spec of layout) {
+    colgroup.appendChild(spec.width ? el('col', { style: 'width:' + spec.width + ';' }) : el('col', {}));
+  }
+  table.appendChild(colgroup);
+
   const thead = el('thead', { class: 'bg-gray-50 border-b' });
   const trHead = el('tr', {});
-  for (const col of columns) trHead.appendChild(el('th', { class: 'px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase' }, col.label));
-  if (actions.length) trHead.appendChild(el('th', { class: 'px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase' }, 'Ações'));
+  columns.forEach((col, i) => {
+    trHead.appendChild(el('th', {
+      class: 'px-4 py-3 text-' + layout[i].align + ' text-xs font-semibold text-gray-600 uppercase',
+    }, col.label));
+  });
+  if (hasActions) trHead.appendChild(el('th', { class: 'px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase' }, 'Ações'));
   thead.appendChild(trHead);
 
   const tbody = el('tbody', { class: 'divide-y divide-gray-100' });
   for (const row of rows) {
     const tr = el('tr', { class: 'hover:bg-gray-50' });
-    for (const col of columns) {
+    columns.forEach((col, i) => {
       const cellValue = col.render ? col.render(row) : (row[col.key] ?? '');
-      const td = el('td', { class: 'px-4 py-3 text-sm text-gray-800' });
+      // `data-num` only ever lands on a declared numeric VALUE cell — never on
+      // a button, a badge or an action container.
+      const attrs = { class: 'px-4 py-3 text-sm text-gray-800 text-' + layout[i].align };
+      if (layout[i].numeric) attrs['data-num'] = '1';
+      const td = el('td', attrs);
       if (cellValue instanceof Node) td.appendChild(cellValue); else td.textContent = String(cellValue);
       tr.appendChild(td);
-    }
-    if (actions.length) {
+    });
+    if (hasActions) {
       const td = el('td', { class: 'px-4 py-3 text-right' });
       for (const a of actions) {
         const cls = a.class || 'text-blue-700 hover:underline';
@@ -234,7 +289,17 @@ function dataTable({ columns, rows, actions = [] }) {
   }
   table.appendChild(thead);
   table.appendChild(tbody);
-  wrap.appendChild(table);
+
+  // A fixed-pixel column cannot shrink, so the table needs its OWN scroll
+  // owner. `data-rv-table-scroll` already carries overflow-x/max-width/min-width
+  // in css/responsive.css; this adds no second mechanism.
+  const hasFixedPx = layout.some((spec) => spec.width && /px\s*$/.test(spec.width));
+  if (hasFixedPx) {
+    if (minWidth) table.style.minWidth = minWidth;
+    wrap.appendChild(el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' }, table));
+  } else {
+    wrap.appendChild(table);
+  }
   return wrap;
 }
 

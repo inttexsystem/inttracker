@@ -134,7 +134,17 @@
     }
 
     var wrap = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow overflow-hidden' });
-    var table = el('table', { class: 'w-full' });
+    // Pass-8 §2.5: `table-layout:fixed` + a <colgroup> whose five <col>s match
+    // the five rendered columns, so every header takes exactly the width of its
+    // values. Percentage widths only — no fixed-pixel column, so this table
+    // needs no scroll owner of its own.
+    var table = el('table', { class: 'w-full', style: 'table-layout:fixed;' });
+    table.appendChild(el('colgroup', {},
+      el('col', { style: 'width:26%;' }),
+      el('col', { style: 'width:30%;' }),
+      el('col', { style: 'width:20%;' }),
+      el('col', { style: 'width:12%;' }),
+      el('col', { style: 'width:12%;' })));
     var thead = el('thead', { class: 'bg-gray-50 border-b' });
     thead.appendChild(el('tr', {},
       el('th', { class: 'px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase' }, 'Modelo'),
@@ -267,7 +277,15 @@
     if (!items.length) {
       itemsCard.appendChild(el('div', { class: 'p-6 text-center text-gray-500 text-sm' }, 'Nenhum item neste rascunho.'));
     } else {
-      var t = el('table', { class: 'w-full' });
+      // Pass-8 §2.5: four <col>s for the four rendered columns (Fio, Kg pedido,
+      // Kg alocado, ações). The two kg columns were already right-aligned with
+      // tabular numerals; only the width owner was missing.
+      var t = el('table', { class: 'w-full', style: 'table-layout:fixed;' });
+      t.appendChild(el('colgroup', {},
+        el('col', { style: 'width:40%;' }),
+        el('col', { style: 'width:22%;' }),
+        el('col', { style: 'width:22%;' }),
+        el('col', { style: 'width:16%;' })));
       var th = el('thead', { class: 'bg-gray-50 border-b' });
       th.appendChild(el('tr', {},
         el('th', { class: 'px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase' }, 'Fio'),

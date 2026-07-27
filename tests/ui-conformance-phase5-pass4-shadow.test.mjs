@@ -628,16 +628,18 @@ test('32 · no rule outside UIC-004 moved in this pass', () => {
   // Pass 5 took UIC-008 to 0/0 (1008 -> 966), pass 6 took UIC-005 to 0
   // (966 -> 886), and pass 7 took UIC-006 to 0 while incidentally removing the
   // six UIC-000 gaps that described style expressions ON the deleted native
-  // selects (886 -> 865, coverage 549 -> 543).
+  // selects (886 -> 865, coverage 549 -> 543); phase-5 pass 8 then added two
+  // UIC-000 gaps for the Cadastros » Parâmetros derived width owner
+  // (865 -> 867, coverage 543 -> 545).
   // Everything pass 4 actually owns is unchanged.
-  assert.equal(rule('UIC-000').coverage_gaps, 543);
+  assert.equal(rule('UIC-000').coverage_gaps, 545);
   assert.equal(rule('UIC-005').blocking, 0);   // pass 6 closed typography
   assert.equal(rule('UIC-006').blocking, 0);   // pass 7 closed native select
   assert.equal(rule('UIC-006').total, 0);
   assert.equal(rule('UIC-008').blocking, 0);
   assert.equal(rule('UIC-008').coverage_gaps, 0);
   assert.equal(rule('UIC-009').debt, 322);
-  assert.equal(BASELINE.findings.length, 865);
+  assert.equal(BASELINE.findings.length, 867);
   // Pass 4's own rule is still exactly closed, which is the point of the test.
   assert.equal(rule('UIC-004').blocking, 0);
   assert.equal(rule('UIC-004').coverage_gaps, 0);

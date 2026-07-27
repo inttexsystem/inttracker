@@ -103,6 +103,19 @@
     }, text);
   }
 
+  // Pass-8 §2.5 numeric value cell: right-aligned to match its header and
+  // carrying `data-num`, the canonical tabular-numeral owner in css/tokens.css.
+  // It DELEGATES to value() and then decorates the node, instead of building a
+  // second element with its own concatenated style — that would add another
+  // undecodable construct for the conformance detector without adding any
+  // information. Same typography and colour contract as value().
+  function numValue(text, weight, color) {
+    var node = value(text, weight, color);
+    node.style.textAlign = 'right';
+    node.setAttribute('data-num', '1');
+    return node;
+  }
+
   function sum(rows, key) {
     return round2((rows || []).reduce(function (acc, row) {
       return acc + Number(row && row[key] ? row[key] : 0);
@@ -318,9 +331,17 @@
       // cortadas, sem rolagem alcancavel.
       var cols = '1fr 140px 150px 130px';
       var scroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+      // Pass-8 §2.5: LIBERADO / ENTREGUE / SALDO are metre quantities. The
+      // header alignment declared here is repeated on every value cell below
+      // via numValue(), which also owns the tabular numerals.
       scroll.appendChild(window.el('div', { style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;background:var(--rv-surface-subtle);border-top:1px solid var(--rv-border);border-bottom:1px solid var(--rv-border);padding:9px 20px;min-width:720px;' },
-        ['MODELO / CORES', 'LIBERADO', 'ENTREGUE', 'SALDO'].map(function (label) {
-          return window.el('div', { style: 'font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.03em;' }, label);
+        ['MODELO / CORES', 'LIBERADO', 'ENTREGUE', 'SALDO'].map(function (label, idx) {
+          // The style attribute keeps its original LITERAL string; the
+          // conditional alignment is a literal property assignment, so the
+          // declaration stays decodable for the conformance detector.
+          var node = window.el('div', { style: 'font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.03em;' }, label);
+          if (idx > 0) node.style.textAlign = 'right';
+          return node;
         })));
       state.itens.forEach(function (item) {
         var liberado = Number(item.metros_liberados || 0);
@@ -328,9 +349,9 @@
         var saldo = Math.max(round2(liberado - entregue), 0);
         scroll.appendChild(window.el('div', { style: 'display:grid;grid-template-columns:' + cols + ';gap:10px;padding:12px 20px;border-bottom:1px solid var(--rv-border-soft);align-items:center;min-width:720px;' },
           value(modeloLabel(item), '700'),
-          value(fmtMetros(liberado)),
-          value(fmtMetros(entregue), '700', 'var(--rv-signal-positive)'),
-          value(fmtMetros(saldo), '700', saldo > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)')));
+          numValue(fmtMetros(liberado)),
+          numValue(fmtMetros(entregue), '700', 'var(--rv-signal-positive)'),
+          numValue(fmtMetros(saldo), '700', saldo > 0 ? 'var(--rv-signal-caution)' : 'var(--rv-signal-positive)')));
       });
       card.appendChild(scroll);
       return card;

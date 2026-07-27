@@ -304,6 +304,17 @@
       // addresses fit before truncating; NOME/FORNECEDOR/CLIENTE unchanged
       // at 1fr; TIPO/STATUS/ULTIMO ACESSO/ACOES fixed px unchanged.
       const gridTemplate = '2fr 1fr 110px 1fr 1fr 90px 130px 138px';
+      // Pass-8 §2.5: four columns are fixed in pixels (110+90+130+138), so the
+      // table needs its OWN horizontal scroll owner — previously `card` and
+      // `tableWrap` both said `overflow:hidden`, which simply CUT the last
+      // columns on a narrow viewport with no way to reach them. `grid` carries
+      // the declared minimum (468px fixed + 112px gaps + 36px padding + 504px
+      // for the five flexible tracks) and `scroll` is the canonical
+      // `data-rv-table-scroll` owner defined in css/responsive.css.
+      const scroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+      const grid = window.el('div', { style: 'min-width:1120px;' });
+      scroll.appendChild(grid);
+      card.appendChild(scroll);
       const TRUNCATE_HEAD_LABELS = new Set(['E-MAIL', 'NOME', 'FORNECEDOR', 'CLIENTE']);
       const headRow = window.el('div', { style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:10px 18px; background:var(--rv-surface-subtle); border-bottom:1px solid var(--rv-border);` });
       ['E-MAIL', 'NOME', 'TIPO', 'FORNECEDOR', 'CLIENTE', 'STATUS', 'ULTIMO ACESSO'].forEach((label) => {
@@ -313,7 +324,7 @@
         headRow.appendChild(window.el('div', { style: headStyle }, label));
       });
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; text-align:center; white-space:nowrap;' }, 'ACOES'));
-      card.appendChild(headRow);
+      grid.appendChild(headRow);
 
       rows.forEach((user, index) => {
         const inativo = user.ativo === false;
@@ -376,10 +387,12 @@
           onclick: excluirDisabled ? undefined : () => handleExcluirClick(user, meId, meSomenteLeitura),
         }));
         line.appendChild(actions);
-        card.appendChild(line);
+        grid.appendChild(line);
       });
 
       if (!rows.length) {
+        // The empty message is a single line of prose, not a table row, so it
+        // stays outside the min-width owner and never forces a scroll.
         card.appendChild(window.el('div', { style: 'padding:20px 18px; font-size:14px; color:var(--rv-text-secondary); text-align:center;' }, busca ? 'Nenhum usuario encontrado.' : (mostrarInativos ? 'Nenhum usuario cadastrado.' : 'Nenhum usuario ativo encontrado.')));
       }
 

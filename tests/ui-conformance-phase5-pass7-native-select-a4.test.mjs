@@ -482,26 +482,50 @@ test('11 · A4 retokenised exactly five assets, and the pass-7 set is set-derive
   const onA5 = refs.filter((u) => tokenOf(u) === A5_TOKEN).map(pathOf);
   const onA1 = refs.filter((u) => tokenOf(u) === A1_TOKEN).map(pathOf);
 
+  /*
+   * PASS-8-TABLE-CONTRACT-FORWARD-CORRECTION
+   *
+   * Phase-5 pass 8 closed the §2.5 table contract and changed seven of the
+   * assets pass 7 had retokenised, so those now carry the pass-8 token. This is
+   * NOT a shrinking of the pass-7 population: the sets below are still resolved
+   * by set arithmetic across every token pass 7 or a later pass applied, and a
+   * pass-8 token is strictly later than an A1/A4/A5 one, so every asset pass 7
+   * changed is still invalidated against the pass-6 checkpoint.
+   */
+  const PASS8_TOKEN = '20260727-ui-p5-pass8-table-r1';
+  const onPass8 = refs.filter((u) => tokenOf(u) === PASS8_TOKEN).map(pathOf);
+  const PASS7_ASSETS_MOVED_BY_PASS8 = [
+    'js/ui.js', 'js/screens/admin-usuarios.js', 'js/screens/cadastros.js',
+    'js/screens/cliente-pedido-form.js', 'js/screens/expedicao-admin.js',
+    'js/screens/op-nova.js',
+  ];
+  for (const rel of PASS7_ASSETS_MOVED_BY_PASS8) {
+    assert.ok(onPass8.includes(rel), `${rel} must now carry the pass-8 token`);
+  }
+
   // A5 removed the duplicate legacy chevron in op-nova.js, so that one file
-  // moved on from the A4 token to its own. The A4 POPULATION is unchanged at
-  // five — it is only spread across two tokens now.
-  assert.equal(onA5.length, 1, 'A5_RETOKENED_ASSET_COUNT');
-  assert.deepEqual(onA5, ['js/screens/op-nova.js']);
-  assert.equal(onA4.length + onA5.length, 5, 'A4_RETOKENED_ASSET_COUNT');
-  assert.deepEqual([...onA4, ...onA5].sort(), A4_FILES.map(([r]) => r).slice().sort());
+  // moved on from the A4 token to its own; pass 8 then moved it on again. The
+  // A4 POPULATION is unchanged at five — it is only spread across three tokens.
+  assert.equal(onA5.length, 0, 'A5_RETOKENED_ASSET_COUNT after pass 8');
+  const a4Population = [...onA4, ...onA5,
+    ...PASS7_ASSETS_MOVED_BY_PASS8.filter((u) => A4_FILES.some(([r]) => r === u))];
+  assert.equal(a4Population.length, 5, 'A4_RETOKENED_ASSET_COUNT');
+  assert.deepEqual(a4Population.slice().sort(), A4_FILES.map(([r]) => r).slice().sort());
 
   // The pass-7 population is a UNION, not a sum: one of the five A4 files was
   // already a pass-7 member, and the other four join it now.
   const ADDED = ['js/select-popover.js'];
-  const union = [...new Set([...onA1, ...onA4, ...onA5])];
+  const union = [...new Set([...onA1, ...onA4, ...onA5, ...PASS7_ASSETS_MOVED_BY_PASS8])];
   const retokenised = union.filter((u) => !ADDED.includes(u));
   assert.equal(union.length, 17);
   assert.equal(retokenised.length, 16, 'PASS7_UNIQUE_RETOKENED_ASSET_COUNT is set-derived');
   // Every asset carries exactly ONE live token, so the current index has no
   // overlap: 12 + 4 + 1 = 17 distinct paths.
-  const seenTwice = [...onA1, ...onA4, ...onA5].filter((u, i, a) => a.indexOf(u) !== i);
+  const seenTwice = [...onA1, ...onA4, ...onA5, ...PASS7_ASSETS_MOVED_BY_PASS8]
+    .filter((u, i, a) => a.indexOf(u) !== i);
   assert.deepEqual(seenTwice, [], 'no asset may carry two tokens simultaneously');
-  assert.equal(union.length, onA1.length + onA4.length + onA5.length);
+  assert.equal(union.length,
+    onA1.length + onA4.length + onA5.length + PASS7_ASSETS_MOVED_BY_PASS8.length);
 
   // The count that must NOT be computed additively is the RETOKENISED one.
   // Two corrections make the naive arithmetic wrong: js/select-popover.js is
@@ -564,10 +588,12 @@ test('12 · A4 changed no copy, option, placeholder, value or event wiring', () 
 test('13 · the detector result is unchanged by A4', () => {
   const baseline = JSON.parse(read('tests/fixtures/ui-conformance-baseline.json'));
   assert.equal(baseline.detector_version, '1.0.6');
-  assert.equal(baseline.findings.length, 865);
+  // Phase-5 pass 8 then added two UIC-000 gaps for the Cadastros »
+  // Parâmetros derived width owner: 865 -> 867.
+  assert.equal(baseline.findings.length, 867);
   const rule = (id) => baseline.summary_by_rule[id] || { blocking: 0, coverage_gaps: 0, total: 0 };
   assert.equal(rule('UIC-006').total, 0);
-  assert.equal(rule('UIC-000').coverage_gaps, 543);
+  assert.equal(rule('UIC-000').coverage_gaps, 545);
   assert.equal(rule('UIC-009').debt, 322);
   assert.equal(baseline.coverage_summary.FULL, 31);
   assert.equal(baseline.coverage_summary.PARTIAL, 36);

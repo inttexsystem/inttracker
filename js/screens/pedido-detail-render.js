@@ -490,17 +490,23 @@
           style: 'font-size:12px;color:var(--rv-text-tertiary);',
         }, itemCoresLabel(state, item))
       ),
-      window.el('div', { style: 'font-size:13.5px;color:var(--rv-text-primary);font-weight:600;' }, ns.fmtMetrosShort(item.metros)),
-      window.el('div', { style: 'font-size:13.5px;color:var(--rv-stage-tecelagem);font-weight:700;' }, ns.fmtMetrosShort(metrics.tecelagem)),
+      window.el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);font-weight:600;text-align:right;' }, ns.fmtMetrosShort(item.metros)),
+      window.el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-stage-tecelagem);font-weight:700;text-align:right;' }, ns.fmtMetrosShort(metrics.tecelagem)),
       showAcabamento
+        // The Manta "—" placeholder is preserved exactly; it only inherits the
+        // column's alignment. The comment sits OUTSIDE the attribute object on
+        // purpose: a comment between attribute keys changes how the conformance
+        // detector tokenises the declaration and silently drops its coverage
+        // finding, which would understate what the detector can see.
         ? window.el('div', {
             'data-rv-item-acabamento': isManta ? 'nao-aplicavel' : 'aplicavel',
-            style: 'font-size:13.5px;color:' + (isManta ? 'var(--rv-text-tertiary)' : 'var(--rv-signal-caution)') + ';font-weight:700;',
+            'data-num': '1',
+            style: 'font-size:13.5px;color:' + (isManta ? 'var(--rv-text-tertiary)' : 'var(--rv-signal-caution)') + ';font-weight:700;text-align:right;',
             title: isManta ? 'A rota Manta nao tem etapa de acabamento.' : '',
           }, isManta ? '—' : ns.fmtMetrosShort(metrics.acabamento))
         : null,
-      window.el('div', { style: 'font-size:13.5px;color:var(--rv-accent-blue);font-weight:700;' }, ns.fmtMetrosShort(metrics.prontos)),
-      window.el('div', { style: 'font-size:13.5px;color:var(--rv-signal-positive);font-weight:700;' }, ns.fmtMetrosShort(metrics.entregues)),
+      window.el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-accent-blue);font-weight:700;text-align:right;' }, ns.fmtMetrosShort(metrics.prontos)),
+      window.el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-signal-positive);font-weight:700;text-align:right;' }, ns.fmtMetrosShort(metrics.entregues)),
       window.el('div', { style: 'font-size:12.5px;color:var(--rv-accent-blue);font-weight:600;' }, metrics.relatedOpsLabel),
       window.el('div', { style: 'text-align:right;' },
         window.el('button', {
@@ -548,13 +554,18 @@
         + ';gap:10px;padding:9px 20px;background:var(--rv-surface-subtle);border-top:1px solid var(--rv-border);border-bottom:1px solid var(--rv-border);min-width:'
         + itemMinWidthFor(showAcabamento) + ';',
     },
+      // Pass-8 §2.5: PEDIDO, TECELAGEM, ACABAMENTO, PRONTOS and ENTREGUES are
+      // metre quantities — each header takes the right alignment its value cell
+      // declares in buildItemRow(). The ACABAMENTO column disappears on a
+      // Manta-only Pedido; header and rows read the SAME itemColsFor() owner,
+      // so both variants stay in parity.
       window.el('div', {}),
       th('MODELO / CORES'),
-      th('PEDIDO'),
-      th('TECELAGEM'),
-      showAcabamento ? th('ACABAMENTO') : null,
-      th('PRONTOS'),
-      th('ENTREGUES'),
+      th('PEDIDO', true),
+      th('TECELAGEM', true),
+      showAcabamento ? th('ACABAMENTO', true) : null,
+      th('PRONTOS', true),
+      th('ENTREGUES', true),
       th('OPs RELACIONADAS'),
       th('ACAO', true)
     ));

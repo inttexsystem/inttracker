@@ -672,9 +672,16 @@
         )
       );
 
+      // Pass-8 §2.5: the Img (60px) and Ações (84px) columns are fixed in
+      // pixels, so header and rows scroll together inside their OWN container
+      // — the canonical `data-rv-table-scroll` owner from css/responsive.css —
+      // instead of being clipped by the wrapper's `overflow:hidden`. The total
+      // footer stays outside the scroller, as it is not a table row.
+      var tableScroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' },
+        window.el('div', { style: 'min-width:880px;' }, tableHeader, rowsWrap));
       var tableWrap = window.el('div', {
         style: 'border:1px solid var(--rv-border); border-radius:4px; overflow:hidden;'
-      }, tableHeader, rowsWrap, tableFooter);
+      }, tableScroll, tableFooter);
 
       return window.el('div', {
         style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:4px; box-shadow:var(--rv-shadow-none); padding:16px 20px; margin-bottom:14px;'
