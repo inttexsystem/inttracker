@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "81718e3b662c651bcb13b431fae9d791d07b0138",
-      "sha256": "e81fec729123bed9e1381f4aff40fae68299feb1d9142486eb88c512dce08f86",
+      "git_object_id": "ba10d60db599620ddb7fe77a322a017b9cbc1c02",
+      "sha256": "31d5e0eefee209d2d77a2bce601e18a96e10f0e9ec1a275be6b65edaee9cee50",
       "line_count": 34,
-      "byte_count": 11575,
+      "byte_count": 11478,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -40159,6 +40159,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 10387,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0002.md",
           "source_line": 297,
           "kind": "ROOT_REFERENCE",
@@ -40264,6 +40271,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md",
+          "source_line": 34,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 1251,
           "kind": "ROOT_REFERENCE",
@@ -40364,6 +40378,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 9925,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 10383,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -58403,10 +58424,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
-      "git_object_id": "04ae2b96145a7353c5c3ebf2e9c451b800b74ab8",
-      "sha256": "336538a4458513735fd571a69e4bc8640fe2377137abbfab6724ce09e9464c4f",
-      "line_count": 166,
-      "byte_count": 28869,
+      "git_object_id": "403591f68112b713101434ab746ecebbe1ccbaad",
+      "sha256": "0f1b5032c7ebcdaa8add6f80f72ce0b0b224688d1e71a45b3a17986359c961ab",
+      "line_count": 167,
+      "byte_count": 29096,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -59544,6 +59565,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 164
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md`",
+          "target_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 165
         }
       ],
       "inbound_references": [
@@ -59573,10 +59602,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "74cab447749fee87036f3dae57a1a8810220fdb1",
-      "sha256": "3a43b74708012e83c437adbb5755706d55a0f395710cce5bca70fd70dc744dd7",
-      "line_count": 10364,
-      "byte_count": 1319640,
+      "git_object_id": "47261b5580f30a1620dcb5e7ff1cd8b299c862e3",
+      "sha256": "42b61b77315d595e6d7549e7a1695eb44cd560842166e9da14a41a5828b61565",
+      "line_count": 10391,
+      "byte_count": 1335094,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -66410,6 +66439,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 10327
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10387
         }
       ],
       "inbound_references": [
@@ -67880,6 +67917,12 @@
           "text": "2026-07-27 — UI-ACTION-CONTAINMENT-A1-SHARED-OWNERS-AND-COCKPIT-MEMBERSHIP — refactor(ui): declare shared action owners and cockpit membership",
           "anchor": "2026-07-27-ui-action-containment-a1-shared-owners-and-cockpit-membership-refactorui-declare-shared-action-owners-and-cockpit-membership",
           "line": 10335
+        },
+        {
+          "level": 2,
+          "text": "2026-07-27 — UI-SPECIALIZED-CONTROLS-B1-SHARED-PRIMITIVES-AND-SITE-MIGRATION — refactor(ui): consolidate specialized controls",
+          "anchor": "2026-07-27-ui-specialized-controls-b1-shared-primitives-and-site-migration-refactorui-consolidate-specialized-controls",
+          "line": 10364
         }
       ]
     },
@@ -76706,10 +76749,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0014.md",
-      "git_object_id": "d4d508ad9ca5bb3572723357d8de1e220e4b9254",
-      "sha256": "dba7b1ab7c5c237a75b0417dd47f893b0e87858589613712cf5ff89c0b6dc610",
-      "line_count": 261,
-      "byte_count": 120030,
+      "git_object_id": "786fb81e8eeb6220f4741be3c64cf3641859cbd1",
+      "sha256": "1162d967d4f8de60a87db1dfc9c6a101d2f551bbf87cd0a37e64fd1b46da11ec",
+      "line_count": 262,
+      "byte_count": 120033,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -76802,6 +76845,41 @@
       ]
     },
     {
+      "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md",
+      "git_object_id": "0b2c5242ee9c5c5effbedda1623265e9bf4a3ca3",
+      "sha256": "ce7696d82be73636d291e088ad7069f2680c78f6ce957ed183fedfd254ecabff",
+      "line_count": 38,
+      "byte_count": 16055,
+      "generated_status": "GENERATED",
+      "outbound_references": [
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 34
+        }
+      ],
+      "inbound_references": [
+        {
+          "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
+          "source_line": 165,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        }
+      ],
+      "headings": [
+        {
+          "level": 2,
+          "text": "2026-07-27 — UI-SPECIALIZED-CONTROLS-B1-SHARED-PRIMITIVES-AND-SITE-MIGRATION — refactor(ui): consolidate specialized controls",
+          "anchor": "2026-07-27-ui-specialized-controls-b1-shared-primitives-and-site-migration-refactorui-consolidate-specialized-controls",
+          "line": 11
+        }
+      ]
+    },
+    {
       "path": "docs/handoffs/CHATGPT_CLOSEOUT_2026-07-15.md",
       "git_object_id": "d874ee48521bcc87c3f5597174fbf27196edfd31",
       "sha256": "1fc87686395cbbd17eb10c196fea174bc3c72f0782d7745a1990bb3586138975",
@@ -76885,10 +76963,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "a9e5371b9615578634883272b9b79c8b8f4e5f54",
-      "sha256": "fb0803fc2e96a4a4259b1e7240d186c7b049b478851d63cd22136b0f479bcef5",
-      "line_count": 10358,
-      "byte_count": 1319339,
+      "git_object_id": "be442086110986fcadf05d7502158331ff4920c0",
+      "sha256": "f4faaa4802eadd8c07b6aaaa3a2b7cbfcfa061c636a53fbea68d16a3ad433591",
+      "line_count": 10385,
+      "byte_count": 1334793,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -83722,6 +83800,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 10323
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/architecture/UI_VISUAL_CONTRACT.md`",
+          "target_path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10383
         }
       ],
       "inbound_references": [
@@ -87145,6 +87231,12 @@
           "text": "2026-07-27 — UI-ACTION-CONTAINMENT-A1-SHARED-OWNERS-AND-COCKPIT-MEMBERSHIP — refactor(ui): declare shared action owners and cockpit membership",
           "anchor": "2026-07-27-ui-action-containment-a1-shared-owners-and-cockpit-membership-refactorui-declare-shared-action-owners-and-cockpit-membership",
           "line": 10331
+        },
+        {
+          "level": 2,
+          "text": "2026-07-27 — UI-SPECIALIZED-CONTROLS-B1-SHARED-PRIMITIVES-AND-SITE-MIGRATION — refactor(ui): consolidate specialized controls",
+          "anchor": "2026-07-27-ui-specialized-controls-b1-shared-primitives-and-site-migration-refactorui-consolidate-specialized-controls",
+          "line": 10360
         }
       ]
     },

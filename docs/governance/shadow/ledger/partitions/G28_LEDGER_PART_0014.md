@@ -2,11 +2,11 @@
 <!-- partition_id: G28-LEDGER-PART-0014 -->
 <!-- canonical_source: docs/ledgers/G28_LEDGER.md -->
 <!-- source_unit_interval: G28-LEDGER-UNIT-0226..G28-LEDGER-UNIT-0235 -->
-<!-- canonical_byte_interval: 1199911..1319339 -->
-<!-- canonical_line_interval: 10110..10358 -->
-<!-- payload_sha256: 8822332585efba8d3b4098e5fbfd55d62e1fd48a74b6d28f2bb59a0d35fe77cb -->
+<!-- canonical_byte_interval: 1199911..1319340 -->
+<!-- canonical_line_interval: 10110..10359 -->
+<!-- payload_sha256: fa5555168e5949bfa930bf4d93fd0921b02984bab07602dbff4292356a74634c -->
 <!-- oversized_single_unit: false -->
-<!-- partition_status: OPEN -->
+<!-- partition_status: CLOSED -->
 <!-- G28_LEDGER_SHADOW_PAYLOAD_BEGIN_7b9d4e3a -->
 ## 2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-3-CONTROL-HEIGHT-R1-A1 — fix(ui): close generic control height pass
 
@@ -257,5 +257,6 @@
 - **Scope exclusions, carried to A2.** `UI-ACTION-CONTAINER-CONTAINMENT-GAP` remains OPEN but narrowed: the three shared owners are declared, and what remains unproven is the screen-local population — 30 card-contained action rows, 9 card-contained inline actions, 82 page-level action containers and the 21 containers whose containment no static analysis resolved. None of those was implemented, and none is claimed conforming. Specialized controls remain unauthorized and pending Batch B, including the 18-versus-21 prose correction, which this order explicitly does not touch. No `UIC-009` remediation, knockout halo, logo, favicon, screen redesign, table-contract or business-behaviour change. No dead helper removed. No database, Supabase, SQL, migration, Vercel or production access occurred.
 - **Owner of the full record.** This ledger entry.
 - **Commit subject.** `refactor(ui): declare shared action owners and cockpit membership` and `docs: record shared action owner implementation`.
+
 
 <!-- G28_LEDGER_SHADOW_PAYLOAD_END_7b9d4e3a -->
