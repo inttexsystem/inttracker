@@ -10,6 +10,11 @@
 //   - screen-reader label present via the clip-rect sr-only pattern,
 //     NEVER display:none (the exact defect found in ops-list.js during
 //     the conformance diagnosis);
+//   - the button declares the POSITIONING CONTEXT that label resolves
+//     against (SCREEN-GROUP-2, closing UI-ACTION-BUTTON-SR-LABEL-
+//     POSITIONING). Without it the position:absolute label falls through
+//     to the initial containing block and, inside a horizontally
+//     scrolling container, extends the whole document;
 //   - disabled uses the safe boolean pattern (UI-EL-BOOLEAN-ATTR-FIX):
 //     the `disabled` attribute is present only when disabled=true,
 //     using the DOM-coercion-aware double (hasAttribute, not raw
@@ -137,6 +142,42 @@ test('appends a visually-hidden sr-only label span using the clip-rect pattern (
   const style = srSpan.getAttribute('style');
   assert.match(style, /clip:rect\(0,0,0,0\)/, 'sr-only span must use the clip-rect pattern');
   assert.doesNotMatch(style, /display:\s*none/, 'sr-only span must NEVER use display:none (hides from assistive tech too — the ops-list.js defect)');
+});
+
+// SCREEN-GROUP-2 — UI-ACTION-BUTTON-SR-LABEL-POSITIONING.
+// The sr-only label is position:absolute. An absolutely positioned box
+// resolves against its nearest POSITIONED ancestor; when the button declared
+// none, the label escaped to the INITIAL CONTAINING BLOCK and was laid out at
+// the row's document x-offset. Inside a horizontally scrolling container that
+// offset exceeds the viewport, so a 1px clipped label extended the document —
+// measured 870 at a 390px viewport during PEDIDO-SCREEN-GROUP-1 and 794 in the
+// isolated four-way reproduction that closed this debt. The context belongs to
+// the OWNER, so a caller can never again be required to know about the hazard.
+test('the button itself declares the positioning context for its absolute sr-only label', () => {
+  const sandbox = makeSandbox();
+  sandbox.__icon = makeIcon(sandbox);
+  const node = vm.runInContext(
+    `window.actionButton({ title: 'Excluir usuario', icon: window.__icon, onclick: () => {} })`,
+    sandbox,
+  );
+  assert.match(node.getAttribute('style'), /position:relative/,
+    'actionButton must declare position:relative so its absolute sr-only label cannot escape into the initial containing block');
+  const srSpan = node.children[node.children.length - 1];
+  assert.match(srSpan.getAttribute('style'), /position:absolute/,
+    'the sr-only label is still absolutely positioned — the context above is what contains it');
+});
+
+test('the positioning context is declared for the disabled and danger variants too', () => {
+  const sandbox = makeSandbox();
+  sandbox.__icon = makeIcon(sandbox);
+  for (const args of [
+    `{ title: 'Nao pode excluir', icon: window.__icon, disabled: true }`,
+    `{ title: 'Excluir usuario', icon: window.__icon, danger: true, onclick: () => {} }`,
+  ]) {
+    const node = vm.runInContext(`window.actionButton(${args})`, sandbox);
+    assert.match(node.getAttribute('style'), /position:relative/,
+      `positioning context missing for actionButton(${args})`);
+  }
 });
 
 test('sr-only label defaults to title when srLabel is omitted', () => {

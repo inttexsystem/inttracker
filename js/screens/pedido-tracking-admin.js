@@ -1,3 +1,28 @@
+// =====================================================================
+// === SCREENS: PEDIDO TRACKING ADMIN ==================================
+// Card administrativo "Situacao visivel ao cliente" do detalhe do Pedido.
+//
+// SCREEN-GROUP-2 — CONSOLIDACAO VISUAL.
+// Este card declarava a superficie por utilitarios Tailwind
+// (`bg-white shadow p-6 mb-4`): uma elevacao FORA do enum ratificado, sem
+// `--rv-border`, e invisivel ao detector porque nenhuma declaracao inline
+// existia para ele ler. Todo o resto do detalhe do Pedido ja fala a lingua
+// do token — `background:var(--rv-surface)`, `1px solid var(--rv-border)`,
+// `var(--rv-radius)`, `padding:16px 20px`, `margin-bottom:14px` — entao o
+// mesmo empilhamento mostrava dois cartoes diferentes. A geometria passa a
+// ser a MESMA das demais secoes da tela que hospeda este card.
+//
+// PRESERVADO INTEGRALMENTE: o ciclo de vida, a transicao, a permissao
+// (somente `tipo === 'admin'`), o payload de `pedidos`, o evento de
+// `pedido_cliente_eventos`, a ordem das acoes, os textos e a rota.
+//
+// DIVULGADO: `buildPedidoTrackingAdminCard` e exportado e e alcancado por
+// `pedido-detail-events.js::buildTrackingAdmin()`, mas NENHUM chamador
+// invoca esse handler hoje — a superficie nao e montada por nenhuma tela.
+// A consolidacao acima e visual; religar ou aposentar a superficie e uma
+// decisao de produto e NAO foi feita aqui.
+// =====================================================================
+
 (function (window) {
   'use strict';
 
@@ -40,30 +65,41 @@
       ? exceptionToneClass(exception.tom)
       : 'bg-blue-100 text-blue-700 border-blue-200';
 
+    // A caixa de PREVIEW e uma superficie encaixada, nao um cartao proprio: o
+    // tracejado e o fundo rebaixado agora saem dos tokens de superficie em vez
+    // do par Tailwind gray-300/gray-50. Os TONS SEMANTICOS das pilulas abaixo
+    // NAO sao tocados — eles pertencem ao dono canonico de badge e mexer neles
+    // seria mudanca de semantica de cor, nao consolidacao de cartao.
     var wrap = window.el('div', {
-      style: 'border-radius:var(--rv-radius);', class: 'border border-dashed border-gray-300 bg-gray-50 p-4',
+      style: 'background:var(--rv-surface-subtle);border:1px dashed var(--rv-border-strong);border-radius:var(--rv-radius);padding:14px 16px;margin-top:12px;',
     });
 
-    wrap.appendChild(window.el('div', { class: 'text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2' },
-      'Preview do cliente'
-    ));
+    wrap.appendChild(window.el('div', {
+      style: 'font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;',
+    }, 'Preview do cliente'));
 
-    wrap.appendChild(window.el('div', { class: 'flex flex-wrap items-center gap-2 mb-2' },
+    wrap.appendChild(window.el('div', {
+      style: 'display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px;',
+    },
       window.el('span', {
         'data-ui-pill': '1', style: 'border-radius:var(--rv-radius-pill);', class: 'inline-flex items-center border px-3 py-1 text-xs font-semibold ' + toneClass,
       }, label),
       exception
-        ? window.el('span', { class: 'text-xs text-gray-500' }, 'Excecao ativa')
+        ? window.el('span', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);' }, 'Excecao ativa')
         : null
     ));
 
-    wrap.appendChild(window.el('p', { class: 'text-sm text-gray-800 mb-2' }, mensagem));
-    wrap.appendChild(window.el('p', { class: 'text-xs text-gray-500' }, buildProgressText(progress)));
+    wrap.appendChild(window.el('p', {
+      style: 'margin:0 0 8px;font-size:13px;color:var(--rv-text-primary);line-height:1.5;',
+    }, mensagem));
+    wrap.appendChild(window.el('p', {
+      style: 'margin:0;font-size:11.5px;color:var(--rv-text-tertiary);',
+    }, buildProgressText(progress)));
 
     if (progress.fallbackToRecebido) {
-      wrap.appendChild(window.el('p', { class: 'text-xs text-gray-400 mt-2' },
-        'Sem status visual publicado ainda; preview usando fallback de recebido.'
-      ));
+      wrap.appendChild(window.el('p', {
+        style: 'margin:8px 0 0;font-size:11.5px;color:var(--rv-text-tertiary);',
+      }, 'Sem status visual publicado ainda; preview usando fallback de recebido.'));
     }
 
     return wrap;
@@ -100,8 +136,11 @@
 
     var api = getTrackingApi();
     if (!api) {
+      // O estado de indisponibilidade usa a MESMA caixa das demais secoes e
+      // os sinais canonicos de atencao, no lugar do par Tailwind
+      // amber-200/amber-700, que nao pertence a nenhum token.
       return window.el('div', {
-        style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 mb-4 border border-amber-200 text-amber-700',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-signal-caution-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:16px 20px;margin-bottom:14px;font-size:13.5px;color:var(--rv-signal-caution);',
       }, 'Taxonomia visual do cliente indisponivel.');
     }
 
@@ -120,13 +159,19 @@
       return { value: item.key, label: item.label };
     });
 
-    var card = window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 mb-4' });
-    card.appendChild(window.el('h2', { class: 'text-base font-bold text-gray-900 mb-1' },
-      'Situacao visivel ao cliente'
-    ));
-    card.appendChild(window.el('p', { class: 'text-sm text-gray-500 mb-4' },
-      'Publica a comunicacao externa do pedido sem alterar o status operacional.'
-    ));
+    var card = window.el('div', {
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:16px 20px;margin-bottom:14px;',
+    });
+    // O titulo da secao e um COMPONENT_HEADING e o subtitulo um texto de
+    // apoio: ambos passam a consumir os tokens de tipografia que o resto do
+    // detalhe do Pedido ja usa, no lugar de `text-base`/`text-sm` e das
+    // escalas de cinza do Tailwind.
+    card.appendChild(window.el('h2', {
+      style: 'margin:0;font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);',
+    }, 'Situacao visivel ao cliente'));
+    card.appendChild(window.el('p', {
+      style: 'margin:6px 0 14px;font-size:13px;color:var(--rv-text-secondary);line-height:1.5;',
+    }, 'Publica a comunicacao externa do pedido sem alterar o status operacional.'));
 
     var statusInput = window.selectInput({
       options: statusOptions,
@@ -150,10 +195,10 @@
       ariaLabel: 'Mensagem',
     });
 
-    var previewWrap = window.el('div', { class: 'mt-2' });
-    var helperText = window.el('p', { class: 'text-xs text-gray-500 mt-2' },
-      'Se a mensagem ficar vazia, o sistema usa a frase padrao da etapa ou da excecao.'
-    );
+    var previewWrap = window.el('div', {});
+    var helperText = window.el('p', {
+      style: 'margin:10px 0 0;font-size:11.5px;color:var(--rv-text-tertiary);line-height:1.45;',
+    }, 'Se a mensagem ficar vazia, o sistema usa a frase padrao da etapa ou da excecao.');
 
     function syncFormState() {
       formState.status_cliente_visual = statusInput.value || 'recebido';
@@ -178,9 +223,14 @@
     exceptionInput.addEventListener('change', renderPreview);
     mensagemInput.addEventListener('input', renderPreview);
 
+    // Acao dominante da secao, na MESMA lingua do `buildFooterAction`
+    // primario do detalhe do Pedido: var(--rv-brand) sobre
+    // var(--rv-text-on-brand). A rampa Tailwind bg-blue-700 pintava um azul
+    // que nenhum token declara e que divergia do azul primario que a mesma
+    // pagina ja mostrava logo acima.
     var btnSalvar = window.el('button', {
       type: 'button',
-      style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold',
+      style: 'display:inline-flex;align-items:center;justify-content:center;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:var(--rv-radius);height:var(--rv-h-primary);padding:0 16px;font-size:var(--rv-fs-body);font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;',
     }, 'Salvar situacao visivel');
 
     async function handleSave() {
@@ -261,7 +311,18 @@
     }));
     card.appendChild(previewWrap);
     card.appendChild(helperText);
-    card.appendChild(window.el('div', { class: 'mt-4 flex justify-end' }, btnSalvar));
+    // SCREEN-GROUP-2 — CONTENCAO LOCAL DA ACAO (ACTION-CONTAINMENT-A1).
+    // A A1 cancelou a fase global A2 e mandou corrigir a contencao DENTRO de
+    // cada batch de tela. Esta linha era `mt-4 flex justify-end`: um agrupador
+    // Tailwind sem divisor, sem geometria declarada e invisivel a qualquer
+    // guarda ancorada em texto de estilo. Passa a ser um STANDARD_ACTION_FOOTER
+    // DECLARADO — `data-card-actions` — com a geometria canonica da passada 5:
+    // acoes a direita, divisor superior e padding-top:11px como longhand.
+    card.appendChild(window.el('div', {
+      style: 'display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;border-top:1px solid var(--rv-border-soft);padding-top:11px;margin-top:14px;',
+      'data-pedido-tracking-admin-actions': 'situacao',
+      'data-card-actions': '',
+    }, btnSalvar));
 
     renderPreview();
     return card;

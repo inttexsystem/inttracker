@@ -426,13 +426,51 @@ test('17 · the pageHeader action carries NO vertical padding utility', () => {
   assert.match(cls[1], /\bpx-4\b/, 'the horizontal 16px padding was not preserved');
 });
 
-test('18 · the pageHeader action preserves colour, weight, radius and behaviour', () => {
-  assert.match(PAGE_HEADER, /bg-blue-700 hover:bg-blue-800 text-white font-semibold/);
+// SCREEN-GROUP-2 forward correction. A1 pinned the primary page action's
+// colour as the Tailwind literal `bg-blue-700 hover:bg-blue-800 text-white`.
+// That pin is now inverted, not loosened: the same three colour roles are
+// still asserted, but against the canonical tokens the action was moved onto,
+// and the Tailwind ramp is asserted ABSENT so it cannot come back. Nothing
+// else A1 established moves — weight, radius, handler, label and the title
+// are asserted exactly as before.
+test('18 · the pageHeader action preserves weight, radius and behaviour on canonical colour tokens', () => {
+  assert.match(PAGE_HEADER, /background:var\(--rv-brand\)/,
+    'the primary page action does not own its fill through --rv-brand');
+  assert.match(PAGE_HEADER, /color:var\(--rv-text-on-brand\)/,
+    'the primary page action does not own its foreground through --rv-text-on-brand');
+  assert.match(PAGE_HEADER, /var\(--rv-brand-strong\)/,
+    'the primary page action lost its hover state');
+  // The negative is asserted against CODE ONLY. The prose above the action
+  // names the ramp it left, and a raw text scan would read that explanation as
+  // the defect — the same comment-stripping correction A1 applied to the
+  // pageHeader and dataTable call-site counts.
+  //
+  // js/ui.js is a CRLF file, so the split MUST consume the carriage return.
+  // Splitting on '\n' alone leaves a trailing '\r' on every line, and in
+  // /\/\/.*$/ the dot cannot cross '\r' (a line terminator) while '$' without
+  // /m/ only anchors at end of input — so the comment would survive stripping
+  // and the guard would fail on its own explanation.
+  const pageHeaderCode = PAGE_HEADER
+    .split(/\r?\n/)
+    .map((l) => l.replace(/\/\/.*$/, ''))
+    .join('\n');
+  assert.doesNotMatch(pageHeaderCode, /bg-blue-|text-white/,
+    'a Tailwind blue/foreground utility came back to the shared page-header action');
+  assert.match(PAGE_HEADER, /font-semibold/);
   assert.match(PAGE_HEADER, /border-radius:var\(--rv-radius\)/);
   assert.match(PAGE_HEADER, /onclick: a\.onclick/);
   assert.match(PAGE_HEADER, /\}, a\.label\)\)/);
   // The title is untouched by A1.
   assert.match(PAGE_HEADER, /el\('h1', \{ style: 'font-size:var\(--rv-fs-title\);'/);
+});
+
+test('18b · the three colour tokens the page-header action moved onto are real', () => {
+  const tokens = readTokens(ROOT);
+  for (const name of ['--rv-brand', '--rv-brand-strong', '--rv-text-on-brand']) {
+    assert.ok(tokens.values.has(name), `${name} is not declared in css/tokens.css`);
+  }
+  assert.equal(tokens.values.get('--rv-brand'), '#003366');
+  assert.equal(tokens.values.get('--rv-brand-strong'), '#002244');
 });
 
 test('19 · no OTHER control height moved in this correction', () => {
@@ -603,7 +641,6 @@ test('27 · every changed runtime asset carries the A1 cache token', () => {
   const PASS8 = '20260727-ui-p5-pass8-table-r1';
   const CHANGED_BY_A1_THEN_PASS8 = [
     'js/screens/cliente-dashboard.js', 'js/screens/manta-expedicao-ui.js',
-    'js/screens/pedido-detail-render.js',
   ];
   /*
    * ACTION-CONTAINMENT-A1 FORWARD CORRECTION
@@ -628,12 +665,28 @@ test('27 · every changed runtime asset carries the A1 cache token', () => {
    */
   const B1 = '20260727-ui-specialized-controls-b1';
   const CHANGED_BY_A1_THEN_B1 = [
-    'css/tokens.css', 'js/ui.js', 'js/screens/expedicao-admin.js',
+    'css/tokens.css', 'js/screens/expedicao-admin.js',
+  ];
+  /*
+   * PEDIDO-SCREEN-GROUP-2 FORWARD CORRECTION
+   *
+   * That order consolidated the Pedido detail screen group and the two shared
+   * action owners, so js/ui.js changed again (actionButton() now supplies its
+   * own positioning context and pageHeader()'s primary action moved onto the
+   * brand tokens), and pedido-detail-render.js changed again for the single
+   * card rhythm. Both move to a strictly later token. A1's invariant is intact:
+   * every asset A1 changed is still invalidated, and no asset A1 left alone was
+   * retokenised BY A1. Only which later token invalidates two of them moved.
+   */
+  const SCREEN_GROUP_2 = '20260727-ui-pedido-screen-group-2';
+  const CHANGED_BY_A1_THEN_SCREEN_GROUP_2 = [
+    'js/ui.js', 'js/screens/pedido-detail-render.js',
   ];
   const CHANGED = ['js/screens/painel.js'];
   assert.equal(CHANGED.length + CHANGED_BY_A1_THEN_PASS7.length
     + CHANGED_BY_A1_THEN_PASS7_A4.length + CHANGED_BY_A1_THEN_PASS8.length
-    + CHANGED_BY_A1_THEN_CONTAINMENT_A1.length + CHANGED_BY_A1_THEN_B1.length, 7,
+    + CHANGED_BY_A1_THEN_CONTAINMENT_A1.length + CHANGED_BY_A1_THEN_B1.length
+    + CHANGED_BY_A1_THEN_SCREEN_GROUP_2.length, 7,
     'the A1 changed-asset population must stay seven');
   for (const rel of CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${TOKEN}"`), `${rel} was not retokenised`);
@@ -656,6 +709,13 @@ test('27 · every changed runtime asset carries the A1 cache token', () => {
   for (const rel of CHANGED_BY_A1_THEN_B1) {
     assert.ok(INDEX.includes(`"${rel}?v=${B1}"`),
       `${rel} must carry the later specialized-controls B1 token`);
+  }
+  for (const rel of CHANGED_BY_A1_THEN_SCREEN_GROUP_2) {
+    assert.ok(INDEX.includes(`"${rel}?v=${SCREEN_GROUP_2}"`),
+      `${rel} must carry the later Pedido screen-group-2 token`);
+    for (const stale of [TOKEN, PASS7_TOKEN, PASS7_A4, PASS8, CONTAINMENT_A1, B1]) {
+      assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`), `${rel} kept a superseded token`);
+    }
   }
   assert.equal((INDEX.match(new RegExp(TOKEN, 'g')) || []).length, CHANGED.length,
     'an asset that did not change was retokenised');

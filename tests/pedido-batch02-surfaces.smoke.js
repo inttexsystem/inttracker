@@ -305,8 +305,15 @@ test('index.html: a superfície tocada pela passada 1 de cor carrega o token del
   // canonico, corrigiu a grade de tres colunas que abrigava quatro campos,
   // tirou o chevron das caixas somente-leitura do modal e passou as acoes de
   // linha para o dono canonico, entao ele e retokenizado mais uma vez.
-  assert.match(index, new RegExp(esc + '\\?v=20260727-ui-pedido-screen-group-1'),
+  // PEDIDO-SCREEN-GROUP-2 deu ao cartao do modal de adicionar item a moldura
+  // canonica, o divisor de cabecalho, o nome acessivel do botao de fechar e o
+  // empilhamento var(--rv-z-modal) que destravou os seletores Tipo e Modelo, e
+  // removeu o contorno de posicionamento provado redundante nas acoes de linha.
+  // Entao ele e retokenizado mais uma vez. Mesma regra de sempre.
+  assert.match(index, new RegExp(esc + '\\?v=20260727-ui-pedido-screen-group-2'),
     asset + ' deve carregar o token da ordem que o alterou por ultimo');
+  assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260727-ui-pedido-screen-group-1'),
+    asset + ' não pode reter o token de PEDIDO-SCREEN-GROUP-1');
   assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260727-ui-specialized-controls-b1'),
     asset + ' não pode reter o token de SPECIALIZED-CONTROLS-B1');
   assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260726-ui-p5-pass1'),

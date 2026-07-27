@@ -823,8 +823,26 @@ const SUPERSEDED_BY_SCREEN_GROUP_1 = [
   'js/screens/cliente-pedido-form.js',
 ];
 const supersededBySg1 = (rel) => SUPERSEDED_BY_SCREEN_GROUP_1.includes(rel);
+/**
+ * PEDIDO-SCREEN-GROUP-2 (a LATER, separately authorized order) consolidated the
+ * Pedido DETAIL screen group, the cliente add-item modal frame and stacking,
+ * and the two shared action owners. FOUR of the seventeen — js/ui.js,
+ * cliente-pedido-form.js, pedido-detail-render.js and pedido-parciais-admin.js
+ * — change again, so their token moves strictly forward once more.
+ *
+ * The pass-8 population is UNCHANGED at seventeen. A file only ever moves
+ * FORWARD to a strictly later token, which is exactly what the guards prove.
+ */
+const SCREEN_GROUP_2_TOKEN = '20260727-ui-pedido-screen-group-2';
+const SUPERSEDED_BY_SCREEN_GROUP_2 = [
+  'js/ui.js',
+  'js/screens/cliente-pedido-form.js',
+  'js/screens/pedido-detail-render.js',
+  'js/screens/pedido-parciais-admin.js',
+];
+const supersededBySg2 = (rel) => SUPERSEDED_BY_SCREEN_GROUP_2.includes(rel);
 const superseded = (rel) => SUPERSEDED_BY_CONTAINMENT_A1.includes(rel)
-  || supersededByB1(rel) || supersededBySg1(rel);
+  || supersededByB1(rel) || supersededBySg1(rel) || supersededBySg2(rel);
 
 test('10.1 every changed script carries a Pass-8 token exactly once', () => {
   assert.equal(RETOKENIZED.length, 17, 'the pass-8 changed-asset population must stay seventeen');
@@ -837,6 +855,9 @@ test('10.1 every changed script carries a Pass-8 token exactly once', () => {
     assert.ok(RETOKENIZED.includes(rel), `${rel} was never a pass-8 asset`);
   }
   for (const rel of SUPERSEDED_BY_SCREEN_GROUP_1) {
+    assert.ok(RETOKENIZED.includes(rel), `${rel} was never a pass-8 asset`);
+  }
+  for (const rel of SUPERSEDED_BY_SCREEN_GROUP_2) {
     assert.ok(RETOKENIZED.includes(rel), `${rel} was never a pass-8 asset`);
   }
   for (const rel of RETOKENIZED_R1) {
@@ -859,7 +880,7 @@ test('10.1 every changed script carries a Pass-8 token exactly once', () => {
   }
   // A B1 arrival carries the B1 token and NO earlier one.
   for (const rel of SUPERSEDED_BY_B1) {
-    if (supersededBySg1(rel)) continue;
+    if (supersededBySg1(rel) || supersededBySg2(rel)) continue;
     assert.ok(INDEX.includes(`"${rel}?v=${B1_TOKEN}"`),
       `${rel} was not retokenised for SPECIALIZED-CONTROLS-B1`);
     assert.ok(!INDEX.includes(`"${rel}?v=${PASS8_TOKEN}"`), `${rel} kept the superseded pass-8 R1 token`);
@@ -869,9 +890,19 @@ test('10.1 every changed script carries a Pass-8 token exactly once', () => {
   }
   // A SCREEN-GROUP-1 arrival carries its token and NO earlier one.
   for (const rel of SUPERSEDED_BY_SCREEN_GROUP_1) {
+    if (supersededBySg2(rel)) continue;
     assert.ok(INDEX.includes(`"${rel}?v=${SCREEN_GROUP_1_TOKEN}"`),
       `${rel} was not retokenised for PEDIDO-SCREEN-GROUP-1`);
     for (const stale of [PASS8_TOKEN, PASS8_A1_TOKEN, CONTAINMENT_A1_TOKEN, B1_TOKEN]) {
+      assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`), `${rel} kept a superseded token`);
+    }
+  }
+  // A SCREEN-GROUP-2 arrival carries its token and NO earlier one.
+  for (const rel of SUPERSEDED_BY_SCREEN_GROUP_2) {
+    assert.ok(INDEX.includes(`"${rel}?v=${SCREEN_GROUP_2_TOKEN}"`),
+      `${rel} was not retokenised for PEDIDO-SCREEN-GROUP-2`);
+    for (const stale of [PASS8_TOKEN, PASS8_A1_TOKEN, CONTAINMENT_A1_TOKEN, B1_TOKEN,
+      SCREEN_GROUP_1_TOKEN]) {
       assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`), `${rel} kept a superseded token`);
     }
   }
@@ -905,10 +936,19 @@ test('10.1b the containment token lands only on the files that order changed', (
   // them moved.
   const MOVED_ON_BY_SG1 = CONTAINMENT_A1_ASSETS.filter(supersededBySg1);
   assert.equal(MOVED_ON_BY_SG1.length, 1);
+  // PEDIDO-SCREEN-GROUP-2 then moved TWO of them forward once more — js/ui.js,
+  // which owns actionButton()'s positioning context and the brand pageHeader
+  // action, and cliente-pedido-form.js, which carries the canonical modal frame
+  // and stacking. The containment population is still seven; only which token
+  // invalidates two of them moved.
+  const MOVED_ON_BY_SG2 = CONTAINMENT_A1_ASSETS.filter(supersededBySg2);
+  assert.equal(MOVED_ON_BY_SG2.length, 2);
   for (const rel of CONTAINMENT_A1_ASSETS) {
-    const expected = MOVED_ON_BY_SG1.includes(rel)
-      ? SCREEN_GROUP_1_TOKEN
-      : (MOVED_ON_BY_B1.includes(rel) ? B1_TOKEN : CONTAINMENT_A1_TOKEN);
+    const expected = MOVED_ON_BY_SG2.includes(rel)
+      ? SCREEN_GROUP_2_TOKEN
+      : (MOVED_ON_BY_SG1.includes(rel)
+        ? SCREEN_GROUP_1_TOKEN
+        : (MOVED_ON_BY_B1.includes(rel) ? B1_TOKEN : CONTAINMENT_A1_TOKEN));
     assert.ok(INDEX.includes(`"${rel}?v=${expected}"`), `${rel} missing its containment-or-later token`);
   }
   assert.equal((INDEX.match(new RegExp(CONTAINMENT_A1_TOKEN, 'g')) || []).length,

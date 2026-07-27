@@ -1018,8 +1018,16 @@ test('21f · A2 moved exactly five files FULL -> PARTIAL, and only those five', 
  * zero.
  */
 const MARKERS_ADDED_BY_A_LATER_ORDER = new Map([
-  ['js/screens/pedido-edit.js', 1],          // PEDIDO-SCREEN-GROUP-1
-  ['js/screens/pedido-itens-edit.js', 1],    // PEDIDO-SCREEN-GROUP-1
+  ['js/screens/pedido-edit.js', 1],            // PEDIDO-SCREEN-GROUP-1
+  ['js/screens/pedido-itens-edit.js', 1],      // PEDIDO-SCREEN-GROUP-1
+  // PEDIDO-SCREEN-GROUP-2 is the screen batch for the two ADMINISTRATIVE paths
+  // of the same five. Same instrument, same ruling, same evidence: each row was
+  // brought onto the full canonical footer contract first, which the pass-5
+  // suite proves independently, and only then declared. Four of A2's five paths
+  // are now reached by a named later order; js/screens/pedido-insumos-
+  // distribuicao.js is the one that remains at zero and unclaimed.
+  ['js/screens/pedido-tracking-admin.js', 1],  // PEDIDO-SCREEN-GROUP-2
+  ['js/screens/pedido-parciais-admin.js', 1],  // PEDIDO-SCREEN-GROUP-2
 ]);
 
 test('21g · A2 added no data-card-actions marker on any of its five paths', () => {
@@ -1043,7 +1051,12 @@ test('21g · A2 added no data-card-actions marker on any of its five paths', () 
     assert.equal(count(strip(read(rel)), 'data-card-actions'), 0,
       `${rel}: an unauthorized card-action marker appeared`);
   }
-  assert.equal([...MARKERS_ADDED_BY_A_LATER_ORDER.values()].reduce((a, b) => a + b, 0), 2);
+  assert.equal([...MARKERS_ADDED_BY_A_LATER_ORDER.values()].reduce((a, b) => a + b, 0), 4);
+  // Exactly one of A2's five paths has still not been reached by any order.
+  assert.deepEqual(
+    A2_NEWLY_OBSERVABLE.filter((rel) => !MARKERS_ADDED_BY_A_LATER_ORDER.has(rel)),
+    ['js/screens/pedido-insumos-distribuicao.js'],
+  );
   // A2 raised the population to 42 and left every gap open. Pass 5 owns the
   // rule now: it withdrew the blanket branch and marked exactly four proven
   // footers, none of which is one of A2's five paths.

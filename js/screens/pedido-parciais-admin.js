@@ -1,3 +1,25 @@
+// =====================================================================
+// === SCREENS: PEDIDO PARCIAIS ADMIN ==================================
+// Card administrativo "Parciais do pedido" do detalhe do Pedido.
+//
+// SCREEN-GROUP-2 — CONSOLIDACAO VISUAL, pelo mesmo motivo e com a mesma
+// geometria de js/screens/pedido-tracking-admin.js: a superficie era um
+// cartao Tailwind (`bg-white shadow p-6 mb-4`) — elevacao fora do enum
+// ratificado, sem `--rv-border` e invisivel ao detector — empilhado na
+// mesma tela que ja fala a lingua do token.
+//
+// PRESERVADO INTEGRALMENTE: a permissao (somente `tipo === 'admin'`), as
+// tres validacoes de entrada (situacao obrigatoria, sequencia inteira
+// positiva, metros > 0), o payload de `pedido_parciais`, a limpeza do
+// formulario apos gravar, o recarregamento e a ordem das acoes. O contrato
+// de tabela e a posse do scroll responsivo continuam inteiramente com
+// `window.dataTable`, que nao e tocado aqui.
+//
+// DIVULGADO: como em pedido-tracking-admin.js, `buildPedidoParciaisAdminCard`
+// e alcancado por `pedido-detail-events.js::buildParciaisAdmin()` e esse
+// handler NAO tem chamador — a superficie nao e montada por nenhuma tela.
+// =====================================================================
+
 (function (window) {
   'use strict';
 
@@ -58,15 +80,23 @@
       forCliente: false,
     });
 
+    // Mesma caixa de PREVIEW encaixada de pedido-tracking-admin.js.
     var wrap = window.el('div', {
-      style: 'border-radius:var(--rv-radius);', class: 'border border-dashed border-gray-300 bg-gray-50 p-4 mt-4',
+      style: 'background:var(--rv-surface-subtle);border:1px dashed var(--rv-border-strong);border-radius:var(--rv-radius);padding:14px 16px;margin-top:14px;',
     });
 
-    wrap.appendChild(window.el('div', { class: 'text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3' },
-      'Preview tecnico das parciais'
-    ));
+    wrap.appendChild(window.el('div', {
+      style: 'font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px;',
+    }, 'Preview tecnico das parciais'));
 
-    wrap.appendChild(window.el('div', { class: 'grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3 text-sm' },
+    // `data-rv-metrics` e o dono ja aceito da adaptacao por largura desta
+    // trinca de metricas; substitui o par de utilitarios responsivos
+    // `grid-cols-1 sm:grid-cols-3`, que era o unico ponto da tela a decidir
+    // largura por conta propria.
+    wrap.appendChild(window.el('div', {
+      'data-rv-metrics': '',
+      style: 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px;',
+    },
       metric('Total do pedido', fmtMetros(dto.metrosTotal)),
       metric('Total parcial registrado', fmtMetros(dto.totais && dto.totais.parcialVisivel)),
       metric('Parciais cadastradas', String((dto.parciais || []).length))
@@ -74,28 +104,37 @@
 
     var distribuicao = Array.isArray(dto.distribuicao) ? dto.distribuicao : [];
     if (distribuicao.length === 0) {
-      wrap.appendChild(window.el('p', { class: 'text-sm text-gray-500' },
-        'Sem distribuicao parcial disponivel ainda.'
-      ));
+      wrap.appendChild(window.el('p', {
+        style: 'margin:0;font-size:13px;color:var(--rv-text-tertiary);',
+      }, 'Sem distribuicao parcial disponivel ainda.'));
       return wrap;
     }
 
-    var chips = window.el('div', { class: 'flex flex-wrap gap-2' });
+    var chips = window.el('div', { style: 'display:flex;flex-wrap:wrap;gap:8px;' });
     distribuicao.forEach(function (item) {
       var percentual = fmtPercentual(item.percentual);
       var texto = item.label + ' · ' + fmtMetros(item.metros) + (percentual ? ' · ' + percentual : '');
       chips.appendChild(window.el('span', {
-        style: 'border-radius:var(--rv-radius);', class: 'inline-flex items-center bg-white border border-gray-200 px-3 py-1 text-xs text-gray-700',
+        style: 'display:inline-flex;align-items:center;background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);padding:3px 9px;font-size:11.5px;color:var(--rv-text-secondary);',
       }, texto));
     });
     wrap.appendChild(chips);
     return wrap;
   }
 
+  // Bloco de metrica do preview: mesma caixa rebaixada que buildSummaryMetric
+  // usa no detalhe do Pedido, agora declarada por token em vez de
+  // `bg-white border-gray-200` com escalas de cinza do Tailwind.
   function metric(label, value) {
-    return window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white border border-gray-200 px-3 py-2' },
-      window.el('div', { class: 'text-xs text-gray-500 mb-1' }, label),
-      window.el('div', { class: 'text-sm font-semibold text-gray-900' }, value || '—')
+    return window.el('div', {
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);padding:10px 12px;',
+    },
+      window.el('div', {
+        style: 'font-size:11.5px;color:var(--rv-text-tertiary);font-weight:600;margin-bottom:5px;',
+      }, label),
+      window.el('div', {
+        style: 'font-size:13.5px;font-weight:700;color:var(--rv-text-primary);',
+      }, value || '—')
     );
   }
 
@@ -111,8 +150,10 @@
 
     var api = getTrackingApi();
     var situacaoOptions = buildSituacaoOptions(api);
-    var card = window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 mb-4' });
-    var listWrap = window.el('div', { class: 'mt-4' });
+    var card = window.el('div', {
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:16px 20px;margin-bottom:14px;',
+    });
+    var listWrap = window.el('div', { style: 'margin-top:14px;' });
 
     var dataHoje = new Date().toISOString().slice(0, 10);
     var situacaoInput = window.selectInput({
@@ -136,19 +177,19 @@
     // are unchanged.
     var visivelInput = window.checkboxInput({ checked: false, ariaLabel: 'Visivel para o cliente' });
 
-    card.appendChild(window.el('h2', { class: 'text-base font-bold text-gray-900 mb-1' },
-      'Parciais do pedido'
-    ));
-    card.appendChild(window.el('p', { class: 'text-sm text-gray-500' },
-      'Cadastro manual de parciais para uso futuro no acompanhamento read-only do cliente.'
-    ));
+    card.appendChild(window.el('h2', {
+      style: 'margin:0;font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);',
+    }, 'Parciais do pedido'));
+    card.appendChild(window.el('p', {
+      style: 'margin:6px 0 0;font-size:13px;color:var(--rv-text-secondary);line-height:1.5;',
+    }, 'Cadastro manual de parciais para uso futuro no acompanhamento read-only do cliente.'));
 
     function buildList(parciais) {
       listWrap.replaceChildren();
 
       if (!Array.isArray(parciais) || parciais.length === 0) {
         listWrap.appendChild(window.el('div', {
-          style: 'border-radius:var(--rv-radius);', class: 'border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm text-gray-500',
+          style: 'background:var(--rv-surface-subtle);border:1px dashed var(--rv-border-strong);border-radius:var(--rv-radius);padding:18px 16px;font-size:13px;color:var(--rv-text-tertiary);',
         }, 'Este pedido ainda nao possui parciais cadastradas.'));
         return;
       }
@@ -234,7 +275,7 @@
 
       if (res.error) {
         listWrap.replaceChildren(window.el('div', {
-          style: 'border-radius:var(--rv-radius);', class: 'border border-red-200 bg-red-50 px-4 py-5 text-sm text-red-700',
+          style: 'background:var(--rv-surface);border:1px solid var(--rv-signal-negative-border);border-radius:var(--rv-radius);padding:18px 16px;font-size:13px;color:var(--rv-signal-negative);',
         }, 'Erro ao carregar parciais: ' + (res.error.message || 'desconhecido')));
         console.error('pedido-parciais-admin: erro ao carregar pedido_parciais', res.error);
         return [];
@@ -245,7 +286,14 @@
       return parciais;
     }
 
-    var formGrid = window.el('div', { class: 'grid grid-cols-1 md:grid-cols-2 gap-4 mt-5' },
+    // `data-rv-2col` e o dono ja aceito da grade de duas colunas que empilha
+    // em telas estreitas; substitui `grid-cols-1 md:grid-cols-2`, que decidia
+    // a mesma coisa por conta propria e num ponto de quebra diferente do resto
+    // do detalhe do Pedido.
+    var formGrid = window.el('div', {
+      'data-rv-2col': '',
+      style: 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:18px;',
+    },
       window.formField({
         label: 'Situacao',
         input: situacaoInput,
@@ -273,9 +321,11 @@
       }),
       window.formField({
         label: 'Visibilidade',
-        input: window.el('label', { class: 'inline-flex items-center gap-2 py-2' },
+        input: window.el('label', {
+          style: 'display:inline-flex;align-items:center;gap:8px;height:var(--rv-h-compact);cursor:pointer;',
+        },
           visivelInput,
-          window.el('span', { class: 'text-sm text-gray-700' }, 'Visivel ao cliente')
+          window.el('span', { style: 'font-size:13px;color:var(--rv-text-primary);' }, 'Visivel ao cliente')
         ),
         hint: 'Padrao inicial: desmarcado, para evitar publicacao acidental.',
       })
@@ -292,9 +342,10 @@
     var previewWrap = window.el('div', {});
     card.appendChild(previewWrap);
 
+    // Mesma acao dominante canonica de pedido-tracking-admin.js.
     var btnSalvar = window.el('button', {
       type: 'button',
-      style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold',
+      style: 'display:inline-flex;align-items:center;justify-content:center;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:var(--rv-radius);height:var(--rv-h-primary);padding:0 16px;font-size:var(--rv-fs-body);font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;',
     }, 'Cadastrar parcial');
 
     async function refreshAll() {
@@ -376,7 +427,15 @@
     }
 
     btnSalvar.addEventListener('click', handleSave);
-    card.appendChild(window.el('div', { class: 'mt-4 flex justify-end' }, btnSalvar));
+    // SCREEN-GROUP-2 — CONTENCAO LOCAL DA ACAO (ACTION-CONTAINMENT-A1),
+    // identica a de pedido-tracking-admin.js: STANDARD_ACTION_FOOTER
+    // DECLARADO por `data-card-actions`, com divisor superior e
+    // padding-top:11px como longhand.
+    card.appendChild(window.el('div', {
+      style: 'display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;border-top:1px solid var(--rv-border-soft);padding-top:11px;margin-top:14px;',
+      'data-pedido-parciais-admin-actions': 'cadastro',
+      'data-card-actions': '',
+    }, btnSalvar));
 
     refreshAll();
     return card;

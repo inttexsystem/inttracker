@@ -674,7 +674,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     'js/screens/cliente-dashboard.js',
     'js/screens/fornecedor.js',
     'js/screens/manta-expedicao-ui.js', 'js/screens/op-tecelagem-producao-admin.js',
-    'js/screens/ordem-compra-render.js', 'js/screens/pedido-detail-render.js',
+    'js/screens/ordem-compra-render.js',
   ];
   /*
    * PASS-8-A1-RESIDUAL-OVERFLOW-FORWARD-CORRECTION
@@ -715,7 +715,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
    */
   const B1 = '20260727-ui-specialized-controls-b1';
   const B1_CHANGED = [
-    'css/tokens.css', 'js/ui.js',
+    'css/tokens.css',
     'js/screens/admin-usuarios-modal.js', 'js/screens/cadastros.js',
     'js/screens/common.js',
     'js/screens/expedicao-admin.js', 'js/screens/pedido-detail-events.js',
@@ -734,7 +734,26 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
    */
   const SCREEN_GROUP_1 = '20260727-ui-pedido-screen-group-1';
   const SCREEN_GROUP_1_CHANGED = [
-    'js/screens/cliente-pedido-form.js', 'js/screens/pedido-form.js',
+    'js/screens/pedido-form.js',
+  ];
+  /*
+   * PEDIDO-SCREEN-GROUP-2 FORWARD CORRECTION
+   *
+   * That order consolidated the Pedido DETAIL screen group, the cliente
+   * add-item modal frame and stacking, and the two shared action owners —
+   * pageHeader()'s primary action left the Tailwind ramp for the brand tokens
+   * and actionButton() became its own positioning context. It retokenised the
+   * six assets it changed. THREE of them are also pass-6 assets, so they move
+   * out of the pass-8, B1 and screen-group-1 tiers into this one. A
+   * screen-group-2 token is strictly later than a pass-6, A1, pass-7, pass-8,
+   * containment, B1 or screen-group-1 one, so every asset pass 6 touched is
+   * still invalidated against the pass-5 checkpoint — only WHICH later token
+   * does the invalidating moved. The population below still sums to the same 27.
+   */
+  const SCREEN_GROUP_2 = '20260727-ui-pedido-screen-group-2';
+  const SCREEN_GROUP_2_CHANGED = [
+    'js/ui.js',
+    'js/screens/cliente-pedido-form.js', 'js/screens/pedido-detail-render.js',
   ];
   const PASS6_ONLY = [
     'js/document-links-surface-ui.js',
@@ -747,7 +766,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   assert.equal(PASS7_CHANGED.length + PASS7_A4_CHANGED.length + PASS7_A5_CHANGED.length
     + A1_CHANGED.length + PASS8_CHANGED.length + PASS8_A1_CHANGED.length
     + CONTAINMENT_A1_CHANGED.length + B1_CHANGED.length + SCREEN_GROUP_1_CHANGED.length
-    + PASS6_ONLY.length, 27);
+    + SCREEN_GROUP_2_CHANGED.length + PASS6_ONLY.length, 27);
   for (const rel of PASS7_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS7}"`), `${rel} must carry the pass-7 token`);
   }
@@ -780,6 +799,14 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     assert.ok(!INDEX.includes(`"${rel}?v=${B1}"`),
       `${rel} kept the superseded specialized-controls B1 token`);
   }
+  for (const rel of SCREEN_GROUP_2_CHANGED) {
+    assert.ok(INDEX.includes(`"${rel}?v=${SCREEN_GROUP_2}"`),
+      `${rel} must carry the Pedido screen-group-2 token`);
+    for (const stale of [PASS6, A1, PASS7, PASS8, PASS8_A1, CONTAINMENT_A1, B1, SCREEN_GROUP_1]) {
+      assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`),
+        `${rel} kept a superseded token`);
+    }
+  }
   for (const rel of PASS6_ONLY) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS6}"`), `${rel} must keep the pass-6 token`);
   }
@@ -790,7 +817,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   // Every asset pass 6 touched still carries a token LATER than the pass-5 one.
   for (const rel of [...PASS7_CHANGED, ...PASS7_A4_CHANGED, ...PASS7_A5_CHANGED, ...A1_CHANGED,
     ...PASS8_CHANGED, ...PASS8_A1_CHANGED, ...B1_CHANGED, ...SCREEN_GROUP_1_CHANGED,
-    ...PASS6_ONLY]) {
+    ...SCREEN_GROUP_2_CHANGED, ...PASS6_ONLY]) {
     assert.ok(!INDEX.includes(`"${rel}?v=20260726-ui-p5-pass5`),
       `${rel} fell back to the pass-5 token`);
   }

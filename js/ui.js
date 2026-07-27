@@ -602,10 +602,25 @@ function dataTable({ columns, rows, actions = [], actionsWidth, minWidth }) {
 // Contract-mandated guards enforced here:
 //   - title tooltip + aria-label (both set from `title`);
 //   - screen-reader label via the clip-rect sr-only pattern (never
-//     display:none, which also hides it from assistive tech).
+//     display:none, which also hides it from assistive tech);
+//   - the POSITIONING CONTEXT that label resolves against.
 // confirmDialog gating on destructive actions is the CALLER's duty —
 // this helper only renders the button; it has no notion of whether
 // `onclick` is destructive.
+//
+// SCREEN-GROUP-2 — UI-ACTION-BUTTON-SR-LABEL-POSITIONING CLOSED HERE.
+// The screen-reader label below is `position:absolute`. An absolutely
+// positioned box resolves against its nearest POSITIONED ancestor, and this
+// button declared none, so the label fell through to the initial containing
+// block: it was laid out at the row's document x-offset instead of inside the
+// 30x30 button. Inside a horizontally scrolling container that offset can be
+// far wider than the viewport, so a 1px clipped label extended the DOCUMENT —
+// measured during PEDIDO-SCREEN-GROUP-1 as documentElement.scrollWidth 870 at
+// a 390px viewport. The defect belonged to this owner, not to the callers, so
+// it is fixed once here: `position:relative` makes the button itself the
+// containing block, the label can no longer escape it, and no future caller
+// has to know about the hazard. The two screen-local workarounds that
+// PEDIDO-SCREEN-GROUP-1 had to add are proved redundant and removed.
 //
 // Uso: actionButton({ title, icon, danger, disabled, onclick, srLabel })
 //   - icon: a DOM Node (caller builds the 14px svg icon per §13).
@@ -624,6 +639,7 @@ function actionButton({ title, icon, danger = false, disabled = false, onclick, 
     title,
     'aria-label': title,
     style: `width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; `
+      + `position:relative; `
       + `border:1px solid ${restBorder}; border-radius:4px; background:#fff; color:${restColor}; `
       + `cursor:${disabled ? 'default' : 'pointer'}; opacity:${disabled ? '0.45' : '1'}; `
       + `transition:border-color .18s ease, color .18s ease, background .18s ease;`,
@@ -694,11 +710,33 @@ function pageHeader(title, actions = []) {
     // took its height from `py-2` — 40px, off the canonical ladder. The vertical
     // Tailwind padding is removed because it competes with the explicit height;
     // `px-4` keeps the horizontal 16px exactly as it was.
+    //
+    // SCREEN-GROUP-2 — THE PRIMARY ACTION LEAVES THE TAILWIND BLUE RAMP.
+    // `bg-blue-700 / hover:bg-blue-800 / text-white` painted #1d4ed8, a blue
+    // that belongs to no token and that the product does not use anywhere else
+    // as a dominant action. Every dedicated Pedido screen already renders its
+    // dominant action in var(--rv-brand) #003366, so ONE screen group showed
+    // TWO different primary blues depending on whether the screen built its own
+    // header or consumed this owner. The fill, the hover and the foreground now
+    // resolve through the canonical tokens — --rv-brand, --rv-brand-strong
+    // ("primary hover", already declared in css/tokens.css) and
+    // --rv-text-on-brand. `border:none` is declared explicitly because the
+    // Tailwind background utility used to be the only thing suppressing the
+    // user-agent button border.
+    //
+    // The hover is imperative for the same reason actionButton()'s is: an
+    // inline style cannot express a pseudo-class, and this owner deliberately
+    // holds no stylesheet class of its own. Height, font size, weight,
+    // horizontal padding, radius, action ORDER, the call-site population and
+    // every handler are untouched — this pass changes colour only.
     actWrap.appendChild(el('button', {
       style: 'border-radius:var(--rv-radius); font-size:var(--rv-fs-body);'
         + ' height:var(--rv-h-primary); padding-top:0; padding-bottom:0;'
-        + ' display:inline-flex; align-items:center; justify-content:center;',
-      class: 'bg-blue-700 hover:bg-blue-800 text-white font-semibold px-4',
+        + ' display:inline-flex; align-items:center; justify-content:center;'
+        + ' background:var(--rv-brand); color:var(--rv-text-on-brand); border:none;',
+      class: 'font-semibold px-4',
+      onmouseenter: (e) => { e.currentTarget.style.background = 'var(--rv-brand-strong)'; },
+      onmouseleave: (e) => { e.currentTarget.style.background = 'var(--rv-brand)'; },
       onclick: a.onclick
     }, a.label));
   }

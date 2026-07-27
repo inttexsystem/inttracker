@@ -374,12 +374,18 @@
         },
       });
 
-      // `position:relative`: mesmo motivo documentado em
-      // js/screens/pedido-item-row-editor.js — o rotulo de leitor de tela que
-      // actionButton() anexa e `position:absolute` e, sem um ancestral
-      // posicionado, escapa do container de rolagem de 880px e empurra o
-      // documento num viewport estreito.
-      var acoesCell = window.el('div', { style: 'position:relative; display:flex; align-items:center; gap:8px;' }, editBtn, removeBtn);
+      // SCREEN-GROUP-2 — CONTORNO REMOVIDO POR SER PROVADAMENTE REDUNDANTE.
+      // PEDIDO-SCREEN-GROUP-1 precisou declarar `position:relative` aqui
+      // porque actionButton() nao declarava contexto de posicionamento e o
+      // rotulo de leitor de tela, `position:absolute`, escapava do container
+      // de rolagem de 880px e empurrava o documento. O defeito era do DONO
+      // COMPARTILHADO e foi corrigido nele (js/ui.js), fechando
+      // UI-ACTION-BUTTON-SR-LABEL-POSITIONING.
+      // Prova de redundancia, medida em 390x844 antes da remocao: dono
+      // quebrado sem contorno -> documentElement.scrollWidth 794; dono
+      // corrigido sem contorno -> 390; dono corrigido COM contorno -> 390,
+      // identico. O contorno nao contribuia mais nada.
+      var acoesCell = window.el('div', { style: 'display:flex; align-items:center; gap:8px;' }, editBtn, removeBtn);
 
       return window.el('div', {
         style: 'display:grid; grid-template-columns:60px 1.1fr 1.1fr .8fr 1.1fr 1.2fr 84px; align-items:center; gap:12px; padding:9px 18px; border-bottom:1px solid var(--rv-border-soft);',
@@ -409,11 +415,34 @@
     // (somente leitura — override por item fica para fase futura);
     // Metragem e Observação usam as mesmas validações do formulário.
     // ------------------------------------------------------------------
+    // SCREEN-GROUP-2 — O MODAL PERMANECE MODAL, POR DECISAO DO ARQUITETO.
+    // O item de Pedido e um item filho delimitado, nao uma entidade
+    // independente com tela propria: o modal e a superficie correta porque
+    // contem o editor detalhado do item SEM sacrificar a densidade da tela do
+    // Pedido que o hospeda. Nada aqui migra para a pagina.
+    // Consolidado nesta passada: o empilhamento canonico, a moldura do cartao,
+    // o divisor do cabecalho, o nome acessivel do botao de fechar e o respiro
+    // do corpo. NAO tocados: o estado de rascunho separado, o momento da
+    // validacao (no Adicionar item), Tipo antes de Modelo, a Referencia
+    // visual, o payload e a ordem dos itens.
     function openAddItemModal() {
       var draft = { tipo: '', modeloId: '', metros: '', observacao: '' };
 
+      // SCREEN-GROUP-2 — DEFEITO FUNCIONAL ENCONTRADO POR RENDERIZACAO.
+      // Esta camada declarava `z-index:1000`, um literal cru que nao pertence
+      // a nenhum token. O gatilho de selecao canonico monta seu painel em
+      // `document.body` com `position:fixed; z-index:var(--rv-z-popover)`
+      // (225), ou seja, IRMAO desta camada no mesmo contexto de empilhamento.
+      // Com 1000 contra 225 o painel abria ATRAS do scrim: medido com
+      // elementFromPoint sobre o proprio retangulo do painel, o elemento no
+      // topo nao pertencia a ele. Tipo e Modelo — os dois campos obrigatorios
+      // do modal — eram inselecionaveis.
+      // A camada passa a declarar var(--rv-z-modal) (200), restaurando a ordem
+      // que css/tokens.css ja define: modal 200 < popover 225 < toast 250.
+      // O respiro externo tambem cai de 40px para 16px: em 390px os 40px
+      // consumiam 80px de largura util de um cartao que ja e max-width:100%.
       var overlay = window.el('div', {
-        style: 'position:fixed; inset:0; background:var(--rv-overlay-scrim); display:flex; align-items:center; justify-content:center; padding:40px; z-index:1000;',
+        style: 'position:fixed; inset:0; background:var(--rv-overlay-scrim); display:flex; align-items:center; justify-content:center; padding:16px; z-index:var(--rv-z-modal);',
       });
       overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
 
@@ -450,14 +479,25 @@
         }, span);
       }
 
+      // SCREEN-GROUP-2 — CONTROLE SEM NOME ACESSIVEL.
+      // O botao de fechar carregava apenas um SVG: nenhum texto, nenhum
+      // `title`, nenhum `aria-label`. Para a tecnologia assistiva era um
+      // botao anonimo, e a regra binding do produto e que nenhum controle
+      // interativo pode ficar sem nome. Ganha `title` + `aria-label`, como o
+      // dono canonico actionButton() ja faz.
       var closeBtn = window.el('button', {
         type: 'button',
-        style: 'background:none; border:none; cursor:pointer; padding:4px; color:var(--rv-text-tertiary);',
+        title: 'Fechar',
+        'aria-label': 'Fechar',
+        style: 'display:inline-flex; align-items:center; justify-content:center; background:none; border:none; cursor:pointer; padding:4px; color:var(--rv-text-tertiary);',
         onclick: close,
       }, svgEl(SVG_CLOSE));
 
+      // O cabecalho ganha o MESMO divisor que modalActionBar() usa no rodape
+      // deste modal (var(--rv-border-soft)). Sem ele, cabecalho e corpo se
+      // encostavam e so o rodape era delimitado, deixando o cartao assimetrico.
       var header = window.el('div', {
-        style: 'display:flex; align-items:flex-start; justify-content:space-between; padding:18px 20px 12px;'
+        style: 'display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:14px 20px; border-bottom:1px solid var(--rv-border-soft);'
       },
         window.el('div', {},
           window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary);' }, 'Adicionar item'),
@@ -628,8 +668,11 @@
         window.el('div', { style: 'position:relative;' }, obsTextarea, counterSpan)
       );
 
+      // O corpo passa a declarar o proprio respiro vertical (14px) em vez de
+      // depender do `padding-bottom:12px` do cabecalho antigo e do
+      // `marginTop:14px` do rodape para nao encostar nas bordas.
       var body = window.el('div', {
-        style: 'padding:0 20px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; flex:1; min-height:0;'
+        style: 'padding:14px 20px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; flex:1; min-height:0;'
       }, tipoField, modeloField, coresField, larguraMetragemRow, referenciaField, obsField);
 
       var cancelBtn = window.el('button', {
@@ -666,16 +709,30 @@
         },
       }, 'Adicionar item');
 
-      // A1 §6: canonical modal action bar. Two deviations are surrendered to
-      // the owner — gap 12px becomes the canonical 10px, and the stronger
-      // var(--rv-border) divider becomes var(--rv-border-soft). The 14px of
-      // outer separation from the body is NOT part of the bar contract, so it
-      // is passed as caller-owned spacing and the bar keeps its exact
-      // position in this modal.
-      var footer = window.modalActionBar([cancelBtn, confirmBtn], { marginTop: '14px' });
+      // A1 §6: canonical modal action bar. Two deviations were already
+      // surrendered to the owner — gap 12px became the canonical 10px, and the
+      // stronger var(--rv-border) divider became var(--rv-border-soft).
+      //
+      // SCREEN-GROUP-2 surrenders the THIRD and last one. A1 kept 14px of
+      // outer separation as caller-owned spacing because the body declared no
+      // bottom padding, so without it the last field touched the divider. The
+      // body now owns its own 14px, and keeping the margin as well would
+      // simply double the gap to 28px. The bar therefore sits FLUSH against
+      // the body, exactly as it does in every other consumer of this owner —
+      // one modal action-bar geometry across the product, with no caller
+      // deviation left in this modal.
+      //
+      // DIVULGADO: this was the ONLY consumer of the bar's `marginTop` option.
+      // The option stays declared in js/ui.js because removing it is a change
+      // to the shared owner that no objective of this order authorizes; it now
+      // has no caller.
+      var footer = window.modalActionBar([cancelBtn, confirmBtn]);
 
+      // O cartao ganha a moldura que o modal generico canonico (js/ui.js) ja
+      // declara. Sem `--rv-border` a caixa branca so se separava do fundo pela
+      // sombra, e sobre o scrim claro a borda superior praticamente sumia.
       var card = window.el('div', {
-        style: 'background:var(--rv-surface); border-radius:var(--rv-radius); width:460px; max-width:100%; max-height:90vh; box-shadow:var(--rv-shadow-popover); overflow:hidden; display:flex; flex-direction:column;'
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); width:460px; max-width:100%; max-height:90vh; box-shadow:var(--rv-shadow-popover); overflow:hidden; display:flex; flex-direction:column;'
       }, header, body, footer);
 
       overlay.appendChild(card);

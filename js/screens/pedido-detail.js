@@ -190,7 +190,7 @@
       window.toast('Identificador de pedido invalido.', 'error');
       var invalidNode = window.el('div', {},
         window.el('div', {
-          style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;color:var(--rv-signal-negative);',
+          style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;color:var(--rv-signal-negative);',
         }, 'Pedido invalido. Volte para a listagem e tente novamente.'),
         window.el('div', { style: 'margin-top:14px;' },
           window.el('button', {
@@ -210,7 +210,7 @@
     function render() {
       if (typeof ns.renderPedidoDetailScreen !== 'function') {
         container.replaceChildren(window.el('div', {
-          style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;color:var(--rv-signal-negative);',
+          style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;color:var(--rv-signal-negative);',
         }, 'Modulo de render do pedido-detail indisponivel.'));
         return;
       }

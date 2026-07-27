@@ -1,6 +1,28 @@
 // =====================================================================
 // === SCREENS: PEDIDO DETAIL RENDER ===================================
 // Render do detalhe do pedido alinhado ao standalone.
+//
+// SCREEN-GROUP-2 — RITMO UNICO DE CARTAO.
+// A tela empilha uma dezena de cartoes de nivel superior, e eles nao
+// concordavam sobre a propria caixa. A caixa dominante sempre foi
+// `padding:16px 20px` com `margin-bottom:14px`, mas seis superficies
+// divergiam dela:
+//   - o cartao do titulo, 18px 20px 16px com margin-bottom:16px;
+//   - o cartao do Progresso produtivo, 18px 22px — o unico com 22px
+//     laterais em toda a tela;
+//   - o vazio de OPs vinculadas, padding:20px uniforme;
+//   - os dois estados de erro de OPs/expedicoes e os dois estados de
+//     erro do render, todos 18px 20px.
+// Empilhados um sobre o outro, os textos comecavam em x diferentes e as
+// bordas superiores respiravam alturas diferentes. Todos passam a
+// declarar a MESMA caixa dominante; a grade de metricas e a linha de
+// breadcrumb acompanham com margin-bottom:14px.
+//
+// NAO normalizados, por serem papeis mais densos e nao cartoes:
+// buildSummaryMetric (13px 15px, ladrilho de metrica) e a faixa de aviso
+// de enriquecimento (10px 14px). Tabelas, `data-rv-table-scroll`,
+// `data-rv-2col`, `data-rv-metrics` e todo o comportamento de ciclo de
+// vida, transicao e permissao seguem intocados.
 // =====================================================================
 
 (function (window) {
@@ -122,7 +144,7 @@
     var pedido = state.pedido;
     if (!pedido) {
       return window.el('div', {
-        style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;',
+        style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;',
       },
         window.el('div', {
           style: 'font-size:var(--rv-fs-title);font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;',
@@ -159,7 +181,7 @@
     );
 
     var titleRow = window.el('div', {
-      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px 16px;margin-bottom:16px;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;margin-bottom:14px;',
     },
       window.el('div', {
         style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;',
@@ -247,7 +269,7 @@
 
     return window.el('div', {
       'data-rv-metrics': '',
-      style: 'display:grid;grid-template-columns:repeat(' + metrics.length + ',minmax(0,1fr));gap:10px;margin-bottom:16px;',
+      style: 'display:grid;grid-template-columns:repeat(' + metrics.length + ',minmax(0,1fr));gap:10px;margin-bottom:14px;',
     }, metrics);
   }
 
@@ -427,7 +449,7 @@
     }) : window.el('div', {});
 
     return window.el('div', {
-      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 22px;margin-bottom:14px;',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;margin-bottom:14px;',
     },
       window.el('div', {
         style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:20px;',
@@ -529,7 +551,7 @@
 
     if (state.itens.length === 0) {
       card.appendChild(window.el('div', {
-        style: 'padding:18px 20px;font-size:14px;color:var(--rv-text-tertiary);',
+        style: 'padding:16px 20px;font-size:14px;color:var(--rv-text-tertiary);',
       }, 'Este pedido nao possui itens.'));
       return card;
     }
@@ -813,14 +835,14 @@
     // aviso restrito abaixo, mantendo as OPs base visíveis.
     if (state.opsLoadError) {
       wrap.appendChild(window.el('div', {
-        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;font-size:14px;color:var(--rv-signal-caution);',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;font-size:14px;color:var(--rv-signal-caution);',
       }, 'Nao foi possivel consolidar as OPs vinculadas agora.'));
       return wrap;
     }
 
     if (view.opSummaries.length === 0) {
       wrap.appendChild(window.el('div', {
-        style: 'background:var(--rv-surface);border:1px solid var(--rv-pill-info-border);border-radius:4px;padding:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-pill-info-border);border-radius:4px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;',
       },
         window.el('div', { style: 'min-width:240px;flex:1;' },
           window.el('div', {
@@ -873,14 +895,14 @@
 
     if (state.expedicoesLoadError) {
       wrap.appendChild(window.el('div', {
-        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;font-size:14px;color:var(--rv-signal-caution);',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;font-size:14px;color:var(--rv-signal-caution);',
       }, 'Nao foi possivel validar as expedicoes vinculadas agora.'));
       return wrap;
     }
 
     if (!view.expedicaoSummaries.length) {
       wrap.appendChild(window.el('div', {
-        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;',
       },
         window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:6px;' }, 'Nenhuma expedicao liberada'),
         window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);line-height:1.5;' },
@@ -1418,7 +1440,7 @@
     if (loadingError === 'pedido') {
       container.replaceChildren(header,
         window.el('div', {
-          style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;color:var(--rv-signal-negative);',
+          style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;color:var(--rv-signal-negative);',
         }, 'Pedido nao encontrado. Ele pode ter sido removido.'));
       return;
     }
@@ -1426,7 +1448,7 @@
     if (loadingError) {
       container.replaceChildren(header,
         window.el('div', {
-          style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:18px 20px;color:var(--rv-signal-negative);',
+          style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;color:var(--rv-signal-negative);',
         }, 'Erro ao carregar dados do pedido (' + loadingError + '). Tente recarregar a pagina.'));
       return;
     }

@@ -215,10 +215,54 @@ const PROVEN_FOOTERS = [
     signature:
       /style: '([^']*)',\s*\r?\n\s*'data-pedido-itens-edit-actions': 'itens',\s*\r?\n\s*'data-card-actions': '',/,
   },
+  /*
+   * PEDIDO-SCREEN-GROUP-2 — TWO MORE MARKED FOOTERS, same instrument.
+   *
+   * Both are the single save row at the bottom of an administrative card of
+   * the Pedido detail group, and both declared their geometry as the Tailwind
+   * pair `mt-4 flex justify-end`: no divider at all, no decodable padding-top,
+   * and nothing a guard anchored on style text could see. They belonged to the
+   * screen-local population that UI-ACTION-CONTAINER-CONTAINMENT-GAP records
+   * as OPEN and unclaimed.
+   *
+   * ACTION-CONTAINMENT-A1 cancelled the global A2 closure phase and ruled that
+   * local containment is corrected INSIDE each screen batch. This is that
+   * correction for the Pedido detail group. The debt shrinks by exactly these
+   * two rows; every other container it names stays open and unclaimed.
+   *
+   * DISCLOSED, and NOT cured here: both owners are exported and reachable from
+   * pedido-detail-events.js, but no caller invokes either handler, so neither
+   * card is mounted by any screen today. The containment correction is real
+   * source-level work on a surface that currently renders nowhere.
+   */
+  {
+    id: 'pedido-tracking-admin-situacao-footer',
+    path: 'js/screens/pedido-tracking-admin.js',
+    owner: 'buildPedidoTrackingAdminCard(), last child of the "Situacao visivel ao cliente" card',
+    kind: 'STANDARD_ACTION_FOOTER',
+    left: null,
+    right: 'action group: Salvar situacao visivel',
+    align: 'flex-end',
+    controls: 1,
+    signature:
+      /style: '([^']*)',\s*\r?\n\s*'data-pedido-tracking-admin-actions': 'situacao',\s*\r?\n\s*'data-card-actions': '',/,
+  },
+  {
+    id: 'pedido-parciais-admin-cadastro-footer',
+    path: 'js/screens/pedido-parciais-admin.js',
+    owner: 'buildPedidoParciaisAdminCard(), last child of the "Parciais do pedido" card',
+    kind: 'STANDARD_ACTION_FOOTER',
+    left: null,
+    right: 'action group: Cadastrar parcial',
+    align: 'flex-end',
+    controls: 1,
+    signature:
+      /style: '([^']*)',\s*\r?\n\s*'data-pedido-parciais-admin-actions': 'cadastro',\s*\r?\n\s*'data-card-actions': '',/,
+  },
 ];
 
-test('5 · PROVEN_CARD_FOOTER_COUNT = 6 and MARKED_PROVEN_CARD_FOOTER_COUNT = 6', () => {
-  assert.equal(PROVEN_FOOTERS.length, 6);
+test('5 · PROVEN_CARD_FOOTER_COUNT = 8 and MARKED_PROVEN_CARD_FOOTER_COUNT = 8', () => {
+  assert.equal(PROVEN_FOOTERS.length, 8);
   for (const f of PROVEN_FOOTERS) {
     const text = read(f.path);
     assert.match(text, f.signature, `${f.id}: the marked footer disappeared or changed shape`);
@@ -235,7 +279,7 @@ test('5 · PROVEN_CARD_FOOTER_COUNT = 6 and MARKED_PROVEN_CARD_FOOTER_COUNT = 6'
     'the marked footer population changed (HARD STOP — CARD FOOTER POPULATION CHANGED)',
   );
   const total = [...perFile.values()].reduce((a, b) => a + b, 0);
-  assert.equal(total, 6, `MARKED_PROVEN_CARD_FOOTER_COUNT = ${total}`);
+  assert.equal(total, 8, `MARKED_PROVEN_CARD_FOOTER_COUNT = ${total}`);
 });
 
 test('6 · NONCONFORMING_PROVEN_CARD_FOOTER_COUNT = 0', () => {
@@ -539,7 +583,7 @@ test('11 · no page-header, table-row, pagination, rail or inline action is mark
   }
   assert.equal(
     [...RUNTIME].filter((f) => f.text.includes("'data-card-actions'")).length,
-    6,
+    8,
     'FALSELY_MARKED_PROVEN_NONFOOTER_COUNT must be 0',
   );
 });
@@ -687,21 +731,116 @@ test('12 · the coarse action inventory is unchanged by this pass', () => {
   // owner. See SCREEN_GROUP_1_ACTION_BUTTON_MIGRATIONS for the per-site
   // arithmetic. No business action was added or removed.
   assert.equal(SCREEN_GROUP_1_ACTION_DELTA, 3);
-  assert.equal(constructions, ENTRY_CONSTRUCTIONS_REDERIVED + SCREEN_GROUP_1_ACTION_DELTA,
+  // SCREEN-GROUP-2 adds NO action and removes none. Its two administrative
+  // cards kept their single save button each; only the button's colour, its
+  // container and that container's declaration changed. The count is therefore
+  // identical to the SCREEN-GROUP-1 checkpoint, and this zero is asserted
+  // explicitly so a later pass cannot smuggle a control in behind a card edit.
+  assert.equal(SCREEN_GROUP_2_ACTION_DELTA, 0);
+  assert.equal(constructions,
+    ENTRY_CONSTRUCTIONS_REDERIVED + SCREEN_GROUP_1_ACTION_DELTA + SCREEN_GROUP_2_ACTION_DELTA,
     `ACTION_CONSTRUCTION_COUNT = ${constructions}`);
   assert.equal(constructions, 475, `ACTION_CONSTRUCTION_COUNT = ${constructions}`);
   assert.equal(bearingFiles, 39, `ACTION_BEARING_FILE_COUNT = ${bearingFiles}`);
   // A2: 133 at the pass-5 checkpoint, minus the eight pass-7 select facades,
-  // minus the three B1 textarea boxes, plus the fifteen SCREEN-GROUP-1 cards.
+  // minus the three B1 textarea boxes, plus the fifteen SCREEN-GROUP-1 cards,
+  // plus the four SCREEN-GROUP-2 surfaces.
   assert.equal(PASS7_FACADE_REMOVED_COUNT, 8);
   assert.equal(B1_TEXTAREA_REMOVED_COUNT, 3);
   assert.equal(SCREEN_GROUP_1_CARD_ADDED_COUNT, 15);
+  assert.equal(SCREEN_GROUP_2_CARD_ADDED_COUNT, 5);
   assert.equal(
     cardShaped,
-    133 - PASS7_FACADE_REMOVED_COUNT - B1_TEXTAREA_REMOVED_COUNT + SCREEN_GROUP_1_CARD_ADDED_COUNT,
+    133 - PASS7_FACADE_REMOVED_COUNT - B1_TEXTAREA_REMOVED_COUNT
+      + SCREEN_GROUP_1_CARD_ADDED_COUNT + SCREEN_GROUP_2_CARD_ADDED_COUNT,
     `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`,
   );
-  assert.equal(cardShaped, 137, `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`);
+  assert.equal(cardShaped, 142, `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`);
+});
+
+/*
+ * SCREEN-GROUP-2 · the four card-shaped constructions the counter gained.
+ *
+ * None of them is a NEW surface. Every one already existed and already drew a
+ * box; each drew it through Tailwind utilities, which this coarse counter — and
+ * the conformance detector itself — cannot see. Moving them onto the canonical
+ * declaration makes them VISIBLE to the measurement for the first time, which
+ * is the same movement A2 recorded when it removed the select facades and the
+ * same one SCREEN-GROUP-1 recorded when it added fifteen.
+ *
+ * The enumeration is exact and is asserted below, so this rise can never be
+ * used to absorb an unrelated new card.
+ */
+const SCREEN_GROUP_2_CARD_SITES = [
+  ['js/screens/pedido-tracking-admin.js', 'the "Situacao visivel ao cliente" card — was bg-white shadow p-6 mb-4'],
+  ['js/screens/pedido-parciais-admin.js', 'the "Parciais do pedido" card — was bg-white shadow p-6 mb-4'],
+  ['js/screens/pedido-parciais-admin.js', 'metric() in the technical preview — was bg-white border-gray-200 px-3 py-2'],
+  ['js/screens/pedido-parciais-admin.js', 'the distribution chip — was bg-white border border-gray-200 px-3 py-1'],
+  // The fifth is not a Tailwind migration: the cliente Add item MODAL CARD
+  // already declared background, radius and elevation through tokens but had
+  // NO border, so over the light scrim its top edge all but vanished. Adding
+  // var(--rv-border) — the same frame the generic canonical modal in js/ui.js
+  // already declares — completes the card shape and therefore enters this
+  // counter. The modal is not converted to a page: the architect ruled that
+  // the Pedido item is a bounded child item and that the modal is the correct
+  // surface, so only its frame was consolidated.
+  ['js/screens/cliente-pedido-form.js', 'openAddItemModal() card — gained the canonical var(--rv-border) frame'],
+];
+
+/** Per-file card-shape RISE attributable to SCREEN-GROUP-2, from its own
+ *  authorized entry checkpoint. Consumed by 12d below and by the forward
+ *  correction to 12b, so the two can never disagree. */
+const SCREEN_GROUP_2_ENTRY = 'ff807a0';
+const SCREEN_GROUP_2_CARD_RISE_BY_FILE = new Map([
+  ['js/screens/pedido-tracking-admin.js', 1],
+  ['js/screens/pedido-parciais-admin.js', 3],
+  ['js/screens/cliente-pedido-form.js', 1],
+]);
+
+test('12d · the SCREEN-GROUP-2 card-shape rise is exactly the five enumerated sites', () => {
+  assert.equal(SCREEN_GROUP_2_CARD_SITES.length, SCREEN_GROUP_2_CARD_ADDED_COUNT);
+  const perFile = new Map();
+  for (const [path] of SCREEN_GROUP_2_CARD_SITES) {
+    perFile.set(path, (perFile.get(path) || 0) + 1);
+  }
+  assert.deepEqual([...perFile].sort(), [...SCREEN_GROUP_2_CARD_RISE_BY_FILE].sort(),
+    'the enumerated sites and the per-file rise disagree');
+  // Measured as a DELTA from this order's entry checkpoint, never as an
+  // absolute per-file count: cliente-pedido-form.js already carried seventeen
+  // card-shaped declarations before this pass, so an absolute assertion there
+  // would be meaningless.
+  const isCardShaped = (ln) => /background:\s*var\(--rv-surface\)/.test(ln)
+    && /border:\s*1px solid var\(--rv-border\b/.test(ln)
+    && /border-radius/.test(ln);
+  for (const [path, expectedRise] of SCREEN_GROUP_2_CARD_RISE_BY_FILE) {
+    const entry = execFileSync('git', ['show', `${SCREEN_GROUP_2_ENTRY}:${path}`],
+      { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    const before = entry.split(/\r?\n/).filter(isCardShaped).length;
+    const after = read(path).split(/\r?\n/).filter(isCardShaped).length;
+    assert.equal(after - before, expectedRise,
+      `${path}: card-shaped rise ${after - before} != ${expectedRise}`);
+  }
+  // And neither file may keep a Tailwind card language alongside the canonical
+  // one — that would be the two-card-dialect defect this pass exists to remove.
+  //
+  // The scan is over `class:` ATTRIBUTE LITERALS, not over raw file text. A raw
+  // scan for /\bshadow\b/ matches the canonical `box-shadow:var(--rv-shadow-none)`
+  // these files now declare, so it would fail on the very correction it is
+  // meant to prove.
+  //
+  // DELIBERATELY OUT OF SCOPE, and therefore not asserted absent: the semantic
+  // pill tone classes in pedido-tracking-admin.js::exceptionToneClass() and its
+  // default info tone. Those are badge COLOUR SEMANTICS owned by the canonical
+  // badge owner, not card geometry; this pass consolidated the cards around
+  // them and left them untouched on purpose.
+  const FORBIDDEN_CARD_UTILITIES = /(?:^|\s)(?:bg-white|shadow|bg-gray-\d+|bg-blue-\d+|bg-red-\d+|text-gray-\d+|p-\d+|mb-\d+|mt-\d+)(?:\s|$)/;
+  for (const path of new Set(SCREEN_GROUP_2_CARD_SITES.map(([p]) => p))) {
+    const text = stripComments(read(path));
+    for (const m of text.matchAll(/class:\s*'([^']*)'/g)) {
+      assert.doesNotMatch(m[1], FORBIDDEN_CARD_UTILITIES,
+        `${path}: a Tailwind card/spacing utility survived in class "${m[1]}"`);
+    }
+  }
 });
 
 /*
@@ -727,6 +866,11 @@ const SCREEN_GROUP_1_ADDED_CARDS = [
 ];
 const SCREEN_GROUP_1_CARD_ADDED_COUNT = SCREEN_GROUP_1_ADDED_CARDS
   .reduce((n, r) => n + r[1], 0);
+
+// SCREEN-GROUP-2 · see SCREEN_GROUP_2_CARD_SITES above for the per-site
+// enumeration these two figures summarise.
+const SCREEN_GROUP_2_CARD_ADDED_COUNT = 5;
+const SCREEN_GROUP_2_ACTION_DELTA = 0;
 
 test('12c · every card SCREEN-GROUP-1 added replaced a Tailwind-declared card', () => {
   const isCardShaped = (ln) => /background:\s*var\(--rv-surface\)/.test(ln)
@@ -774,7 +918,15 @@ test('12b · every removed card-shaped declaration was a select facade, not a ca
       { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     const before = entry.split(/\r?\n/).filter(isCardShaped).length;
     const after = read(rel).split(/\r?\n/).filter(isCardShaped).length;
-    assert.equal(before - after, expectedDrop, `${rel}: card-shaped drop`);
+    // SCREEN-GROUP-2 FORWARD CORRECTION. This assertion measured a NET count
+    // from 41655c6, so it silently conflated "pass-7 removed a select facade"
+    // with "no later order ever adds a card to this file". SCREEN-GROUP-2 adds
+    // the canonical frame to the cliente Add item modal card, which is a real
+    // addition and not a facade that failed to be removed. The pass-7 removals
+    // are still asserted exactly; the later addition is subtracted from the
+    // same enumerated source 12d uses, so neither figure can drift alone.
+    const laterRise = SCREEN_GROUP_2_CARD_RISE_BY_FILE.get(rel) || 0;
+    assert.equal(before - after, expectedDrop - laterRise, `${rel}: card-shaped drop`);
     // The file still builds the control whose box was removed, through the
     // canonical owner, instead of reacquiring the box locally.
     if (selectFiles.has(rel)) {
