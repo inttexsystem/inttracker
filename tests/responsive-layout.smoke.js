@@ -277,7 +277,7 @@ test('os arquivos protegidos nao cresceram em relacao a bbd5f85', () => {
   // celula de valor ganhou `data-num`, o dono canonico dos algarismos
   // tabulares (css/tokens.css). Nenhuma logica nova, nenhum calculo alterado.
   const LIMITS = {
-    'js/screens/pedido-detail-events.js': 2720,
+    'js/screens/pedido-detail-events.js': 2729,
     'js/screens/pedido-detail-progress.js': 919,
   };
   for (const [rel, limit] of Object.entries(LIMITS)) {

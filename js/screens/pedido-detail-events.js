@@ -664,30 +664,39 @@
         window.el('div', {
           style: 'padding:11px 14px;border-bottom:1px solid var(--rv-border-soft);font-size:12px;font-weight:700;letter-spacing:.03em;color:var(--rv-text-tertiary);text-transform:uppercase;',
         }, 'Pendencias por produto'),
-        window.el('div', {
-          style: 'display:grid;grid-template-columns:minmax(0,1fr) 80px 80px 80px;gap:10px;padding:10px 14px;border-bottom:1px solid var(--rv-border-soft);background:var(--rv-surface-subtle);font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.03em;',
-        },
-          // Pass-8 §2.5 (architect ruling 6.6): these three columns carry
-          // standalone quantities, so centred alignment is rejected — header
-          // and value are both right-aligned and the values own the numerals.
-          window.el('span', {}, 'Produto'),
-          window.el('span', { style: 'text-align:right;' }, key === 'Insumos>Tecelagem' ? 'Pedido' : 'Alocado'),
-          window.el('span', { style: 'text-align:right;' }, 'Transferido'),
-          window.el('span', { style: 'text-align:right;' }, 'Pendente')
-        ),
-        rows.map(function (row, index) {
-          return window.el('div', {
-            style: 'display:grid;grid-template-columns:minmax(0,1fr) 80px 80px 80px;gap:10px;padding:11px 14px;align-items:center;' + (index < rows.length - 1 ? 'border-bottom:1px solid var(--rv-border-soft);' : ''),
-          },
-            window.el('div', { style: 'font-size:13px;color:var(--rv-text-primary);line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', title: row.label }, row.label),
-            window.el('div', { 'data-num': '1', style: 'font-size:12.5px;font-weight:600;color:var(--rv-text-primary);text-align:right;' }, row.target),
-            window.el('div', { 'data-num': '1', style: 'font-size:12.5px;font-weight:600;color:var(--rv-accent-blue);text-align:right;' }, row.moved),
+        // Pass-8 A1 §2.5: the three quantity columns are fixed at 80px each, so
+        // header and rows scroll together inside ONE local owner. The
+        // architect-ratified right/right alignment above is untouched, as is the
+        // modal's behaviour, transition semantics and action controls. Minimum:
+        // 240px fixed + 30px gaps + 28px padding + 180px for Produto.
+        window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' },
+          window.el('div', { style: 'min-width:480px;' },
             window.el('div', {
-              'data-num': '1',
-              style: 'font-size:12.5px;font-weight:700;color:' + row.remainingColor + ';text-align:right;white-space:nowrap;',
-            }, row.remaining)
-          );
-        })
+              style: 'display:grid;grid-template-columns:minmax(0,1fr) 80px 80px 80px;gap:10px;padding:10px 14px;border-bottom:1px solid var(--rv-border-soft);background:var(--rv-surface-subtle);font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.03em;',
+            },
+              // Pass-8 §2.5 (architect ruling 6.6): these three columns carry
+              // standalone quantities, so centred alignment is rejected — header
+              // and value are both right-aligned and the values own the numerals.
+              window.el('span', {}, 'Produto'),
+              window.el('span', { style: 'text-align:right;' }, key === 'Insumos>Tecelagem' ? 'Pedido' : 'Alocado'),
+              window.el('span', { style: 'text-align:right;' }, 'Transferido'),
+              window.el('span', { style: 'text-align:right;' }, 'Pendente')
+            ),
+            rows.map(function (row, index) {
+              return window.el('div', {
+                style: 'display:grid;grid-template-columns:minmax(0,1fr) 80px 80px 80px;gap:10px;padding:11px 14px;align-items:center;' + (index < rows.length - 1 ? 'border-bottom:1px solid var(--rv-border-soft);' : ''),
+              },
+                window.el('div', { style: 'font-size:13px;color:var(--rv-text-primary);line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', title: row.label }, row.label),
+                window.el('div', { 'data-num': '1', style: 'font-size:12.5px;font-weight:600;color:var(--rv-text-primary);text-align:right;' }, row.target),
+                window.el('div', { 'data-num': '1', style: 'font-size:12.5px;font-weight:600;color:var(--rv-accent-blue);text-align:right;' }, row.moved),
+                window.el('div', {
+                  'data-num': '1',
+                  style: 'font-size:12.5px;font-weight:700;color:' + row.remainingColor + ';text-align:right;white-space:nowrap;',
+                }, row.remaining)
+              );
+            })
+          )
+        )
       );
     }
 

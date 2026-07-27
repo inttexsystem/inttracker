@@ -993,16 +993,23 @@
 
         // Pass-8 §2.5: ENVIADO and RECEBIDO are metre quantities — both headers
         // and both value cells are right-aligned, and the values own the
-        // tabular numerals.
-        card.appendChild(thRow('1fr 140px 140px', ['MODELO', 'ENVIADO', 'RECEBIDO'], [1, 2]));
+        // tabular numerals. The explicit [1, 2] numeric-column list is preserved.
+        // Pass-8 A1: those two columns are ALSO fixed at 140px each, so header
+        // and rows now scroll together inside one local owner. Minimum: 280px
+        // fixed + 20px gaps + 48px padding + 200px for MODELO.
+        var scroll = el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+        var grid = el('div', { style: 'min-width:550px;' });
+        scroll.appendChild(grid);
+        grid.appendChild(thRow('1fr 140px 140px', ['MODELO', 'ENVIADO', 'RECEBIDO'], [1, 2]));
         (op.op_itens || []).forEach(function (item) {
           var modelo = modelosById[item.modelo_id];
-          card.appendChild(gridRow('1fr 140px 140px', [
+          grid.appendChild(gridRow('1fr 140px 140px', [
             el('div', { style: 'font-size:13.5px;font-weight:500;color:var(--rv-color-title);' }, modelo ? window.rotuloModelo(modelo) : ('#' + item.modelo_id)),
             el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, window.fmtMetros(item.metros_pedidos)),
             el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, window.fmtMetros(totalPorItem[item.id] || 0)),
           ]));
         });
+        card.appendChild(scroll);
         return card;
       }
 

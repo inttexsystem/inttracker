@@ -294,6 +294,23 @@
     return el('div', { style: 'display:grid;grid-template-columns:' + colsTemplate + ';gap:10px;padding:12px 24px;border-bottom:1px solid var(--rv-border-soft);align-items:center;' }, cells);
   }
 
+  // Pass-8 A1 §2.5: the canonical local scroll owner for a table whose contract
+  // declares a fixed-pixel column. `scroll` carries `data-rv-table-scroll`, whose
+  // overflow-x/max-width/min-width live in css/responsive.css — this adds no
+  // second overflow system. BOTH the header and every data row go inside `grid`
+  // so they scroll together and can never drift out of column parity.
+  //
+  // The caller passes its own `grid` already carrying a LITERAL minimum, rather
+  // than passing the number in: a computed `.style.minWidth = <expression>` is
+  // undecodable for the conformance detector and would open a UIC-000 coverage
+  // gap over a value that never varies. Only the caller knows its real fixed and
+  // flexible columns, so only the caller can spell that literal.
+  function tableScroll(grid) {
+    var scroll = el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+    scroll.appendChild(grid);
+    return { scroll: scroll, grid: grid };
+  }
+
   // PHASE-MANTA-A: explicit product-type chooser for a mixed Pedido. A weaving
   // OP is route-homogeneous; this picks which single type the new OP contains.
   // Resolves the chosen type ('tapete'|'manta'), or null if dismissed.
@@ -1281,10 +1298,16 @@
     const cols = 'minmax(120px,1.3fr) minmax(110px,1fr) 120px minmax(230px,1.7fr)';
     // Pass-8 §2.5: QTD (KG) is the only quantity column here; SITUAÇÃO renders
     // badges and stays left.
-    box.appendChild(thRow(cols, ['FIO', 'FORNECEDOR', 'QTD (KG)', 'SITUAÇÃO'], { numericCols: [2] }));
+    // Pass-8 A1: QTD (KG) is fixed at 120px and the other three declare minmax
+    // floors, so header and rows scroll together inside one local owner.
+    // Minimum: 120 + 110 + 120 + 230 column floors + 30px gaps + 48px padding.
+    const ocScroll = el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+    const ocGrid = el('div', { style: 'min-width:660px;' });
+    ocScroll.appendChild(ocGrid);
+    ocGrid.appendChild(thRow(cols, ['FIO', 'FORNECEDOR', 'QTD (KG)', 'SITUAÇÃO'], { numericCols: [2] }));
     ordens.forEach(function (o) {
       const forn = ocfFornecedorNome(o);
-      box.appendChild(gridRow(cols, [
+      ocGrid.appendChild(gridRow(cols, [
         el('div', { style: 'font-size:13.5px;font-weight:500;color:var(--rv-text-primary);' }, window.rotuloFio(o)),
         el('div', { style: 'font-size:13px;color:' + (forn ? 'var(--rv-text-primary)' : 'var(--rv-text-tertiary)') + ';' }, forn || '— não atribuído'),
         // This cell already owned its tabular numerals inline; only the
@@ -1293,6 +1316,7 @@
         ocfBadges(o),
       ]));
     });
+    box.appendChild(ocScroll);
     box.appendChild(el('div', { style: 'padding:11px 24px;border-top:1px solid var(--rv-border-soft);background:var(--rv-surface);font-size:11.5px;color:var(--rv-text-tertiary);' },
       'A administração das ordens de compra (emitir, cancelar, itens) fica na tela dedicada — esta seção é apenas um resumo.'));
     return box;
@@ -1348,15 +1372,19 @@
         box.appendChild(el('div', { style: 'padding:14px 24px 0;' },
           el('div', { style: 'font-size:10.5px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.06em;margin-bottom:10px;' }, 'RECEBIDAS')));
         // Pass-8 §2.5: PEDIDO and RECEBIDO are kg quantities; STATUS is a label.
-        box.appendChild(thRow('1fr 140px 140px 120px', ['FIO', 'PEDIDO', 'RECEBIDO', 'STATUS'], { numericCols: [1, 2] }));
+        // Pass-8 A1: three fixed columns (140+140+120) so the table scrolls
+        // locally. Minimum: 400px fixed + 30px gaps + 48px padding + 180px FIO.
+        const rec = tableScroll(el('div', { style: 'min-width:660px;' }));
+        rec.grid.appendChild(thRow('1fr 140px 140px 120px', ['FIO', 'PEDIDO', 'RECEBIDO', 'STATUS'], { numericCols: [1, 2] }));
         for (const o of recebidas) {
-          box.appendChild(gridRow('1fr 140px 140px 120px', [
+          rec.grid.appendChild(gridRow('1fr 140px 140px 120px', [
             el('div', { style: 'font-size:13.5px;font-weight:500;color:var(--rv-text-primary);' }, window.rotuloFio(o)),
             el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, window.fmtKg(o.kg_pedido)),
             el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, window.fmtKg(o.kg_recebido)),
             el('div', { style: 'font-size:13px;color:var(--rv-signal-positive);font-weight:600;' }, OCF_STATUS_LABEL[o.status] || o.status),
           ]));
         }
+        box.appendChild(rec.scroll);
       }
 
       const todasRecebidas = ordens.length > 0 && pendentes.length === 0;
@@ -1369,9 +1397,11 @@
       box.appendChild(buildProposta());
     } else {
       box.appendChild(el('div', { style: 'border-top:1px solid var(--rv-border);' }));
-      box.appendChild(thRow('1fr 140px 140px 120px', ['FIO', 'PEDIDO', 'RECEBIDO', 'STATUS'], { numericCols: [1, 2] }));
+      // Same column contract as the RECEBIDAS branch above, so the same minimum.
+      const fios = tableScroll(el('div', { style: 'min-width:660px;' }));
+      fios.grid.appendChild(thRow('1fr 140px 140px 120px', ['FIO', 'PEDIDO', 'RECEBIDO', 'STATUS'], { numericCols: [1, 2] }));
       for (const o of ordens) {
-        box.appendChild(gridRow('1fr 140px 140px 120px', [
+        fios.grid.appendChild(gridRow('1fr 140px 140px 120px', [
           el('div', { style: 'font-size:13.5px;font-weight:500;color:var(--rv-text-primary);' }, window.rotuloFio(o)),
           el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, window.fmtKg(o.kg_pedido)),
           // The em dash placeholder is preserved exactly; it simply inherits
@@ -1380,6 +1410,7 @@
           el('div', { style: 'font-size:13px;color:var(--rv-text-primary);font-weight:600;' }, OCF_STATUS_LABEL[o.status] || o.status),
         ]));
       }
+      box.appendChild(fios.scroll);
 
       if (ordens.length > 0 && ordens.every(o => o.status !== 'pendente')) {
         box.appendChild(el('div', { style: 'display:flex;align-items:center;gap:8px;padding:11px 24px;border-top:1px solid var(--rv-border);background:var(--rv-surface);' },
@@ -1390,14 +1421,18 @@
       box.appendChild(el('div', { style: 'padding:16px 24px 0;' },
         el('div', { style: 'font-size:13px;font-weight:700;color:var(--rv-text-primary);margin-bottom:4px;' }, 'Metros de produção')));
       // Pass-8 §2.5: PEDIDO and PRODUÇÃO are metre quantities.
-      box.appendChild(thRow('1fr 140px 140px', ['MODELO', 'PEDIDO', 'PRODUÇÃO'], { numericCols: [1, 2] }));
+      // Pass-8 A1: both are fixed at 140px, so the table scrolls locally.
+      // Minimum: 280px fixed + 20px gaps + 48px padding + 200px MODELO.
+      const prod = tableScroll(el('div', { style: 'min-width:550px;' }));
+      prod.grid.appendChild(thRow('1fr 140px 140px', ['MODELO', 'PEDIDO', 'PRODUÇÃO'], { numericCols: [1, 2] }));
       for (const i of opItensRaw) {
-        box.appendChild(gridRow('1fr 140px 140px', [
+        prod.grid.appendChild(gridRow('1fr 140px 140px', [
           el('div', { style: 'font-size:13.5px;font-weight:500;color:var(--rv-text-primary);' }, window.rotuloModelo(modelosById[i.modelo_id])),
           el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, window.fmtMetros(i.metros_pedidos)),
           el('div', { 'data-num': '1', style: 'font-size:13.5px;color:var(--rv-text-primary);text-align:right;' }, i.metros_ajustados == null ? window.fmtMetros(i.metros_pedidos) : window.fmtMetros(i.metros_ajustados)),
         ]));
       }
+      box.appendChild(prod.scroll);
       box.appendChild(el('div', { style: 'height:8px;' }));
     }
     return box;

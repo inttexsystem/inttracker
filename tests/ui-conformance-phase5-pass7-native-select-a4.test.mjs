@@ -493,7 +493,11 @@ test('11 · A4 retokenised exactly five assets, and the pass-7 set is set-derive
    * changed is still invalidated against the pass-6 checkpoint.
    */
   const PASS8_TOKEN = '20260727-ui-p5-pass8-table-r1';
-  const onPass8 = refs.filter((u) => tokenOf(u) === PASS8_TOKEN).map(pathOf);
+  // A1 closed the nine residual overflow gaps and moved four of these assets on
+  // again; a pass-8 A1 token is strictly later than the pass-8 R1 one, so the
+  // invariant is intact and only the invalidating token moved.
+  const PASS8_A1_TOKEN = '20260727-ui-p5-pass8-table-a1-overflow';
+  const onPass8 = refs.filter((u) => tokenOf(u) === PASS8_TOKEN || tokenOf(u) === PASS8_A1_TOKEN).map(pathOf);
   const PASS7_ASSETS_MOVED_BY_PASS8 = [
     'js/ui.js', 'js/screens/admin-usuarios.js', 'js/screens/cadastros.js',
     'js/screens/cliente-pedido-form.js', 'js/screens/expedicao-admin.js',

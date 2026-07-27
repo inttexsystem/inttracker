@@ -2072,6 +2072,16 @@
         style: 'background:var(--rv-surface); border:1px solid var(--rv-border); overflow:hidden;'
       });
       const gridTemplate = '1.2fr 1fr 100px 120px 66px';
+      // Pass-8 A1 §2.5: LARGURA (100px), R$ / METRO (120px) and ACOES (66px) are
+      // fixed in pixels, so this table owns its horizontal scroll. Pass 8 filed
+      // this surface under a numeric PRIMARY disposition, which left the overflow
+      // clause of the same section unmet — a primary label does not suppress
+      // another applicable obligation. Minimum: 286px fixed + 64px gaps + 36px
+      // padding + 300px for FORNECEDOR and ETAPA.
+      const scroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+      const grid = window.el('div', { style: 'min-width:690px;' });
+      scroll.appendChild(grid);
+      card.appendChild(scroll);
       const headRow = window.el('div', {
         style: `display:grid; grid-template-columns:${gridTemplate}; align-items:center; gap:16px; padding:10px 18px; background:var(--rv-surface-subtle); border-bottom:1px solid var(--rv-border);`
       });
@@ -2088,7 +2098,7 @@
         headRow.appendChild(head);
       });
       headRow.appendChild(window.el('div', { style: 'font-size:11px; font-weight:700; color:var(--rv-text-tertiary); letter-spacing:.04em; text-align:center; white-space:nowrap;' }, 'ACOES'));
-      card.appendChild(headRow);
+      grid.appendChild(headRow);
 
       rows.forEach((row, index) => {
         const line = window.el('div', {
@@ -2115,10 +2125,12 @@
           onclick: () => confirmExcluir(row)
         }));
         line.appendChild(actions);
-        card.appendChild(line);
+        grid.appendChild(line);
       });
 
       if (!rows.length) {
+        // The empty message is prose, not a table row, so it stays outside the
+        // min-width owner and never forces a scroll.
         card.appendChild(window.el('div', { style: 'padding:20px 18px; font-size:14px; color:var(--rv-text-secondary); text-align:center;' }, busca ? 'Nenhum preco encontrado.' : 'Nenhum preco cadastrado.'));
       }
 

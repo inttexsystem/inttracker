@@ -657,13 +657,24 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   const PASS8 = '20260727-ui-p5-pass8-table-r1';
   const PASS8_CHANGED = [
     'js/ui.js',
-    'js/screens/cadastros.js', 'js/screens/cliente-dashboard.js',
-    'js/screens/cliente-pedido-detail.js', 'js/screens/cliente-pedido-form.js',
+    'js/screens/cliente-dashboard.js', 'js/screens/cliente-pedido-form.js',
     'js/screens/expedicao-admin.js', 'js/screens/fornecedor.js',
-    'js/screens/manta-expedicao-ui.js', 'js/screens/op-latex-admin.js',
-    'js/screens/op-nova.js', 'js/screens/op-tecelagem-producao-admin.js',
-    'js/screens/ordem-compra-render.js', 'js/screens/pedido-detail-events.js',
-    'js/screens/pedido-detail-render.js',
+    'js/screens/manta-expedicao-ui.js', 'js/screens/op-tecelagem-producao-admin.js',
+    'js/screens/ordem-compra-render.js', 'js/screens/pedido-detail-render.js',
+  ];
+  /*
+   * PASS-8-A1-RESIDUAL-OVERFLOW-FORWARD-CORRECTION
+   *
+   * A1 closed the nine residual fixed-pixel overflow gaps and changed five of
+   * these assets again, so they carry the strictly later A1 token. The pass-6
+   * population is still 27; only which later token invalidates five of them
+   * moved.
+   */
+  const PASS8_A1 = '20260727-ui-p5-pass8-table-a1-overflow';
+  const PASS8_A1_CHANGED = [
+    'js/screens/cadastros.js', 'js/screens/cliente-pedido-detail.js',
+    'js/screens/op-latex-admin.js', 'js/screens/op-nova.js',
+    'js/screens/pedido-detail-events.js',
   ];
   const PASS6_ONLY = [
     'js/document-links-surface-ui.js',
@@ -675,7 +686,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   // The pass-6 population is unchanged in SIZE — 27 assets — only redistributed
   // across the tokens. That is what proves nothing silently dropped out.
   assert.equal(PASS7_CHANGED.length + PASS7_A4_CHANGED.length + PASS7_A5_CHANGED.length
-    + A1_CHANGED.length + PASS8_CHANGED.length + PASS6_ONLY.length, 27);
+    + A1_CHANGED.length + PASS8_CHANGED.length + PASS8_A1_CHANGED.length + PASS6_ONLY.length, 27);
   for (const rel of PASS7_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS7}"`), `${rel} must carry the pass-7 token`);
   }
@@ -691,6 +702,9 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   for (const rel of PASS8_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS8}"`), `${rel} must carry the pass-8 token`);
   }
+  for (const rel of PASS8_A1_CHANGED) {
+    assert.ok(INDEX.includes(`"${rel}?v=${PASS8_A1}"`), `${rel} must carry the pass-8 A1 token`);
+  }
   for (const rel of PASS6_ONLY) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS6}"`), `${rel} must keep the pass-6 token`);
   }
@@ -700,7 +714,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     'the pass-6 token leaked or was dropped');
   // Every asset pass 6 touched still carries a token LATER than the pass-5 one.
   for (const rel of [...PASS7_CHANGED, ...PASS7_A4_CHANGED, ...PASS7_A5_CHANGED, ...A1_CHANGED,
-    ...PASS8_CHANGED, ...PASS6_ONLY]) {
+    ...PASS8_CHANGED, ...PASS8_A1_CHANGED, ...PASS6_ONLY]) {
     assert.ok(!INDEX.includes(`"${rel}?v=20260726-ui-p5-pass5`),
       `${rel} fell back to the pass-5 token`);
   }

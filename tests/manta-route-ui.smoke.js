@@ -1157,8 +1157,12 @@ test('R3/19h. gates estruturais preservados (nenhum arquivo gated cresceu)', () 
   // celula de valor ganhou `data-num`, o dono canonico dos algarismos
   // tabulares. Nenhuma logica nova; o gate segue sendo um ratchet, apenas
   // reancorado no bloco autorizado que o moveu.
-  assert.ok(lines('js/screens/pedido-detail-events.js') <= 2720,
-    'pedido-detail-events.js deve permanecer <= 2720 linhas');
+  // 2720 -> 2729: +9 linhas da correcao A1 da passada 8 — a tabela de
+  // pendencias por produto ganhou o dono canonico de rolagem local
+  // (data-rv-table-scroll + min-width), com o cabecalho e todas as linhas
+  // dentro do MESMO dono. Nenhuma logica nova; o gate segue sendo um ratchet.
+  assert.ok(lines('js/screens/pedido-detail-events.js') <= 2729,
+    'pedido-detail-events.js deve permanecer <= 2729 linhas');
   assert.ok(lines('js/screens/pedido-detail-progress.js') <= 918,
     'pedido-detail-progress.js deve permanecer <= 918 linhas');
 });

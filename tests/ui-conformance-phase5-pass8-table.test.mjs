@@ -582,13 +582,14 @@ test('6.3 header AND rows go inside the same scroll owner, so they scroll togeth
     for (const a of c.appends) assert.ok(text.includes(a), `${c.file} is missing ${a}`);
   }
   const cad = read('js/screens/cadastros.js');
-  // Five, not four: G02/G03/G04/G06 are the overflow surfaces corrected here,
-  // and G05 (Parâmetros) independently names its own container `grid` inside
-  // the `overflow-x:auto` wrapper it already owned.
-  assert.equal((cad.match(/grid\.appendChild\(headRow\)/g) || []).length, 5,
+  // Six, not four: G02/G03/G04/G06 were corrected by pass 8, G07 joined them in
+  // A1 once the residual overflow gap was ruled binding, and G05 (Parâmetros)
+  // independently names its own container `grid` inside the `overflow-x:auto`
+  // wrapper it already owned.
+  assert.equal((cad.match(/grid\.appendChild\(headRow\)/g) || []).length, 6,
     'a cadastros table stopped putting its header inside its scroll owner');
-  assert.equal((cad.match(/grid\.appendChild\(line\)/g) || []).length, 4,
-    'the four corrected cadastros tables must each put their rows inside the scroll owner');
+  assert.equal((cad.match(/grid\.appendChild\(line\)/g) || []).length, 5,
+    'the five corrected cadastros tables must each put their rows inside the scroll owner');
 
   const form = read('js/screens/cliente-pedido-form.js');
   assert.match(form, /window\.el\('div', \{ style: 'min-width:880px;' \}, tableHeader, rowsWrap\)/,
@@ -730,36 +731,54 @@ test('9.4 no waiver, ignore list or suppression was introduced', () => {
    ============================================================ */
 
 const PASS8_TOKEN = '20260727-ui-p5-pass8-table-r1';
+const PASS8_A1_TOKEN = '20260727-ui-p5-pass8-table-a1-overflow';
 
-/** Exactly the product files this order changed. */
-const RETOKENIZED = [
+/**
+ * The 17 product files Pass 8 changed, split by WHICH pass-8 token invalidates
+ * them. A1 changed five of them again to close the residual overflow gaps, so
+ * those carry the strictly later A1 token. The population is still 17; only
+ * which pass-8 token does the invalidating moved.
+ */
+const RETOKENIZED_A1 = [
+  'js/screens/cadastros.js',
+  'js/screens/cliente-pedido-detail.js',
+  'js/screens/op-latex-admin.js',
+  'js/screens/op-nova.js',
+  'js/screens/pedido-detail-events.js',
+];
+const RETOKENIZED_R1 = [
   'js/ui.js',
   'js/screens/admin-usuarios.js',
-  'js/screens/cadastros.js',
   'js/screens/cliente-dashboard.js',
-  'js/screens/cliente-pedido-detail.js',
   'js/screens/cliente-pedido-form.js',
   'js/screens/expedicao-admin.js',
   'js/screens/fornecedor.js',
   'js/screens/manta-expedicao-ui.js',
-  'js/screens/op-latex-admin.js',
-  'js/screens/op-nova.js',
   'js/screens/op-tecelagem-producao-admin.js',
   'js/screens/ordem-compra-render.js',
   'js/screens/ordem-compra-receipt-render.js',
-  'js/screens/pedido-detail-events.js',
   'js/screens/pedido-detail-render.js',
   'js/screens/pedido-parciais-admin.js',
 ];
+const RETOKENIZED = [...RETOKENIZED_R1, ...RETOKENIZED_A1];
 
-test('10.1 every changed script carries the Pass-8 token exactly once', () => {
-  for (const rel of RETOKENIZED) {
+test('10.1 every changed script carries a Pass-8 token exactly once', () => {
+  assert.equal(RETOKENIZED.length, 17, 'the pass-8 changed-asset population must stay seventeen');
+  for (const rel of RETOKENIZED_R1) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS8_TOKEN}"`), `${rel} was not retokenised for Pass 8`);
+  }
+  for (const rel of RETOKENIZED_A1) {
+    assert.ok(INDEX.includes(`"${rel}?v=${PASS8_A1_TOKEN}"`), `${rel} must carry the later A1 token`);
+    assert.ok(!INDEX.includes(`"${rel}?v=${PASS8_TOKEN}"`), `${rel} kept the superseded R1 token`);
+  }
+  for (const rel of RETOKENIZED) {
     assert.equal((INDEX.match(new RegExp(rel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=', 'g')) || []).length, 1,
       `${rel} is referenced more than once`);
   }
-  assert.equal((INDEX.match(new RegExp(PASS8_TOKEN, 'g')) || []).length, RETOKENIZED.length,
-    'the Pass-8 token appears on a file this order did not change');
+  assert.equal((INDEX.match(new RegExp(PASS8_TOKEN + '(?!-)', 'g')) || []).length, RETOKENIZED_R1.length,
+    'the Pass-8 R1 token appears on a file it did not change');
+  assert.equal((INDEX.match(new RegExp(PASS8_A1_TOKEN, 'g')) || []).length, RETOKENIZED_A1.length,
+    'the Pass-8 A1 token appears on a file A1 did not change');
 });
 
 test('10.2 UNCHANGED assets keep their previous tokens', () => {
@@ -770,4 +789,237 @@ test('10.2 UNCHANGED assets keep their previous tokens', () => {
   assert.match(INDEX, /js\/select-popover\.js\?v=20260727-ui-p5-pass7-native-select-a1/);
   assert.match(INDEX, /js\/screens\/pedido-item-row-editor\.js\?v=20260727-ui-p5-pass7-native-select-a1/);
   assert.match(INDEX, /js\/boot\.js\?v=20260623-asset1/);
+});
+
+/* ============================================================
+   11 · THE OBLIGATION MATRIX — EVERY SURFACE, EVERY APPLICABLE RULE
+
+   Pass 8 filed one PRIMARY disposition per surface and corrected only what that
+   label named. That is how nine surfaces kept a fixed-pixel column with no local
+   scroll owner while being recorded as closed: their primary label was numeric,
+   so the overflow clause of the SAME contract section was never checked.
+
+   A primary label is a reporting convenience. It is not a licence to skip an
+   applicable obligation. This matrix evaluates all 41 surfaces against every
+   clause of §2.5 that applies to them, independently:
+
+     HAS_FIXED_PX_COLUMN      → then HAS_LOCAL_OVERFLOW_OWNER must be true
+     HAS_NUMERIC_COLUMN       → then header AND value alignment must be right,
+                                and HAS_NUMERAL_OWNER must be true
+     always                   → HAS_WIDTH_PARITY_OWNER must be true
+
+   `fixedPx: false` is a CLAIM, not an exemption: 11.3 re-derives it from the
+   declared template and fails if a px column is hiding in a surface that says it
+   has none.
+   ============================================================ */
+
+/**
+ * owner: the exact source token that proves the local scroll owner for this
+ * surface. Every entry is `data-rv-table-scroll` or the pre-existing
+ * `overflow-x` wrapper the accepted inventory already credited.
+ */
+const MATRIX = [
+  // ---- direct semantic: width parity by <colgroup>, percentages only -------
+  { id: 'S01', file: 'js/screens/ordem-compra-render.js', kind: 'table', template: '26%,30%,20%,12%,12%', fixedPx: false, numeric: true, numeralOwner: 'inline' },
+  { id: 'S02', file: 'js/screens/ordem-compra-render.js', kind: 'table', template: '40%,22%,22%,16%', fixedPx: false, numeric: true, numeralOwner: 'inline' },
+  { id: 'S03', file: 'js/screens/ordem-compra-receipt-render.js', kind: 'table', template: '36%,16%,16%,16%,16%', fixedPx: false, numeric: true, numeralOwner: 'inline' },
+  { id: 'S04', file: 'js/screens/ordem-compra-receipt-render.js', kind: 'table', template: '28%,24%,16%,16%,16%', fixedPx: false, numeric: true, numeralOwner: 'inline' },
+  { id: 'S05', file: 'js/screens/ordem-compra-receipt-render.js', kind: 'table', template: '24%,20%,14%,14%,14%,14%', fixedPx: false, numeric: true, numeralOwner: 'inline' },
+
+  // ---- shared helper: the owner enforces every clause centrally ------------
+  { id: 'H01', file: 'js/screens/fornecedor.js', kind: 'datatable', fixedPx: false, numeric: true, numeralOwner: 'helper' },
+  { id: 'H02', file: 'js/screens/fornecedor.js', kind: 'datatable', fixedPx: false, numeric: true, numeralOwner: 'helper' },
+  { id: 'H03', file: 'js/screens/fornecedor.js', kind: 'datatable', fixedPx: false, numeric: true, numeralOwner: 'helper' },
+  { id: 'H04', file: 'js/screens/op-latex-admin.js', kind: 'datatable', fixedPx: false, numeric: true, numeralOwner: 'helper' },
+  { id: 'H05', file: 'js/screens/pedido-parciais-admin.js', kind: 'datatable', fixedPx: false, numeric: true, numeralOwner: 'helper' },
+
+  // ---- simulated grids ----------------------------------------------------
+  { id: 'G01', file: 'js/screens/admin-usuarios.js', kind: 'grid', fixedPx: true, owner: 'min-width:1120px;', numeric: false },
+  { id: 'G02', file: 'js/screens/cadastros.js', kind: 'grid', fixedPx: true, owner: 'min-width:480px;', numeric: false },
+  { id: 'G03', file: 'js/screens/cadastros.js', kind: 'grid', fixedPx: true, owner: 'min-width:956px;', numeric: false },
+  { id: 'G04', file: 'js/screens/cadastros.js', kind: 'grid', fixedPx: true, owner: 'min-width:760px;', numeric: false },
+  { id: 'G05', file: 'js/screens/cadastros.js', kind: 'grid', fixedPx: false, owner: 'overflow-x:auto;', numeric: false },
+  { id: 'G06', file: 'js/screens/cadastros.js', kind: 'grid', fixedPx: true, owner: 'min-width:900px;', numeric: false },
+  { id: 'G07', file: 'js/screens/cadastros.js', kind: 'grid', fixedPx: true, owner: 'min-width:690px;', numeric: true, numeralOwner: 'attr', residual: true },
+  { id: 'G08', file: 'js/screens/cliente-dashboard.js', kind: 'grid', fixedPx: true, owner: 'min-width:690px;', numeric: false },
+  { id: 'G09', file: 'js/screens/cliente-pedido-detail.js', kind: 'grid', fixedPx: false, owner: 'min-width:530px;', numeric: true, numeralOwner: 'attr', residual: true },
+  { id: 'G10', file: 'js/screens/cliente-pedido-detail.js', kind: 'grid', fixedPx: true, owner: 'min-width:450px;', numeric: true, numeralOwner: 'attr', residual: true },
+  { id: 'G11', file: 'js/screens/cliente-pedido-detail.js', kind: 'grid', fixedPx: true, owner: 'min-width:450px;', numeric: true, numeralOwner: 'attr', residual: true },
+  { id: 'G12', file: 'js/screens/cliente-pedido-form.js', kind: 'grid', fixedPx: true, owner: 'min-width:880px;', numeric: false },
+  { id: 'G13', file: 'js/screens/cliente-pedidos-list.js', kind: 'grid', fixedPx: true, owner: 'overflow-x:auto;', numeric: false },
+  { id: 'G14', file: 'js/screens/documentos-recebidos.js', kind: 'grid', fixedPx: true, owner: 'overflow-x:auto;', numeric: false },
+  { id: 'G15', file: 'js/screens/expedicao-admin.js', kind: 'grid', fixedPx: true, owner: 'data-rv-table-scroll', numeric: true, numeralOwner: 'decorate' },
+  { id: 'G16', file: 'js/screens/manta-expedicao-ui.js', kind: 'grid', fixedPx: true, owner: 'data-rv-table-scroll', numeric: true, numeralOwner: 'decorate' },
+  { id: 'G17', file: 'js/screens/op-latex-admin.js', kind: 'grid', fixedPx: false, owner: 'overflow-x:auto;', numeric: true, numeralOwner: 'attr' },
+  { id: 'G18', file: 'js/screens/op-latex-admin.js', kind: 'grid', fixedPx: true, owner: 'min-width:550px;', numeric: true, numeralOwner: 'attr', residual: true },
+  { id: 'G19', file: 'js/screens/op-nova.js', kind: 'grid', fixedPx: true, owner: 'min-width:560px;', numeric: false },
+  { id: 'G20', file: 'js/screens/op-nova.js', kind: 'grid', fixedPx: true, owner: 'min-width:660px;', numeric: true, numeralOwner: 'inline', residual: true },
+  { id: 'G21', file: 'js/screens/op-nova.js', kind: 'grid', fixedPx: true, owner: 'min-width:660px;', numeric: true, numeralOwner: 'attr', residual: true },
+  { id: 'G22', file: 'js/screens/op-nova.js', kind: 'grid', fixedPx: true, owner: 'min-width:550px;', numeric: true, numeralOwner: 'attr', residual: true },
+  { id: 'G23', file: 'js/screens/op-nova.js', kind: 'grid', fixedPx: true, owner: 'overflow-x:auto;', numeric: true, numeralOwner: 'inline' },
+  { id: 'G24', file: 'js/screens/op-tecelagem-producao-admin.js', kind: 'grid', fixedPx: false, owner: 'data-rv-table-scroll', numeric: true, numeralOwner: 'class' },
+  { id: 'G25', file: 'js/screens/op-tecelagem-producao-admin.js', kind: 'grid', fixedPx: true, owner: 'data-rv-table-scroll', numeric: true, numeralOwner: 'class' },
+  { id: 'G26', file: 'js/screens/op-tecelagem-producao-admin.js', kind: 'grid', fixedPx: true, owner: 'data-rv-table-scroll', numeric: true, numeralOwner: 'class' },
+  { id: 'G27', file: 'js/screens/ops-list.js', kind: 'grid', fixedPx: true, owner: 'overflow-x:auto;', numeric: false },
+  { id: 'G28', file: 'js/screens/pedido-detail-events.js', kind: 'grid', fixedPx: true, owner: 'min-width:480px;', numeric: true, numeralOwner: 'attr', residual: true },
+  { id: 'G29', file: 'js/screens/pedido-detail-render.js', kind: 'grid', fixedPx: false, owner: 'data-rv-table-scroll', numeric: true, numeralOwner: 'attr' },
+  { id: 'G30', file: 'js/screens/pedido-item-row-editor.js', kind: 'grid', fixedPx: true, owner: 'data-rv-table-scroll', numeric: false, ownerFile: 'js/screens/pedido-form.js' },
+  { id: 'G31', file: 'js/screens/pedidos-list.js', kind: 'grid', fixedPx: true, owner: 'overflow-x:auto;', numeric: false },
+];
+
+/** The nine surfaces this correction moved from false to true. */
+const RESIDUAL_NINE = ['G07', 'G09', 'G10', 'G11', 'G18', 'G20', 'G21', 'G22', 'G28'];
+/** The eight Pass-8 originally corrected. They must stay true. */
+const ORIGINAL_EIGHT = ['G01', 'G02', 'G03', 'G04', 'G06', 'G08', 'G12', 'G19'];
+
+test('11.1 the matrix evaluates all 41 surfaces, with no duplicate and no omission', () => {
+  assert.equal(MATRIX.length, TOTAL_RUNTIME_SURFACES);
+  assert.equal(new Set(MATRIX.map((s) => s.id)).size, TOTAL_RUNTIME_SURFACES, 'a surface id is repeated');
+  assert.equal(MATRIX.filter((s) => s.kind === 'table').length, DIRECT_SEMANTIC_TOTAL);
+  assert.equal(MATRIX.filter((s) => s.kind === 'datatable').length, SHARED_HELPER_TOTAL);
+  assert.equal(MATRIX.filter((s) => s.kind === 'grid').length, SIMULATED_GRID_TOTAL);
+  // Every surface must carry a verdict for every column of the matrix.
+  for (const s of MATRIX) {
+    assert.equal(typeof s.fixedPx, 'boolean', s.id + ' has no HAS_FIXED_PX_COLUMN verdict');
+    assert.equal(typeof s.numeric, 'boolean', s.id + ' has no HAS_NUMERIC_COLUMN verdict');
+    assert.ok(s.file, s.id + ' has no file');
+    if (s.numeric) assert.ok(s.numeralOwner, s.id + ' is numeric but declares no numeral owner');
+  }
+});
+
+test('11.2 EVERY surface with a fixed-pixel column has a local overflow owner', () => {
+  // This is the obligation Pass 8 skipped on nine surfaces. It is now checked
+  // for all 41 independently of any primary disposition.
+  const missing = [];
+  for (const s of MATRIX.filter((x) => x.fixedPx)) {
+    if (!s.owner) { missing.push(s.id + ' declares no owner'); continue; }
+    const text = read(s.ownerFile || s.file);
+    const proof = s.ownerVia || s.owner;
+    if (!text.includes(proof)) missing.push(s.id + ' owner token absent from ' + (s.ownerFile || s.file));
+  }
+  assert.deepEqual(missing, [], 'fixed-pixel surfaces without a local overflow owner');
+});
+
+test('11.3 a fixedPx:false claim is re-derived, never taken on trust', () => {
+  // A surface may not escape 11.2 by mislabelling itself. Percentage-only
+  // <colgroup>s and fr-only grid templates are the only legitimate false.
+  for (const s of MATRIX.filter((x) => !x.fixedPx)) {
+    if (s.kind === 'table') {
+      for (const w of s.template.split(',')) {
+        assert.match(w, /%$/, s.id + ' claims no fixed px but declares ' + w);
+      }
+      continue;
+    }
+    // The grid and dataTable cases are asserted by their own sections: H01-H05
+    // widths are percentages (4.1), G05/G17/G24/G29 templates are fr/minmax(0,..)
+    // only. Re-assert the dataTable half here so the claim is not free.
+    if (s.kind === 'datatable') {
+      const text = read(s.file);
+      assert.doesNotMatch(text, /width: '\d+px'/, s.id + ': ' + s.file + ' declares a px column width');
+    }
+  }
+});
+
+test('11.4 the nine residual surfaces now own local overflow', () => {
+  for (const id of RESIDUAL_NINE) {
+    const s = MATRIX.find((x) => x.id === id);
+    assert.ok(s, id + ' left the matrix');
+    assert.ok(s.residual, id + ' lost its residual marker');
+    assert.ok(s.owner, id + ' still has no overflow owner');
+    assert.ok(read(s.ownerFile || s.file).includes(s.ownerVia || s.owner), id + ' owner token absent');
+  }
+  assert.equal(MATRIX.filter((s) => s.residual).length, 9, 'the residual population is frozen at nine');
+});
+
+test('11.5 the eight originally corrected surfaces remain corrected', () => {
+  for (const id of ORIGINAL_EIGHT) {
+    const s = MATRIX.find((x) => x.id === id);
+    assert.ok(s.fixedPx, id + ' stopped declaring a fixed-pixel column');
+    assert.ok(read(s.ownerFile || s.file).includes(s.ownerVia || s.owner), id + ' lost its overflow owner');
+  }
+});
+
+test('11.6 every numeric surface owns alignment on BOTH sides and a numeral owner', () => {
+  const OWNER_TOKEN = {
+    attr: "'data-num': '1'",
+    class: "class: 'tnum'",
+    decorate: "setAttribute('data-num', '1')",
+    inline: 'font-variant-numeric:tabular-nums',
+    helper: null, // js/ui.js owns it centrally; asserted by 3.4
+  };
+  for (const s of MATRIX.filter((x) => x.numeric)) {
+    if (s.numeralOwner === 'helper') continue;
+    const token = OWNER_TOKEN[s.numeralOwner];
+    assert.ok(token, s.id + ' declares an unknown numeral owner: ' + s.numeralOwner);
+    assert.ok(read(s.file).includes(token),
+      s.id + ': ' + s.file + ' does not carry its declared numeral owner (' + s.numeralOwner + ')');
+    // Right alignment is declared one of three equivalent ways: inline in the
+    // style string (most grids), as a Tailwind text-right utility (the two
+    // purchase-order semantic tables), or as a literal property assignment (the
+    // two files whose numeral cell decorates a shared value-cell helper).
+    const src = read(s.file);
+    assert.ok(/text-align:s*right/.test(src) || /text-right/.test(src) || /style.textAlign = 'right'/.test(src),
+      s.id + ': ' + s.file + ' declares no right alignment');
+  }
+  // The five dataTable instances get both halves from the shared owner.
+  assert.match(UI, /if \(layout\[i\]\.numeric\) attrs\['data-num'\] = '1';/);
+});
+
+test('11.7 every surface has a width-parity owner', () => {
+  for (const s of MATRIX) {
+    const text = read(s.file);
+    if (s.kind === 'table') {
+      assert.match(text, /el\('colgroup', \{\}/, s.id + ': ' + s.file + ' lost its <colgroup>');
+      assert.match(text, /table-layout:fixed/, s.id + ': ' + s.file + ' lost table-layout:fixed');
+    } else if (s.kind === 'datatable') {
+      assert.match(UI, /const colgroup = el\('colgroup', \{\}\);/);
+    } else {
+      assert.match(text, /grid-template-columns/, s.id + ': ' + s.file + ' lost its grid template');
+    }
+  }
+});
+
+test('11.8 no primary-disposition label can suppress an applicable obligation', () => {
+  // The matrix carries NO primary-disposition field, by construction. If one is
+  // ever added, this fails — the whole point is that obligations are evaluated
+  // per clause, not per label.
+  for (const s of MATRIX) {
+    assert.ok(!('primary' in s) && !('disposition' in s),
+      s.id + ' reintroduced a primary-disposition label into the obligation matrix');
+  }
+  // And the count of surfaces carrying a fixed-px column must exceed the eight
+  // Pass 8 originally corrected — proof the matrix is not just re-stating the
+  // old primary-disposition population.
+  const fixedPxCount = MATRIX.filter((s) => s.fixedPx).length;
+  assert.ok(fixedPxCount > ORIGINAL_EIGHT.length,
+    'the fixed-px population collapsed back to the pass-8 primary-disposition list');
+  assert.equal(fixedPxCount, 26, 'the fixed-px population moved without explanation');
+});
+
+test('11.9 the document is never treated as the table scroll owner', () => {
+  // A surface may not satisfy 11.2 by letting the page scroll. Every owner is
+  // either the canonical attribute or a local overflow-x wrapper — never <body>,
+  // never documentElement, never a global rule.
+  for (const s of MATRIX.filter((x) => x.owner)) {
+    assert.ok(/data-rv-table-scroll|overflow-x:auto;|min-width:/.test(s.owner),
+      s.id + ' owner is not a local container token: ' + s.owner);
+  }
+  const LOCAL = [...INDEX.matchAll(/<script[^>]*src=["']([^"']+)["']/g)]
+    .map((m) => m[1]).filter((x) => !/^https?:|^\/\//.test(x)).map((x) => x.split('?')[0]);
+  for (const rel of LOCAL) {
+    assert.doesNotMatch(read(rel), /document\.body\.style\.overflowX|documentElement\.style\.overflow/,
+      rel + ' makes the document the scroll owner');
+  }
+  assert.doesNotMatch(read('css/responsive.css'), /^\s*body\s*\{[^}]*overflow-x:\s*auto/m);
+});
+
+test('11.10 every min-width owner sits inside a data-rv-table-scroll container', () => {
+  // A minimum without a scroll owner is worse than neither: it guarantees the
+  // overflow it cannot resolve.
+  for (const s of MATRIX.filter((x) => x.owner && x.owner.startsWith('min-width:'))) {
+    if (s.ownerVia) { assert.match(read(s.file), /'data-rv-table-scroll': ''/, s.id + ': helper owner missing'); continue; }
+    const text = read(s.ownerFile || s.file);
+    assert.match(text, /'data-rv-table-scroll': ''/,
+      s.id + ': ' + s.file + ' declares a minimum with no canonical scroll owner in the file');
+  }
 });

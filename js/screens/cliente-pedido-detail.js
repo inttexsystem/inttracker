@@ -480,10 +480,20 @@
         return card;
       }
 
-      card.appendChild(buildParciaisHeaderRow());
+      // Pass-8 A1 §2.5: header and every row scroll together inside ONE local
+      // owner. This grid declares no fixed-pixel column, so the overflow clause
+      // does not bind it — but four columns in a 390px viewport leave ~80px each
+      // and the Situação badge wraps to illegibility, so the same canonical
+      // owner is applied with a usable minimum: 450px of column content + 36px
+      // gaps + 40px padding.
+      var scroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+      var grid = window.el('div', { style: 'min-width:530px;' });
+      scroll.appendChild(grid);
+      grid.appendChild(buildParciaisHeaderRow());
       parciais.forEach(function (parcial, idx) {
-        card.appendChild(buildParcialRow(parcial, idx === parciais.length - 1));
+        grid.appendChild(buildParcialRow(parcial, idx === parciais.length - 1));
       });
+      card.appendChild(scroll);
       return card;
     }
 
@@ -542,8 +552,15 @@
         return card;
       }
 
+      // Pass-8 A1 §2.5: the 40px thumbnail column is fixed in pixels, so header
+      // and rows scroll together inside ONE local owner. Minimum: 40px fixed +
+      // 30px gaps + 380px for Modelo, Cores and Metragem.
+      var scroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+      var grid = window.el('div', { style: 'min-width:450px;' });
+      scroll.appendChild(grid);
+
       // Cabecalho da grade
-      card.appendChild(window.el('div', {
+      grid.appendChild(window.el('div', {
         style: 'display:grid;grid-template-columns:40px 1fr 1fr 1fr;gap:10px;'
           + 'padding:8px 0;border-bottom:1px solid var(--rv-border);',
       },
@@ -556,8 +573,9 @@
       ));
 
       itens.forEach(function (item, idx) {
-        card.appendChild(buildItemRow(item, idx === itens.length - 1));
+        grid.appendChild(buildItemRow(item, idx === itens.length - 1));
       });
+      card.appendChild(scroll);
       return card;
     }
 
@@ -659,7 +677,14 @@
         return card;
       }
 
-      card.appendChild(window.el('div', {
+      // Pass-8 A1 §2.5: Quantidade is a fixed 130px column, so header and rows
+      // scroll together inside ONE local owner. Minimum: 130px fixed + 12px gap
+      // + 40px padding + 260px for the Atualização description and its date.
+      var scroll = window.el('div', { 'data-rv-table-scroll': '', style: 'overflow-x:auto;' });
+      var grid = window.el('div', { style: 'min-width:450px;' });
+      scroll.appendChild(grid);
+
+      grid.appendChild(window.el('div', {
         style: 'display:grid;grid-template-columns:1fr 130px;gap:12px;padding:10px 20px;background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);',
       },
         window.el('div', { style: 'font-size:11.5px;font-weight:600;color:var(--rv-text-tertiary);' }, 'Atualização'),
@@ -669,7 +694,7 @@
       ));
 
       state.entregasResumo.forEach(function (row, idx) {
-        card.appendChild(window.el('div', {
+        grid.appendChild(window.el('div', {
           style: 'display:grid;grid-template-columns:1fr 130px;gap:12px;padding:11px 20px;align-items:center;'
             + (idx === state.entregasResumo.length - 1 ? '' : 'border-bottom:1px solid var(--rv-border-soft);'),
         },
@@ -687,6 +712,7 @@
           }, fmtMetros(row.quantidade))
         ));
       });
+      card.appendChild(scroll);
       return card;
     }
 
