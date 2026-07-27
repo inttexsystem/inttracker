@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "ba10d60db599620ddb7fe77a322a017b9cbc1c02",
-      "sha256": "31d5e0eefee209d2d77a2bce601e18a96e10f0e9ec1a275be6b65edaee9cee50",
+      "git_object_id": "3694c4f8ef27e870d48ad8feaf97d1003bf57d37",
+      "sha256": "c695da7bd612eeb0ef85839d2c8a61d898ca488794379d77a46cf7365df35f95",
       "line_count": 34,
-      "byte_count": 11478,
+      "byte_count": 13997,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -59602,10 +59602,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "47261b5580f30a1620dcb5e7ff1cd8b299c862e3",
-      "sha256": "42b61b77315d595e6d7549e7a1695eb44cd560842166e9da14a41a5828b61565",
-      "line_count": 10391,
-      "byte_count": 1335094,
+      "git_object_id": "de34c694fb9450a20fcfe26a7869e3efa674c548",
+      "sha256": "19583e69e976c9d1dea2e507fbe75647ea5faf79800cad46e83c4413c213e976",
+      "line_count": 10421,
+      "byte_count": 1351996,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -67923,6 +67923,12 @@
           "text": "2026-07-27 — UI-SPECIALIZED-CONTROLS-B1-SHARED-PRIMITIVES-AND-SITE-MIGRATION — refactor(ui): consolidate specialized controls",
           "anchor": "2026-07-27-ui-specialized-controls-b1-shared-primitives-and-site-migration-refactorui-consolidate-specialized-controls",
           "line": 10364
+        },
+        {
+          "level": 2,
+          "text": "2026-07-27 — PEDIDO-SCREEN-GROUP-1-CREATION-AND-EDITING — refactor(ui): consolidate pedido creation and editing screens",
+          "anchor": "2026-07-27-pedido-screen-group-1-creation-and-editing-refactorui-consolidate-pedido-creation-and-editing-screens",
+          "line": 10391
         }
       ]
     },
@@ -76846,10 +76852,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md",
-      "git_object_id": "0b2c5242ee9c5c5effbedda1623265e9bf4a3ca3",
-      "sha256": "ce7696d82be73636d291e088ad7069f2680c78f6ce957ed183fedfd254ecabff",
-      "line_count": 38,
-      "byte_count": 16055,
+      "git_object_id": "26274a460e61acdde22d62b1f4dc63ac9e7b4696",
+      "sha256": "bc331c9ff5a2c09c7a6d1c3eee770e20c61e518ff857647727ab21645d7a28b6",
+      "line_count": 68,
+      "byte_count": 32957,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -76876,6 +76882,12 @@
           "text": "2026-07-27 — UI-SPECIALIZED-CONTROLS-B1-SHARED-PRIMITIVES-AND-SITE-MIGRATION — refactor(ui): consolidate specialized controls",
           "anchor": "2026-07-27-ui-specialized-controls-b1-shared-primitives-and-site-migration-refactorui-consolidate-specialized-controls",
           "line": 11
+        },
+        {
+          "level": 2,
+          "text": "2026-07-27 — PEDIDO-SCREEN-GROUP-1-CREATION-AND-EDITING — refactor(ui): consolidate pedido creation and editing screens",
+          "anchor": "2026-07-27-pedido-screen-group-1-creation-and-editing-refactorui-consolidate-pedido-creation-and-editing-screens",
+          "line": 38
         }
       ]
     },
@@ -76963,10 +76975,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "be442086110986fcadf05d7502158331ff4920c0",
-      "sha256": "f4faaa4802eadd8c07b6aaaa3a2b7cbfcfa061c636a53fbea68d16a3ad433591",
-      "line_count": 10385,
-      "byte_count": 1334793,
+      "git_object_id": "12cb5210d2e262a6de61d797e8a8e3f4c155408b",
+      "sha256": "fefd3b76e0554148f8780bdb8713505d153a782d1b12e8ba306efa6b607bd82a",
+      "line_count": 10415,
+      "byte_count": 1351695,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -87237,6 +87249,12 @@
           "text": "2026-07-27 — UI-SPECIALIZED-CONTROLS-B1-SHARED-PRIMITIVES-AND-SITE-MIGRATION — refactor(ui): consolidate specialized controls",
           "anchor": "2026-07-27-ui-specialized-controls-b1-shared-primitives-and-site-migration-refactorui-consolidate-specialized-controls",
           "line": 10360
+        },
+        {
+          "level": 2,
+          "text": "2026-07-27 — PEDIDO-SCREEN-GROUP-1-CREATION-AND-EDITING — refactor(ui): consolidate pedido creation and editing screens",
+          "anchor": "2026-07-27-pedido-screen-group-1-creation-and-editing-refactorui-consolidate-pedido-creation-and-editing-screens",
+          "line": 10387
         }
       ]
     },
