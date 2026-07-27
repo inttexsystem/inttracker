@@ -613,9 +613,13 @@
         },
       }, 'Adicionar item');
 
-      var footer = window.el('div', {
-        style: 'display:flex; align-items:center; justify-content:flex-end; gap:12px; padding:14px 20px; border-top:1px solid var(--rv-border); margin-top:14px;'
-      }, cancelBtn, confirmBtn);
+      // A1 §6: canonical modal action bar. Two deviations are surrendered to
+      // the owner — gap 12px becomes the canonical 10px, and the stronger
+      // var(--rv-border) divider becomes var(--rv-border-soft). The 14px of
+      // outer separation from the body is NOT part of the bar contract, so it
+      // is passed as caller-owned spacing and the bar keeps its exact
+      // position in this modal.
+      var footer = window.modalActionBar([cancelBtn, confirmBtn], { marginTop: '14px' });
 
       var card = window.el('div', {
         style: 'background:var(--rv-surface); border-radius:4px; width:460px; max-width:100%; max-height:90vh; box-shadow:var(--rv-shadow-popover); overflow:hidden; display:flex; flex-direction:column;'

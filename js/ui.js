@@ -66,6 +66,54 @@ function setApp(node) {
   app.replaceChildren(node);
 }
 
+// --- Barra de ações de modal (dono canônico) ---
+// ACTION-CONTAINMENT-A1 §6. This is the SINGLE owner of the modal action-bar
+// role. Before this pass six independent bars existed — the generic modal()
+// bar below plus five screen-local ones — and they disagreed on gap (8 / 10 /
+// 12px), on horizontal padding (20 / 22 / 24px) and on the divider colour
+// (a literal #eceef1, var(--rv-border) and var(--rv-border-soft)). The
+// generic one also declared its geometry through Tailwind utilities, so a
+// static guard anchored on inline style text could not even see it.
+//
+// The bar carries `data-rv-modal-actions`, which is the contract declaration
+// itself: "this element is a modal action bar". It is deliberately NOT
+// `data-card-actions` — a modal action bar is full-bleed and is held outside
+// the in-card footer contract (UIC-008), a separation ratified in phase-5
+// pass 5 and preserved here.
+//
+// The role owns geometry ONLY. It creates no state, no handler and no
+// business behaviour: the caller keeps its own buttons, its own labels, its
+// own ordering and its own onclick functions, and simply hands them over.
+//
+// Uso: modalActionBar([btnCancel, btnSave])
+//   - children: a node, an array of nodes, or nested arrays. null / false
+//     entries are skipped, matching el()'s own child contract.
+//   - options.marginTop: outer spacing OWNED BY THE CALLER, not by the bar.
+//     Only the cliente add-item modal needs it, because its bar is separated
+//     from the body instead of sitting flush against it. It is a named
+//     option rather than a free style escape hatch precisely so the canonical
+//     six declarations below can never be overridden by a caller.
+//   - options.el: element factory injection. The five screen-local consumers
+//     all reach this helper through `window.`, so none needs it today; it
+//     exists so a consumer running under a stub factory can still build the
+//     canonical bar instead of forking the geometry.
+const MODAL_ACTION_BAR_STYLE = 'display:flex; align-items:center; justify-content:flex-end;'
+  + ' gap:10px; padding:14px 20px; border-top:1px solid var(--rv-border-soft);';
+
+function modalActionBar(children, options) {
+  const opts = options || {};
+  const factory = typeof opts.el === 'function' ? opts.el : el;
+  const style = opts.marginTop
+    ? MODAL_ACTION_BAR_STYLE + ' margin-top:' + opts.marginTop + ';'
+    : MODAL_ACTION_BAR_STYLE;
+  const bar = factory('div', { 'data-rv-modal-actions': '', style });
+  for (const child of [].concat(children || []).flat()) {
+    if (child == null || child === false) continue;
+    bar.appendChild(child);
+  }
+  return bar;
+}
+
 // --- Modal genérico ---
 // Uso: modal({title, body: node, onSave, saveLabel='Salvar'})
 function modal({ title, body, onSave, saveLabel = 'Salvar', onClose, danger = false }) {
@@ -113,7 +161,10 @@ function modal({ title, body, onSave, saveLabel = 'Salvar', onClose, danger = fa
     }
   }, saveLabel);
 
-  const footer = el('div', { class: 'px-6 py-4 border-t border-[#eceef1] flex justify-end gap-2' }, btnCancel, btnSave);
+  // A1: the generic modal now consumes the canonical owner instead of
+  // declaring its own Tailwind geometry. Both buttons, their handlers and
+  // their order are unchanged.
+  const footer = modalActionBar([btnCancel, btnSave]);
 
   card.appendChild(header);
   card.appendChild(content);
@@ -260,7 +311,11 @@ function dataTable({ columns, rows, actions = [], actionsWidth, minWidth }) {
       class: 'px-4 py-3 text-' + layout[i].align + ' text-xs font-semibold text-gray-600 uppercase',
     }, col.label));
   });
-  if (hasActions) trHead.appendChild(el('th', { class: 'px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase' }, 'Ações'));
+  // A1 §8: `data-rv-table-actions` declares the action COLUMN owner. It lands
+  // on the header cell and on every value cell of that column, and nowhere
+  // else — never on a data cell, a badge or a button. Alignment, order,
+  // classes, the colgroup entry and `data-num` are untouched.
+  if (hasActions) trHead.appendChild(el('th', { 'data-rv-table-actions': '', class: 'px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase' }, 'Ações'));
   thead.appendChild(trHead);
 
   const tbody = el('tbody', { class: 'divide-y divide-gray-100' });
@@ -277,7 +332,7 @@ function dataTable({ columns, rows, actions = [], actionsWidth, minWidth }) {
       tr.appendChild(td);
     });
     if (hasActions) {
-      const td = el('td', { class: 'px-4 py-3 text-right' });
+      const td = el('td', { 'data-rv-table-actions': '', class: 'px-4 py-3 text-right' });
       for (const a of actions) {
         const cls = a.class || 'text-blue-700 hover:underline';
         const lbl = typeof a.label === 'function' ? a.label(row) : a.label;
@@ -390,7 +445,17 @@ function pageHeader(title, actions = []) {
   const wrap = el('div', { class: 'flex justify-between items-center mb-4' });
   // Pass-6: the page-header title is a PAGE_TITLE; Tailwind no longer owns it.
   wrap.appendChild(el('h1', { style: 'font-size:var(--rv-fs-title);', class: 'font-bold' }, title));
-  const actWrap = el('div', { class: 'flex gap-2' });
+  // A1 §7: `data-rv-page-actions` declares this element as THE page-header
+  // action group. pageHeader() is the single owner of that role across all
+  // of its call sites, so no screen reimplements the grouping. The existing
+  // Tailwind `flex gap-2` layout is unchanged: A1 authorized adding
+  // `align-items:center` / `flex-wrap:wrap` only if rendering proved them
+  // necessary, and measurement said otherwise. The parent row already centres
+  // via `items-center`, and the widest real call site — op-latex-admin.js's
+  // three-action header (Voltar / Ir para OP de tecelagem / Excluir OP) —
+  // measured 258px wide at a 390px viewport, clearing the title and clipping
+  // nothing, so there is no wrap to accommodate.
+  const actWrap = el('div', { 'data-rv-page-actions': '', class: 'flex gap-2' });
   for (const a of actions) {
     // Pass-6 A1: the PRIMARY PAGE ACTION owns its own typography and height.
     // It used to declare neither, so it inherited the 16px document default and

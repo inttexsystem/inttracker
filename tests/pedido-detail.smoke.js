@@ -2247,6 +2247,20 @@ function makeHubRuntime() {
     return select;
   };
   sandbox.window.formField = (o) => (o && o.input) || node('div');
+  // ACTION-CONTAINMENT-A1: js/ui.js gained modalActionBar(), the single owner
+  // of the modal action-bar role. This harness stubs the shared UI layer
+  // instead of loading js/ui.js, so the new primitive is stubbed here exactly
+  // like textInput / selectInput / formField above. It reproduces the real
+  // contract that the runtime assertions depend on: the children are appended
+  // in order, so findHubBtn() still reaches every action button.
+  sandbox.window.modalActionBar = (children) => {
+    const bar = sandbox.window.el('div', { 'data-rv-modal-actions': '' });
+    [].concat(children || []).flat().forEach((c) => {
+      if (c == null || c === false) return;
+      bar.appendChild(c);
+    });
+    return bar;
+  };
   sandbox.window.buildEntregaInlineForm = () => ({ node: node('div'), getPayload: () => [], getSplitOption: () => ({ forceSplit: false, motivo: null }) });
   sandbox.window.salvarEntregaCima = async () => true;
   sandbox.window.rotuloModelo = (m) => (m && m.nome) || 'm'; sandbox.window.rotuloFio = () => 'fio';

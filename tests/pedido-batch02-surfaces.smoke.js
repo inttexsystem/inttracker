@@ -286,9 +286,11 @@ test('index.html: a superfície tocada pela passada 1 de cor carrega o token del
   const esc = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // A passada 7 substituiu os quatro selects nativos deste arquivo pelo
   // controle canonico, e a passada 8 de tabela deu ao cabecalho e as linhas da
-  // tabela de itens o dono canonico de rolagem (`data-rv-table-scroll`), entao
-  // ele e retokenizado mais uma vez. Mesma regra.
-  assert.match(index, new RegExp(esc + '\\?v=20260727-ui-p5-pass8-table-r1'),
+  // tabela de itens o dono canonico de rolagem (`data-rv-table-scroll`).
+  // ACTION-CONTAINMENT-A1 passou a barra de acoes do modal de adicionar item
+  // para o dono canonico modalActionBar(), entao ele e retokenizado mais uma
+  // vez. Mesma regra: sempre o token da ordem que o alterou por ultimo.
+  assert.match(index, new RegExp(esc + '\\?v=20260727-ui-action-containment-a1'),
     asset + ' deve carregar o token da ordem que o alterou por ultimo');
   assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260726-ui-p5-pass1'),
     asset + ' não pode reter o token da passada 1 de cor');

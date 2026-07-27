@@ -817,8 +817,12 @@
     const wrap = el('div', {});
     wrap.appendChild(buildHeader());
 
+    // A1 §10: only the Archetype-A branch takes cockpit membership. The
+    // `1fr 288px` branch is a different, unratified two-column layout and is
+    // deliberately left unmarked — marking it would silently enrol a layout
+    // the visual contract never ratified.
     const grid = isOpAbertaTecelagem()
-      ? el('div', { style: 'display:grid;grid-template-columns:minmax(0,1fr) var(--rv-rail-w);gap:var(--rv-gap-cols);align-items:start;' })
+      ? el('div', { 'data-rv-cockpit': '', style: 'display:grid;grid-template-columns:minmax(0,1fr) var(--rv-rail-w);gap:var(--rv-gap-cols);align-items:start;' })
       : el('div', { style: 'display:grid;grid-template-columns:1fr 288px;gap:16px;align-items:start;' });
     const leftCol = isOpAbertaTecelagem()
       ? el('div', { style: 'min-width:0;display:flex;flex-direction:column;gap:14px;' })
@@ -1517,7 +1521,8 @@
     } catch (err) {
       calc = null;
     }
-    var rail = el('div', { style: 'min-width:0;position:sticky;top:0;display:flex;flex-direction:column;gap:14px;' });
+    // A1 §10: the rail of the Archetype-A cockpit built in buildScreen().
+    var rail = el('div', { 'data-rv-rail': '', style: 'min-width:0;position:sticky;top:0;display:flex;flex-direction:column;gap:14px;' });
     rail.appendChild(buildResumoAberta(calc));
     rail.appendChild(buildAcaoAberta());
     rail.appendChild(buildDocumentosAberta());

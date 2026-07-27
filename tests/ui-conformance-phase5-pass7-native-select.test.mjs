@@ -887,15 +887,36 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
    */
   const PASS8 = '20260727-ui-p5-pass8-table-r1';
   const CHANGED_BY_PASS7_THEN_PASS8 = [
-    'js/ui.js', 'js/screens/admin-usuarios.js', 'js/screens/cliente-pedido-form.js',
+    'js/screens/admin-usuarios.js',
   ];
-  assert.equal(changed.length + CHANGED_BY_PASS7_THEN_PASS8.length, 11,
+  /*
+   * ACTION-CONTAINMENT-A1 FORWARD CORRECTION
+   *
+   * js/ui.js became the owner of the modal action bar, the page-header action
+   * group and the table-row action column, and cliente-pedido-form.js became a
+   * consumer of that owner, so both moved on once more. A containment token is
+   * strictly LATER than a pass-8 one, so pass 7's invariant is intact: every
+   * asset it changed is still invalidated against the pass-6 checkpoint. The
+   * population is still eleven; only which later token invalidates two of them
+   * moved.
+   */
+  const CONTAINMENT_A1 = '20260727-ui-action-containment-a1';
+  const CHANGED_BY_PASS7_THEN_CONTAINMENT_A1 = [
+    'js/ui.js', 'js/screens/cliente-pedido-form.js',
+  ];
+  assert.equal(changed.length + CHANGED_BY_PASS7_THEN_PASS8.length
+    + CHANGED_BY_PASS7_THEN_CONTAINMENT_A1.length, 11,
     'the pass-7 changed-asset population must stay eleven');
   for (const rel of changed) {
     assert.ok(INDEX.includes(`${rel}?v=${TOKEN}`), `${rel} must carry the pass-7 token`);
   }
   for (const rel of CHANGED_BY_PASS7_THEN_PASS8) {
     assert.ok(INDEX.includes(`${rel}?v=${PASS8}`), `${rel} must carry the later pass-8 token`);
+    assert.ok(!INDEX.includes(`${rel}?v=20260726-ui-p5-pass6`), `${rel} fell back to a pass-6 token`);
+  }
+  for (const rel of CHANGED_BY_PASS7_THEN_CONTAINMENT_A1) {
+    assert.ok(INDEX.includes(`${rel}?v=${CONTAINMENT_A1}`),
+      `${rel} must carry the later action-containment A1 token`);
     assert.ok(!INDEX.includes(`${rel}?v=20260726-ui-p5-pass6`), `${rel} fell back to a pass-6 token`);
   }
   assert.match(INDEX, new RegExp(`css/tokens\\.css\\?v=${TOKEN}`));

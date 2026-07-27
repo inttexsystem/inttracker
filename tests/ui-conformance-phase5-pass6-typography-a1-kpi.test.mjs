@@ -590,13 +590,25 @@ test('27 · every changed runtime asset carries the A1 cache token', () => {
    */
   const PASS8 = '20260727-ui-p5-pass8-table-r1';
   const CHANGED_BY_A1_THEN_PASS8 = [
-    'js/ui.js', 'js/screens/cliente-dashboard.js',
+    'js/screens/cliente-dashboard.js',
     'js/screens/expedicao-admin.js', 'js/screens/manta-expedicao-ui.js',
     'js/screens/pedido-detail-render.js',
   ];
+  /*
+   * ACTION-CONTAINMENT-A1 FORWARD CORRECTION
+   *
+   * That order made js/ui.js the owner of the modal action bar, the
+   * page-header action group and the table-row action column, so it changed
+   * again and moved to a strictly later token. A1's invariant is unchanged:
+   * every asset A1 changed is still invalidated, and no asset A1 left alone
+   * was retokenised BY A1. Only which later token invalidates js/ui.js moved.
+   */
+  const CONTAINMENT_A1 = '20260727-ui-action-containment-a1';
+  const CHANGED_BY_A1_THEN_CONTAINMENT_A1 = ['js/ui.js'];
   const CHANGED = ['js/screens/painel.js'];
   assert.equal(CHANGED.length + CHANGED_BY_A1_THEN_PASS7.length
-    + CHANGED_BY_A1_THEN_PASS7_A4.length + CHANGED_BY_A1_THEN_PASS8.length, 7,
+    + CHANGED_BY_A1_THEN_PASS7_A4.length + CHANGED_BY_A1_THEN_PASS8.length
+    + CHANGED_BY_A1_THEN_CONTAINMENT_A1.length, 7,
     'the A1 changed-asset population must stay seven');
   for (const rel of CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${TOKEN}"`), `${rel} was not retokenised`);
@@ -611,6 +623,10 @@ test('27 · every changed runtime asset carries the A1 cache token', () => {
   }
   for (const rel of CHANGED_BY_A1_THEN_PASS8) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS8}"`), `${rel} must carry the later pass-8 token`);
+  }
+  for (const rel of CHANGED_BY_A1_THEN_CONTAINMENT_A1) {
+    assert.ok(INDEX.includes(`"${rel}?v=${CONTAINMENT_A1}"`),
+      `${rel} must carry the later action-containment A1 token`);
   }
   assert.equal((INDEX.match(new RegExp(TOKEN, 'g')) || []).length, CHANGED.length,
     'an asset that did not change was retokenised');

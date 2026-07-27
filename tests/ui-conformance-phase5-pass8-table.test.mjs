@@ -252,8 +252,12 @@ test('3.5 dataTable() preserves its empty state, its actions and Node-returning 
   assert.match(UI, /onclick: \(\) => a\.onclick\(row\)/);
   assert.match(UI, /if \(cellValue instanceof Node\) td\.appendChild\(cellValue\); else td\.textContent = String\(cellValue\);/,
     'Node-returning renderers are no longer supported');
-  assert.match(UI, /el\('th', \{ class: 'px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase' \}, 'Ações'\)/,
-    'the actions header lost its right alignment');
+  // ACTION-CONTAINMENT-A1 added the `data-rv-table-actions` role to the action
+  // column. The alignment, the classes and the label are asserted exactly as
+  // before — only the declared role is new, and it is asserted too rather than
+  // relaxing the match.
+  assert.match(UI, /el\('th', \{ 'data-rv-table-actions': '', class: 'px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase' \}, 'Ações'\)/,
+    'the actions header lost its right alignment or its declared role');
 });
 
 test('3.6 a fixed-pixel contract gains the CANONICAL scroll owner, not a second system', () => {
@@ -762,23 +766,77 @@ const RETOKENIZED_R1 = [
 ];
 const RETOKENIZED = [...RETOKENIZED_R1, ...RETOKENIZED_A1];
 
+/**
+ * ACTION-CONTAINMENT-A1 (a LATER, separately authorized order) changed six of
+ * the seventeen files above again — five to consume the canonical modal action
+ * bar or to declare a shared action owner, and op-nova.js / op-latex-admin.js
+ * to take Archetype-A cockpit membership. Their cache token therefore moved
+ * strictly forward, off the pass-8 tokens.
+ *
+ * The pass-8 population is UNCHANGED at seventeen: this list records which of
+ * those seventeen a later order superseded, so the guard below still proves
+ * every pass-8 file was retokenised once, and additionally proves that a file
+ * only ever moves FORWARD to a strictly later token.
+ */
+const CONTAINMENT_A1_TOKEN = '20260727-ui-action-containment-a1';
+const SUPERSEDED_BY_CONTAINMENT_A1 = [
+  'js/ui.js',
+  'js/screens/cadastros.js',
+  'js/screens/cliente-pedido-form.js',
+  'js/screens/op-latex-admin.js',
+  'js/screens/op-nova.js',
+  'js/screens/pedido-detail-events.js',
+];
+const superseded = (rel) => SUPERSEDED_BY_CONTAINMENT_A1.includes(rel);
+
 test('10.1 every changed script carries a Pass-8 token exactly once', () => {
   assert.equal(RETOKENIZED.length, 17, 'the pass-8 changed-asset population must stay seventeen');
+  // Every superseded file must really be one of the seventeen — a later order
+  // may move a pass-8 token forward, never invent membership in this set.
+  for (const rel of SUPERSEDED_BY_CONTAINMENT_A1) {
+    assert.ok(RETOKENIZED.includes(rel), `${rel} was never a pass-8 asset`);
+  }
   for (const rel of RETOKENIZED_R1) {
+    if (superseded(rel)) continue;
     assert.ok(INDEX.includes(`"${rel}?v=${PASS8_TOKEN}"`), `${rel} was not retokenised for Pass 8`);
   }
   for (const rel of RETOKENIZED_A1) {
+    if (superseded(rel)) continue;
     assert.ok(INDEX.includes(`"${rel}?v=${PASS8_A1_TOKEN}"`), `${rel} must carry the later A1 token`);
     assert.ok(!INDEX.includes(`"${rel}?v=${PASS8_TOKEN}"`), `${rel} kept the superseded R1 token`);
   }
+  // A superseded file carries the containment token and NEITHER pass-8 token:
+  // a stale token would let a warm cache keep pre-A1 JavaScript.
+  for (const rel of SUPERSEDED_BY_CONTAINMENT_A1) {
+    assert.ok(INDEX.includes(`"${rel}?v=${CONTAINMENT_A1_TOKEN}"`),
+      `${rel} was not retokenised for ACTION-CONTAINMENT-A1`);
+    assert.ok(!INDEX.includes(`"${rel}?v=${PASS8_TOKEN}"`), `${rel} kept the superseded pass-8 R1 token`);
+    assert.ok(!INDEX.includes(`"${rel}?v=${PASS8_A1_TOKEN}"`), `${rel} kept the superseded pass-8 A1 token`);
+  }
+  // Still exactly one reference per file, superseded or not.
   for (const rel of RETOKENIZED) {
     assert.equal((INDEX.match(new RegExp(rel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\?v=', 'g')) || []).length, 1,
       `${rel} is referenced more than once`);
   }
-  assert.equal((INDEX.match(new RegExp(PASS8_TOKEN + '(?!-)', 'g')) || []).length, RETOKENIZED_R1.length,
+  assert.equal((INDEX.match(new RegExp(PASS8_TOKEN + '(?!-)', 'g')) || []).length,
+    RETOKENIZED_R1.filter((rel) => !superseded(rel)).length,
     'the Pass-8 R1 token appears on a file it did not change');
-  assert.equal((INDEX.match(new RegExp(PASS8_A1_TOKEN, 'g')) || []).length, RETOKENIZED_A1.length,
+  assert.equal((INDEX.match(new RegExp(PASS8_A1_TOKEN, 'g')) || []).length,
+    RETOKENIZED_A1.filter((rel) => !superseded(rel)).length,
     'the Pass-8 A1 token appears on a file A1 did not change');
+});
+
+test('10.1b the containment token lands only on the files that order changed', () => {
+  // ACTION-CONTAINMENT-A1 changed SEVEN scripts. Six were pass-8 assets; the
+  // seventh, admin-usuarios-modal.js, was not, so it is not in the list above
+  // but must still carry the token exactly once.
+  const CONTAINMENT_A1_ASSETS = [...SUPERSEDED_BY_CONTAINMENT_A1, 'js/screens/admin-usuarios-modal.js'];
+  assert.equal(CONTAINMENT_A1_ASSETS.length, 7);
+  for (const rel of CONTAINMENT_A1_ASSETS) {
+    assert.ok(INDEX.includes(`"${rel}?v=${CONTAINMENT_A1_TOKEN}"`), `${rel} missing the containment token`);
+  }
+  assert.equal((INDEX.match(new RegExp(CONTAINMENT_A1_TOKEN, 'g')) || []).length, 7,
+    'the containment token appears on a file that order did not change');
 });
 
 test('10.2 UNCHANGED assets keep their previous tokens', () => {

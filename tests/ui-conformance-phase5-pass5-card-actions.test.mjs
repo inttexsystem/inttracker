@@ -247,7 +247,29 @@ test('9 · the split footers keep their distinct left and right groups', () => {
    3 · THE FIVE PROVEN MODAL ACTION BARS — explicitly NOT footers
    ============================================================ */
 
-const MODAL_ACTION_BARS = [
+/* ------------------------------------------------------------------
+   ACTION-CONTAINMENT-A1 §6 · THE MODAL ACTION BAR HAS ONE OWNER
+
+   R1 of this suite pinned FIVE modal action bars by matching INLINE STYLE
+   TEXT. That inventory was incomplete by construction: the generic
+   `modal()` bar in js/ui.js declared its geometry through Tailwind
+   utilities (`px-6 py-4 border-t border-[#eceef1] flex justify-end gap-2`)
+   and therefore never matched the regex — even though it is reached from
+   more call sites than the other five combined, and is what every
+   `confirmDialog()` renders.
+
+   The six bars also disagreed: gap 8 / 10 / 12px, horizontal padding
+   20 / 22 / 24px, and three different dividers including a literal
+   #eceef1.
+
+   A1 replaced the text inventory with a ROLE. `modalActionBar()` in
+   js/ui.js is the single owner, it stamps `data-rv-modal-actions`, and
+   the six surfaces are now one definition plus five screen-local
+   consumers. The guard below counts the ROLE, so a Tailwind-classed bar
+   can never escape it again.
+   ------------------------------------------------------------------ */
+
+const MODAL_ACTION_BAR_CONSUMERS = [
   { id: 'cadastros-modal-bar', path: 'js/screens/cadastros.js', owner: 'cadastros modal shell' },
   { id: 'admin-usuarios-modal-bar', path: 'js/screens/admin-usuarios-modal.js', owner: 'admin-usuarios modal shell' },
   { id: 'movement-modal-bar', path: 'js/screens/pedido-detail-events.js', owner: 'movement modal (720px)' },
@@ -255,34 +277,101 @@ const MODAL_ACTION_BARS = [
   { id: 'cliente-add-item-modal-bar', path: 'js/screens/cliente-pedido-form.js', owner: 'add-item modal' },
 ];
 
-/** A modal action bar: flex-end, full-bleed padding, its own divider. */
-const MODAL_BAR_RE =
-  /display:flex;\s*align-items:center;\s*justify-content:flex-end;\s*gap:1[02]px;\s*padding:14px 2[02]px;\s*border-top:1px solid var\(--rv-border(?:-soft)?\)/g;
+/** The one canonical geometry, spelled once, exactly as the owner emits it. */
+const MODAL_BAR_CANONICAL = {
+  'display': 'flex',
+  'align-items': 'center',
+  'justify-content': 'flex-end',
+  'gap': '10px',
+  'padding': '14px 20px',
+  'border-top': '1px solid var(--rv-border-soft)',
+};
 
-test('10 · PROVEN_MODAL_ACTION_BAR_COUNT = 5 and MARKED_MODAL_ACTION_BAR_COUNT = 0', () => {
-  const perFile = new Map();
+const UI = read('js/ui.js');
+/**
+ * Every real `modalActionBar(` CALL in the runtime. Comment lines and the
+ * `function modalActionBar(` declaration are excluded, so the doc block that
+ * spells the usage can never inflate the population.
+ */
+const barCallSites = () => {
+  const per = new Map();
   for (const { rel, text } of RUNTIME) {
-    const n = (text.match(MODAL_BAR_RE) || []).length;
-    if (n) perFile.set(rel, n);
+    let n = 0;
+    for (const line of text.split(/\r?\n/)) {
+      if (/^\s*(\/\/|\*|\/\*)/.test(line)) continue;
+      if (/function\s+modalActionBar\s*\(/.test(line)) continue;
+      for (const _ of line.matchAll(/(?:window\.)?modalActionBar\s*\(/g)) n += 1;
+    }
+    if (n > 0) per.set(rel, n);
   }
-  const total = [...perFile.values()].reduce((a, b) => a + b, 0);
+  return per;
+};
+
+test('10 · MODAL_ACTION_BAR_COUNT = 6, one owner and five screen-local consumers', () => {
+  // 10a · exactly one definition of the role, and it lives in the shared runtime.
+  const definitions = RUNTIME.filter((f) => /function modalActionBar\s*\(/.test(f.text));
   assert.deepEqual(
-    [...perFile.entries()].sort(),
+    definitions.map((f) => f.rel),
+    ['js/ui.js'],
+    'CANONICAL_MODAL_ACTION_BAR_OWNER_COUNT must be 1, in js/ui.js',
+  );
+
+  // 10b · the owner stamps the contract attribute and the canonical geometry.
+  assert.match(UI, /'data-rv-modal-actions':\s*''/, 'the owner stopped declaring its role');
+  // The declaration spans two concatenated lines; the file is CRLF.
+  const decl = /const MODAL_ACTION_BAR_STYLE = ([\s\S]*?);\r?\n/.exec(UI);
+  assert.ok(decl, 'MODAL_ACTION_BAR_STYLE is no longer a single declaration');
+  const style = decl[1].replace(/['+\r\n]/g, ' ');
+  for (const [prop, value] of Object.entries(MODAL_BAR_CANONICAL)) {
+    const m = new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*([^;]+)`).exec(style);
+    assert.ok(m, `the canonical bar declares no ${prop}`);
+    assert.equal(m[1].trim(), value, `${prop} drifted off the canonical value`);
+  }
+
+  // 10c · the six surfaces: one owner + five consumers, at the exact files.
+  const per = barCallSites();
+  assert.deepEqual(
+    [...per.entries()].sort(),
     [
       ['js/screens/admin-usuarios-modal.js', 1],
       ['js/screens/cadastros.js', 1],
       ['js/screens/cliente-pedido-form.js', 1],
       ['js/screens/pedido-detail-events.js', 2],
+      ['js/ui.js', 1],
     ],
     'the modal action-bar population changed (HARD STOP — MODAL BAR INVENTORY CHANGED)',
   );
-  assert.equal(total, 5, `PROVEN_MODAL_ACTION_BAR_COUNT = ${total}`);
-  assert.equal(MODAL_ACTION_BARS.length, 5);
+  const consumers = [...per.entries()]
+    .filter(([rel]) => rel !== 'js/ui.js')
+    .reduce((a, [, n]) => a + n, 0);
+  assert.equal(consumers, 5, `SCREEN_LOCAL_MODAL_ACTION_BAR_CONSUMER_COUNT = ${consumers}`);
+  assert.equal(MODAL_ACTION_BAR_CONSUMERS.length, 5);
+  assert.equal(consumers + 1, 6, 'MODAL_ACTION_BAR_COUNT must be 6');
+});
 
-  // None of them carries the footer marker: a marker sits in the SAME
-  // attribute object as the style, so it would appear within a few lines.
+test('10b · no modal action bar reimplements the geometry locally', () => {
+  // The five consumers must OWN nothing: no gap-12, no 22px padding, no
+  // var(--rv-border) divider on a flex-end bar, and no #eceef1 anywhere in a
+  // modal action bar. The regex that used to BE the inventory now proves the
+  // opposite — that no inline bar geometry survives.
+  const LEGACY_INLINE_BAR =
+    /display:\s*flex;[^"'`]*justify-content:\s*flex-end;[^"'`]*padding:\s*14px\s+2[024]px;[^"'`]*border-top:\s*1px solid var\(--rv-border\b/g;
+  const LEGACY_TAILWIND_BAR = /border-t border-\[#eceef1\][^"'`]*flex justify-end/g;
+  const offenders = [];
   for (const { rel, text } of RUNTIME) {
-    for (const m of text.matchAll(MODAL_BAR_RE)) {
+    for (const m of text.matchAll(LEGACY_INLINE_BAR)) offenders.push(`${rel}: inline bar ${m[0].slice(0, 60)}`);
+    for (const m of text.matchAll(LEGACY_TAILWIND_BAR)) offenders.push(`${rel}: tailwind bar ${m[0].slice(0, 60)}`);
+  }
+  assert.deepEqual(offenders, [], 'a modal action bar still declares its own geometry');
+  // And the literal that made the generic bar invisible is gone from js/ui.js.
+  assert.ok(!/#eceef1[^"'`]*flex justify-end/.test(UI), 'the generic bar kept its literal divider');
+});
+
+test('10c · a modal action bar is never a card footer', () => {
+  // The two roles stay disjoint: `data-rv-modal-actions` and
+  // `data-card-actions` may never appear in the same attribute object.
+  for (const { rel, text } of RUNTIME) {
+    for (const m of text.matchAll(/'data-rv-modal-actions':\s*''/g)) {
       const around = text.slice(Math.max(0, m.index - 300), m.index + 300);
       assert.ok(
         !/'data-card-actions'/.test(around),
@@ -290,6 +379,90 @@ test('10 · PROVEN_MODAL_ACTION_BAR_COUNT = 5 and MARKED_MODAL_ACTION_BAR_COUNT 
       );
     }
   }
+  // Symmetrically: a marked card footer keeps the FOOTER geometry, never the
+  // bar's full-bleed padding. The two contracts must stay distinguishable.
+  for (const f of PROVEN_FOOTERS) {
+    const style = f.signature.exec(read(f.path))[1];
+    assert.ok(
+      !/padding\s*:\s*14px\s+20px/.test(style),
+      `${f.id}: a card footer adopted modal-action-bar padding`,
+    );
+    assert.match(style, /padding-top\s*:\s*11px/, `${f.id}: lost the footer padding-top`);
+  }
+});
+
+/* ------------------------------------------------------------------
+   A1 §7 · §8 — the page-header and table-row action owners
+   ------------------------------------------------------------------ */
+
+test('10d · pageHeader() is the single page-header action-group owner', () => {
+  assert.match(UI, /'data-rv-page-actions':\s*''/, 'the page-header action group lost its role');
+  // Exactly one owner in the whole runtime.
+  const owners = RUNTIME.filter((f) => /'data-rv-page-actions':\s*''/.test(f.text));
+  assert.deepEqual(owners.map((f) => f.rel), ['js/ui.js'], 'pageHeader shared action owner must be 1');
+  // The group's existing layout is preserved, not redesigned.
+  assert.match(UI, /'data-rv-page-actions':\s*'',\s*class:\s*'flex gap-2'/);
+
+  // Call sites REDERIVED from current source (A1 §12.2 forbids reusing a
+  // reported number). Comment lines that merely NAME the helper are excluded,
+  // which is why this is 13 and not the 17 raw textual hits.
+  const sites = [];
+  for (const { rel, text } of RUNTIME) {
+    if (rel === 'js/ui.js') continue;
+    for (const line of text.split(/\r?\n/)) {
+      if (/^\s*(\/\/|\*)/.test(line)) continue;
+      for (const _ of line.matchAll(/(?:window\.)?pageHeader\s*\(/g)) sites.push(rel);
+    }
+  }
+  assert.equal(sites.length, 13, `pageHeader call sites = ${sites.length}`);
+  assert.equal(new Set(sites).size, 6, 'pageHeader consumer files');
+  // Not one call site was edited: the owner absorbed the whole change.
+  assert.deepEqual([...new Set(sites)].sort(), [
+    'js/screens/cadastros.js',
+    'js/screens/cliente-pedido-detail.js',
+    'js/screens/fornecedor.js',
+    'js/screens/op-latex-admin.js',
+    'js/screens/pedido-edit.js',
+    'js/screens/pedido-itens-edit.js',
+  ]);
+});
+
+test('10e · dataTable() is the single row-action owner', () => {
+  const owners = RUNTIME.filter((f) => /'data-rv-table-actions':\s*''/.test(f.text));
+  assert.deepEqual(owners.map((f) => f.rel), ['js/ui.js'], 'dataTable shared action owner must be 1');
+  // The role lands on the header cell AND on the value cell — the whole
+  // column — and nowhere else.
+  assert.equal((UI.match(/'data-rv-table-actions':\s*''/g) || []).length, 2,
+    'the action column must declare exactly its header and its value cell');
+  assert.match(UI, /el\('th',\s*\{\s*'data-rv-table-actions':\s*'',\s*class:\s*'px-4 py-3 text-right/);
+  assert.match(UI, /el\('td',\s*\{\s*'data-rv-table-actions':\s*'',\s*class:\s*'px-4 py-3 text-right'/);
+  // Right alignment, order, classes and numeric metadata are untouched.
+  assert.match(UI, /if \(layout\[i\]\.numeric\) attrs\['data-num'\] = '1';/);
+  assert.match(UI, /const cls = a\.class \|\| 'text-blue-700 hover:underline';/);
+  // `data-num` must never land on the action column. Checked on the two real
+  // attribute objects, not by scanning prose: the surrounding comments name
+  // both attributes, so a loose scan would match its own documentation.
+  for (const m of UI.matchAll(/\{\s*'data-rv-table-actions':\s*''[^}]*\}/g)) {
+    assert.ok(!/data-num/.test(m[0]), 'data-num leaked onto the action column');
+  }
+
+  const sites = [];
+  for (const { rel, text } of RUNTIME) {
+    if (rel === 'js/ui.js') continue;
+    for (const line of text.split(/\r?\n/)) {
+      if (/^\s*(\/\/|\*)/.test(line)) continue;
+      for (const _ of line.matchAll(/(?:window\.)?dataTable\s*\(/g)) sites.push(rel);
+    }
+  }
+  assert.equal(sites.length, 6, `dataTable call sites = ${sites.length}`);
+  assert.equal(new Set(sites).size, 4, 'dataTable consumer files');
+});
+
+test('10f · row actions were NOT converted to the 30x30 actionButton primitive', () => {
+  // A1 explicitly forbids that conversion; it belongs to a later order.
+  const cell = /if \(hasActions\) \{[\s\S]*?tr\.appendChild\(td\);/.exec(UI)[0];
+  assert.ok(!/actionButton/.test(cell), 'dataTable row actions were converted to actionButton');
+  assert.match(cell, /el\('button', \{ class: 'text-sm ml-3 ' \+ cls/);
 });
 
 test('11 · no page-header, table-row, pagination, rail or inline action is marked', () => {

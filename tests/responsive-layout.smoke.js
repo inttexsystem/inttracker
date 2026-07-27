@@ -137,6 +137,121 @@ test('16b. o cockpit REAL da OP de tecelagem marca a grade e o rail', () => {
   assert.match(opTecelagem, /'data-rv-rail': ''[\s\S]{0,120}position:sticky/);
 });
 
+// ---------------------------------------------------------------------
+// 16b2. ACTION-CONTAINMENT-A1 §12.4 — POPULACAO COMPLETA DE COCKPITS
+//
+// O teste 16b acima prova UMA superficie. Ate A1 essa era a unica prova
+// existente, e por isso tres cockpits identicos ficaram anos sem a
+// associacao responsiva: op-latex-admin (dois ramos alcancaveis) e
+// op-nova (ramo de tecelagem aberta) declaravam a MESMA grade do
+// arquetipo A e o MESMO rail sticky, sem nenhum dos dois atributos. Abaixo
+// de 1024px eles nunca empilhavam.
+//
+// A partir daqui a guarda e POPULACIONAL, nao por arquivo: qualquer grade
+// que declare a assinatura ratificada do arquetipo A (UI_VISUAL_CONTRACT.md
+// §3A) em QUALQUER script de primeira ordem carregado pelo index.html tem
+// de possuir data-rv-cockpit, e todo rail sticky do mesmo arquetipo tem de
+// possuir data-rv-rail. Uma quinta grade sem marcacao FALHA.
+//
+// A deteccao e estrutural (assinatura CSS declarada), nunca por nome de
+// variavel ou por caminho de arquivo.
+// ---------------------------------------------------------------------
+
+/** Scripts de primeira ordem exatamente como o index.html os carrega. */
+const FIRST_PARTY = [...indexHtml.matchAll(/<script[^>]*src=["']([^"']+)["']/g)]
+  .map((m) => m[1])
+  .filter((src) => !/^https?:|^\/\//.test(src))
+  .map((src) => src.split('?')[0]);
+
+/**
+ * Uma construcao el() por ocorrencia da assinatura, com a lista de
+ * atributos que a precede dentro da MESMA chamada. Recorta do inicio da
+ * chamada `el(`/`window.el(` mais proxima ate a assinatura, para que um
+ * atributo de um irmao anterior nunca seja creditado a esta grade.
+ */
+function declarationsMatching(text, signature) {
+  const out = [];
+  for (const hit of text.matchAll(signature)) {
+    const before = text.slice(0, hit.index);
+    const open = Math.max(before.lastIndexOf('el(', before.length), 0);
+    out.push(text.slice(open, hit.index + hit[0].length));
+  }
+  return out;
+}
+
+/** Grade do arquetipo A: 2 colunas, a segunda sendo o rail canonico. */
+const ARCHETYPE_A_GRID = /grid-template-columns:\s*minmax\(0,\s*1fr\)\s*var\(--rv-rail-w\)/g;
+/** Rail do arquetipo A: sticky no topo, coluna vertical. */
+const ARCHETYPE_A_RAIL = /min-width:0;\s*position:sticky;\s*top:0;\s*display:flex;\s*flex-direction:column/g;
+
+const cockpitSurfaces = [];
+const railSurfaces = [];
+for (const rel of FIRST_PARTY) {
+  const text = read(rel);
+  for (const decl of declarationsMatching(text, ARCHETYPE_A_GRID)) {
+    cockpitSurfaces.push({ rel, marked: /'data-rv-cockpit':\s*''/.test(decl) });
+  }
+  for (const decl of declarationsMatching(text, ARCHETYPE_A_RAIL)) {
+    railSurfaces.push({ rel, marked: /'data-rv-rail':\s*''/.test(decl) });
+  }
+}
+
+test('16b2. ARCHETYPE_A_COCKPIT_COUNT = 4 e MARKED_COCKPIT_COUNT = 4', () => {
+  // As quatro superficies, por rota e estado alcancavel:
+  //   OP Tecelagem em producao  js/screens/op-tecelagem-producao-admin.js
+  //   OP Latex em producao      js/screens/op-latex-admin.js  (status em_producao)
+  //   OP Latex aberta           js/screens/op-latex-admin.js  (status aberta)
+  //   OP Tecelagem aberta       js/screens/op-nova.js         (isOpAbertaTecelagem)
+  assert.equal(cockpitSurfaces.length, 4,
+    `ARCHETYPE_A_COCKPIT_COUNT = ${cockpitSurfaces.length} (HARD STOP — POPULACAO DE COCKPIT MUDOU)`);
+  assert.deepEqual(
+    cockpitSurfaces.map((c) => c.rel).sort(),
+    [
+      'js/screens/op-latex-admin.js',
+      'js/screens/op-latex-admin.js',
+      'js/screens/op-nova.js',
+      'js/screens/op-tecelagem-producao-admin.js',
+    ],
+    'a populacao de cockpits do arquetipo A mudou de arquivo',
+  );
+  const unmarked = cockpitSurfaces.filter((c) => !c.marked);
+  assert.deepEqual(unmarked, [],
+    `UNMARKED_ARCHETYPE_A_COCKPIT_COUNT = ${unmarked.length}: ${unmarked.map((c) => c.rel).join(', ')}`);
+  assert.equal(cockpitSurfaces.filter((c) => c.marked).length, 4);
+});
+
+test('16b3. MARKED_RAIL_COUNT = 4 — todo rail do arquetipo A e membro', () => {
+  assert.equal(railSurfaces.length, 4,
+    `ARCHETYPE_A_RAIL_COUNT = ${railSurfaces.length} (HARD STOP — POPULACAO DE RAIL MUDOU)`);
+  const unmarked = railSurfaces.filter((r) => !r.marked);
+  assert.deepEqual(unmarked, [],
+    `UNMARKED_RAIL_COUNT = ${unmarked.length}: ${unmarked.map((r) => r.rel).join(', ')}`);
+});
+
+test('16b4. o layout 1fr 288px NAO e cockpit e continua sem marcacao', () => {
+  // op-nova.js tem um segundo ramo de duas colunas que NAO e o arquetipo A
+  // (largura de rail fixa, fora do contrato). Marca-lo inscreveria no
+  // contrato responsivo um layout que o contrato visual nunca ratificou.
+  const opNova = read('js/screens/op-nova.js');
+  assert.match(opNova, /grid-template-columns:1fr 288px/, 'o ramo nao-arquetipo sumiu');
+  for (const decl of declarationsMatching(opNova, /grid-template-columns:1fr 288px/g)) {
+    assert.ok(!/'data-rv-cockpit':\s*''/.test(decl),
+      'o layout 1fr 288px foi marcado como cockpit');
+  }
+});
+
+test('16b5. css/responsive.css continua sendo o unico dono do breakpoint', () => {
+  // A1 nao alterou o CSS: as tres correcoes sao de ASSOCIACAO, nao de regra.
+  const tablet = mediaBlock('(max-width: 1023px)');
+  assert.match(tablet, /\[data-rv-cockpit\]\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*!important/);
+  assert.match(tablet, /\[data-rv-rail\]\s*\{[\s\S]*?position:\s*static\s*!important/);
+  // O !important e o que garante que a declaracao inline nao vence.
+  for (const decl of ['grid-template-columns', 'position', 'top', 'width', 'max-width']) {
+    assert.match(tablet, new RegExp(`${decl}:[^;]*!important`),
+      `${decl} sem !important nao venceria o estilo inline do cockpit`);
+  }
+});
+
 test('16c. as grades de 2 colunas de cartoes do Pedido empilham no mobile', () => {
   const hits = detailRender.match(/'data-rv-2col': ''/g) || [];
   assert.ok(hits.length >= 3, 'OPs vinculadas, expedicoes vinculadas e cliente+documentos');

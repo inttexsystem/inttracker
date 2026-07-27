@@ -497,11 +497,23 @@ test('11 · A4 retokenised exactly five assets, and the pass-7 set is set-derive
   // again; a pass-8 A1 token is strictly later than the pass-8 R1 one, so the
   // invariant is intact and only the invalidating token moved.
   const PASS8_A1_TOKEN = '20260727-ui-p5-pass8-table-a1-overflow';
-  const onPass8 = refs.filter((u) => tokenOf(u) === PASS8_TOKEN || tokenOf(u) === PASS8_A1_TOKEN).map(pathOf);
+  // ACTION-CONTAINMENT-A1 moved four of these assets on once more (js/ui.js,
+  // cadastros.js, cliente-pedido-form.js and op-nova.js) when the shared action
+  // owners and the cockpit membership landed. The set arithmetic below is
+  // unchanged: "moved on by a later pass" simply now spans one more token, and
+  // a containment token is strictly later than any pass-8 one.
+  const CONTAINMENT_A1_TOKEN = '20260727-ui-action-containment-a1';
+  const LATER_TOKENS = [PASS8_TOKEN, PASS8_A1_TOKEN, CONTAINMENT_A1_TOKEN];
+  const onPass8 = refs.filter((u) => LATER_TOKENS.includes(tokenOf(u))).map(pathOf);
+  // Pass-7 assets that a LATER pass moved on (pass 8, pass-8 A1, or
+  // ACTION-CONTAINMENT-A1). admin-usuarios-modal.js is the containment-A1
+  // arrival: its modal action bar now comes from the canonical owner, so it
+  // left the A4 token for a strictly later one. It stays inside the A4
+  // population below, which is why that count is still five.
   const PASS7_ASSETS_MOVED_BY_PASS8 = [
     'js/ui.js', 'js/screens/admin-usuarios.js', 'js/screens/cadastros.js',
     'js/screens/cliente-pedido-form.js', 'js/screens/expedicao-admin.js',
-    'js/screens/op-nova.js',
+    'js/screens/op-nova.js', 'js/screens/admin-usuarios-modal.js',
   ];
   for (const rel of PASS7_ASSETS_MOVED_BY_PASS8) {
     assert.ok(onPass8.includes(rel), `${rel} must now carry the pass-8 token`);

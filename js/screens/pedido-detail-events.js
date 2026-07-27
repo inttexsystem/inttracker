@@ -1706,9 +1706,9 @@
       var content = window.el('div', {
         style: 'padding:20px 22px 18px;',
       });
-      var footer = window.el('div', {
-        style: 'display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--rv-border);',
-      });
+      // A1 §6: canonical bar (movement modal). Empty on purpose — this modal
+      // swaps its actions per step via footer.replaceChildren().
+      var footer = window.modalActionBar([]);
 
       function recomputeCurrentView() {
         if (state.pedido && typeof ns.computeViewModel === 'function') {
@@ -2387,15 +2387,14 @@
       );
 
       var content = window.el('div', { style: 'padding:20px 22px 18px;' }, bodyContent);
-      var footer = window.el('div', {
-        style: 'display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--rv-border);',
-      },
+      // A1 §6: canonical bar (secondary stage-detail modal).
+      var footer = window.modalActionBar([
         window.el('button', {
           type: 'button',
           style: 'background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-border-strong);border-radius:4px;padding:9px 18px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
           onclick: closeModal,
-        }, 'Fechar')
-      );
+        }, 'Fechar'),
+      ]);
 
       card.appendChild(titleBar);
       card.appendChild(content);

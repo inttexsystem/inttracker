@@ -634,9 +634,9 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   // Pass-7 correction A4 bound the visible label of nineteen comboboxes and
   // restored the ratified trigger geometry at three op-nova sites. It touched
   // four assets pass 6 had also changed, so those carry the A4 token.
-  const PASS7_A4_CHANGED = [
-    'js/screens/admin-usuarios-modal.js',
-  ];
+  // admin-usuarios-modal.js moved on again with ACTION-CONTAINMENT-A1 (its
+  // modal bar now comes from the canonical owner), so it carries that token.
+  const PASS7_A4_CHANGED = [];
   // A5 removed the duplicate legacy chevron op-nova's wrapSelect() drew over
   // the canonical trigger.
   const PASS7_A5 = '20260727-ui-p5-pass7-native-select-a5-chevron';
@@ -656,8 +656,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
    */
   const PASS8 = '20260727-ui-p5-pass8-table-r1';
   const PASS8_CHANGED = [
-    'js/ui.js',
-    'js/screens/cliente-dashboard.js', 'js/screens/cliente-pedido-form.js',
+    'js/screens/cliente-dashboard.js',
     'js/screens/expedicao-admin.js', 'js/screens/fornecedor.js',
     'js/screens/manta-expedicao-ui.js', 'js/screens/op-tecelagem-producao-admin.js',
     'js/screens/ordem-compra-render.js', 'js/screens/pedido-detail-render.js',
@@ -672,9 +671,24 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
    */
   const PASS8_A1 = '20260727-ui-p5-pass8-table-a1-overflow';
   const PASS8_A1_CHANGED = [
-    'js/screens/cadastros.js', 'js/screens/cliente-pedido-detail.js',
-    'js/screens/op-latex-admin.js', 'js/screens/op-nova.js',
-    'js/screens/pedido-detail-events.js',
+    'js/screens/cliente-pedido-detail.js',
+  ];
+  /*
+   * ACTION-CONTAINMENT-A1 FORWARD CORRECTION
+   *
+   * That order declared the shared action owners and the Archetype-A cockpit
+   * membership, changing SEVEN assets pass 6 had also changed. A containment
+   * token is strictly later than a pass-6, A1, pass-7 or pass-8 one, so every
+   * asset pass 6 touched is still invalidated against the pass-5 checkpoint —
+   * only WHICH later token does the invalidating moved. The population below
+   * still sums to the same 27.
+   */
+  const CONTAINMENT_A1 = '20260727-ui-action-containment-a1';
+  const CONTAINMENT_A1_CHANGED = [
+    'js/ui.js',
+    'js/screens/admin-usuarios-modal.js', 'js/screens/cadastros.js',
+    'js/screens/cliente-pedido-form.js', 'js/screens/op-latex-admin.js',
+    'js/screens/op-nova.js', 'js/screens/pedido-detail-events.js',
   ];
   const PASS6_ONLY = [
     'js/document-links-surface-ui.js',
@@ -686,7 +700,8 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   // The pass-6 population is unchanged in SIZE — 27 assets — only redistributed
   // across the tokens. That is what proves nothing silently dropped out.
   assert.equal(PASS7_CHANGED.length + PASS7_A4_CHANGED.length + PASS7_A5_CHANGED.length
-    + A1_CHANGED.length + PASS8_CHANGED.length + PASS8_A1_CHANGED.length + PASS6_ONLY.length, 27);
+    + A1_CHANGED.length + PASS8_CHANGED.length + PASS8_A1_CHANGED.length
+    + CONTAINMENT_A1_CHANGED.length + PASS6_ONLY.length, 27);
   for (const rel of PASS7_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS7}"`), `${rel} must carry the pass-7 token`);
   }
@@ -704,6 +719,10 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   }
   for (const rel of PASS8_A1_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS8_A1}"`), `${rel} must carry the pass-8 A1 token`);
+  }
+  for (const rel of CONTAINMENT_A1_CHANGED) {
+    assert.ok(INDEX.includes(`"${rel}?v=${CONTAINMENT_A1}"`),
+      `${rel} must carry the action-containment A1 token`);
   }
   for (const rel of PASS6_ONLY) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS6}"`), `${rel} must keep the pass-6 token`);

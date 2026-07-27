@@ -1773,11 +1773,14 @@ test('R3/20c6. o lote 3 nao retokenizou nenhum asset que nao alterou', () => {
   // canonico de rolagem, entao esse asset carrega agora o token da passada 8.
   // O sujeito do guard nao muda: o lote 3 continua proibido de arrastar asset
   // algum.
+  // ACTION-CONTAINMENT-A1 passou a ser a ULTIMA ordem a alterar
+  // cliente-pedido-form (barra de acoes do modal de item pelo dono canonico).
+  const CONTAINMENT_A1_TOKEN = '20260727-ui-action-containment-a1';
   const intocados = [
     ['js/screens/pedido-detail-data.js', BATCH2_TOKEN],
     ['js/screens/pedido-edit.js', PASS2_A2_TOKEN],
     ['js/screens/pedido-itens-edit.js', PASS7_A4_TOKEN],
-    ['js/screens/cliente-pedido-form.js', PASS8_TOKEN],
+    ['js/screens/cliente-pedido-form.js', CONTAINMENT_A1_TOKEN],
     ['js/screens/common.js', PASS6_TOKEN],
     ['js/product-route.js', R2_TOKEN],
   ];

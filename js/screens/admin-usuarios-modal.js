@@ -260,9 +260,11 @@
       btnSave.style.background = 'var(--rv-brand)';
     });
 
-    var footer = window.el('div', {
-      style: 'display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:14px 20px; border-top:1px solid var(--rv-border-soft); background:var(--rv-surface);'
-    }, btnCancel, btnSave);
+    // A1 §6: the canonical modal action bar owns this geometry now. The
+    // former `background:var(--rv-surface)` is dropped rather than carried
+    // into the owner: the modal card already declares that exact background,
+    // so the bar was repainting its own parent's colour.
+    var footer = window.modalActionBar([btnCancel, btnSave]);
 
     card.appendChild(header);
     card.appendChild(content);

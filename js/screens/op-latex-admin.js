@@ -851,13 +851,19 @@
         return el('div', { style: 'display:block;' },
           buildBreadcrumb(),
           buildHeaderProducao(),
-          el('div', { style: 'display:grid;grid-template-columns:minmax(0,1fr) var(--rv-rail-w);gap:var(--rv-gap-cols);align-items:start;' },
+          // A1 §10: Archetype-A cockpit membership. css/responsive.css already
+          // owns the <=1023px behaviour through these two attributes and is
+          // UNCHANGED; without them this branch never stacked and the rail
+          // stayed sticky on a phone. Every declaration below is untouched —
+          // the media rules are `!important`, so they override the inline
+          // grid and sticky without either being edited.
+          el('div', { 'data-rv-cockpit': '', style: 'display:grid;grid-template-columns:minmax(0,1fr) var(--rv-rail-w);gap:var(--rv-gap-cols);align-items:start;' },
             el('div', { style: 'min-width:0;display:flex;flex-direction:column;gap:14px;' },
               buildDados(),
               buildItens(),
               buildMaterialRecebido(),
               buildHistorico()),
-            el('div', { style: 'min-width:0;position:sticky;top:0;display:flex;flex-direction:column;gap:14px;' },
+            el('div', { 'data-rv-rail': '', style: 'min-width:0;position:sticky;top:0;display:flex;flex-direction:column;gap:14px;' },
               buildResumo(),
               buildExpedicaoCard(op, expedicao, saldoExpedicao),
               buildDocumentos())));
@@ -1087,12 +1093,13 @@
 
       container.replaceChildren(
         buildHeader(),
-        el('div', { style: 'display:grid;grid-template-columns:minmax(0,1fr) var(--rv-rail-w);gap:var(--rv-gap-cols);align-items:start;' },
+        // A1 §10: Archetype-A cockpit membership, `aberta` branch.
+        el('div', { 'data-rv-cockpit': '', style: 'display:grid;grid-template-columns:minmax(0,1fr) var(--rv-rail-w);gap:var(--rv-gap-cols);align-items:start;' },
           el('div', { style: 'min-width:0;display:flex;flex-direction:column;gap:14px;' },
             buildCardDados(),
             buildCardItens(),
             buildCardRecebimentos()),
-          el('div', { style: 'min-width:0;position:sticky;top:0;display:flex;flex-direction:column;gap:14px;' },
+          el('div', { 'data-rv-rail': '', style: 'min-width:0;position:sticky;top:0;display:flex;flex-direction:column;gap:14px;' },
             buildResumoRail(),
             buildConfirmarRail())));
     }
