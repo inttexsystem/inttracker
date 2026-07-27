@@ -3,9 +3,10 @@
 > Layer 4 of the contract. Screen → archetype → state → fixture.
 > **State is filled by the detector, not by eye.**
 >
-> **Status: PHASE-5 PASS 8 IMPLEMENTED / THE §2.5 TABLE CONTRACT CLOSED OVER THE
-> ACCEPTED 41-SURFACE RUNTIME POPULATION / PUBLISHED / AWAITING ARCHITECT
-> ACCEPTANCE.** Passes 1-8 have closed `UIC-001`, `UIC-002`, `UIC-003`, `UIC-004`,
+> **Status: PHASE-5 PASS 8 AS CORRECTED BY A1 — THE §2.5 TABLE CONTRACT CLOSED OVER
+> THE ACCEPTED 41-SURFACE RUNTIME POPULATION, WITH EVERY APPLICABLE OBLIGATION
+> EVALUATED PER CLAUSE RATHER THAN PER PRIMARY DISPOSITION / PUBLISHED / AWAITING
+> ARCHITECT ACCEPTANCE.** Passes 1-8 have closed `UIC-001`, `UIC-002`, `UIC-003`, `UIC-004`,
 > `UIC-005`, `UIC-006`, `UIC-008` and `UIC-010` — **every blocking conformance rule
 > is closed** — and pass 8 has now closed the table property, which no rule can
 > observe. The aggregate counts under § Detector provenance are a mechanical read of
@@ -579,11 +580,46 @@ catalog width rendered as a badge.
 Pass 8 raised `UIC-000` by exactly **two** coverage gaps — both the G05 derived
 template, both `TEMPLATE_INTERPOLATED_VALUE` in `js/screens/cadastros.js` — and removed
 none. Blocking stayed 0 and `UIC-009` debt stayed 322. The property is pinned by
-`tests/ui-conformance-phase5-pass8-table.test.mjs` (43 tests), not by a rule.
+`tests/ui-conformance-phase5-pass8-table.test.mjs` (53 tests), not by a rule.
 
-**Residual, disclosed:** nine surfaces whose primary disposition was numeric still carry
-an unaddressed fixed-pixel overflow gap — `G07`, `G09`–`G11`, `G18`, `G20`–`G22`, `G28`.
-Closing them needs its own bounded order.
+### A1 — a primary disposition never suppresses an applicable obligation
+
+Pass-8 R1 was published `CHANGES_REQUIRED`, not accepted. It filed one PRIMARY
+disposition per surface and corrected only what that label named, so **nine surfaces
+whose primary was numeric kept a fixed-pixel column with no local scroll owner** and
+were nevertheless recorded as closed: `G07`, `G09`–`G11`, `G18`, `G20`–`G22`, `G28`.
+The label is a reporting convenience, not an exemption.
+
+All nine now own the canonical `data-rv-table-scroll` container from
+`css/responsive.css` — which is **unchanged** — with the header and every data row
+inside the SAME owner, and an explicit minimum derived from their real columns:
+
+| Surface | Minimum | Surface | Minimum |
+|---|---|---|---|
+| `G07` Preços | 690px | `G18` OP Látex aberta | 550px |
+| `G09` Parciais | 530px | `G20` Ordens de compra | 660px |
+| `G10` Itens | 450px | `G21` Fios | 660px |
+| `G11` Entregas | 450px | `G22` Metros de produção | 550px |
+| `G28` Pendências | 480px | | |
+
+`G09` declares **no** fixed-pixel column and is included deliberately: four `fr`
+columns in a 390px viewport leave roughly 80px each. That is stated, not disguised
+as an obligation the contract imposed.
+
+**The guard no longer trusts a label.** The focused suite now carries an OBLIGATION
+MATRIX over all 41 surfaces that evaluates every applicable clause independently —
+fixed-px, overflow owner, numeric column, header and value alignment, numeral owner,
+width-parity owner. It re-derives a `fixedPx: false` claim from the declared template
+rather than accepting it, **fails if a primary-disposition field is ever reintroduced**
+into the matrix, fails if the 26-surface fixed-px population collapses back to the
+eight R1 corrected, and forbids the document itself being treated as a table's scroll
+owner. A1 moved the detector by **zero** findings: 0 added, 0 removed.
+
+**Still open, and not a table gap.** `js/screens/op-latex-admin.js` builds its page
+cockpit without the `data-rv-cockpit` attribute, so the ≤1023px stacking rule never
+applies there and `G18` renders inside a 45px column at 390px. The table scrolls
+locally as required; the cockpit is a separate responsive-layout gap needing its own
+order.
 
 ## Outside the archetypes — chrome and documentation
 

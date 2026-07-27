@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "0ace692fc0f8ade9ba6541c0c14a5227420e4a37",
-      "sha256": "fe08f73f597b4ae5d89fa2e5464711a9eeaad69eb97ea2f3abafa857c52e5622",
+      "git_object_id": "a81f29629881de2fe8383d3123b18beff46d4975",
+      "sha256": "a436c84ec5427a7029ab45d693a744f350dea4c926a0e216fba975434945b0f6",
       "line_count": 34,
-      "byte_count": 11793,
+      "byte_count": 10992,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -2874,6 +2874,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 10327,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0001.md",
           "source_line": 95,
           "kind": "ROOT_REFERENCE",
@@ -3807,6 +3814,13 @@
         {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
           "source_line": 343,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0014.md",
+          "source_line": 224,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -4766,6 +4780,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 9842,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 10323,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -39643,10 +39664,10 @@
     },
     {
       "path": "docs/architecture/UI_CONFORMANCE.md",
-      "git_object_id": "139dfd56c6feeb691df9567227a9ac6b4b688b5f",
-      "sha256": "3320f6d4570c0682a27bbc5510095f62ee8bb4291a7846ed327f0fc00918dd35",
-      "line_count": 717,
-      "byte_count": 48975,
+      "git_object_id": "70ea1df09103208f4372347859317943b3e61ae1",
+      "sha256": "7fc60725e4a868139631025dd2c89f1818f37db268284a32ba0a2d757480c420",
+      "line_count": 753,
+      "byte_count": 51098,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -39655,7 +39676,7 @@
           "target_path": "docs/ui/fixtures/vendor/react-18.3.1/README.md",
           "anchor": null,
           "line_suffix": null,
-          "source_line": 685
+          "source_line": 721
         }
       ],
       "inbound_references": [
@@ -39720,103 +39741,109 @@
           "level": 2,
           "text": "Detector provenance",
           "anchor": "detector-provenance",
-          "line": 76
+          "line": 77
         },
         {
           "level": 3,
           "text": "UIC-002 and UIC-010 — closed",
           "anchor": "uic-002-and-uic-010-closed",
-          "line": 200
+          "line": 201
         },
         {
           "level": 3,
           "text": "UIC-001 — closed",
           "anchor": "uic-001-closed",
-          "line": 303
+          "line": 304
         },
         {
           "level": 2,
           "text": "Archetype A — Detail cockpit",
           "anchor": "archetype-a-detail-cockpit",
-          "line": 338
+          "line": 339
         },
         {
           "level": 2,
           "text": "Archetype B — Work queue",
           "anchor": "archetype-b-work-queue",
-          "line": 353
+          "line": 354
         },
         {
           "level": 2,
           "text": "Archetype C — Creation form",
           "anchor": "archetype-c-creation-form",
-          "line": 363
+          "line": 364
         },
         {
           "level": 2,
           "text": "Archetype D — Decision modal",
           "anchor": "archetype-d-decision-modal",
-          "line": 370
+          "line": 371
         },
         {
           "level": 2,
           "text": "Archetype E — Client portal",
           "anchor": "archetype-e-client-portal",
-          "line": 377
+          "line": 378
         },
         {
           "level": 2,
           "text": "Archetype F — Configuration",
           "anchor": "archetype-f-configuration",
-          "line": 386
+          "line": 387
         },
         {
           "level": 2,
           "text": "Application surface — `js/screens/*.js`",
           "anchor": "application-surface-jsscreensjs",
-          "line": 394
+          "line": 395
         },
         {
           "level": 2,
           "text": "Table review — the one manual pass, now CLOSED",
           "anchor": "table-review-the-one-manual-pass-now-closed",
-          "line": 525
+          "line": 526
         },
         {
           "level": 3,
           "text": "What pass 8 actually closed",
           "anchor": "what-pass-8-actually-closed",
-          "line": 542
+          "line": 543
+        },
+        {
+          "level": 3,
+          "text": "A1 — a primary disposition never suppresses an applicable obligation",
+          "anchor": "a1-a-primary-disposition-never-suppresses-an-applicable-obligation",
+          "line": 585
         },
         {
           "level": 2,
           "text": "Outside the archetypes — chrome and documentation",
           "anchor": "outside-the-archetypes-chrome-and-documentation",
-          "line": 588
+          "line": 624
         },
         {
           "level": 2,
           "text": "Execution order — by property batch",
           "anchor": "execution-order-by-property-batch",
-          "line": 601
+          "line": 637
         },
         {
           "level": 2,
           "text": "Versioned fixture provenance",
           "anchor": "versioned-fixture-provenance",
-          "line": 659
+          "line": 695
         },
         {
           "level": 3,
           "text": "Vendored fixture runtime — immutable third-party assets",
           "anchor": "vendored-fixture-runtime-immutable-third-party-assets",
-          "line": 675
+          "line": 711
         },
         {
           "level": 2,
           "text": "Archetype ratification",
           "anchor": "archetype-ratification",
-          "line": 695
+          "line": 731
         }
       ]
     },
@@ -59534,10 +59561,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "4f7895d61b3cb5f3cba0e5c6a48130d4a6669333",
-      "sha256": "8ded3d60afc1660cfee3205d8654b4a2964b31f6d830233cf30df6bacc867346",
-      "line_count": 10311,
-      "byte_count": 1295344,
+      "git_object_id": "85011692857cc4951ade59b4da89574175b7ee4f",
+      "sha256": "fe78ad894c660d48e91f413be9f71d1ab007e1d6eb6b49845dc5efe8e841fd12",
+      "line_count": 10336,
+      "byte_count": 1305782,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -66363,6 +66390,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 10303
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10327
         }
       ],
       "inbound_references": [
@@ -67821,6 +67856,12 @@
           "text": "2026-07-27 — PASS-7-A5-LEDGER-PLACEMENT-FORWARD-CORRECTION — docs: record table contract implementation",
           "anchor": "2026-07-27-pass-7-a5-ledger-placement-forward-correction-docs-record-table-contract-implementation",
           "line": 10300
+        },
+        {
+          "level": 2,
+          "text": "2026-07-27 — UI-CONSOLIDATION-PHASE-5-PASS-8-TABLE-CONTRACT-R1-A1 — docs: record pass 8 overflow correction",
+          "anchor": "2026-07-27-ui-consolidation-phase-5-pass-8-table-contract-r1-a1-docs-record-pass-8-overflow-correction",
+          "line": 10311
         }
       ]
     },
@@ -76647,10 +76688,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0014.md",
-      "git_object_id": "be3c837676423f4fc809bccb9881fa9d09bba9e1",
-      "sha256": "67f305199cadd51cf9cbcda027128d31b89f280b7d4bd2a26798cfa747d13cf9",
-      "line_count": 208,
-      "byte_count": 95734,
+      "git_object_id": "57951ab0857c4c049ec59736a4745086f2f24d8c",
+      "sha256": "07230a65842ccf238e85e55ac691866f431a75af68bb299499ca8772b4b6acb5",
+      "line_count": 233,
+      "byte_count": 106172,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -76660,6 +76701,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 200
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 224
         }
       ],
       "inbound_references": [
@@ -76719,6 +76768,12 @@
           "text": "2026-07-27 — PASS-7-A5-LEDGER-PLACEMENT-FORWARD-CORRECTION — docs: record table contract implementation",
           "anchor": "2026-07-27-pass-7-a5-ledger-placement-forward-correction-docs-record-table-contract-implementation",
           "line": 197
+        },
+        {
+          "level": 2,
+          "text": "2026-07-27 — UI-CONSOLIDATION-PHASE-5-PASS-8-TABLE-CONTRACT-R1-A1 — docs: record pass 8 overflow correction",
+          "anchor": "2026-07-27-ui-consolidation-phase-5-pass-8-table-contract-r1-a1-docs-record-pass-8-overflow-correction",
+          "line": 208
         }
       ]
     },
@@ -76806,10 +76861,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "f2c10d478675f97fe3feea288a964385073bb2b7",
-      "sha256": "31f7fb6fae3d7c379866bad87d3e99d498d3d72dcbf9e5708aabdae6eabe7838",
-      "line_count": 10305,
-      "byte_count": 1295043,
+      "git_object_id": "60ac37acf00f8cc750efa242bb680149e48be303",
+      "sha256": "dcfc5e5c528bdfc584e83428fdc45ce5838ca995045b915915166d9f0531de6b",
+      "line_count": 10330,
+      "byte_count": 1305481,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -83635,6 +83690,14 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 10299
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10323
         }
       ],
       "inbound_references": [
@@ -87046,6 +87109,12 @@
           "text": "2026-07-27 — PASS-7-A5-LEDGER-PLACEMENT-FORWARD-CORRECTION — docs: record table contract implementation",
           "anchor": "2026-07-27-pass-7-a5-ledger-placement-forward-correction-docs-record-table-contract-implementation",
           "line": 10296
+        },
+        {
+          "level": 2,
+          "text": "2026-07-27 — UI-CONSOLIDATION-PHASE-5-PASS-8-TABLE-CONTRACT-R1-A1 — docs: record pass 8 overflow correction",
+          "anchor": "2026-07-27-ui-consolidation-phase-5-pass-8-table-contract-r1-a1-docs-record-pass-8-overflow-correction",
+          "line": 10307
         }
       ]
     },
@@ -97791,7 +97860,7 @@
       "inbound_references": [
         {
           "source_path": "docs/architecture/UI_CONFORMANCE.md",
-          "source_line": 685,
+          "source_line": 721,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
