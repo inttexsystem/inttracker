@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "d110e1f0b8bc914fd2db5a9555dfaf2e77de2590",
-      "sha256": "6227e33664d7f5c05fc6d0fb62db3952c30550da41a6be74b3596cf3b66f3d12",
+      "git_object_id": "734ad9887a2efa357e476b6914f5c9ab892483d0",
+      "sha256": "3321d91a4b8130089ecfb2a3f412e7354824a3ddad89051679a3722a650646d4",
       "line_count": 34,
-      "byte_count": 16265,
+      "byte_count": 17012,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -59602,10 +59602,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "01c8f282b6f3a8151f46af36b036f973316d768e",
-      "sha256": "41b9233d94e89c74cf8c9f3119a2f204e89877e8070f768733a891fe9af5f762",
-      "line_count": 10478,
-      "byte_count": 1387755,
+      "git_object_id": "baa2af213d127a772d85bbdaed1ebfe528352e96",
+      "sha256": "11ccc5af8e38c9837c385cb71a4f88ef6be342b0bebd7bec5e4ef318922f71f6",
+      "line_count": 10508,
+      "byte_count": 1406660,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -67941,6 +67941,12 @@
           "text": "2026-07-27 — PEDIDO-SCREEN-GROUP-3-LISTS-AND-CLIENT-JOURNEY — refactor(ui): consolidate pedido list and client journey surfaces",
           "anchor": "2026-07-27-pedido-screen-group-3-lists-and-client-journey-refactorui-consolidate-pedido-list-and-client-journey-surfaces",
           "line": 10448
+        },
+        {
+          "level": 2,
+          "text": "2026-07-28 — INTTEX-BRAND-ASSET-INTEGRATION-R1 — feat(ui): integrate approved Inttex brand assets",
+          "anchor": "2026-07-28-inttex-brand-asset-integration-r1-featui-integrate-approved-inttex-brand-assets",
+          "line": 10478
         }
       ]
     },
@@ -76864,10 +76870,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md",
-      "git_object_id": "73d87d209d8acf084d4d0e8f9394b74e51164040",
-      "sha256": "7a2bdef1cc6e336404805b00e9d1bff97bcf0d79ea2b8d52a3181621f058107b",
-      "line_count": 125,
-      "byte_count": 68716,
+      "git_object_id": "9f44b667946506587d6ce183d4fc8b0f508c2f40",
+      "sha256": "6f9edd1bcb6f29142d35728a7698d5d3772a1e04b88f5162b4ae186dd809a6e4",
+      "line_count": 155,
+      "byte_count": 87621,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -76912,6 +76918,12 @@
           "text": "2026-07-27 — PEDIDO-SCREEN-GROUP-3-LISTS-AND-CLIENT-JOURNEY — refactor(ui): consolidate pedido list and client journey surfaces",
           "anchor": "2026-07-27-pedido-screen-group-3-lists-and-client-journey-refactorui-consolidate-pedido-list-and-client-journey-surfaces",
           "line": 95
+        },
+        {
+          "level": 2,
+          "text": "2026-07-28 — INTTEX-BRAND-ASSET-INTEGRATION-R1 — feat(ui): integrate approved Inttex brand assets",
+          "anchor": "2026-07-28-inttex-brand-asset-integration-r1-featui-integrate-approved-inttex-brand-assets",
+          "line": 125
         }
       ]
     },
@@ -76999,10 +77011,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "301a4a134a20f48f4eb290ea5b48d196b535fe69",
-      "sha256": "10e1041387d9be12556b665e4e8e8ac90cb29c28e30c000b2337d447a76eab75",
-      "line_count": 10472,
-      "byte_count": 1387454,
+      "git_object_id": "d43de0f7e069e001d7e9d81b6b9a56469ac1b22a",
+      "sha256": "e1a63e5270b4e1a87919c14b40f3e8671cb1528ced73b1530ca2aa9d7736cfce",
+      "line_count": 10502,
+      "byte_count": 1406359,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -87291,6 +87303,12 @@
           "text": "2026-07-27 — PEDIDO-SCREEN-GROUP-3-LISTS-AND-CLIENT-JOURNEY — refactor(ui): consolidate pedido list and client journey surfaces",
           "anchor": "2026-07-27-pedido-screen-group-3-lists-and-client-journey-refactorui-consolidate-pedido-list-and-client-journey-surfaces",
           "line": 10444
+        },
+        {
+          "level": 2,
+          "text": "2026-07-28 — INTTEX-BRAND-ASSET-INTEGRATION-R1 — feat(ui): integrate approved Inttex brand assets",
+          "anchor": "2026-07-28-inttex-brand-asset-integration-r1-featui-integrate-approved-inttex-brand-assets",
+          "line": 10474
         }
       ]
     },
