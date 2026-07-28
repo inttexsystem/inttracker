@@ -1598,6 +1598,30 @@ const SCREEN_GROUP_3_ASSETS = [
   'js/screens/pedido-item-row-editor.js',
   'js/screens/pedidos-list.js',
 ];
+// INTTEX-BRAND-ASSET-INTEGRATION integrou os assets de marca ja aprovados no
+// chrome global e na tela de login: o wordmark textual da topbar e o
+// placeholder improvisado do login deram lugar ao logotipo horizontal
+// aprovado, o nome do produto passou a ser Inttracker, e index.html ganhou o
+// titulo do produto e a declaracao de favicon. Retokenizou exatamente os DOIS
+// assets que alterou; ambos ja pertenciam a B1_ASSETS, entao BRAND_ASSETS e um
+// subconjunto estrito de B1_ASSETS e todas as derivacoes _AINDA_EM_ abaixo ja
+// os subtraem por essa via — nenhuma delas precisa mudar. Como todo token
+// desta ordem e estritamente posterior aos anteriores, nenhum asset perdeu
+// invalidacao: mudou apenas QUAL ordem posterior a faz.
+const BRAND_TOKEN = '20260727-inttex-brand-integration';
+const BRAND_ASSETS = [
+  'js/screens/common.js',
+  'js/screens/system-screens.js',
+];
+
+// O favicon e uma referencia NOVA em index.html — nao um asset retokenizado.
+// Ele entra na lista de adicoes declaradas pelo mesmo motivo e da mesma forma
+// que os modulos que ordens anteriores acrescentaram: para que a comparacao
+// posicional com 4532f76 continue provando que nada foi removido ou
+// reordenado. Nao carrega `?v=`: nenhum browser tem uma versao anterior dele
+// em cache, porque index.html nunca o referenciou antes.
+const BRAND_ADDED_ASSETS = ['assets/brand/inttex/inttex-favicon.svg'];
+
 const PASS7_A4_ASSETS_AINDA_EM_A4 = PASS7_A4_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
   .filter((a) => !PASS8_ASSETS.includes(a))
@@ -1802,7 +1826,8 @@ const BATCH2_ASSETS = BATCH2_ADDED_ASSETS.concat(BATCH2_RETOKENED_ASSETS)
 // Todo asset acrescentado depois de 4532f76 por uma ordem autorizada.
 const ADDED_SINCE_4532F76 = BATCH2_ADDED_ASSETS
   .concat(BATCH3_ADDED_ASSETS)
-  .concat(PASS7_ADDED_ASSETS);
+  .concat(PASS7_ADDED_ASSETS)
+  .concat(BRAND_ADDED_ASSETS);
 
 // Parsing literal, sem regex: um `?v=` num padrao escapado a mao e uma
 // fonte de erro silencioso (o `?` volta a ser quantificador e o teste
@@ -1938,7 +1963,10 @@ test('R3/20c6. o lote 3 nao retokenizou nenhum asset que nao alterou', () => {
     // canonico do modal de item e remocao do contorno de posicionamento
     // provado redundante). O lote 3 continua proibido de arrastar asset algum.
     ['js/screens/cliente-pedido-form.js', SCREEN_GROUP_2_TOKEN],
-    ['js/screens/common.js', B1_TOKEN],
+    // INTTEX-BRAND-ASSET-INTEGRATION passou a ser a ULTIMA ordem a alterar
+    // common.js: a marca textual da topbar deu lugar ao logotipo aprovado. O
+    // lote 3 continua proibido de arrastar asset algum.
+    ['js/screens/common.js', BRAND_TOKEN],
     ['js/product-route.js', R2_TOKEN],
   ];
   for (const [rel, esperado] of intocados) {
@@ -2377,4 +2405,58 @@ test('R3/20c9. os assets de PEDIDO-SCREEN-GROUP-3 carregam exatamente o token da
         rel + ' nao pode reter o token superseded ' + anterior);
     }
   }
+});
+
+// INTTEX-BRAND-ASSET-INTEGRATION. Mesmo contrato que toda ordem anterior
+// cumpre: os assets declarados carregam EXATAMENTE o token da ordem, o token
+// nao vaza para nenhum asset que a ordem nao alterou, e nenhum deles retem um
+// token anterior ao seu — um token velho sobrevivente serviria a um browser
+// com cache quente o JavaScript pre-integracao, ou seja, o wordmark textual e
+// o placeholder "In".
+test('R3/20c10. os assets de INTTEX-BRAND-ASSET-INTEGRATION carregam exatamente o token da ordem', () => {
+  assert.equal(BRAND_ASSETS.length, 2,
+    'a populacao alterada por INTTEX-BRAND-ASSET-INTEGRATION e de dois assets');
+  for (const rel of BRAND_ASSETS) {
+    assert.equal(tokenFor(rel), BRAND_TOKEN,
+      rel + ' deve carregar o token de INTTEX-BRAND-ASSET-INTEGRATION');
+  }
+  const carriers = assetRefs(indexHtml)
+    .filter((r) => r.token === BRAND_TOKEN)
+    .map((r) => r.path);
+  assert.deepEqual(carriers.slice().sort(), BRAND_ASSETS.slice().sort(),
+    'exatamente os assets de INTTEX-BRAND-ASSET-INTEGRATION podem carregar o token da ordem');
+  for (const anterior of [
+    R2_TOKEN, BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN,
+    PASS1_TOKEN, PASS2_TOKEN, PASS2_A2_TOKEN, PASS2_A3_TOKEN, PASS2_A4_TOKEN,
+    PASS3_TOKEN, PASS4_TOKEN, PASS5_TOKEN, PASS6_TOKEN, PASS6_A1_TOKEN,
+    PASS7_TOKEN, PASS7_A4_TOKEN, PASS7_A5_TOKEN, PASS8_TOKEN,
+    B1_TOKEN, SCREEN_GROUP_2_TOKEN, SCREEN_GROUP_3_TOKEN,
+  ]) {
+    assert.notEqual(BRAND_TOKEN, anterior,
+      'o token de INTTEX-BRAND-ASSET-INTEGRATION tem de diferir de todo token anterior');
+    for (const rel of BRAND_ASSETS) {
+      assert.notEqual(tokenFor(rel), anterior,
+        rel + ' nao pode reter o token superseded ' + anterior);
+    }
+  }
+  // Um asset retokenizado tem de ter mudado de fato desde o checkpoint de
+  // entrada: um cache-bust vazio invalidaria cache sem motivo.
+  for (const rel of BRAND_ASSETS) {
+    const committed = execFileSync('git', ['rev-parse', '264e5d8:' + rel], { cwd: ROOT, encoding: 'utf8' }).trim();
+    const worktree = execFileSync('git', ['hash-object', '--', rel], { cwd: ROOT, encoding: 'utf8' }).trim();
+    assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 264e5d8');
+  }
+  // E a arte aprovada NAO foi tocada: os tres SVGs de marca seguem
+  // byte-identicos ao checkpoint de entrada.
+  for (const rel of ['assets/brand/inttex/inttex-logo.svg',
+    'assets/brand/inttex/inttex-symbol.svg',
+    'assets/brand/inttex/inttex-favicon.svg']) {
+    const committed = execFileSync('git', ['rev-parse', '264e5d8:' + rel], { cwd: ROOT, encoding: 'utf8' }).trim();
+    const worktree = execFileSync('git', ['hash-object', '--', rel], { cwd: ROOT, encoding: 'utf8' }).trim();
+    assert.equal(worktree, committed, rel + ' e arte aprovada e nao pode ser modificado');
+  }
+  // O favicon e referencia nova e nao carrega token de versao.
+  const favicon = assetRefs(indexHtml).filter((r) => r.path === BRAND_ADDED_ASSETS[0]);
+  assert.equal(favicon.length, 1, 'o favicon deve aparecer exatamente uma vez em index.html');
+  assert.equal(favicon[0].token, null, 'o favicon e referencia nova e nao carrega ?v=');
 });

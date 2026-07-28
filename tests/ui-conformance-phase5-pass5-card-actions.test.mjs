@@ -97,10 +97,17 @@ test('3 · the inventory the pass was measured over is unchanged', () => {
   // "Dados gerais" grid in pedido-form.js and cliente-pedido-form.js). Nothing
   // was suppressed: two declarations that were invisible to every rule are now
   // visible to every rule, and both are conforming.
+  //
+  // INTTEX-BRAND-ASSET-INTEGRATION FORWARD CORRECTION. The brand integration
+  // ADDED no finding to any rule and REMOVED one further UIC-000 coverage gap:
+  // 854 -> 853, coverage 534 -> 533. Same mechanical cause again — the login
+  // card's improvised "In" placeholder declared its style across four
+  // concatenated source lines; the approved horizontal logo that replaced it
+  // declares one literal.
   // Debt (320), inventory (66), coverage FULL 31 / PARTIAL 36 and every
   // per-rule blocking count are unchanged.
-  assert.equal(BASELINE.findings.length, 854);
-  assert.equal(BASELINE.summary_by_rule['UIC-000'].total, 534);
+  assert.equal(BASELINE.findings.length, 853);
+  assert.equal(BASELINE.summary_by_rule['UIC-000'].total, 533);
   assert.equal(BASELINE.summary_by_rule['UIC-009'].debt, 320);
   assert.equal(BASELINE.coverage_summary.FULL, 31);
   assert.equal(BASELINE.coverage_summary.PARTIAL, 36);
@@ -1173,7 +1180,8 @@ test('24 · passes 1, 2, 3 and 4 remain closed', () => {
 test('25 · no rule outside UIC-008 moved in this pass', () => {
   // SCREEN-GROUP-1 removed two coverage gaps and added none: two wrapped
   // style concatenations became single decodable literals. See section 3.
-  assert.equal(rule('UIC-000').coverage_gaps, 534);
+  // INTTEX-BRAND-ASSET-INTEGRATION then removed a third, for the same cause.
+  assert.equal(rule('UIC-000').coverage_gaps, 533);
   // UIC-005 was 80 at the pass-5 checkpoint; the authorized pass-6 typography
   // order took it to 0 and moved nothing else. Pass 7 then took UIC-006 to 0.
   // Both are carried forward mechanically.

@@ -114,6 +114,57 @@
     return tmp.firstChild || tmp.firstElementChild || null;
   }
 
+  // -------------------------------------------------------------------
+  // INTTEX-BRAND-ASSET-INTEGRATION — forma da marca na topbar.
+  //
+  // O logotipo horizontal e a forma primaria e e o que a topbar mostra
+  // sempre que ha espaco. Abaixo do MESMO breakpoint de 767px que
+  // css/responsive.css ja possui, NAO HA espaco: medido em 390px, o
+  // conjunto logotipo + divisor + rotulo de secao + area do usuario excede
+  // a largura util em cerca de 42px, e o rotulo de secao passa a colidir
+  // com o sino ("Admin" +14,9px, "Fornecedor" +33,3px) ou a quebrar em tres
+  // linhas dentro de uma barra de 62px ("Portal do cliente"). Nenhuma
+  // ALTURA de logotipo resolve isso: mesmo a 12px — abaixo do minimo de
+  // 18px da marca — "Fornecedor" ainda colide.
+  //
+  // A propria marca prescreve a saida: "abaixo do minimo o wordmark se
+  // fecha — use o simbolo sozinho", e o simbolo tem justamente a fatia
+  // "sidebar recolhida" como uso declarado. O simbolo e quadrado (viewBox
+  // 88.08x88.08), entao a 20px ocupa 20px de largura e devolve ~103px — o
+  // rotulo de secao, o divisor, a area do usuario e a altura de 62px
+  // permanecem exatamente como estao, e nenhuma folha de estilo e tocada.
+  //
+  // A escolha e DECLARATIVA: um <picture> com um <source media> — a
+  // primitiva que a propria plataforma tem para "arte diferente por
+  // breakpoint". Quem decide e o browser, entao nao ha consulta de media em
+  // JavaScript, nao ha listener de resize para vazar e nao ha estado a
+  // sincronizar — o guard BRAND/5 proibe os tres mecanismos. O <img>
+  // interno continua sendo o dono do wordmark: e ele que carrega o `src`
+  // primario, o nome acessivel e a geometria, entao um ambiente que ignore
+  // <picture> — como o FakeNode dos testes smoke — recebe exatamente a
+  // forma primaria, que e o que o contrato de smoke espera.
+  //
+  // O breakpoint e literalmente o mesmo 767px que css/responsive.css ja
+  // possui, e nenhuma folha de estilo foi tocada para chegar aqui.
+  // -------------------------------------------------------------------
+  var BRAND_LOGO = 'assets/brand/inttex/inttex-logo.svg';
+  var BRAND_SYMBOL = 'assets/brand/inttex/inttex-symbol.svg';
+  var BRAND_NARROW_QUERY = '(max-width: 767px)';
+
+  function brandMark() {
+    return window.el('picture', {
+      'data-rv-brand': '',
+      style: 'display:flex;align-items:center;flex-shrink:0;',
+    },
+      window.el('source', { media: BRAND_NARROW_QUERY, srcset: BRAND_SYMBOL }),
+      window.el('img', {
+        src: BRAND_LOGO,
+        alt: 'Inttex',
+        style: 'height:20px;width:auto;display:block;',
+      })
+    );
+  }
+
   // Detecta se o ambiente de runtime suporta decoração visual rica
   // (SVG via innerHTML). No sandbox de testes (FakeNode) isso é falso,
   // e o shell cai num fallback que preserva apenas a estrutura DOM
@@ -162,7 +213,7 @@
       // smoke tests (header + div flex > aside + main) com o span
       // "nome (tipo)" e o botão "Sair" no header.
       const header = window.el('header', { class: 'bg-white border-b px-4 py-3 flex justify-between items-center' },
-        window.el('div', { style: 'font-size:var(--rv-fs-section-heading);', class: 'font-bold' }, 'Controle de Tapetes'),
+        window.el('div', { style: 'font-size:var(--rv-fs-section-heading);', class: 'font-bold' }, 'Inttracker'),
         window.el('div', { class: 'flex items-center gap-3' },
           window.el('span', { class: 'text-sm text-gray-600' }, window.CURRENT_USER ? (window.CURRENT_USER.nome + ' (' + window.CURRENT_USER.tipo + ')') : ''),
           window.el('button', { class: 'text-sm text-red-600 hover:underline', onclick: window.logout }, 'Sair')
@@ -193,10 +244,18 @@
     const initials = initialsFor(user);
 
     // Topbar 62px (fonte: "Admin - Topbar" standalone).
+    // INTTEX-BRAND-ASSET-INTEGRATION: a marca deixa de ser texto e passa a ser
+    // arte aprovada do pacote de marca — o logotipo horizontal, primario para
+    // fundo claro, e a topbar e clara. brandMark() monta as duas formas (ver o
+    // bloco acima): wordmark onde ha espaco, simbolo abaixo de 767px. A altura
+    // de 20px casa a altura anterior do texto (--rv-fs-section-heading) e a
+    // largura e sempre derivada pelo browser a partir do viewBox nativo, nunca
+    // fixada, entao nenhuma das duas formas distorce. `flex-shrink:0` impede
+    // que a barra esprema a arte ao apertar; o gap de 14px ate o divisor
+    // satisfaz a regra de clear-space da marca (metade da altura do simbolo =
+    // 10px), assim como o padding do header nos dois breakpoints.
     const brandLeft = window.el('div', { style: 'display:flex;align-items:center;gap:14px;' },
-      window.el('span', {
-        style: 'font-weight:800;font-size:var(--rv-fs-section-heading);letter-spacing:-.01em;color:var(--rv-text-primary);',
-      }, 'Inttex'),
+      brandMark(),
       window.el('span', { style: 'width:1px;height:20px;background:var(--rv-surface-subtle);display:inline-block;' }),
       window.el('span', {
         style: 'font-size:var(--rv-fs-body);color:var(--rv-text-tertiary);font-weight:500;',

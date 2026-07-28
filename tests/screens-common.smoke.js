@@ -74,6 +74,10 @@ const UI      = path.join(ROOT, 'js', 'ui.js');
 const BADGES  = path.join(ROOT, 'js', 'badges.js');
 const ROUTER  = path.join(ROOT, 'js', 'router.js');
 const SYSTEM_SCREENS = path.join(ROOT, 'js', 'screens', 'system-screens.js');
+// INTTEX-BRAND-ASSET-INTEGRATION: a folha responsiva é lida, nunca escrita —
+// BRAND/5 prova que o breakpoint da troca de forma da marca é o MESMO que ela
+// já possui, e que esta ordem não a alterou.
+const responsiveCss = fs.readFileSync(path.join(ROOT, 'css', 'responsive.css'), 'utf8');
 
 // O <script> inline de index.html não existe mais: o bootstrap virou
 // js/boot.js e as telas viraram módulos próprios (js/screens/painel.js,
@@ -334,6 +338,123 @@ test('14. ADMIN_MENU é declarado uma única vez no projeto (js/screens/common.j
     ['js/screens/common.js'],
     'ADMIN_MENU deve ser declarado exatamente uma vez, em js/screens/common.js'
   );
+});
+
+// -----------------------------------------------------------------------------
+// INTTEX-BRAND-ASSET-INTEGRATION — a marca da topbar deixa de ser texto.
+//
+// O chrome visual de shellLayout() só é montado quando visualCapable() é
+// verdadeiro, e o FakeNode deste arquivo não expõe innerHTML — o runtime aqui
+// cai, por contrato, no fallback estrutural, que mantém o texto acessível que
+// os testes 21-23 asseguram. A troca da marca é portanto provada na FONTE, que
+// é onde ela vive.
+// -----------------------------------------------------------------------------
+
+test('BRAND/1. a topbar consome arte de marca aprovada, não mais texto', () => {
+  // Exatamente duas formas, cada uma declarada uma única vez, e nenhuma outra.
+  assert.equal(commonSrc.split("'assets/brand/inttex/inttex-logo.svg'").length - 1, 1,
+    'o logotipo horizontal deve ser declarado exatamente uma vez');
+  assert.equal(commonSrc.split("'assets/brand/inttex/inttex-symbol.svg'").length - 1, 1,
+    'o símbolo deve ser declarado exatamente uma vez');
+  const outras = commonSrc.match(/assets\/brand\/inttex\/[a-z-]+\.svg/g) || [];
+  assert.deepEqual([...new Set(outras)].sort(),
+    ['assets/brand/inttex/inttex-logo.svg', 'assets/brand/inttex/inttex-symbol.svg'],
+    'nenhuma outra variante de marca pode ser consumida pela topbar');
+  // A marca é um <img> real com nome acessível, e não um glifo desenhado por
+  // CSS. O <source> só troca a ARTE; o dono do nome acessível e da geometria
+  // continua sendo o <img>, que carrega a forma primária.
+  assert.match(commonSrc, /window\.el\('img',\s*\{\s*src: BRAND_LOGO,\s*alt: 'Inttex',/,
+    'o <img> da topbar deve carregar a forma primária e o nome acessível');
+  assert.match(commonSrc, /window\.el\('source',\s*\{ media: BRAND_NARROW_QUERY, srcset: BRAND_SYMBOL \}\)/,
+    'a forma estreita deve ser declarada por <source media>');
+  // O <span> de marca somente-texto saiu do chrome visual.
+  assert.equal(/\}, 'Inttex'\),/.test(commonSrc), false,
+    'o wordmark textual da topbar ainda está sendo renderizado');
+});
+
+test('BRAND/2. a marca preserva proporção e não é distorcida nem decorada', () => {
+  const m = commonSrc.match(/alt: 'Inttex',\s*style: '([^']+)'/);
+  assert.ok(m, 'estilo da marca da topbar não encontrado');
+  const style = m[1];
+  // Altura declarada, largura SEMPRE derivada: as duas formas preservam a
+  // proporção nativa do próprio viewBox (194.57x31.56 e 88.08x88.08).
+  assert.match(style, /height:20px/);
+  assert.match(style, /width:auto/);
+  assert.equal(/width:\s*\d/.test(style), false, 'a largura nunca pode ser fixada');
+  // A barra não pode espremer a arte ao apertar: quem segura é o <picture>.
+  const wrap = commonSrc.match(/'data-rv-brand': '',\s*style: '([^']+)'/);
+  assert.ok(wrap, 'estilo do <picture> da marca não encontrado');
+  assert.match(wrap[1], /flex-shrink:0/);
+  // Nem distorcer, nem recolorir, nem aplicar efeito.
+  for (const proibido of ['box-shadow', 'filter', 'border', 'transform', 'opacity']) {
+    assert.equal(style.includes(proibido), false, `a marca não pode declarar ${proibido}`);
+    assert.equal(wrap[1].includes(proibido), false, `o <picture> não pode declarar ${proibido}`);
+  }
+});
+
+// A forma estreita existe porque foi MEDIDA como necessária, não por gosto: em
+// 390px o conjunto excede a largura útil e o rótulo de secão colidiria com o
+// sino. O guard fixa o breakpoint no MESMO 767px que css/responsive.css possui,
+// para que as duas fontes não possam divergir em silêncio, e prova que a
+// escolha é derivada — nunca uma folha de estilo nova.
+test('BRAND/5. a forma estreita usa o símbolo aprovado no breakpoint do shell', () => {
+  assert.match(commonSrc, /var BRAND_NARROW_QUERY = '\(max-width: 767px\)';/,
+    'a troca de forma deve usar o breakpoint de 767px do shell');
+  assert.match(responsiveCss, /@media \(max-width: 767px\)/,
+    'css/responsive.css deve continuar a possuir o mesmo breakpoint');
+  // O wordmark é a forma PRIMÁRIA: é ele que está no <img>. O símbolo só entra
+  // pelo <source media>, isto é, apenas abaixo do breakpoint.
+  assert.match(commonSrc, /var BRAND_LOGO = 'assets\/brand\/inttex\/inttex-logo\.svg';/);
+  assert.match(commonSrc, /var BRAND_SYMBOL = 'assets\/brand\/inttex\/inttex-symbol\.svg';/);
+  assert.ok(commonSrc.indexOf('srcset: BRAND_SYMBOL') < commonSrc.indexOf('src: BRAND_LOGO'),
+    'o <source> tem de preceder o <img> para que o browser possa escolher');
+  // A escolha é do browser: nenhum listener de resize, nenhum matchMedia,
+  // nenhum estado a sincronizar — logo, nada que possa vazar ou dessincronizar.
+  for (const mecanismo of ['matchMedia', "addEventListener('resize'", 'ResizeObserver']) {
+    assert.equal(commonSrc.includes(mecanismo), false,
+      `a troca de forma da marca não pode depender de ${mecanismo}`);
+  }
+  // E nenhuma folha de estilo foi tocada por esta ordem.
+  const { execFileSync } = require('node:child_process');
+  for (const rel of ['css/responsive.css', 'css/tokens.css']) {
+    const committed = execFileSync('git', ['rev-parse', 'HEAD:' + rel],
+      { cwd: ROOT, encoding: 'utf8' }).trim();
+    const worktree = execFileSync('git', ['hash-object', '--', rel],
+      { cwd: ROOT, encoding: 'utf8' }).trim();
+    assert.equal(worktree, committed, rel + ' foi alterado — nenhuma folha de estilo pertence a esta ordem');
+  }
+});
+
+test('BRAND/3. a geometria da topbar e a faixa de clear-space seguem intactas', () => {
+  // Altura da topbar, divisor, rótulo de seção e área do usuário preservados.
+  assert.match(commonSrc, /height:62px;flex-shrink:0;/, 'a topbar mudou de altura');
+  assert.match(commonSrc, /display:flex;align-items:center;gap:14px;/,
+    'o gap de 14px entre marca e divisor é a faixa de clear-space da marca');
+  assert.match(commonSrc, /width:1px;height:20px;background:var\(--rv-surface-subtle\)/,
+    'o divisor de seção sumiu da topbar');
+  assert.match(commonSrc, /\}, sectionLabel\)/, 'o rótulo de seção sumiu da topbar');
+  assert.match(commonSrc, /padding:0 28px;border-bottom:1px solid var\(--rv-border\)/,
+    'o padding do header mudou');
+  // Os três rótulos de seção por perfil continuam os mesmos.
+  assert.match(commonSrc, /if \(tipo === 'cliente'\) return 'Portal do cliente';/);
+  assert.match(commonSrc, /if \(tipo === 'fornecedor'\) return 'Fornecedor';/);
+  assert.match(commonSrc, /return 'Admin';/);
+});
+
+test('BRAND/4. index.html carrega common.js e system-screens.js sob o token da ordem de marca', () => {
+  const TOKEN = '20260727-inttex-brand-integration';
+  for (const rel of ['js/screens/common.js', 'js/screens/system-screens.js']) {
+    assert.ok(indexSrc.includes(`"${rel}?v=${TOKEN}"`),
+      `${rel} deve carregar o token da integração de marca`);
+    assert.equal(indexSrc.includes(`"${rel}?v=20260727-ui-specialized-controls-b1"`), false,
+      `${rel} não pode reter o token superseded de SPECIALIZED-CONTROLS-B1`);
+  }
+  // O token não vaza para nenhum asset que esta ordem não alterou.
+  const carriers = (indexSrc.match(new RegExp(`(?:src|href)="([^"]+)\\?v=${TOKEN}"`, 'g')) || [])
+    .map((s) => s.replace(/^(?:src|href)="/, '').replace(/\?v=.*$/, ''));
+  assert.deepEqual(carriers.slice().sort(),
+    ['js/screens/common.js', 'js/screens/system-screens.js'],
+    'exatamente os dois assets alterados podem carregar o token da ordem');
 });
 
 // -----------------------------------------------------------------------------

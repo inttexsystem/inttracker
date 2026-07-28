@@ -681,14 +681,20 @@ test('32 · no rule outside UIC-004 moved in this pass', () => {
   // js-screen front-end reports as CONCATENATED_STYLE_EXPRESSION, became a
   // single decodable literal. Nothing was suppressed: two declarations no rule
   // could see are now seen by every rule, and both conform.
-  assert.equal(rule('UIC-000').coverage_gaps, 534);
+  // INTTEX-BRAND-ASSET-INTEGRATION FORWARD CORRECTION. The brand integration
+  // ADDED no finding to any rule and REMOVED one further UIC-000 coverage gap,
+  // for the identical mechanical cause: the login card's improvised "In"
+  // placeholder declared its style across four concatenated source lines, and
+  // the approved horizontal logo that replaced it declares one literal
+  // (854 -> 853, coverage 534 -> 533). Everything pass 4 owns is unchanged.
+  assert.equal(rule('UIC-000').coverage_gaps, 533);
   assert.equal(rule('UIC-005').blocking, 0);   // pass 6 closed typography
   assert.equal(rule('UIC-006').blocking, 0);   // pass 7 closed native select
   assert.equal(rule('UIC-006').total, 0);
   assert.equal(rule('UIC-008').blocking, 0);
   assert.equal(rule('UIC-008').coverage_gaps, 0);
   assert.equal(rule('UIC-009').debt, 320);
-  assert.equal(BASELINE.findings.length, 854);
+  assert.equal(BASELINE.findings.length, 853);
   // Pass 4's own rule is still exactly closed, which is the point of the test.
   assert.equal(rule('UIC-004').blocking, 0);
   assert.equal(rule('UIC-004').coverage_gaps, 0);

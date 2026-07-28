@@ -609,17 +609,32 @@ test('11 · A4 retokenised exactly five assets, and the pass-7 set is set-derive
   assert.deepEqual(ADDED.filter((u) => union.includes(u)), ADDED,
     'js/select-popover.js remains the only newly ADDED runtime asset');
 
-  // The whole first-party runtime grew by exactly the one new asset.
+  /*
+   * The whole first-party runtime grew by exactly the one new EXECUTABLE
+   * asset, js/select-popover.js.
+   *
+   * INTTEX-BRAND-ASSET-INTEGRATION FORWARD CORRECTION. That order added a
+   * second first-party reference to index.html — the `<link rel="icon">` that
+   * points at the approved dedicated favicon. It is a static brand asset, not
+   * a script: it executes nothing, it is loaded by no other asset and it
+   * cannot reorder the script graph. A4's invariant is intact and is stated
+   * more precisely below: the SCRIPT list is byte-identical once the one
+   * pass-7 arrival is stripped, and the declared-arrival list is what the
+   * total is measured against, so a third arrival still fails.
+   */
+  const BRAND_FAVICON = 'assets/brand/inttex/inttex-favicon.svg';
+  const DECLARED_ARRIVALS = ['js/select-popover.js', BRAND_FAVICON];
   const entry = execFileSync('git', ['show', '41655c6:index.html'],
     { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   const entryRefs = [...entry.matchAll(/(?:src|href)="([^"]+)"/g)].map((m) => m[1])
     .filter((u) => !/^https?:|^\/\//.test(u));
   assert.equal(entryRefs.length, 102);
-  assert.equal(refs.length, 103, 'LOADED_FIRST_PARTY_RUNTIME_ASSET_COUNT');
-  assert.equal(refs.length - entryRefs.length, 1);
+  assert.equal(refs.length, 104, 'LOADED_FIRST_PARTY_RUNTIME_ASSET_COUNT');
+  assert.equal(refs.length - entryRefs.length, DECLARED_ARRIVALS.length);
+  assert.equal(DECLARED_ARRIVALS.length, 2);
 
-  // No script was added beyond that one, removed, or reordered.
-  const strip = (list) => list.map(pathOf).filter((u) => u !== 'js/select-popover.js');
+  // No asset was added beyond those two, removed, or reordered.
+  const strip = (list) => list.map(pathOf).filter((u) => !DECLARED_ARRIVALS.includes(u));
   assert.deepEqual(strip(refs), strip(entryRefs));
   assert.ok(INDEX.indexOf('js/select-popover.js') < INDEX.indexOf('js/ui.js'));
 });
@@ -660,10 +675,15 @@ test('13 · the detector result is unchanged by A4', () => {
   // WRAPPED across source lines as `'a' + ' b'`, which the js-screen front-end
   // reports as CONCATENATED_STYLE_EXPRESSION, became a single decodable
   // literal, so two declarations no rule could see are now seen by every rule.
-  assert.equal(baseline.findings.length, 854);
+  // INTTEX-BRAND-ASSET-INTEGRATION FORWARD CORRECTION. That order ADDED no
+  // finding to any rule and REMOVED one further UIC-000 coverage gap, for the
+  // identical cause: the login card's improvised "In" placeholder declared its
+  // style across four concatenated source lines, and the approved horizontal
+  // logo that replaced it declares one literal (854 -> 853, 534 -> 533).
+  assert.equal(baseline.findings.length, 853);
   const rule = (id) => baseline.summary_by_rule[id] || { blocking: 0, coverage_gaps: 0, total: 0 };
   assert.equal(rule('UIC-006').total, 0);
-  assert.equal(rule('UIC-000').coverage_gaps, 534);
+  assert.equal(rule('UIC-000').coverage_gaps, 533);
   assert.equal(rule('UIC-009').debt, 320);
   assert.equal(baseline.coverage_summary.FULL, 31);
   assert.equal(baseline.coverage_summary.PARTIAL, 36);

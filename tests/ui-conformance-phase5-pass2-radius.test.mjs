@@ -756,6 +756,30 @@ const SCREEN_GROUP_1_INCIDENTAL_REMOVALS = [
 ];
 const SCREEN_GROUP_1_INCIDENTAL_ADDITIONS = [];
 
+/*
+ * INTTEX-BRAND-ASSET-INTEGRATION removed exactly ONE further UIC-000 coverage
+ * gap and added NONE. The site is the login card's improvised "In"
+ * placeholder: a 72x72 bordered box whose inline style was WRAPPED across four
+ * source lines as `'a' + 'b' + 'c' + 'd'`, which the js-screen front-end
+ * reports as CONCATENATED_STYLE_EXPRESSION because it can only decode a single
+ * literal. The order replaced that box with the approved horizontal Inttex
+ * logo, an <img> whose style IS a single literal, so the undecodable
+ * declaration stopped existing rather than being suppressed.
+ *
+ * This is not a widening of the ruling above: no detector branch changed, no
+ * rule was silenced, and the movement is enumerated by rule + path +
+ * construct + code exactly as every earlier one is. A second movement, or a
+ * movement at any other site, still fails.
+ */
+const BRAND_INCIDENTAL_REMOVALS = [
+  ['UIC-000', 'js/screens/system-screens.js', "style: '...' + <expression>", 'CONCATENATED_STYLE_EXPRESSION', 1],
+];
+const BRAND_INCIDENTAL_ADDITIONS = [];
+
+const BRAND_REMOVED_COUNT = BRAND_INCIDENTAL_REMOVALS.reduce((n, r) => n + r[4], 0);
+const BRAND_ADDED_COUNT = BRAND_INCIDENTAL_ADDITIONS.reduce((n, r) => n + r[4], 0);
+const BRAND_UIC000_NET = BRAND_REMOVED_COUNT - BRAND_ADDED_COUNT;
+
 const SG1_REMOVED_COUNT = SCREEN_GROUP_1_INCIDENTAL_REMOVALS.reduce((n, r) => n + r[4], 0);
 const SG1_ADDED_COUNT = SCREEN_GROUP_1_INCIDENTAL_ADDITIONS.reduce((n, r) => n + r[4], 0);
 const SG1_UIC000_NET = SG1_REMOVED_COUNT - SG1_ADDED_COUNT;
@@ -789,6 +813,9 @@ test('21 · A2 moved nothing outside the rules later passes own', () => {
   for (const [ruleId, relPath, context, code, n] of SCREEN_GROUP_1_INCIDENTAL_REMOVALS) {
     for (let i = 0; i < n; i += 1) expectedRemovals.push(`${ruleId}|${relPath}|${context}|${code}`);
   }
+  for (const [ruleId, relPath, context, code, n] of BRAND_INCIDENTAL_REMOVALS) {
+    for (let i = 0; i < n; i += 1) expectedRemovals.push(`${ruleId}|${relPath}|${context}|${code}`);
+  }
   // UIC-009 carries no COVERAGE_GAP code, so name it by its rule instead of
   // letting it collapse to an unidentifiable '?'.
   const codeOf = (f) => {
@@ -801,8 +828,9 @@ test('21 · A2 moved nothing outside the rules later passes own', () => {
     `A2 may only lose the six authorized pass-7 UIC-000 gaps:\n${
       A2_DELTA.removed.map((f) => f[0] + ' ' + f[2]).join('\n')}`);
   assert.equal(A2_DELTA.removed.length,
-    PASS7_UIC000_REMOVED_COUNT + B1_REMOVED_COUNT + SG1_REMOVED_COUNT);
+    PASS7_UIC000_REMOVED_COUNT + B1_REMOVED_COUNT + SG1_REMOVED_COUNT + BRAND_REMOVED_COUNT);
   assert.equal(SG1_REMOVED_COUNT, 2);
+  assert.equal(BRAND_REMOVED_COUNT, 1);
   assert.equal(PASS7_UIC000_REMOVED_COUNT, 6);
   assert.equal(B1_REMOVED_COUNT, 14);
 
@@ -818,6 +846,9 @@ test('21 · A2 moved nothing outside the rules later passes own', () => {
   for (const [ruleId, relPath, context, code, n] of SCREEN_GROUP_1_INCIDENTAL_ADDITIONS) {
     for (let i = 0; i < n; i += 1) expectedAdditions.push(`${ruleId}|${relPath}|${context}|${code}`);
   }
+  for (const [ruleId, relPath, context, code, n] of BRAND_INCIDENTAL_ADDITIONS) {
+    for (let i = 0; i < n; i += 1) expectedAdditions.push(`${ruleId}|${relPath}|${context}|${code}`);
+  }
   const actualAdditions = A2_DELTA.added.map((f) => `${f[0]}|${f[2]}|${f[6]}|${codeOf(f)}`);
   assert.deepEqual(actualAdditions.slice().sort(), expectedAdditions.slice().sort(),
     `A2 COVERAGE DELTA EXCEEDS THE ARCHITECT RULING:\n${A2_DELTA.added.map((f) => f[0] + ' ' + f[2]).join('\n')}`);
@@ -825,8 +856,10 @@ test('21 · A2 moved nothing outside the rules later passes own', () => {
 
 test('21b · A2 added nothing outside the rules later passes own', () => {
   assert.equal(A2_DELTA.added.length,
-    PASS8_UIC000_ADDED_COUNT + B1_ADDED_COUNT + SG1_ADDED_COUNT);
+    PASS8_UIC000_ADDED_COUNT + B1_ADDED_COUNT + SG1_ADDED_COUNT + BRAND_ADDED_COUNT);
   assert.equal(SG1_ADDED_COUNT, 0, 'SCREEN-GROUP-1 added no finding to any rule');
+  assert.equal(BRAND_ADDED_COUNT, 0,
+    'INTTEX-BRAND-ASSET-INTEGRATION added no finding to any rule');
   assert.equal(PASS8_UIC000_ADDED_COUNT, 2);
   assert.equal(B1_ADDED_COUNT, 3);
   for (const [ruleId, severity, relPath, , , , , message] of A2_DELTA.added) {
@@ -903,11 +936,15 @@ test('21d · no rule moved except UIC-008, which a later pass closed', () => {
       // …and SPECIALIZED-CONTROLS-B1 removed a further nine, net of the three
       // range repaints it restated under a new construct name.
       // …and SCREEN-GROUP-1 removed a further two wrapped-literal gaps.
+      // …and INTTEX-BRAND-ASSET-INTEGRATION removed the one wrapped-literal gap
+      // that the login card's improvised "In" placeholder carried, when the
+      // approved logo replaced it.
       assert.equal(after.coverage_gaps, 549 - PASS7_UIC000_REMOVED_COUNT + PASS8_UIC000_ADDED_COUNT
-        - B1_UIC000_NET - SG1_UIC000_NET);
+        - B1_UIC000_NET - SG1_UIC000_NET - BRAND_UIC000_NET);
       assert.equal(B1_UIC000_NET, 9);
       assert.equal(SG1_UIC000_NET, 2);
-      assert.equal(after.coverage_gaps, 534);
+      assert.equal(BRAND_UIC000_NET, 1);
+      assert.equal(after.coverage_gaps, 533);
       assert.equal(after.blocking, 0, 'a coverage gap may never become a defect');
       assert.equal(after.debt, 0);
       continue;
@@ -944,14 +981,18 @@ test('21e · blocking, debt, inventory and support are unchanged', () => {
     .filter(([id]) => !RULES_OWNED_BY_A_LATER_PASS.has(id))
     .reduce((n, [, r]) => n + r.coverage_gaps, 0);
   assert.equal(coverageSum(ENTRY_BASELINE) - coverageSum(BASELINE),
-    PASS7_UIC000_REMOVED_COUNT - PASS8_UIC000_ADDED_COUNT + B1_UIC000_NET + SG1_UIC000_NET);
+    PASS7_UIC000_REMOVED_COUNT - PASS8_UIC000_ADDED_COUNT + B1_UIC000_NET + SG1_UIC000_NET
+      + BRAND_UIC000_NET);
   // SPECIALIZED-CONTROLS-B1 FORWARD CORRECTION. B1 moved the specialized
   // controls' inline styles into css/tokens.css, which the detector does not
   // read, so nine UIC-000 coverage gaps and two UIC-009 references stopped
   // existing as JavaScript declarations: 867 -> 856, coverage 545 -> 536,
   // debt 322 -> 320. B1 ADDED no finding to any rule.
   // SCREEN-GROUP-1 then removed the two wrapped-literal gaps: 856 -> 854.
-  assert.equal(BASELINE.findings.length, 854, 'current repository total after SCREEN-GROUP-1');
+  // INTTEX-BRAND-ASSET-INTEGRATION then removed the one the login placeholder
+  // carried: 854 -> 853.
+  assert.equal(BASELINE.findings.length, 853,
+    'current repository total after INTTEX-BRAND-ASSET-INTEGRATION');
   assert.equal(BASELINE.coverage_summary.FULL, 31);
   assert.equal(BASELINE.coverage_summary.PARTIAL, 36);
   assert.equal(rule('UIC-009').debt, UIC009_ENTRY_CEILING - B1_UIC009_REMOVED);

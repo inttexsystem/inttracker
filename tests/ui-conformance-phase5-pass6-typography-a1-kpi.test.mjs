@@ -221,8 +221,14 @@ test('2 · UIC-005 remains zero and no rule moved', () => {
   // js-screen front-end reports as CONCATENATED_STYLE_EXPRESSION, became a
   // single decodable literal. Nothing was suppressed: two declarations no rule
   // could see are now seen by every rule, and both conform.
-  assert.equal(BASELINE.findings.length, 854);
-  assert.equal(rule('UIC-000').coverage_gaps, 534);
+  // INTTEX-BRAND-ASSET-INTEGRATION FORWARD CORRECTION. The brand integration
+  // ADDED no finding to any rule and REMOVED one further UIC-000 coverage gap,
+  // for the identical cause: the login card's improvised "In" placeholder
+  // declared its style across four concatenated source lines, and the approved
+  // horizontal logo that replaced it declares one literal (854 -> 853,
+  // coverage 534 -> 533). A1's own KPI hierarchy is untouched.
+  assert.equal(BASELINE.findings.length, 853);
+  assert.equal(rule('UIC-000').coverage_gaps, 533);
   assert.equal(rule('UIC-006').blocking, 0);
   assert.equal(rule('UIC-006').total, 0);
   assert.equal(rule('UIC-009').debt, 320);
@@ -594,7 +600,24 @@ test('23 · the four accepted 14.5px heading classifications are unchanged', () 
 test('24 · the topbar section label remains BODY_CONTROL_CELL', () => {
   const common = read('js/screens/common.js');
   assert.match(common, /font-size:var\(--rv-fs-body\);color:var\(--rv-text-tertiary\);font-weight:500;/);
-  assert.match(common, /font-weight:800;font-size:var\(--rv-fs-section-heading\);/);
+  /*
+   * INTTEX-BRAND-ASSET-INTEGRATION FORWARD CORRECTION.
+   *
+   * The second assertion here used to pin the topbar BRAND to the
+   * SECTION_HEADING role — `font-weight:800;font-size:var(--rv-fs-section-heading)`
+   * — because the brand was a text wordmark. It is now the approved horizontal
+   * Inttex logo, an <img>, so that typographic role has NO SUBJECT in this
+   * file's chrome any more. The guard is not weakened, it is re-anchored: what
+   * it exists to prove is that the SECTION LABEL does not silently absorb the
+   * brand's visual weight, and that is proved by the first assertion plus the
+   * two below — the brand is an image, and no text wordmark survives beside
+   * the label. The fallback header's own --rv-fs-section-heading declaration is
+   * a different construct and is deliberately untouched.
+   */
+  assert.match(common, /window\.el\('img',\s*\{\s*src: BRAND_LOGO,\s*alt: 'Inttex',/,
+    'the topbar brand must be the approved brand image');
+  assert.equal(/font-weight:800;font-size:var\(--rv-fs-section-heading\);/.test(common), false,
+    'the text wordmark came back to the topbar');
 });
 
 test('25 · the modal close glyph remains the icon-glyph owner', () => {

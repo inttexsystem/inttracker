@@ -325,12 +325,91 @@ test('runtime: screenForbidden() retorna nó renderizável com botão de ação'
   assert.ok(btn, 'botão ausente em screenForbidden');
 });
 
+// INTTEX-BRAND-ASSET-INTEGRATION. O nome do produto e Inttracker; Inttex e a
+// empresa, e por isso o rodape de copyright continua dizendo Inttex. O nome
+// descontinuado OptiControl saiu da copy visivel e nao pode voltar.
 test('runtime: login renderiza titulo, subtitulo e rodape', () => {
   const { sandbox } = makeSystemScreensSandbox();
   const root = vm.runInContext('window.screenLogin()', sandbox);
-  assert.ok(byText(root, 'Inttex OptiControl'), 'titulo do produto ausente');
+  assert.ok(byText(root, 'Inttracker'), 'titulo do produto ausente');
   assert.ok(byText(root, 'Entre com seu e-mail e senha'), 'subtitulo ausente');
-  assert.ok(byText(root, '© 2026 Inttex · Controle de Tapetes'), 'rodape ausente');
+  assert.ok(byText(root, '© 2026 Inttex · Inttracker'), 'rodape ausente');
+});
+
+// A copy visivel nomeia SEMPRE o produto Inttracker. O nome descritivo antigo
+// "Controle de Tapetes" saiu da copy visivel destas superficies por decisao do
+// dono do produto; ele sobrevive apenas no dominio separado
+// services/documents-ingestor/**, que esta fora desta ordem.
+test('runtime: a copy visivel do login nao usa mais o nome descritivo antigo', () => {
+  const { sandbox } = makeSystemScreensSandbox();
+  const root = vm.runInContext('window.screenLogin()', sandbox);
+  assert.equal(/Controle de Tapetes/.test(root.textContent), false,
+    'o nome descritivo antigo continua na copy visivel do login');
+  assert.equal(/Controle de Tapetes/.test(sysSrc), false,
+    'system-screens.js ainda menciona o nome descritivo antigo');
+  assert.equal(/Controle de Tapetes/.test(commonSrc), false,
+    'common.js ainda menciona o nome descritivo antigo');
+  assert.equal(/Controle de Tapetes/.test(indexSrc), false,
+    'index.html ainda menciona o nome descritivo antigo');
+});
+
+test('runtime: login nao renderiza mais o nome descontinuado OptiControl', () => {
+  const { sandbox } = makeSystemScreensSandbox();
+  const root = vm.runInContext('window.screenLogin()', sandbox);
+  assert.equal(byText(root, 'Inttex OptiControl'), undefined,
+    'a copy antiga do produto continua renderizada');
+  assert.equal(/OptiControl/i.test(sysSrc), false,
+    'system-screens.js ainda menciona OptiControl');
+});
+
+// O quadrado improvisado com as letras "In" saiu; entra o logotipo horizontal
+// aprovado, consumido do pacote de marca sem alterar a arte.
+test('runtime: login renderiza o logotipo Inttex aprovado, sem o placeholder "In"', () => {
+  const { sandbox } = makeSystemScreensSandbox();
+  const root = vm.runInContext('window.screenLogin()', sandbox);
+  const imgs = allByTag(root, 'img');
+  assert.equal(imgs.length, 1, 'esperado exatamente um <img> de marca no login');
+  assert.equal(imgs[0].getAttribute('src'), 'assets/brand/inttex/inttex-logo.svg',
+    'o login deve consumir o logotipo horizontal aprovado');
+  assert.equal(imgs[0].getAttribute('alt'), 'Inttex', 'o logotipo precisa de nome acessivel');
+  const style = imgs[0].getAttribute('style');
+  // Proporcao preservada: a altura e declarada e a largura e derivada.
+  assert.match(style, /height:32px/);
+  assert.match(style, /width:auto/);
+  // Sem sombra, sem moldura, sem recolorir, sem distorcer.
+  assert.equal(/box-shadow/.test(style), false);
+  assert.equal(/border/.test(style), false);
+  assert.equal(/filter/.test(style), false);
+  assert.equal(byText(root, 'In'), undefined, 'o placeholder "In" continua renderizado');
+});
+
+test('estatico: o logotipo e o favicon aprovados existem e nao foram alterados', () => {
+  const { execFileSync } = require('node:child_process');
+  const assets = [
+    'assets/brand/inttex/inttex-logo.svg',
+    'assets/brand/inttex/inttex-favicon.svg',
+  ];
+  for (const rel of assets) {
+    assert.ok(fs.existsSync(path.join(ROOT, rel)), rel + ' nao existe');
+    const committed = execFileSync('git', ['rev-parse', 'HEAD:' + rel],
+      { cwd: ROOT, encoding: 'utf8' }).trim();
+    const worktree = execFileSync('git', ['hash-object', '--', rel],
+      { cwd: ROOT, encoding: 'utf8' }).trim();
+    assert.equal(worktree, committed, rel + ' foi modificado — a arte aprovada e imutavel');
+  }
+});
+
+// Metadados do documento: o titulo passa a nomear o produto e a aba do browser
+// passa a ter o asset dedicado de favicon.
+test('estatico: index.html declara o titulo do produto e o favicon aprovado', () => {
+  assert.match(indexSrc, /<title>Inttracker<\/title>/,
+    'o titulo do documento deve nomear o produto, e so ele');
+  assert.equal(/OptiControl/i.test(indexSrc), false, 'index.html ainda menciona OptiControl');
+  const icons = indexSrc.match(/<link[^>]*rel="icon"[^>]*>/g) || [];
+  assert.equal(icons.length, 1, 'esperada exatamente uma declaracao de favicon');
+  assert.match(icons[0], /href="assets\/brand\/inttex\/inttex-favicon\.svg"/,
+    'o favicon deve apontar para o asset dedicado aprovado');
+  assert.match(icons[0], /type="image\/svg\+xml"/);
 });
 
 test('runtime: login renderiza campos E-mail e Senha com botao Entrar', () => {

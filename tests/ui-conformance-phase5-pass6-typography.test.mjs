@@ -122,9 +122,15 @@ test('3 · all 80 entry findings were removed and none were added', () => {
   // js-screen front-end reports as CONCATENATED_STYLE_EXPRESSION, became a
   // single decodable literal. Nothing was suppressed: two declarations no rule
   // could see are now seen by every rule, and both conform.
-  assert.equal(BASELINE.findings.length, 854);
+  // INTTEX-BRAND-ASSET-INTEGRATION FORWARD CORRECTION. The brand integration
+  // ADDED no finding to any rule and REMOVED one further UIC-000 coverage gap,
+  // for the identical cause: the login card's improvised "In" placeholder
+  // declared its style across four concatenated source lines, and the approved
+  // horizontal logo that replaced it declares one literal (854 -> 853,
+  // coverage 534 -> 533). Pass 6's own result is unchanged.
+  assert.equal(BASELINE.findings.length, 853);
   assert.equal(rule('UIC-005').total, 0, 'pass 6 must stay closed');
-  assert.equal(rule('UIC-000').coverage_gaps, 534);
+  assert.equal(rule('UIC-000').coverage_gaps, 533);
   assert.equal(rule('UIC-006').blocking, 0);
   assert.equal(rule('UIC-009').debt, 320);
   assert.equal(BASELINE.coverage_summary.FULL, 31);
@@ -503,12 +509,28 @@ test('23 · the table-header token appears only in a table-header role', () => {
 });
 
 test('24 · the icon-glyph token appears only on icon-only text glyphs', () => {
+  /*
+   * INTTEX-BRAND-ASSET-INTEGRATION FORWARD CORRECTION.
+   *
+   * The ratified population was FOUR: the canonical modal close "×" in
+   * js/ui.js, its two screen-level siblings, and the login card's improvised
+   * "In" brand mark. That fourth site was a TEXT GLYPH standing in for a logo
+   * the repository did not yet consume; the brand integration replaced it with
+   * the approved horizontal Inttex logo, an <img>, which carries no font size
+   * at all. The role therefore has three subjects, not four.
+   *
+   * The guard is not weakened: the floor is REDERIVED to the surviving three
+   * and the `'In'` alternative is removed from the shape test, so a new text
+   * glyph could not slip in under the retired brand-mark exemption. A fourth
+   * site that is not an icon-only glyph still fails, and losing one of the
+   * three still fails.
+   */
   const sites = runtimeFontSizeSites().filter((s) => s.token === ICON_GLYPH[0]);
-  assert.ok(sites.length >= 4, 'the ratified icon-glyph sites disappeared');
+  assert.ok(sites.length >= 3, 'the ratified icon-glyph sites disappeared');
   for (const s of sites) {
-    // Each is either the modal close "×" or the "In" brand mark, and each
-    // carries an aria-label because a glyph is not readable copy.
-    assert.match(s.near, /'×'\)|"×"\)|, '×'|'In'\)|aria-label/,
+    // Each is the modal close "×", and each carries an aria-label because a
+    // glyph is not readable copy.
+    assert.match(s.near, /'×'\)|"×"\)|, '×'|aria-label/,
       `${s.at} carries the icon-glyph token but is not an icon-only glyph`);
   }
 });
@@ -713,9 +735,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   const B1_CHANGED = [
     'css/tokens.css',
     'js/screens/admin-usuarios-modal.js', 'js/screens/cadastros.js',
-    'js/screens/common.js',
     'js/screens/expedicao-admin.js', 'js/screens/pedido-detail-events.js',
-    'js/screens/system-screens.js',
   ];
   /*
    * PEDIDO-SCREEN-GROUP-1 FORWARD CORRECTION
@@ -776,6 +796,22 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     'js/screens/cliente-pedido-tracking.js', 'js/screens/cliente-pedidos-list.js',
     'js/screens/pedidos-list.js',
   ];
+  /*
+   * INTTEX-BRAND-ASSET-INTEGRATION FORWARD CORRECTION
+   *
+   * That order replaced the topbar's text-only wordmark and the login card's
+   * improvised "In" placeholder with the approved horizontal Inttex logo, and
+   * renamed the visible product to Inttracker. TWO of them are also pass-6
+   * assets, so they move out of the B1 tier into this one. A brand-integration
+   * token is strictly later than every earlier one, so every asset pass 6
+   * touched is still invalidated against the pass-5 checkpoint — only WHICH
+   * later token does the invalidating moved. The population below still sums
+   * to the same 27.
+   */
+  const BRAND = '20260727-inttex-brand-integration';
+  const BRAND_CHANGED = [
+    'js/screens/common.js', 'js/screens/system-screens.js',
+  ];
   const PASS6_ONLY = [
     'js/document-links-surface-ui.js',
     'js/screens/pedido-insumos-distribuicao.js',
@@ -787,6 +823,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     + A1_CHANGED.length + PASS8_CHANGED.length + PASS8_A1_CHANGED.length
     + CONTAINMENT_A1_CHANGED.length + B1_CHANGED.length + SCREEN_GROUP_1_CHANGED.length
     + SCREEN_GROUP_2_CHANGED.length + SCREEN_GROUP_3_CHANGED.length
+    + BRAND_CHANGED.length
     + PASS6_ONLY.length, 27);
   for (const rel of PASS7_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS7}"`), `${rel} must carry the pass-7 token`);
@@ -837,6 +874,15 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
         `${rel} kept a superseded token`);
     }
   }
+  for (const rel of BRAND_CHANGED) {
+    assert.ok(INDEX.includes(`"${rel}?v=${BRAND}"`),
+      `${rel} must carry the Inttex brand-integration token`);
+    for (const stale of [PASS6, A1, PASS7, PASS7_A4, PASS7_A5, PASS8, PASS8_A1,
+      CONTAINMENT_A1, B1, SCREEN_GROUP_1, SCREEN_GROUP_2, SCREEN_GROUP_3]) {
+      assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`),
+        `${rel} kept a superseded token`);
+    }
+  }
   for (const rel of PASS6_ONLY) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS6}"`), `${rel} must keep the pass-6 token`);
   }
@@ -847,7 +893,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   // Every asset pass 6 touched still carries a token LATER than the pass-5 one.
   for (const rel of [...PASS7_CHANGED, ...PASS7_A4_CHANGED, ...PASS7_A5_CHANGED, ...A1_CHANGED,
     ...PASS8_CHANGED, ...PASS8_A1_CHANGED, ...B1_CHANGED, ...SCREEN_GROUP_1_CHANGED,
-    ...SCREEN_GROUP_2_CHANGED, ...SCREEN_GROUP_3_CHANGED, ...PASS6_ONLY]) {
+    ...SCREEN_GROUP_2_CHANGED, ...SCREEN_GROUP_3_CHANGED, ...BRAND_CHANGED, ...PASS6_ONLY]) {
     assert.ok(!INDEX.includes(`"${rel}?v=20260726-ui-p5-pass5`),
       `${rel} fell back to the pass-5 token`);
   }

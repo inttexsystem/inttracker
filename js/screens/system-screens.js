@@ -66,21 +66,30 @@
         + 'box-shadow:var(--rv-shadow-none);',
     });
 
-    const brandMark = window.el('div', {
-      'aria-label': 'Inttex',
-      style: 'width:72px;height:72px;border-radius:var(--rv-radius);border:1px solid var(--rv-border-soft);'
-        + 'background:var(--rv-surface);display:flex;align-items:center;justify-content:center;'
-        + 'box-shadow:var(--rv-shadow-none);font-size:var(--rv-icon-glyph-lg);font-weight:800;'
-        + 'color:var(--rv-text-primary);letter-spacing:0;',
-    }, 'In');
+    // INTTEX-BRAND-ASSET-INTEGRATION: o quadrado improvisado com as letras
+    // "In" sai e entra o logotipo horizontal aprovado
+    // (assets/brand/inttex/inttex-logo.svg), o primario para fundo claro — e o
+    // cartao de login e claro. A altura de 32px preserva a proporcao nativa do
+    // viewBox 194.57x31.56 (largura derivada pelo browser) e da 197px de
+    // largura dentro dos 336px uteis do cartao. Sem moldura, sem sombra, sem
+    // recorte: o clear-space da marca (metade da altura do simbolo = 16px) e
+    // satisfeito pelo padding de 32px do cartao e pelo margin-bottom de 20px.
+    const brandMark = window.el('img', {
+      src: 'assets/brand/inttex/inttex-logo.svg',
+      alt: 'Inttex',
+      style: 'height:32px;width:auto;display:block;',
+    });
     card.appendChild(window.el('div', {
       style: 'display:flex;justify-content:center;margin-bottom:20px;',
     }, brandMark));
 
+    // O produto e o Inttracker; Inttex e a empresa. O nome de produto anterior
+    // foi descontinuado e nao pode reaparecer em copy visivel — o guard em
+    // tests/system-screens.smoke.js proibe o literal em todo este arquivo.
     card.appendChild(window.el('h1', {
       style: 'margin:0 0 6px;font-size:var(--rv-fs-title);font-weight:800;letter-spacing:0;'
         + 'color:var(--rv-text-primary);text-align:center;line-height:1.2;',
-    }, 'Inttex OptiControl'));
+    }, 'Inttracker'));
     card.appendChild(window.el('p', {
       style: 'font-size:13.5px;color:var(--rv-text-tertiary);margin:0 0 26px;text-align:center;',
     }, 'Entre com seu e-mail e senha'));
@@ -190,7 +199,7 @@
     shell.appendChild(card);
     shell.appendChild(window.el('div', {
       style: 'text-align:center;margin-top:22px;font-size:12.5px;color:var(--rv-text-tertiary);',
-    }, '© 2026 Inttex · Controle de Tapetes'));
+    }, '© 2026 Inttex · Inttracker'));
     root.appendChild(shell);
     return root;
   }
