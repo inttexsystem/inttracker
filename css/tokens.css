@@ -158,10 +158,11 @@
   --rv-switch-track-w:     40px;
   --rv-switch-track-h:     22px;
   --rv-switch-knob:        18px;
-  --rv-switch-knob-inset:   1px;
-  --rv-switch-knob-travel: 18px;
-  --rv-switch-radius:       3px;   /* track */
-  --rv-switch-knob-radius:  2px;   /* knob: one rung tighter, nests in the track */
+  --rv-switch-knob-inset:   1px;   /* vertical: 1+18+1 = 20, the only centred value */
+  --rv-switch-knob-inset-x: 2px;   /* horizontal: 2+18+2 = 22 of the 38 inner width */
+  --rv-switch-knob-travel: 16px;   /* 2 -> 18, leaving the same 2px at both ends */
+  --rv-switch-radius:       2px;   /* track */
+  --rv-switch-knob-radius:  1px;   /* knob: one rung tighter, nests in the track */
   --rv-switch-field-h:     36px;
 
   /* -- range -- */
@@ -438,7 +439,7 @@
 .rv-switch-knob {
   position: absolute;
   top: var(--rv-switch-knob-inset);
-  left: var(--rv-switch-knob-inset);
+  left: var(--rv-switch-knob-inset-x);
   width: var(--rv-switch-knob);
   height: var(--rv-switch-knob);
   border-radius: var(--rv-switch-knob-radius);

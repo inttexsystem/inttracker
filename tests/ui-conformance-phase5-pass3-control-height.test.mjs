@@ -306,7 +306,11 @@ test('6 · no screen-local checkbox, switch, range or textarea geometry remains'
     /--rv-textarea-min-large:\s*104px;/, /--rv-textarea-min-tracking:\s*110px;/,
     /--rv-checkbox-size:\s*16px;/,
     /--rv-switch-track-w:\s*40px;/, /--rv-switch-track-h:\s*22px;/,
-    /--rv-switch-knob:\s*18px;/, /--rv-switch-knob-travel:\s*18px;/,
+    // The travel moved 18px -> 16px when the knob inset went to 2px on the
+    // horizontal: the knob now stops 2px from each end instead of 1px. The
+    // 40x22 track and the 18px knob are unchanged, and what this line guards
+    // is unchanged too — the value is declared ONCE, in the single owner.
+    /--rv-switch-knob:\s*18px;/, /--rv-switch-knob-travel:\s*16px;/,
     /--rv-range-track-h:\s*4px;/, /--rv-range-thumb:\s*16px;/,
   ]) {
     assert.match(TOKENS, decl, 'a specialized-control value left css/tokens.css');
