@@ -119,6 +119,29 @@ test('brand and cutover phases are recorded as accepted, not as pending', () => 
   }
 });
 
+test('the retired-project consumer corrections are accepted, not still open decisions', () => {
+  const byId = new Map(state.accepted_checkpoints.map(item => [item.id, item]));
+  for (const id of ['ACTIVE-SUPABASE-CONSUMER-SAFETY', 'STAGING-AND-BACKUP-ENVIRONMENT-SAFETY']) {
+    assert.equal(byId.get(id)?.status, 'CLOSED / ACCEPTED', id);
+  }
+  // Those two checkpoints reconciled the documents-ingestor watcher, the writer
+  // runbook, the clean-slate export tooling, the staging mutation runners and
+  // the backup tooling onto the accepted identity model. No open decision may
+  // still present any of them as an unreconciled consumer of the retired
+  // project — that claim contradicts the accepted checkpoints above.
+  const stale = /documents-ingestor watcher|writer runbook|clean-slate export|remaining consumers|still name it/iu;
+  for (const decision of state.open_architect_decisions) {
+    assert.equal(stale.test(decision), false, decision);
+  }
+  // The physical deletion of the retired project stays open, and stays the only
+  // subject of that decision.
+  const deletion = state.open_architect_decisions.filter(decision =>
+    decision.includes(ENVIRONMENT_IDENTITIES.retired_project));
+  assert.equal(deletion.length, 1);
+  assert.match(deletion[0], /physically deleted/u);
+  assert.match(deletion[0], /separately authorized order/u);
+});
+
 test('the active state is idle with no chained phase and no outstanding acceptance', () => {
   assert.equal(state.active_phase.id, 'NONE');
   assert.equal(state.active_phase.status, 'IDLE / READY FOR NEXT EXPLICIT PRODUCT OR DEBT ORDER');
