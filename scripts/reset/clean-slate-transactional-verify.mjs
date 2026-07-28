@@ -16,7 +16,8 @@ import { fileURLToPath } from 'node:url';
 import {
   sha256Hex, canonicalJSON,
   EXPORT_TABLES, EXPECTED_ROW_COUNTS, EXPECTED_OP_IDS, EXPECTED_LOTE_IDS, EXPECTED_PEDIDO_IDS,
-  EXPECTED_B6, B6_DOCUMENT_ID, TERMINAL_MIGRATION, ARCHIVE_KIND, AUTHORIZED_DEV_REF,
+  EXPECTED_B6, B6_DOCUMENT_ID, TERMINAL_MIGRATION, ARCHIVE_KIND,
+  PRODUCTION_REF, RETIRED_REF, FORBIDDEN_REF,
   verifyIdentity, verifyCutover, verifyCorpusIdentities, verifyPreservedBaseline,
 } from './clean-slate-transactional-export.mjs';
 // Preserved-baseline constants (EXPECTED_SALDO_FIOS/EXPECTED_OP_NUMEROS/etc.) and
@@ -203,11 +204,18 @@ export function verifyArchive(archiveDir) {
   try { verifyCutover(readJSON(rel('evidence/cutover-state.json'))); v.ok('cutover evidence'); }
   catch (e) { v.fail('cutover evidence', e.message); }
 
-  // --- Project-ref custody (blocking correction D): manifest.database.project_ref,
-  // evidence/database-identity.json's project_ref, and the authorized shared-dev
-  // ref must all agree — no archive may verify clean for any other project. ---
-  v.assert(manifest.database?.project_ref === AUTHORIZED_DEV_REF, `manifest project_ref = ${AUTHORIZED_DEV_REF}`, manifest.database?.project_ref);
-  v.assert(identityEvidence?.project_ref === AUTHORIZED_DEV_REF, `evidence project_ref = ${AUTHORIZED_DEV_REF}`, identityEvidence?.project_ref);
+  // --- Project-ref custody (blocking correction D; target contract per
+  // INTTRACKER-PRODUCTION-CUTOVER-R1): manifest.database.project_ref,
+  // evidence/database-identity.json's project_ref, and the definitive production
+  // ref must all agree — no archive may verify clean for any other project. The
+  // retired and forbidden projects are rejected explicitly and unconditionally:
+  // an archive claiming either of them is never an authorized target, whatever
+  // else it contains. ---
+  const claimedRefs = [manifest.database?.project_ref, identityEvidence?.project_ref];
+  v.assert(!claimedRefs.includes(RETIRED_REF), `archive does not claim the retired project ${RETIRED_REF}`, claimedRefs.join(' / '));
+  v.assert(!claimedRefs.includes(FORBIDDEN_REF), `archive does not claim the forbidden project ${FORBIDDEN_REF}`, claimedRefs.join(' / '));
+  v.assert(manifest.database?.project_ref === PRODUCTION_REF, `manifest project_ref = ${PRODUCTION_REF}`, manifest.database?.project_ref);
+  v.assert(identityEvidence?.project_ref === PRODUCTION_REF, `evidence project_ref = ${PRODUCTION_REF}`, identityEvidence?.project_ref);
   v.assert(manifest.database?.project_ref === identityEvidence?.project_ref, 'manifest/evidence project_ref match', `${manifest.database?.project_ref} vs ${identityEvidence?.project_ref}`);
 
   try {

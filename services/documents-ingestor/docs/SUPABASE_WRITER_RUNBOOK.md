@@ -4,9 +4,11 @@ This runbook is for the server-side Documents Ingestor CLI only. It never belong
 
 ## Sanctioned Target Project Only
 
-Use only the sanctioned target project `gqmpsxkxynrjvidfmojk` (migrated from the legacy `ucrjtfswnfdlxwtmxnoo` at M8). Before a confirmed write, the local ignored `.env` must contain that project's URL, matching project ref, `SUPABASE_SERVICE_ROLE_KEY` (the new-format `sb_secret_` key per the ratified key regime — same env-var name, new value format), and `SUPABASE_WRITER_ENABLED=true`.
+The sanctioned writer target is the definitive production project `ucrjtfswnfdlxwtmxnoo`. Before a confirmed write, the local ignored `.env` must contain that project's URL, matching project ref, `SUPABASE_SERVICE_ROLE_KEY` (the new-format `sb_secret_` key per the ratified key regime — same env-var name, new value format), and `SUPABASE_WRITER_ENABLED=true`.
 
-Never use the legacy project `ucrjtfswnfdlxwtmxnoo`, the protected reference `bhgifjrfagkzubpyqpew`, an anon/publishable key, a PostgreSQL password, or a frontend module as the writer credential. Never commit `.env`.
+The project `gqmpsxkxynrjvidfmojk` is retired and must never be used. It is not production, not staging, not development and not a fallback. This repository currently has no valid separate development or staging database: every confirmed write reaches the real production database.
+
+Never use the retired project `gqmpsxkxynrjvidfmojk`, the protected reference `bhgifjrfagkzubpyqpew`, an anon/publishable key, a PostgreSQL password, or a frontend module as the writer credential. Never commit `.env`.
 
 ## Generate Local Exports
 
@@ -28,7 +30,7 @@ npm run sync:supabase -- --mapped data/exports/documentos-mapeados.jsonl --event
 
 The dry-run validates both JSONLs and reports planned candidates/events without creating a Supabase client or scan run.
 
-## Confirmed Staging Write
+## Confirmed Production Write
 
 ```bash
 npm run sync:supabase -- --mapped data/exports/documentos-mapeados.jsonl --events data/exports/ingestion-events.jsonl --confirm-supabase-write
@@ -64,17 +66,19 @@ npm run sync:supabase -- \
 
 **Required gates.** Without BOTH `--confirm-real-google` AND `--confirm-supabase-write`, the watcher runs in **dry-run / mock mode**: it never instantiates the Gmail client, never constructs the service-role writer, and never consumes a real request. The dry-run is what tests, manual operator probes, and CI exercise.
 
+**Starting the watcher is a production write operation.** A confirmed cycle writes to the definitive production project `ucrjtfswnfdlxwtmxnoo`. Before starting it, the operator must verify that `.env` declares exactly that project ref — `ops/watcher/Start-DocumentScanWatcher.ps1` refuses to start otherwise and has no fallback target. Both `--confirm-real-google` and `--confirm-supabase-write` remain mandatory for a real cycle.
+
 ```bash
 # dry-run (mock-first; no Gmail, no Supabase, no service-role client)
 npm run watch:scan-requests -- --source gmail
 
-# confirmed staging run (a single cycle; default --once)
+# confirmed production run (a single cycle; default --once)
 npm run watch:scan-requests -- \
   --source gmail \
   --confirm-real-google \
   --confirm-supabase-write
 
-# confirmed staging run with optional stale-recovery
+# confirmed production run with optional stale-recovery
 npm run watch:scan-requests -- \
   --source gmail \
   --confirm-real-google \

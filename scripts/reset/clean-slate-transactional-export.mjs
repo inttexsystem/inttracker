@@ -15,8 +15,7 @@
 //        every purge-scope row, and build the archive.
 //   * `export --target <ref> --from-capture <file>`  — build the archive from a
 //        capture JSON produced by an authorized read-only transaction. This is
-//        the path used for the MCP-only authorized shared-development project
-//        `ucrjtfswnfdlxwtmxnoo`, whose only authorized read-only transport is the
+//        the path used when the only authorized read-only transport is the
 //        project-scoped MCP (no direct psql connection string is available/
 //        authorized in this environment). The EXACT SAME `CAPTURE_SQL`,
 //        corpus-gate assertions and serialization are used on both paths.
@@ -27,10 +26,15 @@
 // preserved byte-for-byte), UTF-8, LF line endings, SHA-256 per table file and a
 // deterministic aggregate checksum.
 //
-// Safety: refuses a missing/ambiguous target; refuses the production project
+// Safety (target identity per INTTRACKER-PRODUCTION-CUTOVER-R1): refuses a
+// missing/ambiguous target; ALWAYS refuses the retired project
 // `gqmpsxkxynrjvidfmojk` and the forbidden project `bhgifjrfagkzubpyqpew`;
-// re-runs the full corpus gate before writing any archive; never prints business
-// rows or secrets to stdout/stderr; writes the archive OUTSIDE the repository.
+// accepts the definitive production project `ucrjtfswnfdlxwtmxnoo` only when the
+// caller supplies the exact `--confirm-production-readonly-export` flag, which
+// authorizes NOTHING beyond this read-only export (no reset, purge, delete,
+// migration or SQL mutation exists in this tool). It re-runs the full corpus
+// gate before writing any archive, never prints business rows or secrets to
+// stdout/stderr, and writes the archive OUTSIDE the repository.
 
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -42,9 +46,14 @@ import { fileURLToPath } from 'node:url';
 // Canonical constants (the accepted contract baseline; terminal 20260722055832)
 // ---------------------------------------------------------------------------
 
-export const AUTHORIZED_DEV_REF = 'ucrjtfswnfdlxwtmxnoo';
-export const PRODUCTION_REF = 'gqmpsxkxynrjvidfmojk';
+// Environment identity (INTTRACKER-PRODUCTION-CUTOVER-R1). There is NO
+// authorized development target: no valid separate non-production database
+// exists, so the only reachable target is production, and only read-only and
+// only under explicit confirmation.
+export const PRODUCTION_REF = 'ucrjtfswnfdlxwtmxnoo';
+export const RETIRED_REF = 'gqmpsxkxynrjvidfmojk';
 export const FORBIDDEN_REF = 'bhgifjrfagkzubpyqpew';
+export const PRODUCTION_CONFIRMATION_FLAG = 'confirm-production-readonly-export';
 export const TERMINAL_MIGRATION = '20260722055832';
 export const EXPECTED_SERVER_VERSION = '17.6';
 export const B6_DOCUMENT_ID = 'G28-B6-VERIFY-c63b6c2c8aff4da58e87d1e75f7a9236-DOCUMENT';
@@ -212,7 +221,11 @@ function eqSet(a, b) {
 // Target-identity enforcement (contract §12; order §8.1/§8.2)
 // ---------------------------------------------------------------------------
 
-export function assertTargetIdentity(target, { allowList = [AUTHORIZED_DEV_REF] } = {}) {
+// The retired and forbidden projects are rejected BEFORE the production
+// confirmation is consulted, so `--confirm-production-readonly-export` can never
+// release them. The flag authorizes exactly one thing: the read-only export of
+// the definitive production project.
+export function assertTargetIdentity(target, { confirmProductionReadonlyExport = false } = {}) {
   if (target === undefined || target === null || String(target).trim() === '') {
     throw new Error('CLEAN_SLATE_TARGET_MISSING: an explicit --target project ref is required');
   }
@@ -221,16 +234,19 @@ export function assertTargetIdentity(target, { allowList = [AUTHORIZED_DEV_REF] 
     throw new Error(`CLEAN_SLATE_TARGET_AMBIGUOUS: exactly one target is required, received ${refs.length}`);
   }
   const ref = refs[0];
-  if (ref === PRODUCTION_REF) {
-    throw new Error(`CLEAN_SLATE_TARGET_PRODUCTION_FORBIDDEN: refusing the production project ${ref}`);
+  if (ref === RETIRED_REF) {
+    throw new Error(`CLEAN_SLATE_TARGET_RETIRED_PROJECT: refusing the retired project ${ref}; it is not production, staging, development or a fallback and no confirmation can release it`);
   }
   if (ref === FORBIDDEN_REF) {
-    throw new Error(`CLEAN_SLATE_TARGET_FORBIDDEN_PROJECT: refusing the forbidden project ${ref}`);
+    throw new Error(`CLEAN_SLATE_TARGET_FORBIDDEN_PROJECT: refusing the forbidden project ${ref}; no confirmation can release it`);
   }
-  if (!allowList.includes(ref)) {
-    throw new Error(`CLEAN_SLATE_TARGET_NOT_AUTHORIZED: ${ref} is not an authorized target`);
+  if (ref === PRODUCTION_REF) {
+    if (confirmProductionReadonlyExport !== true) {
+      throw new Error(`CLEAN_SLATE_PRODUCTION_CONFIRMATION_REQUIRED: exporting the production project ${ref} requires the exact flag --${PRODUCTION_CONFIRMATION_FLAG}`);
+    }
+    return ref;
   }
-  return ref;
+  throw new Error(`CLEAN_SLATE_TARGET_NOT_AUTHORIZED: ${ref} is not an authorized target`);
 }
 
 // ---------------------------------------------------------------------------
@@ -434,7 +450,7 @@ export function checkDatabaseUrlProjectRefHint(databaseUrl, target) {
 // Capture SQL (identical on the psql and MCP transports)
 // ---------------------------------------------------------------------------
 
-export function buildCaptureSQL(target = AUTHORIZED_DEV_REF) {
+export function buildCaptureSQL(target = PRODUCTION_REF) {
   const b6 = sqlLit(B6_DOCUMENT_ID);
   const tableEntries = EXPORT_TABLES.map((t) => {
     const where = t.scope ? ` WHERE ${t.scope}` : '';
@@ -542,7 +558,7 @@ function psqlBin() {
   return dir ? path.join(dir, exe) : exe;
 }
 
-export function captureViaPsql(databaseUrl, target = AUTHORIZED_DEV_REF) {
+export function captureViaPsql(databaseUrl, target = PRODUCTION_REF) {
   if (!databaseUrl) throw new Error('CLEAN_SLATE_NO_DATABASE_URL: --database-url is required for connect mode');
   // Best-effort, non-blocking endpoint corroboration (order §8) — never prints
   // the URL or credentials, only a boolean-derived diagnostic notice.
@@ -577,8 +593,8 @@ function utcStamp(iso) {
   return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}T${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())}Z`;
 }
 
-export function buildArchive(capture, outRoot, { target = AUTHORIZED_DEV_REF } = {}) {
-  assertTargetIdentity(target);
+export function buildArchive(capture, outRoot, { target, confirmProductionReadonlyExport = false } = {}) {
+  assertTargetIdentity(target, { confirmProductionReadonlyExport });
   if (!capture || typeof capture !== 'object') throw new Error('CLEAN_SLATE_CAPTURE_INVALID: capture object required');
 
   // ===========================================================================
@@ -687,10 +703,17 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const cmd = args._[0];
   if (cmd !== 'export') {
-    process.stderr.write('usage: clean-slate-transactional-export.mjs export --target <ref> (--from-capture <file> | --database-url <url>) --out-root <dir>\n');
+    process.stderr.write(`usage: clean-slate-transactional-export.mjs export --target <ref> (--from-capture <file> | --database-url <url>) --out-root <dir> [--${PRODUCTION_CONFIRMATION_FLAG}]\n`);
     process.exit(2);
   }
-  const target = assertTargetIdentity(args.target);
+  // Target identity is asserted FIRST — before --out-root handling, before any
+  // capture file is read, before any psql connection is opened and before any
+  // directory or archive artifact is created. An unconfirmed production target,
+  // the retired project and the forbidden project all fail here with zero side
+  // effects. The flag must be supplied bare (boolean true); `--flag <value>`
+  // does not satisfy it.
+  const confirmProductionReadonlyExport = args[PRODUCTION_CONFIRMATION_FLAG] === true;
+  const target = assertTargetIdentity(args.target, { confirmProductionReadonlyExport });
   const outRoot = args['out-root'];
   if (!outRoot) throw new Error('CLEAN_SLATE_NO_OUT_ROOT: --out-root is required');
   // Repository-boundary enforcement lives solely in buildArchive's
@@ -701,7 +724,7 @@ async function main() {
   else if (args['database-url']) capture = captureViaPsql(args['database-url'], target);
   else throw new Error('CLEAN_SLATE_NO_SOURCE: one of --from-capture or --database-url is required');
 
-  const { archiveDir, aggregate } = buildArchive(capture, outRoot, { target });
+  const { archiveDir, aggregate } = buildArchive(capture, outRoot, { target, confirmProductionReadonlyExport });
   // Only non-sensitive metadata is printed (never business rows).
   process.stdout.write(JSON.stringify({ ok: true, archiveDir, aggregate_sha256: aggregate, target }) + '\n');
 }

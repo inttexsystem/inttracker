@@ -31,13 +31,18 @@ import {
   bootstrapCluster, getRepoRoot, isPidAlive, isPortOpen, DATA_DIR_PREFIX,
 } from '../scripts/c3d/bootstrap-disposable-cluster.mjs';
 import {
-  buildArchive, assertTargetIdentity, AUTHORIZED_DEV_REF, PRODUCTION_REF, FORBIDDEN_REF,
+  buildArchive, assertTargetIdentity, PRODUCTION_REF, RETIRED_REF, FORBIDDEN_REF,
+  PRODUCTION_CONFIRMATION_FLAG,
   TERMINAL_MIGRATION, B6_DOCUMENT_ID, EXPORT_TABLES, EXPECTED_ROW_COUNTS,
   EXPECTED_OP_IDS, EXPECTED_LOTE_IDS, EXPECTED_PEDIDO_IDS,
 } from '../scripts/reset/clean-slate-transactional-export.mjs';
 import { verifyArchive } from '../scripts/reset/clean-slate-transactional-verify.mjs';
 
 const REPO_ROOT = getRepoRoot();
+// INTTRACKER-PRODUCTION-CUTOVER-R1: there is no authorized development target.
+// Every archive-building call below is an explicitly confirmed READ-ONLY export
+// of the definitive production project.
+const PROD_TARGET = { target: PRODUCTION_REF, confirmProductionReadonlyExport: true };
 const RESET_SQL = path.join(REPO_ROOT, 'scripts/reset/clean-slate-transactional-reset.sql');
 const RESTORE_SQL = path.join(REPO_ROOT, 'scripts/reset/clean-slate-transactional-restore.sql');
 
@@ -157,7 +162,7 @@ function syntheticCapture() {
     identity: {
       current_database: 'postgres', current_user: 'postgres', current_role: 'postgres',
       transaction_read_only: 'on', transaction_isolation: 'repeatable read', server_version: '17.6',
-      terminal_migration: TERMINAL_MIGRATION, project_ref: AUTHORIZED_DEV_REF, captured_at: '2026-07-22T05:58:32+00:00',
+      terminal_migration: TERMINAL_MIGRATION, project_ref: PRODUCTION_REF, captured_at: '2026-07-22T05:58:32+00:00',
     },
     cutover: {
       id: 1, status: 'legacy_active', read_authority: 'flat', reconciliation_status: 'not_started',
@@ -201,20 +206,37 @@ async function runFixtureSuite() {
   const scratch = await mkdtemp(path.join(tmpdir(), 'clean-slate-fix-'));
   const outRoot = path.join(scratch, 'out');
 
-  // Target-identity rejection (order §12: shared/ambiguous/production/forbidden/missing).
+  // Target-identity rejection (INTTRACKER-PRODUCTION-CUTOVER-R1 target contract:
+  // missing/ambiguous/retired/forbidden/unknown always fail; production requires
+  // the exact read-only confirmation).
+  const confirmed = { confirmProductionReadonlyExport: true };
   throws(() => assertTargetIdentity(undefined), 'reject missing target');
   throws(() => assertTargetIdentity(''), 'reject empty target');
   throws(() => assertTargetIdentity('a b'), 'reject ambiguous target');
-  throws(() => assertTargetIdentity(PRODUCTION_REF), 'reject production target');
+  throws(() => assertTargetIdentity(undefined, confirmed), 'reject missing target even when confirmed');
+  throws(() => assertTargetIdentity(`${PRODUCTION_REF} ${RETIRED_REF}`, confirmed), 'reject ambiguous target even when confirmed');
+  throws(() => assertTargetIdentity(RETIRED_REF), 'reject retired target');
+  throws(() => assertTargetIdentity(RETIRED_REF, confirmed), 'reject retired target even with the production confirmation');
   throws(() => assertTargetIdentity(FORBIDDEN_REF), 'reject forbidden target');
+  throws(() => assertTargetIdentity(FORBIDDEN_REF, confirmed), 'reject forbidden target even with the production confirmation');
   throws(() => assertTargetIdentity('some-other-ref'), 'reject non-authorized target');
-  check(assertTargetIdentity(AUTHORIZED_DEV_REF) === AUTHORIZED_DEV_REF, 'accept authorized dev target');
+  throws(() => assertTargetIdentity('some-other-ref', confirmed), 'reject non-authorized target even when confirmed');
+  throws(() => assertTargetIdentity(PRODUCTION_REF), 'reject production target without the read-only confirmation');
+  throws(() => assertTargetIdentity(PRODUCTION_REF, { confirmProductionReadonlyExport: 'true' }), 'reject a non-boolean production confirmation');
+  check(assertTargetIdentity(PRODUCTION_REF, confirmed) === PRODUCTION_REF, 'accept the confirmed read-only production target');
+  check(PRODUCTION_CONFIRMATION_FLAG === 'confirm-production-readonly-export', 'the production confirmation flag name is exact');
 
-  // buildArchive rejects a production target and a wrong-B6 capture.
-  throws(() => buildArchive(syntheticCapture(), outRoot, { target: PRODUCTION_REF }), 'buildArchive rejects production target');
+  // buildArchive fails closed on every unauthorized target and on a wrong-B6
+  // capture. The unconfirmed-production case must leave no filesystem residue.
+  const unconfirmedOutRoot = path.join(scratch, 'never-created-unconfirmed-production');
+  throws(() => buildArchive(syntheticCapture(), unconfirmedOutRoot, { target: PRODUCTION_REF }), 'buildArchive rejects an unconfirmed production target');
+  check(!existsSync(unconfirmedOutRoot), 'no filesystem residue after the unconfirmed production rejection', unconfirmedOutRoot);
+  throws(() => buildArchive(syntheticCapture(), outRoot, { target: RETIRED_REF, ...confirmed }), 'buildArchive rejects the retired target even when confirmed');
+  throws(() => buildArchive(syntheticCapture(), outRoot, { target: FORBIDDEN_REF, ...confirmed }), 'buildArchive rejects the forbidden target even when confirmed');
+  throws(() => buildArchive(syntheticCapture(), outRoot, {}), 'buildArchive rejects a missing target');
   const b6four = syntheticCapture();
   b6four.gate.b6.document_link_revision_ops = 4;
-  throws(() => buildArchive(b6four, outRoot, { target: AUTHORIZED_DEV_REF }), 'buildArchive rejects wrong B6 value 4');
+  throws(() => buildArchive(b6four, outRoot, PROD_TARGET), 'buildArchive rejects wrong B6 value 4');
 
   // --- Blocking correction A: pre-write gate — every rejection below must leave
   // NO archive directory / partial file on disk (proven via a never-created,
@@ -224,7 +246,7 @@ async function runFixtureSuite() {
     const cap = syntheticCapture();
     mutate(cap);
     const badOutRoot = neverCreated(outRootLabel);
-    throws(() => buildArchive(cap, badOutRoot, { target: AUTHORIZED_DEV_REF }), name);
+    throws(() => buildArchive(cap, badOutRoot, PROD_TARGET), name);
     check(!existsSync(badOutRoot), `no filesystem residue after: ${name}`, badOutRoot);
   };
   rejectsBeforeWrite((cap) => { cap.preserved_baseline.saldo_fios[0].kg_total = 999.999; }, 'a',
@@ -255,13 +277,13 @@ async function runFixtureSuite() {
   try {
     process.chdir(REPO_ROOT);
     const inRepoFromRoot = path.join(REPO_ROOT, 'clean-slate-illegal-artifact-root-cwd');
-    throws(() => buildArchive(syntheticCapture(), inRepoFromRoot, { target: AUTHORIZED_DEV_REF }),
+    throws(() => buildArchive(syntheticCapture(), inRepoFromRoot, PROD_TARGET),
       'out-root inside repo is rejected when cwd is repo root');
     check(!existsSync(inRepoFromRoot), 'no filesystem residue after in-repo rejection (cwd=repo root)', inRepoFromRoot);
 
     process.chdir(path.join(REPO_ROOT, 'scripts', 'reset'));
     const inRepoFromScriptsReset = path.join(REPO_ROOT, 'clean-slate-illegal-artifact-scripts-reset-cwd');
-    throws(() => buildArchive(syntheticCapture(), inRepoFromScriptsReset, { target: AUTHORIZED_DEV_REF }),
+    throws(() => buildArchive(syntheticCapture(), inRepoFromScriptsReset, PROD_TARGET),
       'out-root inside repo is rejected when cwd is scripts/reset');
     check(!existsSync(inRepoFromScriptsReset), 'no filesystem residue after in-repo rejection (cwd=scripts/reset)', inRepoFromScriptsReset);
 
@@ -269,7 +291,7 @@ async function runFixtureSuite() {
     // even when cwd is the repo root — proves the guard checks the PATH, not cwd.
     const externalFromRepoCwd = path.join(scratch, 'external-out-from-repo-cwd');
     process.chdir(REPO_ROOT);
-    const builtExternal = buildArchive(syntheticCapture(), externalFromRepoCwd, { target: AUTHORIZED_DEV_REF });
+    const builtExternal = buildArchive(syntheticCapture(), externalFromRepoCwd, PROD_TARGET);
     check(existsSync(builtExternal.archiveDir), 'external out-root is still accepted when cwd is repo root');
   } finally {
     process.chdir(savedCwd);
@@ -284,14 +306,15 @@ async function runFixtureSuite() {
   const illegalCliOutRoot = path.join(REPO_ROOT, 'clean-slate-illegal-artifact-external-cwd');
   const cliResult = spawnSync(process.execPath, [
     path.join(REPO_ROOT, 'scripts/reset/clean-slate-transactional-export.mjs'),
-    'export', '--target', AUTHORIZED_DEV_REF, '--from-capture', cliCaptureFile, '--out-root', illegalCliOutRoot,
+    'export', '--target', PRODUCTION_REF, `--${PRODUCTION_CONFIRMATION_FLAG}`,
+    '--from-capture', cliCaptureFile, '--out-root', illegalCliOutRoot,
   ], { cwd: extCwd, encoding: 'utf8', timeout: 30000 });
   check(cliResult.status !== 0, 'CLI export rejects in-repo out-root launched from an unrelated external cwd', cliResult.stderr);
   check(!existsSync(illegalCliOutRoot), 'no archive directory created for the rejected in-repo out-root (CLI)', illegalCliOutRoot);
   await rm(extCwd, { recursive: true, force: true });
 
   // Build a valid archive and verify it (correct B6 value 10 acceptance + manifest validation).
-  const { archiveDir } = buildArchive(syntheticCapture(), outRoot, { target: AUTHORIZED_DEV_REF });
+  const { archiveDir } = buildArchive(syntheticCapture(), outRoot, PROD_TARGET);
   const v = verifyArchive(archiveDir);
   check(v.failed === 0, 'valid archive verifies clean (B6=10 accepted, manifest valid)', v.checks.filter((c) => !c.ok).map((c) => c.name).join('; '));
 
@@ -388,10 +411,25 @@ async function runFixtureSuite() {
   // --- Blocking correction D: project-ref custody in the verifier. ---
   const cBadRef = await clone(async (dir) => {
     const f = path.join(dir, 'manifest.json');
-    const body = (await readFile(f, 'utf8')).replaceAll(AUTHORIZED_DEV_REF, 'other-project-ref-xxxx');
+    const body = (await readFile(f, 'utf8')).replaceAll(PRODUCTION_REF, 'other-project-ref-xxxx');
     await writeFile(f, body);
   });
   check(verifyArchive(cBadRef).failed > 0, 'verifyArchive rejects manifest project_ref mismatch');
+
+  // --- Target contract: an archive claiming the retired or the forbidden
+  // project is never an authorized target, whatever else it contains. ---
+  const claimRef = async (ref) => clone(async (dir) => {
+    for (const rel of ['manifest.json', 'evidence/database-identity.json']) {
+      const f = path.join(dir, rel);
+      await writeFile(f, (await readFile(f, 'utf8')).replaceAll(PRODUCTION_REF, ref));
+    }
+  });
+  const namedFail = (res, needle) => res.failed > 0 && res.checks.some((c) => !c.ok && c.name.includes(needle));
+  check(namedFail(verifyArchive(await claimRef(RETIRED_REF)), RETIRED_REF),
+    'verifyArchive rejects an archive claiming the retired project');
+  check(namedFail(verifyArchive(await claimRef(FORBIDDEN_REF)), FORBIDDEN_REF),
+    'verifyArchive rejects an archive claiming the forbidden project');
+  check(verifyArchive(archiveDir).failed === 0, 'valid archive still passes after the retired/forbidden identity negatives');
 
   // --- Blocking correction C: exact archive inventory — unexpected content. ---
   const cExtraRoot = await clone(async (dir) => { await writeFile(path.join(dir, 'unexpected-root-file.txt'), 'x'); });
