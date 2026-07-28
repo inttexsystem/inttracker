@@ -1636,11 +1636,26 @@ const BRAND_ADDED_ASSETS = ['assets/brand/inttex/inttex-favicon.svg'];
 // morto — exatamente o defeito que a PASS-1 sofreu com css/tokens.css servido
 // sem versao. Os tres assets mudaram de bytes e os tres foram retokenizados.
 const CUTOVER_TOKEN = '20260728-inttracker-production-cutover';
-const CUTOVER_ASSETS = [
-  'js/config.js',
+const CUTOVER_RETOKENIZED_ASSETS = [
   'js/supabase-client.js',
   'js/environment-banner.js',
 ];
+
+// FORWARD CORRECTION — a producao tinha TRES aliases reais e a lista de
+// PRODUCTION_HOSTNAMES so reconhecia DOIS, entao inttracker-inttex.vercel.app
+// caia em `restricted` e bloqueava toda escrita naquele dominio. A correcao
+// toca APENAS js/config.js, que por isso sai do token do cutover e passa a
+// carregar o seu proprio. Um cliente com o config anterior em cache continuaria
+// com a lista incompleta e seguiria somente-leitura no alias corrigido, entao a
+// retokenizacao e obrigatoria pelo mesmo motivo do cutover.
+const ALIAS_TOKEN = '20260728-inttracker-alias-correction';
+const ALIAS_ASSETS = ['js/config.js'];
+
+// A uniao continua sendo o conjunto que as derivacoes _AINDA_EM_, os conjuntos
+// `declarados` e a lista posicional de R3/20c2 subtraem: os tres assets seguem
+// alterados em relacao aos checkpoints anteriores, independentemente de qual
+// token cada um carrega agora.
+const CUTOVER_ASSETS = CUTOVER_RETOKENIZED_ASSETS.concat(ALIAS_ASSETS);
 
 const PASS7_A4_ASSETS_AINDA_EM_A4 = PASS7_A4_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
@@ -2505,15 +2520,17 @@ test('R3/20c10. os assets de INTTEX-BRAND-ASSET-INTEGRATION carregam exatamente 
 test('R3/20c11. os assets de INTTRACKER-PRODUCTION-CUTOVER carregam exatamente o token da ordem', () => {
   assert.equal(CUTOVER_ASSETS.length, 3,
     'a populacao alterada pelo cutover e de tres assets');
-  for (const rel of CUTOVER_ASSETS) {
+  // js/config.js saiu para o token da correcao de alias; os outros dois
+  // continuam no token do cutover.
+  for (const rel of CUTOVER_RETOKENIZED_ASSETS) {
     assert.equal(tokenFor(rel), CUTOVER_TOKEN,
       rel + ' deve carregar o token do cutover de producao');
   }
   const carriers = assetRefs(indexHtml)
     .filter((r) => r.token === CUTOVER_TOKEN)
     .map((r) => r.path);
-  assert.deepEqual(carriers.slice().sort(), CUTOVER_ASSETS.slice().sort(),
-    'exatamente os assets do cutover podem carregar o token do cutover');
+  assert.deepEqual(carriers.slice().sort(), CUTOVER_RETOKENIZED_ASSETS.slice().sort(),
+    'exatamente os assets do cutover que a correcao de alias nao tocou podem carregar o token do cutover');
   for (const anterior of [
     R2_TOKEN, BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN,
     PASS1_TOKEN, PASS2_TOKEN, PASS2_A2_TOKEN, PASS2_A3_TOKEN, PASS2_A4_TOKEN,
@@ -2542,4 +2559,36 @@ test('R3/20c11. os assets de INTTRACKER-PRODUCTION-CUTOVER carregam exatamente o
     assert.equal(code.includes('gqmpsxkxynrjvidfmojk'), false,
       rel + ' nao pode referenciar o projeto retirado em codigo ativo');
   }
+});
+
+// A correcao de alias toca UM unico asset e ele tem de carregar o seu proprio
+// token, sem vazar para nenhum outro.
+test('R3/20c12. o asset da correcao de alias carrega exatamente o token da correcao', () => {
+  assert.deepEqual(ALIAS_ASSETS, ['js/config.js'],
+    'a correcao de alias altera exatamente um asset');
+  assert.equal(tokenFor('js/config.js'), ALIAS_TOKEN,
+    'js/config.js deve carregar o token da correcao de alias');
+  const carriers = assetRefs(indexHtml)
+    .filter((r) => r.token === ALIAS_TOKEN)
+    .map((r) => r.path);
+  assert.deepEqual(carriers.slice().sort(), ALIAS_ASSETS.slice().sort(),
+    'somente js/config.js pode carregar o token da correcao de alias');
+  for (const anterior of [
+    R2_TOKEN, BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN,
+    PASS1_TOKEN, PASS2_TOKEN, PASS2_A2_TOKEN, PASS2_A3_TOKEN, PASS2_A4_TOKEN,
+    PASS3_TOKEN, PASS4_TOKEN, PASS5_TOKEN, PASS6_TOKEN, PASS6_A1_TOKEN,
+    PASS7_TOKEN, PASS7_A4_TOKEN, PASS7_A5_TOKEN, PASS8_TOKEN,
+    B1_TOKEN, SCREEN_GROUP_2_TOKEN, SCREEN_GROUP_3_TOKEN, BRAND_TOKEN,
+    CUTOVER_TOKEN,
+  ]) {
+    assert.notEqual(ALIAS_TOKEN, anterior,
+      'o token da correcao de alias tem de diferir de todo token anterior');
+    assert.notEqual(tokenFor('js/config.js'), anterior,
+      'js/config.js nao pode reter o token superseded ' + anterior);
+  }
+  // O asset retokenizado tem de ter mudado de fato desde o checkpoint anterior.
+  const committed = execFileSync('git', ['rev-parse', '37adca2:js/config.js'], { cwd: ROOT, encoding: 'utf8' }).trim();
+  const worktree = execFileSync('git', ['hash-object', '--', 'js/config.js'], { cwd: ROOT, encoding: 'utf8' }).trim();
+  assert.notEqual(worktree, committed,
+    'js/config.js foi retokenizado, entao tem de ter mudado desde 37adca2');
 });

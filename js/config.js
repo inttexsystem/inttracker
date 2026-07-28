@@ -84,8 +84,17 @@
   // então o alias de branch de produção é `inttracker-git-dev-inttex`.
   // `inttracker-git-main-inttex` foi REMOVIDO: com a branch de produção
   // em `dev`, qualquer deploy de `main` é PREVIEW e não pode escrever.
+  //
+  // FORWARD CORRECTION (INTTRACKER-PRODUCTION-CUTOVER-ALIAS-...-R1): a lista
+  // tinha DOIS dos TRÊS aliases que a Vercel atribui de fato a um deploy de
+  // produção. `inttracker-inttex.vercel.app` ficou de fora e por isso caía no
+  // ambiente `restricted`: a aplicação carregava e lia normalmente, mas toda
+  // escrita era bloqueada naquele domínio. A falha era na direção segura, e
+  // por isso silenciosa. A lista agora vem dos aliases REAIS do deployment,
+  // nunca de derivação a partir do nome da branch.
   const PRODUCTION_HOSTNAMES = [
     'inttracker-jade.vercel.app',
+    'inttracker-inttex.vercel.app',
     'inttracker-git-dev-inttex.vercel.app',
   ];
 

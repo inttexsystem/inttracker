@@ -10,7 +10,7 @@
 //      SUPABASE_URL, SUPABASE_ANON_KEY;
 //   4. detectAppEnvironment retorna 'production' apenas para os domínios
 //      de produção Vercel exatos (inttracker-jade.vercel.app,
-//      inttracker-git-dev-inttex.vercel.app);
+//      inttracker-inttex.vercel.app, inttracker-git-dev-inttex.vercel.app);
 //   5. detectAppEnvironment retorna 'restricted' para qualquer outro host
 //      (localhost, 127.0.0.1, previews *.vercel.app, example.com, vazio);
 //   6. o ref canônico de produção aparece no módulo, e o projeto
@@ -256,6 +256,30 @@ test('runtime: detectAppEnvironment("inttracker-git-dev-inttex.vercel.app") → 
   assert.ok(vm.runInContext('SUPABASE_URL', sb).includes(PROD_REF));
 });
 
+// REGRESSÃO PROVADA: este alias É de produção na Vercel e ficou de fora da
+// lista no cutover, caindo em `restricted` — a aplicação lia mas não escrevia
+// naquele domínio, e a falha era silenciosa por ser na direção segura.
+test('runtime: detectAppEnvironment("inttracker-inttex.vercel.app") → production', () => {
+  const sb = runConfigInSandbox({ hostname: 'inttracker-inttex.vercel.app' });
+  assert.equal(vm.runInContext('APP_ENV', sb), 'production');
+  assert.equal(vm.runInContext('APP_CONFIG.writesEnabled', sb), true);
+  assert.ok(vm.runInContext('SUPABASE_URL', sb).includes(PROD_REF));
+});
+
+// Os TRÊS aliases reais de produção, juntos: é a lista completa que o
+// deployment da Vercel atribui, e nenhum deles pode ficar somente-leitura.
+test('runtime: os três aliases reais de produção resolvem para production com escrita', () => {
+  for (const host of [
+    'inttracker-jade.vercel.app',
+    'inttracker-inttex.vercel.app',
+    'inttracker-git-dev-inttex.vercel.app',
+  ]) {
+    const sb = runConfigInSandbox({ hostname: host });
+    assert.equal(vm.runInContext('APP_ENV', sb), 'production', host + ' deve ser production');
+    assert.equal(vm.runInContext('APP_CONFIG.writesEnabled', sb), true, host + ' deve permitir escrita');
+  }
+});
+
 // REGRESSÃO DE CUTOVER: `main` deixou de ser a branch de produção. Um
 // deploy de `main` agora é PREVIEW e não pode resolver para production.
 test('runtime: detectAppEnvironment("inttracker-git-main-inttex.vercel.app") → restricted', () => {
@@ -348,6 +372,7 @@ test('runtime: SUPABASE_URL em restricted contém o mesmo ref de produção', ()
 test('runtime: o projeto retirado não é alcançável por nenhum hostname', () => {
   for (const hostname of [
     'inttracker-jade.vercel.app',
+    'inttracker-inttex.vercel.app',
     'inttracker-git-dev-inttex.vercel.app',
     'inttracker-git-main-inttex.vercel.app',
     'random-preview.vercel.app',
