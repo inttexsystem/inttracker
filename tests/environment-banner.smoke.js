@@ -348,7 +348,7 @@ test('script inline NÃO contém mais o env-banner (extraído para js/environmen
     'script inline ainda tem marcador === ENV-BANNER');
   assert.equal(/_envBanner/.test(inline), false,
     'script inline ainda referencia _envBanner');
-  assert.equal(/AMBIENTE STAGING — DADOS DE TESTE/.test(inline), false,
+  assert.equal(/AMBIENTE SOMENTE LEITURA — DADOS REAIS DE PRODUÇÃO/.test(inline), false,
     'script inline ainda tem texto do env-banner');
   // O bootstrap deixou de ser inline: virou js/boot.js (Seam C). O marcador
   // que identificava o bloco de boot acompanhou a extração.
@@ -358,7 +358,7 @@ test('script inline NÃO contém mais o env-banner (extraído para js/environmen
   const noComments = stripComments(inline);
   assert.equal(/=== ENV-BANNER/.test(noComments), false);
   assert.equal(/_envBanner/.test(noComments), false);
-  assert.equal(/AMBIENTE STAGING/.test(noComments), false);
+  assert.equal(/AMBIENTE SOMENTE LEITURA/.test(noComments), false);
 });
 
 test('js/environment-banner.js: nenhum service_role presente', () => {
@@ -420,7 +420,7 @@ test('js/environment-banner.js: id, role e texto do banner preservados', () => {
   assert.match(envSrc, /_envBanner\.id\s*=\s*ENV_BANNER_ID/);
   assert.match(envSrc, /_envBanner\.setAttribute\(['"]role['"]\s*,\s*['"]status['"]\)/);
   assert.match(envSrc, /_envBanner\.textContent\s*=\s*ENV_BANNER_TEXT/);
-  assert.match(envSrc, /ENV_BANNER_TEXT\s*=\s*\n?\s*'AMBIENTE STAGING — DADOS DE TESTE\. Não usar para operações reais\.'/);
+  assert.match(envSrc, /ENV_BANNER_TEXT\s*=\s*\n?\s*'AMBIENTE SOMENTE LEITURA — DADOS REAIS DE PRODUÇÃO\. Gravações bloqueadas\.'/);
 });
 
 test('js/environment-banner.js: posição relativa ao write-guard banner preservada', () => {
@@ -443,7 +443,7 @@ test('runtime: window.RAVATEX_ENV_BANNER é criado', () => {
   assert.equal(typeof ns.ensureEnvironmentBanner, 'function');
   assert.equal(ns.ENV_BANNER_ID, 'env-banner');
   assert.equal(typeof ns.ENV_BANNER_TEXT, 'string');
-  assert.match(ns.ENV_BANNER_TEXT, /AMBIENTE STAGING — DADOS DE TESTE/);
+  assert.match(ns.ENV_BANNER_TEXT, /AMBIENTE SOMENTE LEITURA — DADOS REAIS DE PRODUÇÃO/);
 });
 
 test('runtime staging: cria #env-banner quando APP_ENV !== production', () => {
@@ -452,7 +452,7 @@ test('runtime staging: cria #env-banner quando APP_ENV !== production', () => {
   assert.ok(banner, '#env-banner não foi criado em staging');
   assert.equal(banner.tagName, 'DIV');
   assert.equal(banner.getAttribute && banner.getAttribute('role') || banner._role, 'status');
-  assert.match(banner.textContent, /AMBIENTE STAGING — DADOS DE TESTE/);
+  assert.match(banner.textContent, /AMBIENTE SOMENTE LEITURA — DADOS REAIS DE PRODUÇÃO/);
   // Está no body
   assert.ok(body.children.includes(banner) || body.children.some(c => c._id === 'env-banner'),
     'env-banner não foi inserido no body');
@@ -479,18 +479,18 @@ test('runtime staging: ensureEnvironmentBanner retorna o nó criado', () => {
 });
 
 test('runtime: env-banner é inserido relativo ao write-guard banner (sem sobrescrever)', () => {
-  const { document, body, created } = runSandbox({
-    hostname: '127.0.0.1',
-    withWriteGuardBanner: true,
-  });
-  // O write-guard banner só aparece se o guard ativar, mas o teste
-  // está apenas validando o caminho "se existir, inserir relativo".
-  // Para o 127.0.0.1 + staging, o guard não ativa, então o write-guard
-  // banner não existe por padrão. Aqui, com withWriteGuardBanner, ele
-  // existe artificialmente para validar a lógica de inserção.
+  // INTTRACKER-PRODUCTION-CUTOVER-R1: o guard agora ATIVA em 127.0.0.1,
+  // então js/supabase-client.js cria um write-guard banner REAL. O antigo
+  // `withWriteGuardBanner: true` injetava um banner artificial porque, no
+  // regime anterior, o guard ficava OFF em 127.0.0.1 e nenhum banner real
+  // existiria. Manter o flag agora produziria DOIS nós com o mesmo id — o
+  // real (prepend, idx 0) e o artificial (idx 1) — e o env-banner cairia
+  // depois de ambos. Testamos a interação real, que é a que existe em
+  // runtime.
+  const { document, body, created } = runSandbox({ hostname: '127.0.0.1' });
   const wg = document.getElementById('write-guard-banner');
   const env = document.getElementById('env-banner');
-  assert.ok(wg, 'pré-condição: write-guard banner deve existir no mock');
+  assert.ok(wg, 'pré-condição: o guard ativo deve ter criado o write-guard banner');
   assert.ok(env, 'env-banner deve existir');
   // O env-banner deve estar IMEDIATAMENTE após o write-guard no array
   // de children do body (insertBefore com nextSibling).
@@ -507,12 +507,16 @@ test('runtime: env-banner é inserido relativo ao write-guard banner (sem sobres
 // corretamente quando o corpo fica pronto.
 // -----------------------------------------------------------------------------
 
-test('DEFER-FIX staging: document.body null no load → env-banner NÃO existe ainda, mas fica agendado', () => {
+test('DEFER-FIX restricted: document.body null no load → env-banner NÃO existe ainda, mas fica agendado', () => {
   const { mock } = runDeferredSandbox({ hostname: 'localhost' });
   assert.equal(mock.document.getElementById('env-banner'), null,
     'env-banner não deveria existir antes de DOMContentLoaded');
-  assert.equal(mock.domReadyListeners.length, 1,
-    'deveria haver exatamente 1 listener de DOMContentLoaded agendado para o env-banner');
+  // Depois do cutover o guard ATIVA em localhost, então DOIS banners
+  // adiam para DOMContentLoaded: o write-guard (vermelho, js/supabase-client.js)
+  // e o env-banner (laranja). Antes só o laranja adiava, porque o guard
+  // ficava OFF em localhost.
+  assert.equal(mock.domReadyListeners.length, 2,
+    'deveria haver 2 listeners de DOMContentLoaded: write-guard banner + env-banner');
 });
 
 test('DEFER-FIX staging: env-banner renderiza corretamente após DOMContentLoaded (document.body ficou pronto)', () => {
@@ -520,7 +524,7 @@ test('DEFER-FIX staging: env-banner renderiza corretamente após DOMContentLoade
   const bodyAfter = mock.simulateDomReady();
   const banner = mock.document.getElementById('env-banner');
   assert.ok(banner, 'env-banner deveria existir após DOMContentLoaded');
-  assert.match(banner.textContent, /AMBIENTE STAGING — DADOS DE TESTE/);
+  assert.match(banner.textContent, /AMBIENTE SOMENTE LEITURA — DADOS REAIS DE PRODUÇÃO/);
   assert.ok(bodyAfter.children.includes(banner), 'env-banner deveria estar no body após o render adiado');
 });
 
@@ -585,14 +589,18 @@ test('DEFER-FIX write-guard: document.body null no load (local apontando para pr
   mock.simulateDomReady();
   const banner = mock.document.getElementById('write-guard-banner');
   assert.ok(banner, 'write-guard-banner deveria existir após DOMContentLoaded');
-  assert.match(banner.textContent, /LOCAL APONTANDO PARA PRODUÇÃO/);
+  assert.match(banner.textContent, /BANCO DE PRODUÇÃO EM SOMENTE LEITURA/);
 });
 
-test('DEFER-FIX write-guard: guard inativo (staging normal) → nenhum listener de DOMContentLoaded é agendado para o write-guard-banner', () => {
-  const { mock, sandbox } = runDeferredSandbox({ hostname: 'localhost' });
+test('DEFER-FIX write-guard: guard inativo (produção) → nenhum listener de DOMContentLoaded é agendado', () => {
+  // INTTRACKER-PRODUCTION-CUTOVER-R1: o cenário "guard inativo" deixou de
+  // ser localhost e passou a ser exclusivamente produção. Em produção
+  // NENHUM dos dois banners adia: o write-guard porque o ambiente pode
+  // escrever, e o env-banner porque APP_ENV === 'production'.
+  const { mock, sandbox } = runDeferredSandbox({ hostname: 'inttracker-jade.vercel.app' });
   assert.equal(vm.runInContext('window.RAVATEX_SUPABASE_CLIENT.GUARD_BLOCK_WRITES', sandbox), false);
-  // Só o env-banner deveria ter agendado listener (1); o write-guard não ativa.
-  assert.equal(mock.domReadyListeners.length, 1);
+  assert.equal(mock.domReadyListeners.length, 0,
+    'em produção nenhum banner deve agendar listener de DOMContentLoaded');
 });
 
 // -----------------------------------------------------------------------------
@@ -611,7 +619,7 @@ test('js/supabase-client.js: banner vermelho (write-guard) continua usando top:0
 test('js/supabase-client.js: banner vermelho texto correto', () => {
   const match = supaSrc.match(/_banner\.textContent\s*=\s*'([^']+)'/);
   assert.ok(match, 'textContent do banner vermelho não encontrado');
-  assert.match(match[1], /LOCAL APONTANDO PARA PRODUÇÃO/);
+  assert.match(match[1], /BANCO DE PRODUÇÃO EM SOMENTE LEITURA/);
   assert.match(match[1], /WRITES BLOQUEADOS/);
 });
 

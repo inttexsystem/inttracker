@@ -1,9 +1,18 @@
 // =====================================================================
 // === SUPABASE CLIENT + WRITE-GUARD (Seam A) ===========================
 // Cria o client Supabase real e aplica a guarda de writes que bloqueia
-// insert/update/delete/upsert/rpc quando o app roda em localhost/127.0.0.1
-// e a URL do Supabase selecionada é a de produção (cenário geometricamente
-// impossível em produção, mas mantido como defesa em profundidade).
+// insert/update/delete/upsert/rpc em TODO ambiente sem permissão de
+// escrita — isto é, sempre que APP_CONFIG.writesEnabled !== true.
+//
+// INTTRACKER-PRODUCTION-CUTOVER-R1: não existe banco não-produtivo
+// válido, então localhost e os preview deployments da Vercel resolvem
+// para o MESMO projeto de produção em modo SOMENTE LEITURA (ambiente
+// `restricted` em js/config.js). Esta guarda deixou de ser apenas
+// "defesa em profundidade para um caso impossível" e passou a ser o
+// mecanismo PRIMÁRIO que impede localhost e previews de gravarem em
+// produção. Por isso a condição NÃO é mais `local && url de produção`
+// (que não cobriria um preview *.vercel.app, que não é local): a
+// condição é a ausência de permissão de escrita do ambiente corrente.
 //
 // Carregar via <script src="js/supabase-client.js"></script> no <head>,
 // DEPOIS de js/config.js (que provê SUPABASE_URL / SUPABASE_ANON_KEY /
@@ -30,17 +39,27 @@
     { auth: { persistSession: true, autoRefreshToken: true } }
   );
 
-  // -- 2. Detecção do ambiente de execução (defesa em profundidade) -------
+  // -- 2. Detecção do ambiente de execução --------------------------------
+  // _IS_LOCAL e _IS_PROD_URL continuam publicados para diagnóstico, mas
+  // NÃO decidem mais o bloqueio: quem decide é a permissão de escrita
+  // declarada pelo ambiente em js/config.js. Um preview *.vercel.app tem
+  // _IS_LOCAL === false e mesmo assim precisa ser bloqueado.
   const _LOCAL_HOSTS = new Set(['localhost', '127.0.0.1']);
   const _IS_LOCAL =
     (typeof location !== 'undefined') && _LOCAL_HOSTS.has(location.hostname);
   const _IS_PROD_URL =
     window.SUPABASE_URL === window.APP_ENVIRONMENTS.production.supabaseUrl;
-  const _GUARD_BLOCK_WRITES = _IS_LOCAL && _IS_PROD_URL;
+
+  // Fail-safe: só um `writesEnabled === true` explícito libera escrita.
+  // Qualquer ambiente ausente, malformado ou desconhecido bloqueia.
+  const _WRITES_ENABLED =
+    !!(window.APP_CONFIG && window.APP_CONFIG.writesEnabled === true);
+  const _GUARD_BLOCK_WRITES = !_WRITES_ENABLED;
 
   const _WG_ERROR = () => new Error(
-    'WRITE-GUARD: gravação bloqueada. App local apontando para Supabase produção. ' +
-    'Use a branch work/app-next com URL de staging para testar writes.'
+    'WRITE-GUARD: gravação bloqueada. Este ambiente é SOMENTE LEITURA sobre o ' +
+    'banco de produção (localhost ou preview deployment). Reads e login ' +
+    'funcionam normalmente; escritas só a partir do domínio de produção.'
   );
 
   // -- 3. Banner vermelho do write-guard (topo) ---------------------------
@@ -59,7 +78,7 @@
       'font-family:Inter,system-ui,sans-serif;font-size:13px;font-weight:600;' +
       'box-shadow:var(--rv-shadow-sm);';
     _banner.textContent =
-      'LOCAL APONTANDO PARA PRODUÇÃO — WRITES BLOQUEADOS (insert/update/delete/upsert/rpc). ' +
+      'BANCO DE PRODUÇÃO EM SOMENTE LEITURA — WRITES BLOQUEADOS (insert/update/delete/upsert/rpc). ' +
       'Reads e login funcionam normalmente.';
     document.body.prepend(_banner);
     console.warn('[WRITE-GUARD] write-guard-banner renderizado.');
@@ -68,7 +87,7 @@
 
   if (_GUARD_BLOCK_WRITES) {
     console.warn(
-      '%c[WRITE-GUARD] LOCAL + PRODUÇÃO — writes bloqueados (insert/update/delete/upsert/rpc).',
+      '%c[WRITE-GUARD] SOMENTE LEITURA — writes bloqueados (insert/update/delete/upsert/rpc).',
       'background:#dc2626;color:#fff;padding:2px 6px;border-radius:3px;font-weight:bold;'
     );
     if (typeof document === 'undefined') {
@@ -133,6 +152,7 @@
     guarded: supa,
     IS_LOCAL: _IS_LOCAL,
     IS_PROD_URL: _IS_PROD_URL,
+    WRITES_ENABLED: _WRITES_ENABLED,
     GUARD_BLOCK_WRITES: _GUARD_BLOCK_WRITES,
     LOCAL_HOSTS: _LOCAL_HOSTS,
     renderWriteGuardBanner: _renderWriteGuardBanner,
@@ -143,6 +163,7 @@
   window._LOCAL_HOSTS = _LOCAL_HOSTS;
   window._IS_LOCAL = _IS_LOCAL;
   window._IS_PROD_URL = _IS_PROD_URL;
+  window._WRITES_ENABLED = _WRITES_ENABLED;
   window._GUARD_BLOCK_WRITES = _GUARD_BLOCK_WRITES;
   window._WG_ERROR = _WG_ERROR;
   window._wrapQueryBuilder = _wrapQueryBuilder;

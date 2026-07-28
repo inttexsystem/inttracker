@@ -3,18 +3,26 @@
 // O que este teste garante:
 //
 //   1. Detecção de ambiente por hostname:
-//      - inttracker-jade.vercel.app / inttracker-git-main-inttex.vercel.app → production
-//      - localhost / 127.0.0.1 / preview *.vercel.app / unknown → staging
+//      - inttracker-jade.vercel.app / inttracker-git-dev-inttex.vercel.app → production
+//      - localhost / 127.0.0.1 / preview *.vercel.app / unknown → restricted
 //
-//   2. Write-guard (defesa em profundidade):
-//      - Ativa SÓ se APP_ENV === 'production' E hostname é local
+//   2. Write-guard (mecanismo PRIMÁRIO de segurança após o cutover):
+//      - Ativa em TODO ambiente sem writesEnabled — inclusive previews,
+//        que não são locais e antes escapavam da condição antiga
+//        (_IS_LOCAL && _IS_PROD_URL)
 //      - Bloqueia insert/update/delete/upsert/rpc com erro "WRITE-GUARD"
 //      - Preserva select e auth.getSession
 //
 //   3. Refs e chaves:
-//      - produção usa gqmpsxkxynrjvidfmojk
-//      - staging usa ucrjtfswnfdlxwtmxnoo
+//      - produção usa ucrjtfswnfdlxwtmxnoo
+//      - gqmpsxkxynrjvidfmojk foi retirado e é verificado por AUSÊNCIA
 //      - service_role não aparece no index.html
+//
+// INTTRACKER-PRODUCTION-CUTOVER-R1 inverteu o invariante central deste
+// arquivo. Antes: localhost ia para um banco de staging separado, então
+// escrever em localhost era seguro e o guard ficava OFF. Agora não existe
+// banco não-produtivo válido, localhost e previews leem o banco REAL, e o
+// guard fica ON exatamente nesses ambientes.
 //
 // Estratégia de teste:
 //   - Lê o <script> inline do index.html servido por http.server
@@ -38,8 +46,8 @@ const appSource = require('./_app-source.js');
 const PORT = 8765;
 const HOST = '127.0.0.1';
 
-const PROD_REF = 'gqmpsxkxynrjvidfmojk';
-const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
+const PROD_REF    = 'ucrjtfswnfdlxwtmxnoo';
+const RETIRED_REF = 'gqmpsxkxynrjvidfmojk';
 
 function fetchIndexHtml() {
   return new Promise((resolve, reject) => {
@@ -146,6 +154,7 @@ function runGuardInSandbox({ hostname, forceLocal = true }) {
         SUPABASE_URL: vm.runInContext('SUPABASE_URL', sandbox),
         IS_PROD_URL: vm.runInContext('_IS_PROD_URL', sandbox),
         IS_LOCAL: vm.runInContext('_IS_LOCAL', sandbox),
+        WRITES_ENABLED: vm.runInContext('_WRITES_ENABLED', sandbox),
         GUARD_BLOCK_WRITES: vm.runInContext('_GUARD_BLOCK_WRITES', sandbox),
       };
       resolve({ sandbox, fakeSupa, inline, env });
@@ -220,77 +229,114 @@ test('script inline NÃO contém mais o client Supabase nem o write-guard nem o 
   assert.match(inline, /=== BOOT \(Seam C\)/);
 });
 
-test('hostname inttracker-jade.vercel.app → production (ref gqmpsxkxynrjvidfmojk)', async () => {
+test('hostname inttracker-jade.vercel.app → production (ref ucrjtfswnfdlxwtmxnoo)', async () => {
   const { env } = await runGuardInSandbox({ hostname: 'inttracker-jade.vercel.app' });
   assert.equal(env.APP_ENV, 'production');
   assert.ok(env.SUPABASE_URL.includes(PROD_REF), 'SUPABASE_URL não tem ref de produção');
   assert.equal(env.IS_PROD_URL, true);
   assert.equal(env.IS_LOCAL, false);
+  assert.equal(env.WRITES_ENABLED, true);
   assert.equal(env.GUARD_BLOCK_WRITES, false, 'guard não deve ativar em produção real');
 });
 
-test('hostname inttracker-git-main-inttex.vercel.app → production (ref gqmpsxkxynrjvidfmojk)', async () => {
-  const { env } = await runGuardInSandbox({ hostname: 'inttracker-git-main-inttex.vercel.app' });
+test('hostname inttracker-git-dev-inttex.vercel.app → production (ref ucrjtfswnfdlxwtmxnoo)', async () => {
+  const { env } = await runGuardInSandbox({ hostname: 'inttracker-git-dev-inttex.vercel.app' });
   assert.equal(env.APP_ENV, 'production');
   assert.ok(env.SUPABASE_URL.includes(PROD_REF), 'SUPABASE_URL não tem ref de produção');
   assert.equal(env.IS_PROD_URL, true);
   assert.equal(env.IS_LOCAL, false);
+  assert.equal(env.WRITES_ENABLED, true);
   assert.equal(env.GUARD_BLOCK_WRITES, false, 'guard não deve ativar em produção real');
 });
 
-test('hostname localhost → staging (ref ucrjtfswnfdlxwtmxnoo)', async () => {
+// `main` deixou de ser a branch de produção — deploy de main é preview.
+test('hostname inttracker-git-main-inttex.vercel.app → restricted, writes BLOQUEADOS', async () => {
+  const { env } = await runGuardInSandbox({ hostname: 'inttracker-git-main-inttex.vercel.app' });
+  assert.equal(env.APP_ENV, 'restricted');
+  assert.equal(env.WRITES_ENABLED, false);
+  assert.equal(env.GUARD_BLOCK_WRITES, true);
+});
+
+test('hostname localhost → restricted, writes BLOQUEADOS', async () => {
   const { env } = await runGuardInSandbox({ hostname: 'localhost' });
-  assert.equal(env.APP_ENV, 'staging');
-  assert.ok(env.SUPABASE_URL.includes(STAGING_REF), 'SUPABASE_URL não tem ref de staging');
-  assert.equal(env.IS_PROD_URL, false);
+  assert.equal(env.APP_ENV, 'restricted');
+  assert.ok(env.SUPABASE_URL.includes(PROD_REF), 'restricted lê o mesmo banco de produção');
+  assert.equal(env.IS_PROD_URL, true);
   assert.equal(env.IS_LOCAL, true);
-  assert.equal(env.GUARD_BLOCK_WRITES, false, 'guard não deve ativar em localhost (vai para staging)');
+  assert.equal(env.WRITES_ENABLED, false);
+  assert.equal(env.GUARD_BLOCK_WRITES, true, 'guard DEVE ativar em localhost');
 });
 
-test('hostname 127.0.0.1 → staging', async () => {
+test('hostname 127.0.0.1 → restricted, writes BLOQUEADOS', async () => {
   const { env } = await runGuardInSandbox({ hostname: '127.0.0.1' });
-  assert.equal(env.APP_ENV, 'staging');
-  assert.ok(env.SUPABASE_URL.includes(STAGING_REF));
+  assert.equal(env.APP_ENV, 'restricted');
+  assert.ok(env.SUPABASE_URL.includes(PROD_REF));
   assert.equal(env.IS_LOCAL, true);
-  assert.equal(env.GUARD_BLOCK_WRITES, false);
+  assert.equal(env.GUARD_BLOCK_WRITES, true);
 });
 
-test('hostname ravatexapps-dotcom.github.io → staging', async () => {
+test('hostname ravatexapps-dotcom.github.io → restricted, writes BLOQUEADOS', async () => {
   const { env } = await runGuardInSandbox({ hostname: 'ravatexapps-dotcom.github.io' });
-  assert.equal(env.APP_ENV, 'staging');
-  assert.ok(env.SUPABASE_URL.includes(STAGING_REF));
-  assert.equal(env.GUARD_BLOCK_WRITES, false);
+  assert.equal(env.APP_ENV, 'restricted');
+  assert.ok(env.SUPABASE_URL.includes(PROD_REF));
+  assert.equal(env.GUARD_BLOCK_WRITES, true);
 });
 
-test('hostname desconhecido → staging (fallback seguro)', async () => {
+test('hostname desconhecido → restricted, writes BLOQUEADOS (fallback seguro)', async () => {
   const { env } = await runGuardInSandbox({ hostname: 'example.com' });
-  assert.equal(env.APP_ENV, 'staging');
-  assert.ok(env.SUPABASE_URL.includes(STAGING_REF));
-  assert.equal(env.GUARD_BLOCK_WRITES, false);
+  assert.equal(env.APP_ENV, 'restricted');
+  assert.ok(env.SUPABASE_URL.includes(PROD_REF));
+  assert.equal(env.GUARD_BLOCK_WRITES, true);
 });
 
-test('hostname preview *.vercel.app → staging (fail-safe, não é domínio de produção exato)', async () => {
+// A regressão que o cutover tornou possível: um preview NÃO é local, então
+// a condição antiga (_IS_LOCAL && _IS_PROD_URL) o deixaria escrever em
+// produção. Este é o teste que prova que isso não acontece.
+test('hostname preview *.vercel.app → restricted, writes BLOQUEADOS mesmo NÃO sendo local', async () => {
   const { env } = await runGuardInSandbox({ hostname: 'random-preview.vercel.app' });
-  assert.equal(env.APP_ENV, 'staging');
-  assert.ok(env.SUPABASE_URL.includes(STAGING_REF));
+  assert.equal(env.APP_ENV, 'restricted');
+  assert.ok(env.SUPABASE_URL.includes(PROD_REF));
+  assert.equal(env.IS_LOCAL, false, 'um preview não é local — é exatamente o caso que a condição antiga não cobria');
+  assert.equal(env.IS_PROD_URL, true);
+  assert.equal(env.GUARD_BLOCK_WRITES, true, 'preview DEVE ser bloqueado');
 });
 
-test('em staging: insert/update/delete/upsert/rpc NÃO são bloqueados', async () => {
+test('em restricted (localhost): insert/update/delete/upsert/rpc SÃO bloqueados', async () => {
   const { sandbox, fakeSupa } = await runGuardInSandbox({ hostname: 'localhost' });
   fakeSupa._calls.length = 0;
   for (const op of ['insert', 'update', 'delete', 'upsert']) {
     const qb = vm.runInContext(`supa.from('qualquer')`, sandbox);
-    const res = await qb[op]({ foo: 'bar' });
-    assert.equal(res && res.error, null, `${op} não deveria bloquear em staging`);
+    await assert.rejects(
+      () => qb[op]({ foo: 'bar' }),
+      /WRITE-GUARD/,
+      `${op} deveria ser bloqueado em restricted`
+    );
   }
-  const rpcRes = await vm.runInContext(`supa.rpc('qualquer', {})`, sandbox);
-  assert.equal(rpcRes && rpcRes.error, null, 'rpc não deveria bloquear em staging');
-  // verificar que pelo menos 1 insert chegou no fake client
-  const insertCalls = fakeSupa._calls.filter(c => c.op === 'insert');
-  assert.ok(insertCalls.length >= 1, 'insert não chegou no fake client em staging');
+  await assert.rejects(
+    () => vm.runInContext(`supa.rpc('qualquer', {})`, sandbox),
+    /WRITE-GUARD/,
+    'rpc deveria ser bloqueado em restricted'
+  );
+  // E, o que mais importa: nenhuma escrita chegou ao client real.
+  const writeCalls = fakeSupa._calls.filter(
+    c => ['insert', 'update', 'delete', 'upsert', 'rpc'].includes(c.op));
+  assert.equal(writeCalls.length, 0,
+    'nenhuma escrita pode alcançar o client Supabase em restricted');
 });
 
-test('em staging: select e auth.getSession funcionam', async () => {
+test('em restricted (preview): writes SÃO bloqueados e nada alcança o client', async () => {
+  const { sandbox, fakeSupa } = await runGuardInSandbox({ hostname: 'random-preview.vercel.app' });
+  fakeSupa._calls.length = 0;
+  const qb = vm.runInContext(`supa.from('pedidos')`, sandbox);
+  await assert.rejects(() => qb.insert({ foo: 'bar' }), /WRITE-GUARD/);
+  await assert.rejects(() => vm.runInContext(`supa.rpc('qualquer', {})`, sandbox), /WRITE-GUARD/);
+  const writeCalls = fakeSupa._calls.filter(
+    c => ['insert', 'update', 'delete', 'upsert', 'rpc'].includes(c.op));
+  assert.equal(writeCalls.length, 0,
+    'um preview não pode alcançar o client Supabase para escrita');
+});
+
+test('em restricted: select e auth.getSession funcionam', async () => {
   const { sandbox, fakeSupa } = await runGuardInSandbox({ hostname: 'localhost' });
   fakeSupa._calls.length = 0;
   const sel = vm.runInContext(`supa.from('usuarios')`, sandbox);
@@ -312,49 +358,62 @@ test('em produção (inttracker-jade.vercel.app): writes NÃO são bloqueados', 
   assert.ok(insertCalls.length >= 1, 'insert não chegou no fake client em produção real');
 });
 
-// Teste de defesa em profundidade: o guard só ativa se IS_LOCAL && IS_PROD_URL.
-// A partir da CONFIG-STAGING-A, isso é geometricamente impossível: localhost
-// sempre seleciona staging (cuja URL difere de produção). Por design, não há
-// caminho localhost → produção. Este teste documenta que:
-//   - Em produção real: APP_ENV=production, IS_LOCAL=false, guard off
-//   - Em localhost: APP_ENV=staging, IS_PROD_URL=false, guard off
-//   - Os dois nunca podem ser true simultaneamente
-test('defesa em profundidade: IS_LOCAL e IS_PROD_URL nunca são ambos true', async () => {
+// INVARIANTE CENTRAL DO CUTOVER — substitui o antigo "IS_LOCAL e
+// IS_PROD_URL nunca são ambos true".
+//
+// Aquele teste dependia de existir um banco de staging separado, de modo
+// que localhost nunca resolvesse para a URL de produção. Isso deixou de
+// ser verdade: agora TODO ambiente resolve para a URL de produção, e em
+// localhost os dois flags SÃO ambos true. O invariante que sobrevive ao
+// cutover não é geométrico, é de permissão:
+//
+//   escrever é possível se e somente se o ambiente é production.
+test('invariante: writes liberados se e somente se APP_ENV === production', async () => {
   const checks = [
-    { hostname: 'localhost' },
-    { hostname: '127.0.0.1' },
-    { hostname: 'inttracker-jade.vercel.app' },
-    { hostname: 'inttracker-git-main-inttex.vercel.app' },
-    { hostname: 'random-preview.vercel.app' },
-    { hostname: 'ravatexapps-dotcom.github.io' },
-    { hostname: 'example.com' },
+    { hostname: 'inttracker-jade.vercel.app',              expectProduction: true  },
+    { hostname: 'inttracker-git-dev-inttex.vercel.app',    expectProduction: true  },
+    { hostname: 'inttracker-git-main-inttex.vercel.app',   expectProduction: false },
+    { hostname: 'localhost',                                expectProduction: false },
+    { hostname: '127.0.0.1',                                expectProduction: false },
+    { hostname: 'random-preview.vercel.app',                expectProduction: false },
+    { hostname: 'ravatexapps-dotcom.github.io',             expectProduction: false },
+    { hostname: 'example.com',                              expectProduction: false },
+    { hostname: '',                                         expectProduction: false },
   ];
-  for (const { hostname } of checks) {
+  for (const { hostname, expectProduction } of checks) {
     const { env } = await runGuardInSandbox({ hostname });
-    const bothOn = env.IS_LOCAL && env.IS_PROD_URL;
-    assert.equal(bothOn, false, `IS_LOCAL && IS_PROD_URL ambos true em ${hostname}`);
+    assert.equal(env.APP_ENV === 'production', expectProduction, `APP_ENV errado em "${hostname}"`);
+    assert.equal(env.WRITES_ENABLED, expectProduction, `WRITES_ENABLED errado em "${hostname}"`);
+    assert.equal(env.GUARD_BLOCK_WRITES, !expectProduction, `guard errado em "${hostname}"`);
+    // Independente do ambiente, o banco é sempre o de produção.
+    assert.ok(env.SUPABASE_URL.includes(PROD_REF), `SUPABASE_URL errado em "${hostname}"`);
   }
 });
 
-test('produção ref gqmpsxkxynrjvidfmojk aparece em js/config.js (production)', async () => {
+test('produção ref ucrjtfswnfdlxwtmxnoo aparece em js/config.js (production)', async () => {
   // A partir da CONFIG-MODULE-A, o ref vive em js/config.js, não mais
   // no script inline de index.html. Aqui validamos que o ref está em
   // config.js E sumiu do body do index.html.
   const { body } = await fetchIndexHtml();
   const cfgSrc = fs.readFileSync(path.join(ROOT, 'js', 'config.js'), 'utf8');
-  assert.match(cfgSrc, /supabaseUrl:\s*'https:\/\/gqmpsxkxynrjvidfmojk\.supabase\.co'/);
+  assert.match(cfgSrc, new RegExp(
+    `PRODUCTION_SUPABASE_URL\\s*=\\s*'https://${PROD_REF}\\.supabase\\.co'`));
   // O ref NÃO deve mais aparecer no body do index.html (que agora só
   // carrega config via <script src> e referencia SUPABASE_URL como global).
-  assert.equal(body.includes('gqmpsxkxynrjvidfmojk'), false,
+  assert.equal(body.includes(PROD_REF), false,
     'ref de produção ainda aparece no body de index.html — config não foi totalmente extraída');
 });
 
-test('staging ref ucrjtfswnfdlxwtmxnoo aparece em js/config.js (staging)', async () => {
+test('o projeto retirado gqmpsxkxynrjvidfmojk não aparece em js/config.js nem no index.html', async () => {
   const { body } = await fetchIndexHtml();
   const cfgSrc = fs.readFileSync(path.join(ROOT, 'js', 'config.js'), 'utf8');
-  assert.match(cfgSrc, /supabaseUrl:\s*'https:\/\/ucrjtfswnfdlxwtmxnoo\.supabase\.co'/);
-  assert.equal(body.includes('ucrjtfswnfdlxwtmxnoo'), false,
-    'ref de staging ainda aparece no body de index.html — config não foi totalmente extraída');
+  const cfgCode = cfgSrc
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+  assert.equal(cfgCode.includes(RETIRED_REF), false,
+    `${RETIRED_REF} não pode reaparecer em código de js/config.js`);
+  assert.equal(body.includes(RETIRED_REF), false,
+    `${RETIRED_REF} não pode aparecer no body de index.html`);
 });
 
 test('index.html: nenhum service_role presente', async () => {
@@ -383,7 +442,15 @@ test('STAGING-BANNER-BOTTOM: env-banner existe em js/environment-banner.js com t
   const expr = match[1].trim();
   // O textContent agora é uma constante (ENV_BANNER_TEXT), não mais um literal.
   // Validamos que a constante tem o texto correto.
-  assert.match(envBannerSrc, /ENV_BANNER_TEXT\s*=\s*\n?\s*'AMBIENTE STAGING — DADOS DE TESTE\. Não usar para operações reais\.'/);
+  assert.match(envBannerSrc, /ENV_BANNER_TEXT\s*=\s*\n?\s*'AMBIENTE SOMENTE LEITURA — DADOS REAIS DE PRODUÇÃO\. Gravações bloqueadas\.'/);
+  // O texto anterior dizia "DADOS DE TESTE", o que após o cutover seria
+  // factualmente falso: o ambiente não-produtivo lê dados REAIS. A frase
+  // sobrevive apenas no comentário que explica a troca, nunca em código.
+  const envBannerCode = envBannerSrc
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+  assert.equal(/DADOS DE TESTE/.test(envBannerCode), false,
+    'o env-banner não pode mais afirmar que os dados são de teste');
 });
 
 test('STAGING-BANNER-BOTTOM: env-banner usa bottom:0 (não top:0)', async () => {

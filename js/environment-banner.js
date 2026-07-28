@@ -2,7 +2,7 @@
 // === ENVIRONMENT BANNER (Seam A UI) ==================================
 // Banner laranja/amarelo fixo no RODAPÉ da janela, visível apenas
 // quando APP_ENV !== 'production'. Não impede login; é um sinal
-// visual para o operador de que está em staging.
+// visual para o operador de que o ambiente não é o de produção.
 //
 // Carregar via <script src="js/environment-banner.js"></script> no
 // <head>, DEPOIS de js/config.js (que provê APP_ENV, APP_CONFIG) e
@@ -11,8 +11,17 @@
 //
 // Comportamento preservado do script inline original:
 //   - aparece só quando APP_ENV !== 'production';
-//   - texto exato: 'AMBIENTE STAGING — DADOS DE TESTE. Não usar para
-//     operações reais.';
+//   - texto exato: 'AMBIENTE SOMENTE LEITURA — DADOS REAIS DE PRODUÇÃO.
+//     Gravações bloqueadas.';
+//
+// INTTRACKER-PRODUCTION-CUTOVER-R1: o texto anterior era 'AMBIENTE
+// STAGING — DADOS DE TESTE. Não usar para operações reais.' Depois do
+// cutover NÃO existe mais banco de staging: o ambiente não-produtivo lê
+// o banco REAL de produção em modo somente leitura. Dizer "dados de
+// teste" ali passou a ser factualmente falso e perigoso — um operador
+// poderia acreditar que está olhando dados descartáveis. O texto agora
+// declara as duas coisas que importam: os dados são reais e a escrita
+// está bloqueada.
 //   - id: 'env-banner';
 //   - role: 'status';
 //   - position: fixed; bottom: 0; left: 0; right: 0; z-index: 99998;
@@ -36,7 +45,7 @@
 
   const ENV_BANNER_ID = 'env-banner';
   const ENV_BANNER_TEXT =
-    'AMBIENTE STAGING — DADOS DE TESTE. Não usar para operações reais.';
+    'AMBIENTE SOMENTE LEITURA — DADOS REAIS DE PRODUÇÃO. Gravações bloqueadas.';
 
   // Cria e insere o elemento do banner no DOM. Assume document.body
   // já existe — chamado só depois dessa checagem (imediata ou via

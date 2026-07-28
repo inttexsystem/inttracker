@@ -10,10 +10,13 @@
 //      SUPABASE_URL, SUPABASE_ANON_KEY;
 //   4. detectAppEnvironment retorna 'production' apenas para os domínios
 //      de produção Vercel exatos (inttracker-jade.vercel.app,
-//      inttracker-git-main-inttex.vercel.app);
-//   5. detectAppEnvironment retorna 'staging' para qualquer outro host
+//      inttracker-git-dev-inttex.vercel.app);
+//   5. detectAppEnvironment retorna 'restricted' para qualquer outro host
 //      (localhost, 127.0.0.1, previews *.vercel.app, example.com, vazio);
-//   6. refs canônicos de produção e staging aparecem no módulo;
+//   6. o ref canônico de produção aparece no módulo, e o projeto
+//      retirado (gqmpsxkxynrjvidfmojk) NÃO aparece em lugar nenhum;
+//   6b. só `production` tem writesEnabled === true; `restricted` aponta
+//      para o MESMO banco porém sem permissão de escrita;
 //   7. service_role e password literal NÃO aparecem em lugar nenhum;
 //   8. em runtime simulado, js/config.js cria window.RAVATEX_CONFIG
 //      e também expõe os globais legados para o script inline.
@@ -31,8 +34,11 @@ const ROOT  = path.resolve(__dirname, '..');
 const INDEX = path.join(ROOT, 'index.html');
 const CFG   = path.join(ROOT, 'js', 'config.js');
 
-const PROD_REF    = 'gqmpsxkxynrjvidfmojk';
-const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
+// INTTRACKER-PRODUCTION-CUTOVER-R1: ucrjtfswnfdlxwtmxnoo é o ÚNICO
+// projeto Supabase com papel de runtime. gqmpsxkxynrjvidfmojk foi
+// retirado de toda a configuração ativa e é verificado por ausência.
+const PROD_REF     = 'ucrjtfswnfdlxwtmxnoo';
+const RETIRED_REF  = 'gqmpsxkxynrjvidfmojk';
 
 const cfgSrc     = fs.readFileSync(CFG, 'utf8');
 const indexSrc   = fs.readFileSync(INDEX, 'utf8');
@@ -147,18 +153,34 @@ test('as definições de config vivem em js/config.js (extraídas do inline)', (
   assert.match(noComments, /\bconst\s+APP_CONFIG\s*=/, 'APP_CONFIG deve viver em js/config.js');
   assert.match(noComments, /\bconst\s+SUPABASE_URL\s*=/, 'SUPABASE_URL deve viver em js/config.js');
   assert.match(noComments, /\bconst\s+SUPABASE_ANON_KEY\s*=/, 'SUPABASE_ANON_KEY deve viver em js/config.js');
-  assert.ok(cfgSrc.includes(PROD_REF) && cfgSrc.includes(STAGING_REF),
-    'refs canônicos de produção/staging devem viver em js/config.js');
+  assert.ok(cfgSrc.includes(PROD_REF),
+    'o ref canônico de produção deve viver em js/config.js');
 });
 
-test('js/config.js: produção ref aparece em production config', () => {
+test('js/config.js: o ref de produção é o único URL Supabase do módulo', () => {
   assert.match(cfgSrc, new RegExp(
-    `supabaseUrl:\\s*'https://${PROD_REF}\\.supabase\\.co'`));
+    `PRODUCTION_SUPABASE_URL\\s*=\\s*'https://${PROD_REF}\\.supabase\\.co'`));
+  const urls = new Set(cfgSrc.match(/https:\/\/[a-z0-9]+\.supabase\.co/g) || []);
+  assert.deepEqual([...urls], [`https://${PROD_REF}.supabase.co`],
+    'js/config.js deve referenciar exatamente um projeto Supabase');
 });
 
-test('js/config.js: staging ref aparece em staging config', () => {
-  assert.match(cfgSrc, new RegExp(
-    `supabaseUrl:\\s*'https://${STAGING_REF}\\.supabase\\.co'`));
+// Guarda de RETIRADA: o projeto stale não pode voltar a aparecer em
+// nenhum papel — nem produção, nem staging, nem fallback.
+// O ref retirado permanece citado APENAS no comentário de cabeçalho, que
+// explica por que ele foi retirado. O que a guarda proíbe é que ele volte
+// a aparecer em CÓDIGO ativo (URL, chave, mapa de ambientes, fallback).
+test('js/config.js: o projeto retirado gqmpsxkxynrjvidfmojk NÃO aparece em código ativo', () => {
+  assert.equal(stripComments(cfgSrc).includes(RETIRED_REF), false,
+    `${RETIRED_REF} foi retirado do runtime e não pode reaparecer em código de js/config.js`);
+});
+
+test('js/config.js: production tem writesEnabled true e restricted tem false', () => {
+  const noComments = stripComments(cfgSrc);
+  assert.match(noComments, /production:\s*\{[\s\S]*?writesEnabled:\s*true/,
+    'production deve declarar writesEnabled: true');
+  assert.match(noComments, /restricted:\s*\{[\s\S]*?writesEnabled:\s*false/,
+    'restricted deve declarar writesEnabled: false');
 });
 
 test('js/config.js: nenhum service_role presente', () => {
@@ -226,39 +248,62 @@ test('runtime: detectAppEnvironment("inttracker-jade.vercel.app") → production
   assert.ok(vm.runInContext('SUPABASE_URL', sb).includes(PROD_REF));
 });
 
-test('runtime: detectAppEnvironment("inttracker-git-main-inttex.vercel.app") → production', () => {
-  const sb = runConfigInSandbox({ hostname: 'inttracker-git-main-inttex.vercel.app' });
+test('runtime: detectAppEnvironment("inttracker-git-dev-inttex.vercel.app") → production', () => {
+  // A branch de produção do projeto Vercel é `dev`, então este é o alias
+  // de branch de produção.
+  const sb = runConfigInSandbox({ hostname: 'inttracker-git-dev-inttex.vercel.app' });
   assert.equal(vm.runInContext('APP_ENV', sb), 'production');
   assert.ok(vm.runInContext('SUPABASE_URL', sb).includes(PROD_REF));
 });
 
-test('runtime: detectAppEnvironment("random-preview.vercel.app") → staging (preview deploy, fail-safe)', () => {
+// REGRESSÃO DE CUTOVER: `main` deixou de ser a branch de produção. Um
+// deploy de `main` agora é PREVIEW e não pode resolver para production.
+test('runtime: detectAppEnvironment("inttracker-git-main-inttex.vercel.app") → restricted', () => {
+  const sb = runConfigInSandbox({ hostname: 'inttracker-git-main-inttex.vercel.app' });
+  assert.equal(vm.runInContext('APP_ENV', sb), 'restricted');
+  assert.equal(vm.runInContext('APP_CONFIG.writesEnabled', sb), false);
+});
+
+test('runtime: detectAppEnvironment("random-preview.vercel.app") → restricted (preview deploy, fail-safe)', () => {
   // Match é exato contra os domínios de produção — qualquer outro *.vercel.app
-  // (incluindo preview deployments de PR/branch) cai em staging por padrão,
+  // (incluindo preview deployments de PR/branch) cai em restricted por padrão,
   // para nunca escrever em produção a partir de um preview não revisado.
   const sb = runConfigInSandbox({ hostname: 'random-preview.vercel.app' });
-  assert.equal(vm.runInContext('APP_ENV', sb), 'staging');
+  assert.equal(vm.runInContext('APP_ENV', sb), 'restricted');
+  assert.equal(vm.runInContext('APP_CONFIG.writesEnabled', sb), false);
 });
 
-test('runtime: detectAppEnvironment("localhost") → staging', () => {
+test('runtime: detectAppEnvironment("localhost") → restricted', () => {
   const sb = runConfigInSandbox({ hostname: 'localhost' });
-  assert.equal(vm.runInContext('APP_ENV', sb), 'staging');
-  assert.ok(vm.runInContext('SUPABASE_URL', sb).includes(STAGING_REF));
+  assert.equal(vm.runInContext('APP_ENV', sb), 'restricted');
+  assert.ok(vm.runInContext('SUPABASE_URL', sb).includes(PROD_REF));
+  assert.equal(vm.runInContext('APP_CONFIG.writesEnabled', sb), false);
 });
 
-test('runtime: detectAppEnvironment("127.0.0.1") → staging', () => {
+test('runtime: detectAppEnvironment("127.0.0.1") → restricted', () => {
   const sb = runConfigInSandbox({ hostname: '127.0.0.1' });
-  assert.equal(vm.runInContext('APP_ENV', sb), 'staging');
+  assert.equal(vm.runInContext('APP_ENV', sb), 'restricted');
+  assert.equal(vm.runInContext('APP_CONFIG.writesEnabled', sb), false);
 });
 
-test('runtime: detectAppEnvironment("ravatexapps-dotcom.github.io") → staging', () => {
+test('runtime: detectAppEnvironment("ravatexapps-dotcom.github.io") → restricted', () => {
   const sb = runConfigInSandbox({ hostname: 'ravatexapps-dotcom.github.io' });
-  assert.equal(vm.runInContext('APP_ENV', sb), 'staging');
+  assert.equal(vm.runInContext('APP_ENV', sb), 'restricted');
 });
 
-test('runtime: detectAppEnvironment("example.com") → staging (fallback seguro)', () => {
+test('runtime: detectAppEnvironment("example.com") → restricted (fallback seguro)', () => {
   const sb = runConfigInSandbox({ hostname: 'example.com' });
-  assert.equal(vm.runInContext('APP_ENV', sb), 'staging');
+  assert.equal(vm.runInContext('APP_ENV', sb), 'restricted');
+});
+
+// O ponto central do cutover: os dois ambientes apontam para o MESMO
+// banco, e a única diferença é permissão de escrita.
+test('runtime: production e restricted compartilham o banco; só production escreve', () => {
+  const prod = runConfigInSandbox({ hostname: 'inttracker-jade.vercel.app' });
+  const rest = runConfigInSandbox({ hostname: 'localhost' });
+  assert.equal(vm.runInContext('SUPABASE_URL', prod), vm.runInContext('SUPABASE_URL', rest));
+  assert.equal(vm.runInContext('APP_CONFIG.writesEnabled', prod), true);
+  assert.equal(vm.runInContext('APP_CONFIG.writesEnabled', rest), false);
 });
 
 test('runtime: detectAppEnvironment em MAIÚSCULAS também funciona ("Inttracker-Jade.VERCEL.app")', () => {
@@ -268,15 +313,15 @@ test('runtime: detectAppEnvironment em MAIÚSCULAS também funciona ("Inttracker
   assert.equal(vm.runInContext('APP_ENV', sb), 'production');
 });
 
-test('runtime: detectAppEnvironment(undefined) → staging (sem hostname)', () => {
+test('runtime: detectAppEnvironment(undefined) → restricted (sem hostname)', () => {
   const sb = runConfigInSandbox({ hostname: undefined });
-  assert.equal(vm.runInContext('APP_ENV', sb), 'staging');
+  assert.equal(vm.runInContext('APP_ENV', sb), 'restricted');
 });
 
 test('runtime: APP_CONFIG.isProduction bate com APP_ENV', () => {
   for (const [host, env] of [
     ['inttracker-jade.vercel.app', 'production'],
-    ['localhost', 'staging'],
+    ['localhost', 'restricted'],
   ]) {
     const sb = runConfigInSandbox({ hostname: host });
     assert.equal(vm.runInContext('APP_ENV', sb), env);
@@ -292,18 +337,35 @@ test('runtime: SUPABASE_URL em produção contém o ref de produção', () => {
   assert.ok(url.endsWith('.supabase.co'));
 });
 
-test('runtime: SUPABASE_URL em staging contém o ref de staging', () => {
+test('runtime: SUPABASE_URL em restricted contém o mesmo ref de produção', () => {
   const sb = runConfigInSandbox({ hostname: 'localhost' });
   const url = vm.runInContext('SUPABASE_URL', sb);
   assert.ok(url.startsWith('https://'));
-  assert.ok(url.includes(STAGING_REF));
+  assert.ok(url.includes(PROD_REF));
   assert.ok(url.endsWith('.supabase.co'));
+});
+
+test('runtime: o projeto retirado não é alcançável por nenhum hostname', () => {
+  for (const hostname of [
+    'inttracker-jade.vercel.app',
+    'inttracker-git-dev-inttex.vercel.app',
+    'inttracker-git-main-inttex.vercel.app',
+    'random-preview.vercel.app',
+    'localhost',
+    '127.0.0.1',
+    'example.com',
+    undefined,
+  ]) {
+    const sb = runConfigInSandbox({ hostname });
+    assert.equal(vm.runInContext('SUPABASE_URL', sb).includes(RETIRED_REF), false,
+      `hostname ${String(hostname)} resolveu para o projeto retirado`);
+  }
 });
 
 test('runtime: SUPABASE_ANON_KEY é JWT com 3 segmentos (anon, não service_role)', () => {
   // service_role começa com eyJ...mas tem `role: "service_role"` no payload.
   // Aqui validamos que (a) tem 3 segmentos e (b) não menciona service_role.
-  for (const host of ['inttracker-jade.vercel.app', 'localhost']) {
+  for (const host of ['inttracker-jade.vercel.app', 'localhost']) { // production + restricted
     const sb = runConfigInSandbox({ hostname: host });
     const key = vm.runInContext('SUPABASE_ANON_KEY', sb);
     assert.equal(typeof key, 'string');

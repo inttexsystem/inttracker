@@ -221,7 +221,7 @@ test('o env-banner laranja foi extraído para js/environment-banner.js (não est
   assert.ok(fs.existsSync(EB), 'js/environment-banner.js deve existir');
   const ebSrc = fs.readFileSync(EB, 'utf8');
   assert.match(ebSrc, /_envBanner/, '_envBanner deve viver em js/environment-banner.js');
-  assert.match(ebSrc, /AMBIENTE STAGING — DADOS DE TESTE/, 'o texto do env-banner deve viver em js/environment-banner.js');
+  assert.match(ebSrc, /AMBIENTE SOMENTE LEITURA — DADOS REAIS DE PRODUÇÃO/, 'o texto do env-banner deve viver em js/environment-banner.js');
 });
 
 test('js/supabase-client.js: produção ref aparece em production config (via config.js)', () => {
@@ -275,7 +275,7 @@ test('js/supabase-client.js: banner vermelho (write-guard) usa top:0 e position:
 test('js/supabase-client.js: banner vermelho texto correto', () => {
   const match = supaSrc.match(/_banner\.textContent\s*=\s*'([^']+)'/);
   assert.ok(match, 'textContent do banner vermelho não encontrado');
-  assert.match(match[1], /LOCAL APONTANDO PARA PRODUÇÃO/);
+  assert.match(match[1], /BANCO DE PRODUÇÃO EM SOMENTE LEITURA/);
   assert.match(match[1], /WRITES BLOQUEADOS/);
 });
 
@@ -327,28 +327,48 @@ test('runtime: globais legados _LOCAL_HOSTS / _IS_LOCAL / _IS_PROD_URL / _GUARD_
 // 4. Comportamento do write-guard
 // -----------------------------------------------------------------------------
 
-test('staging: localhost → guard OFF, writes passam', async () => {
+// INTTRACKER-PRODUCTION-CUTOVER-R1: estes dois testes eram "guard OFF,
+// writes passam", porque localhost apontava para um banco de staging
+// separado. Não existe mais banco de staging — localhost lê o banco REAL
+// de produção, então o guard tem de estar ON e a escrita tem de morrer
+// antes de alcançar o client.
+test('restricted: localhost → guard ON, writes bloqueados', async () => {
   const { sandbox, fakeSupa } = runSandbox({ hostname: 'localhost' });
-  assert.equal(vm.runInContext('window._GUARD_BLOCK_WRITES', sandbox), false);
+  assert.equal(vm.runInContext('window._GUARD_BLOCK_WRITES', sandbox), true);
+  assert.equal(vm.runInContext('window._WRITES_ENABLED', sandbox), false);
   assert.equal(vm.runInContext('window._IS_LOCAL', sandbox), true);
-  assert.equal(vm.runInContext('window._IS_PROD_URL', sandbox), false);
+  assert.equal(vm.runInContext('window._IS_PROD_URL', sandbox), true);
 
+  fakeSupa._calls.length = 0;
   const qb = vm.runInContext(`supa.from('qualquer')`, sandbox);
-  const ins = await qb.insert({ foo: 'bar' });
-  assert.equal(ins && ins.error, null, 'insert não deveria bloquear em staging');
-  // Garante que a chamada chegou no client fake
+  await assert.rejects(() => qb.insert({ foo: 'bar' }), /WRITE-GUARD/,
+    'insert deveria bloquear em localhost');
   const insertCalls = fakeSupa._calls.filter(c => c.op === 'insert');
-  assert.ok(insertCalls.length >= 1, 'insert não chegou no fake client em staging');
+  assert.equal(insertCalls.length, 0, 'insert NÃO pode chegar no client em localhost');
 });
 
-test('staging: 127.0.0.1 → guard OFF, writes passam', async () => {
+test('restricted: 127.0.0.1 → guard ON, writes bloqueados', async () => {
   const { sandbox, fakeSupa } = runSandbox({ hostname: '127.0.0.1' });
-  assert.equal(vm.runInContext('window._GUARD_BLOCK_WRITES', sandbox), false);
+  assert.equal(vm.runInContext('window._GUARD_BLOCK_WRITES', sandbox), true);
+  fakeSupa._calls.length = 0;
   const qb = vm.runInContext(`supa.from('qualquer')`, sandbox);
-  const upd = await qb.update({ foo: 'bar' });
-  assert.equal(upd && upd.error, null, 'update não deveria bloquear em 127.0.0.1');
+  await assert.rejects(() => qb.update({ foo: 'bar' }), /WRITE-GUARD/,
+    'update deveria bloquear em 127.0.0.1');
   const updCalls = fakeSupa._calls.filter(c => c.op === 'update');
-  assert.ok(updCalls.length >= 1, 'update não chegou no fake client em 127.0.0.1');
+  assert.equal(updCalls.length, 0, 'update NÃO pode chegar no client em 127.0.0.1');
+});
+
+test('restricted: preview *.vercel.app → guard ON, writes bloqueados', async () => {
+  const { sandbox, fakeSupa } = runSandbox({ hostname: 'random-preview.vercel.app' });
+  assert.equal(vm.runInContext('window._GUARD_BLOCK_WRITES', sandbox), true);
+  assert.equal(vm.runInContext('window._IS_LOCAL', sandbox), false,
+    'preview não é local — é o caso que a condição antiga deixava passar');
+  fakeSupa._calls.length = 0;
+  const qb = vm.runInContext(`supa.from('pedidos')`, sandbox);
+  await assert.rejects(() => qb.delete(), /WRITE-GUARD/,
+    'delete deveria bloquear em preview');
+  const delCalls = fakeSupa._calls.filter(c => c.op === 'delete');
+  assert.equal(delCalls.length, 0, 'delete NÃO pode chegar no client em preview');
 });
 
 test('produção (inttracker-jade.vercel.app): guard OFF, writes passam', async () => {

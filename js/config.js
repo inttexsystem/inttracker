@@ -7,48 +7,86 @@
 // compatibilidade com o script inline que já usava
 // `APP_ENVIRONMENTS / APP_ENV / APP_CONFIG / SUPABASE_URL / SUPABASE_ANON_KEY`.
 //
-// Fonte de verdade dos refs:
-//   - Produção: gqmpsxkxynrjvidfmojk (novo projeto, live na Vercel)
-//   - Staging:  ucrjtfswnfdlxwtmxnoo (projeto legado, mantido como registro
-//               histórico por decisão M3; NÃO apagar)
-// Regime de chaves (nota, não "corrigir" aqui): produção usa a chave
-// sb_publishable_ já presente no arquivo (formato novo); staging usa a
-// anon JWT legada recuperada do histórico do git (formato antigo). A
-// convivência dos dois formatos é intencional nesta fase — ver relatório
-// de fechamento do commit "Restore environment split in config".
+// Fonte de verdade do ref (INTTRACKER-PRODUCTION-CUTOVER-R1):
+//   - Produção DEFINITIVA: ucrjtfswnfdlxwtmxnoo — é o único projeto
+//     Supabase com o schema corrente (56 tabelas públicas, incluindo todo
+//     o domínio ordem_compra da trilha PURCHASE_ORDER_PHASE_C) e com os
+//     usuários e pedidos reais.
+//   - O projeto gqmpsxkxynrjvidfmojk foi RETIRADO de todo papel de
+//     runtime. Ele está ACTIVE_HEALTHY, mas 16 tabelas atrás e sem
+//     nenhuma tabela de ordem de compra, logo NÃO é um destino
+//     não-produtivo válido. Não é produção, não é staging e não é
+//     fallback. Não deve reaparecer em configuração ativa.
+//
+// NÃO EXISTE BANCO NÃO-PRODUTIVO VÁLIDO. Por isso o ambiente
+// não-produtivo NÃO recebe um banco separado: ele resolve para o MESMO
+// projeto de produção, porém marcado como SOMENTE LEITURA
+// (`writesEnabled: false`). js/supabase-client.js consome essa flag e
+// bloqueia insert/update/delete/upsert/rpc, preservando reads e login.
+// Isso satisfaz a regra de que localhost e previews nunca escrevem em
+// produção — e, principalmente, nunca escrevem em SILÊNCIO: o bloqueio
+// é explícito, logado e sinalizado por banner.
+//
+// Regime de chaves: a anon key legada (JWT) de ucrjtfswnfdlxwtmxnoo é a
+// chave publicável ativa do projeto (verificada: disabled=false). É a
+// mesma para os dois ambientes porque o projeto é o mesmo; a diferença
+// entre eles é permissão de escrita, não credencial.
+//
 // Detecção por hostname: só os domínios de produção da Vercel abaixo
 // resolvem para "production"; localhost e QUALQUER outro host (incluindo
-// preview deployments *.vercel.app) resolvem para "staging" — default
+// preview deployments *.vercel.app) resolvem para "restricted" — default
 // seguro, ver docs/reports/PRODUCTION_READINESS_DIAGNOSIS_R1_2026-07-17.md.
-// Trocar URL/keys aqui = incidente. Ver docs/STAGING_BASELINE.md.
+//
+// Trocar URL/keys aqui = incidente. A fonte canônica do roteamento é
+// docs/governance/current-state.json (environment_boundaries) e a entrada
+// INTTRACKER-PRODUCTION-CUTOVER-R1 em docs/ledgers/G28_LEDGER.md.
+// NÃO consultar docs/STAGING_BASELINE.md nem docs/DEPLOYMENT.md para isto:
+// ambos são documentos de checkpoint históricos, anteriores a este cutover,
+// e ainda descrevem `bhgifjrfagkzubpyqpew` como produção — hoje esse é o
+// projeto PROIBIDO.
 // =====================================================================
 
 (function (window) {
   'use strict';
 
+  // Projeto Supabase de produção — ref único e definitivo.
+  const PRODUCTION_SUPABASE_URL = 'https://ucrjtfswnfdlxwtmxnoo.supabase.co';
+  const PRODUCTION_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjcmp0ZnN3bmZkbHh3dG14bm9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzQ5OTMsImV4cCI6MjA5NzY1MDk5M30.4y41y8w8l4VElfQUQ_QpIp4zOW1n5za-1_ekyv_v6aw';
+
   const APP_ENVIRONMENTS = {
     production: {
       name: 'production',
       label: 'PRODUÇÃO',
-      supabaseUrl: 'https://gqmpsxkxynrjvidfmojk.supabase.co',
-      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxbXBzeGt4eW5yanZpZGZtb2prIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyOTcxODIsImV4cCI6MjA5OTg3MzE4Mn0.7LvcJ-zkJQGgXLoGn2AMNpj2u6EFETU_8n_GlmY5kC0',
+      supabaseUrl: PRODUCTION_SUPABASE_URL,
+      supabaseAnonKey: PRODUCTION_SUPABASE_ANON_KEY,
       isProduction: true,
+      // Único ambiente com permissão de escrita.
+      writesEnabled: true,
     },
-    staging: {
-      name: 'staging',
-      label: 'STAGING',
-      supabaseUrl: 'https://ucrjtfswnfdlxwtmxnoo.supabase.co',
-      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjcmp0ZnN3bmZkbHh3dG14bm9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzQ5OTMsImV4cCI6MjA5NzY1MDk5M30.4y41y8w8l4VElfQUQ_QpIp4zOW1n5za-1_ekyv_v6aw',
+    // Ambiente não-produtivo: localhost, previews da Vercel e qualquer
+    // host desconhecido. Aponta para o MESMO banco porque não existe um
+    // banco não-produtivo válido, mas SEM permissão de escrita.
+    restricted: {
+      name: 'restricted',
+      label: 'PRODUÇÃO — SOMENTE LEITURA',
+      supabaseUrl: PRODUCTION_SUPABASE_URL,
+      supabaseAnonKey: PRODUCTION_SUPABASE_ANON_KEY,
       isProduction: false,
+      writesEnabled: false,
     },
   };
 
   // Domínios de produção da Vercel (match exato). Qualquer outro host —
   // incluindo localhost e preview deployments *.vercel.app — cai em
-  // staging por padrão (fail-safe: preview nunca deve escrever em prod).
+  // "restricted" por padrão (fail-safe: preview nunca escreve em prod).
+  //
+  // A branch de produção do projeto Vercel `inttex/inttracker` é `dev`,
+  // então o alias de branch de produção é `inttracker-git-dev-inttex`.
+  // `inttracker-git-main-inttex` foi REMOVIDO: com a branch de produção
+  // em `dev`, qualquer deploy de `main` é PREVIEW e não pode escrever.
   const PRODUCTION_HOSTNAMES = [
     'inttracker-jade.vercel.app',
-    'inttracker-git-main-inttex.vercel.app',
+    'inttracker-git-dev-inttex.vercel.app',
   ];
 
   function detectAppEnvironment(hostname) {
@@ -56,7 +94,7 @@
     if (PRODUCTION_HOSTNAMES.indexOf(host) !== -1) {
       return 'production';
     }
-    return 'staging';
+    return 'restricted';
   }
 
   const _hostname = (typeof window !== 'undefined' && window.location)
@@ -71,6 +109,7 @@
   // Namespace única e estável para consumidores novos.
   window.RAVATEX_CONFIG = {
     APP_ENVIRONMENTS,
+    PRODUCTION_HOSTNAMES,
     detectAppEnvironment,
     APP_ENV,
     APP_CONFIG,
@@ -82,6 +121,7 @@
   // identificadores como globais). Mantemos os mesmos nomes para que a
   // extração seja literalmente um "move", sem precisar editar usos.
   window.APP_ENVIRONMENTS = APP_ENVIRONMENTS;
+  window.PRODUCTION_HOSTNAMES = PRODUCTION_HOSTNAMES;
   window.detectAppEnvironment = detectAppEnvironment;
   window.APP_ENV = APP_ENV;
   window.APP_CONFIG = APP_CONFIG;
