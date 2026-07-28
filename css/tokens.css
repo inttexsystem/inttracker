@@ -160,7 +160,8 @@
   --rv-switch-knob:        18px;
   --rv-switch-knob-inset:   1px;
   --rv-switch-knob-travel: 18px;
-  --rv-switch-radius:       3px;
+  --rv-switch-radius:       3px;   /* track */
+  --rv-switch-knob-radius:  2px;   /* knob: one rung tighter, nests in the track */
   --rv-switch-field-h:     36px;
 
   /* -- range -- */
@@ -401,11 +402,19 @@
   cursor: pointer;
 }
 .rv-switch[data-rv-switch-disabled] { cursor: not-allowed; }
-/* The track carries a BORDER because its OFF fill is --rv-surface-subtle
-   (#f8fafc), which is invisible on a --rv-surface card (#ffffff) and equally
-   invisible on a subtle-filled panel: the control simply disappeared when off.
-   The border is the same --rv-border-strong the Field primitive uses (§2.2),
-   so an off switch reads as a control instead of as nothing.
+/* OFF FILL IS A REAL GREY, NOT A NEAR-WHITE.
+   The knob is --rv-surface (#ffffff). With the track at --rv-surface-subtle
+   (#f8fafc) the knob and its track were the same colour, so the off switch read
+   as an empty white box on a white card — it only looked like a control when
+   ON, where the fill turns dark. The off track therefore takes
+   the mid grey of the ramp (--rv-text-tertiary, #9ca3af). Measured against the
+   white knob: #f8fafc gives 1.05:1 and #cbd5e1 only 1.48:1 — both read as one
+   solid white shape. #9ca3af gives 2.54:1, which is the classic off-switch
+   grey, and 2.43:1 against the panel so the silhouette is defined too.
+
+   DISCLOSED: --rv-text-tertiary is a TEXT token used here as a FILL, because
+   the ramp has no neutral CONTROL-FILL grey in this range. A dedicated token
+   would be the clean answer and needs its own authorization.
    `box-sizing: border-box` keeps the ratified 40x22 outer box exactly: the
    1px border leaves 38x20 of content, which fits the 18px knob at its 2px
    inset and its 18px travel with no overflow and no dimension change. */
@@ -416,8 +425,8 @@
   width: var(--rv-switch-track-w);
   height: var(--rv-switch-track-h);
   border-radius: var(--rv-switch-radius);
-  border: 1px solid var(--rv-border-strong);
-  background: var(--rv-surface-subtle);
+  border: 1px solid var(--rv-text-tertiary);
+  background: var(--rv-text-tertiary);
   transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 /* D11: the knob takes the ORDINARY radius, like the track.
@@ -432,7 +441,7 @@
   left: var(--rv-switch-knob-inset);
   width: var(--rv-switch-knob);
   height: var(--rv-switch-knob);
-  border-radius: var(--rv-switch-radius);
+  border-radius: var(--rv-switch-knob-radius);
   background: var(--rv-surface);
   box-shadow: var(--rv-shadow-sm);
   transition: transform .15s ease;

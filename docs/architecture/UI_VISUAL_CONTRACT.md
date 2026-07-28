@@ -347,10 +347,11 @@ by two owners:
 | Knob inset | `--rv-switch-knob-inset` | 1px |
 | Knob travel | `--rv-switch-knob-travel` | 18px |
 | Field height | `--rv-switch-field-h` | 36px |
-| Track and knob radius | `--rv-switch-radius` | 3px |
+| Track radius | `--rv-switch-radius` | 3px |
+| Knob radius | `--rv-switch-knob-radius` | 2px |
 | Track border | `--rv-border-strong` | 1px |
 
-**Radius — `var(--rv-switch-radius)` (3px) on the track AND on the knob.** A switch is
+**Radius — `var(--rv-switch-radius)` (3px) on the track, `var(--rv-switch-knob-radius)` (2px) on the knob.** The knob is one rung tighter than the track so it nests inside it instead of competing with its corner. A switch is
 an **ordinary interactive control** for radius ownership. D6.1 scopes
 `--rv-radius-pill` to semantic pills and true circles; a switch knob is neither, so the
 circular knob was never covered and is now forbidden. The switch takes one rung TIGHTER

@@ -388,7 +388,11 @@ test('9 · the switch is one component: track and knob geometry are centralized'
   // `.checked = true` repaints with no handler at all.
   assert.match(TOKENS, /\.rv-switch \.rv-checkbox-collapsed:checked ~ \.rv-switch-track \{[^}]*background:\s*var\(--rv-viz-primary\)/);
   assert.match(TOKENS, /\.rv-switch\[data-rv-switch-tone="caution"\] \.rv-checkbox-collapsed:checked ~ \.rv-switch-track \{[^}]*background:\s*var\(--rv-signal-caution\)/);
-  assert.match(TOKENS, /\.rv-switch-track \{[^}]*background:\s*var\(--rv-surface-subtle\)/);
+  // The OFF fill moved from --rv-surface-subtle to the ramp's mid grey: with a
+  // white knob, #f8fafc gave 1.05:1 and the control read as one solid white
+  // shape. What this line guards is unchanged — the OFF fill is declared ONCE,
+  // in the stylesheet, by the single track owner.
+  assert.match(TOKENS, /\.rv-switch-track \{[^}]*background:\s*var\(--rv-text-tertiary\)/);
   assert.match(TOKENS, /\.rv-switch \.rv-checkbox-collapsed:disabled ~ \.rv-switch-track/);
   assert.match(TOKENS, /translateX\(var\(--rv-switch-knob-travel\)\)/);
   // No screen repaints the switch any more.
