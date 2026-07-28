@@ -418,7 +418,7 @@
    would be the clean answer and needs its own authorization.
    `box-sizing: border-box` keeps the ratified 40x22 outer box exactly: the
    1px border leaves 38x20 of content, which fits the 18px knob at its 2px
-   inset and its 18px travel with no overflow and no dimension change. */
+   inset and its 16px travel with no overflow and no dimension change. */
 .rv-switch-track {
   position: relative;
   display: inline-block;
@@ -430,7 +430,8 @@
   background: var(--rv-text-tertiary);
   transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
-/* D11: the knob takes the ORDINARY radius, like the track.
+/* D11.5: the knob takes a radius one rung TIGHTER than the track (1px vs
+   2px), so it nests inside the track instead of competing with its corner.
    A switch is an ordinary interactive control. Its knob is not a status dot,
    a timeline dot or an avatar, so D6.1's true-circle scope never covered it —
    the circular knob was historical geometry promoted without ever being

@@ -122,7 +122,7 @@
   "active_phase": {
     "id": "PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1",
     "status": "IMPLEMENTED / PRODUCTION MIGRATION APPLIED / VISUAL CONTRACT CORRECTED / PUBLISHED / AWAITING SUPERVISOR REVIEW",
-    "immediate_objective": "The Pedido item production-priority feature is implemented end to end and published. db/91 is the terminal applied migration in ucrjtfswnfdlxwtmxnoo: pedidos.prioridade_* with nenhuma|solicitada|confirmada, pedido_prioridade_eventos under SELECT-only RLS, the single mutation owner definir_prioridade_pedido, and the direct-write, administrative-acceptance, OP-creation and item-reordering guards. pedido_itens.ordem remains the canonical item rank; every pre-existing Pedido resolves to nenhuma and no existing item was reordered. The shared Switch conforms to UI_VISUAL_CONTRACT.md section 2.13 and DESIGN_DECISIONS.md D11: track and knob both take var(--rv-radius). The Pedido priority toggle conforms to section 2.1: label left, control right, one row. The clean UI execution procedure is owned by AGENT_INSTRUCTIONS.md section 7.",
+    "immediate_objective": "The Pedido item production-priority feature is implemented end to end and published. db/91 is the terminal applied migration in ucrjtfswnfdlxwtmxnoo: pedidos.prioridade_* with nenhuma|solicitada|confirmada, pedido_prioridade_eventos under SELECT-only RLS, the single mutation owner definir_prioridade_pedido, and the direct-write, administrative-acceptance, OP-creation and item-reordering guards. pedido_itens.ordem remains the canonical item rank; every pre-existing Pedido resolves to nenhuma and no existing item was reordered. The shared Switch conforms to UI_VISUAL_CONTRACT.md section 2.13 and DESIGN_DECISIONS.md D11.5, the ratified standard for this control: 40x22 track, 18x18 knob, 1px vertical and 2px horizontal inset, 16px travel, 2px track radius, 1px knob radius, and --rv-text-tertiary (#9ca3af) fill and border when off. The Pedido priority toggle conforms to section 2.1: label left, control right, one row. The clean UI execution procedure is owned by AGENT_INSTRUCTIONS.md section 7.",
     "contract": {
       "path": "docs/architecture/UI_VISUAL_CONTRACT.md",
       "anchor": "### 2.1 Button"
@@ -131,7 +131,7 @@
   "next_authorizable_action": {
     "id": "DIRECT SUPERVISOR REVIEW OF PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1",
     "mode": "AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED",
-    "status": "PENDING. The review must cover the visual conformance of the new priority surfaces against UI_VISUAL_CONTRACT.md section 2.1, and the supervisor process failure recorded in blockers_and_material_debts."
+    "status": "PENDING. Direct supervisor review must verify the published production-priority implementation, the section 2.1 priority-toggle layout, the section 2.13 and D11.5 Switch standard, and the completed UI execution-procedure simplification."
   },
   "active_track": {
     "id": "PURCHASE_ORDER_PHASE_C",
@@ -333,7 +333,6 @@
     "Decide whether a dedicated read-only diagnostic identity is created for the production read-only diagnostics, which currently depend on real administrator authentication.",
     "Decide how the 25 external prototype screens reach this repository. Exactly one of the 26 archetype rows in UI_CONFORMANCE.md resolves to a tracked file; the other 25 live in the external design project and cannot be audited or remediated until they are versioned here.",
     "Decide how Archetype A reaches ratification. Archetype A still has exactly one detector-passing screen and its candidate second screen is not in this worktree. No archetype is RATIFICATION_ELIGIBLE and none may be cited as precedent.",
-    "Rule on the switch track geometry. UI-SWITCH-TRACK-GEOMETRY-DEBT is architect-deferred and the current near-square track with a circular knob is not accepted visual precedent; closing it requires a component-contract order.",
     "Await Kleber's operational review of the application and then group the reported concrete defects into ONE bounded stabilization order; do not correct them through isolated microphases.",
     "Rule on historical saldo_fios provenance before any real receipt cutover.",
     "Resolve native receipt compatibility for multiple purchase-order origins.",
