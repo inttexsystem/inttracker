@@ -268,6 +268,45 @@ type system or the detector can enforce — so it is written down here.
 
 ---
 
+## 2026-07-28 · D11 — the Switch is an ordinary control, and its knob is not a circle
+
+**Context.** `SPECIALIZED-CONTROLS-B1` moved the switch's track and knob out of two
+screens into one shared owner and kept, byte for byte, the geometry the product already
+rendered — including a knob at `var(--rv-radius-pill)`. Preserving the existing
+appearance was the right call for a migration, but it silently **promoted historical
+geometry into a shared primitive without ever ratifying it in the visual contract**: §2
+had no Switch entry, so nothing in the closed list ever said the knob was legal. The gap
+was recorded as `UI-SWITCH-TRACK-GEOMETRY-DEBT` and deferred. The user then rejected the
+circular knob explicitly, twice.
+
+D6.1 already answered this and was not read as answering it. It scopes
+`--rv-radius-pill` to semantic pills **and true circles** — status dot, timeline dot,
+avatar — and closes with "**Not granted.** This is not permission to introduce arbitrary
+pill geometry… a rectangular element does not become eligible by being small or
+decorative." A switch knob is not a pill and not a true circle. It was never in scope.
+
+| # | Decision | Choice | Reason | Accepted loss |
+|---|---|---|---|---|
+| D11 | Switch radius | **`var(--rv-radius)` on track *and* knob** | A switch is an ordinary interactive control, and D6.1 puts every ordinary control on the ordinary radius. The circular knob was an unratified inheritance, not a decision; keeping it would have required either widening D6.1 to cover rectangular controls — which D6.1 explicitly refuses — or a third radius, which D6 forbids. | The control no longer resembles a generic mobile pill switch. That resemblance was never a project decision, and the restrained 4px corner is what every other control in the system already uses. |
+| D11.1 | Switch enters the closed primitive list | **new §2.13; count 13 → 14** | A shared primitive whose geometry no contract entry owns cannot be conformance-checked. The entry is what makes the knob radius observable rather than a matter of opinion. | One more contract entry to keep current. |
+
+**Unchanged.** Dimensions (40×22 track, 18×18 knob, 2px inset, 18px travel), the
+`brand` / `caution` tone enum, declarative `:checked` state, the collapsed focusable
+checkbox as the sole state owner, keyboard and Space activation, the focus-visible ring,
+the disabled treatment, and every caller's business state and handlers. No caller was
+rewritten: none declared switch geometry, so all three inherit the correction from the
+shared owner.
+
+**Not granted.** D6.1 is not weakened and true-circle ownership is not redefined: the
+status dot, timeline dot and avatar keep `--rv-radius-pill`. This decision moves exactly
+one element — the switch knob — out of a scope it was never in.
+
+**Process.** The order that shipped the unratified geometry, and the later order that
+built new UI on top of it, both omitted `UI_VISUAL_CONTRACT.md` from their mandatory
+reads. `AGENT_INSTRUCTIONS.md` §5 now makes that omission a defect in the order itself.
+
+---
+
 ## How to record the next round
 
 Header with date and name. Context in two sentences. One line per decision with

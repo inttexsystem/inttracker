@@ -48,7 +48,11 @@ const DECISIONS = read('docs/architecture/DESIGN_DECISIONS.md');
  * bare. Those three assertions are unchanged below.
  */
 const PASS1_TOKEN = '20260727-ui-specialized-controls-b1';
-const TOKENS_LINK = `<link rel="stylesheet" href="css/tokens.css?v=${PASS1_TOKEN}">`;
+// D11 corrected the switch knob radius in css/tokens.css, so the stylesheet
+// carries the strictly later correction token. The guarantee is unchanged: the
+// stylesheet is referenced EXACTLY once, under the order that touched it last.
+const TOKENS_TOKEN = '20260728-ui-switch-primitive-contract-r1';
+const TOKENS_LINK = `<link rel="stylesheet" href="css/tokens.css?v=${TOKENS_TOKEN}">`;
 
 const SCREEN_DIR = path.join(ROOT, 'js', 'screens');
 const SCREENS = fs.readdirSync(SCREEN_DIR)
@@ -698,7 +702,7 @@ test('16 · index.html loads the token stylesheet under the pass-1 cache-busting
     `index.html must load the token stylesheet as ${TOKENS_LINK}`);
 
   const refs = INDEX_HTML.match(/href="css\/tokens\.css(?:\?[^"]*)?"/g) || [];
-  assert.deepEqual(refs, [`href="css/tokens.css?v=${PASS1_TOKEN}"`],
+  assert.deepEqual(refs, [`href="css/tokens.css?v=${TOKENS_TOKEN}"`],
     'the token stylesheet must be loaded exactly once, and only under the versioned URL');
 
   // A bare URL anywhere would reintroduce the incoherent delivery.
@@ -731,7 +735,13 @@ test('D9 is appended to the decision log and D1-D8 are intact', () => {
 });
 
 test('the contract records every D9 ownership', () => {
-  assert.match(CONTRACT, /the 13 components/);
+  // The primitive COUNT is not a D9 ownership — it is the size of the closed
+  // list, and the list legitimately grows when a primitive is ratified. D11
+  // added the Switch (§2.13), so 13 -> 14. Every D9 ownership asserted below is
+  // unchanged; only the count moved, and it stays pinned so an UNRATIFIED
+  // primitive still cannot appear without this guard failing.
+  assert.match(CONTRACT, /the 14 components/);
+  assert.match(CONTRACT, /### 2\.13 Switch/);
   assert.match(CONTRACT, /### 2\.6\.1 Classification badge/);
   assert.match(CONTRACT, /### 2\.12 Progress, range and chart/);
   assert.match(CONTRACT, /`js\/pedido-ui\.js` \| product-colour preview values \(D9\)/);

@@ -417,9 +417,15 @@ const SWITCH_KNOBS = [
   { id: 'manta-defeito-knob', path: 'js/screens/manta-output-form.js', helper: 'defeitoToggle' },
 ];
 
-/** The knob's elevation, declared once, in the single geometry owner. */
+/** The knob's elevation, declared once, in the single geometry owner.
+ *  D11 moved the knob radius from `--rv-radius-pill` to the ORDINARY radius: a
+ *  switch is an ordinary interactive control and its knob is neither a semantic
+ *  pill nor a true circle, so D6.1 never covered it. The ELEVATION claim this
+ *  test owns is unchanged — one declaration, `var(--rv-shadow-sm)`, population
+ *  two — and the signature keeps pinning radius and shadow together so the two
+ *  cannot drift apart unnoticed. */
 const KNOB_SIGNATURE =
-  /^\.rv-switch-knob \{[^}]*border-radius:\s*var\(--rv-radius-pill\);[^}]*box-shadow:\s*var\(--rv-shadow-sm\);/m;
+  /^\.rv-switch-knob \{[^}]*border-radius:\s*var\(--rv-radius\);[^}]*box-shadow:\s*var\(--rv-shadow-sm\);/m;
 
 test('14 · SPECIALIZED_SWITCH_KNOB_SHADOW_COUNT = 2, geometry and shadow preserved', () => {
   const tokens = read('css/tokens.css');

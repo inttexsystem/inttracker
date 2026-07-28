@@ -409,13 +409,19 @@
   background: var(--rv-surface-subtle);
   transition: background .15s ease, box-shadow .15s ease;
 }
+/* D11: the knob takes the ORDINARY radius, like the track.
+   A switch is an ordinary interactive control. Its knob is not a status dot,
+   a timeline dot or an avatar, so D6.1's true-circle scope never covered it —
+   the circular knob was historical geometry promoted without ever being
+   ratified in the visual contract, and the architect rejected it. `999px` on a
+   rectangular control is exactly what D6.1 declares "not granted". */
 .rv-switch-knob {
   position: absolute;
   top: var(--rv-switch-knob-inset);
   left: var(--rv-switch-knob-inset);
   width: var(--rv-switch-knob);
   height: var(--rv-switch-knob);
-  border-radius: var(--rv-radius-pill);
+  border-radius: var(--rv-radius);
   background: var(--rv-surface);
   box-shadow: var(--rv-shadow-sm);
   transition: transform .15s ease;

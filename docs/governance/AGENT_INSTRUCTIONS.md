@@ -89,6 +89,20 @@ Product implementation orders must also require structural-policy evidence
 against `docs/architecture/CODE_HEALTH_RULES.md`. It must also carry the
 execution envelope of §10.
 
+Every order authorizing the creation, modification or composition of visible
+product UI must list these as mandatory reads:
+
+- `docs/architecture/UI_VISUAL_CONTRACT.md`;
+- `docs/architecture/DESIGN_DECISIONS.md`;
+- `docs/architecture/UI_CONFORMANCE.md`.
+
+An order that authorizes UI work without them is DEFECTIVE, and the executor
+reports that defect rather than proceeding on the order's literal text alone.
+Those documents own the visual values; this file never restates them. The
+executor hard stops before the first UI edit when the work needs a primitive
+that the closed primitive list does not contain — a new primitive is a contract
+change and an architect decision, never an executor inference.
+
 ## 5. Proportional documentation
 
 The binding rule is:

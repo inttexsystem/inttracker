@@ -121,8 +121,8 @@
   ],
   "active_phase": {
     "id": "PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1",
-    "status": "IMPLEMENTED / PRODUCTION MIGRATION APPLIED / PUBLISHED / AWAITING SUPERVISOR REVIEW",
-    "immediate_objective": "An explicit production-priority sequence between the items of one Pedido is implemented end to end. db/91 is applied to ucrjtfswnfdlxwtmxnoo: pedidos.prioridade_* with nenhuma|solicitada|confirmada, pedido_prioridade_eventos with SELECT-only RLS, the single mutation owner definir_prioridade_pedido, and four guards (direct write, administrative acceptance, OP creation, direct item reordering). pedido_itens.ordem remains the canonical item rank. Every pre-existing Pedido resolves to nenhuma and no existing item was reordered. The order was executed WITHOUT reading docs/architecture/UI_VISUAL_CONTRACT.md before building the new UI; the architect caught a left-aligned toggle on its own line, which was corrected against the closed alignment rule of section 2.1 before publication. That process failure is recorded as PROCESS-VISUAL-CONTRACT-NOT-READ-BEFORE-UI.",
+    "status": "IMPLEMENTED / PRODUCTION MIGRATION APPLIED / VISUAL CONTRACT CORRECTED / PUBLISHED / AWAITING SUPERVISOR REVIEW",
+    "immediate_objective": "An explicit production-priority sequence between the items of one Pedido is implemented end to end. db/91 is applied to ucrjtfswnfdlxwtmxnoo: pedidos.prioridade_* with nenhuma|solicitada|confirmada, pedido_prioridade_eventos with SELECT-only RLS, the single mutation owner definir_prioridade_pedido, and four guards (direct write, administrative acceptance, OP creation, direct item reordering). pedido_itens.ordem remains the canonical item rank. Every pre-existing Pedido resolves to nenhuma and no existing item was reordered. The follow-up order UI-SWITCH-PRIMITIVE-CONTRACT-AND-PEDIDO-PRIORITY-CLOSEOUT-R1 closed the two defects the architect found: the priority toggle now sits right-aligned on the same row as its label per section 2.1, and the shared Switch is ratified as primitive 2.13 with D11 moving the knob off the pill radius onto var(--rv-radius). AGENT_INSTRUCTIONS.md section 4 now makes an order that authorizes UI work without the visual-contract reads defective, and tests/ui-switch-primitive-contract.test.mjs proves switch geometry over the shared owners the screen detector cannot see.",
     "contract": {
       "path": "docs/architecture/UI_VISUAL_CONTRACT.md",
       "anchor": "### 2.1 Button"
@@ -173,7 +173,7 @@
     "non_production_database": "NONE. NO VALID SEPARATE DEVELOPMENT OR STAGING DATABASE EXISTS. LOCALHOST AND PREVIEW APPLICATION ENVIRONMENTS MAY RESOLVE READ-ONLY TO PRODUCTION UNDER THE EXISTING HARD WRITE BLOCK. ADMINISTRATIVE, AUTH, SERVICE-ROLE AND MUTATION TOOLING DOES NOT INHERIT THAT READ-ONLY APPLICATION PERMISSION",
     "production": {
       "project_id": "ucrjtfswnfdlxwtmxnoo",
-      "access": "DEFINITIVE PRODUCTION DATABASE, ACCEPTED AT INTTRACKER-PRODUCTION-CUTOVER-R1. THE CUTOVER PROMOTED THIS PROJECT RATHER THAN MIGRATING DATA. TERMINAL APPLIED MIGRATION IS db/90; ZERO SYNTHETIC RESIDUE. NO SCHEMA OR DATA MUTATION AND NO FURTHER APPLY IS AUTHORIZED WITHOUT A NEW ORDER NAMING THE ENVIRONMENT AND THE OPERATION"
+      "access": "DEFINITIVE PRODUCTION DATABASE, ACCEPTED AT INTTRACKER-PRODUCTION-CUTOVER-R1. THE CUTOVER PROMOTED THIS PROJECT RATHER THAN MIGRATING DATA. TERMINAL APPLIED MIGRATION IS db/91; ZERO SYNTHETIC RESIDUE. NO SCHEMA OR DATA MUTATION AND NO FURTHER APPLY IS AUTHORIZED WITHOUT A NEW ORDER NAMING THE ENVIRONMENT AND THE OPERATION"
     },
     "retired_project": {
       "project_id": "gqmpsxkxynrjvidfmojk",
@@ -276,22 +276,6 @@
       "note": "The JavaScript front-end cannot prove arbitrary container-to-card containment; it exposes no static ancestor chain and sets insideCard to null by design. UIC-008 closure therefore proves the conformance of the explicitly marked and guarded footer population, not the absence of every possible unmarked footer. The global closure phase A2 is CANCELLED: local containment is corrected inside each future screen batch. The screen-local remainder stays OPEN and unclaimed. Closing it requires a separate reviewed order authorizing scope-aware call-site containment analysis."
     },
     {
-      "id": "PROCESS-VISUAL-CONTRACT-NOT-READ-BEFORE-UI",
-      "status": "OPEN / MATERIAL PROCESS DEBT / RAISED BY THE ARCHITECT",
-      "blocking": false,
-      "owner": "order dispatch and supervision",
-      "evidence": "PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 execution; docs/architecture/UI_VISUAL_CONTRACT.md section 2.1",
-      "note": "The executor built new UI surfaces without opening UI_VISUAL_CONTRACT.md, although AGENT_INSTRUCTIONS.md section 7 requires the approved visual contract for UI implementation. The result violated the CLOSED alignment rule of section 2.1 (toggle alone on its own line, left aligned inside a card). The defect was caught by the ARCHITECT during review, not by the order, not by the executor and not by the supervisor. The order itself specified extensive UI copy and behaviour but never named the visual contract among AUTHORIZED_READS, so an executor following the order literally would skip it. Two corrections are required and neither belongs to this executor: every UI-bearing order must name UI_VISUAL_CONTRACT.md as a mandatory read, and the supervisor must verify visual conformance before the architect sees the screen. The architect reports having already warned the supervisor about a related geometry defect (UI-SWITCH-TRACK-GEOMETRY-DEBT) and that it was let through."
-    },
-    {
-      "id": "UI-SWITCH-TRACK-GEOMETRY-DEBT",
-      "status": "OPEN / NONBLOCKING / USER-DEFERRED",
-      "blocking": false,
-      "owner": "UI consolidation track / component contract",
-      "evidence": "css/tokens.css specialized-control block; js/ui.js::switchToggle()",
-      "note": "The ratified switch renders a near-square track carrying a circular knob, preserved exactly as the product already rendered it. It is NOT an accepted visual precedent and must not be cited as one. Closing it requires a separate reviewed component-contract order that ratifies the intended track geometry."
-    },
-    {
       "id": "PEDIDO-DETAIL-ADMIN-BUILDERS-UNREACHABLE",
       "status": "OPEN / NONBLOCKING / NO CALLER FOUND / NOT MOUNTED",
       "blocking": false,
@@ -374,7 +358,7 @@
     "NO WAIVER, IGNORE-LIST OR SUPPRESSION MECHANISM IN THE CONFORMANCE DETECTOR WITHOUT A NEW EXPLICIT ORDER",
     "NO REMEDIATION OF THE RESIDUAL SECONDARY OVERFLOW GAPS ON G07, G09-G11, G18, G20-G22 AND G28 WITHOUT A NEW BOUNDED ORDER",
     "NO SECOND SCREEN CONFORMANCE AND NO ARCHETYPE RATIFICATION FROM ONE CONFORMING SCREEN; NO ARCHETYPE IS RATIFICATION_ELIGIBLE",
-    "NO SWITCH TRACK GEOMETRY CORRECTION; THE CURRENT NEAR-SQUARE TRACK WITH A CIRCULAR KNOB IS NOT AN ACCEPTED VISUAL PRECEDENT",
+    "NO SWITCH GEOMETRY OUTSIDE UI_VISUAL_CONTRACT.md SECTION 2.13; TRACK AND KNOB BOTH TAKE var(--rv-radius) PER D11, AND var(--rv-radius-pill), 999px, 50% OR ANY CAPSULE CONSTRUCTION IS FORBIDDEN ANYWHERE IN SWITCH GEOMETRY, INCLUDING IN A CALLER",
     "NO ISOLATED MICROPHASE CORRECTION OF KLEBER REVIEW DEFECTS; THEY MUST BE GROUPED INTO ONE BOUNDED STABILIZATION ORDER",
     "NO REAL BUSINESS-FLOW RECREATION WITHOUT A NEW EXPLICIT ORDER",
     "SUPERSEDED UNIT 5A DIRECTION IS CANCELLED",

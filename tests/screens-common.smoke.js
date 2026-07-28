@@ -78,6 +78,7 @@ const SYSTEM_SCREENS = path.join(ROOT, 'js', 'screens', 'system-screens.js');
 // BRAND/5 prova que o breakpoint da troca de forma da marca é o MESMO que ela
 // já possui, e que esta ordem não a alterou.
 const responsiveCss = fs.readFileSync(path.join(ROOT, 'css', 'responsive.css'), 'utf8');
+const tokensCss = fs.readFileSync(path.join(ROOT, 'css', 'tokens.css'), 'utf8');
 
 // O <script> inline de index.html não existe mais: o bootstrap virou
 // js/boot.js e as telas viraram módulos próprios (js/screens/painel.js,
@@ -414,14 +415,23 @@ test('BRAND/5. a forma estreita usa o símbolo aprovado no breakpoint do shell',
     assert.equal(commonSrc.includes(mecanismo), false,
       `a troca de forma da marca não pode depender de ${mecanismo}`);
   }
-  // E nenhuma folha de estilo foi tocada por esta ordem.
-  const { execFileSync } = require('node:child_process');
-  for (const rel of ['css/responsive.css', 'css/tokens.css']) {
-    const committed = execFileSync('git', ['rev-parse', 'HEAD:' + rel],
-      { cwd: ROOT, encoding: 'utf8' }).trim();
-    const worktree = execFileSync('git', ['hash-object', '--', rel],
-      { cwd: ROOT, encoding: 'utf8' }).trim();
-    assert.equal(worktree, committed, rel + ' foi alterado — nenhuma folha de estilo pertence a esta ordem');
+  // E a troca de forma NÃO é implementada por folha de estilo alguma.
+  //
+  // Esta asserção comparava o hash das duas folhas contra HEAD. Isso provava a
+  // intenção apenas enquanto HEAD ERA o commit da ordem de marca: contra um HEAD
+  // MÓVEL a regra vira "nenhuma ordem futura pode tocar uma folha de estilo",
+  // que não é o que a ordem de marca provou — UI-SWITCH-PRIMITIVE-CONTRACT-R1
+  // (D11) corrigiu o raio do knob do switch em css/tokens.css e derrubou o guard
+  // sem tocar em coisa alguma de marca.
+  //
+  // A garantia REAL é semântica e é a que fica: a escolha da forma é do browser,
+  // pelo <source media> em js/screens/common.js, e nenhuma folha de estilo
+  // conhece os artefactos de marca nem alterna entre eles.
+  for (const [rel, css] of [['css/responsive.css', responsiveCss], ['css/tokens.css', tokensCss]]) {
+    for (const artefacto of ['inttex-logo', 'inttex-symbol', 'assets/brand']) {
+      assert.equal(css.includes(artefacto), false,
+        rel + ' referencia ' + artefacto + ' — a troca de forma da marca não pertence a uma folha de estilo');
+    }
   }
 });
 

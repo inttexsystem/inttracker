@@ -1553,8 +1553,13 @@ const PASS8_ASSETS = [
 // posterior a qualquer token anterior, entao nenhum asset perdeu invalidacao:
 // apenas mudou QUAL ordem posterior a faz.
 const B1_TOKEN = '20260727-ui-specialized-controls-b1';
+// UI-SWITCH-PRIMITIVE-CONTRACT-AND-PEDIDO-PRIORITY-CLOSEOUT-R1 (D11) corrected
+// the switch knob radius in css/tokens.css, so that ONE asset moved to the
+// strictly later correction token. Same rule as every tier before it: an asset
+// belongs to the order that changed it LAST, and none of the others moved.
+const SWITCH_CONTRACT_TOKEN = '20260728-ui-switch-primitive-contract-r1';
+const SWITCH_CONTRACT_ASSETS = ['css/tokens.css'];
 const B1_ASSETS = [
-  'css/tokens.css',
   'js/ui.js',
   'js/screens/admin-usuarios-modal.js',
   'js/screens/admin-usuarios.js',
@@ -2205,10 +2210,13 @@ test('PASS1/20c7. os assets da passada 1 de cor carregam exatamente o token decl
   // A passada 7 tocou a folha de tokens de novo (--rv-z-popover e
   // --rv-select-popover-max-h), entao ela carrega o token da passada 7.
   // SPECIALIZED-CONTROLS-B1 alterou a folha de tokens outra vez, acrescentando
-  // a geometria de papel dos cinco controles especializados, entao ela carrega
-  // o token estritamente posterior dessa ordem.
-  assert.equal(tokenFor('css/tokens.css'), B1_TOKEN,
-    'css/tokens.css foi alterado por SPECIALIZED-CONTROLS-B1 e carrega o token dela');
+  // a geometria de papel dos cinco controles especializados.
+  // UI-SWITCH-PRIMITIVE-CONTRACT-R1 (D11) a alterou por ULTIMO: o raio do knob
+  // do switch saiu de var(--rv-radius-pill) para var(--rv-radius). Entao a
+  // folha carrega o token estritamente posterior dessa correcao. Mesma regra de
+  // sempre: um asset carrega o token da ordem que o alterou POR ULTIMO.
+  assert.equal(tokenFor('css/tokens.css'), SWITCH_CONTRACT_TOKEN,
+    'css/tokens.css foi alterado por UI-SWITCH-PRIMITIVE-CONTRACT-R1 e carrega o token dela');
 });
 
 // A passada 2 de raio declara os seus assets e o seu token; nenhum outro asset

@@ -18,7 +18,7 @@ Four layers, **one owning file each**. No value exists in two places.
 |---|---|---|
 | 1 · Tokens | `css/tokens.css` | every **design** value in the product |
 | 1b · Business colour | `js/pedido-ui.js` | product-colour preview values (D9) |
-| 2 · Primitives | this file, §2 | the 13 components and their states |
+| 2 · Primitives | this file, §2 | the 14 components and their states |
 | 3 · Archetypes | this file, §3 | the 6 screen families and their intent |
 | 4 · Conformance | `docs/architecture/UI_CONFORMANCE.md` | screen → archetype → state |
 
@@ -323,6 +323,59 @@ A gradient composes `var(--rv-*)` stops. A literal colour stop is a defect. Ther
 second chart palette, and a non-CSS consumer (canvas or similar) resolves a token by
 name through a helper that fails when the token is absent — never by hard-coding a
 fallback value.
+
+### 2.13 Switch
+
+A **binary control that commits its state immediately**, for a setting the user reads
+as on/off. It is not a checkbox in a form to be submitted, and it is not a two-option
+choice — that is §2.3.
+
+**Ownership is split and closed.** `css/tokens.css` owns every geometry and state value;
+`js/ui.js::switchToggle()` owns construction, tone and accessible naming; the caller owns
+only business state and handlers. **A caller may not declare track or knob geometry** —
+there is no style escape hatch, and an unknown tone throws rather than rendering an
+unowned value.
+
+Geometry, through canonical tokens, is one component — track and knob are never styled
+by two owners:
+
+| Part | Token | Value |
+|---|---|---|
+| Track width | `--rv-switch-track-w` | 40px |
+| Track height | `--rv-switch-track-h` | 22px |
+| Knob width/height | `--rv-switch-knob` | 18px |
+| Knob inset | `--rv-switch-knob-inset` | 2px |
+| Knob travel | `--rv-switch-knob-travel` | 18px |
+| Field height | `--rv-switch-field-h` | 36px |
+
+**Radius — `var(--rv-radius)` on the track AND on the knob.** A switch is an
+**ordinary interactive control** for radius ownership. D6.1 scopes `--rv-radius-pill`
+to semantic pills and true circles; a switch knob is neither, so the circular knob was
+never covered and is now forbidden. **Prohibited anywhere in switch geometry:**
+`var(--rv-radius-pill)`, `999px`, `50%`, and any `border-radius` equal to half the
+rendered knob dimension or any other capsule construction.
+
+States are **declarative** — the collapsed checkbox owns the state and the track and
+knob follow it in CSS, so a purely programmatic `input.checked = true` repaints with no
+handler:
+
+| State | Declaration |
+|---|---|
+| OFF | track `--rv-surface-subtle`, knob at the inset |
+| ON | track `--rv-viz-primary` (`brand`) or `--rv-signal-caution` (`caution`), knob translated by the travel |
+| Focus-visible | `0 0 0 3px var(--rv-focus-ring)` on the track |
+| Disabled | track `opacity: .5`, `cursor: not-allowed` |
+
+Tones are a **closed two-member enum**: `brand` and `caution`.
+
+**Accessibility** is part of the contract. The state lives on a real, zero-size but
+**focusable** checkbox — never `display:none` — so the switch is keyboard-operable and
+Space activates it. No switch may be unnamed: the visible label names it, or the caller
+supplies `ariaLabel` on the checkbox when the row's own text is the label.
+
+**Layout.** Per §2.1 the control is right-aligned and sits on the **same row** as the
+text that names it. A switch alone on its own line, left-aligned inside a card, is a
+defect.
 
 ---
 
