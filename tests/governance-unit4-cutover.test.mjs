@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
@@ -6,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import {
   CONTRACT_ID,
   CUTOVER_ID,
+  HISTORICAL_CHECKPOINT,
   PARENT,
   validateCanonicalConsistencyObjects,
   validateCanonicalStateObject,
@@ -23,7 +25,15 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ACTIVATION = '51a61ddfdbf058887ead64f9b018c30ebc371b48';
 const CORRECTION = '7abaff26559c71b62337356eccd0baaf36b5f214';
 const CLOSEOUT = 'e88194cf6681d7aff154b22b4360e27b6d6e6dad';
-const readText = relativePath => fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
+// Every fixture below is read from the terminal accepted Unit-4 checkpoint.
+// The worktree copy of docs/governance/current-state.json is compact format
+// 3.0.0 and is not a Unit-4 cutover candidate, so it must never be substituted
+// here — that silent fallback is exactly what this suite exists to forbid.
+const readText = relativePath => execFileSync(
+  'git',
+  ['show', `${HISTORICAL_CHECKPOINT}:${relativePath}`],
+  { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }
+);
 const readJson = relativePath => JSON.parse(readText(relativePath));
 const state = readJson('docs/governance/current-state.json');
 const catalog = readJson('docs/governance/catalog/documents.json');
@@ -260,7 +270,10 @@ test('dynamic lifecycle mismatches and Unit 4 invariant changes fail closed', ()
 });
 
 test('Unit 4 validator contains no mutable Unit 5 lifecycle constants', () => {
-  const source = readText('scripts/governance/validate-unit4-cutover.mjs');
+  // Deliberately the live source: this guard governs the validator as it stands
+  // now, not as it stood at the historical checkpoint.
+  const source = fs.readFileSync(
+    path.join(ROOT, 'scripts/governance/validate-unit4-cutover.mjs'), 'utf8');
   const stale = [
     'GOVERNANCE-EFFICIENCY-REFOUNDATION-UNIT-5-LEGACY-DEPRECATION-AND-POST-CUTOVER-AUDIT-DIAGNOSIS-R1',
     'GOVERNANCE-EFFICIENCY-REFOUNDATION-UNIT-5-LEGACY-DEPRECATION-AND-POST-CUTOVER-AUDIT-DIAGNOSIS-R2',
@@ -280,4 +293,8 @@ test('historical checkpoints, current bootstrap, and zero-mutation validation re
   }).errors, []);
   assert.equal(simulateRepository(ROOT).result, 'PASS');
   assert.deepEqual(validateCutover({ root: ROOT, activationCommit: ACTIVATION }).errors, []);
+  // No silent fallback: with the checkpoint removed the validator must fail
+  // closed rather than read the live compact worktree state as a candidate.
+  assert.ok(validateCutover({ root: ROOT, commit: null, activationCommit: ACTIVATION })
+    .errors.includes('historical Unit 4C validation requires an accepted checkpoint commit'));
 });

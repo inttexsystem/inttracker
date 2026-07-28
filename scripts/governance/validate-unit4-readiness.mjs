@@ -1,7 +1,7 @@
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { commitReader, worktreeReader } from './git-content-reader.mjs';
+import { commitReader } from './git-content-reader.mjs';
 import {
   CONSUMERS,
   ROOT_AUTHORITIES,
@@ -36,6 +36,11 @@ import { simulateWithReader } from './simulate-unit4-bootstrap.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = path.resolve(SCRIPT_DIR, '..', '..');
+// Unit 4A is an immutable historical readiness transition: authority epoch 0,
+// mode cutover_candidate, activation inactive. The worktree carries compact
+// format 3.0.0 instead, so the candidate is always read from its accepted
+// checkpoint and never from the live current state.
+export const UNIT_4A_CHECKPOINT = 'fa986cf935abbf053172cfd549b0171bb9446f58';
 const HASH = /^[0-9a-f]{64}$/;
 const CANDIDATE_PATHS = Object.values(CANDIDATE_VIEW_PATHS);
 const ROOT_PATHS = ROOT_AUTHORITIES.map(([value]) => value);
@@ -309,16 +314,18 @@ export function validateWithReaders(reader, baselineReader) {
   };
 }
 
-export function validateRepository(root = REPO_ROOT, commit = null) {
-  const reader = commit ? commitReader(root, commit) : worktreeReader(root);
-  return validateWithReaders(reader, commitReader(root, BASELINE));
+export function validateRepository(root = REPO_ROOT, commit = UNIT_4A_CHECKPOINT) {
+  if (!commit) {
+    return { errors: ['historical Unit 4A validation requires an accepted checkpoint commit'], results: {} };
+  }
+  return validateWithReaders(commitReader(root, commit), commitReader(root, BASELINE));
 }
 
 function main() {
   const rootIndex = process.argv.indexOf('--root');
   const commitIndex = process.argv.indexOf('--commit');
   const root = path.resolve(rootIndex >= 0 ? process.argv[rootIndex + 1] : process.cwd());
-  const commit = commitIndex >= 0 ? process.argv[commitIndex + 1] : null;
+  const commit = commitIndex >= 0 ? process.argv[commitIndex + 1] : UNIT_4A_CHECKPOINT;
   try {
     if (commitIndex >= 0 && !commit) throw new Error('--commit requires a SHA');
     const { errors, results } = validateRepository(root, commit);

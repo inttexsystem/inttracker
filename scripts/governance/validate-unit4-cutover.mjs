@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { commitReader, validateCommit, worktreeReader } from './git-content-reader.mjs';
+import { commitReader, validateCommit } from './git-content-reader.mjs';
 import { validateSchema } from './validate-documentation-shadow.mjs';
 import { activationManifestProjection, jsonSha256, rejectSelfReference, statePayloadProjection } from './unit4-canonical-json.mjs';
 import { CANONICAL_VIEW_PATHS, renderCanonicalViews, validateRenderedViews } from './render-unit4-canonical-views.mjs';
@@ -11,6 +11,11 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = path.resolve(SCRIPT_DIR, '..', '..'); export const PARENT = 'fa986cf935abbf053172cfd549b0171bb9446f58';
 export const SUBJECT = 'feat: activate structured governance authority'; export const CORRECTION_SUBJECT = 'fix: reconcile post-cutover governance authority'; export const CLOSEOUT_SUBJECT = 'docs: close Unit 4 post-cutover acceptance';
 export const CUTOVER_ID = 'GOVERNANCE-EFFICIENCY-REFOUNDATION-UNIT-4C-AUTHORITY-CUTOVER-R1'; export const CONTRACT_ID = 'GOVERNANCE-EFFICIENCY-REFOUNDATION-UNIT-4-BOOTSTRAP-AUTHORITY-CUTOVER-CONTRACT-R1';
+// Unit 4C is an immutable historical transition. Its artifacts are read from the
+// terminal accepted Unit-4 checkpoint, never from the worktree: the live
+// docs/governance/current-state.json is compact format 3.0.0 and is not, and may
+// never be treated as, a Unit-4 cutover candidate.
+export const HISTORICAL_CHECKPOINT = '997332b1581b7dc111b1551773ee3611ef906c6d';
 const CORRECTION_ORDER = 'GOVERNANCE-EFFICIENCY-REFOUNDATION-UNIT-4C-CANONICAL-CONSISTENCY-FORWARD-CORRECTION-R1';
 const LIFECYCLE_CORRECTION_PARENT = '56675625ad2557572ee24650a5d7e0e435b02fec';
 const LIFECYCLE_CORRECTION_SUBJECT = 'fix: decouple Unit 4 validator from Unit 5 lifecycle';
@@ -23,7 +28,6 @@ const SCHEMAS = {
   [TRACE]: 'docs/governance/schemas/purchase-order-phase-c-v2.schema.json',
   [CUTOVER]: 'docs/governance/schemas/unit4-cutover-manifest.schema.json', [ROLLBACK]: 'docs/governance/schemas/unit4-rollback-readiness.schema.json'
 };
-const PROTECTED = new Set(['.gitignore', '.codex/config.toml', '.mcp.json']);
 const AUTHORIZED = new Set([
   'PROJECT_STATE.md', 'AGENT_HANDOFF.md', 'docs/DOCUMENTATION_INDEX.md',
   'docs/architecture/ORDEM_COMPRA_C3_TRACEABILITY.md',
@@ -83,18 +87,8 @@ function nonempty(value, label, errors) {
   if (typeof value !== 'string' || value.trim() === '') errors.push(`${label}: nonempty string required`);
 }
 function changedPaths(root, commit) {
-  if (commit) {
-    return git(root, ['diff-tree', '--no-commit-id', '--name-only', '-r', commit])
-      .split(/\r?\n/u).filter(Boolean).sort();
-  }
-  const worktreePaths = gitRaw(root, ['status', '--porcelain=v1', '-uall']).split(/\r?\n/u).filter(Boolean)
-    .map(line => line.slice(3).replace(/\\/gu, '/'))
-    .filter(relativePath => !PROTECTED.has(relativePath)).sort();
-  if (![CORRECTION_SUBJECT, CLOSEOUT_SUBJECT]
-    .includes(git(root, ['show', '-s', '--format=%s', 'HEAD']))) return worktreePaths;
-  const committedPaths = git(root, ['diff-tree', '--no-commit-id', '--name-only', '-r', 'HEAD'])
-    .split(/\r?\n/u).filter(Boolean);
-  return [...new Set([...committedPaths, ...worktreePaths])].sort();
+  return git(root, ['diff-tree', '--no-commit-id', '--name-only', '-r', commit])
+    .split(/\r?\n/u).filter(Boolean).sort();
 }
 function validateCommitIdentity(root, commit, activationCommit, errors) {
   let activation = null;
@@ -104,7 +98,7 @@ function validateCommitIdentity(root, commit, activationCommit, errors) {
     exact(git(root, ['show', '-s', '--format=%s', activation]), SUBJECT, 'activation subject', errors);
   }
   if (!commit) {
-    exact(git(root, ['branch', '--show-current']), 'dev', 'branch', errors);
+    errors.push('historical Unit 4C validation requires an accepted checkpoint commit');
     return activation;
   }
   if (!activation) errors.push('original activation commit input is required');
@@ -424,16 +418,23 @@ function validateClosedPartitions(reader, root, errors) {
     exact(reader.readText(relativePath), prior, `closed partition ${number}`, errors);
   }
 }
-export function validateCutover({ root = REPO_ROOT, commit = null, activationCommit = null } = {}) {
-  const before = {
+export function validateCutover({
+  root = REPO_ROOT, commit = HISTORICAL_CHECKPOINT, activationCommit = null
+} = {}) {
+  // ls-files --stage, not write-tree: it captures the mode, object ID and stage
+  // of every index entry without taking .git/index.lock, so concurrent
+  // validators cannot make each other fail on lock contention.
+  const snapshot = () => ({
     head: git(root, ['rev-parse', 'HEAD']),
     status: git(root, ['status', '--porcelain=v1', '-uall']),
-    index: git(root, ['write-tree'])
-  };
+    index: git(root, ['ls-files', '--stage'])
+  });
+  const before = snapshot();
   const errors = [];
   const resolved = commit ? validateCommit(root, commit) : null;
-  const reader = resolved ? commitReader(root, resolved) : worktreeReader(root);
   const resolvedActivation = validateCommitIdentity(root, resolved, activationCommit, errors);
+  if (!resolved) return { errors, commit: null };
+  const reader = commitReader(root, resolved);
   const payloads = Object.fromEntries(Object.keys(SCHEMAS).map(relativePath =>
     [relativePath, parseJson(reader, relativePath, errors)]));
   if (!Object.values(payloads).every(Boolean)) return { errors, commit: resolved };
@@ -465,11 +466,7 @@ export function validateCutover({ root = REPO_ROOT, commit = null, activationCom
       || reader.readText(CUTOVER).includes(resolvedActivation))) {
     errors.push('original activation commit embedded in canonical source');
   }
-  const after = {
-    head: git(root, ['rev-parse', 'HEAD']),
-    status: git(root, ['status', '--porcelain=v1', '-uall']),
-    index: git(root, ['write-tree'])
-  };
+  const after = snapshot();
   if (JSON.stringify(before) !== JSON.stringify(after)) errors.push('validator mutated Git state');
   return {
     errors,
@@ -487,7 +484,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
   const activationIndex = process.argv.indexOf('--activation-commit');
   const result = validateCutover({
     root: process.cwd(),
-    commit: commitIndex >= 0 ? process.argv[commitIndex + 1] : null,
+    commit: commitIndex >= 0 ? process.argv[commitIndex + 1] : HISTORICAL_CHECKPOINT,
     activationCommit: activationIndex >= 0 ? process.argv[activationIndex + 1] : null
   });
   if (result.errors.length) {

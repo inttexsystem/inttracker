@@ -80,7 +80,10 @@ function snapshotGit(root) {
   return {
     branch: git(root, ['branch', '--show-current']),
     head: git(root, ['rev-parse', 'HEAD']),
-    index: git(root, ['write-tree']),
+    // ls-files --stage, not write-tree: it captures the mode, object ID and
+    // stage of every index entry without taking .git/index.lock, so concurrent
+    // validators cannot make each other fail on lock contention.
+    index: git(root, ['ls-files', '--stage']),
     status: git(root, ['status', '--porcelain=v1', '-uall']),
     refs: git(root, ['show-ref', '--head'])
   };

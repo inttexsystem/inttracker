@@ -4,6 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import {
+  catalogRenderProjection,
   jsonSha256,
   sha256,
   traceabilityRenderProjection
@@ -21,6 +22,24 @@ export const CANONICAL_VIEW_PATHS = Object.freeze({
 });
 const ALL_CANONICAL_VIEW_PATHS = Object.freeze(Object.values(CANONICAL_VIEW_PATHS));
 export const CANONICAL_OUTPUT_ALLOWLIST = new Set(Object.values(CANONICAL_VIEW_PATHS));
+
+// This renderer serves two disjoint state formats and must never mix them.
+//
+//   HISTORICAL — authority epoch 1, `schema_version` 2.0.0, carries `activation`.
+//     Its projections are immutable: they are the only way the accepted Unit-4C
+//     and Unit-4D checkpoints can still reproduce their own committed roots.
+//
+//   LIVE — compact `format_version` 3.0.0, carries no activation machinery.
+//
+// Format is derived from the state itself, never from the caller, so a state
+// can never be rendered through the other format's projection.
+export function isHistoricalEpochOneState(state) {
+  return Boolean(state)
+    && typeof state === 'object'
+    && !Object.hasOwn(state, 'format_version')
+    && state.schema_version === '2.0.0'
+    && Object.hasOwn(state, 'activation');
+}
 
 function compatibilityMarker(source) {
   return `<!-- GENERATED_COMPATIBILITY_VIEW: ${source} via ${RENDERER_ID}; NO INDEPENDENT AUTHORITY -->`;
@@ -45,6 +64,103 @@ function legacyTraceabilityMarker(source, sourceHash) {
 
 function pointerText(pointer) {
   return `${pointer.path}::${pointer.anchor}`;
+}
+
+function bullets(object) {
+  return Object.entries(object).map(([key, value]) => `- ${key}: \`${value}\``);
+}
+
+function historicalProjectView(state) {
+  return [
+    '# Current State',
+    ...legacyTraceabilityMarker('docs/governance/current-state.json',
+      state.activation.state_payload_sha256),
+    'This compatibility view owns no facts. `docs/governance/current-state.json` is canonical.',
+    '',
+    '## Activation',
+    '',
+    `- Status: \`${state.activation.status}\``,
+    `- Authority epoch: \`${state.authority_epoch}\``,
+    `- Cutover ID: \`${state.cutover_id}\``,
+    `- Active phase: \`${state.active_phase.status}\``,
+    '',
+    '## Accepted checkpoints',
+    '',
+    ...bullets(state.accepted_checkpoints),
+    '',
+    '## Next authorized action',
+    '',
+    `- \`${state.next_authorizable_action.canonical_value}\``,
+    `- Mode: \`${state.next_authorizable_action.mode}\``,
+    `- Status: \`${state.next_authorizable_action.status}\``,
+    '',
+    '## Governing pointers',
+    '',
+    ...bullets(state.governing_pointers),
+    '',
+    '## Blockers and debts',
+    '',
+    ...(state.live_debts.length ? state.live_debts.map(debt =>
+      `- \`${debt.stable_id}\`: ${debt.status}; blocking=${debt.blocking}; owner=\`${debt.owner_path}\`.`)
+      : ['- None recorded.']),
+    '',
+    '## Prohibitions',
+    '',
+    ...state.prohibitions.map(value => `- \`${value}\``),
+    '',
+    '## Authority matrix',
+    '',
+    ...state.root_authorities.map(item =>
+      `- \`${item.path}\`: ${item.role}; generated=${item.generated_status}; authoritative=${item.remains_authoritative}.`),
+    '',
+    '## Bounded ledger references',
+    '',
+    ...state.bounded_recent_ledger_references.map(reference =>
+      `- \`${reference.unit_id}\` / \`${reference.partition_id}\`: ${reference.reason}`),
+    ''
+  ].join('\n');
+}
+
+function historicalHandoffView(state) {
+  return [
+    '# Operational Handoff',
+    ...legacyTraceabilityMarker('docs/governance/current-state.json',
+      state.activation.state_payload_sha256),
+    'This bounded compatibility view owns no facts. Use the structured source and its governing pointers.',
+    '',
+    `- Repository: \`${state.repository.identity}\``,
+    `- Workspace: \`${state.repository.canonical_workspace}\``,
+    `- Branch: \`${state.repository.branch}\``,
+    `- Objective: \`${state.next_authorizable_action.canonical_value}\``,
+    `- Unit 4D: \`${state.phase_status.unit4d}\``,
+    `- Unit 5: \`${state.phase_status.unit5}\``,
+    '',
+    '## Governing pointers',
+    '',
+    ...bullets(state.governing_pointers),
+    '',
+    '## Bounded ledger evidence',
+    '',
+    ...state.bounded_recent_ledger_references.map(reference =>
+      `- \`${reference.event_id ?? reference.unit_id}\` in \`${reference.partition_path}\`; ${reference.reason}`),
+    ''
+  ].join('\n');
+}
+
+function historicalDocumentationView(catalog) {
+  const rows = catalog.artifacts.map(item =>
+    `| ${item.artifact_id} | \`${item.path}\` | ${item.classification} | ${item.authority} | ${item.disposition} |`);
+  return [
+    '# Documentation Index',
+    ...legacyTraceabilityMarker('docs/governance/catalog/documents.json',
+      jsonSha256(catalogRenderProjection(catalog))),
+    'This generated view owns no classifications. Normative governance semantics remain in `docs/governance/DOCUMENTATION_MODEL.md`.',
+    '',
+    '| ID | Path | Classification | Authority | Disposition |',
+    '|---|---|---|---|---|',
+    ...rows,
+    ''
+  ].join('\n');
 }
 
 function projectView() {
@@ -76,6 +192,15 @@ function handoffView(state) {
     `- Workspace: \`${state.repository.canonical_workspace}\``,
     `- Branch: \`${state.repository.branch}\``,
     `- Publication boundary: \`${state.repository.publication.remote}/${state.repository.publication.branch}\`; ${state.repository.publication.mode}`,
+    `- Accepted operational checkpoint: \`${state.accepted_operational_checkpoint}\``,
+    '',
+    '## Environment',
+    '',
+    `- Production: \`${state.environment_boundaries.production.project_id}\``,
+    `- Retired: \`${state.environment_boundaries.retired_project.project_id}\``,
+    `- Forbidden: \`${state.environment_boundaries.forbidden_project.project_id}\``,
+    `- Non-production database: ${state.environment_boundaries.non_production_database}`,
+    `- Deployment: ${state.deployment_boundaries.provider}; production branch \`${state.deployment_boundaries.production_branch}\`; repository ID \`${state.deployment_boundaries.git_repository_id}\`; ${state.deployment_boundaries.publication_path}`,
     '',
     '## Current objective',
     '',
@@ -166,12 +291,36 @@ function requiredSource(sources, key, relativePath) {
 }
 
 function renderSelectedView(relativePath, sources) {
-  if (relativePath === CANONICAL_VIEW_PATHS.project) return projectView();
-  if (relativePath === CANONICAL_VIEW_PATHS.handoff) {
-    return handoffView(requiredSource(sources, 'state', relativePath));
+  const historical = isHistoricalEpochOneState(sources?.state);
+  if (relativePath === CANONICAL_VIEW_PATHS.project) {
+    return historical ? historicalProjectView(sources.state) : projectView();
   }
-  if (relativePath === CANONICAL_VIEW_PATHS.documentation) return documentationView();
+  if (relativePath === CANONICAL_VIEW_PATHS.handoff) {
+    const state = requiredSource(sources, 'state', relativePath);
+    return historical ? historicalHandoffView(state) : handoffView(state);
+  }
+  if (relativePath === CANONICAL_VIEW_PATHS.documentation) {
+    return historical
+      ? historicalDocumentationView(requiredSource(sources, 'catalog', relativePath))
+      : documentationView();
+  }
   return traceabilityView(requiredSource(sources, 'traceability', relativePath));
+}
+
+// Exactly one generated marker of exactly one contract per view. The two
+// contracts are mutually exclusive, so a compact view can never carry the
+// epoch-1 block and an epoch-1 view can never carry the compact marker.
+function markerKind(relativePath, text) {
+  const legacyBegins = (text.match(/GOVERNANCE_GENERATED_VIEW:BEGIN/gu) ?? []).length;
+  const legacyEnds = (text.match(/GOVERNANCE_GENERATED_VIEW:END/gu) ?? []).length;
+  const compact = (text.match(/<!-- GENERATED_COMPATIBILITY_VIEW:/gu) ?? []).length;
+  const legacy = legacyBegins === 1 && legacyEnds === 1;
+  if (legacy && compact === 0) return 'EPOCH_1';
+  if (relativePath === CANONICAL_VIEW_PATHS.traceability) {
+    throw new Error(`invalid historical traceability marker cardinality: ${relativePath}`);
+  }
+  if (compact === 1 && legacyBegins === 0 && legacyEnds === 0) return 'COMPACT';
+  throw new Error(`invalid compact generated marker cardinality: ${relativePath}`);
 }
 
 function validateViewEntries(views) {
@@ -179,20 +328,15 @@ function validateViewEntries(views) {
     if (typeof text !== 'string') {
       throw new Error(`rendered canonical output must be text: ${relativePath}`);
     }
-    if (relativePath === CANONICAL_VIEW_PATHS.traceability) {
-      if ((text.match(/GOVERNANCE_GENERATED_VIEW:BEGIN/gu) ?? []).length !== 1
-          || (text.match(/GOVERNANCE_GENERATED_VIEW:END/gu) ?? []).length !== 1) {
-        throw new Error(`invalid historical traceability marker cardinality: ${relativePath}`);
-      }
-    } else if ((text.match(/GENERATED_COMPATIBILITY_VIEW/gu) ?? []).length !== 1) {
-      throw new Error(`invalid compact generated marker cardinality: ${relativePath}`);
-    }
+    markerKind(relativePath, text);
     if (/CANDIDATE READINESS VIEW|commit_sha|tree_sha|TIMESTAMP:/iu.test(text)) {
       throw new Error(`forbidden generated content: ${relativePath}`);
     }
   }
-  if (Object.hasOwn(views, CANONICAL_VIEW_PATHS.handoff)
-      && /SHA256|hash chain|ledger history/iu.test(views[CANONICAL_VIEW_PATHS.handoff])) {
+  const handoff = views[CANONICAL_VIEW_PATHS.handoff];
+  if (typeof handoff === 'string'
+      && markerKind(CANONICAL_VIEW_PATHS.handoff, handoff) === 'COMPACT'
+      && /SHA256|hash chain|ledger history/iu.test(handoff)) {
     throw new Error('compact handoff contains historical hash or ledger machinery');
   }
 }

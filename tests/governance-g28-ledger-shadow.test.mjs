@@ -39,6 +39,13 @@ const SOURCE_SCHEMA_PATH = 'docs/governance/schemas/g28-ledger-source-manifest.s
 const INDEX_SCHEMA_PATH = 'docs/governance/schemas/g28-ledger-partition-index.schema.json';
 const CURRENT_STATE_PATH = 'docs/governance/current-state.json';
 const PUBLISHED_UNIT_3_CHECKPOINT = '52533cc1a7658cc23f055b782b98f2167b63893f';
+// Terminal accepted Unit-4 checkpoint: the last state that owned bounded ledger
+// references and evidence events.
+const LIFECYCLE_CORRECTION_CHECKPOINT = '997332b1581b7dc111b1551773ee3611ef906c6d';
+const readCheckpointText = relativePath => execFileSync(
+  'git', ['show', `${LIFECYCLE_CORRECTION_CHECKPOINT}:${relativePath}`],
+  { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }
+);
 const live = worktreeReader(ROOT);
 const snapshotPaths = [SOURCE_PATH, SOURCE_MANIFEST_PATH, INDEX_PATH, COMPATIBILITY_PATH,
   SOURCE_SCHEMA_PATH, INDEX_SCHEMA_PATH, CATALOG_PATH, DOCUMENT_CATALOG_PATH,
@@ -493,7 +500,6 @@ expectValidationFailure('generated artifact without explicit catalog review fail
 test('current correction is bounded while prior Unit 5 evidence remains append-stable', () => {
   const priorOrder = 'GOVERNANCE-EFFICIENCY-REFOUNDATION-UNIT-5-PRECONDITION-CANONICAL-AUTHORITY-CONSUMER-FORWARD-CORRECTION-R3';
   const correctionOrder = 'GOVERNANCE-EFFICIENCY-REFOUNDATION-UNIT-5-R2-BOOTSTRAP-VALIDATOR-LIFECYCLE-DECOUPLING-FORWARD-CORRECTION-R1';
-  const state = JSON.parse(fs.readFileSync(path.join(ROOT, CURRENT_STATE_PATH), 'utf8'));
   const manifest = currentManifest();
   const unitsFor = (units, order) => units.filter(unit => unit.phase_order_id === order);
   const prior = unitsFor(manifest.units, priorOrder);
@@ -502,20 +508,44 @@ test('current correction is bounded while prior Unit 5 evidence remains append-s
   assert.equal(correction.length, 1);
   assert.ok(prior[0].ordinal < correction[0].ordinal);
 
-  const finalUnit = manifest.units.at(-1);
-  const currentBounded = state.bounded_recent_ledger_references.at(-1);
-  const currentEvent = state.evidence_events.at(-1);
+  // The bounded-reference coupling belongs to the epoch-1 state, which owned
+  // bounded_recent_ledger_references and evidence_events. It is proved at the
+  // checkpoint that established it. The live compact format-3 state owns
+  // neither field and is deliberately not consulted here; the ledger has since
+  // grown past this correction, which is exactly what append-only means.
+  const historicalState = JSON.parse(readCheckpointText(CURRENT_STATE_PATH));
+  const historicalManifest = JSON.parse(readCheckpointText(SOURCE_MANIFEST_PATH));
+  const finalUnit = historicalManifest.units.at(-1);
+  const currentBounded = historicalState.bounded_recent_ledger_references.at(-1);
+  const currentEvent = historicalState.evidence_events.at(-1);
+  assert.equal(finalUnit.phase_order_id, correctionOrder);
   assert.equal(finalUnit.phase_order_id, currentBounded.phase_order_id);
   assert.equal(finalUnit.unit_id, currentBounded.unit_id);
   assert.equal(currentBounded.event_id, currentBounded.phase_order_id);
   assert.ok(finalUnit.heading.endsWith(currentEvent.subject));
-  const boundedOrdinals = state.bounded_recent_ledger_references.map(reference =>
-    manifest.units.find(unit => unit.unit_id === reference.unit_id)?.ordinal);
+  const boundedOrdinals = historicalState.bounded_recent_ledger_references.map(reference =>
+    historicalManifest.units.find(unit => unit.unit_id === reference.unit_id)?.ordinal);
   assert.ok(boundedOrdinals.every(Number.isInteger));
   assert.deepEqual(boundedOrdinals, [...boundedOrdinals].sort((left, right) => left - right));
+  // The correction unit survives unchanged in the live append-only manifest.
+  assert.deepEqual(correction[0].unit_id, currentBounded.unit_id);
 
-  for (const partition of currentIndex().partitions.filter(item => item.status === 'CLOSED')) {
-    const relativePath = `${PARTITION_DIR}/${partition.file_name}`;
+  // Append-only means a partition that was already CLOSED at the accepted
+  // Unit-3 checkpoint is byte-identical today. The partition that was OPEN then
+  // has since been filled and closed by authorized appends, so comparing it to
+  // that checkpoint would assert immutability the contract never claimed.
+  const acceptedIndex = JSON.parse(execFileSync(
+    'git', ['show', `${PUBLISHED_UNIT_3_CHECKPOINT}:${INDEX_PATH}`],
+    { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }
+  ));
+  const closedAtAcceptance = acceptedIndex.partitions
+    .filter(item => item.status === 'CLOSED').map(item => item.file_name);
+  assert.ok(closedAtAcceptance.length > 0);
+  const closedNow = new Set(currentIndex().partitions
+    .filter(item => item.status === 'CLOSED').map(item => item.file_name));
+  for (const fileName of closedAtAcceptance) {
+    assert.equal(closedNow.has(fileName), true, `partition reopened: ${fileName}`);
+    const relativePath = `${PARTITION_DIR}/${fileName}`;
     const accepted = execFileSync('git', ['show', `${PUBLISHED_UNIT_3_CHECKPOINT}:${relativePath}`], {
       cwd: ROOT, encoding: 'utf8'
     });

@@ -36,7 +36,7 @@ function hasError(result, value) {
 test('current repository has the complete active normative inventory and zero contradictions', () => {
   const result = validateReader(base);
   assert.deepEqual(result.errors, []);
-  assert.equal(result.active_normative_artifacts, 25);
+  assert.equal(result.active_normative_artifacts, 26);
   assert.equal(result.active_contradictions, 0);
   assert.equal(result.unresolved, 0);
   assert.deepEqual(result.contradiction_paths, []);

@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ravatex.local/governance/current-state.schema.json",
+  "title": "G28 governance current-state shadow",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "mode",
+    "authority",
+    "schema_version",
+    "state_id",
+    "last_accepted_phase",
+    "repository",
+    "accepted_checkpoints",
+    "active_phase",
+    "next_authorizable_action",
+    "active_track",
+    "governing_pointers",
+    "environment_boundaries",
+    "prohibitions",
+    "protected_residue",
+    "live_debts",
+    "source_mappings"
+  ],
+  "properties": {
+    "mode": { "const": "shadow" },
+    "authority": { "const": "non_canonical_until_supervisor_cutover" },
+    "schema_version": { "type": "string", "const": "1.0.0" },
+    "state_id": { "type": "string", "minLength": 1 },
+    "last_accepted_phase": { "type": "string", "const": "PHASE-C5" },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonical_workspace", "repository", "branch", "checkpoint_remote"],
+      "properties": {
+        "canonical_workspace": { "type": "string", "minLength": 1 },
+        "repository": { "type": "string", "minLength": 1 },
+        "branch": { "const": "dev" },
+        "checkpoint_remote": { "const": "staging/dev" }
+      }
+    },
+    "accepted_checkpoints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product", "clean_slate_readiness", "clean_slate_execution", "governance_unit_1", "governance_unit_2", "governance_unit_3"],
+      "properties": {
+        "product": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "clean_slate_readiness": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "clean_slate_execution": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "governance_unit_1": { "type": "string", "const": "39abf42a7341b61fd4ac02a8e38d1e4f33471f0f" },
+        "governance_unit_2": { "type": "string", "const": "f7106977f4613de1830bef46002dbf0a4b8b3cbe" },
+        "governance_unit_3": { "type": "string", "const": "53899e30b72cde3d1f5759ea59fb0a4d632c974d" }
+      }
+    },
+    "active_phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "contract", "status"],
+      "properties": {
+        "id": { "const": "GOVERNANCE-EFFICIENCY-REFOUNDATION" },
+        "contract": { "const": "docs/governance/GOVERNANCE_EFFICIENCY_REFOUNDATION_PHASE_CONTRACT.md" },
+        "status": { "const": "ACTIVE / UNIT 4A CUTOVER READINESS IMPLEMENTED / AWAITING DIRECT SUPERVISOR REVIEW" }
+      }
+    },
+    "next_authorizable_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order_id", "canonical_value", "mode", "risk_class", "status"],
+      "properties": {
+        "order_id": { "const": "GOVERNANCE-EFFICIENCY-REFOUNDATION-UNIT-4A-CUTOVER-READINESS-IMPLEMENTATION-R1" },
+        "canonical_value": { "type": "string", "const": "DIRECT SUPERVISOR REVIEW OF GOVERNANCE-EFFICIENCY-REFOUNDATION-UNIT-4A-CUTOVER-READINESS-IMPLEMENTATION-R1" },
+        "mode": { "type": "string", "minLength": 1 },
+        "risk_class": { "const": "R2" },
+        "status": { "type": "string", "minLength": 1 }
+      }
+    },
+    "active_track": { "type": "string", "minLength": 1 },
+    "governing_pointers": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 },
+      "minProperties": 6
+    },
+    "environment_boundaries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["shared_development", "production", "forbidden_project"],
+      "properties": {
+        "shared_development": { "type": "string", "const": "ucrjtfswnfdlxwtmxnoo" },
+        "production": { "type": "string", "const": "gqmpsxkxynrjvidfmojk" },
+        "forbidden_project": { "type": "string", "const": "bhgifjrfagkzubpyqpew" }
+      }
+    },
+    "prohibitions": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+    "protected_residue": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "status"],
+        "properties": { "path": { "type": "string" }, "status": { "type": "string" } }
+      },
+      "minItems": 3
+    },
+    "live_debts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stable_id", "owner_path", "blocking", "status"],
+        "properties": {
+          "stable_id": { "type": "string" },
+          "owner_path": { "type": "string" },
+          "blocking": { "type": "boolean" },
+          "status": { "type": "string" }
+        }
+      }
+    },
+    "source_mappings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_path", "destination"],
+        "properties": { "source_path": { "type": "string" }, "destination": { "type": "string" } }
+      }
+    }
+  }
+}

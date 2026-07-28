@@ -1,4 +1,6 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -8,6 +10,58 @@ import {
 import {
   buildSourceManifest, normalizeLf, sha256, REQUIRED_BOOTSTRAP_KEYS
 } from './build-current-state-source-manifest.mjs';
+
+// Unit 1 is an immutable historical transition over the shadow current-state,
+// the PROJECT_STATE.md bootstrap block and the AGENT_HANDOFF.md byte partition
+// as they stood at its accepted checkpoint. None of those shapes survives in the
+// worktree, so this validator only ever runs against a materialized checkpoint
+// fixture and against the shadow-1.0.0 schema, never against the live compact
+// format-3 canonical state or its schema.
+export const UNIT1_CHECKPOINT = 'fa986cf935abbf053172cfd549b0171bb9446f58';
+export const SHADOW_SCHEMA_PATH = 'docs/governance/schemas/current-state-shadow-v1.schema.json';
+export const UNIT1_FIXTURE_FILES = Object.freeze([
+  'CLAUDE.md',
+  'PROJECT_STATE.md',
+  'AGENT_HANDOFF.md',
+  'docs/DOCUMENTATION_INDEX.md',
+  'docs/ledgers/G28_LEDGER.md',
+  'docs/governance/AGENT_INSTRUCTIONS.md',
+  'docs/governance/DOCUMENTATION_MODEL.md',
+  'docs/governance/SUPERVISION_PROTOCOL.md',
+  'docs/governance/GOVERNANCE_EFFICIENCY_REFOUNDATION_PHASE_CONTRACT.md',
+  // The shadow-1.0.0 schema was published at the canonical path back then; the
+  // fixture restores it under the historical path this validator now reads.
+  ['docs/governance/schemas/current-state.schema.json', SHADOW_SCHEMA_PATH],
+  'docs/governance/shadow/current-state.json',
+  'docs/governance/shadow/current-state-equivalence.json',
+  'docs/governance/shadow/current-state-source-manifest.json',
+  'docs/governance/shadow/generated/PROJECT_STATE.md',
+  'docs/governance/shadow/generated/AGENT_HANDOFF.md',
+  'docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md',
+  'docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md',
+  'docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md',
+  'docs/architecture/ORDEM_COMPRA_C3_TRACEABILITY.md',
+  'scripts/validate-spec-custody.mjs',
+  'scripts/spec-custody/validation-core.mjs',
+  'scripts/spec-custody/self-tests.mjs'
+]);
+
+export function makeUnit1Fixture(root = REPO_ROOT, commit = UNIT1_CHECKPOINT) {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'g28-shadow-fixture-'));
+  for (const entry of UNIT1_FIXTURE_FILES) {
+    const [source, destination] = Array.isArray(entry) ? entry : [entry, entry];
+    const target = path.join(fixture, destination);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, execFileSync('git', ['show', `${commit}:${source}`], {
+      cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024
+    }), 'utf8');
+  }
+  return fixture;
+}
+
+export function removeUnit1Fixture(fixture) {
+  fs.rmSync(fixture, { recursive: true, force: true });
+}
 
 const ALLOWED_CLASSIFICATIONS = new Set([
   'STRUCTURED_FIELD', 'NORMATIVE_OWNER_POINTER', 'HISTORICAL_LEDGER_CONTENT',
@@ -348,7 +402,7 @@ export function validateRepositoryDetailed(root = REPO_ROOT) {
   let manifestResult;
   let equivalence;
   try { state = loadState(root); } catch (error) { return { errors: [`cannot load state: ${error.message}`], results }; }
-  try { errors.push(...validateSchemaValue(state, readJson(fullPath(root, 'docs/governance/schemas/current-state.schema.json')))); } catch (error) { errors.push(`cannot load schema: ${error.message}`); }
+  try { errors.push(...validateSchemaValue(state, readJson(fullPath(root, SHADOW_SCHEMA_PATH)))); } catch (error) { errors.push(`cannot load schema: ${error.message}`); }
   errors.push(...validateStateShape(state));
   try { manifest = readJson(fullPath(root, 'docs/governance/shadow/current-state-source-manifest.json')); } catch (error) { errors.push(`cannot load source manifest: ${error.message}`); }
   if (manifest) {

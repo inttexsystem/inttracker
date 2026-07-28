@@ -1,127 +1,494 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ravatex.local/governance/current-state.schema.json",
-  "title": "G28 governance current-state shadow",
+  "$id": "https://inttracker.local/governance/current-state.schema.json",
+  "title": "Inttracker canonical compact current state (format 3.0.0)",
+  "description": "Live contract for docs/governance/current-state.json. This schema describes the compact current-state format only. The retired shadow 1.0.0 contract lives at docs/governance/schemas/current-state-shadow-v1.schema.json and is used exclusively by historical Unit-1 validation; the retired Unit-4 candidate and canonical contracts live in current-state-v2.schema.json. None of them may be applied to this file. This schema is intentionally $ref-free so the bounded JSON Schema evaluators already in this repository can enforce it without an external library.",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "mode",
-    "authority",
-    "schema_version",
+    "format_version",
     "state_id",
-    "last_accepted_phase",
     "repository",
+    "protected_residue",
+    "canonical_sources",
+    "accepted_operational_checkpoint",
     "accepted_checkpoints",
     "active_phase",
     "next_authorizable_action",
     "active_track",
-    "governing_pointers",
+    "accepted_product_contracts",
     "environment_boundaries",
+    "deployment_boundaries",
+    "blockers_and_material_debts",
+    "open_architect_decisions",
     "prohibitions",
-    "protected_residue",
-    "live_debts",
-    "source_mappings"
+    "exceptional_evidence"
   ],
   "properties": {
-    "mode": { "const": "shadow" },
-    "authority": { "const": "non_canonical_until_supervisor_cutover" },
-    "schema_version": { "type": "string", "const": "1.0.0" },
-    "state_id": { "type": "string", "minLength": 1 },
-    "last_accepted_phase": { "type": "string", "const": "PHASE-C5" },
+    "format_version": {
+      "const": "3.0.0"
+    },
+    "state_id": {
+      "const": "GOVERNANCE-COMPACT-CURRENT-STATE-R1"
+    },
     "repository": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["canonical_workspace", "repository", "branch", "checkpoint_remote"],
+      "required": [
+        "identity",
+        "canonical_workspace",
+        "standalone_git_required",
+        "branch",
+        "publication"
+      ],
       "properties": {
-        "canonical_workspace": { "type": "string", "minLength": 1 },
-        "repository": { "type": "string", "minLength": 1 },
-        "branch": { "const": "dev" },
-        "checkpoint_remote": { "const": "staging/dev" }
+        "identity": {
+          "const": "inttexsystem/inttracker"
+        },
+        "canonical_workspace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standalone_git_required": {
+          "const": true
+        },
+        "branch": {
+          "const": "dev"
+        },
+        "publication": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "remote",
+            "branch",
+            "tracking_ref",
+            "mode"
+          ],
+          "properties": {
+            "remote": {
+              "const": "staging"
+            },
+            "branch": {
+              "const": "dev"
+            },
+            "tracking_ref": {
+              "const": "refs/remotes/staging/dev"
+            },
+            "mode": {
+              "const": "EXPLICIT_SINGLE_FAST_FORWARD_ONLY"
+            }
+          }
+        }
       }
     },
-    "accepted_checkpoints": {
+    "protected_residue": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "expected_status",
+          "handling"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*\\.\\.)[^\\\\]+$"
+          },
+          "expected_status": {
+            "enum": [
+              "MODIFIED",
+              "UNTRACKED"
+            ]
+          },
+          "handling": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "canonical_sources": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["product", "clean_slate_readiness", "clean_slate_execution", "governance_unit_1", "governance_unit_2", "governance_unit_3"],
+      "required": [
+        "agent_behaviour",
+        "current_operational_state",
+        "generated_continuation_view",
+        "document_classification",
+        "requirement_traceability",
+        "append_only_history"
+      ],
       "properties": {
-        "product": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
-        "clean_slate_readiness": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
-        "clean_slate_execution": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
-        "governance_unit_1": { "type": "string", "const": "39abf42a7341b61fd4ac02a8e38d1e4f33471f0f" },
-        "governance_unit_2": { "type": "string", "const": "f7106977f4613de1830bef46002dbf0a4b8b3cbe" },
-        "governance_unit_3": { "type": "string", "const": "53899e30b72cde3d1f5759ea59fb0a4d632c974d" }
+        "agent_behaviour": {
+          "const": "docs/governance/AGENT_INSTRUCTIONS.md"
+        },
+        "current_operational_state": {
+          "const": "docs/governance/current-state.json"
+        },
+        "generated_continuation_view": {
+          "const": "AGENT_HANDOFF.md"
+        },
+        "document_classification": {
+          "const": "docs/governance/catalog/documents.json"
+        },
+        "requirement_traceability": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*\\.\\.)[^\\\\]+$"
+        },
+        "append_only_history": {
+          "const": "docs/ledgers/G28_LEDGER.md"
+        }
+      }
+    },
+    "accepted_operational_checkpoint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "accepted_checkpoints": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "status",
+          "checkpoint_commit",
+          "acceptance_scope"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9-]*$"
+          },
+          "status": {
+            "type": "string",
+            "pattern": "^CLOSED / ACCEPTED"
+          },
+          "checkpoint_commit": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "acceptance_scope": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     },
     "active_phase": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "contract", "status"],
+      "required": [
+        "id",
+        "status",
+        "immediate_objective",
+        "contract"
+      ],
       "properties": {
-        "id": { "const": "GOVERNANCE-EFFICIENCY-REFOUNDATION" },
-        "contract": { "const": "docs/governance/GOVERNANCE_EFFICIENCY_REFOUNDATION_PHASE_CONTRACT.md" },
-        "status": { "const": "ACTIVE / UNIT 4A CUTOVER READINESS IMPLEMENTED / AWAITING DIRECT SUPERVISOR REVIEW" }
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "immediate_objective": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "anchor"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!/)(?!.*\\.\\.)[^\\\\]+$"
+            },
+            "anchor": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
       }
     },
     "next_authorizable_action": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["order_id", "canonical_value", "mode", "risk_class", "status"],
+      "required": [
+        "id",
+        "mode",
+        "status"
+      ],
       "properties": {
-        "order_id": { "const": "GOVERNANCE-EFFICIENCY-REFOUNDATION-UNIT-4A-CUTOVER-READINESS-IMPLEMENTATION-R1" },
-        "canonical_value": { "type": "string", "const": "DIRECT SUPERVISOR REVIEW OF GOVERNANCE-EFFICIENCY-REFOUNDATION-UNIT-4A-CUTOVER-READINESS-IMPLEMENTATION-R1" },
-        "mode": { "type": "string", "minLength": 1 },
-        "risk_class": { "const": "R2" },
-        "status": { "type": "string", "minLength": 1 }
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
-    "active_track": { "type": "string", "minLength": 1 },
-    "governing_pointers": {
+    "active_track": {
       "type": "object",
-      "additionalProperties": { "type": "string", "minLength": 1 },
-      "minProperties": 6
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "governing_pointers"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "governing_pointers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "path",
+              "anchor"
+            ],
+            "properties": {
+              "role": {
+                "type": "string",
+                "pattern": "^[a-z0-9_]+$"
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^(?!/)(?!.*\\.\\.)[^\\\\]+$"
+              },
+              "anchor": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "accepted_product_contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "contract"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9-]*$"
+          },
+          "contract": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
     },
     "environment_boundaries": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["shared_development", "production", "forbidden_project"],
+      "required": [
+        "non_production_database",
+        "production",
+        "retired_project",
+        "forbidden_project"
+      ],
       "properties": {
-        "shared_development": { "type": "string", "const": "ucrjtfswnfdlxwtmxnoo" },
-        "production": { "type": "string", "const": "gqmpsxkxynrjvidfmojk" },
-        "forbidden_project": { "type": "string", "const": "bhgifjrfagkzubpyqpew" }
-      }
-    },
-    "prohibitions": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
-    "protected_residue": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["path", "status"],
-        "properties": { "path": { "type": "string" }, "status": { "type": "string" } }
-      },
-      "minItems": 3
-    },
-    "live_debts": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["stable_id", "owner_path", "blocking", "status"],
-        "properties": {
-          "stable_id": { "type": "string" },
-          "owner_path": { "type": "string" },
-          "blocking": { "type": "boolean" },
-          "status": { "type": "string" }
+        "non_production_database": {
+          "type": "string",
+          "pattern": "^NONE"
+        },
+        "production": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "project_id",
+            "access"
+          ],
+          "properties": {
+            "project_id": {
+              "const": "ucrjtfswnfdlxwtmxnoo"
+            },
+            "access": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "retired_project": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "project_id",
+            "access"
+          ],
+          "properties": {
+            "project_id": {
+              "const": "gqmpsxkxynrjvidfmojk"
+            },
+            "access": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "forbidden_project": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "project_id",
+            "access"
+          ],
+          "properties": {
+            "project_id": {
+              "const": "bhgifjrfagkzubpyqpew"
+            },
+            "access": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
         }
       }
     },
-    "source_mappings": {
+    "deployment_boundaries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "git_repository_id",
+        "production_branch",
+        "publication_path",
+        "verification_rule"
+      ],
+      "properties": {
+        "provider": {
+          "const": "vercel"
+        },
+        "git_repository_id": {
+          "const": "1276430187"
+        },
+        "production_branch": {
+          "const": "dev"
+        },
+        "publication_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verification_rule": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "blockers_and_material_debts": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["source_path", "destination"],
-        "properties": { "source_path": { "type": "string" }, "destination": { "type": "string" } }
+        "required": [
+          "id",
+          "status",
+          "blocking"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9_-]*$"
+          },
+          "status": {
+            "type": "string",
+            "pattern": "^(OPEN|ACTIVE_)"
+          },
+          "blocking": {
+            "type": "boolean"
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "open_architect_decisions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "prohibitions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "exceptional_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "purpose",
+          "path",
+          "anchor"
+        ],
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*\\.\\.)[^\\\\]+$"
+          },
+          "anchor": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     }
   }

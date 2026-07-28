@@ -30,186 +30,108 @@
       "handling": "PRESERVE_EXACTLY; DO NOT OPEN, DISPLAY, COPY, MODIFY, RESTORE, STAGE, COMMIT, REMOVE, CLEAN, OR REINTERPRET"
     }
   ],
-  "last_accepted": {
-    "product_phase": "KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-02",
-    "product_status": "CLOSED / ACCEPTED",
-    "product_checkpoint_commit": "65e1278c4ab70244ce707954416a3892c54577bb",
-    "product_acceptance_note": "Architecturally ACCEPTED by the architect in the KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-03-R1 order. The prior 'AWAITING ARCHITECT ACCEPTANCE' text was documentary lag, corrected by the BATCH-03 closeout. BATCH-02 must not be reopened.",
-    "product_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-25 — KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-02-R1 — feat: add Pedido date and controlled numbering"
+  "canonical_sources": {
+    "agent_behaviour": "docs/governance/AGENT_INSTRUCTIONS.md",
+    "current_operational_state": "docs/governance/current-state.json",
+    "generated_continuation_view": "AGENT_HANDOFF.md",
+    "document_classification": "docs/governance/catalog/documents.json",
+    "requirement_traceability": "docs/governance/traceability/purchase-order-phase-c.json",
+    "append_only_history": "docs/ledgers/G28_LEDGER.md"
+  },
+  "accepted_operational_checkpoint": "b77f4d14021781ebd96bce30f625687358b2d87a",
+  "accepted_checkpoints": [
+    {
+      "id": "UI-SPECIALIZED-CONTROLS-B1-SHARED-PRIMITIVES-AND-SITE-MIGRATION",
+      "status": "CLOSED / ACCEPTED",
+      "checkpoint_commit": "f6986bb4e019671037dc8644f3cec32632848eed",
+      "acceptance_scope": "js/ui.js is the sole constructor and css/tokens.css the sole geometry owner for the five role-specific specialized controls; an unknown role or tone throws."
     },
-    "governance_checkpoint": "GOVERNANCE-EFFICIENCY-REFOUNDATION-COMPACT-BOOTSTRAP",
-    "governance_checkpoint_commit": "76ce950a5cc244ca448120687cfd51391c8b63a7",
-    "governance_evidence": {
-      "path": "docs/governance/GOVERNANCE_EFFICIENCY_REFOUNDATION_PHASE_CONTRACT.md",
-      "anchor": "STATUS: CLOSED / ACCEPTED"
+    {
+      "id": "PEDIDO-SCREEN-GROUP-1-CREATION-AND-EDITING",
+      "status": "CLOSED / ACCEPTED",
+      "checkpoint_commit": "ff807a05863c7b8207c2ae5d8813b572001fc935",
+      "acceptance_scope": "Pedido creation and editing screens consolidated onto the token card and canonical control rungs; BATCH-03 owns one height for the five fields, not a literal 40px."
     },
-    "ui_foundation_phase": "UI-CONSOLIDATION-FOUNDATION-INTAKE-R1",
-    "ui_foundation_status": "CLOSED / ACCEPTED_WITH_NONBLOCKING_PROCESS_DEBT",
-    "ui_foundation_checkpoint_commit": "f3ff4cb368a57b32e529912544360b32b9c640a6",
-    "ui_foundation_acceptance_note": "Architecturally ACCEPTED by the architect in the UI-CONSOLIDATION-PHASE-3-OP-DETAIL-COMPACT-FIXTURE-CONFORMANCE-R1 order, which ruled on the 26-name LEGACY COMPATIBILITY block as transitional debt, on preserving the five legacy --rv-status-* values unmapped, on the explanatory validator comments, and on the integrity of checkpoint f3ff4cb. The prior 'AWAITING ARCHITECT ACCEPTANCE' text in this file and in the two intake ledger entries was documentary lag; it is corrected forward by the PHASE-3 closeout and the earlier records were not rewritten. The intake must not be reopened. Acceptance carries one nonblocking process debt, recorded in blockers_and_material_debts as DUPLICATE-OVERLAPPING-EXECUTOR-DISPATCH.",
-    "ui_foundation_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-25 — UI-CONSOLIDATION-PHASE-3-OP-DETAIL-COMPACT-FIXTURE-CONFORMANCE-R1 — fix(ui): conform compact OP detail fixture"
+    {
+      "id": "PEDIDO-SCREEN-GROUP-2-DETAIL-AND-MODAL-SURFACES",
+      "status": "CLOSED / ACCEPTED_WITH_NONBLOCKING_EVIDENCE_LIMITATIONS",
+      "checkpoint_commit": "cff5e9d2e02fcbee37d082f63fe477d4d6c45878",
+      "acceptance_scope": "Pedido detail and modal surfaces consolidated; modal stacking corrected to var(--rv-z-modal); actionButton() owns its own positioning context. No screenshot evidence for that batch."
     },
-    "ui_phase3_phase": "UI-CONSOLIDATION-PHASE-3-OP-DETAIL-COMPACT-FIXTURE-CONFORMANCE-R1",
-    "ui_phase3_status": "CLOSED / ACCEPTED",
-    "ui_phase3_checkpoint_commit": "ded162ec38f30ec7ddf0ab73988fa24bff93967e",
-    "ui_phase3_acceptance_note": "Architecturally ACCEPTED by the architect in the UI-CONSOLIDATION-PHASE-4-DETERMINISTIC-CONFORMANCE-DETECTOR-R1 order, which recorded phase 3 as CLOSED / ACCEPTED at checkpoint ded162e and authorized phase 4. Disclosed and accepted as ruled: the four screenshots were held OUTSIDE the repository and were NOT independently inspected by the architect; published code and deterministic evidence were accepted. The prior AWAITING ARCHITECT ACCEPTANCE text was documentary lag, corrected forward by this closeout; phase-3 records are not rewritten and phase 3 must not be reopened. Confirmed with that acceptance: the vendored react and react-dom 18.3.1 custody and their IMMUTABLE THIRD-PARTY FIXTURE RUNTIME ASSETS classification, exempt from CODE_HEALTH_RULES.md section 7 without authorizing modification, upgrade, further vendoring, application-runtime import or minified-code precedent for project source.",
-    "ui_phase3_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-25 — UI-CONSOLIDATION-PHASE-3-OP-DETAIL-COMPACT-FIXTURE-CONFORMANCE-R1 — fix(ui): complete offline compact fixture conformance"
+    {
+      "id": "PEDIDO-SCREEN-GROUP-3-LISTS-AND-CLIENT-JOURNEY",
+      "status": "CLOSED / ACCEPTED_WITH_NONBLOCKING_EVIDENCE_AND_PROCESS_LIMITATIONS",
+      "checkpoint_commit": "264e5d838e43826edc437922041597aa3947015d",
+      "acceptance_scope": "Two silent mobile reachability defects found by measurement and corrected with local scroll owners; no stylesheet edited. A document-overflow check alone could not have found them."
     },
-    "ui_phase4_phase": "UI-CONSOLIDATION-PHASE-4-DETERMINISTIC-CONFORMANCE-DETECTOR-R1",
-    "ui_phase4_status": "CLOSED / ACCEPTED_WITH_NONBLOCKING_REPORT_SCHEMA_DEBT",
-    "ui_phase4_checkpoint_commit": "9fbb84c1613ffc24f994ad053c812d724bf1ade0",
-    "ui_phase4_acceptance_note": "Architecturally ACCEPTED by the architect in the UI-CONSOLIDATION-PHASE-5-PASS-1-LITERAL-COLOUR-OWNERSHIP-R1 order, which recorded phase 4 as CLOSED / ACCEPTED_WITH_NONBLOCKING_REPORT_SCHEMA_DEBT at checkpoint 9fbb84c and authorized phase 5 pass 1. The accepted nonblocking debt was exactly two JSON highlight keys, literal_colours_attributed_to_a_site and literal_colours_needing_site_confirmation, whose NAMES described the pre-correction UIC-001 semantics while already carrying the corrected numbers. That debt is CORRECTED FORWARD in phase 5 pass 1, not reopened: the keys are renamed to literal_visual_colours_blocking and literal_colour_context_unproven, the predicates are unchanged and provably equivalent, the detector version is raised to 1.0.2, and the focused detector suite asserts both the new keys and the absence of the stale ones. Phase 4 must not be reopened. Everything else the phase-4 correction established is carried unchanged: the three-state UIC-001 classification, the level-two archetype-block boundary, the two front-ends, the severity model and the absence of any waiver mechanism.",
-    "ui_phase4_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-26 — UI-CONSOLIDATION-PHASE-4-DETERMINISTIC-CONFORMANCE-DETECTOR-R1 — fix(ui): correct conformance detector context and inventory bounds"
+    {
+      "id": "INTTEX-BRAND-ASSET-INTEGRATION-R1",
+      "status": "CLOSED / ACCEPTED",
+      "checkpoint_commit": "9af58ae600c14a39acd066395b71a5d5985b50bb",
+      "acceptance_scope": "Visible product name is Inttracker and the document title remains Inttracker; the phrase Controle de Tapetes is not restored to visible brand copy. The horizontal wordmark stays where there is measured room and the approved compact symbol is the narrow topbar form below the existing 767px breakpoint. No new logo variant is authorized. Transcript-held screenshots and the fresh-load viewport proof were sufficient; repository-held screenshots are not a standing requirement. The unproved live-resize transition is a nonblocking evidence limitation, not an open acceptance."
     },
-    "ui_phase5_pass1_phase": "UI-CONSOLIDATION-PHASE-5-PASS-1-LITERAL-COLOUR-OWNERSHIP-R1",
-    "ui_phase5_pass1_status": "CLOSED / ACCEPTED_WITH_NONBLOCKING_PROCESS_DEBT",
-    "ui_phase5_pass1_checkpoint_commit": "cabd358c006f692b3aec37d21cf279ab1e81927a",
-    "ui_phase5_pass1_acceptance_note": "Architecturally ACCEPTED by the architect in the UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1 order, at checkpoint cabd358c006f692b3aec37d21cf279ab1e81927a. Accepted: the nine D9 ownership rulings and the visual changes they require, the promoted 17-entry business-colour palette, the 24-file smoke-test reconciliation, UIC-001 = 0 blocking / 0 coverage / 0 total, detector 1.0.2, baseline blob 54ae97ef88fa875ed2314550d44d26f47d1f7a6e, the four-commit published chain, the baseline regeneration inside the documentary commit as a nonblocking commit-boundary deviation, and UI-SMOKE-TEST-VISUAL-EXPECTATION-COUPLING as nonblocking debt for future property-pass orders. One blocking defect was raised and corrected in the same material phase: css/tokens.css was served without a versioned URL, permitting a client to hold a cached pre-D9 stylesheet while receiving JavaScript that referenced the nine new variables. The correction versioned the token stylesheet, was proved under a warmed cache, and is the accepted checkpoint. Acceptance carries one nonblocking process debt, recorded in blockers_and_material_debts as PROTECTED-RESIDUE-CONTENT-DISCLOSURE. Pass 1 must not be reopened. The token-stylesheet correction commit cabd358 carries no separate ledger entry by architect ruling (the correction order required no documentary commit); the pass-1 record above remains its owner and this pass-2 entry records the correction forward.",
-    "ui_phase5_pass1_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-1-LITERAL-COLOUR-OWNERSHIP-R1 — fix(ui): close literal colour ownership pass"
+    {
+      "id": "INTTRACKER-PRODUCTION-CUTOVER-R1",
+      "status": "CLOSED / ACCEPTED",
+      "checkpoint_commit": "a823b4b66c9fa248b978c5ab6c9ee8ccec66326d",
+      "acceptance_scope": "ucrjtfswnfdlxwtmxnoo is the definitive production Supabase project and gqmpsxkxynrjvidfmojk is retired from every active runtime role. No valid separate development or staging database exists, so localhost and preview application environments may resolve read-only to production under the hard write block. Administrative, Auth, service-role and mutation tooling does not inherit that read-only application permission. Physical deletion of the retired project remains separately authorized work."
     },
-    "ui_phase5_pass2_phase": "UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1 (including A2, A3 and A4)",
-    "ui_phase5_pass2_status": "CLOSED / ACCEPTED",
-    "ui_phase5_pass2_checkpoint_commit": "7577f93b31f5e87e2f2cb2463f6ed0ecd6025be1",
-    "ui_phase5_pass2_acceptance_note": "Architecturally ACCEPTED by the architect in the UI-CONSOLIDATION-PHASE-5-PASS-3-CONTROL-HEIGHT-R1 order, which recorded pass 2 as CLOSED / ACCEPTED at checkpoint 7577f93b31f5e87e2f2cb2463f6ed0ecd6025be1 and authorized pass 3. Acceptance covers, distinctly: the original radius-property remediation; A2 removal of all 97 screen-level Tailwind radius utilities; the exact five-finding UIC-008 observability increase those removals made visible; A3 closure of shared-runtime radius ownership, making css/tokens.css the single application-radius owner; A4 delegation of the three semantic badge helpers to the canonical badge owner; the resulting badge visual changes; the runtime guard over all first-party scripts; the three exhaustively guarded DevTools-console exclusions; and the unchanged 42 UIC-008 coverage gaps. The prior 'AWAITING FINAL ARCHITECT ACCEPTANCE' text in this file and in the pass-2 ledger entries was documentary lag; it is corrected forward by the pass-3 closeout and the earlier records were not rewritten. Pass 2 must not be reopened, reconstructed, amended or reinterpreted.",
-    "ui_phase5_pass2_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-2-RADIUS-AND-SEMANTIC-PILL-R1-A4 — fix(ui): align shared semantic badge geometry"
+    {
+      "id": "INTTEX-PRODUCTION-ALIAS-CORRECTION",
+      "status": "CLOSED / ACCEPTED",
+      "checkpoint_commit": "708725325cc20d0c431f203d375e57dc2a9dcd76",
+      "acceptance_scope": "The final production alias is recognized by runtime configuration."
     },
-    "ui_phase5_pass3_phase": "UI-CONSOLIDATION-PHASE-5-PASS-3-CONTROL-HEIGHT-R1-A1",
-    "ui_phase5_pass3_status": "CLOSED / ACCEPTED",
-    "ui_phase5_pass3_checkpoint_commit": "42ce915e5f33ce72d0ae15d733cf5860a7b19b50",
-    "ui_phase5_pass3_acceptance_note": "Architecturally ACCEPTED by the architect in the UI-CONSOLIDATION-PHASE-5-PASS-4-SHADOW-R1-A1 order, which recorded pass 3 as CLOSED / ACCEPTED at checkpoint 42ce915e5f33ce72d0ae15d733cf5860a7b19b50 and authorized pass 4. Acceptance covers, distinctly: the ruling that UIC-003 governs ONLY the generic 32/34/38px ladder and that the 30x30 table-row action stays a role-specific primitive; the EXCLUSION of checkbox, radio, range, hidden, textarea and visually hidden controls from that ladder and the opening of UI-SPECIALIZED-CONTROL-CONTRACT-GAP with its 21 frozen sites; detector 1.0.4 and its UIC-003-local predicate; the two js-screen front-end transport amendments; the visual movement of every single-line field built by the shared textInput/selectInput primitives from roughly 44px to 32px across 17 consumer files and the three pagination current-page nodes becoming non-interactive spans; and the disclosed absence of screenshot evidence. The prior AWAITING ARCHITECT ACCEPTANCE text was documentary lag; it is corrected forward by the pass-4 closeout and the earlier records were not rewritten. Pass 3 must not be reopened, reconstructed, amended or reinterpreted.",
-    "ui_phase5_pass3_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-3-CONTROL-HEIGHT-R1-A1 — fix(ui): close generic control height pass"
+    {
+      "id": "GOVERNANCE-PROPORTIONAL-EXECUTION",
+      "status": "CLOSED / ACCEPTED",
+      "checkpoint_commit": "6dd5c04d32aefc68197f69f4472db24aff9eb379",
+      "acceptance_scope": "The FAST and ASSURANCE execution profiles and the mandatory execution envelope of docs/governance/AGENT_INSTRUCTIONS.md section 10 are binding."
     },
-    "ui_phase5_pass4_phase": "UI-CONSOLIDATION-PHASE-5-PASS-4-SHADOW-R1-A1",
-    "ui_phase5_pass4_status": "CLOSED / ACCEPTED",
-    "ui_phase5_pass4_checkpoint_commit": "64929bfb5f4c13382afa920077e066719a33223d",
-    "ui_phase5_pass4_acceptance_note": "Architecturally ACCEPTED by the architect in the UI-CONSOLIDATION-PHASE-5-PASS-5-CARD-ACTION-ALIGNMENT-R1-A1 order, which recorded pass 4 as CLOSED / ACCEPTED at checkpoint 64929bfb5f4c13382afa920077e066719a33223d and authorized pass 5. Acceptance covers, distinctly: the ruling that UIC-004 governs ELEVATION only and the withdrawal of the card-containment requirement; detector 1.0.5 and its structural non-elevation spread-ring predicate; the removal of the CARD_MEMBERSHIP_UNPROVEN coverage branch; the RATIFIED_FIELD_FOCUS_RING inventory of three sites, held to be the existing field contract and not debt; the opening of UI-KNOCKOUT-HALO-CONTRACT-GAP with its three frozen sites; the visual change on the generic toast and generic modal card moving off the Tailwind shadow-lg / shadow-xl ramps onto the canonical small and popover values, and the two documents-ingestor import actions losing their tinted decorative shadows; and the disclosed absence of screenshot evidence together with the disclosed deviceScaleFactor drift between the cold and warm passes. The prior AWAITING ARCHITECT ACCEPTANCE text was documentary lag; it is corrected forward by the pass-5 closeout and the earlier records were not rewritten. Pass 4 must not be reopened, reconstructed, amended or reinterpreted.",
-    "ui_phase5_pass4_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-4-SHADOW-R1-A1 — fix(ui): close elevation shadow pass"
+    {
+      "id": "VERCEL-GIT-AUTODEPLOY-RESTORATION",
+      "status": "CLOSED / ACCEPTED",
+      "checkpoint_commit": "1998817d0a0e9a14228bec7074829df5a6de0f42",
+      "acceptance_scope": "Vercel repository health is verified by repository ID 1276430187, never only by the displayed repository name. Production branch is dev, a staging/dev push is expected to trigger Git-sourced deployment automatically, and manual deployment is not the normal publication path."
     },
-    "ui_phase5_pass5_phase": "UI-CONSOLIDATION-PHASE-5-PASS-5-CARD-ACTION-ALIGNMENT-R1-A1",
-    "ui_phase5_pass5_status": "CLOSED / ACCEPTED",
-    "ui_phase5_pass5_checkpoint_commit": "212972d2e6d5653b647f27994590f8c3c99ecf0a",
-    "ui_phase5_pass5_acceptance_note": "Architecturally ACCEPTED by the architect in the UI-CONSOLIDATION-PHASE-5-PASS-6-TYPOGRAPHY-R1 order, which recorded pass 5 as CLOSED / ACCEPTED at checkpoint 212972d2e6d5653b647f27994590f8c3c99ecf0a and authorized pass 6. Acceptance covers, distinctly: detector 1.0.6; UIC-008 0 blocking / 0 coverage; the exact semantic 42-removed / 0-added delta; the four proven and marked card footers; the five guarded modal action bars held outside the footer contract; STANDARD_ACTION_FOOTER; SPLIT_INFORMATION_FOOTER; SPLIT_RISK_FOOTER; the open UI-ACTION-CONTAINER-CONTAINMENT-GAP; and the absence of screenshot evidence as nonblocking. The prior AWAITING ARCHITECT ACCEPTANCE text was documentary lag; it is corrected forward by the pass-6 closeout and the earlier records were not rewritten. Pass 5 must not be reopened, reconstructed, amended or reinterpreted.",
-    "ui_phase5_pass5_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-26 — UI-CONSOLIDATION-PHASE-5-PASS-5-CARD-ACTION-ALIGNMENT-R1-A1 — fix(ui): close proven card action alignment pass"
+    {
+      "id": "PEDIDO-ADMINISTRATIVE-DUAL-ITEM-ENTRY",
+      "status": "CLOSED / ACCEPTED",
+      "checkpoint_commit": "7ef4763aaad93196b184700de2146a202d9cc894",
+      "acceptance_scope": "Adicionar item opens the detailed modal and the modal must remain; the discreet Adicionar linha action remains at the lower right of the item card and inline editing remains. Both paths converge into the same local item state and persistence contract."
     },
-    "ui_phase5_pass7_phase": "UI-CONSOLIDATION-PHASE-5-PASS-7-NATIVE-SELECT-R1 (including A1, A2, A3, A4 and A5)",
-    "ui_phase5_pass7_status": "CLOSED / ACCEPTED_WITH_NONBLOCKING_VISUAL_EVIDENCE_LIMITATION",
-    "ui_phase5_pass7_checkpoint_commit": "52af3c9e34d84472d2138b177b20876265f554f5",
-    "ui_phase5_pass7_acceptance_note": "Architecturally ACCEPTED by the architect in the UI-CONSOLIDATION-PHASE-5-PASS-8-TABLE-CONTRACT-R1 order, which recorded pass 7 as CLOSED / ACCEPTED at checkpoint 52af3c9e34d84472d2138b177b20876265f554f5 and authorized pass 8. Acceptance covers, distinctly: the canonical select-popover primitive as the SOLE owner of the single-choice control, including its portal/fixed positioning at --rv-z-popover 225 and the --rv-select-popover-max-h 320px ceiling; the 44-site population ruling — 15 direct plus 29 shared consumers, the owner counted apart, 43 interactive and one read-only; the incidental UIC-000 delta of six and the resulting total 865 / coverage 543; the forward corrections to the evidence guards of passes 2, 3, 4, 5 and 6, whose product semantics were NOT reopened; the accessible-name contract, including the ruling that a row-level grid control is named by its own column header, and the RATIFIED deviation from the order text on which header that is — the real MODELO header of the table that renders the control, not the MODELO / CORES header of a different read-only table; and the ruling that a screen wrapper may not restyle a canonical trigger. Acceptance carries one nonblocking limitation: no authenticated route could be reached, so no per-route screenshot exists and naming evidence is DOM-level reference integrity plus target text. The prior AWAITING ARCHITECT ACCEPTANCE text was documentary lag; it is corrected forward by the pass-8 closeout and the earlier records were not rewritten. Pass 7 must not be reopened, reconstructed, amended or reinterpreted.",
-    "ui_phase5_pass7_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-27 — UI-CONSOLIDATION-PHASE-5-PASS-7-NATIVE-SELECT-R1 (A1 · A2 · A3 · A4 · A5) — fix(ui): replace native selects with owned popovers"
+    {
+      "id": "PEDIDO-CACHE-TOKEN-GUARD-RECONCILIATION",
+      "status": "CLOSED / ACCEPTED",
+      "checkpoint_commit": "8fb4afc7ebfe1951238b59f77eea7f859fee9a47",
+      "acceptance_scope": "The Pedido dual-entry cache-token conformance guards are reconciled with the shipped runtime asset tokens."
     },
-    "ui_phase5_pass8_phase": "UI-CONSOLIDATION-PHASE-5-PASS-8-TABLE-CONTRACT-R1-A1",
-    "ui_phase5_pass8_status": "CLOSED / ACCEPTED_WITH_NONBLOCKING_GLOBAL_TEST_AND_VISUAL_EVIDENCE_LIMITATIONS",
-    "ui_phase5_pass8_checkpoint_commit": "684ec5c1bdf04f8be46f2c3cce9e1e1ab7af2616",
-    "ui_phase5_pass8_acceptance_note": "Architecturally ACCEPTED by the architect in the UI-ACTION-CONTAINMENT-A1-SHARED-OWNERS-AND-COCKPIT-MEMBERSHIP order, which recorded pass 8 as CLOSED / ACCEPTED_WITH_NONBLOCKING_GLOBAL_TEST_AND_VISUAL_EVIDENCE_LIMITATIONS at checkpoint 684ec5c1bdf04f8be46f2c3cce9e1e1ab7af2616 and authorized the action-containment batch. Acceptance covers, distinctly: the ruling that a primary disposition never suppresses an applicable obligation, and the obligation matrix that enforces it over all 41 surfaces; the nine residual overflow corrections and their declared minimums; the deliberate inclusion of G09, which has no fixed-pixel column; the zero-semantic-delta detector result and the elimination of the one gap the first helper introduced; the section-11 deviation of 64 pre-existing failures, none in a UI or table file, with the unchanged-inputs proof; the corrected wording of the R1 full-sweep claim; and the disclosed op-latex cockpit gap, which pass 8 excluded and which the action-containment batch has now closed. The two named limitations are carried, not cured, by that acceptance: the global test baseline remains 64 inherited failures, and G20 and G28 were proved at source level rather than driven in a browser. The prior AWAITING ARCHITECT ACCEPTANCE text was documentary lag; it is corrected forward by this closeout and the earlier records were not rewritten. Pass 8 must not be reopened, reconstructed, amended or reinterpreted.",
-    "ui_phase5_pass8_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-27 — UI-CONSOLIDATION-PHASE-5-PASS-8-TABLE-CONTRACT-R1-A1 — docs: record pass 8 overflow correction"
+    {
+      "id": "ACTIVE-SUPABASE-CONSUMER-SAFETY",
+      "status": "CLOSED / ACCEPTED",
+      "checkpoint_commit": "00d87530ec50e3adcc45c35c3f66b7b5babba0cb",
+      "acceptance_scope": "Active Supabase consumers are reconciled with the production cutover so that no live consumer still writes to the retired project."
     },
-    "action_containment_a1_phase": "UI-ACTION-CONTAINMENT-A1-SHARED-OWNERS-AND-COCKPIT-MEMBERSHIP",
-    "action_containment_a1_status": "CLOSED / ACCEPTED",
-    "action_containment_a1_checkpoint_commit": "e0905345adc34c581071f8c06a0a905384ab09f0",
-    "action_containment_a1_acceptance_note": "Architecturally ACCEPTED by the architect in the UI SPECIALIZED CONTROLS - SHARED PRIMITIVES AND SITE MIGRATION B1 order, which recorded ACTION-CONTAINMENT A1 as CLOSED / ACCEPTED at checkpoint e0905345adc34c581071f8c06a0a905384ab09f0 and authorized the specialized-control batch. Acceptance covers, distinctly: the canonical modalActionBar() role and the ruling that the modal action-bar population is SIX rather than the five pass 5 froze; the visual change that migration caused on the generic modal and on every confirmDialog; the two consumers that surrendered a redundant background repaint and the one that kept its outer separation through a NAMED caller-owned option; the page-header and data-table action owners, the decision NOT to add align-items/flex-wrap on measured evidence, and the refusal to convert row actions to actionButton; the REDERIVED call-site counts 13 and 6; the cockpit membership on three previously unmarked Archetype-A surfaces including op-nova; the two populational guards; the zero-semantic-delta detector result; and the unchanged 64-failure inherited baseline with the disclosed overlap on the entry sweep. The same order CANCELLED ACTION-CONTAINMENT A2 as a global closure phase: local action containment is corrected inside each future screen batch instead. The prior AWAITING ARCHITECT ACCEPTANCE text was documentary lag, corrected forward by this closeout; the earlier records were not rewritten and A1 must not be reopened.",
-    "action_containment_a1_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-27 — UI-ACTION-CONTAINMENT-A1-SHARED-OWNERS-AND-COCKPIT-MEMBERSHIP — refactor(ui): declare shared action owners and cockpit membership"
-    },
-    "component_inventory_phase": "PRE-SCREEN-EDIT COMPONENT CONTRACT INVENTORY R1",
-    "component_inventory_status": "COMPLETE / ACCEPTED AS PLANNING BASELINE",
-    "component_inventory_note": "Accepted as a PLANNING BASELINE only, by the UI-ACTION-CONTAINMENT-A1 order. It is a read-only reconciliation and confers no product or conformance authority. Its external AST harness lived entirely outside the worktree and is EVIDENCE, never a canonical repository tool: no parser entered scripts/ui-conformance/**, and no committed runtime or test file depends on a Node internal module. Two of its reported figures were rederived from source during A1 and CORRECTED: pageHeader call sites are 13 in 6 files and dataTable call sites are 6 in 4 files, not the 17 and 8 the report stated, because those raw counts included prose comment lines. The corrected figures are the ones the A1 guards pin.",
-    "specialized_controls_b1_phase": "UI-SPECIALIZED-CONTROLS-B1-SHARED-PRIMITIVES-AND-SITE-MIGRATION",
-    "specialized_controls_b1_status": "CLOSED / ACCEPTED",
-    "specialized_controls_b1_checkpoint_commit": "f6986bb4e019671037dc8644f3cec32632848eed",
-    "specialized_controls_b1_acceptance_note": "Architecturally ACCEPTED by the architect in the PEDIDO-SCREEN-GROUP-2 continuation order, which recorded SPECIALIZED-CONTROLS-B1 as CLOSED / ACCEPTED at checkpoint f6986bb4e019671037dc8644f3cec32632848eed. Acceptance covers, distinctly: the five role-specific primitives textArea(), checkboxInput(), switchToggle(), rangeInput() and visuallyHidden() plus autosizeTextarea(), the ownership split between js/ui.js as sole constructor and css/tokens.css as sole geometry owner, and the ruling that a role enum replaces every style escape hatch so an unknown role or tone THROWS; the twenty new canonical tokens and the specialized-control stylesheet block, added without touching the ratified UI_VISUAL_CONTRACT.md enums; the ruling that the runtime population is 22 CONSTRUCTIONS - 5 checkboxes, 1 range, 11 textareas, 2 switch components each contributing track AND knob, and 1 visually hidden compatibility control - and that the 21-entry documentary inventory is SUPERSEDED rather than contradicted; the nine-member textarea role enum and the documentary correction that the two modal textareas always rendered 104px rather than the 44px the pass-3 inventory recorded, together with the retained but unconsumed compact 44px rung; the visual consolidation the migration causes - one canonical textarea box, one 16px checkbox with accent var(--rv-accent-blue) replacing 15px/16px/user-agent default, and an explicit range thumb; the switch becoming ONE component with declarative checked state and a closed two-tone enum, and the deletion of both repaint handlers; the range gradient moving from a whole-style-attribute rewrite to a background-only assignment; the replacement of the pass-3 file-scoped guard by the construction-scoped population guard and the six forward corrections to the pass-2, pass-4, pass-5, pass-6, pass-7 and pass-8 evidence guards, none of which reopens any earlier pass product semantics; the detector delta of zero added and seventeen moved findings; and the deliberate exclusion of the two other clip-rect visually hidden nodes from the declared population. The disclosed focus-state rendering limitation - the browser pane was not composited and the document never held focus, so the focus contract was proved structurally from the loaded CSSOM rather than rendered - is CARRIED by this acceptance, not cured. The prior AWAITING ARCHITECT ACCEPTANCE text was documentary lag, corrected forward by the PEDIDO-SCREEN-GROUP-2 closeout; the earlier records were not rewritten and B1 must not be reopened.",
-    "specialized_controls_b1_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-27 — UI-SPECIALIZED-CONTROLS-B1-SHARED-PRIMITIVES-AND-SITE-MIGRATION — refactor(ui): consolidate specialized controls"
-    },
-    "pedido_screen_group_1_phase": "PEDIDO-SCREEN-GROUP-1-CREATION-AND-EDITING",
-    "pedido_screen_group_1_status": "CLOSED / ACCEPTED",
-    "pedido_screen_group_1_checkpoint_commit": "ff807a05863c7b8207c2ae5d8813b572001fc935",
-    "pedido_screen_group_1_acceptance_note": "Architecturally ACCEPTED by the architect in the PEDIDO-SCREEN-GROUP-2 continuation order, which recorded PEDIDO-SCREEN-GROUP-1 as CLOSED / ACCEPTED at checkpoint ff807a05863c7b8207c2ae5d8813b572001fc935. Acceptance covers, distinctly: the restoration of the BATCH-03 field-height invariant on the canonical --rv-h-compact rung and the ruling that the fact BATCH-03 owns is ONE HEIGHT FOR THE FIVE rather than the literal 40px, which phase-5 pass 7 broke in silence when Cliente and Status moved onto shared owners; the visual change that causes on #/pedidos/novo, three fields falling from 40px to 32px and their value text from 14px to 13px; the cliente Dados gerais grid gaining the fourth column it always needed and both cliente grids consuming the already accepted data-rv-pedido-dados and data-rv-2col responsive contracts with no stylesheet edited; the two editing screens leaving the Tailwind card language for the token card and the resulting single card rhythm across all four screens; the marked card-footer population moving 4 to 6 under the ACTION-CONTAINMENT-A1 ruling that local containment is corrected inside each screen batch, and the corresponding narrowing of UI-ACTION-CONTAINER-CONTAINMENT-GAP by exactly those two rows; three destructive row actions moving from bare spans to the ratified 30x30 actionButton owner, which makes them focusable, keyboard-operable and named for the first time; the removal of the chevron from the modal's three derived read-only boxes and their adoption of the pass-7 section 12 read-only field geometry, together with the deliberate decision NOT to call createReadonlyFieldValue because its site population is pinned at one; the ACTION_CONSTRUCTION_COUNT rederivation from a raw 484 to a comment-stripped 472 and the CARD_SHAPED_CONSTRUCTION_COUNT rise 122 to 137 as previously ungoverned Tailwind surface entering the governed population; the forward correction to pass-2 section 21g which had silently forbidden every later authorized order from marking those five paths; and the detector delta of zero added and two removed coverage gaps together with the style-authoring rule that every style is a single literal at its site. The two items the pass-1 record referred for an owning decision are BOTH now decided by the PEDIDO-SCREEN-GROUP-2 order: the cliente add-item modal STAYS MODAL-BASED and is preserved, and the shared pageHeader primary action DOES leave Tailwind bg-blue-700 for --rv-brand. The prior AWAITING ARCHITECT ACCEPTANCE text was documentary lag, corrected forward by the PEDIDO-SCREEN-GROUP-2 closeout; the earlier records were not rewritten and screen group 1 must not be reopened.",
-    "pedido_screen_group_1_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-27 — PEDIDO-SCREEN-GROUP-1-CREATION-AND-EDITING — refactor(ui): consolidate pedido creation and editing screens"
-    },
-    "pedido_screen_group_2_phase": "PEDIDO-SCREEN-GROUP-2-DETAIL-AND-MODAL-SURFACES",
-    "pedido_screen_group_2_status": "CLOSED / ACCEPTED_WITH_NONBLOCKING_EVIDENCE_LIMITATIONS",
-    "pedido_screen_group_2_checkpoint_commit": "cff5e9d2e02fcbee37d082f63fe477d4d6c45878",
-    "pedido_screen_group_2_acceptance_note": "Architecturally ACCEPTED by the architect in the PEDIDO-SCREEN-GROUP-3-LISTS-AND-CLIENT-JOURNEY order, which recorded PEDIDO-SCREEN-GROUP-2 as CLOSED / ACCEPTED_WITH_NONBLOCKING_EVIDENCE_LIMITATIONS at checkpoint cff5e9d2e02fcbee37d082f63fe477d4d6c45878. Acceptance covers, distinctly: the ruling that the cliente add-item modal REMAINS MODAL-BASED and is an accepted, already visually homologated product interaction, closing the open decision PEDIDO-SCREEN-GROUP-1 referred; the correction of the modal stacking from a raw z-index 1000 to var(--rv-z-modal), restoring modal 200 < select popover 225 < toast 250, which is what made the Tipo and Modelo popovers usable inside the modal at all; the closure of UI-ACTION-BUTTON-SR-LABEL-POSITIONING at the shared owner, actionButton() declaring position:relative on its own button, and the removal of the now redundant caller workaround in cliente-pedido-form.js; the shared pageHeader primary action leaving Tailwind bg-blue-700 for --rv-brand / --rv-brand-strong / --rv-text-on-brand with an explicit border:none across all 13 accepted call sites; the two Pedido detail admin cards leaving the Tailwind bg-white shadow p-6 card language for the token card and the normalized card rhythm in pedido-detail-render.js and pedido-detail.js; the marked card-footer population moving 6 to 8 with padding-top:11px declared as a LONGHAND and the corresponding narrowing of UI-ACTION-CONTAINER-CONTAINMENT-GAP by exactly those two rows; the detector result of ZERO semantic findings added and none removed, blocking 0, UIC-000 534, UIC-009 320, total 854, with the live report reproducing the committed baseline BYTE-IDENTICALLY; the six cache-token precedence chains gaining a SCREEN_GROUP_2 tier with every population MOVED and never inflated; the single end-of-checkpoint repository sweep with NO new failure identity; and the decision to leave the two unreachable admin builders unmounted and the pedido-item-row-editor.js positioning workaround untouched. FOUR NONBLOCKING LIMITATIONS ARE CARRIED, NOT CURED: (1) no screenshot exists for that batch, and computed-style, bounding-box, stacking and DOM measurements are accepted for that checkpoint; (2) the client-side window.CURRENT_USER harness is accepted ONLY as a non-mutating rendering harness used after no authenticated route was available, and establishes no product, authentication, authorization or testing precedent; (3) the checkpoint sweep's inherited failure identities are separate debts and do not block the screen batch; (4) buildTrackingAdmin() and buildParciaisAdmin() remain unreachable and unmounted. The prior AWAITING ARCHITECT ACCEPTANCE text was documentary lag, corrected forward by the PEDIDO-SCREEN-GROUP-3 closeout; the earlier records were not rewritten and screen group 2 must not be reopened.",
-    "pedido_screen_group_2_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-27 — PEDIDO-SCREEN-GROUP-2-DETAIL-AND-MODAL-SURFACES — refactor(ui): consolidate pedido detail and modal surfaces"
-    },
-    "pedido_screen_group_3_phase": "PEDIDO-SCREEN-GROUP-3-LISTS-AND-CLIENT-JOURNEY",
-    "pedido_screen_group_3_status": "CLOSED / ACCEPTED_WITH_NONBLOCKING_EVIDENCE_AND_PROCESS_LIMITATIONS",
-    "pedido_screen_group_3_checkpoint_commit": "264e5d838e43826edc437922041597aa3947015d",
-    "pedido_screen_group_3_acceptance_note": "Architecturally ACCEPTED by the architect in the INTTEX-BRAND-ASSET-INTEGRATION-R1 order, which recorded PEDIDO-SCREEN-GROUP-3 as CLOSED / ACCEPTED_WITH_NONBLOCKING_EVIDENCE_AND_PROCESS_LIMITATIONS at checkpoint 264e5d838e43826edc437922041597aa3947015d and authorized the brand-integration phase. Acceptance covers, distinctly: the TWO SILENT REACHABILITY DEFECTS found by measurement rather than inspection and corrected - the administrative filter row, whose 168px column floor put Recebimento, Atualizado and Limpar filtros at x=534, x=710 and x=848 in a 390px viewport with no scroll owner, and the client Pedido list tab strip, whose last tab ended at x=689 - together with the ruling that the shell <main> overflow-x:hidden made both defects SILENT, so a documentElement.scrollWidth check alone would never have found them; the correction instrument, a local overflow-x:auto owner in each case with the grid, its floor, the tab order, the labels, the counts and the filters all unchanged; the consumption of the already accepted data-rv-metrics, data-rv-2col and data-rv-table-scroll responsive contracts with NO STYLESHEET EDITED and the desktop proportions preserved exactly; the migration of the client dashboard last hand-built row action to the shared actionButton() owner; the client detail leaving its last four Tailwind error surfaces and its last Tailwind two-column grid for the token language with every message string byte-identical; the HEADING HIERARCHY correction moving that screen seven section titles from EMPHASISED_METRIC 15px to COMPONENT_HEADING 16px; the KPI legibility correction found in the mobile screenshot; the CLOSURE of UI-ACTION-BUTTON-CALLER-WORKAROUND-REDUNDANT with its rendered regression proof; the detector result of ZERO semantic findings added and ZERO removed at version 1.0.6 and the ruling that the baseline delta of 63 lines is 56 pure line/column moves plus five declaration-site counters; the DISCLOSED SELF-CORRECTION that the first spelling of the error-card helper added two UIC-000 coverage gaps and was rewritten to a single literal at its site rather than accepting them; the six cache-token precedence chains gaining a SCREEN_GROUP_3 tier with every population MOVED and never inflated; the CARD_SHAPED_CONSTRUCTION_COUNT rise 142 to 143 as a HEURISTIC ARTEFACT on one enumerated site; the one internal test-coupling correction repairing a fragile extractor in cliente-pedido-detail.smoke.js; the FORWARD CORRECTION to the PEDIDO-SCREEN-GROUP-2 record attributing the same 56 sweep failures to SEVEN file identities rather than three, with the failure DATA unchanged; and the HARNESS DEVIATION in which window.CURRENT_USER was set client-side with no credential entered, no session created, no write attempted and no application source modified. The prior AWAITING ARCHITECT ACCEPTANCE text was documentary lag, corrected forward by the INTTEX-BRAND-ASSET-INTEGRATION closeout; the earlier records were not rewritten and screen group 3 must not be reopened.",
-    "pedido_screen_group_3_evidence": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-27 — PEDIDO-SCREEN-GROUP-3-LISTS-AND-CLIENT-JOURNEY — refactor(ui): consolidate pedido list and client journey surfaces"
+    {
+      "id": "STAGING-AND-BACKUP-ENVIRONMENT-SAFETY",
+      "status": "CLOSED / ACCEPTED",
+      "checkpoint_commit": "b77f4d14021781ebd96bce30f625687358b2d87a",
+      "acceptance_scope": "Stale staging and backup tooling fails closed. This is the accepted operational checkpoint."
+    }
+  ],
+  "active_phase": {
+    "id": "NONE",
+    "status": "IDLE / READY FOR NEXT EXPLICIT PRODUCT OR DEBT ORDER",
+    "immediate_objective": "No implementation order is active and no phase chains automatically. The accepted operational checkpoint is b77f4d14021781ebd96bce30f625687358b2d87a. The brand integration and the production cutover are both ACCEPTED and neither awaits acceptance. The next material change requires a new explicit product or debt order selected by the architect.",
+    "contract": {
+      "path": "docs/governance/AGENT_INSTRUCTIONS.md",
+      "anchor": "## 4. Authorization and roles"
     }
   },
-  "active_phase": {
-    "id": "INTTRACKER-PRODUCTION-CUTOVER-R1",
-    "status": "INTTRACKER-PRODUCTION-CUTOVER IMPLEMENTED / ucrjtfswnfdlxwtmxnoo IS THE DEFINITIVE PRODUCTION SUPABASE PROJECT / gqmpsxkxynrjvidfmojk RETIRED FROM EVERY ACTIVE RUNTIME ROLE AND DELIBERATELY NOT DELETED / CANONICAL REPOSITORY IDENTITY IS inttexsystem/inttracker AND THE staging REMOTE RESOLVES THERE / NO VALID NON-PRODUCTION DATABASE EXISTS, SO LOCALHOST AND VERCEL PREVIEW DEPLOYMENTS RESOLVE TO THE PRODUCTION PROJECT IN AN EXPLICIT READ-ONLY ROLE WITH WRITES HARD-BLOCKED, PROVED LIVE IN A BROWSER / THE WRITE-GUARD PREDICATE MOVED FROM _IS_LOCAL && _IS_PROD_URL TO THE ABSENCE OF THE ENVIRONMENT DECLARED WRITE PERMISSION, WHICH IS WHAT FINALLY COVERS PREVIEW DEPLOYMENTS / PRODUCTION_HOSTNAMES DROPPED inttracker-git-main-inttex AND GAINED inttracker-git-dev-inttex BECAUSE THE VERCEL PRODUCTION BRANCH IS NOW dev / THE THREE CHANGED RUNTIME ASSETS WERE RETOKENIZED SO NO CACHED CLIENT CAN KEEP WRITING TO THE RETIRED PROJECT / NO SCHEMA OR DATA WAS MUTATED IN EITHER SUPABASE PROJECT / FULL SWEEP 5141 TESTS 62 FAILURES WITH ZERO NEW FAILURE IDENTITIES AGAINST A PRISTINE DETACHED-WORKTREE ENTRY SWEEP / VERCEL PROJECT LINKED, REPOSITORY CONNECTED, PRODUCTION BRANCH dev / AWAITING ARCHITECT ACCEPTANCE",
-    "contract": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-28 — INTTRACKER-PRODUCTION-CUTOVER-R1 — fix(config): cut over Inttracker production ownership"
-    },
-    "immediate_objective": "INTTRACKER-PRODUCTION-CUTOVER IS IMPLEMENTED AND AWAITING ARCHITECT ACCEPTANCE. TWO ACCEPTANCES ARE NOW OUTSTANDING: THIS ONE AND INTTEX-BRAND-ASSET-INTEGRATION-R1 AT 9af58ae600c14a39acd066395b71a5d5985b50bb, WHICH THIS PHASE DID NOT TOUCH, DID NOT REOPEN AND DOES NOT SUPERSEDE - ITS OWN RECORD AND ITS DISCLOSED PRODUCT-OWNER COPY DEVIATION REMAIN EXACTLY AS PUBLISHED AND STILL REQUIRE AN EXPLICIT RULING. WHAT THIS PHASE DID. It promoted ucrjtfswnfdlxwtmxnoo to definitive production and retired gqmpsxkxynrjvidfmojk, on direct read-only evidence from both projects rather than on the prior configuration comments: the promoted project already carried 56 public tables including the complete ordem_compra domain of the active PURCHASE_ORDER_PHASE_C track plus 10 auth users and the real pedidos, while the retired project carried 40 tables, no ordem_compra domain at all, 1 auth user and 0 pedidos. Because the retired project cannot run the current schema it is NOT a valid non-production target either, so the architect ruled that no separate non-production database exists and that the application must not be adapted to the stale schema. The non-production environment therefore resolves to the SAME production project with writes hard-blocked, which was proved live: a real select returned rows while insert, update, delete, upsert and rpc were each rejected before reaching the client, with both banners rendered. The non-production banner text was corrected because it claimed DADOS DE TESTE over what are now real production records. NOT DONE: no Supabase schema or data was mutated, no migration was written or applied, the retired project was NOT deleted, docs/STAGING_BASELINE.md, docs/DEPLOYMENT.md and docs/HANDOFF.md were left untouched as self-declared historical documents, docs/governance/shadow/** was not touched, and the two remaining consumers that still name the retired project - the documents-ingestor watcher and runbook, and the clean-slate export script - were REPORTED rather than repointed, because moving a writer service or a destructive reset tool needs an order naming the environment and the operation.",
-    "self_accepted": false,
-    "architect_accepted": false,
-    "superseded_active_phase": {
-      "id": "INTTEX-BRAND-ASSET-INTEGRATION-R1",
-    "status": "INTTEX-BRAND-ASSET-INTEGRATION IMPLEMENTED / APPROVED BRAND ASSETS CONSUMED WITHOUT MODIFICATION, ALL SEVEN BLOBS BYTE-IDENTICAL TO THE ENTRY CHECKPOINT / GLOBAL TOPBAR WORDMARK, LOGIN WORDMARK, INTTRACKER PRODUCT NAME, BROWSER FAVICON AND DOCUMENT TITLE DELIVERED / THE DISCONTINUED PRODUCT NAME IS GONE FROM VISIBLE COPY AND FORBIDDEN BY GUARD / ONE SILENT MOBILE COLLISION INTRODUCED BY THE WORDMARK WAS FOUND BY MEASUREMENT AND CORRECTED BY THE BRAND OWN NARROW-FORM RULE, THE SYMBOL BELOW THE SHELL EXISTING 767px BREAKPOINT, WITH NO STYLESHEET EDITED / PRODUCT-OWNER COPY DEVIATION FROM THE ORDER TEXT DISCLOSED AND AWAITING EXPLICIT RULING / DETECTOR 1.0.6 UNCHANGED / BLOCKING 0 / ZERO SEMANTIC FINDINGS ADDED AND EXACTLY ONE REMOVED / UIC-000 534 TO 533 / UIC-009 DEBT 320 UNCHANGED / TOTAL 854 TO 853 / ACTION AND CARD COARSE INVENTORIES UNCHANGED AT 475 AND 143 / COUPLED VALIDATION 85 FILES 3059 TESTS 3058 PASS 1 INHERITED FAIL / ONE CHECKPOINT SWEEP 5135 TESTS 64 FAILURES WITH ZERO NEW IDENTITIES AND ZERO DISAPPEARANCES AGAINST A PRISTINE ENTRY SWEEP OF 5124 TESTS 64 FAILURES / VISUALLY VERIFIED AT 1440x900 AND 390x844 WITH SCREENSHOTS ON BOTH LOGIN AND THE AUTHENTICATED SHELL / PUBLISHED / AWAITING ARCHITECT ACCEPTANCE",
-    "contract": {
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-28 — INTTEX-BRAND-ASSET-INTEGRATION-R1 — feat(ui): integrate approved Inttex brand assets"
-    },
-    "immediate_objective": "INTTEX-BRAND-ASSET-INTEGRATION IS IMPLEMENTED AND PUBLISHED, AWAITING ARCHITECT ACCEPTANCE. IT IS THE ONLY OUTSTANDING ACCEPTANCE: THE ORDER THAT AUTHORIZED THIS PHASE ACCEPTED PEDIDO-SCREEN-GROUP-3 AT 264e5d838e43826edc437922041597aa3947015d, WHICH IS NOW RECORDED IN last_accepted. WHAT THIS PHASE DID. It consumed the already-approved Inttex brand package in three bounded surfaces and changed no route, permission, handler, authentication step, navigation destination or business rule. THE ARTWORK WAS NEVER MODIFIED: all seven blobs under assets/brand/inttex/ are byte-identical to the entry checkpoint, proved blob-for-blob. THE GLOBAL TOPBAR replaced its text-only Inttex wordmark with real brand art in an <img> named Inttex, sized by declared height and derived width so neither form can distort, with topbar height 62px, the divider, the section label, the user area, notifications, avatar and navigation all unchanged. A SILENT DEFECT WAS INTRODUCED AND THEN REMOVED IN THE SAME PHASE: at 390px the horizontal wordmark pushed the section label into the notifications bell - Admin by 14.86px, Fornecedor by 33.29px - and wrapped Portal do cliente from two lines to three inside a 62px bar, while documentElement.scrollWidth and header.scrollWidth both stayed at 390, so no document-overflow check could have found it. NO LOGO HEIGHT RESOLVES IT: measured at 12, 14, 15, 16, 18 and 20px, Fornecedor still collided at every size, including sizes below the brand package own 18px on-screen minimum, because the header needs roughly 404px in a 362px usable width. THE CORRECTION IS THE BRAND OWN PRESCRIPTION - below the minimum the wordmark closes up and the symbol is used alone - implemented DECLARATIVELY by <picture> plus <source media> at the SAME 767px breakpoint css/responsive.css already owns, with no media query read in JavaScript, no resize listener and no stylesheet edited. THE LOGIN dropped the improvised bordered In placeholder for the approved horizontal logo on the light card, with no frame, shadow or background art, and named the product Inttracker while preserving the complete form behaviour. INDEX.HTML declares the approved dedicated favicon and the product title. NOT DONE: the shell was not redesigned, no stylesheet was edited, no brand variant was generated, the four unconsumed brand assets stay unconsumed, the unreachable Pedido administrative builders were not mounted, the switch geometry was not touched, and the governance validator schema mismatch was not fixed.",
-    "self_accepted": false,
-    "architect_accepted": false,
-    "disclosed_deviation_requiring_ruling": "The order section 6.3 specified the document title 'Inttracker — Controle de Tapetes'. The delivered title is 'Inttracker'. Mid-execution the PRODUCT OWNER instructed that the descriptive phrase 'Controle de Tapetes' be removed from visible product copy entirely, leaving only the product name. That instruction was followed and applied to exactly three visible-copy sites: the document title, the login footer (now '© 2026 Inttex · Inttracker'), and the test-only structural fallback header in js/screens/common.js. The phrase was NOT swept from services/documents-ingestor/**, supabase/README.md or a scripts/staging comment, which are a separate domain and non-visible prose outside this order. This deviation is disclosed rather than absorbed and requires an explicit architect ruling.",
-    "disclosed_evidence_limitations": [
-      "LIVE RESIZE ACROSS THE BREAKPOINT IS NOT PROVED. The brand form swap was verified by fresh load at each viewport, which is what a real device does. Under CDP viewport emulation neither <picture> re-selection nor a matchMedia change listener fired, so the harness cannot prove that an already-loaded page re-selects the source when the viewport crosses 767px mid-session. A JavaScript listener was implemented first and withdrawn in favour of <picture> precisely because its correctness was equally unprovable there while additionally carrying a listener lifetime. Every route change rebuilds the shell, so the stale-form window is bounded by one navigation.",
-      "SCREENSHOTS EXIST for both viewports on both the login and the authenticated shell, but they live in the execution transcript and were NOT written into the repository; no screenshot path is claimed.",
-      "The client-side window.CURRENT_USER rendering harness was used again, on the same terms the architect accepted for the two previous batches: no credential entered, no session created, no write attempted, no application source modified, and no product, authentication, authorization or testing precedent established.",
-      "The checkpoint sweep inherited 64 failures across eleven files, none of them a UI, brand, login or shell file. They are separate pre-existing debts and do not block this phase."
-    ]
-    },
-    "disclosed_evidence_limitations": [
-      "NO SCREENSHOT EXISTS FOR THIS PHASE. The browser pane would not composite, so the read-only routing was proved by live DOM and runtime measurement instead: APP_ENV, writesEnabled, the resolved SUPABASE_URL and the guard state read from the running page; a real select returning 3 rows; insert, update, delete, upsert and rpc each rejected with WRITE-GUARD before reaching the client; and both banners proved by bounding box, computed background, z-index and ARIA role.",
-      "THE PRODUCTION HOSTNAME PATH WAS NOT EXERCISED AGAINST THE LIVE PRODUCTION DOMAIN. Production routing is proved by the config unit tests over the exact hostname list, not by loading inttracker-jade.vercel.app after the deployment.",
-      "THE PRISTINE ENTRY SWEEP RAN IN A DETACHED WORKTREE THAT SHARED THE STATIC SERVER WITH THE MAIN WORKTREE. Three test files depend on that server; none of them appears in either failing set, and the four coupled configuration guards were additionally proved directly in the main worktree at 112 tests / 112 pass. The 48 failure identities that disappear between the two sweeps are artefacts of the detached worktree, not repairs claimed by this phase."
-    ]
-  },
   "next_authorizable_action": {
-    "id": "ARCHITECT REVIEW OF INTTRACKER-PRODUCTION-CUTOVER",
-    "mode": "ARCHITECT TECHNICAL ACCEPTANCE OF THE PRODUCTION CUTOVER AND OF THE READ-ONLY NON-PRODUCTION ROUTING, PLUS A RULING ON THE TWO REMAINING CONSUMERS THAT STILL NAME THE RETIRED PROJECT AND ON WHEN THAT PROJECT MAY BE PHYSICALLY DELETED",
-    "status": "TWO ACCEPTANCES ARE OUTSTANDING: INTTRACKER-PRODUCTION-CUTOVER AT THIS CHECKPOINT, AND INTTEX-BRAND-ASSET-INTEGRATION AT 9af58ae600c14a39acd066395b71a5d5985b50bb WHICH THIS PHASE NEITHER TOUCHED NOR SUPERSEDED AND WHOSE DISCLOSED PRODUCT-OWNER COPY DEVIATION STILL REQUIRES AN EXPLICIT RULING. EVERY BLOCKING CONFORMANCE RULE REMAINS CLOSED. THE NEXT SCREEN GROUP IN THE SCREEN-BY-FUNCTIONAL-GROUP EDIT SEQUENCE IS NOT YET ORDERED",
-    "cutover_authorization_boundary": "INTTRACKER-PRODUCTION-CUTOVER acceptance should cover, distinctly: (1) the ruling that ucrjtfswnfdlxwtmxnoo is the definitive production database and that this was a PROMOTION rather than a data migration, on the measured evidence that it already held 56 public tables including the complete ordem_compra domain, 10 auth users, 10 usuarios, 4 clientes, 2 pedidos and 10 pedido_itens, while gqmpsxkxynrjvidfmojk held 40 tables, no ordem_compra domain at all, 1 auth user and 0 pedidos; (2) the ruling that gqmpsxkxynrjvidfmojk is retired from every active runtime role, is NOT a valid non-production target either, and was deliberately NOT deleted; (3) the consequence the architect already ruled on - that because no valid non-production database exists, localhost and preview deployments resolve to the PRODUCTION project in an explicit read-only role rather than to any separate database, and that local development therefore reads real production records behind a hard write block; (4) the WRITE-GUARD PREDICATE CHANGE from _IS_LOCAL && _IS_PROD_URL to the absence of the environment declared write permission, and the ruling that the old predicate would NOT have covered a preview deployment because a preview is not local; (5) the retirement of the old geometric invariant that IS_LOCAL and IS_PROD_URL are never both true - after the cutover they ARE both true on localhost, which is exactly why the guard fires - and its replacement by the permission invariant that writes are released if and only if APP_ENV is production, asserted over nine hostnames; (6) the PRODUCTION_HOSTNAMES change dropping inttracker-git-main-inttex and adding inttracker-git-dev-inttex because the Vercel production branch is now dev, with the regression guard that a deploy of main resolves to restricted; (7) the correction of the non-production banner text, which would otherwise have told an operator that real production records were DADOS DE TESTE; (8) the retokenization of the three changed runtime assets and the ruling that it was mandatory rather than cosmetic, because a cached js/config.js would keep resolving to the retired project; and (9) the decision to leave docs/STAGING_BASELINE.md, docs/DEPLOYMENT.md, docs/HANDOFF.md and docs/governance/shadow/** untouched as self-declared historical or explicitly non-authoritative surfaces, correcting instead the stale pointer inside js/config.js. TWO CONSUMERS REQUIRE A SEPARATE RULING: services/documents-ingestor/ops/watcher/Start-DocumentScanWatcher.ps1 together with SUPABASE_WRITER_RUNBOOK.md, which still name gqmpsxkxynrjvidfmojk as the sanctioned WRITE target and would now write into the retired database; and scripts/reset/clean-slate-transactional-export.mjs, which still declares PRODUCTION_REF as the retired project. Both were reported rather than repointed because moving a writer service or a destructive reset tool is a database operation requiring an order that names the environment and the permitted operation.",
-    "authorization_boundary": "INTTEX-BRAND-ASSET-INTEGRATION acceptance should cover, distinctly: (1) the ruling that the approved artwork was CONSUMED AND NEVER MODIFIED, proved blob-for-blob against the entry checkpoint for all seven files under assets/brand/inttex/, with two assets consumed and four deliberately left unconsumed; (2) the global topbar wordmark replacing the text-only Inttex span with a real <img> carrying the accessible name Inttex, at a declared 20px height and an always-derived width, with topbar height, divider, section label, user area, notifications, avatar and navigation unchanged; (3) THE SILENT MOBILE COLLISION this phase INTRODUCED and then REMOVED inside the same material phase - at 390px the horizontal wordmark pushed Admin 14.86px and Fornecedor 33.29px into the notifications bell and wrapped Portal do cliente from two lines to three in a 62px bar, while documentElement.scrollWidth and header.scrollWidth both stayed at 390, so a document-overflow check alone could never have found it; (4) the ruling that NO LOGO HEIGHT resolves that collision, measured at 12, 14, 15, 16, 18 and 20px, including sizes below the brand package own 18px on-screen minimum, because the header needs roughly 404px inside a 362px usable width; (5) the CORRECTION INSTRUMENT and its authority - the brand package own rule that below the minimum the wordmark closes up and the symbol is used alone - implemented DECLARATIVELY by <picture> plus <source media> at the SAME 767px breakpoint css/responsive.css already owns, with NO stylesheet edited, NO media query read in JavaScript, NO resize listener and a guard that forbids matchMedia, resize listeners and ResizeObserver outright; (6) the ruling that the two-line wrap of Portal do cliente at 390px is the PRE-EXISTING entry state, measured on a structural reproduction of the previous DOM, and is neither caused nor cured here; (7) the login placeholder removal and the approved horizontal logo on the light card, with the complete form behaviour, handlers, validation, password toggle and authentication flow preserved and their existing assertions still passing unchanged; (8) the browser favicon against the approved dedicated asset and the document title, with the favicon resolving 200 image/svg+xml at 9248 bytes and no 404 or console error for any brand asset; (9) the cache-token tier carrying exactly the two changed runtime assets, the ruling that BRAND_ASSETS is a strict subset of B1_ASSETS so no _AINDA_EM_ derivation needed editing, and the deliberate decision that the favicon carries NO ?v= because it is a new reference no browser can hold a superseded copy of; (10) the detector result of ZERO semantic findings added and EXACTLY ONE removed at version 1.0.6, UIC-000 534 to 533 and total 854 to 853, together with the ruling that the removal is the login placeholder four-line concatenated style ceasing to exist rather than being suppressed, and that the replacement styles are each a single literal at their site; (11) the RE-ANCHORING of two guards that lost their subject - the pass-6 A1 KPI guard that pinned the topbar brand to the SECTION_HEADING role, and the pass-6 typography icon-glyph population whose floor is rederived from four to the surviving three modal close glyphs with the retired In exemption removed; and (12) the pass-7 A4 first-party asset count moving 103 to 104 with the favicon declared as the second DECLARED_ARRIVALS member, the script list still byte-identical once both declared arrivals are stripped. ONE ITEM REQUIRES AN EXPLICIT RULING. THE PRODUCT-OWNER COPY DEVIATION: the order section 6.3 specified the document title Inttracker — Controle de Tapetes, and the delivered title is Inttracker, because the product owner instructed mid-execution that the descriptive phrase be removed from visible product copy entirely. It was applied to exactly three visible-copy sites - the document title, the login footer now reading © 2026 Inttex · Inttracker, and the test-only structural fallback header - and deliberately NOT swept from services/documents-ingestor/**, supabase/README.md or a scripts/staging comment, which are a separate domain and non-visible prose outside this order. TWO EVIDENCE LIMITATIONS ARE DISCLOSED, NOT CURED: live resize across the 767px breakpoint could not be proved, because under CDP viewport emulation neither <picture> re-selection nor a matchMedia change listener fired, so the form swap is proved by fresh load at each viewport and the stale-form window is bounded by one navigation; and the screenshots, which DO exist at both viewports for both the login and the authenticated shell, live in the execution transcript rather than in the repository.",
-    "authorization_boundary": "INTTEX-BRAND-ASSET-INTEGRATION acceptance should cover, distinctly: (1) the ruling that the approved artwork was CONSUMED AND NEVER MODIFIED, proved blob-for-blob against the entry checkpoint for all seven files under assets/brand/inttex/, with two assets consumed and four deliberately left unconsumed; (2) the global topbar wordmark replacing the text-only Inttex span with a real <img> carrying the accessible name Inttex, at a declared 20px height and an always-derived width, with topbar height, divider, section label, user area, notifications, avatar and navigation unchanged; (3) THE SILENT MOBILE COLLISION this phase INTRODUCED and then REMOVED inside the same material phase - at 390px the horizontal wordmark pushed Admin 14.86px and Fornecedor 33.29px into the notifications bell and wrapped Portal do cliente from two lines to three in a 62px bar, while documentElement.scrollWidth and header.scrollWidth both stayed at 390, so a document-overflow check alone could never have found it; (4) the ruling that NO LOGO HEIGHT resolves that collision, measured at 12, 14, 15, 16, 18 and 20px, including sizes below the brand package own 18px on-screen minimum, because the header needs roughly 404px inside a 362px usable width; (5) the CORRECTION INSTRUMENT and its authority - the brand package own rule that below the minimum the wordmark closes up and the symbol is used alone - implemented DECLARATIVELY by <picture> plus <source media> at the SAME 767px breakpoint css/responsive.css already owns, with NO stylesheet edited, NO media query read in JavaScript, NO resize listener and a guard that forbids matchMedia, resize listeners and ResizeObserver outright; (6) the ruling that the two-line wrap of Portal do cliente at 390px is the PRE-EXISTING entry state, measured on a structural reproduction of the previous DOM, and is neither caused nor cured here; (7) the login placeholder removal and the approved horizontal logo on the light card, with the complete form behaviour, handlers, validation, password toggle and authentication flow preserved and their existing assertions still passing unchanged; (8) the browser favicon against the approved dedicated asset and the document title, with the favicon resolving 200 image/svg+xml at 9248 bytes and no 404 or console error for any brand asset; (9) the cache-token tier carrying exactly the two changed runtime assets, the ruling that BRAND_ASSETS is a strict subset of B1_ASSETS so no _AINDA_EM_ derivation needed editing, and the deliberate decision that the favicon carries NO ?v= because it is a new reference no browser can hold a superseded copy of; (10) the detector result of ZERO semantic findings added and EXACTLY ONE removed at version 1.0.6, UIC-000 534 to 533 and total 854 to 853, together with the ruling that the removal is the login placeholder four-line concatenated style ceasing to exist rather than being suppressed, and that the replacement styles are each a single literal at their site; (11) the RE-ANCHORING of two guards that lost their subject - the pass-6 A1 KPI guard that pinned the topbar brand to the SECTION_HEADING role, and the pass-6 typography icon-glyph population whose floor is rederived from four to the surviving three modal close glyphs with the retired In exemption removed; and (12) the pass-7 A4 first-party asset count moving 103 to 104 with the favicon declared as the second DECLARED_ARRIVALS member, the script list still byte-identical once both declared arrivals are stripped. ONE ITEM REQUIRES AN EXPLICIT RULING. THE PRODUCT-OWNER COPY DEVIATION: the order section 6.3 specified the document title Inttracker — Controle de Tapetes, and the delivered title is Inttracker, because the product owner instructed mid-execution that the descriptive phrase be removed from visible product copy entirely. It was applied to exactly three visible-copy sites - the document title, the login footer now reading © 2026 Inttex · Inttracker, and the test-only structural fallback header - and deliberately NOT swept from services/documents-ingestor/**, supabase/README.md or a scripts/staging comment, which are a separate domain and non-visible prose outside this order. TWO EVIDENCE LIMITATIONS ARE DISCLOSED, NOT CURED: live resize across the 767px breakpoint could not be proved, because under CDP viewport emulation neither <picture> re-selection nor a matchMedia change listener fired, so the form swap is proved by fresh load at each viewport and the stale-form window is bounded by one navigation; and the screenshots, which DO exist at both viewports for both the login and the authenticated shell, live in the execution transcript rather than in the repository."
+    "id": "NEW EXPLICIT PRODUCT OR DEBT ORDER SELECTED BY THE ARCHITECT",
+    "mode": "AWAITING ORDER SELECTION; NO PHASE IS CHAINED AND NO ACCEPTANCE IS OUTSTANDING",
+    "status": "IDLE / READY. Candidate subjects are the open debts and open architect decisions recorded in this file; none of them is authorized until its own order exists."
   },
   "active_track": {
     "id": "PURCHASE_ORDER_PHASE_C",
@@ -237,6 +159,38 @@
       }
     ]
   },
+  "accepted_product_contracts": [
+    {
+      "id": "PEDIDO-ADMINISTRATIVE-DUAL-ITEM-ENTRY",
+      "contract": "Adicionar item opens the detailed modal and the modal must remain. The discreet Adicionar linha action remains at the lower right of the item card and inline editing remains. Both paths converge into the same local item state and persistence contract. The prohibition against complete entities inside transition modals does not prohibit this child-item creation modal."
+    },
+    {
+      "id": "INTTRACKER-BRAND-SURFACE",
+      "contract": "The visible product name and document title are Inttracker. The horizontal wordmark is used wherever there is measured room and the approved compact Inttex symbol is the narrow topbar form below the existing 767px breakpoint. The discontinued phrase Controle de Tapetes is not restored to visible brand copy and no new logo variant is authorized."
+    }
+  ],
+  "environment_boundaries": {
+    "non_production_database": "NONE. NO VALID SEPARATE DEVELOPMENT OR STAGING DATABASE EXISTS. LOCALHOST AND PREVIEW APPLICATION ENVIRONMENTS MAY RESOLVE READ-ONLY TO PRODUCTION UNDER THE EXISTING HARD WRITE BLOCK. ADMINISTRATIVE, AUTH, SERVICE-ROLE AND MUTATION TOOLING DOES NOT INHERIT THAT READ-ONLY APPLICATION PERMISSION",
+    "production": {
+      "project_id": "ucrjtfswnfdlxwtmxnoo",
+      "access": "DEFINITIVE PRODUCTION DATABASE, ACCEPTED AT INTTRACKER-PRODUCTION-CUTOVER-R1. THE CUTOVER PROMOTED THIS PROJECT RATHER THAN MIGRATING DATA. TERMINAL APPLIED MIGRATION IS db/90; ZERO SYNTHETIC RESIDUE. NO SCHEMA OR DATA MUTATION AND NO FURTHER APPLY IS AUTHORIZED WITHOUT A NEW ORDER NAMING THE ENVIRONMENT AND THE OPERATION"
+    },
+    "retired_project": {
+      "project_id": "gqmpsxkxynrjvidfmojk",
+      "access": "RETIRED FROM EVERY ACTIVE RUNTIME ROLE. IT IS NOT PRODUCTION, NOT STAGING, NOT A FALLBACK AND NOT A VALID NON-PRODUCTION TARGET; IT CARRIES NO ordem_compra DOMAIN AND THE APPLICATION MUST NOT BE ADAPTED TO ITS STALE SCHEMA. IT WAS DELIBERATELY NOT DELETED; PHYSICAL DELETION IS SEPARATELY AUTHORIZED WORK"
+    },
+    "forbidden_project": {
+      "project_id": "bhgifjrfagkzubpyqpew",
+      "access": "PROHIBITED; NOT ACCESSED"
+    }
+  },
+  "deployment_boundaries": {
+    "provider": "vercel",
+    "git_repository_id": "1276430187",
+    "production_branch": "dev",
+    "publication_path": "GIT_TRIGGERED_AUTOMATIC_DEPLOYMENT FROM AN AUTHORIZED staging/dev PUSH. MANUAL DEPLOYMENT IS NOT THE NORMAL PUBLICATION PATH",
+    "verification_rule": "VERCEL REPOSITORY HEALTH IS VERIFIED BY REPOSITORY ID, NEVER ONLY BY THE DISPLAYED REPOSITORY NAME. ANY FUTURE GIT RELINK MUST EXPLICITLY RESTORE productionBranch = dev"
+  },
   "blockers_and_material_debts": [
     {
       "id": "INGESTOR-DOC-CYCLE-VERIFY-DEFERRED",
@@ -254,11 +208,6 @@
       "blocking": true
     },
     {
-      "id": "CODE-HEALTH-AUDIT-18-R1",
-      "status": "OPEN",
-      "blocking": false
-    },
-    {
       "id": "HISTORICAL_SALDO_FIOS_PROVENANCE_UNAVAILABLE",
       "status": "OPEN",
       "blocking": true
@@ -274,40 +223,25 @@
       "blocking": true
     },
     {
+      "id": "CODE-HEALTH-AUDIT-18-R1",
+      "status": "OPEN",
+      "blocking": false
+    },
+    {
       "id": "G14-C-BRIDGE-EXTERNAL-CORPUS-DEPENDENCY",
-      "status": "OPEN / NONBLOCKING FOR PHASE-MANTA-B2A AND PHASE-MANTA-B2C",
+      "status": "OPEN / NONBLOCKING",
       "blocking": false,
       "owner": "documents-ingestor integration domain",
       "evidence": "tests/g14-c-bridge-smoke.test.js",
-      "cause": "requires the sibling-repository artifact D:\\Programação\\documents-ingestor\\data\\exports\\documentos-mapeados.jsonl",
-      "note": "Accepted with PHASE-MANTA-B2B and carried by the PHASE-MANTA-B2A acceptance and the PHASE-MANTA-B2C closeout. It is the single allowed failure in the full sweep. Do not fabricate a fixture and do not suppress the failure silently."
+      "note": "Requires the sibling-repository artifact documentos-mapeados.jsonl, which is not present here. It is the single allowed corpus failure in a full sweep. Do not fabricate a fixture and do not suppress the failure silently."
     },
     {
       "id": "DEBT-1-ATRIBUIR-FORNECEDOR-FIO-SEM-CHAMADOR",
-      "status": "OPEN / NONBLOCKING FOR PHASE-MANTA-B2A AND PHASE-MANTA-B2C",
+      "status": "OPEN / NONBLOCKING",
       "blocking": false,
       "owner": "OP / yarn procurement domain",
       "evidence": "js/screens/op-writes.js",
-      "cause": "window.atribuirFornecedorFioOp is declared and exported with no current application caller",
-      "note": "Accepted with PHASE-MANTA-B2B and carried by the PHASE-MANTA-B2A acceptance and the PHASE-MANTA-B2C closeout. Required future decision: retire the helper or restore a legitimate owner/caller. Neither reconnected nor deleted."
-    },
-    {
-      "id": "DUPLICATE-OVERLAPPING-EXECUTOR-DISPATCH",
-      "status": "OPEN / NONBLOCKING",
-      "blocking": false,
-      "owner": "order dispatch and execution discipline",
-      "evidence": "docs/ledgers/G28_LEDGER.md :: 2026-07-25 UI-CONSOLIDATION-FOUNDATION-INTAKE-R1 entries",
-      "cause": "the same order was dispatched to more than one executor, so authorized paths were found already modified at re-entry by an earlier interrupted run of that same order",
-      "note": "Accepted as nonblocking process debt with the UI-CONSOLIDATION-FOUNDATION-INTAKE-R1 acceptance. STANDING OPERATIONAL CONSTRAINT, binding on every future order: immediately before the first edit, rerun the fresh Git gate - git status --short --untracked-files=all, git diff --name-only, git diff --cached --name-only - and HARD STOP on any unexplained modification in an authorized path. Do not absorb, continue, restore or reinterpret such a modification. This constraint was satisfied by UI-CONSOLIDATION-PHASE-3-OP-DETAIL-COMPACT-FIXTURE-CONFORMANCE-R1, whose fresh gate proved the fixture byte-identical to HEAD before the first write."
-    },
-    {
-      "id": "UI-SMOKE-TEST-VISUAL-EXPECTATION-COUPLING",
-      "status": "OPEN / NONBLOCKING",
-      "blocking": false,
-      "owner": "UI consolidation track",
-      "evidence": "tests/*.smoke.js reconciled by UI-CONSOLIDATION-PHASE-5-PASS-1-LITERAL-COLOUR-OWNERSHIP-R1",
-      "cause": "smoke tests assert visual values and index.html cache-bust tokens by literal match, so every authorized property pass mechanically invalidates a set of them and needs a path-boundary amendment mid-flight",
-      "note": "Surfaced by pass 1, which hard-stopped before Commit 1 when 87 failures appeared in 24 files outside its authorized boundary. Pass 1 reconciled them under a conditional authorization, preserving every functional, geometry, copy and ordering assertion. EXPECT THE SAME FOR PASSES 3-8: the radius, height, shadow, typography and select passes will each invalidate another set of literal pins. Either authorize the affected test paths in the pass order itself, or order a separate reviewed change that retargets these assertions at canonical tokens once. Do not let an executor widen the boundary on its own."
+      "note": "window.atribuirFornecedorFioOp is declared and exported with no current application caller. Required future decision: retire the helper or restore a legitimate owner. Neither reconnected nor deleted."
     },
     {
       "id": "DOCUMENTS-CATALOG-METADATA-DRIFT",
@@ -315,25 +249,15 @@
       "blocking": false,
       "owner": "governance catalog domain",
       "evidence": "docs/governance/catalog/documents.json",
-      "cause": "authored REVIEWED catalog with no generator; its stale content metadata is chronic drift",
-      "note": "Explicitly excluded from the PHASE-MANTA-B2C closeout by the order and must not delay activation. Requires its own separate reviewed order."
+      "note": "An authored REVIEWED catalog with no generator; its stale content metadata and reference counts are chronic drift. Requires its own separate reviewed order."
     },
     {
-      "id": "PROTECTED-RESIDUE-CONTENT-DISCLOSURE",
-      "status": "OPEN / NONBLOCKING PROCESS DEBT",
+      "id": "UNIT2-SHADOW-GENERATED-OUTPUT-RENDERER-DRIFT",
+      "status": "OPEN / NONBLOCKING",
       "blocking": false,
-      "owner": "repository agent behaviour",
-      "cause": "During the phase-5 pass-1 entry gate a protected-residue path had its contents displayed to prove it matched the declared residue, instead of being checked by path, status and hash-equivalence metadata only.",
-      "note": "Ruled nonblocking by the architect at checkpoint cabd358c006f692b3aec37d21cf279ab1e81927a: it caused no repository mutation. Binding correction: a gate may inspect path, status and hash-equivalence metadata, and must never display protected-residue contents. Observed and complied with throughout pass 2."
-    },
-    {
-      "id": "UI-SPECIALIZED-CONTROL-CONTRACT-GAP",
-      "status": "CLOSED BY SPECIALIZED-CONTROLS-B1 / ACCEPTED",
-      "blocking": false,
-      "owner": "UI consolidation track / component contract",
-      "evidence": "tests/ui-conformance-phase5-pass3-control-height.test.mjs :: SPECIALIZED_CONTROLS",
-      "cause": "The ratified visual contract defines a generic control-height ladder (32/34/38px) plus one role-specific 30x30 table-row action. It defines NO geometry for native checkboxes, radios, ranges, switch tracks and knobs, multiline textareas or visually hidden compatibility controls. Pass 3 therefore EXCLUDED those primitives from UIC-003 instead of forcing them onto a rung, and recorded them here.",
-      "note": "CLOSED by UI-SPECIALIZED-CONTROLS-B1-SHARED-PRIMITIVES-AND-SITE-MIGRATION, which is the separate reviewed component-contract order this debt required. Five role-specific shared primitives now ratify real geometry for each primitive: textArea() with a bounded nine-member minimum-height role enum, checkboxInput() with one canonical 16px visible size and a zero-size collapsed state carrier, switchToggle() owning track and knob as ONE component with a closed two-tone enum, rangeInput() owning track and thumb while the consumer keeps the runtime-computed progress fill, and visuallyHidden() owning the clip-rect pattern. css/tokens.css is the single geometry owner and declares rest, hover, focus-visible, disabled, invalid and checked for each role. The runtime population is 22 CONSTRUCTIONS - 5 checkboxes, 1 range, 11 textareas, 2 switch components each contributing track and knob, and 1 visually hidden compatibility control - which SUPERSEDES the 21 frozen documentary entries without contradicting them: every frozen site is still present and every one resolves through its primitive. The frozen-signature guard is replaced by a construction-scoped population guard in the same test file. Closure is ACCEPTED by the architect at checkpoint f6986bb4e019671037dc8644f3cec32632848eed, recorded in last_accepted by the PEDIDO-SCREEN-GROUP-2 closeout. This debt is CLOSED and must not be reopened. Two other clip-rect visually hidden nodes - actionButton()’s own screen-reader label and the admin-usuarios.js compatibility span - are outside the declared population of one and were deliberately not migrated."
+      "owner": "Unit-2 documentation-shadow domain",
+      "evidence": "scripts/governance/render-documentation-shadow.mjs; docs/governance/shadow/generated/DOCUMENTATION_INDEX.md; docs/governance/shadow/generated/ORDEM_COMPRA_C3_TRACEABILITY.md",
+      "note": "The documentation-shadow renderer was revised after the accepted Unit-4A checkpoint, so it no longer reproduces the Unit-4A-era bytes of exactly those two shadow outputs. The cross-unit assertion in tests/governance-unit4-readiness.test.mjs excludes those two named outputs and stays blocking for every other Unit-2 failure class. Closing it requires an order in the Unit-2 domain, which also owns the separate documents.json metadata drift."
     },
     {
       "id": "UI-KNOCKOUT-HALO-CONTRACT-GAP",
@@ -341,26 +265,15 @@
       "blocking": false,
       "owner": "UI consolidation track / component contract",
       "evidence": "tests/ui-conformance-phase5-pass4-shadow.test.mjs :: KNOCKOUT_HALOS",
-      "cause": "The ratified visual contract defines a three-value ELEVATION enum and, in 2.2, a focus ring. It defines NO role for a spread ring in the surface colour used to mask a connector rail behind a timeline step node. Pass 4 therefore EXCLUDED those rings from UIC-004 by a structural predicate instead of forcing them onto an elevation value, and recorded them here.",
-      "note": "Three sites are frozen by semantic signature - the 42x42 step wrapper in js/screens/cliente-pedido-tracking.js and both branches of buildStageNode() in js/screens/pedido-detail-render.js, carrying box-shadow:0 0 0 4px var(--rv-surface). Their appearance and geometry are PRESERVED, but neither the elevation enum nor pass 4 declares them conforming, and none may be cited as visual precedent. The guard fails if a frozen site disappears AND if the per-file occurrence map changes (HARD STOP - KNOCKOUT-HALO INVENTORY CHANGED), and a separate test forbids any halo site acquiring a canonical elevation token. This debt blocks declaring the UI component contract complete; it does not block the UIC-004 elevation rule, which is closed. Closing it requires a separate reviewed component-contract order that ratifies the knockout role and its real geometry."
+      "note": "Three sites are frozen by semantic signature and carry box-shadow:0 0 0 4px var(--rv-surface) to mask a connector rail. Their appearance is preserved but neither the elevation enum nor pass 4 declares them conforming, and none may be cited as visual precedent. Closing it requires a separate reviewed component-contract order that ratifies the knockout role and its real geometry."
     },
     {
       "id": "UI-ACTION-CONTAINER-CONTAINMENT-GAP",
-      "status": "OPEN / NARROWED BY ACTION-CONTAINMENT-A1, PEDIDO-SCREEN-GROUP-1 AND PEDIDO-SCREEN-GROUP-2 / GLOBAL A2 CANCELLED / NONBLOCKING / DETECTOR-CAPABILITY DEBT",
+      "status": "OPEN / NARROWED THROUGH PEDIDO-SCREEN-GROUP-2 / GLOBAL A2 CANCELLED / NONBLOCKING / DETECTOR-CAPABILITY DEBT",
       "blocking": false,
       "owner": "UI consolidation track / conformance detector capability",
-      "evidence": "tests/ui-conformance-phase5-pass5-card-actions.test.mjs :: PROVEN_FOOTERS, MODAL_ACTION_BAR_CONSUMERS and the shared-owner assertions",
-      "cause": "The JavaScript front-end cannot prove arbitrary container-to-card containment, nor helper-definition-to-call-site containment. It exposes no static ancestor chain and sets insideCard to null by design, because guessing one would fabricate a verdict. Pass-5 R1 additionally proved that textual binding is worthless here: variable names such as card, footer, tableWrap and searchWrap are reused across many sibling render() scopes in the same file, and a large share of action nodes are produced by helpers whose containment is a property of the call site rather than of the definition.",
-      "note": "Therefore UIC-008 closure proves the conformance of the EXPLICITLY MARKED and guarded footer population - four product rows, plus five modal action bars frozen as explicit non-footer sites - and NOT the absence of every possible unmarked footer in imperative runtime code. The withdrawn requirement UNCLASSIFIED_ACTION_CONTAINER_COUNT = 0 is not claimed anywhere. This debt is NOT permission to ignore a known footer: the focused suite fails if a marker disappears, if a fifth marker appears, if a marked row stops conforming, if a modal bar becomes marked, or if the coarse action inventory changes. Closing it requires a separate reviewed order authorizing a scope-aware JavaScript AST and call-site containment analysis in the js-screen front-end. NARROWED BY ACTION-CONTAINMENT-A1: the three roles that DO have a single owner are now DECLARED rather than inferred - modalActionBar() (data-rv-modal-actions; six surfaces, one owner plus five screen-local consumers), pageHeader() (data-rv-page-actions; 13 call sites) and dataTable() (data-rv-table-actions; 6 call sites). Declaration replaces inference for that population, and the modal-bar guard is role-based so a Tailwind-classed bar can no longer escape a text-anchored inventory. WHAT REMAINS OPEN is the screen-local population, deferred to Action Containment A2 and NOT claimed conforming: 30 card-contained action rows, 9 card-contained inline actions, 82 page-level action containers, and 21 containers whose containment no static analysis resolved - the last group failing for three named mechanical reasons (mounting into a host passed in as a parameter, elements accumulated through an intermediate array, and a builder whose call site is itself an unlinked expression). Those 21 are DECLARABLE, not inferable, so A2 must mark them rather than guess. The four data-card-actions footers are unchanged at four, and the two post-save footers whose card ancestor is not statically provable were deliberately NOT reclassified here. GLOBAL A2 IS CANCELLED. The SPECIALIZED-CONTROLS-B1 order withdrew the separate global action-containment closure phase. The screen-local population above stays OPEN and stays unclaimed; it will be corrected INSIDE each future screen batch, alongside the screens it governs, rather than by one global pass. NARROWED AGAIN BY PEDIDO-SCREEN-GROUP-1, which is the first screen batch to exercise that instrument: the save/cancel rows of js/screens/pedido-edit.js and js/screens/pedido-itens-edit.js are now DECLARED rather than unproven, so the marked footer population is 6 and the screen-local remainder falls by exactly those two rows. Every other container this debt names is unchanged, still OPEN and still unclaimed. NARROWED AGAIN BY PEDIDO-SCREEN-GROUP-2, the second screen batch to exercise that instrument: the save rows of js/screens/pedido-tracking-admin.js and js/screens/pedido-parciais-admin.js were Tailwind groupers (mt-4 flex justify-end) with no divider and no declared geometry, invisible to any guard anchored on style text; both are now DECLARED data-card-actions footers carrying the canonical pass-5 geometry with padding-top:11px as a LONGHAND. The marked footer population is 8 and the screen-local remainder falls by exactly those two rows. Every other container this debt names is unchanged, still OPEN and still unclaimed. NOTE that both of these two surfaces are currently UNREACHABLE at runtime - see PEDIDO-DETAIL-ADMIN-BUILDERS-UNREACHABLE - so their containment is declared and guarded but not exercised by any mounted screen."
-    },
-    {
-      "id": "UI-ACTION-BUTTON-SR-LABEL-POSITIONING",
-      "status": "CLOSED AT THE SHARED OWNER BY PEDIDO-SCREEN-GROUP-2 / ACCEPTED",
-      "blocking": false,
-      "owner": "UI consolidation track / shared UI primitive js/ui.js",
-      "evidence": "js/ui.js :: actionButton(); callers js/screens/pedido-item-row-editor.js and js/screens/cliente-pedido-form.js",
-      "cause": "actionButton() appends its screen-reader label as a position:absolute span but declares no positioning context on its own button. Without a positioned ancestor that span resolves against the INITIAL CONTAINING BLOCK, so inside a horizontally scrolling container it is laid out at the row's document x-offset and extends the document. Measured during PEDIDO-SCREEN-GROUP-1: a row action inside the 920px item scroller pushed documentElement.scrollWidth to 870 at a 390px viewport, even though the row itself was correctly contained by data-rv-table-scroll.",
-      "note": "CLOSED by PEDIDO-SCREEN-GROUP-2, which is the bounded order against the shared owner this debt required. js/ui.js::actionButton() now declares position:relative on the button it builds, so the absolutely positioned screen-reader label resolves against that button rather than the initial containing block, and no caller must supply the context any more. The redundant in-scope workaround in js/screens/cliente-pedido-form.js is removed in the same batch. Rendered proof at a 390px viewport: the label offsetParent is THE BUTTON, the label box is contained within the button box, and documentElement.scrollWidth equals clientWidth equals 390 even though the 30x30 action sits at x roughly 878 inside the 920px item scroller, which owns its own scroll. The equivalent workaround in js/screens/pedido-item-row-editor.js was deliberately left in place by the order and is tracked separately as UI-ACTION-BUTTON-CALLER-WORKAROUND-REDUNDANT. Closure is ACCEPTED by the architect at checkpoint cff5e9d2e02fcbee37d082f63fe477d4d6c45878, recorded in last_accepted by the PEDIDO-SCREEN-GROUP-3 closeout. The equivalent caller workaround in js/screens/pedido-item-row-editor.js, which that order deliberately left in place, is now itself removed by PEDIDO-SCREEN-GROUP-3 - see UI-ACTION-BUTTON-CALLER-WORKAROUND-REDUNDANT. This debt is CLOSED and must not be reopened."
+      "evidence": "tests/ui-conformance-phase5-pass5-card-actions.test.mjs :: PROVEN_FOOTERS and MODAL_ACTION_BAR_CONSUMERS",
+      "note": "The JavaScript front-end cannot prove arbitrary container-to-card containment; it exposes no static ancestor chain and sets insideCard to null by design. UIC-008 closure therefore proves the conformance of the explicitly marked and guarded footer population, not the absence of every possible unmarked footer. The global closure phase A2 is CANCELLED: local containment is corrected inside each future screen batch. The screen-local remainder stays OPEN and unclaimed. Closing it requires a separate reviewed order authorizing scope-aware call-site containment analysis."
     },
     {
       "id": "UI-SWITCH-TRACK-GEOMETRY-DEBT",
@@ -368,114 +281,114 @@
       "blocking": false,
       "owner": "UI consolidation track / component contract",
       "evidence": "css/tokens.css specialized-control block; js/ui.js::switchToggle()",
-      "cause": "The switch component ratified by SPECIALIZED-CONTROLS-B1 renders a near-square track carrying a circular knob, so the knob does not read as travelling inside a pill-shaped rail. The geometry was preserved exactly as the product already rendered it, because B1 was a consolidation of ownership rather than a redesign of shape.",
-      "note": "Architect-ruled OPEN / NONBLOCKING / USER-DEFERRED. Recorded here for the first time by the PEDIDO-SCREEN-GROUP-2 closeout, as the standing instruction required it to be written into the next material UI closeout. The current near-square track with a circular knob is NOT an accepted visual precedent and must not be cited as one by any later order. No screen in the Pedido detail group renders the switch, so this batch neither touched nor ratified it. Closing it requires a separate reviewed component-contract order that ratifies the intended track geometry."
+      "note": "The ratified switch renders a near-square track carrying a circular knob, preserved exactly as the product already rendered it. It is NOT an accepted visual precedent and must not be cited as one. Closing it requires a separate reviewed component-contract order that ratifies the intended track geometry."
     },
     {
       "id": "PEDIDO-DETAIL-ADMIN-BUILDERS-UNREACHABLE",
       "status": "OPEN / NONBLOCKING / NO CALLER FOUND / NOT MOUNTED",
       "blocking": false,
       "owner": "Pedido detail product domain",
-      "evidence": "js/screens/pedido-detail-events.js:53 and :65 (definitions), :2704-2705 (exposure); js/screens/pedido-tracking-admin.js; js/screens/pedido-parciais-admin.js",
-      "cause": "buildPedidoTrackingAdminCard() and buildPedidoParciaisAdminCard() are exported and are called by the local handlers pedido-detail-events.js::buildTrackingAdmin() and ::buildParciaisAdmin(), but those two handlers are only exposed on a returned object and are invoked by NOTHING in the repository, so neither administrative surface is mounted by any screen. Verified by exhaustive reference sweep over js/: three occurrences of each handler name, none of them a call.",
-      "note": "Ruled by the PEDIDO-SCREEN-GROUP-2 order: do NOT mount them, do NOT invent a caller, do NOT change routing. Their scoped visual consolidation is RETAINED because the detector and every guard remain valid, and both source files already disclose the unreachability in their header comments. Required future decision: restore a legitimate owner and mount the surfaces, or retire them. Neither reconnected nor deleted. Because they are unmounted, the two STANDARD_ACTION_FOOTERs they contribute to the marked population of 8 are declared and guarded but not exercised by any reachable screen."
+      "evidence": "js/screens/pedido-detail-events.js; js/screens/pedido-tracking-admin.js; js/screens/pedido-parciais-admin.js",
+      "note": "buildTrackingAdmin() and buildParciaisAdmin() are exposed on a returned object and invoked by nothing in the repository, so neither administrative surface is mounted. Do not mount them, do not invent a caller and do not change routing without an owning product decision. Their two declared card footers are guarded but not exercised by any reachable screen."
     },
     {
-      "id": "UI-ACTION-BUTTON-CALLER-WORKAROUND-REDUNDANT",
-      "status": "CLOSED BY PEDIDO-SCREEN-GROUP-3 / AWAITING ARCHITECT ACCEPTANCE",
+      "id": "DUPLICATE-OVERLAPPING-EXECUTOR-DISPATCH",
+      "status": "OPEN / NONBLOCKING",
       "blocking": false,
-      "owner": "UI consolidation track / Pedido item row editor",
-      "evidence": "js/screens/pedido-item-row-editor.js",
-      "cause": "PEDIDO-SCREEN-GROUP-1 worked UI-ACTION-BUTTON-SR-LABEL-POSITIONING around at two callers by declaring position:relative on their action cell. PEDIDO-SCREEN-GROUP-2 fixed the defect at the shared owner and removed the workaround from cliente-pedido-form.js, but the order explicitly placed pedido-item-row-editor.js outside the continuation scope, so its workaround remains.",
-      "note": "CLOSED by PEDIDO-SCREEN-GROUP-3, which is the bounded follow-up order this debt required. The caller-level position:relative on the item row action cell is DELETED. It was provably redundant: js/ui.js::actionButton() has declared position:relative on the button it builds since PEDIDO-SCREEN-GROUP-2, so the absolutely positioned screen-reader label already resolved against the button. Rendered regression proof at a 390px viewport, with the workaround gone and the action reproduced at x=904 inside a 920px scroller: the label offsetParent is THE BUTTON, the label box is contained within the button box, the scroller owns its own scroll, and documentElement.scrollWidth equals clientWidth equals 390. No overflow was reintroduced. Closure is PUBLISHED and awaits architect acceptance; it must not be treated as accepted until then."
+      "owner": "order dispatch and execution discipline",
+      "note": "STANDING OPERATIONAL CONSTRAINT, binding on every future order: immediately before the first edit, rerun the fresh Git gate and HARD STOP on any unexplained modification in an authorized path. Do not absorb, continue, restore or reinterpret such a modification."
     },
     {
-      "id": "GOVERNANCE-COMPACT-STATE-VALIDATOR-SCHEMA-MISMATCH",
-      "status": "OPEN / NONBLOCKING FOR THE UI CONSOLIDATION TRACK",
+      "id": "UI-SMOKE-TEST-VISUAL-EXPECTATION-COUPLING",
+      "status": "OPEN / NONBLOCKING",
       "blocking": false,
-      "owner": "Unit-4 / Unit-5 governance domain",
-      "evidence": "tests/governance-unit4-cutover.test.mjs; tests/governance-unit4d-acceptance-closeout.test.mjs; tests/governance-canonical-authority-consumers.test.mjs; tests/governance-current-state-shadow.test.mjs; tests/governance-g28-ledger-shadow.test.mjs; tests/governance-unit4-readiness.test.mjs",
-      "cause": "docs/governance/current-state.json carries format_version 3.0.0, the compact schema. Six governance validators still read the RETIRED Unit-4 v2 shape - state.activation, unit_4_contract, state_payload_sha256 and the ordered partition/traceability projections - so they THROW rather than report. Typical failures: Cannot read properties of undefined (reading status), (reading unit_4_contract), (reading state_payload_sha256), and PROJECT_STATE.md bootstrap markers are not exactly one ordered pair.",
-      "note": "FIRST RECORDED AS A STABLE DEBT ENTRY by the PEDIDO-SCREEN-GROUP-3 closeout, as its order required. It also carries a FORWARD CORRECTION to the PEDIDO-SCREEN-GROUP-2 record: that entry recorded the checkpoint sweep as resolving to THREE failure identities, naming only g14-c-bridge plus the unit4-cutover and unit4d-acceptance-closeout validators. Measured at the same commit, the SAME 56 failures resolve to SEVEN file identities - the four additional ones are governance-canonical-authority-consumers (3 failures), governance-current-state-shadow (1), governance-g28-ledger-shadow (1) and governance-unit4-readiness (48). Nothing regressed and the failure data is unchanged; the prior attribution was simply incomplete, and it is corrected forward without rewriting that entry. PEDIDO-SCREEN-GROUP-3 proved ZERO new failure identities by re-running the seven files against a detached worktree checked out at the entry checkpoint cff5e9d outside the repository, then removing it. These six are the only non-corpus failures in the sweep, none is a UI, table, list or Pedido file, and correcting them requires its own reviewed order in the Unit-4/Unit-5 domain. Do NOT fix them inside a UI screen batch and do NOT suppress them."
+      "owner": "UI consolidation track",
+      "note": "Smoke tests assert visual values and index.html cache-bust tokens by literal match, so every authorized property pass mechanically invalidates a set of them. Either authorize the affected test paths in the order itself, or order a separate reviewed change that retargets these assertions at canonical tokens once. Do not let an executor widen the boundary on its own."
+    },
+    {
+      "id": "PROTECTED-RESIDUE-CONTENT-DISCLOSURE",
+      "status": "OPEN / NONBLOCKING PROCESS DEBT",
+      "blocking": false,
+      "owner": "repository agent behaviour",
+      "note": "A gate may inspect path, status and hash-equivalence metadata, and must never display protected-residue contents."
+    },
+    {
+      "id": "STAGING-RUNNER-CONFIG-DETECTOR-STALE-ON-FUTURE-REENABLEMENT",
+      "status": "OPEN / NONBLOCKING",
+      "blocking": false,
+      "owner": "scripts/staging runner suite",
+      "note": "The eight mutation runners are safely disabled and their old detectStagingFromConfigJs helper is unreachable, but it must be redesigned before any future non-production re-enablement."
+    },
+    {
+      "id": "PRODUCTION-READONLY-DIAGNOSTIC-ADMIN-CREDENTIAL-DEPENDENCY",
+      "status": "OPEN / NONBLOCKING",
+      "blocking": false,
+      "owner": "scripts/staging read-only diagnostics",
+      "note": "Diagnostics are explicitly gated and read-only but currently depend on real administrator authentication. A dedicated read-only diagnostic identity may be designed separately."
+    },
+    {
+      "id": "CLEAN-SLATE-CONTRACT-TARGET-PROSE-DRIFT",
+      "status": "OPEN / NONBLOCKING",
+      "blocking": false,
+      "owner": "docs/architecture/CLEAN_SLATE_TRANSACTIONAL_RESET_PHASE_CONTRACT.md",
+      "note": "Executable tooling now uses the accepted production, retired and forbidden identity model, while the historical section 12 prose still describes a development target."
     }
   ],
   "open_architect_decisions": [
-    "Accept or reject INTTEX-BRAND-ASSET-INTEGRATION-R1. It is the ONLY outstanding acceptance: PEDIDO-SCREEN-GROUP-3 was accepted by the order that authorized this phase and is recorded in last_accepted. The executor does not self-accept.",
-    "RULE ON THE PRODUCT-OWNER COPY DEVIATION FROM THE ORDER TEXT. Section 6.3 of the order specified the document title \"Inttracker — Controle de Tapetes\"; the delivered title is \"Inttracker\", because the product owner instructed mid-execution that the descriptive phrase be removed from visible product copy entirely. It was applied to exactly three visible-copy sites - the document title, the login footer now reading \"© 2026 Inttex · Inttracker\", and the test-only structural fallback header in js/screens/common.js - and deliberately NOT swept from services/documents-ingestor/**, supabase/README.md or a scripts/staging comment, which are a separate domain and non-visible prose outside this order. Ratify the narrower title and the retained scope boundary, or order the phrase restored.",
-    "RULE ON THE NARROW BRAND FORM AND ITS AUTHORITY. At 390px the horizontal wordmark pushed the section label into the notifications bell - Admin by 14.86px and Fornecedor by 33.29px - and wrapped Portal do cliente to three lines in a 62px bar, SILENTLY: documentElement.scrollWidth and header.scrollWidth both stayed at 390. No logo height resolves it, measured at 12/14/15/16/18/20px, including sizes below the brand package own 18px minimum. The correction shows inttex-symbol.svg below the shell existing 767px breakpoint, which is the brand package own prescription, implemented declaratively by <picture> plus <source media> with no stylesheet edited and no media query read in JavaScript. Decide whether the narrow form is ratified as the standing topbar contract, and whether a per-element COLLISION assertion - not merely a document-overflow check - becomes a standing requirement of the visual-verification section, since scrollWidth alone could not have found this.",
-    "Give or withhold explicit VISUAL acceptance of the brand surfaces. SCREENSHOTS EXIST at 1440x900 and 390x844 for BOTH the login and the authenticated shell, but they live in the execution transcript and were NOT written into the repository; decide whether repository-held visual evidence becomes a requirement. Decide also on the disclosed limitation that LIVE RESIZE across the 767px breakpoint could not be proved: under CDP viewport emulation neither <picture> re-selection nor a matchMedia change listener fired, so the form swap is proved by fresh load at each viewport and the stale-form window is bounded by one navigation.",
-    "Order the separate reviewed correction for GOVERNANCE-COMPACT-STATE-VALIDATOR-SCHEMA-MISMATCH. Six governance validators read the retired Unit-4 v2 shape and throw against format_version 3.0.0. They are the only non-corpus failures in the checkpoint sweep and they belong to the Unit-4/Unit-5 governance domain, not to any UI batch.",
-    "Rule again on the client-side window.CURRENT_USER rendering harness, used here on the same terms the previous batch accepted. Decide whether it is the sanctioned technique for future UI batches or whether a real authenticated route must be provided, since three consecutive batches have now depended on it.",
-    "Decide the fate of the two UNREACHABLE Pedido detail administrative surfaces. buildPedidoTrackingAdminCard() and buildPedidoParciaisAdminCard() are consolidated, guarded and conforming, but the handlers that would mount them are invoked by nothing. Restore a legitimate owner and mount them, or retire them. PEDIDO-SCREEN-GROUP-2 was forbidden to do either.",
-    "Accept or reject the CORRECTED UI-CONSOLIDATION-PHASE-4-DETERMINISTIC-CONFORMANCE-DETECTOR-R1: the three-state UIC-001 context classification, the level-two archetype-block boundary, the regenerated baseline at blob 4fb639f035fdc7fa5b344aefad3c1ac473389121, and the two documentary corrections. The executor does not self-accept.",
-    "Confirm the closed key and attribute sets that decide UIC-001 proven-visual versus proven-non-visual classification. They are the whole basis of the rule's severity, they are deliberately conservative - an ambiguous key such as bg, text or value is left unclassified and becomes a coverage gap rather than a defect or an absolution - and widening or narrowing either set moves findings between blocking and coverage.",
-    "Decide how the 771 UIC-001 coverage gaps are resolved in phase 5. They are colour-shaped runs whose site the detector cannot prove: local variables, ambiguous map keys, array elements and call arguments. Reaching zero on --rule UIC-001 --enforce would not clear them, so pass 1 is not complete until they are classified by moving each value into a declaration, a token or a clearly named key.",
-    "Decide how the 25 external prototype screens reach this repository. Exactly one of the 26 archetype rows in UI_CONFORMANCE.md resolves to a tracked file; the other 25 live in the external design project, are reported UNRESOLVED, and cannot be audited or remediated until they are versioned here.",
-    "Decide whether the 42 ACTION_ROW_UNPROVEN coverage gaps are closed by marking data-card-actions rows before pass 6 is opened. UIC-008 shows 0 blocking and 42 gaps; declaring the pass clean while 42 screens cannot be evaluated for it would be exactly the false pass the structure exists to prevent. The population grew 37 -> 42 in A2, which added no marker: five screens that had been FULL by absence began declaring canonical geometry and so became evaluable for the first time. A future alignment order must reconcile the WHOLE 42-gap corpus before marking any row; correcting only the five newly visible files would close the symptom and leave the population unproven.",
-    "Authorize or defer UI consolidation phase 5, the property-based batch remediation. It is NOT authorized by the phase-4 checkpoint. Its precondition - a detector with a deterministic repository-wide baseline - is now satisfied.",
-    "Decide how Archetype A reaches ratification. Phase 4 satisfied one of the two missing preconditions - the detector now exists and has run - but archetype A still has exactly ONE detector-passing screen and its candidate second screen, OP Acabamento - Aberta.dc.html, is not in this worktree. No archetype is RATIFICATION_ELIGIBLE and none may be cited as precedent.",
-    "Give or withhold explicit VISUAL acceptance of the BATCH-03 compact layout on #/pedidos/novo; geometry was measured but no screenshot exists, and the executor does not self-accept visual behavior.",
-    "Await Kleber's operational review of the application on shared development and then group the reported concrete defects into ONE bounded stabilization order; do not correct them through isolated microphases.",
-    "Decide when and under what order the Manta direct-route backend is promoted beyond shared development; production and Vercel remain prohibited without a new explicit order.",
+    "Rule on the client-side window.CURRENT_USER rendering harness. Several consecutive UI batches have depended on it. Decide whether it is the sanctioned technique for future UI batches or whether a real authenticated route must be provided.",
+    "Decide the fate of the two UNREACHABLE Pedido detail administrative surfaces. buildPedidoTrackingAdminCard() and buildPedidoParciaisAdminCard() are consolidated, guarded and conforming, but the handlers that would mount them are invoked by nothing. Restore a legitimate owner and mount them, or retire them.",
+    "Decide when and under what order the retired Supabase project gqmpsxkxynrjvidfmojk is physically deleted, and rule on the remaining consumers that still name it — the documents-ingestor watcher and its writer runbook, and the clean-slate export script — because moving a writer service or a destructive reset tool needs an order naming the environment and the operation.",
+    "Decide whether a dedicated read-only diagnostic identity is created for the production read-only diagnostics, which currently depend on real administrator authentication.",
+    "Decide how the 25 external prototype screens reach this repository. Exactly one of the 26 archetype rows in UI_CONFORMANCE.md resolves to a tracked file; the other 25 live in the external design project and cannot be audited or remediated until they are versioned here.",
+    "Decide how Archetype A reaches ratification. Archetype A still has exactly one detector-passing screen and its candidate second screen is not in this worktree. No archetype is RATIFICATION_ELIGIBLE and none may be cited as precedent.",
+    "Rule on the switch track geometry. UI-SWITCH-TRACK-GEOMETRY-DEBT is architect-deferred and the current near-square track with a circular knob is not accepted visual precedent; closing it requires a component-contract order.",
+    "Await Kleber's operational review of the application and then group the reported concrete defects into ONE bounded stabilization order; do not correct them through isolated microphases.",
     "Rule on historical saldo_fios provenance before any real receipt cutover.",
     "Resolve native receipt compatibility for multiple purchase-order origins.",
-    "Decide whether to retire window.atribuirFornecedorFioOp or restore a legitimate owner/caller.",
+    "Decide whether to retire window.atribuirFornecedorFioOp or restore a legitimate owner and caller.",
     "Decide how the documents-ingestor bridge corpus dependency is satisfied for tests/g14-c-bridge-smoke.test.js.",
-    "Order a separate reviewed correction for the docs/governance/catalog/documents.json metadata drift."
+    "Order a separate reviewed correction in the Unit-2 documentation-shadow domain, covering both the docs/governance/catalog/documents.json metadata drift and the two shadow generated outputs that the current documentation-shadow renderer no longer reproduces at the accepted Unit-4A checkpoint."
   ],
-  "environment_boundaries": {
-    "this_checkpoint": "READ-ONLY STATIC ANALYSIS TOOLING, PRODUCT UI PRESENTATION, TESTS AND DOCUMENTATION ONLY; THE CONFORMANCE DETECTOR IS STRICTLY READ-ONLY AND ITS VERSION 1.0.6 AND SEMANTICS WERE NOT TOUCHED; NO WAIVER, IGNORE LIST OR SUPPRESSION EXISTS OR WAS ADDED; css/responsive.css WAS NOT EDITED - THE ACCEPTED data-rv-metrics, data-rv-2col AND data-rv-table-scroll REGION CONTRACTS WERE CONSUMED, NOT EXTENDED; VISUAL EVIDENCE WAS PRODUCED BY LOADING THE APPLICATION FROM A LOCAL STATIC SERVER ALREADY SERVING THIS WORKTREE AND RENDERING THE REAL SCREENS THROUGH THEIR OWN EXPORTED RENDER HELPERS AGAINST THE SHARED-DEVELOPMENT DATABASE READ ANONYMOUSLY - NO RECORD WAS CREATED OR MUTATED, NO CREDENTIAL WAS ENTERED AND NO SESSION WAS CREATED; SCREENSHOTS WERE CAPTURED AT 1440x900 AND 390x844; A TEMPORARY DETACHED GIT WORKTREE AT THE ENTRY CHECKPOINT WAS CREATED OUTSIDE THE REPOSITORY SOLELY TO PROVE THE FAILING-IDENTITY BASELINE AND WAS THEN REMOVED AND PRUNED, LEAVING HEAD, THE INDEX, THE BRANCH AND THE PROTECTED RESIDUE UNCHANGED; .claude/launch.json IS TRACKED AND WAS NOT MODIFIED; NO SUPABASE WRITE, SQL, MIGRATION, STAGING DATABASE, DEPLOYMENT, VERCEL OR PRODUCTION ACCESS OCCURRED OR IS AUTHORIZED",
-    "production": {
-      "project_id": "ucrjtfswnfdlxwtmxnoo",
-      "access": "DEFINITIVE PRODUCTION DATABASE AS OF INTTRACKER-PRODUCTION-CUTOVER-R1. THIS IS THE SAME PROJECT PREVIOUSLY RECORDED AS shared_development; THE CUTOVER PROMOTED IT RATHER THAN MIGRATING DATA, BECAUSE IT WAS ALREADY THE ONLY PROJECT CARRYING THE CURRENT SCHEMA AND THE REAL USERS. VERIFIED AT CUTOVER: 56 PUBLIC TABLES INCLUDING THE COMPLETE ordem_compra DOMAIN, 10 auth.users, 10 usuarios, 2 pedidos, 10 pedido_itens. PRIOR MIGRATION STATE IS CARRIED UNCHANGED: PHASE-MANTA-A db/78-db/80, PHASE-MANTA-B1 db/81-db/84 AND PHASE-MANTA-B2C db/85-db/88 APPLIED AND ACCEPTED; BATCH-02 db/89 AND BATCH-03 db/90 EACH APPLIED ONCE AND LIVE VALIDATED; TERMINAL MIGRATION IS db/90; ZERO SYNTHETIC RESIDUE. NO SCHEMA OR DATA MUTATION OCCURRED DURING THE CUTOVER - READ-ONLY RECONCILIATION QUERIES ONLY. NO FURTHER APPLY AUTHORIZED WITHOUT A NEW ORDER"
-    },
-    "retired_project": {
-      "project_id": "gqmpsxkxynrjvidfmojk",
-      "access": "RETIRED FROM EVERY ACTIVE RUNTIME ROLE BY INTTRACKER-PRODUCTION-CUTOVER-R1. IT IS NO LONGER PRODUCTION, IS NOT STAGING AND IS NOT A FALLBACK. IT REMAINS ACTIVE_HEALTHY IN SUPABASE BUT IS 16 TABLES BEHIND AND CARRIES NO ordem_compra DOMAIN AT ALL, SO IT IS NOT A VALID NON-PRODUCTION TARGET EITHER; VERIFIED AT CUTOVER: 40 PUBLIC TABLES, 1 auth.users, 0 pedidos. THE ARCHITECT RULED THAT IT MUST BE RETIRED OPERATIONALLY FIRST AND NOT DELETED IN THAT ORDER; PHYSICAL DELETION IS A SEPARATE AUTHORIZATION AFTER THE PRODUCTION CUTOVER IS VALIDATED. THE APPLICATION MUST NOT BE ADAPTED TO ITS STALE SCHEMA"
-    },
-    "forbidden_project": {
-      "project_id": "bhgifjrfagkzubpyqpew",
-      "access": "PROHIBITED; NOT ACCESSED"
-    }
-  },
   "prohibitions": [
     "NO FURTHER PRODUCT IMPLEMENTATION WITHOUT A NEW ORDER",
-    "NO FURTHER DATABASE, SUPABASE, SQL, MIGRATION, ACL/RLS, AUTH, OR ENVIRONMENT ACCESS",
-    "NO DEPLOYMENT, ACTIVATION, CUTOVER, PONR, OR PRODUCTION ACTION",
+    "NO AUTOMATIC PRODUCT OR GOVERNANCE PHASE CHAINING",
+    "NO DATABASE, SUPABASE, SQL, MIGRATION, ACL/RLS OR AUTH OPERATION WITHOUT AN ORDER NAMING THE ENVIRONMENT AND THE PERMITTED OPERATION",
+    "NO WRITE, SCHEMA CHANGE OR DATA MUTATION IN THE PRODUCTION PROJECT ucrjtfswnfdlxwtmxnoo, AND NO ACCESS AT ALL TO THE FORBIDDEN PROJECT bhgifjrfagkzubpyqpew",
+    "NO USE OF THE RETIRED PROJECT gqmpsxkxynrjvidfmojk AS A RUNTIME, STAGING OR FALLBACK TARGET, AND NO PHYSICAL DELETION OF IT WITHOUT A SEPARATE ORDER",
+    "NO MANUAL VERCEL DEPLOYMENT OR VERCEL CONFIGURATION CHANGE WHILE GIT-SOURCED DEPLOYMENT IS OPERATING NORMALLY; ANY FUTURE GIT RELINK MUST EXPLICITLY RESTORE productionBranch = dev",
     "NO MAIN, ORIGIN, TAG, ADDITIONAL REF, FORCE, OR SECOND PUBLICATION ATTEMPT",
     "NO CLEANUP, ARCHIVAL, DEPRECATION, PARTITIONING, OR PHYSICAL DELETION",
     "NO MANUAL EDIT OF GENERATED HANDOFF OR OTHER GENERATED OUTPUT OUTSIDE ITS RENDERER",
     "NO ACCESS TO PROTECTED RESIDUE EXCEPT EXPLICIT NON-DISCLOSING HASH EQUALITY",
-    "NO AUTOMATIC PRODUCT OR GOVERNANCE PHASE CHAINING",
-    "NO FURTHER PHASE-5 PROPERTY PASS WITHOUT A NEW EXPLICIT ORDER; EVERY BLOCKING CONFORMANCE RULE IS CLOSED AND THE DETECTOR MAY BE RUN READ-ONLY",
-    "NO SWITCH TRACK GEOMETRY CORRECTION; UI-SWITCH-TRACK-GEOMETRY-DEBT REMAINS OPEN / NONBLOCKING / USER-DEFERRED AND THE CURRENT RECTANGULAR TRACK WITH A CIRCULAR KNOB IS NOT AN ACCEPTED VISUAL PRECEDENT",
+    "NO REWRITE OF ACCEPTED HISTORY; THE LEDGER IS APPEND-ONLY AND HISTORICAL SHADOW AND CANDIDATE ARTIFACTS ARE IMMUTABLE",
+    "NO VALIDATION OF THE LIVE COMPACT format_version 3.0.0 CURRENT STATE THROUGH RETIRED UNIT-4 CANDIDATE, ACTIVATION, BOOTSTRAP OR SELF-HASH MACHINERY, AND NO RETROFIT OF CURRENT ENVIRONMENT IDENTITIES INTO IMMUTABLE HISTORICAL FIXTURES",
+    "NO FURTHER SCREEN GROUP IN THE SCREEN-BY-FUNCTIONAL-GROUP EDIT SEQUENCE AND NO FURTHER PHASE-5 PROPERTY PASS WITHOUT A NEW EXPLICIT ORDER; EVERY BLOCKING CONFORMANCE RULE IS CLOSED AND THE DETECTOR MAY BE RUN READ-ONLY",
     "NO WAIVER, IGNORE-LIST OR SUPPRESSION MECHANISM IN THE CONFORMANCE DETECTOR WITHOUT A NEW EXPLICIT ORDER",
     "NO REMEDIATION OF THE RESIDUAL SECONDARY OVERFLOW GAPS ON G07, G09-G11, G18, G20-G22 AND G28 WITHOUT A NEW BOUNDED ORDER",
     "NO SECOND SCREEN CONFORMANCE AND NO ARCHETYPE RATIFICATION FROM ONE CONFORMING SCREEN; NO ARCHETYPE IS RATIFICATION_ELIGIBLE",
+    "NO SWITCH TRACK GEOMETRY CORRECTION; THE CURRENT NEAR-SQUARE TRACK WITH A CIRCULAR KNOB IS NOT AN ACCEPTED VISUAL PRECEDENT",
     "NO ISOLATED MICROPHASE CORRECTION OF KLEBER REVIEW DEFECTS; THEY MUST BE GROUPED INTO ONE BOUNDED STABILIZATION ORDER",
     "NO REAL BUSINESS-FLOW RECREATION WITHOUT A NEW EXPLICIT ORDER",
     "SUPERSEDED UNIT 5A DIRECTION IS CANCELLED",
-    "NO FURTHER SCREEN GROUP IN THE SCREEN-BY-FUNCTIONAL-GROUP EDIT SEQUENCE WITHOUT A NEW EXPLICIT ORDER; PEDIDO-SCREEN-GROUP-3 IS ACCEPTED AND INTTEX-BRAND-ASSET-INTEGRATION IS PUBLISHED AND UNACCEPTED",
-    "NO REPLACEMENT OR REMOVAL OF THE CLIENTE ADD-ITEM MODAL; THE ARCHITECT RULED THE FLOW MUST REMAIN MODAL-BASED AND THAT THE MODAL IS AN ACCEPTED, ALREADY VISUALLY HOMOLOGATED PRODUCT INTERACTION - MOVING THE ITEM EDITOR INTO THE PEDIDO PAGE, CHANGING NAVIGATION, CHANGING VALIDATION TIMING OR CHANGING PAYLOADS IS PROHIBITED",
+    "NO REPLACEMENT OR REMOVAL OF THE CLIENTE ADD-ITEM MODAL AND NO REMOVAL OF EITHER PEDIDO ITEM ENTRY PATH; THE DETAILED MODAL AND THE DISCREET Adicionar linha ACTION BOTH REMAIN AND BOTH CONVERGE INTO THE SAME LOCAL ITEM STATE AND PERSISTENCE CONTRACT",
     "NO MOUNTING OF THE UNREACHABLE buildPedidoTrackingAdminCard OR buildPedidoParciaisAdminCard SURFACES, NO INVENTED CALLER AND NO ROUTING CHANGE, WITHOUT AN OWNING PRODUCT DECISION",
-    "NO REINTRODUCTION OF THE CALLER-LEVEL POSITIONING WORKAROUND IN js/screens/pedido-item-row-editor.js; IT IS REMOVED AND UI-ACTION-BUTTON-CALLER-WORKAROUND-REDUNDANT IS CLOSED, WITH actionButton() THE SOLE OWNER OF THE POSITIONING CONTEXT",
+    "NO REINTRODUCTION OF THE CALLER-LEVEL POSITIONING WORKAROUND IN js/screens/pedido-item-row-editor.js; actionButton() IS THE SOLE OWNER OF THE POSITIONING CONTEXT",
     "NO FORCING OF THE CLIENT AND ADMINISTRATIVE PEDIDO FLOWS TO MATCH; THEY ARE DELIBERATELY DIFFERENT PRODUCT SURFACES",
     "NO APPLICATION OF THE TRANSITION-ARROW MODAL RULE TO ORDINARY FORM MODALS",
-    "NO FIX OF GOVERNANCE-COMPACT-STATE-VALIDATOR-SCHEMA-MISMATCH INSIDE A UI SCREEN BATCH AND NO SUPPRESSION OF ITS SIX FAILING VALIDATORS; IT REQUIRES ITS OWN REVIEWED ORDER IN THE UNIT-4/UNIT-5 DOMAIN",
     "NO EDIT TO css/responsive.css TO ADAPT A SCREEN; THE ACCEPTED data-rv-* REGION CONTRACTS ARE CONSUMED BY THE SCREEN, NOT EXTENDED FOR IT, WITHOUT A NEW EXPLICIT ORDER",
-    "NO MODIFICATION OF THE APPROVED INTTEX BRAND ARTWORK UNDER assets/brand/inttex/; IT IS CONSUMED, NEVER EDITED, AND NO ADDITIONAL LOGO VARIANT MAY BE GENERATED. THE FOUR UNCONSUMED ASSETS STAY UNCONSUMED AND THE SYMBOL MAY NOT BE USED WHERE THE HORIZONTAL WORDMARK HAS MEASURED ROOM",
+    "NO MODIFICATION OF THE APPROVED INTTEX BRAND ARTWORK UNDER assets/brand/inttex/; IT IS CONSUMED, NEVER EDITED, NO ADDITIONAL LOGO VARIANT MAY BE GENERATED, THE FOUR UNCONSUMED ASSETS STAY UNCONSUMED, AND THE SYMBOL MAY NOT BE USED WHERE THE HORIZONTAL WORDMARK HAS MEASURED ROOM",
     "NO REINTRODUCTION OF THE DISCONTINUED PRODUCT NAME IN VISIBLE COPY, AND NO REPLACEMENT OF THE BRAND ARTWORK BY TEXT OR A CSS RECREATION; BOTH ARE GUARDED"
   ],
   "exceptional_evidence": [
     {
+      "purpose": "terminal accepted Unit-4 governance checkpoint; the historical validators read their artifacts from it and never from this file",
+      "path": "docs/ledgers/G28_LEDGER.md",
+      "anchor": "## 2026-07-28 — INTTRACKER-PRODUCTION-CUTOVER-R1 — fix(config): cut over Inttracker production ownership"
+    },
+    {
       "purpose": "historical authority-cutover recovery evidence; retrieve only if required",
       "path": "docs/governance/cutover/unit4c-rollback-readiness.json",
       "anchor": "/status"
-    },
-    {
-      "purpose": "append-only governance history; retrieve only the task-relevant heading",
-      "path": "docs/ledgers/G28_LEDGER.md",
-      "anchor": "## 2026-07-25 — PHASE-MANTA-B2C-SHARED-DEVELOPMENT-ACTIVATION-AND-LIVE-CLOSEOUT-R1 — docs: close Manta shared-development activation"
     }
   ]
 }

@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -16,56 +15,24 @@ import {
   renderViews
 } from '../scripts/governance/render-current-state-shadow.mjs';
 import {
+  SHADOW_SCHEMA_PATH,
+  UNIT1_CHECKPOINT,
+  makeUnit1Fixture,
   parseBootstrapBlock,
+  removeUnit1Fixture,
   validateRepository,
   validateRepositoryDetailed,
   validateSchemaValue
 } from '../scripts/governance/validate-current-state-shadow.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const UNIT1_CHECKPOINT = 'fa986cf935abbf053172cfd549b0171bb9446f58';
+const EPOCH1_CHECKPOINT = 'e88194cf6681d7aff154b22b4360e27b6d6e6dad';
 const clone = value => JSON.parse(JSON.stringify(value));
 const hasError = (errors, text) => errors.some(error => error.includes(text));
 
-const FIXTURE_FILES = [
-  'CLAUDE.md',
-  'PROJECT_STATE.md',
-  'AGENT_HANDOFF.md',
-  'docs/DOCUMENTATION_INDEX.md',
-  'docs/ledgers/G28_LEDGER.md',
-  'docs/governance/AGENT_INSTRUCTIONS.md',
-  'docs/governance/DOCUMENTATION_MODEL.md',
-  'docs/governance/SUPERVISION_PROTOCOL.md',
-  'docs/governance/GOVERNANCE_EFFICIENCY_REFOUNDATION_PHASE_CONTRACT.md',
-  'docs/governance/schemas/current-state.schema.json',
-  'docs/governance/shadow/current-state.json',
-  'docs/governance/shadow/current-state-equivalence.json',
-  'docs/governance/shadow/current-state-source-manifest.json',
-  'docs/governance/shadow/generated/PROJECT_STATE.md',
-  'docs/governance/shadow/generated/AGENT_HANDOFF.md',
-  'docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md',
-  'docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md',
-  'docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md',
-  'docs/architecture/ORDEM_COMPRA_C3_TRACEABILITY.md',
-  'scripts/validate-spec-custody.mjs',
-  'scripts/spec-custody/validation-core.mjs',
-  'scripts/spec-custody/self-tests.mjs'
-];
+function makeFixture() { return makeUnit1Fixture(ROOT, UNIT1_CHECKPOINT); }
 
-function makeFixture() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'g28-shadow-fixture-'));
-  for (const relativePath of FIXTURE_FILES) {
-    const target = path.join(root, relativePath);
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    const content = execFileSync('git', ['show', `${UNIT1_CHECKPOINT}:${relativePath}`], {
-      cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024
-    });
-    fs.writeFileSync(target, content, 'utf8');
-  }
-  return root;
-}
-
-function cleanup(root) { fs.rmSync(root, { recursive: true, force: true }); }
+function cleanup(root) { removeUnit1Fixture(root); }
 function read(root, relativePath) { return fs.readFileSync(path.join(root, relativePath), 'utf8'); }
 function write(root, relativePath, text) { fs.writeFileSync(path.join(root, relativePath), text, 'utf8'); }
 function mutateJson(root, relativePath, mutator) {
@@ -350,21 +317,21 @@ test('unknown bootstrap key fails', () => {
 test('unknown top-level state property fails schema validation', () => {
   const state = loadState(ROOT);
   state.unknown_top_level = true;
-  const schema = JSON.parse(read(ROOT, 'docs/governance/schemas/current-state.schema.json'));
+  const schema = JSON.parse(read(ROOT, SHADOW_SCHEMA_PATH));
   assert.ok(hasError(validateSchemaValue(state, schema), 'unknown property unknown_top_level'));
 });
 
 test('unknown nested state property fails schema validation', () => {
   const state = loadState(ROOT);
   state.repository.unknown_nested = true;
-  const schema = JSON.parse(read(ROOT, 'docs/governance/schemas/current-state.schema.json'));
+  const schema = JSON.parse(read(ROOT, SHADOW_SCHEMA_PATH));
   assert.ok(hasError(validateSchemaValue(state, schema), 'unknown property unknown_nested'));
 });
 
 test('wrong array-item shape fails schema validation', () => {
   const state = loadState(ROOT);
   state.protected_residue[0] = 'wrong-shape';
-  const schema = JSON.parse(read(ROOT, 'docs/governance/schemas/current-state.schema.json'));
+  const schema = JSON.parse(read(ROOT, SHADOW_SCHEMA_PATH));
   assert.ok(hasError(validateSchemaValue(state, schema), 'expected type object'));
 });
 
@@ -407,7 +374,12 @@ test('bootstrap parser rejects changed key order', () => {
 });
 
 test('canonical epoch-1 state uses compact history and structured debt ownership', () => {
-  const canonical = JSON.parse(read(ROOT, 'docs/governance/current-state.json'));
+  // Read at the accepted epoch-1 closeout, not from the worktree: the live
+  // canonical state is compact format 3.0.0 and owns none of these fields.
+  const canonical = JSON.parse(execFileSync(
+    'git', ['show', `${EPOCH1_CHECKPOINT}:docs/governance/current-state.json`],
+    { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }
+  ));
   assert.equal(Object.hasOwn(canonical, 'current_fact_sections'), false);
   assert.deepEqual(canonical.historical_fact_sources.map(item => item.bootstrap_required), [false, false, false, false]);
   assert.ok(canonical.live_debts.every(item => item.owner_path === 'docs/governance/current-state.json'));

@@ -4,6 +4,12 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { commitReader, validateCommit, worktreeReader } from './git-content-reader.mjs';
 import { renderViews } from './render-documentation-shadow.mjs';
+import {
+  CANONICAL_VIEW_PATHS,
+  isHistoricalEpochOneState,
+  renderCanonicalViews
+} from './render-unit4-canonical-views.mjs';
+import { validateSchemaValue } from './validate-current-state-shadow.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = path.resolve(SCRIPT_DIR, '..', '..');
@@ -14,7 +20,58 @@ export const TRACEABILITY = 'docs/governance/traceability/purchase-order-phase-c
 export const RENDERER = 'scripts/governance/render-documentation-shadow.mjs';
 export const SHADOW_INDEX = 'docs/governance/shadow/generated/DOCUMENTATION_INDEX.md';
 export const SHADOW_TRACE = 'docs/governance/shadow/generated/ORDEM_COMPRA_C3_TRACEABILITY.md';
-export const EXPECTED_ACTIVE_NORMATIVE = 25;
+export const EXPECTED_ACTIVE_NORMATIVE = 26;
+export const STATE_SCHEMA = 'docs/governance/schemas/current-state.schema.json';
+export const ACCEPTED_OPERATIONAL_CHECKPOINT = 'b77f4d14021781ebd96bce30f625687358b2d87a';
+export const ENVIRONMENT_IDENTITIES = Object.freeze({
+  production: 'ucrjtfswnfdlxwtmxnoo',
+  retired_project: 'gqmpsxkxynrjvidfmojk',
+  forbidden_project: 'bhgifjrfagkzubpyqpew'
+});
+// Fields that belonged to the retired Unit-4 candidate and epoch-1 canonical
+// contracts. None of them may reappear in the live compact state; the historical
+// validators read them from their own accepted checkpoints instead.
+export const RETIRED_STATE_FIELDS = Object.freeze([
+  'activation',
+  'activation_commit_sha',
+  'activation_manifest_sha256',
+  'authority',
+  'authority_epoch',
+  'bounded_recent_ledger_references',
+  'correction_commit_sha',
+  'current_fact_sections',
+  'cutover_id',
+  'evidence_events',
+  'historical_fact_sources',
+  'last_accepted',
+  'last_accepted_phase',
+  'live_debts',
+  'mode',
+  'phase_status',
+  'rollback_readiness',
+  'root_authorities',
+  'schema_version',
+  'source_mappings',
+  'state_payload_sha256',
+  'structured_sources'
+]);
+// Debts closed by an accepted checkpoint. Their historical evidence survives in
+// Git and in the ledger; reintroducing any of them to the active population is a
+// deterministic failure.
+export const CLOSED_DEBT_IDENTITIES = Object.freeze([
+  'UI-SPECIALIZED-CONTROL-CONTRACT-GAP',
+  'UI-ACTION-BUTTON-SR-LABEL-POSITIONING',
+  'UI-ACTION-BUTTON-CALLER-WORKAROUND-REDUNDANT',
+  'GOVERNANCE-COMPACT-STATE-VALIDATOR-SCHEMA-MISMATCH',
+  'UI-CACHE-TOKEN-CONFORMANCE-GUARD-DRIFT-R1'
+]);
+const STALE_ACCEPTANCE_PHRASES = Object.freeze([
+  'AWAITING ARCHITECT ACCEPTANCE',
+  'AWAITING FINAL ARCHITECT ACCEPTANCE',
+  'AWAITING DIRECT SUPERVISOR REVIEW',
+  'AWAITING UNIT 4D REVIEW',
+  'PUBLISHED AND UNACCEPTED'
+]);
 
 export const CORRECTED_PATHS = Object.freeze([
   'docs/architecture/CAMADA2_USUARIOS_SPEC_PROPOSED.md',
@@ -48,7 +105,10 @@ function git(root, args) {
 function snapshotGit(root) {
   return {
     head: git(root, ['rev-parse', 'HEAD']),
-    index: git(root, ['write-tree']),
+    // ls-files --stage, not write-tree: it captures the mode, object ID and
+    // stage of every index entry without taking .git/index.lock, so concurrent
+    // validators cannot make each other fail on lock contention.
+    index: git(root, ['ls-files', '--stage']),
     status: git(root, ['status', '--porcelain=v1', '-uall']),
     refs: git(root, ['show-ref', '--head'])
   };
@@ -178,15 +238,143 @@ function validateOwners(reader, errors) {
   const state = JSON.parse(reader.readText(STATE));
   const catalog = JSON.parse(reader.readText(CATALOG));
   const traceability = JSON.parse(reader.readText(TRACEABILITY));
-  if (state.authority !== 'canonical_current_state') errors.push('structured current-state ownership mismatch');
+  if (state.canonical_sources?.current_operational_state !== STATE) {
+    errors.push('structured current-state ownership mismatch');
+  }
+  if (state.canonical_sources?.generated_continuation_view !== 'AGENT_HANDOFF.md') {
+    errors.push('structured handoff view ownership mismatch');
+  }
+  if (state.canonical_sources?.document_classification !== CATALOG) {
+    errors.push('structured catalog ownership mismatch in current state');
+  }
   if (catalog.authority !== 'CANONICAL_DOCUMENT_CLASSIFICATION_OWNER') errors.push('structured catalog ownership mismatch');
   if (traceability.authority !== 'CANONICAL_PHASE_C_TRACEABILITY_OWNER') errors.push('structured traceability ownership mismatch');
   const instructions = reader.readText(AGENT_INSTRUCTIONS);
-  if (!instructions.includes('Generated compatibility views') && !instructions.includes('generated compatibility')) {
+  // The bootstrap must still reject generated roots as independent authority.
+  // The wording moved when the instructions were compacted, so the assertion is
+  // re-anchored on the clauses that carry that rule now.
+  if (!/`AGENT_HANDOFF\.md` is a concise generated projection of current state and has\s+no independent authority/u.test(instructions)) {
     errors.push('agent bootstrap generated-root rejection missing');
   }
-  if (!instructions.includes('Normal bootstrap must not require full reads of the four generated roots')) {
-    errors.push('agent bootstrap still permits mandatory generated-root reads');
+  if (!/generated views, and tool caches are\s+non-authoritative/u.test(instructions)) {
+    errors.push('agent bootstrap generated-view non-authority rejection missing');
+  }
+  if (!/Silent fallback to a shadow, candidate, generated, historical, or\s+private source is forbidden/u.test(instructions)) {
+    errors.push('agent bootstrap silent-fallback rejection missing');
+  }
+}
+
+function unresolvedPointer(reader, relativePath, anchor) {
+  if (typeof relativePath !== 'string' || !reader.exists(relativePath)) return 'missing path';
+  if (typeof anchor !== 'string' || anchor.length === 0) return 'missing anchor';
+  if (anchor.startsWith('/')) return null;
+  return reader.readText(relativePath).replace(/\r\n?/gu, '\n').split('\n').includes(anchor)
+    ? null : 'missing anchor line';
+}
+
+// The live compact state is validated as itself: against the format-3 schema and
+// against the operational facts it owns. Nothing here reads or reconstructs the
+// retired Unit-4 candidate machinery.
+export function validateLiveCompactState(reader, errors) {
+  let state;
+  try { state = JSON.parse(reader.readText(STATE)); }
+  catch (error) { errors.push(`live current-state is not valid JSON: ${error.message}`); return; }
+  if (isHistoricalEpochOneState(state)) {
+    errors.push('live current-state carries the retired epoch-1 canonical shape');
+    return;
+  }
+  try {
+    errors.push(...validateSchemaValue(state, JSON.parse(reader.readText(STATE_SCHEMA)))
+      .map(error => `live current-state schema: ${error}`));
+  } catch (error) { errors.push(`cannot load live current-state schema: ${error.message}`); }
+
+  for (const field of RETIRED_STATE_FIELDS) {
+    if (Object.hasOwn(state, field)) errors.push(`retired Unit-4 field in live current-state: ${field}`);
+  }
+
+  const serialized = JSON.stringify(state);
+  for (const phrase of STALE_ACCEPTANCE_PHRASES) {
+    if (serialized.includes(phrase)) errors.push(`stale acceptance language in live current-state: ${phrase}`);
+  }
+
+  if (state.accepted_operational_checkpoint !== ACCEPTED_OPERATIONAL_CHECKPOINT) {
+    errors.push('accepted operational checkpoint mismatch');
+  }
+  const checkpointCommits = new Set((state.accepted_checkpoints ?? []).map(item => item.checkpoint_commit));
+  if (!checkpointCommits.has(ACCEPTED_OPERATIONAL_CHECKPOINT)) {
+    errors.push('accepted operational checkpoint is absent from the accepted checkpoint chain');
+  }
+  const checkpointIds = (state.accepted_checkpoints ?? []).map(item => item.id);
+  if (new Set(checkpointIds).size !== checkpointIds.length) {
+    errors.push('duplicate accepted checkpoint identity');
+  }
+
+  for (const [key, projectId] of Object.entries(ENVIRONMENT_IDENTITIES)) {
+    if (state.environment_boundaries?.[key]?.project_id !== projectId) {
+      errors.push(`environment identity mismatch: ${key}`);
+    }
+  }
+  if (!/^NONE\b/u.test(state.environment_boundaries?.non_production_database ?? '')) {
+    errors.push('live current-state declares a non-production database');
+  }
+
+  const residuePaths = (state.protected_residue ?? []).map(item => item.path);
+  if (new Set(residuePaths).size !== residuePaths.length) {
+    errors.push('duplicate protected-residue path');
+  }
+
+  const debtIds = (state.blockers_and_material_debts ?? []).map(item => item.id);
+  if (new Set(debtIds).size !== debtIds.length) errors.push('duplicate active debt identity');
+  for (const closed of CLOSED_DEBT_IDENTITIES) {
+    if (debtIds.includes(closed)) errors.push(`closed debt reintroduced into the active list: ${closed}`);
+  }
+
+  const pointers = [
+    ['active_phase.contract', state.active_phase?.contract?.path, state.active_phase?.contract?.anchor],
+    ...(state.active_track?.governing_pointers ?? []).map(pointer =>
+      [`active_track.${pointer.role}`, pointer.path, pointer.anchor]),
+    ...(state.exceptional_evidence ?? []).map((pointer, index) =>
+      [`exceptional_evidence[${index}]`, pointer.path, pointer.anchor])
+  ];
+  for (const [label, relativePath, anchor] of pointers) {
+    const failure = unresolvedPointer(reader, relativePath, anchor);
+    if (failure) errors.push(`invalid governing pointer (${label}): ${failure}`);
+  }
+  for (const relativePath of Object.values(state.canonical_sources ?? {})) {
+    if (!reader.exists(relativePath)) errors.push(`missing canonical source: ${relativePath}`);
+  }
+  return state;
+}
+
+export function validateGeneratedCompatibilityViews(reader, state, errors) {
+  if (!state) return;
+  let rendered;
+  try {
+    const catalog = JSON.parse(reader.readText(CATALOG));
+    const traceability = JSON.parse(reader.readText(TRACEABILITY));
+    rendered = renderCanonicalViews(state, catalog, traceability);
+    if (JSON.stringify(rendered) !== JSON.stringify(renderCanonicalViews(state, catalog, traceability))) {
+      errors.push('canonical renderer is not deterministic');
+    }
+  } catch (error) { errors.push(`canonical renderer failed: ${error.message}`); return; }
+  for (const [relativePath, expected] of Object.entries(rendered)) {
+    if (reader.readText(relativePath).replace(/\r\n?/gu, '\n') !== expected) {
+      errors.push(`generated compatibility view drift: ${relativePath}`);
+    }
+  }
+  const project = reader.readText(CANONICAL_VIEW_PATHS.project);
+  if (!project.includes('is the sole current operational state owner.')) {
+    errors.push('PROJECT_STATE.md is not a compatibility pointer');
+  }
+  if (project.includes('SPEC_CUSTODY_BOOTSTRAP:BEGIN')) {
+    errors.push('PROJECT_STATE.md still carries a bootstrap block');
+  }
+  const handoff = reader.readText(CANONICAL_VIEW_PATHS.handoff);
+  for (const required of [ACCEPTED_OPERATIONAL_CHECKPOINT, ENVIRONMENT_IDENTITIES.production]) {
+    if (!handoff.includes(required)) errors.push(`generated handoff missing current fact: ${required}`);
+  }
+  for (const phrase of STALE_ACCEPTANCE_PHRASES) {
+    if (handoff.includes(phrase)) errors.push(`stale acceptance language in generated handoff: ${phrase}`);
   }
 }
 
@@ -228,6 +416,8 @@ export function validateReader(reader) {
   validateCorrectedDocuments(reader, errors);
   validateOwners(reader, errors);
   validateRenderer(reader, errors);
+  const liveState = validateLiveCompactState(reader, errors);
+  validateGeneratedCompatibilityViews(reader, liveState, errors);
   const count = value => scan.rows.filter(row => row.semantic_classification === value).length;
   return {
     errors,

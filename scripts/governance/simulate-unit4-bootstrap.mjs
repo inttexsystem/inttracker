@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { commitReader, worktreeReader } from './git-content-reader.mjs';
 import { readBoundedLedgerEvents } from './read-bounded-ledger-events.mjs';
 import { validateSchema } from './validate-documentation-shadow.mjs';
-import { validateCanonicalConsistencyObjects } from './validate-unit4-cutover.mjs';
+import { HISTORICAL_CHECKPOINT, validateCanonicalConsistencyObjects } from './validate-unit4-cutover.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = path.resolve(SCRIPT_DIR, '..', '..');
@@ -54,6 +54,12 @@ export function simulateWithReader(baseReader) {
   const allowed = new Set(ROUTING_PATHS);
   const reader = instrumentReader(baseReader, allowed);
   const state = parseJson(reader, ROUTING_PATHS[0]);
+  // This simulation reproduces the Unit-4 bootstrap only. A compact
+  // format_version state is a different contract entirely and must fail closed
+  // instead of being coerced into a candidate or canonical epoch-1 reading.
+  if (Object.hasOwn(state, 'format_version')) {
+    throw new Error(`compact current-state format is not a Unit 4 bootstrap state: ${state.format_version}`);
+  }
   const canonical = state.mode === 'canonical';
   if (canonical && (state.authority !== 'canonical_current_state'
       || state.authority_epoch !== 1 || state.activation.status !== 'active')) {
@@ -87,12 +93,18 @@ export function simulateWithReader(baseReader) {
       throw new Error('accepted Unit 4 contract identity missing');
     }
   }
-  const cutover = parseJson(reader, ROUTING_PATHS[5]);
+  // The Unit-4C cutover manifest is an epoch-1 artifact. A Unit-4A candidate
+  // checkpoint predates it, so requiring it there would only be satisfiable by
+  // reading a later epoch's file — the cross-epoch mixture this simulation is
+  // meant to rule out.
+  const cutover = canonical ? parseJson(reader, ROUTING_PATHS[5]) : null;
   const catalog = parseJson(reader, ROUTING_PATHS[6]);
-  const consistencyErrors = validateCanonicalConsistencyObjects({
-    state, cutover, unit4Contract, phaseContract, catalog
-  });
-  if (consistencyErrors.length) throw new Error(consistencyErrors.join('\n'));
+  if (canonical) {
+    const consistencyErrors = validateCanonicalConsistencyObjects({
+      state, cutover, unit4Contract, phaseContract, catalog
+    });
+    if (consistencyErrors.length) throw new Error(consistencyErrors.join('\n'));
+  }
   const ledger = readBoundedLedgerEvents(reader, state.bounded_recent_ledger_references);
   const debtOwners = state.live_debts.map(item => item.owner_path);
   const invalidDebtOwners = debtOwners.filter(owner => owner !== 'docs/governance/current-state.json');
@@ -111,14 +123,14 @@ export function simulateWithReader(baseReader) {
     current_debt_count: state.live_debts.length,
     debt_owner_paths: [...new Set(debtOwners)].sort(),
     invalid_owner_count: invalidDebtOwners.length,
-    historical_fact_sources: state.historical_fact_sources.map(item => item.source_path),
+    historical_fact_sources: (state.historical_fact_sources ?? []).map(item => item.source_path),
     raw_legacy_prose_present: Object.hasOwn(state, 'current_fact_sections'),
     contract_identity: contractIdentity,
-    manifest_contract_identity: cutover.contract_id,
-    contract_identity_parity: contractIdentity === cutover.contract_id,
+    manifest_contract_identity: cutover?.contract_id ?? null,
+    contract_identity_parity: cutover ? contractIdentity === cutover.contract_id : null,
     unit4_contract_status: unit4Contract.match(/^STATUS:\s*(.+)$/mu)?.[1] ?? null,
     phase_contract_status: phaseContract.match(/^STATUS:\s*(.+)$/mu)?.[1] ?? null,
-    second_activation: cutover.second_activation,
+    second_activation: cutover?.second_activation ?? null,
     root_authorities: state.root_authorities.map(item => item.path),
     ledger_events: ledger.events.map(item => item.reference.unit_id)
   };
@@ -133,7 +145,7 @@ export function simulateWithReader(baseReader) {
   };
 }
 
-export function simulateRepository(root = REPO_ROOT, commit = null) {
+export function simulateRepository(root = REPO_ROOT, commit = HISTORICAL_CHECKPOINT) {
   return simulateWithReader(commit ? commitReader(root, commit) : worktreeReader(root));
 }
 
@@ -141,7 +153,7 @@ function main() {
   const rootIndex = process.argv.indexOf('--root');
   const commitIndex = process.argv.indexOf('--commit');
   const root = path.resolve(rootIndex >= 0 ? process.argv[rootIndex + 1] : process.cwd());
-  const commit = commitIndex >= 0 ? process.argv[commitIndex + 1] : null;
+  const commit = commitIndex >= 0 ? process.argv[commitIndex + 1] : HISTORICAL_CHECKPOINT;
   try {
     if (commitIndex >= 0 && !commit) throw new Error('--commit requires a SHA');
     const result = simulateRepository(root, commit);
