@@ -10523,3 +10523,14 @@ product file they depend on, was modified by this pass or the prior one):
 - **Next action.** `ARCHITECT REVIEW OF INTTRACKER-PRODUCTION-CUTOVER`, including a ruling on the two retired-project consumers reported above and on when `gqmpsxkxynrjvidfmojk` may be physically deleted.
 - **Owner of the full record.** This ledger entry.
 - **Commit subject.** `fix(config): cut over Inttracker production ownership` and `docs: record repository and deployment cutover`.
+
+## 2026-07-28 — PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 — docs: record supervisor acceptance of production priority
+
+- **Subject.** Forward acceptance record for the `PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1` phase, which was implemented, production-migration-applied and published, and had been left `AWAITING SUPERVISOR REVIEW` at checkpoint `fd59284be1d16a3cefb4abe1dca9253be9f4f165`. The phase is now `CLOSED / ACCEPTED` at that same checkpoint. No code, migration or configuration change accompanies this record.
+- **What is accepted.** Production priority between items of one Pedido, implemented end to end: `pedidos.prioridade_*` (`nenhuma|solicitada|confirmada`), `pedido_prioridade_eventos` under SELECT-only RLS, the single mutation owner `definir_prioridade_pedido`, and the direct-write, administrative-acceptance, OP-creation and item-reordering guards. `db/91` is the terminal applied migration in the definitive production project `ucrjtfswnfdlxwtmxnoo`. `pedido_itens.ordem` remains the canonical item rank; every pre-existing Pedido resolved to `nenhuma` and no existing item was reordered.
+- **Also accepted.** The priority surfaces — the Pedido priority toggle, conforming to `UI_VISUAL_CONTRACT.md` section 2.1 (label left, control right, one row) — and the D11.5 Switch standard ratified in `DESIGN_DECISIONS.md`: 40x22 track, 18x18 knob, 1px vertical and 2px horizontal inset, 16px travel, 2px track radius, 1px knob radius, and `--rv-text-tertiary` fill and border when off. The clean UI execution procedure owned by `AGENT_INSTRUCTIONS.md` section 7 is complete.
+- **Why recorded now.** `docs/governance/current-state.json` moves its active phase forward to `PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1` in the same closeout that appends this entry; the prior phase's acceptance is recorded here so the ledger reflects it before the handoff regenerates.
+- **Owner of the underlying implementation record.** The prior execution report and code for this phase; this entry records only the supervisor acceptance forward.
+- **Status.** `PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 CLOSED / ACCEPTED at fd59284be1d16a3cefb4abe1dca9253be9f4f165`.
+- **Next action.** None chained for this phase.
+- **Owner of the full record.** This ledger entry.

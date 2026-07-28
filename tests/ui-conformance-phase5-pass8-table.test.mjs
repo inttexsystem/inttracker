@@ -859,9 +859,24 @@ const SUPERSEDED_BY_SCREEN_GROUP_3 = [
   'js/screens/cliente-pedido-detail.js',
 ];
 const supersededBySg3 = (rel) => SUPERSEDED_BY_SCREEN_GROUP_3.includes(rel);
+/**
+ * PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1 (a LATER,
+ * separately authorized order) stabilized the Model create/edit modal
+ * (backdrop behaviour and field hierarchy) in cadastros.js, so ONE of the
+ * seventeen pass-8 assets changes again and its token moves strictly forward
+ * once more.
+ *
+ * The pass-8 population is UNCHANGED at seventeen. A file only ever moves
+ * FORWARD to a strictly later token, which is exactly what the guards prove.
+ */
+const MODEL_MODAL_TOKEN = '20260728-pedido-model-modal-option-label-r1';
+const SUPERSEDED_BY_MODEL_MODAL = [
+  'js/screens/cadastros.js',
+];
+const supersededByModelModal = (rel) => SUPERSEDED_BY_MODEL_MODAL.includes(rel);
 const superseded = (rel) => SUPERSEDED_BY_CONTAINMENT_A1.includes(rel)
   || supersededByB1(rel) || supersededBySg1(rel) || supersededBySg2(rel)
-  || supersededBySg3(rel);
+  || supersededBySg3(rel) || supersededByModelModal(rel);
 
 test('10.1 every changed script carries a Pass-8 token exactly once', () => {
   assert.equal(RETOKENIZED.length, 17, 'the pass-8 changed-asset population must stay seventeen');
@@ -880,6 +895,9 @@ test('10.1 every changed script carries a Pass-8 token exactly once', () => {
     assert.ok(RETOKENIZED.includes(rel), `${rel} was never a pass-8 asset`);
   }
   for (const rel of SUPERSEDED_BY_SCREEN_GROUP_3) {
+    assert.ok(RETOKENIZED.includes(rel), `${rel} was never a pass-8 asset`);
+  }
+  for (const rel of SUPERSEDED_BY_MODEL_MODAL) {
     assert.ok(RETOKENIZED.includes(rel), `${rel} was never a pass-8 asset`);
   }
   for (const rel of RETOKENIZED_R1) {
@@ -902,7 +920,7 @@ test('10.1 every changed script carries a Pass-8 token exactly once', () => {
   }
   // A B1 arrival carries the B1 token and NO earlier one.
   for (const rel of SUPERSEDED_BY_B1) {
-    if (supersededBySg1(rel) || supersededBySg2(rel)) continue;
+    if (supersededBySg1(rel) || supersededBySg2(rel) || supersededByModelModal(rel)) continue;
     assert.ok(INDEX.includes(`"${rel}?v=${B1_TOKEN}"`),
       `${rel} was not retokenised for SPECIALIZED-CONTROLS-B1`);
     assert.ok(!INDEX.includes(`"${rel}?v=${PASS8_TOKEN}"`), `${rel} kept the superseded pass-8 R1 token`);
@@ -935,6 +953,15 @@ test('10.1 every changed script carries a Pass-8 token exactly once', () => {
       `${rel} was not retokenised for PEDIDO-SCREEN-GROUP-3`);
     for (const stale of [PASS8_TOKEN, PASS8_A1_TOKEN, CONTAINMENT_A1_TOKEN, B1_TOKEN,
       SCREEN_GROUP_1_TOKEN, SCREEN_GROUP_2_TOKEN]) {
+      assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`), `${rel} kept a superseded token`);
+    }
+  }
+  // A MODEL-MODAL-OPTION-LABEL arrival carries its token and NO earlier one.
+  for (const rel of SUPERSEDED_BY_MODEL_MODAL) {
+    assert.ok(INDEX.includes(`"${rel}?v=${MODEL_MODAL_TOKEN}"`),
+      `${rel} was not retokenised for PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1`);
+    for (const stale of [PASS8_TOKEN, PASS8_A1_TOKEN, CONTAINMENT_A1_TOKEN, B1_TOKEN,
+      SCREEN_GROUP_1_TOKEN, SCREEN_GROUP_2_TOKEN, SCREEN_GROUP_3_TOKEN]) {
       assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`), `${rel} kept a superseded token`);
     }
   }
@@ -975,12 +1002,20 @@ test('10.1b the containment token lands only on the files that order changed', (
   // invalidates two of them moved.
   const MOVED_ON_BY_SG2 = CONTAINMENT_A1_ASSETS.filter(supersededBySg2);
   assert.equal(MOVED_ON_BY_SG2.length, 2);
+  // PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1 then moved ONE
+  // of them forward once more — cadastros.js, whose Model modal backdrop and
+  // field hierarchy were stabilized. The containment population is still
+  // seven; only which token invalidates one of them moved.
+  const MOVED_ON_BY_MODEL_MODAL = CONTAINMENT_A1_ASSETS.filter(supersededByModelModal);
+  assert.equal(MOVED_ON_BY_MODEL_MODAL.length, 1);
   for (const rel of CONTAINMENT_A1_ASSETS) {
-    const expected = MOVED_ON_BY_SG2.includes(rel)
-      ? SCREEN_GROUP_2_TOKEN
-      : (MOVED_ON_BY_SG1.includes(rel)
-        ? SCREEN_GROUP_1_TOKEN
-        : (MOVED_ON_BY_B1.includes(rel) ? B1_TOKEN : CONTAINMENT_A1_TOKEN));
+    const expected = MOVED_ON_BY_MODEL_MODAL.includes(rel)
+      ? MODEL_MODAL_TOKEN
+      : (MOVED_ON_BY_SG2.includes(rel)
+        ? SCREEN_GROUP_2_TOKEN
+        : (MOVED_ON_BY_SG1.includes(rel)
+          ? SCREEN_GROUP_1_TOKEN
+          : (MOVED_ON_BY_B1.includes(rel) ? B1_TOKEN : CONTAINMENT_A1_TOKEN)));
     assert.ok(INDEX.includes(`"${rel}?v=${expected}"`), `${rel} missing its containment-or-later token`);
   }
   assert.equal((INDEX.match(new RegExp(CONTAINMENT_A1_TOKEN, 'g')) || []).length,
@@ -1001,9 +1036,11 @@ test('10.2 UNCHANGED assets keep their previous tokens', () => {
   // through pass 8, containment A1 and B1. PEDIDO-SCREEN-GROUP-1 is the first
   // later order to change it, and PEDIDO-SCREEN-GROUP-3 changed it again when
   // it removed the caller-level positioning workaround that GROUP-2 had made
-  // redundant at the shared owner. It correctly carries that strictly later
-  // token and is no longer an example of an unchanged asset.
-  assert.match(INDEX, /js\/screens\/pedido-item-row-editor\.js\?v=20260727-ui-pedido-screen-group-3/);
+  // redundant at the shared owner. PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-
+  // STABILIZATION-R1 changed it once more, adding the model width suffix to
+  // the inline option label, so it now carries that strictly later token and
+  // is still no longer an example of an unchanged asset.
+  assert.match(INDEX, /js\/screens\/pedido-item-row-editor\.js\?v=20260728-pedido-model-modal-option-label-r1/);
   assert.match(INDEX, /js\/boot\.js\?v=20260623-asset1/);
 });
 

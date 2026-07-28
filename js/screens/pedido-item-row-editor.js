@@ -99,11 +99,12 @@
       : String(modelo.largura || '-');
   }
 
-  // Formatador UNICO da opcao de modelo: "<MODELO> - <COR 1>/<COR 2>".
+  // Formatador UNICO da opcao de modelo: "<MODELO> - <COR 1>/<COR 2> · <LARGURA>".
   function modeloOptionLabel(modelo) {
     if (!modelo) return '';
     return String(modelo.nome == null ? '' : modelo.nome)
-      + ' – ' + corNome(modelo.cor_1) + '/' + corNome(modelo.cor_2);
+      + ' – ' + corNome(modelo.cor_1) + '/' + corNome(modelo.cor_2)
+      + ' · ' + larguraStr(modelo);
   }
 
   function modeloById(modelos, id) {

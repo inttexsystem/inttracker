@@ -148,12 +148,14 @@ test('the retired-project consumer corrections are accepted, not still open deci
 // que a governanca exige: `current-state.json` existe justamente para carregar
 // uma fase ativa quando ha uma.
 //
-// PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 e a fase ativa, entao o guard e
-// reancorado nela. A garantia continua checavel: a fase ativa tem identidade e
-// status, e a proxima acao autorizavel APONTA para essa mesma fase, de modo que
-// as duas nao podem divergir em silencio.
+// PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 foi a fase ativa e agora esta
+// CLOSED / ACCEPTED; PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1
+// e a fase ativa, entao o guard e reancorado nela mais uma vez, exatamente como
+// fez na transicao anterior. A garantia continua checavel: a fase ativa tem
+// identidade e status, e a proxima acao autorizavel APONTA para essa mesma
+// fase, de modo que as duas nao podem divergir em silencio.
 test('the active state declares a coherent phase and next authorizable action', () => {
-  const ACTIVE = 'PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1';
+  const ACTIVE = 'PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1';
   assert.equal(state.active_phase.id, ACTIVE);
   assert.match(state.active_phase.status, /AWAITING SUPERVISOR REVIEW/u);
   assert.ok(state.active_phase.immediate_objective.length > 0);

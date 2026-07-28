@@ -1651,8 +1651,18 @@ const SCREEN_GROUP_3_ASSETS_DECLARADOS = [
   'js/screens/pedido-item-row-editor.js',
   'js/screens/pedidos-list.js',
 ];
+// PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1 (a LATER,
+// separately authorized order) added the model width suffix to the inline
+// Pedido model-option label in pedido-item-row-editor.js, so that asset moves
+// to a strictly later token once more.
+const MODEL_MODAL_TOKEN = '20260728-pedido-model-modal-option-label-r1';
+const MODEL_MODAL_RETOKENED_ASSETS = [
+  'js/screens/cadastros.js',
+  'js/screens/pedido-item-row-editor.js',
+];
 const SCREEN_GROUP_3_ASSETS = SCREEN_GROUP_3_ASSETS_DECLARADOS
-  .filter((asset) => !PRIORITY_RETOKENED_ASSETS.includes(asset));
+  .filter((asset) => !PRIORITY_RETOKENED_ASSETS.includes(asset))
+  .filter((asset) => !MODEL_MODAL_RETOKENED_ASSETS.includes(asset));
 // INTTEX-BRAND-ASSET-INTEGRATION integrou os assets de marca ja aprovados no
 // chrome global e na tela de login: o wordmark textual da topbar e o
 // placeholder improvisado do login deram lugar ao logotipo horizontal
@@ -2509,10 +2519,13 @@ test('PASS6/20c15. os assets da passada 6 de tipografia carregam exatamente o to
 test('R3/20c9. os assets de PEDIDO-SCREEN-GROUP-3 carregam exatamente o token da ordem', () => {
   // Tres dos seis assets originais passaram a pertencer a
   // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1, que os alterou POR ULTIMO:
-  // cliente-pedido-detail, cliente-pedidos-list e pedidos-list. Restam tres sob
-  // o token desta ordem, e nenhum deles perdeu invalidacao.
-  assert.equal(SCREEN_GROUP_3_ASSETS.length, 3,
-    'a populacao AINDA sob o token de PEDIDO-SCREEN-GROUP-3 e de tres assets');
+  // cliente-pedido-detail, cliente-pedidos-list e pedidos-list.
+  // PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1 alterou
+  // pedido-item-row-editor.js mais uma vez (sufixo de largura no rotulo de
+  // opcao de modelo), entao esse asset tambem sai. Restam dois sob o token
+  // desta ordem, e nenhum deles perdeu invalidacao.
+  assert.equal(SCREEN_GROUP_3_ASSETS.length, 2,
+    'a populacao AINDA sob o token de PEDIDO-SCREEN-GROUP-3 e de dois assets');
   for (const rel of SCREEN_GROUP_3_ASSETS) {
     assert.equal(tokenFor(rel), SCREEN_GROUP_3_TOKEN,
       rel + ' deve carregar o token de PEDIDO-SCREEN-GROUP-3');

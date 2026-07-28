@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `IMPLEMENTED / PRODUCTION MIGRATION APPLIED / VISUAL CONTRACT CORRECTED / PUBLISHED / AWAITING SUPERVISOR REVIEW`
-- Objective: The Pedido item production-priority feature is implemented end to end and published. db/91 is the terminal applied migration in ucrjtfswnfdlxwtmxnoo: pedidos.prioridade_* with nenhuma|solicitada|confirmada, pedido_prioridade_eventos under SELECT-only RLS, the single mutation owner definir_prioridade_pedido, and the direct-write, administrative-acceptance, OP-creation and item-reordering guards. pedido_itens.ordem remains the canonical item rank; every pre-existing Pedido resolves to nenhuma and no existing item was reordered. The shared Switch conforms to UI_VISUAL_CONTRACT.md section 2.13 and DESIGN_DECISIONS.md D11.5, the ratified standard for this control: 40x22 track, 18x18 knob, 1px vertical and 2px horizontal inset, 16px travel, 2px track radius, 1px knob radius, and --rv-text-tertiary (#9ca3af) fill and border when off. The Pedido priority toggle conforms to section 2.1: label left, control right, one row. The clean UI execution procedure is owned by AGENT_INSTRUCTIONS.md section 7.
-- Next authorizable action: `DIRECT SUPERVISOR REVIEW OF PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1` / `AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED`
+- Status: `IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW`
+- Objective: The Model create/edit modal in js/screens/cadastros.js no longer closes on a backdrop click, while every other cadastro modal keeps that default behaviour via the new closeOnBackdrop option on openCadastrosFormModal(). The Model modal field hierarchy is Name, Product type, Width, a full-width explanatory colour-order paragraph, the Color 1/Color 2 row, the model image panel, and Observations when supported. The Manta width lock (1,40 m, disabled) and its re-enable on Tapete are unchanged. The inline Pedido item model-option label in js/screens/pedido-item-row-editor.js::modeloOptionLabel() now appends the formatted width via the existing larguraStr(), e.g. "Barcelona – PRETO/CRU · 2,10 m". modelo_id remains the only persisted product identity and no filtering, routing, persistence or payload changed.
+- Next authorizable action: `DIRECT SUPERVISOR REVIEW OF PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1` / `AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED`
 
 ## Blockers and decisions
 
@@ -36,7 +36,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Task-specific pointers
 
-- `docs/architecture/UI_VISUAL_CONTRACT.md::### 2.1 Button`
+- `docs/architecture/UI_VISUAL_CONTRACT.md::### 2.10 Modal`
 - `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md::## §R.31 Active Phase-C continuation requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### 13.17 Active Phase-C schema requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md::# Update 2026-07-22 - C5-DOCUMENTATION-CLOSEOUT-R1 (PHASE-C5 supervisor acceptance and closeout; OC-C5-EMISSION-001 SATISFIED)`

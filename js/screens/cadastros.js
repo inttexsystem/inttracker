@@ -304,10 +304,11 @@
     var saveLabel = options.saveLabel || 'Salvar';
     var onClose = options.onClose;
     var maxWidth = options.maxWidth || 680;
+    var closeOnBackdrop = options.closeOnBackdrop !== false;
     var overlay = window.el('div', {
       style: 'position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; padding:24px 18px; background:var(--rv-overlay-scrim); backdrop-filter:blur(2px);',
       onclick: function (e) {
-        if (e.target === overlay) close();
+        if (closeOnBackdrop && e.target === overlay) close();
       }
     });
 
@@ -1298,14 +1299,17 @@
       });
       const bodyFields = [
         cadastrosModalField({ label: 'Nome do modelo', input: nomeInput, fullWidth: true }),
-        cadastrosModalRow([
-          cadastrosModalField({ label: 'Cor 1 (predominante)', input: cor1Sel, hint: 'A ordem importa: "BRANCO/PRETO" é diferente de "PRETO/BRANCO".' }),
-          cadastrosModalField({ label: 'Cor 2', input: cor2Sel })
-        ], 2, 720),
         ...(columnSupport.tipo_produto
           ? [cadastrosModalField({ label: 'Tipo de produto', input: tipoSel, fullWidth: true, hint: 'Manta é tecelagem-direta (largura fixa 1,40 m). Tapete segue tecelagem → acabamento.' })]
           : []),
         cadastrosModalField({ label: 'Largura', input: largSel, fullWidth: true }),
+        window.el('p', {
+          style: 'margin:0; font-size:12px; line-height:1.45; color:var(--rv-text-tertiary);'
+        }, 'A ordem importa: "BRANCO/PRETO" é diferente de "PRETO/BRANCO".'),
+        cadastrosModalRow([
+          cadastrosModalField({ label: 'Cor 1 (predominante)', input: cor1Sel }),
+          cadastrosModalField({ label: 'Cor 2', input: cor2Sel })
+        ], 2, 720),
         cadastrosModalPanel({
           title: 'Imagem do modelo',
           hint: 'Selecione uma imagem para conferir o preview abaixo.',
@@ -1324,6 +1328,7 @@
         title: isEdit ? 'Editar modelo' : 'Novo modelo',
         maxWidth: 620,
         body,
+        closeOnBackdrop: false,
         onSave: async () => {
           const nome = nomeInput.value.trim();
           const cor_1_id = cor1Sel.value;
