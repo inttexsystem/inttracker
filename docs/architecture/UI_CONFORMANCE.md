@@ -93,31 +93,15 @@ application front-end reads `js/screens/*.js`. 67 files were scanned: 31 `FULL`,
 `PARTIAL`, 0 `UNSUPPORTED`. 867 findings — **0 blocking**, 322 declared debt, 545
 coverage gaps.
 
-### Shared UI owners are in scope, and the detector does not see them
+### Shared primitives
 
-**A blind spot, stated plainly.** The detector's application inventory is
-`js/screens/*.js` (`scripts/ui-conformance/inventory.mjs`). Every SHARED UI owner is
-therefore outside it — `css/tokens.css`, `js/ui.js`, `js/select-popover.js`,
-`js/badges.js`, `js/pedido-ui.js`, `js/pedido-priority.js` — even though those files
-declare geometry that renders on every route. This is how the switch knob carried
-unratified circular geometry (`--rv-radius-pill` on an ordinary control) through a
-green detector run: the file that declared it was never read.
+A shared primitive is governed by its entry in `UI_VISUAL_CONTRACT.md` §2 and by its
+canonical shared runtime owner. When a primitive changes, validate the rendered result
+on the affected surfaces.
 
-**A shared owner is not conforming merely because the detector cannot see it.** Being
-outside the screen inventory is a coverage gap, never a pass. Where the detector cannot
-reach, conformance is proved by a **focused structural guard** that names its own
-inventory and fails when that inventory is incomplete.
-
-| Shared owner | Covered by | Proves |
-|---|---|---|
-| `css/tokens.css`, `js/ui.js` (Switch) | `tests/ui-switch-primitive-contract.test.mjs` | track and knob radius resolve to `var(--rv-radius)`; no `--rv-radius-pill`, `999px` or `50%` in any `.rv-switch*` rule; the constructor declares no geometry; no caller declares track or knob geometry; the consumer inventory is complete **by discovery** over the assets `index.html` actually loads |
-| `js/pedido-priority.js` (Switch consumer) | same guard | consumes the shared primitive; label-left / control-right on one row (§2.1, §2.13); mutates the returned node only through its `data-*` marker |
-
-**The discovery requirement is the point.** A hardcoded consumer list rots the first
-time someone adds a switch. That guard DISCOVERS consumers from the loaded runtime and
-fails on any it does not already declare, so a new consumer cannot enter the product
-unaudited. Do not satisfy this by moving a shared owner into `js/screens/`: relocating
-a domain module to enter a scanner directory is a defect, not coverage.
+The detector's application inventory is `js/screens/*.js`, so shared owners such as
+`css/tokens.css` and `js/ui.js` sit outside it. Widening detector coverage is a separate
+architecture decision and is not introduced here.
 
 **Baseline by rule.** UIC-001 literal colour **0** (+**0** gaps) · UIC-002 radius **0**
 (+**0** gaps) · UIC-003 control height **0** (+**0** gaps) · UIC-004 shadow **0**

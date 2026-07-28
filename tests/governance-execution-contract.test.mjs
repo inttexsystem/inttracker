@@ -42,13 +42,17 @@ test('both execution profiles are declared and bound to risk classes', () => {
 });
 
 // -----------------------------------------------------------------------------
-// 2. Mandatory execution envelope — all twelve fields
+// 2. Mandatory execution envelope — all eleven fields
+//
+// TIME_BUDGET was removed from the envelope by
+// UI-EXECUTION-PROCEDURE-SIMPLIFICATION-AND-SWITCH-CLOSEOUT-R1: the architect
+// rejected execution-time estimates, ceilings and timing-compliance reporting.
+// FAST and ASSURANCE remain as risk/scope profiles; only the timing field went.
 // -----------------------------------------------------------------------------
 
 const ENVELOPE_FIELDS = [
   'RISK_CLASS',
   'EXECUTION_PROFILE',
-  'TIME_BUDGET',
   'DECIDED_FACTS',
   'AUTHORIZED_READS',
   'AUTHORIZED_CHANGES',

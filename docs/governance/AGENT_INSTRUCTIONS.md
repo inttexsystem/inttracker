@@ -89,20 +89,6 @@ Product implementation orders must also require structural-policy evidence
 against `docs/architecture/CODE_HEALTH_RULES.md`. It must also carry the
 execution envelope of §10.
 
-Every order authorizing the creation, modification or composition of visible
-product UI must list these as mandatory reads:
-
-- `docs/architecture/UI_VISUAL_CONTRACT.md`;
-- `docs/architecture/DESIGN_DECISIONS.md`;
-- `docs/architecture/UI_CONFORMANCE.md`.
-
-An order that authorizes UI work without them is DEFECTIVE, and the executor
-reports that defect rather than proceeding on the order's literal text alone.
-Those documents own the visual values; this file never restates them. The
-executor hard stops before the first UI edit when the work needs a primitive
-that the closed primitive list does not contain — a new primitive is a contract
-change and an architect decision, never an executor inference.
-
 ## 5. Proportional documentation
 
 The binding rule is:
@@ -168,6 +154,16 @@ language.
   configuration is a separately classified risk.
 - UI implementation requires an approved visual contract or mockup when
   applicable and explicit architect visual acceptance after executor validation.
+  Before the first visible-UI edit, read the applicable
+  `docs/architecture/UI_VISUAL_CONTRACT.md`, `DESIGN_DECISIONS.md` and
+  `UI_CONFORMANCE.md`; hard stop when the applicable primitive or visual rule is
+  absent or contradictory; implement through the canonical shared owner;
+  validate behaviour with the existing directly affected tests and validate the
+  rendered result on the affected surfaces. A new guard, lint rule or permanent
+  test whose only purpose is to restate a visual-contract value requires
+  separate explicit architect authorization and evidence that the rule is
+  genuinely transversal and recurrent. Visual values live only in the visual
+  contract and in `css/tokens.css`; this file never restates them.
 - Cutover requires a named source and target authority, entry criteria,
   reconciliation, rollback or forward-recovery plan, lock/concurrency boundary,
   observability, and an explicitly identified PONR.
@@ -228,8 +224,7 @@ effort beyond the declared acceptance criteria is a defect, not diligence.
 
 Every order runs under exactly one profile.
 
-`FAST` — default for `R0`, `R1` and `R2`. Expected 5 to 10 minutes, with the
-hard ceiling declared by the order. Focused tests only. No full suite, no
+`FAST` — default for `R0`, `R1` and `R2`. Focused tests only. No full suite, no
 baseline worktree, no historical investigation, no broad audit. Stop as soon as
 the acceptance criteria pass.
 
@@ -241,7 +236,7 @@ explicitly named; full suite only through explicit opt-in.
 ### 10.2 Mandatory execution envelope
 
 Every execution order must declare, and an executor must refuse to start
-without: `RISK_CLASS`, `EXECUTION_PROFILE`, `TIME_BUDGET`, `DECIDED_FACTS`,
+without: `RISK_CLASS`, `EXECUTION_PROFILE`, `DECIDED_FACTS`,
 `AUTHORIZED_READS`, `AUTHORIZED_CHANGES`, `VALIDATION_MANIFEST`,
 `FULL_SUITE_POLICY`, `DOCUMENTATION_MODE`, `EXPANSION_GATE`,
 `DEBT_CAPTURE_MODE`, `STOP_CONDITION`.
@@ -269,8 +264,7 @@ without: `RISK_CLASS`, `EXECUTION_PROFILE`, `TIME_BUDGET`, `DECIDED_FACTS`,
    running.** A sweep that raced an edit is void and its result may not be
    reported.
 8. **Do not use long sleep polling.** Poll external operations with short
-   bounded checks, and report external waiting time separately from execution
-   time.
+   bounded checks.
 9. Optional improvement, cleanup, audit, refactor or extra evidence must not be
    executed.
 10. **Scope expansion requires architect authorization** and may never be
