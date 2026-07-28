@@ -354,9 +354,15 @@ test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não
   // o degrau das acoes em pedido-form.js, e a acao destrutiva de linha em
   // pedido-item-row-editor.js —, entao voltam a compartilhar um token, o da
   // ordem que os alterou por ultimo. A garantia nao muda.
+  // PEDIDO-SCREEN-GROUP-3 fechou UI-ACTION-BUTTON-CALLER-WORKAROUND-REDUNDANT:
+  // removeu de pedido-item-row-editor.js o `position:relative` de chamador que
+  // PEDIDO-SCREEN-GROUP-2 tornou redundante ao declarar o contexto no proprio
+  // actionButton(). Entao os dois voltam a divergir, e a linha de item carrega
+  // o token dessa ordem. A garantia nao muda: cada asset e verificado contra a
+  // ordem que o alterou POR ULTIMO, e nenhum retem o token do lote 2.
   const ULTIMA_ORDEM = {
     'screens/pedido-form.js': '20260727-ui-pedido-screen-group-1',
-    'screens/pedido-item-row-editor.js': '20260727-ui-pedido-screen-group-1',
+    'screens/pedido-item-row-editor.js': '20260727-ui-pedido-screen-group-3',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
     const esc = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

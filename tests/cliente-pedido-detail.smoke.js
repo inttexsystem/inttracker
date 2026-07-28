@@ -176,7 +176,14 @@ test('cliente-pedido-detail: usa helpers visuais esperados', () => {
 });
 
 test('cliente-pedido-detail: renderiza o card de acompanhamento depois do resumo', () => {
-  const matches = [...screen.matchAll(/container\.replaceChildren\(([\s\S]*?)\);/g)];
+  // PEDIDO-SCREEN-GROUP-3 — CORRECAO DE ACOPLAMENTO INTERNO DO PROPRIO GUARD.
+  // O terminador era `\);`, que casa com o PRIMEIRO `)` seguido de `;` dentro
+  // da lista de argumentos. Qualquer funcao CSS numa `style` inline — por
+  // exemplo `repeat(2,minmax(0,1fr));` — encerrava a extracao antes do fim da
+  // chamada e os indices ficavam -1. O terminador passa a ser o fechamento
+  // REAL da chamada: quebra de linha, indentacao e `);`. As asserceoes de
+  // ORDEM abaixo nao mudam — mesmos membros exigidos, mesmas relacoes.
+  const matches = [...screen.matchAll(/container\.replaceChildren\(([\s\S]*?)\n\s*\);/g)];
   const principal = matches.find((m) => m[1].includes('buildResumo()'));
   assert.ok(principal);
   const args = principal[1];
@@ -229,7 +236,14 @@ test('cliente-pedido-detail: renderiza resumo publico de entrega e pendencias', 
 });
 
 test('cliente-pedido-detail: renderiza a timeline depois dos itens', () => {
-  const matches = [...screen.matchAll(/container\.replaceChildren\(([\s\S]*?)\);/g)];
+  // PEDIDO-SCREEN-GROUP-3 — CORRECAO DE ACOPLAMENTO INTERNO DO PROPRIO GUARD.
+  // O terminador era `\);`, que casa com o PRIMEIRO `)` seguido de `;` dentro
+  // da lista de argumentos. Qualquer funcao CSS numa `style` inline — por
+  // exemplo `repeat(2,minmax(0,1fr));` — encerrava a extracao antes do fim da
+  // chamada e os indices ficavam -1. O terminador passa a ser o fechamento
+  // REAL da chamada: quebra de linha, indentacao e `);`. As asserceoes de
+  // ORDEM abaixo nao mudam — mesmos membros exigidos, mesmas relacoes.
+  const matches = [...screen.matchAll(/container\.replaceChildren\(([\s\S]*?)\n\s*\);/g)];
   const principal = matches.find((m) => m[1].includes('buildResumo()'));
   assert.ok(principal);
   const args = principal[1];
@@ -269,7 +283,14 @@ test('cliente-pedido-detail: parciais usam DTO existente do tracking compartilha
 });
 
 test('cliente-pedido-detail: ordem visual preserva itens, entrega, parciais e timeline', () => {
-  const matches = [...screen.matchAll(/container\.replaceChildren\(([\s\S]*?)\);/g)];
+  // PEDIDO-SCREEN-GROUP-3 — CORRECAO DE ACOPLAMENTO INTERNO DO PROPRIO GUARD.
+  // O terminador era `\);`, que casa com o PRIMEIRO `)` seguido de `;` dentro
+  // da lista de argumentos. Qualquer funcao CSS numa `style` inline — por
+  // exemplo `repeat(2,minmax(0,1fr));` — encerrava a extracao antes do fim da
+  // chamada e os indices ficavam -1. O terminador passa a ser o fechamento
+  // REAL da chamada: quebra de linha, indentacao e `);`. As asserceoes de
+  // ORDEM abaixo nao mudam — mesmos membros exigidos, mesmas relacoes.
+  const matches = [...screen.matchAll(/container\.replaceChildren\(([\s\S]*?)\n\s*\);/g)];
   const principal = matches.find((m) => m[1].includes('buildResumo()'));
   assert.ok(principal);
   const args = principal[1];

@@ -737,8 +737,13 @@ test('12 · the coarse action inventory is unchanged by this pass', () => {
   // identical to the SCREEN-GROUP-1 checkpoint, and this zero is asserted
   // explicitly so a later pass cannot smuggle a control in behind a card edit.
   assert.equal(SCREEN_GROUP_2_ACTION_DELTA, 0);
+  // SCREEN-GROUP-3 adds NO action and removes none either. Asserted explicitly
+  // for the same reason: a later pass must not smuggle a control in behind a
+  // list or card edit.
+  assert.equal(SCREEN_GROUP_3_ACTION_DELTA, 0);
   assert.equal(constructions,
-    ENTRY_CONSTRUCTIONS_REDERIVED + SCREEN_GROUP_1_ACTION_DELTA + SCREEN_GROUP_2_ACTION_DELTA,
+    ENTRY_CONSTRUCTIONS_REDERIVED + SCREEN_GROUP_1_ACTION_DELTA + SCREEN_GROUP_2_ACTION_DELTA
+      + SCREEN_GROUP_3_ACTION_DELTA,
     `ACTION_CONSTRUCTION_COUNT = ${constructions}`);
   assert.equal(constructions, 475, `ACTION_CONSTRUCTION_COUNT = ${constructions}`);
   assert.equal(bearingFiles, 39, `ACTION_BEARING_FILE_COUNT = ${bearingFiles}`);
@@ -749,13 +754,86 @@ test('12 · the coarse action inventory is unchanged by this pass', () => {
   assert.equal(B1_TEXTAREA_REMOVED_COUNT, 3);
   assert.equal(SCREEN_GROUP_1_CARD_ADDED_COUNT, 15);
   assert.equal(SCREEN_GROUP_2_CARD_ADDED_COUNT, 5);
+  assert.equal(SCREEN_GROUP_3_CARD_ADDED_COUNT, 1);
   assert.equal(
     cardShaped,
     133 - PASS7_FACADE_REMOVED_COUNT - B1_TEXTAREA_REMOVED_COUNT
-      + SCREEN_GROUP_1_CARD_ADDED_COUNT + SCREEN_GROUP_2_CARD_ADDED_COUNT,
+      + SCREEN_GROUP_1_CARD_ADDED_COUNT + SCREEN_GROUP_2_CARD_ADDED_COUNT
+      + SCREEN_GROUP_3_CARD_ADDED_COUNT,
     `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`,
   );
-  assert.equal(cardShaped, 142, `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`);
+  assert.equal(cardShaped, 143, `CARD_SHAPED_CONSTRUCTION_COUNT = ${cardShaped}`);
+});
+
+/*
+ * SCREEN-GROUP-3 · the ONE card-shaped construction the counter gained, and
+ * why it is a HEURISTIC artefact rather than a new card.
+ *
+ * The site is the "← Voltar para lista" BUTTON in the invalid-identifier branch
+ * of cliente-pedido-detail.js. It is not a card and never was. It already
+ * existed and already drew a box; it drew it through the Tailwind utilities
+ * `px-4 py-2 border border-gray-200 hover:bg-gray-50`, which this coarse
+ * counter cannot see. SCREEN-GROUP-3 moved it onto the token language, giving
+ * it the same geometry as the "Voltar para pedidos" button this screen already
+ * renders in its header.
+ *
+ * TWO independent facts make it enter the counter:
+ *   1. the predicate's `var\(--rv-border\b` also matches `--rv-border-STRONG`,
+ *      because `-` is a non-word character and therefore a word boundary. A
+ *      1px border-strong outline satisfies the "card" test;
+ *   2. the declaration is ONE literal on ONE line. It has to be: the
+ *      conformance detector can only decode a concrete value from a single
+ *      literal at its site, and the sibling button in buildHeader() — visually
+ *      identical, and equally not a card — escapes this counter ONLY because
+ *      it is spelled across three concatenated lines.
+ *
+ * So the rise records a spelling, exactly as the pass-7 facade removal (-8),
+ * SCREEN-GROUP-1 (+15) and SCREEN-GROUP-2 (+5) each did. No card was created,
+ * no surface was added, and no business action changed. The enumeration is
+ * exact and asserted below, so this rise can never absorb an unrelated card.
+ */
+const SCREEN_GROUP_3_CARD_SITES = [
+  ['js/screens/cliente-pedido-detail.js',
+    'the invalid-identifier "Voltar para lista" BUTTON — was px-4 py-2 border border-gray-200; '
+    + 'not a card, matched only because --rv-border-strong satisfies the predicate'],
+];
+
+/** Per-file card-shape RISE attributable to SCREEN-GROUP-3, from its own
+ *  authorized entry checkpoint. */
+const SCREEN_GROUP_3_ENTRY = 'cff5e9d';
+const SCREEN_GROUP_3_CARD_RISE_BY_FILE = new Map([
+  ['js/screens/cliente-pedido-detail.js', 1],
+]);
+
+test('12e · the SCREEN-GROUP-3 card-shape rise is exactly the one enumerated site', () => {
+  assert.equal(SCREEN_GROUP_3_CARD_SITES.length, SCREEN_GROUP_3_CARD_ADDED_COUNT);
+  const perFile = new Map();
+  for (const [path] of SCREEN_GROUP_3_CARD_SITES) {
+    perFile.set(path, (perFile.get(path) || 0) + 1);
+  }
+  assert.deepEqual([...perFile].sort(), [...SCREEN_GROUP_3_CARD_RISE_BY_FILE].sort(),
+    'the enumerated sites and the per-file rise disagree');
+  const isCardShaped = (ln) => /background:\s*var\(--rv-surface\)/.test(ln)
+    && /border:\s*1px solid var\(--rv-border\b/.test(ln)
+    && /border-radius/.test(ln);
+  for (const [path, expectedRise] of SCREEN_GROUP_3_CARD_RISE_BY_FILE) {
+    const entry = execFileSync('git', ['show', `${SCREEN_GROUP_3_ENTRY}:${path}`],
+      { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    const before = entry.split(/\r?\n/).filter(isCardShaped).length;
+    const after = read(path).split(/\r?\n/).filter(isCardShaped).length;
+    assert.equal(after - before, expectedRise,
+      `${path}: card-shaped rise ${after - before} != ${expectedRise}`);
+  }
+  // The four Tailwind error boxes and the two-column Tailwind grid this order
+  // replaced may not survive anywhere in the file: keeping either alongside the
+  // canonical language would be the two-dialect defect the consolidation
+  // exists to remove.
+  const text = stripComments(read('js/screens/cliente-pedido-detail.js'));
+  for (const m of text.matchAll(/class:\s*'([^']*)'/g)) {
+    assert.doesNotMatch(m[1],
+      /(?:^|\s)(?:bg-white|shadow|grid-cols-\d+|bg-gray-\d+|text-red-\d+|border-gray-\d+|p-\d+|mb-\d+|mt-\d+)(?:\s|$)/,
+      `cliente-pedido-detail.js: a Tailwind card/grid utility survived in class "${m[1]}"`);
+  }
 });
 
 /*
@@ -871,6 +949,15 @@ const SCREEN_GROUP_1_CARD_ADDED_COUNT = SCREEN_GROUP_1_ADDED_CARDS
 // enumeration these two figures summarise.
 const SCREEN_GROUP_2_CARD_ADDED_COUNT = 5;
 const SCREEN_GROUP_2_ACTION_DELTA = 0;
+
+// SCREEN-GROUP-3 · see SCREEN_GROUP_3_CARD_SITES above for the single-site
+// enumeration. The ACTION delta is ZERO: the dashboard's last hand-built row
+// action moved to the shared actionButton() owner, which the counter reads as
+// `actionButton(` + `onclick:` where it previously read `el('button'` +
+// `onclick:` — two matches either way. Same action, same handler, same
+// destination; only the owner changed.
+const SCREEN_GROUP_3_CARD_ADDED_COUNT = 1;
+const SCREEN_GROUP_3_ACTION_DELTA = 0;
 
 test('12c · every card SCREEN-GROUP-1 added replaced a Tailwind-declared card', () => {
   const isCardShaped = (ln) => /background:\s*var\(--rv-surface\)/.test(ln)

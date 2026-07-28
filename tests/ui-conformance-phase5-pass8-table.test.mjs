@@ -841,8 +841,27 @@ const SUPERSEDED_BY_SCREEN_GROUP_2 = [
   'js/screens/pedido-parciais-admin.js',
 ];
 const supersededBySg2 = (rel) => SUPERSEDED_BY_SCREEN_GROUP_2.includes(rel);
+/**
+ * PEDIDO-SCREEN-GROUP-3 (a LATER, separately authorized order) consolidated the
+ * Pedido LIST surfaces and the CLIENT JOURNEY. TWO of the seventeen —
+ * cliente-dashboard.js, whose last hand-built row action moved to the shared
+ * actionButton() owner and whose KPI and card grids gained the accepted
+ * responsive owners, and cliente-pedido-detail.js, whose four Tailwind error
+ * boxes became token cards and whose last Tailwind two-column grid became a
+ * token grid — change again, so their token moves strictly forward once more.
+ *
+ * The pass-8 population is UNCHANGED at seventeen. A file only ever moves
+ * FORWARD to a strictly later token, which is exactly what the guards prove.
+ */
+const SCREEN_GROUP_3_TOKEN = '20260727-ui-pedido-screen-group-3';
+const SUPERSEDED_BY_SCREEN_GROUP_3 = [
+  'js/screens/cliente-dashboard.js',
+  'js/screens/cliente-pedido-detail.js',
+];
+const supersededBySg3 = (rel) => SUPERSEDED_BY_SCREEN_GROUP_3.includes(rel);
 const superseded = (rel) => SUPERSEDED_BY_CONTAINMENT_A1.includes(rel)
-  || supersededByB1(rel) || supersededBySg1(rel) || supersededBySg2(rel);
+  || supersededByB1(rel) || supersededBySg1(rel) || supersededBySg2(rel)
+  || supersededBySg3(rel);
 
 test('10.1 every changed script carries a Pass-8 token exactly once', () => {
   assert.equal(RETOKENIZED.length, 17, 'the pass-8 changed-asset population must stay seventeen');
@@ -858,6 +877,9 @@ test('10.1 every changed script carries a Pass-8 token exactly once', () => {
     assert.ok(RETOKENIZED.includes(rel), `${rel} was never a pass-8 asset`);
   }
   for (const rel of SUPERSEDED_BY_SCREEN_GROUP_2) {
+    assert.ok(RETOKENIZED.includes(rel), `${rel} was never a pass-8 asset`);
+  }
+  for (const rel of SUPERSEDED_BY_SCREEN_GROUP_3) {
     assert.ok(RETOKENIZED.includes(rel), `${rel} was never a pass-8 asset`);
   }
   for (const rel of RETOKENIZED_R1) {
@@ -899,10 +921,20 @@ test('10.1 every changed script carries a Pass-8 token exactly once', () => {
   }
   // A SCREEN-GROUP-2 arrival carries its token and NO earlier one.
   for (const rel of SUPERSEDED_BY_SCREEN_GROUP_2) {
+    if (supersededBySg3(rel)) continue;
     assert.ok(INDEX.includes(`"${rel}?v=${SCREEN_GROUP_2_TOKEN}"`),
       `${rel} was not retokenised for PEDIDO-SCREEN-GROUP-2`);
     for (const stale of [PASS8_TOKEN, PASS8_A1_TOKEN, CONTAINMENT_A1_TOKEN, B1_TOKEN,
       SCREEN_GROUP_1_TOKEN]) {
+      assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`), `${rel} kept a superseded token`);
+    }
+  }
+  // A SCREEN-GROUP-3 arrival carries its token and NO earlier one.
+  for (const rel of SUPERSEDED_BY_SCREEN_GROUP_3) {
+    assert.ok(INDEX.includes(`"${rel}?v=${SCREEN_GROUP_3_TOKEN}"`),
+      `${rel} was not retokenised for PEDIDO-SCREEN-GROUP-3`);
+    for (const stale of [PASS8_TOKEN, PASS8_A1_TOKEN, CONTAINMENT_A1_TOKEN, B1_TOKEN,
+      SCREEN_GROUP_1_TOKEN, SCREEN_GROUP_2_TOKEN]) {
       assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`), `${rel} kept a superseded token`);
     }
   }
@@ -966,9 +998,11 @@ test('10.2 UNCHANGED assets keep their previous tokens', () => {
   assert.match(INDEX, /js\/select-popover\.js\?v=20260727-ui-p5-pass7-native-select-a1/);
   // pedido-item-row-editor.js was UNCHANGED by pass 8 and held its pass-7 token
   // through pass 8, containment A1 and B1. PEDIDO-SCREEN-GROUP-1 is the first
-  // later order to change it, so it correctly carries that strictly later token
-  // and is no longer an example of an unchanged asset.
-  assert.match(INDEX, /js\/screens\/pedido-item-row-editor\.js\?v=20260727-ui-pedido-screen-group-1/);
+  // later order to change it, and PEDIDO-SCREEN-GROUP-3 changed it again when
+  // it removed the caller-level positioning workaround that GROUP-2 had made
+  // redundant at the shared owner. It correctly carries that strictly later
+  // token and is no longer an example of an unchanged asset.
+  assert.match(INDEX, /js\/screens\/pedido-item-row-editor\.js\?v=20260727-ui-pedido-screen-group-3/);
   assert.match(INDEX, /js\/boot\.js\?v=20260623-asset1/);
 });
 

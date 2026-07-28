@@ -644,7 +644,6 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   const PASS7_A4 = '20260727-ui-p5-pass7-native-select-a4-a11y-geometry';
   const PASS7_CHANGED = [
     'js/screens/documentos-recebidos.js',
-    'js/screens/pedidos-list.js',
   ];
   // Pass-7 correction A4 bound the visible label of nineteen comboboxes and
   // restored the ratified trigger geometry at three op-nova sites. It touched
@@ -671,7 +670,6 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
    */
   const PASS8 = '20260727-ui-p5-pass8-table-r1';
   const PASS8_CHANGED = [
-    'js/screens/cliente-dashboard.js',
     'js/screens/fornecedor.js',
     'js/screens/manta-expedicao-ui.js', 'js/screens/op-tecelagem-producao-admin.js',
     'js/screens/ordem-compra-render.js',
@@ -685,9 +683,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
    * moved.
    */
   const PASS8_A1 = '20260727-ui-p5-pass8-table-a1-overflow';
-  const PASS8_A1_CHANGED = [
-    'js/screens/cliente-pedido-detail.js',
-  ];
+  const PASS8_A1_CHANGED = [];
   /*
    * ACTION-CONTAINMENT-A1 FORWARD CORRECTION
    *
@@ -755,9 +751,33 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     'js/ui.js',
     'js/screens/cliente-pedido-form.js', 'js/screens/pedido-detail-render.js',
   ];
+  /*
+   * PEDIDO-SCREEN-GROUP-3 FORWARD CORRECTION
+   *
+   * That order consolidated the Pedido LIST surfaces and the CLIENT JOURNEY:
+   * the administrative list and the client list gained the canonical
+   * `data-rv-table-scroll` owner and the accepted `data-rv-metrics` width
+   * adaptation, the client list's tab strip gained its own scroll owner, the
+   * dashboard's last hand-built row action moved to the shared actionButton()
+   * owner and its two card rows gained `data-rv-2col`, the client detail left
+   * the last Tailwind error and grid surfaces for the token language and its
+   * seven section headings moved from EMPHASISED_METRIC to COMPONENT_HEADING,
+   * and the tracking component's degradation branch gained the stepper scroll
+   * owner. FIVE of them are also pass-6 assets, so they move out of the
+   * pass-7, pass-8, pass-8-A1 and pass-6-only tiers into this one. A
+   * screen-group-3 token is strictly later than every earlier one, so every
+   * asset pass 6 touched is still invalidated against the pass-5 checkpoint —
+   * only WHICH later token does the invalidating moved. The population below
+   * still sums to the same 27.
+   */
+  const SCREEN_GROUP_3 = '20260727-ui-pedido-screen-group-3';
+  const SCREEN_GROUP_3_CHANGED = [
+    'js/screens/cliente-dashboard.js', 'js/screens/cliente-pedido-detail.js',
+    'js/screens/cliente-pedido-tracking.js', 'js/screens/cliente-pedidos-list.js',
+    'js/screens/pedidos-list.js',
+  ];
   const PASS6_ONLY = [
     'js/document-links-surface-ui.js',
-    'js/screens/cliente-pedido-tracking.js', 'js/screens/cliente-pedidos-list.js',
     'js/screens/pedido-insumos-distribuicao.js',
     'js/screens/trocar-senha-obrigatoria.js',
   ];
@@ -766,7 +786,8 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   assert.equal(PASS7_CHANGED.length + PASS7_A4_CHANGED.length + PASS7_A5_CHANGED.length
     + A1_CHANGED.length + PASS8_CHANGED.length + PASS8_A1_CHANGED.length
     + CONTAINMENT_A1_CHANGED.length + B1_CHANGED.length + SCREEN_GROUP_1_CHANGED.length
-    + SCREEN_GROUP_2_CHANGED.length + PASS6_ONLY.length, 27);
+    + SCREEN_GROUP_2_CHANGED.length + SCREEN_GROUP_3_CHANGED.length
+    + PASS6_ONLY.length, 27);
   for (const rel of PASS7_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS7}"`), `${rel} must carry the pass-7 token`);
   }
@@ -807,6 +828,15 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
         `${rel} kept a superseded token`);
     }
   }
+  for (const rel of SCREEN_GROUP_3_CHANGED) {
+    assert.ok(INDEX.includes(`"${rel}?v=${SCREEN_GROUP_3}"`),
+      `${rel} must carry the Pedido screen-group-3 token`);
+    for (const stale of [PASS6, A1, PASS7, PASS7_A4, PASS7_A5, PASS8, PASS8_A1,
+      CONTAINMENT_A1, B1, SCREEN_GROUP_1, SCREEN_GROUP_2]) {
+      assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`),
+        `${rel} kept a superseded token`);
+    }
+  }
   for (const rel of PASS6_ONLY) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS6}"`), `${rel} must keep the pass-6 token`);
   }
@@ -817,7 +847,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   // Every asset pass 6 touched still carries a token LATER than the pass-5 one.
   for (const rel of [...PASS7_CHANGED, ...PASS7_A4_CHANGED, ...PASS7_A5_CHANGED, ...A1_CHANGED,
     ...PASS8_CHANGED, ...PASS8_A1_CHANGED, ...B1_CHANGED, ...SCREEN_GROUP_1_CHANGED,
-    ...SCREEN_GROUP_2_CHANGED, ...PASS6_ONLY]) {
+    ...SCREEN_GROUP_2_CHANGED, ...SCREEN_GROUP_3_CHANGED, ...PASS6_ONLY]) {
     assert.ok(!INDEX.includes(`"${rel}?v=20260726-ui-p5-pass5`),
       `${rel} fell back to the pass-5 token`);
   }

@@ -293,16 +293,18 @@
     row.appendChild(larguraCell);
     row.appendChild(metrosInput);
     row.appendChild(obsInput);
-    // `position:relative` NAO e decoracao. actionButton() anexa o rotulo de
-    // leitor de tela como um <span position:absolute>, e o proprio botao nao
-    // declara contexto de posicionamento. Sem um ancestral posicionado esse
-    // span resolve contra o BLOCO CONTENDOR INICIAL — e como esta linha vive
-    // dentro de um container de rolagem de 920px, ele era colocado em x~890 no
-    // documento e empurrava `documentElement.scrollWidth` para 870 num viewport
-    // de 390px, mesmo com a linha corretamente contida pelo `data-rv-table-scroll`.
-    // Medido: 870 -> 390 em 390x844. O contexto e do CHAMADOR porque
-    // js/ui.js e o dono compartilhado e esta fora do escopo deste lote.
-    row.appendChild(window.el('div', { style: 'position:relative; display:flex; align-items:center; gap:16px;' }, removeBtn));
+    // PEDIDO-SCREEN-GROUP-3 fecha UI-ACTION-BUTTON-CALLER-WORKAROUND-REDUNDANT.
+    // PEDIDO-SCREEN-GROUP-1 declarava aqui um `position:relative` de contorno:
+    // actionButton() anexava o rotulo de leitor de tela como um
+    // <span position:absolute> sem declarar contexto de posicionamento proprio,
+    // entao o span resolvia contra o BLOCO CONTENDOR INICIAL e empurrava
+    // `documentElement.scrollWidth` para 870 num viewport de 390px.
+    // PEDIDO-SCREEN-GROUP-2 corrigiu o defeito no DONO COMPARTILHADO —
+    // js/ui.js::actionButton() declara `position:relative` no proprio botao —,
+    // o que tornou esta declaracao de chamador provadamente REDUNDANTE. Ela e
+    // removida aqui sem reintroduzir overflow: o contexto continua existindo,
+    // apenas passou a ser declarado por quem constroi o rotulo.
+    row.appendChild(window.el('div', { style: 'display:flex; align-items:center; gap:16px;' }, removeBtn));
     return row;
   }
 

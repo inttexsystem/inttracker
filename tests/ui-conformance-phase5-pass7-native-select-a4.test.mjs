@@ -522,8 +522,15 @@ test('11 · A4 retokenised exactly five assets, and the pass-7 set is set-derive
   // one more token, and a screen-group-2 token is strictly later than any
   // screen-group-1 one. No asset leaves the pass-7 population.
   const SCREEN_GROUP_2_TOKEN = '20260727-ui-pedido-screen-group-2';
+  // PEDIDO-SCREEN-GROUP-3 consolidated the Pedido list surfaces and the client
+  // journey and closed the redundant actionButton caller workaround, moving
+  // pedidos-list.js and pedido-item-row-editor.js on once more. The set
+  // arithmetic below is again unchanged: "moved on by a later pass" now spans
+  // one more token, and a screen-group-3 token is strictly later than any
+  // screen-group-2 one. No asset leaves the pass-7 population.
+  const SCREEN_GROUP_3_TOKEN = '20260727-ui-pedido-screen-group-3';
   const LATER_TOKENS = [PASS8_TOKEN, PASS8_A1_TOKEN, CONTAINMENT_A1_TOKEN, B1_TOKEN,
-    SCREEN_GROUP_1_TOKEN, SCREEN_GROUP_2_TOKEN];
+    SCREEN_GROUP_1_TOKEN, SCREEN_GROUP_2_TOKEN, SCREEN_GROUP_3_TOKEN];
   const onPass8 = refs.filter((u) => LATER_TOKENS.includes(tokenOf(u))).map(pathOf);
   // Pass-7 assets that a LATER pass moved on (pass 8, pass-8 A1, or
   // ACTION-CONTAINMENT-A1). admin-usuarios-modal.js is the containment-A1
@@ -544,6 +551,12 @@ test('11 · A4 retokenised exactly five assets, and the pass-7 set is set-derive
     // one. Neither leaves the pass-7 population; only its invalidating token
     // moved, which is exactly what the union arithmetic below proves.
     'js/screens/pedido-item-row-editor.js', 'js/screens/pedido-itens-edit.js',
+    // PEDIDO-SCREEN-GROUP-3 arrival: the administrative Pedido list left the
+    // pass-7 A1 token for a strictly later one when its KPI strip and table
+    // container took the accepted `data-rv-metrics` and `data-rv-table-scroll`
+    // owners. It does not leave the pass-7 population; only its invalidating
+    // token moved, which is what the union arithmetic below proves.
+    'js/screens/pedidos-list.js',
   ];
   for (const rel of PASS7_ASSETS_MOVED_BY_PASS8) {
     assert.ok(onPass8.includes(rel), `${rel} must now carry the pass-8 token`);

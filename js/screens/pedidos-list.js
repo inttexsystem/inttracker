@@ -457,7 +457,14 @@
 
     function buildKpis() {
       var kpi = computeKpis();
+      // PEDIDO-SCREEN-GROUP-3: `data-rv-metrics` e o dono ja aceito da
+      // adaptacao por largura de uma grade de metricas. Cinco cartoes numa
+      // faixa de 390px dariam ~70px cada — rotulo e valor ilegiveis. A grade
+      // base de cinco colunas nao muda; a folha responsiva ja homologada a
+      // degrada para 3 e depois 2 colunas. Nenhum KPI, contagem ou regra de
+      // calculo e alterada.
       return window.el('div', {
+        'data-rv-metrics': '',
         style: 'display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px;'
       },
       kpiCard('var(--rv-pill-info-bg)', ICON_DOC, 'Abertos', kpi.abertos),
@@ -517,9 +524,23 @@
     }
 
     function buildFilterControls() {
-      var wrap = window.el('div', {
-        style: 'display:grid;grid-template-columns:repeat(4,minmax(168px,1fr)) auto;gap:8px;margin-bottom:16px;align-items:stretch;'
+      // PEDIDO-SCREEN-GROUP-3: a grade declara um piso de 168px por coluna,
+      // entao em 390px os cinco controles somam 801px. O <main> do shell
+      // declara overflow-x:hidden, de modo que o DOCUMENTO nao era empurrado —
+      // mas Recebimento, Atualizado e "Limpar filtros" ficavam CORTADOS e
+      // inalcancaveis, sem dono de rolagem nenhum. Medido em 390x844: o ultimo
+      // controle terminava em x=848 num viewport de 390.
+      // A grade e o seu piso NAO mudam (no desktop os cinco controles seguem
+      // ocupando a largura toda); ela passa a viver num container PROPRIO de
+      // rolagem, o mesmo idioma da faixa de tabs. Em 1440px o container e mais
+      // largo que a grade e nada rola.
+      var scroll = window.el('div', {
+        style: 'overflow-x:auto;max-width:100%;margin-bottom:16px;padding-bottom:2px;'
       });
+      var wrap = window.el('div', {
+        style: 'display:grid;grid-template-columns:repeat(4,minmax(168px,1fr)) auto;gap:8px;align-items:stretch;'
+      });
+      scroll.appendChild(wrap);
 
       // Pass-7 (UIC-006): the filter was a visible facade with a hidden
       // opacity-zero native <select> stretched over it owning the value.
@@ -600,7 +621,7 @@
         }
       }, 'Limpar filtros', svgEl(ICON_X)));
 
-      return wrap;
+      return scroll;
     }
 
     function rowActions(row) {
@@ -692,7 +713,13 @@
     }
 
     function buildTable(rows) {
+      // PEDIDO-SCREEN-GROUP-3: a rolagem horizontal ja era local (o wrapper
+      // declara overflow-x:auto e cada linha carrega min-width:1110px), mas o
+      // dono era INCIDENTAL. `data-rv-table-scroll` e o dono CANONICO do §2.5:
+      // ele declara a posse e acrescenta max-width:100% e min-width:0, que
+      // impedem a tabela de esticar o <main> do shell numa grade estreita.
       var wrap = window.el('div', {
+        'data-rv-table-scroll': '',
         style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;overflow-x:auto;'
       });
       wrap.appendChild(buildTableHead());

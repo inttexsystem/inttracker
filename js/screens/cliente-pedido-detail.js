@@ -79,16 +79,49 @@
     return tmp.firstChild;
   }
 
+  // PEDIDO-SCREEN-GROUP-3: dono unico do ESTADO DE ERRO desta tela.
+  // As quatro caixas de erro eram utilitarios Tailwind
+  // (`bg-white border border-gray-200 p-6 text-red-700`): uma linguagem de
+  // cartao fora do sistema de tokens, sem `--rv-border`, com cinza e vermelho
+  // fixos e sem o raio canonico. Passam a usar o mesmo cartao de token que
+  // todas as demais secoes desta tela, com a familia de sinal negativa.
+  // A COPY de cada mensagem, a condicao que a dispara e o que a tela faz
+  // depois sao exatamente os mesmos.
+  // PEDIDO-SCREEN-GROUP-3, HIERARQUIA DE TITULO. As sete secoes desta tela
+  // — Observacao geral, Itens do pedido, Distribuicao atual, Pendencias,
+  // Entrega e expedicao, Parciais do pedido e Historico — declaravam
+  // `font-size:15px`, que e o valor ratificado do papel EMPHASISED_METRIC
+  // ("numerico/operacional"). Elas nao sao metricas: sao titulos de secao
+  // local, o papel COMPONENT_HEADING. A prova esta na propria tela: o cartao
+  // de acompanhamento, renderizado no meio destas secoes por
+  // cliente-pedido-tracking.js, ja declara var(--rv-fs-component-heading), e o
+  // dashboard do cliente declara o mesmo nos seus quatro cartoes. Havia duas
+  // alturas de titulo de secao na MESMA pagina. As sete passam ao papel
+  // correto — 15px para 16px. Nenhuma copy, ordem ou secao muda.
+  // O raio e escrito como var(--rv-radius): css/tokens.css e o dono unico da
+  // geometria de raio desde a passada 2 A3, e toda remediacao posterior
+  // escreve o token, nunca o literal. O estilo e UM literal unico no proprio
+  // sitio — nao uma constante de modulo nem uma concatenacao — porque essa e a
+  // regra de autoria que PEDIDO-SCREEN-GROUP-1 estabeleceu e porque o detector
+  // so consegue decodificar um valor concreto nessa forma.
+  function errorCard(mensagem) {
+    return window.el('div', {
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-signal-negative-border);border-radius:var(--rv-radius);padding:16px 20px;font-size:14px;color:var(--rv-signal-negative);',
+    }, mensagem);
+  }
+
   async function screenClientePedidoDetalhe(pedidoId) {
     if (!UUID_RE.test(String(pedidoId || ''))) {
       window.toast('Identificador de pedido inválido.', 'error');
+      // PEDIDO-SCREEN-GROUP-3: cartao de erro de token e botao de retorno com a
+      // mesma geometria do "Voltar para pedidos" do cabecalho desta tela. A
+      // copy, o destino e o handler nao mudam.
       var errWrap = window.el('div', {},
-        window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white border border-gray-200 p-6 text-red-700' },
-          'Pedido inválido. Volte para a listagem e tente novamente.'),
-        window.el('div', { class: 'mt-4' },
+        errorCard('Pedido inválido. Volte para a listagem e tente novamente.'),
+        window.el('div', { style: 'margin-top:14px;' },
           window.el('button', {
             type: 'button',
-            style: 'border-radius:var(--rv-radius);', class: 'px-4 py-2 border border-gray-200 hover:bg-gray-50',
+            style: 'display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rv-border-strong);background:var(--rv-surface);color:var(--rv-text-primary);border-radius:var(--rv-radius);padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;',
             onclick: function () { window.navigate('#/cliente/pedidos'); },
           }, '← Voltar para lista')
         )
@@ -387,7 +420,7 @@
         style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;margin-bottom:14px;',
       },
         window.el('div', {
-          style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);margin-bottom:10px;',
+          style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:10px;',
         }, 'Observação geral'),
         window.el('p', { style: 'font-size:14px;color:var(--rv-text-primary);white-space:pre-line;' }, obs),
       );
@@ -455,7 +488,7 @@
         style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;overflow:hidden;margin-bottom:14px;',
       });
       card.appendChild(window.el('div', {
-        style: 'padding:14px 20px 12px;font-size:15px;font-weight:700;color:var(--rv-text-primary);border-bottom:1px solid var(--rv-border);',
+        style: 'padding:14px 20px 12px;font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);border-bottom:1px solid var(--rv-border);',
       }, 'Parciais do pedido'));
 
       if (state.parciaisError) {
@@ -543,7 +576,7 @@
         style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;',
       });
       card.appendChild(window.el('div', {
-        style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);margin-bottom:14px;',
+        style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:14px;',
       }, 'Itens do pedido'));
 
       if (itens.length === 0) {
@@ -585,7 +618,7 @@
         style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:16px 20px;',
       });
       card.appendChild(window.el('div', {
-        style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);margin-bottom:14px;',
+        style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:14px;',
       }, 'Distribuição atual'));
 
       var trackingApi = window.RavatexPedidoTracking;
@@ -646,7 +679,7 @@
         style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:14px 18px;margin-bottom:14px;',
       });
       card.appendChild(window.el('div', {
-        style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);margin-bottom:8px;',
+        style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:8px;',
       }, 'Pendências'));
       state.pendencias.forEach(function (item) {
         card.appendChild(window.el('div', {
@@ -667,7 +700,7 @@
         style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;overflow:hidden;margin-bottom:14px;',
       });
       card.appendChild(window.el('div', {
-        style: 'padding:14px 20px 12px;font-size:15px;font-weight:700;color:var(--rv-text-primary);border-bottom:1px solid var(--rv-border);',
+        style: 'padding:14px 20px 12px;font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);border-bottom:1px solid var(--rv-border);',
       }, 'Entrega e expedição'));
 
       if (!state.entregasResumo.length) {
@@ -757,7 +790,7 @@
       var wrap = window.el('div', {});
 
       wrap.appendChild(window.el('div', {
-        style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);margin-bottom:10px;',
+        style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:10px;',
       }, 'Histórico'));
 
       var card = window.el('div', {
@@ -792,20 +825,17 @@
       var header = buildHeader();
       if (loadingError === 'pedido') {
         container.replaceChildren(header,
-          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white border border-gray-200 p-6 text-red-700' },
-            'Pedido não encontrado ou sem permissão. Ele pode ter sido removido.'));
+          errorCard('Pedido não encontrado ou sem permissão. Ele pode ter sido removido.'));
         return;
       }
       if (loadingError === 'summary') {
         container.replaceChildren(header,
-          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white border border-gray-200 p-6 text-red-700' },
-            'Não foi possível carregar o resumo público do pedido. Tente recarregar a página.'));
+          errorCard('Não foi possível carregar o resumo público do pedido. Tente recarregar a página.'));
         return;
       }
       if (loadingError) {
         container.replaceChildren(header,
-          window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white border border-gray-200 p-6 text-red-700' },
-            'Erro ao carregar dados do pedido. Tente recarregar a página.'));
+          errorCard('Erro ao carregar dados do pedido. Tente recarregar a página.'));
         return;
       }
       container.replaceChildren(
@@ -814,7 +844,17 @@
         buildDadosGerais(),
         buildTracking(),
         buildAvisos(),
-        window.el('div', { class: 'grid grid-cols-2 gap-3 mb-3' }, buildItens(), buildDistribuicaoAtual()),
+        // PEDIDO-SCREEN-GROUP-3: era a ULTIMA grade Tailwind da jornada do
+        // cliente — `grid-cols-2` incondicional, que mantinha dois cartoes lado
+        // a lado com ~180px cada num viewport de 390px, e um `gap-3 mb-3` de
+        // 12px que destoava do ritmo de 14px de todos os outros cartoes desta
+        // tela. Passa para a grade de token com o dono ja aceito
+        // `data-rv-2col`, que empilha abaixo de 1024px. A ORDEM dos dois
+        // cartoes e preservada.
+        window.el('div', {
+          'data-rv-2col': '',
+          style: 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px;',
+        }, buildItens(), buildDistribuicaoAtual()),
         buildEntregasResumo(),
         buildParciais(),
         buildEventos()

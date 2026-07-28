@@ -318,8 +318,12 @@
         onclick: function () { window.navigate('#/cliente/pedidos/novo'); },
       }, svgEl(ICON_PLUS), 'Solicitar pedido');
 
+      // PEDIDO-SCREEN-GROUP-3: mesmo cabecalho de pagina da lista
+      // administrativa — `gap` declarado e `flex-wrap:wrap`, para que o titulo
+      // e a acao primaria empilhem em vez de se comprimirem numa faixa
+      // estreita. A acao, o destino e a copy nao mudam.
       return window.el('div', {
-        style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;',
+        style: 'display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap;',
       },
         window.el('div', {},
           window.el('div', {
@@ -369,6 +373,17 @@
       searchBox.appendChild(input);
       wrap.appendChild(searchBox);
 
+      // PEDIDO-SCREEN-GROUP-3: as tabs eram anexadas DIRETAMENTE a uma linha
+      // `flex-wrap:nowrap` sem dono de rolagem — cinco tabs mais a caixa de
+      // busca empurravam o documento na horizontal em 390px. Passam a viver no
+      // mesmo container de rolagem PROPRIO que a lista administrativa ja usa,
+      // entao a faixa de tabs rola dentro de si e o documento nunca estica.
+      // A ordem, os rotulos, as contagens e o filtro que cada tab aplica sao
+      // exatamente os mesmos.
+      var tabsWrap = window.el('div', {
+        style: 'display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:2px;',
+      });
+
       TABS.forEach(function (t) {
         var active = ui.tab === t.key;
         var count = countTab(t.key, state.pedidos);
@@ -387,9 +402,10 @@
           style: 'background:' + (active ? 'var(--rv-active-bg)' : 'var(--rv-surface-subtle)') + ';border-radius:var(--rv-radius);'
             + 'padding:1px 6px;font-size:11px;color:' + (active ? 'var(--rv-text-on-brand)' : 'var(--rv-text-tertiary)') + ';',
         }, String(count)));
-        wrap.appendChild(btn);
+        tabsWrap.appendChild(btn);
       });
 
+      wrap.appendChild(tabsWrap);
       return wrap;
     }
 
@@ -400,8 +416,11 @@
       var excecaoKey = normalizarKey(pedido && pedido.status_cliente_excecao);
       var estado = resolveEstadoVisual(pedido);
       var tone = excecaoKey === 'cancelado' ? TONE.red : estadoTone(estado);
+      // PEDIDO-SCREEN-GROUP-3: `gap:6px` e a separacao ponto/rotulo que as
+      // outras tres superficies do grupo ja declaram (lista administrativa,
+      // dashboard e destaque). Era 5px so aqui.
       return window.el('span', {
-        style: 'display:inline-flex;align-items:center;gap:5px;border-radius:4px;padding:3px 9px;'
+        style: 'display:inline-flex;align-items:center;gap:6px;border-radius:4px;padding:3px 9px;'
           + 'font-size:12px;font-weight:600;white-space:nowrap;background:' + tone.bg
           + ';color:' + tone.color + ';',
       },
@@ -429,7 +448,7 @@
       }, 'Total · ' + fmtMetros(total));
     }
 
-    function buildRow(pedido) {
+    function buildRow(pedido, isLast) {
       var criado = fmtData(pedido.criado_em);
       var prazo = fmtData(pedido.prazo_entrega);
       var atualizado = fmtDataHoraCurta(pedido.status_cliente_atualizado_em)
@@ -443,9 +462,13 @@
         onclick: function () { window.navigate('#/cliente/pedidos/' + pedido.id); },
       });
 
+      // PEDIDO-SCREEN-GROUP-3: a ULTIMA linha nao desenha mais separador. Ele
+      // caia a 1px da borda do container e lia como uma borda dupla — a lista
+      // administrativa e o destaque do dashboard ja omitiam esse separador.
       return window.el('div', {
         style: 'display:grid;grid-template-columns:' + TR_COLS + ';align-items:center;gap:12px;'
-          + 'padding:11px 16px;border-bottom:1px solid var(--rv-border-soft);min-width:720px;',
+          + 'padding:11px 16px;min-width:720px;'
+          + (isLast ? '' : 'border-bottom:1px solid var(--rv-border-soft);'),
       },
         window.el('div', {},
           window.el('div', { style: 'font-size:14px;font-weight:700;color:var(--rv-accent-blue);' }, fmtNumero(pedido.numero)),
@@ -483,7 +506,12 @@
     }
 
     function buildTabela(rows) {
+      // PEDIDO-SCREEN-GROUP-3: mesmo dono canonico de rolagem da lista
+      // administrativa. A rolagem ja era local (overflow-x:auto mais
+      // min-width:720px nas linhas); `data-rv-table-scroll` a DECLARA e
+      // acrescenta max-width:100% e min-width:0.
       var wrap = window.el('div', {
+        'data-rv-table-scroll': '',
         style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;overflow-x:auto;',
       });
       wrap.appendChild(buildTableHead());
@@ -497,7 +525,7 @@
           style: 'padding:32px 16px;text-align:center;font-size:14px;color:var(--rv-text-tertiary);min-width:720px;',
         }, 'Nenhum pedido encontrado.'));
       } else {
-        rows.forEach(function (p) { wrap.appendChild(buildRow(p)); });
+        rows.forEach(function (p, idx) { wrap.appendChild(buildRow(p, idx === rows.length - 1)); });
       }
 
       return wrap;

@@ -877,7 +877,6 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
     'js/screens/document-link-admin-modal.js',
     'js/screens/documentos-recebidos-decision-modal.js', 'js/screens/documentos-recebidos.js',
     'js/screens/ops-list.js',
-    'js/screens/pedidos-list.js',
   ];
   /*
    * PASS-8-TABLE-CONTRACT-FORWARD-CORRECTION
@@ -935,7 +934,7 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
    */
   const SCREEN_GROUP_1 = '20260727-ui-pedido-screen-group-1';
   const CHANGED_BY_PASS7_THEN_SCREEN_GROUP_1 = [
-    'js/screens/pedido-form.js', 'js/screens/pedido-item-row-editor.js',
+    'js/screens/pedido-form.js',
   ];
   /*
    * PEDIDO-SCREEN-GROUP-2 FORWARD CORRECTION
@@ -956,10 +955,29 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
   const CHANGED_BY_PASS7_THEN_SCREEN_GROUP_2 = [
     'js/ui.js', 'js/screens/cliente-pedido-form.js',
   ];
+  /*
+   * PEDIDO-SCREEN-GROUP-3 FORWARD CORRECTION
+   *
+   * That order consolidated the Pedido list surfaces and the client journey,
+   * and closed the redundant actionButton caller workaround. TWO pass-7 assets
+   * moved on once more: pedidos-list.js, whose KPI strip and table container
+   * gained the accepted `data-rv-metrics` and `data-rv-table-scroll` owners,
+   * and pedido-item-row-editor.js, which had reached the screen-group-1 token
+   * and now sheds the caller-level positioning context that screen-group-2 made
+   * redundant at the shared owner. A screen-group-3 token is strictly LATER
+   * than every earlier one, so pass 7's invariant is intact: every asset it
+   * changed is still invalidated against the pass-6 checkpoint. The population
+   * is still eleven; only which later token invalidates two of them moved.
+   */
+  const SCREEN_GROUP_3 = '20260727-ui-pedido-screen-group-3';
+  const CHANGED_BY_PASS7_THEN_SCREEN_GROUP_3 = [
+    'js/screens/pedidos-list.js', 'js/screens/pedido-item-row-editor.js',
+  ];
   assert.equal(changed.length + CHANGED_BY_PASS7_THEN_PASS8.length
     + CHANGED_BY_PASS7_THEN_CONTAINMENT_A1.length + CHANGED_BY_PASS7_THEN_B1.length
     + CHANGED_BY_PASS7_THEN_SCREEN_GROUP_1.length
-    + CHANGED_BY_PASS7_THEN_SCREEN_GROUP_2.length, 11,
+    + CHANGED_BY_PASS7_THEN_SCREEN_GROUP_2.length
+    + CHANGED_BY_PASS7_THEN_SCREEN_GROUP_3.length, 11,
     'the pass-7 changed-asset population must stay eleven');
   for (const rel of changed) {
     assert.ok(INDEX.includes(`${rel}?v=${TOKEN}`), `${rel} must carry the pass-7 token`);
@@ -988,6 +1006,14 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
     assert.ok(INDEX.includes(`${rel}?v=${SCREEN_GROUP_2}`),
       `${rel} must carry the later Pedido screen-group-2 token`);
     for (const stale of [TOKEN, PASS8, CONTAINMENT_A1, B1, SCREEN_GROUP_1]) {
+      assert.ok(!INDEX.includes(`${rel}?v=${stale}`), `${rel} kept a superseded token`);
+    }
+    assert.ok(!INDEX.includes(`${rel}?v=20260726-ui-p5-pass6`), `${rel} fell back to a pass-6 token`);
+  }
+  for (const rel of CHANGED_BY_PASS7_THEN_SCREEN_GROUP_3) {
+    assert.ok(INDEX.includes(`${rel}?v=${SCREEN_GROUP_3}`),
+      `${rel} must carry the later Pedido screen-group-3 token`);
+    for (const stale of [TOKEN, PASS8, CONTAINMENT_A1, B1, SCREEN_GROUP_1, SCREEN_GROUP_2]) {
       assert.ok(!INDEX.includes(`${rel}?v=${stale}`), `${rel} kept a superseded token`);
     }
     assert.ok(!INDEX.includes(`${rel}?v=20260726-ui-p5-pass6`), `${rel} fell back to a pass-6 token`);

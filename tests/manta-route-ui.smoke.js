@@ -1576,17 +1576,41 @@ const SCREEN_GROUP_2_ASSETS = [
   'js/screens/pedido-parciais-admin.js',
   'js/screens/pedido-tracking-admin.js',
 ];
+
+// PEDIDO-SCREEN-GROUP-3 consolidou as superficies de LISTA do Pedido e a
+// JORNADA DO CLIENTE: a lista administrativa, o dashboard do cliente, a lista
+// de pedidos do cliente, o detalhe do cliente e o componente de
+// acompanhamento. Fechou tambem o contorno de posicionamento provado
+// redundante em pedido-item-row-editor.js
+// (UI-ACTION-BUTTON-CALLER-WORKAROUND-REDUNDANT), que a ordem anterior deixou
+// explicitamente fora de escopo. Retokenizou exatamente os SEIS assets que
+// alterou. Como todo token desta ordem e estritamente posterior aos
+// anteriores, nenhum asset perdeu invalidacao: mudou apenas QUAL ordem
+// posterior a faz. As derivacoes _AINDA_EM_ e os conjuntos `declarados`
+// subtraem esta lista pelo mesmo motivo e da mesma forma que ja subtraem
+// SCREEN_GROUP_2_ASSETS.
+const SCREEN_GROUP_3_TOKEN = '20260727-ui-pedido-screen-group-3';
+const SCREEN_GROUP_3_ASSETS = [
+  'js/screens/cliente-dashboard.js',
+  'js/screens/cliente-pedido-detail.js',
+  'js/screens/cliente-pedido-tracking.js',
+  'js/screens/cliente-pedidos-list.js',
+  'js/screens/pedido-item-row-editor.js',
+  'js/screens/pedidos-list.js',
+];
 const PASS7_A4_ASSETS_AINDA_EM_A4 = PASS7_A4_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
   .filter((a) => !PASS8_ASSETS.includes(a))
   .filter((a) => !B1_ASSETS.includes(a))
-  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a));
+  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
+  .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a));
 const PASS7_ASSETS_AINDA_EM_PASS7 = PASS7_ASSETS
   .filter((a) => !PASS7_A4_ASSETS.includes(a))
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
   .filter((a) => !PASS8_ASSETS.includes(a))
   .filter((a) => !B1_ASSETS.includes(a))
-  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a));
+  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
+  .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a));
 
 const PASS6_A1_ASSETS_AINDA_EM_A1 = PASS6_A1_ASSETS
   .filter((a) => !PASS7_ASSETS.includes(a))
@@ -1594,7 +1618,8 @@ const PASS6_A1_ASSETS_AINDA_EM_A1 = PASS6_A1_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
   .filter((a) => !PASS8_ASSETS.includes(a))
   .filter((a) => !B1_ASSETS.includes(a))
-  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a));
+  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
+  .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a));
 const PASS6_ASSETS_AINDA_EM_PASS6 = PASS6_ASSETS
   .filter((a) => !PASS6_A1_ASSETS.includes(a))
   .filter((a) => !PASS7_ASSETS.includes(a))
@@ -1602,7 +1627,8 @@ const PASS6_ASSETS_AINDA_EM_PASS6 = PASS6_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
   .filter((a) => !PASS8_ASSETS.includes(a))
   .filter((a) => !B1_ASSETS.includes(a))
-  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a));
+  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
+  .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a));
 const PASS5_ASSETS_AINDA_EM_PASS5 = PASS5_ASSETS
   .filter((a) => !PASS6_ASSETS.includes(a))
   .filter((a) => !PASS6_A1_ASSETS.includes(a))
@@ -1611,7 +1637,8 @@ const PASS5_ASSETS_AINDA_EM_PASS5 = PASS5_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
   .filter((a) => !PASS8_ASSETS.includes(a))
   .filter((a) => !B1_ASSETS.includes(a))
-  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a));
+  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
+  .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a));
 const PASS4_ASSETS_AINDA_EM_PASS4 = PASS4_ASSETS
   .filter((a) => !PASS5_ASSETS.includes(a))
   .filter((a) => !PASS6_ASSETS.includes(a))
@@ -1621,7 +1648,8 @@ const PASS4_ASSETS_AINDA_EM_PASS4 = PASS4_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
   .filter((a) => !PASS8_ASSETS.includes(a))
   .filter((a) => !B1_ASSETS.includes(a))
-  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a));
+  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
+  .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a));
 
 const PASS3_ASSETS_AINDA_EM_PASS3 = PASS3_ASSETS
   .filter((a) => !PASS4_ASSETS.includes(a))
@@ -1633,7 +1661,8 @@ const PASS3_ASSETS_AINDA_EM_PASS3 = PASS3_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
   .filter((a) => !PASS8_ASSETS.includes(a))
   .filter((a) => !B1_ASSETS.includes(a))
-  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a));
+  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
+  .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a));
 const PASS2_A4_ASSETS_AINDA_EM_A4 = PASS2_A4_ASSETS
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
@@ -1645,7 +1674,8 @@ const PASS2_A4_ASSETS_AINDA_EM_A4 = PASS2_A4_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
   .filter((a) => !PASS8_ASSETS.includes(a))
   .filter((a) => !B1_ASSETS.includes(a))
-  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a));
+  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
+  .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a));
 const PASS2_A3_ASSETS_AINDA_EM_A3 = PASS2_A3_ASSETS
   .filter((a) => !PASS2_A4_ASSETS.includes(a))
   .filter((a) => !PASS3_ASSETS.includes(a))
@@ -1658,7 +1688,8 @@ const PASS2_A3_ASSETS_AINDA_EM_A3 = PASS2_A3_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
   .filter((a) => !PASS8_ASSETS.includes(a))
   .filter((a) => !B1_ASSETS.includes(a))
-  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a));
+  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
+  .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a));
 const PASS2_ASSETS_AINDA_EM_PASS2 = PASS2_ASSETS
   .filter((a) => !PASS2_A2_ASSETS.includes(a))
   .filter((a) => !PASS3_ASSETS.includes(a))
@@ -1671,7 +1702,8 @@ const PASS2_ASSETS_AINDA_EM_PASS2 = PASS2_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
   .filter((a) => !PASS8_ASSETS.includes(a))
   .filter((a) => !B1_ASSETS.includes(a))
-  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a));
+  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
+  .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a));
 const PASS2_A2_ASSETS_AINDA_EM_A2 = PASS2_A2_ASSETS
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
@@ -1683,7 +1715,8 @@ const PASS2_A2_ASSETS_AINDA_EM_A2 = PASS2_A2_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
   .filter((a) => !PASS8_ASSETS.includes(a))
   .filter((a) => !B1_ASSETS.includes(a))
-  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a));
+  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
+  .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a));
 const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS
   .filter((a) => !PASS2_ASSETS.includes(a))
   .filter((a) => !PASS2_A2_ASSETS.includes(a))
@@ -1698,7 +1731,8 @@ const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
   .filter((a) => !PASS8_ASSETS.includes(a))
   .filter((a) => !B1_ASSETS.includes(a))
-  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a));
+  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
+  .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a));
 
 // R3 alterou dois assets. A passada 1 retokenizou UM deles
 // (pedido-detail-render.js), entao o token de R3 sobrevive apenas no outro —
@@ -1710,7 +1744,8 @@ const R3_ASSETS_AINDA_EM_R3 = R3_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
   .filter((a) => !PASS8_ASSETS.includes(a))
   .filter((a) => !B1_ASSETS.includes(a))
-  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a));
+  .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
+  .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a));
 
 
 // KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-01-R1: o lote de defeitos
@@ -1808,7 +1843,8 @@ test('R3/20a. os dois assets alterados por R3 seguem invalidados', () => {
   // isso encabeca a cadeia de precedencia abaixo. O sujeito do guard nao muda:
   // R3 continua proibido de arrastar asset algum, e o asset segue invalidado.
   for (const rel of R3_ASSETS.filter((a) => PASS1_ASSETS.includes(a))) {
-    const esperado = SCREEN_GROUP_2_ASSETS.includes(rel) ? SCREEN_GROUP_2_TOKEN
+    const esperado = SCREEN_GROUP_3_ASSETS.includes(rel) ? SCREEN_GROUP_3_TOKEN
+      : SCREEN_GROUP_2_ASSETS.includes(rel) ? SCREEN_GROUP_2_TOKEN
       : PASS8_ASSETS.includes(rel) ? PASS8_TOKEN
       : PASS6_A1_ASSETS.includes(rel) ? PASS6_A1_TOKEN
       : PASS6_ASSETS.includes(rel) ? PASS6_TOKEN
@@ -2307,4 +2343,38 @@ test('PASS6/20c15. os assets da passada 6 de tipografia carregam exatamente o to
   // A passada 6 nao alterou a folha responsiva: ela conserva o token que tinha.
   assert.notEqual(tokenFor('css/responsive.css'), PASS6_TOKEN,
     'css/responsive.css nao foi alterado pela passada 6 e nao pode carregar o token dela');
+});
+
+// PEDIDO-SCREEN-GROUP-3. Mesmo contrato que toda ordem anterior cumpre: os
+// assets declarados carregam EXATAMENTE o token da ordem, o token nao vaza
+// para nenhum asset que a ordem nao alterou, e nenhum deles retem um token
+// anterior ao seu — um token velho sobrevivente serviria a um browser com
+// cache quente o JavaScript pre-consolidacao.
+test('R3/20c9. os assets de PEDIDO-SCREEN-GROUP-3 carregam exatamente o token da ordem', () => {
+  assert.equal(SCREEN_GROUP_3_ASSETS.length, 6,
+    'a populacao alterada por PEDIDO-SCREEN-GROUP-3 e de seis assets');
+  for (const rel of SCREEN_GROUP_3_ASSETS) {
+    assert.equal(tokenFor(rel), SCREEN_GROUP_3_TOKEN,
+      rel + ' deve carregar o token de PEDIDO-SCREEN-GROUP-3');
+  }
+  const carriers = assetRefs(indexHtml)
+    .filter((r) => r.token === SCREEN_GROUP_3_TOKEN)
+    .map((r) => r.path);
+  assert.deepEqual(carriers.slice().sort(), SCREEN_GROUP_3_ASSETS.slice().sort(),
+    'exatamente os assets de PEDIDO-SCREEN-GROUP-3 podem carregar o token da ordem');
+  // O token da ordem e estritamente novo: reusar um anterior nao invalida cache.
+  for (const anterior of [
+    R2_TOKEN, BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN,
+    PASS1_TOKEN, PASS2_TOKEN, PASS2_A2_TOKEN, PASS2_A3_TOKEN, PASS2_A4_TOKEN,
+    PASS3_TOKEN, PASS4_TOKEN, PASS5_TOKEN, PASS6_TOKEN, PASS6_A1_TOKEN,
+    PASS7_TOKEN, PASS7_A4_TOKEN, PASS7_A5_TOKEN, PASS8_TOKEN,
+    B1_TOKEN, SCREEN_GROUP_2_TOKEN,
+  ]) {
+    assert.notEqual(SCREEN_GROUP_3_TOKEN, anterior,
+      'o token de PEDIDO-SCREEN-GROUP-3 tem de diferir de todo token anterior');
+    for (const rel of SCREEN_GROUP_3_ASSETS) {
+      assert.notEqual(tokenFor(rel), anterior,
+        rel + ' nao pode reter o token superseded ' + anterior);
+    }
+  }
 });

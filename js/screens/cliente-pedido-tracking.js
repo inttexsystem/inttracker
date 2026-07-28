@@ -481,9 +481,17 @@
     } else {
       // Degradacao sem o modulo de arranjo: uma secao por rota, ainda
       // separada — nunca a uniao num stepper unico.
+      // PEDIDO-SCREEN-GROUP-3: este ramo omitia o dono de rolagem. A folha
+      // responsiva ja homologada da a `[data-rv-client-stepper]` um
+      // `min-width:560px` abaixo de 767px; sem um `[data-rv-stepper-scroll]`
+      // ao redor, esses 560px empurram o DOCUMENTO num viewport de 390px em
+      // vez de rolarem dentro da secao. O ramo principal
+      // (cliente-route-sections-ui.js) sempre declarou esse dono; a
+      // degradacao passa a declarar o mesmo.
       sections.forEach(function (section) {
         card.appendChild(window.el('div', { 'data-rv-client-route-section': section.route || 'legado' },
-          buildStepperRow(section)));
+          window.el('div', { 'data-rv-stepper-scroll': '', style: 'max-width:100%;' },
+            buildStepperRow(section))));
       });
     }
     card.appendChild(buildBanner(api, trackingPedido, progress, hasParciais, chainState));

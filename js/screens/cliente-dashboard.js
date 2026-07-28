@@ -396,7 +396,13 @@
           window.el('div', {
             style: 'font-size:var(--rv-fs-kpi-card);font-weight:800;color:var(--rv-text-primary);line-height:1;margin:1px 0;',
           }, String(valor)),
-          window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);white-space:nowrap;' }, sub)
+          // PEDIDO-SCREEN-GROUP-3: sem `white-space:nowrap`. Num cartao de KPI
+          // de 174px (a queda de duas colunas em 390px) "Pedidos em andamento"
+          // era CORTADO no meio da palavra: o texto vazava o cartao e o
+          // overflow-x:hidden do <main> o cortava. O rotulo acima ja quebra em
+          // duas linhas; a linha secundaria passa a fazer o mesmo. Nenhum
+          // numero, rotulo ou calculo de KPI muda.
+          window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);' }, sub)
         )
       );
     }
@@ -415,8 +421,13 @@
         'Novo pedido'
       );
 
+      // PEDIDO-SCREEN-GROUP-3: mesmo contrato de cabecalho de pagina das duas
+      // listas — `gap` declarado e `flex-wrap:wrap`, para que titulo e acao
+      // primaria empilhem em vez de se comprimirem. O alinhamento vertical
+      // proprio deste cabecalho (flex-start, porque a subtitulo e mais alta)
+      // e preservado: os cabecalhos NAO sao forcados a ser identicos.
       return window.el('div', {
-        style: 'display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;',
+        style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap;',
       },
         window.el('div', {},
           window.el('h1', {
@@ -443,8 +454,15 @@
         + '<line x1="3" y1="10" x2="21" y2="10"></line>'
         + '<line x1="12" y1="14" x2="12" y2="17"></line><line x1="12" y1="19.5" x2="12.01" y2="19.5"></line>';
 
+      // PEDIDO-SCREEN-GROUP-3: duas correcoes de largura, nenhuma de conteudo.
+      // (1) `1fr` e minmax(AUTO,1fr): como a terceira linha de cada cartao
+      // declara white-space:nowrap, a trilha nao podia encolher abaixo do
+      // conteudo e a grade esticava o documento numa faixa estreita.
+      // `minmax(0,1fr)` e a mesma forma que a lista administrativa ja usa.
+      // (2) `data-rv-metrics` e o dono ja aceito da adaptacao por largura.
       return window.el('div', {
-        style: 'display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;',
+        'data-rv-metrics': '',
+        style: 'display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px;',
       },
         kpiCard(iconPedido, 'var(--rv-pill-info-bg)', 'var(--rv-accent-blue)', 'Meus pedidos', k.meusPedidos, 'Total de pedidos'),
         kpiCard(iconProd, 'var(--rv-signal-caution-bg)', 'var(--rv-signal-caution)', 'Em produção', k.emProducao, 'Pedidos em andamento'),
@@ -494,15 +512,22 @@
       var atualizado = fmtData(pedido.status_cliente_atualizado_em) || fmtData(pedido.atualizado_em) || '—';
       var prazo = fmtData(pedido.prazo_entrega);
 
-      var eyeBtn = window.el('button', {
-        type: 'button',
-        style: 'background:none;border:none;cursor:pointer;color:var(--rv-text-tertiary);padding:0;display:inline-flex;',
+      // PEDIDO-SCREEN-GROUP-3: esta era a ULTIMA acao de linha da jornada do
+      // cliente ainda construida a mao — um <button> sem borda, sem alvo de
+      // 30x30 e sem nome acessivel alem do `title`. Passa para o dono
+      // compartilhado actionButton() (UI_VISUAL_CONTRACT.md §8.1), o mesmo que
+      // a lista administrativa e a lista do cliente ja usam, com o icone no
+      // tamanho canonico de 14px. O handler, o destino e o rotulo sao os
+      // mesmos; o que muda e que a acao passa a ser focavel, operavel por
+      // teclado e nomeada por um rotulo de leitor de tela.
+      var eyeBtn = window.actionButton({
         title: 'Ver pedido',
+        icon: svgEl('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+          + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+          + '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path>'
+          + '<circle cx="12" cy="12" r="3"></circle></svg>'),
         onclick: function () { window.navigate('#/cliente/pedidos/' + pedido.id); },
-      }, svgEl('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
-        + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
-        + '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>'
-        + '<circle cx="12" cy="12" r="3"></circle></svg>'));
+      });
 
       return window.el('div', {
         style: 'display:grid;grid-template-columns:' + DESTAQUE_COLS + ';align-items:center;gap:12px;'
@@ -844,11 +869,18 @@
     }
 
     function render() {
+      // PEDIDO-SCREEN-GROUP-3: as duas linhas de cartoes sao grades de DUAS
+      // COLUNAS que nunca empilhavam. `data-rv-2col` e o dono ja aceito dessa
+      // adaptacao — abaixo de 1024px as duas regioes passam a ocupar a largura
+      // toda, empilhadas. A proporcao 2.2 / 0.95 do desktop e preservada, a
+      // ORDEM dos cartoes e preservada e nenhuma folha de estilo e editada.
       var middle = window.el('div', {
+        'data-rv-2col': '',
         style: 'display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,0.95fr);gap:22px;margin-bottom:22px;',
       }, buildDestaque(), buildResumoCard());
 
       var bottom = window.el('div', {
+        'data-rv-2col': '',
         style: 'display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,0.95fr);gap:22px;',
       }, buildAtualizacoes(), buildPrazos());
 

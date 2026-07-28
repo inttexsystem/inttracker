@@ -1491,8 +1491,13 @@ test('batch2/19. index.html carrega o modulo da linha antes de pedido-form.js', 
   // ultima vez; a prova de ordem/carga unica acima e o sujeito deste guard, e
   // o token segue sendo verificado literalmente.
   // PEDIDO-SCREEN-GROUP-1 passou a acao destrutiva da linha para o dono
-  // canonico actionButton(), entao o modulo carrega o token dessa ordem.
-  assert.match(index, /pedido-item-row-editor\.js\?v=20260727-ui-pedido-screen-group-1/);
+  // canonico actionButton().
+  // PEDIDO-SCREEN-GROUP-3 removeu do chamador o `position:relative` que
+  // PEDIDO-SCREEN-GROUP-2 tornou redundante ao declarar o contexto de
+  // posicionamento dentro do proprio actionButton(), entao o modulo carrega
+  // agora o token dessa ordem. O sujeito do guard — ordem e carga unica — nao
+  // muda, e o token segue verificado literalmente.
+  assert.match(index, /pedido-item-row-editor\.js\?v=20260727-ui-pedido-screen-group-3/);
 });
 
 // O sujeito deste guard e a EXTRACAO de BATCH-02: a tela encolheu de 1089 para

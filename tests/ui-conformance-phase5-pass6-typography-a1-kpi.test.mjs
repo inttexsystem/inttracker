@@ -640,7 +640,7 @@ test('27 · every changed runtime asset carries the A1 cache token', () => {
    */
   const PASS8 = '20260727-ui-p5-pass8-table-r1';
   const CHANGED_BY_A1_THEN_PASS8 = [
-    'js/screens/cliente-dashboard.js', 'js/screens/manta-expedicao-ui.js',
+    'js/screens/manta-expedicao-ui.js',
   ];
   /*
    * ACTION-CONTAINMENT-A1 FORWARD CORRECTION
@@ -682,11 +682,28 @@ test('27 · every changed runtime asset carries the A1 cache token', () => {
   const CHANGED_BY_A1_THEN_SCREEN_GROUP_2 = [
     'js/ui.js', 'js/screens/pedido-detail-render.js',
   ];
+  /*
+   * PEDIDO-SCREEN-GROUP-3 FORWARD CORRECTION
+   *
+   * That order consolidated the Pedido list surfaces and the client journey,
+   * so cliente-dashboard.js changed again: its last hand-built row action moved
+   * to the shared actionButton() owner, and its KPI strip and two card rows
+   * gained the accepted `data-rv-metrics` and `data-rv-2col` responsive owners.
+   * It moves from the pass-8 tier to a strictly later token. A1's invariant is
+   * intact: every asset A1 changed is still invalidated, and no asset A1 left
+   * alone was retokenised BY A1. Only which later token invalidates it moved,
+   * and the population below still sums to the same 7.
+   */
+  const SCREEN_GROUP_3 = '20260727-ui-pedido-screen-group-3';
+  const CHANGED_BY_A1_THEN_SCREEN_GROUP_3 = [
+    'js/screens/cliente-dashboard.js',
+  ];
   const CHANGED = ['js/screens/painel.js'];
   assert.equal(CHANGED.length + CHANGED_BY_A1_THEN_PASS7.length
     + CHANGED_BY_A1_THEN_PASS7_A4.length + CHANGED_BY_A1_THEN_PASS8.length
     + CHANGED_BY_A1_THEN_CONTAINMENT_A1.length + CHANGED_BY_A1_THEN_B1.length
-    + CHANGED_BY_A1_THEN_SCREEN_GROUP_2.length, 7,
+    + CHANGED_BY_A1_THEN_SCREEN_GROUP_2.length
+    + CHANGED_BY_A1_THEN_SCREEN_GROUP_3.length, 7,
     'the A1 changed-asset population must stay seven');
   for (const rel of CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${TOKEN}"`), `${rel} was not retokenised`);
@@ -714,6 +731,13 @@ test('27 · every changed runtime asset carries the A1 cache token', () => {
     assert.ok(INDEX.includes(`"${rel}?v=${SCREEN_GROUP_2}"`),
       `${rel} must carry the later Pedido screen-group-2 token`);
     for (const stale of [TOKEN, PASS7_TOKEN, PASS7_A4, PASS8, CONTAINMENT_A1, B1]) {
+      assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`), `${rel} kept a superseded token`);
+    }
+  }
+  for (const rel of CHANGED_BY_A1_THEN_SCREEN_GROUP_3) {
+    assert.ok(INDEX.includes(`"${rel}?v=${SCREEN_GROUP_3}"`),
+      `${rel} must carry the later Pedido screen-group-3 token`);
+    for (const stale of [TOKEN, PASS7_TOKEN, PASS7_A4, PASS8, CONTAINMENT_A1, B1, SCREEN_GROUP_2]) {
       assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`), `${rel} kept a superseded token`);
     }
   }
