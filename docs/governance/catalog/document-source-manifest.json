@@ -976,10 +976,10 @@
     },
     {
       "path": "AGENT_HANDOFF.md",
-      "git_object_id": "734ad9887a2efa357e476b6914f5c9ab892483d0",
-      "sha256": "3321d91a4b8130089ecfb2a3f412e7354824a3ddad89051679a3722a650646d4",
+      "git_object_id": "9f1150f5e6d4c1235a6613683cdaf00b7b950679",
+      "sha256": "177583ce07019c7631614d0edafe71fa3a2dd092d246840a9ad7db9bb3b0cecc",
       "line_count": 34,
-      "byte_count": 17012,
+      "byte_count": 16666,
       "generated_status": "MANUAL",
       "outbound_references": [],
       "inbound_references": [
@@ -2881,6 +2881,20 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 10511,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 10523,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0001.md",
           "source_line": 95,
           "kind": "ROOT_REFERENCE",
@@ -3821,6 +3835,20 @@
         {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0014.md",
           "source_line": 224,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md",
+          "source_line": 158,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md",
+          "source_line": 170,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -4787,6 +4815,20 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 10323,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 10507,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 10519,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -9575,6 +9617,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 10523,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0001.md",
           "source_line": 22,
           "kind": "ROOT_REFERENCE",
@@ -10809,6 +10858,13 @@
         {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
           "source_line": 196,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md",
+          "source_line": 170,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -12074,6 +12130,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 10519,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/legacy/pre-model/AGENT_HANDOFF_FULL_SNAPSHOT.md",
           "source_line": 18,
           "kind": "ROOT_REFERENCE",
@@ -13273,6 +13336,27 @@
         {
           "source_path": "docs/governance/shadow/generated/DOCUMENTATION_INDEX.md",
           "source_line": 15,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 10524,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md",
+          "source_line": 171,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 10520,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -14594,6 +14678,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 10523,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0001.md",
           "source_line": 81,
           "kind": "ROOT_REFERENCE",
@@ -15079,6 +15170,13 @@
         {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
           "source_line": 176,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md",
+          "source_line": 170,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -15588,6 +15686,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 10519,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/legacy/pre-model/AGENT_HANDOFF_FULL_SNAPSHOT.md",
           "source_line": 17,
           "kind": "ROOT_REFERENCE",
@@ -15924,6 +16029,13 @@
           "line_suffix": 146
         },
         {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 10524,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0012.md",
           "source_line": 42,
           "kind": "ROOT_REFERENCE",
@@ -15931,11 +16043,25 @@
           "line_suffix": 146
         },
         {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md",
+          "source_line": 171,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 9541,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": 146
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 10520,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
         },
         {
           "source_path": "docs/legacy/pre-model/PROJECT_STATE_FULL_SNAPSHOT.md",
@@ -16204,6 +16330,13 @@
           "line_suffix": null
         },
         {
+          "source_path": "docs/governance/shadow/generated/G28_LEDGER.md",
+          "source_line": 10524,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0003.md",
           "source_line": 208,
           "kind": "ROOT_REFERENCE",
@@ -16213,6 +16346,13 @@
         {
           "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0003.md",
           "source_line": 214,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md",
+          "source_line": 171,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -16241,6 +16381,13 @@
         {
           "source_path": "docs/ledgers/G28_LEDGER.md",
           "source_line": 1629,
+          "kind": "ROOT_REFERENCE",
+          "anchor": null,
+          "line_suffix": null
+        },
+        {
+          "source_path": "docs/ledgers/G28_LEDGER.md",
+          "source_line": 10520,
           "kind": "ROOT_REFERENCE",
           "anchor": null,
           "line_suffix": null
@@ -59602,10 +59749,10 @@
     },
     {
       "path": "docs/governance/shadow/generated/G28_LEDGER.md",
-      "git_object_id": "baa2af213d127a772d85bbdaed1ebfe528352e96",
-      "sha256": "11ccc5af8e38c9837c385cb71a4f88ef6be342b0bebd7bec5e4ef318922f71f6",
-      "line_count": 10508,
-      "byte_count": 1406660,
+      "git_object_id": "c073fdac7e2fca3faaf49d6375ccaf749dd70565",
+      "sha256": "ee40b9953b851218a45d9702636245f19d494b1ee5280f80e228b4354298ac80",
+      "line_count": 10531,
+      "byte_count": 1417048,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -66447,6 +66594,62 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 10387
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10511
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10523
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/DOCUMENTATION_INDEX.md`",
+          "target_path": "docs/DOCUMENTATION_INDEX.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10523
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`PROJECT_STATE.md`",
+          "target_path": "PROJECT_STATE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10523
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/DEPLOYMENT.md`",
+          "target_path": "docs/DEPLOYMENT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10524
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/HANDOFF.md`",
+          "target_path": "docs/HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10524
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/STAGING_BASELINE.md`",
+          "target_path": "docs/STAGING_BASELINE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10524
         }
       ],
       "inbound_references": [
@@ -67947,6 +68150,12 @@
           "text": "2026-07-28 — INTTEX-BRAND-ASSET-INTEGRATION-R1 — feat(ui): integrate approved Inttex brand assets",
           "anchor": "2026-07-28-inttex-brand-asset-integration-r1-featui-integrate-approved-inttex-brand-assets",
           "line": 10478
+        },
+        {
+          "level": 2,
+          "text": "2026-07-28 — INTTRACKER-PRODUCTION-CUTOVER-R1 — fix(config): cut over Inttracker production ownership",
+          "anchor": "2026-07-28-inttracker-production-cutover-r1-fixconfig-cut-over-inttracker-production-ownership",
+          "line": 10508
         }
       ]
     },
@@ -76870,10 +77079,10 @@
     },
     {
       "path": "docs/governance/shadow/ledger/partitions/G28_LEDGER_PART_0015.md",
-      "git_object_id": "9f44b667946506587d6ce183d4fc8b0f508c2f40",
-      "sha256": "6f9edd1bcb6f29142d35728a7698d5d3772a1e04b88f5162b4ae186dd809a6e4",
-      "line_count": 155,
-      "byte_count": 87621,
+      "git_object_id": "30401898ed9170b1fa3e82cf29e51f54a36f4ca1",
+      "sha256": "3c42a1697238794592e16bc4a76206441b4b8a89d2e7cff76c06d3e46d959a56",
+      "line_count": 178,
+      "byte_count": 98009,
       "generated_status": "GENERATED",
       "outbound_references": [
         {
@@ -76883,6 +77092,62 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 34
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 158
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 170
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/DOCUMENTATION_INDEX.md`",
+          "target_path": "docs/DOCUMENTATION_INDEX.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 170
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`PROJECT_STATE.md`",
+          "target_path": "PROJECT_STATE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 170
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/DEPLOYMENT.md`",
+          "target_path": "docs/DEPLOYMENT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 171
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/HANDOFF.md`",
+          "target_path": "docs/HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 171
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/STAGING_BASELINE.md`",
+          "target_path": "docs/STAGING_BASELINE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 171
         }
       ],
       "inbound_references": [
@@ -76924,6 +77189,12 @@
           "text": "2026-07-28 — INTTEX-BRAND-ASSET-INTEGRATION-R1 — feat(ui): integrate approved Inttex brand assets",
           "anchor": "2026-07-28-inttex-brand-asset-integration-r1-featui-integrate-approved-inttex-brand-assets",
           "line": 125
+        },
+        {
+          "level": 2,
+          "text": "2026-07-28 — INTTRACKER-PRODUCTION-CUTOVER-R1 — fix(config): cut over Inttracker production ownership",
+          "anchor": "2026-07-28-inttracker-production-cutover-r1-fixconfig-cut-over-inttracker-production-ownership",
+          "line": 155
         }
       ]
     },
@@ -77011,10 +77282,10 @@
     },
     {
       "path": "docs/ledgers/G28_LEDGER.md",
-      "git_object_id": "d43de0f7e069e001d7e9d81b6b9a56469ac1b22a",
-      "sha256": "e1a63e5270b4e1a87919c14b40f3e8671cb1528ced73b1530ca2aa9d7736cfce",
-      "line_count": 10502,
-      "byte_count": 1406359,
+      "git_object_id": "c7400d85a4ba63ad893e3087a2f78b5ed0ed20f7",
+      "sha256": "152a5517d3698aeaa8f593a6adb1a0f3cdb4fc875bfb78141ac4b3a0da013fe6",
+      "line_count": 10525,
+      "byte_count": 1416747,
       "generated_status": "MANUAL",
       "outbound_references": [
         {
@@ -83856,6 +84127,62 @@
           "anchor": null,
           "line_suffix": null,
           "source_line": 10383
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10507
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`AGENT_HANDOFF.md`",
+          "target_path": "AGENT_HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10519
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/DOCUMENTATION_INDEX.md`",
+          "target_path": "docs/DOCUMENTATION_INDEX.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10519
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`PROJECT_STATE.md`",
+          "target_path": "PROJECT_STATE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10519
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/DEPLOYMENT.md`",
+          "target_path": "docs/DEPLOYMENT.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10520
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/HANDOFF.md`",
+          "target_path": "docs/HANDOFF.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10520
+        },
+        {
+          "kind": "ROOT_REFERENCE",
+          "raw": "`docs/STAGING_BASELINE.md`",
+          "target_path": "docs/STAGING_BASELINE.md",
+          "anchor": null,
+          "line_suffix": null,
+          "source_line": 10520
         }
       ],
       "inbound_references": [
@@ -87309,6 +87636,12 @@
           "text": "2026-07-28 — INTTEX-BRAND-ASSET-INTEGRATION-R1 — feat(ui): integrate approved Inttex brand assets",
           "anchor": "2026-07-28-inttex-brand-asset-integration-r1-featui-integrate-approved-inttex-brand-assets",
           "line": 10474
+        },
+        {
+          "level": 2,
+          "text": "2026-07-28 — INTTRACKER-PRODUCTION-CUTOVER-R1 — fix(config): cut over Inttracker production ownership",
+          "anchor": "2026-07-28-inttracker-production-cutover-r1-fixconfig-cut-over-inttracker-production-ownership",
+          "line": 10504
         }
       ]
     },
