@@ -330,6 +330,54 @@ optional for a visual change.
 
 ---
 
+## 2026-07-28 · D11.5 — the ratified Switch geometry, after review
+
+**Supersedes the VALUES of D11.2, D11.3 and D11.4. Those entries are not rewritten:
+they record what was tried and why it failed, which is the useful part.**
+
+**Context.** D11.2–D11.4 were written from measurement, not from looking. Reviewed on
+screen, the control was still wrong three times running: invisible when off, knob
+crooked, then knob still lost inside the track. Each round the architect looked at the
+rendered switch and named the defect; each round my own validation had passed.
+
+**What D11.2 got wrong.** It treated the off state as a MISSING EDGE and added a border.
+The defect was never the edge — it was that the knob (`--rv-surface`, #ffffff) and the
+track (`--rv-surface-subtle`, #f8fafc) were the same colour, 1.05:1. The control had no
+interior. A border cannot fix an interior, and the follow-up attempt at `--rv-border-strong`
+(#cbd5e1, 1.48:1) was still one white shape.
+
+### Ratified — this is the standard for this control type
+
+| Part | Token | Value |
+|---|---|---|
+| Track | `--rv-switch-track-w` / `-track-h` | 40 × 22 |
+| Knob | `--rv-switch-knob` | 18 × 18 |
+| Knob inset, vertical | `--rv-switch-knob-inset` | 1px |
+| Knob inset, horizontal | `--rv-switch-knob-inset-x` | 2px |
+| Knob travel | `--rv-switch-knob-travel` | 16px |
+| Track radius | `--rv-switch-radius` | 2px |
+| Knob radius | `--rv-switch-knob-radius` | 1px |
+| OFF fill and border | `--rv-text-tertiary` | #9ca3af |
+| ON fill and border | `--rv-viz-primary` / `--rv-signal-caution` | by tone |
+
+| # | Decision | Choice | Reason | Accepted loss |
+|---|---|---|---|---|
+| D11.5 | Off-state fill | **`--rv-text-tertiary` (#9ca3af), fill AND border** | 2.54:1 against the white knob and 2.43:1 against the panel. An off switch is a grey track carrying a white knob; that reading needs a real grey, not a near-white. | A text token is used as a fill — see the disclosure below. |
+| D11.6 | Knob inset | **1px vertical, 2px horizontal, travel 16px** | The inner box is 38×20 against an 18px knob: vertically only 1px fits on each side, horizontally 2px does. The knob stops 2px from each end in BOTH positions, so the two ends read alike. | The vertical and horizontal insets are different numbers and need two tokens. |
+| D11.7 | Radii | **track 2px, knob 1px** | The knob nests inside the track instead of competing with its corner. | Two more role tokens in the specialized-control block. |
+
+**DISCLOSED — a real gap, not a preference.** `--rv-text-tertiary` is a TEXT token being
+used as a control FILL. The ramp has no neutral control-fill grey in this range. A
+dedicated token is the clean answer and requires its own authorization; until then this
+use is the exception, not a precedent for filling controls with text tokens.
+
+**The method lesson, stated once more because it produced every defect above.**
+`getComputedStyle` returned the ratified numbers on all three broken versions. It cannot
+see that two elements share a colour, nor that a knob is off-centre. **A visual change is
+not validated until the rendered result is looked at.**
+
+---
+
 ## How to record the next round
 
 Header with date and name. Context in two sentences. One line per decision with

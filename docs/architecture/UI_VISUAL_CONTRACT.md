@@ -350,7 +350,7 @@ by two owners:
 | Field height | `--rv-switch-field-h` | 36px |
 | Track radius | `--rv-switch-radius` | 2px |
 | Knob radius | `--rv-switch-knob-radius` | 1px |
-| Track border | `--rv-border-strong` | 1px |
+| Track fill and border, OFF | `--rv-text-tertiary` | #9ca3af |
 
 **Radius — `var(--rv-switch-radius)` (2px) on the track, `var(--rv-switch-knob-radius)` (1px) on the knob.** The knob is one rung tighter than the track so it nests inside it instead of competing with its corner. A switch is
 an **ordinary interactive control** for radius ownership. D6.1 scopes
@@ -367,7 +367,7 @@ handler:
 
 | State | Declaration |
 |---|---|
-| OFF | track `--rv-surface-subtle` with a 1px `--rv-border-strong` border, knob at the inset |
+| OFF | track filled `--rv-text-tertiary` with a matching 1px border, white knob at the inset |
 | ON | track `--rv-viz-primary` (`brand`) or `--rv-signal-caution` (`caution`), knob translated by the travel |
 | Focus-visible | `0 0 0 3px var(--rv-focus-ring)` on the track |
 | Disabled | track `opacity: .5`, `cursor: not-allowed` |
