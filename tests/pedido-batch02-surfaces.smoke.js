@@ -269,8 +269,14 @@ test('index.html: toda superfície alterada recebeu o token do lote 2', () => {
   // carregar o token dessa ordem. Mesma regra de sempre: cada superficie
   // carrega o token da ordem que a alterou por ultimo, e nenhuma retem um
   // token anterior ao seu.
+  // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 acrescentou os campos
+  // `prioridade_*` ao read model do detalhe administrativo, entao
+  // pedido-detail-data.js passa a carregar o token dessa ordem. As duas telas
+  // de edicao nao foram tocadas e mantem os seus. Mesma regra de sempre: cada
+  // superficie carrega o token da ordem que a alterou POR ULTIMO, e nenhuma
+  // retem um token anterior ao seu.
   const ULTIMA_ORDEM = {
-    'js/screens/pedido-detail-data.js': '20260725-pedido-operational-batch2',
+    'js/screens/pedido-detail-data.js': '20260728-pedido-item-production-priority-r1',
     'js/screens/pedido-edit.js': '20260727-ui-pedido-screen-group-1',
     'js/screens/pedido-itens-edit.js': '20260727-ui-pedido-screen-group-1',
   };
@@ -310,8 +316,13 @@ test('index.html: a superfície tocada pela passada 1 de cor carrega o token del
   // empilhamento var(--rv-z-modal) que destravou os seletores Tipo e Modelo, e
   // removeu o contorno de posicionamento provado redundante nas acoes de linha.
   // Entao ele e retokenizado mais uma vez. Mesma regra de sempre.
-  assert.match(index, new RegExp(esc + '\\?v=20260727-ui-pedido-screen-group-2'),
+  // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 acrescentou a solicitacao de
+  // prioridade e a confirmacao de finalizacao a esta tela, entao ela e
+  // retokenizada mais uma vez. Mesma regra de sempre.
+  assert.match(index, new RegExp(esc + '\\?v=20260728-pedido-item-production-priority-r1'),
     asset + ' deve carregar o token da ordem que o alterou por ultimo');
+  assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260727-ui-pedido-screen-group-2'),
+    asset + ' não pode reter o token de PEDIDO-SCREEN-GROUP-2');
   assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260727-ui-pedido-screen-group-1'),
     asset + ' não pode reter o token de PEDIDO-SCREEN-GROUP-1');
   assert.doesNotMatch(index, new RegExp(esc + '\\?v=20260727-ui-specialized-controls-b1'),
@@ -365,8 +376,13 @@ test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não
   // pedido-form.js passa a carregar o token dessa ordem. A linha de item nao
   // foi tocada e mantem o seu. A garantia nao muda: cada asset e verificado
   // contra a ordem que o alterou POR ULTIMO, e nenhum retem o token do lote 2.
+  // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 acrescentou o painel de
+  // prioridade a tela admin de criacao, entao pedido-form.js volta a divergir
+  // e carrega o token dessa ordem. O modal de item e a linha de item nao foram
+  // tocados e mantem os seus. A garantia nao muda: cada asset e verificado
+  // contra a ordem que o alterou POR ULTIMO, e nenhum retem o token do lote 2.
   const ULTIMA_ORDEM = {
-    'screens/pedido-form.js': '20260728-pedido-dual-item-entry-r1',
+    'screens/pedido-form.js': '20260728-pedido-item-production-priority-r1',
     'screens/pedido-item-modal.js': '20260728-pedido-dual-item-entry-r1',
     'screens/pedido-item-row-editor.js': '20260727-ui-pedido-screen-group-3',
   };

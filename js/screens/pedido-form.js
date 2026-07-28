@@ -578,7 +578,7 @@
       window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary);' }, 'Itens do pedido'),
       addBtn),
       table,
-      quickRowSlot);
+      quickRowSlot, window.RAVATEX_PEDIDO_PRIORITY ? window.RAVATEX_PEDIDO_PRIORITY.painelDeCriacao(state, 'admin', { modelos: modelos }, render) : null);
     }
 
     function buildBottomSection(saveBtn) {
@@ -797,7 +797,7 @@
         var itensRes = await window.supa
           .from('pedido_itens')
           .insert(itensPayload)
-          .select('id');
+          .select('id, ordem');
 
         if (itensRes.error) {
           console.error('Erro ao inserir itens, compensando:', itensRes.error);
@@ -814,6 +814,7 @@
           return;
         }
 
+        if (window.RAVATEX_PEDIDO_PRIORITY && !(await window.RAVATEX_PEDIDO_PRIORITY.persistirNaCriacao(state, pedidoId, itensRes.data, pedidoRes.data.numero))) return;
         postSave = {
           pedido: pedidoRes.data,
           resumo: {

@@ -29,7 +29,39 @@
 (function (window) {
   'use strict';
 
-  function gerarPdfCompraFios({ op, ordens }) {
+  // PEDIDO-ITEM-PRODUCTION-PRIORITY-R1 — secao DERIVADA de prioridade.
+  //
+  // Ela e acrescentada NO FIM do documento, depois das duas secoes de fio, e
+  // nao toca em nenhuma medida das secoes existentes: nem margem, nem coluna,
+  // nem fonte, nem o passo vertical de 6px. O conteudo tambem nao vem da OP —
+  // ele vem do Pedido, por argumento — e NADA aqui e gravado em
+  // `ops.observacao` ou em qualquer outra coluna.
+  //
+  // Sem prioridade confirmada, a secao simplesmente nao existe no PDF.
+  function secaoPrioridade(doc, y, prioridade, rotuloModelo) {
+    if (!prioridade || !Array.isArray(prioridade.linhas) || prioridade.linhas.length === 0) return y;
+
+    // Uma quebra de pagina simples evita que a secao comece colada no rodape.
+    if (y > 250) {
+      doc.addPage();
+      y = 15;
+    }
+
+    doc.setFontSize(12);
+    doc.text('ORDEM DE PRIORIDADE DO PEDIDO', 14, y); y += 6;
+    doc.setFontSize(9);
+    doc.text(`Pedido Nº ${prioridade.pedidoNumero} · sequência confirmada entre os itens do Pedido`, 14, y); y += 6;
+    doc.setFontSize(10);
+    for (const linha of prioridade.linhas) {
+      const nome = typeof rotuloModelo === 'function' ? rotuloModelo(linha.modeloId) : String(linha.modeloId);
+      doc.text(`${linha.posicao}º  ${nome}`, 18, y);
+      doc.text(`${Number(linha.metros || 0).toFixed(2).replace('.', ',')} m`, 120, y);
+      y += 6;
+    }
+    return y;
+  }
+
+  function gerarPdfCompraFios({ op, ordens, prioridade, rotuloModelo }) {
     const jsPDFCtor = window.jspdf && window.jspdf.jsPDF;
     if (!jsPDFCtor) {
       if (typeof window.toast === 'function') {
@@ -62,6 +94,7 @@
     };
     secao('Algodão', g.algodao, g.totalAlgodao);
     secao('Poliéster', g.poliester, g.totalPoliester);
+    y = secaoPrioridade(doc, y, prioridade, rotuloModelo);
 
     doc.save(`compra-fios-OP-${op.numero}-${op.ano}.pdf`);
   }

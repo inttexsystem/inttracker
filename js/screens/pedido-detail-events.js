@@ -187,6 +187,20 @@
           .eq('id', pedidoId);
 
         if (res.error) {
+          // db/91: uma solicitacao de prioridade pendente BLOQUEIA a aceitacao
+          // no banco. A tela nao tenta adivinhar nem contornar: ela reconhece
+          // o erro estavel e abre o fluxo de revisao, onde o Admin escolhe
+          // explicitamente entre confirmar, ajustar ou remover.
+          var prioApi = window.RAVATEX_PEDIDO_PRIORITY;
+          if (prioApi && prioApi.erroContem(res.error, prioApi.ERROS.ADMIN_REVIEW_REQUIRED)) {
+            window.toast('Existe uma prioridade solicitada pelo cliente aguardando análise. Revise a sequência antes de confirmar o pedido.', 'error');
+            if (btn) {
+              btn.disabled = oldDisabled;
+              btn.textContent = oldLabel;
+            }
+            definirPrioridade();
+            return;
+          }
           window.toast('Erro ao atualizar status: ' + (res.error.message || 'desconhecido'), 'error');
           console.error('pedido-detail: erro ao atualizar status', res.error);
           if (btn) {
@@ -2698,9 +2712,136 @@
       });
     }
 
+    // ------------------------------------------------------------------
+    // PRIORIDADE DE PRODUCAO
+    // ------------------------------------------------------------------
+    // Toda mutacao passa pela RPC canonica (db/91). Esta tela nunca escreve
+    // `pedidos.prioridade_*` nem `pedido_itens.ordem` diretamente — o banco,
+    // alias, recusaria.
+    function prioApi() { return window.RAVATEX_PEDIDO_PRIORITY || null; }
+
+    function prioridadeItensProjetados() {
+      var api = prioApi();
+      var itens = api ? api.sortByOrdem(state.itens || []) : (state.itens || []);
+      return itens.map(function (item) {
+        var modelo = (state.modelosById || {})[item.modelo_id] || null;
+        var c1 = item.cor_1_id != null ? item.cor_1_id : (modelo ? modelo.cor_1_id : null);
+        var c2 = item.cor_2_id != null ? item.cor_2_id : (modelo ? modelo.cor_2_id : null);
+        function nome(id) {
+          var cor = id != null ? (state.coresById || {})[id] : null;
+          return cor && cor.nome ? cor.nome : null;
+        }
+        var n1 = nome(c1);
+        var n2 = nome(c2);
+        return {
+          id: item.id,
+          modeloNome: modelo ? modelo.nome : 'Item',
+          cores: n2 ? (n1 + ' / ' + n2) : n1,
+          largura: item.largura != null ? item.largura : (modelo ? modelo.largura : null),
+          metros: item.metros,
+        };
+      });
+    }
+
+    // Executor unico das quatro acoes administrativas. `habilitada=false` e a
+    // remocao; qualquer outra e a definicao/confirmacao de uma sequencia.
+    async function aplicarPrioridade(opcoes) {
+      var api = prioApi();
+      if (!api || !state.pedido) return;
+
+      async function executar(confirmarImpacto) {
+        var res = await api.definirPrioridade({
+          pedidoId: state.pedido.id,
+          itemIds: opcoes.itemIds || null,
+          habilitada: !!opcoes.habilitada,
+          observacao: opcoes.observacao || null,
+          confirmarImpactoProducao: !!confirmarImpacto,
+        });
+        if (!res.ok) {
+          window.toast('Erro ao salvar a prioridade: '
+            + ((res.error && res.error.message) || 'desconhecido'), 'error');
+          console.error('pedido-detail: erro na RPC de prioridade', res.error);
+          return;
+        }
+        window.toast(opcoes.habilitada ? 'Prioridade confirmada.' : 'Prioridade removida.', 'success');
+        await reload();
+        render();
+      }
+
+      // Producao ja iniciada: a confirmacao de impacto e exigida pelo banco, e
+      // a tela pergunta ANTES de chamar em vez de deixar a RPC recusar.
+      if (api.exigeConfirmacaoDeImpacto(state.pedido)) {
+        api.openImpactoProducao({
+          onConfirmar: function () { executar(true); },
+        });
+        return;
+      }
+      await executar(false);
+    }
+
+    // Definir / revisar / alterar: sempre pelo mesmo editor de sequencia.
+    function definirPrioridade() {
+      var api = prioApi();
+      if (!api || !state.pedido) return;
+      var itens = prioridadeItensProjetados();
+      if (!api.aplicavel(itens.length)) {
+        window.toast('A prioridade de producao so se aplica a pedidos com dois ou mais itens.', 'error');
+        return;
+      }
+      api.openSequenceEditor({
+        items: itens,
+        title: 'Definir prioridade de produção',
+        primaryLabel: 'Confirmar sequência',
+        onConfirm: function (sequencia) {
+          aplicarPrioridade({
+            habilitada: true,
+            itemIds: sequencia.map(function (i) { return i.id; }),
+          });
+        },
+      });
+    }
+
+    // Confirmar a sequencia EXATAMENTE como o cliente pediu, sem abrir o
+    // editor. Continua sendo uma decisao explicita do Admin.
+    function confirmarSequenciaPrioridade() {
+      var api = prioApi();
+      if (!api || !state.pedido) return;
+      var itens = prioridadeItensProjetados();
+      if (!api.aplicavel(itens.length)) return;
+      window.confirmDialog({
+        title: 'Confirmar sequência de prioridade',
+        message: 'A sequência solicitada pelo cliente passa a ser a instrução ativa de prioridade de produção deste pedido.',
+        confirmLabel: 'Confirmar sequência',
+        danger: false,
+        onConfirm: function () {
+          return aplicarPrioridade({
+            habilitada: true,
+            itemIds: itens.map(function (i) { return i.id; }),
+          });
+        },
+      });
+    }
+
+    function removerPrioridade() {
+      var api = prioApi();
+      if (!api || !state.pedido) return;
+      window.confirmDialog({
+        title: 'Remover prioridade',
+        message: 'A instrução de prioridade é removida e a sequência dos itens deixa de valer como ordem de produção. A ordem visual atual é preservada.',
+        confirmLabel: 'Remover prioridade',
+        danger: true,
+        onConfirm: function () {
+          return aplicarPrioridade({ habilitada: false });
+        },
+      });
+    }
+
     return {
       get currentView() { return currentView; },
       set currentView(v) { currentView = v; },
+      definirPrioridade: definirPrioridade,
+      confirmarSequenciaPrioridade: confirmarSequenciaPrioridade,
+      removerPrioridade: removerPrioridade,
       buildTrackingAdmin: buildTrackingAdmin,
       buildParciaisAdmin: buildParciaisAdmin,
       buildEditButton: buildEditButton,

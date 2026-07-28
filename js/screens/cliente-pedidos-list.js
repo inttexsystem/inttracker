@@ -240,7 +240,7 @@
     async function carregar() {
       var pedidosRes = await window.supa
         .from('pedidos')
-        .select('id, numero, status, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, prazo_entrega, observacao, criado_em')
+        .select('id, numero, status, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, prazo_entrega, observacao, criado_em, prioridade_status')
         .order('criado_em', { ascending: false })
         .limit(200);
 
@@ -470,9 +470,13 @@
           + 'padding:11px 16px;min-width:720px;'
           + (isLast ? '' : 'border-bottom:1px solid var(--rv-border-soft);'),
       },
+        // Badge de prioridade dentro da célula do Pedido, pelo mesmo motivo da
+        // lista administrativa: nenhuma coluna nova, e `nenhuma` não desenha
+        // badge algum (dono: js/pedido-priority.js).
         window.el('div', {},
           window.el('div', { style: 'font-size:14px;font-weight:700;color:var(--rv-accent-blue);' }, fmtNumero(pedido.numero)),
-          window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);margin-top:1px;' }, criado || '—')
+          window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);margin-top:1px;' }, criado || '—'),
+          window.RAVATEX_PEDIDO_PRIORITY ? window.RAVATEX_PEDIDO_PRIORITY.buildBadge(pedido) : null
         ),
         window.el('div', {}, pillSituacao(pedido)),
         avancoCell(pedido),

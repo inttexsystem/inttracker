@@ -143,7 +143,9 @@ test('3. op-pdf.js é script clássico, sem import/export', () => {
 
 test('4. index.html carrega op-pdf.js EXATAMENTE UMA VEZ, sem type=module, COM cache-busting ?v=', () => {
   // Aceita query string (cache-busting) conforme FASE OP-NOVA-PDF-MODULE-A.
-  const reWithQs   = /<script\s+src="js\/screens\/op-pdf\.js\?v=20260623-asset1"\s*><\/script>/g;
+  // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 acrescentou a secao impressa
+  // DERIVADA "ORDEM DE PRIORIDADE DO PEDIDO", entao op-pdf.js e retokenizado.
+  const reWithQs   = /<script\s+src="js\/screens\/op-pdf\.js\?v=20260728-pedido-item-production-priority-r1"\s*><\/script>/g;
   const reNoQs     = /<script\s+src="js\/screens\/op-pdf\.js"\s*><\/script>/g;
   const matchesQs  = indexSrc.match(reWithQs) || [];
   const matchesNo  = indexSrc.match(reNoQs) || [];
@@ -177,8 +179,13 @@ test('6. op-nova.js NÃO define mais function gerarPdfCompraFios (extraída)', (
 });
 
 test('7. op-nova.js chama window.gerarPdfCompraFios no call-site de buildBlocoFios', () => {
-  assert.match(opnSrc, /window\.gerarPdfCompraFios\s*\(\s*\{\s*op\s*,\s*ordens\s*\}\s*\)/,
-    'op-nova.js não chama window.gerarPdfCompraFios({ op, ordens }) em buildBlocoFios');
+  // O call-site continua sendo UM so e continua passando `op` e `ordens`. A
+  // ordem de prioridade acrescentou dois argumentos DERIVADOS ao mesmo objeto
+  // (`prioridade` e `rotuloModelo`), entao a assercao deixa de exigir que o
+  // objeto termine ali e passa a exigir o que sempre importou: o call-site
+  // existe, e leva op e ordens.
+  assert.match(opnSrc, /window\.gerarPdfCompraFios\s*\(\s*\{\s*op\s*,\s*ordens\s*[,}]/,
+    'op-nova.js não chama window.gerarPdfCompraFios({ op, ordens, ... }) em buildBlocoFios');
 });
 
 test('8. op-pdf.js NÃO referencia supa (helper puro, sem Supabase)', () => {

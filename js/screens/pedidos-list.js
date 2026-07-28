@@ -244,7 +244,7 @@
     async function carregar() {
       var pedidosRes = await window.supa
         .from('pedidos')
-        .select('id, numero, status, cliente_id, prazo_entrega, observacao, criado_em, atualizado_em, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, parcial_habilitado, parcial_atualizado_em, metros_total, tipo_recebimento')
+        .select('id, numero, status, cliente_id, prazo_entrega, observacao, criado_em, atualizado_em, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, parcial_habilitado, parcial_atualizado_em, metros_total, tipo_recebimento, prioridade_status')
         .order('criado_em', { ascending: false })
         .limit(200);
 
@@ -691,9 +691,14 @@
       return window.el('div', {
         style: 'display:grid;grid-template-columns:' + TR_COLS + ';align-items:center;gap:12px;padding:11px 16px;min-width:1110px;' + (isLast ? '' : 'border-bottom:1px solid var(--rv-border-soft);')
       },
+      // O badge de prioridade entra NA CELULA do Pedido, e nao numa coluna
+      // nova: uma coluna a mais empurraria TR_COLS e o min-width da tabela, e
+      // a informacao so existe em dois dos tres estados. `nenhuma` nao desenha
+      // badge algum (dono: js/pedido-priority.js).
       window.el('div', {},
         window.el('div', { style: 'font-size:14px;font-weight:700;color:var(--rv-accent-blue);' }, '#' + (pedido.numero != null ? pedido.numero : '—')),
-        window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);margin-top:1px;' }, created)
+        window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);margin-top:1px;' }, created),
+        window.RAVATEX_PEDIDO_PRIORITY ? window.RAVATEX_PEDIDO_PRIORITY.buildBadge(pedido) : null
       ),
       (function () {
         var nome = clienteNome(pedido);

@@ -142,10 +142,26 @@ test('the retired-project consumer corrections are accepted, not still open deci
   assert.match(deletion[0], /separately authorized order/u);
 });
 
-test('the active state is idle with no chained phase and no outstanding acceptance', () => {
-  assert.equal(state.active_phase.id, 'NONE');
-  assert.equal(state.active_phase.status, 'IDLE / READY FOR NEXT EXPLICIT PRODUCT OR DEBT ORDER');
-  assert.match(state.next_authorizable_action.id, /NEW EXPLICIT PRODUCT OR DEBT ORDER/u);
+// O sujeito deste guard e a COERENCIA entre a fase ativa e a proxima acao
+// autorizavel — nunca "o repositorio esta ocioso". Pinar os literais de IDLE
+// convertia o guard em "nenhuma ordem futura pode ativar uma fase", que nao e o
+// que a governanca exige: `current-state.json` existe justamente para carregar
+// uma fase ativa quando ha uma.
+//
+// PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 e a fase ativa, entao o guard e
+// reancorado nela. A garantia continua checavel: a fase ativa tem identidade e
+// status, e a proxima acao autorizavel APONTA para essa mesma fase, de modo que
+// as duas nao podem divergir em silencio.
+test('the active state declares a coherent phase and next authorizable action', () => {
+  const ACTIVE = 'PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1';
+  assert.equal(state.active_phase.id, ACTIVE);
+  assert.match(state.active_phase.status, /AWAITING SUPERVISOR REVIEW/u);
+  assert.ok(state.active_phase.immediate_objective.length > 0);
+  assert.ok(
+    state.next_authorizable_action.id.includes(ACTIVE),
+    'a proxima acao autorizavel deve nomear a fase ativa'
+  );
+  assert.match(state.next_authorizable_action.mode, /AWAITING SUPERVISOR REVIEW/u);
 });
 
 test('environment identities and the absent non-production database are exact', () => {

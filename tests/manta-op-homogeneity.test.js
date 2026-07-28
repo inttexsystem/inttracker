@@ -75,7 +75,20 @@ test('persistirOP lets a homogeneous OP pass the guard (reaches numbering)', asy
   window.supa = {
     // Fail at numbering so we can observe the guard was passed without a full write path.
     rpc: async (name) => { rpcCalled = true; return { data: null, error: { message: 'stop after guard: ' + name } }; },
-    from: () => { throw new Error('should stop at numbering'); },
+    // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 inseriu, ANTES da
+    // numeracao, a leitura do estado de prioridade do Pedido — o gate de OP
+    // tem de decidir sem consumir numero de OP. O stub passa a responder essa
+    // UNICA leitura (Pedido sem prioridade pendente) e continua explodindo em
+    // qualquer outra tabela, para que o teste siga provando que a escrita nao
+    // acontece.
+    from: (table) => {
+      if (table !== 'pedidos') throw new Error('should stop at numbering');
+      return {
+        select: () => ({
+          eq: () => ({ maybeSingle: async () => ({ data: { prioridade_status: 'nenhuma' }, error: null }) }),
+        }),
+      };
+    },
   };
 
   const result = await window.persistirOP({

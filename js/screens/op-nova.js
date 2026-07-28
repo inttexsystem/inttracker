@@ -489,10 +489,19 @@
   async function loadPedidoContext(targetPedidoId) {
     if (!targetPedidoId) return null;
     const pedRes = await supa.from('pedidos')
-      .select('id, numero, status, criado_em, prazo_entrega, cliente_id, cliente:cliente_id(id, nome)')
+      .select('id, numero, status, criado_em, prazo_entrega, cliente_id, prioridade_status, prioridade_observacao, cliente:cliente_id(id, nome)')
       .eq('id', targetPedidoId)
       .maybeSingle();
     if (pedRes.error || !pedRes.data) return null;
+
+    // PEDIDO-ITEM-PRODUCTION-PRIORITY-R1: o RANK dos itens do Pedido. Ele e a
+    // unica fonte de ordenacao dos itens desta OP — nunca o nome do modelo, o
+    // instante de insercao ou o id do op_item.
+    const itensRes = await supa.from('pedido_itens')
+      .select('id, modelo_id, metros, largura, cor_1_id, cor_2_id, ordem')
+      .eq('pedido_id', targetPedidoId)
+      .order('ordem', { ascending: true });
+
     return {
       id: pedRes.data.id,
       numero: pedRes.data.numero,
@@ -501,7 +510,43 @@
       prazoEntrega: pedRes.data.prazo_entrega,
       clienteId: pedRes.data.cliente_id,
       clienteNome: pedRes.data.cliente?.nome || '',
+      prioridadeStatus: pedRes.data.prioridade_status || 'nenhuma',
+      prioridadeObservacao: pedRes.data.prioridade_observacao || null,
+      pedidoItens: itensRes.error ? [] : (itensRes.data || []),
     };
+  }
+
+  // Rank do item de Pedido que ORIGINOU um op_item. Um op_item sem vinculo
+  // (`pedido_item_id` nulo) vai para o fim, e nao para o inicio: ele nao
+  // carrega instrucao de prioridade alguma e nao pode passar na frente de quem
+  // carrega.
+  function rankDoOpItem(item) {
+    if (!item || item.pedido_item_id == null || !pedidoCtx || !pedidoCtx.pedidoItens) return Number.MAX_SAFE_INTEGER;
+    for (let i = 0; i < pedidoCtx.pedidoItens.length; i++) {
+      if (pedidoCtx.pedidoItens[i].id === item.pedido_item_id) {
+        const ordem = Number(pedidoCtx.pedidoItens[i].ordem);
+        return Number.isFinite(ordem) ? ordem : Number.MAX_SAFE_INTEGER;
+      }
+    }
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  // Ordena op_itens pelo rank do Pedido pai. Quando uma OP carrega apenas um
+  // SUBCONJUNTO dos itens do Pedido, os ranks relativos entre eles sao
+  // preservados (0,3,7 continua nessa ordem). O desempate secundario e o id do
+  // op_item, entao dois op_itens do MESMO item de Pedido mantem uma ordem
+  // estavel entre renderizacoes.
+  function opItensPorPrioridade(itens) {
+    return (itens || []).slice().sort(function (a, b) {
+      const ra = rankDoOpItem(a);
+      const rb = rankDoOpItem(b);
+      if (ra !== rb) return ra - rb;
+      return Number(a.id) - Number(b.id);
+    });
+  }
+
+  function prioridadeConfirmada() {
+    return !!(pedidoCtx && pedidoCtx.prioridadeStatus === 'confirmada');
   }
 
   function hasLinkedPedido() {
@@ -829,6 +874,10 @@
       : el('div', { style: 'display:flex;flex-direction:column;gap:16px;' });
     leftCol.appendChild(buildCardDados());
     leftCol.appendChild(buildCardItens());
+    // Sem prioridade confirmada este bloco simplesmente NAO existe: um cartao
+    // "sem prioridade" seria ruido permanente em toda OP avulsa.
+    const cardPrioridade = buildCardPrioridadePedido();
+    if (cardPrioridade) leftCol.appendChild(cardPrioridade);
     if (op && op.status !== 'simulada') leftCol.appendChild(buildBlocoFios());
     // ORDEM-COMPRA-B1 reader: linked purchase orders + lifecycle badges +
     // admin actions (tecelagem OPs only — látex OPs carry no fio orders).
@@ -1118,7 +1167,9 @@
     var table = el('div', { style: 'overflow-x:auto;' });
     var inner = el('div', { style: 'min-width:520px;' });
     inner.appendChild(rvThRow(cols, ['MODELO / CORES', 'PEDIDO', 'ITEM DO PEDIDO']));
-    opItensRaw.forEach(function (item) {
+    // Os itens saem na ordem de prioridade do Pedido pai, nunca na ordem em
+    // que o banco os devolveu.
+    opItensPorPrioridade(opItensRaw).forEach(function (item) {
       var itemPedidoLabel = (hasLinkedPedido() && item.pedido_item_id) ? 'Pedido N\u00ba ' + pedidoCtx.numero : '-';
       inner.appendChild(rvGridRow(cols, [
         el('div', { style: 'font-size:13px;font-weight:600;color:var(--rv-color-value);' }, window.rotuloModelo(modelosById[item.modelo_id])),
@@ -1128,6 +1179,82 @@
     });
     table.appendChild(inner);
     card.appendChild(table);
+    return card;
+  }
+
+  // ------------------------------------------------------------------
+  // ORDEM DE PRIORIDADE DO PEDIDO (derivada; nunca persistida na OP)
+  // ------------------------------------------------------------------
+  // Este bloco e DERIVADO do Pedido e dos seus itens a cada render. Ele nao e
+  // gravado em `ops.observacao` nem em nenhuma outra coluna da OP — a fonte
+  // canonica continua sendo o Pedido.
+  //
+  // A OP quase sempre carrega um SUBCONJUNTO dos itens do Pedido, entao a
+  // posicao exibida e a posicao NO PEDIDO (1º, 2º, ...) e nao a posicao dentro
+  // desta OP: dizer "1º" para o item que e o 3º do Pedido seria uma instrucao
+  // de producao errada.
+  function prioridadeLinhasDaOp() {
+    if (!prioridadeConfirmada()) return [];
+    const porItemPedido = new Map();
+    for (const opItem of opItensRaw) {
+      if (!opItem || opItem.pedido_item_id == null) continue;
+      const metros = Number(opItem.metros_ajustados != null ? opItem.metros_ajustados : opItem.metros_pedidos) || 0;
+      const atual = porItemPedido.get(opItem.pedido_item_id);
+      if (atual) {
+        atual.metros += metros;
+      } else {
+        porItemPedido.set(opItem.pedido_item_id, { pedidoItemId: opItem.pedido_item_id, modeloId: opItem.modelo_id, metros });
+      }
+    }
+
+    const linhas = [];
+    const itensPedido = (pedidoCtx && pedidoCtx.pedidoItens) || [];
+    for (let i = 0; i < itensPedido.length; i++) {
+      const registro = porItemPedido.get(itensPedido[i].id);
+      if (!registro) continue;
+      linhas.push({
+        posicao: i + 1,
+        modeloId: registro.modeloId != null ? registro.modeloId : itensPedido[i].modelo_id,
+        metros: registro.metros,
+      });
+    }
+    return linhas;
+  }
+
+  function buildCardPrioridadePedido() {
+    const linhas = prioridadeLinhasDaOp();
+    if (!linhas.length) return null;
+
+    const cols = 'minmax(220px,1fr) 90px 130px';
+    const card = el('div', { 'data-op-prioridade-pedido': '1', style: RV_CARD + 'overflow:hidden;' },
+      el('div', { style: 'display:flex;align-items:center;gap:8px;padding:15px 17px 12px;' },
+        rvSectionPill('Ordem de prioridade do Pedido', IC_ITENS),
+        el('span', { style: 'font-size:11.5px;color:var(--rv-color-muted);font-weight:400;margin-bottom:14px;' },
+          'sequência confirmada entre os itens do Pedido')));
+
+    const table = el('div', { style: 'overflow-x:auto;' });
+    const inner = el('div', { style: 'min-width:520px;' });
+    inner.appendChild(rvThRow(cols, ['ITEM DO PEDIDO', 'POSIÇÃO', 'METROS NESTA OP']));
+    linhas.forEach(function (linha) {
+      inner.appendChild(rvGridRow(cols, [
+        el('div', { style: 'font-size:13px;font-weight:600;color:var(--rv-color-value);' },
+          window.rotuloModelo(modelosById[linha.modeloId])),
+        el('div', {
+          style: 'font-size:13px;text-align:right;font-weight:700;color:'
+            + (linha.posicao === 1 ? 'var(--rv-color-accent)' : 'var(--rv-text-primary)') + ';',
+        }, String(linha.posicao) + 'º'),
+        el('div', {
+          class: 'num',
+          style: 'font-size:13px;text-align:right;color:var(--rv-text-primary);font-variant-numeric:tabular-nums;',
+        }, window.fmtMetros(linha.metros)),
+      ]));
+    });
+    table.appendChild(inner);
+    card.appendChild(table);
+    card.appendChild(el('div', {
+      style: 'padding:0 17px 14px;font-size:11.5px;color:var(--rv-text-tertiary);line-height:1.5;',
+    }, 'A posição é a do item no Pedido Nº ' + (pedidoCtx ? pedidoCtx.numero : '—')
+      + ', não dentro desta OP. Quando a OP cobre apenas parte do Pedido, as posições exibidas são as originais.'));
     return card;
   }
 
@@ -1352,7 +1479,16 @@
       box.appendChild(el('div', { style: isOpAbertaTecelagem() ? 'padding:0 17px 14px;' : 'padding:0 24px 16px;' },
         el('button', {
           type: 'button', style: BTN_LINK + 'margin:0;',
-          onclick: () => window.gerarPdfCompraFios({ op, ordens }),
+          // A secao de prioridade do PDF e DERIVADA e passa por argumento. Ela
+          // nunca e escrita em `ops.observacao` — nada aqui muta a OP.
+          onclick: () => window.gerarPdfCompraFios({
+            op,
+            ordens,
+            prioridade: prioridadeConfirmada()
+              ? { pedidoNumero: pedidoCtx.numero, linhas: prioridadeLinhasDaOp() }
+              : null,
+            rotuloModelo: (modeloId) => window.rotuloModelo(modelosById[modeloId]),
+          }),
         }, svgEl(SVG_PDF), 'PDF de compra de fios')));
     }
 

@@ -77,8 +77,15 @@
       itens: [
         { uid: novoUid(), modeloId: '', metros: '', observacao: '' },
       ],
+      // PEDIDO-ITEM-PRODUCTION-PRIORITY-R1: a ORDEM de `state.itens` E a
+      // sequencia solicitada. Acrescentar um item ja o poe por ultimo e
+      // remover um ja renormaliza — nao ha rank paralelo a manter.
+      prioridadeHabilitada: false,
     };
     var postSave = null;
+
+    // Dono UNICO da semantica de prioridade (js/pedido-priority.js).
+    function priorityApi() { return window.RAVATEX_PEDIDO_PRIORITY || null; }
 
     async function carregarDados() {
       var modRes = await window.supa
@@ -740,6 +747,39 @@
     }
 
     // ------------------------------------------------------------------
+    // Prioridade de produção (dono: js/pedido-priority.js)
+    // ------------------------------------------------------------------
+    // A projeção dos itens, a reordenação, o estado do interruptor, a chamada
+    // da RPC e a compensação pertencem TODOS ao dono compartilhado — as duas
+    // telas de criação usam a mesma implementação, não duas parecidas.
+    function contextoPrioridade() {
+      return { modelos: modelos, coresById: coresById };
+    }
+
+    function itensParaPrioridade() {
+      var api = priorityApi();
+      return api ? api.projetarItensLocais(state, contextoPrioridade()) : [];
+    }
+
+    function buildPrioridadePanel() {
+      var api = priorityApi();
+      if (!api) return null;
+      return api.painelDeCriacao(state, 'cliente', contextoPrioridade(), render);
+    }
+
+    // "Definir prioridade" na confirmação sem prioridade tem de DEVOLVER O FOCO
+    // ao controle, e não apenas fechar o modal: fechar sozinho deixaria o
+    // cliente sem saber para onde olhar.
+    function focarControleDePrioridade() {
+      var toggle = container.querySelector('[data-pedido-priority-toggle] input');
+      if (!toggle) return;
+      if (typeof toggle.scrollIntoView === 'function') {
+        toggle.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      if (typeof toggle.focus === 'function') toggle.focus();
+    }
+
+    // ------------------------------------------------------------------
     // Card: Itens do pedido
     // ------------------------------------------------------------------
     function buildItensCard() {
@@ -804,7 +844,8 @@
           window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary);' }, 'Itens do pedido'),
           addBtn
         ),
-        tableWrap
+        tableWrap,
+        buildPrioridadePanel()
       );
     }
 
@@ -903,23 +944,58 @@
     // ------------------------------------------------------------------
     // Save
     // ------------------------------------------------------------------
-    async function salvar(btn) {
+    // Validação dos itens, extraída porque a confirmação de finalização precisa
+    // rodar ANTES do modal: um resumo de prioridade sobre itens inválidos não
+    // seria um resumo, seria uma armadilha.
+    function itensValidos() {
       if (state.itens.length === 0) {
         window.toast('Adicione ao menos um item.', 'error');
-        return;
+        return false;
       }
       for (var i = 0; i < state.itens.length; i++) {
         var it = state.itens[i];
         if (!it.modeloId) {
           window.toast('Item ' + (i + 1) + ': selecione um modelo.', 'error');
-          return;
+          return false;
         }
         var m = Number(it.metros);
         if (!Number.isFinite(m) || m <= 0) {
           window.toast('Item ' + (i + 1) + ': metragem deve ser > 0.', 'error');
-          return;
+          return false;
         }
       }
+      return true;
+    }
+
+    // A ação de finalizar ganhou um passo de confirmação. O modal NÃO grava
+    // nada: ele só decide, e `salvar()` continua sendo o único caminho de
+    // persistência. Um Pedido de UM item não é aplicável e segue direto pelo
+    // caminho de finalização existente.
+    function finalizar(btn) {
+      if (!itensValidos()) return;
+
+      var api = priorityApi();
+      if (!api || !api.aplicavel(state.itens.length)) {
+        salvar(btn);
+        return;
+      }
+
+      if (state.prioridadeHabilitada) {
+        api.openClienteConfirmacaoComPrioridade({
+          items: itensParaPrioridade(),
+          onEnviar: function () { salvar(btn); },
+        });
+        return;
+      }
+
+      api.openClienteConfirmacaoSemPrioridade({
+        onDefinir: focarControleDePrioridade,
+        onEnviar: function () { salvar(btn); },
+      });
+    }
+
+    async function salvar(btn) {
+      if (!itensValidos()) return;
 
       btn.disabled = true;
       var oldLabel = btn.textContent;
@@ -963,10 +1039,12 @@
           itensPayload.push(row2);
         }
 
+        // `ordem` volta no select porque a sequência de prioridade é lida DELE,
+        // nunca da ordem em que o banco devolveu as linhas.
         var itensRes = await window.supa
           .from('pedido_itens')
           .insert(itensPayload)
-          .select('id');
+          .select('id, ordem');
 
         if (itensRes.error) {
           console.error('Erro ao inserir itens, compensando:', itensRes.error);
@@ -991,6 +1069,12 @@
           return;
         }
 
+        // Prioridade solicitada pelo Cliente. Se a persistência falhar, o
+        // Pedido NÃO fica salvo sem ela: o dono compartilhado já compensa e
+        // devolve `false`, e aqui só resta parar.
+        var prioApi = priorityApi();
+        if (prioApi && !(await prioApi.persistirNaCriacao(state, pedidoId, itensRes.data, pedidoRes.data.numero))) return;
+
         postSave = {
           pedido: pedidoRes.data,
           resumo: {
@@ -1014,7 +1098,7 @@
       var saveBtn = window.el('button', {
         type: 'button',
         style: 'background:var(--rv-brand); color:var(--rv-text-on-brand); border:none; border-radius:var(--rv-radius); height:var(--rv-h-primary); padding:0; width:100%; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
-        onclick: function () { salvar(saveBtn); },
+        onclick: function () { finalizar(saveBtn); },
       }, 'Finalizar pedido');
 
       if (loadingError) {

@@ -120,18 +120,18 @@
     }
   ],
   "active_phase": {
-    "id": "NONE",
-    "status": "IDLE / READY FOR NEXT EXPLICIT PRODUCT OR DEBT ORDER",
-    "immediate_objective": "No implementation order is active and no phase chains automatically. The accepted operational checkpoint is b77f4d14021781ebd96bce30f625687358b2d87a. The brand integration and the production cutover are both ACCEPTED and neither awaits acceptance. The next material change requires a new explicit product or debt order selected by the architect.",
+    "id": "PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1",
+    "status": "IMPLEMENTED / PRODUCTION MIGRATION APPLIED / PUBLISHED / AWAITING SUPERVISOR REVIEW",
+    "immediate_objective": "An explicit production-priority sequence between the items of one Pedido is implemented end to end. db/91 is applied to ucrjtfswnfdlxwtmxnoo: pedidos.prioridade_* with nenhuma|solicitada|confirmada, pedido_prioridade_eventos with SELECT-only RLS, the single mutation owner definir_prioridade_pedido, and four guards (direct write, administrative acceptance, OP creation, direct item reordering). pedido_itens.ordem remains the canonical item rank. Every pre-existing Pedido resolves to nenhuma and no existing item was reordered. The order was executed WITHOUT reading docs/architecture/UI_VISUAL_CONTRACT.md before building the new UI; the architect caught a left-aligned toggle on its own line, which was corrected against the closed alignment rule of section 2.1 before publication. That process failure is recorded as PROCESS-VISUAL-CONTRACT-NOT-READ-BEFORE-UI.",
     "contract": {
-      "path": "docs/governance/AGENT_INSTRUCTIONS.md",
-      "anchor": "## 4. Authorization and roles"
+      "path": "docs/architecture/UI_VISUAL_CONTRACT.md",
+      "anchor": "### 2.1 Button"
     }
   },
   "next_authorizable_action": {
-    "id": "NEW EXPLICIT PRODUCT OR DEBT ORDER SELECTED BY THE ARCHITECT",
-    "mode": "AWAITING ORDER SELECTION; NO PHASE IS CHAINED AND NO ACCEPTANCE IS OUTSTANDING",
-    "status": "IDLE / READY. Candidate subjects are the open debts and open architect decisions recorded in this file; none of them is authorized until its own order exists."
+    "id": "DIRECT SUPERVISOR REVIEW OF PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1",
+    "mode": "AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED",
+    "status": "PENDING. The review must cover the visual conformance of the new priority surfaces against UI_VISUAL_CONTRACT.md section 2.1, and the supervisor process failure recorded in blockers_and_material_debts."
   },
   "active_track": {
     "id": "PURCHASE_ORDER_PHASE_C",
@@ -274,6 +274,14 @@
       "owner": "UI consolidation track / conformance detector capability",
       "evidence": "tests/ui-conformance-phase5-pass5-card-actions.test.mjs :: PROVEN_FOOTERS and MODAL_ACTION_BAR_CONSUMERS",
       "note": "The JavaScript front-end cannot prove arbitrary container-to-card containment; it exposes no static ancestor chain and sets insideCard to null by design. UIC-008 closure therefore proves the conformance of the explicitly marked and guarded footer population, not the absence of every possible unmarked footer. The global closure phase A2 is CANCELLED: local containment is corrected inside each future screen batch. The screen-local remainder stays OPEN and unclaimed. Closing it requires a separate reviewed order authorizing scope-aware call-site containment analysis."
+    },
+    {
+      "id": "PROCESS-VISUAL-CONTRACT-NOT-READ-BEFORE-UI",
+      "status": "OPEN / MATERIAL PROCESS DEBT / RAISED BY THE ARCHITECT",
+      "blocking": false,
+      "owner": "order dispatch and supervision",
+      "evidence": "PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 execution; docs/architecture/UI_VISUAL_CONTRACT.md section 2.1",
+      "note": "The executor built new UI surfaces without opening UI_VISUAL_CONTRACT.md, although AGENT_INSTRUCTIONS.md section 7 requires the approved visual contract for UI implementation. The result violated the CLOSED alignment rule of section 2.1 (toggle alone on its own line, left aligned inside a card). The defect was caught by the ARCHITECT during review, not by the order, not by the executor and not by the supervisor. The order itself specified extensive UI copy and behaviour but never named the visual contract among AUTHORIZED_READS, so an executor following the order literally would skip it. Two corrections are required and neither belongs to this executor: every UI-bearing order must name UI_VISUAL_CONTRACT.md as a mandatory read, and the supervisor must verify visual conformance before the architect sees the screen. The architect reports having already warned the supervisor about a related geometry defect (UI-SWITCH-TRACK-GEOMETRY-DEBT) and that it was let through."
     },
     {
       "id": "UI-SWITCH-TRACK-GEOMETRY-DEBT",

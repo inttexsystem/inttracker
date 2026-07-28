@@ -291,9 +291,10 @@ test('3. op-nova.js é script clássico, sem import/export', () => {
 
 test('4. index.html carrega op-nova.js EXATAMENTE UMA VEZ, sem type=module', () => {
   // Aceita com ou sem query string (cache-busting ?v=...).
-  // ACTION-CONTAINMENT-A1 (associacao de cockpit no ramo de tecelagem aberta)
-  // foi a ultima ordem a alterar op-nova.js, entao ele carrega o token dela.
-  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260727-ui-action-containment-a1"\s*><\/script>/g;
+  // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 passou a ordenar os itens da
+  // OP pelo rank do Pedido pai e acrescentou o bloco derivado "Ordem de
+  // prioridade do Pedido", entao op-nova.js carrega o token dessa ordem.
+  const reWithQs = /<script\s+src="js\/screens\/op-nova\.js\?v=20260728-pedido-item-production-priority-r1"\s*><\/script>/g;
   const reNoQs   = /<script\s+src="js\/screens\/op-nova\.js"\s*><\/script>/g;
   const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
   assert.equal(total, 1,

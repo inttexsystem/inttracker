@@ -145,6 +145,7 @@
       entregasResumo: [],
       pendencias: [],
       routes: [],
+      prioridadeItens: [],
     };
 
     // PHASE-MANTA-B2B: rotas aplicaveis do Pedido. Esta tela preserva a
@@ -260,6 +261,61 @@
           status: evento.status,
         };
       });
+
+      await carregarPrioridade();
+    }
+
+    // PEDIDO-ITEM-PRODUCTION-PRIORITY-R1.
+    //
+    // O resumo canônico (`cliente_pedido_summary`, db/30) já devolve os itens
+    // ORDENADOS por `ordem, criado_em` e com modelo, cores, largura e metragem
+    // — tudo o que a exibição precisa. Falta-lhe apenas o `id` de cada item,
+    // que a RPC de prioridade exige, e o estado de prioridade do Pedido.
+    //
+    // Em vez de reescrever aquele read model — que serve outras superfícies e
+    // não pertence a esta ordem —, esta tela faz DUAS leituras suplementares
+    // que a RLS de cliente já permite (db/14). A correlação é por POSIÇÃO e é
+    // determinística porque a leitura usa exatamente o mesmo `ORDER BY ordem,
+    // criado_em` do read model: as duas listas descrevem as mesmas linhas na
+    // mesma ordem.
+    async function carregarPrioridade() {
+      state.prioridadeItens = [];
+      try {
+        var pedidoRes = await window.supa
+          .from('pedidos')
+          .select('prioridade_status, prioridade_observacao, prioridade_confirmada_em')
+          .eq('id', pedidoId)
+          .maybeSingle();
+        if (!pedidoRes.error && pedidoRes.data && state.pedido) {
+          state.pedido.prioridade_status = pedidoRes.data.prioridade_status;
+          state.pedido.prioridade_observacao = pedidoRes.data.prioridade_observacao;
+          state.pedido.prioridade_confirmada_em = pedidoRes.data.prioridade_confirmada_em;
+        }
+
+        var itensRes = await window.supa
+          .from('pedido_itens')
+          .select('id, ordem, criado_em')
+          .eq('pedido_id', pedidoId)
+          .order('ordem', { ascending: true })
+          .order('criado_em', { ascending: true });
+        if (itensRes.error || !Array.isArray(itensRes.data)) return;
+
+        var resumo = state.itens || [];
+        state.prioridadeItens = itensRes.data.map(function (row, index) {
+          var meta = resumo[index] || {};
+          return {
+            id: row.id,
+            modeloNome: meta.modelo || 'Item',
+            cores: meta.cor_2 ? (meta.cor_1 + ' / ' + meta.cor_2) : (meta.cor_1 || null),
+            largura: meta.largura,
+            metros: meta.metros,
+          };
+        });
+      } catch (e) {
+        // A prioridade é informação adicional: uma falha aqui não pode
+        // derrubar a tela de acompanhamento inteira.
+        console.error('cliente-pedido-detail: erro ao carregar prioridade', e);
+      }
     }
 
     // Breadcrumb + titulo + badge de status + data de atualizacao.
@@ -821,6 +877,99 @@
       return wrap;
     }
 
+    // ------------------------------------------------------------------
+    // PRIORIDADE DE PRODUÇÃO (dono da semântica: js/pedido-priority.js)
+    // ------------------------------------------------------------------
+    // O Cliente edita a própria solicitação SOMENTE antes da aceitação
+    // administrativa. Depois dela os controles DESAPARECEM e a sequência
+    // permanece visível — a trava real é do banco (db/91 §7.5); isto aqui é
+    // apenas a sua projeção honesta na tela.
+    function prioApi() { return window.RAVATEX_PEDIDO_PRIORITY || null; }
+
+    async function aplicarPrioridadeCliente(habilitada, itemIds) {
+      var api = prioApi();
+      var res = await api.definirPrioridade({
+        pedidoId: pedidoId,
+        itemIds: itemIds || null,
+        habilitada: !!habilitada,
+      });
+      if (!res.ok) {
+        var msg = api.erroContem(res.error, api.ERROS.CLIENT_LOCKED)
+          ? 'Este pedido já foi aceito pela equipe da Inttex e a prioridade não pode mais ser alterada.'
+          : ((res.error && res.error.message) || 'desconhecido');
+        window.toast('Não foi possível salvar a prioridade: ' + msg, 'error');
+        console.error('cliente-pedido-detail: erro na RPC de prioridade', res.error);
+        return;
+      }
+      window.toast(habilitada ? 'Prioridade solicitada.' : 'Prioridade removida.', 'success');
+      await carregar();
+      render();
+    }
+
+    // Devolve SEMPRE um nó: `render()` entrega os cartões posicionalmente a
+    // `replaceChildren`, que converteria `null` no texto "null" na tela.
+    function buildPrioridade() {
+      var api = prioApi();
+      var vazio = window.el('div', {});
+      if (!api || !state.pedido) return vazio;
+
+      var itens = state.prioridadeItens || [];
+      var st = api.statusDe(state.pedido);
+      if (st === api.STATUS.NENHUMA && !api.clientePodeEditar(state.pedido, itens.length)) return vazio;
+
+      var acoes = [];
+      if (api.clientePodeEditar(state.pedido, itens.length)) {
+        acoes.push(window.el('button', {
+          type: 'button',
+          'data-pedido-priority-action': '1',
+          style: 'display:inline-flex;align-items:center;justify-content:center;'
+            + 'height:var(--rv-h-default);padding:0 14px;border-radius:var(--rv-radius);'
+            + 'background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;'
+            + 'font-weight:600;font-size:var(--rv-fs-body);font-family:inherit;cursor:pointer;',
+          onclick: function () {
+            api.openSequenceEditor({
+              items: itens,
+              title: st === api.STATUS.NENHUMA ? 'Solicitar prioridade de produção' : 'Alterar prioridade solicitada',
+              message: api.CLIENTE_TOGGLE_HELP,
+              primaryLabel: 'Enviar sequência',
+              onConfirm: function (sequencia) {
+                aplicarPrioridadeCliente(true, sequencia.map(function (i) { return i.id; }));
+              },
+            });
+          },
+        }, st === api.STATUS.NENHUMA ? 'Solicitar prioridade' : 'Alterar prioridade'));
+
+        if (st === api.STATUS.SOLICITADA) {
+          acoes.push(window.el('button', {
+            type: 'button',
+            'data-pedido-priority-action': '1',
+            style: 'display:inline-flex;align-items:center;justify-content:center;'
+              + 'height:var(--rv-h-default);padding:0 14px;border-radius:var(--rv-radius);'
+              + 'background:var(--rv-surface);color:var(--rv-text-primary);'
+              + 'border:1px solid var(--rv-border-strong);'
+              + 'font-weight:600;font-size:var(--rv-fs-body);font-family:inherit;cursor:pointer;',
+            onclick: function () {
+              window.confirmDialog({
+                title: 'Remover prioridade',
+                message: 'A sua solicitação de prioridade será removida. A sequência de produção poderá ser definida pela equipe da Inttex.',
+                confirmLabel: 'Remover prioridade',
+                danger: true,
+                onConfirm: function () { return aplicarPrioridadeCliente(false, null); },
+              });
+            },
+          }, 'Remover prioridade'));
+        }
+      }
+
+      return api.buildSummaryBlock({
+        role: 'cliente',
+        pedido: state.pedido,
+        items: itens,
+        actions: acoes,
+        alwaysRender: true,
+      });
+    }
+
     function render() {
       var header = buildHeader();
       if (loadingError === 'pedido') {
@@ -855,6 +1004,7 @@
           'data-rv-2col': '',
           style: 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px;',
         }, buildItens(), buildDistribuicaoAtual()),
+        buildPrioridade(),
         buildEntregasResumo(),
         buildParciais(),
         buildEventos()

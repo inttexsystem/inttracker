@@ -49,7 +49,10 @@
       // db/89: `data_pedido` e a data COMERCIAL e entra explicitamente no read
       // model. Nunca derivar a data comercial de `criado_em`, que continua
       // sendo apenas o carimbo tecnico de criacao.
-      .select('id, numero, data_pedido, status, cliente_id, referencia_cliente, prazo_entrega, prazo_desejado, tipo_recebimento, observacao, criado_em, atualizado_em, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, parcial_habilitado, parcial_atualizado_em, metros_total, cliente:cliente_id(id, nome)')
+      // db/91: o estado de prioridade entra explicitamente no read model. A
+      // sequencia em si NAO e uma coluna: ela e `pedido_itens.ordem`, ja lido
+      // abaixo com `.order('ordem')`.
+      .select('id, numero, data_pedido, status, cliente_id, referencia_cliente, prazo_entrega, prazo_desejado, tipo_recebimento, observacao, criado_em, atualizado_em, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, parcial_habilitado, parcial_atualizado_em, metros_total, prioridade_status, prioridade_observacao, prioridade_confirmada_em, prioridade_confirmada_por, prioridade_atualizada_em, cliente:cliente_id(id, nome)')
       .eq('id', pedidoId)
       .maybeSingle();
 

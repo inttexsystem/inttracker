@@ -540,6 +540,85 @@
     );
   }
 
+  // ------------------------------------------------------------------
+  // PRIORIDADE DE PRODUCAO (dono da semantica: js/pedido-priority.js)
+  // ------------------------------------------------------------------
+  // Este arquivo NAO decide o que "confirmada" significa, quem pode alterar,
+  // nem como uma sequencia e desenhada: tudo isso pertence ao dono
+  // compartilhado. Aqui so se projetam os itens e se ligam as acoes.
+  function priorityApi() { return window.RAVATEX_PEDIDO_PRIORITY || null; }
+
+  function prioridadeItens(state) {
+    var api = priorityApi();
+    var itens = api ? api.sortByOrdem(state.itens || []) : (state.itens || []);
+    return itens.map(function (item) {
+      var modelo = (state.modelosById || {})[item.modelo_id] || null;
+      var ids = resolveItemColorIds(state, item);
+      var c1 = corNomeById(state, ids.cor1);
+      var c2 = corNomeById(state, ids.cor2);
+      return {
+        id: item.id,
+        modeloNome: modelo ? modelo.nome : 'Item',
+        cores: c2 ? (c1 + ' / ' + c2) : (c1 || null),
+        largura: item.largura != null ? item.largura : (modelo ? modelo.largura : null),
+        metros: item.metros,
+      };
+    });
+  }
+
+  function prioridadeAction(label, onclick, primary) {
+    return window.el('button', {
+      type: 'button',
+      'data-pedido-priority-action': '1',
+      style: 'display:inline-flex;align-items:center;justify-content:center;'
+        + 'height:var(--rv-h-default);padding:0 14px;border-radius:var(--rv-radius);'
+        + 'font-weight:600;font-size:var(--rv-fs-body);font-family:inherit;cursor:pointer;'
+        + (primary
+          ? 'background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;'
+          : 'background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-border-strong);'),
+      onclick: onclick,
+    }, label);
+  }
+
+  // Devolve SEMPRE um nó. `renderPedidoDetailScreen` passa os cartões
+  // posicionalmente para `replaceChildren`, que — ao contrário de `el()` — não
+  // ignora `null`: ele o converteria no texto "null" dentro da tela. O nó vazio
+  // e o fallback ja usado por buildTrackingAdmin/buildParciaisAdmin.
+  function buildPrioridade(state, handlers) {
+    var api = priorityApi();
+    if (!api || !state.pedido) return window.el('div', {});
+
+    var itens = prioridadeItens(state);
+    var st = api.statusDe(state.pedido);
+    var podeEditar = api.adminPodeEditar(state.pedido, itens.length);
+
+    var acoes = [];
+    if (podeEditar) {
+      if (st === api.STATUS.NENHUMA) {
+        acoes.push(prioridadeAction('Definir prioridade', function () { handlers.definirPrioridade(); }, true));
+      } else if (st === api.STATUS.SOLICITADA) {
+        // Sem conversao silenciosa: as tres saidas de uma solicitacao pendente
+        // sao explicitas e todas passam pela mesma RPC.
+        acoes.push(prioridadeAction('Confirmar sequência', function () { handlers.confirmarSequenciaPrioridade(); }, true));
+        acoes.push(prioridadeAction('Revisar solicitação', function () { handlers.definirPrioridade(); }));
+        acoes.push(prioridadeAction('Remover prioridade', function () { handlers.removerPrioridade(); }));
+      } else {
+        acoes.push(prioridadeAction('Alterar prioridade', function () { handlers.definirPrioridade(); }, true));
+        acoes.push(prioridadeAction('Remover prioridade', function () { handlers.removerPrioridade(); }));
+      }
+    }
+
+    return api.buildSummaryBlock({
+      role: 'admin',
+      pedido: state.pedido,
+      items: itens,
+      actions: acoes,
+      // No detalhe administrativo a AUSENCIA de prioridade e informacao
+      // acionavel, entao o bloco existe tambem em `nenhuma`.
+      alwaysRender: true,
+    });
+  }
+
   function buildItens(state, view, handlers) {
     var card = window.el('div', {
       style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;margin-bottom:14px;overflow:hidden;',
@@ -1466,6 +1545,7 @@
        buildStepper(view, handlers),
        buildPurchaseDistributionEntry(state),
        buildItens(state, view, handlers),
+       buildPrioridade(state, handlers),
       buildOps(state, view, handlers),
       buildExpedicoes(state, view, handlers),
       buildConclusaoPedido(state, view, handlers),

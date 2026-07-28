@@ -169,6 +169,25 @@
       };
     }
 
+    // PEDIDO-ITEM-PRODUCTION-PRIORITY-R1: uma solicitacao de prioridade ainda
+    // pendente de analise BLOQUEIA a criacao de OP. A checagem vem ANTES de
+    // reservar o numero da OP e antes de qualquer INSERT, entao nenhum numero e
+    // consumido e nenhum Lote/OP e criado por uma tentativa que nao podia
+    // passar. Os gatilhos de db/91 sobre `lotes.pedido_id` e `ops.lote_id`
+    // continuam sendo a autoridade final e cobrem todo outro dono de criacao.
+    const prioRes = await supa.from('pedidos').select('prioridade_status').eq('id', pedidoId).maybeSingle();
+    if (prioRes.error) {
+      return { error: prioRes.error, step: 'pedido_priority_read', partial: false, opId: op && op.id ? op.id : null };
+    }
+    if (prioRes.data && prioRes.data.prioridade_status === 'solicitada') {
+      return {
+        error: { message: 'O Pedido tem uma prioridade solicitada pelo cliente aguardando analise. Confirme, ajuste ou remova a sequencia antes de gerar a OP.' },
+        step: 'pedido_priority_review',
+        partial: false,
+        opId: op && op.id ? op.id : null,
+      };
+    }
+
     if (isNova) {
       const numeroRes = await supa.rpc('proximo_numero_op', { p_tipo: 'tecelagem', p_ano: anoInt });
       if (numeroRes.error) {

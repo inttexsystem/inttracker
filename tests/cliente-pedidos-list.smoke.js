@@ -144,10 +144,15 @@ test('cliente-pedidos-list: usa from(\'pedidos\')', () => {
   assert.match(screen, /from\(['"]pedidos['"]\)/);
 });
 
+// PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 acrescentou `prioridade_status`
+// ao contrato de SELECT desta lista: é dele que sai o badge discreto de
+// prioridade solicitada/confirmada. A garantia original — o SELECT é travado e
+// explícito, e nenhuma coluna entra por acidente — segue integral, apenas com a
+// coluna a mais que esta ordem declara.
 test('cliente-pedidos-list: select inclui status visual publicado ao cliente', () => {
   assert.match(
     screen,
-    /\.select\(\s*['"]id, numero, status, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, prazo_entrega, observacao, criado_em['"]\s*\)/
+    /\.select\(\s*['"]id, numero, status, status_cliente_visual, status_cliente_excecao, status_cliente_mensagem, status_cliente_atualizado_em, prazo_entrega, observacao, criado_em, prioridade_status['"]\s*\)/
   );
 });
 

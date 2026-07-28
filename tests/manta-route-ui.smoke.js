@@ -1063,6 +1063,11 @@ test('R2/18. a correcao R2 nao introduz delta de banco nem migracao', () => {
   const POSTERIOR_AUTORIZADO = [
     /^db\/89_pedido_commercial_date_and_number_control\.sql$/,
     /^db\/90_pedido_proximo_numero_suggestion_rpc\.sql$/,
+    // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1: mesma razao das duas
+    // anteriores. Uma migracao autorizada POSTERIOR nao pertence ao sujeito
+    // deste guard e nao pode ser lida como delta desta correcao; a garantia
+    // original — esta correcao nao toca o banco — segue integral.
+    /^db\/91_pedido_item_production_priority\.sql$/,
   ];
   for (const rel of changed.concat(untracked)) {
     if (POSTERIOR_AUTORIZADO.some((re) => re.test(rel))) continue;
@@ -1165,6 +1170,11 @@ test('R3/19g. a correcao R3 nao introduz delta de banco nem migracao', () => {
   const POSTERIOR_AUTORIZADO = [
     /^db\/89_pedido_commercial_date_and_number_control\.sql$/,
     /^db\/90_pedido_proximo_numero_suggestion_rpc\.sql$/,
+    // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1: mesma razao das duas
+    // anteriores. Uma migracao autorizada POSTERIOR nao pertence ao sujeito
+    // deste guard e nao pode ser lida como delta desta correcao; a garantia
+    // original — esta correcao nao toca o banco — segue integral.
+    /^db\/91_pedido_item_production_priority\.sql$/,
   ];
   for (const rel of changed.concat(untracked)) {
     if (POSTERIOR_AUTORIZADO.some((re) => re.test(rel))) continue;
@@ -1191,8 +1201,16 @@ test('R3/19h. gates estruturais preservados (nenhum arquivo gated cresceu)', () 
   // pendencias por produto ganhou o dono canonico de rolagem local
   // (data-rv-table-scroll + min-width), com o cabecalho e todas as linhas
   // dentro do MESMO dono. Nenhuma logica nova; o gate segue sendo um ratchet.
-  assert.ok(lines('js/screens/pedido-detail-events.js') <= 2729,
-    'pedido-detail-events.js deve permanecer <= 2729 linhas');
+  // 2729 -> 2870: +141 linhas de PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1,
+  // todas no bloco PRIORIDADE DE PRODUCAO — a projecao dos itens do Pedido, o
+  // executor unico das acoes administrativas, o editor de sequencia, a
+  // confirmacao da sequencia solicitada, a remocao e o reconhecimento do erro
+  // estavel do gate de aceitacao. Nenhuma logica pre-existente foi tocada, e a
+  // SEMANTICA de prioridade nao mora aqui: ela e do dono compartilhado
+  // js/pedido-priority.js. O gate segue sendo um ratchet, apenas reancorado no
+  // bloco autorizado que o moveu.
+  assert.ok(lines('js/screens/pedido-detail-events.js') <= 2870,
+    'pedido-detail-events.js deve permanecer <= 2870 linhas');
   assert.ok(lines('js/screens/pedido-detail-progress.js') <= 918,
     'pedido-detail-progress.js deve permanecer <= 918 linhas');
 });
@@ -1567,8 +1585,36 @@ const B1_ASSETS = [
 // invalidacao: mudou apenas QUAL ordem posterior a faz. As derivacoes
 // _AINDA_EM_ e os conjuntos `declarados` abaixo subtraem esta lista pelo
 // mesmo motivo e da mesma forma que ja subtraem B1_ASSETS.
+// PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 acrescentou a sequencia de
+// prioridade de producao ENTRE OS ITENS de um mesmo Pedido: um dono
+// compartilhado novo (js/pedido-priority.js) e as superficies que o consomem —
+// as duas telas de criacao, as duas listas, os dois detalhes e a OP.
+// Retokenizou exatamente os assets que alterou.
+//
+// Como todo token desta ordem e estritamente posterior aos anteriores, nenhum
+// asset perdeu invalidacao: mudou apenas QUAL ordem posterior a faz. Pela MESMA
+// razao e da MESMA forma que as ordens anteriores ja fazem entre si, esta lista
+// e subtraida dos conjuntos das ordens que a precedem — um asset pertence ao
+// conjunto da ordem que o alterou POR ULTIMO.
+const PRIORITY_TOKEN = '20260728-pedido-item-production-priority-r1';
+const PRIORITY_ADDED_ASSETS = ['js/pedido-priority.js'];
+const PRIORITY_RETOKENED_ASSETS = [
+  'js/screens/cliente-pedido-detail.js',
+  'js/screens/cliente-pedido-form.js',
+  'js/screens/cliente-pedidos-list.js',
+  'js/screens/op-nova.js',
+  'js/screens/op-pdf.js',
+  'js/screens/op-persistir.js',
+  'js/screens/pedido-detail-data.js',
+  'js/screens/pedido-detail-events.js',
+  'js/screens/pedido-detail-render.js',
+  'js/screens/pedido-form.js',
+  'js/screens/pedidos-list.js',
+];
+const PRIORITY_ASSETS = PRIORITY_ADDED_ASSETS.concat(PRIORITY_RETOKENED_ASSETS);
+
 const SCREEN_GROUP_2_TOKEN = '20260727-ui-pedido-screen-group-2';
-const SCREEN_GROUP_2_ASSETS = [
+const SCREEN_GROUP_2_ASSETS_DECLARADOS = [
   'js/ui.js',
   'js/screens/cliente-pedido-form.js',
   'js/screens/pedido-detail.js',
@@ -1576,6 +1622,8 @@ const SCREEN_GROUP_2_ASSETS = [
   'js/screens/pedido-parciais-admin.js',
   'js/screens/pedido-tracking-admin.js',
 ];
+const SCREEN_GROUP_2_ASSETS = SCREEN_GROUP_2_ASSETS_DECLARADOS
+  .filter((asset) => !PRIORITY_RETOKENED_ASSETS.includes(asset));
 
 // PEDIDO-SCREEN-GROUP-3 consolidou as superficies de LISTA do Pedido e a
 // JORNADA DO CLIENTE: a lista administrativa, o dashboard do cliente, a lista
@@ -1590,7 +1638,7 @@ const SCREEN_GROUP_2_ASSETS = [
 // subtraem esta lista pelo mesmo motivo e da mesma forma que ja subtraem
 // SCREEN_GROUP_2_ASSETS.
 const SCREEN_GROUP_3_TOKEN = '20260727-ui-pedido-screen-group-3';
-const SCREEN_GROUP_3_ASSETS = [
+const SCREEN_GROUP_3_ASSETS_DECLARADOS = [
   'js/screens/cliente-dashboard.js',
   'js/screens/cliente-pedido-detail.js',
   'js/screens/cliente-pedido-tracking.js',
@@ -1598,6 +1646,8 @@ const SCREEN_GROUP_3_ASSETS = [
   'js/screens/pedido-item-row-editor.js',
   'js/screens/pedidos-list.js',
 ];
+const SCREEN_GROUP_3_ASSETS = SCREEN_GROUP_3_ASSETS_DECLARADOS
+  .filter((asset) => !PRIORITY_RETOKENED_ASSETS.includes(asset));
 // INTTEX-BRAND-ASSET-INTEGRATION integrou os assets de marca ja aprovados no
 // chrome global e na tela de login: o wordmark textual da topbar e o
 // placeholder improvisado do login deram lugar ao logotipo horizontal
@@ -1861,7 +1911,9 @@ const BATCH3_RETOKENED_ASSETS = [
   'css/responsive.css',
 ];
 const BATCH3_ASSETS_DECLARADOS = BATCH3_ADDED_ASSETS.concat(BATCH3_RETOKENED_ASSETS);
-const BATCH3_ASSETS = BATCH3_ASSETS_DECLARADOS.filter((a) => !PASS1_ASSETS.includes(a));
+const BATCH3_ASSETS = BATCH3_ASSETS_DECLARADOS
+  .filter((a) => !PASS1_ASSETS.includes(a))
+  .filter((a) => !PRIORITY_RETOKENED_ASSETS.includes(a));
 
 // Os assets que o lote 3 retokenizou saem do conjunto do lote 2; eles continuam
 // listados em BATCH2_* porque, em relacao a 4532f76, seguem sendo assets
@@ -1869,10 +1921,14 @@ const BATCH3_ASSETS = BATCH3_ASSETS_DECLARADOS.filter((a) => !PASS1_ASSETS.inclu
 const BATCH2_ASSETS = BATCH2_ADDED_ASSETS.concat(BATCH2_RETOKENED_ASSETS)
   .filter((asset) => !PASS2_A2_ASSETS.includes(asset))
   .filter((asset) => !BATCH3_ASSETS.includes(asset))
-  .filter((asset) => !PASS1_ASSETS.includes(asset));
+  .filter((asset) => !PASS1_ASSETS.includes(asset))
+  .filter((asset) => !PRIORITY_RETOKENED_ASSETS.includes(asset));
 
 // Todo asset acrescentado depois de 4532f76 por uma ordem autorizada.
-const ADDED_SINCE_4532F76 = BATCH2_ADDED_ASSETS
+// js/pedido-priority.js entra aqui pela mesma razao que os demais: e um asset
+// ACRESCENTADO depois de 4532f76 por uma ordem autorizada, e nao um asset
+// pre-existente que mudou de caminho.
+const ADDED_SINCE_4532F76 = PRIORITY_ADDED_ASSETS.concat(BATCH2_ADDED_ASSETS)
   .concat(BATCH3_ADDED_ASSETS)
   .concat(PASS7_ADDED_ASSETS)
   .concat(BRAND_ADDED_ASSETS);
@@ -1912,11 +1968,14 @@ test('R3/20a. os dois assets alterados por R3 seguem invalidados', () => {
   // O asset que a passada 1 retokenizou carrega o token da ULTIMA passada que o
   // alterou: a passada 3 de altura tambem tocou pedido-detail-render.js.
   // PEDIDO-SCREEN-GROUP-2 passou a ser a ULTIMA ordem a alterar
-  // pedido-detail-render.js (ritmo unico de cartao no detalhe do Pedido), e por
-  // isso encabeca a cadeia de precedencia abaixo. O sujeito do guard nao muda:
+  // pedido-detail-render.js (ritmo unico de cartao no detalhe do Pedido).
+  // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 tomou esse lugar — o detalhe
+  // administrativo ganhou a secao de prioridade de producao — e por isso
+  // encabeca a cadeia de precedencia abaixo. O sujeito do guard nao muda:
   // R3 continua proibido de arrastar asset algum, e o asset segue invalidado.
   for (const rel of R3_ASSETS.filter((a) => PASS1_ASSETS.includes(a))) {
-    const esperado = SCREEN_GROUP_3_ASSETS.includes(rel) ? SCREEN_GROUP_3_TOKEN
+    const esperado = PRIORITY_ASSETS.includes(rel) ? PRIORITY_TOKEN
+      : SCREEN_GROUP_3_ASSETS.includes(rel) ? SCREEN_GROUP_3_TOKEN
       : SCREEN_GROUP_2_ASSETS.includes(rel) ? SCREEN_GROUP_2_TOKEN
       : PASS8_ASSETS.includes(rel) ? PASS8_TOKEN
       : PASS6_A1_ASSETS.includes(rel) ? PASS6_A1_TOKEN
@@ -2002,15 +2061,21 @@ test('R3/20c6. o lote 3 nao retokenizou nenhum asset que nao alterou', () => {
   // somente-leitura do modal e acoes de linha pelo dono canonico). O sujeito
   // do guard segue o mesmo: o lote 3 continua proibido de arrastar asset algum.
   const SCREEN_GROUP_1_TOKEN = '20260727-ui-pedido-screen-group-1';
+  // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 passou a ser a ULTIMA ordem a
+  // alterar pedido-detail-data (os campos prioridade_* entraram no read model)
+  // e cliente-pedido-form (solicitacao de prioridade e confirmacao de
+  // finalizacao). O sujeito do guard nao muda: o lote 3 continua proibido de
+  // arrastar asset algum, e cada asset segue verificado contra a ordem que o
+  // alterou POR ULTIMO.
   const intocados = [
-    ['js/screens/pedido-detail-data.js', BATCH2_TOKEN],
+    ['js/screens/pedido-detail-data.js', PRIORITY_TOKEN],
     ['js/screens/pedido-edit.js', SCREEN_GROUP_1_TOKEN],
     ['js/screens/pedido-itens-edit.js', SCREEN_GROUP_1_TOKEN],
     // PEDIDO-SCREEN-GROUP-2 passou a ser a ULTIMA ordem a alterar
     // cliente-pedido-form (moldura, divisor de cabecalho, empilhamento
     // canonico do modal de item e remocao do contorno de posicionamento
     // provado redundante). O lote 3 continua proibido de arrastar asset algum.
-    ['js/screens/cliente-pedido-form.js', SCREEN_GROUP_2_TOKEN],
+    ['js/screens/cliente-pedido-form.js', PRIORITY_TOKEN],
     // INTTEX-BRAND-ASSET-INTEGRATION passou a ser a ULTIMA ordem a alterar
     // common.js: a marca textual da topbar deu lugar ao logotipo aprovado. O
     // lote 3 continua proibido de arrastar asset algum.
@@ -2092,9 +2157,15 @@ test('R3/20f. o cache-bust nao introduz delta de banco nem toca css', () => {
   // autorizado, nao ao sujeito historico R3 (Manta responsivo) guardado aqui,
   // e e provada por scripts/validate-ui-foundation.mjs. A garantia original —
   // o cache-bust de R3 nao toca css — segue integral.
+  // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1: mesma razao das duas
+  // migracoes anteriores. Uma migracao autorizada POSTERIOR nao pertence ao
+  // sujeito historico deste guard (o cache-bust de R3) e nao pode ser lida como
+  // delta dele; a garantia original — este cache-bust nao toca o banco nem css —
+  // segue integral.
   const POSTERIOR_AUTORIZADO = [
     /^db\/89_pedido_commercial_date_and_number_control\.sql$/,
     /^db\/90_pedido_proximo_numero_suggestion_rpc\.sql$/,
+    /^db\/91_pedido_item_production_priority\.sql$/,
     /^css\/responsive\.css$/,
     /^css\/tokens\.css$/,
   ];
@@ -2428,8 +2499,12 @@ test('PASS6/20c15. os assets da passada 6 de tipografia carregam exatamente o to
 // anterior ao seu — um token velho sobrevivente serviria a um browser com
 // cache quente o JavaScript pre-consolidacao.
 test('R3/20c9. os assets de PEDIDO-SCREEN-GROUP-3 carregam exatamente o token da ordem', () => {
-  assert.equal(SCREEN_GROUP_3_ASSETS.length, 6,
-    'a populacao alterada por PEDIDO-SCREEN-GROUP-3 e de seis assets');
+  // Tres dos seis assets originais passaram a pertencer a
+  // PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1, que os alterou POR ULTIMO:
+  // cliente-pedido-detail, cliente-pedidos-list e pedidos-list. Restam tres sob
+  // o token desta ordem, e nenhum deles perdeu invalidacao.
+  assert.equal(SCREEN_GROUP_3_ASSETS.length, 3,
+    'a populacao AINDA sob o token de PEDIDO-SCREEN-GROUP-3 e de tres assets');
   for (const rel of SCREEN_GROUP_3_ASSETS) {
     assert.equal(tokenFor(rel), SCREEN_GROUP_3_TOKEN,
       rel + ' deve carregar o token de PEDIDO-SCREEN-GROUP-3');
