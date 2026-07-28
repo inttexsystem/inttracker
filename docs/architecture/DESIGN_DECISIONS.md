@@ -307,6 +307,29 @@ reads. `AGENT_INSTRUCTIONS.md` §5 now makes that omission a defect in the order
 
 ---
 
+## 2026-07-28 · D11.2 — the off switch has to be visible, and the knob has to sit straight
+
+**Context.** D11 corrected the knob radius and shipped. The architect then could not find
+the control on the screen: the off track is `--rv-surface-subtle` (#f8fafc) with no
+border, which is invisible on a `--rv-surface` card (#ffffff). Adding a 1px border fixed
+the visibility and immediately exposed a second fault — with `box-sizing: border-box` the
+border consumed 2px of the inner box, so the 2px knob inset left 0px at the bottom and
+0px at the end of the travel, and the knob rendered visibly crooked.
+
+| # | Decision | Choice | Reason | Accepted loss |
+|---|---|---|---|---|
+| D11.2 | Off-state visibility | **1px `--rv-border-strong` on the track** | The off fill and the card surface are the same colour family, so fill alone cannot describe a control. This is the border the Field primitive (§2.2) already uses. | The off switch is slightly heavier than a pure fill. |
+| D11.3 | Knob inset | **2px → 1px** | With a 1px border the inner box is 38x20; a 1px inset centres the knob exactly — 1+18+1 vertically and 1+18+18+1 horizontally. The outer box stays the ratified 40x22. | None; it restores the symmetry the border broke. |
+| D11.4 | Switch radius | **`--rv-switch-radius` 3px, track and knob** | At 4px inside a 1px border the knob read rounder than its own track. One rung tighter nests correctly. It is a role token in the specialized-control block, which already owns switch geometry — not a fourth global radius. | The closed shape enum no longer describes every radius in the product by itself; the specialized-control block owns this one, as it already owns switch height and travel. |
+
+**Found by looking, not by measuring.** D11 was validated with `getComputedStyle`:
+radius, width, height and travel all returned the ratified values while the control was
+invisible and crooked on screen. A computed-style probe cannot see that a control and its
+background share a colour, nor that a knob is off-centre. Rendered inspection is not
+optional for a visual change.
+
+---
+
 ## How to record the next round
 
 Header with date and name. Context in two sentences. One line per decision with

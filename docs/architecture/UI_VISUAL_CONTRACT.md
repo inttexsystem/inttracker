@@ -344,14 +344,18 @@ by two owners:
 | Track width | `--rv-switch-track-w` | 40px |
 | Track height | `--rv-switch-track-h` | 22px |
 | Knob width/height | `--rv-switch-knob` | 18px |
-| Knob inset | `--rv-switch-knob-inset` | 2px |
+| Knob inset | `--rv-switch-knob-inset` | 1px |
 | Knob travel | `--rv-switch-knob-travel` | 18px |
 | Field height | `--rv-switch-field-h` | 36px |
+| Track and knob radius | `--rv-switch-radius` | 3px |
+| Track border | `--rv-border-strong` | 1px |
 
-**Radius — `var(--rv-radius)` on the track AND on the knob.** A switch is an
-**ordinary interactive control** for radius ownership. D6.1 scopes `--rv-radius-pill`
-to semantic pills and true circles; a switch knob is neither, so the circular knob was
-never covered and is now forbidden. **Prohibited anywhere in switch geometry:**
+**Radius — `var(--rv-switch-radius)` (3px) on the track AND on the knob.** A switch is
+an **ordinary interactive control** for radius ownership. D6.1 scopes
+`--rv-radius-pill` to semantic pills and true circles; a switch knob is neither, so the
+circular knob was never covered and is now forbidden. The switch takes one rung TIGHTER
+than the ordinary 4px because it is a 22px-tall control carrying an 18px knob inside a
+1px border: at 4px the knob read rounder than the track that contains it (D11.2). **Prohibited anywhere in switch geometry:**
 `var(--rv-radius-pill)`, `999px`, `50%`, and any `border-radius` equal to half the
 rendered knob dimension or any other capsule construction.
 
@@ -361,7 +365,7 @@ handler:
 
 | State | Declaration |
 |---|---|
-| OFF | track `--rv-surface-subtle`, knob at the inset |
+| OFF | track `--rv-surface-subtle` with a 1px `--rv-border-strong` border, knob at the inset |
 | ON | track `--rv-viz-primary` (`brand`) or `--rv-signal-caution` (`caution`), knob translated by the travel |
 | Focus-visible | `0 0 0 3px var(--rv-focus-ring)` on the track |
 | Disabled | track `opacity: .5`, `cursor: not-allowed` |

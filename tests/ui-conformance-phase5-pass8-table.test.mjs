@@ -994,7 +994,7 @@ test('10.2 UNCHANGED assets keep their previous tokens', () => {
   // but SPECIALIZED-CONTROLS-B1 added the specialized-control role geometry to
   // it, and D11 (UI-SWITCH-PRIMITIVE-CONTRACT-R1) later corrected the switch
   // knob radius there, so it correctly carries that strictly later token.
-  assert.match(INDEX, /css\/tokens\.css\?v=20260728-ui-switch-off-state-visibility-r1/);
+  assert.match(INDEX, /css\/tokens\.css\?v=20260728-ui-switch-geometry-r2/);
   assert.match(INDEX, /css\/responsive\.css\?v=20260725-pedido-operational-batch3/);
   assert.match(INDEX, /js\/select-popover\.js\?v=20260727-ui-p5-pass7-native-select-a1/);
   // pedido-item-row-editor.js was UNCHANGED by pass 8 and held its pass-7 token

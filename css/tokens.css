@@ -158,8 +158,9 @@
   --rv-switch-track-w:     40px;
   --rv-switch-track-h:     22px;
   --rv-switch-knob:        18px;
-  --rv-switch-knob-inset:   2px;
+  --rv-switch-knob-inset:   1px;
   --rv-switch-knob-travel: 18px;
+  --rv-switch-radius:       3px;
   --rv-switch-field-h:     36px;
 
   /* -- range -- */
@@ -414,7 +415,7 @@
   box-sizing: border-box;
   width: var(--rv-switch-track-w);
   height: var(--rv-switch-track-h);
-  border-radius: var(--rv-radius);
+  border-radius: var(--rv-switch-radius);
   border: 1px solid var(--rv-border-strong);
   background: var(--rv-surface-subtle);
   transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
@@ -431,7 +432,7 @@
   left: var(--rv-switch-knob-inset);
   width: var(--rv-switch-knob);
   height: var(--rv-switch-knob);
-  border-radius: var(--rv-radius);
+  border-radius: var(--rv-switch-radius);
   background: var(--rv-surface);
   box-shadow: var(--rv-shadow-sm);
   transition: transform .15s ease;

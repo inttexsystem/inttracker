@@ -425,7 +425,7 @@ const SWITCH_KNOBS = [
  *  two — and the signature keeps pinning radius and shadow together so the two
  *  cannot drift apart unnoticed. */
 const KNOB_SIGNATURE =
-  /^\.rv-switch-knob \{[^}]*border-radius:\s*var\(--rv-radius\);[^}]*box-shadow:\s*var\(--rv-shadow-sm\);/m;
+  /^\.rv-switch-knob \{[^}]*border-radius:\s*var\(--rv-switch-radius\);[^}]*box-shadow:\s*var\(--rv-shadow-sm\);/m;
 
 test('14 · SPECIALIZED_SWITCH_KNOB_SHADOW_COUNT = 2, geometry and shadow preserved', () => {
   const tokens = read('css/tokens.css');

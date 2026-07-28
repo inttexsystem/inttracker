@@ -1557,7 +1557,7 @@ const B1_TOKEN = '20260727-ui-specialized-controls-b1';
 // the switch knob radius in css/tokens.css, so that ONE asset moved to the
 // strictly later correction token. Same rule as every tier before it: an asset
 // belongs to the order that changed it LAST, and none of the others moved.
-const SWITCH_CONTRACT_TOKEN = '20260728-ui-switch-off-state-visibility-r1';
+const SWITCH_CONTRACT_TOKEN = '20260728-ui-switch-geometry-r2';
 const SWITCH_CONTRACT_ASSETS = ['css/tokens.css'];
 const B1_ASSETS = [
   'js/ui.js',
