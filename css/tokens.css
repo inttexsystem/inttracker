@@ -400,14 +400,24 @@
   cursor: pointer;
 }
 .rv-switch[data-rv-switch-disabled] { cursor: not-allowed; }
+/* The track carries a BORDER because its OFF fill is --rv-surface-subtle
+   (#f8fafc), which is invisible on a --rv-surface card (#ffffff) and equally
+   invisible on a subtle-filled panel: the control simply disappeared when off.
+   The border is the same --rv-border-strong the Field primitive uses (§2.2),
+   so an off switch reads as a control instead of as nothing.
+   `box-sizing: border-box` keeps the ratified 40x22 outer box exactly: the
+   1px border leaves 38x20 of content, which fits the 18px knob at its 2px
+   inset and its 18px travel with no overflow and no dimension change. */
 .rv-switch-track {
   position: relative;
   display: inline-block;
+  box-sizing: border-box;
   width: var(--rv-switch-track-w);
   height: var(--rv-switch-track-h);
   border-radius: var(--rv-radius);
+  border: 1px solid var(--rv-border-strong);
   background: var(--rv-surface-subtle);
-  transition: background .15s ease, box-shadow .15s ease;
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 /* D11: the knob takes the ORDINARY radius, like the track.
    A switch is an ordinary interactive control. Its knob is not a status dot,
@@ -429,9 +439,13 @@
 /* CHECKED is declarative: the collapsed checkbox owns the state and the
    track/knob follow it, so a programmatic `.checked = true` repaints
    without any repaint handler. */
-.rv-switch .rv-checkbox-collapsed:checked ~ .rv-switch-track { background: var(--rv-viz-primary); }
+.rv-switch .rv-checkbox-collapsed:checked ~ .rv-switch-track {
+  background: var(--rv-viz-primary);
+  border-color: var(--rv-viz-primary);
+}
 .rv-switch[data-rv-switch-tone="caution"] .rv-checkbox-collapsed:checked ~ .rv-switch-track {
   background: var(--rv-signal-caution);
+  border-color: var(--rv-signal-caution);
 }
 .rv-switch .rv-checkbox-collapsed:checked ~ .rv-switch-track .rv-switch-knob {
   transform: translateX(var(--rv-switch-knob-travel));

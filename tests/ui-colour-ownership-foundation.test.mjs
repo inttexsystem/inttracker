@@ -51,7 +51,7 @@ const PASS1_TOKEN = '20260727-ui-specialized-controls-b1';
 // D11 corrected the switch knob radius in css/tokens.css, so the stylesheet
 // carries the strictly later correction token. The guarantee is unchanged: the
 // stylesheet is referenced EXACTLY once, under the order that touched it last.
-const TOKENS_TOKEN = '20260728-ui-switch-primitive-contract-r1';
+const TOKENS_TOKEN = '20260728-ui-switch-off-state-visibility-r1';
 const TOKENS_LINK = `<link rel="stylesheet" href="css/tokens.css?v=${TOKENS_TOKEN}">`;
 
 const SCREEN_DIR = path.join(ROOT, 'js', 'screens');
