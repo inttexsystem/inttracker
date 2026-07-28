@@ -749,7 +749,25 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
    * sums to the same 27.
    */
   const SCREEN_GROUP_1 = '20260727-ui-pedido-screen-group-1';
-  const SCREEN_GROUP_1_CHANGED = [
+  /*
+   * PEDIDO-ADMIN-DUAL-ITEM-ENTRY-RESTORE-R1 FORWARD CORRECTION
+   *
+   * That order restored the detailed add-item modal on the admin Pedido screen
+   * and added the discreet "Adicionar linha" quick-row action, so
+   * js/screens/pedido-form.js changed once more and left the screen-group-1
+   * token. It was the ONLY pass-6 asset that screen-group-1 still owned, so
+   * that tier is now empty and this one holds it. The order also introduced
+   * js/screens/pedido-item-modal.js, which pass 6 never touched and which
+   * therefore does NOT join this historical population.
+   *
+   * A dual-item-entry token is strictly later than a pass-6, A1, pass-7,
+   * pass-8, containment, B1 or screen-group-1 one, so pass 6's invariant is
+   * intact: every asset it changed is still invalidated against the pass-5
+   * checkpoint — only WHICH later token does the invalidating moved. The
+   * population below still sums to the same 27.
+   */
+  const DUAL_ENTRY = '20260728-pedido-dual-item-entry-r1';
+  const DUAL_ENTRY_CHANGED = [
     'js/screens/pedido-form.js',
   ];
   /*
@@ -821,7 +839,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   // across the tokens. That is what proves nothing silently dropped out.
   assert.equal(PASS7_CHANGED.length + PASS7_A4_CHANGED.length + PASS7_A5_CHANGED.length
     + A1_CHANGED.length + PASS8_CHANGED.length + PASS8_A1_CHANGED.length
-    + CONTAINMENT_A1_CHANGED.length + B1_CHANGED.length + SCREEN_GROUP_1_CHANGED.length
+    + CONTAINMENT_A1_CHANGED.length + B1_CHANGED.length + DUAL_ENTRY_CHANGED.length
     + SCREEN_GROUP_2_CHANGED.length + SCREEN_GROUP_3_CHANGED.length
     + BRAND_CHANGED.length
     + PASS6_ONLY.length, 27);
@@ -851,11 +869,13 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     assert.ok(INDEX.includes(`"${rel}?v=${B1}"`),
       `${rel} must carry the specialized-controls B1 token`);
   }
-  for (const rel of SCREEN_GROUP_1_CHANGED) {
-    assert.ok(INDEX.includes(`"${rel}?v=${SCREEN_GROUP_1}"`),
-      `${rel} must carry the Pedido screen-group-1 token`);
-    assert.ok(!INDEX.includes(`"${rel}?v=${B1}"`),
-      `${rel} kept the superseded specialized-controls B1 token`);
+  for (const rel of DUAL_ENTRY_CHANGED) {
+    assert.ok(INDEX.includes(`"${rel}?v=${DUAL_ENTRY}"`),
+      `${rel} must carry the Pedido dual-item-entry token`);
+    for (const stale of [PASS6, A1, PASS7, PASS8, PASS8_A1, CONTAINMENT_A1, B1, SCREEN_GROUP_1]) {
+      assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`),
+        `${rel} kept a superseded token`);
+    }
   }
   for (const rel of SCREEN_GROUP_2_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${SCREEN_GROUP_2}"`),
@@ -892,7 +912,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     'the pass-6 token leaked or was dropped');
   // Every asset pass 6 touched still carries a token LATER than the pass-5 one.
   for (const rel of [...PASS7_CHANGED, ...PASS7_A4_CHANGED, ...PASS7_A5_CHANGED, ...A1_CHANGED,
-    ...PASS8_CHANGED, ...PASS8_A1_CHANGED, ...B1_CHANGED, ...SCREEN_GROUP_1_CHANGED,
+    ...PASS8_CHANGED, ...PASS8_A1_CHANGED, ...B1_CHANGED, ...DUAL_ENTRY_CHANGED,
     ...SCREEN_GROUP_2_CHANGED, ...SCREEN_GROUP_3_CHANGED, ...BRAND_CHANGED, ...PASS6_ONLY]) {
     assert.ok(!INDEX.includes(`"${rel}?v=20260726-ui-p5-pass5`),
       `${rel} fell back to the pass-5 token`);

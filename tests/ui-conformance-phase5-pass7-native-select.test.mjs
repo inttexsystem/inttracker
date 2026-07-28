@@ -933,7 +933,25 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
    * token invalidates three of them moved.
    */
   const SCREEN_GROUP_1 = '20260727-ui-pedido-screen-group-1';
-  const CHANGED_BY_PASS7_THEN_SCREEN_GROUP_1 = [
+  /*
+   * PEDIDO-ADMIN-DUAL-ITEM-ENTRY-RESTORE-R1 FORWARD CORRECTION
+   *
+   * That order restored the detailed add-item modal on the admin Pedido screen
+   * and added the discreet "Adicionar linha" quick-row action, so
+   * js/screens/pedido-form.js changed once more and left the screen-group-1
+   * token. It was the ONLY pass-7 asset that screen-group-1 still owned, so
+   * that tier is now empty and this one holds it. The order also introduced
+   * js/screens/pedido-item-modal.js, which pass 7 never touched and which
+   * therefore does NOT join this historical population.
+   *
+   * A dual-item-entry token is strictly LATER than a pass-7, pass-8,
+   * containment, B1 or screen-group-1 one, so pass 7's invariant is intact:
+   * every asset it changed is still invalidated against the pass-6 checkpoint.
+   * The population is still eleven; only which later token invalidates this
+   * one moved.
+   */
+  const DUAL_ENTRY = '20260728-pedido-dual-item-entry-r1';
+  const CHANGED_BY_PASS7_THEN_DUAL_ENTRY = [
     'js/screens/pedido-form.js',
   ];
   /*
@@ -975,7 +993,7 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
   ];
   assert.equal(changed.length + CHANGED_BY_PASS7_THEN_PASS8.length
     + CHANGED_BY_PASS7_THEN_CONTAINMENT_A1.length + CHANGED_BY_PASS7_THEN_B1.length
-    + CHANGED_BY_PASS7_THEN_SCREEN_GROUP_1.length
+    + CHANGED_BY_PASS7_THEN_DUAL_ENTRY.length
     + CHANGED_BY_PASS7_THEN_SCREEN_GROUP_2.length
     + CHANGED_BY_PASS7_THEN_SCREEN_GROUP_3.length, 11,
     'the pass-7 changed-asset population must stay eleven');
@@ -996,11 +1014,12 @@ test('42 · the cache token was applied to exactly the changed runtime assets', 
       `${rel} must carry the later specialized-controls B1 token`);
     assert.ok(!INDEX.includes(`${rel}?v=20260726-ui-p5-pass6`), `${rel} fell back to a pass-6 token`);
   }
-  for (const rel of CHANGED_BY_PASS7_THEN_SCREEN_GROUP_1) {
-    assert.ok(INDEX.includes(`${rel}?v=${SCREEN_GROUP_1}`),
-      `${rel} must carry the later Pedido screen-group-1 token`);
-    assert.ok(!INDEX.includes(`${rel}?v=${TOKEN}`), `${rel} kept the superseded pass-7 token`);
-    assert.ok(!INDEX.includes(`${rel}?v=${B1}`), `${rel} kept the superseded B1 token`);
+  for (const rel of CHANGED_BY_PASS7_THEN_DUAL_ENTRY) {
+    assert.ok(INDEX.includes(`${rel}?v=${DUAL_ENTRY}`),
+      `${rel} must carry the later Pedido dual-item-entry token`);
+    for (const stale of [TOKEN, PASS8, CONTAINMENT_A1, B1, SCREEN_GROUP_1]) {
+      assert.ok(!INDEX.includes(`${rel}?v=${stale}`), `${rel} kept a superseded token`);
+    }
   }
   for (const rel of CHANGED_BY_PASS7_THEN_SCREEN_GROUP_2) {
     assert.ok(INDEX.includes(`${rel}?v=${SCREEN_GROUP_2}`),
