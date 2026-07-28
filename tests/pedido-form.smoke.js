@@ -59,6 +59,8 @@ const ROWEDIT = path.join(ROOT, 'js', 'screens', 'pedido-item-row-editor.js');
 // ocupado, textos) foi extraido para este modulo, carregado no sandbox para que
 // as provas exercitem o codigo REAL e nao um duplo local.
 const NUMSUG = path.join(ROOT, 'js', 'screens', 'pedido-numero-sugestao.js');
+// PEDIDO-ADMIN-DUAL-ITEM-ENTRY-RESTORE-R1: dono do modal detalhado de item.
+const ITEMMODAL = path.join(ROOT, 'js', 'screens', 'pedido-item-modal.js');
 
 function readOrFail(p) {
   assert.ok(fs.existsSync(p), 'arquivo não encontrado: ' + p);
@@ -76,6 +78,7 @@ const opDispSrc = readOrFail(OPDISP);
 const pRouteSrc = readOrFail(PROUTE);
 const rowEditor = readOrFail(ROWEDIT);
 const numSug = readOrFail(NUMSUG);
+const itemModal = readOrFail(ITEMMODAL);
 
 // ---------------------------------------------------------------------
 // PedidoFormNode — the shared FaithfulNode widened with an attribute-aware
@@ -373,6 +376,9 @@ function makePedidoFormRuntime() {
   vm.runInContext(pRouteSrc, sandbox, { filename: 'js/product-route.js' });
   vm.runInContext(rowEditor, sandbox, { filename: 'js/screens/pedido-item-row-editor.js' });
   vm.runInContext(numSug, sandbox, { filename: 'js/screens/pedido-numero-sugestao.js' });
+  // O modal detalhado depende do derivador de rota da linha, entao carrega
+  // DEPOIS dela e ANTES da tela — a mesma ordem declarada em index.html.
+  vm.runInContext(itemModal, sandbox, { filename: 'js/screens/pedido-item-modal.js' });
   // js/ui.js also defines a real toast() that appends to #toasts and arms a
   // setTimeout; the runtime test never asserts on toast, so re-override it with
   // a no-op AFTER ui.js (representation translation, rule 4).
@@ -1442,19 +1448,37 @@ test('batch2/15. modelo_id e a UNICA identidade de produto persistida', async ()
   assert.equal(calls.pedidoItensInsert[0].modelo_id, 2);
 });
 
-test('batch2/16. nenhum editor de item completo sobrevive dentro de um modal', () => {
+// PEDIDO-ADMIN-DUAL-ITEM-ENTRY-RESTORE-R1 — GUARD REESCOPADO.
+//
+// BATCH-02 provou aqui que a tela nao mantinha um EDITOR DE ITEM COMPLETO
+// dentro de um modal de transicao, e escreveu essa prova como "nenhum modal".
+// O arquiteto decidiu (DECIDED_FACTS 10 e 11 da ordem de restauracao) que o
+// item de Pedido e um ITEM FILHO delimitado, nao uma entidade de topo, e que a
+// regra estrutural invocada por BATCH-02 nao alcanca um modal de CRIACAO de
+// filho — a mesma decisao que ja governa o modal homologado do cliente.
+//
+// O sujeito real do guard sobrevive e e o que continua verificado: nao pode
+// haver DOIS editores de linha concorrentes, a linha continua sendo do modulo
+// extraido, e o modal nao pode voltar a morar dentro desta tela. O que muda e
+// que a EXISTENCIA do modal, no seu proprio dono, deixou de ser um defeito.
+test('batch2/16. nao existe um segundo editor de linha, e o modal mora no dono proprio', () => {
   assert.doesNotMatch(screen, /function\s+openItemModal\s*\(/,
-    'o modal de item nao pode sobreviver em pedido-form.js');
-  assert.doesNotMatch(screen, /function\s+openAddItemModal\s*\(/);
+    'o modal nao pode ser reimplantado dentro de pedido-form.js');
+  assert.doesNotMatch(screen, /function\s+openAddItemModal\s*\(/,
+    'quem constroi o modal e js/screens/pedido-item-modal.js');
   assert.doesNotMatch(screen, /position:fixed; inset:0/,
-    'nenhum overlay de modal de item pode restar');
+    'nenhum overlay de modal pode ser declarado por esta tela');
   assert.doesNotMatch(screen, /Salvar altera/,
-    'a acao primaria do modal de item sumiu junto com ele');
-  assert.match(screen, /state\.itens\.push\(\{[\s\S]{0,200}?uid: novoUid\(\)/,
-    '"Adicionar item" deve acrescentar uma linha editavel');
+    'o modal de item nunca foi uma superficie de salvamento');
+  assert.match(screen, /state\.itens\.push\(novoItem\(\)\)/,
+    '"Adicionar linha" deve acrescentar uma linha editavel em branco');
+  assert.match(itemModal, /function\s+openAddItemModal\s*\(options\)/,
+    'o modal detalhado deve existir no seu dono');
   assert.match(rowEditor, /function\s+buildRow\s*\(options\)/);
   assert.doesNotMatch(screen, /function\s+buildItemRow\s*\(/,
     'pedido-form.js nao pode manter uma segunda implementacao de linha');
+  assert.doesNotMatch(itemModal, /function\s+buildRow\s*\(/,
+    'o modal nao pode manter uma terceira implementacao de linha');
 });
 
 test('batch2/17. carregar tipo_produto FALHA FECHADA: nada de degradar para Tapete', async () => {
@@ -1517,6 +1541,10 @@ test('batch2/20. a extracao de BATCH-02 se mantem e o debito estrutural segue qu
     'o modulo da linha de item deve respeitar o limite normal de code-health');
   assert.ok(fs.readFileSync(NUMSUG, 'utf8').split('\n').length <= 500,
     'o modulo de sugestao de numero deve respeitar o limite normal de code-health');
+  // A restauracao do modal detalhado foi EXTRAIDA em vez de absorvida: colocar
+  // ~250 linhas dentro da tela a jogaria fora da faixa excepcional.
+  assert.ok(itemModal.split('\n').length <= 500,
+    'o modulo do modal de item deve respeitar o limite normal de code-health');
   assert.doesNotMatch(screen, /DEBITO ESTRUTURAL NAO BLOQUEANTE/,
     'o debito estrutural de BATCH-01 foi quitado pela extracao');
 });

@@ -25,7 +25,7 @@
 //     NUNCA e usado como data comercial (db/89);
 //   - o item deixou de ser uma entidade dentro de um modal: `Adicionar item`
 //     acrescenta uma LINHA EDITAVEL, e Tipo/Modelo sao selecionados na propria
-//     linha. O modal foi REMOVIDO — nao existem dois editores concorrentes;
+//     linha (VER A CORRECAO DE DUPLA ENTRADA ABAIXO);
 //   - a linha e a regra Tipo-antes-de-Modelo pertencem a
 //     js/screens/pedido-item-row-editor.js. Este arquivo caiu de 1089 para
 //     ~700 linhas com a extracao, e o debito estrutural de BATCH-01 esta
@@ -50,6 +50,17 @@
 //     uso.";
 //   - a superficie de cliente (`cliente-pedido-form.js`) continua sem expor
 //     este numero interno: ela nao tem o campo e nao chama a RPC.
+//
+// PEDIDO-ADMIN-DUAL-ITEM-ENTRY-RESTORE-R1 — CORRECAO PROGRESSIVA.
+//   BATCH-02 trocou o modal detalhado pela linha editavel e REMOVEU o modal,
+//   perdendo uma superficie homologada. O arquiteto decidiu que as DUAS
+//   convivem e nenhuma substitui a outra: `Adicionar item` (botao principal do
+//   cabecalho) abre o MODAL DETALHADO — dono js/screens/pedido-item-modal.js,
+//   rascunho LOCAL, abri-lo NAO insere linha —, e `Adicionar linha` (acao
+//   discreta em hyperlink, canto inferior direito) acrescenta UMA linha em
+//   branco a tabela inline. Ambos convergem no MESMO `state.itens` (construtor
+//   unico novoItem) e no MESMO payload. Edicao inline, remocao, totais, ordem,
+//   data, numeracao e salvamento nao mudaram.
 // =====================================================================
 
 (function (window) {
@@ -73,6 +84,17 @@
   // Dono UNICO da linha de item e da regra Tipo-antes-de-Modelo.
   function itemRowApi() {
     return window.RAVATEX_PEDIDO_ITEM_ROW || null;
+  }
+
+  // Dono UNICO do modal detalhado de item (js/screens/pedido-item-modal.js).
+  function itemModalApi() { return window.RAVATEX_PEDIDO_ITEM_MODAL || null; }
+
+  // Forma LOCAL unica do item: modal e linha rapida passam os DOIS por aqui, e
+  // por isso um item de um caminho e indistinguivel do outro — estado e payload.
+  function novoItem(dados) {
+    var d = dados || {};
+    return { uid: novoUid(), tipo: d.tipo || '', modeloId: d.modeloId || '',
+      metros: d.metros == null ? '' : d.metros, observacao: d.observacao || '' };
   }
 
   // Dono UNICO do contrato de numeracao (candidato, deteccao de ocupado,
@@ -107,9 +129,7 @@
       dataPedido: hojeLocalISO(),
       prazoEntrega: '',
       observacao: '',
-      itens: [
-        { uid: novoUid(), tipo: '', modeloId: '', metros: '', observacao: '' }
-      ]
+      itens: [novoItem()]
     };
     var postSave = null;
     var numeroErro = null;
@@ -125,10 +145,6 @@
     // db/90 ainda nao aplicado). O campo fica vazio e o salvamento cai na
     // alocacao automatica da coluna de identidade.
     var numeroSugestaoIndisponivel = false;
-
-
-
-
 
     function totalMetros() {
       var total = 0;
@@ -473,16 +489,56 @@
         }));
       }
 
-      // "Adicionar item" acrescenta uma LINHA EDITAVEL na tela; nao existe
-      // mais um modal dono do item.
+      // ENTRADA PRINCIPAL — abre o MODAL DETALHADO. O modal tem rascunho
+      // proprio: clicar aqui NAO acrescenta linha. Ele so toca state.itens na
+      // CONFIRMACAO, e pelo mesmo novoItem() da linha rapida.
       var addBtn = window.el('button', {
         type: 'button',
+        'data-pedido-add-item': '1',
         style: 'display:inline-flex; align-items:center; gap:8px; background:var(--rv-surface); color:var(--rv-accent-blue); border:1px solid var(--rv-brand); border-radius:var(--rv-radius); height:var(--rv-h-default); padding:0 13px; font-weight:600; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer; white-space:nowrap;',
         onclick: function () {
-          state.itens.push({ uid: novoUid(), tipo: '', modeloId: '', metros: '', observacao: '' });
-          render();
+          itemModalApi().openAddItemModal({
+            modelos: modelos,
+            typeMetadata: tipoMetadataOk,
+            onConfirm: function (dados) {
+              state.itens.push(novoItem(dados));
+              render();
+            }
+          });
         }
       }, svgEl(SVG_PLUS), 'Adicionar item');
+
+      // ENTRADA RAPIDA — acao DISCRETA em estilo hyperlink. E um <button> de
+      // verdade, nao <a href="#"> nem <span>: a acao nao navega, muta estado
+      // local — dai ativacao por teclado, papel correto e nome acessivel. So a
+      // APARENCIA e de link: sem fundo, sem borda, sem geometria de botao, na
+      // cor canonica de texto interativo.
+      //
+      // O estilo NAO declara `outline:none`: medido no navegador, repor o anel
+      // por manipulador de foco nao cobre todo caminho de foco e a acao ficava
+      // sem NENHUMA indicacao visivel. O anel nativo de :focus-visible e a
+      // indicacao, como em todo botao inline desta tela. Hover vai por
+      // manipulador porque a superficie e inline (padrao js/ui.js).
+      var quickRowLink = window.el('button', {
+        type: 'button',
+        'data-pedido-add-linha': '1',
+        'aria-label': 'Adicionar linha',
+        title: 'Adicionar linha em branco à tabela',
+        style: 'display:inline-flex; align-items:center; background:none; border:none; border-radius:var(--rv-radius); padding:2px; margin:0; color:var(--rv-accent-blue); font-family:inherit; font-size:var(--rv-fs-sm); font-weight:600; line-height:1.4; text-decoration:underline; text-underline-offset:3px; cursor:pointer;',
+        onclick: function () {
+          state.itens.push(novoItem());
+          render();
+        }
+      }, 'Adicionar linha');
+      quickRowLink.addEventListener('mouseenter', function () { quickRowLink.style.color = 'var(--rv-brand-strong)'; });
+      quickRowLink.addEventListener('mouseleave', function () { quickRowLink.style.color = 'var(--rv-accent-blue)'; });
+
+      // Fecha o cartao, a direita, subordinada ao botao do cabecalho — NUNCA
+      // ao lado de "Adicionar item": sao dois pesos diferentes.
+      var quickRowSlot = window.el('div', {
+        'data-pedido-add-linha-slot': '1',
+        style: 'display:flex; align-items:center; justify-content:flex-end; margin-top:10px;'
+      }, quickRowLink);
 
       var table = window.el('div', {
         style: 'border:1px solid var(--rv-border); border-radius:var(--rv-radius); overflow:hidden;'
@@ -521,7 +577,8 @@
       },
       window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary);' }, 'Itens do pedido'),
       addBtn),
-      table);
+      table,
+      quickRowSlot);
     }
 
     function buildBottomSection(saveBtn) {

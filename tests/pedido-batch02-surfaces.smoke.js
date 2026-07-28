@@ -360,8 +360,14 @@ test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não
   // actionButton(). Entao os dois voltam a divergir, e a linha de item carrega
   // o token dessa ordem. A garantia nao muda: cada asset e verificado contra a
   // ordem que o alterou POR ULTIMO, e nenhum retem o token do lote 2.
+  // PEDIDO-ADMIN-DUAL-ITEM-ENTRY-RESTORE-R1 restaurou o modal detalhado de
+  // item na tela admin e acrescentou a acao discreta "Adicionar linha", entao
+  // pedido-form.js passa a carregar o token dessa ordem. A linha de item nao
+  // foi tocada e mantem o seu. A garantia nao muda: cada asset e verificado
+  // contra a ordem que o alterou POR ULTIMO, e nenhum retem o token do lote 2.
   const ULTIMA_ORDEM = {
-    'screens/pedido-form.js': '20260727-ui-pedido-screen-group-1',
+    'screens/pedido-form.js': '20260728-pedido-dual-item-entry-r1',
+    'screens/pedido-item-modal.js': '20260728-pedido-dual-item-entry-r1',
     'screens/pedido-item-row-editor.js': '20260727-ui-pedido-screen-group-3',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
