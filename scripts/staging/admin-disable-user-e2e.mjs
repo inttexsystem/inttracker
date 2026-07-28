@@ -1,7 +1,8 @@
 // =====================================================================
 // === scripts/staging/admin-disable-user-e2e.mjs ========================
-// Runner local automatizado para E2E de `admin-disable-user` em
-// Supabase staging `ucrjtfswnfdlxwtmxnoo`.
+// Runner local automatizado para E2E de `admin-disable-user` em um
+// ambiente Supabase nao-produtivo isolado — que hoje NAO existe
+// (runner desativado).
 //
 // Comandos:
 //
@@ -44,15 +45,16 @@
 //     contrário. NUNCA chama die()/process.exit — caller decide.
 //
 // Garantias:
-//   - Bloqueia execução se a URL for produção `bhgifjrfagkzubpyqpew`.
-//   - Exige URL contendo o ref de staging `ucrjtfswnfdlxwtmxnoo`.
+//   - DESATIVADO (fail closed): bhgifjrfagkzubpyqpew e o projeto PROIBIDO.
+//     ucrjtfswnfdlxwtmxnoo e PRODUCAO: mutacao por este runner nao e autorizada.
 //   - Não usa SQL manual, .delete(), nem chama auth.admin.*.deleteUser.
 //   - Nunca imprime password, anon key, JWT, refresh token, access
 //     token, cookie, nem service_role.
 //   - Salva config em .ravatex-local/ (gitignored).
 //
-// Edge Function `admin-disable-user` deve estar deployada em staging
-// (project ref `ucrjtfswnfdlxwtmxnoo`) antes do `run`.
+// Edge Function `admin-disable-user` deveria estar deployada no
+// ambiente nao-produtivo antes do `run`. Sem esse ambiente, `run` nao
+// executa.
 // =====================================================================
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readFileSync as _rfs } from "node:fs";
@@ -64,8 +66,30 @@ const __filename = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(__filename), "..", "..");
 const CONFIG_DIR = resolve(ROOT, ".ravatex-local");
 const CONFIG_PATH = resolve(CONFIG_DIR, "admin-disable-user-e2e.config.json");
-const STAGING_REF = "ucrjtfswnfdlxwtmxnoo";
-const PRODUCTION_REF = "bhgifjrfagkzubpyqpew";
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1 — fail closed.
+// Este runner executa mutacao (Auth / Edge Function / dados) e so pode
+// operar contra um ambiente nao-produtivo isolado. Esse ambiente NAO
+// existe: ucrjtfswnfdlxwtmxnoo e a PRODUCAO definitiva,
+// gqmpsxkxynrjvidfmojk foi RETIRADO (nao e producao, staging, development
+// nem fallback) e bhgifjrfagkzubpyqpew e PROIBIDO. O caminho real de
+// execucao esta desativado deterministicamente; o proposito futuro do
+// runner permanece visivel no codigo.
+const PRODUCTION_REF = "ucrjtfswnfdlxwtmxnoo";
+const RETIRED_REF = "gqmpsxkxynrjvidfmojk";
+const FORBIDDEN_REF = "bhgifjrfagkzubpyqpew";
+const NONPRODUCTION_ENVIRONMENT_UNAVAILABLE = "INTTEX_NONPRODUCTION_ENVIRONMENT_UNAVAILABLE";
+
+// Nao existe variavel de ambiente, flag de CLI, prompt oculto ou override
+// generico que libere o caminho de escrita em producao.
+function refuseNonProductionEnvironmentUnavailable() {
+  console.error(NONPRODUCTION_ENVIRONMENT_UNAVAILABLE);
+  console.error("Este runner exige um ambiente nao-produtivo isolado.");
+  console.error("Nenhum ambiente nao-produtivo valido existe atualmente.");
+  console.error("O projeto configurado (" + PRODUCTION_REF + ") e PRODUCAO.");
+  console.error("Mutacao em producao nao e autorizada por este runner.");
+  console.error("Projeto retirado: " + RETIRED_REF + "; projeto proibido: " + FORBIDDEN_REF + ".");
+  process.exit(3);
+}
 
 // ---------------------------------------------------------------------
 // Helpers
@@ -106,24 +130,10 @@ function detectStagingFromConfigJs() {
   return { supabaseUrl: m[1], supabaseAnonKey: m[2] };
 }
 
-function assertStagingUrl(url) {
-  if (typeof url !== "string" || !url) {
-    die("URL do Supabase ausente ou inválida.");
-  }
-  if (url.includes(PRODUCTION_REF)) {
-    die(
-      "URL aponta para PRODUÇÃO (" + PRODUCTION_REF + "). " +
-        "Este runner é exclusivo para staging (" + STAGING_REF + "). " +
-        "Abortando por segurança.",
-    );
-  }
-  if (!url.includes(STAGING_REF)) {
-    die(
-      "URL não contém o ref de staging esperado (" + STAGING_REF + "). " +
-        "Abortando para evitar execução contra ambiente não autorizado. " +
-        "URL recebida: " + sanitize(url),
-    );
-  }
+function assertNonProductionEnvironment() {
+  // Defesa em profundidade: qualquer caminho remanescente que tente
+  // validar o ambiente para mutar falha fechada.
+  refuseNonProductionEnvironmentUnavailable();
 }
 
 function promptLine(question) {
@@ -304,7 +314,7 @@ async function cmdSetup() {
     );
   }
 
-  assertStagingUrl(supabaseUrl);
+  assertNonProductionEnvironment();
 
   const adminEmail = (await promptLine("Admin email (staging): ")).trim();
   if (!adminEmail) die("Admin email obrigatório.");
@@ -349,7 +359,7 @@ async function cmdSetup() {
 
   log("");
   log("Configuração salva em: " + CONFIG_PATH);
-  log("  project_ref:    " + STAGING_REF);
+  log("  project_ref:    " + PRODUCTION_REF);
   log("  supabaseUrl:    " + sanitize(supabaseUrl));
   log("  adminEmail:     " + adminEmail);
   log("  adminPassword:  " + maskSecret(adminPassword));
@@ -384,7 +394,7 @@ function loadConfig() {
       die("Campo obrigatório ausente/inválido no config: " + k);
     }
   }
-  assertStagingUrl(cfg.supabaseUrl);
+  assertNonProductionEnvironment();
   return cfg;
 }
 
@@ -472,7 +482,7 @@ function expectSuccess(resp, expectedFields) {
 async function cmdRun() {
   const cfg = loadConfig();
   const summary = {
-    project_ref: STAGING_REF,
+    project_ref: PRODUCTION_REF,
     test_email: null,
     test_user_id: null,
     steps: {},
@@ -480,7 +490,7 @@ async function cmdRun() {
   };
 
   log("RAVATEX admin-disable-user E2E staging");
-  log("project_ref: " + STAGING_REF);
+  log("project_ref: " + PRODUCTION_REF);
   log("");
 
   // 1. Login admin
@@ -752,8 +762,10 @@ async function cmdRun() {
 
 async function main() {
   const cmd = (process.argv[2] || "").toLowerCase();
-  if (cmd === "setup") return cmdSetup();
-  if (cmd === "run") return cmdRun();
+  // Fail closed ANTES de qualquer prompt de credencial, leitura de token,
+  // criacao de client, abertura de browser, fetch ou escrita de config
+  // local de execucao.
+  if (cmd === "setup" || cmd === "run") refuseNonProductionEnvironmentUnavailable();
   log("Uso:");
   log("  node scripts/staging/admin-disable-user-e2e.mjs setup");
   log("  node scripts/staging/admin-disable-user-e2e.mjs run");

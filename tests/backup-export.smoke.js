@@ -3,9 +3,11 @@
 //
 // Two layers:
 //   - CLI-level (spawnSync of the real export-db.mjs): argument
-//     validation, dry-run default, the production-ref guard, missing-
-//     input USAGE errors. No real binaries/network/credentials needed —
-//     these paths all exit before touching any of them.
+//     validation, dry-run default, the environment-identity gate
+//     (production/retired/forbidden + the exact
+//     --confirm-production-readonly-backup flag), missing-input USAGE
+//     errors. No real binaries/network/credentials needed — these paths
+//     all exit before touching any of them.
 //   - Core-level (dynamic import of lib/export-core.mjs with a fully
 //     injected `io`): exit-code classification, the bucket-check
 //     fail-loud path, upload-failure handling, and the sanitization
@@ -80,29 +82,133 @@ test('CLI: unknown subcommand is a USAGE error (exit 1)', () => {
   assert.match(res.stderr, /Unknown command/);
 });
 
-test('CLI: --confirm with no env at all fails USAGE (exit 1) and lists missing inputs', () => {
-  const res = runCli(['export', '--confirm']);
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1: the only
+// legitimate backup target is the definitive production project, and a
+// real export needs BOTH --confirm and the exact bare flag
+// --confirm-production-readonly-backup. The retired and forbidden
+// projects fail before that confirmation is considered.
+const PRODUCTION_REF_LITERAL = 'ucrjtfswnfdlxwtmxnoo';
+const RETIRED_REF_LITERAL = 'gqmpsxkxynrjvidfmojk';
+const FORBIDDEN_REF_LITERAL = 'bhgifjrfagkzubpyqpew';
+const READONLY_BACKUP_FLAG = '--confirm-production-readonly-backup';
+const PROD_PGHOST = `db.${PRODUCTION_REF_LITERAL}.supabase.co`;
+
+test('CLI: --confirm plus the production-read-only flag and no env fails USAGE (exit 1) and lists missing inputs', () => {
+  const res = runCli(['export', '--confirm', READONLY_BACKUP_FLAG], {
+    PGHOST: PROD_PGHOST,
+    SUPABASE_URL: `https://${PRODUCTION_REF_LITERAL}.supabase.co`,
+  });
   assert.equal(res.status, 1);
   assert.match(res.stderr, /Missing required input/);
-  assert.match(res.stderr, /PGHOST/);
-  assert.match(res.stderr, /SUPABASE_URL/);
+  assert.match(res.stderr, /PGPASSWORD/);
+  assert.match(res.stderr, /SUPABASE_SERVICE_ROLE_KEY/);
 });
 
-test('CLI: production-ref guard fires before the missing-input check', () => {
-  const res = runCli(['export', '--confirm'], { PGHOST: 'db.bhgifjrfagkzubpyqpew.supabase.co' });
+test('CLI: a real export without the production-read-only flag stops before the missing-input check', () => {
+  const res = runCli(['export', '--confirm'], { PGHOST: PROD_PGHOST });
   assert.equal(res.status, 1);
-  assert.match(res.stderr, /PRODUCTION ref/);
+  assert.match(res.stderr, new RegExp(escapeRe(READONLY_BACKUP_FLAG)));
   assert.doesNotMatch(res.stderr, /Missing required input/);
 });
 
-test('CLI: BACKUP_ALLOW_PRODUCTION override is honored (guard skipped, falls through to missing-input check)', () => {
+test('CLI: the retired project always fails, before the production-read-only confirmation is considered', () => {
+  const withoutFlag = runCli(['export', '--confirm'], { PGHOST: `db.${RETIRED_REF_LITERAL}.supabase.co` });
+  assert.equal(withoutFlag.status, 1);
+  assert.match(withoutFlag.stderr, /RETIRED project/);
+
+  const withFlag = runCli(['export', '--confirm', READONLY_BACKUP_FLAG], {
+    PGHOST: `db.${RETIRED_REF_LITERAL}.supabase.co`,
+  });
+  assert.equal(withFlag.status, 1);
+  assert.match(withFlag.stderr, /RETIRED project/);
+  assert.doesNotMatch(withFlag.stderr, /Missing required input/);
+});
+
+test('CLI: the forbidden project always fails, with or without the production-read-only flag', () => {
+  const withoutFlag = runCli(['export', '--confirm'], { PGHOST: `db.${FORBIDDEN_REF_LITERAL}.supabase.co` });
+  assert.equal(withoutFlag.status, 1);
+  assert.match(withoutFlag.stderr, /FORBIDDEN project/);
+
+  const withFlag = runCli(['export', '--confirm', READONLY_BACKUP_FLAG], {
+    PGHOST: `db.${FORBIDDEN_REF_LITERAL}.supabase.co`,
+  });
+  assert.equal(withFlag.status, 1);
+  assert.match(withFlag.stderr, /FORBIDDEN project/);
+  assert.doesNotMatch(withFlag.stderr, /Missing required input/);
+});
+
+test('CLI: a confirmed target that is not the definitive production project fails', () => {
+  const res = runCli(['export', '--confirm', READONLY_BACKUP_FLAG], { PGHOST: 'db.some-other-project.supabase.co' });
+  assert.equal(res.status, 1);
+  assert.match(res.stderr, /does not reference the definitive PRODUCTION project/);
+  assert.doesNotMatch(res.stderr, /Missing required input/);
+});
+
+test('CLI: no environment variable releases the production-read-only gate', () => {
   const res = runCli(['export', '--confirm'], {
-    PGHOST: 'db.bhgifjrfagkzubpyqpew.supabase.co',
+    PGHOST: PROD_PGHOST,
     BACKUP_ALLOW_PRODUCTION: 'true',
+    CONFIRM_PRODUCTION_READONLY_BACKUP: 'true',
   });
   assert.equal(res.status, 1);
-  assert.doesNotMatch(res.stderr, /PRODUCTION ref/);
-  assert.match(res.stderr, /Missing required input/);
+  assert.match(res.stderr, new RegExp(escapeRe(READONLY_BACKUP_FLAG)));
+});
+
+test('CLI: a generic --confirm value form does not substitute for the bare production-read-only flag', () => {
+  const res = runCli(['export', '--confirm', `${READONLY_BACKUP_FLAG}=true`], { PGHOST: PROD_PGHOST });
+  assert.equal(res.status, 1);
+  // The `=true` form is not the bare flag: it falls through as an unknown
+  // subcommand, so it can never be mistaken for a valid confirmation.
+  assert.match(res.stderr, /Unknown command|--confirm-production-readonly-backup/);
+});
+
+test('CLI: dry-run needs no production-read-only flag and stays side-effect free', () => {
+  const res = runCli(['export'], { PGHOST: PROD_PGHOST });
+  assert.equal(res.status, 0);
+  const out = JSON.parse(res.stdout);
+  assert.equal(out.dry_run, true);
+  assert.equal(out.ok, true);
+});
+
+test('backup constants: production/retired/forbidden are correct, no STAGING_REF, no BACKUP_ALLOW_PRODUCTION', async () => {
+  const core = await loadCore();
+  assert.equal(core.PRODUCTION_REF, PRODUCTION_REF_LITERAL);
+  assert.equal(core.RETIRED_REF, RETIRED_REF_LITERAL);
+  assert.equal(core.FORBIDDEN_REF, FORBIDDEN_REF_LITERAL);
+  assert.equal(core.STAGING_REF, undefined);
+
+  const coreSrc = fs.readFileSync(path.join(ROOT, 'scripts', 'backup', 'lib', 'export-core.mjs'), 'utf-8');
+  const cliSrc = fs.readFileSync(CLI, 'utf-8');
+  for (const [name, src] of [['export-core.mjs', coreSrc], ['export-db.mjs', cliSrc]]) {
+    assert.equal(/STAGING_REF/.test(src), false, `${name} still declares STAGING_REF`);
+    assert.equal(/BACKUP_ALLOW_PRODUCTION/.test(src), false, `${name} still references BACKUP_ALLOW_PRODUCTION`);
+  }
+});
+
+// Statement-shaped patterns only, over comment-stripped source: bare
+// verbs like the `truncate()` string helper are not destructive SQL.
+function stripJsComments(src) {
+  return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+}
+
+test('export core stays read-only: no destructive SQL and no restore/reset path', () => {
+  const coreSrc = fs.readFileSync(path.join(ROOT, 'scripts', 'backup', 'lib', 'export-core.mjs'), 'utf-8');
+  const pgSrc = fs.readFileSync(path.join(ROOT, 'scripts', 'backup', 'lib', 'pg.mjs'), 'utf-8');
+  const destructive = [
+    /\bdrop\s+(table|schema|database|index|view|function|sequence|role|owned)\b/i,
+    /\btruncate\s+(table|only|[a-z_."]+\s*;)/i,
+    /\bdelete\s+from\b/i,
+    /\binsert\s+into\b/i,
+    /\bupdate\s+[a-z_."]+\s+set\b/i,
+    /\balter\s+table\b/i,
+  ];
+  for (const [name, raw] of [['export-core.mjs', coreSrc], ['pg.mjs', pgSrc]]) {
+    const src = stripJsComments(raw);
+    for (const re of destructive) {
+      assert.equal(re.test(src), false, `${name} contains destructive SQL matching ${re}`);
+    }
+    assert.equal(/pg_restore|--clean\b|--if-exists\b/.test(src), false, `${name} contains a restore/reset path`);
+  }
 });
 
 test('CLI: credential env vars are trimmed — a trailing newline/space (common clipboard artifact) does not read as missing', async () => {
@@ -119,10 +225,10 @@ test('CLI: credential env vars are trimmed — a trailing newline/space (common 
   }
 });
 
-test('CLI: production-ref guard still fires when PGHOST has trailing whitespace from a pasted value', () => {
+test('CLI: the forbidden-project guard still fires when PGHOST has trailing whitespace from a pasted value', () => {
   const res = runCli(['export', '--confirm'], { PGHOST: 'db.bhgifjrfagkzubpyqpew.supabase.co \r\n' });
   assert.equal(res.status, 1);
-  assert.match(res.stderr, /PRODUCTION ref/);
+  assert.match(res.stderr, /FORBIDDEN project/);
 });
 
 test('CLI: login with a client ID pasted as the secret fails USAGE with a diagnostic, before any prompt/server', () => {

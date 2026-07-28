@@ -11,6 +11,7 @@
 //
 // USAGE
 //   node scripts/backup/export-db.mjs [export] [--confirm]
+//       [--confirm-production-readonly-backup]
 //       [--triggered-by manual|scheduled] [--retention-class gfs|manual]
 //       [--out-dir <path>] [--dest <name>]...
 //   node scripts/backup/export-db.mjs login
@@ -29,13 +30,21 @@
 //       from the Documents Ingestor's grant/folder.
 //   BACKUP_GOOGLE_DRIVE_ROOT_FOLDER_NAME (default: "Ravatex Backups")
 //   BACKUP_OUT_DIR (default: ./backups, already gitignored)
-//   BACKUP_ALLOW_PRODUCTION=true — explicit opt-out of the production
-//       guard. Never set for this phase; staging-only boundary in force.
 //
 // Without --confirm: structural dry-run. No DB connection, no Supabase
 // call, no Drive call — prints the exact commands that would run and
 // exits 0. This mirrors this repo's established --confirm-real-*
 // convention (services/documents-ingestor).
+//
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1: there is no
+// non-production database. The only legitimate target is the definitive
+// production project (ucrjtfswnfdlxwtmxnoo), read-only, and a REAL run
+// therefore requires BOTH --confirm and the exact bare flag
+// --confirm-production-readonly-backup. That flag authorizes only this
+// backup/export operation: never SQL mutation, restore, reset, delete,
+// Auth mutation, nor the retired/forbidden projects. There is no
+// environment-variable override: the previous opt-out env var was
+// removed and is not kept as a compatibility alias.
 
 import { createInterface } from 'node:readline/promises';
 import { createServer } from 'node:http';
@@ -44,18 +53,35 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { EXIT_CODES, PRODUCTION_REF, planExport, runExport } from './lib/export-core.mjs';
+import {
+  EXIT_CODES,
+  PRODUCTION_REF,
+  RETIRED_REF,
+  FORBIDDEN_REF,
+  planExport,
+  runExport,
+} from './lib/export-core.mjs';
 import { buildAuthUrl, exchangeCodeForTokens } from './lib/drive.mjs';
 import { buildRedactor } from './lib/sanitize.mjs';
 
-const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
+const PRODUCTION_READONLY_BACKUP_FLAG = '--confirm-production-readonly-backup';
 
 function parseArgs(argv) {
-  const opts = { confirm: false, triggeredBy: 'manual', retentionClass: null, destinations: [], outDir: null };
+  const opts = {
+    confirm: false,
+    confirmProductionReadonlyBackup: false,
+    triggeredBy: 'manual',
+    retentionClass: null,
+    destinations: [],
+    outDir: null,
+  };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--confirm') opts.confirm = true;
+    // Bare boolean only: no `=value` form, no env var, no generic
+    // --confirm substitute.
+    else if (a === PRODUCTION_READONLY_BACKUP_FLAG) opts.confirmProductionReadonlyBackup = true;
     else if (a === '--triggered-by') opts.triggeredBy = argv[++i];
     else if (a === '--retention-class') opts.retentionClass = argv[++i];
     else if (a === '--out-dir') opts.outDir = argv[++i];
@@ -261,14 +287,45 @@ async function runLogin() {
   console.log(`\nSUCCESS. Token saved to ${tokenPath}. Never commit this file (already covered by .gitignore's .ravatex-local/).`);
 }
 
-function assertNotProduction(pgHost, supabaseUrl) {
-  if (process.env.BACKUP_ALLOW_PRODUCTION === 'true') return;
+// Environment-identity gate for a REAL export. Runs before any database
+// credential is consumed, any pg process is spawned, any Supabase client
+// is built, any Drive OAuth flow is opened, any local directory is
+// created, any bundle is written and any upload starts.
+//
+// Order is deliberate: the retired and forbidden projects fail BEFORE the
+// production-read-only confirmation is even considered.
+function assertBackupTarget(pgHost, supabaseUrl, opts) {
   const haystack = `${pgHost || ''} ${supabaseUrl || ''}`;
-  if (haystack.includes(PRODUCTION_REF)) {
+  if (haystack.includes(RETIRED_REF)) {
     fail(
       EXIT_CODES.USAGE,
-      `Refusing to run: target references the PRODUCTION ref (${PRODUCTION_REF}). ` +
-        `Staging-only execution boundary is in force. Set BACKUP_ALLOW_PRODUCTION=true to override (not authorized for this phase).`,
+      `Refusing to run: target references the RETIRED project (${RETIRED_REF}). ` +
+        `It is not production, staging, development or fallback, and is never a backup target.`,
+    );
+    return;
+  }
+  if (haystack.includes(FORBIDDEN_REF)) {
+    fail(
+      EXIT_CODES.USAGE,
+      `Refusing to run: target references the FORBIDDEN project (${FORBIDDEN_REF}).`,
+    );
+    return;
+  }
+  if (!opts || opts.confirmProductionReadonlyBackup !== true) {
+    fail(
+      EXIT_CODES.USAGE,
+      `Refusing to run: a real export of the PRODUCTION project (${PRODUCTION_REF}) requires the exact flag ` +
+        `${PRODUCTION_READONLY_BACKUP_FLAG} in addition to --confirm. It authorizes the read-only backup/export ` +
+        `operation only — never SQL mutation, restore, reset, delete or Auth mutation. No environment variable ` +
+        `or generic --confirm substitutes for it.`,
+    );
+    return;
+  }
+  if (!haystack.includes(PRODUCTION_REF)) {
+    fail(
+      EXIT_CODES.USAGE,
+      `Refusing to run: target does not reference the definitive PRODUCTION project (${PRODUCTION_REF}). ` +
+        `No non-production database exists; there is no other authorized backup target.`,
     );
   }
 }
@@ -318,7 +375,7 @@ async function runExportCommand(opts) {
     return;
   }
 
-  assertNotProduction(pgHost, supabaseUrl);
+  assertBackupTarget(pgHost, supabaseUrl, opts);
 
   const pgConn = {
     host: pgHost,
@@ -377,4 +434,4 @@ if (isMain) {
   });
 }
 
-export { parseArgs, assertNotProduction, loadDriveConfig, envTrim };
+export { parseArgs, assertBackupTarget, loadDriveConfig, envTrim };

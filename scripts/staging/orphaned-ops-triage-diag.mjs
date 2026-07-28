@@ -1,13 +1,14 @@
 // =====================================================================
 // === scripts/staging/orphaned-ops-triage-diag.mjs ====================
-// Diagnostico READ-ONLY aprofundado das 11 OPs historicas orfas em
-// Supabase STAGING (ucrjtfswnfdlxwtmxnoo).
+// Diagnostico READ-ONLY aprofundado das 11 OPs historicas orfas na
+// PRODUCAO definitiva (ucrjtfswnfdlxwtmxnoo), somente leitura.
 //
 // Fase: RAVATEX-TAPETES-OP-ORPHANED-HISTORICAL-TRIAGE-D
 //
 // - SOMENTE SELECT via PostgREST/PG. Nenhum write/RPC/DDL.
-// - Bloqueia se a URL for producao (bhgifjrfagkzubpyqpew).
-// - Exige staging (ucrjtfswnfdlxwtmxnoo).
+// - Exige a flag exata --confirm-production-readonly-diagnostic.
+// - Projeto retirado (gqmpsxkxynrjvidfmojk) e projeto proibido
+//   (bhgifjrfagkzubpyqpew) sempre falham.
 // - Nunca imprime anon key / password / JWT.
 //
 // Uso: node scripts/staging/orphaned-ops-triage-diag.mjs
@@ -22,8 +23,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..');
 const CONFIG = resolve(ROOT, '.ravatex-local', 'admin-disable-user-e2e.config.json');
 
-const PROD_REF = 'bhgifjrfagkzubpyqpew';
-const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1
+// Identidades de ambiente correntes. Nao existe banco nao-produtivo.
+const PRODUCTION_REF = 'ucrjtfswnfdlxwtmxnoo';
+const RETIRED_REF = 'gqmpsxkxynrjvidfmojk';
+const FORBIDDEN_REF = 'bhgifjrfagkzubpyqpew';
+const CONFIRM_FLAG = '--confirm-production-readonly-diagnostic';
 const ORPHAN_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15];
 
 function die(msg) {
@@ -31,15 +36,32 @@ function die(msg) {
   process.exit(1);
 }
 
+// Confirmacao booleana exata, exigida ANTES de ler credenciais, criar
+// client, abrir conexao, emitir fetch ou escrever artefato local.
+function assertProductionReadonlyDiagnostic() {
+  if (!process.argv.slice(2).includes(CONFIRM_FLAG)) {
+    die('diagnostico READ-ONLY contra a PRODUCAO (' + PRODUCTION_REF + ') exige a flag exata '
+      + CONFIRM_FLAG + '. Nenhuma variavel de ambiente, valor de string ou --confirm generico a substitui.');
+  }
+}
+
+function assertProductionTarget(label, value) {
+  if (typeof value !== 'string' || !value) die(label + ' ausente ou invalido - bloqueado');
+  if (value.includes(RETIRED_REF)) die(label + ' aponta para o projeto RETIRADO (' + RETIRED_REF + ') - bloqueado');
+  if (value.includes(FORBIDDEN_REF)) die(label + ' aponta para o projeto PROIBIDO (' + FORBIDDEN_REF + ') - bloqueado');
+  if (!value.includes(PRODUCTION_REF)) die(label + ' nao aponta para a producao autorizada (' + PRODUCTION_REF + ') - bloqueado');
+}
+
+assertProductionReadonlyDiagnostic();
+
 const cfg = JSON.parse(readFileSync(CONFIG, 'utf8'));
 const url = String(cfg.supabaseUrl || '').replace(/\/+$/, '');
 const anonKey = cfg.anonKey;
 
 if (!url || !anonKey || !cfg.adminEmail || !cfg.adminPassword) die('config incompleto em .ravatex-local');
-if (url.includes(PROD_REF)) die('URL aponta para PRODUCAO - bloqueado');
-if (!url.includes(STAGING_REF)) die('URL nao e staging autorizado (' + STAGING_REF + ')');
+assertProductionTarget('URL do Supabase', url);
 
-console.log('Ambiente staging:', url.replace(/https:\/\/([a-z0-9]+)\..*/, 'https://$1.supabase.co'));
+console.log('Ambiente PRODUCAO (somente leitura):', url.replace(/https:\/\/([a-z0-9]+)\..*/, 'https://$1.supabase.co'));
 
 async function login() {
   const res = await fetch(url + '/auth/v1/token?grant_type=password', {
@@ -74,10 +96,9 @@ async function selOptional(pathq) {
 }
 
 async function sqlQuery(query, params) {
-  const dbUrl = process.env.STAGING_DB_URL || process.env.DB_URL || process.env.DATABASE_URL || '';
+  const dbUrl = process.env.DB_URL || process.env.DATABASE_URL || '';
   if (!dbUrl) return [];
-  if (dbUrl.includes(PROD_REF)) die('DB_URL aponta para PRODUCAO');
-  if (!dbUrl.includes(STAGING_REF)) die('DB_URL nao e staging autorizado');
+  assertProductionTarget('DB_URL', dbUrl);
 
   const { Client } = await import('pg');
   const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
@@ -309,10 +330,10 @@ const D  = 'D  — legado sem correcao segura; manter fallback e documentar';
   }
 
   // ---- 8. SQL query para cross-checks ----------------
-  const dbUrl = process.env.STAGING_DB_URL || process.env.DB_URL || process.env.DATABASE_URL || '';
+  const dbUrl = process.env.DB_URL || process.env.DATABASE_URL || '';
   if (dbUrl) {
-    if (dbUrl.includes(PROD_REF)) die('DB_URL aponta para PRODUCAO');
-    if (dbUrl.includes(STAGING_REF)) {
+    assertProductionTarget('DB_URL', dbUrl);
+    {
       console.log('\n===== SQL CROSS-CHECK (PG direto) =====');
       const { Client } = await import('pg');
       const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });

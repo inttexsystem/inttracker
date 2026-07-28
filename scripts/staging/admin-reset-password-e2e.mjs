@@ -1,8 +1,8 @@
 // =====================================================================
 // === scripts/staging/admin-reset-password-e2e.mjs =====================
 // Runner local automatizado para verificacao pos-deploy do reset de
-// senha administrativo (A5.1-A5.2), Supabase staging
-// `ucrjtfswnfdlxwtmxnoo`.
+// senha administrativo (A5.1-A5.2), em ambiente Supabase nao-produtivo
+// isolado — que hoje NAO existe (runner desativado).
 //
 // Mesmo esqueleto de scripts/staging/admin-create-user-password-policy-e2e.mjs
 // e scripts/staging/trocar-senha-obrigatoria-e2e.mjs (setup/run, HTTP
@@ -52,8 +52,8 @@
 //      16) imprime resumo sanitizado
 //
 // Garantias:
-//   - Bloqueia execucao se a URL for producao `bhgifjrfagkzubpyqpew`.
-//   - Exige URL contendo o ref de staging `ucrjtfswnfdlxwtmxnoo`.
+//   - DESATIVADO (fail closed): bhgifjrfagkzubpyqpew e o projeto PROIBIDO.
+//     ucrjtfswnfdlxwtmxnoo e PRODUCAO: mutacao por este runner nao e autorizada.
 //   - Nao usa SQL manual, .delete() direto, nem chama auth.admin.*
 //     fora das Edge Functions ja existentes e aceitas.
 //   - Todas as senhas (P1/P2/P3) sao geradas pelo proprio script ou
@@ -77,8 +77,30 @@ const __filename = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(__filename), "..", "..");
 const CONFIG_DIR = resolve(ROOT, ".ravatex-local");
 const CONFIG_PATH = resolve(CONFIG_DIR, "admin-reset-password-e2e.config.json");
-const STAGING_REF = "ucrjtfswnfdlxwtmxnoo";
-const PRODUCTION_REF = "bhgifjrfagkzubpyqpew";
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1 — fail closed.
+// Este runner executa mutacao (Auth / Edge Function / dados) e so pode
+// operar contra um ambiente nao-produtivo isolado. Esse ambiente NAO
+// existe: ucrjtfswnfdlxwtmxnoo e a PRODUCAO definitiva,
+// gqmpsxkxynrjvidfmojk foi RETIRADO (nao e producao, staging, development
+// nem fallback) e bhgifjrfagkzubpyqpew e PROIBIDO. O caminho real de
+// execucao esta desativado deterministicamente; o proposito futuro do
+// runner permanece visivel no codigo.
+const PRODUCTION_REF = "ucrjtfswnfdlxwtmxnoo";
+const RETIRED_REF = "gqmpsxkxynrjvidfmojk";
+const FORBIDDEN_REF = "bhgifjrfagkzubpyqpew";
+const NONPRODUCTION_ENVIRONMENT_UNAVAILABLE = "INTTEX_NONPRODUCTION_ENVIRONMENT_UNAVAILABLE";
+
+// Nao existe variavel de ambiente, flag de CLI, prompt oculto ou override
+// generico que libere o caminho de escrita em producao.
+function refuseNonProductionEnvironmentUnavailable() {
+  console.error(NONPRODUCTION_ENVIRONMENT_UNAVAILABLE);
+  console.error("Este runner exige um ambiente nao-produtivo isolado.");
+  console.error("Nenhum ambiente nao-produtivo valido existe atualmente.");
+  console.error("O projeto configurado (" + PRODUCTION_REF + ") e PRODUCAO.");
+  console.error("Mutacao em producao nao e autorizada por este runner.");
+  console.error("Projeto retirado: " + RETIRED_REF + "; projeto proibido: " + FORBIDDEN_REF + ".");
+  process.exit(3);
+}
 
 function log(msg) {
   process.stdout.write(String(msg) + "\n");
@@ -108,22 +130,10 @@ function detectStagingFromConfigJs() {
   return { supabaseUrl: m[1], supabaseAnonKey: m[2] };
 }
 
-function assertStagingUrl(url) {
-  if (typeof url !== "string" || !url) {
-    die("URL do Supabase ausente ou invalida.");
-  }
-  if (url.includes(PRODUCTION_REF)) {
-    die(
-      "URL aponta para PRODUCAO (" + PRODUCTION_REF + "). " +
-        "Este runner e exclusivo para staging (" + STAGING_REF + "). Abortando.",
-    );
-  }
-  if (!url.includes(STAGING_REF)) {
-    die(
-      "URL nao contem o ref de staging esperado (" + STAGING_REF + "). " +
-        "URL recebida: " + sanitize(url),
-    );
-  }
+function assertNonProductionEnvironment() {
+  // Defesa em profundidade: qualquer caminho remanescente que tente
+  // validar o ambiente para mutar falha fechada.
+  refuseNonProductionEnvironmentUnavailable();
 }
 
 function promptLine(question) {
@@ -251,7 +261,7 @@ async function cmdSetup() {
   } else {
     die("Nao foi possivel detectar staging do app via js/config.js.");
   }
-  assertStagingUrl(supabaseUrl);
+  assertNonProductionEnvironment();
 
   const adminEmail = (await promptLine("Admin email (staging): ")).trim();
   if (!adminEmail) die("Admin email obrigatorio.");
@@ -283,7 +293,7 @@ async function cmdSetup() {
 
   log("");
   log("Configuracao salva em: " + CONFIG_PATH);
-  log("  project_ref:   " + STAGING_REF);
+  log("  project_ref:   " + PRODUCTION_REF);
   log("  supabaseUrl:   " + sanitize(supabaseUrl));
   log("  adminEmail:    " + adminEmail);
   log("  adminPassword: " + maskSecret(adminPassword));
@@ -304,7 +314,7 @@ function loadConfig() {
   for (const k of ["supabaseUrl", "anonKey", "adminEmail", "adminPassword"]) {
     if (!cfg[k] || typeof cfg[k] !== "string") die("Campo obrigatorio ausente/invalido no config: " + k);
   }
-  assertStagingUrl(cfg.supabaseUrl);
+  assertNonProductionEnvironment();
   return cfg;
 }
 
@@ -349,10 +359,10 @@ function expectSuccess(resp, expectedFields, label) {
 
 async function cmdRun() {
   const cfg = loadConfig();
-  const summary = { project_ref: STAGING_REF, test_email: null, test_user_id: null, steps: {}, result: "FAIL" };
+  const summary = { project_ref: PRODUCTION_REF, test_email: null, test_user_id: null, steps: {}, result: "FAIL" };
 
   log("RAVATEX admin-reset-user-password (A5.1-A5.2) E2E staging");
-  log("project_ref: " + STAGING_REF);
+  log("project_ref: " + PRODUCTION_REF);
   log("");
 
   let admin;
@@ -532,8 +542,10 @@ async function cmdRun() {
 
 async function main() {
   const cmd = (process.argv[2] || "").toLowerCase();
-  if (cmd === "setup") return cmdSetup();
-  if (cmd === "run") return cmdRun();
+  // Fail closed ANTES de qualquer prompt de credencial, leitura de token,
+  // criacao de client, abertura de browser, fetch ou escrita de config
+  // local de execucao.
+  if (cmd === "setup" || cmd === "run") refuseNonProductionEnvironmentUnavailable();
   log("Uso:");
   log("  node scripts/staging/admin-reset-password-e2e.mjs setup");
   log("  node scripts/staging/admin-reset-password-e2e.mjs run");

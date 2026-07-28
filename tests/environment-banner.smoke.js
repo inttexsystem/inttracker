@@ -1,6 +1,6 @@
 // Smoke test do módulo js/environment-banner.js (ENV-BANNER-MODULE-A).
 //
-// Garante que a extração do banner laranja de staging do script inline
+// Garante que a extração do banner laranja do ambiente restricted do inline
 // de index.html para js/environment-banner.js preservou o comportamento
 // visual exato:
 //
@@ -9,7 +9,7 @@
 //      js/environment-banner.js antes do script inline;
 //   3. script inline NÃO contém mais o bloco env-banner;
 //   4. window.RAVATEX_ENV_BANNER é criado no runtime simulado;
-//   5. staging cria #env-banner;
+//   5. restricted cria #env-banner;
 //   6. production NÃO cria #env-banner;
 //   7. texto do banner é preservado exatamente;
 //   8. estilo do banner usa bottom:0, não top:0;
@@ -19,7 +19,7 @@
 //  12. APP_ENV e SUPABASE_URL continuam vindos de js/config.js;
 //  13. supa continua vindo de js/supabase-client.js;
 //  14. service_role e password literal NÃO aparecem;
-//  15. refs produção/staging preservados.
+//  15. identidades de ambiente correntes (produção/retirado/proibido).
 
 'use strict';
 
@@ -36,8 +36,13 @@ const CFG   = path.join(ROOT, 'js', 'config.js');
 const SUPA  = path.join(ROOT, 'js', 'supabase-client.js');
 const ENV   = path.join(ROOT, 'js', 'environment-banner.js');
 
-const PROD_REF    = 'gqmpsxkxynrjvidfmojk';
-const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1 — identidades
+// correntes. `ucrjtfswnfdlxwtmxnoo` é a PRODUÇÃO definitiva (também lida,
+// em somente leitura, pelo ambiente `restricted`); `gqmpsxkxynrjvidfmojk`
+// foi RETIRADO; `bhgifjrfagkzubpyqpew` é PROIBIDO.
+const PRODUCTION_REF = 'ucrjtfswnfdlxwtmxnoo';
+const RETIRED_REF    = 'gqmpsxkxynrjvidfmojk';
+const FORBIDDEN_REF  = 'bhgifjrfagkzubpyqpew';
 
 const cfgSrc   = fs.readFileSync(CFG, 'utf8');
 const supaSrc  = fs.readFileSync(SUPA, 'utf8');
@@ -385,12 +390,21 @@ test('js/environment-banner.js: produção ref aparece em APP_CONFIG (via config
   // O módulo depende de js/config.js para APP_ENV/APP_CONFIG, então
   // a presença dos refs em js/config.js já é testada em tests/config.smoke.js.
   // Aqui só validamos que o módulo NÃO embute refs próprios.
-  assert.equal(envSrc.includes(PROD_REF), false,
-    'js/environment-banner.js embute ref de produção — deve usar js/config.js');
-  assert.equal(envSrc.includes(STAGING_REF), false,
-    'js/environment-banner.js embute ref de staging — deve usar js/config.js');
+  for (const ref of [PRODUCTION_REF, RETIRED_REF, FORBIDDEN_REF]) {
+    assert.equal(envSrc.includes(ref), false,
+      `js/environment-banner.js embute o ref ${ref} — deve usar js/config.js`);
+  }
   assert.equal(envSrc.includes('supabase.co'), false,
     'js/environment-banner.js embute URL do Supabase');
+});
+
+test('identidades de ambiente: a configuração ativa não reintroduz retirado/proibido', () => {
+  assert.equal(cfgSrc.includes(PRODUCTION_REF), true,
+    'js/config.js deve apontar para a produção definitiva');
+  assert.equal(cfgSrc.includes(`https://${RETIRED_REF}.supabase.co`), false,
+    'js/config.js reintroduziu a URL do projeto RETIRADO');
+  assert.equal(cfgSrc.includes(`https://${FORBIDDEN_REF}.supabase.co`), false,
+    'js/config.js reintroduziu a URL do projeto PROIBIDO');
 });
 
 // -----------------------------------------------------------------------------
@@ -446,10 +460,10 @@ test('runtime: window.RAVATEX_ENV_BANNER é criado', () => {
   assert.match(ns.ENV_BANNER_TEXT, /AMBIENTE SOMENTE LEITURA — DADOS REAIS DE PRODUÇÃO/);
 });
 
-test('runtime staging: cria #env-banner quando APP_ENV !== production', () => {
+test('runtime restricted: cria #env-banner quando APP_ENV !== production', () => {
   const { document, body } = runSandbox({ hostname: 'localhost' });
   const banner = document.getElementById('env-banner');
-  assert.ok(banner, '#env-banner não foi criado em staging');
+  assert.ok(banner, '#env-banner não foi criado no ambiente restricted');
   assert.equal(banner.tagName, 'DIV');
   assert.equal(banner.getAttribute && banner.getAttribute('role') || banner._role, 'status');
   assert.match(banner.textContent, /AMBIENTE SOMENTE LEITURA — DADOS REAIS DE PRODUÇÃO/);
@@ -471,10 +485,10 @@ test('runtime produção: ensureEnvironmentBanner retorna null', () => {
     'ensureEnvironmentBanner deveria retornar null em produção');
 });
 
-test('runtime staging: ensureEnvironmentBanner retorna o nó criado', () => {
+test('runtime restricted: ensureEnvironmentBanner retorna o nó criado', () => {
   const { sandbox } = runSandbox({ hostname: 'localhost' });
   const result = vm.runInContext('window.RAVATEX_ENV_BANNER.ensureEnvironmentBanner()', sandbox);
-  assert.ok(result, 'ensureEnvironmentBanner deveria retornar o nó em staging');
+  assert.ok(result, 'ensureEnvironmentBanner deveria retornar o nó no ambiente restricted');
   assert.equal(result.id, 'env-banner');
 });
 
@@ -519,7 +533,7 @@ test('DEFER-FIX restricted: document.body null no load → env-banner NÃO exist
     'deveria haver 2 listeners de DOMContentLoaded: write-guard banner + env-banner');
 });
 
-test('DEFER-FIX staging: env-banner renderiza corretamente após DOMContentLoaded (document.body ficou pronto)', () => {
+test('DEFER-FIX restricted: env-banner renderiza corretamente após DOMContentLoaded (document.body ficou pronto)', () => {
   const { mock } = runDeferredSandbox({ hostname: 'localhost' });
   const bodyAfter = mock.simulateDomReady();
   const banner = mock.document.getElementById('env-banner');
@@ -552,7 +566,7 @@ test('DEFER-FIX produção: document.body null no load → NENHUM listener de DO
     'env-banner não deveria existir em produção mesmo depois de DOMContentLoaded');
 });
 
-test('DEFER-FIX: banner de staging é best-effort observável, não silencioso (loga adiamento e render)', () => {
+test('DEFER-FIX: banner do ambiente restricted é best-effort observável, não silencioso (loga adiamento e render)', () => {
   const logs = [];
   const fakeConsole = Object.assign(Object.create(console), {
     info: (...args) => logs.push(args.join(' ')),

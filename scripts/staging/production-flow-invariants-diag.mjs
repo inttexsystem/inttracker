@@ -1,13 +1,15 @@
 // =====================================================================
 // === scripts/staging/production-flow-invariants-diag.mjs =============
-// Diagnóstico READ-ONLY do fluxo produtivo inteiro em Supabase STAGING
-// (ucrjtfswnfdlxwtmxnoo): Pedido -> Tecelagem -> Acabamento/Látex.
+// Diagnóstico READ-ONLY do fluxo produtivo inteiro na PRODUÇÃO
+// definitiva (ucrjtfswnfdlxwtmxnoo), somente leitura:
+// Pedido -> Tecelagem -> Acabamento/Látex.
 //
 // Fase: RAVATEX-TAPETES-PRODUCTION-FLOW-FULL-INVARIANT-AUDIT-AND-FIX-A
 //
 // - SOMENTE SELECT via PostgREST. Nenhum write/RPC/DDL.
-// - Bloqueia se a URL for produção (bhgifjrfagkzubpyqpew).
-// - Exige staging (ucrjtfswnfdlxwtmxnoo).
+// - Exige a flag exata --confirm-production-readonly-diagnostic.
+// - Projeto retirado (gqmpsxkxynrjvidfmojk) e projeto proibido
+//   (bhgifjrfagkzubpyqpew) sempre falham.
 // - Nunca imprime anon key / password / JWT.
 //
 // Uso:  node scripts/staging/production-flow-invariants-diag.mjs
@@ -22,19 +24,40 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..');
 const CONFIG = resolve(ROOT, '.ravatex-local', 'admin-disable-user-e2e.config.json');
 
-const PROD_REF = 'bhgifjrfagkzubpyqpew';
-const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1
+// Identidades de ambiente correntes. Nao existe banco nao-produtivo.
+const PRODUCTION_REF = 'ucrjtfswnfdlxwtmxnoo';
+const RETIRED_REF = 'gqmpsxkxynrjvidfmojk';
+const FORBIDDEN_REF = 'bhgifjrfagkzubpyqpew';
+const CONFIRM_FLAG = '--confirm-production-readonly-diagnostic';
 
 function die(msg) { console.error('ABORT: ' + msg); process.exit(1); }
+
+// Confirmacao booleana exata, exigida ANTES de ler credenciais, criar
+// client, abrir conexao, emitir fetch ou escrever artefato local.
+function assertProductionReadonlyDiagnostic() {
+  if (!process.argv.slice(2).includes(CONFIRM_FLAG)) {
+    die('diagnostico READ-ONLY contra a PRODUCAO (' + PRODUCTION_REF + ') exige a flag exata '
+      + CONFIRM_FLAG + '. Nenhuma variavel de ambiente, valor de string ou --confirm generico a substitui.');
+  }
+}
+
+function assertProductionTarget(label, value) {
+  if (typeof value !== 'string' || !value) die(label + ' ausente ou invalido - bloqueado');
+  if (value.includes(RETIRED_REF)) die(label + ' aponta para o projeto RETIRADO (' + RETIRED_REF + ') - bloqueado');
+  if (value.includes(FORBIDDEN_REF)) die(label + ' aponta para o projeto PROIBIDO (' + FORBIDDEN_REF + ') - bloqueado');
+  if (!value.includes(PRODUCTION_REF)) die(label + ' nao aponta para a producao autorizada (' + PRODUCTION_REF + ') - bloqueado');
+}
+
+assertProductionReadonlyDiagnostic();
 
 const cfg = JSON.parse(readFileSync(CONFIG, 'utf8'));
 const url = String(cfg.supabaseUrl || '').replace(/\/+$/, '');
 const anonKey = cfg.anonKey;
 if (!url || !anonKey || !cfg.adminEmail || !cfg.adminPassword) die('config incompleto');
-if (url.includes(PROD_REF)) die('URL aponta para PRODUÇÃO — bloqueado');
-if (!url.includes(STAGING_REF)) die('URL não é staging autorizado');
+assertProductionTarget('URL do Supabase', url);
 
-console.log('Ambiente staging:', url.replace(/https:\/\/([a-z0-9]+)\..*/, 'https://$1.supabase.co'));
+console.log('Ambiente PRODUCAO (somente leitura):', url.replace(/https:\/\/([a-z0-9]+)\..*/, 'https://$1.supabase.co'));
 
 async function login() {
   const res = await fetch(url + '/auth/v1/token?grant_type=password', {
@@ -70,14 +93,13 @@ async function selOptional(pathq) {
 
 const r2 = (n) => Math.round(Number(n || 0) * 100) / 100;
 async function sqlCatalogDiag() {
-  const dbUrl = process.env.STAGING_DB_URL || process.env.DB_URL || process.env.DATABASE_URL || '';
+  const dbUrl = process.env.DB_URL || process.env.DATABASE_URL || '';
   console.log('\n===== DB/28 CATALOGO SQL (indices) =====');
   if (!dbUrl) {
-    console.log('Checagem SQL de indices pulada: STAGING_DB_URL/DB_URL/DATABASE_URL ausente.');
+    console.log('Checagem SQL de indices pulada: DB_URL/DATABASE_URL ausente.');
     return;
   }
-  if (dbUrl.includes(PROD_REF)) die('DB_URL aponta para PRODUCAO - bloqueado');
-  if (!dbUrl.includes(STAGING_REF)) die('DB_URL nao e staging autorizado');
+  assertProductionTarget('DB_URL', dbUrl);
 
   const { Client } = await import('pg');
   const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });

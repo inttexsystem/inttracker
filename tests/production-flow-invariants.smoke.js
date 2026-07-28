@@ -54,7 +54,7 @@ test('Contrato split Latex: db/28 preserva acumular como default e reserva split
   assert.doesNotMatch(db28, /gerar_op_latex_split/i);
 });
 
-test('Diagnostico staging de OPs sem Pedido e read-only e bloqueia producao', () => {
+test('Diagnostico de OPs sem Pedido e read-only e exige confirmacao production-read-only', () => {
   assert.match(opsWithoutPedidoDiag, /ops\?select=/);
   assert.match(opsWithoutPedidoDiag, /lotes\?select=/);
   assert.match(opsWithoutPedidoDiag, /STATUS OK/);
@@ -62,8 +62,15 @@ test('Diagnostico staging de OPs sem Pedido e read-only e bloqueia producao', ()
   assert.match(opsWithoutPedidoDiag, /DETALHE OPs ORFAS SEM PEDIDO/);
   assert.match(opsWithoutPedidoDiag, /classificacao=/);
   assert.match(opsWithoutPedidoDiag, /pedido_inferivel=/);
-  assert.match(opsWithoutPedidoDiag, /URL aponta para PRODUCAO - bloqueado/);
-  assert.match(opsWithoutPedidoDiag, /URL nao e staging autorizado/);
+  // INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1: o alvo e a
+  // producao definitiva em somente leitura, sob confirmacao explicita.
+  assert.match(opsWithoutPedidoDiag, /PRODUCTION_REF\s*=\s*'ucrjtfswnfdlxwtmxnoo'/);
+  assert.match(opsWithoutPedidoDiag, /RETIRED_REF\s*=\s*'gqmpsxkxynrjvidfmojk'/);
+  assert.match(opsWithoutPedidoDiag, /FORBIDDEN_REF\s*=\s*'bhgifjrfagkzubpyqpew'/);
+  assert.match(opsWithoutPedidoDiag, /--confirm-production-readonly-diagnostic/);
+  assert.match(opsWithoutPedidoDiag, /projeto RETIRADO/);
+  assert.match(opsWithoutPedidoDiag, /projeto PROIBIDO/);
+  assert.doesNotMatch(opsWithoutPedidoDiag, /STAGING_REF/);
   assert.doesNotMatch(opsWithoutPedidoDiag, /\b(?:insert|update|delete|upsert)\s*\(/i);
   assert.doesNotMatch(opsWithoutPedidoDiag, /\/rest\/v1\/rpc\//i);
 });

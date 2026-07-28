@@ -187,39 +187,46 @@ test("runner: tem função de sanitização para mascarar tokens/JWTs/passwords"
 // 5. Guard contra produção
 // ---------------------------------------------------------------------
 
-test("runner: tem guard que ABORTA se URL contiver produção bhgifjrfagkzubpyqpew", () => {
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1: não existe banco
+// não-produtivo. Este runner muta Auth/Edge Function, então o caminho
+// real de execução é desativado deterministicamente em vez de ser
+// redirecionado para a produção.
+test("runner: identidades de ambiente correntes, sem STAGING_REF", () => {
   assert.match(
     src,
-    /PRODUCTION_REF\s*=\s*['"]bhgifjrfagkzubpyqpew['"]/,
-    "deve definir PRODUCTION_REF = bhgifjrfagkzubpyqpew",
+    /PRODUCTION_REF\s*=\s*['"]ucrjtfswnfdlxwtmxnoo['"]/,
+    "deve definir PRODUCTION_REF = ucrjtfswnfdlxwtmxnoo",
   );
   assert.match(
     src,
-    /url\.includes\(PRODUCTION_REF\)/,
-    "deve testar url.includes(PRODUCTION_REF)",
+    /RETIRED_REF\s*=\s*['"]gqmpsxkxynrjvidfmojk['"]/,
+    "deve definir RETIRED_REF = gqmpsxkxynrjvidfmojk",
   );
   assert.match(
     src,
-    /Abortando por seguran[çc]a/,
-    "mensagem de abort deve ser clara",
+    /FORBIDDEN_REF\s*=\s*['"]bhgifjrfagkzubpyqpew['"]/,
+    "deve definir FORBIDDEN_REF = bhgifjrfagkzubpyqpew",
   );
+  assert.doesNotMatch(src, /STAGING_REF/, "STAGING_REF não pode sobreviver");
+  assert.doesNotMatch(src, /assertStagingUrl/, "assertStagingUrl não pode sobreviver");
 });
 
-test("runner: exige staging ref ucrjtfswnfdlxwtmxnoo", () => {
+test("runner: falha fechada antes de qualquer efeito externo", () => {
   assert.match(
     src,
-    /STAGING_REF\s*=\s*['"]ucrjtfswnfdlxwtmxnoo['"]/,
-    "deve definir STAGING_REF = ucrjtfswnfdlxwtmxnoo",
+    /INTTEX_NONPRODUCTION_ENVIRONMENT_UNAVAILABLE/,
+    "deve usar a identidade estável de falha fechada",
   );
   assert.match(
     src,
-    /assertStagingUrl/,
-    "deve ter função assertStagingUrl()",
+    /if \(cmd === "setup" \|\| cmd === "run"\) refuseNonProductionEnvironmentUnavailable\(\);/,
+    "setup e run devem parar no dispatch, antes de prompt/fetch/config",
   );
-  assert.match(
+  // Nenhum override libera o caminho de mutação em produção.
+  assert.doesNotMatch(
     src,
-    /!url\.includes\(STAGING_REF\)/,
-    "assertStagingUrl deve exigir STAGING_REF na URL",
+    /process\.env\.[A-Z_]*(ALLOW|FORCE|OVERRIDE|CONFIRM)[A-Z_]*/,
+    "nenhuma variável de ambiente pode liberar o runner",
   );
 });
 

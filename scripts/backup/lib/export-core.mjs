@@ -42,7 +42,14 @@ export const EXIT_CODES = {
   UPLOAD_FAILED: 5,
 };
 
-export const PRODUCTION_REF = 'bhgifjrfagkzubpyqpew';
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1 — identidades de
+// ambiente correntes. `ucrjtfswnfdlxwtmxnoo` e a producao definitiva (e o
+// unico alvo legitimo de um backup read-only); `gqmpsxkxynrjvidfmojk` foi
+// retirado; `bhgifjrfagkzubpyqpew` e proibido. Nao existe banco
+// nao-produtivo, portanto nao existe um ref de staging.
+export const PRODUCTION_REF = 'ucrjtfswnfdlxwtmxnoo';
+export const RETIRED_REF = 'gqmpsxkxynrjvidfmojk';
+export const FORBIDDEN_REF = 'bhgifjrfagkzubpyqpew';
 
 function envelope(extra) {
   return { ok: false, dry_run: false, destinations: [], manifest: null, ...extra };

@@ -1,9 +1,11 @@
 // =====================================================================
 // === scripts/staging/delete-impact-diag.mjs ==========================
-// Diagnostico READ-ONLY de impacto de exclusao controlada em STAGING.
+// Diagnostico READ-ONLY de impacto de exclusao controlada.
 //
 // - Somente SELECT via PostgREST.
-// - Bloqueia producao.
+// - Alvo: a PRODUCAO definitiva, em modo somente leitura, e exige a flag
+//   exata --confirm-production-readonly-diagnostic.
+// - Projeto retirado e projeto proibido sempre falham.
 // - Lista Pedidos e OPs como safe / requires_confirmation /
 //   requires_cascade_confirmation / blocked.
 // - Filtros opcionais: PEDIDO_ID=uuid OP_ID=123 ou args
@@ -18,12 +20,32 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..');
 const CONFIG = resolve(ROOT, '.ravatex-local', 'admin-disable-user-e2e.config.json');
 
-const PROD_REF = 'bhgifjrfagkzubpyqpew';
-const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1
+// Identidades de ambiente correntes. Nao existe banco nao-produtivo.
+const PRODUCTION_REF = 'ucrjtfswnfdlxwtmxnoo';
+const RETIRED_REF = 'gqmpsxkxynrjvidfmojk';
+const FORBIDDEN_REF = 'bhgifjrfagkzubpyqpew';
+const CONFIRM_FLAG = '--confirm-production-readonly-diagnostic';
 
 function die(msg) {
   console.error('ABORT: ' + msg);
   process.exit(1);
+}
+
+// Confirmacao booleana exata, exigida ANTES de ler credenciais, criar
+// client, abrir conexao, emitir fetch ou escrever artefato local.
+function assertProductionReadonlyDiagnostic() {
+  if (!process.argv.slice(2).includes(CONFIRM_FLAG)) {
+    die('diagnostico READ-ONLY contra a PRODUCAO (' + PRODUCTION_REF + ') exige a flag exata '
+      + CONFIRM_FLAG + '. Nenhuma variavel de ambiente, valor de string ou --confirm generico a substitui.');
+  }
+}
+
+function assertProductionTarget(label, value) {
+  if (typeof value !== 'string' || !value) die(label + ' ausente ou invalido - bloqueado');
+  if (value.includes(RETIRED_REF)) die(label + ' aponta para o projeto RETIRADO (' + RETIRED_REF + ') - bloqueado');
+  if (value.includes(FORBIDDEN_REF)) die(label + ' aponta para o projeto PROIBIDO (' + FORBIDDEN_REF + ') - bloqueado');
+  if (!value.includes(PRODUCTION_REF)) die(label + ' nao aponta para a producao autorizada (' + PRODUCTION_REF + ') - bloqueado');
 }
 
 function argValue(name) {
@@ -35,14 +57,15 @@ function argValue(name) {
 const pedidoFilter = process.env.PEDIDO_ID || argValue('pedido-id');
 const opFilter = process.env.OP_ID || argValue('op-id');
 
+assertProductionReadonlyDiagnostic();
+
 const cfg = JSON.parse(readFileSync(CONFIG, 'utf8'));
 const url = String(cfg.supabaseUrl || '').replace(/\/+$/, '');
 const anonKey = cfg.anonKey;
 if (!url || !anonKey || !cfg.adminEmail || !cfg.adminPassword) die('config incompleto');
-if (url.includes(PROD_REF)) die('URL aponta para PRODUCAO - bloqueado');
-if (!url.includes(STAGING_REF)) die('URL nao e staging autorizado');
+assertProductionTarget('URL do Supabase', url);
 
-console.log('Ambiente staging:', url.replace(/https:\/\/([a-z0-9]+)\..*/, 'https://$1.supabase.co'));
+console.log('Ambiente PRODUCAO (somente leitura):', url.replace(/https:\/\/([a-z0-9]+)\..*/, 'https://$1.supabase.co'));
 console.log('Modo: READ-ONLY / SELECT only');
 
 async function login() {

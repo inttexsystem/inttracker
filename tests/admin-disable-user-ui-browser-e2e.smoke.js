@@ -124,45 +124,56 @@ test("runner: aceita --app-url para override", () => {
 // 4. Guards de staging e produção
 // ---------------------------------------------------------------------
 
-test("runner: tem guard contra produção bhgifjrfagkzubpyqpew", () => {
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1: não existe banco
+// não-produtivo. Este runner abre browser e muta Auth/Edge Function, então
+// o caminho real de execução é desativado deterministicamente em vez de
+// ser redirecionado para a produção.
+test("runner: identidades de ambiente correntes, sem STAGING_REF", () => {
   assert.match(
     src,
-    /PRODUCTION_REF\s*=\s*['"]bhgifjrfagkzubpyqpew['"]/,
-    "deve definir PRODUCTION_REF = bhgifjrfagkzubpyqpew",
+    /PRODUCTION_REF\s*=\s*['"]ucrjtfswnfdlxwtmxnoo['"]/,
+    "deve definir PRODUCTION_REF = ucrjtfswnfdlxwtmxnoo",
   );
   assert.match(
     src,
-    /url\.includes\(PRODUCTION_REF\)/,
-    "deve testar url.includes(PRODUCTION_REF)",
+    /RETIRED_REF\s*=\s*['"]gqmpsxkxynrjvidfmojk['"]/,
+    "deve definir RETIRED_REF = gqmpsxkxynrjvidfmojk",
   );
+  assert.match(
+    src,
+    /FORBIDDEN_REF\s*=\s*['"]bhgifjrfagkzubpyqpew['"]/,
+    "deve definir FORBIDDEN_REF = bhgifjrfagkzubpyqpew",
+  );
+  assert.doesNotMatch(src, /STAGING_REF/, "STAGING_REF não pode sobreviver");
+  assert.doesNotMatch(src, /assertStagingUrl/, "assertStagingUrl não pode sobreviver");
 });
 
-test("runner: exige staging ref ucrjtfswnfdlxwtmxnoo", () => {
+test("runner: falha fechada antes de abrir browser ou emitir fetch", () => {
   assert.match(
     src,
-    /STAGING_REF\s*=\s*['"]ucrjtfswnfdlxwtmxnoo['"]/,
-    "deve definir STAGING_REF = ucrjtfswnfdlxwtmxnoo",
+    /INTTEX_NONPRODUCTION_ENVIRONMENT_UNAVAILABLE/,
+    "deve usar a identidade estável de falha fechada",
   );
   assert.match(
     src,
-    /!url\.includes\(STAGING_REF\)/,
-    "assertStagingUrl deve exigir STAGING_REF na URL",
+    /if \(cmd === "run"\) refuseNonProductionEnvironmentUnavailable\(\);/,
+    "run deve parar no dispatch, antes de prompt/browser/fetch",
   );
-  assert.match(
+  assert.doesNotMatch(
     src,
-    /assertStagingUrl/,
-    "deve ter função assertStagingUrl()",
+    /process\.env\.[A-Z_]*(ALLOW|FORCE|OVERRIDE|CONFIRM)[A-Z_]*/,
+    "nenhuma variável de ambiente pode liberar o runner",
   );
 });
 
 test("runner: não trata produção como destino operacional", () => {
-  const idx = src.indexOf("bhgifjrfagkzubpyqpew");
+  const idx = src.indexOf("ucrjtfswnfdlxwtmxnoo");
   assert.ok(idx > 0, "deve mencionar o ref de produção para bloqueio");
-  const before = src.slice(Math.max(0, idx - 200), idx);
-  const after = src.slice(idx, Math.min(src.length, idx + 200));
+  const before = src.slice(Math.max(0, idx - 400), idx);
+  const after = src.slice(idx, Math.min(src.length, idx + 400));
   assert.ok(
-    /Abortando|ERROR|die\(|PRODUÇÃO/i.test(before + after),
-    "referência a produção deve estar em contexto de bloqueio",
+    /fail closed|PRODUCAO|nao-produtivo/i.test(before + after),
+    "referência à produção deve estar em contexto de bloqueio",
   );
 });
 

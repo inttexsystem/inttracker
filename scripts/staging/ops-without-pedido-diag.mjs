@@ -1,10 +1,12 @@
 // =====================================================================
 // === scripts/staging/ops-without-pedido-diag.mjs =====================
-// Diagnostico READ-ONLY de OPs/lotes sem Pedido em Supabase STAGING.
+// Diagnostico READ-ONLY de OPs/lotes sem Pedido na PRODUCAO definitiva
+// (ucrjtfswnfdlxwtmxnoo), somente leitura.
 //
 // - SOMENTE SELECT via PostgREST. Nenhum write/RPC/DDL.
-// - Bloqueia se a URL for producao (bhgifjrfagkzubpyqpew).
-// - Exige staging (ucrjtfswnfdlxwtmxnoo).
+// - Exige a flag exata --confirm-production-readonly-diagnostic.
+// - Projeto retirado (gqmpsxkxynrjvidfmojk) e projeto proibido
+//   (bhgifjrfagkzubpyqpew) sempre falham.
 // - Nunca imprime anon key / password / JWT.
 //
 // Uso: node scripts/staging/ops-without-pedido-diag.mjs
@@ -19,13 +21,33 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..');
 const CONFIG = resolve(ROOT, '.ravatex-local', 'admin-disable-user-e2e.config.json');
 
-const PROD_REF = 'bhgifjrfagkzubpyqpew';
-const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1
+// Identidades de ambiente correntes. Nao existe banco nao-produtivo.
+const PRODUCTION_REF = 'ucrjtfswnfdlxwtmxnoo';
+const RETIRED_REF = 'gqmpsxkxynrjvidfmojk';
+const FORBIDDEN_REF = 'bhgifjrfagkzubpyqpew';
+const CONFIRM_FLAG = '--confirm-production-readonly-diagnostic';
 const LIMIT_EXAMPLES = 25;
 
 function die(msg) {
   console.error('ABORT: ' + msg);
   process.exit(1);
+}
+
+// Confirmacao booleana exata, exigida ANTES de ler credenciais, criar
+// client, abrir conexao, emitir fetch ou escrever artefato local.
+function assertProductionReadonlyDiagnostic() {
+  if (!process.argv.slice(2).includes(CONFIRM_FLAG)) {
+    die('diagnostico READ-ONLY contra a PRODUCAO (' + PRODUCTION_REF + ') exige a flag exata '
+      + CONFIRM_FLAG + '. Nenhuma variavel de ambiente, valor de string ou --confirm generico a substitui.');
+  }
+}
+
+function assertProductionTarget(label, value) {
+  if (typeof value !== 'string' || !value) die(label + ' ausente ou invalido - bloqueado');
+  if (value.includes(RETIRED_REF)) die(label + ' aponta para o projeto RETIRADO (' + RETIRED_REF + ') - bloqueado');
+  if (value.includes(FORBIDDEN_REF)) die(label + ' aponta para o projeto PROIBIDO (' + FORBIDDEN_REF + ') - bloqueado');
+  if (!value.includes(PRODUCTION_REF)) die(label + ' nao aponta para a producao autorizada (' + PRODUCTION_REF + ') - bloqueado');
 }
 
 function opLabel(op) {
@@ -41,15 +63,16 @@ function inc(map, key) {
   map[key] = (map[key] || 0) + 1;
 }
 
+assertProductionReadonlyDiagnostic();
+
 const cfg = JSON.parse(readFileSync(CONFIG, 'utf8'));
 const url = String(cfg.supabaseUrl || '').replace(/\/+$/, '');
 const anonKey = cfg.anonKey;
 
 if (!url || !anonKey || !cfg.adminEmail || !cfg.adminPassword) die('config incompleto em .ravatex-local');
-if (url.includes(PROD_REF)) die('URL aponta para PRODUCAO - bloqueado');
-if (!url.includes(STAGING_REF)) die('URL nao e staging autorizado (' + STAGING_REF + ')');
+assertProductionTarget('URL do Supabase', url);
 
-console.log('Ambiente staging:', url.replace(/https:\/\/([a-z0-9]+)\..*/, 'https://$1.supabase.co'));
+console.log('Ambiente PRODUCAO (somente leitura):', url.replace(/https:\/\/([a-z0-9]+)\..*/, 'https://$1.supabase.co'));
 
 async function login() {
   const res = await fetch(url + '/auth/v1/token?grant_type=password', {
@@ -277,9 +300,9 @@ function printOrphanDetails(rows, refs) {
   console.log('\n===== VEREDITO =====');
   const totalOrfas = opsSemLote.length + opsLoteSemPedido.length + lotesSemPedidoComOps.length;
   if (totalOrfas > 0) {
-    console.log('STATUS ALERTA - existem OPs/lotes sem Pedido vinculado em staging.');
+    console.log('STATUS ALERTA - existem OPs/lotes sem Pedido vinculado.');
     process.exitCode = 2;
   } else {
-    console.log('STATUS OK - nenhuma OP/lote orfao detectado em staging.');
+    console.log('STATUS OK - nenhuma OP/lote orfao detectado.');
   }
 })().catch((e) => die(e && e.message ? e.message : String(e)));

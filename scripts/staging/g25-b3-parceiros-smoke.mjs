@@ -1,8 +1,15 @@
 // ============================================================
-// G25-B2-A-R3 — Smoke write de Parceiros/CNPJ em STAGING.
+// G25-B2-A-R3 — Smoke write de Parceiros/CNPJ.
 //
-// STAGING ONLY: ref ucrjtfswnfdlxwtmxnoo. Produção
-// (bhgifjrfagkzubpyqpew) nunca é contatada.
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1 — fail closed.
+// Este smoke ESCREVE (INSERT/DELETE em parceiros e parceiro_cnpjs) e so
+// pode operar contra um ambiente nao-produtivo isolado. Esse ambiente
+// NAO existe: ucrjtfswnfdlxwtmxnoo e a PRODUCAO definitiva,
+// gqmpsxkxynrjvidfmojk foi RETIRADO (nao e producao, staging,
+// development nem fallback) e bhgifjrfagkzubpyqpew e PROIBIDO. O
+// caminho real de execucao esta desativado deterministicamente, antes
+// de qualquer leitura de credencial ou fetch; o proposito futuro do
+// smoke permanece visivel no codigo.
 //
 // Fluxo:
 //   1. login admin (signInWithPassword);
@@ -19,23 +26,34 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+const PRODUCTION_REF = 'ucrjtfswnfdlxwtmxnoo';
+const RETIRED_REF = 'gqmpsxkxynrjvidfmojk';
+const FORBIDDEN_REF = 'bhgifjrfagkzubpyqpew';
+const NONPRODUCTION_ENVIRONMENT_UNAVAILABLE = 'INTTEX_NONPRODUCTION_ENVIRONMENT_UNAVAILABLE';
+
+// Nao existe variavel de ambiente, flag de CLI, prompt oculto ou override
+// generico que libere o caminho de escrita em producao.
+function refuseNonProductionEnvironmentUnavailable() {
+  console.error(NONPRODUCTION_ENVIRONMENT_UNAVAILABLE);
+  console.error('Este smoke exige um ambiente nao-produtivo isolado.');
+  console.error('Nenhum ambiente nao-produtivo valido existe atualmente.');
+  console.error('O projeto configurado (' + PRODUCTION_REF + ') e PRODUCAO.');
+  console.error('Mutacao em producao nao e autorizada por este smoke.');
+  console.error('Projeto retirado: ' + RETIRED_REF + '; projeto proibido: ' + FORBIDDEN_REF + '.');
+  process.exit(3);
+}
+
+// Fail closed ANTES de ler a config local (credenciais), criar client,
+// abrir browser ou emitir qualquer fetch.
+refuseNonProductionEnvironmentUnavailable();
+
 const CFG = JSON.parse(fs.readFileSync(
   path.resolve('.ravatex-local/admin-disable-user-e2e.config.json'), 'utf8'));
 
-const URL = CFG.supabaseUrl;        // https://ucrjtfswnfdlxwtmxnoo.supabase.co
+const URL = CFG.supabaseUrl;
 const ANON = CFG.anonKey;
 const EMAIL = CFG.adminEmail;
 const PASS = CFG.adminPassword;
-
-// Guarda de ref: NUNCA prosseguir se a URL não for staging.
-if (!URL.includes('ucrjtfswnfdlxwtmxnoo')) {
-  console.error('ABORT: URL não é staging (esperava ucrjtfswnfdlxwtmxnoo):', URL);
-  process.exit(2);
-}
-if (URL.includes('bhgifjrfagkzubpyqpew')) {
-  console.error('ABORT: URL é PRODUÇÃO — proibido.');
-  process.exit(2);
-}
 
 async function rest(pathname, accessToken, method, body) {
   const res = await fetch(URL + pathname, {

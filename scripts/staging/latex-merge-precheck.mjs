@@ -1,7 +1,7 @@
 // =====================================================================
 // === scripts/staging/latex-merge-precheck.mjs ========================
 // Gate READ-ONLY de pré-merge para reconciliar OPs Látex duplicadas
-// no staging antes do índice UNIQUE parcial.
+// antes do índice UNIQUE parcial.
 //
 // Fase: RAVATEX-TAPETES-TEC_TO_ACABAMENTO-CONSOLIDATED-LATEX-OP-A
 //
@@ -15,7 +15,9 @@
 //   - zero movimentos de expedição.
 // Se QUALQUER condição falhar -> imprime STOP e sai != 0.
 //
-// SOMENTE SELECT. Bloqueia produção. Não imprime segredos.
+// SOMENTE SELECT contra a PRODUCAO em modo somente leitura; exige a flag
+// exata --confirm-production-readonly-diagnostic. Projeto retirado e
+// projeto proibido sempre falham. Não imprime segredos.
 // =====================================================================
 
 import { readFileSync } from 'node:fs';
@@ -25,8 +27,12 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..');
 const CONFIG = resolve(ROOT, '.ravatex-local', 'admin-disable-user-e2e.config.json');
-const PROD_REF = 'bhgifjrfagkzubpyqpew';
-const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1
+// Identidades de ambiente correntes. Nao existe banco nao-produtivo.
+const PRODUCTION_REF = 'ucrjtfswnfdlxwtmxnoo';
+const RETIRED_REF = 'gqmpsxkxynrjvidfmojk';
+const FORBIDDEN_REF = 'bhgifjrfagkzubpyqpew';
+const CONFIRM_FLAG = '--confirm-production-readonly-diagnostic';
 
 // Grupo(s) a reconciliar: canônica (manter) + redundante(s) (mesclar).
 const CANONICAL_ID = 17; // OP 3/2026 (mais antiga)
@@ -34,11 +40,28 @@ const REDUNDANT_IDS = [18]; // OP 4/2026
 
 function die(msg) { console.error('ABORT: ' + msg); process.exit(1); }
 
+// Confirmacao booleana exata, exigida ANTES de ler credenciais, criar
+// client, abrir conexao, emitir fetch ou escrever artefato local.
+function assertProductionReadonlyDiagnostic() {
+  if (!process.argv.slice(2).includes(CONFIRM_FLAG)) {
+    die('diagnostico READ-ONLY contra a PRODUCAO (' + PRODUCTION_REF + ') exige a flag exata '
+      + CONFIRM_FLAG + '. Nenhuma variavel de ambiente, valor de string ou --confirm generico a substitui.');
+  }
+}
+
+function assertProductionTarget(label, value) {
+  if (typeof value !== 'string' || !value) die(label + ' ausente ou invalido - bloqueado');
+  if (value.includes(RETIRED_REF)) die(label + ' aponta para o projeto RETIRADO (' + RETIRED_REF + ') - bloqueado');
+  if (value.includes(FORBIDDEN_REF)) die(label + ' aponta para o projeto PROIBIDO (' + FORBIDDEN_REF + ') - bloqueado');
+  if (!value.includes(PRODUCTION_REF)) die(label + ' nao aponta para a producao autorizada (' + PRODUCTION_REF + ') - bloqueado');
+}
+
+assertProductionReadonlyDiagnostic();
+
 const cfg = JSON.parse(readFileSync(CONFIG, 'utf8'));
 const url = String(cfg.supabaseUrl || '').replace(/\/+$/, '');
 const anonKey = cfg.anonKey;
-if (url.includes(PROD_REF)) die('URL de PRODUÇÃO — bloqueado');
-if (!url.includes(STAGING_REF)) die('URL não é staging autorizado');
+assertProductionTarget('URL do Supabase', url);
 
 async function login() {
   const res = await fetch(url + '/auth/v1/token?grant_type=password', {
@@ -118,7 +141,7 @@ async function sel(token, q) {
   const failed = checks.filter((c) => !c.ok);
   console.log('\n================ GATE ================');
   if (failed.length === 0) {
-    console.log('MERGE AUTORIZADO (staging): todas as condições satisfeitas.');
+    console.log('MERGE AUTORIZADO (pré-condições): todas as condições satisfeitas.');
     console.log('Plano: manter OP ' + canon.numero + '/' + canon.ano + '; acumular metros das redundantes em seus op_itens;');
     console.log('       vincular entregas ' + REDUNDANT_IDS.map((r) => byId[r] && byId[r].origem_entrega_id).join(',') + ' e ' + (canon && canon.origem_entrega_id) + ' à canônica em op_latex_entregas;');
     console.log('       remover OP redundante(s) ' + REDUNDANT_IDS.map((r) => byId[r] ? byId[r].numero + '/' + byId[r].ano : r).join(',') + '.');

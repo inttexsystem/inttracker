@@ -11,15 +11,17 @@
 //      _GUARD_BLOCK_WRITES / Proxy do `supa` / etc;
 //   5. window.RAVATEX_SUPABASE_CLIENT e window.supa são criados no
 //      runtime simulado;
-//   6. em staging (localhost/127.0.0.1) writes NÃO são bloqueados;
+//   6. no ambiente restricted (localhost/127.0.0.1/preview) writes SÃO
+//      bloqueados — não existe banco não-produtivo, o ambiente resolve
+//      para a produção em modo somente leitura;
 //   7. cenário forçado (local + URL de produção) bloqueia insert/update/
 //      delete/upsert/rpc; select e auth.getSession continuam livres;
 //   8. banner vermelho do write-guard continua existindo quando guard
 //      ativo, e vive agora em js/supabase-client.js;
-//   9. banner laranja staging permanece no inline (não foi movido nesta
-//      fase);
+//   9. banner laranja do ambiente restricted permanece no inline (não foi
+//      movido nesta fase);
 //  10. service_role e password literal NÃO aparecem;
-//  11. refs produção/staging preservados no módulo.
+//  11. o módulo não embute refs próprios — produção vem de js/config.js.
 
 'use strict';
 
@@ -35,8 +37,13 @@ const INDEX = path.join(ROOT, 'index.html');
 const CFG   = path.join(ROOT, 'js', 'config.js');
 const SUPA  = path.join(ROOT, 'js', 'supabase-client.js');
 
-const PROD_REF    = 'gqmpsxkxynrjvidfmojk';
-const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1 — identidades
+// correntes. `ucrjtfswnfdlxwtmxnoo` é a PRODUÇÃO definitiva (e o banco
+// que o ambiente `restricted` também lê, em somente leitura);
+// `gqmpsxkxynrjvidfmojk` foi RETIRADO; `bhgifjrfagkzubpyqpew` é PROIBIDO.
+const PRODUCTION_REF = 'ucrjtfswnfdlxwtmxnoo';
+const RETIRED_REF    = 'gqmpsxkxynrjvidfmojk';
+const FORBIDDEN_REF  = 'bhgifjrfagkzubpyqpew';
 
 const cfgSrc    = fs.readFileSync(CFG,  'utf8');
 const supaSrc   = fs.readFileSync(SUPA, 'utf8');
@@ -234,6 +241,22 @@ test('js/supabase-client.js: produção ref aparece em production config (via co
     'js/supabase-client.js embute anon key — deve usar js/config.js');
 });
 
+test('identidades de ambiente: js/config.js usa a produção definitiva e não reintroduz retirado/proibido', () => {
+  // O runtime é dono do roteamento; este teste apenas prova que a
+  // identidade corrente é a única presente na configuração ativa.
+  assert.equal(cfgSrc.includes(PRODUCTION_REF), true,
+    'js/config.js deve apontar para a produção definitiva');
+  assert.equal(cfgSrc.includes(`https://${RETIRED_REF}.supabase.co`), false,
+    'js/config.js reintroduziu a URL do projeto RETIRADO');
+  assert.equal(cfgSrc.includes(`https://${FORBIDDEN_REF}.supabase.co`), false,
+    'js/config.js reintroduziu a URL do projeto PROIBIDO');
+  // O módulo do client não embute ref algum.
+  for (const ref of [PRODUCTION_REF, RETIRED_REF, FORBIDDEN_REF]) {
+    assert.equal(supaSrc.includes(ref), false,
+      `js/supabase-client.js embute o ref ${ref} — deve usar js/config.js`);
+  }
+});
+
 test('js/supabase-client.js: nenhum service_role presente', () => {
   assert.equal(/service_role/i.test(supaSrc), false,
     'service_role encontrado em js/supabase-client.js');
@@ -382,7 +405,7 @@ test('produção (inttracker-jade.vercel.app): guard OFF, writes passam', async 
   assert.ok(insertCalls.length >= 1, 'insert não chegou no fake client em produção');
 });
 
-test('staging: select e auth.getSession funcionam', async () => {
+test('restricted: select e auth.getSession funcionam', async () => {
   const { sandbox, fakeSupa } = runSandbox({ hostname: 'localhost' });
   fakeSupa._calls.length = 0;
   const sel = vm.runInContext(`supa.from('usuarios')`, sandbox);
@@ -395,10 +418,9 @@ test('staging: select e auth.getSession funcionam', async () => {
 });
 
 test('cénario forçado: local + URL de produção → guard ON, insert/update/delete/upsert/rpc bloqueiam', async () => {
-  // Forçar o guard exige _IS_LOCAL=true E _IS_PROD_URL=true. Em produção
-  // real isso é geometricamente impossível (localhost sempre seleciona
-  // staging). Aqui simulamos o cenário defensivo sobrescrevendo
-  // SUPABASE_URL no sandbox antes de carregar o client.
+  // Forçar o guard exige _IS_LOCAL=true E _IS_PROD_URL=true. Aqui
+  // simulamos o cenário defensivo sobrescrevendo SUPABASE_URL no sandbox
+  // antes de carregar o client.
   const fakeSupa = makeFakeSupabaseClient();
   const fakeSupabase = {
     createClient: (url, key, opts) => {
@@ -422,11 +444,11 @@ test('cénario forçado: local + URL de produção → guard ON, insert/update/d
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
-  // Carrega config.js (sandbox detecta staging para 127.0.0.1) e depois
-  // sobrescreve SUPABASE_URL com a URL de produção.
+  // Carrega config.js (sandbox detecta `restricted` para 127.0.0.1) e
+  // depois sobrescreve SUPABASE_URL com a URL de produção.
   vm.runInContext(cfgSrc, sandbox, { filename: 'js/config.js' });
   vm.runInContext(
-    `SUPABASE_URL = 'https://${PROD_REF}.supabase.co'; APP_ENVIRONMENTS.production.supabaseUrl = SUPABASE_URL;`,
+    `SUPABASE_URL = 'https://${PRODUCTION_REF}.supabase.co'; APP_ENVIRONMENTS.production.supabaseUrl = SUPABASE_URL;`,
     sandbox, { filename: 'force-prod.js' }
   );
   // Carrega o client.
@@ -472,7 +494,7 @@ test('cénario forçado: select NÃO é bloqueado', async () => {
   vm.createContext(sandbox);
   vm.runInContext(cfgSrc, sandbox, { filename: 'js/config.js' });
   vm.runInContext(
-    `SUPABASE_URL = 'https://${PROD_REF}.supabase.co'; APP_ENVIRONMENTS.production.supabaseUrl = SUPABASE_URL;`,
+    `SUPABASE_URL = 'https://${PRODUCTION_REF}.supabase.co'; APP_ENVIRONMENTS.production.supabaseUrl = SUPABASE_URL;`,
     sandbox, { filename: 'force-prod.js' }
   );
   vm.runInContext(supaSrc, sandbox, { filename: 'js/supabase-client.js' });
@@ -504,7 +526,7 @@ test('cénario forçado: auth.getSession NÃO é bloqueado', async () => {
   vm.createContext(sandbox);
   vm.runInContext(cfgSrc, sandbox, { filename: 'js/config.js' });
   vm.runInContext(
-    `SUPABASE_URL = 'https://${PROD_REF}.supabase.co'; APP_ENVIRONMENTS.production.supabaseUrl = SUPABASE_URL;`,
+    `SUPABASE_URL = 'https://${PRODUCTION_REF}.supabase.co'; APP_ENVIRONMENTS.production.supabaseUrl = SUPABASE_URL;`,
     sandbox, { filename: 'force-prod.js' }
   );
   vm.runInContext(supaSrc, sandbox, { filename: 'js/supabase-client.js' });

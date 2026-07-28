@@ -1,7 +1,7 @@
 // =====================================================================
 // === scripts/staging/latex-consolidation-diag.mjs ====================
-// Diagnóstico READ-ONLY do fluxo TECELAGEM -> ACABAMENTO/LÁTEX em
-// Supabase STAGING (ucrjtfswnfdlxwtmxnoo).
+// Diagnóstico READ-ONLY do fluxo TECELAGEM -> ACABAMENTO/LÁTEX na
+// PRODUÇÃO definitiva (ucrjtfswnfdlxwtmxnoo), somente leitura.
 //
 // Fase: RAVATEX-TAPETES-TEC_TO_ACABAMENTO-CONSOLIDATED-LATEX-OP-A
 //
@@ -11,8 +11,9 @@
 // (o que dispara escalonamento antes de qualquer migration).
 //
 // - SOMENTE SELECT. Nenhum write, nenhum RPC, nenhuma migration.
-// - Bloqueia se a URL for produção (bhgifjrfagkzubpyqpew).
-// - Exige URL de staging (ucrjtfswnfdlxwtmxnoo).
+// - Exige a flag exata --confirm-production-readonly-diagnostic.
+// - Projeto retirado (gqmpsxkxynrjvidfmojk) e projeto proibido
+//   (bhgifjrfagkzubpyqpew) sempre falham.
 // - Nunca imprime anon key, password, JWT ou tokens.
 //
 // Uso:  node scripts/staging/latex-consolidation-diag.mjs
@@ -27,10 +28,32 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..', '..');
 const CONFIG = resolve(ROOT, '.ravatex-local', 'admin-disable-user-e2e.config.json');
 
-const PROD_REF = 'bhgifjrfagkzubpyqpew';
-const STAGING_REF = 'ucrjtfswnfdlxwtmxnoo';
+// INTTRACKER-STAGING-AND-BACKUP-ENVIRONMENT-SAFETY-R1
+// Identidades de ambiente correntes. Nao existe banco nao-produtivo.
+const PRODUCTION_REF = 'ucrjtfswnfdlxwtmxnoo';
+const RETIRED_REF = 'gqmpsxkxynrjvidfmojk';
+const FORBIDDEN_REF = 'bhgifjrfagkzubpyqpew';
+const CONFIRM_FLAG = '--confirm-production-readonly-diagnostic';
 
 function die(msg) { console.error('ABORT: ' + msg); process.exit(1); }
+
+// Confirmacao booleana exata, exigida ANTES de ler credenciais, criar
+// client, abrir conexao, emitir fetch ou escrever artefato local.
+function assertProductionReadonlyDiagnostic() {
+  if (!process.argv.slice(2).includes(CONFIRM_FLAG)) {
+    die('diagnostico READ-ONLY contra a PRODUCAO (' + PRODUCTION_REF + ') exige a flag exata '
+      + CONFIRM_FLAG + '. Nenhuma variavel de ambiente, valor de string ou --confirm generico a substitui.');
+  }
+}
+
+function assertProductionTarget(label, value) {
+  if (typeof value !== 'string' || !value) die(label + ' ausente ou invalido - bloqueado');
+  if (value.includes(RETIRED_REF)) die(label + ' aponta para o projeto RETIRADO (' + RETIRED_REF + ') - bloqueado');
+  if (value.includes(FORBIDDEN_REF)) die(label + ' aponta para o projeto PROIBIDO (' + FORBIDDEN_REF + ') - bloqueado');
+  if (!value.includes(PRODUCTION_REF)) die(label + ' nao aponta para a producao autorizada (' + PRODUCTION_REF + ') - bloqueado');
+}
+
+assertProductionReadonlyDiagnostic();
 
 const cfg = JSON.parse(readFileSync(CONFIG, 'utf8'));
 const url = String(cfg.supabaseUrl || '').replace(/\/+$/, '');
@@ -39,10 +62,9 @@ const email = cfg.adminEmail;
 const password = cfg.adminPassword;
 
 if (!url || !anonKey || !email || !password) die('config incompleto em .ravatex-local');
-if (url.includes(PROD_REF)) die('URL aponta para PRODUÇÃO — bloqueado por segurança');
-if (!url.includes(STAGING_REF)) die('URL não é o staging autorizado (' + STAGING_REF + ')');
+assertProductionTarget('URL do Supabase', url);
 
-console.log('Ambiente staging:', url.replace(/https:\/\/([a-z0-9]+)\..*/, 'https://$1.supabase.co'));
+console.log('Ambiente PRODUCAO (somente leitura):', url.replace(/https:\/\/([a-z0-9]+)\..*/, 'https://$1.supabase.co'));
 
 async function login() {
   const res = await fetch(url + '/auth/v1/token?grant_type=password', {
@@ -184,7 +206,7 @@ const round2 = (n) => Math.round(Number(n || 0) * 100) / 100;
   const dupWithProd = dupGroups.some(([, ops]) => ops.some((op) => (op.status && op.status !== 'aberta') || (expByLatex[op.id] || []).length > 0));
   if (dupGroups.length === 0) {
     console.log('SEM duplicidade materializada. Correção pode ser estrutural (schema+RPC+guard+UI) sem merge de dados.');
-    console.log('Ainda assim, aplicar SOMENTE em staging e revalidar.');
+    console.log('Ainda assim, aplicar sob autorizacao explicita de ambiente e revalidar.');
   } else if (dupWithProd) {
     console.log('DUPLICIDADE COM PRODUÇÃO/EXPEDIÇÃO — ESCALONAR (merge de dados não trivial, risco de histórico).');
   } else {
