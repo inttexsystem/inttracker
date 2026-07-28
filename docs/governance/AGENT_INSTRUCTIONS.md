@@ -86,7 +86,8 @@ An executor order must state the agent/model/effort and mode when material, the
 objective, verified starting state, exact scope and allowed paths/actions,
 prohibitions, hard stops, tests, acceptance evidence, and mandatory closeout.
 Product implementation orders must also require structural-policy evidence
-against `docs/architecture/CODE_HEALTH_RULES.md`.
+against `docs/architecture/CODE_HEALTH_RULES.md`. It must also carry the
+execution envelope of §10.
 
 ## 5. Proportional documentation
 
@@ -202,3 +203,116 @@ Report proportionally to risk:
 Never claim an execution, environment validation, publication, technical
 acceptance, architect acceptance, or product behavior that was not directly
 proved at that level.
+
+## 10. Proportional execution
+
+Governance exists to keep defects visible, not to turn routine implementation
+and publication into repository-wide audits. Evidence is proportional to risk;
+effort beyond the declared acceptance criteria is a defect, not diligence.
+
+### 10.1 Execution profiles
+
+Every order runs under exactly one profile.
+
+`FAST` — default for `R0`, `R1` and `R2`. Expected 5 to 10 minutes, with the
+hard ceiling declared by the order. Focused tests only. No full suite, no
+baseline worktree, no historical investigation, no broad audit. Stop as soon as
+the acceptance criteria pass.
+
+`ASSURANCE` — default for `R3` and `R4`: migrations, database contracts,
+concurrency, ACL/RLS, Auth, security, irreversible operations and material
+production cutovers. Focused validation first; broader validation only when
+explicitly named; full suite only through explicit opt-in.
+
+### 10.2 Mandatory execution envelope
+
+Every execution order must declare, and an executor must refuse to start
+without: `RISK_CLASS`, `EXECUTION_PROFILE`, `TIME_BUDGET`, `DECIDED_FACTS`,
+`AUTHORIZED_READS`, `AUTHORIZED_CHANGES`, `VALIDATION_MANIFEST`,
+`FULL_SUITE_POLICY`, `DOCUMENTATION_MODE`, `EXPANSION_GATE`,
+`DEBT_CAPTURE_MODE`, `STOP_CONDITION`.
+
+### 10.3 Binding execution rules
+
+1. **Architect-decided facts are fixed inputs.** Do not re-investigate them
+   unless direct evidence proves contradiction, impossibility, corruption risk,
+   security risk, wrong environment, or an irreversible unsafe action.
+2. **`VALIDATION_MANIFEST` is exhaustive, not illustrative.** Running a test
+   outside it is prohibited.
+3. **Full-suite execution is prohibited** unless the order states
+   `FULL_SUITE_POLICY: AUTHORIZED`.
+4. A full suite must never be run merely because a config file changed, a
+   canonical document changed, a cache token changed, a historical guard exists,
+   or unrelated baseline failures are present.
+5. **Existing accepted failure identities are report-only.** Do not reproduce
+   them in another worktree, re-baseline, investigate, repair or re-compare
+   them, unless the authorized delta directly changed their identity or
+   behaviour.
+6. **Maximum `FAST` loop:** one preflight; one directly bounded coupling search;
+   one focused validation run; one correction pass; one focused validation
+   rerun; commit/publication; stop.
+7. **Do not edit files while a validation sweep that reads those files is still
+   running.** A sweep that raced an edit is void and its result may not be
+   reported.
+8. **Do not use long sleep polling.** Poll external operations with short
+   bounded checks, and report external waiting time separately from execution
+   time.
+9. Optional improvement, cleanup, audit, refactor or extra evidence must not be
+   executed.
+10. **Scope expansion requires architect authorization** and may never be
+    silently absorbed.
+
+### 10.4 Documentation proportionality
+
+A routine patch does not require a ledger entry merely because code changed.
+Update documentation only when an owned operational, normative, architectural or
+historical fact actually changed. This narrows nothing in §5: it states which
+owners are actually affected, and `MATERIAL_STATE_CHANGE` and `PHASE_CLOSEOUT`
+continue to require their historical owner.
+
+## 11. Mandatory debt capture
+
+No inconsistency may be silently ignored. Proportional execution reduces the
+work done about a finding, never the visibility of it.
+
+Every out-of-scope finding is classified as exactly one of:
+
+- `BLOCKING` — data loss or corruption, security or permission defect,
+  wrong-environment write, broken Auth, irreversible unsafe operation, build or
+  deployment failure, or a directly caused functional regression.
+- `NONBLOCKING_MATERIAL_DEBT` — a real inconsistency or operational risk that
+  does not block the current acceptance criteria.
+- `ACCEPTED_BASELINE` — already owned and accepted debt or failure identity.
+- `OPTIONAL_IMPROVEMENT` — cleanup or enhancement with no present operational
+  impact.
+
+Every report carries an `OUT_OF_SCOPE_OBSERVATIONS` section, each entry stating:
+ID; classification; evidence; possible impact; directly caused by the current
+change (yes/no); current or proposed owner; recommended future action.
+
+Treatment is fixed: `BLOCKING` stops execution. `NONBLOCKING_MATERIAL_DEBT` is
+recorded in the applicable current debt owner and execution continues.
+`ACCEPTED_BASELINE` cites the existing ID and continues without investigation.
+`OPTIONAL_IMPROVEMENT` is reported and not implemented.
+
+## 12. Routine publication and the system health gate
+
+### 12.1 Routine publication contract
+
+For an ordinary improvement published from `dev`: implement the bounded change;
+run only focused proportional tests; record out-of-scope material debt; create
+one small commit; push once to `staging/dev`; let the existing Vercel Git
+integration deploy `dev` automatically; run a focused production smoke test on
+the canonical production alias; stop.
+
+Do not run a Vercel CLI deployment while Git deployment is operating normally.
+
+### 12.2 System health gate
+
+Repository-wide validation is a SEPARATE AUTHORIZED OPERATION and must never be
+embedded inside a routine `FAST` task. Use it periodically rather than per
+patch: before an `R3`/`R4` release, after migrations or security changes, or
+when accumulated debt requires reconciliation.
+
+A system health gate may run the full suite once, compare failure identities,
+classify new debt, and issue separate correction orders.

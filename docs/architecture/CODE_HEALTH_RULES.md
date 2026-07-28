@@ -260,6 +260,15 @@ Minimum standard:
 
 Do not run the full suite by default if the phase does not require it.
 
+The full suite is **prohibited** unless the order states
+`FULL_SUITE_POLICY: AUTHORIZED`. It must not be run merely because a config file
+changed, a canonical document changed, a cache token changed, a historical guard
+exists, or unrelated baseline failures are present. The order's
+`VALIDATION_MANIFEST` is exhaustive, not illustrative: running a test outside it
+is prohibited. Repository-wide validation belongs to the system health gate, a
+separate authorized operation. See `docs/governance/AGENT_INSTRUCTIONS.md` §10
+and §12, which own these rules.
+
 ## 14. Rule for phases
 
 Each phase must have a single scope.
@@ -339,6 +348,13 @@ A patch must be blocked if it:
 * breaks smoke tests and treats it as irrelevant without proof.
 
 ## 18. Periodic audit
+
+This audit is a SYSTEM HEALTH GATE: a separate authorized operation, run
+periodically rather than per patch, and never embedded inside a routine `FAST`
+task. Trigger it before an `R3`/`R4` release, after migrations or security
+changes, or when accumulated debt requires reconciliation. It is the only place
+a full suite run and a failure-identity comparison belong
+(`docs/governance/AGENT_INSTRUCTIONS.md` §12.2).
 
 At each relevant set of features, run a read-only audit:
 
