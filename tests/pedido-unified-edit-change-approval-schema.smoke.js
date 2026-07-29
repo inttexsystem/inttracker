@@ -470,3 +470,181 @@ test('the contract records the C1 security correction', () => {
   assert.match(contract, /ALTER DEFAULT PRIVILEGES/u);
   assert.match(contract, /owner-only/u);
 });
+
+// ---------------------------------------------------------------------------
+// db/94 — client structural capability
+// (PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C1-SCHEMA)
+//
+// db/94 exposes ONE sanitized boolean through the already-public, already-
+// sanitized cliente_alteracao_resumo, computed by the owner-only authoritative
+// gate. These assertions guard the FILE. The behavioural proof lives in
+// tests/cliente-pedido-structural-capability-invariant.mjs, which runs the
+// complete db/01..db/94 chain on a disposable cluster.
+//
+// This file is the correct owner for the STATIC guards: it already owns the
+// db/92 and db/93 source assertions, and the RPC db/94 replaces is one it
+// already inventories.
+// ---------------------------------------------------------------------------
+
+const DB94_FILENAME = '94_cliente_pedido_structural_capability.sql';
+const DB94_PATH = path.join(REPO_ROOT, 'db', DB94_FILENAME);
+const sql94 = fs.readFileSync(DB94_PATH, 'utf8');
+
+// Line-ending-independent comparison: the byte-preservation assertions below are
+// about SQL text, not about how the working tree checked the file out.
+const lf = (s) => s.replace(/\r\n/gu, '\n');
+const sql92lf = lf(sql);
+const sql94lf = lf(sql94);
+// Comment-stripped view. The header of db/94 legitimately NAMES the constructs it
+// must not perform (`ALTER DEFAULT PRIVILEGES`, the tables it must not touch), so
+// a "must not contain" guard has to read executable SQL, not prose.
+const sql94code = sql94lf.split('\n').filter((line) => !/^\s*--/u.test(line)).join('\n');
+
+test('db/94 is forward-only and wraps the whole migration in ONE transaction', () => {
+  assert.equal((sql94.match(/^BEGIN;$/gmu) || []).length, 1, 'exactly one BEGIN');
+  assert.equal((sql94.match(/^COMMIT;$/gmu) || []).length, 1, 'exactly one COMMIT');
+  assert.ok(sql94.indexOf('BEGIN;') < sql94.indexOf('COMMIT;'));
+  assert.equal(/^ROLLBACK;$/mu.test(sql94), false, 'a migration never rolls itself back');
+});
+
+test('db/94 changes nothing but the one function body and its declared ACL', () => {
+  for (const forbidden of [
+    /CREATE\s+TABLE/iu,
+    /ALTER\s+TABLE/iu,
+    /CREATE\s+(UNIQUE\s+)?INDEX/iu,
+    /CREATE\s+TRIGGER/iu,
+    /CREATE\s+POLICY/iu,
+    /DROP\s+(TABLE|TRIGGER|POLICY|INDEX|FUNCTION|COLUMN)/iu,
+    /\b(INSERT\s+INTO|DELETE\s+FROM)\b/iu,
+    /UPDATE\s+public\./iu,
+    /ALTER\s+DEFAULT\s+PRIVILEGES/iu,
+    /GRANT[^\n;]*ON\s+TABLE/iu,
+    /GRANT[^\n;]*ON\s+SCHEMA/iu,
+  ]) {
+    assert.equal(forbidden.test(sql94code), false, `db/94 must not contain ${forbidden}`);
+  }
+  // EXACTLY one function is redefined, and it is the accepted public RPC.
+  const defined = [...sql94code.matchAll(/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+(public\.\w+)/gu)].map((m) => m[1]);
+  assert.deepEqual(defined, ['public.cliente_alteracao_resumo'],
+    'db/94 must redefine exactly cliente_alteracao_resumo and no other function');
+});
+
+test('db/94 preserves the exact accepted signature and security envelope', () => {
+  assert.match(sql94,
+    /CREATE OR REPLACE FUNCTION public\.cliente_alteracao_resumo\(p_pedido_id UUID\)\s*\nRETURNS JSONB\s*\nLANGUAGE plpgsql\s*\nSTABLE\s*\nSECURITY DEFINER\s*\nSET search_path = public\s*\nAS \$\$/u,
+    'the signature, volatility, definer and search_path must be byte-identical to db/92');
+  // No signature change may hide anywhere in the file.
+  assert.equal(/cliente_alteracao_resumo\((?!p_pedido_id UUID\)|UUID\)|uuid\))/u.test(sql94), false,
+    'db/94 must never reference cliente_alteracao_resumo with another argument list');
+});
+
+test('db/94 adds EXACTLY the one capability field, computed by the authoritative gate', () => {
+  assert.match(sql94,
+    /'capacidades', jsonb_build_object\(\s*\n\s*'estrutura_itens_bloqueada', public\.pedido_tem_op_relacionada\(p_pedido_id\)\)\)/u,
+    'the capability must be exactly estrutura_itens_bloqueada = pedido_tem_op_relacionada(p_pedido_id)');
+  // Exactly one capability object, built in exactly one place. (A bare
+  // /'capacidades'/ count would also match the escaped literal inside the
+  // migration's own verify block, so the construction site is counted instead.)
+  assert.equal((sql94.match(/'capacidades', jsonb_build_object\(/gu) || []).length, 1,
+    'the capacidades object must be built in exactly one place');
+  assert.equal(
+    (sql94.match(/'estrutura_itens_bloqueada', public\.pedido_tem_op_relacionada/gu) || []).length, 1,
+    'the capability must be assigned from the authoritative gate in exactly one place');
+  // No reason, source table, count, id or status may travel with it.
+  for (const leak of ['motivo_bloqueio', 'origem_bloqueio', 'op_id', 'lote_id', 'expedicao_id',
+    'quantidade_ops', 'status_op', 'tem_op_relacionada']) {
+    assert.equal(sql94.includes(`'${leak}'`), false, `db/94 must not expose ${leak}`);
+  }
+});
+
+test('db/94 preserves the db/92 pendente and historico projections BYTE-FOR-BYTE', () => {
+  // The shared block runs from the start of the success payload through the
+  // historico COALESCE. Taken from db/92 and required verbatim in db/94, so a
+  // silent reshaping of either field is impossible.
+  const from = "  RETURN jsonb_build_object(\n    'ok', true,";
+  const toMarker = "'[]'::jsonb)";
+  const start = sql92lf.indexOf(from);
+  assert.ok(start > 0, 'the db/92 success payload must be locatable');
+  const end = sql92lf.indexOf(toMarker, start) + toMarker.length;
+  const preserved = sql92lf.slice(start, end);
+  assert.ok(preserved.includes("'pendente', ("), 'the extracted block must carry pendente');
+  assert.ok(preserved.includes("'historico', COALESCE(("), 'the extracted block must carry historico');
+  assert.ok(preserved.includes('ORDER BY s.criado_em DESC'), 'the extracted block must carry the ordering');
+  assert.ok(sql94lf.includes(preserved),
+    'db/94 must reproduce the db/92 ok/pedido_id/pendente/historico projection verbatim');
+});
+
+test('db/94 preserves both error results exactly and leaks no capability into them', () => {
+  for (const id of ['PEDIDO_ALTERACAO_PEDIDO_NOT_FOUND', 'PEDIDO_ALTERACAO_FORBIDDEN']) {
+    const shape = `jsonb_build_object('ok', false, 'erro', '${id}')`;
+    assert.ok(sql92lf.includes(shape), `db/92 baseline shape for ${id} must be locatable`);
+    assert.ok(sql94lf.includes(shape), `db/94 must preserve the exact error result for ${id}`);
+  }
+  // The authorization preamble is unchanged, so neither error branch can be
+  // reached with different semantics.
+  const authz = "  IF NOT v_admin AND (v_cliente IS NULL OR v_dono IS DISTINCT FROM v_cliente) THEN";
+  assert.ok(sql92lf.includes(authz) && sql94lf.includes(authz),
+    'the internal authorization test must be byte-identical');
+  assert.match(sql94, /v_cliente BIGINT := public\.meu_cliente_id\(\);/u);
+  assert.match(sql94, /v_admin   BOOLEAN := public\.is_admin\(\);/u);
+  // The capability is built only inside the success payload: it must appear
+  // AFTER both error returns.
+  const capAt = sql94lf.indexOf("'capacidades'");
+  for (const id of ['PEDIDO_ALTERACAO_PEDIDO_NOT_FOUND', 'PEDIDO_ALTERACAO_FORBIDDEN']) {
+    assert.ok(sql94lf.indexOf(`'${id}'`) < capAt,
+      `${id} must be returned before the capability is ever computed`);
+  }
+});
+
+test('db/94 declares the final ACL and keeps the helper owner-only', () => {
+  assert.ok(sql94.includes(
+    'REVOKE EXECUTE ON FUNCTION public.cliente_alteracao_resumo(UUID) FROM PUBLIC, anon;'),
+    'db/94 must revoke PUBLIC and anon from the RPC');
+  assert.ok(sql94.includes(
+    'GRANT  EXECUTE ON FUNCTION public.cliente_alteracao_resumo(UUID) TO authenticated, service_role;'),
+    'db/94 must declare the accepted db/93 grant explicitly, not inherit it');
+  assert.ok(sql94.includes(
+    'REVOKE EXECUTE ON FUNCTION public.pedido_tem_op_relacionada(UUID) FROM PUBLIC, anon, authenticated, service_role;'),
+    'db/94 must re-assert that the authoritative gate stays owner-only');
+  // The gate is NEVER granted to anything.
+  assert.equal(/ON FUNCTION public\.pedido_tem_op_relacionada\(UUID\) TO /u.test(sql94), false,
+    'db/94 must never grant EXECUTE on pedido_tem_op_relacionada');
+  // No ninth public RPC: the only function db/94 grants is the existing one.
+  const granted = [...sql94.matchAll(/(?:GRANT\s+)+EXECUTE ON FUNCTION public\.(\w+)\([^)]*\) TO /gu)]
+    .map((m) => m[1]);
+  assert.deepEqual([...new Set(granted)], ['cliente_alteracao_resumo'],
+    'db/94 must grant EXECUTE on exactly the one already-public RPC');
+  // And the public inventory stays eight, asserted by the migration itself.
+  assert.match(sql94, /o inventario publico deve permanecer 8/u);
+});
+
+test('db/94 fails closed on every prerequisite and verifies its own result', () => {
+  assert.match(sql94, /db\/94 gate: pre-requisito\(s\) ausente\(s\)/u);
+  assert.match(sql94, /db\/94 gate: estado de privilegio de db\/93 ausente ou divergente/u);
+  for (const prereq of [
+    'public.pedido_alteracao_solicitacoes', 'public.pedido_alteracao_solicitacao_itens',
+    'public.pedidos.revisao', 'public.cliente_alteracao_resumo(uuid)',
+    'public.pedido_tem_op_relacionada(uuid)', 'public.meu_cliente_id()', 'public.is_admin()',
+  ]) {
+    assert.ok(sql94.includes(prereq), `the gate must name the prerequisite ${prereq}`);
+  }
+  // A gate that repairs is not a gate: db/94 must not recreate a db/92 object.
+  assert.equal(/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.pedido_tem_op_relacionada/iu.test(sql94), false,
+    'db/94 must never redefine the authoritative gate');
+  // Self-verification of the reached state.
+  assert.match(sql94, /db\/94 verify: resultado incorreto/u);
+  assert.match(sql94, /a RPC deixou de ser SECURITY DEFINER/u);
+  assert.match(sql94, /a RPC deixou de ser STABLE/u);
+  assert.match(sql94, /helper executavel por/u);
+  assert.match(sql94, /dono perdeu EXECUTE no helper/u);
+});
+
+test('the contract records the db/94 client structural capability', () => {
+  assert.match(contract, /### U16\. Client structural capability \(db\/94\)/u);
+  assert.ok(contract.includes(DB94_FILENAME), 'the contract must name the migration file');
+  assert.ok(contract.includes('capacidades.estrutura_itens_bloqueada'),
+    'the contract must name the exact field');
+  // The contract must state who owns the value and who does NOT.
+  assert.match(contract, /chain_state\.isOperationalOverride/u);
+  assert.match(contract, /U10\.3/u);
+});

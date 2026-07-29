@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW`
-- Objective: Implement and publish the accepted client Pedido editor with direct pre-acceptance saving, post-acceptance change-request submission, pending request replacement and withdrawal, client-safe lifecycle capabilities and no internal production-data exposure.
-- Next authorizable action: `DIRECT SUPERVISOR REVIEW OF PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1` / `AWAITING SUPERVISOR REVIEW; PHASE 5 IS NOT CHAINED`
+- Status: `IMPLEMENTED / APPLIED TO DEFINITIVE PRODUCTION / PUBLISHED / AWAITING SUPERVISOR REVIEW`
+- Objective: Publish and apply the exact client-safe structural-item capability required to correct PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1. No client frontend change occurred in this schema correction.
+- Next authorizable action: `DIRECT SUPERVISOR REVIEW OF PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C1-SCHEMA` / `AWAITING SUPERVISOR REVIEW; CLIENT UI CORRECTION IS NOT CHAINED`
 
 ## Blockers and decisions
 

@@ -3165,6 +3165,186 @@ preflight; the policy count is unchanged at ten; and
 are identical to preflight, with every Pedido still at `revisao=1`. No business
 row, request row or synthetic row was created, altered or removed.
 
+### U16. Client structural capability (db/94)
+
+**Status.** Applied to the definitive production project. Order
+`PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C1-SCHEMA`. Forward-only correction
+on top of `db/92` and `db/93`. This section owns the **API shape** of the
+capability and nothing else: it changes no `U4`/`U5` business semantics and
+records **no** Phase 4 acceptance.
+
+#### U16.1 The gap this closes
+
+`U5` makes `public.pedido_tem_op_relacionada(p_pedido_id)` the authoritative
+structural gate, and `U15` correctly left it **owner-only**. Together those two
+accepted rulings left the client editor of `U10.3` with **no** client-safe read
+of the real gate.
+
+The only signal otherwise available to a client surface is
+`chain_state.isOperationalOverride` from `cliente_pedido_summary()` (`db/30`).
+**That field is not the owner of this capability.** It covers OP-via-lote and
+expedition-via-Pedido; it does **not** cover an `op_itens` or `expedicao_itens`
+row referencing an item of the Pedido when the owning OP or expedition does not
+identify the Pedido by itself. It is an approximation, and a surface that
+derives a structural lock from it also fails **open** when the read itself
+fails. An approximation that fails open is not a capability.
+
+The server was and remains the authority for refusal
+(`PEDIDO_ALTERACAO_ESTRUTURA_BLOQUEADA_APOS_OP`). What was missing was the
+client's ability to **decide, without approximation**, whether the structural
+item controls must render read-only.
+
+#### U16.2 The exact response addition
+
+`public.cliente_alteracao_resumo(p_pedido_id UUID) RETURNS JSONB` keeps its
+signature. It is **not** a ninth public RPC: the authenticated allowlist of
+`U15.2` remains exactly eight. `ok`, `pedido_id`, `pendente`, `historico` and
+both existing error objects are preserved unchanged, including the
+`historico` `ORDER BY criado_em DESC` ordering and the `'[]'` empty default.
+
+Exactly one field is added to the **success** payload:
+
+```json
+"capacidades": { "estrutura_itens_bloqueada": <boolean> }
+```
+
+Its value is exactly `public.pedido_tem_op_relacionada(p_pedido_id)`.
+
+| Value | Meaning |
+| --- | --- |
+| `false` | No related OP, related expedition or production-item linkage exists under the authoritative `db/92` gate. Structural item changes may be proposed. |
+| `true` | At least one authoritative linkage exists. Changing `modelo_id`, changing `metros`, inserting an item and removing an item must be **read-only** in the client editor. |
+
+**Sanitization is part of the contract.** The reason, the source table, any
+count, any OP / lote / expedition / item identifier, any OP status, supplier,
+purchase-order, fiscal-document, cost or other internal production metadata are
+**not** returned. The client receives one boolean and nothing else.
+
+**No leak through the error paths.** The `PEDIDO_ALTERACAO_PEDIDO_NOT_FOUND` and
+`PEDIDO_ALTERACAO_FORBIDDEN` results keep their exact existing shape
+(`{ok:false, erro:<id>}`) and never carry `capacidades`. A forbidden answer is
+therefore identical whether or not production exists for the foreign Pedido, so
+the RPC cannot be used as an existence oracle.
+
+#### U16.3 Ownership and security
+
+The capability is computed **inside** the `SECURITY DEFINER` summary RPC, which
+executes as the owner and may therefore call the owner-only helper.
+`public.pedido_tem_op_relacionada(UUID)` **remains owner-only** — `PUBLIC`,
+`anon`, `authenticated` and `service_role` all hold no `EXECUTE`, re-asserted
+explicitly by `db/94` — and the client never calls it directly. The standing
+rule of `U15.2` is unchanged and this migration is an instance of it, not an
+exception to it.
+
+`cliente_alteracao_resumo` remains `STABLE`, `SECURITY DEFINER`,
+`SET search_path = public`, authorized internally through `meu_cliente_id()` /
+`is_admin()`, executable by `authenticated` and `service_role`, and executable
+by neither `PUBLIC` nor `anon`. `db/94` declares that final ACL explicitly
+rather than inheriting it. No table grant, RLS policy, Auth setting, trigger,
+index, other function body or business row is touched.
+
+#### U16.4 Consumer rule
+
+This field exists specifically so that `U10.3` can implement the `U4`/`U5`
+structural lock **exactly**. Binding on the client editor when it is corrected:
+
+- `capacidades.estrutura_itens_bloqueada` is the **sole** owner of the client
+  structural-lock decision;
+- `chain_state.isOperationalOverride` is **not** that owner and must not be used
+  for this purpose;
+- a failed or missing read of this capability must fail **closed** (treat as
+  `true`), never open.
+
+`db/94` is a schema correction only. **No client frontend file changed in it,
+and `PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1` (Phase 4) is not accepted by
+it.** The bounded UI correction is a separate authorization.
+
+#### U16.5 Evidence
+
+**Migration.** `db/94_cliente_pedido_structural_capability.sql`, forward-only,
+idempotent, one transaction, self-verifying. Its prerequisite gate fails closed
+and names what is missing: the two `db/92` request tables, `pedidos.revisao`,
+`cliente_alteracao_resumo(uuid)`, `pedido_tem_op_relacionada(uuid)`,
+`meu_cliente_id()`, `is_admin()`, **and** the `db/93` final privilege state
+(helper owner-only, RPC authenticated-executable and not `anon`-executable). A
+terminal `DO` block re-reads the reached state: identity arguments, return type,
+`prosecdef`, `provolatile`, `proconfig`, the presence of the capability key, the
+gate call that computes it, the preserved fields, the exact literal shape of
+both error branches, the RPC ACL, `PUBLIC` holding nothing, the helper still
+owner-only with the owner retaining `EXECUTE`, and the public inventory still
+resolving to eight.
+
+**Static guards.** `tests/pedido-unified-edit-change-approval-schema.smoke.js`
+gains the `db/94` section: single transaction; no table, policy, trigger, index,
+DML or default-privilege statement; exactly one function redefined; the
+signature and security envelope byte-identical to `db/92`; exactly one
+capability object built from the authoritative gate in exactly one place; the
+`db/92` `ok`/`pedido_id`/`pendente`/`historico` projection reproduced
+**byte-for-byte**; both error results and the internal authorization test
+preserved literally, with the capability computed only after both error returns;
+the declared ACL; the helper never granted; no ninth granted function; and the
+fail-closed and self-verifying messages.
+
+**Disposable-cluster validation.**
+`tests/cliente-pedido-structural-capability-invariant.mjs`, one fresh disposable
+PostgreSQL 18.4 cluster, destroyed in Part Z, synthetic fixtures only. It
+captures the `pendente` and `historico` baselines on the `db/92`+`db/93` state
+**immediately before** `db/94` is applied, so preservation is measured rather
+than asserted. It proves the full `db/01..db/94` chain with `94` terminal;
+idempotent replay with identical function definition, identical ACL
+fingerprint, identical response bytes and zero row-count drift across all
+eleven tables; the gate failing closed both without the helper and without the
+`db/93` privilege state; the seven positive capability cases (no linkage; OP via
+`lotes.pedido_id`; direct `expedicoes.pedido_id`; `op_itens.pedido_item_id`;
+`expedicao_itens.pedido_item_id`; `simulada`; `cancelada`); equality between the
+exposed boolean and the owner-side helper on every fixture; both negative cases
+returning the exact preserved error shape with no capability and no existence
+oracle; the `pendente` object, the `historico` array, its per-entry shape and
+its `criado_em DESC` ordering byte-identical to the pre-`db/94` baseline, with
+the empty case still `[]`; `authenticated` and `service_role` executing the RPC
+while `anon` is refused with a permission error; `anon`, `authenticated` and
+`service_role` all refused on direct helper invocation with `PUBLIC` holding
+nothing; the owner still holding `EXECUTE` on both, proved as a privilege fact
+(a raw-role functional call was rejected as a test design: it would exercise
+`meu_cliente_id()`/`is_admin()`'s own NULL-`auth.uid()` fallback, not the
+helper); the administrative read path unchanged; and a response key set of
+exactly the five accepted keys with `capacidades` carrying exactly one boolean
+and no internal term.
+
+Two accepted invariants from **outside this order's scope** were discovered
+while proving isolation and are recorded as fixture-construction facts, not as
+defects: (1) `db/84`'s expedition-lineage correction requires an expedition's
+source OP to carry a `Lote` whose `pedido_id`/`cliente_id` equal the
+expedition's own, so a real `expedicoes.pedido_id` linkage **necessarily**
+co-occurs with an `ops`-via-`lotes.pedido_id` linkage for the same Pedido; (2)
+`expedicao_itens_membership_guard_fn` (`db/88`) requires
+`expedicao_itens.pedido_item_id` to mirror its `op_itens.pedido_item_id`
+exactly, so a real `expedicao_itens.pedido_item_id` linkage necessarily
+co-occurs with an `op_itens.pedido_item_id` linkage for the same row. Both are
+proved as isolation facts in the harness (fixture row-counts show the coupling
+explicitly) rather than assumed away; neither changes the authoritative gate,
+which already treats all four source tables as one `OR`.
+
+**Production application.** Applied once to `ucrjtfswnfdlxwtmxnoo`. Preflight
+recorded terminal `db/93` (44 migrations before apply), the `cliente_alteracao_resumo`
+definition byte-identical to the `db/92` baseline, `pedido_tem_op_relacionada`
+owner-only (`anon`/`authenticated`/`service_role` all `false`, owner `true`),
+and the eleven table row counts: `pedidos=5`, `pedido_itens=36`, `ops=0`,
+`op_itens=0`, `expedicoes=0`, `expedicao_itens=0`,
+`pedido_alteracao_solicitacoes=0`, `pedido_alteracao_solicitacao_itens=0`,
+`pedido_eventos=1`, `pedido_cliente_eventos=0`, `pedido_prioridade_eventos=3`.
+Applied once via the migration path. Post-apply: terminal is
+`94_cliente_pedido_structural_capability`, migration count `45`;
+`cliente_alteracao_resumo` keeps its exact signature
+(`p_pedido_id uuid → jsonb`), `SECURITY DEFINER`, `STABLE`, pinned
+`search_path`, `anon=false`/`authenticated=true`/`service_role=true`/owner
+`true`, and its definition now contains the `capacidades`/
+`estrutura_itens_bloqueada` construction; `pedido_tem_op_relacionada` remains
+owner-only with no capability text in its own body (it is the helper, not the
+RPC); the public inventory count for the eight accepted RPC names is still `8`;
+and all eleven table row counts are **identical** to preflight. No row was
+created, updated or deleted.
+
 ## Update 2026-07-29 — Pedido item mention and general observation ruling (PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1)
 
 **Status.** RATIFIED product ruling. Binding on the administrative Pedido

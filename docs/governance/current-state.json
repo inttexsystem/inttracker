@@ -186,18 +186,18 @@
     }
   ],
   "active_phase": {
-    "id": "PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1",
-    "status": "IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW",
-    "immediate_objective": "Implement and publish the accepted client Pedido editor with direct pre-acceptance saving, post-acceptance change-request submission, pending request replacement and withdrawal, client-safe lifecycle capabilities and no internal production-data exposure.",
+    "id": "PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C1-SCHEMA",
+    "status": "IMPLEMENTED / APPLIED TO DEFINITIVE PRODUCTION / PUBLISHED / AWAITING SUPERVISOR REVIEW",
+    "immediate_objective": "Publish and apply the exact client-safe structural-item capability required to correct PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1. No client frontend change occurred in this schema correction.",
     "contract": {
       "path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
       "anchor": "### U10.3 Client editor — `#/cliente/pedidos/<uuid>/editar`"
     }
   },
   "next_authorizable_action": {
-    "id": "DIRECT SUPERVISOR REVIEW OF PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1",
-    "mode": "AWAITING SUPERVISOR REVIEW; PHASE 5 IS NOT CHAINED",
-    "status": "PENDING. Review the published client editor, direct-save path, change-request submission, request replacement and withdrawal. Do not begin the administrative comparison and approval screen without a new explicit order."
+    "id": "DIRECT SUPERVISOR REVIEW OF PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C1-SCHEMA",
+    "mode": "AWAITING SUPERVISOR REVIEW; CLIENT UI CORRECTION IS NOT CHAINED",
+    "status": "PENDING. Review db/94, its definitive-production apply and the exact sanitized capability. After acceptance, issue the bounded Phase 4 UI correction. Do not begin Phase 5."
   },
   "active_track": {
     "id": "PURCHASE_ORDER_PHASE_C",

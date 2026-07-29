@@ -100,6 +100,12 @@
 // fail-closed mechanism is unchanged (mechanism preserved, only the terminal
 // expectation advanced).
 //
+// PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C1-SCHEMA note:
+// db/94_cliente_pedido_structural_capability.sql extends this manifest by one
+// further entry, so the expected terminal advances 93 -> 94 and the terminal
+// two become db/93/db/94. The fail-closed mechanism is unchanged (mechanism
+// preserved, only the terminal expectation advanced).
+//
 // PEDIDO-UNIFIED-EDIT-CHANGE-APPROVAL-SCHEMA-R1-C1 note:
 // db/93_pedido_change_approval_helper_privilege_correction.sql extends this
 // manifest by one further entry, so the expected terminal advances 92 -> 93
@@ -146,7 +152,7 @@ const BOOTSTRAP_SOURCE = fs.readFileSync(BOOTSTRAP_MODULE_PATH, 'utf8');
 
 const APPLICATION_ARTIFACT = '22bfb192c6c2ad10ccd2b2883d54c3a17e40cc9f';
 const EXPECTED_BRANCH = 'dev';
-const EXPECTED_TERMINAL = 93;
+const EXPECTED_TERMINAL = 94;
 const DB75_FILENAME = '75_ordem_compra_c3c_inactive_cutover.sql';
 const DB76_FILENAME = '76_ordem_compra_c3c_b_db_prerequisites.sql';
 const DB77_FILENAME = '77_ordem_compra_c5a_emission_readiness.sql';
@@ -166,6 +172,7 @@ const DB90_FILENAME = '90_pedido_proximo_numero_suggestion_rpc.sql';
 const DB91_FILENAME = '91_pedido_item_production_priority.sql';
 const DB92_FILENAME = '92_pedido_unified_edit_change_approval_foundation.sql';
 const DB93_FILENAME = '93_pedido_change_approval_helper_privilege_correction.sql';
+const DB94_FILENAME = '94_cliente_pedido_structural_capability.sql';
 const DB75_PATH = path.join(DB_DIR, DB75_FILENAME);
 const DB76_PATH = path.join(DB_DIR, DB76_FILENAME);
 const DB77_PATH = path.join(DB_DIR, DB77_FILENAME);
@@ -342,8 +349,8 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
   });
 
   const terminalTwo = migrations.slice(-2);
-  assert.equal(terminalTwo[0].filename, DB92_FILENAME);
-  assert.equal(terminalTwo[1].filename, DB93_FILENAME);
+  assert.equal(terminalTwo[0].filename, DB93_FILENAME);
+  assert.equal(terminalTwo[1].filename, DB94_FILENAME);
 
   for (const migration of terminalTwo) {
     const relPathPosix = `db/${migration.filename}`;
@@ -362,27 +369,27 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
 // Deployment manifest: happy path against the real repository
 // ---------------------------------------------------------------------------
 
-test('deployment manifest resolves exactly db/01..db/93, contiguous and unique', () => {
+test('deployment manifest resolves exactly db/01..db/94, contiguous and unique', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
-  assert.equal(entries.length, 93);
+  assert.equal(entries.length, 94);
   assert.deepEqual(
     entries.map((entry) => entry.number),
-    Array.from({ length: 93 }, (_, i) => i + 1)
+    Array.from({ length: 94 }, (_, i) => i + 1)
   );
 });
 
-test('db/92 and db/93 are the terminal two migrations', () => {
+test('db/93 and db/94 are the terminal two migrations', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
-  const [penultimate92, terminal93] = entries.slice(-2);
-  assert.equal(penultimate92.filename, DB92_FILENAME);
-  assert.equal(terminal93.filename, DB93_FILENAME);
+  const [penultimate93, terminal94] = entries.slice(-2);
+  assert.equal(penultimate93.filename, DB93_FILENAME);
+  assert.equal(terminal94.filename, DB94_FILENAME);
 });
 
 test('the full deployment manifest builds against the real repository', () => {
   const manifest = buildDeploymentManifest();
-  assert.equal(manifest.migrations.length, 93);
+  assert.equal(manifest.migrations.length, 94);
   assert.equal(manifest.applicationArtifact, APPLICATION_ARTIFACT);
   assert.equal(manifest.terminalTwo.length, 2);
   assert.ok(/^[0-9a-f]{40}$/.test(manifest.documentaryCheckpoint));
