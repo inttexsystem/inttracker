@@ -140,16 +140,14 @@ function baseModelos() {
 async function bootPedidoEdit(opts) {
   const o = opts || {};
   const document = createDocument();
-  const supa = makeFakeSupa({
-    tableData: Object.assign({
-      pedidos: [basePedidoRow(o.pedido)],
-      pedido_itens: o.itens || baseItens(),
-      clientes: [{ id: 501, nome: 'Cliente Atlas' }],
-      modelos: baseModelos(),
-      lotes: [], expedicoes: [], op_itens: [], expedicao_itens: [], ops: [],
-    }, o.tableData || {}),
-    rpcImpl: o.rpcImpl || {},
-  });
+  const tableData = Object.assign({
+    pedidos: [basePedidoRow(o.pedido)],
+    pedido_itens: o.itens || baseItens(),
+    clientes: [{ id: 501, nome: 'Cliente Atlas' }],
+    modelos: baseModelos(),
+    lotes: [], expedicoes: [], op_itens: [], expedicao_itens: [], ops: [],
+  }, o.tableData || {});
+  const supa = makeFakeSupa({ tableData, rpcImpl: o.rpcImpl || {} });
 
   const sandbox = { window: {}, document, console, Node: EditNode, setTimeout, clearTimeout };
   sandbox.window = sandbox;
@@ -165,7 +163,7 @@ async function bootPedidoEdit(opts) {
   sandbox.toast = (msg, tone) => { (sandbox.__toasts = sandbox.__toasts || []).push({ msg, tone }); };
 
   const root = await vm.runInContext(`window.screenPedidoEditar(${JSON.stringify(PID)})`, sandbox);
-  return { sandbox, root, supa };
+  return { sandbox, root, supa, tableData };
 }
 
 // ---------------------------------------------------------------------
@@ -312,4 +310,103 @@ test('pedido-edit: revisão desatualizada mostra aviso e "Recarregar dados", sem
   assert.equal(rpcCallsAfterFirstFailure, 1, 'não pode haver retry automático da RPC');
   const saveBtnNow = findButtonByText(root, /alterações/);
   assert.equal(saveBtnNow.getAttribute('disabled'), 'disabled', 'Salvar deve ficar desabilitado até recarregar explicitamente');
+});
+
+// PEDIDO-UNIFIED-ADMIN-EDITOR-R1-REVIEW-CORRECTION: prova o ciclo completo —
+// falha por revisão desatualizada, recarga explícita bem-sucedida restaura um
+// editor fresco e utilizável, e o salvamento seguinte usa a base NOVA sem
+// herdar o rascunho sujo anterior.
+test('pedido-edit: recarga explícita bem-sucedida limpa o aviso, restaura Salvar e usa p_base_revisao FRESCO — sem herdar o rascunho antigo', async () => {
+  const rpcCalls = [];
+  const { root, supa, tableData } = await bootPedidoEdit({
+    rpcImpl: {
+      salvar_pedido_admin: (params) => {
+        rpcCalls.push(params);
+        if (rpcCalls.length === 1) {
+          return { data: null, error: { message: 'PEDIDO_ALTERACAO_REVISAO_DESATUALIZADA: o Pedido mudou desde a abertura do editor (base 3, atual 4)' } };
+        }
+        return { data: { ok: true }, error: null };
+      },
+    },
+  });
+
+  // 1) Primeiro salvamento: base 3, falha por revisão desatualizada.
+  const firstRefInputs = allByTag(root, 'input').filter((i) => i.getAttribute('type') === 'text');
+  firstRefInputs[0].value = 'Mudou antes da recarga';
+  firstRefInputs[0]._listeners.input({ target: firstRefInputs[0] });
+  const firstSaveBtn = findButtonByText(root, /^Salvar alterações$/);
+  await firstSaveBtn._listeners.click();
+  assert.equal(rpcCalls.length, 1, 'exatamente uma chamada antes da recarga');
+  assert.equal(rpcCalls[0].p_base_revisao, 3, 'o primeiro salvamento deve usar a revisao carregada no boot (3)');
+  assert.match(root.textContent, /mudou desde a abertura do editor/);
+  assert.equal(findButtonByText(root, /alterações/).getAttribute('disabled'), 'disabled');
+
+  // 2) Simula outra pessoa tendo avançado a revisão no servidor enquanto a
+  // tela ficou aberta — e devolve referencia_cliente ao valor persistido
+  // (nenhum rascunho local sobrevive à recarga).
+  tableData.pedidos[0].revisao = 4;
+  tableData.pedidos[0].referencia_cliente = null;
+
+  // 3) Recarga explícita.
+  const reloadBtn = findButtonByText(root, /^Recarregar dados$/);
+  await reloadBtn._listeners.click();
+
+  // 4) Aviso de revisão desatualizada desaparece; Salvar volta a ficar disponível.
+  assert.doesNotMatch(root.textContent, /mudou desde a abertura do editor/, 'o aviso de revisão desatualizada deve sumir após a recarga bem-sucedida');
+  const saveBtnAfterReload = findButtonByText(root, /^Salvar alterações$/);
+  assert.ok(saveBtnAfterReload, 'Salvar deve voltar a existir após a recarga');
+  assert.notEqual(saveBtnAfterReload.getAttribute('disabled'), 'disabled', 'Salvar deve estar habilitado após a recarga bem-sucedida');
+
+  // 5) O rascunho sujo anterior ("Mudou antes da recarga") NÃO sobrevive: o
+  // campo reflete o valor fresco do servidor (vazio), não o texto digitado.
+  const refInputsAfterReload = allByTag(root, 'input').filter((i) => i.getAttribute('type') === 'text');
+  assert.equal(refInputsAfterReload[0].value, '', 'o campo deve refletir o valor persistido fresco, não o rascunho antigo');
+
+  // 6) Uma edição NOVA, feita após a recarga, salva com sucesso usando a
+  // revisão FRESCA (4) — nunca a base 3 congelada da tentativa anterior.
+  refInputsAfterReload[0].value = 'Editado depois da recarga';
+  refInputsAfterReload[0]._listeners.input({ target: refInputsAfterReload[0] });
+  await saveBtnAfterReload._listeners.click();
+  assert.equal(rpcCalls.length, 2, 'o segundo salvamento deve chamar a RPC exatamente mais uma vez');
+  assert.equal(rpcCalls[1].p_base_revisao, 4, 'o salvamento pós-recarga deve usar a revisao FRESCA (4), não a base 3 antiga');
+  // JSON.stringify em vez de deepEqual: p_header vem do vm.Context (outro
+  // realm), e deepStrictEqual recusa um objeto estruturalmente idêntico só
+  // por prototype mismatch entre realms.
+  assert.equal(JSON.stringify(rpcCalls[1].p_header), JSON.stringify({ referencia_cliente: 'Editado depois da recarga' }),
+    'o payload deve refletir só a edição pós-recarga, não o rascunho descartado da tentativa anterior');
+  assert.match(root.textContent, /Salvando/i);
+});
+
+test('pedido-edit: recarga explícita que FALHA permanece fail-closed — mantém a trava de revisão e não habilita Salvar', async () => {
+  const { root, sandbox, supa } = await bootPedidoEdit({
+    rpcImpl: {
+      salvar_pedido_admin: () => ({ data: null, error: { message: 'PEDIDO_ALTERACAO_REVISAO_DESATUALIZADA: o Pedido mudou desde a abertura do editor (base 3, atual 4)' } }),
+    },
+  });
+  const refInputs = allByTag(root, 'input').filter((i) => i.getAttribute('type') === 'text');
+  refInputs[0].value = 'Mudou';
+  refInputs[0]._listeners.input({ target: refInputs[0] });
+  await findButtonByText(root, /^Salvar alterações$/)._listeners.click();
+  assert.match(root.textContent, /mudou desde a abertura do editor/);
+
+  // A recarga em si falha (leitura de `pedidos` recusada).
+  const originalFrom = sandbox.supa.from;
+  sandbox.supa.from = (t) => {
+    if (t === 'pedidos') {
+      return { select() { return this; }, eq() { return this; }, maybeSingle() { return Promise.resolve({ data: null, error: { message: 'falha de rede' } }); } };
+    }
+    return originalFrom(t);
+  };
+
+  const reloadBtn = findButtonByText(root, /^Recarregar dados$/);
+  await reloadBtn._listeners.click();
+
+  // Fail-closed: nenhum botão "Salvar alterações" habilitado deve existir —
+  // a tela cai no ecrã de erro de carregamento em vez de reabilitar Salvar
+  // sobre uma base incompleta ou mista.
+  const saveBtnAfterFailedReload = findButtonByText(root, /^Salvar alterações$/);
+  assert.equal(saveBtnAfterFailedReload, undefined, 'nenhum Salvar utilizável pode existir depois de uma recarga que falhou');
+  assert.match(root.textContent, /[Ee]rro ao carregar|[Nn]ão encontrado/, 'deve mostrar um erro de carregamento útil');
+  const rpcCallsTotal = supa._calls.filter((c) => c.op === 'rpc').length;
+  assert.equal(rpcCallsTotal, 1, 'a recarga que falha não pode ter tentado salvar_pedido_admin de novo');
 });

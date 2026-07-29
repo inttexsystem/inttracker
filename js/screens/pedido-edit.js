@@ -271,15 +271,32 @@
       }
     }
 
+    // `carregar()` é o UNICO ponto de leitura, tanto no boot da tela quanto no
+    // "Recarregar dados" explicito apos PEDIDO_ALTERACAO_REVISAO_DESATUALIZADA
+    // (nunca ha retry automatico nem merge: o operador aciona, e cada chamada
+    // SUBSTITUI integralmente fields/itens/baselines/prioridade a partir da
+    // leitura fresca — DRAFT().fromPersisted()/FIELDS().fromPersisted() nunca
+    // preservam rascunho local antigo).
+    //
+    // `staleRevision` e `linkageCheckFailed` sao estado TRANSIENTE de UMA
+    // tentativa e nao podem sobreviver a uma recarga bem-sucedida:
+    //   - `linkageCheckFailed` e limpo ANTES da nova checagem de vinculo, para
+    //     que uma falha antiga nao continue aparecendo depois de uma leitura
+    //     que desta vez funcionou;
+    //   - `staleRevision` so e limpo no FINAL, depois que pedido+itens (e,
+    //     quando necessario, clientes/modelos) carregaram sem erro — uma
+    //     recarga que falhar (`state.loadingError` setado) preserva a trava
+    //     de staleRevision e cai no ecrã de erro em vez de reabilitar Salvar
+    //     sobre uma base incompleta ou mista.
     async function carregar() {
       state.loadingError = null;
       await carregarPedidoEItens();
       if (state.loadingError || !state.pedido) return;
       if (state.clientes.length === 0 || state.modelos.length === 0) await carregarClientesEModelos();
       if (state.loadingError) return;
-      if (!isTerminal(state.pedido.status)) {
-        state.estruturaBloqueada = await detectarVinculoProducao();
-      }
+      state.linkageCheckFailed = false;
+      state.estruturaBloqueada = isTerminal(state.pedido.status) ? false : await detectarVinculoProducao();
+      state.staleRevision = false;
     }
 
     await carregar();
