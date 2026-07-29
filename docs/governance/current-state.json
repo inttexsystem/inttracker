@@ -38,7 +38,7 @@
     "requirement_traceability": "docs/governance/traceability/purchase-order-phase-c.json",
     "append_only_history": "docs/ledgers/G28_LEDGER.md"
   },
-  "accepted_operational_checkpoint": "ffc6b400b34246a6d3a06cd5face5c6c4629cda3",
+  "accepted_operational_checkpoint": "b6bbe4a69c583d255a1f6d993b01988be1646cbd",
   "accepted_checkpoints": [
     {
       "id": "UI-SPECIALIZED-CONTROLS-B1-SHARED-PRIMITIVES-AND-SITE-MIGRATION",
@@ -183,22 +183,28 @@
       "status": "CLOSED / ACCEPTED",
       "checkpoint_commit": "ffc6b400b34246a6d3a06cd5face5c6c4629cda3",
       "acceptance_scope": "The seven-column administrative Pedido item table (Img, Tipo, Modelo, Cores, Largura, Metragem, Acoes) is accepted; the administrative per-item Observation column and the Add-item modal observation field are retired. The @ mention action and its exact reference format (\"@Item {n} — {modelo} · {cor1}/{cor2} · {largura}: \", no UUID, no pedido_item_id, no metragem) are accepted, built by window.actionButton at the canonical 30x30 target, placed before Remove. A mention-only or general-observation-only save sends p_header while p_itens remains NULL; structural-lock (post-OP) and terminal read-only behaviour are accepted unchanged. Legacy non-empty pedido_itens.observacao values remain faithfully preserved and rendered byte-exactly (leading/trailing whitespace, internal whitespace and line breaks intact, white-space:pre-wrap) through a compact read-only compatibility hint, never a permanent column, never editable. This acceptance INCLUDES the caret-intent review correction published at this same commit ffc6b400b34246a6d3a06cd5face5c6c4629cda3 (PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1-REVIEW-CORRECTION): the mention-caret signal is captured on the mention button's mousedown (before the browser's native blur) rather than a sticky focus flag, so a click on @ after focus has moved to an unrelated control correctly appends instead of reusing a stale caret. NO separate accepted checkpoint exists for PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1-REVIEW-CORRECTION. Client surfaces (#/cliente/pedidos/novo, the future client editor, change-request submission and the approval screen) were explicitly outside this implementation's scope. No schema, migration, RPC or production-data change occurred in either the original implementation or its review correction. PEDIDO-ITEM-LARGURA-OVERRIDE-PRESERVATION-RISK remains OPEN and NONBLOCKING and is not closed by this acceptance. Kleber directly accepted this phase, authorizing PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1 (Phase 4 of the unified Pedido editing and client change-approval sequence) as the next phase."
+    },
+    {
+      "id": "PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1",
+      "status": "CLOSED / ACCEPTED",
+      "checkpoint_commit": "b6bbe4a69c583d255a1f6d993b01988be1646cbd",
+      "acceptance_scope": "Phase 4 of the unified Pedido editing and client change-approval sequence — the Client's own Pedido editor at #/cliente/pedidos/<uuid>/editar (js/screens/cliente-pedido-edit.js, role cliente, parsed by js/router.js) — is ACCEPTED. This SINGLE checkpoint ABSORBS the original implementation ce20b696891ad832da23c7ea5fa0d0425f3d4dd0, the C1 schema correction e6956def3e32f7e08f7e2df53bd16f2a82693285 (db/94) and the C2 UI correction b6bbe4a69c583d255a1f6d993b01988be1646cbd, and is taken at b6bbe4a69c583d255a1f6d993b01988be1646cbd. NO separate accepted checkpoint exists for PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C1-SCHEMA or for PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C2-UI. Accepted scope: the client edit route; direct pre-acceptance save through salvar_pedido_cliente(p_pedido_id, p_base_revisao, p_header, p_itens, p_prioridade) with exact base revision, NULL dirty sections and no call at all when nothing changed; post-acceptance request submission through solicitar_alteracao_pedido(p_pedido_id, p_header, p_itens, p_prioridade, p_mensagem), which never touches the live Pedido; atomic replacement of a pending request through that same single RPC call, with the explicit 'Substituir solicitacao de alteracao' action and copy, and withdrawal through retirar_alteracao_pedido; client-editable per-item observations with their own dirty detection through js/pedido-draft.js isCollectionChanged(..., { compareObservacao: true }); data_pedido read-only after the Pedido exists and never present in either payload; client-safe identity by referencia_cliente and date with no internal Pedido number, no raw status and no OP, lote, supplier, purchase-order, fiscal-document or internal-cost data; the EXACT db/94 structural capability payload.capacidades.estrutura_itens_bloqueada as the sole owner of the structural-item lock, with chain_state.isOperationalOverride proved non-authoritative and no longer read for that decision; fail-closed structural controls whenever that capability is absent, malformed or non-boolean, leaving header fields, general observation, item observation and proposed priority reachable; the sanitized read-only request history from cliente_alteracao_resumo().historico, with the unavailable state distinct from the empty state and no solicitacao_id, requester identity, failure identifier, base revision or production data rendered; the terminal redirect to the client detail screen instead of rendering the editor; explicit operator-driven reload on PEDIDO_ALTERACAO_REVISAO_DESATUALIZADA with no automatic retry and no client-side merge; zero direct DML on pedidos, pedido_itens or either change-request table; and zero internal production information on the client surface. PEDIDO-ITEM-LARGURA-OVERRIDE-PRESERVATION-RISK remains OPEN and NONBLOCKING under this acceptance and is not closed by it. Kleber directly accepted this phase, authorizing PEDIDO-ADMIN-CHANGE-REQUEST-COMPARISON-APPROVAL-R1 (Phase 5) as the next phase."
     }
   ],
   "active_phase": {
-    "id": "PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C2-UI",
-    "status": "CORRECTION IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW",
-    "immediate_objective": "Complete the client Pedido editor by consuming the exact db/94 structural capability, failing closed when that capability is unavailable, rendering the sanitized request history and identifying pending-request replacement explicitly.",
+    "id": "PEDIDO-ADMIN-CHANGE-REQUEST-COMPARISON-APPROVAL-R1",
+    "status": "IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW",
+    "immediate_objective": "Implement and publish the dedicated administrative Pedido change-request comparison and decision screen, with full before/current/proposed visibility, request discovery from the Pedido detail hub and approval/rejection exclusively through the accepted db/92 RPCs.",
     "contract": {
       "path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
-      "anchor": "### U10.3 Client editor — `#/cliente/pedidos/<uuid>/editar`"
+      "anchor": "#### U10.4 Approval screen — `#/pedidos/<uuid>/alteracoes/<request-id>`"
     },
-    "note": "PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C1-SCHEMA (db/94, e6956def3e32f7e08f7e2df53bd16f2a82693285) is accepted as the database prerequisite for this correction. No separate accepted checkpoint is created for C1: it is absorbed into the eventual accepted Phase 4 checkpoint together with the original Phase 4 implementation (ce20b696) and this C2 UI correction. accepted_operational_checkpoint remains PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1; Phase 4 itself is NOT accepted by this correction."
+    "note": "Phase 5 of the unified Pedido editing and client change-approval sequence. Phase 4 (PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1) is accepted at b6bbe4a69c583d255a1f6d993b01988be1646cbd and is the accepted operational checkpoint; Phase 5 itself is NOT accepted and no accepted checkpoint is appended for it. No database, migration, RPC, RLS, ACL, Auth or production-data operation occurred."
   },
   "next_authorizable_action": {
-    "id": "DIRECT SUPERVISOR REVIEW OF PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-INCLUDING-C1-C2",
-    "mode": "AWAITING SUPERVISOR REVIEW; PHASE 5 IS NOT CHAINED",
-    "status": "PENDING. Review the complete client editor, exact structural capability, fail-closed behaviour, request history, replacement action, direct-save path, request submission and withdrawal. Do not begin Phase 5 without final Phase 4 acceptance."
+    "id": "DIRECT SUPERVISOR REVIEW OF PEDIDO-ADMIN-CHANGE-REQUEST-COMPARISON-APPROVAL-R1",
+    "mode": "AWAITING SUPERVISOR REVIEW; PHASE 6 IS NOT CHAINED",
+    "status": "PENDING. Review the comparison, item and priority differences, impact and stale warnings, approval, rejection and decided read-only states. Do not begin Phase 6 without final Phase 5 acceptance."
   },
   "active_track": {
     "id": "PURCHASE_ORDER_PHASE_C",
@@ -435,6 +441,14 @@
       "blocking": false,
       "owner": "docs/architecture/CLEAN_SLATE_TRANSACTIONAL_RESET_PHASE_CONTRACT.md",
       "note": "Executable tooling now uses the accepted production, retired and forbidden identity model, while the historical section 12 prose still describes a development target."
+    },
+    {
+      "id": "PEDIDO-ALTERACAO-PRIORITY-AND-ITEM-REFUSALS-CLASSIFIED-AS-APPLICATION-FAILURE",
+      "status": "OPEN / NONBLOCKING",
+      "blocking": false,
+      "owner": "Pedido change-approval RPC domain (db/92)",
+      "evidence": "db/92_pedido_unified_edit_change_approval_foundation.sql :: aprovar_alteracao_pedido (the BEGIN ... EXCEPTION WHEN OTHERS application subtransaction), pedido_prioridade_aplicar, pedido_itens_reconciliar",
+      "note": "U8.3 states that an EXPECTED validation refusal returns a stable identifier, leaves the request pendente and changes no live row, while only an UNEXPECTED failure becomes falha_aplicacao. Two expected refusals are raised INSIDE aprovar_alteracao_pedido's application subtransaction rather than in its validation prologue, so EXCEPTION WHEN OTHERS converts them into falha_aplicacao: (1) PEDIDO_PRIORITY_PRODUCTION_IMPACT_CONFIRMATION_REQUIRED, raised by definir_prioridade_pedido through pedido_prioridade_aplicar; and (2) PEDIDO_ALTERACAO_ITEM_VINCULADO_A_OP, raised by pedido_itens_reconciliar. Consequence: the request is marked decided instead of staying pendente, so the impact-confirmation retry designed in U10.4 (p_confirmar_impacto = true on the same request) is unreachable for the priority path — a retry would hit PEDIDO_ALTERACAO_SOLICITACAO_JA_DECIDIDA. No data loss or corruption occurs: the subtransaction rolls back every live change and the immutable before-image is preserved. PEDIDO-ADMIN-CHANGE-REQUEST-COMPARISON-APPROVAL-R1 consumes db/92 exactly as it behaves — it implements the ordered retry on the transport-error surface AND renders the honest application-failure state (naming the structural or priority cause) when the identifier arrives inside falha_identificador, never offering a retry over a decided request. Closing this requires a separate authorized db/ order naming the environment and the permitted operation, moving those two refusals into the validation prologue; no migration is authorized by the order that discovered it."
     },
     {
       "id": "PEDIDO-ITEM-LARGURA-OVERRIDE-PRESERVATION-RISK",

@@ -182,6 +182,8 @@
       docsLoadError: false,
       expedicoesLoadError: false,
       partialItemLoadError: false,
+      alteracaoPendente: null,
+      alteracaoPendenteLoadError: false,
     };
   };
 

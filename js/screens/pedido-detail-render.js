@@ -703,6 +703,68 @@
     );
   }
 
+  // PEDIDO-ADMIN-CHANGE-REQUEST-COMPARISON-APPROVAL-R1 (Fase 5) — PONTO DE
+  // ENTRADA da revisao de alteracao. AVISO AUTONOMO no sentido de
+  // UI_VISUAL_CONTRACT.md sec.2.11: largura total da regiao de conteudo,
+  // superficie de card, uma unica familia semantica, nunca inline no bloco de
+  // titulo, nunca pill/chip/banner de largura de texto.
+  //
+  // Tres estados, e apenas tres:
+  //   - existe solicitacao pendente  -> aviso conciso + acao de revisao;
+  //   - nao existe                   -> NENHUMA acao de revisao (retorna null);
+  //   - a leitura FALHOU             -> aviso administrativo nao-bloqueante que
+  //     NAO afirma ausencia de solicitacao e nao derruba a tela.
+  function buildAlteracaoPendenteEntry(state) {
+    var pedido = state.pedido;
+    if (!pedido) return null;
+
+    if (state.alteracaoPendenteLoadError) {
+      return window.el('div', {
+        'data-rv-alteracao-entry': 'indisponivel',
+        style: 'background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);'
+          + 'border-left:3px solid var(--rv-signal-caution);border-radius:4px;padding:16px 20px;margin-bottom:14px;',
+      },
+        window.el('div', {
+          style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:4px;',
+        }, 'Nao foi possivel verificar solicitacoes de alteracao'),
+        window.el('div', {
+          style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);line-height:1.5;',
+        }, 'A consulta de solicitacoes de alteracao deste pedido falhou, entao nao e possivel afirmar que'
+          + ' nao existe solicitacao pendente. Recarregue a pagina para verificar novamente.')
+      );
+    }
+
+    var pendente = state.alteracaoPendente;
+    if (!pendente || !pendente.id) return null;
+
+    return window.el('div', {
+      'data-rv-alteracao-entry': 'pendente',
+      style: 'background:var(--rv-pill-info-bg);border:1px solid var(--rv-accent-blue);'
+        + 'border-left:3px solid var(--rv-accent-blue);border-radius:4px;padding:16px 20px;margin-bottom:14px;'
+        + 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;',
+    },
+      window.el('div', { style: 'min-width:0;' },
+        window.el('div', {
+          style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:4px;',
+        }, 'Solicitacao de alteracao pendente'),
+        window.el('div', {
+          style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);line-height:1.5;',
+        }, 'Ha uma solicitacao de alteracao aguardando revisao administrativa desde '
+          + ns.fmtDataHora(pendente.criado_em) + '. O pedido aceito continua inalterado ate a decisao.')
+      ),
+      window.el('button', {
+        type: 'button',
+        'data-rv-alteracao-entry-action': '1',
+        style: 'display:inline-flex;align-items:center;justify-content:center;background:var(--rv-brand);'
+          + 'color:var(--rv-text-on-brand);border:none;border-radius:4px;height:var(--rv-h-default);'
+          + 'padding:0 18px;font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;white-space:nowrap;',
+        onclick: function () {
+          window.navigate('#/pedidos/' + pedido.id + '/alteracoes/' + pendente.id);
+        },
+      }, 'Revisar solicitação de alteração')
+    );
+  }
+
   function buildFooterAction(label, onclick, primary, disabled) {
     var attrs = {
       type: 'button',
@@ -1538,8 +1600,11 @@
     }
 
     var view = ctx.view;
-    container.replaceChildren(
+    // `replaceChildren` nao aceita `null`, e o ponto de entrada da revisao de
+    // alteracao existe apenas em dois dos tres estados; a lista e filtrada.
+    var blocos = [
       header,
+      buildAlteracaoPendenteEntry(state),
       buildResumo(view),
        buildDadosGerais(state),
        buildStepper(view, handlers),
@@ -1556,9 +1621,11 @@
         buildClienteEvolution(state, view, handlers),
         buildDocuments(view)
       )
-    );
+    ];
+    container.replaceChildren.apply(container, blocos.filter(function (node) { return !!node; }));
   }
 
   ns.renderPedidoDetailScreen = renderPedidoDetailScreen;
   ns.buildDocuments = buildDocuments;
+  ns.buildAlteracaoPendenteEntry = buildAlteracaoPendenteEntry;
 })(window);

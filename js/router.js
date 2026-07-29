@@ -47,7 +47,8 @@
   }
 
   // Resolve rota: primeiro match exato, depois dinâmica #/ops/:id (id numérico),
-  // #/pedidos/:id/editar (UUID + /editar), #/pedidos/:id/itens
+  // #/pedidos/:id/editar (UUID + /editar),
+  // #/pedidos/:id/alteracoes/:solicitacaoId (DOIS UUIDs), #/pedidos/:id/itens
   // (UUID + /itens) e #/pedidos/:id (UUID).
   function matchRoute(hash) {
     const rawHash = String(hash || '');
@@ -80,6 +81,27 @@
     if (mPedEdit) {
       return {
         render: () => window.screenPedidoEditar(mPedEdit[1]),
+        roles: ['admin'],
+      };
+    }
+
+    // Match dinâmico da REVISÃO ADMINISTRATIVA de uma solicitação de alteração
+    // de Pedido (PEDIDO-ADMIN-CHANGE-REQUEST-COMPARISON-APPROVAL-R1, Fase 5).
+    // DOIS UUIDs obrigatórios: o Pedido e a solicitação. Vem ANTES do match
+    // genérico de detalhe `#/pedidos/<uuid>` — que é ancorado em `$` e portanto
+    // já não poderia capturar este caminho, mas a precedência é declarada
+    // explicitamente porque o contrato U10.4 a exige. Somente `admin`: nenhum
+    // papel `cliente` ou `fornecedor` alcança esta tela.
+    //
+    // A conferência de que o Pedido da rota é REALMENTE o Pedido da solicitação
+    // não mora aqui: ela é do servidor, por `solicitacao.pedido_id` devolvido
+    // por admin_alteracao_comparacao, e a tela falha FECHADA na divergência.
+    const mPedAlteracao = rawHash.match(
+      /^#\/pedidos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/alteracoes\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
+    );
+    if (mPedAlteracao) {
+      return {
+        render: () => window.screenPedidoAlteracaoReview(mPedAlteracao[1], mPedAlteracao[2]),
         roles: ['admin'],
       };
     }

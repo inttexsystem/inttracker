@@ -2865,7 +2865,14 @@ existing `pedido-edit`, `pedido-itens-edit`, `pedido-detail`, `router` and
 *Stop conditions:* any guard whose correction would require a business-rule
 change. *Next action:* Phase 4.
 
-**Phase 4 — client editor and request submission.**
+**Phase 4 — client editor and request submission. COMPLETE.**
+Executed by `PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1`, accepted at
+`b6bbe4a69c583d255a1f6d993b01988be1646cbd`. That single accepted checkpoint
+ABSORBS the original implementation (`ce20b696891ad832da23c7ea5fa0d0425f3d4dd0`),
+the C1 schema correction (`e6956def3e32f7e08f7e2df53bd16f2a82693285`, `db/94`,
+whose response addition is specified in U16) and the C2 UI correction
+(`b6bbe4a69c583d255a1f6d993b01988be1646cbd`); no separate accepted checkpoint
+exists for C1 or C2. The phase semantics below are unchanged by that record.
 *Objective:* `#/cliente/pedidos/<uuid>/editar` with both save modes; the
 client `data_pedido` control removed; `referencia_cliente` and
 `tipo_recebimento` begin to persist. *Authorized paths:* `js/`, `index.html`,

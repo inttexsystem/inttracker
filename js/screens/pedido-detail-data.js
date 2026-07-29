@@ -33,6 +33,8 @@
     state.docsLoadError = false;
     state.expedicoesLoadError = false;
     state.partialItemLoadError = false;
+    state.alteracaoPendente = null;
+    state.alteracaoPendenteLoadError = false;
   }
 
   function uniqueNonNull(values) {
@@ -67,6 +69,36 @@
     state.cliente = (pedidoRes.data.cliente && typeof pedidoRes.data.cliente === 'object')
       ? pedidoRes.data.cliente
       : null;
+
+    // PEDIDO-ADMIN-CHANGE-REQUEST-COMPARISON-APPROVAL-R1 (Fase 5): descoberta
+    // da solicitacao de alteracao PENDENTE, para o ponto de entrada da tela de
+    // revisao. SELECT administrativo MINIMO — exatamente id, status e criado_em
+    // — filtrado por pedido_id e status='pendente'. O indice parcial unico
+    // pedido_alteracao_um_pendente_por_pedido_uq (db/92) garante NO MAXIMO uma
+    // linha, entao `limit(1)` descreve a realidade e nao esconde nada.
+    //
+    // Nenhum INSERT, UPDATE ou DELETE: db/92 revoga toda escrita direta destas
+    // tabelas de `authenticated` e mantem apenas SELECT; a escrita e das RPC
+    // SECURITY DEFINER.
+    //
+    // Uma leitura que FALHA nao pode virar "nao existe solicitacao": ela liga
+    // `alteracaoPendenteLoadError` e a tela mostra um aviso administrativo
+    // nao-bloqueante, sem afirmar ausencia e sem derrubar o detalhe do Pedido.
+    var alteracaoRes = await window.supa
+      .from('pedido_alteracao_solicitacoes')
+      .select('id, status, criado_em')
+      .eq('pedido_id', pedidoId)
+      .eq('status', 'pendente')
+      .limit(1);
+
+    if (alteracaoRes.error) {
+      state.alteracaoPendente = null;
+      state.alteracaoPendenteLoadError = true;
+      console.error('pedido-detail: erro ao carregar solicitacao de alteracao pendente', alteracaoRes.error);
+    } else {
+      state.alteracaoPendente = (alteracaoRes.data && alteracaoRes.data[0]) || null;
+      state.alteracaoPendenteLoadError = false;
+    }
 
     var itensRes = await window.supa
       .from('pedido_itens')

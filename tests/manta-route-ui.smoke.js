@@ -1601,6 +1601,28 @@ const B1_ASSETS = [
 // razao e da MESMA forma que as ordens anteriores ja fazem entre si, esta lista
 // e subtraida dos conjuntos das ordens que a precedem — um asset pertence ao
 // conjunto da ordem que o alterou POR ULTIMO.
+// PEDIDO-ADMIN-CHANGE-REQUEST-COMPARISON-APPROVAL-R1 (Fase 5 da sequencia
+// unificada) acrescentou a tela dedicada de revisao de solicitacao de alteracao
+// como um arquivo NOVO em index.html — nao existia em NENHUM commit historico
+// anterior — e retokenizou exatamente os QUATRO assets que alterou: o router
+// (nova rota de dois UUIDs), o detalhe administrativo do Pedido (estado da
+// solicitacao pendente), a sua leitura de dados (o SELECT minimo da solicitacao
+// pendente) e o seu render (o ponto de entrada da revisao).
+//
+// Como todo token desta ordem e estritamente posterior aos anteriores, nenhum
+// asset perdeu invalidacao: mudou apenas QUAL ordem posterior a faz. Pela MESMA
+// razao e da MESMA forma que as ordens anteriores ja fazem entre si, esta lista
+// e subtraida dos conjuntos das ordens que a precedem — um asset pertence ao
+// conjunto da ordem que o alterou POR ULTIMO.
+const ALTERACAO_REVIEW_TOKEN = '20260729-pedido-admin-change-request-comparison-approval-r1';
+const ALTERACAO_REVIEW_ADDED_ASSETS = ['js/screens/pedido-alteracao-review.js'];
+const ALTERACAO_REVIEW_RETOKENED_ASSETS = [
+  'js/router.js',
+  'js/screens/pedido-detail.js',
+  'js/screens/pedido-detail-data.js',
+  'js/screens/pedido-detail-render.js',
+];
+
 const PRIORITY_TOKEN = '20260728-pedido-item-production-priority-r1';
 const PRIORITY_ADDED_ASSETS = ['js/pedido-priority.js'];
 const PRIORITY_RETOKENED_ASSETS = [
@@ -1616,7 +1638,8 @@ const PRIORITY_RETOKENED_ASSETS = [
   'js/screens/pedido-form.js',
   'js/screens/pedidos-list.js',
 ];
-const PRIORITY_ASSETS = PRIORITY_ADDED_ASSETS.concat(PRIORITY_RETOKENED_ASSETS);
+const PRIORITY_ASSETS = PRIORITY_ADDED_ASSETS.concat(PRIORITY_RETOKENED_ASSETS)
+  .filter((asset) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(asset));
 
 const SCREEN_GROUP_2_TOKEN = '20260727-ui-pedido-screen-group-2';
 const SCREEN_GROUP_2_ASSETS_DECLARADOS = [
@@ -1628,7 +1651,8 @@ const SCREEN_GROUP_2_ASSETS_DECLARADOS = [
   'js/screens/pedido-tracking-admin.js',
 ];
 const SCREEN_GROUP_2_ASSETS = SCREEN_GROUP_2_ASSETS_DECLARADOS
-  .filter((asset) => !PRIORITY_RETOKENED_ASSETS.includes(asset));
+  .filter((asset) => !PRIORITY_RETOKENED_ASSETS.includes(asset))
+  .filter((asset) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(asset));
 
 // PEDIDO-SCREEN-GROUP-3 consolidou as superficies de LISTA do Pedido e a
 // JORNADA DO CLIENTE: a lista administrativa, o dashboard do cliente, a lista
@@ -1738,7 +1762,8 @@ const PASS7_A4_ASSETS_AINDA_EM_A4 = PASS7_A4_ASSETS
   .filter((a) => !B1_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
-  .filter((a) => !CUTOVER_ASSETS.includes(a));
+  .filter((a) => !CUTOVER_ASSETS.includes(a))
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
 const PASS7_ASSETS_AINDA_EM_PASS7 = PASS7_ASSETS
   .filter((a) => !PASS7_A4_ASSETS.includes(a))
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
@@ -1746,7 +1771,8 @@ const PASS7_ASSETS_AINDA_EM_PASS7 = PASS7_ASSETS
   .filter((a) => !B1_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
-  .filter((a) => !CUTOVER_ASSETS.includes(a));
+  .filter((a) => !CUTOVER_ASSETS.includes(a))
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
 
 const PASS6_A1_ASSETS_AINDA_EM_A1 = PASS6_A1_ASSETS
   .filter((a) => !PASS7_ASSETS.includes(a))
@@ -1756,7 +1782,8 @@ const PASS6_A1_ASSETS_AINDA_EM_A1 = PASS6_A1_ASSETS
   .filter((a) => !B1_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
-  .filter((a) => !CUTOVER_ASSETS.includes(a));
+  .filter((a) => !CUTOVER_ASSETS.includes(a))
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
 const PASS6_ASSETS_AINDA_EM_PASS6 = PASS6_ASSETS
   .filter((a) => !PASS6_A1_ASSETS.includes(a))
   .filter((a) => !PASS7_ASSETS.includes(a))
@@ -1766,7 +1793,8 @@ const PASS6_ASSETS_AINDA_EM_PASS6 = PASS6_ASSETS
   .filter((a) => !B1_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
-  .filter((a) => !CUTOVER_ASSETS.includes(a));
+  .filter((a) => !CUTOVER_ASSETS.includes(a))
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
 const PASS5_ASSETS_AINDA_EM_PASS5 = PASS5_ASSETS
   .filter((a) => !PASS6_ASSETS.includes(a))
   .filter((a) => !PASS6_A1_ASSETS.includes(a))
@@ -1777,7 +1805,8 @@ const PASS5_ASSETS_AINDA_EM_PASS5 = PASS5_ASSETS
   .filter((a) => !B1_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
-  .filter((a) => !CUTOVER_ASSETS.includes(a));
+  .filter((a) => !CUTOVER_ASSETS.includes(a))
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
 const PASS4_ASSETS_AINDA_EM_PASS4 = PASS4_ASSETS
   .filter((a) => !PASS5_ASSETS.includes(a))
   .filter((a) => !PASS6_ASSETS.includes(a))
@@ -1789,7 +1818,8 @@ const PASS4_ASSETS_AINDA_EM_PASS4 = PASS4_ASSETS
   .filter((a) => !B1_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
-  .filter((a) => !CUTOVER_ASSETS.includes(a));
+  .filter((a) => !CUTOVER_ASSETS.includes(a))
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
 
 const PASS3_ASSETS_AINDA_EM_PASS3 = PASS3_ASSETS
   .filter((a) => !PASS4_ASSETS.includes(a))
@@ -1803,7 +1833,8 @@ const PASS3_ASSETS_AINDA_EM_PASS3 = PASS3_ASSETS
   .filter((a) => !B1_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
-  .filter((a) => !CUTOVER_ASSETS.includes(a));
+  .filter((a) => !CUTOVER_ASSETS.includes(a))
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
 const PASS2_A4_ASSETS_AINDA_EM_A4 = PASS2_A4_ASSETS
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
@@ -1817,7 +1848,8 @@ const PASS2_A4_ASSETS_AINDA_EM_A4 = PASS2_A4_ASSETS
   .filter((a) => !B1_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
-  .filter((a) => !CUTOVER_ASSETS.includes(a));
+  .filter((a) => !CUTOVER_ASSETS.includes(a))
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
 const PASS2_A3_ASSETS_AINDA_EM_A3 = PASS2_A3_ASSETS
   .filter((a) => !PASS2_A4_ASSETS.includes(a))
   .filter((a) => !PASS3_ASSETS.includes(a))
@@ -1832,7 +1864,8 @@ const PASS2_A3_ASSETS_AINDA_EM_A3 = PASS2_A3_ASSETS
   .filter((a) => !B1_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
-  .filter((a) => !CUTOVER_ASSETS.includes(a));
+  .filter((a) => !CUTOVER_ASSETS.includes(a))
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
 const PASS2_ASSETS_AINDA_EM_PASS2 = PASS2_ASSETS
   .filter((a) => !PASS2_A2_ASSETS.includes(a))
   .filter((a) => !PASS3_ASSETS.includes(a))
@@ -1847,7 +1880,8 @@ const PASS2_ASSETS_AINDA_EM_PASS2 = PASS2_ASSETS
   .filter((a) => !B1_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
-  .filter((a) => !CUTOVER_ASSETS.includes(a));
+  .filter((a) => !CUTOVER_ASSETS.includes(a))
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
 const PASS2_A2_ASSETS_AINDA_EM_A2 = PASS2_A2_ASSETS
   .filter((a) => !PASS3_ASSETS.includes(a))
   .filter((a) => !PASS4_ASSETS.includes(a))
@@ -1861,7 +1895,8 @@ const PASS2_A2_ASSETS_AINDA_EM_A2 = PASS2_A2_ASSETS
   .filter((a) => !B1_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
-  .filter((a) => !CUTOVER_ASSETS.includes(a));
+  .filter((a) => !CUTOVER_ASSETS.includes(a))
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
 const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS
   .filter((a) => !PASS2_ASSETS.includes(a))
   .filter((a) => !PASS2_A2_ASSETS.includes(a))
@@ -1878,7 +1913,8 @@ const PASS1_ASSETS_AINDA_EM_PASS1 = PASS1_ASSETS
   .filter((a) => !B1_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
-  .filter((a) => !CUTOVER_ASSETS.includes(a));
+  .filter((a) => !CUTOVER_ASSETS.includes(a))
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
 
 // R3 alterou dois assets. A passada 1 retokenizou UM deles
 // (pedido-detail-render.js), entao o token de R3 sobrevive apenas no outro —
@@ -1892,7 +1928,8 @@ const R3_ASSETS_AINDA_EM_R3 = R3_ASSETS
   .filter((a) => !B1_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
-  .filter((a) => !CUTOVER_ASSETS.includes(a));
+  .filter((a) => !CUTOVER_ASSETS.includes(a))
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
 
 
 // KLEBER-APP-OPERATIONAL-STABILIZATION-BATCH-01-R1: o lote de defeitos
@@ -1957,7 +1994,8 @@ const ADDED_SINCE_4532F76 = PRIORITY_ADDED_ASSETS.concat(BATCH2_ADDED_ASSETS)
   .concat(BATCH3_ADDED_ASSETS)
   .concat(PASS7_ADDED_ASSETS)
   .concat(BRAND_ADDED_ASSETS)
-  .concat(CLIENT_EDITOR_ADDED_ASSETS);
+  .concat(CLIENT_EDITOR_ADDED_ASSETS)
+  .concat(ALTERACAO_REVIEW_ADDED_ASSETS);
 
 // Parsing literal, sem regex: um `?v=` num padrao escapado a mao e uma
 // fonte de erro silencioso (o `?` volta a ser quantificador e o teste
@@ -1999,8 +2037,15 @@ test('R3/20a. os dois assets alterados por R3 seguem invalidados', () => {
   // administrativo ganhou a secao de prioridade de producao — e por isso
   // encabeca a cadeia de precedencia abaixo. O sujeito do guard nao muda:
   // R3 continua proibido de arrastar asset algum, e o asset segue invalidado.
+  // PEDIDO-ADMIN-CHANGE-REQUEST-COMPARISON-APPROVAL-R1 tomou esse lugar para
+  // pedido-detail-render.js — o detalhe administrativo ganhou o ponto de entrada
+  // da revisao de solicitacao de alteracao — e por isso encabeca agora a cadeia
+  // de precedencia. O sujeito do guard nao muda: R3 continua proibido de
+  // arrastar asset algum, e o asset segue invalidado por um token estritamente
+  // posterior.
   for (const rel of R3_ASSETS.filter((a) => PASS1_ASSETS.includes(a))) {
-    const esperado = PRIORITY_ASSETS.includes(rel) ? PRIORITY_TOKEN
+    const esperado = ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(rel) ? ALTERACAO_REVIEW_TOKEN
+      : PRIORITY_ASSETS.includes(rel) ? PRIORITY_TOKEN
       : SCREEN_GROUP_3_ASSETS.includes(rel) ? SCREEN_GROUP_3_TOKEN
       : SCREEN_GROUP_2_ASSETS.includes(rel) ? SCREEN_GROUP_2_TOKEN
       : PASS8_ASSETS.includes(rel) ? PASS8_TOKEN
@@ -2097,8 +2142,13 @@ test('R3/20c6. o lote 3 nao retokenizou nenhum asset que nao alterou', () => {
   // administrativo unificado, entao ele sai desta lista de "intocados" pelo
   // lote 3 — seu token e verificado por tests/pedido-batch02-surfaces.smoke.js,
   // nao aqui. pedido-itens-edit.js NAO foi tocado e continua nesta lista.
+  // PEDIDO-ADMIN-CHANGE-REQUEST-COMPARISON-APPROVAL-R1 passou a ser a ULTIMA
+  // ordem a alterar pedido-detail-data.js: o SELECT administrativo minimo da
+  // solicitacao de alteracao pendente entrou no read model do detalhe. O sujeito
+  // do guard nao muda: o lote 3 continua proibido de arrastar asset algum, e
+  // cada asset segue verificado contra a ordem que o alterou POR ULTIMO.
   const intocados = [
-    ['js/screens/pedido-detail-data.js', PRIORITY_TOKEN],
+    ['js/screens/pedido-detail-data.js', ALTERACAO_REVIEW_TOKEN],
     ['js/screens/pedido-itens-edit.js', SCREEN_GROUP_1_TOKEN],
     // PEDIDO-SCREEN-GROUP-2 passou a ser a ULTIMA ordem a alterar
     // cliente-pedido-form (moldura, divisor de cabecalho, empilhamento
