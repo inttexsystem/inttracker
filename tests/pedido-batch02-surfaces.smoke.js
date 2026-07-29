@@ -300,9 +300,12 @@ test('index.html: toda superfície alterada recebeu o token do lote 2', () => {
   // entao pedido-edit.js e retokenizado mais uma vez. Mesma regra de sempre.
   // pedido-itens-edit.js NAO foi tocado (fica rastreado para retirada
   // fisica futura) e mantem o token anterior.
+  // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1-REVIEW-CORRECTION corrigiu o
+  // sinalizador de foco/caret da mencao em pedido-edit.js, retokenizado mais
+  // uma vez. Mesma regra de sempre.
   const ULTIMA_ORDEM = {
     'js/screens/pedido-detail-data.js': '20260728-pedido-item-production-priority-r1',
-    'js/screens/pedido-edit.js': '20260729-pedido-item-mention-observation-ux-r1',
+    'js/screens/pedido-edit.js': '20260729-pedido-item-mention-observation-ux-r1-review-correction',
     'js/screens/pedido-itens-edit.js': '20260727-ui-pedido-screen-group-1',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
@@ -417,10 +420,14 @@ test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não
   // gerais e o callback de mencao, e o modal perdeu seu campo de observacao
   // por item. Os tres passam a carregar o token dessa ordem — a primeira vez
   // que pedido-item-modal.js diverge dos outros dois desde o lote 2.
+  // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1-REVIEW-CORRECTION corrigiu o
+  // sinalizador de foco/caret (pedido-form.js) e o gancho de mousedown da
+  // acao de mencao (pedido-item-row-editor.js); pedido-item-modal.js nao foi
+  // tocado e mantem o token anterior.
   const ULTIMA_ORDEM = {
-    'screens/pedido-form.js': '20260729-pedido-item-mention-observation-ux-r1',
+    'screens/pedido-form.js': '20260729-pedido-item-mention-observation-ux-r1-review-correction',
     'screens/pedido-item-modal.js': '20260729-pedido-item-mention-observation-ux-r1',
-    'screens/pedido-item-row-editor.js': '20260729-pedido-item-mention-observation-ux-r1',
+    'screens/pedido-item-row-editor.js': '20260729-pedido-item-mention-observation-ux-r1-review-correction',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
     const esc = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

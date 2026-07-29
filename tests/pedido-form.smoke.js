@@ -1514,7 +1514,9 @@ test('batch2/19. index.html carrega o modulo da linha antes de pedido-form.js', 
   // colunas), acrescentou `index`/`onMention` e a acao de mencao, entao o
   // modulo carrega agora o token dessa ordem. O sujeito do guard — ordem e
   // carga unica — nao muda, e o token segue verificado literalmente.
-  assert.match(index, /pedido-item-row-editor\.js\?v=20260729-pedido-item-mention-observation-ux-r1/);
+  // REVIEW-CORRECTION acrescentou o gancho de mousedown (onMentionIntent) ao
+  // botao de mencao, retokenizado mais uma vez.
+  assert.match(index, /pedido-item-row-editor\.js\?v=20260729-pedido-item-mention-observation-ux-r1-review-correction/);
 });
 
 // O sujeito deste guard e a EXTRACAO de BATCH-02: a tela encolheu de 1089 para
@@ -1550,4 +1552,110 @@ test('batch2/20. a extracao de BATCH-02 se mantem e o debito estrutural segue qu
     'o modulo do modal de item deve respeitar o limite normal de code-health');
   assert.doesNotMatch(screen, /DEBITO ESTRUTURAL NAO BLOQUEANTE/,
     'o debito estrutural de BATCH-01 foi quitado pela extracao');
+});
+
+// =====================================================================
+// 21. PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1-REVIEW-CORRECTION
+//
+// Defeito 1 (caret intent): o sinalizador antigo nunca resetava no blur, entao
+// um clique tardio em @ — mesmo apos o foco ter migrado para outro campo —
+// ainda inseria no caret velho. As provas abaixo reproduzem a ordem GENUINA de
+// eventos do navegador (mousedown -> blur -> click) em vez de chamar
+// computeMentionInsertion/handleItemMention diretamente. Ver a mesma bateria
+// em tests/pedido-unified-admin-editor.smoke.js para #/pedidos/<uuid>/editar.
+// =====================================================================
+
+function obsTextareaOf(root) {
+  return allByTag(root, 'textarea').find((t) => t.getAttribute('aria-label') === 'Observações gerais');
+}
+
+function mentionButtonsOf(root) { return findByAttr(root, 'data-item-mention-action'); }
+
+// FaithfulNode nao modela o vinculo real entre .focus()/.blur() e os eventos
+// 'focus'/'blur'; este fio local faz o double se comportar como um
+// <textarea> real nesse UNICO aspecto.
+function wireFocusBlur(node) {
+  node.focus = function () { if (node._listeners.focus) node._listeners.focus(); };
+  node.blur = function () { if (node._listeners.blur) node._listeners.blur(); };
+  return node;
+}
+
+test('pedido-form: textarea NUNCA focado — @ acrescenta a mencao ao final (caso A)', async () => {
+  const { root, sandbox } = await bootPedidoForm();
+  await fillOneValidItem(root);
+  const textarea = wireFocusBlur(obsTextareaOf(root));
+  textarea.value = 'Nota existente';
+  const mentionBtn = mentionButtonsOf(root)[0];
+  mentionBtn._listeners.mousedown();
+  mentionBtn._listeners.click();
+  const expected = sandbox.window.RAVATEX_PEDIDO_DRAFT.buildItemMention({ modeloId: '1' }, MODELOS_FIXTURE, 0);
+  assert.equal(textarea.value, 'Nota existente\n' + expected, 'sem foco algum, a mencao deve ser acrescentada ao final');
+  assert.equal(textarea.selectionStart, textarea.value.length, 'o caret deve terminar logo apos ": "');
+});
+
+test('pedido-form: textarea focado, clique DIRETO em @ insere no caret ativo (caso B) — texto antes/depois preservado', async () => {
+  const { root, sandbox } = await bootPedidoForm();
+  await fillOneValidItem(root);
+  const textarea = wireFocusBlur(obsTextareaOf(root));
+  textarea.value = 'ABCDEF';
+  textarea.focus();
+  textarea.selectionStart = 3;
+  const mentionBtn = mentionButtonsOf(root)[0];
+  // Ordem genuina do navegador: mousedown ANTES do blur, blur ANTES do click.
+  mentionBtn._listeners.mousedown();
+  textarea.blur();
+  mentionBtn._listeners.click();
+  const expected = sandbox.window.RAVATEX_PEDIDO_DRAFT.buildItemMention({ modeloId: '1' }, MODELOS_FIXTURE, 0);
+  assert.equal(textarea.value, 'ABC\n' + expected + 'DEF', 'deve inserir no caret, preservando texto antes E depois');
+  assert.equal(textarea.selectionStart, ('ABC\n' + expected).length, 'o caret deve terminar logo apos ": "');
+});
+
+test('pedido-form: foco sai para outro campo ANTES do clique em @ (caso C) — acrescenta ao final, nao usa o caret antigo', async () => {
+  const { root, sandbox } = await bootPedidoForm();
+  await fillOneValidItem(root);
+  const textarea = wireFocusBlur(obsTextareaOf(root));
+  textarea.value = 'ABCDEF';
+  textarea.focus();
+  textarea.selectionStart = 3;
+  // O foco sai para outro campo MUITO antes do clique em @ — nenhum mousedown
+  // no botao de mencao acontece nesse instante.
+  textarea.blur();
+  const mentionBtn = mentionButtonsOf(root)[0];
+  mentionBtn._listeners.mousedown();
+  mentionBtn._listeners.click();
+  const expected = sandbox.window.RAVATEX_PEDIDO_DRAFT.buildItemMention({ modeloId: '1' }, MODELOS_FIXTURE, 0);
+  assert.equal(textarea.value, 'ABCDEF\n' + expected,
+    'foco ja perdido para outro campo: deve acrescentar ao final, NUNCA reusar o caret 3 antigo');
+});
+
+test('pedido-form: mencao imediatamente repetida usa o caret POS-insercao (caso D), sem dedup', async () => {
+  const { root, sandbox } = await bootPedidoForm();
+  await fillOneValidItem(root);
+  const textarea = wireFocusBlur(obsTextareaOf(root));
+  textarea.value = '';
+  const mentionBtn = mentionButtonsOf(root)[0];
+  mentionBtn._listeners.mousedown();
+  mentionBtn._listeners.click();
+  const expected = sandbox.window.RAVATEX_PEDIDO_DRAFT.buildItemMention({ modeloId: '1' }, MODELOS_FIXTURE, 0);
+  assert.equal(textarea.value, expected);
+  assert.equal(textarea.selectionStart, expected.length,
+    'apos inserir, a tela deve focar o textarea e posicionar o caret no fim do texto inserido');
+  mentionBtn._listeners.mousedown();
+  mentionBtn._listeners.click();
+  assert.equal(textarea.value, expected + '\n' + expected,
+    'cliques repetidos inserem referencias repetidas de proposito');
+});
+
+test('pedido-form: ativacao por teclado (Enter/Espaco, sem mousedown) continua operavel', async () => {
+  const { root, sandbox } = await bootPedidoForm();
+  await fillOneValidItem(root);
+  const textarea = wireFocusBlur(obsTextareaOf(root));
+  textarea.value = 'Texto';
+  // Ativacao por teclado dispara apenas 'click', nunca 'mousedown'; o foco ja
+  // teria saido do textarea via Tab antes do botao ser alcancado.
+  textarea.blur();
+  const mentionBtn = mentionButtonsOf(root)[0];
+  mentionBtn._listeners.click();
+  const expected = sandbox.window.RAVATEX_PEDIDO_DRAFT.buildItemMention({ modeloId: '1' }, MODELOS_FIXTURE, 0);
+  assert.equal(textarea.value, 'Texto\n' + expected, 'ativacao por teclado deve continuar funcionando');
 });

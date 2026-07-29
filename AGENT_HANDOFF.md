@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW`
-- Objective: Implement and publish the accepted seven-column administrative Pedido item table and the @ item-mention interaction in Novo pedido and Editar pedido, with general-observation persistence, structural-lock compatibility and read-only preservation of legacy item observations.
-- Next authorizable action: `DIRECT SUPERVISOR REVIEW OF PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1` / `AWAITING SUPERVISOR REVIEW; NO CLIENT PHASE IS CHAINED`
+- Status: `CORRECTION IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR RE-REVIEW`
+- Objective: Implement and publish the accepted seven-column administrative Pedido item table and the @ item-mention interaction in Novo pedido and Editar pedido, with general-observation persistence, structural-lock compatibility and read-only preservation of legacy item observations. PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1-REVIEW-CORRECTION corrected two supervisor-found defects: stale mention-caret intent surviving a focus change to an unrelated control, and legacy pedido_itens.observacao values not rendered byte-faithfully (trim + white-space:normal collapsing whitespace and line breaks).
+- Next authorizable action: `DIRECT SUPERVISOR RE-REVIEW OF PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1` / `AWAITING SUPERVISOR RE-REVIEW; NO CLIENT PHASE IS CHAINED`
 
 ## Blockers and decisions
 

@@ -146,8 +146,24 @@
     // buildItensCard() roda ANTES dela no mesmo render() e so LE (nunca
     // captura por valor) no clique — a build mais recente sempre vale.
     var obsTextareaRef = null;
-    var obsTextareaFocused = false;
+    // `true` so enquanto o foco estiver REALMENTE no textarea agora — limpo
+    // no blur (REVIEW-CORRECTION: o sinalizador antigo nunca resetava e um
+    // clique tardio em @ ainda inseria no caret velho).
+    var obsTextareaHasFocus = false;
+    // Um UNICO uso: capturado no `mousedown` do botao de mencao (ver
+    // onMentionIntent em pedido-item-row-editor.js) — o instante ANTES do
+    // blur nativo, unico em que "foco agora" ainda vale para a transicao
+    // direta textarea -> botao. Consumido pelo proprio clique que o segue.
+    var pendingMentionCaret = null;
     var syncObservacaoRef = null;
+
+    // Mousedown do botao @, ANTES do blur nativo do textarea.
+    function handleMentionIntent() {
+      var textarea = obsTextareaRef;
+      pendingMentionCaret = (textarea && obsTextareaHasFocus)
+        ? { start: textarea.selectionStart }
+        : null;
+    }
 
     // Insere a mencao via js/pedido-draft.js (aritmetica pura) + o MESMO
     // path normal de input (syncObservacaoRef) — sem estado paralelo.
@@ -155,8 +171,12 @@
     function handleItemMention(mentionText) {
       var textarea = obsTextareaRef;
       var draft = window.RAVATEX_PEDIDO_DRAFT;
+      var caretIntent = pendingMentionCaret;
+      pendingMentionCaret = null;
       if (!textarea || !mentionText || !draft || typeof draft.computeMentionInsertion !== 'function') return;
-      var result = draft.computeMentionInsertion(textarea.value, textarea.selectionStart, obsTextareaFocused, mentionText);
+      var hasCaret = !!caretIntent;
+      var caretPos = hasCaret ? caretIntent.start : textarea.selectionStart;
+      var result = draft.computeMentionInsertion(textarea.value, caretPos, hasCaret, mentionText);
       textarea.value = result.value;
       if (typeof syncObservacaoRef === 'function') syncObservacaoRef();
       if (typeof textarea.focus === 'function') textarea.focus();
@@ -505,6 +525,7 @@
           typeMetadata: tipoMetadataOk,
           onChange: updateItensSummary,
           onMention: handleItemMention,
+          onMentionIntent: handleMentionIntent,
           onRemove: function (target) {
             state.itens = state.itens.filter(function (current) { return current.uid !== target.uid; });
             render();
@@ -627,17 +648,14 @@
         state.observacao = obsTextarea.value;
       }
       obsTextarea.addEventListener('input', syncObservacao);
-      // Rastreamento de foco proprio, DELIBERADAMENTE sem reset no blur: um
-      // clique no botao de mencao SEMPRE tira o foco do textarea ANTES do
-      // onclick rodar (blur -> focus -> click, semantica padrao do
-      // navegador), entao resetar aqui tornaria "inserir no caret ativo"
-      // estruturalmente inalcancavel — todo clique cairia em "acrescentar ao
-      // final". selectionStart/selectionEnd sao preservados pelo navegador
-      // apos o blur (nao sao zerados), entao "foi focado nesta renderizacao"
-      // e o sinal correto e estavel de "ha um caret significativo a respeitar".
-      obsTextarea.addEventListener('focus', function () { obsTextareaFocused = true; });
+      // Foco preciso: reflete o foco REAL agora e limpa no blur. A transicao
+      // direta textarea -> @ funciona porque handleMentionIntent() ja
+      // capturou o caret no `mousedown`, ANTES deste blur.
+      obsTextarea.addEventListener('focus', function () { obsTextareaHasFocus = true; });
+      obsTextarea.addEventListener('blur', function () { obsTextareaHasFocus = false; });
       obsTextareaRef = obsTextarea;
-      obsTextareaFocused = false;
+      obsTextareaHasFocus = false;
+      pendingMentionCaret = null;
       syncObservacaoRef = syncObservacao;
 
       var instrCard = window.el('div', {

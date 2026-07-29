@@ -137,9 +137,31 @@ function baseModelos() {
   ];
 }
 
+// The shared document double (tests/_doubles.js) has no
+// createDocumentFragment — never needed until now, because production held
+// zero non-empty pedido_itens.observacao rows and no prior suite exercised
+// the legacy-hint fragment branch of buildRow(). A real DocumentFragment
+// flattens its children into the parent on appendChild(); this double keeps
+// them nested one level under a plain {children:[]} holder instead — every
+// suite walker here recurses into ANY node's `.children`, so both the row
+// and the hint are still found exactly as they would be in a real DOM.
+// Widening toward real-DOM semantics, kept LOCAL to this file so the shared
+// module stays untouched (same rule EditNode already documents above).
+function createFragmentDouble() {
+  return {
+    children: [],
+    appendChild(node) {
+      this.children.push(node);
+      if (node && typeof node === 'object') node.parentNode = this;
+      return node;
+    },
+  };
+}
+
 async function bootPedidoEdit(opts) {
   const o = opts || {};
   const document = createDocument();
+  document.createDocumentFragment = createFragmentDouble;
   const tableData = Object.assign({
     pedidos: [basePedidoRow(o.pedido)],
     pedido_itens: o.itens || baseItens(),
@@ -418,4 +440,178 @@ test('pedido-edit: recarga explícita que FALHA permanece fail-closed — manté
   assert.match(root.textContent, /[Ee]rro ao carregar|[Nn]ão encontrado/, 'deve mostrar um erro de carregamento útil');
   const rpcCallsTotal = supa._calls.filter((c) => c.op === 'rpc').length;
   assert.equal(rpcCallsTotal, 1, 'a recarga que falha não pode ter tentado salvar_pedido_admin de novo');
+});
+
+// =====================================================================
+// 7. PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1-REVIEW-CORRECTION
+//
+// Defeito 1 (caret intent): o sinalizador antigo nunca resetava no blur,
+// entao qualquer clique posterior em @ — mesmo apos o foco ter migrado para
+// outro campo — ainda inseria no caret velho. As provas abaixo reproduzem a
+// ordem GENUINA de eventos do navegador real (mousedown -> blur -> click),
+// nunca chamando computeMentionInsertion/handleItemMention diretamente.
+// =====================================================================
+
+function obsTextareaOf(root) {
+  return allByTag(root, 'textarea').find((t) => t.getAttribute('aria-label') === 'Observações gerais');
+}
+
+function mentionButtonsOf(root) { return allWithAttr(root, 'data-item-mention-action'); }
+
+// FaithfulNode nao modela o vinculo real entre .focus()/.blur() e os
+// eventos 'focus'/'blur' — este fio faz o double se comportar como um
+// <textarea> real nesse UNICO aspecto, para que a sequencia simulada nos
+// testes abaixo seja genuina.
+function wireFocusBlur(node) {
+  node.focus = function () { if (node._listeners.focus) node._listeners.focus(); };
+  node.blur = function () { if (node._listeners.blur) node._listeners.blur(); };
+  return node;
+}
+
+test('pedido-edit: textarea NUNCA focado — @ acrescenta a mencao ao final (caso A)', async () => {
+  const { root, sandbox, supa } = await bootPedidoEdit({});
+  const textarea = wireFocusBlur(obsTextareaOf(root));
+  textarea.value = 'Nota existente';
+  const mentionBtn = mentionButtonsOf(root)[0];
+  mentionBtn._listeners.mousedown();
+  mentionBtn._listeners.click();
+  const expected = sandbox.window.RAVATEX_PEDIDO_DRAFT.buildItemMention({ modeloId: 1 }, baseModelos(), 0);
+  assert.equal(textarea.value, 'Nota existente\n' + expected, 'sem foco algum, a mencao deve ser acrescentada ao final');
+  assert.equal(textarea.selectionStart, textarea.value.length, 'o caret deve terminar logo apos ": "');
+  assert.equal(supa._calls.filter((c) => c.op === 'rpc' || c.op === 'insert' || c.op === 'update' || c.op === 'delete').length, 0,
+    'clicar em @ nunca chama RPC ou escreve');
+  assert.deepEqual(sandbox.__toasts || [], [], 'clicar em @ nao deve mostrar toast');
+});
+
+test('pedido-edit: textarea focado, clique DIRETO em @ insere no caret ativo (caso B) — texto antes/depois preservado', async () => {
+  const { root, sandbox } = await bootPedidoEdit({});
+  const textarea = wireFocusBlur(obsTextareaOf(root));
+  textarea.value = 'ABCDEF';
+  textarea.focus();
+  textarea.selectionStart = 3;
+  const mentionBtn = mentionButtonsOf(root)[0];
+  // Ordem genuina do navegador: mousedown ANTES do blur, blur ANTES do click.
+  mentionBtn._listeners.mousedown();
+  textarea.blur();
+  mentionBtn._listeners.click();
+  const expected = sandbox.window.RAVATEX_PEDIDO_DRAFT.buildItemMention({ modeloId: 1 }, baseModelos(), 0);
+  assert.equal(textarea.value, 'ABC\n' + expected + 'DEF', 'deve inserir no caret, preservando texto antes E depois');
+  assert.equal(textarea.selectionStart, ('ABC\n' + expected).length, 'o caret deve terminar logo apos ": "');
+});
+
+test('pedido-edit: foco sai para outro campo ANTES do clique em @ (caso C) — acrescenta ao final, nao usa o caret antigo', async () => {
+  const { root, sandbox } = await bootPedidoEdit({});
+  const textarea = wireFocusBlur(obsTextareaOf(root));
+  textarea.value = 'ABCDEF';
+  textarea.focus();
+  textarea.selectionStart = 3;
+  // O operador sai do textarea para um campo QUALQUER nao relacionado a
+  // mencao — o blur acontece MUITO antes do clique em @, sem mousedown algum
+  // no botao de mencao nesse instante.
+  textarea.blur();
+  const mentionBtn = mentionButtonsOf(root)[0];
+  mentionBtn._listeners.mousedown();
+  mentionBtn._listeners.click();
+  const expected = sandbox.window.RAVATEX_PEDIDO_DRAFT.buildItemMention({ modeloId: 1 }, baseModelos(), 0);
+  assert.equal(textarea.value, 'ABCDEF\n' + expected,
+    'foco ja perdido para outro campo: deve acrescentar ao final, NUNCA reusar o caret 3 antigo');
+});
+
+test('pedido-edit: mencao imediatamente repetida usa o caret POS-insercao (caso D), sem dedup', async () => {
+  const { root, sandbox } = await bootPedidoEdit({});
+  const textarea = wireFocusBlur(obsTextareaOf(root));
+  textarea.value = '';
+  const mentionBtn = mentionButtonsOf(root)[0];
+  mentionBtn._listeners.mousedown();
+  mentionBtn._listeners.click();
+  const expected = sandbox.window.RAVATEX_PEDIDO_DRAFT.buildItemMention({ modeloId: 1 }, baseModelos(), 0);
+  assert.equal(textarea.value, expected);
+  assert.equal(textarea.selectionStart, expected.length,
+    'apos inserir, a tela deve focar o textarea e posicionar o caret no fim do texto inserido');
+  // Clique imediatamente seguinte, sem qualquer blur intermediario: deve usar
+  // o caret pos-insercao (fim), nunca reacrescentar cegamente nem deduplicar.
+  mentionBtn._listeners.mousedown();
+  mentionBtn._listeners.click();
+  assert.equal(textarea.value, expected + '\n' + expected,
+    'cliques repetidos inserem referencias repetidas de proposito');
+});
+
+test('pedido-edit: ativacao por teclado (Enter/Espaco, sem mousedown) continua operavel', async () => {
+  const { root, sandbox, supa } = await bootPedidoEdit({});
+  const textarea = wireFocusBlur(obsTextareaOf(root));
+  textarea.value = 'Texto';
+  // Um Tab real ja teria disparado o blur do textarea antes do foco chegar ao
+  // botao; ativacao por teclado (Enter/Espaco) dispara apenas 'click', nunca
+  // 'mousedown' — o gancho onMentionIntent nao roda, e o resultado correto e
+  // acrescentar ao final (o foco ja tinha saido do campo).
+  textarea.blur();
+  const mentionBtn = mentionButtonsOf(root)[0];
+  mentionBtn._listeners.click();
+  const expected = sandbox.window.RAVATEX_PEDIDO_DRAFT.buildItemMention({ modeloId: 1 }, baseModelos(), 0);
+  assert.equal(textarea.value, 'Texto\n' + expected, 'ativacao por teclado deve continuar funcionando');
+  assert.equal(supa._calls.filter((c) => c.op === 'rpc').length, 0, 'clicar em @ nao pode chamar RPC');
+});
+
+test('pedido-edit: salvamento SO com mencao manda p_header.observacao preenchido e p_itens/p_prioridade NULL', async () => {
+  let captured = null;
+  const { root, sandbox } = await bootPedidoEdit({
+    rpcImpl: { salvar_pedido_admin: (params) => { captured = params; return { data: { ok: true }, error: null }; } },
+  });
+  const textarea = wireFocusBlur(obsTextareaOf(root));
+  const mentionBtn = mentionButtonsOf(root)[0];
+  mentionBtn._listeners.mousedown();
+  mentionBtn._listeners.click();
+  const saveBtn = findButtonByText(root, /^Salvar alterações$/);
+  await saveBtn._listeners.click();
+  assert.ok(captured, 'salvar_pedido_admin deveria ter sido chamada');
+  assert.equal(captured.p_itens, null, 'mencionar um item nao e mudanca estrutural de itens');
+  assert.equal(captured.p_prioridade, null, 'prioridade inalterada deve viajar como NULL');
+  assert.ok(captured.p_header && typeof captured.p_header.observacao === 'string' && captured.p_header.observacao.length > 0,
+    'a observacao com a mencao inserida deve estar no payload de cabecalho');
+});
+
+// =====================================================================
+// 8. PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1-REVIEW-CORRECTION
+//
+// Defeito 2 (preservacao legada): o dono da linha renderizava
+// String(item.observacao).trim() com white-space:normal, removendo espacos
+// nas pontas, colapsando espacos internos e quebras de linha — mudando o
+// valor VISIVEL do que ja estava persistido. As provas abaixo usam um valor
+// sintetico com espacos a esquerda/direita, espacos internos multiplos, uma
+// quebra de linha e uma sequencia longa sem espaco.
+// =====================================================================
+
+const LEGACY_LONG_UNBROKEN = 'X'.repeat(180);
+const LEGACY_RAW = '   observação  com   espaços múltiplos\ninclui quebra de linha e termina com espaços   ' + LEGACY_LONG_UNBROKEN;
+
+function itensComObservacaoLegada() {
+  return [
+    { id: 'it-1', modelo_id: 1, metros: '2.00', largura: null, observacao: LEGACY_RAW, ordem: 0 },
+    { id: 'it-2', modelo_id: 2, metros: '3.00', largura: null, observacao: null, ordem: 1 },
+  ];
+}
+
+test('pedido-edit: observação legada preserva espaços nas pontas, espaços múltiplos, quebra de linha e sequência longa sem cortar nada', async () => {
+  const { root } = await bootPedidoEdit({ itens: itensComObservacaoLegada() });
+  const hints = allWithAttr(root, 'data-item-legacy-observacao');
+  assert.equal(hints.length, 1, 'apenas o item com observação legada não-vazia deve mostrar a dica');
+  const hint = hints[0];
+  assert.equal(hint.textContent, 'Observação anterior do item: ' + LEGACY_RAW,
+    'o texto integral (espaços e quebra de linha) deve sobreviver sem trim e sem colapso');
+  assert.match(hint._attrs.style || '', /white-space:\s*pre-wrap/,
+    'a dica deve preservar quebras/espaços via pre-wrap, nunca white-space:normal');
+  assert.equal(hint.getAttribute('role'), 'note');
+  assert.equal(hint.querySelectorAll('input').length, 0, 'a dica nao pode ser editavel');
+  assert.equal(hint.querySelectorAll('textarea').length, 0, 'a dica nao pode ser editavel');
+});
+
+test('pedido-edit: a dica legada não reintroduz a coluna Observação nem cria estado sujo de item', async () => {
+  const { root, supa } = await bootPedidoEdit({ itens: itensComObservacaoLegada() });
+  const header = allWithAttr(root, 'data-itens-header')[0];
+  assert.doesNotMatch(header.textContent, /Observa/i, 'o cabeçalho da tabela não pode reintroduzir a coluna Observação');
+  const saveBtn = findButtonByText(root, /^Salvar alterações$/);
+  await saveBtn._listeners.click();
+  const rpcCalls = supa._calls.filter((c) => c.op === 'rpc');
+  assert.equal(rpcCalls.length, 0,
+    'exibir a dica legada não pode marcar o item como sujo; sem outra mudança, salvar não chama a RPC');
 });

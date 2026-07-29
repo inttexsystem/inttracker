@@ -176,6 +176,14 @@
   //                 (js/pedido-draft.js buildItemMention) e notifica; a
   //                 insercao no campo Observacoes gerais e responsabilidade
   //                 exclusiva da tela chamadora.
+  //   onMentionIntent  chamado no `mousedown` do botao de mencao, ANTES do
+  //                 `click` (PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1-REVIEW-
+  //                 CORRECTION). `mousedown` dispara ANTES do blur nativo do
+  //                 navegador (textarea -> botao), entao a tela chamadora usa
+  //                 este gancho para capturar, num sinal transitorio de um
+  //                 unico uso, se o textarea de Observacoes gerais estava
+  //                 com foco NESTE EXATO INSTANTE — o unico momento em que
+  //                 isso ainda e verdade. Opcional; ausencia nao quebra nada.
   //   typeMetadata  false => falha fechada: Tipo/Modelo desabilitados
   //   locked        true => TRAVA ESTRUTURAL (PEDIDO-UNIFIED-ADMIN-EDITOR-R1):
   //                 Tipo, Modelo, Metragem e o botao de remocao ficam
@@ -193,6 +201,7 @@
     var onChange = typeof opts.onChange === 'function' ? opts.onChange : function () {};
     var onRemove = typeof opts.onRemove === 'function' ? opts.onRemove : function () {};
     var onMention = typeof opts.onMention === 'function' ? opts.onMention : function () {};
+    var onMentionIntent = typeof opts.onMentionIntent === 'function' ? opts.onMentionIntent : function () {};
     var typeMetadata = opts.typeMetadata !== false;
     var locked = !!opts.locked || !!opts.readOnly;
 
@@ -207,8 +216,8 @@
     // mais observacao por item, mas um valor nao-vazio ja persistido deve
     // continuar visivel — nunca escondido, nunca editavel, nunca uma coluna
     // permanente. Ver hintNode mais abaixo.
-    var legacyObsValue = item.observacao != null ? String(item.observacao).trim() : '';
-    var hasLegacyObs = legacyObsValue !== '';
+    var rawLegacyObservation = item.observacao == null ? '' : String(item.observacao);
+    var hasLegacyObs = rawLegacyObservation.trim() !== '';
 
     // BATCH-03 (densidade operacional): o padding vertical caiu de 9px para
     // 7px e o horizontal de 18px para 14px. Os CONTROLES nao encolheram — os
@@ -333,6 +342,12 @@
       });
       btn.setAttribute('aria-label', mentionAriaLabel);
       btn.setAttribute('data-item-mention-action', '1');
+      // `mousedown` dispara ANTES do blur nativo do textarea (ver contrato
+      // de onMentionIntent acima). Ativacao por teclado (Tab + Enter/Espaco)
+      // NAO emite `mousedown` num botao real — so `click` —, o que e correto
+      // aqui: se o operador chegou por Tab, o textarea ja perdeu foco antes,
+      // entao "acrescentar ao final" e o comportamento certo, nao uma lacuna.
+      btn.addEventListener('mousedown', function () { onMentionIntent(); });
       return btn;
     }
     var mentionSlot = window.el('span', { style: 'display:inline-flex;' }, buildMentionBtn());
@@ -401,10 +416,10 @@
       id: hintId,
       'data-item-legacy-observacao': '1',
       role: 'note',
-      style: 'padding:6px 14px 10px 14px; border-bottom:1px solid var(--rv-border-soft); background:var(--rv-surface-subtle); font-size:12.5px; line-height:1.5; color:var(--rv-text-secondary); white-space:normal; overflow-wrap:break-word;'
+      style: 'padding:6px 14px 10px 14px; border-bottom:1px solid var(--rv-border-soft); background:var(--rv-surface-subtle); font-size:12.5px; line-height:1.5; color:var(--rv-text-secondary); white-space:pre-wrap; overflow-wrap:break-word;'
     },
       window.el('strong', { style: 'color:var(--rv-text-tertiary); font-weight:600;' }, 'Observação anterior do item: '),
-      legacyObsValue
+      rawLegacyObservation
     );
 
     var fragment = window.document.createDocumentFragment();
