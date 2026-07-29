@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW`
-- Objective: Formal publication of the accepted item-mention/general-observation product ruling and the acceptance of PEDIDO-UNIFIED-ADMIN-EDITOR-R1. This phase is governance and documentation ONLY. It records the supervisor technical acceptance of the unified administrative Pedido editor at 681a2ba2928d201fc20605816c03702390d8bd1e as ONE checkpoint absorbing its review correction, ratifies the binding product decision selecting Option A of PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1 as the accepted product contract PEDIDO-ITEM-MENTION-OBSERVATION-UX and as a dated normative ruling in docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md, and fixes the exact boundary of the future implementation phase PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1. NO product implementation occurred: no JavaScript, CSS, HTML, database, migration, configuration or client file changed. The administrative item table still renders eight columns with the per-item Observation input and the mention action does not exist in the product. PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 is NOT active and NOT started; it may be ordered only after this ratification is directly reviewed.
-- Next authorizable action: `DIRECT SUPERVISOR REVIEW OF PEDIDO-ITEM-MENTION-OBSERVATION-UX-RATIFICATION-R1` / `AWAITING SUPERVISOR REVIEW; IMPLEMENTATION NOT YET AUTHORIZED`
+- Status: `CLOSED / ACCEPTED`
+- Objective: The normative product ruling is formally accepted and synchronized. No product implementation occurred in this checkpoint.
+- Next authorizable action: `PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1` / `AUTHORIZED FOR A NEW EXPLICIT IMPLEMENTATION ORDER`
 
 ## Blockers and decisions
 

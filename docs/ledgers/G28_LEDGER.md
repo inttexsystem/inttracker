@@ -10673,3 +10673,16 @@ product file they depend on, was modified by this pass or the prior one):
 - **Status.** `PEDIDO-ITEM-MENTION-OBSERVATION-UX-RATIFICATION-R1 IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW`.
 - **Next action.** `DIRECT SUPERVISOR REVIEW OF PEDIDO-ITEM-MENTION-OBSERVATION-UX-RATIFICATION-R1`. Implementation is not authorized until that review completes. No client phase is chained.
 - **Owner of the full record.** This ledger entry and the execution report for this order.
+
+## 2026-07-29 — PEDIDO-ITEM-MENTION-OBSERVATION-UX-RATIFICATION-ACCEPTANCE-R1 — docs: accept pedido item mention observation ruling
+
+- **Subject.** Direct supervisor review of `PEDIDO-ITEM-MENTION-OBSERVATION-UX-RATIFICATION-R1` is COMPLETE and the ratification is accepted. Commit `51ffd857dc3e97b28640d826902cda76a518f67e` is recorded as the accepted checkpoint.
+- **Decision.** Option A is accepted and binding: the administrative Pedido item table loses its editable per-item Observation column, the administrative Add-item modal loses its observation field, and a discreet `@` mention action inserts a readable item reference into `Observações gerais`. The ruling binds `#/pedidos/novo` and `#/pedidos/<uuid>/editar`; client surfaces remain outside scope. `pedido_itens.observacao` stays in the schema and any legacy non-empty value stays visible through a compact read-only compatibility hint.
+- **Implementation now authorizable.** `PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1` is authorized for a new explicit implementation order and is NOT started. It must follow the accepted seven-column layout, mention-action, snapshot-text, structural-lock, legacy-compatibility and client-exclusion contracts exactly.
+- **No product implementation in the ratification.** The accepted commit changed only `docs/governance/current-state.json`, `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md`, `docs/ledgers/G28_LEDGER.md` and the generated `AGENT_HANDOFF.md`; zero product files. Verified again in this execution: `git diff` of that commit across `js/`, `css/`, `index.html`, `db/`, `scripts/`, `tests/`, `supabase/`, `assets/`, `services/` and `vercel.json` returns zero files.
+- **No schema, RPC or data change.** No migration, no data deletion, no column removal, no RPC signature change and no payload contract change is authorized by this acceptance. The five-key administrative item payload is unchanged. No production data was read or altered in this execution.
+- **Debt carried forward.** `PEDIDO-ITEM-LARGURA-OVERRIDE-PRESERVATION-RISK` remains OPEN and NONBLOCKING and is not closed by this acceptance.
+- **Scope of this change.** Governance only: `docs/governance/current-state.json`, `docs/ledgers/G28_LEDGER.md` and the generated `AGENT_HANDOFF.md`. No architecture contract edit was required.
+- **Status.** `PEDIDO-ITEM-MENTION-OBSERVATION-UX-RATIFICATION-R1 CLOSED / ACCEPTED`.
+- **Next action.** `PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1` — pending dispatch as a new explicit implementation order. No client phase is chained.
+- **Owner of the full record.** This ledger entry and the execution report for this order.
