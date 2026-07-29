@@ -2181,6 +2181,12 @@ take precedence over the field the editors actually own. Retiring
 
 ### U4. Field and lifecycle matrix (binding)
 
+> **Amended 2026-07-29 by the supervisor rulings of
+> `PEDIDO-UNIFIED-EDIT-CHANGE-APPROVAL-SCHEMA-R1`.** The lifecycle gate for a
+> STRUCTURAL item change is no longer "production started"; it is **the
+> existence of any related OP, in any status**. The columns below are relabelled
+> accordingly and U5 is rewritten to match. Every other cell is unchanged.
+
 Legend: `DIRECT_EDIT` — saved straight onto the live Pedido.
 `CHANGE_REQUEST` — the editor accepts the value but persists it only as a
 proposed revision. `READ_ONLY` — visible, not editable. `NOT_VISIBLE` — never
@@ -2188,31 +2194,36 @@ rendered or returned to that actor. `CONDITIONALLY_ALLOWED` — permitted only
 when the stated condition holds; every condition is spelled out below the
 tables.
 
-Administrative columns. `Confirmado` means accepted with **no OP**;
-`Production started` means impact level C or beyond per U5.
+A **structural item change** is exactly one of: changing `modelo_id`, changing
+`metros`, inserting an item, removing an item. Item observation, item order and
+every header field are **not** structural.
 
-| Field / collection | Admin Rascunho | Admin Recebido | Admin Confirmado (no OP) | Admin Production started | Admin Terminal |
+Administrative columns. `Aceito, sem OP` means `status = 'confirmado'` (or
+beyond) with **no** related OP. `Com OP` means at least one related OP exists,
+in any status — including `simulada` and `cancelada`.
+
+| Field / collection | Admin Rascunho | Admin Recebido | Admin Aceito, sem OP | Admin Com OP | Admin Terminal |
 | --- | --- | --- | --- | --- | --- |
-| `cliente_id` (client identity) | `DIRECT_EDIT` | `DIRECT_EDIT` | `CONDITIONALLY_ALLOWED` (A1) | `READ_ONLY` | `READ_ONLY` |
+| `cliente_id` (client identity) | `DIRECT_EDIT` | `DIRECT_EDIT` | `CONDITIONALLY_ALLOWED` (A1) | `CONDITIONALLY_ALLOWED` (A1) | `READ_ONLY` |
 | `numero` (Pedido number) | `READ_ONLY` | `READ_ONLY` | `READ_ONLY` | `READ_ONLY` | `READ_ONLY` |
-| `data_pedido` (Pedido date) | `DIRECT_EDIT` | `DIRECT_EDIT` | `CONDITIONALLY_ALLOWED` (A2) | `READ_ONLY` | `READ_ONLY` |
+| `data_pedido` (Pedido date) | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `READ_ONLY` |
 | `prazo_entrega` (expected delivery) | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `READ_ONLY` |
 | `referencia_cliente` (client reference) | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `READ_ONLY` |
 | `tipo_recebimento` (receiving method) | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `READ_ONLY` |
 | `observacao` (general observation) | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `READ_ONLY` |
-| item `modelo_id` (item model) | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `CONDITIONALLY_ALLOWED` (A3) | `READ_ONLY` |
-| item `metros` (item metres) | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `CONDITIONALLY_ALLOWED` (A4) | `READ_ONLY` |
 | item `observacao` (item observation) | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `READ_ONLY` |
-| add item (item insertion) | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `CONDITIONALLY_ALLOWED` (A5) | `READ_ONLY` |
-| remove item (item removal) | `DIRECT_EDIT` | `DIRECT_EDIT` | `CONDITIONALLY_ALLOWED` (A6) | `CONDITIONALLY_ALLOWED` (A6) | `READ_ONLY` |
-| item order and production priority | `DIRECT_EDIT` (A7) | `DIRECT_EDIT` (A7) | `DIRECT_EDIT` (A7) | `CONDITIONALLY_ALLOWED` (A8) | `READ_ONLY` |
-| `status` (lifecycle status) | `READ_ONLY` (A9) | `READ_ONLY` (A9) | `READ_ONLY` (A9) | `READ_ONLY` (A9) | `READ_ONLY` (A9) |
+| item `modelo_id` (item model) | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `READ_ONLY` (A2) | `READ_ONLY` |
+| item `metros` (item metres) | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `READ_ONLY` (A2) | `READ_ONLY` |
+| add item (item insertion) | `DIRECT_EDIT` | `DIRECT_EDIT` | `DIRECT_EDIT` | `READ_ONLY` (A2) | `READ_ONLY` |
+| remove item (item removal) | `DIRECT_EDIT` (A3) | `DIRECT_EDIT` (A3) | `DIRECT_EDIT` (A3) | `READ_ONLY` (A2) | `READ_ONLY` |
+| item order and production priority | `DIRECT_EDIT` (A4) | `DIRECT_EDIT` (A4) | `DIRECT_EDIT` (A4) | `CONDITIONALLY_ALLOWED` (A5) | `READ_ONLY` |
+| `status` (lifecycle status) | `READ_ONLY` (A6) | `READ_ONLY` (A6) | `READ_ONLY` (A6) | `READ_ONLY` (A6) | `READ_ONLY` (A6) |
 
-Client columns. `Recebido, not yet accepted` covers `rascunho` and
-`recebido`; a client-created Pedido always enters at `recebido`
+Client columns. `Recebido, not yet accepted` covers `rascunho` and `recebido`;
+a client-created Pedido always enters at `recebido`
 (`js/screens/cliente-pedido-form.js:1007`).
 
-| Field / collection | Client Recebido (not accepted) | Client Confirmado (no OP) | Client Production started | Client Terminal |
+| Field / collection | Client Recebido (not accepted) | Client Aceito, sem OP | Client Com OP | Client Terminal |
 | --- | --- | --- | --- | --- |
 | `cliente_id` (client identity) | `NOT_VISIBLE` | `NOT_VISIBLE` | `NOT_VISIBLE` | `NOT_VISIBLE` |
 | `numero` (Pedido number) | `NOT_VISIBLE` (C1) | `NOT_VISIBLE` (C1) | `NOT_VISIBLE` (C1) | `NOT_VISIBLE` (C1) |
@@ -2221,11 +2232,11 @@ Client columns. `Recebido, not yet accepted` covers `rascunho` and
 | `referencia_cliente` (client reference) | `DIRECT_EDIT` | `CHANGE_REQUEST` | `CHANGE_REQUEST` | `READ_ONLY` |
 | `tipo_recebimento` (receiving method) | `DIRECT_EDIT` | `CHANGE_REQUEST` | `CHANGE_REQUEST` | `READ_ONLY` |
 | `observacao` (general observation) | `DIRECT_EDIT` | `CHANGE_REQUEST` | `CHANGE_REQUEST` | `READ_ONLY` |
-| item `modelo_id` (item model) | `DIRECT_EDIT` | `CHANGE_REQUEST` | `CHANGE_REQUEST` (C3) | `READ_ONLY` |
-| item `metros` (item metres) | `DIRECT_EDIT` | `CHANGE_REQUEST` | `CHANGE_REQUEST` (C3) | `READ_ONLY` |
 | item `observacao` (item observation) | `DIRECT_EDIT` | `CHANGE_REQUEST` | `CHANGE_REQUEST` | `READ_ONLY` |
-| add item (item insertion) | `DIRECT_EDIT` | `CHANGE_REQUEST` | `CHANGE_REQUEST` (C3) | `READ_ONLY` |
-| remove item (item removal) | `DIRECT_EDIT` | `CHANGE_REQUEST` | `CHANGE_REQUEST` (C3) | `READ_ONLY` |
+| item `modelo_id` (item model) | `DIRECT_EDIT` | `CHANGE_REQUEST` | `READ_ONLY` (C3) | `READ_ONLY` |
+| item `metros` (item metres) | `DIRECT_EDIT` | `CHANGE_REQUEST` | `READ_ONLY` (C3) | `READ_ONLY` |
+| add item (item insertion) | `DIRECT_EDIT` | `CHANGE_REQUEST` | `READ_ONLY` (C3) | `READ_ONLY` |
+| remove item (item removal) | `DIRECT_EDIT` (A3) | `CHANGE_REQUEST` (A3) | `READ_ONLY` (C3) | `READ_ONLY` |
 | item order and production priority | `DIRECT_EDIT` (C4) | `CHANGE_REQUEST` (C5) | `CHANGE_REQUEST` (C5) | `READ_ONLY` |
 | `status` (lifecycle status) | `READ_ONLY` (C6) | `READ_ONLY` (C6) | `READ_ONLY` (C6) | `READ_ONLY` (C6) |
 | OP, lote, supplier, purchase order, fiscal, cost, internal metadata | `NOT_VISIBLE` | `NOT_VISIBLE` | `NOT_VISIBLE` | `NOT_VISIBLE` |
@@ -2234,33 +2245,28 @@ Client columns. `Recebido, not yet accepted` covers `rascunho` and
 
 - **A1** — `cliente_id` is editable only while
   `pedidos_source_lineage_immutability_guard` does not refuse it, that is,
-  while no lote of the Pedido feeds an OP selected as an expedition source.
-  The guard is the authority; the UI disables the control when the condition
-  is already known and surfaces the guard's refusal verbatim otherwise.
-- **A2** — `data_pedido` stays administratively correctable while the Pedido
-  is not in production. It is a commercial fact the operator states
-  (`db/89`), so a correction after acceptance is legitimate; once production
-  has started it is frozen so OP and expedition documents cannot be
-  retro-dated.
-- **A3** — changing `modelo_id` on an item already linked to an `op_itens`
-  row requires the impact-confirmation workflow of U5 and is otherwise
-  refused. A model change alters the production route.
-- **A4** — changing `metros` on a linked item requires impact confirmation,
-  and is subject to the U5.4 reconciliation once delivery is recorded.
-- **A5** — adding an item is structurally safe; after production has started
-  it requires impact confirmation, because the added item is not covered by
-  the existing OP.
-- **A6** — removing an item is refused whenever the item is referenced by an
-  `op_itens` or `expedicao_itens` row. See U5.3: the database will **not**
-  stop this today, so the refusal is a contract obligation implemented by the
-  RPC, not an existing invariant.
-- **A7** — item order and production priority reach the database only through
+  while no lote of the Pedido feeds an OP selected as an expedition source. The
+  guard is the authority; the UI disables the control when the condition is
+  already known and surfaces the guard's refusal verbatim otherwise.
+- **A2** — once ANY related OP exists, in any status, a structural item change
+  is refused by both generic write flows and by approval, with
+  `PEDIDO_ALTERACAO_ESTRUTURA_BLOQUEADA_APOS_OP`. **Impact confirmation is not
+  an override:** no parameter unlocks it, and none is offered. Production
+  reconciliation is a separate flow, and no operation in this design changes,
+  recreates, deletes or reconciles `op_itens`.
+- **A3** — an item removal is additionally refused, at every lifecycle point,
+  when the item is referenced by an `op_itens`, `expedicao_itens` or
+  `pedido_parcial_itens` row. See U5.3: the database does **not** refuse this on
+  its own.
+- **A4** — item order and production priority reach the database only through
   `definir_prioridade_pedido()`. No parallel implementation may exist.
-- **A8** — `definir_prioridade_pedido()` already requires
-  `p_confirmar_impacto_producao = true` when `status = 'produzindo'`
-  (`PEDIDO_PRIORITY_PRODUCTION_IMPACT_CONFIRMATION_REQUIRED`). That existing
-  contract is reused unchanged.
-- **A9** — status transitions stay owned by the Pedido detail lifecycle
+- **A5** — priority keeps its **existing** owner and its existing gate:
+  `definir_prioridade_pedido()` requires `p_confirmar_impacto_producao = true`
+  when `status = 'produzindo'`
+  (`PEDIDO_PRIORITY_PRODUCTION_IMPACT_CONFIRMATION_REQUIRED`). That contract is
+  reused unchanged and is **not** re-implemented here. Reordering is not a
+  structural change and is therefore not blocked by A2.
+- **A6** — status transitions stay owned by the Pedido detail lifecycle
   controls. No editor, and no approval operation, writes `status`.
 
 **Client conditions.**
@@ -2268,18 +2274,19 @@ Client columns. `Recebido, not yet accepted` covers `rascunho` and
 - **C1** — the Pedido number is internal. The `db/90` section of this document
   already states that no client-facing surface may display it. The client
   editor identifies the Pedido by `referencia_cliente` and by date.
-- **C2** — `data_pedido` is immutable for the client at every lifecycle point,
-  per binding product direction. It is rendered as read-only context. **This
-  closes an existing hole:** `js/screens/cliente-pedido-form.js:1009`
-  currently lets the client set `data_pedido` at creation. Phase 4 removes
-  that control and lets the `db/89` column default own the value, and the
-  Phase 2 migration must refuse a client-supplied `data_pedido` on `INSERT` —
-  otherwise the rule is a UI convention rather than an invariant.
-- **C3** — item structural changes after production has started are accepted
-  into a request, but the request is subject to U5: the approval RPC refuses
-  the individually unsafe operations. The client is told at submission time
-  that structural changes may be rejected; it is not told that they are
-  guaranteed.
+- **C2** — the Client **may** provide `data_pedido` during initial Pedido
+  creation, through the existing creation flow, which this design does not
+  change. Once the Pedido exists, `data_pedido` is read-only to the Client at
+  every lifecycle point: `salvar_pedido_cliente(...)` rejects any payload
+  attempting to change it and `solicitar_alteracao_pedido(...)` rejects any
+  proposal over it, both with
+  `PEDIDO_ALTERACAO_DATA_PEDIDO_IMUTAVEL_CLIENTE`. It never appears as a
+  proposed field in a client change request. The existing client creation
+  policies and creation UI are **not** removed or altered by this phase.
+- **C3** — once ANY related OP exists, the Client cannot even submit a
+  structural proposal: `solicitar_alteracao_pedido(...)` refuses it at
+  submission time rather than accepting a request that could never be approved.
+  Header fields, observations and priority preference remain proposable.
 - **C4** — pre-acceptance the client's priority preference already reaches
   `definir_prioridade_pedido()` directly and lands as `solicitada`. That
   existing path is preserved unchanged and is **not** routed through the
@@ -2298,89 +2305,75 @@ No cell is left to implementation discretion.
 
 ### U5. Production-impact rules
 
-#### U5.1 Impact levels
+> **Rewritten 2026-07-29.** The graded A–E impact ladder of R1 is superseded.
+> The binding rule is a single, verifiable boundary: **does any related OP
+> exist?** A graded ladder implied that some structural changes stay safe deep
+> into production; the supervisor ruled otherwise, and a rule an executor can
+> evaluate wrongly is worse than a stricter rule it cannot.
 
-| Level | Definition | Detection |
-| --- | --- | --- |
-| **A** | Accepted Pedido, no OP | no `ops` row reachable via `lotes.pedido_id` |
-| **B** | OP created, production not started | every related OP in `('simulada','aberta')` |
-| **C** | Production started | any related OP in `('em_producao','pausada')`, or `pedidos.status = 'produzindo'` |
-| **D** | Partial production or delivery recorded | any `entrega_itens` row for a related OP, or any `expedicoes` / `expedicao_itens` row for the Pedido |
-| **E** | Delivered or cancelled | `pedidos.status IN ('entregue','cancelado')` |
+#### U5.1 The boundary
 
-Levels are computed from live state, never stored on the request. The
-detection joins are the ones `cliente_pedido_summary()` already uses:
-`ops → lotes.pedido_id`, `op_itens.op_id`, `entrega_itens.op_id`,
-`expedicoes.pedido_id`.
+`public.pedido_tem_op_relacionada(p_pedido_id)` is the single owner of the
+question. It returns TRUE when any of the following holds:
 
-#### U5.2 Per-change disposition
+- an `ops` row reaches the Pedido through `lotes.pedido_id`;
+- an `expedicoes` row carries the Pedido;
+- an `op_itens` row references one of the Pedido's items;
+- an `expedicao_itens` row references one of the Pedido's items.
 
-| Proposed change | A | B | C | D | E |
-| --- | --- | --- | --- | --- | --- |
-| change expected delivery date (`prazo_entrega`) | allow | allow | allow | allow | refuse |
-| change `referencia_cliente` | allow | allow | allow | allow | refuse |
-| change `tipo_recebimento` | allow | allow | allow | confirm | refuse |
-| change observation (Pedido or item) | allow | allow | allow | allow | refuse |
-| change `data_pedido` (administrative only) | allow | allow | refuse | refuse | refuse |
-| reorder priority | allow | allow | confirm | confirm | refuse |
-| change `metros` | allow | confirm | confirm | reconcile | refuse |
-| change `modelo_id` | allow | confirm | refuse | refuse | refuse |
-| add an item | allow | allow | confirm | confirm | refuse |
-| remove an item | allow | confirm | refuse if linked | refuse if linked | refuse |
+OP status is deliberately **not** consulted: `simulada` and `cancelada` count.
+A cancelled OP still records that production planning consumed this Pedido, and
+distinguishing statuses would reintroduce the graded ladder this ruling removed.
 
-`allow` — applied by approval with no extra step.
-`confirm` — applied only when the reviewer supplied the explicit
-impact-confirmation flag; otherwise the RPC returns a stable
-`..._IMPACTO_CONFIRMACAO_REQUERIDA` result and changes nothing.
-`reconcile` — the controlled operation of U5.4.
-`refuse` — the request is not applicable; approval fails closed with a stable
-identifier and the live Pedido is untouched.
+#### U5.2 Disposition
 
-Administrative approval alone never makes a structurally dangerous item
-mutation safe. Where the disposition is `refuse`, an administrator's approval
-does not override it; the correct outcome is rejection of that request with
-the reason surfaced to the client.
+| Proposed change | No related OP | Any related OP | Terminal Pedido |
+| --- | --- | --- | --- |
+| expected delivery date (`prazo_entrega`) | allow | allow | refuse |
+| `referencia_cliente` | allow | allow | refuse |
+| `tipo_recebimento` | allow | allow | refuse |
+| general observation | allow | allow | refuse |
+| item observation | allow | allow | refuse |
+| `data_pedido` (administrative only) | allow | allow | refuse |
+| reorder / production priority | allow | allow, through the existing `definir_prioridade_pedido()` gate (A5) | refuse |
+| change `metros` | allow | **refuse** | refuse |
+| change `modelo_id` | allow | **refuse** | refuse |
+| add an item | allow | **refuse** | refuse |
+| remove an item | allow, unless the item is linked (U5.3) | **refuse** | refuse |
 
-#### U5.3 The item-removal hazard (new material finding)
+`allow` — applied with no extra step.
+`refuse` — fails closed with a stable identifier; the live Pedido is untouched
+and, for an approval, the request stays `pendente` so the reviewer can reject it
+with a reason the client can read.
+
+There is **no** confirmation flag that converts a `refuse` into an `allow` for a
+structural change. Administrative approval alone never makes a structurally
+dangerous item mutation safe.
+
+#### U5.3 The item-removal hazard (unchanged finding, now enforced)
 
 `op_itens.pedido_item_id` and `expedicao_itens.pedido_item_id` are both
-`FOREIGN KEY ... ON DELETE SET NULL`. Deleting a `pedido_itens` row therefore
-**succeeds today and silently orphans** the OP item and the expedition item:
-the production record survives with no commercial origin, and no constraint,
-trigger or check reports it. `js/screens/pedido-itens-edit.js` performs
-exactly such a `DELETE`, and is reachable at `rascunho` and `recebido`, where
-an OP link is unlikely but not structurally impossible.
+`FOREIGN KEY ... ON DELETE SET NULL`, and `pedido_parcial_itens.pedido_item_id`
+is `ON DELETE CASCADE`. Deleting a `pedido_itens` row therefore **succeeds today
+and silently orphans** the OP item and the expedition item while discarding the
+partial-delivery detail — no constraint, trigger or check reports it.
 
-Binding consequence: **the approval RPC must refuse any item removal whose
-`pedido_itens.id` is referenced by an `op_itens` or `expedicao_itens` row, at
-every impact level, including A and B.** This refusal is a new invariant
-created by this contract; it is not an existing database guarantee, and no
-implementation may assume the foreign key will stop it. Whether the foreign
-keys themselves should become `RESTRICT` is out of scope and is recorded as
-`PEDIDO-ITEM-DELETE-ORPHANS-OP-LINK` in U12.
+`public.pedido_item_tem_vinculo_producao(p_item_id)` is the owner of that
+question, and `public.pedido_itens_reconciliar(...)` evaluates it **before** any
+delete, raising `PEDIDO_ALTERACAO_ITEM_VINCULADO_A_OP`. This is a new invariant
+created by this contract; no implementation may assume the foreign key will stop
+it. Whether the foreign keys themselves should become `RESTRICT` remains out of
+scope and is recorded as `PEDIDO-ITEM-DELETE-ORPHANS-OP-LINK` in U12.
 
-`pedido_parcial_itens.pedido_item_id` is `ON DELETE CASCADE`, so a removal
-also silently discards partial-delivery detail rows. The same refusal covers
-that case.
+#### U5.4 No quantity reconciliation in this design
 
-#### U5.4 Reconciliation of `metros` at level D
-
-At level D a metre change is neither trivially safe nor automatically unsafe:
-delivery is recorded against the OP, not against the Pedido item. The
-controlled reconciliation operation is:
-
-1. compute the delivered quantity for the affected item from `entrega_itens`
-   and `expedicao_itens`;
-2. refuse when the proposed `metros` falls **below** the already recorded
-   delivered quantity — that would make the commercial order smaller than
-   what has provably left the factory;
-3. otherwise apply the change, require the explicit impact-confirmation flag,
-   and record a `pedido_eventos` row naming the previous and the new value.
-
-The OP remains the official record of movement, exactly as
-`js/screens/pedido-detail-events.js:2451` already tells the operator. No
-approval operation adjusts `op_itens` quantities; that stays with the
-existing *Movimentar* flow.
+R1 proposed a controlled `metros` reconciliation against recorded deliveries.
+That is **withdrawn**: under U5.2 a metre change is refused outright once any
+OP exists, so there is no reachable state in which it would run. The stable
+identifiers `PEDIDO_ALTERACAO_METROS_ABAIXO_DO_ENTREGUE` and
+`PEDIDO_ALTERACAO_MODELO_BLOQUEADO_EM_PRODUCAO` are withdrawn with it. The OP
+remains the official record of movement, and quantity changes in production stay
+with the existing *Movimentar* flow.
 
 ### U6. Change-request data model
 
@@ -2550,21 +2543,36 @@ radius than this design; it is recorded as
 
 ### U8. RPC and transactional contract
 
-Six functions, plus one pre-acceptance client write function. All are
-`SECURITY DEFINER`, `SET search_path = public, auth`, with `EXECUTE` revoked
-from `PUBLIC` and from `anon` and granted to `authenticated`. Each authorizes
-internally from `is_admin()` and `meu_cliente_id()`; none trusts a
-caller-supplied role.
+**Eight** functions, shipped by `db/92`. All are `SECURITY DEFINER`,
+`SET search_path = public, auth`, with `EXECUTE` revoked from `PUBLIC` and from
+`anon` and granted only to `authenticated`. Each authorizes internally from
+`is_admin()` and `meu_cliente_id()`; none accepts a caller-supplied role or
+client identity. Every Pedido-mutating function locks `public.pedidos`
+`FOR UPDATE` first and `public.pedido_itens ORDER BY id FOR UPDATE` second — the
+order `definir_prioridade_pedido()` already established, so no new edge enters
+the global lock order of `db/88`.
 
 | Function | Caller | Responsibility |
 | --- | --- | --- |
-| `solicitar_alteracao_pedido(p_pedido_id, p_header, p_itens, p_prioridade, p_mensagem)` | client | Validate ownership, lifecycle and payload; capture `base_revisao` and `base_snapshot`; supersede any pending request; insert the header and the proposed item rows. Returns the request id. |
-| `retirar_alteracao_pedido(p_solicitacao_id)` | client | Transition the caller's own `pendente` request to `retirada`. Refuses any decided request. |
-| `aprovar_alteracao_pedido(p_solicitacao_id, p_confirmar_impacto, p_motivo)` | admin | The atomic application of U8.1. |
-| `rejeitar_alteracao_pedido(p_solicitacao_id, p_motivo)` | admin | Transition `pendente` to `rejeitada`; `p_motivo` mandatory; record the audit event. Never touches the Pedido. |
-| `cliente_alteracao_resumo(p_pedido_id)` | client | Sanitized client-safe summary of that client's own request state. Returns no OP, lote, supplier, purchase-order, fiscal, cost or internal metadata, and no `pedidos.numero`. |
-| `admin_alteracao_comparacao(p_solicitacao_id)` | admin | The full comparison payload of U10.4: current, proposed, field-level differences, item diff, priority, author, timestamps and the live impact level. |
-| `salvar_pedido_cliente(p_pedido_id, p_header, p_itens, p_prioridade)` | client | The pre-acceptance safe write contract: applies the client's direct edits to its own still-unaccepted Pedido in one transaction, re-checking ownership and `status IN ('rascunho','recebido')` under `FOR UPDATE`. |
+| `salvar_pedido_cliente(p_pedido_id, p_base_revisao, p_header, p_itens, p_prioridade)` | client | Pre-acceptance safe write: applies the client's direct edits to its own still-unaccepted Pedido in one transaction, re-checking ownership and `status IN ('rascunho','recebido')` under `FOR UPDATE`. `data_pedido`, `cliente_id`, `numero` and `status` are refused. |
+| `salvar_pedido_admin(p_pedido_id, p_base_revisao, p_header, p_itens, p_prioridade, p_confirmar_impacto)` | admin | The administrative transactional owner: `is_admin()`, lock the Pedido, check the expected revision, evaluate live OP impact, validate the absolute proposed item collection, apply permitted header changes, reconcile permitted item changes, normalize item order, call `definir_prioridade_pedido()` when priority changes, record audit evidence, commit together. It never transitions `status` and never makes a structural item change once any OP exists. |
+| `solicitar_alteracao_pedido(p_pedido_id, p_header, p_itens, p_prioridade, p_mensagem)` | client | Accepted, non-terminal own Pedido only. Captures `base_revisao` and `base_snapshot`, supersedes any pending request atomically, rejects fields the client may never propose, and rejects a structural item proposal when any OP already exists. |
+| `retirar_alteracao_pedido(p_solicitacao_id)` | client | Transitions the caller's own `pendente` request to `retirada`. Refuses any decided request. Never touches the Pedido. |
+| `aprovar_alteracao_pedido(p_solicitacao_id, p_confirmar_impacto, p_motivo)` | admin | The atomic application of U8.1, with the failure contract of U8.3. |
+| `rejeitar_alteracao_pedido(p_solicitacao_id, p_motivo)` | admin | Transitions `pendente` to `rejeitada`; `p_motivo` mandatory; records the audit event. Never touches the Pedido. |
+| `cliente_alteracao_resumo(p_pedido_id)` | client | Sanitized client-safe summary of that client's own request state. Explicit whitelist: no OP, lote, supplier, purchase-order, fiscal, cost or internal metadata, and no `pedidos.numero`. |
+| `admin_alteracao_comparacao(p_solicitacao_id)` | admin | The full comparison payload of U10.4: before-image, current state, proposed header and item collection, author, timestamps and live impact. Read-only. |
+
+Supporting owners, not public API and not granted to `anon`:
+`pedido_tem_op_relacionada`, `pedido_item_tem_vinculo_producao`,
+`pedido_snapshot`, `pedido_itens_payload_normalizar`,
+`pedido_itens_payload_e_estrutural`, `pedido_itens_reconciliar`,
+`pedido_itens_sequencia`, `pedido_header_validar`, `pedido_header_aplicar`,
+`pedido_prioridade_aplicar`.
+
+Direct client `UPDATE` or `DELETE` against live `pedidos` and `pedido_itens`
+remains prohibited. The pre-acceptance path is a transactional RPC, not a
+relaxed policy.
 
 Direct client `UPDATE` or `DELETE` against live `pedidos` and `pedido_itens`
 remains prohibited. The pre-acceptance path is a transactional RPC, not a
@@ -2606,20 +2614,61 @@ partially updated.
 
 #### U8.2 Stable error identifiers
 
+Shipped by `db/92`:
+
 `PEDIDO_ALTERACAO_FORBIDDEN`, `PEDIDO_ALTERACAO_PEDIDO_NOT_FOUND`,
 `PEDIDO_ALTERACAO_PEDIDO_TERMINAL`, `PEDIDO_ALTERACAO_PEDIDO_NAO_ACEITO`,
+`PEDIDO_ALTERACAO_PEDIDO_NAO_EDITAVEL`,
 `PEDIDO_ALTERACAO_SOLICITACAO_NOT_FOUND`,
 `PEDIDO_ALTERACAO_SOLICITACAO_JA_DECIDIDA`,
-`PEDIDO_ALTERACAO_BASE_DESATUALIZADA`,
-`PEDIDO_ALTERACAO_IMPACTO_CONFIRMACAO_REQUERIDA`,
+`PEDIDO_ALTERACAO_REVISAO_DESATUALIZADA`,
+`PEDIDO_ALTERACAO_ESTRUTURA_BLOQUEADA_APOS_OP`,
+`PEDIDO_ALTERACAO_DATA_PEDIDO_IMUTAVEL_CLIENTE`,
+`PEDIDO_ALTERACAO_CAMPO_NAO_PERMITIDO`,
 `PEDIDO_ALTERACAO_ITEM_VINCULADO_A_OP`,
-`PEDIDO_ALTERACAO_METROS_ABAIXO_DO_ENTREGUE`,
-`PEDIDO_ALTERACAO_MODELO_BLOQUEADO_EM_PRODUCAO`,
 `PEDIDO_ALTERACAO_ITEM_SET_INVALIDO`,
-`PEDIDO_ALTERACAO_MOTIVO_OBRIGATORIO`.
+`PEDIDO_ALTERACAO_MOTIVO_OBRIGATORIO`,
+`PEDIDO_ALTERACAO_IMUTAVEL`,
+`PEDIDO_ALTERACAO_FALHA_APLICACAO`.
+
+Withdrawn from the R1 draft, because the states that would raise them are now
+unreachable under U5.2: `PEDIDO_ALTERACAO_BASE_DESATUALIZADA` (renamed
+`..._REVISAO_DESATUALIZADA`), `PEDIDO_ALTERACAO_IMPACTO_CONFIRMACAO_REQUERIDA`
+(no structural change is ever confirmable),
+`PEDIDO_ALTERACAO_METROS_ABAIXO_DO_ENTREGUE` and
+`PEDIDO_ALTERACAO_MODELO_BLOQUEADO_EM_PRODUCAO`.
 
 These follow the `PEDIDO_PRIORITY_*` convention already established by
-`db/91` and already consumed by `js/pedido-priority.js`.
+`db/91` and already consumed by `js/pedido-priority.js`. `db/91`'s own
+identifiers — notably `PEDIDO_PRIORITY_PRODUCTION_IMPACT_CONFIRMATION_REQUIRED`
+and `PEDIDO_PRIORITY_CLIENT_LOCKED` — continue to surface unchanged through the
+priority path.
+
+#### U8.3 Approval failure ownership
+
+An **expected** validation refusal — any identifier above raised before the
+application stage — returns the stable identifier, leaves the request
+`pendente`, and changes no live Pedido row. It is never recorded as an
+application failure.
+
+An **unexpected** failure during the application stage is owned by the database,
+not by a caller. `aprovar_alteracao_pedido(...)` runs the application work
+inside a PL/pgSQL `BEGIN ... EXCEPTION WHEN OTHERS` block, which is a real
+subtransaction:
+
+1. every live Pedido, item, priority and audit change from that block is rolled
+   back;
+2. in the surviving outer transaction the request is set to `falha_aplicacao`;
+3. `falha_identificador` is populated with `SQLSTATE` and the truncated message;
+4. the immutable before-image is preserved;
+5. the function returns a stable
+   `{"ok": false, "erro": "PEDIDO_ALTERACAO_FALHA_APLICACAO", ...}` result.
+
+No frontend, and no separate direct-DML caller, owns this transition. All
+expected refusals are raised **before** the subtransaction opens, precisely so a
+refusal can never be misfiled as an application failure; the static guard
+`tests/pedido-unified-edit-change-approval-schema.smoke.js` asserts that
+ordering in source.
 
 ### U9. RLS and security contract
 
@@ -2629,11 +2678,20 @@ These follow the `PEDIDO_PRIORITY_*` convention already established by
 | Client submits, replaces or withdraws only its own permitted request | No client `INSERT`, `UPDATE` or `DELETE` policy at all; the only path is the `SECURITY DEFINER` RPCs of U8, which re-derive the caller |
 | Client cannot approve or reject | `aprovar_*` and `rejeitar_*` require `is_admin()` and raise `42501` otherwise |
 | Client cannot directly update an accepted Pedido or its items | Unchanged: no client `UPDATE` or `DELETE` policy exists on `pedidos` or `pedido_itens`, and none is added |
-| The raw-API client item append is closed | The existing `pedido_itens_cliente_insert` policy is replaced by the RPC path described in U1.3 |
 | Admin can review and decide | `is_admin()` `ALL` policy on both new tables, matching the existing `*_admin_all` pattern |
+| Direct DML on the request tables is closed to every application role | `REVOKE ALL ... FROM PUBLIC, anon, authenticated` then `GRANT SELECT ... TO authenticated`. This revoke is load-bearing: the Supabase project carries `ALTER DEFAULT PRIVILEGES` granting full DML on every new `public` table to `anon`, `authenticated` and `service_role`, which is why `pedidos` and `pedido_itens` show `DELETE/INSERT/UPDATE` for both roles. Without it an administrator could write requests and decisions by raw DML, bypassing the RPCs, the before-image immutability and the single-pending index. |
 | Sanitized client readers never expose internal production data | `cliente_alteracao_resumo()` returns an explicit whitelist; no `SELECT *`, per `PORTAL_B2B_ARCHITECTURE_RULES.md` §8 |
 | `service_role` is not exposed | No new surface receives it; the RPC bodies still require a real admin or client JWT |
-| No anonymous access is introduced | `EXECUTE` revoked from `anon` on every new function; no `anon` policy on either new table |
+| No anonymous access is introduced | `EXECUTE` revoked from `anon` on every new function; no `anon` policy on either new table; no `anon` table privilege |
+| Existing client creation policies are preserved | `pedidos_cliente_insert` and `pedido_itens_cliente_insert` are **not** dropped, replaced or narrowed by this phase, and `db/92`'s prerequisite gate refuses to install if either is absent |
+
+**Correction to the R1 draft.** R1 stated that the raw-API client item append
+would be "closed" by replacing `pedido_itens_cliente_insert`. That is
+**withdrawn**: the supervisor ruled that the existing client creation policies
+and creation UI are not touched in this phase, and `db/92` therefore leaves both
+insert policies exactly as they were. The finding
+`PEDIDO-ITENS-CLIENT-INSERT-WITHOUT-UI` stays OPEN as out-of-scope debt in U12
+and needs its own order.
 
 The B2B separation of `PORTAL_B2B_ARCHITECTURE_RULES.md` §2 holds: the client
 requests, the administrator decides and publishes, the supplier is untouched
@@ -2764,19 +2822,27 @@ matrix, to the acceptance boundary or to the canonical expected-delivery
 field requires this section to be revised before anything proceeds.
 *Next action:* Phase 2, only if separately ordered.
 
-**Phase 2 — migration, RPCs, RLS and focused database validation.**
-*Objective:* `db/92`, creating the two request tables, `pedidos.revisao` and
-its triggers, the seven functions of U8, the policies, the grants, and the
-client `data_pedido` insert refusal of U4 C2. *Authorized paths:* `db/`,
-`tests/`, this document. *Prerequisites:* Phase 1 accepted; a separate order
-naming `ucrjtfswnfdlxwtmxnoo` and the permitted operation before any apply.
-*Invariants:* no frontend file changes; `definir_prioridade_pedido()` is not
-redefined; no existing policy is widened; the migration terminal guard in
-`tests/ordem-compra-c3d-deploy.smoke.js` advances `91 → 92` in the same
-commit. *Validation:* disposable-cluster run of the migration, plus positive
-and negative effective-access cases for client, admin and anon.
-*Stop conditions:* any need to alter an existing guard; any client `UPDATE`
-policy appearing on `pedidos` or `pedido_itens`. *Next action:* Phase 3.
+**Phase 2 — migration, RPCs, RLS and focused database validation. COMPLETE.**
+Executed by `PEDIDO-UNIFIED-EDIT-CHANGE-APPROVAL-SCHEMA-R1`; evidence in U14.
+*Objective:* `db/92`, creating the two request tables, `pedidos.revisao` and its
+triggers, the **eight** RPCs of U8, the supporting owners, the policies and the
+grants. *Authorized paths:* `db/`, `tests/`, this document. *Prerequisites:*
+Phase 1 accepted; a separate order naming `ucrjtfswnfdlxwtmxnoo` and the
+permitted operation before any apply. *Invariants:* no frontend file changes;
+`definir_prioridade_pedido()` is not redefined; no existing policy is widened;
+the existing client creation policies are preserved; the migration terminal
+guard in `tests/ordem-compra-c3d-deploy.smoke.js` advances `91 → 92` in the same
+commit. *Validation:* disposable-cluster run of the whole `db/01..db/92` chain,
+plus positive and negative effective-access cases for client, admin, supplier
+and anon. *Stop conditions:* any need to alter an existing guard; any client
+`UPDATE` policy appearing on `pedidos` or `pedido_itens`. *Next action:* Phase
+3, only if separately ordered.
+
+> The R1 draft said this phase would also add a database refusal of a
+> client-supplied `data_pedido` at creation. That is **withdrawn** by the
+> supervisor ruling recorded in U13.1: the Client may provide `data_pedido` at
+> creation, and the creation flow is untouched. The immutability that ships is
+> post-creation only, enforced by the two client RPCs.
 
 **Phase 3 — unified administrative editor.**
 *Objective:* `#/pedidos/<uuid>/editar` becomes the complete full-width editor;
@@ -2834,35 +2900,125 @@ supervisor acceptance and closeout.
 None of these is directly caused by this order, which changed no product,
 migration or database path.
 
-### U13. Open supervisor decisions
+### U13. Ratified supervisor rulings
 
-1. **`data_pedido` at client creation (U4 C2).** The rule "the client may
-   never edit `data_pedido`" is binding, but the client creation form sets it
-   today. *Recommended ruling:* remove the control and let the `db/89` column
-   default own the value, enforced by a database refusal rather than by UI
-   convention. *Operational consequence:* a client can no longer state a
-   back-dated commercial date. *Rejected alternative:* leaving creation-time
-   entry in place, which makes "never editable" a half-rule the database does
-   not hold. *Decision still required:* confirm that client-supplied
-   `data_pedido` is refused at the database level in Phase 2.
-2. **Item structural changes at impact level C (U5.2).** *Recommended ruling:*
-   as tabled — `modelo_id` refused, `metros` and add-item allowed under
-   explicit impact confirmation, removal refused when linked. *Operational
-   consequence:* a client whose production has started can adjust quantity but
-   cannot substitute a product. *Rejected alternative:* allowing a model swap
-   under confirmation, which silently changes the production route of work
-   already in progress. *Decision still required:* ratify or amend the row.
-3. **Retirement of `#/pedidos/<uuid>/itens` (U10.5).** *Recommended ruling:*
-   redirect in Phase 3, delete the screen in Phase 6. *Operational
-   consequence:* one editor owns the item collection, and the existing
-   `pedido-itens-edit` smoke suite is retargeted. *Rejected alternative:*
-   keeping both editors, which reintroduces two competing owners of the same
-   collection. *Decision still required:* confirm the retirement, or name the
-   independent purpose that would justify keeping the route.
-4. **Scope of `pedidos.revisao` (U7).** *Recommended ruling:* one revision
-   covering header, items and priority. *Operational consequence:* an
-   unrelated concurrent item edit invalidates a pending header-only request,
-   which the client must then resubmit. *Rejected alternative:* per-aspect
-   versions, which would permit an approved header change to land on a
-   concurrently rewritten item collection. *Decision still required:* ratify
-   the single-revision model.
+The four decisions R1 left open were decided by the supervisor on 2026-07-29 in
+`PEDIDO-UNIFIED-EDIT-CHANGE-APPROVAL-SCHEMA-R1`. They are binding, and the
+recommendation R1 offered is recorded beside each so the divergences stay
+visible.
+
+**U13.1 — `data_pedido` at client creation. RULED: creation allowed,
+post-creation immutable.**
+The Client **may** provide `data_pedido` during initial Pedido creation, through
+the existing creation flow. After the Pedido exists it is read-only to the
+Client: `salvar_pedido_cliente(...)` rejects any payload attempting to change
+it, `solicitar_alteracao_pedido(...)` rejects any proposal over it, and it never
+appears as a proposed field in a change request. The existing client creation
+policies and creation UI are not removed or altered.
+*R1 had recommended* removing the creation control entirely and enforcing the
+refusal at the database. That recommendation is **not** adopted: the ruling
+keeps a legitimate commercial capability the client already had, and confines
+the immutability to the phase where it actually protects an accepted order.
+
+**U13.2 — structural item changes against existing OPs. RULED: stricter than
+recommended.**
+Structural item change means changing `modelo_id`, changing `metros`, inserting
+an item or removing an item. While no related OP exists, structurally valid
+changes may be applied. Once **any** related OP exists — in any status,
+including `simulada` and `cancelada` — structural changes are refused by the
+generic administrative save, by client submission and by approval, with
+`PEDIDO_ALTERACAO_ESTRUTURA_BLOQUEADA_APOS_OP`. Approval confirmation is not an
+override and no parameter unlocks it. No RPC in this phase changes, recreates,
+deletes or reconciles `op_itens`. Header fields, general observation and item
+observation remain editable by lifecycle; priority continues through
+`definir_prioridade_pedido()` with its existing impact confirmation.
+*R1 had recommended* a graded A–E ladder allowing `metres` and add-item under
+explicit impact confirmation at production level C, and a reconciliation at
+level D. That is **withdrawn** in full. The ruling replaces a five-level
+judgement an executor could evaluate wrongly with one boundary a query answers.
+
+**U13.3 — retirement of `#/pedidos/<uuid>/itens`. RULED as recommended.**
+Compatibility redirect to `#/pedidos/<uuid>/editar` in Phase 3; the screen is
+retired in Phase 6. Two competing complete item editors are not acceptable.
+
+**U13.4 — scope of `pedidos.revisao`. RULED as recommended.**
+One revision covering header, item collection and priority. An unrelated
+concurrent item edit therefore invalidates a pending header-only request, which
+the client resubmits against the latest accepted state. Purely external
+client-visual publication fields do not advance it.
+
+**U13.5 — also ratified without amendment.**
+`pedidos.status = 'confirmado'` as the administrative-acceptance boundary;
+`prazo_entrega` as the sole expected-delivery owner; `prazo_desejado` as dormant
+legacy, unchanged in this phase; the justified hybrid request model; at most one
+pending request per Pedido; and the dedicated approval screen with modal use
+limited to the final confirmation.
+
+### U14. Schema implementation evidence
+
+Bounded record of what `PEDIDO-UNIFIED-EDIT-CHANGE-APPROVAL-SCHEMA-R1` actually
+shipped. It records evidence, not authority: the semantics above own the
+contract.
+
+**Migration.** `db/92_pedido_unified_edit_change_approval_foundation.sql`.
+Forward-only, one `BEGIN`/`COMMIT`, idempotent, `db/01..db/91` untouched.
+It fails closed on a named prerequisite list — tables, `is_admin()`,
+`meu_cliente_id()`, `definir_prioridade_pedido(...)`,
+`recalcular_pedido_metros_total(...)`, the four `db/89`/`db/91` guards, the
+Pedido↔production linkage columns, and both client creation policies — and
+repairs nothing.
+
+**Objects created.**
+
+- `public.pedidos.revisao BIGINT NOT NULL DEFAULT 1`, with
+  `pedidos_revisao_normalize` (BEFORE UPDATE on `pedidos`, the sole writer, which
+  overwrites any caller-supplied value so the column is monotonic by
+  construction and cannot be chosen) and `pedido_itens_revisao_bump` (AFTER
+  INSERT/UPDATE/DELETE on `pedido_itens`). Header, item and priority changes
+  advance it; `status_cliente_visual`, `status_cliente_excecao`,
+  `status_cliente_mensagem` and `status_cliente_atualizado_em` deliberately do
+  not, so publishing external status never invalidates a pending request. There
+  is no recursion: the item trigger's `SET revisao = revisao + 1` lands in the
+  normalizer's "touched but nothing relevant changed" branch and resolves once.
+- `public.pedido_alteracao_solicitacoes` and
+  `public.pedido_alteracao_solicitacao_itens`, per U6.2, with the closed status
+  CHECK, the decision-coherence and rejection-reason CHECKs, the
+  `pedido_alteracao_um_pendente_por_pedido_uq` unique partial index, and the two
+  immutability triggers that freeze the before-image, the base revision and the
+  proposed collection after submission.
+- The eight RPCs of U8 plus the ten supporting owners.
+
+**Disposable-cluster validation.**
+`tests/pedido-unified-edit-change-approval-invariant.mjs`, one fresh PostgreSQL
+18.4 cluster per run, destroyed in Part Z. Proves: `db/01..db/92` apply in order
+with `92` terminal; `db/92` replays twice with an identical schema/policy/index/
+grant fingerprint and creates zero request rows; the prerequisite gate fails
+closed naming the missing object; revision scope and monotonicity; the client
+cannot `UPDATE` or `DELETE` Pedido or items directly; the client path works only
+through the RPC; `data_pedido` is refused after creation and accepted at
+creation; stale-revision saves and approvals change nothing; replacement leaves
+exactly one pending request and the unique index refuses a second; structural
+change applies with no OP and is refused four ways once an OP exists, including
+with `p_confirmar_impacto = true`; item observation and header stay editable
+after an OP; a header-only request stays approvable after an OP; removal cannot
+orphan a linked row; priority resolves `solicitada` for the client and
+`confirmada` for the admin and keeps `db/91`'s acceptance and impact gates; an
+injected unexpected failure rolls the live Pedido back and leaves the request
+`falha_aplicacao` with the before-image intact; rejection and withdrawal never
+touch the Pedido; the client summary exposes no internal field; `anon` has no
+execute or table privilege; `authenticated` has no direct DML; and the supplier
+sees nothing.
+
+**Static validation.**
+`tests/pedido-unified-edit-change-approval-schema.smoke.js` reads files only and
+guards the RPC inventory, the `SECURITY DEFINER`/`search_path`/ACL discipline,
+the lock order, the absence of a second priority owner, the absence of any write
+to production tables, the absence of any change to the `pedidos` and
+`pedido_itens` policies, and the ordering that keeps expected refusals outside
+the application subtransaction.
+
+**Not done in this phase, by design.** No frontend file was touched. No OP,
+`op_itens`, expedition, delivery or business row was created, rewritten,
+backfilled or reinterpreted. `prazo_desejado` was not removed. The client
+creation policies were not removed. `definir_prioridade_pedido()` was not
+redefined.
