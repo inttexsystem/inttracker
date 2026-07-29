@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW`
-- Objective: The Model create/edit modal in js/screens/cadastros.js no longer closes on a backdrop click, while every other cadastro modal keeps that default behaviour via the new closeOnBackdrop option on openCadastrosFormModal(). The Model modal field hierarchy is Name, Product type, Width, a full-width explanatory colour-order paragraph, the Color 1/Color 2 row, the model image panel, and Observations when supported. The Manta width lock (1,40 m, disabled) and its re-enable on Tapete are unchanged. The inline Pedido item model-option label in js/screens/pedido-item-row-editor.js::modeloOptionLabel() now appends the formatted width via the existing larguraStr(), e.g. "Barcelona – PRETO/CRU · 2,10 m". modelo_id remains the only persisted product identity and no filtering, routing, persistence or payload changed.
-- Next authorizable action: `DIRECT SUPERVISOR REVIEW OF PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1` / `AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED`
+- Status: `NO ACTIVE PRODUCT PHASE`
+- Objective: PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1 is closed and accepted at 6c828546d80bb596bc5b1e02a48fc32172d9a1eb. No next product phase has been selected.
+- Next authorizable action: `SELECT NEXT PRODUCT PHASE` / `AWAITING PRODUCT DIRECTION; NO PHASE IS CHAINED`
 
 ## Blockers and decisions
 
@@ -36,7 +36,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Task-specific pointers
 
-- `docs/architecture/UI_VISUAL_CONTRACT.md::### 2.10 Modal`
+- `docs/governance/AGENT_INSTRUCTIONS.md::## 4. Authorization and roles`
 - `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md::## §R.31 Active Phase-C continuation requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### 13.17 Active Phase-C schema requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md::# Update 2026-07-22 - C5-DOCUMENTATION-CLOSEOUT-R1 (PHASE-C5 supervisor acceptance and closeout; OC-C5-EMISSION-001 SATISFIED)`

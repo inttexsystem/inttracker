@@ -143,27 +143,53 @@ test('the retired-project consumer corrections are accepted, not still open deci
 });
 
 // O sujeito deste guard e a COERENCIA entre a fase ativa e a proxima acao
-// autorizavel — nunca "o repositorio esta ocioso". Pinar os literais de IDLE
-// convertia o guard em "nenhuma ordem futura pode ativar uma fase", que nao e o
-// que a governanca exige: `current-state.json` existe justamente para carregar
-// uma fase ativa quando ha uma.
-//
-// PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 foi a fase ativa e agora esta
-// CLOSED / ACCEPTED; PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1
-// e a fase ativa, entao o guard e reancorado nela mais uma vez, exatamente como
-// fez na transicao anterior. A garantia continua checavel: a fase ativa tem
-// identidade e status, e a proxima acao autorizavel APONTA para essa mesma
-// fase, de modo que as duas nao podem divergir em silencio.
+// autorizavel — nunca um literal de fase especifico. O guard cobre os dois
+// estados estruturais possiveis: `NONE` representa nenhuma fase de produto
+// ativa e exige direcao de produto (a proxima acao deve ser
+// SELECT NEXT PRODUCT PHASE, apontando para o AGENT_INSTRUCTIONS.md neutro);
+// uma fase ativa real exige revisao do supervisor e deve ser nomeada pela
+// proxima acao autorizavel. Futuras transicoes de fase nao devem mais exigir
+// reancorar um literal de identidade de fase neste teste.
 test('the active state declares a coherent phase and next authorizable action', () => {
-  const ACTIVE = 'PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1';
-  assert.equal(state.active_phase.id, ACTIVE);
-  assert.match(state.active_phase.status, /AWAITING SUPERVISOR REVIEW/u);
   assert.ok(state.active_phase.immediate_objective.length > 0);
-  assert.ok(
-    state.next_authorizable_action.id.includes(ACTIVE),
-    'a proxima acao autorizavel deve nomear a fase ativa'
+
+  if (state.active_phase.id === 'NONE') {
+    assert.equal(state.active_phase.status, 'NO ACTIVE PRODUCT PHASE');
+    assert.equal(
+      state.active_phase.contract.path,
+      'docs/governance/AGENT_INSTRUCTIONS.md'
+    );
+    assert.equal(
+      state.active_phase.contract.anchor,
+      '## 4. Authorization and roles'
+    );
+    assert.equal(
+      state.next_authorizable_action.id,
+      'SELECT NEXT PRODUCT PHASE'
+    );
+    assert.equal(
+      state.next_authorizable_action.mode,
+      'AWAITING PRODUCT DIRECTION; NO PHASE IS CHAINED'
+    );
+    assert.match(
+      state.next_authorizable_action.status,
+      /No subsequent product implementation is authorized/u
+    );
+    return;
+  }
+
+  assert.match(
+    state.active_phase.status,
+    /AWAITING SUPERVISOR REVIEW/u
   );
-  assert.match(state.next_authorizable_action.mode, /AWAITING SUPERVISOR REVIEW/u);
+  assert.ok(
+    state.next_authorizable_action.id.includes(state.active_phase.id),
+    'the next authorizable action must name the active phase'
+  );
+  assert.match(
+    state.next_authorizable_action.mode,
+    /AWAITING SUPERVISOR REVIEW/u
+  );
 });
 
 test('environment identities and the absent non-production database are exact', () => {

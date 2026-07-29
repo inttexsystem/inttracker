@@ -10534,3 +10534,14 @@ product file they depend on, was modified by this pass or the prior one):
 - **Status.** `PEDIDO-ITEM-PRODUCTION-PRIORITY-END-TO-END-R1 CLOSED / ACCEPTED at fd59284be1d16a3cefb4abe1dca9253be9f4f165`.
 - **Next action.** None chained for this phase.
 - **Owner of the full record.** This ledger entry.
+
+## 2026-07-28 — PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1 — docs: close accepted model UI stabilization
+
+- **Subject.** Forward acceptance record for the `PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1` phase, which was implemented and published, and had been left `IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW` at checkpoint `6c828546d80bb596bc5b1e02a48fc32172d9a1eb`. Kleber directly validated the rendered result. The phase is now `CLOSED / ACCEPTED` at that same checkpoint. No code, migration or configuration change accompanies this record.
+- **What is accepted.** The Model create/edit modal in `js/screens/cadastros.js` no longer closes on a backdrop click, while every other cadastro modal keeps that default behaviour via the `closeOnBackdrop` option on `openCadastrosFormModal()`. The Close, Cancel, Escape, and Save-success close paths remain valid. The Model modal field hierarchy — Name, Product type, Width, a full-width explanatory colour-order paragraph, the Color 1/Color 2 row, the model image panel, and Observations — and the explanatory colour text placement are accepted. The Manta width lock (1,40 m, disabled) and its re-enable on Tapete are unchanged.
+- **Also accepted.** The inline Pedido item model-option label in `js/screens/pedido-item-row-editor.js::modeloOptionLabel()` appends the formatted width via the existing `larguraStr()`, e.g. `Barcelona – PRETO/CRU · 2,10 m`. `modelo_id` remains the only persisted product identity; no filtering, routing, persistence or payload changed.
+- **Why recorded now.** `docs/governance/current-state.json` moves its active phase to `NONE / NO ACTIVE PRODUCT PHASE` in the same closeout that appends this entry, since no next product phase has been selected.
+- **Owner of the underlying implementation record.** The prior execution report and code for this phase; this entry records only the supervisor acceptance forward.
+- **Status.** `PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1 CLOSED / ACCEPTED at 6c828546d80bb596bc5b1e02a48fc32172d9a1eb`.
+- **Next action.** None chained for this phase; next product phase selection is pending architect direction.
+- **Owner of the full record.** This ledger entry.
