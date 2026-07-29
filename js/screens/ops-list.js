@@ -324,6 +324,7 @@
     function buildKpis() {
       var kpi = computeKpis();
       return window.el('div', {
+        'data-rv-metrics': '',
         style: 'display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px;'
       },
       kpiCard(ICON_TOTAL, 'Total', kpi.total),

@@ -162,6 +162,36 @@ If a new file exceeds 500 lines, IAexec must justify why it was not split.
 
 If a new function exceeds 150 lines, IAexec must justify why it was not split.
 
+### UI and visual-work interpretation
+
+For UI screens and visual-alignment work, file and function line-count limits
+are architectural indicators, not mechanical acceptance gates or automatic
+hard stops.
+
+Professional code quality remains mandatory:
+
+* keep responsibilities cohesive and logically organized;
+* reuse existing structures and primitives when they genuinely fit;
+* avoid unnecessary duplication and competing visual owners;
+* keep business rules and persistence outside rendering code;
+* preserve readable functions, explicit state handling, accessibility and
+  responsive behavior;
+* do not compress code merely to remain below a numerical threshold;
+* do not introduce a premature abstraction merely to remove a small,
+  coherent and screen-local declaration.
+
+Reasonable variation or growth is accepted when it improves clarity,
+visual-contract compliance, accessibility, responsive layout or separation
+of concerns.
+
+Splitting or extraction is required when there is a real reusable seam,
+mixed responsibility, disproportionate growth, duplicated ownership or
+structural incoherence — not merely because a UI file or function crossed a
+reference line count.
+
+For non-UI business, persistence and infrastructure modules, the existing
+size references and justification requirements remain applicable.
+
 ## 8. Rule for pure helpers
 
 Pure helpers must be extracted when:
