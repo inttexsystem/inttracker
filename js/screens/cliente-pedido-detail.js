@@ -47,6 +47,10 @@
   'use strict';
 
   var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  // PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1: mesma fronteira terminal do
+  // editor (js/screens/cliente-pedido-edit.js) — a acao Editar pedido nunca
+  // aparece para um pedido encerrado.
+  var TERMINAL_STATUSES = ['entregue', 'cancelado'];
 
   function fmtNumero(n) {
     if (n == null) return '—';
@@ -146,6 +150,9 @@
       pendencias: [],
       routes: [],
       prioridadeItens: [],
+      // PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1: resumo sanitizado da
+      // solicitacao de alteracao pendente do proprio Cliente, se houver.
+      pendente: null,
     };
 
     // PHASE-MANTA-B2B: rotas aplicaveis do Pedido. Esta tela preserva a
@@ -263,6 +270,25 @@
       });
 
       await carregarPrioridade();
+      await carregarSolicitacaoPendente();
+    }
+
+    // PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1: leitura sanitizada e
+    // best-effort — uma falha aqui nao derruba o detalhe (mesmo padrao de
+    // carregarPrioridade acima); ela apenas mantem `state.pendente` nulo, e o
+    // aviso simplesmente nao aparece.
+    async function carregarSolicitacaoPendente() {
+      state.pendente = null;
+      try {
+        var res = await window.supa.rpc('cliente_alteracao_resumo', { p_pedido_id: pedidoId });
+        if (res.error || !res.data) return;
+        var payload = res.data;
+        if (typeof payload === 'string') { try { payload = JSON.parse(payload); } catch (_) { payload = null; } }
+        if (Array.isArray(payload)) payload = payload[0] || null;
+        state.pendente = (payload && payload.ok !== false) ? (payload.pendente || null) : null;
+      } catch (e) {
+        console.error('cliente-pedido-detail: erro ao carregar solicitacao pendente', e);
+      }
     }
 
     // PEDIDO-ITEM-PRODUCTION-PRIORITY-R1.
@@ -339,15 +365,28 @@
         'Voltar para pedidos'
       );
 
+      // PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1: unico ponto de entrada
+      // para #/cliente/pedidos/<uuid>/editar. Nunca aparece para um pedido
+      // terminal — o editor nao ficaria disponivel de qualquer forma.
+      var editBtn = (p && TERMINAL_STATUSES.indexOf(p.status) === -1)
+        ? window.el('button', {
+            type: 'button',
+            style: 'display:flex;align-items:center;gap:8px;border:none;background:var(--rv-brand);'
+              + 'color:var(--rv-text-on-brand);border-radius:4px;padding:8px 14px;font-size:13.5px;font-weight:600;'
+              + 'cursor:pointer;font-family:inherit;',
+            onclick: function () { window.navigate('#/cliente/pedidos/' + pedidoId + '/editar'); },
+          }, 'Editar pedido')
+        : null;
+
       var breadcrumb = window.el('div', {
-        style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;',
+        style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:10px;',
       },
         window.el('div', { style: 'font-size:14px;color:var(--rv-text-tertiary);' },
           'Meus pedidos ',
           window.el('span', { style: 'margin:0 4px;color:var(--rv-text-tertiary);' }, '/'),
           window.el('span', { style: 'color:var(--rv-text-secondary);font-weight:600;' }, ' ' + numero)
         ),
-        backBtn
+        window.el('div', { style: 'display:flex;align-items:center;gap:10px;' }, editBtn, backBtn)
       );
 
       if (!p) return breadcrumb;
@@ -729,6 +768,32 @@
       return card;
     }
 
+    // PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1: aviso conciso de
+    // solicitacao pendente. Nunca implica que os valores propostos ja estao
+    // ativos — o pedido aceito continua exatamente como esta ate a revisao
+    // administrativa. A acao leva ao editor, unico lugar onde a solicitacao
+    // pode ser revisada, substituida ou retirada.
+    function buildSolicitacaoPendenteNotice() {
+      if (!state.pendente) return window.el('div', {});
+      return window.el('div', {
+        style: 'background:var(--rv-pill-info-bg);border:1px solid var(--rv-accent-blue);border-left:3px solid var(--rv-accent-blue);border-radius:4px;padding:14px 18px;margin-bottom:14px;',
+      },
+        window.el('div', {
+          style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:4px;',
+        }, 'Voce tem uma solicitação de alteração pendente'),
+        window.el('div', {
+          style: 'font-size:13.5px;color:var(--rv-text-secondary);line-height:1.5;margin-bottom:10px;',
+        }, 'O pedido aceito pela equipe continua como está. Suas alterações propostas aguardam revisão administrativa.'),
+        window.el('button', {
+          type: 'button',
+          style: 'display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rv-accent-blue);background:var(--rv-surface);'
+            + 'color:var(--rv-accent-blue);border-radius:4px;padding:7px 14px;font-size:13.5px;font-weight:600;'
+            + 'cursor:pointer;font-family:inherit;',
+          onclick: function () { window.navigate('#/cliente/pedidos/' + pedidoId + '/editar'); },
+        }, 'Revisar solicitação')
+      );
+    }
+
     function buildAvisos() {
       if (!state.pedido || !state.pendencias.length) return window.el('div', {});
       var card = window.el('div', {
@@ -989,6 +1054,7 @@
       }
       container.replaceChildren(
         header,
+        buildSolicitacaoPendenteNotice(),
         buildResumo(),
         buildDadosGerais(),
         buildTracking(),

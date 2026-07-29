@@ -128,6 +128,21 @@
     };
   }
 
+  // Match dinâmico para EDIÇÃO de Pedido do cliente (PEDIDO-CLIENT-EDITOR-
+  // REQUEST-SUBMISSION-R1). Mais específico que o match de detalhe abaixo
+  // (terminado em /editar) — vem ANTES dele por clareza, embora o regex do
+  // detalhe (ancorado em $) já exclua o caso, sem ambiguidade possível com
+  // `#/cliente/pedidos/<uuid>`.
+  const mCliPedEdit = rawHash.match(
+    /^#\/cliente\/pedidos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/editar$/i
+  );
+  if (mCliPedEdit) {
+    return {
+      render: () => window.screenClientePedidoEditar(mCliPedEdit[1]),
+      roles: ['cliente'],
+    };
+  }
+
   // Match dinâmico para detalhe de Pedido do cliente (read-only, UUID).
   const mCliPed = rawHash.match(/^#\/cliente\/pedidos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
   if (mCliPed) {

@@ -26,22 +26,49 @@
   // Mesma lista de public.pedido_header_validar(p_papel='admin').
   var ADMIN_HEADER_KEYS = ['cliente_id', 'data_pedido', 'prazo_entrega', 'referencia_cliente', 'tipo_recebimento', 'observacao'];
 
+  // Mesma lista de public.pedido_header_validar(p_papel<>'admin') —
+  // exatamente os 4 campos que salvar_pedido_cliente/solicitar_alteracao_pedido
+  // aceitam do Cliente. `data_pedido` NUNCA entra aqui (U13.1/C2): e visivel e
+  // somente-leitura em toda tela do Cliente, e o servidor recusa qualquer
+  // tentativa de altera-la depois que o Pedido existe.
+  var CLIENT_HEADER_KEYS = ['prazo_entrega', 'referencia_cliente', 'tipo_recebimento', 'observacao'];
+
   // Dominio real de pedidos.tipo_recebimento (CHECK pedidos_tipo_recebimento_check).
   var TIPO_RECEBIMENTO_OPTIONS = [
     { value: 'retirada', label: 'Retirada' },
     { value: 'entrega', label: 'Entrega' },
   ];
 
-  function capabilities(role) {
+  // `mode` e exclusivo do papel Cliente (PEDIDO-CLIENT-EDITOR-REQUEST-
+  // SUBMISSION-R1): 'preAceite' | 'posAceite' | 'terminal'. Omitido (chamada
+  // antiga `capabilities('cliente')`), preserva a projecao adiada anterior —
+  // compatibilidade retroativa, nunca reinterpretada.
+  //
+  // U4 nao distingue os 4 campos entre si dentro de preAceite/posAceite: os
+  // MESMOS 4 campos sao DIRECT_EDIT antes da aceitacao e CHANGE_REQUEST
+  // depois — a diferenca e o MODO DE ESCRITA (qual RPC a tela chama), nao uma
+  // capacidade por campo. Por isso um unico conjunto serve os dois modos; a
+  // tela e quem decide salvar_pedido_cliente vs solicitar_alteracao_pedido.
+  function capabilities(role, mode) {
     if (role === 'admin') {
       return {
         readOnlyFields: ['numero', 'status'],
         editableHeaderFields: ADMIN_HEADER_KEYS.slice(),
       };
     }
-    // Projecao do Cliente adiada para a fase de editor de Cliente
-    // separadamente autorizada (EXECUTION ORDER sec.8.2, sec.15).
-    return { readOnlyFields: ['numero', 'status'], editableHeaderFields: [] };
+    if (mode == null) {
+      return { readOnlyFields: ['numero', 'status'], editableHeaderFields: [] };
+    }
+    if (mode === 'terminal') {
+      return {
+        readOnlyFields: ['numero', 'status', 'data_pedido', 'prazo_entrega', 'referencia_cliente', 'tipo_recebimento', 'observacao'],
+        editableHeaderFields: [],
+      };
+    }
+    return {
+      readOnlyFields: ['numero', 'status', 'data_pedido'],
+      editableHeaderFields: CLIENT_HEADER_KEYS.slice(),
+    };
   }
 
   // Estado local a partir da linha persistida de `pedidos`. `numero` e
@@ -106,7 +133,13 @@
     return changed ? payload : null;
   }
 
-  function validate(fields) {
+  // `role` e opcional (compatibilidade retroativa: chamada antiga
+  // `validate(fields)` preserva a validacao administrativa de sempre). O
+  // Cliente nunca escolhe cliente_id (o proprio Pedido ja e seu) nem edita
+  // data_pedido (U13.1/C2, somente-leitura) — nao ha campo de cabecalho
+  // obrigatorio a validar do lado do Cliente nesta fase.
+  function validate(fields, role) {
+    if (role === 'cliente') return { valid: true, errors: [] };
     var f = fields || {};
     var errors = [];
     if (!f.clienteId) errors.push('Selecione um cliente.');
@@ -116,6 +149,7 @@
 
   window.RAVATEX_PEDIDO_FIELDS = {
     ADMIN_HEADER_KEYS: ADMIN_HEADER_KEYS,
+    CLIENT_HEADER_KEYS: CLIENT_HEADER_KEYS,
     TIPO_RECEBIMENTO_OPTIONS: TIPO_RECEBIMENTO_OPTIONS,
     capabilities: capabilities,
     fromPersisted: fromPersisted,

@@ -183,6 +183,37 @@ test('isCollectionChanged: mudar SOMENTE observacao NAO dispara mudança de cole
     'mudar observação sozinha NÃO pode mais disparar p_itens — retirada da UI administrativa');
 });
 
+// PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1: terceiro parâmetro OPCIONAL
+// `{ compareObservacao: true }`. item.observacao CONTINUA editável pelo
+// Cliente (U4; a retirada foi SOMENTE administrativa), então o editor do
+// Cliente opta por comparar observação — sem alterar nenhum chamador
+// existente, que nunca passa esse terceiro argumento.
+test('isCollectionChanged: com { compareObservacao: true }, mudar SOMENTE observacao DISPARA mudança de coleção', () => {
+  const D = loadDraft();
+  const baseline = D.fromPersisted([
+    { id: 'a', modelo_id: 1, metros: '2', observacao: null, ordem: 0 },
+    { id: 'b', modelo_id: 2, metros: '3', observacao: null, ordem: 1 },
+  ]);
+  const obsChanged = baseline.map((it) => ({ ...it }));
+  obsChanged[1].observacao = 'algo';
+  assert.equal(D.isCollectionChanged(obsChanged, baseline, { compareObservacao: true }), true,
+    'com compareObservacao, mudar a observação do item deve disparar p_itens (editor do Cliente)');
+  assert.equal(D.isCollectionChanged(baseline.map((it) => ({ ...it })), baseline, { compareObservacao: true }), false,
+    'cópia idêntica ainda não deve disparar mudança mesmo com compareObservacao');
+});
+
+test('isCollectionChanged: ausência do terceiro parâmetro preserva o comportamento administrativo EXATO (compatibilidade retroativa)', () => {
+  const D = loadDraft();
+  const baseline = D.fromPersisted([
+    { id: 'a', modelo_id: 1, metros: '2', observacao: null, ordem: 0 },
+  ]);
+  const obsChanged = baseline.map((it) => ({ ...it }));
+  obsChanged[0].observacao = 'algo';
+  assert.equal(D.isCollectionChanged(obsChanged, baseline), false);
+  assert.equal(D.isCollectionChanged(obsChanged, baseline, {}), false,
+    'options vazio (sem compareObservacao) também preserva o comportamento antigo');
+});
+
 // =====================================================================
 // buildItemMention — PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 sec.G.
 // =====================================================================

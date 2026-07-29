@@ -9,7 +9,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 - Workspace: `D:\Programação\controle-tapetes-g28`
 - Branch: `dev`
 - Publication boundary: `staging/dev`; EXPLICIT_SINGLE_FAST_FORWARD_ONLY
-- Accepted operational checkpoint: `b77f4d14021781ebd96bce30f625687358b2d87a`
+- Accepted operational checkpoint: `ffc6b400b34246a6d3a06cd5face5c6c4629cda3`
 
 ## Environment
 
@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `CORRECTION IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR RE-REVIEW`
-- Objective: Implement and publish the accepted seven-column administrative Pedido item table and the @ item-mention interaction in Novo pedido and Editar pedido, with general-observation persistence, structural-lock compatibility and read-only preservation of legacy item observations. PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1-REVIEW-CORRECTION corrected two supervisor-found defects: stale mention-caret intent surviving a focus change to an unrelated control, and legacy pedido_itens.observacao values not rendered byte-faithfully (trim + white-space:normal collapsing whitespace and line breaks).
-- Next authorizable action: `DIRECT SUPERVISOR RE-REVIEW OF PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1` / `AWAITING SUPERVISOR RE-REVIEW; NO CLIENT PHASE IS CHAINED`
+- Status: `IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW`
+- Objective: Implement and publish the accepted client Pedido editor with direct pre-acceptance saving, post-acceptance change-request submission, pending request replacement and withdrawal, client-safe lifecycle capabilities and no internal production-data exposure.
+- Next authorizable action: `DIRECT SUPERVISOR REVIEW OF PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1` / `AWAITING SUPERVISOR REVIEW; PHASE 5 IS NOT CHAINED`
 
 ## Blockers and decisions
 
@@ -36,7 +36,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Task-specific pointers
 
-- `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::## Update 2026-07-29 — Pedido item mention and general observation ruling (PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1)`
+- `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### U10.3 Client editor — `#/cliente/pedidos/<uuid>/editar``
 - `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md::## §R.31 Active Phase-C continuation requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### 13.17 Active Phase-C schema requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md::# Update 2026-07-22 - C5-DOCUMENTATION-CLOSEOUT-R1 (PHASE-C5 supervisor acceptance and closeout; OC-C5-EMISSION-001 SATISFIED)`

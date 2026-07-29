@@ -42,6 +42,7 @@ function makeRouterSandbox({ hash = '#/x' } = {}) {
   var calls = {
     setApp: [], screenNotFound: 0, screenForbidden: 0,
     screenClientePedidoDetalhe: [],
+    screenClientePedidoEditar: [],
     loadCurrentUser: 0,
     navigations: [],
   };
@@ -57,6 +58,7 @@ function makeRouterSandbox({ hash = '#/x' } = {}) {
   sandbox.screenNotFound = function () { calls.screenNotFound++; return { __screen: 'notFound' }; };
   sandbox.screenForbidden = function () { calls.screenForbidden++; return { __screen: 'forbidden' }; };
   sandbox.screenClientePedidoDetalhe = function (id) { calls.screenClientePedidoDetalhe.push(id); return { __screen: 'clienteDetalhe', id: id }; };
+  sandbox.screenClientePedidoEditar = function (id) { calls.screenClientePedidoEditar.push(id); return { __screen: 'clienteEditar', id: id }; };
   sandbox.CURRENT_USER = null;
   sandbox.loadCurrentUser = async function () { calls.loadCurrentUser++; return sandbox.CURRENT_USER; };
   sandbox._calls = calls;
@@ -189,6 +191,70 @@ test('matchRoute: #/cliente/pedidos/<uuid> rejeita IDs não-UUID', () => {
     var m = vm.runInContext("window.matchRoute('#/cliente/pedidos/" + badId + "')", r.sandbox);
     assert.equal(m, null, '#/cliente/pedidos/' + badId + ' não deve casar');
   }
+});
+
+// ---------------------------------------------------------------------
+// 3b. PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1 —
+// matchRoute dinâmico #/cliente/pedidos/<uuid>/editar
+// ---------------------------------------------------------------------
+
+test('matchRoute: #/cliente/pedidos/<uuid>/editar resolve com role ["cliente"]', () => {
+  var r = makeRouterSandbox();
+  vm.runInContext("window.RAVATEX_ROUTER.setRoutes({});", r.sandbox);
+  var uuid = '11111111-2222-3333-4444-555555555555';
+  var match = vm.runInContext("window.matchRoute('#/cliente/pedidos/" + uuid + "/editar')", r.sandbox);
+  assert.ok(match, 'matchRoute não resolveu #/cliente/pedidos/<uuid>/editar');
+  assert.equal(typeof match.render, 'function', 'render não é função');
+  var rolesJson = vm.runInContext("JSON.stringify(window.matchRoute('#/cliente/pedidos/" + uuid + "/editar').roles)", r.sandbox);
+  assert.equal(rolesJson, '["cliente"]');
+});
+
+test('matchRoute: #/cliente/pedidos/<uuid>/editar render chama screenClientePedidoEditar', () => {
+  var r = makeRouterSandbox();
+  vm.runInContext("window.RAVATEX_ROUTER.setRoutes({});", r.sandbox);
+  var uuid = '11111111-2222-3333-4444-555555555555';
+  vm.runInContext("window.matchRoute('#/cliente/pedidos/" + uuid + "/editar').render();", r.sandbox);
+  assert.deepEqual(r.calls.screenClientePedidoEditar, [uuid]);
+});
+
+test('matchRoute: #/cliente/pedidos/<uuid>/editar rejeita IDs não-UUID', () => {
+  var r = makeRouterSandbox();
+  vm.runInContext("window.RAVATEX_ROUTER.setRoutes({});", r.sandbox);
+  for (var i = 0; i < ['42', 'abc', '12345', 'not-a-uuid', '11111111-2222-3333-4444'].length; i++) {
+    var badId = ['42', 'abc', '12345', 'not-a-uuid', '11111111-2222-3333-4444'][i];
+    var m = vm.runInContext("window.matchRoute('#/cliente/pedidos/" + badId + "/editar')", r.sandbox);
+    assert.equal(m, null, '#/cliente/pedidos/' + badId + '/editar não deve casar');
+  }
+});
+
+test('matchRoute: #/cliente/pedidos/<uuid>/editar distingue de #/cliente/pedidos/<uuid> — cada um chama sua própria tela', () => {
+  var r = makeRouterSandbox();
+  vm.runInContext("window.RAVATEX_ROUTER.setRoutes({});", r.sandbox);
+  var uuid = '22222222-3333-4444-5555-666666666666';
+  vm.runInContext("window.matchRoute('#/cliente/pedidos/" + uuid + "').render();", r.sandbox);
+  vm.runInContext("window.matchRoute('#/cliente/pedidos/" + uuid + "/editar').render();", r.sandbox);
+  assert.deepEqual(r.calls.screenClientePedidoDetalhe, [uuid], 'a rota de detalhe não pode acionar o editor');
+  assert.deepEqual(r.calls.screenClientePedidoEditar, [uuid], 'a rota de edição não pode acionar o detalhe');
+});
+
+test('handleRoute: #/cliente/pedidos/<uuid>/editar exige role cliente (admin → forbidden)', async () => {
+  var uuid = '11111111-2222-3333-4444-555555555555';
+  var r = makeRouterSandbox({ hash: '#/cliente/pedidos/' + uuid + '/editar' });
+  vm.runInContext("window.RAVATEX_ROUTER.setRoutes({}); window.CURRENT_USER = { tipo: 'admin' };", r.sandbox);
+  await vm.runInContext('window.handleRoute()', r.sandbox);
+  assert.equal(r.calls.screenForbidden, 1, 'admin deve receber forbidden no editor cliente');
+  assert.deepEqual(r.calls.screenClientePedidoEditar, []);
+});
+
+test('handleRoute: #/cliente/pedidos/<uuid>/editar renderiza para cliente autenticado', async () => {
+  var uuid = '11111111-2222-3333-4444-555555555555';
+  var r = makeRouterSandbox({ hash: '#/cliente/pedidos/' + uuid + '/editar' });
+  vm.runInContext("window.RAVATEX_ROUTER.setRoutes({}); window.CURRENT_USER = { tipo: 'cliente' };", r.sandbox);
+  await vm.runInContext('window.handleRoute()', r.sandbox);
+  assert.equal(r.calls.setApp.length, 1, 'setApp não foi chamado');
+  assert.equal(r.calls.setApp[0].__screen, 'clienteEditar');
+  assert.deepEqual(r.calls.screenClientePedidoEditar, [uuid]);
+  assert.equal(r.calls.screenForbidden, 0, 'cliente não deve receber forbidden na própria rota de edição');
 });
 
 // ---------------------------------------------------------------------

@@ -2844,7 +2844,15 @@ and anon. *Stop conditions:* any need to alter an existing guard; any client
 > creation, and the creation flow is untouched. The immutability that ships is
 > post-creation only, enforced by the two client RPCs.
 
-**Phase 3 — unified administrative editor.**
+**Phase 3 — unified administrative editor. COMPLETE.**
+Executed by `PEDIDO-UNIFIED-ADMIN-EDITOR-R1`, accepted at
+`681a2ba2928d201fc20605816c03702390d8bd1e`. The accepted operational
+completion of this phase also includes the subsequent, separately accepted
+item-mention/general-observation product evolution
+(`PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1`, accepted at
+`ffc6b400b34246a6d3a06cd5face5c6c4629cda3`, review correction included) — a
+forward evolution of the same accepted administrative editor, not a
+reopening of this phase.
 *Objective:* `#/pedidos/<uuid>/editar` becomes the complete full-width editor;
 `js/pedido-draft.js` and `js/pedido-fields.js` are extracted;
 `#/pedidos/<uuid>/itens` becomes a redirect. *Authorized paths:* `js/`,

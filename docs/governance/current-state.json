@@ -38,7 +38,7 @@
     "requirement_traceability": "docs/governance/traceability/purchase-order-phase-c.json",
     "append_only_history": "docs/ledgers/G28_LEDGER.md"
   },
-  "accepted_operational_checkpoint": "b77f4d14021781ebd96bce30f625687358b2d87a",
+  "accepted_operational_checkpoint": "ffc6b400b34246a6d3a06cd5face5c6c4629cda3",
   "accepted_checkpoints": [
     {
       "id": "UI-SPECIALIZED-CONTROLS-B1-SHARED-PRIMITIVES-AND-SITE-MIGRATION",
@@ -177,21 +177,27 @@
       "status": "CLOSED / ACCEPTED",
       "checkpoint_commit": "51ffd857dc3e97b28640d826902cda76a518f67e",
       "acceptance_scope": "The normative Pedido item mention and general observation ruling recorded in docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md and the accepted product contract PEDIDO-ITEM-MENTION-OBSERVATION-UX are ACCEPTED as published at 51ffd857dc3e97b28640d826902cda76a518f67e. Option A is binding: the administrative item Observation column is removed, the administrative Add-item modal observation field is removed, and the @ mention action inserts a readable item reference into Observacoes gerais. The decision applies to #/pedidos/novo and #/pedidos/<uuid>/editar; client surfaces remain outside scope. pedido_itens.observacao remains in the schema, legacy non-empty item observations remain visible through a compact read-only compatibility hint, and no database, migration, RPC or production-data change is part of the implementation. This acceptance AUTHORIZES a future bounded implementation and is not itself an implementation: the ratification checkpoint contains NO product code, and no JavaScript, CSS, HTML, database, migration, configuration or client file changed in it. NO separate accepted checkpoint is created for the read-only design diagnosis PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1; it is absorbed into this checkpoint. The future implementation PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 must follow the accepted contracts EXACTLY: the seven-column item table (Img, Tipo, Modelo, Cores, Largura, Metragem, Acoes) at GRID_COLS \"60px .70fr 1.45fr 1.15fr .80fr .90fr 92px\" with a 790px minimum content width, local horizontal scrolling and no document-level overflow; the discreet @ mention action built by window.actionButton at the canonical 30x30 target, placed before the destructive Remove action, disabled without a selected model, available under structural lock and absent or disabled in terminal read-only rendering; the exact snapshot reference text with no UUID, no pedido_item_id and no item metragem, inserted at the caret or appended, leaving the caret after the trailing colon and space, with repeated activations deliberately repeating and no silent rewriting, renumbering or removal of operator-written text; the structural-lock and persistence rule under which mentioning is non-structural, a mention or general-observation-only save sends p_header and p_itens remains NULL when no item collection field changed; the legacy read-only compatibility hint for any non-empty pedido_itens.observacao; and the client-surface exclusion. PEDIDO-ITEM-LARGURA-OVERRIDE-PRESERVATION-RISK remains OPEN and NONBLOCKING under this acceptance and is not closed by it."
+    },
+    {
+      "id": "PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1",
+      "status": "CLOSED / ACCEPTED",
+      "checkpoint_commit": "ffc6b400b34246a6d3a06cd5face5c6c4629cda3",
+      "acceptance_scope": "The seven-column administrative Pedido item table (Img, Tipo, Modelo, Cores, Largura, Metragem, Acoes) is accepted; the administrative per-item Observation column and the Add-item modal observation field are retired. The @ mention action and its exact reference format (\"@Item {n} — {modelo} · {cor1}/{cor2} · {largura}: \", no UUID, no pedido_item_id, no metragem) are accepted, built by window.actionButton at the canonical 30x30 target, placed before Remove. A mention-only or general-observation-only save sends p_header while p_itens remains NULL; structural-lock (post-OP) and terminal read-only behaviour are accepted unchanged. Legacy non-empty pedido_itens.observacao values remain faithfully preserved and rendered byte-exactly (leading/trailing whitespace, internal whitespace and line breaks intact, white-space:pre-wrap) through a compact read-only compatibility hint, never a permanent column, never editable. This acceptance INCLUDES the caret-intent review correction published at this same commit ffc6b400b34246a6d3a06cd5face5c6c4629cda3 (PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1-REVIEW-CORRECTION): the mention-caret signal is captured on the mention button's mousedown (before the browser's native blur) rather than a sticky focus flag, so a click on @ after focus has moved to an unrelated control correctly appends instead of reusing a stale caret. NO separate accepted checkpoint exists for PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1-REVIEW-CORRECTION. Client surfaces (#/cliente/pedidos/novo, the future client editor, change-request submission and the approval screen) were explicitly outside this implementation's scope. No schema, migration, RPC or production-data change occurred in either the original implementation or its review correction. PEDIDO-ITEM-LARGURA-OVERRIDE-PRESERVATION-RISK remains OPEN and NONBLOCKING and is not closed by this acceptance. Kleber directly accepted this phase, authorizing PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1 (Phase 4 of the unified Pedido editing and client change-approval sequence) as the next phase."
     }
   ],
   "active_phase": {
-    "id": "PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1",
-    "status": "CORRECTION IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR RE-REVIEW",
-    "immediate_objective": "Implement and publish the accepted seven-column administrative Pedido item table and the @ item-mention interaction in Novo pedido and Editar pedido, with general-observation persistence, structural-lock compatibility and read-only preservation of legacy item observations. PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1-REVIEW-CORRECTION corrected two supervisor-found defects: stale mention-caret intent surviving a focus change to an unrelated control, and legacy pedido_itens.observacao values not rendered byte-faithfully (trim + white-space:normal collapsing whitespace and line breaks).",
+    "id": "PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1",
+    "status": "IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW",
+    "immediate_objective": "Implement and publish the accepted client Pedido editor with direct pre-acceptance saving, post-acceptance change-request submission, pending request replacement and withdrawal, client-safe lifecycle capabilities and no internal production-data exposure.",
     "contract": {
       "path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
-      "anchor": "## Update 2026-07-29 — Pedido item mention and general observation ruling (PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1)"
+      "anchor": "### U10.3 Client editor — `#/cliente/pedidos/<uuid>/editar`"
     }
   },
   "next_authorizable_action": {
-    "id": "DIRECT SUPERVISOR RE-REVIEW OF PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1",
-    "mode": "AWAITING SUPERVISOR RE-REVIEW; NO CLIENT PHASE IS CHAINED",
-    "status": "PENDING. Review the corrected caret-intent behaviour and faithful legacy-note rendering. Do not begin a client Pedido phase without a new explicit order."
+    "id": "DIRECT SUPERVISOR REVIEW OF PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1",
+    "mode": "AWAITING SUPERVISOR REVIEW; PHASE 5 IS NOT CHAINED",
+    "status": "PENDING. Review the published client editor, direct-save path, change-request submission, request replacement and withdrawal. Do not begin the administrative comparison and approval screen without a new explicit order."
   },
   "active_track": {
     "id": "PURCHASE_ORDER_PHASE_C",

@@ -1687,6 +1687,16 @@ const BRAND_ASSETS = [
 // em cache, porque index.html nunca o referenciou antes.
 const BRAND_ADDED_ASSETS = ['assets/brand/inttex/inttex-favicon.svg'];
 
+// PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1 acrescentou o editor do Cliente
+// como um arquivo NOVO em index.html — nao um asset retokenizado, nao existia
+// em NENHUM commit historico anterior. Entra na lista de adicoes declaradas
+// pelo mesmo motivo e da mesma forma que os demais modulos que ordens
+// anteriores acrescentaram: para que a comparacao posicional com 4532f76
+// continue provando que nada foi removido ou reordenado, e para que os
+// varredores "todo js/screens/* nao declarado tem de ser byte-identico a X"
+// nao tentem comparar um arquivo que ainda nao existia naquele commit.
+const CLIENT_EDITOR_ADDED_ASSETS = ['js/screens/cliente-pedido-edit.js'];
+
 // INTTRACKER-PRODUCTION-CUTOVER-R1 promoveu ucrjtfswnfdlxwtmxnoo a producao
 // definitiva e retirou gqmpsxkxynrjvidfmojk de todo papel de runtime. Alterou
 // exatamente TRES assets, e nenhum deles pertence a qualquer tier anterior:
@@ -1946,7 +1956,8 @@ const BATCH2_ASSETS = BATCH2_ADDED_ASSETS.concat(BATCH2_RETOKENED_ASSETS)
 const ADDED_SINCE_4532F76 = PRIORITY_ADDED_ASSETS.concat(BATCH2_ADDED_ASSETS)
   .concat(BATCH3_ADDED_ASSETS)
   .concat(PASS7_ADDED_ASSETS)
-  .concat(BRAND_ADDED_ASSETS);
+  .concat(BRAND_ADDED_ASSETS)
+  .concat(CLIENT_EDITOR_ADDED_ASSETS);
 
 // Parsing literal, sem regex: um `?v=` num padrao escapado a mao e uma
 // fonte de erro silencioso (o `?` volta a ser quantificador e o teste
@@ -2287,7 +2298,7 @@ test('A2/20c9. os assets da correcao A2 carregam exatamente o token declarado, e
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 2114191');
   }
   // E nenhum asset NAO declarado pela A2 pode ter mudado.
-  const declarados = new Set(PASS2_A2_ASSETS.concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS));
+  const declarados = new Set(PASS2_A2_ASSETS.concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     if (!ref.path.startsWith('js/screens/') || declarados.has(ref.path)) continue;
     const committed = execFileSync('git', ['rev-parse', '2114191:' + ref.path], { cwd: ROOT, encoding: 'utf8' }).trim();
@@ -2322,7 +2333,7 @@ test('A3/20c10. os assets da correcao A3 carregam exatamente o token declarado, 
   }
   // E nenhum outro script local pode ter mudado: a A3 nao arrasta asset algum,
   // nem tela (fechada pela A2) nem modulo compartilhado que ela nao declarou.
-  const declarados = new Set(PASS2_A3_ASSETS.concat(PASS2_A4_ASSETS).concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS));
+  const declarados = new Set(PASS2_A3_ASSETS.concat(PASS2_A4_ASSETS).concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     // Runtime de terceiros (CDN) nao esta versionado aqui e nao e alvo da A3.
     if (/^https?:/.test(ref.path)) continue;
@@ -2356,7 +2367,7 @@ test('A4/20c11. os assets da correcao A4 carregam exatamente o token declarado, 
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 2fa29d9');
   }
   // E nenhum outro script local pode ter mudado: a A4 nao arrasta asset algum.
-  const declarados = new Set(PASS2_A4_ASSETS.concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS));
+  const declarados = new Set(PASS2_A4_ASSETS.concat(PASS3_ASSETS).concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
@@ -2392,7 +2403,7 @@ test('PASS3/20c12. os assets da passada 3 de altura carregam exatamente o token 
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 7577f93');
   }
   // E nenhum outro script local pode ter mudado: a passada 3 nao arrasta asset algum.
-  const declarados = new Set(PASS3_ASSETS.concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS));
+  const declarados = new Set(PASS3_ASSETS.concat(PASS4_ASSETS).concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
@@ -2428,7 +2439,7 @@ test('PASS4/20c13. os assets da passada 4 de elevacao carregam exatamente o toke
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 42ce915');
   }
   // E nenhum outro script local pode ter mudado: a passada 4 nao arrasta asset algum.
-  const declarados = new Set(PASS4_ASSETS.concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS));
+  const declarados = new Set(PASS4_ASSETS.concat(PASS5_ASSETS).concat(PASS6_ASSETS).concat(PASS7_ASSETS).concat(PASS7_A4_ASSETS).concat(PASS7_A5_ASSETS).concat(PASS8_ASSETS).concat(B1_ASSETS).concat(SCREEN_GROUP_2_ASSETS).concat(CUTOVER_ASSETS).concat(CLIENT_EDITOR_ADDED_ASSETS));
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
@@ -2463,7 +2474,7 @@ test('PASS5/20c14. os assets da passada 5 de alinhamento carregam exatamente o t
   // E nenhum outro script local pode ter mudado NA PASSADA 5: os assets que a
   // passada 6 declarou sao verificados literalmente por PASS6/20c15, contra o
   // checkpoint publicado da passada 5.
-  const declarados = new Set([...PASS5_ASSETS, ...PASS6_ASSETS, ...PASS7_ASSETS, ...PASS7_A4_ASSETS, ...PASS7_A5_ASSETS, ...PASS8_ASSETS, ...B1_ASSETS, ...SCREEN_GROUP_2_ASSETS, ...CUTOVER_ASSETS]);
+  const declarados = new Set([...PASS5_ASSETS, ...PASS6_ASSETS, ...PASS7_ASSETS, ...PASS7_A4_ASSETS, ...PASS7_A5_ASSETS, ...PASS8_ASSETS, ...B1_ASSETS, ...SCREEN_GROUP_2_ASSETS, ...CUTOVER_ASSETS, ...CLIENT_EDITOR_ADDED_ASSETS]);
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;
@@ -2497,7 +2508,7 @@ test('PASS6/20c15. os assets da passada 6 de tipografia carregam exatamente o to
     assert.notEqual(worktree, committed, rel + ' foi retokenizado, entao tem de ter mudado desde 212972d');
   }
   // E nenhum outro script local pode ter mudado: a passada 6 nao arrasta asset algum.
-  const declarados = new Set([...PASS6_ASSETS, ...PASS6_A1_ASSETS, ...PASS7_ASSETS, ...PASS7_A4_ASSETS, ...PASS7_A5_ASSETS, ...PASS8_ASSETS, ...B1_ASSETS, ...SCREEN_GROUP_2_ASSETS, ...CUTOVER_ASSETS]);
+  const declarados = new Set([...PASS6_ASSETS, ...PASS6_A1_ASSETS, ...PASS7_ASSETS, ...PASS7_A4_ASSETS, ...PASS7_A5_ASSETS, ...PASS8_ASSETS, ...B1_ASSETS, ...SCREEN_GROUP_2_ASSETS, ...CUTOVER_ASSETS, ...CLIENT_EDITOR_ADDED_ASSETS]);
   for (const ref of assetRefs(indexHtml)) {
     if (/^https?:/.test(ref.path)) continue;
     if (!ref.path.endsWith('.js') || declarados.has(ref.path)) continue;

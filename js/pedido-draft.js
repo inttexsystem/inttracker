@@ -174,15 +174,24 @@
   // ordem, contagem, ou qualquer campo de qualquer item.
   //
   // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1: `observacao` SAIU desta
-  // comparacao. A administrativa nao cria nem edita mais item.observacao
-  // (retirado da linha e do modal — ver js/screens/pedido-item-row-editor.js
-  // e js/screens/pedido-item-modal.js), entao ela nunca pode mais ser o
-  // motivo de p_itens ser enviado. O campo continua no formato local, em
-  // fromPersisted() e em toRpcPayload() — apenas a comparacao de "mudou?"
-  // parou de olhar para ele.
-  function isCollectionChanged(current, baseline) {
+  // comparacao POR PADRAO. A administrativa nao cria nem edita mais
+  // item.observacao (retirado da linha e do modal — ver
+  // js/screens/pedido-item-row-editor.js e js/screens/pedido-item-modal.js),
+  // entao ela nunca pode mais ser o motivo de p_itens ser enviado ali. O campo
+  // continua no formato local, em fromPersisted() e em toRpcPayload() — so a
+  // comparacao padrao de "mudou?" parou de olhar para ele.
+  //
+  // PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1: terceiro parametro OPCIONAL
+  // `options.compareObservacao`. item.observacao CONTINUA editavel pelo
+  // Cliente (U4; U13.2 amendment secao L preserva isso — a retirada foi
+  // SOMENTE administrativa), entao o editor do Cliente passa
+  // `{ compareObservacao: true }` para que uma mudanca de observacao de item
+  // dispare p_itens. Chamadores existentes (administrativos) nunca passam
+  // este parametro e mantem o comportamento EXATO de sempre.
+  function isCollectionChanged(current, baseline, options) {
     var cur = current || [];
     var base = baseline || [];
+    var opts = options || {};
     if (cur.length !== base.length) return true;
     for (var i = 0; i < cur.length; i++) {
       var a = cur[i];
@@ -190,6 +199,7 @@
       if ((a.itemId || null) !== (b.itemId || null)) return true;
       if (String(a.modeloId) !== String(b.modeloId)) return true;
       if (Number(a.metros) !== Number(b.metros)) return true;
+      if (opts.compareObservacao && (a.observacao || '') !== (b.observacao || '')) return true;
     }
     return false;
   }
