@@ -67,10 +67,17 @@ test('node --check passes on pedidos-list.js, ops-list.js, painel.js', () => {
 // precedent exists for this screen; see header note above).
 // ---------------------------------------------------------------------
 
+// ADMIN-PEDIDOS-LIST-VISUAL-IDENTITY-ALIGNMENT-R1 moved this cell's literal
+// 13.5px to the canonical BODY_CONTROL_CELL role token (--rv-fs-body), which is
+// what UI_VISUAL_CONTRACT.md §2.5 declares for a table cell. Only the pinned
+// font-size literal is retargeted here; the FUNCTIONAL assertion — that the
+// CLIENTE cell renders through the shared window.truncatedCell() primitive and
+// passes the untruncated name as the `title`, suppressed for the "—" fallback —
+// is unchanged and still enforced.
 test('pedidos-list.js: CLIENTE data cell renders via window.truncatedCell', () => {
   assert.match(
     pedidosSrc,
-    /var nome = clienteNome\(pedido\);\s*\n\s*return window\.truncatedCell\(nome, nome === '—' \? null : nome, 'font-size:13\.5px;color:var\(--rv-text-primary\);'\);/,
+    /var nome = clienteNome\(pedido\);\s*\n\s*return window\.truncatedCell\(nome, nome === '—' \? null : nome, 'font-size:var\(--rv-fs-body\);color:var\(--rv-text-primary\);'\);/,
   );
 });
 

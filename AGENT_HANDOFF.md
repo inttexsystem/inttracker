@@ -22,8 +22,8 @@ This generated continuation view owns no rules, state, product semantics, or acc
 ## Current objective
 
 - Status: `IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW`
-- Objective: Only the VISUAL LAYER of the administrative dashboard at #/painel was reconciled with the ratified Inttracker visual identity. js/screens/painel.js dropped its screen-local Hanken Grotesk import and font stack, its 36px control height, its local pill family, tone maps and decorative colour bar, and now inherits the product typography, consumes the canonical badge constructors (rvStatusPill / rvClassificationBadge / rvStageBadge) and the css/tokens.css typography, radius, height and colour tokens. Information architecture, section order, Supabase reads, KPI definitions and calculations, operational classifications, action ordering, navigation destinations, loading, empty, warning and error behaviour, responsive content order and business behaviour are all PRESERVED AND UNCHANGED. Semantic colour survives only where the live condition owns it: lifecycle state, production stage, and real operational caution or negative signal. The result requires DIRECT VISUAL ACCEPTANCE BY KLEBER.
-- Next authorizable action: `DIRECT SUPERVISOR REVIEW OF ADMIN-DASHBOARD-VISUAL-IDENTITY-ALIGNMENT-R1` / `AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED`
+- Objective: Only the VISUAL LAYER of the administrative Pedidos list at #/pedidos was reconciled with the ratified Inttracker visual identity. js/screens/pedidos-list.js dropped its screen-local CLIENT_TONE map, internalTone(), the visual output of resolveVisibleTone() and its local pill() constructor, along with every literal font size, its literal 4px radius declarations, its custom primary button, its circular KPI icon surfaces and their five category-specific colours. Typography is now owned by role through the css/tokens.css tokens; the five KPI icon surfaces take the canonical neutral chip (--rv-chip-bg / --rv-chip-glyph); internal status renders through rvStatusPill() and the client-visible column resolves BY MEANING to rvStageBadge (Tecelagem, Acabamento), rvStatusPill (lifecycle states) or rvClassificationBadge (Insumos, Nao publicado and any value the canonical owner does not map), asking js/badges.js rather than restating its map. All four Supabase reads and their selected fields, the five KPI definitions and calculations, the nine tabs and their count rules, search, the four select-popover filters, pagination, row ordering, the nine table columns, TR_COLS, client-visible tracking interpretation, partial-delivery calculations, navigation destinations, controlled deletion, loading, empty and error behaviour and mobile scroll ownership are all PRESERVED AND UNCHANGED. Semantic colour survives only where a real lifecycle state, production stage or operational signal owns it; category and count do not justify colour. The result requires DIRECT VISUAL ACCEPTANCE BY KLEBER.
+- Next authorizable action: `DIRECT SUPERVISOR REVIEW OF ADMIN-PEDIDOS-LIST-VISUAL-IDENTITY-ALIGNMENT-R1` / `AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED`
 
 ## Blockers and decisions
 
@@ -36,7 +36,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Task-specific pointers
 
-- `docs/architecture/UI_VISUAL_CONTRACT.md::## 2. Layer 2 — Primitives`
+- `docs/architecture/UI_VISUAL_CONTRACT.md::### B · Work queue — `CANDIDATE``
 - `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md::## §R.31 Active Phase-C continuation requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### 13.17 Active Phase-C schema requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md::# Update 2026-07-22 - C5-DOCUMENTATION-CLOSEOUT-R1 (PHASE-C5 supervisor acceptance and closeout; OC-C5-EMISSION-001 SATISFIED)`

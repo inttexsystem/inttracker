@@ -10545,3 +10545,15 @@ product file they depend on, was modified by this pass or the prior one):
 - **Status.** `PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1 CLOSED / ACCEPTED at 6c828546d80bb596bc5b1e02a48fc32172d9a1eb`.
 - **Next action.** None chained for this phase; next product phase selection is pending architect direction.
 - **Owner of the full record.** This ledger entry.
+
+## 2026-07-28 — ADMIN-DASHBOARD-VISUAL-IDENTITY-ALIGNMENT-R1 — docs: close accepted admin dashboard visual identity
+
+- **Subject.** Forward acceptance record for the `ADMIN-DASHBOARD-VISUAL-IDENTITY-ALIGNMENT-R1` phase, which was implemented and published, and had been left `IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW` at checkpoint `950725b04e3feb8018c74e86c837182650f0773c`. Kleber directly reviewed the published dashboard and confirmed the result is visually correct. The phase is now `CLOSED / ACCEPTED` at that same checkpoint. No code, migration or configuration change accompanies this record.
+- **What is accepted.** The administrative dashboard visual layer at `#/painel` conforms to the ratified Inttracker visual identity. `js/screens/painel.js` dropped its screen-local Hanken Grotesk import and font stack, its 36px control height, its local pill family and tone maps, and its decorative colour bar; it now inherits the product typography, consumes the canonical badge constructors (`rvStatusPill` / `rvClassificationBadge` / `rvStageBadge`) and the `css/tokens.css` typography, radius, height and colour tokens.
+- **Also accepted.** Local typography, screen-local pill maps, arbitrary category colours and decorative colour ownership were removed. Semantic colour survives only where the live condition owns it: lifecycle state, production stage, and real operational caution or negative signal. Information architecture, section order, Supabase reads, KPI definitions and calculations, operational classifications, action ordering, navigation destinations, loading, empty, warning and error behaviour, responsive content order and business behaviour are all PRESERVED AND UNCHANGED.
+- **Existing debt did not block acceptance.** The RED expectation-coupling debt owned by `UI-SMOKE-TEST-VISUAL-EXPECTATION-COUPLING` remains unchanged and was not repaired by this acceptance; it is recorded against its own owner and is explicitly not a condition of this checkpoint.
+- **Why recorded now.** `docs/governance/current-state.json` moves its active phase forward to `ADMIN-PEDIDOS-LIST-VISUAL-IDENTITY-ALIGNMENT-R1` in the same closeout that appends this entry, so the prior phase's acceptance is recorded before the handoff regenerates.
+- **Owner of the underlying implementation record.** The prior execution report and code for this phase; this entry records only the supervisor acceptance forward.
+- **Status.** `ADMIN-DASHBOARD-VISUAL-IDENTITY-ALIGNMENT-R1 CLOSED / ACCEPTED at 950725b04e3feb8018c74e86c837182650f0773c`.
+- **Next action.** None chained for this phase.
+- **Owner of the full record.** This ledger entry.
