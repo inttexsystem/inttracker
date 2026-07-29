@@ -677,7 +677,21 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   // the canonical trigger.
   const PASS7_A5 = '20260727-ui-p5-pass7-native-select-a5-chevron';
   const PASS7_A5_CHANGED = [];
-  const A1_CHANGED = [
+  const A1_CHANGED = [];
+  /*
+   * ADMIN-DASHBOARD-VISUAL-IDENTITY-ALIGNMENT-R1 FORWARD CORRECTION
+   *
+   * That order reconciled the admin dashboard's visual layer with the ratified
+   * identity: painel.js dropped its screen-local Hanken Grotesk import, its
+   * 36px control height, its local pill family and tone maps, and now consumes
+   * the canonical badge constructors and typography tokens. It is therefore the
+   * LAST order to change the one asset A1 still owned here, and that asset moves
+   * to a strictly later token. The guarantee this test owns is unchanged: every
+   * asset pass 6 touched is still invalidated against the pass-5 checkpoint, and
+   * the population below still sums to the same 27.
+   */
+  const ADMIN_DASHBOARD = '20260729-admin-dashboard-visual-identity-r1';
+  const ADMIN_DASHBOARD_CHANGED = [
     'js/screens/painel.js',
   ];
   /*
@@ -841,7 +855,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     + A1_CHANGED.length + PASS8_CHANGED.length + PASS8_A1_CHANGED.length
     + CONTAINMENT_A1_CHANGED.length + B1_CHANGED.length + DUAL_ENTRY_CHANGED.length
     + SCREEN_GROUP_2_CHANGED.length + SCREEN_GROUP_3_CHANGED.length
-    + BRAND_CHANGED.length
+    + BRAND_CHANGED.length + ADMIN_DASHBOARD_CHANGED.length
     + PASS6_ONLY.length, 27);
   for (const rel of PASS7_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS7}"`), `${rel} must carry the pass-7 token`);
@@ -854,6 +868,15 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   }
   for (const rel of A1_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${A1}"`), `${rel} must carry the A1 token`);
+  }
+  for (const rel of ADMIN_DASHBOARD_CHANGED) {
+    assert.ok(INDEX.includes(`"${rel}?v=${ADMIN_DASHBOARD}"`),
+      `${rel} must carry the admin-dashboard visual-identity token`);
+    for (const stale of [PASS6, A1, PASS7, PASS7_A4, PASS7_A5, PASS8, PASS8_A1,
+      CONTAINMENT_A1, B1]) {
+      assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`),
+        `${rel} kept a superseded token`);
+    }
   }
   for (const rel of PASS8_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS8}"`), `${rel} must carry the pass-8 token`);

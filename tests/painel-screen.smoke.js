@@ -176,7 +176,10 @@ test('3. painel.js é script clássico, sem import/export', () => {
 
 test('4. index.html carrega painel.js EXATAMENTE UMA VEZ, sem type=module', () => {
   // Aceita com ou sem query string (cache-busting ?v=...).
-  const reWithQs = /<script\s+src="js\/screens\/painel\.js\?v=20260726-ui-p5-pass6-typography-a1-kpi"\s*><\/script>/g;
+  // ADMIN-DASHBOARD-VISUAL-IDENTITY-ALIGNMENT-R1 é a última ordem a alterar
+  // painel.js (reconciliação da camada visual do dashboard administrativo),
+  // então o asset carrega o token dessa ordem.
+  const reWithQs = /<script\s+src="js\/screens\/painel\.js\?v=20260729-admin-dashboard-visual-identity-r1"\s*><\/script>/g;
   const reNoQs   = /<script\s+src="js\/screens\/painel\.js"\s*><\/script>/g;
   const total = (indexSrc.match(reWithQs) || []).length + (indexSrc.match(reNoQs) || []).length;
   assert.equal(total, 1,

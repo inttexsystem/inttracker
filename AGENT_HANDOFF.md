@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `NO ACTIVE PRODUCT PHASE`
-- Objective: PEDIDO-MODEL-CREATION-AND-OPTION-LABEL-UI-STABILIZATION-R1 is closed and accepted at 6c828546d80bb596bc5b1e02a48fc32172d9a1eb. No next product phase has been selected.
-- Next authorizable action: `SELECT NEXT PRODUCT PHASE` / `AWAITING PRODUCT DIRECTION; NO PHASE IS CHAINED`
+- Status: `IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW`
+- Objective: Only the VISUAL LAYER of the administrative dashboard at #/painel was reconciled with the ratified Inttracker visual identity. js/screens/painel.js dropped its screen-local Hanken Grotesk import and font stack, its 36px control height, its local pill family, tone maps and decorative colour bar, and now inherits the product typography, consumes the canonical badge constructors (rvStatusPill / rvClassificationBadge / rvStageBadge) and the css/tokens.css typography, radius, height and colour tokens. Information architecture, section order, Supabase reads, KPI definitions and calculations, operational classifications, action ordering, navigation destinations, loading, empty, warning and error behaviour, responsive content order and business behaviour are all PRESERVED AND UNCHANGED. Semantic colour survives only where the live condition owns it: lifecycle state, production stage, and real operational caution or negative signal. The result requires DIRECT VISUAL ACCEPTANCE BY KLEBER.
+- Next authorizable action: `DIRECT SUPERVISOR REVIEW OF ADMIN-DASHBOARD-VISUAL-IDENTITY-ALIGNMENT-R1` / `AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED`
 
 ## Blockers and decisions
 
@@ -36,7 +36,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Task-specific pointers
 
-- `docs/governance/AGENT_INSTRUCTIONS.md::## 4. Authorization and roles`
+- `docs/architecture/UI_VISUAL_CONTRACT.md::## 2. Layer 2 — Primitives`
 - `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md::## §R.31 Active Phase-C continuation requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### 13.17 Active Phase-C schema requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md::# Update 2026-07-22 - C5-DOCUMENTATION-CLOSEOUT-R1 (PHASE-C5 supervisor acceptance and closeout; OC-C5-EMISSION-001 SATISFIED)`

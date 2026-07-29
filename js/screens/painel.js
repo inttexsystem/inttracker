@@ -42,84 +42,84 @@
     liberada: 'Liberada'
   };
 
+  // O painel NÃO declara tipografia própria: herda a fonte do produto
+  // (index.html) e consome os tokens de css/tokens.css por PAPEL. Cor
+  // semântica só permanece onde a condição viva realmente a possui —
+  // estado de ciclo de vida, etapa de produção ou sinal operacional real.
   function dashboardCss() {
     return [
-      '@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap");',
-      '.rv-admin-dashboard{font-family:"Hanken Grotesk",Inter,"Segoe UI",Arial,sans-serif;color:var(--rv-text-primary);margin:-2px 2px 0 2px;}',
+      '.rv-admin-dashboard{color:var(--rv-text-primary);margin:-2px 2px 0 2px;}',
       '.rv-admin-dashboard *{box-sizing:border-box;}',
+      '.rv-admin-dashboard button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--rv-focus-ring);}',
       '.rv-adm-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:20px;flex-wrap:wrap;}',
-      '.rv-adm-title{margin:0;font-size:var(--rv-fs-title);line-height:1.12;font-weight:800;color:var(--rv-text-primary);letter-spacing:0;}',
-      '.rv-adm-sub{font-size:13.5px;color:var(--rv-text-tertiary);margin-top:5px;}',
-      '.rv-adm-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}',
-      '.rv-adm-btn{height:36px;display:inline-flex;align-items:center;gap:8px;border-radius:4px;padding:0 14px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;}',
-      '.rv-adm-btn.secondary{background:var(--rv-surface);border:1px solid var(--rv-border-strong);color:var(--rv-text-primary);}',
-      '.rv-adm-btn.primary{background:var(--rv-brand);border:1px solid var(--rv-brand);color:var(--rv-text-on-brand);}',
+      '.rv-adm-title{margin:0;font-size:var(--rv-fs-title);line-height:1.12;font-weight:800;color:var(--rv-text-title);letter-spacing:var(--rv-tracking-title);}',
+      '.rv-adm-sub{font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);margin-top:5px;}',
+      '.rv-adm-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}',
+      '.rv-adm-btn{display:inline-flex;align-items:center;gap:7px;border-radius:var(--rv-radius);padding:0 14px;font-size:var(--rv-fs-body);font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;}',
+      '.rv-adm-btn.secondary{height:var(--rv-h-default);background:var(--rv-surface);border:1px solid var(--rv-border-strong);color:var(--rv-text-secondary);}',
+      '.rv-adm-btn.secondary:hover{background:var(--rv-surface-subtle);}',
+      '.rv-adm-btn.primary{height:var(--rv-h-primary);background:var(--rv-brand);border:none;color:var(--rv-text-on-brand);font-weight:700;}',
+      '.rv-adm-btn.primary:hover{background:var(--rv-brand-strong);}',
       '.rv-adm-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:18px;}',
       '.rv-adm-card{background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);}',
-      '.rv-adm-kpi{padding:15px 16px;min-width:0;}',
+      '.rv-adm-kpi{padding:var(--rv-pad-card);min-width:0;}',
       '.rv-adm-kpi-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px;}',
-      '.rv-adm-icon{width:34px;height:34px;border-radius:var(--rv-radius);display:flex;align-items:center;justify-content:center;flex-shrink:0;}',
+      '.rv-adm-icon{width:34px;height:34px;border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);display:flex;align-items:center;justify-content:center;flex-shrink:0;}',
       '.rv-adm-kpi-value{font-size:var(--rv-fs-kpi-hero);font-weight:800;color:var(--rv-text-primary);line-height:.95;}',
-      '.rv-adm-kpi-label{font-size:13px;font-weight:600;color:var(--rv-text-primary);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
-      '.rv-adm-kpi-sub{font-size:12px;color:var(--rv-text-tertiary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
-      '.rv-adm-pill{display:inline-flex;align-items:center;gap:3px;border-radius:var(--rv-radius-pill);padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap;}',
-      '.rv-adm-two{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(280px,1fr);gap:16px;margin-bottom:18px;align-items:start;}',
+      '.rv-adm-kpi-label{font-size:var(--rv-fs-body);font-weight:600;color:var(--rv-text-primary);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+      '.rv-adm-kpi-sub{font-size:var(--rv-fs-xs);color:var(--rv-text-tertiary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+      '.rv-adm-two{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(280px,1fr);gap:var(--rv-gap-cols);margin-bottom:18px;align-items:start;}',
       '.rv-adm-section{padding:0;overflow:hidden;}',
-      '.rv-adm-section-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:0;padding:14px 18px;border-bottom:1px solid var(--rv-border);}',
-      '.rv-adm-section-title{font-size:15px;font-weight:700;color:var(--rv-text-primary);line-height:1.2;}',
-      '.rv-adm-section-sub{font-size:12.5px;color:var(--rv-text-tertiary);margin-top:3px;}',
-      '.rv-adm-head-left{display:flex;align-items:center;gap:9px;min-width:0;}',
+      '.rv-adm-section-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rv-border);}',
+      '.rv-adm-chip{width:20px;height:20px;border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}',
+      '.rv-adm-section-title{font-size:var(--rv-fs-label);font-weight:700;text-transform:uppercase;letter-spacing:var(--rv-tracking-label);color:var(--rv-text-tertiary);line-height:1.2;}',
+      '.rv-adm-section-note{font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);flex-shrink:0;}',
+      '.rv-adm-head-left{display:flex;align-items:center;gap:8px;min-width:0;}',
       '.rv-adm-action-row{display:flex;align-items:center;gap:14px;padding:13px 18px;border-bottom:1px solid var(--rv-border-soft);}',
       '.rv-adm-action-row:last-child{border-bottom:0;}',
-      '.rv-adm-bar{width:4px;height:38px;border-radius:var(--rv-radius);background:var(--rv-brand);flex-shrink:0;}',
       '.rv-adm-action-main{min-width:0;flex:1;}',
       '.rv-adm-action-line{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;}',
-      '.rv-adm-type{display:inline-flex;align-items:center;border-radius:4px;background:var(--rv-surface-subtle);color:var(--rv-text-tertiary);padding:2px 7px;font-size:11px;font-weight:700;letter-spacing:0;}',
-      '.rv-adm-ref{font-size:13.5px;font-weight:700;color:var(--rv-accent-blue);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
-      '.rv-adm-action-title{font-size:13.5px;font-weight:600;color:var(--rv-text-primary);min-width:0;}',
-      '.rv-adm-action-sub{font-size:12.5px;color:var(--rv-text-tertiary);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+      '.rv-adm-ref{font-size:var(--rv-fs-value);font-weight:700;color:var(--rv-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+      '.rv-adm-action-title{font-size:var(--rv-fs-value);font-weight:600;color:var(--rv-text-primary);min-width:0;}',
+      '.rv-adm-action-sub{font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
       '.rv-adm-action-side{text-align:right;flex-shrink:0;}',
-      '.rv-adm-action-side .rv-adm-pill{margin-top:4px;}',
-      '.rv-adm-mini{font-size:13px;color:var(--rv-text-primary);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
-      '.rv-adm-cta{flex-shrink:0;border-radius:4px;border:1px solid var(--rv-pill-info-border);background:var(--rv-surface);color:var(--rv-accent-blue);font-size:13px;font-weight:600;font-family:inherit;padding:8px 14px;cursor:pointer;white-space:nowrap;}',
-      '.rv-adm-cta.primary{border-color:var(--rv-brand);background:var(--rv-brand);color:var(--rv-text-on-brand);}',
-      '.rv-adm-cta.neutral{border-color:var(--rv-border-strong);color:var(--rv-text-secondary);}',
-      '.rv-adm-alert{display:flex;align-items:flex-start;gap:11px;padding:12px 18px;border-bottom:1px solid var(--rv-border-soft);cursor:pointer;}',
+      '.rv-adm-action-side>span{margin-top:4px;}',
+      '.rv-adm-mini{font-size:var(--rv-fs-body);color:var(--rv-text-primary);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+      '.rv-adm-cta{flex-shrink:0;height:var(--rv-h-compact);border-radius:var(--rv-radius);border:1px solid var(--rv-border-strong);background:var(--rv-surface);color:var(--rv-text-secondary);font-size:var(--rv-fs-body);font-weight:600;font-family:inherit;padding:0 14px;cursor:pointer;white-space:nowrap;}',
+      '.rv-adm-cta:hover{background:var(--rv-surface-subtle);}',
+      '.rv-adm-alert{display:flex;align-items:flex-start;gap:11px;padding:12px 18px;border-bottom:1px solid var(--rv-border-soft);}',
       '.rv-adm-alert:last-child{border-bottom:0;}',
-      '.rv-adm-dot{width:9px;height:9px;border-radius:var(--rv-radius-pill);margin-top:5px;flex-shrink:0;}',
-      '.rv-adm-alert .rv-adm-dot{width:8px;height:8px;}',
-      '.rv-adm-alert-title{font-size:13px;font-weight:600;color:var(--rv-text-primary);}',
-      '.rv-adm-alert-sub{font-size:12px;color:var(--rv-text-tertiary);margin-top:2px;line-height:1.35;}',
+      '.rv-adm-alert>span:last-child{flex-shrink:0;}',
+      '.rv-adm-dot{width:8px;height:8px;border-radius:var(--rv-radius-pill);margin-top:5px;flex-shrink:0;}',
+      '.rv-adm-alert-title{font-size:var(--rv-fs-body);font-weight:600;color:var(--rv-text-primary);}',
+      '.rv-adm-alert-sub{font-size:var(--rv-fs-xs);color:var(--rv-text-tertiary);margin-top:2px;line-height:1.35;}',
       '.rv-adm-alert-body{min-width:0;flex:1;}',
-      '.rv-adm-alert-tag{flex-shrink:0;border-radius:var(--rv-radius-pill);padding:1px 7px;font-size:11px;font-weight:700;}',
-      '.rv-adm-pipeline{padding:16px 18px;margin-bottom:18px;}',
-      '.rv-adm-pipeline-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;align-items:stretch;}',
+      '.rv-adm-pipeline{margin-bottom:18px;}',
+      '.rv-adm-pipeline-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;align-items:stretch;padding:16px 18px;}',
       '.rv-adm-stage{position:relative;border:1px solid var(--rv-border);background:var(--rv-surface-subtle);border-radius:var(--rv-radius);padding:11px 12px;min-height:150px;}',
       '.rv-adm-stage.warn{background:var(--rv-signal-caution-bg);border-color:var(--rv-signal-caution-border);}',
-      '.rv-adm-stage.done{background:var(--rv-signal-positive-bg);border-color:var(--rv-signal-positive-border);}',
       '.rv-adm-stage-arrow{position:absolute;top:50%;right:-11px;transform:translateY(-50%);z-index:2;background:var(--rv-surface-subtle);color:var(--rv-text-tertiary);}',
       '.rv-adm-stage-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;}',
-      '.rv-adm-stage-title{font-size:11.5px;font-weight:700;letter-spacing:0;color:var(--rv-text-tertiary);text-transform:uppercase;}',
+      '.rv-adm-stage-title{font-size:var(--rv-fs-2xs);font-weight:700;letter-spacing:var(--rv-tracking-label);color:var(--rv-text-tertiary);text-transform:uppercase;}',
+      '.rv-adm-stage[data-rv-stage="tecelagem"] .rv-adm-stage-title{color:var(--rv-stage-tecelagem);}',
+      '.rv-adm-stage[data-rv-stage="acabamento"] .rv-adm-stage-title{color:var(--rv-stage-acabamento);}',
       '.rv-adm-stage.warn .rv-adm-stage-title{color:var(--rv-signal-caution);}',
-      '.rv-adm-stage.done .rv-adm-stage-title{color:var(--rv-signal-positive);}',
       '.rv-adm-stage-count{font-size:var(--rv-fs-metric);font-weight:800;color:var(--rv-text-primary);}',
-      '.rv-adm-stage-badge{display:inline-flex;align-items:center;gap:4px;background:var(--rv-signal-caution-bg);color:var(--rv-signal-caution);border-radius:4px;padding:2px 7px;font-size:10.5px;font-weight:700;margin-bottom:8px;}',
+      '.rv-adm-stage-badge{display:inline-flex;align-items:center;gap:4px;background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);color:var(--rv-signal-caution);border-radius:var(--rv-radius);padding:2px 7px;font-size:var(--rv-fs-micro);font-weight:700;margin-bottom:8px;}',
       '.rv-adm-stage-items{display:flex;flex-direction:column;gap:6px;}',
-      '.rv-adm-stage-item{background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:4px;padding:6px 8px;}',
-      '.rv-adm-stage-primary{font-size:12px;font-weight:600;color:var(--rv-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
-      '.rv-adm-stage-secondary{font-size:11px;color:var(--rv-text-tertiary);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
-      '.rv-adm-activity{padding:16px 18px 8px;}',
-      '.rv-adm-activity .rv-adm-section-head{padding:0;border-bottom:0;margin-bottom:6px;}',
-      '.rv-adm-activity-row{display:flex;align-items:center;gap:14px;padding:9px 0;border-bottom:1px solid var(--rv-border-soft);}',
+      '.rv-adm-stage-item{background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);padding:6px 8px;}',
+      '.rv-adm-stage-primary{font-size:var(--rv-fs-xs);font-weight:600;color:var(--rv-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+      '.rv-adm-stage-secondary{font-size:var(--rv-fs-2xs);color:var(--rv-text-tertiary);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+      '.rv-adm-activity-row{display:flex;align-items:center;gap:14px;padding:9px 18px;border-bottom:1px solid var(--rv-border-soft);}',
       '.rv-adm-activity-row:last-child{border-bottom:0;}',
-      '.rv-adm-time{font-size:12.5px;color:var(--rv-text-tertiary);font-variant-numeric:tabular-nums;width:96px;flex-shrink:0;white-space:nowrap;}',
-      '.rv-adm-activity-text{font-size:13.5px;color:var(--rv-text-primary);line-height:1.35;}',
-      '.rv-adm-history{background:none;border:0;color:var(--rv-accent-blue);font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;padding:0;}',
-      '.rv-adm-empty{font-size:13px;color:var(--rv-text-tertiary);padding:14px 18px;}',
-      '.rv-adm-warning{display:inline-flex;align-items:center;gap:7px;color:var(--rv-signal-caution);background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);border-radius:4px;padding:6px 9px;font-size:12.5px;font-weight:700;margin-top:10px;}',
+      '.rv-adm-time{font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);font-variant-numeric:tabular-nums;width:96px;flex-shrink:0;white-space:nowrap;}',
+      '.rv-adm-activity-text{font-size:var(--rv-fs-value);color:var(--rv-text-primary);line-height:1.35;}',
+      '.rv-adm-history{background:none;border:0;color:var(--rv-accent-blue);font-size:var(--rv-fs-sm);font-weight:600;font-family:inherit;cursor:pointer;padding:0;}',
+      '.rv-adm-empty{font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);padding:14px 18px;}',
+      '.rv-adm-warning{display:inline-flex;align-items:center;gap:7px;color:var(--rv-signal-caution);background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);border-radius:var(--rv-radius);padding:6px 9px;font-size:var(--rv-fs-sm);font-weight:700;margin-top:10px;}',
       '@media (max-width:1180px){.rv-adm-kpis{grid-template-columns:repeat(3,minmax(0,1fr));}.rv-adm-pipeline-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}',
       '@media (max-width:900px){.rv-adm-two{grid-template-columns:1fr;}.rv-adm-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.rv-adm-pipeline-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}',
-      '@media (max-width:640px){.rv-admin-dashboard{margin:0;}.rv-adm-kpis,.rv-adm-pipeline-grid{grid-template-columns:1fr;}.rv-adm-action-row{align-items:flex-start;flex-wrap:wrap;}.rv-adm-action-main{flex-basis:calc(100% - 18px);}.rv-adm-action-side{text-align:left;margin-left:18px;}.rv-adm-cta{margin-left:18px;}.rv-adm-stage-arrow{display:none;}.rv-adm-activity-row{align-items:flex-start;flex-wrap:wrap;gap:8px 12px;}.rv-adm-time{width:auto;}.rv-adm-activity-text{flex-basis:100%;padding-left:21px;}.rv-adm-head{align-items:flex-start;}.rv-adm-actions{width:100%;}.rv-adm-btn{flex:1;justify-content:center;}}'
+      '@media (max-width:640px){.rv-admin-dashboard{margin:0;}.rv-adm-kpis,.rv-adm-pipeline-grid{grid-template-columns:1fr;}.rv-adm-action-row{align-items:flex-start;flex-wrap:wrap;}.rv-adm-action-main{flex-basis:100%;}.rv-adm-action-side{text-align:left;}.rv-adm-stage-arrow{display:none;}.rv-adm-activity-row{align-items:flex-start;flex-wrap:wrap;gap:8px 12px;}.rv-adm-time{width:auto;}.rv-adm-activity-text{flex-basis:100%;}.rv-adm-head{align-items:flex-start;}.rv-adm-actions{width:100%;}.rv-adm-btn{flex:1;justify-content:center;}}'
     ].join('');
   }
 
@@ -464,16 +464,16 @@
     var pedidoSemOp = pedidosSemOp.slice().sort(sortByRecent)[0];
     if (pedidoSemOp) {
       actionRows.push({
-        tone: 'blue',
         type: 'PEDIDO',
         ref: fmtNumeroPedido(pedidoSemOp),
         title: 'Abrir OP de Tecelagem',
         sub: clienteNome(pedidoSemOp, clientesById) + ' - recebido ' + tempoRelativo(pedidoSemOp.criado_em),
         meta: pedidoSemOp.metros_total ? fmtMetros(pedidoSemOp.metros_total) : 'Sem metragem',
+        // "Sem OP" é uma condição derivada da fila, não um estado de ciclo
+        // de vida persistido: classificação, não pílula de status.
         status: 'Sem OP',
-        statusTone: 'red',
+        statusState: null,
         cta: 'Abrir OP',
-        ctaTone: 'primary',
         href: '#/ops/nova?pedido_id=' + encodeURIComponent(pedidoSemOp.id)
       });
     }
@@ -481,16 +481,14 @@
     var tecPronta = tecelagemProntas.slice().sort(sortByRecent)[0];
     if (tecPronta) {
       actionRows.push({
-        tone: 'green',
         type: 'OP',
         ref: fmtOp(tecPronta, opDisplayContext(tecPronta)).replace(/^OP /, ''),
         title: 'Transferir para Acabamento',
         sub: 'Tecelagem finalizada - ' + tempoRelativo(tecPronta.atualizado_em || tecPronta.criado_em),
         meta: fmtMetros(opMetros(tecPronta)),
         status: 'Pronta',
-        statusTone: 'green',
+        statusState: tecPronta.status,
         cta: 'Resolver',
-        ctaTone: 'default',
         href: '#/ops/' + tecPronta.id
       });
     }
@@ -498,16 +496,14 @@
     var latexAberta = latexAbertas.slice().sort(sortByRecent)[0];
     if (latexAberta) {
       actionRows.push({
-        tone: 'amber',
         type: 'OP',
         ref: fmtAcabamento(latexAberta, opDisplayContext(latexAberta)),
         title: 'Confirmar entrada em Acabamento',
         sub: 'OP de látex aberta - ' + tempoRelativo(latexAberta.criado_em),
         meta: fmtMetros(opMetros(latexAberta)),
         status: 'Em trânsito',
-        statusTone: 'blue',
+        statusState: latexAberta.status,
         cta: 'Confirmar',
-        ctaTone: 'default',
         href: '#/ops/' + latexAberta.id
       });
     }
@@ -516,16 +512,16 @@
     if (parcial) {
       var saldo = expedicaoSaldo(parcial, itensByExpedicao);
       actionRows.push({
-        tone: 'red',
         type: 'EXPEDICAO',
         ref: '#' + parcial.id,
         title: 'Registrar entrega parcial',
         sub: 'Expedicao com saldo pendente - ' + tempoRelativo(parcial.atualizado_em || parcial.criado_em),
         meta: fmtMetros(saldo.entregue) + ' / ' + fmtMetros(saldo.liberado),
+        // "Parcial" é um estado regido pelo dono canônico (família caution);
+        // o roxo anterior era um token de ETAPA usado como status.
         status: 'Parcial',
-        statusTone: 'purple',
+        statusState: 'parcial',
         cta: 'Resolver',
-        ctaTone: 'default',
         href: '#/expedicoes/' + parcial.id
       });
     }
@@ -533,28 +529,28 @@
     var pedidoConcluido = pedidosConcluidos.slice().sort(sortByRecent)[0];
     if (pedidoConcluido) {
       actionRows.push({
-        tone: 'green',
         type: 'PEDIDO',
         ref: fmtNumeroPedido(pedidoConcluido),
         title: 'Conferir pedido concluído',
         sub: clienteNome(pedidoConcluido, clientesById) + ' - atualizado ' + tempoRelativo(pedidoConcluido.atualizado_em || pedidoConcluido.criado_em),
         meta: pedidoConcluido.metros_total ? fmtMetros(pedidoConcluido.metros_total) : 'Sem metragem',
         status: 'Pronto',
-        statusTone: 'green',
+        statusState: pedidoConcluido.status,
         cta: 'Ver pedido',
-        ctaTone: 'neutral',
         href: pedidoHref(pedidoConcluido)
       });
     }
 
+    // Alertas são condições operacionais VIVAS, calculadas do estado atual —
+    // não registros persistidos de alerta (§2.11), por isso não usam a família
+    // --rv-alert-*. A severidade fica no ponto; o rótulo é classificação.
     var alerts = [];
     if (pedidosSemOp.length) {
       alerts.push({
-        tone: 'amber',
+        severity: 'caution',
         title: 'Pedido sem OP',
         sub: pedidosSemOp.length + ' pedido(s) aberto(s) ainda não tem OP vinculada.',
-        tag: 'Bloqueio',
-        tagTone: 'red'
+        tag: 'Bloqueio'
       });
     }
     var prepParadas = opsPreparacao.filter(function (op) {
@@ -563,38 +559,34 @@
     });
     if (prepParadas.length) {
       alerts.push({
-        tone: 'red',
+        severity: 'negative',
         title: 'OP parada em preparação',
         sub: prepParadas.length + ' OP(s) sem avanço há 5 dias ou mais.',
-        tag: '5 dias',
-        tagTone: 'amber'
+        tag: '5 dias'
       });
     }
     if (latexProntasSemExpedicao.length) {
       alerts.push({
-        tone: 'amber',
+        severity: 'caution',
         title: 'Acabamento sem expedição',
         sub: latexProntasSemExpedicao.length + ' OP(s) de acabamento pronta(s) aguardam expedição.',
-        tag: 'Atenção',
-        tagTone: 'amber'
+        tag: 'Atenção'
       });
     }
     if (expedicoesParciais.length) {
       alerts.push({
-        tone: 'blue',
+        severity: 'caution',
         title: 'Entrega parcial pendente',
         sub: expedicoesParciais.length + ' expedição(ões) tem saldo de entrega em aberto.',
-        tag: 'Info',
-        tagTone: 'blue'
+        tag: 'Info'
       });
     }
     if (safeArray(state.errors).length) {
       alerts.push({
-        tone: 'gray',
+        severity: 'neutral',
         title: 'Fonte auxiliar indisponível',
         sub: 'Alguns dados não carregaram: ' + state.errors.join(', ') + '.',
-        tag: 'Dados',
-        tagTone: 'gray'
+        tag: 'Dados'
       });
     }
 
@@ -651,7 +643,6 @@
       {
         title: 'Concluído',
         count: pedidosConcluidos.length,
-        tone: 'done',
         items: pedidosConcluidos.slice().sort(sortByRecent).slice(0, 3).map(pedidoStageItem)
       }
     ];
@@ -664,22 +655,19 @@
       var pedido = evento && evento.pedido_id != null ? pedidoById[evento.pedido_id] : null;
       activities.push({
         when: fmtDataCurta(evento && evento.criado_em),
-        text: (pedido ? fmtNumeroPedido(pedido) + ': ' : '') + (evento.mensagem || evento.titulo || 'Atualizacao de pedido registrada.'),
-        tone: 'blue'
+        text: (pedido ? fmtNumeroPedido(pedido) + ': ' : '') + (evento.mensagem || evento.titulo || 'Atualizacao de pedido registrada.')
       });
     });
     safeArray(state.pedidos).slice().sort(sortByRecent).slice(0, 3).forEach(function (pedido) {
       activities.push({
         when: fmtDataCurta(pedido && (pedido.atualizado_em || pedido.criado_em)),
-        text: fmtNumeroPedido(pedido) + ' - ' + clienteNome(pedido, clientesById) + ' esta como ' + labelStatus(pedido && pedido.status) + '.',
-        tone: 'green'
+        text: fmtNumeroPedido(pedido) + ' - ' + clienteNome(pedido, clientesById) + ' esta como ' + labelStatus(pedido && pedido.status) + '.'
       });
     });
     safeArray(state.ops).slice().sort(sortByRecent).slice(0, 3).forEach(function (op) {
       activities.push({
         when: fmtDataCurta(op && (op.atualizado_em || op.criado_em)),
-        text: fmtOp(op, opDisplayContext(op)) + ' atualizada para ' + labelStatus(op && op.status) + '.',
-        tone: isLatex(op) ? 'amber' : 'blue'
+        text: fmtOp(op, opDisplayContext(op)) + ' atualizada para ' + labelStatus(op && op.status) + '.'
       });
     });
 
@@ -687,55 +675,43 @@
       updatedAt: state.updatedAt,
       loading: state.loading,
       errors: safeArray(state.errors),
+      // Um KPI é uma MEDIDA categórica, não uma severidade: as cinco
+      // superfícies de ícone tomam o chip neutro canônico e o indicador de
+      // apoio é uma classificação. A hierarquia fica no número KPI_HERO.
       kpis: [
         {
           icon: ICONS.pedidos,
-          iconBg: 'var(--rv-pill-info-bg)',
-          iconColor: 'var(--rv-accent-blue)',
           label: 'Pedidos em aberto',
           value: pedidosAbertos.length,
           trend: pedidosSemOp.length ? '+' + pedidosSemOp.length : 'ok',
-          trendTone: pedidosSemOp.length ? 'amber' : 'green',
           sub: pedidosSemOp.length + ' aguardam primeira OP'
         },
         {
           icon: ICONS.opDoc,
-          iconBg: 'var(--rv-signal-caution-bg)',
-          iconColor: 'var(--rv-signal-caution)',
           label: 'OPs em preparação',
           value: opsPreparacao.length,
           trend: tecelagemProntas.length ? tecelagemProntas.length + ' p/ liberar' : 'fila limpa',
-          trendTone: tecelagemProntas.length ? 'gray' : 'green',
           sub: prepParadas.length + ' parada(s) há 5 dias'
         },
         {
           icon: ICONS.gear,
-          iconBg: 'var(--rv-stage-tecelagem-bg)',
-          iconColor: 'var(--rv-stage-tecelagem)',
           label: 'OPs em produção',
           value: opsProducao.length,
           trend: opsProducao.length ? 'ativo' : 'sem fila',
-          trendTone: opsProducao.length ? 'purple' : 'gray',
           sub: 'Tecelagem e Acabamento'
         },
         {
           icon: ICONS.truck,
-          iconBg: 'var(--rv-signal-positive-bg)',
-          iconColor: 'var(--rv-signal-positive)',
           label: 'Aguardando expedição',
           value: latexProntasSemExpedicao.length,
           trend: latexProntasSemExpedicao.length ? latexProntasSemExpedicao.length + ' pronta(s)' : 'ok',
-          trendTone: latexProntasSemExpedicao.length ? 'amber' : 'green',
           sub: expedicoesPendentes.length + ' expedição(ões) em aberto'
         },
         {
           icon: ICONS.triangle,
-          iconBg: 'var(--rv-surface)',
-          iconColor: 'var(--rv-signal-negative)',
           label: 'Entregas pendentes',
           value: unique(expedicoesParciais.map(function (e) { return e.id; })).length,
           trend: expedicoesParciais.length ? 'atenção' : 'ok',
-          trendTone: expedicoesParciais.length ? 'red' : 'green',
           sub: expedicoesParciais.length + ' parcial(is) em aberto'
         }
       ],
@@ -754,24 +730,23 @@
     return svgEl(markup, size, stroke);
   }
 
-  function pillStyle(tone) {
-    var styles = {
-      blue: 'background:var(--rv-pill-info-bg);color:var(--rv-accent-blue);',
-      green: 'background:var(--rv-signal-positive-bg);color:var(--rv-signal-positive);',
-      amber: 'background:var(--rv-signal-caution-bg);color:var(--rv-signal-caution);',
-      red: 'background:var(--rv-surface);color:var(--rv-signal-negative);',
-      purple: 'background:var(--rv-stage-tecelagem-bg);color:var(--rv-stage-tecelagem);',
-      gray: 'background:var(--rv-surface-subtle);color:var(--rv-text-tertiary);'
-    };
-    return styles[tone || 'gray'] || styles.gray;
+  // Rótulos, categorias e contagens não semânticas são CLASSIFICAÇÕES
+  // (UI_VISUAL_CONTRACT.md §2.6.1): família neutra, sem ponto de status.
+  function badge(text) {
+    return window.rvClassificationBadge(String(text == null ? '' : text));
   }
 
-  function pill(text, tone) {
-    return window.el('span', {
-      class: 'rv-adm-pill',
-      style: pillStyle(tone)
-    }, text);
-  }
+  // O ponto do alerta é o único lugar do painel onde a cor ainda carrega
+  // severidade, e ela vem da condição viva — não de um nome de tom antigo.
+  var ALERT_DOT = {
+    caution: 'var(--rv-signal-caution)',
+    negative: 'var(--rv-signal-negative)',
+    neutral: 'var(--rv-text-tertiary)'
+  };
+
+  // Somente Tecelagem e Acabamento são ETAPAS DE PRODUÇÃO (§2.7); os demais
+  // passos da cadeia são marcos de ciclo de vida e não recebem token de etapa.
+  var STAGE_KEY = { 'Tecelagem': 'tecelagem', 'Acabamento': 'acabamento' };
 
   function actionButton(label, href, primary, iconMarkup) {
     return window.el('button', {
@@ -809,11 +784,8 @@
     var value = card.loading ? '--' : card.value;
     return window.el('div', { class: 'rv-adm-card rv-adm-kpi' },
       window.el('div', { class: 'rv-adm-kpi-top' },
-        window.el('div', {
-          class: 'rv-adm-icon',
-          style: 'background:' + card.iconBg + ';color:' + card.iconColor + ';'
-        }, icon(card.icon, 18, card.iconColor)),
-        pill(card.trend, card.trendTone)
+        window.el('div', { class: 'rv-adm-icon' }, icon(card.icon, 18)),
+        badge(card.trend)
       ),
       window.el('div', { class: 'rv-adm-kpi-value' }, String(value)),
       window.el('div', { class: 'rv-adm-kpi-label' }, card.label),
@@ -827,30 +799,24 @@
     }));
   }
 
-  function sectionHead(title, sub, right) {
+  // Toda seção abre com o chip de ícone canônico de 20px (§2.4). A barra
+  // vertical colorida que existia aqui é explicitamente proibida em seu lugar.
+  function sectionHead(iconMarkup, title, right, extraLeft) {
     return window.el('div', { class: 'rv-adm-section-head' },
-      window.el('div', {},
-        window.el('div', { class: 'rv-adm-section-title' }, title),
-        sub ? window.el('div', { class: 'rv-adm-section-sub' }, sub) : null
+      window.el('div', { class: 'rv-adm-head-left' },
+        window.el('span', { class: 'rv-adm-chip' }, icon(iconMarkup, 13)),
+        window.el('span', { class: 'rv-adm-section-title' }, title),
+        extraLeft || null
       ),
       right || null
     );
   }
 
   function actionRow(row) {
-    var barColor = row.tone === 'red' ? 'var(--rv-signal-negative)'
-      : row.tone === 'amber' ? 'var(--rv-signal-caution)'
-      : row.tone === 'green' ? 'var(--rv-signal-positive)'
-      : 'var(--rv-accent-blue)';
-    var ctaClass = 'rv-adm-cta'
-      + (row.ctaTone === 'primary' ? ' primary' : '')
-      + (row.ctaTone === 'neutral' ? ' neutral' : '');
-
     return window.el('div', { class: 'rv-adm-action-row' },
-      window.el('div', { class: 'rv-adm-bar', style: 'background:' + barColor + ';' }),
       window.el('div', { class: 'rv-adm-action-main' },
         window.el('div', { class: 'rv-adm-action-line' },
-          window.el('span', { class: 'rv-adm-type' }, row.type),
+          badge(row.type),
           window.el('span', { class: 'rv-adm-ref' }, row.ref),
           window.el('span', { class: 'rv-adm-action-title' }, row.title)
         ),
@@ -858,34 +824,31 @@
       ),
       window.el('div', { class: 'rv-adm-action-side' },
         window.el('div', { class: 'rv-adm-mini' }, row.meta),
-        pill(row.status, row.statusTone)
+        // Pílula de status só quando existe um estado de ciclo de vida real
+        // persistido por trás do rótulo; caso contrário é classificação.
+        row.statusState
+          ? window.rvStatusPill(row.status, row.statusState)
+          : badge(row.status)
       ),
       window.el('button', {
         type: 'button',
-        class: ctaClass,
+        class: 'rv-adm-cta',
         onclick: function () { navigateTo(row.href); }
       }, row.cta)
     );
   }
 
   function alertRow(row) {
-    var dot = row.tone === 'red' ? 'var(--rv-pill-negative-text)'
-      : row.tone === 'amber' ? 'var(--rv-signal-caution)'
-      : row.tone === 'green' ? 'var(--rv-signal-positive)'
-      : row.tone === 'gray' ? 'var(--rv-text-tertiary)'
-      : 'var(--rv-accent-blue)';
-    var tag = row.tag || 'Info';
-    var tagTone = row.tagTone || 'blue';
     return window.el('div', { class: 'rv-adm-alert' },
-      window.el('span', { class: 'rv-adm-dot', style: 'background:' + dot + ';' }),
+      window.el('span', {
+        class: 'rv-adm-dot',
+        style: 'background:' + (ALERT_DOT[row.severity] || ALERT_DOT.neutral) + ';'
+      }),
       window.el('div', { class: 'rv-adm-alert-body' },
         window.el('div', { class: 'rv-adm-alert-title' }, row.title),
         window.el('div', { class: 'rv-adm-alert-sub' }, row.sub)
       ),
-      window.el('span', {
-        class: 'rv-adm-alert-tag',
-        style: pillStyle(tagTone)
-      }, tag)
+      badge(row.tag || 'Info')
     );
   }
 
@@ -895,13 +858,9 @@
       : (view.actions.length ? view.actions.map(actionRow)
         : [window.el('div', { class: 'rv-adm-empty' }, 'Sem ações operacionais pendentes no momento.')]);
 
-    var head = window.el('div', { class: 'rv-adm-section-head' },
-      window.el('div', { class: 'rv-adm-head-left' },
-        window.el('span', { class: 'rv-adm-section-title' }, 'Fila de ações'),
-        pill(view.loading ? '-- pendentes' : view.actions.length + ' pendentes', view.actions.length ? 'red' : 'green')
-      ),
-      window.el('span', { style: 'font-size:12.5px;color:var(--rv-text-tertiary);font-weight:600;' }, 'Prioridade')
-    );
+    var head = sectionHead(ICONS.clipboard, 'Fila de ações',
+      window.el('span', { class: 'rv-adm-section-note' }, 'Prioridade'),
+      badge(view.loading ? '-- pendentes' : view.actions.length + ' pendentes'));
 
     return window.el('div', { class: 'rv-adm-card rv-adm-section' },
       head,
@@ -915,13 +874,8 @@
       : (view.alerts.length ? view.alerts.map(alertRow)
         : [window.el('div', { class: 'rv-adm-empty' }, 'Sem alertas operacionais no momento.')]);
 
-    var head = window.el('div', { class: 'rv-adm-section-head' },
-      window.el('div', { class: 'rv-adm-head-left' },
-        icon(ICONS.triangle, 16, 'var(--rv-signal-caution)'),
-        window.el('span', { class: 'rv-adm-section-title' }, 'Alertas')
-      ),
-      pill(view.loading ? '--' : String(view.alerts.length), view.alerts.length ? 'amber' : 'green')
-    );
+    var head = sectionHead(ICONS.triangle, 'Alertas',
+      badge(view.loading ? '--' : String(view.alerts.length)));
 
     return window.el('div', { class: 'rv-adm-card rv-adm-section' },
       head,
@@ -937,9 +891,10 @@
   }
 
   function stageCard(stage) {
-    var classes = 'rv-adm-stage' + (stage.tone ? ' ' + stage.tone : '');
+    var attrs = { class: 'rv-adm-stage' + (stage.tone ? ' ' + stage.tone : '') };
+    if (STAGE_KEY[stage.title]) attrs['data-rv-stage'] = STAGE_KEY[stage.title];
     var items = stage.items && stage.items.length ? stage.items : [{ primary: 'Sem itens', secondary: 'Fila vazia' }];
-    return window.el('div', { class: classes },
+    return window.el('div', attrs,
       stage.showArrow ? window.el('span', { class: 'rv-adm-stage-arrow' }, icon(ICONS.arrowRight, 16, 'var(--rv-text-tertiary)')) : null,
       window.el('div', { class: 'rv-adm-stage-head' },
         window.el('div', { class: 'rv-adm-stage-title' }, stage.title),
@@ -961,24 +916,15 @@
   }
 
   function buildPipeline(view) {
-    return window.el('div', { class: 'rv-adm-card rv-adm-pipeline' },
-      window.el('div', {
-        style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:14px;'
-      },
-        window.el('span', { style: 'font-size:15px;font-weight:700;color:var(--rv-text-primary);' }, 'Cadeia produtiva'),
-        window.el('span', { style: 'font-size:12.5px;color:var(--rv-text-tertiary);' }, 'Fluxo do pedido à conclusão')
-      ),
+    return window.el('div', { class: 'rv-adm-card rv-adm-section rv-adm-pipeline' },
+      sectionHead(ICONS.gear, 'Cadeia produtiva',
+        window.el('span', { class: 'rv-adm-section-note' }, 'Fluxo do pedido à conclusão')),
       window.el('div', { class: 'rv-adm-pipeline-grid' }, view.stages.map(stageCard))
     );
   }
 
   function activityRow(row) {
-    var color = row.tone === 'green' ? 'var(--rv-signal-positive)'
-      : row.tone === 'amber' ? 'var(--rv-signal-caution)'
-      : row.tone === 'red' ? 'var(--rv-signal-negative)'
-      : 'var(--rv-accent-blue)';
     return window.el('div', { class: 'rv-adm-activity-row' },
-      window.el('span', { class: 'rv-adm-dot', style: 'background:' + color + ';margin-top:0;' }),
       window.el('div', { class: 'rv-adm-time' }, row.when),
       window.el('div', { class: 'rv-adm-activity-text' }, row.text)
     );
@@ -996,8 +942,8 @@
       onclick: function () { navigateTo('#/pedidos'); }
     }, 'Ver histórico');
 
-    return window.el('div', { class: 'rv-adm-card rv-adm-activity' },
-      sectionHead('Atividade recente', null, historico),
+    return window.el('div', { class: 'rv-adm-card rv-adm-section' },
+      sectionHead(ICONS.check, 'Atividade recente', historico),
       rows
     );
   }
