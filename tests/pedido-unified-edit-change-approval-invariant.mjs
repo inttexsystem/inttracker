@@ -10,7 +10,9 @@
 // built inside the disposable cluster; NO production data is used.
 //
 // WHAT THIS PROVES, on ONE fresh disposable cluster (then destroyed, Part Z):
-//   A  db/01..db/92 apply cleanly, in order, and db/92 is the terminal.
+//   A  db/01..db/93 apply cleanly, in order, and db/93 is the terminal.
+//      (db/93 is the C1 privilege correction; the helper-privilege proofs live in
+//       tests/pedido-change-approval-helper-privilege-invariant.mjs.)
 //   B  db/92 re-applies with a before/after fingerprint proving zero drift.
 //   C  the prerequisite gate fails closed when a db/91 guard is absent.
 //   D  revisao advances on relevant header, item and priority changes.
@@ -44,8 +46,9 @@ import path from 'node:path';
 import { bootstrapCluster, getRepoRoot } from '../scripts/c3d/bootstrap-disposable-cluster.mjs';
 
 const REPO_ROOT = getRepoRoot();
-const EXPECTED_TERMINAL = 92;
+const EXPECTED_TERMINAL = 93;
 const DB92 = '92_pedido_unified_edit_change_approval_foundation.sql';
+const DB93 = '93_pedido_change_approval_helper_privilege_correction.sql';
 const DB91 = '91_pedido_item_production_priority.sql';
 
 const PREAMBLE_SQL = `
@@ -336,7 +339,7 @@ async function partA(handle) {
     `manifest deve ser db/01..db/${EXPECTED_TERMINAL} (got ${manifest.length})`);
   check(manifest[manifest.length - 1].n === EXPECTED_TERMINAL,
     `migration terminal deve ser db/${EXPECTED_TERMINAL}`);
-  check(path.basename(manifest[manifest.length - 1].file) === DB92, `terminal deve ser ${DB92}`);
+  check(path.basename(manifest[manifest.length - 1].file) === DB93, `terminal deve ser ${DB93}`);
 
   await applySql(handle, 'preamble.sql', PREAMBLE_SQL, 'preamble');
   for (const { n, file } of manifest) {
@@ -351,11 +354,18 @@ async function partA(handle) {
 // PART B — idempotent re-apply, zero drift.
 // ===========================================================================
 function partB(handle) {
+  // Reaplicar db/92 SOZINHO nao devolve o estado terminal: db/92 concede
+  // EXECUTE a `authenticated` em tres helpers e db/93 (C1) o revoga. Num
+  // encadeamento forward-only isso e correto — db/93 sempre vem depois —, e o
+  // replay honesto e o do PAR terminal. Reaplicar so a intermediaria e
+  // justamente o que reabriria a exposicao que C1 fechou.
   const before = schemaFingerprint(handle);
   applyFile(handle, path.join(REPO_ROOT, 'db', DB92), 'db/92 replay 1');
+  applyFile(handle, path.join(REPO_ROOT, 'db', DB93), 'db/93 replay 1');
   applyFile(handle, path.join(REPO_ROOT, 'db', DB92), 'db/92 replay 2');
+  applyFile(handle, path.join(REPO_ROOT, 'db', DB93), 'db/93 replay 2');
   const after = schemaFingerprint(handle);
-  check(before === after, `db/92 deve reaplicar sem drift (${before} != ${after})`);
+  check(before === after, `db/92+db/93 devem reaplicar sem drift (${before} != ${after})`);
   const rows = Number(scalar(handle, 'SELECT count(*) FROM public.pedido_alteracao_solicitacoes;'));
   check(rows === 0, `db/92 nao pode criar solicitacao (got ${rows})`);
   log('B', { replays: 2, drift: 'none', fingerprint: before.slice(0, 12), solicitacoes: rows });
@@ -372,6 +382,7 @@ function partC(handle) {
   // Restaura o guard reaplicando db/91 e reconfirma db/92.
   applyFile(handle, path.join(REPO_ROOT, 'db', DB91), 'db/91 restore');
   applyFile(handle, path.join(REPO_ROOT, 'db', DB92), 'db/92 after restore');
+  applyFile(handle, path.join(REPO_ROOT, 'db', DB93), 'db/93 after restore');
   log('C', { gate: 'fail-closed', restored: 'true' });
 }
 

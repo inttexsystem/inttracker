@@ -359,3 +359,114 @@ test('the contract no longer PRESCRIBES a level-D metres reconciliation', () => 
   assert.equal(/\breconcile\b/u.test(u52), false, 'U5.2 must not offer a reconcile disposition');
   assert.match(u52, /\| Proposed change \| No related OP \| Any related OP \| Terminal Pedido \|/u);
 });
+
+// ---------------------------------------------------------------------------
+// C1 — db/93 helper privilege correction (static, source-level)
+//
+// The behavioural proof lives in
+// tests/pedido-change-approval-helper-privilege-invariant.mjs, which reproduces
+// the defect on a disposable cluster before correcting it. These assertions
+// guard the FILE, so a future edit that re-opens a helper is caught without a
+// cluster.
+// ---------------------------------------------------------------------------
+
+const DB93_PATH = path.join(REPO_ROOT, 'db', '93_pedido_change_approval_helper_privilege_correction.sql');
+const sql93 = fs.readFileSync(DB93_PATH, 'utf8');
+
+// The fourteen internal owners, with the exact signature db/93 must name.
+const INTERNAL_HELPERS = [
+  'public.pedidos_revisao_normalize_fn()',
+  'public.pedido_itens_revisao_bump_fn()',
+  'public.pedido_alteracao_imutabilidade_guard_fn()',
+  'public.pedido_alteracao_itens_imutabilidade_guard_fn()',
+  'public.pedido_tem_op_relacionada(UUID)',
+  'public.pedido_item_tem_vinculo_producao(UUID)',
+  'public.pedido_snapshot(UUID)',
+  'public.pedido_itens_sequencia(UUID)',
+  'public.pedido_itens_payload_normalizar(UUID, JSONB)',
+  'public.pedido_itens_payload_e_estrutural(UUID, JSONB)',
+  'public.pedido_header_validar(JSONB, TEXT)',
+  'public.pedido_header_aplicar(UUID, JSONB)',
+  'public.pedido_itens_reconciliar(UUID, JSONB)',
+  'public.pedido_prioridade_aplicar(UUID, BOOLEAN, BOOLEAN)',
+];
+
+test('db/93 is forward-only, single-transaction and privilege-only', () => {
+  assert.equal((sql93.match(/^BEGIN;$/gmu) || []).length, 1);
+  assert.equal((sql93.match(/^COMMIT;$/gmu) || []).length, 1);
+  // Privilege-only: no structural or body change may hide in this migration.
+  for (const forbidden of [
+    /CREATE\s+(OR\s+REPLACE\s+)?FUNCTION/iu,
+    /CREATE\s+TABLE/iu,
+    /ALTER\s+TABLE/iu,
+    /CREATE\s+(UNIQUE\s+)?INDEX/iu,
+    /CREATE\s+TRIGGER/iu,
+    /DROP\s+(TABLE|TRIGGER|POLICY|INDEX|FUNCTION)/iu,
+    /CREATE\s+POLICY/iu,
+    /\b(INSERT\s+INTO|UPDATE\s+public\.|DELETE\s+FROM)\b/iu,
+  ]) {
+    assert.equal(forbidden.test(sql93), false, `db/93 must be privilege-only; found ${forbidden}`);
+  }
+});
+
+test('db/93 revokes every application role from all fourteen internal helpers', () => {
+  assert.equal(INTERNAL_HELPERS.length, 14);
+  for (const signature of INTERNAL_HELPERS) {
+    // Exact-substring matching: these signatures contain regex metacharacters
+    // and the assertion is about a literal line, not a pattern.
+    const revoke = `REVOKE EXECUTE ON FUNCTION ${signature} FROM PUBLIC, anon, authenticated, service_role;`;
+    assert.ok(sql93.includes(revoke),
+      `db/93 must revoke all application roles from ${signature}`);
+    // And must never hand any of them back to an application role.
+    assert.equal(sql93.includes(`ON FUNCTION ${signature} TO `), false,
+      `db/93 must not grant EXECUTE on ${signature}`);
+  }
+});
+
+// The eight public RPCs, with the exact signature db/93 must name.
+const RPC_SIGNATURES = [
+  'public.salvar_pedido_cliente(UUID, BIGINT, JSONB, JSONB, BOOLEAN)',
+  'public.salvar_pedido_admin(UUID, BIGINT, JSONB, JSONB, BOOLEAN, BOOLEAN)',
+  'public.solicitar_alteracao_pedido(UUID, JSONB, JSONB, BOOLEAN, TEXT)',
+  'public.retirar_alteracao_pedido(UUID)',
+  'public.aprovar_alteracao_pedido(UUID, BOOLEAN, TEXT)',
+  'public.rejeitar_alteracao_pedido(UUID, TEXT)',
+  'public.cliente_alteracao_resumo(UUID)',
+  'public.admin_alteracao_comparacao(UUID)',
+];
+
+test('db/93 keeps exactly the eight RPCs executable by authenticated', () => {
+  assert.equal(RPC_SIGNATURES.length, 8);
+  for (const signature of RPC_SIGNATURES) {
+    assert.ok(sql93.includes(`ON FUNCTION ${signature} TO authenticated, service_role;`),
+      `db/93 must grant ${signature} to authenticated`);
+    assert.ok(sql93.includes(`REVOKE EXECUTE ON FUNCTION ${signature} FROM PUBLIC, anon;`),
+      `db/93 must revoke PUBLIC and anon from ${signature}`);
+  }
+  // The authenticated allowlist is EXACTLY those eight: no internal helper may
+  // appear on the granting side anywhere in the migration.
+  const grantedNames = [...sql93.matchAll(/ON FUNCTION public\.(\w+)\(/gu)]
+    .filter((m) => {
+      const tail = sql93.slice(m.index, sql93.indexOf(';', m.index));
+      return tail.includes(' TO ');
+    })
+    .map((m) => m[1]);
+  assert.deepEqual([...new Set(grantedNames)].sort(), [...ALL_RPCS].sort());
+});
+
+test('db/93 fails closed and verifies its own result', () => {
+  assert.match(sql93, /db\/93 gate: pre-requisito\(s\) ausente\(s\)/u);
+  assert.match(sql93, /o inventario de db\/92 deve resolver exatamente 22 funcoes/u);
+  // A migration that declares a privilege state must prove it reached it.
+  assert.match(sql93, /db\/93 verify: estado de privilegio incorreto/u);
+  assert.match(sql93, /helper executavel por/u);
+  assert.match(sql93, /dono perdeu EXECUTE/u);
+});
+
+test('the contract records the C1 security correction', () => {
+  assert.match(contract, /### U15\. Security correction C1 — internal helper execution \(db\/93\)/u);
+  assert.ok(contract.includes('93_pedido_change_approval_helper_privilege_correction.sql'));
+  // The root cause must be stated, not just the fix.
+  assert.match(contract, /ALTER DEFAULT PRIVILEGES/u);
+  assert.match(contract, /owner-only/u);
+});

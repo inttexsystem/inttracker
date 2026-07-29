@@ -182,8 +182,19 @@ test('the active state declares a coherent phase and next authorizable action', 
     state.active_phase.status,
     /AWAITING SUPERVISOR REVIEW/u
   );
+  // O sujeito e que a proxima acao NOMEIE a fase ativa. A forma normal e conter
+  // o identificador inteiro. Uma fase de CORRECAO `<PAI>-C<n>` pode, em vez
+  // disso, ser revisada EM CONJUNTO com o pai que ela corrige, e nesse caso a
+  // redacao canonica e `<PAI>-AND-C<n>` — que nomeia as duas e continua sendo
+  // uma referencia exata. Nenhuma outra flexibilizacao e aceita.
+  const activePhaseId = state.active_phase.id;
+  const correction = activePhaseId.match(/^(.*)-(C\d+)$/u);
+  const namesActivePhase =
+    state.next_authorizable_action.id.includes(activePhaseId)
+    || (correction !== null
+        && state.next_authorizable_action.id.includes(`${correction[1]}-AND-${correction[2]}`));
   assert.ok(
-    state.next_authorizable_action.id.includes(state.active_phase.id),
+    namesActivePhase,
     'the next authorizable action must name the active phase'
   );
   // O modo declara que a fase esta PARADA num portao de revisao humana, nao

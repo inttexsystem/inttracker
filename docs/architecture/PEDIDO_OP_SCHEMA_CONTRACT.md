@@ -3022,3 +3022,126 @@ the application subtransaction.
 backfilled or reinterpreted. `prazo_desejado` was not removed. The client
 creation policies were not removed. `definir_prioridade_pedido()` was not
 redefined.
+
+### U15. Security correction C1 — internal helper execution (db/93)
+
+Order `PEDIDO-UNIFIED-EDIT-CHANGE-APPROVAL-SCHEMA-R1-C1`. `RISK_CLASS: R3`.
+Forward correction of a defect introduced by `db/92` and found on supervisor
+review. This subsection amends `U8` and `U9`; it rewrites no historical section.
+
+#### U15.1 The defect
+
+`db/92` called fourteen of its twenty-two functions "supporting owners, not
+public API" but never removed their execution privilege from `authenticated`.
+The Supabase project carries `ALTER DEFAULT PRIVILEGES` granting `EXECUTE` on
+**every** new function in `public` to `authenticated` and `service_role`.
+`db/92` revoked only from `PUBLIC` and from `anon`, and in three cases
+(`pedido_snapshot`, `pedido_tem_op_relacionada`,
+`pedido_item_tem_vinculo_producao`) additionally granted `authenticated`
+explicitly.
+
+Measured on production before the correction, **all 22 functions carried
+`authenticated=X/postgres`**. Every internal helper was therefore directly
+callable by any authenticated user. Because almost all are `SECURITY DEFINER`
+and **none of them performs a caller check** — authorization lives entirely in
+the eight public RPCs — row-level security on `pedidos` and `pedido_itens`
+protected nothing against them: a `SECURITY DEFINER` function executes as the
+owner `postgres` and the policy is never consulted.
+
+The exposure was not read-only:
+
+| Helper | Reachable effect for any authenticated caller |
+| --- | --- |
+| `pedido_snapshot(uuid)` | complete Pedido header + item collection of **any** tenant |
+| `pedido_tem_op_relacionada(uuid)` | production existence for any Pedido |
+| `pedido_item_tem_vinculo_producao(uuid)` | production linkage for any item |
+| `pedido_itens_sequencia(uuid)` | item identifiers of any Pedido |
+| `pedido_itens_payload_normalizar(uuid,jsonb)` | validation against another tenant's items |
+| `pedido_itens_payload_e_estrutural(uuid,jsonb)` | structural comparison against another tenant's items |
+| **`pedido_header_aplicar(uuid,jsonb)`** | **`UPDATE` of any Pedido header** |
+| **`pedido_itens_reconciliar(uuid,jsonb)`** | **`INSERT`/`UPDATE`/`DELETE` of any Pedido's item collection** |
+| **`pedido_prioridade_aplicar(uuid,boolean,boolean)`** | **production priority of any Pedido** |
+
+The three bolded rows are cross-tenant **write** primitives. This was a
+cross-tenant read *and* write exposure, materially broader than a disclosure
+path. It is reproduced, not asserted, by Part E of
+`tests/pedido-change-approval-helper-privilege-invariant.mjs`, which drives the
+attack against `db/92` alone before applying the correction.
+
+**Root cause, stated plainly.** `U9` already recorded that the `authenticated`
+revoke is load-bearing for the two request **tables**. The same reasoning was
+not applied to **functions**. Default privileges are the rule, not the
+exception, and a "REVOKE from PUBLIC and anon" is not a restriction on this
+platform.
+
+#### U15.2 Binding rule — the authenticated API is a closed allowlist
+
+Exactly these eight `db/92` functions are executable by `authenticated`:
+
+`salvar_pedido_cliente`, `salvar_pedido_admin`, `solicitar_alteracao_pedido`,
+`retirar_alteracao_pedido`, `aprovar_alteracao_pedido`,
+`rejeitar_alteracao_pedido`, `cliente_alteracao_resumo`,
+`admin_alteracao_comparacao`.
+
+Every other `db/92` function is **owner-only**: `PUBLIC`, `anon`,
+`authenticated` and `service_role` all hold no `EXECUTE`. The owner `postgres`
+retains it, so the `SECURITY DEFINER` RPCs still call their helpers and the
+triggers still fire — PostgreSQL checks `EXECUTE` on a trigger function when
+the trigger is created, not on every fire.
+
+The final privilege state is **declared explicitly** by `db/93` for all 22
+functions. Nothing relies on a default privilege, in either direction.
+
+**Standing rule for every future migration in this domain.** A function that
+performs no caller authorization must never be granted to an application role,
+and a migration that introduces one must revoke `PUBLIC`, `anon`,
+`authenticated` **and** `service_role` by name. Revoking only `PUBLIC` and
+`anon` leaves the function open on this platform.
+
+#### U15.3 Correction to U8 and U9
+
+`U8`'s "Supporting owners, not public API and not granted to `anon`" is
+**amended**: the operative property is not "not granted to `anon`", it is
+**owner-only**. `U9`'s table row about the `authenticated` revoke now applies
+identically to functions. No RPC signature, function body, business rule, table,
+column, policy, index or trigger changed; `db/93` is privilege-only.
+
+#### U15.4 Evidence
+
+**Migration.** `db/93_pedido_change_approval_helper_privilege_correction.sql`,
+forward-only, idempotent, one transaction, self-verifying: a terminal `DO` block
+re-reads `has_function_privilege` for all 22 functions across `anon`,
+`authenticated`, `service_role` and the owner, and raises if the intended state
+was not reached. Its prerequisite gate fails closed unless `db/92` is present in
+full and resolves to exactly 22 functions.
+
+**Disposable-cluster validation.**
+`tests/pedido-change-approval-helper-privilege-invariant.mjs`, one fresh
+PostgreSQL 18.4 cluster, destroyed in Part Z. Proves: `db/01..db/93` apply in
+order with `93` terminal; the defect reproduced under `db/92` alone (14 helpers
+open, cross-tenant read, cross-tenant header write, cross-tenant item mutation);
+`db/93` idempotent across two replays with zero privilege and zero table-grant
+drift; the gate failing closed without `db/92`; the inventory resolving to
+exactly 8 public + 14 internal; every internal helper denying `anon`,
+`authenticated` and `service_role` while the owner retains execution; all 14
+helpers refusing direct invocation with a permission error under all three roles
+and leaving both the foreign and the own Pedido byte-identical; all eight RPCs
+still functioning; ownership and admin-role checks still enforced by the RPCs
+themselves; submission still capturing the before-image internally; the
+administrative comparison still assembling `antes`/`atual`/`impacto` internally;
+approval, rejection and withdrawal unchanged; revision triggers still firing;
+and no table DML privilege restored, with the policy set still at ten.
+
+**Production application.** Preflight recorded the complete 22-function
+privilege inventory, terminal `db/92`, no `db/93`, zero request rows and a frozen
+table-grant fingerprint. Applied once. Post-apply: terminal is
+`93_pedido_change_approval_helper_privilege_correction`; the 14 helpers report
+`anon/authenticated/service_role = false` and owner `true`; the 8 RPCs report
+`anon = false`, `authenticated = true`, `service_role = true`, owner `true`; a
+live `SET LOCAL ROLE authenticated` call of `pedido_snapshot` is refused with
+`insufficient_privilege`; the table-grant fingerprint is byte-identical to
+preflight; the policy count is unchanged at ten; and
+`pedidos=5`, `pedido_itens=36`, `ops=0`, `op_itens=0`, `expedicoes=0`,
+`pedido_eventos=0`, `pedido_cliente_eventos=0` and both request tables at zero
+are identical to preflight, with every Pedido still at `revisao=1`. No business
+row, request row or synthetic row was created, altered or removed.
