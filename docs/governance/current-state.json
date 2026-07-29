@@ -138,18 +138,18 @@
     }
   ],
   "active_phase": {
-    "id": "ADMIN-PEDIDOS-LIST-VISUAL-IDENTITY-ALIGNMENT-R1",
+    "id": "ADMIN-DASHBOARD-REVIEW-DEFECT-STABILIZATION-R1",
     "status": "IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW",
-    "immediate_objective": "Only the VISUAL LAYER of the administrative Pedidos list at #/pedidos was reconciled with the ratified Inttracker visual identity. js/screens/pedidos-list.js dropped its screen-local CLIENT_TONE map, internalTone(), the visual output of resolveVisibleTone() and its local pill() constructor, along with every literal font size, its literal 4px radius declarations, its custom primary button, its circular KPI icon surfaces and their five category-specific colours. Typography is now owned by role through the css/tokens.css tokens; the five KPI icon surfaces take the canonical neutral chip (--rv-chip-bg / --rv-chip-glyph); internal status renders through rvStatusPill() and the client-visible column resolves BY MEANING to rvStageBadge (Tecelagem, Acabamento), rvStatusPill (lifecycle states) or rvClassificationBadge (Insumos, Nao publicado and any value the canonical owner does not map), asking js/badges.js rather than restating its map. All four Supabase reads and their selected fields, the five KPI definitions and calculations, the nine tabs and their count rules, search, the four select-popover filters, pagination, row ordering, the nine table columns, TR_COLS, client-visible tracking interpretation, partial-delivery calculations, navigation destinations, controlled deletion, loading, empty and error behaviour and mobile scroll ownership are all PRESERVED AND UNCHANGED. Semantic colour survives only where a real lifecycle state, production stage or operational signal owns it; category and count do not justify colour. The result requires DIRECT VISUAL ACCEPTANCE BY KLEBER.",
+    "immediate_objective": "Three concrete defects Kleber found on direct review of the published administrative dashboard at #/painel were corrected: the header action bar now aligns to the TOP of the title block (align-items: flex-start) instead of its bottom edge; the operational rv-adm-warning notice moved out of the title block into its own full-width card row, per the new global standalone-notice rule; and the arrows between adjacent production-stage cards were re-centred on the true 10px grid-gap midpoint (right:-14px, replacing the 3px-off right:-11px). A GLOBAL rule was added at UI_VISUAL_CONTRACT.md section 2.11: every standalone warning, caution, error, information, or positive notice in page content occupies the full width of its containing content region as a card, never inline in a title block, a pill, a chip, or a content-width banner; field validation, toasts, lifecycle-status pills, persisted alert records, and modal confirmation copy remain governed by their own primitives. Dashboard behaviour, Supabase reads, KPI calculations, section order, navigation, and information architecture are all PRESERVED AND UNCHANGED. ADMIN-PEDIDOS-LIST-VISUAL-IDENTITY-ALIGNMENT-R1 remains IMPLEMENTED / PUBLISHED and has NOT yet received Kleber's visual acceptance; this phase does not touch js/screens/pedidos-list.js and does not accept that phase.",
     "contract": {
       "path": "docs/architecture/UI_VISUAL_CONTRACT.md",
-      "anchor": "### B · Work queue — `CANDIDATE`"
+      "anchor": "### 2.11 Empty state and alert"
     }
   },
   "next_authorizable_action": {
-    "id": "DIRECT SUPERVISOR REVIEW OF ADMIN-PEDIDOS-LIST-VISUAL-IDENTITY-ALIGNMENT-R1",
+    "id": "DIRECT SUPERVISOR REVIEW OF ADMIN-DASHBOARD-REVIEW-DEFECT-STABILIZATION-R1 AND ADMIN-PEDIDOS-LIST-VISUAL-IDENTITY-ALIGNMENT-R1",
     "mode": "AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED",
-    "status": "PENDING. The bounded Pedidos-list visual reconciliation is implemented, validated and published to staging/dev. The candidate work-queue archetype describes intent only and may not be cited as ratified visual precedent. No subsequent product implementation is authorized until Kleber accepts the rendered result."
+    "status": "PENDING. Kleber's direct visual review is requested for: (1) the corrected dashboard header alignment, (2) the full-width standalone notice card, (3) the re-centred stage arrows, and (4) the already-published #/pedidos visual alignment from the prior phase, which remains outstanding. No subsequent product implementation is authorized until both are reviewed."
   },
   "active_track": {
     "id": "PURCHASE_ORDER_PHASE_C",

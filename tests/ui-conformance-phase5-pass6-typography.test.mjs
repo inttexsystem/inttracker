@@ -684,13 +684,16 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
    * That order reconciled the admin dashboard's visual layer with the ratified
    * identity: painel.js dropped its screen-local Hanken Grotesk import, its
    * 36px control height, its local pill family and tone maps, and now consumes
-   * the canonical badge constructors and typography tokens. It is therefore the
-   * LAST order to change the one asset A1 still owned here, and that asset moves
-   * to a strictly later token. The guarantee this test owns is unchanged: every
-   * asset pass 6 touched is still invalidated against the pass-5 checkpoint, and
+   * the canonical badge constructors and typography tokens.
+   * ADMIN-DASHBOARD-REVIEW-DEFECT-STABILIZATION-R1 (a LATER, separately
+   * authorized order) corrected three Kleber review defects on the same
+   * asset — header action alignment, the full-width standalone notice card,
+   * and stage-arrow centering — so painel.js moves to that strictly later
+   * token once more. The guarantee this test owns is unchanged: every asset
+   * pass 6 touched is still invalidated against the pass-5 checkpoint, and
    * the population below still sums to the same 27.
    */
-  const ADMIN_DASHBOARD = '20260729-admin-dashboard-visual-identity-r1';
+  const ADMIN_DASHBOARD = '20260729-admin-dashboard-review-defect-stabilization-r1';
   const ADMIN_DASHBOARD_CHANGED = [
     'js/screens/painel.js',
   ];

@@ -312,6 +312,16 @@ Free colour → derived border: luminance `(0.299R + 0.587G + 0.114B) / 255`;
 An **operational** caution banner — one computed from live state rather than read from a
 persisted alert record — is not an alert in this sense. It takes the §2.1 Caution family.
 
+**Standalone notice card.** Every standalone warning, caution, error, information, or
+positive notice inside page content occupies the full width of its containing content
+region and renders as a card surface. It must not be rendered inline inside a page-title
+block, as a pill, chip, tag, or content-width banner. Its background, border, icon, and
+text come from one matching semantic family — caution, negative, info, or positive per
+the meaning of the notice. Its geometry uses `--rv-radius` and the applicable card/notice
+spacing. This rule applies globally, not only to one screen. Field validation, toasts,
+lifecycle-status pills, persisted alert records, and modal confirmation copy remain
+governed by their own primitives and are not standalone notices in this sense.
+
 ### 2.12 Progress, range and chart
 
 Track `--rv-viz-track`. Primary fill `--rv-viz-primary`. A second generic series

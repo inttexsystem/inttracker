@@ -378,6 +378,22 @@ not validated until the rendered result is looked at.**
 
 ---
 
+## 2026-07-29 · D12 — a standalone notice is its own information surface, full width
+
+Kleber's direct review of the published admin dashboard found `rv-adm-warning` rendered
+inline beside the title block, sized to its own text rather than to the page.
+
+| # | Decision | Choice | Reason | Accepted loss |
+|---|---|---|---|---|
+| D12 | Standalone notice width | **Full width of the containing content region, as a card** | A notice inline with a title reads as an annotation of the title, not as its own signal; a text-width banner produces inconsistent hierarchy across screens because its size tracks copy length, not layout. A full-width card gives the notice a stable scanning position and keeps its semantic family (background, border, icon, text) as the one visible ownership. | A short message now occupies a full row of vertical space it does not visually need. |
+
+This is a **global** rule (`UI_VISUAL_CONTRACT.md` §2.11), not a dashboard-only fix: it
+governs every standalone warning, caution, error, information, or positive notice in page
+content. It does not reach field validation, toasts, lifecycle-status pills, persisted
+alert records, or modal confirmation copy — each keeps its own existing owner.
+
+---
+
 ## How to record the next round
 
 Header with date and name. Context in two sentences. One line per decision with

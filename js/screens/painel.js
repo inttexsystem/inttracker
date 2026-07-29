@@ -51,7 +51,8 @@
       '.rv-admin-dashboard{color:var(--rv-text-primary);margin:-2px 2px 0 2px;}',
       '.rv-admin-dashboard *{box-sizing:border-box;}',
       '.rv-admin-dashboard button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--rv-focus-ring);}',
-      '.rv-adm-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:20px;flex-wrap:wrap;}',
+      '.rv-adm-head{display:flex;flex-wrap:wrap;gap:20px;margin-bottom:20px;}',
+      '.rv-adm-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;width:100%;}',
       '.rv-adm-title{margin:0;font-size:var(--rv-fs-title);line-height:1.12;font-weight:800;color:var(--rv-text-title);letter-spacing:var(--rv-tracking-title);}',
       '.rv-adm-sub{font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);margin-top:5px;}',
       '.rv-adm-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}',
@@ -98,7 +99,13 @@
       '.rv-adm-pipeline-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;align-items:stretch;padding:16px 18px;}',
       '.rv-adm-stage{position:relative;border:1px solid var(--rv-border);background:var(--rv-surface-subtle);border-radius:var(--rv-radius);padding:11px 12px;min-height:150px;}',
       '.rv-adm-stage.warn{background:var(--rv-signal-caution-bg);border-color:var(--rv-signal-caution-border);}',
-      '.rv-adm-stage-arrow{position:absolute;top:50%;right:-11px;transform:translateY(-50%);z-index:2;background:var(--rv-surface-subtle);color:var(--rv-text-tertiary);}',
+      // The 10px grid gap spans between adjacent .rv-adm-stage BORDER boxes.
+      // `position:relative` offsets resolve against the PADDING edge, and
+      // box-sizing:border-box (declared above) insets that by the 1px
+      // border, so `right:-11px` centred the arrow 3px left of the true gap
+      // midpoint. `right:-14px` puts the 16px arrow's own midpoint exactly
+      // on the gap midpoint; proved by rendered measurement, not by eye.
+      '.rv-adm-stage-arrow{position:absolute;top:50%;right:-14px;transform:translateY(-50%);z-index:2;background:var(--rv-surface-subtle);color:var(--rv-text-tertiary);}',
       '.rv-adm-stage-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;}',
       '.rv-adm-stage-title{font-size:var(--rv-fs-2xs);font-weight:700;letter-spacing:var(--rv-tracking-label);color:var(--rv-text-tertiary);text-transform:uppercase;}',
       '.rv-adm-stage[data-rv-stage="tecelagem"] .rv-adm-stage-title{color:var(--rv-stage-tecelagem);}',
@@ -116,7 +123,7 @@
       '.rv-adm-activity-text{font-size:var(--rv-fs-value);color:var(--rv-text-primary);line-height:1.35;}',
       '.rv-adm-history{background:none;border:0;color:var(--rv-accent-blue);font-size:var(--rv-fs-sm);font-weight:600;font-family:inherit;cursor:pointer;padding:0;}',
       '.rv-adm-empty{font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);padding:14px 18px;}',
-      '.rv-adm-warning{display:inline-flex;align-items:center;gap:7px;color:var(--rv-signal-caution);background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);border-radius:var(--rv-radius);padding:6px 9px;font-size:var(--rv-fs-sm);font-weight:700;margin-top:10px;}',
+      '.rv-adm-warning{display:flex;align-items:center;gap:7px;width:100%;min-height:var(--rv-h-default);box-sizing:border-box;color:var(--rv-signal-caution);background:var(--rv-signal-caution-bg);border:1px solid var(--rv-signal-caution-border);border-radius:var(--rv-radius);padding:0 14px;font-size:var(--rv-fs-sm);font-weight:700;}',
       '@media (max-width:1180px){.rv-adm-kpis{grid-template-columns:repeat(3,minmax(0,1fr));}.rv-adm-pipeline-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}',
       '@media (max-width:900px){.rv-adm-two{grid-template-columns:1fr;}.rv-adm-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.rv-adm-pipeline-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}',
       '@media (max-width:640px){.rv-admin-dashboard{margin:0;}.rv-adm-kpis,.rv-adm-pipeline-grid{grid-template-columns:1fr;}.rv-adm-action-row{align-items:flex-start;flex-wrap:wrap;}.rv-adm-action-main{flex-basis:100%;}.rv-adm-action-side{text-align:left;}.rv-adm-stage-arrow{display:none;}.rv-adm-activity-row{align-items:flex-start;flex-wrap:wrap;gap:8px 12px;}.rv-adm-time{width:auto;}.rv-adm-activity-text{flex-basis:100%;}.rv-adm-head{align-items:flex-start;}.rv-adm-actions{width:100%;}.rv-adm-btn{flex:1;justify-content:center;}}'
@@ -760,6 +767,8 @@
     var subtitle = view.loading
       ? 'Visão geral da produção e pedidos · atualizando dados'
       : 'Visão geral da produção e pedidos · atualizado ' + fmtDataHora(view.updatedAt);
+    // D12: a standalone notice is its own full-width information surface —
+    // never nested inside the title block, never sized to its own text.
     var warn = !view.loading && view.errors.length
       ? window.el('div', { class: 'rv-adm-warning' },
         icon(ICONS.warning, 14, 'var(--rv-signal-caution)'),
@@ -767,16 +776,18 @@
       : null;
 
     return window.el('div', { class: 'rv-adm-head' },
-      window.el('div', {},
-        window.el('h1', { class: 'rv-adm-title' }, 'Dashboard'),
-        window.el('div', { class: 'rv-adm-sub' }, subtitle),
-        warn
+      window.el('div', { class: 'rv-adm-head-row' },
+        window.el('div', {},
+          window.el('h1', { class: 'rv-adm-title' }, 'Dashboard'),
+          window.el('div', { class: 'rv-adm-sub' }, subtitle)
+        ),
+        window.el('div', { class: 'rv-adm-actions' },
+          actionButton('Ver pedidos', '#/pedidos', false),
+          actionButton('Ver OPs', '#/ops', false),
+          actionButton('Novo pedido', '#/pedidos/novo', true, ICONS.plus)
+        )
       ),
-      window.el('div', { class: 'rv-adm-actions' },
-        actionButton('Ver pedidos', '#/pedidos', false),
-        actionButton('Ver OPs', '#/ops', false),
-        actionButton('Novo pedido', '#/pedidos/novo', true, ICONS.plus)
-      )
+      warn
     );
   }
 
