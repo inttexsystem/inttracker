@@ -2932,6 +2932,17 @@ override and no parameter unlocks it. No RPC in this phase changes, recreates,
 deletes or reconciles `op_itens`. Header fields, general observation and item
 observation remain editable by lifecycle; priority continues through
 `definir_prioridade_pedido()` with its existing impact confirmation.
+
+**FORWARD CORRECTION (2026-07-29 — `PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1`).**
+The clause immediately above is **amended** for the administrative surfaces.
+Its binding meaning is now: header fields and the Pedido-level general
+observation remain editable by lifecycle; administrative **per-item observation
+creation and editing are retired**; any existing per-item observation is
+preserved as **read-only compatibility data**; structural item fields remain
+governed by the post-OP block stated above; and this amendment neither deletes
+nor reinterprets stored historical data. The original sentence is retained
+above as accepted history and is not rewritten. See
+`## Update 2026-07-29 — Pedido item mention and general observation ruling`.
 *R1 had recommended* a graded A–E ladder allowing `metres` and add-item under
 explicit impact confirmation at production level C, and a reconciliation at
 level D. That is **withdrawn** in full. The ruling replaces a five-level
@@ -3145,3 +3156,125 @@ preflight; the policy count is unchanged at ten; and
 `pedido_eventos=0`, `pedido_cliente_eventos=0` and both request tables at zero
 are identical to preflight, with every Pedido still at `revisao=1`. No business
 row, request row or synthetic row was created, altered or removed.
+
+## Update 2026-07-29 — Pedido item mention and general observation ruling (PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1)
+
+**Status.** RATIFIED product ruling. Binding on the administrative Pedido
+surfaces. Recorded as the accepted product contract
+`PEDIDO-ITEM-MENTION-OBSERVATION-UX` in `docs/governance/current-state.json`.
+This ruling authorizes no implementation by itself; the implementation phase
+`PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1` is a separate authorization.
+
+**A. Option selected.** Option A is accepted. The administrative Pedido item
+table will no longer expose an editable per-item Observation column. The normal
+administrative observation-writing surface is the Pedido-level general
+observation field.
+
+**B. Administrative surfaces.** The decision applies to `#/pedidos/novo` and
+`#/pedidos/<uuid>/editar`. It does **not** apply to the client Pedido creation
+or editing surfaces in this phase.
+
+**C. Item table.** Seven columns, in order: `Img`, `Tipo`, `Modelo`, `Cores`,
+`Largura`, `Metragem`, `Ações`. Approved target layout:
+
+- `GRID_COLS` = `60px .70fr 1.45fr 1.15fr .80fr .90fr 92px`
+- minimum row/table content width = `790px`
+
+The Observation column is removed. Document-level horizontal overflow remains
+**prohibited**; the item table keeps local horizontal scrolling where required.
+
+**D. Administrative Add item modal.** The detailed `Adicionar item` modal
+remains part of the accepted dual entry contract and is **not** removed or
+replaced. Its per-item observation input is **retired** from the administrative
+flow. The modal continues to collect the actual item identity and quantity
+fields, and must not create an item observation that becomes invisible
+immediately after confirmation.
+
+**E. General observation.** The visible administrative field is identified as
+**Observações gerais**. It continues to persist through `pedidos.observacao`.
+It remains editable in every non-terminal lifecycle state allowed by the
+existing Pedido rules, **including when structural item controls are locked due
+to production linkage**.
+
+**F. Mention action.** Each administrative item row receives one discreet
+mention action inside `Ações`, **before** the destructive Remove action.
+Approved control: `@` icon; canonical owner `window.actionButton`; canonical
+30 × 30 action target; non-destructive neutral/accent treatment; `title` =
+`Mencionar item {n} nas observações gerais`; accessible label containing the
+readable item identity; **disabled** when no model is selected; **available**
+when structural controls are locked; **absent or disabled** in terminal
+read-only rendering.
+
+**G. Inserted text.** The exact reference format is:
+
+```
+@Item {1-based position} — {modelo} · {cor_1}/{cor_2} · {largura}:
+```
+
+Example: `@Item 3 — Noite · KRAFT/CRU · 2,10 m: `
+
+Rules: no UUID; no `pedido_item_id`; no database identifier; do **not** include
+item metragem; use the current local item state and model projection; format
+width in pt-BR; leave the caret after the trailing colon and space.
+
+**H. Text insertion.** On activation: insert at the current selection/caret if
+the general observation field has an active usable selection, otherwise append
+at the end; add a newline before the mention when needed; focus the general
+observation textarea; place the caret after `": "`; update the existing field
+state through its normal input path; autosize and bring the field into view when
+necessary; do not show a large toast for this local action. Repeated clicks
+**deliberately** insert repeated references — deduplication and navigation to an
+earlier mention are prohibited.
+
+**I. Snapshot semantics.** The mention is plain text. After insertion it belongs
+to the operator's written observation. The application must **not** automatically
+rewrite, renumber or remove an existing mention if the item model changes, the
+item order changes, the item is removed, or the Pedido is reloaded. Silent
+rewriting of operator-written text is prohibited.
+
+**J. Structural lock and persistence.** Mentioning an item is **non-structural**.
+After an OP or another production linkage exists: structural item controls remain
+locked; the mention action remains available; `Observações gerais` remains
+editable; a mention/general-observation-only save must send `p_header`; and
+`p_itens` must remain `NULL` when no actual item collection field changed. The
+mention interaction must never call an internal helper or a second write path.
+
+**K. Item observation compatibility.** `pedido_itens.observacao` **remains in the
+schema**. No migration, data deletion, column removal, RPC signature change or
+payload contract change is authorized. The five-key administrative item payload
+remains `pedido_item_id`, `modelo_id`, `metros`, `observacao`, `ordem`; the
+implementation may continue sending `observacao` as `NULL` when `p_itens` is
+legitimately sent. The administrative UI will no longer create or edit per-item
+observations. If a loaded item contains a non-empty legacy observation, the
+administrative row must expose it through a compact neutral **read-only
+compatibility hint** that is visible and keyboard/screen-reader accessible,
+preserves the entire text, appears only when a non-empty legacy value exists,
+consumes no permanent table column, allows no editing, and is not confusable with
+the mention action.
+
+**L. Client surfaces.** `js/screens/cliente-pedido-form.js`, the future client
+editor, client change-request submission and the approval screen remain outside
+this decision's implementation boundary. Client-created per-item observations, if
+any appear in the future, must remain readable to the administrator through the
+legacy compatibility hint until a separate cross-role ruling changes that
+behaviour.
+
+**M. Contract amendment.** This ruling amends the U13.2 sentence stating that
+item observation remains editable by lifecycle; the forward correction is
+recorded inline at that sentence, which is retained as accepted history. The
+replacement meaning: header fields and the Pedido-level general observation
+remain editable according to lifecycle; administrative per-item observation
+creation/editing is retired; any existing per-item observation is preserved as
+read-only compatibility data; structural item fields remain governed by the
+existing post-OP block; and this ruling does not delete or reinterpret stored
+historical data. The rest of the accepted design checkpoint is **not** rewritten.
+
+**Evidence supporting the decision.** Measured in a read-only design diagnosis,
+not asserted: the existing layout is eight columns at a `920px` minimum width, in
+which the Observation column consumed approximately `192px` at desktop and
+approximately `144px` at the minimum-width layout; the proposed layout is seven
+columns at a `790px` minimum width, in which the `Metragem` column widens
+materially; local horizontal scrolling with zero document-level overflow remains
+the intended contract at every measured viewport; and production contained
+**zero** non-empty `pedido_itens.observacao` values at diagnosis time, which
+justifies the UI retirement but does not authorize deleting the column.
