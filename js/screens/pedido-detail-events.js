@@ -84,35 +84,22 @@
       }, label);
     }
 
-    function buildEditItensButton() {
-      var statusAtual = state.pedido ? state.pedido.status : null;
-      var editavel = window.isPedidoEditavel
-        ? window.isPedidoEditavel(statusAtual)
-        : (statusAtual === 'rascunho' || statusAtual === 'recebido');
-      if (editavel) {
-        return window.el('button', {
-          type: 'button',
-          style: 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-surface);color:var(--rv-accent-blue);border:1px solid var(--rv-brand);border-radius:4px;padding:7px 13px;font-weight:600;font-size:12.5px;font-family:inherit;cursor:pointer;',
-          onclick: function () { window.navigate('#/pedidos/' + pedidoId + '/itens'); },
-        }, 'Editar itens');
-      }
-      var motivo = 'Edicao de itens permitida apenas em status "Rascunho" ou "Recebido"';
-      return placeholderButton('Editar itens', motivo);
-    }
-
+    // PEDIDO-UNIFIED-ADMIN-EDITOR-R1: um unico destino de edicao. O editor
+    // unificado cobre dados gerais, itens e prioridade e so fica indisponivel
+    // para um Pedido em status TERMINAL (entregue/cancelado) — os demais
+    // status (inclusive confirmado/produzindo) abrem o editor com os campos
+    // e a trava estrutural corretos, em vez do antigo par rascunho/recebido.
     function buildEditButton() {
       var statusAtual = state.pedido ? state.pedido.status : null;
-      var editavel = window.isPedidoEditavel
-        ? window.isPedidoEditavel(statusAtual)
-        : (statusAtual === 'rascunho' || statusAtual === 'recebido');
-      if (editavel) {
+      var terminal = statusAtual === 'entregue' || statusAtual === 'cancelado';
+      if (!terminal) {
         return window.el('button', {
           type: 'button',
           style: 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-border-strong);border-radius:4px;padding:9px 14px;font-weight:600;font-size:13.5px;font-family:inherit;cursor:pointer;',
-          onclick: function () { openEditWarning('dados'); },
+          onclick: function () { openEditWarning(); },
         }, ns.svgEl(ns.SVG_EDIT), 'Editar');
       }
-      var motivo = 'Edicao permitida apenas em status "Rascunho" ou "Recebido"';
+      var motivo = 'Edicao indisponivel: pedido em status terminal';
       return placeholderButton('Editar', motivo);
     }
 
@@ -2416,28 +2403,28 @@
       document.body.appendChild(overlay);
     }
 
-    function openEditWarning(mode) {
+    function openEditWarning() {
+      // PEDIDO-UNIFIED-ADMIN-EDITOR-R1: um unico destino ("Editar pedido"),
+      // nunca mais uma escolha entre dados gerais e itens. Quando ha OP
+      // vinculada, o aviso e apenas informativo — o editor unificado abre
+      // com os controles estruturais de item ja travados (a autoridade
+      // final e sempre salvar_pedido_admin).
       var statusAtual = state.pedido ? state.pedido.status : null;
-      var editavel = window.isPedidoEditavel
-        ? window.isPedidoEditavel(statusAtual)
-        : (statusAtual === 'rascunho' || statusAtual === 'recebido');
-
-      if (!editavel) {
-        window.toast('Edicao permitida apenas em pedidos em rascunho ou recebido.', 'error');
+      var terminal = statusAtual === 'entregue' || statusAtual === 'cancelado';
+      if (terminal) {
+        window.toast('Edicao indisponivel: pedido em status terminal.', 'error');
         return;
       }
 
       var hasOps = state.ops && state.ops.length > 0;
       if (!hasOps) {
-        window.navigate(mode === 'itens'
-          ? '#/pedidos/' + pedidoId + '/itens'
-          : '#/pedidos/' + pedidoId + '/editar');
+        window.navigate('#/pedidos/' + pedidoId + '/editar');
         return;
       }
 
       var body = window.el('div', {},
         window.el('div', {
-          style: 'display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;',
+          style: 'display:flex;align-items:flex-start;gap:12px;',
         },
           window.el('div', {
             style: 'width:36px;height:36px;border-radius:var(--rv-radius-pill);background:var(--rv-signal-caution-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;',
@@ -2448,27 +2435,17 @@
             }, 'Este pedido ja tem OPs vinculadas'),
             window.el('div', {
               style: 'font-size:13px;color:var(--rv-text-secondary);margin-top:6px;line-height:1.5;',
-            }, 'Editar dados gerais ou itens nao altera a producao ja lancada nas OPs - a OP continua sendo a origem oficial da movimentacao. Para mudar quantidades em producao, use "Movimentar".')
+            }, 'O editor abrira com modelo, metragem e composicao de itens bloqueados: essa producao ja lancada nas OPs exige o fluxo separado de reconciliacao. Dados gerais, observacao dos itens e prioridade continuam editaveis. Para mudar quantidades em producao, use "Movimentar".')
           )
-        ),
-        window.el('div', {
-          style: 'display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--rv-surface-subtle);border:1px solid var(--rv-border);border-radius:4px;padding:10px 12px;',
-        },
-          window.el('div', {
-            style: 'font-size:12.5px;color:var(--rv-text-secondary);line-height:1.5;',
-          }, 'Se voce precisar ajustar a composicao do pedido comercial, a rota de itens continua disponivel.'),
-          buildEditItensButton()
         )
       );
 
       window.modal({
         title: 'Editar pedido',
         body: body,
-        saveLabel: mode === 'itens' ? 'Editar itens' : 'Editar mesmo assim',
+        saveLabel: 'Editar mesmo assim',
         onSave: async function () {
-          window.navigate(mode === 'itens'
-            ? '#/pedidos/' + pedidoId + '/itens'
-            : '#/pedidos/' + pedidoId + '/editar');
+          window.navigate('#/pedidos/' + pedidoId + '/editar');
           return true;
         },
       });
@@ -2846,7 +2823,6 @@
       buildParciaisAdmin: buildParciaisAdmin,
       buildEditButton: buildEditButton,
       buildDeleteButton: buildDeleteButton,
-      buildEditItensButton: buildEditItensButton,
       navigateToPedidos: navigateToPedidos,
       navigateToOp: navigateToOp,
       navigateToExpedicao: navigateToExpedicao,

@@ -158,6 +158,12 @@
   //   onChange      chamado apos qualquer mutacao do item (para totais)
   //   onRemove      chamado com o item quando o lixo e clicado
   //   typeMetadata  false => falha fechada: Tipo/Modelo desabilitados
+  //   locked        true => TRAVA ESTRUTURAL (PEDIDO-UNIFIED-ADMIN-EDITOR-R1):
+  //                 Tipo, Modelo, Metragem e o botao de remocao ficam
+  //                 desabilitados; a Observacao do item PERMANECE editavel —
+  //                 ela nao e um campo estrutural (EXECUTION ORDER sec.9.1).
+  //   readOnly      true => pedido em status terminal: TUDO desabilitado,
+  //                 inclusive a Observacao. Implica `locked`.
   // ===================================================================
   function buildRow(options) {
     var opts = options || {};
@@ -166,6 +172,7 @@
     var onChange = typeof opts.onChange === 'function' ? opts.onChange : function () {};
     var onRemove = typeof opts.onRemove === 'function' ? opts.onRemove : function () {};
     var typeMetadata = opts.typeMetadata !== false;
+    var locked = !!opts.locked || !!opts.readOnly;
 
     // O Tipo corrente e DERIVADO do modelo autoritativo sempre que existe um;
     // so um item ainda sem modelo carrega o Tipo escolhido pelo operador.
@@ -267,6 +274,9 @@
       item.observacao = obsInput.value;
       onChange(item);
     });
+    // `readOnly` (tela terminal) desabilita ATE a Observacao; `locked`
+    // sozinho (trava estrutural pos-OP) a mantem editavel de proposito.
+    if (opts.readOnly) obsInput.disabled = true;
 
     // SCREEN-GROUP-1 — ACAO DESTRUTIVA PELO DONO CANONICO.
     // Remover um item era um <span> com um SVG: nao focavel, sem resposta a
@@ -280,12 +290,15 @@
       title: 'Remover item',
       icon: svgEl(SVG_TRASH),
       danger: true,
+      disabled: locked,
       onclick: function () { onRemove(item); }
     });
 
-    fillTipoSelect(tipoSelect, item.tipo, !typeMetadata);
+    fillTipoSelect(tipoSelect, item.tipo, locked || !typeMetadata);
     fillModeloSelect(modeloSelect, modelos, typeMetadata ? item.tipo : '', item.modeloId);
+    if (locked) modeloSelect.disabled = true;
     refreshDerived();
+    if (locked) metrosInput.disabled = true;
 
     row.appendChild(previewSlot);
     row.appendChild(tipoSelect);

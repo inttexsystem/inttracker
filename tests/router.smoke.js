@@ -711,7 +711,7 @@ test('runtime: matchRoute distingue #/pedidos/<uuid> vs #/pedidos/<uuid>/editar'
   assert.deepEqual(calls.screenPedidoEditar, [uuid]);
 });
 
-test('runtime: matchRoute parseia #/pedidos/<uuid>/itens e route.render() chama window.screenPedidoItensEditar(uuid) (admin-only, C3C2B)', () => {
+test('runtime: matchRoute parseia #/pedidos/<uuid>/itens e route.render() REDIRECIONA para #/pedidos/<uuid>/editar (PEDIDO-UNIFIED-ADMIN-EDITOR-R1: compatibilidade)', () => {
   const { sandbox, calls } = makeRouterSandbox();
   vm.runInContext("window.RAVATEX_ROUTER.setRoutes({});", sandbox);
   const uuid = '11111111-2222-3333-4444-555555555555';
@@ -721,15 +721,17 @@ test('runtime: matchRoute parseia #/pedidos/<uuid>/itens e route.render() chama 
   // roles admin-only via JSON.
   assert.equal(vm.runInContext(`JSON.stringify(window.matchRoute('#/pedidos/${uuid}/itens').roles)`, sandbox), '["admin"]',
     'roles de #/pedidos/<uuid>/itens deve ser ["admin"]');
-  // Executa render e verifica que screenPedidoItensEditar foi chamado.
+  // Executa render: deve REDIRECIONAR (window.navigate) para /editar, nunca
+  // chamar screenPedidoItensEditar — o editor unificado absorveu os itens.
   vm.runInContext(`window.matchRoute('#/pedidos/${uuid}/itens').render();`, sandbox);
-  assert.deepEqual(calls.screenPedidoItensEditar, [uuid],
-    'render de #/pedidos/<uuid>/itens deve chamar screenPedidoItensEditar com o UUID');
-  // E NÃO deve chamar screenPedidoDetalhe nem screenPedidoEditar.
+  assert.equal(vm.runInContext('window.location.hash', sandbox), '#/pedidos/' + uuid + '/editar',
+    'render de #/pedidos/<uuid>/itens deve navegar para #/pedidos/<uuid>/editar');
+  assert.equal(calls.screenPedidoItensEditar.length, 0,
+    'render de #/pedidos/<uuid>/itens NÃO deve mais chamar screenPedidoItensEditar diretamente');
   assert.equal(calls.screenPedidoDetalhe.length, 0,
     'render de #/pedidos/<uuid>/itens NÃO deve chamar screenPedidoDetalhe');
   assert.equal(calls.screenPedidoEditar.length, 0,
-    'render de #/pedidos/<uuid>/itens NÃO deve chamar screenPedidoEditar');
+    'render de #/pedidos/<uuid>/itens não invoca screenPedidoEditar diretamente — apenas redireciona o hash');
 });
 
 test('runtime: matchRoute rejeita IDs não-UUID para #/pedidos/<uuid>/itens', () => {
@@ -745,7 +747,7 @@ test('runtime: matchRoute rejeita IDs não-UUID para #/pedidos/<uuid>/itens', ()
   assert.equal(empty, null, '#/pedidos//itens não deve casar');
 });
 
-test('runtime: matchRoute distingue #/pedidos/<uuid>, /editar e /itens', () => {
+test('runtime: matchRoute distingue #/pedidos/<uuid>, /editar e /itens (itens redireciona)', () => {
   const { sandbox, calls } = makeRouterSandbox();
   vm.runInContext("window.RAVATEX_ROUTER.setRoutes({});", sandbox);
   const uuid = '11111111-2222-3333-4444-555555555555';
@@ -753,9 +755,10 @@ test('runtime: matchRoute distingue #/pedidos/<uuid>, /editar e /itens', () => {
   vm.runInContext(`window.matchRoute('#/pedidos/${uuid}').render();`, sandbox);
   // Render edição
   vm.runInContext(`window.matchRoute('#/pedidos/${uuid}/editar').render();`, sandbox);
-  // Render edição de itens
+  // Render edição de itens: redireciona, não chama mais screenPedidoItensEditar.
   vm.runInContext(`window.matchRoute('#/pedidos/${uuid}/itens').render();`, sandbox);
   assert.deepEqual(calls.screenPedidoDetalhe, [uuid]);
   assert.deepEqual(calls.screenPedidoEditar, [uuid]);
-  assert.deepEqual(calls.screenPedidoItensEditar, [uuid]);
+  assert.deepEqual(calls.screenPedidoItensEditar, []);
+  assert.equal(vm.runInContext('window.location.hash', sandbox), '#/pedidos/' + uuid + '/editar');
 });

@@ -1233,41 +1233,36 @@ test('pedido-detail.js: tem labels "Marcar como recebido", "Confirmar pedido", "
     'label "Cancelar pedido" deve existir (ação real)');
 });
 
-test('pedido-detail.js: botão Editar é controlado por status editável (C3C1)', () => {
-  // C3C1: o botão Editar é FUNCIONAL para status editáveis
-  // (rascunho / recebido) e PLACEHOLDER para os demais.
+test('pedido-detail.js: botão Editar é o ÚNICO destino de edição, controlado por status TERMINAL (PEDIDO-UNIFIED-ADMIN-EDITOR-R1)', () => {
+  // PEDIDO-UNIFIED-ADMIN-EDITOR-R1: o editor unificado cobre dados gerais,
+  // itens e prioridade, então "Editar" é FUNCIONAL para qualquer status
+  // NÃO terminal (rascunho/recebido/confirmado/produzindo) e PLACEHOLDER
+  // apenas para entregue/cancelado — não mais restrito a rascunho/recebido.
   assert.match(detailBundle, /Editar/,
     'botão Editar deve existir como label');
-  // Helper isPedidoEditavel (ou checagem equivalente) deve ser usado
-  // para decidir entre botão funcional e placeholder.
-  const usaEditavel = /window\.isPedidoEditavel|isPedidoEditavel\s*\(/.test(detailBundle);
-  assert.ok(usaEditavel,
-    'botão Editar deve usar isPedidoEditavel() para decidir entre funcional e placeholder');
-  // Para status editáveis, o fluxo pode navegar direto ou abrir o
-  // warning modal antes da navegação final.
-  const usaEditFlow = /openEditWarning/.test(detailBundle)
-    || /(?:window\.)?navigate\(\s*['"]#\/pedidos\/['"]?\s*\+\s*pedidoId\s*\+\s*['"]\/editar['"]/.test(detailBundle);
-  assert.ok(usaEditFlow,
-    'botão Editar funcional deve abrir o fluxo de edição do pedido');
+  const usaTerminal = /statusAtual === 'entregue' \|\| statusAtual === 'cancelado'/.test(detailBundle);
+  assert.ok(usaTerminal,
+    'botão Editar deve decidir funcional vs placeholder pelo status TERMINAL (entregue/cancelado), não mais por isPedidoEditavel');
+  // Para status não-terminais, o fluxo abre o warning modal (que navega
+  // para /editar) — nunca mais uma escolha entre dados gerais e itens.
+  assert.match(detailBundle, /openEditWarning\(\)/,
+    'botão Editar funcional deve abrir openEditWarning() sem parâmetro de modo');
+  assert.match(detailBundle, /navigate\(\s*['"]#\/pedidos\/['"]?\s*\+\s*pedidoId\s*\+\s*['"]\/editar['"]/,
+    'o fluxo de edição deve navegar para "#/pedidos/<id>/editar"');
   // placeholderButton continua disponível para o caminho placeholder
-  // (status não editáveis) e deve gerar `disabled`.
+  // (status terminal) e deve gerar `disabled`.
   assert.match(detailBundle, /function\s+placeholderButton[\s\S]{0,400}?disabled\s*:\s*['"]disabled['"]/,
     'placeholderButton deve criar botão com disabled="disabled"');
 });
 
-test('pedido-detail.js: botão Editar itens é controlado por status editável (C3C2B)', () => {
-  // C3C2B: o botão "Editar itens" é FUNCIONAL para status
-  // editáveis (rascunho / recebido) e PLACEHOLDER para os demais.
-  // Deve navegar para "#/pedidos/<id>/itens".
-  assert.match(detailBundle, /Editar itens/,
-    'botão "Editar itens" deve existir como label');
-  // O botão Editar itens funcional deve navegar para /itens.
-  assert.match(detailBundle, /navigate\(\s*['"]#\/pedidos\/['"]?\s*\+\s*pedidoId\s*\+\s*['"]\/itens['"]/,
-    'botão Editar itens funcional deve navegar para "#/pedidos/<id>/itens"');
-  // O botão Editar itens é criado em buildEditItensButton()
-  // (helper separado, mesmo padrão de buildEditButton).
-  assert.match(detailBundle, /function\s+buildEditItensButton/,
-    'deve existir função buildEditItensButton()');
+test('pedido-detail.js: buildEditItensButton foi RETIRADO — "Editar itens" não é mais um destino separado (PEDIDO-UNIFIED-ADMIN-EDITOR-R1)', () => {
+  // A escolha entre editar dados gerais ou itens foi colapsada num único
+  // destino ("Editar pedido" -> #/pedidos/<id>/editar). O antigo par
+  // buildEditButton/buildEditItensButton some; só buildEditButton resta.
+  assert.doesNotMatch(detailBundle, /function\s+buildEditItensButton/,
+    'buildEditItensButton deve ter sido removido do bundle');
+  assert.match(detailBundle, /function\s+buildEditButton/,
+    'buildEditButton deve continuar existindo como o único destino de edição');
 });
 
 test('pedido-detail.js: "Gerar primeira OP" usa hash route #/ops/nova?pedido_id=<id>', () => {

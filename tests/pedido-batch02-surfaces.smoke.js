@@ -143,29 +143,47 @@ test('cliente-form: tipo_produto FALHA FECHADA', () => {
 // 3. Pedido header editing.
 // ---------------------------------------------------------------------
 
-test('pedido-edit: carrega e salva data_pedido', () => {
-  assert.match(pedidoEdit, /\.select\('id, numero, data_pedido, status, cliente_id, prazo_entrega, observacao, criado_em, atualizado_em'\)/);
-  assert.match(pedidoEdit, /state\.dataPedido = pedidoRes\.data\.data_pedido \|\| '';/);
-  assert.match(pedidoEdit, /data_pedido: state\.dataPedido,/);
-  assert.match(pedidoEdit, /Informe a data do pedido\./, 'data_pedido é obrigatória na edição');
+// PEDIDO-UNIFIED-ADMIN-EDITOR-R1 substituiu a edição parcial (só dados
+// gerais, écran 768px) pelo editor administrativo unificado. Os campos
+// gerais (incluindo data_pedido/numero) agora têm um dono compartilhado
+// — js/pedido-fields.js — em vez de estado e payload locais a
+// pedido-edit.js; as três provas abaixo foram atualizadas para a nova
+// arquitetura, preservando exatamente os mesmos invariantes de negócio
+// (data_pedido carregada/salva, numero jamais editável ou no payload,
+// Data antes de Prazo).
+const pedidoFields = read('js', 'pedido-fields.js');
+
+test('pedido-edit: carrega e salva data_pedido (via js/pedido-fields.js)', () => {
+  assert.match(pedidoEdit, /data_pedido, status, cliente_id, referencia_cliente, prazo_entrega, tipo_recebimento, observacao/,
+    'select do pedido deve incluir data_pedido');
+  assert.match(pedidoEdit, /state\.fields = FIELDS\(\)\.fromPersisted\(pedidoRes\.data\);/,
+    'estado de campos gerais deve vir do dono compartilhado a partir da linha persistida');
+  assert.match(pedidoFields, /dataPedido: p\.data_pedido \|\| '',/,
+    'js/pedido-fields.js deve mapear data_pedido para o estado local');
+  assert.match(pedidoFields, /if \(!f\.dataPedido\) errors\.push\('Informe a data do pedido\.'\);/,
+    'data_pedido continua obrigatória na edição administrativa');
 });
 
-test('pedido-edit: numero é contexto SOMENTE-LEITURA e nunca entra no payload', () => {
-  assert.match(pedidoEdit, /data-pedido-numero-readonly/);
-  assert.match(pedidoEdit, /numeroInput\.setAttribute\('readonly', 'readonly'\)/);
-  assert.match(pedidoEdit, /numeroInput\.disabled = true;/);
-  // O payload de update tem exatamente cliente_id, data_pedido, prazo_entrega e observacao.
-  const payload = (pedidoEdit.match(/const payload = \{[\s\S]*?\n      \};/) || [''])[0];
-  assert.ok(payload, 'bloco de payload não encontrado');
-  assert.doesNotMatch(payload, /numero/, 'numero jamais pode entrar no payload de update');
-  assert.doesNotMatch(pedidoEdit, /payload\.numero/);
+test('pedido-edit: numero é contexto SOMENTE-LEITURA e nunca entra no payload (via js/pedido-fields.js)', () => {
+  assert.match(pedidoEdit, /numeroControl = window\.createReadonlyFieldValue/,
+    'numero deve ser renderizado como campo somente-leitura canônico, não input readonly');
+  // O conjunto de campos permitidos no payload de cabeçalho (ADMIN_HEADER_KEYS)
+  // nunca inclui numero/status — eles só aparecem em readOnlyFields.
+  const headerKeysLine = (pedidoFields.match(/var ADMIN_HEADER_KEYS = \[[^\]]*\];/) || [''])[0];
+  assert.ok(headerKeysLine, 'ADMIN_HEADER_KEYS não encontrado em js/pedido-fields.js');
+  assert.doesNotMatch(headerKeysLine, /'numero'/, 'numero jamais pode entrar na lista de campos editáveis');
+  assert.doesNotMatch(headerKeysLine, /'status'/, 'status jamais pode entrar na lista de campos editáveis');
+  assert.match(headerKeysLine, /'cliente_id', 'data_pedido', 'prazo_entrega', 'referencia_cliente', 'tipo_recebimento', 'observacao'/,
+    'a lista de campos editáveis pelo admin deve espelhar exatamente public.pedido_header_validar');
+  assert.match(pedidoFields, /readOnlyFields: \['numero', 'status'\]/,
+    'numero e status devem estar declarados como somente-leitura, nunca editáveis');
 });
 
-test('pedido-edit: campo de data aparece antes do prazo', () => {
-  const iData = pedidoEdit.indexOf("label: 'Data do pedido'");
-  const iPrazo = pedidoEdit.indexOf("label: 'Prazo de entrega'");
-  assert.ok(iData > 0 && iPrazo > 0);
-  assert.ok(iData < iPrazo, 'Data do pedido deve vir antes do Prazo de entrega');
+test('pedido-edit: campo de Data do pedido aparece antes do Prazo desejado', () => {
+  const iData = pedidoEdit.indexOf("buildFieldLabel('Data do pedido', true)");
+  const iPrazo = pedidoEdit.indexOf("buildFieldLabel('Prazo desejado')");
+  assert.ok(iData > 0 && iPrazo > 0, 'labels de Data do pedido e Prazo desejado devem existir');
+  assert.ok(iData < iPrazo, 'Data do pedido deve vir antes do Prazo desejado');
 });
 
 // ---------------------------------------------------------------------
@@ -275,9 +293,13 @@ test('index.html: toda superfície alterada recebeu o token do lote 2', () => {
   // de edicao nao foram tocadas e mantem os seus. Mesma regra de sempre: cada
   // superficie carrega o token da ordem que a alterou POR ULTIMO, e nenhuma
   // retem um token anterior ao seu.
+  // PEDIDO-UNIFIED-ADMIN-EDITOR-R1 reescreveu pedido-edit.js como o editor
+  // unificado, entao ele passa a carregar o token dessa ordem.
+  // pedido-itens-edit.js NAO foi tocado (fica rastreado para retirada
+  // fisica futura) e mantem o token anterior.
   const ULTIMA_ORDEM = {
     'js/screens/pedido-detail-data.js': '20260728-pedido-item-production-priority-r1',
-    'js/screens/pedido-edit.js': '20260727-ui-pedido-screen-group-1',
+    'js/screens/pedido-edit.js': '20260729-pedido-unified-admin-editor-r1',
     'js/screens/pedido-itens-edit.js': '20260727-ui-pedido-screen-group-1',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
@@ -381,10 +403,15 @@ test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não
   // e carrega o token dessa ordem. O modal de item e a linha de item nao foram
   // tocados e mantem os seus. A garantia nao muda: cada asset e verificado
   // contra a ordem que o alterou POR ULTIMO, e nenhum retem o token do lote 2.
+  // PEDIDO-UNIFIED-ADMIN-EDITOR-R1 adotou js/pedido-draft.js em
+  // pedido-form.js (identidade/totais de item) e acrescentou o modo
+  // `locked`/`readOnly` em pedido-item-row-editor.js, entao os dois
+  // passam a carregar o token dessa ordem. pedido-item-modal.js não foi
+  // tocado e mantém o seu.
   const ULTIMA_ORDEM = {
-    'screens/pedido-form.js': '20260728-pedido-item-production-priority-r1',
+    'screens/pedido-form.js': '20260729-pedido-unified-admin-editor-r1',
     'screens/pedido-item-modal.js': '20260728-pedido-dual-item-entry-r1',
-    'screens/pedido-item-row-editor.js': '20260727-ui-pedido-screen-group-3',
+    'screens/pedido-item-row-editor.js': '20260729-pedido-unified-admin-editor-r1',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
     const esc = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

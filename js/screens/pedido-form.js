@@ -66,8 +66,15 @@
 (function (window) {
   'use strict';
 
+  // PEDIDO-UNIFIED-ADMIN-EDITOR-R1: identidade local de item e totais
+  // passam a ter UM dono compartilhado com o editor administrativo
+  // (js/pedido-draft.js), em vez de uma segunda implementacao aqui.
+  // Persistencia (INSERT direto) e validacao de salvamento permanecem
+  // locais: esta tela grava por DML direto, nao pela RPC salvar_pedido_admin,
+  // entao o payload e as mensagens de erro sao um caminho estruturalmente
+  // diferente e continuam nao migrados nesta fase.
   function novoUid() {
-    return 'i_' + Math.random().toString(36).slice(2, 10);
+    return window.RAVATEX_PEDIDO_DRAFT.novoUid();
   }
 
   function svgEl(markup) {
@@ -92,9 +99,11 @@
   // Forma LOCAL unica do item: modal e linha rapida passam os DOIS por aqui, e
   // por isso um item de um caminho e indistinguivel do outro — estado e payload.
   function novoItem(dados) {
-    var d = dados || {};
-    return { uid: novoUid(), tipo: d.tipo || '', modeloId: d.modeloId || '',
-      metros: d.metros == null ? '' : d.metros, observacao: d.observacao || '' };
+    // buildRow() sempre RE-DERIVA item.tipo a partir de item.modeloId quando
+    // ha modelo selecionado, entao a forma do dono compartilhado (sem `tipo`
+    // proprio) e equivalente para os dois caminhos de entrada: o modal exige
+    // modelo antes de confirmar, e a linha rapida comeca sem modelo e sem tipo.
+    return window.RAVATEX_PEDIDO_DRAFT.novoItem(dados);
   }
 
   // Dono UNICO do contrato de numeracao (candidato, deteccao de ocupado,
@@ -146,20 +155,8 @@
     // alocacao automatica da coluna de identidade.
     var numeroSugestaoIndisponivel = false;
 
-    function totalMetros() {
-      var total = 0;
-      for (var i = 0; i < state.itens.length; i++) {
-        var value = parseFloat(state.itens[i].metros);
-        if (Number.isFinite(value) && value > 0) total += value;
-      }
-      return total;
-    }
-
     function totalMetrosStr() {
-      var total = totalMetros();
-      return total > 0
-        ? total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' m'
-        : '0,00 m';
+      return window.RAVATEX_PEDIDO_DRAFT.totalMetrosLabel(state.itens);
     }
 
     function updateItensSummary() {

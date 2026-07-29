@@ -51,6 +51,9 @@ const SOURCES = [
   'js/pedido-ui.js',
   'js/op-display.js',
   'js/product-route.js',
+  // PEDIDO-UNIFIED-ADMIN-EDITOR-R1: dono compartilhado de identidade/totais
+  // de item, consumido por pedido-form.js — precisa carregar antes dela.
+  'js/pedido-draft.js',
   'js/screens/pedido-item-row-editor.js',
   'js/screens/pedido-numero-sugestao.js',
   'js/screens/pedido-item-modal.js',

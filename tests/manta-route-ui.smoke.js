@@ -2082,9 +2082,12 @@ test('R3/20c6. o lote 3 nao retokenizou nenhum asset que nao alterou', () => {
   // finalizacao). O sujeito do guard nao muda: o lote 3 continua proibido de
   // arrastar asset algum, e cada asset segue verificado contra a ordem que o
   // alterou POR ULTIMO.
+  // PEDIDO-UNIFIED-ADMIN-EDITOR-R1 reescreveu pedido-edit.js como o editor
+  // administrativo unificado, entao ele sai desta lista de "intocados" pelo
+  // lote 3 — seu token e verificado por tests/pedido-batch02-surfaces.smoke.js,
+  // nao aqui. pedido-itens-edit.js NAO foi tocado e continua nesta lista.
   const intocados = [
     ['js/screens/pedido-detail-data.js', PRIORITY_TOKEN],
-    ['js/screens/pedido-edit.js', SCREEN_GROUP_1_TOKEN],
     ['js/screens/pedido-itens-edit.js', SCREEN_GROUP_1_TOKEN],
     // PEDIDO-SCREEN-GROUP-2 passou a ser a ULTIMA ordem a alterar
     // cliente-pedido-form (moldura, divisor de cabecalho, empilhamento

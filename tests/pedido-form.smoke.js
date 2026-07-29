@@ -61,6 +61,9 @@ const ROWEDIT = path.join(ROOT, 'js', 'screens', 'pedido-item-row-editor.js');
 const NUMSUG = path.join(ROOT, 'js', 'screens', 'pedido-numero-sugestao.js');
 // PEDIDO-ADMIN-DUAL-ITEM-ENTRY-RESTORE-R1: dono do modal detalhado de item.
 const ITEMMODAL = path.join(ROOT, 'js', 'screens', 'pedido-item-modal.js');
+// PEDIDO-UNIFIED-ADMIN-EDITOR-R1: pedido-form.js adotou este dono
+// compartilhado para identidade local de item e totais.
+const PEDIDODRAFT = path.join(ROOT, 'js', 'pedido-draft.js');
 
 function readOrFail(p) {
   assert.ok(fs.existsSync(p), 'arquivo não encontrado: ' + p);
@@ -79,6 +82,7 @@ const pRouteSrc = readOrFail(PROUTE);
 const rowEditor = readOrFail(ROWEDIT);
 const numSug = readOrFail(NUMSUG);
 const itemModal = readOrFail(ITEMMODAL);
+const pedidoDraft = readOrFail(PEDIDODRAFT);
 
 // ---------------------------------------------------------------------
 // PedidoFormNode — the shared FaithfulNode widened with an attribute-aware
@@ -374,6 +378,9 @@ function makePedidoFormRuntime() {
   // Tipo proofs exercise the accepted derivation, not a suite-local copy.
   vm.runInContext(opDispSrc, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(pRouteSrc, sandbox, { filename: 'js/product-route.js' });
+  // PEDIDO-UNIFIED-ADMIN-EDITOR-R1: dono compartilhado de identidade/totais
+  // de item, consumido por pedido-form.js — precisa carregar antes dela.
+  vm.runInContext(pedidoDraft, sandbox, { filename: 'js/pedido-draft.js' });
   vm.runInContext(rowEditor, sandbox, { filename: 'js/screens/pedido-item-row-editor.js' });
   vm.runInContext(numSug, sandbox, { filename: 'js/screens/pedido-numero-sugestao.js' });
   // O modal detalhado depende do derivador de rota da linha, entao carrega
@@ -1518,10 +1525,12 @@ test('batch2/19. index.html carrega o modulo da linha antes de pedido-form.js', 
   // canonico actionButton().
   // PEDIDO-SCREEN-GROUP-3 removeu do chamador o `position:relative` que
   // PEDIDO-SCREEN-GROUP-2 tornou redundante ao declarar o contexto de
-  // posicionamento dentro do proprio actionButton(), entao o modulo carrega
-  // agora o token dessa ordem. O sujeito do guard — ordem e carga unica — nao
-  // muda, e o token segue verificado literalmente.
-  assert.match(index, /pedido-item-row-editor\.js\?v=20260727-ui-pedido-screen-group-3/);
+  // posicionamento dentro do proprio actionButton().
+  // PEDIDO-UNIFIED-ADMIN-EDITOR-R1 acrescentou os modos `locked`/`readOnly`
+  // (trava estrutural pos-OP / tela terminal) a buildRow(), entao o modulo
+  // carrega agora o token dessa ordem. O sujeito do guard — ordem e carga
+  // unica — nao muda, e o token segue verificado literalmente.
+  assert.match(index, /pedido-item-row-editor\.js\?v=20260729-pedido-unified-admin-editor-r1/);
 });
 
 // O sujeito deste guard e a EXTRACAO de BATCH-02: a tela encolheu de 1089 para

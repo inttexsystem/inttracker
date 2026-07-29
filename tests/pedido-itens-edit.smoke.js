@@ -185,22 +185,23 @@ test('index.html: pedido-itens-edit.js vem depois de pedido-ui.js, pedido-detail
 // 4. Router tem match dinâmico para #/pedidos/<uuid>/itens (admin only)
 // ---------------------------------------------------------------------
 
-test('router.js: tem match dinâmico para #/pedidos/<uuid>/itens chamando screenPedidoItensEditar', () => {
+test('router.js: tem match dinâmico para #/pedidos/<uuid>/itens REDIRECIONANDO para /editar (PEDIDO-UNIFIED-ADMIN-EDITOR-R1: compatibilidade)', () => {
   assert.ok(router.includes('#/pedidos/'),
     'router.js deve referenciar #/pedidos/ no matchRoute');
   assert.ok(router.includes('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'),
     'router.js deve validar formato UUID do id do pedido');
-  assert.match(router, /screenPedidoItensEditar/,
-    'router.js deve chamar screenPedidoItensEditar no matchRoute');
-  // O match dinâmico deve ter /itens ancorado em $ próximo de
-  // screenPedidoItensEditar.
+  // O editor unificado absorveu a edição de itens: a rota /itens não chama
+  // mais screenPedidoItensEditar, apenas redireciona (navigate) para /editar.
+  assert.doesNotMatch(router, /screenPedidoItensEditar/,
+    'router.js NÃO deve mais referenciar screenPedidoItensEditar — /itens é compatibilidade pura');
+  // O match dinâmico deve ter /itens ancorado em $ próximo do redirect.
   const idxItens = router.indexOf('/itens$');
-  const idxRender = router.indexOf('screenPedidoItensEditar');
+  const idxRedirect = router.indexOf("navigate('#/pedidos/' + mPedItens[1] + '/editar')");
   assert.ok(idxItens > 0, 'regex de edição de itens (com /itens$ ancorado) deve existir em router.js');
-  assert.ok(idxRender > 0, 'chamada screenPedidoItensEditar deve existir em router.js');
-  const distancia = Math.abs(idxRender - idxItens);
+  assert.ok(idxRedirect > 0, 'redirect para /editar deve existir em router.js');
+  const distancia = Math.abs(idxRedirect - idxItens);
   assert.ok(distancia <= 400,
-    'regex de itens e screenPedidoItensEditar devem estar próximos (distância ' + distancia + ' > 400)');
+    'regex de itens e o redirect devem estar próximos (distância ' + distancia + ' > 400)');
 });
 
 test('router.js: rota dinâmica #/pedidos/<uuid>/itens é admin-only', () => {
@@ -890,26 +891,25 @@ test('pedido-itens-edit.js: NÃO permite salvar quando não há itens', () => {
 // 17. pedido-detail.js → botão "Editar itens" funcional por status
 // ---------------------------------------------------------------------
 
-test('pedido-detail.js: tem botão "Editar itens" para status editáveis (C3C2B)', () => {
-  // C3C2B: o botão "Editar itens" é FUNCIONAL para status
-  // editáveis (rascunho / recebido) e PLACEHOLDER para os demais.
-  assert.match(detailBundle, /Editar itens/,
-    'botão "Editar itens" deve existir como label');
-  // O botão Editar itens funcional deve navegar para /itens.
-  assert.match(detailBundle, /navigate\(\s*['"]#\/pedidos\/['"]?\s*\+\s*pedidoId\s*\+\s*['"]\/itens['"]/,
-    'botão Editar itens funcional deve navegar para "#/pedidos/<id>/itens"');
-  // O botão Editar itens é criado em buildEditItensButton()
-  // (helper separado, mesmo padrão de buildEditButton).
-  assert.match(detailBundle, /function\s+buildEditItensButton/,
-    'deve existir função buildEditItensButton()');
+test('pedido-detail.js: "Editar itens" foi CONSOLIDADO em "Editar" — buildEditItensButton retirado (PEDIDO-UNIFIED-ADMIN-EDITOR-R1)', () => {
+  // O editor unificado absorveu itens: não existe mais um destino de edição
+  // separado para "Editar itens". buildEditButton é o único ponto de entrada
+  // e navega (via openEditWarning) para #/pedidos/<id>/editar.
+  assert.doesNotMatch(detailBundle, /function\s+buildEditItensButton/,
+    'buildEditItensButton deve ter sido removido do bundle');
+  assert.match(detailBundle, /function\s+buildEditButton/,
+    'buildEditButton deve continuar existindo como o único destino de edição');
+  assert.match(detailBundle, /navigate\(\s*['"]#\/pedidos\/['"]?\s*\+\s*pedidoId\s*\+\s*['"]\/editar['"]/,
+    'o fluxo de edição deve navegar para "#/pedidos/<id>/editar"');
 });
 
-test('pedido-detail.js: buildEditItensButton usa isPedidoEditavel', () => {
-  // Defesa: buildEditItensButton deve checar isPedidoEditavel
-  // antes de criar o botão funcional.
+test('pedido-detail.js: buildEditButton decide funcional vs placeholder pelo status TERMINAL, não mais isPedidoEditavel', () => {
+  // PEDIDO-UNIFIED-ADMIN-EDITOR-R1: o editor unificado é alcançável em
+  // qualquer status não-terminal (inclusive confirmado/produzindo), então o
+  // gate deixou de ser isPedidoEditavel (rascunho/recebido apenas).
   const co = codeOnly(detailBundle);
-  assert.match(co, /function\s+buildEditItensButton[\s\S]{0,300}?isPedidoEditavel/,
-    'buildEditItensButton deve usar isPedidoEditavel');
+  assert.match(co, /function\s+buildEditButton[\s\S]{0,300}?statusAtual === 'entregue' \|\| statusAtual === 'cancelado'/,
+    'buildEditButton deve usar o status terminal (entregue/cancelado), não isPedidoEditavel');
 });
 
 // ---------------------------------------------------------------------

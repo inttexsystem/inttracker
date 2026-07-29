@@ -84,16 +84,23 @@
       };
     }
 
-    // Match dinâmico para EDIÇÃO DE ITENS de Pedido (C3C2B). Mais
-    // específico que o match de detalhe (terminado em /itens) — vem
-    // antes do match de detalhe para clareza, embora o regex do
-    // detalhe (ancorado em $) já exclua o caso.
+    // #/pedidos/<uuid>/itens é um REDIRECT DE COMPATIBILIDADE
+    // (PEDIDO-UNIFIED-ADMIN-EDITOR-R1): o editor unificado absorveu a
+    // edição de itens, então esta rota apenas reaponta para /editar.
+    // js/screens/pedido-itens-edit.js permanece rastreado (retirada
+    // física adiada para fase futura) mas não é mais alcançado por
+    // navegação alguma.
     const mPedItens = rawHash.match(
       /^#\/pedidos\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/itens$/i
     );
     if (mPedItens) {
       return {
-        render: () => window.screenPedidoItensEditar(mPedItens[1]),
+        render: () => {
+          navigate('#/pedidos/' + mPedItens[1] + '/editar');
+          // O hashchange disparado por navigate() já reexecuta handleRoute()
+          // para a rota real; este nó é substituído antes de ser visível.
+          return typeof document !== 'undefined' ? document.createElement('div') : null;
+        },
         roles: ['admin'],
       };
     }
