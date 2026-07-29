@@ -141,6 +141,30 @@
       itens: [novoItem()]
     };
     var postSave = null;
+    // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1: o textarea e recriado a cada
+    // render(); estas 3 vivem fora de buildBottomSection porque
+    // buildItensCard() roda ANTES dela no mesmo render() e so LE (nunca
+    // captura por valor) no clique — a build mais recente sempre vale.
+    var obsTextareaRef = null;
+    var obsTextareaFocused = false;
+    var syncObservacaoRef = null;
+
+    // Insere a mencao via js/pedido-draft.js (aritmetica pura) + o MESMO
+    // path normal de input (syncObservacaoRef) — sem estado paralelo.
+    // Cliques repetidos inserem referencias repetidas, sem dedup.
+    function handleItemMention(mentionText) {
+      var textarea = obsTextareaRef;
+      var draft = window.RAVATEX_PEDIDO_DRAFT;
+      if (!textarea || !mentionText || !draft || typeof draft.computeMentionInsertion !== 'function') return;
+      var result = draft.computeMentionInsertion(textarea.value, textarea.selectionStart, obsTextareaFocused, mentionText);
+      textarea.value = result.value;
+      if (typeof syncObservacaoRef === 'function') syncObservacaoRef();
+      if (typeof textarea.focus === 'function') textarea.focus();
+      if (typeof textarea.setSelectionRange === 'function') textarea.setSelectionRange(result.caret, result.caret);
+      if (typeof window.autosizeTextarea === 'function') window.autosizeTextarea(textarea);
+      if (typeof textarea.scrollIntoView === 'function') textarea.scrollIntoView({ block: 'nearest' });
+    }
+
     var numeroErro = null;
     // Aviso NAO-erro: usado quando o numero sugerido foi tomado por outro
     // Pedido entre a abertura da tela e o envio, e uma sugestao nova entrou
@@ -476,9 +500,11 @@
       for (var i = 0; i < state.itens.length; i++) {
         rowsWrap.appendChild(api.buildRow({
           item: state.itens[i],
+          index: i,
           modelos: modelos,
           typeMetadata: tipoMetadataOk,
           onChange: updateItensSummary,
+          onMention: handleItemMention,
           onRemove: function (target) {
             state.itens = state.itens.filter(function (current) { return current.uid !== target.uid; });
             render();
@@ -595,16 +621,29 @@
         rows: 1,
         value: state.observacao,
         placeholder: 'Informações adicionais sobre conferência, prazo ou observações internas...',
-        ariaLabel: 'Instruções gerais',
+        ariaLabel: 'Observações gerais',
       });
-      obsTextarea.addEventListener('input', function () {
+      function syncObservacao() {
         state.observacao = obsTextarea.value;
-      });
+      }
+      obsTextarea.addEventListener('input', syncObservacao);
+      // Rastreamento de foco proprio, DELIBERADAMENTE sem reset no blur: um
+      // clique no botao de mencao SEMPRE tira o foco do textarea ANTES do
+      // onclick rodar (blur -> focus -> click, semantica padrao do
+      // navegador), entao resetar aqui tornaria "inserir no caret ativo"
+      // estruturalmente inalcancavel — todo clique cairia em "acrescentar ao
+      // final". selectionStart/selectionEnd sao preservados pelo navegador
+      // apos o blur (nao sao zerados), entao "foi focado nesta renderizacao"
+      // e o sinal correto e estavel de "ha um caret significativo a respeitar".
+      obsTextarea.addEventListener('focus', function () { obsTextareaFocused = true; });
+      obsTextareaRef = obsTextarea;
+      obsTextareaFocused = false;
+      syncObservacaoRef = syncObservacao;
 
       var instrCard = window.el('div', {
         style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px;'
       },
-      window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:10px;' }, 'Instruções gerais'),
+      window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:10px;' }, 'Observações gerais'),
       obsTextarea);
 
       window.requestAnimationFrame(function () {

@@ -677,8 +677,14 @@ test('8.3 G23 keeps its pre-existing inline numeral owner untouched', () => {
 test('8.4 editable numeric inputs were not restyled (architect ruling 6.3)', () => {
   // G19 and G30 hold a metre <input>. Pass 8 must not touch its alignment,
   // geometry or typography — only the table around it.
+  //
+  // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 changed GRID_COLS to drop the
+  // Observation column (8 -> 7 tracks) — an unrelated, later, ratified
+  // product change, not a Pass-8 regression. The literal below is updated
+  // to that value; the invariant this test actually owns (no numeric
+  // alignment was introduced into the row) is unchanged and still checked.
   const editor = read('js/screens/pedido-item-row-editor.js');
-  assert.match(editor, /var GRID_COLS = '60px \.62fr 1\.28fr 1\.1fr \.8fr \.55fr 1\.2fr 84px';/);
+  assert.match(editor, /var GRID_COLS = '60px \.70fr 1\.45fr 1\.15fr \.80fr \.90fr 92px';/);
   assert.doesNotMatch(editor, /text-align:right/, 'a row-editor cell acquired a numeric alignment');
   assert.match(read('js/screens/op-nova.js'), /styleInput\(metrosInput, 'padding:7px 10px;font-size:13\.5px;'\)/);
 });

@@ -247,7 +247,11 @@ test('pedido-edit: mudar SÓ o cabeçalho manda p_header preenchido e p_itens/p_
 // 4. Trava estrutural (EXECUTION ORDER sec.9.1) e fail-closed.
 // ---------------------------------------------------------------------
 
-test('pedido-edit: OP vinculada trava "Adicionar item" e mostra o aviso, mas Observação de item continua editável', async () => {
+// PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1: a Observação por item foi retirada
+// da linha (não existe mais input a testar). A prova equivalente agora é a
+// ação de menção (não-estrutural): permanece disponível sob trava
+// estrutural, junto com Observações gerais — ver EXECUTION ORDER sec.J.
+test('pedido-edit: OP vinculada trava "Adicionar item" e mostra o aviso, mas a menção de item e Observações gerais continuam disponíveis', async () => {
   const { root } = await bootPedidoEdit({
     tableData: { op_itens: [{ id: 'oi-1', pedido_item_id: 'it-1' }] },
   });
@@ -255,10 +259,15 @@ test('pedido-edit: OP vinculada trava "Adicionar item" e mostra o aviso, mas Obs
   assert.ok(addItem, '"Adicionar item" deve continuar visível (não removido, apenas travado)');
   assert.equal(addItem.getAttribute('disabled'), 'disabled', '"Adicionar item" deve estar desabilitado sob trava estrutural');
   assert.match(root.textContent, /já tem produção vinculada/);
-  // Observação (input de texto livre dentro da linha de item) permanece habilitada.
-  const obsInputs = allByTag(root, 'input').filter((i) => i.getAttribute('type') === 'text' && i.getAttribute('maxlength') === '200');
-  assert.ok(obsInputs.length >= 1, 'inputs de observação de item devem existir');
-  assert.notEqual(obsInputs[0].disabled, true, 'observação do item deve continuar editável sob trava estrutural');
+  // Ação de menção: NÃO estrutural, permanece habilitada mesmo sob trava
+  // (desde que o item tenha um modelo selecionado no fixture de boot).
+  const mentionBtns = allWithAttr(root, 'data-item-mention-action');
+  assert.ok(mentionBtns.length >= 1, 'ação de menção deve existir em cada linha de item');
+  assert.notEqual(mentionBtns[0].disabled, true, 'a menção do item deve continuar disponível sob trava estrutural');
+  // Observações gerais (campo geral, não mais "Instruções gerais") continua editável.
+  const obsGerais = allByTag(root, 'textarea').find((t) => t.getAttribute('aria-label') === 'Observações gerais');
+  assert.ok(obsGerais, 'Observações gerais deve existir');
+  assert.notEqual(obsGerais.disabled, true, 'Observações gerais deve continuar editável sob trava estrutural');
 });
 
 test('pedido-edit: falha ao detectar vínculo de produção TRAVA por segurança (fail closed, nunca assume "sem OP")', async () => {

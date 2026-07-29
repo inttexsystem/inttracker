@@ -441,7 +441,10 @@ test('dual/12. o modal declara Tipo ANTES de Modelo no corpo', () => {
 // 5. Confirmacao do modal e convergencia dos dois caminhos.
 // ---------------------------------------------------------------------
 
-async function addViaModal(root, document, tipo, modeloId, metros, obs) {
+// PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 sec.D: o modal detalhado perdeu seu
+// campo de observacao por item. `addViaModal` nao tem mais um `obs` a
+// preencher — nenhum caller passa mais o sexto argumento.
+async function addViaModal(root, document, tipo, modeloId, metros) {
   addItemBtn(root).fire('click');
   const modal = openModals(document)[0];
   pick(byAttr(modal, 'data-item-modal-tipo')[0], tipo);
@@ -449,19 +452,13 @@ async function addViaModal(root, document, tipo, modeloId, metros, obs) {
   const metragem = byAttr(modal, 'data-item-modal-metragem')[0];
   metragem.value = metros;
   metragem.fire('input');
-  if (obs != null) {
-    const ta = [];
-    walk(modal, (n) => { if (n.tagName === 'TEXTAREA') ta.push(n); });
-    ta[0].value = obs;
-    ta[0].fire('input');
-  }
   byAttr(modal, 'data-item-modal-confirmar')[0].fire('click');
 }
 
 test('dual/13. confirmar o modal acrescenta EXATAMENTE um item e fecha', async () => {
   const { root, document } = await boot();
   const antes = rows(root).length;
-  await addViaModal(root, document, 'tapete', '1', '12.5', 'vitrine');
+  await addViaModal(root, document, 'tapete', '1', '12.5');
   assert.equal(rows(root).length, antes + 1, 'exatamente um item');
   assert.equal(openModals(document).length, 0, 'o modal deve fechar na confirmacao');
 
@@ -470,7 +467,9 @@ test('dual/13. confirmar o modal acrescenta EXATAMENTE um item e fecha', async (
   walk(nova, (n) => { if (n.tagName === 'INPUT') inputs.push(n); });
   assert.equal(byAttr(nova, 'data-rv-select-popover')[1].value, '1');
   assert.equal(inputs.find((i) => i.getAttribute('placeholder') === '0,00').value, '12.5');
-  assert.equal(inputs.find((i) => i.getAttribute('placeholder') === '-').value, 'vitrine');
+  // Nao ha mais input de observacao por item na linha (retirado da UI).
+  assert.equal(inputs.find((i) => i.getAttribute('placeholder') === '-'), undefined,
+    'a linha nao deve mais ter um input de observacao por item');
 });
 
 test('dual/14. o modal recusa Tipo, Modelo ou Metragem invalidos, sem inserir', async () => {
@@ -500,7 +499,7 @@ test('dual/15. item do MODAL e item da LINHA RAPIDA sao estruturalmente identico
   const { root, document } = await boot();
 
   // Modal.
-  await addViaModal(root, document, 'tapete', '1', '10', 'do modal');
+  await addViaModal(root, document, 'tapete', '1', '10');
   // Linha rapida, preenchida a mao com os MESMOS valores.
   addLinhaLink(root).fire('click');
   const atual = rows(root)[rows(root).length - 1];
@@ -513,10 +512,10 @@ test('dual/15. item do MODAL e item da LINHA RAPIDA sao estruturalmente identico
   const met = ins.find((i) => i.getAttribute('placeholder') === '0,00');
   met.value = '10';
   met.fire('input');
-  const obs = ins.find((i) => i.getAttribute('placeholder') === '-');
-  obs.value = 'do modal';
-  obs.fire('input');
 
+  // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1: observacao por item saiu da
+  // linha e do modal — nenhum dos dois caminhos tem mais um input a
+  // comparar aqui. A forma comparada e a que sobrou na UI.
   const forma = (row) => {
     const inputs = [];
     walk(row, (n) => { if (n.tagName === 'INPUT') inputs.push(n); });
@@ -525,7 +524,6 @@ test('dual/15. item do MODAL e item da LINHA RAPIDA sao estruturalmente identico
       modeloId: byAttr(row, 'data-rv-select-popover')[1].value,
       tipo: byAttr(row, 'data-rv-select-popover')[0].value,
       metros: inputs.find((i) => i.getAttribute('placeholder') === '0,00').value,
-      observacao: inputs.find((i) => i.getAttribute('placeholder') === '-').value,
       cores: byAttr(row, 'data-item-cores')[0].textContent,
       largura: byAttr(row, 'data-item-largura')[0].textContent,
     };
@@ -561,7 +559,7 @@ test('dual/16. os dois caminhos convergem no MESMO payload de pedido_itens', asy
   met.fire('input');
 
   // Item pelo modal.
-  await addViaModal(root, document, 'manta', '2', '6', 'via modal');
+  await addViaModal(root, document, 'manta', '2', '6');
 
   buttonsByText(root, /^Salvar rascunho$/)[0].fire('click');
   await flush();
@@ -579,11 +577,15 @@ test('dual/16. os dois caminhos convergem no MESMO payload de pedido_itens', asy
   // daquele realm. A copia traz o valor para o realm da suite sem alterar nada
   // do que esta sendo provado.
   const payload = (i) => ({ ...i });
+  // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1: nem a linha rapida nem o modal
+  // criam mais uma observacao por item — a chave continua no payload de
+  // 5 chaves (contrato inalterado), mas os DOIS itens agora nascem com
+  // observacao NULL, sempre, pelos dois caminhos de entrada.
   assert.deepEqual(payload(calls.itensInsert[0]), {
     pedido_id: 'ped-1', modelo_id: 1, metros: 4, ordem: 0, observacao: null,
   });
   assert.deepEqual(payload(calls.itensInsert[1]), {
-    pedido_id: 'ped-1', modelo_id: 2, metros: 6, ordem: 1, observacao: 'via modal',
+    pedido_id: 'ped-1', modelo_id: 2, metros: 6, ordem: 1, observacao: null,
   });
   for (const item of calls.itensInsert) {
     assert.ok(!('tipo' in item), 'o tipo nunca e persistido');

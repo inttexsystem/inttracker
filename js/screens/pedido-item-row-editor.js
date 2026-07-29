@@ -39,10 +39,20 @@
 
   // Definicao UNICA das colunas: cabecalho e TODA linha de dado consomem esta
   // constante, entao um desalinhamento entre eles e impossivel por construcao.
-  var GRID_COLS = '60px .62fr 1.28fr 1.1fr .8fr .55fr 1.2fr 84px';
-  var HEADER_LABELS = ['Img', 'Tipo', 'Modelo', 'Cores', 'Largura', 'Metragem (m)', 'Observacao', 'Acoes'];
+  //
+  // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1: a coluna Observacao foi retirada.
+  // Sete colunas (era oito); Metragem ganha a largura liberada. A observacao
+  // administrativa por item deixou de ser editavel na linha — ver a acao de
+  // mencao em Acoes e o dono compartilhado do formato em js/pedido-draft.js.
+  var GRID_COLS = '60px .70fr 1.45fr 1.15fr .80fr .90fr 92px';
+  var HEADER_LABELS = ['Img', 'Tipo', 'Modelo', 'Cores', 'Largura', 'Metragem (m)', 'Acoes'];
+  var ROW_MIN_WIDTH = '790px';
 
   var SVG_TRASH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--rv-signal-negative)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
+
+  // '@' glyph da acao discreta de mencao. Stroke neutro/accent — nunca o
+  // vermelho de SVG_TRASH — porque mencionar um item nao e destrutivo.
+  var SVG_MENTION = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--rv-accent-blue)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path></svg>';
 
   function svgEl(markup) {
     var tmp = window.document.createElement('div');
@@ -155,22 +165,34 @@
   //
   //   item          entrada local { uid, tipo, modeloId, metros, observacao }
   //   modelos       lista unica ja carregada (com tipo_produto)
+  //   index         posicao 0-based ATUAL do item no array local; usada para
+  //                 numerar a acao de mencao ("Item {index+1}") e para o
+  //                 dono compartilhado do formato da mencao.
   //   onChange      chamado apos qualquer mutacao do item (para totais)
   //   onRemove      chamado com o item quando o lixo e clicado
+  //   onMention     chamado com o TEXTO PRONTO da mencao quando a acao @ e
+  //                 clicada (PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1). Este
+  //                 modulo apenas monta o texto via o dono compartilhado
+  //                 (js/pedido-draft.js buildItemMention) e notifica; a
+  //                 insercao no campo Observacoes gerais e responsabilidade
+  //                 exclusiva da tela chamadora.
   //   typeMetadata  false => falha fechada: Tipo/Modelo desabilitados
   //   locked        true => TRAVA ESTRUTURAL (PEDIDO-UNIFIED-ADMIN-EDITOR-R1):
   //                 Tipo, Modelo, Metragem e o botao de remocao ficam
-  //                 desabilitados; a Observacao do item PERMANECE editavel —
-  //                 ela nao e um campo estrutural (EXECUTION ORDER sec.9.1).
+  //                 desabilitados. A acao de mencao NAO e estrutural e
+  //                 permanece disponivel (EXECUTION ORDER sec.9.1 /
+  //                 PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1 sec.J).
   //   readOnly      true => pedido em status terminal: TUDO desabilitado,
-  //                 inclusive a Observacao. Implica `locked`.
+  //                 inclusive a acao de mencao. Implica `locked`.
   // ===================================================================
   function buildRow(options) {
     var opts = options || {};
     var item = opts.item;
     var modelos = opts.modelos || [];
+    var index = typeof opts.index === 'number' ? opts.index : -1;
     var onChange = typeof opts.onChange === 'function' ? opts.onChange : function () {};
     var onRemove = typeof opts.onRemove === 'function' ? opts.onRemove : function () {};
+    var onMention = typeof opts.onMention === 'function' ? opts.onMention : function () {};
     var typeMetadata = opts.typeMetadata !== false;
     var locked = !!opts.locked || !!opts.readOnly;
 
@@ -180,13 +202,21 @@
     if (modeloAtual) item.tipo = rotaDoModelo(modeloAtual);
     if (!item.tipo) item.tipo = item.tipo || '';
 
+    // Compatibilidade com valor legado de item.observacao (PEDIDO-ITEM-
+    // MENTION-OBSERVATION-UX-R1 sec.K): a administrativa nao cria nem edita
+    // mais observacao por item, mas um valor nao-vazio ja persistido deve
+    // continuar visivel — nunca escondido, nunca editavel, nunca uma coluna
+    // permanente. Ver hintNode mais abaixo.
+    var legacyObsValue = item.observacao != null ? String(item.observacao).trim() : '';
+    var hasLegacyObs = legacyObsValue !== '';
+
     // BATCH-03 (densidade operacional): o padding vertical caiu de 9px para
     // 7px e o horizontal de 18px para 14px. Os CONTROLES nao encolheram — os
-    // selects, o campo de metragem e o de observacao mantem os mesmos 6px/8px
-    // de padding e 13.5px de fonte, entao o alvo de clique continua o mesmo.
-    // O que saiu foi folga morta em volta deles.
+    // selects e o campo de metragem mantem os mesmos 6px/8px de padding e
+    // 13.5px de fonte, entao o alvo de clique continua o mesmo. O que saiu
+    // foi folga morta em volta deles.
     var row = window.el('div', {
-      style: 'display:grid; grid-template-columns:' + GRID_COLS + '; align-items:center; gap:12px; padding:7px 14px; border-bottom:1px solid var(--rv-border-soft); min-width:920px;',
+      style: 'display:grid; grid-template-columns:' + GRID_COLS + '; align-items:center; gap:12px; padding:7px 14px; border-bottom:' + (hasLegacyObs ? 'none' : '1px solid var(--rv-border-soft)') + '; min-width:' + ROW_MIN_WIDTH + ';',
       'data-uid': item.uid
     });
 
@@ -230,6 +260,7 @@
       paint(coresCell, selectedModel ? corResumo(selectedModel) : '-', !!selectedModel);
       paint(larguraCell, selectedModel ? larguraStr(selectedModel) : '-', !!selectedModel);
       updatePreview();
+      refreshMention();
     }
 
     tipoSelect.addEventListener('change', function () {
@@ -263,20 +294,51 @@
       onChange(item);
     });
 
-    var obsInput = window.el('input', {
-      type: 'text',
-      value: item.observacao,
-      placeholder: '-',
-      maxlength: '200',
-      style: 'width:100%; border:1px solid var(--rv-border-strong); border-radius:var(--rv-radius); padding:6px 8px; font-size:13.5px; color:var(--rv-text-primary); background:var(--rv-surface); font-family:inherit; outline:none;'
-    });
-    obsInput.addEventListener('input', function () {
-      item.observacao = obsInput.value;
-      onChange(item);
-    });
-    // `readOnly` (tela terminal) desabilita ATE a Observacao; `locked`
-    // sozinho (trava estrutural pos-OP) a mantem editavel de proposito.
-    if (opts.readOnly) obsInput.disabled = true;
+    // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 — ACAO DE MENCAO DISCRETA.
+    // Nao-destrutiva e nao-estrutural: so exige um modelo selecionado (para
+    // que exista identidade legivel a mencionar) e permanece disponivel sob
+    // trava estrutural pos-OP. So fica desabilitada quando a tela e terminal
+    // (readOnly) ou quando o item ainda nao tem modelo.
+    //
+    // actionButton() nao expoe um jeito de alternar `disabled` depois de
+    // construido sem deixar hover/opacidade dessincronizados (os listeners
+    // de hover so sao presos na construcao). Por isso a acao de mencao vive
+    // num SLOT que a linha reconstroi via refreshMention() sempre que
+    // refreshDerived() roda (troca de Tipo ou de Modelo) — nunca um estado
+    // congelado no momento em que a linha foi criada.
+    var posLabel = index >= 0 ? String(index + 1) : '?';
+    function buildMentionBtn() {
+      var hasModelo = !!item.modeloId;
+      var modeloParaMencao = hasModelo ? modeloById(modelos, item.modeloId) : null;
+      var mentionDisabled = !!opts.readOnly || !hasModelo;
+      var mentionTitle = hasModelo
+        ? 'Mencionar item ' + posLabel + ' nas observações gerais'
+        : 'Selecione o modelo para poder mencionar este item';
+      var mentionAriaLabel = mentionTitle;
+      if (hasModelo && modeloParaMencao) {
+        mentionAriaLabel = 'Mencionar item ' + posLabel + ' — ' + modeloParaMencao.nome + ' · '
+          + corResumo(modeloParaMencao) + ' · ' + larguraStr(modeloParaMencao) + ', nas observações gerais';
+      }
+      var btn = window.actionButton({
+        title: mentionTitle,
+        icon: svgEl(SVG_MENTION),
+        disabled: mentionDisabled,
+        onclick: function () {
+          var draft = window.RAVATEX_PEDIDO_DRAFT;
+          var mention = draft && typeof draft.buildItemMention === 'function'
+            ? draft.buildItemMention(item, modelos, index)
+            : null;
+          if (mention) onMention(mention);
+        }
+      });
+      btn.setAttribute('aria-label', mentionAriaLabel);
+      btn.setAttribute('data-item-mention-action', '1');
+      return btn;
+    }
+    var mentionSlot = window.el('span', { style: 'display:inline-flex;' }, buildMentionBtn());
+    function refreshMention() {
+      mentionSlot.replaceChildren(buildMentionBtn());
+    }
 
     // SCREEN-GROUP-1 — ACAO DESTRUTIVA PELO DONO CANONICO.
     // Remover um item era um <span> com um SVG: nao focavel, sem resposta a
@@ -306,7 +368,6 @@
     row.appendChild(coresCell);
     row.appendChild(larguraCell);
     row.appendChild(metrosInput);
-    row.appendChild(obsInput);
     // PEDIDO-SCREEN-GROUP-3 fecha UI-ACTION-BUTTON-CALLER-WORKAROUND-REDUNDANT.
     // PEDIDO-SCREEN-GROUP-1 declarava aqui um `position:relative` de contorno:
     // actionButton() anexava o rotulo de leitor de tela como um
@@ -318,14 +379,44 @@
     // o que tornou esta declaracao de chamador provadamente REDUNDANTE. Ela e
     // removida aqui sem reintroduzir overflow: o contexto continua existindo,
     // apenas passou a ser declarado por quem constroi o rotulo.
-    row.appendChild(window.el('div', { style: 'display:flex; align-items:center; gap:16px;' }, removeBtn));
-    return row;
+    //
+    // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1: a mencao vem ANTES do remover
+    // (referenciar antes de destruir); gap de 10px cabe as duas acoes 30x30
+    // dentro dos 92px da coluna Acoes.
+    row.appendChild(window.el('div', { style: 'display:flex; align-items:center; justify-content:center; gap:10px;' }, mentionSlot, removeBtn));
+
+    if (!hasLegacyObs) return row;
+
+    // Dica de compatibilidade legada (sec.K/PART 10): texto integral,
+    // somente-leitura, sem coluna permanente — um bloco de largura total
+    // ABAIXO da linha, nunca dentro da grade de colunas. Associada a linha
+    // via aria-describedby para leitor de tela sem depender de foco. O
+    // fragmento devolve DOIS nos irmaos ao chamador (rowsWrap.appendChild
+    // aceita fragment normalmente); nenhum wrapper extra e introduzido, entao
+    // `[data-uid]` continua sendo a propria linha de grade, diretamente
+    // localizavel como antes.
+    var hintId = 'pedido-item-legacy-obs-' + item.uid;
+    row.setAttribute('aria-describedby', hintId);
+    var hintNode = window.el('div', {
+      id: hintId,
+      'data-item-legacy-observacao': '1',
+      role: 'note',
+      style: 'padding:6px 14px 10px 14px; border-bottom:1px solid var(--rv-border-soft); background:var(--rv-surface-subtle); font-size:12.5px; line-height:1.5; color:var(--rv-text-secondary); white-space:normal; overflow-wrap:break-word;'
+    },
+      window.el('strong', { style: 'color:var(--rv-text-tertiary); font-weight:600;' }, 'Observação anterior do item: '),
+      legacyObsValue
+    );
+
+    var fragment = window.document.createDocumentFragment();
+    fragment.appendChild(row);
+    fragment.appendChild(hintNode);
+    return fragment;
   }
 
   function buildHeader() {
     var header = window.el('div', {
       'data-itens-header': '1',
-      style: 'display:grid; grid-template-columns:' + GRID_COLS + '; align-items:center; gap:12px; padding:8px 14px; background:var(--rv-surface-subtle); border-bottom:1px solid var(--rv-border); min-width:920px;'
+      style: 'display:grid; grid-template-columns:' + GRID_COLS + '; align-items:center; gap:12px; padding:8px 14px; background:var(--rv-surface-subtle); border-bottom:1px solid var(--rv-border); min-width:' + ROW_MIN_WIDTH + ';'
     });
     HEADER_LABELS.forEach(function (label) {
       header.appendChild(window.el('div', { style: 'font-size:13px; font-weight:600; color:var(--rv-text-secondary);' }, label));
@@ -338,6 +429,7 @@
     MANTA: MANTA,
     GRID_COLS: GRID_COLS,
     HEADER_LABELS: HEADER_LABELS,
+    ROW_MIN_WIDTH: ROW_MIN_WIDTH,
     rotaDoModelo: rotaDoModelo,
     tipoLabel: tipoLabel,
     tipoStrForModelo: tipoStrForModelo,

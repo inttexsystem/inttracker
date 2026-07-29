@@ -180,18 +180,18 @@
     }
   ],
   "active_phase": {
-    "id": "PEDIDO-ITEM-MENTION-OBSERVATION-UX-RATIFICATION-R1",
-    "status": "CLOSED / ACCEPTED",
-    "immediate_objective": "The normative product ruling is formally accepted and synchronized. No product implementation occurred in this checkpoint.",
+    "id": "PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1",
+    "status": "IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW",
+    "immediate_objective": "Implement and publish the accepted seven-column administrative Pedido item table and the @ item-mention interaction in Novo pedido and Editar pedido, with general-observation persistence, structural-lock compatibility and read-only preservation of legacy item observations.",
     "contract": {
       "path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
       "anchor": "## Update 2026-07-29 — Pedido item mention and general observation ruling (PEDIDO-ITEM-MENTION-OBSERVATION-UX-DESIGN-R1)"
     }
   },
   "next_authorizable_action": {
-    "id": "PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1",
-    "mode": "AUTHORIZED FOR A NEW EXPLICIT IMPLEMENTATION ORDER",
-    "status": "PENDING DISPATCH. Implement the accepted administrative seven-column item table and @ mention interaction in Novo pedido and Editar pedido. No client phase is chained."
+    "id": "DIRECT SUPERVISOR REVIEW OF PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1",
+    "mode": "AWAITING SUPERVISOR REVIEW; NO CLIENT PHASE IS CHAINED",
+    "status": "PENDING. Review the published administrative item-table and mention interaction. Do not begin the client Pedido editor, change-request submission or approval phase without a new explicit order."
   },
   "active_track": {
     "id": "PURCHASE_ORDER_PHASE_C",

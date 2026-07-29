@@ -172,6 +172,14 @@
 
   // Mudanca de QUALQUER natureza na colecao (para a decisao p_itens=NULL):
   // ordem, contagem, ou qualquer campo de qualquer item.
+  //
+  // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1: `observacao` SAIU desta
+  // comparacao. A administrativa nao cria nem edita mais item.observacao
+  // (retirado da linha e do modal — ver js/screens/pedido-item-row-editor.js
+  // e js/screens/pedido-item-modal.js), entao ela nunca pode mais ser o
+  // motivo de p_itens ser enviado. O campo continua no formato local, em
+  // fromPersisted() e em toRpcPayload() — apenas a comparacao de "mudou?"
+  // parou de olhar para ele.
   function isCollectionChanged(current, baseline) {
     var cur = current || [];
     var base = baseline || [];
@@ -182,9 +190,106 @@
       if ((a.itemId || null) !== (b.itemId || null)) return true;
       if (String(a.modeloId) !== String(b.modeloId)) return true;
       if (Number(a.metros) !== Number(b.metros)) return true;
-      if ((a.observacao || '') !== (b.observacao || '')) return true;
     }
     return false;
+  }
+
+  // Formatadores LOCAIS e minimos para a mencao — deliberadamente NAO
+  // reaproveitam corResumo/larguraStr de js/screens/pedido-item-row-editor.js
+  // porque o formato exigido pelo contrato ratificado usa "COR1/COR2" sem
+  // espaco ao redor da barra, enquanto corResumo() usa "COR1 / COR2" (com
+  // espaco) para a celula da tabela. Sao dois formatos distintos por
+  // contrato; duplicar aqui evita acoplar o formato de mencao ao formato de
+  // exibicao de celula, que pode mudar por razoes visuais independentes.
+  function corNomeParaMencao(cor) {
+    return cor && cor.nome ? cor.nome : '-';
+  }
+
+  function larguraParaMencao(modelo) {
+    if (!modelo) return '-';
+    return typeof modelo.largura === 'number'
+      ? modelo.largura.toFixed(2).replace('.', ',') + ' m'
+      : String(modelo.largura || '-');
+  }
+
+  function modeloPorId(modelos, id) {
+    var list = Array.isArray(modelos) ? modelos : [];
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i].id) === String(id)) return list[i];
+    }
+    return null;
+  }
+
+  // buildItemMention — PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 sec.G. Dono
+  // UNICO e compartilhado do texto de mencao inserido em Observacoes
+  // gerais; nem js/screens/pedido-form.js nem js/screens/pedido-edit.js
+  // reimplementam esta formatacao.
+  //
+  //   item     entrada local { modeloId, ... }. Funciona para item ainda
+  //            NAO salvo (itemId null) — a mencao usa apenas estado local,
+  //            nunca um UUID de banco.
+  //   modelos  lista unica ja carregada (mesma projecao consumida pela
+  //            linha e pelo modal).
+  //   index    posicao 0-based ATUAL do item no array local. A posicao
+  //            exibida ("Item N") e sempre a do momento do clique — nao ha
+  //            estado de posicao guardado a parte.
+  //
+  // Formato exato: "@Item {N} — {modelo} · {cor1}/{cor2} · {largura}: "
+  // (ex.: "@Item 3 — Noite · KRAFT/CRU · 2,10 m: "). NUNCA inclui uid,
+  // itemId, pedido_item_id, metragem ou qualquer identificador de banco.
+  // Devolve `null` — nunca uma mencao vazia ou incompleta — quando o
+  // modelo nao pode ser resolvido ou quando a posicao e desconhecida;
+  // o chamador nao insere nada nesse caso (EXECUTION ORDER PART 4: "nao
+  // permitir referencia vazia ou sem sentido").
+  function buildItemMention(item, modelos, index) {
+    if (!item) return null;
+    var posicao = (typeof index === 'number' && index >= 0) ? (index + 1) : null;
+    if (posicao == null) return null;
+    var modelo = modeloPorId(modelos, item.modeloId);
+    if (!modelo) return null;
+    var nomeModelo = modelo.nome == null ? '' : String(modelo.nome);
+    var cor1 = corNomeParaMencao(modelo.cor_1);
+    var cor2 = corNomeParaMencao(modelo.cor_2);
+    var largura = larguraParaMencao(modelo);
+    return '@Item ' + posicao + ' — ' + nomeModelo + ' · ' + cor1 + '/' + cor2 + ' · ' + largura + ': ';
+  }
+
+  // computeMentionInsertion — PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 sec.H.
+  // Dono UNICO e PURO da aritmetica de insercao: nem js/screens/pedido-form.js
+  // nem js/screens/pedido-edit.js reimplementam esta logica separadamente —
+  // cada tela so aplica o resultado a um <textarea> real e toca o path normal
+  // de input. Nao toca DOM, nao decide foco: recebe o estado JA OBSERVADO
+  // pelo chamador e devolve o novo valor e a posicao final do caret.
+  //
+  //   currentValue    valor atual do campo Observacoes gerais.
+  //   selectionStart  textarea.selectionStart no momento do clique.
+  //   isFocused       true somente se o campo estava com foco ativo no
+  //                   momento do clique — o sinal que distingue "inserir no
+  //                   caret" de "acrescentar ao final" (EXECUTION ORDER
+  //                   PART 5, regras 1-2). Sem foco ativo, selectionStart
+  //                   pode ser residual/nao-confiavel; o caso seguro e
+  //                   sempre acrescentar ao final.
+  //   mentionText     texto pronto de buildItemMention(); nunca vazio.
+  //
+  // Regra 3 (newline): so quando a insercao NAO e no inicio do texto E o
+  // caractere anterior nao e ja uma quebra de linha. Regra 4: o texto antes
+  // e depois do ponto de insercao e sempre preservado — nada e cortado,
+  // inclusive uma selecao existente (o chamador nunca troca o valor por
+  // `after = value.slice(selectionEnd)`; usa sempre `selectionStart`).
+  function computeMentionInsertion(currentValue, selectionStart, isFocused, mentionText) {
+    var current = currentValue == null ? '' : String(currentValue);
+    var text = mentionText == null ? '' : String(mentionText);
+    var caretPos = (isFocused && typeof selectionStart === 'number' && selectionStart >= 0)
+      ? selectionStart
+      : current.length;
+    var before = current.slice(0, caretPos);
+    var after = current.slice(caretPos);
+    var needsNewline = before.length > 0 && before.charAt(before.length - 1) !== '\n';
+    var insertText = (needsNewline ? '\n' : '') + text;
+    return {
+      value: before + insertText + after,
+      caret: before.length + insertText.length,
+    };
   }
 
   window.RAVATEX_PEDIDO_DRAFT = {
@@ -199,5 +304,7 @@
     toRpcPayload: toRpcPayload,
     isStructuralChange: isStructuralChange,
     isCollectionChanged: isCollectionChanged,
+    buildItemMention: buildItemMention,
+    computeMentionInsertion: computeMentionInsertion,
   };
 })(window);

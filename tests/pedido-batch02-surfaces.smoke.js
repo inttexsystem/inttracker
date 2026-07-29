@@ -294,12 +294,15 @@ test('index.html: toda superfície alterada recebeu o token do lote 2', () => {
   // superficie carrega o token da ordem que a alterou POR ULTIMO, e nenhuma
   // retem um token anterior ao seu.
   // PEDIDO-UNIFIED-ADMIN-EDITOR-R1 reescreveu pedido-edit.js como o editor
-  // unificado, entao ele passa a carregar o token dessa ordem.
+  // unificado, entao ele passou a carregar o token dessa ordem.
+  // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 retirou a Observacao por item da
+  // tabela, acrescentou a acao de mencao e o rotulo "Observações gerais",
+  // entao pedido-edit.js e retokenizado mais uma vez. Mesma regra de sempre.
   // pedido-itens-edit.js NAO foi tocado (fica rastreado para retirada
   // fisica futura) e mantem o token anterior.
   const ULTIMA_ORDEM = {
     'js/screens/pedido-detail-data.js': '20260728-pedido-item-production-priority-r1',
-    'js/screens/pedido-edit.js': '20260729-pedido-unified-admin-editor-r1',
+    'js/screens/pedido-edit.js': '20260729-pedido-item-mention-observation-ux-r1',
     'js/screens/pedido-itens-edit.js': '20260727-ui-pedido-screen-group-1',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
@@ -406,12 +409,18 @@ test('index.html: os assets tocados pelo lote 3 carregam o token do lote 3, não
   // PEDIDO-UNIFIED-ADMIN-EDITOR-R1 adotou js/pedido-draft.js em
   // pedido-form.js (identidade/totais de item) e acrescentou o modo
   // `locked`/`readOnly` em pedido-item-row-editor.js, entao os dois
-  // passam a carregar o token dessa ordem. pedido-item-modal.js não foi
-  // tocado e mantém o seu.
+  // passaram a carregar o token dessa ordem. pedido-item-modal.js não foi
+  // tocado e manteve o seu.
+  // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 tocou OS TRES: a linha de item
+  // perdeu a coluna Observacao e ganhou a acao de mencao (7 colunas,
+  // GRID_COLS/min-width novos), pedido-form.js passou a montar Observações
+  // gerais e o callback de mencao, e o modal perdeu seu campo de observacao
+  // por item. Os tres passam a carregar o token dessa ordem — a primeira vez
+  // que pedido-item-modal.js diverge dos outros dois desde o lote 2.
   const ULTIMA_ORDEM = {
-    'screens/pedido-form.js': '20260729-pedido-unified-admin-editor-r1',
-    'screens/pedido-item-modal.js': '20260728-pedido-dual-item-entry-r1',
-    'screens/pedido-item-row-editor.js': '20260729-pedido-unified-admin-editor-r1',
+    'screens/pedido-form.js': '20260729-pedido-item-mention-observation-ux-r1',
+    'screens/pedido-item-modal.js': '20260729-pedido-item-mention-observation-ux-r1',
+    'screens/pedido-item-row-editor.js': '20260729-pedido-item-mention-observation-ux-r1',
   };
   for (const [asset, token] of Object.entries(ULTIMA_ORDEM)) {
     const esc = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

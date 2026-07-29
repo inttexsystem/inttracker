@@ -246,29 +246,18 @@
 
     var referenciaField = window.el('div', {}, plainLabel('Referência visual'), referenciaBox);
 
-    var obsTextarea = window.textArea({
-      role: 'medium',
-      counter: true,
-      resize: 'none',
-      maxlength: 200,
-      placeholder: 'Ex.: prioridade vitrine, embalagem separada, atenção na largura...',
-      ariaLabel: 'Observação do item'
-    });
-    var counterSpan = window.el('span', {
-      style: 'position:absolute; right:12px; bottom:10px; font-size:var(--rv-fs-xs); color:var(--rv-text-tertiary);'
-    }, '0/200');
-    obsTextarea.addEventListener('input', function () {
-      draft.observacao = obsTextarea.value;
-      counterSpan.textContent = obsTextarea.value.length + '/200';
-    });
-    var obsField = window.el('div', {},
-      plainLabel('Observação do item'),
-      window.el('div', { style: 'position:relative;' }, obsTextarea, counterSpan)
-    );
+    // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 sec.D: o campo de observacao por
+    // item foi RETIRADO deste modal — a administrativa nao cria mais uma
+    // observacao que ficaria invisivel assim que o item fosse confirmado.
+    // `draft.observacao` permanece no rascunho (nunca mutado por nenhum
+    // input aqui) so para que onConfirm continue entregando a MESMA forma
+    // { tipo, modeloId, metros, observacao } que a linha rapida produz; o
+    // valor e sempre '' — que o INSERT de pedido-form.js normaliza para
+    // NULL, exatamente como um item sem observacao hoje.
 
     var body = window.el('div', {
       style: 'padding:14px 20px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; flex:1; min-height:0;'
-    }, tipoField, modeloField, coresField, larguraMetragemRow, referenciaField, obsField);
+    }, tipoField, modeloField, coresField, larguraMetragemRow, referenciaField);
 
     var cancelBtn = window.el('button', {
       type: 'button',

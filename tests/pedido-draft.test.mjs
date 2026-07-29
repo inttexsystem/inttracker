@@ -151,7 +151,7 @@ test('isStructuralChange: espelha public.pedido_itens_payload_e_estrutural — s
   assert.equal(D.isStructuralChange(removed, baseline), true, 'remover item é mudança estrutural');
 });
 
-test('isCollectionChanged: detecta QUALQUER diferença (ordem, observação, contagem) para a decisão p_itens=NULL', () => {
+test('isCollectionChanged: detecta ordem e contagem para a decisão p_itens=NULL', () => {
   const D = loadDraft();
   const baseline = D.fromPersisted([
     { id: 'a', modelo_id: 1, metros: '2', observacao: null, ordem: 0 },
@@ -163,9 +163,123 @@ test('isCollectionChanged: detecta QUALQUER diferença (ordem, observação, con
   const reordered = [baseline[1], baseline[0]];
   assert.equal(D.isCollectionChanged(reordered, baseline), true, 'reordenar É mudança de coleção (embora não seja estrutural)');
 
+  assert.equal(D.isCollectionChanged(baseline, baseline), false);
+});
+
+// PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1: `observacao` SAIU da comparação de
+// isCollectionChanged. A administrativa não cria nem edita mais
+// item.observacao (retirado da linha e do modal), então mudar esse campo
+// sozinho NÃO pode mais ser o motivo de p_itens ser enviado — mesmo que
+// algum caminho externo (ex.: um valor legado carregado do banco) o altere.
+test('isCollectionChanged: mudar SOMENTE observacao NAO dispara mudança de coleção', () => {
+  const D = loadDraft();
+  const baseline = D.fromPersisted([
+    { id: 'a', modelo_id: 1, metros: '2', observacao: null, ordem: 0 },
+    { id: 'b', modelo_id: 2, metros: '3', observacao: null, ordem: 1 },
+  ]);
   const obsChanged = baseline.map((it) => ({ ...it }));
   obsChanged[1].observacao = 'algo';
-  assert.equal(D.isCollectionChanged(obsChanged, baseline), true, 'mudar observação É mudança de coleção');
+  assert.equal(D.isCollectionChanged(obsChanged, baseline), false,
+    'mudar observação sozinha NÃO pode mais disparar p_itens — retirada da UI administrativa');
+});
 
-  assert.equal(D.isCollectionChanged(baseline, baseline), false);
+// =====================================================================
+// buildItemMention — PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 sec.G.
+// =====================================================================
+
+const MODELOS_MENCAO = [
+  { id: 1, nome: 'Noite', largura: 2.10, cor_1: { id: 1, nome: 'KRAFT' }, cor_2: { id: 2, nome: 'CRU' } },
+  { id: 2, nome: 'Sol Poente', largura: 1.40, cor_1: { id: 3, nome: 'AZUL' }, cor_2: { id: 4, nome: 'BRANCO' } },
+];
+
+test('buildItemMention: formato exato do contrato ratificado, com largura em pt-BR', () => {
+  const D = loadDraft();
+  const item = { uid: 'i_abc123', itemId: 'db-uuid-should-not-appear', modeloId: '1', metros: '10' };
+  const out = D.buildItemMention(item, MODELOS_MENCAO, 2);
+  assert.equal(out, '@Item 3 — Noite · KRAFT/CRU · 2,10 m: ');
+});
+
+test('buildItemMention: nunca inclui uid, itemId, pedido_item_id ou metragem', () => {
+  const D = loadDraft();
+  const item = { uid: 'i_zzzzzz', itemId: '11111111-1111-1111-1111-111111111111', modeloId: '2', metros: '37.5' };
+  const out = D.buildItemMention(item, MODELOS_MENCAO, 0);
+  assert.doesNotMatch(out, /i_zzzzzz/);
+  assert.doesNotMatch(out, /11111111-1111-1111-1111-111111111111/);
+  assert.doesNotMatch(out, /pedido_item_id/);
+  assert.doesNotMatch(out, /37[.,]5/, 'metragem não pode aparecer na menção');
+  assert.equal(out, '@Item 1 — Sol Poente · AZUL/BRANCO · 1,40 m: ');
+});
+
+test('buildItemMention: posição é sempre a ATUAL (1-based) do índice recebido', () => {
+  const D = loadDraft();
+  const item = { uid: 'i_x', modeloId: '1', metros: '5' };
+  assert.match(D.buildItemMention(item, MODELOS_MENCAO, 0), /^@Item 1 /);
+  assert.match(D.buildItemMention(item, MODELOS_MENCAO, 4), /^@Item 5 /);
+});
+
+test('buildItemMention: modelo não resolvido devolve null (nunca referência vazia/incompleta)', () => {
+  const D = loadDraft();
+  assert.equal(D.buildItemMention({ uid: 'i_x', modeloId: '', metros: '' }, MODELOS_MENCAO, 0), null,
+    'item sem modelo selecionado');
+  assert.equal(D.buildItemMention({ uid: 'i_x', modeloId: '999', metros: '5' }, MODELOS_MENCAO, 0), null,
+    'modelo_id não encontrado na lista carregada (ex.: modelo removido)');
+  assert.equal(D.buildItemMention(null, MODELOS_MENCAO, 0), null);
+});
+
+test('buildItemMention: funciona para item ainda NÃO salvo (itemId null) — usa só estado local', () => {
+  const D = loadDraft();
+  const item = D.novoItem({ modeloId: '1', metros: '3' });
+  assert.equal(item.itemId, null);
+  const out = D.buildItemMention(item, MODELOS_MENCAO, 0);
+  assert.equal(out, '@Item 1 — Noite · KRAFT/CRU · 2,10 m: ');
+});
+
+// =====================================================================
+// computeMentionInsertion — PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 sec.H.
+// Função pura: nenhum DOM é necessário para provar caret/newline/append.
+// =====================================================================
+
+test('computeMentionInsertion: campo vazio -> acrescenta sem quebra de linha', () => {
+  const D = loadDraft();
+  const r = D.computeMentionInsertion('', 0, false, '@Item 1 — Noite · KRAFT/CRU · 2,10 m: ');
+  assert.equal(r.value, '@Item 1 — Noite · KRAFT/CRU · 2,10 m: ');
+  assert.equal(r.caret, r.value.length);
+});
+
+test('computeMentionInsertion: texto existente sem foco ativo -> acrescenta ao FINAL com quebra de linha', () => {
+  const D = loadDraft();
+  const r = D.computeMentionInsertion('Entregar até sexta', 3, false, '@Item 2 — X · Y/Z · 1,40 m: ');
+  assert.equal(r.value, 'Entregar até sexta\n@Item 2 — X · Y/Z · 1,40 m: ');
+  assert.equal(r.caret, r.value.length);
+});
+
+test('computeMentionInsertion: com foco ativo, insere no caret SEM apagar o texto ao redor', () => {
+  const D = loadDraft();
+  // "Antes|Depois" — caret logo após "Antes" (posição 5).
+  const r = D.computeMentionInsertion('AntesDepois', 5, true, '@Item 1 — X · Y/Z · 1,40 m: ');
+  assert.equal(r.value, 'Antes\n@Item 1 — X · Y/Z · 1,40 m: Depois');
+  assert.equal(r.value.startsWith('Antes'), true, 'texto anterior preservado');
+  assert.ok(r.value.endsWith('Depois'), 'texto posterior preservado, não apagado');
+  assert.equal(r.caret, 'Antes\n@Item 1 — X · Y/Z · 1,40 m: '.length, 'caret logo após ": "');
+});
+
+test('computeMentionInsertion: NÃO acrescenta quebra de linha se o caractere anterior já é \n', () => {
+  const D = loadDraft();
+  const r = D.computeMentionInsertion('primeira linha\n', 15, true, '@Item 1 — X · Y/Z · 1,40 m: ');
+  assert.equal(r.value, 'primeira linha\n@Item 1 — X · Y/Z · 1,40 m: ');
+});
+
+test('computeMentionInsertion: inserção no INÍCIO (posição 0) nunca acrescenta quebra de linha', () => {
+  const D = loadDraft();
+  const r = D.computeMentionInsertion('texto existente', 0, true, '@Item 1 — X · Y/Z · 1,40 m: ');
+  assert.equal(r.value, '@Item 1 — X · Y/Z · 1,40 m: texto existente');
+});
+
+test('computeMentionInsertion: cliques repetidos inserem referências repetidas (sem dedup)', () => {
+  const D = loadDraft();
+  const mention = '@Item 1 — X · Y/Z · 1,40 m: ';
+  const first = D.computeMentionInsertion('', 0, false, mention);
+  const second = D.computeMentionInsertion(first.value, first.caret, true, mention);
+  assert.equal(second.value, mention + '\n' + mention);
+  assert.equal((second.value.match(/@Item 1/g) || []).length, 2, 'a segunda menção não substitui nem remove a primeira');
 });

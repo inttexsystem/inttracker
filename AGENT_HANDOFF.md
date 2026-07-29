@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `CLOSED / ACCEPTED`
-- Objective: The normative product ruling is formally accepted and synchronized. No product implementation occurred in this checkpoint.
-- Next authorizable action: `PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1` / `AUTHORIZED FOR A NEW EXPLICIT IMPLEMENTATION ORDER`
+- Status: `IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW`
+- Objective: Implement and publish the accepted seven-column administrative Pedido item table and the @ item-mention interaction in Novo pedido and Editar pedido, with general-observation persistence, structural-lock compatibility and read-only preservation of legacy item observations.
+- Next authorizable action: `DIRECT SUPERVISOR REVIEW OF PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1` / `AWAITING SUPERVISOR REVIEW; NO CLIENT PHASE IS CHAINED`
 
 ## Blockers and decisions
 

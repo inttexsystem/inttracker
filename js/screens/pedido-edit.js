@@ -16,7 +16,7 @@
 //   gerais" (grade responsiva canônica) -> cartão "Itens do pedido"
 //   (entrada dupla: modal detalhado "Adicionar item" + linha rápida
 //   "Adicionar linha", edição inline, totais, sequência de prioridade de
-//   produção) -> seção inferior de duas colunas (Instruções gerais +
+//   produção) -> seção inferior de duas colunas (Observações gerais +
 //   Salvar).
 //
 // PERSISTÊNCIA — exclusivamente public.salvar_pedido_admin(p_pedido_id,
@@ -39,8 +39,9 @@
 // TRAVA ESTRUTURAL (EXECUTION ORDER sec.9.1) — quando qualquer OP,
 // expedição ou vínculo de item a produção já existe para este Pedido,
 // os controles estruturais de item (Tipo/Modelo/Metragem, Adicionar,
-// Remover) ficam bloqueados; Observação do item, campos de cabeçalho e
-// prioridade continuam editáveis. A leitura é PROJEÇÃO DE USABILIDADE —
+// Remover) ficam bloqueados; campos de cabeçalho, Observações gerais e a
+// ação de menção (não-estrutural) continuam disponíveis, junto com a
+// prioridade. A leitura é PROJEÇÃO DE USABILIDADE —
 // a autoridade final é sempre `salvar_pedido_admin`; a detecção usa
 // apenas leituras admin explícitas (ops/lotes/expedicoes/op_itens/
 // expedicao_itens), nunca um helper interno de db/92. Falha na leitura
@@ -139,6 +140,38 @@
     }
 
     const container = window.el('div', {});
+
+    // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 — estado da acao de mencao. O
+    // <textarea> de Observacoes gerais e recriado a CADA render() (dentro de
+    // buildBottomSection, chamado so em telas nao-terminais); estas
+    // variaveis vivem no escopo externo porque buildItensCard() — que monta
+    // as linhas com o callback onMention — roda ANTES de buildBottomSection()
+    // no mesmo render(). O callback so LE estas variaveis no momento do
+    // clique, entao o valor atribuido pela build mais recente do textarea e
+    // sempre o que esta em vigor. Em renderizacao terminal, buildBottomSection
+    // nunca roda e o botao de mencao ja vem desabilitado (readOnly), entao um
+    // valor obsoleto aqui nunca e alcancado por um clique real.
+    let obsTextareaRef = null;
+    let obsTextareaFocused = false;
+    let syncObservacaoRef = null;
+
+    // Insere a mencao pronta em Observacoes gerais usando a aritmetica pura
+    // de js/pedido-draft.js e o MESMO path normal de input (syncObservacaoRef)
+    // que o listener de digitacao usa — nenhum estado paralelo e criado, e
+    // nenhuma chamada a RPC ou a supa acontece aqui. Cliques repetidos
+    // inserem referencias repetidas de proposito (sem deduplicacao).
+    function handleItemMention(mentionText) {
+      const textarea = obsTextareaRef;
+      const draft = window.RAVATEX_PEDIDO_DRAFT;
+      if (!textarea || !mentionText || !draft || typeof draft.computeMentionInsertion !== 'function') return;
+      const result = draft.computeMentionInsertion(textarea.value, textarea.selectionStart, obsTextareaFocused, mentionText);
+      textarea.value = result.value;
+      if (typeof syncObservacaoRef === 'function') syncObservacaoRef();
+      if (typeof textarea.focus === 'function') textarea.focus();
+      if (typeof textarea.setSelectionRange === 'function') textarea.setSelectionRange(result.caret, result.caret);
+      if (typeof window.autosizeTextarea === 'function') window.autosizeTextarea(textarea);
+      if (typeof textarea.scrollIntoView === 'function') textarea.scrollIntoView({ block: 'nearest' });
+    }
 
     const state = {
       pedido: null,
@@ -433,11 +466,12 @@
       var api = itemRowApi();
       var locked = state.estruturaBloqueada;
       var rowsWrap = window.el('div', {});
-      state.itens.forEach(function (item) {
+      state.itens.forEach(function (item, idx) {
         rowsWrap.appendChild(api.buildRow({
-          item: item, modelos: state.modelos, typeMetadata: state.tipoMetadataOk,
+          item: item, index: idx, modelos: state.modelos, typeMetadata: state.tipoMetadataOk,
           locked: locked, readOnly: readOnly,
           onChange: updateItensSummary,
+          onMention: handleItemMention,
           onRemove: function (target) {
             state.itens = DRAFT().removeItem(state.itens, target.uid);
             render();
@@ -501,19 +535,30 @@
     }
 
     // -----------------------------------------------------------------
-    // Instruções gerais + Salvar (mesma composição de duas colunas de
+    // Observações gerais + Salvar (mesma composição de duas colunas de
     // #/pedidos/novo).
     // -----------------------------------------------------------------
     function buildBottomSection() {
       var obsTextarea = window.textArea({
         role: 'autosize', autosize: true, rows: 1, value: state.fields.observacao,
         placeholder: 'Informações adicionais sobre conferência, prazo ou observações internas...',
-        ariaLabel: 'Instruções gerais',
+        ariaLabel: 'Observações gerais',
       });
-      obsTextarea.addEventListener('input', function () { state.fields.observacao = obsTextarea.value; });
+      function syncObservacao() { state.fields.observacao = obsTextarea.value; }
+      obsTextarea.addEventListener('input', syncObservacao);
+      // Rastreamento de foco proprio, DELIBERADAMENTE sem reset no blur —
+      // mesma tecnica e mesmo motivo de js/screens/pedido-form.js: um
+      // clique no botao de mencao SEMPRE tira o foco do textarea ANTES do
+      // onclick rodar, entao resetar no blur tornaria "inserir no caret
+      // ativo" estruturalmente inalcancavel. selectionStart/selectionEnd
+      // sobrevivem ao blur — o navegador nao os zera.
+      obsTextarea.addEventListener('focus', function () { obsTextareaFocused = true; });
+      obsTextareaRef = obsTextarea;
+      obsTextareaFocused = false;
+      syncObservacaoRef = syncObservacao;
 
       var instrCard = window.el('div', { style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px;' },
-        window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:10px;' }, 'Instruções gerais'),
+        window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:10px;' }, 'Observações gerais'),
         obsTextarea);
       window.requestAnimationFrame(function () { window.autosizeTextarea(obsTextarea); });
 
@@ -545,10 +590,10 @@
     function buildStructuralLockNotice() {
       if (state.linkageCheckFailed) {
         return fullWidthNotice('caution', 'Não foi possível confirmar a produção vinculada',
-          'Por segurança, os controles estruturais dos itens (tipo, modelo, metragem, adicionar e remover) foram bloqueados até que a verificação seja possível. Observações de item, dados gerais e prioridade continuam editáveis.');
+          'Por segurança, os controles estruturais dos itens (tipo, modelo, metragem, adicionar e remover) foram bloqueados até que a verificação seja possível. Dados gerais, Observações gerais, a menção de itens e a prioridade continuam disponíveis.');
       }
       return fullWidthNotice('caution', 'Este pedido já tem produção vinculada',
-        'Alterar modelo, quantidade ou a composição de itens exige o fluxo separado de reconciliação de produção. Observações de item, dados gerais e prioridade continuam editáveis.');
+        'Alterar modelo, quantidade ou a composição de itens exige o fluxo separado de reconciliação de produção. Dados gerais, Observações gerais, a menção de itens e a prioridade continuam disponíveis.');
     }
 
     function buildStaleRevisionNotice() {

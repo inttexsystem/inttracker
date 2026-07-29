@@ -882,6 +882,19 @@ const SCREEN_GROUP_2_CARD_RISE_BY_FILE = new Map([
   ['js/screens/cliente-pedido-form.js', 1],
 ]);
 
+/** PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 removed the per-item Observação
+ *  input from js/screens/pedido-item-row-editor.js (its inline style
+ *  declared background:var(--rv-surface) + border:1px solid
+ *  var(--rv-border-strong) + border-radius on one line, coincidentally
+ *  matching this coarse "card-shaped" heuristic — it was a text input box,
+ *  never a business card). This is an ADDITIONAL drop on top of the
+ *  historical pass-7/B1 figures below, so it is tracked separately and
+ *  SUBTRACTED from `laterRise` in 12b rather than folded into the
+ *  SCREEN-GROUP-2 map above, which owns only that order's history. */
+const PEDIDO_ITEM_MENTION_CARD_DROP_BY_FILE = new Map([
+  ['js/screens/pedido-item-row-editor.js', 1],
+]);
+
 test('12d · the SCREEN-GROUP-2 card-shape rise is exactly the five enumerated sites', () => {
   assert.equal(SCREEN_GROUP_2_CARD_SITES.length, SCREEN_GROUP_2_CARD_ADDED_COUNT);
   const perFile = new Map();
@@ -1019,7 +1032,15 @@ test('12b · every removed card-shaped declaration was a select facade, not a ca
     // addition and not a facade that failed to be removed. The pass-7 removals
     // are still asserted exactly; the later addition is subtracted from the
     // same enumerated source 12d uses, so neither figure can drift alone.
-    const laterRise = SCREEN_GROUP_2_CARD_RISE_BY_FILE.get(rel) || 0;
+    //
+    // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 FORWARD CORRECTION. Symmetrically,
+    // a LATER order can also REMOVE a card-shaped line beyond what pass-7/B1
+    // already counted — here, the per-item Observação input box. That extra
+    // drop is added on top of `expectedDrop` (equivalently, subtracted from
+    // `laterRise`) so the historical pass-7/B1 figures stay exactly as
+    // recorded and only the net comparison moves.
+    const laterRise = (SCREEN_GROUP_2_CARD_RISE_BY_FILE.get(rel) || 0)
+      - (PEDIDO_ITEM_MENTION_CARD_DROP_BY_FILE.get(rel) || 0);
     assert.equal(before - after, expectedDrop - laterRise, `${rel}: card-shaped drop`);
     // The file still builds the control whose box was removed, through the
     // canonical owner, instead of reacquiring the box locally.

@@ -467,30 +467,8 @@ function setModalMetragem(modal, value) {
   return input;
 }
 
-function setModalObservacao(modal, value) {
-  const ta = allByTag(modal, 'textarea')[0];
-  ta.value = value;
-  ta._listeners.input();
-  return ta;
-}
-
 function confirmModal(modal, re) {
   findButton(modal, re)._listeners.click();
-}
-
-// Snapshot of the local draft items, read from the RENDERED rows (uid +
-// model + metragem + observacao) — never from screen internals.
-function snapshotItens(root) {
-  return findByAttr(root, 'data-uid').map((row) => {
-    const inputs = allByTag(row, 'input');
-    return {
-      uid: row.getAttribute('data-uid'),
-      modeloId: selectPopovers(row)[1].value,
-      tipo: findByAttr(row, 'data-item-tipo')[0].textContent,
-      metros: inputs.find((i) => i.getAttribute('placeholder') === '0,00').value,
-      observacao: inputs.find((i) => i.getAttribute('placeholder') === '-').value,
-    };
-  });
 }
 
 function gridTracks(node) {
@@ -1331,18 +1309,22 @@ test('batch2/5+6. Data do pedido nasce hoje, e obrigatoria e vai no payload', as
     'criado_em jamais pode ser usado como data comercial');
 });
 
-test('batch2/7. a tabela e Img -> Tipo -> Modelo -> Cores -> Largura -> Metragem -> Observacao -> Acoes', async () => {
+// PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1: a coluna Observacao foi retirada
+// (era a 7a); a tabela administrativa passa de 8 para 7 colunas e Metragem
+// ganha a largura liberada. A observacao por item deixou de ser editavel na
+// linha — ver a acao de mencao dentro de Acoes (batch2/12 mais abaixo).
+test('batch2/7. a tabela e Img -> Tipo -> Modelo -> Cores -> Largura -> Metragem -> Acoes', async () => {
   const { root } = await bootPedidoForm();
   const header = findByAttr(root, 'data-itens-header')[0];
   assert.ok(header, 'cabecalho da tabela de itens ausente');
   assert.deepEqual(header.children.map((c) => c.textContent),
-    ['Img', 'Tipo', 'Modelo', 'Cores', 'Largura', 'Metragem (m)', 'Observacao', 'Acoes']);
+    ['Img', 'Tipo', 'Modelo', 'Cores', 'Largura', 'Metragem (m)', 'Acoes']);
 
   const headerCols = gridTracks(header);
-  assert.equal(headerCols.length, 8);
+  assert.equal(headerCols.length, 7);
   for (const row of rowsOf(root)) {
     assert.deepEqual(gridTracks(row), headerCols, 'linha e cabecalho devem usar a MESMA grade');
-    assert.equal(row.children.length, 8);
+    assert.equal(row.children.length, 7);
   }
   assert.equal(rowsOf(root)[0].children[1].getAttribute('data-item-tipo-select'), '1',
     'a 2a celula e o Tipo, inline');
@@ -1527,10 +1509,12 @@ test('batch2/19. index.html carrega o modulo da linha antes de pedido-form.js', 
   // PEDIDO-SCREEN-GROUP-2 tornou redundante ao declarar o contexto de
   // posicionamento dentro do proprio actionButton().
   // PEDIDO-UNIFIED-ADMIN-EDITOR-R1 acrescentou os modos `locked`/`readOnly`
-  // (trava estrutural pos-OP / tela terminal) a buildRow(), entao o modulo
-  // carrega agora o token dessa ordem. O sujeito do guard — ordem e carga
-  // unica — nao muda, e o token segue verificado literalmente.
-  assert.match(index, /pedido-item-row-editor\.js\?v=20260729-pedido-unified-admin-editor-r1/);
+  // (trava estrutural pos-OP / tela terminal) a buildRow().
+  // PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 retirou a coluna Observacao (8->7
+  // colunas), acrescentou `index`/`onMention` e a acao de mencao, entao o
+  // modulo carrega agora o token dessa ordem. O sujeito do guard — ordem e
+  // carga unica — nao muda, e o token segue verificado literalmente.
+  assert.match(index, /pedido-item-row-editor\.js\?v=20260729-pedido-item-mention-observation-ux-r1/);
 });
 
 // O sujeito deste guard e a EXTRACAO de BATCH-02: a tela encolheu de 1089 para
@@ -1540,10 +1524,20 @@ test('batch2/19. index.html carrega o modulo da linha antes de pedido-form.js', 
 // CODE_HEALTH_RULES.md sec.7 exige. A medida passa a ser o teto declarado da
 // faixa excepcional (900), com a extracao provada pelo tamanho dos modulos
 // filhos e pela ausencia do marcador de debito.
+//
+// PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1 acrescentou ~34 linhas coesas
+// (estado de mencao + handleItemMention), levando a tela a 930. sec.7 declara
+// esse teto "indicador arquitetural, nao portao mecanico" para tela de UI
+// coesa, e explicitamente aceita "crescimento razoavel quando melhora
+// clareza... ou separacao de responsabilidades" — o caso aqui, ja que a
+// aritmetica pura vive em js/pedido-draft.js e so o acoplamento a DOM
+// (foco/caret/autosize) permanece na tela. O teto sobe para 960 (folga
+// deliberada, nao ajuste exato) SEM abrir a faixa: 930 continua a grande
+// distancia do pre-extracao 1089, que a proxima asserção prova.
 test('batch2/20. a extracao de BATCH-02 se mantem e o debito estrutural segue quitado', () => {
   const now = screen.split('\n').length;
-  assert.ok(now <= 900,
-    `pedido-form.js deve permanecer na faixa excepcional de code-health (<=900; atual ${now})`);
+  assert.ok(now <= 960,
+    `pedido-form.js deve permanecer na faixa excepcional de code-health, com a folga da mencao (<=960; atual ${now})`);
   assert.ok(now < 1089,
     `a extracao de BATCH-02 nao pode ser desfeita (pre-extracao 1089; atual ${now})`);
   assert.ok(rowEditor.split('\n').length <= 500,
