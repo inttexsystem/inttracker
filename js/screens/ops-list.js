@@ -1,11 +1,12 @@
 // =====================================================================
 // === SCREENS: OPS LIST ================================================
-// Tela admin `#/ops` alinhada visualmente ao standalone
-// "Admin - Lista de OPs", preservando:
-//   - shell/sidebar/topbar globais;
-//   - rota `#/ops` e navegação real para `#/ops/nova` e `#/ops/:id`;
-//   - leitura segura em Supabase (somente SELECTs);
-//   - ações e permissões já existentes (editar só simulada; demais ver).
+// Tela admin `#/ops`, fila de trabalho operacional, reconciliada com a
+// identidade visual ratificada (ADMIN-OPS-LIST-VISUAL-IDENTITY-R1).
+// Preserva integralmente: shell/sidebar/topbar globais; rota `#/ops` e
+// navegacao para `#/ops/:id`; a regra de que a OP nasce de um Pedido
+// (`Nova OP` orienta e vai para `#/pedidos`); leitura segura em Supabase
+// (somente SELECTs); KPIs, filtros, busca, paginacao e exclusao
+// controlada; acoes e permissoes (editar so simulada; demais ver).
 // =====================================================================
 
 (function (window) {
@@ -21,6 +22,23 @@
     { key: 'latex', label: 'Látex' }
   ];
 
+  // §2.5: UM dono de largura, lido pelo cabecalho E por cada linha. As sete
+  // faixas sao exatamente as que a tela ja declarava duas vezes.
+  var TR_COLS = 'minmax(130px,1.05fr) minmax(120px,.9fr) minmax(170px,1.3fr) minmax(130px,1fr) minmax(130px,.95fr) 110px 90px';
+  var TR_BASE = 'display:grid;grid-template-columns:' + TR_COLS + ';gap:18px;align-items:center;min-width:980px;';
+  var THEAD_STYLE = 'font-size:var(--rv-fs-thead);font-weight:600;color:var(--rv-text-tertiary);text-transform:uppercase;letter-spacing:var(--rv-tracking-thead);';
+  var CELL_STYLE = 'font-size:var(--rv-fs-body);color:var(--rv-text-primary);';
+  var TAB_BASE = 'display:inline-flex;align-items:center;height:var(--rv-h-compact);border-radius:var(--rv-radius);padding:0 11px;font-size:var(--rv-fs-body);cursor:pointer;white-space:nowrap;font-family:inherit;';
+  var TAB_ACTIVE = TAB_BASE + 'font-weight:600;border:1px solid var(--rv-brand);background:var(--rv-brand);color:var(--rv-text-on-brand);';
+  var TAB_IDLE = TAB_BASE + 'font-weight:500;border:1px solid var(--rv-border-strong);background:var(--rv-surface);color:var(--rv-text-secondary);';
+  // Somente os estados que um `style` inline nao declara (hover, focus).
+  var SCREEN_CSS = '.rv-ops-primary:hover{background:var(--rv-brand-strong);}'
+    + '.rv-ops-compact:hover,.rv-ops-tab:hover{background:var(--rv-surface-subtle);}'
+    + '.rv-ops-tab[aria-pressed="true"]:hover{background:var(--rv-brand);}'
+    + '.rv-ops-search:hover{border-color:var(--rv-accent-blue);}'
+    + '.rv-ops-search:focus-within{border-color:var(--rv-accent-blue);box-shadow:0 0 0 3px var(--rv-focus-ring);}'
+    + '.rv-ops-list button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--rv-focus-ring);}';
+
   function svgEl(markup) {
     var tmp = document.createElement('div');
     tmp.innerHTML = markup;
@@ -34,14 +52,16 @@
   // (was 15px before conformance).
   var ICON_EYE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
   var ICON_EDIT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
-  var ICON_MORE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.2"></circle><circle cx="12" cy="12" r="1.2"></circle><circle cx="12" cy="19" r="1.2"></circle></svg>';
   var ICON_TRASH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
   var ICON_LEFT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
   var ICON_RIGHT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>';
-  var ICON_TOTAL = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-accent-blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect><line x1="9" y1="12" x2="15" y2="12"></line><line x1="9" y1="16" x2="13" y2="16"></line></svg>';
-  var ICON_PROD = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-signal-caution)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>';
-  var ICON_SIM = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-text-secondary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>';
-  var ICON_OPEN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--rv-accent-blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="2"></circle></svg>';
+  var ICON_ALERT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12" y2="16"></line></svg>';
+  // Um KPI e MEDIDA categorica, nao severidade: as quatro superficies de icone
+  // tomam o chip neutro (§2.4) e o glifo herda --rv-chip-glyph por currentColor.
+  var ICON_TOTAL = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect><line x1="9" y1="12" x2="15" y2="12"></line><line x1="9" y1="16" x2="13" y2="16"></line></svg>';
+  var ICON_PROD = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>';
+  var ICON_SIM = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>';
+  var ICON_OPEN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="2"></circle></svg>';
 
   function normalizarKey(value) {
     if (typeof value !== 'string') return '';
@@ -72,16 +92,16 @@
     return fmtOpLegacy(row);
   }
 
-  function kpiCard(iconBg, iconMarkup, label, value) {
+  function kpiCard(iconMarkup, label, value) {
     return window.el('div', {
-      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);padding:14px 16px;display:flex;align-items:center;gap:12px;min-width:0;'
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);padding:var(--rv-pad-card);display:flex;align-items:center;gap:10px;min-width:0;'
     },
     window.el('div', {
-      style: 'width:36px;height:36px;border-radius:var(--rv-radius-pill);background:' + iconBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;'
+      style: 'width:34px;height:34px;border-radius:var(--rv-radius);background:var(--rv-chip-bg);color:var(--rv-chip-glyph);display:flex;align-items:center;justify-content:center;flex-shrink:0;'
     }, svgEl(iconMarkup)),
     window.el('div', { style: 'min-width:0;' },
-      window.el('div', { style: 'font-size:12.5px;color:var(--rv-text-tertiary);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' }, label),
-      window.el('div', { style: 'font-size:22px;font-weight:800;color:var(--rv-text-primary);line-height:1;' }, String(value))
+      window.el('div', { style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' }, label),
+      window.el('div', { style: 'font-size:var(--rv-fs-kpi-card);font-weight:800;color:var(--rv-text-primary);line-height:1;' }, String(value))
     ));
   }
 
@@ -117,7 +137,7 @@
   }
 
   async function screenListaOPs() {
-    var container = window.el('div', {});
+    var container = window.el('div', { class: 'rv-ops-list' });
     var state = {
       rows: [],
       itensPorOpId: {},
@@ -274,22 +294,31 @@
       });
     }
 
+    // §2.1: a barra de acao alinha ao TOPO do bloco de titulo, e `Nova OP` e a
+    // unica acao dominante. A OP nasce de um Pedido: o botao orienta e navega
+    // para `#/pedidos` — nunca para uma criacao avulsa.
     function buildHeader() {
       return window.el('div', {
-        style: 'display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap;'
+        style: 'display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap;'
       },
       window.el('div', {},
-        window.el('div', { style: 'font-size:22px;font-weight:800;color:var(--rv-text-primary);letter-spacing:-.01em;' }, 'Ordens de Produção'),
-        window.el('div', { style: 'font-size:13px;color:var(--rv-text-tertiary);margin-top:3px;' }, 'Acompanhe as OPs da operação.')
+        window.el('div', {
+          style: 'font-size:var(--rv-fs-title);font-weight:800;color:var(--rv-text-title);letter-spacing:var(--rv-tracking-title);line-height:1.1;'
+        }, 'Ordens de Produção'),
+        window.el('div', {
+          style: 'font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);margin-top:3px;'
+        }, 'Acompanhe as OPs da operação.')
       ),
-      window.el('button', {
-        type: 'button',
-        style: 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:4px;padding:9px 16px;font-weight:600;font-size:14px;font-family:inherit;cursor:pointer;white-space:nowrap;',
-        onclick: function () {
-          window.toast('Crie a OP a partir de um Pedido.', 'info');
-          window.navigate('#/pedidos');
-        }
-      }, svgEl(ICON_PLUS), 'Nova OP'));
+      window.el('div', { style: 'display:flex;align-items:center;gap:8px;' },
+        window.el('button', {
+          type: 'button',
+          class: 'rv-ops-primary',
+          style: 'display:inline-flex;align-items:center;gap:7px;height:var(--rv-h-primary);background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:var(--rv-radius);padding:0 16px;font-weight:600;font-size:var(--rv-fs-body);font-family:inherit;cursor:pointer;white-space:nowrap;',
+          onclick: function () {
+            window.toast('Crie a OP a partir de um Pedido.', 'info');
+            window.navigate('#/pedidos');
+          }
+        }, svgEl(ICON_PLUS), 'Nova OP')));
     }
 
     function buildKpis() {
@@ -297,10 +326,10 @@
       return window.el('div', {
         style: 'display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px;'
       },
-      kpiCard('var(--rv-pill-info-bg)', ICON_TOTAL, 'Total', kpi.total),
-      kpiCard('var(--rv-signal-caution-bg)', ICON_PROD, 'Em produção', kpi.emProducao),
-      kpiCard('var(--rv-surface-subtle)', ICON_SIM, 'Simuladas', kpi.simuladas),
-      kpiCard('var(--rv-pill-info-bg)', ICON_OPEN, 'Abertas', kpi.abertas));
+      kpiCard(ICON_TOTAL, 'Total', kpi.total),
+      kpiCard(ICON_PROD, 'Em produção', kpi.emProducao),
+      kpiCard(ICON_SIM, 'Simuladas', kpi.simuladas),
+      kpiCard(ICON_OPEN, 'Abertas', kpi.abertas));
     }
 
     function buildBuscaTabs() {
@@ -309,12 +338,13 @@
       });
 
       var searchBox = window.el('div', {
-        style: 'flex:1;min-width:260px;display:flex;align-items:center;gap:8px;background:var(--rv-surface);border:1px solid var(--rv-border-strong);border-radius:4px;padding:7px 13px;'
+        class: 'rv-ops-search',
+        style: 'flex:1;min-width:260px;display:flex;align-items:center;gap:8px;height:var(--rv-h-compact);background:var(--rv-surface);border:1px solid var(--rv-border-strong);border-radius:var(--rv-radius);padding:0 13px;'
       }, svgEl(ICON_SEARCH));
       var input = window.el('input', {
         type: 'text',
         placeholder: 'Buscar por OP, lote ou cliente...',
-        style: 'border:none;outline:none;background:transparent;flex:1;min-width:0;font-size:13px;color:var(--rv-text-primary);font-family:inherit;'
+        style: 'border:none;outline:none;background:transparent;flex:1;min-width:0;font-size:var(--rv-fs-body);color:var(--rv-text-primary);font-family:inherit;'
       });
       input.value = ui.busca;
       input.addEventListener('focus', function () { searchHasFocus = true; });
@@ -331,11 +361,16 @@
       var tabsWrap = window.el('div', {
         style: 'display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:2px;'
       });
+      // Estas abas selecionam CLASSIFICACOES de OP (Tecelagem/Latex); nao sao
+      // pilulas de ciclo de vida nem etapas. Degrau compacto canonico e a
+      // superficie de controle selecionado — nunca uma cor por tipo.
       TABS.forEach(function (tab) {
         var active = ui.tab === tab.key;
         tabsWrap.appendChild(window.el('button', {
           type: 'button',
-          style: 'display:inline-flex;align-items:center;gap:5px;border-radius:4px;padding:6px 11px;font-size:13px;font-weight:' + (active ? '600' : '500') + ';border:1px solid ' + (active ? 'var(--rv-brand)' : 'var(--rv-border-strong)') + ';background:' + (active ? 'var(--rv-brand)' : 'var(--rv-surface)') + ';color:' + (active ? 'var(--rv-text-on-brand)' : 'var(--rv-text-secondary)') + ';cursor:pointer;white-space:nowrap;font-family:inherit;',
+          class: 'rv-ops-tab',
+          'aria-pressed': active ? 'true' : 'false',
+          style: active ? TAB_ACTIVE : TAB_IDLE,
           onclick: function () {
             ui.tab = tab.key;
             ui.pagina = 1;
@@ -348,9 +383,17 @@
     }
 
     function buildFilterControls() {
-      var wrap = window.el('div', {
-        style: 'display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) minmax(180px,1fr) auto;gap:8px;margin-bottom:16px;align-items:stretch;'
+      // A grade declara um piso de 180px por coluna, entao os tres filtros mais
+      // o `Limpar` nao cabem numa faixa estreita. Ela vive num container PROPRIO
+      // de rolagem — o mesmo idioma ja aceito na lista de Pedidos — para que
+      // nenhum controle fique inalcancavel e o documento nunca seja empurrado.
+      var scroll = window.el('div', {
+        style: 'overflow-x:auto;max-width:100%;margin-bottom:16px;padding-bottom:2px;'
       });
+      var wrap = window.el('div', {
+        style: 'display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) minmax(180px,1fr) auto;gap:8px;align-items:stretch;'
+      });
+      scroll.appendChild(wrap);
 
       // Pass-7 (UIC-006): the filter was a visible facade with a hidden
       // opacity-zero native <select> stretched over it owning the value.
@@ -363,7 +406,7 @@
         var holder = window.el('div', { style: 'display:flex;flex-direction:column;gap:3px;min-width:0;' });
         holder.appendChild(window.el('div', {
           id: captionId,
-          style: 'font-size:10.5px;font-weight:700;color:var(--rv-text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
+          style: 'font-size:var(--rv-fs-2xs);color:var(--rv-text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
         }, label));
         var control = window.createSelectPopover({
           options: options,
@@ -418,9 +461,12 @@
         render();
       }));
 
+      // Botao compacto canonico (§2.1), icone a ESQUERDA. O comportamento de
+      // reset e exatamente o anterior.
       wrap.appendChild(window.el('button', {
         type: 'button',
-        style: 'display:inline-flex;align-items:center;gap:6px;background:var(--rv-surface);color:var(--rv-text-secondary);border:1px solid var(--rv-border-strong);border-radius:4px;padding:7px 13px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;white-space:nowrap;align-self:stretch;',
+        class: 'rv-ops-compact',
+        style: 'display:inline-flex;align-items:center;justify-content:center;gap:6px;align-self:end;height:var(--rv-h-compact);background:var(--rv-surface);color:var(--rv-text-secondary);border:1px solid var(--rv-border-strong);border-radius:var(--rv-radius);padding:0 13px;font-size:var(--rv-fs-body);font-weight:500;font-family:inherit;cursor:pointer;white-space:nowrap;',
         onclick: function () {
           ui.busca = '';
           ui.tab = 'todos';
@@ -430,24 +476,34 @@
           ui.pagina = 1;
           render();
         }
-      }, 'Limpar', svgEl(ICON_X)));
+      }, svgEl(ICON_X), 'Limpar'));
 
-      return wrap;
+      return scroll;
     }
 
+    // §2.12: trilho de visualizacao e preenchimento generico; a cor semantica
+    // so entra onde a conclusao real a possui (100%). O calculo nao muda.
     function progressCell(pct) {
-      var fillColor = pct >= 100 ? 'var(--rv-signal-positive)' : 'var(--rv-viz-primary)';
-      var textColor = pct >= 100 ? 'var(--rv-signal-positive)' : (pct > 0 ? 'var(--rv-text-secondary)' : 'var(--rv-text-tertiary)');
+      var done = pct >= 100;
+      var textColor = done ? 'var(--rv-signal-positive)' : (pct > 0 ? 'var(--rv-text-secondary)' : 'var(--rv-text-tertiary)');
       return window.el('div', {},
         window.el('div', {
-          style: 'font-size:12px;color:' + textColor + ';font-weight:600;margin-bottom:4px;'
+          style: 'font-size:var(--rv-fs-xs);font-weight:600;font-variant-numeric:tabular-nums;color:' + textColor + ';margin-bottom:4px;'
         }, pct + '%'),
         window.el('div', {
-          style: 'width:120px;max-width:100%;height:6px;background:var(--rv-chip-bg);border-radius:var(--rv-radius);overflow:hidden;'
+          style: 'width:120px;max-width:100%;height:6px;background:var(--rv-viz-track);border-radius:var(--rv-radius);overflow:hidden;'
         },
         window.el('div', {
-          style: 'height:100%;width:' + pct + '%;background:' + fillColor + ';border-radius:var(--rv-radius);'
+          style: 'height:100%;border-radius:var(--rv-radius);width:' + pct + '%;background:' + (done ? 'var(--rv-signal-positive)' : 'var(--rv-viz-primary)') + ';'
         })));
+    }
+
+    // Manta e Tapete sao CLASSIFICACOES de produto (§2.6.1), nao estados: ambas
+    // tomam o badge neutro do dono canonico. Tipo nao resolvido => sem badge.
+    function produtoBadge(row) {
+      var pt = state.produtoTipoPorOp && state.produtoTipoPorOp[row.id];
+      if (pt !== 'manta' && pt !== 'tapete') return null;
+      return window.rvClassificationBadge(pt === 'manta' ? 'Manta' : 'Tapete');
     }
 
     function rowActions(row) {
@@ -480,11 +536,11 @@
 
     function buildTableHead() {
       var row = window.el('div', {
-        style: 'display:grid;grid-template-columns:minmax(130px,1.05fr) minmax(120px,.9fr) minmax(170px,1.3fr) minmax(130px,1fr) minmax(130px,.95fr) 110px 90px;gap:18px;align-items:center;padding:10px 16px;background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);min-width:980px;'
+        style: TR_BASE + 'padding:10px 16px;background:var(--rv-surface-subtle);border-bottom:1px solid var(--rv-border);'
       });
       ['OP / LOTE', 'TIPO', 'CLIENTE', 'STATUS', 'ENTREGUE', 'CRIADA EM', 'AÇÕES'].forEach(function (label, idx) {
         row.appendChild(window.el('div', {
-          style: 'font-size:11px;font-weight:700;color:var(--rv-text-tertiary);letter-spacing:.04em;' + (idx === 2 ? window.TRUNCATE_CELL_STYLE : 'white-space:nowrap;' + (idx === 6 ? 'text-align:center;justify-self:center;' : ''))
+          style: THEAD_STYLE + (idx === 2 ? window.TRUNCATE_CELL_STYLE : 'white-space:nowrap;' + (idx === 6 ? 'text-align:center;justify-self:center;' : ''))
         }, label));
       });
       return row;
@@ -495,56 +551,56 @@
       var legacyLabel = fmtOpLegacy(row).replace(/^OP /, ctx ? 'Nº interno ' : 'Nº ');
       var loteLabel = row.lote ? 'Lote Nº ' + row.lote.numero : 'Sem lote';
       return window.el('div', {
-        style: 'display:grid;grid-template-columns:minmax(130px,1.05fr) minmax(120px,.9fr) minmax(170px,1.3fr) minmax(130px,1fr) minmax(130px,.95fr) 110px 90px;gap:18px;align-items:center;padding:14px 16px;min-width:980px;' + (isLast ? '' : 'border-bottom:1px solid var(--rv-border-soft);')
+        style: TR_BASE + 'padding:14px 16px;' + (isLast ? '' : 'border-bottom:1px solid var(--rv-border-soft);')
       },
       window.el('div', {},
-        window.el('div', { style: 'font-size:14px;font-weight:700;color:var(--rv-accent-blue);' }, primaryLabel),
-        window.el('div', { style: 'font-size:11px;color:var(--rv-text-tertiary);margin-top:1px;' }, legacyLabel + ' · ' + loteLabel)
+        window.el('div', { style: 'font-size:var(--rv-fs-body);font-weight:700;color:var(--rv-accent-blue);' }, primaryLabel),
+        window.el('div', { style: 'font-size:var(--rv-fs-2xs);color:var(--rv-text-tertiary);margin-top:1px;' }, legacyLabel + ' · ' + loteLabel)
       ),
-      window.el('div', {}, window.badgeTipo(row.tipo || 'tecelagem'), (function () {
-        var pt = state.produtoTipoPorOp && state.produtoTipoPorOp[row.id];
-        if (pt !== 'manta' && pt !== 'tapete') return '';
-        var isM = pt === 'manta';
-        return window.el('span', { style: 'margin-left:6px;display:inline-flex;align-items:center;border-radius:4px;padding:2px 7px;font-size:10.5px;font-weight:700;' + (isM ? 'background:var(--rv-signal-positive-bg);color:var(--rv-signal-positive);' : 'background:var(--rv-chip-bg);color:var(--rv-text-primary);') }, isM ? 'Manta' : 'Tapete');
-      })()),
+      window.el('div', { style: 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;' },
+        window.badgeTipo(row.tipo || 'tecelagem'),
+        produtoBadge(row)),
       (function () {
         var nome = clienteNome(row);
-        return window.truncatedCell(nome, nome === '—' ? null : nome, 'font-size:13px;color:var(--rv-text-primary);');
+        return window.truncatedCell(nome, nome === '—' ? null : nome, CELL_STYLE);
       })(),
       window.el('div', {}, window.badgeStatus(row.status)),
       progressCell(entreguePct(row)),
-      window.el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);' }, fmtData(row.criado_em)),
+      window.el('div', { style: 'font-size:var(--rv-fs-body);color:var(--rv-text-secondary);' }, fmtData(row.criado_em)),
       rowActions(row));
+    }
+
+    // D12 / §2.11: uma notificacao autonoma e a sua PROPRIA superficie de
+    // informacao, com a largura toda da regiao de conteudo — nunca uma linha de
+    // 980px dentro da tabela. Fundo, borda, icone e texto vem todos da familia
+    // negativa ratificada em §2.1 (superficie + borda e texto negativos).
+    function buildErrorNotice() {
+      return window.el('div', {
+        style: 'display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;background:var(--rv-surface);border:1px solid var(--rv-signal-negative-border);border-radius:var(--rv-radius);color:var(--rv-signal-negative);padding:14px 16px;font-size:var(--rv-fs-sm);font-weight:600;'
+      }, svgEl(ICON_ALERT), 'Não foi possível carregar as OPs agora. Tente recarregar a página.');
     }
 
     function buildTable(rows) {
       var grouped = opsByPedido();
+      // §2.5: `data-rv-table-scroll` e o dono CANONICO da rolagem horizontal —
+      // ele acrescenta max-width:100% e min-width:0, que impedem a tabela de
+      // esticar o <main> do shell numa grade estreita.
       var wrap = window.el('div', {
-        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);overflow:hidden;'
+        'data-rv-table-scroll': '',
+        style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);box-shadow:var(--rv-shadow-none);overflow-x:auto;'
       });
-      var scroll = window.el('div', { style: 'overflow-x:auto;' });
-      scroll.appendChild(buildTableHead());
-
-      if (state.error) {
-        scroll.appendChild(window.el('div', {
-          style: 'padding:34px 16px;text-align:center;font-size:14px;color:var(--rv-signal-caution);min-width:980px;'
-        }, 'Não foi possível carregar as OPs agora. Tente recarregar a página.'));
-        wrap.appendChild(scroll);
-        return wrap;
-      }
+      wrap.appendChild(buildTableHead());
 
       if (rows.length === 0) {
-        scroll.appendChild(window.el('div', {
-          style: 'padding:34px 16px;text-align:center;font-size:14px;color:var(--rv-text-tertiary);min-width:980px;'
+        wrap.appendChild(window.el('div', {
+          style: 'padding:34px 16px;text-align:center;font-size:var(--rv-fs-sm);color:var(--rv-text-tertiary);min-width:980px;'
         }, 'Nenhuma OP para este filtro.'));
-        wrap.appendChild(scroll);
         return wrap;
       }
 
       rows.forEach(function (row, idx) {
-        scroll.appendChild(buildRow(row, idx === rows.length - 1, opContext(row, grouped)));
+        wrap.appendChild(buildRow(row, idx === rows.length - 1, opContext(row, grouped)));
       });
-      wrap.appendChild(scroll);
       return wrap;
     }
 
@@ -558,7 +614,7 @@
         style: 'display:flex;align-items:center;justify-content:space-between;background:var(--rv-surface);border:1px solid var(--rv-border);border-top:none;border-radius:var(--rv-radius);padding:11px 18px;margin-bottom:8px;'
       },
       window.el('span', {
-        style: 'font-size:13px;color:var(--rv-text-tertiary);'
+        style: 'font-size:var(--rv-fs-body);color:var(--rv-text-tertiary);'
       }, totalFiltrado === 0
         ? 'Nenhuma OP encontrada'
         : 'Mostrando ' + inicio + ' a ' + fim + ' de ' + totalFiltrado + (totalFiltrado === 1 ? ' OP' : ' OPs')),
@@ -572,7 +628,7 @@
         // action, so it is a span carrying aria-current="page".
         window.el('span', {
           'aria-current': 'page',
-          style: 'width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:none;border-radius:4px;background:var(--rv-brand);color:var(--rv-text-on-brand);font-size:13px;font-weight:700;cursor:default;font-family:inherit;'
+          style: 'width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:none;border-radius:var(--rv-radius);background:var(--rv-brand);color:var(--rv-text-on-brand);font-size:var(--rv-fs-body);font-weight:700;cursor:default;font-family:inherit;font-variant-numeric:tabular-nums;'
         }, String(ui.pagina)),
         navBtn(ICON_RIGHT, ui.pagina >= totalPaginas, function () {
           ui.pagina += 1;
@@ -587,11 +643,12 @@
       var rows = filtrados.slice((ui.pagina - 1) * PAGE_SIZE, ui.pagina * PAGE_SIZE);
 
       container.replaceChildren(
+        window.el('style', {}, SCREEN_CSS),
         buildHeader(),
         buildKpis(),
         buildBuscaTabs(),
         buildFilterControls(),
-        buildTable(rows),
+        state.error ? buildErrorNotice() : buildTable(rows),
         buildPagination(filtrados.length)
       );
 
