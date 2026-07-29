@@ -156,18 +156,18 @@
     }
   ],
   "active_phase": {
-    "id": "NONE",
-    "status": "NO ACTIVE PRODUCT PHASE",
-    "immediate_objective": "ADMIN-OPS-LIST-VISUAL-IDENTITY-ALIGNMENT-R1 is closed and accepted at 95e928a6c15458ee58fa9d194242ffb0179b2f21. No next product phase has been selected.",
+    "id": "PEDIDO-UNIFIED-EDIT-AND-CLIENT-CHANGE-APPROVAL-DESIGN-R1",
+    "status": "DESIGNED / PUBLISHED / AWAITING SUPERVISOR REVIEW",
+    "immediate_objective": "Binding design contract published for unified Pedido editing and client change approval. It rules that the administrative editor at #/pedidos/<uuid>/editar becomes one complete full-width editor with the same information architecture as #/pedidos/novo, preserving the dual item-entry contract and retiring the partial general-data card; that a client editor at #/cliente/pedidos/<uuid>/editar reuses the same composition under the client boundary, with data_pedido immutable to the client at every lifecycle point; that before administrative acceptance the client edits its own unaccepted Pedido directly through a dedicated transactional write contract; that after acceptance, proven to be pedidos.status = confirmado, the live Pedido becomes read-only to the client and saving creates or replaces a single pending change request; that review happens on a dedicated screen at #/pedidos/<uuid>/alteracoes/<request-id> rather than inside a transition modal; and that approval applies the whole revision atomically with audit, RLS separation and fail-closed optimistic concurrency on a new pedidos.revisao column, because pedidos.atualizado_em is proved unmaintained. prazo_entrega is the canonical expected-delivery field and prazo_desejado is dormant legacy. Nothing is implemented: no migration, RPC, policy, screen or database object was created, altered or applied.",
     "contract": {
-      "path": "docs/governance/AGENT_INSTRUCTIONS.md",
-      "anchor": "## 4. Authorization and roles"
+      "path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
+      "anchor": "## Update 2026-07-29 — Unified Pedido Editing and Client Change Approval Design R1"
     }
   },
   "next_authorizable_action": {
-    "id": "SELECT NEXT PRODUCT PHASE",
-    "mode": "AWAITING PRODUCT DIRECTION; NO PHASE IS CHAINED",
-    "status": "PENDING. No subsequent product implementation is authorized until the next bounded objective is selected."
+    "id": "DIRECT SUPERVISOR REVIEW OF PEDIDO-UNIFIED-EDIT-AND-CLIENT-CHANGE-APPROVAL-DESIGN-R1",
+    "mode": "AWAITING ARCHITECTURAL REVIEW; NO IMPLEMENTATION PHASE IS CHAINED",
+    "status": "PENDING. No schema, migration, RPC, policy or frontend phase of the six-phase sequence is authorized until the contract and its four open supervisor decisions in section U13 are ratified."
   },
   "active_track": {
     "id": "PURCHASE_ORDER_PHASE_C",
@@ -353,6 +353,46 @@
       "blocking": false,
       "owner": "scripts/staging read-only diagnostics",
       "note": "Diagnostics are explicitly gated and read-only but currently depend on real administrator authentication. A dedicated read-only diagnostic identity may be designed separately."
+    },
+    {
+      "id": "PEDIDO-ATUALIZADO-EM-NOT-MAINTAINED",
+      "status": "OPEN / NONBLOCKING",
+      "blocking": false,
+      "owner": "Pedido schema domain",
+      "evidence": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md :: U7 and U12",
+      "note": "No trigger on public.pedidos writes atualizado_em, no screen includes it in an update payload, and atualizado_em = criado_em on every production row. It is NOT a modification timestamp and must never be used as an optimistic-concurrency version. Its repair needs its own order."
+    },
+    {
+      "id": "PEDIDO-ITEM-DELETE-ORPHANS-OP-LINK",
+      "status": "OPEN / NONBLOCKING",
+      "blocking": false,
+      "owner": "Pedido / OP link domain",
+      "evidence": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md :: U5.3",
+      "note": "op_itens.pedido_item_id and expedicao_itens.pedido_item_id are ON DELETE SET NULL, so deleting a pedido_itens row succeeds and silently orphans the production and expedition records with no constraint, trigger or check reporting it. pedido_parcial_itens cascades away. The approval RPC designed in U5.3 must refuse such removals; whether the foreign keys become RESTRICT needs its own order."
+    },
+    {
+      "id": "PEDIDO-CLIENT-FIELDS-COLLECTED-NEVER-PERSISTED",
+      "status": "OPEN / NONBLOCKING",
+      "blocking": false,
+      "owner": "Pedido client surface domain",
+      "evidence": "js/screens/cliente-pedido-form.js",
+      "note": "The client creation form binds state.referencia and state.recebimento but omits both from the insert payload, so referencia_cliente and tipo_recebimento are populated on zero production rows while three administrative screens read them. Closed by Phase 4 of the published contract."
+    },
+    {
+      "id": "PEDIDO-PRAZO-DESEJADO-DORMANT-COLUMN",
+      "status": "OPEN / NONBLOCKING",
+      "blocking": false,
+      "owner": "Pedido schema domain",
+      "evidence": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md :: U3",
+      "note": "pedidos.prazo_desejado is written by nothing under js/ and populated on zero rows, yet js/screens/pedido-detail-render.js reads it FIRST in a prazo_desejado || prazo_entrega fallback. prazo_entrega is the canonical expected-delivery field; a future write to the dormant column would silently override it. Retirement needs its own order."
+    },
+    {
+      "id": "PEDIDO-ITENS-CLIENT-INSERT-WITHOUT-UI",
+      "status": "OPEN / NONBLOCKING",
+      "blocking": false,
+      "owner": "Pedido RLS domain",
+      "evidence": "policy pedido_itens_cliente_insert on ucrjtfswnfdlxwtmxnoo",
+      "note": "The client holds an INSERT policy on pedido_itens for its own Pedido while status is rascunho or recebido, with no UPDATE and no DELETE policy and no UI behind it, so a raw-API append is possible today. Narrowed to the RPC path by Phase 2 of the published contract."
     },
     {
       "id": "CLEAN-SLATE-CONTRACT-TARGET-PROSE-DRIFT",

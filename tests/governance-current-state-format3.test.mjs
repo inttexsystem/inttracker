@@ -186,9 +186,13 @@ test('the active state declares a coherent phase and next authorizable action', 
     state.next_authorizable_action.id.includes(state.active_phase.id),
     'the next authorizable action must name the active phase'
   );
+  // O modo declara que a fase esta PARADA num portao de revisao humana, nao
+  // uma redacao unica. `SUPERVISOR` e `ARCHITECTURAL` nomeiam o mesmo portao —
+  // o arquiteto — e ambos satisfazem o sujeito do guard. Continua proibido um
+  // modo que nao declare portao de revisao nenhum.
   assert.match(
     state.next_authorizable_action.mode,
-    /AWAITING SUPERVISOR REVIEW/u
+    /AWAITING (SUPERVISOR|ARCHITECTURAL) REVIEW/u
   );
 });
 
