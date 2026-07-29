@@ -186,18 +186,19 @@
     }
   ],
   "active_phase": {
-    "id": "PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C1-SCHEMA",
-    "status": "IMPLEMENTED / APPLIED TO DEFINITIVE PRODUCTION / PUBLISHED / AWAITING SUPERVISOR REVIEW",
-    "immediate_objective": "Publish and apply the exact client-safe structural-item capability required to correct PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1. No client frontend change occurred in this schema correction.",
+    "id": "PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C2-UI",
+    "status": "CORRECTION IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW",
+    "immediate_objective": "Complete the client Pedido editor by consuming the exact db/94 structural capability, failing closed when that capability is unavailable, rendering the sanitized request history and identifying pending-request replacement explicitly.",
     "contract": {
       "path": "docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md",
       "anchor": "### U10.3 Client editor — `#/cliente/pedidos/<uuid>/editar`"
-    }
+    },
+    "note": "PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C1-SCHEMA (db/94, e6956def3e32f7e08f7e2df53bd16f2a82693285) is accepted as the database prerequisite for this correction. No separate accepted checkpoint is created for C1: it is absorbed into the eventual accepted Phase 4 checkpoint together with the original Phase 4 implementation (ce20b696) and this C2 UI correction. accepted_operational_checkpoint remains PEDIDO-ITEM-MENTION-OBSERVATION-UX-R1; Phase 4 itself is NOT accepted by this correction."
   },
   "next_authorizable_action": {
-    "id": "DIRECT SUPERVISOR REVIEW OF PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C1-SCHEMA",
-    "mode": "AWAITING SUPERVISOR REVIEW; CLIENT UI CORRECTION IS NOT CHAINED",
-    "status": "PENDING. Review db/94, its definitive-production apply and the exact sanitized capability. After acceptance, issue the bounded Phase 4 UI correction. Do not begin Phase 5."
+    "id": "DIRECT SUPERVISOR REVIEW OF PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-INCLUDING-C1-C2",
+    "mode": "AWAITING SUPERVISOR REVIEW; PHASE 5 IS NOT CHAINED",
+    "status": "PENDING. Review the complete client editor, exact structural capability, fail-closed behaviour, request history, replacement action, direct-save path, request submission and withdrawal. Do not begin Phase 5 without final Phase 4 acceptance."
   },
   "active_track": {
     "id": "PURCHASE_ORDER_PHASE_C",

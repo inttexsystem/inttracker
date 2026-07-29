@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `IMPLEMENTED / APPLIED TO DEFINITIVE PRODUCTION / PUBLISHED / AWAITING SUPERVISOR REVIEW`
-- Objective: Publish and apply the exact client-safe structural-item capability required to correct PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1. No client frontend change occurred in this schema correction.
-- Next authorizable action: `DIRECT SUPERVISOR REVIEW OF PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C1-SCHEMA` / `AWAITING SUPERVISOR REVIEW; CLIENT UI CORRECTION IS NOT CHAINED`
+- Status: `CORRECTION IMPLEMENTED / PUBLISHED / AWAITING SUPERVISOR REVIEW`
+- Objective: Complete the client Pedido editor by consuming the exact db/94 structural capability, failing closed when that capability is unavailable, rendering the sanitized request history and identifying pending-request replacement explicitly.
+- Next authorizable action: `DIRECT SUPERVISOR REVIEW OF PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-INCLUDING-C1-C2` / `AWAITING SUPERVISOR REVIEW; PHASE 5 IS NOT CHAINED`
 
 ## Blockers and decisions
 

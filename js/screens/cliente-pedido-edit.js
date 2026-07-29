@@ -37,20 +37,21 @@
 //     aceito (sete colunas, 790px, sem observacao editavel, com a acao de
 //     mencao). buildRow()/GRID_COLS/HEADER_LABELS permanecem INTOCADOS.
 //
-// CAPACIDADE ESTRUTURAL (Modo C — aceito, com OP): nao existe leitura
-// client-safe do helper owner-only public.pedido_tem_op_relacionada (db/93
-// revogou EXECUTE ate de `authenticated`). O sinal usado e
-// `chain_state.isOperationalOverride`, ja devolvido pela RPC client-safe
-// ACEITA `cliente_pedido_summary()` (db/30) e ja consumido para o mesmo fim
-// em js/screens/cliente-pedido-detail.js. E uma APROXIMACAO honesta (cobre
-// ops-via-lotes e expedicoes-via-pedido_id; nao cobre isoladamente um
-// op_itens/expedicao_itens sem OP/expedicao propria vinculada ao pedido —
-// um caso extremo que exigiria uma nova leitura client-safe, fora do escopo
-// desta fase) — NUNCA a autoridade. A autoridade e sempre o servidor:
-// solicitar_alteracao_pedido recusa uma proposta estrutural de verdade com
-// PEDIDO_ALTERACAO_ESTRUTURA_BLOQUEADA_APOS_OP independentemente do que esta
-// tela mostrar. Na pior hipotese de descompasso, o Cliente ve controles
-// habilitados e recebe uma recusa clara ao submeter — nunca um bypass.
+// CAPACIDADE ESTRUTURAL (Modo C — aceito, com OP): a fonte EXATA e exclusiva
+// e `payload.capacidades.estrutura_itens_bloqueada`, devolvida por
+// cliente_alteracao_resumo() (db/94), que reduz o gate autoritativo
+// public.pedido_tem_op_relacionada(...) a um unico booleano sanitizado, sem
+// motivo, origem, contagem, ID ou status. `chain_state.isOperationalOverride`
+// (db/30, cliente_pedido_summary()) NAO e dona desta capacidade e nao e mais
+// usada para decidir a trava estrutural nesta tela: cobre apenas
+// OP-via-lote e expedicao-via-pedido, falha ABERTA quando a propria leitura
+// falha, e nao cobre um op_itens/expedicao_itens vinculado isoladamente a um
+// item do Pedido. Leitura ausente, malformada ou com campo nao-booleano
+// falha FECHADA (controles estruturais somente-leitura); a leitura nunca e
+// tratada como "false" por omissao. A autoridade continua sendo sempre o
+// servidor: solicitar_alteracao_pedido recusa uma proposta estrutural de
+// verdade com PEDIDO_ALTERACAO_ESTRUTURA_BLOQUEADA_APOS_OP independentemente
+// do que esta tela mostrar.
 //
 // NUNCA renderiza: pedidos.numero, pedidos.status bruto, OP, lote,
 // fornecedor, ordem de compra, documento fiscal, custo ou qualquer
@@ -159,9 +160,13 @@
       modelos: [],
       tipoMetadataOk: false,
       mode: 'preAceite',
-      isOperationalOverride: false,
       statusLabel: '',
       pendente: null,
+      historico: [],
+      historicoIndisponivel: false,
+      estruturaItensBloqueada: true,
+      capacidadeEstruturalResolvida: false,
+      capacidadeEstruturalErro: false,
       loadingError: null,
       staleRevision: false,
       mensagem: '',
@@ -169,7 +174,7 @@
       prioridadeBaseline: { habilitada: false, sequencia: [] },
     };
 
-    function locked() { return state.mode === 'posAceite' && state.isOperationalOverride; }
+    function locked() { return state.mode === 'posAceite' && state.estruturaItensBloqueada; }
 
     // -------------------------------------------------------------
     // Carregamento — leituras SOMENTE de SELECT (nunca UPDATE/DELETE
@@ -242,12 +247,13 @@
       }
     }
 
-    // `chain_state.isOperationalOverride` (db/30, ja aceito e ja consumido em
-    // cliente-pedido-detail.js) e o UNICO sinal client-safe disponivel para
-    // aproximar "existe OP relacionada" nesta tela. Ver nota de topo do
-    // arquivo. Falha de leitura aqui NAO bloqueia a tela — apenas mantem o
-    // sinal em `false` (o servidor continua sendo a autoridade real).
-    async function carregarResumoESinalOperacional() {
+    // `chain_state.displayStatus` (db/30) continua sendo a fonte da etiqueta
+    // de status sanitizada ja usada por esta tela. `chain_state.
+    // isOperationalOverride` NAO e mais lida para nenhuma decisao aqui: a
+    // capacidade estrutural exata vem exclusivamente de
+    // carregarResumoESolicitacao(). Falha de leitura aqui NAO bloqueia a
+    // tela — apenas mantem a etiqueta de status vazia.
+    async function carregarStatusLabel() {
       var res = await window.supa.rpc('cliente_pedido_summary', { p_pedido_id: pedidoId });
       if (res.error || !res.data) return;
       var payload = res.data;
@@ -255,17 +261,44 @@
       if (Array.isArray(payload)) payload = payload[0] || null;
       if (!payload || payload.ok === false) return;
       var chain = payload.chain_state || {};
-      state.isOperationalOverride = !!chain.isOperationalOverride;
       state.statusLabel = chain.displayStatus || (window.pedidoStatusLabel ? window.pedidoStatusLabel(state.pedido.status) : '');
     }
 
-    async function carregarSolicitacaoPendente() {
+    // UMA chamada a cliente_alteracao_resumo() popula pendente, historico e
+    // a capacidade estrutural exata (db/94). Normalizacao defensiva:
+    //   - `pendente`: objeto ou null;
+    //   - `historico`: array, senao [];
+    //   - `capacidades.estrutura_itens_bloqueada`: booleano estrito; qualquer
+    //     outra coisa (RPC com erro, payload ausente, `capacidades` ausente,
+    //     campo ausente ou nao-booleano) FALHA FECHADA — trava estrutural
+    //     read-only, sem tratar a ausencia como "false".
+    // Uma leitura que falhou por inteiro (RPC error, sem dado, ou
+    // `ok:false`) tambem nao pode fabricar solicitacao pendente nem
+    // historico: ambos ficam vazios e o historico mostra o aviso de
+    // indisponibilidade, nunca o estado vazio comum.
+    async function carregarResumoESolicitacao() {
       var res = await window.supa.rpc('cliente_alteracao_resumo', { p_pedido_id: pedidoId });
-      if (res.error || !res.data) { state.pendente = null; return; }
-      var payload = res.data;
+      var payload = (res && !res.error) ? res.data : null;
       if (typeof payload === 'string') { try { payload = JSON.parse(payload); } catch (_) { payload = null; } }
       if (Array.isArray(payload)) payload = payload[0] || null;
-      state.pendente = (payload && payload.ok !== false) ? (payload.pendente || null) : null;
+      var ok = !!payload && payload.ok !== false;
+
+      state.pendente = (ok && payload.pendente && typeof payload.pendente === 'object') ? payload.pendente : null;
+      state.historico = (ok && Array.isArray(payload.historico)) ? payload.historico : [];
+      state.historicoIndisponivel = !ok;
+
+      var cap = (ok && payload.capacidades && typeof payload.capacidades === 'object')
+        ? payload.capacidades.estrutura_itens_bloqueada
+        : undefined;
+      if (typeof cap === 'boolean') {
+        state.estruturaItensBloqueada = cap;
+        state.capacidadeEstruturalResolvida = true;
+        state.capacidadeEstruturalErro = false;
+      } else {
+        state.estruturaItensBloqueada = true;
+        state.capacidadeEstruturalResolvida = false;
+        state.capacidadeEstruturalErro = true;
+      }
     }
 
     // `carregar()` e o UNICO ponto de leitura, tanto no boot da tela quanto
@@ -278,8 +311,8 @@
       if (state.loadingError || !state.pedido) return;
       if (state.modelos.length === 0) await carregarModelos();
       if (state.loadingError) return;
-      await carregarResumoESinalOperacional();
-      await carregarSolicitacaoPendente();
+      await carregarStatusLabel();
+      await carregarResumoESolicitacao();
       state.staleRevision = false;
     }
 
@@ -529,6 +562,19 @@
       );
     }
 
+    // Titulo/rotulo do checkout (Part 5): identico no titulo do card e no
+    // botao primario, distinguindo envio de substituicao de uma solicitacao
+    // ja pendente.
+    function checkoutTitle() {
+      if (state.mode === 'preAceite') return 'Salvar alteracoes';
+      return state.pendente ? 'Substituir solicitacao de alteracao' : 'Enviar solicitacao de alteracao';
+    }
+    function checkoutDescription() {
+      if (state.mode === 'preAceite') return 'As alteracoes sao aplicadas imediatamente ao seu pedido.';
+      if (state.pendente) return 'Esta solicitacao substitui a solicitacao pendente atual, que fica preservada no historico como Substituida. O pedido aceito pela equipe permanece inalterado ate a revisao administrativa.';
+      return 'O pedido aceito pela equipe permanece inalterado ate a revisao administrativa.';
+    }
+
     // -------------------------------------------------------------
     // Observacoes gerais + mensagem da solicitacao (so em modo posAceite).
     // -------------------------------------------------------------
@@ -568,12 +614,8 @@
       var instrCard = window.el('div', {}, cards);
 
       var checkoutCard = window.el('div', { style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; display:flex; flex-direction:column; justify-content:center;' },
-        window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary);' },
-          state.mode === 'preAceite' ? 'Salvar alteracoes' : 'Enviar solicitacao de alteracao'),
-        window.el('div', { style: 'font-size:var(--rv-fs-body); color:var(--rv-text-tertiary); line-height:1.5; margin-top:10px; margin-bottom:14px;' },
-          state.mode === 'preAceite'
-            ? 'As alteracoes sao aplicadas imediatamente ao seu pedido.'
-            : 'O pedido aceito pela equipe permanece inalterado ate a revisao administrativa.'),
+        window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary);' }, checkoutTitle()),
+        window.el('div', { style: 'font-size:var(--rv-fs-body); color:var(--rv-text-tertiary); line-height:1.5; margin-top:10px; margin-bottom:14px;' }, checkoutDescription()),
         saveBtn);
 
       return window.el('div', { 'data-rv-2col': '1', style: 'display:grid; grid-template-columns:3fr 1fr; gap:12px; align-items:stretch;' }, instrCard, checkoutCard);
@@ -583,6 +625,10 @@
     // Notices de lifecycle e de solicitacao pendente.
     // -------------------------------------------------------------
     function buildStructuralLockNotice() {
+      if (state.capacidadeEstruturalErro) {
+        return fullWidthNotice('caution', 'Nao foi possivel confirmar a estrutura deste pedido',
+          'Nao foi possivel confirmar se a composicao de itens deste pedido pode ser alterada, entao alteracoes de modelo, metragem, inclusao ou remocao de itens estao temporariamente indisponiveis. Dados gerais, observacoes, itens e prioridade continuam disponiveis.');
+      }
       return fullWidthNotice('caution', 'Este pedido ja esta em producao',
         'Alterar modelo, metragem, adicionar ou remover itens exige revisao administrativa e pode nao ser aprovado. Dados gerais, observacoes, itens e prioridade continuam propostos normalmente.');
     }
@@ -603,8 +649,60 @@
         onclick: function () { return retirarSolicitacao(state.pendente.solicitacao_id); },
       }, 'Retirar solicitacao')];
       return fullWidthNotice('info', 'Voce tem uma solicitacao de alteracao pendente',
-        'O pedido aceito pela equipe continua exatamente como esta. As alteracoes que voce propos aguardam revisao administrativa. Enviar uma nova solicitacao substitui esta automaticamente.',
+        'O pedido aceito pela equipe continua exatamente como esta. As alteracoes que voce propos aguardam revisao administrativa. Enviar uma nova solicitacao substitui automaticamente a solicitacao pendente atual, que fica preservada no historico como Substituida.',
         acoes);
+    }
+
+    // -------------------------------------------------------------
+    // Historico de solicitacoes (db/94 :: cliente_alteracao_resumo.historico)
+    // — somente leitura, mais recente primeiro (ordem ja devolvida pela
+    // RPC). Nao popula o editor vivo com valores antigos: e apenas
+    // contexto. Nenhum solicitacao_id, UUID de solicitante, identificador
+    // interno de falha, revisao base ou dado de producao e exibido.
+    // -------------------------------------------------------------
+    var HISTORICO_STATUS_LABELS = {
+      aprovada: 'Aprovada',
+      rejeitada: 'Rejeitada',
+      retirada: 'Retirada',
+      substituida: 'Substituida',
+      falha_aplicacao: 'Falha ao aplicar',
+    };
+
+    function buildHistoricoRow(item) {
+      var statusLabel = HISTORICO_STATUS_LABELS[item && item.status] || (item && item.status) || '—';
+      var linhaTopo = [
+        window.el('span', { style: 'font-weight:700; color:var(--rv-text-primary);' }, statusLabel),
+        window.el('span', { style: 'color:var(--rv-text-tertiary); font-size:var(--rv-fs-sm);' },
+          item && item.criado_em ? window.fmtDataCurta(item.criado_em) : '—'),
+      ];
+      if (item && item.decidido_em) {
+        linhaTopo.push(window.el('span', { style: 'color:var(--rv-text-tertiary); font-size:var(--rv-fs-sm);' },
+          window.fmtDataCurta(item.decidido_em)));
+      }
+      var children = [window.el('div', { style: 'display:flex; align-items:center; gap:10px; flex-wrap:wrap;' }, linhaTopo)];
+      if (item && item.motivo) {
+        children.push(window.el('div', { style: 'font-size:var(--rv-fs-body); color:var(--rv-text-secondary); margin-top:4px;' }, item.motivo));
+      }
+      return window.el('div', { style: 'padding:8px 0; border-bottom:1px solid var(--rv-border-soft);' }, children);
+    }
+
+    function buildHistoricoCard() {
+      var body;
+      if (state.historicoIndisponivel) {
+        body = window.el('div', { style: 'font-size:var(--rv-fs-body); color:var(--rv-text-tertiary);' },
+          'Nao foi possivel carregar o historico de solicitacoes.');
+      } else if (!state.historico.length) {
+        body = window.el('div', { style: 'font-size:var(--rv-fs-body); color:var(--rv-text-tertiary);' },
+          'Nenhuma solicitacao anterior.');
+      } else {
+        body = window.el('div', {}, state.historico.map(buildHistoricoRow));
+      }
+      return window.el('div', {
+        'data-cliente-historico-solicitacoes': '1',
+        style: 'background:var(--rv-surface); border:1px solid var(--rv-border); border-radius:var(--rv-radius); box-shadow:var(--rv-shadow-none); padding:16px; margin-bottom:12px;',
+      },
+        window.el('div', { style: 'font-size:var(--rv-fs-component-heading); font-weight:700; color:var(--rv-text-primary); margin-bottom:12px;' }, 'Historico de solicitacoes'),
+        body);
     }
 
     // -------------------------------------------------------------
@@ -642,6 +740,7 @@
         return;
       }
 
+      var haviaPendenteAntes = !!state.pendente;
       var oldLabel = btn.textContent;
       btn.disabled = true;
       btn.textContent = state.mode === 'preAceite' ? 'Salvando...' : 'Enviando...';
@@ -677,6 +776,8 @@
 
       if (state.mode === 'preAceite') {
         window.toast('Pedido atualizado.', 'success');
+      } else if (haviaPendenteAntes) {
+        window.toast('Solicitacao de alteracao substituida. Aguardando revisao administrativa.', 'success');
       } else {
         window.toast('Solicitacao de alteracao enviada. Aguardando revisao administrativa.', 'success');
       }
@@ -695,7 +796,9 @@
       }
       if (has('PEDIDO_ALTERACAO_ESTRUTURA_BLOQUEADA_APOS_OP') || has('PEDIDO_ALTERACAO_ITEM_VINCULADO_A_OP')) {
         window.toast('Este pedido ja tem producao vinculada; alteracoes de modelo, metragem ou composicao de itens nao podem ser aplicadas por aqui.', 'error');
-        state.isOperationalOverride = true;
+        state.estruturaItensBloqueada = true;
+        state.capacidadeEstruturalResolvida = true;
+        state.capacidadeEstruturalErro = false;
         render();
         return;
       }
@@ -780,13 +883,14 @@
       if (locked()) nodes.push(buildStructuralLockNotice());
       nodes.push(buildDadosGeraisCard());
       nodes.push(buildItensCard());
+      nodes.push(buildHistoricoCard());
 
       var saveBtn = window.el('button', {
         type: 'button',
         style: 'background:var(--rv-brand); color:var(--rv-text-on-brand); border:none; border-radius:var(--rv-radius); height:var(--rv-h-primary); padding:0; width:100%; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:var(--rv-fs-body); font-family:inherit; cursor:pointer;',
         disabled: state.staleRevision ? 'disabled' : null,
         onclick: function () { return salvarOuSolicitar(saveBtn); },
-      }, state.mode === 'preAceite' ? 'Salvar alteracoes' : 'Enviar solicitacao de alteracao');
+      }, checkoutTitle());
       if (state.staleRevision) {
         saveBtn.setAttribute('style', 'background:var(--rv-surface-subtle); color:var(--rv-text-tertiary); border:1px solid var(--rv-border-soft); border-radius:var(--rv-radius); height:var(--rv-h-primary); padding:0; width:100%; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:var(--rv-fs-body); font-family:inherit; cursor:not-allowed;');
       }

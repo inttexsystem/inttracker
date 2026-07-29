@@ -3,9 +3,10 @@
 // Smoke de runtime (vm sandbox + doubles fiéis) para o editor do Cliente
 // (js/screens/cliente-pedido-edit.js).
 //
-// Fase: PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1.
+// Fase: PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1, corrigida por
+// PEDIDO-CLIENT-EDITOR-REQUEST-SUBMISSION-R1-C2-UI.
 //
-// Prova, dentre os itens exigidos pela ordem (Parte 15):
+// Prova, dentre os itens exigidos pela ordem:
 //   - identidade client-safe (sem numero interno, sem status operacional
 //     bruto, sem dado de OP/lote/fornecedor/OC/fiscal/custo);
 //   - salvar_pedido_cliente e o UNICO dono pre-aceitacao, com p_base_revisao
@@ -14,9 +15,17 @@
 //   - solicitar_alteracao_pedido pos-aceitacao, com o Pedido vivo
 //     permanecendo representado como inalterado apos o envio;
 //   - retirar_alteracao_pedido para a solicitacao pendente;
-//   - capacidade estrutural (Aceito sem OP permite proposta estrutural;
-//     Aceito com OP trava modelo/metros/adicionar/remover, mas mantem
-//     cabecalho/observacoes/prioridade) sem expor dado interno de OP;
+//   - capacidade estrutural EXATA (db/94) — `capacidades.
+//     estrutura_itens_bloqueada` e a UNICA dona da trava; chain_state.
+//     isOperationalOverride nunca decide mais nada aqui; leitura ausente,
+//     com erro ou malformada falha FECHADA, sem bloquear cabecalho,
+//     observacao de item ou prioridade;
+//   - historico de solicitacoes sanitizado (cada status suportado, motivo,
+//     ordem mais-recente-primeiro, sem ID interno, sem repopular o editor
+//     vivo, aviso de indisponibilidade distinto do estado vazio);
+//   - substituicao de solicitacao pendente (rotulo "Substituir..." no
+//     titulo e no botao, uma unica chamada a solicitar_alteracao_pedido,
+//     nunca retirar_alteracao_pedido, copy e reload de sucesso dedicados);
 //   - observacao de item editavel pelo Cliente E dirty-detection dedicada;
 //   - concorrencia (revisao desatualizada -> aviso + Recarregar dados, sem
 //     retry automatico);
@@ -143,13 +152,25 @@ async function bootClientePedidoEdit(opts) {
   // que cliente_alteracao_resumo devolve na PROXIMA leitura, exatamente
   // como o banco real substitui/retira em uma transacao.
   let pendenteAtual = o.pendente || null;
+  const historicoAtual = o.historico || [];
+  // capacidades.estrutura_itens_bloqueada (db/94): fonte EXATA e exclusiva da
+  // trava estrutural. `estruturaItensBloqueada` controla o valor normal;
+  // `resumoRawPayload`/`resumoError` simulam leitura ausente ou malformada
+  // para provar o fail-closed sem tocar no shape normal.
+  const capacidadesResposta = Object.prototype.hasOwnProperty.call(o, 'capacidades')
+    ? o.capacidades
+    : { estrutura_itens_bloqueada: !!o.estruturaItensBloqueada };
 
   const rpcImpl = Object.assign({
     cliente_pedido_summary: () => ({
       data: { ok: true, chain_state: { isOperationalOverride: !!o.isOperationalOverride, displayStatus: o.displayStatus || 'Recebido' } },
       error: null,
     }),
-    cliente_alteracao_resumo: () => ({ data: { ok: true, pendente: pendenteAtual, historico: [] }, error: null }),
+    cliente_alteracao_resumo: () => {
+      if (o.resumoError) return { data: null, error: { message: o.resumoError } };
+      if (Object.prototype.hasOwnProperty.call(o, 'resumoRawPayload')) return { data: o.resumoRawPayload, error: null };
+      return { data: { ok: true, pendente: pendenteAtual, historico: historicoAtual, capacidades: capacidadesResposta }, error: null };
+    },
     solicitar_alteracao_pedido: (params) => {
       pendenteAtual = { solicitacao_id: 'sol-1', status: 'pendente', campos_alterados: [], itens_propostos: false, prioridade_proposta: false, mensagem: params.p_mensagem, criado_em: '2026-07-20T00:00:00Z' };
       return { data: { ok: true, solicitacao_id: 'sol-1', status: 'pendente' }, error: null };
@@ -346,28 +367,100 @@ test('cliente-pedido-edit: retirar solicitacao chama retirar_alteracao_pedido co
 });
 
 // ---------------------------------------------------------------------
-// F. Capacidade estrutural pos-aceitacao.
+// F. Capacidade estrutural exata (db/94) pos-aceitacao.
+// `capacidades.estrutura_itens_bloqueada` e a UNICA fonte da trava
+// estrutural nesta tela; `chain_state.isOperationalOverride` nunca decide
+// mais nada aqui (Parte A).
 // ---------------------------------------------------------------------
 
-test('cliente-pedido-edit: pos-aceitacao SEM OP — modelo, metragem e remover continuam editaveis', async () => {
-  const { root } = await bootClientePedidoEdit({ pedido: { status: 'confirmado' }, isOperationalOverride: false });
+test('cliente-pedido-edit: capacidade=false — modelo, metragem e remover continuam editaveis', async () => {
+  const { root } = await bootClientePedidoEdit({ pedido: { status: 'confirmado' }, estruturaItensBloqueada: false });
   const rows = allWithAttr(root, 'data-uid');
   assert.ok(rows.length >= 1);
   const metrosInputs = allByTag(rows[0], 'input').filter((i) => i.getAttribute('placeholder') === '0,00');
   assert.notEqual(metrosInputs[0].disabled, true, 'metragem deve continuar editavel sem OP relacionada');
 });
 
-test('cliente-pedido-edit: pos-aceitacao COM OP — modelo/metragem/remover ficam travados, mas cabecalho e observacoes continuam disponiveis, sem expor dado de OP', async () => {
-  const { root } = await bootClientePedidoEdit({ pedido: { status: 'confirmado' }, isOperationalOverride: true });
+test('cliente-pedido-edit: capacidade=true — modelo/metragem/remover ficam travados, mas cabecalho, observacao de item e prioridade continuam disponiveis, sem expor dado de OP', async () => {
+  const { root } = await bootClientePedidoEdit({ pedido: { status: 'confirmado' }, estruturaItensBloqueada: true });
   const rows = allWithAttr(root, 'data-uid');
   const metrosInputs = allByTag(rows[0], 'input').filter((i) => i.getAttribute('placeholder') === '0,00');
-  assert.equal(metrosInputs[0].disabled, true, 'metragem deve travar quando ha producao vinculada');
+  assert.equal(metrosInputs[0].disabled, true, 'metragem deve travar quando a capacidade exata diz bloqueada');
   const removeBtns = allWithAttr(rows[0], 'title').filter((n) => n._attrs.title === 'Remover item');
-  assert.equal(removeBtns[0].disabled, true, 'remover deve travar quando ha producao vinculada');
+  assert.equal(removeBtns[0].disabled, true, 'remover deve travar quando a capacidade exata diz bloqueada');
+  const obsInputs = allWithAttr(rows[0], 'data-cliente-item-observacao');
+  assert.notEqual(obsInputs[0].disabled, true, 'observacao de item nao e estrutural e continua editavel sob trava');
   const prazoInputs = allByTag(root, 'input').filter((i) => i.getAttribute('type') === 'date');
   assert.notEqual(prazoInputs[0].disabled, true, 'prazo (cabecalho) continua proponivel sob trava estrutural');
   assert.doesNotMatch(root.textContent, /\bOP\b|lote_id|expedicao|op_itens/i,
     'a trava estrutural nao pode expor nenhum identificador ou termo interno de producao');
+});
+
+test('cliente-pedido-edit: chain_state.isOperationalOverride=true com capacidade exata=false NAO trava (chain_state nao e dono)', async () => {
+  const { root } = await bootClientePedidoEdit({
+    pedido: { status: 'confirmado' }, isOperationalOverride: true, estruturaItensBloqueada: false,
+  });
+  const rows = allWithAttr(root, 'data-uid');
+  const metrosInputs = allByTag(rows[0], 'input').filter((i) => i.getAttribute('placeholder') === '0,00');
+  assert.notEqual(metrosInputs[0].disabled, true,
+    'isOperationalOverride=true nao pode travar a estrutura quando a capacidade exata diz false');
+});
+
+test('cliente-pedido-edit: chain_state.isOperationalOverride=false com capacidade exata=true TRAVA (chain_state nao e dono)', async () => {
+  const { root } = await bootClientePedidoEdit({
+    pedido: { status: 'confirmado' }, isOperationalOverride: false, estruturaItensBloqueada: true,
+  });
+  const rows = allWithAttr(root, 'data-uid');
+  const metrosInputs = allByTag(rows[0], 'input').filter((i) => i.getAttribute('placeholder') === '0,00');
+  assert.equal(metrosInputs[0].disabled, true,
+    'isOperationalOverride=false nao pode destravar a estrutura quando a capacidade exata diz true');
+});
+
+test('cliente-pedido-edit: leitura com erro de RPC falha FECHADA (trava estrutural), mas nao bloqueia cabecalho/observacoes/prioridade', async () => {
+  const { root } = await bootClientePedidoEdit({ pedido: { status: 'confirmado' }, resumoError: 'boom' });
+  const rows = allWithAttr(root, 'data-uid');
+  const metrosInputs = allByTag(rows[0], 'input').filter((i) => i.getAttribute('placeholder') === '0,00');
+  assert.equal(metrosInputs[0].disabled, true, 'erro de leitura deve travar a estrutura (fail-closed)');
+  const prazoInputs = allByTag(root, 'input').filter((i) => i.getAttribute('type') === 'date');
+  assert.notEqual(prazoInputs[0].disabled, true, 'fail-closed nao pode bloquear propostas nao estruturais');
+  assert.match(root.textContent, /N.o foi poss.vel confirmar a estrutura/i);
+  assert.doesNotMatch(root.textContent, /boom/, 'o detalhe interno do erro nao pode vazar ao Cliente');
+});
+
+test('cliente-pedido-edit: payload sem objeto capacidades falha FECHADA', async () => {
+  const { root } = await bootClientePedidoEdit({
+    pedido: { status: 'confirmado' },
+    resumoRawPayload: { ok: true, pendente: null, historico: [] },
+  });
+  const rows = allWithAttr(root, 'data-uid');
+  const metrosInputs = allByTag(rows[0], 'input').filter((i) => i.getAttribute('placeholder') === '0,00');
+  assert.equal(metrosInputs[0].disabled, true, 'capacidades ausente deve travar a estrutura (fail-closed)');
+});
+
+test('cliente-pedido-edit: capacidades sem o campo estrutura_itens_bloqueada falha FECHADA', async () => {
+  const { root } = await bootClientePedidoEdit({
+    pedido: { status: 'confirmado' },
+    resumoRawPayload: { ok: true, pendente: null, historico: [], capacidades: {} },
+  });
+  const rows = allWithAttr(root, 'data-uid');
+  const metrosInputs = allByTag(rows[0], 'input').filter((i) => i.getAttribute('placeholder') === '0,00');
+  assert.equal(metrosInputs[0].disabled, true, 'campo ausente deve travar a estrutura (fail-closed)');
+});
+
+test('cliente-pedido-edit: campo estrutura_itens_bloqueada nao-booleano falha FECHADA', async () => {
+  const { root } = await bootClientePedidoEdit({
+    pedido: { status: 'confirmado' },
+    resumoRawPayload: { ok: true, pendente: null, historico: [], capacidades: { estrutura_itens_bloqueada: 'nao' } },
+  });
+  const rows = allWithAttr(root, 'data-uid');
+  const metrosInputs = allByTag(rows[0], 'input').filter((i) => i.getAttribute('placeholder') === '0,00');
+  assert.equal(metrosInputs[0].disabled, true, 'campo nao-booleano deve travar a estrutura (fail-closed), nunca tratado como false');
+});
+
+test('cliente-pedido-edit: nenhuma chamada direta ao helper owner-only public.pedido_tem_op_relacionada existe no arquivo', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'cliente-pedido-edit.js'), 'utf8');
+  assert.doesNotMatch(src, /supa\s*\.\s*rpc\(\s*['"]pedido_tem_op_relacionada['"]/,
+    'a tela nunca pode chamar o helper owner-only diretamente; a capacidade so pode chegar via cliente_alteracao_resumo');
 });
 
 // ---------------------------------------------------------------------
@@ -390,6 +483,100 @@ test('cliente-pedido-edit: Cliente pode editar observacao de item, e a mudanca s
   assert.equal(captured.p_header, null, 'nenhum campo de cabecalho mudou');
   assert.ok(Array.isArray(captured.p_itens), 'p_itens deve viajar quando a observacao do item muda');
   assert.equal(captured.p_itens[0].observacao, 'Cor levemente diferente, por favor confirmar');
+});
+
+// ---------------------------------------------------------------------
+// H. Historico de solicitacoes (db/94 :: cliente_alteracao_resumo.historico).
+// ---------------------------------------------------------------------
+
+test('cliente-pedido-edit: historico vazio mostra o estado vazio', async () => {
+  const { root } = await bootClientePedidoEdit({ pedido: { status: 'confirmado' }, historico: [] });
+  assert.match(root.textContent, /Nenhuma solicita..o anterior\./);
+});
+
+test('cliente-pedido-edit: historico indisponivel (leitura falhou) mostra aviso distinto do estado vazio', async () => {
+  const { root } = await bootClientePedidoEdit({ pedido: { status: 'confirmado' }, resumoError: 'boom' });
+  assert.match(root.textContent, /N.o foi poss.vel carregar o hist.rico de solicita..es\./);
+  assert.doesNotMatch(root.textContent, /Nenhuma solicita..o anterior\./);
+});
+
+test('cliente-pedido-edit: historico renderiza cada status suportado, motivo quando presente, mais recente primeiro, sem ID interno', async () => {
+  const historico = [
+    { solicitacao_id: 'sol-aprovada', status: 'aprovada', criado_em: '2026-07-01T00:00:00Z', decidido_em: '2026-07-02T00:00:00Z' },
+    { solicitacao_id: 'sol-rejeitada', status: 'rejeitada', criado_em: '2026-06-20T00:00:00Z', decidido_em: '2026-06-21T00:00:00Z', motivo: 'Prazo incompativel com a producao' },
+    { solicitacao_id: 'sol-retirada', status: 'retirada', criado_em: '2026-06-10T00:00:00Z' },
+    { solicitacao_id: 'sol-substituida', status: 'substituida', criado_em: '2026-06-05T00:00:00Z', decidido_em: '2026-06-06T00:00:00Z' },
+    { solicitacao_id: 'sol-falha', status: 'falha_aplicacao', criado_em: '2026-06-01T00:00:00Z', decidido_em: '2026-06-01T01:00:00Z' },
+  ];
+  const { root } = await bootClientePedidoEdit({ pedido: { status: 'confirmado' }, historico });
+  const historicoCard = allWithAttr(root, 'data-cliente-historico-solicitacoes')[0];
+  assert.ok(historicoCard, 'card de historico deve existir');
+  const text = historicoCard.textContent;
+  assert.match(text, /Aprovada/);
+  assert.match(text, /Rejeitada/);
+  assert.match(text, /Prazo incompativel com a producao/);
+  assert.match(text, /Retirada/);
+  assert.match(text, /Substitu.da/);
+  assert.match(text, /Falha ao aplicar/);
+  // ordem: a tela NAO reordena — reproduz exatamente a ordem devolvida pela
+  // RPC (ja mais-recente-primeiro), aqui Aprovada antes de Rejeitada.
+  assert.ok(text.indexOf('Aprovada') < text.indexOf('Rejeitada'), 'ordem mais-recente-primeiro deve ser preservada, nao recalculada');
+  historico.forEach((h) => assert.doesNotMatch(root.textContent, new RegExp(h.solicitacao_id),
+    'nenhum solicitacao_id pode aparecer no historico renderizado'));
+});
+
+test('cliente-pedido-edit: historico nao repopula o editor vivo com valores antigos', async () => {
+  const historico = [{ solicitacao_id: 'sol-x', status: 'rejeitada', criado_em: '2026-06-20T00:00:00Z', decidido_em: '2026-06-21T00:00:00Z', motivo: 'Motivo antigo' }];
+  const { root } = await bootClientePedidoEdit({
+    pedido: { status: 'confirmado', referencia_cliente: 'PO-ATUAL' }, historico,
+  });
+  assert.match(root.textContent, /PO-ATUAL/, 'o editor deve continuar mostrando o valor ACEITO atual');
+  const prazoInputs = allByTag(root, 'input').filter((i) => i.getAttribute('type') === 'date');
+  assert.equal(prazoInputs[0].value, '', 'o historico nao pode preencher o campo vivo com um valor de uma solicitacao antiga');
+});
+
+// ---------------------------------------------------------------------
+// I. Substituicao de solicitacao pendente (Parte 5).
+// ---------------------------------------------------------------------
+
+test('cliente-pedido-edit: sem solicitacao pendente, titulo e botao usam "Enviar solicitacao de alteracao"', async () => {
+  const { root } = await bootClientePedidoEdit({ pedido: { status: 'confirmado' } });
+  assert.match(root.textContent, /Enviar solicita..o de altera..o/);
+  assert.doesNotMatch(root.textContent, /Substituir solicita..o/);
+  assert.ok(findButtonByText(root, /^Enviar solicita..o de altera..o$/), 'botao deve usar o rotulo de envio');
+});
+
+test('cliente-pedido-edit: com solicitacao pendente, titulo E botao usam "Substituir solicitacao de alteracao"', async () => {
+  const { root } = await bootClientePedidoEdit({
+    pedido: { status: 'confirmado' },
+    pendente: { solicitacao_id: 'sol-42', status: 'pendente', campos_alterados: ['prazo_entrega'], itens_propostos: false, prioridade_proposta: false, mensagem: null, criado_em: '2026-07-18T00:00:00Z' },
+  });
+  assert.ok(findButtonByText(root, /^Substituir solicita..o de altera..o$/), 'botao deve mudar para o rotulo de substituicao');
+  assert.match(root.textContent, /Substituir solicita..o de altera..o/);
+});
+
+test('cliente-pedido-edit: substituicao chama solicitar_alteracao_pedido exatamente uma vez, nunca retirar_alteracao_pedido, com copy e reload de substituicao', async () => {
+  let solicitarCalls = 0;
+  let retirarCalls = 0;
+  const { root, sandbox, supa } = await bootClientePedidoEdit({
+    pedido: { status: 'confirmado' },
+    pendente: { solicitacao_id: 'sol-42', status: 'pendente', campos_alterados: ['prazo_entrega'], itens_propostos: false, prioridade_proposta: false, mensagem: null, criado_em: '2026-07-18T00:00:00Z' },
+    rpcImpl: {
+      solicitar_alteracao_pedido: (params) => { solicitarCalls++; return { data: { ok: true, solicitacao_id: 'sol-43', status: 'pendente' }, error: null }; },
+      retirar_alteracao_pedido: () => { retirarCalls++; return { data: { ok: true, status: 'retirada' }, error: null }; },
+    },
+  });
+  const prazoInputs = allByTag(root, 'input').filter((i) => i.getAttribute('type') === 'date');
+  prazoInputs[0].value = '2026-09-01';
+  prazoInputs[0]._listeners.change({ target: prazoInputs[0] });
+  const resumoCallsBefore = supa._calls.filter((c) => c.op === 'rpc' && c.name === 'cliente_alteracao_resumo').length;
+  await findButtonByText(root, /^Substituir solicita..o de altera..o$/)._listeners.click();
+  assert.equal(solicitarCalls, 1, 'a substituicao deve chamar solicitar_alteracao_pedido exatamente uma vez');
+  assert.equal(retirarCalls, 0, 'a substituicao NUNCA chama retirar_alteracao_pedido antes de enviar');
+  assert.ok((sandbox.__toasts || []).some((t) => /substitu.da/i.test(t.msg)), 'copy de sucesso deve ser especifica de substituicao');
+  const resumoCallsAfter = supa._calls.filter((c) => c.op === 'rpc' && c.name === 'cliente_alteracao_resumo').length;
+  assert.ok(resumoCallsAfter > resumoCallsBefore, 'o estado deve ser recarregado da RPC apos o sucesso');
+  assert.ok(findButtonByText(root, /^Retirar solicita/), 'o aviso de pendencia deve continuar preciso apos a substituicao');
 });
 
 // ---------------------------------------------------------------------
