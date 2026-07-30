@@ -63,6 +63,21 @@
 --   COMMIT o item ja nao existe e a verificacao nao encontra linha.
 --
 -- Nenhuma linha de outra Ordem de Compra e lida, escrita ou apagada.
+--
+-- RECONCILIACAO COM O ESTADO APLICADO EM PRODUCAO (2026-07-30)
+--   Este arquivo e o artefato autoritativo. Em ucrjtfswnfdlxwtmxnoo ele foi
+--   aplicado em DUAS transacoes, registradas em supabase_migrations como:
+--     20260730124315  96a_ordem_compra_codigo_operador_e_exclusao
+--         -> secoes 1 a 3 (coluna codigo, coluna gerada, indices,
+--            imutabilidade, atribuicao de linhagem, guardas cientes da
+--            exclusao, excluir_ordem_compra e seus grants)
+--     20260730130626  96b_definir_alocacao_codigo_operador
+--         -> secao 4 (assinatura de 5 argumentos de
+--            definir_alocacao_necessidade_compra_fio e seus grants)
+--   A uniao de 96a e 96b e exatamente este arquivo. A divisao foi deliberada:
+--   96a deixa o sistema inteiro e coerente sozinho (criacao continuava
+--   automatica), de modo que nenhuma janela intermediaria ficou quebrada.
+--   As migracoes seguintes db/97 e db/98 foram aplicadas com o proprio numero.
 -- =====================================================================
 
 BEGIN;
