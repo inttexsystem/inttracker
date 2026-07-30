@@ -537,6 +537,283 @@ test('cénario forçado: auth.getSession NÃO é bloqueado', async () => {
 });
 
 // -----------------------------------------------------------------------------
+// 4b. READ-RPC-GUARD-CORRECTION-R1 — allowlist literal de RPCs de leitura
+// -----------------------------------------------------------------------------
+//
+// O guard publicado rejeitava TODA `.rpc()` sem olhar o nome. Como três telas
+// leem EXCLUSIVAMENTE por RPC, elas ficavam inutilizáveis fora dos hostnames de
+// produção. A correção libera uma allowlist LITERAL, provada sobre a definição
+// SQL versionada de cada função (volatilidade declarada + varredura do corpo
+// terminal + fecho transitivo das chamadas), nunca por nome ou prefixo.
+//
+// Este bloco é o dono canônico do contrato. Ele tem de FALHAR contra o
+// comportamento publicado (que rejeitava as três leituras) e passar com a
+// correção, e tem de continuar provando que o default é NEGAR.
+
+// As 14 entradas autorizadas. Esta lista é o contrato: uma entrada nova no
+// módulo sem passar por aqui derruba o teste, que é exatamente o ponto — cada
+// nome precisa ser reprovado sobre a definição SQL antes de entrar.
+const READ_ONLY_RPCS_ESPERADAS = [
+  'admin_alteracao_comparacao',
+  'admin_usuarios_last_sign_in',
+  'avaliar_necessidades_compra_fio',
+  'cliente_alteracao_resumo',
+  'cliente_pedido_summary',
+  'consultar_saldo_expedicao_latex',
+  'diagnosticar_impacto_pedido',
+  'listar_ordens_compra_admin',
+  'listar_ordens_compra_fio_compat',
+  'obter_distribuicao_ordem_compra',
+  'obter_historico_recebimento_ordem_compra',
+  'obter_ordem_compra_admin',
+  'obter_planejamento_compra_pedido',
+  'sugerir_codigo_ordem_compra',
+];
+
+// RPCs de ESCRITA que têm de continuar morrendo antes do transporte. Duas
+// delas — `proximo_numero_op` e `resolver_regime_compra_fio_pedido` — PARECEM
+// leitura e gravam de verdade: são a prova de que a autorização não pode ser
+// heurística de nome.
+const WRITE_RPCS_BLOQUEADAS = [
+  'salvar_pedido_admin',
+  'emitir_ordem_compra',
+  'gerar_ordem_compra_do_planejamento',
+  'proximo_numero_op',
+  'resolver_regime_compra_fio_pedido',
+];
+
+// Extrai a lista literal do FONTE (não do runtime): garante que a allowlist é
+// um literal auditável no módulo, e não algo montado dinamicamente.
+function allowlistDoFonte() {
+  const m = supaSrc.match(/_READ_ONLY_RPCS\s*=\s*new Set\(\[([\s\S]*?)\]\)/);
+  assert.ok(m, '_READ_ONLY_RPCS não é um `new Set([...])` literal em js/supabase-client.js');
+  return (m[1].match(/'([a-z0-9_]+)'/g) || []).map((s) => s.replace(/'/g, ''));
+}
+
+// Chama supa.rpc dentro do sandbox com nome/params controlados pelo teste.
+function chamarRpc(sandbox, fn, params) {
+  const ctx = vm.runInContext('({ chamar: (f, p) => supa.rpc(f, p) })', sandbox);
+  return ctx.chamar(fn, params);
+}
+
+function rpcCalls(fakeSupa) {
+  return fakeSupa._calls.filter((c) => c.op === 'rpc');
+}
+
+test('allowlist: o módulo declara exatamente as 14 RPCs de leitura provadas', () => {
+  const doFonte = allowlistDoFonte().slice().sort();
+  assert.deepEqual(doFonte, READ_ONLY_RPCS_ESPERADAS.slice().sort(),
+    'a allowlist literal de js/supabase-client.js divergiu do contrato de 14 entradas');
+  assert.equal(new Set(doFonte).size, 14, 'a allowlist tem de ter 14 entradas distintas');
+  // Nenhuma escritora conhecida pode ter entrado na lista.
+  for (const w of WRITE_RPCS_BLOQUEADAS) {
+    assert.equal(doFonte.includes(w), false,
+      w + ' grava e nunca pode entrar na allowlist de leitura');
+  }
+});
+
+test('restricted: TODA entrada da allowlist alcança o transporte RPC bruto', async () => {
+  const { sandbox, fakeSupa } = runSandbox({ hostname: 'localhost' });
+  assert.equal(vm.runInContext('window._GUARD_BLOCK_WRITES', sandbox), true,
+    'o cenário tem de ser restricted');
+  for (const nome of READ_ONLY_RPCS_ESPERADAS) {
+    fakeSupa._calls.length = 0;
+    const res = await chamarRpc(sandbox, nome, { p_teste: 1 });
+    assert.equal(res && res.error, null, nome + ' não deveria ser bloqueada em restricted');
+    assert.equal(rpcCalls(fakeSupa).length, 1,
+      nome + ' não alcançou o client Supabase — o guard rejeitou uma leitura provada');
+  }
+});
+
+// As três regressões reais que a correção fecha. Cada uma amarra a tela ao
+// nome que ela realmente chama: se a tela trocar de RPC ou a allowlist perder
+// a entrada, este teste cai.
+const LEITURAS_DE_TELA = [
+  { tela: 'Ordens de Compra (lista)', modulo: 'js/screens/ordem-compra-data.js',            rpc: 'listar_ordens_compra_admin' },
+  { tela: 'Pedido (detalhe)',         modulo: 'js/screens/ordem-compra-receipt-cutover.js', rpc: 'listar_ordens_compra_fio_compat' },
+  { tela: 'Planejamento de Compra',   modulo: 'js/screens/pedido-insumos-distribuicao.js',  rpc: 'obter_planejamento_compra_pedido' },
+];
+
+for (const { tela, modulo, rpc } of LEITURAS_DE_TELA) {
+  test(`restricted: ${tela} — ${rpc} NÃO é rejeitada pelo guard`, async () => {
+    const src = fs.readFileSync(path.join(ROOT, modulo), 'utf8');
+    assert.match(src, new RegExp(`rpc\\(\\s*'${rpc}'`),
+      `${modulo} deveria continuar lendo por ${rpc}`);
+    assert.ok(READ_ONLY_RPCS_ESPERADAS.includes(rpc),
+      `${rpc} tem de estar na allowlist ou ${tela} volta a quebrar em restricted`);
+
+    const { sandbox, fakeSupa } = runSandbox({ hostname: 'localhost' });
+    assert.equal(vm.runInContext('window._GUARD_BLOCK_WRITES', sandbox), true);
+    fakeSupa._calls.length = 0;
+    const params = { p_pedido_id: 'ped-1', p_ordem_id: 7 };
+    const res = await chamarRpc(sandbox, rpc, params);
+    assert.equal(res && res.error, null, `${rpc} foi bloqueada — ${tela} continua quebrada`);
+    const chamadas = rpcCalls(fakeSupa);
+    assert.equal(chamadas.length, 1, `${rpc} não delegou ao client bruto`);
+    assert.equal(chamadas[0].args[0], rpc, 'o nome da RPC chegou alterado ao transporte');
+    assert.deepEqual(chamadas[0].args[1], params, 'os parâmetros chegaram alterados ao transporte');
+  });
+}
+
+test('restricted: nome e parâmetros são repassados sem alteração e sem cópia', async () => {
+  const { sandbox, fakeSupa } = runSandbox({ hostname: 'localhost' });
+  fakeSupa._calls.length = 0;
+  const params = { p_pedido_id: 'abc-123', p_lista: [1, 2, 3], p_nulo: null };
+  await chamarRpc(sandbox, 'obter_ordem_compra_admin', params);
+  const chamada = rpcCalls(fakeSupa)[0];
+  assert.equal(chamada.args[0], 'obter_ordem_compra_admin');
+  assert.equal(chamada.args[1], params, 'os parâmetros têm de ser o MESMO objeto, sem transformação');
+  assert.equal(chamada.args.length, 2, 'o guard não pode acrescentar argumentos');
+  // Sem params também tem de funcionar (RPC sem argumentos).
+  fakeSupa._calls.length = 0;
+  await chamarRpc(sandbox, 'admin_usuarios_last_sign_in', undefined);
+  assert.equal(rpcCalls(fakeSupa).length, 1, 'RPC de leitura sem parâmetros tem de passar');
+});
+
+test('restricted: RPCs de escrita continuam rejeitadas ANTES do transporte', async () => {
+  const { sandbox, fakeSupa } = runSandbox({ hostname: 'localhost' });
+  for (const nome of WRITE_RPCS_BLOQUEADAS) {
+    fakeSupa._calls.length = 0;
+    await assert.rejects(() => chamarRpc(sandbox, nome, { p_x: 1 }), /WRITE-GUARD/,
+      nome + ' tem de ser rejeitada em restricted');
+    assert.equal(rpcCalls(fakeSupa).length, 0,
+      nome + ' alcançou o client Supabase — o guard falhou');
+  }
+});
+
+test('restricted: os escritores do Planejamento de Compra continuam bloqueados', async () => {
+  const PLANEJAMENTO = 'js/screens/pedido-insumos-distribuicao.js';
+  const src = fs.readFileSync(path.join(ROOT, PLANEJAMENTO), 'utf8');
+  const escritores = [
+    'substituir_planejamento_compra_necessidade',
+    'aplicar_planejamento_rapido',
+    'gerar_ordem_compra_do_planejamento',
+  ];
+  const { sandbox, fakeSupa } = runSandbox({ hostname: 'localhost' });
+  for (const nome of escritores) {
+    assert.match(src, new RegExp(`callRpc\\(\\s*'${nome}'`),
+      `${PLANEJAMENTO} deveria continuar gravando por ${nome}`);
+    assert.equal(READ_ONLY_RPCS_ESPERADAS.includes(nome), false,
+      nome + ' grava e não pode estar na allowlist');
+    fakeSupa._calls.length = 0;
+    await assert.rejects(() => chamarRpc(sandbox, nome, { p_x: 1 }), /WRITE-GUARD/,
+      nome + ' tem de continuar bloqueada em restricted');
+    assert.equal(rpcCalls(fakeSupa).length, 0, nome + ' alcançou o client Supabase');
+  }
+});
+
+test('restricted: default é NEGAR — nome desconhecido e nome montado dinamicamente caem', async () => {
+  const { sandbox, fakeSupa } = runSandbox({ hostname: 'localhost' });
+
+  // (a) literal desconhecido
+  fakeSupa._calls.length = 0;
+  await assert.rejects(() => chamarRpc(sandbox, 'rpc_que_nao_existe', {}), /WRITE-GUARD/);
+  assert.equal(rpcCalls(fakeSupa).length, 0);
+
+  // (b) nome montado dinamicamente e AUSENTE da lista — a decisão é por
+  // pertinência ao conjunto, não pela forma sintática da chamada.
+  fakeSupa._calls.length = 0;
+  const montado = 'listar_ordens_compra' + '_admin_v2';
+  assert.equal(READ_ONLY_RPCS_ESPERADAS.includes(montado), false);
+  await assert.rejects(() => chamarRpc(sandbox, montado, {}), /WRITE-GUARD/);
+  assert.equal(rpcCalls(fakeSupa).length, 0);
+
+  // (c) prefixo de uma entrada autorizada NÃO autoriza.
+  fakeSupa._calls.length = 0;
+  await assert.rejects(() => chamarRpc(sandbox, 'listar_ordens_compra', {}), /WRITE-GUARD/);
+  assert.equal(rpcCalls(fakeSupa).length, 0);
+
+  // (d) não-string com toString() de um nome autorizado NÃO passa: a
+  // verificação exige `typeof fn === 'string'`.
+  fakeSupa._calls.length = 0;
+  const impostor = { toString: () => 'listar_ordens_compra_admin' };
+  await assert.rejects(() => chamarRpc(sandbox, impostor, {}), /WRITE-GUARD/);
+  assert.equal(rpcCalls(fakeSupa).length, 0);
+});
+
+test('restricted: insert/update/delete/upsert continuam rejeitados antes do transporte', async () => {
+  const { sandbox, fakeSupa } = runSandbox({ hostname: 'localhost' });
+  for (const op of ['insert', 'update', 'delete', 'upsert']) {
+    fakeSupa._calls.length = 0;
+    const qb = vm.runInContext(`supa.from('ordens_compra')`, sandbox);
+    await assert.rejects(() => qb[op]({ foo: 'bar' }), /WRITE-GUARD/,
+      op + ' tem de continuar bloqueado');
+    assert.equal(fakeSupa._calls.filter((c) => c.op === op).length, 0,
+      op + ' alcançou o client Supabase');
+  }
+});
+
+test('restricted: o erro identifica a RPC bloqueada e NÃO expõe os parâmetros', async () => {
+  const { sandbox } = runSandbox({ hostname: 'localhost' });
+  const SEGREDO = 'VALOR-SENSIVEL-NAO-PODE-VAZAR';
+  let capturado = null;
+  try {
+    await chamarRpc(sandbox, 'salvar_pedido_admin', { p_campo_secreto: SEGREDO });
+  } catch (e) { capturado = e; }
+  assert.ok(capturado, 'a chamada bloqueada tem de rejeitar');
+  assert.match(capturado.message, /WRITE-GUARD/);
+  assert.match(capturado.message, /salvar_pedido_admin/,
+    'a mensagem tem de identificar QUAL RPC foi bloqueada');
+  assert.equal(capturado.message.includes(SEGREDO), false,
+    'a mensagem não pode expor valores de parâmetro');
+  assert.equal(capturado.message.includes('p_campo_secreto'), false,
+    'a mensagem não pode expor nomes de parâmetro');
+});
+
+test('nenhum consumidor de runtime usa o client BRUTO para contornar o guard', () => {
+  const arquivos = [];
+  (function walk(dir) {
+    for (const nome of fs.readdirSync(dir)) {
+      const p = path.join(dir, nome);
+      if (fs.statSync(p).isDirectory()) walk(p);
+      else if (nome.endsWith('.js')) arquivos.push(p);
+    }
+  })(path.join(ROOT, 'js'));
+  const OWNER = path.join(ROOT, 'js', 'supabase-client.js');
+  const infratores = [];
+  for (const p of arquivos) {
+    if (p === OWNER) continue; // o dono é quem cria e publica o bruto
+    const code = stripComments(fs.readFileSync(p, 'utf8'));
+    if (/\b_supaRaw\b/.test(code) || /RAVATEX_SUPABASE_CLIENT\s*\.\s*raw\b/.test(code)) {
+      infratores.push(path.relative(ROOT, p).replace(/\\/g, '/'));
+    }
+  }
+  assert.deepEqual(infratores, [],
+    'consumidor de runtime alcançando o client bruto — isso contorna o write-guard');
+  // E o próprio dono só expõe o bruto; o `supa` publicado é o guardado.
+  assert.match(stripComments(supaSrc), /window\.supa\s*=\s*supa\s*;/,
+    'window.supa tem de ser o client guardado');
+});
+
+test('produção: comportamento ordinário de RPC permanece inalterado', async () => {
+  const { sandbox, fakeSupa } = runSandbox({ hostname: 'inttracker-jade.vercel.app' });
+  assert.equal(vm.runInContext('window._WRITES_ENABLED', sandbox), true);
+  assert.equal(vm.runInContext('window._GUARD_BLOCK_WRITES', sandbox), false);
+  // Em produção não há Proxy: `supa` é o próprio client bruto.
+  assert.equal(
+    vm.runInContext('window.supa === window._supaRaw', sandbox), true,
+    'em produção o client publicado tem de ser o bruto, sem Proxy');
+  // Tanto uma RPC da allowlist quanto uma de escrita passam, com os
+  // argumentos intactos.
+  for (const nome of ['listar_ordens_compra_admin', 'salvar_pedido_admin']) {
+    fakeSupa._calls.length = 0;
+    const params = { p_pedido_id: 'abc' };
+    const res = await chamarRpc(sandbox, nome, params);
+    assert.equal(res && res.error, null, nome + ' não pode ser bloqueada em produção');
+    const chamadas = rpcCalls(fakeSupa);
+    assert.equal(chamadas.length, 1, nome + ' não alcançou o client em produção');
+    assert.equal(chamadas[0].args[0], nome);
+    assert.equal(chamadas[0].args[1], params);
+  }
+  // E as escritas por tabela continuam livres.
+  fakeSupa._calls.length = 0;
+  const qb = vm.runInContext(`supa.from('pedidos')`, sandbox);
+  const ins = await qb.insert({ foo: 'bar' });
+  assert.equal(ins && ins.error, null, 'insert não pode bloquear em produção');
+  assert.equal(fakeSupa._calls.filter((c) => c.op === 'insert').length, 1);
+});
+
+// -----------------------------------------------------------------------------
 // 5. Integração leve: serve o index.html via http.server e checa que
 // carrega js/supabase-client.js antes do script inline.
 // -----------------------------------------------------------------------------

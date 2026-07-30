@@ -56,10 +56,62 @@
     !!(window.APP_CONFIG && window.APP_CONFIG.writesEnabled === true);
   const _GUARD_BLOCK_WRITES = !_WRITES_ENABLED;
 
-  const _WG_ERROR = () => new Error(
-    'WRITE-GUARD: gravação bloqueada. Este ambiente é SOMENTE LEITURA sobre o ' +
-    'banco de produção (localhost ou preview deployment). Reads e login ' +
-    'funcionam normalmente; escritas só a partir do domínio de produção.'
+  // -- 2b. RPCs de LEITURA -----------------------------------------------
+  // O guard bloqueava TODA `.rpc()`, sem olhar o nome. Como várias telas
+  // leem exclusivamente por RPC, elas ficavam completamente inutilizáveis
+  // fora dos três hostnames de produção — a lista de Pedidos de Compra
+  // (`listar_ordens_compra_admin`) e o detalhe do Pedido
+  // (`listar_ordens_compra_fio_compat`, chamada por `attemptCanonicalRead`)
+  // quebravam no carregamento, e a mensagem ainda afirmava que "reads
+  // funcionam normalmente", o que era falso.
+  //
+  // A lista abaixo NÃO foi deduzida por nome. Nome não é evidência:
+  // `resolver_regime_compra_fio_pedido` e `proximo_numero_op` PARECEM
+  // leitura e gravam de verdade, e por isso continuam bloqueados.
+  //
+  // Cada entrada foi provada sobre a DEFINIÇÃO SQL versionada — o arquivo
+  // db/NN citado ao lado do nome é a ÚLTIMA redefinição da função no
+  // repositório — por três verificações cumulativas:
+  //   (1) volatilidade declarada na própria definição;
+  //   (2) varredura do corpo terminal: nenhum INSERT/UPDATE/DELETE/
+  //       TRUNCATE/MERGE/COPY, nenhum nextval/setval/set_config,
+  //       nenhum DDL, nenhum FOR UPDATE, nenhum advisory lock;
+  //   (3) fecho transitivo das funções chamadas, cada uma submetida à
+  //       mesma varredura (2). Os auxiliares alcançados são
+  //       is_admin, meu_cliente_id, pedido_snapshot,
+  //       pedido_tem_op_relacionada, pedido_ano_comercial,
+  //       _distribuicao_completa_ordem, oc_elegivel_exclusao e
+  //       diagnosticar_impacto_pedido_pre53 — todos sem mutação.
+  // Para as entradas STABLE, (1) é reforço: o PostgreSQL recusa DML em
+  // função não-volátil. Para as VOLATILE, (2) e (3) são a prova inteira.
+  //
+  // Fail-closed: nome ausente da lista continua bloqueado. Ao adicionar um
+  // nome, refaça (1)+(2)+(3) sobre a definição terminal — nunca pelo nome.
+  const _READ_ONLY_RPCS = new Set([
+    // STABLE — DML recusado pelo PostgreSQL, corpo e fecho sem mutação
+    'admin_alteracao_comparacao',               // db/92
+    'admin_usuarios_last_sign_in',              // db/59
+    'cliente_alteracao_resumo',                 // db/94
+    'cliente_pedido_summary',                   // db/30
+    'listar_ordens_compra_fio_compat',          // db/76
+    'obter_historico_recebimento_ordem_compra', // db/70
+    'obter_planejamento_compra_pedido',         // db/99
+    'sugerir_codigo_ordem_compra',              // db/99
+    // VOLATILE (padrão do PL/pgSQL) — corpo e fecho transitivo sem mutação
+    'avaliar_necessidades_compra_fio',          // db/69
+    'consultar_saldo_expedicao_latex',          // db/32
+    'diagnosticar_impacto_pedido',              // db/56
+    'listar_ordens_compra_admin',               // db/77
+    'obter_distribuicao_ordem_compra',          // db/69
+    'obter_ordem_compra_admin'                  // db/97
+  ]);
+
+  const _WG_ERROR = (op) => new Error(
+    'WRITE-GUARD: gravação bloqueada' + (op ? ' (' + op + ')' : '') + '. Este ' +
+    'ambiente é SOMENTE LEITURA sobre o banco de produção (localhost ou ' +
+    'preview deployment). Leituras por tabela e as RPCs de leitura ' +
+    'declaradas funcionam normalmente, assim como o login; escritas e RPCs ' +
+    'não declaradas como leitura só a partir do domínio de produção.'
   );
 
   // -- 3. Banner vermelho do write-guard (topo) ---------------------------
@@ -134,8 +186,10 @@
         }
         if (prop === 'rpc') {
           return (fn, params) => {
-            void fn; void params;
-            return Promise.reject(_WG_ERROR()).then(
+            if (typeof fn === 'string' && _READ_ONLY_RPCS.has(fn)) {
+              return target.rpc(fn, params);
+            }
+            return Promise.reject(_WG_ERROR(fn)).then(
               (v) => v,
               (e) => { throw e; }
             );

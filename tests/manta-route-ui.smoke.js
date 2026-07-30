@@ -1736,7 +1736,6 @@ const CLIENT_EDITOR_ADDED_ASSETS = ['js/screens/cliente-pedido-edit.js'];
 // sem versao. Os tres assets mudaram de bytes e os tres foram retokenizados.
 const CUTOVER_TOKEN = '20260728-inttracker-production-cutover';
 const CUTOVER_RETOKENIZED_ASSETS = [
-  'js/supabase-client.js',
   'js/environment-banner.js',
 ];
 
@@ -1750,11 +1749,25 @@ const CUTOVER_RETOKENIZED_ASSETS = [
 const ALIAS_TOKEN = '20260728-inttracker-alias-correction';
 const ALIAS_ASSETS = ['js/config.js'];
 
+// FORWARD CORRECTION — o write-guard do cutover rejeitava TODA `.rpc()` sem
+// olhar o nome, e as telas que leem exclusivamente por RPC (lista de Ordens de
+// Compra, detalhe do Pedido, Planejamento de Compra) ficavam inutilizaveis fora
+// de producao. A correcao introduz uma allowlist literal de RPCs de leitura
+// provadas sobre a definicao SQL versionada e toca APENAS
+// js/supabase-client.js, que por isso sai do token do cutover e passa a
+// carregar o seu proprio — mesmo mecanismo que a correcao de alias usou para
+// js/config.js. Um cliente com o modulo anterior em cache continuaria com as
+// tres telas quebradas, entao a retokenizacao e obrigatoria.
+const READ_RPC_GUARD_TOKEN = '20260730-read-rpc-guard-correction-r1';
+const READ_RPC_GUARD_ASSETS = ['js/supabase-client.js'];
+
 // A uniao continua sendo o conjunto que as derivacoes _AINDA_EM_, os conjuntos
 // `declarados` e a lista posicional de R3/20c2 subtraem: os tres assets seguem
 // alterados em relacao aos checkpoints anteriores, independentemente de qual
 // token cada um carrega agora.
-const CUTOVER_ASSETS = CUTOVER_RETOKENIZED_ASSETS.concat(ALIAS_ASSETS);
+const CUTOVER_ASSETS = CUTOVER_RETOKENIZED_ASSETS
+  .concat(ALIAS_ASSETS)
+  .concat(READ_RPC_GUARD_ASSETS);
 
 const PASS7_A4_ASSETS_AINDA_EM_A4 = PASS7_A4_ASSETS
   .filter((a) => !PASS7_A5_ASSETS.includes(a))
@@ -2680,8 +2693,9 @@ test('R3/20c10. os assets de INTTEX-BRAND-ASSET-INTEGRATION carregam exatamente 
 test('R3/20c11. os assets de INTTRACKER-PRODUCTION-CUTOVER carregam exatamente o token da ordem', () => {
   assert.equal(CUTOVER_ASSETS.length, 3,
     'a populacao alterada pelo cutover e de tres assets');
-  // js/config.js saiu para o token da correcao de alias; os outros dois
-  // continuam no token do cutover.
+  // js/config.js saiu para o token da correcao de alias e
+  // js/supabase-client.js saiu para o token da correcao do guard de leitura;
+  // o restante continua no token do cutover.
   for (const rel of CUTOVER_RETOKENIZED_ASSETS) {
     assert.equal(tokenFor(rel), CUTOVER_TOKEN,
       rel + ' deve carregar o token do cutover de producao');
@@ -2751,4 +2765,38 @@ test('R3/20c12. o asset da correcao de alias carrega exatamente o token da corre
   const worktree = execFileSync('git', ['hash-object', '--', 'js/config.js'], { cwd: ROOT, encoding: 'utf8' }).trim();
   assert.notEqual(worktree, committed,
     'js/config.js foi retokenizado, entao tem de ter mudado desde 37adca2');
+});
+
+// A correcao do guard de leitura toca UM unico asset e ele tem de carregar o
+// seu proprio token, sem vazar para nenhum outro. Sem esta invalidacao um
+// browser com o modulo anterior em cache continuaria rejeitando as RPCs de
+// leitura e as tres telas afetadas seguiriam quebradas fora de producao.
+test('R3/20c13. o asset da correcao do guard de RPC de leitura carrega exatamente o token da correcao', () => {
+  assert.deepEqual(READ_RPC_GUARD_ASSETS, ['js/supabase-client.js'],
+    'a correcao do guard de leitura altera exatamente um asset');
+  assert.equal(tokenFor('js/supabase-client.js'), READ_RPC_GUARD_TOKEN,
+    'js/supabase-client.js deve carregar o token da correcao do guard de leitura');
+  const carriers = assetRefs(indexHtml)
+    .filter((r) => r.token === READ_RPC_GUARD_TOKEN)
+    .map((r) => r.path);
+  assert.deepEqual(carriers.slice().sort(), READ_RPC_GUARD_ASSETS.slice().sort(),
+    'somente js/supabase-client.js pode carregar o token da correcao do guard de leitura');
+  for (const anterior of [
+    R2_TOKEN, BATCH1_TOKEN, BATCH2_TOKEN, BATCH3_TOKEN,
+    PASS1_TOKEN, PASS2_TOKEN, PASS2_A2_TOKEN, PASS2_A3_TOKEN, PASS2_A4_TOKEN,
+    PASS3_TOKEN, PASS4_TOKEN, PASS5_TOKEN, PASS6_TOKEN, PASS6_A1_TOKEN,
+    PASS7_TOKEN, PASS7_A4_TOKEN, PASS7_A5_TOKEN, PASS8_TOKEN,
+    B1_TOKEN, SCREEN_GROUP_2_TOKEN, SCREEN_GROUP_3_TOKEN, BRAND_TOKEN,
+    CUTOVER_TOKEN, ALIAS_TOKEN,
+  ]) {
+    assert.notEqual(READ_RPC_GUARD_TOKEN, anterior,
+      'o token da correcao do guard de leitura tem de diferir de todo token anterior');
+    assert.notEqual(tokenFor('js/supabase-client.js'), anterior,
+      'js/supabase-client.js nao pode reter o token superseded ' + anterior);
+  }
+  // O asset retokenizado tem de ter mudado de fato desde o checkpoint anterior.
+  const committed = execFileSync('git', ['rev-parse', '267f7f5:js/supabase-client.js'], { cwd: ROOT, encoding: 'utf8' }).trim();
+  const worktree = execFileSync('git', ['hash-object', '--', 'js/supabase-client.js'], { cwd: ROOT, encoding: 'utf8' }).trim();
+  assert.notEqual(worktree, committed,
+    'js/supabase-client.js foi retokenizado, entao tem de ter mudado desde 267f7f5');
 });
