@@ -31,6 +31,10 @@ const { FaithfulNode, createDocument, makeFakeSupa } = require('./_doubles.js');
 const ROOT = path.join(__dirname, '..');
 function read(rel) { return fs.readFileSync(path.join(ROOT, rel), 'utf8'); }
 
+// js/op-display.js owns the canonical OP/OC identity labels and loads before
+// every screen in index.html; the purchase-order screens call it to name an
+// order, so the sandbox must carry it too.
+const opDisplaySrc = read('js/op-display.js');
 const uiSrc = read('js/ui.js');
 const commonSrc = read('js/screens/common.js');
 const dataSrc = read('js/screens/ordem-compra-data.js');
@@ -59,6 +63,7 @@ function makeSandbox({ rpcImpl = {}, tableData = {} } = {}) {
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
+  vm.runInContext(opDisplaySrc, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(uiSrc, sandbox, { filename: 'js/ui.js' });
   vm.runInContext(commonSrc, sandbox, { filename: 'js/screens/common.js' });
   vm.runInContext(dataSrc, sandbox, { filename: 'js/screens/ordem-compra-data.js' });
@@ -135,7 +140,18 @@ const COMPLETE_DISTRIBUTION = {
   }],
 };
 
-const FORM_REFS = { pedidos: [{ id: 'p1', numero: 120 }], fornecedores: [{ id: 1, nome: 'Fornecedor A', tipo: 'fio_algodao' }], cores: [{ id: 1, nome: 'PRETO' }] };
+// Canonical OC identities (db/95), read from public.ordem_compra.
+//   100 → the FIRST purchase order of Pedido 001. The primary key is a global
+//         BIGSERIAL unrelated to the Pedido, so this row is the regression
+//         case: the surface must read OC-001-1-26 and never "#100".
+//   200 → a GENUINE legacy order with no Pedido: no identity exists and none
+//         may be fabricated, so it keeps the deliberate non-numbered label.
+const PEDIDO_1 = '11111111-1111-4111-8111-111111111111';
+const OC_IDENTITIES = [
+  { id: 100, identidade_operacional: 'OC-001-1-26', identidade_pedido_id: PEDIDO_1, pedido_id: PEDIDO_1 },
+  { id: 200, identidade_operacional: null, identidade_pedido_id: null, pedido_id: null },
+];
+const FORM_REFS = { pedidos: [{ id: 'p1', numero: 120 }], fornecedores: [{ id: 1, nome: 'Fornecedor A', tipo: 'fio_algodao' }], cores: [{ id: 1, nome: 'PRETO' }], ordem_compra: OC_IDENTITIES };
 
 // ---- LIST -----------------------------------------------------------
 
@@ -324,4 +340,139 @@ test('11. F1 keeps native distribution read-only while complete emission remains
   const emit = findById(view, 'oc-emitir');
   assert.equal(emit.disabled, true, 'emission remains disabled even after complete distribution');
   assert.ok(!emit._listeners || !emit._listeners.click, 'emission remains without a handler');
+});
+
+// =====================================================================
+// === OC CANONICAL IDENTITY (db/95) — completion of
+// === OP-CANONICAL-IDENTITY-REFOUNDATION-R1 ===========================
+// Regression: public.ordem_compra.id is a GLOBAL BIGSERIAL, so the first
+// purchase order of Pedido 001 could be #100. The screens printed that key
+// as the order's name. The business identity is identidade_operacional.
+// =====================================================================
+
+const PEDIDO_2 = '22222222-2222-4222-8222-222222222222';
+
+// Two orders of Pedido 001 plus one of Pedido 002 — primary keys deliberately
+// out of order and unrelated to either Pedido number.
+const MULTI_OC_IDENTITIES = [
+  { id: 100, identidade_operacional: 'OC-001-1-26', identidade_pedido_id: PEDIDO_1, pedido_id: PEDIDO_1 },
+  { id: 4210, identidade_operacional: 'OC-001-2-26', identidade_pedido_id: PEDIDO_1, pedido_id: PEDIDO_1 },
+  { id: 7, identidade_operacional: 'OC-002-1-26', identidade_pedido_id: PEDIDO_2, pedido_id: PEDIDO_2 },
+  { id: 200, identidade_operacional: null, identidade_pedido_id: null, pedido_id: null },
+];
+
+function ocOrder(over) {
+  return Object.assign({}, NATIVE_DRAFT, over);
+}
+
+test('OC-ID 1. detail names the order by its canonical identity, never by the primary key', async () => {
+  const sandbox = makeSandbox({
+    tableData: FORM_REFS,
+    rpcImpl: { obter_ordem_compra_admin: () => ({ data: { ok: true, ordem: NATIVE_DRAFT, eventos: [] }, error: null }) },
+  });
+  const view = await vm.runInContext('window.screenOrdemCompra(100)', sandbox);
+  const t = text(findById(view, 'ordem-compra-detail'));
+  assert.match(t, /OC-001-1-26/, 'the canonical identity is the visible name');
+  assert.doesNotMatch(t, /#100/, 'the raw BIGSERIAL is never rendered as a business number');
+  assert.doesNotMatch(t, /Ordem de compra #/, 'the "#<pk>" heading form is gone');
+});
+
+test('OC-ID 2. the list names every row by its canonical identity', async () => {
+  const sandbox = makeSandbox({
+    tableData: Object.assign({}, FORM_REFS, { ordem_compra: MULTI_OC_IDENTITIES }),
+    rpcImpl: {
+      listar_ordens_compra_admin: () => ({
+        data: { ok: true, ordens: [ocOrder({ ordem_id: 100 }), ocOrder({ ordem_id: 4210 }), ocOrder({ ordem_id: 7 })] },
+        error: null,
+      }),
+    },
+  });
+  const view = await vm.runInContext('window.screenOrdensCompra()', sandbox);
+  const t = text(findById(view, 'ordens-compra-list'));
+  // Two orders of the SAME Pedido keep one sequence; a third Pedido has its own.
+  assert.match(t, /OC-001-1-26/);
+  assert.match(t, /OC-001-2-26/);
+  assert.match(t, /OC-002-1-26/);
+  assert.doesNotMatch(t, /#100|#4210/, 'no raw primary key reaches the list');
+  assert.match(t, /Ordem/, 'the first column is headed by the order, not the model');
+});
+
+test('OC-ID 3. a genuine legacy order without Pedido keeps its deliberate non-numbered label', async () => {
+  const sandbox = makeSandbox({
+    tableData: FORM_REFS,
+    rpcImpl: { obter_ordem_compra_admin: () => ({ data: { ok: true, ordem: LEGACY_ORDER, eventos: [] }, error: null }) },
+  });
+  const view = await vm.runInContext('window.screenOrdemCompra(200)', sandbox);
+  const t = text(findById(view, 'ordem-compra-detail'));
+  assert.match(t, /OC legada \(sem Pedido\)/, 'legacy label is shown');
+  assert.doesNotMatch(t, /#200/, 'no primary key is offered as a substitute identity');
+  assert.doesNotMatch(t, /OC-\d/, 'no Pedido relationship is fabricated for a legacy order');
+});
+
+test('OC-ID 4. an unresolvable identity fails closed, never to the legacy label or the key', async () => {
+  // Identity read returns nothing for this id (error, permission, id outside
+  // the loaded batch). That is NOT the same as "legacy order without Pedido".
+  const sandbox = makeSandbox({
+    tableData: Object.assign({}, FORM_REFS, { ordem_compra: [] }),
+    rpcImpl: { obter_ordem_compra_admin: () => ({ data: { ok: true, ordem: NATIVE_DRAFT, eventos: [] }, error: null }) },
+  });
+  const view = await vm.runInContext('window.screenOrdemCompra(100)', sandbox);
+  const t = text(findById(view, 'ordem-compra-detail'));
+  assert.match(t, /OC \(identidade pendente\)/, 'diagnostic state is declared honestly');
+  assert.doesNotMatch(t, /OC legada/, 'a failed read must not claim the order has no Pedido');
+  assert.doesNotMatch(t, /#100/, 'and must not fall back to the primary key');
+});
+
+test('OC-ID 5. the emission confirmation names the order canonically while the RPC still takes the id', async () => {
+  const sandbox = makeSandbox({
+    tableData: FORM_REFS,
+    rpcImpl: {
+      obter_ordem_compra_admin: () => ({
+        data: { ok: true, eventos: [], ordem: ocOrder({ acoes: Object.assign({}, NATIVE_DRAFT.acoes, { emitir: true }), pode_emitir: true, bloqueio_emissao: null }) },
+        error: null,
+      }),
+    },
+  });
+  const view = await vm.runInContext('window.screenOrdemCompra(100)', sandbox);
+  findById(view, 'oc-emitir')._listeners.click();
+  const overlay = (sandbox.document.body.children || []).filter((n) => !n._removed).pop();
+  const t = text(overlay);
+  assert.match(t, /Emitir ordem de compra OC-001-1-26/, 'modal title uses the canonical identity');
+  assert.match(t, /Emitir a ordem OC-001-1-26/, 'confirmation copy uses it too');
+  assert.doesNotMatch(t, /#100/, 'the irreversible confirmation never names the order by its key');
+});
+
+// Comments legitimately quote the defect they document ("it used to print
+// 'Ordem de compra #' + o.ordem_id"). A comment renders nothing, so the scan
+// looks at code only.
+function codeOnly(src) {
+  return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
+}
+
+test('OC-ID 6. static scan: no active OC surface concatenates a primary key into visible text', () => {
+  const RAW_PK_AS_NAME = /(['"`])[^'"`]*(?:ordem|OC)[^'"`]*#\s*\1\s*\+\s*\w*[Oo]rdem/;
+  for (const rel of [
+    'js/screens/ordem-compra-render.js',
+    'js/screens/ordem-compra-events.js',
+    'js/screens/ordem-compra-receipt-render.js',
+    'js/screens/ordem-compra-receipt-events.js',
+    'js/screens/ordem-compra-distribuicao.js',
+  ]) {
+    const src = codeOnly(read(rel));
+    assert.doesNotMatch(src, RAW_PK_AS_NAME, rel + ' renders a raw purchase-order key as a business name');
+    assert.doesNotMatch(src, /'Ordem de compra #'/, rel + ' still carries the "#<pk>" heading literal');
+  }
+});
+
+test('OC-ID 7. identity I/O has ONE owner and the screens never re-fetch it themselves', () => {
+  const data = read('js/screens/ordem-compra-data.js');
+  // Both resolvers share a single batch reader; neither screen opens its own.
+  assert.match(data, /async function carregarIdentidades\(/, 'one shared batch resolver');
+  assert.match(data, /ns\.carregarIdentidadesOp = /);
+  assert.match(data, /ns\.carregarIdentidadesOc = /);
+  for (const rel of ['js/screens/ordem-compra-render.js', 'js/screens/ordem-compra-events.js']) {
+    assert.doesNotMatch(read(rel), /\.from\(\s*'ordem_compra'\s*\)/, rel + ' must not fetch identity itself');
+  }
+  // Formatting stays with the central display owner, not the data module.
+  assert.doesNotMatch(data, /OC-\d|identidade pendente/, 'the data module must not format labels');
 });

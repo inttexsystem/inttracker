@@ -33,16 +33,33 @@ const { createDocument, makeFakeSupa } = require('./_doubles.js');
 const ROOT = path.resolve(__dirname, '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const files = [
+  // js/op-display.js owns the canonical OP/OC identity labels and is loaded
+  // before every screen in index.html. The purchase-order screens call it to
+  // name an order, so the sandbox must carry it too.
+  'js/op-display.js',
   'js/ui.js', 'js/screens/common.js',
   'js/screens/ordem-compra-data.js', 'js/screens/ordem-compra-distribuicao.js',
   'js/screens/ordem-compra-render.js', 'js/screens/ordem-compra-events.js',
   'js/screens/ordens-compra-list.js', 'js/screens/ordem-compra.js',
 ];
+
+// Canonical identities (db/95) for the orders this suite renders. The primary
+// keys are deliberately unrelated to the Pedido number: 4210 is the FIRST
+// purchase order of Pedido 001 and 9999 the SECOND, so every surface must read
+// OC-001-1-26 / OC-001-2-26 and never #4210 or #9999.
+const PEDIDO_1 = '11111111-1111-4111-8111-111111111111';
+const OC_IDENTITIES = [
+  { id: 4210, identidade_operacional: 'OC-001-1-26', identidade_pedido_id: PEDIDO_1, pedido_id: PEDIDO_1 },
+  { id: 9999, identidade_operacional: 'OC-001-2-26', identidade_pedido_id: PEDIDO_1, pedido_id: PEDIDO_1 },
+];
 const srcs = files.map((f) => [f, read(f)]);
 
-function makeSandbox(rpcImpl) {
+function makeSandbox(rpcImpl, tableData) {
   const document = createDocument();
-  const supa = makeFakeSupa({ rpcImpl });
+  const supa = makeFakeSupa({
+    rpcImpl,
+    tableData: tableData || { ordem_compra: OC_IDENTITIES },
+  });
   let uuid = 0;
   const navCalls = [];
   const sandbox = {
@@ -168,7 +185,7 @@ test('3. no client-computed readiness substitute: acoes.emitir is authoritative 
 test('4. eligible draft: clicking Emitir opens an explicit confirmation modal (irreversible-transition copy)', async () => {
   const env = await renderScreen({ obter_ordem_compra_admin: sequencedObter(ELIGIBLE) });
   findById(env.view, 'oc-emitir')._listeners.click();
-  const modal = overlayByTitle(env.sandbox, /Emitir ordem de compra #4210/);
+  const modal = overlayByTitle(env.sandbox, /Emitir ordem de compra OC-001-1-26/);
   assert.ok(modal, 'confirmation modal opened');
   const copy = text(modal);
   assert.match(copy, /retira do rascunho/i, 'explains leaving draft → emitida');

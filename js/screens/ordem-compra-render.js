@@ -26,6 +26,17 @@
   var LEGACY_ITEM_MUTATION_ENABLED = false;
   ns.LEGACY_ITEM_MUTATION_ENABLED = LEGACY_ITEM_MUTATION_ENABLED;
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1 (completion): a identidade de
+  // negocio da OC e `ordem_compra.identidade_operacional` (db/95), resolvida
+  // por ordem-compra-data.js e formatada pelo dono central. ANTES esta tela
+  // imprimia `'Ordem de compra #' + o.ordem_id`, ou seja, o BIGSERIAL global —
+  // por isso a primeira OC do Pedido 001 aparecia como `#100`.
+  function ocLabel(ordemId, state) {
+    return window.RAVATEX_OP_DISPLAY.formatOcIdentityFromMap(
+      ordemId, state && state.ocIdentidades);
+  }
+  ns.ocLabel = ocLabel;
+
   var STATUS_LABEL = { rascunho: 'Rascunho', emitida: 'Emitida', cancelada: 'Cancelada' };
   var RECEB_LABEL = { nao_recebido: 'Não recebido', parcial: 'Recebimento parcial', recebido: 'Recebido' };
   // Server-derived emission blockers (obter_ordem_compra_admin, db/77). The
@@ -147,7 +158,7 @@
       el('col', { style: 'width:12%;' })));
     var thead = el('thead', { class: 'bg-gray-50 border-b' });
     thead.appendChild(el('tr', {},
-      el('th', { class: 'px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase' }, 'Modelo'),
+      el('th', { class: 'px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase' }, 'Ordem'),
       el('th', { class: 'px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase' }, 'Fornecedor'),
       el('th', { class: 'px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase' }, 'Situação'),
       el('th', { class: 'px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase' }, 'Itens'),
@@ -155,7 +166,13 @@
     var tbody = el('tbody', { class: 'divide-y divide-gray-100' });
     state.ordens.forEach(function (o) {
       var tr = el('tr', { class: 'hover:bg-gray-50', 'data-ordem-id': String(o.ordem_id) });
-      tr.appendChild(el('td', { class: 'px-4 py-3 text-sm' }, modeloBadge(o.modelo)));
+      // A identidade canonica e o identificador primario da linha; o modelo
+      // (nativo/legado) continua visivel como qualificacao secundaria. A
+      // geometria de 5 colunas do contrato pass-8 (S01) e preservada: nenhuma
+      // coluna foi adicionada e nenhuma largura mudou.
+      tr.appendChild(el('td', { class: 'px-4 py-3 text-sm' },
+        el('div', { class: 'font-semibold text-gray-900' }, ocLabel(o.ordem_id, state)),
+        el('div', { class: 'mt-1' }, modeloBadge(o.modelo))));
       tr.appendChild(el('td', { class: 'px-4 py-3 text-sm text-gray-800' }, o.fornecedor_nome || '— não atribuído'));
       tr.appendChild(el('td', { class: 'px-4 py-3 text-sm' }, statusBadge(o.status_administrativo)));
       tr.appendChild(el('td', { class: 'px-4 py-3 text-sm text-right text-gray-800', style: 'font-variant-numeric:tabular-nums;' }, String(o.itens_total)));
@@ -197,7 +214,7 @@
     // Header card
     var head = el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5 mb-4' });
     head.appendChild(el('div', { class: 'flex items-center gap-3 mb-3 flex-wrap' },
-      el('h1', { style: 'font-size:var(--rv-fs-title);', class: 'font-bold' }, 'Ordem de compra #' + o.ordem_id),
+      el('h1', { style: 'font-size:var(--rv-fs-title);', class: 'font-bold' }, ocLabel(o.ordem_id, state)),
       modeloBadge(o.modelo), statusBadge(o.status_administrativo),
       o.modelo === 'nativo' ? statusAceiteBadge(o.status_aceite) : null));
     head.appendChild(el('div', { class: 'text-sm text-gray-600' },

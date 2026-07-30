@@ -104,9 +104,14 @@
         // modal holds ONLY this explanation + the confirmation — the
         // purchase-order entity stays on #/ordens-compra/:id, never duplicated
         // here (§R.16).
+        // OP-CANONICAL-IDENTITY-REFOUNDATION-R1 (completion): a confirmacao de
+        // uma transicao irreversivel precisa nomear a ordem pela identidade que
+        // o operador reconhece. `ordemId` (o BIGSERIAL) segue sendo apenas o
+        // argumento tecnico do RPC, nunca o nome exibido.
+        var ocNome = window.RAVATEX_SCREENS.ordemCompra.ocLabel(ordemId, state);
         var body = el('div', { style: 'color:var(--rv-color-text);font-size:13.5px;line-height:1.55;' });
         body.appendChild(el('p', { class: 'mb-2' },
-          'Emitir a ordem #' + ordemId + ' a retira do rascunho e a marca como emitida.'));
+          'Emitir a ordem ' + ocNome + ' a retira do rascunho e a marca como emitida.'));
         body.appendChild(el('p', { class: 'mb-2' },
           'Após a emissão, os itens e as alocações ficam congelados. Esta ação não edita itens nem a distribuição.'));
         body.appendChild(el('p', { class: 'mb-0', style: 'color:var(--rv-color-muted);' },
@@ -121,7 +126,7 @@
         var submitting = false;
 
         window.modal({
-          title: 'Emitir ordem de compra #' + ordemId,
+          title: 'Emitir ordem de compra ' + ocNome,
           body: body,
           saveLabel: 'Emitir ordem',
           // `danger` omitted → primary/neutral (blue) treatment, NOT destructive-red.

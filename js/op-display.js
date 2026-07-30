@@ -159,13 +159,37 @@
     return OC_LEGACY_LABEL;
   }
 
+  // Estado diagnostico da OC, simetrico a IDENTITY_PENDING da OP: declara que
+  // a identidade nao pode ser resolvida agora. Nunca e um nome alternativo.
+  var OC_IDENTITY_PENDING = 'OC (identidade pendente)';
+
   function formatOcOperationalCode(oc) {
     if (!oc) return 'OC -';
     var canonical = getCanonicalIdentity(oc);
     if (canonical) return canonical;
     // Vinculada a Pedido mas sem identidade persistida: fail closed.
-    if (oc.pedido_id != null || oc.identidade_pedido_id != null) return 'OC (identidade pendente)';
+    if (oc.pedido_id != null || oc.identidade_pedido_id != null) return OC_IDENTITY_PENDING;
     return formatOcLegacyLabel(oc);
+  }
+
+  // Identidade de uma OC a partir de um mapa `ordem_compra.id -> linha`.
+  //
+  // Simetrico a formatOpIdentityFromMap e existe pela MESMA razao: as RPCs
+  // aceitas de compra (`listar_ordens_compra_admin` e
+  // `obter_ordem_compra_admin`, db/77) projetam a ordem apenas por
+  // `'ordem_id', oc.id`. Elas sao anteriores a db/95 e nunca passaram a expor
+  // `identidade_operacional`, entao a chave primaria era o unico identificador
+  // que chegava a tela — e era ela que o cabecalho imprimia como se fosse nome
+  // de negocio (`Ordem de compra #100` para a primeira OC do Pedido 001).
+  //
+  // Uma linha AUSENTE do mapa nao e uma OC legada: e uma leitura que nao
+  // resolveu (erro, permissao, id fora do lote carregado). Fail closed no
+  // estado diagnostico; jamais cair no rotulo legado, que afirmaria que a
+  // ordem genuinamente nao tem Pedido.
+  function formatOcIdentityFromMap(ordemId, mapa) {
+    if (ordemId == null) return 'OC -';
+    var row = mapa ? mapa[String(ordemId)] : null;
+    return row ? formatOcOperationalCode(row) : OC_IDENTITY_PENDING;
   }
 
   // ===================================================================
@@ -250,7 +274,9 @@
     isIdentityPending: isIdentityPending,
     formatOpOperationalCode: formatOpOperationalCode,
     formatOpIdentityFromMap: formatOpIdentityFromMap,
+    OC_IDENTITY_PENDING: OC_IDENTITY_PENDING,
     formatOcOperationalCode: formatOcOperationalCode,
+    formatOcIdentityFromMap: formatOcIdentityFromMap,
     formatOcLegacyLabel: formatOcLegacyLabel,
     productTypeLabel: productTypeLabel,
     formatProductLabel: formatProductLabel,

@@ -76,6 +76,8 @@
       return 'lista';
     }
     state.ordens = res.data.ordens || [];
+    state.ocIdentidades = await ns.carregarIdentidadesOc(
+      state.ordens.map(function (o) { return o.ordem_id; }));
     return null;
   };
 
@@ -97,6 +99,8 @@
     }
     state.ordem = res.data.ordem || null;
     state.eventos = res.data.eventos || [];
+    state.ocIdentidades = await ns.carregarIdentidadesOc(
+      state.ordem ? [state.ordem.ordem_id] : []);
     return null;
   };
 
@@ -238,30 +242,60 @@
   //   Se a leitura falhar, o mapa volta VAZIO e as telas renderizam o estado
   //   diagnostico explicito. Nunca a chave primaria.
   // =====================================================================
-  ns.carregarIdentidadesOp = async function (opIds) {
+  // Dedupe preservando a ordem; ids nulos nunca entram na consulta.
+  function idsUnicos(ids) {
     var unicos = [];
     var visto = {};
-    (opIds || []).forEach(function (id) {
+    (ids || []).forEach(function (id) {
       if (id == null) return;
       var key = String(id);
       if (visto[key]) return;
       visto[key] = true;
       unicos.push(id);
     });
+    return unicos;
+  }
+
+  // Resolvedor de identidade em lote, unico para OP e OC. Recebe a origem
+  // (tabela/view + coluna-chave) e devolve `chave -> linha`. Uma leitura que
+  // falha devolve mapa vazio de proposito: o formatador central entao declara
+  // o estado diagnostico, em vez de a tela inventar um nome.
+  async function carregarIdentidades(origem, chave, colunas, ids, rotuloLog) {
+    var unicos = idsUnicos(ids);
     if (!unicos.length) return {};
-    var res = await window.supa
-      .from('op_identidade_projecao')
-      .select('op_id, identidade_operacional, identidade_pedido_id, numero, ano, tipo')
-      .in('op_id', unicos);
+    var res = await window.supa.from(origem).select(colunas).in(chave, unicos);
     if (res.error || !res.data) {
-      console.error('ordem-compra: falha ao resolver identidade de OP', res.error);
+      console.error('ordem-compra: falha ao resolver identidade de ' + rotuloLog, res.error);
       return {};
     }
     var mapa = {};
     res.data.forEach(function (row) {
-      if (row && row.op_id != null) mapa[String(row.op_id)] = row;
+      if (row && row[chave] != null) mapa[String(row[chave])] = row;
     });
     return mapa;
+  }
+
+  ns.carregarIdentidadesOp = async function (opIds) {
+    return carregarIdentidades(
+      'op_identidade_projecao', 'op_id',
+      'op_id, identidade_operacional, identidade_pedido_id, numero, ano, tipo',
+      opIds, 'OP');
+  };
+
+  // Identidade canonica da OC (db/95), lida DIRETO de public.ordem_compra:
+  // db/67 concede SELECT a `authenticated` sob a policy ordem_compra_admin_select
+  // (USING is_admin()), entao o administrador ja enxerga a coluna. As RPCs
+  // db/77 continuam a projetar apenas `ordem_id`; ate que uma migracao revisada
+  // as atualize, este e o unico caminho de leitura da identidade.
+  //
+  // `pedido_id` e `identidade_pedido_id` viajam junto porque o formatador
+  // central distingue com eles a OC legada SEM Pedido (rotulo nao numerado,
+  // deliberado) da OC vinculada cuja identidade ainda nao foi atribuida.
+  ns.carregarIdentidadesOc = async function (ordemIds) {
+    return carregarIdentidades(
+      'ordem_compra', 'id',
+      'id, identidade_operacional, identidade_pedido_id, pedido_id',
+      ordemIds, 'OC');
   };
 
   // A FORMATACAO do rotulo vive no dono central
