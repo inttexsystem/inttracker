@@ -9,9 +9,20 @@
   window.RAVATEX_SCREENS = window.RAVATEX_SCREENS || {};
   var ns = window.RAVATEX_SCREENS.pedidoDetail = window.RAVATEX_SCREENS.pedidoDetail || {};
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: identidade canonica persistida.
+  // ANTES esta funcao concatenava `ops.numero/ops.ano` incondicionalmente, e
+  // era exatamente ela que fazia o modal de movimentacao imprimir
+  // `OP de origem: OP 42/2026` ao lado de `OPs relacionadas: OP 1/2026-T01`
+  // — dois nomes para a MESMA OP na MESMA superficie.
+  //
+  // Agora delega ao dono central. Nao precisa mais de contexto de Pedido nem
+  // de lista de irmas: a identidade vem persistida da linha. Sem fallback
+  // proprio — a ausencia do helper e defeito de carregamento, nao caso de
+  // negocio.
   function opLabel(op) {
-    return 'OP ' + op.numero + '/' + op.ano;
+    return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op);
   }
+
 
   function stageKeyForOp(op) {
     return op && op.tipo === 'latex' ? 'acabamento' : 'tecelagem';

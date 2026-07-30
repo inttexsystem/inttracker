@@ -275,14 +275,10 @@
       updateWarning();
     }
 
+    // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: identidade canonica persistida.
     function opLabelText(op) {
-      var numero = (op.numero != null ? op.numero : op.id);
-      var ano = op.ano != null ? ('/' + op.ano) : '';
-      var tipo = op.tipo ? (' ' + op.tipo) : '';
-      var status = op.status ? (' · ' + op.status) : '';
-      return 'OP ' + numero + ano + tipo + status;
+      return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op);
     }
-
     function rebuildOpList() {
       var listEl = _elements.opList;
       if (!listEl) return;

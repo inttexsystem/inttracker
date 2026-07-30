@@ -1,14 +1,28 @@
 // =====================================================================
 // === tests/op-display.smoke.js ========================================
-// Smoke do helper central de identificacao operacional de OP
+// Smoke do dono central da identidade de OP e de Ordem de Compra
 // (js/op-display.js -> window.RAVATEX_OP_DISPLAY).
 //
-// Fase: RAVATEX-TAPETES-OP-OPERATIONAL-CODE-HELPER-B
-// Contrato: OP {pedido_numero}/{pedido_ano}-{tipo}{seq}
-//   - pedido_ano = year(pedido.criado_em)
-//   - T = tecelagem, A = latex/acabamento
-//   - seq de 2 digitos por Pedido + Tipo, ordenado por criado_em/id
-//   - fallback legado `OP {numero}/{ano}` sem contexto confiavel
+// Fase: OP-CANONICAL-IDENTITY-REFOUNDATION-R1
+// Contrato: OP-{T|A}{pedido:3}-{seq}-{ano:2}   ex. OP-T005-1-26
+//           OC-{pedido:3}-{seq}-{ano:2}        ex. OC-005-1-26
+//   - a identidade e LIDA de `ops.identidade_operacional` /
+//     `ordem_compra.identidade_operacional` (db/95): atribuida uma vez,
+//     persistida, unica por constraint e imutavel;
+//   - este modulo NAO calcula sequencia, NAO deriva ano e NAO consulta lista
+//     de OPs irmas;
+//   - OP AVULSA (sem Pedido) exibe `OP {numero}/{ano}` como identidade
+//     legitima, porque nenhuma identidade derivada de Pedido existe;
+//   - OP/OC vinculada a Pedido SEM identidade persistida => estado
+//     diagnostico explicito, NUNCA o numero interno nem a chave primaria.
+//
+// HISTORICO DESTE ARQUIVO
+//   Os blocos que provavam o calculo POSICIONAL (sequencia pelo indice na
+//   lista de irmas, ano derivado de `pedido.criado_em`, fallback silencioso
+//   ao legado) foram REMOVIDOS porque provavam o comportamento defeituoso:
+//   removida uma OP irma, a seguinte HERDAVA o codigo dela. A prova
+//   comportamental da estabilidade esta em
+//   tests/op-canonical-identity-invariant.mjs (Partes C e D).
 //
 // Puro/estatico: nao executa o app nem acessa Supabase.
 // =====================================================================
@@ -31,7 +45,7 @@ function loadApi() {
   return sandbox.window.RAVATEX_OP_DISPLAY;
 }
 
-const pedido = { id: 'p1', numero: 21, criado_em: '2026-03-15T10:00:00Z' };
+const INTERNO_LABEL = 'º interno';
 
 // ---------------------------------------------------------------------
 // 1. Existencia / API
@@ -42,188 +56,198 @@ test('op-display: arquivo existe e sintaxe valida', () => {
   require('node:child_process').execFileSync(process.execPath, ['--check', HELPER], { stdio: 'pipe' });
 });
 
-test('op-display: expoe API central em window.RAVATEX_OP_DISPLAY', () => {
+test('op-display: expoe a API de identidade canonica', () => {
   const api = loadApi();
   assert.ok(api, 'window.RAVATEX_OP_DISPLAY ausente');
-  for (const fn of ['getOpTypeLetter', 'getPedidoOperationalYear', 'buildOpOperationalSequence', 'formatOpOperationalCode', 'formatOpLegacyCode']) {
+  for (const fn of ['getOpTypeLetter', 'getCanonicalIdentity', 'isPedidoLinked',
+    'isIdentityPending', 'formatOpOperationalCode', 'formatOpInternalLabel',
+    'formatOpLegacyCode', 'formatOcOperationalCode', 'formatOcLegacyLabel']) {
     assert.equal(typeof api[fn], 'function', 'funcao ausente: ' + fn);
   }
 });
 
-test('index.html: carrega js/op-display.js antes dos consumidores de Pedido', () => {
+test('op-display: as funcoes de calculo posicional NAO existem mais', () => {
+  const api = loadApi();
+  for (const fn of ['buildOpOperationalSequence', 'getPedidoOperationalYear']) {
+    assert.equal(api[fn], undefined,
+      fn + ' derivava a identidade em tempo de render e nao pode voltar');
+  }
+});
+
+test('index.html: carrega js/op-display.js antes dos consumidores', () => {
   const index = fs.readFileSync(INDEX, 'utf8');
   assert.match(index, /<script src="js\/op-display\.js/, 'index.html deve carregar js/op-display.js');
   const posDisplay = index.indexOf('js/op-display.js');
-  const posChain = index.indexOf('js/screens/pedido-chain-state.js');
-  const posProgress = index.indexOf('js/screens/pedido-detail-progress.js');
-  const posPainel = index.indexOf('js/screens/painel.js');
-  assert.ok(posDisplay > -1 && posChain > -1 && posProgress > -1, 'scripts esperados ausentes');
-  assert.ok(posDisplay < posChain, 'op-display deve carregar antes de pedido-chain-state');
-  assert.ok(posDisplay < posProgress, 'op-display deve carregar antes de pedido-detail-progress');
-  assert.ok(posDisplay < posPainel, 'op-display deve carregar antes de painel');
+  // Os consumidores nao tem mais fallback proprio: a ordem de carga passou a
+  // ser um requisito real, nao uma conveniencia.
+  for (const consumer of ['js/screens/pedido-chain-state.js', 'js/screens/pedido-detail-progress.js',
+    'js/screens/painel.js', 'js/screens/ops-list.js']) {
+    const pos = index.indexOf(consumer);
+    assert.ok(pos > -1, 'consumidor ausente do index.html: ' + consumer);
+    assert.ok(posDisplay < pos, 'op-display.js deve carregar ANTES de ' + consumer);
+  }
 });
 
 // ---------------------------------------------------------------------
-// 2. Letra do tipo (T/A) e ano
+// 2. Letra do tipo (espelha public.op_tipo_letra de db/95)
 // ---------------------------------------------------------------------
 
-test('op-display: tipo tecelagem -> T, latex/acabamento -> A, desconhecido -> null', () => {
+test('op-display: tecelagem -> T, latex/acabamento -> A, desconhecido -> null', () => {
   const api = loadApi();
   assert.equal(api.getOpTypeLetter({ tipo: 'tecelagem' }), 'T');
   assert.equal(api.getOpTypeLetter({ tipo: 'latex' }), 'A');
   assert.equal(api.getOpTypeLetter({ tipo: 'acabamento' }), 'A');
-  assert.equal(api.getOpTypeLetter({ tipo: 'LATEX' }), 'A', 'normaliza caixa');
-  assert.equal(api.getOpTypeLetter({ tipo: 'outro' }), null);
+  assert.equal(api.getOpTypeLetter({ tipo: 'TECELAGEM' }), 'T', 'deve normalizar caixa');
+  assert.equal(api.getOpTypeLetter({ tipo: 'expedicao' }), null);
+  assert.equal(api.getOpTypeLetter({}), null);
   assert.equal(api.getOpTypeLetter(null), null);
 });
 
-test('op-display: ano operacional vem de year(pedido.criado_em)', () => {
+// ---------------------------------------------------------------------
+// 3. A identidade e LIDA, nunca montada
+// ---------------------------------------------------------------------
+
+test('IDENTIDADE: devolve exatamente o valor persistido pelo banco', () => {
   const api = loadApi();
-  assert.equal(api.getPedidoOperationalYear({ criado_em: '2026-03-15T10:00:00Z' }), 2026);
-  assert.equal(api.getPedidoOperationalYear({ criado_em: '2025-12-31T23:00:00Z' }), 2025);
-  assert.equal(api.getPedidoOperationalYear({}), null, 'sem criado_em => null');
-  assert.equal(api.getPedidoOperationalYear(null), null);
+  const op = { id: 1, numero: 42, ano: 2026, tipo: 'tecelagem',
+    identidade_operacional: 'OP-T005-1-26', identidade_pedido_id: 'p1' };
+  assert.equal(api.formatOpOperationalCode(op), 'OP-T005-1-26');
+  // O numero interno NAO influencia a identidade.
+  assert.equal(api.formatOpOperationalCode(Object.assign({}, op, { numero: 999, ano: 1999 })),
+    'OP-T005-1-26');
+});
+
+test('IDENTIDADE: contexto de Pedido nao altera o codigo persistido', () => {
+  const api = loadApi();
+  const op = { id: 1, numero: 42, ano: 2026, tipo: 'tecelagem',
+    identidade_operacional: 'OP-T005-1-26', identidade_pedido_id: 'p1' };
+  // Qualquer contexto produz o MESMO resultado. Era exatamente aqui que o
+  // modelo antigo divergia de tela para tela.
+  assert.equal(api.formatOpOperationalCode(op, {}), 'OP-T005-1-26');
+  assert.equal(api.formatOpOperationalCode(op, { pedido: { id: 'outro', numero: 99 } }), 'OP-T005-1-26');
+  assert.equal(api.formatOpOperationalCode(op, { ops: [] }), 'OP-T005-1-26');
+});
+
+test('IDENTIDADE: remover uma OP irma nao muda a identidade das demais', () => {
+  const api = loadApi();
+  // Regressao do defeito auditado em nivel de helper: a identidade nao e
+  // funcao do conjunto de irmas, portanto o conjunto pode mudar a vontade.
+  const t2 = { id: 502, identidade_operacional: 'OP-T005-2-26', identidade_pedido_id: 'p1' };
+  const antes = api.formatOpOperationalCode(t2, { ops: [{ id: 501 }, t2] });
+  const depois = api.formatOpOperationalCode(t2, { ops: [t2] });
+  assert.equal(antes, 'OP-T005-2-26');
+  assert.equal(depois, 'OP-T005-2-26');
+  assert.equal(antes, depois, 'a identidade nao pode depender das irmas vivas');
 });
 
 // ---------------------------------------------------------------------
-// 3. Codigo operacional — casos obrigatorios do contrato
+// 4. Os tres estados, nenhum silencioso
 // ---------------------------------------------------------------------
 
-test('CASO: uma OP Tecelagem no Pedido => OP 21/2026-T01', () => {
+test('ESTADO 2 — OP AVULSA exibe numero/ano como identidade legitima', () => {
   const api = loadApi();
-  const op = { id: 100, numero: 14, ano: 2026, tipo: 'tecelagem', criado_em: '2026-03-15T10:00:00Z' };
-  const code = api.formatOpOperationalCode(op, { pedido, ops: [op] });
-  assert.equal(code, 'OP 21/2026-T01');
+  const avulsa = { id: 9, numero: 42, ano: 2026, tipo: 'tecelagem' };
+  assert.equal(api.formatOpOperationalCode(avulsa), 'OP 42/2026');
+  assert.equal(api.isPedidoLinked(avulsa), false);
+  assert.equal(api.isIdentityPending(avulsa), false,
+    'avulsa nao esta pendente: ela TEM identidade');
 });
 
-test('CASO: duas OPs Tecelagem no mesmo Pedido => T01, T02 por ordem de criacao', () => {
+test('ESTADO 3 — OP vinculada sem identidade persistida FALHA FECHADA', () => {
   const api = loadApi();
-  const t1 = { id: 100, numero: 14, ano: 2026, tipo: 'tecelagem', criado_em: '2026-03-15T10:00:00Z' };
-  const t2 = { id: 101, numero: 15, ano: 2026, tipo: 'tecelagem', criado_em: '2026-03-16T10:00:00Z' };
-  const ops = [t2, t1]; // fora de ordem de proposito
-  assert.equal(api.formatOpOperationalCode(t1, { pedido, ops }), 'OP 21/2026-T01');
-  assert.equal(api.formatOpOperationalCode(t2, { pedido, ops }), 'OP 21/2026-T02');
+  // Cada forma de evidencia de vinculo, isolada.
+  const casos = [
+    ['identidade_pedido_id', { numero: 42, ano: 2026, identidade_pedido_id: 'p1' }],
+    ['pedido_id', { numero: 42, ano: 2026, pedido_id: 'p1' }],
+    ['lote.pedido_id', { numero: 42, ano: 2026, lote: { pedido_id: 'p1' } }],
+    ['lotes.pedido_id', { numero: 42, ano: 2026, lotes: { pedido_id: 'p1' } }],
+  ];
+  for (const [nome, op] of casos) {
+    const label = api.formatOpOperationalCode(op);
+    assert.equal(label, 'OP (identidade pendente)', nome + ': NUNCA cai no numero interno');
+    assert.ok(!label.includes('42'),
+      nome + ': o numero interno nao pode aparecer no estado diagnostico');
+    assert.equal(api.isIdentityPending(op), true);
+    assert.equal(api.isPedidoLinked(op), true);
+  }
+  // Vinculo reconhecido apenas pelo contexto da tela.
+  const semEvidenciaNaLinha = { numero: 42, ano: 2026 };
+  assert.equal(api.formatOpOperationalCode(semEvidenciaNaLinha, { pedidoId: 'p1' }),
+    'OP (identidade pendente)');
+  assert.equal(api.formatOpOperationalCode(semEvidenciaNaLinha, { pedido: { id: 'p1' } }),
+    'OP (identidade pendente)');
 });
 
-test('CASO: duas OPs Acabamento/Latex no mesmo Pedido => A01, A02', () => {
+test('identidade vazia ou nao-string conta como ausente', () => {
   const api = loadApi();
-  const a1 = { id: 200, numero: 11, ano: 2026, tipo: 'latex', criado_em: '2026-03-17T10:00:00Z' };
-  const a2 = { id: 201, numero: 12, ano: 2026, tipo: 'latex', criado_em: '2026-03-18T10:00:00Z' };
-  const ops = [a1, a2];
-  assert.equal(api.formatOpOperationalCode(a1, { pedido, ops }), 'OP 21/2026-A01');
-  assert.equal(api.formatOpOperationalCode(a2, { pedido, ops }), 'OP 21/2026-A02');
-});
-
-test('CASO: Tecelagem e Acabamento com MESMO numero/ano legado => codigos T/A distintos', () => {
-  const api = loadApi();
-  // op_numeros conta por (tipo, ano): tecelagem e latex podem colidir em 5/2026.
-  const tec = { id: 300, numero: 5, ano: 2026, tipo: 'tecelagem', criado_em: '2026-03-10T10:00:00Z' };
-  const lat = { id: 301, numero: 5, ano: 2026, tipo: 'latex', criado_em: '2026-03-11T10:00:00Z' };
-  const ops = [tec, lat];
-  const codeTec = api.formatOpOperationalCode(tec, { pedido, ops });
-  const codeLat = api.formatOpOperationalCode(lat, { pedido, ops });
-  assert.equal(codeTec, 'OP 21/2026-T01');
-  assert.equal(codeLat, 'OP 21/2026-A01');
-  assert.notEqual(codeTec, codeLat, 'legado ambiguo 5/2026 deve virar codigos distintos');
-});
-
-test('CASO: sequencial por Pedido+Tipo e independente da colisao entre tipos', () => {
-  const api = loadApi();
-  const tec1 = { id: 300, numero: 5, ano: 2026, tipo: 'tecelagem', criado_em: '2026-03-10T10:00:00Z' };
-  const lat1 = { id: 301, numero: 5, ano: 2026, tipo: 'latex', criado_em: '2026-03-11T10:00:00Z' };
-  const lat2 = { id: 302, numero: 6, ano: 2026, tipo: 'latex', criado_em: '2026-03-12T10:00:00Z' };
-  const ops = [tec1, lat1, lat2];
-  assert.equal(api.formatOpOperationalCode(tec1, { pedido, ops }), 'OP 21/2026-T01');
-  assert.equal(api.formatOpOperationalCode(lat1, { pedido, ops }), 'OP 21/2026-A01');
-  assert.equal(api.formatOpOperationalCode(lat2, { pedido, ops }), 'OP 21/2026-A02');
+  for (const bad of ['', '   ', null, undefined, 42, {}]) {
+    assert.equal(api.getCanonicalIdentity({ identidade_operacional: bad }), null,
+      'valor invalido deve contar como ausente: ' + JSON.stringify(bad));
+  }
+  assert.equal(api.getCanonicalIdentity({ identidade_operacional: '  OP-T005-1-26  ' }),
+    'OP-T005-1-26', 'deve aparar espaco sem alterar o valor canonico');
 });
 
 // ---------------------------------------------------------------------
-// 4. Ordenacao criado_em asc, desempate id asc
+// 5. Numero interno — unico formatador autorizado, sempre rotulado
 // ---------------------------------------------------------------------
 
-test('ordenacao: criado_em asc define o sequencial', () => {
+test('formatOpInternalLabel: SEMPRE rotula e nunca parece identidade', () => {
   const api = loadApi();
-  const later = { id: 10, numero: 30, ano: 2026, tipo: 'tecelagem', criado_em: '2026-05-01T10:00:00Z' };
-  const earlier = { id: 20, numero: 31, ano: 2026, tipo: 'tecelagem', criado_em: '2026-04-01T10:00:00Z' };
-  const ops = [later, earlier];
-  assert.equal(api.buildOpOperationalSequence(earlier, ops), 1, 'mais antigo por criado_em = 01');
-  assert.equal(api.buildOpOperationalSequence(later, ops), 2);
+  const label = api.formatOpInternalLabel({ numero: 42, ano: 2026 });
+  assert.ok(label.includes(INTERNO_LABEL), 'deve conter o rotulo explicito');
+  assert.ok(label.includes('42/2026'), 'deve conter o numero interno');
+  assert.ok(!label.startsWith('OP'),
+    'o rotulo interno NUNCA comeca com "OP": seria um segundo nome da OP');
+  assert.ok(api.formatOpInternalLabel({ numero: 42 }).includes('42'));
 });
 
-test('ordenacao: id asc como desempate quando criado_em coincide/ausente', () => {
+test('formatOpLegacyCode: tolerante a campos ausentes', () => {
   const api = loadApi();
-  const b = { id: 50, numero: 40, ano: 2026, tipo: 'latex' };
-  const a = { id: 40, numero: 41, ano: 2026, tipo: 'latex' };
-  const ops = [b, a];
-  assert.equal(api.buildOpOperationalSequence(a, ops), 1, 'menor id = 01 quando sem criado_em');
-  assert.equal(api.buildOpOperationalSequence(b, ops), 2);
-});
-
-// ---------------------------------------------------------------------
-// 5. Fallback legado
-// ---------------------------------------------------------------------
-
-test('FALLBACK: sem Pedido => OP {numero}/{ano}', () => {
-  const api = loadApi();
-  const op = { id: 100, numero: 14, ano: 2026, tipo: 'tecelagem', criado_em: '2026-03-15T10:00:00Z' };
-  assert.equal(api.formatOpOperationalCode(op, { pedido: null, ops: [op] }), 'OP 14/2026');
-  assert.equal(api.formatOpOperationalCode(op, {}), 'OP 14/2026');
-  assert.equal(api.formatOpOperationalCode(op, null), 'OP 14/2026');
-});
-
-test('FALLBACK: sem pedido.criado_em => OP {numero}/{ano}', () => {
-  const api = loadApi();
-  const op = { id: 100, numero: 14, ano: 2026, tipo: 'tecelagem', criado_em: '2026-03-15T10:00:00Z' };
-  const pedidoSemData = { id: 'p1', numero: 21 };
-  assert.equal(api.formatOpOperationalCode(op, { pedido: pedidoSemData, ops: [op] }), 'OP 14/2026');
-});
-
-test('FALLBACK: sem pedido.numero => OP {numero}/{ano}', () => {
-  const api = loadApi();
-  const op = { id: 100, numero: 14, ano: 2026, tipo: 'tecelagem', criado_em: '2026-03-15T10:00:00Z' };
-  const pedidoSemNumero = { id: 'p1', criado_em: '2026-03-15T10:00:00Z' };
-  assert.equal(api.formatOpOperationalCode(op, { pedido: pedidoSemNumero, ops: [op] }), 'OP 14/2026');
-});
-
-test('FALLBACK: OP fora da lista de irmas (sem seq confiavel) => legado', () => {
-  const api = loadApi();
-  const op = { id: 100, numero: 14, ano: 2026, tipo: 'tecelagem', criado_em: '2026-03-15T10:00:00Z' };
-  assert.equal(api.formatOpOperationalCode(op, { pedido, ops: [] }), 'OP 14/2026');
-  assert.equal(api.formatOpOperationalCode(op, { pedido, siblingOps: null }), 'OP 14/2026');
-});
-
-test('FALLBACK: tipo desconhecido => legado', () => {
-  const api = loadApi();
-  const op = { id: 100, numero: 14, ano: 2026, tipo: 'expedicao', criado_em: '2026-03-15T10:00:00Z' };
-  assert.equal(api.formatOpOperationalCode(op, { pedido, ops: [op] }), 'OP 14/2026');
-});
-
-test('formatOpLegacyCode: OP {numero}/{ano} e tolerante a campos ausentes', () => {
-  const api = loadApi();
-  assert.equal(api.formatOpLegacyCode({ numero: 7, ano: 2026 }), 'OP 7/2026');
-  assert.equal(api.formatOpLegacyCode({ numero: 7 }), 'OP 7');
+  assert.equal(api.formatOpLegacyCode({ numero: 42, ano: 2026 }), 'OP 42/2026');
+  assert.equal(api.formatOpLegacyCode({ numero: 42 }), 'OP 42');
+  assert.equal(api.formatOpLegacyCode({}), 'OP -');
   assert.equal(api.formatOpLegacyCode(null), 'OP -');
 });
 
 // ---------------------------------------------------------------------
-// 6. Nao inventa ID persistido e nao infla para 3 digitos < 100
+// 6. Ordem de Compra — identidade casada com o Pedido
 // ---------------------------------------------------------------------
 
-test('op-display: nao usa formato inventado tipo P18-T16-L5 nem persiste codigo', () => {
-  const src = fs.readFileSync(HELPER, 'utf8');
-  assert.doesNotMatch(src, /P\d{2}-T\d{2}-L\d{2}/);
-  assert.doesNotMatch(src, /codigo_operacional|op_lineage_id|codigo_lineage/);
+test('OC: devolve a identidade persistida', () => {
+  const api = loadApi();
+  assert.equal(api.formatOcOperationalCode({ id: 48, identidade_operacional: 'OC-005-1-26' }),
+    'OC-005-1-26');
 });
 
-test('op-display: seq com 2 digitos (padStart) e >=100 preserva digitos', () => {
+test('OC: vinculada ao Pedido sem identidade FALHA FECHADA', () => {
   const api = loadApi();
-  const ops = [];
-  for (let i = 1; i <= 12; i++) {
-    ops.push({ id: i, numero: i, ano: 2026, tipo: 'tecelagem', criado_em: '2026-01-' + String(i).padStart(2, '0') + 'T10:00:00Z' });
-  }
-  assert.equal(api.formatOpOperationalCode(ops[0], { pedido, ops }), 'OP 21/2026-T01');
-  assert.equal(api.formatOpOperationalCode(ops[8], { pedido, ops }), 'OP 21/2026-T09');
-  assert.equal(api.formatOpOperationalCode(ops[9], { pedido, ops }), 'OP 21/2026-T10');
-  assert.equal(api.formatOpOperationalCode(ops[11], { pedido, ops }), 'OP 21/2026-T12');
+  const oc = { id: 48, pedido_id: 'p1' };
+  const label = api.formatOcOperationalCode(oc);
+  assert.equal(label, 'OC (identidade pendente)');
+  assert.ok(!label.includes('48'), 'a chave primaria NUNCA pode aparecer como nome');
+});
+
+test('OC: legada sem Pedido se declara legada, nao expoe a chave crua como nome', () => {
+  const api = loadApi();
+  const label = api.formatOcOperationalCode({ id: 48 });
+  assert.equal(label, 'OC legada #48');
+  assert.ok(/legada/.test(label),
+    'uma OC sem Pedido deve se declarar legada em vez de usar o id como nome de negocio');
+});
+
+// ---------------------------------------------------------------------
+// 7. Estrutura do modulo
+// ---------------------------------------------------------------------
+
+test('op-display: puro — sem DOM, sem Supabase, sem formato inventado', () => {
+  const src = fs.readFileSync(HELPER, 'utf8');
+  assert.ok(!/document\.|window\.supa|fetch\(/.test(src),
+    'o helper deve permanecer puro: sem DOM, sem Supabase, sem rede');
+  assert.ok(!/P\d+-T\d+-L\d+/.test(src), 'nenhum formato inventado');
+  // A identidade e lida, nao montada: nenhum padding de sequencia sobrou.
+  assert.ok(!/padStart|function pad2/.test(src),
+    'nenhum padding de sequencia: a formatacao vive na coluna gerada do banco');
+  assert.ok(/identidade_operacional/.test(src),
+    'o dono central deve ler a coluna canonica');
 });

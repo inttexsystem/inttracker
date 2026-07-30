@@ -303,7 +303,7 @@
     // (coluna adicionada por db/25): selecioná-la faria o PostgREST devolver
     // erro em ambientes sem a migration aplicada, derrubando toda a lista
     // base. Campos da consolidação Látex entram na camada de enriquecimento.
-    var opsSelect = 'id, numero, ano, status, tipo, criado_em, observacao, origem_op_id, origem_entrega_id, lote_id, op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa, fornecedores:fornecedor_id(id, nome))';
+    var opsSelect = 'id, numero, ano, identidade_operacional, identidade_pedido_id, status, tipo, criado_em, observacao, origem_op_id, origem_entrega_id, lote_id, op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa, fornecedores:fornecedor_id(id, nome))';
     var opsRes = await window.supa
       .from('ops')
       .select(opsSelect)

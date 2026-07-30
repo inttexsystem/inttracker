@@ -48,7 +48,24 @@
   ns.carregar = async function (ordemId) {
     var res = await window.supa.rpc('obter_distribuicao_ordem_compra', { p_ordem_id: Number(ordemId) });
     if (res.error) return { ok: false, codigo: 'transporte', erro: 'Falha ao carregar distribuição', error: res.error };
-    return res.data || { ok: false, codigo: 'resposta_vazia', erro: 'Distribuição vazia' };
+    var data = res.data || { ok: false, codigo: 'resposta_vazia', erro: 'Distribuição vazia' };
+    // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: a RPC atribui origem apenas por
+    // `op_id`; a identidade canonica vem de public.op_identidade_projecao
+    // (db/95). Resolvida UMA vez por carga, para os ids realmente exibidos.
+    ns._opIdentidades = await window.RAVATEX_SCREENS.ordemCompra
+      .carregarIdentidadesOp(ns.coletarOpIds(data));
+    return data;
+  };
+
+  // Todos os `op_id` alcancaveis no read model de distribuicao: alocacoes
+  // atuais e necessidades compativeis, por item.
+  ns.coletarOpIds = function (data) {
+    var ids = [];
+    ((data && data.itens) || []).forEach(function (it) {
+      (it.alocacoes || []).forEach(function (a) { if (a && a.op_id != null) ids.push(a.op_id); });
+      (it.necessidades_compativeis || []).forEach(function (n) { if (n && n.op_id != null) ids.push(n.op_id); });
+    });
+    return ids;
   };
 
   // Render one item's distribution block (reconciliation + allocations + needs).
@@ -67,9 +84,12 @@
       var al = el('div', { class: 'mb-2' });
       alocs.forEach(function (a) {
         var row = el('div', { class: 'flex justify-between items-center text-xs text-gray-600 py-1', 'data-alocacao-id': String(a.alocacao_id) });
-        var origem = a.op_id == null
-          ? 'Pedido compartilhado'
-          : 'OP ' + (a.op_numero != null ? a.op_numero : a.op_id) + (a.op_ano ? ('/' + a.op_ano) : '');
+        // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: `a.op_numero`/`a.op_ano`
+        // NUNCA existiram na resposta de `obter_distribuicao_ordem_compra`
+        // (db/69), portanto este trecho sempre caia no `op_id` cru. Agora a
+        // identidade vem de `public.op_identidade_projecao` (db/95).
+        var origem = window.RAVATEX_SCREENS.ordemCompra
+          .rotuloIdentidadeOp(a.op_id, ns._opIdentidades);
         row.appendChild(el('span', {}, origem + ' — ' + fmtKg(a.kg_alocado) + ' kg'));
         var rm = el('button', {
           class: 'text-red-600 hover:underline' + (ALLOCATION_ENABLED ? '' : ' opacity-40 cursor-not-allowed'),
@@ -90,7 +110,9 @@
     } else {
       needs.forEach(function (n) {
         needBox.appendChild(el('div', { class: 'py-0.5', 'data-necessidade-id': String(n.necessidade_id) },
-          'Necessidade ' + (n.origem_tipo === 'op' ? ('OP ' + (n.op_numero != null ? n.op_numero : n.op_id)) : 'Pedido')
+          'Necessidade ' + (n.origem_tipo === 'op'
+            ? window.RAVATEX_SCREENS.ordemCompra.rotuloIdentidadeOp(n.op_id, ns._opIdentidades)
+            : 'Pedido')
           + ' — precisa ' + fmtKg(n.kg_necessario) + ', restante ' + fmtKg(n.kg_restante)));
       });
     }

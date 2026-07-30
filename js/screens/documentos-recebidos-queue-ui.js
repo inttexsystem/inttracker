@@ -465,6 +465,25 @@
     return { label: '', ariaLabel: '' };
   }
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1 — identidade das OPs citadas pela
+  // fila de documentos.
+  //
+  // A fila carrega apenas `op_ids` (a revisao canonica guarda ids, nao nomes),
+  // e o seletor de filtro rotulava cada opcao com `'OP ' + id` — a CHAVE
+  // PRIMARIA exibida como nome de negocio. Este cache guarda o mapa
+  // op_id -> linha de identidade, resolvido por
+  // `RAVATEX_SCREENS.ordemCompra.carregarIdentidadesOp` (view
+  // public.op_identidade_projecao, db/95).
+  //
+  // Este modulo e de RENDER e nao faz I/O: quem carrega a fila popula o cache
+  // via `ns.definirIdentidadesOp`. Sem cache, o rotulo cai no estado
+  // diagnostico explicito — nunca de volta na chave primaria.
+  var _opIdentidades = {};
+
+  function opIdentidadesDaFila() {
+    return _opIdentidades || {};
+  }
+
   // Confirmed OP options for a canonical OP filter dropdown, derived only from
   // the active canonical revision (queueItem.op confirmed_op op_ids).
   function getConfirmedOpOptions(entries) {
@@ -478,14 +497,32 @@
         var val = String(id);
         if (val && !seen[val]) {
           seen[val] = true;
-          out.push({ value: val, label: 'OP ' + val });
+          // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: ANTES o rotulo era
+          // `'OP ' + val`, ou seja a CHAVE PRIMARIA da OP exibida como nome
+          // num seletor. A fila de documentos carrega apenas `op_ids`, entao
+          // a identidade vem do mapa resolvido em `opIdentidades` quando
+          // disponivel; sem ele, estado diagnostico explicito.
+          var ident = opIdentidadesDaFila()[val] || null;
+          out.push({
+            value: val,
+            label: ident
+              ? window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(ident)
+              : 'OP (identidade pendente)',
+          });
         }
       });
     });
     return out;
   }
 
+  // Injetado por quem carrega a fila (modulo de dados), porque este modulo de
+  // render nao faz I/O. Chamar com {} volta ao estado diagnostico.
+  function definirIdentidadesOp(mapa) {
+    _opIdentidades = mapa || {};
+  }
+
   window.RAVATEX_DOCUMENTOS_RECEBIDOS_QUEUE_UI = {
+    definirIdentidadesOp: definirIdentidadesOp,
     buildQueue: buildQueue,
     getFilterOptions: getFilterOptions,
     filterQueue: filterQueue,

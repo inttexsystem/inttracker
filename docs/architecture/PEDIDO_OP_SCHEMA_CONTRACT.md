@@ -3473,3 +3473,39 @@ materially; local horizontal scrolling with zero document-level overflow remains
 the intended contract at every measured viewport; and production contained
 **zero** non-empty `pedido_itens.observacao` values at diagnosis time, which
 justifies the UI retirement but does not authorize deleting the column.
+
+## Update 2026-07-29 — OP Canonical Identity Refoundation (db/95)
+
+Phase `OP-CANONICAL-IDENTITY-REFOUNDATION-R1`. **FORWARD CORRECTION.** The
+prior decisions are NOT deleted and remain valid historical evidence of what
+was decided and why; they are superseded from this phase forward.
+
+### Superseded decisions
+
+| # | Prior decision | Why superseded |
+|---|---|---|
+| D-OC05 | Mandatory silent fallback to the legacy `OP {numero}/{ano}` wherever Pedido context was missing. | The fallback was the mechanism by which ONE OP acquired TWO names, sometimes on the SAME surface: the Pedido movement modal rendered `OP de origem: OP 42/2026` beside `OPs relacionadas: OP 1/2026-T01`. A silent substitution of one identity by another is not a fallback; it is a defect. Replaced by an explicit diagnostic state (`OP (identidade pendente)`) that fails closed. |
+| D-OC07 | Adoption restricted to Pedido Detail Admin; `painel.js`/`expedicao-admin.js` deferred. | Partial adoption guaranteed divergence: the same OP was named differently depending on which screen the user opened. Identity cannot be scoped to a subset of surfaces. |
+| D-OC08 | Partial/non-global adoption accepted as intended ("appearing in few places is expected"). | The acceptance was recorded against a display alias, not against an identity. Once the code is the OP's name, "few places" means "most places show a different name". |
+
+### What replaces them (D-OC10 .. D-OC14)
+
+| # | Decision | Rationale |
+|---|---|---|
+| D-OC10 | The canonical identity is **persisted, assigned exactly once, unique by database constraint and immutable**: frozen components on `public.ops` plus the generated column `ops.identidade_operacional` (db/95). | D-OC01 chose a calculated display specifically to avoid a migration. That choice is what made the identity unstable; only persistence can fix it. |
+| D-OC11 | Format ratified by the architect during execution: `OP-{T\|A}{pedido:3}-{seq}-{ano:2}` (e.g. `OP-T005-1-26`), and the matched purchase-order identity `OC-{pedido:3}-{seq}-{ano:2}` (e.g. `OC-005-1-26`). | Replaces the `OP {pedido}/{ano}-{tipo}{seq}` shape of D-OC01. |
+| D-OC12 | The OP sequence counts per **(Pedido, tipo)**; the Ordem de Compra sequence counts per **Pedido**. Three independent counters per Pedido (`T`, `A`, `OC`) in `public.pedido_identidade_numeros`, one row per scope. | A Pedido may legitimately be split across different weaving suppliers, so `T` needs a sequence. The `OC` code carries no type letter, so counting per OP would produce duplicate codes; which OP a purchase came from is shown as origin information, never embedded in the name. |
+| D-OC13 | The sequence is **reserved**, never derived from position among living siblings. Removing an OP or OC never frees its sequence. | D-OC04's positional sequence was recyclable: removing a sibling made the next one INHERIT its code — precisely the reuse db/26's numbering policy forbids for the internal number. That contradiction is now closed. |
+| D-OC14 | `ops.numero`/`ops.ano` and `public.op_numeros` remain the persisted internal numbering for traceability and audit, automatically reserved, **immutable after creation**, and **not rendered on any product surface**. | Architect ruling: the current counter value was residue from deleted test OPs, and no external document cites it, so a visible second number was pure debt. The order's `Nº interno` allowance was applied as "genuinely useful" = nowhere. |
+
+### Boundary
+
+`op_numeros` was NOT reset and no internal number was recycled. OP avulsa
+support is preserved: with no Pedido there is no derived identity, so it keeps
+`OP {numero}/{ano}` as its visible identity, and receives the canonical identity
+exactly once if it is later linked to a Pedido.
+
+Historical OPs physically removed by db/34..db/37/db/53 cannot be reconstructed
+from the former positional display; the backfill freezes the deterministic
+`(criado_em ASC, id ASC)` ordering of surviving rows as canonical from now on.
+This limit is recorded in the migration header, not inferred.

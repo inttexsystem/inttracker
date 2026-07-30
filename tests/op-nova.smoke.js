@@ -395,6 +395,15 @@ function makeOpNovaBootSandbox() {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: o dono central da identidade de OP
+  // e agora dependencia REAL, nao opcional. Os consumidores deixaram de ter
+  // fallback proprio (era o fallback silencioso que fazia a mesma OP ter dois
+  // nomes), portanto o sandbox carrega js/op-display.js como o index.html faz
+  // — e a ordem de carga do index e provada em tests/op-display.smoke.js.
+  // Antes desta ordem o sandbox passava por acidente: o fallback mascarava a
+  // dependencia ausente.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
+
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
@@ -772,6 +781,15 @@ function makeRenderSandbox(db, rpcImpl, opts) {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: o dono central da identidade de OP
+  // e agora dependencia REAL, nao opcional. Os consumidores deixaram de ter
+  // fallback proprio (era o fallback silencioso que fazia a mesma OP ter dois
+  // nomes), portanto o sandbox carrega js/op-display.js como o index.html faz
+  // — e a ordem de carga do index e provada em tests/op-display.smoke.js.
+  // Antes desta ordem o sandbox passava por acidente: o fallback mascarava a
+  // dependencia ausente.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
+
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
@@ -969,6 +987,8 @@ test('38. OP Aberta de Tecelagem mostra linguagem de preparação', async () => 
     ops: [
       {
         id: 92,
+        identidade_operacional: 'OP-T120-1-26',
+        identidade_pedido_id: 'ped-1',
         numero: 8,
         ano: 2026,
         status: 'aberta',
@@ -986,7 +1006,7 @@ test('38. OP Aberta de Tecelagem mostra linguagem de preparação', async () => 
     ordens_compra_fio: [],
   });
   const rendered = await renderNovaOpForTest({ opId: 92, db });
-  assert.match(rendered.text, /OP 8\/2026/i);
+  assert.match(rendered.text, /OP-T120-1-26/i);
   assert.match(rendered.text, /Tecelagem/i);
   assert.match(rendered.text, /Preparacao/i);
   assert.match(rendered.text, /Dados da OP/i);
@@ -997,6 +1017,8 @@ function buildOpEmProducaoTecelagemFixture(overrides = {}) {
     ops: [
       {
         id: 93,
+        identidade_operacional: 'OP-T120-2-26',
+        identidade_pedido_id: 'ped-1',
         numero: 9,
         ano: 2026,
         status: 'em_producao',
@@ -1031,7 +1053,7 @@ test('39. OP Em Produção Tecelagem usa o template PROD-OP (não é a OP Aberta
   assert.match(rendered.text, /Documentos/i);
   assert.match(rendered.text, /Histórico/i);
   assert.match(rendered.text, /Entregas de tecelagem/i);
-  assert.match(rendered.text, /OPs.*OP 9\/2026/s);
+  assert.match(rendered.text, /OPs.*OP-T120-2-26/s);
 });
 
 test('40. OP Aberta Tecelagem não ganha os blocos operacionais novos (Movimentação/Documentos/Histórico)', async () => {
@@ -1039,6 +1061,8 @@ test('40. OP Aberta Tecelagem não ganha os blocos operacionais novos (Movimenta
     ops: [
       {
         id: 92,
+        identidade_operacional: 'OP-T120-1-26',
+        identidade_pedido_id: 'ped-1',
         numero: 8,
         ano: 2026,
         status: 'aberta',
@@ -1076,7 +1100,7 @@ test('42. Card "4. Entregas tecelagem" permanece ausente da OP Aberta', async ()
   const db = buildOpNovaFixture({
     ops: [
       {
-        id: 92, numero: 8, ano: 2026, status: 'aberta', tipo: 'tecelagem',
+        id: 92, identidade_operacional: 'OP-T120-1-26', identidade_pedido_id: 'ped-1', numero: 8, ano: 2026, status: 'aberta', tipo: 'tecelagem',
         observacao: '', origem_op_id: null, lote_id: 302,
         lote: { id: 302, numero: 15, pedido_id: 'ped-1', cliente: { id: 501, nome: 'Cliente Atlas' } },
         op_itens: [{ id: 2, modelo_id: 2, metros_pedidos: 80, metros_ajustados: null, pedido_item_id: 'pi-2' }],
@@ -1140,7 +1164,7 @@ test('47. Acabamento/Látex continua delegado a renderOPLatexAdmin, sem template
   const db = buildOpNovaFixture({
     ops: [
       {
-        id: 94, numero: 8, ano: 2026, status: 'em_producao', tipo: 'latex',
+        id: 94, identidade_operacional: 'OP-A120-1-26', identidade_pedido_id: 'ped-1', numero: 8, ano: 2026, status: 'em_producao', tipo: 'latex',
         observacao: '', origem_op_id: 93, lote_id: null, lote: null,
         op_itens: [], op_fornecedores: [],
       },
@@ -1167,7 +1191,7 @@ test('49. OP Em Produção Tecelagem mostra breadcrumb "OPs / OP X/ANO" (OPs cli
   const db = buildOpEmProducaoTecelagemFixture();
   const rendered = await renderNovaOpForTest({ opId: 93, db });
   assert.match(rendered.text, /OPs/);
-  assert.match(rendered.text, /OP 9\/2026/);
+  assert.match(rendered.text, /OP-T120-2-26/);
   // O breadcrumb é o próprio caminho de volta (OPs clicável) — sem botão "Voltar".
   assert.match(optpSrc, /navigate\('#\/ops'\)/);
 });
@@ -1176,14 +1200,14 @@ test('50. Cadeia produtiva (lineage strip) aparece quando há OP de Acabamento g
   const db = buildOpEmProducaoTecelagemFixture({
     ops: [
       {
-        id: 93, numero: 9, ano: 2026, status: 'em_producao', tipo: 'tecelagem',
+        id: 93, identidade_operacional: 'OP-T120-2-26', identidade_pedido_id: 'ped-1', numero: 9, ano: 2026, status: 'em_producao', tipo: 'tecelagem',
         observacao: '', origem_op_id: null, lote_id: 303,
         lote: { id: 303, numero: 16, pedido_id: 'ped-1', cliente: { id: 501, nome: 'Cliente Atlas' } },
         op_itens: [{ id: 3, modelo_id: 1, metros_pedidos: 120, metros_ajustados: 100, pedido_item_id: 'pi-1' }],
         op_fornecedores: [{ fornecedor_id: 701, etapa: 'cima' }],
       },
       {
-        id: 95, numero: 8, ano: 2026, status: 'aberta', tipo: 'latex',
+        id: 95, identidade_operacional: 'OP-A120-2-26', identidade_pedido_id: 'ped-1', numero: 8, ano: 2026, status: 'aberta', tipo: 'latex',
         observacao: '', origem_op_id: 93, origem_entrega_id: 'ent-1', lote_id: null, lote: null,
         op_latex_entregas: [{ entrega_id: 'ent-1' }],
         op_itens: [], op_fornecedores: [],
@@ -1202,7 +1226,9 @@ test('50. Cadeia produtiva (lineage strip) aparece quando há OP de Acabamento g
   // da antiga strip "Cadeia produtiva": a OP de Acabamento consolidada aparece
   // como destino navegável.
   assert.match(rendered.text, /Destino/i);
-  assert.match(rendered.text, /OP 8\/2026/);
+  // O destino e a OP de ACABAMENTO consolidada (fixture id 95), nao a de
+  // tecelagem: a identidade canonica carrega a letra da etapa.
+  assert.match(rendered.text, /OP-A120-2-26/);
   assert.match(rendered.text, /Acabamento/i);
 });
 
@@ -1322,7 +1348,7 @@ test('63. OP Aberta Tecelagem usa icon-chip real e remove header numerado antigo
   const db = buildOpNovaFixture({
     ops: [
       {
-        id: 92, numero: 8, ano: 2026, status: 'aberta', tipo: 'tecelagem',
+        id: 92, identidade_operacional: 'OP-T120-1-26', identidade_pedido_id: 'ped-1', numero: 8, ano: 2026, status: 'aberta', tipo: 'tecelagem',
         observacao: '', origem_op_id: null, lote_id: 302,
         lote: { id: 302, numero: 15, pedido_id: 'ped-1', cliente: { id: 501, nome: 'Cliente Atlas' } },
         op_itens: [{ id: 2, modelo_id: 2, metros_pedidos: 80, metros_ajustados: null, pedido_item_id: 'pi-2' }],
@@ -1358,6 +1384,8 @@ test('67. Entregas tecelagem fica dentro do Card 5 Movimentacao e fora do Card 4
     ops: [
       {
         id: 93,
+        identidade_operacional: 'OP-T120-2-26',
+        identidade_pedido_id: 'ped-1',
         numero: 9,
         ano: 2026,
         status: 'em_producao',
@@ -1373,7 +1401,7 @@ test('67. Entregas tecelagem fica dentro do Card 5 Movimentacao e fora do Card 4
         op_fornecedores: [{ fornecedor_id: 701, etapa: 'cima' }],
       },
       {
-        id: 95, numero: 8, ano: 2026, status: 'aberta', tipo: 'latex',
+        id: 95, identidade_operacional: 'OP-A120-2-26', identidade_pedido_id: 'ped-1', numero: 8, ano: 2026, status: 'aberta', tipo: 'latex',
         observacao: '', origem_op_id: 93, origem_entrega_id: 'ent-1', lote_id: null, lote: null,
         op_latex_entregas: [{ entrega_id: 'ent-1' }],
         op_itens: [], op_fornecedores: [],
@@ -1434,10 +1462,17 @@ test('64. Bloco "5. Movimentacao" preserva historico detalhado sem totalizar def
 });
 
 test('65. reloadEntregasCima recarrega numero/ano da OP de latex (consolidado via op_latex_entregas)', () => {
-  assert.match(opnSrc, /select\(['"]id,\s*numero,\s*ano,\s*status,\s*op_latex_entregas\(entrega_id\)['"]\)/);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: toda consulta de OP passou a
+  // projetar a identidade canonica (guard 7 de
+  // tests/op-canonical-identity-schema.smoke.js). O assert cobre a projecao
+  // real em vez de fixar a lista antiga de colunas.
+  assert.match(opnSrc, /select\(['"]id,\s*numero,\s*ano,\s*identidade_operacional,\s*identidade_pedido_id,\s*status,\s*op_latex_entregas\(entrega_id\)['"]\)/);
   assert.match(opnSrc, /latexOpInfo\s*=\s*\{\}/);
   // Mapeia cada entrega vinculada (N:1) -> mesma OP Látex consolidada.
-  assert.match(opnSrc, /latexOpInfo\[link\.entrega_id\]\s*=\s*\{\s*id:\s*lo\.id,\s*numero:\s*lo\.numero,\s*ano:\s*lo\.ano,\s*status:\s*lo\.status\s*\}/);
+  // A projecao da OP de Acabamento deve PRESERVAR a identidade canonica: era
+  // aqui que o campo "Destino" caia no estado diagnostico mesmo com a
+  // consulta trazendo a coluna.
+  assert.match(opnSrc, /latexOpInfo\[link\.entrega_id\]\s*=\s*\{\s*id:\s*lo\.id,\s*identidade_operacional:\s*lo\.identidade_operacional,\s*identidade_pedido_id:\s*lo\.identidade_pedido_id,\s*numero:\s*lo\.numero,\s*ano:\s*lo\.ano,\s*status:\s*lo\.status\s*\}/);
 });
 
 test('66. Nova OP com pedido_id UUID preserva string e mostra erro de pedido nao encontrado', () => {
@@ -1472,7 +1507,7 @@ function buildOpAbertaProntaFixture(metrosAjustados) {
   return buildOpNovaFixture({
     ops: [
       {
-        id: 94, numero: 10, ano: 2026, status: 'aberta', tipo: 'tecelagem',
+        id: 94, identidade_operacional: 'OP-A120-1-26', identidade_pedido_id: 'ped-1', numero: 10, ano: 2026, status: 'aberta', tipo: 'tecelagem',
         observacao: '', origem_op_id: null, lote_id: 304, criado_em: '2026-06-20T11:00:00Z',
         lote: { id: 304, numero: 17, pedido_id: 'ped-1', cliente: { id: 501, nome: 'Cliente Atlas' } },
         op_itens: [
@@ -1557,7 +1592,7 @@ function buildOpReaderFixture(exigeAceite = false, dimensoes = true) {
   return buildOpNovaFixture({
     ops: [
       {
-        id: 94, numero: 10, ano: 2026, status: 'aberta', tipo: 'tecelagem',
+        id: 94, identidade_operacional: 'OP-A120-1-26', identidade_pedido_id: 'ped-1', numero: 10, ano: 2026, status: 'aberta', tipo: 'tecelagem',
         observacao: '', origem_op_id: null, lote_id: 304, criado_em: '2026-06-20T11:00:00Z',
         lote: { id: 304, numero: 17, pedido_id: 'ped-1', cliente: { id: 501, nome: 'Cliente Atlas' } },
         op_itens: [{ id: 10, modelo_id: 1, metros_pedidos: 120, metros_ajustados: null, pedido_item_id: 'pi-1' }],
@@ -1674,7 +1709,7 @@ test('77. fetchOrdensCompraFio: listar_compat_inativo falls back to the exact pr
   });
   assert.match(rendered.text, /Em produção/i);
   assert.match(rendered.text, /Saldo em tecelagem/i);
-  assert.match(rendered.text, /OPs.*OP 9\/2026/s);
+  assert.match(rendered.text, /OPs.*OP-T120-2-26/s);
 });
 
 test('78. fetchOrdensCompraFio: canonical success renders using the adapter row, not the (empty) flat table', async () => {
@@ -1734,7 +1769,7 @@ function buildOpAbertaWithPendingOrdemFixture(overrides = {}) {
   return buildOpNovaFixture(Object.assign({
     ops: [
       {
-        id: 95, numero: 10, ano: 2026, status: 'aberta', tipo: 'tecelagem',
+        id: 95, identidade_operacional: 'OP-A120-2-26', identidade_pedido_id: 'ped-1', numero: 10, ano: 2026, status: 'aberta', tipo: 'tecelagem',
         observacao: '', origem_op_id: null, lote_id: 305,
         lote: { id: 305, numero: 17, pedido_id: 'ped-1', cliente: { id: 501, nome: 'Cliente Atlas' } },
         op_itens: [{ id: 5, modelo_id: 1, metros_pedidos: 120, metros_ajustados: null, pedido_item_id: 'pi-1' }],

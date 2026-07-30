@@ -378,7 +378,7 @@
         .select('id, numero, status')
         .order('numero', { ascending: false });
       opsQuery = window.supa.from('ops')
-        .select('id, numero, ano, tipo, status, lote_id, lotes:lote_id(pedido_id)')
+        .select('id, numero, ano, identidade_operacional, identidade_pedido_id, tipo, status, lote_id, lotes:lote_id(pedido_id)')
         .order('id', { ascending: false });
     } catch (err) {
       return Promise.resolve({ ok: false, error: String(err) });

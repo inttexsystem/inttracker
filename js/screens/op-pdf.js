@@ -76,7 +76,9 @@
     doc.setFontSize(14); doc.text('Compra de fios', 14, y); y += 8;
     doc.setFontSize(10);
     doc.text(`${loteTxt}`, 14, y); y += 6;
-    doc.text(`OP Nº ${op.numero}/${op.ano} · ${new Date().toLocaleDateString('pt-BR')}`, 14, y); y += 10;
+    // Documento externo: a identidade canonica e o UNICO nome da OP impresso.
+    const opIdent = window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op);
+    doc.text(`${opIdent} · ${new Date().toLocaleDateString('pt-BR')}`, 14, y); y += 10;
 
     const secao = (titulo, lista, total) => {
       doc.setFontSize(12); doc.text(titulo, 14, y); y += 6;

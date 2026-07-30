@@ -65,11 +65,24 @@
     return d[2] + '/' + d[1] + '/' + d[0] + time;
   }
 
-  // Honest OP attribution — a real OP id, or the first-class shared/excess
-  // state. NEVER fabricates an OP for a NULL-op (Pedido-origin) or excess line.
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: ANTES esta funcao devolvia
+  // `'OP ' + opId` — a CHAVE PRIMARIA crua exibida como nome de negocio, uma
+  // TERCEIRA identidade da mesma OP (`OP 137`) alem do numero interno e do
+  // codigo canonico.
+  //
+  // As RPCs aceitas de recebimento atribuem origem apenas por `op_id`, entao
+  // a identidade e resolvida por `public.op_identidade_projecao` (db/95) e
+  // entregue aqui num mapa op_id -> identidade. Sem mapa, estado diagnostico
+  // explicito: nunca mais a chave crua.
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: as RPCs aceitas de recebimento
+  // devolvem apenas `op_id`. O mapa op_id -> identidade e resolvido uma vez
+  // por carga (ordem-compra-receipt-data.js) e guardado aqui em variavel de
+  // modulo, porque as funcoes internas de tabela nao recebem `state` e
+  // threadar o parametro por todas elas seria ruido sem ganho.
+  var opIdentidades = null;
+
   function opLabel(opId) {
-    if (opId == null) return 'Pedido (compartilhada)';
-    return 'OP ' + opId;
+    return ns.rotuloIdentidadeOp(opId, opIdentidades);
   }
 
   function sectionCard(children) {
@@ -284,6 +297,8 @@
   // renderReceiptSection(state, handlers) → DOM node, or null when no section
   // must exist (non-native order, or native draft — contract §7 matrix).
   ns.renderReceiptSection = function (state, handlers) {
+    // Ponto de entrada unico desta secao: sincroniza o mapa de identidade.
+    opIdentidades = (state && state.opIdentidades) || null;
     var o = state && state.ordem;
     if (!o || o.modelo !== 'nativo') return null;
     if (o.status_administrativo === 'rascunho') return null;

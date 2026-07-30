@@ -23,21 +23,9 @@
     catch (_) { return String(value); }
   }
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: sem fallback inline.
   function formatOpDisplay(op, ctx) {
-    var api = window.RAVATEX_OP_DISPLAY;
-    if (api && typeof api.formatOpOperationalCode === 'function') {
-      return api.formatOpOperationalCode(op, ctx || {});
-    }
-    var numero = op && op.numero != null ? op.numero : '-';
-    return 'OP ' + numero + (op && op.ano != null ? '/' + op.ano : '');
-  }
-
-  function internalOpLabel(op) {
-    var api = window.RAVATEX_OP_DISPLAY;
-    var legacy = api && typeof api.formatOpLegacyCode === 'function'
-      ? api.formatOpLegacyCode(op)
-      : formatOpDisplay(op, null);
-    return legacy.replace(/^OP /, 'Nº interno ');
+    return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op, ctx || {});
   }
 
   function round2(value) {
@@ -185,7 +173,7 @@
             .filter(function (id) { return id != null; });
           if (loteIds.length) {
             var siblingsRes = await window.supa.from('ops')
-              .select('id, numero, ano, status, tipo, criado_em, lote_id')
+              .select('id, numero, ano, identidade_operacional, identidade_pedido_id, status, tipo, criado_em, lote_id')
               .in('lote_id', loteIds)
               .order('criado_em', { ascending: true })
               .order('id', { ascending: true });
@@ -269,7 +257,7 @@
         lineageNodes.push(window.el('span', { style: 'font-size:11.5px;color:var(--rv-text-secondary);background:var(--rv-surface);border-radius:var(--rv-radius);padding:3px 7px;font-weight:600;' }, 'Origem: ' + src.label));
       }
       if (srcOp) {
-        lineageNodes.push(window.el('span', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);background:var(--rv-surface);border-radius:var(--rv-radius);padding:3px 7px;' }, internalOpLabel(srcOp)));
+
       }
       lineageNodes.push(window.el('span', { style: 'font-size:12px;color:var(--rv-text-tertiary);' }, '→'));
       lineageNodes.push(window.el('span', { style: 'font-size:12.5px;font-weight:700;color:var(--rv-signal-caution);background:var(--rv-surface);border-radius:var(--rv-radius);padding:3px 7px;' }, 'Expedicao (esta tela)'));

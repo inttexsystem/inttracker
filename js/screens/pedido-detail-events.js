@@ -32,15 +32,13 @@
       window.navigate('#/ops/nova?pedido_id=' + pedidoId);
     }
 
-    // Codigo operacional da OP no contexto deste Pedido (via helper central).
-    // Cai no legado `OP {numero}/{ano}` (ns.opLabel) sem helper/contexto.
+    // Identidade canonica da OP, lida da linha persistida (db/95).
+    // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: nao ha mais fallback para o
+    // numero interno e nao ha mais dependencia de `state.ops` — a identidade
+    // nao e mais reconstruida por posicao entre irmas.
     function opCode(op) {
       if (!op) return '';
-      var api = window.RAVATEX_OP_DISPLAY;
-      if (api && typeof api.formatOpOperationalCode === 'function') {
-        return api.formatOpOperationalCode(op, { pedido: state.pedido, ops: state.ops });
-      }
-      return ns.opLabel(op);
+      return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op, { pedidoId: pedidoId });
     }
 
     function scrollToSection(id) {
@@ -372,14 +370,21 @@
       });
     }
 
-    function movementField(label, value) {
+    // `meta` e metadado opcional estritamente NAO-identitario. Nunca um
+    // segundo nome da mesma entidade.
+    function movementField(label, value, meta) {
       return window.el('div', {},
         window.el('label', {
           style: 'display:block;font-size:12px;font-weight:600;color:var(--rv-text-secondary);margin-bottom:6px;',
         }, label),
         window.el('div', {
           style: 'border:1px solid var(--rv-border);border-radius:4px;padding:9px 12px;font-size:13.5px;color:var(--rv-text-primary);background:var(--rv-surface-subtle);',
-        }, ns.fmtTextoOuEmpty(value, '-'))
+        }, ns.fmtTextoOuEmpty(value, '-')),
+        meta
+          ? window.el('div', {
+              style: 'font-size:11.5px;color:var(--rv-text-tertiary);line-height:1.4;margin-top:4px;',
+            }, meta)
+          : null
       );
     }
 
@@ -1064,7 +1069,12 @@
                   window.el('div', { style: 'min-width:190px;' },
                     window.el('div', { style: 'font-size:13.5px;font-weight:800;color:var(--rv-text-primary);line-height:1.35;' }, opCode(op)),
                     window.el('div', { style: 'font-size:12px;color:var(--rv-text-secondary);line-height:1.45;margin-top:3px;' },
-                      'Tipo: ' + typeLabel(op) + ' | Numero/Ano: ' + (op.numero && op.ano ? (op.numero + '/' + op.ano) : '-') + ' | Status: ' + statusLabel(op)),
+                      // O rotulo `Numero/Ano` desapareceu de proposito: ele
+                      // apresentava o numero INTERNO como se fosse a
+                      // identificacao da OP, duas linhas abaixo do codigo
+                      // canonico da MESMA OP. A identidade da OP e o titulo
+                      // desta linha; aqui ficam apenas tipo e status.
+                      'Tipo: ' + typeLabel(op) + ' | Status: ' + statusLabel(op)),
                     summary.target != null
                       ? window.el('div', { style: 'font-size:12px;color:var(--rv-text-tertiary);line-height:1.45;margin-top:2px;' },
                           'Total: ' + ns.fmtMetros(summary.target || 0) + ' | Movimentado: ' + ns.fmtMetros(summary.done || 0) + ' | Saldo: ' + ns.fmtMetros(summary.remaining || 0))
@@ -1778,7 +1788,9 @@
       }
 
       function renderMovement(activeCtx) {
-        var opLabel = activeCtx.op ? ns.opLabel(activeCtx.op) : 'Sem OP vinculada';
+        // Identidade canonica, nao mais o numero interno. Este era o site
+        // exato de `OP de origem: OP 42/2026`.
+        var opLabel = activeCtx.op ? opCode(activeCtx.op) : 'Sem OP vinculada';
         var items = buildMovementItems(activeCtx);
         var metrics = buildMovementMetrics(activeCtx);
         var docs = buildMovementDocs(activeCtx);

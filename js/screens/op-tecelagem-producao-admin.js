@@ -113,22 +113,10 @@
     return !!(ctx.pedidoCtx && ctx.pedidoCtx.id);
   }
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: sem fallback inline para
+  // numero/ano — era um segundo nome da mesma OP.
   function formatOpDisplay(op, ctx) {
-    var api = window.RAVATEX_OP_DISPLAY;
-    if (api && typeof api.formatOpOperationalCode === 'function') {
-      return api.formatOpOperationalCode(op, (ctx && ctx.opDisplayContext) || {});
-    }
-    var numero = op && op.numero != null ? op.numero : (ctx && ctx.numero != null ? ctx.numero : '—');
-    var ano = op && op.ano != null ? op.ano : (ctx && ctx.ano != null ? ctx.ano : '—');
-    return 'OP ' + numero + '/' + ano;
-  }
-
-  function internalOpLabel(op) {
-    var api = window.RAVATEX_OP_DISPLAY;
-    var legacy = api && typeof api.formatOpLegacyCode === 'function'
-      ? api.formatOpLegacyCode(op)
-      : formatOpDisplay(op, null);
-    return legacy.replace(/^OP /, 'Nº interno ');
+    return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op, (ctx && ctx.opDisplayContext) || {});
   }
 
   function resolveClienteNome(ctx) {
@@ -190,7 +178,8 @@
       el('h1', { style: 'margin:0;font-size:var(--rv-fs-title);font-weight:800;color:var(--rv-color-title);letter-spacing:-.02em;' }, formatOpDisplay(ctx.op, ctx)),
       rvStageBadge(), rvStatusBadge());
 
-    var metaParts = [internalOpLabel(ctx.op)];
+    // O numero interno saiu da UI; a identidade da OP e o titulo.
+    var metaParts = [];
     if (hasLinkedPedido(ctx)) metaParts.push('Pedido Nº ' + ctx.pedidoCtx.numero);
     metaParts.push(resolveClienteNome(ctx));
     if (ctx.op.lote) metaParts.push('Lote Nº ' + ctx.op.lote.numero);

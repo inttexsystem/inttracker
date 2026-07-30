@@ -176,6 +176,10 @@ test('pedido-detail: expõe screenPedidoDetalhe no namespace', () => {
 test('pedido-chain-state: OP tecelagem em producao vira estado operacional e gates corretos', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: pedido-chain-state.js perdeu o
+  // fallback proprio de identidade, portanto o dono central passou a ser
+  // dependencia REAL e precisa existir no sandbox — como no index.html.
+  vm.runInContext(opDisplay, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
   const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
   const result = derive({
@@ -211,6 +215,10 @@ test('pedido-chain-state: OP tecelagem em producao vira estado operacional e gat
 test('TEC-STAGE-FINALIZATION-A-B: saldo zerado sem status terminal nao conclui Tecelagem', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: pedido-chain-state.js perdeu o
+  // fallback proprio de identidade, portanto o dono central passou a ser
+  // dependencia REAL e precisa existir no sandbox — como no index.html.
+  vm.runInContext(opDisplay, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
   const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
   const result = derive({
@@ -236,6 +244,10 @@ test('TEC-STAGE-FINALIZATION-A-B: saldo zerado sem status terminal nao conclui T
 test('TEC-STAGE-FINALIZATION-A-B: status concluida e terminalidade canonica da Tecelagem', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: pedido-chain-state.js perdeu o
+  // fallback proprio de identidade, portanto o dono central passou a ser
+  // dependencia REAL e precisa existir no sandbox — como no index.html.
+  vm.runInContext(opDisplay, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
   const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
   const result = derive({
@@ -261,6 +273,10 @@ test('TEC-STAGE-FINALIZATION-A-B: status concluida e terminalidade canonica da T
 test('LATEX-LIFECYCLE-CANONICAL-A-B: Acabamento reconhece concluida canonico e finalizada legado', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: pedido-chain-state.js perdeu o
+  // fallback proprio de identidade, portanto o dono central passou a ser
+  // dependencia REAL e precisa existir no sandbox — como no index.html.
+  vm.runInContext(opDisplay, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
   const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
 
@@ -331,6 +347,10 @@ test('STEPPER-OP-PENDING-R1: Acabamento movimentavel nao exige OP terminal, mas 
 test('ACABAMENTO-EXPEDICAO-MODAL-MOVE-R1: OP Latex simulada com saldo nao habilita movimentacao', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: pedido-chain-state.js perdeu o
+  // fallback proprio de identidade, portanto o dono central passou a ser
+  // dependencia REAL e precisa existir no sandbox — como no index.html.
+  vm.runInContext(opDisplay, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
   const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
   const result = derive({
@@ -366,6 +386,10 @@ test('TEC-STAGE-FINALIZATION-A-B: Pedido Detail diferencia saldo entregue de con
 test('pedido-chain-state: pedido sem OP preserva abertura de tecelagem', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: pedido-chain-state.js perdeu o
+  // fallback proprio de identidade, portanto o dono central passou a ser
+  // dependencia REAL e precisa existir no sandbox — como no index.html.
+  vm.runInContext(opDisplay, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
   const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
   const result = derive({ pedido: { id: 'p1', status: 'rascunho', metros_total: 100 } });
@@ -515,6 +539,10 @@ test('pedido-detail: stepper produtivo Manta tem 4 etapas, 3 conectores e nenhum
 test('pedido-chain-state: ultima transicao preserva gates hidden/enabled/view', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: pedido-chain-state.js perdeu o
+  // fallback proprio de identidade, portanto o dono central passou a ser
+  // dependencia REAL e precisa existir no sandbox — como no index.html.
+  vm.runInContext(opDisplay, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
   const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
 
@@ -543,6 +571,10 @@ test('pedido-chain-state: matriz preserva labels contextuais e gates funcionais'
 
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: pedido-chain-state.js perdeu o
+  // fallback proprio de identidade, portanto o dono central passou a ser
+  // dependencia REAL e precisa existir no sandbox — como no index.html.
+  vm.runInContext(opDisplay, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
   const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
   const result = derive({
@@ -573,6 +605,10 @@ test('pedido-chain-state: matriz preserva labels contextuais e gates funcionais'
 test('pedido-chain-state: insumos recebidos com OP aberta expõe pendência de aceite', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: pedido-chain-state.js perdeu o
+  // fallback proprio de identidade, portanto o dono central passou a ser
+  // dependencia REAL e precisa existir no sandbox — como no index.html.
+  vm.runInContext(opDisplay, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
   const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
   const result = derive({
@@ -612,6 +648,10 @@ test('pedido-chain-state: insumos recebidos com OP aberta expõe pendência de a
 test('CONTRACT-B caso 1: OP aberta + insumos recebidos => conector INS->TEC NAO é Concluido', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: pedido-chain-state.js perdeu o
+  // fallback proprio de identidade, portanto o dono central passou a ser
+  // dependencia REAL e precisa existir no sandbox — como no index.html.
+  vm.runInContext(opDisplay, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
   const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
   const result = derive({
@@ -642,6 +682,10 @@ test('CONTRACT-B caso 1: OP aberta + insumos recebidos => conector INS->TEC NAO 
 test('CONTRACT-B caso 2: OP em_producao + insumos recebidos => conector INS->TEC pode ser Concluido (sem regressao)', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: pedido-chain-state.js perdeu o
+  // fallback proprio de identidade, portanto o dono central passou a ser
+  // dependencia REAL e precisa existir no sandbox — como no index.html.
+  vm.runInContext(opDisplay, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
   const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
   const result = derive({
@@ -667,6 +711,10 @@ test('CONTRACT-B caso 2: OP em_producao + insumos recebidos => conector INS->TEC
 test('CONTRACT-B caso 3: expedicao entregue >= total mas status != entregue => pedido NAO Concluido', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: pedido-chain-state.js perdeu o
+  // fallback proprio de identidade, portanto o dono central passou a ser
+  // dependencia REAL e precisa existir no sandbox — como no index.html.
+  vm.runInContext(opDisplay, sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(chainState, sandbox, { filename: 'js/screens/pedido-chain-state.js' });
   const derive = sandbox.window.RAVATEX_SCREENS.pedidoChainState.derivePedidoChainState;
   const result = derive({
@@ -1429,8 +1477,14 @@ test('transition-related-ops-R2: openMovementModal integra secao OPs relacionada
     'secao deve ter titulo OPs relacionadas');
   assert.match(sectionSlice, /Tipo: /,
     'cada OP deve exibir tipo');
-  assert.match(sectionSlice, /Numero\/Ano: /,
-    'cada OP deve exibir numero\/ano');
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: o rotulo `Numero/Ano:` foi REMOVIDO
+  // de proposito. Ele apresentava o numero INTERNO como identificacao da OP,
+  // duas linhas abaixo do codigo canonico da MESMA OP — a contradicao auditada.
+  // A identidade e o titulo da linha; aqui ficam tipo e status.
+  assert.doesNotMatch(sectionSlice, /Numero\/Ano/,
+    'o rotulo Numero/Ano nao pode voltar: era o numero interno como identidade');
+  assert.match(sectionSlice, /opCode\(op\)/,
+    'a linha deve titular a OP pela identidade canonica');
   assert.match(sectionSlice, /Status: /,
     'cada OP deve exibir status');
   assert.match(sectionSlice, /relatedActionButton\('Ver OP'/,
@@ -2605,7 +2659,7 @@ test('INSUMOS-TECELAGEM modal: pedido sem OP bloqueia recebimento e oferece Gera
     'CTA deve usar a rota canonica de Nova OP do Pedido');
 });
 
-test('OP-OPERATIONAL-CODE-B: computeViewModel rende OP {pedido}/{ano}-{tipo}{seq} com contexto completo', () => {
+test('OP-CANONICAL-IDENTITY: computeViewModel usa a identidade PERSISTIDA da linha', () => {
   const rt = makeHubRuntime();
   const s = hubTecAcab(rt.ns, 'aberta');
   // Pedido com contexto completo: numero + criado_em (ano operacional).
@@ -2632,7 +2686,7 @@ test('OP-OPERATIONAL-CODE-B: computeViewModel rende OP {pedido}/{ano}-{tipo}{seq
   assert.equal(view.itemMetricsById.pi1.relatedOpsLabel, 'OP 21/2026-T01 -> OP 21/2026-T02 -> OP 21/2026-A01');
 });
 
-test('OP-OPERATIONAL-CODE-B: sem pedido.criado_em cai no legado OP {numero}/{ano}', () => {
+test('OP-CANONICAL-IDENTITY: OP vinculada sem identidade persistida FALHA FECHADA', () => {
   const rt = makeHubRuntime();
   const s = hubTecAcab(rt.ns, 'aberta');
   // hubBase nao tem criado_em => fallback legado.

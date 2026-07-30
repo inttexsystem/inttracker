@@ -79,7 +79,7 @@
       }
 
       const opfRes = await window.supa.from('op_fornecedores')
-        .select('op_id, ops!inner(id, numero, ano, status, op_itens(id, modelo_id, metros_pedidos, metros_ajustados))')
+        .select('op_id, ops!inner(id, numero, ano, identidade_operacional, identidade_pedido_id, status, op_itens(id, modelo_id, metros_pedidos, metros_ajustados))')
         .eq('fornecedor_id', window.CURRENT_USER.fornecedor_id)
         .eq('etapa', 'cima');
       if (opfRes.error) { window.toast('Erro ao carregar OPs', 'error'); console.error(opfRes.error); return; }
@@ -114,7 +114,7 @@
       const itens = entrega.entrega_itens || [];
       const opId = itens[0]?.op_id;
       const opRef = opsCarregadas.find(o => o.id === opId);
-      const opLabel = opRef ? `Lote Nº ${opRef.numero}/${opRef.ano}` : (opId ? '#' + opId : '?');
+      const opLabel = opRef ? window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(opRef) : (opId ? '#' + opId : '?');
 
       const wrap = window.el('div', { class: 'border-b py-3' });
       wrap.appendChild(window.el('div', { class: 'flex items-center justify-between' },
@@ -153,7 +153,7 @@
       if (!opRef) { window.toast('OP da entrega não está mais em produção', 'error'); return; }
       const form = window.buildEntregaInlineForm({ opItens: opRef.op_itens || [], modelosById, entrega, latexOptions: options });
       window.modal({
-        title: `Editar entrega — Lote Nº ${opRef.numero}/${opRef.ano}`,
+        title: `Editar entrega — ${window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(opRef)}`,
         body: form.node,
         saveLabel: 'Salvar alterações',
         onSave: async () => {
@@ -180,7 +180,8 @@
 
           const card = window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5 mb-6' });
           card.appendChild(window.el('div', { class: 'flex items-center justify-between mb-3' },
-            window.el('div', { class: 'font-semibold text-gray-800' }, `Lote Nº ${op.numero}/${op.ano}`),
+            window.el('div', { class: 'font-semibold text-gray-800' },
+              window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op)),
             window.badgeStatus(op.status),
           ));
 
@@ -270,7 +271,7 @@
       }
 
       const opfRes = await window.supa.from('op_fornecedores')
-        .select('op_id, ops!inner(id, numero, ano, status, tipo, observacao, origem_op_id, op_itens(id, modelo_id, metros_pedidos))')
+        .select('op_id, ops!inner(id, numero, ano, identidade_operacional, identidade_pedido_id, status, tipo, observacao, origem_op_id, op_itens(id, modelo_id, metros_pedidos))')
         .eq('fornecedor_id', window.CURRENT_USER.fornecedor_id)
         .eq('etapa', 'latex');
       if (opfRes.error) { window.toast('Erro ao carregar OPs de látex', 'error'); console.error(opfRes.error); return; }
@@ -301,7 +302,7 @@
       if (!opRef) { window.toast('OP de látex não está mais em produção', 'error'); return; }
       const form = window.buildEntregaInlineForm({ opItens: opRef.op_itens || [], modelosById, entrega, comDestino: false });
       window.modal({
-        title: `Editar recebimento — OP de látex Nº ${opRef.numero}/${opRef.ano}`,
+        title: `Editar recebimento — ${window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(opRef)}`,
         body: form.node,
         saveLabel: 'Salvar alterações',
         onSave: async () => {
@@ -326,7 +327,10 @@
 
           const card = window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5 mb-6' });
           card.appendChild(window.el('div', { class: 'flex items-center justify-between mb-3' },
-            window.el('div', { class: 'font-semibold text-gray-800' }, `OP de látex Nº ${op.numero}/${op.ano}`),
+            window.el('div', { class: 'font-semibold text-gray-800' },
+              window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op)),
+            window.el('div', { class: 'text-xs text-gray-500' },
+              window.RAVATEX_OP_DISPLAY.formatOpInternalLabel(op)),
             window.badgeStatus(op.status),
           ));
           if (op.observacao) card.appendChild(window.el('div', { class: 'text-xs text-gray-500 mb-2' }, op.observacao));
@@ -388,7 +392,7 @@
           const itens = entrega.entrega_itens || [];
           const opId = itens[0]?.op_id;
           const opRef = opsById[opId];
-          const opLabel = opRef ? `OP de látex Nº ${opRef.numero}/${opRef.ano}` : (opId ? '#' + opId : '?');
+          const opLabel = opRef ? window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(opRef) : (opId ? '#' + opId : '?');
           const wrap = window.el('div', { class: 'border-b py-3' });
           wrap.appendChild(window.el('div', { class: 'flex items-center justify-between' },
             window.el('div', {},
@@ -460,13 +464,15 @@
         // flat read below.
       }
       const { data, error } = await window.supa.from('ordens_compra_fio')
-        .select('id, tipo, cor_poliester, kg_pedido, kg_recebido, data_recebimento, status, ops(numero, ano), cores:cor_id(id, nome)')
+        .select('id, tipo, cor_poliester, kg_pedido, kg_recebido, data_recebimento, status, ops(numero, ano, identidade_operacional, identidade_pedido_id), cores:cor_id(id, nome)')
         .order('id', { ascending: true });
       if (error) { window.toast('Erro ao carregar ordens', 'error'); console.error(error); return; }
       render(data || []);
     }
 
-    function lote(ordem) { return ordem.ops ? `Nº ${ordem.ops.numero}/${ordem.ops.ano}` : '—'; }
+    function lote(ordem) {
+      return ordem.ops ? window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(ordem.ops) : '—';
+    }
     const fmtKg = (n) => (n == null ? '—' : Number(n).toFixed(3).replace('.', ',') + ' kg');
 
     function linhaPendente(ordem) {

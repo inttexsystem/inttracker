@@ -31,6 +31,26 @@
   window.RAVATEX_SCREENS = window.RAVATEX_SCREENS || {};
   var ns = window.RAVATEX_SCREENS.ordemCompra = window.RAVATEX_SCREENS.ordemCompra || {};
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: todos os `op_id` alcancaveis no
+  // read model de recebimento — alocacoes por item e lancamentos por comando.
+  // Deliberadamente tolerante a forma: uma colecao ausente contribui zero em
+  // vez de lancar, porque a unica consequencia de perder um id e a tela
+  // mostrar o estado diagnostico daquela linha, nunca a chave primaria.
+  function coletarOpIds(hist) {
+    var ids = [];
+    ((hist && hist.itens) || []).forEach(function (it) {
+      ((it && it.alocacoes) || []).forEach(function (a) {
+        if (a && a.op_id != null) ids.push(a.op_id);
+      });
+    });
+    ((hist && hist.comandos) || []).forEach(function (c) {
+      ((c && c.lancamentos) || []).forEach(function (l) {
+        if (l && l.op_id != null) ids.push(l.op_id);
+      });
+    });
+    return ids;
+  }
+
   // ---- Idempotency primitives (independent copy, contract §8) ----------
   // A fresh random token per deliberate submission attempt. Reused verbatim
   // as p_idempotency_key ONLY across a retry of the same in-flight attempt
@@ -183,6 +203,12 @@
       return (res.data && res.data.codigo) || 'recusado';
     }
     state.receiptHistory = res.data;
+    // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: a RPC aceita atribui a origem de
+    // cada alocacao e lancamento apenas por `op_id`. A identidade canonica vem
+    // de public.op_identidade_projecao (db/95), resolvida UMA vez por carga
+    // para os ids realmente exibidos. Falha de leitura devolve mapa vazio e a
+    // tela mostra o estado diagnostico — nunca a chave primaria.
+    state.opIdentidades = await ns.carregarIdentidadesOp(coletarOpIds(res.data));
     return null;
   };
 

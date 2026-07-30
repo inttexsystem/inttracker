@@ -141,19 +141,14 @@
     if (api && typeof api.formatOpOperationalCode === 'function') {
       return api.formatOpOperationalCode(op, ctx || {});
     }
-    var numero = op && op.numero != null ? op.numero : '---';
-    return 'OP ' + numero + (op && op.ano != null ? '/' + op.ano : '');
+    return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op, ctx || {});
   }
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: uma OP AVULSA (sem Pedido) tem
+  // como identidade visivel o proprio numero/ano, e o dono central e quem
+  // decide isso. O fallback inline foi removido.
   function formatOpLegacy(op) {
-    var api = window.RAVATEX_OP_DISPLAY;
-    if (api && typeof api.formatOpLegacyCode === 'function') return api.formatOpLegacyCode(op);
-    var numero = op && op.numero != null ? op.numero : '---';
-    return 'OP ' + numero + (op && op.ano != null ? '/' + op.ano : '');
-  }
-
-  function internalOpLabel(op) {
-    return formatOpLegacy(op).replace(/^OP /, 'Nº interno ');
+    return window.RAVATEX_OP_DISPLAY.formatOpLegacyCode(op);
   }
 
   async function loadPedidoOperationalContext(op) {
@@ -174,7 +169,7 @@
         .filter(function (id) { return id != null; });
       if (!loteIds.length) return null;
       var opsRes = await supa.from('ops')
-        .select('id, numero, ano, status, tipo, criado_em, lote_id')
+        .select('id, numero, ano, identidade_operacional, identidade_pedido_id, status, tipo, criado_em, lote_id')
         .in('lote_id', loteIds)
         .order('criado_em', { ascending: true })
         .order('id', { ascending: true });
@@ -191,7 +186,7 @@
 
     async function reload() {
       var opRes = await supa.from('ops')
-        .select('id, numero, ano, status, tipo, observacao, origem_op_id, origem_entrega_id, criado_em, lote:lote_id(id, numero, pedido_id, cliente:cliente_id(id, nome)), op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa, fornecedores:fornecedor_id(nome))')
+        .select('id, numero, ano, identidade_operacional, identidade_pedido_id, status, tipo, observacao, origem_op_id, origem_entrega_id, criado_em, lote:lote_id(id, numero, pedido_id, cliente:cliente_id(id, nome)), op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa, fornecedores:fornecedor_id(nome))')
         .eq('id', opId)
         .single();
       if (opRes.error) {
@@ -208,7 +203,7 @@
       var origemOp = null;
       if (op.origem_op_id) {
         var origemRes = await supa.from('ops')
-          .select('id, numero, ano, tipo, criado_em, lote_id, op_itens(id, modelo_id, pedido_item_id)')
+          .select('id, numero, ano, identidade_operacional, identidade_pedido_id, tipo, criado_em, lote_id, op_itens(id, modelo_id, pedido_item_id)')
           .eq('id', op.origem_op_id)
           .maybeSingle();
         if (!origemRes.error && origemRes.data) origemOp = origemRes.data;
@@ -622,7 +617,8 @@
         }
 
         function buildHeaderProducao() {
-          var meta = [internalOpLabel(op)];
+          // O numero interno saiu da UI; a identidade da OP e o titulo.
+        var meta = [];
           if (op.lote && op.lote.cliente && op.lote.cliente.nome) meta.push(op.lote.cliente.nome);
           if (op.lote) meta.push('Lote Nº ' + op.lote.numero);
           if (latexFornecedorNome && latexFornecedorNome !== '---') meta.push('Fornecedor ' + latexFornecedorNome);
@@ -950,7 +946,8 @@
 
       function buildHeader() {
         var abertaEmH = op.criado_em ? new Date(op.criado_em).toLocaleDateString('pt-BR') : '';
-        var meta = [internalOpLabel(op)];
+        // O numero interno saiu da UI; a identidade da OP e o titulo.
+        var meta = [];
         if (latexFornecedorNome && latexFornecedorNome !== '—') meta.push('Fornecedor ' + latexFornecedorNome);
         if (op.lote) meta.push('Lote Nº ' + op.lote.numero);
         if (op.lote && op.lote.cliente && op.lote.cliente.nome) meta.push(op.lote.cliente.nome);

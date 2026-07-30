@@ -79,17 +79,8 @@
     }
   }
 
-  function fmtOpLegacy(row) {
-    var api = window.RAVATEX_OP_DISPLAY;
-    if (api && typeof api.formatOpLegacyCode === 'function') return api.formatOpLegacyCode(row);
-    var numero = row && row.numero != null ? row.numero : '---';
-    return 'OP ' + numero + (row && row.ano != null ? '/' + row.ano : '');
-  }
-
   function fmtOpDisplay(row, ctx) {
-    var api = window.RAVATEX_OP_DISPLAY;
-    if (api && typeof api.formatOpOperationalCode === 'function') return api.formatOpOperationalCode(row, ctx || {});
-    return fmtOpLegacy(row);
+    return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(row, ctx || {});
   }
 
   function kpiCard(iconMarkup, label, value) {
@@ -156,7 +147,7 @@
 
     async function carregar() {
       var opsRes = await window.supa.from('ops')
-        .select('id, numero, ano, status, tipo, criado_em, lote:lote_id(numero, pedido_id, pedido:pedido_id(id,numero,criado_em), cliente:cliente_id(nome)), op_itens(id, metros_pedidos, metros_ajustados)')
+        .select('id, numero, ano, identidade_operacional, identidade_pedido_id, status, tipo, criado_em, lote:lote_id(numero, pedido_id, pedido:pedido_id(id,numero,criado_em), cliente:cliente_id(nome)), op_itens(id, metros_pedidos, metros_ajustados)')
         .order('ano', { ascending: false })
         .order('numero', { ascending: false });
 
@@ -285,10 +276,13 @@
         if (termo) {
           var opLabel = row.numero != null ? String(row.numero).toLowerCase() : '';
           var displayLabel = fmtOpDisplay(row, opContext(row, grouped)).toLowerCase();
-          var legacyLabel = fmtOpLegacy(row).toLowerCase();
           var loteLabel = row.lote && row.lote.numero != null ? String(row.lote.numero).toLowerCase() : '';
           var cliente = clienteNome(row).toLowerCase();
-          if (opLabel.indexOf(termo) === -1 && displayLabel.indexOf(termo) === -1 && legacyLabel.indexOf(termo) === -1 && loteLabel.indexOf(termo) === -1 && cliente.indexOf(termo) === -1) return false;
+          // A busca aceita a identidade canonica e o Lote/cliente. O numero
+          // interno saiu tambem da BUSCA: buscar por um numero que nao e
+          // exibido em lugar algum seria um caminho de volta para a
+          // identidade dupla.
+          if (displayLabel.indexOf(termo) === -1 && loteLabel.indexOf(termo) === -1 && cliente.indexOf(termo) === -1) return false;
         }
         return true;
       });
@@ -549,14 +543,13 @@
 
     function buildRow(row, isLast, ctx) {
       var primaryLabel = fmtOpDisplay(row, ctx);
-      var legacyLabel = fmtOpLegacy(row).replace(/^OP /, ctx ? 'Nº interno ' : 'Nº ');
       var loteLabel = row.lote ? 'Lote Nº ' + row.lote.numero : 'Sem lote';
       return window.el('div', {
         style: TR_BASE + 'padding:14px 16px;' + (isLast ? '' : 'border-bottom:1px solid var(--rv-border-soft);')
       },
       window.el('div', {},
         window.el('div', { style: 'font-size:var(--rv-fs-body);font-weight:700;color:var(--rv-accent-blue);' }, primaryLabel),
-        window.el('div', { style: 'font-size:var(--rv-fs-2xs);color:var(--rv-text-tertiary);margin-top:1px;' }, legacyLabel + ' · ' + loteLabel)
+        window.el('div', { style: 'font-size:var(--rv-fs-2xs);color:var(--rv-text-tertiary);margin-top:1px;' }, loteLabel)
       ),
       window.el('div', { style: 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;' },
         window.badgeTipo(row.tipo || 'tecelagem'),

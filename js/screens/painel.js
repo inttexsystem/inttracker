@@ -175,14 +175,12 @@
     return '#' + (pedido.numero != null ? pedido.numero : pedido.id || '--');
   }
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: identidade canonica persistida.
+  // O fallback inline para numero/ano foi REMOVIDO: era um segundo nome da
+  // mesma OP, escolhido silenciosamente quando o contexto faltava.
   function fmtOp(op, ctx) {
     if (!op) return 'OP --';
-    var api = window.RAVATEX_OP_DISPLAY;
-    if (api && typeof api.formatOpOperationalCode === 'function') {
-      return api.formatOpOperationalCode(op, ctx || {});
-    }
-    var numero = op.numero != null ? op.numero : '--';
-    return 'OP ' + numero + (op.ano ? '/' + op.ano : '');
+    return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op, ctx || {});
   }
 
   function fmtAcabamento(op, ctx) {
@@ -298,7 +296,7 @@
         'id, numero, pedido_id, cliente_id',
         [{ column: 'numero', ascending: true }]),
       queryRows('ops',
-        'id, numero, ano, status, tipo, criado_em, atualizado_em, lote_id, origem_op_id, op_itens(id, metros_pedidos, metros_ajustados, pedido_item_id)',
+        'id, numero, ano, identidade_operacional, identidade_pedido_id, status, tipo, criado_em, atualizado_em, lote_id, origem_op_id, op_itens(id, metros_pedidos, metros_ajustados, pedido_item_id)',
         [{ column: 'ano', ascending: false }, { column: 'numero', ascending: false }]),
       queryRows('expedicoes',
         'id, pedido_id, op_latex_id, lote_id, cliente_id, status, liberado_em, criado_em, atualizado_em',

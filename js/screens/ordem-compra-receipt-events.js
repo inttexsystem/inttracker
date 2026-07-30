@@ -29,7 +29,10 @@
     if (v == null) return '—';
     return (typeof window.fmtKg === 'function') ? window.fmtKg(v) : String(v);
   }
-  function opLabel(opId) { return opId == null ? 'Pedido (compartilhada)' : ('OP ' + opId); }
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: `opLabel` vive DENTRO da factory
+  // (ver createReceiptEvents), porque precisa do `state` da tela para resolver
+  // a identidade e o `state` e uma closure daquela funcao. ANTES a versao de
+  // modulo devolvia `'OP ' + opId` — a chave primaria crua como nome.
   function fioLabel(row) {
     var mat = row.material === 'algodao' ? 'Algodão' : 'Poliéster';
     var cor = row.cor_poliester || (row.cor_id != null ? ('Cor ' + row.cor_id) : '—');
@@ -71,6 +74,13 @@
     var state = ctx.state || {};
     var reload = ctx.reload;
     var ordemId = ctx.ordemId;
+
+    // Atribuicao de origem pela identidade canonica da OP. O mapa
+    // op_id -> identidade e resolvido uma vez por carga em
+    // ordem-compra-receipt-data.js e vive em `state.opIdentidades`.
+    function opLabel(opId) {
+      return ns.rotuloIdentidadeOp(opId, state.opIdentidades);
+    }
 
     // Two independent attempt trackers (contract §12) — never shared, never
     // persisted outside these closures.

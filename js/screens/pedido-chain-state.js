@@ -87,12 +87,10 @@
     return status === 'concluida' || status === 'finalizada' || status === 'cancelada';
   }
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: identidade persistida; fallback
+  // inline para numero/ano removido.
   function opDisplayLabel(op, pedido, ops) {
-    var api = window.RAVATEX_OP_DISPLAY;
-    if (api && typeof api.formatOpOperationalCode === 'function') {
-      return api.formatOpOperationalCode(op, { pedido: pedido, ops: ops });
-    }
-    return 'OP ' + (op && op.numero != null ? op.numero : '-') + (op && op.ano != null ? '/' + op.ano : '');
+    return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op, { pedido: pedido, ops: ops });
   }
 
   function targetMetersForOpItem(row) {

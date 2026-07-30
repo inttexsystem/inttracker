@@ -213,4 +213,63 @@
     state.cores = (corRes && !corRes.error && corRes.data) ? corRes.data : [];
     return null;
   };
+
+  // =====================================================================
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1 — resolvedor de identidade de OP
+  // para as superficies de compra e recebimento.
+  //
+  // POR QUE ISTO EXISTE
+  //   As RPCs aceitas deste dominio (`obter_distribuicao_ordem_compra`
+  //   db/69, `obter_historico_recebimento_ordem_compra` db/70/db/74)
+  //   atribuem a origem de cada alocacao/lancamento APENAS por `op_id`. Era
+  //   isso que fazia as telas imprimirem `OP 137` — a chave primaria crua
+  //   como se fosse nome de negocio, uma TERCEIRA identidade da mesma OP.
+  //
+  //   Reescrever essas RPCs para projetarem a identidade esta FORA do escopo
+  //   desta ordem (ciclo de vida de ordem de compra e dominio aceito, com
+  //   testes de contrato congelados). Em vez disso, db/95 expoe a view
+  //   somente leitura `public.op_identidade_projecao`, e este resolvedor a
+  //   consulta para os `op_id` efetivamente exibidos.
+  //
+  //   A view usa `security_invoker`, portanto a RLS de `public.ops` continua
+  //   valendo: nenhum papel passa a ver OP que nao veria direto.
+  //
+  // FALHA FECHADA
+  //   Se a leitura falhar, o mapa volta VAZIO e as telas renderizam o estado
+  //   diagnostico explicito. Nunca a chave primaria.
+  // =====================================================================
+  ns.carregarIdentidadesOp = async function (opIds) {
+    var unicos = [];
+    var visto = {};
+    (opIds || []).forEach(function (id) {
+      if (id == null) return;
+      var key = String(id);
+      if (visto[key]) return;
+      visto[key] = true;
+      unicos.push(id);
+    });
+    if (!unicos.length) return {};
+    var res = await window.supa
+      .from('op_identidade_projecao')
+      .select('op_id, identidade_operacional, identidade_pedido_id, numero, ano, tipo')
+      .in('op_id', unicos);
+    if (res.error || !res.data) {
+      console.error('ordem-compra: falha ao resolver identidade de OP', res.error);
+      return {};
+    }
+    var mapa = {};
+    res.data.forEach(function (row) {
+      if (row && row.op_id != null) mapa[String(row.op_id)] = row;
+    });
+    return mapa;
+  };
+
+  // Rotulo pronto para uma origem `op_id`, dado um mapa ja carregado. Dono
+  // unico do texto de atribuicao de origem nas telas de compra.
+  ns.rotuloIdentidadeOp = function (opId, mapa) {
+    if (opId == null) return 'Pedido (compartilhada)';
+    var row = mapa ? mapa[String(opId)] : null;
+    if (row) return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(row);
+    return 'OP (identidade pendente)';
+  };
 })(window);

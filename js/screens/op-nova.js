@@ -453,14 +453,10 @@
     return { pedido: pedidoDisplaySource(), ops: opSiblingOps };
   }
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: identidade canonica persistida,
+  // sem fallback inline para numero/ano.
   function formatOpDisplay(opArg) {
-    var api = window.RAVATEX_OP_DISPLAY;
-    if (api && typeof api.formatOpOperationalCode === 'function') {
-      return api.formatOpOperationalCode(opArg, opDisplayContext());
-    }
-    var numeroLabel = opArg && opArg.numero != null ? opArg.numero : (numero || '—');
-    var anoLabel = opArg && opArg.ano != null ? opArg.ano : (ano || '—');
-    return 'OP ' + numeroLabel + '/' + anoLabel;
+    return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(opArg, opDisplayContext());
   }
 
   async function loadPedidoSiblingOps(targetPedidoId) {
@@ -475,7 +471,7 @@
         .filter(function (id) { return id != null; });
       if (!loteIds.length) return [];
       var opsRes = await supa.from('ops')
-        .select('id, numero, ano, status, tipo, criado_em, lote_id')
+        .select('id, numero, ano, identidade_operacional, identidade_pedido_id, status, tipo, criado_em, lote_id')
         .in('lote_id', loteIds)
         .order('criado_em', { ascending: true })
         .order('id', { ascending: true });
@@ -620,7 +616,7 @@
 
   if (opId) {
     const { data, error } = await supa.from('ops')
-      .select('id, numero, ano, status, tipo, observacao, origem_op_id, lote_id, criado_em, lote:lote_id(id, numero, pedido_id, cliente:cliente_id(id, nome)), op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa)')
+      .select('id, numero, ano, identidade_operacional, identidade_pedido_id, status, tipo, observacao, origem_op_id, lote_id, criado_em, lote:lote_id(id, numero, pedido_id, cliente:cliente_id(id, nome)), op_itens(id, modelo_id, metros_pedidos, metros_ajustados, pedido_item_id), op_fornecedores(fornecedor_id, etapa)')
       .eq('id', opId).single();
     if (error || !data) {
       toast('OP não encontrada', 'error'); console.error(error);
@@ -668,14 +664,14 @@
       // Consolidação: uma OP Látex agrega N entregas via op_latex_entregas.
       // Mapeamos cada entrega vinculada -> sua OP Látex (todas as parciais
       // da mesma OP Tecelagem + destino apontam para a mesma OP).
-      const latexOpsRes = await supa.from('ops').select('id, numero, ano, status, tipo, criado_em, lote_id, op_latex_entregas(entrega_id)').eq('tipo', 'latex').eq('origem_op_id', op.id);
+      const latexOpsRes = await supa.from('ops').select('id, numero, ano, identidade_operacional, identidade_pedido_id, status, tipo, criado_em, lote_id, op_latex_entregas(entrega_id)').eq('tipo', 'latex').eq('origem_op_id', op.id);
       latexOpPorEntrega = {};
       latexOpInfo = {};
       for (const lo of (latexOpsRes.data || [])) {
         for (const link of (lo.op_latex_entregas || [])) {
           if (link.entrega_id == null) continue;
           latexOpPorEntrega[link.entrega_id] = lo.id;
-          latexOpInfo[link.entrega_id] = { id: lo.id, numero: lo.numero, ano: lo.ano, status: lo.status, tipo: lo.tipo, criado_em: lo.criado_em, lote_id: lo.lote_id };
+          latexOpInfo[link.entrega_id] = { id: lo.id, identidade_operacional: lo.identidade_operacional, identidade_pedido_id: lo.identidade_pedido_id, numero: lo.numero, ano: lo.ano, status: lo.status, tipo: lo.tipo, criado_em: lo.criado_em, lote_id: lo.lote_id };
         }
       }
 
@@ -735,9 +731,11 @@
     if (saving) return;
     saving = true;
     try {
-      const numeroInt = parseInt(numero, 10), anoInt = parseInt(ano, 10);
+      const anoInt = parseInt(ano, 10);
       if (!pedidoIdState) { bloquearSemPedido(); return; }
-      if (!numeroInt || !anoInt) { toast('Número e ano são obrigatórios', 'error'); return; }
+      // Nao ha mais campo de Numero: a reserva interna e automatica. Apenas o
+      // ano da reserva precisa ser valido.
+      if (!anoInt) { toast('Ano invalido para a numeracao da OP', 'error'); return; }
       if (!clienteSel) { toast('Escolha o cliente', 'error'); return; }
       const validos = window.itensValidosOP(itens);
       if (validos.length === 0) { toast('Adicione ao menos 1 item com metros', 'error'); return; }
@@ -745,7 +743,7 @@
       const result = await window.persistirOP({
         status: 'simulada',
         op,
-        numero, ano, clienteSel, itens, fornSel, modelosById, parametrosByLargura,
+        ano, clienteSel, itens, fornSel, modelosById, parametrosByLargura,
         pedidoId: pedidoIdState,
       });
 
@@ -770,9 +768,11 @@
     if (saving) return;
     saving = true;
     try {
-      const numeroInt = parseInt(numero, 10), anoInt = parseInt(ano, 10);
+      const anoInt = parseInt(ano, 10);
       if (!pedidoIdState) { bloquearSemPedido(); return; }
-      if (!numeroInt || !anoInt) { toast('Número e ano são obrigatórios', 'error'); return; }
+      // Nao ha mais campo de Numero: a reserva interna e automatica. Apenas o
+      // ano da reserva precisa ser valido.
+      if (!anoInt) { toast('Ano invalido para a numeracao da OP', 'error'); return; }
       if (!clienteSel) { toast('Escolha o cliente', 'error'); return; }
       const validos = window.itensValidosOP(itens);
       if (validos.length === 0) { toast('Adicione ao menos 1 item com metros', 'error'); return; }
@@ -781,7 +781,7 @@
       const result = await window.persistirOP({
         status: 'aberta',
         op,
-        numero, ano, clienteSel, itens, fornSel, modelosById, parametrosByLargura,
+        ano, clienteSel, itens, fornSel, modelosById, parametrosByLargura,
         pedidoId: pedidoIdState,
       });
 
@@ -837,7 +837,7 @@
     // js/screens/op-tecelagem-producao-admin.js.
     if (isOpEmProducaoTecelagem()) {
       return window.renderOPTecelagemProducaoAdmin({
-        op, numero, ano,
+        op, ano,
         pedidoCtx,
         opDisplayContext: opDisplayContext(),
         itens,
@@ -927,16 +927,9 @@
     );
   }
 
-  function internalOpLabel(opArg) {
-    var api = window.RAVATEX_OP_DISPLAY;
-    var legacy = api && typeof api.formatOpLegacyCode === 'function'
-      ? api.formatOpLegacyCode(opArg)
-      : formatOpDisplay(opArg);
-    return legacy.replace(/^OP /, 'N\u00ba interno ');
-  }
-
   function buildHeaderAbertaTecelagem() {
-    var meta = [internalOpLabel(op)];
+    // O numero interno saiu do cabecalho: a identidade da OP e o titulo.
+    var meta = [];
     if (hasLinkedPedido()) meta.push('Pedido N\u00ba ' + pedidoCtx.numero);
     meta.push(resolveClienteNome());
     if (op.lote) meta.push('Lote N\u00ba ' + op.lote.numero);
@@ -974,13 +967,6 @@
   function buildCardDados() {
     if (isOpAbertaTecelagem()) return buildCardDadosAbertaTecelagem();
 
-    const numInput = disabledAttr(readOnly, textInput({ type: 'number', value: String(numero) }));
-    styleInput(numInput);
-    numInput.addEventListener('input', () => { numero = numInput.value; });
-    const anoInput = disabledAttr(readOnly, textInput({ type: 'number', value: String(ano) }));
-    styleInput(anoInput);
-    anoInput.addEventListener('input', () => { ano = anoInput.value; });
-
     const clienteSelEl = disabledAttr(readOnly, selectInput({ options: clientesOptions, value: clienteSel, placeholder: 'Selecione o cliente...' }));
     styleSelect(clienteSelEl);
     clienteSelEl.addEventListener('change', () => { clienteSel = clienteSelEl.value ? Number(clienteSelEl.value) : ''; renderRight(); });
@@ -1008,10 +994,12 @@
 
     return el('div', { style: CARD + 'padding:22px 24px;' },
       sectionHead(SVG_ICON_OP, isOpAbertaTecelagem() ? '1. Preparacao da OP' : '1. Dados da OP'),
-      el('div', { style: 'display:grid;grid-template-columns:1fr 140px;gap:14px;margin-bottom:16px;' },
-        fieldBlock('Número', numInput),
-        fieldBlock('Ano', anoInput),
-      ),
+      // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: os campos editaveis Numero e
+      // Ano foram REMOVIDOS. A numeracao interna e reservada automaticamente
+      // por public.proximo_numero_op no momento da persistencia, e a
+      // identidade da OP e a canonica derivada do Pedido, atribuida pelo banco
+      // (db/95). Nao existe mais campo pedindo ao usuario um valor que a
+      // criacao ignorava e que a edicao gravava sem sincronizar o contador.
       pedidoBlock,
       buildFornField('Fornecedor de tecelagem (parte de cima)', 'cima'),
     );
@@ -1587,14 +1575,14 @@
       .order('id', { ascending: false });
     if (entRes.error) { toast('Erro ao recarregar entregas', 'error'); console.error(entRes.error); return; }
     entregasCima = (entRes.data || []).filter(e => (e.entrega_itens || []).some(ei => ei.op_id === op.id));
-    const latexOpsRes = await supa.from('ops').select('id, numero, ano, status, op_latex_entregas(entrega_id)').eq('tipo', 'latex').eq('origem_op_id', op.id);
+    const latexOpsRes = await supa.from('ops').select('id, numero, ano, identidade_operacional, identidade_pedido_id, status, op_latex_entregas(entrega_id)').eq('tipo', 'latex').eq('origem_op_id', op.id);
     latexOpPorEntrega = {};
     latexOpInfo = {};
     for (const lo of (latexOpsRes.data || [])) {
       for (const link of (lo.op_latex_entregas || [])) {
         if (link.entrega_id == null) continue;
         latexOpPorEntrega[link.entrega_id] = lo.id;
-        latexOpInfo[link.entrega_id] = { id: lo.id, numero: lo.numero, ano: lo.ano, status: lo.status };
+        latexOpInfo[link.entrega_id] = { id: lo.id, identidade_operacional: lo.identidade_operacional, identidade_pedido_id: lo.identidade_pedido_id, numero: lo.numero, ano: lo.ano, status: lo.status };
       }
     }
     render();
@@ -1757,8 +1745,12 @@
           el('span', { style: 'display:inline-block;margin-top:4px;background:var(--rv-pill-info-bg);color:var(--rv-accent-blue);font-size:11.5px;font-weight:600;border-radius:4px;padding:2px 8px;' }, statusLabel),
         ),
       ),
-      el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);font-weight:500;margin-bottom:4px;' }, op ? formatOpDisplay(op) : `OP ${numero || '—'}/${ano || '—'}`),
-      op ? el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-bottom:16px;' }, `Nº interno ${op.numero}/${op.ano}`) : '',
+      // Uma OP ainda NAO persistida nao tem identidade canonica: ela e
+      // atribuida pelo banco no momento do vinculo com o Pedido. Dizemos isso
+      // em vez de exibir um codigo provisorio que mudaria ao salvar.
+      el('div', { style: 'font-size:13px;color:var(--rv-text-secondary);font-weight:500;margin-bottom:4px;' },
+        op ? formatOpDisplay(op) : 'OP a ser numerada ao salvar'),
+      '',
       el('div', { style: 'height:1px;background:var(--rv-surface-subtle);margin-bottom:16px;' }),
     ];
 

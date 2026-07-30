@@ -44,13 +44,13 @@
     try {
       var res = await window.supa
         .from('op_latex_entregas')
-        .select('op_latex_id, ops:op_latex_id(id, numero, ano, tipo)')
+        .select('op_latex_id, ops:op_latex_id(id, numero, ano, identidade_operacional, identidade_pedido_id, tipo)')
         .eq('entrega_id', entregaId)
         .maybeSingle();
       if (res && res.error) return { bloqueada: false, opLabel: null };
       var op = res && res.data && res.data.ops;
       if (op && op.id && op.tipo === 'latex') {
-        var label = 'OP ' + op.numero + '/' + op.ano;
+        var label = window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op);
         return { bloqueada: true, opLabel: label };
       }
     } catch (err) {
@@ -118,7 +118,7 @@
   }
 
   function opLatexLabelFromRpc(info) {
-    if (info && info.numero != null && info.ano != null) return 'OP ' + info.numero + '/' + info.ano;
+    if (info) return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(info);
     return 'OP de acabamento';
   }
 

@@ -41,7 +41,7 @@
 
   async function loadData(pedidoId) {
     var needs = await window.supa.from('necessidade_compra_fio')
-      .select('id, origem_tipo, op_id, material, cor_id, cor_poliester, kg_necessario, kg_alocado, legado, ops:op_id(id,numero,ano), cores:cor_id(nome)')
+      .select('id, origem_tipo, op_id, material, cor_id, cor_poliester, kg_necessario, kg_alocado, legado, ops:op_id(id,numero,ano,identidade_operacional,identidade_pedido_id), cores:cor_id(nome)')
       .eq('pedido_id', pedidoId).eq('legado', false).order('id');
     if (needs.error) throw needs.error;
     var ids = (needs.data || []).map(function (item) { return item.id; });
@@ -57,10 +57,13 @@
     return { needs: needs.data || [], suppliers: suppliers.data || [] };
   }
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: a necessidade de compra atribui
+  // origem pela identidade CANONICA da OP. ANTES concatenava numero/ano
+  // direto (`OP 42/2026`) e, quando a projecao nao trazia numero, caia no
+  // `op_id` cru — dois nomes diferentes para a mesma OP.
   function needLabel(need) {
     if (need.origem_tipo === 'op') {
-      var op = need.ops || {};
-      return 'OP ' + (op.numero != null ? op.numero + (op.ano ? '/' + op.ano : '') : need.op_id);
+      return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(need.ops || null);
     }
     return 'Pedido compartilhado';
   }

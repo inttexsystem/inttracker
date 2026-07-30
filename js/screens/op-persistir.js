@@ -9,7 +9,7 @@
 //   - montarPayloadFornecedoresOP(fornSel, opId)
 //   - montarPayloadOP({ numero, ano, status })
 //   - montarPayloadLote({ numero, clienteSel })
-//   - persistirOP({ status, op, numero, ano, clienteSel, itens,
+//   - persistirOP({ status, op, ano, clienteSel, itens,
 //                   fornSel, modelosById, parametrosByLargura,
 //                   pedidoId })
 //
@@ -133,7 +133,6 @@
   async function persistirOP({
     status,
     op,
-    numero,
     ano,
     clienteSel,
     itens,
@@ -152,11 +151,13 @@
     }
 
     const supa = window.supa;
-    const numeroInt = parseInt(numero, 10);
+    // `numero` nao e mais um valor de entrada: a reserva interna e sempre
+    // automatica. `ano` permanece como o ano da reserva por tipo/ano.
     const anoInt = parseInt(ano, 10);
     const validos = itensValidosOP(itens);
     const isNova = !op;
-    let numeroPersistido = numeroInt;
+    // Sempre reservado por public.proximo_numero_op abaixo; nunca vem da UI.
+    let numeroPersistido = null;
 
     // PHASE-MANTA-A: reject a mixed-route OP BEFORE reserving an OP number.
     // The database trigger remains the ultimate authority.
@@ -203,7 +204,13 @@
     let opRow;
     let opIdSalvo;
     if (!isNova) {
-      const r = await supa.from('ops').update({ numero: numeroInt, ano: anoInt, status }).eq('id', op.id).select().single();
+      // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: o UPDATE nao toca mais
+      // `numero`/`ano`. ANTES gravava os valores digitados na tela, sem
+      // sincronizar `op_numeros`, dessincronizando o high-water. A numeracao
+      // interna e imutavel apos a criacao e o guard de db/95 recusa qualquer
+      // tentativa; o cliente nao depende mais desse guard porque simplesmente
+      // nao envia os campos.
+      const r = await supa.from('ops').update({ status }).eq('id', op.id).select().single();
       if (r.error) {
         return { error: r.error, step: 'ops_update', partial: false, opId: op.id };
       }
