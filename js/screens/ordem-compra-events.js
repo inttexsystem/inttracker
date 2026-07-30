@@ -108,6 +108,52 @@
         });
       },
 
+      // EXCLUIR — remocao permanente. Como `cancelar`, le a ordem no momento
+      // do clique. A confirmacao nomeia a OC pelo codigo de negocio visivel e
+      // diz exatamente o que desaparece; a chave primaria continua sendo so o
+      // argumento tecnico da RPC.
+      excluir: function (o) {
+        var atual = o || state.ordem || {};
+        var ordemId = atual.ordem_id;
+        if (ordemId == null) {
+          window.toast('Ordem de compra inválida.', 'error');
+          return;
+        }
+        var nome = ns.ocLabel(ordemId, state);
+        var body = el('div', { style: 'color:var(--rv-color-text);font-size:13.5px;line-height:1.55;' });
+        body.appendChild(el('p', { class: 'mb-2' },
+          'Excluir permanentemente a ordem ' + nome + '?'));
+        body.appendChild(el('p', { class: 'mb-2' },
+          'A ordem, os seus itens e as suas alocações são removidos definitivamente. '
+          + 'As quantidades alocadas voltam a ficar disponíveis nas necessidades do Pedido.'));
+        body.appendChild(el('p', { class: 'mb-0', style: 'color:var(--rv-color-muted);' },
+          'Esta ação não pode ser desfeita. Para preservar a ordem no histórico, use Cancelar.'));
+        var submitting = false;
+        window.modal({
+          title: 'Excluir ordem de compra ' + nome,
+          body: body,
+          saveLabel: 'Excluir definitivamente',
+          danger: true,
+          onSave: async function () {
+            if (submitting) return false;
+            submitting = true;
+            var data = await ns.excluirOrdem(ordemId);
+            submitting = false;
+            if (!data || data.ok !== true) {
+              // A recusa do servidor e mostrada literalmente: elegibilidade e
+              // decisao dele, e o operador precisa saber qual foi o motivo.
+              window.toast((data && data.erro) || 'Não foi possível excluir a ordem.', 'error');
+              return false;
+            }
+            window.toast('Ordem ' + nome + ' excluída.', 'success');
+            // A entidade aberta deixou de existir: voltar para a lista e
+            // recarregar dela, nunca renderizar um detalhe orfao.
+            window.navigate('#/ordens-compra');
+            return true;
+          },
+        });
+      },
+
       // Emission (PHASE-C5). `o` is the CURRENT order passed by the render layer
       // (handlers.emitir(o)) — read at click time so a re-render's fresh order is
       // used, not a stale closure snapshot. Enablement was already decided by the

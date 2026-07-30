@@ -200,6 +200,20 @@
   // classified outcome; the caller (events layer) owns the confirmation UX,
   // the in-flight guard, the fixed pt-BR error messages, and the authoritative
   // reload.
+  // Exclusao permanente (db/96 + db/97). O UNICO escritor e a RPC atomica
+  // SECURITY DEFINER; esta camada nao decide elegibilidade — quem decide e
+  // public.oc_elegivel_exclusao, projetada em `acoes.excluir` pelo read model.
+  // A recusa do servidor viaja intacta para a tela: cada codigo tem um texto
+  // proprio e nenhum deles vira a mensagem generica.
+  ns.excluirOrdem = async function (ordemId) {
+    var res = await window.supa.rpc('excluir_ordem_compra', { p_ordem_id: Number(ordemId) });
+    if (res.error) {
+      return { ok: false, codigo: 'transporte',
+        erro: 'Falha de comunicacao ao excluir a ordem. Recarregue antes de tentar novamente.' };
+    }
+    return res.data || { ok: false, codigo: 'resposta_vazia', erro: 'Resposta vazia do servidor.' };
+  };
+
   ns.emitirOrdem = async function (ordemId) {
     var res = await window.supa.rpc('emitir_ordem_compra', { p_ordem_id: ordemId });
     return classifyEmissionResult(res);

@@ -563,3 +563,67 @@ test('C4. a server refusal surfaces the server reason, not the generic fallback'
   assert.match(lastToast(env.sandbox).textContent, /Somente rascunho/, 'the server reason is shown verbatim');
   assert.equal(rpcCalls(env.supa, 'obter_ordem_compra_admin').length, 1, 'a refusal does not reload');
 });
+
+// =====================================================================
+// === PERMANENT DELETION (db/96 + db/97) ==============================
+// Availability comes only from acoes.excluir, decided by the server in
+// public.oc_elegivel_exclusao. The screen never recomputes the rule.
+// =====================================================================
+
+const ELIGIBLE_DELETE = order({ acoes: Object.assign({}, order().acoes, { excluir: true }) });
+
+test('D1. the delete action appears only when the server says the order is eligible', async () => {
+  const yes = await renderScreen({ obter_ordem_compra_admin: sequencedObter(ELIGIBLE_DELETE) });
+  assert.ok(findById(yes.view, 'oc-excluir'), 'offered when acoes.excluir is true');
+  const no = await renderScreen({ obter_ordem_compra_admin: sequencedObter(order({ acoes: Object.assign({}, order().acoes, { excluir: false }) })) });
+  assert.equal(findById(no.view, 'oc-excluir'), null, 'absent when the server withholds it');
+});
+
+test('D2. deletion names the order canonically and states exactly what disappears', async () => {
+  const env = await renderScreen({ obter_ordem_compra_admin: sequencedObter(ELIGIBLE_DELETE) });
+  findById(env.view, 'oc-excluir')._listeners.click();
+  const dialog = overlayByTitle(env.sandbox, /Excluir ordem de compra OC-001-1-26/);
+  assert.ok(dialog, 'the confirmation names the order by its business code');
+  const copy = text(dialog);
+  assert.match(copy, /permanentemente/i);
+  assert.match(copy, /itens/i);
+  assert.match(copy, /aloca/i);
+  assert.match(copy, /voltam a ficar disponíveis/i, 'states the quantities return');
+  assert.match(copy, /não pode ser desfeita/i);
+  assert.match(copy, /use Cancelar/i, 'points at Cancelar for a real order');
+  assert.doesNotMatch(copy, /#4210/, 'never the primary key');
+  assert.equal(rpcCalls(env.supa, 'excluir_ordem_compra').length, 0, 'opening performs no RPC');
+});
+
+test('D3. confirming calls the canonical writer once and returns to the list', async () => {
+  const env = await renderScreen({
+    obter_ordem_compra_admin: sequencedObter(ELIGIBLE_DELETE),
+    excluir_ordem_compra: () => ({ data: { ok: true, codigo: 'ok', alocacoes_liberadas: 2 }, error: null }),
+  });
+  findById(env.view, 'oc-excluir')._listeners.click();
+  await btnByText(overlayByTitle(env.sandbox, /Excluir ordem de compra/), /^Excluir definitivamente$/)._listeners.click();
+  const calls = rpcCalls(env.supa, 'excluir_ordem_compra');
+  assert.equal(calls.length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[0].params)), { p_ordem_id: 4210 });
+  assert.ok(env.navCalls.includes('#/ordens-compra'), 'the vanished detail is left for the list');
+  assert.equal(allRpcNames(env.supa).filter((n) => n === 'obter_ordem_compra_admin').length, 1,
+    'no reload of an entity that no longer exists');
+});
+
+test('D4. a server refusal is shown verbatim and the order stays', async () => {
+  const env = await renderScreen({
+    obter_ordem_compra_admin: sequencedObter(ELIGIBLE_DELETE),
+    excluir_ordem_compra: () => ({ data: { ok: false, codigo: 'historico_irreversivel', erro: 'A ordem possui recebimento, lancamento de fio ou movimento de estoque e nao pode ser excluida' }, error: null }),
+  });
+  findById(env.view, 'oc-excluir')._listeners.click();
+  await btnByText(overlayByTitle(env.sandbox, /Excluir ordem de compra/), /^Excluir definitivamente$/)._listeners.click();
+  assert.match(lastToast(env.sandbox).textContent, /recebimento, lancamento de fio ou movimento/,
+    'the exact server reason reaches the operator');
+  assert.ok(!env.navCalls.includes('#/ordens-compra'), 'a refused deletion does not navigate away');
+});
+
+test('D5. Cancelar and Excluir remain distinct actions', async () => {
+  const env = await renderScreen({ obter_ordem_compra_admin: sequencedObter(ELIGIBLE_DELETE) });
+  assert.ok(findById(env.view, 'oc-cancelar'), 'Cancelar still exists for a real order');
+  assert.ok(findById(env.view, 'oc-excluir'), 'Excluir exists alongside it');
+});

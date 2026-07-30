@@ -233,6 +233,17 @@
         onclick: function () { handlers.cancelar(o); },
       }, 'Cancelar ordem'));
     }
+    // EXCLUIR (db/96 + db/97). Distinto de Cancelar: Cancelar preserva uma
+    // ordem real na historia; Excluir apaga uma que nao deveria existir. A
+    // disponibilidade vem EXCLUSIVAMENTE de `acoes.excluir`, decidido pelo
+    // servidor em public.oc_elegivel_exclusao — a tela nunca recalcula a regra.
+    if (acoes.excluir === true) {
+      actions.appendChild(el('button', {
+        id: 'oc-excluir',
+        style: 'border-radius:var(--rv-radius);', class: 'border border-red-300 text-red-600 hover:bg-red-50 text-sm font-semibold px-3 py-2',
+        onclick: function () { handlers.excluir(o); },
+      }, 'Excluir ordem'));
+    }
     if (o.pedido_id) {
       actions.appendChild(el('button', {
         id: 'oc-abrir-pedido', class: 'text-blue-700 text-sm font-semibold px-3 py-2',

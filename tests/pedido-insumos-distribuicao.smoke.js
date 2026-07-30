@@ -57,7 +57,13 @@ function loadScreen() {
     const node = { tagName: tag, attrs: attrs || {}, children: [] };
     node.appendChild = (child) => { if (child != null) node.children.push(child); return child; };
     node.replaceChildren = (...kids) => { node.children = kids.filter((k) => k != null); };
+    // The canonical select popover dispatches a real 'change' event, so the
+    // double must accept a listener the way the runtime control does.
+    node.listeners = {};
+    node.addEventListener = (evt, fn) => { (node.listeners[evt] = node.listeners[evt] || []).push(fn); };
+    node.dispatchEvent = (evt) => (node.listeners[evt.type] || []).forEach((fn) => fn(evt));
     if (attrs && Object.prototype.hasOwnProperty.call(attrs, 'value')) node.value = attrs.value;
+    else if (tag === 'input') node.value = '';   // a real input reports '' when empty
     return node;
   }
 
@@ -75,7 +81,10 @@ function loadScreen() {
     supa: {
       rpc: async (name, args) => { rpcCalls.push({ name, args }); return rpcResult; },
     },
-    RAVATEX_OP_DISPLAY: { formatOpOperationalCode: () => 'OP-T001-1-26' },
+    RAVATEX_OP_DISPLAY: {
+      formatOpOperationalCode: () => 'OP-T001-1-26',
+      formatOcOperationalCode: (oc) => (oc && oc.identidade_operacional) || 'OC -',
+    },
   };
 
   vm.runInNewContext(ui, { window: win });
@@ -83,15 +92,21 @@ function loadScreen() {
 
   // Opens the real modal and returns its captured configuration plus the live
   // quantity input node, found by walking the body the module actually built.
-  function open(need, allocation) {
+  function open(need, allocation, drafts) {
     const setNotice = (kind, text) => notices.push({ kind, text });
-    api.openModal(need, allocation, SUPPLIERS, async () => {}, setNotice);
+    api.openModal(need, allocation, SUPPLIERS, drafts || {}, async () => {}, setNotice);
     const cfg = win.__modal;
     const field = cfg.body.children.find(
       (c) => c && c.attrs && c.attrs.label === 'Quantidade alvo absoluta (kg)',
     );
     assert.ok(field, 'the quantity field must be present in the modal body');
-    return { cfg, input: field.attrs.input, notices, rpcCalls };
+    const supplier = cfg.body.children.find((c) => c.attrs && c.attrs.label === 'Fornecedor').attrs.input;
+    // The OC block is the bare div the module inserts between supplier and quantity.
+    const ocBlock = cfg.body.children.find((c) => c && c.tagName === 'div' && !c.attrs.label && !c.attrs.class);
+    const pickSupplier = (id) => { supplier.value = String(id); supplier.dispatchEvent({ type: 'change' }); };
+    const ocText = () => JSON.stringify(ocBlock ? ocBlock.children : []);
+    const codeField = () => (ocBlock ? ocBlock.children.find((c) => c && c.attrs && c.attrs.label === 'Número da ordem de compra') : null);
+    return { cfg, input: field.attrs.input, supplier, pickSupplier, ocBlock, ocText, codeField, notices, rpcCalls };
   }
 
   return {
@@ -104,6 +119,8 @@ function loadScreen() {
 }
 
 const SUPPLIERS = [{ id: 7, nome: 'Fiacao Alfa', tipo: 'fio_algodao' }];
+// A live draft for supplier 7: the reuse path, where no number is requested.
+const DRAFT_FOR_7 = { 7: { id: 4210, codigo: 'PC 2026/0042', identidade_operacional: 'PC 2026/0042', fornecedor_id: 7 } };
 
 function need(kgNecessario, kgAlocado) {
   return {
@@ -170,7 +187,7 @@ test('3b. altering an existing allocation still opens with its persisted absolut
 
 test('4. the suggested value stays editable down to a smaller partial quantity', async () => {
   const { open, rpcCalls } = loadScreen();
-  const { cfg, input } = open(need('500.000', '0.000'), null);
+  const { cfg, input } = open(need('500.000', '0.000'), null, DRAFT_FOR_7);
   assert.equal(input.value, '500');
   const select = cfg.body.children.find((c) => c.attrs && c.attrs.label === 'Fornecedor').attrs.input;
   select.value = '7';
@@ -208,7 +225,7 @@ test('5b. zero remains the explicit removal command, never a suggestion', async 
 test('5c. an excessive quantity is still refused by the server cap, not by a new client cap', async () => {
   const screen = loadScreen();
   screen.setRpcResult({ data: { ok: false, codigo: 'excede_saldo' }, error: null });
-  const { cfg, input } = screen.open(need('500.000', '480.000'), null);
+  const { cfg, input } = screen.open(need('500.000', '480.000'), null, DRAFT_FOR_7);
   assert.equal(input.value, '20');
   const select = cfg.body.children.find((c) => c.attrs && c.attrs.label === 'Fornecedor').attrs.input;
   select.value = '7';
@@ -246,4 +263,81 @@ test('7. reopening recalculates from persisted state and retains no stale local 
   // And the same need reopened twice is stable — no accumulation, no memo.
   const third = open(need('500.000', '180.500'), null);
   assert.equal(third.input.value, '319.5');
+});
+
+// =====================================================================
+// === OPERATOR-CHOSEN OC NUMBER (db/96) ===============================
+// The system neither generates nor suggests the purchase-order number.
+// Creating an order requires the operator to type it; reusing an existing
+// live draft for the same Pedido + supplier must never ask again.
+// =====================================================================
+
+test('OC-CODE 1. with no live draft the operator must type the number, and nothing is suggested', async () => {
+  const { open } = loadScreen();
+  const s = open(need('500.000', '0.000'), null, {});
+  s.pickSupplier(7);
+  const field = s.codeField();
+  assert.ok(field, 'the number field is offered when the order would be created');
+  assert.equal(field.attrs.input.value, '', 'no number is pre-filled or suggested');
+  assert.doesNotMatch(s.ocText(), /OC-\d{3}-\d/, 'no automatic sequence is proposed');
+  // Confirming without a number is refused locally; the RPC is never called.
+  assert.equal(await s.cfg.onSave(), false);
+  assert.equal(s.rpcCalls.length, 0);
+  assert.match(s.notices.at(-1).text, /Informe o número da ordem de compra/);
+});
+
+test('OC-CODE 2. the typed number reaches the RPC exactly as written', async () => {
+  const { open } = loadScreen();
+  const s = open(need('500.000', '0.000'), null, {});
+  s.pickSupplier(7);
+  s.codeField().attrs.input.value = 'PC 2026/0042-A';
+  s.input.value = '125.250';
+  assert.equal(await s.cfg.onSave(), true);
+  assert.equal(s.rpcCalls.length, 1);
+  assert.equal(s.rpcCalls[0].args.p_codigo_ordem, 'PC 2026/0042-A');
+  assert.equal(s.rpcCalls[0].args.p_kg_alocado, 125.25);
+});
+
+test('OC-CODE 3. an existing live draft is reused, names itself, and asks for no number', async () => {
+  const { open } = loadScreen();
+  const s = open(need('500.000', '0.000'), null, DRAFT_FOR_7);
+  s.pickSupplier(7);
+  assert.equal(s.codeField(), undefined, 'no number is requested when a draft is reused');
+  assert.match(s.ocText(), /PC 2026\/0042/, 'the modal names the order that will receive the allocation');
+  s.input.value = '10';
+  assert.equal(await s.cfg.onSave(), true);
+  assert.equal(s.rpcCalls[0].args.p_codigo_ordem, null, 'no code travels when reusing');
+});
+
+test('OC-CODE 4. a zero target never creates an order, so it never demands a number', async () => {
+  const { open } = loadScreen();
+  const s = open(need('500.000', '200.000'), { kg_alocado: '200.000', item: {} }, {});
+  s.pickSupplier(7);
+  s.input.value = '0';
+  assert.equal(await s.cfg.onSave(), true);
+  assert.equal(s.rpcCalls[0].args.p_codigo_ordem, null);
+});
+
+test('OC-CODE 5. duplicate and invalid code refusals are shown with their own wording', async () => {
+  for (const [codigo, re] of [
+    ['codigo_ordem_duplicado', /Já existe uma ordem de compra com este número/],
+    ['codigo_ordem_invalido', /até 40 caracteres/],
+    ['codigo_ordem_obrigatorio', /Informe o número da ordem de compra/],
+  ]) {
+    const screen = loadScreen();
+    screen.setRpcResult({ data: { ok: false, codigo }, error: null });
+    const s = screen.open(need('500.000', '0.000'), null, {});
+    s.pickSupplier(7);
+    s.codeField().attrs.input.value = 'PC 1';
+    s.input.value = '10';
+    assert.equal(await s.cfg.onSave(), false, codigo + ' must not close the modal');
+    assert.match(screen.notices.at(-1).text, re, 'wrong message for ' + codigo);
+  }
+});
+
+test('OC-CODE 6. before a supplier is chosen the modal states which case applies', () => {
+  const { open } = loadScreen();
+  const s = open(need('500.000', '0.000'), null, {});
+  assert.equal(s.codeField(), undefined, 'no number field before a supplier exists');
+  assert.match(s.ocText(), /Selecione o fornecedor/);
 });

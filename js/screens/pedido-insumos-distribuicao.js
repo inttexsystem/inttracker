@@ -33,6 +33,9 @@
       idempotencia_conflitante: 'Esta chave de comando já foi usada com uma ação diferente. Não repita como um novo comando.',
       necessidade_origem_invalida: 'A proveniência da necessidade está inconsistente.',
       pedido_incoerente: 'A necessidade não pertence ao Pedido informado.',
+      codigo_ordem_obrigatorio: 'Informe o número da ordem de compra para criar a ordem deste fornecedor.',
+      codigo_ordem_duplicado: 'Já existe uma ordem de compra com este número. Escolha outro.',
+      codigo_ordem_invalido: 'O número da ordem deve ter até 40 caracteres, sem espaço no início ou fim.',
       limpeza_conflitante: 'A remoção não pode limpar um item ou ordem com histórico.',
       alocacao_duplicada: 'Houve conflito de concorrência. Refaça a leitura antes de uma nova alteração.',
     };
@@ -51,10 +54,23 @@
     if (allocations.error) throw allocations.error;
     var suppliers = await window.supa.from('fornecedores').select('id, nome, tipo').order('nome');
     if (suppliers.error) throw suppliers.error;
+    // Rascunhos vivos deste Pedido, por fornecedor. E exatamente o mesmo
+    // criterio que o servidor usa para decidir entre REUTILIZAR e CRIAR
+    // (db/74/db/96: pedido + fornecedor + legado=false + rascunho), lido aqui
+    // so para dizer ao operador o que vai acontecer ANTES de ele confirmar.
+    // A decisao continua sendo do servidor: sem codigo ele recusa a criacao.
+    var drafts = await window.supa.from('ordem_compra')
+      .select('id, codigo, identidade_operacional, identidade_pedido_id, pedido_id, fornecedor_id')
+      .eq('pedido_id', pedidoId).eq('legado', false).eq('status_administrativo', 'rascunho');
+    if (drafts.error) throw drafts.error;
+    var draftBySupplier = {};
+    (drafts.data || []).forEach(function (row) {
+      if (row && row.fornecedor_id != null) draftBySupplier[String(row.fornecedor_id)] = row;
+    });
     (needs.data || []).forEach(function (need) {
       need.alocacoes = (allocations.data || []).filter(function (row) { return Number(row.necessidade_id) === Number(need.id); });
     });
-    return { needs: needs.data || [], suppliers: suppliers.data || [] };
+    return { needs: needs.data || [], suppliers: suppliers.data || [], draftBySupplier: draftBySupplier };
   }
 
   // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: a necessidade de compra atribui
@@ -139,22 +155,59 @@
     return card;
   }
 
-  function openModal(need, allocation, suppliers, onDone, setNotice) {
+  function openModal(need, allocation, suppliers, draftBySupplier, onDone, setNotice) {
     var order = orderFrom(allocation) || {};
     var selectedSupplier = order.fornecedor_id || '';
     var supplierType = need.material === 'algodao' ? 'fio_algodao' : 'fio_poliester';
     var validSuppliers = suppliers.filter(function (supplier) { return supplier.tipo === supplierType; });
     var supplier = window.selectInput({ options: validSuppliers.map(function (item) { return { value: item.id, label: item.nome }; }), value: selectedSupplier, placeholder: 'Selecione o fornecedor...' });
+
+    // NUMERO DA ORDEM (db/96): o sistema NAO escolhe e NAO sugere. Quando a
+    // alocacao vai criar uma ordem para este fornecedor, o operador digita o
+    // codigo visivel; quando ja existe um rascunho vivo, ele e reutilizado e
+    // nada e perguntado. O bloco abaixo apenas ANTECIPA qual dos dois casos e
+    // — a decisao final continua sendo do servidor.
+    var codigoInput = el('input', {
+      type: 'text', maxlength: '40', autocomplete: 'off',
+      placeholder: 'Ex.: PC 2026/0042',
+      style: 'border-radius:var(--rv-radius);', class: 'w-full border px-3 py-2',
+    });
+    var ocBlock = el('div', {});
+    function draftFor(supplierId) {
+      return supplierId ? draftBySupplier[String(supplierId)] : null;
+    }
+    function renderOcBlock() {
+      var existing = draftFor(supplier.value);
+      if (!supplier.value) {
+        ocBlock.replaceChildren(el('div', { style: 'border-radius:var(--rv-radius);', class: 'text-xs text-gray-500 bg-gray-50 p-3' },
+          'Selecione o fornecedor para saber se a alocação entra numa ordem existente ou cria uma nova.'));
+        return;
+      }
+      if (existing) {
+        var nome = window.RAVATEX_OP_DISPLAY.formatOcOperationalCode(existing);
+        ocBlock.replaceChildren(el('div', { id: 'oc-reaproveitada', style: 'border-radius:var(--rv-radius);', class: 'text-xs text-gray-700 bg-gray-50 p-3' },
+          'Esta alocação entra na ordem de compra existente ' + nome + '. Nenhum número novo é necessário.'));
+        return;
+      }
+      ocBlock.replaceChildren(
+        window.formField({ label: 'Número da ordem de compra', input: codigoInput }),
+        el('div', { class: 'text-xs text-gray-500 mt-1' },
+          'Ainda não existe ordem em rascunho para este fornecedor neste Pedido. '
+          + 'Informe o número que a ordem terá — ele é gravado exatamente como digitado.'));
+    }
+    supplier.addEventListener('change', renderOcBlock);
     var target = el('input', { type: 'number', min: '0', step: '0.001', value: targetFieldValue(need, allocation), style: 'border-radius:var(--rv-radius);', class: 'w-full border px-3 py-2' });
     var current = allocation ? Number(allocation.kg_alocado) : 0;
     var body = el('div', { class: 'space-y-3' },
       el('div', { class: 'text-sm text-gray-700' }, materialLabel(need) + ' · ' + needLabel(need)),
       window.formField({ label: 'Fornecedor', input: supplier }),
+      ocBlock,
       window.formField({ label: 'Quantidade alvo absoluta (kg)', input: target }),
       el('div', { style: 'border-radius:var(--rv-radius);', class: 'text-xs text-gray-500 bg-gray-50 p-3' },
         'Necessário: ' + kg(need.kg_necessario) + ' · total alocado: ' + kg(need.kg_alocado)
         + ' · neste fornecedor: ' + kg(current) + ' · restante atual: ' + kg(distributableBalance(need, null))
         + '. Use zero para remover esta alocação.'));
+    renderOcBlock();
     var command = { key: commandKey(), submitting: false };
     window.modal({
       title: 'Distribuir necessidade', body: body, saveLabel: 'Confirmar alvo',
@@ -166,12 +219,23 @@
           setNotice('error', 'Informe fornecedor e quantidade alvo válida.');
           return false;
         }
+        // O codigo so viaja quando a ordem sera criada. Reutilizar um rascunho
+        // existente nao pede numero, e enviar um seria oferecer um dado que o
+        // servidor ignora. Um alvo 0 tambem nunca cria ordem.
+        var criaOrdem = !draftFor(supplierId) && targetKg > 0;
+        var digitado = codigoInput.value == null ? '' : String(codigoInput.value);
+        var codigo = criaOrdem ? digitado : null;
+        if (criaOrdem && codigo.trim() === '') {
+          setNotice('error', errorText('codigo_ordem_obrigatorio'));
+          return false;
+        }
         command.submitting = true;
         var result;
         try {
           result = await window.supa.rpc('definir_alocacao_necessidade_compra_fio', {
             p_necessidade_id: Number(need.id), p_fornecedor_id: supplierId,
             p_kg_alocado: targetKg, p_idempotency_key: command.key,
+            p_codigo_ordem: codigo,
           });
         } catch (error) {
           command.submitting = false;
@@ -209,7 +273,7 @@
             el('div', {}, el('h1', { style: 'font-size:var(--rv-fs-title);', class: 'font-bold' }, 'Insumos — distribuição de compra'), el('div', { class: 'text-sm text-gray-500 mt-1' }, 'Defina fornecedores e quantidades alvo por necessidade do Pedido.')),
             el('button', { type: 'button', class: 'text-blue-700 font-semibold', onclick: function () { window.navigate('#/pedidos/' + pedidoId); } }, 'Voltar ao Pedido')));
         if (!data.needs.length) body.appendChild(el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-6 text-gray-500' }, 'Nenhuma necessidade nativa disponível para este Pedido.'));
-        data.needs.forEach(function (need) { body.appendChild(renderNeed(need, function (selected, allocation) { openModal(selected, allocation, data.suppliers, reload, setNotice); })); });
+        data.needs.forEach(function (need) { body.appendChild(renderNeed(need, function (selected, allocation) { openModal(selected, allocation, data.suppliers, data.draftBySupplier, reload, setNotice); })); });
         root.replaceChildren(body);
       } catch (error) {
         setNotice('error', 'Não foi possível carregar a distribuição. Tente novamente.');
