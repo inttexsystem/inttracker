@@ -21,9 +21,9 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Current objective
 
-- Status: `MIGRATED / PUBLISHED / SMOKED AT THE DATA AND ASSET LEVEL / AWAITING SUPERVISOR VISUAL REVIEW AND ACCEPTANCE`
-- Objective: Publish the canonical OP and purchase-order identity refoundation as one coordinated release: pre-cutover corrective commit, verified production backup, db/95 applied exactly once to ucrjtfswnfdlxwtmxnoo, and the frontend chain published through staging/dev with Git-triggered Vercel deployment.
-- Next authorizable action: `SUPERVISOR VISUAL SMOKE AND ACCEPTANCE OF OP-CANONICAL-IDENTITY-PRODUCTION-CUTOVER-R1` / `AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED`
+- Status: `MIGRATED / PUBLISHED / DEPLOYED / SMOKED AT THE DATABASE, ASSET AND SCHEMA-CACHE LEVEL / AWAITING SUPERVISOR AUTHENTICATED VISUAL AND USER-FLOW REVIEW AND ACCEPTANCE`
+- Objective: Publish the accepted Purchase Planning refoundation as one coordinated backend-first cutover: reconcile the section 14 contract defect, apply db/99 exactly once to ucrjtfswnfdlxwtmxnoo, publish the final implementation commit through staging/dev, and verify the Git-triggered Vercel deployment.
+- Next authorizable action: `SUPERVISOR AUTHENTICATED REVIEW AND ACCEPTANCE OF PURCHASE-PLANNING-REFOUNDATION-R1-PRODUCTION-CUTOVER` / `AWAITING SUPERVISOR REVIEW; NO PHASE IS CHAINED AND NO PRODUCT PHASE FOLLOWS AUTOMATICALLY`
 
 ## Blockers and decisions
 
@@ -36,7 +36,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 ## Task-specific pointers
 
-- `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::OP canonical identity — persisted, unique and immutable (db/95)`
+- `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::## 14. Purchase planning — the stage that had no entity (db/99)`
 - `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md::## §R.31 Active Phase-C continuation requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### 13.17 Active Phase-C schema requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md::# Update 2026-07-22 - C5-DOCUMENTATION-CLOSEOUT-R1 (PHASE-C5 supervisor acceptance and closeout; OC-C5-EMISSION-001 SATISFIED)`
