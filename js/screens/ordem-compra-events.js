@@ -64,7 +64,13 @@
   ns.createEvents = function (ctx) {
     var state = ctx.state || {};
     var reload = ctx.reload;
-    var ordem = state.ordem || {};
+    // NAO capture aqui nenhum campo de `state`. screenOrdemCompra chama esta
+    // fabrica ANTES de loadOrdemDetail, e os carregadores REATRIBUEM
+    // `state.ordem` — um `var ordem = state.ordem || {}` a esta altura congela
+    // o valor inicial nulo para sempre. Foi exatamente isso que quebrou o
+    // cancelamento (p_ordem_id: undefined -> PGRST202 -> erro generico).
+    // Guarde apenas o CONTAINER `state` e leia `state.<campo>` no momento do
+    // clique, ou receba o registro atual como argumento do handler.
 
     // Local, in-memory emission attempt tracker (contract §9/§13). Its token is
     // NEVER transmitted (emitir_ordem_compra has no idempotency parameter); it is
