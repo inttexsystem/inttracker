@@ -212,9 +212,36 @@ test('OC: vinculada ao Pedido sem identidade FALHA FECHADA', () => {
 test('OC: legada sem Pedido se declara legada, nao expoe a chave crua como nome', () => {
   const api = loadApi();
   const label = api.formatOcOperationalCode({ id: 48 });
-  assert.equal(label, 'OC legada #48');
+  assert.equal(label, 'OC legada (sem Pedido)');
   assert.ok(/legada/.test(label),
     'uma OC sem Pedido deve se declarar legada em vez de usar o id como nome de negocio');
+  // O rotulo e INTENCIONALMENTE NAO NUMERADO: nenhum digito da chave primaria
+  // pode sobreviver nele, para nenhum id. A assercao anterior fixava
+  // literalmente 'OC legada #48' e portanto contradizia a vizinha, que exige
+  // que a chave primaria nunca apareca como nome.
+  for (const id of [1, 48, 50, 137, 999999]) {
+    const l = api.formatOcOperationalCode({ id });
+    assert.equal(l, 'OC legada (sem Pedido)',
+      'o rotulo legado nao pode variar com a chave primaria');
+    assert.equal(/\d/.test(l), false,
+      'nenhum digito da chave primaria pode aparecer no rotulo legado: ' + l);
+  }
+});
+
+test('OC: nenhum id de ordem_compra sobrevive em qualquer estado do resolvedor', () => {
+  const api = loadApi();
+  // Os tres estados possiveis, mais o vazio. Nenhum pode conter a chave.
+  const casos = [
+    { id: 50, identidade_operacional: 'OC-005-2-26' },
+    { id: 50, pedido_id: 'p1' },
+    { id: 50 },
+    null,
+  ];
+  for (const oc of casos) {
+    const l = api.formatOcOperationalCode(oc);
+    assert.equal(l.includes('50'), false,
+      'a chave primaria 50 aparece no rotulo: ' + l);
+  }
 });
 
 // ---------------------------------------------------------------------

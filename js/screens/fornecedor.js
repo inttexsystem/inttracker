@@ -114,7 +114,11 @@
       const itens = entrega.entrega_itens || [];
       const opId = itens[0]?.op_id;
       const opRef = opsCarregadas.find(o => o.id === opId);
-      const opLabel = opRef ? window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(opRef) : (opId ? '#' + opId : '?');
+      // OP nao presente no conjunto carregado: estado diagnostico explicito do
+      // dono central, NUNCA `ops.id`. A chave primaria nao e nome de negocio.
+      const opLabel = opRef
+        ? window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(opRef)
+        : (opId != null ? window.RAVATEX_OP_DISPLAY.IDENTITY_PENDING : window.RAVATEX_OP_DISPLAY.IDENTITY_ABSENT);
 
       const wrap = window.el('div', { class: 'border-b py-3' });
       wrap.appendChild(window.el('div', { class: 'flex items-center justify-between' },
@@ -390,7 +394,11 @@
           const itens = entrega.entrega_itens || [];
           const opId = itens[0]?.op_id;
           const opRef = opsById[opId];
-          const opLabel = opRef ? window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(opRef) : (opId ? '#' + opId : '?');
+          // Mesma regra da tela de latex: sem a linha da OP, estado diagnostico
+          // explicito, nunca `ops.id`.
+          const opLabel = opRef
+            ? window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(opRef)
+            : (opId != null ? window.RAVATEX_OP_DISPLAY.IDENTITY_PENDING : window.RAVATEX_OP_DISPLAY.IDENTITY_ABSENT);
           const wrap = window.el('div', { class: 'border-b py-3' });
           wrap.appendChild(window.el('div', { class: 'flex items-center justify-between' },
             window.el('div', {},

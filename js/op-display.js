@@ -137,11 +137,26 @@
   // nome. db/95 deu a ela o codigo que deveria ter sempre tido.
   // ===================================================================
 
-  // OC legada sem Pedido: NAO existe identidade derivada. Rotulamos como
-  // legada de forma explicita em vez de expor a chave primaria como nome.
+  // OC legada sem Pedido: NAO existe identidade derivada, e nenhuma pode ser
+  // fabricada — inventar um vinculo de Pedido para uma ordem historica que
+  // genuinamente nao tem Pedido seria mentir sobre a origem da compra.
+  //
+  // O rotulo e INTENCIONALMENTE NAO NUMERADO. A chave primaria (`ordem_compra.id`,
+  // um BIGSERIAL interno) nao e identidade de negocio e nao volta pela porta do
+  // fallback: era exatamente ela que as telas de distribuicao e recebimento
+  // imprimiam como se fosse nome (`OC #48`). Um numero interno exibido e
+  // indistinguivel, para o operador, de um numero de negocio — e foi essa
+  // ambiguidade que a refundacao existiu para eliminar.
+  //
+  // O modelo de dados nao oferece alternativa numerada honesta: uma OC legada
+  // e caracterizada por `legado = TRUE` e `legado_provenance` (db/67), que e
+  // PROVENIENCIA, nao identidade — nao distingue duas OCs legadas entre si.
+  // Declarar a condicao e a resposta honesta; numerar seria inventar.
+  var OC_LEGACY_LABEL = 'OC legada (sem Pedido)';
+
   function formatOcLegacyLabel(oc) {
     if (!oc || oc.id == null) return 'OC -';
-    return 'OC legada #' + oc.id;
+    return OC_LEGACY_LABEL;
   }
 
   function formatOcOperationalCode(oc) {
@@ -229,6 +244,7 @@
 
   var api = {
     IDENTITY_PENDING: IDENTITY_PENDING,
+    IDENTITY_ABSENT: IDENTITY_ABSENT,
     getOpTypeLetter: getOpTypeLetter,
     getCanonicalIdentity: getCanonicalIdentity,
     isIdentityPending: isIdentityPending,

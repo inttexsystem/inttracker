@@ -73,9 +73,26 @@ test('guard 1 — nenhuma superficie de produto concatena op.numero com op.ano',
 
 test('guard 2 — nenhuma superficie usa a chave primaria como nome de OP/OC', () => {
   // `'OP ' + opId`, `'OP ' + op.id`, `'OC #' + ordem.id` em posicao de rotulo.
+  //
+  // FORWARD CORRECTION (cutover de producao): os dois primeiros padroes exigem
+  // o prefixo literal "OP"/"OC" e por isso NAO viam a forma NUA — `'#' + opId`
+  // sozinho, que o portal do fornecedor usava nas suas DUAS telas de historico
+  // quando a linha da OP nao estava no conjunto carregado. Visualmente `#137` e
+  // indistinguivel de um numero de negocio, entao e a mesma classe de defeito
+  // e nao uma variante benigna.
+  //
+  // O padrao e ancorado no NOME do identificador de OP/OC de proposito: `'#' +
+  // pedido.numero` e `'#' + it.modelo_id` sao outros dominios, legitimos, e um
+  // banimento cego de `'#' + x` os quebraria sem provar nada sobre identidade
+  // de OP.
   const PATTERNS = [
     /['"`]OP\s+['"`]\s*\+\s*[A-Za-z_$][\w$]*(\.id)?\b/,
     /['"`]OP\s*#?\s*\$\{[A-Za-z_$][\w$]*(\.id)?\}/,
+    /['"`]#['"`]\s*\+\s*(opId|op_id|ocId|oc_id)\b/,
+    /['"`]#['"`]\s*\+\s*[A-Za-z_$][\w$]*\.(op_id|oc_id)\b/,
+    /['"`]#['"`]\s*\+\s*(op|oc|ordem|opRef)\.id\b/,
+    /#\$\{\s*(opId|op_id|ocId|oc_id)\s*\}/,
+    /#\$\{\s*(op|oc|ordem|opRef)\.id\s*\}/,
   ];
   const offenders = [];
   for (const file of productFiles()) {
