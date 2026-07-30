@@ -627,6 +627,14 @@
         discardDraft(need);
         delete state.editing[String(need.necessidade_id)];
         await reload();
+        // reload() troca state.data e ZERA state.drafts. Sem repintar aqui, o
+        // cartao continua exibindo os nos do rascunho ja descartado: o operador
+        // ve fornecedor e quantidade preenchidos, as tres figuras ainda em
+        // 0,000 planejado, conclui que a gravacao falhou e clica de novo — e o
+        // segundo clique monta um rascunho NOVO e vazio a partir do `need`
+        // velho, caindo na recusa "linha incompleta" contra uma linha que a
+        // tela mesma acabou de recriar. A gravacao tinha funcionado.
+        render();
         setNotice('success', 'Distribuição salva. Nenhum Pedido de Compra foi criado.');
       } finally {
         state.busy = false;
@@ -783,6 +791,9 @@
             return false;
           }
           await reload();
+          // Mesmo motivo do salvar de um cartao: sem repintar, a fila inteira
+          // continua mostrando o estado anterior a distribuicao rapida.
+          render();
           setNotice('success', result.necessidades_aplicadas + ' necessidade(s) distribuída(s). Nenhum Pedido de Compra foi criado.');
           return true;
         },

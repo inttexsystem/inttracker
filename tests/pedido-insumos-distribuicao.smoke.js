@@ -573,3 +573,386 @@ test('an unknown code still degrades to an honest sentence', () => {
   assert.equal(api.errorText('coisa_nova'), 'Não foi possível concluir a operação.');
   assert.equal(api.errorText('coisa_nova', 'Servidor indisponível.'), 'Servidor indisponível.');
 });
+
+// =====================================================================
+// 10. BEHAVIOURAL REGRESSION — REPAINT AFTER A SUCCESSFUL SAVE
+//
+// PURCHASE-PLANNING-REPAINT-FIX.
+//
+// Everything above proves SHAPE against a stub tree rendered once. This
+// section proves BEHAVIOUR OVER TIME against the REAL primitives, because the
+// defect it guards could not exist in a single render and could not be seen
+// through an `rv-select` placeholder.
+//
+// The defect: submitDraft() awaited reload(), which swaps state.data and
+// CLEARS state.drafts, but never repainted. The card stayed bound to the
+// discarded draft — still Pendente, still Planejado 0,000, still an editable
+// row showing the supplier and quantity the operator had just typed — so the
+// save looked like it had failed. The second click then rebuilt a fresh draft
+// from the stale `need` (supplier empty, quantity prefilled to the balance)
+// and refused it as an incomplete line. The write had already succeeded.
+//
+// These tests drive the shipped select popover, the shipped text input and the
+// shipped button handlers through real event sequences, and observe the screen
+// AFTER the asynchronous write and the authoritative reload.
+// =====================================================================
+
+const { createScreenHarness } = require('./_screen-harness.js');
+
+const FORNECEDORES = [
+  { fornecedor_id: 4, nome: 'Fios Import’s', tipo: 'fio_algodao' },
+  { fornecedor_id: 22, nome: 'Avanti Fios', tipo: 'fio_poliester' },
+];
+
+const PEDIDO_ID = 'acba351f-727e-4d11-a57c-1793e3fb2a16';
+
+// An authoritative server double: it OWNS the projection, exactly as db/99
+// does. The screen may only learn the new totals by reloading from it, so a
+// test that sees 500,000 kg has necessarily proven a real reload plus a real
+// repaint — it cannot be satisfied by local optimism.
+function makeServer(needs) {
+  const rows = new Map(needs.map((n) => [n.necessidade_id, []]));
+  const meta = new Map(needs.map((n) => [n.necessidade_id, n]));
+  let nextId = 1;
+
+  function project(id) {
+    const base = meta.get(id);
+    const lines = rows.get(id);
+    const planejado = lines.reduce((s, l) => s + Number(l.kg), 0);
+    const restante = Math.round((Number(base.kg_necessario) - planejado) * 1000) / 1000;
+    return Object.assign({}, base, {
+      kg_necessario: Number(base.kg_necessario).toFixed(3),
+      kg_planejado: planejado.toFixed(3),
+      kg_restante: restante.toFixed(3),
+      situacao: planejado === 0 ? 'pendente' : (restante > 0 ? 'parcial' : 'distribuido'),
+      planejamentos: lines.map((l) => ({
+        planejamento_id: l.id,
+        fornecedor_id: l.fornecedor_id,
+        fornecedor_nome: (FORNECEDORES.find((f) => f.fornecedor_id === l.fornecedor_id) || {}).nome,
+        kg_planejado: Number(l.kg).toFixed(3),
+        gerado: false,
+        ordem_compra_id: null,
+      })),
+    });
+  }
+
+  return {
+    rows,
+    rpc: async (name, params) => {
+      if (name === 'obter_planejamento_compra_pedido') {
+        return {
+          data: {
+            ok: true,
+            codigo: 'ok',
+            pedido_id: PEDIDO_ID,
+            necessidades: [...meta.keys()].map(project),
+            fornecedores: FORNECEDORES,
+          },
+          error: null,
+        };
+      }
+      if (name === 'substituir_planejamento_compra_necessidade') {
+        rows.set(
+          params.p_necessidade_id,
+          params.p_linhas.map((l) => ({ id: nextId++, fornecedor_id: l.fornecedor_id, kg: l.kg })),
+        );
+        return { data: { ok: true, codigo: 'ok' }, error: null };
+      }
+      if (name === 'aplicar_planejamento_rapido') {
+        for (const item of params.p_itens) {
+          const base = meta.get(item.necessidade_id);
+          const current = rows.get(item.necessidade_id);
+          const planned = current.reduce((s, l) => s + Number(l.kg), 0);
+          const kg = item.kg === undefined
+            ? Math.round((Number(base.kg_necessario) - planned) * 1000) / 1000
+            : item.kg;
+          current.push({ id: nextId++, fornecedor_id: params.p_fornecedor_id, kg });
+        }
+        return {
+          data: { ok: true, codigo: 'ok', necessidades_aplicadas: params.p_itens.length },
+          error: null,
+        };
+      }
+      return { data: { ok: true, codigo: 'ok' }, error: null };
+    },
+  };
+}
+
+const NEED_145 = {
+  necessidade_id: 145,
+  origem_tipo: 'op',
+  op_identidade: 'OP-T001-1-26',
+  material: 'algodao',
+  cor_nome: 'KRAFT',
+  kg_necessario: 1024.8,
+};
+
+async function mountPlanning(needs) {
+  const server = makeServer(needs);
+  const h = createScreenHarness({
+    files: ['js/screens/pedido-insumos-distribuicao.js'],
+    rpc: server.rpc,
+  });
+  h.mount(await h.win.screenPedidoInsumosDistribuicao(PEDIDO_ID));
+  await h.settle();
+  return { h, server };
+}
+
+// The three obligatory figures — Necessário / Planejado / Restante — read off
+// the rendered card in DOM order. They are the first three `.tnum` nodes: the
+// figure grid renders before the body, whose saved rows carry `.tnum` too.
+function figuresOf(h, card) {
+  return h.findAll((n) => n.className === 'tnum', card).slice(0, 3).map((n) => h.textOf(n));
+}
+const cardOf = (h) => h.findOne(h.byAttr('data-necessidade-id'));
+// js/ui.js::modal() appends its overlay to document.body, OUTSIDE the screen
+// tree, and the screen's own cards also contain popover triggers. Every modal
+// query must therefore be scoped to the overlay or it silently reads the card.
+const modalOf = (h) => h.findOne(
+  (n) => typeof n.className === 'string' && n.className.includes('inset-0'),
+);
+const zeroRowOf = (h) => h.findOne(h.byAttr('data-rv-planning-row-zero'));
+const noticeText = (h) => h.textOf(
+  h.findOne((n) => n.getAttribute && n.getAttribute('id') === 'pedido-insumos-distribuicao-notice'),
+);
+const FALSE_WARNING = /Informe fornecedor e quantidade em cada distribuição/;
+
+test('B1. the real select popover is what the screen renders, not a native select', async () => {
+  const { h } = await mountPlanning([NEED_145]);
+  const trigger = zeroRowOf(h).children[0];
+  assert.equal(trigger.tagName, 'BUTTON', 'the supplier control is the popover trigger');
+  assert.equal(trigger.getAttribute('data-rv-select-popover'), '1');
+  assert.equal(trigger.getAttribute('role'), 'combobox');
+  assert.equal(trigger.value, '', 'it starts on the empty placeholder state');
+});
+
+test('B2. selecting through the real popover updates the business value', async () => {
+  const { h } = await mountPlanning([NEED_145]);
+  const trigger = zeroRowOf(h).children[0];
+
+  // Only the compatible supplier is offered: the need is cotton.
+  h.click(trigger);
+  const offered = h.findAll(h.byAttr('data-rv-select-option'), h.openPanel())
+    .map((o) => o.getAttribute('data-rv-option-value'));
+  assert.deepEqual(offered, ['', '4'], 'placeholder plus the one cotton supplier');
+  h.click(h.findOne(
+    (n) => n.getAttribute && n.getAttribute('data-rv-option-value') === '4', h.openPanel(),
+  ));
+
+  assert.equal(trigger.value, '4', 'the popover committed the value');
+  assert.equal(h.openPanel(), null, 'and closed');
+});
+
+test('B3. first click saves, the card repaints from the server, and the stale row is gone', async () => {
+  const { h, server } = await mountPlanning([NEED_145]);
+
+  // --- 1. before any interaction ------------------------------------
+  let card = cardOf(h);
+  assert.equal(card.getAttribute('data-rv-situacao'), 'pendente');
+  assert.deepEqual(figuresOf(h, card), ['1024,800 kg', '0,000 kg', '1024,800 kg']);
+  assert.ok(zeroRowOf(h), 'the zero-state editable row is present');
+
+  // --- 2 & 3. real interaction --------------------------------------
+  const row = zeroRowOf(h);
+  h.pickOption(row.children[0], 4);
+  h.type(row.children[1], '500');
+
+  // --- 4. the first Distribuir click sends exactly one line ----------
+  const distribuir = row.children[3];
+  assert.equal(h.textOf(distribuir), 'Distribuir');
+  h.click(distribuir);
+  await h.settle();
+  await h.settle();
+
+  const write = h.rpcCalls.filter((c) => c.name === 'substituir_planejamento_compra_necessidade');
+  assert.equal(write.length, 1, 'exactly one write');
+  assert.equal(write[0].params.p_necessidade_id, 145);
+  assert.deepEqual(write[0].params.p_linhas, [{ fornecedor_id: 4, kg: 500 }]);
+
+  // --- 5 & 6. the write landed and the projection was re-read --------
+  assert.equal(server.rows.get(145).length, 1, 'the server persisted the line');
+  assert.equal(
+    h.rpcCalls.filter((c) => c.name === 'obter_planejamento_compra_pedido').length, 2,
+    'the authoritative projection was reloaded after the write',
+  );
+
+  // --- 7 & 8. the screen repainted from that projection --------------
+  card = cardOf(h);
+  assert.equal(card.getAttribute('data-rv-situacao'), 'parcial');
+  assert.match(h.textOf(card), /Parcialmente distribuído/);
+  assert.deepEqual(figuresOf(h, card), ['1024,800 kg', '500,000 kg', '524,800 kg'],
+    'Necessário / Planejado / Restante all came from the server');
+
+  const saved = h.findAll(h.byAttr('data-rv-planning-row'), card);
+  assert.equal(saved.length, 1, 'one saved distribution row');
+  assert.match(h.textOf(saved[0]), /Fios Import/);
+  assert.match(h.textOf(saved[0]), /500,000 kg/);
+
+  assert.equal(zeroRowOf(h), null, 'the stale editable row no longer exists');
+  assert.ok(h.findOne(h.buttonLabelled('Alterar distribuição'), card), 'the read state offers editing');
+  assert.doesNotMatch(noticeText(h), FALSE_WARNING);
+  assert.match(noticeText(h), /Distribuição salva/);
+});
+
+test('B4. the false incomplete-line warning cannot be reproduced after a successful save', async () => {
+  const { h } = await mountPlanning([NEED_145]);
+  const row = zeroRowOf(h);
+  h.pickOption(row.children[0], 4);
+  h.type(row.children[1], '500');
+  h.click(row.children[3]);
+  await h.settle();
+  await h.settle();
+
+  // This is the exact defect. The operator, seeing an apparently unchanged
+  // card, clicks the SAME still-visible Distribuir again. Query the LIVE tree:
+  // a detached node kept from before the save would still answer its closure
+  // and would prove nothing about what is on screen.
+  const live = zeroRowOf(h);
+  if (live) {
+    h.click(live.children[3]);
+    await h.settle();
+    await h.settle();
+    assert.doesNotMatch(noticeText(h), FALSE_WARNING,
+      'clicking the still-visible Distribuir after a successful save raised the false '
+      + 'incomplete-line refusal — the card was never repainted');
+  }
+  assert.equal(zeroRowOf(h), null, 'no stale editable row survives a successful save');
+
+  // The one action the repainted card does offer must not raise it either.
+  const alterar = h.findOne(h.buttonLabelled('Alterar distribuição'), cardOf(h));
+  assert.ok(alterar, 'the repainted card offers editing');
+  h.click(alterar);
+  await h.settle();
+  assert.doesNotMatch(noticeText(h), FALSE_WARNING);
+});
+
+test('B5. a second interaction operates on the refreshed projection', async () => {
+  const { h, server } = await mountPlanning([NEED_145]);
+  const row = zeroRowOf(h);
+  h.pickOption(row.children[0], 4);
+  h.type(row.children[1], '500');
+  h.click(row.children[3]);
+  await h.settle();
+  await h.settle();
+
+  // Re-enter editing: the draft must be seeded from the SAVED line, not from
+  // the stale pre-save need.
+  h.click(h.findOne(h.buttonLabelled('Alterar distribuição'), cardOf(h)));
+  await h.settle();
+
+  const editRows = h.findAll(h.byAttr('data-rv-planning-row'), cardOf(h));
+  assert.equal(editRows.length, 1);
+  assert.equal(editRows[0].children[0].value, '4', 'the saved supplier is preselected');
+  assert.equal(editRows[0].children[1].value, '500.000', 'the saved quantity is preselected');
+
+  h.type(editRows[0].children[1], '600');
+  h.click(h.findOne(h.buttonLabelled('Salvar'), cardOf(h)));
+  await h.settle();
+  await h.settle();
+
+  const writes = h.rpcCalls.filter((c) => c.name === 'substituir_planejamento_compra_necessidade');
+  assert.equal(writes.length, 2);
+  assert.deepEqual(writes[1].params.p_linhas, [{ fornecedor_id: 4, kg: 600 }]);
+  assert.equal(Number(server.rows.get(145)[0].kg), 600, 'the server holds the new value');
+
+  // ...and the second save repaints too.
+  assert.deepEqual(figuresOf(h, cardOf(h)), ['1024,800 kg', '600,000 kg', '424,800 kg']);
+  assert.equal(zeroRowOf(h), null);
+  assert.doesNotMatch(noticeText(h), FALSE_WARNING);
+});
+
+test('B6. quick distribution repaints the queue after saving', async () => {
+  const NEED_146 = Object.assign({}, NEED_145,
+    { necessidade_id: 146, cor_nome: 'CRU', kg_necessario: 300 });
+  const { h, server } = await mountPlanning([NEED_145, NEED_146]);
+
+  const before = h.findAll(h.byAttr('data-necessidade-id'))
+    .map((c) => c.getAttribute('data-rv-situacao'));
+  assert.deepEqual(before, ['pendente', 'pendente']);
+
+  h.click(h.findOne(h.buttonLabelled('Distribuição rápida')));
+  await h.settle();
+
+  // The real modal is open; drive its real controls.
+  const overlay = modalOf(h);
+  assert.ok(overlay, 'the quick-planning modal opened');
+  const supplier = h.findOne(h.byAttr('data-rv-select-popover'), overlay);
+  h.pickOption(supplier, 4);
+
+  const modes = h.findAll(h.byAttr('data-rv-quick-mode'), overlay);
+  assert.deepEqual(modes.map((m) => m.getAttribute('data-rv-quick-mode')), ['exato', 'ajustado']);
+  assert.equal(modes[0].getAttribute('aria-pressed'), 'true', 'exact balance is the default mode');
+
+  const quickRows = h.findAll(h.byAttr('data-rv-quick-row'), overlay);
+  assert.equal(quickRows.length, 2, 'both cotton needs are eligible');
+  const box = h.findOne(
+    (n) => n.tagName === 'INPUT' && n.getAttribute('type') === 'checkbox', quickRows[0],
+  );
+  box.checked = true;
+  h.fire(box, 'change', { target: box });
+
+  h.click(h.findOne(h.buttonLabelled('Aplicar'), overlay));
+  await h.settle();
+  await h.settle();
+  await h.settle();
+
+  const quick = h.rpcCalls.filter((c) => c.name === 'aplicar_planejamento_rapido');
+  assert.equal(quick.length, 1);
+  assert.equal(quick[0].params.p_fornecedor_id, 4);
+  assert.deepEqual(quick[0].params.p_itens, [{ necessidade_id: 145 }],
+    'exact-balance mode sends no kg, so the server fills the whole balance');
+
+  assert.equal(server.rows.get(145).length, 1);
+  assert.equal(Number(server.rows.get(145)[0].kg), 1024.8);
+
+  // The queue repainted from the refreshed projection.
+  const after = h.findAll(h.byAttr('data-necessidade-id'));
+  assert.equal(after[0].getAttribute('data-rv-situacao'), 'distribuido',
+    'the distributed need repainted; no stale pre-save card remains');
+  assert.deepEqual(figuresOf(h, after[0]), ['1024,800 kg', '1024,800 kg', '0,000 kg']);
+  assert.equal(after[1].getAttribute('data-rv-situacao'), 'pendente', 'the untouched need is unchanged');
+  assert.match(noticeText(h), /1 necessidade\(s\) distribuída\(s\)/);
+
+  // A second interaction uses the refreshed projection: the distributed card
+  // no longer offers a zero-state row, and the other one still does.
+  assert.equal(h.findAll(h.byAttr('data-rv-planning-row-zero'), after[0]).length, 0);
+  assert.equal(h.findAll(h.byAttr('data-rv-planning-row-zero'), after[1]).length, 1);
+});
+
+test('B7. adjusted-quantity mode sends the operator quantity and validates it', async () => {
+  const { h } = await mountPlanning([NEED_145]);
+  h.click(h.findOne(h.buttonLabelled('Distribuição rápida')));
+  await h.settle();
+
+  const overlay = modalOf(h);
+  h.pickOption(h.findOne(h.byAttr('data-rv-select-popover'), overlay), 4);
+  h.click(h.findOne(
+    (n) => n.getAttribute && n.getAttribute('data-rv-quick-mode') === 'ajustado', overlay,
+  ));
+
+  const quickRow = h.findOne(h.byAttr('data-rv-quick-row'), overlay);
+  const qty = h.findOne((n) => n.tagName === 'INPUT' && n.getAttribute('type') === 'number', quickRow);
+  const box = h.findOne((n) => n.tagName === 'INPUT' && n.getAttribute('type') === 'checkbox', quickRow);
+
+  // An invalid quantity is refused before any RPC. Checking the box captures
+  // the row's current quantity, so the box must be ticked before typing.
+  box.checked = true;
+  h.fire(box, 'change', { target: box });
+  h.type(qty, '0');
+  h.click(h.findOne(h.buttonLabelled('Aplicar'), overlay));
+  await h.settle();
+  assert.equal(h.rpcCalls.filter((c) => c.name === 'aplicar_planejamento_rapido').length, 0,
+    'a non-positive quantity never reaches the server');
+  assert.match(noticeText(h), /quantidade válida/);
+
+  // A valid one is sent verbatim.
+  h.type(qty, '250.5');
+  h.click(h.findOne(h.buttonLabelled('Aplicar'), overlay));
+  await h.settle();
+  await h.settle();
+
+  const quick = h.rpcCalls.filter((c) => c.name === 'aplicar_planejamento_rapido');
+  assert.equal(quick.length, 1);
+  assert.deepEqual(quick[0].params.p_itens, [{ necessidade_id: 145, kg: 250.5 }]);
+  assert.deepEqual(figuresOf(h, cardOf(h)), ['1024,800 kg', '250,500 kg', '774,300 kg']);
+});

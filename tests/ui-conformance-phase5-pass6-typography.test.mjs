@@ -847,9 +847,25 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   const BRAND_CHANGED = [
     'js/screens/common.js', 'js/screens/system-screens.js',
   ];
+  /*
+   * PURCHASE-PLANNING-REPAINT-FIX FORWARD CORRECTION
+   *
+   * That order made the purchase-planning screen repaint after reload() — the
+   * card save and the quick distribution both refreshed state.data and cleared
+   * state.drafts without repainting, so a successful save left the operator
+   * looking at the discarded draft. It retokenised the single asset it
+   * changed. That asset was a pass-6 asset still sitting in the pass-6-only
+   * tier, so it moves out of it and into this one. A repaint token is strictly
+   * later than every earlier one, so every asset pass 6 touched is still
+   * invalidated against the pass-5 checkpoint — only WHICH later token does
+   * the invalidating moved. The population below still sums to the same 27.
+   */
+  const REPAINT = '20260730-purchase-planning-repaint-r1';
+  const REPAINT_CHANGED = [
+    'js/screens/pedido-insumos-distribuicao.js',
+  ];
   const PASS6_ONLY = [
     'js/document-links-surface-ui.js',
-    'js/screens/pedido-insumos-distribuicao.js',
     'js/screens/trocar-senha-obrigatoria.js',
   ];
   // The pass-6 population is unchanged in SIZE — 27 assets — only redistributed
@@ -859,6 +875,7 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
     + CONTAINMENT_A1_CHANGED.length + B1_CHANGED.length + DUAL_ENTRY_CHANGED.length
     + SCREEN_GROUP_2_CHANGED.length + SCREEN_GROUP_3_CHANGED.length
     + BRAND_CHANGED.length + ADMIN_DASHBOARD_CHANGED.length
+    + REPAINT_CHANGED.length
     + PASS6_ONLY.length, 27);
   for (const rel of PASS7_CHANGED) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS7}"`), `${rel} must carry the pass-7 token`);
@@ -929,6 +946,15 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
         `${rel} kept a superseded token`);
     }
   }
+  for (const rel of REPAINT_CHANGED) {
+    assert.ok(INDEX.includes(`"${rel}?v=${REPAINT}"`),
+      `${rel} must carry the purchase-planning repaint token`);
+    for (const stale of [PASS6, A1, PASS7, PASS7_A4, PASS7_A5, PASS8, PASS8_A1,
+      CONTAINMENT_A1, B1, SCREEN_GROUP_1, SCREEN_GROUP_2, SCREEN_GROUP_3]) {
+      assert.ok(!INDEX.includes(`"${rel}?v=${stale}"`),
+        `${rel} kept a superseded token`);
+    }
+  }
   for (const rel of PASS6_ONLY) {
     assert.ok(INDEX.includes(`"${rel}?v=${PASS6}"`), `${rel} must keep the pass-6 token`);
   }
@@ -939,7 +965,8 @@ test('35 · every asset pass 6 changed is invalidated under a pass-6 or later to
   // Every asset pass 6 touched still carries a token LATER than the pass-5 one.
   for (const rel of [...PASS7_CHANGED, ...PASS7_A4_CHANGED, ...PASS7_A5_CHANGED, ...A1_CHANGED,
     ...PASS8_CHANGED, ...PASS8_A1_CHANGED, ...B1_CHANGED, ...DUAL_ENTRY_CHANGED,
-    ...SCREEN_GROUP_2_CHANGED, ...SCREEN_GROUP_3_CHANGED, ...BRAND_CHANGED, ...PASS6_ONLY]) {
+    ...SCREEN_GROUP_2_CHANGED, ...SCREEN_GROUP_3_CHANGED, ...BRAND_CHANGED,
+    ...REPAINT_CHANGED, ...PASS6_ONLY]) {
     assert.ok(!INDEX.includes(`"${rel}?v=20260726-ui-p5-pass5`),
       `${rel} fell back to the pass-5 token`);
   }

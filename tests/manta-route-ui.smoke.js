@@ -1623,6 +1623,13 @@ const ALTERACAO_REVIEW_RETOKENED_ASSETS = [
   'js/screens/pedido-detail-render.js',
 ];
 
+// PURCHASE-PLANNING-REPAINT-FIX. A tela de planejamento de compras passou a
+// repintar depois de reload(), tanto no salvar de um cartao quanto na
+// distribuicao rapida. Ela era o unico asset da passada 6 que ainda carregava
+// o token dela e que esta ordem altera, entao sai daquele nivel para este.
+const REPAINT_TOKEN = '20260730-purchase-planning-repaint-r1';
+const REPAINT_RETOKENED_ASSETS = ['js/screens/pedido-insumos-distribuicao.js'];
+
 const PRIORITY_TOKEN = '20260728-pedido-item-production-priority-r1';
 const PRIORITY_ADDED_ASSETS = ['js/pedido-priority.js'];
 const PRIORITY_RETOKENED_ASSETS = [
@@ -1807,7 +1814,8 @@ const PASS6_ASSETS_AINDA_EM_PASS6 = PASS6_ASSETS
   .filter((a) => !SCREEN_GROUP_2_ASSETS.includes(a))
   .filter((a) => !SCREEN_GROUP_3_ASSETS.includes(a))
   .filter((a) => !CUTOVER_ASSETS.includes(a))
-  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a));
+  .filter((a) => !ALTERACAO_REVIEW_RETOKENED_ASSETS.includes(a))
+  .filter((a) => !REPAINT_RETOKENED_ASSETS.includes(a));
 const PASS5_ASSETS_AINDA_EM_PASS5 = PASS5_ASSETS
   .filter((a) => !PASS6_ASSETS.includes(a))
   .filter((a) => !PASS6_A1_ASSETS.includes(a))
