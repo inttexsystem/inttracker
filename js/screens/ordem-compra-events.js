@@ -73,13 +73,30 @@
     var emissionTracker = ns.createEmissionAttemptTracker();
 
     return {
-      cancelar: function () {
+      // `o` is the CURRENT order handed over by the render layer at click time.
+      // It MUST be read here and not from the `ordem` closure above:
+      // createEvents() runs in screenOrdemCompra BEFORE loadOrdemDetail, so
+      // that closure captured `state.ordem` while it was still null and never
+      // saw the loaded order. Cancelling therefore sent p_ordem_id: undefined;
+      // supabase-js drops an undefined key, PostgREST received {} , found no
+      // zero-argument cancelar_ordem_compra() and answered PGRST202 — which the
+      // client could only report as the generic "Não foi possível concluir a
+      // ação.". The RPC was never reached and no order was ever cancelled.
+      // `emitir` below already reads its order at click time for this reason.
+      cancelar: function (o) {
+        var atual = o || state.ordem || {};
+        var ordemId = atual.ordem_id;
+        if (ordemId == null) {
+          window.toast('Ordem de compra inválida.', 'error');
+          return;
+        }
+        var nome = ns.ocLabel(ordemId, state);
         window.confirmDialog({
           title: 'Cancelar ordem de compra',
-          message: 'Cancelar esta ordem? A distribuição não será alterada por esta ação.',
+          message: 'Cancelar a ordem ' + nome + '? A distribuição não será alterada por esta ação.',
           confirmLabel: 'Cancelar ordem',
           onConfirm: async function () {
-            var data = await rpcWrite('cancelar_ordem_compra', { p_ordem_id: ordem.ordem_id }, 'Ordem cancelada.');
+            var data = await rpcWrite('cancelar_ordem_compra', { p_ordem_id: ordemId }, 'Ordem cancelada.');
             if (data) await reload();
           },
         });

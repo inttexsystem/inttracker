@@ -499,3 +499,67 @@ test('27. the existing cancellation handler is preserved (still calls cancelar_o
   assert.equal(rpcCalls(env.supa, 'cancelar_ordem_compra').length, 1, 'cancellation still routes to cancelar_ordem_compra');
   assert.equal(rpcCalls(env.supa, 'emitir_ordem_compra').length, 0, 'cancellation never calls the emission writer');
 });
+
+// =====================================================================
+// === CANCELLATION — the order id must survive to the RPC =============
+// Regression: createEvents() runs before loadOrdemDetail, so the handler's
+// `ordem` closure was captured while state.ordem was still null. Cancelling
+// sent p_ordem_id: undefined, supabase-js dropped the key, and PostgREST
+// answered PGRST202 for a zero-argument cancelar_ordem_compra(). The UI could
+// only show the generic "Não foi possível concluir a ação." and no order was
+// ever cancelled.
+// =====================================================================
+
+test('C1. cancelling a draft reaches the RPC with the real order id', async () => {
+  const env = await renderScreen({
+    obter_ordem_compra_admin: sequencedObter(order()),
+    cancelar_ordem_compra: () => ({ data: { ok: true, codigo: 'ok', ordem_compra_id: 4210, status_administrativo: 'cancelada' }, error: null }),
+  });
+  findById(env.view, 'oc-cancelar')._listeners.click();
+  const dialog = overlayByTitle(env.sandbox, /Cancelar ordem de compra/);
+  assert.ok(dialog, 'the confirmation dialog opened');
+  await btnByText(dialog, /^Cancelar ordem$/)._listeners.click();
+
+  const calls = rpcCalls(env.supa, 'cancelar_ordem_compra');
+  assert.equal(calls.length, 1, 'exactly one cancellation RPC');
+  const params = JSON.parse(JSON.stringify(calls[0].params));
+  assert.deepEqual(params, { p_ordem_id: 4210 }, 'the real order id is sent');
+  // The precise regression: an undefined id serialises away entirely.
+  assert.ok('p_ordem_id' in params, 'p_ordem_id must survive JSON serialisation');
+  assert.notEqual(params.p_ordem_id, null);
+});
+
+test('C2. the confirmation names the order canonically, never by the primary key', async () => {
+  const env = await renderScreen({ obter_ordem_compra_admin: sequencedObter(order()) });
+  findById(env.view, 'oc-cancelar')._listeners.click();
+  const dialog = overlayByTitle(env.sandbox, /Cancelar ordem de compra/);
+  const copy = text(dialog);
+  assert.match(copy, /OC-001-1-26/, 'canonical identity in the confirmation');
+  assert.doesNotMatch(copy, /#4210/, 'never the raw primary key');
+  assert.match(copy, /distribui/i, 'still states the distribution is untouched');
+});
+
+test('C3. a successful cancellation reloads from the server, never fabricating the state', async () => {
+  const env = await renderScreen({
+    obter_ordem_compra_admin: sequencedObter(
+      order(),
+      order({ status_administrativo: 'cancelada', cancelada_em: '2026-07-30T10:00:00Z', acoes: { editar_itens: false, remover_itens: false, cancelar: false, distribuir: false, emitir: false, receber: false } }),
+    ),
+    cancelar_ordem_compra: () => ({ data: { ok: true, codigo: 'ok' }, error: null }),
+  });
+  findById(env.view, 'oc-cancelar')._listeners.click();
+  await btnByText(overlayByTitle(env.sandbox, /Cancelar ordem de compra/), /^Cancelar ordem$/)._listeners.click();
+  assert.equal(rpcCalls(env.supa, 'obter_ordem_compra_admin').length, 2, 'the screen re-read the server');
+  assert.equal(findById(env.view, 'oc-cancelar'), null, 'the cancel action is gone on the reloaded state');
+});
+
+test('C4. a server refusal surfaces the server reason, not the generic fallback', async () => {
+  const env = await renderScreen({
+    obter_ordem_compra_admin: sequencedObter(order()),
+    cancelar_ordem_compra: () => ({ data: { ok: false, codigo: 'estado_invalido', erro: 'Somente rascunho pode ser cancelada nesta fase' }, error: null }),
+  });
+  findById(env.view, 'oc-cancelar')._listeners.click();
+  await btnByText(overlayByTitle(env.sandbox, /Cancelar ordem de compra/), /^Cancelar ordem$/)._listeners.click();
+  assert.match(lastToast(env.sandbox).textContent, /Somente rascunho/, 'the server reason is shown verbatim');
+  assert.equal(rpcCalls(env.supa, 'obter_ordem_compra_admin').length, 1, 'a refusal does not reload');
+});
