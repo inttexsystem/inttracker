@@ -77,8 +77,42 @@
     return allocation && allocation.item && allocation.item.ordem;
   }
 
+  // Saldo distribuivel da necessidade — dono unico no cliente.
+  // Espelha EXATAMENTE a invariante do servidor em
+  // public.definir_alocacao_necessidade_compra_fio (db/74):
+  //   v_available := kg_necessario - (kg_alocado - v_previous)
+  // onde `v_previous` e o alvo absoluto que ESTA alocacao ja ocupa (0 quando
+  // e uma distribuicao nova). Por isso `alocacao` participa do calculo: o alvo
+  // e absoluto, nao incremental, e o que este fornecedor ja detem volta ao
+  // saldo antes do teto.
+  //
+  // Quantizado em 3 casas porque kg_necessario/kg_alocado sao NUMERIC(12,3) e
+  // a subtracao binaria produz residuo (12.5 - 3.2 === 9.299999999999999). Sem
+  // a quantizacao o proprio validador do modal (/^\d+(\.\d{1,3})?$/) e o
+  // `round(p_kg_alocado,3) IS DISTINCT FROM p_kg_alocado` do RPC recusariam o
+  // valor que a tela acabou de sugerir.
+  function distributableBalance(need, allocation) {
+    var necessary = Number(need && need.kg_necessario);
+    var allocated = Number(need && need.kg_alocado);
+    var previous = allocation ? Number(allocation.kg_alocado) : 0;
+    if (!Number.isFinite(necessary) || !Number.isFinite(allocated) || !Number.isFinite(previous)) return 0;
+    var available = Math.round((necessary - (allocated - previous)) * 1000) / 1000;
+    return available > 0 ? available : 0;
+  }
+
+  // Valor inicial do campo de quantidade alvo. Distribuir uma necessidade
+  // intocada ou parcialmente distribuida abre com TODO o saldo ainda
+  // distribuivel, ja preenchido e editavel para baixo. Sem saldo o campo abre
+  // vazio: zero e um comando de REMOCAO nesta tela e nao pode ser sugerido.
+  // Alterar uma alocacao existente conserva o alvo absoluto ja persistido.
+  function targetFieldValue(need, allocation) {
+    if (allocation) return String(allocation.kg_alocado);
+    var balance = distributableBalance(need, null);
+    return balance > 0 ? String(balance) : '';
+  }
+
   function renderNeed(need, openAllocation) {
-    var remaining = Number(need.kg_necessario) - Number(need.kg_alocado);
+    var remaining = distributableBalance(need, null);
     var card = el('section', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5 mb-4', 'data-necessidade-id': String(need.id) });
     card.appendChild(el('div', { class: 'flex items-start justify-between gap-3 flex-wrap' },
       el('div', {},
@@ -111,7 +145,7 @@
     var supplierType = need.material === 'algodao' ? 'fio_algodao' : 'fio_poliester';
     var validSuppliers = suppliers.filter(function (supplier) { return supplier.tipo === supplierType; });
     var supplier = window.selectInput({ options: validSuppliers.map(function (item) { return { value: item.id, label: item.nome }; }), value: selectedSupplier, placeholder: 'Selecione o fornecedor...' });
-    var target = el('input', { type: 'number', min: '0', step: '0.001', value: allocation ? String(allocation.kg_alocado) : '', style: 'border-radius:var(--rv-radius);', class: 'w-full border px-3 py-2' });
+    var target = el('input', { type: 'number', min: '0', step: '0.001', value: targetFieldValue(need, allocation), style: 'border-radius:var(--rv-radius);', class: 'w-full border px-3 py-2' });
     var current = allocation ? Number(allocation.kg_alocado) : 0;
     var body = el('div', { class: 'space-y-3' },
       el('div', { class: 'text-sm text-gray-700' }, materialLabel(need) + ' · ' + needLabel(need)),
@@ -119,7 +153,7 @@
       window.formField({ label: 'Quantidade alvo absoluta (kg)', input: target }),
       el('div', { style: 'border-radius:var(--rv-radius);', class: 'text-xs text-gray-500 bg-gray-50 p-3' },
         'Necessário: ' + kg(need.kg_necessario) + ' · total alocado: ' + kg(need.kg_alocado)
-        + ' · neste fornecedor: ' + kg(current) + ' · restante atual: ' + kg(Number(need.kg_necessario) - Number(need.kg_alocado))
+        + ' · neste fornecedor: ' + kg(current) + ' · restante atual: ' + kg(distributableBalance(need, null))
         + '. Use zero para remover esta alocação.'));
     var command = { key: commandKey(), submitting: false };
     window.modal({
@@ -187,6 +221,13 @@
     return window.shellLayout(window.ADMIN_MENU, el('div', {}, notice, root));
   }
 
-  ns.pedidoInsumosDistribuicao = { screenPedidoInsumosDistribuicao: screenPedidoInsumosDistribuicao, commandKey: commandKey, errorText: errorText };
+  ns.pedidoInsumosDistribuicao = {
+    screenPedidoInsumosDistribuicao: screenPedidoInsumosDistribuicao,
+    commandKey: commandKey,
+    errorText: errorText,
+    distributableBalance: distributableBalance,
+    targetFieldValue: targetFieldValue,
+    openModal: openModal,
+  };
   window.screenPedidoInsumosDistribuicao = screenPedidoInsumosDistribuicao;
 })(window);
