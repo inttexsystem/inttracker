@@ -179,18 +179,6 @@
       opById[op.id] = op;
     });
 
-    // Codigo operacional atrelado ao Pedido (OP {pedido}/{ano}-{tipo}{seq}),
-    // via helper central. Cai no legado `OP {numero}/{ano}` (opLabel) quando o
-    // helper nao esta carregado ou falta contexto confiavel de Pedido.
-    var opDisplayApi = window.RAVATEX_OP_DISPLAY;
-    function opCode(op) {
-      if (!op) return '';
-      if (opDisplayApi && typeof opDisplayApi.formatOpOperationalCode === 'function') {
-        return opDisplayApi.formatOpOperationalCode(op, { pedido: state.pedido, ops: state.ops });
-      }
-      return opLabel(op);
-    }
-
     // Movido para a Expedicao por OP Latex (paridade com Tecelagem): a saida
     // de uma OP de Acabamento e o que ja foi movimentado para a Expedicao,
     // nao um movimento intermediario etapa='latex'.
@@ -272,8 +260,7 @@
         id: op.id,
         numero: op.numero,
         ano: op.ano,
-        label: opCode(op),
-        legacyLabel: opLabel(op),
+        label: opLabel(op),
         tipo: op.tipo,
         route: opRoute,
         stageKey: stageKeyForOp(op),
@@ -287,7 +274,7 @@
         modelNames: modelNames,
         relatedEntregas: relatedEntregas,
         origemOp: op.origem_op_id ? opById[op.origem_op_id] || null : null,
-        origemOpLabel: op.origem_op_id && opById[op.origem_op_id] ? opCode(opById[op.origem_op_id]) : null,
+        origemOpLabel: op.origem_op_id && opById[op.origem_op_id] ? opLabel(opById[op.origem_op_id]) : null,
         op: op,
         docBanner: docBanner,
       });
@@ -491,7 +478,7 @@
         entregues: deliveredItem,
         relatedOps: relatedOps,
         relatedOpsLabel: relatedOps.length
-          ? relatedOps.map(function (op) { return opCode(op); }).join(' -> ')
+          ? relatedOps.map(function (op) { return opLabel(op); }).join(' -> ')
           : '-',
       };
     });
@@ -522,7 +509,7 @@
     });
     expedicaoSummaries.forEach(function (summary) {
       documentRowsOperacionais.push({
-        label: 'Expedicao #' + summary.id + (summary.op ? ' - ' + opCode(summary.op) : ''),
+        label: 'Expedicao #' + summary.id + (summary.op ? ' - ' + opLabel(summary.op) : ''),
         status: summary.status === 'concluida' ? 'anexado' : 'pendente',
         meta: summary.movimentos.length
           ? String(summary.movimentos.length) + ' entrega/coleta registrada(s).'

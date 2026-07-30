@@ -79,7 +79,7 @@
     // op_id -> identidade e resolvido uma vez por carga em
     // ordem-compra-receipt-data.js e vive em `state.opIdentidades`.
     function opLabel(opId) {
-      return ns.rotuloIdentidadeOp(opId, state.opIdentidades);
+      return window.RAVATEX_OP_DISPLAY.formatOpIdentityFromMap(opId, state.opIdentidades);
     }
 
     // Two independent attempt trackers (contract §12) — never shared, never

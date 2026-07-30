@@ -264,12 +264,8 @@
     return mapa;
   };
 
-  // Rotulo pronto para uma origem `op_id`, dado um mapa ja carregado. Dono
-  // unico do texto de atribuicao de origem nas telas de compra.
-  ns.rotuloIdentidadeOp = function (opId, mapa) {
-    if (opId == null) return 'Pedido (compartilhada)';
-    var row = mapa ? mapa[String(opId)] : null;
-    if (row) return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(row);
-    return 'OP (identidade pendente)';
-  };
+  // A FORMATACAO do rotulo vive no dono central
+  // (RAVATEX_OP_DISPLAY.formatOpIdentityFromMap): este modulo owns apenas o
+  // I/O. Manter as duas coisas aqui invertia o acoplamento — telas de render
+  // passariam a depender do modulo de dados so para formatar texto.
 })(window);

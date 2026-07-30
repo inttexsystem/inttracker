@@ -41,6 +41,7 @@
   //     travar o app por falha de infra; o gate server-side é a
   //     defesa definitiva.
   async function entregaCimaTemOpLatex(entregaId) {
+    var op = null;
     try {
       var res = await window.supa
         .from('op_latex_entregas')
@@ -48,15 +49,30 @@
         .eq('entrega_id', entregaId)
         .maybeSingle();
       if (res && res.error) return { bloqueada: false, opLabel: null };
-      var op = res && res.data && res.data.ops;
-      if (op && op.id && op.tipo === 'latex') {
-        var label = window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op);
-        return { bloqueada: true, opLabel: label };
-      }
+      op = res && res.data && res.data.ops;
     } catch (err) {
       console.error('entrega-writes: preflight OP Latex falhou', err);
+      return { bloqueada: false, opLabel: null };
     }
-    return { bloqueada: false, opLabel: null };
+
+    // A DECISAO de bloquear depende so do vinculo, e e tomada FORA do try.
+    //
+    // OP-CANONICAL-IDENTITY-REFOUNDATION-R1 encontrou aqui um defeito real de
+    // robustez: quando a formatacao do rotulo estava DENTRO do try, qualquer
+    // falha ao formatar — inclusive o dono central ausente por erro de
+    // carregamento — caia no catch e o fallback "permissivo" devolvia
+    // `bloqueada: false`, ou seja, um erro COSMETICO desativava um gate de
+    // ESCRITA. Decisao e apresentacao ficam separadas: um rotulo que falha
+    // nunca mais libera uma escrita que deveria estar bloqueada.
+    if (!(op && op.id && op.tipo === 'latex')) return { bloqueada: false, opLabel: null };
+
+    var opLabel = null;
+    try {
+      opLabel = window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op);
+    } catch (err) {
+      console.error('entrega-writes: rotulo da OP de acabamento indisponivel', err);
+    }
+    return { bloqueada: true, opLabel: opLabel };
   }
 
   async function etapaDaEntrega(entregaId) {
@@ -117,9 +133,21 @@
     return { op_latex_id: data };
   }
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: `gerar_op_latex` (db/78) devolve
+  // `{op_latex_id, numero, ano, created, ...}` e NAO a identidade canonica — ela
+  // e uma RPC aceita de outra fase e nao e reescrita por esta ordem.
+  //
+  // Quando a identidade vem no payload, e ela que nomeia a OP. Quando nao vem,
+  // o toast usa o rotulo da ETAPA ("OP de acabamento"), nao o estado
+  // diagnostico: um toast e uma confirmacao de acao, e "OP (identidade
+  // pendente)" ali seria ruido sem informacao. O rotulo de etapa e honesto
+  // porque descreve o que foi criado sem inventar um segundo NOME para a OP —
+  // e a identidade real aparece ao abrir a OP.
+  //
+  // Buscar a identidade no banco so para compor o texto de um toast seria uma
+  // ida extra desproporcional ao valor.
   function opLatexLabelFromRpc(info) {
-    if (info) return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(info);
-    return 'OP de acabamento';
+    return (info && window.RAVATEX_OP_DISPLAY.getCanonicalIdentity(info)) || 'OP de acabamento';
   }
 
   function toastMsgGerarOpLatex(data) {

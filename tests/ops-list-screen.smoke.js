@@ -226,9 +226,16 @@ function makeOpsSandbox({ tableData = {}, withRouter = false } = {}) {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
 
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Os consumidores nao tem fallback proprio, entao esta e uma dependencia
+  // real do sandbox, na mesma ordem do index.html.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
@@ -438,9 +445,9 @@ test('18. runtime: filtro "Tecelagem"/"Látex" filtra a lista renderizada', asyn
   const { sandbox } = makeOpsSandbox({
     tableData: {
       ops: [
-        { id: 1, numero: 1, ano: 2026, status: 'simulada', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
+        { id: 1, identidade_operacional: 'OP-T001-1-26', identidade_pedido_id: 'ped-fix', numero: 1, ano: 2026, status: 'simulada', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
           lote: null, op_itens: [] },
-        { id: 2, numero: 2, ano: 2026, status: 'aberta',   tipo: 'latex',     criado_em: '2026-06-02T00:00:00Z',
+        { id: 2, identidade_operacional: 'OP-A002-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, status: 'aberta', tipo: 'latex',     criado_em: '2026-06-02T00:00:00Z',
           lote: null, op_itens: [] },
       ],
       entrega_itens: [],
@@ -454,22 +461,27 @@ test('18. runtime: filtro "Tecelagem"/"Látex" filtra a lista renderizada', asyn
   assert.ok(latexBtn, 'botão de filtro "Látex" não encontrado');
   latexBtn._listeners.click();
   const rendered = textOf(main);
-  // Após filtro "Látex", apenas a OP 2 deve aparecer — a coluna
-  // "OP" renderiza "Nº 2/2026". Validamos que a tecelagem não
-  // aparece no conteúdo visível (Nº 1 deve sumir da lista).
-  assert.ok(rendered.includes('Nº 2/2026'),
-    'OP de látex (Nº 2/2026) deveria aparecer após filtro Látex');
-  assert.equal(rendered.includes('Nº 1/2026'), false,
-    'OP de tecelagem (Nº 1/2026) não deveria aparecer após filtro Látex');
+  // Apos o filtro "Latex", apenas a OP 2 deve aparecer. A coluna "OP" passou a
+  // renderizar a IDENTIDADE CANONICA como titulo e o Lote como metadado — o
+  // numero interno saiu da lista (e da busca) por decisao do arquiteto.
+  // As fixtures nao carregam identidade persistida, entao ambas renderizam o
+  // estado diagnostico e a distincao observavel passa a ser o Lote de cada OP.
+  assert.ok(rendered.includes('OP-A002-1-26'),
+    'a OP de latex deveria aparecer pela identidade canonica apos o filtro Latex');
+  assert.equal(rendered.includes('OP-T001-1-26'), false,
+    'a OP de tecelagem nao deveria aparecer apos o filtro Latex');
+  // E o numero interno nao pode ter voltado a lista por nenhuma via.
+  assert.equal(rendered.includes('2/2026'), false,
+    'o numero interno nao pode aparecer na lista de OPs');
 });
 
 test('19. runtime: coluna "Tipo" usa badgeTipo (label PT-BR)', async () => {
   const { sandbox } = makeOpsSandbox({
     tableData: {
       ops: [
-        { id: 1, numero: 1, ano: 2026, status: 'simulada', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
+        { id: 1, identidade_operacional: 'OP-T001-1-26', identidade_pedido_id: 'ped-fix', numero: 1, ano: 2026, status: 'simulada', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
           lote: null, op_itens: [] },
-        { id: 2, numero: 2, ano: 2026, status: 'aberta',   tipo: 'latex',     criado_em: '2026-06-02T00:00:00Z',
+        { id: 2, identidade_operacional: 'OP-A002-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, status: 'aberta', tipo: 'latex',     criado_em: '2026-06-02T00:00:00Z',
           lote: null, op_itens: [] },
       ],
       entrega_itens: [],
@@ -492,9 +504,9 @@ test('20. runtime: coluna "Status" usa badgeStatus (label PT-BR)', async () => {
   const { sandbox } = makeOpsSandbox({
     tableData: {
       ops: [
-        { id: 1, numero: 1, ano: 2026, status: 'simulada',    tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
+        { id: 1, identidade_operacional: 'OP-T001-1-26', identidade_pedido_id: 'ped-fix', numero: 1, ano: 2026, status: 'simulada', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
           lote: null, op_itens: [] },
-        { id: 2, numero: 2, ano: 2026, status: 'em_producao', tipo: 'tecelagem', criado_em: '2026-06-02T00:00:00Z',
+        { id: 2, identidade_operacional: 'OP-T002-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, status: 'em_producao', tipo: 'tecelagem', criado_em: '2026-06-02T00:00:00Z',
           lote: null, op_itens: [] },
       ],
       entrega_itens: [],
@@ -515,9 +527,9 @@ test('21. runtime: ação "Editar"/"Ver" navega para "#/ops/<id>"', async () => 
   const { sandbox } = makeOpsSandbox({
     tableData: {
       ops: [
-        { id: 42, numero: 7, ano: 2026, status: 'simulada', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
+        { id: 42, identidade_operacional: 'OP-T042-1-26', identidade_pedido_id: 'ped-fix', numero: 7, ano: 2026, status: 'simulada', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
           lote: null, op_itens: [] },
-        { id: 99, numero: 8, ano: 2026, status: 'aberta',   tipo: 'tecelagem', criado_em: '2026-06-02T00:00:00Z',
+        { id: 99, identidade_operacional: 'OP-T099-1-26', identidade_pedido_id: 'ped-fix', numero: 8, ano: 2026, status: 'aberta', tipo: 'tecelagem', criado_em: '2026-06-02T00:00:00Z',
           lote: null, op_itens: [] },
       ],
       entrega_itens: [],
@@ -562,7 +574,7 @@ test('23. runtime: lista vazia com filtro exibe mensagem "Nenhuma OP para este f
   const { sandbox } = makeOpsSandbox({
     tableData: {
       ops: [
-        { id: 1, numero: 1, ano: 2026, status: 'simulada', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
+        { id: 1, identidade_operacional: 'OP-T001-1-26', identidade_pedido_id: 'ped-fix', numero: 1, ano: 2026, status: 'simulada', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
           lote: null, op_itens: [] },
       ],
       entrega_itens: [],
@@ -583,7 +595,7 @@ test('24. runtime: coluna "Entregue" usa percentualEntregueOP (renderiza %)', as
   const { sandbox } = makeOpsSandbox({
     tableData: {
       ops: [
-        { id: 1, numero: 1, ano: 2026, status: 'aberta', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
+        { id: 1, identidade_operacional: 'OP-T001-1-26', identidade_pedido_id: 'ped-fix', numero: 1, ano: 2026, status: 'aberta', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
           lote: null,
           op_itens: [
             { id: 11, metros_pedidos: 10, metros_ajustados: 10 },
@@ -626,6 +638,9 @@ test('25. boot: ui + badges + router + system-screens + common + cadastros + ops
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
 
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
@@ -696,6 +711,9 @@ test('26. setRoutes do inline: #/ops aponta para window.screenListaOPs', () => {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
 
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
@@ -752,6 +770,9 @@ test('27. rota dinâmica #/ops/:id continua resolvendo para screenNovaOP(:id) (s
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
 
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
@@ -831,6 +852,9 @@ test('29. screenPainel (inline) ainda renderiza via shellLayout (regressão comm
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
 
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
@@ -901,7 +925,7 @@ test('31. botões de ação da linha (Editar/Ver + Excluir OP) têm rótulo sr-o
   const { sandbox } = makeOpsSandbox({
     tableData: {
       ops: [
-        { id: 42, numero: 7, ano: 2026, status: 'simulada', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
+        { id: 42, identidade_operacional: 'OP-T042-1-26', identidade_pedido_id: 'ped-fix', numero: 7, ano: 2026, status: 'simulada', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
           lote: null, op_itens: [] },
       ],
       entrega_itens: [],
@@ -924,7 +948,7 @@ test('32. botão "Excluir OP" usa danger (cor vermelha); botão "Editar" permane
   const { sandbox } = makeOpsSandbox({
     tableData: {
       ops: [
-        { id: 42, numero: 7, ano: 2026, status: 'simulada', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
+        { id: 42, identidade_operacional: 'OP-T042-1-26', identidade_pedido_id: 'ped-fix', numero: 7, ano: 2026, status: 'simulada', tipo: 'tecelagem', criado_em: '2026-06-01T00:00:00Z',
           lote: null, op_itens: [] },
       ],
       entrega_itens: [],

@@ -249,6 +249,10 @@ function makeOpPdfBootSandbox({ withJsPDF = true } = {}) {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Os consumidores nao tem fallback proprio, entao esta e uma dependencia
+  // real do sandbox, na mesma ordem do index.html.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(fs.readFileSync(UI, 'utf8'),         sandbox, { filename: 'js/ui.js' });
   vm.runInContext(fs.readFileSync(BADGES, 'utf8'),     sandbox, { filename: 'js/badges.js' });
   vm.runInContext(fs.readFileSync(CALC, 'utf8'),       sandbox, { filename: 'js/calculo-op.js' });
@@ -415,6 +419,9 @@ test('18. runtime: gerarPdfCompraFios NÃO acessa closure de op-nova.js (recebe 
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });

@@ -11,10 +11,10 @@
 //     persistida, unica por constraint e imutavel;
 //   - este modulo NAO calcula sequencia, NAO deriva ano e NAO consulta lista
 //     de OPs irmas;
-//   - OP AVULSA (sem Pedido) exibe `OP {numero}/{ano}` como identidade
-//     legitima, porque nenhuma identidade derivada de Pedido existe;
-//   - OP/OC vinculada a Pedido SEM identidade persistida => estado
-//     diagnostico explicito, NUNCA o numero interno nem a chave primaria.
+//   - DOIS estados apenas: identidade persistida, ou estado diagnostico
+//     explicito. `ops.numero/ano` NUNCA e exibido — nao existe formatador
+//     para ele neste modulo. O produto nao cria OP sem Pedido, portanto um
+//     formatador de "OP avulsa" seria codigo inalcancavel.
 //
 // HISTORICO DESTE ARQUIVO
 //   Os blocos que provavam o calculo POSICIONAL (sequencia pelo indice na
@@ -45,8 +45,6 @@ function loadApi() {
   return sandbox.window.RAVATEX_OP_DISPLAY;
 }
 
-const INTERNO_LABEL = 'º interno';
-
 // ---------------------------------------------------------------------
 // 1. Existencia / API
 // ---------------------------------------------------------------------
@@ -59,11 +57,25 @@ test('op-display: arquivo existe e sintaxe valida', () => {
 test('op-display: expoe a API de identidade canonica', () => {
   const api = loadApi();
   assert.ok(api, 'window.RAVATEX_OP_DISPLAY ausente');
-  for (const fn of ['getOpTypeLetter', 'getCanonicalIdentity', 'isPedidoLinked',
-    'isIdentityPending', 'formatOpOperationalCode', 'formatOpInternalLabel',
-    'formatOpLegacyCode', 'formatOcOperationalCode', 'formatOcLegacyLabel']) {
+  for (const fn of ['getOpTypeLetter', 'getCanonicalIdentity', 'isIdentityPending',
+    'formatOpOperationalCode', 'formatOcOperationalCode', 'formatOcLegacyLabel']) {
     assert.equal(typeof api[fn], 'function', 'funcao ausente: ' + fn);
   }
+});
+
+test('op-display: NENHUM formatador projeta ops.numero/ops.ano', () => {
+  const api = loadApi();
+  // Estes existiram e foram removidos: qualquer um deles de volta reabre a
+  // porta para a mesma OP ter dois nomes.
+  for (const fn of ['formatOpInternalLabel', 'formatOpLegacyCode', 'isPedidoLinked']) {
+    assert.equal(api[fn], undefined, fn + ' nao pode voltar: projeta identidade legada');
+  }
+  // E nenhum literal de rotulo interno sobrou em CODIGO (comentarios podem
+  // explicar que numero/ano permanece como numeracao interna no banco).
+  const code = fs.readFileSync(HELPER, 'utf8')
+    .split(/\r?\n/).filter((l) => !l.trim().startsWith('//')).join('\n');
+  assert.ok(!/interno/i.test(code), 'nenhum rotulo de numero interno em codigo');
+  assert.ok(!/'OP ' \+/.test(code), 'nenhuma concatenacao de prefixo com valor cru');
 });
 
 test('op-display: as funcoes de calculo posicional NAO existem mais', () => {
@@ -141,41 +153,32 @@ test('IDENTIDADE: remover uma OP irma nao muda a identidade das demais', () => {
 });
 
 // ---------------------------------------------------------------------
-// 4. Os tres estados, nenhum silencioso
+// 4. Os dois estados, nenhum silencioso
 // ---------------------------------------------------------------------
 
-test('ESTADO 2 — OP AVULSA exibe numero/ano como identidade legitima', () => {
+test('ESTADO 2 — identidade ausente FALHA FECHADA, em qualquer forma de linha', () => {
   const api = loadApi();
-  const avulsa = { id: 9, numero: 42, ano: 2026, tipo: 'tecelagem' };
-  assert.equal(api.formatOpOperationalCode(avulsa), 'OP 42/2026');
-  assert.equal(api.isPedidoLinked(avulsa), false);
-  assert.equal(api.isIdentityPending(avulsa), false,
-    'avulsa nao esta pendente: ela TEM identidade');
-});
-
-test('ESTADO 3 — OP vinculada sem identidade persistida FALHA FECHADA', () => {
-  const api = loadApi();
-  // Cada forma de evidencia de vinculo, isolada.
+  // Qualquer linha sem identidade persistida, com ou sem evidencia de vinculo,
+  // com ou sem numero interno: a resposta e a MESMA e nunca cita o legado.
   const casos = [
-    ['identidade_pedido_id', { numero: 42, ano: 2026, identidade_pedido_id: 'p1' }],
-    ['pedido_id', { numero: 42, ano: 2026, pedido_id: 'p1' }],
-    ['lote.pedido_id', { numero: 42, ano: 2026, lote: { pedido_id: 'p1' } }],
-    ['lotes.pedido_id', { numero: 42, ano: 2026, lotes: { pedido_id: 'p1' } }],
+    ['com identidade_pedido_id', { numero: 42, ano: 2026, identidade_pedido_id: 'p1' }],
+    ['com pedido_id', { numero: 42, ano: 2026, pedido_id: 'p1' }],
+    ['com lote.pedido_id', { numero: 42, ano: 2026, lote: { pedido_id: 'p1' } }],
+    ['sem vinculo algum', { numero: 42, ano: 2026 }],
+    ['sem numero interno', { id: 7 }],
   ];
   for (const [nome, op] of casos) {
     const label = api.formatOpOperationalCode(op);
-    assert.equal(label, 'OP (identidade pendente)', nome + ': NUNCA cai no numero interno');
-    assert.ok(!label.includes('42'),
-      nome + ': o numero interno nao pode aparecer no estado diagnostico');
+    assert.equal(label, 'OP (identidade pendente)', nome + ': deve falhar fechada');
+    assert.ok(!label.includes('42'), nome + ': o numero interno nao pode aparecer');
     assert.equal(api.isIdentityPending(op), true);
-    assert.equal(api.isPedidoLinked(op), true);
   }
-  // Vinculo reconhecido apenas pelo contexto da tela.
-  const semEvidenciaNaLinha = { numero: 42, ano: 2026 };
-  assert.equal(api.formatOpOperationalCode(semEvidenciaNaLinha, { pedidoId: 'p1' }),
+  // O contexto e aceito e IGNORADO: nao existe caminho em que ele mude a
+  // resposta.
+  const op = { numero: 42, ano: 2026 };
+  assert.equal(api.formatOpOperationalCode(op, { pedido: { id: 'p1', numero: 9 } }),
     'OP (identidade pendente)');
-  assert.equal(api.formatOpOperationalCode(semEvidenciaNaLinha, { pedido: { id: 'p1' } }),
-    'OP (identidade pendente)');
+  assert.equal(api.formatOpOperationalCode(op, { ops: [op] }), 'OP (identidade pendente)');
 });
 
 test('identidade vazia ou nao-string conta como ausente', () => {
@@ -186,28 +189,6 @@ test('identidade vazia ou nao-string conta como ausente', () => {
   }
   assert.equal(api.getCanonicalIdentity({ identidade_operacional: '  OP-T005-1-26  ' }),
     'OP-T005-1-26', 'deve aparar espaco sem alterar o valor canonico');
-});
-
-// ---------------------------------------------------------------------
-// 5. Numero interno — unico formatador autorizado, sempre rotulado
-// ---------------------------------------------------------------------
-
-test('formatOpInternalLabel: SEMPRE rotula e nunca parece identidade', () => {
-  const api = loadApi();
-  const label = api.formatOpInternalLabel({ numero: 42, ano: 2026 });
-  assert.ok(label.includes(INTERNO_LABEL), 'deve conter o rotulo explicito');
-  assert.ok(label.includes('42/2026'), 'deve conter o numero interno');
-  assert.ok(!label.startsWith('OP'),
-    'o rotulo interno NUNCA comeca com "OP": seria um segundo nome da OP');
-  assert.ok(api.formatOpInternalLabel({ numero: 42 }).includes('42'));
-});
-
-test('formatOpLegacyCode: tolerante a campos ausentes', () => {
-  const api = loadApi();
-  assert.equal(api.formatOpLegacyCode({ numero: 42, ano: 2026 }), 'OP 42/2026');
-  assert.equal(api.formatOpLegacyCode({ numero: 42 }), 'OP 42');
-  assert.equal(api.formatOpLegacyCode({}), 'OP -');
-  assert.equal(api.formatOpLegacyCode(null), 'OP -');
 });
 
 // ---------------------------------------------------------------------

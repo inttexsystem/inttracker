@@ -329,8 +329,6 @@
           card.appendChild(window.el('div', { class: 'flex items-center justify-between mb-3' },
             window.el('div', { class: 'font-semibold text-gray-800' },
               window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op)),
-            window.el('div', { class: 'text-xs text-gray-500' },
-              window.RAVATEX_OP_DISPLAY.formatOpInternalLabel(op)),
             window.badgeStatus(op.status),
           ));
           if (op.observacao) card.appendChild(window.el('div', { class: 'text-xs text-gray-500 mb-2' }, op.observacao));

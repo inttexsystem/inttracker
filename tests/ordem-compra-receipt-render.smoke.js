@@ -36,6 +36,9 @@ function makeSandbox() {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
@@ -89,9 +92,20 @@ function projection(overrides) {
 }
 
 const noopHandlers = { abrirRegistroRecebimento() {}, estornarLancamento() {} };
-function render(sandbox, ordem, receiptHistory, handlers) {
+// OP-CANONICAL-IDENTITY-REFOUNDATION-R1: as RPCs aceitas de recebimento
+// atribuem origem apenas por `op_id`. A tela real resolve o mapa
+// op_id -> identidade em ordem-compra-receipt-data.js (view
+// public.op_identidade_projecao, db/95) e o guarda em `state.opIdentidades`.
+// O harness reproduz esse state para exercitar o caminho real de atribuicao.
+const OP_IDENTIDADES = {
+  900: { op_id: 900, identidade_operacional: 'OP-T900-1-26', identidade_pedido_id: 'ped-fix' },
+};
+
+function render(sandbox, ordem, receiptHistory, handlers, opIdentidades) {
   const ns = sandbox.RAVATEX_SCREENS.ordemCompra;
-  return ns.renderReceiptSection({ ordem, receiptHistory }, handlers || noopHandlers);
+  return ns.renderReceiptSection(
+    { ordem, receiptHistory, opIdentidades: opIdentidades || OP_IDENTIDADES },
+    handlers || noopHandlers);
 }
 
 test('legacy order renders NO Recebimentos section', () => {
@@ -139,7 +153,11 @@ test('NULL-op / Pedido-origin allocation renders honestly; real OP retained; no 
   const s = makeSandbox();
   const view = render(s, { modelo: 'nativo', status_administrativo: 'emitida' }, projection());
   const t = text(view);
-  assert.match(t, /OP 900/, 'real OP attribution retained');
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: a atribuicao de origem deixou de ser
+  // `'OP ' + op_id` (a chave primaria como nome) e passa pelo mapa
+  // op_id -> identidade resolvido de public.op_identidade_projecao (db/95).
+  assert.match(t, /OP-T900-1-26/, 'real OP attribution retained, by canonical identity');
+  assert.doesNotMatch(t, /OP 900/, 'a chave primaria nao pode voltar como nome');
   assert.match(t, /Pedido \(compartilhada\)/, 'NULL-op rendered as shared, not fabricated');
 });
 

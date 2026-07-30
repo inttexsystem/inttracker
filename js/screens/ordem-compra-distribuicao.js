@@ -88,8 +88,7 @@
         // NUNCA existiram na resposta de `obter_distribuicao_ordem_compra`
         // (db/69), portanto este trecho sempre caia no `op_id` cru. Agora a
         // identidade vem de `public.op_identidade_projecao` (db/95).
-        var origem = window.RAVATEX_SCREENS.ordemCompra
-          .rotuloIdentidadeOp(a.op_id, ns._opIdentidades);
+        var origem = window.RAVATEX_OP_DISPLAY.formatOpIdentityFromMap(a.op_id, ns._opIdentidades, 'Pedido compartilhado');
         row.appendChild(el('span', {}, origem + ' — ' + fmtKg(a.kg_alocado) + ' kg'));
         var rm = el('button', {
           class: 'text-red-600 hover:underline' + (ALLOCATION_ENABLED ? '' : ' opacity-40 cursor-not-allowed'),
@@ -111,7 +110,7 @@
       needs.forEach(function (n) {
         needBox.appendChild(el('div', { class: 'py-0.5', 'data-necessidade-id': String(n.necessidade_id) },
           'Necessidade ' + (n.origem_tipo === 'op'
-            ? window.RAVATEX_SCREENS.ordemCompra.rotuloIdentidadeOp(n.op_id, ns._opIdentidades)
+            ? window.RAVATEX_OP_DISPLAY.formatOpIdentityFromMap(n.op_id, ns._opIdentidades)
             : 'Pedido')
           + ' — precisa ' + fmtKg(n.kg_necessario) + ', restante ' + fmtKg(n.kg_restante)));
       });

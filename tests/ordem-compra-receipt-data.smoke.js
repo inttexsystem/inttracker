@@ -26,6 +26,11 @@ const { makeFakeSupa } = require('./_doubles.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const dataSrc = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'ordem-compra-receipt-data.js'), 'utf8');
+// OP-CANONICAL-IDENTITY-REFOUNDATION-R1: `carregarIdentidadesOp` (resolucao do
+// mapa op_id -> identidade via public.op_identidade_projecao, db/95) vive no
+// dono de dados do MESMO namespace RAVATEX_SCREENS.ordemCompra, entao ele e
+// dependencia real deste sandbox.
+const ordemDataSrc = fs.readFileSync(path.join(ROOT, 'js', 'screens', 'ordem-compra-data.js'), 'utf8');
 
 function makeSandbox(rpcImpl) {
   const supa = makeFakeSupa({ rpcImpl });
@@ -38,6 +43,10 @@ function makeSandbox(rpcImpl) {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
+  vm.runInContext(ordemDataSrc, sandbox, { filename: 'js/screens/ordem-compra-data.js' });
   vm.runInContext(dataSrc, sandbox, { filename: 'js/screens/ordem-compra-receipt-data.js' });
   return { sandbox, supa, ns: sandbox.RAVATEX_SCREENS.ordemCompra };
 }

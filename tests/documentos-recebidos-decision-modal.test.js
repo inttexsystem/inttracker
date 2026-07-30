@@ -270,8 +270,15 @@ function createModal(options) {
   sandbox.window.window = sandbox.window;
   doc.defaultView = sandbox.window;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   // The modal must reach the CANONICAL primitive — never a modal-local
   // implementation and never a stub.
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Os consumidores nao tem fallback proprio, entao esta e uma dependencia
+  // real do sandbox, na mesma ordem do index.html.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(fs.readFileSync(SELECT_POPOVER_PATH, 'utf8'), sandbox, { filename: SELECT_POPOVER_PATH });
   vm.runInContext(src, sandbox, { filename: MODAL_PATH });
   var factory = sandbox.window.RAVATEX_DOCUMENTS.createDocumentDecisionModal;

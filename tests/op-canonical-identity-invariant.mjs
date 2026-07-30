@@ -40,6 +40,9 @@
 //   G  database-enforced uniqueness of the canonical identity.
 //   H  OP avulsa (no Pedido) is preserved with a NULL canonical identity, and
 //      is assigned EXACTLY ONCE if it is later linked to a Pedido.
+//   M  CONCORRENCIA: 12 sessoes psql REAIS e simultaneas disputando o mesmo
+//      (pedido, escopo) produzem sequencias 1..12 contiguas, sem lacuna nem
+//      duplicata, e nenhuma reaproveita sequencia liberada por remocao.
 //   I  db/95 replays idempotently: no identity drift, no sequence consumed
 //      twice, no row-count drift, byte-identical high-water.
 //   J  the post-invariant of db/95 fails closed on a desynchronized high-water.
@@ -51,7 +54,7 @@
 // Run:  node tests/op-canonical-identity-invariant.mjs
 // Exits nonzero on any missing or failed proof.
 
-import { spawnSync } from 'node:child_process';
+import { spawnSync, spawn } from 'node:child_process';
 import { mkdtemp, writeFile, rm, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -484,6 +487,94 @@ function partL(h) {
 }
 
 // ===========================================================================
+// PART M — CONCORRENCIA de numeracao.
+//
+// `proximo_seq_identidade` reserva por UPSERT `ON CONFLICT ... ultimo_seq + 1`,
+// que serializa no lock da linha do contador. A prova nao pode ser lida do
+// codigo: N sessoes REAIS e SIMULTANEAS disputam o mesmo (pedido, escopo), e o
+// resultado tem de ser N sequencias distintas, contiguas, sem lacuna e sem
+// duplicata — e o indice unico da identidade nao pode ser violado nenhuma vez.
+// ===========================================================================
+async function partM(h) {
+  const N = 12;
+  const PEDIDO_CONC = '00000000-0000-4000-8000-0000950000c1';
+  must(h, `INSERT INTO public.pedidos (id, numero, cliente_id, status, criado_em, data_pedido, prazo_entrega)
+           VALUES ('${PEDIDO_CONC}', 777, ${CLI}, 'confirmado',
+                   TIMESTAMPTZ '2026-07-20 12:00:00+00', DATE '2026-07-20', DATE '2026-08-20');`,
+    'pedido concorrencia');
+  const LOTE_CONC = 950000390;
+  must(h, `INSERT INTO public.lotes (id, numero, cliente_id, pedido_id)
+           VALUES (${LOTE_CONC}, 950390, ${CLI}, '${PEDIDO_CONC}');`, 'lote concorrencia');
+
+  // N processos psql REALMENTE simultaneos. `spawnSync` bloquearia e executaria
+  // em sequencia, nao provando concorrencia alguma: aqui todos sao disparados
+  // com `spawn` e aguardados juntos, de modo que disputam de fato o lock da
+  // linha do contador. Cada sessao reserva o numero interno, insere a OP e
+  // vincula o Lote na MESMA transacao — o caminho real de criacao.
+  const procs = await Promise.all(Array.from({ length: N }, (_, i) => {
+    const opId = 950004000 + i;
+    const sql = `BEGIN;
+      INSERT INTO public.ops (id, numero, ano, status, tipo, criado_em)
+      VALUES (${opId}, public.proximo_numero_op('tecelagem', 2026), 2026, 'simulada', 'tecelagem', now());
+      UPDATE public.ops SET lote_id = ${LOTE_CONC} WHERE id = ${opId};
+      COMMIT;`;
+    return new Promise((resolve) => {
+      const child = spawn(psqlBinary(h), [...baseArgs(h), '-v', 'ON_ERROR_STOP=1', '-c', sql],
+        { encoding: 'utf8' });
+      let stderr = '';
+      child.stderr.on('data', (d) => { stderr += d.toString(); });
+      child.on('close', (status) => resolve({ status, stderr }));
+    });
+  }));
+  const falhas = procs.filter((r) => r.status !== 0);
+  check(falhas.length === 0,
+    `todas as ${N} sessoes concorrentes deviam concluir (falharam ${falhas.length}: ${
+      falhas.map((f) => (f.stderr || '').split('\n')[0]).join(' | ')})`);
+
+  // Sequencias: exatamente 1..N, distintas e contiguas.
+  const seqs = scalar(h, `SELECT string_agg(identidade_seq::text, ',' ORDER BY identidade_seq)
+                            FROM public.ops WHERE identidade_pedido_id = '${PEDIDO_CONC}';`);
+  const esperado = Array.from({ length: N }, (_, i) => i + 1).join(',');
+  check(seqs === esperado, `as sequencias devem ser 1..${N} sem lacuna nem duplicata (got ${seqs})`);
+
+  // Identidades: N distintas, e o indice unico nunca foi violado.
+  const distintas = scalar(h, `SELECT count(DISTINCT identidade_operacional)
+                                 FROM public.ops WHERE identidade_pedido_id = '${PEDIDO_CONC}';`);
+  check(distintas === String(N), `devem existir ${N} identidades distintas (got ${distintas})`);
+  check(scalar(h, `SELECT count(*) FROM public.ops WHERE identidade_pedido_id = '${PEDIDO_CONC}';`) === String(N),
+    `devem existir exatamente ${N} OPs`);
+
+  // O high-water acompanhou exatamente N reservas.
+  check(scalar(h, `SELECT ultimo_seq FROM public.pedido_identidade_numeros
+                    WHERE pedido_id = '${PEDIDO_CONC}' AND escopo = 'T';`) === String(N),
+    `o high-water deve estar em ${N}`);
+
+  // E o numero INTERNO tambem nao colidiu: N valores distintos.
+  const internos = scalar(h, `SELECT count(DISTINCT numero) FROM public.ops
+                               WHERE identidade_pedido_id = '${PEDIDO_CONC}';`);
+  check(internos === String(N), `os ${N} numeros internos devem ser distintos (got ${internos})`);
+
+  // Non-reuse sob concorrencia: remove 3 e cria 3; nenhuma sequencia repetida.
+  must(h, `DELETE FROM public.ops WHERE id IN (950004000, 950004001, 950004002);`, 'remove 3');
+  const depois = [];
+  for (let i = 0; i < 3; i++) {
+    const opId = 950004100 + i;
+    const r = spawnSync(psqlBinary(h), [...baseArgs(h), '-v', 'ON_ERROR_STOP=1', '-c',
+      `BEGIN;
+       INSERT INTO public.ops (id, numero, ano, status, tipo, criado_em)
+       VALUES (${opId}, public.proximo_numero_op('tecelagem', 2026), 2026, 'simulada', 'tecelagem', now());
+       UPDATE public.ops SET lote_id = ${LOTE_CONC} WHERE id = ${opId};
+       COMMIT;`], { encoding: 'utf8', timeout: 90000 });
+    check(r.status === 0, `recriacao ${i} deve concluir: ${(r.stderr || '').split('\n')[0]}`);
+    depois.push(scalar(h, `SELECT identidade_seq FROM public.ops WHERE id = ${opId};`));
+  }
+  check(depois.join(',') === `${N + 1},${N + 2},${N + 3}`,
+    `as novas sequencias devem continuar em ${N + 1}.. sem reaproveitar 1..3 (got ${depois.join(',')})`);
+  log('M', { sessoesSimultaneas: N, sequencias: `1..${N} contiguas`, duplicatas: 0,
+    internosDistintos: N, aposRemocaoDe3: depois.join(','), reuso: 'nenhum' });
+}
+
+// ===========================================================================
 // PART I — idempotent replay.
 // ===========================================================================
 function partI(h) {
@@ -566,6 +657,7 @@ async function main() {
     partG(h);
     partH(h);
     partL(h);
+    await partM(h);
     partI(h);
     partJ(h);
 

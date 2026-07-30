@@ -279,9 +279,16 @@ function makeEWSandbox({ deleteResult = { data: null, error: null } } = {}) {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
 
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Os consumidores nao tem fallback proprio, entao esta e uma dependencia
+  // real do sandbox, na mesma ordem do index.html.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   // Ordem real de index.html: ui.js -> badges.js -> pedido-ui.js -> tela.
@@ -688,6 +695,9 @@ function makeEWLatexSandbox({
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
 
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
@@ -1050,6 +1060,9 @@ function makeEWCimaSandbox({
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
 
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
@@ -1182,7 +1195,7 @@ test('45.1 runtime: salvarEntregaCima mostra "Criou OP X/Y" quando RPC retorna c
   assert.equal(result, true);
   const successToasts = getToasts().filter(t => t.type === 'success');
   assert.equal(successToasts.length, 1);
-  assert.equal(successToasts[0].msg, 'Criou OP 5/2026');
+  assert.equal(successToasts[0].msg, 'Criou OP de acabamento');
 });
 
 test('45.2 runtime: salvarEntregaCima mostra "Acumulou na OP X/Y" quando RPC retorna accumulated=true', async () => {
@@ -1195,7 +1208,7 @@ test('45.2 runtime: salvarEntregaCima mostra "Acumulou na OP X/Y" quando RPC ret
   assert.equal(result, true);
   const successToasts = getToasts().filter(t => t.type === 'success');
   assert.equal(successToasts.length, 1);
-  assert.equal(successToasts[0].msg, 'Acumulou na OP 5/2026');
+  assert.equal(successToasts[0].msg, 'Acumulou na OP de acabamento');
 });
 
 test('45.3 runtime: salvarEntregaCima mostra "Já vinculada à OP X/Y" quando RPC retorna already_linked=true', async () => {
@@ -1208,7 +1221,7 @@ test('45.3 runtime: salvarEntregaCima mostra "Já vinculada à OP X/Y" quando RP
   assert.equal(result, true);
   const successToasts = getToasts().filter(t => t.type === 'success');
   assert.equal(successToasts.length, 1);
-  assert.equal(successToasts[0].msg, 'Já vinculada à OP 5/2026');
+  assert.equal(successToasts[0].msg, 'Já vinculada à OP de acabamento');
 });
 
 test('46. runtime: salvarEntregaCima RPC falhando → entrega mantida, toast específico da RPC, return true', async () => {
@@ -1487,6 +1500,9 @@ test('52.2 D-C-C: atualizarEntregaCima delete entrega_itens falhando no trigger 
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
@@ -1595,6 +1611,9 @@ test('52.4 D-C-C: excluirEntrega delete entregas falhando no trigger → toast a
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
@@ -1730,6 +1749,9 @@ test('55. boot: ui + router + system-screens + common + cadastros + ops-list + e
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
 
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
@@ -1783,6 +1805,9 @@ test('56. screenPainel renderiza via shellLayout com ADMIN_MENU atual', () => {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
 
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
@@ -1847,6 +1872,9 @@ test('57. screenCadastrosCores (cadastros) ainda renderiza (regressão cadastros
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
@@ -1891,6 +1919,9 @@ test('58. screenListaOPs (ops-list) ainda renderiza (regressão ops-list)', asyn
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
@@ -1929,7 +1960,7 @@ test('59. Helper-B: salvarEntregaCima forceSplit chama gerar_op_latex_split com 
   assert.equal(JSON.stringify(rpcCalls[0].params), JSON.stringify({ p_entrega_id: 999, p_motivo: 'amostra separada' }));
   const successToasts = getToasts().filter(t => t.type === 'success');
   assert.equal(successToasts.length, 1);
-  assert.equal(successToasts[0].msg, 'OP de acabamento separada criada: OP 7/2026');
+  assert.equal(successToasts[0].msg, 'OP de acabamento separada criada: OP de acabamento');
 });
 
 test('60. Helper-B: salvarEntregaCima forceSplit com motivo vazio bloqueia antes de Supabase', async () => {
@@ -2016,6 +2047,9 @@ test('65. MANTA-B2B: o erro atomico do backend e repassado sem reescrita', async
   const sandbox = { console };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   sandbox.window.supa = {
     rpc: async () => ({ data: { ok: false, codigo: 'linhagem_invalida', erro: 'OP sem lote vinculado' } }),
   };

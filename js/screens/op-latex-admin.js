@@ -144,13 +144,6 @@
     return window.RAVATEX_OP_DISPLAY.formatOpOperationalCode(op, ctx || {});
   }
 
-  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: uma OP AVULSA (sem Pedido) tem
-  // como identidade visivel o proprio numero/ano, e o dono central e quem
-  // decide isso. O fallback inline foi removido.
-  function formatOpLegacy(op) {
-    return window.RAVATEX_OP_DISPLAY.formatOpLegacyCode(op);
-  }
-
   async function loadPedidoOperationalContext(op) {
     var pedidoId = op && op.lote && op.lote.pedido_id ? op.lote.pedido_id : null;
     if (!pedidoId || !supa || typeof supa.from !== 'function') return null;

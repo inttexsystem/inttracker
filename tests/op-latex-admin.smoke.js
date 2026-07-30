@@ -328,7 +328,7 @@ test('16. index.html NÃO contém service_role nem password literal longo', () =
 // fluente que registra as chamadas por tabela.
 function makeFullBootSandbox({
   opData = {
-    id: 42, numero: 1, ano: 2026, status: 'em_producao', tipo: 'latex',
+    id: 42, identidade_operacional: 'OP-A042-1-26', identidade_pedido_id: 'ped-fix', numero: 1, ano: 2026, status: 'em_producao', tipo: 'latex',
     observacao: 'test', origem_op_id: null, lote: null,
     op_itens: [
       { id: 100, modelo_id: 1, metros_pedidos: 50 },
@@ -460,9 +460,16 @@ function makeFullBootSandbox({
   sandbox.loadCurrentUser = async () => sandbox.CURRENT_USER;
   sandbox.handleRoute = () => {};
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
 
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Os consumidores nao tem fallback proprio, entao esta e uma dependencia
+  // real do sandbox, na mesma ordem do index.html.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
   vm.runInContext(uiSrc,     sandbox, { filename: 'js/ui.js' });
   vm.runInContext(badgesSrc, sandbox, { filename: 'js/badges.js' });
@@ -541,10 +548,12 @@ test('22b. OP latex consolidada mostra multiplas entregas de origem por op_latex
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 5,
       ano: 2026,
       status: 'em_producao',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, pedido_id: 77, cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -563,7 +572,7 @@ test('22b. OP latex consolidada mostra multiplas entregas de origem por op_latex
       { id: 501, etapa: 'latex', fornecedor_id: 7, data: '2026-07-04', entrega_itens: [{ id: 701, op_id: 42, op_item_id: 100, metros_entregues: 50, defeito: false, observacao: '' }] },
     ],
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem', op_itens: [{ id: 201, modelo_id: 1, pedido_item_id: 700 }] },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem', op_itens: [{ id: 201, modelo_id: 1, pedido_item_id: 700 }] },
   });
 
   assert.match(rendered.text, /Entregas vinculadas3/);
@@ -698,6 +707,9 @@ test('27. boot chain: ui + router + system-screens + common + cadastros + ops-li
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
 
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
@@ -821,10 +833,12 @@ test('32. OP aberta de acabamento mostra linguagem de preparacao e fornecedor de
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'aberta',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -832,7 +846,7 @@ test('32. OP aberta de acabamento mostra linguagem de preparacao e fornecedor de
       op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
     },
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
   assert.match(rendered.text, /Acabamento/i);
   assert.match(rendered.text, /Preparaç/i);
@@ -844,10 +858,12 @@ test('33. OP aberta de acabamento mostra origem e CTA de confirmar entrada', asy
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'aberta',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -855,10 +871,10 @@ test('33. OP aberta de acabamento mostra origem e CTA de confirmar entrada', asy
       op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
     },
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
   assert.match(rendered.text, /OP origem/i);
-  assert.match(rendered.text, /OP 2\/2026 · Tecelagem/i);
+  assert.match(rendered.text, /OP-T012-1-26 · Tecelagem/i);
   assert.match(rendered.text, /Confirmar/i);
   assert.match(rendered.text, /Confirma o recebimento do material vindo da Tecelagem/i);
   assert.doesNotMatch(rendered.text, /Confirmar entrada \/ iniciar acabamento/i);
@@ -869,10 +885,12 @@ test('34. OP de acabamento nao mostra "4. Entregas tecelagem"', async () => {
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'aberta',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -880,7 +898,7 @@ test('34. OP de acabamento nao mostra "4. Entregas tecelagem"', async () => {
       op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
     },
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
   assert.doesNotMatch(rendered.text, /4\.\s*Entregas tecelagem/i);
 });
@@ -889,10 +907,12 @@ test('35. OP em producao de acabamento segue o standalone e nao mostra recebimen
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'em_producao',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -908,7 +928,7 @@ test('35. OP em producao de acabamento segue o standalone e nao mostra recebimen
       entrega_itens: [{ id: 601, op_id: 42, op_item_id: 100, metros_entregues: 50, defeito: false, observacao: '' }],
     }],
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
   assert.match(rendered.text, /Resumo desta OP/i);
   assert.match(rendered.text, /Finalizar OP/i);
@@ -923,10 +943,12 @@ test('36. OP aberta de acabamento informa que aguarda entrada no acabamento', as
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'aberta',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -934,7 +956,7 @@ test('36. OP aberta de acabamento informa que aguarda entrada no acabamento', as
       op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
     },
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
   assert.match(rendered.text, /Confirmar recebimento/i);
   assert.doesNotMatch(rendered.text, /Transicao para producao sera implementada em fase propria/i);
@@ -944,10 +966,12 @@ test('37. OP aberta de acabamento confirma entrada via alterar_status_op', async
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'aberta',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -955,7 +979,7 @@ test('37. OP aberta de acabamento confirma entrada via alterar_status_op', async
       op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
     },
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
   const btn = findNode(rendered.view, (n) => (
     n.tagName === 'BUTTON' && /\bConfirmar\b/i.test(collectNodeText(n))
@@ -982,10 +1006,12 @@ test('37a. OP aberta de acabamento nao renderiza botao longo ou etapa inexistent
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'aberta',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -993,7 +1019,7 @@ test('37a. OP aberta de acabamento nao renderiza botao longo ou etapa inexistent
       op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
     },
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
   assert.doesNotMatch(rendered.text, /Confirmar entrada \/ iniciar acabamento/i);
   assert.doesNotMatch(rendered.text, /Registrar acabamento/i);
@@ -1013,10 +1039,12 @@ test('39. OP em producao de acabamento usa template operacional proprio', async 
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'em_producao',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: 'OP gerada da entrega da tecelagem',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, pedido_id: 77, cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -1032,7 +1060,7 @@ test('39. OP em producao de acabamento usa template operacional proprio', async 
       entrega_itens: [{ id: 601, op_id: 42, op_item_id: 100, metros_entregues: 50, defeito: false, observacao: '' }],
     }],
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
 
   assert.match(olaSrc, /function\s+renderOPLatexProducao\s*\(/,
@@ -1048,10 +1076,12 @@ test('40. OP em producao de acabamento mostra todos os blocos operacionais esper
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'em_producao',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, pedido_id: 77, cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -1067,7 +1097,7 @@ test('40. OP em producao de acabamento mostra todos os blocos operacionais esper
       entrega_itens: [{ id: 601, op_id: 42, op_item_id: 100, metros_entregues: 50, defeito: false, observacao: '' }],
     }],
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
 
   for (const label of [
@@ -1098,10 +1128,12 @@ test('41. OP em producao de acabamento mostra recebido, movimentado, disponivel 
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'em_producao',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, pedido_id: 77, cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -1109,7 +1141,7 @@ test('41. OP em producao de acabamento mostra recebido, movimentado, disponivel 
       op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
     },
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
     saldoData: {
       ok: true,
       recebido_total: 100,
@@ -1134,10 +1166,12 @@ test('42. OP em producao de acabamento nao mostra elementos de preparacao ou tec
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'em_producao',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, pedido_id: 77, cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -1145,7 +1179,7 @@ test('42. OP em producao de acabamento nao mostra elementos de preparacao ou tec
       op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
     },
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
 
   assert.doesNotMatch(rendered.text, /4\.\s*Entregas tecelagem/i);
@@ -1169,10 +1203,12 @@ test('43a. OP em producao com saldo acabado libera expedicao parcial sem finaliz
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'em_producao',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, pedido_id: '11111111-2222-3333-4444-555555555555', cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -1180,7 +1216,7 @@ test('43a. OP em producao com saldo acabado libera expedicao parcial sem finaliz
       op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
     },
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
     saldoData: {
       ok: true,
       recebido_total: 50,
@@ -1222,10 +1258,12 @@ test('43d. OP em producao mantem botoes curtos e Finalizar OP separado', async (
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'em_producao',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, pedido_id: '11111111-2222-3333-4444-555555555555', cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -1233,7 +1271,7 @@ test('43d. OP em producao mantem botoes curtos e Finalizar OP separado', async (
       op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
     },
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
     saldoData: {
       ok: true,
       recebido_total: 50,
@@ -1266,10 +1304,12 @@ test('43b. OP finalizada preserva liberar expedicao total legado quando nao ha s
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'finalizada',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, pedido_id: '11111111-2222-3333-4444-555555555555', cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -1277,7 +1317,7 @@ test('43b. OP finalizada preserva liberar expedicao total legado quando nao ha s
       op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
     },
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
   assert.match(rendered.text, /Liberar total/i);
   const btn = findNode(rendered.view, (n) => (
@@ -1294,10 +1334,12 @@ test('43c. OP concluida preserva liberar expedicao total legado quando nao ha sa
   const rendered = await renderLatexAdminForTest({
     opData: {
       id: 42,
+      identidade_operacional: 'OP-A042-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 8,
       ano: 2026,
       status: 'concluida',
-      tipo: 'latex',
+       tipo: 'latex',
       observacao: '',
       origem_op_id: 12,
       lote: { id: 91, numero: 22, pedido_id: '11111111-2222-3333-4444-555555555555', cliente: { id: 3, nome: 'Cliente Atlas' } },
@@ -1305,7 +1347,7 @@ test('43c. OP concluida preserva liberar expedicao total legado quando nao ha sa
       op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
     },
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
   assert.match(rendered.text, /Liberar total/i);
   const btn = findNode(rendered.view, (n) => (
@@ -1341,7 +1383,7 @@ test('44. OP em producao de tecelagem fica em modulo proprio, fora do acabamento
 test('45. OP em producao de acabamento não tem nenhum ícone de seção (padrão do standalone: título só em texto)', async () => {
   const rendered = await renderLatexAdminForTest({
     opData: {
-      id: 42, numero: 8, ano: 2026, status: 'em_producao', tipo: 'latex',
+      id: 42, identidade_operacional: 'OP-A042-1-26', identidade_pedido_id: 'ped-fix', numero: 8, ano: 2026, status: 'em_producao', tipo: 'latex',
       observacao: '', origem_op_id: 12,
       lote: { id: 91, numero: 22, pedido_id: 77, cliente: { id: 3, nome: 'Cliente Atlas' } },
       op_itens: [{ id: 100, modelo_id: 1, metros_pedidos: 125, pedido_item_id: 700 }],
@@ -1352,7 +1394,7 @@ test('45. OP em producao de acabamento não tem nenhum ícone de seção (padrã
       entrega_itens: [{ id: 601, op_id: 42, op_item_id: 100, metros_entregues: 50, defeito: false, observacao: '' }],
     }],
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
   const temIconeSecao = rendered.styles.some((s) => /width:34px;height:34px;border-radius:6px;background:#eaf1fd/.test(s));
   assert.equal(temIconeSecao, false, 'nenhum dos 7 blocos do standalone PROD-OP-ACABAMENTO usa ícone no título — renderOPLatexProducao não pode ter herdado o ícone do template Nova OP/OP Aberta');
@@ -1361,14 +1403,14 @@ test('45. OP em producao de acabamento não tem nenhum ícone de seção (padrã
 test('46. Card "1. Dados da OP" (Acabamento em produção) usa 3 colunas do standalone', async () => {
   const rendered = await renderLatexAdminForTest({
     opData: {
-      id: 42, numero: 8, ano: 2026, status: 'em_producao', tipo: 'latex',
+      id: 42, identidade_operacional: 'OP-A042-1-26', identidade_pedido_id: 'ped-fix', numero: 8, ano: 2026, status: 'em_producao', tipo: 'latex',
       observacao: '', origem_op_id: 12,
       lote: { id: 91, numero: 22, pedido_id: 77, cliente: { id: 3, nome: 'Cliente Atlas' } },
       op_itens: [{ id: 100, modelo_id: 1, metros_pedidos: 125, pedido_item_id: 700 }],
       op_fornecedores: [{ fornecedor_id: 7, etapa: 'latex', fornecedores: { nome: 'Acabamento Sul' } }],
     },
     modelosData: [{ id: 1, nome: 'Roma', largura: 1.5, cor_1: { id: 1, nome: 'CINZA' }, cor_2: { id: 2, nome: 'GELO' } }],
-    origemOpData: { id: 12, numero: 2, ano: 2026, tipo: 'tecelagem' },
+    origemOpData: { id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 2, ano: 2026, tipo: 'tecelagem' },
   });
   const camposDados = findNode(rendered.view, (n) => {
     const style = typeof n.getAttribute === 'function' ? n.getAttribute('style') : null;

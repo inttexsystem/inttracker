@@ -82,7 +82,7 @@
   var opIdentidades = null;
 
   function opLabel(opId) {
-    return ns.rotuloIdentidadeOp(opId, opIdentidades);
+    return window.RAVATEX_OP_DISPLAY.formatOpIdentityFromMap(opId, opIdentidades);
   }
 
   function sectionCard(children) {

@@ -145,6 +145,10 @@ function loadModal() {
   doc.defaultView = sandbox.window;
   vm.createContext(sandbox);
   // The modal must reach the CANONICAL primitive — never a stub.
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Os consumidores nao tem fallback proprio, entao esta e uma dependencia
+  // real do sandbox, na mesma ordem do index.html.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   vm.runInContext(SELECT_POPOVER_SRC, sandbox, { filename: SELECT_POPOVER_PATH });
   vm.runInContext(SRC, sandbox, { filename: MODAL_PATH });
   var factory = sandbox.window.RAVATEX_DOCUMENTS.createDocumentLinkAdminModal;

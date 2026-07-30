@@ -317,8 +317,8 @@ test('STEPPER-OP-PENDING-R1: Acabamento movimentavel nao exige OP terminal, mas 
     s.itens = [{ id: 'pi1', modelo_id: 7, metros: 100 }];
     s.modelosById = { 7: { id: 7, nome: 'Roma' } };
     s.ops = [
-      { id: 29, tipo: 'tecelagem', numero: 1, ano: 2026, status: 'concluida', op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 100, pedido_item_id: 'pi1' }] },
-      { id: 30, tipo: 'latex', numero: 2, ano: 2026, status: 'em_producao', origem_op_id: 29, op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 100, pedido_item_id: 'pi1' }] },
+      { id: 29, identidade_operacional: 'OP-T029-1-26', identidade_pedido_id: 'ped-fix', tipo: 'tecelagem', numero: 1, ano: 2026, status: 'concluida', op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 100, pedido_item_id: 'pi1' }] },
+      { id: 30, identidade_operacional: 'OP-A030-1-26', identidade_pedido_id: 'ped-fix', tipo: 'latex', numero: 2, ano: 2026, status: 'em_producao', origem_op_id: 29, op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 100, pedido_item_id: 'pi1' }] },
     ];
     s.entregaItens = [{ id: 1, entrega_id: 'e1', op_id: 29, op_item_id: 290, modelo_id: 7, metros_entregues: 100, defeito: false }];
     s.entregasById = { e1: { id: 'e1', etapa: 'cima' } };
@@ -615,10 +615,12 @@ test('pedido-chain-state: insumos recebidos com OP aberta expõe pendência de a
     pedido: { id: 'p1', status: 'rascunho', metros_total: 100 },
     ops: [{
       id: 12,
+      identidade_operacional: 'OP-T012-1-26',
+      identidade_pedido_id: 'ped-fix',
       numero: 12,
       ano: 2026,
       status: 'aberta',
-      tipo: 'tecelagem',
+       tipo: 'tecelagem',
       op_itens: [{ id: 'i1', metros_pedidos: 100 }],
     }],
     ordensFio: [{ op_id: 12, kg_pedido: 10, kg_recebido: 10 }],
@@ -636,7 +638,7 @@ test('pedido-chain-state: insumos recebidos com OP aberta expõe pendência de a
   assert.equal(result.actions.transferInsumosToTecelagem.label, 'Aguardar aceite da OP');
   assert.equal(result.actions.transferTecelagemToAcabamento.mode, 'disabled');
   assert.equal(result.actions.transferTecelagemToAcabamento.label, 'OP pendente de aceite');
-  assert.equal(result.tecPendingAcceptance.label, 'OP 12/2026 pendente de aceite');
+  assert.equal(result.tecPendingAcceptance.label, 'OP-T012-1-26 pendente de aceite');
   assert.equal(result.tecPendingAcceptance.message, 'Insumos recebidos; OP pendente de aceite');
   assert.equal(result.tecPendingAcceptance.opId, 12);
 });
@@ -657,7 +659,7 @@ test('CONTRACT-B caso 1: OP aberta + insumos recebidos => conector INS->TEC NAO 
   const result = derive({
     pedido: { id: 'p1', status: 'confirmado', metros_total: 100 },
     ops: [{
-      id: 12, numero: 12, ano: 2026, status: 'aberta', tipo: 'tecelagem',
+      id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 12, ano: 2026, status: 'aberta', tipo: 'tecelagem',
       op_itens: [{ id: 'i1', metros_pedidos: 100 }],
     }],
     ordensFio: [{ op_id: 12, kg_pedido: 10, kg_recebido: 10 }],
@@ -691,7 +693,7 @@ test('CONTRACT-B caso 2: OP em_producao + insumos recebidos => conector INS->TEC
   const result = derive({
     pedido: { id: 'p1', status: 'confirmado', metros_total: 100 },
     ops: [{
-      id: 12, numero: 12, ano: 2026, status: 'em_producao', tipo: 'tecelagem',
+      id: 12, identidade_operacional: 'OP-T012-1-26', identidade_pedido_id: 'ped-fix', numero: 12, ano: 2026, status: 'em_producao', tipo: 'tecelagem',
       op_itens: [{ id: 'i1', metros_pedidos: 100 }],
     }],
     ordensFio: [{ op_id: 12, kg_pedido: 10, kg_recebido: 10 }],
@@ -721,7 +723,7 @@ test('CONTRACT-B caso 3: expedicao entregue >= total mas status != entregue => p
     // status confirmado: a RPC concluir_pedido_se_pronto ainda não rodou.
     pedido: { id: 'p1', status: 'confirmado', metros_total: 100 },
     ops: [{
-      id: 12, numero: 12, ano: 2026, status: 'finalizada', tipo: 'latex',
+      id: 12, identidade_operacional: 'OP-A012-1-26', identidade_pedido_id: 'ped-fix', numero: 12, ano: 2026, status: 'finalizada', tipo: 'latex',
       op_itens: [{ id: 'i1', metros_pedidos: 100 }],
     }],
     ordensFio: [],
@@ -1481,8 +1483,10 @@ test('transition-related-ops-R2: openMovementModal integra secao OPs relacionada
   // de proposito. Ele apresentava o numero INTERNO como identificacao da OP,
   // duas linhas abaixo do codigo canonico da MESMA OP — a contradicao auditada.
   // A identidade e o titulo da linha; aqui ficam tipo e status.
-  assert.doesNotMatch(sectionSlice, /Numero\/Ano/,
-    'o rotulo Numero/Ano nao pode voltar: era o numero interno como identidade');
+  assert.doesNotMatch(sectionSlice, /'Numero\/Ano: '/,
+    'o literal Numero/Ano nao pode voltar: era o numero interno como identidade');
+  assert.doesNotMatch(sectionSlice, /op\.numero \+ '\/' \+ op\.ano/,
+    'nenhuma concatenacao de numero/ano pode voltar a esta secao');
   assert.match(sectionSlice, /opCode\(op\)/,
     'a linha deve titular a OP pela identidade canonica');
   assert.match(sectionSlice, /Status: /,
@@ -2043,8 +2047,8 @@ function aptConclusaoState(ns) {
   s.pedido = { id: CONCLUIR_PEDIDO_ID, numero: 20, status: 'rascunho', metros_total: 1000 };
   s.itens = [{ id: 'pi1', modelo_id: 7, metros: 1000 }];
   s.ops = [
-    { id: 29, tipo: 'tecelagem', numero: 18, ano: 2026, status: 'concluida', op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 1000, metros_ajustados: 1000, pedido_item_id: 'pi1' }] },
-    { id: 30, tipo: 'latex', numero: 11, ano: 2026, status: 'concluida', origem_op_id: 29, op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 1000, pedido_item_id: null }] },
+    { id: 29, identidade_operacional: 'OP-T029-1-26', identidade_pedido_id: 'ped-fix', tipo: 'tecelagem', numero: 18, ano: 2026, status: 'concluida', op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 1000, metros_ajustados: 1000, pedido_item_id: 'pi1' }] },
+    { id: 30, identidade_operacional: 'OP-A030-1-26', identidade_pedido_id: 'ped-fix', tipo: 'latex', numero: 11, ano: 2026, status: 'concluida', origem_op_id: 29, op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 1000, pedido_item_id: null }] },
   ];
   s.entregaItens = [{ id: 1, entrega_id: 'e1', op_id: 29, op_item_id: 290, modelo_id: 7, metros_entregues: 1000, defeito: false }];
   s.entregasById = { e1: { id: 'e1', etapa: 'cima' } };
@@ -2148,7 +2152,7 @@ const stageBodySlice = (detailEvents.match(/function buildStageDetailBody[\s\S]*
 
 test('HUB: finalizarOp reutiliza alterar_status_op(concluida) sem update direto em ops.status', () => {
   assert.match(detailEvents, /function finalizarOp/);
-  const finSlice = (detailEvents.match(/function finalizarOp[\s\S]*?\n    \}\n\n    function movementField/) || [''])[0];
+  const finSlice = (detailEvents.match(/function finalizarOp[\s\S]*?\n    \}\n\n(?:    \/\/[^\n]*\n)*    function movementField/) || [''])[0];
   assert.ok(finSlice, 'trecho finalizarOp nao encontrado');
   assert.match(finSlice, /alterar_status_op/);
   assert.match(finSlice, /p_novo_status:\s*'concluida'/);
@@ -2158,7 +2162,7 @@ test('HUB: finalizarOp reutiliza alterar_status_op(concluida) sem update direto 
 });
 
 test('HUB stacking: finalizarOp fecha o modal pai (overlay bespoke) ANTES de abrir a confirmacao', () => {
-  const finSlice = (detailEvents.match(/function finalizarOp[\s\S]*?\n    \}\n\n    function movementField/) || [''])[0];
+  const finSlice = (detailEvents.match(/function finalizarOp[\s\S]*?\n    \}\n\n(?:    \/\/[^\n]*\n)*    function movementField/) || [''])[0];
   assert.ok(finSlice, 'trecho finalizarOp nao encontrado');
   // A chamada de fechar o modal pai deve preceder a confirmacao, evitando que
   // a confirmacao (window.modal) apareca atras do modal da seta (z maior).
@@ -2413,8 +2417,8 @@ function hubBase(ns) {
 function hubTecAcab(ns, latexStatus) {
   const s = hubBase(ns);
   s.ops = [
-    { id: 29, tipo: 'tecelagem', numero: 18, ano: 2026, status: 'em_producao', op_fornecedores: [{ fornecedor_id: 5, etapa: 'cima' }], op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 1000, metros_ajustados: 1000, pedido_item_id: 'pi1' }] },
-    { id: 30, tipo: 'latex', numero: 11, ano: 2026, status: latexStatus, origem_op_id: 29, op_fornecedores: [{ fornecedor_id: 2, etapa: 'latex', fornecedores: { nome: 'Conitex' } }], op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 1000, pedido_item_id: null }] },
+    { id: 29, identidade_operacional: 'OP-T029-1-26', identidade_pedido_id: 'ped-fix', tipo: 'tecelagem', numero: 18, ano: 2026, status: 'em_producao', op_fornecedores: [{ fornecedor_id: 5, etapa: 'cima' }], op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 1000, metros_ajustados: 1000, pedido_item_id: 'pi1' }] },
+    { id: 30, identidade_operacional: 'OP-A030-1-26', identidade_pedido_id: 'ped-fix', tipo: 'latex', numero: 11, ano: 2026, status: latexStatus, origem_op_id: 29, op_fornecedores: [{ fornecedor_id: 2, etapa: 'latex', fornecedores: { nome: 'Conitex' } }], op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 1000, pedido_item_id: null }] },
   ];
   s.entregaItens = [{ id: 1, entrega_id: 'e1', op_id: 29, op_item_id: 290, modelo_id: 7, metros_entregues: 1000, defeito: false }];
   s.entregasById = { e1: { id: 'e1', etapa: 'cima' } };
@@ -2667,32 +2671,39 @@ test('OP-CANONICAL-IDENTITY: computeViewModel usa a identidade PERSISTIDA da lin
   // Duas OPs de Tecelagem + uma de Acabamento/Latex, todas com criado_em
   // para o sequencial por Pedido + Tipo.
   s.ops = [
-    { id: 29, tipo: 'tecelagem', numero: 18, ano: 2026, status: 'em_producao', criado_em: '2026-03-15T10:00:00Z', op_fornecedores: [{ fornecedor_id: 5, etapa: 'cima' }], op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 600, metros_ajustados: 600, pedido_item_id: 'pi1' }] },
-    { id: 40, tipo: 'tecelagem', numero: 19, ano: 2026, status: 'aberta', criado_em: '2026-03-16T10:00:00Z', op_fornecedores: [{ fornecedor_id: 5, etapa: 'cima' }], op_itens: [{ id: 400, modelo_id: 7, metros_pedidos: 400, metros_ajustados: 400, pedido_item_id: 'pi1' }] },
-    { id: 30, tipo: 'latex', numero: 11, ano: 2026, status: 'aberta', origem_op_id: 29, criado_em: '2026-03-17T10:00:00Z', op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 600, pedido_item_id: 'pi1' }] },
+    { id: 29, identidade_operacional: 'OP-T029-1-26', identidade_pedido_id: 'ped-fix', tipo: 'tecelagem', numero: 18, ano: 2026, status: 'em_producao', criado_em: '2026-03-15T10:00:00Z', op_fornecedores: [{ fornecedor_id: 5, etapa: 'cima' }], op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 600, metros_ajustados: 600, pedido_item_id: 'pi1' }] },
+    { id: 40, identidade_operacional: 'OP-T040-1-26', identidade_pedido_id: 'ped-fix', tipo: 'tecelagem', numero: 19, ano: 2026, status: 'aberta', criado_em: '2026-03-16T10:00:00Z', op_fornecedores: [{ fornecedor_id: 5, etapa: 'cima' }], op_itens: [{ id: 400, modelo_id: 7, metros_pedidos: 400, metros_ajustados: 400, pedido_item_id: 'pi1' }] },
+    { id: 30, identidade_operacional: 'OP-A030-1-26', identidade_pedido_id: 'ped-fix', tipo: 'latex', numero: 11, ano: 2026, status: 'aberta', origem_op_id: 29, criado_em: '2026-03-17T10:00:00Z', op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 600, pedido_item_id: 'pi1' }] },
   ];
   const view = rt.ns.computeViewModel(s);
   const byId = {};
   view.opSummaries.forEach((sm) => { byId[sm.id] = sm; });
-  assert.equal(byId[29].label, 'OP 21/2026-T01', 'primeira Tecelagem = T01');
-  assert.equal(byId[40].label, 'OP 21/2026-T02', 'segunda Tecelagem = T02');
-  assert.equal(byId[30].label, 'OP 21/2026-A01', 'primeira Acabamento/Latex = A01');
+  assert.equal(byId[29].label, 'OP-T029-1-26', 'a identidade vem PERSISTIDA da linha, nao da posicao');
+  assert.equal(byId[40].label, 'OP-T040-1-26', 'idem para a segunda Tecelagem');
+  assert.equal(byId[30].label, 'OP-A030-1-26', 'a letra da etapa vem congelada no codigo');
   // Numero/ano legado permanece disponivel como referencia secundaria.
-  assert.equal(byId[29].legacyLabel, 'OP 18/2026');
-  assert.equal(byId[30].legacyLabel, 'OP 11/2026');
   // OP de origem (Tecelagem) tambem exibida em codigo operacional.
-  assert.equal(byId[30].origemOpLabel, 'OP 21/2026-T01');
+  assert.equal(byId[30].origemOpLabel, 'OP-T029-1-26');
   // OPs relacionadas do item usam o codigo operacional.
-  assert.equal(view.itemMetricsById.pi1.relatedOpsLabel, 'OP 21/2026-T01 -> OP 21/2026-T02 -> OP 21/2026-A01');
+  assert.equal(view.itemMetricsById.pi1.relatedOpsLabel, 'OP-T029-1-26 -> OP-T040-1-26 -> OP-A030-1-26');
 });
 
 test('OP-CANONICAL-IDENTITY: OP vinculada sem identidade persistida FALHA FECHADA', () => {
   const rt = makeHubRuntime();
   const s = hubTecAcab(rt.ns, 'aberta');
-  // hubBase nao tem criado_em => fallback legado.
+  // Cenario explicito: a OP 29 esta VINCULADA ao Pedido (mantem
+  // identidade_pedido_id) mas o banco nao devolveu a identidade — migracao nao
+  // aplicada no ambiente, ou consulta da tela sem a coluna projetada.
+  s.ops.filter((o) => o.id === 29).forEach((o) => { delete o.identidade_operacional; });
   const view = rt.ns.computeViewModel(s);
   const tec = view.opSummaries.find((sm) => sm.id === 29);
-  assert.equal(tec.label, 'OP 18/2026', 'sem ano operacional confiavel, mantem legado');
+  // A identidade nao e mais derivada do Pedido, entao "sem ano confiavel" nao
+  // existe como caso. O que existe e: identidade persistida ausente numa OP
+  // VINCULADA a Pedido => estado diagnostico explicito, nunca o numero interno.
+  assert.equal(tec.label, 'OP (identidade pendente)',
+    'OP vinculada sem identidade persistida deve falhar fechada');
+  assert.ok(!tec.label.includes('18'),
+    'o numero interno nao pode aparecer no estado diagnostico');
 });
 
 test('INSUMOS-TECELAGEM modal: OP aberta mostra distribuição COMPARTILHADA (slider + Manter/Salvar) sem Aceitar', () => {
@@ -2720,7 +2731,7 @@ test('INSUMOS-TECELAGEM modal: OP aberta mostra distribuição COMPARTILHADA (sl
 
   const text = collectHubText(cap);
   assert.match(text, /OPs relacionadas/);
-  assert.match(text, /OP 18\/2026/);
+  assert.match(text, /OP-T029-1-26/);
   assert.ok(findHubBtn(cap, /^Ver OP$/i), 'deve mostrar Ver OP');
   // YARN-BUTTONS-FINAL-CONTRACT: bloco de distribuição compartilhado.
   assert.match(text, /Fator proporcional/, 'deve renderizar o bloco de distribuição compartilhado');
@@ -3050,9 +3061,9 @@ test('TRANSITION runtime: Acabamento aberto com saldo movimenta para Expedicao p
   const rt = makeHubRuntime();
   const s = hubBase(rt.ns);
   s.ops = [
-    { id: 29, tipo: 'tecelagem', numero: 18, ano: 2026, status: 'concluida', op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 2000, metros_ajustados: 2000, pedido_item_id: 'pi1' }] },
-    { id: 30, tipo: 'latex', numero: 13, ano: 2026, status: 'aberta', origem_op_id: 29, op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 1000, pedido_item_id: 'pi1' }] },
-    { id: 31, tipo: 'latex', numero: 14, ano: 2026, status: 'aberta', origem_op_id: 29, op_itens: [{ id: 302, modelo_id: 9, metros_pedidos: 650, pedido_item_id: 'pi2' }] },
+    { id: 29, identidade_operacional: 'OP-T029-1-26', identidade_pedido_id: 'ped-fix', tipo: 'tecelagem', numero: 18, ano: 2026, status: 'concluida', op_itens: [{ id: 290, modelo_id: 7, metros_pedidos: 2000, metros_ajustados: 2000, pedido_item_id: 'pi1' }] },
+    { id: 30, identidade_operacional: 'OP-A030-1-26', identidade_pedido_id: 'ped-fix', tipo: 'latex', numero: 13, ano: 2026, status: 'aberta', origem_op_id: 29, op_itens: [{ id: 301, modelo_id: 7, metros_pedidos: 1000, pedido_item_id: 'pi1' }] },
+    { id: 31, identidade_operacional: 'OP-A031-1-26', identidade_pedido_id: 'ped-fix', tipo: 'latex', numero: 14, ano: 2026, status: 'aberta', origem_op_id: 29, op_itens: [{ id: 302, modelo_id: 9, metros_pedidos: 650, pedido_item_id: 'pi2' }] },
   ];
   s.itens.push({ id: 'pi2', modelo_id: 9, metros: 650 });
   s.modelosById[9] = { id: 9, nome: 'Venezia' };
@@ -3100,7 +3111,7 @@ test('TRANSITION runtime: Acabamento aberto com saldo movimenta para Expedicao p
   assert.equal(rpcCalls.length, 0,
     'carregar OP relacionada nao pode executar movimentacao automaticamente');
   const selectedText = collectHubText(cap);
-  assert.match(selectedText, /OP 14\/2026/);
+  assert.match(selectedText, /OP-A031-1-26/);
   assert.match(selectedText, /Venezia/);
 
   const save = findHubBtn(cap, /^Movimentar para Expedicao$/i);
@@ -3158,7 +3169,7 @@ test('HUB runtime: Pedido #13 abre Tecelagem/Aguardar sem appendChild invalido',
   ];
   s.modelosById = { 7: { id: 7, nome: 'Barcelona' }, 8: { id: 8, nome: 'Obra de Arte' } };
   s.ops = [
-    { id: 10, tipo: 'tecelagem', numero: 10, ano: 2026, status: 'aberta', op_fornecedores: [{ fornecedor_id: 5, etapa: 'cima' }], op_itens: [
+    { id: 10, identidade_operacional: 'OP-T010-1-26', identidade_pedido_id: 'ped-fix', tipo: 'tecelagem', numero: 10, ano: 2026, status: 'aberta', op_fornecedores: [{ fornecedor_id: 5, etapa: 'cima' }], op_itens: [
       { id: 1001, modelo_id: 7, metros_pedidos: 300, metros_ajustados: 300, pedido_item_id: 'pi-barcelona' },
       { id: 1002, modelo_id: 8, metros_pedidos: 200, metros_ajustados: 200, pedido_item_id: 'pi-obra' },
     ] },
@@ -3171,7 +3182,7 @@ test('HUB runtime: Pedido #13 abre Tecelagem/Aguardar sem appendChild invalido',
   const r = stageHub(rt, s, 'tecelagem');
   const text = collectHubText(r.root);
   assert.match(text, /OPs de Tecelagem/);
-  assert.match(text, /OP 10\/2026/);
+  assert.match(text, /OP-T010-1-26/);
   assert.match(text, /Sem movimentacao para acabamento registrada ainda/);
   assert.match(text, /OP Tecelagem pendente\. Proxima acao: salvar a distribuicao e Iniciar producao/);
   assert.ok(findHubBtn(r.root, /Ver OP/i), 'hub deve manter Ver OP');

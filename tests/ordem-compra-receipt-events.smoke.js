@@ -43,6 +43,9 @@ function makeSandbox(rpcImpl) {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   for (const [f, s] of srcs) vm.runInContext(s, sandbox, { filename: f });
   return { sandbox, supa, ns: sandbox.RAVATEX_SCREENS.ordemCompra };
 }
@@ -291,6 +294,9 @@ function makeFullSandbox(rpcImpl) {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  // Dependencia real do sandbox: os consumidores nao tem fallback proprio.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   for (const [f, s] of fullSrcs) vm.runInContext(s, sandbox, { filename: f });
   return { sandbox, supa };
 }

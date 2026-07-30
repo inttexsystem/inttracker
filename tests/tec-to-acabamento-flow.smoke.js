@@ -151,6 +151,8 @@ function makeHelperSandbox({ opLatexRow = null, entregaEtapa = 'cima', deleteRes
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
 
   // Mínimos de UI necessários: toast e confirmDialog.
   sandbox.toast = (msg, type) => { toasts.push({ msg, type }); };
@@ -288,6 +290,8 @@ function makeUISandbox() {
   sandbox.navigate = () => {};
   sandbox.excluirEntrega = () => {};
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   // Pass-7: js/ui.js::selectInput() delegates to the canonical select
   // popover, so the owner must exist in the sandbox before ui.js runs.
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'select-popover.js'), 'utf8'), sandbox, { filename: 'js/select-popover.js' });
@@ -379,6 +383,8 @@ function makeEntregaFormSandbox() {
   };
 
   vm.createContext(sandbox);
+  // OP-CANONICAL-IDENTITY-REFOUNDATION-R1: dono central da identidade de OP.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'op-display.js'), 'utf8'), sandbox, { filename: 'js/op-display.js' });
   // Real js/ui.js provides el/textInput/selectInput/formField (with the
   // boolean-attr fix); the form renders through them instead of hand-rolled
   // boolean-blind stand-ins.

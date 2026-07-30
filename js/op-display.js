@@ -34,25 +34,24 @@
 //   correcao de renderizacao consegue tornar estavel um valor derivado de
 //   posicao; so a persistencia consegue.
 //
-// TRES ESTADOS, NENHUM SILENCIOSO
-//   1. OP vinculada a Pedido COM identidade persistida  -> a identidade.
-//   2. OP AVULSA (sem Pedido)                           -> `OP {numero}/{ano}`,
-//      que e legitimamente a sua identidade visivel, porque nenhuma
-//      identidade derivada de Pedido existe.
-//   3. OP vinculada a Pedido SEM identidade persistida  -> ESTADO
-//      DIAGNOSTICO explicito (`OP (identidade pendente)`). NUNCA o numero
-//      interno, que e o nome de OUTRA coisa. Este estado significa
-//      exatamente uma condicao operacional real: a migracao db/95 nao esta
-//      aplicada no ambiente, ou a consulta da tela nao projetou
-//      `identidade_operacional`. Ambos sao defeitos que devem ficar
-//      VISIVEIS, nao mascarados por um segundo nome da mesma OP.
+// DOIS ESTADOS, NENHUM SILENCIOSO
+//   1. identidade persistida presente -> a identidade. Fim.
+//   2. identidade persistida ausente  -> ESTADO DIAGNOSTICO explicito
+//      (`OP (identidade pendente)`).
 //
-// NUMERO INTERNO
-//   `ops.numero`/`ops.ano` continuam existindo como numero INTERNO de
-//   rastreabilidade. `formatOpInternalLabel` e o UNICO formatador
-//   autorizado a exibi-lo, e ele sempre emite o rotulo explicito
-//   "No interno". Nenhuma superficie pode concatenar numero/ano por conta
-//   propria (guard: tests/op-canonical-identity-schema.smoke.js).
+//   Nao existe terceiro estado. `ops.numero`/`ops.ano` NUNCA sao exibidos:
+//   permanecem no banco como numeracao interna de rastreabilidade, reservada
+//   automaticamente e imutavel apos a criacao, e nenhum formatador deste
+//   modulo os projeta.
+//
+//   Por que nao ha caminho "OP avulsa exibe numero/ano": o produto nao cria
+//   OP sem Pedido — a tela de criacao recusa incondicionalmente e o banco
+//   reforca a exigencia na rota de latex. Um formatador para esse caso seria
+//   codigo inalcancavel, e e por precaucao inalcancavel que a identidade
+//   dupla volta. Uma OP sem identidade persistida e sempre um defeito
+//   operacional (migracao db/95 nao aplicada, ou consulta sem a coluna
+//   projetada), e a resposta honesta e declarar isso em vez de chamar a OP
+//   por outro nome.
 //
 // Puro: sem DOM, sem Supabase, sem regra de negocio. Carregar cedo
 // (index.html: logo apos js/badges.js). Consumidores NAO devem implementar
@@ -93,57 +92,41 @@
     return trimmed === '' ? null : trimmed;
   }
 
-  // Uma OP e considerada vinculada a Pedido quando QUALQUER evidencia direta
-  // de vinculo esta presente na propria linha ou no contexto explicito da
-  // tela. Deliberadamente amplo: em caso de duvida preferimos o estado
-  // diagnostico visivel (caso 3) a exibir o numero interno como se fosse a
-  // identidade (o defeito auditado).
-  function isPedidoLinked(op, context) {
-    if (!op) return false;
-    if (op.identidade_pedido_id != null) return true;
-    if (op.pedido_id != null) return true;
-    if (op.lote && op.lote.pedido_id != null) return true;
-    if (op.lotes && op.lotes.pedido_id != null) return true;
-    if (context && context.pedido && context.pedido.id != null) return true;
-    if (context && context.pedidoId != null) return true;
-    return false;
-  }
-
-  // O UNICO formatador autorizado do numero interno. Sempre rotulado.
-  function formatOpInternalLabel(op) {
-    if (!op) return 'No interno -';
-    var numero = op.numero != null ? op.numero : '-';
-    if (op.ano != null) return 'Nº interno ' + numero + '/' + op.ano;
-    return 'Nº interno ' + numero;
-  }
-
-  // Identidade visivel de uma OP AVULSA. Legitima porque nenhuma identidade
-  // derivada de Pedido existe para ela.
-  function formatOpLegacyCode(op) {
+  // A identidade produto-facing da OP. `context` e aceito e IGNORADO: existe
+  // apenas para nao quebrar chamadores que ainda o passam, e nao participa da
+  // resolucao. A identidade vem inteira da linha.
+  function formatOpOperationalCode(op) {
     if (!op) return IDENTITY_ABSENT;
-    var numero = op.numero != null ? op.numero : '-';
-    if (op.ano != null) return 'OP ' + numero + '/' + op.ano;
-    return 'OP ' + numero;
+    return getCanonicalIdentity(op) || IDENTITY_PENDING;
   }
 
-  // A identidade produto-facing da OP. `context` e OPCIONAL e serve apenas
-  // para reconhecer o vinculo com Pedido quando a propria linha nao o
-  // carrega; ele NAO participa mais da construcao do codigo.
-  function formatOpOperationalCode(op, context) {
-    if (!op) return IDENTITY_ABSENT;
-    var canonical = getCanonicalIdentity(op);
-    if (canonical) return canonical;
-    // Fail closed: uma OP vinculada a Pedido sem identidade persistida NAO
-    // volta a se chamar pelo numero interno.
-    if (isPedidoLinked(op, context)) return IDENTITY_PENDING;
-    return formatOpLegacyCode(op);
+  // Verdadeiro quando a superficie esta exibindo o estado diagnostico, para
+  // uma tela sinalizar a condicao sem reimplementar a politica.
+  function isIdentityPending(op) {
+    return formatOpOperationalCode(op) === IDENTITY_PENDING;
   }
 
-  // Verdadeiro quando a identidade nao pode ser resolvida e a superficie
-  // esta exibindo o estado diagnostico. Permite a uma tela sinalizar a
-  // condicao sem reimplementar a politica.
-  function isIdentityPending(op, context) {
-    return formatOpOperationalCode(op, context) === IDENTITY_PENDING;
+  // Identidade de uma OP a partir de um mapa `op_id -> linha` ja resolvido.
+  //
+  // Existe porque as RPCs aceitas de compra e recebimento
+  // (`obter_distribuicao_ordem_compra` db/69,
+  // `obter_historico_recebimento_ordem_compra` db/70/db/74) atribuem a origem
+  // de cada alocacao/lancamento APENAS por `op_id` — era isso que fazia as
+  // telas imprimirem `OP 137`, a chave primaria como nome de negocio. O mapa e
+  // carregado da view public.op_identidade_projecao (db/95) pelo dono de dados
+  // daquele fluxo; aqui apenas se formata.
+  //
+  // `op_id` nulo e um estado de primeira classe: a necessidade e do Pedido,
+  // compartilhada, e nao pertence a OP alguma. Nunca se fabrica uma OP para ele.
+  //
+  // `rotuloSemOp` e do CHAMADOR de proposito: esse texto e rotulo de PRODUTO e
+  // difere por tela ('Pedido compartilhado' na distribuicao de compra,
+  // 'Pedido (compartilhada)' no recebimento). Centralizar a formatacao da
+  // IDENTIDADE nao autoriza unificar rotulos de produto de telas diferentes.
+  function formatOpIdentityFromMap(opId, mapa, rotuloSemOp) {
+    if (opId == null) return rotuloSemOp || 'Pedido (compartilhada)';
+    var row = mapa ? mapa[String(opId)] : null;
+    return row ? formatOpOperationalCode(row) : IDENTITY_PENDING;
   }
 
   // ===================================================================
@@ -248,11 +231,9 @@
     IDENTITY_PENDING: IDENTITY_PENDING,
     getOpTypeLetter: getOpTypeLetter,
     getCanonicalIdentity: getCanonicalIdentity,
-    isPedidoLinked: isPedidoLinked,
     isIdentityPending: isIdentityPending,
     formatOpOperationalCode: formatOpOperationalCode,
-    formatOpInternalLabel: formatOpInternalLabel,
-    formatOpLegacyCode: formatOpLegacyCode,
+    formatOpIdentityFromMap: formatOpIdentityFromMap,
     formatOcOperationalCode: formatOcOperationalCode,
     formatOcLegacyLabel: formatOcLegacyLabel,
     productTypeLabel: productTypeLabel,
