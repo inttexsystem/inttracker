@@ -152,7 +152,7 @@ const BOOTSTRAP_SOURCE = fs.readFileSync(BOOTSTRAP_MODULE_PATH, 'utf8');
 
 const APPLICATION_ARTIFACT = '22bfb192c6c2ad10ccd2b2883d54c3a17e40cc9f';
 const EXPECTED_BRANCH = 'dev';
-const EXPECTED_TERMINAL = 95;
+const EXPECTED_TERMINAL = 96;
 const DB75_FILENAME = '75_ordem_compra_c3c_inactive_cutover.sql';
 const DB76_FILENAME = '76_ordem_compra_c3c_b_db_prerequisites.sql';
 const DB77_FILENAME = '77_ordem_compra_c5a_emission_readiness.sql';
@@ -174,6 +174,7 @@ const DB92_FILENAME = '92_pedido_unified_edit_change_approval_foundation.sql';
 const DB93_FILENAME = '93_pedido_change_approval_helper_privilege_correction.sql';
 const DB94_FILENAME = '94_cliente_pedido_structural_capability.sql';
 const DB95_FILENAME = '95_op_canonical_identity_refoundation.sql';
+const DB96_FILENAME = '96_ordem_compra_codigo_operador_e_exclusao.sql';
 const DB75_PATH = path.join(DB_DIR, DB75_FILENAME);
 const DB76_PATH = path.join(DB_DIR, DB76_FILENAME);
 const DB77_PATH = path.join(DB_DIR, DB77_FILENAME);
@@ -350,8 +351,8 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
   });
 
   const terminalTwo = migrations.slice(-2);
-  assert.equal(terminalTwo[0].filename, DB94_FILENAME);
-  assert.equal(terminalTwo[1].filename, DB95_FILENAME);
+  assert.equal(terminalTwo[0].filename, DB95_FILENAME);
+  assert.equal(terminalTwo[1].filename, DB96_FILENAME);
 
   for (const migration of terminalTwo) {
     const relPathPosix = `db/${migration.filename}`;
@@ -370,7 +371,7 @@ function buildDeploymentManifest({ dbDir = DB_DIR, applicationArtifact = APPLICA
 // Deployment manifest: happy path against the real repository
 // ---------------------------------------------------------------------------
 
-test('deployment manifest resolves exactly db/01..db/95, contiguous and unique', () => {
+test('deployment manifest resolves exactly db/01..db/96, contiguous and unique', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
   assert.equal(entries.length, EXPECTED_TERMINAL);
@@ -380,12 +381,12 @@ test('deployment manifest resolves exactly db/01..db/95, contiguous and unique',
   );
 });
 
-test('db/94 and db/95 are the terminal two migrations', () => {
+test('db/95 and db/96 are the terminal two migrations', () => {
   const filenames = fs.readdirSync(DB_DIR);
   const entries = resolveMigrationManifest(filenames, { expectedTerminal: EXPECTED_TERMINAL });
-  const [penultimate93, terminal94] = entries.slice(-2);
-  assert.equal(penultimate93.filename, DB94_FILENAME);
-  assert.equal(terminal94.filename, DB95_FILENAME);
+  const [penultimate, terminal] = entries.slice(-2);
+  assert.equal(penultimate.filename, DB95_FILENAME);
+  assert.equal(terminal.filename, DB96_FILENAME);
 });
 
 test('the full deployment manifest builds against the real repository', () => {
