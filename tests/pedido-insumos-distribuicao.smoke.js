@@ -1,3 +1,14 @@
+// tests/pedido-insumos-distribuicao.smoke.js
+//
+// PURCHASE-PLANNING-REFOUNDATION-R1 — the Planejamento de compras screen.
+//
+// The subject of this file changed with the phase. Until db/98 the screen was
+// a per-need modal that asked for the purchase-order number and whose save
+// created the document; the tests here used to prove exactly that flow. db/99
+// split the two stages, so what must now be proved is the opposite: planning
+// writes no document and asks for no number, and the number appears exactly
+// once — in the generation confirmation, already suggested and still editable.
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -10,31 +21,18 @@ const router = fs.readFileSync(path.join(root, 'js/router.js'), 'utf8');
 const orderRender = fs.readFileSync(path.join(root, 'js/screens/ordem-compra-render.js'), 'utf8');
 const orderEvents = fs.readFileSync(path.join(root, 'js/screens/ordem-compra-events.js'), 'utf8');
 const op = fs.readFileSync(path.join(root, 'js/screens/op-nova.js'), 'utf8');
+const migration = fs.readFileSync(path.join(root, 'db/99_planejamento_compra_refoundation.sql'), 'utf8');
 
-test('F2 owns purchasing distribution at Pedido / Insumos', () => {
+// =====================================================================
+// 1. OWNERSHIP AND ROUTING
+// =====================================================================
+
+test('the planning screen still owns the Pedido / Insumos route', () => {
   assert.match(router, /#\\\/pedidos\\\/.+\\\/insumos/);
   assert.match(ui, /screenPedidoInsumosDistribuicao/);
-  assert.match(ui, /necessidade_compra_fio/);
-  assert.match(ui, /definir_alocacao_necessidade_compra_fio/);
-  assert.doesNotMatch(ui, /p_op_id|p_item_id|p_pedido_id/);
 });
 
-test('F2 preserves absolute target and replay-safe client command keys', () => {
-  assert.match(ui, /Quantidade alvo absoluta/);
-  assert.match(ui, /Use zero para remover/);
-  assert.match(ui, /commandKey\(\)/);
-  assert.match(ui, /Resposta incerta.*mesma chave de comando/);
-  assert.match(ui, /idempotencia_conflitante/);
-});
-
-test('F2 represents both OP and shared Pedido provenance without an OP selector', () => {
-  assert.match(ui, /Pedido compartilhado/);
-  assert.match(ui, /proveniência somente leitura/);
-  assert.match(ui, /need\.ops/);
-  assert.doesNotMatch(ui, /Selecione a OP/);
-});
-
-test('order and OP screens no longer own purchasing origination', () => {
+test('order and OP screens still do not own purchasing origination', () => {
   assert.doesNotMatch(orderRender, /oc-nova|oc-add-item/);
   assert.doesNotMatch(orderEvents, /definir_item_ordem_compra|alocar_necessidade_compra_fio|remover_alocacao_compra_fio/);
   assert.match(op, /op-purchase-assignment-readonly/);
@@ -42,302 +40,536 @@ test('order and OP screens no longer own purchasing origination', () => {
 });
 
 // =====================================================================
-// === EXECUTABLE COVERAGE — distribution quantity prefill =============
-// The module is an IIFE over `window`. It is evaluated in a vm realm with a
-// minimal fake DOM so the REAL openModal, the REAL validator and the REAL
-// RPC payload are exercised, rather than restated by the test.
+// 2. THE NEW FRONTEND NEVER CALLS THE WITHDRAWN WRITER
 // =====================================================================
 
-function loadScreen() {
-  const rpcCalls = [];
-  const notices = [];
-  let rpcResult = { data: { ok: true, discriminador: 'created' }, error: null };
+test('the screen calls only the canonical db/99 planning and generation RPCs', () => {
+  const called = [...ui.matchAll(/\.rpc\(\s*'([a-z0-9_]+)'/g)].map((m) => m[1]);
+  const viaHelper = [...ui.matchAll(/callRpc\(\s*'([a-z0-9_]+)'/g)].map((m) => m[1]);
+  const all = [...new Set(called.concat(viaHelper))].sort();
+  assert.deepEqual(all, [
+    'aplicar_planejamento_rapido',
+    'gerar_ordem_compra_do_planejamento',
+    'obter_planejamento_compra_pedido',
+    'substituir_planejamento_compra_necessidade',
+    'sugerir_codigo_ordem_compra',
+  ]);
+  // The per-row writer survives in db/99 for the stale-client path, but this
+  // screen no longer owns a card save through it.
+  assert.doesNotMatch(ui, /callRpc\(\s*'definir_planejamento_compra'/);
+  assert.match(migration, /FUNCTION public\.definir_planejamento_compra\(/);
+});
 
+test('the five-argument writer is never invoked by the new frontend', () => {
+  // It may be NAMED in the explanatory header — that is documentation of what
+  // was withdrawn. What must not exist is a call, or its withdrawn arguments.
+  assert.doesNotMatch(ui, /rpc\(\s*'definir_alocacao_necessidade_compra_fio'/);
+  assert.doesNotMatch(ui, /callRpc\(\s*'definir_alocacao_necessidade_compra_fio'/);
+  assert.doesNotMatch(ui, /p_codigo_ordem/);
+  assert.doesNotMatch(ui, /p_kg_alocado/);
+});
+
+test('the compatibility wrapper exists in db/99 and cannot create a document', () => {
+  assert.match(migration, /compatibilidade_planejamento/);
+  const wrapper = migration.slice(migration.indexOf('-- 10. Compatibilidade de cliente antigo'));
+  assert.match(wrapper, /public\.definir_planejamento_compra\(/);
+  assert.doesNotMatch(wrapper, /INSERT INTO public\.ordem_compra/);
+  assert.doesNotMatch(wrapper, /proximo_seq_identidade/);
+});
+
+// =====================================================================
+// 3. THE NUMBER LEFT THE PLANNING STAGE
+// =====================================================================
+
+test('planning asks for no purchase-order number anywhere', () => {
+  const planning = ui.slice(0, ui.indexOf('async function openGenerationConfirm'));
+  assert.doesNotMatch(planning, /Número do Pedido de Compra/);
+  assert.doesNotMatch(planning, /Número da ordem de compra/);
+  assert.doesNotMatch(planning, /codigo_sugerido/);
+});
+
+test('the number appears once, pre-filled from the server suggestion and editable', () => {
+  const confirm = ui.slice(ui.indexOf('async function openGenerationConfirm'));
+  assert.match(confirm, /sugerir_codigo_ordem_compra/);
+  // Pre-filled: the input is constructed FROM the suggestion.
+  assert.match(confirm, /window\.textInput\(\{\s*value:\s*suggestion\.codigo_sugerido\s*\}\)/);
+  // Editable: the confirmation sends the live field value, not the suggestion.
+  assert.match(confirm, /p_codigo:\s*String\(codeInput\.value/);
+  assert.doesNotMatch(confirm, /codeInput\.setAttribute\('readonly'/);
+  assert.doesNotMatch(confirm, /codeInput\.disabled\s*=\s*true/);
+});
+
+test('a stale suggestion refreshes the field and keeps the confirmation open', () => {
+  const confirm = ui.slice(ui.indexOf('async function openGenerationConfirm'));
+  assert.match(confirm, /sugestao_desatualizada/);
+  assert.match(confirm, /codeInput\.value\s*=\s*result\.codigo_sugerido/);
+  assert.match(confirm, /return false/);
+});
+
+// =====================================================================
+// 4. EXECUTABLE COVERAGE OF THE REAL MODULE
+// =====================================================================
+
+function loadModule() {
   function makeEl(tag, attrs) {
     const node = { tagName: tag, attrs: attrs || {}, children: [] };
     node.appendChild = (child) => { if (child != null) node.children.push(child); return child; };
     node.replaceChildren = (...kids) => { node.children = kids.filter((k) => k != null); };
-    // The canonical select popover dispatches a real 'change' event, so the
-    // double must accept a listener the way the runtime control does.
     node.listeners = {};
     node.addEventListener = (evt, fn) => { (node.listeners[evt] = node.listeners[evt] || []).push(fn); };
-    node.dispatchEvent = (evt) => (node.listeners[evt.type] || []).forEach((fn) => fn(evt));
-    if (attrs && Object.prototype.hasOwnProperty.call(attrs, 'value')) node.value = attrs.value;
-    else if (tag === 'input') node.value = '';   // a real input reports '' when empty
+    node.setAttribute = (k, v) => { node.attrs[k] = v; };
+    return node;
+  }
+  const win = {
+    el(tag, attrs, ...kids) {
+      const node = makeEl(tag, attrs);
+      kids.flat().forEach((k) => node.appendChild(k));
+      return node;
+    },
+    fmtKg: (n) => (n == null ? '—' : Number(n).toFixed(3).replace('.', ',') + ' kg'),
+    TRUNCATE_CELL_STYLE: '',
+    crypto: { randomUUID: () => 'fixed-command-key' },
+  };
+  vm.runInNewContext(ui, { window: win });
+  return win.RAVATEX_SCREENS.pedidoInsumosDistribuicao;
+}
+
+const api = loadModule();
+
+function need(overrides) {
+  return Object.assign({
+    necessidade_id: 101,
+    origem_tipo: 'pedido',
+    material: 'poliester',
+    cor_poliester: 'PRETO',
+    kg_necessario: 100,
+    kg_planejado: 0,
+    kg_restante: 100,
+    situacao: 'pendente',
+    planejamentos: [],
+  }, overrides);
+}
+
+test('the distributable balance mirrors the db/99 server invariant', () => {
+  assert.equal(api.planningBalance(need()), 100);
+
+  const partial = need({
+    planejamentos: [{ planejamento_id: 1, fornecedor_id: 7, kg_planejado: 60 }],
+  });
+  assert.equal(api.planningBalance(partial), 40);
+
+  // Re-editing an existing row returns that row's quantity to the balance,
+  // exactly as `kg_necessario - (total - anterior)` does on the server.
+  assert.equal(api.planningBalance(partial, 1), 100);
+
+  const full = need({
+    planejamentos: [
+      { planejamento_id: 1, fornecedor_id: 7, kg_planejado: 60 },
+      { planejamento_id: 2, fornecedor_id: 8, kg_planejado: 40 },
+    ],
+  });
+  assert.equal(api.planningBalance(full), 0);
+});
+
+test('binary-float residue never reaches the field (NUMERIC(12,3) quantisation)', () => {
+  const residue = need({
+    kg_necessario: 12.5,
+    planejamentos: [{ planejamento_id: 1, fornecedor_id: 7, kg_planejado: 3.2 }],
+  });
+  // 12.5 - 3.2 === 9.299999999999999 in binary floating point.
+  assert.equal(api.planningBalance(residue), 9.3);
+});
+
+test('a supplier already holding a row on the need is not offered twice', () => {
+  const partial = need({
+    planejamentos: [{ planejamento_id: 1, fornecedor_id: 7, kg_planejado: 60 }],
+  });
+  // The module runs in its own vm realm, so its object literals do not share
+  // this realm's Object.prototype — compare keys, not object identity.
+  assert.deepEqual(Object.keys(api.suppliersAlreadyUsed(partial)), ['7']);
+  // ...unless it is the row being re-edited, which must keep its own value.
+  assert.deepEqual(Object.keys(api.suppliersAlreadyUsed(partial, 1)), []);
+});
+
+test('supplier compatibility is the material, not the colour', () => {
+  const suppliers = [
+    { fornecedor_id: 1, nome: 'Algodoeira', tipo: 'fio_algodao' },
+    { fornecedor_id: 2, nome: 'Poliester SA', tipo: 'fio_poliester' },
+  ];
+  assert.deepEqual(
+    api.compatibleSuppliers(need({ material: 'poliester' }), suppliers).map((s) => s.fornecedor_id),
+    [2],
+  );
+  assert.deepEqual(
+    api.compatibleSuppliers(need({ material: 'algodao' }), suppliers).map((s) => s.fornecedor_id),
+    [1],
+  );
+});
+
+test('both OP and shared-Pedido provenance render without an OP selector', () => {
+  assert.equal(api.needOrigin(need({ origem_tipo: 'pedido' })), 'Pedido compartilhado');
+  assert.equal(
+    api.needOrigin(need({ origem_tipo: 'op', op_identidade: 'OP-T001-1-26' })),
+    'OP-T001-1-26',
+  );
+  assert.doesNotMatch(ui, /Selecione a OP/);
+});
+
+// =====================================================================
+// 5. STATUS — DISTINGUISHABLE WITHOUT COLOUR
+// =====================================================================
+
+test('pending and partial share a pill family, so the label must differ', () => {
+  assert.equal(api.SITUACAO_LABEL.pendente, 'Pendente');
+  assert.equal(api.SITUACAO_LABEL.parcial, 'Parcialmente distribuído');
+  assert.equal(api.SITUACAO_LABEL.distribuido, 'Distribuído');
+  // Both resolve through js/badges.js to `caution`; §2.6 forbids colour alone,
+  // so the numeric line below is the load-bearing distinction.
+  assert.equal(api.SITUACAO_PILL_STATE.pendente, 'pendente');
+  assert.equal(api.SITUACAO_PILL_STATE.parcial, 'parcial');
+  assert.equal(api.SITUACAO_PILL_STATE.distribuido, 'concluido');
+  assert.match(ui, /'Faltam ' \+ kg\(remaining\)/);
+});
+
+test('ordering is pending-first and is owned by the server projection', () => {
+  // The screen consumes the server order; it must not re-sort by eye.
+  assert.doesNotMatch(ui, /necessidades[^\n]*\.sort\(/);
+  assert.match(migration, /'ordenacao',/);
+  assert.match(migration, /ORDER BY linha->>'ordenacao'/);
+});
+
+// =====================================================================
+// 6. THE INLINE STATE CONTRACT
+// =====================================================================
+
+test('the card save is ONE atomic RPC, never a per-row loop', () => {
+  const save = ui.slice(ui.indexOf('async function submitDraft'));
+  const body = save.slice(0, save.indexOf('\n    }\n'));
+  // Exactly one write call, and it is the atomic replacement owner.
+  const calls = [...body.matchAll(/callRpc\(\s*'([a-z0-9_]+)'/g)].map((m) => m[1]);
+  assert.deepEqual(calls, ['substituir_planejamento_compra_necessidade']);
+  // The whole live set travels in one payload.
+  assert.match(body, /p_linhas:\s*filled\.map/);
+  // No loop issues writes any more.
+  assert.doesNotMatch(body, /for \([^)]*\)\s*\{[\s\S]{0,200}await callRpc/);
+  assert.doesNotMatch(ui, /savePlanningRow/);
+});
+
+test('there is no planning modal; only quick planning and the final confirmation', () => {
+  // Exactly two modals exist on this screen, and neither is a per-need
+  // planning form: quick planning is a bounded bulk action and the other is
+  // the final generation confirmation.
+  const modalCalls = [...ui.matchAll(/window\.modal\(\{/g)];
+  assert.equal(modalCalls.length, 2);
+  const titles = modalCalls
+    .map((m) => /title:\s*'([^']+)'/.exec(ui.slice(m.index, m.index + 200)))
+    .map((m) => m[1])
+    .sort();
+  assert.deepEqual(titles, ['Distribuição rápida', 'Gerar Pedido de Compra']);
+});
+
+test('edit mode is never open by default', () => {
+  assert.match(ui, /editing:\s*\{\}/);
+  assert.match(ui, /state\.editing\[String\(need\.necessidade_id\)\] = true;/);
+});
+
+// =====================================================================
+// 6b. RENDERED COMPONENT TREE
+//
+// Action PLACEMENT cannot be proved by searching the source: a button
+// mentioned anywhere in the file satisfies a regex regardless of which
+// container it ends up in. These tests run the real screen against a fake
+// DOM and walk the tree the module actually builds.
+// =====================================================================
+
+function renderScreen(needs) {
+  const built = [];
+  function makeEl(tag, attrs, kids) {
+    const node = {
+      tagName: tag,
+      attrs: attrs || {},
+      children: [],
+      text: '',
+      listeners: {},
+      appendChild(c) { if (c != null && c !== false) node.children.push(c); return c; },
+      replaceChildren(...cs) { node.children = cs.flat().filter((c) => c != null && c !== false); },
+      addEventListener(e, fn) { (node.listeners[e] = node.listeners[e] || []).push(fn); },
+      setAttribute(k, v) { node.attrs[k] = v; },
+      getAttribute(k) { return node.attrs[k]; },
+    };
+    (kids || []).flat().forEach((k) => {
+      if (k == null || k === false) return;
+      if (typeof k === 'string') node.text += k; else node.children.push(k);
+    });
+    built.push(node);
     return node;
   }
 
   const win = {
-    el(tag, attrs, ...kids) {
-      const node = makeEl(tag, attrs);
-      kids.forEach((k) => node.appendChild(k));
-      return node;
-    },
+    el: (tag, attrs, ...kids) => makeEl(tag, attrs, kids),
     fmtKg: (n) => (n == null ? '—' : Number(n).toFixed(3).replace('.', ',') + ' kg'),
-    formField: ({ label, input }) => makeEl('field', { label, input }),
-    selectInput: ({ value }) => makeEl('select', { value }),
+    TRUNCATE_CELL_STYLE: '',
+    crypto: { randomUUID: () => 'k' },
+    ADMIN_MENU: [],
+    shellLayout: (menu, node) => node,
+    navigate() {},
+    selectInput: (o) => makeEl('rv-select', { value: o.value, 'data-options': (o.options || []).length }),
+    textInput: (o) => makeEl('rv-input', { value: o.value, type: o.type || 'text' }),
+    formField: ({ label, input }) => makeEl('rv-field', { label }, [input]),
+    actionButton: ({ title }) => makeEl('rv-action', { title }),
+    checkboxInput: (o) => makeEl('rv-checkbox', { 'aria-label': o.ariaLabel, disabled: !!o.disabled }),
     modal(cfg) { win.__modal = cfg; },
-    crypto: { randomUUID: () => 'fixed-command-key' },
+    rvStatusPill: (label) => makeEl('rv-pill', {}, [label]),
+    rvClassificationBadge: (label) => makeEl('rv-badge', {}, [label]),
     supa: {
-      rpc: async (name, args) => { rpcCalls.push({ name, args }); return rpcResult; },
-    },
-    RAVATEX_OP_DISPLAY: {
-      formatOpOperationalCode: () => 'OP-T001-1-26',
-      formatOcOperationalCode: (oc) => (oc && oc.identidade_operacional) || 'OC -',
+      rpc: async (name) => {
+        if (name === 'obter_planejamento_compra_pedido') {
+          return {
+            data: {
+              ok: true,
+              necessidades: needs,
+              fornecedores: [
+                { fornecedor_id: 1, nome: 'Algodoeira', tipo: 'fio_algodao' },
+                { fornecedor_id: 2, nome: 'Algodoeira 2', tipo: 'fio_algodao' },
+              ],
+            },
+            error: null,
+          };
+        }
+        return { data: { ok: true }, error: null };
+      },
     },
   };
-
   vm.runInNewContext(ui, { window: win });
-  const api = win.RAVATEX_SCREENS.pedidoInsumosDistribuicao;
-
-  // Opens the real modal and returns its captured configuration plus the live
-  // quantity input node, found by walking the body the module actually built.
-  function open(need, allocation, drafts) {
-    const setNotice = (kind, text) => notices.push({ kind, text });
-    api.openModal(need, allocation, SUPPLIERS, drafts || {}, async () => {}, setNotice);
-    const cfg = win.__modal;
-    const field = cfg.body.children.find(
-      (c) => c && c.attrs && c.attrs.label === 'Quantidade alvo absoluta (kg)',
-    );
-    assert.ok(field, 'the quantity field must be present in the modal body');
-    const supplier = cfg.body.children.find((c) => c.attrs && c.attrs.label === 'Fornecedor').attrs.input;
-    // The OC block is the bare div the module inserts between supplier and quantity.
-    const ocBlock = cfg.body.children.find((c) => c && c.tagName === 'div' && !c.attrs.label && !c.attrs.class);
-    const pickSupplier = (id) => { supplier.value = String(id); supplier.dispatchEvent({ type: 'change' }); };
-    const ocText = () => JSON.stringify(ocBlock ? ocBlock.children : []);
-    const codeField = () => (ocBlock ? ocBlock.children.find((c) => c && c.attrs && c.attrs.label === 'Número da ordem de compra') : null);
-    return { cfg, input: field.attrs.input, supplier, pickSupplier, ocBlock, ocText, codeField, notices, rpcCalls };
-  }
-
-  return {
-    api,
-    open,
-    notices,
-    rpcCalls,
-    setRpcResult(next) { rpcResult = next; },
-  };
+  return { win, built };
 }
 
-const SUPPLIERS = [{ id: 7, nome: 'Fiacao Alfa', tipo: 'fio_algodao' }];
-// A live draft for supplier 7: the reuse path, where no number is requested.
-const DRAFT_FOR_7 = { 7: { id: 4210, codigo: 'PC 2026/0042', identidade_operacional: 'PC 2026/0042', fornecedor_id: 7 } };
+// Collect the visible label text of a subtree.
+function textOf(node) {
+  if (!node || typeof node !== 'object') return '';
+  let out = node.text || '';
+  for (const c of node.children || []) out += ' ' + textOf(c);
+  return out.trim();
+}
+function findAll(node, pred, acc = []) {
+  if (!node || typeof node !== 'object') return acc;
+  if (pred(node)) acc.push(node);
+  for (const c of node.children || []) findAll(c, pred, acc);
+  return acc;
+}
+const isZeroRow = (n) => n.attrs && n.attrs['data-rv-planning-row-zero'] !== undefined;
+const isRow = (n) => n.attrs && n.attrs['data-rv-planning-row'] !== undefined;
+const isCard = (n) => n.attrs && n.attrs['data-necessidade-id'] !== undefined;
+const isFooter = (n) => n.attrs && typeof n.attrs.style === 'string'
+  && n.attrs.style.includes('border-top:1px solid var(--rv-border-soft)')
+  && n.attrs.style.includes('justify-content:flex-end');
 
-function need(kgNecessario, kgAlocado) {
-  return {
-    id: 101,
-    origem_tipo: 'op',
-    material: 'algodao',
-    cor_id: 3,
-    cores: { nome: 'CRU' },
-    kg_necessario: kgNecessario,
-    kg_alocado: kgAlocado,
-    ops: {},
-  };
+function needFixture(over) {
+  return Object.assign({
+    necessidade_id: 1, origem_tipo: 'pedido', material: 'algodao', cor_nome: 'CRU',
+    kg_necessario: 1000, kg_planejado: 0, kg_restante: 1000, kg_gerado: 0,
+    situacao: 'pendente', planejamentos: [],
+  }, over);
 }
 
-test('1. an untouched need opens the modal already filled with the full quantity', () => {
-  const { open } = loadScreen();
-  const { input } = open(need('500.000', '0.000'), null);
-  assert.equal(input.value, '500');
-});
+async function screenFor(needs) {
+  const { win } = renderScreen(needs);
+  const tree = await win.screenPedidoInsumosDistribuicao('11111111-1111-4111-8111-111111111111');
+  return { win, tree, card: findAll(tree, isCard)[0] };
+}
 
-test('2. a partially distributed need opens with only the remaining balance', () => {
-  const { api, open } = loadScreen();
-  const { input } = open(need('500.000', '180.500'), null);
-  assert.equal(input.value, '319.5');
-  assert.equal(api.distributableBalance(need('500.000', '180.500'), null), 319.5);
-});
+test('D1. the zero-state row itself carries supplier, quantity and Distribuir', async () => {
+  const { card } = await screenFor([needFixture()]);
+  const zero = findAll(card, isZeroRow);
+  assert.equal(zero.length, 1, 'exactly one zero-state inline row');
 
-test('2b. the balance mirrors the db/74 invariant, including the allocation already held', () => {
-  const { api } = loadScreen();
-  // v_available := kg_necessario - (kg_alocado - v_previous)
-  // Altering an existing 120 kg target may grow up to 500 - (300 - 120) = 320.
-  assert.equal(api.distributableBalance(need('500.000', '300.000'), { kg_alocado: '120.000' }), 320);
-  // A brand-new allocation on the same need may only take 200.
-  assert.equal(api.distributableBalance(need('500.000', '300.000'), null), 200);
-});
+  const kinds = zero[0].children.map((c) => c.tagName);
+  assert.ok(kinds.includes('rv-select'), 'supplier select is IN the row');
+  assert.ok(kinds.includes('rv-input'), 'quantity input is IN the row');
+  assert.match(textOf(zero[0]), /Distribuir/, 'Distribuir is IN the row');
 
-test('2c. binary-float residue never reaches the field (NUMERIC(12,3) quantisation)', () => {
-  const { api, open } = loadScreen();
-  // 12.5 - 3.2 === 9.299999999999999 in IEEE-754; the field must read 9.3,
-  // otherwise the modal validator and the RPC would both refuse it.
-  assert.equal(api.distributableBalance(need('12.5', '3.2'), null), 9.3);
-  const { input } = open(need('12.5', '3.2'), null);
-  assert.equal(input.value, '9.3');
-  assert.match(String(input.value), /^\d+(\.\d{1,3})?$/);
-});
-
-test('3. a fully distributed need keeps the existing blocking behaviour', async () => {
-  const { open } = loadScreen();
-  const { cfg, input, notices } = open(need('500.000', '500.000'), null);
-  // Nothing is suggested: zero is a REMOVAL command on this screen.
-  assert.equal(input.value, '');
-  const select = cfg.body.children.find((c) => c.attrs && c.attrs.label === 'Fornecedor').attrs.input;
-  select.value = '7';
-  assert.equal(await cfg.onSave(), false);
-  assert.equal(notices.at(-1).kind, 'error');
-  assert.match(notices.at(-1).text, /Informe fornecedor e quantidade alvo válida/);
-});
-
-test('3b. altering an existing allocation still opens with its persisted absolute target', () => {
-  const { open } = loadScreen();
-  const { input } = open(need('500.000', '300.000'), { kg_alocado: '120.000', item: {} });
-  assert.equal(input.value, '120.000');
-});
-
-test('4. the suggested value stays editable down to a smaller partial quantity', async () => {
-  const { open, rpcCalls } = loadScreen();
-  const { cfg, input } = open(need('500.000', '0.000'), null, DRAFT_FOR_7);
-  assert.equal(input.value, '500');
-  const select = cfg.body.children.find((c) => c.attrs && c.attrs.label === 'Fornecedor').attrs.input;
-  select.value = '7';
-  input.value = '125.250';
-  assert.equal(await cfg.onSave(), true);
-  assert.equal(rpcCalls.length, 1);
-  assert.equal(rpcCalls[0].name, 'definir_alocacao_necessidade_compra_fio');
-  assert.equal(rpcCalls[0].args.p_kg_alocado, 125.25);
-  assert.equal(rpcCalls[0].args.p_necessidade_id, 101);
-  assert.equal(rpcCalls[0].args.p_fornecedor_id, 7);
-});
-
-test('5. zero, negative, malformed and over-precise quantities are still refused', async () => {
-  for (const bad of ['-1', '-0.5', 'abc', '', '1,5', '1.2345', ' ', '1e3']) {
-    const { open, rpcCalls } = loadScreen();
-    const { cfg, input } = open(need('500.000', '0.000'), null);
-    const select = cfg.body.children.find((c) => c.attrs && c.attrs.label === 'Fornecedor').attrs.input;
-    select.value = '7';
-    input.value = bad;
-    assert.equal(await cfg.onSave(), false, 'must refuse ' + JSON.stringify(bad));
-    assert.equal(rpcCalls.length, 0, 'must not reach the RPC for ' + JSON.stringify(bad));
+  // ...and Distribuir is NOT in the card footer.
+  const footers = findAll(card, isFooter);
+  for (const f of footers) {
+    assert.doesNotMatch(textOf(f), /Distribuir/, 'Distribuir must not sit in the card footer');
   }
 });
 
-test('5b. zero remains the explicit removal command, never a suggestion', async () => {
-  const { open, rpcCalls } = loadScreen();
-  const { cfg, input } = open(need('500.000', '200.000'), { kg_alocado: '200.000', item: {} });
-  const select = cfg.body.children.find((c) => c.attrs && c.attrs.label === 'Fornecedor').attrs.input;
-  select.value = '7';
-  input.value = '0';
-  assert.equal(await cfg.onSave(), true);
-  assert.equal(rpcCalls[0].args.p_kg_alocado, 0);
+test('D2. Adicionar fornecedor stays an external footer action', async () => {
+  const { card } = await screenFor([needFixture()]);
+  const footers = findAll(card, isFooter);
+  assert.equal(footers.length, 1);
+  assert.match(textOf(footers[0]), /Adicionar fornecedor/);
+  // It is not inside any planning row.
+  for (const row of findAll(card, isRow)) {
+    assert.doesNotMatch(textOf(row), /Adicionar fornecedor/);
+  }
 });
 
-test('5c. an excessive quantity is still refused by the server cap, not by a new client cap', async () => {
-  const screen = loadScreen();
-  screen.setRpcResult({ data: { ok: false, codigo: 'excede_saldo' }, error: null });
-  const { cfg, input } = screen.open(need('500.000', '480.000'), null, DRAFT_FOR_7);
-  assert.equal(input.value, '20');
-  const select = cfg.body.children.find((c) => c.attrs && c.attrs.label === 'Fornecedor').attrs.input;
-  select.value = '7';
-  input.value = '900';
-  // The client deliberately owns no cap: the request reaches the RPC and the
-  // RPC refuses it. The prefill never proposes more than the balance.
-  assert.equal(await cfg.onSave(), false);
-  assert.equal(screen.rpcCalls[0].args.p_kg_alocado, 900);
-  assert.match(screen.notices.at(-1).text, /excede o saldo disponível/);
+test('D3. generated rows stay visible, and are never inputs', async () => {
+  const need = needFixture({
+    kg_planejado: 400, kg_restante: 600, kg_gerado: 400, situacao: 'parcial',
+    planejamentos: [{
+      planejamento_id: 9, fornecedor_id: 1, fornecedor_nome: 'Algodoeira',
+      kg_planejado: 400, gerado: true, ordem_compra_id: 77, ordem_identidade: 'OC-007-1-26',
+    }],
+  });
+  const { card } = await screenFor([need]);
+  // Visible in the saved (non-edit) view...
+  assert.match(textOf(card), /Já comprado/);
+  assert.match(textOf(card), /Algodoeira/);
+  assert.match(textOf(card), /OC-007-1-26/);
+  // ...and rendered as read-only: the generated row is not an editable row.
+  const editable = findAll(card, isRow).filter((r) =>
+    r.children.some((c) => c.tagName === 'rv-select'));
+  assert.equal(editable.length, 0, 'a generated row must never become an input');
 });
 
-test('6. the field keeps machine decimals and the kg unit; the card keeps pt-BR', () => {
-  const { open } = loadScreen();
-  const { cfg, input } = open(need('500.000', '180.500'), null);
-  assert.equal(input.attrs.type, 'number');
-  assert.equal(input.attrs.step, '0.001');
-  assert.equal(input.attrs.min, '0');
-  // A type=number control only accepts a dot decimal; pt-BR belongs to display.
-  assert.doesNotMatch(String(input.value), /,/);
-  const label = cfg.body.children.find((c) => c.attrs && c.attrs.input === input).attrs.label;
-  assert.equal(label, 'Quantidade alvo absoluta (kg)');
-  const hint = cfg.body.children.at(-1);
-  assert.match(hint.children.join(''), /restante atual: 319,500 kg/);
+test('D4. only generated rows + remaining balance offers a real distribute action', async () => {
+  const need = needFixture({
+    kg_planejado: 400, kg_restante: 600, kg_gerado: 400, situacao: 'parcial',
+    planejamentos: [{
+      planejamento_id: 9, fornecedor_id: 1, fornecedor_nome: 'Algodoeira',
+      kg_planejado: 400, gerado: true, ordem_compra_id: 77, ordem_identidade: 'OC-007-1-26',
+    }],
+  });
+  const { card } = await screenFor([need]);
+  const footer = findAll(card, isFooter)[0];
+  assert.match(textOf(footer), /Distribuir saldo restante/);
+  // "Alterar distribuição" would be a lie: there is no live row to alter.
+  assert.doesNotMatch(textOf(footer), /Alterar distribuição/);
 });
 
-test('7. reopening recalculates from persisted state and retains no stale local input', () => {
-  const { open } = loadScreen();
-  const first = open(need('500.000', '0.000'), null);
-  assert.equal(first.input.value, '500');
-  first.input.value = '42';               // operator types, then abandons the modal
-  // Reload persisted 180.5 kg against the need; reopening must reflect only that.
-  const second = open(need('500.000', '180.500'), null);
-  assert.equal(second.input.value, '319.5');
-  assert.notEqual(second.input, first.input);
-  // And the same need reopened twice is stable — no accumulation, no memo.
-  const third = open(need('500.000', '180.500'), null);
-  assert.equal(third.input.value, '319.5');
+test('D5. no editable row and no balance means no misleading action at all', async () => {
+  const need = needFixture({
+    kg_planejado: 1000, kg_restante: 0, kg_gerado: 1000, situacao: 'distribuido',
+    planejamentos: [{
+      planejamento_id: 9, fornecedor_id: 1, fornecedor_nome: 'Algodoeira',
+      kg_planejado: 1000, gerado: true, ordem_compra_id: 77, ordem_identidade: 'OC-007-1-26',
+    }],
+  });
+  const { card } = await screenFor([need]);
+  assert.equal(findAll(card, isFooter).length, 0, 'no footer when nothing is actionable');
+  assert.doesNotMatch(textOf(card), /Alterar distribuição/);
+  assert.doesNotMatch(textOf(card), /Distribuir saldo restante/);
+});
+
+test('D6. a live row is what enables Alterar distribuição', async () => {
+  const need = needFixture({
+    kg_planejado: 300, kg_restante: 700, situacao: 'parcial',
+    planejamentos: [{
+      planejamento_id: 5, fornecedor_id: 1, fornecedor_nome: 'Algodoeira',
+      kg_planejado: 300, gerado: false,
+    }],
+  });
+  const { card } = await screenFor([need]);
+  const footer = findAll(card, isFooter)[0];
+  assert.match(textOf(footer), /Alterar distribuição/);
+  assert.doesNotMatch(textOf(footer), /Distribuir saldo restante/);
+  // Saved live rows render read-only until the operator opts into editing.
+  assert.equal(findAll(card, isZeroRow).length, 0);
+});
+
+test('D7. quick planning exposes both modes, exact-pending selected by default', async () => {
+  const { win } = await screenFor([needFixture()]);
+  const api2 = win.RAVATEX_SCREENS.pedidoInsumosDistribuicao;
+  assert.ok(api2, 'module namespace present');
+  // Drive the real header action that opens the modal.
+  const built = [];
+  findAll(await win.screenPedidoInsumosDistribuicao('11111111-1111-4111-8111-111111111111'),
+    (n) => { built.push(n); return false; });
+  const quick = built.find((n) => n.tagName === 'button' && textOf(n) === 'Distribuição rápida');
+  assert.ok(quick, 'the Distribuição rápida action exists');
+  quick.attrs.onclick();
+  const cfg = win.__modal;
+  assert.ok(cfg, 'quick planning opened a bounded action modal');
+  const modes = findAll(cfg.body, (n) => n.attrs && n.attrs['data-rv-quick-mode'] !== undefined);
+  assert.deepEqual(modes.map((m) => m.attrs['data-rv-quick-mode']), ['exato', 'ajustado']);
+  assert.equal(modes[0].attrs['aria-pressed'], 'true', 'exact-pending is the default');
+  assert.equal(modes[1].attrs['aria-pressed'], 'false');
+  assert.match(textOf(modes[0]), /saldo exato/);
+  assert.match(textOf(modes[1]), /quantidade por necessidade/);
 });
 
 // =====================================================================
-// === OPERATOR-CHOSEN OC NUMBER (db/96) ===============================
-// The system neither generates nor suggests the purchase-order number.
-// Creating an order requires the operator to type it; reusing an existing
-// live draft for the same Pedido + supplier must never ask again.
+// 7. GENERATION SELECTION
 // =====================================================================
 
-test('OC-CODE 1. with no live draft the operator must type the number, and nothing is suggested', async () => {
-  const { open } = loadScreen();
-  const s = open(need('500.000', '0.000'), null, {});
-  s.pickSupplier(7);
-  const field = s.codeField();
-  assert.ok(field, 'the number field is offered when the order would be created');
-  assert.equal(field.attrs.input.value, '', 'no number is pre-filled or suggested');
-  assert.doesNotMatch(s.ocText(), /OC-\d{3}-\d/, 'no automatic sequence is proposed');
-  // Confirming without a number is refused locally; the RPC is never called.
-  assert.equal(await s.cfg.onSave(), false);
-  assert.equal(s.rpcCalls.length, 0);
-  assert.match(s.notices.at(-1).text, /Informe o número da ordem de compra/);
+test('the first selected row fixes the supplier and the rest state their reason', () => {
+  assert.match(ui, /function recomputeLock/);
+  assert.match(ui, /Já há um fornecedor selecionado nesta geração/);
+  assert.match(ui, /disabled: !!blockedReason/);
+  // A generated row is never selectable for a second document.
+  assert.match(ui, /state\.selecting && !row\.gerado/);
 });
 
-test('OC-CODE 2. the typed number reaches the RPC exactly as written', async () => {
-  const { open } = loadScreen();
-  const s = open(need('500.000', '0.000'), null, {});
-  s.pickSupplier(7);
-  s.codeField().attrs.input.value = 'PC 2026/0042-A';
-  s.input.value = '125.250';
-  assert.equal(await s.cfg.onSave(), true);
-  assert.equal(s.rpcCalls.length, 1);
-  assert.equal(s.rpcCalls[0].args.p_codigo_ordem, 'PC 2026/0042-A');
-  assert.equal(s.rpcCalls[0].args.p_kg_alocado, 125.25);
+test('the confirmation shows supplier, needs, quantities and a total', () => {
+  const confirm = ui.slice(ui.indexOf('async function openGenerationConfirm'));
+  assert.match(confirm, /supplierName/);
+  assert.match(confirm, /'Total'/);
+  assert.match(confirm, /rv-fs-summary-total/);
 });
 
-test('OC-CODE 3. an existing live draft is reused, names itself, and asks for no number', async () => {
-  const { open } = loadScreen();
-  const s = open(need('500.000', '0.000'), null, DRAFT_FOR_7);
-  s.pickSupplier(7);
-  assert.equal(s.codeField(), undefined, 'no number is requested when a draft is reused');
-  assert.match(s.ocText(), /PC 2026\/0042/, 'the modal names the order that will receive the allocation');
-  s.input.value = '10';
-  assert.equal(await s.cfg.onSave(), true);
-  assert.equal(s.rpcCalls[0].args.p_codigo_ordem, null, 'no code travels when reusing');
+// =====================================================================
+// 8. COPY AND VISUAL CONTRACT
+// =====================================================================
+
+test('the ratified screen name and subtitle are the ones rendered', () => {
+  assert.match(ui, /'Planejamento de compras'/);
+  assert.match(
+    ui,
+    /'Defina qual fornecedor atenderá cada necessidade do Pedido\. Os pedidos de compra serão gerados depois\.'/,
+  );
+  assert.match(ui, /Pedido de Compra/);
 });
 
-test('OC-CODE 4. a zero target never creates an order, so it never demands a number', async () => {
-  const { open } = loadScreen();
-  const s = open(need('500.000', '200.000'), { kg_alocado: '200.000', item: {} }, {});
-  s.pickSupplier(7);
-  s.input.value = '0';
-  assert.equal(await s.cfg.onSave(), true);
-  assert.equal(s.rpcCalls[0].args.p_codigo_ordem, null);
+test('the screen declares no literal colour and no Tailwind colour utility', () => {
+  assert.doesNotMatch(ui, /#[0-9a-fA-F]{3}\b|#[0-9a-fA-F]{6}\b/);
+  assert.doesNotMatch(ui, /bg-white|bg-gray-\d|text-gray-\d|bg-blue-\d|text-blue-\d|bg-red-\d|text-red-\d|bg-green-\d/);
 });
 
-test('OC-CODE 5. duplicate and invalid code refusals are shown with their own wording', async () => {
-  for (const [codigo, re] of [
-    ['codigo_ordem_duplicado', /Já existe uma ordem de compra com este número/],
-    ['codigo_ordem_invalido', /até 40 caracteres/],
-    ['codigo_ordem_obrigatorio', /Informe o número da ordem de compra/],
+test('geometry and typography resolve through tokens only', () => {
+  for (const token of [
+    '--rv-radius', '--rv-surface', '--rv-border', '--rv-pad-card',
+    '--rv-h-primary', '--rv-h-default', '--rv-fs-title', '--rv-fs-body',
+    '--rv-fs-label', '--rv-text-tertiary', '--rv-brand',
   ]) {
-    const screen = loadScreen();
-    screen.setRpcResult({ data: { ok: false, codigo }, error: null });
-    const s = screen.open(need('500.000', '0.000'), null, {});
-    s.pickSupplier(7);
-    s.codeField().attrs.input.value = 'PC 1';
-    s.input.value = '10';
-    assert.equal(await s.cfg.onSave(), false, codigo + ' must not close the modal');
-    assert.match(screen.notices.at(-1).text, re, 'wrong message for ' + codigo);
+    assert.ok(ui.includes(token), `missing token reference: ${token}`);
   }
+  // Pill radius never dresses a control (§5 D6.1).
+  assert.doesNotMatch(ui, /--rv-radius-pill/);
 });
 
-test('OC-CODE 6. before a supplier is chosen the modal states which case applies', () => {
-  const { open } = loadScreen();
-  const s = open(need('500.000', '0.000'), null, {});
-  assert.equal(s.codeField(), undefined, 'no number field before a supplier exists');
-  assert.match(s.ocText(), /Selecione o fornecedor/);
+test('the screen consumes canonical shared owners rather than local primitives', () => {
+  for (const owner of [
+    'window.selectInput', 'window.textInput', 'window.formField',
+    'window.actionButton', 'window.checkboxInput', 'window.modal',
+    'window.rvStatusPill', 'window.rvClassificationBadge', 'window.shellLayout',
+  ]) {
+    assert.ok(ui.includes(owner), `missing canonical owner: ${owner}`);
+  }
+  // Native select is forbidden on product surfaces (§2.3).
+  assert.doesNotMatch(ui, /el\('select'/);
+});
+
+// =====================================================================
+// 9. ERROR VOCABULARY
+// =====================================================================
+
+test('every db/99 refusal code has operator-facing wording', () => {
+  // `(?<!>>)` skips `v_elegivel->>'codigo', 'erro'`, where the captured token
+  // is the NEXT key of the object rather than a refusal code.
+  const returned = [...migration.matchAll(/(?<!->>)'codigo',\s*'([a-z_]+)'/g)]
+    .map((m) => m[1])
+    .filter((c) => c !== 'ok');
+  const uncovered = [...new Set(returned)].filter(
+    (c) => api.errorText(c) === 'Não foi possível concluir a operação.',
+  );
+  assert.deepEqual(uncovered, [], `db/99 codes with no wording: ${uncovered.join(', ')}`);
+  assert.ok(new Set(returned).size >= 15, 'the migration should expose a real refusal vocabulary');
+});
+
+test('an unknown code still degrades to an honest sentence', () => {
+  assert.equal(api.errorText('coisa_nova'), 'Não foi possível concluir a operação.');
+  assert.equal(api.errorText('coisa_nova', 'Servidor indisponível.'), 'Servidor indisponível.');
 });

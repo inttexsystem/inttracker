@@ -3509,3 +3509,77 @@ Historical OPs physically removed by db/34..db/37/db/53 cannot be reconstructed
 from the former positional display; the backfill freezes the deterministic
 `(criado_em ASC, id ASC)` ordering of surviving rows as canonical from now on.
 This limit is recorded in the migration header, not inferred.
+
+---
+
+## 14. Purchase planning — the stage that had no entity (db/99)
+
+`PURCHASE-PLANNING-REFOUNDATION-R1`. Operational application, publication and
+acceptance status is owned by `docs/governance/current-state.json`. This section
+defines the durable db/99 contract.
+
+### 14.1 The defect this closes
+
+Until db/98 the schema could not express *"this need will be served by this
+supplier"*. The only place that sentence could be stored was
+`ordem_compra_item_alocacao`, whose `item_id` is `NOT NULL` and whose only path
+to a supplier runs `ordem_compra_item.ordem_id -> ordem_compra.fornecedor_id`.
+The allocation row itself carries **no `fornecedor_id`**.
+
+The structural consequence was that assigning a supplier **created a Purchase
+Order immediately**, in `rascunho`, and db/96 additionally required the operator
+to type the document number at that same instant — before deciding what would
+be bought. This was never a UI defect: no client-side state or placeholder draft
+order could have represented the missing stage honestly.
+
+### 14.2 The two stages
+
+| Stage | Writes | Creates a document | Consumes numbering |
+|---|---|---|---|
+| 1 — planning | `necessidade_compra_planejamento` | no | no |
+| 2 — generation | `ordem_compra` + items + allocations | yes, atomically | exactly one `OC` sequence |
+
+### 14.3 The planning entity
+
+`public.necessidade_compra_planejamento` owns `(necessidade_id, fornecedor_id,
+kg_planejado)` independently of any document. Uniqueness is **live-row only**:
+at most one row exists for one `(necessidade_id, fornecedor_id)`, enforced where
+`gerado_em IS NULL`. Multiple generated historical rows for the same need and
+supplier may coexist, so repurchasing from the same supplier stays possible. A
+row with `gerado_em IS NULL` is live planning and is editable; every generated
+row is immutable through every planning writer and remains linked to its
+generated `ordem_compra_item_alocacao` and its Purchase Order.
+
+Executable invariants (all proved on a disposable cluster, not asserted):
+supplier/material compatibility; total active planning never exceeds
+`kg_necessario`; generation is all-or-nothing across
+`(alocacao_id, ordem_compra_id, gerado_em)`; one allocation belongs to at most
+one planning row; a generated row can be neither deleted nor re-generated; no
+orphan rows in either direction.
+
+### 14.4 Numbering — D-OC15
+
+| # | Decision | Rationale |
+|---|---|---|
+| D-OC15 | The visible code is **suggested, editable up to confirmation, and frozen at creation**. `sugerir_codigo_ordem_compra` is `STABLE` and reserves nothing, so opening, refreshing or cancelling the confirmation is free. On successful generation exactly one canonical `OC` sequence is reserved **even when the operator replaced the visible code**, so the Pedido's lineage keeps advancing and the next suggestion never repeats. | Reconciles db/95 (system-derived and immutable) with db/96 (operator-owned). Both were right about different moments: db/95 owns the *lineage*, db/96 owns the *visible name*. Separating suggestion from reservation is what lets both hold at once. db/96's immutability trigger remains the sole freeze owner; db/99 adds no second one. |
+
+A confirmation whose suggested sequence went stale **fails closed** with
+`sugestao_desatualizada`, returns the refreshed suggestion and requires explicit
+reconfirmation. Two concurrent generations are serialised by an advisory lock on
+`(pedido, 'OC')` taken before the staleness check, so a Purchase Order can never
+be silently renamed.
+
+### 14.5 Cancellation, deletion and the legacy writer
+
+Cancelling a real Purchase Order **preserves** its planning linkage — the
+decision stays part of the history. Permanently deleting an eligible one
+**releases** its planning rows atomically, with quantities preserved, so they
+become selectable for generation again; `oc_elegivel_exclusao` remains the sole
+owner of eligibility and every pre-existing refusal is unchanged.
+
+`definir_alocacao_necessidade_compra_fio` keeps its applied five-argument
+signature so a cached bundle cannot meet a PostgREST without the function, but
+it is **no longer the canonical writer**: it delegates to
+`definir_planejamento_compra`, never creates a document, never consumes
+numbering, treats `p_codigo_ordem` as obsolete input and returns the
+discriminator `compatibilidade_planejamento`. The new frontend does not call it.

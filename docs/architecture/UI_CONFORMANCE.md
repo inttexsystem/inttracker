@@ -510,7 +510,7 @@ owners of that number.
 | `pedido-detail.js` | unaudited | PARTIAL | 0 | 0 | 1 |
 | `pedido-edit.js` | unaudited | PARTIAL | 0 | 0 | 1 |
 | `pedido-form.js` | deviation | PARTIAL | 8 | 0 | 9 |
-| `pedido-insumos-distribuicao.js` | unaudited | PARTIAL | 0 | 0 | 1 |
+| `pedido-insumos-distribuicao.js` | deviation | PARTIAL | 0 | 0 | 24 |
 | `pedido-item-row-editor.js` | deviation | PARTIAL | 2 | 0 | 8 |
 | `pedido-itens-edit.js` | unaudited | PARTIAL | 0 | 0 | 1 |
 | `pedido-numero-sugestao.js` | conforming — no visual declaration | FULL | 0 | 0 | 0 |
@@ -818,3 +818,25 @@ the external prototypes reach this repository, since 25 of the 26 conformance ro
 cannot be audited until they do.
 
 **No archetype was ratified automatically, and none may be cited as precedent.**
+
+---
+
+## PURCHASE-PLANNING-REFOUNDATION-R1 — inventory movement
+
+One row above changed, measured with
+`node scripts/validate-ui-conformance.mjs`, not filled in by eye.
+
+**`pedido-insumos-distribuicao.js` — rebuilt, `unaudited -> deviation`.** debt
+`0 -> 0`, coverage gaps `1 -> 24`. The previous `0/0/1` was a **blind spot, not
+a clean bill**: the screen declared raw Tailwind (`bg-white`, `bg-gray-50`,
+`text-gray-*`) and only one decodable style site, so almost no rule reached it.
+The rebuilt screen declares its geometry through `--rv-*` tokens and composes
+canonical owners (`selectInput`, `textInput`, `formField`, `actionButton`,
+`checkboxInput`, `modal`, `rvStatusPill`, `rvClassificationBadge`), which is why
+the *decodable* surface grew. The gap rise is the detector's known
+`CONCATENATED_STYLE_EXPRESSION` limitation on composed style constants, already
+recorded as a detector-capability debt — not a new visual deviation.
+
+`op-nova.js` is unaffected by this phase and remains as it stood at the
+starting HEAD; its visual composition is deferred to a later, separately
+authorized phase and is not recorded here as fixed, accepted or completed.
