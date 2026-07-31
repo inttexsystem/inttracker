@@ -1147,47 +1147,69 @@ test('44. runtime: salvarEntregaCima sem destino_fornecedor_id → toast + retur
   assert.equal(allCalls.length, 0, 'NÃO deve chamar Supabase sem destino');
 });
 
-test('45. runtime: salvarEntregaCima happy path — insert etapa=cima + destino + rpc best-effort + toast "vinculada à OP de acabamento"', async () => {
-  const { sandbox, fakeSupa, getToasts } = makeEWCimaSandbox();
+// ---------------------------------------------------------------------
+// TD3 (db/111, secao 9.9.J) — A ROTA TAPETE SUBMETE UM COMANDO SO
+//
+// Os casos 45 a 48 provavam a sequencia ANTIGA de quatro escritas do
+// cliente: insert em `entregas`, insert em `entrega_itens`, delete
+// compensatorio quando os itens falhavam, e uma chamada best-effort a
+// gerar_op_latex / gerar_op_latex_split cujo fracasso virava um toast
+// pedindo para "gerar manualmente".
+//
+// A ruling TD3 e vinculante: a atomicidade entrega-para-acabamento e do
+// SERVIDOR e o frontend submete EXATAMENTE UM comando. As assercoes
+// abaixo substituem aquele bloco pelo contrato atual — mesmo cenario,
+// mesma carga util, agora com um unico registrar_entrega_cima_com_acabamento
+// e sem nenhuma DML de entrega no cliente.
+// ---------------------------------------------------------------------
+
+test('45. TD3: a rota Tapete submete UM comando e nenhuma DML de entrega', async () => {
+  const { sandbox, fakeSupa, getToasts } = makeEWCimaSandbox({
+    rpcResult: { data: { ok: true, entrega_registrada: true, entrega_id: 999, acabamento: { ok: true, op_latex_id: 44, split_seq: 1 } }, error: null },
+  });
   const result = await vm.runInContext(
     'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
     sandbox);
   assert.equal(result, true);
-  const insertEntregas = fakeSupa._calls.filter(c => c.op === 'insert' && c.table === 'entregas');
-  const insertItens    = fakeSupa._calls.filter(c => c.op === 'insert' && c.table === 'entrega_itens');
-  const rpcCalls       = fakeSupa._calls.filter(c => c.op === 'rpc');
-  assert.equal(insertEntregas.length, 1, '1 insert entregas');
-  assert.equal(insertItens.length, 1, '1 insert itens');
-  assert.equal(rpcCalls.length, 1, '1 rpc gerar_op_latex');
-  // Conteúdo do insert entregas
-  const entInsert = insertEntregas[0].args[0];
-  assert.equal(entInsert.etapa, 'cima');
-  assert.equal(entInsert.fornecedor_id, 5);
-  assert.equal(entInsert.destino_fornecedor_id, 77);
-  assert.equal(entInsert.data, '2026-06-01');
-  assert.equal(entInsert.observacao, 'lote 1');
-  // Conteúdo do insert itens
-  const itemInsert = insertItens[0].args[0];
-  assert.equal(itemInsert[0].entrega_id, 999);
-  assert.equal(itemInsert[0].op_id, 10);
-  assert.equal(itemInsert[0].metros_entregues, 12);
-  // RPC com payload original
-  assert.equal(rpcCalls[0].fn, 'gerar_op_latex');
-  assert.equal(rpcCalls.some(c => c.fn === 'gerar_op_latex_split'), false,
-    'default nao deve chamar gerar_op_latex_split');
-  assert.equal(JSON.stringify(rpcCalls[0].params), JSON.stringify({ p_entrega_id: 999 }),
-    'RPC deve receber { p_entrega_id: 999 }');
-  // Toast de success com linguagem neutra de vínculo (rpc.data truthy):
-  // a RPC é find-or-accumulate, então NÃO afirmamos "gerada" (Contrato 6).
-  const toasts = getToasts();
-  const successToasts = toasts.filter(t => t.type === 'success');
+
+  const rpcCalls = fakeSupa._calls.filter(c => c.op === 'rpc');
+  assert.equal(rpcCalls.length, 1, 'a rota Tapete tem de submeter EXATAMENTE um comando');
+  assert.equal(rpcCalls[0].fn, 'registrar_entrega_cima_com_acabamento');
+
+  // ZERO DML de entrega no cliente.
+  assert.equal(fakeSupa._calls.filter(c => c.op === 'insert' && c.table === 'entregas').length, 0,
+    'o cliente nao insere mais em entregas');
+  assert.equal(fakeSupa._calls.filter(c => c.op === 'insert' && c.table === 'entrega_itens').length, 0,
+    'o cliente nao insere mais em entrega_itens');
+  assert.equal(fakeSupa._calls.filter(c => c.op === 'delete').length, 0,
+    'nao existe mais delete compensatorio');
+
+  // Nenhum escritor de acabamento separado.
+  assert.equal(rpcCalls.some(c => c.fn === 'gerar_op_latex'), false);
+  assert.equal(rpcCalls.some(c => c.fn === 'gerar_op_latex_split'), false);
+  assert.equal(rpcCalls.some(c => c.fn === 'gerar_op_acabamento'), false,
+    'a entrega normal nao chama o escritor de recuperacao');
+
+  // A carga util preservada, agora dentro do comando unico.
+  const params = rpcCalls[0].params;
+  assert.equal(params.p_fornecedor_id, 5);
+  assert.equal(params.p_op_id, 10);
+  assert.equal(params.p_data, '2026-06-01');
+  assert.equal(params.p_observacao, 'lote 1');
+  assert.equal(params.p_destino_fornecedor_id, 77);
+  assert.equal(params.p_linhas.length, 1);
+  assert.equal(params.p_linhas[0].op_item_id, 1);
+  assert.equal(params.p_linhas[0].metros_entregues, 12);
+  assert.ok(params.p_idempotency_key, 'o comando tem de carregar uma chave de idempotencia');
+
+  const successToasts = getToasts().filter(t => t.type === 'success');
   assert.equal(successToasts.length, 1);
-  assert.equal(successToasts[0].msg, 'Entrega registrada · vinculada à OP de acabamento');
+  assert.match(successToasts[0].msg, /Entrega registrada/);
 });
 
-test('45.1 runtime: salvarEntregaCima mostra "Criou OP X/Y" quando RPC retorna created=true', async () => {
+test('45.1 TD3: o sucesso identifica a OP de acabamento canonica', async () => {
   const { sandbox, getToasts } = makeEWCimaSandbox({
-    rpcResult: { data: { op_latex_id: 44, numero: 5, ano: 2026, created: true, accumulated: false, already_linked: false }, error: null },
+    rpcResult: { data: { ok: true, entrega_registrada: true, entrega_id: 999, acabamento: { ok: true, op_latex_id: 44, identidade_operacional: 'OP-A005-2-26', split_seq: 1 } }, error: null },
   });
   const result = await vm.runInContext(
     'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
@@ -1195,105 +1217,108 @@ test('45.1 runtime: salvarEntregaCima mostra "Criou OP X/Y" quando RPC retorna c
   assert.equal(result, true);
   const successToasts = getToasts().filter(t => t.type === 'success');
   assert.equal(successToasts.length, 1);
-  assert.equal(successToasts[0].msg, 'Criou OP de acabamento');
+  assert.match(successToasts[0].msg, /OP-A005-2-26/,
+    'a identidade canonica devolvida pelo servidor tem de nomear a OP');
 });
 
-test('45.2 runtime: salvarEntregaCima mostra "Acumulou na OP X/Y" quando RPC retorna accumulated=true', async () => {
-  const { sandbox, getToasts } = makeEWCimaSandbox({
-    rpcResult: { data: { op_latex_id: 44, numero: 5, ano: 2026, created: false, accumulated: true, already_linked: false }, error: null },
+test('45.2 TD3: entrega salva + acabamento falho diz as DUAS coisas, sem retentar', async () => {
+  const { sandbox, fakeSupa, getToasts } = makeEWCimaSandbox({
+    rpcResult: {
+      data: {
+        ok: true, entrega_registrada: true, entrega_id: 999,
+        acabamento: { ok: false, codigo: 'ACABAMENTO_CRIACAO_FALHOU', recuperavel: true },
+        proxima_acao: 'RECUPERAR_OP_ACABAMENTO',
+      },
+      error: null,
+    },
   });
   const result = await vm.runInContext(
     'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
     sandbox);
+  // A entrega ESTA salva: o retorno nao pode negar isso.
   assert.equal(result, true);
-  const successToasts = getToasts().filter(t => t.type === 'success');
-  assert.equal(successToasts.length, 1);
-  assert.equal(successToasts[0].msg, 'Acumulou na OP de acabamento');
+  const errorToasts = getToasts().filter(t => t.type === 'error');
+  assert.equal(errorToasts.length, 1);
+  assert.match(errorToasts[0].msg, /Entrega salva/, 'a copia tem de afirmar que a entrega foi salva');
+  assert.match(errorToasts[0].msg, /FALHOU/, 'a copia tem de afirmar que o acabamento falhou');
+  assert.doesNotMatch(errorToasts[0].msg, /gere manualmente|gerar manualmente/i,
+    'a copia nao pode mandar o operador criar a OP na mao');
+  // NAO ha retentativa automatica de acabamento.
+  const rpcCalls = fakeSupa._calls.filter(c => c.op === 'rpc');
+  assert.equal(rpcCalls.length, 1, 'nenhuma retentativa automatica pode ocorrer');
+  assert.equal(rpcCalls.some(c => c.fn === 'gerar_op_acabamento'), false);
 });
 
-test('45.3 runtime: salvarEntregaCima mostra "Já vinculada à OP X/Y" quando RPC retorna already_linked=true', async () => {
-  const { sandbox, getToasts } = makeEWCimaSandbox({
-    rpcResult: { data: { op_latex_id: 44, numero: 5, ano: 2026, created: false, accumulated: false, already_linked: true }, error: null },
+test('45.3 TD3: falha de validacao significa NADA registrado', async () => {
+  const { sandbox, fakeSupa, getToasts } = makeEWCimaSandbox({
+    rpcResult: { data: { ok: false, codigo: 'ENTREGA_METROS_INVALIDOS' }, error: null },
   });
   const result = await vm.runInContext(
     'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
     sandbox);
-  assert.equal(result, true);
-  const successToasts = getToasts().filter(t => t.type === 'success');
-  assert.equal(successToasts.length, 1);
-  assert.equal(successToasts[0].msg, 'Já vinculada à OP de acabamento');
+  assert.equal(result, false, 'uma recusa de validacao nao pode devolver sucesso');
+  const errorToasts = getToasts().filter(t => t.type === 'error');
+  assert.equal(errorToasts.length, 1);
+  assert.match(errorToasts[0].msg, /NAO registrada|NÃO registrada/,
+    'a copia tem de dizer que nada foi registrado');
+  assert.match(errorToasts[0].msg, /ENTREGA_METROS_INVALIDOS/,
+    'o codigo de recusa do servidor fica visivel');
+  assert.equal(getToasts().filter(t => t.type === 'success').length, 0,
+    'nenhum sucesso parcial pode ser sugerido');
+  assert.equal(fakeSupa._calls.filter(c => c.op === 'insert' || c.op === 'delete').length, 0);
 });
 
-test('46. runtime: salvarEntregaCima RPC falhando → entrega mantida, toast específico da RPC, return true', async () => {
+test('46. TD3: falha de TRANSPORTE retem a chave para um reenvio seguro', async () => {
   const { sandbox, fakeSupa, getToasts } = makeEWCimaSandbox({
     rpcResult: { data: null, error: { message: 'rpc timeout' } },
   });
-  const result = await vm.runInContext(
-    'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
-    sandbox);
-  // Best-effort: falha da RPC NÃO desfaz a entrega. Return true.
-  assert.equal(result, true, 'salvarEntregaCima deve retornar true mesmo com RPC falhando');
-  // A entrega (insert) e os itens já foram commitados antes da RPC
-  const insertEntregas = fakeSupa._calls.filter(c => c.op === 'insert' && c.table === 'entregas');
-  const insertItens    = fakeSupa._calls.filter(c => c.op === 'insert' && c.table === 'entrega_itens');
-  assert.equal(insertEntregas.length, 1, 'insert entregas mantido');
-  assert.equal(insertItens.length, 1, 'insert itens mantido');
-  // Nenhum rollback/cleanup
-  const deleteCalls = fakeSupa._calls.filter(c => c.op === 'delete');
-  assert.equal(deleteCalls.length, 0, 'NÃO deve haver rollback quando a RPC falha');
-  // Toast específico de erro da RPC
-  const toasts = getToasts();
-  const errorToasts = toasts.filter(t => t.type === 'error');
-  assert.equal(errorToasts.length, 1, 'esperado 1 toast de error');
-  assert.match(errorToasts[0].msg, /Entrega salva/);
-  assert.match(errorToasts[0].msg, /falhou ao gerar a OP de l\u00e1tex/);
-  assert.match(errorToasts[0].msg, /Gere manualmente/);
-  // Zero success
-  const successToasts = toasts.filter(t => t.type === 'success');
-  assert.equal(successToasts.length, 0, 'NÃO deve haver toast de success');
+  const chamada = 'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })';
+  const primeiro = await vm.runInContext(chamada, sandbox);
+  assert.equal(primeiro, false, 'transporte ambiguo nao pode ser reportado como sucesso');
+
+  // Reenvio da MESMA submissao inalterada: a chave tem de ser a mesma, para
+  // que o servidor devolva o resultado guardado em vez de duplicar a entrega.
+  await vm.runInContext(chamada, sandbox);
+  const rpcCalls = fakeSupa._calls.filter(c => c.op === 'rpc');
+  assert.equal(rpcCalls.length, 2);
+  assert.equal(rpcCalls[0].params.p_idempotency_key, rpcCalls[1].params.p_idempotency_key,
+    'um reenvio da mesma intencao TEM de reusar a chave');
+
+  const errorToasts = getToasts().filter(t => t.type === 'error');
+  assert.ok(errorToasts.length >= 1);
+  assert.match(errorToasts[0].msg, /reenvio e seguro|reenvio é seguro/i);
 });
 
-test('47. runtime: salvarEntregaCima insert entregas falha → toast error + return false (sem rollback, sem rpc)', async () => {
-  const { sandbox, fakeSupa, getToasts } = makeEWCimaSandbox({
-    entregasInsertResult: { data: null, error: { message: 'fk fail' } },
+test('47. TD3: um desfecho DETERMINISTICO fecha a tentativa (chave nova depois)', async () => {
+  const { sandbox, fakeSupa } = makeEWCimaSandbox({
+    rpcResult: { data: { ok: true, entrega_registrada: true, entrega_id: 999, acabamento: { ok: true, op_latex_id: 44 } }, error: null },
   });
-  const result = await vm.runInContext(
-    'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
-    sandbox);
-  assert.equal(result, false);
-  const insertItens = fakeSupa._calls.filter(c => c.op === 'insert' && c.table === 'entrega_itens');
-  const rpcCalls    = fakeSupa._calls.filter(c => c.op === 'rpc');
-  assert.equal(insertItens.length, 0, 'NÃO deve tentar insert itens se insert entregas falhou');
-  assert.equal(rpcCalls.length, 0, 'NÃO deve chamar RPC se insert entregas falhou');
-  const toasts = getToasts();
-  const errorToasts = toasts.filter(t => t.type === 'error');
-  assert.equal(errorToasts.length, 1);
-  assert.match(errorToasts[0].msg, /gravar entrega/);
+  const chamada = 'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })';
+  await vm.runInContext(chamada, sandbox);
+  await vm.runInContext(chamada, sandbox);
+  const rpcCalls = fakeSupa._calls.filter(c => c.op === 'rpc');
+  assert.equal(rpcCalls.length, 2);
+  assert.notEqual(rpcCalls[0].params.p_idempotency_key, rpcCalls[1].params.p_idempotency_key,
+    'apos um desfecho deterministico, a proxima submissao nasce com chave nova');
 });
 
-test('48. runtime: salvarEntregaCima insert itens falha → rollback delete entregas + toast + return false', async () => {
-  const { sandbox, fakeSupa, getToasts } = makeEWCimaSandbox({
-    entregasItensInsertResult: { data: null, error: { message: 'fk fail' } },
-  });
-  const result = await vm.runInContext(
-    'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
-    sandbox);
-  assert.equal(result, false);
-  // Espera-se: insert entregas OK, insert itens falha, delete
-  // entregas (rollback) por id, sem RPC
-  const insertEntregas = fakeSupa._calls.filter(c => c.op === 'insert' && c.table === 'entregas');
-  const insertItens    = fakeSupa._calls.filter(c => c.op === 'insert' && c.table === 'entrega_itens');
-  const deleteEq       = fakeSupa._calls.filter(c => c.op === 'eq' && c.col === 'id' && c.val === 999);
-  const rpcCalls       = fakeSupa._calls.filter(c => c.op === 'rpc');
-  assert.equal(insertEntregas.length, 1);
-  assert.equal(insertItens.length, 1);
-  assert.equal(deleteEq.length, 1, 'rollback deve usar eq id=999');
-  assert.equal(rpcCalls.length, 0, 'NÃO deve chamar RPC após rollback');
-  const toasts = getToasts();
-  const errorToasts = toasts.filter(t => t.type === 'error');
-  assert.equal(errorToasts.length, 1);
-  assert.match(errorToasts[0].msg, /itens da entrega/);
+test('48. TD3: as validacoes locais continuam bloqueando ANTES do comando', async () => {
+  const { sandbox, fakeSupa, getToasts } = makeEWCimaSandbox();
+  const semLinhas = { data: '2026-06-01', observacao: null, destino_fornecedor_id: 77, linhas: [] };
+  const r1 = await vm.runInContext(
+    'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(semLinhas) + ' })', sandbox);
+  assert.equal(r1, false);
+
+  const semDestino = { data: '2026-06-01', observacao: null, destino_fornecedor_id: null, linhas: [{ op_item_id: 1, metros_entregues: 12 }] };
+  const r2 = await vm.runInContext(
+    'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(semDestino) + ' })', sandbox);
+  assert.equal(r2, false);
+
+  assert.equal(fakeSupa._calls.filter(c => c.op === 'rpc').length, 0,
+    'nenhum comando pode partir com carga util invalida');
+  assert.equal(getToasts().filter(t => t.type === 'error').length, 2);
 });
+
 
 test('49. runtime: atualizarEntregaCima com payload vazio → toast + return false', async () => {
   const { sandbox, getToasts } = makeEWCimaSandbox();
@@ -1687,13 +1712,17 @@ test('52.6 D-C-C: isEntregaLatexGuardError detecta o formato real do PostgREST',
 });
 
 test('53. runtime: consumidor inline mockado consegue chamar salvarEntregaCima via global bare', async () => {
-  const { sandbox, fakeSupa } = makeEWCimaSandbox();
+  const { sandbox, fakeSupa } = makeEWCimaSandbox({
+    rpcResult: { data: { ok: true, entrega_registrada: true, entrega_id: 999, acabamento: { ok: true, op_latex_id: 44 } }, error: null },
+  });
   await vm.runInContext(
     'salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' })',
     sandbox);
-  const insertEntregas = fakeSupa._calls.filter(c => c.op === 'insert' && c.table === 'entregas');
-  assert.equal(insertEntregas.length, 1, 'consumidor bare não conseguiu chamar salvarEntregaCima');
+  const rpcCalls = fakeSupa._calls.filter(c => c.op === 'rpc');
+  assert.equal(rpcCalls.length, 1, 'consumidor bare nao conseguiu chamar salvarEntregaCima');
+  assert.equal(rpcCalls[0].fn, 'registrar_entrega_cima_com_acabamento');
 });
+
 
 test('54. runtime: consumidor inline mockado consegue chamar atualizarEntregaCima via global bare', async () => {
   const { sandbox, fakeSupa } = makeEWCimaSandbox();
@@ -1946,22 +1975,26 @@ test('58. screenListaOPs (ops-list) ainda renderiza (regressão ops-list)', asyn
   assert.ok(header, 'header ausente em screenListaOPs');
 });
 
-test('59. Helper-B: salvarEntregaCima forceSplit chama gerar_op_latex_split com motivo trimado', async () => {
+test('59. Helper-B: o motivo de split viaja DENTRO do comando unico, trimado', async () => {
+  // O split deixou de ser uma segunda RPC (gerar_op_latex_split) e passou a
+  // ser um parametro do comando atomico: p_motivo_split. A intencao do
+  // operador e preservada; o numero de comandos e que caiu para um.
   const { sandbox, fakeSupa, getToasts } = makeEWCimaSandbox({
-    rpcResult: { data: { op_latex_id: 55, numero: 7, ano: 2026, created: true, split: true, motivo: 'amostra separada' }, error: null },
+    rpcResult: { data: { ok: true, entrega_registrada: true, entrega_id: 999, acabamento: { ok: true, op_latex_id: 55, split_seq: 2 } }, error: null },
   });
   const result = await vm.runInContext(
     'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' }, { forceSplit: true, motivo: "  amostra separada  " })',
     sandbox);
   assert.equal(result, true);
   const rpcCalls = fakeSupa._calls.filter(c => c.op === 'rpc');
-  assert.equal(rpcCalls.length, 1, '1 rpc split');
-  assert.equal(rpcCalls[0].fn, 'gerar_op_latex_split');
-  assert.equal(JSON.stringify(rpcCalls[0].params), JSON.stringify({ p_entrega_id: 999, p_motivo: 'amostra separada' }));
-  const successToasts = getToasts().filter(t => t.type === 'success');
-  assert.equal(successToasts.length, 1);
-  assert.equal(successToasts[0].msg, 'OP de acabamento separada criada: OP de acabamento');
+  assert.equal(rpcCalls.length, 1, 'o split continua sendo UM comando so');
+  assert.equal(rpcCalls[0].fn, 'registrar_entrega_cima_com_acabamento');
+  assert.equal(rpcCalls[0].params.p_motivo_split, 'amostra separada', 'o motivo tem de chegar trimado');
+  assert.equal(rpcCalls.some(c => c.fn === 'gerar_op_latex_split'), false,
+    'a RPC de split separada foi aposentada');
+  assert.equal(getToasts().filter(t => t.type === 'success').length, 1);
 });
+
 
 test('60. Helper-B: salvarEntregaCima forceSplit com motivo vazio bloqueia antes de Supabase', async () => {
   const { sandbox, fakeSupa, getToasts } = makeEWCimaSandbox();
@@ -1976,17 +2009,13 @@ test('60. Helper-B: salvarEntregaCima forceSplit com motivo vazio bloqueia antes
   assert.match(errorToasts[0].msg, /OP de acabamento separada/);
 });
 
-test('61. Helper-B: salvarEntregaCima normaliza split already_linked/erro sem afirmar criacao', async () => {
+test('61. Helper-B: um split cujo acabamento falha NAO afirma criacao', async () => {
   const { sandbox, getToasts } = makeEWCimaSandbox({
     rpcResult: {
       data: {
-        op_latex_id: 55,
-        numero: 7,
-        ano: 2026,
-        created: false,
-        split: false,
-        already_linked: true,
-        erro: 'Entrega ja vinculada a OP 7/2026. Nao foi criado split.',
+        ok: true, entrega_registrada: true, entrega_id: 999,
+        acabamento: { ok: false, codigo: 'ACABAMENTO_JA_EXISTE', recuperavel: false },
+        proxima_acao: 'RECUPERAR_OP_ACABAMENTO',
       },
       error: null,
     },
@@ -1994,12 +2023,15 @@ test('61. Helper-B: salvarEntregaCima normaliza split already_linked/erro sem af
   const result = await vm.runInContext(
     'window.salvarEntregaCima({ fornecedorId: 5, opId: 10, payload: ' + JSON.stringify(CIMA_VALID_PAYLOAD) + ' }, { forceSplit: true, motivo: "retrabalho" })',
     sandbox);
-  assert.equal(result, true);
-  const successToasts = getToasts().filter(t => t.type === 'success');
-  assert.equal(successToasts.length, 1);
-  assert.equal(successToasts[0].msg, 'Entrega ja vinculada a OP 7/2026. Nao foi criado split.');
-  assert.doesNotMatch(successToasts[0].msg, /criada/i);
+  assert.equal(result, true, 'a entrega foi salva');
+  assert.equal(getToasts().filter(t => t.type === 'success').length, 0,
+    'um acabamento que falhou nunca vira toast de sucesso');
+  const errorToasts = getToasts().filter(t => t.type === 'error');
+  assert.equal(errorToasts.length, 1);
+  assert.match(errorToasts[0].msg, /ACABAMENTO_JA_EXISTE/);
+  assert.doesNotMatch(errorToasts[0].msg, /criada/i, 'nao pode afirmar criacao');
 });
+
 
 // =====================================================================
 // PHASE-MANTA-B2B — fronteira de rota do escritor de entrega.
@@ -2016,9 +2048,17 @@ test('62. MANTA-B2B: entrega-writes.js segue sendo exclusivo do Tapete (nenhuma 
   assert.doesNotMatch(src, /registrar_entrega_cima_manta/,
     'a rota Manta nao pode ser atendida pelo escritor Tapete');
   assert.doesNotMatch(src, /liberar_expedicao_manta_parcial|estornar_expedicao_manta_parcial/);
-  // E o contrato Tapete permanece: destino obrigatorio + geracao de OP.
+  // E o contrato Tapete permanece: destino obrigatorio + criacao da OP de
+  // acabamento. TD3 trocou o COMO (duas RPCs viraram um comando atomico) sem
+  // mudar o QUE: a rota Tapete continua exigindo destino e continua sendo a
+  // unica que cria acabamento.
   assert.match(src, /if \(!payload\.destino_fornecedor_id\)/);
-  assert.match(src, /forceSplit \? 'gerar_op_latex_split' : 'gerar_op_latex'/);
+  assert.match(src, /rpc\('registrar_entrega_cima_com_acabamento'/,
+    'a rota Tapete tem de submeter o comando atomico do servidor');
+  assert.doesNotMatch(src, /rpc\('gerar_op_latex'/,
+    'a chamada de acabamento em separado foi aposentada');
+  assert.doesNotMatch(src, /rpc\('gerar_op_latex_split'/,
+    'a chamada de split em separado foi aposentada');
 });
 
 test('63. MANTA-B2B: manta-writes.js concentra as quatro RPCs e nao escreve em tabela', () => {

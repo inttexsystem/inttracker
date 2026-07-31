@@ -909,5 +909,11 @@ test('MANTA-B2B: o fluxo Tapete Tecelagem -> Acabamento continua intacto', () =>
   assert.match(otpaSrc, /buildBlocoEntregas/);
   assert.match(otpaSrc, /window\.salvarEntregaCima\(/);
   assert.match(otpaSrc, /Enviar para acabamento/);
-  assert.match(ewSrc, /forceSplit \? 'gerar_op_latex_split' : 'gerar_op_latex'/);
+  // TD3: o fluxo Tapete Tecelagem -> Acabamento continua intacto no que
+  // importa (mesmo bloco, mesmo call-site, mesma acao visivel); o que mudou
+  // e que ele deixou de ser duas RPCs best-effort e virou UM comando
+  // atomico do servidor, que cria entrega e OP de acabamento na mesma
+  // transacao.
+  assert.match(ewSrc, /rpc\('registrar_entrega_cima_com_acabamento'/);
+  assert.doesNotMatch(ewSrc, /rpc\('gerar_op_latex'/);
 });

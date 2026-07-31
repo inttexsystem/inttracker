@@ -497,7 +497,15 @@ test('7. o Tapete continua no seu escritor e na geracao de OP de latex (sem alte
   assert.match(entregaWrites, /async function salvarEntregaCima/);
   assert.match(entregaWrites, /if \(!payload\.destino_fornecedor_id\)/,
     'o Tapete continua exigindo a empresa de latex de destino');
-  assert.match(entregaWrites, /forceSplit \? 'gerar_op_latex_split' : 'gerar_op_latex'/);
+  // TD3 (db/111): a rota Tapete continua sendo a unica que cria acabamento,
+  // mas deixou de faze-lo com duas RPCs best-effort depois de inserir a
+  // entrega. Agora e UM comando atomico do servidor. O que este guard
+  // protege — Tapete tem escritor proprio e cria acabamento; Manta nao
+  // passa por ele — segue integral.
+  assert.match(entregaWrites, /rpc\('registrar_entrega_cima_com_acabamento'/,
+    'o Tapete submete o comando atomico do servidor');
+  assert.doesNotMatch(entregaWrites, /rpc\('gerar_op_latex'/,
+    'a geracao de acabamento em separado foi aposentada');
   // O caminho Tapete do modal do Pedido continua chamando salvarEntregaCima.
   assert.match(detailEvents, /window\.salvarEntregaCima\(/);
   assert.match(detailEvents, /key === 'Tecelagem>Acabamento'\) return buildTecelagemTransferForm/);

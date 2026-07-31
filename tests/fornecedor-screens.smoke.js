@@ -343,7 +343,9 @@ function makeFornSandbox({
       };
       return chain;
     },
-    rpc: () => { calls.push({ op: 'rpc' }); return Promise.resolve({ data: null, error: null }); },
+    // P2-B: o nome passa a ser registrado para que um guard possa
+    // distinguir a leitura da fila de aceite de uma RPC de recebimento.
+    rpc: (name, params) => { calls.push({ op: 'rpc', name, params }); return Promise.resolve({ data: null, error: null }); },
     auth: {
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       signInWithPassword: () => Promise.resolve({ data: { user: null }, error: null }),
@@ -1236,7 +1238,15 @@ test('42. no adapter loaded preserves the pre-phase legacy read+write exactly', 
   vm.runInContext('window.CURRENT_USER = { nome: "X", tipo: "fornecedor", fornecedor_id: 1 }', sandbox);
   const root = await vm.runInContext('window.screenFornecedorOrdens()', sandbox);
   const rpcCalls = fakeSupa._calls.filter((c) => c.op === 'rpc');
-  assert.equal(rpcCalls.length, 0, 'without the adapter module loaded, no rpc must be attempted');
+  // P2-B.1: a tela passou a carregar tambem a FILA DE ACEITE, que e uma
+  // projecao autoritativa distinta e sempre presente — ela nao depende do
+  // adaptador de recebimento. O sujeito deste guard continua sendo o
+  // RECEBIMENTO: sem o adaptador carregado, nenhuma RPC de recebimento pode
+  // ser tentada, e a leitura cai no caminho plano pre-fase.
+  const receiptRpcs = rpcCalls.filter((c) => c.name !== 'listar_fila_aceite_fornecedor');
+  assert.equal(receiptRpcs.length, 0, 'without the adapter module loaded, no receipt rpc must be attempted');
+  assert.equal(rpcCalls.filter((c) => c.name === 'listar_fila_aceite_fornecedor').length, 1,
+    'a fila de aceite e lida exatamente uma vez, pelo seu proprio dono no servidor');
   const handler = findButtonOnClickInMain(root);
   const inp = findInputInMain(root);
   inp.value = '5';

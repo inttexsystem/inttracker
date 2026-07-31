@@ -519,6 +519,214 @@
       });
     }
 
+    // -----------------------------------------------------------------
+    // ROTA TAPETE — ESTORNO PARCIAL E CORREÇÃO DE ENTREGA (P2-B.4/.5)
+    //
+    // Duas ações DISTINTAS, com comandos distintos e significados que não se
+    // confundem:
+    //
+    //   ESTORNO (estornar_expedicao_tapete_parcial) desfaz LIBERAÇÃO: devolve
+    //   metros para a disponibilidade de produto acabado. Reduz `liberado`.
+    //
+    //   CORREÇÃO (corrigir_entrega_expedicao) conserta o quanto foi de fato
+    //   ENTREGUE ao cliente. Não devolve nada à produção; ajusta `entregue`
+    //   dentro do intervalo 0 <= entregue <= liberado. Por isso ela pode
+    //   fazer um Pedido incompleto e não cancelado VOLTAR de `entregue` para
+    //   `produzindo` — e a tela diz isso, em vez de esconder.
+    //
+    // Nenhuma das duas escreve saldo de estoque nem `pedidos.status`: quem
+    // recalcula o Pedido é o servidor, dentro do mesmo comando.
+    function criarRastreadorExpedicao() {
+      var api = window.RAVATEX_ENTREGA_WRITES;
+      if (api && typeof api.criarRastreadorComando === 'function') return api.criarRastreadorComando();
+      var token = null; var intencao = null;
+      return {
+        resolverChave: function (atual) {
+          var serial = JSON.stringify(atual);
+          if (token && intencao === serial) return token;
+          token = 'exp-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+          intencao = serial;
+          return token;
+        },
+        concluir: function () { token = null; intencao = null; },
+      };
+    }
+
+    // Um bloco de comando por item + motivo obrigatório + região de erro
+    // local. `conf` descreve as diferenças entre estorno e correção; a
+    // mecânica de idempotência, trava de pendência e recarga é a mesma.
+    function buildComandoTapete(conf) {
+      var rastreador = criarRastreadorExpedicao();
+      var pendente = false;
+
+      var motivoInput = window.textInput({ type: 'text', placeholder: 'motivo (obrigatório)' });
+      motivoInput.setAttribute('aria-label', conf.motivoAria);
+
+      var alerta = window.el('div', {
+        role: 'alert',
+        'aria-live': 'assertive',
+        style: 'display:none;margin-top:10px;font-size:13px;font-weight:700;color:var(--rv-signal-negative);',
+      });
+      function mostrarErro(t) { alerta.textContent = t; alerta.style.display = 'block'; }
+      function limparErro() { alerta.textContent = ''; alerta.style.display = 'none'; }
+
+      var linhas = state.itens.map(function (item) {
+        var liberado = round2(Number(item.metros_liberados || 0));
+        var entregue = round2(Number(item.metros_entregues || 0));
+        var input = window.textInput({ type: 'number', step: '0.01', value: '' });
+        input.setAttribute('aria-label', conf.itemAria + ' - ' + modeloLabel(item));
+        return { item: item, input: input, liberado: liberado, entregue: entregue };
+      });
+
+      var btn = window.el('button', { type: 'button', style: BTN_PRIMARY }, conf.acaoLabel);
+
+      btn.addEventListener('click', async function () {
+        if (pendente) return;                     // clique repetido não vira 2º comando
+        limparErro();
+        var motivo = motivoInput.value ? String(motivoInput.value).trim() : '';
+        if (!motivo) {
+          mostrarErro('Informe o motivo.');
+          motivoInput.focus();
+          return;
+        }
+        var payload = [];
+        for (var i = 0; i < linhas.length; i++) {
+          var bruto = linhas[i].input.value;
+          if (bruto === '' || bruto == null) continue;
+          var q = Number(bruto);
+          if (!Number.isFinite(q)) { mostrarErro('Quantidade inválida em ' + modeloLabel(linhas[i].item) + '.'); return; }
+          var problema = conf.validarItem(q, linhas[i]);
+          if (problema) { mostrarErro(problema); return; }
+          payload.push(conf.montarItem(q, linhas[i]));
+        }
+        if (!payload.length) { mostrarErro('Informe ao menos uma quantidade.'); return; }
+
+        var chave = rastreador.resolverChave({ comando: conf.rpc, expedicao_id: state.expedicao.id, motivo: motivo, itens: payload });
+        pendente = true;
+        btn.disabled = true;
+        try {
+          var res = await window.supa.rpc(conf.rpc, {
+            p_expedicao_id: state.expedicao.id,
+            p_itens: payload,
+            p_motivo: motivo,
+            p_idempotency_key: chave,
+          });
+          if (res.error) {
+            // Transporte ambíguo: chave retida para reenvio seguro.
+            mostrarErro('Não foi possível confirmar. Tente novamente — o reenvio é seguro.');
+            console.error('expedicao-admin: ' + conf.rpc, res.error);
+            return;
+          }
+          rastreador.concluir();
+          var data = res.data || {};
+          if (data.ok !== true) {
+            // O código de recusa do servidor aparece SEM máscara.
+            mostrarErro(conf.recusaPrefixo + ': ' + (data.codigo || 'motivo não informado pelo servidor'));
+            console.error('expedicao-admin: recusa', data);
+            return;
+          }
+          window.toast(conf.sucessoMsg, 'success');
+          // Recarga AUTORITATIVA: expedição, itens, movimentos e — no caso da
+          // correção — a projeção de Pedido/status que o servidor recalculou.
+          await reload();
+        } finally {
+          pendente = false;
+          btn.disabled = false;
+        }
+      });
+
+      return window.el('div', {
+        'data-rv-comando-tapete': conf.marcador,
+        style: CARD + 'padding:16px 20px;margin-bottom:14px;',
+      },
+        window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:4px;' }, conf.titulo),
+        window.el('div', { style: 'font-size:12.5px;color:var(--rv-text-secondary);line-height:1.5;margin-bottom:12px;' }, conf.explicacao),
+        window.el('div', { style: 'border:1px solid var(--rv-border);border-radius:4px;overflow:hidden;margin-bottom:12px;' },
+          linhas.map(function (linha, index) {
+            return window.el('div', { style: 'display:grid;grid-template-columns:1fr 150px;gap:12px;align-items:center;padding:10px 12px;' + (index < linhas.length - 1 ? 'border-bottom:1px solid var(--rv-border-soft);' : '') },
+              window.el('div', {},
+                window.el('div', { style: 'font-size:13px;font-weight:700;color:var(--rv-text-primary);' }, modeloLabel(linha.item)),
+                // Os TETOS ficam visíveis ANTES da confirmação — nunca só na
+                // mensagem de erro depois de uma tentativa recusada.
+                window.el('div', { style: 'font-size:11.5px;color:var(--rv-text-tertiary);margin-top:2px;' }, conf.tetoTexto(linha))),
+              linha.input);
+          })),
+        field(conf.motivoLabel, motivoInput),
+        window.el('div', { style: 'margin-top:12px;' }, btn),
+        alerta);
+    }
+
+    function buildEstornoTapete() {
+      return buildComandoTapete({
+        marcador: 'estorno',
+        rpc: 'estornar_expedicao_tapete_parcial',
+        titulo: 'Estornar expedicao (parcial)',
+        explicacao: 'Devolve metros liberados para a disponibilidade de produto acabado. '
+          + 'Informe a quantidade a estornar por item. Nao pode passar do liberado, nem baixar o liberado abaixo do que ja foi entregue.',
+        acaoLabel: 'Estornar expedicao',
+        motivoLabel: 'Motivo do estorno',
+        motivoAria: 'Motivo do estorno',
+        itemAria: 'Metros a estornar',
+        recusaPrefixo: 'Estorno recusado',
+        sucessoMsg: 'Estorno registrado.',
+        tetoTexto: function (l) {
+          return 'Liberado: ' + fmtMetros(l.liberado) + ' · Ja entregue: ' + fmtMetros(l.entregue)
+            + ' · Estorno maximo: ' + fmtMetros(Math.max(round2(l.liberado - l.entregue), 0));
+        },
+        validarItem: function (q, l) {
+          if (q <= 0) return 'A quantidade a estornar deve ser maior que zero em ' + modeloLabel(l.item) + '.';
+          if (q > l.liberado) {
+            return 'Estorno de ' + fmtMetros(q) + ' passa do liberado (' + fmtMetros(l.liberado) + ') em ' + modeloLabel(l.item) + '.';
+          }
+          if (round2(l.liberado - q) < l.entregue) {
+            return 'Estorno de ' + fmtMetros(q) + ' deixaria o liberado abaixo do ja entregue ('
+              + fmtMetros(l.entregue) + ') em ' + modeloLabel(l.item) + '.';
+          }
+          return null;
+        },
+        montarItem: function (q, l) { return { expedicao_item_id: l.item.id, metros: q }; },
+      });
+    }
+
+    function buildCorrecaoEntrega() {
+      return buildComandoTapete({
+        marcador: 'correcao',
+        rpc: 'corrigir_entrega_expedicao',
+        titulo: 'Corrigir entrega registrada',
+        explicacao: 'Isto NAO e um estorno: nada volta para a producao. Corrige quanto foi de fato entregue ao cliente. '
+          + 'Se a correcao deixar o Pedido incompleto, ele volta de "entregue" para "produzindo" — o servidor recalcula o status.',
+        acaoLabel: 'Corrigir entrega',
+        motivoLabel: 'Motivo da correcao',
+        motivoAria: 'Motivo da correcao',
+        itemAria: 'Metros entregues corrigidos',
+        recusaPrefixo: 'Correcao recusada',
+        sucessoMsg: 'Entrega corrigida.',
+        tetoTexto: function (l) {
+          return 'Entregue hoje: ' + fmtMetros(l.entregue) + ' · Valido: 0 ate ' + fmtMetros(l.liberado) + ' (liberado)';
+        },
+        validarItem: function (q, l) {
+          if (q < 0) return 'A quantidade entregue nao pode ser negativa em ' + modeloLabel(l.item) + '.';
+          if (q > l.liberado) {
+            return 'Entregue de ' + fmtMetros(q) + ' passa do liberado (' + fmtMetros(l.liberado) + ') em ' + modeloLabel(l.item) + '.';
+          }
+          return null;
+        },
+        montarItem: function (q, l) { return { expedicao_item_id: l.item.id, metros_entregues: q }; },
+      });
+    }
+
+    // Painel Tapete: renderizado apenas para uma expedicao de origem Tapete,
+    // e so quando ha item para operar. A rota Manta continua com o seu
+    // proprio painel e o seu proprio estorno, intocados.
+    function buildTapetePainel() {
+      var src = sourceOf(state.expedicao);
+      if (src.route !== 'tapete') return null;
+      if (!state.itens.length) return null;
+      return window.el('div', { 'data-rv-tapete-correcoes': '' },
+        buildEstornoTapete(),
+        buildCorrecaoEntrega());
+    }
+
     function render() {
       if (state.loadingError) {
         container.replaceChildren(
@@ -540,6 +748,7 @@
         buildMantaPainel(),
         buildItens(),
         buildRegistro(totalLiberado, totalEntregue),
+        buildTapetePainel(),
         buildHistorico(),
         buildConclusao(totalLiberado, totalEntregue)
       );

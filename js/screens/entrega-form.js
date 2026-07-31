@@ -297,6 +297,95 @@
   }
 
   // -------------------------------------------------------------------
+  // RECUPERAÇÃO DE OP DE ACABAMENTO — SUPERFÍCIE DE FALHA PROVADA (P2-B.3)
+  //
+  // Este arquivo é dono de UI e NÃO é dono de RPC de mutação: a linha
+  // "NÃO faz insert / update / delete / rpc" no cabeçalho é um contrato
+  // negativo real, e a recuperação não abre exceção nele. O builder abaixo
+  // só monta DOM e DELEGA ao escritor canônico
+  // window.RAVATEX_ENTREGA_WRITES.recuperarOpAcabamento.
+  //
+  // A superfície só existe depois de uma FALHA PROVADA pelo servidor:
+  // `elegivel` vem de pode_recuperar_op_acabamento, e ausência, erro, dado
+  // malformado ou false NÃO renderizam a ação. Não há criação livre de OP —
+  // o operador informa, no máximo, um motivo.
+  //
+  //   ctx: { entregaId, elegivel, motivoPadrao, onRecuperado }
+  // Devolve null quando não elegível, para que o chamador simplesmente não
+  // tenha nó nenhum para montar.
+  function buildAcabamentoRecoveryBlock(ctx) {
+    var conf = ctx || {};
+    if (conf.elegivel !== true) return null;
+
+    var el = window.el;
+    var motivoInput = window.textInput({
+      type: 'text',
+      value: conf.motivoPadrao || '',
+      placeholder: 'motivo da recuperação (opcional)',
+    });
+    motivoInput.setAttribute('aria-label', 'Motivo da recuperação da OP de acabamento');
+
+    // Região de erro local: o erro fica NA superfície que o levantou.
+    var alerta = el('div', {
+      role: 'alert',
+      'aria-live': 'assertive',
+      style: 'display:none;margin-top:10px;font-size:13px;font-weight:700;color:var(--rv-signal-negative);',
+    });
+    function mostrarErro(texto) {
+      alerta.textContent = texto;
+      alerta.style.display = 'block';
+    }
+
+    var pendente = false;
+    var btn = el('button', {
+      type: 'button',
+      style: 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-surface);'
+        + 'color:var(--rv-signal-caution);border:1px solid var(--rv-signal-caution-border);'
+        + 'border-radius:var(--rv-radius);padding:0 14px;min-height:var(--rv-h-compact);'
+        + 'font-weight:700;font-size:var(--rv-fs-sm);font-family:inherit;cursor:pointer;',
+      onclick: async function () {
+        // Clique repetido enquanto o comando está em voo não cria um segundo
+        // comando.
+        if (pendente) return;
+        var api = window.RAVATEX_ENTREGA_WRITES;
+        if (!api || typeof api.recuperarOpAcabamento !== 'function') {
+          mostrarErro('Recuperação indisponível: escritor canônico ausente.');
+          return;
+        }
+        pendente = true;
+        btn.disabled = true;
+        try {
+          var r = await api.recuperarOpAcabamento({
+            entregaId: conf.entregaId,
+            motivo: motivoInput.value ? String(motivoInput.value).trim() : null,
+          });
+          if (r && r.ok) {
+            if (typeof conf.onRecuperado === 'function') await conf.onRecuperado(r);
+            return;
+          }
+          // Recusa do servidor fica VISÍVEL, com o código que ele devolveu.
+          mostrarErro(r && r.ambiguo
+            ? 'Não foi possível confirmar a recuperação. Tente novamente — o reenvio é seguro.'
+            : 'Recuperação recusada: ' + ((r && r.codigo) || 'motivo não informado pelo servidor'));
+        } finally {
+          pendente = false;
+          btn.disabled = false;
+        }
+      },
+    }, 'Recuperar OP de acabamento');
+
+    return el('div', {
+      'data-rv-acabamento-recovery': '',
+      style: 'margin-top:10px;padding:11px 14px;background:var(--rv-signal-caution-bg);'
+        + 'border:1px solid var(--rv-signal-caution-border);border-radius:var(--rv-radius);',
+    },
+      el('div', { style: 'font-size:var(--rv-fs-sm);font-weight:700;color:var(--rv-signal-caution);margin-bottom:8px;' },
+        'Esta entrega foi salva, mas a OP de acabamento não foi criada.'),
+      el('div', { style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;' }, motivoInput, btn),
+      alerta);
+  }
+
+  // -------------------------------------------------------------------
   // Namespace principal
   // -------------------------------------------------------------------
 
@@ -306,10 +395,12 @@
     rotuloFio,
     OCF_STATUS_LABEL,
     buildEntregaInlineForm,
+    buildAcabamentoRecoveryBlock,
   };
 
   // Compatibilidade com o inline (call-sites bare preservados).
   window.rotuloFio = rotuloFio;
   window.OCF_STATUS_LABEL = OCF_STATUS_LABEL;
   window.buildEntregaInlineForm = buildEntregaInlineForm;
+  window.buildAcabamentoRecoveryBlock = buildAcabamentoRecoveryBlock;
 })(window);

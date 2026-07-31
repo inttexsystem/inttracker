@@ -96,6 +96,21 @@
       if (entRes.error) { window.toast('Erro ao carregar entregas', 'error'); console.error(entRes.error); return; }
       const entregas = entRes.data || [];
 
+      // P2-B.3: elegibilidade de RECUPERAÇÃO, decidida pelo SERVIDOR por
+      // entrega. É esta recarga autoritativa que torna alcançável o estado
+      // de falha provada depois de uma entrega cujo acabamento não foi
+      // criado. Erro ou ausência do escritor => nenhuma entrega elegível.
+      const writes = window.RAVATEX_ENTREGA_WRITES;
+      const recuperaveis = {};
+      if (writes && typeof writes.podeRecuperarOpAcabamento === 'function' && entregas.length) {
+        const checagens = await Promise.all(entregas.map(function (e) {
+          return writes.podeRecuperarOpAcabamento(e.id);
+        }));
+        entregas.forEach(function (e, i) {
+          recuperaveis[e.id] = !!(checagens[i] && checagens[i].elegivel === true);
+        });
+      }
+
       const modeloIds = [...new Set(ops.flatMap(o => (o.op_itens || []).map(i => i.modelo_id)))];
       const modelosRes = modeloIds.length
         ? await window.supa.from('modelos').select('id, nome, largura, cor_1:cor_1_id(id,nome), cor_2:cor_2_id(id,nome)').in('id', modeloIds)
@@ -107,10 +122,10 @@
       if (latexRes.error) { window.toast('Erro ao carregar empresas de látex', 'error'); console.error(latexRes.error); return; }
       latexOptions = (latexRes.data || []).map(f => ({ value: f.id, label: f.nome }));
 
-      render(ops, entregas, modelosById);
+      render(ops, entregas, modelosById, recuperaveis);
     }
 
-    function linhaHistorico(entrega, modelosById, opsCarregadas) {
+    function linhaHistorico(entrega, modelosById, opsCarregadas, recuperaveis) {
       const itens = entrega.entrega_itens || [];
       const opId = itens[0]?.op_id;
       const opRef = opsCarregadas.find(o => o.id === opId);
@@ -150,6 +165,18 @@
           ei.observacao ? window.el('span', { class: 'ml-2 text-xs text-gray-500' }, '(' + ei.observacao + ')') : '',
         ));
       }
+      // Superfície de recuperação: montada SOMENTE quando o servidor provou
+      // a falha. O builder é dono só do DOM e delega a escrita ao helper
+      // canônico de entrega-writes.js.
+      const recovery = window.buildAcabamentoRecoveryBlock && window.buildAcabamentoRecoveryBlock({
+        entregaId: entrega.id,
+        elegivel: !!(recuperaveis && recuperaveis[entrega.id]),
+        onRecuperado: async function (r) {
+          window.toast('OP de acabamento criada: ' + ((r && r.rotulo) || 'OP de acabamento'), 'success');
+          await reload();
+        },
+      });
+      if (recovery) wrap.appendChild(recovery);
       return wrap;
     }
 
@@ -168,7 +195,7 @@
       });
     }
 
-    function render(ops, entregas, modelosById) {
+    function render(ops, entregas, modelosById, recuperaveis) {
       const fmtMetros = (n) => Number(n).toFixed(2).replace('.', ',') + ' m';
       const blocos = [window.pageHeader('Minhas entregas')];
 
@@ -246,7 +273,7 @@
         window.el('div', { class: 'font-semibold text-gray-700 mb-3' }, 'Histórico de entregas'),
         entregas.length === 0
           ? window.el('p', { class: 'text-sm text-gray-400' }, 'Nenhuma entrega registrada ainda.')
-          : window.el('div', {}, entregas.map(ent => linhaHistorico(ent, modelosById, ops))),
+          : window.el('div', {}, entregas.map(ent => linhaHistorico(ent, modelosById, ops, recuperaveis))),
       ));
 
       container.replaceChildren(...blocos);
@@ -436,11 +463,177 @@
   }
 
   // -------------------------------------------------------------------
+  // FILA DE ACEITE DO FORNECEDOR (P2-B.1, db/103 / §9.9.E)
+  //
+  // A fila é AUTORITATIVA e vem inteira do servidor por
+  // `listar_fila_aceite_fornecedor`, que já resolve o fornecedor do usuário
+  // autenticado e devolve só as ordens que ele pode decidir. Nenhuma
+  // consulta genérica a `ordem_compra` ou a `fornecedores` substitui ou
+  // complementa essa fila — se o servidor não listou, o fornecedor não vê.
+  //
+  // EMISSÃO NÃO É ACEITE. Uma ordem emitida entra na fila como PENDENTE de
+  // decisão; nada aqui trata `emitida` como aceita, e o comportamento de
+  // emissão não é tocado.
+  //
+  // Idempotência: uma chave estável por INTENÇÃO de decisão (ordem +
+  // decisão + motivo). Reenvio da mesma intenção depois de falha ambígua
+  // reusa a chave; qualquer desfecho determinístico fecha a tentativa.
+  function criarRastreadorDecisao() {
+    const api = window.RAVATEX_ENTREGA_WRITES;
+    if (api && typeof api.criarRastreadorComando === 'function') return api.criarRastreadorComando();
+    // Fallback local: mantém o contrato mesmo sem o dono canônico carregado.
+    let token = null; let intencao = null;
+    return {
+      resolverChave(atual) {
+        const serial = JSON.stringify(atual);
+        if (token && intencao === serial) return token;
+        token = 'aceite-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+        intencao = serial;
+        return token;
+      },
+      concluir() { token = null; intencao = null; },
+    };
+  }
+
+  async function carregarFilaAceite() {
+    const res = await window.supa.rpc('listar_fila_aceite_fornecedor');
+    if (res.error) return { linhas: null, error: res.error };
+    return { linhas: Array.isArray(res.data) ? res.data : [], error: null };
+  }
+
+  // Uma linha da fila. Aceitar e rejeitar são DUAS ações distintas com
+  // escritores canônicos distintos; rejeitar exige motivo não vazio e, sem
+  // motivo, NENHUM escritor é chamado.
+  function buildLinhaAceite(ordem, onDecidida) {
+    const rastreador = criarRastreadorDecisao();
+    let pendente = false;
+
+    const motivoInput = window.textInput({ type: 'text', placeholder: 'motivo (obrigatório para rejeitar)' });
+    motivoInput.setAttribute('aria-label', 'Motivo da decisão');
+
+    const alerta = window.el('div', {
+      role: 'alert',
+      'aria-live': 'assertive',
+      style: 'display:none;margin-top:8px;font-size:13px;font-weight:700;color:var(--rv-signal-negative);',
+    });
+    function mostrarErro(texto) { alerta.textContent = texto; alerta.style.display = 'block'; }
+    function limparErro() { alerta.textContent = ''; alerta.style.display = 'none'; }
+
+    const btnAceitar = window.el('button', { type: 'button', style: ACEITE_BTN_PRIMARY }, 'Aceitar');
+    const btnRejeitar = window.el('button', { type: 'button', style: ACEITE_BTN_SECONDARY }, 'Rejeitar');
+
+    function travar(v) {
+      pendente = v;
+      btnAceitar.disabled = v;
+      btnRejeitar.disabled = v;
+    }
+
+    async function decidir(decisao) {
+      if (pendente) return;                       // clique repetido não vira 2º comando
+      limparErro();
+      const motivo = motivoInput.value ? String(motivoInput.value).trim() : '';
+      if (decisao === 'rejeitada' && !motivo) {
+        // Recusa LOCAL: nenhum escritor é chamado sem motivo.
+        mostrarErro('Informe o motivo para rejeitar esta ordem.');
+        motivoInput.focus();
+        return;
+      }
+      const chave = rastreador.resolverChave({
+        ordem_compra_id: ordem.ordem_compra_id,
+        decisao: decisao,
+        motivo: motivo || null,
+      });
+      travar(true);
+      try {
+        const rpcName = decisao === 'aceita' ? 'aceitar_ordem_compra' : 'rejeitar_ordem_compra';
+        const params = { p_ordem_id: ordem.ordem_compra_id, p_idempotency_key: chave };
+        if (decisao === 'aceita') { if (motivo) params.p_motivo = motivo; }
+        else { params.p_motivo = motivo; }
+        const res = await window.supa.rpc(rpcName, params);
+        if (res.error) {
+          // Transporte ambíguo: a chave é retida para um reenvio seguro.
+          mostrarErro('Não foi possível confirmar a decisão. Tente novamente — o reenvio é seguro.');
+          console.error('fornecedor: ' + rpcName, res.error);
+          return;
+        }
+        rastreador.concluir();
+        const data = res.data || {};
+        if (data.ok !== true) {
+          mostrarErro('Decisão recusada: ' + (data.codigo || 'motivo não informado pelo servidor'));
+          console.error('fornecedor: decisão recusada', data);
+          return;
+        }
+        window.toast(decisao === 'aceita' ? 'Ordem aceita.' : 'Ordem rejeitada.', 'success');
+        if (typeof onDecidida === 'function') await onDecidida();
+      } finally {
+        travar(false);
+      }
+    }
+
+    btnAceitar.addEventListener('click', function () { return decidir('aceita'); });
+    btnRejeitar.addEventListener('click', function () { return decidir('rejeitada'); });
+
+    const fmtKg = (n) => (n == null ? '—' : Number(n).toFixed(3).replace('.', ',') + ' kg');
+    return window.el('div', {
+      'data-rv-aceite-linha': '',
+      style: 'border-bottom:1px solid var(--rv-border-soft);padding:12px 0;',
+    },
+      window.el('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;' },
+        window.el('div', {},
+          window.el('div', { style: 'font-size:13.5px;font-weight:700;color:var(--rv-text-primary);' },
+            ordem.identidade_operacional || ordem.codigo || ('Ordem #' + ordem.ordem_compra_id)),
+          window.el('div', { style: 'font-size:12px;color:var(--rv-text-tertiary);margin-top:2px;' },
+            fmtKg(ordem.kg_total) + ' · ' + (ordem.itens != null ? ordem.itens : 0) + ' item(ns)'
+            + ' · emitida em ' + (ordem.emitida_em ? new Date(ordem.emitida_em).toLocaleDateString('pt-BR') : '—'))),
+        window.el('div', { style: 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;' },
+          motivoInput, btnAceitar, btnRejeitar)),
+      alerta);
+  }
+
+  var ACEITE_BTN_PRIMARY = 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-brand);color:var(--rv-text-on-brand);border:none;border-radius:var(--rv-radius);padding:0 16px;min-height:var(--rv-h-compact);font-weight:700;font-size:var(--rv-fs-sm);font-family:inherit;cursor:pointer;';
+  var ACEITE_BTN_SECONDARY = 'display:inline-flex;align-items:center;gap:7px;background:var(--rv-surface);color:var(--rv-text-primary);border:1px solid var(--rv-border-strong);border-radius:var(--rv-radius);padding:0 16px;min-height:var(--rv-h-compact);font-weight:600;font-size:var(--rv-fs-sm);font-family:inherit;cursor:pointer;';
+
+  // Seção completa da fila. `estado` distingue INDISPONÍVEL (o servidor não
+  // respondeu) de VAZIA (respondeu, nada a decidir) — os dois nunca se
+  // confundem.
+  function buildFilaAceiteSection(fila, onDecidida) {
+    const card = window.el('div', {
+      'data-rv-fila-aceite': '',
+      style: 'background:var(--rv-surface);border:1px solid var(--rv-border);border-radius:var(--rv-radius);padding:18px 20px;margin-bottom:16px;',
+    },
+      window.el('div', { style: 'font-size:var(--rv-fs-component-heading);font-weight:700;color:var(--rv-text-primary);margin-bottom:4px;' },
+        'Pedidos de Compra aguardando sua decisão'),
+      window.el('div', { style: 'font-size:12.5px;color:var(--rv-text-tertiary);margin-bottom:12px;' },
+        'Uma ordem emitida ainda NÃO está aceita. Aceite ou rejeite cada uma explicitamente.'));
+
+    if (fila.error) {
+      card.appendChild(window.el('div', {
+        role: 'alert',
+        'aria-live': 'assertive',
+        style: 'font-size:13px;font-weight:700;color:var(--rv-signal-negative);',
+      }, 'Não foi possível carregar a fila de aceite. Nenhuma decisão pode ser tomada agora.'));
+      return card;
+    }
+    if (!fila.linhas.length) {
+      card.appendChild(window.el('div', { style: 'font-size:13px;color:var(--rv-text-tertiary);' },
+        'Nenhum Pedido de Compra aguardando sua decisão.'));
+      return card;
+    }
+    fila.linhas.forEach(function (ordem) {
+      card.appendChild(buildLinhaAceite(ordem, onDecidida));
+    });
+    return card;
+  }
+
+  // -------------------------------------------------------------------
   // screenFornecedorOrdens — OCF (Ordens de Compra de Fio).
   // O update inline em 'ordens_compra_fio' foi preservado como está
   // (decisão do DIAG: não criar helper novo nesta fase).
   async function screenFornecedorOrdens() {
     const container = window.el('div', {});
+    // P2-B.1: a fila de aceite é recarregada AUTORITATIVAMENTE a cada
+    // decisão bem-sucedida — o cliente nunca remove a linha localmente.
+    let filaAceite = { linhas: [], error: null };
 
     async function reload() {
       if (!window.CURRENT_USER.fornecedor_id) {
@@ -457,6 +650,7 @@
       // falls back to the exact pre-phase flat select, byte-identical, only
       // on the documented inactive signal or the bounded missing-function
       // condition.
+      filaAceite = await carregarFilaAceite();
       const cutover = window.RAVATEX_SCREENS && window.RAVATEX_SCREENS.ordemCompraReceiptCutover;
       if (cutover) {
         const canonical = await cutover.attemptCanonicalRead({});
@@ -564,6 +758,11 @@
 
       const blocos = [window.pageHeader('Minhas ordens')];
 
+      // A fila de ACEITE (decisão sobre o Pedido de Compra) vem primeiro e é
+      // uma projeção distinta da lista de RECEBIMENTO de fio abaixo: uma
+      // decide o documento, a outra registra material recebido.
+      blocos.push(buildFilaAceiteSection(filaAceite, reload));
+
       blocos.push(window.el('div', { style: 'border-radius:var(--rv-radius);', class: 'bg-white shadow p-5 mb-6' },
         window.el('div', { class: 'font-semibold text-gray-700 mb-2' }, 'Pendentes'),
         pendentes.length === 0
@@ -608,6 +807,11 @@
     screenFornecedorEntregas,
     screenFornecedorLatex,
     screenFornecedorOrdens,
+    // P2-B.1: a fila de aceite e seus dois construtores ficam acessiveis para
+    // prova direta, sem precisar renderizar a tela inteira.
+    carregarFilaAceite,
+    buildLinhaAceite,
+    buildFilaAceiteSection,
   };
 
   // Compatibilidade com o inline (call-sites bare preservados).

@@ -1011,7 +1011,14 @@ test('pedido-detail.js: consolida leitura de lote/OP/entregas sem writes operaci
     'select de ops deve incluir op_itens aninhados');
   assert.match(detailBundle, /\.from\(\s*['"]entrega_itens['"][\s\S]{0,500}\.select\s*\(/);
   assert.match(detailBundle, /\.from\(\s*['"]entregas['"][\s\S]{0,500}\.select\s*\(/);
-  assert.match(detailBundle, /\.from\(\s*['"]ordens_compra_fio['"][\s\S]{0,500}\.select\s*\(/);
+  // P2-A (secao 9.9.N linha 11): o detalhe do Pedido perdeu o FALLBACK PLANO.
+  // A leitura de ordens de fio passou a ser exclusivamente a projecao
+  // canonica; ler `ordens_compra_fio` direto era justamente o retorno
+  // silencioso ao modelo plano que a proibicao canonica veda.
+  assert.doesNotMatch(detailBundle, /\.from\(\s*['"]ordens_compra_fio['"][\s\S]{0,500}\.select\s*\(/,
+    'o fallback plano de ordens de fio foi retirado');
+  assert.match(detailBundle, /attemptCanonicalRead/,
+    'a projecao canonica continua sendo a fonte das ordens de fio');
 
   assert.doesNotMatch(detailBundle, /\.from\(\s*['"](?:ops|op_itens|op_fornecedores|ordens_compra_fio|entregas|entrega_itens|lotes)['"][\s\S]{0,220}\.(?:insert|update|delete|upsert)\s*\(/);
   assert.doesNotMatch(detailBundle, /gerar_op_latex/);
@@ -1037,15 +1044,26 @@ test('pedido-detail-data.js: attempts the canonical adapter (p_pedido_id scoped)
     'attemptCanonicalRead deve ser escopado por p_pedido_id (grain por item, nao por OP)');
 });
 
-test('pedido-detail-data.js: exact pre-phase flat select preserved byte-identical as the fallback body', () => {
-  assert.match(detailData,
-    /\.from\(\s*['"]ordens_compra_fio['"]\s*\)\s*\.select\(\s*['"]id, op_id, tipo, cor_id, cor_poliester, kg_pedido, kg_recebido, status, cores:cor_id\(id, nome\)['"]\s*\)\s*\.in\(\s*['"]op_id['"]\s*,\s*opIds\s*\)/,
-    'o select flat de ordens_compra_fio deve permanecer byte-identico ao pre-fase');
+test('pedido-detail-data.js: the flat fallback select is RETIRED, not preserved', () => {
+  // Este caso exigia que o SELECT plano de ordens_compra_fio permanecesse
+  // byte-identico ao pre-fase, como corpo do fallback. P2-A retirou esse
+  // fallback: quando a projecao canonica nao responde, a tela falha
+  // HONESTAMENTE (lista vazia + estado de erro) em vez de voltar ao modelo
+  // plano em silencio. A garantia vira, entao, a ausencia do select.
+  assert.doesNotMatch(detailData,
+    /\.from\(\s*['"]ordens_compra_fio['"]\s*\)/,
+    'o select flat de ordens_compra_fio foi retirado em P2-A');
 });
 
-test('pedido-detail-data.js: state.ordensFio is populated on both the canonical and the fallback branch', () => {
+test('pedido-detail-data.js: state.ordensFio vem SO da projecao canonica', () => {
+  // Antes havia dois ramos de povoamento (canonico e fallback plano). O
+  // fallback foi retirado: so o ramo canonico povoa, e qualquer outro
+  // desfecho deixa a lista vazia com docsLoadError marcado.
   assert.match(detailData, /state\.ordensFio\s*=\s*canonicalOrdens\.rows/);
-  assert.match(detailData, /state\.ordensFio\s*=\s*ordensRes\.data\s*\|\|\s*\[\]/);
+  assert.doesNotMatch(detailData, /state\.ordensFio\s*=\s*ordensRes\.data/,
+    'nao pode existir um segundo ramo de povoamento a partir do modelo plano');
+  assert.match(detailData, /state\.docsLoadError\s*=\s*true/,
+    'a falha tem de ficar visivel para a tela');
 });
 
 // ---------------------------------------------------------------------

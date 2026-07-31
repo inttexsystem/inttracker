@@ -29,6 +29,50 @@
   'use strict';
 
   // -------------------------------------------------------------------
+  // IDEMPOTÊNCIA DE COMANDO (P2-B)
+  //
+  // Um comando do servidor (TD3, aceite, estorno, correção) é identificado
+  // por UMA chave estável por INTENÇÃO do operador. As regras, que valem
+  // igualmente para as quatro superfícies do P2-B:
+  //
+  //   * uma intenção inalterada, reenviada depois de uma falha de transporte
+  //     AMBÍGUA (não se sabe se o servidor gravou), reusa a MESMA chave — o
+  //     servidor então devolve o resultado guardado em vez de gravar de novo;
+  //   * qualquer desfecho DETERMINÍSTICO (sucesso, recusa reconhecida ou
+  //     rejeição do servidor) fecha a tentativa: o próximo envio, mesmo
+  //     idêntico, nasce com chave nova;
+  //   * a chave é sempre aleatória; a intenção só decide se ela é reusada,
+  //     nunca vira a própria chave.
+  //
+  // Este é o único dono dessa mecânica no P2-B; fornecedor.js e
+  // expedicao-admin.js consomem daqui em vez de reimplementar.
+  function novoTokenComando() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+      return window.crypto.randomUUID();
+    }
+    return 'p2b-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+  }
+
+  function criarRastreadorComando() {
+    var token = null;
+    var intencao = null;
+    return {
+      // Devolve a chave retida quando a intenção é idêntica à da última
+      // tentativa não resolvida; senão cunha uma nova.
+      resolverChave: function (intencaoAtual) {
+        var serial = JSON.stringify(intencaoAtual);
+        if (token && intencao === serial) return token;
+        token = novoTokenComando();
+        intencao = serial;
+        return token;
+      },
+      // Chamar após QUALQUER desfecho determinístico.
+      concluir: function () { token = null; intencao = null; },
+      chaveAtual: function () { return token; },
+    };
+  }
+
+  // -------------------------------------------------------------------
   // Preflight: uma entrega de tecelagem (etapa='cima') que já alimenta
   // uma OP de Acabamento/Látex consolidada (vínculo em op_latex_entregas)
   // não pode ser editada nem excluída livremente pelo app — vira
@@ -236,49 +280,198 @@
   }
 
   // -------------------------------------------------------------------
-  // Persistência das entregas de tecelagem (Fase 5a).
-  // - salvarEntregaCima: após gravar a entrega, chama a RPC
-  //   `gerar_op_latex` em modo best-effort. Falha da RPC NÃO
-  //   desfaz a entrega; apenas emite toast de aviso.
+  // ENTREGA DE TECELAGEM DA ROTA TAPETE — TD3 (db/111, §9.9.J)
+  //
+  // ANTES esta função era uma sequência de QUATRO escritas do cliente:
+  // insert em `entregas`, insert em `entrega_itens`, delete compensatório
+  // quando os itens falhavam, e uma chamada best-effort a
+  // `gerar_op_latex` / `gerar_op_latex_split` cujo fracasso virava um toast
+  // pedindo ao operador para "gerar manualmente". Uma queda entre os passos
+  // deixava entrega sem itens, ou entrega sem acabamento, sem ninguém dono
+  // da reconciliação.
+  //
+  // A RULING TD3 é vinculante: a atomicidade entrega-para-acabamento é do
+  // SERVIDOR e o frontend submete EXATAMENTE UM comando. Este helper agora
+  // manda um único `registrar_entrega_cima_com_acabamento`, que cria
+  // `entregas`, `entrega_itens` e a OP de acabamento na MESMA transação. O
+  // JavaScript não insere entrega, não insere item, não faz delete
+  // compensatório e não chama nenhum escritor de acabamento em separado.
+  //
+  // A rota MANTA não passa por aqui: ela tem seu PRÓPRIO comando, que vive
+  // exclusivamente em js/screens/manta-writes.js. A escolha entre as duas
+  // rotas é feita pelo chamador a partir da IDENTIDADE DO PRODUTO
+  // (`modelos.tipo_produto`), nunca por inferência sobre o nome do modelo.
+  // Este arquivo é do Tapete e não nomeia nenhum escritor da rota Manta.
+  //
+  // A chave de idempotência é de TOPO e por intenção de submissão: um
+  // reenvio da MESMA submissão depois de uma falha ambígua reusa a chave, e
+  // o servidor devolve o resultado já gravado em vez de duplicar a entrega.
+  var rastreadorEntregaCima = criarRastreadorComando();
+
+  // Interpretação EXATA do resultado autoritativo. As três leituras são
+  // mutuamente exclusivas e nenhuma delas é inferida de outra.
+  function interpretarResultadoEntregaCima(data) {
+    if (!data || typeof data !== 'object') {
+      return { estado: 'falha_validacao', codigo: null, entregaId: null, acabamento: null };
+    }
+    // 1. FALHA DE VALIDAÇÃO — nada foi registrado.
+    if (data.entrega_registrada !== true) {
+      return { estado: 'falha_validacao', codigo: data.codigo || null, entregaId: null, acabamento: null };
+    }
+    var acab = data.acabamento || null;
+    // 2. ENTREGA E ACABAMENTO OK.
+    if (acab && acab.ok === true) {
+      return { estado: 'entrega_e_acabamento', codigo: null, entregaId: data.entrega_id || null, acabamento: acab };
+    }
+    // 3. ENTREGA GRAVADA, ACABAMENTO FALHOU — recuperação explícita depois.
+    return {
+      estado: 'entrega_sem_acabamento',
+      codigo: (acab && acab.codigo) || null,
+      entregaId: data.entrega_id || null,
+      acabamento: acab,
+      proximaAcao: data.proxima_acao || null,
+    };
+  }
+
+  // Identidade AUTORITATIVA da OP de acabamento, ou null quando o servidor não
+  // a devolveu. Devolver null (em vez de um rótulo genérico) deixa o chamador
+  // escolher uma frase honesta para cada caso.
+  function rotuloOpAcabamento(acabamento) {
+    if (!acabamento) return null;
+    var identidade = window.RAVATEX_OP_DISPLAY
+      && window.RAVATEX_OP_DISPLAY.getCanonicalIdentity
+      && window.RAVATEX_OP_DISPLAY.getCanonicalIdentity(acabamento);
+    if (identidade) return identidade;
+    if (acabamento.op_latex_id != null) return 'OP de acabamento #' + acabamento.op_latex_id;
+    return null;
+  }
+
   async function salvarEntregaCima({ fornecedorId, opId, payload }, options) {
     var splitOpts = options || {};
     var forceSplit = splitOpts.forceSplit === true;
     var splitMotivo = forceSplit && splitOpts.motivo != null ? String(splitOpts.motivo).trim() : '';
+    var rastreador = splitOpts.rastreador || rastreadorEntregaCima;
     if (payload.linhas.length === 0) { window.toast('Adicione ao menos 1 item com metros entregues', 'error'); return false; }
     if (!payload.destino_fornecedor_id) { window.toast('Escolha a empresa de látex de destino', 'error'); return false; }
     if (forceSplit && !splitMotivo) { window.toast('Informe o motivo para criar uma OP de acabamento separada', 'error'); return false; }
-    const ins = await window.supa.from('entregas').insert({
-      fornecedor_id: fornecedorId, etapa: 'cima', data: payload.data, observacao: payload.observacao,
+
+    var linhas = payload.linhas.map(function (l) {
+      return {
+        op_item_id: l.op_item_id,
+        metros_entregues: l.metros_entregues,
+        defeito: l.defeito === true,
+        observacao: l.observacao != null ? l.observacao : null,
+      };
+    });
+    var chave = rastreador.resolverChave({
+      comando: 'entrega_cima_v1',
+      fornecedor_id: fornecedorId,
+      op_id: opId,
+      data: payload.data || null,
+      observacao: payload.observacao || null,
       destino_fornecedor_id: payload.destino_fornecedor_id,
-    }).select().single();
-    if (ins.error) { window.toast('Erro ao gravar entrega', 'error'); console.error(ins.error); return false; }
-    const entregaId = ins.data.id;
-    const itens = payload.linhas.map(l => ({ entrega_id: entregaId, op_id: opId, ...l }));
-    const insItens = await window.supa.from('entrega_itens').insert(itens);
-    if (insItens.error) {
-      await window.supa.from('entregas').delete().eq('id', entregaId);
-      window.toast('Erro ao gravar itens da entrega', 'error'); console.error(insItens.error); return false;
+      motivo_split: splitMotivo || null,
+      linhas: linhas,
+    });
+
+    var res = await window.supa.rpc('registrar_entrega_cima_com_acabamento', {
+      p_fornecedor_id: fornecedorId,
+      p_op_id: opId,
+      p_data: payload.data,
+      p_observacao: payload.observacao || null,
+      p_destino_fornecedor_id: payload.destino_fornecedor_id,
+      p_linhas: linhas,
+      p_idempotency_key: chave,
+      p_motivo_split: splitMotivo || null,
+    });
+
+    // Falha de TRANSPORTE: o servidor pode ter gravado. A tentativa NÃO é
+    // concluída, então um reenvio da mesma submissão reusa esta chave.
+    if (res.error) {
+      window.toast('Não foi possível confirmar a entrega. Tente novamente — o reenvio é seguro.', 'error');
+      console.error('entrega-writes: registrar_entrega_cima_com_acabamento', res.error);
+      return false;
     }
-    // Fase 5b: a entrega de tecelagem gera automaticamente a OP de látex.
-    const rpcName = forceSplit ? 'gerar_op_latex_split' : 'gerar_op_latex';
-    const rpcParams = forceSplit
-      ? { p_entrega_id: entregaId, p_motivo: splitMotivo }
-      : { p_entrega_id: entregaId };
-    const rpc = await window.supa.rpc(rpcName, rpcParams);
-    if (rpc.error) {
-      if (forceSplit) {
-        window.toast('Entrega salva, mas falhou ao criar a OP de acabamento separada. Gere manualmente.', 'error');
-        console.error(rpc.error);
-        return true;
-      }
-      window.toast('Entrega salva, mas falhou ao gerar a OP de látex. Gere manualmente.', 'error');
-      console.error(rpc.error);
+
+    var r = interpretarResultadoEntregaCima(res.data);
+    rastreador.concluir();
+
+    if (r.estado === 'falha_validacao') {
+      // NADA foi registrado. A cópia não pode sugerir sucesso parcial.
+      window.toast('Entrega NÃO registrada: ' + (r.codigo || 'recusada pelo servidor') + '. Nenhum dado foi gravado.', 'error');
+      console.error('entrega-writes: entrega recusada', res.data);
+      return false;
+    }
+
+    if (r.estado === 'entrega_sem_acabamento') {
+      // A entrega ESTÁ salva; só o acabamento falhou. Nenhuma retentativa
+      // automática: a recuperação é ação explícita do operador, depois da
+      // recarga autoritativa que torna o estado de falha provada alcançável.
+      window.toast(
+        'Entrega salva. A criação da OP de acabamento FALHOU (' + (r.codigo || 'falha') + ') — '
+        + 'use "Recuperar OP de acabamento" nesta entrega.',
+        'error');
+      console.error('entrega-writes: acabamento falhou', res.data);
       return true;
     }
-    // A RPC e find-or-accumulate. Ambientes com db/26 retornam flags
-    // operacionais; ambientes antigos ainda podem retornar somente o id.
-    window.toast(toastMsgGerarOpLatex(rpc.data), 'success');
+
+    // LINGUAGEM DE VÍNCULO, preservada do Contrato 6: o toast diz que a
+    // entrega ficou VINCULADA à OP de acabamento, nunca que "gerou" uma — o
+    // servidor cria OU reaproveita a OP conforme a identidade de replay. O que
+    // o TD3 acrescenta é a identidade canônica, quando o servidor a devolve.
+    var rotulo = rotuloOpAcabamento(r.acabamento);
+    window.toast(rotulo
+      ? 'Entrega registrada · vinculada à ' + rotulo
+      : 'Entrega registrada · vinculada à OP de acabamento', 'success');
     return true;
+  }
+
+  // -------------------------------------------------------------------
+  // RECUPERAÇÃO DE OP DE ACABAMENTO APÓS FALHA PROVADA (P2-B.3)
+  //
+  // Elegibilidade é do SERVIDOR: `pode_recuperar_op_acabamento` só devolve
+  // true quando existe a entrega, NÃO existe OP de acabamento dela e existe
+  // uma tentativa registrada com resultado 'falha'. Ausência, erro, dado
+  // malformado ou false => NÃO elegível. Nunca se infere elegibilidade de um
+  // resultado de entrega guardado no cliente.
+  async function podeRecuperarOpAcabamento(entregaId) {
+    if (entregaId == null) return { elegivel: false, error: null };
+    var res = await window.supa.rpc('pode_recuperar_op_acabamento', { p_entrega_id: entregaId });
+    if (res.error) {
+      console.error('entrega-writes: pode_recuperar_op_acabamento', res.error);
+      return { elegivel: false, error: res.error };
+    }
+    // Estritamente booleano: qualquer outra coisa é tratada como NÃO elegível.
+    return { elegivel: res.data === true, error: null };
+  }
+
+  var rastreadorRecuperacao = criarRastreadorComando();
+
+  // O ÚNICO escritor da recuperação. Sem criação livre de OP: o comando
+  // carrega apenas a entrega de origem, a chave e um motivo — nenhum campo
+  // de OP é aceito do formulário.
+  async function recuperarOpAcabamento({ entregaId, motivo, rastreador }) {
+    var tracker = rastreador || rastreadorRecuperacao;
+    var chave = tracker.resolverChave({
+      comando: 'op_acabamento_recuperacao',
+      entrega_id: entregaId,
+      motivo: motivo || null,
+    });
+    var res = await window.supa.rpc('gerar_op_acabamento', {
+      p_entrega_id: entregaId,
+      p_idempotency_key: chave,
+      p_motivo: motivo || null,
+    });
+    if (res.error) {
+      // Transporte ambíguo: retém a chave para um reenvio seguro.
+      return { ok: false, ambiguo: true, codigo: null, error: res.error, acabamento: null };
+    }
+    tracker.concluir();
+    var data = res.data || {};
+    if (data.ok !== true) {
+      return { ok: false, ambiguo: false, codigo: data.codigo || null, error: null, acabamento: null };
+    }
+    return { ok: true, ambiguo: false, codigo: null, error: null, acabamento: data, rotulo: rotuloOpAcabamento(data) };
   }
 
   // - atualizarEntregaCima: delete+insert não transacional. Se a
@@ -340,6 +533,13 @@
   window.RAVATEX_ENTREGA_WRITES.atualizarEntregaLatex = atualizarEntregaLatex;
   window.RAVATEX_ENTREGA_WRITES.salvarEntregaCima = salvarEntregaCima;
   window.RAVATEX_ENTREGA_WRITES.atualizarEntregaCima = atualizarEntregaCima;
+  // P2-B: dono canônico da idempotência de comando e da recuperação de
+  // acabamento. entrega-form.js e as telas DELEGAM para cá — nenhuma delas
+  // abre um caminho de escrita próprio.
+  window.RAVATEX_ENTREGA_WRITES.criarRastreadorComando = criarRastreadorComando;
+  window.RAVATEX_ENTREGA_WRITES.interpretarResultadoEntregaCima = interpretarResultadoEntregaCima;
+  window.RAVATEX_ENTREGA_WRITES.podeRecuperarOpAcabamento = podeRecuperarOpAcabamento;
+  window.RAVATEX_ENTREGA_WRITES.recuperarOpAcabamento = recuperarOpAcabamento;
 
   // Compatibilidade com o inline (call-sites bare preservados).
   window.excluirEntrega = excluirEntrega;
