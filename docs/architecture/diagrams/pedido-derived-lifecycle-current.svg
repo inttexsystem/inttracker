@@ -1,0 +1,207 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 980" width="1400" height="980" role="img" aria-label="Pedido derived lifecycle - accepted current state at HEAD 97d461e">
+  <title>Pedido derived lifecycle — accepted current state</title>
+  <desc>Derived evidence for docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md. The textual contracts and matrices in that document remain authoritative.</desc>
+  <style>
+    .bg { fill: #ffffff; }
+    .t-title { font: 700 20px system-ui, sans-serif; fill: #101828; }
+    .t-sub { font: 400 13px system-ui, sans-serif; fill: #475467; }
+    .t-node { font: 600 13px system-ui, sans-serif; fill: #101828; }
+    .t-meta { font: 400 11px system-ui, sans-serif; fill: #475467; }
+    .t-band { font: 700 12px system-ui, sans-serif; fill: #475467; letter-spacing: .06em; }
+    .t-break { font: 700 15px system-ui, sans-serif; fill: #b42318; }
+    .box { rx: 8; stroke-width: 1.5; }
+    .ok { fill: #ecfdf3; stroke: #12b76a; }
+    .mixed { fill: #fffaeb; stroke: #f79009; }
+    .blocked { fill: #fef3f2; stroke: #f04438; }
+    .unreach { fill: #f4f3ff; stroke: #7a5af8; }
+    .derived { fill: #f2f4f7; stroke: #98a2b3; }
+    .missing { fill: #fdf2fa; stroke: #ee46bc; }
+    .edge { stroke: #667085; stroke-width: 1.5; fill: none; marker-end: url(#a); }
+    .edge-dead { stroke: #f04438; stroke-width: 2; fill: none; stroke-dasharray: 6 4; marker-end: url(#ar); }
+    .band { fill: none; stroke: #e4e7ec; stroke-width: 1; stroke-dasharray: 3 3; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#667085"/>
+    </marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f04438"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1400" height="980"/>
+  <text class="t-title" x="30" y="36">Pedido derived lifecycle — accepted current state</text>
+  <text class="t-sub" x="30" y="58">Baseline HEAD 97d461e · 2026-07-31 · derived evidence; the recovery plan text is authoritative</text>
+
+  <!-- band A: Pedido commercial lifecycle -->
+  <text class="t-band" x="30" y="94">A · PEDIDO COMMERCIAL LIFECYCLE</text>
+  <rect class="box mixed" x="30" y="104" width="250" height="64"/>
+  <text class="t-node" x="46" y="130">pedidos: rascunho / recebido</text>
+  <text class="t-meta" x="46" y="150">frontend UPDATE · MIXED_AUTHORITY</text>
+  <rect class="box mixed" x="300" y="104" width="250" height="64"/>
+  <text class="t-node" x="316" y="130">pedidos: confirmado</text>
+  <text class="t-meta" x="316" y="150">opens purchase planning</text>
+  <rect class="box blocked" x="570" y="104" width="250" height="64"/>
+  <text class="t-node" x="586" y="130">pedidos: produzindo</text>
+  <text class="t-meta" x="586" y="150">LR-08 · NO WRITER · db/91 depends</text>
+  <rect class="box ok" x="840" y="104" width="250" height="64"/>
+  <text class="t-node" x="856" y="130">pedidos: entregue</text>
+  <text class="t-meta" x="856" y="150">written server-side on delivery</text>
+  <rect class="box derived" x="1110" y="104" width="260" height="64"/>
+  <text class="t-node" x="1126" y="130">pedidos: cancelado</text>
+  <text class="t-meta" x="1126" y="150">terminal</text>
+  <path class="edge" d="M 280 136 L 300 136"/>
+  <path class="edge-dead" d="M 550 136 L 570 136"/>
+  <path class="edge-dead" d="M 820 136 L 840 136"/>
+
+  <!-- band B: purchase planning and native purchase order -->
+  <text class="t-band" x="30" y="204">B · PURCHASE PLANNING AND NATIVE PURCHASE ORDER</text>
+  <rect class="box ok" x="30" y="214" width="250" height="64"/>
+  <text class="t-node" x="46" y="240">Purchase planning (db/99)</text>
+  <text class="t-meta" x="46" y="260">necessidade_compra_planejamento</text>
+  <rect class="box ok" x="300" y="214" width="250" height="64"/>
+  <text class="t-node" x="316" y="240">ordem_compra: rascunho</text>
+  <text class="t-meta" x="316" y="260">generated atomically per supplier</text>
+  <rect class="box ok" x="570" y="214" width="250" height="64"/>
+  <text class="t-node" x="586" y="240">ordem_compra: emitida</text>
+  <text class="t-meta" x="586" y="260">db/77 grant · gate bypass origin</text>
+  <rect class="box missing" x="840" y="214" width="250" height="64"/>
+  <text class="t-node" x="856" y="240">Supplier acceptance</text>
+  <text class="t-meta" x="856" y="260">LR-03 · SPECIFIED_NOT_IMPLEMENTED</text>
+  <rect class="box ok" x="1110" y="214" width="260" height="64"/>
+  <text class="t-node" x="1126" y="240">cancelar / excluir (db/100)</text>
+  <text class="t-meta" x="1126" y="260">releases coverage, irrepeatable</text>
+  <path class="edge" d="M 155 168 L 155 214"/>
+  <path class="edge" d="M 280 246 L 300 246"/>
+  <path class="edge" d="M 550 246 L 570 246"/>
+  <path class="edge" d="M 820 246 L 840 246"/>
+  <path class="edge" d="M 1090 246 L 1110 246"/>
+
+  <!-- chain break -->
+  <path class="band" d="M 30 300 L 1370 300"/>
+  <text class="t-break" x="30" y="322">CHAIN BREAK — the native document exists and means nothing downstream</text>
+
+  <!-- band C: receipt -->
+  <text class="t-band" x="30" y="358">C · RECEIPT AND REVERSAL</text>
+  <rect class="box unreach" x="30" y="368" width="250" height="64"/>
+  <text class="t-node" x="46" y="394">Native receipt writer</text>
+  <text class="t-meta" x="46" y="414">LR-01 · VALID_BUT_UNREACHABLE</text>
+  <rect class="box unreach" x="300" y="368" width="250" height="64"/>
+  <text class="t-node" x="316" y="394">Receipt reversal</text>
+  <text class="t-meta" x="316" y="414">never exercised</text>
+  <rect class="box blocked" x="570" y="368" width="250" height="64"/>
+  <text class="t-node" x="586" y="394">ordem_compra_cutover</text>
+  <text class="t-meta" x="586" y="414">legacy_active / flat · fail-closed</text>
+  <rect class="box blocked" x="840" y="368" width="250" height="64"/>
+  <text class="t-node" x="856" y="394">bloqueio_recebimento</text>
+  <text class="t-meta" x="856" y="414">recebimento_canonico_inativo</text>
+  <rect class="box missing" x="1110" y="368" width="260" height="64"/>
+  <text class="t-node" x="1126" y="394">Native supplier queue</text>
+  <text class="t-meta" x="1126" y="414">LR-03 · MISSING, no incoming path</text>
+  <path class="edge-dead" d="M 695 278 L 695 368"/>
+  <path class="edge" d="M 570 400 L 550 400"/>
+  <path class="edge" d="M 300 400 L 280 400"/>
+  <path class="edge" d="M 820 400 L 840 400"/>
+
+  <!-- band D: material availability and production adjustment -->
+  <text class="t-band" x="30" y="458">D · MATERIAL AVAILABILITY AND PRODUCTION ADJUSTMENT</text>
+  <rect class="box mixed" x="30" y="468" width="250" height="64"/>
+  <text class="t-node" x="46" y="494">Material availability</text>
+  <text class="t-meta" x="46" y="514">LR-02 · flat readers, native writers</text>
+  <rect class="box blocked" x="300" y="468" width="250" height="64"/>
+  <text class="t-node" x="316" y="494">Production slider</text>
+  <text class="t-meta" x="316" y="514">LR-04 · non-atomic UPDATE loop</text>
+  <rect class="box mixed" x="570" y="468" width="250" height="64"/>
+  <text class="t-node" x="586" y="494">Weaving OP: em_producao</text>
+  <text class="t-meta" x="586" y="514">saldo snapshot, frontend-driven</text>
+  <rect class="box derived" x="840" y="468" width="250" height="64"/>
+  <text class="t-node" x="856" y="494">oc_cobertura_ativa (db/100)</text>
+  <text class="t-meta" x="856" y="514">single server-owned coverage</text>
+  <rect class="box unreach" x="1110" y="468" width="260" height="64"/>
+  <text class="t-node" x="1126" y="494">ordens_compra_fio (flat)</text>
+  <text class="t-meta" x="1126" y="514">LEGACY · no new rows since db/99</text>
+  <path class="edge-dead" d="M 155 432 L 155 468"/>
+  <path class="edge" d="M 280 500 L 300 500"/>
+  <path class="edge" d="M 550 500 L 570 500"/>
+  <path class="edge-dead" d="M 1110 500 L 1090 500"/>
+
+  <!-- band E: weaving delivery and finishing -->
+  <text class="t-band" x="30" y="558">E · WEAVING DELIVERY AND FINISHING</text>
+  <rect class="box mixed" x="30" y="568" width="250" height="64"/>
+  <text class="t-node" x="46" y="594">Weaving delivery (cima)</text>
+  <text class="t-meta" x="46" y="614">entregas + entrega_itens</text>
+  <rect class="box blocked" x="300" y="568" width="250" height="64"/>
+  <text class="t-node" x="316" y="594">gerar_op_latex</text>
+  <text class="t-meta" x="316" y="614">LR-05 · best-effort, no recovery UI</text>
+  <rect class="box ok" x="570" y="568" width="250" height="64"/>
+  <text class="t-node" x="586" y="594">Finishing OP (acabamento)</text>
+  <text class="t-meta" x="586" y="614">Tapete route only</text>
+  <rect class="box unreach" x="840" y="568" width="250" height="64"/>
+  <text class="t-node" x="856" y="594">ops.finalizada</text>
+  <text class="t-meta" x="856" y="614">LR-09 · no writer, legacy latex</text>
+  <rect class="box ok" x="1110" y="568" width="260" height="64"/>
+  <text class="t-node" x="1126" y="594">Manta direct route</text>
+  <text class="t-meta" x="1126" y="614">tecelagem to expedicao, no acabamento</text>
+  <path class="edge" d="M 695 532 L 695 568"/>
+  <path class="edge" d="M 280 600 L 300 600"/>
+  <path class="edge" d="M 550 600 L 570 600"/>
+
+  <!-- band F: expedition, delivery, conclusion -->
+  <text class="t-band" x="30" y="658">F · EXPEDITION, DELIVERY AND CONCLUSION</text>
+  <rect class="box ok" x="30" y="668" width="250" height="64"/>
+  <text class="t-node" x="46" y="694">Expedition</text>
+  <text class="t-meta" x="46" y="714">LR-10 · Tapete reversal NOT_VERIFIED</text>
+  <rect class="box derived" x="300" y="668" width="250" height="64"/>
+  <text class="t-node" x="316" y="694">Transport (derived)</text>
+  <text class="t-meta" x="316" y="714">no entity, display only</text>
+  <rect class="box ok" x="570" y="668" width="250" height="64"/>
+  <text class="t-node" x="586" y="694">registrar_entrega_expedicao</text>
+  <text class="t-meta" x="586" y="714">LR-11 · reversal NOT_VERIFIED</text>
+  <rect class="box ok" x="840" y="668" width="250" height="64"/>
+  <text class="t-node" x="856" y="694">Pedido conclusion</text>
+  <text class="t-meta" x="856" y="714">status to entregue + pedido_eventos</text>
+  <rect class="box derived" x="1110" y="668" width="260" height="64"/>
+  <text class="t-node" x="1126" y="694">status_cliente_visual</text>
+  <text class="t-meta" x="1126" y="714">derived read model</text>
+  <path class="edge" d="M 155 632 L 155 668"/>
+  <path class="edge" d="M 280 700 L 300 700"/>
+  <path class="edge" d="M 550 700 L 570 700"/>
+  <path class="edge" d="M 820 700 L 840 700"/>
+  <path class="edge" d="M 1090 700 L 1110 700"/>
+
+  <!-- band G: customer surfaces -->
+  <text class="t-band" x="30" y="758">G · CUSTOMER-FACING TRACKING AND PARTIALS</text>
+  <rect class="box ok" x="30" y="768" width="250" height="64"/>
+  <text class="t-node" x="46" y="794">Client route / tracking</text>
+  <text class="t-meta" x="46" y="814">mounted · 8 steps Tapete, 7 Manta</text>
+  <rect class="box ok" x="300" y="768" width="250" height="64"/>
+  <text class="t-node" x="316" y="794">pedido_parciais (client)</text>
+  <text class="t-meta" x="316" y="814">mounted</text>
+  <rect class="box unreach" x="570" y="768" width="250" height="64"/>
+  <text class="t-node" x="586" y="794">pedido-tracking-admin.js</text>
+  <text class="t-meta" x="586" y="814">LR-06 · loaded, NOT MOUNTED</text>
+  <rect class="box unreach" x="840" y="768" width="250" height="64"/>
+  <text class="t-node" x="856" y="794">pedido-parciais-admin.js</text>
+  <text class="t-meta" x="856" y="814">LR-07 · loaded, NOT MOUNTED</text>
+  <rect class="box blocked" x="1110" y="768" width="260" height="64"/>
+  <text class="t-node" x="1126" y="794">Backup / cutover recovery</text>
+  <text class="t-meta" x="1126" y="814">LR-12 · no fresh verified artifact</text>
+  <path class="edge" d="M 1240 732 L 1240 750 L 155 750 L 155 768"/>
+
+  <!-- legend -->
+  <path class="band" d="M 30 864 L 1370 864"/>
+  <rect class="box ok" x="30" y="884" width="18" height="18"/>
+  <text class="t-meta" x="56" y="898">BACKEND_CORRECT_AND_REACHABLE</text>
+  <rect class="box mixed" x="290" y="884" width="18" height="18"/>
+  <text class="t-meta" x="316" y="898">MIXED_AUTHORITY</text>
+  <rect class="box blocked" x="490" y="884" width="18" height="18"/>
+  <text class="t-meta" x="516" y="898">BLOCKING DEFECT</text>
+  <rect class="box unreach" x="700" y="884" width="18" height="18"/>
+  <text class="t-meta" x="726" y="898">VALID_BUT_UNREACHABLE / LEGACY</text>
+  <rect class="box missing" x="980" y="884" width="18" height="18"/>
+  <text class="t-meta" x="1006" y="898">SPECIFIED_BUT_NOT_IMPLEMENTED</text>
+  <rect class="box derived" x="1250" y="884" width="18" height="18"/>
+  <text class="t-meta" x="1276" y="898">DERIVED_DISPLAY_ONLY</text>
+  <text class="t-meta" x="30" y="932">Solid arrow: a reachable operational continuation.  Dashed red arrow: a transition the operator cannot complete today.</text>
+  <text class="t-meta" x="30" y="952">LR-nn identifiers are defined in section 8 of PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md.</text>
+</svg>
