@@ -1137,9 +1137,13 @@ corrections of `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1-C1`; **C2** applied
 supervisor ruling **TD1** (§9.9.H); **C3** closed the security, containment,
 rollback, PONR and phasing defects. This acceptance closeout adds binding
 supervisor ruling **TD2** (§9.9.L.4) and replaces the proposed purge mechanism
-with the **proven** one (§9.9.G.2.2). This section converts the **accepted**
-functional specification of §9.1–§9.8 into an exact implementation plan and does
-not modify it.
+with the **proven** one (§9.9.G.2.2). The P1 finishing-transaction correction
+adds binding supervisor ruling **TD3** (§9.9.L.5), which makes
+delivery-to-finishing atomicity server-owned through
+`db/111_entrega_cima_acabamento_atomico.sql`; **TD1 and TD2 are unchanged by
+it**, as are rulings **R1–R13** and **D1–D7**. This section converts the
+**accepted** functional specification of §9.1–§9.8 into an exact implementation
+plan and does not modify it.
 
 ### 9.9.0 Measured facts this design rests on
 
@@ -1884,6 +1888,58 @@ GRANT  INSERT (<exact creation column list, no protected field>)
        ON TABLE public.op_itens TO authenticated;  -- directly after P4
 ```
 
+#### L.5 TD3 — delivery-to-finishing atomicity is server-owned (binding supervisor ruling)
+
+> **TD3 — BINDING SUPERVISOR RULING.**
+> **DELIVERY-TO-FINISHING ATOMICITY IS SERVER-OWNED.**
+> The frontend may submit **one command only**.
+> It may **not** insert `entregas` or `entrega_itens` and then call the
+> finishing RPC.
+
+**Why the ruling exists.** `db/108` made finishing-OP creation idempotent and
+replay-stable, but it does **not** own delivery creation. The shipped caller
+`js/screens/entrega-writes.js::salvarEntregaCima` performed
+`INSERT entregas` → `INSERT entrega_itens` → RPC `gerar_op_latex*` as three
+separate browser-issued statements with a manual compensating `DELETE`, and its
+own comment documented the finishing call as best-effort that does not undo the
+delivery. Three statements from a browser are **not** one transaction: any
+interruption between them leaves a delivery with no finishing OP and **no
+failure evidence**, which is precisely the state §9.9.J exists to make
+impossible.
+
+**JavaScript does not own transactionality.** A client sequence cannot provide
+atomicity, and a compensating delete is not a rollback — it is a second
+operation that can itself fail. Transaction ownership belongs to the database.
+
+**TD3.1 — the single command.** `db/111_entrega_cima_acabamento_atomico.sql`
+declares exactly one public writer, with no alternative overload:
+
+```sql
+public.registrar_entrega_cima_com_acabamento(
+  p_fornecedor_id BIGINT, p_op_id BIGINT, p_data DATE, p_observacao TEXT,
+  p_destino_fornecedor_id BIGINT, p_linhas JSONB,
+  p_idempotency_key TEXT, p_motivo_split TEXT DEFAULT NULL
+) RETURNS JSONB
+```
+
+It validates and canonicalizes **before** the first write, locks
+`pedidos → ops → op_itens` in the accepted global order (§9.9.B), inserts the
+header and the complete item set, and then **composes** the existing canonical
+writer `gerar_op_acabamento` with a subordinate key derived from the top-level
+command key. `db/108` is neither replaced nor re-granted.
+
+**TD3.2 — the two outcomes.** A finishing failure rolls back **only** the
+finishing creation: the delivery, its items, the `falha` attempt row and the
+top-level command row all commit together, and the result carries
+`proxima_acao = RECUPERAR_OP_ACABAMENTO`. A finishing failure **never** converts
+a valid committed delivery into a failed delivery result. A header or item
+validation failure occurs before the first insert and creates **nothing**.
+
+**TD3.3 — route.** The writer is **Tapete only**. The Manta weaving route keeps
+its own accepted server-owned writer `registrar_entrega_cima_manta`, which
+deliberately never calls a finishing writer. Route is derived strictly from
+`modelos.tipo_produto` through `op_itens`, never from a model name.
+
 #### L.3 Trigger fence — unspoofable, not GUC-based (C3 §3.1)
 
 The earlier GUC-based fence is **withdrawn**. A `set_config` value is data, not
@@ -2003,7 +2059,8 @@ generation, emission, and receipt registration for that Pedido — each returns
 | # | Path | New/Mod | Purpose | Owner |
 |---|---|---|---|---|
 | 24 | `db/108_acabamento_idempotente.sql` | new | `ops.origem_entrega_id/split_seq` + unique index, `op_acabamento_comandos`, `op_acabamento_tentativas`, `gerar_op_acabamento`, `pode_recuperar_op_acabamento`, `gerar_op_latex_split` wrapper | J |
-| 25 | `js/screens/entrega-writes.js` | mod | transactional delivery + finishing creation; delete the best-effort path | J |
+| 24b | `db/111_entrega_cima_acabamento_atomico.sql` | new | **TD3.** `entrega_cima_comandos` + `registrar_entrega_cima_com_acabamento` — the ONE server-owned transaction that creates `entregas`, `entrega_itens` and the finishing OP together, composing `gerar_op_acabamento`. db/108 is not modified. | J |
+| 25 | `js/screens/entrega-writes.js` | mod | **call the single server-owned atomic writer** `registrar_entrega_cima_com_acabamento` and nothing else; delete the direct `entregas`/`entrega_itens` inserts, the compensating delete and the best-effort finishing call | J |
 | 26 | `js/screens/entrega-form.js` | mod | proved-failure recovery surface | J |
 
 **Block 3 — reversal symmetry**

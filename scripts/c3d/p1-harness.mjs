@@ -26,7 +26,11 @@ export const REPO_ROOT = getRepoRoot();
 
 // The seven authorized P1 migrations. db/103b, db/104, db/106 and db/110 are
 // deliberately absent: they belong to P4/P5 and later phases.
-export const P1_MIGRATIONS = [101, 102, 103, 105, 107, 108, 109];
+// db/111 is the TD3 forward correction (server-owned atomic weaving
+// delivery). db/104 and db/106 stay reserved for P4 and db/110 for the
+// post-acceptance legacy retirement, so the sequence is deliberately
+// non-contiguous.
+export const P1_MIGRATIONS = [101, 102, 103, 105, 107, 108, 109, 111];
 
 export const ADMIN_UUID = '9d1f0000-0000-4000-8000-00000000ad01';
 export const ADMIN2_UUID = '9d1f0000-0000-4000-8000-00000000ad02';

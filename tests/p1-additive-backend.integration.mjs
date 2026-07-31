@@ -45,6 +45,11 @@ const SUITES = [
   ['db109-estorno-tapete-correcao-entrega.integration.sql','DB109_ESTORNO_CORRECAO_PASS'],
   ['db105-status-cancelamento.integration.sql',           'DB105_STATUS_CANCELAMENTO_PASS'],
   ['db105-planejamento-historico.integration.sql',        'DB105_PLANEJAMENTO_HISTORICO_PASS'],
+  // db/111 — TD3 server-owned atomic weaving delivery. Ordered after the
+  // db/108 suite so the finishing writer it composes is proved first.
+  ['db111-entrega-cima-acabamento-atomico.integration.sql', 'DB111_ATOMICO_PASS'],
+  ['db111-entrega-cima-idempotencia.integration.sql',       'DB111_IDEMPOTENCIA_PASS'],
+  ['db111-entrega-cima-permissoes.integration.sql',         'DB111_PERMISSOES_PASS'],
 ];
 
 // ---------------------------------------------------------------------
@@ -120,7 +125,8 @@ SELECT string_agg(line, E'\n' ORDER BY line) FROM (
      AND pol.tablename NOT IN ('ordem_compra_aceite_comandos',
                                'op_acabamento_comandos',
                                'op_acabamento_tentativas',
-                               'ordem_compra_cutover_acl_manifest')
+                               'ordem_compra_cutover_acl_manifest',
+                               'entrega_cima_comandos')
      AND (pol.roles && ARRAY['anon','authenticated','service_role','public']::name[])
   UNION ALL
   -- Direct table privileges the P1 contract forbids revoking.
