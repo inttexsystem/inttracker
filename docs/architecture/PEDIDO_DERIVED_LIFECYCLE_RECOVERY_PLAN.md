@@ -2300,6 +2300,42 @@ Permanent, binding for every order in this scope:
 A validation that would require fabricating a receipt, a Purchase Order, a
 Pedido, an OP or a balance is a hard stop, not a test fixture.
 
+#### 9.9.S.1 db/111 production evidence (TD3 correction)
+
+`NATIVE-RECEIPT-COORDINATED-RELEASE-DB111-IDEMPOTENCY-CORRECTION-AND-PRODUCTION-APPLY-R1`
+corrected two defects in `db/111` **before** its first production application
+and then applied it. This subsection records that operational fact; it does not
+modify the accepted design above.
+
+**Corrected before application.** (1) The command-store guard protected `UPDATE`
+but not `DELETE`, unlike the `db/108` store it mirrors — and the permissions
+suite had reported immutability from a *denied grant*, which proves nothing
+about the owner or about any `SECURITY DEFINER` writer. It is now
+`BEFORE UPDATE OR DELETE`, asserted at migration time from the catalog
+`tgtype` bits. (2) The replay lookup ran with no lock, so two concurrent calls
+carrying the same actor and key both missed it and the loser died on the unique
+constraint with a raw `23505`. A transaction-scoped advisory lock keyed on
+`namespace|actor|normalized-key` is now taken **before** the replay lookup,
+ahead of the relational lock domain, leaving `pedidos → ops → op_itens`
+unchanged.
+
+**Proved.** Concurrent identical replay collapses to exactly one delivery, item
+set, finishing OP, attempt and command with both sessions returning the **same
+stored result**; a concurrent conflicting payload yields exactly one
+`comando_conflitante` whose loser writes nothing; no escaped `23505`, no
+`40P01`; owner-level `UPDATE` and `DELETE` are both refused with the row
+unchanged (`tgtype=27`).
+
+**Applied.** Corrected `db/111` (Git `c951ee8`, SHA-256
+`6dd2b8fc…4482e0`) was applied **exactly once** to `ucrjtfswnfdlxwtmxnoo` as
+`supabase_migrations` version **`20260731204800`**, which is now the production
+terminal. Both function bodies are byte-identical to the committed file, the
+`db/108` body+ACL fingerprint is unchanged, `saldo_fios` re-hashes identically
+(TD1), every business row count matches the preflight, `entrega_cima_comandos`
+is empty, and **no delivery, item, finishing OP, attempt or command was
+created** — the writer was never invoked against a real delivery. Native
+receipt remains **INACTIVE** (`legacy_active / flat`, PONR `NULL`).
+
 ### 10.1 Current read-only state of the two protected Purchase Orders
 
 Measured directly against production `ucrjtfswnfdlxwtmxnoo` on **2026-07-31**
