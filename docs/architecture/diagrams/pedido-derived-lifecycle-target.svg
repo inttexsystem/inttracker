@@ -1,0 +1,653 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1700 2690" width="1700" height="2690" role="img" aria-label="Grafo-alvo do ciclo de vida do Pedido e ordens relacionadas">
+  <title>GRAFO-ALVO — ciclo de vida do Pedido e das ordens relacionadas</title>
+  <desc>Especificacao funcional de como o produto DEVE funcionar apos as correcoes. Nao representa o codigo atual. A ausencia de writer, RPC ou tela nao impede uma transicao de aparecer aqui.</desc>
+  <style>
+    .bg { fill: #ffffff; }
+    .t-h1 { font: 700 22px system-ui, sans-serif; fill: #101828; }
+    .t-h2 { font: 400 13px system-ui, sans-serif; fill: #475467; }
+    .t-lane { font: 700 12px system-ui, sans-serif; fill: #344054; letter-spacing: .05em; }
+    .t-axis { font: 700 11px system-ui, sans-serif; fill: #6941c6; letter-spacing: .05em; }
+    .t-n { font: 600 12px system-ui, sans-serif; fill: #101828; }
+    .t-m { font: 400 10.5px system-ui, sans-serif; fill: #475467; }
+    .t-e { font: 600 10.5px system-ui, sans-serif; fill: #667085; }
+    .t-call { font: 600 12.5px system-ui, sans-serif; fill: #101828; }
+    .t-red { font: 700 12px system-ui, sans-serif; fill: #b42318; }
+    .box { rx: 7; stroke-width: 1.5; }
+    .persisted { fill: #ecfdf3; stroke: #12b76a; }
+    .derived { fill: #f2f4f7; stroke: #98a2b3; stroke-dasharray: 5 3; }
+    .action { fill: #eff8ff; stroke: #2e90fa; }
+    .shared { fill: #f4f3ff; stroke: #7a5af8; stroke-width: 2.5; }
+    .legacy { fill: #eaecf0; stroke: #98a2b3; }
+    .gate { fill: #fffaeb; stroke: #f79009; stroke-width: 1.5; }
+    .fwd { stroke: #344054; stroke-width: 1.8; fill: none; marker-end: url(#mf); }
+    .proj { stroke: #98a2b3; stroke-width: 1.5; fill: none; stroke-dasharray: 5 3; marker-end: url(#mp); }
+    .rev { stroke: #2e90fa; stroke-width: 2; fill: none; marker-end: url(#mr); }
+    .bad { stroke: #f04438; stroke-width: 2.2; fill: none; stroke-dasharray: 7 4; marker-end: url(#mb); }
+    .laneband { fill: #fcfcfd; stroke: #eaecf0; stroke-width: 1; rx: 6; }
+    .axisband { fill: #fbfaff; stroke: #d9d6fe; stroke-width: 1.2; rx: 5; }
+    .legband { fill: #f9fafb; stroke: #d0d5dd; stroke-width: 1.5; stroke-dasharray: 6 4; rx: 6; }
+  </style>
+  <defs>
+    <marker id="mf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#344054"/></marker>
+    <marker id="mp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#98a2b3"/></marker>
+    <marker id="mr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2e90fa"/></marker>
+    <marker id="mb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f04438"/></marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1700" height="2690"/>
+  <text class="t-h1" x="30" y="38">GRAFO-ALVO — ciclo de vida do Pedido e das ordens relacionadas</text>
+  <text class="t-h2" x="30" y="60">Especificacao funcional do produto DEPOIS das correcoes. Nao e o codigo atual. Uma transicao sem writer, RPC ou tela hoje continua valida aqui; a matriz de diferencas registra a ausencia.</text>
+  <text class="t-red" x="30" y="80">REGRA PRINCIPAL — A OP de Tecelagem existe ANTES do recebimento dos insumos. O recebimento nao cria a OP; ele habilita e limita a producao da OP ja existente.</text>
+
+  <!-- ===== RAIA 1 — PEDIDO COMERCIAL ===== -->
+  <rect class="laneband" x="24" y="96" width="1652" height="116"/>
+  <text class="t-lane" x="34" y="114">RAIA 1 · PEDIDO — CICLO COMERCIAL (eixo proprio; nunca substituido pelo operacional)</text>
+  <rect class="box persisted" x="34" y="124" width="180" height="52"/>
+  <text class="t-n" x="46" y="146">Rascunho</text>
+  <text class="t-m" x="46" y="164">pedidos.status</text>
+  <rect class="box persisted" x="244" y="124" width="180" height="52"/>
+  <text class="t-n" x="256" y="146">Recebido</text>
+  <text class="t-m" x="256" y="164">entrada do cliente</text>
+  <rect class="box persisted" x="454" y="124" width="180" height="52"/>
+  <text class="t-n" x="466" y="146">Confirmado</text>
+  <text class="t-m" x="466" y="164">torna ALCANCAVEL a criacao da OP</text>
+  <rect class="box persisted" x="664" y="124" width="180" height="52"/>
+  <text class="t-n" x="676" y="146">Produzindo</text>
+  <text class="t-m" x="676" y="164">derivado do inicio da producao</text>
+  <rect class="box persisted" x="874" y="124" width="180" height="52"/>
+  <text class="t-n" x="886" y="146">Entregue</text>
+  <text class="t-m" x="886" y="164">so com entrega integral</text>
+  <path class="gate box" d="M 1104 150 L 1174 124 L 1244 150 L 1174 176 Z"/>
+  <text class="t-n" x="1128" y="147">Elegivel a</text>
+  <text class="t-n" x="1122" y="161">cancelamento?</text>
+  <rect class="box persisted" x="1274" y="124" width="180" height="52"/>
+  <text class="t-n" x="1286" y="146">Cancelado</text>
+  <text class="t-m" x="1286" y="164">conforme elegibilidade</text>
+  <rect class="box derived" x="1474" y="124" width="192" height="52"/>
+  <text class="t-n" x="1486" y="144">Etapa operacional</text>
+  <text class="t-m" x="1486" y="160">derivada, exibida AO LADO</text>
+  <text class="t-m" x="1486" y="172">do status comercial</text>
+  <path class="fwd" d="M 214 150 L 244 150"/>
+  <path class="fwd" d="M 424 150 L 454 150"/>
+  <path class="fwd" d="M 634 150 L 664 150"/>
+  <path class="fwd" d="M 844 150 L 874 150"/>
+  <path class="proj" d="M 1054 150 L 1104 150"/>
+  <path class="fwd" d="M 1244 150 L 1274 150"/>
+  <path class="proj" d="M 1454 150 L 1474 150"/>
+
+  <!-- ===== RAIA 2 — CRIACAO E ABERTURA DA OP ===== -->
+  <rect class="laneband" x="24" y="224" width="1652" height="116"/>
+  <text class="t-lane" x="34" y="242">RAIA 2 · CRIACAO E ABERTURA DA OP — confirmar o Pedido NAO cria OP; torna a acao ALCANCAVEL</text>
+  <rect class="box action" x="34" y="252" width="200" height="52"/>
+  <text class="t-n" x="46" y="272">Acao: Criar OP de Tecelagem</text>
+  <text class="t-m" x="46" y="290">a partir do Pedido</text>
+  <rect class="box persisted" x="264" y="252" width="200" height="52"/>
+  <text class="t-n" x="276" y="272">OP simulada</text>
+  <text class="t-m" x="276" y="290">existe e pertence ao Pedido</text>
+  <rect class="box action" x="494" y="252" width="200" height="52"/>
+  <text class="t-n" x="506" y="272">Revisar itens e</text>
+  <text class="t-m" x="506" y="290">metragens planejadas</text>
+  <rect class="box action" x="724" y="252" width="200" height="52"/>
+  <text class="t-n" x="736" y="272">Acao: Abrir OP</text>
+  <text class="t-m" x="736" y="290">acao explicita do operador</text>
+  <rect class="box persisted" x="954" y="252" width="200" height="52"/>
+  <text class="t-n" x="966" y="272">OP aberta</text>
+  <text class="t-m" x="966" y="290">operacional</text>
+  <rect class="box persisted" x="1184" y="252" width="200" height="52"/>
+  <text class="t-n" x="1196" y="272">Necessidades</text>
+  <text class="t-m" x="1196" y="290">sincronizadas</text>
+  <rect class="box derived" x="1414" y="252" width="252" height="52"/>
+  <text class="t-n" x="1426" y="272">Sem criacao automatica</text>
+  <text class="t-m" x="1426" y="290">guardas de duplicidade: design posterior</text>
+  <path class="fwd" d="M 234 278 L 264 278"/>
+  <path class="fwd" d="M 464 278 L 494 278"/>
+  <path class="fwd" d="M 694 278 L 724 278"/>
+  <path class="fwd" d="M 924 278 L 954 278"/>
+  <path class="fwd" d="M 1154 278 L 1184 278"/>
+  <path class="fwd" d="M 544 176 L 544 212 L 134 212 L 134 252"/>
+
+  <!-- ===== RAIA 3 — CICLO DE VIDA PERSISTIDO DA OP ===== -->
+  <rect class="laneband" x="24" y="352" width="1652" height="130"/>
+  <text class="t-lane" x="34" y="370">RAIA 3 · CICLO DE VIDA PERSISTIDO DA OP — estados reais, writer canonico server-owned</text>
+  <rect class="box persisted" x="34" y="380" width="180" height="46"/>
+  <text class="t-n" x="46" y="400">simulada</text>
+  <text class="t-m" x="46" y="416">itens ainda em preparo</text>
+  <rect class="box persisted" x="244" y="380" width="180" height="46"/>
+  <text class="t-n" x="256" y="400">aberta</text>
+  <text class="t-m" x="256" y="416">operacional, compra liberada</text>
+  <rect class="box persisted" x="454" y="380" width="180" height="46"/>
+  <text class="t-n" x="466" y="400">em_producao</text>
+  <text class="t-m" x="466" y="416">apos ajuste valido</text>
+  <rect class="box persisted" x="664" y="380" width="180" height="46"/>
+  <text class="t-n" x="676" y="400">pausada</text>
+  <text class="t-m" x="676" y="416">retoma para em_producao</text>
+  <rect class="box action" x="874" y="380" width="230" height="46"/>
+  <text class="t-n" x="886" y="400">Acao: Concluir OP</text>
+  <text class="t-m" x="886" y="416">saldo/percentual so torna ELEGIVEL</text>
+  <rect class="box persisted" x="1134" y="380" width="180" height="46"/>
+  <text class="t-n" x="1146" y="400">concluida</text>
+  <text class="t-m" x="1146" y="416">nunca automatica</text>
+  <rect class="box persisted" x="1344" y="380" width="180" height="46"/>
+  <text class="t-n" x="1356" y="400">cancelada</text>
+  <text class="t-m" x="1356" y="416">conforme elegibilidade</text>
+  <text class="t-e" x="1544" y="400">Aguardar insumos</text>
+  <text class="t-e" x="1544" y="416">NAO e status de OP</text>
+  <path class="fwd" d="M 214 403 L 244 403"/>
+  <path class="fwd" d="M 424 403 L 454 403"/>
+  <path class="fwd" d="M 634 403 L 664 403"/>
+  <path class="rev" d="M 754 380 L 754 366 L 544 366 L 544 380"/>
+  <path class="fwd" d="M 544 426 L 544 444 L 989 444 L 989 426"/>
+  <path class="fwd" d="M 1104 403 L 1134 403"/>
+  <path class="fwd" d="M 124 426 L 124 462 L 1434 462 L 1434 426"/>
+  <path class="proj" d="M 1084 304 L 1084 340 L 334 340 L 334 380"/>
+
+  <!-- ===== RAIA 4 — NECESSIDADES ===== -->
+  <rect class="laneband" x="24" y="494" width="1652" height="116"/>
+  <text class="t-lane" x="34" y="512">RAIA 4 · NECESSIDADES DE INSUMOS — derivadas dos itens da OP, existem ANTES de qualquer Ordem de Compra</text>
+  <rect class="box persisted" x="34" y="522" width="200" height="52"/>
+  <text class="t-n" x="46" y="542">Item da OP</text>
+  <text class="t-m" x="46" y="558">modelo + largura + cores</text>
+  <text class="t-m" x="46" y="570">+ metragem planejada</text>
+  <rect class="box persisted" x="264" y="522" width="180" height="52"/>
+  <text class="t-n" x="276" y="544">Receita de consumo</text>
+  <text class="t-m" x="276" y="562">por metro e largura</text>
+  <path class="gate box" d="M 474 548 L 554 522 L 634 548 L 554 574 Z"/>
+  <text class="t-n" x="504" y="545">Calculo de</text>
+  <text class="t-n" x="500" y="559">necessidade</text>
+  <rect class="box persisted" x="664" y="522" width="200" height="52"/>
+  <text class="t-n" x="676" y="542">Necessidade de insumo</text>
+  <text class="t-m" x="676" y="558">material + cor + kg necessario</text>
+  <text class="t-m" x="676" y="570">rastreavel a Pedido/OP/item</text>
+  <rect class="box persisted" x="894" y="522" width="230" height="52"/>
+  <text class="t-n" x="906" y="542">Algodao — por OP</text>
+  <text class="t-m" x="906" y="560">necessidade atribuida a UMA OP</text>
+  <rect class="box shared" x="1154" y="522" width="300" height="52"/>
+  <text class="t-n" x="1166" y="542">Poliester — por PEDIDO</text>
+  <text class="t-m" x="1166" y="560">COMPARTILHADA, distribuida por alocacoes reais</text>
+  <text class="t-e" x="1484" y="542">Nunca uma OP</text>
+  <text class="t-e" x="1484" y="558">representativa</text>
+  <path class="fwd" d="M 234 548 L 474 548"/>
+  <path class="fwd" d="M 444 548 L 474 548"/>
+  <path class="fwd" d="M 634 548 L 664 548"/>
+  <path class="fwd" d="M 864 548 L 894 548"/>
+  <path class="fwd" d="M 1124 548 L 1154 548"/>
+
+  <!-- ===== RAIA 5 — PLANEJAMENTO ===== -->
+  <rect class="laneband" x="24" y="622" width="1652" height="116"/>
+  <text class="t-lane" x="34" y="640">RAIA 5 · PLANEJAMENTO — ETAPA 1: decide QUEM fornece. NAO cria documento, NAO numera, NAO altera estoque</text>
+  <rect class="box derived" x="34" y="650" width="220" height="52"/>
+  <text class="t-n" x="46" y="670">Necessidade sem planejamento</text>
+  <text class="t-m" x="46" y="688">saldo livre para planejar</text>
+  <rect class="box action" x="284" y="650" width="220" height="52"/>
+  <text class="t-n" x="296" y="670">Acao: atribuir fornecedor</text>
+  <text class="t-m" x="296" y="688">+ quantidade planejada</text>
+  <rect class="box persisted" x="534" y="650" width="220" height="52"/>
+  <text class="t-n" x="546" y="670">Linha de planejamento</text>
+  <text class="t-m" x="546" y="688">(necessidade, fornecedor, kg)</text>
+  <path class="gate box" d="M 784 676 L 894 650 L 1004 676 L 894 702 Z"/>
+  <text class="t-n" x="822" y="673">Linhas do MESMO</text>
+  <text class="t-n" x="826" y="687">fornecedor?</text>
+  <rect class="box derived" x="1034" y="650" width="632" height="52"/>
+  <text class="t-n" x="1046" y="670">A atribuicao NAO cria, reutiliza, numera nem altera uma Ordem de Compra</text>
+  <text class="t-m" x="1046" y="688">A OC nasce SOMENTE no ato explicito GERAR (ETAPA 2), a partir de linhas de planejamento de UM fornecedor.</text>
+  <path class="fwd" d="M 254 676 L 284 676"/>
+  <path class="fwd" d="M 504 676 L 534 676"/>
+  <path class="fwd" d="M 754 676 L 784 676"/>
+
+  <!-- ===== RAIA 6 — ORDEM DE COMPRA: TRES EIXOS ORTOGONAIS ===== -->
+  <rect class="laneband" x="24" y="750" width="1652" height="316"/>
+  <text class="t-lane" x="34" y="768">RAIA 6 · ORDEM DE COMPRA NATIVA — TRES EIXOS ORTOGONAIS PERSISTIDOS, nunca colapsados numa unica cadeia</text>
+
+  <rect class="axisband" x="30" y="776" width="1640" height="70"/>
+  <text class="t-axis" x="40" y="792">EIXO A · ADMINISTRATIVO — status_administrativo</text>
+  <rect class="box action" x="40" y="798" width="180" height="42"/>
+  <text class="t-n" x="52" y="816">ETAPA 2 · Acao: GERAR</text>
+  <text class="t-m" x="52" y="832">ato explicito e atomico</text>
+  <rect class="box persisted" x="250" y="798" width="160" height="42"/>
+  <text class="t-n" x="262" y="816">rascunho</text>
+  <text class="t-m" x="262" y="832">editavel</text>
+  <rect class="box persisted" x="440" y="798" width="190" height="42"/>
+  <text class="t-n" x="452" y="816">emitida</text>
+  <text class="t-m" x="452" y="832">DOCUMENTO CONGELADO</text>
+  <rect class="box persisted" x="660" y="798" width="190" height="42"/>
+  <text class="t-n" x="672" y="816">cancelada / encerrada</text>
+  <text class="t-m" x="672" y="832">libera cobertura ativa</text>
+  <rect class="box action" x="880" y="798" width="170" height="42"/>
+  <text class="t-n" x="892" y="816">Acao: excluir</text>
+  <text class="t-m" x="892" y="832">so quando elegivel</text>
+  <text class="t-e" x="1080" y="812">Emitida NUNCA volta a rascunho. Os tres eixos avancam de forma</text>
+  <text class="t-e" x="1080" y="828">independente: emitida + aceita + parcialmente recebida coexistem.</text>
+  <path class="fwd" d="M 220 819 L 250 819"/>
+  <path class="fwd" d="M 410 819 L 440 819"/>
+  <path class="fwd" d="M 630 819 L 660 819"/>
+  <path class="fwd" d="M 850 819 L 880 819"/>
+
+  <rect class="axisband" x="30" y="854" width="1640" height="126"/>
+  <text class="t-axis" x="40" y="870">EIXO B · ACEITE DO FORNECEDOR — status_aceite · o ramo e escolhido NA EMISSAO pela configuracao congelada</text>
+  <path class="gate box" d="M 40 897 L 150 876 L 260 897 L 150 918 Z"/>
+  <text class="t-n" x="72" y="892">exige_aceite DO</text>
+  <text class="t-n" x="80" y="905">FORNECEDOR</text>
+  <text class="t-m" x="86" y="917">padrao false</text>
+  <rect class="box persisted" x="290" y="876" width="160" height="42"/>
+  <text class="t-n" x="302" y="894">nao_aplicavel</text>
+  <text class="t-m" x="302" y="910">ramo "nao exige"</text>
+  <rect class="box persisted" x="480" y="876" width="160" height="42"/>
+  <text class="t-n" x="492" y="894">pendente</text>
+  <text class="t-m" x="492" y="910">ramo "exige"</text>
+  <path class="gate box" d="M 670 897 L 760 876 L 850 897 L 760 918 Z"/>
+  <text class="t-n" x="708" y="894">Decisao do</text>
+  <text class="t-n" x="710" y="908">fornecedor</text>
+  <rect class="box persisted" x="880" y="876" width="160" height="42"/>
+  <text class="t-n" x="892" y="894">aceita</text>
+  <text class="t-m" x="892" y="910">libera recebimento</text>
+  <rect class="box persisted" x="1070" y="876" width="160" height="42"/>
+  <text class="t-n" x="1082" y="894">rejeitada</text>
+  <text class="t-m" x="1082" y="910">nao volta a rascunho</text>
+  <text class="t-red" x="1260" y="884">NAO existe transicao nao_aplicavel para pendente</text>
+  <text class="t-e" x="1260" y="900">D3: exige_aceite e configurado POR FORNECEDOR, padrao false.</text>
+  <text class="t-e" x="1260" y="914">Na emissao o valor e COPIADO e CONGELADO na Ordem de Compra.</text>
+  <text class="t-e" x="1260" y="928">Alterar a configuracao depois NAO muta OCs ja emitidas.</text>
+  <rect class="box action" x="290" y="928" width="230" height="42"/>
+  <text class="t-n" x="302" y="946">Acao: cancelar/encerrar</text>
+  <text class="t-m" x="302" y="962">o documento rejeitado</text>
+  <rect class="box derived" x="550" y="928" width="230" height="42"/>
+  <text class="t-n" x="562" y="946">Necessidade liberada</text>
+  <text class="t-m" x="562" y="962">e replanejada</text>
+  <rect class="box action" x="810" y="928" width="260" height="42"/>
+  <text class="t-n" x="822" y="946">GERAR OC SUBSTITUTA</text>
+  <text class="t-m" x="822" y="962">identidade e numero PROPRIOS</text>
+  <text class="t-e" x="1100" y="946">Emissao congela o documento: nao ha edicao</text>
+  <text class="t-e" x="1100" y="962">nem reemissao da MESMA Ordem de Compra.</text>
+  <path class="fwd" d="M 260 890 L 290 890"/>
+  <path class="fwd" d="M 260 904 L 480 904"/>
+  <path class="fwd" d="M 640 897 L 670 897"/>
+  <path class="fwd" d="M 850 890 L 880 890"/>
+  <path class="fwd" d="M 850 908 L 1070 908"/>
+  <path class="rev" d="M 1150 918 L 1150 924 L 405 924 L 405 928"/>
+  <path class="fwd" d="M 520 949 L 550 949"/>
+  <path class="fwd" d="M 780 949 L 810 949"/>
+  <path class="rev" d="M 665 928 L 665 840"/>
+  <path class="fwd" d="M 940 928 L 940 846 L 130 846 L 130 840"/>
+  <path class="proj" d="M 535 840 L 535 876"/>
+
+  <rect class="axisband" x="30" y="988" width="1640" height="70"/>
+  <text class="t-axis" x="40" y="1004">EIXO C · RECEBIMENTO — status_recebimento · DERIVADO dos fatos, sem edicao manual</text>
+  <rect class="box derived" x="40" y="1010" width="210" height="42"/>
+  <text class="t-n" x="52" y="1028">nao_recebido</text>
+  <text class="t-m" x="52" y="1044">recebimento liquido nulo</text>
+  <rect class="box derived" x="280" y="1010" width="240" height="42"/>
+  <text class="t-n" x="292" y="1028">parcial</text>
+  <text class="t-m" x="292" y="1044">liquido &gt; 0 e menor que o total pedido</text>
+  <rect class="box derived" x="550" y="1010" width="240" height="42"/>
+  <text class="t-n" x="562" y="1028">recebido</text>
+  <text class="t-m" x="562" y="1044">liquido atinge o total pedido</text>
+  <text class="t-e" x="820" y="1024">O eixo C e RECOMPUTADO a partir do ledger de recebimento e dos estornos.</text>
+  <text class="t-e" x="820" y="1040">Um estorno pode faze-lo RETROCEDER. Nenhuma tela edita este status.</text>
+  <path class="fwd" d="M 250 1024 L 280 1024"/>
+  <path class="fwd" d="M 520 1024 L 550 1024"/>
+  <path class="rev" d="M 300 1052 L 300 1064 L 640 1064 L 640 1052"/>
+
+  <!-- ===== RAIA 7 — RECEBIMENTO E CONTINUACAO ===== -->
+  <rect class="laneband" x="24" y="1078" width="1652" height="182"/>
+  <text class="t-lane" x="34" y="1096">RAIA 7 · RECEBIMENTO — evento sobre a OC NATIVA e seus itens; nunca uma atualizacao direta de campo legado</text>
+  <path class="gate box" d="M 34 1132 L 144 1106 L 254 1132 L 144 1158 Z"/>
+  <text class="t-n" x="76" y="1129">OC elegivel?</text>
+  <text class="t-m" x="62" y="1143">emitida + aceite ok</text>
+  <rect class="box action" x="284" y="1106" width="200" height="52"/>
+  <text class="t-n" x="296" y="1126">Acao: registrar recebimento</text>
+  <text class="t-m" x="296" y="1144">parcial ou total</text>
+  <rect class="box persisted" x="514" y="1106" width="200" height="52"/>
+  <text class="t-n" x="526" y="1126">Lancamento no ledger</text>
+  <text class="t-m" x="526" y="1144">historico auditavel</text>
+  <rect class="box persisted" x="744" y="1106" width="230" height="52"/>
+  <text class="t-n" x="756" y="1126">Distribuicao pelas</text>
+  <text class="t-m" x="756" y="1144">ALOCACOES REAIS de cada OP</text>
+  <rect class="box action" x="1004" y="1106" width="190" height="52"/>
+  <text class="t-n" x="1016" y="1126">Acao: estornar</text>
+  <text class="t-m" x="1016" y="1144">recebimento</text>
+  <rect class="box persisted" x="1224" y="1106" width="230" height="52"/>
+  <text class="t-n" x="1236" y="1126">Reversao dos lancamentos</text>
+  <text class="t-m" x="1236" y="1144">+ recomposicao das alocacoes</text>
+  <rect class="box derived" x="1484" y="1106" width="182" height="52"/>
+  <text class="t-n" x="1496" y="1126">Recalculo do</text>
+  <text class="t-m" x="1496" y="1144">eixo C e da disponibilidade</text>
+  <path class="fwd" d="M 254 1132 L 284 1132"/>
+  <path class="fwd" d="M 484 1132 L 514 1132"/>
+  <path class="fwd" d="M 714 1132 L 744 1132"/>
+  <path class="rev" d="M 974 1132 L 1004 1132"/>
+  <path class="rev" d="M 1194 1132 L 1224 1132"/>
+  <path class="rev" d="M 1454 1132 L 1484 1132"/>
+
+  <rect class="axisband" x="30" y="1172" width="1640" height="80"/>
+  <text class="t-axis" x="40" y="1188">CONTINUACAO POS-RECEBIMENTO — nenhuma fase termina sem a proxima acao real alcancavel</text>
+  <rect class="box persisted" x="40" y="1194" width="170" height="48"/>
+  <text class="t-n" x="52" y="1214">Recebimento salvo</text>
+  <text class="t-m" x="52" y="1230">fato persistido</text>
+  <rect class="box action" x="240" y="1194" width="200" height="48"/>
+  <text class="t-n" x="252" y="1214">Acao visivel:</text>
+  <text class="t-n" x="252" y="1230">REVISAR PRODUCAO</text>
+  <path class="gate box" d="M 470 1218 L 570 1194 L 670 1218 L 570 1242 Z"/>
+  <text class="t-n" x="512" y="1215">Quantas OPs</text>
+  <text class="t-n" x="510" y="1229">beneficiadas?</text>
+  <rect class="box action" x="700" y="1194" width="250" height="48"/>
+  <text class="t-n" x="712" y="1212">1 OP → tela da OP</text>
+  <text class="t-m" x="712" y="1230">ancorada no bloco de ajuste compartilhado</text>
+  <rect class="box action" x="980" y="1194" width="250" height="48"/>
+  <text class="t-n" x="992" y="1212">N OPs → painel do Pedido</text>
+  <text class="t-m" x="992" y="1230">consolidado, identifica as OPs afetadas</text>
+  <rect class="box derived" x="1260" y="1194" width="400" height="48"/>
+  <text class="t-n" x="1272" y="1212">O slider COMPLETO nunca fica dentro do modal de recebimento</text>
+  <text class="t-m" x="1272" y="1230">As duas telas montam o MESMO componente e escrevem pelo MESMO writer atomico.</text>
+  <path class="fwd" d="M 210 1218 L 240 1218"/>
+  <path class="fwd" d="M 440 1218 L 470 1218"/>
+  <path class="fwd" d="M 670 1210 L 700 1210"/>
+  <path class="fwd" d="M 670 1228 L 980 1228"/>
+  <path class="fwd" d="M 859 1158 L 859 1180 L 125 1180 L 125 1194"/>
+
+  <!-- ===== RAIA 8 — DISPONIBILIDADE ===== -->
+  <rect class="laneband" x="24" y="1272" width="1652" height="128"/>
+  <text class="t-lane" x="34" y="1290">RAIA 8 · DISPONIBILIDADE CANONICA — medidas RELACIONADAS por material + cor + OP + necessidade + alocacao</text>
+  <rect class="box derived" x="34" y="1300" width="150" height="44"/>
+  <text class="t-n" x="46" y="1326">necessaria</text>
+  <rect class="box derived" x="199" y="1300" width="150" height="44"/>
+  <text class="t-n" x="211" y="1326">planejada</text>
+  <rect class="box derived" x="364" y="1300" width="150" height="44"/>
+  <text class="t-n" x="376" y="1326">comprada</text>
+  <rect class="box derived" x="529" y="1300" width="150" height="44"/>
+  <text class="t-n" x="541" y="1326">recebida</text>
+  <rect class="box derived" x="694" y="1300" width="150" height="44"/>
+  <text class="t-n" x="706" y="1326">estornada</text>
+  <rect class="box derived" x="859" y="1300" width="150" height="44"/>
+  <text class="t-n" x="871" y="1326">alocada a OP</text>
+  <rect class="box derived" x="1024" y="1300" width="180" height="44"/>
+  <text class="t-n" x="1036" y="1320">comprometida/consumida</text>
+  <text class="t-m" x="1036" y="1336">autoridade: ultimo ajuste salvo</text>
+  <rect class="box shared" x="1234" y="1300" width="432" height="44"/>
+  <text class="t-n" x="1246" y="1320">DISPONIVEL PARA A OP</text>
+  <text class="t-m" x="1246" y="1336">D2: recebimento nativo LIQUIDO alocado a esta OP menos consumo calculado ATIVO reservado por OUTRAS OPs</text>
+  <text class="t-e" x="34" y="1368">Sao MEDIDAS RELACIONADAS, nao uma cadeia temporal: a ordem visual nao implica ordem de calculo nem que cada uma seja persistida separadamente.</text>
+  <text class="t-e" x="34" y="1386">Uma OP so enxerga a parcela realmente alocada a ela. O poliester de origem Pedido permanece COMPARTILHADO e e distribuido por alocacoes reais.</text>
+  <text class="t-e" x="34" y="1402">D2 AUTORIDADE DE RESERVA = o ultimo ajuste de producao salvo ATOMICAMENTE. OP simulada/aberta com ajuste salvo RESERVA; OP em_producao/pausada/concluida COMPROMETE ou CONSOME.</text>
+  <text class="t-e" x="34" y="1418">Metragem planejada sozinha NAO reserva. A OP recalculada recebe de volta a PROPRIA reserva antes de calcular o novo teto. Consumo fisico medido NAO e reivindicado ate existir tal autoridade.</text>
+
+  <!-- ===== RAIA 9 — CONDICAO DERIVADA E SLIDER ===== -->
+  <rect class="laneband" x="24" y="1412" width="1652" height="182"/>
+  <text class="t-lane" x="34" y="1430">RAIA 9 · AGUARDANDO INSUMOS (derivado) e SLIDER — UMA funcionalidade, DOIS pontos de montagem, UM writer atomico</text>
+  <rect class="box derived" x="34" y="1440" width="380" height="44"/>
+  <text class="t-n" x="46" y="1460">Aguardando recebimento/disponibilidade de insumos</text>
+  <text class="t-m" x="46" y="1476">CONDICAO DERIVADA — depois da OP aberta, antes de um ajuste valido</text>
+  <rect class="box derived" x="444" y="1440" width="440" height="44"/>
+  <text class="t-n" x="456" y="1460">Recebimento PARCIAL admite disponibilidade PARCIAL</text>
+  <text class="t-m" x="456" y="1476">teto reduzido, ajuste valido menor, producao PARCIAL pode iniciar</text>
+  <text class="t-e" x="914" y="1460">Nunca e um status persistido da OP.</text>
+  <text class="t-e" x="914" y="1476">Nao exige recebimento total para produzir.</text>
+  <rect class="box action" x="34" y="1500" width="180" height="40"/>
+  <text class="t-n" x="46" y="1524">Montagem: tela da OP</text>
+  <rect class="box action" x="34" y="1546" width="180" height="40"/>
+  <text class="t-n" x="46" y="1570">Montagem: painel do Pedido</text>
+  <rect class="box shared" x="244" y="1512" width="200" height="60"/>
+  <text class="t-n" x="256" y="1536">Teto por item</text>
+  <text class="t-m" x="256" y="1554">f(disponivel, receita, cor)</text>
+  <rect class="box action" x="474" y="1512" width="190" height="60"/>
+  <text class="t-n" x="486" y="1536">Operador ajusta</text>
+  <text class="t-m" x="486" y="1554">metragem de cada item</text>
+  <rect class="box derived" x="694" y="1512" width="190" height="60"/>
+  <text class="t-n" x="706" y="1536">Consumo recalculado</text>
+  <text class="t-m" x="706" y="1554">ao vivo</text>
+  <path class="gate box" d="M 914 1542 L 1044 1512 L 1174 1542 L 1044 1572 Z"/>
+  <text class="t-n" x="990" y="1538">Salvar ajuste</text>
+  <text class="t-m" x="978" y="1554">ATOMICO tudo-ou-nada</text>
+  <rect class="box persisted" x="1204" y="1512" width="200" height="60"/>
+  <text class="t-n" x="1216" y="1536">Metragens ajustadas</text>
+  <text class="t-m" x="1216" y="1554">persistidas</text>
+  <rect class="box derived" x="1434" y="1512" width="232" height="60"/>
+  <text class="t-n" x="1446" y="1532">Mesma projecao canonica</text>
+  <text class="t-m" x="1446" y="1548">nas duas telas; mesmo writer;</text>
+  <text class="t-m" x="1446" y="1562">nenhuma segunda implementacao</text>
+  <path class="proj" d="M 224 1484 L 224 1512"/>
+  <path class="proj" d="M 664 1484 L 664 1512"/>
+  <path class="fwd" d="M 214 1520 L 244 1536"/>
+  <path class="fwd" d="M 214 1566 L 244 1550"/>
+  <path class="fwd" d="M 444 1542 L 474 1542"/>
+  <path class="fwd" d="M 664 1542 L 694 1542"/>
+  <path class="fwd" d="M 884 1542 L 914 1542"/>
+  <path class="fwd" d="M 1174 1542 L 1204 1542"/>
+  <path class="rev" d="M 1044 1572 L 1044 1586 L 569 1586 L 569 1572"/>
+
+  <!-- ===== RAIA 10 — INICIO DA PRODUCAO ===== -->
+  <rect class="laneband" x="24" y="1606" width="1652" height="104"/>
+  <text class="t-lane" x="34" y="1624">RAIA 10 · INICIO DA PRODUCAO</text>
+  <path class="gate box" d="M 34 1666 L 244 1634 L 454 1666 L 244 1698 Z"/>
+  <text class="t-n" x="150" y="1660">OP aberta · itens definidos ·</text>
+  <text class="t-n" x="140" y="1674">necessidades calculadas ·</text>
+  <text class="t-n" x="126" y="1688">disponibilidade · ajuste valido salvo</text>
+  <rect class="box action" x="484" y="1640" width="200" height="52"/>
+  <text class="t-n" x="496" y="1662">Acao: iniciar producao</text>
+  <text class="t-m" x="496" y="1680">unico ponto de partida</text>
+  <rect class="box persisted" x="714" y="1640" width="200" height="52"/>
+  <text class="t-n" x="726" y="1662">OP em_producao</text>
+  <text class="t-m" x="726" y="1680">estado persistido</text>
+  <rect class="box persisted" x="944" y="1640" width="240" height="52"/>
+  <text class="t-n" x="956" y="1660">Pedido: Produzindo</text>
+  <text class="t-m" x="956" y="1678">writer server-owned DERIVA o status</text>
+  <rect class="box derived" x="1214" y="1640" width="452" height="52"/>
+  <text class="t-n" x="1226" y="1660">Nenhuma fase fecha sem a proxima acao real alcancavel</text>
+  <text class="t-m" x="1226" y="1678">Se a proxima acao nao existir, a fase nao esta pronta — nem que os testes passem.</text>
+  <path class="fwd" d="M 454 1666 L 484 1666"/>
+  <path class="fwd" d="M 684 1666 L 714 1666"/>
+  <path class="fwd" d="M 914 1666 L 944 1666"/>
+
+  <!-- ===== RAIA 11 — TECELAGEM ===== -->
+  <rect class="laneband" x="24" y="1722" width="1652" height="104"/>
+  <text class="t-lane" x="34" y="1740">RAIA 11 · TECELAGEM — movimentacoes parciais, saldo e conclusao EXPLICITA</text>
+  <rect class="box persisted" x="34" y="1752" width="210" height="52"/>
+  <text class="t-n" x="46" y="1774">Movimentacao parcial</text>
+  <text class="t-m" x="46" y="1792">producao entregue por item</text>
+  <rect class="box derived" x="274" y="1752" width="200" height="52"/>
+  <text class="t-n" x="286" y="1774">Saldo remanescente</text>
+  <text class="t-m" x="286" y="1792">por item</text>
+  <rect class="box derived" x="504" y="1752" width="240" height="52"/>
+  <text class="t-n" x="516" y="1772">Elegivel a conclusao</text>
+  <text class="t-m" x="516" y="1790">saldo/percentual NAO conclui sozinho</text>
+  <rect class="box action" x="774" y="1752" width="220" height="52"/>
+  <text class="t-n" x="786" y="1774">Acao: Concluir OP</text>
+  <text class="t-m" x="786" y="1792">validada pelo writer canonico</text>
+  <rect class="box action" x="1024" y="1752" width="220" height="52"/>
+  <text class="t-n" x="1036" y="1774">Acao: corrigir/estornar</text>
+  <text class="t-m" x="1036" y="1792">movimentacao</text>
+  <path class="fwd" d="M 244 1778 L 274 1778"/>
+  <path class="fwd" d="M 474 1778 L 504 1778"/>
+  <path class="fwd" d="M 744 1778 L 774 1778"/>
+  <path class="rev" d="M 1024 1778 L 994 1778"/>
+  <path class="rev" d="M 1134 1752 L 1134 1738 L 139 1738 L 139 1752"/>
+
+  <!-- ===== RAIA 12 — ROTA POR PRODUTO ===== -->
+  <rect class="laneband" x="24" y="1838" width="1652" height="138"/>
+  <text class="t-lane" x="34" y="1856">RAIA 12 · ROTA — Tapete: criacao AUTOMATICA idempotente e a rota normal; a acao manual e SO recuperacao</text>
+  <path class="gate box" d="M 34 1900 L 114 1874 L 194 1900 L 114 1926 Z"/>
+  <text class="t-n" x="82" y="1904">Tipo</text>
+  <rect class="box derived" x="224" y="1874" width="190" height="46"/>
+  <text class="t-n" x="236" y="1894">Saida de tecelagem</text>
+  <text class="t-m" x="236" y="1910">verificada</text>
+  <rect class="box persisted" x="444" y="1874" width="240" height="46"/>
+  <text class="t-n" x="456" y="1892">Criacao AUTOMATICA da OP</text>
+  <text class="t-m" x="456" y="1908">D4: idempotente por origem_entrega_id</text>
+  <rect class="box persisted" x="714" y="1874" width="170" height="46"/>
+  <text class="t-n" x="726" y="1900">Acabamento em producao</text>
+  <rect class="box persisted" x="914" y="1874" width="170" height="46"/>
+  <text class="t-n" x="926" y="1900">Acabamento concluido</text>
+  <rect class="box derived" x="1114" y="1874" width="240" height="46"/>
+  <text class="t-n" x="1126" y="1894">Manta: direto para expedicao</text>
+  <text class="t-m" x="1126" y="1910">NAO passa por acabamento</text>
+  <path class="gate box" d="M 444 1956 L 524 1936 L 604 1956 L 524 1976 Z"/>
+  <text class="t-m" x="470" y="1953">D5 Falha automatica</text>
+  <text class="t-e" x="954" y="1944">D4 split legitimo: origem_entrega_id + discriminador DETERMINISTICO. Nunca so a OP de origem, texto livre ou instante.</text>
+  <text class="t-e" x="954" y="1958">D5 prova server-owned: (1) entrega de tecelagem confirmada; (2) nenhuma OP de acabamento canonica para a identidade;</text>
+  <text class="t-e" x="954" y="1972">(3) tentativa automatica registrada como FALHA, identificando entrega, codigo, momento, ator/processo e resultado.</text>
+  <text class="t-m" x="486" y="1967">PROVADA?</text>
+  <rect class="box action" x="634" y="1936" width="290" height="40"/>
+  <text class="t-n" x="646" y="1954">Acao: gerar OP de acabamento</text>
+  <text class="t-m" x="646" y="1970">RETENTA o MESMO writer idempotente — nao e criacao livre</text>
+  <path class="fwd" d="M 194 1897 L 224 1897"/>
+  <path class="fwd" d="M 414 1897 L 444 1897"/>
+  <path class="fwd" d="M 684 1897 L 714 1897"/>
+  <path class="fwd" d="M 884 1897 L 914 1897"/>
+  <path class="fwd" d="M 194 1911 L 214 1966 L 1114 1966 L 1114 1920"/>
+  <path class="proj" d="M 524 1920 L 524 1936"/>
+  <path class="fwd" d="M 604 1956 L 634 1956"/>
+  <path class="rev" d="M 779 1936 L 779 1928 L 564 1928 L 564 1920"/>
+
+  <!-- ===== RAIA 13 — EXPEDICAO ===== -->
+  <rect class="laneband" x="24" y="1990" width="1652" height="140"/>
+  <text class="t-lane" x="34" y="2008">RAIA 13 · EXPEDICAO — entradas e REVERSOES DISTINTAS por rota; convergem no conceito, nao na transicao persistida</text>
+  <path class="gate box" d="M 34 2044 L 124 2018 L 214 2044 L 124 2070 Z"/>
+  <text class="t-n" x="66" y="2042">Producao</text>
+  <text class="t-n" x="70" y="2056">elegivel?</text>
+  <rect class="box persisted" x="244" y="2018" width="190" height="52"/>
+  <text class="t-n" x="256" y="2040">Expedicao criada</text>
+  <text class="t-m" x="256" y="2058">Tapete e Manta convergem</text>
+  <rect class="box persisted" x="464" y="2018" width="190" height="52"/>
+  <text class="t-n" x="476" y="2040">Separacao parcial/total</text>
+  <text class="t-m" x="476" y="2058">por item</text>
+  <rect class="box persisted" x="684" y="2018" width="190" height="52"/>
+  <text class="t-n" x="696" y="2040">Saida / transporte</text>
+  <text class="t-m" x="696" y="2058">estado de deslocamento</text>
+  <rect class="box derived" x="904" y="2018" width="210" height="52"/>
+  <text class="t-n" x="916" y="2040">Quantidade pendente</text>
+  <text class="t-m" x="916" y="2058">por Pedido / OP / item</text>
+  <rect class="box action" x="1144" y="2018" width="250" height="52"/>
+  <text class="t-n" x="1156" y="2038">Reverter expedicao TAPETE</text>
+  <text class="t-m" x="1156" y="2056">D6: opera sobre ITENS de expedicao + movimento de reversao</text>
+  <rect class="box action" x="1414" y="2018" width="252" height="52"/>
+  <text class="t-n" x="1426" y="2038">Reverter expedicao MANTA</text>
+  <text class="t-m" x="1426" y="2056">fonte: saida medida de tecelagem</text>
+  <rect class="box derived" x="1144" y="2078" width="522" height="32"/>
+  <text class="t-m" x="1156" y="2098">Conceito comum: devolver quantidade ao pendente. As transicoes persistidas permanecem DISTINTAS.</text>
+  <text class="t-e" x="34" y="2086">D6 REVERSAO TAPETE: reduz metros liberados POR ITEM; RECUSA reverter acima do liberado; RECUSA resultado abaixo do ja ENTREGUE;</text>
+  <text class="t-e" x="34" y="2102">preserva linhagem de origem e comercial; recomputa a disponibilidade de saida acabada = saida acabada MEDIDA menos expedicao atualmente liberada.</text>
+  <text class="t-e" x="34" y="2118">Nunca editar diretamente um saldo de estoque acabado avulso.</text>
+  <path class="fwd" d="M 214 2044 L 244 2044"/>
+  <path class="fwd" d="M 434 2044 L 464 2044"/>
+  <path class="fwd" d="M 654 2044 L 684 2044"/>
+  <path class="proj" d="M 874 2044 L 904 2044"/>
+  <path class="rev" d="M 1144 2034 L 1114 2034"/>
+  <path class="rev" d="M 1414 2094 L 1394 2094"/>
+  <path class="proj" d="M 1269 2070 L 1269 2078"/>
+  <path class="proj" d="M 1540 2070 L 1540 2078"/>
+  <path class="rev" d="M 1269 2110 L 1269 2118 L 1009 2118 L 1009 2070"/>
+
+  <!-- ===== RAIA 14 — ENTREGA, CORRECAO E CONCLUSAO ===== -->
+  <rect class="laneband" x="24" y="2130" width="1652" height="128"/>
+  <text class="t-lane" x="34" y="2148">RAIA 14 · ENTREGA E CONCLUSAO — a correcao RECOMPUTA e DESFAZ conclusao prematura</text>
+  <rect class="box action" x="34" y="2158" width="180" height="52"/>
+  <text class="t-n" x="46" y="2180">Acao: registrar entrega</text>
+  <text class="t-m" x="46" y="2198">parcial ou total</text>
+  <rect class="box persisted" x="244" y="2158" width="180" height="52"/>
+  <text class="t-n" x="256" y="2180">Quantidades entregues</text>
+  <text class="t-m" x="256" y="2198">atualizadas por item</text>
+  <path class="gate box" d="M 454 2184 L 574 2158 L 694 2184 L 574 2210 Z"/>
+  <text class="t-n" x="512" y="2181">TODOS os itens</text>
+  <text class="t-n" x="506" y="2195">integralmente?</text>
+  <rect class="box persisted" x="724" y="2158" width="180" height="52"/>
+  <text class="t-n" x="736" y="2180">Pedido: Entregue</text>
+  <text class="t-m" x="736" y="2198">derivado, nao manual</text>
+  <rect class="box action" x="934" y="2158" width="200" height="52"/>
+  <text class="t-n" x="946" y="2180">Acao: corrigir/estornar</text>
+  <text class="t-m" x="946" y="2198">entrega</text>
+  <rect class="box persisted" x="1164" y="2158" width="220" height="52"/>
+  <text class="t-n" x="1176" y="2178">RECOMPUTA totais</text>
+  <text class="t-m" x="1176" y="2196">e a condicao de conclusao</text>
+  <rect class="box action" x="1414" y="2158" width="252" height="52"/>
+  <text class="t-n" x="1426" y="2174">D1: entregue volta a PRODUZINDO</text>
+  <text class="t-m" x="1426" y="2190">writer canonico server-owned recomputa;</text>
+  <text class="t-m" x="1426" y="2203">NUNCA volta direto a confirmado</text>
+  <rect class="box derived" x="244" y="2218" width="420" height="32"/>
+  <text class="t-m" x="256" y="2238">D1: cancelado permanece cancelado · nao cancelado e incompleto vira produzindo · integralmente entregue vira entregue.</text>
+  <path class="fwd" d="M 214 2184 L 244 2184"/>
+  <path class="fwd" d="M 424 2184 L 454 2184"/>
+  <path class="fwd" d="M 694 2184 L 724 2184"/>
+  <path class="fwd" d="M 904 2184 L 934 2184"/>
+  <path class="fwd" d="M 1134 2184 L 1164 2184"/>
+  <path class="fwd" d="M 1384 2184 L 1414 2184"/>
+  <path class="rev" d="M 1540 2158 L 1540 2144 L 814 2144 L 814 2158"/>
+  <path class="proj" d="M 574 2210 L 574 2218"/>
+
+  <!-- ===== RAIA 15 — TRACKING ===== -->
+  <rect class="laneband" x="24" y="2270" width="1652" height="104"/>
+  <text class="t-lane" x="34" y="2288">RAIA 15 · TRACKING DO CLIENTE — PROJECAO dos fatos operacionais; nunca uma autoridade paralela</text>
+  <rect class="box derived" x="34" y="2298" width="150" height="60"/>
+  <text class="t-n" x="46" y="2324">Recebido</text>
+  <rect class="box derived" x="199" y="2298" width="150" height="60"/>
+  <text class="t-n" x="211" y="2324">Confirmado</text>
+  <rect class="box derived" x="364" y="2298" width="290" height="60"/>
+  <text class="t-n" x="376" y="2318">Em preparacao</text>
+  <text class="t-m" x="376" y="2336">COBRE todo o intervalo confirmado pre-producao:</text>
+  <text class="t-m" x="376" y="2350">abertura da OP + compras + recebimento + ajuste</text>
+  <rect class="box derived" x="669" y="2298" width="230" height="60"/>
+  <text class="t-n" x="681" y="2322">Em producao</text>
+  <text class="t-m" x="681" y="2340">SO quando a producao realmente comeca</text>
+  <rect class="box derived" x="914" y="2298" width="180" height="60"/>
+  <text class="t-n" x="926" y="2324">Em acabamento</text>
+  <text class="t-m" x="926" y="2340">so Tapete</text>
+  <rect class="box derived" x="1109" y="2298" width="160" height="60"/>
+  <text class="t-n" x="1121" y="2332">Em expedicao</text>
+  <rect class="box derived" x="1284" y="2298" width="180" height="60"/>
+  <text class="t-n" x="1296" y="2332">Entregue parcialmente</text>
+  <rect class="box derived" x="1479" y="2298" width="187" height="60"/>
+  <text class="t-n" x="1491" y="2332">Entregue</text>
+  <path class="proj" d="M 184 2328 L 199 2328"/>
+  <path class="proj" d="M 349 2328 L 364 2328"/>
+  <path class="proj" d="M 654 2328 L 669 2328"/>
+  <path class="proj" d="M 899 2328 L 914 2328"/>
+  <path class="proj" d="M 1094 2328 L 1109 2328"/>
+  <path class="proj" d="M 1269 2328 L 1284 2328"/>
+  <path class="proj" d="M 1464 2328 L 1479 2328"/>
+
+  <!-- ===== AREA CINZA — LEGADO ===== -->
+  <rect class="legband" x="24" y="2386" width="1652" height="92"/>
+  <text class="t-lane" x="34" y="2404">AREA CINZA · LEGADO — FORA do fluxo-alvo, sem autoridade operacional, a ser retirado</text>
+  <rect class="box legacy" x="34" y="2414" width="230" height="50"/>
+  <text class="t-n" x="46" y="2436">ordens_compra_fio</text>
+  <text class="t-m" x="46" y="2452">modelo plano</text>
+  <rect class="box legacy" x="294" y="2414" width="230" height="50"/>
+  <text class="t-n" x="306" y="2436">kg_recebido (campo plano)</text>
+  <text class="t-m" x="306" y="2452">nao e fonte de disponibilidade</text>
+  <rect class="box legacy" x="554" y="2414" width="230" height="50"/>
+  <text class="t-n" x="566" y="2436">ops.finalizada</text>
+  <text class="t-m" x="566" y="2452">compatibilidade latex</text>
+  <text class="t-red" x="824" y="2436">PROIBIDO — ponte, dupla escrita, materializacao sintetica de linhas planas</text>
+  <text class="t-red" x="824" y="2454">e fabricacao de OP representativa para compras compartilhadas.</text>
+  <path class="bad" d="M 264 2439 L 294 2439"/>
+  <path class="bad" d="M 524 2439 L 554 2439"/>
+
+  <!-- ===== CALLOUTS ===== -->
+  <text class="t-call" x="34" y="2514">1. A OP de Tecelagem existe antes do recebimento dos insumos.</text>
+  <text class="t-call" x="34" y="2534">2. O recebimento nao cria a OP; ele habilita e limita a producao da OP existente.</text>
+  <text class="t-call" x="34" y="2554">3. Compras novas usam o modelo nativo.</text>
+  <text class="t-call" x="34" y="2574">4. ordens_compra_fio e legado e nao participa do fluxo-alvo.</text>
+  <text class="t-call" x="34" y="2594">5. Recebimento, disponibilidade, slider e inicio da producao formam uma continuidade operacional.</text>
+  <text class="t-call" x="860" y="2514">6. O slider e compartilhado entre Pedido e OP.</text>
+  <text class="t-call" x="860" y="2534">7. O ajuste dos itens deve persistir atomicamente.</text>
+  <text class="t-call" x="860" y="2554">8. Status comercial do Pedido e estado operacional derivado permanecem visiveis separadamente.</text>
+  <text class="t-call" x="860" y="2574">9. Tapete segue para acabamento; Manta segue diretamente para expedicao.</text>
+  <text class="t-call" x="860" y="2594">10. Nenhuma fase fecha sem a proxima acao real alcancavel.</text>
+
+  <!-- ===== LEGENDA ===== -->
+  <text class="t-lane" x="34" y="2630">LEGENDA</text>
+  <rect class="box persisted" x="34" y="2640" width="20" height="20"/>
+  <text class="t-m" x="62" y="2655">Estado de entidade PERSISTIDO</text>
+  <rect class="box derived" x="290" y="2640" width="20" height="20"/>
+  <text class="t-m" x="318" y="2655">Condicao/projecao DERIVADA</text>
+  <rect class="box action" x="546" y="2640" width="20" height="20"/>
+  <text class="t-m" x="574" y="2655">Acao do usuario</text>
+  <path class="gate box" d="M 760 2650 L 780 2640 L 800 2650 L 780 2660 Z"/>
+  <text class="t-m" x="810" y="2655">Gate de elegibilidade/negocio</text>
+  <rect class="box shared" x="1060" y="2640" width="20" height="20"/>
+  <text class="t-m" x="1088" y="2655">Contrato COMPARTILHADO unico</text>
+  <rect class="box legacy" x="1350" y="2640" width="20" height="20"/>
+  <text class="t-m" x="1378" y="2655">Legado isolado</text>
+  <path class="fwd" d="M 1480 2650 L 1520 2650"/>
+  <text class="t-m" x="1530" y="2655">Avanco</text>
+  <path class="rev" d="M 1660 2650 L 1620 2650"/>
+  <text class="t-m" x="1600" y="2672">Retorno</text>
+</svg>

@@ -34,7 +34,15 @@ history (`docs/ledgers/G28_LEDGER.md`), or the Pedido/OP technical and product
 semantics already owned by `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md` and
 `docs/architecture/ORDEM_COMPRA_LIFECYCLE_SPEC_PROPOSED.md`.
 
+7. **The target product design lives in §9 and must never be merged with the
+   current-state description of §§3–6.** §9 says how the product must work; §§3–6
+   say how the code behaves today; §8 and §9.6 hold the delta. Documenting a
+   target authorizes no implementation.
+
 Derived visual evidence: [`diagrams/pedido-derived-lifecycle-current.svg`](diagrams/pedido-derived-lifecycle-current.svg).
+
+Target product design: [`diagrams/pedido-derived-lifecycle-target.svg`](diagrams/pedido-derived-lifecycle-target.svg)
+and its source [`diagrams/pedido-derived-lifecycle-target.mmd`](diagrams/pedido-derived-lifecycle-target.mmd) — see §9.
 
 ---
 
@@ -757,62 +765,290 @@ recovery and are owned by `docs/governance/current-state.json`:
 
 ---
 
-## 9. Target architecture — pending design
+## 9. Target product design
 
-Every item below is `DESIGN_PENDING`. **No contract is invented here to fill the
-section.** Each entry states only the problem the design must solve and the
-constraints already ruled.
+> **READ THIS SECTION AS A SPECIFICATION, NOT AS A REPORT.**
+> Section 9 describes how the product **must work after the corrections**.
+> Sections 3–6 and 8 describe **what the code does today**. The two must never be
+> merged, and the target graph must never be rewritten as a diagram of current
+> defects.
 
-### 9.1 Canonical Pedido status writer — `DESIGN_PENDING`
-Must own every `pedidos.status` transition server-side, including `produzindo`
-(7.1). Direct frontend `UPDATE` authority is not accepted. Must remain compatible
-with db/91's pending-priority refusal and with db/92's revision concurrency owner.
+### 9.0 The four distinct registers used in this document
 
-### 9.2 Atomic slider RPC — `DESIGN_PENDING`
-Must replace the per-row loop in `salvarDistribuicaoOP` with one atomic
-server-owned write, and must decide whether the `saldo_fios` / `saldo_fios_op`
-snapshot of `iniciarProducaoOP` folds into the same boundary.
+| Register | Where it lives | What it means |
+|---|---|---|
+| **TARGET PRODUCT SPECIFICATION** | §9 and the target diagram | Desired behaviour. A transition without a writer, RPC or screen today still belongs here. |
+| **CURRENT IMPLEMENTATION FACTS** | §3, §4, §5, §6, §13 | Measured repository and production reality at the accepted baseline. |
+| **IMPLEMENTATION GAPS** | §8 and §9.C | The delta between the two above. A gap is a fact about the code, never a change to the target. |
+| **IMPLEMENTATION AUTHORIZATION** | §14 and `current-state.json` | Whether anyone may write product code. **Documenting a target authorizes nothing.** |
 
-### 9.3 Native material-availability projection — `DESIGN_PENDING`
-Must give every availability reader one native source derived from
-`oc_cobertura_ativa` plus the native receipt ledger, replacing every
-`ordens_compra_fio` read listed in 6.1.
+### 9.1 Target graph artifacts
 
-### 9.4 Native supplier queue — `DESIGN_PENDING`
-Must give a supplier a reachable native surface and decide whether supplier
-acceptance is activated in this release or stays `exige_aceite = FALSE`.
+| Artifact | Path | Role |
+|---|---|---|
+| Target graph (visual) | [`diagrams/pedido-derived-lifecycle-target.svg`](diagrams/pedido-derived-lifecycle-target.svg) | 15 lanes + isolated legacy area. Derived evidence; this text is authoritative. |
+| Target graph (source) | [`diagrams/pedido-derived-lifecycle-target.mmd`](diagrams/pedido-derived-lifecycle-target.mmd) | Mermaid source for review and correction; carries R1–R13 and D1–D6 in its header. |
+| Current-state graph | [`diagrams/pedido-derived-lifecycle-current.svg`](diagrams/pedido-derived-lifecycle-current.svg) | **Historical/current-state evidence only.** Not the target. |
 
-### 9.5 Receipt cutover state machine — `DESIGN_PENDING`
-Must define the exact transitions of `ordem_compra_cutover`
-(`legacy_active/flat` → maintenance fence → `canonical_active/canonical`), the
-lock and concurrency boundary, reconciliation, and observability.
+### 9.2 Target lifecycle explanation
 
-### 9.6 PONR — `DESIGN_PENDING`
-Must be explicitly identified. LR-12 (fresh verified backup) is an entry criterion.
+**When each entity is born.** The Pedido is born commercially. Confirmation does
+**not** create a weaving OP — it makes the explicit **Criar OP de Tecelagem**
+action reachable. The OP is born `simulada`, belonging to the Pedido, with its
+items and planned metres still reviewable. An explicit operator action opens it
+to `aberta`, and only then are purchase requirements synchronized. Requirements
+exist before any Purchase Order. Planning decides *who supplies* and creates no
+document. The Purchase Order is born only at the explicit **Generate** act, from
+planning rows of one supplier. Receipt exists only against an emitted native
+Purchase Order.
 
-### 9.7 Pre-PONR rollback — `DESIGN_PENDING`
-Must be rehearsed and evidenced before the PONR is crossed.
+**What enables the next step.** Receipt → ledger entry → distribution across the
+**real allocations** → canonical availability per OP. Availability sets the
+slider ceiling. An atomically saved adjustment satisfies the production-start
+gate. Partial receipt reduces the ceiling without blocking: partial production is
+valid.
 
-### 9.8 Post-PONR forward recovery — `DESIGN_PENDING`
-Must be a forward action. Simulating rollback by rewriting accepted history is
-prohibited.
+**What each step produces.** Requirements produce traceability to
+Pedido/OP/item/material/colour. Planning produces the supplier decision without a
+document. The Purchase Order produces the commercial commitment. Receipt produces
+the physical fact and its auditable history. Availability produces eight
+*related* measures — required, planned, purchased, received, reversed, allocated,
+committed/consumed, available — never collapsed into one number.
 
-### 9.9 Tapete recovery paths — `DESIGN_PENDING`
-Depends on LR-10 verification. Must cover expedition reversal and the finishing
-OP recovery gap of LR-05.
+**Shared purchases.** Cotton is a requirement **per OP**; polyester is a
+requirement **per Pedido**, shared across OPs. An OP sees only the share actually
+allocated to it, never the supplier total. This is why representative-OP
+fabrication is prohibited: it would destroy the real allocation.
 
-### 9.10 Manta recovery paths — `DESIGN_PENDING`
-db/87 already owns the Manta expedition reversal; the design must state what, if
-anything, changes and must not silently re-specify it.
+**Tapete vs Manta.** After weaving, Tapete goes to a finishing/latex OP and only
+then to expedition. Manta goes **directly** to expedition. Both converge on the
+same expedition entity, but their reversal writers are distinct because their
+production sources differ.
 
-### 9.11 Expedition correction — `DESIGN_PENDING`
-### 9.12 Delivery correction — `DESIGN_PENDING`
-Depends on LR-11 verification, including the derived `pedidos.status -> entregue`
-that the delivery writes.
+**How reversals work.** Every advance has its return. Cancelling a Purchase Order
+releases active coverage and returns the requirement to planning. Reversing a
+receipt reverses the ledger and recomputes allocations and availability.
+Replacing an adjustment reopens the slider. Correcting a movement recomputes the
+balance. Reversing an expedition returns quantity to pending. Correcting a
+delivery recomputes totals and, per D1, can undo a premature conclusion.
 
-### 9.13 Tracking and partial-delivery mounting — `DESIGN_PENDING`
-Depends on the owning product decision for LR-06 / LR-07. Mounting is currently
-prohibited without it.
+**Two axes always visible.** `Commercial status: Confirmado` +
+`Operational stage: Aguardando recebimento` + `Next action: Registrar
+recebimento`. The operational axis **projects**; it never replaces the commercial
+one.
+
+### 9.3 Binding target rulings R1–R13
+
+| # | Ruling |
+|---|---|
+| R1 | Weaving OP persisted states are `simulada → aberta → em_producao → pausada / concluida`, plus cancellation by eligibility. Balance or completion percentage establishes **eligibility only**; an explicit **Concluir OP** action validated by the canonical server-owned lifecycle writer performs the transition. "OP planejada" is not a persisted state. |
+| R2 | Pedido confirmation does not create a weaving OP. It makes **Criar OP de Tecelagem** reachable. Sequence: confirmado → operator creates → `simulada` → items/metres reviewed → operator opens → `aberta` → requirements synchronized. Duplicate-prevention guards are later implementation design. |
+| R3 | "Aguardando recebimento/disponibilidade de insumos" is a **derived condition**, placed after the OP is open and before a valid adjustment can be saved. It admits partial availability. |
+| R4 | There is no `nao_aplicavel → pendente` transition. At emission the frozen configuration selects one branch. Only `pendente → aceita` and `pendente → rejeitada` are acceptance decisions. |
+| R5 | A rejected or emitted Purchase Order never returns to `rascunho`. Emission freezes the commercial document. Recovery = cancel/close by eligibility → release and replan the requirement → generate a **replacement** Purchase Order with its own identity and number. |
+| R6 | The receipt axis is derived from native receipt and reversal facts. No direct manual status editing. |
+| R7 | The normal Tapete path is automatic idempotent/transactional finishing-OP creation. A manual action appears only as a recovery surface after a proved automatic failure — never a parallel normal route. |
+| R8 | Tapete and Manta expedition reversals are **distinct** paths. They may converge as a business concept but not as one identical persisted transition. |
+| R9 | Delivery correction triggers full recomputation of delivered quantities and of the Pedido conclusion condition. |
+| R10 | Customer tracking "Em preparação" covers the whole confirmed pre-production interval (OP opening, purchasing, receipt, adjustment). "Em produção" only when production actually begins. Tracking is a projection, never an independent authority. |
+| R11 | The eight material quantities are **related measures**, not a mandatory temporal chain. Visual order implies neither calculation order nor independent persistence. Pedido-origin polyester stays visibly shared and distributed through real allocations. |
+| R12 | After a saved receipt there is a visible **Revisar produção** continuation. One benefiting OP → that OP's screen anchored at the shared adjustment block; several → the Pedido's consolidated production panel identifying the affected OPs. The complete slider never lives inside the receipt modal. |
+| R13 | The coordinated release boundary keeps the corrected Block 1 ordering of §9.5. |
+
+### 9.4 Binding target rulings D1–D6
+
+#### D1 — Pedido state after delivery correction
+
+When correcting or reversing a delivery makes a previously delivered,
+non-cancelled Pedido incomplete: **`entregue → produzindo`**.
+
+- cancelled remains cancelled;
+- non-cancelled and incomplete becomes `produzindo`;
+- fully delivered becomes `entregue`.
+
+The canonical server-side writer owns this recomputation. The delivery-correction
+writer must **not** return directly to `confirmado`.
+
+#### D2 — Committed material contract
+
+For this coordinated release, available material for one OP is:
+
+```
+net native receipt allocated to the OP
+  minus active calculated consumption reserved by other OPs
+```
+
+The reservation authority is the **latest atomically saved production
+adjustment**.
+
+- simulated/open OP with a saved adjustment: **reserved**;
+- in-production/paused/concluded OP: **committed or consumed**;
+- the OP being recalculated receives its own current reservation back before its
+  new ceiling is computed;
+- planned metres alone do not reserve material;
+- measured physical yarn consumption is **not** claimed until such an authority
+  exists.
+
+#### D3 — Supplier acceptance configuration
+
+`exige_aceite` is configured **per supplier** and defaults to `false`. At
+emission its value is copied and frozen on the Purchase Order.
+
+- `false` → `status_aceite = nao_aplicavel`;
+- `true` → `status_aceite = pendente`;
+- later supplier-setting changes do not mutate emitted Purchase Orders.
+
+#### D4 — Finishing-OP idempotency
+
+Normal automatic creation is idempotent by **`origem_entrega_id`**. For a
+legitimate split flow, the identity is `origem_entrega_id` **+ a deterministic
+split discriminator**. The idempotency identity must not be the source weaving OP
+alone, mutable free text, or execution time.
+
+#### D5 — Proved automatic failure
+
+The recovery surface is reachable only when server-owned evidence proves all of:
+
+1. the weaving delivery committed successfully;
+2. no canonical finishing OP exists for the expected identity;
+3. an automatic attempt is recorded as failed.
+
+The failure record or event must identify the source delivery, failure code,
+time, execution actor/process, and result. The recovery action **retries the same
+canonical idempotent writer**; it is not a free-form manual OP-creation path.
+
+#### D6 — Tapete expedition reversal
+
+The Tapete reversal writer operates on **expedition items** and records a
+reversal movement. It must:
+
+- reduce released metres by item;
+- reject reversal above released quantity;
+- reject any result below already delivered quantity;
+- preserve source and commercial lineage;
+- recompute finished-output availability.
+
+Finished-output availability is derived from **measured finished output minus
+currently released expedition quantity**. A standalone "finished stock balance"
+is never edited directly.
+
+### 9.5 Coordinated implementation blocks
+
+**Block 1 — receipt → production continuity (indivisible; the §7.3 boundary).**
+No intermediate production state may expose receipt while slider persistence is
+non-atomic, and no surface may remain operationally dependent on the flat model
+when the canonical cutover is activated.
+
+1. **Repoint every active flat-model consumer** (§6.1) — supplier, Pedido, OP,
+   slider, availability, delete, receipt and purchasing surfaces.
+2. Native material-availability projection implementing **D2**.
+3. Repoint the slider ceiling to that projection.
+4. Atomic production-adjustment RPC (all items or none).
+5. **Native supplier queue and acceptance/rejection writers**, implementing **D3**.
+6. Activate native receipt and reversal.
+7. Perform the canonical cutover.
+8. Prove authenticated continuation into production, including the **R12**
+   post-receipt navigation.
+
+Physical removal of `ordens_compra_fio` remains later. Operational dependency on
+it does not.
+
+**Block 2 — Pedido operational status.** Canonical server-owned `pedidos.status`
+writer covering `produzindo` (R2, D1) and routing production start through the OP
+lifecycle writer (R1).
+
+**Block 3 — Tapete finishing continuity.** Idempotent automatic finishing-OP
+creation (**D4**), the proved-failure recovery surface (**D5**), and transactional
+weaving movement correction.
+
+**Block 4 — reversal symmetry.** Tapete expedition reversal (**D6**) and delivery
+correction with conclusion undo (**D1**).
+
+**Block 5 — legacy retirement.** Physical removal of `ordens_compra_fio` and the
+flat compatibility shims, only after Block 1.
+
+Tracking/partials administrative mounting (LR-06 / LR-07) stays outside these
+blocks pending the owning product decision.
+
+### 9.6 Target-versus-current gap matrix
+
+Classification: **já implementada** · **parcial** · **ausente** · **conflitante**
+· **dependente de decisão**.
+
+| # | Target element | Current situation | Gap | Affected files | Correction |
+|---|---|---|---|---|---|
+| 1 | OP exists before purchases | `persistirOP` inserts `ops`, then items, then syncs requirements only when `status='aberta'` | **já implementada** | `js/screens/op-persistir.js:220,295-313` | none — the old graph was wrong, not the code |
+| 2 | Operator creates then opens the OP (R2) | Creation and opening exist, but confirmation-gating and duplicate guards are not modelled | **parcial** | `js/screens/op-persistir.js`, `js/screens/op-nova.js` | make the two acts explicit and gated |
+| 3 | OP states + explicit Concluir OP (R1) | `alterar_status_op` holds the matrix; production start bypasses it with a direct `UPDATE` | **parcial** | `db/21_op_lifecycle_status_eventos.sql:129`; `js/screens/op-recalculo.js:181` | route every transition through the canonical writer |
+| 4 | Requirements derived from OP items | cotton per OP, polyester per Pedido | **já implementada** | `db/67_ordem_compra_refoundation_schema.sql:71-110` | none |
+| 5 | Planning creates no document | db/99 two-stage model | **já implementada** | `db/99_planejamento_compra_refoundation.sql` | none |
+| 6 | Three orthogonal OC axes | all three columns exist | **já implementada** | `db/67:187-192` | none |
+| 7 | Acceptance branch frozen at emission (D3) | `status_aceite` exists; no writer; `exige_aceite` has no per-supplier configuration and no write path | **ausente** | `db/65`, `db/77:36-45` | per-supplier setting + freeze-on-emission + acceptance/rejection writers |
+| 8 | Rejected OC → replacement OC (D4/R5) | no rejection, closure or replacement writer | **ausente** | — | cancel/close + replan + generate replacement |
+| 9 | Register receipt | `registrar_recebimento_ordem_compra` exists | **implementada, inalcançável** | `db/70:458`; `db/100:789-845` | activate the cutover |
+| 10 | Reverse receipt | `estornar_recebimento_ordem_compra` exists | **implementada, inalcançável** | `db/70:805` | same activation |
+| 11 | Ledger + allocation distribution | tables exist, zero rows | **implementada, inalcançável** | `db/70:17,144` | same activation |
+| 12 | Canonical availability of received material (D2) | `oc_cobertura_ativa` measures **purchase coverage**, not received material; no reservation concept | **ausente** | `db/100:60-137` | native projection implementing D2 |
+| 13 | Slider ceiling reads native availability | reads `ord.kg_recebido` from flat `ordens_compra_fio`, today **0 rows** ⇒ ceiling 0 | **conflitante** | `js/screens/op-recalculo.js` (`maxMetrosItem`) | repoint to the D2 projection |
+| 14 | Slider shared OP + Pedido | one builder, two mounts, one writer | **já implementada** | `js/screens/op-distribuicao-ui.js`; `op-nova.js:1601`; `pedido-detail-events.js:933,950` | none |
+| 15 | Atomic all-or-nothing save | per-row `UPDATE` loop returning `{partial:true}` | **ausente** | `js/screens/op-recalculo.js:194-206` | one atomic RPC |
+| 16 | Post-receipt "Revisar produção" (R12) | no continuation after receipt | **ausente** | receipt screens | continuation + 1-OP / N-OPs routing |
+| 17 | Pedido → Produzindo derived (D1/R2) | no writer at all | **ausente** | `db/13:50`; `db/91:621-622` | canonical server-owned status writer |
+| 18 | Weaving movements + correction | exist; `atualizarEntregaCima` is a non-transactional delete+insert | **parcial** | `js/screens/entrega-writes.js` | transactional writer |
+| 19 | Automatic idempotent finishing OP (D4) | `gerar_op_latex` is best-effort; idempotency identity not the delivery | **conflitante** | `entrega-writes.js:241-278`; `db/25:177` | idempotent by `origem_entrega_id` |
+| 20 | Proved-failure recovery surface (D5) | toast says "gere manualmente"; **no such surface exists**; no failure record | **ausente** | `entrega-writes.js:241-243` | failure record + gated retry surface |
+| 21 | Manta direct route | correct | **já implementada** | `js/product-route.js:32-34`; `db/86` | none |
+| 22 | Expedition creation/partial | three release writers | **já implementada** | `db/23:177`, `db/31:164`, `db/86:306` | none |
+| 23 | Manta expedition reversal | writer + screen exist | **já implementada** | `db/87:64`; `manta-writes.js:194` | none |
+| 24 | Tapete expedition reversal (D6) | **no writer exists** (full `estornar_*` sweep) | **ausente** | — | writer per D6 + screen |
+| 25 | Register delivery | exists | **já implementada** | `db/23:269` | none |
+| 26 | Conclusion derived from delivery | `concluir_pedido_se_pronto` already derives it | **já implementada** | `db/23:373`; `db/87:369` | none |
+| 27 | Delivery correction undoing conclusion (D1) | **no writer exists** | **ausente** | — | correction writer + `entregue → produzindo` |
+| 28 | Customer tracking projection (R10) | client surfaces mounted; "Em preparação" anchoring undefined | **parcial** | `status_cliente_visual`; `js/screens/cliente-*` | widen to the confirmed pre-production interval |
+| 29 | Admin tracking/partials surfaces | not mounted | **dependente de decisão** | `pedido-tracking-admin.js:332`; `pedido-parciais-admin.js:445` | owning product decision |
+| 30 | Legacy outside the flow | six consumers still read/write the flat model | **conflitante** | `op-nova.js:1287,1293`; `op-persistir.js:330-338`; `fornecedor.js:472,539`; `pedido-detail-data.js:397-407`; `op-writes.js:93,122`; `delete-helpers.js:82` | repoint in Block 1; retire in Block 5 |
+
+**Reversal coverage against the target:**
+
+| Reversal | Status |
+|---|---|
+| Pedido cancellation | parcial (frontend transition, no server-owned writer) |
+| OP cancellation | já implementada (`alterar_status_op`) |
+| Purchase Order cancellation | já implementada (`cancelar_ordem_compra`, db/100) |
+| Receipt reversal | implementada, inalcançável (cutover inactive) |
+| Production-adjustment replacement | parcial (overwrites, not atomic) |
+| Weaving movement correction | parcial (non-transactional) |
+| Manta expedition reversal | já implementada |
+| Tapete expedition reversal | **ausente** |
+| Delivery correction | **ausente** |
+
+### 9.7 Remaining assumptions
+
+Every product choice ruled by R1–R13 and D1–D6 has been removed from this list.
+What remains are **technical design details**, not product decisions:
+
+1. Physical shape of the D2 projection — materialized view, table with triggers,
+   or on-demand function — and its concurrency/locking boundary under simultaneous
+   adjustments of two OPs sharing polyester.
+2. Exact signature and payload of the atomic adjustment RPC, and whether the
+   `saldo_fios` / `saldo_fios_op` snapshot of `iniciarProducaoOP` folds into the
+   same transaction.
+3. Storage of the D5 failure record — new table, reuse of an existing event
+   table, or an attempt column on the delivery — and its retention.
+4. Concrete form of the D4 deterministic split discriminator.
+5. Cutover state machine transitions, lock boundary, reconciliation and
+   observability (§9.5 step 7), plus PONR, pre-PONR rollback rehearsal and
+   post-PONR forward recovery.
+6. Whether the D6 Tapete reversal reuses the db/87 Manta command/event shape or
+   needs its own, given the different production source.
+7. Route and layout of the R12 consolidated Pedido production panel.
+
+### 9.8 Authorization status of this section
+
+**Documenting this target authorizes no implementation.** Section 9 is a
+specification awaiting supervisor review. No migration, RPC, screen or
+configuration change is authorized by its existence. Implementation authorization
+lives only in `docs/governance/current-state.json` and §14.
 
 ---
 
@@ -1047,6 +1283,10 @@ One implementation-ready coordinated design with exact manifests, invariants,
 cutover state machine, PONR, recovery matrix, authenticated acceptance plan,
 and resolution of the remaining Tapete/expedition/delivery edges.
 
+TARGET DESIGN:
+DOCUMENTED / AWAITING SUPERVISOR REVIEW (section 9, rulings R1-R13 and D1-D6).
+NOT ACCEPTED. IMPLEMENTATION REMAINS UNAUTHORIZED.
+
 PRODUCTION POSITION (verified read-only 2026-07-31):
 db/100 APPLIED (20260731033711) AND TERMINAL; PUBLISHED THROUGH staging/dev.
 NATIVE RECEIPT STILL INACTIVE (ordem_compra_cutover = legacy_active / flat).
@@ -1086,6 +1326,7 @@ correction.
 | Date | Order | Sections changed | Note |
 |---|---|---|---|
 | 2026-07-31 | `PEDIDO-LIFECYCLE-RECOVERY-CANONICAL-DOCUMENT-R1` | 0–16 (created) | Document established from the accepted `PEDIDO-DERIVED-LIFECYCLE-GRAPH-COMPLETION-R2` diagnosis at HEAD `97d461e`. Baseline visual graph added. Documentation-only; no product, migration, test or configuration file changed. |
+| 2026-07-31 | `PEDIDO-DERIVED-LIFECYCLE-TARGET-DESIGN-FINALIZATION-R1` | 0, 9 (replaced), 14, 16 | Section 9 replaced: was a list of DESIGN_PENDING placeholders, now the complete TARGET PRODUCT DESIGN — artifacts, lifecycle explanation, binding rulings R1-R13 and D1-D6, coordinated implementation blocks, the 30-row target-versus-current gap matrix, the residual technical-design assumptions, and the four-register distinction (target spec / current facts / gaps / authorization). Section 0 gained the clause forbidding the target and the current-state description from being merged. Section 14 records TARGET DESIGN DOCUMENTED / AWAITING SUPERVISOR REVIEW. Target graph added as SVG + Mermaid. Documentation-only; design is NOT accepted and implementation remains unauthorized. |
 | 2026-07-31 | `PEDIDO-LIFECYCLE-RECOVERY-CANONICAL-STATE-CORRECTION-R1` | 2, 10 (new 10.1), 13 (new 13.6.1), 14, 16 | Reconciled the operational facts with independently re-verified read-only production state. Section 2 now records db/100 (`20260731033711`) as the terminal applied migration and the inactive cutover instead of db/99. New 10.1 records the **current** administrative status of both protected Purchase Orders (`OC-001-3-26` and `OC-001-4-26` are now `emitida`, not `rascunho`), explicitly distinguished from the historical db/100 preflight evidence in 13.6, which is preserved unchanged. New 13.6.1 records the current production measurement. Section 14 now states the verified production position and that PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 remains unaccepted. No lifecycle redesign; no defect, ruling, classification or decision changed. Documentation-only. |
 
 **Every future executor report must identify the exact sections changed here.**

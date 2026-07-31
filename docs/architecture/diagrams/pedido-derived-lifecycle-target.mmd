@@ -1,0 +1,394 @@
+%% GRAFO-ALVO — ciclo de vida do Pedido e das ordens relacionadas.
+%% ESPECIFICACAO FUNCIONAL do produto DEPOIS das correcoes. NAO e o codigo atual.
+%% Uma transicao sem writer/RPC/tela hoje continua valida aqui; a matriz de diferencas registra a ausencia.
+%% Autoridade: docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md
+%% Estado atual (nao confundir): pedido-derived-lifecycle-current.svg
+%%
+%% DECISOES DE PRODUTO VINCULANTES (PEDIDO-DERIVED-LIFECYCLE-TARGET-GRAPH-RULINGS-R1)
+%%  R1  Estados persistidos reais da OP: simulada -> aberta -> em_producao -> pausada / concluida.
+%%      Saldo/percentual torna ELEGIVEL; NAO conclui automaticamente. Ha acao explicita "Concluir OP".
+%%  R2  Confirmar o Pedido NAO cria OP. Torna alcancavel a acao "Criar OP de Tecelagem".
+%%  R3  "Aguardando insumos" e condicao DERIVADA, depois da OP aberta e antes do ajuste valido.
+%%  R4  Na emissao, a configuracao congelada escolhe UM ramo: nao_aplicavel OU pendente.
+%%      Nao existe transicao nao_aplicavel -> pendente.
+%%  R5  OC rejeitada/emitida NAO volta a rascunho. Emissao congela o documento.
+%%      Recuperacao = cancelar/encerrar + replanejar + GERAR OC substituta com identidade propria.
+%%  R6  Eixo de recebimento e DERIVADO dos fatos de recebimento/estorno. Sem edicao manual.
+%%  R7  Rota Tapete normal = criacao automatica idempotente/transacional da OP de acabamento.
+%%      Acao manual so como recuperacao apos falha automatica PROVADA.
+%%  R8  Reversoes de expedicao Tapete e Manta sao caminhos DISTINTOS (fontes de producao diferentes).
+%%  R9  Correcao de entrega recomputa e, se deixar de estar completo, RETIRA o Pedido de entregue.
+%%  R10 "Em preparacao" cobre todo o intervalo confirmado pre-producao, nao so o recebimento.
+%%  R11 As oito grandezas de material sao medidas RELACIONADAS, nao uma cadeia temporal.
+%%  R12 Apos recebimento salvo ha continuacao visivel "Revisar producao", com roteamento 1 OP / N OPs.
+%%  R13 Fronteira coordenada do Bloco 1 preservada na ordem corrigida.
+%%
+%% DECISOES FINAIS DO ARQUITETO (PEDIDO-DERIVED-LIFECYCLE-TARGET-DESIGN-FINALIZATION-R1)
+%%  D1 Correcao de entrega que torna incompleto um Pedido entregue e nao cancelado: entregue -> produzindo.
+%%     Cancelado permanece cancelado. Integralmente entregue vira entregue. NUNCA volta direto a confirmado.
+%%  D2 Disponivel para uma OP = recebimento nativo LIQUIDO alocado a ela menos consumo calculado ATIVO
+%%     reservado por OUTRAS OPs. Autoridade de reserva = ultimo ajuste de producao salvo atomicamente.
+%%     simulada/aberta com ajuste salvo RESERVA; em_producao/pausada/concluida COMPROMETE ou CONSOME.
+%%     Metragem planejada sozinha NAO reserva. A OP recalculada recebe a propria reserva de volta antes do novo teto.
+%%     Consumo fisico medido NAO e reivindicado enquanto nao existir tal autoridade.
+%%  D3 exige_aceite e configurado POR FORNECEDOR, padrao false; na emissao e COPIADO e CONGELADO na OC.
+%%     false -> nao_aplicavel; true -> pendente. Mudanca posterior da configuracao NAO muta OCs emitidas.
+%%  D4 Criacao automatica da OP de acabamento e idempotente por origem_entrega_id; em split legitimo,
+%%     origem_entrega_id + discriminador de split DETERMINISTICO. Nunca so a OP de origem, texto livre ou instante.
+%%  D5 A superficie de recuperacao so e alcancavel com prova server-owned de: (1) entrega de tecelagem confirmada;
+%%     (2) nenhuma OP de acabamento canonica para a identidade esperada; (3) tentativa automatica registrada como FALHA.
+%%     O registro identifica entrega de origem, codigo de falha, momento, ator/processo e resultado.
+%%     A acao RETENTA o mesmo writer idempotente; nao e criacao manual livre.
+%%  D6 Reversao Tapete opera sobre ITENS de expedicao e grava movimento de reversao: reduz metros liberados por item;
+%%     recusa reverter acima do liberado; recusa resultado abaixo do ja entregue; preserva linhagem; recomputa
+%%     disponibilidade de saida acabada = saida acabada MEDIDA menos expedicao atualmente liberada.
+%%     Nunca editar diretamente um saldo de estoque acabado avulso.
+flowchart LR
+
+  classDef persisted fill:#ecfdf3,stroke:#12b76a,stroke-width:1.5px,color:#101828
+  classDef derived fill:#f2f4f7,stroke:#98a2b3,stroke-width:1.5px,stroke-dasharray:4 3,color:#344054
+  classDef action fill:#eff8ff,stroke:#2e90fa,stroke-width:1.5px,color:#101828
+  classDef gate fill:#fffaeb,stroke:#f79009,stroke-width:1.5px,color:#101828
+  classDef legacy fill:#eaecf0,stroke:#98a2b3,stroke-width:1px,color:#667085
+  classDef shared fill:#f4f3ff,stroke:#7a5af8,stroke-width:2px,color:#101828
+
+  %% ===== RAIA 1 — PEDIDO COMERCIAL =====
+  subgraph R1["RAIA 1 · PEDIDO — ciclo COMERCIAL (eixo proprio, nunca substituido pelo operacional)"]
+    direction LR
+    P0["Rascunho"]:::persisted
+    P1["Recebido"]:::persisted
+    P2["Confirmado"]:::persisted
+    P3["Produzindo"]:::persisted
+    P4["Entregue"]:::persisted
+    PGT{"Elegivel a<br/>cancelamento?"}:::gate
+    PC["Cancelado"]:::persisted
+    P0 --> P1 --> P2 --> P3 --> P4
+    P0 -.-> PGT
+    P1 -.-> PGT
+    P2 -.-> PGT
+    PGT -->|"sim"| PC
+  end
+  OPSTATE(["Etapa operacional derivada, exibida AO LADO do status comercial"]):::derived
+  P2 -.->|"projeta, nao substitui"| OPSTATE
+
+  %% ===== RAIA 2 — CRIACAO E ABERTURA DA OP (R2) =====
+  subgraph R2G["RAIA 2 · CRIACAO E ABERTURA DA OP — confirmar o Pedido NAO cria OP; torna a acao ALCANCAVEL"]
+    direction LR
+    NCREATE["Acao: Criar OP de Tecelagem<br/>a partir do Pedido"]:::action
+    NSIM["OP simulada<br/>existe e pertence ao Pedido"]:::persisted
+    NREV["Revisar itens e<br/>metragens planejadas"]:::action
+    NOPEN["Acao: Abrir OP"]:::action
+    NAB["OP aberta<br/>operacional"]:::persisted
+    NSYNC["Necessidades de insumos<br/>sincronizadas"]:::persisted
+    NCREATE --> NSIM --> NREV --> NOPEN --> NAB --> NSYNC
+  end
+  P2 ==>|"torna alcancavel"| NCREATE
+
+  %% ===== RAIA 3 — CICLO DE VIDA PERSISTIDO DA OP (R1) =====
+  subgraph R3G["RAIA 3 · CICLO DE VIDA PERSISTIDO DA OP — writer canonico server-owned"]
+    direction LR
+    S1["simulada"]:::persisted
+    S2["aberta"]:::persisted
+    S3["em_producao"]:::persisted
+    S4["pausada"]:::persisted
+    SCONC["Acao: Concluir OP<br/>saldo/percentual so torna ELEGIVEL"]:::action
+    S5["concluida"]:::persisted
+    S6["cancelada"]:::persisted
+    S1 --> S2 --> S3
+    S3 -->|"pausar"| S4
+    S4 -->|"retomar"| S3
+    S3 --> SCONC --> S5
+    S1 --> S6
+    S2 --> S6
+    S3 --> S6
+  end
+  NSYNC ==> S2
+
+  %% ===== RAIA 4 — NECESSIDADES =====
+  subgraph R4G["RAIA 4 · NECESSIDADES DE INSUMOS — derivadas dos itens da OP, existem ANTES de qualquer Ordem de Compra"]
+    direction LR
+    IT["Item da OP<br/>modelo + largura + cores + metragem"]:::persisted
+    REC["Receita de consumo<br/>por metro linear e largura"]:::persisted
+    CALC{"Calculo de<br/>necessidade"}:::gate
+    NEC["Necessidade de insumo<br/>material + cor + kg necessario"]:::persisted
+    NECA["Algodao · por OP<br/>rastreavel a OP + item"]:::persisted
+    NECP["Poliester · por PEDIDO<br/>COMPARTILHADA, distribuida por alocacoes reais"]:::shared
+    IT --> CALC
+    REC --> CALC
+    CALC --> NEC
+    NEC --> NECA
+    NEC --> NECP
+  end
+  NSYNC ==> IT
+
+  %% ===== RAIA 5 — PLANEJAMENTO (ETAPA 1) =====
+  subgraph R5G["RAIA 5 · PLANEJAMENTO — ETAPA 1: decide QUEM fornece. NAO cria documento, NAO numera, NAO altera estoque"]
+    direction LR
+    PL0(["Necessidade sem planejamento<br/>saldo livre"]):::derived
+    PLA["Acao: atribuir fornecedor<br/>+ quantidade planejada"]:::action
+    PL1["Linha de planejamento<br/>(necessidade, fornecedor, kg)"]:::persisted
+    PLG{"Linhas do MESMO<br/>fornecedor selecionadas?"}:::gate
+    PL0 --> PLA --> PL1 --> PLG
+  end
+  NEC ==> PL0
+
+  %% ===== RAIA 6 — ORDEM DE COMPRA: TRES EIXOS ORTOGONAIS =====
+  subgraph R6A["RAIA 6 · EIXO A — ADMINISTRATIVO (status_administrativo)"]
+    direction LR
+    OCGEN["ETAPA 2 · Acao: GERAR<br/>ato explicito e atomico"]:::action
+    A1["rascunho<br/>editavel"]:::persisted
+    A2["emitida<br/>DOCUMENTO CONGELADO"]:::persisted
+    A3["cancelada / encerrada"]:::persisted
+    ADEL["Acao: excluir<br/>so quando elegivel"]:::action
+    OCGEN --> A1 --> A2
+    A1 --> A3
+    A2 --> A3
+    A1 --> ADEL
+    A3 --> ADEL
+  end
+  PLG ==>|"gerar das linhas selecionadas"| OCGEN
+  A3 -.->|"libera cobertura ativa"| PL0
+
+  subgraph R6B["RAIA 6 · EIXO B — ACEITE DO FORNECEDOR (status_aceite) · ramo escolhido NA EMISSAO"]
+    direction LR
+    BGT{"exige_aceite DO FORNECEDOR<br/>padrao false · COPIADO e CONGELADO na emissao"}:::gate
+    B0["nao_aplicavel"]:::persisted
+    B1["pendente"]:::persisted
+    BDEC{"Decisao do<br/>fornecedor"}:::gate
+    B2["aceita"]:::persisted
+    B3["rejeitada"]:::persisted
+    BGT -->|"nao exige"| B0
+    BGT -->|"exige"| B1
+    B1 --> BDEC
+    BDEC -->|"aceita"| B2
+    BDEC -->|"rejeita"| B3
+  end
+  A2 ==> BGT
+
+  %% R5 — recuperacao de OC rejeitada: NUNCA volta a rascunho
+  BREC["Acao: cancelar/encerrar o<br/>documento rejeitado"]:::action
+  BREP(["Necessidade liberada<br/>e replanejada"]):::derived
+  BNEW["GERAR OC SUBSTITUTA<br/>identidade e numero PROPRIOS"]:::action
+  B3 --> BREC --> A3
+  BREC --> BREP --> PL0
+  BREP --> BNEW
+  BNEW ==> OCGEN
+
+  subgraph R6C["RAIA 6 · EIXO C — RECEBIMENTO (status_recebimento) · DERIVADO, sem edicao manual"]
+    direction LR
+    C0(["nao_recebido<br/>recebimento liquido nulo"]):::derived
+    C1(["parcial<br/>liquido > 0 e < total pedido"]):::derived
+    C2(["recebido<br/>liquido atinge o total pedido"]):::derived
+    C0 -.-> C1 -.-> C2
+    C1 -.-> C0
+    C2 -.-> C1
+  end
+
+  %% ===== RAIA 7 — RECEBIMENTO, ESTORNO E NAVEGACAO POS-RECEBIMENTO (R12) =====
+  subgraph R7G["RAIA 7 · RECEBIMENTO — evento sobre a OC NATIVA e seus itens"]
+    direction LR
+    RGT{"OC emitida ·<br/>aceite ok quando exigido ·<br/>elegivel?"}:::gate
+    RACT["Acao: registrar recebimento<br/>parcial ou total"]:::action
+    RLED["Lancamento no ledger<br/>historico auditavel"]:::persisted
+    RDIST["Distribuicao pelas<br/>ALOCACOES REAIS de cada OP"]:::persisted
+    REST["Acao: estornar recebimento"]:::action
+    RREV["Reversao dos lancamentos<br/>+ recomposicao das alocacoes"]:::persisted
+    RGT -->|"sim"| RACT --> RLED --> RDIST
+    RDIST --> REST --> RREV
+  end
+  B0 ==> RGT
+  B2 ==> RGT
+  RDIST -.->|"deriva o eixo C"| C1
+  RREV -.->|"recalcula o eixo C"| C0
+
+  subgraph R7N["RAIA 7b · CONTINUACAO POS-RECEBIMENTO — nunca um beco sem saida"]
+    direction LR
+    NAV0["Recebimento salvo"]:::persisted
+    NAVA["Acao visivel: REVISAR PRODUCAO"]:::action
+    NAVG{"Quantas OPs<br/>beneficiadas?"}:::gate
+    NAV1["Tela da OP, ancorada no<br/>bloco de ajuste compartilhado"]:::action
+    NAVN["Painel consolidado do Pedido<br/>identifica as OPs afetadas"]:::action
+    NAVNO(["O slider COMPLETO nunca fica<br/>dentro do modal de recebimento"]):::derived
+    NAV0 --> NAVA --> NAVG
+    NAVG -->|"exatamente 1"| NAV1
+    NAVG -->|"varias"| NAVN
+    NAVG -.- NAVNO
+  end
+  RDIST ==> NAV0
+
+  %% ===== RAIA 8 — DISPONIBILIDADE (R11: medidas relacionadas) =====
+  subgraph R8G["RAIA 8 · DISPONIBILIDADE CANONICA — medidas RELACIONADAS por material + cor + OP + necessidade + alocacao"]
+    direction LR
+    AVAIL["DISPONIVEL PARA A OP · D2<br/>recebimento nativo LIQUIDO alocado a esta OP<br/>menos consumo calculado ATIVO reservado por OUTRAS OPs"]:::shared
+    M1(["necessaria"]):::derived
+    M2(["planejada"]):::derived
+    M3(["comprada"]):::derived
+    M4(["recebida"]):::derived
+    M5(["estornada"]):::derived
+    M6(["alocada a OP"]):::derived
+    M7(["comprometida / consumida<br/>autoridade: ultimo ajuste salvo atomicamente"]):::derived
+    D2NOTE(["D2 · simulada/aberta com ajuste salvo RESERVA · em_producao/pausada/concluida COMPROMETE ou CONSOME<br/>metragem planejada sozinha NAO reserva · a OP recalculada recebe a propria reserva de volta<br/>consumo fisico medido NAO e reivindicado"]):::derived
+    D2NOTE -.- AVAIL
+    M1 -.- AVAIL
+    M2 -.- AVAIL
+    M3 -.- AVAIL
+    M4 --> AVAIL
+    M5 --> AVAIL
+    M6 --> AVAIL
+    M7 --> AVAIL
+  end
+  RDIST ==> M4
+  RREV ==> M5
+  NECA -.-> M6
+  NECP -.->|"compartilhada: alocacoes reais preservadas"| M6
+
+  %% ===== RAIA 9 — CONDICAO DERIVADA + SLIDER (R3) =====
+  WAIT(["Aguardando recebimento/disponibilidade de insumos<br/>CONDICAO DERIVADA — depois da OP aberta, antes de um ajuste valido"]):::derived
+  S2 -.-> WAIT
+  PARTIAL(["Recebimento PARCIAL -> disponibilidade parcial<br/>-> teto reduzido -> producao PARCIAL pode iniciar"]):::derived
+  C1 -.-> PARTIAL
+
+  subgraph R9G["RAIA 9 · SLIDER — UMA funcionalidade, DOIS pontos de montagem, UMA fonte, UM writer atomico"]
+    direction LR
+    SM1["Montagem: tela da OP"]:::action
+    SM2["Montagem: painel do Pedido"]:::action
+    SCALC["Teto por item<br/>f(disponivel, receita, cor)"]:::shared
+    SADJ["Operador ajusta<br/>metragem de cada item"]:::action
+    SLIVE(["Consumo recalculado ao vivo"]):::derived
+    SSAVE{"Salvar ajuste<br/>ATOMICO tudo-ou-nada"}:::gate
+    SOK["Metragens ajustadas persistidas"]:::persisted
+    SM1 --> SCALC
+    SM2 --> SCALC
+    SCALC --> SADJ --> SLIVE --> SSAVE
+    SSAVE -->|"todos os itens"| SOK
+    SSAVE -->|"falha ⇒ nenhum item"| SADJ
+    SOK --> SADJ
+  end
+  AVAIL ==>|"mesma projecao para as duas telas"| SCALC
+  WAIT -.-> SCALC
+  PARTIAL -.-> SCALC
+  NAV1 ==> SM1
+  NAVN ==> SM2
+
+  %% ===== RAIA 10 — INICIO DA PRODUCAO =====
+  subgraph R10G["RAIA 10 · INICIO DA PRODUCAO"]
+    direction LR
+    PGT2{"OP aberta · itens definidos ·<br/>necessidades calculadas ·<br/>disponibilidade compativel ·<br/>ajuste valido salvo"}:::gate
+    PSTART["Acao: iniciar producao"]:::action
+    PGT2 -->|"tudo satisfeito"| PSTART
+  end
+  SOK ==> PGT2
+  PSTART ==> S3
+  PSTART ==>|"writer server-owned DERIVA"| P3
+
+  %% ===== RAIA 11 — TECELAGEM =====
+  subgraph R11G["RAIA 11 · TECELAGEM — movimentacoes parciais, saldo e conclusao EXPLICITA"]
+    direction LR
+    MV["Movimentacao parcial<br/>producao entregue por item"]:::persisted
+    SAL(["Saldo remanescente por item"]):::derived
+    ELEG(["Elegivel a conclusao<br/>saldo/percentual NAO conclui sozinho"]):::derived
+    MVC["Acao: corrigir / estornar movimentacao"]:::action
+    MV --> SAL --> ELEG
+    MV --> MVC --> MV
+  end
+  S3 ==> MV
+  ELEG ==> SCONC
+
+  %% ===== RAIA 12 — ROTA POR PRODUTO (R7) =====
+  subgraph R12G["RAIA 12 · ROTA — Tapete passa por acabamento; Manta NAO"]
+    direction LR
+    RGT2{"Tipo de produto"}:::gate
+    TVER(["Saida de tecelagem verificada"]):::derived
+    TAUTO["Criacao AUTOMATICA da OP de acabamento — ROTA NORMAL<br/>D4 idempotente por origem_entrega_id<br/>split legitimo: + discriminador DETERMINISTICO"]:::persisted
+    TFAIL{"D5 · falha automatica PROVADA?<br/>entrega confirmada + sem OP canonica + tentativa registrada como FALHA"}:::gate
+    TMAN["Acao: recuperar OP de acabamento<br/>RETENTA o MESMO writer idempotente<br/>registro identifica entrega, codigo, momento, ator e resultado"]:::action
+    ACB1["Acabamento em producao"]:::persisted
+    ACB2["Acabamento concluido"]:::persisted
+    MANTA(["Manta: direto para expedicao<br/>NAO passa por acabamento"]):::derived
+    RGT2 -->|"Tapete"| TVER --> TAUTO --> ACB1 --> ACB2
+    TAUTO -.-> TFAIL
+    TFAIL -->|"sim"| TMAN --> TAUTO
+    RGT2 -->|"Manta"| MANTA
+  end
+  S5 ==> RGT2
+
+  %% ===== RAIA 13 — EXPEDICAO (R8: reversoes distintas) =====
+  subgraph R13G["RAIA 13 · EXPEDICAO — entradas e reversoes DISTINTAS por rota"]
+    direction LR
+    EGT{"Producao elegivel?"}:::gate
+    EXP0["Expedicao criada"]:::persisted
+    EXP1["Separacao parcial ou total"]:::persisted
+    EXP2["Saida / transporte"]:::persisted
+    EPEND(["Quantidade pendente<br/>por Pedido / OP / item"]):::derived
+    ERT["Acao: reverter expedicao TAPETE · D6<br/>opera sobre ITENS de expedicao + movimento de reversao<br/>reduz metros liberados por item"]:::action
+    ERM["Acao: reverter expedicao MANTA<br/>fonte: saida medida de tecelagem"]:::action
+    ERCONV(["Conceito de negocio comum: devolver quantidade ao pendente<br/>D6 recusa reverter acima do liberado e recusa resultado abaixo do ja ENTREGUE<br/>preserva linhagem de origem e comercial"]):::derived
+    EFIN(["Disponibilidade de saida acabada = saida acabada MEDIDA<br/>menos expedicao atualmente liberada · nunca um saldo editavel avulso"]):::derived
+    ERT -.-> EFIN
+    ERM -.-> EFIN
+    EGT -->|"sim"| EXP0 --> EXP1 --> EXP2
+    EXP1 -.-> EPEND
+    EXP1 --> ERT
+    EXP1 --> ERM
+    ERT -.-> ERCONV
+    ERM -.-> ERCONV
+    ERCONV -.-> EPEND
+  end
+  ACB2 ==> EGT
+  MANTA ==> EGT
+
+  %% ===== RAIA 14 — ENTREGA, CORRECAO E CONCLUSAO (R9) =====
+  subgraph R14G["RAIA 14 · ENTREGA E CONCLUSAO — a correcao DESFAZ conclusao prematura"]
+    direction LR
+    DACT["Acao: registrar entrega<br/>parcial ou total"]:::action
+    DQTY["Quantidades entregues<br/>atualizadas por item"]:::persisted
+    DGT{"TODOS os itens<br/>integralmente entregues?"}:::gate
+    DPART(["Entrega parcial:<br/>acompanha, NAO conclui"]):::derived
+    DCORR["Acao: corrigir / estornar entrega"]:::action
+    DRE["RECOMPUTA totais entregues<br/>e a condicao de conclusao"]:::persisted
+    DGT2{"Continua<br/>integralmente entregue?"}:::gate
+    DUNDO["D1 · RETIRA o Pedido de entregue<br/>writer canonico server-owned recomputa: entregue volta a PRODUZINDO<br/>cancelado permanece cancelado · NUNCA volta direto a confirmado"]:::action
+    DACT --> DQTY --> DGT
+    DGT -->|"nao"| DPART
+    DQTY --> DCORR --> DRE --> DGT2
+    DGT2 -->|"nao"| DUNDO
+    DGT2 -->|"sim"| DQTY
+  end
+  EXP2 ==> DACT
+  DGT ==>|"sim ⇒ writer server-owned"| P4
+  DUNDO ==>|"D1: desfaz conclusao prematura ⇒ produzindo"| P3
+
+  %% ===== RAIA 15 — TRACKING (R10) =====
+  subgraph R15G["RAIA 15 · TRACKING DO CLIENTE — PROJECAO, nunca autoridade paralela"]
+    direction LR
+    T1(["Recebido"]):::derived
+    T2(["Confirmado"]):::derived
+    T3(["Em preparacao<br/>COBRE: abertura da OP + compras + recebimento + ajuste"]):::derived
+    T4(["Em producao<br/>SO quando a producao realmente comeca"]):::derived
+    T5(["Em acabamento · so Tapete"]):::derived
+    T6(["Em expedicao"]):::derived
+    T7(["Entregue parcialmente"]):::derived
+    T8(["Entregue"]):::derived
+    T1 -.-> T2 -.-> T3 -.-> T4 -.-> T5 -.-> T6 -.-> T7 -.-> T8
+  end
+  P1 -.-> T1
+  P2 -.-> T2
+  NCREATE -.-> T3
+  RDIST -.-> T3
+  SOK -.-> T3
+  S3 -.-> T4
+  ACB1 -.-> T5
+  EXP1 -.-> T6
+  DPART -.-> T7
+  P4 -.-> T8
+
+  %% ===== AREA CINZA — LEGADO =====
+  subgraph LEG["AREA CINZA · LEGADO — FORA do fluxo-alvo, sem autoridade operacional"]
+    direction LR
+    LG1["ordens_compra_fio<br/>modelo plano"]:::legacy
+    LG2["kg_recebido<br/>NAO e fonte de disponibilidade"]:::legacy
+    LG3["ops.finalizada<br/>compatibilidade latex"]:::legacy
+    LG1 --- LG2
+    LG1 --- LG3
+  end
+  LG1 -.->|"PROIBIDO: ponte, dupla escrita,<br/>materializacao sintetica,<br/>OP representativa"| AVAIL

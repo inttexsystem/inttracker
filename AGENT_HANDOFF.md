@@ -23,7 +23,7 @@ This generated continuation view owns no rules, state, product semantics, or acc
 
 - Status: `IMPLEMENTED / PROVED ON A DISPOSABLE CLUSTER / db/100 APPLIED EXACTLY ONCE TO THE DEFINITIVE PRODUCTION PROJECT AND VERIFIED AFTER APPLICATION / PUBLISHED THROUGH THE SINGLE AUTHORIZED staging/dev PUSH / AWAITING SUPERVISOR REVIEW AND ACCEPTANCE. SELF-ACCEPTANCE IS NOT CLAIMED AND NO ACCEPTED CHECKPOINT IS APPENDED FOR THIS PHASE. NATIVE RECEIPT REMAINS INACTIVE: ordem_compra_cutover IS legacy_active/flat AND THE db/75/db/76 WRITER FENCE IS UNCHANGED`
 - Objective: Close the lifecycle AFTER a Purchase Order is generated: make cancellation reachable from rascunho AND emitida, make it release active purchasing balance immediately and irrepeatably, correct permanent-deletion eligibility so a cancelled previously emitted order is no longer trapped, stop offering receipt registration while the canonical cutover is inactive, make modal refusals visible inside the modal that raised them, and mount the read-only Purchase Order provenance.
-- Next authorizable action: `NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1, WHICH FOLLOWS THE STILL-OUTSTANDING SUPERVISOR REVIEW AND ACCEPTANCE OF PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1` / `AWAITING SUPERVISOR REVIEW; DESIGN ONLY; IMPLEMENTATION REMAINS UNAUTHORIZED; NO PHASE IS CHAINED AND NO PRODUCT PHASE FOLLOWS AUTOMATICALLY`
+- Next authorizable action: `SUPERVISOR REVIEW OF THE TARGET-DESIGN DOCUMENTATION COMMIT (PEDIDO-DERIVED-LIFECYCLE-TARGET-DESIGN-FINALIZATION-R1); THE STILL-OUTSTANDING REVIEW AND ACCEPTANCE OF PURCHASE-ORDER-POST-GENERATION-STABILIZATION-R1 AND THE DESIGN ORDER NATIVE-RECEIPT-COORDINATED-RELEASE-DESIGN-R1 BOTH REMAIN AFTER IT` / `AWAITING SUPERVISOR REVIEW; TARGET DESIGN DOCUMENTED AND NOT ACCEPTED; IMPLEMENTATION, COORDINATED RELEASE AND db/100 ACCEPTANCE ALL REMAIN UNAUTHORIZED; NO PHASE IS CHAINED AND NO PRODUCT PHASE FOLLOWS AUTOMATICALLY`
 
 ## Blockers and decisions
 
@@ -41,4 +41,5 @@ This generated continuation view owns no rules, state, product semantics, or acc
 - `docs/architecture/PEDIDO_OP_SCHEMA_CONTRACT.md::### 13.17 Active Phase-C schema requirement registry — governance metadata`
 - `docs/architecture/PEDIDO_PRODUCTION_FLOW_BACKLOG.md::# Update 2026-07-22 - C5-DOCUMENTATION-CLOSEOUT-R1 (PHASE-C5 supervisor acceptance and closeout; OC-C5-EMISSION-001 SATISFIED)`
 - `docs/governance/traceability/purchase-order-phase-c.json::/requirements`
-- `docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md::## 14. Current checkpoint`
+- `docs/architecture/PEDIDO_DERIVED_LIFECYCLE_RECOVERY_PLAN.md::## 9. Target product design`
+- `docs/architecture/diagrams/pedido-derived-lifecycle-target.svg::  <title>GRAFO-ALVO — ciclo de vida do Pedido e das ordens relacionadas</title>`
